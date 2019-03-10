@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="">
+    <meta name="author" content="">
+
+    <title>Dexcalibur - Probe manager</title>
+
+    <!-- styles -->
+    <!--## pages/inc/tpl_css.html ##-->
+
+
+    <!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
+    <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
+    <!--[if lt IE 9]>
+        <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
+        <script src="https://oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js"></script>
+    <![endif]-->
+
+</head>
+
+<body>
+
+    <div id="wrapper">
+
+        <!-- Navigation -->
+        <!--## pages/inc/menu.html ##-->
+
+        <div id="page-wrapper">
+            <div class="row">
+                <div class="col-lg-12">
+                    <h1 class="page-header">Probe manager</h1>
+                </div>
+                <!-- /.col-lg-12 -->
+            </div>
+
+            <!-- /.row -->
+            <div class="row">
+                <div class="col-lg-12">
+                        
+                    <table width="100%" class="table table-striped table-bordered table-hover" id="dataTables-probe">
+                        <thead>
+                            <tr>
+                                <th></th>
+                                <th>Type</th>
+                                <th>Method</th>
+                                <th>Status</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            
+                        </tbody>
+                    </table>
+                    <!-- /.table-responsive -->
+                
+                   
+                </div>
+                <!-- /.col-lg-12 -->
+            </div>
+
+        </div>
+        <!-- /#page-wrapper -->
+    </div>
+    <!-- /#wrapper -->
+
+    <div class="modal fade" id="methodModal" tabindex="-1" role="dialog" aria-labelledby="methodModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg" role="document">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h3 class="modal-title" id="methodModalLabel">Method details</h3>
+              <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+              </button>
+            </div>
+            <div class="modal-body">
+              &nbsp;
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    <!--## pages/inc/tpl_js_end.html ##-->
+    <!--## pages/inc/tpl_ace_js.html ##-->
+
+    <!-- Page-Level Demo Scripts - Tables - Use for reference -->
+    <script>
+
+    function setupAceEditor(id){
+        var editor = ace.edit(id);
+        editor.setTheme("ace/theme/monokai"); //
+    
+        editor.setOptions({
+            maxLines: 50, 
+            fontSize: "12pt"
+        });
+        //editor.setUseWorker(false);
+        editor.session.setMode("ace/mode/javascript");
+        return editor;
+    }
+    //    setupAceEditor();
+    var IdRegister = new Wexcalibur();
+    // keep a record of the instanciated editor for each Id
+    var EditorRegister = {};
+     
+
+    function saveEditor(id,editor){
+        EditorRegister[id]=editor;
+    }
+    function htmlEncode(txt){
+        return $("<div />").text(txt).html();
+    }
+
+
+    function renderMethodModal( row ) {
+        let body = '', j=0;
+
+
+        //body += '<table class="table table-sm"><thead><tr><th scope="col">Role</th><th scope="col">Action</th><th scope="col">Type</th><th scope="col">Name</th></thead><tbody>';
+        body += '<table class="table table-sm">';
+        body += '<tr><td><b>Modifiers</b></td><td>';
+
+        for(let i in row.modifiers){
+            if(j==8) body+="<br>";
+            if(row.modifiers[i]==true){
+                body += '&nbsp;<a  class="badge badge-success">'+i+'</a>';
+            }else{
+                body += '&nbsp;<a  class="badge badge-secondary">'+i+'</a>';
+            }
+            j++;
+        }
+
+        body += '</td></tr>'; 
+        body += '<tr><td>Fullname</td><td>'+row.enclosingClass+'.'+row.name+'</td></tr>';
+        
+        for(let i=0;  i<row.args.length; i++){
+            sgt = row.args[i].name;
+            console.log(row.args[i]);
+            body += '<tr><td>Arg '+i+'</td><td><a class="arglink" clsid="'+btoa(encodeURIComponent(sgt))+'">'+sgt+'</a></td></tr>';
+        }
+
+        body += '<tr><td>Return</td><td><a class="retlink" clsid="'+row.ret.name+'">'+row.ret.name+'</td></tr>';
+        body += '</table>';
+
+        let codeID = IdRegister.codeReg.next()
+
+        //body += '<h4>Disassembled bytecode</h4>';
+        
+
+        body += '<div id="'+codeID+'"></div>';
+        $.ajax(
+            "../api/method/disass/"+encodeURIComponent(btoa(encodeURIComponent(row.__signature__))),
+            {
+                method: "get",
+                statusCode: {
+                    200: function(data){
+                        data = JSON.parse(data);
+                        let code = $("#"+codeID);
+                        //let code = $("#editor1");
+                        let codeBody = "";
+                        console.log(data,code);
+                        for(let i=0; i<data.disass.length; i++){
+                            codeBody += "\n";
+                            if(data.disass[i].tag!=null){
+                                codeBody += "."+data.disass[i].tag.substr(1)+"\n";
+                            }
+                            if(data.disass[i].instr.length>0){
+                                //console.log(data.disass[i].instr);
+                                for(let j=0; j<data.disass[i].instr.length; j++){
+                                    if(data.disass[i].instr[j].value.indexOf("move-result-object")==0)
+                                        codeBody += "\t"+data.disass[i].instr[j].value+"\n";
+                                    else    
+                                        codeBody += data.disass[i].instr[j].value+"\n";
+                                }   
+                            }
+                        }
+                        code.html(codeBody);
+                        //code.html("var a=new String('test');");
+                        setupAceEditor(codeID);
+                    }
+                }
+            }
+        );
+
+        $("#methodModal div.modal-body").html(body);
+        return body;
+    }
+
+    /* Formatting function for row details - modify as you need */
+    function format ( row ) {
+        // `d` is the original data object for the row
+        let body = '';
+
+ //       body += '<table class="table"><thead><tr><th scope="col">Action</th><th scope="col">Type</th></thead><tbody>';
+        body += '<table class="table"><tbody>';
+        body += '<tr><td><b>Name</b></td><td>'+htmlEncode(row.id)+'</td></tr>';
+        body += '<tr><td><b>Method</b></td><td><a methid="'+btoa(encodeURIComponent(row.name))+'" class="showMethod">'+htmlEncode(row.name)+'</a></td></tr>';
+        body += '<tr><td><b>Description</b></td><td>'+((row.description!=null)?row.description:'')+'</td></tr>';
+        //body += '<tr><td><b>Intercept</b></td><td>[None]</td></tr>';
+
+        let codeID = IdRegister.codeReg.next();
+
+        body += '</table>';
+        //body += '<h4>Hook code</h4><pre id="'+codeID+'">'+decodeURIComponent(atob(row.script))+'</pre>';
+        //body += '<h4>Hook code</h4>';
+        body += `<div class="row">
+                    <div class="col-lg-8">
+                        <div class="panel panel-info">
+                            <div class="panel-heading">
+                                <div class="row">
+                                    <div class="col-lg-10" style="font-size:1.8em">  
+                                        Hook code
+                                    </div>
+                                    <div class="col-lg-2">
+                                        <button code="`+codeID+`" hookid="`+row.id+`" class="btn btn-danger savechange">Save changes</button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="panel-body" style="padding:0px;">
+                                <pre id="`+codeID+`">`+decodeURIComponent(atob(row.script))+`</pre>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-4">
+                        <div class="panel panel-info">
+                            <div class="panel-heading">
+                                <div class="row">
+                                    <div class="col-lg-8 col-md-4">  
+                                        <button class="btn btn-danger replay-hook" code="`+codeID+`" hookid="`+row.id+`"><span class="fa fa-refresh">&nbsp;</span>Replay hook</button>
+                                    </div>
+                                    <div class="col-lg-4 col-md-8" style="font-size:1.8em" >
+                                        Hook messages
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="panel-body" style="padding:0px;" id="hook-log-`+row.id+`">
+                                <table class="table table-sm-4">
+                                        <thead><tr><td><b>Messages</b></td></tr></thead><tbody><tr><td>Nothing to display</td></tr></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>'`
+        //body += '<div class="row"><div class="col-md-offset-10"><button code="'+codeID+'" hookid="'+row.id+'" class="btn btn-primary savechange">Save changes</button></div></div>';
+        
+        setTimeout(function(){
+            saveEditor( codeID, setupAceEditor(codeID));
+        },20);
+
+        return body;
+    }
+
+   
+
+    $(document).ready(function() {
+
+        $(document).on("click",".showMethod",function(){
+            let method = $(this).attr("methid");
+
+            $.ajax('../api/method/'+method,{
+                method: 'get',
+                statusCode: {
+                    200: function(data){
+                        renderMethodModal(JSON.parse(data));
+                        $('#methodModal').modal();
+                    },
+                    404: function(){
+                        //alert("Failed to update the hook")
+                    }
+                }
+            })
+        })
+        
+        let clsTable = $('#dataTables-probe').DataTable({
+            ajax: "../api/probe",
+            searching: false,
+            paging: false,
+            columns: [
+                {
+                    "className":      'details-control',
+                    "orderable":      false,
+                    "data":           null,
+                    "defaultContent": ''
+                },
+                {  
+                   
+                    render: function(data, type, row, meta ){
+                        if(row.isIntercept)
+                            return '<a  class="badge badge-danger">intercept</a>';
+                        else
+                            return '<a  class="badge badge-primary">probe</a>';                 
+                    }
+                    //defaultContent: '-'
+                },
+                { 
+                    data: 'name' ,
+                    render: function(data, type, row, meta ){
+                        return (row.name!=null)? htmlEncode(row.name) : '[Missing]';
+                    }
+                },
+                { 
+                    render: function(data, type, row, meta ){
+                        console.log(row);
+                        if(row.enable){
+                            return '<a  class="badge badge-success probe" status="true" meth="'+btoa(encodeURIComponent(row.name))+'">ON</a>';
+                        }else{
+                            return '<a  class="badge badge-danger probe" status="false" meth="'+btoa(encodeURIComponent(row.name))+'">OFF</a>';
+                        }
+                        if(row.edited){
+                            return '<a  class="badge badge-info">edited</a>';
+                        } 
+                    }
+                },{
+                    render: function(data, type, row, meta ){
+                        return '<button style="height:1.5em;padding-top:0px;padding-bottom:0px;" class="btn btn-primary probe-duplicate" hookid="'+row.id+'"><span class="fa fa-copy"></span></button>&nbsp;'
+                            +'<button style="height:1.5em;padding-top:0px;padding-bottom:0px;" class="btn btn-danger probe-del" hookid="'+row.id+'"><span class="fa fa-trash"></span></button>';
+                    } 
+                }
+            ],
+            responsive: false
+        });
+
+
+        let msgStatus = 0;
+        let stopHooks = 1;
+        let hookMessages = {
+            view: {
+                hook_id: null,
+                stop_id: null
+            }
+        };
+
+        $(document).on("click",".replay-hook",function(e){
+            msgStatus = 9999999;
+            console.log(e);
+            hookMessages.view.hook_id = e.target.attributes.hookid.nodeValue;
+            //console.log(hookMessages.view.hook_id);
+            //hookMessages.view.stop_id = e.target.attributes.code;
+
+            $("#hook-log-"+hookMessages.view.hook_id+" table tbody tr").remove();
+            $.ajax('../api/probe/start',{
+                method: 'post',
+                statusCode: {
+                    200: function(){
+                        stopHooks = 0;
+                        msgStatus = 0;
+                        //console.log(e);
+                        
+                        
+                    },
+                    404: function(){
+                        alert("Failed to start probing(see logs)")
+                    }
+                }
+            })
+        });
+
+        
+        setInterval(function(){
+            if(stopHooks==1) return;
+
+            $.ajax("../api/probe/msg",{
+                method: 'get',
+                statusCode: {
+                    200: function(data,err){
+                        var d = JSON.parse(data), msg, color_start, color_end, msgdata, hookMsg;
+                        //console.log(d);
+                        
+                        //clsTable.draw();
+
+                        if(d.data.message.length>msgStatus){
+
+
+                            //$("#probelogs").html("");
+
+                            for(let i=msgStatus; i<d.data.message.length ; i++){
+
+                                if(atob(d.data.message[i].hook) != hookMessages.view.hook_id) continue;
+                                
+                                hookMsg = d.data.message[i];
+                                msg = hookMsg.msg;
+
+                                msgdata = "";
+                                if(hookMsg.data != null){
+                                    if(typeof hookMsg.data == "object"){
+                                        for(let i in hookMsg.data){
+                                            msgdata += htmlEncode(i+" = "+hookMsg.data[i])+"</br>";
+                                        }
+                                    }else
+                                        msgdata = htmlEncode(hookMsg.data);
+                                }
+                            
+
+                                if(msg != undefined){
+                                    $("#hook-log-"+hookMessages.view.hook_id+" table tbody").append(
+                                        `<tr>
+                                            <td>`+msgdata+`</td>
+                                        </tr>`
+                                    );
+                                    //logTable.row.add(hookMsg);
+                                    //logTable.draw();
+                                }
+                            }
+                            msgStatus = d.data.message.length;
+                        }
+                    },
+                    404: function(){
+                        //alert("Failed to add probe (see logs)")
+                    }
+                }
+            });
+        },100);
+
+
+        //$('#probelogs').
+        $('#dataTables-probe tbody').on('click', 'td.details-control', function () {
+            var tr = $(this).closest('tr');
+            var row = clsTable.row( tr );
+            console.log(row.child.isShown());
+            
+            if ( row.child.isShown() ) {
+                // This row is already open - close it
+                row.child.hide();
+                tr.removeClass('shown');
+            }
+            else {
+                // Open this row
+                row.child( format(row.data()) ).show();
+                tr.addClass('shown');
+            }
+        } );
+
+        let refreshMsgCtr = 0;
+        
+        $(document).on("click",".probe",function(){
+            let DOM_PROBE =$(this);
+            let meth = $(this).attr("meth");
+            let status = $(this).attr("status");
+
+            status = (status=="true") ? "false" : "true";
+            refreshMsgCtr
+
+            $.ajax('../api/probe/'+meth+'?enable='+status,{
+                method: 'put',
+                statusCode: {
+                    200: function(data){
+                        console.log(data);
+                        DOM_PROBE.attr("status",status);
+                        if(status=="true"){
+                            DOM_PROBE.removeClass("badge-danger");
+                            DOM_PROBE.addClass("badge-success");
+                            DOM_PROBE.text("ON").html()
+                        }
+                        else{
+                            DOM_PROBE.removeClass("badge-success");
+                            DOM_PROBE.addClass("badge-danger");
+                            DOM_PROBE.text("OFF").html()
+                        }
+                    },
+                    404: function(){
+                        //alert("Failed to add probe (see logs)")
+                    }
+                }
+            })
+        });
+
+        $(document).on("click",".probe-duplicate",function(){
+            let DOM_PROBE =$(this);
+            let hookid = $(this).attr("meth");
+            let status = $(this).attr("status");
+
+            $.ajax('../api/hook/duplicate?id='+hookid,{
+                method: 'get',
+                statusCode: {
+                    200: function(data){
+                        alert("Hook duplicate"); 
+                    },
+                    404: function(){
+                        // alert("Failed to update the hook")
+                    }
+                }
+            })
+        });
+        $(document).on("click",".probe-update",function(){
+            let hookid = $(this).attr("hookid");
+
+            $.ajax('../api/hook/'+hookid,{
+                method: 'put',
+                data: {
+
+                },
+                statusCode: {
+                    200: function(data){
+                        alert("Hook updated"); 
+                    },
+                    404: function(){
+                        //alert("Failed to update the hook")
+                    }
+                }
+            })
+        });
+
+        $(document).on("click",".probe",function(){
+            let DOM_PROBE =$(this);
+            let hookid = $(this).attr("meth");
+            let status = $(this).attr("status");
+
+            $.ajax('../api/hook/'+hookid+'?enable='+status,{
+                method: 'put',
+                statusCode: {
+                    200: function(data){
+                        //alert("Hook updated");
+                    },
+                    404: function(){
+                        //alert("Failed to update the hook")
+                    }
+                }
+            })
+        });
+
+        function buildHookCode(id){
+            let code = EditorRegister[id].session.doc;
+            let src = [];
+            //$lines.map(x=>src.push(encodeURIComponent(x)));
+            // return src;
+            return code.$lines;
+        }
+
+        // save change action
+        $(document).on("click","button.savechange",function(){
+            var code = buildHookCode($(this).attr("code"));
+            // EditorRegister[$(this).attr("code")].session.doc.$lines.join("\n");
+            // console.log(EditorRegister[$(this).attr("code")].session.doc
+            $.ajax('../api/hook/'+$(this).attr("hookid"),{
+                method: 'put',
+                data: {
+                    code: code
+                },
+                statusCode: {
+                    200: function(){
+                        alert('Hook updated');
+                    },
+                    404: function(err){
+                        alert('Remote error');
+                    }
+                }
+            });
+        });
+
+    
+        function getAttr(e,attr){
+            for(let i  in e.attributes){
+                if(e.attributes[i].name == attr) return e.attributes[i]; 
+            }
+            return null;
+        }
+
+        $(document).on("click",".editHook",function(e){
+            let id = getAttr(e,"hookId");
+            let codeBlock = e.target.parentElement.nextSibling;
+            //console.log(codeBlock);
+            codeBlock.firstChild.innerHTML = "<textarea>"+$("<div />").text(codeBlock.innerText).html()+"</textarea>";
+            //console.log(id);
+        });
+
+        
+        $(document).on("click",".probe-del",function(e){
+            let id = getAttr(e.target,"hookid");
+            
+            
+            $.ajax("../api/hook/"+id.value,{
+                method: "delete",
+                statusCode: {
+                    200: function(data){
+                        // TODO : Reload the table
+                    },
+                    404: function(data){
+                        alert("An error happens during deletion");
+                    }
+                }
+            });
+
+            
+        });
+
+        //dmTable.ajax.url("../api/device").load();
+        $('#dm-refresh-btn').click(()=>{
+            clsTable.ajax.reload();
+        });
+    });
+
+
+    </script>
+
+</body>
+
+</html>

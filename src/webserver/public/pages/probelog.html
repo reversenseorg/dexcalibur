@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="">
+    <meta name="author" content="">
+
+    <title>Dexcalibur - Probe manager</title>
+
+    <!-- styles -->
+    <!--## pages/inc/tpl_css.html ##-->
+
+
+
+
+    <!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
+    <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
+    <!--[if lt IE 9]>
+        <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
+        <script src="https://oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js"></script>
+    <![endif]-->
+
+</head>
+
+<body>
+
+    <div id="wrapper">
+
+        <!-- Navigation -->
+        <!--## pages/inc/menu.html ##-->
+
+        <div id="page-wrapper">
+            <!--<div class="row">
+                <div class="col-lg-12">
+                    <h1 class="page-header" style="font-size:1em">Probe logs</h1>
+                </div>
+            </div>-->
+            <div class="row" style="padding:10px;">
+                <div class="col-lg-8" style="font-size:1.5em">Probe logs</div>
+                <div class="col-lg-2">
+                    <!--<select id="devicelist">
+                            <option default>Select a device</option>
+                            <option>Nexus 5x</option>
+                            <option>Emulator</option>
+                    </select>-->    
+                </div>
+                <div class="col-lg-2">
+                    <button class="btn btn-danger probe-restart">
+                        <i class="fa fa-refresh"></i>&nbsp;Relaunch
+                    </button>
+                </div>
+            </div>
+
+            <div class="panel panel-primary">
+               <!--<div class="panel-heading">
+                    <div class="row">
+                        <div class="col-lg-10" style="font-size:1.5em">Probe logs</div>
+                        <div class="col-lg-2">
+                            <button class="btn btn-danger probe-restart">
+                                <i class="fa fa-refresh"></i>&nbsp;Relaunch
+                            </button>
+                        </div>
+                    </div>
+                    
+                </div>-->              
+
+                    <table width="100%" class="table table-sm-4" id="tabProbeLogs">
+                            <thead>
+                                <tr>
+                                    <th>Device</th>
+                                    <th>Type</th>
+                                    <th>Method</th>
+                                    <th>Relevant arguments/subject</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                
+                            </tbody>
+                        </table>
+
+                </div>
+            
+            <!--<div class="modal modal-default">
+                <div class="modal-heading">
+                    <div class="row">
+                        <div class="col-lg-10" style="font-size:1.5em">Probe logs</div>
+                        <div class="col-lg-2">
+                            <button class="btn btn-danger probe-restart">
+                                <i class="fa fa-refresh"></i>&nbsp;Relaunch
+                            </button>
+                        </div>
+                    </div>
+                    
+                </div>                
+                <div class="modal-body" id="probelogs" style="background-color:#fff;font-family: 'Courier New', Courier, monospace">
+                    
+                </div>
+            </div> -->
+
+        </div>
+        <!-- /#page-wrapper -->
+    </div>
+    <!-- /#wrapper -->
+
+
+    <!--## pages/inc/tpl_js_end.html ##-->
+    <!--## pages/inc/tpl_ace_js.html ##-->
+
+
+    <!-- Page-Level Demo Scripts - Tables - Use for reference -->
+    <script>
+
+    function setupAceEditor(id){
+        var editor = ace.edit(id);
+        editor.setTheme("ace/theme/monokai"); //
+    
+        editor.setOptions({
+            maxLines: 50, 
+            fontSize: "12pt"
+        });
+        //editor.setUseWorker(false);
+        editor.session.setMode("ace/mode/javascript");
+    }
+    //    setupAceEditor();
+    var IdRegister = new Wexcalibur();
+     
+
+    function htmlEncode(txt){
+        return $("<div />").text(txt).html();
+    }
+
+
+    /* Formatting function for row details - modify as you need */
+    function format ( row ) {
+        // `d` is the original data object for the row
+        let body = '';
+
+ //       body += '<table class="table"><thead><tr><th scope="col">Action</th><th scope="col">Type</th></thead><tbody>';
+        body += '<table class="table"><tbody>';
+        body += '<tr><td><b>Name</b></td><td>'+htmlEncode(row.id)+'</td></tr>';
+        body += '<tr><td><b>Method</b></td><td>'+htmlEncode(row.name)+'</td></tr>';
+        body += '<tr><td><b>Description</b></td><td>'+((row.description!=null)?row.description:'')+'</td></tr>';
+        //body += '<tr><td><b>Intercept</b></td><td>[None]</td></tr>';
+
+        let codeID = IdRegister.codeReg.next();
+
+        body += '</table>';
+        body += '<h4>Hook code</h4><pre id="'+codeID+'">'+atob(row.script)+'</pre>';
+        body += '<div class="row"><div class="col-md-offset-10"><button code="'+codeID+'" hookid="'+row.id+'" class="btn btn-primary savechange">Save changes</button></div></div>';
+        
+        setTimeout(function(){
+            setupAceEditor(codeID);
+        },20);
+
+        return body;
+    }
+
+   
+
+    $(document).ready(function() {
+
+        let clsTable = $('#dataTables-probe').DataTable({
+            ajax: "../api/probe",
+            searching: false,
+            paging: false,
+            columns: [
+                {
+                    "className":      'details-control',
+                    "orderable":      false,
+                    "data":           null,
+                    "defaultContent": ''
+                },
+                {  
+                   
+                    render: function(data, type, row, meta ){
+                        if(row.isIntercept)
+                            return '<a  class="badge badge-danger">intercept</a>';
+                        else
+                            return '<a  class="badge badge-primary">probe</a>';                 
+                    }
+                    //defaultContent: '-'
+                },
+                { 
+                    data: 'name' ,
+                    render: function(data, type, row, meta ){
+                        return (row.name!=null)? htmlEncode(row.name) : '[Missing]';
+                    }
+                },
+                { 
+                    render: function(data, type, row, meta ){
+                        if(row.enable){
+                            return '<a  class="badge badge-success probe" status="true" meth="'+btoa(row.name)+'">ON</a>';
+                        }else{
+                            return '<a  class="badge badge-danger probe" status="false" meth="'+btoa(row.name)+'">OFF</a>';
+                        } 
+                    }
+                },{
+                    render: function(data, type, row, meta ){
+                        return '<button style="height:1.5em;padding-top:0px;padding-bottom:0px;" class="btn btn-primary probe-duplicate" hookid="'+row.id+'"><span class="fa fa-copy"></span></button>&nbsp;'
+                            +'<button style="height:1.5em;padding-top:0px;padding-bottom:0px;" class="btn btn-danger probe-del" hookid="'+row.id+'"><span class="fa fa-trash"></span></button>';
+                    } 
+                }
+            ],
+            responsive: true
+        });
+
+
+        let logTable = $('#dataTables-probelog').DataTable({
+            //ajax: "../api/probe/msg",
+            searching: false,
+            paging: false,
+            columns: [
+                {
+                    "className":      'details-control',
+                    "orderable":      false,
+                    "data":           null,
+                    "defaultContent": ''
+                },
+                {  
+                    render: function(data, type, row, meta ){
+                        let tag = "";
+                        if(row.isIntercept)
+                            tag = '<a class="badge badge-danger">intercept</a>';
+                        else
+                            tag = '<a class="badge badge-primary">probe</a>';
+
+                        if(row.match)
+                            tag +='&nbsp;<a class="badge badge-warning" style="color:#000;">match</a>';
+
+                        return tag;
+                    }
+                    //defaultContent: '-'
+                },
+                { 
+                    defaultContent: '-'
+                    //data: 'name' ,
+/*                    render: function(data, type, row, meta ){
+                        return (row.after)? '<a  class="badge badge-purple">After</a>' : '<a  class="badge badge-primary">Before</a>';
+                    }*/
+                },
+                { 
+                    //data: 'name'
+                    render: function(data, type, row, meta ){
+                        return row.msg;
+                        //let enable="true";
+                        //return '<a  class="badge badge-success probe" status="'+enable+'" meth="'+btoa(row.name)+'">ON</a>';
+                    }
+                }
+            ],
+            responsive: true
+        });
+
+        /*htmlEncode = function(txt){
+            return $("<div />").text(txt).html();
+        }*/
+
+        let msgStatus = 0;
+
+        setInterval(function(){
+            $.ajax("../api/probe/msg",{
+                method: 'get',
+                statusCode: {
+                    200: function(data,err){
+                        var d = JSON.parse(data), msg, color_start, color_end, msgdata, hookMsg;
+                        //console.log(d);
+                        
+                        //clsTable.draw();
+
+                        if(d.data.message.length>msgStatus){
+
+
+                            //$("#probelogs").html("");
+
+                            for(let i=msgStatus; i<d.data.message.length ; i++){
+                                hookMsg = d.data.message[i];
+                                msg = hookMsg.msg;
+
+                                if(msg!==undefined && msg.indexOf("[INTERCEPT]")==0){
+                                    color_start = '<b style="color:#F00">';
+                                    color_end = '</b>';
+                                }   
+                                else{
+                                    color_start="";
+                                    color_end="";
+                                }
+
+                                tag = "", type="";
+                                /*if(hookMsg.isIntercept)
+                                    type = '<a class="badge badge-danger">intercept</a>';
+                                else
+                                    type = '<a class="badge badge-primary">probe</a>';
+                                */
+                                if(hookMsg.match){
+                                    //tag +='&nbsp;<a class="badge badge-warning" style="color:#000;">match</a>';
+                                    classes = 'class="danger"';
+                                    type = '<a class="badge badge-danger">intercept</a>';
+                                }else{
+                                    classes = "";
+                                    type = '<a class="badge badge-primary">probe</a>';
+                                }
+
+
+                                msgdata = "";
+                                if(hookMsg.data != null){
+                                    if(typeof hookMsg.data == "object"){
+                                        for(let i in hookMsg.data){
+                                            msgdata += htmlEncode(i+" = "+hookMsg.data[i])+"</br>";
+                                        }
+                                    }else
+                                        msgdata = htmlEncode(hookMsg.data);
+                                }
+                            
+
+                                if(msg != undefined){
+                                    $("#tabProbeLogs tbody").append(
+                                        `<tr `+classes+`>
+                                            <td>android</td>
+                                            <td>`+type+`</td>
+                                            <td>`+htmlEncode(hookMsg.msg)+`</td>
+                                            <td>`+msgdata+`</td>
+                                            <td>`+htmlEncode(hookMsg.action)+`</td>
+                                        </tr>`
+                                    );
+                                    //logTable.row.add(hookMsg);
+                                    //logTable.draw();
+                                }
+                            }
+                            msgStatus = d.data.message.length;
+                        }
+                    },
+                    404: function(){
+                        //alert("Failed to add probe (see logs)")
+                    }
+                }
+            });
+        },100);
+
+        //$('#probelogs').
+        $('#dataTables-probe tbody').on('click', 'td.details-control', function () {
+            var tr = $(this).closest('tr');
+            var row = clsTable.row( tr );
+            //console.log(row.child);
+
+            if ( row.child.isShown() ) {
+                // This row is already open - close it
+                row.child.hide();
+                tr.removeClass('shown');
+            }
+            else {
+                // Open this row
+                row.child( format(row.data()) ).show();
+                tr.addClass('shown');
+            }
+        } );
+
+        let refreshMsgCtr = 0;
+        
+        $(document).on("click",".probe",function(){
+            let DOM_PROBE =$(this);
+            let meth = $(this).attr("meth");
+            let status = $(this).attr("status");
+
+            status = (status=="true") ? "false" : "true";
+            refreshMsgCtr
+
+            $.ajax('../api/probe/'+meth+'?enable='+status,{
+                method: 'put',
+                statusCode: {
+                    200: function(data){
+                        console.log(data);
+                        DOM_PROBE.attr("status",status);
+                        if(status=="true"){
+                            DOM_PROBE.removeClass("badge-danger");
+                            DOM_PROBE.addClass("badge-success");
+                            DOM_PROBE.text("ON").html()
+                        }
+                        else{
+                            DOM_PROBE.removeClass("badge-success");
+                            DOM_PROBE.addClass("badge-danger");
+                            DOM_PROBE.text("OFF").html()
+                        }
+                    },
+                    404: function(){
+                        //alert("Failed to add probe (see logs)")
+                    }
+                }
+            })
+        });
+
+        $(document).on("click",".probe-duplicate",function(){
+            let DOM_PROBE =$(this);
+            let hookid = $(this).attr("meth");
+            let status = $(this).attr("status");
+
+            $.ajax('../api/hook/duplicate?id='+hookid,{
+                method: 'get',
+                statusCode: {
+                    200: function(data){
+                        alert("Hook duplicate"); 
+                    },
+                    404: function(){
+                        // alert("Failed to update the hook")
+                    }
+                }
+            })
+        });
+        $(document).on("click",".probe-update",function(){
+            let hookid = $(this).attr("hookid");
+
+            $.ajax('../api/hook/'+hookid,{
+                method: 'put',
+                data: {
+
+                },
+                statusCode: {
+                    200: function(data){
+                        alert("Hook updated"); 
+                    },
+                    404: function(){
+                        //alert("Failed to update the hook")
+                    }
+                }
+            })
+        });
+
+        $(document).on("click",".probe",function(){
+            let DOM_PROBE =$(this);
+            let hookid = $(this).attr("meth");
+            let status = $(this).attr("status");
+
+            $.ajax('../api/hook/'+hookid+'?enable='+status,{
+                method: 'put',
+                statusCode: {
+                    200: function(data){
+                        //alert("Hook updated");
+                    },
+                    404: function(){
+                        //alert("Failed to update the hook")
+                    }
+                }
+            })
+        });
+
+        // save change action
+        $(document).on("click","button.savechange",function(){
+            
+            $.ajax('../api/probe/edit/'+$(this).attr("hookid"),{
+                method: 'post',
+                data: {
+                    code: ""//$("#"+$(this).attr("code")).html
+                },
+                statusCode: {
+                    200: function(){
+
+                    }
+                }
+            });
+        });
+
+        $(document).on("click",".probe-restart",function(){
+            msgStatus = 9999999;
+            $("#tabProbeLogs tbody tr").remove();
+            $.ajax('../api/probe/start',{
+                method: 'post',
+                statusCode: {
+                    200: function(){
+           //             $("#probelogs").html("");
+                        msgStatus = 0;
+                        
+                        // logTable.clear();
+                        // logTable.draw();
+                    },
+                    404: function(){
+                        alert("Failed to start probing(see logs)")
+                    }
+                }
+            })
+        });
+
+        function getAttr(e,attr){
+            for(let i  in e.attributes){
+                if(e.attributes[i].name == attr) return e.attributes[i]; 
+            }
+            return null;
+        }
+
+        $(document).on("click",".editHook",function(e){
+            let id = getAttr(e,"hookId");
+            let codeBlock = e.target.parentElement.nextSibling;
+            //console.log(codeBlock);
+            codeBlock.firstChild.innerHTML = "<textarea>"+$("<div />").text(codeBlock.innerText).html()+"</textarea>";
+            //console.log(id);
+        });
+
+        
+        $(document).on("click",".probe-del",function(e){
+            let id = getAttr(e.target,"hookid");
+            
+            
+            $.ajax("../api/hook/"+id.value,{
+                method: "delete",
+                statusCode: {
+                    200: function(data){
+
+                    },
+                    404: function(data){
+
+                    }
+                }
+            });
+
+            
+        });
+
+        //dmTable.ajax.url("../api/device").load();
+        $('#dm-refresh-btn').click(()=>{
+            clsTable.ajax.reload();
+        });
+    });
+
+
+    </script>
+
+</body>
+
+</html>

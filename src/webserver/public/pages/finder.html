@@ -1,0 +1,1008 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="">
+    <meta name="author" content="">
+
+    <title>Dexcalibur - Application object finder</title>
+
+    <!--## pages/inc/tpl_css.html ##-->
+
+    <!--## pages/inc/tpl_js_d3.html ##-->
+
+
+    <!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
+    <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
+    <!--[if lt IE 9]>
+        <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
+        <script src="https://oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js"></script>
+    <![endif]-->
+
+</head>
+
+<body>
+
+    <div id="wrapper">
+
+        <!--## pages/inc/menu.html ##-->
+        <!--            <li class="dropdown">
+                            <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">Hooks<span class="caret"></span></a>
+                            <ul class="dropdown-menu">
+                              <li><a href="#">Control</a></li>
+                              <li role="separator" class="divider"></li>
+                              <li><a href="#">Single device logs</a></li>
+                              <li><a href="#">Multi devices logs</a></li>
+                              <li><a href="#">Observed files</a></li>
+                              <li role="separator" class="divider"></li>
+                              <li><a href="#">Strategies</a></li>
+                            </ul>
+                          </li>
+                        <li>
+                        -->
+
+        <div id="page-wrapper">
+            <div class="row">
+                <div class="col-lg-12">
+                    <h1 class="page-header">Application object finder</h1>
+                </div>
+                <!-- /.col-lg-12 -->
+            </div>
+
+            <!-- /.row -->
+            <div class="row">
+                <div class="col-lg-12">
+                    <div class="input-group">
+                        <input type="text" class="form-control" placeholder='class("name:Keystore")' id="search_request">
+                        <span class="input-group-btn">
+                            <button class="btn btn-primary" id="button_search" type="button">
+                                <span class="fa fa-search">&nbsp;</span>
+                                Search
+                            </button>
+                            <button class="btn btn-danger" id="button_probeall" type="button">
+                                <span class="fa fa-bolt">&nbsp;</span>
+                                Probe all
+                            </button>
+    
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <b>Search helper (click for add a filter) : </b>
+            <div class="row" style="margin-bottom:20px">
+                <div class="col-lg-12 pre-request">
+                    <a class="badge badge-danger prefilter-clean">clean</a>&nbsp;&nbsp;
+                    <a class="badge badge-info prefilter" prefilt='call("calleed.name:@@")'>find calls to a method</a>&nbsp;&nbsp;
+                    <a class="badge badge-info prefilter" prefilt='call("calleed.name:@@").filter("calleed.__signature__:->")'>use of the field</a>&nbsp;&nbsp;
+                    <a class="badge badge-info prefilter" prefilt='class("name:@@")'>find class by name</a>&nbsp;&nbsp;
+                    <a class="badge badge-info prefilter" prefilt='method("name:@@")'>find method by name</a>&nbsp;&nbsp;
+                    <a class="badge badge-info prefilter" prefilt='method("args.__signature__:@@")'>find method by arg type</a>&nbsp;&nbsp;
+                    <a class="badge badge-info prefilter" prefilt='class("name:@@")'>find field by name</a>&nbsp;&nbsp;
+                    <a class="badge badge-info prefilter" prefilt='class("ret.__signature__:@@")'>find method by return type</a>&nbsp;&nbsp;
+                    <a class="badge badge-info prefilter" prefilt='string("value:@@")'>Strings containing</a>&nbsp;&nbsp;
+                </div>
+                <div class="col-lg-12 pre-filter" style="display:none">
+                    <a class="badge badge-danger prefilter-clean">clean</a>&nbsp;&nbsp;
+                    <a class="badge badge-purple prefilter" prefilt='select("_callers")'>xref</a>&nbsp;&nbsp;
+                    <a class="badge badge-purple prefilter" prefilt='select("caller")'>keep callers</a>&nbsp;&nbsp;
+                    <a class="badge badge-purple prefilter" prefilt='select("calleed")'>keep calleds</a>&nbsp;&nbsp;
+                    <a class="badge badge-purple prefilter" prefilt='filter("enclosingClass.name:@@")'>exclude not in application package</a>&nbsp;&nbsp;
+                    <a class="badge badge-purple prefilter" prefilt='filter("caller.enclosingClass.name:@@")'>filter by caller class</a>&nbsp;&nbsp;
+                    <a class="badge badge-purple prefilter" when="before" prefilt='nocase()'>Case ensensitive</a>&nbsp;&nbsp;
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-lg-12">
+                    <table width="100%"  class="table table-striped table-bordered table-hover" id="dataTables-finder">
+                        <thead>
+                            <tr>
+                                <th id="finder-col1">-</th>
+                                <th id="finder-col2">-</th>
+                                <th id="finder-col3">-</th>
+                                <th id="finder-col4">-</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            
+                        </tbody>
+                    </table>
+                    <!-- /.table-responsive -->
+                </div>
+                <!-- /.col-lg-12 -->
+            </div>
+            <!-- /.row -->
+        </div>
+        <!-- /#page-wrapper -->
+
+        <div class="modal fade" id="probeall_modal" tabindex="-1" role="dialog" aria-labelledby="probeallModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-lg" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3 class="modal-title" id="probeallModalLabel">Confirmation</h3>
+                    </div>
+                    <div class="modal-body">
+                        Are you sure to probe <b id="probeall_count"></b> methods ?
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-danger" data-dismiss="modal">Abort</button>
+                        <button type="button" class="btn btn-success confirm">Confirm</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="modal modal-default" style="display:none" id="class-panel">
+            <div class="modal-header">
+
+            </div>
+            <div class="modal-body">
+
+            </div>
+        </div>
+
+
+    </div>
+    <!-- /#wrapper -->
+
+    <div class="modal fade" id="xrefModal" tabindex="-1" role="dialog" aria-labelledby="xrefModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg" role="document">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h3 class="modal-title" id="xrefModalLabel">XRefs</h3>
+            </div>
+            <div class="modal-body">
+                <table width="100%"  class="table table-striped table-bordered table-hover" id="dataTables-xref">
+                    <thead>
+                        <tr>
+                            <th id="xref-col1">ID</th>
+                            <th id="xref-col2">Location</th>
+                            <th id="xref-col3">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        
+                    </tbody>
+                </table>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    <!--## pages/inc/tpl_js_end.html ##-->
+    <!--## pages/inc/tpl_ace_smali.html ##-->
+
+    <script>
+
+    function setupAceEditor(id){
+        var editor = ace.edit(id);
+        editor.setTheme("ace/theme/monokai2"); //
+//        editor.setTheme("ace/theme/solarized_light"); //
+
+        editor.setOptions({
+            maxLines: 50, 
+            fontSize: "12pt"
+        });
+        //editor.setUseWorker(false);
+        editor.session.setMode("ace/mode/smali");
+    }
+    var IdRegister = new Wexcalibur();
+     
+
+    function htmlEncode(txt){
+        return $('<div />').text(txt).html();
+    }
+
+    /* Formatting function for row details - modify as you need */
+    function format ( row ) {
+        // `d` is the original data object for the row
+        let body = '';
+
+        body += "<code style='margin:10px'>";
+        body += $("<div />").text(decodeURIComponent(atob(row.script))).html();
+        body += "</code>"
+            
+        return body;
+    }
+
+
+    function getStubType(id){
+        let STUB_TYPE=[
+            "METHOD",
+            "FIELD",
+            "ANNOTATION",
+            "INSTR",
+            "MISSING",
+            "CLASS",
+            "OBJ_TYPE",
+            "BASIC_TYPE",
+            "VALUE_CONST",
+            "STRING_VALUE",
+            "CIRCULAR",
+            "VARIABLE",
+            "CALL"
+        ];
+
+        return STUB_TYPE[id-1];
+    }
+
+    var Render = {
+        methodTag: '<a class="badge badge-success probe">method</a>',
+        fieldTag: '<a class="badge badge-primary probe">field</a>',
+        classTag: '<a class="badge badge-purple probe">class</a>',
+        nativeTag: '<a class="badge badge-pink probe">native</a>'
+    };
+
+
+
+    function renderClassDetail( row ) {
+        let body = '';
+        body += '<p><b>Extends :</b>';
+        console.log('class',row);
+        if(row.extends != null){
+            body += "&nbsp;<a href='finder.html?class="+btoa(encodeURIComponent(row.extends))+"'>"+htmlEncode(row.extends)+"</a>";
+        }else{
+            body += "None"
+        }
+        
+        body += '</p><p><b>Implements :</b>&nbsp;&nbsp;';
+        
+        if(row.implements != null){
+            //body += "<ul>";
+            for(let i=0; i<row.implements.length; i++){
+                body += "<a href='finder.html?class="+btoa(encodeURIComponent(row.implements[i]))+"'>"+htmlEncode(row.implements[i])+"</a> <b>/</b> &nbsp;";
+            }
+            //body += "</ul>"
+        }else{
+            body += "None"
+        }
+     
+        //body += '<tr>'+
+        //    '<td>Implements :</td><td>';
+       
+/*        for(let i=0; i<row.implements.length; i++){
+            body += ((row.implements[i] != null)? row.implements[i].name : 'None')+'<br>';
+        }
+            
+        body += '</td></tr>';
+        body += '</table>
+        */
+        body+= '</p><table class="table table-sm"><thead><tr><th scope="col">Action</th><th scope="col">Type</th><th scope="col">Name</th></thead><tbody>';
+         
+        if(row.fields != null){
+            for(let i in row.fields){
+                body += '<tr>'+
+                    '<td><a  class="badge badge-secondary probe" field="'+btoa(encodeURIComponent(row.fields[i].__signature__))+'">Probe OFF</a>&nbsp;&nbsp;'+
+                    //'<a class="badge badge-secondary" onclick="intercept(\''+btoa(encodeURIComponent(row.fields[i].__signature__))+'\')">Intercept</a>'+
+                    '<a class="badge badge-purple" target="about" href="xref.html#fset='+btoa(encodeURIComponent(row.fields[i].__signature__))+';xrt=set">set xref</a>&nbsp;'+
+                    '<a class="badge badge-pink" target="about" href="xref.html#fget='+btoa(encodeURIComponent(row.fields[i].__signature__))+';xrt=get">get xref</a></td><td><b>Field</b></td>'+
+                    '<td><a target="about" href="finder.html?field='+btoa(encodeURIComponent(row.fields[i].__signature__))+'">'+$('<div />').text(row.fields[i].__signature__).html()+'</a></td>'+
+                '</tr>';
+            }
+        }
+
+         if(row.methods != null){
+             for(let i in row.methods){
+                 console.log(row.methods[i]);
+                 body += '<tr>'+
+                    '<td><a  class="badge badge-'+(row.methods[i].probing? 'success':'primary')+' probe" meth="'+btoa(encodeURIComponent(row.methods[i].__signature__))+'">Probe '+(row.methods[i].probing? 'ON':'OFF')+'</a>&nbsp;&nbsp;'+
+                    //'<a  class="badge badge-danger">Intercept</a>'+
+                    '<a class="badge badge-purple xrefto" target="about" meth="'+btoa(encodeURIComponent(row.methods[i].__signature__))+'">xref to</a>&nbsp;'+
+                    '<a class="badge badge-pink xreffrom" target="about" meth="'+btoa(encodeURIComponent(row.methods[i].__signature__))+'">xref from</a></td><td><b>Method</b></td>'+
+                    '<td><a target="about" href="finder.html?method='+btoa(encodeURIComponent(row.methods[i].__signature__))+'">'+$('<div />').text(row.methods[i].__signature__).html()+'</a></td>'+
+                 '</tr>';
+             }
+         }
+        
+        body += '</tbody></table>';
+        return body;
+    }
+
+    function renderCallerDetail( row ) {
+        let body = '';
+
+        caller_type = "Class";
+        if(row.caller.indexOf("->")>-1)
+            caller_type = "Field";
+        else if(row.caller.indexOf("(")>-1)
+            caller_type = "Method";
+
+        let calleed_type = "Class";
+        if(row.callee.indexOf("->")>-1)
+            calleed_type = "Field";
+        else if(row.callee.indexOf("(")>-1)
+            calleed_type = "Method";
+
+        body += '<table class="table table-sm"><thead><tr><th scope="col">Role</th><th scope="col">Action</th><th scope="col">Type</th><th scope="col">Name</th></thead><tbody>';
+        body += '<tr><td><b>Caller</b></td><td>';
+
+        if(row.callee.indexOf("(")==-1)
+            body += '<a  class="badge badge-secondary">Probe ON'+
+                    '</a>&nbsp;&nbsp;<!--<a  class="badge badge-secondary">Intercept ON</a>-->';
+        else
+            body += '<a  class="badge badge-success probe" meth="'+btoa(encodeURIComponent(row.caller))+'">Probe ON'+
+                    '</a>&nbsp;&nbsp;<!--<a  class="badge badge-danger">Intercept</a>-->';
+                /*
+            body += '<a  class="badge badge-'+(row.methods[i].probing? 'success':'primary')+' probe" meth="'+btoa(row.methods[i].__signature__)+'">Probe '+(row.methods[i].probing? 'ON':'OFF')+
+                    '</a>&nbsp;&nbsp;<a  class="badge badge-danger">Intercept</a>';
+                */
+
+        body += '<td>'+caller_type+'</td><td><a target="about" href="finder.html?method='+btoa(encodeURIComponent(row.caller))+'">'+htmlEncode(row.caller)+'</a></td></tr><tr><td><b>Callee</b></td><td>';
+
+        if(row.callee.indexOf("(")==-1)
+            body += '<a  class="badge badge-secondary">Probe ON'+
+                    '</a>&nbsp;&nbsp;<!--<a  class="badge badge-secondary">Intercept ON</a>-->';
+        else
+            body += '<a  class="badge badge-success probe" meth="'+btoa(encodeURIComponent(row.caller))+'">Probe ON'+
+                    '</a>&nbsp;&nbsp;<!--<a  class="badge badge-danger">Intercept</a>-->';
+                    
+        body += '</td><td>'+calleed_type+'</td><td><a target="about" href="finder.html?method='+btoa(encodeURIComponent(row.callee))+'">'+htmlEncode(row.callee)+'</a></td></tr></table>';
+
+//        $.ajax("/api/method/");
+        body += '<div class="row"><div class="col-lg-2 col-lg-offset-8">See more</div></div>';
+        body += '<code>';
+            body += "disass";
+        body += '</code>';
+        return body;
+    }
+
+    function renderMethodDetail( row ) {
+        let body = '', j=0;
+
+        console.log(row);
+
+        //body += '<table class="table table-sm"><thead><tr><th scope="col">Role</th><th scope="col">Action</th><th scope="col">Type</th><th scope="col">Name</th></thead><tbody>';
+        body += '<table class="table table-sm">';
+        body += '<tr><td><b>Modifiers</b></td><td>';
+
+        for(let i in row.modifiers){
+            if(j==8) body+="<br>";
+            if(row.modifiers[i]==true){
+                body += '&nbsp;<a  class="badge badge-success">'+i+'</a>';
+            }else{
+                body += '&nbsp;<a  class="badge badge-secondary">'+i+'</a>';
+            }
+            j++;
+        }
+
+        body += '</td></tr>'; 
+        body += '<tr><td>Fullname</td><td>'+row.enclosingClass+'.'+htmlEncode(row.name)+'</td></tr>';
+        
+        for(let i=0;  i<row.args.length; i++){
+            sgt = row.args[i].name;
+            console.log(row.args[i]);
+            body += '<tr><td>Arg '+i+'</td><td>';
+            body += '<a href="finder.html?class='+btoa(encodeURIComponent(sgt))+'">'+htmlEncode(sgt)+'</a></td></tr>';
+        }
+
+        
+        body += '<tr><td>Return</td><td><a class="retlink" href="finder.html?class='+btoa(encodeURIComponent(row.ret.name))+'">'+htmlEncode(row.ret.name)+'</td></tr>';
+        body += '</table>';
+
+        let codeID = IdRegister.codeReg.next()
+
+        //body += '<h4>Disassembled bytecode</h4>';
+        body += '<div id="'+codeID+'"></div>';
+        $.ajax(
+            "../api/method/disass/"+encodeURIComponent(btoa(encodeURIComponent(row.__signature__))),
+            {
+                method: "get",
+                statusCode: {
+                    200: function(data){
+                        data = JSON.parse(data);
+                        let code = $("#"+codeID);
+                        let codeBody = "";
+                        console.log(data,code);
+                        for(let i=0; i<data.disass.length; i++){
+                            codeBody += "\n";
+                            if(data.disass[i].tag!=null){
+                                codeBody += "."+data.disass[i].tag.substr(1)+"\n";
+                            }
+                            if(data.disass[i].instr.length>0){
+                                //console.log(data.disass[i].instr);
+                                for(let j=0; j<data.disass[i].instr.length; j++){
+                                    if(data.disass[i].instr[j].value == null){
+                                        console.log("Instr is null : <"+i+","+j+">");
+                                    }else{
+                                        if(data.disass[i].instr[j].value.indexOf("move-result-object")==0)
+                                            codeBody += "\t"+data.disass[i].instr[j].value+"\n";
+                                        else    
+                                            codeBody += data.disass[i].instr[j].value+"\n";
+                                    }
+                                }   
+                            }
+                        }
+                        code.html(codeBody);
+                        //code.html("var a=new String('test');");
+                        setupAceEditor(codeID);
+                    }
+                }
+            }
+        );
+        return body;
+    }
+
+    $(document).ready(function() {
+
+        
+        let clsTable = $('#dataTables-finder').DataTable({
+            searching: false,
+            paging: false,
+            columns: [
+                {
+                    "className":      'details-control',
+                    "orderable":      false,
+                    "data":           null,
+                    "defaultContent": ''
+                },
+                {  "defaultContent": '' },
+                {  "defaultContent": '' },
+                { 
+                    render: function(data, type, row, meta ){
+                        if(row.name != null)
+                            return '<a  class="badge badge-success probe" meth="'+btoa(encodeURIComponent(row.name))+'">ON</a>';
+                        else    
+                            return '';
+                    }
+                }
+            ],
+            responsive: true
+        });
+
+        let xrefTable = $('#dataTables-xref').DataTable({
+            searching: false,
+            paging: false,
+            columns: [
+                {
+                    "className":      'details-control',
+                    "orderable":      false,
+                    "data":           null,
+                    "defaultContent": ''
+                },
+                {  "defaultContent": '' },
+                {  "defaultContent": '' },
+                /*
+                { 
+                    render: function(data, type, row, meta ){
+                        if(row.name != null)
+                            return '<a  class="badge badge-success probe" meth="'+btoa(encodeURIComponent(row.name))+'">ON</a>';
+                        else    
+                            return '';
+                    }
+                }*/
+            ],
+            responsive: true
+        });
+
+        function renderXrefModal( ref, from ) {
+            let body = '', j=0;
+
+            if(from)
+                $('#xrefModalTitle').html("XRef from "+ref);
+            else
+                $('#xrefModalTitle').html("XRef to "+ref);
+
+            
+            $.ajax(
+                "../api/method/xref/"+(from?"from/":"to/")+encodeURIComponent(btoa(encodeURIComponent(ref))),
+                {
+                    method: "get",
+                    statusCode: {
+                        200: function(data){
+                            data = JSON.parse(data);
+                            xrefTable.clear();
+                            xrefTable.rows.add(data);
+                            xrefTable.draw();
+                        }
+                    }
+                }
+            );
+
+            $("#xrefModal").modal();
+            return true;
+        }
+
+        function renderClassTable(table){
+            $("#finder-col1").html("");
+            $("#finder-col2").html("Package");
+            $("#finder-col3").html("Name");
+            $("#finder-col4").html("Action");
+
+            table.destroy();
+            return $('#dataTables-finder').DataTable({
+                searching: false,
+                paging: false,
+                columns: [
+                    {
+                        "className":      'details-control',
+                        "orderable":      false,
+                        "data":           null,
+                        "defaultContent": ''
+                    },
+                    {  
+                        render: function(data, type, row, meta ){
+                            console.log(data, type, row, meta);
+                            return row.fqcn;
+                            /*
+                            if(row.package != undefined)
+                                return row.package.name;
+                            else{
+                                console.log(row);
+                                return "-";
+                            }*/
+                        }
+                    },
+                    {   
+                        render: function(data, type, row, meta ){
+                            if(row.name != null){
+                                if(row.name.lastIndexOf("$")>row.name.lastIndexOf('.')){
+                                    return row.name.substr(row.name.lastIndexOf('.')+1);
+                                }else{
+                                    return row.simpleName;
+                                }
+                            }else{
+                                console.log(row);
+                            }
+                            
+                            /*
+                            if(row.enclosingClass != undefined)
+                                return row.enclosingClass.simpleName+"$"+row.simpleName;
+                            else{
+                                return row.simpleName;
+                            }*/
+                        }
+                    },
+                    { "defaultContent": '' }
+                ],
+                responsive: true
+            });
+        }
+
+        function renderMethodTable(table){
+            $("#finder-col1").html("");
+            $("#finder-col2").html("Class");
+            $("#finder-col3").html("Method");
+            $("#finder-col4").html("Action");
+
+            table.destroy();
+            return $('#dataTables-finder').DataTable({
+                searching: false,
+                paging: false,
+                columns: [
+                    {
+                        "className":      'details-control',
+                        "orderable":      false,
+                        "data":           null,
+                        "defaultContent": ''
+                    },
+                    { 
+                        render: function(data, type, row, meta ){
+                            return (row.enclosingClass!=null)? htmlEncode(row.enclosingClass) : '[Missing]';
+                        }
+                    },
+                    {  
+                        render: function(data, type, row, meta ){
+                            return htmlEncode(row.__signature__);
+                        }
+                    },
+                    { 
+                        
+                        render: function(data, type, row, meta ){
+                            let b='<a  class="badge badge-success probe" meth="'+btoa(encodeURIComponent(row.__signature__))+'">Probe</a>&nbsp;';
+                            b += '<a  class="badge badge-secondary cfg" meth="'+btoa(encodeURIComponent(row.__signature__))+'">Call Graph</a>&nbsp;';
+                            b += '<a  class="badge badge-secondary seemore" meth="'+btoa(encodeURIComponent(row.__signature__))+'">See more</a>';
+                            
+                            return b;
+                            /*
+                            if(row.enclosingClass != undefined)
+                                return row.enclosingClass.simpleName+"$"+row.simpleName;
+                            else{
+                                return row.simpleName;
+                            }*/
+                        }
+                    }
+                ],
+                responsive: true
+            });
+        }
+
+        function renderFieldTable(table){
+            $("#finder-col1").html("");
+            $("#finder-col2").html("Class");
+            $("#finder-col3").html("Field");
+            $("#finder-col4").html("Action");
+
+            table.destroy();
+            return $('#dataTables-finder').DataTable({
+                searching: false,
+                paging: true,
+                columns: [
+                    {
+                        "className":      'details-control',
+                        "orderable":      false,
+                        "data":           null,
+                        "defaultContent": ''
+                    },
+                    { 
+                        render: function(data, type, row, meta ){
+                            return (row.enclosingClass!=null)? htmlEncode(row.enclosingClass) : '[Missing]';
+                        }
+                    },
+                    {  
+                        render: function(data, type, row, meta ){
+                            return htmlEncode(row.__signature__);
+                        }
+                    },
+                    { 
+                        "defaultContent": ''
+                    }
+                ],
+                responsive: true
+            });
+        }
+
+        function renderCallerTable(table){
+            $("#finder-col1").html("");
+            $("#finder-col2").html("Caller");
+            $("#finder-col3").html("Callee");
+            //$("#finder-col4").html("Action");
+            $("#finder-col4").css("display","none");
+
+            table.destroy();
+            return $('#dataTables-finder').DataTable({
+                searching: false,
+                paging: false,
+                columns: [
+                    {
+                        "className":      'details-control',
+                        "orderable":      false,
+                        "data":           null,
+                        "defaultContent": ''
+                    },
+                    { 
+                        render: function(data, type, row, meta ){
+                            return (row.caller!=null)? htmlEncode(row.caller) : '[Missing]';
+                        }
+                    },
+                    {  
+                        render: function(data, type, row, meta ){
+                            if(row.callee !== undefined){
+                                let txt = ''
+                                if(row.callee.indexOf('(')>-1){
+                                    txt +=  Render.methodTag;
+                                }else if(row.callee.indexOf('->')>-1){
+                                    txt +=  Render.fieldTag;
+                                }else{
+                                    txt +=  Render.classTag;
+                                }
+                                return txt+"&nbsp;"+htmlEncode(row.callee);
+
+                            }else
+                                return '';
+                        }
+                    },
+                    { 
+                        "defaultContent": ''
+                    }
+                ],
+                responsive: true
+            });
+        }
+
+        function renderValuesTable(table){
+            $("#finder-col1").html("");
+            $("#finder-col2").html("Value");
+            $("#finder-col3").html("Caller");
+            $("#finder-col4").html("");//style("display","none");
+
+            table.destroy();
+            return $('#dataTables-finder').DataTable({
+                searching: false,
+                paging: false,
+                columns: [
+                    {
+                        "className":      'details-control',
+                        "orderable":      false,
+                        "data":           null,
+                        "defaultContent": ''
+                    },
+                    { 
+                        render: function(data, type, row, meta ){
+                            return htmlEncode(row.value);
+                        }
+                    },
+                    {  
+                        render: function(data, type, row, meta ){
+                            return htmlEncode(row.instr.method);
+                        }
+                    },
+                    {
+                         render: function(data, type, row, meta ){
+                            return '<a  class="badge badge-success probe" meth="'+btoa(encodeURIComponent(row.instr.method))+'">Probe</a>&nbsp;';
+                         }
+
+                    }
+                ],
+                responsive: true
+            });
+        }
+
+
+        function renderBodyTable(data){
+            
+            //console.log(typeof data, data instanceof Array, data instanceof Object);
+            
+            if((data instanceof Array)==false)
+                data = [data];
+
+            if(data[0].package !== undefined){
+                clsTable = renderClassTable(clsTable);
+            }
+            else if(data[0].args !== undefined){
+                clsTable = renderMethodTable(clsTable);
+            }
+            else if(data[0].type !== undefined){
+                clsTable = renderFieldTable(clsTable);
+            }
+            else if(data[0].caller !== undefined){
+                clsTable = renderCallerTable(clsTable);
+            }
+            else if(data[0].value !== undefined){
+                clsTable = renderValuesTable(clsTable);
+            }
+
+            clsTable.clear();
+            clsTable.rows.add(data);
+            clsTable.draw();
+        }
+
+        htmlEncode = function(txt){
+            return $("<div />").text(txt).html();
+        }
+
+        //$('#probelogs').
+        $('#dataTables-finder tbody').on('click', 'td.details-control', function () {
+            var tr = $(this).closest('tr');
+            var row = clsTable.row( tr );
+            //console.log(row.child);
+
+            if ( row.child.isShown() ) {
+                // This row is already open - close it
+                row.child.hide();
+                tr.removeClass('shown');
+            }
+            else {
+                // Open this row
+                let rd = row.data();
+                if(rd.package != null){
+                    row.child( renderClassDetail(row.data()) ).show();
+                    tr.addClass('shown');
+                }
+                else if(rd.args != null){
+                    row.child( renderMethodDetail(row.data()) ).show();
+                    tr.addClass('shown');
+                }
+                else if(rd.type != null){
+                    row.child( renderFieldDetail(row.data()) ).show();
+                    tr.addClass('shown');
+                }
+                else if(rd.caller != null){
+                    row.child( renderCallerDetail(row.data()) ).show();
+                    tr.addClass('shown');
+                }
+                else if(rd.value != null){
+                    row.child( renderStringDetail(row.data()) ).show();
+                    tr.addClass('shown');
+                }
+            }
+        } );
+
+        
+        $(document).on("click",".probe",function(){
+            let DOM_PROBE =$(this);
+            let meth = $(this).attr("meth");
+
+            $.ajax('../api/probe/'+meth,{
+                method: 'post',
+                statusCode: {
+                    200: function(){
+                        if(DOM_PROBE.text != null){
+                            if(DOM_PROBE.text.indexOf("ON")>-1){
+                                DOM_PROBE.removeClass("badge-success");
+                                DOM_PROBE.addClass("badge-danger");
+                                DOM_PROBE.text("Probe OFF").html();
+                            }else{
+                                DOM_PROBE.removeClass("badge-danger");
+                                DOM_PROBE.addClass("badge-success");
+                                DOM_PROBE.text("Probe ON").html();
+                            }
+                        }
+
+                    },
+                    404: function(){
+                        //alert("Failed to add probe (see logs)")
+                    }
+                }
+            })
+        });
+
+
+        $(document).on("click",".xreffrom",function(e){
+            let DOM_PROBE =$(this);
+            let meth = $(this).attr("meth");
+
+            renderXrefModal(meth,true);
+        });
+        $(document).on("click",".xrefto",function(e){
+            let DOM_PROBE =$(this);
+            let meth = $(this).attr("meth");
+
+            renderXrefModal(meth,false);
+        });
+
+        var GLOBAL = {
+            results: null
+        };
+
+        $("#button_search").click(function(){
+            let val = $("#search_request")[0].value;
+            
+            json = JSON.stringify({ search: val });
+            $.ajax('../api/finder',{
+                method: 'get',
+                data: {
+                    search: encodeURIComponent(btoa(encodeURIComponent(val)))
+                },
+                statusCode: {
+                    200: function(data){
+                        data = JSON.parse(data);
+                        //console.log(data);
+                        //$("#probelogs").html("");
+                        //renderHeaderTable(data.data);
+                        if(data.data == null || data.data.length==0){
+                            alert("No matches found !");
+                        }else{
+                            GLOBAL.results = data.data;
+                            console.log(data.data);
+                            renderBodyTable(data.data);
+                        }
+
+                    },
+                    404: function(data){
+                        alert("No matches found !");
+                        //console.log(data);
+                        //alert("Failed to add probe (see logs)")
+                    }
+                }
+            })
+        });
+
+
+        //dmTable.ajax.url("../api/device").load();
+        $('#dm-refresh-btn').click(()=>{
+            clsTable.ajax.reload();
+        });
+
+
+        // predefine filter event
+        $('.pre-request .prefilter').click(function(elem){
+            let filt = $(this).attr("prefilt"), token="", dot="";
+
+            if(filt.indexOf("@@")>-1){
+                token = prompt("Type the value for the filter :");
+                filt = filt.replace("@@",token);
+            }
+
+            if($("#search_request")[0].value.length > 0)
+                dot = ".";
+
+            if("before"!=$(this).attr("when"))
+                $("#search_request")[0].value = $("#search_request")[0].value+dot+filt;
+            else
+                $("#search_request")[0].value = filt+dot+$("#search_request")[0].value;
+
+            $("#button_search").trigger("click");
+            $(".pre-request").css("display","none");
+            $(".pre-filter").css("display","block");
+        });
+
+        $('.pre-filter .prefilter').click(function(elem){
+            let filt = $(this).attr("prefilt"), token="", dot="";
+
+            if(filt.indexOf("@@")>-1){
+                token = prompt("Type the value for the filter :");
+                filt = filt.replace("@@",token);
+            }
+
+            if($("#search_request")[0].value.length > 0)
+                dot = ".";
+
+            if("before"!=$(this).attr("when"))
+                $("#search_request")[0].value = $("#search_request")[0].value+dot+filt;
+            else
+                $("#search_request")[0].value = filt+dot+$("#search_request")[0].value;
+
+            $("#button_search").trigger("click");
+        });
+
+        $('.prefilter-clean').click(function(elem){
+            $("#search_request")[0].value = "";
+            $(".pre-request").css("display","block");
+            $(".pre-filter").css("display","none");
+        });
+
+        $('#button_probeall').click(function(e){
+            $('#probeall_count').html(
+                GLOBAL.results!=null? (GLOBAL.results.length!=null? GLOBAL.results.length : 1) : 0 
+            );
+            $('#probeall_modal').modal();
+        });
+
+        $('#probeall_modal .confirm').click(function(e){
+            let probes = $(".probe");
+            for(let i=0; i<probes.length; i++){
+                probes[i].click();
+            }
+            $('#probeall_modal').modal('toggle');
+        });
+
+        function setLocationQuery(){
+            let q = location.href.indexOf('?');
+            if(q==-1){
+                location.query = "";
+            } else{
+                location.query = location.href.substr(
+                    q+1,
+                    location.href.length-q-1-location.hash.length
+                );                
+            }
+        }
+
+        setLocationQuery();
+        //console.log(location,location.query.length>0);
+        
+        if(location.query.length>0){
+            let o = location.query.indexOf("=");
+            let tag = location.query.substr(0, o);
+            let req = decodeURIComponent(atob(location.query.substr(o+1)));
+
+            //console.log("parsing hash",tag,req);
+            switch(tag){
+                case "xrefcls":
+                    $("#search_request")[0].value = 'call("calleed.enclosingClass.name:'+req+'")';
+                    $("#button_search").trigger("click");
+                    break;
+                case "xreffield":
+                    $("#search_request")[0].value = 'call("calleed.__signature__:'+req+'")';
+                    $("#button_search").trigger("click");
+                    break;
+                case "xrefmeth":
+                    $("#search_request")[0].value = 'call("calleed.__signature__:'+req+'")';
+                    $("#button_search").trigger("click");
+                    break;
+                case "method":
+                    $("#search_request")[0].value = 'get.method("'+req+'")';
+                    $("#button_search").trigger("click");
+                    break;
+                case "class":
+                    $("#search_request")[0].value = 'get.class("'+req+'")';
+                    $("#button_search").trigger("click");
+                    break;
+            }
+        }
+    });
+
+
+    </script>
+
+</body>
+
+</html>

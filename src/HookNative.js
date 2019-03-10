@@ -1,0 +1,3 @@
+function HookNative(config){
+
+}

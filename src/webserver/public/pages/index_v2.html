@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="">
+    <meta name="author" content="">
+
+    <title>Dexcalibur - Bytecode Explorer</title>
+
+    <!--## pages/inc/tpl_css.html ##-->
+
+    <!--## pages/inc/tpl_js_d3.html ##-->
+
+
+    <!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
+    <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
+    <!--[if lt IE 9]>
+        <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
+        <script src="https://oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js"></script>
+    <![endif]-->
+
+</head>
+
+<body>
+
+    <div id="wrapper">
+
+        <!--## pages/inc/menu.html ##-->
+
+        <div id="page-wrapper">
+            <div class="row">
+                <div class="col-lg-12">
+                    <h1 class="page-header">Bytecode Explorer</h1>
+                </div>
+                <!-- /.col-lg-12 -->
+            </div>
+
+            <div class="row" style="padding-bottom:20px;" >
+                <div class="col-lg-12">
+                    <div class="panel panel-default">
+                        <div class="panel-heading">
+                            <div class="row">
+                                <div class="col-lg-10">
+                                    <h4>Packages overview&nbsp;&nbsp;[&nbsp;<b id="package-name">.*</b>&nbsp;]</h4>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- /.panel-heading -->
+                        <div class="panel-body" id="d3-graph">
+                        </div>
+                        <!-- /.panel-body -->
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- /.row -->
+            <div class="row">
+                <div class="col-lg-12">
+                    <div class="panel panel-default">
+                        <div class="panel-heading">
+                            <div class="row">
+                                <div class="col-lg-11"><h4>Classes</h4></div>
+                                <div class="col-lg-1">&nbsp;</div>
+                            </div>
+                        </div>
+                        <!-- /.panel-heading -->
+                        <div class="panel-body">
+                            <table width="100%" class="table table-striped table-bordered table-hover" id="dataTables-classes">
+                                <thead>
+                                    <tr>
+                                        <th></th>
+                                        <th>Package</th>
+                                        <th>Name</th>
+                                        <th>Source name</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    
+                                </tbody>
+                            </table>
+                            <!-- /.table-responsive -->
+                        </div>
+                        <!-- /.panel-body -->
+                    </div>
+                    <!-- /.panel -->
+                </div>
+                <!-- /.col-lg-12 -->
+            </div>
+            <!-- /.row -->
+
+            <div id="interceptEditModal" class="modal fade" tabindex="-1" role="dialog" style="display:none">
+                    <div class="modal-dialog" role="document" style="width:70%">
+                      <div class="modal-content">
+                        <div class="modal-header">
+                          <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                          <h4 class="modal-title">Set interception code</h4>
+                        </div>
+                        <div class="modal-body">
+        
+                            <label for="basic-url">Code to execute BEFORE the call</label>
+                            <div class="input-group">
+                              <input type="text" class="form-control" id="scannerName" aria-describedby="basic-addon3">
+                            </div>
+        
+                            <label for="basic-url">Code to execute AFTER the call</label>
+                            <div class="input-group">
+                            <input style="width:30em" type="text" class="form-control" id="scannerDescr" aria-describedby="basic-addon3">
+                            </div>
+        
+                            <label for="basic-url">Replace the call</label>
+                            <div class="input-group">
+                            <input style="width:30em" type="checkbox" class="form-control" id="scannerDescr" aria-describedby="basic-addon3">
+                            </div>
+
+        
+                        </div>
+                        <div class="modal-footer">
+                          <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                          <button id="saveProbeBtnModal" type="button" class="btn btn-primary">Save changes</button>
+                        </div>
+                      </div><!-- /.modal-content -->
+                    </div><!-- /.modal-dialog -->
+                  </div><!-- /.modal -->
+
+        </div>
+        <!-- /#page-wrapper -->
+    </div>
+    <!-- /#wrapper -->
+
+    <!--## pages/inc/tpl_js_end.html ##-->
+
+    <!-- Page-Level Demo Scripts - Tables - Use for reference -->
+    <script>
+    /* Formatting function for row details - modify as you need */
+    function format ( row ) {
+        let body = '';
+
+        body+= '<table class="table table-sm"><thead><tr><th scope="col">Action</th><th scope="col">Type</th><th scope="col">Name</th></thead><tbody>';
+         
+        if(row.fields != null){
+            for(let i in row.fields){
+                body += '<tr>'+
+                    '<td><a  class="badge badge-secondary probe" field="'+btoa(encodeURIComponent(row.fields[i].__signature__))+'">Probe OFF</a>&nbsp;&nbsp;'+
+                    '<a class="badge badge-secondary" onclick="intercept(\''+btoa(encodeURIComponent(row.fields[i].__signature__))+'\')">intercept</a>&nbsp;'+
+                    '<a class="badge badge-purple" target="about" href="finder.html#xreffield='+btoa(encodeURIComponent(row.fields[i].__signature__))+'">xref</a></td><td><b>Field</b></td>'+           
+                    '<td><a href="finder.html?field='+btoa(encodeURIComponent(row.fields[i].__signature__))+'">'+$('<div />').text(row.fields[i].__signature__).html()+'</a></td>'+
+                '</tr>';
+            }
+        }
+        //
+
+        //body += '</tbody></table><table class="table table-sm"><thead><tr><th scope="col">Action</th><th scope="col">Methods</th></thead><tbody>';
+         
+         if(row.methods != null){
+             for(let i in row.methods){
+                 body += '<tr>'+
+                    '<td><a  class="badge badge-'+(row.methods[i].probing? 'success':'primary')+' probe" meth="'+btoa(encodeURIComponent(row.methods[i].__signature__))+'">Probe '+(row.methods[i].probing? 'ON':'OFF')+'</a>&nbsp;&nbsp;'+
+                    '<a  class="badge badge-danger">intercept</a>&nbsp;'+
+                    '<a class="badge badge-purple" target="about" href="xref.html#meth='+btoa(encodeURIComponent(row.methods[i].__signature__))+';xrt=to">xref to</a>&nbsp;'+
+                    '<a class="badge badge-pink" target="about" href="xref.html#meth='+btoa(encodeURIComponent(row.methods[i].__signature__))+';xrt=from">xref from</a></td><td><b>Method</b></td>'+
+                    '<td><a href="finder.html?method='+btoa(encodeURIComponent(row.methods[i].__signature__))+'">'+$('<div />').text(row.methods[i].__signature__).html()+'</a></td>'+
+                 '</tr>';
+             }
+         }
+        
+        body += '</tbody></table>';
+        return body;
+    }
+
+   
+    var clsTable = null
+    $(document).ready(function() {
+
+        clsTable = $('#dataTables-classes').DataTable({
+            ajax: "../api/class",
+            columns: [
+                {
+                    "className":      'details-control',
+                    "orderable":      false,
+                    "data":           null,
+                    "defaultContent": ''
+                },
+                {  
+                    data: 'package' ,
+                    render: function(data, type, row, meta ){
+                        return (row.package!=null)? row.package.name : '[Missing]';
+                    }
+                    //defaultContent: '-'
+                },
+                { 
+                    data: 'simpleName' ,
+                    render: function(data, type, row, meta ){
+                        return (row.simpleName!=null)? row.simpleName : '[Missing]';
+                    }
+                },
+                { 
+                    data: 'Action',
+                    render: function(data, type, row, meta ){
+                        let body='<a target="about" href="finder.html#xrefcls='+btoa(encodeURIComponent(row.name))+'"><button class="btn btn-primary cls-xref" style="padding-top:0px;padding-bottom:0px"><span class="fa fa-bolt"></span>&nbsp;Xref</button></a>';
+                        //body +='&nbsp;<button class="btn btn-danger cls-probeall" style="padding-top:0px;padding-bottom:0px" cls="'+btoa(row.name)+'"><span class="fa fa-search"></span>&nbsp;Probe</button>';
+                        return body;
+                    }
+                }/*,
+                { 
+                    data: 'methods',
+                    defaultContent: '-'
+                }/*
+                { 
+                    data: 'implements',
+                    defaultContent: '-'
+                }*/
+            ],
+            responsive: true
+        });
+
+        $('#dataTables-classes tbody').on('click', 'td.details-control', function () {
+            var tr = $(this).closest('tr');
+            var row = clsTable.row( tr );
+            //console.log(row.child);
+
+            if ( row.child.isShown() ) {
+                // This row is already open - close it
+                row.child.hide();
+                tr.removeClass('shown');
+            }
+            else {
+                // Open this row
+                row.child( format(row.data()) ).show();
+                tr.addClass('shown');
+            }
+        } );
+
+        $(document).on("click",".probe",function(){
+            let DOM_PROBE =$(this);
+            let meth = $(this).attr("meth");
+            $.ajax('../api/probe/'+meth,{
+                method: 'post',
+                statusCode: {
+                    200: function(){
+                        DOM_PROBE.removeClass("badge-primary");
+                        DOM_PROBE.addClass("badge-success");
+                        DOM_PROBE.text("probe ON").html()
+                    },
+                    404: function(){
+                        alert("Failed to add probe (see logs)")
+                    }
+                }
+            })
+//            console.log($(this),"test");
+//            alert(2);
+        });
+
+        $(document).on("click",".xreffield",function(){
+            let DOM_PROBE =$(this);
+            let meth = $(this).attr("meth");
+            location
+        });
+
+        //dmTable.ajax.url("../api/device").load();
+        $('#dm-refresh-btn').click(()=>{
+            clsTable.ajax.reload();
+        });
+    });
+
+    // treemap
+    var w = 1000, //1280 - 80,
+        h = 400, // 800 - 180,
+        x = d3.scale.linear().range([0, w]),
+        y = d3.scale.linear().range([0, h]),
+        color = d3.scale.category20c(),
+        root,
+        node;
+
+    var treemap = d3.layout.treemap()
+        .round(false)
+        .size([w, h])
+        .sticky(true)
+        .value(function(d) { return d.size; });
+
+    var svg = d3.select("#d3-graph").append("div")
+        .attr("class", "chart")
+        .style("width", w + "px")
+        .style("height", h + "px")
+    .append("svg:svg")
+        .attr("width", w)
+        .attr("height", h)
+    .append("svg:g")
+        .attr("transform", "translate(.5,.5)");
+
+    d3.json("../api/package", function(data) {
+
+        let ctr=0;
+        let allpkg = { name:"package", children:data.data }, pkg = null, pkgnode=null, pname = null;
+        let newTree = { name:"package", children:[] };
+        let next = false, fqpn;
+
+        function completeTree(tree, path, obj){
+            let sub_tree = tree, found=false, name="";
+
+            for(let j=0; j<path.length ; j++){
+                found = false;
+                name += "."+path[j];
+
+                for(let i=0; i<sub_tree.children.length; i++){
+                    if(sub_tree.children[i].name == path[j]){
+                        sub_tree = sub_tree.children[i];
+                        sub_tree.size += obj.size;
+                        found = true;
+                        break;
+                    }
+                }
+
+                if(!found){
+                    sub_tree.children.push({ name:path[j],  fullname:name.substr(1), children:[], size:10 /*, parent:sub_tree*/ });
+                    sub_tree = sub_tree.children[sub_tree.children.length-1];
+                    sub_tree.size += obj.size;
+                }
+            }
+
+
+            return sub_tree;
+        }
+
+
+        function simplifyTree(node, newtree=null){
+            let cname = "", poped=null;
+
+            if(newtree==null)
+                newtree = { name:"", fulname:"", children:[], size:0 };
+            
+            if(node.children != null && node.children.length==1){
+
+                poped = newtree.children.pop()
+
+                poped.name = poped.name+"."+node.children[0].name;
+                poped.fullname = poped.fullname+"."+node.children[0].name;
+                poped.size = node.size;
+                poped.children = node.children[0].children;
+
+                newtree.children.push(poped);
+
+                if(poped.children != null && poped.children.length>0){
+                    simplifyTree( newtree.children[newtree.children.length-1], newtree);
+                }else{
+
+                }
+            }else if(node.children != null && node.children.length>1){
+                for(let j=0; j<node.children.length; j++){
+                    newtree.children.push(node.children[j]);
+                    simplifyTree( newtree.children[newtree.children.length-1], newtree);
+                }
+            }
+
+            return newtree;
+        }
+
+        function getIntermediateParent( currentNode, selectedNode){
+            if(selectedNode.parent.fullname == currentNode.fullname){
+                return selectedNode;
+            }
+            
+            let parentNode = selectedNode.parent;
+            while(parentNode.parent.fullname != currentNode.fullname){
+                parentNode = parentNode.parent;
+            };
+            
+            return parentNode;
+        }
+
+
+        newTree = { name:"package", children:[{ name:".", fullname:".", children:[], size:0 }] };
+
+        // make tree
+        for(let i=0; i<allpkg.children.length; i++){    
+            pkg = allpkg.children[i];
+        
+            if(pkg.name != null && pkg.name != undefined && pkg.name != "." && pkg.name.length>0){
+                fqpn = pkg.name.split(".");
+                // make missing node
+                pkgnode = completeTree(newTree, fqpn, pkg);
+            }else{
+                pkg.name = ".";
+                pkg.fullname = ".";
+                newTree.children[0].size += pkg.size;
+                newTree.children[0].children.push(pkg)
+            }
+        }
+        // simplify 
+
+        //console.log(newTree);
+        simplifyTree(newTree);
+        node = root = newTree; 
+
+        var nodes = treemap.nodes(root)
+            .filter(function(d){
+                if(d.parent !== undefined || d.name == "."){
+                    return true;
+                }
+                return false;
+            });
+
+        function isRootPackage(name){
+            let f=true;
+            name.split('').map(x=>{
+                f &= (x==".")?true:false;
+            });
+            return f;
+        }
+
+/*
+        function escRegExp(name){
+            let f=true, o=-1;
+
+            while((o=name.indexOf("^",o+1))>-1)
+                name = name.substr(0,o)+"\\"+ name.substr(o);    
+
+            o=-1;
+            while((o=name.indexOf("$",o+1))>-1)
+                name = name.substr(0,o)+"\\"+ name.substr(o);
+
+            o=-1;
+            while(name.indexOf(".",o+1)>-1){
+                name = name.substr(0,o)+"\\"+ name.substr(o);
+                o = name.indexOf(".",o+2);
+            }
+
+            return name;
+        }
+*/
+        var cell = svg.selectAll("g")
+            .data(nodes)
+            .enter().append("svg:g")
+            .attr("class", "cell")
+            .attr("transform", function(d) { return "translate(" + d.x + "," + d.y + ")"; })
+            .on("click", function(d) {
+                let parentNode = null;
+
+                if(isRootPackage(d.name)){
+                    $("#package-name").html(".*");
+                    clsTable.column(1).search("^$",true).draw();
+                    return;
+                }
+
+                //console.log(escRegExp(d.fullname));
+
+                if(d.parent != node){
+                    parentNode = getIntermediateParent(node, d);
+                }else{
+                    parentNode = d.parent;
+                    if(d.children == null || d.children.length==0){
+                        $("#package-name").html(d.fullname);
+                        
+
+                        clsTable.column(1).search(d.fullname).draw();
+                        location.href="#dataTables-classes";
+                        return;
+                    }
+                } 
+
+                if(parentNode != undefined){
+                    $("#package-name").html(parentNode.fullname);
+                    clsTable.column(1).search(parentNode.fullname).draw();
+                }else{
+                    $("#package-name").html(d.fullname);
+                    clsTable.column(1).search(d.fullname).draw();    
+                }
+
+                return zoom(parentNode);
+            });
+
+        cell.append("svg:rect")
+            .attr("width", function(d) { return d.dx - 1; })
+            .attr("height", function(d) { return d.dy - 1; })
+            .style("opacity", function(d) {
+                if(node==root && d.parent != null && d.parent.name != "package"){
+                    return 0;
+                }else{
+                    return 1;
+                }
+            })
+            .style("fill", function(d) { 
+                return color(d.name); 
+            });
+
+        cell.append("svg:text")
+            .attr("x", function(d) { return d.dx/2; })
+            .attr("y", function(d) { return d.dy/2 ; })
+            .attr("dy", ".25em")
+            .attr("text-anchor", "middle")
+            .text(function(d) { 
+                if(d.name=="." || d.name=="...") return "[root]";
+                return d.name;
+            })
+            .style("opacity", function(d) { 
+                if(node==root && d.parent != null && d.parent.name != "package"){
+                    return 0;
+                }else{
+                    return 1;
+                }
+            })
+            .style("font-size", function(d) { 
+                d.w = this.getComputedTextLength();
+                if(d.dx > d.w){
+                    return  "1em";
+                } else{
+                    return "0.8em";
+                } 
+            });
+
+            d3.select(window).on("click", function() { 
+                $("#package-name").html(".*");
+                zoom(root); 
+                //clsTable.reset();
+            });
+
+            d3.select("select").on("change", function() {
+                treemap.value(this.value == "size" ? size : count).nodes(root);
+                zoom(node);
+            });
+    });
+
+    function size(d) {
+    return d.size;              
+    }
+
+    function count(d) {
+    return 1;
+    }
+
+    function zoom(d) {
+        var kx = w / d.dx, ky = h / d.dy, ed=d;
+        x.domain([d.x, d.x + d.dx]);
+        y.domain([d.y, d.y + d.dy]);
+
+
+        var t = svg.selectAll("g.cell")
+            .transition()
+            .duration(d3.event.altKey ? 7500 : 750)
+            .attr("transform", function(d) { return "translate(" + x(d.x) + "," + y(d.y) + ")"; });
+
+        t.select("rect")
+            .attr("width", function(d) { 
+                return kx * d.dx - 1; 
+            })
+            .attr("height", function(d) { 
+                return ky * d.dy - 1; 
+            })
+            .style("opacity", function(elem) { 
+                if((elem.name == ed.name) 
+                    || (elem.parent != undefined && elem.parent.name == ed.name)){
+                    return 1;
+                }else{
+                    return 0;
+                }
+            });/*
+            .style("fill", function(d) { 
+                return color(d.name); 
+            })*/;
+
+        t.select("text")
+            .attr("x", function(d) { return kx * d.dx / 2; })
+            .attr("y", function(d) { return ky * d.dy / 2; })
+            .style("opacity", function(elem) { 
+                if((elem.name == ed.name) 
+                    || (elem.parent != undefined && elem.parent.name == ed.name)){
+                    return 1;
+                }else   
+                    return 0;
+            })
+            .text(function(elem) { 
+                if(elem.parent.name!=undefined && elem.parent.name == ed.name){
+                    return elem.name;
+                }else{
+                    return "";
+                }
+            });
+
+        node = d;
+        d3.event.stopPropagation();
+    }
+
+    </script>
+
+</body>
+
+</html>

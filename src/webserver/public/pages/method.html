@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="">
+    <meta name="author" content="">
+
+    <title>Dexcalibur - Method details</title>
+
+    <!--## pages/inc/tpl_css.html ##-->
+
+    <!--## pages/inc/tpl_js_d3.html ##-->
+
+    <script type="text/javascript" src="../js/d3.geom.js"></script>
+
+    <style type="text/css">
+
+        circle.node {
+          cursor: pointer;
+          stroke: #000;
+          stroke-width: .5px;
+        }
+        
+        line.link {
+          fill: none;
+          stroke: #9ecae1;
+          stroke-width: 1.5px;
+        }
+        
+            </style>
+
+    <!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
+    <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
+    <!--[if lt IE 9]>
+        <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
+        <script src="https://oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js"></script>
+    <![endif]-->
+
+</head>
+
+<body>
+
+    <div id="wrapper">
+
+        <!-- Navigation -->
+        <!--## pages/inc/menu.html ##-->
+        
+        <div id="page-wrapper">
+            <div class="row">
+                <div class="col-lg-12">
+                    <h1 class="page-header">Full detailled method</h1>
+                </div>
+                <!-- /.col-lg-12 -->
+            </div>
+
+            <div class="row" style="padding-bottom:20px;" >
+                <div class="col-lg-12">
+                    <div class="panel panel-default">
+                        <div class="panel-heading">
+                            <div class="row">
+                                <div class="col-lg-10">
+                                    <h4>Details</h4>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- /.panel-heading -->
+                        <div class="panel-body">
+                            <div class="row">
+                                <div class="col-ld-3">FQDN</div>
+                                <div class="col-ld-9" id="field_signature"></div>
+                            </div>
+                            <div class="row">
+                                <div class="col-ld-3">Ancestors</div>
+                                <div class="col-ld-9" id="field_ancestors"></div>
+                            </div>
+                            <div class="row">
+                                <div class="col-ld-3">File (Line)</div>
+                                <div class="col-ld-9" id="field_location"></div>
+                            </div>
+                        </div>
+                        <!-- /.panel-body -->
+                    </div>
+                </div>
+            </div>
+            <div class="row" style="padding-bottom:20px;" >
+                <div class="col-lg-12">
+                    <div class="panel panel-default">
+                        <div class="panel-heading">
+                            <div class="row">
+                                <div class="col-lg-10">
+                                    <h4>Callers</h4>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- /.panel-heading -->
+                        <div class="panel-body" id="field_getters_list">
+                            
+                                <table width="100%" class="table table-striped table-bordered table-hover" id="dataTables-getter">
+                                        <thead>
+                                            <tr>
+                                                <th></th>
+                                                <th>Location</th>
+                                                <th>Action</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                        </tbody>
+                                    </table>
+                        </div>
+                        <!-- /.panel-body -->
+                    </div>
+                </div>
+            </div>
+            <div class="row" style="padding-bottom:20px;" >
+                <div class="col-lg-12">
+                    <div class="panel panel-default">
+                        <div class="panel-heading">
+                            <div class="row">
+                                <div class="col-lg-10">
+                                    <h4>Use methods</h4>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- /.panel-heading -->
+                        <div class="panel-body" id="field_getters_list">
+                            
+                            <table width="100%" class="table table-striped table-bordered table-hover" id="dataTables-use-methods">
+                                <thead>
+                                    <tr>
+                                        <th></th>
+                                        <th>Location</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                </tbody>
+                            </table>
+                        </div>
+                        <!-- /.panel-body -->
+                    </div>
+                </div>
+            </div>
+
+<!--
+            <div class="row" style="padding-bottom:20px;">
+                <div class="col-lg-12"  id="d3graph"></div>
+            </div>-->
+        </div>
+        <!-- /#page-wrapper -->
+
+        <div id="xrefModal" class="modal fade" tabindex="-1" role="dialog" style="display:none">
+            <div class="modal-dialog" role="document" style="width:70%">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                  <h4 class="modal-title">XRef details</h4>
+                </div>
+                <div class="modal-body">
+
+                    <label for="basic-url">Caller</label>
+                    <div class="input-group">
+                        <a id="xrefDetailsCaller" href=""></a>
+                    </div>
+
+                    <label for="basic-url">Called</label>
+                    <div class="input-group">
+                        <a id="xrefDetailsCalled" href=""></a>
+                    </div>
+
+                    <label for="basic-url">Disassembly</label>
+                    <div class="input-group">
+                    <input style="width:30em" type="text" class="form-control" id="scannerDescr" aria-describedby="basic-addon3">
+                    </div>
+
+                </div>
+                <div class="modal-footer">
+                  <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                </div>
+              </div><!-- /.modal-content -->
+            </div><!-- /.modal-dialog -->
+          </div><!-- /.modal -->
+
+     
+    </div>
+    <!-- /#wrapper -->
+
+
+    <!--## pages/inc/tpl_js_end.html ##-->
+    <!--## pages/inc/tpl_ace_js.html ##-->
+
+    <!-- Page-Level Demo Scripts - Tables - Use for reference -->
+    <script>
+
+
+    /*
+    if(location.hash.length==0){
+        $("#d3graph").html("Please set a reference");
+    }
+
+    function setupAceEditor(id){
+        var editor = ace.edit(id);
+        editor.setTheme("ace/theme/monokai"); //
+    
+        editor.setOptions({
+            maxLines: 50, 
+            fontSize: "12pt"
+        });
+        //editor.setUseWorker(false);
+        editor.session.setMode("ace/mode/javascript");
+    }
+    //    setupAceEditor();
+    var IdRegister = new Wexcalibur();
+
+    function editorload(e){
+        var editor = ace.edit("editor");
+        editor.setTheme("dist/ace/theme/monokai");
+        editor.session.setMode("dist/ace/mode/javascript");
+        alert("loaded");
+    }
+    */
+    
+
+    /* Formatting function for row details - modify as you need */
+    function format ( row ) {
+        // `d` is the original data object for the row
+        let body = '<table class="table table-sm"><tbody>';
+        body += '<tr><td>Id</td><td>'+row.id+'</td></tr>';
+        body += '<tr><td>Name</td><td>'+row.name+'</td></tr>';
+        body += '<tr><td>Description</td><td>'+row.description+'</td></tr></table>';
+
+        let ide = null;
+        if(row.prologue != null && row.prologue.script){
+            ide = IdRegister.codeReg.next() 
+            body += '<h4>Prologue&nbsp;&nbsp;[<a style="font-size:0.8em;cursor:pointer" class="plgdispl" prologue="'+ide+'">hide</a>]</h4><pre id="'+ide+'">'+row.prologue.script+'</pre>';
+        }
+
+        body += '<h4>Hooks</h4>';           
+        body += '<table class="table table-sm"><thead><tr><th scope="col">Type</th><th scope="col">Name</th></thead><tbody>';
+         
+        if(row.probes != null){
+            for(let i in row.probes){
+                body += '<tr>'+
+                    '<td><a  class="badge badge-primary probe" field="'+btoa(row.probes[i].method)+'">probe</a>'+
+                    '</td><td>'+$('<div />').text(row.probes[i].method).html()+'</td>'+
+                    //'<td><button class="btn btn-primary edithook" style="height:1.5em;padding-top:0px;padding-bottom:0px;">Edit</button>'+
+                    //'&nbsp;<button class="btn btn-danger removehook" style="height:1.5em;padding-top:0px;padding-bottom:0px;">Remove</button></td>'+
+               '</tr>';
+            }
+        }
+
+         
+        if(row.intercepts != null){
+            for(let i in row.intercepts){
+                body += '<tr>'+
+                    '<td><a  class="badge badge-danger intercept" field="'+btoa(row.intercepts[i].method)+'">intercepter</a>';
+
+                if(row.intercepts[i].interceptReplace!=null){
+                    body += '&nbsp;<a  class="badge badge-purple">replace</a>'; 
+                }
+                if(row.intercepts[i].interceptBefore!=null){
+                    body += '&nbsp;<a  class="badge badge-info">before</a>'; 
+                }
+                if(row.intercepts[i].interceptAfter!=null){
+                    body += '&nbsp;<a  class="badge badge-warning">after</a>'; 
+                }
+
+                body +='</td><td>'+$('<div />').text(row.intercepts[i].method).html()+'</td>'+
+             //       '<td><button class="btn btn-primary" style="height:1.5em;padding-top:0px;padding-bottom:0px;">Edit</button>'+
+             //       '&nbsp;<button class="btn btn-danger" style="height:1.5em;padding-top:0px;padding-bottom:0px;">Remove</button></td>'+
+                '</tr>';
+            }
+        }
+        
+        body += '</tbody></table>';
+
+        if(ide!=null)
+            setTimeout(function(){
+                setupAceEditor(ide);
+            },20);
+
+        return body;
+    }
+
+   
+
+    $(document).ready(function() {
+
+       /*
+        $('#dataTables-scanner tbody').on('click', 'button.runscan', function () {
+            let id = $(this).attr("scanner");
+
+            $.ajax("../api/scanner/run",{
+                method: "get",
+                data: {
+                    id: id
+                },
+                status: {
+                    200: function(data,err){
+                        //location
+                    }
+                }
+            })
+        } );
+        */
+
+        /*
+        $("#newScanner").click(function(){
+            $("#scannerEditModal").modal();
+        });
+
+        $("#saveScannerBtnModal").click(function(){
+            // $("#scannerEditModal").css("display","hidden");
+            $("#scannerEditModal").modal();
+        });
+        */
+    });
+
+    function parseArgs(){
+        if(location.hash.length<2) return {};
+
+        let h = location.hash.substr(1), args={};
+        h = h.split(";");
+        for(let i=0; i<h.length; i++)
+            args[h[i].substr(0,h[i].indexOf("="))] = h[i].substr(h[i].indexOf("="));
+        
+            return args;
+    }
+
+    let arg = parseArgs();
+
+    console.log(arg);
+
+    if(arg.xreffield != null){
+        $.ajax('../api/field/'+arg.xreffield.substr(1),{
+            method: 'get',
+            data: {
+                xrtype: arg.xrt!=null? arg.xrt : 'none' 
+            },
+            statusCode: {
+                200: function(data){
+                    data = JSON.parse(data);
+                    console.log(data);
+
+                    //$("#probelogs").html("");
+                    //renderHeaderTable(data.data);
+                    /*if(data.data == null || data.data.length==0){
+                        alert("No matches found !");
+                    }else
+                        renderBodyTable(data.data);
+                    */
+                },
+                404: function(data){
+                    alert("No matches found !");
+                    console.log(data);
+                    //alert("Failed to add probe (see logs)")
+                }
+            }
+        });
+    }
+
+
+    // graph 
+   /*
+   var w = 600,
+        h = 400,
+        node,
+        link,
+        root;
+
+    var force = d3.layout.force()
+        .on("tick", tick)
+ //       .charge(function(d) { return d._children ? -d.size / 100 : -30; })
+
+        .charge(function(d) { return d._children ? -d.size / 100 : -100; })
+        .linkDistance(function(d) { return d.target._children ? 80 : 30; })
+        .size([w, h - 160]);
+
+    var vis = d3.select("#d3graph").append("svg:svg")
+        .attr("width", w)
+        .attr("height", h);
+
+    d3.json("flare.json", function(json) {
+
+        json = {
+            name: "security features",
+            children: [
+                {
+                    name: "SSL Pining",
+                    children: [
+                        {
+                            name: "Certificate",
+                            size: 30000,
+                        },
+                        {
+                            name: "SslFactory",
+                            size: 30000,
+                        },
+                        {
+                            name: "Keystore",
+                            size: 3000030000,
+                            children: [
+                                {
+                                    name: "Android",
+                                    size: 30000,
+                                },
+                                {
+                                    name: "Bouncy Castle",
+                                    size: 30000,
+                                },
+                                {
+                                    name: "Embedded",
+                                    size: 30000,
+                                }
+                            ]
+                        },
+                    ]
+                },{
+                    name: "Root detection",
+                    children: [
+                        {
+                            name: "Exec",
+                            size: 30000,
+                        },
+                        {
+                            name: "Filesystem check",
+                            size: 30000,
+                        },
+                        {
+                            name: "PackageManager",
+                            size: 30000
+                        },
+                    ]
+                }
+            ]
+        
+        }   
+        
+        root = json;
+        root.fixed = true;
+        root.x = w / 2;
+        root.y = h / 2 - 80;
+        update();
+    });
+
+    function update() {
+    var nodes = flatten(root),
+        links = d3.layout.tree().links(nodes);
+
+    // Restart the force layout.
+    force
+        .nodes(nodes)
+        .links(links)
+        .start();
+
+    var node_mouseover = function(d) {
+        //console.log(vis);
+        console.log(d,vis);
+        vis.text.attr('transform', 'translate(' + d.x + ',' + (d.y - 5 - (d.children ? 3.5 : Math.sqrt(d.size) / 2)) + ')')
+        .text(d.name)
+        .style('display', null);
+    };
+
+    var node_mouseout = function(d) {
+        vis.text.style('display', 'none');
+    }
+
+
+    // Update the links…
+    link = vis.selectAll("line.link")
+        .data(links, function(d) { return d.target.id; });
+
+    // Enter any new links.
+    link.enter().insert("svg:line", ".node")
+        .attr("class", "link")
+        .attr("x1", function(d) { return d.source.x; })
+        .attr("y1", function(d) { return d.source.y; })
+        .attr("x2", function(d) { return d.target.x; })
+        .attr("y2", function(d) { return d.target.y; });
+
+    // Exit any old links.
+    link.exit().remove();
+
+    // Update the nodes…
+    node = vis.selectAll("circle.node")
+        .data(nodes, function(d) { return d.id; })
+        .on("mouseover", node_mouseover)
+        .on("mouseout", node_mouseout)
+        .style("fill", color);
+
+
+    node.transition()
+        .attr("r", function(d) { return d.children ? 4.5 : Math.sqrt(d.size) / 10; });
+
+    // Enter any new nodes.
+    node.enter().append("svg:circle")
+        .attr("class", "node")
+        .attr("cx", function(d) { return d.x; })
+        .attr("cy", function(d) { return d.y; })
+        .attr("r", function(d) { return d.children ? 4.5 : Math.sqrt(d.size) / 10; })
+        .style("fill", color)
+        .on("click", click)
+        .call(force.drag);
+
+    // Exit any old nodes.
+    node.exit().remove();
+    }
+
+    function tick() {
+    link.attr("x1", function(d) { return d.source.x; })
+        .attr("y1", function(d) { return d.source.y; })
+        .attr("x2", function(d) { return d.target.x; })
+        .attr("y2", function(d) { return d.target.y; });
+
+    node.attr("cx", function(d) { return d.x; })
+        .attr("cy", function(d) { return d.y; });
+    }
+
+    // Color leaf nodes orange, and packages white or blue.
+    function color(d) {
+        console.log(d);
+        if(d.fixed) return "#000";
+    return d._children ? "#3182bd" : d.children ? "#c6dbef" : "#fd8d3c";
+    }
+
+    // Toggle children on click.
+    function click(d) {
+    if (d.children) {
+        d._children = d.children;
+        d.children = null;
+    } else {
+        d.children = d._children;
+        d._children = null;
+    }
+    update();
+    }
+
+    // Returns a list of all nodes under the root.
+    function flatten(root) {
+        var nodes = [], i = 0;
+
+        function recurse(node) {
+            if (node.children) node.size = node.children.reduce(function(p, v) { return p + recurse(v); }, 0);
+            if (!node.id) node.id = ++i;
+            nodes.push(node);
+            return node.size;
+        }
+
+        root.size = recurse(root);
+        return nodes;
+    }   
+    */
+
+
+    </script>
+</body>
+
+</html>
