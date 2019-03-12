@@ -37,7 +37,7 @@ KeystoreInspector.hookSet.addIntercept({
         "java.security.KeyStore.getInstance(<java.lang.String><java.security.Provider>)<java.security.KeyStore>"
     ],
     onMatch: function(ctx,event){
-        console.log("[LISTENER][Class.getConstructor] embedded keystore detected (BKS)",event.data);
+        console.log("[LISTENER][KeyStore.getInstance] embedded keystore detected",event.data);
         KeystoreInspector.emits("hook.keystore.getter.instance", event);
     },
     interceptBefore: `     
