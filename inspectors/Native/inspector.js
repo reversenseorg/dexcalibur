@@ -56,9 +56,10 @@ NativeLibraryInspector.hookSet.addIntercept({
                 const loaded = DEXC_MODULE.common.class.java.lang.Runtime.getRuntime().loadLibrary0(
                     DEXC_MODULE.common.class.dalvik.system.VMStack.getCallingClassLoader(), arg0); 
 
-                if(arg0 === 'scm') { 
-                    var libscm = Module.findBaseAddress("libscm.so")
-                    Interceptor.attach( ptr(libscm+0x1180e68), {
+                if(arg0 === 'MY_LIB') { 
+                    /*
+                    var mylib = Module.findBaseAddress("MY_LIB.so")
+                    Interceptor.attach( ptr(mylib).add(0x1000), {
                         onEnter: function(args){
                             send("ptrace bypassed");
                             return 0;
@@ -68,6 +69,7 @@ NativeLibraryInspector.hookSet.addIntercept({
                             return 0;
                         }
                     });
+                    */
 
                     send({ 
                         id:"@@__HOOK_ID__@@", 
