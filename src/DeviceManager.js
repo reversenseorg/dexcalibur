@@ -141,6 +141,9 @@ function DeviceManager(cfg){
             //re = new RegExp("([0-9A-Za-f]+).*device\susb:([^\s]+)\sproduct:([^\s]+)\smodel:([^\s]+)\sdevice:([^\s]+)");
             re = new RegExp("^([0-9A-Za-f]+).*device (.*)$");
 
+            this.devices = [];
+            this.count = 0;
+            
             for(let ln in ret){
                 if(ut.trim(ret[ln]).length==0 
                     || ret[ln]=="List of devices attached") 
@@ -148,6 +151,9 @@ function DeviceManager(cfg){
 
                 
                 data =  re.exec(ret[ln]);
+                if(data.length<3)
+                    continue;
+
                 console.log(data,ret[ln]);
                 id = data[1];
                 data = data[2].split(" ");
