@@ -35,7 +35,7 @@ var Parser = new ArgParser(projectArgs, [
     { name:"--config", 
         help: "The path to a custom config file. Default : ./config.js",
         hasVal:true, 
-        callback:(ctx,param)=>{ ctx.cfg = param.value; } },
+        callback:(ctx,param)=>{ ctx.config = param.value; } },
     { name:["--help","-h"], 
         help: "This menu",    
         hasVal:false, 
