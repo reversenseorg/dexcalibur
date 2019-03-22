@@ -16,6 +16,7 @@ var DataAnalyzer = require("./DataAnalyzer.js");
 var GraphMaker = require("./Graph.js");
 var Bus = require("./Bus.js");
 var Event = require("./Event.js");
+var ApkHelper = require("./ApkHelper.js");
 var FridaGenerator = require("./FridaGenerator.js");
 const Platform = require("./Platform.js");
 const SYSCALLS = require("./Syscalls.js");
@@ -80,6 +81,7 @@ function Project(pkgName, cfgpath=null, nofrida=0){
     this.analyze = new Analyzer(this.config.encoding, this.find);
     // set syscall list (bionic) 
     this.analyze.useSyscalls(SYSCALLS);
+    this.apkHelper = new ApkHelper(this);
 
     // ste Device Manager
     this.devices = new DeviceManager(this.config);
@@ -308,7 +310,6 @@ Project.prototype.loadDB = function(savePath){
     return Backup.restore(savePath);
 }*/
 
-
 /**
  * To download the Application package from the default device, 
  * uncompress the package, and disassemble the application bytecode 
@@ -381,6 +382,9 @@ Project.prototype.pull = function(device){
         console.error(Chalk.bold.red("[!] Fail to pull package"));
     }
 };
+
+
+
 
 /**
  * To start the application from a specific Activity.
