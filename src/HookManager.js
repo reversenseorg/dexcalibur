@@ -673,6 +673,9 @@ function HookPrologue(config){
  * @function
  */
 HookPrologue.prototype.isEnable = function(){
+    for(let i in this.context.hook.hooksets)
+        console.log(i,this.parentID);
+
     return this.context.hook.getHookSet(this.parentID).isEnable();
 }
 
@@ -851,9 +854,8 @@ HookManager.prototype.refreshScanner = function(){
         function(path,file){
             let s = file.substr(0,file.lastIndexOf("."));
             if(self.scanners[s]==null){
-                //console.log(path);
                 self.scanners[s] = require(path);
-                self.addHookSet(self.scanners[s].injectContext(self.context));
+                self.scanners[s].injectContext(self.context);
                 Logger.info("[HookManager:refreshScanner] New scanner added : "+s);
             }
     },false);
@@ -1171,8 +1173,14 @@ HookSet.prototype.getID = function(){
 }
 HookSet.prototype.injectContext = function(context){
     this.context = context;
+
+    // forward to the prologue
     if(this.prologue!=null)
         this.prologue.context = this.context;
+    
+    // register the hookset to the HookManager
+    this.context.hook.addHookSet(this);
+
     return this; 
 }
 HookSet.prototype.addPrologue = function(code){

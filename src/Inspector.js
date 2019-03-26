@@ -70,6 +70,11 @@ function Inspector(config){
 Inspector.prototype.useGUI = function(){
     this.gui_available = true;
 }
+
+/**
+ * To forward an HTTP GET request from the web server handler to the inspector front controller if available
+ * Internal use
+ */
 Inspector.prototype.performGet = function(req,res){
     if(this.frontController.hasHandler(IFC.HANDLER.GET)){
         return this.frontController.performGet(req,res);
@@ -77,6 +82,12 @@ Inspector.prototype.performGet = function(req,res){
         return { error: true, msg:"Unavailable GET handler for this inspector" };
     }
 }
+
+
+/**
+ * To forward an HTTP POST request from the web server handler to the inspector front controller if available
+ * Internal use
+ */
 Inspector.prototype.performPost = function(req,res){
     if(this.frontController.hasHandler(IFC.HANDLER.POST)){
         return this.frontController.performPost(req,res);
@@ -84,6 +95,10 @@ Inspector.prototype.performPost = function(req,res){
         return { error: true, msg:"Unavailable POST handler for this inspector" };
     }
 }
+
+/**
+ * To invoke the StaticTask instances associated to the given event. 
+ */
 Inspector.prototype.broadcastEvent = function(event){
     let event_type = event.type;
 
@@ -98,6 +113,10 @@ Inspector.prototype.broadcastEvent = function(event){
     }
     return true;
 }
+
+/**
+ * To declare new event handler. If the param `task`is  a function, a new StaticTask is create implicitly.
+ */
 Inspector.prototype.on = function(event_type, task){
     if(this.listener[event_type] == null)
         this.listener[event_type] = [];
@@ -109,6 +128,10 @@ Inspector.prototype.on = function(event_type, task){
         
     return this;
 }
+
+/**
+ * 
+ */
 Inspector.prototype.injectContext = function(ctx){
     this.context = ctx;
     this.hookSet.injectContext(ctx);
@@ -172,6 +195,11 @@ Inspector.prototype.emits = function(name,event){
     });
 }
 
+
+/**
+ * To cast the current object to an object ready to be serialize (it avoids cyclic reference)
+ * @returns {Object} 
+ */
 Inspector.prototype.toJsonObject = function(){
     let o = new Object(), t = null;
     o.id = this.id;
