@@ -293,7 +293,7 @@
              for(let i in row.methods){
                  console.log(row.methods[i]);
                  body += '<tr>'+
-                    '<td><a  class="badge badge-'+(row.methods[i].probing? 'success':'primary')+' probe" meth="'+btoa(encodeURIComponent(row.methods[i].__signature__))+'">Probe '+(row.methods[i].probing? 'ON':'OFF')+'</a>&nbsp;&nbsp;'+
+                    '<td><a  class="badge badge-'+(row.methods[i].probing? 'success':'primary')+' probe" meth="'+btoa(encodeURIComponent(row.methods[i].__signature__))+'">Probe '+(row.methods[i].probing? 'ON&nbsp;&nbsp;':'OFF')+'</a>&nbsp;&nbsp;'+
                     //'<a  class="badge badge-danger">Intercept</a>'+
                     '<a class="badge badge-purple xrefto" target="about" meth="'+btoa(encodeURIComponent(row.methods[i].__signature__))+'">xref to</a>&nbsp;'+
                     '<a class="badge badge-pink xreffrom" target="about" meth="'+btoa(encodeURIComponent(row.methods[i].__signature__))+'">xref from</a></td><td><b>Method</b></td>'+
@@ -431,9 +431,16 @@
         return body;
     }
 
+    const SEARCH = {
+        MULTI: 2,
+        SINGLE: 4,
+        BLOB: 1
+    };
+
     $(document).ready(function() {
 
-        
+        var g_search_type = SEARCH.MULTI;
+
         let clsTable = $('#dataTables-finder').DataTable({
             searching: false,
             paging: false,
@@ -857,6 +864,13 @@
             let val = $("#search_request")[0].value;
             
             json = JSON.stringify({ search: val });
+            /*
+            if(val.substr(0,4)=="get."){
+                g_search_type = SEARCH.SINGLE;
+            }else{
+                g_search_type = SEARCH.MULTI;
+            }*/
+
             $.ajax('../api/finder',{
                 method: 'get',
                 data: {
@@ -874,6 +888,11 @@
                             GLOBAL.results = data.data;
                             console.log(data.data);
                             renderBodyTable(data.data);
+
+                            // auto expand, il single row 
+                            if(data.data.length == undefined)/*g_search_type === SEARCH.SINGLE)*/{
+                                $('#dataTables-finder td.details-control').trigger('click');
+                            }
                         }
 
                     },
@@ -990,10 +1009,12 @@
                     $("#button_search").trigger("click");
                     break;
                 case "method":
+                    g_search_type = SEARCH.SINGLE;
                     $("#search_request")[0].value = 'get.method("'+req+'")';
                     $("#button_search").trigger("click");
                     break;
                 case "class":
+                    g_search_type = SEARCH.SINGLE;
                     $("#search_request")[0].value = 'get.class("'+req+'")';
                     $("#button_search").trigger("click");
                     break;
