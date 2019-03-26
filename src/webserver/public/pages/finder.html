@@ -374,12 +374,13 @@
         }
 
         body += '</td></tr>'; 
-        body += '<tr><td>Fullname</td><td>'+row.enclosingClass+'.'+htmlEncode(row.name)+'</td></tr>';
+        body += '<tr><td>Class</td><td><a href="finder.html?class='+btoa(encodeURIComponent(row.enclosingClass))+'">'+htmlEncode(row.enclosingClass)+'</a></td></tr>';
+        body += '<tr><td>Fullname</td><td>'+htmlEncode(row.enclosingClass+'.'+row.name)+'</td></tr>';
         
         for(let i=0;  i<row.args.length; i++){
             sgt = row.args[i].name;
             console.log(row.args[i]);
-            body += '<tr><td>Arg '+i+'</td><td>';
+            body += '<tr><td>Arg '+htmlEncode(i)+'</td><td>';
             body += '<a href="finder.html?class='+btoa(encodeURIComponent(sgt))+'">'+htmlEncode(sgt)+'</a></td></tr>';
         }
 

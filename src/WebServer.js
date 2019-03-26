@@ -510,8 +510,8 @@ class WebServer {
             .get(function(req,res){
                 let o = [];
                 $.project.hook.refreshScanner();
-                for(let i in $.project.hook.hooksets){
-                    o.push($.project.hook.hooksets[i].toJsonObject());
+                for(let i in $.project.hook.scanners){
+                    o.push($.project.hook.scanners[i].toJsonObject());
                 }
 
                 res.status(200).send(JSON.stringify({ data:o }));
