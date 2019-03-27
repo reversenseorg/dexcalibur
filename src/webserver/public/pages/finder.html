@@ -78,12 +78,14 @@
                 <div class="col-lg-12 pre-request">
                     <a class="badge badge-danger prefilter-clean">clean</a>&nbsp;&nbsp;
                     <a class="badge badge-info prefilter" prefilt='call("calleed.name:@@")'>find calls to a method</a>&nbsp;&nbsp;
+                    <a class="badge badge-info prefilter" prefilt='call("calleed.name:@@").select("caller")'>find callers of a method</a>&nbsp;&nbsp;
                     <a class="badge badge-info prefilter" prefilt='call("calleed.name:@@").filter("calleed.__signature__:->")'>use of the field</a>&nbsp;&nbsp;
                     <a class="badge badge-info prefilter" prefilt='class("name:@@")'>find class by name</a>&nbsp;&nbsp;
+                    <a class="badge badge-info prefilter" prefilt='class("extends.name:@@")'>find class by extended class</a>&nbsp;&nbsp;
+                    <a class="badge badge-info prefilter" prefilt='field("name:@@")'>find field by name</a>&nbsp;&nbsp;
                     <a class="badge badge-info prefilter" prefilt='method("name:@@")'>find method by name</a>&nbsp;&nbsp;
                     <a class="badge badge-info prefilter" prefilt='method("args.__signature__:@@")'>find method by arg type</a>&nbsp;&nbsp;
-                    <a class="badge badge-info prefilter" prefilt='class("name:@@")'>find field by name</a>&nbsp;&nbsp;
-                    <a class="badge badge-info prefilter" prefilt='class("ret.__signature__:@@")'>find method by return type</a>&nbsp;&nbsp;
+                    <a class="badge badge-info prefilter" prefilt='method("ret.__signature__:@@")'>find method by return type</a>&nbsp;&nbsp;
                     <a class="badge badge-info prefilter" prefilt='string("value:@@")'>Strings containing</a>&nbsp;&nbsp;
                 </div>
                 <div class="col-lg-12 pre-filter" style="display:none">
@@ -91,7 +93,7 @@
                     <a class="badge badge-purple prefilter" prefilt='select("_callers")'>xref</a>&nbsp;&nbsp;
                     <a class="badge badge-purple prefilter" prefilt='select("caller")'>keep callers</a>&nbsp;&nbsp;
                     <a class="badge badge-purple prefilter" prefilt='select("calleed")'>keep calleds</a>&nbsp;&nbsp;
-                    <a class="badge badge-purple prefilter" prefilt='filter("enclosingClass.name:@@")'>exclude not in application package</a>&nbsp;&nbsp;
+                    <a class="badge badge-purple prefilter" prefilt='filter("enclosingClass.name:^@@")'>filter by package</a>&nbsp;&nbsp;
                     <a class="badge badge-purple prefilter" prefilt='filter("caller.enclosingClass.name:@@")'>filter by caller class</a>&nbsp;&nbsp;
                     <a class="badge badge-purple prefilter" when="before" prefilt='nocase()'>Case ensensitive</a>&nbsp;&nbsp;
                 </div>
@@ -347,10 +349,10 @@
         body += '</td><td>'+calleed_type+'</td><td><a target="about" href="finder.html?method='+btoa(encodeURIComponent(row.callee))+'">'+htmlEncode(row.callee)+'</a></td></tr></table>';
 
 //        $.ajax("/api/method/");
-        body += '<div class="row"><div class="col-lg-2 col-lg-offset-8">See more</div></div>';
+        /* body += '<div class="row"><div class="col-lg-2 col-lg-offset-8">See more</div></div>';
         body += '<code>';
             body += "disass";
-        body += '</code>';
+        body += '</code>'; */
         return body;
     }
 
@@ -381,7 +383,13 @@
             sgt = row.args[i].name;
             console.log(row.args[i]);
             body += '<tr><td>Arg '+htmlEncode(i)+'</td><td>';
-            body += '<a href="finder.html?class='+btoa(encodeURIComponent(sgt))+'">'+htmlEncode(sgt)+'</a></td></tr>';
+            
+            if(row.args[i].primitive===false)
+                body += '<a href="finder.html?class='+btoa(encodeURIComponent(sgt))+'">'+htmlEncode(sgt)+'</a>';
+            else
+                body += htmlEncode(sgt);
+
+            body += '</td></tr>';
         }
 
         
@@ -431,15 +439,11 @@
         return body;
     }
 
-    const SEARCH = {
-        MULTI: 2,
-        SINGLE: 4,
-        BLOB: 1
-    };
+    
 
     $(document).ready(function() {
 
-        var g_search_type = SEARCH.MULTI;
+       
 
         let clsTable = $('#dataTables-finder').DataTable({
             searching: false,
@@ -729,7 +733,7 @@
                     },
                     {  
                         render: function(data, type, row, meta ){
-                            return htmlEncode(row.instr.method);
+                            return '<a target="about" href="finder.html?method='+btoa(encodeURIComponent(row.instr.method))+'">'+htmlEncode(row.instr.method)+'</a>';
                         }
                     },
                     {
@@ -864,12 +868,6 @@
             let val = $("#search_request")[0].value;
             
             json = JSON.stringify({ search: val });
-            /*
-            if(val.substr(0,4)=="get."){
-                g_search_type = SEARCH.SINGLE;
-            }else{
-                g_search_type = SEARCH.MULTI;
-            }*/
 
             $.ajax('../api/finder',{
                 method: 'get',
@@ -918,6 +916,8 @@
 
             if(filt.indexOf("@@")>-1){
                 token = prompt("Type the value for the filter :");
+                if(token == null) return;
+                
                 filt = filt.replace("@@",token);
             }
 
@@ -1009,12 +1009,10 @@
                     $("#button_search").trigger("click");
                     break;
                 case "method":
-                    g_search_type = SEARCH.SINGLE;
                     $("#search_request")[0].value = 'get.method("'+req+'")';
                     $("#button_search").trigger("click");
                     break;
                 case "class":
-                    g_search_type = SEARCH.SINGLE;
                     $("#search_request")[0].value = 'get.class("'+req+'")';
                     $("#button_search").trigger("click");
                     break;
