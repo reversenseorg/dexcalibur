@@ -102,8 +102,8 @@ if(projectArgs.app != null){
     }
 
     if(projectArgs.apk != null){
-        err = Project.apkHelper.extract(projectArgs.apk);
-        if(err){
+        success = Project.apkHelper.extract(projectArgs.apk);
+        if(success===false){
             Logger.error("[!] Failed to extract data from the APK : ",err).exit();
         }
     }

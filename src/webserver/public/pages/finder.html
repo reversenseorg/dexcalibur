@@ -162,7 +162,7 @@
                 <table width="100%"  class="table table-striped table-bordered table-hover" id="dataTables-xref">
                     <thead>
                         <tr>
-                            <th id="xref-col1">ID</th>
+                            <th id="xref-col1">Method</th>
                             <th id="xref-col2">Location</th>
                             <th id="xref-col3">Action</th>
                         </tr>
@@ -473,23 +473,21 @@
             searching: false,
             paging: false,
             columns: [
-                {
-                    "className":      'details-control',
-                    "orderable":      false,
-                    "data":           null,
-                    "defaultContent": ''
-                },
-                {  "defaultContent": '' },
-                {  "defaultContent": '' },
-                /*
+                {  
+                    render: function(data, type, row, meta ){
+                            console.log(row);
+                            return '<a target="about" href="finder.html?method='+btoa(encodeURIComponent(row.id))+'">'+htmlEncode(row.id)+'</a>';
+                        }
+                 },
+                {  "defaultContent": '0' },
                 { 
                     render: function(data, type, row, meta ){
-                        if(row.name != null)
-                            return '<a  class="badge badge-success probe" meth="'+btoa(encodeURIComponent(row.name))+'">ON</a>';
-                        else    
-                            return '';
+                        if(row.id.indexOf("<clinit>")>-1)
+                            return '<a class="badge badge-secondary" tip="Class init cannot be hooked">Probe</a>';
+                        else
+                            return '<a  class="badge badge-'+(row.probing? 'success':'primary')+' probe" meth="'+btoa(encodeURIComponent(row.id))+'">Probe '+(row.probing? 'ON&nbsp;&nbsp;':'OFF')+'</a>';
                     }
-                }*/
+                }
             ],
             responsive: true
         });
@@ -498,20 +496,32 @@
             let body = '', j=0;
 
             if(from)
-                $('#xrefModalTitle').html("XRef from "+ref);
+                $('#xrefModalLabel').html("XRef from <h4>"+htmlEncode(decodeURIComponent(atob(ref)))+"</h4>");
             else
-                $('#xrefModalTitle').html("XRef to "+ref);
+                $('#xrefModalLabel').html("XRef to <h4>"+htmlEncode(decodeURIComponent(atob(ref)))+"</h4>");
 
             
             $.ajax(
-                "../api/method/xref/"+(from?"from/":"to/")+encodeURIComponent(btoa(encodeURIComponent(ref))),
+                "../api/method/"+ref,
                 {
                     method: "get",
                     statusCode: {
                         200: function(data){
+
                             data = JSON.parse(data);
                             xrefTable.clear();
-                            xrefTable.rows.add(data);
+
+                            rows = [];
+                            if(!from){
+                                for(let i=0; i<data._callers.length; i++){
+                                    rows.push(data._callers[i]);
+                                }
+                            }else{
+                                for(let i in data._useMethods){
+                                    rows.push({ ID: data._useMethods[i].__signature__, location:"-1", action:"None" });
+                                }
+                            }
+                            xrefTable.rows.add(rows);
                             xrefTable.draw();
                         }
                     }
