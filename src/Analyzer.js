@@ -418,6 +418,8 @@ function mapInstructionFrom(method, data, stats){
 
 
                 instruct.right = Resolver.method(data, instruct.right);
+                
+
                 instruct.right._callers.push(method); 
                 
                 data.call.push(new CLASS.Call({ 
@@ -453,6 +455,8 @@ function mapInstructionFrom(method, data, stats){
                 if(instruct.right === undefined || instruct.right._callers === undefined){
                     console.log("Instruct::right undef (analyzer)", instruct);
                 }
+
+                //console.log(instruct.right.signature)
                 instruct.right._callers.push(method); 
                 
                 data.call.push(new CLASS.Call({ 

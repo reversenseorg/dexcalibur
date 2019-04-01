@@ -140,7 +140,7 @@ FinderResult.prototype.caller = function(){
             || obj instanceof CLASS.Method
             || obj instanceof CLASS.Class){
 
-            for(let k in obj._callers){
+            for(let k=0; k<obj._callers.length; k++ ){
                 meth.push(obj._callers[k]);
             }
         }

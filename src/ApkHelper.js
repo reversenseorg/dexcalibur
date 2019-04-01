@@ -8,14 +8,16 @@ function ApkHelper(ctx){
 }
 
 ApkHelper.prototype.extract = function(file){
-    if(FS.existsSync(file)==false) return "file not found";
-
+    if(FS.existsSync(file)==false){
+        console.log(Chalk.bold.red("[*] APK not found "));
+        return false;
+    }
     ret = Process.execSync(this.context.config.apktPath+" d -f -m -r -o "+this.context.workspace.getWD()+"dex "+file).toString("ascii");
     
     //if()
     console.log(Chalk.bold.green("[*] APK decompiled in "+this.context.workspace.getWD()+"dex"));
 
-    return null;
+    return true;
 }
 
 

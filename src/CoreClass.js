@@ -973,9 +973,12 @@ Method.prototype.toJsonObject = function(fields=[],exclude=[]){
                     break;
                 case "_useMethod":
                     obj._useMethod = [];
+                    console.log("len : ", this._useMethod.length);
                     for(let j in this._useMethod){
-                        if(this._useMethod[i] != undefined)
+                        if(this._useMethod[i] != undefined){
+                            console.log(this._useMethod[i].__signature__);
                             obj._useMethod.push(this._useMethod[i].__signature__);
+                        }
                     }
                     break;
                 case "_useField":
@@ -987,9 +990,11 @@ Method.prototype.toJsonObject = function(fields=[],exclude=[]){
                     break;
                 case "_callers":
                     obj._callers = [];
-                    for(let j in this._callers){
-                        if(this._callers[i] != undefined)
-                            obj._callers.push(this._callers[i].__signature__);
+                    //console.log(this._callers.length);
+                    for(let j=0; j<this._callers.length ; j++){
+                        if(this._callers[j] != undefined)
+                            //console.log("Callers -> ",this._callers[i].signature());
+                            obj._callers.push(this._callers[j].__signature__);
                     }
                     break;
                 case "__signature__":
@@ -1314,9 +1319,9 @@ Field.prototype.toJsonObject = function(fields=[],exclude=[]){
             switch(i){
                 case "_callers":
                     obj[i] = [];
-                    for(let j in this._callers){
-                        if(this._callers[i] != undefined)
-                            obj._callers.push(this._callers[i].__signature__);
+                    for(let j=0; j<this._callers.length; j++){
+                        if(this._callers[j] != undefined)
+                            obj._callers.push(this._callers[j].__signature__);
                     }
                     break;
                 case "__signature__":

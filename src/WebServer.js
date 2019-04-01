@@ -467,16 +467,45 @@ class WebServer {
                 };
                 res.status(200).send(JSON.stringify(dev));
             });
+
+        this.app.route('/api/method/xref/to/:id')
+            .get(function(req,res){
+                // collect
+                let method = $.project.find.get.method(UT.decodeURI(UT.b64_decode(req.params.id)));
+                if(method == null){
+                    res.status(404).send(JSON.stringify({ err:"method not found"}))
+                }
+
+                let dev = {
+                    data: method.toJsonObject()._callers
+                };
+
+                res.status(200).send(JSON.stringify(dev));
+            });
+
         this.app.route('/api/method/:id')
             .get(function(req,res){
                 // collect
                 let dev = {};
+                let callers = [];
+                console.log(req.params.id, UT.b64_decode(req.params.id));
+                console.log(UT.decodeURI(UT.b64_decode(req.params.id)));
                 let method = $.project.find.get.method(UT.decodeURI(UT.b64_decode(req.params.id)));
                 
                 dev = method.toJsonObject();
                 dev.disass = method.disass({ raw: true });
-                dev.cfg = $.project.graph.cfgLazy(method);
+                //dev.cfg = $.project.graph.cfgLazy(method);
                 // dev.htg = $.project.graph.htg(method);
+
+
+                for(let k=0; k<dev._callers.length; k++){
+                    if($.project.hook.isProbing(dev._callers[k])){
+                        callers.push({ id:dev._callers[k], probing:true });
+                    }else{
+                        callers.push({ id:dev._callers[k], probing:false });
+                    }
+                }
+                dev._callers = callers;
 
                 res.status(200).send(JSON.stringify(dev));
             });
