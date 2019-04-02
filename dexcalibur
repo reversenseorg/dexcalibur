@@ -3,7 +3,8 @@
 
 const Dexcalibur = require("./src/Project.js");
 const ArgParser = require("./src/ArgUtils.js");
-const Process = require("process"); 
+const Process = require("process");
+const FS = require("fs"); 
 const Logger = require("./src/Logger.js")
 const PlatformBuilder = require("./src/PlatformBuilder.js");
 const Platform = require("./src/Platform.js");
@@ -33,6 +34,10 @@ var Parser = new ArgParser(projectArgs, [
         help: "The path to the target APK file",
         hasVal:true, 
         callback:(ctx,param)=>{ ctx.apk = param.value; } },
+    { name:"--apk-stdin", 
+        help: "Read the APK to analyze on STDIN",
+        hasVal:false, 
+        callback:(ctx,param)=>{ ctx.apkStdin = 1; } },
     { name:"--port", 
         help: "The web server port number",
         hasVal:true, 
@@ -105,6 +110,22 @@ if(projectArgs.app != null){
         success = Project.apkHelper.extract(projectArgs.apk);
         if(success===false){
             Logger.error("[!] Failed to extract data from the APK : ",err).exit();
+        }
+    }
+    else if(projectArgs.apkStdin != null){
+
+        let apk_data = FS.readFileSync(0);
+        projectArgs.apk = Project.workspace.getWD()+"/base.apk"; 
+        try{
+            FS.writeFileSync(projectArgs.apk, apk_data);
+            Logger.info("[*] Apk read successfully on stdin");
+            success = Project.apkHelper.extract(projectArgs.apk);
+            if(success===false){
+                Logger.error("[!][STDIN] Failed to extract data from the APK : ",err).exit();
+            }
+
+        }catch(e){
+            Logger.error("[!] An error occured while reading APK on STDIN : ",e);
         }
     }
 
