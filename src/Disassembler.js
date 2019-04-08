@@ -60,6 +60,8 @@ Disassembler.prototype.method = function(method){
         
         console.log("\n  "+method.signature());
         for(let i in method.instr){
+
+
             bb=method.instr[i];
 
             if(bb.tag !== null){
@@ -68,8 +70,14 @@ Disassembler.prototype.method = function(method){
                 prefix = "";
             }
             
+
+            if(bb.cond_name != null)
+                console.log("\n :cond_"+bb.cond_name+"\n");
+            if(bb.goto_name != null)
+                console.log("\n :goto_"+bb.goto_name+"\n");
+
             for(let j in bb.stack){
-                if(bb.stack[j].opcode === undefined) continue;
+                if(bb.stack[j] == null || bb.stack[j].opcode === undefined) continue;
 
                 txt = prefix+"\t<"+i+","+j+">\t";
 
@@ -81,6 +89,9 @@ Disassembler.prototype.method = function(method){
                 }
                 else if(bb.stack[j].opcode.instr.indexOf("invoke")>-1){
                     txt += Chalk.bold.yellow(bb.stack[j]._raw);
+                }
+                else if(bb.stack[j].opcode.type == CONST.INSTR_TYPE.NOP){
+                    txt += "nop";
                 }
                 else if(bb.stack[j].opcode.instr.indexOf("const-string")>-1){
                     txt += bb.stack[j].opcode.instr;
@@ -153,7 +164,7 @@ Disassembler.prototype.block = function(method,bb,nested,tagged){
                 
         }
         else{
-            if(bb.stack[j].opcode.instr.indexOf("goto")>-1){
+            if(bb.stack[j].opcode.type===CONST.INSTR_TYPE.GOTO){
                 txt += Chalk.bold.blue(bb.stack[j]._raw);
             }
             else if(bb.stack[j].opcode.instr.indexOf("invoke")>-1){
@@ -216,10 +227,10 @@ Disassembler.prototype.methodRaw = function(method){
             bbe.instr.push({ value:".line "+bb.line });
         }
         if(bb.isGotoBlock()){
-            bbe.instr.push({ value:bb.goto_name });
+            bbe.instr.push({ value:":goto_"+bb.goto_name });
         }
         if(bb.isConditionalBlock()){
-            bbe.instr.push({ value:bb.cond_name });
+            bbe.instr.push({ value:":cond_"+bb.cond_name });
         }
         if(bb.isTryBlock()){
             bbe.instr.push({ value:bb.try_name });
@@ -254,12 +265,12 @@ Disassembler.prototype.methodRaw = function(method){
            
                 //line.value = '<i class="code-pink">'+bb.stack[j]._raw+'</i>';
             }
-            else if(bb.stack[j].opcode.instr.indexOf("goto")>-1){
+            else if(bb.stack[j].opcode.type==CONST.INSTR_TYPE.GOTO){
                 line.goto = true;
                 //line.value = '<i class="code-blue">'+bb.stack[j]._raw+'</i>';
             }
             else if(bb.stack[j].opcode.instr.indexOf("invoke")>-1){
-                line.goto = true;
+                // line.goto = true;
                 //line.value = '<u class="code-purple">'+bb.stack[j]._raw+'</u>';
             }
             else if(bb.stack[j].opcode.instr.indexOf("const-string")>-1){

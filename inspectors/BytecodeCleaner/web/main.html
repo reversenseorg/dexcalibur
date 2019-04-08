@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="">
+    <meta name="author" content="">
+
+    <title>Dexcalibur - Bytecode cleaner</title>
+
+    <!-- styles -->
+    <!--## pages/inc/tpl_css.html ##-->
+
+
+
+
+    <!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
+    <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
+    <!--[if lt IE 9]>
+        <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
+        <script src="https://oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js"></script>
+    <![endif]-->
+
+</head>
+
+<body>
+
+    <div id="wrapper">
+
+        <!-- Navigation -->
+        <!--## pages/inc/menu.html ##-->
+
+        <div id="page-wrapper">
+            <!--<div class="row">
+                <div class="col-lg-12">
+                    <h1 class="page-header" style="font-size:1em">Probe logs</h1>
+                </div>
+            </div>-->
+            <div class="row" style="padding:10px;">
+                <div class="col-lg-8" style="font-size:1.5em">Bytecode Cleaner inspector</div>
+                
+                <!--<div class="col-lg-4">
+                    <button class="btn btn-danger probe-restart">
+                        <i class="fa fa-refresh"></i>&nbsp;Relaunch
+                    </button>&nbsp
+                    <button class="btn btn-primary refresh">
+                        <i class="fa fa-refresh"></i>&nbsp;Refresh
+                    </button>
+                </div>-->
+            </div>
+
+            <div class="panel panel-info">
+               <div class="panel-heading">
+                    <div class="row">
+                        <div class="col-lg-7" style="font-size:1.5em">Remove NOP</div>
+                        <div class="col-lg-3" style="font-size:1.5em; color:gray" id="nopCounter">
+                        </div>
+                        <div class="col-lg-2">
+                            <button class="btn btn-success nop-count">
+                                &nbsp;Count
+                            </button>
+                            <button class="btn btn-danger nop-clean">
+                                <i class="fa fa-refresh"></i>&nbsp;Clean
+                            </button>
+                        </div>
+                    </div>
+                </div>         
+                <div class="panel-body">
+                    The aim of the NOP remover is to remove the NOP instruction from the model. <br>
+                    It will produce more clean smali. <b style="color:red">Be aware this action cannot be undone.</b>
+                    This action will not modify the files content.
+                </div>
+            </div>
+
+<!--
+            <div class="panel panel-info">
+                <div class="panel-heading">
+                        <div class="row">
+                            <div class="col-lg-10" style="font-size:1.5em">Remove useless Goto</div>
+                            <div class="col-lg-2">
+                                <button class="btn btn-danger goto-clean">
+                                    <i class="fa fa-refresh"></i>&nbsp;Clean (bugged !)
+                                </button>
+                            </div>
+                        </div>
+                    </div>         
+                    <div class="panel-body">
+                        The aim of the GoTo remover is to simply the bytecode by replacing GoTo trigged from a single point. <br>
+                        It will produce more clean smali. <b style="color:red">Be aware this action cannot be undone.</b>
+                        This action will not modify the files content.
+                    </div>
+                </div>
+
+            <div class="panel panel-info">
+                <div class="panel-heading">
+                    <div class="row">
+                        <div class="col-lg-10" style="font-size:1.5em">Find & rename wrapped methods</div>
+                        <div class="col-lg-2">
+                            <button class="btn btn-danger wrapped-clean">
+                                <i class="fa fa-refresh"></i>&nbsp;Rename
+                            </button>
+                        </div>
+                    </div>
+                </div>         
+                <div class="panel-body">
+                    The aim of this action is to detect wrappers and to rename it with the class/method name of the wrapped function.
+                </div>
+            </div>
+
+            <div class="panel panel-info">
+                <div class="panel-heading">
+                    <div class="row">
+                        <div class="col-lg-10" style="font-size:1.5em">Find & replace duplicated functions</div>
+                        <div class="col-lg-2">
+                            <button class="btn btn-danger duplicate-clean">
+                                <i class="fa fa-refresh"></i>&nbsp;Clean
+                            </button>
+                        </div>
+                    </div>
+                </div>         
+                <div class="panel-body">
+                    &nbsp;
+                </div>
+            </div>
+        -->
+                <!--
+                    <table width="100%" class="table table-sm-4" id="tabProbeLogs">
+                            <thead>
+                                <tr>
+                                    <th>Device</th>
+                                    <th>Type</th>
+                                    <th>Method</th>
+                                    <th>Relevant arguments/subject</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                
+                            </tbody>
+                        </table>-->
+
+                
+            <!--<div class="modal modal-default">
+                <div class="modal-heading">
+                    <div class="row">
+                        <div class="col-lg-10" style="font-size:1.5em">Probe logs</div>
+                        <div class="col-lg-2">
+                            <button class="btn btn-danger probe-restart">
+                                <i class="fa fa-refresh"></i>&nbsp;Relaunch
+                            </button>
+                        </div>
+                    </div>
+                    
+                </div>                
+                <div class="modal-body" id="probelogs" style="background-color:#fff;font-family: 'Courier New', Courier, monospace">
+                    
+                </div>
+            </div> -->
+
+        </div>
+        <!-- /#page-wrapper -->
+    </div>
+    <!-- /#wrapper -->
+
+
+    <!--## pages/inc/tpl_js_end.html ##-->
+
+    <script>
+
+    $(document).ready(function() {
+        $(".nop-clean").click(function(e){
+            $.ajax("/api/inspectors/BytecodeCleaner", {
+                method: "get",
+                data: {
+                    action: "nop_clean"
+                },
+                statusCode: {
+                    200: function(data,err){
+                        // do popup
+                        alert("Success");
+                    }
+                }
+            })
+        });
+
+
+        $(".nop-count").click(function(e){
+            $.ajax("/api/inspectors/BytecodeCleaner", {
+                method: "get",
+                data: {
+                    action: "nop_count"
+                },
+                statusCode: {
+                    200: function(data,err){
+                        let pct = Math.round((data.nop/data.any)*100,2);
+                        $("#nopCounter").html(data.nop+"&nbsp;NOPs&nbsp;/&nbsp;"+data.any+"&nbsp;("+pct+"%)");
+                    },
+                }
+            })
+        });
+
+
+        $(".goto-clean").click(function(e){
+            $.ajax("/api/inspectors/BytecodeCleaner", {
+                method: "get",
+                data: {
+                    action: "goto_clean"
+                },
+                statusCode: {
+                    200: function(data,err){
+                        alert("Success");
+                    },
+                    404: function(data,err){
+                        alert("An remote error occured.");
+                    }
+                }
+            })
+        });
+    });
+
+    </script>
+
+</body>
+
+</html>
