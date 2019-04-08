@@ -152,6 +152,23 @@
     </div>
     <!-- /#wrapper -->
 
+    <div class="modal fade" id="renameModal" tabindex="-1" role="dialog" aria-labelledby="renameModalLabel" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+          <div class="modal-content">
+            <div class="modal-body">
+                <h4>Rename</h4>
+                <div class="input-group mb-8">
+                <input type="text" id="renameModalAlias" class="form-control" style="width:30em" autofocus placeholder="Alias" aria-label="Alias" aria-describedby="basic-addon1">
+                </div>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>&nbsp;
+              <button type="button" class="btn btn-primary confirm" data-dismiss="modal">Save</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
     <div class="modal fade" id="xrefModal" tabindex="-1" role="dialog" aria-labelledby="xrefModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-lg" role="document">
           <div class="modal-content">
@@ -607,7 +624,7 @@
                     },
                     { 
                         render: function(data, type, row, meta ){
-                            return (row.enclosingClass!=null)? htmlEncode(row.enclosingClass) : '[Missing]';
+                            return ((row.enclosingClass!=null)? htmlEncode(row.enclosingClass) : '[Missing]');
                         }
                     },
                     {  
@@ -621,7 +638,8 @@
                             let b='<a  class="badge badge-success probe" meth="'+btoa(encodeURIComponent(row.__signature__))+'">Probe</a>&nbsp;';
                             b += '<a  class="badge badge-secondary cfg" meth="'+btoa(encodeURIComponent(row.__signature__))+'">Call Graph</a>&nbsp;';
                             b += '<a  class="badge badge-secondary seemore" meth="'+btoa(encodeURIComponent(row.__signature__))+'">See more</a>';
-                            
+                            b += '&nbsp;<a  class="badge badge-info rename" ename="'+btoa(encodeURIComponent(row.name))+'" meth="'+btoa(encodeURIComponent(row.__signature__))+'">Rename</a>';
+
                             return b;
                             /*
                             if(row.enclosingClass != undefined)
@@ -986,6 +1004,24 @@
                 probes[i].click();
             }
             $('#probeall_modal').modal('toggle');
+        });
+
+        $(document).on("click",".rename",function(e){
+            let DOM_PROBE =$(this);
+            let meth = $(this).attr("meth");
+            let name = $(this).attr("ename");
+
+            $("#renameModalAlias").val(decodeURIComponent(atob(name)));
+            $("#renameModal").modal();
+//            renderXrefModal(meth,true);
+        });
+
+        $('#renameModal .confirm').click(function(e){
+            /*let probes = $(".probe");
+            for(let i=0; i<probes.length; i++){
+                probes[i].click();
+            }*/
+            $('#renameModal').modal('toggle');
         });
 
         function setLocationQuery(){

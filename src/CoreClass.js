@@ -367,6 +367,8 @@ function Class(config){
     // the FQCN of the class
     this.name = null;
 
+    // An alias
+    this.alias = null;
     
     this.meta = null;
 
@@ -475,6 +477,14 @@ function Class(config){
     
 
     return this;
+}
+
+
+Class.prototype.getAlias = function(){
+    return this.alias;
+}
+Class.prototype.setAlias = function(name){
+    this.alias = name;
 }
 
 Class.prototype.dump = function(){
@@ -791,6 +801,8 @@ function Method(config){
     this.__stub_type__ = STUB_TYPE.METHOD;
     this.$ = STUB_TYPE.METHOD;
 
+    this.alias = null;
+
     this.name = null;
     this.modifiers = null;
     this.args = [];
@@ -893,6 +905,24 @@ function Method(config){
         return hash;
     };
 
+    // this.signatureFactory("__signature__","name")
+    // this.signatureFactory("__alias_signature__","alias")
+    this.signatureFactory = function(ppt, seed){
+        if(this[ppt] !== null) return this[ppt];
+
+        let xargs = "", hash="";
+
+        for(let i in this.args) xargs+=""+this.args[i].signature()+"";
+        
+        if(this.fqcn !== undefined)
+            hash = this.fqcn+"."+this[seed]+"("+xargs+")"+this.ret.signature();
+        else{
+            //console.log(this.ret);
+            hash = this.enclosingClass[seed]+"."+this[seed]+"("+xargs+")"+this.ret.signature();
+        }
+        this[ppt]  = hash;
+        return hash;
+    };
 
     this.sprint = function(){
         let s="\t"+this.modifiers.sprint()+" "+this.ret.sprint()+" "+this.name+"(";
@@ -1000,6 +1030,7 @@ Method.prototype.toJsonObject = function(fields=[],exclude=[]){
                 case "__signature__":
                 case "__callSignature__":
                 case "name":
+                case "alias":
                 case "locals":
                 case "registers":
                 case "params":
@@ -1110,6 +1141,23 @@ Method.prototype.setProbing = function(flag){
     this.probing = flag;
 }
 
+
+
+Method.prototype.addCallValue = function(dyn){
+    this.dyn.push(dyn);
+    return this;
+}
+Method.prototype.getCallValues = function(dyn){
+    return this.dyn;
+}
+Method.prototype.getAlias = function(){
+    return this.alias;
+}
+Method.prototype.setAlias = function(name){
+    this.alias = name;
+}
+
+
 function CondTag(){
     this.name = null;
 
@@ -1141,15 +1189,6 @@ function Tag(tag){
 
     return this;
 }
-
-Method.prototype.addCallValue = function(dyn){
-    this.dyn.push(dyn);
-    return this;
-}
-Method.prototype.getCallValues = function(dyn){
-    return this.dyn;
-}
-
 /**
  * Represents a basic block of dalvik instruction
  * @param {Object} config Optional, an object wich can be used in order to initialize the instance 
@@ -1262,6 +1301,8 @@ function Field(config){
     this.__stub_type__ = STUB_TYPE.FIELD;
     this.$ = STUB_TYPE.FIELD;
 
+    this.alias = null;
+
     this.fqcn = null;
     this.name = null;
     this.modifiers = null;
@@ -1285,6 +1326,13 @@ function Field(config){
 
     
     return this;
+}
+
+Field.prototype.getAlias = function(){
+    return this.alias;
+}
+Field.prototype.setAlias = function(name){
+    this.alias = name;
 }
 Field.prototype.raw_import = Savable.import;
 Field.prototype.import = function(obj){
@@ -1327,6 +1375,7 @@ Field.prototype.toJsonObject = function(fields=[],exclude=[]){
                 case "__signature__":
                 case "fqcn":
                 case "name":
+                case "alias":
                 case "_isBinding":
                     obj[i] = this[i];
                     break;
