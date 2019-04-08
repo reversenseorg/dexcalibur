@@ -508,7 +508,24 @@ class WebServer {
                 dev._callers = callers;
 
                 res.status(200).send(JSON.stringify(dev));
-            });
+            })
+            .put(function(req,res){
+                // collect
+                let dev = {};
+                let callers = [];
+                console.log(req.params.id, UT.b64_decode(req.params.id));
+                console.log(UT.decodeURI(UT.b64_decode(req.params.id)));
+                let method = $.project.find.get.method(UT.decodeURI(UT.b64_decode(req.params.id)));
+                
+                //let newCode = req.body['code[]'].join("\n");
+                //hook.script = newCode;
+                //hook.modifyScript(newCode);
+                
+                   //let success = $.project.hook.removeHook(hook);            
+
+                res.status(200).send(JSON.stringify({ success: true }));
+       
+            })
 
         this.app.route('/api/package')
             .get(function(req,res){
