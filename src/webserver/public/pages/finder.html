@@ -743,6 +743,9 @@
                     },
                     {  
                         render: function(data, type, row, meta ){
+                            console.log("Row > ",row);
+                            console.log("data > ",data);
+                            
                             return '<a target="about" href="finder.html?method='+btoa(encodeURIComponent(row.instr.method))+'">'+htmlEncode(row.instr.method)+'</a>';
                         }
                     },
@@ -765,6 +768,7 @@
             if((data instanceof Array)==false)
                 data = [data];
 
+                console.log(data);
             if(data[0].package !== undefined){
                 clsTable = renderClassTable(clsTable);
             }
@@ -777,7 +781,7 @@
             else if(data[0].caller !== undefined){
                 clsTable = renderCallerTable(clsTable);
             }
-            else if(data[0].value !== undefined){
+            else if(data[0].value !== undefined){ 
                 clsTable = renderValuesTable(clsTable);
             }
 
