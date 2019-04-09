@@ -159,11 +159,13 @@
                 <h4>Rename</h4>
                 <div class="input-group mb-8">
                 <input type="text" id="renameModalAlias" class="form-control" style="width:30em" autofocus placeholder="Alias" aria-label="Alias" aria-describedby="basic-addon1">
+                <input type="hidden" id="renameModalSubject" class="form-control" style="width:30em" aria-describedby="basic-addon1">
+                <input type="hidden" id="renameModalType" class="form-control" style="width:30em" aria-describedby="basic-addon1">
                 </div>
             </div>
             <div class="modal-footer">
               <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>&nbsp;
-              <button type="button" class="btn btn-primary confirm" data-dismiss="modal">Save</button>
+              <button type="button" class="btn btn-primary confirm">Save</button>
             </div>
           </div>
         </div>
@@ -599,7 +601,13 @@
                             }*/
                         }
                     },
-                    { "defaultContent": '' }
+                    { 
+                        render: function(data, type, row, meta ){
+                            let b='<a  class="badge badge-info rename" ename="'+btoa(encodeURIComponent(row.name))+'" subt="class" subject="'+btoa(encodeURIComponent(row.__signature__))+'">Rename</a>';
+
+                            return b;
+                        }
+                    }
                 ],
                 responsive: true
             });
@@ -629,16 +637,17 @@
                     },
                     {  
                         render: function(data, type, row, meta ){
-                            return htmlEncode(row.__signature__);
+                            return (row.alias!=null? '<b>'+htmlEncode(row.alias)+'</b>&nbsp;<i class="secondary-text">'+htmlEncode(row.__signature__)+'</i>':'&nbsp;'+htmlEncode(row.__signature__));
                         }
                     },
                     { 
                         
                         render: function(data, type, row, meta ){
+                            console.log(row.__signature__);
                             let b='<a  class="badge badge-success probe" meth="'+btoa(encodeURIComponent(row.__signature__))+'">Probe</a>&nbsp;';
                             b += '<a  class="badge badge-secondary cfg" meth="'+btoa(encodeURIComponent(row.__signature__))+'">Call Graph</a>&nbsp;';
                             b += '<a  class="badge badge-secondary seemore" meth="'+btoa(encodeURIComponent(row.__signature__))+'">See more</a>';
-                            b += '&nbsp;<a  class="badge badge-info rename" ename="'+btoa(encodeURIComponent(row.name))+'" meth="'+btoa(encodeURIComponent(row.__signature__))+'">Rename</a>';
+                            b += '&nbsp;<a  class="badge badge-info rename" ename="'+btoa(encodeURIComponent(row.name))+'" subt="meth" subject="'+btoa(encodeURIComponent(row.__signature__))+'">Rename</a>';
 
                             return b;
                             /*
@@ -678,11 +687,16 @@
                     },
                     {  
                         render: function(data, type, row, meta ){
-                            return htmlEncode(row.__signature__);
+                            return (row.alias!=null? '<b>'+htmlEncode(row.alias)+'</b>&nbsp;':'&nbsp;')+htmlEncode(row.__signature__);
                         }
                     },
                     { 
-                        "defaultContent": ''
+                        
+                        render: function(data, type, row, meta ){
+                            let b='<a  class="badge badge-info rename" ename="'+btoa(encodeURIComponent(row.name))+'" subt="field" subject="'+btoa(encodeURIComponent(row.__signature__))+'">Rename</a>';
+
+                            return b;
+                        }
                     }
                 ],
                 responsive: true
@@ -1007,21 +1021,42 @@
         });
 
         $(document).on("click",".rename",function(e){
-            let DOM_PROBE =$(this);
-            let meth = $(this).attr("meth");
-            let name = $(this).attr("ename");
-
-            $("#renameModalAlias").val(decodeURIComponent(atob(name)));
+            $("#renameModalSubject").val($(this).attr("subject"));
+            $("#renameModalType").val($(this).attr("subt"));
+            $("#renameModalAlias").val(decodeURIComponent(atob($(this).attr("ename"))));
             $("#renameModal").modal();
-//            renderXrefModal(meth,true);
         });
 
-        $('#renameModal .confirm').click(function(e){
-            /*let probes = $(".probe");
-            for(let i=0; i<probes.length; i++){
-                probes[i].click();
-            }*/
-            $('#renameModal').modal('toggle');
+        $(document).on("click",".confirm",function(e){
+            let subject = $("#renameModalSubject").val();
+            let type = $("#renameModalType").val();
+            let alias = $("#renameModalAlias").val();
+            let url = null;
+
+            if(type=="meth")
+                url = "../api/method/"+subject;
+            else if(type=="field")
+                url = "../api/field/"+subject;
+            else if(type=="class")
+                url = "../api/class/"+subject;
+            else
+                return;
+
+            $.ajax(
+                url,
+            {
+                method: "put",
+                data: { alias:alias },
+                statusCode: {
+                    200: function(data,err){
+                        $('#renameModal').modal('toggle');
+                    },
+                    404: function(data,err){
+                        alert(data.error);
+                    }
+                }
+            });
+
         });
 
         function setLocationQuery(){
