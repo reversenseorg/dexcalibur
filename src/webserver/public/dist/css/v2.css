@@ -52,3 +52,7 @@ h1 {
         border-left: 1px solid #e7e7e7;
     }
 }
+
+.secondary-text {
+    color: gray;
+}

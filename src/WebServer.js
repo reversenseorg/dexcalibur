@@ -517,7 +517,16 @@ class WebServer {
                 console.log(UT.decodeURI(UT.b64_decode(req.params.id)));
                 let method = $.project.find.get.method(UT.decodeURI(UT.b64_decode(req.params.id)));
                 
-                //let newCode = req.body['code[]'].join("\n");
+                if(method==null){
+                    res.status(404).send(JSON.stringify({ error:"Method not found" }));
+                    return;
+                }
+
+                let alias = req.body['alias'];
+
+                method.setAlias(alias);
+
+                //console.log(newCode);
                 //hook.script = newCode;
                 //hook.modifyScript(newCode);
                 
