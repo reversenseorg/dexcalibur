@@ -435,6 +435,24 @@ class WebServer {
                                             
             });
 
+        this.app.route('/api/class/:id')
+            .put(function(req,res){
+                // collect
+                let obj = $.project.find.get.class(UT.decodeURI(UT.b64_decode(req.params.id)));
+                
+                if(obj==null){
+                    res.status(404).send(JSON.stringify({ error:"Class not found" }));
+                    return;
+                }
+
+                let alias = req.body['alias'];
+
+                console.log(alias);
+
+                obj.setAlias(alias);
+                res.status(200).send(JSON.stringify({ success: true }));
+            });
+
         this.app.route('/api/class/implements/:id')
             .get(function(req,res){
                 // collect
@@ -511,10 +529,6 @@ class WebServer {
             })
             .put(function(req,res){
                 // collect
-                let dev = {};
-                let callers = [];
-                console.log(req.params.id, UT.b64_decode(req.params.id));
-                console.log(UT.decodeURI(UT.b64_decode(req.params.id)));
                 let method = $.project.find.get.method(UT.decodeURI(UT.b64_decode(req.params.id)));
                 
                 if(method==null){
@@ -523,17 +537,10 @@ class WebServer {
                 }
 
                 let alias = req.body['alias'];
+                console.log(alias);
 
                 method.setAlias(alias);
-
-                //console.log(newCode);
-                //hook.script = newCode;
-                //hook.modifyScript(newCode);
-                
-                   //let success = $.project.hook.removeHook(hook);            
-
                 res.status(200).send(JSON.stringify({ success: true }));
-       
             })
 
         this.app.route('/api/package')
@@ -559,6 +566,22 @@ class WebServer {
                 // dev.htg = $.project.graph.htg(method);
 
                 res.status(200).send(JSON.stringify(dev));
+            })
+            .put(function(req,res){
+                // collect
+                let obj = $.project.find.get.field(UT.decodeURI(UT.b64_decode(req.params.id)));
+                
+                if(obj==null){
+                    res.status(404).send(JSON.stringify({ error:"Field not found" }));
+                    return;
+                }
+
+                let alias = req.body['alias'];
+
+                console.log(alias);
+
+                obj.setAlias(alias);
+                res.status(200).send(JSON.stringify({ success: true }));
             });
 
         this.app.route('/api/scanner')
@@ -642,10 +665,10 @@ class WebServer {
                 //Logger.info(u);
                 let results = VM.runInNewContext('$.project.find.'+u2+';',{ $:$ });
 
-                if(u2.substr(0,3)=="get"){
+                /*if(u2.substr(0,3)=="get"){
                     //console.log(results);
-                    Logger.info("[FINDER][GET] "+results.toJsonObject());
-                }
+                    //Logger.info("[FINDER][GET] "+results.toJsonObject());
+                }*/
 
                 // collect
                 let dev = {

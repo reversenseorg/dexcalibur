@@ -426,33 +426,14 @@ function Class(config){
     // private : TRUE if this class is binded by the OS or the VM.
     this._isBinding = null;
 
+    this.__pretty_signature__ = null;
+    this.__aliasedCallSignature__ = null;
+
     this.hashCode = function(){
         return this.name;
     };
     
-    /**
-     * To check if a field is defined whith the given name
-     * @param {String} name The name of a field
-     * @returns {Boolean} TRUE if the class contains a definition, else FALSE
-     */
-    this.hasField = (name)=>{
-        return (this.fields[name]!==undefined);
-    };
-
-
-    /**
-     * To check if a method is defined whith the given hashcode
-     * @param {String} hash The hashcode of the method
-     * @returns {Boolean} TRUE if the class contains a definition, else FALSE
-     */
-    this.hasMethod = (hash)=>{
-        return (this.methods[hash]!==undefined);
-    };
-
-    this.signature = ()=>{
-        return this.name;
-    };
-
+ 
     
 
     this.help = function(){
@@ -478,7 +459,50 @@ function Class(config){
 
     return this;
 }
+/**
+ * To check if a field is defined whith the given name
+ * @param {String} name The name of a field
+ * @returns {Boolean} TRUE if the class contains a definition, else FALSE
+ */
+Class.prototype.hasField = (name)=>{
+    return (this.fields[name]!==undefined);
+};
 
+
+/**
+ * To check if a method is defined whith the given hashcode
+ * @param {String} hash The hashcode of the method
+ * @returns {Boolean} TRUE if the class contains a definition, else FALSE
+ */
+Class.prototype.hasMethod = function(hash){
+    return this.methods[hash]!==undefined;
+};
+
+Class.prototype.signature = ()=>{
+    return this.name;
+};
+
+Class.prototype.aliasedSignature = function(){
+    return this.alias;
+};
+
+ Class.prototype.prettySignature = function(override=false){
+        if(!override && this.__pretty_signature__ != null){
+            return this.__pretty_signature__;
+        }
+        this.__pretty_signature__ = this.signatureFactory("__alias_signature__","alias");
+        return this.__pretty_signature__;
+    }
+
+// this.signatureFactory("__signature__","name")
+// this.signatureFactory("__alias_signature__","alias")
+Class.prototype.signatureFactory = function(ppt, seed){
+    if(this[ppt] !== null) return this[ppt];
+
+    this[ppt] = this[seed];
+
+    return hash;
+};
 
 Class.prototype.getAlias = function(){
     return this.alias;
@@ -527,13 +551,13 @@ Class.prototype.toJsonObject = function(filter){
         else if(i == "methods"){
             obj.methods = [];
             for(let k in this.methods){
-                obj.methods.push(this.methods[k].toJsonObject(["__signature__","probing","modifiers"]));
+                obj.methods.push(this.methods[k].toJsonObject(["__signature__","__aliasedCallSignature__","__callSignature__","probing","modifiers","alias","name"])); // call signature
             }
         }
         else if(i == "fields"){
             obj.fields = [];
             for(let k in this.fields){
-                obj.fields.push(this.fields[k].toJsonObject(["__signature__"]));
+                obj.fields.push(this.fields[k].toJsonObject(["__signature__","__aliasedSignature__","alias"]));
             }
         }
         else if(i == "package"){
@@ -542,6 +566,7 @@ Class.prototype.toJsonObject = function(filter){
         else if(i == "extends"){
             //obj.extends = (this.extends!=null? this.extends.toJsonObject(["__signature__"]): null);
             obj.extends = (this.extends!=null? this.extends.name : null);
+            //obj.extends = (this.extends!=null? { name: this.extends.name, alias:this.extends.alias } : null);
         }
         else if(i == "implements"){
             if(this.implements.length > 0){
@@ -819,8 +844,13 @@ function Method(config){
 
     this._hashcode = null;
 
+    // ========= Signatures ================
+
+    //
     this.__callSignature__ = null;
+    this.__aliasedCallSignature__ = null;
     this.__signature__ = null;
+    this.__pretty_signature__ = null;
 
     this._callers = [];
 
@@ -850,6 +880,17 @@ function Method(config){
 
         return this.__callSignature__;
     };
+    this.aliasedCallSignature = function(){
+        if(this.__aliasedCallSignature__===null){
+            let xargs = "";
+//            for(let i in this.args) xargs+="<"+this.args[i].signature()+">";
+            for(let i in this.args) xargs+=this.args[i].signature();
+
+            this.__aliasedCallSignature__ = this.alias+"("+xargs+")"+this.ret.signature();   
+        } 
+
+        return this.__aliasedCallSignature__;
+    }
     this.callSignature = function(){
         if(this.__callSignature__===null){
             let xargs = "";
@@ -873,21 +914,16 @@ function Method(config){
         console.log("\t"+this._hashcode);
     };
 
-    /*this.signature2 = function(){
-        if(this.__signature__ !== null) return this.__signature__;
-
-        let xargs = "", hash="";
-
-        for(let i in this.args) xargs+="<"+this.args[i]._hashcode+">";
-        
-        if(this.fqcn !== undefined)
-            hash = this.fqcn+"."+this.name+"("+xargs+")"+this.ret._hashcode;
-        else
-            hash = this.enclosingClass.name+"."+this.name+"("+xargs+")"+this.ret._hashcode;
-
-        this.__signature__  = hash;
-        return hash;
-    };*/
+    /**
+     * To build a strings containing the method canonical name, with the arguments types and orders,
+     * and the return type. This signature acts as a primary key into the DB and it is the 
+     * unique identifier of a object, here a method.
+     * 
+     * Be aware if you modify it you can break the engine !!
+     * 
+     * @return {String} The method signature
+     * @function  
+     */
     this.signature = function(){
         if(this.__signature__ !== null) return this.__signature__;
 
@@ -902,8 +938,17 @@ function Method(config){
             hash = this.enclosingClass.name+"."+this.name+"("+xargs+")"+this.ret.signature();
         }
         this.__signature__  = hash;
+        this.callSignature();
         return hash;
     };
+
+    this.prettySignature = function(override=false){
+        if(!override && this.__pretty_signature__ != null){
+            return this.__pretty_signature__;
+        }
+        this.__pretty_signature__ = this.signatureFactory("__alias_signature__","alias");
+        return this.__pretty_signature__;
+    }
 
     // this.signatureFactory("__signature__","name")
     // this.signatureFactory("__alias_signature__","alias")
@@ -912,13 +957,13 @@ function Method(config){
 
         let xargs = "", hash="";
 
-        for(let i in this.args) xargs+=""+this.args[i].signature()+"";
+        for(let i in this.args) xargs+=""+this.args[i].signatureFactory(ppt, seed)+"";
         
         if(this.fqcn !== undefined)
-            hash = this.fqcn+"."+this[seed]+"("+xargs+")"+this.ret.signature();
+            hash = this.fqcn+"."+this[seed]+"("+xargs+")"+this.ret.signatureFactory(ppt, seed);
         else{
             //console.log(this.ret);
-            hash = this.enclosingClass[seed]+"."+this[seed]+"("+xargs+")"+this.ret.signature();
+            hash = this.enclosingClass[seed]+"."+this[seed]+"("+xargs+")"+this.ret.signatureFactory(ppt, seed);
         }
         this[ppt]  = hash;
         return hash;
@@ -980,8 +1025,8 @@ Method.prototype.export = Savable.export;
 Method.prototype.toJsonObject = function(fields=[],exclude=[]){
     let obj = new Object();
     if(fields.length>0){
-        for(let i in fields){
-            if(typeof this[fields[i]] == "object"){
+        for(let i=0; i<fields.length; i++){
+            if(this[fields[i]] != null && this[fields[i]].toJsonObject != null){
                 obj[fields[i]] = this[fields[i]].toJsonObject();
             }else{
                 obj[fields[i]] = this[fields[i]];
@@ -992,7 +1037,8 @@ Method.prototype.toJsonObject = function(fields=[],exclude=[]){
 
             console.log(i);
             if(exclude.indexOf(i)>-1) continue;
-
+           // if(fields != null && fields.indexOf(i)==-1) continue;
+            
             switch(i){
                 case "_useClass":
                     obj._useClass = [];
@@ -1029,6 +1075,7 @@ Method.prototype.toJsonObject = function(fields=[],exclude=[]){
                     break;
                 case "__signature__":
                 case "__callSignature__":
+                case "__aliasedCallSignature":
                 case "name":
                 case "alias":
                 case "locals":
@@ -1141,8 +1188,6 @@ Method.prototype.setProbing = function(flag){
     this.probing = flag;
 }
 
-
-
 Method.prototype.addCallValue = function(dyn){
     this.dyn.push(dyn);
     return this;
@@ -1155,6 +1200,7 @@ Method.prototype.getAlias = function(){
 }
 Method.prototype.setAlias = function(name){
     this.alias = name;
+    this.__aliasedCallSignature__ = this.aliasedCallSignature();
 }
 
 
@@ -1312,6 +1358,7 @@ function Field(config){
     this.enclosingClass = null;
 
     this.__signature__ = null;
+    this.__aliasedSignature__ = null;
 
     this._hashcode = null;
     this._isBinding = false;
@@ -1328,12 +1375,36 @@ function Field(config){
     return this;
 }
 
+/**
+ * To generate the aliased signature. This signature is used only by the GUI
+ * component. Its aim is to improve the user experience by propagating the 
+ * alias value.
+ * 
+ * @param {Boolean} update If TRUE the cached aliased signature is updated, else it returns the cached signature is returned
+ * @returns {String} The aliased signature
+ */
+Field.prototype.aliasedSignature = function(update=false){
+    if(!update || this.__aliasedSignature__==null){
+        this.__aliasedSignature__ = this.type.signature()+"  "+this.alias;
+    }
+    return this.__aliasedSignature__;
+}
+
 Field.prototype.getAlias = function(){
     return this.alias;
 }
+
+/**
+ * To set an alias and update the aliased signature
+ * 
+ * @param {String} name The alias value
+ * @function 
+ */
 Field.prototype.setAlias = function(name){
     this.alias = name;
+    this.aliasedSignature(true);
 }
+
 Field.prototype.raw_import = Savable.import;
 Field.prototype.import = function(obj){
     // raw impport
@@ -1352,7 +1423,7 @@ Field.prototype.toJsonObject = function(fields=[],exclude=[]){
     let obj = new Object();
     if(fields.length>0){
         for(let i in fields){
-            if(typeof this[fields[i]] == "object"){
+            if(this[fields[i]] != null && (typeof this[fields[i]] == "object")){
                 obj[fields[i]] = this[fields[i]].toJsonObject();
             }else{
                 obj[fields[i]] = this[fields[i]];
@@ -1373,6 +1444,7 @@ Field.prototype.toJsonObject = function(fields=[],exclude=[]){
                     }
                     break;
                 case "__signature__":
+                case "__aliasedSignature__":
                 case "fqcn":
                 case "name":
                 case "alias":
@@ -1395,48 +1467,6 @@ Field.prototype.toJsonObject = function(fields=[],exclude=[]){
     }
     return obj;
 }
-/*function(fields){
-    let obj = new Object();
-    if(fields !== null){
-        for(let i in fields){
-            if(typeof this[fields[i]] == "object"){
-                obj[fields[i]] = this[fields[i]].toJsonObject();
-            }else{
-                obj[fields[i]] = this[fields[i]];
-            }
-        }
-    }else{
-        for(let i in this){
-            
-            if(typeof this[i] != 'array' && i=="args"){
-                obj[i] = [];
-                for(let k in this[i]){
-                    if(this[i][k] instanceof ObjectType){
-                        obj[i][k] = this[i][k].toJsonObject() ;
-                    }
-                    else if(this[i][k] instanceof BasicType){
-                        obj[i][k] = this[i][k].toJsonObject();
-                    }
-                }
-            }
-            else if(["_","$"].indexOf(i[0])==-1 
-                && (typeof this[i] != 'object')){
-
-                obj[i] = this[i];
-            }
-            else if(this[i] instanceof ObjectType){
-                obj[i] = this[i].toJsonObject(); 
-            }
-            else if(this[i] instanceof BasicType){
-                obj[i] = this[i].toJsonObject();
-            }
-            else if(this[i] instanceof Class){
-                obj[i] = this[i].toJsonObject();
-            }
-        }   
-    }
-    return obj;
-}*/
 
 Field.prototype.help = function(){
     let t="+-------------------- HELP --------------------+";
@@ -1657,6 +1687,10 @@ function MethodReference(cfg){
         return x;
     };
 
+    /**
+     * To generate the method signature from the reference. The aim of this value 
+     * is to help to resolve the symbols.  
+     */
     this.signature = function(){
         let xargs = "";
         /*
@@ -1696,6 +1730,11 @@ function MethodReference(cfg){
     };
 
     
+    /**
+     * Idem as signature(), but the signature returned is not canonical 
+     * (class FQCN has been remove). The aim of this signature is to resolve extended or overloaded
+     * methods.
+     */
     this.callSignature = function(){
         //if(this.__callSignature__===null){
             
