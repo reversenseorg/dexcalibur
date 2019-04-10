@@ -165,7 +165,7 @@
             </div>
             <div class="modal-footer">
               <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>&nbsp;
-              <button type="button" class="btn btn-primary confirm">Save</button>
+              <button type="button" class="btn btn-primary aliasconfirm">Save</button>
             </div>
           </div>
         </div>
@@ -269,8 +269,8 @@
         body += '<p><b>Extends :</b>';
         console.log('class',row);
         if(row.extends != null){
-            body += "&nbsp;<a href='finder.html?class="+btoa(encodeURIComponent(row.extends))+"'>"+htmlEncode(row.extends)+"</a>";
-        }else{
+            body += "&nbsp;<a href='finder.html?class="+btoa(encodeURIComponent(row.extends.name))+"'>"+htmlEncode(row.extends.alias!=null? row.extends.alias : row.extends.name)+"</a>";
+         }else{
             body += "None"
         }
         
@@ -296,7 +296,7 @@
         body += '</td></tr>';
         body += '</table>
         */
-        body+= '</p><table class="table table-sm"><thead><tr><th scope="col">Action</th><th scope="col">Type</th><th scope="col">Name</th></thead><tbody>';
+        body+= '</p><table class="table table-sm"><thead><tr><th scope="col" class="col-sm-2">Action</th><th scope="col" class="col-sm-1">Type</th><th scope="col">Name</th></thead><tbody>';
          
         if(row.fields != null){
             for(let i in row.fields){
@@ -318,10 +318,19 @@
                     //'<a  class="badge badge-danger">Intercept</a>'+
                     '<a class="badge badge-purple xrefto" target="about" meth="'+btoa(encodeURIComponent(row.methods[i].__signature__))+'">xref to</a>&nbsp;'+
                     '<a class="badge badge-pink xreffrom" target="about" meth="'+btoa(encodeURIComponent(row.methods[i].__signature__))+'">xref from</a></td><td><b>Method</b></td>'+
-                    '<td><a target="about" href="finder.html?method='+btoa(encodeURIComponent(row.methods[i].__signature__))+'">'+$('<div />').text(row.methods[i].__signature__).html()+'</a></td>'+
+                    '<td><a target="about" href="finder.html?method='+btoa(encodeURIComponent(row.methods[i].__signature__))+'">';
+
+                if(row.methods[i].__aliasedCallSignature__ != null)
+                    body += '<b>'+htmlEncode(row.methods[i].__aliasedCallSignature__)+'<b>';
+                else
+                    body += htmlEncode(row.methods[i].__callSignature__);
+
+                    body += '</a></td>'+
                  '</tr>';
              }
          }
+
+
         
         body += '</tbody></table>';
         return body;
@@ -356,7 +365,11 @@
                     '</a>&nbsp;&nbsp;<a  class="badge badge-danger">Intercept</a>';
                 */
 
-        body += '<td>'+caller_type+'</td><td><a target="about" href="finder.html?method='+btoa(encodeURIComponent(row.caller))+'">'+htmlEncode(row.caller)+'</a></td></tr><tr><td><b>Callee</b></td><td>';
+        body += '<td>'+caller_type+'</td><td><a target="about" href="finder.html?method='+btoa(encodeURIComponent(row.caller))+'">';
+        
+        //if(row.caller.alias)
+        body += htmlEncode(row.caller)+'</a></td></tr><tr><td><b>Callee</b></td><td>';
+           
 
         if(row.callee.indexOf("(")==-1)
             body += '<a  class="badge badge-secondary">Probe ON'+
@@ -583,7 +596,10 @@
                     },
                     {   
                         render: function(data, type, row, meta ){
-                            if(row.name != null){
+                            if(row.alias != null){
+                                return '<b>'+htmlEncode(row.alias)+'</b>&nbsp;<i class="secondary-text">'+htmlEncode(row.name)+'</i>';
+                            }
+                            else if(row.name != null){
                                 if(row.name.lastIndexOf("$")>row.name.lastIndexOf('.')){
                                     return row.name.substr(row.name.lastIndexOf('.')+1);
                                 }else{
@@ -603,7 +619,7 @@
                     },
                     { 
                         render: function(data, type, row, meta ){
-                            let b='<a  class="badge badge-info rename" ename="'+btoa(encodeURIComponent(row.name))+'" subt="class" subject="'+btoa(encodeURIComponent(row.__signature__))+'">Rename</a>';
+                            let b='<a  class="badge badge-info rename" ename="'+btoa(encodeURIComponent(row.name))+'" subt="class" subject="'+btoa(encodeURIComponent(row.name))+'">Rename</a>';
 
                             return b;
                         }
@@ -637,17 +653,19 @@
                     },
                     {  
                         render: function(data, type, row, meta ){
-                            return (row.alias!=null? '<b>'+htmlEncode(row.alias)+'</b>&nbsp;<i class="secondary-text">'+htmlEncode(row.__signature__)+'</i>':'&nbsp;'+htmlEncode(row.__signature__));
+                            return '<span meth='+btoa(encodeURIComponent(row.__signature__))+'>'+(row.alias!=null? '<b>'+htmlEncode(row.alias)+'</b>&nbsp;<i class="secondary-text">'+htmlEncode(row.__signature__)+'</i>':'&nbsp;'+htmlEncode(row.__signature__))+'</span>';
                         }
                     },
                     { 
                         
                         render: function(data, type, row, meta ){
-                            console.log(row.__signature__);
+                            //console.log(row.__signature__);
                             let b='<a  class="badge badge-success probe" meth="'+btoa(encodeURIComponent(row.__signature__))+'">Probe</a>&nbsp;';
-                            b += '<a  class="badge badge-secondary cfg" meth="'+btoa(encodeURIComponent(row.__signature__))+'">Call Graph</a>&nbsp;';
-                            b += '<a  class="badge badge-secondary seemore" meth="'+btoa(encodeURIComponent(row.__signature__))+'">See more</a>';
-                            b += '&nbsp;<a  class="badge badge-info rename" ename="'+btoa(encodeURIComponent(row.name))+'" subt="meth" subject="'+btoa(encodeURIComponent(row.__signature__))+'">Rename</a>';
+                            b += '&nbsp;<a  class="badge badge-secondary cfg" meth="'+btoa(encodeURIComponent(row.__signature__))+'">Call Graph</a>&nbsp;';
+                            b += '&nbsp;<a  class="badge badge-secondary seemore" meth="'+btoa(encodeURIComponent(row.__signature__))+'">See more</a>';
+                            b += '<br><a  class="badge badge-info rename" ename="'+btoa(encodeURIComponent(row.alias!=null? row.alias : row.name))+'" subt="meth" subject="'+btoa(encodeURIComponent(row.__signature__))+'">Rename</a>';
+                            b += '&nbsp;<a  class="badge badge-purple xrefto" meth="'+btoa(encodeURIComponent(row.__signature__))+'">xref to</a>';
+                            b += '&nbsp;<a  class="badge badge-pink xreffrom" meth="'+btoa(encodeURIComponent(row.__signature__))+'">xref from</a>';
 
                             return b;
                             /*
@@ -849,8 +867,8 @@
                     tr.addClass('shown');
                 }
                 else if(rd.type != null){
-                    row.child( renderFieldDetail(row.data()) ).show();
-                    tr.addClass('shown');
+                    //row.child( renderFieldDetail(row.data()) ).show();
+                    //tr.addClass('shown');
                 }
                 else if(rd.caller != null){
                     row.child( renderCallerDetail(row.data()) ).show();
@@ -871,19 +889,23 @@
             $.ajax('../api/probe/'+meth,{
                 method: 'post',
                 statusCode: {
-                    200: function(){
-                        if(DOM_PROBE.text != null){
-                            if(DOM_PROBE.text.indexOf("ON")>-1){
-                                DOM_PROBE.removeClass("badge-success");
-                                DOM_PROBE.addClass("badge-danger");
-                                DOM_PROBE.text("Probe OFF").html();
-                            }else{
-                                DOM_PROBE.removeClass("badge-danger");
-                                DOM_PROBE.addClass("badge-success");
-                                DOM_PROBE.text("Probe ON").html();
-                            }
-                        }
+                    200: function(data, err){
 
+                        //console.log(DOM_PROBE,hasClass("badge-primary"));
+                        if(JSON.parse(data).enable){
+                            if(DOM_PROBE.hasClass("badge-primary"))
+                                DOM_PROBE.removeClass("badge-primary");
+
+                            DOM_PROBE.addClass("badge-success");
+                            DOM_PROBE.text("Probe ON").html();
+                        }else{
+
+                            if(DOM_PROBE.hasClass("badge-success"))
+                                DOM_PROBE.removeClass("badge-success");
+
+                            DOM_PROBE.addClass("badge-primary");
+                            DOM_PROBE.text("Probe OFF").html();
+                        }
                     },
                     404: function(){
                         //alert("Failed to add probe (see logs)")
@@ -1027,18 +1049,20 @@
             $("#renameModal").modal();
         });
 
-        $(document).on("click",".confirm",function(e){
+        $(document).on("click",".aliasconfirm",function(e){
             let subject = $("#renameModalSubject").val();
             let type = $("#renameModalType").val();
             let alias = $("#renameModalAlias").val();
             let url = null;
+            let cell = null;
 
-            if(type=="meth")
+            if(type=="meth"){
                 url = "../api/method/"+subject;
-            else if(type=="field")
+            }else if(type=="field"){
                 url = "../api/field/"+subject;
-            else if(type=="class")
+            }else if(type=="class"){
                 url = "../api/class/"+subject;
+            }
             else
                 return;
 
@@ -1050,6 +1074,7 @@
                 statusCode: {
                     200: function(data,err){
                         $('#renameModal').modal('toggle');
+
                     },
                     404: function(data,err){
                         alert(data.error);

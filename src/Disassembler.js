@@ -88,7 +88,12 @@ Disassembler.prototype.method = function(method){
                     txt += Chalk.bold.blue(bb.stack[j]._raw);
                 }
                 else if(bb.stack[j].opcode.instr.indexOf("invoke")>-1){
-                    txt += Chalk.bold.yellow(bb.stack[j]._raw);
+                    if(bb.stack[j].rigth.alias != null){
+                        txt += Chalk.bold.yellow(
+                            bb.stack[j].opcode.instr+" {...} "+bb.stack[j].right.prettySignature());
+                    }else{
+                        txt += Chalk.bold.yellow(bb.stack[j]._raw);   
+                    }
                 }
                 else if(bb.stack[j].opcode.type == CONST.INSTR_TYPE.NOP){
                     txt += "nop";
@@ -262,25 +267,37 @@ Disassembler.prototype.methodRaw = function(method){
             
             if(bb.stack[j].opcode.instr.indexOf("if-")>-1){
                 line.if = true;
-           
+                line.value = bb.stack[j]._raw;
                 //line.value = '<i class="code-pink">'+bb.stack[j]._raw+'</i>';
             }
             else if(bb.stack[j].opcode.type==CONST.INSTR_TYPE.GOTO){
                 line.goto = true;
+                line.value = bb.stack[j]._raw;
                 //line.value = '<i class="code-blue">'+bb.stack[j]._raw+'</i>';
             }
             else if(bb.stack[j].opcode.instr.indexOf("invoke")>-1){
+                if(bb.stack[j].right.alias != null){
+                    line.value = bb.stack[j].opcode.instr;
+                    line.value += " {...} ";
+                    line.value += bb.stack[j].right.prettySignature();
+                }else{
+                    line.value = bb.stack[j]._raw;   
+                }
+                line.value = bb.stack[j]._raw;
                 // line.goto = true;
                 //line.value = '<u class="code-purple">'+bb.stack[j]._raw+'</u>';
             }
             else if(bb.stack[j].opcode.instr.indexOf("const-string")>-1){
                 line.string = true;
+                line.value = bb.stack[j]._raw;
                 //line.value = bb.stack[j].opcode.instr;
                 //line.value += " "+bb.stack[j].left.t+bb.stack[j].left.i+", ";
                 //line.value += '<b class="code-red">"'+bb.stack[j].right._value+'"</b>';
             }
-                
-            line.value = bb.stack[j]._raw;
+            else{
+                line.value = bb.stack[j]._raw;
+            }    
+ 
 
             bbe.instr.push(line);
         }
