@@ -211,6 +211,25 @@ Hook.prototype.toJsonObject = function(){
     return o;
 }
 
+Hook.prototype.updateWith = function(object,method){
+    this.id = object.id;
+    this.customName = object.customName;
+    this.name = object.name;
+    this.enable = object.enable;
+
+    // resolve method
+    this.method = method;
+
+    this.script = UT.decodeURI(UT.b64_decode(object.script));
+    this.edited = object.edited;
+    this.isIntercept = object.isIntercept;
+    this.code = {
+        before: (object.code.before!=null)? UT.b64_decode(object.code.before) : null,
+        after: (object.code.after!=null)? UT.b64_decode(object.code.after) : null,
+        replace: (object.code.replace!=null)? UT.b64_decode(object.code.replace) : null,
+    };
+    return this;
+}
 
 Hook.prototype.dataObjAutoCast = function(argtype, argname){
     let val = null;

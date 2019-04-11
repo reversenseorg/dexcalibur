@@ -138,6 +138,12 @@ Workspace.prototype.getNewSavefilePath = function(){
     return this.getWD()+DIR_NAME.SAVE+"/autosave."+d.getTime()+".ddb";
 }
 
+
+Workspace.prototype.getSaveDir = function(){
+    let d = new Date();
+    return this.getWD()+DIR_NAME.SAVE;
+}
+
 /**
  * To generate a new timestamped file path
  * @param {string} prefix The string part before the timestamp
