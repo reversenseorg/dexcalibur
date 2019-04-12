@@ -1265,6 +1265,7 @@ function BasicBlock(config){
     // special child
     this.linked_try_block = null;
     this.linked_catch_block = null;
+    this.duplicate = null;
 
     
     this.dump = function(){
@@ -1284,7 +1285,24 @@ function BasicBlock(config){
 }
 BasicBlock.prototype.export = Savable.export;
 BasicBlock.prototype.import=  Savable.import;
+BasicBlock.prototype.clone = function(clean=true){
+    let bb = new BasicBlock();
+    for(let i in this){
+        bb[i] = this[i];
+    }
 
+    if(clean){
+        //bb.cond_name = null;
+        //bb.goto_name = null;
+        bb.catch_name = null;
+        bb.try_name = null;
+        bb.try_end_name = null;
+        bb.catch_cond = null;
+        bb.duplicate = true;
+    }
+
+    return bb;
+}
 BasicBlock.prototype.disass = function(){
     let disass = require("./Disassembler.js")
     
