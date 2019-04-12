@@ -131,23 +131,23 @@
         for(let i in row.modifiers){
             if(j==8) body+="<br>";
             if(row.modifiers[i]==true){
-                body += '&nbsp;<a  class="badge badge-success">'+i+'</a>';
+                body += '&nbsp;<a  class="badge badge-success">'+htmlEncode(i)+'</a>';
             }else{
-                body += '&nbsp;<a  class="badge badge-secondary">'+i+'</a>';
+                body += '&nbsp;<a  class="badge badge-secondary">'+htmlEncode(i)+'</a>';
             }
             j++;
         }
 
         body += '</td></tr>'; 
-        body += '<tr><td>Fullname</td><td>'+row.enclosingClass+'.'+row.name+'</td></tr>';
+        body += '<tr><td>Fullname</td><td>'+htmlEncode(row.enclosingClass+'.'+row.name)+'</td></tr>';
         
         for(let i=0;  i<row.args.length; i++){
             sgt = row.args[i].name;
             console.log(row.args[i]);
-            body += '<tr><td>Arg '+i+'</td><td><a class="arglink" clsid="'+btoa(encodeURIComponent(sgt))+'">'+sgt+'</a></td></tr>';
+            body += '<tr><td>Arg '+i+'</td><td><a class="arglink" clsid="'+btoa(encodeURIComponent(sgt))+'">'+htmlEncode(sgt)+'</a></td></tr>';
         }
 
-        body += '<tr><td>Return</td><td><a class="retlink" clsid="'+row.ret.name+'">'+row.ret.name+'</td></tr>';
+        body += '<tr><td>Return</td><td><a class="retlink" clsid="'+row.ret.name+'">'+htmlEncode(row.ret.name)+'</td></tr>';
         body += '</table>';
 
         let codeID = IdRegister.codeReg.next()
@@ -203,7 +203,7 @@
         body += '<table class="table"><tbody>';
         body += '<tr><td><b>Name</b></td><td>'+htmlEncode(row.id)+'</td></tr>';
         body += '<tr><td><b>Method</b></td><td><a methid="'+btoa(encodeURIComponent(row.name))+'" class="showMethod">'+htmlEncode(row.name)+'</a></td></tr>';
-        body += '<tr><td><b>Description</b></td><td>'+((row.description!=null)?row.description:'')+'</td></tr>';
+        body += '<tr><td><b>Description</b></td><td>'+((row.description!=null)?htmlEncode(row.description):'')+'</td></tr>';
         //body += '<tr><td><b>Intercept</b></td><td>[None]</td></tr>';
 
         let codeID = IdRegister.codeReg.next();
@@ -225,7 +225,7 @@
                                 </div>
                             </div>
                             <div class="panel-body" style="padding:0px;">
-                                <pre id="`+codeID+`">`+decodeURIComponent(atob(row.script))+`</pre>
+                                <pre id="`+codeID+`">`+htmlEncode(decodeURIComponent(atob(row.script)))+`</pre>
                             </div>
                         </div>
                     </div>

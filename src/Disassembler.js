@@ -88,7 +88,7 @@ Disassembler.prototype.method = function(method){
                     txt += Chalk.bold.blue(bb.stack[j]._raw);
                 }
                 else if(bb.stack[j].opcode.instr.indexOf("invoke")>-1){
-                    if(bb.stack[j].rigth.alias != null){
+                    if(bb.stack[j].right.alias != null){
                         txt += Chalk.bold.yellow(
                             bb.stack[j].opcode.instr+" {...} "+bb.stack[j].right.prettySignature());
                     }else{
@@ -276,14 +276,14 @@ Disassembler.prototype.methodRaw = function(method){
                 //line.value = '<i class="code-blue">'+bb.stack[j]._raw+'</i>';
             }
             else if(bb.stack[j].opcode.instr.indexOf("invoke")>-1){
-                if(bb.stack[j].right.alias != null){
+                /*if(bb.stack[j].right != null && bb.stack[j].right.getAlias() != null){
                     line.value = bb.stack[j].opcode.instr;
                     line.value += " {...} ";
-                    line.value += bb.stack[j].right.prettySignature();
-                }else{
+                    line.value += bb.stack[j].right.aliasedSignature();
+                }else{*/
                     line.value = bb.stack[j]._raw;   
-                }
-                line.value = bb.stack[j]._raw;
+                //}
+                //line.value = bb.stack[j]._raw;
                 // line.goto = true;
                 //line.value = '<u class="code-purple">'+bb.stack[j]._raw+'</u>';
             }

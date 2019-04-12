@@ -75,14 +75,14 @@
                 </div>
             </div>
 
-<!--
+
             <div class="panel panel-info">
                 <div class="panel-heading">
                         <div class="row">
                             <div class="col-lg-10" style="font-size:1.5em">Remove useless Goto</div>
                             <div class="col-lg-2">
                                 <button class="btn btn-danger goto-clean">
-                                    <i class="fa fa-refresh"></i>&nbsp;Clean (bugged !)
+                                    <i class="fa fa-refresh"></i>&nbsp;Clean
                                 </button>
                             </div>
                         </div>
@@ -91,9 +91,10 @@
                         The aim of the GoTo remover is to simply the bytecode by replacing GoTo trigged from a single point. <br>
                         It will produce more clean smali. <b style="color:red">Be aware this action cannot be undone.</b>
                         This action will not modify the files content.
+                        <input type="checkbox" name="nocleanif" id="nocleanif" value=1 checked><label>Not clean methods containing conditonnal basic blocks</label><br>
                     </div>
                 </div>
-
+<!--
             <div class="panel panel-info">
                 <div class="panel-heading">
                     <div class="row">
@@ -207,7 +208,8 @@
             $.ajax("/api/inspectors/BytecodeCleaner", {
                 method: "get",
                 data: {
-                    action: "goto_clean"
+                    action: "goto_clean",
+                    cleanif: $("#nocleanif").val()
                 },
                 statusCode: {
                     200: function(data,err){
