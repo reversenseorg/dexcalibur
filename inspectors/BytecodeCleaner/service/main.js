@@ -148,7 +148,7 @@ function findSingleGoto(method){
                     else
                         found[instruction.right.name]+=1;
 
-                    if(found[instruction.right.name]==1) console.log("block "+i+", instr "+j+", goto "+instruction.right.name);
+                    //if(found[instruction.right.name]==1) console.log("block "+i+", instr "+j+", goto "+instruction.right.name);
                 }
             }
         }
@@ -161,12 +161,43 @@ function findSingleGoto(method){
     }
 
     if(singles.length > 0){
-        Disassembler.method(method);
+//        Disassembler.method(method);
         //console.log(singles);
     }
 
         
     return singles;
+}
+
+function nextSingleGoto(method){
+    let found = {}, singles = [];
+    
+
+    // count GOTOs
+    if( method.instr != null && method.instr.length > 0){
+        for(let i=0; i<method.instr.length ; i++){
+
+            for(let j=0; j<method.instr[i].stack.length; j++){
+                instruction = method.instr[i].stack[j];
+                if(instruction.opcode != null && instruction.opcode.type==CONST.INSTR_TYPE.GOTO){
+                    if(found[instruction.right.name]===undefined)
+                        found[instruction.right.name]=1;
+                    else
+                        found[instruction.right.name]+=1;
+                }
+            }
+        }
+    }
+
+    // filter
+    for(let i in found){
+        if(found[i]===1)
+            return i;
+    }
+
+
+        
+    return null;
 }
 
 function isJump(instr){
@@ -223,7 +254,7 @@ function hasReturn(block, label=null){
  * @param {*} gotoLabel 
  */
 function findTargetBasicBlocks(method, gotoLabel){
-    console.log("Searching block at :goto_"+gotoLabel);
+    //console.log("Searching block at :goto_"+gotoLabel);
     let targetBBs = null, found=false, offset=0, duplicate=false;
     if( method.instr != null && method.instr.length > 0){
         for(let i=0; i<method.instr.length ; i++){
@@ -247,7 +278,7 @@ function findTargetBasicBlocks(method, gotoLabel){
             }
             else if(found){
                 targetBBs.push(method.instr[i]);
-                console.log(hasJump(method.instr[i].stack));
+                //console.log(hasJump(method.instr[i].stack));
 
                 if(method.instr[i].hasInstr(CONST.INSTR_TYPE.RET))
                     duplicate = true;
@@ -277,7 +308,7 @@ function findTargetBasicBlocks(method, gotoLabel){
 }
 
 function moveBasicBlock(method, bblocks, gotoLabel){
-    console.log("Moving basic blocks "+bblocks.offset+"(len:"+bblocks.blk.length+") at instr goto_"+gotoLabel);
+    //console.log("Moving basic blocks "+bblocks.offset+"(len:"+bblocks.blk.length+") at instr goto_"+gotoLabel);
     let bbs = [], flag=false, lastWasGoto=false, endbb=0, tmp=null;
     // find cut point
     if( method.instr != null && method.instr.length > 0){
@@ -287,9 +318,9 @@ function moveBasicBlock(method, bblocks, gotoLabel){
 
             //if(i<=bblocks.offset){
 
-                if(method.instr[i].stack ==undefined){
+                /*if(method.instr[i].stack ==undefined){
                     console.log("Stack is undefined",method.instr);
-                }
+                }*/
 
 
                 for(let j=0; j<method.instr[i].stack.length; j++){
@@ -319,26 +350,26 @@ function moveBasicBlock(method, bblocks, gotoLabel){
                                             endbb,
                                             i+1));
                                 }
-                                console.log("Targeted block before");
+                                //console.log("Targeted block before");
                             }else if(bblocks.offset>i){
 
                                 bbs = method.instr.slice(0,i+1);
                                 
-                                console.log("Targeted block after");
+                                //console.log("Targeted block after");
 
                             }
 
 
                             //Disassembler.method(method);
                             if(method.instr[i].stack != undefined && method.instr[i].stack.length>0){
-                                console.log("Remove goto instruction");
+                            //    console.log("Remove goto instruction");
 
 
                             // si le dernier basic block est un return-* on duplique
                             // sinon on déplace 
 
                                 if(bbs[bbs.length-1] == undefined){
-                                    console.log("The new list of blocks is null : ",bbs.length,bbs);
+                                    //console.log("The new list of blocks is null : ",bbs.length,bbs);
                                 }
 
                                 if(j==bbs[bbs.length-1].stack.length-1){
@@ -355,7 +386,7 @@ function moveBasicBlock(method, bblocks, gotoLabel){
                                     Else there is a basic block segmentation error
                                     */
                                     //method.instr[i].stack[j] = CONST.INSTR_TYPE.NOP;
-                                    console.log("Goto instruction is not the last ("+j+"/"+bbs[bbs.length-1].stack.length+")")
+                                    //console.log("Goto instruction is not the last ("+j+"/"+bbs[bbs.length-1].stack.length+")")
                                     tmp = [];
                                     //bbs[bbs.length-1].stack[j] = null; //CONST.INSTR_TYPE.NOP ;
 
@@ -416,21 +447,33 @@ function moveBasicBlock(method, bblocks, gotoLabel){
 
 
 
+
 function flatternGotoOf(method){
 
     let blocksToMove = null;
     let singleGoto = findSingleGoto(method);
     let ret = false;
+    let disass = false;
+
+    if(method.__signature__.indexOf("com.eshard.crackme.listeners.CrackMeFragmentOnClickListener.a92eb5ffe")>-1){
+        disass = true;    
+    }
 
     if(singleGoto.length > 0){
+        singleGoto.sort();
+        
+        if(disass)
+            Disassembler.method(method);
+
         for(let i=0; i<singleGoto.length; i++){
 
-            console.log("flat : ",singleGoto[i]);
+            //console.log("flat : ",singleGoto[i]);
             
             blocksToMove = findTargetBasicBlocks(method, singleGoto[i]);
             if(blocksToMove.blk !== null){
                 method.instr = moveBasicBlock(method, blocksToMove, singleGoto[i]);
-                //Disassembler.method(method);
+                if(disass)
+                    Disassembler.method(method);
                 ret = true;
             }
         }
@@ -439,6 +482,38 @@ function flatternGotoOf(method){
     return ret;
 }
 
+
+function iterateFlattenGotoOf(method){
+
+    let blocksToMove = null;
+    //let singleGoto = findSingleGoto(method);
+    let gotoName = null;
+    let ret = false;
+    let disass = false;
+
+    if(method.__signature__.indexOf("com.eshard.crackme.listeners.CrackMeFragmentOnClickListener.a92eb5ffe")>-1){
+        disass = true;
+        console.log(method.__signature__);
+    }
+
+    while( null !== (gotoName = nextSingleGoto(method)) ){
+        if(disass)
+            Disassembler.method(method);
+    
+        blocksToMove = findTargetBasicBlocks(method, gotoName);
+
+        if(blocksToMove.blk !== null){
+            method.instr = moveBasicBlock(method, blocksToMove, gotoName);
+            
+            if(disass)
+                Disassembler.method(method);
+
+            ret = true;
+        }
+    }
+
+    return ret;
+}
 /*
 
 A 
@@ -450,6 +525,12 @@ X
   Si la derniere instructions du bloc precedent est un goto vers le bloc courant  
 
 */
+
+/**
+ * 
+ * Not clean methods containing if-* and throw instruction
+ * @param {*} context 
+ */
 function gotoConditionnalClean(context){
     console.log("Conditional goto clean");
     let subject=null;
@@ -462,7 +543,8 @@ function gotoConditionnalClean(context){
 
         subject = DB.methods[meth];
         if( subject != null && subject.instr != null && subject.instr.length > 0){
-            if(flatternGotoOf(subject)>0) gotos++;
+            if(flatternGotoOf(subject)) gotos++;
+            //if(iterateFlattenGotoOf(subject)) gotos++;
         }
     }    
 
@@ -483,11 +565,144 @@ function gotoClean(context){
         subject = DB.methods[meth];
         if( subject != null && subject.instr != null && subject.instr.length > 0){
             if(flatternGotoOf(subject)) counters.goto++;
+            //if(iterateFlattenGotoOf(subject)) gotos++;
         }
     }    
 
     return { status:200, data:{ counter:counters.goto } };
 }
+
+
+function hasSingleCall(method){
+    if(method == null){
+        console.log("method is null");
+        return false;
+    }
+    if(Object.entries(method._useMethod).length !== 1 ) 
+        return false;
+
+    return true;
+}
+
+/**
+ * Double static heuristic is when a static method wraps inconditionnally another statis method
+ */
+function renameDoubleStatic(database, method){
+
+    if(!hasSingleCall(method)) return false;
+
+    // check if the current method is static
+    if(method.getModifier().isStatic() === false) return false;
+
+    // get the called method
+    let called = database.methods[ Object.keys(method._useMethod)[0] ];
+    let args = Object.values(method._useMethod)[0];
+    
+    if(called == null 
+        || called.getModifier() == null 
+        || called.getModifier().isStatic() === false) return false;
+
+    // add arg type comparison
+    let paramOnly = true;
+    args[0].forEach(x=>{
+        if(x.t !== CONST.LEX.TOKEN.PARAM) paramOnly = false;
+    });
+
+    if(paramOnly === false) return false;
+
+    if(called.enclosingClass.name !== method.enclosingClass.name){
+        method.setAlias(called.enclosingClass.name+"_"+called.name);
+    }else{
+        method.setAlias(called.name);
+    }
+
+    return true;
+}
+
+
+/**
+ * 
+ * static
+ * test/toto;->doSomething(Ltest/blabla;Ljava/lang/String;)Ljava/io/File;
+ * 
+ * invoke-virtual {p0, p1}, Ltest/blabla;->a0cc175b9(Ljava/lang/String;)Ljava/io/File;
+ *    move-result-object v0
+ * return-object v0
+ */
+function renameStaticInterface(database, method){
+
+    if(!hasSingleCall(method)) return false;
+    if(method.args.length==0) return false;
+
+    // get the called method
+    let called = database.methods[ Object.keys(method._useMethod)[0] ];
+    let args = Object.values(method._useMethod)[0];
+    //let param = method.args[0];
+
+    // check if the called method is not null
+    if(called == null){
+        // if is often caused by extended methods which cannot be resolved 
+        
+        // parsing error found
+        console.log("[ERROR] The called method is NULL. It seems to  be a parsing error. Caller : ",method.signature());
+        return false; 
+    }
+    
+    // check if the method is not static 
+    // TODO :  add check based on the opcode type instead of the modifiers of the called method
+    if(called == null 
+        || called.getModifier() == null 
+        || called.getModifier().isStatic() === true) return false;
+
+
+    // check if the first param of the caller is an 
+    // instance of the class who defines the called method
+    if(method.args[0].name !== called.enclosingClass.name)
+        return false;
+
+    // check if each parameter of the called method are parameter of the caller
+    // {p0, p1} or {p0 ... p5}
+    let paramOnly = true;
+    args[0].forEach(x=>{
+        if(x.t !== CONST.LEX.TOKEN.PARAM) paramOnly = false;
+    });
+    if(paramOnly === false) return false;
+
+    // check if some parameters of the called method are defined statically and locally
+    if(called.enclosingClass.name !== method.enclosingClass.name){
+        method.setAlias(called.enclosingClass.name+"_"+called.name);
+    }else{
+        method.setAlias(called.name);
+    }
+
+    return true;
+}
+
+
+function wrapClean(context){
+
+    let db = context.analyze.db;
+    let ctr = {
+        doubleStatic: 0,
+        staticInterface: 0
+    };
+
+    // scan with several heuristic
+    for(let k in db.methods){
+        if(renameDoubleStatic(db, db.methods[k])){
+            ctr.doubleStatic++;
+            continue;
+        } 
+        if(renameStaticInterface(db, db.methods[k])){
+            ctr.staticInterface++;
+            continue;
+        } 
+    }
+    
+
+    return { status:200, data:{ counter:ctr } };
+}
+
 
 
 /**
@@ -514,10 +729,10 @@ Controller.registerHandler(IFC.HANDLER.GET, function(ctx,req,res){
             else
                 act = gotoClean(ctx);
 
-            console.log(act.data.counter),"methods cleaned";
+            //console.log(act.data.counter),"methods cleaned";
             break;
         case 'wrap_clean':
-            //act = wrapClean(ctx);
+            act = wrapClean(ctx);
             break;
     }
 

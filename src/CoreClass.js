@@ -858,8 +858,11 @@ function Method(config){
     this.dyn = [];
 
     this._useClass = {};
+    this._useClassCtr = 0;
     this._useMethod = {};
+    this._useMethodCtr = 0;
     this._useField = {};
+    this._useFieldCtr = 0;
 
     this.tags = [];
 
@@ -1000,6 +1003,15 @@ function Method(config){
     return this;
 }
 Method.prototype.raw_import = Savable.import;
+Method.prototype.countUsedMethods = function(){
+    return this._useMethodCtr;
+}
+Method.prototype.countUsedClasses = function(){
+    return this._useClassCtr;
+}
+Method.prototype.countUsedFields = function(){
+    return this._useFieldCtr;
+}
 Method.prototype.import = function(obj){
     // raw impport
     this.raw_import(obj);
@@ -1134,6 +1146,10 @@ Method.prototype.getBlock = function(offset){
         if(i==offset) return this.instr[i];
     }
     return null;
+};
+
+Method.prototype.getModifier = function(){
+    return this.modifiers;
 };
 
 Method.prototype.getInstr = function(offsetBB,offsetInstr){
@@ -1586,6 +1602,11 @@ Modifiers.prototype.toJsonObject = function(trueOnly){
 
 Modifiers.prototype.isNotPrivate = function(){
     return this.visibility!==CONST.JAVA.PRIVATE;
+};
+
+
+Modifiers.prototype.isStatic = function(){
+    return this.static===true;
 };
 
 Modifiers.prototype.sprint = function(){

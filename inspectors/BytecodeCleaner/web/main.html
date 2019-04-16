@@ -94,7 +94,7 @@
                         <input type="checkbox" name="nocleanif" id="nocleanif" value=1 checked><label>Not clean methods containing conditonnal basic blocks (if-*, try/ctach/throw)</label><br>
                     </div>
                 </div>
-<!--
+
             <div class="panel panel-info">
                 <div class="panel-heading">
                     <div class="row">
@@ -108,9 +108,15 @@
                 </div>         
                 <div class="panel-body">
                     The aim of this action is to detect wrappers and to rename it with the class/method name of the wrapped function.
+                    <br>
+                    <fieldset>
+                        <legend>Methods cleaned</legend>
+                        <b>Double static</b>:<span id="wrappedDoubleStatic"></span><br>
+                        <b>Static interface</b>:<span id="wrappedStaticInterface"></span><br>
+                    </fieldset>
                 </div>
             </div>
-
+<!--
             <div class="panel panel-info">
                 <div class="panel-heading">
                     <div class="row">
@@ -214,6 +220,26 @@
                 statusCode: {
                     200: function(data,err){
                         alert("Success");
+                    },
+                    404: function(data,err){
+                        alert("An remote error occured.");
+                    }
+                }
+            })
+        });
+
+
+        $(".wrapped-clean").click(function(e){
+            $.ajax("/api/inspectors/BytecodeCleaner", {
+                method: "get",
+                data: {
+                    action: "wrap_clean"
+                },
+                statusCode: {
+                    200: function(data,err){
+                        alert("Success");
+                        $("#wrappedDoubleStatic").html(data.counter.doubleStatic);
+                        $("#wrappedStaticInterface").html(data.counter.staticInterface);
                     },
                     404: function(data,err){
                         alert("An remote error occured.");

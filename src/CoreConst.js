@@ -7,7 +7,9 @@ var CONST = {
             METH_ARG_E: ")",
             INNER_FQCN: "$",
             ARRAY: "[",
-            OBJREF: "L"
+            OBJREF: "L",
+            PARAM: "p",
+            LOCALVAR: "v"
         },
         STRUCT: {
             CLASS: ".class",

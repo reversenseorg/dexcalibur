@@ -26,17 +26,5 @@ CleanerInspector.useGUI();
 
 // ====== CONFIG TASK ====== 
 
-/*
-CleanerInspector.on("hook.dex.load", {
-    task: function(ctx, event){
-        Logger.info("[INSPECTOR][TASK] CleanerInspector new Dex file loaded ");
-    }
-});
-
-CleanerInspector.on("hook.dex.new", {
-    task: function(ctx, event){
-        Logger.info("[INSPECTOR][TASK] CleanerInspector new Dex file");
-    }
-});*/
 
 module.exports = CleanerInspector;

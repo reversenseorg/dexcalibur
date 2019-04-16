@@ -70,11 +70,13 @@ function superMethod(meth, cls){
             if(cls.methods[i]._isBinding===true){
                 cls.methods[i].declaringClass = cls.methods[i].enclosingClass;
                 cls.methods[i].enclosingClass = cls;
-                return cls.methods[i];
+                //return cls.methods[i];
+                return { binding:true, found:true, ref:cls.methods[i] };
             }else if(cls.methods[i].modifiers.isNotPrivate()){ 
                 cls.methods[i].declaringClass = cls.methods[i].enclosingClass;
                 cls.methods[i].enclosingClass = cls;
-                return cls.methods[i];
+                //return cls.methods[i];
+                return { binding:false, found:true, ref:cls.methods[i] };
             }
         } 
              
@@ -85,7 +87,8 @@ function superMethod(meth, cls){
     // detected
     if(cls._isBinding === true){
         //console.log("["+cls.fqcn+"] Super binding");
-        return VM.getBinding(meth,cls.fqcn);
+        //return VM.getBinding(meth,cls.fqcn);
+        return { binding:true, found:false, ref:VM.getBinding(meth,cls.fqcn) };
     }
     else if(cls.extends instanceof CLASS.Class){
         return superMethod(meth, cls.extends);
@@ -299,9 +302,13 @@ var Resolver = {
                }*/
                
                if(x!==null){
+                   //if(x.binding === false && x.found === true){
+
+                       //if( method.inherit(x.ref.signature())
+                   //}
                    //console.log("["+cls.fqcn+"] Extended field '"+x.name+"' found");
                    // x.enclosingClass = cls;
-                   return x;
+                   return x.ref;
                }else{
                    //console.log("Resolver::method (2) ", methRef.signature());
                    /*for(let i in db.classes[methRef.fqcn].methods){
@@ -430,14 +437,20 @@ function mapInstructionFrom(method, data, stats){
                 stats.methodCalls++;
 
 
-                if(method._useClass[instruct.right.fqcn] == undefined)
+                if(method._useClass[instruct.right.fqcn] == undefined){
                     method._useClass[instruct.right.fqcn] = [];
-                if(method._useMethod[instruct.right.signature()] == undefined)
+                    method._useClassCtr++;
+                }
+                if(method._useMethod[instruct.right.signature()] == undefined){
                     method._useMethod[instruct.right.signature()] = [];
+                    method._useMethodCtr++;
+                }
 
 
                 method._useClass[instruct.right.fqcn].push(instruct.right.enclosingClass);
-                method._useMethod[instruct.right.signature()].push(instruct.right);
+                //method._useMethod[instruct.right.signature()].push(instruct.right);
+                method._useMethod[instruct.right.signature()].push(instruct.left);
+
 
                 success = true;
             }
@@ -466,10 +479,14 @@ function mapInstructionFrom(method, data, stats){
 
                 stats.fieldCalls++;
                 
-                if(method._useClass[instruct.right.fqcn] == undefined)
+                if(method._useClass[instruct.right.fqcn] == undefined){
                     method._useClass[instruct.right.fqcn] = [];
-                if(method._useField[instruct.right.signature()] == undefined)
+                    method._useClassCtr++;
+                }
+                if(method._useField[instruct.right.signature()] == undefined){
                     method._useField[instruct.right.signature()] = [];
+                    method._useFieldCtr++;
+                }
                 
                 
                 method._useClass[instruct.right.fqcn].push(instruct.right.enclosingClass);
