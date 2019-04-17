@@ -552,7 +552,7 @@ var OPCODE={
 		flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER, 
 
 		parse: MainParser.setlitteral,
-		type: CONST.INSTR_TYPE.RET,
+		type: CONST.INSTR_TYPE.VAR_SETTER,
 		valuetype: null     
 	},
 	CONST_16:{ 
@@ -563,7 +563,7 @@ var OPCODE={
 		flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER, 
 
 		parse: MainParser.setlitteral,
-		type: CONST.INSTR_TYPE.RET,
+		type: CONST.INSTR_TYPE.VAR_SETTER,
 		valuetype: null      },
 	CONST:{ 
 		byte:0x14, 
@@ -573,7 +573,7 @@ var OPCODE={
 		flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER, 
 
 		parse: MainParser.setlitteral,
-		type: CONST.INSTR_TYPE.RET,
+		type: CONST.INSTR_TYPE.VAR_SETTER,
 		valuetype: null     
 	 },
 	CONST_HIGH16:{ 
@@ -584,7 +584,7 @@ var OPCODE={
 		flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER, 
 
 		parse: MainParser.setlitteral,
-		type: CONST.INSTR_TYPE.RET,
+		type: CONST.INSTR_TYPE.VAR_SETTER,
 		valuetype: null     
 	 },
 	CONST_WIDE_16:{ 
@@ -595,7 +595,7 @@ var OPCODE={
 		flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER, 
 
 		parse: MainParser.setlitteral,
-		type: CONST.INSTR_TYPE.RET,
+		type: CONST.INSTR_TYPE.VAR_SETTER,
 		valuetype: null     
 	 },
 	CONST_WIDE_32:{ 
@@ -606,7 +606,7 @@ var OPCODE={
 		flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER, 
 
 		parse: MainParser.setlitteral,
-		type: CONST.INSTR_TYPE.RET,
+		type: CONST.INSTR_TYPE.VAR_SETTER,
 		valuetype: null     
 	 },
 	CONST_WIDE:{ 
@@ -617,7 +617,7 @@ var OPCODE={
 		flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER, 
 
 		parse: MainParser.setlitteral,
-		type: CONST.INSTR_TYPE.RET,
+		type: CONST.INSTR_TYPE.VAR_SETTER,
 		valuetype: null     
 	 },
 	CONST_WIDE_HIGH16:{ 
@@ -628,7 +628,7 @@ var OPCODE={
 		flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER, 
 
 		parse: MainParser.setlitteral,
-		type: CONST.INSTR_TYPE.RET,
+		type: CONST.INSTR_TYPE.VAR_SETTER,
 		valuetype: null     
 	 },
 	CONST_STRING:{ 

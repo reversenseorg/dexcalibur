@@ -4,6 +4,8 @@ const Disassembler = require("../../../src/Disassembler.js");
 
 var Controller =  new IFC.FrontController();
 
+var DEBUG = false;
+
 /**
  * Count NOP instructions
  */
@@ -273,6 +275,7 @@ function findTargetBasicBlocks(method, gotoLabel){
 
                 //console.log(method.instr[i].stack);
                 if(hasJump(method.instr[i].stack)){
+                    if(DEBUG) console.log("block has jump :",method.instr[i].goto_name,gotoLabel,targetBBs);
                     break;
                 } 
             }
@@ -284,6 +287,7 @@ function findTargetBasicBlocks(method, gotoLabel){
                     duplicate = true;
 
                 if(hasJump(method.instr[i].stack)){
+                    if(DEBUG) console.log("block has jump POST :",gotoLabel,targetBBs[targetBBs.length-1].stack);
                     break;
                 } 
                     
@@ -316,20 +320,14 @@ function moveBasicBlock(method, bblocks, gotoLabel){
         for(let i=0; i<method.instr.length ; i++){
 
 
-            //if(i<=bblocks.offset){
-
-                /*if(method.instr[i].stack ==undefined){
-                    console.log("Stack is undefined",method.instr);
-                }*/
-
-
                 for(let j=0; j<method.instr[i].stack.length; j++){
                     
                     instruction = method.instr[i].stack[j];
                     lastWasGoto=false
 
-                    if(instruction == null)
+                    if(instruction == null){
                         continue;
+                    }
 
                     if(instruction.opcode != null && instruction.opcode.type==CONST.INSTR_TYPE.GOTO){
                         // check if the instruction must be patched
@@ -385,20 +383,15 @@ function moveBasicBlock(method, bblocks, gotoLabel){
 
                                     Else there is a basic block segmentation error
                                     */
-                                    //method.instr[i].stack[j] = CONST.INSTR_TYPE.NOP;
-                                    //console.log("Goto instruction is not the last ("+j+"/"+bbs[bbs.length-1].stack.length+")")
                                     tmp = [];
-                                    //bbs[bbs.length-1].stack[j] = null; //CONST.INSTR_TYPE.NOP ;
-
+                                   
                                     for(let ii=0; ii<bbs[bbs.length-1].stack.length; ii++){
                                         if(bbs[bbs.length-1].stack[ii].opcode.type==CONST.INSTR_TYPE.GOTO) continue;
-                                        // ajouter un test si apres le goto c'est pas des nop
-
+                                   
                                         tmp.push(bbs[bbs.length-1].stack[ii]);
                                     }
                                     bbs[bbs.length-1].stack = tmp;
 
-                                    //bbs[bbs.length-1].goto_name = null;
                                 }
                                 
                             }
@@ -437,7 +430,7 @@ function moveBasicBlock(method, bblocks, gotoLabel){
                         }
                     }
                 }
-            //}
+            
         }
     }
 
@@ -455,15 +448,13 @@ function flatternGotoOf(method){
     let ret = false;
     let disass = false;
 
-    if(method.__signature__.indexOf("com.eshard.crackme.listeners.CrackMeFragmentOnClickListener.a92eb5ffe")>-1){
-        disass = true;    
-    }
-
     if(singleGoto.length > 0){
         singleGoto.sort();
-        
-        if(disass)
+
+        if(DEBUG){
             Disassembler.method(method);
+            //console.log(singleGoto);
+        }
 
         for(let i=0; i<singleGoto.length; i++){
 
@@ -471,8 +462,14 @@ function flatternGotoOf(method){
             
             blocksToMove = findTargetBasicBlocks(method, singleGoto[i]);
             if(blocksToMove.blk !== null){
+
+                if(DEBUG){
+                    blocksToMove.blk.forEach(x=>console.log(x.stack));
+//                    console.log(blocksToMove, singleGoto[i])
+                }
+
                 method.instr = moveBasicBlock(method, blocksToMove, singleGoto[i]);
-                if(disass)
+                if(DEBUG)
                     Disassembler.method(method);
                 ret = true;
             }
@@ -482,38 +479,6 @@ function flatternGotoOf(method){
     return ret;
 }
 
-
-function iterateFlattenGotoOf(method){
-
-    let blocksToMove = null;
-    //let singleGoto = findSingleGoto(method);
-    let gotoName = null;
-    let ret = false;
-    let disass = false;
-
-    if(method.__signature__.indexOf("com.eshard.crackme.listeners.CrackMeFragmentOnClickListener.a92eb5ffe")>-1){
-        disass = true;
-        console.log(method.__signature__);
-    }
-
-    while( null !== (gotoName = nextSingleGoto(method)) ){
-        if(disass)
-            Disassembler.method(method);
-    
-        blocksToMove = findTargetBasicBlocks(method, gotoName);
-
-        if(blocksToMove.blk !== null){
-            method.instr = moveBasicBlock(method, blocksToMove, gotoName);
-            
-            if(disass)
-                Disassembler.method(method);
-
-            ret = true;
-        }
-    }
-
-    return ret;
-}
 /*
 
 A 
@@ -544,7 +509,6 @@ function gotoConditionnalClean(context){
         subject = DB.methods[meth];
         if( subject != null && subject.instr != null && subject.instr.length > 0){
             if(flatternGotoOf(subject)) gotos++;
-            //if(iterateFlattenGotoOf(subject)) gotos++;
         }
     }    
 
@@ -565,7 +529,6 @@ function gotoClean(context){
         subject = DB.methods[meth];
         if( subject != null && subject.instr != null && subject.instr.length > 0){
             if(flatternGotoOf(subject)) counters.goto++;
-            //if(iterateFlattenGotoOf(subject)) gotos++;
         }
     }    
 
