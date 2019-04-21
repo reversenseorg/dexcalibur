@@ -219,8 +219,9 @@
                                     <div class="col-lg-10" style="font-size:1.8em">  
                                         Hook code
                                     </div>
-                                    <div class="col-lg-2">
-                                        <button code="`+codeID+`" hookid="`+row.id+`" class="btn btn-danger savechange">Save changes</button>
+                                    <div class="col-lg-2" style="text-align:right">
+                                        <button code="`+codeID+`" hookid="`+row.id+`" class="btn btn-danger savechange" hookreplay="auto"><span class="fa fa-refresh bold"></span>&nbsp;<span class="fa fa-save"></span></button>
+                                        <button code="`+codeID+`" hookid="`+row.id+`" class="btn btn-danger savechange" hookreplay="none"><span class="fa fa-save"></span>&nbsp;</button>
                                     </div>
                                 </div>
                             </div>
@@ -233,17 +234,17 @@
                         <div class="panel panel-info">
                             <div class="panel-heading">
                                 <div class="row">
-                                    <div class="col-lg-8 col-md-4">  
+                                    <div class="col-lg-4 col-md-4">  
                                         <button class="btn btn-danger replay-hook" code="`+codeID+`" hookid="`+row.id+`"><span class="fa fa-refresh">&nbsp;</span>Replay hook</button>
                                     </div>
-                                    <div class="col-lg-4 col-md-8" style="font-size:1.8em" >
+                                    <div class="col-lg-8 col-md-8" style="font-size:1.8em;text-align:right" >
                                         Hook messages
                                     </div>
                                 </div>
                             </div>
                             <div class="panel-body" style="padding:0px;" id="hook-log-`+row.id+`">
                                 <table class="table table-sm-4">
-                                        <thead><tr><td><b>Messages</b></td></tr></thead><tbody><tr><td>Nothing to display</td></tr></tbody>
+                                        <thead><tr><td><b>Hook data</b></td></tr></thead><tbody><tr><td>Nothing to display</td></tr></tbody>
                                 </table>
                             </div>
                         </div>
@@ -537,16 +538,42 @@
         // save change action
         $(document).on("click","button.savechange",function(){
             var code = buildHookCode($(this).attr("code"));
+            var replay = $(this).attr("hookreplay");
+            var hookid = $(this).attr("hookid");
             // EditorRegister[$(this).attr("code")].session.doc.$lines.join("\n");
             // console.log(EditorRegister[$(this).attr("code")].session.doc
-            $.ajax('../api/hook/'+$(this).attr("hookid"),{
+            $.ajax('../api/hook/'+hookid,{
                 method: 'put',
                 data: {
                     code: code
                 },
                 statusCode: {
                     200: function(){
-                        alert('Hook updated');
+                        if(replay==="auto"){
+                            msgStatus = 9999999;
+                            //console.log(e);
+                            //hookMessages.view.hook_id = e.target.attributes.hookid.nodeValue;
+                            hookMessages.view.hook_id = hookid;
+                            
+                            //console.log(hookMessages.view.hook_id);
+                            //hookMessages.view.stop_id = e.target.attributes.code;
+
+                            $("#hook-log-"+hookMessages.view.hook_id+" table tbody tr").remove();
+                            $.ajax('../api/probe/start',{
+                                method: 'post',
+                                statusCode: {
+                                    200: function(){
+                                        stopHooks = 0;
+                                        msgStatus = 0;
+                                    },
+                                    404: function(){
+                                        alert("Failed to start probing(see logs)")
+                                    }
+                                }
+                            })
+                        }
+                        else
+                            alert('Hook updated');
                     },
                     404: function(err){
                         alert('Remote error');

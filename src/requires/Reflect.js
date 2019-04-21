@@ -29,7 +29,6 @@ var CLS={
     }
 };
 
-
 function isIntanceOf(raw_ref, fqcn){
     //var cls = "java.lang.String";
     if(typeof raw_ref != "string"){
@@ -39,6 +38,58 @@ function isIntanceOf(raw_ref, fqcn){
         return "java.lang.String"==fqcn;
     }
 }
+
+
+DEXC_MODULE.reflect = {
+    getSignature: function (cls){
+        return "<"+cls.getName()+">";
+    },
+    castArray: function ( cls, arr){
+        var ret = []; 
+        var i=0;
+        var tmp=null;
+
+        if(arr == null) return null;
+
+        while(null != (tmp = arr[i])){
+            ret.push( Java.cast( tmp, cls));
+            i++;
+        }
+        
+        return ret;
+    },
+};
+
+/**
+ * To make the Dexcalibur signature (a string) of a given Method instance
+ * @param {Object} method An instance of the java.lang.reflect.Method class
+ */
+DEXC_MODULE.reflect.getMethodSignature = function(method,argTypes){
+    var sign="";
+
+    var cls = Java.cast( method.getDeclaringClass(), CLS.java.lang.Class);
+    var args = DEXC_MODULE.reflect.castArray( CLS.java.lang.Class, argTypes); // method.getParameterTypes());
+    var rett = Java.cast( method.getReturnType(), CLS.java.lang.Class);
+
+    sign += cls.getCanonicalName();
+    sign += ".";
+    sign += method.getName();
+    sign += "(";
+
+    if(args!==null)
+        for(var a=0; a<args.length; a++){
+            sign += DEXC_MODULE.reflect.getSignature(args[a]);
+            if(args[a].isArray()) sign += "[]";
+        }
+
+    sign += ")";
+
+    sign += DEXC_MODULE.reflect.getSignature(rett);
+
+    return sign;
+}
+
+
 /*
 function prettySPrint(ref){
     var cls = Java.cast( ref.getClass(), CLS.java.lang.Class);

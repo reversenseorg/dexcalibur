@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="">
+    <meta name="author" content="">
+
+    <title>Dexcalibur - Dynamic Loader</title>
+
+    <!-- styles -->
+    <!--## pages/inc/tpl_css.html ##-->
+
+
+
+
+    <!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
+    <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
+    <!--[if lt IE 9]>
+        <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
+        <script src="https://oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js"></script>
+    <![endif]-->
+
+</head>
+
+<body>
+
+    <div id="wrapper">
+
+        <!-- Navigation -->
+        <!--## pages/inc/menu.html ##-->
+
+        <div id="page-wrapper">
+            <!--<div class="row">
+                <div class="col-lg-12">
+                    <h1 class="page-header" style="font-size:1em">Probe logs</h1>
+                </div>
+            </div>-->
+            <div class="row" style="padding:10px;">
+                <div class="col-lg-8" style="font-size:1.5em">Dynamic loader inspector</div>
+                
+                <!--<div class="col-lg-4">
+                    <button class="btn btn-danger probe-restart">
+                        <i class="fa fa-refresh"></i>&nbsp;Relaunch
+                    </button>&nbsp
+                    <button class="btn btn-primary refresh">
+                        <i class="fa fa-refresh"></i>&nbsp;Refresh
+                    </button>
+                </div>-->
+            </div>
+            <br><br>
+            <div class="panel panel-info">
+               <div class="panel-heading">
+                    <div class="row">
+                        <div class="col-lg-7" style="font-size:1.5em">Method invoked dynamically</div>
+                        <div class="col-lg-3" style="font-size:1.5em; color:gray" id="nopCounter">
+                        </div>
+                        <div class="col-lg-2">
+                            <button class="btn btn-primary refreshReflect">
+                                <i class="fa fa-refresh"></i>&nbsp;Refresh
+                            </button>
+                        </div>
+                    </div>
+                </div>         
+                <div class="panel-body">
+                    <p>The table below lists all unique method get dynamically. If a method was not yet discovered, it is tagged 
+                    with the <span class="badge badge-purple">new</span> label.</p>
+                    <table width="100%"  class="table table-striped table-bordered table-hover" id="dataTables-reflect">
+                            <thead>
+                                <tr>
+                                    <th id="finder-col1">-</th>
+                                    <th id="finder-col2">Method</th>
+                                    <th id="finder-col3">Flags</th>
+                                    <th id="finder-col4">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                
+                            </tbody>
+                        </table>
+                </div>
+            </div>
+
+
+            <div class="panel panel-info">
+                <div class="panel-heading">
+                    <div class="row">
+                        <div class="col-lg-10" style="font-size:1.5em">Dex file loaded dynamically</div>
+                        <div class="col-lg-2">
+                            <button class="btn btn-primary refreshDex">
+                                <i class="fa fa-refresh"></i>&nbsp;Refresh
+                            </button>
+                        </div>
+                    </div>
+                </div>         
+                <div class="panel-body">
+                    <p>The table below lists all Dexes files get dynamically.</p>
+                    <table width="100%"  class="table table-striped table-bordered table-hover" id="dataTables-dex">
+                            <thead>
+                                <tr>
+                                    <th id="finder-col1">-</th>
+                                    <th id="finder-col2">Filepath</th>
+                                    <th id="finder-col3">-</th>
+                                    <th id="finder-col4">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                
+                            </tbody>
+                        </table>     
+                </div>
+            </div>
+
+            <div class="panel panel-info">
+                    <div class="panel-heading">
+                        <div class="row">
+                            <div class="col-lg-10" style="font-size:1.5em">Elements discovered</div>
+                            <div class="col-lg-2">
+                                <button class="btn btn-primary refreshDex">
+                                    <i class="fa fa-refresh"></i>&nbsp;Refresh
+                                </button>
+                            </div>
+                        </div>
+                    </div>         
+                    <div class="panel-body">
+                        <p>The table below lists all elements discovered (string, class, method, field, array, ...).</p>
+                        <table width="100%"  class="table table-striped table-bordered table-hover" id="dataTables-discover">
+                                <thead>
+                                    <tr>
+                                        <th id="finder-col1">-</th>
+                                        <th id="finder-col2">Type</th>
+                                        <th id="finder-col3">Object</th>
+                                        <th id="finder-col4">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    
+                                </tbody>
+                            </table>     
+                    </div>
+                </div>
+
+
+        </div>
+        <!-- /#page-wrapper -->
+    </div>
+    <!-- /#wrapper -->
+
+
+    <!--## pages/inc/tpl_js_end.html ##-->
+
+    <script>
+
+    $(document).ready(function() {
+
+        let clsTable = $('#dataTables-reflect').DataTable({
+            searching: false,
+            paging: false,
+            columns: [
+                {
+                    "className":      'details-control',
+                    "orderable":      false,
+                    "data":           null,
+                    "defaultContent": ''
+                },
+                {  
+                    render: function(data, type, row, meta ){
+                        console.log(row);
+                        return '<a target="about" href="finder.html?method='+btoa(encodeURIComponent(row.id))+'">'+htmlEncode(row.id)+'</a>';
+                    }
+                },
+                {  
+                    render: function(data, type, row, meta ){
+                        return '*';
+                    }
+                 },
+                { 
+                    render: function(data, type, row, meta ){
+                        if(row.name != null)
+                            return '<a  class="badge badge-success probe" meth="'+btoa(encodeURIComponent(row.name))+'">ON</a>';
+                        else    
+                            return '';
+                    }
+                }
+            ],
+            responsive: true
+        });
+
+
+        $(".refreshReflect").click(function(e){
+            $.ajax("/api/inspectors/DynamicLoader", {
+                method: "get",
+                data: {
+                    action: "refresh_reflect"
+                },
+                statusCode: {
+                    200: function(data,err){
+                        data = JSON.parse(data);
+                        clsTable.clear();
+                        /*
+                        rows = [];
+                        if(!from){
+                            for(let i=0; i<data._callers.length; i++){
+                                rows.push(data._callers[i]);
+                            }
+                        }else{
+                            for(let i in data._useMethods){
+                                rows.push({ ID: data._useMethods[i].__signature__, location:"-1", action:"None" });
+                            }
+                        }*/
+                        clsTable.rows.add(data.data);
+                        clsTable.draw();
+                        // do popup
+                        alert("Success");
+                    },
+                    404: function(data,err){
+                        alert("An error occured");
+                    }
+                }
+            })
+        });
+
+
+    });
+
+    </script>
+
+</body>
+
+</html>

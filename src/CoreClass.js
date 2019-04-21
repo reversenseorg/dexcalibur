@@ -1218,6 +1218,24 @@ Method.prototype.setAlias = function(name){
     this.alias = name;
     this.__aliasedCallSignature__ = this.aliasedCallSignature();
 }
+Method.prototype.setEnclosingClass = function(cls){
+    this.enclosingClass = cls;   
+}
+Method.prototype.getEnclosingClass = function(){
+    return this.enclosingClass;   
+}
+Method.prototype.setReturnType = function(rettype){
+    this.ret = rettype;   
+}
+Method.prototype.getReturnType = function(){
+    return this.ret;   
+}
+Method.prototype.setArgsType = function(argsType){
+    this.args = argsType;   
+}
+Method.prototype.getArgsType = function(){
+    return this.args;   
+}
 
 
 function CondTag(){
