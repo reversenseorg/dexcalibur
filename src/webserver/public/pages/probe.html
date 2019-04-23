@@ -33,8 +33,11 @@
 
         <div id="page-wrapper">
             <div class="row">
-                <div class="col-lg-12">
+                <div class="col-lg-10">
                     <h1 class="page-header">Probe manager</h1>
+                </div>
+                <div class="col-lg-2" style="padding-top:20px">
+                    <button type="button" class="btn btn-primary" id="dl-fridascript"><span class="fa fa-download">&nbsp;</span>Download as Frida script</button>
                 </div>
                 <!-- /.col-lg-12 -->
             </div>
@@ -371,6 +374,10 @@
                     }
                 }
             })
+        });
+
+        $("#dl-fridascript").click(function(){
+            location.href = "../api/probe/download";
         });
 
         

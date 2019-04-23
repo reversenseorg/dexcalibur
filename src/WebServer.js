@@ -326,6 +326,20 @@ class WebServer {
                 res.status(200).send(JSON.stringify({ enable: true }));
             });
 
+        /**
+         * To download the resulting Frida script 
+         */
+        this.app.route('/api/probe/download')
+            .get(function(req,res){
+                let script = $.project.hook.prepareHookScript();
+
+                res.set('Content-Type','application/octet-stream');
+                res.set('Content-Length',script.length);
+                res.set('Content-Disposition','attachment; filename="hook.js"');
+                res.set('Expires','0');
+                res.status(200).send(script);
+            });
+
         this.app.route('/api/probe/msg')
             .get(function(req,res){
                 let sess = $.project.hook.lastSession();
