@@ -59,6 +59,7 @@ function Hook(name,src){
         before: null,
         after: null,
         replace: null,
+        custom: null
     }
     return this;
 }
@@ -71,6 +72,18 @@ Hook.prototype.modifyScript = function(script){
 Hook.prototype.isModified = function(){
     return this.edited;
 } 
+
+Hook.prototype.isCustomHook = function(){
+    return this.code.custom != null;
+}
+
+Hook.prototype.getCustomCode = function(){
+    return this.code.custom;
+}
+
+Hook.prototype.setCustomCode = function(script){
+    this.code.custom = script;
+}
 
 
 /**
@@ -329,12 +342,6 @@ Hook.prototype.makeArgsHelper = function(args_arr){
     return helper;
 };
 
-/*
-Hook.prototype.buildNativeHookFor = function(native){
-
-};
-*/
-
 
 /**
  * To create the Frida hook script for a specific method.
@@ -483,6 +490,55 @@ Hook.prototype.makeHookFor = function(method){
     return true;
     //console.log(script);
 }
+Hook.prototype.buildCustomScript = function(method){
+    if(method instanceof CLASS.MissingReference){
+        console.log(Chalk.bold.yellow("TODO : implement MissingReference probing"));
+        this.enable = false;
+        return null;
+    }
+
+    let builtScript = this.code.custom;
+    let tags = {
+        "@@__CLSDEF__@@": md5(method.enclosingClass.name),
+        "@@__FQCN__@@": method.enclosingClass.name,
+        "@@__METHDEF__@@": md5(method.__signature__),
+        "@@__METHNAME__@@": (method.name=='<init>')? '$init' : method.name,
+        "@@__METHSIGN__@@": method.__signature__,
+        "@@__ARGS__@@": "",
+        "@@__HOOK_ARGS__@@": "",
+        "@@__HOOK_ARGS2__@@": "",
+        "@@__RET__@@": "",
+        "@@__ARGS_VAL__@@": "",
+        "@@__HOOK_ID__@@": UT.b64_encode(this.id),
+        "@@__CTX__@@":"",
+        "@@__ARGS_DATA__@@":"null",
+        "@@__RET_DATA__@@":"",
+    }; 
+
+    if(this.parentID != null){
+        tags["@@__CTX__@@"] = "ctx_"+md5(this.parentID);
+    }
+    if(method.args.length > 0){
+        let argHelp = this.makeArgsHelper(method.args);
+        tags["@@__ARGS__@@"] = argHelp.call_signature;
+        tags["@@__ARGS_DATA__@@"] = "{"+argHelp.data+"}";
+        tags["@@__HOOK_ARGS__@@"] = argHelp.hook_args;
+        tags["@@__HOOK_ARGS2__@@"] = ", "+argHelp.hook_args;
+    }
+    
+    for(let i in tags){
+        while(builtScript.indexOf(i)>-1){
+            builtScript = builtScript.replace(i,tags[i]);
+        }
+    }
+
+    this.script = builtScript;
+    this.method = method;
+    method.probing = true;
+    this.name = method.__signature__;
+    this.setEnable(true);
+    return true;
+}   
 
 Hook.prototype.setMethod = function(method){
     this.method = method;
@@ -558,10 +614,12 @@ function HookPrimitive(config){
     this.when = null;
     this.method_signature = null;
     this.isIntercept = false;
+    this.isCustom = false;
     this.interceptBefore = null;
     this.interceptAfter = null;
     this.interceptReplace = null;
     this.onMatch = null;
+    this.custom = false;
     this.raw = null;
 
     for(let i in config){
@@ -624,9 +682,8 @@ HookPrimitive.prototype.toIntercept = function(context,set){
         method = context.find.get.method(this.method_signature);
     else{
         method = this.buildRawMethod(this.raw);
-        console.log(method, context.hook.nextHookIdFor(method));
+        //console.log(method, context.hook.nextHookIdFor(method));
     }
-    //let method = context.find.get.method(this.method_signature);
 
     hook.setID( md5(context.hook.nextHookIdFor(method)));
     hook.setParentID(set.id);//name);
@@ -643,8 +700,17 @@ HookPrimitive.prototype.toIntercept = function(context,set){
     if(this.interceptReplace != null){
         hook.setInterceptReplace(this.interceptReplace);
     }
+    if(this.customCode != null){
+        hook.setCustomCode(this.customCode);
+    }
     
-    hook.makeHookFor(method);
+
+    if(!hook.isCustomHook()){
+        hook.makeHookFor(method);
+    }else{
+        hook.buildCustomScript(method);
+    }
+
     //console.log(hook);
     return hook;          
 }
@@ -1295,6 +1361,35 @@ HookSet.prototype.addIntercept = function(interceptConfig){
 
     return this;
 }
+
+HookSet.prototype.addCustomHook = function(config){
+    if(config.method == null && config.raw == null){
+        Logger.error("[HOOK MANAGER] addCustomHook(): The method to hook is not defined");
+        return null;
+    }
+
+    if(config.method !=null){
+        if(typeof config.method != "string"){
+            for(let i=0; i<config.method.length; i++){
+                config.custom = true;
+                primitive = new HookPrimitive(config);
+                primitive.isIntercept = true;
+                primitive.isCustom = true;
+                primitive.setMethod( config.method);
+                this.intercepts.push( primitive);           
+            }
+        }else{
+            config.custom = true;
+            primitive = new HookPrimitive(config);
+            primitive.isIntercept = true;
+            primitive.isCustom = true;
+            primitive.setMethod( config.method);
+            this.intercepts.push( primitive);
+        }
+        
+    }
+}
+
 /*
 HookSet.prototype.addIntercept = function(interceptConfig){
     let primitive = null;
@@ -1360,7 +1455,11 @@ HookSet.prototype.deploy = function(){
         if(!(this.intercepts[i] instanceof Hook)){
             hook = this.intercepts[i].toIntercept(this.context, this);
 
-            console.log("[INTERCEPT][HOOK SET] Add : ",hook.name)
+            if(hook.isCustomHook())
+                console.log("[INTERCEPT][HOOK SET][CUSTOM] Add : ",hook.name)
+            else
+                console.log("[INTERCEPT][HOOK SET] Add : ",hook.name)
+            
             this.intercepts[i] = hook;    
             hookManager.hooks.push(this.intercepts[i]);   
             

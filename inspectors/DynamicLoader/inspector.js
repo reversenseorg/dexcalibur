@@ -23,6 +23,7 @@ DynLoaderInspector.useGUI();
 DynLoaderInspector.hookSet.require("Reflect");
 
 // add callback
+/*
 DynLoaderInspector.hookSet.addPrologue(`
     var @@__CTX__@@_invokeHooked = false;
     var meth_47fc55b2d470b2b68bef852491d2c0d8 = CLS.java.lang.reflect.Method.invoke.overload('java.lang.Object','[Ljava.lang.Object;');
@@ -56,19 +57,30 @@ DynLoaderInspector.hookSet.addPrologue(`
             
             var ret = meth_47fc55b2d470b2b68bef852491d2c0d8.call(this, arg0, arg1);
 
-            send({ id:"ZDI5YmYxN2Y5YjViZjlhMDAzYmJjZDUwZjU1MjAxMzI=", 
+            if(isIntanceOf(ret,"java.lang.String")){
+                var str = Java.cast(ret, DEXC_MODULE.common.class.java.lang.String);
+                send({ id:"ZDI5YmYxN2Y5YjViZjlhMDAzYmJjZDUwZjU1MjAxMzI=", 
                 msg:"java.lang.reflect.Method.invoke([]) after", 
                 data:{
-                    ret:null,
+                    ret:str.toString(),
                     before:0
                 }, action:"None before", after:true  });
+            }else{
+                send({ id:"ZDI5YmYxN2Y5YjViZjlhMDAzYmJjZDUwZjU1MjAxMzI=", 
+                msg:"java.lang.reflect.Method.invoke([]) after", 
+                data:{
+                    ret:"[Object]",
+                    before:0
+                }, action:"None before", after:true  });
+            }
+
             
             return ret; 
         };
 
         @@__CTX__@@_invokeHooked = true;
     }
-`); 
+`); */
 
 
 // Define a shared struct (between hooks of this hookset)
@@ -100,7 +112,7 @@ DynLoaderInspector.hookSet.addIntercept({
                 action: "Update" 
             });
 
-            if(!@@__CTX__@@_invokeHooked) @@__CTX__@@_startInvokeHooking();
+            //  if(!@@__CTX__@@_invokeHooked) @@__CTX__@@_startInvokeHooking();
     `
 });
 
@@ -129,34 +141,84 @@ DynLoaderInspector.hookSet.addIntercept({
     `
 });
 
+
+/**
+ * This hook is a custom hook, it means that all code is custom and manually
+ * wrote. It is useful if you want create hook at runtime.
+ * 
+ * Its a delegate hook where the method is hooked if a condition into another hook
+ */
 /*
-DynLoaderInspector.hookSet.addIntercept({
-    //when: HOOK.BEFORE,
-    method: "java.lang.reflect.Method.invoke(<java.lang.String>)<java.lang.Class>",
+DynLoaderInspector.hookSet.addCustomHook({
+    method: "java.lang.reflect.Method.invoke(<java.lang.Object><java.lang.Object>[])<java.lang.Object>",
     onMatch: function(ctx,event){
-        DynLoaderInspector.emits("hook.reflect.class.get",event);
+        DynLoaderInspector.emits("hook.reflect.method.call",event);
     },
-    interceptAfter: `  
+    customCode: `  
+        var @@__CTX__@@_invokeHooked = false;
+        var meth_47fc55b2d470b2b68bef852491d2c0d8 = CLS.java.lang.reflect.Method.invoke.overload('java.lang.Object','[Ljava.lang.Object;');
+        
 
-            //var cls = Java.cast( ret, DEXC_MODULE.common.class.java.lang.Class);
+        
+        function @@__CTX__@@_startInvokeHooking(){
 
-            //var types = Java.array( this.getParameterTypes(), DEXC_MODULE.common.class.java.lang.Class);
+            meth_47fc55b2d470b2b68bef852491d2c0d8.implementation = function(arg0,arg1) {
 
-            send({ 
-                id:"@@__HOOK_ID__@@", 
-                match: true, 
-                data: {
-                    name: ret.getCanonicalName()
-                },
-                after: true, 
-                msg: "Class.forName()", 
-                action: "Update" 
-            });
 
-            // if(!@@__CTX__@@_invokeHooked) @@__CTX__@@_startInvokeHooking();
+                // ============ !! WARNING !! =================
+                // Args parsing below introduce lof of instability
+                // It can be commented
+                // ========= !! END OF WARNING !! =================
+
+                var param = DEXC_MODULE.reflect.castArray( 
+                    DEXC_MODULE.common.class.java.lang.Object,
+                    arg1 );
+    
+                var paramCls = [], cls = null;
+    
+                for(var i in param){
+                    cls = Java.cast( param[i].getClass(), CLS.java.lang.Class);
+                    paramCls.push( cls.getName());
+                }
+    
+                              
+                send({ id:"ZDI5YmYxN2Y5YjViZjlhMDAzYmJjZDUwZjU1MjAxMzI=", 
+                    msg:"java.lang.reflect.Method.invoke([]) target", 
+                    data:{
+                        method: DEXC_MODULE.reflect.getMethodSignature(this, this.getParameterTypes()),
+                        param: paramCls,
+                        before:1
+                    }, 
+                    action:"None before", after:false  });
+                
+                var ret = meth_47fc55b2d470b2b68bef852491d2c0d8.call(this, arg0, arg1);
+    
+                if(isIntanceOf(ret,"java.lang.String")){
+                    var str = Java.cast(ret, DEXC_MODULE.common.class.java.lang.String);
+                    send({ id:"ZDI5YmYxN2Y5YjViZjlhMDAzYmJjZDUwZjU1MjAxMzI=", 
+                    msg:"java.lang.reflect.Method.invoke([]) after", 
+                    data:{
+                        ret:str.toString(),
+                        before:0
+                    }, action:"None before", after:true  });
+                }else{
+                    send({ id:"ZDI5YmYxN2Y5YjViZjlhMDAzYmJjZDUwZjU1MjAxMzI=", 
+                    msg:"java.lang.reflect.Method.invoke([]) after", 
+                    data:{
+                        ret:"[Object]",
+                        before:0
+                    }, action:"None before", after:true  });
+                }
+    
+                
+                return ret; 
+            };
+
+            @@__CTX__@@_invokeHooked = true;
+        }
     `
-});*/
-
+});
+*/
 DynLoaderInspector.hookSet.addIntercept({
     //when: HOOK.BEFORE,
     method: "dalvik.system.DexFile.loadDex(<java.lang.String><java.lang.String><int>)<dalvik.system.DexFile>",
@@ -269,6 +331,32 @@ DynLoaderInspector.on("hook.reflect.class.get", {
 DynLoaderInspector.on("hook.reflect.method.get", {
     task: function(ctx, event){
         Logger.info("[INSPECTOR][TASK] DynLoaderInspector search Method ");
+        if(event == null || event.data == null || event.data.data == null) return false;
+        let data  = event.data.data;
+
+
+        let meth = ctx.find.get.method(data.s);
+        console.log(data);
+
+        // potential method call
+
+        /*
+            let rettype = ctx.find.get.class(event.data.data.ret)
+
+        // if meth == null, the method is unknow and the graph should be updated
+        if(meth == null){
+            let ref = new CLASS.Method();
+
+
+            ref.setReturnType(event.data)
+            
+
+        }*/
+    }
+});
+DynLoaderInspector.on("hook.reflect.method.call", {
+    task: function(ctx, event){
+        Logger.info("[INSPECTOR][TASK] DynLoaderInspector method invoked dynamically ");
         if(event == null || event.data == null || event.data.data == null) return false;
         let data  = event.data.data;
 

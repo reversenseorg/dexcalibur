@@ -2,7 +2,6 @@ DEXC_MODULE.common = {
     class: {
         java: {
             lang:{
-                Object: Java.use("java.lang.Object"),
                 Class: Java.use("java.lang.Class"),
                 System: Java.use('java.lang.System'),
                 String: Java.use('java.lang.String'),

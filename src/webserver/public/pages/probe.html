@@ -220,8 +220,8 @@
                                         Hook code
                                     </div>
                                     <div class="col-lg-2" style="text-align:right">
-                                        <button code="`+codeID+`" hookid="`+row.id+`" class="btn btn-danger savechange" hookreplay="auto"><span class="fa fa-refresh bold"></span>&nbsp;<span class="fa fa-save"></span></button>
-                                        <button code="`+codeID+`" hookid="`+row.id+`" class="btn btn-danger savechange" hookreplay="none"><span class="fa fa-save"></span>&nbsp;</button>
+                                        <button code="`+codeID+`" hookid="`+row.id+`" class="btn btn-danger savechange" hookreplay="auto" data-toggle="tooltip" data-placement="bottom" title="Save & replay"><span class="fa fa-refresh bold"></span>&nbsp;<span class="fa fa-save"></span></button>
+                                        <button code="`+codeID+`" hookid="`+row.id+`" class="btn btn-danger savechange" hookreplay="none"data-toggle="tooltip" data-placement="bottom" title="Save change"><span class="fa fa-save"></span>&nbsp;</button>
                                     </div>
                                 </div>
                             </div>
@@ -255,6 +255,10 @@
         setTimeout(function(){
             saveEditor( codeID, setupAceEditor(codeID));
         },20);
+
+        $(function () {
+            $('[data-toggle="tooltip"]').tooltip()
+        });
 
         return body;
     }
@@ -321,14 +325,19 @@
                     }
                 },{
                     render: function(data, type, row, meta ){
-                        return '<button style="height:1.5em;padding-top:0px;padding-bottom:0px;" class="btn btn-primary probe-duplicate" hookid="'+row.id+'"><span class="fa fa-copy"></span></button>&nbsp;'
-                            +'<button style="height:1.5em;padding-top:0px;padding-bottom:0px;" class="btn btn-danger probe-del" hookid="'+row.id+'"><span class="fa fa-trash"></span></button>';
+                        return '<button style="height:1.5em;padding-top:0px;padding-bottom:0px;" class="btn btn-primary probe-duplicate" hookid="'+row.id+'" data-toggle="tooltip" data-placement="bottom" title="duplicate"><span class="fa fa-copy"></span></button>&nbsp;'
+                            +'<button style="height:1.5em;padding-top:0px;padding-bottom:0px;" class="btn btn-danger probe-del" hookid="'+row.id+'" data-toggle="tooltip" data-placement="bottom" title="remove"><span class="fa fa-trash"></span></button>';
                     } 
                 }
             ],
             responsive: false
         });
 
+        clsTable.on('draw',function(){
+            $(function () {
+                $('[data-toggle="tooltip"]').tooltip()
+            });
+        })
 
         let msgStatus = 0;
         let stopHooks = 1;
