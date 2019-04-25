@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="">
+    <meta name="author" content="">
+
+    <title>Dexcalibur - Graph</title>
+
+    <!--## pages/inc/tpl_css.html ##-->
+
+
+    <!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
+    <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
+    <!--[if lt IE 9]>
+        <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
+        <script src="https://oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js"></script>
+    <![endif]-->
+
+    <style type="text/css">
+  
+        .node {
+        cursor: pointer;
+      }
+    
+      .overlay{
+          background-color:#EEE;
+      }
+       
+      .node circle {
+        fill: #fff;
+        stroke: steelblue;
+        stroke-width: 1.5px;
+      }
+       
+      .node text {
+        font-size:10px; 
+        font-family:sans-serif;
+      }
+       
+      .link {
+        fill: none;
+        stroke: #ccc;
+        stroke-width: 1.5px;
+      }
+    
+      .templink {
+        fill: none;
+        stroke: red;
+        stroke-width: 3px;
+      }
+    
+      .ghostCircle.show{
+          display:block;
+      }
+    
+      .ghostCircle, .activeDrag .ghostCircle{
+           display: none;
+      }
+    
+    </style>
+</head>
+
+<body>
+
+    <div id="wrapper">
+
+        <!--## pages/inc/menu.html ##-->
+
+        <div id="page-wrapper">
+            <div class="row">
+                <div class="col-lg-12">
+                    <h1 class="page-header">Graph viewer <span id="graphtypelabel">&nbsp;</span> [&nbsp;<i id="graphtitlelabel" style="color:gray;font-size:0.7em;">&nbsp;</i>&nbsp;]</h1>
+                </div>
+                <!-- /.col-lg-12 -->
+            </div>
+
+            <div class="row" style="padding-bottom:20px;">
+                <div class="col-lg-12">
+                    <button class="btn btn-primary btn-sm" type="button" id="displayFqcn"> 
+                        Display canonical name <span class="badge badge-dark" id="displayFqcnStatus">OFF</span>
+                    </button>
+
+                </div>
+            </div>
+            <div class="row" style="padding-bottom:20px;" >
+                <div class="col-lg-12" id="graphctn">
+                    
+
+                </div>
+            </div>
+
+
+        </div>
+        <!-- /#page-wrapper -->
+    </div>
+    <!-- /#wrapper -->
+
+    <!--## pages/inc/tpl_js_end.html ##-->
+    <script type="text/javascript" src="/dist/js/d3.v3.min.js"></script>
+    <script type="text/javascript" src="/dist/js/dndTree.js"></script>
+
+
+    <!-- Page-Level Demo Scripts - Tables - Use for reference -->
+    <script>
+    /* Formatting function for row details - modify as you need */
+    function format ( row ) {
+        let body = '';
+
+        body+= '<table class="table table-sm"><thead><tr><th scope="col">Action</th><th scope="col">Type</th><th scope="col">Name</th></thead><tbody>';
+         
+        if(row.fields != null){
+            for(let i in row.fields){
+                body += '<tr>'+
+                    '<td><a  class="badge badge-secondary probe" field="'+btoa(encodeURIComponent(row.fields[i].__signature__))+'">Probe OFF</a>&nbsp;&nbsp;'+
+                    '<a class="badge badge-secondary" onclick="intercept(\''+btoa(encodeURIComponent(row.fields[i].__signature__))+'\')">intercept</a>&nbsp;'+
+                    '<a class="badge badge-purple" target="about" href="finder.html#xreffield='+btoa(encodeURIComponent(row.fields[i].__signature__))+'">xref</a></td><td><b>Field</b></td>'+           
+                    '<td><a href="finder.html?field='+btoa(encodeURIComponent(row.fields[i].__signature__))+'">'+$('<div />').text(row.fields[i].__signature__).html()+'</a></td>'+
+                '</tr>';
+            }
+        }
+        //
+
+        //body += '</tbody></table><table class="table table-sm"><thead><tr><th scope="col">Action</th><th scope="col">Methods</th></thead><tbody>';
+         
+         if(row.methods != null){
+             for(let i in row.methods){
+                 body += '<tr>'+
+                    '<td><a  class="badge badge-'+(row.methods[i].probing? 'success':'primary')+' probe" meth="'+btoa(encodeURIComponent(row.methods[i].__signature__))+'">Probe '+(row.methods[i].probing? 'ON':'OFF')+'</a>&nbsp;&nbsp;'+
+                    '<a  class="badge badge-danger">intercept</a>&nbsp;'+
+                    '<a class="badge badge-purple" target="about" href="xref.html#meth='+btoa(encodeURIComponent(row.methods[i].__signature__))+';xrt=to">xref to</a>&nbsp;'+
+                    '<a class="badge badge-pink" target="about" href="xref.html#meth='+btoa(encodeURIComponent(row.methods[i].__signature__))+';xrt=from">xref from</a></td><td><b>Method</b></td>'+
+                    '<td><a href="finder.html?method='+btoa(encodeURIComponent(row.methods[i].__signature__))+'">'+$('<div />').text(row.methods[i].__signature__).html()+'</a></td>'+
+                 '</tr>';
+             }
+         }
+        
+        body += '</tbody></table>';
+        return body;
+    }
+
+    function getContextFromLocation(){
+        let param = {};
+        let re = /&?([0-9a-zA-Z-%]+)=([0-9a-zA-Z-%]+)/g;
+        let arr = null;
+
+        if(location.search.length>0){
+            while((arr = re.exec(location.search)) !== null){
+                if(arr.length > 1)
+                    param[arr[1]] = arr[2]; 
+            }
+        }
+
+        return param;
+    }
+   
+    var clsTable = null;
+
+    function htmlEncode(txt){
+        return $('<div />').text(txt).html();
+    }
+
+
+    function refDecode(txt){
+        return decodeURIComponent(atob(txt));
+    }
+
+    $(document).ready(function() {
+        let urlOptions = getContextFromLocation();
+        let graphOptions = {
+            height: $(window).height()/2,
+            width: $(window).width()-50,
+            nodeRadius: 4,
+            fontSize: 12,
+            maxLabelLength: 50,
+            el: "#graphctn",
+            displayFqcn: false
+        };
+
+        if(urlOptions.type !== undefined && urlOptions.meth !== undefined){
+
+            $("#graphtypelabel").html("Xref");
+            $("#graphtitlelabel").html(htmlEncode(refDecode(urlOptions.meth)));
+
+            var treeJSON = drawTree("../api/graph/"+urlOptions.type+"/method/"+urlOptions.meth, graphOptions);
+        }
+
+        $("#displayFqcn").click(function(o){
+            if($("#displayFqcnStatus").html()=="OFF"){
+                graphOptions.displayFqcn = true;
+                $("#displayFqcnStatus").html("ON");
+            }else{
+                graphOptions.displayFqcn = false;
+                $("#displayFqcnStatus").html("OFF");
+            }
+        });
+        /*
+        clsTable = $('#dataTables-classes').DataTable({
+            ajax: "../api/class",
+            columns: [
+                {
+                    "className":      'details-control',
+                    "orderable":      false,
+                    "data":           null,
+                    "defaultContent": ''
+                },
+                {  
+                    data: 'package' ,
+                    render: function(data, type, row, meta ){
+                        return (row.package!=null)? row.package.name : '[Missing]';
+                    }
+                    //defaultContent: '-'
+                },
+                { 
+                    data: 'simpleName' ,
+                    render: function(data, type, row, meta ){
+                        return (row.simpleName!=null)? row.simpleName : '[Missing]';
+                    }
+                },
+                { 
+                    data: 'Action',
+                    render: function(data, type, row, meta ){
+                        let body='<a target="about" href="finder.html#xrefcls='+btoa(encodeURIComponent(row.name))+'"><button class="btn btn-primary cls-xref" style="padding-top:0px;padding-bottom:0px"><span class="fa fa-bolt"></span>&nbsp;Xref</button></a>';
+                        //body +='&nbsp;<button class="btn btn-danger cls-probeall" style="padding-top:0px;padding-bottom:0px" cls="'+btoa(row.name)+'"><span class="fa fa-search"></span>&nbsp;Probe</button>';
+                        return body;
+                    }
+                }/*,
+                { 
+                    data: 'methods',
+                    defaultContent: '-'
+                }
+            ],
+            responsive: true
+        });
+
+        $('#dataTables-classes tbody').on('click', 'td.details-control', function () {
+            var tr = $(this).closest('tr');
+            var row = clsTable.row( tr );
+            //console.log(row.child);
+
+            if ( row.child.isShown() ) {
+                // This row is already open - close it
+                row.child.hide();
+                tr.removeClass('shown');
+            }
+            else {
+                // Open this row
+                row.child( format(row.data()) ).show();
+                tr.addClass('shown');
+            }
+        } );
+
+        $(document).on("click",".probe",function(){
+            let DOM_PROBE =$(this);
+            let meth = $(this).attr("meth");
+            $.ajax('../api/probe/'+meth,{
+                method: 'post',
+                statusCode: {
+                    200: function(){
+                        DOM_PROBE.removeClass("badge-primary");
+                        DOM_PROBE.addClass("badge-success");
+                        DOM_PROBE.text("probe ON").html()
+                    },
+                    404: function(){
+                        alert("Failed to add probe (see logs)")
+                    }
+                }
+            })
+//            console.log($(this),"test");
+//            alert(2);
+        });
+
+        $(document).on("click",".xreffield",function(){
+            let DOM_PROBE =$(this);
+            let meth = $(this).attr("meth");
+            location
+        });
+
+        //dmTable.ajax.url("../api/device").load();
+        $('#dm-refresh-btn').click(()=>{
+            clsTable.ajax.reload();
+        });*/
+    });
+
+    </script>
+
+</body>
+
+</html>

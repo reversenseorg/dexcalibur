@@ -107,6 +107,26 @@ GraphMaker.prototype.cfgLazy = function(method, instruction=null){
 GraphMaker.prototype.method_htg = function(method, instruction=null){
     
 }
+GraphMaker.prototype.xref_from = function(obj, n=1, m=2){
+    let tree={ name:null, children:null };
+
+    if(obj instanceof CLASS.Method){
+        tree.name = obj.signature();
+        if(obj._useMethodCtr>0){
+            tree.children = [];
+            for(let i in obj._useMethod){
+                if(n<m)
+                    tree.children.push(this.xref_from(this.context.find.get.method(i),n+1));
+                else    
+                    tree.children.push({ name:i });
+            }
+        }
+    }
+
+    console.log(tree);
+
+    return tree;
+}
 GraphMaker.prototype.htg = function(obj){
     /*if(obj instanceof CLASS.Class){
         return this.class_htg(obj);

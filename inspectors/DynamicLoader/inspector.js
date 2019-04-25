@@ -97,14 +97,14 @@ DynLoaderInspector.hookSet.addIntercept({
     onMatch: function(ctx,event){
         DynLoaderInspector.emits("hook.reflect.method.get",event);
     },
-    interceptAfter: `  
+    interceptReplace: `  
+            var ret = meth_@@__METHDEF__@@.call(this, arg0, arg1);
             var cls = Java.cast( ret.getDeclaringClass(), DEXC_MODULE.common.class.java.lang.Class);
             
             send({ 
                 id:"@@__HOOK_ID__@@", 
-                match: true, 
+                match: false, 
                 data: {
-                    name: cls.getName()+"."+arg0,
                     s: DEXC_MODULE.reflect.getMethodSignature(ret,arg1)
                 },
                 after: true, 
@@ -113,6 +113,8 @@ DynLoaderInspector.hookSet.addIntercept({
             });
 
             //  if(!@@__CTX__@@_invokeHooked) @@__CTX__@@_startInvokeHooking();
+
+            return ret;
     `
 });
 
@@ -219,6 +221,62 @@ DynLoaderInspector.hookSet.addCustomHook({
     `
 });
 */
+
+
+// dalvik.system.BaseDexClassLoader.findClass(<java.lang.String>)<java.lang.Class>
+DynLoaderInspector.hookSet.addIntercept({
+    //when: HOOK.BEFORE,
+    method: "dalvik.system.BaseDexClassLoader.findClass(<java.lang.String>)<java.lang.Class>",
+    onMatch: function(ctx,event){
+        DynLoaderInspector.emits("hook.dex.load.class",event);
+    },
+    interceptAfter: `   
+            // get classname
+            var cls = Java.cast(ret, CLS.java.lang.Class);
+            // collect methods
+            // cls.getMethods();
+
+            send({ 
+                id:"@@__HOOK_ID__@@", 
+                match: true, 
+                data: {
+                    cls: cls.getName()
+                },
+                after: true, 
+                msg: "BaseDexClassLoader.findClass()", 
+                action:"Log" 
+            });
+    `
+});
+
+// dalvik.system.DexClassLoader.<init>(<java.lang.String><java.lang.String><java.lang.String><java.lang.ClassLoader>)<void>
+DynLoaderInspector.hookSet.addIntercept({
+    //when: HOOK.BEFORE,
+    method: "dalvik.system.DexClassLoader.<init>(<java.lang.String><java.lang.String><java.lang.String><java.lang.ClassLoader>)<void>",
+    onMatch: function(ctx,event){
+        DynLoaderInspector.emits("hook.dex.new",event);
+    },
+    interceptBefore: `   
+            // copy the loaded dex file
+
+            //var cls = Java.cast(ret, CLS.java.lang.Class);
+
+            send({ 
+                id:"@@__HOOK_ID__@@", 
+                match: true, 
+                data: {
+                    arg0: arguments[0],
+                    arg1: arguments[1],
+                    arg2: arguments[2]
+                },
+                after: true, 
+                msg: "DexClassLoader.<init>()", 
+                action:"Log" 
+            });
+    `
+});
+
+
 DynLoaderInspector.hookSet.addIntercept({
     //when: HOOK.BEFORE,
     method: "dalvik.system.DexFile.loadDex(<java.lang.String><java.lang.String><int>)<dalvik.system.DexFile>",

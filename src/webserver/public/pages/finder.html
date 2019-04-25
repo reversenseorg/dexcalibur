@@ -178,6 +178,7 @@
               <h3 class="modal-title" id="xrefModalLabel">XRefs</h3>
             </div>
             <div class="modal-body">
+                <div name="d3xref" id="d3xref"></div>
                 <table width="100%"  class="table table-striped table-bordered table-hover" id="dataTables-xref">
                     <thead>
                         <tr>
@@ -334,6 +335,101 @@
         
         body += '</tbody></table>';
         return body;
+    }
+
+    function renderXrefGraph(treeData){
+
+
+        var size = {
+            height: 500,
+            width: 800
+        };
+        var options = {
+            nodeRadius: 4,
+            fontSize: 12
+        };
+
+        var  maxLabelLength = 50;
+
+        
+        var tree = d3.layout
+            .tree()
+            .sort(null)
+            .size([size.height, size.width - maxLabelLength * options.fontSize])
+            .children(function(d) {
+                return (!d.data || d.data == null || d.data.length === 0) ? null : d.data;
+            });
+        
+
+        console.log("init OK");
+        var nodes = tree.nodes(treeData.data);
+
+        console.log("data OK");
+        var links = tree.links(nodes);
+
+        console.log("links OK");
+        var layoutRoot = d3
+            .select("#d3xref")
+            .append('svg:svg')
+            .attr('width', size.width)
+            .attr('height', size.height)
+            .append('svg:g')
+            .attr('class', 'container')
+            .attr('transform', 'translate(' + maxLabelLength + ',0)');
+
+        // Edges between nodes as a <path class="link" />
+        var link = d3.svg.diagonal().projection(function(d) {
+            return [d.y, d.x];
+        });
+
+        layoutRoot
+            .selectAll('path.link')
+            .data(links)
+            .enter()
+            .append('svg:path')     
+            .attr('class', 'link')
+            .attr('stroke','#ccc')
+            .attr('fill','none')
+            .attr('d', link);
+
+        /*
+            Nodes as
+            <g class="node">
+                <circle class="node-dot" />
+                <text />
+            </g>
+        */
+        var nodeGroup = layoutRoot
+            .selectAll('g.node')
+            .data(nodes)
+            .enter()
+            .append('svg:g')
+            .attr('class', 'node')
+            .attr('transform', function(d) {
+                return 'translate(' + d.y + ',' + d.x + ')';
+            });
+
+        nodeGroup
+            .append('svg:circle')
+            .attr('class', 'node-dot')
+            .attr('stroke','red')
+            .attr('stroke-width','1')
+            .attr('fill','lightsalmon')
+            .attr('r', options.nodeRadius);
+
+        nodeGroup
+            .append('svg:text')
+            .attr('text-anchor', function(d) {
+                return d.children ? 'end' : 'start';
+            })
+            .attr('dx', function(d) {
+                var gap = 2 * options.nodeRadius;
+                return d.children ? -gap : gap;
+            })
+            .attr('dy', 3) 
+            .text(function(d) {
+                return d.name;
+            });
     }
 
     function renderCallerDetail( row ) {
@@ -532,7 +628,26 @@
             else
                 $('#xrefModalLabel').html("XRef to <h4>"+htmlEncode(decodeURIComponent(atob(ref)))+"</h4>");
 
-            
+            /*
+            $.ajax(
+                "../api/graph/xreffrom/method/"+ref,
+                {
+                    data: {
+                        depth: 1
+                    },
+                    method: "get",
+                    statusCode: {
+                        200: function(data){
+                              renderXrefGraph(JSON.parse(data));
+//                            console.log(data);
+                        },
+                        404: function(data){
+                            console.log(data);
+                        }
+                    }
+                }
+            );*/
+
             $.ajax(
                 "../api/method/"+ref,
                 {
@@ -660,12 +775,13 @@
                         
                         render: function(data, type, row, meta ){
                             //console.log(row.__signature__);
-                            let b='<a  class="badge badge-success probe" meth="'+btoa(encodeURIComponent(row.__signature__))+'">Probe</a>&nbsp;';
-                            b += '&nbsp;<a  class="badge badge-secondary cfg" meth="'+btoa(encodeURIComponent(row.__signature__))+'">Call Graph</a>&nbsp;';
-                            b += '&nbsp;<a  class="badge badge-secondary seemore" meth="'+btoa(encodeURIComponent(row.__signature__))+'">See more</a>';
-                            b += '<br><a  class="badge badge-info rename" ename="'+btoa(encodeURIComponent(row.alias!=null? row.alias : row.name))+'" subt="meth" subject="'+btoa(encodeURIComponent(row.__signature__))+'">Rename</a>';
+                            let b='<a  class="badge badge-primary probe" meth="'+btoa(encodeURIComponent(row.__signature__))+'">Probe</a>&nbsp;';
+                            // b += '&nbsp;<a  class="badge badge-secondary cfg" meth="'+btoa(encodeURIComponent(row.__signature__))+'">Call Graph</a>&nbsp;';
+                            // b += '&nbsp;<a  class="badge badge-secondary seemore" meth="'+btoa(encodeURIComponent(row.__signature__))+'">See more</a>';
+                            b += '<a  class="badge badge-info rename" ename="'+btoa(encodeURIComponent(row.alias!=null? row.alias : row.name))+'" subt="meth" subject="'+btoa(encodeURIComponent(row.__signature__))+'">Rename</a>';
                             b += '&nbsp;<a  class="badge badge-purple xrefto" meth="'+btoa(encodeURIComponent(row.__signature__))+'">xref to</a>';
                             b += '&nbsp;<a  class="badge badge-pink xreffrom" meth="'+btoa(encodeURIComponent(row.__signature__))+'">xref from</a>';
+                            b += '&nbsp;<a  class="badge badge-warning seegraph" meth="'+btoa(encodeURIComponent(row.__signature__))+'">Xgraph</a>';
 
                             return b;
                             /*
@@ -926,6 +1042,12 @@
             let meth = $(this).attr("meth");
 
             renderXrefModal(meth,false);
+        });
+
+        $(document).on("click",".seegraph",function(e){
+            let meth = $(this).attr("meth");
+
+            window.open("/pages/graph_d3.html?type=xreffrom&meth="+meth);
         });
 
         var GLOBAL = {

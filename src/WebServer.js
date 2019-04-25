@@ -477,6 +477,34 @@ class WebServer {
                 res.status(200).send(JSON.stringify(dev));
             });
 
+        this.app.route('/api/graph/xreffrom/:type/:id')
+            .get(function(req,res){
+                let data = {}, ret = null, from = null;
+
+                let depth = (req.query.depth != null) ? parseInt(req.query.depth,10) : null;
+
+                switch(req.params.type){
+                    case 'method':
+                        from = $.project.find.get.method(UT.decodeURI(UT.b64_decode(req.params.id)));
+                        if(from == null){
+                            ret = { status:404, msg:{ err:"Given method not found" } };
+                            break;
+                        } 
+                        
+                        if(depth !== null)
+                            ret = { status:200, msg:{ data: $.project.graph.xref_from(from,1,depth) } };
+                        else
+                            ret = { status:200, msg:{ data: $.project.graph.xref_from(from,1) } };
+                            
+                        break;
+                    default:
+                        ret = { status:404, msg:{ err:"Unknow Type" } };
+                        break;
+                }
+
+                res.status(ret.status).send(JSON.stringify(ret.msg))
+            })
+
         /**
          * To get full information about a method 
          */
