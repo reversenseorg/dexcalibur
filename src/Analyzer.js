@@ -7,6 +7,7 @@ const CLASS = require("./CoreClass.js");
 var CONST = require("./CoreConst.js");
 var VM = require("./VM.js");
 var OPCODE = require("./Opcode.js");
+const AnalysisHelper = require("./AnalysisHelper.js");
 
 // local
 var Parser = require("./SmaliParser.js");
@@ -1106,6 +1107,42 @@ Analyzer.prototype.insertIn = function(category, inData){
         this.db[category].push(inData[i]);
     }
 };
+
+Analyzer.prototype.tagAllAsInternal = function(){
+    for(let k in this.db.classes)
+        this.db.classes[k].addTag(AnalysisHelper.TAG.Discover.Internal);
+    for(let k in this.db.fields)
+        this.db.fields[k].addTag(AnalysisHelper.TAG.Discover.Internal);
+    for(let k in this.db.methods)
+        this.db.methods[k].addTag(AnalysisHelper.TAG.Discover.Internal);
+    for(let k=0; k<this.db.strings.length; k++)
+        this.db.strings[k].addTag(AnalysisHelper.TAG.Discover.Internal);
+}
+
+
+Analyzer.prototype.tagAllIf = function(condition, tag){
+    this.tagIf(condition, "classes", tag);
+    this.tagIf(condition, "fields", tag);
+    this.tagIf(condition, "methods", tag);
+    this.tagIf(condition, "strings", tag);
+}
+
+
+Analyzer.prototype.tagIf = function(condition, type, tag){
+    if(this.db[type] instanceof Array){
+        this.db[type].map(function(x){
+            if(condition(x)){
+                x.addTag(tag);
+            }
+        });
+    }else{
+        for(let k in this.db[type]){
+            if(condition(this.db[type][k])){
+                this.db[type][k].addTag(tag);
+            }
+        }
+    }
+}
 
 /*
 Analyzer.prototype._updateWithBuffers = function(filesDB, condition, updater){

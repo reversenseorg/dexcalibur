@@ -24,6 +24,11 @@ var STUB_TYPE={
     SYSCALL: 0xf
 };
 
+var BUILTIN_TAG = {
+    INTERNAL: "int",
+    DYNAMIC: "dyn"
+};
+
 /**
  * Constant values dscribin a class of hookable function
  */
@@ -275,6 +280,15 @@ ObjectType.prototype.toJsonObject = function(){
     return obj;
 };
 
+ObjectType.prototype.addTag = function(tag){
+    this.tags.push(tag);  
+}
+ObjectType.prototype.hasTag = function(tagName){
+    return this.tags.indexOf(tagName)>-1;  
+}
+ObjectType.prototype.getTags = function(){
+    return this.tags;   
+}
 
 
 /**
@@ -286,6 +300,7 @@ function Package(name){
     this.name = name;
     this.meta = null;
     this.children = [];
+    this.tags = [];
 
 }
 
@@ -349,6 +364,16 @@ Package.prototype.toJsonObject = function(fields){
     o.absolute_size = this.getAbsoluteSize();
     o.size = this.getSize();
     return o;
+}
+
+Package.prototype.addTag = function(tag){
+    this.tags.push(tag);  
+}
+Package.prototype.hasTag = function(tagName){
+    return this.tags.indexOf(tagName)>-1; 
+}
+Package.prototype.getTags = function(){
+    return this.tags;   
 }
 
 /**
@@ -649,6 +674,17 @@ Class.prototype.getField = function(pattern){
         }
     }
     return res1;
+}
+
+
+Class.prototype.addTag = function(tag){
+    this.tags.push(tag);   
+}
+Class.prototype.hasTag = function(tagName){
+    return this.tags.indexOf(tagName)>-1; 
+}
+Class.prototype.getTags = function(){
+    return this.tags;   
 }
 
 /**
@@ -1236,7 +1272,15 @@ Method.prototype.setArgsType = function(argsType){
 Method.prototype.getArgsType = function(){
     return this.args;   
 }
-
+Method.prototype.addTag = function(tag){
+    this.tags.push(tag);   
+}
+Method.prototype.hasTag = function(tagName){
+    return this.tags.indexOf(tagName)>-1;   
+}
+Method.prototype.getTags = function(){
+    return this.tags;   
+}
 
 function CondTag(){
     this.name = null;
@@ -1561,6 +1605,18 @@ Field.prototype.signature = function(){
 
     return this.__signature__;
 };
+
+
+Field.prototype.addTag = function(tag){
+    this.tags.push(tag); 
+}
+Field.prototype.hasTag = function(tagName){
+    return this.tags.indexOf(tagName)>-1;  
+}
+Field.prototype.getTags = function(){
+    return this.tags;   
+}
+
 
 // MODIFIER
 /**
@@ -1932,6 +1988,17 @@ Instruction.prototype.toJsonObject = function(parent){
     return o;
 };
 
+
+Instruction.prototype.addTag = function(tag){
+    this.tags.push(tag);  
+}
+Instruction.prototype.hasTag = function(tagName){
+    return this.tags.indexOf(tagName)>-1; 
+}
+Instruction.prototype.getTags = function(){
+    return this.tags;   
+}
+
 /**
  * Represents a reference to a missing Class/Method/Field. 
  * When a reference to a type cannot be resolved during tree building, 
@@ -1980,6 +2047,16 @@ MissingReference.prototype.toJsonObject = function(fields){
     return null;
 }
 
+MissingReference.prototype.addTag = function(tag){
+    this.tags.push(tag); 
+}
+MissingReference.prototype.hasTag = function(tagName){
+    return this.tags.indexOf(tagName)>-1; 
+}
+MissingReference.prototype.getTags = function(){
+    return this.tags;   
+}
+
 /**
  * Represents a reference to a variable in the Application bytecode
  * @param {char} type The type of variable reference (local, register, params)
@@ -1996,6 +2073,16 @@ function Variable(type,id){
 }
 Variable.prototype.import = Savable.import;
 Variable.prototype.export = Savable.export;
+
+Variable.prototype.addTag = function(tag){
+    this.tags.push(tag);  
+}
+Variable.prototype.hasTag = function(tagName){
+    return this.tags.indexOf(tagName)>-1; 
+}
+Variable.prototype.getTags = function(){
+    return this.tags;   
+}
 
 /**
  * Represents a constant value into the Applciation bytecode
@@ -2024,6 +2111,7 @@ function StringValue(cfg){
     this.src = null;
     this.instr = null;
     this.value = null;
+    this.tags = [];
 
     for(let i in cfg)
         this[i] = cfg[i];
@@ -2040,6 +2128,15 @@ StringValue.prototype.toJsonObject = function(){
     return o;
 };
 
+StringValue.prototype.addTag = function(tag){
+    this.tags.push(tag);    
+}
+StringValue.prototype.hasTag = function(tagName){
+    return this.tags.indexOf(tagName)>-1;   
+}
+StringValue.prototype.getTags = function(){
+    return this.tags;   
+}
 
 function NodeMap(){
     this.data = {};
@@ -2113,5 +2210,6 @@ module.exports = {
     NativeFunction: NativeFunction,
     Library: Library,
     Syscall: Syscall,
-    FUNC_TYPE: FUNC_TYPE
+    FUNC_TYPE: FUNC_TYPE,
+    BUILTIN_TAG: BUILTIN_TAG
 }; 

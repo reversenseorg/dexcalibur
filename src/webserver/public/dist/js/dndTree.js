@@ -400,8 +400,9 @@ function drawTree(urlData, options){
 
             // Set widths between levels based on maxLabelLength.
             // and if the node has children or not
+            // DISTANCE
             nodes.forEach(function(d) {
-                d.y = (d.depth * (maxLabelLength * 5)); //maxLabelLength * 10px
+                d.y = (d.depth * (maxLabelLength * 11)); //maxLabelLength * 10px
                 
                 if(d.children == null)
                     d.y -= (maxLabelLength * 4);
@@ -422,12 +423,29 @@ function drawTree(urlData, options){
                 })
                 .on('click', click);
 
+
             nodeEnter.append("circle")
                 .attr('class', 'nodeCircle')
+                .attr('internal', function(d){
+                    return (d.internal === true)? 'true' : 'false';
+                })
                 .attr("r", 0)
                 .style("fill", function(d) {
-                    return d._children ? "lightsteelblue" : "#fff";
+                    return d._children ? "lightsteelblue" : ((d.internal === true)? 'green' : '#fff');
                 });
+        
+
+            nodeEnter.append("rect")
+                .attr("y", -10)
+                .attr("x", function(d){
+                    return (d.children!=null)? -(maxLabelLength * 9)-5 : 8;
+                })
+                .attr("width",maxLabelLength * 10)
+                .attr("height", "1.5em")
+                .style("opacity",0.5)
+                .style("fill","grey")
+                .style("stroke","black")
+                .style("stroke-width","1px");
 
             nodeEnter.append("text")
                 .attr("x", function(d) {
@@ -473,8 +491,13 @@ function drawTree(urlData, options){
             node.select("circle.nodeCircle")
                 .attr("r", 4.5)
                 .style("fill", function(d) {
-                    return d._children ? "lightsteelblue" : "#fff";
+                    //return d._children ? "lightsteelblue" : "#fff";
+                    return d._children ? "lightsteelblue" : ((d.internal === true)? 'green' : '#fff');
                 });
+
+
+            //var nodeInternal = svgGroup.selectAll("g.node[internal=true]").enter();
+            //nodeInternal.remove("circle");
 
             // Transition nodes to their new position.
             var nodeUpdate = node.transition()

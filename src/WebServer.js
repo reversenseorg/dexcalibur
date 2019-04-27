@@ -477,24 +477,42 @@ class WebServer {
                 res.status(200).send(JSON.stringify(dev));
             });
 
-        this.app.route('/api/graph/xreffrom/:type/:id')
+        this.app.route('/api/graph/:graph_type/:type/:id')
             .get(function(req,res){
                 let data = {}, ret = null, from = null;
-
+                let graphType = {
+                    cgfrom: "callgraph_from",
+                    cgto: "callgraph_to"
+                };
+                let gtype = null;
                 let depth = (req.query.depth != null) ? parseInt(req.query.depth,10) : null;
+
+                for(let k in graphType) 
+                    if(req.params.graph_type === k){
+                        gtype = graphType[k];
+                        break;
+                    }
+
+                if(gtype===null){
+
+                    res.status(404).send(JSON.stringify({ status:404, msg:{ err:"Graph type not found" } }))
+                    return ;
+                }
 
                 switch(req.params.type){
                     case 'method':
+                        // retrieve the method 
                         from = $.project.find.get.method(UT.decodeURI(UT.b64_decode(req.params.id)));
                         if(from == null){
                             ret = { status:404, msg:{ err:"Given method not found" } };
                             break;
                         } 
                         
+                        // compute graph data
                         if(depth !== null)
-                            ret = { status:200, msg:{ data: $.project.graph.xref_from(from,1,depth) } };
+                            ret = { status:200, msg:{ data: $.project.graph[gtype](from,1,depth) } };
                         else
-                            ret = { status:200, msg:{ data: $.project.graph.xref_from(from,1) } };
+                            ret = { status:200, msg:{ data: $.project.graph[gtype](from,1) } };
                             
                         break;
                     default:

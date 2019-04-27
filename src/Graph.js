@@ -1,4 +1,5 @@
 const CLASS = require("./CoreClass.js");
+const AnalysisHelper = require("./AnalysisHelper.js");
 
 
 function findSuper(method){
@@ -107,16 +108,49 @@ GraphMaker.prototype.cfgLazy = function(method, instruction=null){
 GraphMaker.prototype.method_htg = function(method, instruction=null){
     
 }
-GraphMaker.prototype.xref_from = function(obj, n=1, m=2){
+GraphMaker.prototype.callgraph_from = function(obj, n=1, m=2){
+    let tree={ 
+        fqcn:obj.signature(), 
+        internal:obj.hasTag(AnalysisHelper.TAG.Discover.Internal), 
+        class:obj.enclosingClass.name, 
+        name:obj.name, 
+        callsignature: (obj.getAlias()!= null)? obj.__aliasedCallSignature__ : obj.__callSignature__  };
+
+    //{ name:null, children:null };
+    let meth = null;
+
+    // call graph
+    if(obj instanceof CLASS.Method){
+        //tree.name = obj.signature();
+        if(obj._useMethodCtr>0){
+            tree.children = [];
+            for(let i in obj._useMethod){
+                meth = this.context.find.get.method(i);
+
+                if(n<m)
+                    tree.children.push(this.callgraph_from(this.context.find.get.method(i),n+1));
+                else    
+                    tree.children.push({ fqcn:i, internal:meth.hasTag(AnalysisHelper.TAG.Discover.Internal), class:meth.enclosingClass.name, name:meth.name, callsignature: (meth.getAlias()!= null)? meth.__aliasedCallSignature__ : meth.__callSignature__  });
+            }
+        }
+    }
+
+    console.log(tree);
+
+    return tree;
+}
+
+GraphMaker.prototype.callgraph_to = function(obj, n=1, m=2){
     let tree={ name:null, children:null };
 
+    // call graph
     if(obj instanceof CLASS.Method){
         tree.name = obj.signature();
         if(obj._useMethodCtr>0){
             tree.children = [];
             for(let i in obj._useMethod){
                 if(n<m)
-                    tree.children.push(this.xref_from(this.context.find.get.method(i),n+1));
+                    tree.children.push(this.callgraph_to(this.context.find.get.method(i),n+1));
                 else    
                     tree.children.push({ name:i });
             }

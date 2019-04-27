@@ -31,6 +31,18 @@
           background-color:#EEE;
       }
        
+      .node circle[internal=true] {
+        fill: red;
+        stroke: green;
+        stroke-width: 1.5px;
+      }
+
+      .mockRect{
+        fill: black;
+        stroke: black;
+        stroke-width: 1.5px;
+      }
+
       .node circle {
         fill: #fff;
         stroke: steelblue;
@@ -84,7 +96,9 @@
                     <button class="btn btn-primary btn-sm" type="button" id="displayFqcn"> 
                         Display canonical name <span class="badge badge-dark" id="displayFqcnStatus">OFF</span>
                     </button>
-
+                    <div class="btn btn-sm" style="border:1px solid orange;color: orange;"  id="drophook"> 
+                            <span class="fa fa-bolt">&nbsp;</span>&nbsp;Drag & drop a method here to hook 
+                    </div>
                 </div>
             </div>
             <div class="row" style="padding-bottom:20px;" >
@@ -172,7 +186,7 @@
     $(document).ready(function() {
         let urlOptions = getContextFromLocation();
         let graphOptions = {
-            height: $(window).height()/2,
+            height: $(window).height(),
             width: $(window).width()-50,
             nodeRadius: 4,
             fontSize: 12,

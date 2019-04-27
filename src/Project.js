@@ -4,6 +4,7 @@ var Chalk = require("chalk");
 var Logger = require("./Logger.js");
 var Configuration = require("./Configuration.js");
 var Analyzer = require("./Analyzer.js");
+var AnalysisHelper = require("./AnalysisHelper.js");
 var Finder = require("./Finder.js");
 var DeviceManager = require("./DeviceManager.js");
 //var ut = require("./Utils.js");
@@ -261,6 +262,8 @@ Project.prototype.fullscan = function(path){
     //this.analyze.path()
     this.analyze.path(this.config.getTargetPlatformPath());
 
+    this.analyze.tagAllAsInternal();
+
     //this.analyze.path(this.config.platform_available[this.config.platform_target].getBinPath());
 
     // scan files  
@@ -272,6 +275,11 @@ Project.prototype.fullscan = function(path){
         this.analyze.path( this.workspace.getWD()+"dex");
         this.dataAnalyser.scan( this.workspace.getWD()+"dex");
     }
+
+
+    this.analyze.tagAllIf(
+        function(x){ return x.hasTag(AnalysisHelper.TAG.Discover.Internal)==false; }, 
+        AnalysisHelper.TAG.Discover.Statically);
 
     // deploy inspector's hooksets
     this.inspectors.deployAll();
