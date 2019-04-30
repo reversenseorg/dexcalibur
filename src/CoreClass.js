@@ -1272,6 +1272,9 @@ Method.prototype.setArgsType = function(argsType){
 Method.prototype.getArgsType = function(){
     return this.args;   
 }
+Method.prototype.hasArgs = function(){
+    return this.args.length > 0;   
+}
 Method.prototype.addTag = function(tag){
     this.tags.push(tag);   
 }
@@ -1281,7 +1284,26 @@ Method.prototype.hasTag = function(tagName){
 Method.prototype.getTags = function(){
     return this.tags;   
 }
-
+Method.prototype.getCallers = function(){
+    return this._callers;
+}
+Method.prototype.getMethodUsed = function(){
+    return this._useMethod;
+}
+Method.prototype.getClassUsed = function(){
+    return this._useClass;
+}
+Method.prototype.getFieldUsed = function(){
+    return this._useField;
+}
+/*
+Method.prototype.getStringUsed = function(){
+    return this._useMethod;
+}
+Method.prototype.getArrayUsed = function(){
+    return this._useMethod;
+}
+*/
 function CondTag(){
     this.name = null;
 

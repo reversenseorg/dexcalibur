@@ -36,7 +36,6 @@ function drawTree(urlData, options){
     let treeJSON = d3.json(urlData, function(error, treeData) {
 
         treeData = treeData.data;
-        console.log(treeData,options);
 
         // Calculate total nodes, max label length
         var totalNodes = 0;
@@ -64,6 +63,10 @@ function drawTree(urlData, options){
             .projection(function(d) {
                 return [d.y, d.x];
             });
+
+        var nodesCounters = {};
+        var multiParentNode = [];
+        var multiParentRendered = {};
             
         // A recursive helper function for performing some setup by walking through all nodes
 
@@ -84,11 +87,25 @@ function drawTree(urlData, options){
         // Call visit function to establish maxLabelLength
         visit(treeData, function(d) {
             totalNodes++;
-            maxLabelLength = Math.max(d.name.length, maxLabelLength);
+            maxLabelLength = Math.max(d.classname.length+d.name.length, maxLabelLength);
+            
+            if(nodesCounters[d.fqcn]==null)
+                nodesCounters[d.fqcn] = 1;
+            else
+                nodesCounters[d.fqcn] += 1;
 
         }, function(d) {
             return d.children && d.children.length > 0 ? d.children : null;
         });
+
+
+        // filter node with multiple parents
+        Object.keys(nodesCounters).forEach(function(k){
+            if(nodesCounters[k]>1) 
+                multiParentNode.push(k);
+        });
+        nodesCounters = null;
+
 
 
         // sort the tree according to the node names
@@ -144,7 +161,7 @@ function drawTree(urlData, options){
             d3.selectAll('.ghostCircle').attr('class', 'ghostCircle show');
             d3.select(domNode).attr('class', 'node activeDrag');
 
-            svgGroup.selectAll("g.node").sort(function(a, b) { // select the parent and sort the path's
+           svgGroup.selectAll("g.node").sort(function(a, b) { // select the parent and sort the path's
                 if (a.id != draggingNode.id) return 1; // a is not the hovered element, send "a" to the back
                 else return -1; // a is the hovered element, bring "a" to the front
             });
@@ -197,6 +214,11 @@ function drawTree(urlData, options){
                 dragStarted = true;
                 nodes = tree.nodes(d);
                 d3.event.sourceEvent.stopPropagation();
+
+                d.y0 += (maxLabelLength*11) ;
+
+                if(d.children == null)
+                    d.y0 += (maxLabelLength * 4);
                 // it's important that we suppress the mouseover event on the node being dragged. Otherwise it will absorb the mouseover event and the underlying node will not detect it d3.select(this).attr('pointer-events', 'none');
             })
             .on("drag", function(d) {
@@ -233,15 +255,29 @@ function drawTree(urlData, options){
 
                 d.x0 += d3.event.dy;
                 d.y0 += d3.event.dx;
+                
                 var node = d3.select(this);
                 node.attr("transform", "translate(" + d.y0 + "," + d.x0 + ")");
+
+                /*svgGroup.selectAll('path.link').filter(function(d, i) {
+                    if (d.target.id == draggingNode.id) {
+                        return true;
+                    }
+                    return false;
+                }).attr("transform", function(k){
+                    return   "translate(" + (k.y0+ += d3.event.dy) + "," + k.x0 + ")"
+                });*/
+
                 updateTempConnector();
             }).on("dragend", function(d) {
                 if (d == root) {
                     return;
                 }
                 domNode = this;
+
+
                 if (selectedNode) {
+
                     // now remove the element from the parent, and insert it into the new elements children
                     var index = draggingNode.parent.children.indexOf(draggingNode);
                     if (index > -1) {
@@ -273,11 +309,12 @@ function drawTree(urlData, options){
             // now restore the mouseover event or we won't be able to drag a 2nd time
             d3.select(domNode).select('.ghostCircle').attr('pointer-events', '');
             updateTempConnector();
+            /*
             if (draggingNode !== null) {
                 update(root);
                 centerNode(draggingNode);
                 draggingNode = null;
-            }
+            }*/
         }
 
         // Helper functions for collapsing and expanding nodes.
@@ -369,10 +406,82 @@ function drawTree(urlData, options){
 
         function click(d) {
             if (d3.event.defaultPrevented) return; // click suppressed
+
+            let meth = btoa(encodeURIComponent(d.fqcn+d.id));
             d = toggleChildren(d);
             update(d);
-            centerNode(d);
+            console.log($("rect[meth="+$.escapeSelector(meth)+"]"),$("rect[meth="+$.escapeSelector(meth)+"]").next(),meth)
+            
+            let po = $("rect[meth="+$.escapeSelector(meth)+"]").next();
+            po.show()
+            po.css("z-index","10000");
+                
+                
+            // centerNode(d);
         }
+
+    // This is a modified version of `d3.svg.diagonal` to draw edges that cross
+    // tree branches. The edges are shifted so that they do not lie over the curves
+    // drawn by the normal D3 diagonal. The shift is increased as the distance
+    // between the nodes increases so that multiple cross edges connecting to the
+    // same node diverge for clarity.
+    //
+    // See https://github.com/mbostock/d3/wiki/SVG-Shapes#diagonal
+    var crossDiagonal = function() {
+
+        var source = function( d ) { return d.source; };
+        var target = function( d ) { return d.target; };
+        var projection = function( d ) { return [d.x, d.y]; };
+        var distance_factor = 10;
+        var shift_factor = 2;
+
+        function diagonal( d, i ) {
+            var p0 = source.call( this, d, i );
+            var p3 = target.call( this, d, i );
+            var l = ( p0.x + p3.x ) / 2;
+            var m = ( p0.x + p3.x ) / 2;
+            var x_shift = 0;
+            var y_shift = 0;
+            if ( p0.x === p3.x ) {
+                x_shift = ( p0.depth > p3.depth ? -1 : 1 ) *
+                    shift_factor + ( p3.y - p0.y ) / distance_factor;
+            }
+            if ( p0.y === p3.y ) {
+                y_shift = ( p0.x > p3.x ? -1 : 1 ) *
+                    shift_factor + ( p3.x - p0.x ) / distance_factor;
+            }
+            var p = [
+                p0,
+                { x: m + x_shift, y: p0.y + y_shift },
+                { x: l + x_shift, y: p3.y + y_shift },
+                p3
+            ];
+            p = p.map( projection );
+            return 'M' + p[0] + 'C' + p[1] + ' ' + p[2] + ' ' + p[3];
+        }
+
+        diagonal.source = function( x ) {
+            if ( !arguments.length ) return source;
+            source = d3.functor( x );
+            return diagonal;
+        };
+
+        diagonal.target = function( x ) {
+            if ( !arguments.length ) return target;
+            target = d3.functor( x );
+            return diagonal;
+        };
+
+        diagonal.projection = function( x ) {
+            if ( !arguments.length ) return projection;
+            projection = x;
+            return diagonal;
+        };
+
+        return diagonal;
+    };
+
+    var multiDiagonal = crossDiagonal();
 
         function update(source) {
             // Compute the new height, function counts total children of root node and sets tree height accordingly.
@@ -408,9 +517,17 @@ function drawTree(urlData, options){
                     d.y -= (maxLabelLength * 4);
             });
 
-            // Update the nodes…
+            // Update the nodes
             node = svgGroup.selectAll("g.node")
-                .data(nodes, function(d) {
+                .data(nodes.filter(function(d){
+                    // remove node with more than one parent 
+                    if(multiParentNode.indexOf(d.fqcn)==-1)
+                        return true;
+                    else if(multiParentRendered[d.fqcn]==null){
+                        multiParentRendered[d.fqcn] = d;
+                        return true;
+                    }
+                }), function(d) {
                     return d.id || (d.id = ++i);
                 });
 
@@ -421,7 +538,18 @@ function drawTree(urlData, options){
                 .attr("transform", function(d) {
                     return "translate(" + source.y0 + "," + source.x0 + ")";
                 })
+                .attr("meth",function(d){ return btoa(encodeURIComponent(d.fqcn+d.id)); })
                 .on('click', click);
+
+            /*
+            var nodeEnter = node.enter().append("g")
+                .call(dragListener)
+                .attr("class", "node")
+                .attr("transform", function(d) {
+                    return "translate(" + source.y0 + "," + source.x0 + ")";
+                })
+                .attr("meth",function(d){ return btoa(encodeURIComponent(d.fqcn+d.id)); })
+                .on('click', click);*/
 
 
             nodeEnter.append("circle")
@@ -442,10 +570,35 @@ function drawTree(urlData, options){
                 })
                 .attr("width",maxLabelLength * 10)
                 .attr("height", "1.5em")
+                .attr("tabindex", function(d){ return d.id })
+                .attr("meth", function(d){ return btoa(encodeURIComponent(d.fqcn+d.id)); })
+                .attr("data-html","true")
+                .attr("data-toggle","popover")
+                .attr("data-trigger","focus")
+                .attr("title","<b>Options</b>")
+                .attr("data-content","<div class='popmenu'><span class='badge badge-purple'>expand</span></div>")
+                .attr("class",function(d){
+                    console.log(d);
+                    if(d.internal===true)
+                        return "systemRect";
+                    else    
+                        return "staticRect";
+                });
+                /*
                 .style("opacity",0.5)
                 .style("fill","grey")
                 .style("stroke","black")
                 .style("stroke-width","1px");
+
+            /*
+            
+   data-html="true" 
+   data-toggle="popover" 
+   data-trigger="focus" 
+   title="<b>Example popover</b> - title" 
+   data-content="<div><b>Example popover</b> - content</div>"
+
+            */
 
             nodeEnter.append("text")
                 .attr("x", function(d) {
@@ -457,7 +610,7 @@ function drawTree(urlData, options){
                     return d.children || d._children ? "end" : "start";
                 })
                 .text(function(d) {
-                    return d.name;
+                    return d.classname+"."+d.name+"()";
                 })
                 .style("fill-opacity", 0);
 
@@ -484,7 +637,7 @@ function drawTree(urlData, options){
                     return d.children || d._children ? "end" : "start";
                 })
                 .text(function(d) {
-                    return d.name;
+                    return d.classname+"."+d.name+"()";
                 });
 
             // Change the circle fill depending on whether it has children and is collapsed
@@ -525,10 +678,19 @@ function drawTree(urlData, options){
                 .style("fill-opacity", 0);
 
             // Update the links
+            console.log(links);
+
             var link = svgGroup.selectAll("path.link")
                 .data(links, function(d) {
-                    return d.target.id;
+                   
+                    if(multiParentRendered[d.target.fqcn]!=null){
+                        return multiParentRendered[d.target.fqcn].id;
+                        //return d.target.id;
+                    }else{
+                        return d.target.id;
+                    }
                 });
+
 
             // Enter any new links at the parent's previous position.
             link.enter().insert("path", "g")
@@ -543,8 +705,9 @@ function drawTree(urlData, options){
                         target: o
                     });
                 });
+                
 
-            console.log(link);
+            //console.log(link);
             // Transition links to their new position.
             link.transition()
                 .duration(duration)
@@ -565,12 +728,48 @@ function drawTree(urlData, options){
                 })
                 .remove();
 
+
+            
+            // multiDiagonal  
+            /*
+            console.log(svgGroup);
+            var multiLink = svgGroup.select("path.link")
+                .data(links, function(d) {
+                    if(multiParentRendered[d.target.fqcn]!=null){
+                        return multiParentRendered[d.target.fqcn].id;
+                    }
+                });
+
+            multiLink.attr( 'class', 'crosslink' )
+                .attr( 'd', multiDiagonal );
+    
+            multiLink.enter().append( 'path' )
+                .attr( 'class', 'crosslink' )
+                .attr( 'opacity', "0.5" )
+                .style( 'stroke', 'lightgrey' )
+                .style( 'stroke-dasharray', '4,8' )
+                .attr( 'd', multiDiagonal );
+            /*
+            multiLink.exit().transition()
+                .duration(duration)
+                .attr("d", function(d) {
+                    var o = {
+                        x: source.x,
+                        y: source.y
+                    };
+                    return diagonal({
+                        source: o,
+                        target: o
+                    });
+                })
+                .remove();*/
+
+
             // Stash the old positions for transition.
             nodes.forEach(function(d) {
                 d.y = d.depth * 30;
                 d.x0 = d.x;
                 d.y0 = d.y;
-                console.log(d);
             });
         }
 
@@ -585,6 +784,8 @@ function drawTree(urlData, options){
         // Layout the tree initially and center on the root node.
         update(root);
         centerNode(root);
+
+        options.onSuccess();
     });
 
     return treeJSON;

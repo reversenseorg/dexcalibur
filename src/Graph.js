@@ -113,6 +113,7 @@ GraphMaker.prototype.callgraph_from = function(obj, n=1, m=2){
         fqcn:obj.signature(), 
         internal:obj.hasTag(AnalysisHelper.TAG.Discover.Internal), 
         class:obj.enclosingClass.name, 
+        classname: obj.enclosingClass.simpleName,
         name:obj.name, 
         callsignature: (obj.getAlias()!= null)? obj.__aliasedCallSignature__ : obj.__callSignature__  };
 
@@ -130,7 +131,13 @@ GraphMaker.prototype.callgraph_from = function(obj, n=1, m=2){
                 if(n<m)
                     tree.children.push(this.callgraph_from(this.context.find.get.method(i),n+1));
                 else    
-                    tree.children.push({ fqcn:i, internal:meth.hasTag(AnalysisHelper.TAG.Discover.Internal), class:meth.enclosingClass.name, name:meth.name, callsignature: (meth.getAlias()!= null)? meth.__aliasedCallSignature__ : meth.__callSignature__  });
+                    tree.children.push({ 
+                        fqcn:i, 
+                        internal:meth.hasTag(AnalysisHelper.TAG.Discover.Internal), 
+                        class:meth.enclosingClass.name, 
+                        classname: meth.enclosingClass.simpleName,
+                        name:meth.name, 
+                        callsignature: (meth.getAlias()!= null)? meth.__aliasedCallSignature__ : meth.__callSignature__  });
             }
         }
     }

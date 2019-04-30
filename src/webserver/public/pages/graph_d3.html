@@ -73,6 +73,21 @@
       .ghostCircle, .activeDrag .ghostCircle{
            display: none;
       }
+
+      .staticRect {
+        opacity: 0.5;
+        fill: grey;
+        stroke: black;
+        stroke-width: 1px;
+      }
+
+
+      .systemRect {
+        opacity: 0.5;
+        fill: greenyellow;
+        stroke: green;
+        stroke-width: 1px;
+      }
     
     </style>
 </head>
@@ -192,7 +207,10 @@
             fontSize: 12,
             maxLabelLength: 50,
             el: "#graphctn",
-            displayFqcn: false
+            displayFqcn: false,
+            onSuccess: function(){
+                $("[data-toggle=popover]").popover();
+            }
         };
 
         if(urlOptions.type !== undefined && urlOptions.meth !== undefined){
@@ -200,7 +218,11 @@
             $("#graphtypelabel").html("Xref");
             $("#graphtitlelabel").html(htmlEncode(refDecode(urlOptions.meth)));
 
-            var treeJSON = drawTree("../api/graph/"+urlOptions.type+"/method/"+urlOptions.meth, graphOptions);
+            var treeJSON = drawTree(
+                "../api/graph/"+urlOptions.type+"/method/"+urlOptions.meth, 
+                graphOptions);
+
+
         }
 
         $("#displayFqcn").click(function(o){

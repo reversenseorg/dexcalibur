@@ -546,19 +546,80 @@ class WebServer {
                 res.status(200).send(JSON.stringify(dev));
             });
 
-        this.app.route('/api/method/xref/to/:id')
+        this.app.route('/api/method/xref/:id')
             .get(function(req,res){
+                let type = req.query.type;
+
                 // collect
                 let method = $.project.find.get.method(UT.decodeURI(UT.b64_decode(req.params.id)));
                 if(method == null){
                     res.status(404).send(JSON.stringify({ err:"method not found"}))
                 }
 
-                let dev = {
-                    data: method.toJsonObject()._callers
-                };
+                let data = [], tmp=null, refs = null;
 
-                res.status(200).send(JSON.stringify(dev));
+                switch(type){
+                    case "from":
+                        Object.keys(method.getMethodUsed()).forEach(function(x){
+                            let m = $.project.find.get.method(x);
+                            tmp = { 
+                                // method signature
+                                s: m.signature(),
+                                // aliased signature 
+                                a: m.__aliasedCallSignature__,
+                                // return type signature
+                                r: (m.getReturnType()!=null ? m.getReturnType().signature() : null),
+                                // tags
+                                tags: m.getTags()
+                            };
+                            // args signatures
+                            tmp.p = [];     
+                            if( m.hasArgs() ) 
+                                m.getArgsType().map(x => tmp.p.push(x.signature()));  
+                            data.push(tmp);           
+                        });
+                        /*
+                        Object.keys(method.getClassUsed()).forEach( x => data.push({ 
+                            // method signature
+                            s: x,
+                            // type
+                            t: "c"
+                        }));*/
+                        Object.keys(method.getFieldUsed()).forEach( x => data.push({ 
+                            // method signature
+                            s: x,
+                            // type
+                            t: "f"
+                        }));
+                        
+                        res.status(200).send(JSON.stringify({ data:data }));
+                        break;
+                    case "to":
+
+                        refs = method.getCallers();
+                        for(let i=0; i<refs.length; i++){
+                            tmp = { 
+                                // method signature
+                                s: refs[i].signature(),
+                                // aliased signature 
+                                a: refs[i].__aliasedCallSignature__,
+                                // return type signature
+                                r: (refs[i].getReturnType()!=null ? refs[i].getReturnType().signature() : null),
+                                // tags
+                                tags: m.getTags()
+                            };
+                            // args signatures
+                            tmp.p = [];     
+                            if( refs[i].hasArgs() ) 
+                                refs[i].getArgsType().map(x => tmp.p.push(x.signature()));  
+                            data.push(tmp);                     
+                        }
+                        res.status(200).send(JSON.stringify({ data:data }));
+                        break;
+                    default:
+                        res.status(500).send(JSON.stringify({ err:"type invalid"}));
+                        break;
+                }
             });
 
         this.app.route('/api/method/:id')
