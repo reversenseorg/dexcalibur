@@ -3,6 +3,7 @@ const CLASS = require("../../src/CoreClass.js");
 const Inspector = require("../../src/Inspector.js");
 const Event = require("../../src/Event.js");
 const Logger = require("../../src/Logger.js");
+const AnalysisHelper = require("../../src/AnalysisHelper.js");
 const ut = require("../../src/Utils.js");
 
 
@@ -103,9 +104,10 @@ DynLoaderInspector.hookSet.addIntercept({
             
             send({ 
                 id:"@@__HOOK_ID__@@", 
-                match: false, 
+                match: true, 
                 data: {
-                    s: DEXC_MODULE.reflect.getMethodSignature(ret,arg1)
+                    s: DEXC_MODULE.reflect.getMethodSignature(ret,arg1),
+                    trace: DEXC_MODULE.common.getStackTrace()
                 },
                 after: true, 
                 msg: "Class.getMethod()", 
@@ -386,39 +388,73 @@ DynLoaderInspector.on("hook.reflect.class.get", {
         Logger.info("[INSPECTOR][TASK] DynLoaderInspector search Class ",event.data.signature);
     }
 });
+/*
+ * Potential method call, this could be confirmed by several ways :
+    - hook the function, inspect stack, confirm and locate Method.invoke
+ */
 DynLoaderInspector.on("hook.reflect.method.get", {
     task: function(ctx, event){
         Logger.info("[INSPECTOR][TASK] DynLoaderInspector search Method ");
+
+        //console.log(event);
         if(event == null || event.data == null || event.data.data == null) return false;
-        let data  = event.data.data;
+        let data  = event.data.data, caller = null, callers = null, methd = null;
 
+        //console.log(data);
+        meth = ctx.find.get.method(data.s);
 
-        let meth = ctx.find.get.method(data.s);
-        console.log(data);
+        // find the callers by inspecting the stacktrace
+        if(data.trace.length > 2){
+            callers = ctx.find.method("__signature__:^"+ut.RegExpEscape(data.trace[1].cls+"."+data.trace[1].meth+"("));
+        
+            //  if no result, do nothing
+            // try to resolve reference (it may be an inherited method)
+            if(callers.count() == 0) return false;
 
-        // potential method call
+            // if more than one result, try to filter with filename/line number
+            if(callers.count()>1){
+                Logger.warn("[INSPECTOR][TASK] DynLoaderInspector search Method : there are more than one result");
+            }else{
+                caller = callers.get(0);
+            }
+        }else{
+            //  no trace ==> try another heuristic
+            if(callers.count() == 0) return false;
 
-        /*
-            let rettype = ctx.find.get.class(event.data.data.ret)
+        }
 
-        // if meth == null, the method is unknow and the graph should be updated
-        if(meth == null){
-            let ref = new CLASS.Method();
+        // not able to correlate (TODO : keep a track)
+        if(caller == null || meth == null) 
+            return false;
 
+        // tag the method as "invoked dynamically"
+        if(!meth.hasTag(AnalysisHelper.TAG.Invoked.Dynamically))
+            meth.addTag(AnalysisHelper.TAG.Invoked.Dynamically);
 
-            ref.setReturnType(event.data)
-            
+        // update callers of the calleed methods
+        meth.addCaller(caller);
 
-        }*/
+        // , { tag: AnalysisHelper.TAG.Called.Dynamically }
+        // update method used by the method performing the invoke
+        call  = new CLASS.Call({
+            caller: caller,
+            calleed: meth,
+            instr: null,
+            line: data.trace[2].line,
+            tags: [AnalysisHelper.TAG.Invoked.Dynamically]
+        });
+
+        caller.addMethodUsed(meth, call);
     }
 });
 DynLoaderInspector.on("hook.reflect.method.call", {
     task: function(ctx, event){
         Logger.info("[INSPECTOR][TASK] DynLoaderInspector method invoked dynamically ");
+        console.log(event);
         if(event == null || event.data == null || event.data.data == null) return false;
         let data  = event.data.data;
 
-
+        console.log(data);
         let meth = ctx.find.get.method(data.s);
         console.log(data);
 

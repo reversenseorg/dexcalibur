@@ -556,7 +556,7 @@ class WebServer {
                     res.status(404).send(JSON.stringify({ err:"method not found"}))
                 }
 
-                let data = [], tmp=null, refs = null;
+                let data = [], tmp=null, refs = null, r2 = null;
 
                 switch(type){
                     case "from":
@@ -597,21 +597,26 @@ class WebServer {
                     case "to":
 
                         refs = method.getCallers();
+                        console.log(refs);
                         for(let i=0; i<refs.length; i++){
+                            
+                            // r2 = $.project.find.get.method(refs[i]);
+                            r2 = refs[i];
+
                             tmp = { 
                                 // method signature
-                                s: refs[i].signature(),
+                                s: r2.signature(),
                                 // aliased signature 
-                                a: refs[i].__aliasedCallSignature__,
+                                a: r2.__aliasedCallSignature__,
                                 // return type signature
-                                r: (refs[i].getReturnType()!=null ? refs[i].getReturnType().signature() : null),
+                                r: (r2.getReturnType()!=null ? r2.getReturnType().signature() : null),
                                 // tags
-                                tags: m.getTags()
+                                tags: r2.getTags()
                             };
                             // args signatures
                             tmp.p = [];     
-                            if( refs[i].hasArgs() ) 
-                                refs[i].getArgsType().map(x => tmp.p.push(x.signature()));  
+                            if( r2.hasArgs() ) 
+                                r2.getArgsType().map(x => tmp.p.push(x.signature()));  
                             data.push(tmp);                     
                         }
                         res.status(200).send(JSON.stringify({ data:data }));
@@ -636,14 +641,14 @@ class WebServer {
                 //dev.cfg = $.project.graph.cfgLazy(method);
                 // dev.htg = $.project.graph.htg(method);
 
-
+                /*
                 for(let k=0; k<dev._callers.length; k++){
                     if($.project.hook.isProbing(dev._callers[k])){
                         callers.push({ id:dev._callers[k], probing:true });
                     }else{
                         callers.push({ id:dev._callers[k], probing:false });
                     }
-                }
+                }*/
                 dev._callers = callers;
 
                 res.status(200).send(JSON.stringify(dev));

@@ -6,5 +6,9 @@ module.exports = {
             Dynamically: "dd",
             Internal: "di"
         },
+        Invoked: {
+            Statically: "is",
+            Dynamically: "id",
+        },
     }
 };

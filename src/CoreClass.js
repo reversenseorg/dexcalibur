@@ -845,6 +845,17 @@ Call.prototype.toJsonObject = function(){
 };
 
 
+Call.prototype.addTag = function(tag){
+    this.tags.push(tag); 
+}
+Call.prototype.hasTag = function(tagName){
+    return this.tags.indexOf(tagName)>-1;  
+}
+Call.prototype.getTags = function(){
+    return this.tags;   
+}
+
+
 /**
  * Represents an Application's Method. 
  * It contains several kind of information :
@@ -1287,8 +1298,18 @@ Method.prototype.getTags = function(){
 Method.prototype.getCallers = function(){
     return this._callers;
 }
+Method.prototype.addCaller = function(meth){
+    if(this._callers.indexOf(meth.signature()) == -1)
+        this._callers.push(meth.signature());
+}
 Method.prototype.getMethodUsed = function(){
     return this._useMethod;
+}
+Method.prototype.addMethodUsed = function(method, call){
+    if(this._useMethod[method.signature()] == null) 
+        this._useMethod[method.signature()] = [];
+
+    this._useMethod[method.signature()].push(call);
 }
 Method.prototype.getClassUsed = function(){
     return this._useClass;

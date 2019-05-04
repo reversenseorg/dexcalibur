@@ -627,7 +627,10 @@
                                     t += '&nbsp;<span class="badge badge-success">internal</span>'
                                     break;
                                 case "dd":
-                                    t += '&nbsp;<span class="badge badge-purple">dyn</span>'
+                                    t += '&nbsp;<span class="badge badge-purple">dynamic</span>'
+                                    break;
+                                case "id":
+                                    t += '&nbsp;<span class="badge badge-purple">invoked</span>'
                                     break;
                             }
                         }
@@ -654,6 +657,9 @@
             else
                 $('#xrefModalLabel').html("XRef to <h4>"+htmlEncode(decodeURIComponent(atob(ref)))+"</h4>");
 
+            
+            xrefTable.clear();
+            xrefTable.draw();
             $.ajax(
                 "../api/method/xref/"+ref,
                 {
@@ -666,6 +672,14 @@
                             xrefTable.clear();
                             xrefTable.rows.add(JSON.parse(data).data);
                             xrefTable.draw();
+                        },
+                        404: function(data){
+                            alert("Error : "+JSON.parse(data).err);
+                            console.log(data);
+                        },
+                        500: function(data){
+                            alert("Fatal error : "+JSON.parse(data).err);
+                            console.log(data);
                         }
                     }
                 }

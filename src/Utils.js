@@ -2,6 +2,8 @@ const fs = require("fs");
 const Process = require("child_process");
 const Chalk = require("chalk");
 
+const RE_REPLACE = /[-\/\\^$*+?.()|[\]{}]/g;
+
 module.exports = {
     /**
      * To encode
@@ -127,6 +129,9 @@ module.exports = {
     },
     time: function(){
         return (new Date()).getTime();
+    },
+    RegExpEscape: function(val){
+        return val.replace(RE_REPLACE,'\\$&');
     },
     escapeRE: function(data){
         // regexp replace ici

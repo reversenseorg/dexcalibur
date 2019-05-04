@@ -31,12 +31,27 @@ DEXC_MODULE.common.obj.thread = DEXC_MODULE.common.class.java.lang.Thread.$new()
 DEXC_MODULE.common.printStackTrace = function() {
     var stack = DEXC_MODULE.common.obj.thread.currentThread().getStackTrace();
     var msg = "";
-    for (var i = 0; i < stack.length; i++) {
+    // the two firsts stack trace elements are skipped
+    for (var i = 2; i < stack.length; i++) {
         msg = msg + i + " => " + stack[i].toString()+"<br>&nbsp;&nbsp;";
     }
     return msg;
 }
 
+DEXC_MODULE.common.getStackTrace = function() {
+    var stack = DEXC_MODULE.common.obj.thread.currentThread().getStackTrace();
+    var msg = [];
+    // the two firsts stack trace elements are skipped
+    for (var i = 2; i < stack.length; i++) {
+        msg.push({ 
+            cls:stack[i].getClassName(), 
+            meth:stack[i].getMethodName(),
+            file:stack[i].getFileName(),
+            line:stack[i].getLineNumber()
+        });
+    }
+    return msg;
+}
 
 /*
 
