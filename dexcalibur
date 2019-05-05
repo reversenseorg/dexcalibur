@@ -109,7 +109,7 @@ if(projectArgs.app != null){
     if(projectArgs.apk != null){
         success = Project.apkHelper.extract(projectArgs.apk);
         if(success===false){
-            Logger.error("[!] Failed to extract data from the APK : ",err).exit();
+            Logger.error("[!] Failed to extract data from the APK : ",projectArgs.apk).exit();
         }
     }
     else if(projectArgs.apkStdin != null){
@@ -118,7 +118,7 @@ if(projectArgs.app != null){
         projectArgs.apk = Project.workspace.getWD()+"/base.apk"; 
         try{
             FS.writeFileSync(projectArgs.apk, apk_data);
-            Logger.info("[*] Apk read successfully on stdin");
+            Logger.info("[*] Reading APK on stdin ...");
             success = Project.apkHelper.extract(projectArgs.apk);
             if(success===false){
                 Logger.error("[!][STDIN] Failed to extract data from the APK : ",err).exit();
