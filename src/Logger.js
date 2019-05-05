@@ -27,15 +27,15 @@ var flush = function(){
 
 module.exports = {    
     error: function(msg){
-        console.log(Chalk.bold.red('[ERROR] '+prefix.join("")+multi_concat(msg)));
+        console.log(Chalk.bold.red('[ERROR] '+prefix.join("")+multi_concat(arguments)));
         return callbacks;
     },
     debug: function(msg){
-        console.log(Chalk.bold.red('[DEBUG] '+prefix.join("")+multi_concat(msg)));
+        console.log(Chalk.bold.red('[DEBUG] '+prefix.join("")+multi_concat(arguments)));
         return callbacks;
     },
     info2: function(msg){
-        console.log(Chalk.yellow('[INFO] '+prefix.join("")+multi_concat(msg)));
+        console.log(Chalk.yellow('[INFO] '+prefix.join("")+multi_concat(arguments)));
         return callbacks;
     },
     info: function(){
