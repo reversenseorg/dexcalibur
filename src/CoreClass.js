@@ -1094,7 +1094,6 @@ Method.prototype.toJsonObject = function(fields=[],exclude=[]){
     }else{
         for(let i in this){
 
-            console.log(i);
             if(exclude.indexOf(i)>-1) continue;
            // if(fields != null && fields.indexOf(i)==-1) continue;
             
@@ -1108,10 +1107,8 @@ Method.prototype.toJsonObject = function(fields=[],exclude=[]){
                     break;
                 case "_useMethod":
                     obj._useMethod = [];
-                    console.log("len : ", this._useMethod.length);
                     for(let j in this._useMethod){
                         if(this._useMethod[i] != undefined){
-                            console.log(this._useMethod[i].__signature__);
                             obj._useMethod.push(this._useMethod[i].__signature__);
                         }
                     }

@@ -380,7 +380,11 @@ Project.prototype.pull = function(device){
         adb+" pull "+ppath+" "+pathWD+".apk"
     ).toString("ascii");
 
-    if(ret.indexOf("[100%]")>-1){
+
+    /*
+    We should find another way to check if "adb pull" is done successfully
+    */
+    if(ret.indexOf("1 file pulled")>-1){
         console.log(Chalk.bold.green("[*] Package downloaded to "+pathWD+".apk"));
 
         ret = Process.execSync(this.config.apktPath+" d -f -m -r -o "+this.workspace.getWD()+"dex "+pathWD+".apk").toString("ascii");

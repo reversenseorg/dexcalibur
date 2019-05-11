@@ -31,21 +31,14 @@ function decodeURI(uri){
 function BufferReplace(source, pattern, replace){
     let bo = Buffer.alloc(source.length+replace.length-pattern.length);
     let off = source.indexOf(pattern);
-    //console.log("offset :",off);
-
-    console.log("BufferReplace : ",source,pattern);
-
+    
     source.copy(bo, 0, 0, off);
-    //console.log(bo);
-
+    
     let rep = Buffer.from(replace,'binary');
     rep.copy(bo, off, 0, replace.length);
-    //console.log(bo);
-
-    //source.copy(bo, off+replace.length, off+pattern.length, source.length-pattern.length);
+    
     source.copy(bo, off+replace.length, off+pattern.length, source.length);
     
-    //console.log(bo);
     return bo;
 }
 
@@ -126,13 +119,13 @@ class WebServer {
                 if(inspector.length>1){
                     iid = inspector[1];
 
-                    console.log(inspector)
+                    //console.log(inspector)
 
                     //relPath = inspector.pop();
                     for(let i=2; i<inspector.length; i++)
                         relPath += "/"+inspector[i];
 
-                    console.log(relPath);
+                    //console.log(relPath);
                     
                     //localPath = inspector[1]+"/web/"+localPath
                     localPath = $.project.config.getDexcaliburPath()+"../inspectors/";
@@ -461,7 +454,7 @@ class WebServer {
 
                 let alias = req.body['alias'];
 
-                console.log(alias);
+                //console.log(alias);
 
                 obj.setAlias(alias);
                 res.status(200).send(JSON.stringify({ success: true }));
@@ -597,7 +590,7 @@ class WebServer {
                     case "to":
 
                         refs = method.getCallers();
-                        console.log(refs);
+                        //console.log(refs);
                         for(let i=0; i<refs.length; i++){
                             
                             // r2 = $.project.find.get.method(refs[i]);
@@ -632,8 +625,7 @@ class WebServer {
                 // collect
                 let dev = {};
                 let callers = [];
-                console.log(req.params.id, UT.b64_decode(req.params.id));
-                console.log(UT.decodeURI(UT.b64_decode(req.params.id)));
+                //console.log(UT.decodeURI(UT.b64_decode(req.params.id)));
                 let method = $.project.find.get.method(UT.decodeURI(UT.b64_decode(req.params.id)));
                 
                 dev = method.toJsonObject();
@@ -663,8 +655,7 @@ class WebServer {
                 }
 
                 let alias = req.body['alias'];
-                console.log(alias);
-
+                
                 method.setAlias(alias);
                 res.status(200).send(JSON.stringify({ success: true }));
             })
@@ -683,7 +674,7 @@ class WebServer {
                 // collect
                 let dev = {};
                 let sign = UT.decodeURI(UT.b64_decode(req.params.id));
-                console.log(sign);
+                //console.log(sign);
                 let field = $.project.find.get.field(sign);
                 
                 dev = field.toJsonObject();
@@ -704,7 +695,7 @@ class WebServer {
 
                 let alias = req.body['alias'];
 
-                console.log(alias);
+                //console.log(alias);
 
                 obj.setAlias(alias);
                 res.status(200).send(JSON.stringify({ success: true }));

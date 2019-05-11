@@ -154,7 +154,7 @@ function DeviceManager(cfg){
                 if(data.length<3)
                     continue;
 
-                console.log(data,ret[ln]);
+                //console.log(data,ret[ln]);
                 id = data[1];
                 data = data[2].split(" ");
 
