@@ -14,7 +14,7 @@
     "co": "^4.6.0",
     "express": "^4.16.3",
     "file-type": "^10.4.0",
-    "frida": "^12.2.26",
+    "frida": "12.2.26 - 12.5.0",
     "js-yaml": "^3.13.1",
     "md5": "^2.2.1",
     "mime-types": "^2.1.20",
@@ -30,6 +30,6 @@
   "scripts": {
     "test": "mocha"
   },
-  "author": "FrenchYeti",
-  "license": "Apache 2"
+  "author": "Georges-Bastien MICHEL",
+  "license": "Apache-2.0"
 }
