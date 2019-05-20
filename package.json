@@ -1,7 +1,7 @@
 {
   "name": "dexcalibur",
   "version": "0.0.1",
-  "description": "A nice Android dynamic binary instrumentation tool with a GUI and powered by Frida",
+  "description": "Dynamic binary instrumentation tool designed for Android application and powered by Frida. Offers a GUI and a Node.JS API",
   "main": "dexcalibur",
   "directories": {
     "test": "test"
@@ -30,6 +30,6 @@
   "scripts": {
     "test": "mocha"
   },
-  "author": "Georges-bastien MICHEL",
-  "license": "SEE LICENSE IN LICENSE.TXT"
+  "author": "FrenchYeti",
+  "license": "Apache 2"
 }

@@ -648,7 +648,8 @@ var OPCODE={
 		reftype:	ReferenceType.STRING, 
 		format:	Format.Format31c, 
 		flag:	Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER, 
-	
+		
+		
 		parse: MainParser.setstring,
 		type: CONST.INSTR_TYPE.VAR_SETTER,
 		valuetype: null,

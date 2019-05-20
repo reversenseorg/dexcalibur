@@ -555,6 +555,10 @@ Class.prototype.dump = function(){
     }
 }
 
+Class.prototype.setNamedParam = function(position, name){
+    
+}
+
 Class.prototype.raw_import = Savable.import;
 Class.prototype.import = function(obj){
     // raw impport
@@ -1426,11 +1430,12 @@ BasicBlock.prototype.disass = function(){
     
     disass.block(this._parent,this,0);
 }
+/*
 BasicBlock.prototype.decompile = function(){
     let decp = require("./Decompiler.js")
     
     decp.block(this._parent,this,0);
-}
+}*/
 
 BasicBlock.prototype.hasInstr = function(type){
     for(let i in this.stack){

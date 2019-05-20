@@ -347,7 +347,7 @@ Project.prototype.pull = function(device){
         }
     }
 
-    if(this.devices.getDefault()!==null) 
+    if(!this.config.useEmulator && this.devices.getDefault()!==null) 
         adb+=" -s "+this.devices.getDefault().id;
 
     ret = Process.execSync(adb+" shell pm list packages -f").toString("ascii");
@@ -396,7 +396,9 @@ Project.prototype.pull = function(device){
 };
 
 
-
+Project.prototype.useEmulator = function(){
+    this.config.useEmulator = true;
+}
 
 /**
  * To start the application from a specific Activity.

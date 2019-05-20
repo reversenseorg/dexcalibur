@@ -152,6 +152,13 @@ module.exports = {
 
         //var ret = Process.execSync(command);
         //return ret.toString(charset);
+    },
+    randString: function(size, charset){
+        let s="";
+        while(s.length <= size){
+            s += charset[parseInt(Math.random*charset.length)];
+        }
+        return s;
     }  
 };
 

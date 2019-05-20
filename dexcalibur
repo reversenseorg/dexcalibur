@@ -42,6 +42,10 @@ var Parser = new ArgParser(projectArgs, [
         help: "The web server port number",
         hasVal:true, 
         callback:(ctx,param)=>{ ctx.port = param.value; } },
+    { name:"--emu", 
+        help: "Use emulated device",
+        hasVal: false, 
+        callback: (ctx,param)=>{ ctx.useEmu = true; } },
     { name:"--config", 
         help: "The path to a custom config file. Default : ./config.js",
         hasVal:true, 
@@ -101,6 +105,10 @@ if(projectArgs.app != null){
     }else{
         Project = new Dexcalibur(projectArgs.app, null, projectArgs.nofrida);
     }
+
+    if(projectArgs.useEmu)
+        Project.useEmulator();
+    
 
     if(projectArgs.pull != null){
         Project.pull();

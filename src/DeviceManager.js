@@ -18,6 +18,8 @@ var OS = {
 };
 var OS_NAME = ['android','linux','tizen'];
 
+const emuRE = /^emulator-/;
+
 /**
  * Represents a device
  * @param {*} cfg 
@@ -32,6 +34,7 @@ function Device(cfg){
     this.selected = false;
     // the operation mode
     this.opmode = null;
+    this.isEmulated = false;
 
     for(let i in cfg) this[i] = cfg[i];
     return this;
@@ -39,12 +42,19 @@ function Device(cfg){
 
 /**
  * To check if the given file path exists on the device
- * @param {string} adbPath The ADB binary path
- * @param {*} device 
  * @param {string} file The file path to check
  * @returns {boolean} Returns TRUE if the file exists on the device, else FALSE
  * @function 
  */
+Device.prototype.hasFile = function(file){
+    let ret="", i=0;
+
+    ret = this.bridge.shell("su -c 'ls "+file+"'").toString("ascii");
+    
+    return (ret.indexOf(file)==0);
+};
+
+/*
 Device.prototype.isFileExists = function(adbPath, device,file){
     let adb=adbPath, ret="", path="", i=0;
 
@@ -55,6 +65,7 @@ Device.prototype.isFileExists = function(adbPath, device,file){
     else
         return false;
 };
+*/
 
 Device.prototype.toJsonObject = function(){
     let json = new Object();
@@ -98,6 +109,7 @@ function EmulatorManager(){
 }
 
 
+
 /**
  * Represents the Dexcalibur device manager. 
  * It supports several kind of device, including :
@@ -127,19 +139,13 @@ function DeviceManager(cfg){
     this.scan = function(){
         // TODO : scan for new devices
         let ret="", dev=[], device=null,re=null,id=null;
-        /*
-        if(config.useEmulator){
-            let dev = new Device(DEV.EMU,"default",);
-            this.devices.emu
-            adb+=" -e";
-        }
-*/
+
         if(this.config.adbPath !== null){
             
             ret = Process.execSync(this.config.adbPath+" devices -l").toString("ascii");
             ret = ret.split("\n");
             //re = new RegExp("([0-9A-Za-f]+).*device\susb:([^\s]+)\sproduct:([^\s]+)\smodel:([^\s]+)\sdevice:([^\s]+)");
-            re = new RegExp("^([0-9A-Za-f]+).*device (.*)$");
+            re = new RegExp("^([0-9A-Za-f-]+).*device (.*)$");
 
             this.devices = [];
             this.count = 0;
@@ -161,6 +167,7 @@ function DeviceManager(cfg){
                 device = new Device({
                     type: OS.ANDROID,
                     id: id,
+                    isEmulated: data[0].match(emuRE),
                     bridge: new AdbWrapper(this.config.adbPath, id),
                     usb: data[0].substr(data[1].indexOf(":"),data[0].length),
                     model: data[2].substr(data[2].indexOf(":"),data[2].length),

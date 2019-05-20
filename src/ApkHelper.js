@@ -7,15 +7,21 @@ function ApkHelper(ctx){
     this.context = ctx;
 }
 
-ApkHelper.prototype.extract = function(file){
-    if(FS.existsSync(file)==false){
+ApkHelper.prototype.extract = function(fileSrc, folderDest=null, resource=false){
+    if(FS.existsSync(fileSrc)==false){
         console.log(Chalk.bold.red("[*] APK not found "));
         return false;
     }
-    ret = Process.execSync(this.context.config.apktPath+" d -f -m -r -o "+this.context.workspace.getWD()+"dex "+file).toString("ascii");
+    if(folderDest == null)
+        folderDest = this.context.workspace.getWD()+"dex";
+
+    let cmd = this.context.config.apktPath+" d ";
+    if(!resource)  cmd += "-r";
+
+    ret = Process.execSync(cmd+"-f -m -o "+folderDest+" "+file).toString("ascii");
     
     //if()
-    console.log(Chalk.bold.green("[*] APK decompiled in "+this.context.workspace.getWD()+"dex"));
+    console.log(Chalk.bold.green("[*] APK decompiled in "+folderDest));
 
     return true;
 }
