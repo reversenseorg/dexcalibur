@@ -1,6 +1,7 @@
 var Chalk = require("chalk");
 var Op = require("./Opcode.js");
 const CONST = require("./CoreConst.js");
+const CLASS = require("./CoreClass.js");
 
 var OPCODE = Op.OPCODE;
 
@@ -216,7 +217,7 @@ Disassembler.prototype.methodFull = function(method){
 
 Disassembler.prototype.methodRaw = function(method){
 
-    let bb=null, txt="", prefix="", bbe={}, line={}, result=[];
+    let bb=null, txt="", prefix="", bbe={}, line={}, result=[], c={};
     
     for(let i in method.instr){
         bb=method.instr[i];
@@ -242,6 +243,46 @@ Disassembler.prototype.methodRaw = function(method){
         }
         if(bb.isCatchBlock()){
             bbe.instr.push({ value:bb.catch_name });
+        }
+        if(bb.isSwitchCase()){
+            bbe.instr.push({ value:bb.getSwitchCaseName() });
+        }
+ 
+        if(bb.isSwitchStatement()){
+            
+            bbe.instr.push({ value:bb.getSwitchStatementName() });
+            
+            if(bb.switch != null){
+
+                if(bb.switch instanceof CLASS.PackedSwitchStatement){
+                    bbe.instr.push({ value:".packed-switch 0x"+bb.switch.getStartValue().toString(16) });
+                }else{
+                    bbe.instr.push({ value:".sparse-switch" });
+                }
+
+                //bbe.instr.push({ value:bb.switch.name+" 0x"+bb.switch.getStartValue() });
+
+                for(let j in bb.switch.cases){
+                    c = bb.switch.cases[j];
+                    if(c instanceof CLASS.SwitchCase){
+                        if(c.type == CONST.CASE_TYPE.PACKED)
+                            bbe.instr.push({ value:"    :pswitch_"+c.value.toString(16) });
+                        else
+                            bbe.instr.push({ value:"    "+c.value+" -> "+c.target });
+
+                    }
+    
+                }
+
+                if(bb.switch instanceof CLASS.PackedSwitchStatement){
+                    bbe.instr.push({ value:".end packed-switch " });
+                }else{
+                    bbe.instr.push({ value:".end sparse-switch" });
+                }
+            }
+        }
+        else if(bb.switch_statement != null || bb.switch != null){
+            console.log(bb);
         }
 
         if(bb.tag !== null){
@@ -305,6 +346,32 @@ Disassembler.prototype.methodRaw = function(method){
             bbe.instr.push({ value:bb.getTryEndName() });
             bbe.instr.push({ value:bb.catch_cond });
         }
+
+        result.push(bbe);
+    }
+
+    let d=null;
+
+    result.push({
+        tag: null,
+        instr: [{ value: "# ----------- DATA BLOCKS ----------- " }]
+    });
+    for(let j in method.datas){
+        d = method.datas[j];
+        bbe={
+            tag: null,
+            instr: []
+        };
+
+        bbe.instr.push({ value: d.name });
+        bbe.instr.push({ value:CONST.LEX.STRUCT.ARRAY+"  "+d.width });
+        for(let k in d.values){
+            if(d.values[k] < 0)
+                bbe.instr.push({ value:"    -0x"+(d.values[k]*-1).toString(16) });    
+            else
+                bbe.instr.push({ value:"    0x"+d.values[k].toString(16) });   
+        }
+        bbe.instr.push({ value:CONST.LEX.STRUCT.END+"  "+CONST.LEX.STRUCT.ARRAY_NAME});
         result.push(bbe);
     }
     return result;

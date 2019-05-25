@@ -7,6 +7,8 @@ const Chalk = require("chalk");
 const SML_MAIN=0;
 const SML_METH=1;
 const SML_ANNO=2;
+const SML_PSWITCH=3;
+
 const ERR_PARSE=0;
 const LOG_DBG = false;
 
@@ -376,24 +378,14 @@ function Parser(){
     this.method = function(src, raw_src, src_line){
         if(this.state != SML_METH) return null;
         
-        let sml=src/*.split(LEX.SPACE)*/, hdl=null;
+        let sml=src, hdl=null;
 
-        // search lexeme
+
         switch(ut.trim(sml[0])){
             case LEX.STRUCT.METHOD_BEG:
                 LOG.DEBUG("---------------------------------------------\n[parser::method] Start ");    
                 this.__tmp_meth = new CLASS.Method();
                 sml.shift();
-
-                
-                /*this.__tmp_meth.signature();
-                if(this.__tmp_meth.name.indexOf("valueOf")>-1){
-
-                   if(this.__tmp_meth.enclosingClass.name.indexOf("lang.Enum")>-1){
-                       console.log(this.__tmp_meth);
-                   }
-                   // console.log(this.__tmp_meth);
-               }*/
 
                 this.methodHeader(sml,src_line);  
             
@@ -429,8 +421,8 @@ function Parser(){
                     this.__tmp_meth.instr.push(this.__tmp_block); 
                 }*/
                 if(this.__tmp_block != null && this.__tmp_block.stack.length > 0){
-                    this.__tmp_block.offset = this.__tmp_meth.instr.length;
-                    this.__tmp_meth.instr.push(this.__tmp_block); 
+
+                    this.__tmp_meth.appendBlock(this.__tmp_block);
                     this.__tmp_block = new CLASS.BasicBlock();
                 }
                 //  && this.__tmp_block.line != null
@@ -439,16 +431,42 @@ function Parser(){
                 this.__tmp_block.srcln = parseInt(sml[1],10);
                 
                 break;
+            case LEX.STRUCT.PSWITCH:
+                
+                if(sml[1] != undefined){
+                    this.__tmp_block.setupPackedSwitchStatement(parseInt(sml[1],16));
+                }
+
+                break;
+            case LEX.STRUCT.SSWITCH:
+                
+                this.__tmp_block.setupSparseSwitchStatement();
+                
+                break;
+            case LEX.STRUCT.ARRAY:
+                /*
+                if(this.__tmp_block != null){
+ //                   if( this.__tmp_block instanceof CLASS.BasicBlock){
+                        this.__tmp_meth.appendBlock(this.__tmp_block);
+                        this.__tmp_block = new CLASS.DataBlock(parseInt(sml[1],10));
+ //                   }else{
+ //                      this.__tmp_block.setDataWidth(parseInt(sml[1],10));
+ //                   }
+                }else{
+                    console.log("Weird array, obfuscator ? ",sml);
+                    this.__tmp_block = new CLASS.DataBlock(parseInt(sml[1],10));
+                }*/
+                
+                this.__tmp_block.setDataWidth(parseInt(sml[1],10));
+                
+                break;
             case LEX.STRUCT.END:
 
-                if(sml[1]!=undefined && sml[1]=="method"){
+                if(sml[1]!=undefined && sml[1]==LEX.STRUCT.METHOD_NAME){
                     //hdl = this.__tmp_meth._hashcode;
                     this.state=SML_MAIN;   
-                    this.__tmp_meth.instr.push(this.__tmp_block);   
+                    this.__tmp_meth.appendBlock(this.__tmp_block);   
                     
-                    // la signature doit etre complete pour pouvoir ajouter les methodes heritee
-                    // avec leur signature complete sans risque de conflit
-                    // une surcharge sera alors identifiable si il y a deux methodes avec la meme __callSignature__
                     this.obj.methods[ this.__tmp_meth.signature()] = this.__tmp_meth;
                     this.obj._methCount++;
                     /*
@@ -459,8 +477,19 @@ function Parser(){
                         this.obj.cls.constructor.push(hdl);
                     */
                     LOG.DEBUG("[parser::method] End\n---------------------------------------------");
-                }else if(sml[1]!=undefined && sml[1]=="annotation"){
+                }else if(sml[1]!=undefined && sml[1]==LEX.STRUCT.ANNOTATION_NAME){
                     this.__tmp_meth.__$in_annot = false;
+                }
+                else if(sml[1]!=undefined && sml[1]==LEX.STRUCT.PSWITCH_NAME){
+                    // nothing to do
+                    //console.log("End of packed switch");
+                }
+                else if(sml[1]!=undefined && sml[1]==LEX.STRUCT.ARRAY_NAME){
+
+                    //this.__tmp_meth.appendBlock(this.__tmp_block);   
+                    //this.__tmp_block = null;
+                    // nothing to do
+                    //console.log("End of packed switch");
                 }
                 break;
             case LEX.STRUCT.ANNOT_BEG:
@@ -480,8 +509,7 @@ function Parser(){
 
                 if(sml[0].indexOf(':cond_')>-1){
                     if(this.__tmp_block.stack.length>0){
-                        this.__tmp_block.offset = this.__tmp_meth.instr.length;
-                        this.__tmp_meth.instr.push(this.__tmp_block); 
+                        this.__tmp_meth.appendBlock(this.__tmp_block);
                         this.__tmp_block = new CLASS.BasicBlock();
                     }
 
@@ -490,8 +518,7 @@ function Parser(){
 
                 }else if(sml[0].indexOf(':goto_')>-1){
                     if(this.__tmp_block.stack.length>0){
-                        this.__tmp_block.offset = this.__tmp_meth.instr.length;
-                        this.__tmp_meth.instr.push(this.__tmp_block);                 
+                        this.__tmp_meth.appendBlock(this.__tmp_block);
                         this.__tmp_block = new CLASS.BasicBlock();
                     }
                     //this.__tmp_block.tag = sml[0];
@@ -499,28 +526,78 @@ function Parser(){
 
                 }else if(sml[0].indexOf(':try_start')>-1){
                     if(this.__tmp_block.stack.length>0){
-                        this.__tmp_block.offset = this.__tmp_meth.instr.length;
-                        this.__tmp_meth.instr.push(this.__tmp_block);     
+                        this.__tmp_meth.appendBlock(this.__tmp_block);
                         this.__tmp_block = new CLASS.BasicBlock();
                     }
                     //   this.__tmp_block.tag = sml[0];
                     this.__tmp_block.setAsTryBlock(sml[0]);
                     
-                }else if(sml[0].indexOf(':try_end')>-1){
+                }
+                else if(sml[0].indexOf(':try_end')>-1){
                     this.__tmp_block.setTryEndName(sml[0]);
-                }else if(sml[0].indexOf('.catchall')>-1){
+                }
+                else if(sml[0].indexOf(LEX.LABEL.PSWITCH_DATA)>-1 || sml[0].indexOf(LEX.LABEL.SSWITCH_DATA)>-1){
+
+                    if(this.__tmp_block != null){
+                        this.__tmp_meth.appendBlock(this.__tmp_block);
+                        this.__tmp_block = new CLASS.BasicBlock();
+                    }
+                    
+                    this.__tmp_block.setAsSwitchStatement(sml[0]);
+                }
+                else if(sml[0].indexOf(LEX.LABEL.PSWITCH)>-1){
+    
+                    if(this.__tmp_block.isSwitchStatement()){
+                            this.__tmp_block.switch.appendCase(sml[0]);
+                    }else{  
+                        this.__tmp_block.setAsSwitchCase(sml[0]);
+                    }   
+
+                }
+                else if(sml[0].indexOf(LEX.LABEL.SSWITCH)>-1){
+
+                    if(this.__tmp_block != null && this.__tmp_block.stack.length > 0){
+                        this.__tmp_meth.appendBlock(this.__tmp_block);
+                        this.__tmp_block = new CLASS.BasicBlock();
+                    }
+                        
+                    this.__tmp_block.setAsSwitchCase(sml[0]);
+                }
+                else if(sml.length > 2 && sml[2].indexOf(LEX.LABEL.SSWITCH)>-1){
+    
+                    if(this.__tmp_block.isSwitchStatement()){
+                     //   console.log(sml);
+                        this.__tmp_block.switch.appendCase(sml[0],sml[2]);
+                    } 
+
+                }
+                else if(sml[0].indexOf(LEX.LABEL.ARRAY)>-1){
+                    // check if tmp block not empty (data or bb)
+                    if(this.__tmp_block != null){
+                        this.__tmp_meth.appendBlock(this.__tmp_block);
+                    }
+                    this.__tmp_block = new CLASS.DataBlock();
+                    this.__tmp_block.name = sml[0];
+                }
+                else if(sml[0].indexOf('.catchall')>-1){
                     this.__tmp_block.setCatchCond(raw_src);
                 }
                 else if(sml[0].indexOf(':catchall')>-1){
-                    if(this.__tmp_block.stack.length>0){
-                        this.__tmp_block.offset = this.__tmp_meth.instr.length;
-                        this.__tmp_meth.instr.push(this.__tmp_block);                     
+
+                    if(this.__tmp_block != null && this.__tmp_block.stack.length > 0){
+                        this.__tmp_meth.appendBlock(this.__tmp_block);              
                         this.__tmp_block = new CLASS.BasicBlock();
                     }
-                    // this.__tmp_block.tag = sml[0];
                     this.__tmp_block.setAsCatchBlock(sml[0]);
 
-                }else{
+                }
+                else if(this.__tmp_block instanceof CLASS.DataBlock){
+                    this.__tmp_block.pushData(parseInt(sml[0],16));
+                }
+                else{
+
+                    if(this.__tmp_block instanceof CLASS.DataBlock) console.log("Error : DataBlock instead of BasicBlock",this.__tmp_meth);
+                    if(this.__tmp_block == null) console.log("Error : tmpBlock is null",this.__tmp_meth);
                     hdl = this.instr(sml,raw_src,src_line);
 
                     if(hdl !== null){
@@ -608,6 +685,9 @@ function Parser(){
                     switch(this.state){
                         case SML_METH:
                             this.method(sml,ln,l);
+                            break;
+                        case SML_PSWITCH:
+                            this.pswitch(sml,ln,l);
                             break;
                         case SML_ANNO:
                             this.annotation(sml);

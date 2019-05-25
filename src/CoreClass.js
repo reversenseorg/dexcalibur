@@ -885,6 +885,10 @@ function Method(config){
     this.ret = null;
     this.instr = [];
 
+    this.datas = [];
+    this.switches = [];
+    
+
     this.probing = false;
 
     this.locals = 0;
@@ -1062,6 +1066,12 @@ Method.prototype.countUsedClasses = function(){
 }
 Method.prototype.countUsedFields = function(){
     return this._useFieldCtr;
+}
+Method.prototype.getDataBlocks = function(){
+    return this.datas;
+}
+Method.prototype.getSwitchBlocks = function(){
+    return this.switches;
 }
 Method.prototype.import = function(obj){
     // raw impport
@@ -1318,6 +1328,15 @@ Method.prototype.getClassUsed = function(){
 Method.prototype.getFieldUsed = function(){
     return this._useField;
 }
+Method.prototype.appendBlock = function(block){
+    if(block instanceof BasicBlock){
+        block.offset = this.instr.length;
+        this.instr.push(block);
+    }
+    else if(block instanceof DataBlock){
+        this.datas.push(block);
+    }
+}
 /*
 Method.prototype.getStringUsed = function(){
     return this._useMethod;
@@ -1357,40 +1376,164 @@ function Tag(tag){
 
     return this;
 }
+
+class ArrayData
+{
+    constructor(dataWidth){
+        this.width = dataWidth;
+        this.data = [];
+    }
+
+    push(val){
+        this.data.push(val)
+    }
+
+    length(){
+        this.data.length();
+    }
+}
+
+/**
+ * To represent a specific case into a switch statement
+ */
+class SwitchCase
+{
+    constructor(value, target, type){
+        this.value = value;
+        this.target = target;
+        this.type = type;
+    }
+}
+
+
+/**
+ * To represent a packed switch statement
+ */
+class SparseSwitchStatement
+{
+    constructor(){
+        this.cases = {};
+        this.length = 0;
+    }
+
+    appendCase(key,val){
+        this.cases[key] = new SwitchCase(key, val, CONST.CASE_TYPE.SPARSE);
+        this.length++;
+    }
+
+    getKeys(){
+        return Object.keys(this.cases);
+    }
+}
+
+/**
+ * To represent a packed switch statement
+ */
+class PackedSwitchStatement
+{
+    constructor(start){
+        this.start = start;
+        this.cases = {};
+        this.offset = start;
+        this.length = 0;
+    }
+
+    appendCase(tag){
+        this.cases[this.offset+1] = new SwitchCase(this.offset+1, tag, CONST.CASE_TYPE.PACKED);
+        this.offset++;
+        this.length++;
+    }
+
+    getStartValue(radix=16){
+        return this.start.toString(radix);
+    }
+
+    forEach(fn){
+        for(let i in this.cases) fn(i, this.cases[i]);
+    }
+}
+
+class DataBlock
+{
+    constructor(dataWidth=null){
+        this.line = -1;
+        this.prologue = false;
+        this.stack = [];
+
+        this.offset = -1;
+        this._parent = null;
+
+        this.tag = null;
+        this.tags = [];
+
+        this.name = null;
+        this.values = [];
+        this.width = dataWidth;
+    }
+
+    pushData(val){
+        this.values.push(val)
+    }
+
+    length(){
+        this.values.length();
+    }
+    
+    setDataWidth(width){
+        this.width = width;
+    }
+}
+
+
 /**
  * Represents a basic block of dalvik instruction
- * @param {Object} config Optional, an object wich can be used in order to initialize the instance 
- * @constructor
  */
-function BasicBlock(config){
+class BasicBlock
+{
+    /**
+    * @param {Object} config Optional, an object wich can be used in order to initialize the instance 
+    * @constructor
+    */
+    constructor(config=null){
+        this.$ = STUB_TYPE.BASIC_BLOCK;
 
-    this.$ = STUB_TYPE.BASIC_BLOCK;
+        this.line = -1;
+        this.prologue = false;
+        this.stack = [];
 
-    this.line = -1;
-    this.prologue = false;
-    this.stack = [];
+        this.offset = -1;
+        this._parent = null;
 
-    this.offset = -1;
-    this._parent = null;
+        this.tag = null;
+        this.tags = [];
 
-    this.tag = null;
-    this.tags = [];
+        //  special block name
+        this.cond_name = null;
+        this.goto_name = null;
+        this.catch_name = null;
+        this.try_name = null;
+        this.try_end_name = null;
+        this.catch_cond = null;
+        this.switch_case = null;
+        this.switch_statement = null;
+        
+        // special child
+        this.linked_try_block = null;
+        this.linked_catch_block = null;
+        this.duplicate = null;
+        this.switch = null;
+        this.array_data = null;
+        this.array_data_name = null;
 
-    //  special block name
-    this.cond_name = null;
-    this.goto_name = null;
-    this.catch_name = null;
-    this.try_name = null;
-    this.try_end_name = null;
-    this.catch_cond = null;
+        if(config!=null)
+            for(let i in config)
+                this[i]=config[i];
+    }
 
-    // special child
-    this.linked_try_block = null;
-    this.linked_catch_block = null;
-    this.duplicate = null;
+    //BasicBlock.prototype.export = Savable.export;
+    //BasicBlock.prototype.import=  Savable.import;
 
-    
-    this.dump = function(){
+    dump(){
         console.log("\tBasic Block (line "+this.line+"):\n-------------------------");
         for(let i in this.stack){
             this.stack[i].dump();
@@ -1398,84 +1541,103 @@ function BasicBlock(config){
         console.log("-------------------------");
     }
 
-    if(config!==undefined)
-        for(let i in config)
-            this[i]=config[i];
+    clone(clean=true){
+        let bb = new BasicBlock();
+        for(let i in this){
+            bb[i] = this[i];
+        }
 
+        if(clean){
+            //bb.cond_name = null;
+            //bb.goto_name = null;
+            bb.catch_name = null;
+            bb.try_name = null;
+            bb.try_end_name = null;
+            bb.catch_cond = null;
+            bb.duplicate = true;
+        }
 
-    return this;
-}
-BasicBlock.prototype.export = Savable.export;
-BasicBlock.prototype.import=  Savable.import;
-BasicBlock.prototype.clone = function(clean=true){
-    let bb = new BasicBlock();
-    for(let i in this){
-        bb[i] = this[i];
+        return bb;
     }
 
-    if(clean){
-        //bb.cond_name = null;
-        //bb.goto_name = null;
-        bb.catch_name = null;
-        bb.try_name = null;
-        bb.try_end_name = null;
-        bb.catch_cond = null;
-        bb.duplicate = true;
+    disass(){
+        let disass = require("./Disassembler.js")
+        
+        disass.block(this._parent,this,0);
     }
 
-    return bb;
-}
-BasicBlock.prototype.disass = function(){
-    let disass = require("./Disassembler.js")
-    
-    disass.block(this._parent,this,0);
-}
-/*
-BasicBlock.prototype.decompile = function(){
-    let decp = require("./Decompiler.js")
-    
-    decp.block(this._parent,this,0);
-}*/
 
-BasicBlock.prototype.hasInstr = function(type){
-    for(let i in this.stack){
-        if(this.stack[i].opcode.type==type) return true;
+    hasInstr(type){
+        for(let i in this.stack){
+            if(this.stack[i].opcode.type==type) return true;
+        }
+        return false;
     }
-    return false;
-}
 
-BasicBlock.prototype.setAsConditionalBlock = function(name){
-    this.cond_name = name;
-}
-BasicBlock.prototype.isConditionalBlock = function(){
-    return this.cond_name != null;
-}
-BasicBlock.prototype.setAsGotoBlock = function(name){
-    this.goto_name = name;
-}
-BasicBlock.prototype.isGotoBlock = function(){
-    return this.goto_name != null;
-}
-BasicBlock.prototype.setAsTryBlock = function(name){
-    this.try_name = name;
-}
-BasicBlock.prototype.setTryEndName = function(name){
-    this.try_end_name = name;
-}
-BasicBlock.prototype.getTryEndName = function(name){
-    return this.try_end_name;
-}
-BasicBlock.prototype.isTryBlock = function(){
-    return this.try_name != null;
-}
-BasicBlock.prototype.setAsCatchBlock = function(name){
-    this.catch_name = name;
-}
-BasicBlock.prototype.setCatchCond = function(name){
-    this.catch_cond = name;
-}
-BasicBlock.prototype.isCatchBlock = function(){
-    return this.catch_name != null;
+    setAsConditionalBlock(name){
+        this.cond_name = name;
+    }
+    isConditionalBlock(){
+        return this.cond_name != null;
+    }
+    setAsGotoBlock(name){
+        this.goto_name = name;
+    }
+    isGotoBlock(){
+        return this.goto_name != null;
+    }
+    setAsTryBlock(name){
+        this.try_name = name;
+    }
+    setTryEndName(name){
+        this.try_end_name = name;
+    }
+    getTryEndName(){
+        return this.try_end_name;
+    }
+    isTryBlock(){
+        return this.try_name != null;
+    }
+    setAsCatchBlock(name){
+        this.catch_name = name;
+    }
+    setCatchCond(name){
+        this.catch_cond = name;
+    }
+    isCatchBlock(){
+        return this.catch_name != null;
+    }
+
+    setAsArrayData(name){
+        this.array_data_name = name;
+    }
+    setAsSwitchCase(name){
+        this.switch_case = name;
+    }
+    setAsSwitchStatement(name){
+        this.switch_statement = name;
+    }
+    isSwitchStatement(){
+        return (this.switch_statement != null) && (this.switch != null);
+    }
+    isSwitchCase(){
+        return this.switch_case != null;
+    }
+    setupPackedSwitchStatement(start_value){
+        this.switch = new PackedSwitchStatement(start_value);
+    }
+    setupSparseSwitchStatement(){
+        this.switch = new SparseSwitchStatement();
+    }
+    getSwitchStatement(){
+        return this.switch;
+    }
+    getSwitchCaseName(){
+        return this.switch_case;
+    }
+    getSwitchStatementName(){
+        return this.switch_statement;
+    }
 }
 
 /**
@@ -2235,6 +2397,7 @@ module.exports = {
     Method: Method,
     Field: Field,
     Modifiers: Modifiers,
+    DataBlock: DataBlock,
     BasicBlock: BasicBlock,
     ObjectType: ObjectType,
     BasicType: BasicType,
@@ -2256,5 +2419,7 @@ module.exports = {
     Library: Library,
     Syscall: Syscall,
     FUNC_TYPE: FUNC_TYPE,
-    BUILTIN_TAG: BUILTIN_TAG
+    BUILTIN_TAG: BUILTIN_TAG,
+    SwitchCase: SwitchCase,
+    PackedSwitchStatement: PackedSwitchStatement
 }; 

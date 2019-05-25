@@ -23,7 +23,25 @@ var CONST = {
             METHOD_BEG: ".method",
             ANNOT_BEG: ".annotation",
             END: ".end",
-            FIELD: ".field"        
+            FIELD: ".field",
+            ARRAY: ".array-data",
+            ARRAY_NAME: "array-data",
+            PSWITCH: ".packed-switch",
+            SSWITCH: ".sparse-switch",
+            METHOD_NAME: "method",
+            ANNOTATION_NAME: "annotation",
+            PSWITCH_NAME: "packed-switch",
+            SSWITCH_NAME: "sparse-switch",
+
+        },
+        LABEL: {
+            GOTO: ":goto_",
+            COND: ":cond_",
+            PSWITCH: ":pswitch_",
+            SSWITCH: ":sswitch_",
+            PSWITCH_DATA: ":pswitch_data_",
+            SSWITCH_DATA: ":sswitch_data_",
+            ARRAY: ":array_"
         },
         MODIFIER: {
             PUBLIC: "public",
@@ -121,6 +139,10 @@ var CONST = {
         CAN_INITIALIZE_REFERENCE: 2,
         SETS_REGISTER: 3,
         SETS_WIDE_REGISTER: 4
+    },
+    CASE_TYPE: {
+        PACKED: 0x1,
+        SPARSE: 0x2
     }
 };
 
