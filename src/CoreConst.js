@@ -213,6 +213,14 @@ CONST.BRANCH = {
     INCONDITIONNAL: 0x2
 };
 
+CONST.RE = {
+    ARRAY_VALUE: /(-)?0x([0-9a-fA-F]+)/
+};
+
+CONST.MAX = {
+    DATABLOCK_SIZE: 48
+};
+
 CONST.TAG = {
     STRING: "string",
     STRING_DECL: "strdecl",

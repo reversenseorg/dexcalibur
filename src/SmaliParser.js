@@ -592,7 +592,18 @@ function Parser(){
 
                 }
                 else if(this.__tmp_block instanceof CLASS.DataBlock){
-                    this.__tmp_block.pushData(parseInt(sml[0],16));
+
+                    hdl = CONST.RE.ARRAY_VALUE.exec(sml[0]);
+                    if(hdl ==null) break; //  console.log(this.__tmp_meth.name, sml[0]); // break
+                    //console.log(hdl);
+                    /*if(this.__tmp_block.isInt64Array()){
+                        this.__tmp_block.pushData64(hdl[2]);
+                    }else*/
+                    //console.log(this.__tmp_block.getByteWidth(), sml[0], this.__tmp_meth.name);
+                    //onsole.log(hdl);
+                    if(hdl[2].length == 1) hdl[2] = '0'+hdl[2];
+                    
+                    this.__tmp_block.pushData(Buffer.from(hdl[2],'hex'), (hdl[1] != undefined));
                 }
                 else{
 

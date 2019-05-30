@@ -317,23 +317,12 @@ Disassembler.prototype.methodRaw = function(method){
                 //line.value = '<i class="code-blue">'+bb.stack[j]._raw+'</i>';
             }
             else if(bb.stack[j].opcode.instr.indexOf("invoke")>-1){
-                /*if(bb.stack[j].right != null && bb.stack[j].right.getAlias() != null){
-                    line.value = bb.stack[j].opcode.instr;
-                    line.value += " {...} ";
-                    line.value += bb.stack[j].right.aliasedSignature();
-                }else{*/
                     line.value = bb.stack[j]._raw;   
-                //}
-                //line.value = bb.stack[j]._raw;
-                // line.goto = true;
-                //line.value = '<u class="code-purple">'+bb.stack[j]._raw+'</u>';
+
             }
             else if(bb.stack[j].opcode.instr.indexOf("const-string")>-1){
                 line.string = true;
                 line.value = bb.stack[j]._raw;
-                //line.value = bb.stack[j].opcode.instr;
-                //line.value += " "+bb.stack[j].left.t+bb.stack[j].left.i+", ";
-                //line.value += '<b class="code-red">"'+bb.stack[j].right._value+'"</b>';
             }
             else{
                 line.value = bb.stack[j]._raw;
@@ -364,12 +353,9 @@ Disassembler.prototype.methodRaw = function(method){
         };
 
         bbe.instr.push({ value: d.name });
-        bbe.instr.push({ value:CONST.LEX.STRUCT.ARRAY+"  "+d.width });
-        for(let k in d.values){
-            if(d.values[k] < 0)
-                bbe.instr.push({ value:"    -0x"+(d.values[k]*-1).toString(16) });    
-            else
-                bbe.instr.push({ value:"    0x"+d.values[k].toString(16) });   
+        bbe.instr.push({ value:CONST.LEX.STRUCT.ARRAY+"  "+d.getByteWidth() });
+        for(let k=0; k<d.count(); k++){
+            bbe.instr.push({ value:"    0x"+d.read(k).toString(16) });  
         }
         bbe.instr.push({ value:CONST.LEX.STRUCT.END+"  "+CONST.LEX.STRUCT.ARRAY_NAME});
         result.push(bbe);

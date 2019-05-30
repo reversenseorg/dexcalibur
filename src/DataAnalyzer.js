@@ -1,5 +1,5 @@
 const FS = require("fs");
-
+const PATH = require("path"); 
 const LIB_filetypeOf = require("file-type");
 const LIB_YAML = require("js-yaml");
 const LIB_PROP = require("properties");
@@ -10,16 +10,95 @@ const Logger = require("./Logger.js");
 const Event = require("./Event.js");
 const EventType = Event.TYPE;
 
-function DataCollection(config){
-    this.context = null;
-    this.files = [];
-    this.buffers = [];
 
-    if(config!=null)
-        for(let i in config) this[i]=config[i];
-
-    return this;   
+function checkIfSmali(root, filepath){
+    if(filepath.indexOf(PATH.join(root,"smali"))==0 
+        && PATH.extname(filepath)==".smali") 
+            return true;
+    
+    return false;
 }
+
+
+class DataCollection
+{
+    constructor(config){
+        this.context = null;
+        this.files = [];
+        this.buffers = [];
+
+        if(config!=null)
+            for(let i in config) this[i]=config[i];
+
+    }
+
+    pushFile(file){
+        let self = this;
+        //console.log(file.getType());
+        if(file.getType() != null){
+            switch(file.getType().ext){
+                case "properties":
+                    //LIB_PROP.parse();
+                    LIB_PROP.parse (file.getPath(), { path: true }, function (error, obj){
+                        // if (error) return console.error (error);
+                        file.data = obj;
+                        self.files.push(file);
+                    });
+                    this.files.push(file);
+                    break;
+                case "yml":
+                    //console.log("yml here");
+                    //file.data = LIB_YAML.load(
+                    //console.log( FS.readFileSync(file.getPath(), 'utf8'));
+                    this.files.push(file);
+                    break;
+                    //);
+                default:
+                    this.files.push(file);
+                    break;
+            }
+        }else{
+            this.files.push(file);
+        }
+        return this;
+    }
+
+    pushBuffer(buff){
+        this.buffers.push(file);
+        return this;
+    }
+
+    searchType(cmp,format){
+        let coll = new DataCollection();
+        coll.context = this.context;
+        
+        for(let i=0; i<this.files.length; i++)
+            if(this.files[i] != null && this.files[i][cmp](format))
+                coll.pushFile(this.files[i]);
+    
+        for(let i=0; i<this.buffers.length; i++)
+            if(this.buffers[i] != null && this.buffers[i][cmp](format))
+                coll.pushBuffer(this.buffers[i]);
+        
+        return coll;
+    }
+
+    searchMIME(format){
+        return this.searchType('hasMIME',format);
+    }
+    searchExt(format){
+        return this.searchType('hasExt',format);
+    }
+    getFiles(){
+        return this.files; 
+    }
+    getBuffers(){
+        return this.buffers; 
+    }
+    
+}
+
+/*
 DataCollection.prototype.pushFile = function(file){
     let self = this;
     //console.log(file.getType());
@@ -83,7 +162,7 @@ DataCollection.prototype.getFiles = function(){
 DataCollection.prototype.getBuffers = function(){
     return this.buffers; 
 }
-
+*/
 function DataAnalyzer(ctx){
     this.context = ctx;
     this.db = new DataCollection();
@@ -103,6 +182,9 @@ DataAnalyzer.prototype.scan = function(path){
 
     UT.forEachFileOf(path,function( fpath, fname){
         let type = null;
+
+        if(checkIfSmali(path, PATH.join(fpath,fname))) return null;
+
         let ext = fpath.substr(fpath.lastIndexOf('.')+1); 
 
         //Logger.info("[DATA ANALYZER] Start analyzing file : ",fpath);

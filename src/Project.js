@@ -269,11 +269,11 @@ Project.prototype.fullscan = function(path){
     // scan files  
     if(path !== undefined){   
         this.analyze.path( path);
-        this.dataAnalyser.scan( path);
+        this.dataAnalyser.scan( path, ["smali"]);
     }else{
         console.log(Chalk.yellow("Scanning default path : "+this.workspace.getWD()+"dex"));
         this.analyze.path( this.workspace.getWD()+"dex");
-        this.dataAnalyser.scan( this.workspace.getWD()+"dex");
+        this.dataAnalyser.scan( this.workspace.getWD()+"dex", ["smali"]);
     }
 
 
