@@ -317,12 +317,7 @@ function Parser(){
         this.__tmp_meth.enclosingClass = this.obj;
         this.__tmp_meth.ret = ret[0];
 
-        this.__tmp_meth._hashcode = this.__tmp_meth.hashCode();/*Checker.makeFnHashcode(
-            this.__tmp_meth.modifiers, 
-            this.obj,
-            this.__tmp_meth.name, 
-            this.__tmp_meth.args,
-            this.__tmp_meth.ret);*/
+        this.__tmp_meth._hashcode = this.__tmp_meth.hashCode();
     };
 
     this.instr = function(src, raw_src, src_line){
@@ -409,17 +404,7 @@ function Parser(){
             case ".prologue":
                 break;
             case LEX.STRUCT.LINE:
-                /*
-                :pswitch_data_0
-                .packed-switch 0x1
-                    :pswitch_0
-                    :pswitch_1
-                .end packed-switch
-                */
-                /*if(this.__tmp_block != null){
-                    this.__tmp_block.offset = this.__tmp_meth.instr.length;
-                    this.__tmp_meth.instr.push(this.__tmp_block); 
-                }*/
+                
                 if(this.__tmp_block != null && this.__tmp_block.stack.length > 0){
 
                     this.__tmp_meth.appendBlock(this.__tmp_block);
@@ -444,19 +429,6 @@ function Parser(){
                 
                 break;
             case LEX.STRUCT.ARRAY:
-                /*
-                if(this.__tmp_block != null){
- //                   if( this.__tmp_block instanceof CLASS.BasicBlock){
-                        this.__tmp_meth.appendBlock(this.__tmp_block);
-                        this.__tmp_block = new CLASS.DataBlock(parseInt(sml[1],10));
- //                   }else{
- //                      this.__tmp_block.setDataWidth(parseInt(sml[1],10));
- //                   }
-                }else{
-                    console.log("Weird array, obfuscator ? ",sml);
-                    this.__tmp_block = new CLASS.DataBlock(parseInt(sml[1],10));
-                }*/
-                
                 this.__tmp_block.setDataWidth(parseInt(sml[1],10));
                 
                 break;
@@ -469,17 +441,10 @@ function Parser(){
                     
                     this.obj.methods[ this.__tmp_meth.signature()] = this.__tmp_meth;
                     this.obj._methCount++;
-                    /*
-                    this.obj.methods[hdl]
-                    deepCopy(this.__tmp_meth, this.obj.methods[hdl])
-                    deepCopy(this.__tmp_block, this.obj.methods[hdl].instr);
-                    if(this.__tmp_block.modifier.constructor)
-                        this.obj.cls.constructor.push(hdl);
-                    */
                     LOG.DEBUG("[parser::method] End\n---------------------------------------------");
                 }else if(sml[1]!=undefined && sml[1]==LEX.STRUCT.ANNOTATION_NAME){
                     this.__tmp_meth.__$in_annot = false;
-                }
+                }/*
                 else if(sml[1]!=undefined && sml[1]==LEX.STRUCT.PSWITCH_NAME){
                     // nothing to do
                     //console.log("End of packed switch");
@@ -490,7 +455,7 @@ function Parser(){
                     //this.__tmp_block = null;
                     // nothing to do
                     //console.log("End of packed switch");
-                }
+                }*/
                 break;
             case LEX.STRUCT.ANNOT_BEG:
                 // ignore
@@ -502,10 +467,6 @@ function Parser(){
                     break;
                 }
 
-                // next instr
-                /*if(this.__tmp_block==null){ 
-                    this.__tmp_block = new CLASS.BasicBlock();
-                }*/
 
                 if(sml[0].indexOf(':cond_')>-1){
                     if(this.__tmp_block.stack.length>0){
@@ -594,13 +555,7 @@ function Parser(){
                 else if(this.__tmp_block instanceof CLASS.DataBlock){
 
                     hdl = CONST.RE.ARRAY_VALUE.exec(sml[0]);
-                    if(hdl ==null) break; //  console.log(this.__tmp_meth.name, sml[0]); // break
-                    //console.log(hdl);
-                    /*if(this.__tmp_block.isInt64Array()){
-                        this.__tmp_block.pushData64(hdl[2]);
-                    }else*/
-                    //console.log(this.__tmp_block.getByteWidth(), sml[0], this.__tmp_meth.name);
-                    //onsole.log(hdl);
+                    if(hdl ==null) break; 
                     if(hdl[2].length == 1) hdl[2] = '0'+hdl[2];
                     
                     this.__tmp_block.pushData(Buffer.from(hdl[2],'hex'), (hdl[1] != undefined));
@@ -616,7 +571,6 @@ function Parser(){
                         hdl.offset = this.__instr_ctr;
                         hdl.oline = this.__instr_ctr;
                         this.__tmp_block.stack.push(hdl);
-                        //console.log("New instr")
                     }
                 }
 

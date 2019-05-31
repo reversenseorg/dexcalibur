@@ -199,6 +199,11 @@ Configuration.prototype.getTmpDir = function(){
     return this.tmpDir;
 }
 
+
+Configuration.prototype.getWebPort = function(){
+    return this.web_port;
+}
+
 Configuration.prototype.toJsonObject = function(){
     let o = new Object();
     

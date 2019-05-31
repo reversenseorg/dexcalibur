@@ -139,9 +139,7 @@ if(projectArgs.app != null){
 
     Project.useAPI(projectArgs.api).fullscan();
 
-    if(projectArgs.port != null){
-        Project.web.start(projectArgs.port);
-    }
+    Project.startWebserver(projectArgs.port);
 
     if(projectArgs.buildClass != null && projectArgs.buildOut != null){
         var res = Project.find.class("name:"+projectArgs.buildClass);

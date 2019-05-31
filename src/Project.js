@@ -419,6 +419,15 @@ Project.prototype.start = function(activity){
     return new ApplicationInstance(0);
 };
 
+
+Project.prototype.startWebserver = function(port=null){
+    // if port is undefined or null
+    if(port==null){
+        this.web.start(this.config.getWebPort());
+    }else{
+        this.web.start(port);
+    }
+}
 /*
 Project.prototype.saveDB = function(){
     let sys_db = this.dbm.getPlatformDB();

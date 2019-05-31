@@ -6,6 +6,10 @@
   "directories": {
     "test": "test"
   },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/FrenchYeti/dexcalibur.git"
+  },
   "dependencies": {
     "antlr4": "^4.7.1",
     "body-parser": "^1.18.3",
