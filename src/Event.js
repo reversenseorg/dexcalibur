@@ -13,35 +13,5 @@ Event.prototype.getData = function(){
 }   
 
 module.exports = {
-    Event: Event,
-/*    TYPE: {
-        dev: {
-            connected: "dev.conn",
-            deconnected: "dev.deco",
-        },
-        hooking: {
-            start: "hooking.start",
-            stop: "hooking.stop"
-        },
-        hook: {
-            match: "hook.match"
-        },
-        task: {
-            match: "task.match",
-            notfound: "task.notfound"
-        },
-        view: {
-            new: "view.new",
-            updated: "view.updated"
-        },
-        filescan: {
-            new: "filescan.new"
-        },
-        data: {
-            file: {
-                new: "data.file.new",
-                upd: "data.file.upd" 
-            }
-        }
-    }*/
+    Event: Event
 };

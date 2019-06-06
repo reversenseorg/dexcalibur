@@ -1332,14 +1332,14 @@ Method.prototype.appendBlock = function(block, callback=null){
     if(block instanceof BasicBlock){
         block.offset = this.instr.length;
         this.instr.push(block);
-       // if(callback.basicblock != null) 
-         //   callback.basicblock(this, block);
+        if(callback != null && callback.basicblock != null) 
+           callback.basicblock(this, block);
     }
     else if(block instanceof DataBlock){
         block.setParent(this, this.datas.length);
         this.datas.push(block);
-       // if(callback.datablock != null) 
-         //   callback.datablock(this, block);
+        if(callback != null && callback.datablock != null) 
+           callback.datablock(this, block);
     }
 }
 Method.prototype.getDataBlocks = function(){

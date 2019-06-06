@@ -3,6 +3,7 @@ var OPCODE = require("./Opcode.js");
 var CONST = require("./CoreConst.js");
 const CLASS = require("./CoreClass.js");
 const Chalk = require("chalk");
+const Event = require("./Event.js");
 
 const SML_MAIN=0;
 const SML_METH=1;
@@ -59,6 +60,22 @@ class SmaliParser
 
         this.__instr_ctr = null;
         this.__instr_line = null;
+
+        let self = this;
+        this.__appendBlock_callback = {
+            // disabled for perform reasons
+            /*basicblock: function(meth,block){
+                this.ctx.bus.send(new Event.Event({
+                    type: "disass.bb.new" 
+                }));
+            },*/
+            datablock: function(meth,block){
+                self.ctx.bus.send(new Event.Event({
+                    type: "disass.datablock.new",
+                    data: block 
+                }));
+            }
+        };
     }
 
     setContext(context){
@@ -390,7 +407,7 @@ class SmaliParser
                 
                 if(this.__tmp_block != null && this.__tmp_block.stack.length > 0){
 
-                    this.__tmp_meth.appendBlock(this.__tmp_block);
+                    this.__tmp_meth.appendBlock(this.__tmp_block, this.__appendBlock_callback);
                     this.__tmp_block = new CLASS.BasicBlock();
                 }
                 //  && this.__tmp_block.line != null
@@ -420,7 +437,7 @@ class SmaliParser
                 if(sml[1]!=undefined && sml[1]==LEX.STRUCT.METHOD_NAME){
                     //hdl = this.__tmp_meth._hashcode;
                     this.state=SML_MAIN;   
-                    this.__tmp_meth.appendBlock(this.__tmp_block);   
+                    this.__tmp_meth.appendBlock(this.__tmp_block, this.__appendBlock_callback);   
                     
                     this.obj.methods[ this.__tmp_meth.signature()] = this.__tmp_meth;
                     this.obj._methCount++;
@@ -449,7 +466,7 @@ class SmaliParser
 
                 if(sml[0].indexOf(':cond_')>-1){
                     if(this.__tmp_block instanceof CLASS.DataBlock || this.__tmp_block.stack.length>0){
-                        this.__tmp_meth.appendBlock(this.__tmp_block);
+                        this.__tmp_meth.appendBlock(this.__tmp_block, this.__appendBlock_callback);
                         this.__tmp_block = new CLASS.BasicBlock();
                     }
 
@@ -458,7 +475,7 @@ class SmaliParser
 
                 }else if(sml[0].indexOf(':goto_')>-1){
                     if(this.__tmp_block instanceof CLASS.DataBlock || this.__tmp_block.stack.length>0){
-                        this.__tmp_meth.appendBlock(this.__tmp_block);
+                        this.__tmp_meth.appendBlock(this.__tmp_block, this.__appendBlock_callback);
                         this.__tmp_block = new CLASS.BasicBlock();
                     }
                     //this.__tmp_block.tag = sml[0];
@@ -466,7 +483,7 @@ class SmaliParser
 
                 }else if(sml[0].indexOf(':try_start')>-1){
                     if(this.__tmp_block instanceof CLASS.DataBlock || this.__tmp_block.stack.length>0){
-                        this.__tmp_meth.appendBlock(this.__tmp_block);
+                        this.__tmp_meth.appendBlock(this.__tmp_block, this.__appendBlock_callback);
                         this.__tmp_block = new CLASS.BasicBlock();
                     }
                     //   this.__tmp_block.tag = sml[0];
@@ -479,7 +496,7 @@ class SmaliParser
                 else if(sml[0].indexOf(LEX.LABEL.PSWITCH_DATA)>-1 || sml[0].indexOf(LEX.LABEL.SSWITCH_DATA)>-1){
 
                     if(this.__tmp_block != null){
-                        this.__tmp_meth.appendBlock(this.__tmp_block);
+                        this.__tmp_meth.appendBlock(this.__tmp_block, this.__appendBlock_callback);
                         this.__tmp_block = new CLASS.BasicBlock();
                     }
                     
@@ -499,7 +516,7 @@ class SmaliParser
                     if(this.__tmp_block != null
                         && (this.__tmp_block instanceof CLASS.DataBlock 
                             || this.__tmp_block.stack.length > 0)){
-                        this.__tmp_meth.appendBlock(this.__tmp_block);
+                        this.__tmp_meth.appendBlock(this.__tmp_block, this.__appendBlock_callback);
                         this.__tmp_block = new CLASS.BasicBlock();
                     }
                         
@@ -516,7 +533,7 @@ class SmaliParser
                 else if(sml[0].indexOf(LEX.LABEL.ARRAY)>-1){
                     // check if tmp block not empty (data or bb)
                     if(this.__tmp_block != null){
-                        this.__tmp_meth.appendBlock(this.__tmp_block);
+                        this.__tmp_meth.appendBlock(this.__tmp_block, this.__appendBlock_callback);
                     }
                     this.__tmp_block = new CLASS.DataBlock();
                     this.__tmp_block.name = sml[0];
@@ -529,7 +546,7 @@ class SmaliParser
                     if(this.__tmp_block != null 
                         && ( this.__tmp_block instanceof CLASS.DataBlock 
                             || this.__tmp_block.stack.length > 0 )){
-                        this.__tmp_meth.appendBlock(this.__tmp_block);              
+                        this.__tmp_meth.appendBlock(this.__tmp_block, this.__appendBlock_callback);              
                         this.__tmp_block = new CLASS.BasicBlock();
                     }
                     this.__tmp_block.setAsCatchBlock(sml[0]);
