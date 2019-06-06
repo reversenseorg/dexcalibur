@@ -489,7 +489,7 @@ function Class(config){
  * @param {String} name The name of a field
  * @returns {Boolean} TRUE if the class contains a definition, else FALSE
  */
-Class.prototype.hasField = (name)=>{
+Class.prototype.hasField = function(name){
     return (this.fields[name]!==undefined);
 };
 
@@ -1328,14 +1328,22 @@ Method.prototype.getClassUsed = function(){
 Method.prototype.getFieldUsed = function(){
     return this._useField;
 }
-Method.prototype.appendBlock = function(block){
+Method.prototype.appendBlock = function(block, callback=null){
     if(block instanceof BasicBlock){
         block.offset = this.instr.length;
         this.instr.push(block);
+       // if(callback.basicblock != null) 
+         //   callback.basicblock(this, block);
     }
     else if(block instanceof DataBlock){
+        block.setParent(this, this.datas.length);
         this.datas.push(block);
+       // if(callback.datablock != null) 
+         //   callback.datablock(this, block);
     }
+}
+Method.prototype.getDataBlocks = function(){
+    return this.datas;
 }
 /*
 Method.prototype.getStringUsed = function(){
@@ -1457,12 +1465,10 @@ class DataBlock
 {
     constructor(dataWidth=null){
         this.line = -1;
-        this.prologue = false;
-        this.stack = [];
 
         this.offset = -1;
-        this._parent = null;
-
+        //this._parent = null;
+        this.stack = [];
         this.tag = null;
         this.tags = [];
 
@@ -1472,26 +1478,33 @@ class DataBlock
         this.values = Buffer.alloc(CONST.MAX.DATABLOCK_SIZE);
         this.width = dataWidth;
         this.length = 0;
+
+        this.uid = null;
+
+        this.virtual64 = false; 
+        if(64==dataWidth && this.values.readBigUInt64LE == null){
+            this.virtual64 = true;
+            this.values = [];
+        }
     }
 
-    /**
-     * To provide a way to treat int/uint 64bit width Node version <12.0.0 
-     * @param {String} str_val The value with the string format 
-     * @param {*} val 
-     * @function
-     */
-    /*pushData64(val){
-        // Fake signed int 64 : sign u8 + 7 * unsign u8
-        console.log(val);
-        this.values.writeInt8(val[0]);
-        for(let k=1; k<val.length; k++){
-            this.values.writeUInt8(val[k]);
-        }
-    }*/
+    getUID(){
+        return this.uid;
+    } 
+
+    setParent(parent, offset){
+        if(! parent instanceof Method) 
+            throw Error("The parent of this DataBlock is not a function.");
+
+        this.parent = parent;
+        this.uid = this.parent.signature();
+        this.uid += ":";
+        this.uid += (this.name != null)? this.name : 'data_'+offset;
+    }
 
     pushData(val, isNegative){
         // Increase buffer size if needed
-        if((this.length+1)*(this.width>>3) > this.values.length){
+        if(!this.virtual64 && ((this.length+1)*(this.width>>3) > this.values.length)){
             this.values = Buffer.alloc(this.values.length+32);
             this.values.fill(this.values);
 
@@ -1517,9 +1530,10 @@ class DataBlock
                 this.values.writeUInt32LE(val.readUInt32LE(0), this.length*4);
                 break;
             case 8:
-                if(this.values.writeBigInt64LE == undefined){
+                if(this.virtual64 == true){
+                    this.values.push(val.toString());
                     // FIXME : NodeJS < 12.0.0 not supports uint64
-                    console.log("uint64 values are not supported by this NodeJS version");
+                    //console.log("uint64 values are not supported by this NodeJS version");
                 }else{
                     this.values.writeBigUInt64LE(val.readBigUInt64LE(0), this.length*8);
                 }
@@ -1541,9 +1555,10 @@ class DataBlock
             case 4:
                 return this.values.readUInt32LE(offset*4);
             case 8:
-                if(this.values.readBigUInt64LE == undefined){
-                    console.log("This version of node not support 64bit integer !");
-                    return "NaN";
+                if(this.virtual64 == true){
+                    return this.values[offset];
+                    //console.log("This version of node not support 64bit integer !");
+                    //return "NaN";
                 }else{
                     return this.values.readBigUInt64LE(offset*8);
                 }
@@ -1581,11 +1596,72 @@ class DataBlock
                 break;
             case 8:
                 this.width = 64;
+                if(this.values.readBigUInt64LE == null){
+                    this.virtual64 = true;
+                    this.values = [];
+                }
                 break;
         }
     }
+
+
+    toJsonObject(exclude=[]){
+        let o = new Object();
+        for(let i in this){
+            if(exclude.indexOf(i)>-1) continue;
+            if(this[i]==null) continue;
+            switch(i){
+                case "tags":
+                case "signed":
+                    if(this[i].length > 0) 
+                        o[i] = this[i];    
+                    break;
+                case "line":
+                case "offset":       
+                    if(this[i] > -1)
+                        o[i] = this[i];
+                    break;
+                case "name":
+                case "length":
+                case "width":
+                case "uid":
+                    o[i] = this[i];
+                    break;
+                case "parent":
+                    o.parent = this.parent.signature();
+                    break;
+                case "values":
+                    o.values = this.values;
+                    break;
+            }
+        } 
+        return o;
+    }
 }
 
+class TagCategory
+{
+    constructor(name, taglist){
+        this.name = name;
+        this.taglist = taglist;
+    }
+
+    addTag(tag){
+        if(this.taglist.indexOf(tag)==-1) 
+            this.taglist.push(tag);
+    }
+
+    getTags(){
+        return this.taglist;
+    }
+
+    toJsonObject(){
+        let o = new Object();
+        o.name = this.name;
+        o.taglist = this.taglist;
+        return o;
+    }
+}
 
 /**
  * Represents a basic block of dalvik instruction
@@ -2523,5 +2599,6 @@ module.exports = {
     FUNC_TYPE: FUNC_TYPE,
     BUILTIN_TAG: BUILTIN_TAG,
     SwitchCase: SwitchCase,
-    PackedSwitchStatement: PackedSwitchStatement
+    PackedSwitchStatement: PackedSwitchStatement,
+    TagCategory: TagCategory
 }; 

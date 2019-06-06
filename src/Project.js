@@ -79,9 +79,19 @@ function Project(pkgName, cfgpath=null, nofrida=0){
     this.find = new Finder.SearchAPI();
 
     // set SC analyzer 
-    this.analyze = new Analyzer(this.config.encoding, this.find);
+    this.analyze = new Analyzer(this.config.encoding, this.find, this);
     // set syscall list (bionic) 
     this.analyze.useSyscalls(SYSCALLS);
+    this.analyze.addTagCategory(
+        "hash",
+        ["md5","sha1","sha256","sha512"]
+    );
+    this.analyze.addTagCategory(
+        "key",
+        ["256","1024","2048","4096"]
+    );
+
+
     this.apkHelper = new ApkHelper(this);
 
     // ste Device Manager
@@ -262,6 +272,8 @@ Project.prototype.fullscan = function(path){
     //this.analyze.path()
     this.analyze.path(this.config.getTargetPlatformPath());
 
+    this.analyze.updateDataBlock();    
+
     this.analyze.tagAllAsInternal();
 
     //this.analyze.path(this.config.platform_available[this.config.platform_target].getBinPath());
@@ -276,10 +288,14 @@ Project.prototype.fullscan = function(path){
         this.dataAnalyser.scan( this.workspace.getWD()+"dex", ["smali"]);
     }
 
+    // index static array 
+    this.analyze.updateDataBlock();    
 
     this.analyze.tagAllIf(
         function(x){ return x.hasTag(AnalysisHelper.TAG.Discover.Internal)==false; }, 
         AnalysisHelper.TAG.Discover.Statically);
+
+
 
     // deploy inspector's hooksets
     this.inspectors.deployAll();

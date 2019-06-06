@@ -567,10 +567,53 @@
         return body;
     }
 
-    
+    var ApplicationMap = {
+        tags: null
+    };
+
+    const BS = {
+        color: {
+            purple: 'purple',       
+            pink: 'pink',  
+            primry: 'primary',         
+            info: 'info',         
+            warning: 'warning',         
+            danger: 'danger',         
+            secondary: 'secondary'          
+        },
+        badge: function(color,data){
+            if(BS.color[color]==null) console.error("Given color not exists : ",color);
+
+            return '<a class="badge badge-'+BS.color[color]+'">'+htmlEncode(data)+'</a>'; 
+        } 
+    };
+
+    const ColorCode = {
+        hash: BS.color.primary,
+        ascii: BS.color.info,
+        keys: BS.color.purple
+    };
+
 
     $(document).ready(function() {
 
+        $.ajax(
+            "../api/tags",
+            {
+                method:"get",
+                statusCode: {
+                    200: function(data){
+                        let tags = JSON.parse(data);
+                        for(let i=0; i<tags.length;i++){
+                            if(ColorCode[tags[i]]==null) console.log("Need more color code"); 
+                            for(let j=0; j<tags[i].length;j++){
+                                ApplicationMap.tags.push(tags[i][j]) = tags[i];
+                            }
+                        }
+                    }
+                }
+            }
+        );
        
 
         let clsTable = $('#dataTables-finder').DataTable({
@@ -621,6 +664,7 @@
                     // render tags
                     render: function(data, type, row, meta ){
                         let t = "";
+                        if(row.tags==null) return t;
                         for(let i=0; i<row.tags.length; i++){
                             switch(row.tags[i]){
                                 case "di":
@@ -659,7 +703,7 @@
 
             
             xrefTable.clear();
-            xrefTable.draw();
+            xrefTable.draw();   
             $.ajax(
                 "../api/method/xref/"+ref,
                 {
@@ -936,6 +980,52 @@
             });
         }
 
+        
+        function renderDatablockTable(table){
+            $("#finder-col1").html("");
+            $("#finder-col2").html("Position");
+            $("#finder-col3").html("Tags");
+            $("#finder-col4").html("Action");
+
+            table.destroy();
+            return $('#dataTables-finder').DataTable({
+                searching: false,
+                paging: true,
+                columns: [
+                    {
+                        "className":      'details-control',
+                        "orderable":      false,
+                        "data":           null,
+                        "defaultContent": ''
+                    },
+                    { 
+                        render: function(data, type, row, meta ){
+                            return (row.uid!=null)? htmlEncode(row.uid) : '[Missing]';
+                        }
+                    },
+                    {  
+                        render: function(data, type, row, meta ){
+                            let r="";
+                            if(row.tags!=null){
+                                for(let i=0; i<row.tags.length; i++){
+                                    r += BS.badge(ColorCode[row.tags[i]], row.tags[i]);
+                                }
+                            }
+                            return r;
+                        }
+                    },
+                    { 
+                        
+                        render: function(data, type, row, meta ){
+                            let b='<a  class="badge badge-info rename" ename="'+btoa(encodeURIComponent(row.name))+'" subt="field" subject="'+btoa(encodeURIComponent(row.__signature__))+'">Rename</a>';
+
+                            return b;
+                        }
+                    }
+                ],
+                responsive: true
+            });
+        }
 
         function renderBodyTable(data){
             
@@ -1072,7 +1162,8 @@
             $.ajax('../api/finder',{
                 method: 'get',
                 data: {
-                    search: encodeURIComponent(btoa(encodeURIComponent(val)))
+                    search: encodeURIComponent(btoa(encodeURIComponent(val))),
+                    _t: (new Date()).getTime()
                 },
                 statusCode: {
                     200: function(data){

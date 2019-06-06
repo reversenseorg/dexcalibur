@@ -13,11 +13,12 @@ var DataModel = {
     modifier: new CLASS.Modifiers(),
     objectType: new CLASS.ObjectType(),
     basicType: new CLASS.BasicType(),
-    value: new CLASS.ValueConst(), // simplidifier ici avec string
+    value: new CLASS.ValueConst(),
     string: new CLASS.StringValue(),
     syscall: new CLASS.Syscall(),
     missing: new CLASS.MissingReference(),
-    file: new FILE.File()
+    file: new FILE.File(),
+    datablock: new CLASS.DataBlock() 
 };
 
 function PreparedRequest(name){
@@ -46,20 +47,31 @@ PreparedRequest.prototype.exec = function(ctx){
     }   
 }
 
-function SearchPattern(cfg){
-    this.fn = null;
-    this.pattern = null;
-    this.field = null;
-    this.isModifier = false;
-    this.isStructField = false;
-    this.isDeepSearch = false;
+class SearchPattern
+{
+    constructor(cfg){
+        this.fn = null;
+        this.pattern = null;
+        this.field = null;
+        this.isModifier = false;
+        this.isStructField = false;
+        this.isDeepSearch = false;
 
-    // init
-    if(cfg!==undefined)
-        for(let i in cfg) this[i] = cfg[i];
-    
+        // init
+        if(cfg!==undefined)
+            for(let i in cfg) this[i] = cfg[i];   
+    }
 
-    return this;
+    serialize(){
+        let o = new Object();
+        o.isModifier = this.isModifier;
+        o.isStructField = this.isStructField;
+        o.isDeepSearch = this.isDeepSearch;
+        o.field = this.field;
+        o.pattern = this.pattern;
+
+        return o;
+    }
 }
 
 function FinderJoin(rootData,joinData,finder){
@@ -168,22 +180,6 @@ FinderResult.prototype.ifilter = function(pattern){
     return this.filter(pattern, false);
 };
 
-    /**
-     * To check is a result set contains an object
-     * @param {*} obj Should has a field _hashcode containing the unique identifier of the object
-     *//*
-    this.contains = function(obj){
-        for(let i in this.data){
-            if(obj._hashcode===this.data[i]._hashcode){
-                // TODO : remove
-               // console.log("[DBG] "+obj._hashcode+"  contained");
-                return true;
-            }
-        }
-        // TODO : remove
-        //        console.log("[DBG] "+obj._hashcode+" not contained");
-        return false;
-    };*/
 
 /**
  * To merge two results sets, object already present are ignored
@@ -480,35 +476,7 @@ FinderResult.prototype.show = function(){
     sub = null;
 };
 
-/*
-function Graph(){
-    this.subject = null;
-    this.cfg = null;
-}
 
-function Inspector(db, finder){
-    this.data = db;
-    this.finder = finder;
-}
-Inspector.prototype = {
-    // Variable Type Analysis
-    vta: function(method){
-
-    },
-    // Class Hierarchy Analysis
-    cha: function(cls){
-        
-    },
-    // Interprocedural Control Flow Graph
-    icfg: function(activity){
-
-    },
-    // Control Flow Graph
-    cfg: function(method){
-        
-    }
-}
-*/
 /**
  * The Finder class represents the search engine.
  * It parses the search request, performs search, and returns a FinderResult object
@@ -843,6 +811,9 @@ MissingObjectAPI.prototype.type = function(pattern){
     return this._search._finder._find(db.data, DataModel.type, pattern, this._search._caseSensitive, true, true);     
 }
 
+
+
+
 /**
  * The SearchAPI. Allow the user to perform search into the object
  * database. 
@@ -871,7 +842,7 @@ function SearchAPI(data){
             "getter(<pattern>|<field>)\t\tSearch for getter of given field by a pattern or a field object",
             "setter(<pattern>|<field>)\t\tSearch for setter of given field by a pattern or a field object",
             "new(<pattern>|<class>)\t\tSearch for new instance of a given class object or class properties ",
-            "array(<pattern>|<*>)\t\tSearch for static array by method properties",
+            "array(<pattern>|<*>)\t\tSearch for static array by array properties",
             "nocase()\t\tSwitch ON/OFF the case sensitive flag of the following search"
         ]);
     };
@@ -889,6 +860,7 @@ function SearchAPI(data){
     this.method = function(pattern){ return finder._find(_db.methods, DataModel.method, pattern, this._caseSensitive); };
     this.field = function(pattern){ return finder._find(_db.fields, DataModel.field, pattern, this._caseSensitive); };
     this.file = function(pattern){ return finder._find(_db.files, DataModel.file, pattern, this._caseSensitive); };
+    this.array = function(pattern){ return finder._find(_db.datablock, DataModel.datablock, pattern, this._caseSensitive); };
 
     this.call = function(pattern){ 
         return finder._find(_db.call, DataModel.call, pattern, this._caseSensitive); 
@@ -910,7 +882,10 @@ function SearchAPI(data){
         class: function(id){ return _db.classes[id] },
         method: function(id){ return _db.methods[id] },
         field: function(id){ return _db.fields[id] },
-        syscalls: function(id){ return _db.syscalls[id] }
+        syscalls: function(id){ return _db.syscalls[id] },
+        /*datablock: function(id){
+
+        }*/
     };
     
     
@@ -1070,7 +1045,6 @@ function SearchAPI(data){
 module.exports = {
     SearchAPI: SearchAPI,
     SearchPattern: SearchPattern,
-    // Inspector: Inspector,
     Finder: Finder,
     FinderResult: FinderResult
 };

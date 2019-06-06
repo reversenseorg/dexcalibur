@@ -413,7 +413,7 @@ DynLoaderInspector.on("hook.reflect.method.get", {
 
             // if more than one result, try to filter with filename/line number
             if(callers.count()>1){
-                Logger.warn("[INSPECTOR][TASK] DynLoaderInspector search Method : there are more than one result");
+                //Logger.warn("[INSPECTOR][TASK] DynLoaderInspector search Method : there are more than one result");
             }else{
                 caller = callers.get(0);
             }

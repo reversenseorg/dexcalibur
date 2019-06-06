@@ -530,6 +530,22 @@ class WebServer {
                 res.status(200).send(JSON.stringify(dev));
             });
 
+        /**
+         * To enumerate exisiting categories and tags
+         */
+        this.app.route('/api/tags')
+            .get(function(req,res){
+                // collect
+                let dev = {
+                    data: []
+                };
+                let tagc = $.project.analyze.getTagCategories();
+                for(let i=0; i<tagc.length; i++){
+                    dev.data.push(tagc[i].toJsonObject());
+                }
+                res.status(200).send(JSON.stringify(dev));
+            });
+            
         this.app.route('/api/method')
             .get(function(req,res){
                 // collect

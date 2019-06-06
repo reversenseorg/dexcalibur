@@ -9,8 +9,9 @@ var VM = require("./VM.js");
 var OPCODE = require("./Opcode.js");
 const AnalysisHelper = require("./AnalysisHelper.js");
 
-// local
+
 var Parser = require("./SmaliParser.js");
+
 var SmaliParser = new Parser();
 
 
@@ -679,6 +680,13 @@ function MakeMap(data,absoluteDB){
     // update place where field are called
     //return data;
 }
+/*
+class ApplicationMap
+{
+    constructor(){
+        this.indexes = [];
+    }
+}*/
 
 /**
  * Represents the Application map and the entrypoint for all analysis tasks
@@ -686,7 +694,8 @@ function MakeMap(data,absoluteDB){
  * @param {Finder} finder The instance of the main to update when the Applciation map is updated.
  * @constructor
  */
-function Analyzer(encoding, finder){
+function Analyzer(encoding, finder, ctx=null){
+    SmaliParser.setContext(ctx);
     var db = this.db = {
         classesCtr: 0,
         classes: {},
@@ -704,7 +713,9 @@ function Analyzer(encoding, finder){
         missing: [],
         parseErrors: [],
         files: [],
-        buffers: []
+        buffers: [],
+        datablock: [],
+        tagcategories: []
     };
 
     let tempDb = this.tempDb = {
@@ -723,7 +734,9 @@ function Analyzer(encoding, finder){
         strings: [],
         packages: [],
         files: [],
-        buffers: []
+        buffers: [],
+        datablock: [],
+        tagcategories: []
     }
 
     this.finder = finder;
@@ -756,7 +769,9 @@ function Analyzer(encoding, finder){
             missing: [],
             parseErrors: [],
             files: [],
-            buffers: []
+            buffers: [],
+            datablock: [],
+            tagcategories: []
         };
     }
 
@@ -808,6 +823,15 @@ function Analyzer(encoding, finder){
         return this._db;
     }
 }
+
+Analyzer.prototype.addTagCategory = function(name, taglist){
+    this.db.tagcategories.push(new CLASS.TagCategory(name,taglist));
+}
+
+Analyzer.prototype.getTagCategories = function(){
+    return this.db.tagcategories;
+}
+
 
 /**
  * To initialize the list of syscalls to use
@@ -1144,17 +1168,23 @@ Analyzer.prototype.tagIf = function(condition, type, tag){
     }
 }
 
-/*
-Analyzer.prototype._updateWithBuffers = function(filesDB, condition, updater){
-    //this.db.files 
-    for(let i=0; i<this.db.files.length; i++){
-        for(let j=0; j<filesDB.length; j++){
-            if(condition( filesDB[j], this.db.files[i])){
-                updater( this.db, filesDB[j],this.db.files[i]);
-            }
+/**
+ * To scan for new DataBlock and index them
+ */
+Analyzer.prototype.updateDataBlock = function(){
+    let dd=null, dbs=null;
+    for(let i in this.db.methods){
+        dd = this.db.methods[i].getDataBlocks();
+        for(let j=0; j<dd.length; j++){
+            if(dd[j] == null) continue;
+            dbs = dd[j].getUID();
+            if(this.db.datablock[dbs] == null)
+                this.db.datablock[dbs] = dd[j];
         }
     }
-};*/
+}
+
+
 
 
 module.exports = Analyzer;
