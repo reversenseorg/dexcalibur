@@ -448,7 +448,7 @@ class SmaliParser
 
 
                 if(sml[0].indexOf(':cond_')>-1){
-                    if(this.__tmp_block.stack.length>0){
+                    if(this.__tmp_block instanceof CLASS.DataBlock || this.__tmp_block.stack.length>0){
                         this.__tmp_meth.appendBlock(this.__tmp_block);
                         this.__tmp_block = new CLASS.BasicBlock();
                     }
@@ -457,7 +457,7 @@ class SmaliParser
                     this.__tmp_block.setAsConditionalBlock(sml[0].split('_')[1]);
 
                 }else if(sml[0].indexOf(':goto_')>-1){
-                    if(this.__tmp_block.stack.length>0){
+                    if(this.__tmp_block instanceof CLASS.DataBlock || this.__tmp_block.stack.length>0){
                         this.__tmp_meth.appendBlock(this.__tmp_block);
                         this.__tmp_block = new CLASS.BasicBlock();
                     }
@@ -465,7 +465,7 @@ class SmaliParser
                     this.__tmp_block.setAsGotoBlock(sml[0].split('_')[1]);
 
                 }else if(sml[0].indexOf(':try_start')>-1){
-                    if(this.__tmp_block.stack.length>0){
+                    if(this.__tmp_block instanceof CLASS.DataBlock || this.__tmp_block.stack.length>0){
                         this.__tmp_meth.appendBlock(this.__tmp_block);
                         this.__tmp_block = new CLASS.BasicBlock();
                     }
@@ -496,7 +496,9 @@ class SmaliParser
                 }
                 else if(sml[0].indexOf(LEX.LABEL.SSWITCH)>-1){
 
-                    if(this.__tmp_block != null && this.__tmp_block.stack.length > 0){
+                    if(this.__tmp_block != null
+                        && (this.__tmp_block instanceof CLASS.DataBlock 
+                            || this.__tmp_block.stack.length > 0)){
                         this.__tmp_meth.appendBlock(this.__tmp_block);
                         this.__tmp_block = new CLASS.BasicBlock();
                     }
@@ -524,7 +526,9 @@ class SmaliParser
                 }
                 else if(sml[0].indexOf(':catchall')>-1){
 
-                    if(this.__tmp_block != null && this.__tmp_block.stack.length > 0){
+                    if(this.__tmp_block != null 
+                        && ( this.__tmp_block instanceof CLASS.DataBlock 
+                            || this.__tmp_block.stack.length > 0 )){
                         this.__tmp_meth.appendBlock(this.__tmp_block);              
                         this.__tmp_block = new CLASS.BasicBlock();
                     }
