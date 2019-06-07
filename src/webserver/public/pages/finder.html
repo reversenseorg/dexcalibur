@@ -77,16 +77,18 @@
             <div class="row" style="margin-bottom:20px">
                 <div class="col-lg-12 pre-request">
                     <a class="badge badge-danger prefilter-clean">clean</a>&nbsp;&nbsp;
-                    <a class="badge badge-info prefilter" prefilt='call("calleed.name:@@")'>find calls to a method</a>&nbsp;&nbsp;
+                    <a class="badge badge-primary prefilter" prefilt='call("calleed.name:@@")'>find calls to a method</a>&nbsp;&nbsp;
                     <a class="badge badge-info prefilter" prefilt='call("calleed.name:@@").select("caller")'>find callers of a method</a>&nbsp;&nbsp;
                     <a class="badge badge-info prefilter" prefilt='call("calleed.name:@@").filter("calleed.__signature__:->")'>use of the field</a>&nbsp;&nbsp;
-                    <a class="badge badge-info prefilter" prefilt='class("name:@@")'>find class by name</a>&nbsp;&nbsp;
+                    <a class="badge badge-warning prefilter" prefilt='class("name:@@")'>find class by name</a>&nbsp;&nbsp;
                     <a class="badge badge-info prefilter" prefilt='class("extends.name:@@")'>find class by extended class</a>&nbsp;&nbsp;
                     <a class="badge badge-info prefilter" prefilt='field("name:@@")'>find field by name</a>&nbsp;&nbsp;
-                    <a class="badge badge-info prefilter" prefilt='method("name:@@")'>find method by name</a>&nbsp;&nbsp;
+                    <a class="badge badge-warning prefilter" prefilt='method("name:@@")'>find method by name</a>&nbsp;&nbsp;
                     <a class="badge badge-info prefilter" prefilt='method("args.__signature__:@@")'>find method by arg type</a>&nbsp;&nbsp;
                     <a class="badge badge-info prefilter" prefilt='method("ret.__signature__:@@")'>find method by return type</a>&nbsp;&nbsp;
                     <a class="badge badge-info prefilter" prefilt='string("value:@@")'>Strings containing</a>&nbsp;&nbsp;
+                    <a class="badge badge-pink prefilter" prefilt='array("uid:@@")'>static array by method</a>&nbsp;&nbsp;
+                    <a class="badge badge-pink prefilter" prefilt='array("tags:@@")'>static array by tag</a>&nbsp;&nbsp;
                 </div>
                 <div class="col-lg-12 pre-filter" style="display:none">
                     <a class="badge badge-danger prefilter-clean">clean</a>&nbsp;&nbsp;
@@ -484,6 +486,31 @@
         return body;
     }
 
+    function renderDatablockDetail( row ) {
+        let body = '', d="";
+
+        body += '<b>Location</b>&nbsp;<a href="finder.html?method='+btoa(encodeURIComponent(row.parent))+'">'+htmlEncode(row.parent)+'</a>&nbsp;'+htmlEncode(row.name);
+        
+        body += '<table class="table table-sm"><thead><tr><th scope="col">Tag</th><th scope="col">Data</th><th scope="col">Action</th></thead><tbody>';
+        
+        for(let i in row.tags){
+            d="";
+            body += "<tr><td>"+htmlEncode(row.tags[i])+"</td><td>";
+            if(row.tags[i]=="ascii"){
+                row.values.data.map((x)=>{ d+=String.fromCharCode(x)});
+            } 
+            else{
+                d = "0x";
+                row.values.data.map((x)=>{ d+=x.toString(16) });
+            }
+
+            body += htmlEncode(d);
+        }
+        
+        body += "</tbody></table>"
+        return body;
+    }
+
     function renderMethodDetail( row ) {
         let body = '', j=0;
 
@@ -575,7 +602,7 @@
         color: {
             purple: 'purple',       
             pink: 'pink',  
-            primry: 'primary',         
+            primary: 'primary',         
             info: 'info',         
             warning: 'warning',         
             danger: 'danger',         
@@ -584,15 +611,23 @@
         badge: function(color,data){
             if(BS.color[color]==null) console.error("Given color not exists : ",color);
 
-            return '<a class="badge badge-'+BS.color[color]+'">'+htmlEncode(data)+'</a>'; 
+            return '&nbsp;<a class="badge badge-'+BS.color[color]+'">'+htmlEncode(data)+'</a>'; 
         } 
     };
 
     const ColorCode = {
         hash: BS.color.primary,
+        sha: BS.color.primary,
+        md5: BS.color.primary,
         ascii: BS.color.info,
-        keys: BS.color.purple
+        key: BS.color.purple,
+        rsa: BS.color.purple,
     };
+
+    function findColorCode(tagname){
+        for(let i in ColorCode) if(tagname.indexOf(i)>-1) return ColorCode[i];
+        return null;
+    }
 
 
     $(document).ready(function() {
@@ -603,9 +638,10 @@
                 method:"get",
                 statusCode: {
                     200: function(data){
-                        let tags = JSON.parse(data);
+                        let tags = JSON.parse(data), cc=null;
                         for(let i=0; i<tags.length;i++){
-                            if(ColorCode[tags[i]]==null) console.log("Need more color code"); 
+                            cc = findColorCode(tags[i]);
+                            if(cc==null) console.log("Need more color code"); 
                             for(let j=0; j<tags[i].length;j++){
                                 ApplicationMap.tags.push(tags[i][j]) = tags[i];
                             }
@@ -860,7 +896,7 @@
             table.destroy();
             return $('#dataTables-finder').DataTable({
                 searching: false,
-                paging: true,
+                paging: false,
                 columns: [
                     {
                         "className":      'details-control',
@@ -990,7 +1026,7 @@
             table.destroy();
             return $('#dataTables-finder').DataTable({
                 searching: false,
-                paging: true,
+                paging: false,
                 columns: [
                     {
                         "className":      'details-control',
@@ -1008,7 +1044,9 @@
                             let r="";
                             if(row.tags!=null){
                                 for(let i=0; i<row.tags.length; i++){
-                                    r += BS.badge(ColorCode[row.tags[i]], row.tags[i]);
+                                    r += BS.badge(
+                                        findColorCode(row.tags[i])
+                                        , row.tags[i]);
                                 }
                             }
                             return r;
@@ -1017,9 +1055,11 @@
                     { 
                         
                         render: function(data, type, row, meta ){
-                            let b='<a  class="badge badge-info rename" ename="'+btoa(encodeURIComponent(row.name))+'" subt="field" subject="'+btoa(encodeURIComponent(row.__signature__))+'">Rename</a>';
-
-                            return b;
+                            console.log(row);
+                            if(row.uid.indexOf("<clinit>")>-1)
+                                return '<a class="badge badge-secondary" tip="Class init cannot be hooked">Probe</a>';
+                            else
+                                return '<a  class="badge badge-info probe" meth="'+btoa(encodeURIComponent(row.parent))+'">Probe</a>';
                         }
                     }
                 ],
@@ -1049,6 +1089,9 @@
             }
             else if(data[0].value !== undefined){ 
                 clsTable = renderValuesTable(clsTable);
+            }
+            else if(data[0].width !== undefined){
+                clsTable = renderDatablockTable(clsTable);
             }
 
             clsTable.clear();
@@ -1094,6 +1137,11 @@
                     row.child( renderStringDetail(row.data()) ).show();
                     tr.addClass('shown');
                 }
+                else if(rd.values != null){
+                    row.child( renderDatablockDetail(row.data()) ).show();
+                    tr.addClass('shown');
+                }
+
             }
         } );
 

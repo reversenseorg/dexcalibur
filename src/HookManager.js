@@ -590,7 +590,7 @@ HookMessage.prototype.getHook = function(){
  */
 HookMessage.prototype.toJsonObject = function(){
     let o = new Object();
-    o.data = this.data;    
+    o.data = this.data;
     o.hook = this.hook;
     o.msg = this.msg;
     o.match = this.match;

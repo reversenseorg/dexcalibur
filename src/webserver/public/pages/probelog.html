@@ -309,6 +309,7 @@
                                 if(hookMsg.data != null){
                                     if(typeof hookMsg.data == "object"){
                                         for(let i in hookMsg.data){
+                                            if(i.indexOf("__hidden__")==0) continue;
                                             msgdata += htmlEncode(i+" = "+hookMsg.data[i])+"</br>";
                                         }
                                     }else

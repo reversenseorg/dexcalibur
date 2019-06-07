@@ -1548,7 +1548,6 @@ class DataBlock
     read(offset){
         switch(this.width>>3){
             case 1:
-                console.log(this.values, this.values.readUInt8(offset), Buffer.from(this.values, offset, 1));
                 return this.values.readUInt8(offset);
             case 2:
                 return this.values.readUInt16LE(offset*2);

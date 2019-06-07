@@ -107,7 +107,7 @@ DynLoaderInspector.hookSet.addIntercept({
                 match: true, 
                 data: {
                     s: DEXC_MODULE.reflect.getMethodSignature(ret,arg1),
-                    trace: DEXC_MODULE.common.getStackTrace()
+                    __hidden__trace: DEXC_MODULE.common.getStackTrace()
                 },
                 after: true, 
                 msg: "Class.getMethod()", 
@@ -376,6 +376,7 @@ DynLoaderInspector.on("hook.dex.load", {
 DynLoaderInspector.on("hook.dex.new", {
     task: function(ctx, event){
         Logger.info("[INSPECTOR][TASK] DynLoaderInspector new Dex file", event.data.path);
+        
     }
 });
 DynLoaderInspector.on("hook.reflect.class.get", {
@@ -404,8 +405,8 @@ DynLoaderInspector.on("hook.reflect.method.get", {
         meth = ctx.find.get.method(data.s);
 
         // find the callers by inspecting the stacktrace
-        if(data.trace.length > 2){
-            callers = ctx.find.method("__signature__:^"+ut.RegExpEscape(data.trace[1].cls+"."+data.trace[1].meth+"("));
+        if(data.__hidden__trace.length > 2){
+            callers = ctx.find.method("__signature__:^"+ut.RegExpEscape(data.__hidden__trace[1].cls+"."+data.__hidden__trace[1].meth+"("));
         
             //  if no result, do nothing
             // try to resolve reference (it may be an inherited method)
@@ -440,7 +441,7 @@ DynLoaderInspector.on("hook.reflect.method.get", {
             caller: caller,
             calleed: meth,
             instr: null,
-            line: data.trace[2].line,
+            line: data.__hidden__trace[2].line,
             tags: [AnalysisHelper.TAG.Invoked.Dynamically]
         });
 
