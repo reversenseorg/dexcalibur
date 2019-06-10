@@ -486,13 +486,37 @@
         return body;
     }
 
+    // print to hexdump format
+    function printByteArray(barray, width){
+        let d="<pre>";
+        let masks = [0x00,0x0000,0x00000000,0x0000000000000000];
+        
+        for(let i=0; i<barray.length; i++){
+            if(i>0 && i%16==0) d+="<br>";
+
+            if(barray[i]<0x10) 
+                d+= "0";
+
+            d+= barray[i].toString(16); //('00'.repeat(width>>3))
+            d+=" "
+        } 
+        return d+"</pre>";
+    }
+    
     function renderDatablockDetail( row ) {
         let body = '', d="";
 
-        body += '<b>Location</b>&nbsp;<a href="finder.html?method='+btoa(encodeURIComponent(row.parent))+'">'+htmlEncode(row.parent)+'</a>&nbsp;'+htmlEncode(row.name);
+        body += '<table class="table table-sm">';
+        body += '<tr><td><b>Location</b></td><td><a href="finder.html?method='+btoa(encodeURIComponent(row.parent))+'">'+htmlEncode(row.parent)+'</a></td></tr>';
+        body += '<tr><td><b>Label</b></td><td>'+htmlEncode(row.name)+'</td></tr>';
+        body += '<tr><td><b>Size</b></td><td>'+(parseInt(row.length,10)*parseInt(row.width,10))+'&nbsp; bits</td></tr>';
+        body += '<tr><td><b>Entry width</b></td><td>'+row.width+'&nbsp; bits</td></tr>';
+        body += '</table>';
         
         body += '<table class="table table-sm"><thead><tr><th scope="col">Tag</th><th scope="col">Data</th><th scope="col">Action</th></thead><tbody>';
         
+
+
         for(let i in row.tags){
             d="";
             body += "<tr><td>"+htmlEncode(row.tags[i])+"</td><td>";
@@ -506,7 +530,8 @@
 
             body += htmlEncode(d);
         }
-        
+        body += "<tr><td>raw</td><td>"+printByteArray(row.values.data,row.width)+"</td><td>";
+         
         body += "</tbody></table>"
         return body;
     }
@@ -1075,6 +1100,10 @@
                 data = [data];
 
                 console.log(data);
+            
+                
+            clsTable.clear();
+
             if(data[0].package !== undefined){
                 clsTable = renderClassTable(clsTable);
             }
@@ -1094,7 +1123,7 @@
                 clsTable = renderDatablockTable(clsTable);
             }
 
-            clsTable.clear();
+            //clsTable.clear();
             clsTable.rows.add(data);
             clsTable.draw();
         }
