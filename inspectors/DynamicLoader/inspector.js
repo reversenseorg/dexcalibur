@@ -319,26 +319,25 @@ DynLoaderInspector.hookSet.addIntercept({
 
             send({ 
                 id:"@@__HOOK_ID__@@", 
-                match: true, 
+                match: false, 
                 data: {
                     path: path,
                 },
-                after: true, 
-                msg: "DexFile.loadDex()", 
+                after: false, 
+                msg: "DexFile.<init>()", 
                 action:"Log" 
             });
     `
 });
 
-/*
+
 DynLoaderInspector.hookSet.addProbe({
-    //when: HOOK.BEFORE,
     method: "android.os.Parcelable$ClassLoaderCreator.createFromParcel(<android.os.Parcel><java.lang.ClassLoader>)<java.lang.Object>",
     onMatch: function(ctx,event){
-        ctx.bus.send({ 
+       /* ctx.bus.send({ 
             type: "hook.classloader.new", 
             data: event 
-        });
+        });*/
     },
     interceptBefore: `    
             
@@ -349,8 +348,7 @@ DynLoaderInspector.hookSet.addProbe({
                 id:"@@__HOOK_ID__@@", 
                 match: true, 
                 data: {
-                    arg0: arguments[0],
-                    arg1: arguments[1],
+                    classloader: "--" //arg1.getClass,
                 }
                 after: true, 
                 msg: "ClassLoaderCreator.createFromParcel()", 
@@ -359,10 +357,7 @@ DynLoaderInspector.hookSet.addProbe({
     `
 });
 
-/*
-dalvik.system.DexFile.<init>(<java.io.File>)<void>
-Probe OFF  intercept xref	Field	dalvik.system.DexFile.<init>(<java.lang.String>)<void>
-*/
+
 
 
 // ====== CONFIG TASK ====== 

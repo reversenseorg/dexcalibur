@@ -55,9 +55,8 @@
             <div class="panel panel-info">
                <div class="panel-heading">
                     <div class="row">
-                        <div class="col-lg-7" style="font-size:1.5em">Method invoked dynamically</div>
-                        <div class="col-lg-3" style="font-size:1.5em; color:gray" id="nopCounter">
-                        </div>
+                        <div class="col-lg-10" style="font-size:1.5em">Method invoked dynamically</div>
+                        
                         <div class="col-lg-2">
                             <button class="btn btn-primary refreshReflect">
                                 <i class="fa fa-refresh"></i>&nbsp;Refresh
@@ -66,7 +65,15 @@
                     </div>
                 </div>         
                 <div class="panel-body">
-                    <p>The table below lists all unique method get dynamically. If a method was not yet discovered, it is tagged 
+                    <p>
+                    <b>Heuristic applied</b>
+                    <ul>
+                        <ol><input type="radio" id="dyncall_heurtype" name="dyncall_heurtype" value="half" checked="checked"/>&nbsp;A <i>Class.forName() or a const-class</i> followed by <i>Class.getMethod()</i> is probably a call <b style="color:green">(trust: moderate, rapidity: fast, stability: stable)</b></ol>
+                        <ol><input type="radio" id="dyncall_heurtype" name="dyncall_heurtype" value="mixstat" disabled />&nbsp;A <i>Class.forName() or a const-class<</i> followed by <i>Class.getMethod()</i> followed statically by a <i>Method.invoke()</i> probably call <b style="color:green">(trust: good, rapidity: moderate, stability: stable)</b></ol>
+                        <ol><input type="radio" id="dyncall_heurtype" name="dyncall_heurtype" value="invoke" disabled />&nbsp;A <i>Method.invoke()</i> is probably a call <b style="color:red">(trust: high, rapidity: fast, stability: unstable - can crash the server ! - frida limitation)</b></ol>
+                    </ul>
+                    </p>
+                    <p>The table below lists all unique method invoked dynamically. If a method has never been yet discovered, it is tagged 
                     with the <span class="badge badge-purple">new</span> label.</p>
                     <table width="100%"  class="table table-striped table-bordered table-hover" id="dataTables-reflect">
                             <thead>

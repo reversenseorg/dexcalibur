@@ -131,7 +131,7 @@ class WebServer {
                     localPath = $.project.config.getDexcaliburPath()+"../inspectors/";
                     localPath += iid+"/web/"+relPath;
 
-                    console.log("[WebServer::inspectors] Path = "+localPath);
+                    //console.log("[WebServer::inspectors] Path = "+localPath);
                 
 
                     //localPath = $.project.getInspector(inspector).getPath();
