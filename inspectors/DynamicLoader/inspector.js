@@ -19,6 +19,10 @@ var DynLoaderInspector = new Inspector.Inspector({
 
 DynLoaderInspector.useGUI();
 
+DynLoaderInspector.registerTagCategory(
+    "dynamic_loading",
+    ["invoked","loaded"]
+);
 // ===== CONFIG HOOKS =====
 
 DynLoaderInspector.hookSet.require("Reflect");

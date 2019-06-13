@@ -190,6 +190,10 @@ function Project(pkgName, cfgpath=null, nofrida=0){
     this.workspace.init();
 }
 
+Project.prototype.getAnalyzer = function(){
+    return this.analyze;
+}
+
 /**
  * To show available APIs (console print)
  * 
