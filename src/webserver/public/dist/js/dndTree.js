@@ -559,7 +559,11 @@ function drawTree(urlData, options){
                 })
                 .attr("r", 0)
                 .style("fill", function(d) {
-                    return d._children ? "lightsteelblue" : ((d.internal === true)? 'green' : '#fff');
+                    if(d._children) return "lightsteelblue";
+                    if(d.dynamic===true) return 'purple';
+                    if(d.internal===true) return 'green';
+                    
+                    return '#fff';
                 });
         
 
@@ -579,7 +583,9 @@ function drawTree(urlData, options){
                 .attr("data-content","<div class='popmenu'><span class='badge badge-purple'>expand</span></div>")
                 .attr("class",function(d){
                     console.log(d);
-                    if(d.internal===true)
+                    if(d.tags.indexOf("id")>-1)
+                        return "dynamicRect";
+                    if(d.tags.indexOf("di")>-1)
                         return "systemRect";
                     else    
                         return "staticRect";

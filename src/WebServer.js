@@ -354,10 +354,14 @@ class WebServer {
             .post(function(req,res){
                 let meth = $.project.find.get.method(UT.decodeURI(UT.b64_decode(req.params.method)));
                 if(meth == null){
-                    res.status(404).send(JSON.stringify(dev));
+                    console.log(UT.decodeURI(UT.b64_decode(req.params.method)));
+                    res.status(404).send(JSON.stringify({ msg:"Method not found" }));
                     return;
                 }
-
+                if(meth.name == "<clinit>"){
+                    res.status(404).send(JSON.stringify({ msg:"Static blocks (<clinit>) cannot be hooked" }));
+                    return;
+                }
                 let probe = $.project.hook.getProbe(meth); 
                 if(probe == null){
                     probe = $.project.hook.probe(meth);

@@ -111,7 +111,8 @@ GraphMaker.prototype.method_htg = function(method, instruction=null){
 GraphMaker.prototype.callgraph_from = function(obj, n=1, m=2){
     let tree={ 
         fqcn:obj.signature(), 
-        internal:obj.hasTag(AnalysisHelper.TAG.Discover.Internal), 
+        tags: obj.tags,
+        //internal:obj.hasTag(AnalysisHelper.TAG.Discover.Internal), 
         class:obj.enclosingClass.name, 
         classname: obj.enclosingClass.simpleName,
         name:obj.name, 
@@ -133,7 +134,8 @@ GraphMaker.prototype.callgraph_from = function(obj, n=1, m=2){
                 else    
                     tree.children.push({ 
                         fqcn:i, 
-                        internal:meth.hasTag(AnalysisHelper.TAG.Discover.Internal), 
+                        tags: meth.getTags(),
+                        //internal:meth.hasTag(AnalysisHelper.TAG.Discover.Internal), 
                         class:meth.enclosingClass.name, 
                         classname: meth.enclosingClass.simpleName,
                         name:meth.name, 
