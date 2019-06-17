@@ -419,8 +419,9 @@ function moveBasicBlock(method, bblocks, gotoLabel){
                                         bbs = bbs.concat(method.instr.slice(i+1));
                                 }
                                 else if(bblocks.offset>i){
+                                    //console.log(i+1,bblocks.offset, endbb+1, method.instr.slice(i+1, bblocks.offset));
                                     bbs = bbs.concat(method.instr.slice(i+1, bblocks.offset));
-                                    bbs = bbs.concat(method.instr.slice(endbb+1 ));
+                                    bbs = bbs.concat(method.instr.slice(endbb ));
                                 }
                             }
                         }
@@ -454,19 +455,21 @@ function flatternGotoOf(method){
 
         if(DEBUG){
             Disassembler.method(method);
-            //console.log(singleGoto);
         }
 
         for(let i=0; i<singleGoto.length; i++){
 
             //console.log("flat : ",singleGoto[i]);
-            
+            if(DEBUG){
+                Disassembler.method(method);
+            }
+
             blocksToMove = findTargetBasicBlocks(method, singleGoto[i]);
             if(blocksToMove.blk !== null){
 
                 if(DEBUG){
                     blocksToMove.blk.forEach(x=>console.log(x.stack));
-//                    console.log(blocksToMove, singleGoto[i])
+                    console.log(blocksToMove, singleGoto[i])
                 }
 
                 method.instr = moveBasicBlock(method, blocksToMove, singleGoto[i]);
@@ -502,7 +505,6 @@ function gotoConditionnalClean(context){
     let gotos = 0;
 
 
-    //for(let meth in DB.methods){
     context.analyze.db.methods.map((k,v)=>{
         if(checkIfEligible(v)==false) return;
 
