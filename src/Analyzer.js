@@ -8,6 +8,7 @@ var CONST = require("./CoreConst.js");
 var VM = require("./VM.js");
 var OPCODE = require("./Opcode.js");
 const AnalysisHelper = require("./AnalysisHelper.js");
+const MemoryDb = require("./InMemoryDb.js");
 
 
 var Parser = require("./SmaliParser.js");
@@ -136,15 +137,16 @@ function superInterfaceMethod(meth, interfaces){
 }
 
 
+
 var Resolver = {
     type: function(db, fqcn){
 
         if(fqcn instanceof CLASS.Class){ 
-            if(db.classes[fqcn.fqcn] !== undefined)
-                return db.classes[fqcn];
+            if(db.classes.hasEntry(fqcn.fqcn)===true)
+                return db.classes.getEntry(fqcn.fqcn);
         }else{
-            if(db.classes[fqcn] !== undefined)
-                return db.classes[fqcn];
+            if(db.classes.hasEntry(fqcn)===true)
+                return db.classes.getEntry(fqcn);
         }
         
         //console.log("Resolver::type : ",fqcn);
@@ -158,10 +160,10 @@ var Resolver = {
                 CONST.OPCODE_REFTYPE.TYPE, 
                 SmaliParser.class(fqcn));
             
-            db.classes[fqcn] = ref;
+            db.classes.setEntry(fqcn, ref);
             
             //db.notloaded.push(ref);
-            db.missing.push(ref);
+            db.missing.insert(ref);
         
             return ref;
         }
@@ -169,7 +171,7 @@ var Resolver = {
     field: function(db, fieldRef){
 
         let field = null;
-        let cls=db.classes[fieldRef.fqcn];
+        let cls=db.classes.getEntry(fieldRef.fqcn);
         let notmissing = !(cls instanceof CLASS.MissingReference);
 
         //console.log(fieldRef.fqcn,fieldRef.signature());
@@ -178,7 +180,7 @@ var Resolver = {
         // or binded class has been detected
         if(notmissing && cls !== undefined){
 
-            field = db.classes[fieldRef.fqcn].fields[fieldRef.signature()];
+            field = db.classes.getEntry(fieldRef.fqcn).fields[fieldRef.signature()];
             
             // if field is found
             if(field instanceof CLASS.Field){
@@ -238,12 +240,12 @@ var Resolver = {
         // if class is missing, create it 
         if(!notmissing){
             //console.log("Missing class : "+fieldRef.fqcn);
-            db.classes[fieldRef.fqcn] = cls = new CLASS.MissingReference(
+            db.classes.setEntry(fieldRef.fqcn, cls = new CLASS.MissingReference(
                 CONST.OPCODE_REFTYPE.CLASS, 
                 new CLASS.Class({
                     name: fieldRef.fqcn,
                     simpleName: fieldRef.fqcn.substr(fieldRef.fqcn.lastIndexOf("."))
-                }));
+                })));
         }
 
         //console.log("MissingRef "+fieldRef.fqcn+"."+fieldRef.name);
@@ -259,21 +261,21 @@ var Resolver = {
         // the HookingEngine will try to resolve it when additonal
         // custom class loaders will be load.
         // db.notloaded.push(mref);
-        db.missing.push(mref);
+        db.missing.insert(mref);
         
         return mref;
     },
     method: function(db, methRef){
 
 
-        let cls=db.classes[methRef.fqcn];
+        let cls=db.classes.getEntry(methRef.fqcn);
         let meth=null, x=null;
         let notmissing = !(cls instanceof CLASS.MissingReference);
 
 
         if(notmissing && cls !== undefined){
 
-            method = db.classes[methRef.fqcn].methods[methRef.signature()];
+            method = cls.methods[methRef.signature()];
             
             // differencier interface/class pour <init> et <clinit>
 
@@ -357,12 +359,13 @@ var Resolver = {
         if(!notmissing){
 
             console.log("Missing class : "+methRef.fqcn);
-            db.classes[methRef.fqcn] = cls = new CLASS.MissingReference(
+            cls = new CLASS.MissingReference(
                 CONST.OPCODE_REFTYPE.CLASS, 
                 new CLASS.Class({
                     name: methRef.fqcn,
                     simpleName: methRef.fqcn.substr(methRef.fqcn.lastIndexOf("."))
                 }));
+            db.classes.setEntry(methRef.fqcn, cls);
         }
         
         //if(methRef.fqcn.indexOf("StringBuilder")>-1) 
@@ -382,7 +385,7 @@ var Resolver = {
         // the HookingEngine will try to resolve it when additonal
         // custom class loaders will be load.
         // db.notloaded.push(mref);
-        db.missing.push(mref);
+        db.missing.insert(mref);
 
         return mref;
     }
@@ -398,7 +401,7 @@ var Resolver = {
  * @function 
  */
 function mapInstructionFrom(method, data, stats){
-    let bb = null, instruct = null, obj = null, x = null, success=false, cls=[];
+    let bb = null, instruct = null, obj = null, x = null, success=false, cls=[],t=0,t1=0;
 
     if(! method instanceof CLASS.Method){
         console.error("[!] mapping failed : method provided is not an instance of Method.");
@@ -415,8 +418,10 @@ function mapInstructionFrom(method, data, stats){
             instruct.line = bb.line;    
             instruct._parent = bb;       
 
-            success = false;
             stats.instrCtr++;
+            if(instruct.isNOP()) continue;
+
+            success = false;
             if(instruct.isDoingCall()){
 
                 if(instruct.right.special){
@@ -425,13 +430,14 @@ function mapInstructionFrom(method, data, stats){
                 }
                 // obj = Resolver.method(data, instruct.right);
 
-
-                instruct.right = Resolver.method(data, instruct.right);
                 
+                instruct.right = Resolver.method(data, instruct.right);
+
 
                 instruct.right._callers.push(method); 
                 
-                data.call.push(new CLASS.Call({ 
+                
+                data.call.insert(new CLASS.Call({ 
                     caller: method, 
                     calleed: instruct.right, //obj, 
                     instr: instruct}));
@@ -454,6 +460,8 @@ function mapInstructionFrom(method, data, stats){
                 method._useMethod[instruct.right.signature()].push(instruct.left);
 
 
+                
+
                 success = true;
             }
             else if(instruct.isCallingField()){
@@ -464,7 +472,9 @@ function mapInstructionFrom(method, data, stats){
 
                 // Never returns NULL
                 // if field not exists, return MissingReference object
+
                 instruct.right = Resolver.field(data, instruct.right);
+                
 
                 //instruct.right = obj;
                 if(instruct.right === undefined || instruct.right._callers === undefined){
@@ -474,7 +484,7 @@ function mapInstructionFrom(method, data, stats){
                 //console.log(instruct.right.signature)
                 instruct.right._callers.push(method); 
                 
-                data.call.push(new CLASS.Call({ 
+                data.call.insert(new CLASS.Call({ 
                     caller: method, 
                     calleed: instruct.right, 
                     instr: instruct}));
@@ -494,13 +504,14 @@ function mapInstructionFrom(method, data, stats){
                 method._useClass[instruct.right.fqcn].push(instruct.right.enclosingClass);
                 method._useField[instruct.right.signature()].push(instruct.right);
 
+
                 success = true;
             }
             else if(instruct.isUsingString()){
 
                 // add USAGE: NEW/READ/WRITE
 
-                data.strings.push(new CLASS.StringValue({ 
+                data.strings.insert(new CLASS.StringValue({ 
                     src: method, 
                     instr: instruct, 
                     value: instruct.right._value }));
@@ -513,11 +524,13 @@ function mapInstructionFrom(method, data, stats){
                 // if type not exists, return MissingReference object
                 if(instruct.right instanceof CLASS.ObjectType){
 
+                    
                     obj = Resolver.type(data, instruct.right.name);
+                    
                     
                     obj._callers.push(method); 
 
-                    data.call.push(new CLASS.Call({ 
+                    data.call.insert(new CLASS.Call({ 
                         caller:method, 
                         calleed:obj, 
                         instr:instruct}));
@@ -527,12 +540,14 @@ function mapInstructionFrom(method, data, stats){
 
                     //method._useClass[obj._hashcode] = obj;
                     method._useClass[obj.name].push(instruct);
+
                 }
                 success = true;
-            }
+            }else   
+                continue;
 
             if(!success){
-                data.parseErrors.push(instruct);
+                data.parseErrors.insert(instruct);
             }
                 
         }
@@ -549,7 +564,8 @@ function mapInstructionFrom(method, data, stats){
 function MakeMap(data,absoluteDB){
     
     console.log("\n[*] Start object mapping ...\n------------------------------------------");
-    let step = data.classesCtr, g=0;
+    let step = data.classes.size(), /*data.classesCtr,*/ g=0;
+
 
     /*
     let c = 0;
@@ -557,15 +573,17 @@ function MakeMap(data,absoluteDB){
     console.log(Chalk.bold.red("Classes in DB : "+c));
     */
     // merge Absolute DB and Temp DB
-    for(let i in data.classes){
-        if(absoluteDB.classes[i] == undefined){
-            absoluteDB.classes[i] = data.classes[i];
+    data.classes.map((k,v)=>{
+        if(absoluteDB.classes.hasEntry(k) == false){
+            absoluteDB.classes.setEntry(k, v);
         }
-    }
+    });
+    
 
     // link class with its fields and methods
-    for(let i in data.classes){
-        cls = absoluteDB.classes[i];
+    // for(let i in data.classes)
+    data.classes.map((k,v)=>{
+        cls = absoluteDB.classes.getEntry(k);
         
         // map super class
         if(cls.extends != null){
@@ -594,7 +612,7 @@ function MakeMap(data,absoluteDB){
             o.enclosingClass = cls;
 
             // data.fields[o.hashCode()] = o;
-            absoluteDB.fields[o.hashCode()] = o;
+            absoluteDB.fields.setEntry(o.hashCode(), o);
             
             STATS.idxField++;
         }
@@ -605,12 +623,14 @@ function MakeMap(data,absoluteDB){
             
             o.enclosingClass = cls;
             //data.methods[o.signature()] = o;
-            absoluteDB.methods[o.signature()] = o;
+            //absoluteDB.methods[o.signature()] = o;
+            absoluteDB.methods.setEntry(o.signature(), o);
+            
             
             STATS.idxMethod++;
         }
 
-    }
+    });
     
     // collect packages
     /*for(let i in data.classes){
@@ -623,6 +643,19 @@ function MakeMap(data,absoluteDB){
         data.classes[i].package = data.packages[data.classes[i].package];
     }*/
 
+    data.classes.map((k,v)=>{
+
+
+        // Build Package instance from the package name (string)
+        if(absoluteDB.packages.hasEntry(v.package) == false){
+            absoluteDB.packages.setEntry(v.package,  new CLASS.Package(v.package));
+        }
+        // Append the current class to its Package instance
+        absoluteDB.packages.getEntry(v.package).childAppend(v);
+        // Replace the package name by the reference to the package instance into the class instance
+        v.package = absoluteDB.packages.getEntry(v.package);
+    });
+    /*
     for(let i in data.classes){
         if(absoluteDB.packages[data.classes[i].package] == undefined){
             absoluteDB.packages[data.classes[i].package] = new CLASS.Package(
@@ -631,26 +664,39 @@ function MakeMap(data,absoluteDB){
         }
         absoluteDB.packages[data.classes[i].package].childAppend(absoluteDB.classes[i]);
         absoluteDB.classes[i].package = absoluteDB.packages[data.classes[i].package];
-    }
+    }*/
 
-    let c = 0;
-    for(let j in absoluteDB.classes) c++;
-    console.log(Chalk.bold.red("DB size : "+c));
+    console.log(Chalk.bold.red("DB size : "+absoluteDB.classes.size()));
 
     let off=0; mr=0;
-    for(let i in data.classes){
-        /*
-        if(absoluteDB.classes[i] instanceof CLASS.Class){
-            for(let j in absoluteDB.classes[i].methods){
-                if(absoluteDB.classes[i].methods[j] instanceof CLASS.Method){
+    let t=0, t1=0;
+
+    // console : progress "bar"
+    data.classes.map((k,v)=>{
+
+        if(v instanceof CLASS.Class){
+            for(let j in v.methods){
+                if(v.methods[j] instanceof CLASS.Method){
                     //mapInstructionFrom(data.classes[i].methods[j], data, STATS);
-                    mapInstructionFrom(absoluteDB.classes[i].methods[j], absoluteDB, STATS);
+                    t = (new Date()).getTime();
+                    mapInstructionFrom(v.methods[j], absoluteDB, STATS);
+                    t1 = (new Date()).getTime();
+                    if(t1-t>150)
+                        console.log((t1-t)+" : "+v.methods[j].signature());
                 }
             }
             off++;
             if(off%200==0 || off==step)
-                console.log(off+"/"+step+" Classes mapped ("+i+")") ;
-        }*/
+                console.log(off+"/"+step+" Classes mapped ("+k+")") ;
+        }
+        else{   
+            mr++;
+            if(mr%20==0) console.log(mr+" missing classes");
+        }
+    });
+/*
+    for(let i in data.classes){
+      
         
         if(data.classes[i] instanceof CLASS.Class){
             for(let j in data.classes[i].methods){
@@ -668,8 +714,15 @@ function MakeMap(data,absoluteDB){
             if(mr%20==0) console.log(mr+" missing classes");
         }
     }
-
-
+*/
+/*
+    console.log("[*] "+STATS.idxMethod+" methods indexed");
+    console.log("[*] "+STATS.idxField+" fields indexed");
+    console.log("[*] "+STATS.instrCtr+" instructions indexed");
+    //console.log("[*] "+absoluteDB.strings.length+" strings indexed");
+    console.log("[*] "+STATS.methodCalls+" method calls mapped");
+    console.log("[*] "+STATS.fieldCalls+" field calls mapped");
+*/
 
     console.log("[*] "+STATS.idxMethod+" methods indexed");
     console.log("[*] "+STATS.idxField+" fields indexed");
@@ -680,6 +733,7 @@ function MakeMap(data,absoluteDB){
     // update place where field are called
     //return data;
 }
+
 /*
 class ApplicationMap
 {
@@ -687,6 +741,54 @@ class ApplicationMap
         this.indexes = [];
     }
 }*/
+
+class AnalyzerDatabase
+{
+    constructor(context){
+        this.ctx = context;
+        this.db = new MemoryDb.InMemoryDb(context);
+
+        this.db.newCollection("classes");
+        this.db.newCollection("fields");
+        this.db.newCollection("methods");
+
+        this.db.newIndex("call");
+        this.db.newIndex("unmapped");
+        this.db.newIndex("notbinded");
+        this.db.newIndex("notloaded");
+        this.db.newIndex("strings");
+        this.db.newCollection("packages");
+        this.db.newCollection("syscalls");
+        this.db.newIndex("missing");
+        this.db.newIndex("parseErrors");
+        this.db.newIndex("files");
+        this.db.newIndex("buffers");
+        this.db.newCollection("datablock");
+        this.db.newCollection("tagcategories");
+
+        this.classes = this.db.getIndex("classes");
+        this.fields = this.db.getIndex("fields");
+        this.methods = this.db.getIndex("methods");
+        this.call = this.db.getIndex("call");
+        this.unmapped = this.db.getIndex("unmapped");
+        this.notbinded = this.db.getIndex("notbinded");
+        this.notloaded = this.db.getIndex("notloaded");
+        this.missing = this.db.getIndex("missing");
+        this.parseErrors = this.db.getIndex("parseErrors");
+        this.strings = this.db.getIndex("strings");
+        this.packages = this.db.getIndex("packages");
+        this.files = this.db.getIndex("files");
+        this.buffers = this.db.getIndex("buffers");
+        this.datablock = this.db.getIndex("datablock");
+        this.tagcategories = this.db.getIndex("tagcategories");
+        this.syscalls = this.db.getIndex("syscalls");
+    }
+
+    getDatabase(){
+        return this.db;
+    }
+}
+
 
 /**
  * Represents the Application map and the entrypoint for all analysis tasks
@@ -696,7 +798,8 @@ class ApplicationMap
  */
 function Analyzer(encoding, finder, ctx=null){
     SmaliParser.setContext(ctx);
-    var db = this.db = {
+
+    var db = this.db = new AnalyzerDatabase(ctx);/*{
         classesCtr: 0,
         classes: {},
         fieldsCtr: 0,
@@ -716,9 +819,9 @@ function Analyzer(encoding, finder, ctx=null){
         buffers: [],
         datablock: [],
         tagcategories: []
-    };
+    };*/
 
-    let tempDb = this.tempDb = {
+    let tempDb = this.tempDb = new AnalyzerDatabase(ctx); /*{
         classesCtr: 0,
         classes: {},
         fieldsCtr: 0,
@@ -737,7 +840,7 @@ function Analyzer(encoding, finder, ctx=null){
         buffers: [],
         datablock: [],
         tagcategories: []
-    }
+    }*/
 
     this.finder = finder;
 
@@ -747,7 +850,8 @@ function Analyzer(encoding, finder, ctx=null){
     };
 
     this.newTempDb = function(){
-        return {
+        return new AnalyzerDatabase(ctx);
+/*        return {
             classesCtr: 0,
             classes: {},
             
@@ -772,11 +876,11 @@ function Analyzer(encoding, finder, ctx=null){
             buffers: [],
             datablock: [],
             tagcategories: []
-        };
+        };*/
     }
 
-    this.file = function(filePath){
-        if(!filePath.endsWith(".smali"))
+    this.file = function(filePath, force=false){
+        if(!filePath.endsWith(".smali") || !force)
             return;
 
         // TODO : test UTF8 support
@@ -785,16 +889,17 @@ function Analyzer(encoding, finder, ctx=null){
         // parse file
         let cls= SmaliParser.parse(src), o=null;
         
-        tempDb.classes[cls.fqcn] = cls;
-        tempDb.classesCtr += 1;
+        tempDb.classes.addEntry(cls.fqcn, cls);
+        //tempDb.classes[cls.fqcn] = cls;
+        //tempDb.classesCtr += 1;
         /* 
         db.classes[cls.fqcn] = cls;
         db.classesCtr+=1; */
     };
 
     this.debug = {
-        notbinded: ()=>{ return new FinderResult(db.notbinded) },
-        unmapped: ()=>{ return new FinderResult(db.unmapped) }
+        notbinded: ()=>{ return new FinderResult(db.notbinded.getAll()) },
+        unmapped: ()=>{ return new FinderResult(db.unmapped.getAll()) }
     };
 
 
@@ -804,10 +909,10 @@ function Analyzer(encoding, finder, ctx=null){
         // TODO : hcek if path exists;
         ut.forEachFileOf(path,this.file,".smali");
 
-        STATS.idxClass = this.db.classesCtr;
+        STATS.idxClass = this.db.classes.size();
         
         console.log("[*] Smali analyzing done.\n---------------------------------------")
-        console.log("[*] "+tempDb.classesCtr+" classes analyzed. ");
+        console.log("[*] "+tempDb.classes.size()+" classes analyzed. ");
         
         // start object mapping
         // MakeMap(this.db);
@@ -820,30 +925,31 @@ function Analyzer(encoding, finder, ctx=null){
      * To get the internal database
      */
     this.getData = function(){
+        console.log("[ERROR::DEV] Deprecated function Analyzer::getData() is called ");
         return this._db;
     }
 }
 
 Analyzer.prototype.addTagCategory = function(name, taglist){
-    this.db.tagcategories.push(new CLASS.TagCategory(name,taglist));
+    this.db.tagcategories.addEntry(name, new CLASS.TagCategory(name,taglist));
 }
 
 Analyzer.prototype.getTagCategories = function(){
-    return this.db.tagcategories;
+    return this.db.tagcategories.getAll();
 }
 
 
 /**
  * To initialize the list of syscalls to use
  * @param {*} syscalls 
+ * @function
  */
 Analyzer.prototype.useSyscalls = function(syscalls){
-    this.db.syscalls = {};
+    //this.db.syscalls = {};
     for(let i=0; i<syscalls.length ; i++){
         for(let j=0; j<syscalls[i].sysnum.length; j++){
             if(syscalls[i].sysnum[j]>-1){
-                this.db.syscalls[syscalls[i].sysnum[j]] =
-                    syscalls[i];
+                this.db.syscalls.addEntry(syscalls[i].sysnum[j],  syscalls[i]);
             }
         }
     }
@@ -857,7 +963,7 @@ Analyzer.prototype.system = function(path){
     // TODO : hcek if path exists;
     ut.forEachFileOf(path,this.file,".smali");
 
-    STATS.idxClass = this.db.classesCtr;
+    STATS.idxClass = this.db.classes.size();
     
     console.log("[*] Smali analyzing done.\n---------------------------------------")
     console.log("[*] "+STATS.idxClass+" classes analyzed. ");
@@ -869,6 +975,9 @@ Analyzer.prototype.system = function(path){
 
 }
 
+/**
+ * @deprecated
+ */
 Analyzer.prototype.flattening = function(method){
     let instr = [], meta={};
     for(let i in method.instr){
@@ -887,6 +996,9 @@ Analyzer.prototype.flattening = function(method){
     return instr;
 }
 
+/**
+ * @deprected
+ */
 Analyzer.prototype.findBasicBlocks = function(instr){
     let bblocks = [], blk={};
 
@@ -931,6 +1043,12 @@ Analyzer.prototype.findBasicBlocks = function(instr){
     return bblocks;
 }
 
+
+/**
+ * To find a basic block by its label into a basic block list
+ * @function
+ * @deprecated
+ */
 Analyzer.prototype.findBBbyLabel = function(bblocks,label){
     for(let i=0; i<bblocks.length; i++){
         bblocks[i].offset = i;
@@ -941,6 +1059,11 @@ Analyzer.prototype.findBBbyLabel = function(bblocks,label){
     return null;
 };
 
+/**
+ * Naive bb tree build by following only conditions and gotos (no try/catch, no switch, ...)
+ * @function
+ * @deprecated
+ */
 Analyzer.prototype.makeTree = function(bblocks){
     let last = {};
     for(let i=0; i<bblocks.length; i++){
@@ -980,6 +1103,12 @@ Analyzer.prototype.makeTree = function(bblocks){
     return bblocks;
 }
 
+
+/**
+ * Use by graph builder
+ * @function
+ * @deprecated
+ */
 Analyzer.prototype.showBlock = function(blk,prefix,styleFn){
     
     if(blk==null) return;
@@ -991,6 +1120,12 @@ Analyzer.prototype.showBlock = function(blk,prefix,styleFn){
     //console.log(styleFn("-------------------------------------"));
 };
 
+
+/**
+ * Use by graph builder
+ * @function
+ * @deprecated
+ */
 Analyzer.prototype.showCFG_old = function(bblocks, prefix=""){
 
     let pathTRUE = Chalk.green(prefix+"    |\n"+prefix+"    |\n"+prefix+"    |\n"+prefix+"    +-----[TRUE]-->");
@@ -1026,6 +1161,10 @@ Analyzer.prototype.showCFG_old = function(bblocks, prefix=""){
     }
 }
 
+
+/**
+ * @deprecated
+ */
 Analyzer.prototype.showCFG = function(bblocks, offset=0, prefix="", fn=null){
 
     if(bblocks.length==0 || bblocks[offset]==undefined){
@@ -1074,6 +1213,9 @@ Analyzer.prototype.showCFG = function(bblocks, offset=0, prefix="", fn=null){
     
 }
 
+/**
+ * @deprecated
+ */
 Analyzer.prototype.cfg = function(method){
     let instr = [], meta={}, bblocks = [], blk={};
 
@@ -1095,7 +1237,7 @@ Analyzer.prototype.cfg = function(method){
 }
 
 /**
- * 
+ * TODO
  * @param {Class} cls New class to insert into the model 
  */
 Analyzer.prototype.updateWithClass = function(cls){
@@ -1103,15 +1245,23 @@ Analyzer.prototype.updateWithClass = function(cls){
 };
 
 
-Analyzer.prototype._updateWithEachFileOf = function(filesDB, updater){
+/**
+ * @function
+ * @deprected
+ */
+Analyzer.prototype._updateWithEachFileOf = function(filesDB, update_strategy){
     //this.db.files 
-    for(let i=0; i<this.db.files.length; i++){
+    this.db.files.map((k,v)=>{
         for(let j=0; j<filesDB.length; j++){
-            updater( this.db, filesDB[j],this.db.files[i]);
+            update_strategy( this.db, filesDB[j], v);
         }
-    }
+    });
 };
 
+/**
+ * @function
+ * @deprecated
+ */
 Analyzer.prototype.updateFiles = function(filesDB, override){
     this._updateWithEachFileOf(
         filesDB,
@@ -1120,27 +1270,38 @@ Analyzer.prototype.updateFiles = function(filesDB, override){
             if((inFile.path == dbFile.path)||override){
                 //dbFile.update(inFile);
             }else{
-                db.files.push(inFile);
+                db.files.insert(inFile);
             }
         }
     )
 };
 
 Analyzer.prototype.insertIn = function(category, inData){
-    for(let i=0; i<inData.length; i++){
-        this.db[category].push(inData[i]);
+    if(inData instanceof Array){
+        for(let i=0; i<inData.length; i++){
+            this.db[category].insert(inData[i]);
+        }
+    }else{
+        for(let i in inData){
+            this.db[category].addEntry(i, inData[i]);
+        }
     }
 };
 
 Analyzer.prototype.tagAllAsInternal = function(){
+    this.db.classes.map((k,v) => { v.addTag(AnalysisHelper.TAG.Discover.Internal)});
+    this.db.fields.map((k,v) => { v.addTag(AnalysisHelper.TAG.Discover.Internal)});
+    this.db.methods.map((k,v) => { v.addTag(AnalysisHelper.TAG.Discover.Internal)});
+    this.db.strings.map((k,v) => { v.addTag(AnalysisHelper.TAG.Discover.Internal)});
+/*
     for(let k in this.db.classes)
-        this.db.classes[k].addTag(AnalysisHelper.TAG.Discover.Internal);
+        this.db.classes.getEntry(k).addTag(AnalysisHelper.TAG.Discover.Internal);
     for(let k in this.db.fields)
         this.db.fields[k].addTag(AnalysisHelper.TAG.Discover.Internal);
     for(let k in this.db.methods)
         this.db.methods[k].addTag(AnalysisHelper.TAG.Discover.Internal);
     for(let k=0; k<this.db.strings.length; k++)
-        this.db.strings[k].addTag(AnalysisHelper.TAG.Discover.Internal);
+        this.db.strings[k].addTag(AnalysisHelper.TAG.Discover.Internal);*/
 }
 
 
@@ -1153,6 +1314,12 @@ Analyzer.prototype.tagAllIf = function(condition, tag){
 
 
 Analyzer.prototype.tagIf = function(condition, type, tag){
+    this.db[type].map(function(k,v){
+        if(condition(k,v)){
+            v.addTag(tag);
+        }
+    });
+    /*
     if(this.db[type] instanceof Array){
         this.db[type].map(function(x){
             if(condition(x)){
@@ -1165,7 +1332,7 @@ Analyzer.prototype.tagIf = function(condition, type, tag){
                 this.db[type][k].addTag(tag);
             }
         }
-    }
+    }*/
 }
 
 /**
@@ -1173,6 +1340,18 @@ Analyzer.prototype.tagIf = function(condition, type, tag){
  */
 Analyzer.prototype.updateDataBlock = function(){
     let dd=null, dbs=null;
+
+    this.db.methods.map((k,v)=>{
+
+        dd = v.getDataBlocks();
+        for(let j=0; j<dd.length; j++){
+            if(dd[j] == null) continue;
+            dbs = dd[j].getUID();
+            if(this.db.datablock.hasEntry(dbs) === false)
+                this.db.datablock.addEntry(dbs,dd[j]);
+        }
+    });
+    /*
     for(let i in this.db.methods){
         dd = this.db.methods[i].getDataBlocks();
         for(let j=0; j<dd.length; j++){
@@ -1181,7 +1360,7 @@ Analyzer.prototype.updateDataBlock = function(){
             if(this.db.datablock[dbs] == null)
                 this.db.datablock[dbs] = dd[j];
         }
-    }
+    }*/
 }
 
 

@@ -244,6 +244,7 @@ Project.prototype.scan = function(path){
  * @param {string} path Optional, the path of the folder containing the decompiled smali code. 
  * @returns {Project} Returns the instance of this project
  * @function
+ * @deprecated
  */
 Project.prototype.scanForFiles = function(path){
 
@@ -296,7 +297,9 @@ Project.prototype.fullscan = function(path){
     this.analyze.updateDataBlock();    
 
     this.analyze.tagAllIf(
-        function(x){ return x.hasTag(AnalysisHelper.TAG.Discover.Internal)==false; }, 
+        function(k,x){ 
+            return x.hasTag(AnalysisHelper.TAG.Discover.Internal)==false; 
+        }, 
         AnalysisHelper.TAG.Discover.Statically);
 
 

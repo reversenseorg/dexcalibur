@@ -1,7 +1,9 @@
 var ut = require("./Utils.js");
 const CLASS = require("./CoreClass.js");
-const FILE = require("./File.js")
+const FILE = require("./File.js");
 var CONST = require("./CoreConst.js");
+var MemoryDb = require("./InMemoryDb.js");
+
 
 
 var DataModel = {
@@ -74,48 +76,53 @@ class SearchPattern
     }
 }
 
-function FinderJoin(rootData,joinData,finder){
-    this.rootData = rootData;
-    this.joinData = joinData
-    this._finder = finder;
-
-}
-// do rootData[]-joinData[]
-FinderJoin.prototype.sub = function(){
-    let res=[], x=0;
-
-    for(let i in this.rootData){
-        if(this.joinData.indexOf(this.rootData[i])>0)
-            continue;
-        else
-            res.push(this.rootData[i]);
+class FinderJoin
+{
+    constructor(rootData,joinData,finder){
+        this.rootData = rootData;
+        this.joinData = joinData
+        this._finder = finder;
     }
 
-    return new FinderResult(res,this._finder);
-}
+    // do rootData[]-joinData[]
+    sub(){
+        let res=new MemoryDb.Index(), x=0;
 
-FinderJoin.prototype.on = function(pattern){
-    let prop = pattern.split(".");
-    let lp = prop.length, pref=null, res=[], x=0;
+        this.rootData.map((k,v)=>{
+            // element ignored if joinData contains 
+            if(this.joinData.hasEntry(v))
+                return;
+            else
+                res.insert(v);
+        });
 
-    for(let i in this.joinData){
+        return new FinderResult(res,this._finder);
+    }
+
+    on(pattern){
+        let prop = pattern.split(".");
+        let lp = prop.length, pref=null, res=new MemoryDb.Index(), x=0;
+
+        this.joinData.map((k,v)=>{
+            
+            x=0;
+            pref = v;
+
+            do{ pref = pref[prop[x++]] }while(x<lp);
+
+            this.rootData.map((i,j)=>{
+                y=0; xref = j
+                do{ xref = xref[prop[y++]] }while(y<lp);
+
+                if(xref==pref) 
+                    res.insert(this.rootData[j]);
+            });
+        });
         
-        x=0;
-        pref = this.joinData[i];
+        return new FinderResult(res,this._finder);
+    };
+}
 
-        do{ pref = pref[prop[x++]] }while(x<lp);
-
-        for(let j in this.rootData){
-            x=0; xref = this.rootData[j];
-            do{ xref = xref[prop[x++]] }while(x<lp);
-
-            if(xref==pref) 
-                res.push(this.rootData[j]);
-        }
-    }
-    
-    return new FinderResult(res,this._finder);
-};
 
 
 function FinderResult(data,finder){
@@ -123,21 +130,43 @@ function FinderResult(data,finder){
     this._finder = finder;
 
     this.foreach = function(fn){
-        for(let i in this.data) fn(this.data[i]);
+        this.data.map(fn);
+        //for(let i in this.data) fn(this.data[i]);
     };
 
     return this;
 }
 
 FinderResult.prototype.getData = function(){
-    return this.data;
+    return this.data.getAll();
 }
 
 /**
  * To get reference to the method calling each object
  */
 FinderResult.prototype.caller = function(){
-    let meth = [], obj=null;
+    let meth = new MemoryDb.Index(), obj=null;
+    this.data.map((k,v)=>{
+        obj=this.data[i];
+
+        if(v instanceof CLASS.StringValue){
+            meth.insert(v.src);
+        }
+        else if(v instanceof CLASS.ValueConst){
+            console.error("[!] Not implemented : [ValueConst].method() ")
+        }
+        else if(v instanceof CLASS.Field
+            || v instanceof CLASS.Method
+            || v instanceof CLASS.Class){
+
+            for(let k=0; k<v._callers.length; k++ ){
+                meth.insert(v._callers[k]);
+            }
+        }
+        else if(v instanceof CLASS.Call){
+            meth.insert(v.caller)
+        }
+    });/*
     for(let i in this.data){
 
         obj=this.data[i];
@@ -160,7 +189,7 @@ FinderResult.prototype.caller = function(){
             meth.push(obj.caller)
         }
     }
-
+    */
     return new FinderResult(meth,this._finder);
 };
 
@@ -190,16 +219,15 @@ FinderResult.prototype.union = function(resultSet){
 
     if(typeof resultSet === 'string' || resultSet instanceof String){
         let res = this._finder._find(resultSet);
-        for(let i in res){
-            if(!this.contains(res))
-                this.data.push(res);
-        }
-
+        res.data.map((k,v)=>{
+            if(!this.contains(v))
+                this.data.insert(v);
+        });
     }else{
-        for(let i in resultSet.data){
-            if(!this.contains(resultSet.data[i]))
-                this.data.push(resultSet.data[i]);
-        }
+        resultSet.data.map((k,v)=>{
+            if(!this.contains(v))
+                this.data.insert(v);
+        });
     }
     
     return this;
@@ -211,13 +239,19 @@ FinderResult.prototype.union = function(resultSet){
  * @returns {FinderResult} A list of instructions using a reference to this object
  */
 FinderResult.prototype.callers = function(){
-    let res = [], rset = new FinderResult();
+    let rset = new FinderResult();
 
+    this.data.map((k,v) => {
+        for(let i in v._callers){
+            rset.data.insert(v._callers[i]);
+        }
+    });
+    /*
     for(let i in this.data){ 
         for(let k in this.data[i]._callers){
             rset.data.push(this.data[i]._callers[k]);
         }
-    }
+    }*/
 
     return rset;
 };
@@ -227,19 +261,18 @@ FinderResult.prototype.callers = function(){
  * @return {int} The count of object into the result set
  */
 FinderResult.prototype.count = function(){
-    let ctr = 0;
-    for(let i in this.data) ctr++;
-    return ctr;
+    return this.data.size();
 };
 
 FinderResult.prototype.get = function(offset){
-    return this.data[offset];
+    return this.data.getEntry(offset);
 };
 
 FinderResult.prototype.select = function(member){
-    let data = [];
-    this.data.forEach(x=>{
-        if(x[member] !==undefined) data.push(x[member]);
+    let data = new MemoryDb.Index();
+
+    this.data.map((k,v)=>{
+        if(v[member] !==undefined) data.insert(v[member]);
     });
     
     return new FinderResult(data,this._finder);
@@ -247,7 +280,7 @@ FinderResult.prototype.select = function(member){
 
 FinderResult.prototype.toString = function(){
     let out = "";
-    this.foreach(function(x){ 
+    this.data.map((k,x)=>{ 
         out += x._hashcode+"\n";
     });
     return out;
@@ -260,6 +293,19 @@ FinderResult.prototype.dump = function(){
 
 FinderResult.prototype.toJsonObject = function(fields){
     let data=[], stub={};
+
+    this.data.map((k,v)=>{
+        if(v.toJsonObject == undefined){
+            console.log("ERROR : toJsonObject() not found");
+        }else if(! (v instanceof CLASS.MissingReference)){
+            data.push(v.toJsonObject(fields));
+        }else{
+            stub = {};
+            for(let k in fields) stub[fields[k]] = "[MissingReference] Object";
+            data.push(stub);
+        }
+    });
+    /*
     for(let i in this.data){
         if(this.data[i].toJsonObject == undefined){
             console.log("ERROR : toJsonObject() not found");
@@ -270,7 +316,7 @@ FinderResult.prototype.toJsonObject = function(fields){
             for(let k in fields) stub[fields[k]] = "[MissingReference]";
             data.push(stub);
         }
-    }
+    }*/
     return data;
 };
 
@@ -278,10 +324,10 @@ FinderResult.prototype.toJsonObject = function(fields){
  * To search references to the given objects
  */
 FinderResult.prototype.xref = function(){
-    let data=[];
+    let data=new MemoryDb.Index();
 
-    this.foreach(function(x){
-        data.push(new CLASS.XRef(x,x._callers));
+    this.data.map((k,v)=>{
+        data.insert(new CLASS.XRef(v,v._callers));
     });
 
     return new FinderResult(data,this._finder);
@@ -309,7 +355,7 @@ FinderResult.prototype.help = function(){
 };
 
 FinderResult.prototype.using = function(pattern){
-    let data = [];
+    let data = new MemoryDb.Index();
 
     if(pattern == null) return this;
 
@@ -321,7 +367,7 @@ FinderResult.prototype.using = function(pattern){
 };
 
 FinderResult.prototype.exclude = function(pattern){
-    let res = [];
+    let res = new MemoryDb.Index();
     let arg = this._finder.cache[this._finder.cache.length-1];
 
     let result = this._finder._find(arg.index, arg.model, pattern, arg.case, arg.lazy);
@@ -330,7 +376,7 @@ FinderResult.prototype.exclude = function(pattern){
 };
 
 FinderResult.prototype.intersect = function(property,pattern){
-    let res = [];
+    let res = new MemoryDb.Index();
     let arg = this._finder.cache[this._finder.cache.length-1];
 
     let result = this._finder._find(arg.index, arg.model, pattern, arg.case, arg.lazy);
@@ -343,16 +389,14 @@ FinderResult.prototype.intersect = function(property,pattern){
  * @param {*} obj Should has a field _hashcode containing the unique identifier of the object
  */
 FinderResult.prototype.contains = function(obj){
-    for(let i in this.data){
-        if(obj._hashcode===this.data[i]._hashcode){
-            // TODO : remove
-           // console.log("[DBG] "+obj._hashcode+"  contained");
-            return true;
-        }
-    }
+    let f=0;
+    this.data.map((k,v)=>{
+        if(obj._hashcode===v._hashcode) f++;
+    });
+    
     // TODO : remove
     //        console.log("[DBG] "+obj._hashcode+" not contained");
-    return false;
+    return (f>0);
 };
 /**
  * To display data with formatting
@@ -360,7 +404,7 @@ FinderResult.prototype.contains = function(obj){
  */
 FinderResult.prototype.sshow = function(){
     let sub = [];
-    this.foreach(function(x){
+    this.data.map((k,x)=>{
         if(x instanceof CLASS.Method){
             sub.push({ 
                 Class: x.enclosingClass.package+"."+x.enclosingClass.simpleName, 
@@ -411,7 +455,7 @@ FinderResult.prototype.sshow = function(){
  */
 FinderResult.prototype.show = function(){
     let sub = [];
-    this.foreach(function(x){
+    this.data.map((k,x)=>{
 
         if(x instanceof CLASS.Method){
             sub.push({ 
@@ -641,9 +685,22 @@ function Finder(db){
     };
 
     this._findObject = function(index, search_pattern, includeMissing=false){
-        let matches=[], k=0, field=undefined;
+        let matches= new MemoryDb.Index(), k=0, field=undefined;
         
         //console.log(search_pattern);
+        index.map((k,v)=>{
+            if(!includeMissing && (v instanceof CLASS.MissingReference)) 
+                return;
+
+            if((v instanceof CLASS.Method) 
+                && (v.modifiers === undefined || v.modifiers === null))
+                return;
+
+            field = v[search_pattern.field];
+            if(field!==undefined && search_pattern.fn(field)) 
+                matches.insert(v);
+        });
+        /*
         for(let i in index){
 
             if(!includeMissing && index[i] instanceof CLASS.MissingReference) 
@@ -657,7 +714,7 @@ function Finder(db){
             if(field!==undefined && search_pattern.fn(field)) 
                 matches.push(index[i]);
         }
-        //console.log("[*] "+matches.length+" items found");
+        //console.log("[*] "+matches.length+" items found");*/
         return matches;
     };
 
@@ -694,12 +751,17 @@ function Finder(db){
     };
 
     this._findDeepObject = function(index, search_pattern){
-        let matches=[], k=0, field=undefined;
+        let matches=new MemoryDb.Index(), k=0, field=undefined;
         
+        index.map((k,v)=>{
+            if(this.__checkDeepField(v, search_pattern))
+                matches.insert(v);
+        });
+/*
         for(let i in index){
             if(this.__checkDeepField(index[i], search_pattern))
                 matches.push(index[i]);
-        }
+        }*/
 
         return matches;
     };
@@ -707,32 +769,45 @@ function Finder(db){
  
     // TODO : Factoriser tous les finds
     this._findObjectByTag = function(index, search_pattern){
-        let matches=[];
+        let matches=new MemoryDb.Index();
         
+        index.map((k,v)=>{
+            if(search_pattern.fn(search_pattern,v)) 
+                matches.insert(v);
+        });
+        /*
         for(let i in index){
             if(search_pattern.fn(search_pattern,index[i])) 
                 matches.push(index[i]);
-        }
+        }*/
         //console.log("[*] "+matches.length+" items found");
         return matches;
     };
 
     this._findObjectByModifier = function(index, search_pattern){
-        let matches=[], k=0, field=undefined;
+        let matches=new MemoryDb.Index(), k=0, field=undefined;
         
+        index.map((k,v)=>{
+            if(v.modifiers === undefined || v.modifiers === null)
+                return;
+
+            if(search_pattern.fn(search_pattern,v)) 
+                matches.insert(v);
+        });
+        /*
         for(let i in index){
             if(index[i].modifiers === undefined || index[i].modifiers === null)
                 continue;
 
             if(search_pattern.fn(search_pattern,index[i])) 
                 matches.push(index[i]);
-        }
+        }*/
         //console.log("[*] "+matches.length+" items found");
         return matches;
     };
 
     this._listObject = function(obj_type){
-        return db[obj_type];
+        return db[obj_type].getAll();
     };
     
     this._find = function(index, model, pattern, caseSensitive, lazy=false, includeMissing=false){
@@ -755,7 +830,7 @@ function Finder(db){
             else
                 return new FinderResult(this._findObject(index, spatt, includeMissing), this);
         }else{
-            return new FinderResult([], this); 
+            return new FinderResult(new MemoryDb.Index(), this); 
         }
     }
 
@@ -822,6 +897,7 @@ MissingObjectAPI.prototype.type = function(pattern){
  */
 function SearchAPI(data){
     
+    // AnalyzerDatabase (specialize InMemoryDb)
     var _db = this._db = data;
     this._queryCache = [];
     
@@ -878,11 +954,11 @@ function SearchAPI(data){
     this.missing = new MissingObjectAPI(this);
 
     this.get = {
-        package: function(id){ return _db.packages[id] },
-        class: function(id){ return _db.classes[id] },
-        method: function(id){ return _db.methods[id] },
-        field: function(id){ return _db.fields[id] },
-        syscalls: function(id){ return _db.syscalls[id] },
+        package: function(id){ return _db.packages.getEntry(id) },
+        class: function(id){ return _db.classes.getEntry(id) },
+        method: function(id){ return _db.methods.getEntry(id) },
+        field: function(id){ return _db.fields.getEntry(id) },
+        syscalls: function(id){ return _db.syscalls.getEntry(id) },
         /*datablock: function(id){
 
         }*/
@@ -995,16 +1071,10 @@ function SearchAPI(data){
                 return res;
         },
         print: function(){
-            for(let i in _db.call) 
-                _db.call[i].print();
+            _db.call.map((k,v) => { v.print() });;
         },
         raw: function(){
-            let c = null;
-            for(let i in _db.call){
-                c = _db.call[i];
-
-                console.log("\t"+c.instr._raw);
-            }
+            _db.call.map((k,v) => { console.log("\t"+v.instr._raw) });;
         },
         //find: function(pattern){ return finder.instr(pattern,true); }
     };

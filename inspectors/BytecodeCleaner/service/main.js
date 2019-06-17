@@ -12,18 +12,17 @@ var DEBUG = false;
 function nopCount(context){
     let subject=null, bb=null;
 
-    let DB = context.analyze.db;
     let counters = {
         any: 0,
         nop: 0
     };
 
-    for(let meth in DB.methods){
-        subject = DB.methods[meth];
-        if( subject.instr != null && subject.instr.length > 0){
-            for(let i=0; i<subject.instr.length ; i++){
-                for(let j=0; j<subject.instr[i].stack.length; j++){
-                    opcode = subject.instr[i].stack[j].opcode;
+    context.analyze.db.methods.map((k,v)=>{
+
+        if( v.instr != null && v.instr.length > 0){
+            for(let i=0; i<v.instr.length ; i++){
+                for(let j=0; j<v.instr[i].stack.length; j++){
+                    opcode = v.instr[i].stack[j].opcode;
                     if(opcode != null && opcode.type===CONST.INSTR_TYPE.NOP){
                         counters.nop++;
                     }
@@ -32,7 +31,9 @@ function nopCount(context){
             }
 
         }
-    }    
+    });   
+
+
 
     return { status:200, data:counters };
 }
@@ -48,24 +49,24 @@ function nopClean(context){
         nop: 0
     };
 
-    for(let meth in DB.methods){
-        subject = DB.methods[meth];
-        if( subject.instr != null && subject.instr.length > 0){
-            for(let i=0; i<subject.instr.length ; i++){
+    context.analyze.db.methods.map((k,v)=>{
+       
+        if( v.instr != null && v.instr.length > 0){
+            for(let i=0; i<v.instr.length ; i++){
                 newbb = [];
-                for(let j=0; j<subject.instr[i].stack.length; j++){
+                for(let j=0; j<v.instr[i].stack.length; j++){
 
-                    opcode = subject.instr[i].stack[j].opcode;
+                    opcode = v.instr[i].stack[j].opcode;
                     if(opcode != null && opcode.type !==CONST.INSTR_TYPE.NOP){
-                        newbb.push(subject.instr[i].stack[j]);
+                        newbb.push(v.instr[i].stack[j]);
                     }else{
                         counters.nop++;
                     }
                 }
-                subject.instr[i].stack = newbb;
+                v.instr[i].stack = newbb;
             }
         }
-    }    
+    });    
 
     return { status:200, data:counters };
 }
@@ -498,19 +499,17 @@ X
  */
 function gotoConditionnalClean(context){
     console.log("Conditional goto clean");
-    let subject=null;
-    let DB = context.analyze.db;
     let gotos = 0;
 
 
-    for(let meth in DB.methods){
-        if(checkIfEligible(DB.methods[meth])==false) continue;
+    //for(let meth in DB.methods){
+    context.analyze.db.methods.map((k,v)=>{
+        if(checkIfEligible(v)==false) return;
 
-        subject = DB.methods[meth];
-        if( subject != null && subject.instr != null && subject.instr.length > 0){
-            if(flatternGotoOf(subject)) gotos++;
+        if( v != null && v.instr != null && v.instr.length > 0){
+            if(flatternGotoOf(v)) gotos++;
         }
-    }    
+    });    
 
     return { status:200, data:{ count:gotos }};
 }
@@ -518,19 +517,15 @@ function gotoConditionnalClean(context){
 function gotoClean(context){
     console.log("Inconditional goto clean");
     
-    let subject=null;
-    let DB = context.analyze.db;
     let counters = {
         goto: 0
     };
 
-
-    for(let meth in DB.methods){
-        subject = DB.methods[meth];
-        if( subject != null && subject.instr != null && subject.instr.length > 0){
-            if(flatternGotoOf(subject)) counters.goto++;
+    context.analyze.db.methods.map((k,v)=>{
+        if( v != null && v.instr != null && v.instr.length > 0){
+            if(flatternGotoOf(v)) counters.goto++;
         }
-    }    
+    });    
 
     return { status:200, data:{ counter:counters.goto } };
 }
@@ -558,7 +553,7 @@ function renameDoubleStatic(database, method){
     if(method.getModifier().isStatic() === false) return false;
 
     // get the called method
-    let called = database.methods[ Object.keys(method._useMethod)[0] ];
+    let called = database.methods.getEntry( Object.keys(method._useMethod)[0] );
     let args = Object.values(method._useMethod)[0];
     
     if(called == null 
@@ -598,7 +593,7 @@ function renameStaticInterface(database, method){
     if(method.args.length==0) return false;
 
     // get the called method
-    let called = database.methods[ Object.keys(method._useMethod)[0] ];
+    let called = database.methods.getEntry( Object.keys(method._useMethod)[0] );
     let args = Object.values(method._useMethod)[0];
     //let param = method.args[0];
 
@@ -651,16 +646,16 @@ function wrapClean(context){
     };
 
     // scan with several heuristic
-    for(let k in db.methods){
-        if(renameDoubleStatic(db, db.methods[k])){
+    db.methods.map((k,v)=>{
+        if(renameDoubleStatic(db, v)){
             ctr.doubleStatic++;
-            continue;
+            return;
         } 
-        if(renameStaticInterface(db, db.methods[k])){
+        if(renameStaticInterface(db, v)){
             ctr.staticInterface++;
-            continue;
+            return;
         } 
-    }
+    });
     
 
     return { status:200, data:{ counter:ctr } };

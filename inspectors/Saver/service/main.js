@@ -7,6 +7,123 @@ var Controller =  new IFC.FrontController();
 
 
 function collectAll(context){
+    let db = {
+        classes: {},
+        fields: {},
+        methods: {},
+        length: {
+            classes: 0,
+            fields: 0,
+            methods: 0
+        }
+    };
+
+
+    context.analyze.db.classes.map((k,v)=>{
+        if(v != null && v.alias != null){
+            db.classes[k] = v.alias;
+            db.length.classes++;
+        }
+    });
+
+    
+    context.analyze.db.fields.map((k,v)=>{
+        if(v != null && v.alias != null){
+            db.fields[k] = v.alias;
+            db.length.fields++;
+        }
+    });
+
+    context.analyze.db.methods.map((k,v)=>{
+        // alias
+        if(v != null && v.alias != null){
+            db.methods[k] = {};
+            db.methods[k].alias = v.alias;
+        }
+
+        // hooks
+        hook = context.hook.getProbe(v);
+        if(hook !== null){
+            if(db.methods[k] == null) 
+                db.methods[k] = {};
+
+            db.methods[k].hook = hook.toJsonObject();
+        }
+
+        db.length.methods++;
+    });
+
+
+    return db;
+}
+
+
+function importAll(context,data){
+    let o=null, s=null, WDB = context.analyze.db, ctr=0;
+
+    let hm = context.hook;
+
+
+    for(let k in data.classes){
+        o = data.classes[k];
+        s=WDB.classes.getEntry(k);
+
+        if(s != null){
+            s.setAlias(o);
+            ctr++;
+        }
+    }
+
+    
+    for(let k in data.fields){
+        o = data.fields[k];
+        s=WDB.fields.getEntry(k);
+
+        if(s != null){
+            s.setAlias(o);
+            ctr++;
+        }
+    }
+
+
+    for(let k in data.methods){
+        o = data.methods[k];
+        meth=WDB.methods.getEntry(k);
+
+        if(meth==null){
+            console.log("[INSPECTOR::SAVER] Error : method "+k+" not found");
+            continue;
+        }
+
+        // alias
+        if(o != null && o.alias != null){
+            meth.setAlias(o.alias);
+        }
+
+        // hooks
+        // hook = context.hook.getProbe(o);
+        if(o.hook != null){
+            // search if the hook already exists
+            hook = context.hook.getProbe(meth);
+            
+            // if thereis not hook, call the hook manager and generate one
+            if(hook == null){
+                hook = context.hook.probe(meth);
+            }
+
+            // update the current hook with the imported data
+            hook.updateWith(o.hook, meth);
+        }
+        ctr++;
+    }
+
+
+    return true;
+}
+
+
+/*
+function collectAll(context){
     let o=null, db = {
         classes: {},
         fields: {},
@@ -108,7 +225,7 @@ function importAll(context,data){
 
 
     return true;
-}
+}*/
 
 
 /*

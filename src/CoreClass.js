@@ -1552,7 +1552,7 @@ class DataBlock
             case 2:
                 return this.values.readUInt16LE(offset*2);
             case 4:
-                return this.values.readUInt32LE(offset*4);
+                return this.values.readUInt32BE(offset*4);
             case 8:
                 if(this.virtual64 == true){
                     return this.values[offset];
@@ -2337,6 +2337,11 @@ Instruction.prototype.isUsingString = function(){
 
 Instruction.prototype.isCallingField = function(){
     return (this.right !== undefined) && (this.opcode.reftype==CONST.OPCODE_REFTYPE.FIELD);
+};
+
+
+Instruction.prototype.isNOP = function(){
+    return (this.opcode.type==CONST.INSTR_TYPE.NOP);
 };
 
 Instruction.prototype.isDoingCall = function(){
