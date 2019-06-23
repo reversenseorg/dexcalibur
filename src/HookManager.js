@@ -569,6 +569,7 @@ function HookMessage(){
     this.hook = null;
     this.when = null;
     this.action = "";
+    this.tags = null;
     return this;
 }
 
@@ -584,6 +585,18 @@ HookMessage.prototype.getHook = function(){
     return this.hook;
 }
 
+HookMessage.prototype.setTags = function(tags){
+    this.tags = tags;
+}
+
+HookMessage.prototype.getTags = function(tags){
+    return this.tags;
+}
+
+HookMessage.prototype.addTag = function(tag){
+    if(this.tags == null) this.tags = [];
+    this.tags.push(tag);
+}
 /**
  * To make an instance of Object which not contain circular reference
  * and which are ready to be serialized.
@@ -597,6 +610,10 @@ HookMessage.prototype.toJsonObject = function(){
     o.match = this.match;
     o.action = this.action;
     o.isIntercept = this.isIntercept;
+    
+    if(this.tags != null && this.tags.length > 0)
+        o.tags = this.tags;
+
 //    if(this.hook!=null)
 //        o.hook = this.hook.toJsonObject();
     o.after = this.isAfter();
@@ -868,6 +885,9 @@ HookSession.prototype.push = function(msg){
     hm.data = msg.payload.data;
     hm.action = msg.payload.action;
     hm.when = (msg.after)? 1 : 0;
+
+
+    if(msg.payload.tags != null) hm.setTags(msg.payload.tags);
 
     this.message.push(hm)
     

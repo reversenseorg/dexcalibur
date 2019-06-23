@@ -49,6 +49,10 @@ NativeLibraryInspector.hookSet.addIntercept({
                 data: {path:arg0},
                 after: false, 
                 msg: "Native inspector (@@__METHSIGN__@@)", 
+                tags: [{
+                    style:"success",
+                    text: "native"
+                }], 
                 action: "None" 
             });
 
@@ -77,6 +81,10 @@ NativeLibraryInspector.hookSet.addIntercept({
                         data: "'"+arg0+"' hooked",
                         after: true, 
                         msg: "Native inspector (@@__METHSIGN__@@)", 
+                        tags: [{
+                            style:"success",
+                            text: "native"
+                        }], 
                         action: "None" 
                     });
                 } 
@@ -91,6 +99,10 @@ NativeLibraryInspector.hookSet.addIntercept({
             data: "An error occured",
             after: true, 
             msg: "Native inspector (@@__METHSIGN__@@)", 
+            tags: [{
+                style:"success",
+                text: "native"
+            }], 
             action: "None" 
         });
 
@@ -114,6 +126,10 @@ NativeLibraryInspector.hookSet.addIntercept({
             data: {path:arg0},
             after: false, 
             msg: "Native inspector (@@__METHSIGN__@@)", 
+            tags: [{
+                style:"success",
+                text: "native"
+            }], 
             action:"None" 
         });
     `

@@ -50,6 +50,10 @@ KeystoreInspector.hookSet.addIntercept({
                 },
                 after: true, 
                 msg: "KeyStore.getInstance(string)", 
+                tags: [{
+                    style:"danger",
+                    text: "keystore"
+                }], 
                 action:"Log" 
             });
     `
@@ -91,6 +95,10 @@ KeystoreInspector.hookSet.addIntercept({
             },
             after: true, 
             msg: "Keystore.load()", 
+            tags: [{
+                style:"danger",
+                text: "keystore"
+            }], 
             action:"Logging keystore load" 
         });
     `

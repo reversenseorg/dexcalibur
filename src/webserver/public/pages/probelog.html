@@ -289,19 +289,31 @@
                                     color_end="";
                                 }
 
-                                tag = "", type="";
+                                tag = "", type="",errf=false;
                                 /*if(hookMsg.isIntercept)
                                     type = '<a class="badge badge-danger">intercept</a>';
                                 else
                                     type = '<a class="badge badge-primary">probe</a>';
                                 */
-                                if(hookMsg.match){
+                               console.log(hookMsg);
+                                if(hookMsg.tags!=null){
+
+                                    for(let j=0; j<hookMsg.tags.length; j++){
+                                        if(hookMsg.tags[j].text=="error") errf=true;
+                                        type += '<a class="badge badge-'+hookMsg.tags[j].style+'">'+htmlEncode(hookMsg.tags[j].text)+'</a>'
+                                    }
+                                    if(errf) 
+                                        classes = 'class="warning"';
+                                    else    
+                                        classes = 'class="info"';
+                                }
+                               /* else if(hookMsg.match){
                                     //tag +='&nbsp;<a class="badge badge-warning" style="color:#000;">match</a>';
                                     classes = 'class="danger"';
                                     type = '<a class="badge badge-danger">intercept</a>';
-                                }else{
+                                }*/else{
                                     classes = "";
-                                    type = '<a class="badge badge-primary">probe</a>';
+                                    type = '<a class="badge badge-primary">custom</a>';
                                 }
 
 

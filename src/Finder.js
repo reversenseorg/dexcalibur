@@ -549,7 +549,7 @@ function Finder(db){
             if(data.tags === undefined) 
                 console.error("Object "+data+" has not 'tags' field");
 
-            console.log(data.tags.indexOf(request.pattern), data.tags, request.pattern);
+            //console.log(data.tags.indexOf(request.pattern), data.tags, request.pattern);
             return data.tags.indexOf(request.pattern)>-1; 
         }, 
         /**

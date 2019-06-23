@@ -68,6 +68,10 @@ FileDescriptorInspector.hookSet.addIntercept({
             data: msg,
             after: false, 
             msg: "File()", 
+            tags: [{
+                style:"pink",
+                text: "fs"
+            }],
             action:"None" 
         });
     `

@@ -23,6 +23,12 @@ body {
 .badge-pink {
   background-color: #9b008e !important;
 }
+.badge-black {
+  background-color: #000 !important;
+}
+.badge-blue {
+  background-color: #10009b !important;
+}
 
 td.details-control {
   background: url('../img/details_open.png') no-repeat center center;

@@ -115,6 +115,10 @@ DynLoaderInspector.hookSet.addIntercept({
                 },
                 after: true, 
                 msg: "Class.getMethod()", 
+                tags: [{
+                    style:"purple",
+                    text: "dynamic"
+                }], 
                 action: "Update" 
             });
 
@@ -144,6 +148,10 @@ DynLoaderInspector.hookSet.addIntercept({
                 },
                 after: true, 
                 msg: "Class.forName()", 
+                tags: [{
+                    style:"purple",
+                    text: "dynamic"
+                }], 
                 action: "Update" 
             });
     `
@@ -250,6 +258,10 @@ DynLoaderInspector.hookSet.addIntercept({
                 },
                 after: true, 
                 msg: "BaseDexClassLoader.findClass()", 
+                tags: [{
+                    style:"purple",
+                    text: "dynamic"
+                }], 
                 action:"Log" 
             });
     `
@@ -279,6 +291,10 @@ DynLoaderInspector.hookSet.addIntercept({
                 },
                 after: true, 
                 msg: "DexClassLoader.<init>()", 
+                tags: [{
+                    style:"purple",
+                    text: "dynamic"
+                }], 
                 action:"Log" 
             });
     `
@@ -302,6 +318,10 @@ DynLoaderInspector.hookSet.addIntercept({
                 },
                 after: true, 
                 msg: "DexFile.loadDex()", 
+                tags: [{
+                    style:"purple",
+                    text: "dynamic"
+                }], 
                 action:"Log" 
             });
     `
@@ -331,6 +351,10 @@ DynLoaderInspector.hookSet.addIntercept({
                 },
                 after: false, 
                 msg: "DexFile.<init>()", 
+                tags: [{
+                    style:"purple",
+                    text: "dynamic"
+                }], 
                 action:"Log" 
             });
     `
@@ -358,6 +382,10 @@ DynLoaderInspector.hookSet.addProbe({
                 }
                 after: true, 
                 msg: "ClassLoaderCreator.createFromParcel()", 
+                tags: [{
+                    style:"purple",
+                    text: "dynamic"
+                }], 
                 action:"Log" 
             });
     `
