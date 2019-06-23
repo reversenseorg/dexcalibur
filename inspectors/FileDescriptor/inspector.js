@@ -48,11 +48,11 @@ FileDescriptorInspector.hookSet.addIntercept({
         var msg={ arg0:"<null>", arg1:"<null>" }; 
 
         if(arg0!=null){ 
-            if(isIntanceOf(arg0, "java.io.File")){
+            if(isInstanceOf(arg0, "java.io.File")){
                 //var a=wJava.cast(arg0, DEXC_MODULE.common.class.java.io.File).getAbsolutePath();
                 msg.arg0 = arg0.getAbsolutePath();
             }
-            else if(isIntanceOf(arg0, "java.net.URI"))
+            else if(isInstanceOf(arg0, "java.net.URI"))
                 msg.arg0 = arg0.toString();
             else
                 msg.arg0 = arg0;

@@ -29,7 +29,7 @@ var CLS={
     }
 };
 
-function isIntanceOf(raw_ref, fqcn){
+function isInstanceOf(raw_ref, fqcn){
     //var cls = "java.lang.String";
     if(typeof raw_ref != "string"){
         var cls = Java.cast(raw_ref.getClass(), CLS.java.lang.Class);
