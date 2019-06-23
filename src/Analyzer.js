@@ -1,6 +1,7 @@
 // global
 var fs = require("fs");
 var Chalk = require("chalk");
+const Path = require("path");
 
 var ut = require("./Utils.js");
 const CLASS = require("./CoreClass.js");
@@ -879,9 +880,14 @@ function Analyzer(encoding, finder, ctx=null){
         };*/
     }
 
-    this.file = function(filePath, force=false){
-        if(!filePath.endsWith(".smali") || !force)
+    this.file = function(filePath, filename, force=false){
+
+
+        //console.log(filePath, filename.endsWith(".smali"));
+
+        if(!filename.endsWith(".smali") && !force)
             return;
+
 
         // TODO : test UTF8 support
         let src=fs.readFileSync(filePath,config.encoding);
@@ -907,7 +913,11 @@ function Analyzer(encoding, finder, ctx=null){
         tempDb = this.newTempDb();
 
         // TODO : hcek if path exists;
-        ut.forEachFileOf(path,this.file,".smali");
+        // ut.forEachFileOf(path,this.file,".smali");
+        //ut.forEachFileOf(path,this.file);
+        ut.forEachFileOf(path,(path,file)=>{
+            this.file(path,file,false);
+        });
 
         STATS.idxClass = this.db.classes.size();
         
@@ -988,7 +998,10 @@ Analyzer.prototype.useSyscalls = function(syscalls){
  */
 Analyzer.prototype.system = function(path){
     // TODO : hcek if path exists;
-    ut.forEachFileOf(path,this.file,".smali");
+    //ut.forEachFileOf(path,this.file,".smali");
+    ut.forEachFileOf(path,(path,file)=>{
+        this.file(path,file,false);
+    });
 
     STATS.idxClass = this.db.classes.size();
     

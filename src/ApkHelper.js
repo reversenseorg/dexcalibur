@@ -1,6 +1,7 @@
 const Process = require('child_process');
 const FS = require("fs");
 const Chalk = require('chalk');
+const Path = require("path");
 
 
 function ApkHelper(ctx){
@@ -13,7 +14,8 @@ ApkHelper.prototype.extract = function(fileSrc, folderDest=null, resource=false)
         return false;
     }
     if(folderDest == null)
-        folderDest = this.context.workspace.getWD()+"dex";
+//        folderDest = this.context.workspace.getWD()+"dex";
+        folderDest = Path.join(this.context.workspace.getWD(),"dex");
 
     let cmd = this.context.config.apktPath+" d ";
     if(!resource)  cmd += "-r";

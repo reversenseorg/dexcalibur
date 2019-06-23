@@ -1,6 +1,7 @@
 const fs = require("fs");
 const Process = require("child_process");
 const Chalk = require("chalk");
+const Path = require("path");
 
 const RE_REPLACE = /[-\/\\^$*+?.()|[\]{}]/g;
 
@@ -41,20 +42,21 @@ module.exports = {
         }
     },
     forEachFileOf: function(path,callback,isDir=false){
-        let dir=null, ret = null, smali=[], stat=fs.lstatSync(path);
+        let dir=null, elemnt=null, ret = null, smali=[], stat=fs.lstatSync(path);
 
         if(isDir || stat.isDirectory()){
             dir=fs.readdirSync(path);
             for(let i in dir){
-                if(fs.lstatSync(path+"/"+dir[i]).isDirectory()){
-                    this.forEachFileOf( path+"/"+dir[i]+"/", callback, true);
+                elemnt = Path.join(path,dir[i]);
+                if(fs.lstatSync(elemnt).isDirectory()){
+                    this.forEachFileOf( elemnt, callback, true);
                 }else{
                     // TODO : add additional test on file extension 
-                    callback(path+"/"+dir[i], dir[i]);
+                    callback(elemnt, dir[i]);
                 }
             }     
         }else{
-            callback(path+"/"+dir[i], dir[i]);
+            callback(path, Path.basename(path));
         }
     },
     count: function(list){

@@ -3,6 +3,7 @@ const co = require("co");
 const fs = require("fs");
 const md5 = require("md5");
 const Chalk = require("chalk");
+const Path = require("path");
 
 const CLASS = require("./CoreClass.js");
 const CONST = require("./CoreConst.js");
@@ -935,7 +936,7 @@ HookManager.prototype.refreshScanner = function(){
 
     let self = this;
     UT.forEachFileOf(
-        this.context.config.getDexcaliburPath()+"scanner",
+        Path.join(this.context.config.getDexcaliburPath(),"scanner"),
         function(path,file){
             let s = file.substr(0,file.lastIndexOf("."));
             if(self.scanners[s]==null){
@@ -966,7 +967,7 @@ HookManager.prototype.prepareRequires = function(){
     let req = "", loaded = {};   
     for(let i=0; i<this.requires.length; i++){
         if(this.requires[i]!=null && loaded[this.requires[i]]==null){
-            req += fs.readFileSync(this.context.config.dexcaliburPath+"/requires/"+this.requires[i]+".js");
+            req += fs.readFileSync(Path.join(this.context.config.dexcaliburPath,"requires",this.requires[i]+".js"));
             loaded[this.requires[i]] = true;
         }
     }  

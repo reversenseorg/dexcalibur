@@ -4,6 +4,7 @@ const MIME = require("mime-types");
 const Chalk = require("chalk");
 const VM = require("vm");
 const BodyParser = require("body-parser");
+const Path = require("path");
 
 const UT = require("./Utils.js");
 const Logger = require("./Logger.js");
@@ -49,7 +50,7 @@ class TemplateEngine {
         this.project = project;
         this.tokenRE = new RegExp("<!--##\\s*(.+)\\s+##-->");
         this.tokens = {};
-        this.root = project.config.dexcaliburPath+"/webserver/public/";
+        this.root = Path.join(project.config.dexcaliburPath,"webserver","public");
     }
   
     /**
@@ -69,7 +70,7 @@ class TemplateEngine {
             if(m == null || m.length < 2){
                 break;
             }
-            tpl = fs.readFileSync(this.root+m[1],'binary');
+            tpl = fs.readFileSync(Path.join(this.root,m[1]),'binary');
             // console.log(this.root+m[1],tpl);
 
             // data = data.replace(m[0], fs.readFileSync(this.root+m[1]));
@@ -92,7 +93,7 @@ class WebServer {
         this.tplengine = new TemplateEngine(project);
         this.app = Express();
         this.port = 8000;
-        this.root = this.project.config.dexcaliburPath+"webserver/public";
+        this.root = Path.join(this.project.config.dexcaliburPath,"webserver","public");
         this.logs = {
             access: []   
         };
@@ -107,7 +108,7 @@ class WebServer {
             let localPath = $.root+req.path, mime=null;
     
             if(req.path.endsWith("/"))
-                localPath = $.root+"/index.html";
+                localPath = Path.join($.root,"index.html");
 
             if(req.path.startsWith("/inspectors/")){
 
@@ -123,23 +124,24 @@ class WebServer {
 
                     //relPath = inspector.pop();
                     for(let i=2; i<inspector.length; i++)
-                        relPath += "/"+inspector[i];
+                        relPath = Path.join(relPath,inspector[i]);
 
                     //console.log(relPath);
                     
                     //localPath = inspector[1]+"/web/"+localPath
-                    localPath = $.project.config.getDexcaliburPath()+"../inspectors/";
-                    localPath += iid+"/web/"+relPath;
+                    localPath = Path.join($.project.config.getDexcaliburPath(),"..","inspectors");
+                    localPath = Path.join(localPath, iid,"web",relPath);
 
                     //console.log("[WebServer::inspectors] Path = "+localPath);
                 
 
                     //localPath = $.project.getInspector(inspector).getPath();
+                    mime = MIME.lookup(Path.basename(localPath));
                 }else{
                     // redirect to /pages/inspectors?error=404
                     localPath = $.root+"/pages/inspectors?error=404";
+                    mime = MIME.lookup($.root+"/pages/inspectors.html");
                 }
-                mime = MIME.lookup(localPath.split("/").pop());
             }else
                 mime = MIME.lookup(localPath.split("/").pop());
         

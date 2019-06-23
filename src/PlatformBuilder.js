@@ -1,13 +1,14 @@
 const fs = require("fs");
 const UT = require("./Utils.js");
 const Logger = require("./Logger.js");
+const Path = require("path");
 
 const DX_JAR_PATH = "/lib/dx.jar";
 
 //Logger.push("[PlatformBuilder::");
 
 function PlatformBuilder(config){
-    this.wd = config.getDexcaliburPath()+"APIs/";
+    this.wd = Path.join(config.getDexcaliburPath(),"APIs");
     this.android_sdk = config.getAndroidSdkDir();
     this.java = config.getJavaBin();
     this.dxPath = null;
@@ -24,7 +25,7 @@ PlatformBuilder.prototype.findDxPath = function(){
     if(this.dxPath != null) return this.dxPath;
 
     let self = this;
-    UT.forEachFileOf(this.android_sdk+"/build-tools/", function(file){
+    UT.forEachFileOf(Path.join(this.android_sdk,"build-tools"), function(file){
         console.log(file);
         self.dxPath = file;
     },false);
@@ -34,20 +35,21 @@ PlatformBuilder.prototype.findDxPath = function(){
 
 PlatformBuilder.prototype.buildDex = function(classes_path){
     let dxBin = this.findDxPath();
-    let output = this.config.getTmpDir()+"/dexc_"+UT.time()+".dex";
+    let output = Path.join(this.config.getTmpDir(),"dexc_"+UT.time()+".dex");
     
-    UT.execSync(this.java+" --jar "+dxBin+" --dex --core-library --output="+output+" "+classes_path);
+    UT.execSync(this.java+" --jar "+dxBin+" --dex --core-library --output="+output+" "+classes_path+"/");
 
     return output;
 }
 
 
 PlatformBuilder.prototype.getAndroidClasses = function(api_version){
-    let apiPath = this.android_sdk + "/platforms/";
+    let apiPath = Path.join(this.android_sdk,"platforms");
     let availableApi = [], apiName = "", dstPath="", ret=null;
 
     if(api_version != null){
-        apiPath += apiName = "android-"+api_version;
+        apiName = "android-"+api_version;
+        apiPath = Path.join(apiPath,apiName);
     }else{
         Logger.info("Searching platform ...");
         UT.forEachFileOf(apiPath, (x)=>{ availableApi.push(x) },false);
@@ -55,10 +57,12 @@ PlatformBuilder.prototype.getAndroidClasses = function(api_version){
             Logger.error("[PlatformeBuilder::getAndroidClasses]","No available Android API");
             return false;
         }
-        apiPath += apiName = availableApi[0];
+        apiName = availableApi[0];
+        apiPath = Path.join(apiPath,apiName);
     }
-    apiPath += "/android.jar";
-    dstPath = this.config.getTmpDir()+"/"+apiName+"_"+UT.time();
+    apiPath = Path.join(apiPath,"/android.jar");
+    //apiPath += "/android.jar";
+    dstPath = Path.join(this.config.getTmpDir(),apiName+"_"+UT.time());
 
     Logger.info("Copying platform file ...")
     ret = UT.execSync("cp "+apiPath+" "+dstPath+".jar");
@@ -70,7 +74,7 @@ PlatformBuilder.prototype.getAndroidClasses = function(api_version){
     ret = UT.execSync("unzip "+apiPath+".jar "+dstPath);
 
     Logger.info("Building dex file ...")
-    let dex = this.buildDex(dstPath+"/");
+    let dex = this.buildDex(dstPath);
     
     Logger.info("Smaling file ...");
     // UT.execSync(this.config.getSmaluPath());
@@ -83,8 +87,8 @@ PlatformBuilder.prototype.getAndroidClasses = function(api_version){
 
 PlatformBuilder.prototype.isBuildable = function(platform){
     if(platform.isAndroid()){
-
-        this.buildDex()
+        Logger.error("[PlatformeBuilder::isBuildable]","Operation not supported"); 
+        //this.buildDex()
         return true;
     }else{
         Logger.error("[PlatformeBuilder::isBuildable]","Only official Android API can be build."); 

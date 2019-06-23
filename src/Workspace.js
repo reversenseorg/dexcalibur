@@ -5,7 +5,10 @@ var CLASS = require("./CoreClass.js");
 
 const DIR_NAME = {
     SAVE: "save",
-    IN: "inputs"
+    IN: "inputs",
+    RUNTIME: "runtime",
+    LOGS: "logs",
+    APPDATA: "appdata"
 };
 
 /**
@@ -52,7 +55,7 @@ Workspace.prototype._import = function(stub){
  * @function
  */
 Workspace.prototype.mkWDir = function(dirName){
-    fs.mkdirSync(this.getWD()+dirName);
+    fs.mkdirSync(Path.join(this.getWD(),dirName));
 };
 
 
@@ -94,7 +97,8 @@ Workspace.prototype.isWritable = function(path){
 Workspace.prototype.getWD = function(){
     if(this.wd == null){
 
-        this.wd = this._config.workspacePath+this._pkg+"/";
+        this.wd = Path.join(this._config.workspacePath,this._pkg);
+        //this.wd = this._config.workspacePath+this._pkg+"/";
     }
     return this.wd;
 }
@@ -119,11 +123,14 @@ Workspace.prototype.init = function(){
     if(!fs.existsSync(this.getWD())){
         fs.mkdirSync(this.getWD());
     }    
-    if(!fs.existsSync(this.getWD()+DIR_NAME.SAVE)){
+    if(!fs.existsSync(Path.join(this.getWD(),DIR_NAME.SAVE))){
         this.mkWDir(DIR_NAME.SAVE+"/");
     }    
-    if(!fs.existsSync(this.getWD()+DIR_NAME.IN)){
+    if(!fs.existsSync(Path.join(this.getWD(),DIR_NAME.IN))){
         this.mkWDir(DIR_NAME.IN+"/");
+    }    
+    if(!fs.existsSync(Path.join(this.getWD(),DIR_NAME.RUNTIME))){
+        this.mkWDir(DIR_NAME.RUNTIME+"/");
     }
     console.log(Chalk.bold.green("[*] Working directory : "+this.getWD()));
 }
@@ -135,13 +142,13 @@ Workspace.prototype.init = function(){
  */
 Workspace.prototype.getNewSavefilePath = function(){
     let d = new Date();
-    return this.getWD()+DIR_NAME.SAVE+"/autosave."+d.getTime()+".ddb";
+    return Path.join(this.getWD(),DIR_NAME.SAVE,"autosave."+d.getTime()+".ddb");
 }
 
 
 Workspace.prototype.getSaveDir = function(){
     let d = new Date();
-    return this.getWD()+DIR_NAME.SAVE;
+    return Path.join(this.getWD(),DIR_NAME.SAVE);
 }
 
 /**
@@ -153,7 +160,7 @@ Workspace.prototype.getSaveDir = function(){
  */
 Workspace.prototype.getTimestampedFilePath = function(prefix,suffix){
     let d = new Date();
-    return this.getWD()+DIR_NAME.SAVE+"/"+prefix+d.getTime()+suffix;
+    return Path.join(this.getWD(),DIR_NAME.SAVE,prefix+d.getTime()+suffix);
 }
 
 

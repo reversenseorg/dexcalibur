@@ -1,5 +1,7 @@
 var Process = require("child_process");
 var Chalk = require("chalk");
+const Path = require("path");
+
 
 var Logger = require("./Logger.js");
 var Configuration = require("./Configuration.js");
@@ -73,7 +75,7 @@ function Project(pkgName, cfgpath=null, nofrida=0){
         //this.config = importConfig(cfg);
         Logger.info(" Default configuration loaded from 'config.js' file.");
     }
-    this.config.dexcaliburPath = process.cwd()+"/src/";
+    this.config.dexcaliburPath = Path.join(process.cwd(),"src");
     
     // set the Search API which allow the user to perform search
     this.find = new Finder.SearchAPI();
@@ -230,9 +232,11 @@ Project.prototype.scan = function(path){
     if(path !== undefined){   
         this.analyze.path( path);
     }else{
-        console.log( Chalk.yellow("Scanning default path : "+this.workspace.getWD()+"dex"));
-        this.analyze.path( this.workspace.getWD()+"dex");
-        this.dataAnalyser.scan( this.workspace.getWD()+"dex");
+//        let dexPath = this.workspace.getWD()+"dex";
+        let dexPath = Path.join(this.workspace.getWD(),"dex");
+        console.log( Chalk.yellow("Scanning default path : "+dexPath));
+        this.analyze.path( dexPath);
+        this.dataAnalyser.scan( dexPath);
         this.analyze.insertFiles( this.dataAnalyser.getDB, false);
     }
 };
@@ -288,9 +292,13 @@ Project.prototype.fullscan = function(path){
         this.analyze.path( path);
         this.dataAnalyser.scan( path, ["smali"]);
     }else{
-        console.log(Chalk.yellow("Scanning default path : "+this.workspace.getWD()+"dex"));
-        this.analyze.path( this.workspace.getWD()+"dex");
-        this.dataAnalyser.scan( this.workspace.getWD()+"dex", ["smali"]);
+        //        let dexPath = this.workspace.getWD()+"dex";
+        let dexPath = Path.join(this.workspace.getWD(),"dex");
+
+        console.log(Chalk.yellow("Scanning default path : "+dexPath));
+        
+        this.analyze.path( dexPath);
+        this.dataAnalyser.scan( dexPath, ["smali"]);
     }
 
     // index static array 
@@ -398,7 +406,10 @@ Project.prototype.pull = function(device){
         console.log(Chalk.bold.green("[*] Package found"));
     }
         
-    let pathWD = this.workspace.getWD()+this.pkg;
+    //let pathWD = this.workspace.getWD()+this.pkg;
+    let pathWD = Path.join(this.workspace.getWD(),this.pkg);
+    let dexPath = Path.join(this.workspace.getWD(),"dex");
+
     ret = Process.execSync(
         adb+" pull "+ppath+" "+pathWD+".apk"
     ).toString("ascii");
@@ -410,8 +421,8 @@ Project.prototype.pull = function(device){
     if(ret.indexOf("1 file pulled")>-1){
         console.log(Chalk.bold.green("[*] Package downloaded to "+pathWD+".apk"));
 
-        ret = Process.execSync(this.config.apktPath+" d -f -m -r -o "+this.workspace.getWD()+"dex "+pathWD+".apk").toString("ascii");
-        console.log(Chalk.bold.green("[*] APK decompiled in "+this.workspace.getWD()+"dex"));
+        ret = Process.execSync(this.config.apktPath+" d -f -m -r -o "+dexPath+" "+pathWD+".apk").toString("ascii");
+        console.log(Chalk.bold.green("[*] APK decompiled in "+dexPath));
 
     }else{
         console.error(Chalk.bold.red("[!] Fail to pull package"));

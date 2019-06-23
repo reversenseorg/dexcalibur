@@ -1,3 +1,5 @@
+const Path = require("path");
+
 function Platform(config,apis_path){
     
     this.name = null;
@@ -8,7 +10,7 @@ function Platform(config,apis_path){
     for(let i in config) this[i] = config[i];
 
     if(this.binaryPath == null){
-        this.binaryPath = apis_path+"/"+this.name+"_"+this.apiVersion+"/";
+        this.binaryPath = Path.join(apis_path,this.name+"_"+this.apiVersion);
     }
  
     return this;

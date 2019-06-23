@@ -1,6 +1,7 @@
 const fs = require("fs");
 const Logger = require("./Logger.js");
 const Platform = require("./Platform.js");
+const Path = require("path");
 
 
 const NO_EXPORT = ["platform_available"];
@@ -117,7 +118,7 @@ Configuration.prototype.import = function(data, force=false, overwrite=false){
     this.autocomplete();
 
     for(let i in this.platform_available){
-        this.platform_available[i] = new Platform(this.platform_available[i],this.dexcaliburPath+"/../APIs/"); 
+        this.platform_available[i] = new Platform(this.platform_available[i],Path.join(this.dexcaliburPath,"..","APIs")); 
     }
 
     this.ready = true;

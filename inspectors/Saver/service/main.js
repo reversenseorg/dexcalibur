@@ -2,6 +2,7 @@ const IFC = require("../../../src/InspectorFrontController.js");
 var CONST = require("../../../src/CoreConst.js");
 const UT = require("../../../src/Utils.js");
 const FS = require("fs");
+const PATH = require("path");
 
 var Controller =  new IFC.FrontController();
 
@@ -247,7 +248,7 @@ function save(context){
     let data = collectAll(context);
 
     // get the file wherre the data will eb write
-    let file = context.workspace.getSaveDir()+"/save.json";
+    let file = Path.join(context.workspace.getSaveDir(),"save.json");
 
     // write data
     FS.writeFileSync(file, JSON.stringify(data));
@@ -263,7 +264,7 @@ function open(context){
 
     console.log("Opening backup ...")
 
-    let file = context.workspace.getSaveDir()+"/save.json";
+    let file = Path.join(context.workspace.getSaveDir(),"save.json");
 
     // check if the file exists
     if(!FS.existsSync(file)){

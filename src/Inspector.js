@@ -1,6 +1,7 @@
 const Logger = require("./Logger.js");
 const IFC = require("./InspectorFrontController.js");
 const fs = require("fs");
+const Path = require("path");
 //const UT = require("./Utils.js");
 
 const TASK_CODE = {
@@ -157,7 +158,7 @@ class Inspector{
         Logger.info("[Inspector::injectContext][HookSet] "+this.id+" registered !");
 
         // register front controller
-        let path = ctx.config.getDexcaliburPath()+"../inspectors/"+this.id+"/service/main.js";
+        let path = Path.join(ctx.config.getDexcaliburPath(),"..","inspectors",this.id,"service","main.js");
         if(fs.existsSync(path)){
             this.frontController = require(path).injectContext(ctx);
             Logger.info("[Inspector::injectContext][FrontController] "+this.id+" registered !");

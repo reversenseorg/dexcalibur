@@ -1,6 +1,7 @@
 var fs = require('fs');
 var Chalk = require("chalk");
 var Process = require("child_process");
+const Path = require("path");
 
 const CONST = require('./CoreConst.js');
 const Core = require("./CoreClass.js");
@@ -420,7 +421,8 @@ function restore(filepath){
 
 
     // read save file
-    src=fs.readFileSync(filepath.substr(0,filepath.lastIndexOf("/"))+"/"+filepath.replace(".zip",".tmp"),'ascii');
+    src=fs.readFileSync(
+        Path.join(filepath.substr(0,filepath.lastIndexOf("/")),filepath.replace(".zip",".tmp")),'ascii');
     src=JSON.parse(src);
 
     // create corresponding obj for each Stub

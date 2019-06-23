@@ -1,4 +1,5 @@
 const UT = require("./Utils.js");
+const Path = require("path");
 
 function InspectorManager(ctx){
     this.ctx = ctx;
@@ -25,7 +26,7 @@ InspectorManager.prototype.lastError = function(err){
 InspectorManager.prototype.autoRegister = function(){
     let ctx = this.ctx, self=this;
 
-    UT.forEachFileOf(this.ctx.config.dexcaliburPath+"/../inspectors/", function(path,file){
+    UT.forEachFileOf(Path.join(this.ctx.config.dexcaliburPath,"..","inspectors"), function(path,file){
         if(path.endsWith("/inspector.js")){
             insp = require(path).injectContext(ctx);
             // subscribe to events bus
