@@ -1,6 +1,6 @@
 {
   "name": "dexcalibur",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Dynamic binary instrumentation tool designed for Android application and powered by Frida. Offers a GUI and a Node.JS API",
   "main": "dexcalibur",
   "directories": {
