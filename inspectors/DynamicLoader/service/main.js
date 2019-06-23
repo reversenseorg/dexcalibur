@@ -1,5 +1,6 @@
 const IFC = require("../../../src/InspectorFrontController.js");
 var CONST = require("../../../src/CoreConst.js");
+var AH = require("../../../src/AnalysisHelper.js");
 const Disassembler = require("../../../src/Disassembler.js");
 
 var Controller =  new IFC.FrontController();
@@ -11,8 +12,14 @@ var DEBUG = false;
 
 */
 function getInvokedMethod(context){
-    let meth = context.find.call("calleed.tags:invoked").select("calleed");
+    let meth = context.find.method("has."+AH.TAG.Invoked.Dynamically);
     return meth.toJsonObject();
+}
+
+
+function getElementsDiscovered(context){
+    let cls = context.find.class("tags:^"+AH.TAG.Load.ExternalDyn+"$");
+    return cls.toJsonObject();
 }
 
 /**
@@ -28,8 +35,14 @@ Controller.registerHandler(IFC.HANDLER.GET, function(ctx,req,res){
 
     switch(action){
         case 'refresh_reflect':
+            act.status = 200;
+            act.data.error = null;
             act.data.data = getInvokedMethod(ctx);
-
+            break;
+        case 'refresh_discover':
+            act.status = 200;
+            act.data.error = null;
+            act.data.data = getElementsDiscovered(ctx);
             break;
     }
 

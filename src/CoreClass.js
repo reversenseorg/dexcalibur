@@ -360,6 +360,7 @@ Package.prototype.toJsonObject = function(fields){
         for(let i in this.children){
             o.children.push(this.children[i].toJsonObject());
         }
+        o.tags = this.tags;
     }
     o.absolute_size = this.getAbsoluteSize();
     o.size = this.getSize();
@@ -591,6 +592,9 @@ Class.prototype.toJsonObject = function(filter){
         }
         else if(i == "package"){
             obj.package = this.package.toJsonObject(["name"]);
+        }
+        else if(i == "tags"){
+            obj.tags = this.tags;
         }
         else if(i == "extends"){
             //obj.extends = (this.extends!=null? this.extends.toJsonObject(["__signature__"]): null);
@@ -831,6 +835,9 @@ Call.prototype.toJsonObject = function(){
             && (typeof this[i] != 'object')){
 
             obj[i] = this[i];
+        }
+        else if(i == "tags"){
+            obj.tags = this.tags;
         }
         else if(i == "caller"){
             obj.caller = this.caller.__signature__;
@@ -1151,6 +1158,7 @@ Method.prototype.toJsonObject = function(fields=[],exclude=[]){
                 case "locals":
                 case "registers":
                 case "params":
+                case "tags":
                     obj[i] = this[i];
                     break;
                 case "instr":
@@ -1301,7 +1309,7 @@ Method.prototype.addTag = function(tag){
     this.tags.push(tag);   
 }
 Method.prototype.hasTag = function(tagName){
-    return this.tags.indexOf(tagName)>-1;   
+    return (this.tags.indexOf(tagName) > -1);   
 }
 Method.prototype.getTags = function(){
     return this.tags;   
@@ -1931,6 +1939,10 @@ Field.prototype.toJsonObject = function(fields=[],exclude=[]){
                 case "_isBinding":
                     obj[i] = this[i];
                     break;
+                case "tags":
+                    if(this[i].length > 0) 
+                        obj[i] = this[i];
+                    break;
                 case "instr":
                     break;
                 case "type":
@@ -2513,6 +2525,7 @@ StringValue.prototype.toJsonObject = function(){
     let o = new Object();
     o.value = this.value;
     o.instr = this.instr.toJsonObject();
+    o.tags = this.tags;
     //console.log(this.instr);
     return o;
 };

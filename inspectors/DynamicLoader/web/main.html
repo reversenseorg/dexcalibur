@@ -126,7 +126,7 @@
                         <div class="row">
                             <div class="col-lg-10" style="font-size:1.5em">Elements discovered</div>
                             <div class="col-lg-2">
-                                <button class="btn btn-primary refreshDex">
+                                <button class="btn btn-primary refreshDisco">
                                     <i class="fa fa-refresh"></i>&nbsp;Refresh
                                 </button>
                             </div>
@@ -159,11 +159,63 @@
 
     <!--## pages/inc/tpl_js_end.html ##-->
 
+    <script src="/js/wexcalibur.js"></script>
     <script>
+
+    function htmlEncode(txt){
+        return $('<div />').text(txt).html();
+    }
 
     $(document).ready(function() {
 
         let clsTable = $('#dataTables-reflect').DataTable({
+            searching: false,
+            paging: true,
+            columns: [
+                {
+                    "className":      'details-control',
+                    "orderable":      false,
+                    "data":           null,
+                    "defaultContent": ''
+                },
+                {  
+                    render: function(data, type, row, meta ){
+                        return '<a target="about" href="/pages/finder.html?method='+btoa(encodeURIComponent(row.__signature__))+'">'+htmlEncode(row.__signature__)+'</a>';
+                    }
+                },
+                {  
+                    render: function(data, type, row, meta ){
+                        if(row.tags==null) return "";
+                        let b="";
+                        for(let i=0; i<row.tags.length; i++){
+                            switch(row.tags[i]){
+                                case "id":
+                                    b += DexcaliburAPI.ui.badge.make("pink","invoked");
+                                    break
+                                case "led":
+                                    b += DexcaliburAPI.ui.badge.make("warning","external");
+                                    break
+                                case "new":
+                                    b += DexcaliburAPI.ui.badge.make("purple","new");
+                                    break
+                            }
+                        }
+                        return b;
+                    }
+                 },
+                { 
+                    render: function(data, type, row, meta ){
+                        if(row.name != null)
+                            return '<a  class="badge badge-primary probe" meth="'+btoa(encodeURIComponent(row.__signature__))+'">Probe</a>';
+                        else    
+                            return '';
+                    }
+                }
+            ],
+            responsive: true
+        });
+
+        let disTable = $('#dataTables-discover').DataTable({
             searching: false,
             paging: false,
             columns: [
@@ -175,21 +227,54 @@
                 },
                 {  
                     render: function(data, type, row, meta ){
-                        console.log(row);
-                        return '<a target="about" href="finder.html?method='+btoa(encodeURIComponent(row.id))+'">'+htmlEncode(row.id)+'</a>';
+                        if(row.simpleName != null){
+                            return "Class";
+                        }
+                        else if(row.ret != null){
+                            return "Method";
+                        }
+                        else if(row.modifiers= null){
+                            return "Field";
+                        }
+                        else if(row.width != null){
+                            return "Data";
+                        }
+                        else if(row.value != null){
+                            return "String";
+                        }
+                        else{
+                            return "???";
+                        }
                     }
                 },
                 {  
                     render: function(data, type, row, meta ){
-                        return '*';
+                        if(row.simpleName != null){
+                            return htmlEncode(row.fqcn);
+                        }
+                        else if(row.ret != null){
+                            return htmlEncode(row.__signature__);
+                        }
+                        else if(row.modifiers= null){
+                            return htmlEncode(row.__signature__);
+                        }
+                        else if(row.width != null){
+                            return htmlEncode(row.name+'('+row.width*row.length+' bits)');
+                        }
+                        else if(row.value != null){
+                            return htmlEncode(row.value);
+                        }
+                        else{
+                            return "???";
+                        }
                     }
                  },
                 { 
                     render: function(data, type, row, meta ){
                         if(row.name != null)
-                            return '<a  class="badge badge-success probe" meth="'+btoa(encodeURIComponent(row.name))+'">ON</a>';
-                        else    
-                            return '';
+                            return '<a  class="badge badge-success probe">more</a>';
+                        else 
+                            return 'None';
                     }
                 }
             ],
@@ -197,31 +282,18 @@
         });
 
 
-        $(".refreshReflect").click(function(e){
+        $(".refreshDisco").click(function(e){
             $.ajax("/api/inspectors/DynamicLoader", {
                 method: "get",
                 data: {
-                    action: "refresh_reflect"
+                    action: "refresh_discover",
+                    t: (new Date()).getTime()
                 },
                 statusCode: {
                     200: function(data,err){
-                        data = JSON.parse(data);
-                        clsTable.clear();
-                        /*
-                        rows = [];
-                        if(!from){
-                            for(let i=0; i<data._callers.length; i++){
-                                rows.push(data._callers[i]);
-                            }
-                        }else{
-                            for(let i in data._useMethods){
-                                rows.push({ ID: data._useMethods[i].__signature__, location:"-1", action:"None" });
-                            }
-                        }*/
-                        clsTable.rows.add(data.data);
-                        clsTable.draw();
-                        // do popup
-                        alert("Success");
+                        disTable.clear();
+                        disTable.rows.add(data.data);
+                        disTable.draw();
                     },
                     404: function(data,err){
                         alert("An error occured");
@@ -230,6 +302,28 @@
             })
         });
 
+        $(".refreshReflect").click(function(e){
+            $.ajax("/api/inspectors/DynamicLoader", {
+                method: "get",
+                data: {
+                    action: "refresh_reflect",
+                    t: (new Date()).getTime()
+                },
+                statusCode: {
+                    200: function(data,err){
+                        clsTable.clear();
+                        clsTable.rows.add(data.data);
+                        clsTable.draw();
+                    },
+                    404: function(data,err){
+                        alert("An error occured");
+                    }
+                }
+            })
+        });
+
+        $(".refreshReflect").trigger("click");
+        $(".refreshDisco").trigger("click");
 
     });
 

@@ -234,7 +234,7 @@ DynLoaderInspector.hookSet.addIntercept({
     //when: HOOK.BEFORE,
     method: "dalvik.system.BaseDexClassLoader.findClass(<java.lang.String>)<java.lang.Class>",
     onMatch: function(ctx,event){
-        DynLoaderInspector.emits("hook.dex.load.class",event);
+        DynLoaderInspector.emits("hook.dex.find.class",event);
     },
     interceptAfter: `   
             // get classname
@@ -260,6 +260,8 @@ DynLoaderInspector.hookSet.addIntercept({
     //when: HOOK.BEFORE,
     method: "dalvik.system.DexClassLoader.<init>(<java.lang.String><java.lang.String><java.lang.String><java.lang.ClassLoader>)<void>",
     onMatch: function(ctx,event){
+        //let dev = ctx.devices.getDefault();
+        //dev.Bridge.ADB.pull(event.data.arg0, ctx.Wor);        
         DynLoaderInspector.emits("hook.dex.new",event);
     },
     interceptBefore: `   
@@ -413,7 +415,7 @@ DynLoaderInspector.on("hook.reflect.method.get", {
 
             // if more than one result, try to filter with filename/line number
             if(callers.count()>1){
-                //Logger.warn("[INSPECTOR][TASK] DynLoaderInspector search Method : there are more than one result");
+                Logger.warn("[INSPECTOR][TASK] DynLoaderInspector search Method : there are more than one result");
             }else{
                 caller = callers.get(0);
             }
@@ -445,6 +447,24 @@ DynLoaderInspector.on("hook.reflect.method.get", {
         });
 
         caller.addMethodUsed(meth, call);
+    }
+});
+
+DynLoaderInspector.on("hook.dex.find.class",{
+    task: function(ctx, event){
+        Logger.info("[INSPECTOR][TASK] DynLoaderInspector external class loaded dynamically ");
+        if(event == null || event.data == null || event.data.data == null) return false;
+
+        let data = event.data.data;
+        let cls = ctx.find.get.class(data.cls);
+        console.log(cls, data);
+        if(cls == null){
+            cls = ctx.analyze.addClassFromFqcn(data.cls);
+        }
+        
+
+        if(!cls.hasTag(AnalysisHelper.TAG.Load.ExternalDyn))
+            cls.addTag(AnalysisHelper.TAG.Load.ExternalDyn);
     }
 });
 DynLoaderInspector.on("hook.reflect.method.call", {

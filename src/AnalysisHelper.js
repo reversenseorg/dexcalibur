@@ -10,5 +10,8 @@ module.exports = {
             Statically: "is",
             Dynamically: "id",
         },
+        Load: {
+            ExternalDyn: "led"
+        }
     }
 };

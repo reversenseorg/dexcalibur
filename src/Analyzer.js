@@ -930,6 +930,33 @@ function Analyzer(encoding, finder, ctx=null){
     }
 }
 
+
+
+Analyzer.prototype.addClassFromFqcn = function(fqcn){
+    let pkg = null;
+    let pkgn = fqcn.substr(0,fqcn.lastIndexOf('.'));
+    if(this.db.packages.hasEntry(pkgn)==true){
+        pkg = this.db.packages.getEntry(pkgn);
+    }else{
+        pkg = new CLASS.Package(pkgn);
+        console.log(pkg);
+        this.db.packages.setEntry(pkgn, pkg);
+    }
+    //console.log(pkgn,pkg, this.db.packages.hasEntry(pkgn));
+    var cls = new CLASS.Class({
+        fqcn: fqcn,
+        name: fqcn, // deprecated
+        simpleName: fqcn.substr(fqcn.lastIndexOf('.')+1),
+        package: pkg    
+    });
+
+    console.log(cls);
+    pkg.childAppend(cls);
+    this.db.classes.setEntry(fqcn, cls);
+
+    return cls;
+}
+
 Analyzer.prototype.addTagCategory = function(name, taglist){
     this.db.tagcategories.addEntry(name, new CLASS.TagCategory(name,taglist));
 }

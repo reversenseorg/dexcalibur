@@ -645,8 +645,12 @@
         sha: BS.color.primary,
         md5: BS.color.primary,
         ascii: BS.color.info,
-        key: BS.color.purple,
-        rsa: BS.color.purple,
+        key: BS.color.pink,
+        rsa: BS.color.pink,
+        // invoked dynamically
+        id: BS.color.purple,
+        // loaded from an external file
+        led: BS.color.warning
     };
 
     function findColorCode(tagname){
@@ -826,19 +830,29 @@
                     },
                     {   
                         render: function(data, type, row, meta ){
+                            let b = "";
                             if(row.alias != null){
-                                return '<b>'+htmlEncode(row.alias)+'</b>&nbsp;<i class="secondary-text">'+htmlEncode(row.name)+'</i>';
+                                b = '<b>'+htmlEncode(row.alias)+'</b>&nbsp;<i class="secondary-text">'+htmlEncode(row.name)+'</i>';
                             }
                             else if(row.name != null){
                                 if(row.name.lastIndexOf("$")>row.name.lastIndexOf('.')){
-                                    return row.name.substr(row.name.lastIndexOf('.')+1);
+                                    b = row.name.substr(row.name.lastIndexOf('.')+1);
                                 }else{
-                                    return row.simpleName;
+                                    b = row.simpleName;
                                 }
                             }else{
-                                console.log(row);
+                                console.log("Unable to render Class : "+row);
                             }
-                            
+
+                            // loaded from an external dex file
+                            if(row.tags.indexOf("led") > -1){
+                                b += BS.badge(
+                                        findColorCode("led")
+                                        , "external");
+                            }
+
+
+                            return b;
                             /*
                             if(row.enclosingClass != undefined)
                                 return row.enclosingClass.simpleName+"$"+row.simpleName;
@@ -1002,12 +1016,16 @@
 
         function renderValuesTable(table){
             $("#finder-col1").html("");
+            //$("#finder-col1").addClass("col-md-1");
             $("#finder-col2").html("Value");
+            //$("#finder-col2").addClass("col-md-5");
             $("#finder-col3").html("Caller");
+            //$("#finder-col3").addClass("col-md-5");
             $("#finder-col4").html("");//style("display","none");
+            //$("#finder-col4").addClass("col-md-1");
 
             table.destroy();
-            return $('#dataTables-finder').DataTable({
+            let t= $('#dataTables-finder').DataTable({
                 searching: false,
                 paging: false,
                 columns: [
@@ -1015,12 +1033,14 @@
                         "className":      'details-control',
                         "orderable":      false,
                         "data":           null,
-                        "defaultContent": ''
+                        "defaultContent": '',
+                        "width":"5%"
                     },
                     { 
                         render: function(data, type, row, meta ){
                             return htmlEncode(row.value);
-                        }
+                        },
+                        "width":"40%"
                     },
                     {  
                         render: function(data, type, row, meta ){
@@ -1028,17 +1048,21 @@
                             console.log("data > ",data);
                             
                             return '<a target="about" href="finder.html?method='+btoa(encodeURIComponent(row.instr.method))+'">'+htmlEncode(row.instr.method)+'</a>';
-                        }
+                        },
+                        "width":"40%"
                     },
                     {
                          render: function(data, type, row, meta ){
                             return '<a  class="badge badge-success probe" meth="'+btoa(encodeURIComponent(row.instr.method))+'">Probe</a>&nbsp;';
-                         }
+                         },
+                        "width":"15%"
 
                     }
                 ],
-                responsive: true
+                responsive: false
             });
+            t.columns.adjust();
+            return t;
         }
 
         
@@ -1328,6 +1352,7 @@
         });
 
         $('#button_probeall').click(function(e){
+            
             $('#probeall_count').html(
                 GLOBAL.results!=null? (GLOBAL.results.length!=null? GLOBAL.results.length : 1) : 0 
             );
