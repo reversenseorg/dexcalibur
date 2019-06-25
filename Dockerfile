@@ -11,8 +11,8 @@ RUN dpkg --add-architecture i386 && \
     apt-get update -y && \
     apt-get install -y libncurses5:i386 libc6:i386 libstdc++6:i386 lib32gcc1 lib32ncurses5 lib32z1 zlib1g:i386 && \
     apt-get install -y --no-install-recommends openjdk-8-jdk && \
-    apt-get install -y git wget zip curl && \
-	apt-get install -y usbutils
+    apt-get install -y git wget zip curl autotools-dev automake && \
+	apt-get install -y usbutils python3 python3-dev python3-pip gcc-multilib
 
 RUN	curl -sL https://deb.nodesource.com/setup_12.x  | bash -
 RUN apt-get update -y && \
@@ -73,24 +73,32 @@ RUN mkdir -p /home/dexcalibur/tools/apktool && \
 # RUN wget -qO- "http://dl.google.com/android/android-sdk_r24.3.4-linux.tgz" | tar -zx -C /opt && \
 #     echo y | android update sdk --no-ui --all --filter platform-tools --force
 
-# Setup Dexcalibur
-WORKDIR /home/dexcalibur
-
-
-RUN head -c 5 /dev/random > random_bytes && git clone https://github.com/FrenchYeti/dexcalibur.git && \
-	cd /home/dexcalibur/dexcalibur && \
-	/usr/bin/npm install
-	
-ADD docker/config.js dexcalibur/config.js
-
-# install platform-tools
-RUN mkdir /home/dexcalibur/platform-tools/ && \ 
+# install platform-tools (ADB)
+RUN head -c 5 /dev/random > random_bytes2 && mkdir /home/dexcalibur/platform-tools/ && \ 
 	cd /home/dexcalibur/platform-tools/ && \
 	wget -q https://dl.google.com/android/repository/platform-tools-latest-linux.zip && \
 	unzip *.zip && \
 	rm *.zip 
 
+ENV PATH ${PATH}:${GRADLE_HOME}/bin:/home/dexcalibur/platform-tools/platform-tools
 RUN echo 'adb forward tcp:31415 tcp:31415' >> /home/dexcalibur/.bashrc
+
+#Install Frida
+RUN pip3 install colorama prompt-toolkit pygments
+RUN pip3 install frida	
+RUN pip3 install frida-tools
+
+
+# Setup Dexcalibur
+WORKDIR /home/dexcalibur
+
+RUN head -c 5 /dev/random > random_bytes && git clone https://github.com/FrenchYeti/dexcalibur.git && \
+	cd /home/dexcalibur/dexcalibur && \
+	/usr/bin/npm install && /usr/bin/npm uninstall frida && /usr/bin/npm install frida@12.6.1 
+	
+ADD docker/config.js dexcalibur/config.js
+
+
 
 WORKDIR /home/dexcalibur/dexcalibur
 VOLUME ["/home/dexcalibur/workspace"]
