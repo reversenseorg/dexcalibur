@@ -252,6 +252,9 @@ Hook.prototype.dataObjAutoCast = function(argtype, argname){
         case "java.lang.String":
             val = argname;
             break;
+        case "java.lang.CharSequence":
+            val = argname; //".toString()";
+            break;
     }
 
     return val;
@@ -270,12 +273,12 @@ Hook.prototype.dataPrimAutoCast = function(argtype,argname){
 
 
 /**
- * To make the strings where the value depends of the method
- * parameters type and number.
+ * To build the code source corresponding an array of parameters 
  * 
  * It builds :
  *  - Argument part of the signature needed by Frida in order 
- *    to idenitfy good function to overload 
+ *    to identtfy good function to overload 
+ *  - Source code of the object send by the hook to the frida client
  *  
  * @param {ObjectType|BasicType} args_arr An array of Types
  * @function
@@ -343,6 +346,34 @@ Hook.prototype.makeArgsHelper = function(args_arr){
     return helper;
 };
 
+Hook.prototype.makeRetHelper = function(ret){
+    if(ret == null) return null;
+
+    let helper = {
+        // Format string for the logger
+        logger: "",
+        // TODO 
+        data: "",
+    };
+    let dataval="";
+
+
+    if(ret instanceof CLASS.BasicType){
+
+        dataval = this.dataPrimAutoCast(ret._name,"ret");
+        if(dataval != null)
+            helper.data += "ret:"+dataval;
+    }
+    else if(ret instanceof CLASS.ObjectType){
+
+        dataval = this.dataObjAutoCast(ret._name,"ret");
+        if(dataval != null)
+            helper.data += "ret:"+dataval;
+    }
+     
+    return helper;
+};
+
 
 /**
  * To create the Frida hook script for a specific method.
@@ -394,6 +425,10 @@ Hook.prototype.makeHookFor = function(method){
         "@@__ARGS_DATA__@@":"null",
         "@@__RET_DATA__@@":"",
     }; 
+
+
+    let retHelp = this.makeRetHelper(method.ret);
+    tags["@@__RET_DATA__@@"] = "{"+retHelp.data+"}";
 
     if(this.parentID != null){
         tags["@@__CTX__@@"] = "ctx_"+md5(this.parentID);
@@ -465,11 +500,11 @@ Hook.prototype.makeHookFor = function(method){
     //  AFTER insert
     if(this.isIntercept && this.code.after!=null){
         script += this.code.after;
-    }/*else{
+    }else{
         script += `
-            send({ id:"@@__HOOK_ID__@@", msg:"@@__FQCN__@@.@@__METHNAME__@@()", data:"", action:"None after", after:true @@__RET__@@ });
+            send({ id:"@@__HOOK_ID__@@", msg:"@@__METHSIGN__@@", data:@@__RET_DATA__@@, action:"None before", after:true @@__ARGS_VAL__@@ });
         `;
-    }*/
+    }
 
     script += `
         return ret;
@@ -515,6 +550,10 @@ Hook.prototype.buildCustomScript = function(method){
         "@@__ARGS_DATA__@@":"null",
         "@@__RET_DATA__@@":"",
     }; 
+
+
+    let retHelp = this.makeRetHelper(method.ret);
+    tags["@@__RET_DATA__@@"] = "{"+retHelp.data+"}";
 
     if(this.parentID != null){
         tags["@@__CTX__@@"] = "ctx_"+md5(this.parentID);
