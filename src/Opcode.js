@@ -852,6 +852,8 @@ var OPCODE={
 	SPUT:{ 
 		byte:0x67, 
 		instr:"sput", 
+		parse: MainParser.regField, 
+		type: CONST.INSTR_TYPE.SETTER, 
 		reftype: ReferenceType.FIELD, 
 		format:Format.Format21c, 
 		flag:Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.STATIC_FIELD_ACCESSOR },

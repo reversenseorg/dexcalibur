@@ -184,7 +184,8 @@
                 <table width="100%"  class="table table-striped table-bordered table-hover" id="dataTables-xref">
                     <thead>
                         <tr>
-                            <th id="xref-col1" class="col-lg-6">Method</th>
+                            <th id="xref-col0" class="col-lg-1">Type</th>
+                            <th id="xref-col1" class="col-lg-5">Name</th>
                             <th id="xref-col2" class="col-lg-2">Tags</th>
                             <th id="xref-col3" class="col-lg-2">Action</th>
                         </tr>
@@ -708,14 +709,31 @@
         let xrefTable = $('#dataTables-xref').DataTable({
             searching: false,
             paging: false,
-            columns: [
+            columns: [{
+                    render: function(data, type, row, meta ){
+                        if(row.t != null){
+                            if(row.t=='f')
+                                return 'Field';
+                            else if(row.t=='m')
+                                return 'Method';                            
+                            else
+                                return 'Class';
+                        }
+                    }
+                },
                 {  
                     // render called/caller name
                     render: function(data, type, row, meta ){
-                        console.log(row);
+                        //console.log("xref :",row);
                         if(row.t != null)
-                            return '<a target="about" href="finder.html?method='+btoa(encodeURIComponent(row.s))+'">'+htmlEncode(row.s)+'</a>';
+                            if(row.t=='f')
+                                return '<a target="about" href="finder.html?field='+btoa(encodeURIComponent(row.s))+'">'+htmlEncode(row.s)+'</a>';
+                            else if(row.t=='m')
+                                return '<a target="about" href="finder.html?method='+btoa(encodeURIComponent(row.s))+'">'+htmlEncode(row.s)+'</a>';                            
+                            else
+                                return '<a target="about" href="finder.html?class='+btoa(encodeURIComponent(row.s))+'">'+htmlEncode(row.s)+'</a>';
                         else{
+                            console.log("Else case trigged");
                             let t = '<a target="about" href="finder.html?method='+btoa(encodeURIComponent(row.s))+'">';
                             if(row.a != null)
                                 return t+htmlEncode(row.a)+'</a><br><i>'+htmlEncode(row.s)+'</i>';
@@ -748,8 +766,8 @@
                 { 
                     // render probing btn
                     render: function(data, type, row, meta ){
-                        if(row.s.indexOf("<clinit>")>-1)
-                            return '<a class="badge badge-secondary" tip="Class init cannot be hooked">Probe</a>';
+                        if(row.s.indexOf("<clinit>")>-1 || (row.t!=null && row.t=='f'))
+                            return ''; //<a class="badge badge-secondary" tip="Class init cannot be hooked">Probe</a>';
                         else
                             return '<a  class="badge badge-'+(row.probing? 'success':'primary')+' probe" meth="'+btoa(encodeURIComponent(row.s))+'">Probe '+(row.probing? 'ON&nbsp;&nbsp;':'OFF')+'</a>';
                     }
@@ -1445,6 +1463,10 @@
                     break;
                 case "method":
                     $("#search_request")[0].value = 'get.method("'+req+'")';
+                    $("#button_search").trigger("click");
+                    break;
+                case "field":
+                    $("#search_request")[0].value = 'get.field("'+req+'")';
                     $("#button_search").trigger("click");
                     break;
                 case "class":

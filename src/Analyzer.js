@@ -482,13 +482,19 @@ function mapInstructionFrom(method, data, stats){
                     console.log("Instruct::right undef (analyzer)", instruct);
                 }
 
-                //console.log(instruct.right.signature)
-                instruct.right._callers.push(method); 
+                if(instruct.isSetter()){
+                    instruct.right.addSetter(method);
+                }else{
+                    instruct.right.addGetter(method);
+                }
                 
+                instruct.right._callers.push(method);
+ 
                 data.call.insert(new CLASS.Call({ 
                     caller: method, 
                     calleed: instruct.right, 
-                    instr: instruct}));
+                    instr: instruct
+                }));
 
                 stats.fieldCalls++;
                 
@@ -613,7 +619,7 @@ function MakeMap(data,absoluteDB){
             o.enclosingClass = cls;
 
             // data.fields[o.hashCode()] = o;
-            absoluteDB.fields.setEntry(o.hashCode(), o);
+            absoluteDB.fields.setEntry(o.signature(), o); //hashCode()
             
             STATS.idxField++;
         }

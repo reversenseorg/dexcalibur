@@ -849,7 +849,7 @@ Call.prototype.toJsonObject = function(){
                 obj.callee = this.calleed.__signature__;
         }
         else if(i == "instr"){
-            //obj.instr = this.package.toJsonObject(["name"]);
+            obj.instr = this.instr.exportType(); //toJsonObject(["name"]);
         }
     }   
     return obj;
@@ -1853,6 +1853,9 @@ function Field(config){
 
     this._callers = [];
 
+    this._getters = [];
+    this._setters = [];
+
     this.tags = [];
 
     if(config!==undefined)
@@ -1906,6 +1909,12 @@ Field.prototype.import = function(obj){
         this.ret = (new ObjectType()).import(obj.type);
     }
 };
+Field.prototype.addSetter = function(meth){
+    this._setters.push(meth);
+}
+Field.prototype.addGetter = function(meth){
+    this._getters.push(meth);
+}
 Field.prototype.export = Savable.export;
 Field.prototype.toJsonObject = function(fields=[],exclude=[]){
     let obj = new Object();
@@ -1924,11 +1933,13 @@ Field.prototype.toJsonObject = function(fields=[],exclude=[]){
             if(exclude.indexOf(i)>-1) continue;
 
             switch(i){
+                case "_getters":
+                case "_setters":
                 case "_callers":
                     obj[i] = [];
-                    for(let j=0; j<this._callers.length; j++){
-                        if(this._callers[j] != undefined)
-                            obj._callers.push(this._callers[j].__signature__);
+                    for(let j=0; j<this[i].length; j++){
+                        if(this[i][j] != undefined)
+                            obj[i].push(this[i][j].__signature__); // getSignature()
                     }
                     break;
                 case "__signature__":
@@ -2351,6 +2362,13 @@ Instruction.prototype.isCallingField = function(){
     return (this.right !== undefined) && (this.opcode.reftype==CONST.OPCODE_REFTYPE.FIELD);
 };
 
+Instruction.prototype.isSetter = function(){
+    return (this.opcode.type==CONST.INSTR_TYPE.SETTER);
+};
+
+Instruction.prototype.isGetter = function(){
+    return (this.opcode.type==CONST.INSTR_TYPE.GETTER);
+};
 
 Instruction.prototype.isNOP = function(){
     return (this.opcode.type==CONST.INSTR_TYPE.NOP);
@@ -2371,7 +2389,9 @@ Instruction.prototype.dump = function(){
 Instruction.prototype.printRaw = function(tab=2){
     console.log(("\t".repeat(tab))+this._raw);
 };
-
+Instruction.prototype.exportType = function(){
+    return CONST.INSTR_TYPE_LABEL[this.opcode.type];
+}
 Instruction.prototype.toJsonObject = function(parent){
     let o = new Object();
     o.raw = this._raw;
