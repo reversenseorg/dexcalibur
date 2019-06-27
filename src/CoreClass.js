@@ -1926,7 +1926,7 @@ Field.prototype.getGetters = function(){
 }
 
 Field.prototype.export = Savable.export;
-Field.prototype.toJsonObject = function(fields=[],exclude=[]){
+Field.prototype.toJsonObject = function(fields=null,exclude=null){
     let obj = new Object();
     /*if(fields.length>0){
         for(let i in fields){
@@ -1939,10 +1939,8 @@ Field.prototype.toJsonObject = function(fields=[],exclude=[]){
     }else{*/
         for(let i in this){
 
-            if(fields != null && fields.indexOf(i)==-1) continue;
-
-            //console.log(i);
-            if(exclude.indexOf(i)>-1) continue;
+            if((fields instanceof Array) && fields.indexOf(i)==-1) continue;
+            //if((exclude instanceof Array) && exclude.indexOf(i)>-1) continue;
 
             switch(i){
                 case "_getters":

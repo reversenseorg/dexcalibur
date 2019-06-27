@@ -700,10 +700,10 @@ class WebServer {
                 let field = $.project.find.get.field(sign);
                 
                 dev = field.toJsonObject();
-                dev.sets = $.project.find.settersOf(sign);
-                dev.gets = $.project.find.gettersOf(sign);
+                //dev.sets = $.project.find.settersOf(sign);
+                //dev.gets = $.project.find.gettersOf(sign);
                 // dev.htg = $.project.graph.htg(method);
-
+                //console.log(dev);
                 res.status(200).send(JSON.stringify(dev));
             })
             .put(function(req,res){
@@ -751,7 +751,7 @@ class WebServer {
                 res.status(200).send(JSON.stringify(dev));
             });
 
-        this.app.route('/api/field/:id/setters')
+        /*this.app.route('/api/field/:id/setters')
             .get(function(req,res){
                 // collect
                 let dev = {};
@@ -769,7 +769,7 @@ class WebServer {
                 // dev.htg = $.project.graph.htg(method);
 
                 res.status(200).send(JSON.stringify(dev));
-            });
+            });*/
 
         this.app.route('/api/scanner')
             .get(function(req,res){
@@ -848,14 +848,7 @@ class WebServer {
                 //Logger.info("[REST] /api/finder : ",search);
 
                 // perform the requests (TODO: ajouter les erreur dans FinderResult)
-                //console.log($);
-                //Logger.info(u);
                 let results = VM.runInNewContext('$.project.find.'+u2+';',{ $:$ });
-
-                /*if(u2.substr(0,3)=="get"){
-                    //console.log(results);
-                    //Logger.info("[FINDER][GET] "+results.toJsonObject());
-                }*/
 
                 // collect
                 let dev = {
