@@ -202,6 +202,33 @@
         </div>
       </div>
 
+      <div class="modal fade" id="gsetterModal" tabindex="-1" role="dialog" aria-labelledby="gsetterModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg" role="document">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h3 class="modal-title" id="gsetterModalLabel">Getter</h3>
+            </div>
+            <div class="modal-body">
+                <table width="100%"  class="table table-striped table-bordered table-hover" id="dataTables-gsetter">
+                    <thead>
+                        <tr>
+                            <th id="xref-col0" class="col-lg-1">Type</th>
+                            <th id="xref-col1" class="col-lg-5">Method</th>
+                            <th id="xref-col2" class="col-lg-2">Tags</th>
+                            <th id="xref-col3" class="col-lg-2">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        
+                    </tbody>
+                </table>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+            </div>
+          </div>
+        </div>
+      </div>
     <!--## pages/inc/tpl_js_end.html ##-->
     <!--## pages/inc/tpl_ace_smali.html ##-->
 
@@ -259,6 +286,46 @@
         return STUB_TYPE[id-1];
     }
 
+
+    var ApplicationMap = {
+        tags: null
+    };
+
+    const BS = {
+        color: {
+            purple: 'purple',       
+            pink: 'pink',  
+            primary: 'primary',         
+            info: 'info',         
+            warning: 'warning',         
+            danger: 'danger',         
+            secondary: 'secondary'          
+        },
+        badge: function(color,data){
+            if(BS.color[color]==null) console.error("Given color not exists : ",color);
+
+            return '&nbsp;<a class="badge badge-'+BS.color[color]+'">'+htmlEncode(data)+'</a>'; 
+        } 
+    };
+
+    const ColorCode = {
+        hash: BS.color.primary,
+        sha: BS.color.primary,
+        md5: BS.color.primary,
+        ascii: BS.color.info,
+        key: BS.color.pink,
+        rsa: BS.color.pink,
+        // invoked dynamically
+        id: BS.color.purple,
+        // loaded from an external file
+        led: BS.color.warning
+    };
+
+    function findColorCode(tagname){
+        for(let i in ColorCode) if(tagname.indexOf(i)>-1) return ColorCode[i];
+        return null;
+    }
+
     var Render = {
         methodTag: '<a class="badge badge-success probe">method</a>',
         fieldTag: '<a class="badge badge-primary probe">field</a>',
@@ -304,11 +371,11 @@
          
         if(row.fields != null){
             for(let i in row.fields){
-                body += '<tr>'+
-                    '<td><a  class="badge badge-secondary probe" field="'+btoa(encodeURIComponent(row.fields[i].__signature__))+'">Probe OFF</a>&nbsp;&nbsp;'+
+                body += '<tr><td>'+
+                    //'<td><a  class="badge badge-secondary probe" field="'+btoa(encodeURIComponent(row.fields[i].__signature__))+'">Probe OFF</a>&nbsp;&nbsp;'+
                     //'<a class="badge badge-secondary" onclick="intercept(\''+btoa(encodeURIComponent(row.fields[i].__signature__))+'\')">Intercept</a>'+
-                    '<a class="badge badge-purple" target="about" href="xref.html#fset='+btoa(encodeURIComponent(row.fields[i].__signature__))+';xrt=set">set xref</a>&nbsp;'+
-                    '<a class="badge badge-pink" target="about" href="xref.html#fget='+btoa(encodeURIComponent(row.fields[i].__signature__))+';xrt=get">get xref</a></td><td><b>Field</b></td>'+
+                    //'<a class="badge badge-purple getterof" target="about" field="'+btoa(encodeURIComponent(row.fields[i].__signature__))+'">getter</a>&nbsp;'+
+                    '<a class="badge badge-pink fieldxref" target="about" field="'+btoa(encodeURIComponent(row.fields[i].__signature__))+'">xref</a></td><td><b>Field</b></td>'+
                     '<td><a target="about" href="finder.html?field='+btoa(encodeURIComponent(row.fields[i].__signature__))+'">'+$('<div />').text(row.fields[i].__signature__).html()+'</a></td>'+
                 '</tr>';
             }
@@ -620,44 +687,6 @@
         return body;
     }
 
-    var ApplicationMap = {
-        tags: null
-    };
-
-    const BS = {
-        color: {
-            purple: 'purple',       
-            pink: 'pink',  
-            primary: 'primary',         
-            info: 'info',         
-            warning: 'warning',         
-            danger: 'danger',         
-            secondary: 'secondary'          
-        },
-        badge: function(color,data){
-            if(BS.color[color]==null) console.error("Given color not exists : ",color);
-
-            return '&nbsp;<a class="badge badge-'+BS.color[color]+'">'+htmlEncode(data)+'</a>'; 
-        } 
-    };
-
-    const ColorCode = {
-        hash: BS.color.primary,
-        sha: BS.color.primary,
-        md5: BS.color.primary,
-        ascii: BS.color.info,
-        key: BS.color.pink,
-        rsa: BS.color.pink,
-        // invoked dynamically
-        id: BS.color.purple,
-        // loaded from an external file
-        led: BS.color.warning
-    };
-
-    function findColorCode(tagname){
-        for(let i in ColorCode) if(tagname.indexOf(i)>-1) return ColorCode[i];
-        return null;
-    }
 
 
     $(document).ready(function() {
@@ -706,18 +735,72 @@
             responsive: true
         });
 
+        let gsetterTable = $('#dataTables-gsetter').DataTable({
+            searching: false,
+            paging: false,
+            columns: [{
+                    render: function(data, type, row, meta ){
+                        if(row.t=='s')
+                            return BS.badge("purple","set");
+                        else
+                            return BS.badge("pink","get");
+                    }
+                },
+                {  
+                    // render called/caller name
+                    render: function(data, type, row, meta ){
+                        //console.log("xref :",row);
+                        return '<a target="about" href="finder.html?method='+btoa(encodeURIComponent(row.s))+'">'+htmlEncode(row.s)+'</a>';                            
+                    }
+                 },
+                {  
+                    // render tags
+                    render: function(data, type, row, meta ){
+                        let t = "";
+                        if(row.tags==null) return t;
+                        for(let i=0; i<row.tags.length; i++){
+                            switch(row.tags[i]){
+                                case "di":
+                                    t += '&nbsp;<span class="badge badge-success">internal</span>'
+                                    break;
+                                case "dd":
+                                    t += '&nbsp;<span class="badge badge-purple">dynamic</span>'
+                                    break;
+                                case "id":
+                                    t += '&nbsp;<span class="badge badge-purple">invoked</span>'
+                                    break;
+                            }
+                        }
+                        return t;
+                    }},
+                { 
+                    // render probing btn
+                    render: function(data, type, row, meta ){
+                        if(row.s.indexOf("<clinit>")>-1)
+                            return ''; //<a class="badge badge-secondary" tip="Class init cannot be hooked">Probe</a>';
+                        else
+                            return '<a  class="badge badge-'+(row.probing? 'success':'primary')+' probe" meth="'+btoa(encodeURIComponent(row.s))+'">Probe '+(row.probing? 'ON&nbsp;&nbsp;':'OFF')+'</a>';
+                    }
+                }
+            ],
+            responsive: true
+        });
+
         let xrefTable = $('#dataTables-xref').DataTable({
             searching: false,
             paging: false,
             columns: [{
                     render: function(data, type, row, meta ){
                         if(row.t != null){
+                            console.log(row);
                             if(row.t=='f')
                                 return 'Field';
                             else if(row.t=='m')
                                 return 'Method';                            
                             else
                                 return 'Class';
+                        }else{
+                            return 'Method';
                         }
                     }
                 },
@@ -813,6 +896,39 @@
             );
 
             $("#xrefModal").modal();
+            return true;
+        }
+
+        function renderGsetterModal( ref) {
+            let body = '', j=0;
+
+            $('#gsetterModalLabel').html("Setters & getters of <h4>"+htmlEncode(decodeURIComponent(atob(ref)))+"</h4>");
+  
+            gsetterTable.clear();
+            gsetterTable.draw();   
+            $.ajax(
+                "../api/field/xref/"+ref,
+                {
+                    method: "get",
+                    statusCode: {
+                        200: function(data){
+                            gsetterTable.clear();
+                            gsetterTable.rows.add(JSON.parse(data).data);
+                            gsetterTable.draw();
+                        },
+                        404: function(data){
+                            alert("Error : "+JSON.parse(data).err);
+                            console.log(data);
+                        },
+                        500: function(data){
+                            alert("Fatal error : "+JSON.parse(data).err);
+                            console.log(data);
+                        }
+                    }
+                }
+            );
+
+            $("#gsetterModal").modal();
             return true;
         }
 
@@ -1015,6 +1131,10 @@
                                     txt +=  Render.methodTag;
                                 }else if(row.callee.indexOf('->')>-1){
                                     txt +=  Render.fieldTag;
+                                    if(row.instr=="SETTER")
+                                        txt += BS.badge("purple","set");
+                                    else
+                                        txt += BS.badge("pink","get");
                                 }else{
                                     txt +=  Render.classTag;
                                 }
@@ -1261,6 +1381,15 @@
             let meth = $(this).attr("meth");
 
             renderXrefModal(meth,false);
+        });
+
+
+
+        $(document).on("click",".fieldxref",function(e){
+            //let DOM_PROBE =$(this);
+            let field = $(this).attr("field");
+
+            renderGsetterModal(field);
         });
 
         $(document).on("click",".seegraph",function(e){

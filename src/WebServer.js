@@ -723,6 +723,54 @@ class WebServer {
                 res.status(200).send(JSON.stringify({ success: true }));
             });
 
+        this.app.route('/api/field/xref/:id')
+            .get(function(req,res){
+                // collect
+                let dev = {data:[]};
+                let field = $.project.find.get.field(UT.decodeURI(UT.b64_decode(req.params.id)));
+                
+                if(field==null) res.status(404).send(JSON.stringify(dev));
+
+                Object.values(field.getSetters()).forEach(function(x){
+                    dev.data.push({ 
+                        s: x.signature(),
+                        t: 's',
+                        tags: x.getTags()
+                    });           
+                });
+
+
+                Object.values(field.getGetters()).forEach(function(x){
+                     dev.data.push({ 
+                        s: x.signature(),
+                        t: 'g',
+                        tags: x.getTags()
+                    });           
+                 });
+
+                res.status(200).send(JSON.stringify(dev));
+            });
+
+        this.app.route('/api/field/:id/setters')
+            .get(function(req,res){
+                // collect
+                let dev = {};
+                //let sign = UT.decodeURI(UT.b64_decode(req.params.id));
+                let field = $.project.find.get.field(UT.decodeURI(UT.b64_decode(req.params.id)));
+                setters = field.getSetters(); 
+                getters = field.getGetters();
+
+                for(let i=0; i<setters.length; i++)
+                    dev.setters = setters[i].toJsonObject();
+                for(let i=0; i<getters.length; i++)
+                    dev.getters = getters[i].toJsonObject();
+                
+                //dev = field.toJsonObject(["__setters"]);
+                // dev.htg = $.project.graph.htg(method);
+
+                res.status(200).send(JSON.stringify(dev));
+            });
+
         this.app.route('/api/scanner')
             .get(function(req,res){
                 let o = [];

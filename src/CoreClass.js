@@ -1912,13 +1912,21 @@ Field.prototype.import = function(obj){
 Field.prototype.addSetter = function(meth){
     this._setters.push(meth);
 }
+Field.prototype.getSetters = function(){
+    return this._setters;
+}
+
 Field.prototype.addGetter = function(meth){
     this._getters.push(meth);
 }
+Field.prototype.getGetters = function(){
+    return this._getters;
+}
+
 Field.prototype.export = Savable.export;
 Field.prototype.toJsonObject = function(fields=[],exclude=[]){
     let obj = new Object();
-    if(fields.length>0){
+    /*if(fields.length>0){
         for(let i in fields){
             if(this[fields[i]] != null && (typeof this[fields[i]] == "object")){
                 obj[fields[i]] = this[fields[i]].toJsonObject();
@@ -1926,10 +1934,12 @@ Field.prototype.toJsonObject = function(fields=[],exclude=[]){
                 obj[fields[i]] = this[fields[i]];
             }
         }
-    }else{
+    }else{*/
         for(let i in this){
 
-            console.log(i);
+            if(fields != null && fields.indexOf(i)==-1) continue;
+
+            //console.log(i);
             if(exclude.indexOf(i)>-1) continue;
 
             switch(i){
@@ -1967,7 +1977,7 @@ Field.prototype.toJsonObject = function(fields=[],exclude=[]){
                     break;
             }
         }   
-    }
+    //}
     return obj;
 }
 
