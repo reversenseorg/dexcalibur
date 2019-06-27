@@ -1910,14 +1910,16 @@ Field.prototype.import = function(obj){
     }
 };
 Field.prototype.addSetter = function(meth){
-    this._setters.push(meth);
+    if(this._setters.indexOf(meth)==-1)
+        this._setters.push(meth);
 }
 Field.prototype.getSetters = function(){
     return this._setters;
 }
 
 Field.prototype.addGetter = function(meth){
-    this._getters.push(meth);
+    if(this._getters.indexOf(meth)==-1)
+        this._getters.push(meth);
 }
 Field.prototype.getGetters = function(){
     return this._getters;
