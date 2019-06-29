@@ -42,7 +42,7 @@ const TAGS = {
 function isASCII(buffer){
     let c = buffer.count();
     for(let i=0; i<c; i++){
-        if(buffer.read(i) > 0x7f || buffer.read(i) < 0x1f) return false;
+        if(buffer.read(i) > 0x7f || (buffer.read(i) < 0x1f && buffer.read(i) > 0x00)) return false;
     }
     return true;
 }
