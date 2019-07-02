@@ -1177,7 +1177,7 @@
                 paging: false,
                 columns: [
                     {
-                        "className":      'details-control',
+                        //"className":      'details-control',
                         "orderable":      false,
                         "data":           null,
                         "defaultContent": '',
@@ -1185,15 +1185,19 @@
                     },
                     { 
                         render: function(data, type, row, meta ){
-                            return htmlEncode(row.value);
+                            if(row.value.length > 60){
+                                let b="";
+                                for(let i=0; i<row.value.length/60; i++){
+                                    b += htmlEncode(row.value.substr(i*60,60))+"<br>";
+                                }
+                                return b;
+                            }else
+                                return htmlEncode(row.value);
                         },
                         "width":"40%"
                     },
                     {  
                         render: function(data, type, row, meta ){
-                            console.log("Row > ",row);
-                            console.log("data > ",data);
-                            
                             return '<a target="about" href="finder.html?method='+btoa(encodeURIComponent(row.instr.method))+'">'+htmlEncode(row.instr.method)+'</a>';
                         },
                         "width":"40%"
