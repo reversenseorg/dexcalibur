@@ -1088,7 +1088,10 @@
                     },
                     { 
                         render: function(data, type, row, meta ){
-                            return (row.enclosingClass!=null)? htmlEncode(row.enclosingClass) : '[Missing]';
+                            if(row.enclosingClass!=null){
+                                return "<a href='finder.html?class="+btoa(encodeURIComponent(row.enclosingClass.name))+"'>"+(row.enclosingClass.alias!=null? "<b class='alias-text' >"+htmlEncode(row.enclosingClass.alias)+"</b>" : "")+"&nbsp;"+htmlEncode(row.enclosingClass.name)+"</a>";
+                            }else
+                                return '[Missing]';
                         }
                     },
                     {  
@@ -1096,11 +1099,10 @@
                             return (row.alias!=null? '<b>'+htmlEncode(row.alias)+'</b>&nbsp;':'&nbsp;')+htmlEncode(row.__signature__);
                         }
                     },
-                    { 
-                        
+                    {   
                         render: function(data, type, row, meta ){
-                            let b='<a  class="badge badge-info rename" ename="'+btoa(encodeURIComponent(row.name))+'" subt="field" subject="'+btoa(encodeURIComponent(row.__signature__))+'">Rename</a>';
-
+                            let b='<a  class="badge badge-info rename" ename="'+btoa(encodeURIComponent(row.name))+'" subt="field" subject="'+btoa(encodeURIComponent(row.__signature__))+'">Rename</a>&nbsp;';
+                            b+='<a class="badge badge-pink fieldxref" target="about" field="'+btoa(encodeURIComponent(row.__signature__))+'">xref</a>';
                             return b;
                         }
                     }

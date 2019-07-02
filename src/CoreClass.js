@@ -2006,7 +2006,13 @@ Field.prototype.toJsonObject = function(fields=null,exclude=null){
                     obj.type = this.type.toJsonObject();
                     break;
                 case "enclosingClass":
-                    obj.enclosingClass = (this.enclosingClass!=null)? this.enclosingClass.name : "";
+                    if(this.enclosingClass != null){
+                        obj.enclosingClass = {
+                            name: this.enclosingClass.name
+                        };
+                        if(this.enclosingClass.alias!=null) 
+                            obj.enclosingClass.alias = this.enclosingClass.alias;
+                    }
                     break;
                 case "modifiers":
                     obj.modifiers = this.modifiers.toJsonObject();
