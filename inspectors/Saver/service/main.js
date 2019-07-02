@@ -2,7 +2,7 @@ const IFC = require("../../../src/InspectorFrontController.js");
 var CONST = require("../../../src/CoreConst.js");
 const UT = require("../../../src/Utils.js");
 const FS = require("fs");
-const PATH = require("path");
+const Path = require("path");
 
 var Controller =  new IFC.FrontController();
 
