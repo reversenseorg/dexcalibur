@@ -661,7 +661,31 @@ function MakeMap(data,absoluteDB){
         absoluteDB.packages.getEntry(v.package).childAppend(v);
         // Replace the package name by the reference to the package instance into the class instance
         v.package = absoluteDB.packages.getEntry(v.package);
+
+        // discover inherited and override methods
+        if(v.getSuperClass() != null){
+            let n=v, sc=null, supers=[];
+            while((sc = n.getSuperClass()) !=null){
+                supers.push(sc);
+                n = sc;
+            } 
+            v.setSupersList(supers);
+            /*let em = v.getSuperClass().methods, om=null, ovr=null;
+            for(let k in em){
+                om = v.hasOverrideOf(em[k]);
+                if(om != null){
+                    ovr = om.createOverride(v);
+                  //  v.methods[]
+                }else{
+                    v.addInheritedMethod(em[k]);
+                }
+            }
+            list.push(class_elmnt.getSuperClass());
+            return true;*/
+        }
     });
+
+
     /*
     for(let i in data.classes){
         if(absoluteDB.packages[data.classes[i].package] == undefined){
@@ -680,8 +704,10 @@ function MakeMap(data,absoluteDB){
 
     // console : progress "bar"
     data.classes.map((k,v)=>{
+        let em, om, ovr;
 
         if(v instanceof CLASS.Class){
+            // analyze each instructions
             for(let j in v.methods){
                 if(v.methods[j] instanceof CLASS.Method){
                     //mapInstructionFrom(data.classes[i].methods[j], data, STATS);
@@ -692,6 +718,9 @@ function MakeMap(data,absoluteDB){
                         console.log((t1-t)+" : "+v.methods[j].signature());
                 }
             }
+            
+            
+            
             off++;
             if(off%200==0 || off==step)
                 console.log(off+"/"+step+" Classes mapped ("+k+")") ;

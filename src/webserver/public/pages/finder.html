@@ -339,6 +339,15 @@
         let body = '';
         body += '<p><b>Extends :</b>';
         console.log('class',row);
+
+        if(row.supers != null){
+            for(let i=0; i<row.supers.length; i++){
+                body += "<br>"+("&nbsp;".repeat(i*3))+"-&nbsp;<a href='finder.html?class="+btoa(encodeURIComponent(row.supers[i].name))+"'>"+(row.supers[i].alias!=null? "<b class='alias-text' >"+htmlEncode(row.supers[i].alias)+"</b>" : "")+"&nbsp;"+htmlEncode(row.supers[i].name)+"</a>";
+            }
+        }else{
+            body += "<i>None</i>";
+        }
+
         if(row.extends != null){
             body += "&nbsp;<a href='finder.html?class="+btoa(encodeURIComponent(row.extends.name))+"'>"+htmlEncode(row.extends.alias!=null? row.extends.alias : row.extends.name)+"</a>";
          }else{

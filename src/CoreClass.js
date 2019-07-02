@@ -416,6 +416,7 @@ function Class(config){
 
     // a list of references to the extended classes
     this.extends = null;
+    this.supers = null;
 
     // a list of references to the appied annotations 
     this.annotations = [];
@@ -504,7 +505,19 @@ Class.prototype.hasMethod = function(hash){
     return this.methods[hash]!==undefined;
 };
 
-Class.prototype.signature = ()=>{
+Class.prototype.getSuperClass = function(){
+    return this.extends;
+}
+
+Class.prototype.getSuperList = function(){
+    return this.supers;
+}
+
+Class.prototype.setSupersList = function(superList){
+    this.supers = superList;
+}
+
+Class.prototype.signature = function(){
     return this.name;
 };
 
@@ -556,10 +569,6 @@ Class.prototype.dump = function(){
     }
 }
 
-Class.prototype.setNamedParam = function(position, name){
-    
-}
-
 Class.prototype.raw_import = Savable.import;
 Class.prototype.import = function(obj){
     // raw impport
@@ -569,6 +578,24 @@ Class.prototype.import = function(obj){
 };
 
 Class.prototype.export = Savable.export;
+
+Class.prototype.hasOverrideOf = function(meth){
+    if(meth == null) return null;
+
+    let cs = meth.callSignature();
+    for(let k in this.methods){
+        if(this.methods[k].callSignature()==cs){
+            return this.methods[k];
+        }
+    }
+    return null;
+}
+
+Class.prototype.getInheritedMethod = function(){
+
+}
+
+
 Class.prototype.toJsonObject = function(filter){
     let obj = new Object();
     for(let i in this){
@@ -577,6 +604,15 @@ Class.prototype.toJsonObject = function(filter){
             && (typeof this[i] != 'object')){
 
             obj[i] = this[i];
+        }
+        else if(i == "supers"){
+            obj.supers = [];
+            for(let k=0; k<this.supers.length; k++){
+                obj.supers.push({ 
+                    name:this.supers[k].signature(),
+                    alias: this.supers[k].getAlias()
+                }); // call signature
+            }
         }
         else if(i == "methods"){
             obj.methods = [];

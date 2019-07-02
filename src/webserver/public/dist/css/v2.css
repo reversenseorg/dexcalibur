@@ -24,6 +24,10 @@ body {
 .page-header {
     margin-top: 10px;
 }
+.alias-text {
+    color:#000;
+    font-weight: 800;
+}
 h1 {
     font-size: 22px;
 }
