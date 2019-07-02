@@ -1212,7 +1212,7 @@ Method.prototype.toJsonObject = function(fields=[],exclude=[]){
                     obj.enclosingClass = (this.enclosingClass!=null)? this.enclosingClass.name : "";
                     break;
                 case "modifiers":
-                    obj.modifiers = this.modifiers.toJsonObject();
+                    obj.modifiers = this.modifiers.toJsonObject(["private","protected","abstract"]);
                     break;
             }
         }   
@@ -2015,7 +2015,7 @@ Field.prototype.toJsonObject = function(fields=null,exclude=null){
                     }
                     break;
                 case "modifiers":
-                    obj.modifiers = this.modifiers.toJsonObject();
+                    obj.modifiers = this.modifiers.toJsonObject(["private","protected"]);
                     break;
             }
         }   
@@ -2117,6 +2117,24 @@ function Modifiers(config){
 }
 Modifiers.prototype.export = Savable.export;
 Modifiers.prototype.import=  Savable.import;
+
+Modifiers.prototype.toJsonObject = function(include=null){
+    let o = new Object();
+    if(include instanceof Array){
+        for(let i in this){
+            if(include.indexOf(i)>-1 && this[i] != false)
+                o[i] = this[i];
+        }
+    }else{
+        for(let i in this){
+            if(i[0]!=="_" && (typeof this[i] != "array"))
+                o[i] = this[i];
+        }
+    }
+    return o;
+};
+
+/*
 Modifiers.prototype.toJsonObject = function(trueOnly){
     let o = new Object();
     if(trueOnly){
@@ -2131,7 +2149,7 @@ Modifiers.prototype.toJsonObject = function(trueOnly){
         }
     }
     return o;
-};
+};*/
 
 Modifiers.prototype.isNotPrivate = function(){
     return this.visibility!==CONST.JAVA.PRIVATE;

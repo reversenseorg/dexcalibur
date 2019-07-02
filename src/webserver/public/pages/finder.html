@@ -305,7 +305,14 @@
             if(BS.color[color]==null) console.error("Given color not exists : ",color);
 
             return '&nbsp;<a class="badge badge-'+BS.color[color]+'">'+htmlEncode(data)+'</a>'; 
-        } 
+        },
+        modifiers: function(mods){
+            let b="";
+            if(mods.private) b+="<i style='color:#F00'>private</i>";
+            if(mods.protected) b+="<i style='color:orange'>protected</i>";
+            if(mods.abstract) b+="<i style='color:purple'>abstract</i>";
+            return b;
+        }
     };
 
     const ColorCode = {
@@ -385,6 +392,12 @@
                     //'<a class="badge badge-purple getterof" target="about" field="'+btoa(encodeURIComponent(row.fields[i].__signature__))+'">getter</a>&nbsp;'+
                     '<a class="badge badge-pink fieldxref" target="about" field="'+btoa(encodeURIComponent(row.fields[i].__signature__))+'">xref</a></td><td><i>Field</i></td>'+
                     '<td>';
+                
+                if(row.fields[i].modifiers != null) 
+                    body += BS.modifiers(row.fields[i].modifiers);
+                else
+                    body += "&nbsp;";
+
                 if(row.fields[i].alias != null){
                     body += '<b>'+htmlEncode(row.fields[i].alias)+'</b>&nbsp;';
                 }
@@ -399,8 +412,13 @@
                     '<td><a  class="badge badge-'+(row.methods[i].probing? 'success':'primary')+' probe" meth="'+btoa(encodeURIComponent(row.methods[i].__signature__))+'">Probe '+(row.methods[i].probing? 'ON&nbsp;&nbsp;':'OFF')+'</a>&nbsp;&nbsp;'+
                     //'<a  class="badge badge-danger">Intercept</a>'+
                     '<a class="badge badge-purple xrefto" target="about" meth="'+btoa(encodeURIComponent(row.methods[i].__signature__))+'">xref to</a>&nbsp;'+
-                    '<a class="badge badge-pink xreffrom" target="about" meth="'+btoa(encodeURIComponent(row.methods[i].__signature__))+'">xref from</a></td><td><i>Method</i></td>'+
-                    '<td><a target="about" href="finder.html?method='+btoa(encodeURIComponent(row.methods[i].__signature__))+'">';
+                    '<a class="badge badge-pink xreffrom" target="about" meth="'+btoa(encodeURIComponent(row.methods[i].__signature__))+'">xref from</a></td><td><i>Method</i>&nbsp;';
+
+                
+                if(row.methods[i].modifiers != null) 
+                    body += BS.modifiers(row.methods[i].modifiers);
+                        
+                body += '</td><td><a target="about" href="finder.html?method='+btoa(encodeURIComponent(row.methods[i].__signature__))+'">';
 
                 if(row.methods[i].__aliasedCallSignature__ != null)
                     body += '<b>'+htmlEncode(row.methods[i].__aliasedCallSignature__)+'<b>';
@@ -761,7 +779,15 @@
                     // render called/caller name
                     render: function(data, type, row, meta ){
                         //console.log("xref :",row);
-                        return '<a target="about" href="finder.html?method='+btoa(encodeURIComponent(row.s))+'">'+htmlEncode(row.s)+'</a>';                            
+                        let t = '<a target="about" href="finder.html?method='+btoa(encodeURIComponent(row.s))+'">';  
+
+                        // alias
+                        if(row.a != null)
+                            return t+htmlEncode(row.a)+'</a><br><i>'+htmlEncode(row.s)+'</i>';
+                        else
+                            return t+htmlEncode(row.s)+'</a>';
+
+//                        return '<a target="about" href="finder.html?method='+btoa(encodeURIComponent(row.s))+'">'+htmlEncode(row.s)+'</a>';                            
                     }
                  },
                 {  
@@ -819,14 +845,24 @@
                     // render called/caller name
                     render: function(data, type, row, meta ){
                         //console.log("xref :",row);
-                        if(row.t != null)
+                        let t = null
+                        if(row.t != null){
+
+                            // begin of the link
                             if(row.t=='f')
-                                return '<a target="about" href="finder.html?field='+btoa(encodeURIComponent(row.s))+'">'+htmlEncode(row.s)+'</a>';
+                                t = '<a target="about" href="finder.html?field='+btoa(encodeURIComponent(row.s))+'">'+htmlEncode(row.s)+'</a>';
                             else if(row.t=='m')
-                                return '<a target="about" href="finder.html?method='+btoa(encodeURIComponent(row.s))+'">'+htmlEncode(row.s)+'</a>';                            
+                                t = '<a target="about" href="finder.html?method='+btoa(encodeURIComponent(row.s))+'">'+htmlEncode(row.s)+'</a>';                            
                             else
-                                return '<a target="about" href="finder.html?class='+btoa(encodeURIComponent(row.s))+'">'+htmlEncode(row.s)+'</a>';
-                        else{
+                                t = '<a target="about" href="finder.html?class='+btoa(encodeURIComponent(row.s))+'">'+htmlEncode(row.s)+'</a>';
+
+                            // alias
+                            if(row.a != null)
+                                return t+htmlEncode(row.a)+'</a><br><i>'+htmlEncode(row.s)+'</i>';
+                            else
+                                return t+htmlEncode(row.s)+'</a>';
+                            
+                        }else{
                             console.log("Else case trigged");
                             let t = '<a target="about" href="finder.html?method='+btoa(encodeURIComponent(row.s))+'">';
                             if(row.a != null)
@@ -920,6 +956,9 @@
             $.ajax(
                 "../api/field/xref/"+ref,
                 {
+                    data:{  
+                        _t: (new Date()).getTime()
+                    },
                     method: "get",
                     statusCode: {
                         200: function(data){

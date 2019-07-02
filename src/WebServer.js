@@ -734,6 +734,7 @@ class WebServer {
                 Object.values(field.getSetters()).forEach(function(x){
                     dev.data.push({ 
                         s: x.signature(),
+                        a: x.getAlias(),
                         t: 's',
                         tags: x.getTags()
                     });           
@@ -743,6 +744,7 @@ class WebServer {
                 Object.values(field.getGetters()).forEach(function(x){
                      dev.data.push({ 
                         s: x.signature(),
+                        a: x.getAlias(),
                         t: 'g',
                         tags: x.getTags()
                     });           
