@@ -338,8 +338,7 @@
     function renderClassDetail( row ) {
         let body = '';
         body += '<p><b>Extends :</b>';
-        console.log('class',row);
-
+            console.log(row);
         if(row.supers != null){
             for(let i=0; i<row.supers.length; i++){
                 body += "<br>"+("&nbsp;".repeat(i*3))+"-&nbsp;<a href='finder.html?class="+btoa(encodeURIComponent(row.supers[i].name))+"'>"+(row.supers[i].alias!=null? "<b class='alias-text' >"+htmlEncode(row.supers[i].alias)+"</b>" : "")+"&nbsp;"+htmlEncode(row.supers[i].name)+"</a>";
@@ -348,11 +347,11 @@
             body += "<i>None</i>";
         }
 
-        if(row.extends != null){
+        /*if(row.extends != null){
             body += "&nbsp;<a href='finder.html?class="+btoa(encodeURIComponent(row.extends.name))+"'>"+htmlEncode(row.extends.alias!=null? row.extends.alias : row.extends.name)+"</a>";
          }else{
             body += "None"
-        }
+        }*/
         
         body += '</p><p><b>Implements :</b>&nbsp;&nbsp;';
         
@@ -384,9 +383,12 @@
                     //'<td><a  class="badge badge-secondary probe" field="'+btoa(encodeURIComponent(row.fields[i].__signature__))+'">Probe OFF</a>&nbsp;&nbsp;'+
                     //'<a class="badge badge-secondary" onclick="intercept(\''+btoa(encodeURIComponent(row.fields[i].__signature__))+'\')">Intercept</a>'+
                     //'<a class="badge badge-purple getterof" target="about" field="'+btoa(encodeURIComponent(row.fields[i].__signature__))+'">getter</a>&nbsp;'+
-                    '<a class="badge badge-pink fieldxref" target="about" field="'+btoa(encodeURIComponent(row.fields[i].__signature__))+'">xref</a></td><td><b>Field</b></td>'+
-                    '<td><a target="about" href="finder.html?field='+btoa(encodeURIComponent(row.fields[i].__signature__))+'">'+$('<div />').text(row.fields[i].__signature__).html()+'</a></td>'+
-                '</tr>';
+                    '<a class="badge badge-pink fieldxref" target="about" field="'+btoa(encodeURIComponent(row.fields[i].__signature__))+'">xref</a></td><td><i>Field</i></td>'+
+                    '<td>';
+                if(row.fields[i].alias != null){
+                    body += '<b>'+htmlEncode(row.fields[i].alias)+'</b>&nbsp;';
+                }
+                body += '<a target="about" href="finder.html?field='+btoa(encodeURIComponent(row.fields[i].__signature__))+'">'+htmlEncode(row.fields[i].__signature__)+'</a></td></tr>';
             }
         }
 
@@ -397,7 +399,7 @@
                     '<td><a  class="badge badge-'+(row.methods[i].probing? 'success':'primary')+' probe" meth="'+btoa(encodeURIComponent(row.methods[i].__signature__))+'">Probe '+(row.methods[i].probing? 'ON&nbsp;&nbsp;':'OFF')+'</a>&nbsp;&nbsp;'+
                     //'<a  class="badge badge-danger">Intercept</a>'+
                     '<a class="badge badge-purple xrefto" target="about" meth="'+btoa(encodeURIComponent(row.methods[i].__signature__))+'">xref to</a>&nbsp;'+
-                    '<a class="badge badge-pink xreffrom" target="about" meth="'+btoa(encodeURIComponent(row.methods[i].__signature__))+'">xref from</a></td><td><b>Method</b></td>'+
+                    '<a class="badge badge-pink xreffrom" target="about" meth="'+btoa(encodeURIComponent(row.methods[i].__signature__))+'">xref from</a></td><td><i>Method</i></td>'+
                     '<td><a target="about" href="finder.html?method='+btoa(encodeURIComponent(row.methods[i].__signature__))+'">';
 
                 if(row.methods[i].__aliasedCallSignature__ != null)
