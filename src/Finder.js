@@ -874,6 +874,7 @@ MissingObjectAPI.prototype.stats = function(){
 MissingObjectAPI.prototype.search = function(pattern){
     return this._search._finder._find(this._search._db.missing, DataModel.missing, pattern, this._search._caseSensitive, true, true);     
 }
+
 MissingObjectAPI.prototype.method = function(pattern){
     let db = this.search("_log_tag:METHOD");
     return this._search._finder._find(db.data, DataModel.method, pattern, this._search._caseSensitive, true, true);     

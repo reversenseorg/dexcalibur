@@ -423,6 +423,7 @@ function Class(config){
     
     // a list of the declared method
     this.methods = {};
+    this.inherit = {};
 
     // the count of methods inside the class
     this._methCount = 0;
@@ -591,8 +592,14 @@ Class.prototype.hasOverrideOf = function(meth){
     return null;
 }
 
-Class.prototype.getInheritedMethod = function(){
 
+/**
+ * To add inherited method which are not overrided 
+ */
+Class.prototype.addInheritedMethod = function(ref,meth){
+    if(this.inherit[ref]==null){
+        this.inherit[ref] = meth;
+    }
 }
 
 
@@ -2500,54 +2507,86 @@ Instruction.prototype.getTags = function(){
  * @param {Class} type The enclosing class if it's a reference to a Method or a Field
  * @constructor
  */
-function MissingReference(type, data, enclosingClass){
-    this._log_tag = "";
-    this._type = type;
-    this._callers = [];
-    this.enclosingClass = enclosingClass; 
-    this.tags = [];
+class MissingReference
+{
+    constructor(type, data, enclosingClass){
+        this._log_tag = "";
+        this._type = type;
+        this._callers = [];
+        this.enclosingClass = enclosingClass; 
+        this.tags = [];
 
-    for(let i in data)
-        if(this[i] ===undefined) this[i] = data[i];
-            
+        for(let i in data)
+            if(this[i] ===undefined) this[i] = data[i];
+                
 
-    switch(this._type){
-        case CONST.OPCODE_REFTYPE.TYPE:
-            this._log_tag = "[TYPE]";
-            break;
-        case CONST.OPCODE_REFTYPE.FIELD:
-            this._log_tag = "[FIELD]";
-            break;
-        case CONST.OPCODE_REFTYPE.METHOD:
-            this._log_tag = "[METHOD]";
-            break;
-        case CONST.OPCODE_REFTYPE.STRING:
-            this._log_tag = "[STRING]";
-            break;
+        switch(this._type){
+            case CONST.OPCODE_REFTYPE.TYPE:
+                this._log_tag = "[TYPE]";
+                break;
+            case CONST.OPCODE_REFTYPE.FIELD:
+                this._log_tag = "[FIELD]";
+                break;
+            case CONST.OPCODE_REFTYPE.METHOD:
+                this._log_tag = "[METHOD]";
+                break;
+            case CONST.OPCODE_REFTYPE.STRING:
+                this._log_tag = "[STRING]";
+                break;
+        }
+
+        //this._val = data;
+
+        this.dump = ()=>{
+            console.log(this._log_tag+" "+this._val);
+        };
+
+        return this;
     }
 
-    //this._val = data;
+    toJsonObject(include=null){
+        let o = new Object();
+        for(let i in this){
 
-    this.dump = ()=>{
-        console.log(this._log_tag+" "+this._val);
-    };
+            if(include instanceof Array && include.indexOf(i)==-1) continue;
 
-    return this;
-}
-MissingReference.prototype.toJsonObject = function(fields){
-    return null;
-}
+            switch(i){
+                case "_log_tag":
+                case "_type":
+                case "tags":
+                    o[i] = this[i];
+                    break;
+                case "_callers":
+                    if(this._callers.length > 0){
+                        o._callers = [];
+                        for(let i=0; i<this._callers.length; i++) o._callers.push(
+                            this._callers[i].toJsonObject(["__signature__","alias"])
+                        );
+                    }
+                    break;
+                case "enclosingClass":
+                    if(o[i] != null){
+                        o[i] = this[i].toJsonObject(["name","alias"]);
+                    }
+                    break;
+            }
+        }
 
-MissingReference.prototype.addTag = function(tag){
-    this.tags.push(tag); 
-}
-MissingReference.prototype.hasTag = function(tagName){
-    return this.tags.indexOf(tagName)>-1; 
-}
-MissingReference.prototype.getTags = function(){
-    return this.tags;   
-}
+        return o;
+    }
 
+    addTag(tag){
+        this.tags.push(tag); 
+    }
+
+    hasTag(tagName){
+        return this.tags.indexOf(tagName)>-1; 
+    }
+
+    getTags(){
+        return this.tags;   
+    }
+}
 /**
  * Represents a reference to a variable in the Application bytecode
  * @param {char} type The type of variable reference (local, register, params)

@@ -648,21 +648,24 @@ class WebServer {
                 let dev = {};
                 let callers = [];
                 //console.log(UT.decodeURI(UT.b64_decode(req.params.id)));
-                let method = $.project.find.get.method(UT.decodeURI(UT.b64_decode(req.params.id)));
+                let methRef = UT.decodeURI(UT.b64_decode(req.params.id));
+                let method = $.project.find.get.method(methRef);
                 
-                dev = method.toJsonObject();
-                dev.disass = method.disass({ raw: true });
-                //dev.cfg = $.project.graph.cfgLazy(method);
-                // dev.htg = $.project.graph.htg(method);
-
-                /*
-                for(let k=0; k<dev._callers.length; k++){
-                    if($.project.hook.isProbing(dev._callers[k])){
-                        callers.push({ id:dev._callers[k], probing:true });
+                if(method != null){
+                    dev = method.toJsonObject();
+                    dev.disass = method.disass({ raw: true });
+                }else{
+                    method = $.project.analyze.resolveMethod(methRef);
+                    if(method != null){
+                        dev = method.toJsonObject();
+                        dev.disass = method.disass({ raw: true });
                     }else{
-                        callers.push({ id:dev._callers[k], probing:false });
+                        console.log("Error : unable to find "+methRef);
+                        res.status(404).send(JSON.stringify(dev));
+                        return null;
                     }
-                }*/
+                }
+
                 dev._callers = callers;
 
                 res.status(200).send(JSON.stringify(dev));

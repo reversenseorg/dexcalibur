@@ -307,6 +307,9 @@ var Resolver = {
                }*/
                
                if(x!==null){
+                   // create the ovrrided
+                   cls.addInheritedMethod(methRef.signature(), x.ref); 
+
                    //if(x.binding === false && x.found === true){
 
                        //if( method.inherit(x.ref.signature())
@@ -1377,6 +1380,12 @@ Analyzer.prototype.tagAllAsInternal = function(){
         this.db.methods[k].addTag(AnalysisHelper.TAG.Discover.Internal);
     for(let k=0; k<this.db.strings.length; k++)
         this.db.strings[k].addTag(AnalysisHelper.TAG.Discover.Internal);*/
+}
+
+Analyzer.prototype.resolveMethod = function(ref){
+    let m = Resolver.method(this.db, ref);
+    console.log(m);
+    return m;
 }
 
 
