@@ -1219,7 +1219,8 @@ Method.prototype.toJsonObject = function(fields=[],exclude=[]){
                     obj.enclosingClass = (this.enclosingClass!=null)? this.enclosingClass.name : "";
                     break;
                 case "modifiers":
-                    obj.modifiers = this.modifiers.toJsonObject(["private","protected","abstract"]);
+                    obj.modifiers = this.modifiers.toJsonObject([
+                        "public","private","protected","abstract","native","final","constructor","static"]);
                     break;
             }
         }   
