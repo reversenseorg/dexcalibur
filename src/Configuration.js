@@ -170,6 +170,10 @@ Configuration.prototype.getDexcaliburPath = function(){
     return this.dexcaliburPath;
 }
 
+Configuration.prototype.getLocalBinPath = function(){
+    return Path.join(this.dexcaliburPath,"bin");
+}
+
 
 /**
  * To get the workspace directory path where the projects 
