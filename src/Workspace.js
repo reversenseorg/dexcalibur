@@ -8,7 +8,8 @@ const DIR_NAME = {
     IN: "inputs",
     RUNTIME: "runtime",
     LOGS: "logs",
-    APPDATA: "appdata"
+    APPDATA: "appdata",
+    TMP: "tmp"
 };
 
 /**
@@ -132,6 +133,12 @@ Workspace.prototype.init = function(){
     if(!fs.existsSync(Path.join(this.getWD(),DIR_NAME.RUNTIME))){
         this.mkWDir(DIR_NAME.RUNTIME+"/");
     }
+    if(!fs.existsSync(Path.join(this.getWD(),DIR_NAME.APPDATA))){
+        this.mkWDir(DIR_NAME.APPDATA+"/");
+    }
+    if(!fs.existsSync(Path.join(this.getWD(),DIR_NAME.TMP))){
+        this.mkWDir(DIR_NAME.TMP+"/");
+    }
     console.log(Chalk.bold.green("[*] Working directory : "+this.getWD()));
 }
 
@@ -147,10 +154,24 @@ Workspace.prototype.getNewSavefilePath = function(){
 
 
 Workspace.prototype.getSaveDir = function(){
-    let d = new Date();
     return Path.join(this.getWD(),DIR_NAME.SAVE);
 }
 
+Workspace.prototype.getAppdataDir = function(){
+    return Path.join(this.getWD(),DIR_NAME.APPDATA);
+}
+
+Workspace.prototype.getInputDir = function(){
+    return Path.join(this.getWD(),DIR_NAME.IN);
+}
+
+Workspace.prototype.getRuntimeDir = function(){
+    return Path.join(this.getWD(),DIR_NAME.RUNTIME);
+}
+
+Workspace.prototype.getTmpDir = function(){
+    return Path.join(this.getWD(),DIR_NAME.TMP);
+}
 /**
  * To generate a new timestamped file path
  * @param {string} prefix The string part before the timestamp
@@ -164,11 +185,5 @@ Workspace.prototype.getTimestampedFilePath = function(prefix,suffix){
 }
 
 
-/*
-Workspace.prototype.getLatestFile = function(path){
-    let d = new Date();
-    return this.getWD()+DIR_NAME.SAVE+"/autosave."+d.getTime()+".ddb";
-}
-*/
 
 module.exports = Workspace;
