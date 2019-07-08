@@ -2,13 +2,34 @@ const fs = require("fs");
 const Process = require("child_process");
 const Chalk = require("chalk");
 const Path = require("path");
+const crypto = require("crypto");
+
 
 const RE_REPLACE = /[-\/\\^$*+?.()|[\]{}]/g;
+
+function checksum(str, algorithm, encoding) {
+    return crypto
+      .createHash(algorithm || 'md5')
+      .update(str, 'utf8')
+      .digest(encoding || 'hex')
+  }
 
 module.exports = {
     /**
      * To encode
      */
+    sha1_file: function(path){      
+        return checksum(
+            fs.readFileSync(path),
+            'sha1'
+        );
+    },
+    sha1_buffer: function(data){
+        return checksum(
+            data,
+            'sha1'
+        );
+    },
     b64_encode: function(src){
         return Buffer.from(src).toString('base64');
     },
