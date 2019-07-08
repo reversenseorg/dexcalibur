@@ -574,7 +574,10 @@ function mapInstructionFrom(method, data, stats){
 function MakeMap(data,absoluteDB){
     
     console.log("\n[*] Start object mapping ...\n------------------------------------------");
-    let step = data.classes.size(), /*data.classesCtr,*/ g=0;
+    let step = data.classes.size(), /*data.classesCtr,*/ g=0;   
+    let overrided = [];
+    //let updateLogs = [];
+
 
 
     /*
@@ -582,11 +585,19 @@ function MakeMap(data,absoluteDB){
     for(let i in data.classes)c++;
     console.log(Chalk.bold.red("Classes in DB : "+c));
     */
+
     // merge Absolute DB and Temp DB
+    // if a class has been already analyzed its data will be updated
     data.classes.map((k,v)=>{
+        // add class to the absoluteDb if missing
         if(absoluteDB.classes.hasEntry(k) == false){
             absoluteDB.classes.setEntry(k, v);
+        }else{
+            console.log(k);
+            overrided.push(k);
+            //absoluteDB.classes.getEntry(k).update(v);
         }
+
     });
     
 
@@ -594,9 +605,22 @@ function MakeMap(data,absoluteDB){
     // for(let i in data.classes)
     data.classes.map((k,v)=>{
         cls = absoluteDB.classes.getEntry(k);
-        
+        let override = (overrided.indexOf(k)>-1);
+        let ext = null, greater=null, smaller=null, requireRemap=false;
+
+
         // map super class
-        if(cls.extends != null){
+        if(override){ 
+            // here v.extends is the string not a Class instance
+            ext = v.getSuperClass();
+
+
+            if(ext != null && cls.hasSuperClass() && ext!=cls.getSuperClass().getName()){
+                cls.updateSuper(Resolver.type(absoluteDB, ext));
+                requireRemap = true;
+            }
+        }
+        else if(cls.getSuperClass() != null && (!cls.getSuperClass() instanceof CLASS.Class)){
             cls.extends = Resolver.type(absoluteDB, cls.extends);
             
             //cls.extends = Resolver.type(data, cls.extends);
@@ -604,55 +628,120 @@ function MakeMap(data,absoluteDB){
         }
 
         // map interfaces
-        for(let j in cls.implements){
+        if(override){ 
+            // here v.extends is the string not a Class instance
+            ext = v.getInterfaces();
+            if(ext.length != cls.getInterfaces().length){
+
+                cls.removeAllInterfaces();
+                
+                for(let i=0; i<ext.length; i++){
+                    cls.addInterfaces(Resolver.type(absoluteDB, ext[i]));
+                    requireRemap = true;
+                }
+
+            }
+        }
+        else if(cls.getInterfaces() != null){
+            for(let j in cls.implements){
+                cls.implements[j] = Resolver.type(absoluteDB, cls.implements[j]); 
+            }
+        }
+       
+        // update or create field nodes relations
+        if(override){
+            console.log("Override fields of ",k);
             
-            //cls.implements[j] = Resolver.type(data, cls.implements[j]); 
-            //cls.implements[j] = Resolver.type(data, cls.implements[j]);  
-            cls.implements[j] = Resolver.type(absoluteDB, cls.implements[j]); 
+            for(let j in v.fields){
+                o=v.fields[j];
+                o.fqcn = v.fqcn;
+                // add relation  Field -- parent --> Class
+                o.enclosingClass = v;
+
+                // if the field already exists, check if both differs then update field 
+                if(cls.hasField(o)){
+                    // TODO : Not force override 
+                    cls.updateField(o, true);
+                    
+                    // update db if signature differs (if type differs)
+                    
+                    //absoluteDB.fields.setEntry(o.signature(), o); //hashCode()
+                }
+                // if the field not exists, create it
+                else{
+                    o.fqcn = cls.fqcn;
+                    o.enclosingClass = cls;
+                    cls.addField(o);   
+                    // if all its ok, there is not conflict
+                    absoluteDB.fields.setEntry(o.signature(), o);
+                }
+
+                STATS.idxField++;
+            }
+
+            // TODO :  if a field is removed from the new version, tag it has "dynamically removed"
+
+        }else{
+            for(let j in cls.fields){
+                o=cls.fields[j];
+            
+                // broadcast FQCN from Class objects to Field objects 
+                o.fqcn = cls.fqcn;
+                o.enclosingClass = cls;
+    
+                // data.fields[o.hashCode()] = o;
+                absoluteDB.fields.setEntry(o.signature(), o); //hashCode()
+                
+                STATS.idxField++;
+            }
         }
 
-        // TODO : map annotations
-
-        // map fields
-        for(let j in cls.fields){
-            o=cls.fields[j];
         
-            // broadcast FQCN from Class objects to Field objects 
-            o.fqcn = cls.fqcn;
-            o.enclosingClass = cls;
+        // update or create methods nodes relations
+        if(override){
+            console.log("Override methods of ",k);
 
-            // data.fields[o.hashCode()] = o;
-            absoluteDB.fields.setEntry(o.signature(), o); //hashCode()
-            
-            STATS.idxField++;
+            for(let j in v.methods){
+                o=v.methods[j];
+
+                // add relation  Method -- parent --> Class
+                o.enclosingClass = v;
+
+                // if the method already exists, check if both differs then update method 
+                if(cls.hasMethod(o)){
+                    // TODO : Not force override 
+                    cls.updateMethod(o, true);
+                    
+                    // update db if signature differs (if type differs)
+                    
+                    //absoluteDB.fields.setEntry(o.signature(), o); //hashCode()
+                }
+                // if the field not exists, create it
+                else{
+                    o.enclosingClass = cls;
+                    cls.addMethod(o);   
+                    // if all its ok, there is not conflict
+                    absoluteDB.methods.setEntry(o.signature(), o);
+                }
+
+                STATS.idxMethod++;
+            }
+        }else{
+            for(let j in cls.methods){
+                o=cls.methods[j];
+                
+                o.enclosingClass = cls;
+                //data.methods[o.signature()] = o;
+                //absoluteDB.methods[o.signature()] = o;
+                absoluteDB.methods.setEntry(o.signature(), o);
+                
+                
+                STATS.idxMethod++;
+            }
         }
-
-        // map methods
-        for(let j in cls.methods){
-            o=cls.methods[j];
-            
-            o.enclosingClass = cls;
-            //data.methods[o.signature()] = o;
-            //absoluteDB.methods[o.signature()] = o;
-            absoluteDB.methods.setEntry(o.signature(), o);
-            
-            
-            STATS.idxMethod++;
-        }
-
     });
     
-    // collect packages
-    /*for(let i in data.classes){
-        if(data.packages[data.classes[i].package] == undefined){
-            data.packages[data.classes[i].package] = new CLASS.Package(
-                data.classes[i].package
-            );
-        }
-        data.packages[data.classes[i].package].childAppend(data.classes[i]);
-        data.classes[i].package = data.packages[data.classes[i].package];
-    }*/
-
+    // create packages nodes 
     data.classes.map((k,v)=>{
 
 
@@ -671,6 +760,11 @@ function MakeMap(data,absoluteDB){
             while((sc = n.getSuperClass()) !=null){
                 supers.push(sc);
                 n = sc;
+
+                if(sc.getSuperClass ==undefined){
+                    //console.log(sc);
+                    break;
+                }
             } 
             v.setSupersList(supers);
             /*let em = v.getSuperClass().methods, om=null, ovr=null;
@@ -688,17 +782,6 @@ function MakeMap(data,absoluteDB){
         }
     });
 
-
-    /*
-    for(let i in data.classes){
-        if(absoluteDB.packages[data.classes[i].package] == undefined){
-            absoluteDB.packages[data.classes[i].package] = new CLASS.Package(
-                absoluteDB.classes[i].package
-            );
-        }
-        absoluteDB.packages[data.classes[i].package].childAppend(absoluteDB.classes[i]);
-        absoluteDB.classes[i].package = absoluteDB.packages[data.classes[i].package];
-    }*/
 
     console.log(Chalk.bold.red("DB size : "+absoluteDB.classes.size()));
 
@@ -733,35 +816,7 @@ function MakeMap(data,absoluteDB){
             if(mr%20==0) console.log(mr+" missing classes");
         }
     });
-/*
-    for(let i in data.classes){
-      
-        
-        if(data.classes[i] instanceof CLASS.Class){
-            for(let j in data.classes[i].methods){
-                if(data.classes[i].methods[j] instanceof CLASS.Method){
-                    //mapInstructionFrom(data.classes[i].methods[j], data, STATS);
-                    mapInstructionFrom(data.classes[i].methods[j], absoluteDB, STATS);
-                }
-            }
-            off++;
-            if(off%200==0 || off==step)
-                console.log(off+"/"+step+" Classes mapped ("+i+")") ;
-        }
-        else{   
-            mr++;
-            if(mr%20==0) console.log(mr+" missing classes");
-        }
-    }
-*/
-/*
-    console.log("[*] "+STATS.idxMethod+" methods indexed");
-    console.log("[*] "+STATS.idxField+" fields indexed");
-    console.log("[*] "+STATS.instrCtr+" instructions indexed");
-    //console.log("[*] "+absoluteDB.strings.length+" strings indexed");
-    console.log("[*] "+STATS.methodCalls+" method calls mapped");
-    console.log("[*] "+STATS.fieldCalls+" field calls mapped");
-*/
+
 
     console.log("[*] "+STATS.idxMethod+" methods indexed");
     console.log("[*] "+STATS.idxField+" fields indexed");

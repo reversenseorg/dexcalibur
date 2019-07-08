@@ -1,4 +1,4 @@
-var FRIDA = null; // require("frida");
+var FRIDA = null; 
 const co = require("co");
 const fs = require("fs");
 const md5 = require("md5");
@@ -8,14 +8,14 @@ const Path = require("path");
 const CLASS = require("./CoreClass.js");
 const CONST = require("./CoreConst.js");
 const UT = require("./Utils.js");
-const Logger = require("./Logger.js")
+const Logger = require("./Logger.js");
+const JSHelper = require("./JavaScriptHelper.js");
 
 var HOOK_TYPE = {
     AFTER: 0x1,
     BEFORE: 0x2,
     OVERLOAD: 0x3
 };
-
 
 
 function getLetterFromType(typename){
@@ -484,7 +484,7 @@ Hook.prototype.makeHookFor = function(method){
     // BEFORE insert
     if(this.isIntercept && this.code.before!=null){
         script += this.code.before;
-    }else{
+    }else if(this.isIntercept == false){
         // __METHSIGN__
         script += `
             send({ id:"@@__HOOK_ID__@@", msg:"@@__METHSIGN__@@", data:@@__ARGS_DATA__@@, action:"None before", after:false @@__ARGS_VAL__@@ });
@@ -500,7 +500,7 @@ Hook.prototype.makeHookFor = function(method){
     //  AFTER insert
     if(this.isIntercept && this.code.after!=null){
         script += this.code.after;
-    }else{
+    }else if(this.isIntercept == false){
         script += `
             send({ id:"@@__HOOK_ID__@@", msg:"@@__METHSIGN__@@", data:@@__RET_DATA__@@, action:"None before", after:true @@__ARGS_VAL__@@ });
         `;
@@ -977,6 +977,7 @@ function HookManager(ctx, nofrida=0){
     this.prologues = [];
     this.sessions = [];
     this.requires = [];
+    //this.requiresNode = [];
     this.listeners = {};
     this.scanners = {};
     this._sess = null;
@@ -984,6 +985,7 @@ function HookManager(ctx, nofrida=0){
 
     if(this.frida_disabled==0){
         FRIDA = require("frida");
+        //FRIDA_LOAD = require("frida-load");
     }
 
     return this;
@@ -1009,6 +1011,11 @@ HookManager.prototype.addRequires = function(requires){
     for(let i=0; i<requires.length; i++)
         this.requires.push(requires[i]);
 };
+/*
+HookManager.prototype.addRequiresNode = function(requires){
+    for(let i=0; i<requires.length; i++)
+        this.requiresNode.push(requires[i]);
+};*/
 HookManager.prototype.removeRequires = function(requires){
     let offset=-1;
     for(let i=0; i<requires.length; i++){
@@ -1016,6 +1023,14 @@ HookManager.prototype.removeRequires = function(requires){
         if(offset>-1) this.requires[offset] = null;
     }
 };
+/*
+HookManager.prototype.removeRequiresNode = function(requires){
+    let offset=-1;
+    for(let i=0; i<requires.length; i++){
+        offset = this.requiresNode.indexOf(requires[i]);
+        if(offset>-1) this.requiresNode[offset] = null;
+    }
+};*/
 
 /**
  * To insert required modules into the generated Frida script
@@ -1032,12 +1047,64 @@ HookManager.prototype.prepareRequires = function(){
     }  
     return req;
 }
+
+/* *
+ * To normalize node module name to an object key
+ * @param {*} name 
+ */
+/*
+HookManager.prototype.normalizeNodeModName = function(name){
+    let n="",o="";
+
+    console.log("Hook script builder","normalize JS name - input :",name);
+    // remove non-ascii character
+    name.split("").map(c=>{
+        let x = c.charCodeAt(0)
+        if((x>96 && x<123)||(x>64 && x<91)||(x>47 && x<58)||x==45||x==95)
+            n += c;
+    });
+
+    console.log("Hook script builder","normalize JS name - afterReplace :",n);
+    // if dash character is followed by a letter, the dash is remove and the letter replaced
+    // by the same with uppercase
+    while((o=n.indexOf("-"))>-1)
+        n = n.replace(n.substr(o,2),n[o+1].toUpperCase());
+    while((o=n.indexOf("_"))>-1)
+        n = n.replace(n.substr(o,2),n[o+1].toUpperCase());
+    
+
+    console.log("Hook script builder","normalize JS name - output after camel case transf :",n);
+    return n;
+}
+
+
+HookManager.prototype.prepareRequiresNode = function(){
+    let js = new JSHelper.JObject();
+    let help = new JSHelper.JWriter();
+    let loaded = {};   
+
+    js.setName("DEXC_NODE");
+    for(let i=0; i<this.requiresNode.length; i++){
+        if(this.requiresNode[i]!=null && loaded[this.requiresNode[i]]==null){
+            js.addRawEntry(
+                this.normalizeNodeModName(this.requiresNode[i]),
+                'require("'+this.requiresNode[i]+'")',
+            );
+            loaded[this.requires[i]] = true;
+        }
+    }  
+    return help.addVariable(js).toScript();
+}*/
+
 HookManager.prototype.prepareHookScript = function(){
     let script = `Java.perform(function() {
         var DEXC_MODULE = {};
     `;
 
     // include hookset requirements
+    //if(this.requiresNode.length > 0)
+     //   script = this.prepareRequiresNode()+"\n"+script;
+    
     script += this.prepareRequires();
        
     for(let i in this.prologues){
@@ -1086,7 +1153,7 @@ HookManager.prototype.start = function(hook_script){
     // start Frida
     // do spawn + attach
     var hookRoutine = co.wrap(function *() {
-
+ 
         const device = yield FRIDA.getUsbDevice(10000);
         console.log('usb device:', device);
     
@@ -1306,6 +1373,7 @@ function HookSet(config){
     this.context = null;
     this.enable = false;
     this.requires = [];
+   // this.requiresNode = [];
 
     for(let i in config) this[i] = config[i];
     return this;
@@ -1340,6 +1408,10 @@ HookSet.prototype.addPrologue = function(code){
 HookSet.prototype.require = function(module){
     this.requires.push(module);
 }
+/*
+HookSet.prototype.requireNodeModule = function(module){
+    this.requiresNode.push(module);
+}*/
 /**
  * Create a object shared with others hook callback
  * @param {Object} config Shared object config 
@@ -1492,6 +1564,7 @@ HookSet.prototype.deploy = function(){
     let hook, method, hconfig;
 
     hookManager.addRequires(this.requires);
+    //hookManager.addRequiresNode(this.requiresNode);
 
     if(this.prologue != null)
         hookManager.prologues.push(

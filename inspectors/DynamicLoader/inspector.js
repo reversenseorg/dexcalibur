@@ -1,3 +1,6 @@
+const Fs = require("fs");
+const Path = require("path")
+
 const HOOK = require("../../src/HookManager.js");
 const CLASS = require("../../src/CoreClass.js");
 const Inspector = require("../../src/Inspector.js");
@@ -25,7 +28,9 @@ DynLoaderInspector.registerTagCategory(
 );
 // ===== CONFIG HOOKS =====
 
+DynLoaderInspector.hookSet.require("Common");
 DynLoaderInspector.hookSet.require("Reflect");
+
 
 // add callback
 /*
@@ -117,7 +122,7 @@ DynLoaderInspector.hookSet.addIntercept({
                 msg: "Class.getMethod()", 
                 tags: [{
                     style:"purple",
-                    text: "dynamic"
+                    text: "invoke"
                 }], 
                 action: "Update" 
             });
@@ -271,23 +276,20 @@ DynLoaderInspector.hookSet.addIntercept({
 DynLoaderInspector.hookSet.addIntercept({
     //when: HOOK.BEFORE,
     method: "dalvik.system.DexClassLoader.<init>(<java.lang.String><java.lang.String><java.lang.String><java.lang.ClassLoader>)<void>",
-    onMatch: function(ctx,event){
-        //let dev = ctx.devices.getDefault();
-        //dev.Bridge.ADB.pull(event.data.arg0, ctx.Wor);        
-        DynLoaderInspector.emits("hook.dex.new",event);
+    onMatch: function(ctx,data){
+        // the evvent data contains the bytecode of the Dex file        
+        DynLoaderInspector.emits("hook.dex.classloader.new",data);
     },
     interceptBefore: `   
-            // copy the loaded dex file
-
-            //var cls = Java.cast(ret, CLS.java.lang.Class);
-
+    
             send({ 
                 id:"@@__HOOK_ID__@@", 
                 match: true, 
                 data: {
                     arg0: arguments[0],
                     arg1: arguments[1],
-                    arg2: arguments[2]
+                    arg2: arguments[2],
+                    __hidden__data: DEXC_MODULE.common.readFile(arguments[0])
                 },
                 after: true, 
                 msg: "DexClassLoader.<init>()", 
@@ -297,6 +299,7 @@ DynLoaderInspector.hookSet.addIntercept({
                 }], 
                 action:"Log" 
             });
+
     `
 });
 
@@ -307,7 +310,10 @@ DynLoaderInspector.hookSet.addIntercept({
     onMatch: function(ctx,event){
         DynLoaderInspector.emits("hook.dex.load",event);
     },
-    interceptBefore: `     
+    interceptBefore: `
+    
+            // DEXC_MODULE.common.copy(arguments[0], "dexfile.dex");
+
             send({ 
                 id:"@@__HOOK_ID__@@", 
                 match: true, 
@@ -342,6 +348,9 @@ DynLoaderInspector.hookSet.addIntercept({
                 path = arg0.getAbsolutePath();
             else
                 path = arg0;
+
+            
+            // DEXC_MODULE.common.copy(path, "dexfile.dex");
 
             send({ 
                 id:"@@__HOOK_ID__@@", 
@@ -486,6 +495,7 @@ DynLoaderInspector.on("hook.dex.find.class",{
         let data = event.data.data;
         let cls = ctx.find.get.class(data.cls);
         console.log(cls, data);
+        
         if(cls == null){
             cls = ctx.analyze.addClassFromFqcn(data.cls);
         }
@@ -495,6 +505,75 @@ DynLoaderInspector.on("hook.dex.find.class",{
             cls.addTag(AnalysisHelper.TAG.Load.ExternalDyn);
     }
 });
+
+DynLoaderInspector.on("hook.dex.classloader.new",{
+    task: function(ctx, event){
+        // 1. save gathered bytecode to a file
+        // 2. disassemble this file 
+        // 3. Analyze & update graph
+        // 4. Workspace cleanup
+
+        let rtWorkingDir = ctx.workspace.getRuntimeDir();
+        let localDexFile = Path.join(rtWorkingDir, Path.basename(event.data.data.arg0));
+        let stat = null, ignore=false;
+
+        // check if file exist
+        if(Fs.existsSync(localDexFile)){
+            stat = Fs.lstatSync(localDexFile);
+            if(stat.size==event.data.data.__hidden__data.length){
+                 // TODO : then if it is identic do checksum
+                 ignore = true;
+                 return;
+            }
+        }
+
+        if(ignore) return null;
+
+        let data = Buffer.from(event.data.data.__hidden__data);
+
+        Fs.open(localDexFile, 'w+', 0o666,  function(err,fd){
+            if(err){
+                console.log("TODO : An error occured when file is created ",err);
+                return;
+            }
+
+            Fs.write(fd, data, function(err, written, buffer){
+                if(err){
+                    console.log("TODO : An error occured when file is written ",err);
+                    return;
+                }
+
+                Fs.close(fd, function(err){
+                    if(err){
+                        console.log("TODO : An error occured when file is closed ",err);
+                        return;
+                    }
+
+                    console.log("Start to disassemble "+localDexFile);
+
+                    // disass file
+                    ctx.dexHelper.disassembleFile(
+                        localDexFile,
+                        function(destFolder, err, stdout, stderr){
+                            console.log("After disass called !");
+                            if(err){
+                                //todo
+                            }else{
+                                ctx.analyze.path(destFolder);
+                            }
+
+                            // remove tmp files
+                        });
+                });
+            })
+        })
+
+        // 3. decompile resulting files
+        // 4. update internal database
+
+    }
+})
+
 DynLoaderInspector.on("hook.reflect.method.call", {
     task: function(ctx, event){
         Logger.info("[INSPECTOR][TASK] DynLoaderInspector method invoked dynamically ");

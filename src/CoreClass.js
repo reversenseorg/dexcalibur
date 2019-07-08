@@ -1,5 +1,6 @@
 //var Disassembler = require("./Disassembler.js");
 var CONST = require("./CoreConst.js");
+const NodeCompare = require("./NodeCompare.js");
 //var VM = require("./vm.js");
 var Disassembler = null;
 
@@ -496,6 +497,19 @@ Class.prototype.hasField = function(name){
     return (this.fields[name]!==undefined);
 };
 
+Class.prototype.addField = function(field){
+    this.fields[field.signature()] = field;
+}
+
+Class.prototype.updateField = function(field, override=false){
+    let diff = this.fields[field.signature()].compare(field);
+    // if not identic => update, else nothiong to do
+    if(!diff.isIdentic()){
+        if(override)
+            this.fields[field.signature()] = field;
+    }
+}
+
 
 /**
  * To check if a method is defined whith the given hashcode
@@ -505,6 +519,25 @@ Class.prototype.hasField = function(name){
 Class.prototype.hasMethod = function(hash){
     return this.methods[hash]!==undefined;
 };
+
+
+Class.prototype.addMethod = function(meth){
+    this.methods[meth.signature()] = meth;
+}
+
+Class.prototype.updateMethod = function(meth, override=false){
+    let diff = this.methods[meth.signature()].compare(meth);
+    // if not identic => update, else nothiong to do
+    if(!diff.isIdentic()){
+        if(override)
+            this.methods[meth.signature()] = meth; 
+    }
+}
+
+
+Class.prototype.hasSuperClass = function(){
+    return (this.extends != null);
+}
 
 Class.prototype.getSuperClass = function(){
     return this.extends;
@@ -614,12 +647,13 @@ Class.prototype.toJsonObject = function(filter){
         }
         else if(i == "supers"){
             obj.supers = [];
-            for(let k=0; k<this.supers.length; k++){
-                obj.supers.push({ 
-                    name:this.supers[k].signature(),
-                    alias: this.supers[k].getAlias()
-                }); // call signature
-            }
+            if(this.supers instanceof Array)
+                for(let k=0; k<this.supers.length; k++){
+                    obj.supers.push({ 
+                        name:this.supers[k].signature(),
+                        alias: this.supers[k].getAlias()
+                    }); // call signature
+                }
         }
         else if(i == "methods"){
             obj.methods = [];
@@ -736,6 +770,28 @@ Class.prototype.hasTag = function(tagName){
 }
 Class.prototype.getTags = function(){
     return this.tags;   
+}
+
+/**
+ * To get the implement interface 
+ */
+Class.prototype.getInterfaces = function(){
+    return this.implements;
+}
+
+Class.prototype.removeAllInterfaces = function(){
+    this.implements = [];
+}
+
+Class.prototype.addInterface = function(inf){
+    this.implements.push(inf);
+}
+
+Class.prototype.updateSuper = function(cls){
+    if(cls.getSuperClass().name != this.getSuperClass().name){
+        // TODO : create NodeChange
+        this.extends = cls;
+    }
 }
 
 /**
@@ -1123,6 +1179,59 @@ Method.prototype.getDataBlocks = function(){
 Method.prototype.getSwitchBlocks = function(){
     return this.switches;
 }
+
+Method.prototype.compare = function(meth){
+    let diff = [];
+
+    for(let i in this){
+        switch(i){
+            case "_useClass":
+            case "_useMethod":
+            case "_useField":
+            case "_callers":
+            case "tags":
+            case "alias":
+            case "__aliasedCallSignature":
+                // TODO : Not yet supported
+                break;
+            case "__signature__":
+            case "__callSignature__":
+            case "name":
+            case "locals":
+            case "registers":
+            case "params":
+                obj[i] = this[i];
+                break;
+            case "instr":
+                if(this.instr.length != meth.instr.length){
+                    diff.push({ ppt:"instr", old:this.instr.length, new:field.instr.length });
+                }
+                break;
+            case "args":
+                /*obj.args = [];
+                if(this.args.length != meth)
+                for(let j in this.args){
+                    obj.args.push(this.args[j].toJsonObject());
+                }*/
+                break;
+            case "ret":                
+                if(this.ret.signature() != meth.ret.signature()){
+                    diff.push({ ppt:"ret", old:this.ret.signature(), new:field.ret.signature() });
+                }
+                break;
+            case "enclosingClass":
+                // TODO
+    //            obj.enclosingClass = (this.enclosingClass!=null)? this.enclosingClass.name : "";
+                break;
+            case "modifiers":
+//                obj.modifiers = this.modifiers.toJsonObject([
+//                    "public","private","protected","abstract","native","final","constructor","static"]);
+                break;
+        }
+    }
+    return new NodeCompare(this, meth, ((diff.length>0)? diff : null));
+}
+
 Method.prototype.import = function(obj){
     // raw impport
     this.raw_import(obj);
@@ -1927,6 +2036,46 @@ Field.prototype.aliasedSignature = function(update=false){
 
 Field.prototype.getAlias = function(){
     return this.alias;
+}
+
+Field.prototype.compare = function(field){
+    let diff = [];
+
+    for(let i in this){
+        switch(i){
+            case "__signature__":
+            case "__aliasedSignature__":
+            case "fqcn":
+            case "name":
+            case "_isBinding":
+                if(this[i] != field[i]){
+                    diff.push({ ppt:i, old:this[i], new:field[i] });
+                }
+                break;
+            case "tags":
+                // TODO : Not yet supported
+                break;
+            case "type":
+                if(this.type != field.type){
+                    diff.push({ ppt:"type", old:this.type.signature(), new:field.type.signature() });
+                }
+                break;
+            case "modifiers":
+                // TODO : Not yet supported
+                break;
+            case "alias":
+            case "_getters":
+            case "_setters":
+            case "_callers":
+            case "instr":
+            case "enclosingClass":
+            case "modifiers":
+                // ignore
+                break;
+        }
+    }
+
+    return new NodeCompare(this, field, ((diff.length>0)? diff : null));
 }
 
 /**
