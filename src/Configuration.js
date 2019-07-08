@@ -29,7 +29,7 @@ function Configuration(){
     this.sdbPath = null,
 
     // Java bin path
-    this.javaBinPath = null; //"java";
+    this.javaBinPath = "java"; //"java";
 
     // deprecated
     // useless : to remove
@@ -171,7 +171,7 @@ Configuration.prototype.getDexcaliburPath = function(){
 }
 
 Configuration.prototype.getLocalBinPath = function(){
-    return Path.join(this.dexcaliburPath,"bin");
+    return Path.join(this.dexcaliburPath,"./../bin");
 }
 
 
