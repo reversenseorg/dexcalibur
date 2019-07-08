@@ -45,11 +45,11 @@ FileDescriptorInspector.hookSet.addIntercept({
         FileDescriptorInspector.emits("hook.file.new",event);
     },
     interceptBefore: `
+    
         var msg={ arg0:"<null>", arg1:"<null>" }; 
 
         if(arg0!=null){ 
             if(isInstanceOf(arg0, "java.io.File")){
-                //var a=wJava.cast(arg0, DEXC_MODULE.common.class.java.io.File).getAbsolutePath();
                 msg.arg0 = arg0.getAbsolutePath();
             }
             else if(isInstanceOf(arg0, "java.net.URI"))
@@ -58,7 +58,7 @@ FileDescriptorInspector.hookSet.addIntercept({
                 msg.arg0 = arg0;
 
         }
-        if(arguments.length>=2 && arg1!=null){
+        if(arguments.length==2 && arg1!=null){
             msg.arg1 = arg1;
         }
 
