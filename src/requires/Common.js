@@ -13,7 +13,9 @@ DEXC_MODULE.common = {
                 }
             },
             io: {
-                File: Java.use("java.io.File")
+                File: Java.use("java.io.File"),
+                FileInputStream: Java.use("java.io.FileInputStream"),
+                FileOutputStream: Java.use("java.io.FileOutputStream")
             }
         },
         dalvik: {
@@ -36,6 +38,19 @@ DEXC_MODULE.common.printStackTrace = function() {
         msg = msg + i + " => " + stack[i].toString()+"<br>&nbsp;&nbsp;";
     }
     return msg;
+}
+
+DEXC_MODULE.common.readFile = function(input_file){
+
+    var fin = DEXC_MODULE.common.class.java.io.FileInputStream.$new(input_file);
+    var content = [];
+    var b=null;
+    do{
+        b=fin.read();
+        content.push(b);
+    }while(b != -1);
+
+    return content;
 }
 
 DEXC_MODULE.common.getStackTrace = function() {
