@@ -12,6 +12,7 @@ var DeviceManager = require("./DeviceManager.js");
 //var ut = require("./Utils.js");
 //var Backup = require("./BackupManager.js");
 var HookHelper = require("./HookManager.js");
+var DexHelper = require("./DexHelper.js");
 var InspectorManager = require("./InspectorManager.js");
 var Workspace = require("./Workspace.js");
 var WebServer = require("./WebServer.js");
@@ -96,6 +97,9 @@ function Project(pkgName, cfgpath=null, nofrida=0){
 
     this.apkHelper = new ApkHelper(this);
 
+    // dex helper
+    this.dexHelper = new DexHelper(this);
+
     // ste Device Manager
     this.devices = new DeviceManager(this.config);
 
@@ -111,6 +115,7 @@ function Project(pkgName, cfgpath=null, nofrida=0){
 
     // setup File Analyzer
     this.dataAnalyser = new DataAnalyzer.Analyzer(this);
+
 
     // scanners
     /*
