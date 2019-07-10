@@ -26,6 +26,9 @@ module.exports = {
     deviceId: null,
     useEmulator: false,
 
+    // Java binary path
+    // javaBinPath: "java",
+
     // temporary files location
     tmpDir: "/tmp/",
 
