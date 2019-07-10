@@ -123,10 +123,9 @@ class InMemoryDb
         return this.indexes[name];
     }
 
-    addTo(name,value,key=null){
-
+    setContext(context){
+        this.ctx = context;
     }
-
 }
 
 module.exports = {

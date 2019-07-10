@@ -2,6 +2,7 @@ const Logger = require("./Logger.js");
 const IFC = require("./InspectorFrontController.js");
 const fs = require("fs");
 const Path = require("path");
+const InMemoryDB = require("./InMemoryDb.js");
 //const UT = require("./Utils.js");
 
 const TASK_CODE = {
@@ -68,6 +69,7 @@ class Inspector{
         this.gui_available = false;
         this.frontController = null;
         this.preRegisteredTags = [];
+        this.db = null;
 
         for(let i in config){
             this[i] = config[i];
@@ -83,6 +85,10 @@ class Inspector{
 
     useGUI(){
         this.gui_available = true;
+    }
+
+    useMemoryDB(config=null){
+        this.db = new InMemoryDB.InMemoryDB();
     }
 
     /**
@@ -168,6 +174,10 @@ class Inspector{
         let anal = ctx.getAnalyzer();
         for(let i=0; i<this.preRegisteredTags.length; i++){
             anal.addTagCategory(this.preRegisteredTags[i].name, this.preRegisteredTags[i].tags)
+        }
+
+        if(this.db instanceof InMemoryDB.InMemoryDb){
+            this.db.setContext(this.context);
         }
 
         return this;
