@@ -326,7 +326,8 @@
         // invoked dynamically
         id: BS.color.purple,
         // loaded from an external file
-        led: BS.color.warning
+        led: BS.color.warning,
+        dd: BS.color.warning
     };
 
     function findColorCode(tagname){
@@ -1003,7 +1004,7 @@
                     {  
                         render: function(data, type, row, meta ){
                             console.log(data, type, row, meta);
-                            return row.fqcn;
+                            return row.package.name;
                             /*
                             if(row.package != undefined)
                                 return row.package.name;
@@ -1035,7 +1036,11 @@
                                         findColorCode("led")
                                         , "external");
                             }
-
+                            if(row.tags.indexOf("dd") > -1){
+                                b += BS.badge(
+                                        findColorCode("dd")
+                                        , "D-dynamic");
+                            }
 
                             return b;
                             /*
