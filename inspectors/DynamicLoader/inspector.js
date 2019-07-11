@@ -513,18 +513,25 @@ DynLoaderInspector.on("hook.dex.classloader.new",{
         // 3. Analyze & update graph
         // 4. Workspace cleanup
 
-        let rtWorkingDir = ctx.workspace.getRuntimeDir();
-        let localDexFile = Path.join(rtWorkingDir, Path.basename(event.data.data.arg0));
+        let rtWorkingDir = ctx.workspace.getRuntimeBcDir();
+        let dexFileName =  Path.basename(event.data.data.arg0);
+        let localDexFile = Path.join(rtWorkingDir, dexFileName, dexFileName);
         let stat = null, ignore=false;
 
         // check if file exist
         if(Fs.existsSync(localDexFile)){
             stat = Fs.lstatSync(localDexFile);
+
             if(stat.size==event.data.data.__hidden__data.length){
                  // TODO : then if it is identic do checksum
                  ignore = true;
                  return;
             }
+        }
+
+        // create the folder where the dex file will be written
+        if(!Fs.existsSync(Path.join(rtWorkingDir, dexFileName))){
+            Fs.mkdirSync(Path.join(rtWorkingDir, dexFileName));
         }
 
         if(ignore) return null;

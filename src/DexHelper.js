@@ -13,7 +13,9 @@ class DexHelper
     }
 
     disassembleFile(dexfilePath, callback, override=false){
-        let destPath = Path.join(this.context.workspace.getTmpDir(),Path.basename(dexfilePath));
+        //let destPath = Path.join(this.context.workspace.getTmpDir(),Path.basename(dexfilePath));
+        let destPath = Path.join(Path.dirname(dexfilePath),"smali");
+        
         let i=0;
 
         if(Fs.existsSync(destPath)){
