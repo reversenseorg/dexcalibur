@@ -1,6 +1,7 @@
 var Process = require("child_process");
 var Chalk = require("chalk");
 const Path = require("path");
+const Fs = require("fs");
 
 
 var Logger = require("./Logger.js");
@@ -304,7 +305,9 @@ Project.prototype.fullscan = function(path){
         
         this.analyze.path( dexPath);
         this.dataAnalyser.scan( dexPath, ["smali"]);
+
     }
+
 
     // index static array 
     this.analyze.updateDataBlock();    
@@ -314,6 +317,29 @@ Project.prototype.fullscan = function(path){
             return x.hasTag(AnalysisHelper.TAG.Discover.Internal)==false; 
         }, 
         AnalysisHelper.TAG.Discover.Statically);
+
+
+    // scan bytecode gathered during previous instrumentation session
+    if(path == null){
+
+        let dir=Fs.readdirSync(this.workspace.getRuntimeBcDir());
+        for(let i in dir){
+            elemnt = Path.join(this.workspace.getRuntimeBcDir(),dir[i],"smali");
+            if(Fs.lstatSync(elemnt).isDirectory()){
+
+                console.log(Chalk.yellow("Scanning previously discovered dex chunk : "+elemnt));
+                this.analyze.path(elemnt);
+                this.analyze.tagAllIf(
+                    function(k,x){ 
+                        return (x.hasTag(AnalysisHelper.TAG.Discover.Internal)==false) 
+                            || (x.hasTag(AnalysisHelper.TAG.Discover.Statically)==false); 
+                    }, 
+                    AnalysisHelper.TAG.Discover.Dynamically);
+            }
+        }  
+        
+        this.dataAnalyser.scan(this.workspace.getRuntimeFilesDir());
+    }
 
 
 
