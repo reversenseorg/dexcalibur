@@ -1156,9 +1156,18 @@ HookManager.prototype.start = function(hook_script){
  
         const device = yield FRIDA.getUsbDevice(10000);
         console.log('usb device:', device);
-    
-        const pid = yield device.spawn([APP]);
-        console.log('spawned:', pid);
+
+        const applications = yield device.enumerateApplications();
+        console.log('[*] Applications:', applications);
+        var pid = -1;
+        if(applications.length == 1 && applications[0].name == "Gadget") {
+            console.log('only found gadget, assuming there is no frid-server');
+            pid = applications[0].pid; 
+        }
+        else {
+            const pid = yield device.spawn([APP]);
+            console.log('spawned:', pid);
+        }
         
         const session = yield device.attach(pid);
         console.log('attached:', session);
