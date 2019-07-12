@@ -649,10 +649,11 @@ Class.prototype.toJsonObject = function(filter){
             obj.supers = [];
             if(this.supers instanceof Array)
                 for(let k=0; k<this.supers.length; k++){
-                    obj.supers.push({ 
-                        name:this.supers[k].signature(),
-                        alias: this.supers[k].getAlias()
-                    }); // call signature
+                    if(this.supers[k] instanceof Class)
+                        obj.supers.push({ 
+                            name:this.supers[k].signature(),
+                            alias: this.supers[k].getAlias()
+                        }); // call signature
                 }
         }
         else if(i == "methods"){

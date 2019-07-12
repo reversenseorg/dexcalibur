@@ -7,9 +7,12 @@ const DIR_NAME = {
     SAVE: "save",
     IN: "inputs",
     RUNTIME: "runtime",
+    RUNTIME_FILES: Path.join("runtime","files"),
+    RUNTIME_BC: Path.join("runtime","bytecode"),
     LOGS: "logs",
     APPDATA: "appdata",
-    TMP: "tmp"
+    TMP: "tmp",
+    DEXES: "dexes"
 };
 
 /**
@@ -133,6 +136,12 @@ Workspace.prototype.init = function(){
     if(!fs.existsSync(Path.join(this.getWD(),DIR_NAME.RUNTIME))){
         this.mkWDir(DIR_NAME.RUNTIME+"/");
     }
+    if(!fs.existsSync(Path.join(this.getWD(),DIR_NAME.RUNTIME_BC))){
+        this.mkWDir(DIR_NAME.RUNTIME_BC);
+    }
+    if(!fs.existsSync(Path.join(this.getWD(),DIR_NAME.RUNTIME_FILES))){
+        this.mkWDir(DIR_NAME.RUNTIME_FILES);
+    }
     if(!fs.existsSync(Path.join(this.getWD(),DIR_NAME.APPDATA))){
         this.mkWDir(DIR_NAME.APPDATA+"/");
     }
@@ -167,6 +176,14 @@ Workspace.prototype.getInputDir = function(){
 
 Workspace.prototype.getRuntimeDir = function(){
     return Path.join(this.getWD(),DIR_NAME.RUNTIME);
+}
+
+Workspace.prototype.getRuntimeFilesDir = function(){
+    return Path.join(this.getWD(),DIR_NAME.RUNTIME_FILES);
+}
+
+Workspace.prototype.getRuntimeBcDir = function(){
+    return Path.join(this.getWD(),DIR_NAME.RUNTIME_BC);
 }
 
 Workspace.prototype.getTmpDir = function(){
