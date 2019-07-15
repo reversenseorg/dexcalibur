@@ -614,11 +614,15 @@ function MakeMap(data,absoluteDB){
             // here v.extends is the string not a Class instance
             ext = v.getSuperClass();
 
-
+            try {
             if(ext != null && cls.hasSuperClass() && ext!=cls.getSuperClass().getName()){
                 cls.updateSuper(Resolver.type(absoluteDB, ext));
                 requireRemap = true;
             }
+        }
+        catch(ex) {
+            console.error(ex);
+        }
         }
         else if(cls.getSuperClass() != null && (!cls.getSuperClass() instanceof CLASS.Class)){
             cls.extends = Resolver.type(absoluteDB, cls.extends);
