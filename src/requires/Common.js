@@ -45,11 +45,21 @@ DEXC_MODULE.common.readFile = function(input_file){
     var fin = DEXC_MODULE.common.class.java.io.FileInputStream.$new(input_file);
     var content = [];
     var b=null;
+    var jsBuffer = new Uint8Array(4096);
+    var buffer = Java.array('byte', jsBuffer);
+    var lastSize = 0;
     do{
-        b=fin.read();
-        content.push(b);
+        b=fin.read(buffer);
+        if(b != -1) {
+            //console.log("read " + b + " bytes, writing it into a JS array");
+            for(var i =0; i < b; i++) {
+                content.push(buffer[i]);
+            }
+        }
     }while(b != -1);
-
+    
+    
+    console.log("finished flatting array");
     return content;
 }
 
