@@ -1161,7 +1161,7 @@ HookManager.prototype.start = function(hook_script){
         console.log('[*] Applications:', applications);
         var pid = -1;
         if(applications.length == 1 && applications[0].name == "Gadget") {
-            console.log('only found gadget, assuming there is no frid-server');
+            console.log('only found gadget, assuming there is no frida-server');
             pid = applications[0].pid; 
         }
         else {
