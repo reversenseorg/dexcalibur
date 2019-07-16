@@ -378,6 +378,72 @@ Package.prototype.getTags = function(){
     return this.tags;   
 }
 
+
+class SerializedObject
+{
+    static refs = {}; 
+
+    constructor(obj){
+        this.__type = obj.__type;
+        this.__format = obj.__format;
+        this.__raw = obj.__raw;
+    }
+
+    static init(supported_class){
+        SerializedObject.refs = supported_class;
+    }
+
+    unserialize(){
+        if(SerializedObject.refs[this.__type]==null){
+            throw new Error("The object '"+(this.__type==null?"<null>":this.__type)+"' cannot be unserialize");
+        }
+
+        return SerializedObject
+                .refs[this.__type]
+                .unserialize(this.__raw);
+    }    
+
+}
+
+
+class File
+{
+    constructor(config={}){
+        this.name = (config.name!=null? config.name : null);
+        this.path = (config.path!=null? config.path : null);
+        this.checksum = (config.checksum!=null? config.checksum : null);
+    }
+
+    equals(file){
+        // TODO checksum
+    }
+
+    toJsonObjec(){
+        let o=new Object();
+        for(let i in this)
+            o[i] = this[i];
+
+        return o;
+    }
+
+    // ======
+
+    isSerializable(){
+        return true;
+    }
+
+    serialize(){
+        let o=new Object();
+        for(let i in this)
+            o[i] = this[i];
+
+        return o;
+    }
+
+    static unserialize(obj){
+        return new File(obj);
+    }
+}
 /**
  * Represent a Class object :
  *  - Created by the parser and the ClassLoader's hook
@@ -457,6 +523,7 @@ function Class(config){
 
     this.__pretty_signature__ = null;
     this.__aliasedCallSignature__ = null;
+
 
     this.hashCode = function(){
         return this.name;
@@ -2897,5 +2964,6 @@ module.exports = {
     BUILTIN_TAG: BUILTIN_TAG,
     SwitchCase: SwitchCase,
     PackedSwitchStatement: PackedSwitchStatement,
-    TagCategory: TagCategory
+    TagCategory: TagCategory,
+    File: File
 }; 
