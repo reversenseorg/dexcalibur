@@ -69,30 +69,31 @@ class AdbWrapper
         var reg = new RegExp("^package:(?<apk_name>.*)");
         var ret = "";
         if(deviceId !== null) {
-            ret = Process.execSync(this.setup(deviceId) + " pm list packages").toString("ascii");
+            ret = Process.execSync(this.setup(deviceId) + " shell pm list packages").toString("ascii");
             
         }
         else {
-            ret = Process.execSync(this.path + " pm list packages").toString("ascii");
+            ret = Process.execSync(this.path + " shell pm list packages").toString("ascii");
             
         }
-        packages = [];
-        buffer.split('\n').forEach(element => {
-            var package = element.trim();
-            if(reg.test(package)) {
-                var result  = reg.exec(package);
+        var packages = [];
+        ret.split('\n').forEach(element => {
+            var pkg = element.trim();
+            if(reg.test(pkg)) {
+                var result  = reg.exec(pkg);
                 if(result !== null) {
                     var pathResult = "";
+                    //getting the path for each package takes ages
                     if(deviceId !== null) {
-                        pathResult = Process.execSync(this.setup(deviceId) + " shell pm path " + result.groups['apk_name']).toString("ascii");
+                       // pathResult = Process.execSync(this.setup(deviceId) + " shell pm path " + result.groups['apk_name']).toString("ascii");
 
                     }
                     else {
-                        pathResult = Process.execSync(this.path + " shell pm path " + result.groups['apk_name']).toString("ascii");
+                       // pathResult = Process.execSync(this.path + " shell pm path " + result.groups['apk_name']).toString("ascii");
                     }
                     //recycle the same regex since the output is the same
                     //only take first match since this is the base apk
-                    pathResult = pathResult.split('\n')[0].trim();
+                    //pathResult = pathResult.split('\n')[0].trim();
                     if(reg.test(pathResult)) {
                         pathResult = reg.exec(pathResult).groups['apk_name'];
                     }

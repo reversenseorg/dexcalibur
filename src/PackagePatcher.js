@@ -1,9 +1,11 @@
-const Adb = require('./AdbWrapper');
+const Adb = require('./AdbWrapper.js');
 
 class PackagePatcher {
     constructor(config=null) {
+        this.config = config;
+        this.packages = [];
         this.Bridges = {
-            ADB: new AdbWrapper(this.config.getAdbPath(),null)
+            ADB: new Adb(this.config.getAdbPath(),null)
         };
     }
     /**
@@ -18,18 +20,16 @@ class PackagePatcher {
     }
 
     scan(){
-        // TODO : scan for new devices
-        let ret="", packages=[], device=null,re=null,id=null;
-
        this.count = 0;
        if(this.Bridges.ADB.isReady()){
-           pkgs = this.Bridges.ADB.listPackages();
-           this.count += pkgss.length;
+           var pkgs = this.Bridges.ADB.listPackages();
+           this.count += pkgs.length;
 
            for(let i in pkgs){
-               this.packages[pks[i].packageIdentifier] = pkgs[i];
+               this.packages[pkgs[i].packageIdentifier] = pkgs[i];
            }
-           ut.msgBox("Android packages", Object.keys(this.packages));
+           //ut.msgBox("Android packages", Object.keys(this.packages));
+           console.log("Android packages", Object.keys(this.packages));
        }
         
    }
@@ -44,3 +44,5 @@ class PackagePatcher {
 
     
 }
+
+module.exports = PackagePatcher;

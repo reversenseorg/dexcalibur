@@ -21,3 +21,5 @@ class Package {
         return json;
     }
 }
+
+module.exports = Package;

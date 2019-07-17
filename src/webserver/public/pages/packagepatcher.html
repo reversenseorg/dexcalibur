@@ -44,7 +44,7 @@
                     <div class="panel panel-default">
                         <div class="panel-heading">
                             <div class="row">
-                                <div class="col-lg-11"><h4>List of devices registered</h4></div>
+                                <div class="col-lg-11"><h4>List of packages found on device</h4></div>
                                 <div class="col-lg-1">
                                     <button id="dm-refresh-btn" class="btn btn-primary" type="button">
                                         <i class="fa fa-refresh"></i>
@@ -58,7 +58,7 @@
                                 <thead>
                                     <tr>
                                         <th>Package Identifier</th>
-                                        <th>Package Path</th>
+                                        
                                         <!--<th>Action</th>-->
                                     </tr>
                                 </thead>
@@ -106,8 +106,7 @@
         let dmTable = $('#dataTables-example').DataTable({
             ajax: "../api/package",
             columns: [
-                { data: 'packageIdentifier' },
-                { data: 'packagePath' }
+                { data: 'packageIdentifier' }
             ],
             responsive: true
         });
