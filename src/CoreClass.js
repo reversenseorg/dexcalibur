@@ -399,6 +399,15 @@ class SerializedObject
         SerializedObject.refs = supported_class;
     }
 
+    static isSerializable(obj){
+        return (obj.serialize !=null) && (typeof obj.serialize==='function');
+    }
+    static isUnserializable(obj){
+        return (obj.__type!=null) 
+            && (obj.__raw!=null) 
+            && (SerializedObject.refs[obj.__type]!==null);
+    }
+
     static from(obj,type){
         let o = new SerializedObject();
 
@@ -409,10 +418,6 @@ class SerializedObject
     }
 
     unserialize(){
-        if(SerializedObject.refs[this.__type]==null){
-            throw new Error("The object '"+(this.__type==null?"<null>":this.__type)+"' cannot be unserialize");
-        }
-
         return SerializedObject
                 .refs[this.__type]
                 .unserialize(this.__raw);
@@ -426,8 +431,18 @@ class File
     constructor(config={}){
         this.name = (config.name!=null? config.name : null);
         this.path = (config.path!=null? config.path : null);
+        this.remotePath = (config.remotePath!=null? config.remotePath : null);
         this.checksum = (config.checksum!=null? config.checksum : null);
     }
+
+    getPath(){
+        return this.path;
+    }
+
+    getRemotePath(){
+        return this.remotePath;
+    }
+
 
     equals(file){
         // TODO checksum
