@@ -2,7 +2,7 @@ const Logger = require("./Logger.js");
 const IFC = require("./InspectorFrontController.js");
 const fs = require("fs");
 const Path = require("path");
-const InMemoryDB = require("./InMemoryDb.js");
+const InMemoryDb = require("./InMemoryDb.js").InMemoryDb;
 //const UT = require("./Utils.js");
 
 const TASK_CODE = {
@@ -88,8 +88,16 @@ class Inspector{
     }
 
     useMemoryDB(config=null){
-        this.db = new InMemoryDB.InMemoryDB();
+        //console.log(DInMemoryDb);
+        this.db = new InMemoryDb();
+
+        return this.db;
     }
+
+    getDB(){
+        return this.db;
+    }
+
 
     /**
      * To forward an HTTP GET request from the web server handler to the inspector front controller if available
@@ -176,7 +184,7 @@ class Inspector{
             anal.addTagCategory(this.preRegisteredTags[i].name, this.preRegisteredTags[i].tags)
         }
 
-        if(this.db instanceof InMemoryDB.InMemoryDb){
+        if(this.db instanceof InMemoryDb){
             this.db.setContext(this.context);
         }
 
@@ -232,6 +240,50 @@ class Inspector{
         });
     }
 
+    restore(){
+        let self = this;
+        let savePath = Path.join(this.context.workspace.getSaveDir(), this.id+".json");
+        fs.exists(savePath, function(exist){
+            if(!exist){
+                return ;
+            }
+            
+            fs.readFile(savePath, 'ascii', function(err, data){
+                let o = JSON.parse(data);
+                //console.log(o);
+                self.db.unserialize(o);
+            })
+        })
+    }
+
+    save(){
+        if(!this.db instanceof InMemoryDb) return null;
+
+        let self = this;
+        let savePath = Path.join(this.context.workspace.getSaveDir(), this.id+".json");
+        fs.exists(savePath, function(exist){
+            if(exist){
+                fs.unlinkSync(savePath);
+            }
+            
+            fs.open(savePath, 'w+', function(err, fd){
+                if(err){
+                    console.log("Save file cannot be created");
+                    return;
+                }
+
+                let data = self.db.serialize();
+                fs.write(fd, JSON.stringify(data), function(err, written, str){
+                    if(err){
+                        console.log("Save file cannot be created");
+                        return;
+                    }
+                    console.log("Inspector "+self.id+" backed up");
+                    fs.close(fd,function(err){});
+                });
+            })
+        })
+    }
 
     /**
      * To cast the current object to an object ready to be serialize (it avoids cyclic reference)
