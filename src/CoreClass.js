@@ -383,14 +383,29 @@ class SerializedObject
 {
     static refs = {}; 
 
-    constructor(obj){
-        this.__type = obj.__type;
-        this.__format = obj.__format;
-        this.__raw = obj.__raw;
+    constructor(obj=null){
+        this.__type = null;
+        //this.__format = obj.__format;
+        this.__raw = null;
+
+        if(obj!==null){
+            for(let i in obj){
+                this[i] = obj[i];
+            }
+        }
     }
 
     static init(supported_class){
         SerializedObject.refs = supported_class;
+    }
+
+    static from(obj,type){
+        let o = new SerializedObject();
+
+        o.__type = type;
+        o.__raw = obj;
+
+        return o;
     }
 
     unserialize(){
@@ -433,11 +448,8 @@ class File
     }
 
     serialize(){
-        let o=new Object();
-        for(let i in this)
-            o[i] = this[i];
 
-        return o;
+        return SerializedObject.from(this,"File");
     }
 
     static unserialize(obj){
@@ -2933,7 +2945,7 @@ function NodeDB(){
     this.parseErrors = [];   
 }
 
-module.exports = {
+var all_exports = {
     Package: Package,
     Class: Class,
     Method: Method,
@@ -2965,5 +2977,10 @@ module.exports = {
     SwitchCase: SwitchCase,
     PackedSwitchStatement: PackedSwitchStatement,
     TagCategory: TagCategory,
-    File: File
+    File: File,
+    SerializedObject: SerializedObject
 }; 
+
+SerializedObject.init(all_exports);
+
+module.exports = all_exports;
