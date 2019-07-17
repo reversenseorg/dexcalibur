@@ -10,6 +10,7 @@ var Analyzer = require("./Analyzer.js");
 var AnalysisHelper = require("./AnalysisHelper.js");
 var Finder = require("./Finder.js");
 var DeviceManager = require("./DeviceManager.js");
+var PackagePatcher = require("./PackagePatcher.js");
 //var ut = require("./Utils.js");
 //var Backup = require("./BackupManager.js");
 var HookHelper = require("./HookManager.js");
@@ -103,6 +104,9 @@ function Project(pkgName, cfgpath=null, nofrida=0){
 
     // ste Device Manager
     this.devices = new DeviceManager(this.config);
+
+    //package Patcher
+    this.packagePatcher = new PackagePatcher(this.config);
 
     // hook
     this.hook = new HookHelper.Manager(this, nofrida);

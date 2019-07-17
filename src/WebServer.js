@@ -228,6 +228,16 @@ class WebServer {
                 };
                 res.status(200).send(JSON.stringify(dev));
             });
+            this.app.route('/api/package')
+            .get(function(req,res){
+                // scan connected devices
+                $.project.packagePatcher.scan();
+                // collect
+                let packages = {
+                    data: $.project.packagePatcher.toJsonObject()
+                };
+                res.status(200).send(JSON.stringify(packages));
+            });
 
         // not used
         this.app.route('/api/stats')
