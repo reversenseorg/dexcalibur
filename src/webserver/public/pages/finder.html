@@ -1087,7 +1087,14 @@
                     },
                     {  
                         render: function(data, type, row, meta ){
-                            return '<span meth='+btoa(encodeURIComponent(row.__signature__))+'>'+(row.alias!=null? '<b>'+htmlEncode(row.alias)+'</b>&nbsp;<i class="secondary-text">'+htmlEncode(row.__signature__)+'</i>':'&nbsp;'+htmlEncode(row.__signature__))+'</span>';
+                            let b= '<span meth='+btoa(encodeURIComponent(row.__signature__))+'>'+(row.alias!=null? '<b>'+htmlEncode(row.alias)+'</b><br>&nbsp;<i class="secondary-text">'+htmlEncode(row.__signature__)+'</i>':'&nbsp;'+htmlEncode(row.__callSignature__))+'</span>';
+                            
+                            if(row.tags.indexOf("dd") > -1){
+                                b += BS.badge(
+                                        findColorCode("dd")
+                                        , "D-dynamic");
+                            }
+                            return b;
                         }
                     },
                     { 
