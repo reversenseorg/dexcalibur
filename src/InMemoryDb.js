@@ -87,17 +87,18 @@ class Index
     }
 
     static unserialize(serialized_obj){
-        let self = new Index();
+        let self = new Index(), o=null;
         self.name = serialized_obj.name;
         self.refs = [];
         for(let i=0; i<serialized_obj.refs.length; i++){
-            if(serialized_obj.refs[i].isSerializable === true){
-                self.refs.push(CLASS.SerializedObject.unserialize(serialized_obj.refs[i]));
+            if(CLASS.SerializedObject.isUnserializable(serialized_obj.refs[i])){
+                o = new CLASS.SerializedObject(serialized_obj.refs[i]);
+                self.refs.push(o.unserialize());
             }
             else
                 self.refs.push(serialized_obj.refs[i]);
         }
-        return o;
+        return self;
     }
 
 
@@ -193,18 +194,20 @@ class Collection
     }
 
     static unserialize(serialized_obj){
-        let self = new Collection();
+        let self = new Collection(), o=null;
         self.name = serialized_obj.name;
         self.ctr = serialized_obj.ctr;
         self.values = {};
         for(let i in serialized_obj.values){
-            if(serialized_obj.values[i].isSerializable === true){
-                self.values[i]=CLASS.SerializedObject.unserialize(serialized_obj.values[i]);
+            
+            if(CLASS.SerializedObject.isUnserializable(serialized_obj.values[i])){
+                o = new new CLASS.SerializedObject(serialized_obj.values[i])
+                self.values[i]=o.unserialize();
             }
             else
                 self.values[i]=serialized_obj.values[i];
         }
-        return o;
+        return self;
     }
 
     serialize(){
@@ -216,6 +219,8 @@ class Collection
         o.values = {};
 
         for(let i in this.values){
+            if(typeof this.values[i].serialize === 'function')
+                o.values[i]=this.values[i].serialize();  
             if(typeof this.values[i].toJsonObject === 'function')
                 o.values[i]=this.values[i].toJsonObject();
             else
