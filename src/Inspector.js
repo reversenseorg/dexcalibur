@@ -240,7 +240,7 @@ class Inspector{
         });
     }
 
-    restore(){
+    restore(callback=null){
         let self = this;
         let savePath = Path.join(this.context.workspace.getSaveDir(), this.id+".json");
         fs.exists(savePath, function(exist){
@@ -250,8 +250,9 @@ class Inspector{
             
             fs.readFile(savePath, 'ascii', function(err, data){
                 let o = JSON.parse(data);
-                //console.log(o);
                 self.db.unserialize(o);
+                if(typeof callback === 'function')
+                    callback(self);
             })
         })
     }
