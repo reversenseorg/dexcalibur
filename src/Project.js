@@ -106,7 +106,7 @@ function Project(pkgName, cfgpath=null, nofrida=0){
     this.devices = new DeviceManager(this.config);
 
     //package Patcher
-    this.packagePatcher = new PackagePatcher(this.config);
+    this.packagePatcher = new PackagePatcher(this.config, this.apkHelper);
 
     // hook
     this.hook = new HookHelper.Manager(this, nofrida);

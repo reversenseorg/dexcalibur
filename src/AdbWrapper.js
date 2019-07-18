@@ -99,12 +99,30 @@ class AdbWrapper
                     }
                     packages.push(new Package({
                         packageIdentifier: result.groups['apk_name'],
-                        packagePath : pathResult
+                        packagePath : pathResult,
+                        
                     }));
                 }
             }
         });
         return packages;
+    }
+    getPackagePath(packageIdentifier, deviceId=null) {
+        var reg = new RegExp("^package:(?<package_name>.*)");
+        var ret = "";
+        if(deviceId !== null) {
+            ret = Process.execSync(this.setup(deviceId) + " shell pm path " +  packageIdentifier).toString("ascii");
+            
+        }
+        else {
+            ret = Process.execSync(this.path + " shell pm path " + packageIdentifier).toString("ascii");
+        }
+        var path = ret.split('\n')[0].trim();
+        if(reg.test(path)) {
+            path = reg.exec(path).groups["package_name"];
+            return path;
+        }
+        return "";
     }
     listDevices(){
         let dev = [], ret=null,re=null, data=null, id=null, device=null;

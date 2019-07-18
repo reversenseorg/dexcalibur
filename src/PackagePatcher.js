@@ -1,7 +1,10 @@
 const Adb = require('./AdbWrapper.js');
+const Path = require('path');
+const Process = require('child_process');
 
 class PackagePatcher {
-    constructor(config=null) {
+    constructor(config=null, apkHelper) {
+        this.apkHelper = apkHelper;
         this.config = config;
         this.packages = [];
         this.Bridges = {
@@ -15,7 +18,16 @@ class PackagePatcher {
      * @param {*} package_name The package name
      * 
      */
-    patchPackage(package_identifier) {
+    patchPackage(packageIdentifier) {
+        
+    }
+
+    pullPackage(packageIdentifier) {
+      
+        var dstPath = Path.join(this.config.workspacePath, "tmp", packageIdentifier);
+        var pathResult = this.Bridges.ADB.getPackagePath(packageIdentifier);
+        this.Bridges.ADB.pull(pathResult, dstPath);
+        this.apkHelper.extract(dstPath);
         
     }
 
@@ -27,6 +39,7 @@ class PackagePatcher {
 
            for(let i in pkgs){
                this.packages[pkgs[i].packageIdentifier] = pkgs[i];
+               this.packages[pkgs[i].packageIdentifier].config.workspacePath = this.config.workspacePath;
            }
            //ut.msgBox("Android packages", Object.keys(this.packages));
            console.log("Android packages", Object.keys(this.packages));

@@ -1,10 +1,19 @@
+const fs = require('fs');
+var Path = require("path");
+
 class Package {
     constructor(config=null){
+        this.config = config;
+       
         this.packageIdentifier = null;
         this.packagePath =  null;
         this.patched = false;
+        this.workspaceExists = false; //
         if(config !== null)
-            for(let i in config) this[i] = config[i]; 
+            for(let i in config)
+            {
+                this[i] = config[i];
+            }
     }
 
 

@@ -238,6 +238,14 @@ class WebServer {
                 };
                 res.status(200).send(JSON.stringify(packages));
             });
+            this.app.route('/api/pullProject/:packageIdentifier')
+            .get(function(req,res){
+                // scan connected devices
+                //console.log(req.params.packageIdentifier)
+                $.project.packagePatcher.pullPackage(req.params.packageIdentifier);
+                // collect
+                res.status(200).send(JSON.stringify({message: "ok"}));
+            });
 
         // not used
         this.app.route('/api/stats')

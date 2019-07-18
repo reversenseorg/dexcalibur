@@ -59,7 +59,8 @@
                                     <tr>
                                         <th>Package Identifier</th>
                                         
-                                        <!--<th>Action</th>-->
+                                        <th>Pull</th>
+                                        <th>Patch</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -106,7 +107,20 @@
         let dmTable = $('#dataTables-example').DataTable({
             ajax: "../api/package",
             columns: [
-                { data: 'packageIdentifier' }
+                { data: 'packageIdentifier' },
+                {
+                    render: function(data, type, row, meta) {
+                        if(!row.workspaceExists) {
+                        return `&nbsp;<button style="height:1.5em;padding-top:0px;padding-bottom:0px;" class="btn btn-success pull-apk" package="`+row.packageIdentifier+`">Pull</button>`;
+                        }
+                        return "<div>Already pulled </div>";
+                    }
+                },
+                {
+                    render: function(data, type, row, meta) {
+                        return `&nbsp;<button style="height:1.5em;padding-top:0px;padding-bottom:0px;" class="btn btn-success patch-apk" package="`+row.packageIdentifier+`">Patch</button>`;
+                    }
+                }
             ],
             responsive: true
         });
@@ -121,7 +135,20 @@
         $('#dm-refresh-btn').click(()=>{
             dmTable.ajax.reload();
         });
+
+
+        $('#dataTables-example tbody').on('click', 'button.pull-apk', function () {
+           // alert("test");
+            let id = $(this).attr("package");
+            location.href = "/api/pullProject/" + id;
+        });
+        $('#dataTables-example tbody').on('click', 'button.patch-apk', function () {
+            let id = $(this).attr("package");
+            location.href = "/api/patchProject/" + id;
+        });
     });
+
+   
     </script>
 
 </body>
