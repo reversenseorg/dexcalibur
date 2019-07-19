@@ -140,7 +140,11 @@
         $('#dataTables-example tbody').on('click', 'button.pull-apk', function () {
            // alert("test");
             let id = $(this).attr("package");
-            location.href = "/api/pullProject/" + id;
+            $(this).attr("disabled", 'true')
+            $.getJSON("/api/pullProject/" + id, function(success) {
+                alert("Downloaded package");
+                dmTable.ajax.reload();
+            });
         });
         $('#dataTables-example tbody').on('click', 'button.patch-apk', function () {
             let id = $(this).attr("package");

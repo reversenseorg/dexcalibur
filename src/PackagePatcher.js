@@ -31,7 +31,7 @@ class PackagePatcher {
         
         fs.mkdirSync(projectDir);
         fs.mkdirSync(dstPath);
-        
+
         var pathResult = this.Bridges.ADB.getPackagePath(packageIdentifier);
         this.Bridges.ADB.pull(pathResult, tmpPath);
         this.apkHelper.extract(tmpPath, dstPath);
@@ -45,7 +45,7 @@ class PackagePatcher {
 
            for(let i in pkgs){
                this.packages[pkgs[i].packageIdentifier] = pkgs[i];
-               this.packages[pkgs[i].packageIdentifier].config.workspacePath = this.config.workspacePath;
+               this.packages[pkgs[i].packageIdentifier].workspaceExists = fs.existsSync(Path.join(this.config.workspacePath,pkgs[i].packageIdentifier));
            }
            //ut.msgBox("Android packages", Object.keys(this.packages));
            console.log("Android packages", Object.keys(this.packages));
