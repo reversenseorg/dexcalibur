@@ -1,7 +1,7 @@
 const Process = require("child_process");
 const UT = require("./Utils.js");
 const Device = require("./Device.js");
-const Package = require("./Package");
+const ApkPackage = require("./AppPackage");
 
 
 const fs = require('fs');
@@ -97,7 +97,7 @@ class AdbWrapper
                     if(reg.test(pathResult)) {
                         pathResult = reg.exec(pathResult).groups['apk_name'];
                     }
-                    packages.push(new Package({
+                    packages.push(new ApkPackage({
                         packageIdentifier: result.groups['apk_name'],
                         packagePath : pathResult,
                         

@@ -1,7 +1,7 @@
 const fs = require('fs');
 var Path = require("path");
 
-class Package {
+class ApkPackage {
     constructor(config=null){
         this.config = config;
        
@@ -9,6 +9,7 @@ class Package {
         this.packagePath =  null;
         this.patched = false;
         this.workspaceExists = false; //
+        this.currentWd = false;
         if(config !== null)
             for(let i in config)
             {
@@ -31,4 +32,4 @@ class Package {
     }
 }
 
-module.exports = Package;
+module.exports = ApkPackage;

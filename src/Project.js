@@ -62,10 +62,15 @@ function importConfig(cfg){
  * @constructor
  */
 function Project(pkgName, cfgpath=null, nofrida=0){
+    this.initDexcalibur(pkgName,cfgpath,nofrida);
+}
+
+Project.prototype.initDexcalibur = function(pkgName, cfgpath=null, nofrida=0, apiVersion="android:7.0.0"){
     this.pkg = pkgName;
     this.config = new Configuration();
     this.cfgpath = cfgpath;
     this.nofrida = nofrida;
+    this.apiVersion = apiVersion;
     var _self = this;
 
     if(cfgpath != null){
@@ -107,7 +112,7 @@ function Project(pkgName, cfgpath=null, nofrida=0){
     this.devices = new DeviceManager(this.config);
 
     //package Patcher
-    this.packagePatcher = new PackagePatcher(this.config, this.apkHelper);
+    this.packagePatcher = new PackagePatcher(pkgName, this.config, this.apkHelper);
 
     // hook
     this.hook = new HookHelper.Manager(this, nofrida);
@@ -204,10 +209,8 @@ function Project(pkgName, cfgpath=null, nofrida=0){
 }
 
 Project.prototype.changeProject = function(packageIdentifier) {
-    this.pkg = packageIdentifier;
-    this.workspace = new Workspace(packageIdentifier,this.config);
-    this.workspace.init();
-    this.fullscan();
+    this.initDexcalibur(packageIdentifier,this.cfgpath,this.nofrida);
+    this.useAPI(this.apiVersion).fullscan();
 };
 
 Project.prototype.getAnalyzer = function(){

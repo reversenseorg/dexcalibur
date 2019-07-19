@@ -22,6 +22,62 @@
         <script src="https://oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js"></script>
     <![endif]-->
 
+    <style>
+        .pulsating-circle {
+            width: 30px;
+            height: 30px;
+        }
+  
+  .pulsating-circle:before {
+    content: '';
+    position: relative;
+    display: block;
+    width: 300%;
+    height: 300%;
+    box-sizing: border-box;
+    margin-left: -100%;
+    margin-top: -100%;
+    border-radius: 45px;
+    background-color: #01a4e9;
+    animation: pulse-ring 1.25s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+  }
+  
+  .pulsating-circle:after {
+    content: '';
+    position: relative;
+    display: block;
+   
+    margin-top: -200%;
+    width: 100%;
+    height: 100%;
+    background-color: gray;
+    border-radius: 15px;
+    box-shadow: 0 0 8px rgba(0,0,0,.3);
+    animation: pulse-dot 1.25s cubic-bezier(0.455, 0.03, 0.515, 0.955) -.4s infinite;
+  }
+
+@keyframes pulse-ring {
+  0% {
+    transform: scale(.33);
+  }
+  80%, 100% {
+    opacity: 0;
+  }
+}
+
+@keyframes pulse-dot {
+  0% {
+    transform: scale(.8);
+  }
+  50% {
+    transform: scale(1);
+  }
+  100% {
+    transform: scale(.8);
+  }
+}
+    </style>
+
 </head>
 
 <body>
@@ -105,7 +161,7 @@
     $(document).ready(function() {
 
         let dmTable = $('#dataTables-example').DataTable({
-            ajax: "../api/package",
+            ajax: "../api/packageList",
             columns: [
                 { data: 'packageIdentifier' },
                 {
@@ -113,7 +169,10 @@
                         if(!row.workspaceExists) {
                         return `&nbsp;<button style="height:1.5em;padding-top:0px;padding-bottom:0px;" class="btn btn-success pull-apk" package="`+row.packageIdentifier+`">Pull</button>`;
                         }
-                        return "<div>Already pulled </div>";
+                        else if(row.currentWd) {
+                            return `<div>Current Workspace</div>`;
+                        }
+                        return `<div><button style="height:1.5em;padding-top:0px;padding-bottom:0px;" class="btn btn-success change-workspace" package="`+row.packageIdentifier+`">Change Workspace</button> </div>`;
                     }
                 },
                 {
@@ -140,15 +199,23 @@
         $('#dataTables-example tbody').on('click', 'button.pull-apk', function () {
            // alert("test");
             let id = $(this).attr("package");
-            $(this).attr("disabled", 'true')
+            $(this).parent().replaceWith(`<div class="pulsating-circle"></div>`);
             $.getJSON("/api/pullProject/" + id, function(success) {
-                alert("Downloaded package");
+                
                 dmTable.ajax.reload();
             });
         });
         $('#dataTables-example tbody').on('click', 'button.patch-apk', function () {
+            //let id = $(this).attr("package");
+            //location.href = "/api/patchProject/" + id;
+        });
+        $('#dataTables-example tbody').on('click', 'button.change-workspace', function () {
             let id = $(this).attr("package");
-            location.href = "/api/patchProject/" + id;
+            $(this).parent().replaceWith(`<div class="pulsating-circle"></div>`);
+            $.getJSON("/api/changeWorkspace/" + id, function(success) {
+                dmTable.ajax.reload();
+            });
+
         });
     });
 

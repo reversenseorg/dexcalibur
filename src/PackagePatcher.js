@@ -4,8 +4,9 @@ const Process = require('child_process');
 const fs = require('fs');
 
 class PackagePatcher {
-    constructor(config=null, apkHelper) {
+    constructor(pkgName,config=null, apkHelper) {
         this.apkHelper = apkHelper;
+        this.currentPackageName = pkgName;
         this.config = config;
         this.packages = [];
         this.Bridges = {
@@ -46,6 +47,7 @@ class PackagePatcher {
            for(let i in pkgs){
                this.packages[pkgs[i].packageIdentifier] = pkgs[i];
                this.packages[pkgs[i].packageIdentifier].workspaceExists = fs.existsSync(Path.join(this.config.workspacePath,pkgs[i].packageIdentifier));
+               this.packages[pkgs[i].packageIdentifier].currentWd = pkgs[i].packageIdentifier === this.currentPackageName;
            }
            //ut.msgBox("Android packages", Object.keys(this.packages));
            console.log("Android packages", Object.keys(this.packages));
