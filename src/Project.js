@@ -445,22 +445,16 @@ Project.prototype.pull = function(device){
     let pathWD = Path.join(this.workspace.getWD(),this.pkg);
     let dexPath = Path.join(this.workspace.getWD(),"dex");
 
-    ret = Process.execSync(
-        adb+" pull "+ppath+" "+pathWD+".apk"
-    ).toString("ascii");
-
-
-    /*
-    We should find another way to check if "adb pull" is done successfully
-    */
-    if(ret.indexOf("1 file pulled")>-1){
+    try {
+        Process.execSync(adb+" pull "+ppath+" "+pathWD+".apk");
         console.log(Chalk.bold.green("[*] Package downloaded to "+pathWD+".apk"));
 
         ret = Process.execSync(this.config.apktPath+" d -f -m -r -o "+dexPath+" "+pathWD+".apk").toString("ascii");
         console.log(Chalk.bold.green("[*] APK decompiled in "+dexPath));
-
-    }else{
-        console.error(Chalk.bold.red("[!] Fail to pull package"));
+    }
+    catch(exception) {
+        console.error(Chalk.bold.red("[!] Failed to pull package:"));
+        console.error(exception);
     }
 };
 
