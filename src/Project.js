@@ -344,13 +344,12 @@ Project.prototype.fullscan = function(path){
         type: "dxc.fullscan.post" 
     }));
 
-
     // deploy inspector's hooksets
     this.inspectors.deployAll();
     
     // trigger event
     this.bus.send(new Event.Event({
-        type: "appview.new" 
+        type: "dxc.appview.new" 
     }));
 
     this.analyze.insertIn( "files", this.dataAnalyser.getDB().getFiles());

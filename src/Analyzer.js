@@ -10,7 +10,7 @@ var VM = require("./VM.js");
 var OPCODE = require("./Opcode.js");
 const AnalysisHelper = require("./AnalysisHelper.js");
 const MemoryDb = require("./InMemoryDb.js");
-
+const Event = require("./Event.js").Event;
 
 var Parser = require("./SmaliParser.js");
 
@@ -1007,6 +1007,16 @@ function Analyzer(encoding, finder, ctx=null){
 
 
     this.path = function(path){
+        
+        ctx.bus.send(new Event({
+            name: "analyze.file.before",
+            data: {
+                path: path,
+                analyzer: this
+            }
+        }));
+
+
         tempDb = this.newTempDb();
 
         // TODO : hcek if path exists;
@@ -1024,6 +1034,14 @@ function Analyzer(encoding, finder, ctx=null){
         // start object mapping
         // MakeMap(this.db);
         MakeMap(tempDb, this.db);
+        
+        ctx.bus.send(new Event({
+            name: "analyze.file.after",
+            data: {
+                path: path,
+                analyzer: this
+            }
+        }));
 
         this.finder.updateDB(this.db);
     };
