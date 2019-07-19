@@ -187,7 +187,7 @@ class AdbWrapper
      * @param {*} local_path The path where the resource will be stored locally
      */
 
-    pull(package_name,remote_path, local_path, deviceID=null){
+    pullRessource(package_name,remote_path, local_path, deviceID=null){
         if(deviceID != null) {
             var binary_blob = Process.execSync(this.setup(deviceID) + 'shell "run-as '+ package_name+ ' cat ' + remote_path + '"').buffer;
             fs.writeFile(local_path,binary_blob,function(err) {

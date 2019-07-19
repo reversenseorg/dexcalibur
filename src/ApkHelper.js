@@ -20,7 +20,7 @@ ApkHelper.prototype.extract = function(fileSrc, folderDest=null, resource=false)
     let cmd = this.context.config.apktPath+" d ";
     if(!resource)  cmd += "-r";
 
-    ret = Process.execSync(cmd+"-f -m -o "+folderDest+" "+file).toString("ascii");
+    ret = Process.execSync(cmd+" -f -m -o "+folderDest+" "+fileSrc).toString("ascii");
     
     //if()
     console.log(Chalk.bold.green("[*] APK decompiled in "+folderDest));

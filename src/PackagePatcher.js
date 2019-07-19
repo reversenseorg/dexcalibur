@@ -1,6 +1,7 @@
 const Adb = require('./AdbWrapper.js');
 const Path = require('path');
 const Process = require('child_process');
+const fs = require('fs');
 
 class PackagePatcher {
     constructor(config=null, apkHelper) {
@@ -23,12 +24,17 @@ class PackagePatcher {
     }
 
     pullPackage(packageIdentifier) {
-      
-        var dstPath = Path.join(this.config.workspacePath, "tmp", packageIdentifier);
-        var pathResult = this.Bridges.ADB.getPackagePath(packageIdentifier);
-        this.Bridges.ADB.pull(pathResult, dstPath);
-        this.apkHelper.extract(dstPath);
+        var dstPath = Path.join(this.config.workspacePath, packageIdentifier, 'dex');
+        var tmpPath = Path.join(this.config.workspacePath,packageIdentifier, packageIdentifier +  '.apk');
+
+        var projectDir = Path.join(this.config.workspacePath, packageIdentifier);
         
+        fs.mkdirSync(projectDir);
+        fs.mkdirSync(dstPath);
+        
+        var pathResult = this.Bridges.ADB.getPackagePath(packageIdentifier);
+        this.Bridges.ADB.pull(pathResult, tmpPath);
+        this.apkHelper.extract(tmpPath, dstPath);
     }
 
     scan(){
