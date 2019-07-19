@@ -64,7 +64,8 @@ function importConfig(cfg){
 function Project(pkgName, cfgpath=null, nofrida=0){
     this.pkg = pkgName;
     this.config = new Configuration();
-
+    this.cfgpath = cfgpath;
+    this.nofrida = nofrida;
     var _self = this;
 
     if(cfgpath != null){
@@ -201,6 +202,13 @@ function Project(pkgName, cfgpath=null, nofrida=0){
 
     this.workspace.init();
 }
+
+Project.prototype.changeProject = function(packageIdentifier) {
+    this.pkg = packageIdentifier;
+    this.workspace = new Workspace(packageIdentifier,this.config);
+    this.workspace.init();
+    this.fullscan();
+};
 
 Project.prototype.getAnalyzer = function(){
     return this.analyze;

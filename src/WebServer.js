@@ -244,6 +244,7 @@ class WebServer {
                 //console.log(req.params.packageIdentifier)
                 $.project.packagePatcher.pullPackage(req.params.packageIdentifier);
                 // collect
+                $.project.changeProject(req.params.packageIdentifier);
                 res.status(200).send(JSON.stringify({message: "ok"}));
             });
 
