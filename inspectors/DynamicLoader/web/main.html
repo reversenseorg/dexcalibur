@@ -42,14 +42,11 @@
             <div class="row" style="padding:10px;">
                 <div class="col-lg-8" style="font-size:1.5em">Dynamic loader inspector</div>
                 
-                <!--<div class="col-lg-4">
-                    <button class="btn btn-danger probe-restart">
-                        <i class="fa fa-refresh"></i>&nbsp;Relaunch
-                    </button>&nbsp
-                    <button class="btn btn-primary refresh">
-                        <i class="fa fa-refresh"></i>&nbsp;Refresh
+                <div class="col-lg-4">
+                    <button class="btn btn-danger cleanup">
+                        <i class="fa fa-trash"></i>&nbsp;Remove copied files
                     </button>
-                </div>-->
+                </div>
             </div>
             <br><br>
             <div class="panel panel-info">
@@ -104,14 +101,14 @@
                     </div>
                 </div>         
                 <div class="panel-body">
-                    <p>The table below lists all Dexes files get dynamically.</p>
+                    <p>The table below lists all Dex files gathered at runtime and decompiled dynamically.</p>
                     <table width="100%"  class="table table-striped table-bordered table-hover" id="dataTables-dex">
                             <thead>
                                 <tr>
-                                    <th id="finder-col1">-</th>
-                                    <th id="finder-col2">Filepath</th>
-                                    <th id="finder-col3">-</th>
-                                    <th id="finder-col4">Action</th>
+                                    <th id="finder-col1" class="col-lg-1">-</th>
+                                    <th id="finder-col2" class="col-lg-2">Name</th>
+                                    <th id="finder-col3" class="col-lg-8">Filepath</th>
+                                    <th id="finder-col4" class="col-lg-1">Action</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -137,10 +134,10 @@
                         <table width="100%"  class="table table-striped table-bordered table-hover" id="dataTables-discover">
                                 <thead>
                                     <tr>
-                                        <th id="finder-col1">-</th>
-                                        <th id="finder-col2">Type</th>
-                                        <th id="finder-col3">Object</th>
-                                        <th id="finder-col4">Action</th>
+                                        <th id="finder-col1" class="col-lg-1">-</th>
+                                        <th id="finder-col2" class="col-lg-2">Type</th>
+                                        <th id="finder-col3" class="col-lg-8">Object</th>
+                                        <th id="finder-col4" class="col-lg-1">Action</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -272,7 +269,7 @@
                 { 
                     render: function(data, type, row, meta ){
                         if(row.name != null)
-                            return '<a  class="badge badge-success probe">more</a>';
+                            return '';//'<a  class="badge badge-success probe">more</a>';
                         else 
                             return 'None';
                     }
@@ -281,6 +278,37 @@
             responsive: true
         });
 
+        let dexTable = $('#dataTables-dex').DataTable({
+            searching: false,
+            paging: false,
+            columns: [
+                {
+                    "className":      'details-control',
+                    "orderable":      false,
+                    "data":           null,
+                    "defaultContent": ''
+                },
+                {  
+                    render: function(data, type, row, meta ){
+                        return row.name;
+                    }
+                },
+                {  
+                    render: function(data, type, row, meta ){
+                        return row.remotePath;
+                    }
+                 },
+                { 
+                    render: function(data, type, row, meta ){
+                        if(row.name != null)
+                            return '';//<a  class="badge badge-success seecontent">Content</a>';
+                        else  
+                            return 'None';
+                    }
+                }
+            ],
+            responsive: true
+        });
 
         $(".refreshDisco").click(function(e){
             $.ajax("/api/inspectors/DynamicLoader", {
@@ -322,8 +350,50 @@
             })
         });
 
+        $(".refreshDex").click(function(e){
+            $.ajax("/api/inspectors/DynamicLoader", {
+                method: "get",
+                data: {
+                    action: "refresh_dex",
+                    t: (new Date()).getTime()
+                },
+                statusCode: {
+                    200: function(data,err){
+                        dexTable.clear();
+                        dexTable.rows.add(data.data.refs);
+                        dexTable.draw();
+                    },
+                    404: function(data,err){
+                        alert("An error occured");
+                    }
+                }
+            })
+        });
+
+
+        $(".cleanup").click(function(e){
+            $.ajax("/api/inspectors/DynamicLoader", {
+                method: "get",
+                data: {
+                    action: "cleanup",
+                    t: (new Date()).getTime()
+                },
+                statusCode: {
+                    200: function(data,err){
+                        let dat = JSON.parse(data);
+
+                        alert(dat.msg);
+                    },
+                    404: function(data,err){
+                        alert("An error occured");
+                    }
+                }
+            })
+        });
+
         $(".refreshReflect").trigger("click");
         $(".refreshDisco").trigger("click");
+        $(".refreshDex").trigger("click");
 
     });
 

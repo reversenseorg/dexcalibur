@@ -378,6 +378,99 @@ Package.prototype.getTags = function(){
     return this.tags;   
 }
 
+
+class SerializedObject
+{
+    static refs = {}; 
+
+    constructor(obj=null){
+        this.__type = null;
+        //this.__format = obj.__format;
+        this.__raw = null;
+
+        if(obj!==null){
+            for(let i in obj){
+                this[i] = obj[i];
+            }
+        }
+    }
+
+    static init(supported_class){
+        SerializedObject.refs = supported_class;
+    }
+
+    static isSerializable(obj){
+        return (obj.serialize !=null) && (typeof obj.serialize==='function');
+    }
+    static isUnserializable(obj){
+        return (obj.__type!=null) 
+            && (obj.__raw!=null) 
+            && (SerializedObject.refs[obj.__type]!==null);
+    }
+
+    static from(obj,type){
+        let o = new SerializedObject();
+
+        o.__type = type;
+        o.__raw = obj;
+
+        return o;
+    }
+
+    unserialize(){
+        return SerializedObject
+                .refs[this.__type]
+                .unserialize(this.__raw);
+    }    
+
+}
+
+
+class File
+{
+    constructor(config={}){
+        this.name = (config.name!=null? config.name : null);
+        this.path = (config.path!=null? config.path : null);
+        this.remotePath = (config.remotePath!=null? config.remotePath : null);
+        this.checksum = (config.checksum!=null? config.checksum : null);
+    }
+
+    getPath(){
+        return this.path;
+    }
+
+    getRemotePath(){
+        return this.remotePath;
+    }
+
+
+    equals(file){
+        // TODO checksum
+    }
+
+    toJsonObjec(){
+        let o=new Object();
+        for(let i in this)
+            o[i] = this[i];
+
+        return o;
+    }
+
+    // ======
+
+    isSerializable(){
+        return true;
+    }
+
+    serialize(){
+
+        return SerializedObject.from(this,"File");
+    }
+
+    static unserialize(obj){
+        return new File(obj);
+    }
+}
 /**
  * Represent a Class object :
  *  - Created by the parser and the ClassLoader's hook
@@ -457,6 +550,7 @@ function Class(config){
 
     this.__pretty_signature__ = null;
     this.__aliasedCallSignature__ = null;
+
 
     this.hashCode = function(){
         return this.name;
@@ -2866,7 +2960,7 @@ function NodeDB(){
     this.parseErrors = [];   
 }
 
-module.exports = {
+var all_exports = {
     Package: Package,
     Class: Class,
     Method: Method,
@@ -2897,5 +2991,11 @@ module.exports = {
     BUILTIN_TAG: BUILTIN_TAG,
     SwitchCase: SwitchCase,
     PackedSwitchStatement: PackedSwitchStatement,
-    TagCategory: TagCategory
+    TagCategory: TagCategory,
+    File: File,
+    SerializedObject: SerializedObject
 }; 
+
+SerializedObject.init(all_exports);
+
+module.exports = all_exports;

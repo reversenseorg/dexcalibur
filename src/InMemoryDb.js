@@ -1,7 +1,13 @@
+'use strict';
+
+const CLASS = require("./CoreClass.js");
 
 class Index
 {
-    constructor(name){
+    static __type = "Index";
+
+    constructor(name,elemnt_type = null){
+        //this.etype = elemnt_type;
         this.name = name;
         this.refs = [];
     }
@@ -11,6 +17,10 @@ class Index
             this.refs.push(ref);
     }
 
+    // just a wrapper
+    addEntry(ref){
+        this.insert(ref);
+    }
     /*
     TODO
     delete(ref,cond){
@@ -48,11 +58,75 @@ class Index
     size(){
         return this.refs.length;
     }
+
+    toJsonObject(){
+        let o=new Object();
+
+        o.name = this.name;
+        o.refs = [];
+        for(let i=0; i<this.refs.length; i++){
+            if(typeof this.refs[i].toJsonObject  === 'function'){
+                o.refs[i] = this.refs[i].toJsonObject()
+            }else{
+                o.refs[i] = this.refs[i];
+            }
+        }
+
+        return o;
+    }
+
+    // ======= serialize ======= 
+
+
+    isSerializable(){
+        let ret = false;
+        for(let i=0; i<this.refs.length ; i++)
+            ret &= this.refs[i].isSerializable();
+        
+        return ret;
+    }
+
+    static unserialize(serialized_obj){
+        let self = new Index(), o=null;
+        self.name = serialized_obj.name;
+        self.refs = [];
+        for(let i=0; i<serialized_obj.refs.length; i++){
+            if(CLASS.SerializedObject.isUnserializable(serialized_obj.refs[i])){
+                o = new CLASS.SerializedObject(serialized_obj.refs[i]);
+                self.refs.push(o.unserialize());
+            }
+            else
+                self.refs.push(serialized_obj.refs[i]);
+        }
+        return self;
+    }
+
+
+    serialize(){
+        let o=new Object();
+
+        o.__type = Index.__type;
+        o.name = this.name;
+        o.refs = [];
+
+        for(let i=0; i<this.refs.length; i++){
+            if(this.refs[i].isSerializable() === true){
+                o.refs.push(this.refs[i].serialize());
+            }else if(typeof this.refs[i].toJsonObject === 'function')
+                o.refs.push(this.refs[i].toJsonObject());
+            else
+                o.refs.push(this.refs[i]);
+        }
+
+        return o;
+    }
 }   
 
 class Collection
 {
-    constructor(name){
+    static __type = "Collection";
+
+    constructor(name,elemnt_type = null){
         this.name = name;
         this.ctr = 0;
         this.values = {};
@@ -96,11 +170,70 @@ class Collection
     size(){
         return this.ctr;
     }
+
+    toJsonObject(){
+        let o=new Object();
+
+        o.name = this.name;
+        o.ctr = this.ctr;
+        o.values = {};
+        for(let i in this.values){
+            if(typeof this.values[i].toJsonObject === 'function')
+                o.values[i]=this.values[i].toJsonObject();
+            else
+                o.values[i]=this.values[i];
+        }
+
+        return o;
+    }
+
+    // ======= serialize ======= 
+
+    isSerializable(){
+        return true;
+    }
+
+    static unserialize(serialized_obj){
+        let self = new Collection(), o=null;
+        self.name = serialized_obj.name;
+        self.ctr = serialized_obj.ctr;
+        self.values = {};
+        for(let i in serialized_obj.values){
+            
+            if(CLASS.SerializedObject.isUnserializable(serialized_obj.values[i])){
+                o = new new CLASS.SerializedObject(serialized_obj.values[i])
+                self.values[i]=o.unserialize();
+            }
+            else
+                self.values[i]=serialized_obj.values[i];
+        }
+        return self;
+    }
+
+    serialize(){
+        let o=new Object();
+
+        o.__type = Collection.__type;
+        o.name = this.name;
+        o.ctr = this.ctr;
+        o.values = {};
+
+        for(let i in this.values){
+            if(typeof this.values[i].serialize === 'function')
+                o.values[i]=this.values[i].serialize();  
+            if(typeof this.values[i].toJsonObject === 'function')
+                o.values[i]=this.values[i].toJsonObject();
+            else
+                o.values[i]=this.values[i];
+        }
+
+        return o;
+    }
 }   
 
 class InMemoryDb
 {
-    constructor(context){
+    constructor(context=null){
         this.ctx = context;
         this.indexes = {};
         this.sizes = {};
@@ -125,6 +258,58 @@ class InMemoryDb
 
     setContext(context){
         this.ctx = context;
+    }
+
+
+    toJsonObject(){
+        let o=new Object();
+
+        o.indexes = {};
+        for(let i in this.indexes){
+            o.indexes[i] = this.indexes[i].toJsonObject();
+            if(this.indexes[i] instanceof Index)
+                this.indexes[i].__type = "Index";
+            else
+                this.indexes[i].__type = "Collection";
+        }
+
+        return o;
+    }
+
+    // ============ serialize ============
+
+    isSerializable(){
+        let ret=true;
+        for(let i in this.indexes){
+            ret &= this.indexes[i].isSerializable();
+        }
+        return ret;
+    }
+
+    unserialize(obj){
+        for(let i in obj.indexes){
+            if(obj.indexes[i].__type === "Index"){
+                this.indexes[i] = Index.unserialize(obj.indexes[i]);
+            }else{
+                this.indexes[i] = Collection.unserialize(obj.indexes[i]);
+            }
+        }
+    }
+
+    serialize(){
+        let o=new Object();
+
+        o.indexes = {};
+        for(let i in this.indexes){
+            if(typeof this.indexes[i].isSerializable === 'function')
+                o.indexes[i] = this.indexes[i].serialize();
+            else if(typeof this.indexes[i].toJsonObject === 'function')
+                o.indexes[i] = this.indexes[i].toJsonObject();
+            else
+                o.indexes[i] = this.indexes[i];
+        }
+
+        return o;
     }
 }
 

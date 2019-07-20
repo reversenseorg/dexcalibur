@@ -341,21 +341,25 @@ Project.prototype.fullscan = function(path){
         for(let i in dir){
             elemnt = Path.join(this.workspace.getRuntimeBcDir(),dir[i],"smali");
             if(Fs.lstatSync(elemnt).isDirectory()){
-
                 console.log(Chalk.yellow("Scanning previously discovered dex chunk : "+elemnt));
                 this.analyze.path(elemnt);
-                this.analyze.tagAllIf(
-                    function(k,x){ 
-                        return (x.hasTag(AnalysisHelper.TAG.Discover.Internal)==false) 
-                            || (x.hasTag(AnalysisHelper.TAG.Discover.Statically)==false); 
-                    }, 
-                    AnalysisHelper.TAG.Discover.Dynamically);
             }
         }  
+
+
+        this.analyze.tagAllIf(
+            function(k,x){ 
+                return (x.hasTag(AnalysisHelper.TAG.Discover.Internal)==false) 
+                    && (x.hasTag(AnalysisHelper.TAG.Discover.Statically)==false); 
+            }, 
+            AnalysisHelper.TAG.Discover.Dynamically);
         
         this.dataAnalyser.scan(this.workspace.getRuntimeFilesDir());
     }
 
+    this.bus.send(new Event.Event({
+        type: "dxc.fullscan.post" 
+    }));
 
 
     // deploy inspector's hooksets

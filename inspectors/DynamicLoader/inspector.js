@@ -22,11 +22,15 @@ var DynLoaderInspector = new Inspector.Inspector({
 
 DynLoaderInspector.useGUI();
 
+var DynDB = DynLoaderInspector.useMemoryDB()
+DynDB.newIndex('dex');
+
 DynLoaderInspector.registerTagCategory(
     "dynamic_loading",
     ["invoked","loaded"]
 );
 // ===== CONFIG HOOKS =====
+
 
 DynLoaderInspector.hookSet.require("Common");
 DynLoaderInspector.hookSet.require("Reflect");
@@ -438,7 +442,7 @@ DynLoaderInspector.on("hook.reflect.method.get", {
         //console.log(event);
         if(event == null || event.data == null || event.data.data == null) return false;
         let data  = event.data.data, caller = null, callers = null, methd = null;
-
+        
         //console.log(data);
         meth = ctx.find.get.method(data.s);
 
@@ -501,8 +505,8 @@ DynLoaderInspector.on("hook.dex.find.class",{
         }
         
 
-        if(!cls.hasTag(AnalysisHelper.TAG.Load.ExternalDyn))
-            cls.addTag(AnalysisHelper.TAG.Load.ExternalDyn);
+        if(!cls.hasTag(AnalysisHelper.TAG.Discover.Dynamically))
+            cls.addTag(AnalysisHelper.TAG.Discover.Dynamically);
     }
 });
 
@@ -562,11 +566,16 @@ DynLoaderInspector.on("hook.dex.classloader.new",{
                     ctx.dexHelper.disassembleFile(
                         localDexFile,
                         function(destFolder, err, stdout, stderr){
-                            console.log("After disass called !");
                             if(err){
                                 //todo
                             }else{
                                 ctx.analyze.path(destFolder);
+                                DynDB.getIndex('dex').addEntry(new CLASS.File({
+                                    name: dexFileName,
+                                    path: localDexFile,
+                                    remotePath: event.data.data.arg0
+                                }));
+                                DynLoaderInspector.save();
                             }
 
                             // remove tmp files
@@ -604,6 +613,14 @@ DynLoaderInspector.on("hook.reflect.method.call", {
             
 
         }*/
+    }
+});
+
+
+DynLoaderInspector.on("dxc.fullscan.post", {
+    task: function(ctx, event){
+        Logger.info("[INSPECTOR][TASK] Trying to restore previous data of DynLoaderInspector ... ");
+        DynLoaderInspector.restore();
     }
 });
 
