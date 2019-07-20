@@ -10,6 +10,9 @@ var Analyzer = require("./Analyzer.js");
 var AnalysisHelper = require("./AnalysisHelper.js");
 var Finder = require("./Finder.js");
 var DeviceManager = require("./DeviceManager.js");
+var PackagePatcher = require("./PackagePatcher.js");
+//var ut = require("./Utils.js");
+//var Backup = require("./BackupManager.js");
 var HookHelper = require("./HookManager.js");
 var DexHelper = require("./DexHelper.js");
 var InspectorManager = require("./InspectorManager.js");
@@ -59,9 +62,15 @@ function importConfig(cfg){
  * @constructor
  */
 function Project(pkgName, cfgpath=null, nofrida=0){
+    this.initDexcalibur(pkgName,cfgpath,nofrida);
+}
+
+Project.prototype.initDexcalibur = function(pkgName, cfgpath=null, nofrida=0, apiVersion="android:7.0.0"){
     this.pkg = pkgName;
     this.config = new Configuration();
-
+    this.cfgpath = cfgpath;
+    this.nofrida = nofrida;
+    this.apiVersion = apiVersion;
     var _self = this;
 
     if(cfgpath != null){
@@ -101,6 +110,9 @@ function Project(pkgName, cfgpath=null, nofrida=0){
 
     // ste Device Manager
     this.devices = new DeviceManager(this.config);
+
+    //package Patcher
+    this.packagePatcher = new PackagePatcher(pkgName, this.config, this.apkHelper);
 
     // hook
     this.hook = new HookHelper.Manager(this, nofrida);
@@ -195,6 +207,11 @@ function Project(pkgName, cfgpath=null, nofrida=0){
 
     this.workspace.init();
 }
+
+Project.prototype.changeProject = function(packageIdentifier) {
+    this.initDexcalibur(packageIdentifier,this.cfgpath,this.nofrida);
+    this.useAPI(this.apiVersion).fullscan();
+};
 
 Project.prototype.getAnalyzer = function(){
     return this.analyze;
@@ -443,22 +460,16 @@ Project.prototype.pull = function(device){
     let pathWD = Path.join(this.workspace.getWD(),this.pkg);
     let dexPath = Path.join(this.workspace.getWD(),"dex");
 
-    ret = Process.execSync(
-        adb+" pull "+ppath+" "+pathWD+".apk"
-    ).toString("ascii");
-
-
-    /*
-    We should find another way to check if "adb pull" is done successfully
-    */
-    if(ret.indexOf("1 file pulled")>-1){
+    try {
+        Process.execSync(adb+" pull "+ppath+" "+pathWD+".apk");
         console.log(Chalk.bold.green("[*] Package downloaded to "+pathWD+".apk"));
 
         ret = Process.execSync(this.config.apktPath+" d -f -m -r -o "+dexPath+" "+pathWD+".apk").toString("ascii");
         console.log(Chalk.bold.green("[*] APK decompiled in "+dexPath));
-
-    }else{
-        console.error(Chalk.bold.red("[!] Fail to pull package"));
+    }
+    catch(exception) {
+        console.error(Chalk.bold.red("[!] Failed to pull package:"));
+        console.error(exception);
     }
 };
 

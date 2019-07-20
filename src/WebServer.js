@@ -228,6 +228,33 @@ class WebServer {
                 };
                 res.status(200).send(JSON.stringify(dev));
             });
+            this.app.route('/api/packageList')
+            .get(function(req,res){
+                // scan connected devices
+                $.project.packagePatcher.scan();
+                // collect
+                let packages = {
+                    data: $.project.packagePatcher.toJsonObject()
+                };
+                res.status(200).send(JSON.stringify(packages));
+            });
+            this.app.route('/api/changeWorkspace/:projectIdentifier')
+            .get(function(req,res){
+                // scan connected devices
+                $.project.changeProject(req.params.projectIdentifier);
+                // collect
+                
+                res.status(200).send("{\"status\": \"ok\"}");
+            });
+            this.app.route('/api/pullProject/:packageIdentifier')
+            .get(function(req,res){
+                // scan connected devices
+                //console.log(req.params.packageIdentifier)
+                $.project.packagePatcher.pullPackage(req.params.packageIdentifier);
+                // collect
+                $.project.changeProject(req.params.packageIdentifier);
+                res.status(200).send(JSON.stringify({message: "ok"}));
+            });
 
         // not used
         this.app.route('/api/stats')
