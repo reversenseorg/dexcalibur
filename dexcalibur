@@ -1,5 +1,6 @@
-#!/usr/bin/node --max-old-space-size=8192
-// #!/usr/local/bin/node --max-old-space-size=8192
+#!/usr/local/bin/node --max-old-space-size=8192
+//#!/usr/bin/node --max-old-space-size=8192
+
 
 const Dexcalibur = require("./src/Project.js");
 const ArgParser = require("./src/ArgUtils.js");
@@ -101,9 +102,9 @@ if(projectArgs.app != null){
     
     var Project = null ;
     if(projectArgs.config != null){
-        Project = new Dexcalibur(projectArgs.app, projectArgs.config, projectArgs.nofrida);
+        Project = new Dexcalibur(projectArgs.app, projectArgs.config, projectArgs.nofrida, projectArgs.api);
     }else{
-        Project = new Dexcalibur(projectArgs.app, null, projectArgs.nofrida);
+        Project = new Dexcalibur(projectArgs.app, null, projectArgs.nofrida, projectArgs.api);
     }
 
     if(projectArgs.useEmu)

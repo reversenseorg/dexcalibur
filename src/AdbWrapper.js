@@ -1,6 +1,10 @@
 const Process = require("child_process");
 const UT = require("./Utils.js");
 const Device = require("./Device.js");
+const ApkPackage = require("./AppPackage");
+
+
+const fs = require('fs');
 
 const TRANSPORT = {
     USB: 'U',
@@ -61,6 +65,65 @@ class AdbWrapper
         this.transport = transport_type;
     }
 
+    listPackages(deviceId = null) {
+        var reg = new RegExp("^package:(?<apk_name>.*)");
+        var ret = "";
+        if(deviceId !== null) {
+            ret = Process.execSync(this.setup(deviceId) + " shell pm list packages").toString("ascii");
+            
+        }
+        else {
+            ret = Process.execSync(this.path + " shell pm list packages").toString("ascii");
+            
+        }
+        var packages = [];
+        ret.split('\n').forEach(element => {
+            var pkg = element.trim();
+            if(reg.test(pkg)) {
+                var result  = reg.exec(pkg);
+                if(result !== null) {
+                    var pathResult = "";
+                    //getting the path for each package takes ages
+                    if(deviceId !== null) {
+                       // pathResult = Process.execSync(this.setup(deviceId) + " shell pm path " + result.groups['apk_name']).toString("ascii");
+
+                    }
+                    else {
+                       // pathResult = Process.execSync(this.path + " shell pm path " + result.groups['apk_name']).toString("ascii");
+                    }
+                    //recycle the same regex since the output is the same
+                    //only take first match since this is the base apk
+                    //pathResult = pathResult.split('\n')[0].trim();
+                    if(reg.test(pathResult)) {
+                        pathResult = reg.exec(pathResult).groups['apk_name'];
+                    }
+                    packages.push(new ApkPackage({
+                        packageIdentifier: result.groups['apk_name'],
+                        packagePath : pathResult,
+                        
+                    }));
+                }
+            }
+        });
+        return packages;
+    }
+    getPackagePath(packageIdentifier, deviceId=null) {
+        var reg = new RegExp("^package:(?<package_name>.*)");
+        var ret = "";
+        if(deviceId !== null) {
+            ret = Process.execSync(this.setup(deviceId) + " shell pm path " +  packageIdentifier).toString("ascii");
+            
+        }
+        else {
+            ret = Process.execSync(this.path + " shell pm path " + packageIdentifier).toString("ascii");
+        }
+        var path = ret.split('\n')[0].trim();
+        if(reg.test(path)) {
+            path = reg.exec(path).groups["package_name"];
+            return path;
+        }
+        return "";
+    }
     listDevices(){
         let dev = [], ret=null,re=null, data=null, id=null, device=null;
 
@@ -115,8 +178,27 @@ class AdbWrapper
             return UT.execSync(this.path+' pull '+remote_path+' '+local_path);
     }
 
+    /**
+     * Pull a remote resource into the project workspace with Application Privileges
+     * Same as 'adb pull' commande.
+     * 
+     * @param {*} package_name The package name
+     * @param {*} remote_path The path of the remote resource to download 
+     * @param {*} local_path The path where the resource will be stored locally
+     */
 
-
+    pullRessource(package_name,remote_path, local_path, deviceID=null){
+        if(deviceID != null) {
+            var binary_blob = Process.execSync(this.setup(deviceID) + 'shell "run-as '+ package_name+ ' cat ' + remote_path + '"').buffer;
+            fs.writeFile(local_path,binary_blob,function(err) {
+                if(err) {
+                    return console.log(err);
+                }
+            
+                console.log("The file was saved!");
+            });
+        }
+    }
     /**
      * Push a local resource to a remote location
      * Same as 'adb push' commande.

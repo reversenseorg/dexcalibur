@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="">
+    <meta name="author" content="">
+
+    <title>Dexcalibur - Device Manager</title>
+
+    <!-- styles -->
+    <!--## pages/inc/tpl_css.html ##-->
+
+
+    <!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
+    <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
+    <!--[if lt IE 9]>
+        <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
+        <script src="https://oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js"></script>
+    <![endif]-->
+
+    <style>
+        .pulsating-circle {
+            width: 30px;
+            height: 30px;
+        }
+  
+  .pulsating-circle:before {
+    content: '';
+    position: relative;
+    display: block;
+    width: 300%;
+    height: 300%;
+    box-sizing: border-box;
+    margin-left: -100%;
+    margin-top: -100%;
+    border-radius: 45px;
+    background-color: #01a4e9;
+    animation: pulse-ring 1.25s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+  }
+  
+  .pulsating-circle:after {
+    content: '';
+    position: relative;
+    display: block;
+   
+    margin-top: -200%;
+    width: 100%;
+    height: 100%;
+    background-color: gray;
+    border-radius: 15px;
+    box-shadow: 0 0 8px rgba(0,0,0,.3);
+    animation: pulse-dot 1.25s cubic-bezier(0.455, 0.03, 0.515, 0.955) -.4s infinite;
+  }
+
+@keyframes pulse-ring {
+  0% {
+    transform: scale(.33);
+  }
+  80%, 100% {
+    opacity: 0;
+  }
+}
+
+@keyframes pulse-dot {
+  0% {
+    transform: scale(.8);
+  }
+  50% {
+    transform: scale(1);
+  }
+  100% {
+    transform: scale(.8);
+  }
+}
+    </style>
+
+</head>
+
+<body>
+
+    <div id="wrapper">
+
+        <!-- Navigation -->
+        <!--## pages/inc/menu.html ##-->
+
+        <div id="page-wrapper">
+            <div class="row">
+                <div class="col-lg-12">
+                    <h1 class="page-header">Package patcher</h1>
+                </div>
+                <!-- /.col-lg-12 -->
+            </div>
+            <!-- /.row -->
+            <div class="row">
+                <div class="col-lg-12">
+                    <div class="panel panel-default">
+                        <div class="panel-heading">
+                            <div class="row">
+                                <div class="col-lg-11"><h4>List of packages found on device</h4></div>
+                                <div class="col-lg-1">
+                                    <button id="dm-refresh-btn" class="btn btn-primary" type="button">
+                                        <i class="fa fa-refresh"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- /.panel-heading -->
+                        <div class="panel-body">
+                            <table width="100%" class="table table-striped table-bordered table-hover" id="dataTables-example">
+                                <thead>
+                                    <tr>
+                                        <th>Package Identifier</th>
+                                        
+                                        <th>Pull</th>
+                                        <th>Patch</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    
+                                </tbody>
+                            </table>
+                            <!-- /.table-responsive -->
+                        </div>
+                        <!-- /.panel-body -->
+                    </div>
+                    <!-- /.panel -->
+                </div>
+                <!-- /.col-lg-12 -->
+            </div>
+            <!-- /.row -->
+        </div>
+        <!-- /#page-wrapper -->
+
+    </div>
+    <!-- /#wrapper -->
+
+    <!-- jQuery -->
+    <script src="../vendor/jquery/jquery.min.js"></script>
+
+    <!-- Bootstrap Core JavaScript -->
+    <script src="../vendor/bootstrap/js/bootstrap.min.js"></script>
+
+    <!-- Metis Menu Plugin JavaScript -->
+    <script src="../vendor/metisMenu/metisMenu.min.js"></script>
+
+    <!-- DataTables JavaScript -->
+    <!--<script src="../vendor/datatables/js/jquery.dataTables.min.js"></script>-->
+    <script src="../vendor/datatables/js/jquery.dataTables.js"></script>
+    <script src="../vendor/datatables-plugins/dataTables.bootstrap.min.js"></script>
+    <script src="../vendor/datatables-responsive/dataTables.responsive.js"></script>
+
+    <!-- Custom Theme JavaScript -->
+    <script src="../dist/js/sb-admin-2.js"></script>
+
+    <!-- Page-Level Demo Scripts - Tables - Use for reference -->
+    <script>
+    $(document).ready(function() {
+
+        let dmTable = $('#dataTables-example').DataTable({
+            ajax: "../api/packageList",
+            columns: [
+                { data: 'packageIdentifier' },
+                {
+                    render: function(data, type, row, meta) {
+                        if(!row.workspaceExists) {
+                        return `&nbsp;<button style="height:1.5em;padding-top:0px;padding-bottom:0px;" class="btn btn-success pull-apk" package="`+row.packageIdentifier+`">Pull</button>`;
+                        }
+                        else if(row.currentWd) {
+                            return `<div>Current Workspace</div>`;
+                        }
+                        return `<div><button style="height:1.5em;padding-top:0px;padding-bottom:0px;" class="btn btn-success change-workspace" package="`+row.packageIdentifier+`">Change Workspace</button> </div>`;
+                    }
+                },
+                {
+                    render: function(data, type, row, meta) {
+                        return `&nbsp;<button style="height:1.5em;padding-top:0px;padding-bottom:0px;" class="btn btn-success patch-apk" package="`+row.packageIdentifier+`">Patch</button>`;
+                    }
+                }
+            ],
+            responsive: true
+        });
+        //console.log(dmTable);
+        /*dmTable.on( 'xhr', function () {
+            dmTable.ajax.load();
+            //alert( json.data.length +' row(s) were loaded' );
+        } );*/
+
+
+        //dmTable.ajax.url("../api/device").load();
+        $('#dm-refresh-btn').click(()=>{
+            dmTable.ajax.reload();
+        });
+
+
+        $('#dataTables-example tbody').on('click', 'button.pull-apk', function () {
+           // alert("test");
+            let id = $(this).attr("package");
+            $(this).parent().replaceWith(`<div class="pulsating-circle"></div>`);
+            $.getJSON("/api/pullProject/" + id, function(success) {
+                
+                dmTable.ajax.reload();
+            });
+        });
+        $('#dataTables-example tbody').on('click', 'button.patch-apk', function () {
+            //let id = $(this).attr("package");
+            //location.href = "/api/patchProject/" + id;
+        });
+        $('#dataTables-example tbody').on('click', 'button.change-workspace', function () {
+            let id = $(this).attr("package");
+            $(this).parent().replaceWith(`<div class="pulsating-circle"></div>`);
+            $.getJSON("/api/changeWorkspace/" + id, function(success) {
+                dmTable.ajax.reload();
+            });
+
+        });
+    });
+
+   
+    </script>
+
+</body>
+
+</html>
