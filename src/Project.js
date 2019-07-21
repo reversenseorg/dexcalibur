@@ -312,6 +312,8 @@ Project.prototype.fullscan = function(path){
     if(path !== undefined){   
         this.analyze.path( path);
         this.dataAnalyser.scan( path, ["smali"]);
+        
+        this.analyze.scanManifest(Path.join(path,"AndroidManifest.xml"));
     }else{
         //        let dexPath = this.workspace.getWD()+"dex";
         let dexPath = Path.join(this.workspace.getWD(),"dex");
@@ -320,8 +322,10 @@ Project.prototype.fullscan = function(path){
         
         this.analyze.path( dexPath);
         this.dataAnalyser.scan( dexPath, ["smali"]);
-
+        this.analyze.scanManifest(Path.join(dexPath,"AndroidManifest.xml"));
     }
+
+
 
 
     // index static array 

@@ -9,6 +9,7 @@ var CONST = require("./CoreConst.js");
 var VM = require("./VM.js");
 var OPCODE = require("./Opcode.js");
 const AnalysisHelper = require("./AnalysisHelper.js");
+const AndroidManifestParser = require("./AndroidManifestParser.js");
 const MemoryDb = require("./InMemoryDb.js");
 const Event = require("./Event.js").Event;
 
@@ -864,6 +865,9 @@ class AnalyzerDatabase
         this.db.newCollection("datablock");
         this.db.newCollection("tagcategories");
 
+
+        this.db.newIndex("activities");
+
         this.classes = this.db.getIndex("classes");
         this.fields = this.db.getIndex("fields");
         this.methods = this.db.getIndex("methods");
@@ -880,6 +884,8 @@ class AnalyzerDatabase
         this.datablock = this.db.getIndex("datablock");
         this.tagcategories = this.db.getIndex("tagcategories");
         this.syscalls = this.db.getIndex("syscalls");
+
+        this.activities = this.db.getIndex("activities");
     }
 
     getDatabase(){
@@ -897,48 +903,9 @@ class AnalyzerDatabase
 function Analyzer(encoding, finder, ctx=null){
     SmaliParser.setContext(ctx);
 
-    var db = this.db = new AnalyzerDatabase(ctx);/*{
-        classesCtr: 0,
-        classes: {},
-        fieldsCtr: 0,
-        fields: {},
-        methodsCtr: 0,
-        methods: {},
-        call: [],
-        unmapped: [],
-        notbinded: [],
-        notloaded: [],
-        strings: [],
-        packages: [],
-        syscalls: [],
-        missing: [],
-        parseErrors: [],
-        files: [],
-        buffers: [],
-        datablock: [],
-        tagcategories: []
-    };*/
+    var db = this.db = new AnalyzerDatabase(ctx);
 
-    let tempDb = this.tempDb = new AnalyzerDatabase(ctx); /*{
-        classesCtr: 0,
-        classes: {},
-        fieldsCtr: 0,
-        fields: {},
-        methodsCtr: 0,
-        methods: {},
-        call: [],
-        unmapped: [],
-        notbinded: [],
-        notloaded: [],
-        missing: [],
-        parseErrors: [],
-        strings: [],
-        packages: [],
-        files: [],
-        buffers: [],
-        datablock: [],
-        tagcategories: []
-    }*/
+    let tempDb = this.tempDb = new AnalyzerDatabase(ctx); 
 
     this.finder = finder;
 
@@ -949,32 +916,6 @@ function Analyzer(encoding, finder, ctx=null){
 
     this.newTempDb = function(){
         return new AnalyzerDatabase(ctx);
-/*        return {
-            classesCtr: 0,
-            classes: {},
-            
-            fieldsCtr: 0,
-            fields: {},
-            
-            methodsCtr: 0,
-            methods: {},
-
-            call: [],
-            unmapped: [],
-
-            notbinded: [],
-            notloaded: [],
-            
-            strings: [],
-            packages: [],
-            
-            missing: [],
-            parseErrors: [],
-            files: [],
-            buffers: [],
-            datablock: [],
-            tagcategories: []
-        };*/
     }
 
     this.file = function(filePath, filename, force=false){
@@ -1055,7 +996,44 @@ function Analyzer(encoding, finder, ctx=null){
     }
 }
 
+/**
+ * To get the absolute DB 
+ * @returns {AnalyzerDatabase} DB instance
+ */
+Analyzer.prototype.getInternalDB = function(){
+    return this.db;
+}
 
+/**
+ * To parse the AndroidManifest and update the DB
+ * @param {String|Path} path Android manifest path 
+ */
+Analyzer.prototype.scanManifest = function(path){
+    let self = this;
+    fs.exists(path,function(res){
+        if(!res) return;
+
+        fs.readFile(path, (err,data)=>{
+            if(err){
+                console.log(Chalk.bold.red("Android Manifest cannot be read : ",err));
+                return;
+            }
+
+            let amp = new AndroidManifestParser(self, data);
+            amp.parse();
+
+            // resolve class reference
+            let actlist = self.db.activities;
+            for(let i=0; i<actlist.size(); i++){
+                actlist.getEntry(i).ref = self.db.classes.getEntry(
+                    actlist.getEntry(i).getName()
+                );
+            }
+
+        });
+    
+    });
+}
 
 Analyzer.prototype.addClassFromFqcn = function(fqcn){
     let pkg = null;
