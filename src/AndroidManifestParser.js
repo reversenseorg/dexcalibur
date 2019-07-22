@@ -33,6 +33,7 @@ class AndroidManifestParser {
       switch (element.nodeName) {
         case 'intent-filter': {
           const intentFilter = this.collapseAttributes(element);
+          
 
           intentFilter.actions = [];
           intentFilter.categories = [];
@@ -53,7 +54,7 @@ class AndroidManifestParser {
             }
           });
 
-          target.intentFilters.push(intentFilter);
+          target.intentFilters.push(new AndroidCmp.IntentFilter(intentFilter));
           break;
         }
         case 'meta-data':
@@ -84,15 +85,10 @@ class AndroidManifestParser {
           const act = new AndroidCmp.Activity({
                 label: activity.label,
                 name: activity.name,
-                intent: new AndroidCmp.IntentFilter({
-                    actions: activity.intentFilters.actions,
-                    categories: activity.intentFilters.categories,
-                    data: activity.intentFilters.data,
-                })
+                intent: activity.intentFilters
             });
             act.setAttributes(activity);
 
-            console.log(act);
             this.__analyzerDB.activities.addEntry(act);
 
             app.activities.push(activity);

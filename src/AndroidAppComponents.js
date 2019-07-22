@@ -39,7 +39,7 @@ class Activity
         // the manifest data are stored here
         this.label = null;
         this.name = null;
-        this.intent = null;
+        this.intentFilters = null;
         this.metadata = null;
         this.attr = null;
 
@@ -56,6 +56,10 @@ class Activity
 
     setAttributes(attr){
         this.attr = attr;
+    }
+
+    addIntentFilters(filter){
+        this.intentFilters.push(filter);
     }
 
     getAttributes(){
