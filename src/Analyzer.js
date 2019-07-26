@@ -9,7 +9,7 @@ var CONST = require("./CoreConst.js");
 var VM = require("./VM.js");
 var OPCODE = require("./Opcode.js");
 const AnalysisHelper = require("./AnalysisHelper.js");
-const AndroidManifestParser = require("./AndroidManifestParser.js");
+const AndroidManifestXmlParser = require("./AndroidManifestXmlParser.js");
 const MemoryDb = require("./InMemoryDb.js");
 const Event = require("./Event.js").Event;
 
@@ -1019,16 +1019,16 @@ Analyzer.prototype.scanManifest = function(path){
                 return;
             }
 
-            let amp = new AndroidManifestParser(self, data);
-            amp.parse();
+            //let amp = new AndroidManifestXmlParser(self);
+            //amp.parse(data);
 
             // resolve class reference
-            let actlist = self.db.activities;
+            /*let actlist = self.db.activities;
             for(let i=0; i<actlist.size(); i++){
                 actlist.getEntry(i).ref = self.db.classes.getEntry(
                     actlist.getEntry(i).getName()
                 );
-            }
+            }*/
 
         });
     
