@@ -80,6 +80,9 @@ function Wexcalibur(){
 
 var DexcaliburAPI = {
     ui: {
+        htmlEncode: (text)=>{
+            return $('<div />').text(text).html();
+        },
         tags: {},
         badge: {
             style: {
@@ -97,6 +100,63 @@ var DexcaliburAPI = {
     analyzer: {},
     hook: {},
     disass: {},
+    manifest: {
+        permissions: {
+            list: function(callbacks){
+                $.ajax('/api/manifest/permissions',{
+                    method: 'get',
+                    data: {
+                        _t: (new Date()).getTime()
+                    },
+                    statusCode: callbacks
+                });
+            }
+        },
+        activities: {
+            list: function(callbacks){
+                $.ajax('/api/manifest/activities',{
+                    method: 'get',
+                    data: {
+                        _t: (new Date()).getTime()
+                    },
+                    statusCode: callbacks
+                });
+            }
+        },
+        providers: {
+            list: function(callbacks){
+                $.ajax('/api/manifest/providers',{
+                    method: 'get',
+                    data: {
+                        _t: (new Date()).getTime()
+                    },
+                    statusCode: callbacks
+                });
+            }
+        },
+        receivers: {
+            list: function(callbacks){
+                $.ajax('/api/manifest/receivers',{
+                    method: 'get',
+                    data: {
+                        _t: (new Date()).getTime()
+                    },
+                    statusCode: callbacks
+                });
+            }
+        },
+        services: {
+            list: function(callbacks){
+                $.ajax('/api/manifest/services',{
+                    method: 'get',
+                    data: {
+                        _t: (new Date()).getTime()
+                    },
+                    statusCode: callbacks
+                });
+            }
+        }
+    },
     context: {
         tags: []
     }

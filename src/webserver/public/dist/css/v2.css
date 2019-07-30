@@ -60,3 +60,85 @@ h1 {
 .secondary-text {
     color: gray;
 }
+
+.panel-appcmp-orange  {
+    background: #f9c667; /* Old browsers */
+    background: -moz-linear-gradient(-45deg,  #f9c667 0%, #f79621 100%); /* FF3.6-15 */
+    background: -webkit-linear-gradient(-45deg,  #f9c667 0%,#f79621 100%); /* Chrome10-25,Safari5.1-6 */
+    background: linear-gradient(135deg,  #f9c667 0%,#f79621 100%); /* W3C, IE10+, FF16+, Chrome26+, Opera12+, Safari7+ */
+    filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#f9c667', endColorstr='#f79621',GradientType=1 ); /* IE6-9 fallback on horizontal gradient */
+}
+
+
+.panel-appcmp-grey  {
+    background: #a1a1a1; /* Old browsers */
+    background: -moz-linear-gradient(-45deg,  #ebeae9 0%, #818181 100%); /* FF3.6-15 */
+    background: -webkit-linear-gradient(-45deg,  #ebeae9 0%,#818181 100%); /* Chrome10-25,Safari5.1-6 */
+    background: linear-gradient(135deg,  #ebeae9 0%,#818181 100%); /* W3C, IE10+, FF16+, Chrome26+, Opera12+, Safari7+ */
+    filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#f9c667', endColorstr='#f79621',GradientType=1 ); /* IE6-9 fallback on horizontal gradient */
+}
+
+
+.panel-appcmp-blue  {
+    background: #cfceff; /* Old browsers */
+    background: -moz-linear-gradient(-45deg,  #cfceff 0%, #99a3f7 100%); /* FF3.6-15 */
+    background: -webkit-linear-gradient(-45deg,  #cfceff 0%,#99a3f7 100%); /* Chrome10-25,Safari5.1-6 */
+    background: linear-gradient(135deg,  #cfceff 0%,#99a3f7 100%); /* W3C, IE10+, FF16+, Chrome26+, Opera12+, Safari7+ */
+    filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#f9c667', endColorstr='#f79621',GradientType=1 ); /* IE6-9 fallback on horizontal gradient */
+}
+
+.panel-appcmp-ppts {
+    height: 40em;
+}
+
+.panel-appcmp-ppts .panel-body > table  {
+    height: 36em;
+}
+
+.panel-appcmp-ppts .panel-body > table > tbody {
+    height: 38em;
+    display:block;
+    overflow-y: visible;
+    overflow-x: hidden;
+    font-size: 0.9em;
+}
+
+.panel-appcmp-ppts  {
+    font-size: 1.2em;
+}
+
+.panel-appcmp-orange .badge,
+.panel-appcmp-grey .badge,   
+.panel-appcmp-blue .badge,   {
+    font-size: 0.8em;
+}
+
+.panel-appcmp-orange .panel-heading, 
+.panel-appcmp-grey .panel-heading,
+.panel-appcmp-blue .panel-heading  {
+    padding-bottom: 0px;
+    font-size: 0.8em;
+    color: white;
+    text-align:center;
+    border-bottom: 0px solid orange;
+}
+
+.activity-name {
+    font-size: 1.2em; 
+}
+
+.panel-appcmp-orange .panel-body, 
+.panel-appcmp-grey .panel-body,
+.panel-appcmp-blue .panel-body    {
+    margin-top: 0px;
+    padding-top: 0px;
+    font-size: 2em;
+    color: white;
+    text-align:center;
+}
+
+.panel-appcmp-orange .panel-footer  {
+    background-color: #F70;
+    size: 1.5em;
+    color: wheat;
+}
