@@ -721,6 +721,54 @@ class WebServer {
                 res.status(200).send(JSON.stringify(dev));
             });
 
+
+        this.app.route('/api/manifest/activities')
+            .get(function(req,res){
+                // collect
+                let dev = {
+                    data: $.project.find.activity().toJsonObject()
+                };
+                res.status(200).send(JSON.stringify(dev));
+            });
+
+
+        this.app.route('/api/manifest/receivers')
+            .get(function(req,res){
+                // collect
+                let dev = {
+                    data: $.project.find.receiver().toJsonObject()
+                };
+                res.status(200).send(JSON.stringify(dev));
+            });
+
+        this.app.route('/api/manifest/providers')
+            .get(function(req,res){
+                // collect
+                let dev = {
+                    data: $.project.find.provider().toJsonObject()
+                };
+                res.status(200).send(JSON.stringify(dev));
+            });
+
+
+        this.app.route('/api/manifest/services')
+            .get(function(req,res){
+                // collect
+                let dev = {
+                    data: $.project.find.service().toJsonObject()
+                };
+                res.status(200).send(JSON.stringify(dev));
+            });
+
+        this.app.route('/api/manifest/permissions')
+            .get(function(req,res){
+                // collect
+                let dev = {
+                    data: $.project.find.permission().toJsonObject()
+                };
+                res.status(200).send(JSON.stringify(dev));
+            });
+
         this.app.route('/api/field/:id')
             .get(function(req,res){
                 // collect
