@@ -1037,8 +1037,9 @@ Analyzer.prototype.scanManifest = function(path){
                 console.log(Chalk.bold.red("Android Manifest cannot be read : ",err));
                 return;
             }
-            if(data == null || data.substr(0,5)!=="<?xml"){
+            if(data == null || data.toString('ascii',0,5)!=="<?xml"){
                 // it happens if resources have not been extracted
+                console.log(Chalk.bold.red("Android Manifest cannot be analyzed because the workspace has been built by using a previous version of Dexcalibur.",err));
                 return;
             }
 
