@@ -467,7 +467,7 @@ Project.prototype.pull = function(device){
         Process.execSync(adb+" pull "+ppath+" "+pathWD+".apk");
         console.log(Chalk.bold.green("[*] Package downloaded to "+pathWD+".apk"));
 
-        ret = Process.execSync(this.config.apktPath+" d -f -m -r -o "+dexPath+" "+pathWD+".apk").toString("ascii");
+        ret = Process.execSync(this.config.apktPath+" d -f -m -o "+dexPath+" "+pathWD+".apk").toString("ascii");
         console.log(Chalk.bold.green("[*] APK decompiled in "+dexPath));
     }
     catch(exception) {
