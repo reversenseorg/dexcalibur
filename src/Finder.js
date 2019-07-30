@@ -3,7 +3,7 @@ const CLASS = require("./CoreClass.js");
 const FILE = require("./File.js");
 var CONST = require("./CoreConst.js");
 var MemoryDb = require("./InMemoryDb.js");
-
+var AppCmp = require("./AndroidAppComponents.js");
 
 
 var DataModel = {
@@ -20,7 +20,13 @@ var DataModel = {
     syscall: new CLASS.Syscall(),
     missing: new CLASS.MissingReference(),
     file: new FILE.File(),
-    datablock: new CLASS.DataBlock() 
+    datablock: new CLASS.DataBlock(),
+    
+    activity: new AppCmp.Activity(),
+    receiver: new AppCmp.Receiver(),
+    provider: new AppCmp.Provider(),
+    service: new AppCmp.Service(),
+    permission: new AppCmp.Permission(),
 };
 
 function PreparedRequest(name){
@@ -939,6 +945,12 @@ function SearchAPI(data){
     this.field = function(pattern){ return finder._find(_db.fields, DataModel.field, pattern, this._caseSensitive); };
     this.file = function(pattern){ return finder._find(_db.files, DataModel.file, pattern, this._caseSensitive); };
     this.array = function(pattern){ return finder._find(_db.datablock, DataModel.datablock, pattern, this._caseSensitive); };
+
+    this.activity = function(pattern){ return finder._find(_db.activities, DataModel.activity, pattern, this._caseSensitive); };
+    this.service = function(pattern){ return finder._find(_db.services, DataModel.service, pattern, this._caseSensitive); };
+    this.receiver = function(pattern){ return finder._find(_db.receivers, DataModel.receiver, pattern, this._caseSensitive); };
+    this.provider = function(pattern){ return finder._find(_db.providers, DataModel.provider, pattern, this._caseSensitive); };
+    this.permission = function(pattern){ return finder._find(_db.permissions, DataModel.permission, pattern, this._caseSensitive); };
 
     this.call = function(pattern){ 
         return finder._find(_db.call, DataModel.call, pattern, this._caseSensitive); 
