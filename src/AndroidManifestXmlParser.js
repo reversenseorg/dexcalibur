@@ -15,27 +15,17 @@ class ManifestXmlParser
         return this.manifest;
     }
 
-    prepareApplication(data){
-
-    }
-
-    preparePermissions(data){
-
-    }
-
-    preparePermissions(data){
-        
-    }
-
-    parse(buffer, callback){
+    parse(buffer, callback=null){
         Parser.parseString(buffer, function (err, result) {
-            if(err) return;
+            if(err){
+                if(callback != null) callback(err);
+                return;
+            }
 
-            //console.log(result);
-            let manifest = new AndroidObj.Manifest(result.manifest);
+            let manifest = AndroidObj.Manifest.fromXml(result.manifest);
 
-            //console.dir(manifest);
-            //console.log('Done');
+            if(callback != null) 
+                callback(null, manifest);
         });
     }
 }

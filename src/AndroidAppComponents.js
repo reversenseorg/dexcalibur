@@ -11,6 +11,12 @@ class IntentActionCriteria
         o.name = xmlobj['android:name'];
         return o;
     }
+
+    toJsonObject(){
+        let o = new Object();
+        o.name = this.name;
+        return o;
+    }
 }
 
 
@@ -23,6 +29,12 @@ class IntentCategoryCriteria
     static fromXml(xmlobj){
         let o = new IntentCategoryCriteria();
         o.name = xmlobj['android:name'];
+        return o;
+    }
+
+    toJsonObject(){
+        let o = new Object();
+        o.name = this.name;
         return o;
     }
 }
@@ -51,6 +63,19 @@ class IntentDataCriteria
             }
         }
 
+        return o;
+    }
+
+
+    toJsonObject(){
+        let o = new Object();
+        o.scheme = this.scheme;
+        o.host = this.host;
+        o.port = this.port;
+        o.path = this.path;
+        o.pathPattern = this.pathPattern;
+        o.pathPrefix = this.pathPrefix;
+        o.mimeType = this.mimeType;
         return o;
     }
 }
@@ -105,6 +130,19 @@ class IntentFilter
         }
 
         return intf;
+    }
+
+    toJsonObject(){
+        let o = new Object();
+
+        o.data = [];
+        this.data.map(x => o.data.push(x.toJsonObject()));
+        o.action = [];
+        this.action.map(x => o.action.push(x.toJsonObject()));
+        o.category = [];
+        this.category.map(x => o.category.push(x.toJsonObject()));
+
+        return o;
     }
 }
 
@@ -380,6 +418,20 @@ class Permission
 
         return p;
     }
+
+    toJsonObject(){
+        let o = new Object();
+
+        o.name = this.name;
+        o.label = this.label;
+        o.description = this.description;
+        if(this.permissionGroup != null)
+            o.permissionGroup = this.permissionGroup.name;
+        else
+            o.permissionGroup = null;
+
+        return o;
+    }
 }
 
 
@@ -517,6 +569,7 @@ class AndroidActivity
         this.intentFilters = [];
         this.metadata = null;
 
+
         
         // this field contains the associated class
         this.ref = null;
@@ -527,6 +580,14 @@ class AndroidActivity
                 if(this[i] !==  undefined)
                     this[i] = config[i];
         }
+    }
+
+    setActivityClass(x){
+        this.ref = x;
+    }
+
+    getActivityClass(){
+        return this.ref;
     }
 
     setAttributes(attr){
@@ -580,6 +641,19 @@ class AndroidActivity
         }
 
         return act;
+    }
+
+    toJsonObject(){
+        let o = new Object();
+
+        o.label = this.label;
+        o.name = this.name;
+        o.attr = this.attr;
+        o.intentFilters = [];
+
+        this.intentFilters.map(x => o.intentFilters.push(x.toJsonObject()));
+
+        return o;
     }
 }
 
@@ -663,6 +737,19 @@ class AndroidService
 
         return act;
     }
+
+    toJsonObject(){
+        let o = new Object();
+
+        o.label = this.label;
+        o.name = this.name;
+        o.attr = this.attr;
+        o.intentFilters = [];
+
+        this.intentFilters.map(x => o.intentFilters.push(x.toJsonObject()));
+
+        return o;
+    }
 }
 
 class AndroidReceiver
@@ -743,6 +830,19 @@ class AndroidReceiver
 
         return act;
     }
+
+    toJsonObject(){
+        let o = new Object();
+
+        o.label = this.label;
+        o.name = this.name;
+        o.attr = this.attr;
+        o.intentFilters = [];
+
+        this.intentFilters.map(x => o.intentFilters.push(x.toJsonObject()));
+
+        return o;
+    }
 }
 
 class AndroidProvider
@@ -822,6 +922,19 @@ class AndroidProvider
         }
 
         return act;
+    }
+
+    toJsonObject(){
+        let o = new Object();
+
+        o.label = this.label;
+        o.name = this.name;
+        o.attr = this.attr;
+        o.intentFilters = [];
+
+        this.intentFilters.map(x => o.intentFilters.push(x.toJsonObject()));
+
+        return o;
     }
 }
 
@@ -974,13 +1087,13 @@ class AndroidManifest
             
     }
 
-    setup(config){
-        let self = this;
+    static fromXml(config){
+        let self = new AndroidManifest();
         // init manifest attributes 
         for(let i in config){
             switch(i){
                 case '$':
-                    this.setAttributes(config['$']);
+                    self.setAttributes(config['$']);
                     break;
                 case 'uses-sdk':
                     config['uses-sdk'].map(function(k){
@@ -1023,27 +1136,27 @@ class AndroidManifest
                     });
                     break;
                 case 'supports-screens':
-                if(this.supportsScreens===null) this.supportsScreens = [];
+                if(self.supportsScreens===null) self.supportsScreens = [];
                     config['supports-screens'].map(function(k){
                         self.supportsScreens.push(AndroidSupportedScreen.fromXml(k.$));
                     });
                     break;
                 case 'uses-configuration':
-                    if(this.usesConfiguration===null) this.usesConfiguration = [];
+                    if(self.usesConfiguration===null) self.usesConfiguration = [];
 
                     config['uses-configuration'].map(function(k){
                         self.usesConfiguration.push(AndroidConfiguration.fromXml(k.$));
                     });
                     break;
                 case 'uses-permission-sdk-23':
-                    if(this.usesPermissionsSdk23===null) this.usesPermissionsSdk23 = [];
+                    if(self.usesPermissionsSdk23===null) self.usesPermissionsSdk23 = [];
 
                     config['uses-permission-sdk-23'].map(function(k){
                         self.usesPermissionsSdk23.push(AndroidPermissionSdk23.fromXml(k.$));
                     });
                     break;
                 case 'instrumentation':
-                    if(this.instrumentation===null) this.instrumentation = [];
+                    if(self.instrumentation===null) self.instrumentation = [];
 
                     config['instrumentation'].map(function(k){
                         self.instrumentation.push(AndroidInstrumentation.fromXml(k.$));
@@ -1052,14 +1165,115 @@ class AndroidManifest
                 case 'application':
                     if(config[i] instanceof AndroidApplication){
                         //console.log(config[i]);
-                        this.application = config[i];
+                        self.application = config[i];
                     }else{
                         // console.log(config[i]);
-                        this.application = AndroidApplication.fromXml(config[i][0]);
+                        self.application = AndroidApplication.fromXml(config[i][0]);
                     }
                     break;x
             }
         }
+
+        return self;
+    }
+
+    toXml(){
+        let o = new Object();
+
+        o.$ = {};
+        for(let i in this.attributes){
+            o.$[i] = this.attributes[i];
+        }
+
+        if(this.usesPermissions.length > 0){
+            o['uses-permission'] = [];
+            this.usesPermissions.map(perm => {
+                o['uses-permission'].push(perm.toXml());
+            });
+        }
+
+        if(this.permissions.length > 0){
+            o['permission'] = [];
+            this.permissions.map(perm => {
+                o['permission'].push(perm.toXml());
+            });
+        }
+
+        if(this.permissionGroups.length > 0){
+            o['permission-group'] = [];
+            this.permissionGroups.map(perm => {
+                o['permission-group'].push(perm.toXml());
+            });
+        }
+
+        if(this.permissionTrees.length > 0){
+            o['permission-tree'] = [];
+            this.permissionTrees.map(perm => {
+                o['permission-tree'].push(perm.toXml());
+            });
+        }
+
+        if(this.instrumentation != null && this.instrumentation.length > 0){
+            o['instrumentation'] = [];
+            this.instrumentation.map(perm => {
+                o['instrumentation'].push(perm.toXml());
+            });
+        }
+        
+        if(this.usesPermissionsSdk23 != null && this.usesPermissionsSdk23.length > 0){
+            o['uses-permission-sdk-23'] = [];
+            this.usesPermissionsSdk23.map(perm => {
+                o['uses-permission-sdk-23'].push(perm.toXml());
+            });
+        }
+
+        if(this.usesConfiguration != null && this.usesConfiguration.length > 0){
+            o['uses-configuration'] = [];
+            this.usesConfiguration.map(perm => {
+                o['uses-configuration'].push(perm.toXml());
+            });
+        }
+
+        if(this.usesFeatures != null && this.usesFeatures.length > 0){
+            o['uses-feature'] = [];
+            this.usesFeatures.map(perm => {
+                o['uses-feature'].push(perm.toXml());
+            });
+        }
+        
+        if(this.usesSdk != null && this.usesSdk.length > 0){
+            o['uses-sdk'] = [];        
+            o['uses-sdk'].push(this.usesSdk);    
+        }
+
+        if(this.supportsScreens != null && this.supportsScreens.length > 0){
+            o['supports-screens'] = [];
+            this.supportsScreens.map(perm => {
+                o['supports-screens'].push(perm.toXml());
+            });
+        }
+        if(this.compatibleScreens != null && this.compatibleScreens.length > 0){
+            o['compatible-screens'] = [];
+            this.compatibleScreens.map(perm => {
+                o['compatible-screens'].push(perm.toXml());
+            });
+        }
+        if(this.supportsGlTextures != null && this.supportsGlTextures.length > 0){
+            o['supports-gl-texture'] = [];
+            this.supportsGlTextures.map(perm => {
+                o['supports-gl-texture'].push(perm.toXml());
+            });
+        }
+        if(this.usesFeatures != null && this.usesFeatures.length > 0){
+            o['uses-feature'] = [];
+            this.usesFeatures.map(perm => {
+                o['uses-feature'].push(perm.toXml());
+            });
+        }
+
+        o.application = this.application.toXml();
+
+        return o;
     }
 
     setAttributes(attrs){
@@ -1135,7 +1349,7 @@ class AndroidManifest
         return res;
     }
 
-
+    
 }
 
 module.exports = {
