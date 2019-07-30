@@ -865,8 +865,12 @@ class AnalyzerDatabase
         this.db.newCollection("datablock");
         this.db.newCollection("tagcategories");
 
-
         this.db.newIndex("activities");
+        this.db.newIndex("receivers");
+        this.db.newIndex("services");
+        this.db.newIndex("providers");
+        this.db.newIndex("permissions");
+
 
         this.classes = this.db.getIndex("classes");
         this.fields = this.db.getIndex("fields");
@@ -886,10 +890,24 @@ class AnalyzerDatabase
         this.syscalls = this.db.getIndex("syscalls");
 
         this.activities = this.db.getIndex("activities");
+        this.receivers = this.db.getIndex("receivers");
+        this.services = this.db.getIndex("services");
+        this.providers = this.db.getIndex("providers");
+        this.permissions = this.db.getIndex("permissions");
+
+        this.manifest = null;
     }
 
     getDatabase(){
         return this.db;
+    }
+
+    setManifest(manifest){
+        this.manifest = manifest;
+    }
+
+    getManifest(){
+        return this.manifest;
     }
 }
 
@@ -907,6 +925,7 @@ function Analyzer(encoding, finder, ctx=null){
 
     let tempDb = this.tempDb = new AnalyzerDatabase(ctx); 
 
+    this.context = ctx;
     this.finder = finder;
 
     var config = {
@@ -1018,17 +1037,42 @@ Analyzer.prototype.scanManifest = function(path){
                 console.log(Chalk.bold.red("Android Manifest cannot be read : ",err));
                 return;
             }
+            if(data == null || data.substr(0,5)!=="<?xml"){
+                // it happens if resources have not been extracted
+                return;
+            }
 
-            //let amp = new AndroidManifestXmlParser(self);
-            //amp.parse(data);
+            let amp = new AndroidManifestXmlParser(self);
+            amp.parse(data, function(err,manifest){
+                // update internal DB
+                
+                manifest.usesPermissions.map(x => self.db.permissions.insert(x));
+                manifest.application.activities.map(x => self.db.activities.insert(x));
+                manifest.application.providers.map(x => self.db.providers.insert(x));
+                manifest.application.receivers.map(x => self.db.receivers.insert(x));
+                manifest.application.services.map(x => self.db.services.insert(x));
+                
+                // resolve class reference
+                /*self.db.activities.map((x,a) => {
+                    let u = self.db.classes.getEntry(a.getName());
+                    if(u == null){
+                        self.context.bus.send(new Event({
+                            type: "manifest.unknow.activity",
+                            data: a
+                        }));
+                    }else
+                        a.setActivityClass(u);
+                });*/
+                /*
+                let actlist = self.db.activities;
+                for(let i=0; i<actlist.size(); i++){
+                    actlist.getEntry(i).ref = self.db.classes.getEntry(
+                        actlist.getEntry(i).getName()
+                    );
+                }*/
+            });
 
-            // resolve class reference
-            /*let actlist = self.db.activities;
-            for(let i=0; i<actlist.size(); i++){
-                actlist.getEntry(i).ref = self.db.classes.getEntry(
-                    actlist.getEntry(i).getName()
-                );
-            }*/
+           
 
         });
     
