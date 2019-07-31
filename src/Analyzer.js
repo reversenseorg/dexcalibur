@@ -763,10 +763,15 @@ function MakeMap(data,absoluteDB){
         if(v.getSuperClass() != null){
             let n=v, sc=null, supers=[];
             while((sc = n.getSuperClass()) !=null){
-                supers.push(sc);
-                n = sc;
+                scr = absoluteDB.classes.getEntry(sc);
+                if(scr == null){
+                    console.log("Class ("+sc+") not found");
+                    break;
+                }
+                supers.push(scr);
+                n = scr;
 
-                if(sc.getSuperClass ==undefined){
+                if(scr.getSuperClass ==undefined){
                     //console.log(sc);
                     break;
                 }
@@ -1014,6 +1019,11 @@ function Analyzer(encoding, finder, ctx=null){
         return this._db;
     }
 }
+
+Analyzer.prototype.getContext = function(){
+    return this.context;
+}
+
 
 /**
  * To get the absolute DB 
