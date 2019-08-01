@@ -87,6 +87,15 @@ h1 {
     filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#f9c667', endColorstr='#f79621',GradientType=1 ); /* IE6-9 fallback on horizontal gradient */
 }
 
+.panel-appcmp-green  {
+    background: #ddb3f8; /* Old browsers */
+    background: -moz-linear-gradient(-45deg,  #ddb3f8 0%, #b666f7 100%); /* FF3.6-15 */
+    background: -webkit-linear-gradient(-45deg,  #ddb3f8 0%,#b666f7 100%); /* Chrome10-25,Safari5.1-6 */
+    background: linear-gradient(135deg,  #ddb3f8 0%,#b666f7 100%); /* W3C, IE10+, FF16+, Chrome26+, Opera12+, Safari7+ */
+    filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#f9c667', endColorstr='#f79621',GradientType=1 ); /* IE6-9 fallback on horizontal gradient */
+}
+
+
 .panel-appcmp-ppts {
     height: 40em;
 }
@@ -109,32 +118,54 @@ h1 {
 
 .panel-appcmp-orange .badge,
 .panel-appcmp-grey .badge,   
-.panel-appcmp-blue .badge,   {
+.panel-appcmp-blue .badge,   
+.panel-appcmp-green .badge   {
     font-size: 0.8em;
 }
 
 .panel-appcmp-orange .panel-heading, 
 .panel-appcmp-grey .panel-heading,
-.panel-appcmp-blue .panel-heading  {
-    padding-bottom: 0px;
-    font-size: 0.8em;
+.panel-appcmp-blue .panel-heading,
+.panel-appcmp-green .panel-heading   {
+    /*padding-bottom: 0px;*/
+    font-size: 0.9em;
     color: white;
     text-align:center;
     border-bottom: 0px solid orange;
 }
 
+.panel-appcmp-green .panel-heading   {
+    /*padding-bottom: 0px;*/
+    font-size: 1em;
+    color: white;
+    text-align:center;
+    border-bottom: 0px solid orange;
+}
+
+
 .activity-name {
     font-size: 1.2em; 
 }
 
+
 .panel-appcmp-orange .panel-body, 
 .panel-appcmp-grey .panel-body,
-.panel-appcmp-blue .panel-body    {
+.panel-appcmp-blue .panel-body,
+.panel-appcmp-green .panel-body    {
     margin-top: 0px;
     padding-top: 0px;
-    font-size: 2em;
+    font-size: 0.8em;
     color: white;
-    text-align:center;
+    text-align:right;
+}
+
+.panel-appcmp-orange .panel-body a, 
+.panel-appcmp-grey .panel-body a,
+.panel-appcmp-blue .panel-body a ,
+.panel-appcmp-green .panel-body a    {
+    margin: 0px;
+    padding: 0px;
+    font-size: 1.5em;
 }
 
 .panel-appcmp-orange .panel-footer  {
