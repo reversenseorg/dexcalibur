@@ -8,7 +8,7 @@ class ManifestXmlParser
 {
     constructor(analyzer){
         this.analyzer = analyzer;
-        this.manifest = new AndroidObj.Manifest();
+        this.manifest = new AndroidObj.Manifest(analyzer.getContext());
     }
 
     getManifest(){
