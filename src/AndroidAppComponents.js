@@ -394,6 +394,23 @@ class AndroidScreen
       }
   }
 
+class ProtectionLevel
+{
+    static NORMAL = new ProtectionLevel({ name:"normal" });
+    static SIGNATURE = new ProtectionLevel({ name:"signature" });
+    static SPECIAL = new ProtectionLevel({ name:"special" });
+    static DANGEROUS = new ProtectionLevel({ name:"dangerous" });
+
+    constructor(config=null){
+        this.name = null;
+
+        if(config != null){
+            for(let i in config){
+                this[i] = config[i];
+            }
+        }
+    }
+}
 
 class Permission
 {
@@ -403,11 +420,38 @@ class Permission
         this.name = null;
         this.permissionGroup = null;
         this.protectionLevel = null;
+
+        this.__custom = false;
+        this.__tags = [];
+        this.__raw = null;
+
+        if(config != null){
+            for(let i in config){
+                this[i] = config[i];
+            }
+        }
+    }
+
+    isCustom(){
+        return this.__custom===true;
+    }
+
+    setCustom(bool){
+        this.__custom = bool;
+    }
+
+    update(otherPerm,override=false){
+        for(let i in otherPerm){
+            if(override || (this[i]===null)){
+                this[i] = otherPerm[i];
+            }
+        }
     }
 
     static fromXml(xmlobj){
         let p = new Permission();
 
+        p.__raw = xmlobj;
         for(let i in xmlobj){
             if(i.startsWith('android:')){
                 p[i.substr(8)] = xmlobj[i]; 
@@ -425,10 +469,17 @@ class Permission
         o.name = this.name;
         o.label = this.label;
         o.description = this.description;
+
         if(this.permissionGroup != null)
             o.permissionGroup = this.permissionGroup.name;
         else
             o.permissionGroup = null;
+
+        
+        if(this.protectionLevel != null)
+            o.protectionLevel = this.protectionLevel.name;
+        else
+            o.protectionLevel = null;
 
         return o;
     }
@@ -442,12 +493,19 @@ class PermissionGroup
         this.label = null;
         this.name = null;
 
+        this.children = [];
 
         // auto config
         if(config != null){
             for(let i in config)
                 if(this[i] !==  undefined)
                     this[i] = config[i];
+        }
+
+        for(let i=0; i<this.children.length; i++){
+            if(this.children[i].permissionGroup === null){
+                this.children[i].permissionGroup = this;
+            }
         }
     }
 
@@ -1057,7 +1115,7 @@ class AndroidApplication
 
 class AndroidManifest
 {
-    constructor(config=null){
+    constructor(ctx=null){
 
         this.attributes = {};
 
@@ -1081,13 +1139,11 @@ class AndroidManifest
         this.supportsGlTextures = [];
         this.application = null;
 
-        if(config!=null){
-            this.setup(config);
-        }
-            
+        this.__context = ctx;   
+        this.__additionalContent = {};    
     }
 
-    static fromXml(config){
+    static fromXml(config, context){
         let self = new AndroidManifest();
         // init manifest attributes 
         for(let i in config){
@@ -1170,9 +1226,14 @@ class AndroidManifest
                         // console.log(config[i]);
                         self.application = AndroidApplication.fromXml(config[i][0]);
                     }
-                    break;x
+                    break;
+                default:
+                    self.__additionalContent[i] = config[i];
+                    break;
             }
         }
+
+        console.log(self.__additionalContent);
 
         return self;
     }
@@ -1273,6 +1334,12 @@ class AndroidManifest
 
         o.application = this.application.toXml();
 
+        if(Object.keys(this.__additionalContent).length > 0){
+            for(let i in this.__additionalContent){
+                o[i] = this.__additionalContent[i];
+            }
+        }
+        
         return o;
     }
 
@@ -1366,6 +1433,7 @@ module.exports = {
 
     Permission: Permission,
     PermissionGroup: PermissionGroup,
+    ProtectionLevel: ProtectionLevel,
 
     IntentFilter: IntentFilter,
     IntentDataCriteria: IntentDataCriteria,
