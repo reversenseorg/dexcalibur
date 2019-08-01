@@ -20,17 +20,13 @@ AppTopoInspector.registerTagCategory(
     ["browsable","exported"]
 );
 
-AppTopoInspector.registerTagCategory(
-    "permissionType",
-    ["normal","signature","dangerous","special"]
-);
 // ===== CONFIG HOOKS =====
 
 
 
 // ====== CONFIG TASK ====== 
 
-
+/*
 AppTopoInspector.on("manifest.application.new", {
     task: function(ctx, event){
         Logger.info("[INSPECTOR][TASK] DynLoaderInspector new Dex file loaded ",event.data.path);
@@ -46,6 +42,6 @@ AppTopoInspector.on("manifest.intentFilter.new", {
         
     }
 });
-
+*/
 
 module.exports = AppTopoInspector;
