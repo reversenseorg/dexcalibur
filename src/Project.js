@@ -19,6 +19,7 @@ var InspectorManager = require("./InspectorManager.js");
 var Workspace = require("./Workspace.js");
 var WebServer = require("./WebServer.js");
 var DataAnalyzer = require("./DataAnalyzer.js");
+const AndroidAppAnalyzer = require("./AndroidAppAnalyzer.js");
 var GraphMaker = require("./Graph.js");
 var Bus = require("./Bus.js");
 var Event = require("./Event.js");
@@ -127,20 +128,9 @@ Project.prototype.initDexcalibur = function(pkgName, cfgpath=null, nofrida=0, ap
     // setup File Analyzer
     this.dataAnalyser = new DataAnalyzer.Analyzer(this);
 
-
-    // scanners
-    /*
-    this.inspectorController = new Inspector.InspectorController(this);
-    var inspectorCtrl = this.inspectorController;
-    ut.forEachFileOf(this.config.dexcaliburPath+"/inspectors/", function(path,file){
-        inspectorCtrl.addInspector(require(path));
-    },true); 
-    */
-
-    //this.scan = {};
     this.bus = Bus.Event.setContext(this);
-    //var mainInsp = this.inspectors = [];
-    //var mainBus = this.bus;
+
+    this.appAnalyzer = new AndroidAppAnalyzer(this);
 
     this.inspectors = new InspectorManager(this);
 
@@ -164,17 +154,6 @@ Project.prototype.initDexcalibur = function(pkgName, cfgpath=null, nofrida=0, ap
     // 
     this.graph = new GraphMaker(this);
     
-    // this.workspace.init();
-    /*
-    To start the application. By default it uses the main activity. 
-    > project = new Project("mobi.lbp")
-    > app = project.start()
-        > app.pause()
-        > app.resume()
-        > app.stop()
-        > app.kill()
-    > hook = app.hook()
-    */
 
     // smali patcher
     /*
@@ -208,14 +187,27 @@ Project.prototype.initDexcalibur = function(pkgName, cfgpath=null, nofrida=0, ap
     this.workspace.init();
 }
 
+
+
 Project.prototype.changeProject = function(packageIdentifier) {
     this.initDexcalibur(packageIdentifier,this.cfgpath,this.nofrida);
     this.useAPI(this.apiVersion).fullscan();
 };
 
+
+Project.prototype.getDataAnalyzer = function(){
+    return this.dataAnalyser;
+};
+
+
+Project.prototype.getAppAnalyzer = function(){
+    return this.appAnalyzer;
+};
+
+
 Project.prototype.getAnalyzer = function(){
     return this.analyze;
-}
+};
 
 /**
  * To show available APIs (console print)
@@ -313,7 +305,8 @@ Project.prototype.fullscan = function(path){
         this.analyze.path( path);
         this.dataAnalyser.scan( path, ["smali"]);
         
-        this.analyze.scanManifest(Path.join(path,"AndroidManifest.xml"));
+       // this.analyze.scanManifest(Path.join(path,"AndroidManifest.xml"));
+        this.appAnalyzer.importManifest(Path.join(path,"AndroidManifest.xml"));
     }else{
         //        let dexPath = this.workspace.getWD()+"dex";
         let dexPath = Path.join(this.workspace.getWD(),"dex");
@@ -322,7 +315,8 @@ Project.prototype.fullscan = function(path){
         
         this.analyze.path( dexPath);
         this.dataAnalyser.scan( dexPath, ["smali"]);
-        this.analyze.scanManifest(Path.join(dexPath,"AndroidManifest.xml"));
+//        this.analyze.scanManifest(Path.join(dexPath,"AndroidManifest.xml"));
+        this.appAnalyzer.importManifest(Path.join(dexPath,"AndroidManifest.xml"));
     }
 
 
@@ -384,6 +378,9 @@ Project.prototype.fullscan = function(path){
     return this;
 };
 
+Project.prototype.trigger = function(eventData){
+    this.bus.send(new Event.Event(eventData));
+}
 
 // Make a backup of the project 
 /*
