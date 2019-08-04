@@ -616,14 +616,14 @@ function MakeMap(data,absoluteDB){
             ext = v.getSuperClass();
 
             try {
-            if(ext != null && cls.hasSuperClass() && ext!=cls.getSuperClass().getName()){
-                cls.updateSuper(Resolver.type(absoluteDB, ext));
-                requireRemap = true;
+                if(ext != null && cls.hasSuperClass() && ext!=cls.getSuperClass().getName()){
+                    cls.updateSuper(Resolver.type(absoluteDB, ext));
+                    requireRemap = true;
+                }
             }
-        }
-        catch(ex) {
-            console.error(ex);
-        }
+            catch(ex) {
+                console.error(ex);
+            }
         }
         else if(cls.getSuperClass() != null && (!cls.getSuperClass() instanceof CLASS.Class)){
             cls.extends = Resolver.type(absoluteDB, cls.extends);
@@ -870,7 +870,7 @@ class AnalyzerDatabase
         this.db.newCollection("datablock");
         this.db.newCollection("tagcategories");
 
-        this.db.newIndex("activities");
+        this.db.newCollection("activities");
         this.db.newIndex("receivers");
         this.db.newIndex("services");
         this.db.newIndex("providers");
@@ -1033,62 +1033,6 @@ Analyzer.prototype.getInternalDB = function(){
     return this.db;
 }
 
-/**
- * To parse the AndroidManifest and update the DB
- * @param {String|Path} path Android manifest path 
- */
-Analyzer.prototype.scanManifest = function(path){
-    let self = this;
-    fs.exists(path,function(res){
-        if(!res) return;
-
-        fs.readFile(path, (err,data)=>{
-            if(err){
-                console.log(Chalk.bold.red("Android Manifest cannot be read : ",err));
-                return;
-            }
-            if(data == null || data.toString('ascii',0,5)!=="<?xml"){
-                // it happens if resources have not been extracted
-                console.log(Chalk.bold.red("Android Manifest cannot be analyzed because the workspace has been built by using a previous version of Dexcalibur.",err));
-                return;
-            }
-
-            let amp = new AndroidManifestXmlParser(self);
-            amp.parse(data, function(err,manifest){
-                // update internal DB
-                
-                manifest.usesPermissions.map(x => self.db.permissions.insert(x));
-                manifest.application.activities.map(x => self.db.activities.insert(x));
-                manifest.application.providers.map(x => self.db.providers.insert(x));
-                manifest.application.receivers.map(x => self.db.receivers.insert(x));
-                manifest.application.services.map(x => self.db.services.insert(x));
-                
-                // resolve class reference
-                /*self.db.activities.map((x,a) => {
-                    let u = self.db.classes.getEntry(a.getName());
-                    if(u == null){
-                        self.context.bus.send(new Event({
-                            type: "manifest.unknow.activity",
-                            data: a
-                        }));
-                    }else
-                        a.setActivityClass(u);
-                });*/
-                /*
-                let actlist = self.db.activities;
-                for(let i=0; i<actlist.size(); i++){
-                    actlist.getEntry(i).ref = self.db.classes.getEntry(
-                        actlist.getEntry(i).getName()
-                    );
-                }*/
-            });
-
-           
-
-        });
-    
-    });
-}
 
 Analyzer.prototype.addClassFromFqcn = function(fqcn){
     let pkg = null;
