@@ -1,20 +1,69 @@
 
+const ANDROID_PREFIX = "android:";
+const ANDROID_PREFIX_LEN = 8;
 
 class IntentActionCriteria
 {
+    static androidPrefixed = [];
+
     constructor(){
+        this.__attr = {};
+
         this.name = null;
+    }
+
+    getName(){
+        return this.name;
+    }
+
+    setAttributes(attr){
+        let n="";
+        for(let i in attr){
+            if(i.startsWith(ANDROID_PREFIX)){
+                n = i.substr(ANDROID_PREFIX_LEN);
+                if(IntentActionCriteria.androidPrefixed.indexOf(n)==-1)
+                IntentActionCriteria.androidPrefixed.push(n);
+                this.__attr[n] = attr[i]; 
+            }else{
+                this.__attr[i] = attr[i];
+            }
+        }
+    }
+
+    getAttributes(){
+        return this.__attr;
+    }
+
+    getAttribute(name){
+        return this.__attr[name];
     }
 
     static fromXml(xmlobj){
         let o = new IntentActionCriteria();
-        o.name = xmlobj['android:name'];
+        
+        o.setAttributes(xmlobj);
+        o.name = o.__attr.name;
+
+        return o;
+    }
+
+    toXmlObject(){
+        let o = {};
+
+        o.$ = {};
+        for(let i in this.attr){
+            if(IntentActionCriteria.androidPrefixed.indexOf(i)>-1)
+                o.$[ANDROID_PREFIX+i] = this.attr[i];
+            else
+                o.$[i] = this.attr[i];
+        }
+
         return o;
     }
 
     toJsonObject(){
         let o = new Object();
-        o.name = this.name;
+        o.name = this.__attr.name;
         return o;
     }
 }
@@ -22,6 +71,71 @@ class IntentActionCriteria
 
 class IntentCategoryCriteria
 {
+    static androidPrefixed = [];
+
+    constructor(){
+        this.__attr = {};
+
+        this.name = null;
+    }
+
+
+    getName(){
+        return this.name;
+    }
+
+    setAttributes(attr){
+        let n="";
+        for(let i in attr){
+            if(i.startsWith(ANDROID_PREFIX)){
+                n = i.substr(ANDROID_PREFIX_LEN);
+                if(IntentCategoryCriteria.androidPrefixed.indexOf(n)==-1)
+                IntentCategoryCriteria.androidPrefixed.push(n);
+                this.__attr[n] = attr[i]; 
+            }else{
+                this.__attr[i] = attr[i];
+            }
+        }
+    }
+
+    getAttributes(){
+        return this.__attr;
+    }
+
+    getAttribute(name){
+        return this.__attr[name];
+    }
+
+    static fromXml(xmlobj){
+        let o = new IntentCategoryCriteria();
+        
+        o.setAttributes(xmlobj);
+        o.name = o.__attr.name;
+
+        return o;
+    }
+
+    toXmlObject(){
+        let o = {};
+
+        o.$ = {};
+        for(let i in this.attr){
+            if(IntentCategoryCriteria.androidPrefixed.indexOf(i)>-1)
+                o.$[ANDROID_PREFIX+i] = this.attr[i];
+            else
+                o.$[i] = this.attr[i];
+        }
+
+        return o;
+    }
+
+    toJsonObject(){
+        let o = new Object();
+        o.name = this.__attr.name;
+        return o;
+    }
+
+    /*
     constructor(){
         this.name = null;
     }
@@ -36,7 +150,7 @@ class IntentCategoryCriteria
         let o = new Object();
         o.name = this.name;
         return o;
-    }
+    }*/
 }
 
 class IntentDataCriteria
@@ -92,6 +206,18 @@ class IntentFilter
             for(let i in config)
                     this[i] = config[i];
         }
+    }
+
+    getActions(){
+        return this.action;
+    }
+
+    getCategories(){
+        return this.category;
+    }
+
+    getData(){
+        return this.data;
     }
 
     toXmlObject(){
@@ -422,7 +548,7 @@ class Permission
         this.protectionLevel = null;
 
         this.__custom = false;
-        this.__tags = [];
+        this.__tag = [];
         this.__raw = null;
 
         if(config != null){
@@ -431,6 +557,16 @@ class Permission
             }
         }
     }
+
+    addTag(tag){
+        if(this.__tag.indexOf(tag)==-1)
+            this.__tag.push(tag);
+    } 
+
+    getTags(){
+        return this.__tag;
+    }
+
 
     isCustom(){
         return this.__custom===true;
@@ -616,6 +752,8 @@ class AndroidActivity
                                     "adjustResize", "adjustPan"]
     }
 
+    static androidPrefixed = [];
+
     constructor(config=null){
         // the manifest data are stored here
 
@@ -627,10 +765,8 @@ class AndroidActivity
         this.intentFilters = [];
         this.metadata = null;
 
-
-        
-        // this field contains the associated class
-        this.ref = null;
+        this.__impl = null;
+        this.__tag = [];
 
         // auto config
         if(config != null){
@@ -638,6 +774,14 @@ class AndroidActivity
                 if(this[i] !==  undefined)
                     this[i] = config[i];
         }
+    }
+
+    setImplementedBy(cls){
+        this.__impl = cls;
+    }
+
+    getImplementedBy(){
+        return this.__impl;
     }
 
     setActivityClass(x){
@@ -649,21 +793,33 @@ class AndroidActivity
     }
 
     setAttributes(attr){
+        let n="";
         for(let i in attr){
-            if(i.startsWith('android:')){
-                this.attr[i.substr(8)] = attr[i]; 
+            if(i.startsWith(ANDROID_PREFIX)){
+                n = i.substr(ANDROID_PREFIX_LEN);
+                if(AndroidActivity.androidPrefixed.indexOf(n)==-1)
+                    AndroidActivity.androidPrefixed.push(n);
+                this.attr[n] = attr[i]; 
             }else{
                 this.attr[i] = attr[i];
             }
         }
     }
 
+    getAttributes(){
+        return this.attr;
+    }
+
+    getAttribute(name){
+        return this.attr[name];
+    }
+
     addIntentFilters(filter){
         this.intentFilters.push(filter);
     }
 
-    getAttributes(){
-        return this.attr;
+    getIntentFilters(){
+        return this.intentFilters;
     }
 
     getLabel(){
@@ -674,8 +830,13 @@ class AndroidActivity
         return this.name;
     }
 
-    isExported(){
-        return (this.attr.exported != null) && (this.attr.exported === true);
+    addTag(tag){
+        if(this.__tag.indexOf(tag)==-1)
+            this.__tag.push(tag);
+    } 
+
+    getTags(){
+        return this.__tag;
     }
 
     static fromXml(xmlobj){
@@ -701,6 +862,35 @@ class AndroidActivity
         return act;
     }
 
+    /**
+     * To serialize to XML
+     * @returns {String} The activity data ready to be writen into an XML file
+     * @function 
+     */
+    toXmlObject(){
+        let o = {}
+        o.$ = {};
+        for(let i in this.attr){
+            if(AndroidActivity.androidPrefixed.indexOf(i)>-1)
+                o.$[ANDROID_PREFIX+i] = this.attr[i];
+            else
+                o.$[i] = this.attr[i];
+        }
+
+        o["intent-filter"] = [];
+        for(let i=0; i<this.intentFilters.length; i++){
+            o["intent-filter"].push(this.intentFilters[i].toXml());
+        }
+
+        return o;
+    }
+
+
+    /**
+     * To serialize to JSON
+     * @returns {String} The activity data seriualized
+     * @function 
+     */
     toJsonObject(){
         let o = new Object();
 
@@ -710,6 +900,14 @@ class AndroidActivity
         o.intentFilters = [];
 
         this.intentFilters.map(x => o.intentFilters.push(x.toJsonObject()));
+
+        if(this.__impl!=null){
+            o.__impl = this.__impl.signature();
+        }
+
+        if((this.__tag instanceof Array) && this.__tag.length>0){
+            o.__tag = this.__tag;
+        }
 
         return o;
     }
@@ -731,9 +929,9 @@ class AndroidService
         this.intentFilters = [];
         this.metadata = null;
 
+        this.__impl = null;
+        this.__tag =[];
         
-        // this field contains the associated class
-        this.ref = null;
 
         // auto config
         if(config != null){
@@ -741,6 +939,24 @@ class AndroidService
                 if(this[i] !==  undefined)
                     this[i] = config[i];
         }
+    }
+
+
+    addTag(tag){
+        if(this.__tag.indexOf(tag)==-1)
+            this.__tag.push(tag);
+    } 
+
+    getTags(){
+        return this.__tag;
+    }
+
+    setImplementedBy(cls){
+        this.__impl = cls;
+    }
+
+    getImplementedBy(){
+        return this.__impl;
     }
 
     setAttributes(attr){
@@ -806,6 +1022,10 @@ class AndroidService
 
         this.intentFilters.map(x => o.intentFilters.push(x.toJsonObject()));
 
+        if(this.__impl!=null){
+            o.__impl = this.__impl.toJsonObject();
+        }
+
         return o;
     }
 }
@@ -824,9 +1044,8 @@ class AndroidReceiver
         this.intentFilters = [];
         this.metadata = null;
 
-        
-        // this field contains the associated class
-        this.ref = null;
+        this.__impl = null;
+        this.__tag = [];
 
         // auto config
         if(config != null){
@@ -834,6 +1053,24 @@ class AndroidReceiver
                 if(this[i] !==  undefined)
                     this[i] = config[i];
         }
+    }
+
+
+    addTag(tag){
+        if(this.__tag.indexOf(tag)==-1)
+            this.__tag.push(tag);
+    } 
+
+    getTags(){
+        return this.__tag;
+    }
+
+    setImplementedBy(cls){
+        this.__impl = cls;
+    }
+
+    getImplementedBy(){
+        return this.__impl;
     }
 
     setAttributes(attr){
@@ -899,6 +1136,10 @@ class AndroidReceiver
 
         this.intentFilters.map(x => o.intentFilters.push(x.toJsonObject()));
 
+        if(this.__impl!=null){
+            o.__impl = this.__impl.toJsonObject();
+        }
+
         return o;
     }
 }
@@ -917,16 +1158,34 @@ class AndroidProvider
         this.intentFilters = [];
         this.metadata = null;
 
+        this.__impl = null;
+        this.__tag = [];
         
-        // this field contains the associated class
-        this.ref = null;
-
+  
         // auto config
         if(config != null){
             for(let i in config)
                 if(this[i] !==  undefined)
                     this[i] = config[i];
         }
+    }
+
+
+    addTag(tag){
+        if(this.__tag.indexOf(tag)==-1)
+            this.__tag.push(tag);
+    } 
+
+    getTags(){
+        return this.__tag;
+    }
+
+    setImplementedBy(cls){
+        this.__impl = cls;
+    }
+
+    getImplementedBy(){
+        return this.__impl;
     }
 
     setAttributes(attr){
@@ -991,6 +1250,10 @@ class AndroidProvider
         o.intentFilters = [];
 
         this.intentFilters.map(x => o.intentFilters.push(x.toJsonObject()));
+
+        if(this.__impl!=null){
+            o.__impl = this.__impl.toJsonObject();
+        }
 
         return o;
     }
@@ -1225,6 +1488,11 @@ class AndroidManifest
                     }else{
                         // console.log(config[i]);
                         self.application = AndroidApplication.fromXml(config[i][0]);
+                        context.trigger({
+                            name: "app.application.new",
+                            data: self.application
+                        })
+                        
                     }
                     break;
                 default:

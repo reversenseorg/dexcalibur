@@ -123,6 +123,15 @@ h1 {
     font-size: 0.8em;
 }
 
+
+.panel-appcmp-orange:hover,
+.panel-appcmp-grey:hover,   
+.panel-appcmp-blue:hover,   
+.panel-appcmp-green:hover   {
+    border:2px solid rgba(255, 0, 0, 0.76);
+    cursor: pointer;
+}
+
 .panel-appcmp-orange .panel-heading, 
 .panel-appcmp-grey .panel-heading,
 .panel-appcmp-blue .panel-heading,
@@ -172,4 +181,8 @@ h1 {
     background-color: #F70;
     size: 1.5em;
     color: wheat;
+}
+
+.col-threat-score {
+    text-align: center;
 }

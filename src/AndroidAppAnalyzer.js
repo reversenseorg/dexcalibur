@@ -12,10 +12,22 @@ class AndroidAppAnalyzer
 {
     constructor(context){
         this.context = context;
+		this.manifest =  null; //new Android.Manifest(context);
+		this.manifestPath = null;
+	}
 
-        this.manifest =  null; //new Android.Manifest(context);
-    }
+	/*
+	findIntentLocationOf(element){
+		element.getImplement
 
+	}
+	*/
+
+	dumpManifest(){
+		if(this.manifest == null) return null;
+
+		return _fs_.readFileSync(this.manifestPath).toString();
+	}
 
     /**
      * To import an Android manifest from he given path
@@ -50,9 +62,12 @@ class AndroidAppAnalyzer
                         return;
                     }
         
-                    let manifest = Android.Manifest.fromXml(result.manifest, self.context);
-        
-        
+					let manifest = Android.Manifest.fromXml(result.manifest, self.context);
+					
+
+					self.manifest = manifest;
+					self.manifestPath = path;
+
 					// update internal DB
 					manifest.usesPermissions.map(x => {
 						self.context.trigger({
@@ -61,10 +76,36 @@ class AndroidAppAnalyzer
 						});
 						codeAnal.db.permissions.insert(x);
 					});
-					manifest.application.activities.map(x => codeAnal.db.activities.insert(x));
-					manifest.application.providers.map(x => codeAnal.db.providers.insert(x));
-					manifest.application.receivers.map(x => codeAnal.db.receivers.insert(x));
-					manifest.application.services.map(x => codeAnal.db.services.insert(x));
+					manifest.application.activities.map(x => {
+						self.context.trigger({
+							type: "app.activity.new",
+							data: x
+						});
+						codeAnal.db.activities.addEntry(x.name, x);
+					});
+					manifest.application.providers.map(x => {
+						self.context.trigger({
+							type: "app.provider.new",
+							data: x
+						});
+						codeAnal.db.providers.insert(x);
+					});
+					manifest.application.receivers.map(x => {
+						self.context.trigger({
+							type: "app.receiver.new",
+							data: x
+						});
+						codeAnal.db.receivers.insert(x);
+					});
+					manifest.application.services.map(x => {
+						self.context.trigger({
+							type: "app.service.new",
+							data: x
+						});
+						codeAnal.db.services.insert(x);
+					});
+					
+
 					
 					// resolve class reference
 					/*self.db.activities.map((x,a) => {
