@@ -721,6 +721,14 @@ class WebServer {
                 res.status(200).send(JSON.stringify(dev));
             });
 
+        this.app.route('/api/manifest/content')
+            .get(function(req,res){
+                // collect
+                let dev = {
+                    data: $.project.getAppAnalyzer().dumpManifest()
+                };
+                res.status(200).send(JSON.stringify(dev));
+            });
 
         this.app.route('/api/manifest/activities')
             .get(function(req,res){
@@ -731,6 +739,20 @@ class WebServer {
                 res.status(200).send(JSON.stringify(dev));
             });
 
+        this.app.route('/api/manifest/activity/:id')
+            .get(function(req,res){
+                let name = UT.decodeURI(UT.b64_decode(req.params.id));
+                let act =  $.project.find.get.activity(name);
+
+                console.log(name,act);
+
+                // collect
+                let dev = {
+                    data: act.toJsonObject()
+                };
+                console.log(dev.data);
+                res.status(200).send(JSON.stringify(dev));
+            });
 
         this.app.route('/api/manifest/receivers')
             .get(function(req,res){
