@@ -973,6 +973,13 @@ function SearchAPI(data){
         method: function(id){ return _db.methods.getEntry(id) },
         field: function(id){ return _db.fields.getEntry(id) },
         syscalls: function(id){ return _db.syscalls.getEntry(id) },
+
+        activity: function(id){ return _db.activities.getEntry(id) },
+        provider: function(id){ return _db.providers.getEntry(id) },
+        receiver: function(id){ return _db.receivers.getEntry(id) },
+        service: function(id){ return _db.services.getEntry(id) },
+        permission: function(id){ return _db.permissions.getEntry(id) }
+        
         /*datablock: function(id){
 
         }*/
