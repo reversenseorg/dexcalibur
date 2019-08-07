@@ -21,6 +21,26 @@ WexRegister.prototype.last = function(){
 
 
 
+class DexcaliburGrid
+{
+    constructor(elemnt, width, id){
+        this.id = id+"-";
+        this.elem = elemnt;
+        this.ctr = 0;
+        this.rowCtr = 0;
+        this.with = width;
+    }
+
+    addRow(){
+        this.elem.append('<div class="row" id="'+this.id+'-row-'+this.ctr+'"></div>');
+    }
+
+    appendBlock(){
+
+    }
+}
+
+
 function DisassembyViewer(JQuery){
     this._jquery = JQuery;
 
@@ -78,6 +98,11 @@ function Wexcalibur(){
     this.codeReg = new WexRegister("code-","");    
 }
 
+function encodeURLParam(val){
+    return encodeURIComponent(btoa(encodeURIComponent(val)));
+}
+
+
 var DexcaliburAPI = {
     ui: {
         htmlEncode: (text)=>{
@@ -92,16 +117,82 @@ var DexcaliburAPI = {
                 info: 'info',         
                 warning: 'warning',         
                 danger: 'danger',         
-                secondary: 'secondary'          
+                secondary: 'secondary',      
+                success: 'success'          
             },
         }
     },
-    search: {},
+    search: {
+        makeClassLink: function(signature){
+            return "<a href='/pages/finder.html?class="+btoa(encodeURIComponent(signature))+
+                "'>"+DexcaliburAPI.ui.htmlEncode(signature)+"</a>";
+        },
+        makeMethodLink: function(signature){
+            return "<a href='/pages/finder.html?method="+btoa(encodeURIComponent(signature))+
+                "'>"+DexcaliburAPI.ui.htmlEncode(signature)+"</a>";
+        },
+        makeFieldLink: function(signature){
+            return "<a href='/pages/finder.html?field="+btoa(encodeURIComponent(signature))+
+                "'>"+DexcaliburAPI.ui.htmlEncode(signature)+"</a>";
+        }
+    },
     analyzer: {},
     hook: {},
     disass: {},
+    editor: {
+        __session: {},
+        newCodeEditor: function(id, mode, theme="ace/theme/monokai", options=null){
+            let editor = ace.edit(id);
+            editor.setTheme(theme); 
+        
+            if(options == null)
+                editor.setOptions({
+                    maxLines: 80, 
+                    fontSize: "10pt"
+                });
+            else
+                editor.setOptions(options);
+
+            // "ace/mode/xml"
+            editor.session.setMode(mode);
+            DexcaliburAPI.editor.__session[id] = editor;
+        },
+        getEditor: function(id){
+            return DexcaliburAPI.editor.__session[id];
+        },
+        getContentOf: function(id){
+            let e = DexcaliburAPI.editor.__session[id];
+            return e.session.doc.$lines;
+        }
+    },
     manifest: {
+        URI: {
+            content: "/api/manifest/content"
+        },
+        getContent: function(callbacks){
+            $.ajax('/api/manifest/content',{
+                method: 'get',
+                data: {
+                    _t: (new Date()).getTime()
+                },
+                statusCode: callbacks
+            });
+        },
+        updateContent: function(content, callbacks){
+            $.ajax('/api/manifest/content',{
+                method: 'put',
+                data: {
+                    data:content,
+                    _t: (new Date()).getTime()
+                },
+                statusCode: callbacks
+            });
+        },
         permissions: {
+            URI: {
+                list: "/api/manifest/permissions",
+                get: "/api/manifest/permission",
+            },
             list: function(callbacks){
                 $.ajax('/api/manifest/permissions',{
                     method: 'get',
@@ -110,9 +201,13 @@ var DexcaliburAPI = {
                     },
                     statusCode: callbacks
                 });
-            }
+            },
         },
         activities: {
+            URI: {
+                list: "/api/manifest/activities",
+                get: "/api/manifest/activity",
+            },
             list: function(callbacks){
                 $.ajax('/api/manifest/activities',{
                     method: 'get',
@@ -121,9 +216,21 @@ var DexcaliburAPI = {
                     },
                     statusCode: callbacks
                 });
-            }
+            },
+            get: function(name, callbacks){
+                $.ajax('/api/manifest/activity/'+encodeURLParam(name),{
+                    method: 'get',
+                    data: {
+                        _t: (new Date()).getTime()
+                    },
+                    statusCode: callbacks
+                });
+            },
         },
         providers: {
+            URI: {
+                list: '/api/manifest/providers'
+            },
             list: function(callbacks){
                 $.ajax('/api/manifest/providers',{
                     method: 'get',
@@ -135,6 +242,9 @@ var DexcaliburAPI = {
             }
         },
         receivers: {
+            URI: {
+                list: '/api/manifest/receivers'
+            },
             list: function(callbacks){
                 $.ajax('/api/manifest/receivers',{
                     method: 'get',
@@ -146,6 +256,9 @@ var DexcaliburAPI = {
             }
         },
         services: {
+            URI: {
+                list: '/api/manifest/services'
+            },
             list: function(callbacks){
                 $.ajax('/api/manifest/services',{
                     method: 'get',
@@ -175,10 +288,10 @@ DexcaliburAPI.ui.tags.colorCode = {
     led: DexcaliburAPI.ui.badge.style.warning
 };
 
-DexcaliburAPI.ui.badge.make =  function(color,data){
+DexcaliburAPI.ui.badge.make =  function(color,data,link=null,attr=null){
     if(DexcaliburAPI.ui.badge.style[color]==null) console.error("Given color not exists : ",color);
 
-    return '&nbsp;<a class="badge badge-'+DexcaliburAPI.ui.badge.style[color]+'">'+htmlEncode(data)+'</a>'; 
+    return '&nbsp;<a class="badge badge-'+DexcaliburAPI.ui.badge.style[color]+'">'+DexcaliburAPI.ui.htmlEncode(data)+'</a>'; 
 };
 
 DexcaliburAPI.ui.findColorCode = function(tagname){
@@ -187,6 +300,11 @@ DexcaliburAPI.ui.findColorCode = function(tagname){
             return DexcaliburAPI.ui.tags.colorCode[i];
     return null;
 }
+
+DexcaliburAPI.ui.newGrid = function(width){
+    return new DexcaliburGrid(width);
+}
+
 
 DexcaliburAPI.search.request = function(pattern,callbacks){
     json = JSON.stringify({ search: val });
