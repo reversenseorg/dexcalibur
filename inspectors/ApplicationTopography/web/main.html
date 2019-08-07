@@ -20,19 +20,99 @@
 
     <style type="text/css">
 
-        circle.node {
-          cursor: pointer;
-          stroke: #000;
-          stroke-width: .5px;
-        }
-        
-        line.link {
-          fill: none;
-          stroke: #9ecae1;
-          stroke-width: 1.5px;
-        }
-        
-            </style>
+    .apptopo-vtn {
+        margin-top: 0px;
+        margin-left: 0px;
+    }
+
+    #ctn-permissions {
+        padding-top:0px
+    }
+
+    #ctn-permissions table {
+        color: #FFF;
+    }
+
+    #ctn-permissions table tbody tr:first td {
+        border-top: none;
+    }
+
+    #ctn-activities {
+        padding:0px;
+    }
+
+    #ctn-activities > div.row {
+        padding:0px;
+    }
+
+    #dataTables-activities thead tr th {
+        background-color:#FFF;
+    }
+
+    #ctn-manifest div:first {
+        padding:5px;
+    }
+
+    body {
+        background-color:#272822;
+    }
+
+    #dataTables-activities {
+        margin-top:0px;
+    }
+
+    .apptopo-vmenu-disabled {
+        color: grey;
+        cursor: crosshair;
+    } 
+
+    .first-vtn-col {
+        border-right: 1px solid #000;
+        padding-right: 0px;
+        background-color:#272822;
+    }
+
+    .apptopo-vmenu {
+        padding: 0px;
+        margin:0px;
+        font-size:1.5em;
+        border-right: 1px solid #000;
+        color:#FFF;
+    }
+
+    .apptopo-vmenu ul {
+        padding: 0px;
+    }
+
+    .apptopo-vmenu li {
+        list-style: none;
+        padding-top: 1em;
+        padding-bottom: 1em;
+        margin: 0px;
+        padding-left: 10px;
+    }
+
+    .apptopo-vmenu li > span {
+        padding-right: 1em;
+    }
+
+    .apptopo-vmenu li:hover {
+        color: #FFF;
+        background-color: #000;
+        cursor: pointer;
+    }
+
+    .apptopo-vmenu li.active {
+        color: #FFF;
+        background-color: #000;
+    }
+
+    #landing {
+        font-size:3em;
+        text-align: center;
+        color:honeydew;
+    }
+    </style>
 
     <!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
     <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
@@ -50,9 +130,21 @@
         <!-- Navigation -->
         <!--## pages/inc/menu.html ##-->
 
-        <div id="page-wrapper">
-            <div class="row">
-                <div class="col-sm-4 col-lg-4" style="margin-top:2em;">
+        <div id="page-wrapper" style="border-width:0px;background-color:#272822;">
+            <div class="row" style="background-color:#272822;">
+                <div class="col-sm-2 col-lg-2 apptopo-vmenu">
+                    <ul>
+                        <li id="vmenu-manifest"><span class="fa fa-file"></span>Manifest</li>
+                        <li id="vmenu-permissions"><span class="fa fa-key"></span>Permissions&nbsp;&nbsp;<span class="badge badge-success" id="permissions-count"></a></li>
+                        <li id="vmenu-overview"><span class="fa fa-folder"></span>Overview</li>
+                        <li id="vmenu-activities"><span class="fa fa-folder"></span>Activities&nbsp;&nbsp;<a class="badge badge-success" id="activity-nb">-</a></li>
+                        <li id="vmenu-services"><span class="fa fa-folder"></span>Services&nbsp;&nbsp;<a class="badge badge-success" id="service-nb">-</a></li>
+                        <li id="vmenu-providers"><span class="fa fa-folder"></span>Providers&nbsp;&nbsp;<a class="badge badge-success" id="provider-nb">-</a></li>
+                        <li id="vmenu-receivers"><span class="fa fa-folder"></span>Receivers&nbsp;&nbsp;<a class="badge badge-success" id="receiver-nb">-</a></li>
+                        <li id="vmenu-intent"><span class="fa fa-message"></span>Intent&nbsp;&nbsp;</li>
+                        <li id="vmenu-tools"><span class="fa fa-wrench"></span>Tools&nbsp;&nbsp;</li>
+                    </ul>
+                    <!--
                     <div class="panel panel-default panel-appcmp-ppts">
                         <div class="panel-heading">
                                     <b>Permissions</b>
@@ -76,44 +168,64 @@
                         <div class="panel-body">
                             -
                         </div>
+                    </div>-->
+                </div>
+
+                <div class="col-sm-10 col-lg-10 apptopo-vtn" id="landing"> 
+                    <span class="fa fa-arrow-left"></span>&nbsp;Pick an action into the left menu
+                </div>
+
+                <div class="col-sm-10 col-lg-10 apptopo-vtn" id="ctn-permissions" style="display:none">
+                    <div class="row">
+                        <div class="col-lg-6 table-responsive first-vtn-col">
+                            <table class="table  table-stripped overflow-auto"  style="overflow:scroll">
+                                <tbody id="permissions-list">
+    
+                                </tbody>
+                            </table>      
+                        </div>
+                        <div class="col-lg-4"></div>
                     </div>
                 </div>
-                <div class="col-sm-8 col-lg-8" style="margin-top:2em;">
-                   <!-- <h1 class="page-header">Application components</h1>
-                -->
-                    <div class="row" id="row-cmp-0" style="border-bottom: 1px solid #000">
-                        <div class="col-lg-2">
-                            <div class="panel panel-appcmp-orange">
-                                <div class="panel-heading">
-                                    Activities : <a class="badge badge-success" id="activity-nb">-</a>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-lg-2">
-                            <div class="panel panel-appcmp-green">
-                                <div class="panel-heading">
-                                    Services : <a class="badge badge-success" id="service-nb">-</a>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-lg-2">
-                            <div class="panel panel-appcmp-blue">
-                                <div class="panel-heading">
-                                    Providers : <a class="badge badge-success" id="provider-nb">-</a>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-lg-2">
-                            <div class="panel panel-appcmp-grey">
-                                <div class="panel-heading">
-                                    Receivers : <a class="badge badge-success" id="receiver-nb">-</a>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
 
+
+                <div class="col-sm-10 col-lg-10 apptopo-vtn" id="ctn-manifest" style="display:none">
+                    <div class="row" style="padding:5px">
+                        <a class="badge badge-primary" id="ctn-manifest-save"><span class="fa fa-file"></span>&nbsp;save</a>
+                        <a class="badge badge-warning" id="ctn-manifest-restore"><span class="fa fa-refresh"></span>&nbsp;restore</a>
+                    </div>            
+                    <div class="row ctn-manifest-body">
+                            <div class="col-lg-12 first-vtn-col"  id="code-manifest"></div>
+                    </div>
+                </div>
+
+
+                <div class="col-sm-8 col-lg-8 apptopo-vtn" id="ctn-overview" style="display:none">
                     <div class="row" id="row-cmp-1" style="margin-top:20px"></div>
                 </div>
+
+
+                <div class="col-sm-8 col-lg-8 apptopo-vtn" id="ctn-activities" style="display:none">
+                   <div class="row">
+                    <div class="col-sm-8 col-lg-8 first-vtn-col">
+                        <table width="100%"  class="table table-striped table-bordered table-hover" id="dataTables-activities">
+                            <thead>
+                                <tr>
+                                    <th id="finder-col1" class="col-lg-1">-</th>
+                                    <th id="finder-col2" class="col-lg-5">Name</th>
+                                    <th id="finder-col3" class="col-lg-3">Tags</th>
+                                    <th id="finder-col4" class="col-lg-3">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="col-sm-4 col-lg-4 second-vtn-col"></div>
+
+                    </div>
                 <!-- /.col-lg-12 -->
             </div>
 
@@ -121,58 +233,75 @@
 
         </div>
         <!-- /#page-wrapper -->
-<!--
-        <div id="scannerEditModal" class="modal fade" tabindex="-1" role="dialog" style="display:none">
+
+        <div id="activityModal" class="modal fade" aria-hidden="true" tabindex="-1" role="dialog" >
             <div class="modal-dialog" role="document" style="width:70%">
               <div class="modal-content">
                 <div class="modal-header">
                   <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-                  <h4 class="modal-title">Edit a scanner</h4>
+                  <h4 class="modal-title">Activity - <span id="actModName"></span> </h4>
                 </div>
                 <div class="modal-body">
 
-                    <label for="basic-url">Id</label>
-                    <div class="input-group">
-                      <input type="text" class="form-control" id="scannerId" aria-describedby="basic-addon3">
-                    </div>
-
-                    <label for="basic-url">Name</label>
-                    <div class="input-group">
-                      <input type="text" class="form-control" id="scannerName" aria-describedby="basic-addon3">
-                    </div>
-
-                    <label for="basic-url">Description</label>
-                    <div class="input-group">
-                    <input style="width:30em" type="text" class="form-control" id="scannerDescr" aria-describedby="basic-addon3">
-                    </div>
-
                     <div class="row">
-                        <div class="col-lg-12">
-                            <b>Hooks : </b>
+                        <div class="col-lg-6">
                             <table width="100%" class="table table-striped table-bordered table-hover" id="dataTables-scannerEdit">
-                                <thead>
-                                    <tr>
-                                        <th></th>
-                                        <th>Type</th>
-                                        <th>Method</th>
-                                        <th>Status</th>
-                                    </tr>
-                                </thead>
                                 <tbody>
+                                    <tr><td>Implemented by</td><td class="col-lg-8" id="actModImplementedBy"></td></tr>
+                                    <tr><td>Tags</td><td class="col-lg-8" id="actModTags"></td></tr>
+                                    <tr><td>Intent filter</td><td class="col-lg-8" id="actModIntentFilter"></td></tr>
+                                    <tr><td>Intent sent</td><td class="col-lg-8" id="actModIntentSent"></td></tr>
                                 </tbody>
                             </table>
+                        </div>
+                        <div class="col-lg-6">
+                            <div class="panel panel-info">
+                                <div class="panel-heading">
+                                    <div class="row">
+                                        <div class="col-lg-8">
+                                            Android call signature
+                                        </div>
+                                        <div class="col-lg-4">
+                                            <a class="badge badge-danger">Threat score: 4/5</a>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="panel-body" style="padding:0px">
+                                    <table width="100%" class="table table-striped table-bordered table-hover" style="margin-bottom: 0px" id="actInternalSignatureTable">
+                                        <tbody>
+                                            <tr><td class="col-lg-8" >DexClassLoader.load</td><td class="col-lg-4 col-threat-score" style="color:orange">3/5</td></tr>
+                                            <tr><td class="col-lg-8" >Runtime.exec</td><td class="col-lg-4 col-threat-score" style="color: orangered">5/5</td></tr>
+                                        </tbody>
+                                    </table>
+                                    <div class="row"><div class="col-lg-2 col-lg-offset-5" style="text-align: center">scroll</div></div>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
                 </div>
                 <div class="modal-footer">
                   <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
-                  <button id="saveScannerBtnModal" type="button" class="btn btn-primary">Save changes</button>
                 </div>
               </div>
             </div>
           </div>
-        -->
+        
+          <<div class="modal fade" id="confirmModal" tabindex="-1" role="dialog" aria-labelledby="confirmModalLabel" aria-hidden="true">
+                <div class="modal-dialog" role="document">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h3 class="modal-title" id="confirm-title">Confirmation</h3>
+                        </div>
+                        <div class="modal-body" id="confirm-text">
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-danger" id="confirm-btn-abort" data-dismiss="modal">Abort</button>
+                            <button type="button" class="btn btn-success confirm" id="confirm-btn-ok">Confirm</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
         
     </div>
     <!-- /#wrapper -->
@@ -185,46 +314,40 @@
     <script src="/js/wexcalibur.js"></script>
     <script>
 
-    /*function setupAceEditor(id){
-        var editor = ace.edit(id);
-        editor.setTheme("ace/theme/monokai"); //
-    
-        editor.setOptions({
-            maxLines: 50, 
-            fontSize: "12pt"
-        });
-        //editor.setUseWorker(false);
-        editor.session.setMode("ace/mode/javascript");
-    }*/
-    //    setupAceEditor();
-    var IdRegister = new Wexcalibur();
-
-    /*function editorload(e){
-        var editor = ace.edit("editor");
-        editor.setTheme("dist/ace/theme/monokai");
-        editor.session.setMode("dist/ace/mode/javascript");
-        alert("loaded");
-    }
-*/
-    
-
-  
 
     function makeActivityBlock(obj){
         let i= obj.name.lastIndexOf('.');
         let package = (i>-1? DexcaliburAPI.ui.htmlEncode(obj.name.substr(0,i))+"<br>" : '');
         let an = DexcaliburAPI.ui.htmlEncode( i>-1? obj.name.substr(i+1) : obj.name );
+        let tags = "";
+        if((obj.__tag instanceof Array) && (obj.__tag.length > 0)){
+           obj.__tag.map(t => {
+                switch(t){
+                    case "MAIN":
+                        tags += DexcaliburAPI.ui.badge.make('success',t);
+                        break;
+                    /*case "BROWSABLE":
+                        tags += DexcaliburAPI.ui.badge.make('purple',t);
+                        break;
+                    case "EXPOSED":
+                        tags += DexcaliburAPI.ui.badge.make('danger',t);s
+                        break;*/
+                }
+            });
+        }
+        
+        if(tags.length==0){
+            tags = "<br>&nbsp;-";
+        }
 
         let body = `
 
         <div class="col-lg-2">
-            <div class="panel panel-appcmp-orange">
+            <div class="panel panel-appcmp-orange card-activity" activityName="${obj.name}">
                 <div class="panel-heading">
                     ${package}
                     <span class="activity-name">${an}</span>
-                </div>
-                <div class="panel-body">
-                    <spa
+                    ${tags}
                 </div>
             </div>
         </div>
@@ -241,12 +364,10 @@
         let body = `
 
         <div class="col-lg-2">
-            <div class="panel panel-appcmp-blue">
+            <div class="panel panel-appcmp-blue card-provider">
                 <div class="panel-heading">
                     ${package}
                     <span class="activity-name">${an}</span>
-                </div>
-                <div class="panel-body">
                 </div>
             </div>
         </div>
@@ -263,12 +384,10 @@
         let body = `
 
         <div class="col-lg-2">
-            <div class="panel panel-appcmp-green">
+            <div class="panel panel-appcmp-green card-service">
                 <div class="panel-heading">
                     ${package}
                     <span class="activity-name">${an}</span>
-                </div>
-                <div class="panel-body">
                 </div>
             </div>
         </div>
@@ -285,12 +404,10 @@
         let body = `
 
         <div class="col-lg-2">
-            <div class="panel panel-appcmp-grey">
+            <div class="panel panel-appcmp-grey card-receiver">
                 <div class="panel-heading">
                     ${package}
                     <span class="activity-name">${an}</span>
-                </div>
-                <div class="panel-body">
                 </div>
             </div>
         </div>
@@ -299,12 +416,6 @@
         return body;
     }
 
-    const styleProtectionLevelBadge = {
-        dangerous: "<span class='badge badge-error'>",
-        dangerous: "<span class='badge badge-error'>",
-        dangerous: "<span class='badge badge-error'>",
-        dangerous: "<span class='badge badge-error'>",
-    };
 
     function makeProtectionLevelBadge(type){
         const styles = {
@@ -317,8 +428,55 @@
         return styles[type];
     }
 
+    function prepareActivityModal(activity){
+        //$("#actMod")
+        console.log(DexcaliburAPI.search.makeClassLink(activity.__impl));
+        $("#actModImplementedBy").html(
+            DexcaliburAPI.search.makeClassLink(activity.__impl)
+        );
+        
+        activity.__tag.map(t => {
+            $("#actModTags").append(DexcaliburAPI.ui.badge.make('success',t));    
+        });
+
+        $("#actModName").html(DexcaliburAPI.ui.htmlEncode(activity.name));
+    }
+
    
     $(document).ready(function() {
+
+        DexcaliburAPI.manifest.getContent({
+            200: function(data){
+
+                let d = JSON.parse(data);
+                let body = "";
+                d = d.data.split("\n");
+                d.map(x => {
+                    //console.log(x);
+                    //if(x[0]=='<') body += "\t";
+                    body += DexcaliburAPI.ui.htmlEncode(x)+"\n";
+                });
+
+                $("#code-manifest").html(body);
+                DexcaliburAPI.editor.newCodeEditor("code-manifest","ace/mode/xml");
+                //setupAceEditor("code-manifest");
+            }
+        });
+
+        $("#ctn-manifest-save").click(x => {
+
+            let data = DexcaliburAPI.editor.getContentOf("code-manifest");
+            
+            $("#confirm-text").html("Are you sure to save changes ?");
+            $("#confirm-btn-ok").click(function(a){
+                DexcaliburAPI.manifest.updateContent(data,{
+                    200: function(x){
+                        alert("Manifest saved");
+                    }
+                });
+            });
+            $("#confirmModal").modal();
+        });
 
         DexcaliburAPI.manifest.permissions.list({
             200: function(data){
@@ -372,7 +530,7 @@
                 let act = JSON.parse(data);       
 
                 act.data.map(x=>{
-                    $('#row-cmp-1').append(makeProviderBlock(x));
+                //    $('#row-cmp-1').append(makeProviderBlock(x));
                 });
                 $('#provider-nb').html(act.data.length);
             }
@@ -384,7 +542,7 @@
                 let act = JSON.parse(data);       
 
                 act.data.map(x=>{
-                    $('#row-cmp-1').append(makeServiceBlock(x));
+                //    $('#row-cmp-1').append(makeServiceBlock(x));
                 });
                 $('#service-nb').html(act.data.length);
             }
@@ -396,7 +554,7 @@
                 let act = JSON.parse(data);       
 
                 act.data.map(x=>{
-                    $('#row-cmp-1').append(makeReceiverBlock(x));
+                //    $('#row-cmp-1').append(makeReceiverBlock(x));
                 });
                 $('#receiver-nb').html(act.data.length);
             }
@@ -406,14 +564,50 @@
             $('[data-toggle="tooltip"]').tooltip()
         });
 
-        let clsTable = $('#dataTables-scanner').DataTable({
+        $("#row-cmp-1").on('click','.card-activity',function(x){
+            DexcaliburAPI.manifest.activities.get(
+                x.currentTarget.getAttribute("activityName"), {
+                200: function(data){
+                    let act = JSON.parse(data);
+                    prepareActivityModal(act.data);
+                    $('#activityModal').modal();
+                }
+            });
+        });
+
+        // Menu inlighting (active button)
+        var ApptoVmenuActive = {
+            menu: null,
+            ctn: "landing"
+        };
+
+        $('.apptopo-vmenu > ul > li').click(x => {
+ 
+
+            $('#'+ApptoVmenuActive.ctn).css("display","none");
+            if(ApptoVmenuActive.menu != null){
+                $('#'+ApptoVmenuActive.menu).removeClass("active");
+            }
+
+            ApptoVmenuActive.menu = x.currentTarget.attributes.id.nodeValue;
+            ApptoVmenuActive.ctn = "ctn-"+ApptoVmenuActive.menu.substr(6);
+
+            $('#'+ApptoVmenuActive.menu).addClass("active");
+            $('#'+ApptoVmenuActive.ctn).css('display','block');
+            
+        });
+
+
+
+
+        let actTable = $('#dataTables-activities').DataTable({
             
             paging:   false,
             ordering: false,
             info:     false,
             searching: false,
 
-            ajax: "../api/scanner",
+            ajax: DexcaliburAPI.manifest.activities.URI.list,
             columns: [
                 {
                     "className":      'details-control',
@@ -423,14 +617,17 @@
                 },
                 //{   data: 'type'  },
                 {   data: 'name'  },
-                {   data: 'description' },
                 {  
                     render: function(data, type, row, meta){
-                        if(row.enable){
-                            body = '<a  class="badge badge-success">enable</a>'; 
-                        }else{
-                            body = '<a  class="badge badge-secondary">disable</a>'; 
-                        }
+                        let body = "";
+                        row.__tag.map(x => {
+                            switch(x){
+                                case "MAIN":
+                                    body += DexcaliburAPI.ui.badge.make('success',x);
+                                    break;
+                            }
+                        });
+
                         return body;
                     }
                 },
@@ -517,225 +714,12 @@
             })
         } );
 
-        $(".runscan").click(function(e){
-            console.log(e,this);
-//            $("#scannerEditModal").modal();
-        });
-
-        $(".refreshscanner").click(function(){
-            clsTable.ajax.reload();
-            $(function () {
-                $('[data-toggle="tooltip"]').tooltip()
-            });
-  //          $("#scannerEditModal").modal();
-        });
-
-        $("#newScanner").click(function(){
-            $("#scannerEditModal").modal();
-        });
-
-        $("#saveScannerBtnModal").click(function(){
-            // $("#scannerEditModal").css("display","hidden");
-            $("#scannerEditModal").modal();
-        });
 
         //dmTable.ajax.url("../api/device").load();
         $('#dm-refresh-btn').click(()=>{
             clsTable.ajax.reload();
         });
     });
-
-    // graph 
-   /*
-   var w = 600,
-        h = 400,
-        node,
-        link,
-        root;
-
-    var force = d3.layout.force()
-        .on("tick", tick)
- //       .charge(function(d) { return d._children ? -d.size / 100 : -30; })
-
-        .charge(function(d) { return d._children ? -d.size / 100 : -100; })
-        .linkDistance(function(d) { return d.target._children ? 80 : 30; })
-        .size([w, h - 160]);
-
-    var vis = d3.select("#d3graph").append("svg:svg")
-        .attr("width", w)
-        .attr("height", h);
-
-    d3.json("flare.json", function(json) {
-
-        json = {
-            name: "security features",
-            children: [
-                {
-                    name: "SSL Pining",
-                    children: [
-                        {
-                            name: "Certificate",
-                            size: 30000,
-                        },
-                        {
-                            name: "SslFactory",
-                            size: 30000,
-                        },
-                        {
-                            name: "Keystore",
-                            size: 3000030000,
-                            children: [
-                                {
-                                    name: "Android",
-                                    size: 30000,
-                                },
-                                {
-                                    name: "Bouncy Castle",
-                                    size: 30000,
-                                },
-                                {
-                                    name: "Embedded",
-                                    size: 30000,
-                                }
-                            ]
-                        },
-                    ]
-                },{
-                    name: "Root detection",
-                    children: [
-                        {
-                            name: "Exec",
-                            size: 30000,
-                        },
-                        {
-                            name: "Filesystem check",
-                            size: 30000,
-                        },
-                        {
-                            name: "PackageManager",
-                            size: 30000
-                        },
-                    ]
-                }
-            ]
-        
-        }   
-        
-        root = json;
-        root.fixed = true;
-        root.x = w / 2;
-        root.y = h / 2 - 80;
-        update();
-    });
-
-    function update() {
-    var nodes = flatten(root),
-        links = d3.layout.tree().links(nodes);
-
-    // Restart the force layout.
-    force
-        .nodes(nodes)
-        .links(links)
-        .start();
-
-    var node_mouseover = function(d) {
-        //console.log(vis);
-        console.log(d,vis);
-        vis.text.attr('transform', 'translate(' + d.x + ',' + (d.y - 5 - (d.children ? 3.5 : Math.sqrt(d.size) / 2)) + ')')
-        .text(d.name)
-        .style('display', null);
-    };
-
-    var node_mouseout = function(d) {
-        vis.text.style('display', 'none');
-    }
-
-
-    // Update the links…
-    link = vis.selectAll("line.link")
-        .data(links, function(d) { return d.target.id; });
-
-    // Enter any new links.
-    link.enter().insert("svg:line", ".node")
-        .attr("class", "link")
-        .attr("x1", function(d) { return d.source.x; })
-        .attr("y1", function(d) { return d.source.y; })
-        .attr("x2", function(d) { return d.target.x; })
-        .attr("y2", function(d) { return d.target.y; });
-
-    // Exit any old links.
-    link.exit().remove();
-
-    // Update the nodes…
-    node = vis.selectAll("circle.node")
-        .data(nodes, function(d) { return d.id; })
-        .on("mouseover", node_mouseover)
-        .on("mouseout", node_mouseout)
-        .style("fill", color);
-
-
-    node.transition()
-        .attr("r", function(d) { return d.children ? 4.5 : Math.sqrt(d.size) / 10; });
-
-    // Enter any new nodes.
-    node.enter().append("svg:circle")
-        .attr("class", "node")
-        .attr("cx", function(d) { return d.x; })
-        .attr("cy", function(d) { return d.y; })
-        .attr("r", function(d) { return d.children ? 4.5 : Math.sqrt(d.size) / 10; })
-        .style("fill", color)
-        .on("click", click)
-        .call(force.drag);
-
-    // Exit any old nodes.
-    node.exit().remove();
-    }
-
-    function tick() {
-    link.attr("x1", function(d) { return d.source.x; })
-        .attr("y1", function(d) { return d.source.y; })
-        .attr("x2", function(d) { return d.target.x; })
-        .attr("y2", function(d) { return d.target.y; });
-
-    node.attr("cx", function(d) { return d.x; })
-        .attr("cy", function(d) { return d.y; });
-    }
-
-    // Color leaf nodes orange, and packages white or blue.
-    function color(d) {
-        console.log(d);
-        if(d.fixed) return "#000";
-    return d._children ? "#3182bd" : d.children ? "#c6dbef" : "#fd8d3c";
-    }
-
-    // Toggle children on click.
-    function click(d) {
-    if (d.children) {
-        d._children = d.children;
-        d.children = null;
-    } else {
-        d.children = d._children;
-        d._children = null;
-    }
-    update();
-    }
-
-    // Returns a list of all nodes under the root.
-    function flatten(root) {
-        var nodes = [], i = 0;
-
-        function recurse(node) {
-            if (node.children) node.size = node.children.reduce(function(p, v) { return p + recurse(v); }, 0);
-            if (!node.id) node.id = ++i;
-            nodes.push(node);
-            return node.size;
-        }
-
-        root.size = recurse(root);
-        return nodes;
-    }   
-
-    */
 
     </script>
 </body>
