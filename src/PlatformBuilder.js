@@ -68,7 +68,7 @@ PlatformBuilder.prototype.getAndroidClasses = function(api_version){
     ret = UT.execSync("cp "+apiPath+" "+dstPath+".jar");
     console.log(ret);
 
-    fs.mkdirSync(dstPath.substr(0,dstPath-4)+"/")
+    fs.mkdirSync(dstPath.substr(0,dstPath-4)+"/", {recursive: true})
 
     Logger.info("Extracting platform class files ...")
     ret = UT.execSync("unzip "+apiPath+".jar "+dstPath);
