@@ -247,6 +247,7 @@ Project.prototype.scan = function(path){
     }else{
 //        let dexPath = this.workspace.getWD()+"dex";
         let dexPath = Path.join(this.workspace.getWD(),"dex");
+        fs.mkdirSync(dexPath, {recursive: true});
         console.log( Chalk.yellow("Scanning default path : "+dexPath));
         this.analyze.path( dexPath);
         this.dataAnalyser.scan( dexPath);
