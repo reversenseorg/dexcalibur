@@ -526,6 +526,8 @@ class ProtectionLevel
     static SIGNATURE = new ProtectionLevel({ name:"signature" });
     static SPECIAL = new ProtectionLevel({ name:"special" });
     static DANGEROUS = new ProtectionLevel({ name:"dangerous" });
+    static PRIVILEGED = new ProtectionLevel({ name:"privileged" });
+    static DEVELOPMENT = new ProtectionLevel({ name:"development" });
 
     constructor(config=null){
         this.name = null;
@@ -546,6 +548,9 @@ class Permission
         this.name = null;
         this.permissionGroup = null;
         this.protectionLevel = null;
+        this.apiVersion = 1;
+        this.controls = null;
+        this.query = null;
 
         this.__custom = false;
         this.__tag = [];
@@ -605,6 +610,10 @@ class Permission
         o.name = this.name;
         o.label = this.label;
         o.description = this.description;
+        o.apiVersion = this.apiVersion;
+        o.controls = this.controls;
+        o.query = this.query;
+
 
         if(this.permissionGroup != null)
             o.permissionGroup = this.permissionGroup.name;
@@ -612,9 +621,15 @@ class Permission
             o.permissionGroup = null;
 
         
-        if(this.protectionLevel != null)
-            o.protectionLevel = this.protectionLevel.name;
-        else
+        if(this.protectionLevel != null){
+            if(this.protectionLevel instanceof Array){
+                o.protectionLevel = [];
+                for(let i=0; i<o.protectionLevel.length; i++){
+                    o.protectionLevel.push(this.protectionLevel[i].name);
+                }
+            }else
+                o.protectionLevel = this.protectionLevel.name;
+        }else
             o.protectionLevel = null;
 
         return o;

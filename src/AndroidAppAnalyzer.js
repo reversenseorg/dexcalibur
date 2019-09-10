@@ -29,6 +29,10 @@ class AndroidAppAnalyzer
 		return _fs_.readFileSync(this.manifestPath).toString();
 	}
 
+	updateManifest(data){
+		this.manifestCode = data;
+	}
+
     /**
      * To import an Android manifest from he given path
      * @param {String} path Path to the manifest

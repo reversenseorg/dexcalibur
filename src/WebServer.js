@@ -728,6 +728,16 @@ class WebServer {
                     data: $.project.getAppAnalyzer().dumpManifest()
                 };
                 res.status(200).send(JSON.stringify(dev));
+            })
+            .put(function(req,res){
+                // collect
+
+                let newCode = req.body['code[]'].join("\n");
+                //hook.script = newCode;
+                $.project.getAppAnalyzer().updateManifest(newCode);
+
+                let dev = {};
+                res.status(200).send(JSON.stringify(dev));
             });
 
         this.app.route('/api/manifest/activities')
@@ -789,6 +799,18 @@ class WebServer {
                     data: $.project.find.permission().toJsonObject()
                 };
                 res.status(200).send(JSON.stringify(dev));
+            });
+
+        this.app.route('/api/manifest/permission/:id')
+            .get(function(req,res){
+                let id =  UT.b64_decode(req.params.id);
+                // collect
+                let dev = {
+                    data: $.project.find.permission("name:"+UT.RegExpEscape(id)).toJsonObject()
+                };
+
+                res.set('Content-Type', 'text/json');
+                res.status(200).send(JSON.stringify(dev.data[0]));
             });
 
         this.app.route('/api/field/:id')

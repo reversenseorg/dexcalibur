@@ -388,6 +388,9 @@
          
         if(row.fields != null){
             for(let i in row.fields){
+
+                //missing = (row.fields[i].tags.indexOf("missing")>-1)? ' style="color:#F00"' : ''; 
+
                 body += '<tr><td>'+
                     //'<td><a  class="badge badge-secondary probe" field="'+btoa(encodeURIComponent(row.fields[i].__signature__))+'">Probe OFF</a>&nbsp;&nbsp;'+
                     //'<a class="badge badge-secondary" onclick="intercept(\''+btoa(encodeURIComponent(row.fields[i].__signature__))+'\')">Intercept</a>'+
@@ -403,7 +406,12 @@
                 if(row.fields[i].alias != null){
                     body += '<b>'+htmlEncode(row.fields[i].alias)+'</b>&nbsp;';
                 }
-                body += '<a target="about" href="finder.html?field='+btoa(encodeURIComponent(row.fields[i].__signature__))+'">'+htmlEncode(row.fields[i].__signature__)+'</a></td></tr>';
+
+                body += '<a target="about" href="finder.html?field='+btoa(encodeURIComponent(row.fields[i].__signature__))+'">'+htmlEncode(row.fields[i].__signature__);
+                
+                if(row.fields[i].__inherit === true) body += "&nbsp;"+DexcaliburAPI.ui.badge.make('inherited',t);
+
+                body += '</a></td></tr>';
             }
         }
 
@@ -1016,15 +1024,17 @@
                     },
                     {   
                         render: function(data, type, row, meta ){
+                            let color = (row.tags.indexOf("missing")>-1)? ' style="color:#F00"' : ''; 
+                            
                             let b = "";
                             if(row.alias != null){
-                                b = '<b>'+htmlEncode(row.alias)+'</b>&nbsp;<i class="secondary-text">'+htmlEncode(row.name)+'</i>';
+                                b = '<b '+color+'>'+htmlEncode(row.alias)+'</b>&nbsp;<i class="secondary-text">'+htmlEncode(row.name)+'</i>';
                             }
                             else if(row.name != null){
                                 if(row.name.lastIndexOf("$")>row.name.lastIndexOf('.')){
-                                    b = row.name.substr(row.name.lastIndexOf('.')+1);
+                                    b = '<span '+color+'>'+row.name.substr(row.name.lastIndexOf('.')+1)+'</span>';
                                 }else{
-                                    b = row.simpleName;
+                                    b = '<span '+color+'>'+row.simpleName+'</span>';
                                 }
                             }else{
                                 console.log("Unable to render Class : "+row);
@@ -1087,7 +1097,8 @@
                     },
                     {  
                         render: function(data, type, row, meta ){
-                            let b= '<span meth='+btoa(encodeURIComponent(row.__signature__))+'>'+(row.alias!=null? '<b>'+htmlEncode(row.alias)+'</b><br>&nbsp;<i class="secondary-text">'+htmlEncode(row.__signature__)+'</i>':'&nbsp;'+htmlEncode(row.__callSignature__))+'</span>';
+                            let color = (row.tags.indexOf("missing")>-1)? ' style="color:#F00"' : ''; 
+                            let b= '<span meth="'+btoa(encodeURIComponent(row.__signature__))+'"'+color+' >'+(row.alias!=null? '<b>'+htmlEncode(row.alias)+'</b><br>&nbsp;<i class="secondary-text">'+htmlEncode(row.__signature__)+'</i>':'&nbsp;'+htmlEncode(row.__callSignature__))+'</span>';
                             
                             if(row.tags.indexOf("dd") > -1){
                                 b += BS.badge(
@@ -1150,7 +1161,9 @@
                     },
                     {  
                         render: function(data, type, row, meta ){
-                            return (row.alias!=null? '<b>'+htmlEncode(row.alias)+'</b>&nbsp;':'&nbsp;')+htmlEncode(row.__signature__);
+
+                            let color = (row.tags.indexOf("missing")>-1)? ' style="color:#F00"' : ''; 
+                            return '<span '+color+'>'+((row.alias!=null? '<b>'+htmlEncode(row.alias)+'</b>&nbsp;':'&nbsp;')+htmlEncode(row.name))+'</span>';
                         }
                     },
                     {   
