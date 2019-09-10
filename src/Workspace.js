@@ -59,7 +59,7 @@ Workspace.prototype._import = function(stub){
  * @function
  */
 Workspace.prototype.mkWDir = function(dirName){
-    fs.mkdirSync(Path.join(this.getWD(),dirName));
+    fs.mkdirSync(Path.join(this.getWD(),dirName), {recursive: true});
 };
 
 
@@ -125,7 +125,7 @@ Workspace.prototype.clean = function(){
  */
 Workspace.prototype.init = function(){
     if(!fs.existsSync(this.getWD())){
-        fs.mkdirSync(this.getWD());
+        fs.mkdirSync(this.getWD(), {recursive: true});
     }    
     if(!fs.existsSync(Path.join(this.getWD(),DIR_NAME.SAVE))){
         this.mkWDir(DIR_NAME.SAVE+"/");

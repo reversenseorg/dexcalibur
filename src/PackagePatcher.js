@@ -30,8 +30,8 @@ class PackagePatcher {
 
         var projectDir = Path.join(this.config.workspacePath, packageIdentifier);
         
-        fs.mkdirSync(projectDir);
-        fs.mkdirSync(dstPath);
+        fs.mkdirSync(projectDir, {recursive: true});
+        fs.mkdirSync(dstPath, {recursive: true});
 
         var pathResult = this.Bridges.ADB.getPackagePath(packageIdentifier);
         this.Bridges.ADB.pull(pathResult, tmpPath);

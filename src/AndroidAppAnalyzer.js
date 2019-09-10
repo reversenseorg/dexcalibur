@@ -1,5 +1,5 @@
 const _fs_  = require("fs");
-const _Chalk_ = require("Chalk");
+const _Chalk_ = require("chalk");
 
 const _xml2js_ = require("xml2js");
 
