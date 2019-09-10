@@ -243,7 +243,7 @@ class SmaliParser
         this.obj._hashcode = this.obj.hashCode();
 
         LOG.DEBUG("[parser::class] End\n---------------------------------------------");
-        //return obj;
+        return this.obj;
     }
 
 
@@ -364,6 +364,7 @@ class SmaliParser
 
         // parse value if available
         if(src_arr.length>0){
+            // TODO : parse value
             f.value = src_arr.pop();
         }
         return f;

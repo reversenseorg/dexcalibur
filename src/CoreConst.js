@@ -134,11 +134,12 @@ var CONST = {
         Format51l: 0x15
     },
     OPCODE_TYPE: {
-        CAN_CONTINUE: 0,
-        CAN_THROW: 1,
-        CAN_INITIALIZE_REFERENCE: 2,
-        SETS_REGISTER: 3,
-        SETS_WIDE_REGISTER: 4
+        CAN_CONTINUE: 1, // 0
+        CAN_THROW: 2, // 1
+        CAN_INITIALIZE_REFERENCE: 4, // 2
+        SETS_REGISTER: 8, // 3
+        SETS_WIDE_REGISTER: 16, // 4
+        STATIC_CALL: 32 
     },
     CASE_TYPE: {
         PACKED: 0x1,
@@ -225,8 +226,9 @@ CONST.TAG = {
     STRING: "string",
     STRING_DECL: "strdecl",
     ARRAY: "array",
-    LITTERAL: "litteral"
-}
+    LITTERAL: "litteral",
+    MISSING: "missing"
+};
 
 
 

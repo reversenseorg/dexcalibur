@@ -37,107 +37,121 @@ var STATS = {
     fieldCalls: 0
 };
 
-// NEED : generic field signature equals
-function superField2(field, cls){
-
-    for(let i in cls.fields){
-        if(cls.fields[i].name===field.name){
-            if(cls.fields[i]._isBinding===true){
-                cls.fields[i].declaringClass = cls.fields[i].enclosingClass;
-                cls.fields[i].enclosingClass = cls;
-                return cls.fields[i];
-            }else if(cls.fields[i].modifiers.isNotPrivate()){ 
-                cls.fields[i].declaringClass = cls.fields[i].enclosingClass;
-                cls.fields[i].enclosingClass = cls;
-                return cls.fields[i];
+function resolveInheritedField(fieldRef, parentClass){
+    for(let i in parentClass.fields){
+        if(parentClass.fields[i].name===fieldRef.name){
+            if(parentClass.fields[i].tags.indexOf('missing')>-1){
+                return parentClass.fields[i];
             }
-        } 
-             
+
+            if(parentClass.fields[i].modifiers.isNotPrivate()){ 
+                parentClass.fields[i].declaringClass = parentClass.fields[i].enclosingClass;
+                parentClass.fields[i].enclosingClass = parentClass;
+                return parentClass.fields[i];
+            }
+        }  
     }
 
-    if(cls._isBinding === true){
-        return VM.getBinding(field,cls.fqcn);
-    }
-    else if(cls.extends instanceof CLASS.Class){
-        return superField2(field, cls.extends);
+    if(parentClass.extends instanceof CLASS.Class){
+        return resolveInheritedField(fieldRef, parentClass.extends);
     }else
-        return null; 
-}
-
-function superMethod(meth, cls){
-    /*if(cls === undefined){
-        console.log(cls);
         return null;
-    }*/
-    for(let i in cls.methods){
-        //console.log(Chalk.bold.red(cls.methods[i].callSignature(),meth.callSignature()));
-        if(cls.methods[i].callSignature() === meth.callSignature()){
-            if(cls.methods[i]._isBinding===true){
-                cls.methods[i].declaringClass = cls.methods[i].enclosingClass;
-                cls.methods[i].enclosingClass = cls;
-                //return cls.methods[i];
-                return { binding:true, found:true, ref:cls.methods[i] };
-            }else if(cls.methods[i].modifiers.isNotPrivate()){ 
-                cls.methods[i].declaringClass = cls.methods[i].enclosingClass;
-                cls.methods[i].enclosingClass = cls;
-                //return cls.methods[i];
-                return { binding:false, found:true, ref:cls.methods[i] };
+}
+
+
+
+function resolveInheritedMethod(methodRef, parentClass){
+    for(let i in parentClass.methods){
+        if(parentClass.methods[i].name===methodRef.name){
+            if(parentClass.methods[i].tags.indexOf('missing')>-1){
+                return parentClass.methods[i];
             }
-        } 
-             
+
+            if(parentClass.methods[i].modifiers.isNotPrivate()){ 
+                parentClass.methods[i].declaringClass = parentClass.methods[i].enclosingClass;
+                parentClass.methods[i].enclosingClass = parentClass;
+                return parentClass.methods[i];
+            }
+        }  
     }
 
-    //console.log("["+cls.fqcn+"] Scan super ",cls);
-    // during class mapping, binding of superclass should be
-    // detected
-    if(cls._isBinding === true){
-        //console.log("["+cls.fqcn+"] Super binding");
-        //return VM.getBinding(meth,cls.fqcn);
-        return { binding:true, found:false, ref:VM.getBinding(meth,cls.fqcn) };
-    }
-    else if(cls.extends instanceof CLASS.Class){
-        return superMethod(meth, cls.extends);
+    if(parentClass.extends instanceof CLASS.Class){
+        return resolveInheritedMethod(methodRef, parentClass.extends);
     }else
-        return null; 
+        return null;
 }
 
 
-function superInterfaceMethod(meth, interfaces){
-    
-    // console.log("[SEARCH INTERFACE FOR]",meth.signature());
+/**
+ * 
+ * @param {String} fqcn FQCN of the missing class    
+ * @param {InMemoryDB} internalDB an instance of the internal DB 
+ */
+function createMissingClass(fqcn,internalDB){
+    // create a class instance from the FQCN value
+    let missingCls = SmaliParser.class("L"+fqcn+" ");
+    let pkg = null;
 
-    let imeth = null, ret = null;
+    // tag the class instance "missing"
+    missingCls.setupMissingTag();
 
-    for(let j in interfaces){
-        ret = null;
+    // update the internal DB
+    internalDB.classes.setEntry(fqcn, missingCls);
+    internalDB.missing.insert(missingCls);
 
-        for(let i in interfaces[j].methods){
-            imeth = interfaces[j].methods[i];
-            
-
-            // console.log("> INTERFACE >",imeth.callSignature(),meth.callSignature());
-            if(imeth.callSignature() === meth.callSignature()){
-                
-                // new implementation of a function is like a derivation of the Method
-                return imeth.newImplementationBy(meth.enclosingClass);
-            } 
+    // update package
+    if(missingCls.getPackage() !== null){
+        pkg = internalDB.packages.getEntry(pkg);
+        if(!(pkg instanceof CLASS.Package)){
+            pkg = new CLASS.Package(missingCls.getPackage());
+            internalDB.packages.setEntry(pkg.name,pkg);
         }
-    
-        // during class mapping, binding of superclass should be
-        // detected
-        if(interfaces[j]._isBinding === true){
-            ret = VM.getBinding(meth,cls.fqcn);
-        }
-        else if(interfaces[j].implements.length > 0){
-            ret = superInterfaceMethod(meth, interfaces[j].implements);
-        }
-  
-        if(ret != null) return ret;
+
+        missingCls.setPackage(pkg);
+        pkg.childAppend(missingCls);
     }
 
-    return null; 
+    return missingCls;
 }
 
+function createMissingField(fieldReference, enclosingClass, internalDB, modifiers={public: true}){
+    let missingField = fieldReference.toField();
+
+    missingField.setupMissingTag();
+
+    missingField.enclosingClass = enclosingClass;
+    missingField.modifiers = new CLASS.Modifiers(modifiers);
+
+    enclosingClass.fields[missingField.signature()] = missingField;
+
+
+    internalDB.fields.setEntry(missingField.signature(), missingField);
+    internalDB.missing.insert(missingField);
+
+
+    return missingField;
+}
+
+
+function createMissingMethod(methodRef, enclosingClass, internalDB, modifiers={public: true}){
+    let missingMeth = methodRef.toMethod();
+
+    //console.log(enclosingClass.name,missingMeth);
+
+    missingMeth.setupMissingTag();
+
+    missingMeth.enclosingClass = enclosingClass;
+    missingMeth.modifiers = new CLASS.Modifiers(modifiers);
+
+    enclosingClass.methods[missingMeth.signature()] = missingMeth;
+
+
+    internalDB.methods.setEntry(missingMeth.signature(), missingMeth);
+    internalDB.missing.insert(missingMeth);
+
+
+    return missingMeth;
+}
 
 
 var Resolver = {
@@ -151,248 +165,97 @@ var Resolver = {
                 return db.classes.getEntry(fqcn);
         }
         
-        //console.log("Resolver::type : ",fqcn);
-        if(VM.hasBinding(fqcn)){
-
-            //console.log("[SOLVER::TYPE] Binding >"+fqcn);
-            return VM.getBindingFromFQCN(fqcn);
-        }else{
-
-            let ref = new CLASS.MissingReference(
-                CONST.OPCODE_REFTYPE.TYPE, 
-                SmaliParser.class(fqcn));
-            
-            db.classes.setEntry(fqcn, ref);
-            
-            //db.notloaded.push(ref);
-            db.missing.insert(ref);
-        
-            return ref;
-        }
+        // unresolvable class are created as classic Class node but are tagged "MISSING"
+        return createMissingClass(fqcn, db);
     },
     field: function(db, fieldRef){
 
-        let field = null;
+        let field = db.fields.getEntry(fieldRef.signature());
+
+        if(field instanceof CLASS.Field){
+           return field;
+        }
+
+        //  if the field is not indexed, its enclosingClass is explored
         let cls=db.classes.getEntry(fieldRef.fqcn);
-        let notmissing = !(cls instanceof CLASS.MissingReference);
 
-        //console.log(fieldRef.fqcn,fieldRef.signature());
+        // if enclosingClass not exists, create it
+        if(cls == null){
+            cls = createMissingClass(fieldRef.fqcn, db);
+            return createMissingField( fieldRef, cls, db);
+            //field = createMissingField(field, cls, db);
+        }
 
-        // test if the class definition has been found,
-        // or binded class has been detected
-        if(notmissing && cls !== undefined){
+        // MissingReference type is deprecated, so this case should never been trigged
+        if(cls instanceof CLASS.MissingReference){
+            console.error("MissingReference detected");
+        }
 
-            field = db.classes.getEntry(fieldRef.fqcn).fields[fieldRef.signature()];
+        field = cls.fields[fieldRef.signature()];
+        
+        if(field instanceof CLASS.Field){
+            return field;
+        }
+
+
+        // 2. else, if the class has super class, search inherit field
+        if(cls.extends !== null){ 
+            field = resolveInheritedField(fieldRef, cls.extends);
             
-            // if field is found
             if(field instanceof CLASS.Field){
-                //console.log("DB field "+n+" found");
-                return field;
-            }
-
-            // else, if it is an internal class, give the field
-            if(cls._isBinding==true){
-                //console.log("Enter in binding");
-                field=VM.getBinding(fieldRef);
-                 if(field!==null){
-                     if(field.enclosingClass == null) 
-                        field.enclosingClass = cls;
-                     //console.log("Binding found : ",cls.fqcn);
-                     return field;
-                 }
-            }
-
-            // else, if the class has super class, search inherit field
-            if(field===null && cls.extends !== [] && !(cls instanceof CLASS.MissingReference)){ 
-                //console.log("Enter in Extends");
-                /*
-                if(cls._isBinding==true){
-                    x=VM.getBinding(fieldRef);
-                    console.log(x);
-                    if(x!==null) return x;
-                }*/
-                //console.log(cls);
-                field=superField2(fieldRef, cls.extends);
-                if(field!==null){
-                    //console.log("Class existing, but search extends : ",fieldRef);
-                    //console.log("["+cls.fqcn+"] Extended field '"+x.name+"' found");
-                    return field;
-                }
-            }
-
-            //console.log("Missing ? ",n);
-            // else, create a MissingReference,
-            // it is very common if control flow is obfuscted
-            // and if custom class loaders are loaded 
-            // while runtime (just in time)
-        }
-        else if(notmissing && VM.hasBinding(fieldRef.fqcn)){
-            // if it is a field from an internal class 
-            // and if the class has never been call
-            //console.log("Entering in binding");
-            
-            field = VM.getBinding(fieldRef);
-            //console.log("[BINDING] "+fieldRef.fqcn+";->"+fieldRef.name, (x instanceof CLASS.Field));
-            if(field!==null){
-                //console.log("VM : ",fieldRef);
+                cls.addInheritedField(fieldRef, field);
+                db.fields.setEntry(fieldRef, field);
+                
                 return field;
             }
         }
- 
-        // if class is missing, create it 
-        if(!notmissing){
-            //console.log("Missing class : "+fieldRef.fqcn);
-            db.classes.setEntry(fieldRef.fqcn, cls = new CLASS.MissingReference(
-                CONST.OPCODE_REFTYPE.CLASS, 
-                new CLASS.Class({
-                    name: fieldRef.fqcn,
-                    simpleName: fieldRef.fqcn.substr(fieldRef.fqcn.lastIndexOf("."))
-                })));
-        }
 
-        //console.log("MissingRef "+fieldRef.fqcn+"."+fieldRef.name);
-        // MissingReference can be solved by HookingEngine at runtime
-        let mref = new CLASS.MissingReference(
-            CONST.OPCODE_REFTYPE.FIELD, 
-            fieldRef.toField(),cls);
+        // Finally if reference is unsolvable, the a mock field is created and tagged "missing"        
 
-            
-        //console.log("[SOLVER::FIELD] "+fieldRef.fqcn+";->"+fieldRef.name+" Missing reference");
-
-        // all MissingReference are indexed in a dedicated array
-        // the HookingEngine will try to resolve it when additonal
-        // custom class loaders will be load.
-        // db.notloaded.push(mref);
-        db.missing.insert(mref);
-        
-        return mref;
+        return createMissingField( fieldRef, cls, db);
     },
-    method: function(db, methRef){
+    method: function(db, methRef, isStaticCall){
 
+        let meth = db.methods.getEntry(methRef.signature());
 
+        // 1. search into indexed method 
+        if(meth instanceof CLASS.Method){
+            return meth;
+        }
+        
+        // 2. else, search into inherited method
         let cls=db.classes.getEntry(methRef.fqcn);
-        let meth=null, x=null;
-        let notmissing = !(cls instanceof CLASS.MissingReference);
 
+        let signature = methRef.signature();
 
-        if(notmissing && cls !== undefined){
-
-            method = cls.methods[methRef.signature()];
-            
-            // differencier interface/class pour <init> et <clinit>
-
-            // id the method definition is accessible
-            if(method instanceof CLASS.Method)
-                return method;
-            /*
-            if(methRef.fqcn.indexOf("StringBuilder")>-1){
-                console.log(methRef.signature());
-            }*/
-
-            // else, if the enclosing class is binded (java class, etc..)
-            if(cls._isBinding==true){
-                //console.log(Chalk.bold.red("is_binding : "+methRef.signature()));
-                x=VM.getBinding(methRef);
-                if(x!==null){ 
-                    x.enclosingClass = cls;
-                    return x;
-                }
-            }
-
-           // else, if the class has super class, search inherit field
-           if(x===null && cls.extends != null && !(cls instanceof CLASS.MissingReference)){
-               x=superMethod(methRef, cls.extends);
-               
-               /*if(x !== undefined && x !== null && x.enclosingClass.name.indexOf("lang.Object")>-1){ 
-                    console.log("Resolver::method (1) ", methRef.signature(),x);
-               }*/
-               
-               if(x!==null){
-                   // create the ovrrided
-                   cls.addInheritedMethod(methRef.signature(), x.ref); 
-
-                   //if(x.binding === false && x.found === true){
-
-                       //if( method.inherit(x.ref.signature())
-                   //}
-                   //console.log("["+cls.fqcn+"] Extended field '"+x.name+"' found");
-                   // x.enclosingClass = cls;
-                   return x.ref;
-               }else{
-                   //console.log("Resolver::method (2) ", methRef.signature());
-                   /*for(let i in db.classes[methRef.fqcn].methods){
-                       console.log("(2)",i);
-                   }*/
-               }
-           }
-           
-            // search for interface
-            if(x===null && cls.implements != null && !(cls instanceof CLASS.MissingReference)){
-                x=superInterfaceMethod(methRef, cls.implements);
-                                
-                if(x!==null){
-                    //console.log("["+cls.fqcn+"] Extended field '"+x.name+"' found");
-                    // x.enclosingClass = cls;
-                    return x;
-                }else{
-                    //console.log("Resolver::method (2) ", methRef.signature());
-                    /*for(let i in db.classes[methRef.fqcn].methods){
-                        console.log("(2)",i);
-                    }*/
-                }
-            }
-            missing = true;
+        if(cls == null){
+            cls = createMissingClass(methRef.fqcn, db);
+            return createMissingMethod(methRef, cls, db, {
+                public: true,
+                static: isStaticCall
+            });
         }
-        else if(VM.hasBinding(methRef.fqcn)){
-            // if it is a field from an internal class 
-            // and if the class has never been call
-            let x=null;
-            //if(methRef.name.indexOf("Library")>-1) console.log(methRef);
-            x = VM.getBinding(methRef);
 
-            //if(methRef.name.indexOf("Library")>-1)
-            //    console.log("[BINDING] "+methRef.fqcn+";->"+methRef.name, x.name);
+        // 2. else, search into inherited method
+        if(cls instanceof CLASS.Class){
+            if(cls.extends instanceof CLASS.Class){
+                meth = resolveInheritedMethod(methRef, cls.extends);
     
-            if(x!==null){
-                //console.log("Bind : ",x);
-                return x;
+                if(meth instanceof CLASS.Method){
+                    cls.addInheritedMethod(methRef, meth);
+                    db.methods.setEntry(methRef, meth);
+                    
+                    return meth;
+                }
             }
         }
- 
-        //if(cls === null) console.log("Class not found : ",methRef.fqcn)
-        
-        if(!notmissing){
 
-            console.log("Missing class : "+methRef.fqcn);
-            cls = new CLASS.MissingReference(
-                CONST.OPCODE_REFTYPE.CLASS, 
-                new CLASS.Class({
-                    name: methRef.fqcn,
-                    simpleName: methRef.fqcn.substr(methRef.fqcn.lastIndexOf("."))
-                }));
-            db.classes.setEntry(methRef.fqcn, cls);
-        }
-        
-        //if(methRef.fqcn.indexOf("StringBuilder")>-1) 
-        //    console.log("[UNLOADED]",methRef.fqcn)            
-        
+        // 4. else, mock missing method and class
 
-        // MissingReference can be solved by HookingEngine at runtime
-        let mref = new CLASS.MissingReference(
-            CONST.OPCODE_REFTYPE.METHOD, 
-            methRef.toMethod(),cls);
-
-        //cls.field
-
-        //console.log("[SOLVER::FIELD] "+fieldRef.fqcn+";->"+fieldRef.name+" Missing reference");
-
-        // all MissingReference are indexed in a dedicated array
-        // the HookingEngine will try to resolve it when additonal
-        // custom class loaders will be load.
-        // db.notloaded.push(mref);
-        db.missing.insert(mref);
-
-        return mref;
+        return createMissingMethod(methRef, cls, db,  {
+            public: true,
+            static: isStaticCall
+        });
     }
 };
 
@@ -433,10 +296,8 @@ function mapInstructionFrom(method, data, stats){
                     // ignore
                     continue;
                 }
-                // obj = Resolver.method(data, instruct.right);
-
                 
-                instruct.right = Resolver.method(data, instruct.right);
+                instruct.right = Resolver.method(data, instruct.right, instruct.isStaticCall());
 
 
                 instruct.right._callers.push(method); 
@@ -605,17 +466,28 @@ function MakeMap(data,absoluteDB){
     // link class with its fields and methods
     // for(let i in data.classes)
     data.classes.map((k,v)=>{
+
+        // make sure we manipulate freshly added class
         cls = absoluteDB.classes.getEntry(k);
+
+        //  is TRUE if classes are already existing in AbsoluteDB and they are defined also into TempDB
         let override = (overrided.indexOf(k)>-1);
-        let ext = null, greater=null, smaller=null, requireRemap=false;
 
+        let ext = null, greater=null, smaller=null, requireRemap=false, clsSuper=null;
+        
 
-        // map super class
+        // the current class is already defined into AbsoluteDB,
+        // so, we check if we need to update superclass of classes already existing into AbsoluteDB before mapping
         if(override){ 
-            // here v.extends is the string not a Class instance
+            // the v.extends is the string not a Class instance
+            // we get the reference to the superclass from the freshly added class
             ext = v.getSuperClass();
 
             try {
+                // For a given class from TempDB, we check if the reference to the superclass 
+                // from the TempDB's class is the same in AbsoluteDB's class.
+                // Else it means the TempDB's class inherit from another class which directly 
+                // or indirectly inherit of the superclass f AbsoluteDB's class 
                 if(ext != null && cls.hasSuperClass() && ext!=cls.getSuperClass().getName()){
                     cls.updateSuper(Resolver.type(absoluteDB, ext));
                     requireRemap = true;
@@ -625,9 +497,14 @@ function MakeMap(data,absoluteDB){
                 console.error(ex);
             }
         }
-        else if(cls.getSuperClass() != null && (!cls.getSuperClass() instanceof CLASS.Class)){
-            cls.extends = Resolver.type(absoluteDB, cls.extends);
-            
+        // resolve super classes
+        else if(cls.hasSuperClass()){
+           
+//            if (!(cls.getSuperClass() instanceof CLASS.Class)){ 
+            if(typeof cls.getSuperClass() === "string"){ 
+                cls.extends = Resolver.type(absoluteDB, cls.getSuperClass());
+                //cls.updateSuper( Resolver.type(absoluteDB, cls.getSuperClass()));
+            }
             //cls.extends = Resolver.type(data, cls.extends);
             //cls.extends = Resolver.type(data, cls.extends.fqcn);
         }
@@ -759,13 +636,18 @@ function MakeMap(data,absoluteDB){
         // Replace the package name by the reference to the package instance into the class instance
         v.package = absoluteDB.packages.getEntry(v.package);
 
-        // discover inherited and override methods
+        // discover inherited and override methods (build Class Hierarchy)
         if(v.getSuperClass() != null){
             let n=v, sc=null, supers=[];
             while((sc = n.getSuperClass()) !=null){
-                scr = absoluteDB.classes.getEntry(sc);
+                scr = absoluteDB.classes.getEntry(sc.name);
                 if(scr == null){
-                    console.log("Class ("+sc+") not found");
+                    if(sc instanceof CLASS.Class){
+                        console.log("Class ("+sc.name+") not found");
+                    }
+                    else
+                        console.log("Reference ("+sc+") not found");
+
                     break;
                 }
                 supers.push(scr);
@@ -827,6 +709,7 @@ function MakeMap(data,absoluteDB){
         }
     });
 
+    
 
     console.log("[*] "+STATS.idxMethod+" methods indexed");
     console.log("[*] "+STATS.idxField+" fields indexed");

@@ -723,15 +723,21 @@ Class.prototype.hasOverrideOf = function(meth){
 /**
  * To add inherited method which are not overrided 
  */
-Class.prototype.addInheritedMethod = function(ref,meth){
-    if(this.inherit[ref]==null){
-        this.inherit[ref] = meth;
-    }
+Class.prototype.addInheritedMethod = function(methodRef,parentMethod){
+    this.methods[methodRef] = parentMethod;
+    this.inherit[methodRef] = parentMethod;
+    return this.methods[methodRef];
+}
+
+Class.prototype.addInheritedField = function(localReference, parentField){
+    this.fields[localReference] = parentField;
+    this.inherit[localReference] = parentField;
+    return this.fields[localReference];
 }
 
 
 Class.prototype.toJsonObject = function(filter){
-    let obj = new Object();
+    let obj = new Object(), m=null;
     for(let i in this){
         if(["_","$"].indexOf(i[0])==-1 
             && (typeof this[i] != 'array')
@@ -753,13 +759,17 @@ Class.prototype.toJsonObject = function(filter){
         else if(i == "methods"){
             obj.methods = [];
             for(let k in this.methods){
-                obj.methods.push(this.methods[k].toJsonObject(["__signature__","__aliasedCallSignature__","__callSignature__","probing","modifiers","alias","name"])); // call signature
+                m = this.methods[k].toJsonObject(["__signature__","__aliasedCallSignature__","__callSignature__","probing","modifiers","alias","name"]);
+                if(this.inherit[k] != null) m.__inherit = true;
+                obj.methods.push(m); // call signature
             }
         }
         else if(i == "fields"){
             obj.fields = [];
             for(let k in this.fields){
-                obj.fields.push(this.fields[k].toJsonObject(["__signature__","__aliasedSignature__","alias"]));
+                m = this.fields[k].toJsonObject(["__signature__","__aliasedSignature__","alias"]);
+                if(this.inherit[k] != null) m.__inherit = true;
+                obj.fields.push(m);
             }
         }
         else if(i == "package"){
@@ -856,6 +866,25 @@ Class.prototype.getField = function(pattern){
     return res1;
 }
 
+
+Class.prototype.setupMissingTag = function(){
+    return (this.tags.push(CONST.TAG.MISSING)); 
+}
+Class.prototype.removeMissingTag = function(){
+    if(this.tags.length==1) 
+        this.tags = [];
+    else{
+        let i = this.tags.indexOf(CONST.TAG.MISSING);
+        let arr = this.tags.slice(0,i);
+        if(i+1<this.tags.length){
+            arr = arr.concat(this.tags.slice(i+1,this.tags.length-i-1));
+        }
+        this.tags = arr;
+    }
+}
+Class.prototype.isMissingClass = function(){
+   return (this.tags.indexOf(CONST.TAG.MISSING)>-1); 
+}
 
 Class.prototype.addTag = function(tag){
     this.tags.push(tag);   
@@ -1258,6 +1287,28 @@ function Method(config){
 
     return this;
 }
+
+
+
+Method.prototype.setupMissingTag = function(){
+    return (this.tags.push(CONST.TAG.MISSING)); 
+}
+Method.prototype.removeMissingTag = function(){
+    if(this.tags.length==1) 
+        this.tags = [];
+    else{
+        let i = this.tags.indexOf(CONST.TAG.MISSING);
+        let arr = this.tags.slice(0,i);
+        if(i+1<this.tags.length){
+            arr = arr.concat(this.tags.slice(i+1,this.tags.length-i-1));
+        }
+        this.tags = arr;
+    }
+}
+Method.prototype.isMissingClass = function(){
+   return (this.tags.indexOf(CONST.TAG.MISSING)>-1); 
+}
+
 Method.prototype.raw_import = Savable.import;
 Method.prototype.countUsedMethods = function(){
     return this._useMethodCtr;
@@ -1409,6 +1460,7 @@ Method.prototype.toJsonObject = function(fields=[],exclude=[]){
                     obj[i] = this[i];
                     break;
                 case "instr":
+                    // basic blocks data are not serialized
                     break;
                 case "args":
                     obj.args = [];
@@ -1423,8 +1475,11 @@ Method.prototype.toJsonObject = function(fields=[],exclude=[]){
                     obj.enclosingClass = (this.enclosingClass!=null)? this.enclosingClass.name : "";
                     break;
                 case "modifiers":
-                    obj.modifiers = this.modifiers.toJsonObject([
-                        "public","private","protected","abstract","native","final","constructor","static"]);
+                    if(this.modifiers != null)
+                        obj.modifiers = this.modifiers.toJsonObject([
+                            "public","private","protected","abstract","native","final","constructor","static"]);
+                    else
+                        obj.modifiers = null;
                     break;
             }
         }   
@@ -2114,6 +2169,26 @@ function Field(config){
     return this;
 }
 
+
+Field.prototype.setupMissingTag = function(){
+    return (this.tags.push(CONST.TAG.MISSING)); 
+}
+Field.prototype.removeMissingTag = function(){
+    if(this.tags.length==1) 
+        this.tags = [];
+    else{
+        let i = this.tags.indexOf(CONST.TAG.MISSING);
+        let arr = this.tags.slice(0,i);
+        if(i+1<this.tags.length){
+            arr = arr.concat(this.tags.slice(i+1,this.tags.length-i-1));
+        }
+        this.tags = arr;
+    }
+}
+Field.prototype.isMissingClass = function(){
+   return (this.tags.indexOf(CONST.TAG.MISSING)>-1); 
+}
+
 /**
  * To generate the aliased signature. This signature is used only by the GUI
  * component. Its aim is to improve the user experience by propagating the 
@@ -2255,7 +2330,10 @@ Field.prototype.toJsonObject = function(fields=null,exclude=null){
                 case "instr":
                     break;
                 case "type":
-                    obj.type = this.type.toJsonObject();
+                    if(obj.type != null)
+                        obj.type = this.type.toJsonObject();
+                    else
+                        obj.type = null;
                     break;
                 case "enclosingClass":
                     if(this.enclosingClass != null){
@@ -2267,7 +2345,10 @@ Field.prototype.toJsonObject = function(fields=null,exclude=null){
                     }
                     break;
                 case "modifiers":
-                    obj.modifiers = this.modifiers.toJsonObject(["private","protected"]);
+                    if(this.modifiers != null)
+                        obj.modifiers = this.modifiers.toJsonObject(["private","protected"]);
+                    else
+                        obj.modifiers = null;
                     break;
             }
         }   
@@ -2682,6 +2763,10 @@ Instruction.prototype.isUsingString = function(){
 
 Instruction.prototype.isCallingField = function(){
     return (this.right !== undefined) && (this.opcode.reftype==CONST.OPCODE_REFTYPE.FIELD);
+};
+
+Instruction.prototype.isStaticCall = function(){
+    return (this.opcode.flag & CONST.OPCODE_TYPE.STATIC_CALL);
 };
 
 Instruction.prototype.isSetter = function(){
