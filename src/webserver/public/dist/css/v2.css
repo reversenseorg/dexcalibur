@@ -186,3 +186,12 @@ h1 {
 .col-threat-score {
     text-align: center;
 }
+
+#perm-detail-title {
+    color: #fff;
+    font-size:1.5em;
+}
+
+#ctn-permission-detail * {
+    color: #fff;
+}

@@ -45,10 +45,6 @@
         padding:0px;
     }
 
-    #dataTables-activities thead tr th {
-        background-color:#FFF;
-    }
-
     #ctn-manifest div:first {
         padding:5px;
     }
@@ -112,6 +108,33 @@
         text-align: center;
         color:honeydew;
     }
+
+    .odd {
+        color: #FFF;
+        background-color:#4e5043;
+    }
+    .even {
+        color: #FFF;
+        background-color:#33332c;
+    }
+
+    .datatable-dark thead tr th {
+        background-color: #94a546;
+    }
+    
+
+    .datatable-dark,
+    .datatable-dark tbody,
+    .datatable-dark tbody > tr,
+    .datatable-dark tbody > tr > td {
+        border-color: #94a546; 
+    }
+
+    .datatable-dark tbody > tr:hover > td {
+        background-color:#6f7260;
+        cursor: pointer;
+    }
+
     </style>
 
     <!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
@@ -131,6 +154,9 @@
         <!--## pages/inc/menu.html ##-->
 
         <div id="page-wrapper" style="border-width:0px;background-color:#272822;">
+
+            
+
             <div class="row" style="background-color:#272822;">
                 <div class="col-sm-2 col-lg-2 apptopo-vmenu">
                     <ul>
@@ -172,28 +198,61 @@
                 </div>
 
                 <div class="col-sm-10 col-lg-10 apptopo-vtn" id="landing"> 
-                    <span class="fa fa-arrow-left"></span>&nbsp;Pick an action into the left menu
+                  <span class="fa fa-arrow-left"></span>&nbsp;Pick an action into the left menu
+                <!--    <div class="alert alert-warning" role="alert" style="position:absolute;font-size:1em;top:20%;left:40%;z-index:2000;">
+                            <span class="fa fa-arrow-left"></span>&nbsp;Pick an action into the left menu
+                    </div> -->
                 </div>
 
                 <div class="col-sm-10 col-lg-10 apptopo-vtn" id="ctn-permissions" style="display:none">
                     <div class="row">
-                        <div class="col-lg-6 table-responsive first-vtn-col">
-                            <table class="table  table-stripped overflow-auto"  style="overflow:scroll">
+                        <div class="col-lg-6 table-responsive first-vtn-col" style="height:60em">
+                            <table class="table  table-stripped overflow-auto"  style="overflow:scroll;">
                                 <tbody id="permissions-list">
     
                                 </tbody>
                             </table>      
                         </div>
-                        <div class="col-lg-4"></div>
+                        <div class="col-lg-6" id="ctn-permission-detail" style="display:none">
+                            <h2 id="perm-detail-title"></h2>
+                            <div class="row">
+                                <div class="col-lg-8">Protection Level</div>
+                                <div class="col-lg-4"  id="perm-protection-lvl">-</div>
+                            </div>
+                            <div class="row">
+                                <div class="col-lg-8">Protection Group</div>
+                                <div class="col-lg-4" id="perm-group">-</div>
+                            </div>
+                            <div class="row">
+                                <div class="col-lg-8">Added in API level</div>
+                                <div class="col-lg-4" id="perm-api">-</div>
+                            </div>
+                            <fieldset>
+                                <legend>Description</legend>
+                                <p id="perm-description"></p>
+                            </fieldset>
+                            <table  class="table table-bordered table-hover datatable-dark">
+                                <thead>
+                                    <th class="col-lg-8">Control</th>
+                                    <th class="col-lg-4">Action</th>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>TODO : available soon</td>
+                                        <td>-</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
 
 
                 <div class="col-sm-10 col-lg-10 apptopo-vtn" id="ctn-manifest" style="display:none">
-                    <div class="row" style="padding:5px">
+                    <!-- <div class="row" style="padding:5px">
                         <a class="badge badge-primary" id="ctn-manifest-save"><span class="fa fa-file"></span>&nbsp;save</a>
                         <a class="badge badge-warning" id="ctn-manifest-restore"><span class="fa fa-refresh"></span>&nbsp;restore</a>
-                    </div>            
+                    </div>            -->
                     <div class="row ctn-manifest-body">
                             <div class="col-lg-12 first-vtn-col"  id="code-manifest"></div>
                     </div>
@@ -205,10 +264,10 @@
                 </div>
 
 
-                <div class="col-sm-8 col-lg-8 apptopo-vtn" id="ctn-activities" style="display:none">
+                <div class="col-sm-10 col-lg-10 apptopo-vtn" id="ctn-activities" style="display:none">
                    <div class="row">
-                    <div class="col-sm-8 col-lg-8 first-vtn-col">
-                        <table width="100%"  class="table table-striped table-bordered table-hover" id="dataTables-activities">
+                    <div class="col-sm-6 col-lg-86 first-vtn-col">
+                        <table width="100%"  class="table table-bordered table-hover datatable-dark" id="dataTables-activities">
                             <thead>
                                 <tr>
                                     <th id="finder-col1" class="col-lg-1">-</th>
@@ -223,9 +282,58 @@
                         </table>
                     </div>
 
-                    <div class="col-sm-4 col-lg-4 second-vtn-col"></div>
+                    <div class="col-sm-6 col-lg-6" id="ctn-activity-detail" style="display:none">
+                
+                        <h2 style="color:#FFF" id="act-detail-title">&nbsp;</h2>
+                        
+                        <table width="100%" class="table table-striped" >
+                            <tbody>
+                                <tr><td>Implemented by</td><td class="col-lg-8" id="act-detail-impl"></td></tr>
+                                <tr><td>Tags</td><td class="col-lg-8" id="act-detail-tag"></td></tr>
+<!--                                <tr><td>Intent filter</td><td class="col-lg-8" id="act-detail-intent"></td></tr>
+                                <tr><td>Intent sent</td><td class="col-lg-8" id="actModIntentSent"></td></tr>-->
+                            </tbody>
+                        </table>
 
+
+                        <div class="panel panel-info">
+                            <div class="panel-heading">
+                                <div class="row">
+                                    <div class="col-lg-8" style="font-size:1.2em">
+                                        Android internals invoked
+                                    </div>
+                                    <div class="col-lg-4">
+                                        <a class="badge badge-danger">Threat score: 4/5</a>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="panel-body" style="padding:0px">
+                                <table width="100%" class="table table-striped table-bordered table-hover" style="margin-bottom: 0px" id="actInternalSignatureTable">
+                                    <tbody>
+                                        <tr><td class="col-lg-8" >DexClassLoader.load</td><td class="col-lg-4 col-threat-score" style="color:orange">3/5</td></tr>
+                                        <tr><td class="col-lg-8" >Runtime.exec</td><td class="col-lg-4 col-threat-score" style="color: orangered">5/5</td></tr>
+                                    </tbody>
+                                </table>
+                                <div class="row"><div class="col-lg-2 col-lg-offset-5" style="text-align: center">scroll</div></div>
+                            </div>
+                        </div>
+                                
                     </div>
+                  
+                    </div>
+
+                    <!--<div class="col-sm-4 col-lg-4 second-vtn-col" id="act-detail-panel" style="display:none">
+                        <div class="row">
+                            <div class="col-lg-10" id="act-detail-title">
+
+                            </div>
+                            <div class="col-lg-2">
+                                <span class="badge badge-success">probe</span>
+                            </div>
+                        </div>
+                    </div>-->
+                      
+                </div>
                 <!-- /.col-lg-12 -->
             </div>
 
@@ -314,6 +422,61 @@
     <script src="/js/wexcalibur.js"></script>
     <script>
 
+
+
+    function renderPermissionDetail(permission)
+    {
+        $("#perm-protection-lvl").html(
+            permission.protectionLevel!=null? 
+                DexcaliburAPI.manifest.permissions.ui.protectionBadge[permission.protectionLevel]:"-"
+        );
+        $("#perm-detail-title").html(
+            DexcaliburAPI.ui.htmlEncode(permission.name)
+        );
+        $("#perm-description").html(
+            DexcaliburAPI.ui.htmlEncode(permission.description)
+        );
+        $("#perm-api").html(
+            DexcaliburAPI.ui.htmlEncode(permission.apiVersion)
+        );
+        $("#perm-group").html(
+            permission.permissionGroup!=null?
+                ('<a class="perm-group-link" permGroup="'+btoa(permission.permissionGroup)+'">'+DexcaliburAPI.ui.htmlEncode(permission.permissionGroup)+'</a>'):"-"
+        );
+        $("#ctn-permission-detail").css("display","block");
+    }
+
+    function renderActivityDetail(act){
+
+        // act-detail-tag
+        $("#act-detail-title").html(
+            DexcaliburAPI.ui.htmlEncode(act.name)
+        );
+
+        let tags = "";
+        if((act.__tag instanceof Array) && (act.__tag.length > 0)){
+           act.__tag.map(t => {
+                switch(t){
+                    case "MAIN":
+                        tags += DexcaliburAPI.ui.badge.make('success',t);
+                        break;
+                    case "BROWSABLE":
+                        tags += DexcaliburAPI.ui.badge.make('purple',t);
+                        break;
+                    case "EXPOSED":
+                        tags += DexcaliburAPI.ui.badge.make('danger',t);
+                        break;
+                }
+            });
+        }
+
+/*        $("#act-detail-tags").html(
+            tags
+        );
+   */ 
+
+        $("#ctn-activity-detail").css("display","block");
+    }
 
     function makeActivityBlock(obj){
         let i= obj.name.lastIndexOf('.');
@@ -442,6 +605,11 @@
         $("#actModName").html(DexcaliburAPI.ui.htmlEncode(activity.name));
     }
 
+    // Menu inlighting (active button)
+    var ApptoVmenuActive = {
+        menu: null,
+        ctn: "landing"
+    };
    
     $(document).ready(function() {
 
@@ -478,6 +646,8 @@
             $("#confirmModal").modal();
         });
 
+        // -- Permissions --
+
         DexcaliburAPI.manifest.permissions.list({
             200: function(data){
                 
@@ -502,15 +672,29 @@
                         +DexcaliburAPI.ui.htmlEncode(p)+"<br>"
                         +DexcaliburAPI.ui.htmlEncode(n)
                         +"</div><div class='col-lg-3' style='font-size:1.5em'>"
-                            +"<a  class='badge badge-primary probe' perm=''>probe ON</a>"
-                            +"<a  class='badge badge-black' perm=''>info</a>"
+                            +"<a  class='badge badge-purple btn-permission-detail' perm='"+perms.data[i].name+"'>info</a>"
                         +"</div></td></tr>";
                 }
 
                 $('#permissions-list').html(body);
                 $('#permissions-count').html(perms.data.length);
             }
-        })
+        });
+
+        $('#permissions-list').on('click', '.btn-permission-detail', function (e) {
+            console.log(e.currentTarget.getAttribute("perm"));
+
+            DexcaliburAPI.manifest.permissions.get(
+                btoa(e.currentTarget.getAttribute("perm")), {
+                200: function(data){
+                   // let perm = JSON.parse(data);
+                    renderPermissionDetail(data);
+                    console.log(e);
+
+                }
+            });
+        });
+        // Activities
 
         DexcaliburAPI.manifest.activities.list({
             200: function(data){
@@ -575,11 +759,7 @@
             });
         });
 
-        // Menu inlighting (active button)
-        var ApptoVmenuActive = {
-            menu: null,
-            ctn: "landing"
-        };
+        
 
         $('.apptopo-vmenu > ul > li').click(x => {
  
@@ -620,13 +800,15 @@
                 {  
                     render: function(data, type, row, meta){
                         let body = "";
-                        row.__tag.map(x => {
-                            switch(x){
-                                case "MAIN":
-                                    body += DexcaliburAPI.ui.badge.make('success',x);
-                                    break;
-                            }
-                        });
+                        if(row.__tag != null){
+                            row.__tag.map(x => {
+                                switch(x){
+                                    case "MAIN":
+                                        body += DexcaliburAPI.ui.badge.make('success',x);
+                                        break;
+                                }
+                            });
+                        }
 
                         return body;
                     }
@@ -635,13 +817,30 @@
                     render: function(data, type, row, meta ){
                         // <button class="btn btn-info runscan" style="height:1.5em;padding-top:0px;padding-bottom:0px;" scanner="`+btoa(row.id)+`">Run</button>
                         return `
-                            &nbsp;<button style="height:1.5em;padding-top:0px;padding-bottom:0px;" class="btn btn-success loadscan" scanner="`+btoa(row.id)+`" data-toggle="tooltip" data-placement="bottom" title="Setup the hook set">Deploy</button>
-                            &nbsp;<!-- <button style="height:1.5em;padding-top:0px;padding-bottom:0px;" class="btn btn-warning staticscan" scanner="`+btoa(row.id)+`">Static Scan</button> -->`;
+                            &nbsp;<a style="height:1.5em;" class="badge badge-primary btn-activity-detail" activity="`+btoa(row.name)+`" data-toggle="tooltip" data-placement="bottom" title="Show activity details">Info</button>
+                            `;
                     }
                 }
             ],
             responsive: true
         });
+
+        $('#dataTables-activities tbody').on('click', '.btn-activity-detail', function (e) {
+
+            console.log(e.currentTarget.getAttribute("activity"));
+
+            DexcaliburAPI.manifest.activities.get(
+                e.currentTarget.getAttribute("activity"), {
+                200: function(data){
+                    let act = JSON.parse(data);
+                    renderActivityDetail(act.data);
+                    console.log(act.data);
+                }
+            });
+
+        });
+
+
 
         $('#dataTables-scanner tbody').on('click', 'td.details-control', function () {
             var tr = $(this).closest('tr');
