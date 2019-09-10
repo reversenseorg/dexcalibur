@@ -105,6 +105,25 @@ function encodeURLParam(val){
 
 var DexcaliburAPI = {
     ui: {
+        __state: {
+            rendered: []
+        },
+        isRendered: function(id){
+            return DexcaliburAPI.ui.__state.rendered.indexOf(id);
+        },
+        render: function(id){
+            $(id).css("display","block");
+            DexcaliburAPI.ui.__state.rendered.push(id);
+        },
+        hide: function(id){
+            $(id).css("display","none");
+            let r = [];
+            for(let i=0; i<DexcaliburAPI.ui.__state.rendered.length; i++){
+                if(DexcaliburAPI.ui.__state.rendered[i]===id) continue;
+                r.push(DexcaliburAPI.ui.__state.rendered[i]);
+            }
+            DexcaliburAPI.ui.__state.rendered = r;
+        }, 
         htmlEncode: (text)=>{
             return $('<div />').text(text).html();
         },
@@ -191,7 +210,15 @@ var DexcaliburAPI = {
         permissions: {
             URI: {
                 list: "/api/manifest/permissions",
-                get: "/api/manifest/permission",
+                get: "/api/manifest/permission/",
+            },
+            ui: {
+                protectionBadge: {
+                    normal: '<span class="badge badge-secondary">normal</span>',
+                    dangerous: '<span class="badge badge-danger">dangerous</span>',
+                    special: '<span class="badge badge-warning">special</span>',
+                    signature: '<span class="badge badge-info">signature</span>'
+                }
             },
             list: function(callbacks){
                 $.ajax('/api/manifest/permissions',{
@@ -202,6 +229,15 @@ var DexcaliburAPI = {
                     statusCode: callbacks
                 });
             },
+            get: function(name, callbacks){
+                $.ajax(DexcaliburAPI.manifest.permissions.URI.get+name,{
+                    method: 'get',
+                    data: {
+                        _t: (new Date()).getTime()
+                    },
+                    statusCode: callbacks
+                })
+            }
         },
         activities: {
             URI: {
@@ -218,7 +254,7 @@ var DexcaliburAPI = {
                 });
             },
             get: function(name, callbacks){
-                $.ajax('/api/manifest/activity/'+encodeURLParam(name),{
+                $.ajax('/api/manifest/activity/'+encodeURIComponent(name),{
                     method: 'get',
                     data: {
                         _t: (new Date()).getTime()
