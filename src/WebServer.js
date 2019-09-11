@@ -751,10 +751,8 @@ class WebServer {
 
         this.app.route('/api/manifest/activity/:id')
             .get(function(req,res){
-                let name = UT.decodeURI(UT.b64_decode(req.params.id));
+                let name = UT.b64_decode(UT.decodeURI(req.params.id));
                 let act =  $.project.find.get.activity(name);
-
-                console.log(name,act);
 
                 // collect
                 let dev = {

@@ -974,6 +974,7 @@ class AndroidService
         return this.__impl;
     }
 
+
     setAttributes(attr){
         for(let i in attr){
             if(i.startsWith('android:')){
@@ -986,6 +987,11 @@ class AndroidService
 
     addIntentFilters(filter){
         this.intentFilters.push(filter);
+    }
+
+
+    getIntentFilters(){
+        return this.intentFilters;
     }
 
     getAttributes(){
@@ -1039,6 +1045,11 @@ class AndroidService
 
         if(this.__impl!=null){
             o.__impl = this.__impl.toJsonObject();
+        }
+
+
+        if((this.__tag instanceof Array) && this.__tag.length>0){
+            o.__tag = this.__tag;
         }
 
         return o;
@@ -1102,6 +1113,11 @@ class AndroidReceiver
         this.intentFilters.push(filter);
     }
 
+
+    getIntentFilters(){
+        return this.intentFilters;
+    }
+
     getAttributes(){
         return this.attr;
     }
@@ -1155,6 +1171,10 @@ class AndroidReceiver
             o.__impl = this.__impl.toJsonObject();
         }
 
+
+        if((this.__tag instanceof Array) && this.__tag.length>0){
+            o.__tag = this.__tag;
+        }
         return o;
     }
 }
@@ -1217,6 +1237,11 @@ class AndroidProvider
         this.intentFilters.push(filter);
     }
 
+
+    getIntentFilters(){
+        return this.intentFilters;
+    }
+
     getAttributes(){
         return this.attr;
     }
@@ -1268,6 +1293,10 @@ class AndroidProvider
 
         if(this.__impl!=null){
             o.__impl = this.__impl.toJsonObject();
+        }
+
+        if((this.__tag instanceof Array) && this.__tag.length>0){
+            o.__tag = this.__tag;
         }
 
         return o;

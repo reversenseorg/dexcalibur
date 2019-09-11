@@ -759,7 +759,7 @@ Class.prototype.toJsonObject = function(filter){
         else if(i == "methods"){
             obj.methods = [];
             for(let k in this.methods){
-                m = this.methods[k].toJsonObject(["__signature__","__aliasedCallSignature__","__callSignature__","probing","modifiers","alias","name"]);
+                m = this.methods[k].toJsonObject(["__signature__","__aliasedCallSignature__","__callSignature__","probing","modifiers","alias","name","tags"]);
                 if(this.inherit[k] != null) m.__inherit = true;
                 obj.methods.push(m); // call signature
             }
@@ -767,7 +767,7 @@ Class.prototype.toJsonObject = function(filter){
         else if(i == "fields"){
             obj.fields = [];
             for(let k in this.fields){
-                m = this.fields[k].toJsonObject(["__signature__","__aliasedSignature__","alias"]);
+                m = this.fields[k].toJsonObject(["__signature__","__aliasedSignature__","alias","name","tags"]);
                 if(this.inherit[k] != null) m.__inherit = true;
                 obj.fields.push(m);
             }

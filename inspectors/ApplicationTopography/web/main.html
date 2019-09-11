@@ -285,16 +285,43 @@
                     <div class="col-sm-6 col-lg-6" id="ctn-activity-detail" style="display:none">
                 
                         <h2 style="color:#FFF" id="act-detail-title">&nbsp;</h2>
+                        <div id="act-detail-tag">&nbsp;</div>
+                        <div class="row">
+                            <div class="col-lg-4">Implemented by</div>
+                            <div class="col-lg-8" id="act-detail-impl"></div>
+                        </div>
                         
-                        <table width="100%" class="table table-striped" >
-                            <tbody>
-                                <tr><td>Implemented by</td><td class="col-lg-8" id="act-detail-impl"></td></tr>
-                                <tr><td>Tags</td><td class="col-lg-8" id="act-detail-tag"></td></tr>
-<!--                                <tr><td>Intent filter</td><td class="col-lg-8" id="act-detail-intent"></td></tr>
-                                <tr><td>Intent sent</td><td class="col-lg-8" id="actModIntentSent"></td></tr>-->
-                            </tbody>
-                        </table>
+                        <div class="panel panel-info">
+                            <div class="panel-heading" style="font-size:1.2em">
+                                <div class="row">
+                                    <div class="col-lg-8">Attributes</div>
+                                    <div class="col-lg-4">
+                                        <button class="badge badge-danger startActivity">Start activity</button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="panel-body" style="padding:0px">
+                                <table width="100%" class="table table-striped table-bordered table-hover" style="margin-bottom: 0px" id="act-detail-attr-tab">
+                                    <tbody>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
 
+                        <div class="panel panel-info">
+                            <div class="panel-heading" style="font-size:1.2em">
+                                Intent Filters
+                            </div>
+                            <div class="panel-body" style="padding:0px">
+                                <table width="100%" class="table table-striped table-bordered table-hover" style="margin-bottom: 0px" id="act-detail-intent-tab">
+                                    <thead>
+                                        <th class="col-lg-6">Category</th>
+                                        <th class="col-lg-6">Action</th>
+                                    </thead>
+                                    <tbody></tbody>
+                                </table>
+                            </div>
+                        </div>
 
                         <div class="panel panel-info">
                             <div class="panel-heading">
@@ -303,7 +330,7 @@
                                         Android internals invoked
                                     </div>
                                     <div class="col-lg-4">
-                                        <a class="badge badge-danger">Threat score: 4/5</a>
+                                        <a class="badge badge-danger">Threat score: TODO</a>
                                     </div>
                                 </div>
                             </div>
@@ -321,7 +348,67 @@
                     </div>
                   
                     </div>
+                </div>
+                    <div class="col-sm-10 col-lg-10 apptopo-vtn" id="ctn-services" style="display:none">
+                            <div class="row">
+                             <div class="col-sm-6 col-lg-86 first-vtn-col">
+                                 <table width="100%"  class="table table-bordered table-hover datatable-dark" id="dataTables-services">
+                                     <thead>
+                                         <tr>
+                                             <th id="finder-col1" class="col-lg-1">-</th>
+                                             <th id="finder-col2" class="col-lg-5">Name</th>
+                                             <th id="finder-col3" class="col-lg-3">Tags</th>
+                                             <th id="finder-col4" class="col-lg-3">Action</th>
+                                         </tr>
+                                     </thead>
+                                     <tbody>
+                                         
+                                     </tbody>
+                                 </table>
+                             </div>
+                            </div>
+                    </div>
 
+
+                    <div class="col-sm-10 col-lg-10 apptopo-vtn" id="ctn-receivers" style="display:none">
+                            <div class="row">
+                             <div class="col-sm-6 col-lg-86 first-vtn-col">
+                                 <table width="100%"  class="table table-bordered table-hover datatable-dark" id="dataTables-receivers">
+                                     <thead>
+                                         <tr>
+                                             <th id="finder-col1" class="col-lg-1">-</th>
+                                             <th id="finder-col2" class="col-lg-5">Name</th>
+                                             <th id="finder-col3" class="col-lg-3">Tags</th>
+                                             <th id="finder-col4" class="col-lg-3">Action</th>
+                                         </tr>
+                                     </thead>
+                                     <tbody>
+                                         
+                                     </tbody>
+                                 </table>
+                             </div>
+                            </div>
+                    </div>
+
+                    <div class="col-sm-10 col-lg-10 apptopo-vtn" id="ctn-providers" style="display:none">
+                            <div class="row">
+                             <div class="col-sm-6 col-lg-86 first-vtn-col">
+                                 <table width="100%"  class="table table-bordered table-hover datatable-dark" id="dataTables-providers">
+                                     <thead>
+                                         <tr>
+                                             <th id="finder-col1" class="col-lg-1">-</th>
+                                             <th id="finder-col2" class="col-lg-5">Name</th>
+                                             <th id="finder-col3" class="col-lg-3">Tags</th>
+                                             <th id="finder-col4" class="col-lg-3">Action</th>
+                                         </tr>
+                                     </thead>
+                                     <tbody>
+                                         
+                                     </tbody>
+                                 </table>
+                             </div>
+                            </div>
+                    </div>
                     <!--<div class="col-sm-4 col-lg-4 second-vtn-col" id="act-detail-panel" style="display:none">
                         <div class="row">
                             <div class="col-lg-10" id="act-detail-title">
@@ -423,6 +510,14 @@
     <script>
 
 
+    let TAGS_COLOR = {
+        MAIN: "success",
+        BROWSABLE: "danger",
+        EXPOSED: "danger",
+        BOOT_COMPLETED: "purple",
+        SMS: "info",
+        PHONE: "info"
+    };
 
     function renderPermissionDetail(permission)
     {
@@ -453,27 +548,52 @@
             DexcaliburAPI.ui.htmlEncode(act.name)
         );
 
+        // tags
         let tags = "";
         if((act.__tag instanceof Array) && (act.__tag.length > 0)){
            act.__tag.map(t => {
-                switch(t){
-                    case "MAIN":
-                        tags += DexcaliburAPI.ui.badge.make('success',t);
-                        break;
-                    case "BROWSABLE":
-                        tags += DexcaliburAPI.ui.badge.make('purple',t);
-                        break;
-                    case "EXPOSED":
-                        tags += DexcaliburAPI.ui.badge.make('danger',t);
-                        break;
-                }
+                if(TAGS_COLOR[t] != null)
+                    tags += DexcaliburAPI.ui.badge.make(TAGS_COLOR[t],t);
+                else
+                    tags += DexcaliburAPI.ui.badge.make('info',t);
             });
         }
 
-/*        $("#act-detail-tags").html(
+        // impl
+        $("#act-detail-impl").html(
+            DexcaliburAPI.ui.htmlEncode(act.__impl)
+        );
+
+        $("#act-detail-tag").html(
             tags
         );
-   */ 
+
+        // attributes
+        $("#act-detail-attr-tab > tbody").empty();
+        for(let i in act.attr){
+            $("#act-detail-attr-tab > tbody").append("<tr><td>"
+                +DexcaliburAPI.ui.htmlEncode(i)+"</td><td>"+DexcaliburAPI.ui.htmlEncode(act.attr[i])+"</td></tr>");
+        }
+
+        // intent
+        $("#act-detail-intent-tab > tbody").empty();
+        for(let i=0; i<act.intentFilters.length; i++){
+            intent = act.intentFilters[i];
+            body_tr = "<tr><td>";
+            intent.category.map((x,i) => {
+                if(i>0) body_tr += "<br>";
+                body_tr += DexcaliburAPI.ui.htmlEncode(x.name);
+            });
+            body_tr += "</td><td>";
+            intent.action.map((x,i) => {
+                if(i>0) body_tr += "<br>";
+                body_tr += DexcaliburAPI.ui.htmlEncode(x.name);
+            });
+            body_tr += "</td></tr>";
+
+            $("#act-detail-intent-tab > tbody").append(body_tr);
+        }
+
 
         $("#ctn-activity-detail").css("display","block");
     }
@@ -485,17 +605,10 @@
         let tags = "";
         if((obj.__tag instanceof Array) && (obj.__tag.length > 0)){
            obj.__tag.map(t => {
-                switch(t){
-                    case "MAIN":
-                        tags += DexcaliburAPI.ui.badge.make('success',t);
-                        break;
-                    /*case "BROWSABLE":
-                        tags += DexcaliburAPI.ui.badge.make('purple',t);
-                        break;
-                    case "EXPOSED":
-                        tags += DexcaliburAPI.ui.badge.make('danger',t);s
-                        break;*/
-                }
+                if(TAGS_COLOR[t] != null)
+                    tags += DexcaliburAPI.ui.badge.make(TAGS_COLOR[t],t);
+                else
+                    tags += DexcaliburAPI.ui.badge.make('info',t);
             });
         }
         
@@ -779,7 +892,6 @@
 
 
 
-
         let actTable = $('#dataTables-activities').DataTable({
             
             paging:   false,
@@ -802,11 +914,11 @@
                         let body = "";
                         if(row.__tag != null){
                             row.__tag.map(x => {
-                                switch(x){
-                                    case "MAIN":
-                                        body += DexcaliburAPI.ui.badge.make('success',x);
-                                        break;
-                                }
+                                if(body.length > 0) body +="<br>";
+                                if(TAGS_COLOR[x]!=null)
+                                    body += DexcaliburAPI.ui.badge.make(TAGS_COLOR[x],x);
+                                else
+                                    body += DexcaliburAPI.ui.badge.make('secondary',x);
                             });
                         }
 
@@ -825,6 +937,142 @@
             responsive: true
         });
 
+        let srvTable = $('#dataTables-services').DataTable({
+            
+            paging:   false,
+            ordering: false,
+            info:     false,
+            searching: false,
+
+            ajax: DexcaliburAPI.manifest.services.URI.list,
+            columns: [
+                {
+                    "className":      'details-control',
+                    "orderable":      false,
+                    "data":           null,
+                    "defaultContent": ''
+                },
+                //{   data: 'type'  },
+                {   data: 'name'  },
+                {  
+                    render: function(data, type, row, meta){
+                        let body = "";
+                        if(row.__tag != null){
+                            row.__tag.map(x => {
+                                if(body.length > 0) body +="<br>";
+                                if(TAGS_COLOR[x]!=null)
+                                    body += DexcaliburAPI.ui.badge.make(TAGS_COLOR[x],x);
+                                else
+                                    body += DexcaliburAPI.ui.badge.make('secondary',x);
+                            });
+                        }
+
+                        return body;
+                    }
+                },
+                { 
+                    render: function(data, type, row, meta ){
+                        // <button class="btn btn-info runscan" style="height:1.5em;padding-top:0px;padding-bottom:0px;" scanner="`+btoa(row.id)+`">Run</button>
+                        return `
+                            &nbsp;<a style="height:1.5em;" class="badge badge-primary btn-service-detail" service="`+btoa(row.name)+`" data-toggle="tooltip" data-placement="bottom" title="Show service details">Info</button>
+                            `;
+                    }
+                }
+            ],
+            responsive: true
+        });
+
+        let recvTable = $('#dataTables-receivers').DataTable({
+            
+            paging:   false,
+            ordering: false,
+            info:     false,
+            searching: false,
+
+            ajax: DexcaliburAPI.manifest.receivers.URI.list,
+            columns: [
+                {
+                    "className":      'details-control',
+                    "orderable":      false,
+                    "data":           null,
+                    "defaultContent": ''
+                },
+                //{   data: 'type'  },
+                {   data: 'name'  },
+                {  
+                    render: function(data, type, row, meta){
+                        let body = "";
+                        if(row.__tag != null){
+                            row.__tag.map(x => {
+                                if(body.length > 0) body +="<br>";
+                                if(TAGS_COLOR[x]!=null)
+                                    body += DexcaliburAPI.ui.badge.make(TAGS_COLOR[x],x);
+                                else
+                                    body += DexcaliburAPI.ui.badge.make('secondary',x);
+                            });
+                        }
+
+                        return body;
+                    }
+                },
+                { 
+                    render: function(data, type, row, meta ){
+                        // <button class="btn btn-info runscan" style="height:1.5em;padding-top:0px;padding-bottom:0px;" scanner="`+btoa(row.id)+`">Run</button>
+                        return `
+                            &nbsp;<a style="height:1.5em;" class="badge badge-primary btn-receivers-detail" receiver="`+btoa(row.name)+`" data-toggle="tooltip" data-placement="bottom" title="Show receiver details">Info</button>
+                            `;
+                    }
+                }
+            ],
+            responsive: true
+        });
+
+        let prvTable = $('#dataTables-providers').DataTable({
+            
+            paging:   false,
+            ordering: false,
+            info:     false,
+            searching: false,
+
+            ajax: DexcaliburAPI.manifest.providers.URI.list,
+            columns: [
+                {
+                    "className":      'details-control',
+                    "orderable":      false,
+                    "data":           null,
+                    "defaultContent": ''
+                },
+                //{   data: 'type'  },
+                {   data: 'name'  },
+                {  
+                    render: function(data, type, row, meta){
+                        let body = "";
+                        if(row.__tag != null){
+                            row.__tag.map(x => {
+                                if(body.length > 0) body +="<br>";
+                                if(TAGS_COLOR[x]!=null)
+                                    body += DexcaliburAPI.ui.badge.make(TAGS_COLOR[x],x);
+                                else
+                                    body += DexcaliburAPI.ui.badge.make('secondary',x);
+                            });
+                        }
+
+                        return body;
+                    }
+                },
+                { 
+                    render: function(data, type, row, meta ){
+                        // <button class="btn btn-info runscan" style="height:1.5em;padding-top:0px;padding-bottom:0px;" scanner="`+btoa(row.id)+`">Run</button>
+                        return `
+                            &nbsp;<a style="height:1.5em;" class="badge badge-primary btn-provider-detail" provider="`+btoa(row.name)+`" data-toggle="tooltip" data-placement="bottom" title="Show provider details">Info</button>
+                            `;
+                    }
+                }
+            ],
+            responsive: true
+        });
+
+
         $('#dataTables-activities tbody').on('click', '.btn-activity-detail', function (e) {
 
             console.log(e.currentTarget.getAttribute("activity"));
@@ -840,6 +1088,20 @@
 
         });
 
+        $('#dataTables-activities tbody').on('click', '.btn-provider-detail', function (e) {
+
+            console.log(e.currentTarget.getAttribute("provider"));
+
+            DexcaliburAPI.manifest.providers.get(
+                e.currentTarget.getAttribute("provider"), {
+                200: function(data){
+                    let prv = JSON.parse(data);
+                    renderProviderDetail(prv.data);
+                    console.log(prv.data);
+                }
+            });
+
+        });
 
 
         $('#dataTables-scanner tbody').on('click', 'td.details-control', function () {

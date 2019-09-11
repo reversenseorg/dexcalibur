@@ -31,11 +31,49 @@ AppTopoInspector.registerTagCategory(
 const TAGS = Object.freeze({
         MAIN: "MAIN",
         BROWSABLE: "BROWSABLE",
-        EXPOSED: "EXPOSED"
+        EXPOSED: "EXPOSED",
+        BOOT_COMPLETED: "BOOT_COMPLETED",
+        SMS: "SMS",
+        PHONE: "PHONE"
 });
 
+const TAGS_SIGNATURE = {
+    action: {
+        "android.intent.action.MAIN": TAGS.MAIN,
+        "android.provider.Telephony.SMS_RECEIVED": TAGS.SMS,
+        "android.provider.Telephony.NEW_OUTGOING_SMS": TAGS.SMS,
+        "android.intent.action.PHONE_STATE": TAGS.PHONE,
+        "android.intent.action.BOOT_COMPLETED": TAGS.BOOT_COMPLETED
+    },
+    category: {
+        "android.intent.category.BROWSABLE": TAGS.BROWSABLE,
+    },
+    attr: {
+        "exported": {value:true, tag:TAGS.EXPOSED},
 
+    }
+}
 
+function tagByIntent(event){
+    let intents = event.data.getIntentFilters();
+    intents.map(i => {
+        i.getActions().map(a => {
+            let t = TAGS_SIGNATURE.action[a.getName()];
+            if(t != null){
+                event.data.addTag(t);
+            }
+        });
+
+        i.getCategories().map(a => {
+            let t = TAGS_SIGNATURE.category[a.getName()];
+            if(t != null){
+                event.data.addTag(t);
+            }
+        });
+    });
+}
+
+// activity analysis is trigged when a new activity is found
 AppTopoInspector.on("app.activity.new", {
     task: function(ctx, event){
 
@@ -47,43 +85,36 @@ AppTopoInspector.on("app.activity.new", {
         }
 
         // tag by intent filter  
+        tagByIntent(event);
+        /*
         let intents = event.data.getIntentFilters();
         intents.map(i => {
             i.getActions().map(a => {
-                switch(a.getName()){
-                    case "android.intent.action.MAIN":
-                        event.data.addTag(TAGS.MAIN);
-                        break;
+                let t = TAGS_SIGNATURE.action[a.getName()];
+                if(t != null){
+                    event.data.addTag(t);
                 }
             });
 
-            i.getCategories().map(c => {
-                switch(c.getName()){
-                    case "android.intent.category.BROWSABLE":
-                        event.data.addTag(TAGS.BROWSABLE);
-                        break;
+            i.getCategories().map(a => {
+                let t = TAGS_SIGNATURE.category[a.getName()];
+                if(t != null){
+                    event.data.addTag(t);
                 }
             });
-
-            /*
-            i.getData().map(d => {
-                
-            });*/
-        });
+        });*/
 
 
         // tag by attributes
         let attr = event.data.getAttributes();
         for(let i in attr){
-            switch(i){
-                case "exported":
-                    if(attr[i]===true)
-                        event.data.addTag(TAGS.EXPOSED);
-                    break;
+            t = TAGS_SIGNATURE.category[i];
+            if(t != null){
+                if(attr[i] == t.value){
+                    event.data.addTag(t.tag);
+                }
             }
         }
-
-
     }
 });
 AppTopoInspector.on("app.receiver.new", {
@@ -93,6 +124,10 @@ AppTopoInspector.on("app.receiver.new", {
         if(cls instanceof CLASS.Class){
             event.data.setImplementedBy(cls);
         }
+
+
+        // tag by intent filter  
+        tagByIntent(event);
     }
 });
 AppTopoInspector.on("app.provider.new", {
@@ -102,6 +137,10 @@ AppTopoInspector.on("app.provider.new", {
         if(cls instanceof CLASS.Class){
             event.data.setImplementedBy(cls);
         }
+
+
+        // tag by intent filter  
+        tagByIntent(event);
     }
 });
 AppTopoInspector.on("app.service.new", {
@@ -111,6 +150,10 @@ AppTopoInspector.on("app.service.new", {
         if(cls instanceof CLASS.Class){
             event.data.setImplementedBy(cls);
         }
+
+
+        // tag by intent filter  
+        tagByIntent(event);
     }
 });
 
