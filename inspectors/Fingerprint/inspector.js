@@ -2,7 +2,7 @@ const HOOK = require("../../src/HookManager.js");
 const CLASS = require("../../src/CoreClass.js");
 const Inspector = require("../../src/Inspector.js");
 const Event = require("../../src/Event.js");
-const Logger = require("../../src/Logger.js");
+const Logger = require("../../src/Logger.js")();
 const AnalysisHelper = require("../../src/AnalysisHelper.js");
 const ut = require("../../src/Utils.js");
 

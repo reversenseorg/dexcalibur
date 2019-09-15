@@ -1,6 +1,6 @@
 const HOOK = require("../../src/HookManager.js");
 const Inspector = require("../../src/Inspector.js");
-const Logger = require("../../src/Logger.js");
+const Logger = require("../../src/Logger.js")();
 const Android = require("../../src/AndroidAppComponents.js");
 
 // ===== INIT =====

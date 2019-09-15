@@ -1,6 +1,6 @@
 const fs = require("fs");
 const UT = require("./Utils.js");
-const Logger = require("./Logger.js");
+const Logger = require("./Logger.js")();
 const Path = require("path");
 
 const DX_JAR_PATH = "/lib/dx.jar";

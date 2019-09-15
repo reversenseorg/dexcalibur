@@ -8,7 +8,7 @@ const Path = require("path");
 const CLASS = require("./CoreClass.js");
 const CONST = require("./CoreConst.js");
 const UT = require("./Utils.js");
-const Logger = require("./Logger.js");
+const Logger = require("./Logger.js")();
 const JSHelper = require("./JavaScriptHelper.js");
 
 var HOOK_TYPE = {
@@ -990,6 +990,16 @@ function HookManager(ctx, nofrida=0){
 
     return this;
 }
+
+/**
+ * To get frida_disabled status.
+ * 
+ * @return {Boolean} Frida-feature status
+ */
+HookManager.prototype.isFridaDisabled = function(){
+    return (this.frida_disabled!=0);
+}
+
 HookManager.prototype.help = function(){
     console.log("Module :\n\tNativeObserver\n\tReflect\n\tRootBypass\n");
 }

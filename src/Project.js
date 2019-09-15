@@ -4,15 +4,13 @@ const Path = require("path");
 const Fs = require("fs");
 
 
-var Logger = require("./Logger.js");
+var Logger = require("./Logger.js")();
 var Configuration = require("./Configuration.js");
 var Analyzer = require("./Analyzer.js");
 var AnalysisHelper = require("./AnalysisHelper.js");
 var Finder = require("./Finder.js");
 var DeviceManager = require("./DeviceManager.js");
 var PackagePatcher = require("./PackagePatcher.js");
-//var ut = require("./Utils.js");
-//var Backup = require("./BackupManager.js");
 var HookHelper = require("./HookManager.js");
 var DexHelper = require("./DexHelper.js");
 var InspectorManager = require("./InspectorManager.js");
@@ -31,15 +29,12 @@ const SYSCALLS = require("./Syscalls.js");
 
 
 var g_builtinHookSets = {};
-/*
-    RootDetection: require("./scanner/RootDetection.js"),
-    Deobfuscater: require("./scanner/Deobfuscater.js"),
-    KeystoreScanner: require("./scanner/KeystoreScanner.js")
-};*/
 
 /**
- * Represents an instance of a running application.
+ * To represent an instance of a running application.
+ * 
  * It can be used in order to pause/resume an application running on a remote device. 
+ * 
  * @param {int} pid The Remote PID of the application 
  * @constructor
  */
@@ -48,12 +43,6 @@ function ApplicationInstance(pid){
 }
 
 
-function importConfig(cfg){
-    for(let i in cfg.platform_available){
-        cfg.platform_available[i] = new Platform(cfg.platform_available[i]); 
-    }
-    return cfg;
-}
 
 /**
  * Represents the project, the current configuration and all the context.
@@ -66,23 +55,48 @@ function Project(pkgName, cfgpath=null, nofrida=0){
     this.initDexcalibur(pkgName,cfgpath,nofrida);
 }
 
+/**
+ * @param {String}  pkgName     Identifier of the targeted application. 
+ * @param {String}  cfgpath     Optional - Configuration filepath. Default: $CWD/config.js . 
+ * @param {Boolean} nofrida     Optional - Set 1 to disable Frida. Default: 0. 
+ * @param {String}  apiVersion  Optional - Android API version to ude during analysis.
+ * @function
+ */
 Project.prototype.initDexcalibur = function(pkgName, cfgpath=null, nofrida=0, apiVersion="android:7.0.0"){
+    /**
+     * @field Package name of the target
+     */
     this.pkg = pkgName;
+
+    /**
+     * @field Instance of project's configuration
+     */
     this.config = new Configuration();
+
+    /**
+     * @field Path of the configuration file
+     */
     this.cfgpath = cfgpath;
+
+    /**
+     * @field Flag 
+     */
     this.nofrida = nofrida;
+
+    /**
+     * @field the default android API version to use.
+     */
     this.apiVersion = apiVersion;
+
     var _self = this;
 
     if(cfgpath != null){
         this.config.import(require(cfgpath), true, true);
-        //this.config = importConfig(require(cfgpath));
         Logger.info(" Given configuration file loaded");
     }else{
         //let cfg = require("../config.js");
         this.config.import(require("../config.js"), true, true);
         
-        //this.config = importConfig(cfg);
         Logger.info(" Default configuration loaded from 'config.js' file.");
     }
     this.config.dexcaliburPath = Path.join(process.cwd(),"src");
@@ -188,30 +202,68 @@ Project.prototype.initDexcalibur = function(pkgName, cfgpath=null, nofrida=0, ap
 }
 
 
-
+/**
+ * To switch from a project to another without restart Dexcalibur
+ * 
+ * Internally, it re-initialize Dexcalibur with the targeted package, 
+ * and starts analysis.  
+ * 
+ * @param {String} packageIdentifier Package identifier of the target.
+ * @function 
+ */
 Project.prototype.changeProject = function(packageIdentifier) {
     this.initDexcalibur(packageIdentifier,this.cfgpath,this.nofrida);
     this.useAPI(this.apiVersion).fullscan();
 };
 
+/**
+ * To get the project configuration.
+ * 
+ * @returns {Configuration} The configuration of project
+ * @function
+ */
+Project.prototype.getConfiguration = function(){
+    return this.config;
+}
 
+
+/**
+ * To get the data analyzer.
+ * 
+ * @returns {DataAnalyzer} The data analyzer 
+ * @function
+ */
 Project.prototype.getDataAnalyzer = function(){
     return this.dataAnalyser;
 };
 
 
+/**
+ * To get the application analyzer, which includes manifest and permission analysis.
+ * 
+ * @returns {AndroidAppAnalyzer} The application analyzer 
+ * @function
+ */
 Project.prototype.getAppAnalyzer = function(){
     return this.appAnalyzer;
 };
 
 
+/**
+ * To get the bytecode static code analyzer which contains the internal database.
+ * 
+ * @returns {Analyzer} The internal bytecode analyzer 
+ * @function
+ */
 Project.prototype.getAnalyzer = function(){
     return this.analyze;
 };
 
 /**
- * To show available APIs (console print)
+ * To show available APIs (console print).
  * 
+ * @returns {Project} The current project instance.
+ * @function
  */
 Project.prototype.showAPIs = function(){
     for(let i=0 ;i<this.config.platform_available.length ; i++){
@@ -222,7 +274,9 @@ Project.prototype.showAPIs = function(){
 
 /**
  * To specify the Android API version to use in the map.
+ * 
  * It should be write according to the format in "config.platform_available"
+ * 
  * @param {string} version The version of the API  
  * @function
  */
@@ -235,7 +289,9 @@ Project.prototype.useAPI = function(version){
 
 /**
  * To perform a scan of the application byetcode only.
+ * 
  * All reference to Android system classes will be tagged MissingReference or VMBinding
+ * 
  * @param {string} path Optional, the path of the folder containing the decompiled smali code. 
  * @returns {Project} Returns the instance of this project
  * @function
@@ -379,6 +435,13 @@ Project.prototype.fullscan = function(path){
     return this;
 };
 
+/**
+ * To create an event and push it to the queue.
+ * The argulent should be given by using the format expected by the Event constructor.
+ * 
+ * @param {Object} eventData The description of the event to use with the Event constructor.
+ * @function
+ */
 Project.prototype.trigger = function(eventData){
     this.bus.send(new Event.Event(eventData));
 }
@@ -474,7 +537,11 @@ Project.prototype.pull = function(device){
     }
 };
 
-
+/**
+ * To use the emulator by default instead of an USB device
+ * @deprecated
+ * @function
+ */
 Project.prototype.useEmulator = function(){
     this.config.useEmulator = true;
 }
@@ -482,7 +549,7 @@ Project.prototype.useEmulator = function(){
 /**
  * To start the application from a specific Activity.
  * Use the default device. It can used in order to force application crawl. 
- * @param {string} activity The activity to start
+ * @param {String} activity The activity to start
  * @returns {ApplicationInstance}  A reference to the process running the Application
  * @function 
  */
@@ -498,7 +565,12 @@ Project.prototype.start = function(activity){
     return new ApplicationInstance(0);
 };
 
-
+/**
+ * To start the web server
+ * 
+ * @param {int} port Optional - The port number to use. By default, the port number from configuration is used.
+ * @function
+ */
 Project.prototype.startWebserver = function(port=null){
     // if port is undefined or null
     if(port==null){
@@ -507,10 +579,5 @@ Project.prototype.startWebserver = function(port=null){
         this.web.start(port);
     }
 }
-/*
-Project.prototype.saveDB = function(){
-    let sys_db = this.dbm.getPlatformDB();
-    sys
-};*/
 
 module.exports = Project;

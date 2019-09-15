@@ -6,7 +6,7 @@ const LIB_PROP = require("properties");
 const UT = require("./Utils.js");
 const FileHelper = require("./File.js");
 const FileTypeHelper = require("./FileTypes.js");
-const Logger = require("./Logger.js");
+const Logger = require("./Logger.js")();
 const Event = require("./Event.js");
 const EventType = Event.TYPE;
 

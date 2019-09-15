@@ -1,4 +1,4 @@
-const Logger = require("./Logger.js");
+const Logger = require("./Logger.js")();
 const IFC = require("./InspectorFrontController.js");
 const fs = require("fs");
 const Path = require("path");
