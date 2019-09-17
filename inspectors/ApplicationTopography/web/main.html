@@ -266,14 +266,14 @@
 
                 <div class="col-sm-10 col-lg-10 apptopo-vtn" id="ctn-activities" style="display:none">
                    <div class="row">
-                    <div class="col-sm-6 col-lg-86 first-vtn-col">
+                    <div class="col-sm-8 col-lg-8 first-vtn-col">
                         <table width="100%"  class="table table-bordered table-hover datatable-dark" id="dataTables-activities">
                             <thead>
                                 <tr>
-                                    <th id="finder-col1" class="col-lg-1">-</th>
-                                    <th id="finder-col2" class="col-lg-5">Name</th>
-                                    <th id="finder-col3" class="col-lg-3">Tags</th>
-                                    <th id="finder-col4" class="col-lg-3">Action</th>
+                                    <th class="col-lg-6">Name</th>
+                                    <th class="col-lg-2">Intent filters</th>
+                                    <th class="col-lg-2">Tags</th>
+                                    <th class="col-lg-2">Action</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -282,20 +282,17 @@
                         </table>
                     </div>
 
-                    <div class="col-sm-6 col-lg-6" id="ctn-activity-detail" style="display:none">
+                    <!--<div class="col-sm-6 col-lg-6" id="ctn-activity-detail" style="display:none">
                 
                         <h2 style="color:#FFF" id="act-detail-title">&nbsp;</h2>
                         <div id="act-detail-tag">&nbsp;</div>
-                        <div class="row">
-                            <div class="col-lg-4">Implemented by</div>
-                            <div class="col-lg-8" id="act-detail-impl"></div>
-                        </div>
                         
                         <div class="panel panel-info">
                             <div class="panel-heading" style="font-size:1.2em">
                                 <div class="row">
-                                    <div class="col-lg-8">Attributes</div>
-                                    <div class="col-lg-4">
+                                    <div class="col-lg-4">Attributes</div>
+                                    <div class="col-lg-8">
+                                        <a class="badge badge-pink seeClass" id="act-detail-impl" href="" target="blank">See associated class</a>
                                         <button class="badge badge-danger startActivity">Start activity</button>
                                     </div>
                                 </div>
@@ -315,7 +312,8 @@
                             <div class="panel-body" style="padding:0px">
                                 <table width="100%" class="table table-striped table-bordered table-hover" style="margin-bottom: 0px" id="act-detail-intent-tab">
                                     <thead>
-                                        <th class="col-lg-6">Category</th>
+                                        <th class="col-lg-1">-</th>
+                                        <th class="col-lg-5">Category</th>
                                         <th class="col-lg-6">Action</th>
                                     </thead>
                                     <tbody></tbody>
@@ -326,39 +324,36 @@
                         <div class="panel panel-info">
                             <div class="panel-heading">
                                 <div class="row">
-                                    <div class="col-lg-8" style="font-size:1.2em">
                                         Android internals invoked
-                                    </div>
-                                    <div class="col-lg-4">
-                                        <a class="badge badge-danger">Threat score: TODO</a>
-                                    </div>
+                                    
                                 </div>
                             </div>
                             <div class="panel-body" style="padding:0px">
-                                <table width="100%" class="table table-striped table-bordered table-hover" style="margin-bottom: 0px" id="actInternalSignatureTable">
-                                    <tbody>
-                                        <tr><td class="col-lg-8" >DexClassLoader.load</td><td class="col-lg-4 col-threat-score" style="color:orange">3/5</td></tr>
-                                        <tr><td class="col-lg-8" >Runtime.exec</td><td class="col-lg-4 col-threat-score" style="color: orangered">5/5</td></tr>
-                                    </tbody>
+                                <table width="100%" class="table table-striped table-bordered table-hover" style="margin-bottom: 0px" id="act-detail-intern-tab">
+                                    <thead>
+                                        <th>Class</th>
+                                        <th>Method</th>
+                                    </thead>
+                                    <tbody></tbody>
                                 </table>
                                 <div class="row"><div class="col-lg-2 col-lg-offset-5" style="text-align: center">scroll</div></div>
                             </div>
                         </div>
                                 
-                    </div>
+                    </div>-->
                   
                     </div>
                 </div>
                     <div class="col-sm-10 col-lg-10 apptopo-vtn" id="ctn-services" style="display:none">
                             <div class="row">
-                             <div class="col-sm-6 col-lg-86 first-vtn-col">
+                             <div class="col-sm-8 col-lg-8 first-vtn-col">
                                  <table width="100%"  class="table table-bordered table-hover datatable-dark" id="dataTables-services">
                                      <thead>
                                          <tr>
-                                             <th id="finder-col1" class="col-lg-1">-</th>
-                                             <th id="finder-col2" class="col-lg-5">Name</th>
-                                             <th id="finder-col3" class="col-lg-3">Tags</th>
-                                             <th id="finder-col4" class="col-lg-3">Action</th>
+                                             <th class="col-lg-6">Name</th>
+                                             <th class="col-lg-2">Intent filters</th>
+                                             <th class="col-lg-2">Tags</th>
+                                             <th class="col-lg-2">Action</th>
                                          </tr>
                                      </thead>
                                      <tbody>
@@ -372,14 +367,14 @@
 
                     <div class="col-sm-10 col-lg-10 apptopo-vtn" id="ctn-receivers" style="display:none">
                             <div class="row">
-                             <div class="col-sm-6 col-lg-86 first-vtn-col">
+                             <div class="col-sm-8 col-lg-8 first-vtn-col">
                                  <table width="100%"  class="table table-bordered table-hover datatable-dark" id="dataTables-receivers">
                                      <thead>
                                          <tr>
-                                             <th id="finder-col1" class="col-lg-1">-</th>
-                                             <th id="finder-col2" class="col-lg-5">Name</th>
-                                             <th id="finder-col3" class="col-lg-3">Tags</th>
-                                             <th id="finder-col4" class="col-lg-3">Action</th>
+                                                <th class="col-lg-6">Name</th>
+                                                <th class="col-lg-2">Intent filters</th>
+                                                <th class="col-lg-2">Tags</th>
+                                                <th class="col-lg-2">Action</th>
                                          </tr>
                                      </thead>
                                      <tbody>
@@ -392,14 +387,14 @@
 
                     <div class="col-sm-10 col-lg-10 apptopo-vtn" id="ctn-providers" style="display:none">
                             <div class="row">
-                             <div class="col-sm-6 col-lg-86 first-vtn-col">
+                             <div class="col-sm-8 col-lg-8 first-vtn-col">
                                  <table width="100%"  class="table table-bordered table-hover datatable-dark" id="dataTables-providers">
                                      <thead>
                                          <tr>
-                                             <th id="finder-col1" class="col-lg-1">-</th>
-                                             <th id="finder-col2" class="col-lg-5">Name</th>
-                                             <th id="finder-col3" class="col-lg-3">Tags</th>
-                                             <th id="finder-col4" class="col-lg-3">Action</th>
+                                            <th class="col-lg-6">Name</th>
+                                            <th class="col-lg-2">Intent filters</th>
+                                            <th class="col-lg-2">Tags</th>
+                                            <th class="col-lg-2">Action</th>
                                          </tr>
                                      </thead>
                                      <tbody>
@@ -409,6 +404,7 @@
                              </div>
                             </div>
                     </div>
+
                     <!--<div class="col-sm-4 col-lg-4 second-vtn-col" id="act-detail-panel" style="display:none">
                         <div class="row">
                             <div class="col-lg-10" id="act-detail-title">
@@ -428,61 +424,302 @@
 
         </div>
         <!-- /#page-wrapper -->
-
-        <div id="activityModal" class="modal fade" aria-hidden="true" tabindex="-1" role="dialog" >
-            <div class="modal-dialog" role="document" style="width:70%">
-              <div class="modal-content">
-                <div class="modal-header">
-                  <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-                  <h4 class="modal-title">Activity - <span id="actModName"></span> </h4>
-                </div>
-                <div class="modal-body">
-
-                    <div class="row">
-                        <div class="col-lg-6">
-                            <table width="100%" class="table table-striped table-bordered table-hover" id="dataTables-scannerEdit">
-                                <tbody>
-                                    <tr><td>Implemented by</td><td class="col-lg-8" id="actModImplementedBy"></td></tr>
-                                    <tr><td>Tags</td><td class="col-lg-8" id="actModTags"></td></tr>
-                                    <tr><td>Intent filter</td><td class="col-lg-8" id="actModIntentFilter"></td></tr>
-                                    <tr><td>Intent sent</td><td class="col-lg-8" id="actModIntentSent"></td></tr>
-                                </tbody>
-                            </table>
-                        </div>
-                        <div class="col-lg-6">
-                            <div class="panel panel-info">
-                                <div class="panel-heading">
-                                    <div class="row">
-                                        <div class="col-lg-8">
-                                            Android call signature
-                                        </div>
-                                        <div class="col-lg-4">
-                                            <a class="badge badge-danger">Threat score: 4/5</a>
+        <div class="modal fade" id="activityModal" tabindex="-1" role="dialog" aria-labelledby="activityModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-lg" style="width:80%" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <span style="font-size:1.8em" class="modal-title" id="act-detail-title">-</span>&nbsp;&nbsp;<span id="act-detail-tag">&nbsp;</span>
+                    </div>
+                    <div class="modal-body" id="confirm-text">
+                        <div class="row">
+                            <div class="col-lg-5">
+                            
+                                <div class="panel panel-info">
+                                    <div class="panel-heading" style="font-size:1.2em">
+                                        <div class="row">
+                                            <div class="col-lg-4">Attributes</div>
+                                            <div class="col-lg-8">
+                                                <a class="badge badge-pink seeClass" id="act-detail-impl" href="" target="blank">See associated class</a>
+                                                <button class="badge badge-danger startActivity">Start activity</button>
+                                            </div>
                                         </div>
                                     </div>
+                                    <div class="panel-body" style="padding:0px">
+                                        <table width="100%" class="table table-striped table-bordered table-hover" style="margin-bottom: 0px" id="act-detail-attr-tab">
+                                            <tbody>
+                                            </tbody>
+                                        </table>
+                                    </div>
                                 </div>
-                                <div class="panel-body" style="padding:0px">
-                                    <table width="100%" class="table table-striped table-bordered table-hover" style="margin-bottom: 0px" id="actInternalSignatureTable">
-                                        <tbody>
-                                            <tr><td class="col-lg-8" >DexClassLoader.load</td><td class="col-lg-4 col-threat-score" style="color:orange">3/5</td></tr>
-                                            <tr><td class="col-lg-8" >Runtime.exec</td><td class="col-lg-4 col-threat-score" style="color: orangered">5/5</td></tr>
-                                        </tbody>
-                                    </table>
-                                    <div class="row"><div class="col-lg-2 col-lg-offset-5" style="text-align: center">scroll</div></div>
+                                
+                            </div>
+                            <div class="col-lg-7">
+
+                                <div class="panel panel-info">
+                                    <div class="panel-heading" style="font-size:1.2em">
+                                        Intent Filters
+                                    </div>
+                                    <div class="panel-body" style="padding:0px">
+                                        <table width="100%" class="table table-striped table-bordered table-hover overflow-auto" style="margin-bottom:0px;overflow:scroll" id="act-detail-intent-tab">
+                                            <thead>
+                                                <th class="col-lg-1">-</th>
+                                                <th class="col-lg-5">Category</th>
+                                                <th class="col-lg-6">Action</th>
+                                            </thead>
+                                            <tbody></tbody>
+                                        </table>
+                                    </div>
                                 </div>
                             </div>
                         </div>
+                        <div class="panel panel-info">
+                            <div class="panel-heading" style="font-size:1.2em">
+                                Android internals invoked
+                            </div>
+                            <div class="panel-body" style="padding:0px">
+                                <table width="100%" class="table table-striped table-bordered table-hover" style="margin-bottom: 0px" id="act-detail-intern-tab">
+                                    <thead>
+                                        <th>Class</th>
+                                        <th>Method</th>
+                                    </thead>
+                                    <tbody><!--
+                                        <tr><td class="col-lg-8" >DexClassLoader.load</td><td class="col-lg-4 col-threat-score" style="color:orange">3/5</td></tr>
+                                        <tr><td class="col-lg-8" >Runtime.exec</td><td class="col-lg-4 col-threat-score" style="color: orangered">5/5</td></tr>
+                                    --></tbody>
+                                </table>
+                            </div>
+                        </div>
                     </div>
-
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-danger" id="confirm-btn-abort" data-dismiss="modal">Abort</button>
+                        <button type="button" class="btn btn-success confirm" id="confirm-btn-ok">Confirm</button>
+                    </div>
                 </div>
-                <div class="modal-footer">
-                  <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
-                </div>
-              </div>
             </div>
-          </div>
+        </div>
         
-          <<div class="modal fade" id="confirmModal" tabindex="-1" role="dialog" aria-labelledby="confirmModalLabel" aria-hidden="true">
+
+        <div class="modal fade" id="serviceModal" tabindex="-1" role="dialog" aria-labelledby="serviceModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-lg" style="width:80%" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <span style="font-size:1.8em" class="modal-title" id="srv-detail-title">-</span>&nbsp;&nbsp;<span id="srv-detail-tag">&nbsp;</span>
+                    </div>
+                    <div class="modal-body" id="confirm-text">
+                        <div class="row">
+                            <div class="col-lg-5">
+                            
+                                <div class="panel panel-info">
+                                    <div class="panel-heading" style="font-size:1.2em">
+                                        <div class="row">
+                                            <div class="col-lg-4">Attributes</div>
+                                            <div class="col-lg-8">
+                                                <a class="badge badge-pink seeClass" id="srv-detail-impl" href="" target="blank">See associated class</a>
+                                                <button class="badge badge-secondary startActivity">Start activity</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="panel-body" style="padding:0px">
+                                        <table width="100%" class="table table-striped table-bordered table-hover" style="margin-bottom: 0px" id="srv-detail-attr-tab">
+                                            <tbody>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                                
+                            </div>
+                            <div class="col-lg-7">
+
+                                <div class="panel panel-info">
+                                    <div class="panel-heading" style="font-size:1.2em">
+                                        Intent Filters
+                                    </div>
+                                    <div class="panel-body" style="padding:0px">
+                                        <table width="100%" class="table table-striped table-bordered table-hover overflow-auto" style="margin-bottom:0px;overflow:scroll" id="srv-detail-intent-tab">
+                                            <thead>
+                                                <th class="col-lg-1">-</th>
+                                                <th class="col-lg-5">Category</th>
+                                                <th class="col-lg-6">Action</th>
+                                            </thead>
+                                            <tbody></tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="panel panel-info">
+                            <div class="panel-heading" style="font-size:1.2em">
+                                Android internals invoked
+                            </div>
+                            <div class="panel-body" style="padding:0px">
+                                <table width="100%" class="table table-striped table-bordered table-hover" style="margin-bottom: 0px" id="srv-detail-intern-tab">
+                                    <thead>
+                                        <th>Class</th>
+                                        <th>Method</th>
+                                    </thead>
+                                    <tbody><!--
+                                        <tr><td class="col-lg-8" >DexClassLoader.load</td><td class="col-lg-4 col-threat-score" style="color:orange">3/5</td></tr>
+                                        <tr><td class="col-lg-8" >Runtime.exec</td><td class="col-lg-4 col-threat-score" style="color: orangered">5/5</td></tr>
+                                    --></tbody>
+                                </table>
+                    
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary"  data-dismiss="modal">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="modal fade" id="providerModal" tabindex="-1" role="dialog" aria-labelledby="providerModalLabel" aria-hidden="true">
+                <div class="modal-dialog modal-lg" style="width:80%" role="document">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <span style="font-size:1.8em" class="modal-title" id="prv-detail-title">-</span>&nbsp;&nbsp;<span id="prv-detail-tag">&nbsp;</span>
+                        </div>
+                        <div class="modal-body" id="confirm-text">
+                            <div class="row">
+                                <div class="col-lg-5">
+                                
+                                    <div class="panel panel-info">
+                                        <div class="panel-heading" style="font-size:1.2em">
+                                            <div class="row">
+                                                <div class="col-lg-4">Attributes</div>
+                                                <div class="col-lg-8">
+                                                    <a class="badge badge-pink seeClass" id="prv-detail-impl" href="" target="blank">See associated class</a>
+                                                    <button class="badge badge-danger startActivity">Start activity</button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="panel-body" style="padding:0px">
+                                            <table width="100%" class="table table-striped table-bordered table-hover" style="margin-bottom: 0px" id="prv-detail-attr-tab">
+                                                <tbody>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                    
+                                </div>
+                                <div class="col-lg-7">
+    
+                                    <div class="panel panel-info">
+                                        <div class="panel-heading" style="font-size:1.2em">
+                                            Intent Filters
+                                        </div>
+                                        <div class="panel-body" style="padding:0px">
+                                            <table width="100%" class="table table-striped table-bordered table-hover overflow-auto" style="margin-bottom:0px;overflow:scroll" id="prv-detail-intent-tab">
+                                                <thead>
+                                                    <th class="col-lg-1">-</th>
+                                                    <th class="col-lg-5">Category</th>
+                                                    <th class="col-lg-6">Action</th>
+                                                </thead>
+                                                <tbody></tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="panel panel-info">
+                                <div class="panel-heading" style="font-size:1.2em">
+                                    Android internals invoked
+                                </div>
+                                <div class="panel-body" style="padding:0px">
+                                    <table width="100%" class="table table-striped table-bordered table-hover" style="margin-bottom: 0px" id="prv-detail-intern-tab">
+                                        <thead>
+                                            <th>Class</th>
+                                            <th>Method</th>
+                                        </thead>
+                                        <tbody><!--
+                                            <tr><td class="col-lg-8" >DexClassLoader.load</td><td class="col-lg-4 col-threat-score" style="color:orange">3/5</td></tr>
+                                            <tr><td class="col-lg-8" >Runtime.exec</td><td class="col-lg-4 col-threat-score" style="color: orangered">5/5</td></tr>
+                                        --></tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-dismiss="modal">Abort</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        <div class="modal fade" id="receiverModal" tabindex="-1" role="dialog" aria-labelledby="receiverModalLabel" aria-hidden="true">
+                <div class="modal-dialog modal-lg" style="width:80%" role="document">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <span style="font-size:1.8em" class="modal-title" id="rcv-detail-title">-</span>&nbsp;&nbsp;<span id="rcv-detail-tag">&nbsp;</span>
+                        </div>
+                        <div class="modal-body" id="confirm-text">
+                            <div class="row">
+                                <div class="col-lg-5">
+                                
+                                    <div class="panel panel-info">
+                                        <div class="panel-heading" style="font-size:1.2em">
+                                            <div class="row">
+                                                <div class="col-lg-4">Attributes</div>
+                                                <div class="col-lg-8">
+                                                    <a class="badge badge-pink seeClass" id="rcv-detail-impl" href="" target="blank">See associated class</a>
+                                                    <button class="badge badge-danger startActivity">Start activity</button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="panel-body" style="padding:0px">
+                                            <table width="100%" class="table table-striped table-bordered table-hover" style="margin-bottom: 0px" id="rcv-detail-attr-tab">
+                                                <tbody>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                    
+                                </div>
+                                <div class="col-lg-7">
+    
+                                    <div class="panel panel-info">
+                                        <div class="panel-heading" style="font-size:1.2em">
+                                            Intent Filters
+                                        </div>
+                                        <div class="panel-body" style="padding:0px">
+                                            <table width="100%" class="table table-striped table-bordered table-hover overflow-auto" style="margin-bottom:0px;overflow:scroll" id="rcv-detail-intent-tab">
+                                                <thead>
+                                                    <th class="col-lg-1">-</th>
+                                                    <th class="col-lg-5">Category</th>
+                                                    <th class="col-lg-6">Action</th>
+                                                </thead>
+                                                <tbody></tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="panel panel-info">
+                                <div class="panel-heading" style="font-size:1.2em">
+                                    Android internals invoked
+                                </div>
+                                <div class="panel-body" style="padding:0px">
+                                    <table width="100%" class="table table-striped table-bordered table-hover" style="margin-bottom: 0px" id="rcv-detail-intern-tab">
+                                        <thead>
+                                            <th>Class</th>
+                                            <th>Method</th>
+                                        </thead>
+                                        <tbody><!--
+                                            <tr><td class="col-lg-8" >DexClassLoader.load</td><td class="col-lg-4 col-threat-score" style="color:orange">3/5</td></tr>
+                                            <tr><td class="col-lg-8" >Runtime.exec</td><td class="col-lg-4 col-threat-score" style="color: orangered">5/5</td></tr>
+                                        --></tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-dismiss="modal">Abort</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+          <div class="modal fade" id="confirmModal" tabindex="-1" role="dialog" aria-labelledby="confirmModalLabel" aria-hidden="true">
                 <div class="modal-dialog" role="document">
                     <div class="modal-content">
                         <div class="modal-header">
@@ -560,8 +797,9 @@
         }
 
         // impl
-        $("#act-detail-impl").html(
-            DexcaliburAPI.ui.htmlEncode(act.__impl)
+        $("#act-detail-impl").attr(
+            "href",
+            "/pages/finder.html?class="+btoa(encodeURIComponent(act.__impl))
         );
 
         $("#act-detail-tag").html(
@@ -579,7 +817,7 @@
         $("#act-detail-intent-tab > tbody").empty();
         for(let i=0; i<act.intentFilters.length; i++){
             intent = act.intentFilters[i];
-            body_tr = "<tr><td>";
+            body_tr = "<tr><td><a class='badge badge-danger'><span class='fa fa-play'></span></a></td><td>";
             intent.category.map((x,i) => {
                 if(i>0) body_tr += "<br>";
                 body_tr += DexcaliburAPI.ui.htmlEncode(x.name);
@@ -594,8 +832,237 @@
             $("#act-detail-intent-tab > tbody").append(body_tr);
         }
 
+        // interns 
+        $("#act-detail-intern-tab > tbody").empty();
+        let m = "";
+        for(let i in act.__ppts["internals"]){
+            m = Object.keys(act.__ppts["internals"][i]).map(
+                x => "<a target='blank' href='/page/finder.html?method="
+                + btoa(encodeURIComponent(x)) + "'>"+DexcaliburAPI.ui.htmlEncode(x)+"</a>")
+                .join("<br>");
 
-        $("#ctn-activity-detail").css("display","block");
+            $("#act-detail-intern-tab > tbody").append(
+                "<tr><td class='col-lg-3'>"+DexcaliburAPI.ui.htmlEncode(i)+"</td><td class='col-lg-9'>"+m+"</td></tr>"       
+            );
+        }
+
+        //$("#ctn-activity-detail").css("display","block");
+        $("#activityModal").modal();
+    }
+
+    function renderProviderDetail(act){
+
+        // act-detail-tag
+        $("#prv-detail-title").html(
+            DexcaliburAPI.ui.htmlEncode(act.name)
+        );
+
+        // tags
+        let tags = "";
+        if((act.__tag instanceof Array) && (act.__tag.length > 0)){
+        act.__tag.map(t => {
+                if(TAGS_COLOR[t] != null)
+                    tags += DexcaliburAPI.ui.badge.make(TAGS_COLOR[t],t);
+                else
+                    tags += DexcaliburAPI.ui.badge.make('info',t);
+            });
+        }
+
+        // impl
+        $("#prv-detail-impl").attr(
+            "href",
+            "/pages/finder.html?class="+btoa(encodeURIComponent(act.__impl))
+        );
+
+        $("#prv-detail-tag").html(
+            tags
+        );
+
+        // attributes
+        $("#prv-detail-attr-tab > tbody").empty();
+        for(let i in act.attr){
+            $("#act-detail-attr-tab > tbody").append("<tr><td>"
+                +DexcaliburAPI.ui.htmlEncode(i)+"</td><td>"+DexcaliburAPI.ui.htmlEncode(act.attr[i])+"</td></tr>");
+        }
+
+        // intent
+        $("#prv-detail-intent-tab > tbody").empty();
+        for(let i=0; i<act.intentFilters.length; i++){
+            intent = act.intentFilters[i];
+            body_tr = "<tr><td><a class='badge badge-danger'><span class='fa fa-play'></span></a></td><td>";
+            intent.category.map((x,i) => {
+                if(i>0) body_tr += "<br>";
+                body_tr += DexcaliburAPI.ui.htmlEncode(x.name);
+            });
+            body_tr += "</td><td>";
+            intent.action.map((x,i) => {
+                if(i>0) body_tr += "<br>";
+                body_tr += DexcaliburAPI.ui.htmlEncode(x.name);
+            });
+            body_tr += "</td></tr>";
+
+            $("#prv-detail-intent-tab > tbody").append(body_tr);
+        }
+
+        // interns 
+        $("#prv-detail-intern-tab > tbody").empty();
+        let m = "";
+        for(let i in act.__ppts["internals"]){
+            m = Object.keys(act.__ppts["internals"][i]).map(
+                x => "<a target='blank' href='/page/finder.html?method="
+                + btoa(encodeURIComponent(x)) + "'>"+DexcaliburAPI.ui.htmlEncode(x)+"</a>")
+                .join("<br>");
+
+            $("#prv-detail-intern-tab > tbody").append(
+                "<tr><td class='col-lg-3'>"+DexcaliburAPI.ui.htmlEncode(i)+"</td><td class='col-lg-9'>"+m+"</td></tr>"       
+            );
+        }
+
+        $("#providerModal").modal();
+    }
+
+    function renderReceiverDetail(act){
+
+        // act-detail-tag
+        $("#rcv-detail-title").html(
+            DexcaliburAPI.ui.htmlEncode(act.name)
+        );
+
+        // tags
+        let tags = "";
+        if((act.__tag instanceof Array) && (act.__tag.length > 0)){
+        act.__tag.map(t => {
+                if(TAGS_COLOR[t] != null)
+                    tags += DexcaliburAPI.ui.badge.make(TAGS_COLOR[t],t);
+                else
+                    tags += DexcaliburAPI.ui.badge.make('info',t);
+            });
+        }
+
+        // impl
+        $("#rcv-detail-impl").attr(
+            "href",
+            "/pages/finder.html?class="+btoa(encodeURIComponent(aFct.__impl))
+        );
+
+        $("#rcv-detail-tag").html(
+            tags
+        );
+
+        // attributes
+        $("#rcv-detail-attr-tab > tbody").empty();
+        for(let i in act.attr){
+            $("#rcv-detail-attr-tab > tbody").append("<tr><td>"
+                +DexcaliburAPI.ui.htmlEncode(i)+"</td><td>"+DexcaliburAPI.ui.htmlEncode(act.attr[i])+"</td></tr>");
+        }
+
+        // intent
+        $("#rcv-detail-intent-tab > tbody").empty();
+        for(let i=0; i<act.intentFilters.length; i++){
+            intent = act.intentFilters[i];
+            body_tr = "<tr><td><a class='badge badge-danger'><span class='fa fa-play'></span></a></td><td>";
+            intent.category.map((x,i) => {
+                if(i>0) body_tr += "<br>";
+                body_tr += DexcaliburAPI.ui.htmlEncode(x.name);
+            });
+            body_tr += "</td><td>";
+            intent.action.map((x,i) => {
+                if(i>0) body_tr += "<br>";
+                body_tr += DexcaliburAPI.ui.htmlEncode(x.name);
+            });
+            body_tr += "</td></tr>";
+
+            $("#rcv-detail-intent-tab > tbody").append(body_tr);
+        }
+
+        // interns 
+        $("#rcv-detail-intern-tab > tbody").empty();
+        let m = "";
+        for(let i in act.__ppts["internals"]){
+            m = Object.keys(act.__ppts["internals"][i]).map(
+                x => "<a target='blank' href='/page/finder.html?method="
+                + btoa(encodeURIComponent(x)) + "'>"+DexcaliburAPI.ui.htmlEncode(x)+"</a>")
+                .join("<br>");
+
+            $("#rcv-detail-intern-tab > tbody").append(
+                "<tr><td class='col-lg-3'>"+DexcaliburAPI.ui.htmlEncode(i)+"</td><td class='col-lg-9'>"+m+"</td></tr>"       
+            );
+        }
+
+        //$("#ctn-activity-detail").css("display","block");
+        $("#receiverModal").modal();
+    }
+
+    function renderServiceDetail(act){
+
+        // act-detail-tag
+        $("#srv-detail-title").html(
+            DexcaliburAPI.ui.htmlEncode(act.name)
+        );
+
+        // tags
+        let tags = "";
+        if((act.__tag instanceof Array) && (act.__tag.length > 0)){
+        act.__tag.map(t => {
+                if(TAGS_COLOR[t] != null)
+                    tags += DexcaliburAPI.ui.badge.make(TAGS_COLOR[t],t);
+                else
+                    tags += DexcaliburAPI.ui.badge.make('info',t);
+            });
+        }
+
+        // impl
+        $("#srv-detail-impl").attr(
+            "href",
+            "/pages/finder.html?class="+btoa(encodeURIComponent(act.__impl))
+        );
+
+        $("#srv-detail-tag").html(
+            tags
+        );
+
+        // attributes
+        $("#srv-detail-attr-tab > tbody").empty();
+        for(let i in act.attr){
+            $("#srv-detail-attr-tab > tbody").append("<tr><td>"
+                +DexcaliburAPI.ui.htmlEncode(i)+"</td><td>"+DexcaliburAPI.ui.htmlEncode(act.attr[i])+"</td></tr>");
+        }
+
+        // intent
+        $("#srv-detail-intent-tab > tbody").empty();
+        for(let i=0; i<act.intentFilters.length; i++){
+            intent = act.intentFilters[i];
+            body_tr = "<tr><td><a class='badge badge-danger'><span class='fa fa-play'></span></a></td><td>";
+            intent.category.map((x,i) => {
+                if(i>0) body_tr += "<br>";
+                body_tr += DexcaliburAPI.ui.htmlEncode(x.name);
+            });
+            body_tr += "</td><td>";
+            intent.action.map((x,i) => {
+                if(i>0) body_tr += "<br>";
+                body_tr += DexcaliburAPI.ui.htmlEncode(x.name);
+            });
+            body_tr += "</td></tr>";
+
+            $("#srv-detail-intent-tab > tbody").append(body_tr);
+        }
+
+        // interns 
+        $("#srv-detail-intern-tab > tbody").empty();
+        let m = "";
+        for(let i in act.__ppts["internals"]){
+            m = Object.keys(act.__ppts["internals"][i]).map(
+                x => "<a target='blank' href='/page/finder.html?method="
+                + btoa(encodeURIComponent(x)) + "'>"+DexcaliburAPI.ui.htmlEncode(x)+"</a>")
+                .join("<br>");
+
+            $("#srv-detail-intern-tab > tbody").append(
+                "<tr><td class='col-lg-3'>"+DexcaliburAPI.ui.htmlEncode(i)+"</td><td class='col-lg-9'>"+m+"</td></tr>"       
+            );
+        }
+
+        //$("#ctn-activity-detail").css("display","block");
+        $("#serviceModal").modal();
     }
 
     function makeActivityBlock(obj){
@@ -901,14 +1368,12 @@
 
             ajax: DexcaliburAPI.manifest.activities.URI.list,
             columns: [
-                {
-                    "className":      'details-control',
-                    "orderable":      false,
-                    "data":           null,
-                    "defaultContent": ''
-                },
-                //{   data: 'type'  },
                 {   data: 'name'  },
+                { 
+                    render: function(data, type, row, meta ){
+                        return (row.intentFilters.length > 0)? 'YES' : '';
+                    }
+                },
                 {  
                     render: function(data, type, row, meta){
                         let body = "";
@@ -946,14 +1411,12 @@
 
             ajax: DexcaliburAPI.manifest.services.URI.list,
             columns: [
-                {
-                    "className":      'details-control',
-                    "orderable":      false,
-                    "data":           null,
-                    "defaultContent": ''
-                },
-                //{   data: 'type'  },
                 {   data: 'name'  },
+                { 
+                    render: function(data, type, row, meta ){
+                        return (row.intentFilters.length > 0)? 'YES' : '';
+                    }
+                },
                 {  
                     render: function(data, type, row, meta){
                         let body = "";
@@ -991,14 +1454,12 @@
 
             ajax: DexcaliburAPI.manifest.receivers.URI.list,
             columns: [
-                {
-                    "className":      'details-control',
-                    "orderable":      false,
-                    "data":           null,
-                    "defaultContent": ''
-                },
-                //{   data: 'type'  },
                 {   data: 'name'  },
+                { 
+                    render: function(data, type, row, meta ){
+                        return (row.intentFilters.length > 0)? 'YES' : '';
+                    }
+                },
                 {  
                     render: function(data, type, row, meta){
                         let body = "";
@@ -1019,7 +1480,7 @@
                     render: function(data, type, row, meta ){
                         // <button class="btn btn-info runscan" style="height:1.5em;padding-top:0px;padding-bottom:0px;" scanner="`+btoa(row.id)+`">Run</button>
                         return `
-                            &nbsp;<a style="height:1.5em;" class="badge badge-primary btn-receivers-detail" receiver="`+btoa(row.name)+`" data-toggle="tooltip" data-placement="bottom" title="Show receiver details">Info</button>
+                            &nbsp;<a style="height:1.5em;" class="badge badge-primary btn-receiver-detail" receiver="`+btoa(row.name)+`" data-toggle="tooltip" data-placement="bottom" title="Show receiver details">Info</button>
                             `;
                     }
                 }
@@ -1036,14 +1497,12 @@
 
             ajax: DexcaliburAPI.manifest.providers.URI.list,
             columns: [
-                {
-                    "className":      'details-control',
-                    "orderable":      false,
-                    "data":           null,
-                    "defaultContent": ''
-                },
-                //{   data: 'type'  },
                 {   data: 'name'  },
+                { 
+                    render: function(data, type, row, meta ){
+                        return (row.intentFilters.length > 0)? 'YES' : '';
+                    }
+                },
                 {  
                     render: function(data, type, row, meta){
                         let body = "";
@@ -1088,7 +1547,8 @@
 
         });
 
-        $('#dataTables-activities tbody').on('click', '.btn-provider-detail', function (e) {
+
+        $('#dataTables-providers tbody').on('click', '.btn-provider-detail', function (e) {
 
             console.log(e.currentTarget.getAttribute("provider"));
 
@@ -1104,82 +1564,37 @@
         });
 
 
-        $('#dataTables-scanner tbody').on('click', 'td.details-control', function () {
-            var tr = $(this).closest('tr');
-            var row = clsTable.row( tr );
-            //console.log(row.child);
+        $('#dataTables-services tbody').on('click', '.btn-service-detail', function (e) {
 
-            if ( row.child.isShown() ) {
-                // This row is already open - close it
-                row.child.hide();
-                tr.removeClass('shown');
-            }
-            else {
-                // Open this row
-                row.child( format(row.data()) ).show();
-                tr.addClass('shown');
-            }
-        } );
+            console.log(e.currentTarget.getAttribute("service"));
 
-       $('#dataTables-scanner tbody').on('click', 'a.plgdispl', function () {
-            let id = $(this).attr("prologue");
-            if( id != null){
-                
-                let v = $(".plgdispl[prologue="+id+"]").html(); 
-                if(v == "show"){
-                    $("#"+id).css("display","block");
-                    $(".plgdispl[prologue="+id+"]").html("hide");
-                }else{
-                    $("#"+id).css("display","none");
-                    $(".plgdispl[prologue="+id+"]").html("show");
+            DexcaliburAPI.manifest.providers.get(
+                e.currentTarget.getAttribute("service"), {
+                200: function(data){
+                    let prv = JSON.parse(data);
+                    renderServiceDetail(prv.data);
+                    console.log(prv.data);
                 }
-                    
-            }else{
-                alert('editor not found');
-            }
-       });
- 
-        $('#dataTables-scanner tbody').on('click', 'button.runscan', function () {
-            let id = $(this).attr("scanner");
+            });
 
-            $.ajax("../api/scanner/run",{
-                method: "get",
-                data: {
-                    id: id
-                },
-                status: {
-                    200: function(data,err){
-                        //location
-                    }
-                }
-            })
-        } );
-
-
-        $('#dataTables-scanner tbody').on('click', 'button.loadscan', function () {
-            let id = $(this).attr("scanner");
-
-            $.ajax("../api/scanner/load",{
-                method: "get",
-                data: {
-                    id: id
-                },
-                status: {
-                    200: function(data,err){
-                        location.href="/probe.html";
-                    },
-                    404: function(data,err){
-                        alert("Failed to load bypasser");
-                    }
-                }
-            })
-        } );
-
-
-        //dmTable.ajax.url("../api/device").load();
-        $('#dm-refresh-btn').click(()=>{
-            clsTable.ajax.reload();
         });
+
+
+        $('#dataTables-receivers tbody').on('click', '.btn-receiver-detail', function (e) {
+
+            console.log(e,e.currentTarget.getAttribute("receiver"));
+
+            DexcaliburAPI.manifest.receivers.get(
+                e.currentTarget.getAttribute("receiver"), {
+                200: function(data){
+                    let o = JSON.parse(data);
+                    renderReceiverDetail(o.data);
+                    console.log(o.data);
+                }
+            });
+
+        });
+
     });
 
     </script>

@@ -1,6 +1,8 @@
 const HOOK = require("../../src/HookManager.js");
 const Inspector = require("../../src/Inspector.js");
 const CLASS = require("../../src/CoreClass.js");
+const Logger = require("../../src/Logger.js")();
+const ClassAnalyzer = require("./src/ClassAnalyzer.js");
 
 // ===== INIT =====
 
@@ -17,7 +19,7 @@ AppTopoInspector.useGUI();
 
 AppTopoInspector.registerTagCategory(
     "intent.action",
-    ["browsable","exported"]
+    ["browsable", "exported"]
 );
 
 // ===== CONFIG HOOKS =====
@@ -29,12 +31,12 @@ AppTopoInspector.registerTagCategory(
 
 
 const TAGS = Object.freeze({
-        MAIN: "MAIN",
-        BROWSABLE: "BROWSABLE",
-        EXPOSED: "EXPOSED",
-        BOOT_COMPLETED: "BOOT_COMPLETED",
-        SMS: "SMS",
-        PHONE: "PHONE"
+    MAIN: "MAIN",
+    BROWSABLE: "BROWSABLE",
+    EXPOSED: "EXPOSED",
+    BOOT_COMPLETED: "BOOT_COMPLETED",
+    SMS: "SMS",
+    PHONE: "PHONE"
 });
 
 const TAGS_SIGNATURE = {
@@ -49,24 +51,24 @@ const TAGS_SIGNATURE = {
         "android.intent.category.BROWSABLE": TAGS.BROWSABLE,
     },
     attr: {
-        "exported": {value:true, tag:TAGS.EXPOSED},
+        "exported": { value: true, tag: TAGS.EXPOSED },
 
     }
 }
 
-function tagByIntent(event){
+function tagByIntent(event) {
     let intents = event.data.getIntentFilters();
     intents.map(i => {
         i.getActions().map(a => {
             let t = TAGS_SIGNATURE.action[a.getName()];
-            if(t != null){
+            if (t != null) {
                 event.data.addTag(t);
             }
         });
 
         i.getCategories().map(a => {
             let t = TAGS_SIGNATURE.category[a.getName()];
-            if(t != null){
+            if (t != null) {
                 event.data.addTag(t);
             }
         });
@@ -75,85 +77,133 @@ function tagByIntent(event){
 
 // activity analysis is trigged when a new activity is found
 AppTopoInspector.on("app.activity.new", {
-    task: function(ctx, event){
+    task: function (ctx, event) {
 
         // to retrieve class implementign this activity
         let cls = ctx.find.get.class(event.data.name);
-        if(cls instanceof CLASS.Class){
+        if (cls instanceof CLASS.Class) {
             event.data.setImplementedBy(cls);
             cls.addTag("ACTIVITY");
         }
 
         // tag by intent filter  
         tagByIntent(event);
-        /*
-        let intents = event.data.getIntentFilters();
-        intents.map(i => {
-            i.getActions().map(a => {
-                let t = TAGS_SIGNATURE.action[a.getName()];
-                if(t != null){
-                    event.data.addTag(t);
-                }
-            });
-
-            i.getCategories().map(a => {
-                let t = TAGS_SIGNATURE.category[a.getName()];
-                if(t != null){
-                    event.data.addTag(t);
-                }
-            });
-        });*/
-
 
         // tag by attributes
         let attr = event.data.getAttributes();
-        for(let i in attr){
+        for (let i in attr) {
             t = TAGS_SIGNATURE.category[i];
-            if(t != null){
-                if(attr[i] == t.value){
+            if (t != null) {
+                if (attr[i] == t.value) {
                     event.data.addTag(t.tag);
                 }
             }
         }
+
+        // search dependencies to platform method and class
+        if (ClassAnalyzer.searchInternalDependencies(ctx, event.data) === true) {
+            Logger.info("[AppTopo][activity] Internal dependencies mapped for : ", event.data.name);
+        } else {
+            Logger.error("[AppTopo][activity] Fail tyo map internal dependencies mapped for : ", event.data.name);
+        }
     }
 });
 AppTopoInspector.on("app.receiver.new", {
-    task: function(ctx, event){
+    task: function (ctx, event) {
 
-        let cls = ctx.find.get.class(event.data.name);
-        if(cls instanceof CLASS.Class){
+        let cls = ctx.find.get.class(event.data.name)
+        if (cls instanceof CLASS.Class) {
             event.data.setImplementedBy(cls);
+            cls.addTag("RECEIVER");
         }
 
 
         // tag by intent filter  
         tagByIntent(event);
+
+
+        // tag by attributes
+        let attr = event.data.getAttributes();
+        for (let i in attr) {
+            t = TAGS_SIGNATURE.category[i];
+            if (t != null) {
+                if (attr[i] == t.value) {
+                    event.data.addTag(t.tag);
+                }
+            }
+        }
+
+        // search dependencies to platform method and class
+        if (ClassAnalyzer.searchInternalDependencies(ctx, event.data) === true) {
+            Logger.info("[AppTopo][receiver] Internal dependencies mapped for : ", event.data.name);
+        } else {
+            Logger.error("[AppTopo][receiver] Fail tyo map internal dependencies mapped for : ", event.data.name);
+        }
     }
 });
 AppTopoInspector.on("app.provider.new", {
-    task: function(ctx, event){
+    task: function (ctx, event) {
 
         let cls = ctx.find.get.class(event.data.name);
-        if(cls instanceof CLASS.Class){
+        if (cls instanceof CLASS.Class) {
             event.data.setImplementedBy(cls);
+            cls.addTag("PROVIDER");
         }
 
 
         // tag by intent filter  
         tagByIntent(event);
+
+
+        // tag by attributes
+        let attr = event.data.getAttributes();
+        for (let i in attr) {
+            t = TAGS_SIGNATURE.category[i];
+            if (t != null) {
+                if (attr[i] == t.value) {
+                    event.data.addTag(t.tag);
+                }
+            }
+        }
+
+        // search dependencies to platform method and class
+        if (ClassAnalyzer.searchInternalDependencies(ctx, event.data) === true) {
+            Logger.info("[AppTopo][provider] Internal dependencies mapped for : ", event.data.name);
+        } else {
+            Logger.error("[AppTopo][provider] Fail tyo map internal dependencies mapped for : ", event.data.name);
+        }
     }
 });
 AppTopoInspector.on("app.service.new", {
-    task: function(ctx, event){
+    task: function (ctx, event) {
 
         let cls = ctx.find.get.class(event.data.name);
-        if(cls instanceof CLASS.Class){
+        if (cls instanceof CLASS.Class) {
             event.data.setImplementedBy(cls);
+            cls.addTag("SERVICE");
         }
-
 
         // tag by intent filter  
         tagByIntent(event);
+
+
+        // tag by attributes
+        let attr = event.data.getAttributes();
+        for (let i in attr) {
+            t = TAGS_SIGNATURE.category[i];
+            if (t != null) {
+                if (attr[i] == t.value) {
+                    event.data.addTag(t.tag);
+                }
+            }
+        }
+
+        // search dependencies to platform method and class
+        if (ClassAnalyzer.searchInternalDependencies(ctx, event.data) === true) {
+            Logger.info("[AppTopo][service] Internal dependencies mapped for : ", event.data.name);
+        } else {
+            Logger.error("[AppTopo][service] Fail tyo map internal dependencies mapped for : ", event.data.name);
+        }
     }
 });
 
