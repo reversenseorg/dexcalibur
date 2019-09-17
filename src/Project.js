@@ -179,7 +179,7 @@ Project.prototype.initDexcalibur = function(pkgName, cfgpath=null, nofrida=0, ap
     */
 
 
-    console.log("\n\n"
+    Logger.info("\n\n"
     +"███████╗ ███████╗██╗  ██╗ ██████╗ █████╗ ██╗     ██╗██████╗ ██╗   ██╗██████╗\n" 
     +"██╔═══██╗██╔════╝╚██╗██╔╝██╔════╝██╔══██╗██║     ██║██╔══██╗██║   ██║██╔══██╗\n"
     +"██║   ██║█████╗   ╚███╔╝ ██║     ███████║██║     ██║██████╔╝██║   ██║██████╔╝\n"
@@ -267,7 +267,7 @@ Project.prototype.getAnalyzer = function(){
  */
 Project.prototype.showAPIs = function(){
     for(let i=0 ;i<this.config.platform_available.length ; i++){
-        console.log(this.config.platform_available[i].name);
+        Logger.info(this.config.platform_available[i].name);
     }
     return this;
 };
@@ -304,7 +304,7 @@ Project.prototype.scan = function(path){
 //        let dexPath = this.workspace.getWD()+"dex";
         let dexPath = Path.join(this.workspace.getWD(),"dex");
         fs.mkdirSync(dexPath, {recursive: true});
-        console.log( Chalk.yellow("Scanning default path : "+dexPath));
+        Logger.info("Scanning default path : "+dexPath);
         this.analyze.path( dexPath);
         this.dataAnalyser.scan( dexPath);
         this.analyze.insertFiles( this.dataAnalyser.getDB, false);
@@ -323,7 +323,7 @@ Project.prototype.scan = function(path){
 Project.prototype.scanForFiles = function(path){
 
     if(path == null){   
-        console.log(Chalk.bold.red("Invalid files path"));
+        Logger.error("Invalid filepaths to scan");
         return null;
     }
 
@@ -346,7 +346,7 @@ Project.prototype.scanForFiles = function(path){
  */
 Project.prototype.fullscan = function(path){
     // scan OS
-    console.log(Chalk.yellow("Scanning platform "+this.config.platform_target));
+    Logger.info("Scanning platform "+this.config.platform_target);
     //this.config.getTargetPlatform().getBinPath();
     //this.analyze.path()
     this.analyze.path(this.config.getTargetPlatformPath());
@@ -368,7 +368,7 @@ Project.prototype.fullscan = function(path){
         //        let dexPath = this.workspace.getWD()+"dex";
         let dexPath = Path.join(this.workspace.getWD(),"dex");
 
-        console.log(Chalk.yellow("Scanning default path : "+dexPath));
+        Logger.info("Scanning default path : "+dexPath);
         
         this.analyze.path( dexPath);
         this.dataAnalyser.scan( dexPath, ["smali"]);
@@ -396,7 +396,7 @@ Project.prototype.fullscan = function(path){
         for(let i in dir){
             elemnt = Path.join(this.workspace.getRuntimeBcDir(),dir[i],"smali");
             if(Fs.lstatSync(elemnt).isDirectory()){
-                console.log(Chalk.yellow("Scanning previously discovered dex chunk : "+elemnt));
+                Logger.info("Scanning previously discovered dex chunk : "+elemnt);
                 this.analyze.path(elemnt);
             }
         }  
@@ -477,17 +477,17 @@ Project.prototype.pull = function(device){
     if(this.config.useEmulator) adb+=" -e";
     
     if(device===null || this.devices.hasNotDefault()){
-        console.log(Chalk.bold.yellow("[!] Warning ! : device not selected. Searching ..."));
+        Logger.warning("[!] Warning ! : device not selected. Searching ...");
         this.devices.scan();
         if(this.devices.count==0){
-            console.log(Chalk.bold.red("[E] No device found"));
+            Logger.error("[E] No device found");
             return "";
         }
         else if(this.devices.count==1){
-            console.log(Chalk.bold.green("[*] Device selected : "+this.devices.getDefault().id));
+            Logger.success("[*] Device selected : "+this.devices.getDefault().id);
         }
         else if(this.devices.count>1){
-            console.log(Chalk.bold.yellow("[!] Please choose a device above with *.devices.setDefault(<id>)"));
+            Logger.warning("[!] Please choose a device above with *.devices.setDefault(<id>)");
             return "";
         }
     }
@@ -498,7 +498,7 @@ Project.prototype.pull = function(device){
     ret = Process.execSync(adb+" shell pm list packages -f").toString("ascii");
     
     if(ret.indexOf(this.pkg)==-1){
-        console.error(Chalk.bold.yellow("[!] Package not found"));
+        Logger.warning("[!] Package not found");
         return null;
     }
 
@@ -514,10 +514,10 @@ Project.prototype.pull = function(device){
     } 
 
     if(typeof ppath !== 'string'){
-        console.error(Chalk.bold.yellow("[!] Package not found"));
+        Logger.error("[!] Package not found");
         return "";
     }else{
-        console.log(Chalk.bold.green("[*] Package found"));
+        Logger.success("[*] Package found");
     }
         
     //let pathWD = this.workspace.getWD()+this.pkg;
@@ -526,14 +526,14 @@ Project.prototype.pull = function(device){
 
     try {
         Process.execSync(adb+" pull "+ppath+" "+pathWD+".apk");
-        console.log(Chalk.bold.green("[*] Package downloaded to "+pathWD+".apk"));
+        Logger.success("[*] Package downloaded to "+pathWD+".apk");
 
         ret = Process.execSync(this.config.apktPath+" d -f -m -o "+dexPath+" "+pathWD+".apk").toString("ascii");
-        console.log(Chalk.bold.green("[*] APK decompiled in "+dexPath));
+        Logger.success("[*] APK decompiled in "+dexPath);
     }
     catch(exception) {
-        console.error(Chalk.bold.red("[!] Failed to pull package:"));
-        console.error(exception);
+        Logger.error("[!] Failed to pull package:");
+        Logger.error(exception);
     }
 };
 

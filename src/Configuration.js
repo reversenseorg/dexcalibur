@@ -3,7 +3,6 @@ const Logger = require("./Logger.js")();
 const Platform = require("./Platform.js");
 const Path = require("path");
 
-
 const NO_EXPORT = ["platform_available"];
  
 function Configuration(){
