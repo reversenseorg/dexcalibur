@@ -1428,7 +1428,7 @@ Method.prototype.toJsonObject = function(fields=[],exclude=[]){
                     obj._useMethod = [];
                     for(let j in this._useMethod){
                         if(this._useMethod[i] != undefined){
-                            obj._useMethod.push(this._useMethod[i].__signature__);
+                            obj._useMethod.push(i); //this._useMethod[i].__signature__);
                         }
                     }
                     break;

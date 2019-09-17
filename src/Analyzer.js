@@ -12,7 +12,7 @@ const AnalysisHelper = require("./AnalysisHelper.js");
 const AndroidManifestXmlParser = require("./AndroidManifestXmlParser.js");
 const MemoryDb = require("./InMemoryDb.js");
 const Event = require("./Event.js").Event;
-
+const Logger = require("./Logger.js")();
 var Parser = require("./SmaliParser.js");
 
 var SmaliParser = new Parser();
@@ -323,7 +323,10 @@ function mapInstructionFrom(method, data, stats){
 
                 method._useClass[instruct.right.fqcn].push(instruct.right.enclosingClass);
                 //method._useMethod[instruct.right.signature()].push(instruct.right);
-                method._useMethod[instruct.right.signature()].push(instruct.left);
+                method._useMethod[instruct.right.signature()].push({
+                    bb: i,
+                    instr: j
+                });
 
 
                 
@@ -693,7 +696,7 @@ function MakeMap(data,absoluteDB){
                     mapInstructionFrom(v.methods[j], absoluteDB, STATS);
                     t1 = (new Date()).getTime();
                     if(t1-t>150)
-                        console.log((t1-t)+" : "+v.methods[j].signature());
+                        Logger.debug((t1-t)+" : "+v.methods[j].signature());
                 }
             }
             
@@ -754,9 +757,9 @@ class AnalyzerDatabase
         this.db.newCollection("tagcategories");
 
         this.db.newCollection("activities");
-        this.db.newIndex("receivers");
-        this.db.newIndex("services");
-        this.db.newIndex("providers");
+        this.db.newCollection("receivers");
+        this.db.newCollection("services");
+        this.db.newCollection("providers");
         this.db.newIndex("permissions");
 
 

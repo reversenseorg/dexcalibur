@@ -1,4 +1,3 @@
-
 const ANDROID_PREFIX = "android:";
 const ANDROID_PREFIX_LEN = 8;
 
@@ -782,6 +781,7 @@ class AndroidActivity
 
         this.__impl = null;
         this.__tag = [];
+        this.__ppts = {};
 
         // auto config
         if(config != null){
@@ -854,6 +854,14 @@ class AndroidActivity
         return this.__tag;
     }
 
+    addNodeProperty(name, value){
+        this.__ppts[name] = value
+    }
+
+    getNodeProperty(name){
+        return this.__ppts[name];
+    }
+
     static fromXml(xmlobj){
         let act = new AndroidActivity();
 
@@ -924,6 +932,8 @@ class AndroidActivity
             o.__tag = this.__tag;
         }
 
+        o.__ppts = this.__ppts;
+        
         return o;
     }
 }
@@ -945,7 +955,8 @@ class AndroidService
         this.metadata = null;
 
         this.__impl = null;
-        this.__tag =[];
+        this.__tag =[]; 
+        this.__ppts = {};
         
 
         // auto config
@@ -1004,6 +1015,15 @@ class AndroidService
 
     getName(){
         return this.name;
+    }
+
+
+    addNodeProperty(name, value){
+        this.__ppts[name] = value
+    }
+
+    getNodeProperty(name){
+        return this.__ppts[name];
     }
 
     isExported(){
@@ -1044,13 +1064,18 @@ class AndroidService
         this.intentFilters.map(x => o.intentFilters.push(x.toJsonObject()));
 
         if(this.__impl!=null){
-            o.__impl = this.__impl.toJsonObject();
+//            o.__impl = this.__impl.toJsonObject();
+            o.__impl = this.__impl.signature();
+
         }
 
 
         if((this.__tag instanceof Array) && this.__tag.length>0){
             o.__tag = this.__tag;
         }
+
+
+        o.__ppts = this.__ppts;
 
         return o;
     }
@@ -1072,6 +1097,7 @@ class AndroidReceiver
 
         this.__impl = null;
         this.__tag = [];
+        this.__ppts = {};
 
         // auto config
         if(config != null){
@@ -1130,6 +1156,14 @@ class AndroidReceiver
         return this.name;
     }
 
+    addNodeProperty(name, value){
+        this.__ppts[name] = value
+    }
+
+    getNodeProperty(name){
+        return this.__ppts[name];
+    }
+
     isExported(){
         return (this.attr.exported != null) && (this.attr.exported === true);
     }
@@ -1168,13 +1202,17 @@ class AndroidReceiver
         this.intentFilters.map(x => o.intentFilters.push(x.toJsonObject()));
 
         if(this.__impl!=null){
-            o.__impl = this.__impl.toJsonObject();
+            // o.__impl = this.__impl.toJsonObject();
+            o.__impl = this.__impl.signature();
         }
 
 
         if((this.__tag instanceof Array) && this.__tag.length>0){
             o.__tag = this.__tag;
         }
+
+
+        o.__ppts = this.__ppts;
         return o;
     }
 }
@@ -1195,6 +1233,7 @@ class AndroidProvider
 
         this.__impl = null;
         this.__tag = [];
+        this.__ppts = {};
         
   
         // auto config
@@ -1254,6 +1293,14 @@ class AndroidProvider
         return this.name;
     }
 
+    addNodeProperty(name, value){
+        this.__ppts[name] = value
+    }
+
+    getNodeProperty(name){
+        return this.__ppts[name];
+    }
+
     isExported(){
         return (this.attr.exported != null) && (this.attr.exported === true);
     }
@@ -1292,12 +1339,15 @@ class AndroidProvider
         this.intentFilters.map(x => o.intentFilters.push(x.toJsonObject()));
 
         if(this.__impl!=null){
-            o.__impl = this.__impl.toJsonObject();
+            o.__impl = this.__impl.signature();
+          //  o.__impl = this.__impl.toJsonObject();
         }
 
         if((this.__tag instanceof Array) && this.__tag.length>0){
             o.__tag = this.__tag;
         }
+
+        o.__ppts = this.__ppts;
 
         return o;
     }

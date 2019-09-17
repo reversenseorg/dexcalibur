@@ -92,44 +92,24 @@ class AndroidAppAnalyzer
 							type: "app.provider.new",
 							data: x
 						});
-						codeAnal.db.providers.insert(x);
+						codeAnal.db.providers.addEntry(x.name, x);
 					});
 					manifest.application.receivers.map(x => {
 						self.context.trigger({
 							type: "app.receiver.new",
 							data: x
 						});
-						codeAnal.db.receivers.insert(x);
+						codeAnal.db.receivers.addEntry(x.name, x);
 					});
 					manifest.application.services.map(x => {
 						self.context.trigger({
 							type: "app.service.new",
 							data: x
 						});
-						codeAnal.db.services.insert(x);
+						codeAnal.db.services.addEntry(x.name, x);
 					});
 					
 
-					
-					// resolve class reference
-					/*self.db.activities.map((x,a) => {
-						let u = self.db.classes.getEntry(a.getName());
-						if(u == null){
-							self.context.bus.send(new Event({
-								type: "manifest.unknow.activity",
-								data: a
-							}));
-						}else
-							a.setActivityClass(u);
-					});*/
-					/*
-					let actlist = self.db.activities;
-					for(let i=0; i<actlist.size(); i++){
-						actlist.getEntry(i).ref = self.db.classes.getEntry(
-							actlist.getEntry(i).getName()
-						);
-					}*/
-				
                 });
 
             });
