@@ -2,14 +2,10 @@
 //#!/usr/bin/node --max-old-space-size=8192
 
 
-const Dexcalibur = require("./src/Project.js");
-const ArgParser = require("./src/ArgUtils.js");
 const Process = require("process");
 const FS = require("fs"); 
-const Logger = require("./src/Logger.js")
-const PlatformBuilder = require("./src/PlatformBuilder.js");
-const Platform = require("./src/Platform.js");
-const Configuration = require("./src/Configuration.js");
+const ArgParser = require("./src/ArgUtils.js");
+
 
 var err = null;
 var projectArgs = {};
@@ -47,6 +43,10 @@ var Parser = new ArgParser(projectArgs, [
         help: "Use emulated device",
         hasVal: false, 
         callback: (ctx,param)=>{ ctx.useEmu = true; } },
+    { name:"--debug", 
+        help: "Enable debug",
+        hasVal: false, 
+        callback: (ctx,param)=>{ ctx.debug = true; } },
     { name:"--config", 
         help: "The path to a custom config file. Default : ./config.js",
         hasVal:true, 
@@ -74,6 +74,30 @@ var Parser = new ArgParser(projectArgs, [
 ]);
 
 Parser.parse(Process.argv);
+
+const Logger_getInstance = require("./src/Logger.js");
+var Logger = null;
+
+
+if(projectArgs.debug){
+    Logger = Logger_getInstance({
+        testMode: false,
+        debugMode: true
+    },true);
+}else{
+    Logger = Logger_getInstance({
+        testMode: false,
+        debugMode: false
+    },true);
+}
+
+
+
+const Dexcalibur = require("./src/Project.js");
+const PlatformBuilder = require("./src/PlatformBuilder.js");
+const Platform = require("./src/Platform.js");
+const Configuration = require("./src/Configuration.js");
+
 
 if(projectArgs.help != null){
     console.log(Parser.getHelp());
