@@ -345,7 +345,7 @@
 
 
     function renderClassDetail( row ) {
-        let body = '';
+        let body = '', color=null;
         body += '<p><b>Extends :</b>';
             console.log(row);
         if(row.supers != null){
@@ -407,9 +407,13 @@
                     body += '<b>'+htmlEncode(row.fields[i].alias)+'</b>&nbsp;';
                 }
 
-                body += '<a target="about" href="finder.html?field='+btoa(encodeURIComponent(row.fields[i].__signature__))+'">'+htmlEncode(row.fields[i].__signature__);
+                if(row.fields[i].tags.indexOf("missing")>-1){
+                    body += '<a target="about" href="finder.html?field='+btoa(encodeURIComponent(row.fields[i].__signature__))+'" style="color:#F00" >'+htmlEncode(row.fields[i].name); //+" ( "+row.fields[i].__signature__+" )");
+                }else{
+                    body += '<a target="about" href="finder.html?field='+btoa(encodeURIComponent(row.fields[i].__signature__))+'">'+htmlEncode(row.fields[i].name);
+                }
                 
-                if(row.fields[i].__inherit === true) body += "&nbsp;"+DexcaliburAPI.ui.badge.make('inherited',t);
+                if(row.fields[i].__inherit === true) body += "&nbsp;"+DexcaliburAPI.ui.badge.make('success','inherited');
 
                 body += '</a></td></tr>';
             }
@@ -860,11 +864,11 @@
 
                             // begin of the link
                             if(row.t=='f')
-                                t = '<a target="about" href="finder.html?field='+btoa(encodeURIComponent(row.s))+'">'+htmlEncode(row.s)+'</a>';
+                                t = '<a target="about" href="finder.html?field='+btoa(encodeURIComponent(row.s))+'">';
                             else if(row.t=='m')
-                                t = '<a target="about" href="finder.html?method='+btoa(encodeURIComponent(row.s))+'">'+htmlEncode(row.s)+'</a>';                            
+                                t = '<a target="about" href="finder.html?method='+btoa(encodeURIComponent(row.s))+'">';                            
                             else
-                                t = '<a target="about" href="finder.html?class='+btoa(encodeURIComponent(row.s))+'">'+htmlEncode(row.s)+'</a>';
+                                t = '<a target="about" href="finder.html?class='+btoa(encodeURIComponent(row.s))+'">';
 
                             // alias
                             if(row.a != null)

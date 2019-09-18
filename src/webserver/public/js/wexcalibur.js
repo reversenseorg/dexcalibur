@@ -275,7 +275,16 @@ var DexcaliburAPI = {
                     },
                     statusCode: callbacks
                 });
-            }
+            },
+            get: function(name, callbacks){
+                $.ajax('/api/manifest/provider/'+encodeURIComponent(name),{
+                    method: 'get',
+                    data: {
+                        _t: (new Date()).getTime()
+                    },
+                    statusCode: callbacks
+                });
+            },
         },
         receivers: {
             URI: {
@@ -289,7 +298,16 @@ var DexcaliburAPI = {
                     },
                     statusCode: callbacks
                 });
-            }
+            },
+            get: function(name, callbacks){
+                $.ajax('/api/manifest/receiver/'+encodeURIComponent(name),{
+                    method: 'get',
+                    data: {
+                        _t: (new Date()).getTime()
+                    },
+                    statusCode: callbacks
+                });
+            },
         },
         services: {
             URI: {
@@ -303,7 +321,16 @@ var DexcaliburAPI = {
                     },
                     statusCode: callbacks
                 });
-            }
+            },
+            get: function(name, callbacks){
+                $.ajax('/api/manifest/service/'+encodeURIComponent(name),{
+                    method: 'get',
+                    data: {
+                        _t: (new Date()).getTime()
+                    },
+                    statusCode: callbacks
+                });
+            },
         }
     },
     context: {
