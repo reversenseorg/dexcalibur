@@ -336,7 +336,7 @@ function mapInstructionFrom(method, data, stats){
             else if(instruct.isCallingField()){
 
                 if(instruct.right == null){
-                    console.log("Right null");
+                    Logger.debug("[SAST] Call : method name is null");
                 }
 
                 // Never returns NULL
@@ -347,7 +347,7 @@ function mapInstructionFrom(method, data, stats){
 
                 //instruct.right = obj;
                 if(instruct.right === undefined || instruct.right._callers === undefined){
-                    console.log("Instruct::right undef (analyzer)", instruct);
+                    Logger.debug("[SAST] Call : method cannot be resolved : ", instruct);
                 }
 
                 if(instruct.isSetter()){
@@ -458,7 +458,7 @@ function MakeMap(data,absoluteDB){
         if(absoluteDB.classes.hasEntry(k) == false){
             absoluteDB.classes.setEntry(k, v);
         }else{
-            console.log(k);
+            Logger.debug("[SAST] DB merge : class overrided : ",k.name); 
             overrided.push(k);
             //absoluteDB.classes.getEntry(k).update(v);
         }
@@ -497,7 +497,7 @@ function MakeMap(data,absoluteDB){
                 }
             }
             catch(ex) {
-                console.error(ex);
+                Logger.error(ex);
             }
         }
         // resolve super classes
@@ -508,8 +508,6 @@ function MakeMap(data,absoluteDB){
                 cls.extends = Resolver.type(absoluteDB, cls.getSuperClass());
                 //cls.updateSuper( Resolver.type(absoluteDB, cls.getSuperClass()));
             }
-            //cls.extends = Resolver.type(data, cls.extends);
-            //cls.extends = Resolver.type(data, cls.extends.fqcn);
         }
 
         // map interfaces

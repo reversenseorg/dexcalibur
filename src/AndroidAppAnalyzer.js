@@ -1,6 +1,6 @@
 const _fs_  = require("fs");
 const _Chalk_ = require("chalk");
-
+const Logger = require("./Logger.js")();
 const _xml2js_ = require("xml2js");
 
 //const AndroidComp = require("./AndroidAppComponents.js");
@@ -41,17 +41,19 @@ class AndroidAppAnalyzer
         let codeAnal = this.context.getAnalyzer();
         let self = this;
 
+
+		Logger.debug("[Manifest] Start parsing");
         _fs_.exists(path,function(res){
             if(!res) return;
 
             _fs_.readFile(path, (err,data)=>{
                 if(err){
-                    console.log(_Chalk_.bold.red("Android Manifest cannot be read : ",err));
+                    Logger.error("Android Manifest cannot be read : ",err);
                     return;
                 }
                 if(data == null || data.toString('ascii',0,5)!=="<?xml"){
                     // it happens if resources have not been extracted
-                    console.log(_Chalk_.bold.red("Android Manifest cannot be analyzed because the workspace has been built by using a previous version of Dexcalibur."));
+                    Logger.error("Android Manifest cannot be analyzed because the workspace has been built by using a previous version of Dexcalibur.");
 					// throws excep here
 					return;
                 }
@@ -62,7 +64,7 @@ class AndroidAppAnalyzer
 
                 parser.parseString(data, function (err, result) {
                     if(err){
-                        console.log(_Chalk_.bold.red("Android Manifest cannot be parsed : ",err));
+                        Logger.error("Android Manifest cannot be parsed : ",err);
                         return;
                     }
         
@@ -79,6 +81,7 @@ class AndroidAppAnalyzer
 							data: x
 						});
 						codeAnal.db.permissions.insert(x);
+						Logger.debug("[Manifest] Permission found : ",x.name);
 					});
 					manifest.application.activities.map(x => {
 						self.context.trigger({
