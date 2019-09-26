@@ -1,13 +1,13 @@
 const Path = require("path");
 
-function Platform(config,apis_path){
+function Platform(platformConfig,apis_path){
     
     this.name = null;
     this.version = null;
     this.apiVersion = null;
     this.binaryPath = null;
     
-    for(let i in config) this[i] = config[i];
+    for(let i in platformConfig) this[i] = platformConfig[i];
 
     if(this.binaryPath == null){
         this.binaryPath = Path.join(apis_path,this.name+"_"+this.apiVersion);
@@ -47,7 +47,10 @@ Platform.prototype.setBinPath = function(path){
 Platform.prototype.toJsonObject = function(){
     let o = new Object();
 
-    for(let i in this) o[i] = this[i];
+    for(let i in this){
+        if(typeof this[i] == 'function') continue;
+        o[i] = this[i];
+    }
 
     return o;
 }

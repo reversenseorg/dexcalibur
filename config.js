@@ -21,6 +21,7 @@ module.exports = {
     // TODO useless : to remove
     fridaDevPath: "/data/local/frida-server",
     fridaServerPath: "",
+    fridaBin: 'frida',
     
     // do not modified
     deviceId: null,
