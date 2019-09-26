@@ -130,7 +130,7 @@ class AdbWrapper
         ret = Process.execSync(this.setup()+" devices -l").toString("ascii");
         ret = ret.split("\n");
         //re = new RegExp("([0-9A-Za-f]+).*device\susb:([^\s]+)\sproduct:([^\s]+)\smodel:([^\s]+)\sdevice:([^\s]+)");
-        re = new RegExp("^([0-9A-Za-z-]+).*device (.*)$");
+        re = new RegExp("^([0-9A-Za-z-\.\:]+).*device (.*)$");
         
         for(let ln in ret){
             if(UT.trim(ret[ln]).length==0 
