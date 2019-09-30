@@ -3,6 +3,7 @@ var Core = require("./CoreParser.js");
 const CLASS = require("./CoreClass.js");
 var ut = require("./Utils.js");
 
+var Logger = require("./Logger.js")();
 
 var LEX = Core.LEX;
 var PARSER = Core.PARSER;
@@ -29,8 +30,12 @@ var OpcodeParser = {
 		let m = Core.RX.REF_FIELD.exec(src);
 
 //		console.log(src,m);
-		if(m==null) console.log(raw_src);
-		if(m.length<4) console.log("[!] Instruction : invalid field reference :"+src);
+		if(m==null){ 
+			Logger.debug(raw_src);
+			return null;
+		}
+		if(m.length<4) 
+			Logger.debug("[!] Instruction : invalid field reference :"+src);
 
 		r.fullname = m[0];
 		r.fqcn = PARSER.fqcn(m[1]);
@@ -57,7 +62,14 @@ var OpcodeParser = {
 	singleVar: function(src){
 		let m = Core.RX.REF_REG.exec(src);
 		
-		if(m.length!=3) console.log("[!] Instruction : invalid register reference :"+src);
+		if(m==null){
+			Logger.debug("Invalid opcode detected");
+			Logger.debug(src);
+			return null;
+		}
+
+		if(m.length!=3) 
+			Logger.debug("[!] Instruction : invalid register reference :"+src);
 
 		return {t:m[1],i:m[2]};//new CLASS.Variable(m[1],m[2]);
 	},

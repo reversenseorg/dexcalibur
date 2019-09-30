@@ -188,7 +188,7 @@ var Resolver = {
 
         // MissingReference type is deprecated, so this case should never been trigged
         if(cls instanceof CLASS.MissingReference){
-            console.error("MissingReference detected");
+            Logger.debug("MissingReference detected");
         }
 
         field = cls.fields[fieldRef.signature()];
@@ -272,7 +272,7 @@ function mapInstructionFrom(method, data, stats){
     let bb = null, instruct = null, obj = null, x = null, success=false, cls=[],t=0,t1=0;
 
     if(! method instanceof CLASS.Method){
-        console.error("[!] mapping failed : method provided is not an instance of Method.");
+        Logger.error("[!] mapping failed : method provided is not an instance of Method.");
     }
 
     for(let i in method.instr){
@@ -438,7 +438,7 @@ function mapInstructionFrom(method, data, stats){
  */
 function MakeMap(data,absoluteDB){
     
-    console.log("\n[*] Start object mapping ...\n------------------------------------------");
+    Logger.raw("\n[*] Start object mapping ...\n------------------------------------------");
     let step = data.classes.size(), /*data.classesCtr,*/ g=0;   
     let overrided = [];
     //let updateLogs = [];
@@ -454,11 +454,12 @@ function MakeMap(data,absoluteDB){
     // merge Absolute DB and Temp DB
     // if a class has been already analyzed its data will be updated
     data.classes.map((k,v)=>{
+
         // add class to the absoluteDb if missing
         if(absoluteDB.classes.hasEntry(k) == false){
             absoluteDB.classes.setEntry(k, v);
         }else{
-            Logger.debug("[SAST] DB merge : class overrided : ",k.name); 
+            Logger.debug("[SAST] DB merge > class overrided [ ",k," ]");
             overrided.push(k);
             //absoluteDB.classes.getEntry(k).update(v);
         }
@@ -491,9 +492,13 @@ function MakeMap(data,absoluteDB){
                 // from the TempDB's class is the same in AbsoluteDB's class.
                 // Else it means the TempDB's class inherit from another class which directly 
                 // or indirectly inherit of the superclass f AbsoluteDB's class 
-                if(ext != null && cls.hasSuperClass() && ext!=cls.getSuperClass().getName()){
-                    cls.updateSuper(Resolver.type(absoluteDB, ext));
-                    requireRemap = true;
+                if(ext != null && cls.hasSuperClass()){
+                    if((cls.getSuperClass() instanceof CLASS.Class) 
+                        && (ext!=cls.getSuperClass().getName())){                        
+                        cls.updateSuper(Resolver.type(absoluteDB, ext));
+                        requireRemap = true;
+                    }
+                    
                 }
             }
             catch(ex) {
@@ -519,7 +524,7 @@ function MakeMap(data,absoluteDB){
                 cls.removeAllInterfaces();
                 
                 for(let i=0; i<ext.length; i++){
-                    cls.addInterfaces(Resolver.type(absoluteDB, ext[i]));
+                    cls.addInterface(Resolver.type(absoluteDB, ext[i]));
                     requireRemap = true;
                 }
 
@@ -533,7 +538,7 @@ function MakeMap(data,absoluteDB){
        
         // update or create field nodes relations
         if(override){
-            console.log("Override fields of ",k);
+            Logger.debug("Overriding fields ",k);
             
             for(let j in v.fields){
                 o=v.fields[j];
@@ -582,7 +587,7 @@ function MakeMap(data,absoluteDB){
         
         // update or create methods nodes relations
         if(override){
-            console.log("Override methods of ",k);
+            Logger.debug("Overriding methods ",k);
 
             for(let j in v.methods){
                 o=v.methods[j];
@@ -641,42 +646,32 @@ function MakeMap(data,absoluteDB){
         if(v.getSuperClass() != null){
             let n=v, sc=null, supers=[];
             while((sc = n.getSuperClass()) !=null){
-                scr = absoluteDB.classes.getEntry(sc.name);
+                if(sc instanceof CLASS.Class){
+                    scr = absoluteDB.classes.getEntry(sc.name);
+                }else{
+                    scr = absoluteDB.classes.getEntry(sc);
+                }
                 if(scr == null){
                     if(sc instanceof CLASS.Class){
-                        console.log("Class ("+sc.name+") not found");
+                        Logger.debug("Class ("+sc.name+") not found");
                     }
-                    else
-                        console.log("Reference ("+sc+") not found");
-
+                    else{ 
+                        Logger.debug("Reference ("+sc+") not found");
+                    }
                     break;
                 }
                 supers.push(scr);
                 n = scr;
 
-                if(scr.getSuperClass ==undefined){
-                    //console.log(sc);
+                if(scr.getSuperClass ==undefined)
                     break;
-                }
             } 
             v.setSupersList(supers);
-            /*let em = v.getSuperClass().methods, om=null, ovr=null;
-            for(let k in em){
-                om = v.hasOverrideOf(em[k]);
-                if(om != null){
-                    ovr = om.createOverride(v);
-                  //  v.methods[]
-                }else{
-                    v.addInheritedMethod(em[k]);
-                }
-            }
-            list.push(class_elmnt.getSuperClass());
-            return true;*/
         }
     });
 
 
-    console.log(Chalk.bold.red("DB size : "+absoluteDB.classes.size()));
+    Logger.info("DB size : "+absoluteDB.classes.size());
 
     let off=0; mr=0;
     let t=0, t1=0;
@@ -702,22 +697,22 @@ function MakeMap(data,absoluteDB){
             
             off++;
             if(off%200==0 || off==step)
-                console.log(off+"/"+step+" Classes mapped ("+k+")") ;
+                Logger.info(off+"/"+step+" Classes mapped ("+k+")") ;
         }
         else{   
             mr++;
-            if(mr%20==0) console.log(mr+" missing classes");
+            if(mr%20==0) Logger.debug(mr+" missing classes");
         }
     });
 
     
 
-    console.log("[*] "+STATS.idxMethod+" methods indexed");
-    console.log("[*] "+STATS.idxField+" fields indexed");
-    console.log("[*] "+STATS.instrCtr+" instructions indexed");
+    Logger.raw("[*] "+STATS.idxMethod+" methods indexed");
+    Logger.raw("[*] "+STATS.idxField+" fields indexed");
+    Logger.raw("[*] "+STATS.instrCtr+" instructions indexed");
     //console.log("[*] "+absoluteDB.strings.length+" strings indexed");
-    console.log("[*] "+STATS.methodCalls+" method calls mapped");
-    console.log("[*] "+STATS.fieldCalls+" field calls mapped");
+    Logger.raw("[*] "+STATS.methodCalls+" method calls mapped");
+    Logger.raw("[*] "+STATS.fieldCalls+" field calls mapped");
     // update place where field are called
     //return data;
 }
@@ -877,8 +872,8 @@ function Analyzer(encoding, finder, ctx=null){
 
         STATS.idxClass = this.db.classes.size();
         
-        console.log("[*] Smali analyzing done.\n---------------------------------------")
-        console.log("[*] "+tempDb.classes.size()+" classes analyzed. ");
+        Logger.raw("[*] Smali analyzing done.\n---------------------------------------")
+        Logger.raw("[*] "+tempDb.classes.size()+" classes analyzed. ");
         
         // start object mapping
         // MakeMap(this.db);
@@ -899,7 +894,7 @@ function Analyzer(encoding, finder, ctx=null){
      * To get the internal database
      */
     this.getData = function(){
-        console.log("[ERROR::DEV] Deprecated function Analyzer::getData() is called ");
+        Logger.debug("[ERROR::DEV] Deprecated function Analyzer::getData() is called ");
         return this._db;
     }
 }
@@ -925,7 +920,7 @@ Analyzer.prototype.addClassFromFqcn = function(fqcn){
         pkg = this.db.packages.getEntry(pkgn);
     }else{
         pkg = new CLASS.Package(pkgn);
-        console.log(pkg);
+        Logger.debug(pkg);
         this.db.packages.setEntry(pkgn, pkg);
     }
     //console.log(pkgn,pkg, this.db.packages.hasEntry(pkgn));
@@ -936,7 +931,7 @@ Analyzer.prototype.addClassFromFqcn = function(fqcn){
         package: pkg    
     });
 
-    console.log(cls);
+    Logger.debug(cls);
     pkg.childAppend(cls);
     this.db.classes.setEntry(fqcn, cls);
 
@@ -981,8 +976,8 @@ Analyzer.prototype.system = function(path){
 
     STATS.idxClass = this.db.classes.size();
     
-    console.log("[*] Smali analyzing done.\n---------------------------------------")
-    console.log("[*] "+STATS.idxClass+" classes analyzed. ");
+    Logger.raw("[*] Smali analyzing done.\n---------------------------------------")
+    Logger.raw("[*] "+STATS.idxClass+" classes analyzed. ");
     
     // start object mapping
     MakeMap(this.db);
@@ -1130,7 +1125,7 @@ Analyzer.prototype.showBlock = function(blk,prefix,styleFn){
     if(blk==null) return;
 
     for(let i in blk.stack){
-        console.log(prefix+styleFn("| "+blk.stack[i]._raw));
+        Logger.info(prefix+styleFn("| "+blk.stack[i]._raw));
         //if()
     }
     //console.log(styleFn("-------------------------------------"));
@@ -1160,18 +1155,18 @@ Analyzer.prototype.showCFG_old = function(bblocks, prefix=""){
             for(let j in bblocks[i].next){
                 switch(bblocks[i].next[j].jump){
                     case CONST.BRANCH.IF_TRUE:
-                        console.log(prefix+Chalk.bold.green("if TRUE :"));
+                        Logger.info(prefix+Chalk.bold.green("if TRUE :"));
                         this.showBlock(bblocks[i].next[j].block, prefix, Chalk.green); 
                         break;
                     case CONST.BRANCH.IF_FALSE:
-                        console.log(prefix+Chalk.bold.red("if FALSE :"));
+                        Logger.info(prefix+Chalk.bold.red("if FALSE :"));
                         this.showBlock(bblocks[i].next[j].block, prefix, Chalk.red);
                         break;
                 }
             }
         }
         else if(bblocks[i].next.length == 1){
-            console.log(pathNEXT);
+            Logger.info(pathNEXT);
             this.showBlock(bblocks[i].next[j].block, prefix, Chalk.white);
         }
     }
@@ -1184,7 +1179,7 @@ Analyzer.prototype.showCFG_old = function(bblocks, prefix=""){
 Analyzer.prototype.showCFG = function(bblocks, offset=0, prefix="", fn=null){
 
     if(bblocks.length==0 || bblocks[offset]==undefined){
-        console.log(offset+" => not block");
+        Logger.debug(offset+" => not block");
         return null;
     } 
 
@@ -1204,7 +1199,7 @@ Analyzer.prototype.showCFG = function(bblocks, offset=0, prefix="", fn=null){
         for(let j in bblocks[offset].next){
             switch(bblocks[offset].next[j].jump){
                 case CONST.BRANCH.IF_TRUE:
-                    console.log(prefix+Chalk.bold.green("if TRUE :"));
+                    Logger.info(prefix+Chalk.bold.green("if TRUE :"));
                     //this.showBlock(bblocks[offset].next[j], prefix, Chalk.green); 
                     if(bblocks[offset].next[j].block == null){
                         
@@ -1214,7 +1209,7 @@ Analyzer.prototype.showCFG = function(bblocks, offset=0, prefix="", fn=null){
                         // this.showCFG(bblocks, bblocks[offset].next[j].offset+1, prefix);
                     break;
                 case CONST.BRANCH.IF_FALSE:
-                    console.log(prefix+Chalk.bold.red("if FALSE :"));
+                    Logger.info(prefix+Chalk.bold.red("if FALSE :"));
                     //this.showBlock(bblocks[offset].next[j], prefix, Chalk.red);
                     this.showCFG(bblocks, offset+1, prefix, Chalk.red);
                     break;
@@ -1322,7 +1317,7 @@ Analyzer.prototype.tagAllAsInternal = function(){
 
 Analyzer.prototype.resolveMethod = function(ref){
     let m = Resolver.method(this.db, ref);
-    console.log(m);
+    Logger.debug(m);
     return m;
 }
 

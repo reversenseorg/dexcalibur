@@ -33,9 +33,20 @@ const OS_NAME = ['android','linux','tizen'];
 
 
 
-
+/**
+ * ADB wrapper
+ * 
+ * Can be use to manage/interact with a device connected through ADB
+ * @class 
+ */
 class AdbWrapper
 {
+    /**
+     * 
+     * @param {String} adbpath The ADB binary path 
+     * @param {String} deviceID  (optional) The device ID to manage.
+     * @function
+     */
     constructor(adbpath,deviceID = null){
         this.transport = TRANSPORT.USB;
         this.path = adbpath;

@@ -645,6 +645,10 @@ Class.prototype.setSupersList = function(superList){
     this.supers = superList;
 }
 
+Class.prototype.getName = function(){
+    return this.name;
+}
+
 Class.prototype.signature = function(){
     return this.name;
 };
@@ -1346,14 +1350,26 @@ Method.prototype.compare = function(meth){
             case "locals":
             case "registers":
             case "params":
-                obj[i] = this[i];
+                if(this[i] != meth[i]){
+                    diff.push({ ppt:i, old:this[i], new:meth[i] });   
+                }
                 break;
             case "instr":
                 if(this.instr.length != meth.instr.length){
-                    diff.push({ ppt:"instr", old:this.instr.length, new:field.instr.length });
+                    diff.push({ ppt:"instr", old:this.instr.length, new:meth.instr.length });
                 }
                 break;
-            case "args":
+            case "args":    
+                if(this.args.length != meth.args.length){
+                    diff.push({ ppt:"args", old:this.args.length, new:meth.args.length });
+                    break;
+                }else{
+                    // TODO
+                    /*for(let j=0; j<this.args.length; j++){
+                        if(this.args[j] )
+                        obj.args.push(this.args[j].toJsonObject());
+                    }*/
+                }
                 /*obj.args = [];
                 if(this.args.length != meth)
                 for(let j in this.args){
@@ -1362,10 +1378,13 @@ Method.prototype.compare = function(meth){
                 break;
             case "ret":                
                 if(this.ret.signature() != meth.ret.signature()){
-                    diff.push({ ppt:"ret", old:this.ret.signature(), new:field.ret.signature() });
+                    diff.push({ ppt:"ret", old:this.ret.signature(), new:meth.ret.signature() });
                 }
                 break;
             case "enclosingClass":
+                if(this.enclosingClass.getName() != meth.enclosingClass.getName()){
+                    diff.push({ ppt:"enclosingClass", old:this.enclosingClass.getName(), new:meth.enclosingClass.getName() });
+                }
                 // TODO
     //            obj.enclosingClass = (this.enclosingClass!=null)? this.enclosingClass.name : "";
                 break;

@@ -34,7 +34,8 @@ class TestLogger
     static T_INFO = 2;
     static T_DEBUG = 3;
     static T_WARN = 4;
-    static T_SUCCESS = 5;
+    static T_RAW = 5;
+    static T_SUCCESS = 6;
     static T_DEBUG = 8;
 
     constructor(debugMode){
@@ -61,11 +62,6 @@ class TestLogger
             this.cache.push({ type:TestLogger.T_DEBUG, val:multi_concat(arguments) });
         return callbacks;
     }
-/*
-    info2(){
-        this.cache.push({ type:TestLogger.T_INFO, val:multi_concat(arguments) });
-        return callbacks;
-    }*/
 
     info(){
         this.cache.push({ type:TestLogger.T_INFO, val:multi_concat(arguments) });
@@ -79,6 +75,11 @@ class TestLogger
 
     success(){
         this.cache.push({ type:TestLogger.T_SUCCESS, val:multi_concat(arguments) });
+        return callbacks;
+    }
+
+    raw(){
+        this.cache.push({ type:TestLogger.T_RAW, val:multi_concat(arguments) });
         return callbacks;
     }
 
@@ -157,6 +158,11 @@ class ProdLogger
         return callbacks;
     }
 
+    raw(){
+        console.log(multi_concat(arguments));
+        return callbacks;
+    }
+
     pop(){
         return this.prefix.pop()
     }
@@ -187,53 +193,5 @@ function getInstance(config=null, override=false){
 
     return loggerInstance;
 }
-/*
-class Logger
-{
-    constructor(){
 
-    }
-    static getInstance(testMode=false){
-        
-    }
-
-    static createLogger(testMode=false){
-        if(testMode)
-            return new TestLogger();
-        else
-            return new ProdLogger();
-    }
-}*/
-
-
-
-/*
-
-module.exports = {    
-    error: function(msg){
-        console.log(Chalk.bold.red('[ERROR] '+prefix.join("")+multi_concat(arguments)));
-        return callbacks;
-    },
-    debug: function(msg){
-        console.log(Chalk.bold.red('[DEBUG] '+prefix.join("")+multi_concat(arguments)));
-        return callbacks;
-    },
-    info2: function(msg){
-        console.log(Chalk.yellow('[INFO] '+prefix.join("")+multi_concat(arguments)));
-        return callbacks;
-    },
-    info: function(){
-        console.log(Chalk.yellow('[INFO] '+prefix.join("")+multi_concat(arguments)));
-        return callbacks;
-    },
-    pop: function(){
-        return prefix.pop()
-    },
-    push: function(str){
-        prefix.push(str);
-        return prefix;
-    },
-    flush: flush
-};*/
-
-module.exports = getInstance; //()
+module.exports = getInstance; 
