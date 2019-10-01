@@ -477,7 +477,7 @@ Project.prototype.pull = function(device){
     if(this.config.useEmulator) adb+=" -e";
     
     if(device===null || this.devices.hasNotDefault()){
-        Logger.warning("[!] Warning ! : device not selected. Searching ...");
+        Logger.warn("[!] Warning ! : device not selected. Searching ...");
         this.devices.scan();
         if(this.devices.count==0){
             Logger.error("[E] No device found");
@@ -487,7 +487,7 @@ Project.prototype.pull = function(device){
             Logger.success("[*] Device selected : "+this.devices.getDefault().id);
         }
         else if(this.devices.count>1){
-            Logger.warning("[!] Please choose a device above with *.devices.setDefault(<id>)");
+            Logger.warn("[!] Please choose a device above with *.devices.setDefault(<id>)");
             return "";
         }
     }
@@ -498,7 +498,7 @@ Project.prototype.pull = function(device){
     ret = Process.execSync(adb+" shell pm list packages -f").toString("ascii");
     
     if(ret.indexOf(this.pkg)==-1){
-        Logger.warning("[!] Package not found");
+        Logger.warn("[!] Package not found");
         return null;
     }
 

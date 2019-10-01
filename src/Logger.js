@@ -68,7 +68,7 @@ class TestLogger
         return callbacks;
     }
 
-    warning(){
+    warn(){
         this.cache.push({ type:TestLogger.T_WARN, val:multi_concat(arguments) });
         return callbacks;
     }
@@ -142,7 +142,7 @@ class ProdLogger
         return callbacks;
     }
 
-    warning(){
+    warn(){
         if(this.debugEnabled)
             console.log(Chalk.bold.yellow('[DEBUG] '+prefix.join("")+multi_concat(arguments)));
         return callbacks;
