@@ -97,7 +97,9 @@ class JSWriter
 {
     constuctor(use_strict=false){
         this.use_strict = use_strict;
-        this.scripts = "'use strict';";
+        this.scripts = "";
+        if(use_strict)
+            this.scripts = "'use strict';";
     }
 
     addConstant(obj){

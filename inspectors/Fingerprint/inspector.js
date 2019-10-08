@@ -72,7 +72,7 @@ FingerprintInspector.hookSet.addIntercept({
 
 FingerprintInspector.on("hook.dex.load", {
     task: function(ctx, event){
-        Logger.info("[INSPECTOR][TASK] FingerprintInspector : getDeviceId ",event.data.path);
+        Logger.info("[INSPECTOR][TASK] FingerprintInspector : getDeviceId ");
     }
 });
 
