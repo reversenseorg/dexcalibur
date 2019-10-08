@@ -477,6 +477,61 @@ class WebServer {
 
             });
 
+        this.app.route('/api/hook/enable/:hookid')
+            .put(function(req, res){
+
+                let dev={}, hook=null;
+
+                if(req.params.hookid=="all"){
+                    hook = $.project.hook.getHooks();
+                    for(let i in hook){
+                        hook[i].enable();
+                        dev[i] = {enable: hook[i].isEnable() };
+                    }
+                }else{
+                    hook = $.project.hook.getHookByID(
+                        req.params.hookid
+                    );
+    
+                    hook.enable();
+                    // collect
+                    dev = {
+                        enable: hook.isEnable()
+                    };
+                }
+                
+
+                res.status(200).send(JSON.stringify(dev));
+            });
+
+        
+        this.app.route('/api/hook/disable/:hookid')
+            .put(function(req, res){
+
+                let dev={}, hook=null;
+                
+                if(req.params.hookid=="all"){
+                    hook = $.project.hook.getHooks();
+                    for(let i in hook){
+                        hook[i].disable();
+                        dev[i] = {enable: hook[i].isEnable() };
+                    }
+                }else{
+                    hook = $.project.hook.getHookByID(
+                        req.params.hookid
+                    );
+    
+                    hook.disable();
+                    // collect
+                    dev = {
+                        enable: hook.isEnable()
+                    };
+                }
+                
+
+                res.status(200).send(JSON.stringify(dev));
+            });
+
         this.app.route('/api/class/:id')
             .put(function (req, res) {
                 // collect
@@ -590,6 +645,9 @@ class WebServer {
                 res.status(200).send(JSON.stringify(dev));
             });
 
+        /**
+         * To get xref of a given method by its ID
+         */
         this.app.route('/api/method/xref/:id')
             .get(function (req, res) {
                 let type = req.query.type;
@@ -597,6 +655,7 @@ class WebServer {
                 // collect
                 let method = $.project.find.get.method(UT.decodeURI(UT.b64_decode(req.params.id)));
                 if (method == null) {
+                    Logger.error("XRef to > Given method not found :",UT.decodeURI(UT.b64_decode(req.params.id)));
                     res.status(404).send(JSON.stringify({ err: "method not found" }))
                 }
 

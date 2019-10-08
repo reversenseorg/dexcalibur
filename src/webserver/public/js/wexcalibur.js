@@ -156,7 +156,44 @@ var DexcaliburAPI = {
         }
     },
     analyzer: {},
-    hook: {},
+    hook: {
+        enableAll: function(callbacks){
+            $.ajax('/api/hook/enable/all',{
+                method: 'put',
+                data: {
+                    _t: (new Date()).getTime()
+                },
+                statusCode: callbacks
+            });
+        },
+        disableAll: function(callbacks){
+            $.ajax('/api/hook/disable/all',{
+                method: 'put',
+                data: {
+                    _t: (new Date()).getTime()
+                },
+                statusCode: callbacks
+            });
+        },
+        enable: function(hookID, callbacks){
+            $.ajax('/api/hook/enable/'+encodeURLComponent(hookID),{
+                method: 'put',
+                data: {
+                    _t: (new Date()).getTime()
+                },
+                statusCode: callbacks
+            });
+        },
+        disable: function(hookID, callbacks){
+            $.ajax('/api/hook/disable/'+encodeURLComponent(hookID),{
+                method: 'put',
+                data: {
+                    _t: (new Date()).getTime()
+                },
+                statusCode: callbacks
+            });
+        }
+    },
     disass: {},
     editor: {
         __session: {},

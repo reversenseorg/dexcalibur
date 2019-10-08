@@ -33,10 +33,12 @@
 
         <div id="page-wrapper">
             <div class="row">
-                <div class="col-lg-10">
+                <div class="col-lg-8">
                     <h1 class="page-header">Probe manager</h1>
                 </div>
-                <div class="col-lg-2" style="padding-top:20px">
+                <div class="col-lg-4" style="padding-top:20px">
+                    <button type="button" class="btn btn-danger" id="disable-all">Disable all</button>
+                    <button type="button" class="btn btn-success" id="enable-all">Enable all</button>                
                     <button type="button" class="btn btn-primary" id="dl-fridascript"><span class="fa fa-download">&nbsp;</span>Download as Frida script</button>
                 </div>
                 <!-- /.col-lg-12 -->
@@ -287,7 +289,7 @@
             })
         })
         
-        let clsTable = $('#dataTables-probe').DataTable({
+        let probeTable = $('#dataTables-probe').DataTable({
             ajax: "../api/probe",
             searching: false,
             paging: false,
@@ -336,7 +338,7 @@
             responsive: false
         });
 
-        clsTable.on('draw',function(){
+        probeTable.on('draw',function(){
             $(function () {
                 $('[data-toggle="tooltip"]').tooltip()
             });
@@ -391,7 +393,7 @@
                         var d = JSON.parse(data), msg, color_start, color_end, msgdata, hookMsg;
                         //console.log(d);
                         
-                        //clsTable.draw();
+                        //probeTable.draw();
 
                         if(d.data.message.length>msgStatus){
 
@@ -440,7 +442,7 @@
         //$('#probelogs').
         $('#dataTables-probe tbody').on('click', 'td.details-control', function () {
             var tr = $(this).closest('tr');
-            var row = clsTable.row( tr );
+            var row = probeTable.row( tr );
             console.log(row.child.isShown());
             
             if ( row.child.isShown() ) {
@@ -634,9 +636,26 @@
             
         });
 
+        $("#enable-all").click(()=>{
+            DexcaliburAPI.hook.enableAll({
+                200: function(daata){
+                    
+                    probeTable.ajax.reload();
+                }
+            })
+        });
+
+        $("#disable-all").click(()=>{
+            DexcaliburAPI.hook.disableAll({
+                200: function(data){
+                    probeTable.ajax.reload();
+                }
+            })
+        });
+
         //dmTable.ajax.url("../api/device").load();
         $('#dm-refresh-btn').click(()=>{
-            clsTable.ajax.reload();
+            probeTable.ajax.reload();
         });
     });
 

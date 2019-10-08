@@ -56,8 +56,10 @@ function Project(pkgName, cfgpath=null, nofrida=0){
 }
 
 /**
+ * To initialize - or re-init - Dexcalibur. It sets the rpject context.
+ * 
  * @param {String}  pkgName     Identifier of the targeted application. 
- * @param {String}  cfgpath     Optional - Configuration filepath. Default: $CWD/config.js . 
+ * @param {String|Configuration}  cfgpath     Optional - Configuration filepath or instance. Default: $CWD/config.js . 
  * @param {Boolean} nofrida     Optional - Set 1 to disable Frida. Default: 0. 
  * @param {String}  apiVersion  Optional - Android API version to ude during analysis.
  * @function
@@ -91,8 +93,13 @@ Project.prototype.initDexcalibur = function(pkgName, cfgpath=null, nofrida=0, ap
     var _self = this;
 
     if(cfgpath != null){
-        this.config.import(require(cfgpath), true, true);
-        Logger.info(" Given configuration file loaded");
+        if(cfgpath instanceof Configuration){
+            this.config = cfgpath; 
+            Logger.info(" Given configuration instance loaded");
+        }else{
+            this.config.import(require(cfgpath), true, true);
+            Logger.info(" Given configuration file loaded");
+        }
     }else{
         //let cfg = require("../config.js");
         this.config.import(require("../config.js"), true, true);
@@ -186,7 +193,7 @@ Project.prototype.initDexcalibur = function(pkgName, cfgpath=null, nofrida=0, ap
     +"██║   ██║██╔══╝   ██╔██╗ ██║     ██╔══██║██║     ██║██╔══██╗██║   ██║██╔══██╗\n"
     +"███████╔╝███████╗██╔╝ ██╗╚██████╗██║  ██║███████╗██║██████╔╝╚██████╔╝██║  ██║\n"
     +"╚══════╝ ╚══════╝╚═╝  ╚═╝ ╚═════╝╚═╝  ╚═╝╚══════╝╚═╝╚═════╝  ╚═════╝ ╚═╝  ╚═╝\n"
-    +" v0.5.1                                                        by @FrenchYeti \n"
+    +" v0.5.2                                                        by @FrenchYeti \n"
     +"╔════════════════════════════════════════════════════════════════════════════╗\n"
     +"║ How to use ?                                                               ║\n"
     +"║ > const Dexcalibur = require('./src/Project.js')                           ║\n"

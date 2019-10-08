@@ -25,6 +25,52 @@ function getLetterFromType(typename){
     return null;
 }
 
+class VariableArray
+{
+    constructor(data){
+        this.data = data;
+        return this;
+    }
+
+    getData(){
+        return this.data;
+    }
+
+    write(){
+        let str=` [
+            `;
+        for(let i=0; i<this.data.length; i++){
+            if(typeof this.data[i] == 'string'){
+                str += "'"+this.data[i]+"',";
+            }else if(typeof this.data[i] == 'object'){
+                str += JSON.stringify(this.data[i])+",";
+            }else if(typeof this.data[i] == 'int'){
+                str += this.data[i]+",";
+            }else{
+                Logger.error('Unsupported hook variable : type of nested data not supported.');
+            }
+        }
+        
+        return str.substr(0,str.length-1)+`
+            ],`;
+    }
+}
+
+/*
+DO NOT USE
+*/
+class VariableObject
+{
+    constructor(data){
+        this.data = data;
+        return this;
+    }
+
+    write(){
+        return JSON.stringify(this.data)+",";
+    }
+}
+
 /**
  * Represente un hook (actif ou non)
  * @param {string} name The hook name
@@ -42,7 +88,7 @@ function Hook(name,src){
     this.name = name;
     this.description = null;
     this.script = src;
-    this.enable = true;
+    this.enabled = true;
     this.native = false;
     this.isIntercept = false;
     this.onMatch = null;
@@ -56,7 +102,9 @@ function Hook(name,src){
     this.after = false;
     this.before = false;
 
+    this.variables = null,
     this.code = {
+        varID: null,
         before: null,
         after: null,
         replace: null,
@@ -65,10 +113,47 @@ function Hook(name,src){
     return this;
 }
 
+
+/**
+ * Set enable flag with the given boolean. 
+ * @deprecated
+ */
+Hook.prototype.setEnable = function(bool){
+    this.enabled = bool;
+}
+Hook.prototype.enable = function(){
+    this.enabled = true;
+}
+Hook.prototype.disable = function(){
+    this.enabled = false;
+}
+Hook.prototype.isEnable = function(){
+    return this.enabled;
+}
+
 Hook.prototype.modifyScript = function(script){
     this.script = script;
     this.edited = true;
 } 
+
+Hook.prototype.hasVariables = function(){
+    return (this.variables!=null);
+}
+
+Hook.prototype.setupVariables = function(){
+    let code="\t\tvar "+this.code.varID+` = {
+        `;
+    for(let i in this.variables){
+        code += "\t\t"+i+":";
+        code += this.variables[i].write();
+    }
+    return code+`
+        };`;
+}
+
+Hook.prototype.getVariable = function(name){
+    return this.variables[name];
+}
 
 Hook.prototype.isModified = function(){
     return this.edited;
@@ -212,12 +297,23 @@ Hook.prototype.toJsonObject = function(){
     o.id = this.id;
     o.customName = this.customName;
     o.name = this.name;
-    o.enable = this.enable;
+    o.enable = this.enabled;
     o.method = this.method.signature();
     o.script = UT.b64_encode(UT.encodeURI(this.script));
     o.edited = this.edited;
     o.isIntercept = this.isIntercept;
+    if(this.variables != null){
+        o.variables = {
+            id: this.code.varID,
+            data: {}
+        };
+        console.log(this.variables);
+        for(let i in this.variables){
+            o.variables.data[i] = this.variables[i].write();
+        }
+    }
     o.code = {
+        //variable: (this.code.variable!=null)? UT.b64_decode(this.code.dynamic) : null,
         before: (this.code.before!=null)? UT.b64_encode(this.code.before) : null,
         after: (this.code.after!=null)? UT.b64_encode(this.code.after) : null,
         replace: (this.code.replace!=null)? UT.b64_encode(this.code.replace) : null,
@@ -238,6 +334,7 @@ Hook.prototype.updateWith = function(object,method){
     this.edited = object.edited;
     this.isIntercept = object.isIntercept;
     this.code = {
+        dynamic: (object.code.dynamic!=null)? UT.b64_decode(object.code.dynamic) : null,
         before: (object.code.before!=null)? UT.b64_decode(object.code.before) : null,
         after: (object.code.after!=null)? UT.b64_decode(object.code.after) : null,
         replace: (object.code.replace!=null)? UT.b64_decode(object.code.replace) : null,
@@ -403,11 +500,11 @@ Hook.prototype.makeRetHelper = function(ret){
  * @function
  */
 Hook.prototype.makeHookFor = function(method){
-    if(method instanceof CLASS.MissingReference){
+    /*if(method instanceof CLASS.MissingReference){
         console.log(Chalk.bold.yellow("TODO : implement MissingReference probing"));
         this.enable = false;
         return null;
-    }
+    }*/
 
     let tags = {
         "@@__CLSDEF__@@": md5(method.enclosingClass.name),
@@ -424,8 +521,11 @@ Hook.prototype.makeHookFor = function(method){
         "@@__CTX__@@":"",
         "@@__ARGS_DATA__@@":"null",
         "@@__RET_DATA__@@":"",
+        "@@__VAR__@@":""
     }; 
 
+    tags["@@__VAR__@@"] = md5(this.id)+"_VAR";
+    this.code.varID = tags["@@__VAR__@@"];
 
     let retHelp = this.makeRetHelper(method.ret);
     tags["@@__RET_DATA__@@"] = "{"+retHelp.data+"}";
@@ -449,6 +549,7 @@ Hook.prototype.makeHookFor = function(method){
     }
     */
 
+    // TODO : dont redifine cls_$$ and meth_$$ when another hook has already defiened it.
 
     let script = `
 
@@ -475,7 +576,7 @@ Hook.prototype.makeHookFor = function(method){
 
         this.method = method;
         this.name = method.__signature__;
-        this.setEnable(true);
+        this.enable();
         this.script = script;
 
         return true;
@@ -521,11 +622,14 @@ Hook.prototype.makeHookFor = function(method){
     this.method = method;
     method.probing = true;
     this.name = method.__signature__;
-    this.setEnable(true);
+    this.enable();
     this.script = script;
     return true;
     //console.log(script);
 }
+
+
+
 Hook.prototype.buildCustomScript = function(method){
     if(method instanceof CLASS.MissingReference){
         console.log(Chalk.bold.yellow("TODO : implement MissingReference probing"));
@@ -548,8 +652,11 @@ Hook.prototype.buildCustomScript = function(method){
         "@@__HOOK_ID__@@": UT.b64_encode(this.id),
         "@@__CTX__@@":"",
         "@@__ARGS_DATA__@@":"null",
-        "@@__RET_DATA__@@":"",
+        "@@__RET_DATA__@@":""
     }; 
+
+    tags["@@__VAR__@@"] = tags["@@__HOOK_ID__@@"]+"_VAR";
+    this.code.varID = tags["@@__VAR__@@"];
 
 
     let retHelp = this.makeRetHelper(method.ret);
@@ -576,21 +683,19 @@ Hook.prototype.buildCustomScript = function(method){
     this.method = method;
     method.probing = true;
     this.name = method.__signature__;
-    this.setEnable(true);
+    this.enable();
     return true;
 }   
+
+Hook.prototype.generateDynamicCode = function(){
+    //this.code.dynamic = 
+}
 
 Hook.prototype.setMethod = function(method){
     this.method = method;
 }
 Hook.prototype.getMethod = function(){
     return this.method;
-}
-Hook.prototype.setEnable = function(bool){
-    this.enable = bool;
-}
-Hook.prototype.isEnable = function(){
-    return this.enable;
 }
 
 
@@ -677,6 +782,7 @@ function HookPrimitive(config){
     this.interceptReplace = null;
     this.onMatch = null;
     this.custom = false;
+    this.variables = null;
     this.raw = null;
 
     for(let i in config){
@@ -686,6 +792,27 @@ function HookPrimitive(config){
     if(config.method!=null) this.method_signature = config.method;
     return this;
 }
+
+
+/**
+ * Create a object shared with others hook callback
+ * @param {Object} config Shared object config 
+ */
+/*HookPrimitive.prototype.addVariable = function(config){
+    this.variable = config;
+    return this;
+}*/
+
+/**
+ * Get the shared object from this hookset
+ * @returns {Object} Shared object
+ * @function
+ */
+HookPrimitive.prototype.getVariables = function(){
+    return this.variables;
+}
+
+
 
 HookPrimitive.prototype.setMethod = function(method){
     this.method_signature = method;
@@ -706,6 +833,8 @@ HookPrimitive.prototype.buildRawMethod = function(raw){
 HookPrimitive.prototype.toProbe = function(context,set){
     let hook = new Hook(), method=null;
     
+    hook.variables = this.variables;
+
     if(this.raw == null)
         method = context.find.get.method(this.method_signature);
     else
@@ -735,6 +864,9 @@ HookPrimitive.prototype.toProbe = function(context,set){
 HookPrimitive.prototype.toIntercept = function(context,set){
 
     let hook = new Hook();
+
+    hook.variables = this.variables;
+
     if(this.raw == null)
         method = context.find.get.method(this.method_signature);
     else{
@@ -1126,6 +1258,9 @@ HookManager.prototype.prepareHookScript = function(){
 
     for(let i in this.hooks){
         if(this.hooks[i].isEnable()){
+            if(this.hooks[i].hasVariables()){
+                script += this.hooks[i].setupVariables();                
+            }
             script += this.hooks[i].script;
         }
     }
@@ -1135,12 +1270,19 @@ HookManager.prototype.prepareHookScript = function(){
 }
 HookManager.prototype.newSession = function(){
     var sess =new HookSession(this)
+    // TODO : add configuration flush/keep previous sessions 
     this.sessions.push(sess);
     return sess;
 }
 HookManager.prototype.lastSession = function(){
     return this.sessions[this.sessions.length];
 }
+
+/**
+ * start -> script ? -> NO : prepareHookScipt()
+ *                   -> YES: use given script
+ *       -> 
+ */
 HookManager.prototype.start = function(hook_script){
     
 
@@ -1148,7 +1290,6 @@ HookManager.prototype.start = function(hook_script){
     
     if(hook_script == null){
         hook_script = this.prepareHookScript();
-        //console.log("");
         console.log(Chalk.yellow(hook_script));
     }
 
@@ -1273,6 +1414,15 @@ HookManager.prototype.getProbe = function(method){
     }
     return null;
 }
+
+/**
+ * To get all hooks
+ * @returns {Hook[]} An array containing all hooks
+ */
+HookManager.prototype.getHooks = function(){
+    return this.hooks;
+}
+
 /**
  * To get a hook by its ID.
  * 
@@ -1439,6 +1589,9 @@ HookSet.prototype.addHookShare = function(config){
     this.share = config;
     return this;
 }
+
+
+
 /**
  * Get the shared object from this hookset
  * @returns {Object} Shared object
@@ -1590,6 +1743,13 @@ HookSet.prototype.deploy = function(){
             this.prologue.injectContext(this.context)
         );
 
+    /*
+    if(this.shares != null)
+        hookManager.shares.push(
+            this.prologue.injectContext(this.context)
+        );
+            */
+
     for(let i in this.probes){
         if(!(this.probes[i] instanceof Hook)){
             hook = this.probes[i].toProbe(this.context, this);
@@ -1657,5 +1817,7 @@ module.exports = {
     HookPrimitive: HookPrimitive,
     HookMessage: HookMessage,
     HookSession: HookSession,
-    HookSet: HookSet
+    HookSet: HookSet,
+    VariableArray: VariableArray,
+    VariableObject: VariableObject,
 };
