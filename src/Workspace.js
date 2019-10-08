@@ -2,6 +2,7 @@ var fs=require("fs");
 var Chalk = require("chalk");
 var Path = require("path");
 var CLASS = require("./CoreClass.js");
+var Logger = require("./Logger.js")();
 
 const DIR_NAME = {
     SAVE: "save",
@@ -114,7 +115,7 @@ Workspace.prototype.getWD = function(){
  */
 Workspace.prototype.clean = function(){
     this.rmWDir(this.getWD());
-    console.log(Chalk.bold.green("[*] Working directory removed : "+this.getWD()));
+    Logger.success("[*] Working directory removed : "+this.getWD());
 }
 
 /**
@@ -148,7 +149,7 @@ Workspace.prototype.init = function(){
     if(!fs.existsSync(Path.join(this.getWD(),DIR_NAME.TMP))){
         this.mkWDir(DIR_NAME.TMP+"/");
     }
-    console.log(Chalk.bold.green("[*] Working directory : "+this.getWD()));
+    Logger.success("[*] Working directory : "+this.getWD());
 }
 
 /**
