@@ -149,7 +149,7 @@ Project.prototype.initDexcalibur = function(pkgName, cfgpath=null, nofrida=0, ap
     // setup File Analyzer
     this.dataAnalyser = new DataAnalyzer.Analyzer(this);
 
-    this.bus = Bus.Event.setContext(this);
+    this.bus = new Bus(this); //.setContext(this);
 
     this.appAnalyzer = new AndroidAppAnalyzer(this);
 

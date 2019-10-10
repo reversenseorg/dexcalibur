@@ -22,8 +22,8 @@ function Platform(platformConfig,apis_path){
  */
 Platform.prototype.getInternalName = function(){
     // TODO : add file path check in order to avoid traversal path
-    return this.name+"_"+this.version;
-}
+    return this.name+"_"+this.apiVersion;
+ }
 
 Platform.prototype.isAndroid = function(){
     return this.name.indexOf("android")>-1;

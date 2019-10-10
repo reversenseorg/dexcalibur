@@ -38,6 +38,4 @@ Bus.prototype.send = function(event){
     return true;
 }
 
-module.exports = {
-    Event: new Bus()
-};
+module.exports = Bus;

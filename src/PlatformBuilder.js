@@ -17,7 +17,7 @@ function PlatformBuilder(config){
 
 
 PlatformBuilder.prototype.exists = function(platform){
-    return fs.existsSync(this.wd+platform.getInternalName())
+    return fs.existsSync(Path.join(this.wd,platform.getInternalName()));
 } 
 
 

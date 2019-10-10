@@ -36,7 +36,6 @@ class TestLogger
     static T_WARN = 4;
     static T_RAW = 5;
     static T_SUCCESS = 6;
-    static T_DEBUG = 8;
 
     constructor(debugMode){
         this.prefix = [];
@@ -48,8 +47,8 @@ class TestLogger
         this.T_INFO = 2;
         this.T_DEBUG = 3;
         this.T_WARN = 4;
-        this.T_SUCCESS = 5;
-        this.T_DEBUG = 8;
+        this.T_RAW = 5;
+        this.T_SUCCESS = 6;
     }
 
     error(){
