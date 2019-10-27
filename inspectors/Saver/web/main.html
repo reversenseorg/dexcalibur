@@ -26,128 +26,183 @@
 
 </head>
 
-<body>
+<body class="dxc-dark">
 
-    <div id="wrapper">
 
         <!-- Navigation -->
         <!--## pages/inc/menu.html ##-->
 
+        
         <div id="page-wrapper">
-            <!--
-            <div class="row" style="padding:10px;">
-                <div class="col-lg-8" style="font-size:1.5em">Saver - save/open a project</div>
+          
+               
+                
+            <h1 class="page-header">Manage project</h1>
+            <div class="dxc-description">
+                Save or open your project, export it as a file or import an external alias and ressources for this project. <br><i style="color: rgb(0, 247, 255);">Be aware, imported ressources will be  copied into the project workspace and loaded every time.</i>  
+            </div>
+
+            <div class="row"><div class="col-lg-12" id="alertcontainer"></div></div>
+
+            <div class="row">
+                <div class="col-lg-3">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title">Save hooks and aliases</h5>
+                            <p class="card-text">
+                                    This feature will save the aliases and the hooks into the project workspace.<br>
+                                    If autosave is enabled, almost data should be already saved.
+                            </p>
+                            <button class="btn btn-primary save"><i class="fa fa-file"></i>&nbsp;Save</button>
+                        </div>      
+                    </div>
+                </div>
+
+                <div class="col-lg-3">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title">Restore hooks and aliases</h5>
+                            <p class="card-text">
+                                    This feature will load previously backed up aliases and hooks to the current project.<br>
+                                    Be aware existing hooks and aliases will be override.
+                            </p>
+                            <button class="btn btn-primary opensave"><i class="fa fa-bolt"></i>&nbsp;Restore</button>
+                        </div>      
+                    </div>
+                </div>
+
+                <!-- TODO
+                <div class="col-lg-3">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title">Export data</h5>
+                            <p class="card-text">
+                                    This feature will export selected data to special data file. This file can be fully or partially imported into another
+                                    project or workspace. 
+                            </p>
+                            <button class="btn btn-primary export"><i class="fa fa-download"></i>&nbsp;Export</button>
+                        </div>      
+                    </div>
+                </div>
+
+
+                <div class="col-lg-3">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title">Import data</h5>
+                            <p class="card-text">
+                                This feature offers a way to import data - such as exported alias, hooks or bytecode - into the current project.
+                                <br>Be aware import can override current data.
+                               TODO
+                                <div class="custom-control custom-switch">
+                                    <input type="checkbox" class="custom-control-input" id="eraseoverride">
+                                    <label class="custom-control-label" for="eraseoverride">Override existing data</label>
+                                </div>
+                            </p>
+                            <button class="btn btn-primary import"><i class="fa fa-upload"></i>&nbsp;Import</button>
+                        </div>      
+                    </div>
+                </div>-->
+            </div>
+            <!-- 
+            <div class="row">
+                <div class="col-lg-3">
+                    <div class="card border-danger">
+                        <div class="card-body">
+                            <h5 class="card-title text-danger">Erase data</h5>
+                            <p class="card-text">
+                                    This feature will erase data according to selected items.
+                                    <div class="custom-control custom-switch">
+                                        <input type="checkbox" class="custom-control-input" id="erasehooks">
+                                        <label class="custom-control-label" for="erasehooks">Hooks</label>
+                                    </div>
+                                    <div class="custom-control custom-switch">
+                                        <input type="checkbox" class="custom-control-input" id="erasealias">
+                                        <label class="custom-control-label" for="erasealias">Alias</label>
+                                    </div>
+                                    <div class="custom-control custom-switch">
+                                        <input type="checkbox" class="custom-control-input" id="erasertfile">
+                                        <label class="custom-control-label" for="erasertfile">Files gathered at runtime</label>
+                                    </div>
+                            </p>
+                            <button class="btn btn-danger erasedata"><i class="fa fa-ben"></i>&nbsp;Erase (cannot be undone)</button>
+                        </div>      
+                    </div>
+                </div>
+
+                <div class="col-lg-6">
+                    <div class="card border-danger">
+                        <div class="card-body">
+                            <h5 class="card-title text-danger">Schred project</h5>
+                            <p class="card-text">
+                                    This feature schred entire project folder using configured tool. 
+                                    Depending of the configuration each file will be schred by using pre-configured tool.
+                                    When schred terminates, an alert box will shows results (success or not). 
+                                    In case of success, Dexcalibur emits '<i class="text-info">project-schreded-success</i>' events, allowing 
+                                    plugins to do additional staff before application exists.
+
+                                    <div class="custom-control custom-switch">
+                                        <input type="checkbox" class="custom-control-input" id="schrednotify">
+                                        <label class="custom-control-label" for="schrednotify">Notify unofficial plugins (disabled for confidentiality reason)</label>
+                                    </div>
+                            </p>
+                            <button class="btn btn-danger schredproject"><i class="fa fa-file"></i>&nbsp;Schred (cannot be undone)</button>
+                        </div>      
+                    </div>
+                </div>
+
+                <div class="col-lg-3">
+                    <div class="card border-warning">
+                        <div class="card-body">
+                            <h5 class="card-title text-warning">Archive</h5>
+                            <p class="card-text">
+                                This feature creates a zip archive of the project workspace, and stores it into the workspace. 
+                                Any other remaining file are removed. It helps to free space. 
+                                <br>This operation cannot be undone automatically. You need to uncompress it manually.
+                            </p>
+                            <button class="btn btn-warning schredproject">
+                                <i class="fa fa-file"></i>&nbsp;Archive</button>
+                        </div>      
+                    </div>
+                </div>
             </div>
         -->
-            <p>
-                Save the hooks and aliases. You can share the resulting file with another users. 
-            </p>
-            <div class="panel panel-info">
-               <div class="panel-heading">
-                    <div class="row">
-                        <div class="col-lg-7" style="font-size:1.5em">Save hooks and aliases</div>
-                        <div class="col-lg-3" style="font-size:1.5em; color:gray" id="saveNotify">
-                        </div>
-                        <div class="col-lg-2">
-                            <button class="btn btn-primary save">
-                                <i class="fa fa-refresh"></i>&nbsp;Save
-                            </button>
-                        </div>
-                    </div>
-                </div>         
-                <div class="panel-body">
-                    This feature will save the aliases and the hooks into the project workspace.
-                </div>
-            </div>
-
-            <div class="panel panel-info">
-               <div class="panel-heading">
-                    <div class="row">
-                        <div class="col-lg-7" style="font-size:1.5em">Open hooks and aliases</div>
-                        <div class="col-lg-3" style="font-size:1.5em; color:gray" id="openNotify">
-                        </div>
-                        <div class="col-lg-2">
-                            <button class="btn btn-danger opensave">
-                                <i class="fa fa-refresh"></i>&nbsp;Open
-                            </button>
-                        </div>
-                    </div>
-                </div>         
-                <div class="panel-body">
-                    This feature will load previously backed up aliases and hooks to the current project.<br>
-                    Be aware existing hooks and aliases will be override.
-                </div>
-            </div>
-
-<!--
-            <div class="panel panel-info">
-                <div class="panel-heading">
-                     <div class="row">
-                         <div class="col-lg-7" style="font-size:1.5em">Import hooks and aliases</div>
-                         <div class="col-lg-3" style="font-size:1.5em; color:gray" id="importNotify">
-                         </div>
-                         <div class="col-lg-2">
-                             <button class="btn btn-primary importsave">
-                                 <i class="fa fa-refresh"></i>&nbsp;Import (upload)
-                             </button>
-                         </div>
-                     </div>
-                 </div>         
-                 <div class="panel-body">
-                     This feature will import alias/hook file fropm another porject to the current project.
-                 </div>
-             </div>
-            -->
-
-
         </div>
-        <!-- /#page-wrapper -->
-    </div>
-    <!-- /#wrapper -->
+
 
 
     <!--## pages/inc/tpl_js_end.html ##-->
 
     <script>
 
+
     $(document).ready(function() {
         $(".save").click(function(e){
-            $.ajax("/api/inspectors/saver", {
-                method: "get",
-                data: {
-                    action: "save"
+
+            DexcaliburAPI.project.save(
+                function(data){
+                    if(data.success)
+                        DexcaliburAPI.ui.alert.success("Hooks and aliases have been successfully saved.");
+                    else
+                        DexcaliburAPI.ui.alert.warning("Project have been partially saved due to an internal error   ");
                 },
-                statusCode: {
-                    200: function(data,err){
-                        console.log(data);
-                        if(data.success)
-                            $("#saveNotify").html("<span style='color:green'>Success :-)</span>");
-                        else
-                            $("#saveNotify").html("<span style='color:red'>(#2) Error :-(</span>");
-                    },
-                    404: function(data,err){
-                        $("#saveNotify").html("<span style='color:red'>(#1) Error :-(</span>");
-                    }
+                function(data){
+                    DexcaliburAPI.ui.alert.error("An error occured while backup.");
+                    // $("#saveNotify").html("<span style='color:red'>(#1) Error :-(</span>");
                 }
-            })
+            );
         });
 
 
         $(".opensave").click(function(e){
-            $.ajax("/api/inspectors/saver", {
-                method: "get",
-                data: {
-                    action: "open"
+            DexcaliburAPI.project.open(
+                function(data){
+                    DexcaliburAPI.ui.alert.success("Project succesfully opened :)");
                 },
-                statusCode: {
-                    200: function(data,err){
-                        $("#openNotify").html("<span style='color:green'>Success :-)</span>");
-                    },
-                    404: function(data,err){
-                        $("#openNotify").html("<span style='color:red'>Error :-(</bspan");
-                    }
+                function(data){
+                    DexcaliburAPI.ui.alert.error("Project cannot be restored :(");
                 }
-            })
+            );
         });
 
         /*
