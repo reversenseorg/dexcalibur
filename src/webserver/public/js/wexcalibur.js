@@ -93,6 +93,46 @@ DisassembyViewer.prototype.render = function(elem){
 }
 
 
+class FutureHook
+{
+    constructor(){
+        this.before = false;
+        this.after = false;
+        this.replace = false;
+        this.breakpointID = null;
+        this.codeAfter = null;
+        this.codeBefore = null;
+        this.codeReplace = null;
+    }
+
+    init(obj){
+        for(let k in obj){
+            if(this[k]!==undefined)
+                this[k] = obj[k];
+        }
+        return this;
+    }
+
+    setBefore(code=null){
+        this.before = false;
+        this.codeBefore = code;
+    }
+
+    setAfter(code=null){
+        this.after = false;
+        this.codeAfter = code;
+    }
+
+    setReplace(code=null){
+        this.replace = false;
+        this.codeReplace = code;
+    }
+
+    setBreakpointID(id){
+        this.breakpointID = id;
+    }
+}
+
 
 function Wexcalibur(){
     this.codeReg = new WexRegister("code-","");    
@@ -139,8 +179,39 @@ var DexcaliburAPI = {
                 secondary: 'secondary',      
                 success: 'success'          
             },
+        },
+        alert: {
+            requireOnceAlert: function(id, type, msg, encode){
+                
+                // test if the alert has been already inserted
+                if($('#'+id).length===0){
+                    let alertBody = `
+                    <div class="alert alert-`+type+` alert-dismissible fade show" role="alert">
+                        <p id="`+id+`">`+msg+`<p>
+                        <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>`;
+                    $(alertBody).insertBefore("#page-wrapper");
+                } 
+                if(encode)
+                    $("#"+id).html(DexcaliburAPI.ui.htmlEncode(msg));
+                else
+                    $("#"+id).html(msg);
+            },
+            error: function(msg, encode=true){
+                DexcaliburAPI.ui.alert.requireOnceAlert("dxc-alert-error", "danger", msg, encode);
+            },
+            success: function(msg){
+                DexcaliburAPI.ui.alert.requireOnceAlert("dxc-alert-error", "danger", msg, encode);
+            }
         }
     },
+    keyshortcut: {
+        init: function(){
+            //$(document).
+        }
+    }, 
     search: {
         makeClassLink: function(signature){
             return "<a href='/pages/finder.html?class="+btoa(encodeURIComponent(signature))+
@@ -157,6 +228,27 @@ var DexcaliburAPI = {
     },
     analyzer: {},
     hook: {
+        manager: {
+            current: null
+        },
+        newFutureHook: function(config={}){
+            DexcaliburAPI.hook.manager.current = (new FutureHook()).init(config); 
+        },
+        clearFutureHook: function(){
+            DexcaliburAPI.hook.manager.current = null;
+        },
+        start: function(callbackSuccess, callbackErr){
+            $.ajax('/api/probe/start',{
+                method: 'post',
+                data: {
+                    _t: (new Date()).getTime()
+                },
+                statusCode: {
+                    200: callbackSuccess,
+                    404: callbackErr
+                }
+            });
+        },
         enableAll: function(callbacks){
             $.ajax('/api/hook/enable/all',{
                 method: 'put',
@@ -192,6 +284,9 @@ var DexcaliburAPI = {
                 },
                 statusCode: callbacks
             });
+        },
+        newHookModal: function(id){
+            //
         }
     },
     disass: {},
@@ -391,7 +486,7 @@ DexcaliburAPI.ui.tags.colorCode = {
 DexcaliburAPI.ui.badge.make =  function(color,data,link=null,attr=null){
     if(DexcaliburAPI.ui.badge.style[color]==null) console.error("Given color not exists : ",color);
 
-    return '&nbsp;<a class="badge badge-'+DexcaliburAPI.ui.badge.style[color]+'">'+DexcaliburAPI.ui.htmlEncode(data)+'</a>'; 
+    return '&nbsp;<span class="badge badge-pill badge-'+DexcaliburAPI.ui.badge.style[color]+'">'+DexcaliburAPI.ui.htmlEncode(data)+'</span>'; 
 };
 
 DexcaliburAPI.ui.findColorCode = function(tagname){
