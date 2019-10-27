@@ -4,30 +4,39 @@ body {
 
 .badge-primary {
   background-color: #007bff !important;
+  color: #FFF;
 }
 .badge-success {
   background-color: #5cb85c !important;
+  color: #FFF;
 }
 .badge-warning {
   background-color: #f0ad4e !important;
+  color: #FFF;
 }
 .badge-danger {
   background-color: #d9534f !important;
+  color: #FFF;
 }
 .badge-info {
   background-color: #5bc0de !important;
+  color: #FFF;
 }
 .badge-purple {
   background-color: #4b0092 !important;
+  color: #FFF;
 }
 .badge-pink {
   background-color: #9b008e !important;
+  color: #FFF;
 }
 .badge-black {
   background-color: #000 !important;
+  color: #FFF;
 }
 .badge-blue {
   background-color: #10009b !important;
+  color: #FFF;
 }
 
 td.details-control {

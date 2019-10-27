@@ -1,0 +1,16 @@
+#page-wrapper,
+body {
+    background-color: rgb(86, 109, 173);
+    border: 0px;
+}
+
+
+.card {
+    border-color: rgb(0, 255, 200, .40);
+}
+
+.card-header {
+    background-color: rgb(8, 68, 102);
+    border-bottom: 1px solid rgb(0, 255, 200, .40);
+    color: rgb(0, 255, 200)
+}
