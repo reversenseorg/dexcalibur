@@ -26,48 +26,47 @@
 
 </head>
 
-<body>
+<body class="dxc-dark">
 
-    <div id="wrapper">
 
         <!-- Navigation -->
         <!--## pages/inc/menu.html ##-->
 
-        <div id="page-wrapper">
-            <!--<div class="row">
+        <div id="page-wrapper" class="dxc-dark">
+            
+
+            <div class="row">
                 <div class="col-lg-12">
-                    <h1 class="page-header" style="font-size:1em">Probe logs</h1>
+                    <h1 class="page-header">Dynamic loader inspector</h1>
                 </div>
-            </div>-->
-            <div class="row" style="padding:10px;">
-                <div class="col-lg-8" style="font-size:1.5em">Dynamic loader inspector</div>
-                
-                <div class="col-lg-4">
-                    <button class="btn btn-danger cleanup">
+                <!-- /.col-lg-12 -->
+            </div>
+            <div class="row">
+                <div class="col-lg-10 dxc-description">
+                    <p>This <b>inspector</b> hooks Android internals methods involved into dynamic bytecode loading, class loading and dynamic calls using Reflection API. 
+                    It collects and analyse automatically additional Dex file or bytecode loaded at runtime. It is usefull when the application is obfuscated and hides its function calls. 
+                    Files or data loaded at runtime are copied into the local workspace (<code>[project_workspace]/runtime/bytecode</code> folder). 
+                    Copied files are automatically analysed statically at runtime and when dexcalibur starts. These files can be flushed from <b>project settings menu</b>.
+                    <!--<a href="https://dexcalibur.org/docs">See help for more information</a> -->
+                    </p>
+                </div>  
+                <div class="col-lg-2 dxc-text">
+                    <h6>Actions:</h6>
+                    <button class="btn btn-danger cleanup" style="font-size:0.9em; cursor:pointer">
                         <i class="fa fa-trash"></i>&nbsp;Remove copied files
                     </button>
                 </div>
             </div>
-            <br><br>
-            <div class="panel panel-info">
-               <div class="panel-heading">
-                    <div class="row">
-                        <div class="col-lg-10" style="font-size:1.5em">Method invoked dynamically</div>
-                        
-                        <div class="col-lg-2">
-                            <button class="btn btn-primary refreshReflect">
-                                <i class="fa fa-refresh"></i>&nbsp;Refresh
-                            </button>
-                        </div>
-                    </div>
-                </div>         
-                <div class="panel-body">
+            
+            <div class="card">
+                <h5 class="card-header">Method invoked dynamically</h5>
+                <div class="card-body">
                     <p>
-                    <b>Heuristic applied</b>
+                    <b>Heuristic model :</b>
                     <ul>
-                        <ol><input type="radio" id="dyncall_heurtype" name="dyncall_heurtype" value="half" checked="checked"/>&nbsp;A <i>Class.forName() or a const-class</i> followed by <i>Class.getMethod()</i> is probably a call <b style="color:green">(trust: moderate, rapidity: fast, stability: stable)</b></ol>
-                        <ol><input type="radio" id="dyncall_heurtype" name="dyncall_heurtype" value="mixstat" disabled />&nbsp;A <i>Class.forName() or a const-class<</i> followed by <i>Class.getMethod()</i> followed statically by a <i>Method.invoke()</i> probably call <b style="color:green">(trust: good, rapidity: moderate, stability: stable)</b></ol>
-                        <ol><input type="radio" id="dyncall_heurtype" name="dyncall_heurtype" value="invoke" disabled />&nbsp;A <i>Method.invoke()</i> is probably a call <b style="color:red">(trust: high, rapidity: fast, stability: unstable - can crash the server ! - frida limitation)</b></ol>
+                        <ol><input type="radio" name="dyncall_heurtype" value="half" checked/>&nbsp;A <i>Class.forName() or a const-class</i> followed by <i>Class.getMethod()</i> is probably a call <b style="color:green">(trust: moderate, rapidity: fast, stability: stable)</b></ol>
+                        <ol><input type="radio" name="dyncall_heurtype" value="mixstat" disabled />&nbsp;A <i>Class.forName() or a const-class<</i> followed by <i>Class.getMethod()</i> followed statically by a <i>Method.invoke()</i> probably call <b style="color:green">(trust: good, rapidity: moderate, stability: stable)</b></ol>
+                        <ol><input type="radio" name="dyncall_heurtype" value="invoke" disabled />&nbsp;A <i>Method.invoke()</i> is probably a call <b style="color:red">(trust: high, rapidity: fast, stability: unstable - can crash the server ! - frida limitation)</b></ol>
                     </ul>
                     </p>
                     <p>The table below lists all unique method invoked dynamically. If a method has never been yet discovered, it is tagged 
@@ -86,21 +85,29 @@
                             </tbody>
                         </table>
                 </div>
+                <!--
+                <div class="col-lg-4">
+                    <button class="btn btn-danger cleanup">
+                        <i class="fa fa-trash"></i>&nbsp;Remove copied files
+                    </button>
+                </div>-->
             </div>
 
+            <div class="card">
+                <h5 class="card-header">
+                    Dex file loaded dynamically
+                    <span class="bage badge-pill badge-primary refreshDex" style="margin-left:2em; font-size:0.8em; cursor:pointer">
+                        <i class="fa fa-refresh"></i>&nbsp;Refresh
+                    </span>
 
-            <div class="panel panel-info">
-                <div class="panel-heading">
-                    <div class="row">
-                        <div class="col-lg-10" style="font-size:1.5em">Dex file loaded dynamically</div>
-                        <div class="col-lg-2">
+                </h5>
+                       <!-- <div class="col-lg-2">
                             <button class="btn btn-primary refreshDex">
                                 <i class="fa fa-refresh"></i>&nbsp;Refresh
                             </button>
-                        </div>
-                    </div>
-                </div>         
-                <div class="panel-body">
+                        </div>-->
+                          
+                <div class="card-body">
                     <p>The table below lists all Dex files gathered at runtime and decompiled dynamically.</p>
                     <table width="100%"  class="table table-striped table-bordered table-hover" id="dataTables-dex">
                             <thead>
@@ -118,18 +125,20 @@
                 </div>
             </div>
 
-            <div class="panel panel-info">
-                    <div class="panel-heading">
-                        <div class="row">
-                            <div class="col-lg-10" style="font-size:1.5em">Elements discovered</div>
+            <div class="card">
+                    <h5 class="card-header">Elements discovered 
+                        <span class="bage badge-pill badge-primary refreshDisco" style="margin-left:2em; font-size:0.8em; cursor:pointer">
+                            <i class="fa fa-refresh"></i>&nbsp;Refresh
+                        </span>
+                    </h5>
+                    <!--
                             <div class="col-lg-2">
                                 <button class="btn btn-primary refreshDisco">
                                     <i class="fa fa-refresh"></i>&nbsp;Refresh
                                 </button>
-                            </div>
-                        </div>
-                    </div>         
-                    <div class="panel-body">
+                            </div>-->
+                                
+                    <div class="card-body">
                         <p>The table below lists all elements discovered (string, class, method, field, array, ...).</p>
                         <table width="100%"  class="table table-striped table-bordered table-hover" id="dataTables-discover">
                                 <thead>
@@ -150,8 +159,7 @@
 
         </div>
         <!-- /#page-wrapper -->
-    </div>
-    <!-- /#wrapper -->
+    
 
 
     <!--## pages/inc/tpl_js_end.html ##-->

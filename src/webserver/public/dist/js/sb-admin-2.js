@@ -37,9 +37,16 @@ $(function() {
         return this.href == url;
     }).addClass('active').parent();
 
+        
+    console.log(element);
     while (true) {
         if (element.is('li')) {
-            element = element.parent().addClass('in').parent();
+            element.removeClass("active");
+            console.log(element.parent().parent(), element.parent().parent().children('a')); 
+            
+            element.parent().parent().children('a').addClass('active');
+            break;
+            // addClass('in').parent();
         } else {
             break;
         }

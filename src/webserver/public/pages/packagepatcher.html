@@ -80,25 +80,36 @@
 
 </head>
 
-<body>
+<body class="dxc-dark">
 
-    <div id="wrapper">
 
         <!-- Navigation -->
         <!--## pages/inc/menu.html ##-->
 
-        <div id="page-wrapper">
-            <div class="row">
-                <div class="col-lg-12">
-                    <h1 class="page-header">Package patcher</h1>
+        <div id="page-wrapper" class="dxc-dark">
+                <div class="row">
+                    <div class="col-lg-12">
+                        <h1 class="page-header">Package patcher</h1>
+                    </div>
+                    <!-- /.col-lg-12 -->
                 </div>
-                <!-- /.col-lg-12 -->
-            </div>
+                <!--
+                <div class="row">
+                    <div class="col-lg-9 dxc-description">
+                        <p>An <b>inspector</b> is a piece of code listenning events emits from others inspectors, processing data collected by hooks and emitting new events.   
+                        Custom inspector can be plugged into the <code>./inspectors/</code> folder (require restart). An inspector can offer custom UI. 
+                        The aim of inspectors is to extend the Dexcalibur features by offering a way to correlate data collected by all hooks. An inspector can follows file access, links a function to a file, detects and parse keystore, and so.
+                        <a href="https://dexcalibur.org/docs">See help for more information</a> 
+                        </p>
+                    </div>  
+                </div> -->
+
+           
             <!-- /.row -->
             <div class="row">
                 <div class="col-lg-12">
-                    <div class="panel panel-default">
-                        <div class="panel-heading">
+                    <div class="card">
+                        <div class="card-header">
                             <div class="row">
                                 <div class="col-lg-11"><h4>List of packages found on device</h4></div>
                                 <div class="col-lg-1">
@@ -109,7 +120,7 @@
                             </div>
                         </div>
                         <!-- /.panel-heading -->
-                        <div class="panel-body">
+                        <div class="card-body">
                             <table width="100%" class="table table-striped table-bordered table-hover" id="dataTables-example">
                                 <thead>
                                     <tr>
@@ -135,26 +146,10 @@
         </div>
         <!-- /#page-wrapper -->
 
-    </div>
-    <!-- /#wrapper -->
 
-    <!-- jQuery -->
-    <script src="../vendor/jquery/jquery.min.js"></script>
 
-    <!-- Bootstrap Core JavaScript -->
-    <script src="../vendor/bootstrap/js/bootstrap.min.js"></script>
 
-    <!-- Metis Menu Plugin JavaScript -->
-    <script src="../vendor/metisMenu/metisMenu.min.js"></script>
-
-    <!-- DataTables JavaScript -->
-    <!--<script src="../vendor/datatables/js/jquery.dataTables.min.js"></script>-->
-    <script src="../vendor/datatables/js/jquery.dataTables.js"></script>
-    <script src="../vendor/datatables-plugins/dataTables.bootstrap.min.js"></script>
-    <script src="../vendor/datatables-responsive/dataTables.responsive.js"></script>
-
-    <!-- Custom Theme JavaScript -->
-    <script src="../dist/js/sb-admin-2.js"></script>
+    <!--## pages/inc/tpl_js_end.html ##-->
 
     <!-- Page-Level Demo Scripts - Tables - Use for reference -->
     <script>

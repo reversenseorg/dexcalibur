@@ -24,28 +24,48 @@
 
 </head>
 
-<body>
+<body class="dxc-dark">
 
-    <div id="wrapper">
-
+   
         <!-- Navigation -->
         <!--## pages/inc/menu.html ##-->
 
-        <div id="page-wrapper">
-            <div class="row">
+        <div id="page-wrapper" class="dxc-dark">
+            <div class="row dxc-dark-row">
                 <div class="col-lg-8">
-                    <h1 class="page-header">Probe manager</h1>
+                    <h1 class="page-header">Hook manager</h1>
                 </div>
-                <div class="col-lg-4" style="padding-top:20px">
+                <!--<div class="col-lg-4" style="padding-top:20px">
                     <button type="button" class="btn btn-danger" id="disable-all">Disable all</button>
                     <button type="button" class="btn btn-success" id="enable-all">Enable all</button>                
                     <button type="button" class="btn btn-primary" id="dl-fridascript"><span class="fa fa-download">&nbsp;</span>Download as Frida script</button>
-                </div>
+                </div>-->
                 <!-- /.col-lg-12 -->
             </div>
+            <div class="row dxc-dark-row">
+                    <ul class="nav col-lg-12 dxc-second-nav">
+                        <li class="nav-item">
+                            <a class="nav-link" id="disable-all"><span class="fa fa-toggle-off">&nbsp;</span>Disable all</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" id="enable-all"><span class="fa fa-toggle-on">&nbsp;</span>Enable all</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" id="dl-fridascript"><span class="fa fa-download">&nbsp;</span>Download script</a>
+                        </li>
+                        <!--
+                        <li class="nav-item">
+                            <a class="nav-link" href="#"><span class="fa fa-wrench">&nbsp;</span>Dry-run</a>
+                        </li>
+                    -->
+                        <li class="nav-item border border-info dxc-run-btn">
+                            <a class="nav-link" id="start-hook" href="#"><span class="fa fa-bolt">&nbsp;</span>Run</a>
+                        </li>
+                    </ul>
+                </div>
 
             <!-- /.row -->
-            <div class="row">
+            <div class="row dxc-dark-row">
                 <div class="col-lg-12">
                         
                     <table width="100%" class="table table-striped table-bordered table-hover" id="dataTables-probe">
@@ -71,9 +91,7 @@
 
         </div>
         <!-- /#page-wrapper -->
-    </div>
-    <!-- /#wrapper -->
-
+    
     <div class="modal fade" id="methodModal" tabindex="-1" role="dialog" aria-labelledby="methodModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-lg" role="document">
           <div class="modal-content">
@@ -136,9 +154,9 @@
         for(let i in row.modifiers){
             if(j==8) body+="<br>";
             if(row.modifiers[i]==true){
-                body += '&nbsp;<a  class="badge badge-success">'+htmlEncode(i)+'</a>';
+                body += '&nbsp;<span class="badge badge-pill badge-success">'+htmlEncode(i)+'</span>';
             }else{
-                body += '&nbsp;<a  class="badge badge-secondary">'+htmlEncode(i)+'</a>';
+                body += '&nbsp;<span class="badge badge-pill badge-secondary">'+htmlEncode(i)+'</span>';
             }
             j++;
         }
@@ -202,13 +220,14 @@
     /* Formatting function for row details - modify as you need */
     function format ( row ) {
         // `d` is the original data object for the row
-        let body = '';
+        let body = '<div class="card">';
 
  //       body += '<table class="table"><thead><tr><th scope="col">Action</th><th scope="col">Type</th></thead><tbody>';
-        body += '<table class="table"><tbody>';
-        body += '<tr><td><b>Name</b></td><td>'+htmlEncode(row.id)+'</td></tr>';
-        body += '<tr><td><b>Method</b></td><td><a methid="'+btoa(encodeURIComponent(row.name))+'" class="showMethod">'+htmlEncode(row.name)+'</a></td></tr>';
-        body += '<tr><td><b>Description</b></td><td>'+((row.description!=null)?htmlEncode(row.description):'')+'</td></tr>';
+        body += '<div class="row dxc-hook-ppt"><div class="col-lg-2">Hook UUID</div><div class="col-lg-8">'+htmlEncode(row.id)+'</div></div>';
+        body += '<div class="row dxc-hook-ppt"><div class="col-lg-2">Hooked method</div><div class="col-lg-8"><a methid="'+btoa(encodeURIComponent(row.name))+'" class="showMethod">'+htmlEncode(row.name)+'</a></div></div>';
+        body += '<div class="row dxc-hook-ppt"><div class="col-lg-2">Description</div><div class="col-lg-8">'+((row.description!=null)?htmlEncode(row.description):'<i>empty</i>')+'</div></div>';
+        body += "</div>";
+
         //body += '<tr><td><b>Intercept</b></td><td>[None]</td></tr>';
 
         let codeID = IdRegister.codeReg.next();
@@ -218,8 +237,8 @@
         //body += '<h4>Hook code</h4>';
         body += `<div class="row">
                     <div class="col-lg-8">
-                        <div class="panel panel-info">
-                            <div class="panel-heading">
+                        <div class="card">
+                            <div class="card-header">
                                 <div class="row">
                                     <div class="col-lg-10" style="font-size:1.8em">  
                                         Hook code
@@ -230,24 +249,33 @@
                                     </div>
                                 </div>
                             </div>
-                            <div class="panel-body" style="padding:0px;">
+                            <div class="card-body" style="padding:0px;">
+                                    <ul class="nav">
+                                        <li class="nav-item">
+                                            <a class="nav-link active" href="#">StackTrace</a>
+                                        </li>
+                                        <li class="nav-item">
+                                            <a class="nav-link" href="#">Breakpoint</a>
+                                        </li>
+                                    </ul>
                                 <pre id="`+codeID+`">`+htmlEncode(decodeURIComponent(atob(row.script)))+`</pre>
                             </div>
                         </div>
                     </div>
                     <div class="col-lg-4">
-                        <div class="panel panel-info">
-                            <div class="panel-heading">
+                        <div class="card">
+                            <div class="card-header">
                                 <div class="row">
-                                    <div class="col-lg-4 col-md-4">  
-                                        <button class="btn btn-danger replay-hook" code="`+codeID+`" hookid="`+row.id+`"><span class="fa fa-refresh">&nbsp;</span>Replay hook</button>
-                                    </div>
-                                    <div class="col-lg-8 col-md-8" style="font-size:1.8em;text-align:right" >
+
+                                    <div class="col-lg-6 col-md-6" style="font-size:1.5em;" >
                                         Hook messages
+                                    </div>
+                                    <div class="col-lg-6 col-md-6" style="text-align:right">  
+                                        <button class="btn btn-danger replay-hook" code="`+codeID+`" hookid="`+row.id+`"><span class="fa fa-refresh">&nbsp;</span>Replay hook</button>
                                     </div>
                                 </div>
                             </div>
-                            <div class="panel-body" style="padding:0px;" id="hook-log-`+row.id+`">
+                            <div class="card-body" style="padding:0px;" id="hook-log-`+row.id+`">
                                 <table class="table table-sm-4">
                                         <thead><tr><td><b>Hook data</b></td></tr></thead><tbody><tr><td>Nothing to display</td></tr></tbody>
                                 </table>
@@ -304,9 +332,9 @@
                    
                     render: function(data, type, row, meta ){
                         if(row.isIntercept)
-                            return '<a  class="badge badge-danger">intercept</a>';
+                            return '<span class="badge badge-pill badge-danger">intercept</span>';
                         else
-                            return '<a  class="badge badge-primary">probe</a>';                 
+                            return '<span class="badge badge-pill badge-primary">probe</span>';                 
                     }
                     //defaultContent: '-'
                 },
@@ -318,20 +346,37 @@
                 },
                 { 
                     render: function(data, type, row, meta ){
-                        console.log(row);
+                       // console.log(row);
+                     //   let b= '<div class="custom-control custom-switch">'
+                      //      +'<input type="checkbox" class="custom-control-input" id="hook-'+btoa(encodeURIComponent(row.name))+'" meth="'+btoa(encodeURIComponent(row.name))+'"/>';
+                       //     +'<label class="custom-control-label" for="hook-'+btoa(encodeURIComponent(row.name))+'">On</label>';
+                            
+                        /*  
                         if(row.enable){
-                            return '<a  class="badge badge-success probe" status="true" meth="'+btoa(encodeURIComponent(row.name))+'">ON</a>';
+                            b += '<label class="badge badge-pill badge-success custom-control-label" for="hookconfBefore">ON</label>';
                         }else{
-                            return '<a  class="badge badge-danger probe" status="false" meth="'+btoa(encodeURIComponent(row.name))+'">OFF</a>';
+                            b += '<label class="badge badge-pill badge-danger custom-control-label" for="hookconfBefore">OFF</label>';
+                        }*/
+                        //b += '<label class="custom-control-label" for="hookconfBefore">&nbsp;</label>';
+                       
+//                        return b + '</div>';
+
+                        
+                        if(row.enable){
+                            return '<span  class="badge badge-pill badge-success probe badge-action" status="true" meth="'+btoa(encodeURIComponent(row.name))+'">ON</span>';
+                        }else{
+                            return '<span  class="badge badge-pill badge-danger probe badge-action" status="false" meth="'+btoa(encodeURIComponent(row.name))+'">OFF</span>';
                         }
-                        if(row.edited){
-                            return '<a  class="badge badge-info">edited</a>';
-                        } 
+                        /*if(row.edited){
+                            return '<a  class="badge badge-pill badge-info">edited</a>';
+                        }*/
                     }
                 },{
                     render: function(data, type, row, meta ){
-                        return '<button style="height:1.5em;padding-top:0px;padding-bottom:0px;" class="btn btn-primary probe-duplicate" hookid="'+row.id+'" data-toggle="tooltip" data-placement="bottom" title="duplicate"><span class="fa fa-copy"></span></button>&nbsp;'
-                            +'<button style="height:1.5em;padding-top:0px;padding-bottom:0px;" class="btn btn-danger probe-del" hookid="'+row.id+'" data-toggle="tooltip" data-placement="bottom" title="remove"><span class="fa fa-trash"></span></button>';
+                        return '<a style="margin-left:1em;gont-size:1.2em;" class="probe-del" href="#remove:hook:'+row.id+'" hookid="'+row.id+'" data-toggle="tooltip" data-placement="bottom" title="remove"><span class="fa fa-trash"></span>&nbsp;</a>';
+
+                        //return '<button style="height:1.5em;padding-top:0px;padding-bottom:0px;" class="btn btn-primary probe-duplicate" hookid="'+row.id+'" data-toggle="tooltip" data-placement="bottom" title="duplicate"><span class="fa fa-copy"></span></button>&nbsp;'
+                        //    +'<button style="height:1.5em;padding-top:0px;padding-bottom:0px;" class="btn btn-danger probe-del" hookid="'+row.id+'" data-toggle="tooltip" data-placement="bottom" title="remove"><span class="fa fa-trash"></span></button>';
                     } 
                 }
             ],
@@ -454,6 +499,7 @@
                 // Open this row
                 row.child( format(row.data()) ).show();
                 tr.addClass('shown');
+                tr[0].nextElementSibling.childNodes[0].className = 'dxc-expandedrow-bg';
             }
         } );
 
@@ -636,6 +682,16 @@
             
         });
 
+        $("#start-hook").click(()=>{
+            DexcaliburAPI.hook.start(
+                function(){
+                    location.href = "/pages/probelog.html"
+                },
+                function(err){
+                    alert(err);
+                }
+            )
+        });
         $("#enable-all").click(()=>{
             DexcaliburAPI.hook.enableAll({
                 200: function(daata){

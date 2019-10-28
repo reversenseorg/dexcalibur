@@ -26,21 +26,34 @@
 
 </head>
 
-<body>
+<body class="dxc-dark">
 
-    <div id="wrapper">
 
         <!-- Navigation -->
         <!--## pages/inc/menu.html ##-->
 
-        <div id="page-wrapper">
+        <div id="page-wrapper" class="dxc-dark">
             <!--<div class="row">
                 <div class="col-lg-12">
                     <h1 class="page-header" style="font-size:1em">Probe logs</h1>
                 </div>
             </div>-->
-            <div class="row" style="padding:10px;">
-                <div class="col-lg-8" style="font-size:1.5em">Bytecode Cleaner inspector</div>
+            <div class="row">
+                <div class="col-lg-12">
+                    <h1 class="page-header">Bytecode Cleaner inspector</h1>
+                </div>
+            </div>
+            <div class="row">
+                    <div class="col-lg-10 dxc-description">
+                        <p>
+                            This <b>inspector</b> offers several tools to clean-up the application bytecode. The purpose of these tools is to help reverse engineering by transforming bytecode 
+                            into a cleaner version - by removing useless goto, renaming symbols, and so. Tampering of the application bytecode done by this inspector don't impacts future runs, 
+                            because the application running on the device is not patched. 
+                            <i style="color:red">Be aware only new aliases are saved. Any bytcode changes are not saved.</i>
+                        </p>
+                    </div>  
+                </div>
+
                 
                 <!--<div class="col-lg-4">
                     <button class="btn btn-danger probe-restart">
@@ -50,15 +63,23 @@
                         <i class="fa fa-refresh"></i>&nbsp;Refresh
                     </button>
                 </div>-->
-            </div>
-            <br><br>
-            <div class="panel panel-info">
-               <div class="panel-heading">
+            
+            <div class="card">
+               <div class="card-header">
                     <div class="row">
                         <div class="col-lg-7" style="font-size:1.5em">Remove NOP</div>
-                        <div class="col-lg-3" style="font-size:1.5em; color:gray" id="nopCounter">
+                        <div class="col-lg-3" style="font-size:1.5em; color:gray" id="nopCounter"></div>
+                    </div>
+                </div>         
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-10">
+                            The aim of the NOP remover is to remove the NOP instruction from the model. <br>
+                            It will produce more clean smali. <b style="color:red">Be aware this action cannot be undone.</b>
+                            This action will not modify the files content.
                         </div>
-                        <div class="col-lg-2">
+                        <div class="col-md-2">
+                            <h6>Actions :</h6>
                             <button class="btn btn-success nop-count">
                                 &nbsp;Count
                             </button>
@@ -67,53 +88,56 @@
                             </button>
                         </div>
                     </div>
-                </div>         
-                <div class="panel-body">
-                    The aim of the NOP remover is to remove the NOP instruction from the model. <br>
-                    It will produce more clean smali. <b style="color:red">Be aware this action cannot be undone.</b>
-                    This action will not modify the files content.
                 </div>
             </div>
 
 
-            <div class="panel panel-info">
-                <div class="panel-heading">
-                        <div class="row">
-                            <div class="col-lg-10" style="font-size:1.5em">Remove useless Goto</div>
-                            <div class="col-lg-2">
+            <div class="card">
+                <h5 class="card-header">
+                        Remove useless Goto 
+                    </h5>     
+                    <div class="card-body">
+                       <div class="row">
+                           <div class="col-md-10">
+                                The aim of the GoTo remover is to simply the bytecode by replacing GoTo trigged from a single point. <br>
+                                It will produce more clean smali. <b style="color:red">Be aware this action cannot be undone.</b>
+                                This action will not modify the files content.<br>
+                                <input type="checkbox" name="nocleanif" id="nocleanif" value=1 checked><label>Not clean methods containing conditonnal basic blocks (if-*, try/ctach/throw)</label><br>    
+                           </div>
+                           <div class="col-md-2">
+                                <h6>Actions :</h6>
                                 <button class="btn btn-danger goto-clean">
-                                    <i class="fa fa-refresh"></i>&nbsp;Clean
+                                        <i class="fa fa-refresh"></i>&nbsp;Clean
                                 </button>
-                            </div>
+                           </div>
                         </div>
-                    </div>         
-                    <div class="panel-body">
-                        The aim of the GoTo remover is to simply the bytecode by replacing GoTo trigged from a single point. <br>
-                        It will produce more clean smali. <b style="color:red">Be aware this action cannot be undone.</b>
-                        This action will not modify the files content.<br>
-                        <input type="checkbox" name="nocleanif" id="nocleanif" value=1 checked><label>Not clean methods containing conditonnal basic blocks (if-*, try/ctach/throw)</label><br>
                     </div>
                 </div>
 
-            <div class="panel panel-info">
-                <div class="panel-heading">
-                    <div class="row">
-                        <div class="col-lg-10" style="font-size:1.5em">Find & rename wrapped methods</div>
-                        <div class="col-lg-2">
-                            <button class="btn btn-danger wrapped-clean">
-                                <i class="fa fa-refresh"></i>&nbsp;Rename
-                            </button>
-                        </div>
-                    </div>
-                </div>         
-                <div class="panel-body">
-                    The aim of this action is to detect wrappers and to rename it with the class/method name of the wrapped function.
-                    <br>
-                    <fieldset>
-                        <legend>Methods cleaned</legend>
-                        <b>Double static</b>:<span id="wrappedDoubleStatic"></span><br>
-                        <b>Static interface</b>:<span id="wrappedStaticInterface"></span><br>
-                    </fieldset>
+            <div class="card">
+                <h5 class="card-header">
+                    Find & rename wrapped methods
+                </h5>         
+                <div class="card-body">
+                        <div class="row">
+                            <div class="col-lg-10">
+
+                            The aim of this action is to detect wrappers and to rename it with the class/method name of the wrapped function.
+                            <br>
+                            <fieldset>
+                                <legend>Methods cleaned</legend>
+                                <b>Double static</b>:<span id="wrappedDoubleStatic"></span><br>
+                                <b>Static interface</b>:<span id="wrappedStaticInterface"></span><br>
+                            </fieldset>
+
+                            </div>
+                            <div class="col-lg-2">
+                                <h6>Actions :</h6>
+                                <button class="btn btn-danger wrapped-clean">
+                                    <i class="fa fa-refresh"></i>&nbsp;rename
+                                </button>
+                            </div>
+                       </div>
                 </div>
             </div>
 <!--
@@ -169,9 +193,7 @@
 
         </div>
         <!-- /#page-wrapper -->
-    </div>
-    <!-- /#wrapper -->
-
+ 
 
     <!--## pages/inc/tpl_js_end.html ##-->
 

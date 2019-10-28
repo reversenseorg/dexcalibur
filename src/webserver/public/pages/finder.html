@@ -25,7 +25,7 @@
 
 </head>
 
-<body>
+<body class="dxc-dark">
 
     <div id="wrapper">
 
@@ -45,17 +45,30 @@
                         <li>
                         -->
 
-        <div id="page-wrapper">
-            <div class="row">
+        <div id="page-wrapper" class="dxc-dark">
+            <!--<div class="row">
                 <div class="col-lg-12">
                     <h1 class="page-header">Application object finder</h1>
                 </div>
-                <!-- /.col-lg-12 -->
-            </div>
+            </div>-->
 
+        <!--<div class="row">
+            <div class="col-lg-4">
+                <div class="card">
+                    <ul class="list-group">
+                        <li>Search</li>
+                        <li>Keystores</li>
+                        <li>Cryptographic constants</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="col-lg-8">
+                test2
+            </div>
+        </div>-->
             <!-- /.row -->
-            <div class="row">
-                <div class="col-lg-12">
+            <div class="card">
+                <div class="card-body">
                     <div class="input-group">
                         <input type="text" class="form-control" placeholder='class("name:Keystore")' id="search_request">
                         <span class="input-group-btn">
@@ -71,54 +84,56 @@
                         </span>
                     </div>
                 </div>
+
+                <div class="card-footer">
+                        <!--<b>Search helper (click for add a filter) : </b>-->
+                            <div class="pre-request">
+                                <span>Search :</span>
+                                <span class="badge badge-pill badge-danger prefilter-clean">clean</span>
+                                <span class="badge badge-pill badge-primary prefilter" prefilt='call("calleed.name:@@")'>find calls to a method</span>
+                                <span class="badge badge-pill badge-info prefilter" prefilt='call("calleed.name:@@").select("caller")'>find callers of a method</span>
+                                <span class="badge badge-pill badge-info prefilter" prefilt='call("calleed.name:@@").filter("calleed.__signature__:->")'>use of the field</span>
+                                <span class="badge badge-pill badge-warning prefilter" prefilt='class("name:@@")'>find class by name</span>
+                                <span class="badge badge-pill badge-info prefilter" prefilt='class("extends.name:@@")'>find class by extended class</span>
+                                <span class="badge badge-pill badge-info prefilter" prefilt='field("name:@@")'>find field by name</span>
+                                <span class="badge badge-pill badge-warning prefilter" prefilt='method("name:@@")'>find method by name</span>
+                                <span class="badge badge-pill badge-info prefilter" prefilt='method("args.__signature__:@@")'>find method by arg type</span>
+                                <span class="badge badge-pill badge-info prefilter" prefilt='method("ret.__signature__:@@")'>find method by return type</span>
+                                <span class="badge badge-pill badge-info prefilter" prefilt='string("value:@@")'>Strings containing</span>
+                                <span class="badge badge-pill badge-pink prefilter" prefilt='array("uid:@@")'>static array by method</span>
+                                <span class="badge badge-pill badge-pink prefilter" prefilt='array("tags:@@")'>static array by tag</span>
+                                <a class="prefilter-more" href="#">&nbsp;or build your own request ...</a>
+
+                            </div>
+                            <div class="pre-filter" style="display:none">
+                                <span>Filter :</span>
+                                <span class="badge badge-pill badge-danger prefilter-clean">clean</span>
+                                <span class="badge badge-pill badge-purple prefilter" prefilt='select("_callers")'>xref</span>
+                                <span class="badge badge-pill badge-purple prefilter" prefilt='select("caller")'>keep callers</span>
+                                <span class="badge badge-pill badge-purple prefilter" prefilt='select("calleed")'>keep calleds</span>
+                                <span class="badge badge-pill badge-purple prefilter" prefilt='filter("enclosingClass.name:^@@")'>filter by package</span>
+                                <span class="badge badge-pill badge-purple prefilter" prefilt='filter("caller.enclosingClass.name:@@")'>filter by caller class</span>
+                                <span class="badge badge-pill badge-purple prefilter" when="before" prefilt='nocase()'>Case ensensitive</span>
+                            </div>
+                    </div>
             </div>
 
-            <b>Search helper (click for add a filter) : </b>
-            <div class="row" style="margin-bottom:20px">
-                <div class="col-lg-12 pre-request">
-                    <a class="badge badge-danger prefilter-clean">clean</a>&nbsp;&nbsp;
-                    <a class="badge badge-primary prefilter" prefilt='call("calleed.name:@@")'>find calls to a method</a>&nbsp;&nbsp;
-                    <a class="badge badge-info prefilter" prefilt='call("calleed.name:@@").select("caller")'>find callers of a method</a>&nbsp;&nbsp;
-                    <a class="badge badge-info prefilter" prefilt='call("calleed.name:@@").filter("calleed.__signature__:->")'>use of the field</a>&nbsp;&nbsp;
-                    <a class="badge badge-warning prefilter" prefilt='class("name:@@")'>find class by name</a>&nbsp;&nbsp;
-                    <a class="badge badge-info prefilter" prefilt='class("extends.name:@@")'>find class by extended class</a>&nbsp;&nbsp;
-                    <a class="badge badge-info prefilter" prefilt='field("name:@@")'>find field by name</a>&nbsp;&nbsp;
-                    <a class="badge badge-warning prefilter" prefilt='method("name:@@")'>find method by name</a>&nbsp;&nbsp;
-                    <a class="badge badge-info prefilter" prefilt='method("args.__signature__:@@")'>find method by arg type</a>&nbsp;&nbsp;
-                    <a class="badge badge-info prefilter" prefilt='method("ret.__signature__:@@")'>find method by return type</a>&nbsp;&nbsp;
-                    <a class="badge badge-info prefilter" prefilt='string("value:@@")'>Strings containing</a>&nbsp;&nbsp;
-                    <a class="badge badge-pink prefilter" prefilt='array("uid:@@")'>static array by method</a>&nbsp;&nbsp;
-                    <a class="badge badge-pink prefilter" prefilt='array("tags:@@")'>static array by tag</a>&nbsp;&nbsp;
-                </div>
-                <div class="col-lg-12 pre-filter" style="display:none">
-                    <a class="badge badge-danger prefilter-clean">clean</a>&nbsp;&nbsp;
-                    <a class="badge badge-purple prefilter" prefilt='select("_callers")'>xref</a>&nbsp;&nbsp;
-                    <a class="badge badge-purple prefilter" prefilt='select("caller")'>keep callers</a>&nbsp;&nbsp;
-                    <a class="badge badge-purple prefilter" prefilt='select("calleed")'>keep calleds</a>&nbsp;&nbsp;
-                    <a class="badge badge-purple prefilter" prefilt='filter("enclosingClass.name:^@@")'>filter by package</a>&nbsp;&nbsp;
-                    <a class="badge badge-purple prefilter" prefilt='filter("caller.enclosingClass.name:@@")'>filter by caller class</a>&nbsp;&nbsp;
-                    <a class="badge badge-purple prefilter" when="before" prefilt='nocase()'>Case ensensitive</a>&nbsp;&nbsp;
-                </div>
-            </div>
+           
 
-            <div class="row">
-                <div class="col-lg-12">
-                    <table width="100%"  class="table table-striped table-bordered table-hover" id="dataTables-finder">
-                        <thead>
-                            <tr>
-                                <th id="finder-col1" class="col-lg-1">-</th>
-                                <th id="finder-col2" class="col-lg-4">-</th>
-                                <th id="finder-col3" class="col-lg-4">-</th>
-                                <th id="finder-col4" class="col-lg-3">-</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            
-                        </tbody>
-                    </table>
-                    <!-- /.table-responsive -->
-                </div>
-                <!-- /.col-lg-12 -->
+            <div class="card">
+                <table width="100%"  class="table table-striped table-bordered table-hover finderTable" id="dataTables-finder">
+                    <thead>
+                        <tr>
+                            <th id="finder-col1" class="col-lg-1">-</th>
+                            <th id="finder-col2" class="col-lg-4">-</th>
+                            <th id="finder-col3" class="col-lg-4">-</th>
+                            <th id="finder-col4" class="col-lg-3">-</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        
+                    </tbody>
+                </table>
             </div>
             <!-- /.row -->
         </div>
@@ -157,8 +172,10 @@
     <div class="modal fade" id="renameModal" tabindex="-1" role="dialog" aria-labelledby="renameModalLabel" aria-hidden="true">
         <div class="modal-dialog" role="document">
           <div class="modal-content">
+                <div class="modal-header">
+                  <h3 class="modal-title">Rename</h3>
+                </div>
             <div class="modal-body">
-                <h4>Rename</h4>
                 <div class="input-group mb-8">
                 <input type="text" id="renameModalAlias" class="form-control" style="width:30em" autofocus placeholder="Alias" aria-label="Alias" aria-describedby="basic-addon1">
                 <input type="hidden" id="renameModalSubject" class="form-control" style="width:30em" aria-describedby="basic-addon1">
@@ -185,9 +202,9 @@
                     <thead>
                         <tr>
                             <th id="xref-col0" class="col-lg-1">Type</th>
-                            <th id="xref-col1" class="col-lg-5">Name</th>
-                            <th id="xref-col2" class="col-lg-2">Tags</th>
-                            <th id="xref-col3" class="col-lg-2">Action</th>
+                            <th id="xref-col1" class="col-lg-8">Name</th>
+                            <th id="xref-col2" class="col-lg-1">Tags</th>
+                            <th id="xref-col3" class="col-lg-2 col-action">Action</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -215,7 +232,7 @@
                             <th id="xref-col0" class="col-lg-1">Type</th>
                             <th id="xref-col1" class="col-lg-5">Method</th>
                             <th id="xref-col2" class="col-lg-2">Tags</th>
-                            <th id="xref-col3" class="col-lg-2">Action</th>
+                            <th id="xref-col3" class="col-lg-2 col-action">Action</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -229,6 +246,71 @@
           </div>
         </div>
       </div>
+
+      <div class="modal fade" id="newHookModal" tabindex="-1" role="dialog" aria-labelledby="newHookModalLabel" aria-hidden="true">
+            <div class="modal-dialog" role="document">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h3 class="modal-title" id="newHookModalLabel">Hook configuration</h3>
+                </div>
+                <div class="modal-body">
+                    <div class="row" style="margin-bottom: 1em">
+                        <div class="col-lg-3">Location :</div>
+                        <div class="col-lg-3">
+                                <div class="custom-control custom-switch">
+                                    <input type="checkbox" class="custom-control-input" id="hookconfBefore">
+                                    <label class="custom-control-label" for="hookconfBefore">Before</label>
+                                </div>
+                                <div class="custom-control custom-switch">
+                                    <input type="checkbox" class="custom-control-input" id="hookconfAfter">
+                                    <label class="custom-control-label" for="hookconfAfter">After</label>
+                                </div>
+                                <div class="custom-control custom-switch">
+                                    <input type="checkbox" class="custom-control-input" id="hookconfReplace">
+                                    <label class="custom-control-label" for="hookconfReplace">Replace</label>
+                                </div>
+                        </div>
+                        <div class="col-lg-3 dxc-form-separator">Frida API :</div>
+                        <div class="col-lg-3">
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="radio" name="hookconfAPI" id="hookconfApiJS" value="js" checked>
+                                    <label class="form-check-label" for="hookconfApiJS">JS</label>
+                                    </div>
+                                    <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="radio" name="hookconfAPI" id="hookconfApiC" value="c" disabled>
+                                    <label class="form-check-label" for="hookconfApiC">C (todo)</label>
+                                    </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-lg-12 dxc-horizon-separator">
+                                <label for="inputState">Breakpoint (option)</label>
+
+                                <select id="inputState" class="form-control">
+                                    <option selected>Choose...</option>
+                                    <option>java.lang.String()</option>
+                                </select>
+                              
+                                <!--<div class="form-group col-md-2">
+                                        <button class="btn btn-primary mb-2">New</button>
+                                </div>-->
+                            </form>
+                        </div>
+                    </div>
+                
+               
+                </div>
+                <div class="modal-footer">
+                  <button type="button" class="btn btn-secondary" data-dismiss="modal">
+                    <span class="fa fa-close"></span>&nbsp;Cancel</button>
+                  <button type="button" class="btn btn-primary" data-dismiss="modal">
+                      <span class="fa fa-pencil"></span>&nbsp;Edit code (optional)</button>
+                  <button type="button" class="btn btn-success" data-dismiss="modal">
+                      <span class="fa fa-bolt"></span>&nbsp;Deploy</button>
+                </div>
+              </div>
+            </div>
+          </div>
     <!--## pages/inc/tpl_js_end.html ##-->
     <!--## pages/inc/tpl_ace_smali.html ##-->
 
@@ -304,7 +386,7 @@
         badge: function(color,data){
             if(BS.color[color]==null) console.error("Given color not exists : ",color);
 
-            return '&nbsp;<a class="badge badge-'+BS.color[color]+'">'+htmlEncode(data)+'</a>'; 
+            return '&nbsp;<span class="badge badge-pill badge-'+BS.color[color]+'">'+htmlEncode(data)+'</span>'; 
         },
         modifiers: function(mods){
             let b="";
@@ -336,10 +418,10 @@
     }
 
     var Render = {
-        methodTag: '<a class="badge badge-success probe">method</a>',
-        fieldTag: '<a class="badge badge-primary probe">field</a>',
-        classTag: '<a class="badge badge-purple probe">class</a>',
-        nativeTag: '<a class="badge badge-pink probe">native</a>'
+        methodTag: '<span class="badge badge-pill badge-success probe">method</span>',
+        fieldTag: '<span class="badge badge-pill badge-primary probe">field</span>',
+        classTag: '<span class="badge badge-pill badge-purple probe">class</span>',
+        nativeTag: '<span class="badge badge-pill badge-pink probe">native</span>'
     };
 
 
@@ -384,7 +466,7 @@
         body += '</td></tr>';
         body += '</table>
         */
-        body+= '</p><table class="table table-sm"><thead><tr><th scope="col" class="col-sm-2">Action</th><th scope="col" class="col-sm-1">Type</th><th scope="col">Name</th></thead><tbody>';
+        body+= '</p><table class="table table-sm"><thead><tr><th scope="col" class="col-sm-2 col-lg-3">Action</th><th scope="col" class="col-sm-1 col-lg-1">Type</th><th scope="col-lg-8">Name</th></thead><tbody>';
          
         if(row.fields != null){
             for(let i in row.fields){
@@ -395,7 +477,7 @@
                     //'<td><a  class="badge badge-secondary probe" field="'+btoa(encodeURIComponent(row.fields[i].__signature__))+'">Probe OFF</a>&nbsp;&nbsp;'+
                     //'<a class="badge badge-secondary" onclick="intercept(\''+btoa(encodeURIComponent(row.fields[i].__signature__))+'\')">Intercept</a>'+
                     //'<a class="badge badge-purple getterof" target="about" field="'+btoa(encodeURIComponent(row.fields[i].__signature__))+'">getter</a>&nbsp;'+
-                    '<a class="badge badge-pink fieldxref" target="about" field="'+btoa(encodeURIComponent(row.fields[i].__signature__))+'">xref</a></td><td><i>Field</i></td>'+
+                    '<span class="badge badge-pill badge-pink badge-action fieldxref" target="about" field="'+btoa(encodeURIComponent(row.fields[i].__signature__))+'">setters / getters</span></td><td><i>Field</i></td>'+
                     '<td>';
                 
                 if(row.fields[i].modifiers != null) 
@@ -422,10 +504,10 @@
          if(row.methods != null){
              for(let i in row.methods){
                  body += '<tr>'+
-                    '<td><a  class="badge badge-'+(row.methods[i].probing? 'success':'primary')+' probe" meth="'+btoa(encodeURIComponent(row.methods[i].__signature__))+'">Probe '+(row.methods[i].probing? 'ON&nbsp;&nbsp;':'OFF')+'</a>&nbsp;&nbsp;'+
+                    '<td><span  class="badge badge-pill badge-'+(row.methods[i].probing? 'success':'primary')+' probe" meth="'+btoa(encodeURIComponent(row.methods[i].__signature__))+'">Probe '+(row.methods[i].probing? 'ON&nbsp;&nbsp;':'OFF')+'</span>&nbsp;&nbsp;'+
                     //'<a  class="badge badge-danger">Intercept</a>'+
-                    '<a class="badge badge-purple xrefto" target="about" meth="'+btoa(encodeURIComponent(row.methods[i].__signature__))+'">xref to</a>&nbsp;'+
-                    '<a class="badge badge-pink xreffrom" target="about" meth="'+btoa(encodeURIComponent(row.methods[i].__signature__))+'">xref from</a></td><td><i>Method</i>&nbsp;';
+                    '<span class="badge badge-pill badge-purple badge-action xrefto" target="about" meth="'+btoa(encodeURIComponent(row.methods[i].__signature__))+'">xref to</span>&nbsp;'+
+                    '<span class="badge badge-pill badge-pink badge-action xreffrom" target="about" meth="'+btoa(encodeURIComponent(row.methods[i].__signature__))+'">xref from</span></td><td><i>Method</i>&nbsp;';
 
                 
                 if(row.methods[i].modifiers != null) 
@@ -623,7 +705,7 @@
         body += '<tr><td><b>Entry width</b></td><td>'+row.width+'&nbsp; bits</td></tr>';
         body += '</table>';
         
-        body += '<table class="table table-sm"><thead><tr><th scope="col">Tag</th><th scope="col">Data</th><th scope="col">Action</th></thead><tbody>';
+        body += '<table class="table table-sm"><thead><tr><th scope="col">Tag</th><th scope="col">Data</th></thead><tbody>';
         
 
 
@@ -639,8 +721,9 @@
             }
 
             body += htmlEncode(d);
+            body += "</td></tr>";
         }
-        body += "<tr><td>raw</td><td>"+printByteArray(row.values.data,row.width)+"</td><td>";
+        body += "<tr><td>raw</td><td>"+printByteArray(row.values.data,row.width)+"</td></tr>";
          
         body += "</tbody></table>"
         return body;
@@ -652,15 +735,15 @@
         console.log(row);
 
         //body += '<table class="table table-sm"><thead><tr><th scope="col">Role</th><th scope="col">Action</th><th scope="col">Type</th><th scope="col">Name</th></thead><tbody>';
-        body += '<table class="table table-sm">';
-        body += '<tr><td><b>Modifiers</b></td><td>';
+        body += '<table class="table table-sm nestedTable verticalHead">';
+        body += '<tr><td class="col-sm-12 col-lg-2"><b>Modifiers</b></td><td class="col-sm-12 col-lg-10">';
 
         for(let i in row.modifiers){
             if(j==8) body+="<br>";
             if(row.modifiers[i]==true){
-                body += '&nbsp;<a  class="badge badge-success">'+i+'</a>';
+                body += '&nbsp;<span class="badge badge-pill badge-success">'+i+'</span>';
             }else{
-                body += '&nbsp;<a  class="badge badge-secondary">'+i+'</a>';
+                body += '&nbsp;<span  class="badge badge-pill badge-secondary">'+i+'</span>';
             }
             j++;
         }
@@ -768,7 +851,7 @@
                 { 
                     render: function(data, type, row, meta ){
                         if(row.name != null)
-                            return '<a  class="badge badge-success probe" meth="'+btoa(encodeURIComponent(row.name))+'">ON</a>';
+                            return '<span  class="badge badge-pill badge-success badge-action  probe" meth="'+btoa(encodeURIComponent(row.name))+'">ON</span>';
                         else    
                             return '';
                     }
@@ -811,13 +894,13 @@
                         for(let i=0; i<row.tags.length; i++){
                             switch(row.tags[i]){
                                 case "di":
-                                    t += '&nbsp;<span class="badge badge-success">internal</span>'
+                                    t += '&nbsp;<span class="badge badge-pill badge-success">internal</span>'
                                     break;
                                 case "dd":
-                                    t += '&nbsp;<span class="badge badge-purple">dynamic</span>'
+                                    t += '&nbsp;<span class="badge badge-pill badge-purple">dynamic</span>'
                                     break;
                                 case "id":
-                                    t += '&nbsp;<span class="badge badge-purple">invoked</span>'
+                                    t += '&nbsp;<span class="badge badge-pill badge-purple">invoked</span>'
                                     break;
                             }
                         }
@@ -829,7 +912,7 @@
                         if(row.s.indexOf("<clinit>")>-1)
                             return ''; //<a class="badge badge-secondary" tip="Class init cannot be hooked">Probe</a>';
                         else
-                            return '<a  class="badge badge-'+(row.probing? 'success':'primary')+' probe" meth="'+btoa(encodeURIComponent(row.s))+'">Probe '+(row.probing? 'ON&nbsp;&nbsp;':'OFF')+'</a>';
+                            return '<span  class="badge badge-pill badge-'+(row.probing? 'success':'primary')+' badge-action probe" meth="'+btoa(encodeURIComponent(row.s))+'">Probe '+(row.probing? 'ON&nbsp;&nbsp;':'OFF')+'</span>';
                     }
                 }
             ],
@@ -863,11 +946,11 @@
 
                             // begin of the link
                             if(row.t=='f')
-                                t = '<a target="about" href="finder.html?field='+btoa(encodeURIComponent(row.s))+'">';
+                                t = '<a target="about" class="dxc-wrapped-row" href="finder.html?field='+btoa(encodeURIComponent(row.s))+'">';
                             else if(row.t=='m')
-                                t = '<a target="about" href="finder.html?method='+btoa(encodeURIComponent(row.s))+'">';                            
+                                t = '<a target="about" class="dxc-wrapped-row" href="finder.html?method='+btoa(encodeURIComponent(row.s))+'">';                            
                             else
-                                t = '<a target="about" href="finder.html?class='+btoa(encodeURIComponent(row.s))+'">';
+                                t = '<a target="about" class="dxc-wrapped-row" href="finder.html?class='+btoa(encodeURIComponent(row.s))+'">';
 
                             // alias
                             if(row.a != null)
@@ -877,7 +960,7 @@
                             
                         }else{
                             console.log("Else case trigged");
-                            let t = '<a target="about" href="finder.html?method='+btoa(encodeURIComponent(row.s))+'">';
+                            let t = '<a target="about" class="dxc-wrapped-row" href="finder.html?method='+btoa(encodeURIComponent(row.s))+'">';
                             if(row.a != null)
                                 return t+htmlEncode(row.a)+'</a><br><i>'+htmlEncode(row.s)+'</i>';
                             else
@@ -894,13 +977,13 @@
                         for(let i=0; i<row.tags.length; i++){
                             switch(row.tags[i]){
                                 case "di":
-                                    t += '&nbsp;<span class="badge badge-success">internal</span>'
+                                    t += '&nbsp;<span class="badge badge-pill badge-success">internal</span>'
                                     break;
                                 case "dd":
-                                    t += '&nbsp;<span class="badge badge-purple">dynamic</span>'
+                                    t += '&nbsp;<span class="badge badge-pill badge-purple">dynamic</span>'
                                     break;
                                 case "id":
-                                    t += '&nbsp;<span class="badge badge-purple">invoked</span>'
+                                    t += '&nbsp;<span class="badge badge-pill badge-purple">invoked</span>'
                                     break;
                             }
                         }
@@ -912,7 +995,7 @@
                         if(row.s.indexOf("<clinit>")>-1 || (row.t!=null && row.t=='f'))
                             return ''; //<a class="badge badge-secondary" tip="Class init cannot be hooked">Probe</a>';
                         else
-                            return '<a  class="badge badge-'+(row.probing? 'success':'primary')+' probe" meth="'+btoa(encodeURIComponent(row.s))+'">Probe '+(row.probing? 'ON&nbsp;&nbsp;':'OFF')+'</a>';
+                            return '<span  class="badge badge-pill badge-'+(row.probing? 'success':'primary')+' badge-action  probe" meth="'+btoa(encodeURIComponent(row.s))+'">Probe '+(row.probing? 'ON&nbsp;&nbsp;':'OFF')+'</span>';
                     }
                 }
             ],
@@ -923,9 +1006,9 @@
             let body = '', j=0;
 
             if(from)
-                $('#xrefModalLabel').html("XRef from <h4>"+htmlEncode(decodeURIComponent(atob(ref)))+"</h4>");
+                $('#xrefModalLabel').html("<span class='title'>XRef from </span><h4 class='symbol'>"+htmlEncode(decodeURIComponent(atob(ref)))+"</h4>");
             else
-                $('#xrefModalLabel').html("XRef to <h4>"+htmlEncode(decodeURIComponent(atob(ref)))+"</h4>");
+                $('#xrefModalLabel').html("<span class='title'>XRef to</span><h4 class='symbol'>"+htmlEncode(decodeURIComponent(atob(ref)))+"</h4>");
 
             
             xrefTable.clear();
@@ -962,7 +1045,7 @@
         function renderGsetterModal( ref) {
             let body = '', j=0;
 
-            $('#gsetterModalLabel').html("Setters & getters of <h4>"+htmlEncode(decodeURIComponent(atob(ref)))+"</h4>");
+            $('#gsetterModalLabel').html("<span class='title'>Setters & getters of </span><h4 class='symbol'>"+htmlEncode(decodeURIComponent(atob(ref)))+"</h4>");
   
             gsetterTable.clear();
             gsetterTable.draw();   
@@ -1031,13 +1114,13 @@
                             
                             let b = "";
                             if(row.alias != null){
-                                b = '<b '+color+'>'+htmlEncode(row.alias)+'</b>&nbsp;<i class="secondary-text">'+htmlEncode(row.name)+'</i>';
+                                b = '<span  class="dxc-wrapped-row"><b '+color+'>'+htmlEncode(row.alias)+'</b>&nbsp;<i class="secondary-text">'+htmlEncode(row.name)+'</i></span>';
                             }
                             else if(row.name != null){
                                 if(row.name.lastIndexOf("$")>row.name.lastIndexOf('.')){
-                                    b = '<span '+color+'>'+row.name.substr(row.name.lastIndexOf('.')+1)+'</span>';
+                                    b = '<span  class="dxc-wrapped-row" '+color+'>'+row.name.substr(row.name.lastIndexOf('.')+1)+'</span>';
                                 }else{
-                                    b = '<span '+color+'>'+row.simpleName+'</span>';
+                                    b = '<span  class="dxc-wrapped-row" '+color+'>'+row.simpleName+'</span>';
                                 }
                             }else{
                                 console.log("Unable to render Class : "+row);
@@ -1066,7 +1149,7 @@
                     },
                     { 
                         render: function(data, type, row, meta ){
-                            let b='<a  class="badge badge-info rename" ename="'+btoa(encodeURIComponent(row.name))+'" subt="class" subject="'+btoa(encodeURIComponent(row.name))+'">Rename</a>';
+                            let b='<span  class="badge badge-pill badge-info badge-action rename" ename="'+btoa(encodeURIComponent(row.name))+'" subt="class" subject="'+btoa(encodeURIComponent(row.name))+'">Rename</span>';
 
                             return b;
                         }
@@ -1101,7 +1184,7 @@
                     {  
                         render: function(data, type, row, meta ){
                             let color = (row.tags.indexOf("missing")>-1)? ' style="color:#F00"' : ''; 
-                            let b= '<span meth="'+btoa(encodeURIComponent(row.__signature__))+'"'+color+' >'+(row.alias!=null? '<b>'+htmlEncode(row.alias)+'</b><br>&nbsp;<i class="secondary-text">'+htmlEncode(row.__signature__)+'</i>':'&nbsp;'+htmlEncode(row.__callSignature__))+'</span>';
+                            let b= '<span  class="dxc-wrapped-row" meth="'+btoa(encodeURIComponent(row.__signature__))+'"'+color+' >'+(row.alias!=null? '<b>'+htmlEncode(row.alias)+'</b><br>&nbsp;<i class="secondary-text">'+htmlEncode(row.__signature__)+'</i>':'&nbsp;'+htmlEncode(row.__callSignature__))+'</span>';
                             
                             if(row.tags.indexOf("dd") > -1){
                                 b += BS.badge(
@@ -1115,13 +1198,13 @@
                         
                         render: function(data, type, row, meta ){
                             //console.log(row.__signature__);
-                            let b='<a  class="badge badge-primary probe" meth="'+btoa(encodeURIComponent(row.__signature__))+'">Probe</a>&nbsp;';
+                            let b='<span  class="badge badge-pill badge-primary badge-action probe" meth="'+btoa(encodeURIComponent(row.__signature__))+'">Probe</span>&nbsp;';
                             // b += '&nbsp;<a  class="badge badge-secondary cfg" meth="'+btoa(encodeURIComponent(row.__signature__))+'">Call Graph</a>&nbsp;';
                             // b += '&nbsp;<a  class="badge badge-secondary seemore" meth="'+btoa(encodeURIComponent(row.__signature__))+'">See more</a>';
-                            b += '<a  class="badge badge-info rename" ename="'+btoa(encodeURIComponent(row.alias!=null? row.alias : row.name))+'" subt="meth" subject="'+btoa(encodeURIComponent(row.__signature__))+'">Rename</a>';
-                            b += '&nbsp;<a  class="badge badge-purple xrefto" meth="'+btoa(encodeURIComponent(row.__signature__))+'">xref to</a>';
-                            b += '&nbsp;<a  class="badge badge-pink xreffrom" meth="'+btoa(encodeURIComponent(row.__signature__))+'">xref from</a>';
-                            b += '&nbsp;<a  class="badge badge-warning seegraph" meth="'+btoa(encodeURIComponent(row.__signature__))+'">Xgraph</a>';
+                            b += '<span  class="badge badge-pill badge-info badge-action rename" ename="'+btoa(encodeURIComponent(row.alias!=null? row.alias : row.name))+'" subt="meth" subject="'+btoa(encodeURIComponent(row.__signature__))+'">Rename</span>';
+                            b += '&nbsp;<span  class="badge badge-pill badge-purple badge-action xrefto" meth="'+btoa(encodeURIComponent(row.__signature__))+'">xref to</span>';
+                            b += '&nbsp;<span  class="badge badge-pill badge-pink badge-action xreffrom" meth="'+btoa(encodeURIComponent(row.__signature__))+'">xref from</span>';
+                            b += '&nbsp;<span  class="badge badge-pill badge-warning badge-action seegraph" meth="'+btoa(encodeURIComponent(row.__signature__))+'">Xgraph</span>';
 
                             return b;
                             /*
@@ -1166,13 +1249,13 @@
                         render: function(data, type, row, meta ){
 
                             let color = (row.tags.indexOf("missing")>-1)? ' style="color:#F00"' : ''; 
-                            return '<span '+color+'>'+((row.alias!=null? '<b>'+htmlEncode(row.alias)+'</b>&nbsp;':'&nbsp;')+htmlEncode(row.name))+'</span>';
+                            return '<span  class="dxc-wrapped-row" '+color+'>'+((row.alias!=null? '<b>'+htmlEncode(row.alias)+'</b>&nbsp;':'&nbsp;')+htmlEncode(row.name))+'</span>';
                         }
                     },
                     {   
                         render: function(data, type, row, meta ){
-                            let b='<a  class="badge badge-info rename" ename="'+btoa(encodeURIComponent(row.name))+'" subt="field" subject="'+btoa(encodeURIComponent(row.__signature__))+'">Rename</a>&nbsp;';
-                            b+='<a class="badge badge-pink fieldxref" target="about" field="'+btoa(encodeURIComponent(row.__signature__))+'">xref</a>';
+                            let b='<span  class="badge badge-pill badge-info badge-action  rename" ename="'+btoa(encodeURIComponent(row.name))+'" subt="field" subject="'+btoa(encodeURIComponent(row.__signature__))+'">Rename</span>&nbsp;';
+                            b+='<span class="badge badge-pill badge-pink badge-action fieldxref" target="about" field="'+btoa(encodeURIComponent(row.__signature__))+'">setters / getters</span>';
                             return b;
                         }
                     }
@@ -1219,7 +1302,7 @@
                                 }else{
                                     txt +=  Render.classTag;
                                 }
-                                return txt+"&nbsp;"+htmlEncode(row.callee);
+                                return '<span class="dxc-wrapped-row">'+txt+"&nbsp;"+htmlEncode(row.callee)+'</span>';
 
                             }else
                                 return '';
@@ -1270,13 +1353,13 @@
                     },
                     {  
                         render: function(data, type, row, meta ){
-                            return '<a target="about" href="finder.html?method='+btoa(encodeURIComponent(row.instr.method))+'">'+htmlEncode(row.instr.method)+'</a>';
+                            return '<a target="about" class="dxc-wrapped-row"x href="finder.html?method='+btoa(encodeURIComponent(row.instr.method))+'">'+htmlEncode(row.instr.method)+'</a>';
                         },
                         "width":"40%"
                     },
                     {
                          render: function(data, type, row, meta ){
-                            return '<a  class="badge badge-success probe" meth="'+btoa(encodeURIComponent(row.instr.method))+'">Probe</a>&nbsp;';
+                            return '<span  class="badge badge-pill badge-success badge-action  probe" meth="'+btoa(encodeURIComponent(row.instr.method))+'">Probe</span>&nbsp;';
                          },
                         "width":"15%"
 
@@ -1329,9 +1412,9 @@
                         render: function(data, type, row, meta ){
                             console.log(row);
                             if(row.uid.indexOf("<clinit>")>-1)
-                                return '<a class="badge badge-secondary" tip="Class init cannot be hooked">Probe</a>';
+                                return '<span class="badge badge-pill badge-secondary" tip="Class init cannot be hooked">Probe</span>';
                             else
-                                return '<a  class="badge badge-info probe" meth="'+btoa(encodeURIComponent(row.parent))+'">Probe</a>';
+                                return '<span  class="badge badge-pill badge-info badge-action probe" meth="'+btoa(encodeURIComponent(row.parent))+'">Probe</span>';
                         }
                     }
                 ],
@@ -1389,6 +1472,7 @@
                 // This row is already open - close it
                 row.child.hide();
                 tr.removeClass('shown');
+                //tr[0].nextElementSibling.childNodes[0].className = 'dxc-expandedrow-bg';
             }
             else {
                 // Open this row
@@ -1396,10 +1480,12 @@
                 if(rd.package != null){
                     row.child( renderClassDetail(row.data()) ).show();
                     tr.addClass('shown');
+                    tr[0].nextElementSibling.childNodes[0].className = 'dxc-expandedrow-bg';
                 }
                 else if(rd.args != null){
                     row.child( renderMethodDetail(row.data()) ).show();
                     tr.addClass('shown');
+                tr[0].nextElementSibling.childNodes[0].className = 'dxc-expandedrow-bg';
                 }
                 else if(rd.type != null){
                     //row.child( renderFieldDetail(row.data()) ).show();
@@ -1408,14 +1494,17 @@
                 else if(rd.caller != null){
                     row.child( renderCallerDetail(row.data()) ).show();
                     tr.addClass('shown');
+                tr[0].nextElementSibling.childNodes[0].className = 'dxc-expandedrow-bg';
                 }
                 else if(rd.value != null){
                     row.child( renderStringDetail(row.data()) ).show();
                     tr.addClass('shown');
+                tr[0].nextElementSibling.childNodes[0].className = 'dxc-expandedrow-bg';
                 }
                 else if(rd.values != null){
                     row.child( renderDatablockDetail(row.data()) ).show();
                     tr.addClass('shown');
+                tr[0].nextElementSibling.childNodes[0].className = 'dxc-expandedrow-bg';
                 }
 
             }
@@ -1425,6 +1514,9 @@
         $(document).on("click",".probe",function(){
             let DOM_PROBE =$(this);
             let meth = $(this).attr("meth");
+
+            // DexcaliburAPI.hook.newFutureHook();
+            // $("#newHookModal").modal();
 
             $.ajax('../api/probe/'+meth,{
                 method: 'post',
@@ -1689,6 +1781,29 @@
                     break;
             }
         }
+
+        // hook configuration
+/*
+        $('#hookconfBefore').click(function(e){
+            
+            
+        });
+
+        $('#hookconfAfter').click(function(e){
+            
+            
+        });
+
+        $('#hookconfReplace').click(function(e){
+            if($('#hookconfBefore').attr('checked')=='checked'){
+                $('#hookconfBefore').click();
+            }
+            if($('#hookconfAfter').attr('checked')=='checked'){
+                $('#hookconfAfter').click();
+            }
+
+            
+        });*/
     });
 
 

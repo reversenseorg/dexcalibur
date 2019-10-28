@@ -26,47 +26,27 @@
 
 </head>
 
-<body>
+<body class="dxc-dark">
 
-    <div id="wrapper">
 
         <!-- Navigation -->
         <!--## pages/inc/menu.html ##-->
 
-        <div id="page-wrapper">
-            <!--<div class="row">
-                <div class="col-lg-12">
-                    <h1 class="page-header" style="font-size:1em">Probe logs</h1>
-                </div>
-            </div>-->
-            <div class="row" style="padding:10px;">
-                <div class="col-lg-8" style="font-size:1.5em">Probe logs</div>
-                <div class="col-lg-2">
-                    <!--<select id="devicelist">
-                            <option default>Select a device</option>
-                            <option>Nexus 5x</option>
-                            <option>Emulator</option>
-                    </select>-->    
+        <div id="page-wrapper" class="dxc-dark">
+
+            <div class="row">
+                <div class="col-lg-10">
+                    <h1 class="page-header">Hook logs</h1>
                 </div>
                 <div class="col-lg-2">
-                    <button class="btn btn-danger probe-restart">
+                    <span class="badge badge-pill badge-danger badge-action probe-restart" style="margin-top:1em;">
                         <i class="fa fa-refresh"></i>&nbsp;Relaunch
-                    </button>
+                    </span>
                 </div>
             </div>
+           
 
-            <div class="panel panel-primary">
-               <!--<div class="panel-heading">
-                    <div class="row">
-                        <div class="col-lg-10" style="font-size:1.5em">Probe logs</div>
-                        <div class="col-lg-2">
-                            <button class="btn btn-danger probe-restart">
-                                <i class="fa fa-refresh"></i>&nbsp;Relaunch
-                            </button>
-                        </div>
-                    </div>
-                    
-                </div>-->              
+            <div class="panel panel-primary">          
 
                     <table width="100%" class="table table-sm-4" id="tabProbeLogs">
                             <thead>
@@ -104,8 +84,7 @@
 
         </div>
         <!-- /#page-wrapper -->
-    </div>
-    <!-- /#wrapper -->
+   
 
 
     <!--## pages/inc/tpl_js_end.html ##-->
@@ -164,100 +143,7 @@
 
     $(document).ready(function() {
 
-        let clsTable = $('#dataTables-probe').DataTable({
-            ajax: "../api/probe",
-            searching: false,
-            paging: false,
-            columns: [
-                {
-                    "className":      'details-control',
-                    "orderable":      false,
-                    "data":           null,
-                    "defaultContent": ''
-                },
-                {  
-                   
-                    render: function(data, type, row, meta ){
-                        if(row.isIntercept)
-                            return '<a  class="badge badge-danger">intercept</a>';
-                        else
-                            return '<a  class="badge badge-primary">probe</a>';                 
-                    }
-                    //defaultContent: '-'
-                },
-                { 
-                    data: 'name' ,
-                    render: function(data, type, row, meta ){
-                        return (row.name!=null)? htmlEncode(row.name) : '[Missing]';
-                    }
-                },
-                { 
-                    render: function(data, type, row, meta ){
-                        if(row.enable){
-                            return '<a  class="badge badge-success probe" status="true" meth="'+btoa(row.name)+'">ON</a>';
-                        }else{
-                            return '<a  class="badge badge-danger probe" status="false" meth="'+btoa(row.name)+'">OFF</a>';
-                        } 
-                    }
-                },{
-                    render: function(data, type, row, meta ){
-                        return '<button style="height:1.5em;padding-top:0px;padding-bottom:0px;" class="btn btn-primary probe-duplicate" hookid="'+row.id+'"><span class="fa fa-copy"></span></button>&nbsp;'
-                            +'<button style="height:1.5em;padding-top:0px;padding-bottom:0px;" class="btn btn-danger probe-del" hookid="'+row.id+'"><span class="fa fa-trash"></span></button>';
-                    } 
-                }
-            ],
-            responsive: true
-        });
-
-
-        let logTable = $('#dataTables-probelog').DataTable({
-            //ajax: "../api/probe/msg",
-            searching: false,
-            paging: false,
-            columns: [
-                {
-                    "className":      'details-control',
-                    "orderable":      false,
-                    "data":           null,
-                    "defaultContent": ''
-                },
-                {  
-                    render: function(data, type, row, meta ){
-                        let tag = "";
-                        if(row.isIntercept)
-                            tag = '<a class="badge badge-danger">intercept</a>';
-                        else
-                            tag = '<a class="badge badge-primary">probe</a>';
-
-                        if(row.match)
-                            tag +='&nbsp;<a class="badge badge-warning" style="color:#000;">match</a>';
-
-                        return tag;
-                    }
-                    //defaultContent: '-'
-                },
-                { 
-                    defaultContent: '-'
-                    //data: 'name' ,
-/*                    render: function(data, type, row, meta ){
-                        return (row.after)? '<a  class="badge badge-purple">After</a>' : '<a  class="badge badge-primary">Before</a>';
-                    }*/
-                },
-                { 
-                    //data: 'name'
-                    render: function(data, type, row, meta ){
-                        return row.msg;
-                        //let enable="true";
-                        //return '<a  class="badge badge-success probe" status="'+enable+'" meth="'+btoa(row.name)+'">ON</a>';
-                    }
-                }
-            ],
-            responsive: true
-        });
-
-        /*htmlEncode = function(txt){
-            return $("<div />").text(txt).html();
-        }*/
+        
 
         let msgStatus = 0;
 
@@ -290,22 +176,17 @@
                                 }
 
                                 tag = "", type="",errf=false;
-                                /*if(hookMsg.isIntercept)
-                                    type = '<a class="badge badge-danger">intercept</a>';
-                                else
-                                    type = '<a class="badge badge-primary">probe</a>';
-                                */
-                               console.log(hookMsg);
+
                                 if(hookMsg.tags!=null){
 
                                     for(let j=0; j<hookMsg.tags.length; j++){
                                         if(hookMsg.tags[j].text=="error") errf=true;
-                                        type += '<a class="badge badge-'+hookMsg.tags[j].style+'">'+htmlEncode(hookMsg.tags[j].text)+'</a>'
+                                        type += '<span class="badge badge-'+hookMsg.tags[j].style+' badge-pill">'+htmlEncode(hookMsg.tags[j].text)+'</span>'
                                     }
                                     if(errf) 
                                         classes = 'class="warning"';
                                     else    
-                                        classes = 'class="info"';
+                                        classes = 'class="table-info"';
                                 }
                                /* else if(hookMsg.match){
                                     //tag +='&nbsp;<a class="badge badge-warning" style="color:#000;">match</a>';
@@ -313,7 +194,7 @@
                                     type = '<a class="badge badge-danger">intercept</a>';
                                 }*/else{
                                     classes = "";
-                                    type = '<a class="badge badge-primary">custom</a>';
+                                    type = '<span class="badge badge-primary badge-pill">custom</span>';
                                 }
 
 
@@ -339,8 +220,6 @@
                                             <td>`+htmlEncode(hookMsg.action)+`</td>
                                         </tr>`
                                     );
-                                    //logTable.row.add(hookMsg);
-                                    //logTable.draw();
                                 }
                             }
                             msgStatus = d.data.message.length;
@@ -478,6 +357,15 @@
         $(document).on("click",".probe-restart",function(){
             msgStatus = 9999999;
             $("#tabProbeLogs tbody tr").remove();
+            DexcaliburAPI.hook.start(
+                function(){
+                    msgStatus = 0;
+                },
+                function(err){
+                    alert(err);
+                }
+            )
+            /*
             $.ajax('../api/probe/start',{
                 method: 'post',
                 statusCode: {
@@ -492,7 +380,7 @@
                         alert("Failed to start probing(see logs)")
                     }
                 }
-            })
+            })*/
         });
 
         function getAttr(e,attr){

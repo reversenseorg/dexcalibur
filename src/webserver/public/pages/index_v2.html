@@ -25,73 +25,43 @@
 
 </head>
 
-<body>
+<body class="dxc-dark">
 
-    <div id="wrapper">
 
         <!--## pages/inc/menu.html ##-->
 
-        <div id="page-wrapper">
-            <div class="row">
-                <div class="col-lg-12">
-                    <h1 class="page-header">Bytecode Explorer</h1>
-                </div>
-                <!-- /.col-lg-12 -->
-            </div>
+        <div id="page-wrapper" class="dxc-dark">
 
-            <div class="row" style="padding-bottom:20px;" >
-                <div class="col-lg-12">
-                    <div class="panel panel-default">
-                        <div class="panel-heading">
-                            <div class="row">
-                                <div class="col-lg-10">
-                                    <h4>Packages overview&nbsp;&nbsp;[&nbsp;<b id="package-name">.*</b>&nbsp;]</h4>
-                                </div>
-                            </div>
-                        </div>
-                        <!-- /.panel-heading -->
-                        <div class="panel-body" id="d3-graph">
-                        </div>
-                        <!-- /.panel-body -->
+                <div class="card">
+                    <h5 class="card-header">Packages overview&nbsp;&nbsp;[&nbsp;<b id="package-name">.*</b>&nbsp;]</h4>
+                    <!-- /.panel-heading -->
+                    <div class="card-body treemap-card" id="d3-graph">
                     </div>
-
+                    <!-- /.panel-body -->
                 </div>
-            </div>
 
-            <!-- /.row -->
-            <div class="row">
-                <div class="col-lg-12">
-                    <div class="panel panel-default">
-                        <div class="panel-heading">
-                            <div class="row">
-                                <div class="col-lg-11"><h4>Classes</h4></div>
-                                <div class="col-lg-1">&nbsp;</div>
-                            </div>
-                        </div>
-                        <!-- /.panel-heading -->
-                        <div class="panel-body">
-                            <table width="100%" class="table table-striped table-bordered table-hover" id="dataTables-classes">
-                                <thead>
-                                    <tr>
-                                        <th></th>
-                                        <th>Package</th>
-                                        <th>Name</th>
-                                        <th>Source name</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    
-                                </tbody>
-                            </table>
-                            <!-- /.table-responsive -->
-                        </div>
-                        <!-- /.panel-body -->
+                <div class="card">
+                    <h5 class="card-header">Classes</h5>
+                    <!-- /.panel-heading -->
+                    <div class="card-body">
+                        <table width="100%" class="table table-striped table-bordered table-hover" id="dataTables-classes">
+                            <thead>
+                                <tr>
+                                    <th></th>
+                                    <th>Package</th>
+                                    <th>Name</th>
+                                    <th>Source name</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                
+                            </tbody>
+                        </table>
+                        <!-- /.table-responsive -->
                     </div>
-                    <!-- /.panel -->
+                    <!-- /.panel-body -->
                 </div>
-                <!-- /.col-lg-12 -->
-            </div>
-            <!-- /.row -->
+                <!-- /.panel -->
 
             <div id="interceptEditModal" class="modal fade" tabindex="-1" role="dialog" style="display:none">
                     <div class="modal-dialog" role="document" style="width:70%">
@@ -129,8 +99,7 @@
 
         </div>
         <!-- /#page-wrapper -->
-    </div>
-    <!-- /#wrapper -->
+   
 
     <!--## pages/inc/tpl_js_end.html ##-->
 
@@ -140,14 +109,12 @@
     function format ( row ) {
         let body = '';
 
-        body+= '<table class="table table-sm"><thead><tr><th scope="col">Action</th><th scope="col">Type</th><th scope="col">Name</th></thead><tbody>';
+        body+= '<table class="table table-sm nestedTable"><thead><tr><th scope="col">Action</th><th scope="col">Type</th><th scope="col">Name</th></thead><tbody>';
          
         if(row.fields != null){
             for(let i in row.fields){
                 body += '<tr>'+
-                    '<td><a  class="badge badge-secondary probe" field="'+btoa(encodeURIComponent(row.fields[i].__signature__))+'">Probe OFF</a>&nbsp;&nbsp;'+
-                    '<a class="badge badge-secondary" onclick="intercept(\''+btoa(encodeURIComponent(row.fields[i].__signature__))+'\')">intercept</a>&nbsp;'+
-                    '<a class="badge badge-purple" target="about" href="finder.html#xreffield='+btoa(encodeURIComponent(row.fields[i].__signature__))+'">xref</a></td><td><b>Field</b></td>'+           
+                    '<td><span class="badge badge-pill badge-purple" target="about" href="finder.html#xreffield='+btoa(encodeURIComponent(row.fields[i].__signature__))+'">xref</span></td><td><b>Field</b></td>'+           
                     '<td><a href="finder.html?field='+btoa(encodeURIComponent(row.fields[i].__signature__))+'">'+$('<div />').text(row.fields[i].__signature__).html()+'</a></td>'+
                 '</tr>';
             }
@@ -159,10 +126,9 @@
          if(row.methods != null){
              for(let i in row.methods){
                  body += '<tr>'+
-                    '<td><a  class="badge badge-'+(row.methods[i].probing? 'success':'primary')+' probe" meth="'+btoa(encodeURIComponent(row.methods[i].__signature__))+'">Probe '+(row.methods[i].probing? 'ON':'OFF')+'</a>&nbsp;&nbsp;'+
-                    '<a  class="badge badge-danger">intercept</a>&nbsp;'+
-                    '<a class="badge badge-purple" target="about" href="xref.html#meth='+btoa(encodeURIComponent(row.methods[i].__signature__))+';xrt=to">xref to</a>&nbsp;'+
-                    '<a class="badge badge-pink" target="about" href="xref.html#meth='+btoa(encodeURIComponent(row.methods[i].__signature__))+';xrt=from">xref from</a></td><td><b>Method</b></td>'+
+                    '<td><span  class="badge badge-pill badge-'+(row.methods[i].probing? 'success':'primary')+' probe" meth="'+btoa(encodeURIComponent(row.methods[i].__signature__))+'">Probe '+(row.methods[i].probing? 'ON':'OFF')+'</span>&nbsp;&nbsp;'+
+                    '<span class="badge badge-pill badge-purple" target="about" href="xref.html#meth='+btoa(encodeURIComponent(row.methods[i].__signature__))+';xrt=to">xref to</span>&nbsp;'+
+                    '<span class="badge badge-pill badge-pink" target="about" href="xref.html#meth='+btoa(encodeURIComponent(row.methods[i].__signature__))+';xrt=from">xref from</span></td><td><b>Method</b></td>'+
                     '<td><a href="finder.html?method='+btoa(encodeURIComponent(row.methods[i].__signature__))+'">'+$('<div />').text(row.methods[i].__signature__).html()+'</a></td>'+
                  '</tr>';
              }
@@ -232,6 +198,7 @@
                 // Open this row
                 row.child( format(row.data()) ).show();
                 tr.addClass('shown');
+                tr[0].nextElementSibling.childNodes[0].className = 'dxc-expandedrow-bg';
             }
         } );
 

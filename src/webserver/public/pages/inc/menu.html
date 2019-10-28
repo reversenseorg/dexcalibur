@@ -1,5 +1,83 @@
 <!-- Navigation -->
-<nav class="navbar navbar-default navbar-static-top" role="navigation" style="margin-bottom: 0;">
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <a class="navbar-brand" href="/pages/index.html">DEXCALIBUR</a>
+    
+    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarNavDropdown" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+          </button>
+        <div class="collapse navbar-collapse" id="navbarSupportedContent">
+            <ul class="navbar-nav">
+                <li class="nav-item">
+                    <a class="nav-link" href="/pages/index_v2.html">
+                        <i class="fa fa-compas"></i>&nbsp;Overview <span class="sr-only">(current)</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/pages/finder.html">
+                        <i class="fa fa-database fa-fw"></i>&nbsp;Static analysis</a>
+                </li>
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" id="hookDropdownMenuLink" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                            <i class="fa fa-eye"></i>&nbsp;Hook
+                    </a>
+                    <div class="dropdown-menu" aria-labelledby="hookDropdownMenuLink">
+                        <a class="dropdown-item" href="/pages/probe.html">Dashboard</a>
+                        <a class="dropdown-item" href="/pages/probelog.html">Logs</a>
+                        <a class="dropdown-item" href="/pages/scanner.html">Hook set</a>
+                    </div>
+                </li>
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" id="raDropdownMenuLink" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                            <i class="fa fa-bolt"></i>&nbsp;Runtime analysis
+                    </a>
+
+                    <div class="dropdown-menu" aria-labelledby="raDropdownMenuLink">
+                        <a class="dropdown-item" href="/inspectors/DynamicLoader/main.html">Dynamic loading</a>
+                        <a class="dropdown-item" href="/inspectors/BytecodeCleaner/main.html">Bytecode cleaner</a>
+                        <!--<a class="dropdown-item" href="/inspectors/cccc.html">Key stores</a>
+                        <a class="dropdown-item" href="/inspectors/dddd.html">Network</a>
+                        <a class="dropdown-item" href="/inspectors/eeee.html">File accesses</a>-->
+                        <div class="dropdown-divider"></div>
+                        <a class="dropdown-item" href="/pages/inspectors.html">Plugins</a>
+                    </div>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/inspectors/ApplicationTopography/main.html">
+                        <i class="fa fa-file"></i>&nbsp;APK
+                    </a>
+                </li>
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" id="settingsDropdownMenuLink" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                            <i class="fa fa-wrench"></i>&nbsp;&nbsp;Settings
+                    </a>
+                    <div class="dropdown-menu" aria-labelledby="settingsDropdownMenuLink">
+                        <a class="dropdown-item" href="/pages/devicemanager.html"><span class="fa fa-android"></span>&nbsp;Device manager</a>
+                        <a class="dropdown-item" href="/pages/packagepatcher.html"><span class="fa fa-archive"></span>&nbsp;Package patcher</a>
+                        <a class="dropdown-item" href="#"><span class="fa fa-wrench"></span>&nbsp;Configuration</a>
+                        <a class="dropdown-item" href="/inspectors/Saver/main.html"><span class="fa fa-angle-double-down"></span>&nbsp;Save</a>
+                    </div>
+                </li>
+            </ul>
+            </div>
+
+            <!-- TODO : Autosave button + user menu -->
+            <!--<button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarUserContent" aria-controls="navbarNavDropdown" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarUserContent">
+                    <ul class="navbar-nav">
+                        <li class="nav-item custom-control custom-switch">
+                            <input type="checkbox" class="custom-control-input" id="autosaveSwitch">
+                            <label class="custom-control-label" for="autosaveSwitch" style="color:#fff">Auto-save</label>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link">
+                                <i class="fa fa-user" style="font-size:1.5em"></i>&nbsp;
+                            </a>
+                        </li>
+                    </ul>
+            </div>-->
+    <!--
     <div class="navbar-header">
         <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
             <span class="sr-only">Toggle navigation</span>
@@ -9,56 +87,56 @@
         </button>
         <a class="navbar-brand" href="/pages/index.html"><img src="/dist/img/dexcalibur.png" style="height:1.8em;" alt="Dexcalibur"/></a>
     </div>
-    <!-- /.navbar-header -->
 
-    <!--<div class="navbar-default" role="navigation">-->
         <div class="navbar-collapse" role="navigation">
             <ul class="nav navbar-nav" id="side-menu">
                 <li>
                     <a href="/pages/index_v2.html"><i class="fa fa-database fa-fw"></i> Bytecode explorer</a>
                 </li>
                 <li>
-                    <a href="/pages/finder.html"><i class="fa fa-eye fa-fw"></i> Application object finder</a>
+                    <a href="/pages/finder.html"><i class="fa fa-eye fa-fw"></i>Static analyzer</a>
                 </li>
                 <li>
-                    <a href="/pages/probe.html"><i class="fa fa-eye fa-fw"></i> Hook dashboard</a>
+                    <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">
+                        <i class="fa fa-eye fa-fw"></i>&nbsp;Hook<span class="caret"></span>
+                    </a>
+                    <ul class="dropdown-menu">
+                        <li><a href="/pages/probe.html">Dashboard</a></li>
+                        <li><a href="/pages/probelog.html">Hool log</a></li>
+                        <li><a href="/pages/scanner.html">Hook set</a></li>
+                    </ul>
                 </li>
                 <li>
-                    <a href="/pages/probelog.html"><i class="fa fa-database fa-fw"></i> Hook logs</a>
+                    <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">
+                        <i class="fa fa-bolt fa-fw"></i>&nbsp;Runtime analysis<span class="caret"></span>
+                    </a>
+                    <ul class="dropdown-menu">
+                        <li><a href="/pages/probe.html">Dashboard</a></li>
+                        <li><a href="/pages/probelog.html">Hool log</a></li>
+                        <li><a href="/pages/scanner.html">Hook set</a></li>
+                    </ul>
                 </li>
                 <li>
-                    <a href="/pages/scanner.html"><i class="fa fa-compass fa-fw"></i> Security scanner<!--<span class="fa arrow">--></span></a>
+                    <a href="/inspectors/ApplicationTopography/main.html"><i class="fa fa-file fa-fw"></i>App structure</a>
                 </li>
                 <li>
                     <a href="/pages/inspectors.html">
                         <i class="fa fa-compass fa-fw"></i>Inspectors
                     </a>
                 </li>
-                <!--<li>
+
+                <li>
                     <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">
-                        <i class="fa fa-compass fa-fw"></i>Inspectors<span class="caret"></span></a>
-                            <ul class="dropdown-menu">
-                              <li><a href="inspectors.html">Inspectors list</a></li>
-                              <li role="separator" class="divider"></li>
-                              <li><a href="inspectors_file.html">Files</a></li>
-                              <li><a href="inspectors_keystore.html">Keystores</a></li>
-                              <li><a href="inspectors_native.html">Native / JNI</a></li>
-                              <li><a href="inspectors_dynloader.html">Dynamic loader</a></li>
-                              <li role="separator" class="divider"></li>
-                              <li><a href="#">Errors</a></li>
-                            </ul>
-                </li>-->
-                <li>
-                    <a href="/pages/devicemanager.html"><i class="fa fa-tablet fa-fw" style="size:1em"></i> Device manager</a>
-                </li>
-                <li>
-                    <a href="/pages/packagepatcher.html"><i class="fa fa-tablet fa-fw" style="size:1em"></i> Package patcher</a>
+                    <i class="fa fa-wrench fa-fw"></i>&nbsp;Settings<span class="caret"></span></a>
+                    <ul class="dropdown-menu">
+                        <li><a href="/pages/devicemanager.html"">Device manager</a></li>
+                        <li><a href="/pages/packagepatcher.html">Patch package</a></li>
+                        <li><a>Configuration</a></li>
+                    </ul>
                 </li>
             </ul>
         </div>
-        <!-- /.sidebar-collapse -->
-    <!--</div>
-    <!-- /.navbar-static-side -->
+    </div>-->
 </nav>
 
 <!--

@@ -9,7 +9,7 @@
     <meta name="description" content="">
     <meta name="author" content="">
 
-    <title>Dexcalibur - Security scanner</title>
+    <title>Dexcalibur - Hook set</title>
 
     <!-- styles -->
     <!--## pages/inc/tpl_css.html ##-->
@@ -43,14 +43,13 @@
 
 </head>
 
-<body>
+<body class="dxc-dark">
 
-    <div id="wrapper">
 
         <!-- Navigation -->
         <!--## pages/inc/menu.html ##-->
 
-        <div id="page-wrapper">
+        <div id="page-wrapper" class="dxc-dark">
             <div class="row">
                 <div class="col-lg-12">
                     <h1 class="page-header">Security bypass strategies</h1>
@@ -58,14 +57,14 @@
                 <!-- /.col-lg-12 -->
             </div>
             <div class="row">
-                <div class="col-lg-9" style="border: 0px dashed black; font-size:1.2em">
+                <div class="col-lg-10 dxc-description">
                     <p>A <b>scanner</b> is a set of hook designed to achieve a specific task like bypass the root detection or ssl pinning. 
                     Custom scanner can be plugged into the <code>src/scanner/</code> folder. Click refresh to update. Warning : a scanner 
                     cannot be removed without restarting Dexcalibur. 
                     </p>
                 </div>
-                <div class="col-lg-3">
-                    <button class="btn btn-primary refreshscanner" data-toggle="tooltip" data-placement="bottom" title="Refresh the list and status"><span class="fa fa-refresh"></span>&nbsp;Refresh</button>
+                <div class="col-lg-2">
+                    <button class="btn btn-danger refreshscanner" data-toggle="tooltip" data-placement="bottom" title="Refresh the list and status"><span class="fa fa-refresh"></span>&nbsp;Refresh</button>
                     <!--<button class="btn btn-primary" id="newScanner"><span class="fa fa-add"></span>New</button>-->
                 </div>
                 <!-- /.col-lg-12 -->
@@ -150,8 +149,6 @@
             </div><!-- /.modal-dialog -->
           </div><!-- /.modal -->
 
-        
-    </div>
     <!-- /#wrapper -->
 
     <!--## pages/inc/tpl_js_end.html ##-->
@@ -203,7 +200,7 @@
         if(row.probes != null){
             for(let i in row.probes){
                 body += '<tr>'+
-                    '<td><a  class="badge badge-primary probe" field="'+btoa(row.probes[i].method)+'">probe</a>'+
+                    '<td><span  class="badge badge-pill badge-primary probe" field="'+btoa(row.probes[i].method)+'">probe</span>'+
                     '</td><td>'+$('<div />').text(row.probes[i].method).html()+'</td>'+
                     //'<td><button class="btn btn-primary edithook" style="height:1.5em;padding-top:0px;padding-bottom:0px;">Edit</button>'+
                     //'&nbsp;<button class="btn btn-danger removehook" style="height:1.5em;padding-top:0px;padding-bottom:0px;">Remove</button></td>'+
@@ -215,16 +212,16 @@
         if(row.intercepts != null){
             for(let i in row.intercepts){
                 body += '<tr>'+
-                    '<td><a  class="badge badge-danger intercept" field="'+btoa(row.intercepts[i].method)+'">intercepter</a>';
+                    '<td><span  class="badge badge-pill badge-danger intercept" field="'+btoa(row.intercepts[i].method)+'">intercepter</span>';
 
                 if(row.intercepts[i].interceptReplace!=null){
-                    body += '&nbsp;<a  class="badge badge-purple">replace</a>'; 
+                    body += '&nbsp;<span  class="badge badge-pill badge-purple">replace</span>'; 
                 }
                 if(row.intercepts[i].interceptBefore!=null){
-                    body += '&nbsp;<a  class="badge badge-info">before</a>'; 
+                    body += '&nbsp;<span  class="badge badge-pill badge-info">before</span>'; 
                 }
                 if(row.intercepts[i].interceptAfter!=null){
-                    body += '&nbsp;<a  class="badge badge-warning">after</a>'; 
+                    body += '&nbsp;<span  class="badge badge-pill badge-warning">after</span>'; 
                 }
 
                 body +='</td><td>'+$('<div />').text(row.intercepts[i].method).html()+'</td>'+
@@ -273,9 +270,9 @@
                 {  
                     render: function(data, type, row, meta){
                         if(row.enable){
-                            body = '<a  class="badge badge-success">enable</a>'; 
+                            body = '<span  class="badge badge-pill badge-success">enable</span>'; 
                         }else{
-                            body = '<a  class="badge badge-secondary">disable</a>'; 
+                            body = '<span  class="badge badge-pill badge-secondary">disable</span>'; 
                         }
                         return body;
                     }
@@ -304,8 +301,11 @@
             }
             else {
                 // Open this row
-                row.child( format(row.data()) ).show();
+                let child = row.child( format(row.data()) );
+                //console.log(row);
+                child.show();
                 tr.addClass('shown');
+                tr[0].nextElementSibling.childNodes[0].className = 'dxc-expandedrow-bg';
             }
         } );
 

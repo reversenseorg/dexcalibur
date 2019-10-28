@@ -181,8 +181,19 @@ var DexcaliburAPI = {
             },
         },
         alert: {
+            state: {
+                init: false
+            },
+            init: function(){
+                if($('#alertcontainer').length===0){
+                    $('<div class="row"><div class="col-lg-12" id="alertcontainer"></div></div>').insertBefore('#page-wrapper');
+                    DexcaliburAPI.ui.alert.state.init = true;
+                }
+            },
             requireOnceAlert: function(id, type, msg, encode){
-                
+                if(!DexcaliburAPI.ui.alert.state.init)
+                    DexcaliburAPI.ui.alert.init();
+
                 // test if the alert has been already inserted
                 if($('#'+id).length===0){
                     let alertBody = `
@@ -192,7 +203,7 @@ var DexcaliburAPI = {
                             <span aria-hidden="true">&times;</span>
                         </button>
                     </div>`;
-                    $(alertBody).insertBefore("#page-wrapper");
+                    $(alertcontainer).append(alertBody);
                 } 
                 if(encode)
                     $("#"+id).html(DexcaliburAPI.ui.htmlEncode(msg));
@@ -202,8 +213,11 @@ var DexcaliburAPI = {
             error: function(msg, encode=true){
                 DexcaliburAPI.ui.alert.requireOnceAlert("dxc-alert-error", "danger", msg, encode);
             },
-            success: function(msg){
-                DexcaliburAPI.ui.alert.requireOnceAlert("dxc-alert-error", "danger", msg, encode);
+            success: function(msg, encode=true){
+                DexcaliburAPI.ui.alert.requireOnceAlert("dxc-alert-success", "success", msg, encode);
+            },
+            warning: function(msg, encode=true){
+                DexcaliburAPI.ui.alert.requireOnceAlert("dxc-alert-warning", "warning", msg, encode);
             }
         }
     },
@@ -212,6 +226,43 @@ var DexcaliburAPI = {
             //$(document).
         }
     }, 
+    configMgt: {
+        getConfiguredBridges: function(){
+            $.ajax("/api/config/bridges", {
+                method: "get",
+                data: {
+                    _t: (new Date()).getTime()
+                },
+                statusCode: {
+                    200: function(data,err){
+                        success(data);
+                    },
+                    404: function(data,err){
+                        error(data);
+                    }
+                }
+            })
+        }
+    },
+    device: {
+        selectAsDefaultDevice: function(id, success=null, error=null){
+            $.ajax("/api/device/setDefault", {
+                method: "post",
+                data: {
+                    uid: id,
+                    _t: (new Date()).getTime()
+                },
+                statusCode: {
+                    200: function(data,err){
+                        if(success != null) success(data);
+                    },
+                    404: function(data,err){
+                        if(error != null) error(data);
+                    }
+                }
+            })
+        }
+    },
     search: {
         makeClassLink: function(signature){
             return "<a href='/pages/finder.html?class="+btoa(encodeURIComponent(signature))+
@@ -227,6 +278,75 @@ var DexcaliburAPI = {
         }
     },
     analyzer: {},
+    project: {
+        save: function(success, error){
+            $.ajax("/api/inspectors/saver", {
+                method: "get",
+                data: {
+                    action: "save",
+                    _t: (new Date()).getTime()
+                },
+                statusCode: {
+                    200: function(data,err){
+                        success(data);
+                    },
+                    404: function(data,err){
+                        error(data);
+                    }
+                }
+            })
+        },
+        open: function(success, error){
+            $.ajax("/api/inspectors/saver", {
+                method: "get",
+                data: {
+                    action: "open",
+                    _t: (new Date()).getTime()
+                },
+                statusCode: {
+                    200: function(data,err){
+                        success(data);
+                    },
+                    404: function(data,err){
+                        error(data);
+                    }
+                }
+            });
+        }
+        /*
+        export: function(data,success, error){
+            $.ajax("/api/inspectors/saver", {
+                method: "get",
+                data: {
+                    action: "open"
+                },
+                statusCode: {
+                    200: function(data,err){
+                        success(data);
+                    },
+                    404: function(data,err){
+                        error(data);
+                    }
+                }
+            });
+        },
+        import: function(file,success, error){
+            $.ajax("/api/inspectors/saver", {
+                method: "get",
+                data: {
+                    action: "open"
+                },
+                statusCode: {
+                    200: function(data,err){
+                        success(data);
+                    },
+                    404: function(data,err){
+                        error(data);
+                    }
+                }
+            });
+        }*/
+    },
     hook: {
         manager: {
             current: null

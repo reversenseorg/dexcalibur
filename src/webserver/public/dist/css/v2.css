@@ -105,6 +105,10 @@ h1 {
     font-size: 22px;
 }
 
+#alertcontainer {
+    margin-top: 1em;
+}
+
 #page-wrapper {
     padding: 0 15px;
     min-height: 568px;
