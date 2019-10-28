@@ -2,6 +2,7 @@ const Process = require("child_process");
 const UT = require("./Utils.js");
 const Device = require("./Device.js");
 const ApkPackage = require("./AppPackage");
+var Logger = require('./Logger.js')();
 
 
 const fs = require('fs');
@@ -135,13 +136,14 @@ class AdbWrapper
         }
         return "";
     }
-    listDevices(){
+    listDevices1(){
         let dev = [], ret=null,re=null, data=null, id=null, device=null;
 
         ret = Process.execSync(this.setup()+" devices -l").toString("ascii");
         ret = ret.split("\n");
         //re = new RegExp("([0-9A-Za-f]+).*device\susb:([^\s]+)\sproduct:([^\s]+)\smodel:([^\s]+)\sdevice:([^\s]+)");
-        re = new RegExp("^([0-9A-Za-z-\.\:]+).*device (.*)$");
+        //re = new RegExp("^([0-9A-Za-z-\.\:]+).*device (.*)$");
+        re = new RegExp("^([0-9A-Za-z-\.\:]+).*(?:device|unauthorized) (.*)$");
         
         for(let ln in ret){
             if(UT.trim(ret[ln]).length==0 
@@ -150,6 +152,7 @@ class AdbWrapper
     
             
             data =  re.exec(ret[ln]);
+            console.log(data);
             if(data.length<3)
                 continue;
     
@@ -172,6 +175,86 @@ class AdbWrapper
             
             dev.push(device);
         }
+        return dev;
+    }
+
+    listDevices(){
+        let dev = [], ret=null,re=null, data=null, id=null, device=null, token=null;
+
+        ret = Process.execSync(this.setup()+" devices -l").toString("ascii");
+        ret = ret.split("\n");
+        //re = new RegExp("([0-9A-Za-f]+).*device\susb:([^\s]+)\sproduct:([^\s]+)\smodel:([^\s]+)\sdevice:([^\s]+)");
+        //re = new RegExp("^([0-9A-Za-z-\.\:]+).*device (.*)$");
+        //re = new RegExp("^([0-9A-Za-z-\.\:]+).*(?:device|unauthorized) (.*)$");
+        re = new RegExp("^([^\\s\\t]+)[\\s\\t]+(.*)");
+        
+        for(let ln in ret){
+            if(UT.trim(ret[ln]).length==0 
+                || ret[ln]=="List of devices attached") 
+                    continue;
+    
+            data =  re.exec(ret[ln]);
+
+            if(data.length<3){
+                Logger.warning("Invalid device id detected : ", ret[ln]);
+                continue;
+            }
+
+            //console.log(data,ret[ln]);
+            id = data[1];
+            data = data[2].split(" ");
+
+            device = new Device();
+            device.id = id;
+            device.type = OS.ANDROID;
+            device.isEmulated = data[0].match(emuRE);
+            device.bridge = new AdbWrapper(this.path, id);
+
+            for(let i=0; i<data.length; i++){
+                if(data[i].indexOf(':')>-1){
+                    token = data[i].split(':',2);
+                    switch(token[0]){
+                        case 'usb':
+                            console.log("USB",data[i],token);
+                            device.setUsbQualifier(token[1]);
+                            break;
+                        case 'model':
+                            device.setModel(token[1]);
+                            break;
+                        case 'device':
+                            device.setDevice(token[1]);
+                            break;
+                        case 'product':
+                            device.setProduct(token[1]);
+                            break;
+                        case 'transport_id':
+                            device.setTransportId(token[1]);
+                            break;
+                        default:
+                            Logger.info("Unrecognized key (dual token): "+token[0]);
+                            break;
+                    }
+
+                }else{
+                    switch(data[i]){
+                        case 'unauthorized':
+                            device.flagAsUnauthorized();
+                            break;
+                        case 'device':
+                        default:
+                            Logger.info("Unrecognized key (single token) : "+data[1]);
+                            break;
+
+                    }
+                }
+            }
+
+            if(device.isEmulated)
+                device.bridge.setTransport(TRANSPORT.TCP);
+            
+            dev.push(device);
+        }
+
         return dev;
     }
 

@@ -1,5 +1,6 @@
 
 
+const _MD5_ = require("md5");
 
 const DEV = {
     USB: 0x1,
@@ -26,18 +27,63 @@ class Device
 {
     constructor(config=null){
         this.type = null;
-        this.id =  null;
-        this.model = null;
-        this.product = null;
+
         this.bridge = null;
         this.usb = null;
         this.selected = false;
+        
         // the operation mode
         this.opmode = null;
         this.isEmulated = false;
 
+
+        this.uid = null;
+        this.id =  null;
+        this.authorized = true;
+        this.model = null;
+        this.product = null;
+        this.device = null;
+        this.transportId = null;
+        this.usbQualifier = null;
+
         if(config !== null)
             for(let i in config) this[i] = config[i];    
+    }
+
+    setUID(deviceID, qualifier){
+        this.uid = deviceID;
+        for(let k in qualifier){
+            this.uid += "/"+k+"/"+qualifier[k];
+        }
+        //this.uid = _MD5_(this.uid);
+    }
+
+    flagAsUnauthorized(){
+        this.authorized = false;
+    }
+
+    setTransportId(id){
+        this.transportId = id;
+    }
+
+    setUsbQualifier(id){
+        this.usbQualifier = id;
+        if(this.uid==null && this.id != null) 
+            this.setUID( this.id, {
+                usb: id
+            });
+    }
+
+    setModel(name){
+        this.model = name;
+    }
+
+    setProduct(name){
+        this.product = name;
+    }
+
+    setDevice(name){
+        this.device = name;
     }
 
     /**

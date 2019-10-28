@@ -56,23 +56,58 @@ class DeviceManager
      */
     scan(){
          // TODO : scan for new devices
-         let ret="", dev=[], device=null,re=null,id=null;
+         let ret="", dev=[], device=null,re=null,id=null, latestDefault=null;
 
         this.count = 0;
         if(this.Bridges.ADB.isReady()){
+
+            latestDefault = this.getDefault();
+            if(latestDefault != null) latestDefault = latestDefault.uid;
+            
+
+            // flush device list
+            this.devices = {};
+
+            // scan for connected devices
             dev = this.Bridges.ADB.listDevices();
             this.count += dev.length;
 
             for(let i in dev){
-                this.devices[dev[i].id] = dev[i];
+                this.devices[dev[i].uid] = dev[i];
             }
             ut.msgBox("Android devices", Object.keys(this.devices));
-        }
+        }/*else{
+            console.log("ADB Bridge is not ready");
+        }*/
 
         // TODO :  add SDB and others type of bridge
-         
+        
         if(this.count==1){
-            this.setDefault(dev[0].id);
+            // 1 device -> no problem
+            this.setDefault(dev[0].uid);
+            return dev[0];
+        }else if(this.count > 1){
+
+            if(latestDefault != null && this.devices[latestDefault] != null){
+                this.setDefault(latestDefault);
+                return this.devices[latestDefault];
+            }
+            // more device -> select better condition 
+            // check if a single is authorized
+            dev = [];
+            for(let i in this.devices){
+                if(this.devices[i].authorized){
+                    dev.push(this.devices[i]);
+                }
+            }
+            if(dev.length==1){
+                dev[0].selected = true;
+                return dev[0];
+            }
+
+            // check frida at default server location according to configuration
+            // TODO
+            return null;
         }
     }
 
@@ -94,8 +129,16 @@ class DeviceManager
         if(this.defaultDevice != null){
             this.defaultDevice.selected = false;
         }
-        this.defaultDevice = this.devices[deviceId];
-        this.devices[deviceId].selected = true;
+
+        for(let i in this.devices){
+
+            if(this.devices[i].uid === deviceId){
+                this.devices[i].selected = true;
+                this.defaultDevice = this.devices[i];
+            }else{
+                this.devices[i].selected = false;
+            }
+        }
     };
     
     /**
@@ -132,9 +175,9 @@ class DeviceManager
      * @function
      */
     toJsonObject(){
-        let json = [];
+        let json = [], tmp=null;
         for(let i in this.devices){
-            json.push(this.devices[i].toJsonObject())
+            json.push(this.devices[i].toJsonObject());
         }
         return json;
     };

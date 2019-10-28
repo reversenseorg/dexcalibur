@@ -230,6 +230,36 @@ class WebServer {
                 };
                 res.status(200).send(JSON.stringify(dev));
             });
+        this.app.route('/api/device/setDefault')
+            .post(function (req, res) {
+                // collect
+                let uid = req.body["uid"];
+
+                res.set('Content-Type', 'text/json');
+
+                if(uid != null){
+                    if($.project.devices.getDevice(uid)==null){
+                        res.status(404).send(JSON.stringify({
+                            error: "Invalid device ID",
+                            errcode: "DM2"
+                        }));
+                        return 1;
+                    }
+
+                    $.project.devices.setDefault(uid);
+                    res.status(200).send(JSON.stringify({
+                        msg: "Device <b>"+uid+"</b> is the new default device."
+                    }));
+                    return 1;
+                }else{
+                    res.status(404).send(JSON.stringify({
+                        error: "Invalid device ID",
+                        errcode: "DM1"
+                    }));
+                    return 1;
+                }
+            });
+
         this.app.route('/api/packageList')
             .get(function (req, res) {
                 // scan connected devices

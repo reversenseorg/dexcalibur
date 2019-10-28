@@ -24,39 +24,55 @@
 
 </head>
 
-<body>
-
-    <div id="wrapper">
+<body class="dxc-dark">
 
         <!-- Navigation -->
         <!--## pages/inc/menu.html ##-->
 
-        <div id="page-wrapper">
-            <div class="row">
-                <div class="col-lg-12">
-                    <h1 class="page-header">Device manager</h1>
-                </div>
-                <!-- /.col-lg-12 -->
+        <div id="page-wrapper"  class="dxc-dark">
+            <h1 class="page-header">Device manager</h1>
+            <div class="dxc-description">
+                Show connected device, switch bridges, and select default device to hook. 
+                Any device contained into list below can be hook if Frida is configured.
             </div>
+
+            <div class="row justify-content-center"><div class="col-lg-6" id="alertcontainer"></div></div>
+
             <!-- /.row -->
             <div class="row">
-                <div class="col-lg-12">
-                    <div class="panel panel-default">
-                        <div class="panel-heading">
-                            <div class="row">
-                                <div class="col-lg-11"><h4>List of devices registered</h4></div>
-                                <div class="col-lg-1">
-                                    <button id="dm-refresh-btn" class="btn btn-primary" type="button">
-                                        <i class="fa fa-refresh"></i>
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                        <!-- /.panel-heading -->
-                        <div class="panel-body">
-                            <table width="100%" class="table table-striped table-bordered table-hover" id="dataTables-example">
+                <div class="col-lg-4">
+                    <div class="card">
+
+                        <h5 class="card-header">Bridges</h5>
+                        <ul class="list-group list-group-flush">
+                            <li class="list-group-item">
+                                <input type="radio" checked="checked" name="bridgeType" value="adb" id="bridgeTypeADB"/>&nbsp;
+                                <label for="bridgeTypeADB">ADB</label>
+                            </li>
+                            <li class="list-group-item">
+                                <input type="radio" name="bridgeType" disabled value="sdb" id="bridgeTypeSDB"/>&nbsp;
+                                <label for="bridgeTypeSDB">SDB (not configured)</label>
+                            </li>
+                        </ul>
+                        <!-- /.panel-body -->
+                    </div>
+                    <!-- /.panel -->
+                </div>
+                <div class="col-lg-8">
+
+                    <div class="card">
+                        <h5 class="card-header">
+                            List of connected devices
+                            <span class="bage badge-pill badge-primary refreshDex" id="dm-refresh-btn" style="margin-left:2em; font-size:0.8em; cursor:pointer">
+                                <i class="fa fa-refresh"></i>&nbsp;Refresh
+                            </span>
+                        </h5>
+                        <div class="card-body">
+                            <table width="100%" class="table table-striped table-bordered table-hover" id="dataTables-devices">
                                 <thead>
                                     <tr>
+                                        <th>Default</th>
+                                        <th>Host UID</th>
                                         <th>Device name</th>
                                         <th>Type</th>
                                         <th>Model</th>
@@ -71,7 +87,13 @@
                             </table>
                             <!-- /.table-responsive -->
                         </div>
-                        <!-- /.panel-body -->
+                        <!--
+                            <div class="card-footer">
+                            <button class="btn btn-primary defaultdev">
+                                <span class="fa fa-phone"></span>&nbsp;Select as default device
+                            </button>
+
+                        </div>-->
                     </div>
                     <!-- /.panel -->
                 </div>
@@ -81,50 +103,66 @@
         </div>
         <!-- /#page-wrapper -->
 
-    </div>
-    <!-- /#wrapper -->
 
-    <!-- jQuery -->
-    <script src="../vendor/jquery/jquery.min.js"></script>
+ 
 
-    <!-- Bootstrap Core JavaScript -->
-    <script src="../vendor/bootstrap/js/bootstrap.min.js"></script>
+    <!--## pages/inc/tpl_js_end.html ##-->
 
-    <!-- Metis Menu Plugin JavaScript -->
-    <script src="../vendor/metisMenu/metisMenu.min.js"></script>
-
-    <!-- DataTables JavaScript -->
-    <!--<script src="../vendor/datatables/js/jquery.dataTables.min.js"></script>-->
-    <script src="../vendor/datatables/js/jquery.dataTables.js"></script>
-    <script src="../vendor/datatables-plugins/dataTables.bootstrap.min.js"></script>
-    <script src="../vendor/datatables-responsive/dataTables.responsive.js"></script>
-
-    <!-- Custom Theme JavaScript -->
-    <script src="../dist/js/sb-admin-2.js"></script>
 
     <!-- Page-Level Demo Scripts - Tables - Use for reference -->
     <script>
     $(document).ready(function() {
 
-        let dmTable = $('#dataTables-example').DataTable({
+        DexcaliburAPI.device
+        let dmTable = $('#dataTables-devices').DataTable({
+
+            paging:   false,
+            ordering: false,
+            info:     false,
+            searching: false,
+
             ajax: "../api/device",
             columns: [
+                {
+                    width: "10px",
+                    render: function(data, type, row, meta ){
+                        return '<form><input class="devselector" type="radio" value="'+btoa(row.uid)+'" id="deviceSelected-'+btoa(row.uid)+'" name="deviceSelected" '
+                        +(row.selected==true? 'checked':'')
+                        +'/></form>';
+                    }
+                },
+                { data: 'usbQualifier' },
                 { data: 'id' },
                 { data: 'type' },
                 { data: 'model' },
                 { data: 'product' },
-                { data: 'selected' }
+                { 
+                    render: function(data, type, row, meta ){
+                        return (row.authorized? 'authorized': '<i class="text-danger">unauthorized</i>');
+                    }
+                }
             ],
             responsive: true
         });
-        //console.log(dmTable);
-        /*dmTable.on( 'xhr', function () {
-            dmTable.ajax.load();
-            //alert( json.data.length +' row(s) were loaded' );
-        } );*/
 
+        $(document).on("click",".devselector",function(el){
+            DexcaliburAPI.device.selectAsDefaultDevice(
+                atob(el.target.value),
+                function(data){
+                    if(data.errcode==null){
+                        DexcaliburAPI.ui.alert.success(data.msg, false);
+                        dmTable.ajax.reload();
+                    }
+                    else
+                        DexcaliburAPI.ui.alert.error(data.error);
+                },
+                function(data){
+                    DexcaliburAPI.ui.alert.error(data.error);
+                    // $("#saveNotify").html("<span style='color:red'>(#1) Error :-(</span>");
+                }
+            );
+        });
 
-        //dmTable.ajax.url("../api/device").load();
         $('#dm-refresh-btn').click(()=>{
             dmTable.ajax.reload();
         });

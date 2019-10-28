@@ -19,13 +19,56 @@
     <!-- Custom Theme JavaScript -->
     <script src="/dist/js/sb-admin-2.js"></script>
 
+    <!-- DexcaliburAPI helper -->
+    <script src="/js/wexcalibur.js"></script>
+
 
     <script type="text/javascript">
     $(document).ready(function(){
-        let url = location.href.substr(0,location.href.indexOf("#"));
+        let url = null;
+        if(location.href.indexOf("#")>-1)
+            url = location.href.substr(0,location.href.indexOf("#"));
+        else
+            url = location.href;
+
+        let m = false;
+
+        var element = $('ul.navbar-nav li.nav-item a.nav-link').filter(function() {
+            console.log(this.href,url,this.href == url);
+            return this.href == url;
+        }).addClass('active').parent();
+
+        if(element != null){
+            element.addClass('active');
+        }
+        
+        if(element==null || element.length == 0){
+            element = $('ul.navbar-nav li.nav-item a.dropdown-item').filter(function() {
+                console.log(this.href,url,this.href == url);
+                return this.href == url;
+            }).parent().parent().addClass('active');
+        }
+
+        /*
+        $(".navbar-nav > li:first-child a").map((a,b)=>{
+            if(b.href==url){
+                b.classList.add("active");
+                m=true;
+            }
+        });
+
+        if(!m){
+            $(".navbar-nav > li a:first-child").map((a,b)=>{
+                if(b.href==url){
+                    b.classList.add("active");
+                    m=true;
+                }
+            }); 
+        }*/
+        /*
         $(".navbar-nav > li > a").map((a,b)=>{
             if(b.href==url) b.classList.add("active");
-        });
+        });*/
     });
     </script>
 
