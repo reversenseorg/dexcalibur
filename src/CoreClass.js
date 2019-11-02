@@ -46,7 +46,7 @@ var FUNC_TYPE = {
 
 
 
-function Stub(type,data,exclude){
+function Stub(type,data,exclude=[]){
     this.__type__ = type;
 
     for(let i in data){

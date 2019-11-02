@@ -12,9 +12,15 @@
                         <i class="fa fa-compas"></i>&nbsp;Overview <span class="sr-only">(current)</span>
                     </a>
                 </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="/pages/finder.html">
-                        <i class="fa fa-database fa-fw"></i>&nbsp;Static analysis</a>
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" id="saDropdownMenuLink" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                            <i class="fa fa-database"></i>&nbsp;Static analysis
+                    </a>
+
+                    <div class="dropdown-menu" aria-labelledby="saDropdownMenuLink">
+                        <a class="dropdown-item" href="/pages/finder.html"><span class="fa fa-search"></span>&nbsp;Search engine</a>
+                        <a class="dropdown-item" href="/inspectors/BytecodeCleaner/main.html"><span class="fa fa-code"></span>&nbsp;Bytecode cleaner</a>
+                    </div>
                 </li>
                 <li class="nav-item dropdown">
                     <a class="nav-link dropdown-toggle" href="#" id="hookDropdownMenuLink" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
@@ -33,12 +39,10 @@
 
                     <div class="dropdown-menu" aria-labelledby="raDropdownMenuLink">
                         <a class="dropdown-item" href="/inspectors/DynamicLoader/main.html">Dynamic loading</a>
-                        <a class="dropdown-item" href="/inspectors/BytecodeCleaner/main.html">Bytecode cleaner</a>
+<!--                        <a class="dropdown-item" href="/inspectors/BytecodeCleaner/main.html">Bytecode cleaner</a>
                         <!--<a class="dropdown-item" href="/inspectors/cccc.html">Key stores</a>
                         <a class="dropdown-item" href="/inspectors/dddd.html">Network</a>
                         <a class="dropdown-item" href="/inspectors/eeee.html">File accesses</a>-->
-                        <div class="dropdown-divider"></div>
-                        <a class="dropdown-item" href="/pages/inspectors.html">Plugins</a>
                     </div>
                 </li>
                 <li class="nav-item">
@@ -53,6 +57,7 @@
                     <div class="dropdown-menu" aria-labelledby="settingsDropdownMenuLink">
                         <a class="dropdown-item" href="/pages/devicemanager.html"><span class="fa fa-android"></span>&nbsp;Device manager</a>
                         <a class="dropdown-item" href="/pages/packagepatcher.html"><span class="fa fa-archive"></span>&nbsp;Package patcher</a>
+                        <a class="dropdown-item" href="/pages/inspectors.html"><span class="fa fa-sitemap"></span>&nbsp;Plugins</a>
                         <a class="dropdown-item" href="#"><span class="fa fa-wrench"></span>&nbsp;Configuration</a>
                         <a class="dropdown-item" href="/inspectors/Saver/main.html"><span class="fa fa-angle-double-down"></span>&nbsp;Save</a>
                     </div>
