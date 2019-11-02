@@ -61,14 +61,22 @@
             <div class="card">
                 <h5 class="card-header">Method invoked dynamically</h5>
                 <div class="card-body">
-                    <p>
-                    <b>Heuristic model :</b>
-                    <ul>
-                        <ol><input type="radio" name="dyncall_heurtype" value="half" checked/>&nbsp;A <i>Class.forName() or a const-class</i> followed by <i>Class.getMethod()</i> is probably a call <b style="color:green">(trust: moderate, rapidity: fast, stability: stable)</b></ol>
-                        <ol><input type="radio" name="dyncall_heurtype" value="mixstat" disabled />&nbsp;A <i>Class.forName() or a const-class<</i> followed by <i>Class.getMethod()</i> followed statically by a <i>Method.invoke()</i> probably call <b style="color:green">(trust: good, rapidity: moderate, stability: stable)</b></ol>
-                        <ol><input type="radio" name="dyncall_heurtype" value="invoke" disabled />&nbsp;A <i>Method.invoke()</i> is probably a call <b style="color:red">(trust: high, rapidity: fast, stability: unstable - can crash the server ! - frida limitation)</b></ol>
-                    </ul>
-                    </p>
+                    <div class="row">
+                        <div class="col-lg-10">
+                            <b>Heuristic model :</b>
+                            <ul>
+                                <ol><input type="radio" name="dyncall_heurtype" value="half" checked/>&nbsp;A <i>Class.forName() or a const-class</i> followed by <i>Class.getMethod()</i> is probably a call <b style="color:green">(trust: moderate, rapidity: fast, stability: stable)</b></ol>
+                                <ol><input type="radio" name="dyncall_heurtype" value="mixstat" disabled />&nbsp;A <i>Class.forName() or a const-class<</i> followed by <i>Class.getMethod()</i> followed statically by a <i>Method.invoke()</i> probably call <b style="color:green">(trust: good, rapidity: moderate, stability: stable)</b></ol>
+                                <ol><input type="radio" name="dyncall_heurtype" value="invoke" disabled />&nbsp;A <i>Method.invoke()</i> is probably a call <b style="color:red">(trust: high, rapidity: fast, stability: unstable - can crash the server ! - frida limitation)</b></ol>
+                            </ul>
+                        </div>
+                        <div class="col-lg-2">
+                            <h6>Actions :</h6>
+                            <button class="btn btn-primary refreshReflect">
+                                <i class="fa fa-refresh"></i>&nbsp;Refresh
+                            </button>
+                        </div>
+                    </div>
                     <p>The table below lists all unique method invoked dynamically. If a method has never been yet discovered, it is tagged 
                     with the <span class="badge badge-purple">new</span> label.</p>
                     <table width="100%"  class="table table-striped table-bordered table-hover" id="dataTables-reflect">
@@ -164,7 +172,7 @@
 
     <!--## pages/inc/tpl_js_end.html ##-->
 
-    <script src="/js/wexcalibur.js"></script>
+   <!--<script src="/js/wexcalibur.js"></script> -->
     <script>
 
     function htmlEncode(txt){
@@ -211,7 +219,7 @@
                 { 
                     render: function(data, type, row, meta ){
                         if(row.name != null)
-                            return '<a  class="badge badge-primary probe" meth="'+btoa(encodeURIComponent(row.__signature__))+'">Probe</a>';
+                            return '<span class="badge badge-primary badge-pill badge-action probe" meth="'+btoa(encodeURIComponent(row.__signature__))+'">Probe</a>';
                         else    
                             return '';
                     }
@@ -255,7 +263,7 @@
                 {  
                     render: function(data, type, row, meta ){
                         if(row.simpleName != null){
-                            return htmlEncode(row.fqcn);
+                            return '<a href="/pages/finder.html?class='+btoa(encodeURIComponent(row.fqcn))+'">'+htmlEncode(row.fqcn)+'</a>';
                         }
                         else if(row.ret != null){
                             return htmlEncode(row.__signature__);
@@ -402,6 +410,41 @@
         $(".refreshReflect").trigger("click");
         $(".refreshDisco").trigger("click");
         $(".refreshDex").trigger("click");
+
+        $(document).on("click",".probe",function(){
+            let DOM_PROBE =$(this);
+            let meth = $(this).attr("meth");
+
+            // DexcaliburAPI.hook.newFutureHook();
+            // $("#newHookModal").modal();
+
+            $.ajax('/api/probe/'+meth,{
+                method: 'post',
+                statusCode: {
+                    200: function(data, err){
+
+                        //console.log(DOM_PROBE,hasClass("badge-primary"));
+                        if(JSON.parse(data).enable){
+                            if(DOM_PROBE.hasClass("badge-primary"))
+                                DOM_PROBE.removeClass("badge-primary");
+
+                            DOM_PROBE.addClass("badge-success");
+                            DOM_PROBE.text("Probe ON").html();
+                        }else{
+
+                            if(DOM_PROBE.hasClass("badge-success"))
+                                DOM_PROBE.removeClass("badge-success");
+
+                            DOM_PROBE.addClass("badge-primary");
+                            DOM_PROBE.text("Probe OFF").html();
+                        }
+                    },
+                    404: function(){
+                        //alert("Failed to add probe (see logs)")
+                    }
+                }
+            })
+        });
 
     });
 
