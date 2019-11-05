@@ -25,6 +25,8 @@ DynLoaderInspector.useGUI();
 var DynDB = DynLoaderInspector.useMemoryDB()
 DynDB.newIndex('dex');
 
+
+
 DynLoaderInspector.registerTagCategory(
     "dynamic_loading",
     ["invoked","loaded"]
@@ -314,26 +316,60 @@ DynLoaderInspector.hookSet.addIntercept({
     onMatch: function(ctx,event){
         DynLoaderInspector.emits("hook.dex.load",event);
     },
+    variables: {
+        names: new HOOK.VariableArray([])
+    },
     interceptBefore: `
     
-            // DEXC_MODULE.common.copy(arguments[0], "dexfile.dex");
+            var doCondition = true;
 
-            send({ 
-                id:"@@__HOOK_ID__@@", 
-                match: true, 
-                data: {
-                    arg0: arguments[0],
-                    arg1: arguments[1],
-                    arg2: arguments[2]
-                },
-                after: true, 
-                msg: "DexFile.loadDex()", 
-                tags: [{
-                    style:"purple",
-                    text: "dynamic"
-                }], 
-                action:"Log" 
-            });
+
+            if(@@__VAR__@@.names.indexOf(arguments[0])>-1) 
+                doCondition = false;
+            
+
+
+            if(doCondition){
+                send({ 
+                    id:"@@__HOOK_ID__@@", 
+                    match: true, 
+                    data: {
+                        dex: arguments[0],
+                        odex: arguments[1],
+                        arg2: arguments[2],
+                        isNew: true,
+                        __hidden__data: DEXC_MODULE.common.readFile(arguments[0])
+                    },
+                    after: false, 
+                    msg: "DexFile.loadDex()", 
+                    tags: [{
+                        style:"purple",
+                        text: "dynamic"
+                    }], 
+                    action:"Log" 
+                });
+            }else{
+                send({ 
+                    id:"@@__HOOK_ID__@@", 
+                    match: true, 
+                    data: {
+                        dex: arguments[0],
+                        odex: arguments[1],
+                        arg2: arguments[2],
+                        isNew: false,
+                        __hidden__data: null
+                    },
+                    after: false, 
+                    msg: "DexFile.loadDex()", 
+                    tags: [{
+                        style:"purple",
+                        text: "dynamic"
+                    }], 
+                    action:"Log" 
+                });
+            }
+
+            
     `
 });
 
@@ -353,7 +389,6 @@ DynLoaderInspector.hookSet.addIntercept({
             else
                 path = arg0;
 
-            
             // DEXC_MODULE.common.copy(path, "dexfile.dex");
 
             send({ 
@@ -412,12 +447,19 @@ DynLoaderInspector.hookSet.addProbe({
 
 DynLoaderInspector.on("hook.dex.load", {
     task: function(ctx, event){
-        Logger.info("[INSPECTOR][TASK] DynLoaderInspector new Dex file loaded ",event.data.path);
+        if(event.data.data.isNew == false) return null;
+
+        let hook = ctx.hook.getHookByID(ut.b64_decode(event.data.hook));
+
+        Logger.info("[INSPECTOR][TASK] DynLoaderInspector new Dex file loaded :\n\tDex: ",event.data.data.dex);
+
+        // update variable for next time
+        hook.getVariable('names').getData().push(event.data.data.dex);
     }
 });
 DynLoaderInspector.on("hook.dex.new", {
     task: function(ctx, event){
-        Logger.info("[INSPECTOR][TASK] DynLoaderInspector new Dex file", event.data.path);
+        Logger.info("[INSPECTOR][TASK] DynLoaderInspector new Dex file", event.data.data.path);
         
     }
 });
@@ -428,7 +470,7 @@ DynLoaderInspector.on("hook.reflect.class.get", {
 
         // search if the method exists
 
-        Logger.info("[INSPECTOR][TASK] DynLoaderInspector search Class ",event.data.signature);
+        Logger.info("[INSPECTOR][TASK] DynLoaderInspector search Class ",event.data.data.signature);
     }
 });
 /*
@@ -452,7 +494,10 @@ DynLoaderInspector.on("hook.reflect.method.get", {
         
             //  if no result, do nothing
             // try to resolve reference (it may be an inherited method)
-            if(callers.count() == 0) return false;
+            if(callers.count() == 0){
+                Logger.debug("Callers of '",data.__hidden__trace[1].cls+"."+data.__hidden__trace[1].meth,"' not found!");
+                return false;
+            }
 
             // if more than one result, try to filter with filename/line number
             if(callers.count()>1){
@@ -462,13 +507,16 @@ DynLoaderInspector.on("hook.reflect.method.get", {
             }
         }else{
             //  no trace ==> try another heuristic
-            if(callers.count() == 0) return false;
+            Logger.debug("No hidden trace");
+            return false;
 
         }
 
         // not able to correlate (TODO : keep a track)
-        if(caller == null || meth == null) 
+        if(caller == null || meth == null) {
+            Logger.debug("Caller not found")
             return false;
+        }
 
         // tag the method as "invoked dynamically"
         if(!meth.hasTag(AnalysisHelper.TAG.Invoked.Dynamically))

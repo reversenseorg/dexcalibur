@@ -165,7 +165,8 @@
         }
 
         body += '</td></tr>'; 
-        body += '<tr><td>Fullname</td><td>'+htmlEncode(row.enclosingClass+'.'+row.name)+'</td></tr>';
+        body += '<tr><td>Class</td><td><a href="/pages/finder.html?class='+btoa(encodeURIComponent(row.enclosingClass))+'"><span class="fa fa-eye"></span>&nbsp;'+htmlEncode(row.enclosingClass)+'</a></td></tr>';
+        body += '<tr><td>Fullname</td><td><a href="/pages/finder.html?method='+btoa(encodeURIComponent(row.__signature__))+'"><span class="fa fa-eye"></span>&nbsp;'+htmlEncode(row.__signature__)+'</a></td></tr>';
         
         for(let i=0;  i<row.args.length; i++){
             sgt = row.args[i].name;
@@ -227,7 +228,7 @@
 
  //       body += '<table class="table"><thead><tr><th scope="col">Action</th><th scope="col">Type</th></thead><tbody>';
         body += '<div class="row dxc-hook-ppt"><div class="col-lg-2">Hook UUID</div><div class="col-lg-8">'+htmlEncode(row.id)+'</div></div>';
-        body += '<div class="row dxc-hook-ppt"><div class="col-lg-2">Hooked method</div><div class="col-lg-8"><a methid="'+btoa(encodeURIComponent(row.name))+'" class="showMethod">'+htmlEncode(row.name)+'</a></div></div>';
+        body += '<div class="row dxc-hook-ppt"><div class="col-lg-2">Hooked method</div><div class="col-lg-8"><a href="#" methid="'+btoa(encodeURIComponent(row.name))+'" class="showMethod"><span class="fa fa-eye"></span>&nbsp;'+htmlEncode(row.name)+'</a></div></div>';
         body += '<div class="row dxc-hook-ppt"><div class="col-lg-2">Description</div><div class="col-lg-8">'+((row.description!=null)?htmlEncode(row.description):'<i>empty</i>')+'</div></div>';
         body += "</div>";
 
@@ -243,23 +244,49 @@
                         <div class="card">
                             <div class="card-header">
                                 <div class="row">
-                                    <div class="col-lg-10" style="font-size:1.8em">  
+                                    <div class="col-lg-10" style="font-size:1.2em">  
                                         Hook code
                                     </div>
                                     <div class="col-lg-2" style="text-align:right">
-                                        <button code="`+codeID+`" hookid="`+row.id+`" class="btn btn-danger savechange" hookreplay="auto" data-toggle="tooltip" data-placement="bottom" title="Save & replay"><span class="fa fa-refresh bold"></span>&nbsp;<span class="fa fa-save"></span></button>
-                                        <button code="`+codeID+`" hookid="`+row.id+`" class="btn btn-danger savechange" hookreplay="none"data-toggle="tooltip" data-placement="bottom" title="Save change"><span class="fa fa-save"></span>&nbsp;</button>
+                                        <div code="`+codeID+`" hookid="`+row.id+`" class="btn btn-danger savechange" hookreplay="auto" data-toggle="tooltip" data-placement="bottom" title="Save & replay" style="font-size:0.8em"><span class="fa fa-refresh bold"></span>&nbsp;<span class="fa fa-save"></span></div>
+                                        <div code="`+codeID+`" hookid="`+row.id+`" class="btn btn-danger savechange" hookreplay="none" data-toggle="tooltip" data-placement="bottom" title="Save change" style="font-size:0.8em"><span class="fa fa-save"></span>&nbsp;</div>
                                     </div>
                                 </div>
                             </div>
                             <div class="card-body" style="padding:0px;">
                                     <ul class="nav">
                                         <li class="nav-item">
-                                            <a class="nav-link active" href="#">StackTrace</a>
+                                            <span class="nav-link">Helpers:</span>
+                                        </li>
+
+                                        <li class="nav-item dropdown">
+                                            <a class="nav-link dropdown-toggle" href="#" id="nhookDropdownMenuLink" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                                    Java hook
+                                            </a>
+                                            <div class="dropdown-menu" aria-labelledby="nhookDropdownMenuLink">
+                                                <a class="dropdown-item insertHookSnippet" code="`+codeID+`" hooksnippet="printstacktrace">Print StackTrace</a>
+                                                <a class="dropdown-item insertHookSnippet" code="`+codeID+`" hooksnippet="javab2s">String from bytearray</a>
+                                                <a class="dropdown-item insertHookSnippet" code="`+codeID+`" hooksnippet="newinstanceof">New instance of</a>
+                                                <a class="dropdown-item insertHookSnippet" code="`+codeID+`" hooksnippet="methsignature">Get signature from Method object</a>
+                                                
+                                            </div>
+                                        </li>
+                                        <li class="nav-item dropdown">
+                                            <a class="nav-link dropdown-toggle" href="#" id="nhookDropdownMenuLink" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                                    Native hook
+                                            </a>
+                                            <div class="dropdown-menu" aria-labelledby="nhookDropdownMenuLink">
+                                                <!-- <a class="dropdown-item insertHookSnippet" code="`+codeID+`" hooksnippet="nhook_fopen">File open</a> -->
+                                                <a class="dropdown-item insertHookSnippet" code="`+codeID+`" hooksnippet="nhook_offset">Hook from offset</a>
+                                                <!-- <a class="dropdown-item insertHookSnippet" code="`+codeID+`" hooksnippet="nhook_hexdump">Memory hexdump</a> -->
+                                            </div>
+                                        </li>
+                                        <!-- <li class="nav-item">
+                                            <a class="nav-link badge badge-pill badge-primar badge-action insertHookSnippet" code="`+codeID+`" hooksnippet="fread" href="#">File read</span>
                                         </li>
                                         <li class="nav-item">
-                                            <a class="nav-link" href="#">Breakpoint</a>
-                                        </li>
+                                            <a class="nav-link badge badge-pill badge-primar badge-action insertHookSnippet" code="`+codeID+`" hooksnippet="breakpoint" href="#">Breakpoint</span>
+                                        </li> -->
                                     </ul>
                                 <pre id="`+codeID+`">`+htmlEncode(decodeURIComponent(atob(row.script)))+`</pre>
                             </div>
@@ -270,11 +297,11 @@
                             <div class="card-header">
                                 <div class="row">
 
-                                    <div class="col-lg-6 col-md-6" style="font-size:1.5em;" >
+                                    <div class="col-lg-6 col-md-6" style="font-size:1.2em;" >
                                         Hook messages
                                     </div>
                                     <div class="col-lg-6 col-md-6" style="text-align:right">  
-                                        <button class="btn btn-danger replay-hook" code="`+codeID+`" hookid="`+row.id+`"><span class="fa fa-refresh">&nbsp;</span>Replay hook</button>
+                                        <button class="btn btn-danger replay-hook" code="`+codeID+`" hookid="`+row.id+`" style="font-size:0.8em"><span class="fa fa-refresh">&nbsp;</span>Replay hook</button>
                                     </div>
                                 </div>
                             </div>
@@ -285,7 +312,7 @@
                             </div>
                         </div>
                     </div>
-                </div>'`
+                </div>`
         //body += '<div class="row"><div class="col-md-offset-10"><button code="'+codeID+'" hookid="'+row.id+'" class="btn btn-primary savechange">Save changes</button></div></div>';
         
         setTimeout(function(){
@@ -376,7 +403,7 @@
                     }
                 },{
                     render: function(data, type, row, meta ){
-                        return '<a style="margin-left:1em;gont-size:1.2em;" class="probe-del" href="#remove:hook:'+row.id+'" hookid="'+row.id+'" data-toggle="tooltip" data-placement="bottom" title="remove"><span class="fa fa-trash"></span>&nbsp;</a>';
+                        return '<span style="margin-left:1em;font-size:1.2em;" class="badge badge-pîll badge-action badge-danger probe-del"  hookid="'+row.id+'" data-toggle="tooltip" data-placement="bottom" title="remove"><span class="fa fa-trash"></span></a>';
 
                         //return '<button style="height:1.5em;padding-top:0px;padding-bottom:0px;" class="btn btn-primary probe-duplicate" hookid="'+row.id+'" data-toggle="tooltip" data-placement="bottom" title="duplicate"><span class="fa fa-copy"></span></button>&nbsp;'
                         //    +'<button style="height:1.5em;padding-top:0px;padding-bottom:0px;" class="btn btn-danger probe-del" hookid="'+row.id+'" data-toggle="tooltip" data-placement="bottom" title="remove"><span class="fa fa-trash"></span></button>';
@@ -668,6 +695,12 @@
         
         $(document).on("click",".probe-del",function(e){
             let id = getAttr(e.target,"hookid");
+
+            console.log("del",id,e.target);
+            if(id==null)
+                id = getAttr(e.target.parentElement,"hookid")
+            
+            
             
             
             $.ajax("../api/hook/"+id.value,{
@@ -681,8 +714,65 @@
                     }
                 }
             });
+        });
 
+        // insertHookSnippet
+        $(document).on("click",".insertHookSnippet",function(e){
+            let id = getAttr(e.target,"hooksnippet").value;
+            let code = "";
+            let editor = EditorRegister[getAttr(e.target,"code").value];
+
+            console.log("Esditor>",id,editor,editor.getCursorPosition()    );
+            switch(id){
+                case "printstacktrace":
+                    code = `
+        DEXC_MODULE.common.printStackTrace()
+                    `;
+                    break;
+                // ajouter is blacklisted
+
+                case "newinstanceof":
+                    code = `
+        Java.use('<CLASS_FQCN>').$new(<ARGS>);
+                    `;
+                    break;
+                case "methsignature":
+                    code = `
+        // 'METHOD_OBJ' should be an instance of Method
+        // 'METHOD_ARGS_TYPE' should be an array of parameter's classes
+        var signature = DEXC_MODULE.reflect.getMethodSignature( 
+            Java.cast( METHOD_OBJ.getDeclaringClass(), DEXC_MODULE.common.class.java.lang.Class), 
+            METHOD_ARGS_TYPE 
+        );
+                    `;
+                    break;
+                case "javab2s":
+                    code = `
+        Java.use('java.lang.String').$new(Java.array('byte', BYTE_ARRAY_HERE ));
+                    `;
+                    break;
+                case "nhook_symbol":
+                    code = `
+        Interceptor.attach(
+            Module.findBaseAddress( NAME ).add( OFFSET ), {
+                onEnter: function(args){
+                    send("entering");
+                },
+                onLeave: function(ret){
+                    send("exiting");
+                }
+        });
+                    `;
+                    break;
+                default:
+                    alert("Hook code snippet not supported : "+id);
+                    return;
+            }
             
+            editor.session.insert(
+                editor.getCursorPosition(),
+                code
+            );
         });
 
         $("#start-hook").click(()=>{
