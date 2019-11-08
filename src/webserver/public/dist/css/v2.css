@@ -269,6 +269,9 @@ h5.card-header {
 }
 
 
+.service-name,
+.provider-name,
+.receiver-name,
 .activity-name {
     font-size: 1.2em; 
 }

@@ -781,293 +781,6 @@
         $("#ctn-permission-detail").css("display","block");
     }
 
-    function renderActivityDetail(act){
-
-        // act-detail-tag
-        $("#act-detail-title").html(
-            DexcaliburAPI.ui.htmlEncode(act.name)
-        );
-
-        // tags
-        let tags = "";
-        if((act.__tag instanceof Array) && (act.__tag.length > 0)){
-           act.__tag.map(t => {
-                if(TAGS_COLOR[t] != null)
-                    tags += DexcaliburAPI.ui.badge.make(TAGS_COLOR[t],t);
-                else
-                    tags += DexcaliburAPI.ui.badge.make('info',t);
-            });
-        }
-
-        // impl
-        $("#act-detail-impl").attr(
-            "href",
-            "/pages/finder.html?class="+btoa(encodeURIComponent(act.__impl))
-        );
-
-        $("#act-detail-tag").html(
-            tags
-        );
-
-        // attributes
-        $("#act-detail-attr-tab > tbody").empty();
-        for(let i in act.attr){
-            $("#act-detail-attr-tab > tbody").append("<tr><td>"
-                +DexcaliburAPI.ui.htmlEncode(i)+"</td><td>"+DexcaliburAPI.ui.htmlEncode(act.attr[i])+"</td></tr>");
-        }
-
-        // intent
-        $("#act-detail-intent-tab > tbody").empty();
-        for(let i=0; i<act.intentFilters.length; i++){
-            intent = act.intentFilters[i];
-            body_tr = "<tr><td><a class='badge badge-danger'><span class='fa fa-play'></span></a></td><td>";
-            intent.category.map((x,i) => {
-                if(i>0) body_tr += "<br>";
-                body_tr += DexcaliburAPI.ui.htmlEncode(x.name);
-            });
-            body_tr += "</td><td>";
-            intent.action.map((x,i) => {
-                if(i>0) body_tr += "<br>";
-                body_tr += DexcaliburAPI.ui.htmlEncode(x.name);
-            });
-            body_tr += "</td></tr>";
-
-            $("#act-detail-intent-tab > tbody").append(body_tr);
-        }
-
-        // interns 
-        $("#act-detail-intern-tab > tbody").empty();
-        let m = "";
-        for(let i in act.__ppts["internals"]){
-            m = Object.keys(act.__ppts["internals"][i]).map(
-                x => "<a target='blank' href='/page/finder.html?method="
-                + btoa(encodeURIComponent(x)) + "'>"+DexcaliburAPI.ui.htmlEncode(x)+"</a>")
-                .join("<br>");
-
-            $("#act-detail-intern-tab > tbody").append(
-                "<tr><td class='col-lg-3'>"+DexcaliburAPI.ui.htmlEncode(i)+"</td><td class='col-lg-9'>"+m+"</td></tr>"       
-            );
-        }
-
-        //$("#ctn-activity-detail").css("display","block");
-        $("#activityModal").modal();
-    }
-
-    function renderProviderDetail(act){
-
-        // act-detail-tag
-        $("#prv-detail-title").html(
-            DexcaliburAPI.ui.htmlEncode(act.name)
-        );
-
-        // tags
-        let tags = "";
-        if((act.__tag instanceof Array) && (act.__tag.length > 0)){
-        act.__tag.map(t => {
-                if(TAGS_COLOR[t] != null)
-                    tags += DexcaliburAPI.ui.badge.make(TAGS_COLOR[t],t);
-                else
-                    tags += DexcaliburAPI.ui.badge.make('info',t);
-            });
-        }
-
-        // impl
-        $("#prv-detail-impl").attr(
-            "href",
-            "/pages/finder.html?class="+btoa(encodeURIComponent(act.__impl))
-        );
-
-        $("#prv-detail-tag").html(
-            tags
-        );
-
-        // attributes
-        $("#prv-detail-attr-tab > tbody").empty();
-        for(let i in act.attr){
-            $("#act-detail-attr-tab > tbody").append("<tr><td>"
-                +DexcaliburAPI.ui.htmlEncode(i)+"</td><td>"+DexcaliburAPI.ui.htmlEncode(act.attr[i])+"</td></tr>");
-        }
-
-        // intent
-        $("#prv-detail-intent-tab > tbody").empty();
-        for(let i=0; i<act.intentFilters.length; i++){
-            intent = act.intentFilters[i];
-            body_tr = "<tr><td><a class='badge badge-danger'><span class='fa fa-play'></span></a></td><td>";
-            intent.category.map((x,i) => {
-                if(i>0) body_tr += "<br>";
-                body_tr += DexcaliburAPI.ui.htmlEncode(x.name);
-            });
-            body_tr += "</td><td>";
-            intent.action.map((x,i) => {
-                if(i>0) body_tr += "<br>";
-                body_tr += DexcaliburAPI.ui.htmlEncode(x.name);
-            });
-            body_tr += "</td></tr>";
-
-            $("#prv-detail-intent-tab > tbody").append(body_tr);
-        }
-
-        // interns 
-        $("#prv-detail-intern-tab > tbody").empty();
-        let m = "";
-        for(let i in act.__ppts["internals"]){
-            m = Object.keys(act.__ppts["internals"][i]).map(
-                x => "<a target='blank' href='/page/finder.html?method="
-                + btoa(encodeURIComponent(x)) + "'>"+DexcaliburAPI.ui.htmlEncode(x)+"</a>")
-                .join("<br>");
-
-            $("#prv-detail-intern-tab > tbody").append(
-                "<tr><td class='col-lg-3'>"+DexcaliburAPI.ui.htmlEncode(i)+"</td><td class='col-lg-9'>"+m+"</td></tr>"       
-            );
-        }
-
-        $("#providerModal").modal();
-    }
-
-    function renderReceiverDetail(act){
-
-        // act-detail-tag
-        $("#rcv-detail-title").html(
-            DexcaliburAPI.ui.htmlEncode(act.name)
-        );
-
-        // tags
-        let tags = "";
-        if((act.__tag instanceof Array) && (act.__tag.length > 0)){
-        act.__tag.map(t => {
-                if(TAGS_COLOR[t] != null)
-                    tags += DexcaliburAPI.ui.badge.make(TAGS_COLOR[t],t);
-                else
-                    tags += DexcaliburAPI.ui.badge.make('info',t);
-            });
-        }
-
-        // impl
-        $("#rcv-detail-impl").attr(
-            "href",
-            "/pages/finder.html?class="+btoa(encodeURIComponent(aFct.__impl))
-        );
-
-        $("#rcv-detail-tag").html(
-            tags
-        );
-
-        // attributes
-        $("#rcv-detail-attr-tab > tbody").empty();
-        for(let i in act.attr){
-            $("#rcv-detail-attr-tab > tbody").append("<tr><td>"
-                +DexcaliburAPI.ui.htmlEncode(i)+"</td><td>"+DexcaliburAPI.ui.htmlEncode(act.attr[i])+"</td></tr>");
-        }
-
-        // intent
-        $("#rcv-detail-intent-tab > tbody").empty();
-        for(let i=0; i<act.intentFilters.length; i++){
-            intent = act.intentFilters[i];
-            body_tr = "<tr><td><a class='badge badge-danger'><span class='fa fa-play'></span></a></td><td>";
-            intent.category.map((x,i) => {
-                if(i>0) body_tr += "<br>";
-                body_tr += DexcaliburAPI.ui.htmlEncode(x.name);
-            });
-            body_tr += "</td><td>";
-            intent.action.map((x,i) => {
-                if(i>0) body_tr += "<br>";
-                body_tr += DexcaliburAPI.ui.htmlEncode(x.name);
-            });
-            body_tr += "</td></tr>";
-
-            $("#rcv-detail-intent-tab > tbody").append(body_tr);
-        }
-
-        // interns 
-        $("#rcv-detail-intern-tab > tbody").empty();
-        let m = "";
-        for(let i in act.__ppts["internals"]){
-            m = Object.keys(act.__ppts["internals"][i]).map(
-                x => "<a target='blank' href='/page/finder.html?method="
-                + btoa(encodeURIComponent(x)) + "'>"+DexcaliburAPI.ui.htmlEncode(x)+"</a>")
-                .join("<br>");
-
-            $("#rcv-detail-intern-tab > tbody").append(
-                "<tr><td class='col-lg-3'>"+DexcaliburAPI.ui.htmlEncode(i)+"</td><td class='col-lg-9'>"+m+"</td></tr>"       
-            );
-        }
-
-        //$("#ctn-activity-detail").css("display","block");
-        $("#receiverModal").modal();
-    }
-
-    function renderServiceDetail(act){
-
-        // act-detail-tag
-        $("#srv-detail-title").html(
-            DexcaliburAPI.ui.htmlEncode(act.name)
-        );
-
-        // tags
-        let tags = "";
-        if((act.__tag instanceof Array) && (act.__tag.length > 0)){
-        act.__tag.map(t => {
-                if(TAGS_COLOR[t] != null)
-                    tags += DexcaliburAPI.ui.badge.make(TAGS_COLOR[t],t);
-                else
-                    tags += DexcaliburAPI.ui.badge.make('info',t);
-            });
-        }
-
-        // impl
-        $("#srv-detail-impl").attr(
-            "href",
-            "/pages/finder.html?class="+btoa(encodeURIComponent(act.__impl))
-        );
-
-        $("#srv-detail-tag").html(
-            tags
-        );
-
-        // attributes
-        $("#srv-detail-attr-tab > tbody").empty();
-        for(let i in act.attr){
-            $("#srv-detail-attr-tab > tbody").append("<tr><td>"
-                +DexcaliburAPI.ui.htmlEncode(i)+"</td><td>"+DexcaliburAPI.ui.htmlEncode(act.attr[i])+"</td></tr>");
-        }
-
-        // intent
-        $("#srv-detail-intent-tab > tbody").empty();
-        for(let i=0; i<act.intentFilters.length; i++){
-            intent = act.intentFilters[i];
-            body_tr = "<tr><td><a class='badge badge-danger'><span class='fa fa-play'></span></a></td><td>";
-            intent.category.map((x,i) => {
-                if(i>0) body_tr += "<br>";
-                body_tr += DexcaliburAPI.ui.htmlEncode(x.name);
-            });
-            body_tr += "</td><td>";
-            intent.action.map((x,i) => {
-                if(i>0) body_tr += "<br>";
-                body_tr += DexcaliburAPI.ui.htmlEncode(x.name);
-            });
-            body_tr += "</td></tr>";
-
-            $("#srv-detail-intent-tab > tbody").append(body_tr);
-        }
-
-        // interns 
-        $("#srv-detail-intern-tab > tbody").empty();
-        let m = "";
-        for(let i in act.__ppts["internals"]){
-            m = Object.keys(act.__ppts["internals"][i]).map(
-                x => "<a target='blank' href='/page/finder.html?method="
-                + btoa(encodeURIComponent(x)) + "'>"+DexcaliburAPI.ui.htmlEncode(x)+"</a>")
-                .join("<br>");
-
-            $("#srv-detail-intern-tab > tbody").append(
-                "<tr><td class='col-lg-3'>"+DexcaliburAPI.ui.htmlEncode(i)+"</td><td class='col-lg-9'>"+m+"</td></tr>"       
-            );
-        }
-
-        //$("#ctn-activity-detail").css("display","block");
-        $("#serviceModal").modal();
-    }
-
     function makeActivityBlock(obj){
         let i= obj.name.lastIndexOf('.');
         let package = (i>-1? DexcaliburAPI.ui.htmlEncode(obj.name.substr(0,i))+"<br>" : '');
@@ -1083,16 +796,14 @@
         }
         
         if(tags.length==0){
-            tags = "<br>&nbsp;-";
+            tags = "-";
         }
 
         let body = `
-
-        <div class="col-lg-2">
-            <div class="panel panel-appcmp-orange card-activity" activityName="${obj.name}">
-                <div class="panel-heading">
-                    ${package}
-                    <span class="activity-name">${an}</span>
+        <div class="col-lg-3">
+            <div class="card card-activity panel-appcmp-orange" activityName="${obj.name}">
+                <div class="card-body" style="text-align:center">
+                    <span class="activity-name">${an}</span><br>
                     ${tags}
                 </div>
             </div>
@@ -1102,18 +813,35 @@
         return body;
     }
 
+    function appendToGrid(el, type, obj, config){
+        confi
+    }
+
     function makeProviderBlock(obj){
         let i= obj.name.lastIndexOf('.');
         let package = (i>-1? DexcaliburAPI.ui.htmlEncode(obj.name.substr(0,i))+"<br>" : '');
         let an = DexcaliburAPI.ui.htmlEncode( i>-1? obj.name.substr(i+1) : obj.name );
 
-        let body = `
+        let tags = "";
+        if((obj.__tag instanceof Array) && (obj.__tag.length > 0)){
+           obj.__tag.map(t => {
+                if(TAGS_COLOR[t] != null)
+                    tags += DexcaliburAPI.ui.badge.make(TAGS_COLOR[t],t);
+                else
+                    tags += DexcaliburAPI.ui.badge.make('info',t);
+            });
+        }
 
-        <div class="col-lg-2">
-            <div class="panel panel-appcmp-blue card-provider">
-                <div class="panel-heading">
-                    ${package}
-                    <span class="activity-name">${an}</span>
+        if(tags.length==0){
+            tags = "-";
+        }
+
+        let body = `
+        <div class="col-lg-3">
+            <div class="card card-provider panel-appcmp-blue" providerName="${obj.name}">
+                <div class="card-body" style="text-align:center">
+                    <span class="provider-name">${an}</span><br>
+                    ${tags}
                 </div>
             </div>
         </div>
@@ -1127,13 +855,28 @@
         let package = (i>-1? DexcaliburAPI.ui.htmlEncode(obj.name.substr(0,i))+"<br>" : '');
         let an = DexcaliburAPI.ui.htmlEncode( i>-1? obj.name.substr(i+1) : obj.name );
 
+        let tags = "";
+        if((obj.__tag instanceof Array) && (obj.__tag.length > 0)){
+           obj.__tag.map(t => {
+                if(TAGS_COLOR[t] != null)
+                    tags += DexcaliburAPI.ui.badge.make(TAGS_COLOR[t],t);
+                else
+                    tags += DexcaliburAPI.ui.badge.make('info',t);
+            });
+        }
+
+
+        if(tags.length==0){
+            tags = "-";
+        }
+
         let body = `
 
-        <div class="col-lg-2">
-            <div class="panel panel-appcmp-green card-service">
-                <div class="panel-heading">
-                    ${package}
-                    <span class="activity-name">${an}</span>
+        <div class="col-lg-3">
+            <div class="card card-service panel-appcmp-grey" serviceName="${obj.name}">
+                <div class="card-body" style="text-align:center">
+                    <span class="service-name">${an}</span><br>
+                    ${tags}
                 </div>
             </div>
         </div>
@@ -1147,17 +890,32 @@
         let package = (i>-1? DexcaliburAPI.ui.htmlEncode(obj.name.substr(0,i))+"<br>" : '');
         let an = DexcaliburAPI.ui.htmlEncode( i>-1? obj.name.substr(i+1) : obj.name );
 
-        let body = `
+        let tags = "";
+        if((obj.__tag instanceof Array) && (obj.__tag.length > 0)){
+           obj.__tag.map(t => {
+                if(TAGS_COLOR[t] != null)
+                    tags += DexcaliburAPI.ui.badge.make(TAGS_COLOR[t],t);
+                else
+                    tags += DexcaliburAPI.ui.badge.make('info',t);
+            });
+        }
 
-        <div class="col-lg-2">
-            <div class="panel panel-appcmp-grey card-receiver">
-                <div class="panel-heading">
-                    ${package}
-                    <span class="activity-name">${an}</span>
+
+        if(tags.length==0){
+            tags = "-";
+        }
+
+        let body = `
+        <div class="col-lg-3">
+            <div class="card card-receiver panel-appcmp-green" receiverName="${obj.name}">
+                <div class="card-body" style="text-align:center">
+                    <span class="receiver-name">${an}</span><br>
+                    ${tags}
                 </div>
             </div>
         </div>
         `;
+        
 
         return body;
     }
@@ -1323,6 +1081,7 @@
                 let body = "";
                 let act = JSON.parse(data);       
 
+
                 act.data.map(x=>{
                     $('#row-cmp-1').append(makeActivityBlock(x));
                     /*$('#dataTables-activities tbody').append(
@@ -1340,10 +1099,11 @@
                 let body = "";
                 let act = JSON.parse(data);       
 
-                act.data.map(x=>{
-                //    $('#row-cmp-1').append(makeProviderBlock(x));
-                });
+
                 $('#provider-nb').html(act.data.length);
+                act.data.map(x=>{
+                    $('#row-cmp-1').append(makeProviderBlock(x));
+                });
             }
         });
 
@@ -1352,10 +1112,11 @@
                 let body = "";
                 let act = JSON.parse(data);       
 
-                act.data.map(x=>{
-                //    $('#row-cmp-1').append(makeServiceBlock(x));
-                });
+
                 $('#service-nb').html(act.data.length);
+                act.data.map(x=>{
+                    $('#row-cmp-1').append(makeServiceBlock(x));
+                });
             }
         });
 
@@ -1364,10 +1125,10 @@
                 let body = "";
                 let act = JSON.parse(data);       
 
-                act.data.map(x=>{
-                //    $('#row-cmp-1').append(makeReceiverBlock(x));
-                });
                 $('#receiver-nb').html(act.data.length);
+                act.data.map(x=>{
+                    $('#row-cmp-1').append(makeReceiverBlock(x));
+                });
             }
         });
         
