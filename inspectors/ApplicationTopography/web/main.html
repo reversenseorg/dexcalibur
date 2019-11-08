@@ -135,6 +135,10 @@
         cursor: pointer;
     }
 
+    .datatable-dark tbody > tr > td > a.badge {
+        font-size:1em
+    }
+
     </style>
 
     <!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
@@ -428,22 +432,22 @@
             <div class="modal-dialog modal-lg" role="document">
                 <div class="modal-content">
                     <div class="modal-header">
-                        <span style="font-size:1.8em" class="modal-title" id="act-detail-title">-</span>&nbsp;&nbsp;<span id="act-detail-tag">&nbsp;</span>
+                        <span style="font-size:1.3em" class="modal-title" id="act-detail-title">-</span>&nbsp;&nbsp;<span id="act-detail-tag">&nbsp;</span>
                     </div>
                     <div class="modal-body" id="confirm-text">
                         <div class="row">
                             <div class="col-lg-5">
                             
-                                <div class="car">
-                                    <div class="card-header" style="font-size:1.2em">
-                                        <div class="row">
-                                            <div class="col-lg-4">Attributes</div>
-                                            <div class="col-lg-8">
-                                                <a class="badge badge-pink seeClass" id="act-detail-impl" href="" target="blank">See associated class</a>
-                                                <button class="badge badge-danger startActivity">Start activity</button>
-                                            </div>
-                                        </div>
-                                    </div>
+                                <div class="card">
+                                    <h5 class="card-header">Attributes</h5>
+                                    <ul class="list-group list-group-flush">
+                                        <li class="list-group-item">
+                                            <a class="badge badge-pink seeClass" id="act-detail-impl" href="" target="blank">See associated class</a>
+                                        </li>
+                                        <li class="list-group-item">
+                                            <button class="badge badge-danger startActivity">Start activity</button>
+                                        </li>
+                                    </ul>
                                     <div class="card-body" style="padding:0px">
                                         <table width="100%" class="table table-striped table-bordered table-hover" style="margin-bottom: 0px" id="act-detail-attr-tab">
                                             <tbody>
@@ -456,9 +460,8 @@
                             <div class="col-lg-7">
 
                                 <div class="card">
-                                    <div class="card-header" style="font-size:1.2em">
-                                        Intent Filters
-                                    </div>
+                                    <h5 class="card-header"> Intent Filters
+                                    </h5>
                                     <div class="card-body" style="padding:0px">
                                         <table width="100%" class="table table-striped table-bordered table-hover overflow-auto" style="margin-bottom:0px;overflow:scroll" id="act-detail-intent-tab">
                                             <thead>
@@ -509,8 +512,8 @@
                         <div class="row">
                             <div class="col-lg-5">
                             
-                                <div class="panel panel-info">
-                                    <div class="panel-heading" style="font-size:1.2em">
+                                <div class="card">
+                                    <div class="card-header" style="font-size:1.2em">
                                         <div class="row">
                                             <div class="col-lg-4">Attributes</div>
                                             <div class="col-lg-8">
@@ -1185,6 +1188,45 @@
         $("#actModName").html(DexcaliburAPI.ui.htmlEncode(activity.name));
     }
 
+    function makeRow(type, data){
+        let row=$('tr');
+        let col="";
+        let body="";
+
+        if(type=="act"){
+            col = $('td');
+            col.append( DexcaliburAPI.ui.htmlEncode(data.name));
+            row.append(col);
+
+            col = $('td');
+            col.append( (data.intentFilters.length > 0)? 'YES' : '');
+            row.append(col);
+
+            body="";
+            if(data.__tag != null){
+                data.__tag.map(x => {
+                    if(body.length > 0) body +="<br>";
+                    if(TAGS_COLOR[x]!=null)
+                        body += DexcaliburAPI.ui.badge.make(TAGS_COLOR[x],x);
+                    else
+                        body += DexcaliburAPI.ui.badge.make('secondary',x);
+                });
+            }
+            col.append(body);
+            row.append(col);
+
+            col = $('td');
+            col.append(`
+            &nbsp;<a class="btn btn-primary btn-sm" href="/inspectors/ApplicationTopography/activity.html?id=`+
+            DexcaliburAPI.util.encodeLocationAction(row.name)
+            +`"  data-toggle="tooltip" data-placement="bottom" title="Show activity details">Info</button>
+            `);
+            row.append(col);
+
+            return row;
+        }
+    }
+
     // Menu inlighting (active button)
     var ApptoVmenuActive = {
         menu: null,
@@ -1283,7 +1325,12 @@
 
                 act.data.map(x=>{
                     $('#row-cmp-1').append(makeActivityBlock(x));
+                    /*$('#dataTables-activities tbody').append(
+                        makeRow("act", data)
+                    );*/
                 });
+
+                
                 $('#activity-nb').html(act.data.length);
             }
         });
@@ -1358,7 +1405,7 @@
         });
 
 
-
+        
         let actTable = $('#dataTables-activities').DataTable({
             
             paging:   false,
@@ -1394,7 +1441,9 @@
                     render: function(data, type, row, meta ){
                         // <button class="btn btn-info runscan" style="height:1.5em;padding-top:0px;padding-bottom:0px;" scanner="`+btoa(row.id)+`">Run</button>
                         return `
-                            &nbsp;<a style="height:1.5em;" class="badge badge-primary btn-activity-detail" activity="`+btoa(row.name)+`" data-toggle="tooltip" data-placement="bottom" title="Show activity details">Info</button>
+                            &nbsp;<a class="badge badge-primary" href="/inspectors/ApplicationTopography/activity.html?id=`+
+                            DexcaliburAPI.util.encodeLocationAction(row.name)
+                            +`"  data-toggle="tooltip" data-placement="bottom" title="Show activity details">Info</button>
                             `;
                     }
                 }
@@ -1436,8 +1485,13 @@
                 { 
                     render: function(data, type, row, meta ){
                         // <button class="btn btn-info runscan" style="height:1.5em;padding-top:0px;padding-bottom:0px;" scanner="`+btoa(row.id)+`">Run</button>
-                        return `
+                        /*return `
                             &nbsp;<a style="height:1.5em;" class="badge badge-primary btn-service-detail" service="`+btoa(row.name)+`" data-toggle="tooltip" data-placement="bottom" title="Show service details">Info</button>
+                            `;*/
+                        return `
+                            &nbsp;<a class="badge badge-primary" href="/inspectors/ApplicationTopography/service.html?id=`+
+                            DexcaliburAPI.util.encodeLocationAction(row.name)
+                            +`"  data-toggle="tooltip" data-placement="bottom" title="Show service details">Info</button>
                             `;
                     }
                 }
@@ -1479,8 +1533,13 @@
                 { 
                     render: function(data, type, row, meta ){
                         // <button class="btn btn-info runscan" style="height:1.5em;padding-top:0px;padding-bottom:0px;" scanner="`+btoa(row.id)+`">Run</button>
-                        return `
+                        /*return `
                             &nbsp;<a style="height:1.5em;" class="badge badge-primary btn-receiver-detail" receiver="`+btoa(row.name)+`" data-toggle="tooltip" data-placement="bottom" title="Show receiver details">Info</button>
+                            `;*/
+                        return `
+                            &nbsp;<a class="badge badge-primary" href="/inspectors/ApplicationTopography/receiver.html?id=`+
+                            DexcaliburAPI.util.encodeLocationAction(row.name)
+                            +`"  data-toggle="tooltip" data-placement="bottom" title="Show receiver details">Info</button>
                             `;
                     }
                 }
@@ -1522,8 +1581,13 @@
                 { 
                     render: function(data, type, row, meta ){
                         // <button class="btn btn-info runscan" style="height:1.5em;padding-top:0px;padding-bottom:0px;" scanner="`+btoa(row.id)+`">Run</button>
-                        return `
+                        /* return `
                             &nbsp;<a style="height:1.5em;" class="badge badge-primary btn-provider-detail" provider="`+btoa(row.name)+`" data-toggle="tooltip" data-placement="bottom" title="Show provider details">Info</button>
+                            `; */
+                        return `
+                            &nbsp;<a class="badge badge-primary" href="/inspectors/ApplicationTopography/provider.html?id=`+
+                            DexcaliburAPI.util.encodeLocationAction(row.name)
+                            +`"  data-toggle="tooltip" data-placement="bottom" title="Show provider details">Info</button>
                             `;
                     }
                 }

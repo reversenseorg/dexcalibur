@@ -587,6 +587,35 @@ var DexcaliburAPI = {
     },
     context: {
         tags: []
+    },
+    util: {
+        encodeLocationAction: function(val){
+            return btoa(encodeURIComponent(val));
+        },
+        decodeLocationAction: function(val){
+            return decodeURIComponent(atob(val))
+        },
+        onLocation: function( locationObj, actions){
+
+            let q = locationObj.href.indexOf('?');
+            if(q==-1){
+                locationObj.query = "";
+            } else{
+                locationObj.query = location.href.substr(
+                    q+1,
+                    locationObj.href.length-q-1-locationObj.hash.length
+                );                
+            }
+        
+            if(locationObj.query.length>0){
+                let o = locationObj.query.indexOf("=");
+                let tag = locationObj.query.substr(0, o);
+
+                if(actions[tag]!=null){
+                    actions[tag]( locationObj.query.substr(o+1));
+                }
+            }
+        }
     }
 };
 

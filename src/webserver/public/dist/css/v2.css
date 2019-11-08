@@ -94,6 +94,11 @@ table {
     cursor: pointer;
 }
 
+
+.card-header {
+    padding-top: 0.2em;
+    padding-bottom: 0.2em;
+}
 .page-header {
     margin-top: 10px;
 }
@@ -417,6 +422,18 @@ table.finderTable > tbody > tr > td {
     color: rgb(196, 72, 0);
 }
 
+.dxc-detail-body-sm {
+    font-size: 0.8em;
+}
+
+#dxc-detail-attr-tab {
+    margin: 0.5em;
+}
+
+#dxc-detail-attr-tab div.row div:first-child{
+    font-weight: 800;
+}
+
 
 .dxc-horizon-separator {
     border-top: 1px solid rgb(233, 123, 60);
@@ -523,6 +540,8 @@ table.finderTable > tbody > tr > td {
     background-color: rgb(4, 119, 39);
     color: #FFF;
 }
+
+
 
 #tabProbeLogs tr td {
     padding-top:0.3em;

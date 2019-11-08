@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="">
+    <meta name="author" content="">
+
+    <title>Dexcalibur - Provider</title>
+
+    <!-- styles -->
+    <!--## pages/inc/tpl_css.html ##-->
+
+
+
+
+    <!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
+    <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
+    <!--[if lt IE 9]>
+        <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
+        <script src="https://oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js"></script>
+    <![endif]-->
+
+</head>
+
+<body class="dxc-dark">
+
+
+        <!-- Navigation -->
+        <!--## pages/inc/menu.html ##-->
+
+        <div id="page-wrapper" class="dxc-dark">
+            
+
+            <div class="row">
+                <div class="col-lg-12">
+                    <h1 class="page-header"><span class="text-info">Provider&nbsp;:&nbsp;</span><span id="provider-name"></span></h1>
+                </div>
+                <!-- /.col-lg-12 -->
+            </div>
+            
+            <div class="row">
+                <div class="col-lg-5  dxc-detail-body-sm">
+                    <div class="card">
+                        <div class="btn-group">
+                            <a class="btn btn-primary seeClass" href="" id="dxc-detail-impl"><span class="fa fa-eye"></span>&nbsp;Open class</a>
+                            <!--<a class="btn btn-danger startActivity" href=""><span class="fa fa-play"></span>&nbsp;Send intent</a>--> 
+                        </div>
+                        <div class="card-body" style="padding:0px" id="dxc-detail-attr-tab">
+                        </div>
+                    </div>
+                    <div class="card">
+                        <h5 class="card-header"> Intent Filters
+                            </h5>
+                            <div class="card-body" style="padding:0px">
+                                <table width="100%" class="table table-striped table-bordered table-hover overflow-auto" style="margin-bottom:0px;overflow:scroll" id="dxc-detail-intent-tab">
+                                    <thead>
+                                        <th class="col-lg-1">-</th>
+                                        <th class="col-lg-5">Category</th>
+                                        <th class="col-lg-6">Action</th>
+                                    </thead>
+                                    <tbody></tbody>
+                                </table>
+                            </div>
+                    </div>
+                </div>
+                <div class="col-lg-7">
+                        <div class="card">
+                            <div class="card-header" style="font-size:1.2em">
+                                Android internals methods called
+                            </div>
+                            <div class="card-body" style="padding:0px">
+                                <p></p>
+                                <table width="100%" class="table table-striped table-bordered" style="margin-bottom: 0px" id="dxc-detail-intern-tab">
+                                    <thead>
+                                        <th>Class</th>
+                                        <th>Method</th>
+                                    </thead>
+                                    <tbody><!--
+                                        <tr><td class="col-lg-8" >DexClassLoader.load</td><td class="col-lg-4 col-threat-score" style="color:orange">3/5</td></tr>
+                                        <tr><td class="col-lg-8" >Runtime.exec</td><td class="col-lg-4 col-threat-score" style="color: orangered">5/5</td></tr>
+                                    --></tbody>
+                                </table>
+                            </div>
+                        </div>
+                </div>
+            </div>
+            
+           
+
+
+        </div>
+        <!-- /#page-wrapper -->
+    
+
+
+    <!--## pages/inc/tpl_js_end.html ##-->
+
+   <!--<script src="/js/wexcalibur.js"></script> -->
+    <script>
+
+    let TAGS_COLOR = {
+        MAIN: "success",
+        BROWSABLE: "danger",
+        EXPOSED: "danger",
+        BOOT_COMPLETED: "purple",
+        SMS: "info",
+        PHONE: "info"
+    };
+
+    function htmlEncode(txt){
+        return $('<div />').text(txt).html();
+    }
+
+    function render(data){
+        // act-detail-tag
+
+        $("#provider-name").html(
+            data.name
+        );
+
+
+        $("#dxc-detail-title").html(
+            DexcaliburAPI.ui.htmlEncode(data.name)
+        );
+
+        // tags
+        let tags = "";
+        if((data.__tag instanceof Array) && (data.__tag.length > 0)){
+           data.__tag.map(t => {
+                if(TAGS_COLOR[t] != null)
+                    tags += DexcaliburAPI.ui.badge.make(TAGS_COLOR[t],t);
+                else
+                    tags += DexcaliburAPI.ui.badge.make('info',t);
+            });
+        }
+
+        // impl
+        $("#dxc-detail-impl").attr(
+            "href",
+            "/pages/finder.html?class="+btoa(encodeURIComponent(data.__impl))
+        );
+
+       
+
+        // attributes
+        $("#dxc-detail-attr-tab").empty();
+        $("#dxc-detail-attr-tab").append("<div class='row'><div class='col-lg-4'>Tags</div><div class='col-lg-8'>"+tags+"</div></div>");
+        
+        for(let i in data.attr){
+            $("#dxc-detail-attr-tab").append("<div class='row'><div class='col-lg-4'>"
+                +DexcaliburAPI.ui.htmlEncode(i)+"</div><div class='col-lg-8'>"+DexcaliburAPI.ui.htmlEncode(data.attr[i])+"</div></div>");
+        }
+
+        // intent
+        $("#dxc-detail-intent-tab > tbody").empty();
+        
+        if(data.intentFilters.length > 0){
+            for(let i=0; i<data.intentFilters.length; i++){
+                intent = data.intentFilters[i];
+                body_tr = "<tr><td><span class='badge badge-danger'><span class='fa fa-play'></span>&nbsp;send</span></td><td>";
+                intent.category.map((x,i) => {
+                    if(i>0) body_tr += "<br>";
+                    body_tr += DexcaliburAPI.ui.htmlEncode(x.name);
+                });
+                body_tr += "</td><td>";
+                intent.action.map((x,i) => {
+                    if(i>0) body_tr += "<br>";
+                    body_tr += DexcaliburAPI.ui.htmlEncode(x.name);
+                });
+                body_tr += "</td></tr>";
+
+                $("#dxc-detail-intent-tab > tbody").append(body_tr);
+            }
+        }else{
+            $("#dxc-detail-intent-tab > tbody").append("<tr><td colspan='3' style='font-size:1.2em'>No intent filters</td></tr>");
+        }
+
+        // interns 
+        $("#dxc-detail-intern-tab > tbody").empty();
+        let m = "";
+        for(let i in data.__ppts["internals"]){
+
+            m = Object.keys(data.__ppts["internals"][i]).map(
+                x => "<a target='blank' href='/pages/finder.html?method="
+                + btoa(encodeURIComponent(i+'.'+x)) + "'>"+DexcaliburAPI.ui.htmlEncode(x)+"</a>")
+                .join("<br>");
+
+            $("#dxc-detail-intern-tab > tbody").append(
+                "<tr><td class='col-lg-3'>"+DexcaliburAPI.ui.htmlEncode(i)+"</td><td class='col-lg-9'>"+m+"</td></tr>"       
+            );
+        }
+
+    }
+
+    $(document).ready(function() {
+        //let id=
+        
+        DexcaliburAPI.util.onLocation(
+            location,
+            {
+                "id": function(value){
+                    DexcaliburAPI.manifest.providers.get(
+                        value, {
+                        200: function(data){
+
+                            let act = JSON.parse(data);
+                            render(act.data);
+                        }
+                    });
+                }
+            }
+        )
+        
+
+    });
+
+    </script>
+
+</body>
+
+</html>
