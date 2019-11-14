@@ -54,6 +54,7 @@ class AdbWrapper
         this.deviceID = (deviceID!=null) ? deviceID : null;
     }
 
+
     isReady(){
         return (this.path != null);
     }
@@ -300,9 +301,9 @@ class AdbWrapper
      * @param {*} local_path The path of the local resource to upload 
      * @param {*} remote_path The path where the resource will be stored remotely
      */
-    push(local_path, remote_path){
+    push(local_path, remote_path, deviceID=null){
 
-        if(deviceID != null)
+        if(this.deviceID != null || deviceID != null)
             return UT.execSync(this.setup(deviceID)+' push '+local_path+' '+remote_path);
         else
             return UT.execSync(this.path+' push '+local_path+' '+remote_path);
@@ -315,9 +316,9 @@ class AdbWrapper
      * 
      * @param {*} command The command to execute remotely
      */
-    shell(command){
+    shell(command, deviceID = null){
 
-        if(deviceID != null)
+        if(this.deviceID != null || deviceID != null)
             return UT.execSync(this.setup(deviceID)+' shell '+command);
         else
             return UT.execSync(this.path+' shell '+command);
@@ -331,9 +332,9 @@ class AdbWrapper
      * 
      * @param {*} command The command to execute remotely
      */
-    privilegedShell(command){
+    privilegedShell(command, deviceID=null){
         
-        if(deviceID != null)
+        if(this.deviceID != null || deviceID != null)
             return UT.execSync(this.setup(deviceID)+' shell su -c "'+command+'"');
         else
             return UT.execSync(this.path+' shell su -c "'+command+'"');
