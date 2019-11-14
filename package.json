@@ -23,14 +23,14 @@
     "md5": "^2.2.1",
     "mime-types": "^2.1.20",
     "properties": "^1.2.1",
-    "xml2js": "^0.4.19",
-    "yara": "^2.2.0"
+    "xml2js": "^0.4.19"
   },
   "devDependencies": {
     "mocha": "^5.2.0",
     "mocha-sinon": "^2.1.0",
     "sinon": "^7.3.2",
-    "sinon-chai": "^3.3.0"
+    "sinon-chai": "^3.3.0",
+    "yara": "^2.2.0"
   },
   "scripts": {
     "dexcalibur": "node --max-old-space-size=4096 ./dexcalibur",
