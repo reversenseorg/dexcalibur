@@ -1115,6 +1115,42 @@ class WebServer {
                 };
                 res.status(200).send(JSON.stringify(dev));
             });
+
+        this.app.route('/api/intent/send')
+            .post(function (req, res) {
+                // collect
+                let uid = req.body["uid"];
+                let data = req.body["data"];
+
+                res.set('Content-Type', 'text/json');
+
+                // get intent filter
+                let intentFilter = $.project.getAppAnalyzer().getIntentFilter(req.body["type"],req.body["name"],uid);
+                if(intentFilter == null){
+                    res.status(404).send(JSON.stringify({ data: null, err: "IntentFilter not found for the given UID" }));
+                    return null;
+                }
+
+                // get default device
+                let device = $.project.devices.getDefault();
+                if(device == null){
+                    res.status(404).send(JSON.stringify({ data: null, err: "Device not connected" }));
+                    return null;
+                }
+                
+                // send command
+                try{
+                    device.sendIntent(
+                        intentFilter,
+                        data
+                    );
+                    res.status(200).send(JSON.stringify({ data: { running:true}, err:null  }));
+                }catch(excp){
+                    console.log(excp);
+                    res.status(404).send(JSON.stringify({ data: null, err: excp.messgae }));
+                }
+            });
+
     }
 
     showAccessLogs() {

@@ -34,7 +34,7 @@
         let m = false;
 
         var element = $('ul.navbar-nav li.nav-item a.nav-link').filter(function() {
-            console.log(this.href,url,this.href == url);
+            //console.log(this.href,url,this.href == url);
             return this.href == url;
         }).addClass('active').parent();
 
@@ -44,7 +44,7 @@
         
         if(element==null || element.length == 0){
             element = $('ul.navbar-nav li.nav-item a.dropdown-item').filter(function() {
-                console.log(this.href,url,this.href == url);
+                //console.log(this.href,url,this.href == url);
                 return this.href == url;
             }).parent().parent().addClass('active');
         }

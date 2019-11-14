@@ -1,5 +1,10 @@
+const Logger = require('./Logger.js')();
+const _md5_ = require('md5');
+
 const ANDROID_PREFIX = "android:";
 const ANDROID_PREFIX_LEN = 8;
+
+const UID_SEPARATOR = "-";
 
 class IntentActionCriteria
 {
@@ -73,6 +78,7 @@ class IntentCategoryCriteria
     static androidPrefixed = [];
 
     constructor(){
+
         this.__attr = {};
 
         this.name = null;
@@ -170,9 +176,9 @@ class IntentDataCriteria
 
         for(let i in xmlobj){
             if(i.startsWith('android:')){
-                this[i.substr(8)] = xmlobj[i]; 
+                o[i.substring(8)] = xmlobj[i]; 
             }else{
-                this[i] = xmlobj[i];
+                o[i] = xmlobj[i];
             }
         }
 
@@ -196,6 +202,8 @@ class IntentDataCriteria
 class IntentFilter
 {
     constructor(config){
+        this.__id = null;
+
         this.action = [];
         this.category = [];
         this.data = [];
@@ -205,6 +213,15 @@ class IntentFilter
             for(let i in config)
                     this[i] = config[i];
         }
+    }
+
+    generateUID(activity){
+        console.log(activity);
+        this.__id = activity.getUID()+UID_SEPARATOR+activity.countIntentFilter();
+    }
+
+    getUid(){
+        return this.__id;
     }
 
     getActions(){
@@ -257,8 +274,20 @@ class IntentFilter
         return intf;
     }
 
+    /**
+	 * 
+	 * @param {Activity} activity
+	 * @returns {String} The next valid value for Intent Filter UID
+	 * @function
+	 */
+	static generateIntentFilterUID(activity){
+		return activity.getUID()+UID_SEPARATOR+activity.intentFilters.length;
+    }
+    
     toJsonObject(){
         let o = new Object();
+
+        o.__id = this.__id;
 
         o.data = [];
         this.data.map(x => o.data.push(x.toJsonObject()));
@@ -779,6 +808,7 @@ class AndroidActivity
         this.intentFilters = [];
         this.metadata = null;
 
+        this.__id = null;
         this.__impl = null;
         this.__tag = [];
         this.__ppts = {};
@@ -788,7 +818,24 @@ class AndroidActivity
             for(let i in config)
                 if(this[i] !==  undefined)
                     this[i] = config[i];
+
+            if(this.name != null)
+                this.generateUID();
         }
+    }
+
+    generateUID(){
+        if(this.name == null) throw new Error("[ACTIVITY] Unable to generate UID");
+
+        this.__id = _md5_(this.name);
+    }
+
+    getUID(){
+        if(this.__id == null){
+            Logger.error("Activity UID is null");
+            this.generateUID();
+        }
+        return this.__id;
     }
 
     setImplementedBy(cls){
@@ -830,11 +877,24 @@ class AndroidActivity
     }
 
     addIntentFilters(filter){
+        filter.generateUID(this);
         this.intentFilters.push(filter);
     }
 
     getIntentFilters(){
         return this.intentFilters;
+    }
+
+    countIntentFilter(){
+        return this.intentFilters.length;
+    }
+
+    getIntentFilterByUid(id){
+        for(let i=0; i<this.intentFilters.length; i++){
+            if(this.intentFilters[i].getUid()===id)
+                return this.intentFilters[i];
+        }
+        return null;
     }
 
     getLabel(){
@@ -874,13 +934,20 @@ class AndroidActivity
                     break;
                 case 'intent-filter':
                     for(let i=0; i<xmlobj[j].length; i++){
-                        act.intentFilters.push(
+                        act.addIntentFilters(
                             IntentFilter.fromXml(xmlobj[j][i])
                         );
                     }
                     break;
             }
         }
+ 
+        try{
+            act.generateUID();
+        }catch(e){
+            Logger.error("[ACTIVITY] Manifest parsing error : an activity has not name");
+        }
+
 
         return act;
     }
@@ -917,6 +984,7 @@ class AndroidActivity
     toJsonObject(){
         let o = new Object();
 
+        o.__id = this.__id;
         o.label = this.label;
         o.name = this.name;
         o.attr = this.attr;
@@ -954,6 +1022,7 @@ class AndroidService
         this.intentFilters = [];
         this.metadata = null;
 
+        this.__id = null;
         this.__impl = null;
         this.__tag =[]; 
         this.__ppts = {};
@@ -964,9 +1033,22 @@ class AndroidService
             for(let i in config)
                 if(this[i] !==  undefined)
                     this[i] = config[i];
+            
+            if(this.name != null)
+                this.generateUID();
         }
     }
 
+    
+    generateUID(){
+        if(this.name == null) throw new Error("[SERVICE] Unable to generate UID");
+
+        this.__id = _md5_(this.name);
+    }
+
+    getUID(){
+        return this.__id;
+    }
 
     addTag(tag){
         if(this.__tag.indexOf(tag)==-1)
@@ -997,10 +1079,21 @@ class AndroidService
     }
 
     addIntentFilters(filter){
+        filter.generateUID(this);
         this.intentFilters.push(filter);
     }
 
+    countIntentFilter(){
+        return this.intentFilters.length;
+    }
 
+    getIntentFilterByUid(id){
+        for(let i=0; i<this.intentFilters.length; i++){
+            if(this.intentFilters[i].getUid()===id)
+                return this.intentFilters[i];
+        }
+        return null;
+    }
     getIntentFilters(){
         return this.intentFilters;
     }
@@ -1042,12 +1135,19 @@ class AndroidService
                     break;
                 case 'intent-filter':
                     for(let i=0; i<xmlobj[j].length; i++){
-                        act.intentFilters.push(
+                        act.addIntentFilters(
                             IntentFilter.fromXml(xmlobj[j][i])
                         );
                     }
                     break;
             }
+        }
+
+
+        try{
+            act.generateUID();
+        }catch(e){
+            Logger.error("[SERVICE] Manifest parsing error : an service has not name");
         }
 
         return act;
@@ -1056,6 +1156,8 @@ class AndroidService
     toJsonObject(){
         let o = new Object();
 
+
+        o.__id = this.__id;
         o.label = this.label;
         o.name = this.name;
         o.attr = this.attr;
@@ -1095,6 +1197,7 @@ class AndroidReceiver
         this.intentFilters = [];
         this.metadata = null;
 
+        this.__id = null;
         this.__impl = null;
         this.__tag = [];
         this.__ppts = {};
@@ -1104,7 +1207,20 @@ class AndroidReceiver
             for(let i in config)
                 if(this[i] !==  undefined)
                     this[i] = config[i];
+
+            if(this.name != null)
+                this.generateUID();
         }
+    }
+
+    generateUID(){
+        if(this.name == null) throw new Error("[RECEIVER] Unable to generate UID");
+
+        this.__id = _md5_(this.name);
+    }
+
+    getUID(){
+        return this.__id;
     }
 
 
@@ -1136,9 +1252,23 @@ class AndroidReceiver
     }
 
     addIntentFilters(filter){
+
+        filter.generateUID(this);
         this.intentFilters.push(filter);
     }
 
+
+    countIntentFilter(){
+        return this.intentFilters.length;
+    }
+
+    getIntentFilterByUid(id){
+        for(let i=0; i<this.intentFilters.length; i++){
+            if(this.intentFilters[i].getUid()===id)
+                return this.intentFilters[i];
+        }
+        return null;
+    }
 
     getIntentFilters(){
         return this.intentFilters;
@@ -1180,12 +1310,19 @@ class AndroidReceiver
                     break;
                 case 'intent-filter':
                     for(let i=0; i<xmlobj[j].length; i++){
-                        act.intentFilters.push(
+                        act.addIntentFilters(
                             IntentFilter.fromXml(xmlobj[j][i])
                         );
                     }
                     break;
             }
+        }
+
+
+        try{
+            act.generateUID();
+        }catch(e){
+            Logger.error("[RECEIVER] Manifest parsing error : an receiver has not name");
         }
 
         return act;
@@ -1194,6 +1331,7 @@ class AndroidReceiver
     toJsonObject(){
         let o = new Object();
 
+        o.__id = this.__id;
         o.label = this.label;
         o.name = this.name;
         o.attr = this.attr;
@@ -1231,6 +1369,7 @@ class AndroidProvider
         this.intentFilters = [];
         this.metadata = null;
 
+        this.__id = null;
         this.__impl = null;
         this.__tag = [];
         this.__ppts = {};
@@ -1241,9 +1380,21 @@ class AndroidProvider
             for(let i in config)
                 if(this[i] !==  undefined)
                     this[i] = config[i];
+
+            if(this.name != null)
+                this.generateUID();
         }
     }
 
+    generateUID(){
+        if(this.name == null) throw new Error("[PROVIDER] Unable to generate UID");
+
+        this.__id = _md5_(this.name);
+    }
+
+    getUID(){
+        return this.__id;
+    }
 
     addTag(tag){
         if(this.__tag.indexOf(tag)==-1)
@@ -1273,9 +1424,23 @@ class AndroidProvider
     }
 
     addIntentFilters(filter){
+
+        filter.generateUID(this);
         this.intentFilters.push(filter);
     }
+    
 
+    countIntentFilter(){
+        return this.intentFilters.length;
+    }
+
+    getIntentFilterByUid(id){
+        for(let i=0; i<this.intentFilters.length; i++){
+            if(this.intentFilters[i].getUid()===id)
+                return this.intentFilters[i];
+        }
+        return null;
+    }
 
     getIntentFilters(){
         return this.intentFilters;
@@ -1317,12 +1482,19 @@ class AndroidProvider
                     break;
                 case 'intent-filter':
                     for(let i=0; i<xmlobj[j].length; i++){
-                        act.intentFilters.push(
+                        act.addIntentFilters(
                             IntentFilter.fromXml(xmlobj[j][i])
                         );
                     }
                     break;
             }
+        }
+
+
+        try{
+            act.generateUID();
+        }catch(e){
+            Logger.error("[PROVIDER] Manifest parsing error : an provider has not name");
         }
 
         return act;
@@ -1331,6 +1503,7 @@ class AndroidProvider
     toJsonObject(){
         let o = new Object();
 
+        o.__id = this.__id;
         o.label = this.label;
         o.name = this.name;
         o.attr = this.attr;
@@ -1577,10 +1750,8 @@ class AndroidManifest
                     break;
                 case 'application':
                     if(config[i] instanceof AndroidApplication){
-                        //console.log(config[i]);
                         self.application = config[i];
                     }else{
-                        // console.log(config[i]);
                         self.application = AndroidApplication.fromXml(config[i][0]);
                         context.trigger({
                             name: "app.application.new",

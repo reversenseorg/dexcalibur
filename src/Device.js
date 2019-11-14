@@ -86,6 +86,22 @@ class Device
         this.device = name;
     }
 
+    
+    sendIntent(intentFilter, data){
+        let act = intentFilter.getActions();
+        if(act.length == 0){
+            throw new Error("This intent filter has not action");
+        }
+        
+        if(act.length > 1){
+            throw new Error("This intent filter has more than 1 action");
+        }
+        
+        console.log(act, data, this.bridge);
+        this.bridge.shell(`am start -a ${act[0].getName()} -d ${data}`);
+    }
+
+
     /**
     * To check if the given file path exists on the device
     * @param {string} file The file path to check
@@ -120,7 +136,7 @@ class Device
             }
             else{
                 json[i] = this[i];
-            }
+            }                       
         }
         return json;
     }

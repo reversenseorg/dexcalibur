@@ -583,6 +583,19 @@ var DexcaliburAPI = {
                     statusCode: callbacks
                 });
             },
+        },
+        intent: {
+            send: function(data,callbacks){
+                let postdata = {_t: (new Date()).getTime()};
+                for(let i in data) postdata[i] = data[i];
+
+                alert("sending");
+                $.ajax('/api/intent/send',{
+                    method: 'post',
+                    data: postdata,
+                    statusCode: callbacks
+                });
+            }
         }
     },
     context: {

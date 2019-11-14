@@ -3,7 +3,6 @@ const _Chalk_ = require("chalk");
 const Logger = require("./Logger.js")();
 const _xml2js_ = require("xml2js");
 
-//const AndroidComp = require("./AndroidAppComponents.js");
 
 const Android = require("./AndroidAppComponents.js");
 
@@ -22,6 +21,45 @@ class AndroidAppAnalyzer
 
 	}
 	*/
+
+	/**
+	 * To get an intent filter by its UID
+	 * 
+	 * @param {String} uid UID of tntent filter 
+	 * @returns {IntentFilter} 	Return the corresponding Intent Filter, else NULL
+	 * @function
+	 */
+	getIntentFilter(type,cmp,uid){
+		let result = null;
+
+		switch(type)
+		{
+			case "activity":
+				result = this.context.find.get.activity(cmp);
+				if(result instanceof Android.Activity)
+					return result.getIntentFilterByUid(uid);
+				break;
+			case "receiver":
+				result = this.context.find.get.receiver(cmp);
+				if(result instanceof Android.Receiver)
+					return result.getIntentFilterByUid(uid);
+				break;
+			case "provider":
+				result = this.context.find.get.provider(cmp);
+				if(result instanceof Android.Provider)
+					return result.getIntentFilterByUid(uid);
+				break;
+			case "service":
+				result = this.context.find.get.service(cmp);
+				if(result instanceof Android.Service)
+					return result.getIntentFilterByUid(uid);
+				break;
+			default:
+				throw new Error("Invalid parent type.")
+		}
+
+		return null;
+	}
 
 	dumpManifest(){
 		if(this.manifest == null) return null;
