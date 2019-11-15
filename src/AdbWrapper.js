@@ -325,6 +325,21 @@ class AdbWrapper
 
     }
 
+    /**
+     * Execute a command on the device
+     * Same as 'adb shell' commande.
+     * 
+     * @param {*} command The command to execute remotely
+     */
+    shellWithEH(command, callbacks=null, deviceID = null){
+
+        if(this.deviceID != null || deviceID != null)
+            return Process.exec(this.setup(deviceID)+' shell '+command, callbacks);
+        else
+            return Process.exec(this.path+' shell '+command, callbacks);
+
+    }
+
 
     /**
      * Execute a command on the device via 'su -c'
@@ -339,8 +354,6 @@ class AdbWrapper
         else
             return UT.execSync(this.path+' shell su -c "'+command+'"');
     }
-
-
 }
 
 

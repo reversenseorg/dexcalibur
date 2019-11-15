@@ -204,7 +204,7 @@
                                 <ul>${dat}</ul>
                                 <div class="input-group input-group-sm mb-3">
                                     <div class="input-group-prepend">
-                                        <span class="input-group-text" id="inputGroup-sizing-sm">URI</span>
+                                        <span class="input-group-text" id="inputGroup-sizing-sm">Data</span>
                                     </div>
                                     <input type="text" value="${url}" id="`+
                                         intent.__id
@@ -220,6 +220,26 @@
                     `;
 
                 });
+
+                if(tpl.data == ''){
+                    tpl.data = `
+                    <br>
+                        <div class="row">
+                            <div class="col-lg-12 text-right">
+
+                                    <div class="input-group input-group-sm mb-3">
+                                        <!--<div class="input-group-prepend">
+                                            <span class="input-group-text" id="inputGroup-sizing-sm">This has not data</span>
+                                        </div>-->
+                                        <div class="input-group-append">
+                                            <button class="btn btn-success btn-sm sendIntent" id="`+
+                                            intent.__id
+                                            +`"  type="button">Send intent</button>
+                                        </div>
+                                    </div>
+                            </div>
+                        </div>`;
+                }
 
                 body_tr = `
                 <tr>
@@ -308,20 +328,41 @@
         )
 
         $('#dxc-detail-intent-tab').on('click','.sendIntent',function(e){
+            let data = null;
+            if($("#"+e.target.id+"-data").length > 0)
+                data = $("#"+e.target.id+"-data")[0].value;
+            else
+                data = null;
+
             DexcaliburAPI.manifest.intent.send(
                 {
                     uid: e.target.id,
                     type: 'activity',
                     name: currentObject.name,
-                    data: $("#"+e.target.id+"-data")[0].value
+                    data: data
                 }, {
                     200: function(data){
-                        DexcaliburAPI.ui.alert.success("The intent has been emitted.");
+                        console.log(data);
+
+                        DexcaliburAPI.ui.alert.success(
+                            `The intent has been emitted.<br>
+                            <code>${data.data}</code>`,
+                            false
+                        );
                     },
                     404: function(data){
-                        DexcaliburAPI.ui.alert.error(
-                            data.responseJSON.err
-                        );
+                        data = data.responseJSON;
+                        if(data.err != null){
+                            DexcaliburAPI.ui.alert.error(
+                                `${data.err.err} :<br>
+                                <code>${data.err.stderr}</code>`,
+                                false
+                            );
+                        }else{
+                            DexcaliburAPI.ui.alert.error(
+                                data.responseJSON.err
+                            );
+                        }
                     }
                 } 
             );

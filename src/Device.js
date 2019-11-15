@@ -87,8 +87,12 @@ class Device
     }
 
     
-    sendIntent(intentFilter, data){
+    sendIntent(intentFilter, data, pPackageName=null, callbacks=null){
+        let msg = {stdout:null, stderr:null};
+        let pkg='';
         let act = intentFilter.getActions();
+        let cb = null;
+
         if(act.length == 0){
             throw new Error("This intent filter has not action");
         }
@@ -96,9 +100,35 @@ class Device
         if(act.length > 1){
             throw new Error("This intent filter has more than 1 action");
         }
-        
-        console.log(act, data, this.bridge);
-        this.bridge.shell(`am start -a ${act[0].getName()} -d ${data}`);
+
+        if(callbacks != null){
+            cb = function(err,stdout,stderr){
+                if(err && callbacks.error!=null){
+                    callbacks.error(err);
+                }
+                else if(stderr && callbacks.stderr!=null){
+                    callbacks.stderr(stderr);
+                }else{
+                    callbacks.stdout(stdout);
+                }
+            }
+        }
+
+        if(pPackageName !== null) 
+        pkg = pPackageName;
+
+        try{
+            if(data===null){
+                msg.stdout = this.bridge.shellWithEH(`am start -a ${act[0].getName()} ${pkg}`, cb);
+            }else{
+                msg.stdout = this.bridge.shellWithEH(`am start -a ${act[0].getName()} -d ${data} ${pkg}`, cb);
+            }
+        }catch(err){
+            msg.stderr = err.stderr;
+            Logger.error("[INTENT]",err.stderr);
+        }
+
+        return msg;
     }
 
 

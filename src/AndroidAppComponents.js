@@ -236,6 +236,10 @@ class IntentFilter
         return this.data;
     }
 
+    hasData(){
+        return this.data.length > 0;
+    }
+
     toXmlObject(){
         let o = {action:[], category:[], data:[]};
     

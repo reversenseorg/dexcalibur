@@ -1121,12 +1121,14 @@ class WebServer {
                 // collect
                 let uid = req.body["uid"];
                 let data = req.body["data"];
+                let msg = null;
 
-                res.set('Content-Type', 'text/json');
 
                 // get intent filter
                 let intentFilter = $.project.getAppAnalyzer().getIntentFilter(req.body["type"],req.body["name"],uid);
                 if(intentFilter == null){
+
+                    res.set('Content-Type', 'text/json');
                     res.status(404).send(JSON.stringify({ data: null, err: "IntentFilter not found for the given UID" }));
                     return null;
                 }
@@ -1134,19 +1136,49 @@ class WebServer {
                 // get default device
                 let device = $.project.devices.getDefault();
                 if(device == null){
+                    res.set('Content-Type', 'text/json');
                     res.status(404).send(JSON.stringify({ data: null, err: "Device not connected" }));
                     return null;
+                }
+
+                let callbacks = {
+                    stderr: function(err){
+                        res.set('Content-Type', 'text/json');
+                        res.status(404).send(JSON.stringify({ data: null, err:{ err:"An error occured", stderr: err}  }));
+                    },
+                    stdout: function(out){
+                        res.set('Content-Type', 'text/json');
+                        res.status(200).send(JSON.stringify({ data: out, err:null }));
+                    }
                 }
                 
                 // send command
                 try{
-                    device.sendIntent(
-                        intentFilter,
-                        data
-                    );
-                    res.status(200).send(JSON.stringify({ data: { running:true}, err:null  }));
+                    if(intentFilter.hasData()){
+                        msg = device.sendIntent(
+                            intentFilter,
+                            data,
+                            $.project.getPackageName(),
+                            callbacks
+                        );
+                    }else{
+                        msg = device.sendIntent(
+                            intentFilter,
+                            null,
+                            $.project.getPackageName(),
+                            callbacks
+                        );
+                    }
+/*                  
+                    if(msg.stderr!==null)
+                       else
+                        res.status(200).send(JSON.stringify({ data: msg.stdout, err:null  }));
+                */
+
                 }catch(excp){
                     console.log(excp);
+
+                    res.set('Content-Type', 'text/json');
                     res.status(404).send(JSON.stringify({ data: null, err: excp.messgae }));
                 }
             });

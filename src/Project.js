@@ -587,4 +587,14 @@ Project.prototype.startWebserver = function(port=null){
     }
 }
 
+/**
+ * To get application package name
+ * 
+ * @returns {String} Applciation package name
+ * @function
+ */
+Project.prototype.getPackageName = function(){
+    return this.pkg;
+}
+
 module.exports = Project;
