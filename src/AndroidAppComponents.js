@@ -836,7 +836,7 @@ class AndroidActivity
 
     getUID(){
         if(this.__id == null){
-            Logger.error("Activity UID is null");
+            Logger.debug("Activity UID is null : generating UID");
             this.generateUID();
         }
         return this.__id;
@@ -1613,7 +1613,7 @@ class AndroidApplication
                         app.activities.push(AndroidActivity.fromXml(xmlobj.activity[i]));
                     }
                     break;
-                case 'services':
+                case 'service':
                     for(let i=0; i<xmlobj.service.length; i++){
                         app.services.push(AndroidService.fromXml(xmlobj.service[i]));
                     }
@@ -1770,7 +1770,7 @@ class AndroidManifest
             }
         }
 
-        console.log(self.__additionalContent);
+        //console.log(self.__additionalContent);
 
         return self;
     }
