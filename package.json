@@ -29,8 +29,7 @@
     "mocha": "^5.2.0",
     "mocha-sinon": "^2.1.0",
     "sinon": "^7.3.2",
-    "sinon-chai": "^3.3.0",
-    "yara": "^2.2.0"
+    "sinon-chai": "^3.3.0"
   },
   "scripts": {
     "dexcalibur": "node --max-old-space-size=4096 ./dexcalibur",
