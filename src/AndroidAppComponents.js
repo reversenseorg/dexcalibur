@@ -1705,7 +1705,7 @@ class AndroidManifest
                     break;
                 case 'permission-group':
                     config['permission-group'].map(function(k){
-                        self.permissionGroup.push(PermissionGroup.fromXml(k.$));
+                        self.permissionGroups.push(PermissionGroup.fromXml(k.$));
                     });
                     break;
                 case 'permission-tree':
