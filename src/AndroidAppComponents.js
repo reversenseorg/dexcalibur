@@ -215,9 +215,8 @@ class IntentFilter
         }
     }
 
-    generateUID(activity){
-        console.log(activity);
-        this.__id = activity.getUID()+UID_SEPARATOR+activity.countIntentFilter();
+    generateUID(parent){
+        this.__id = parent.getUID()+UID_SEPARATOR+parent.countIntentFilter();
     }
 
     getUid(){
@@ -935,6 +934,13 @@ class AndroidActivity
                     act.setAttributes(xmlobj.$);
                     act.label = act.attr.label;
                     act.name = act.attr.name;
+
+                    try{
+                        act.generateUID();
+                    }catch(e){
+                        Logger.error("[ACTIVITY] Manifest parsing error : an service has not name");
+                    }
+
                     break;
                 case 'intent-filter':
                     for(let i=0; i<xmlobj[j].length; i++){
@@ -945,13 +951,6 @@ class AndroidActivity
                     break;
             }
         }
- 
-        try{
-            act.generateUID();
-        }catch(e){
-            Logger.error("[ACTIVITY] Manifest parsing error : an activity has not name");
-        }
-
 
         return act;
     }
@@ -1136,6 +1135,13 @@ class AndroidService
                     act.setAttributes(xmlobj.$);
                     act.label = act.attr.label;
                     act.name = act.attr.name;
+
+                    try{
+                        act.generateUID();
+                    }catch(e){
+                        Logger.error("[SERVICE] Manifest parsing error : an service has not name");
+                    }
+            
                     break;
                 case 'intent-filter':
                     for(let i=0; i<xmlobj[j].length; i++){
@@ -1148,12 +1154,7 @@ class AndroidService
         }
 
 
-        try{
-            act.generateUID();
-        }catch(e){
-            Logger.error("[SERVICE] Manifest parsing error : an service has not name");
-        }
-
+        
         return act;
     }
 
@@ -1311,6 +1312,13 @@ class AndroidReceiver
                     act.setAttributes(xmlobj.$);
                     act.label = act.attr.label;
                     act.name = act.attr.name;
+
+                    try{
+                        act.generateUID();
+                    }catch(e){
+                        Logger.error("[RECEIVER] Manifest parsing error : an service has not name");
+                    }
+
                     break;
                 case 'intent-filter':
                     for(let i=0; i<xmlobj[j].length; i++){
@@ -1322,12 +1330,6 @@ class AndroidReceiver
             }
         }
 
-
-        try{
-            act.generateUID();
-        }catch(e){
-            Logger.error("[RECEIVER] Manifest parsing error : an receiver has not name");
-        }
 
         return act;
     }
@@ -1483,6 +1485,13 @@ class AndroidProvider
                     act.setAttributes(xmlobj.$);
                     act.label = act.attr.label;
                     act.name = act.attr.name;
+
+                    try{
+                        act.generateUID();
+                    }catch(e){
+                        Logger.error("[PROVIDER] Manifest parsing error : an service has not name");
+                    }
+
                     break;
                 case 'intent-filter':
                     for(let i=0; i<xmlobj[j].length; i++){
@@ -1494,12 +1503,6 @@ class AndroidProvider
             }
         }
 
-
-        try{
-            act.generateUID();
-        }catch(e){
-            Logger.error("[PROVIDER] Manifest parsing error : an provider has not name");
-        }
 
         return act;
     }

@@ -333,10 +333,13 @@ class AdbWrapper
      */
     shellWithEH(command, callbacks=null, deviceID = null){
 
-        if(this.deviceID != null || deviceID != null)
+        if(this.deviceID != null || deviceID != null){
+            Logger.info("[ADB] ",this.setup(deviceID)+' shell '+command);
             return Process.exec(this.setup(deviceID)+' shell '+command, callbacks);
-        else
+        }else{
+            Logger.info("[ADB] ",this.path+' shell '+command);
             return Process.exec(this.path+' shell '+command, callbacks);
+        }
 
     }
 

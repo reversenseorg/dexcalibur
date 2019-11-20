@@ -51,6 +51,7 @@ class AndroidAppAnalyzer
 				break;
 			case "service":
 				result = this.context.find.get.service(cmp);
+				console.log(cmp,result);
 				if(result instanceof Android.Service)
 					return result.getIntentFilterByUid(uid);
 				break;

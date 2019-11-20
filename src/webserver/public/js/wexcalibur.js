@@ -589,7 +589,8 @@ var DexcaliburAPI = {
                 let postdata = {_t: (new Date()).getTime()};
                 for(let i in data) postdata[i] = data[i];
 
-                alert("sending");
+                //DexcaliburAPI.ui.alert.warning("Sending intent ...");
+
                 $.ajax('/api/intent/send',{
                     method: 'post',
                     data: postdata,

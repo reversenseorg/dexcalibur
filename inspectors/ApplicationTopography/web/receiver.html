@@ -42,6 +42,8 @@
                 <!-- /.col-lg-12 -->
             </div>
             
+            <div class="row"><div class="col-lg-12" id="alertcontainer"></div></div>
+
             <div class="row">
                 <div class="col-lg-5  dxc-detail-body-sm">
                     <div class="card">
@@ -56,11 +58,10 @@
                         <h5 class="card-header"> Intent Filters
                             </h5>
                             <div class="card-body" style="padding:0px">
-                                <table width="100%" class="table table-striped table-bordered table-hover overflow-auto" style="margin-bottom:0px;overflow:scroll" id="dxc-detail-intent-tab">
+                                <table width="100%" class="table table-striped table-bordered overflow-auto" style="margin-bottom:0px;overflow:scroll" id="dxc-detail-intent-tab">
                                     <thead>
-                                        <th class="col-lg-1">-</th>
-                                        <th class="col-lg-5">Category</th>
-                                        <th class="col-lg-6">Action</th>
+                                        <th width="50%">Categories</th>
+                                        <th width="50%">Action</th>
                                     </thead>
                                     <tbody></tbody>
                                 </table>
@@ -89,6 +90,43 @@
                 </div>
             </div>
             
+              
+
+            <div class="modal fade" id="confIntentModal" tabindex="-1" role="dialog" aria-labelledby="confIntentModalLabel" aria-hidden="true">
+                    <div class="modal-dialog" role="document">
+                      <div class="modal-content">
+                            <div class="modal-header">
+                              <h3 class="modal-title">Intent configuration</h3>
+                            </div>
+                        <div class="modal-body">
+                            <p>This intent filter has multiple categories and/or actions. So, please select intent parameters.</p>
+
+
+                            <div class="input-group mb-3" id="confCatListSection">
+                                <div class="input-group-prepend">
+                                    <span class="input-group-text" id="confCatIntentLabel">Categories</span>
+                                </div>
+                                <select id="confCatList" class="form-control" aria-label="Small" aria-describedby="confCatIntentLabel"></select>
+                            </div>
+
+
+                            <div class="input-group mb-3" id="confActListSection">
+                                <div class="input-group-prepend">
+                                    <span class="input-group-text" id="confActIntentLabel">Actions</span>
+                                </div>
+                                <select id="confActList" class="form-control" aria-label="Small" aria-describedby="confActIntentLabel"></select>
+                            </div>
+
+                            <input type="hidden" id="confIntentId" value="">
+                      </div>
+                        <div class="modal-footer">
+                          <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>&nbsp;
+                          <button type="button" class="btn btn-primary" id="sendIntentCustom">Send</button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+           
            
 
 
@@ -115,104 +153,382 @@
         return $('<div />').text(txt).html();
     }
 
+    function renderIntentModal(pIntentConfig){
+
+        //$("#confIntentModal")
+
+        tpl = {cat:'', action:'', browser:null, data:'', uri:''};
+
+        console.log(pIntentConfig);
+
+        // init
+        $("#confCatList").empty();
+        $("#confActList").empty();
+        $("#confDataURI").empty();
+        $("#confIntentId").attr('value',pIntentConfig.__id);
+
+        // fill
+        if(pIntentConfig.category.length > 1){
+            $("#confCatListSection").css('visibility','visible');
+            pIntentConfig.category.map((x,i) => {
+                $("#confCatList").append(`<option value="${x.name}">${DexcaliburAPI.ui.htmlEncode(x.name)}</option>`);
+            });
+        }else{
+            $("#confCatListSection").css("visibility",'hidden');
+        }
+
+
+        if(pIntentConfig.action.length > 1){
+            $("#confActListSection").css('visibility','visible');
+            pIntentConfig.action.map((x,i) => {
+                $("#confActList").append(`<option value="${x.name}">${DexcaliburAPI.ui.htmlEncode(x.name)}</option>`);
+            });
+        }else{
+            $("#confActListSection").css("visibility",'hidden');
+        }
+
+            
+        pIntentConfig.data.map((x,i) => {
+        let dat="", url="";
+
+        url = ''+x.scheme+'://';
+        if(x.host != null)
+            url += x.host;
+        if(x.port != null)
+            url += ':'+x.port;
+        if(x.path != null){
+            url += '/'+x.path;
+        }                
+
+        $("#confDataURI").value = url;
+        });
+
+        $("#confIntentModal").modal();
+    }
+
     function render(data){
         // act-detail-tag
+        let tpl = {};
 
         $("#receiver-name").html(
-            data.name
+        data.name
         );
 
 
         $("#dxc-detail-title").html(
-            DexcaliburAPI.ui.htmlEncode(data.name)
+        DexcaliburAPI.ui.htmlEncode(data.name)
         );
 
         // tags
         let tags = "";
         if((data.__tag instanceof Array) && (data.__tag.length > 0)){
-           data.__tag.map(t => {
-                if(TAGS_COLOR[t] != null)
-                    tags += DexcaliburAPI.ui.badge.make(TAGS_COLOR[t],t);
-                else
-                    tags += DexcaliburAPI.ui.badge.make('info',t);
-            });
+        data.__tag.map(t => {
+            if(TAGS_COLOR[t] != null)
+                tags += DexcaliburAPI.ui.badge.make(TAGS_COLOR[t],t);
+            else
+                tags += DexcaliburAPI.ui.badge.make('info',t);
+        });
         }
 
         // impl
         $("#dxc-detail-impl").attr(
-            "href",
-            "/pages/finder.html?class="+btoa(encodeURIComponent(data.__impl))
+        "href",
+        "/pages/finder.html?class="+btoa(encodeURIComponent(data.__impl))
         );
 
-        $("#dxc-detail-tag").html(
-            tags
-        );
+
 
         // attributes
-        $("#dxc-detail-attr-tab > tbody").empty();
+        $("#dxc-detail-attr-tab").empty();
+        $("#dxc-detail-attr-tab").append("<div class='row'><div class='col-lg-4'>Tags</div><div class='col-lg-8'>"+tags+"</div></div>");
+
         for(let i in data.attr){
-            $("#dxc-detail-attr-tab").append("<div class='row'><div class='col-lg-4'>"
-                +DexcaliburAPI.ui.htmlEncode(i)+"</div><div class='col-lg-8'>"+DexcaliburAPI.ui.htmlEncode(data.attr[i])+"</div></div>");
+        $("#dxc-detail-attr-tab").append("<div class='row'><div class='col-lg-4'>"
+            +DexcaliburAPI.ui.htmlEncode(i)+"</div><div class='col-lg-8'>"+DexcaliburAPI.ui.htmlEncode(data.attr[i])+"</div></div>");
         }
 
         // intent
         $("#dxc-detail-intent-tab > tbody").empty();
-        if(data.intentFilters.length > 0){
-            for(let i=0; i<data.intentFilters.length; i++){
-                intent = data.intentFilters[i];
-                body_tr = "<tr><td><span class='badge badge-danger'><span class='fa fa-play'></span>&nbsp;send</span></td><td>";
-                intent.category.map((x,i) => {
-                    if(i>0) body_tr += "<br>";
-                    body_tr += DexcaliburAPI.ui.htmlEncode(x.name);
-                });
-                body_tr += "</td><td>";
-                intent.action.map((x,i) => {
-                    if(i>0) body_tr += "<br>";
-                    body_tr += DexcaliburAPI.ui.htmlEncode(x.name);
-                });
-                body_tr += "</td></tr>";
 
-                $("#dxc-detail-intent-tab > tbody").append(body_tr);
+        if(data.intentFilters.length > 0){
+        for(let i=0; i<data.intentFilters.length; i++){
+            
+            intent = data.intentFilters[i];
+            tpl = {cat:'', action:'', browser:null, data:'', uri:''};
+
+            intent.category.map((x,i) => {
+                if(i>0) tpl.cat += "<br>";
+                if(x.name.endsWith(".BROWSABLE")){
+                    tpl.browser = 'test';
+                }
+                tpl.cat += DexcaliburAPI.ui.htmlEncode(x.name);
+            });
+            intent.action.map((x,i) => {
+                if(i>0) tpl.action += "<br>";
+                tpl.action += DexcaliburAPI.ui.htmlEncode(x.name);
+            });
+            intent.data.map((x,i) => {
+                let dat="", url="";
+
+                for(let k in x){
+                    if(x[k]!==null){
+                        if(i>0) dat += "<br>";
+                        dat += '<li><b>'+k+' : </b>'+DexcaliburAPI.ui.htmlEncode(x[k])+'</li>';
+                    }
+                }
+
+                url = ''+x.scheme+'://';
+                if(x.host != null)
+                    url += x.host;
+                if(x.port != null)
+                    url += ':'+x.port;
+                if(x.path != null){
+                    url += '/'+x.path;
+                }                
+
+                tpl.data += `
+                    <div class="row">
+                        <div class='col-lg-12' style='font-size:1.2em'>
+                            <ul>${dat}</ul>
+                            <div class="input-group input-group-sm mb-3">
+                                <div class="input-group-prepend">
+                                    <span class="input-group-text" id="inputGroup-sizing-sm">Data URI</span>
+                                </div>
+                                <input type="text" value="${url}" id="`+
+                                    intent.__id
+                                    +`-data"class="form-control" aria-label="Small" aria-describedby="inputGroup-sizing-sm">
+                                <div class="input-group-append">
+                                    <button class="btn btn-success sendIntent" id="`+
+                                    intent.__id
+                                    +`"  type="button">Send intent</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+            });
+
+            if(tpl.data == ''){
+                tpl.data = `
+                <br>
+                    <div class="row">
+                        <div class="col-lg-12 text-right">
+
+                                <div class="input-group input-group-sm mb-3">
+                                    <!--<div class="input-group-prepend">
+                                        <span class="input-group-text" id="inputGroup-sizing-sm">This has not data</span>
+                                    </div>-->
+                                    <div class="input-group-append">
+                                        <button class="btn btn-success btn-sm sendIntent" id="`+
+                                        intent.__id
+                                        +`"  type="button">Send intent</button>
+                                    </div>
+                                </div>
+                        </div>
+                    </div>`;
             }
-        }else{
-            $("#dxc-detail-intent-tab > tbody").append("<tr><td colspan='3' style='font-size:1.2em'>No intent filters</td></tr>");
+
+            body_tr = `
+            <tr>
+                <td colspan="2">
+                    <div class="row">
+                        <div class="col-lg-6">
+                            <b style='font-size:1.2em'>${tpl.cat}</b>
+                        </div>
+                        <div class="col-lg-6">
+                            <i>${tpl.action}</i>
+                        </div>
+                    </div>`;
+
+            if(tpl.data !== null){
+                body_tr += tpl.data;
+            }
+
+            body_tr += `
+                </td>
+            </tr>`;
+
+            $("#dxc-detail-intent-tab > tbody").append(body_tr);
         }
+        }else{
+        $("#dxc-detail-intent-tab > tbody").append("<tr><td colspan='3' style='font-size:1.2em'>No intent filters</td></tr>");
+        }
+
+        /*
+        if(data.intentFilters.length > 0){
+        for(let i=0; i<data.intentFilters.length; i++){
+            intent = data.intentFilters[i];
+            body_tr = "<tr><td><span class='badge badge-danger'><span class='fa fa-play'></span>&nbsp;send</span></td><td>";
+            intent.category.map((x,i) => {
+                if(i>0) body_tr += "<br>";
+                body_tr += DexcaliburAPI.ui.htmlEncode(x.name);
+            });
+            body_tr += "</td><td>";
+            intent.action.map((x,i) => {
+                if(i>0) body_tr += "<br>";
+                body_tr += DexcaliburAPI.ui.htmlEncode(x.name);
+            });
+            body_tr += "</td></tr>";
+
+            $("#dxc-detail-intent-tab > tbody").append(body_tr);
+        }
+        }else{
+        $("#dxc-detail-intent-tab > tbody").append("<tr><td colspan='3' style='font-size:1.2em'>No intent filters</td></tr>");
+        }*/
 
         // interns 
         $("#dxc-detail-intern-tab > tbody").empty();
         let m = "";
         for(let i in data.__ppts["internals"]){
 
-            m = Object.keys(data.__ppts["internals"][i]).map(
-                x => "<a target='blank' href='/pages/finder.html?method="
-                + btoa(encodeURIComponent(i+'.'+x)) + "'>"+DexcaliburAPI.ui.htmlEncode(x)+"</a>")
-                .join("<br>");
+        m = Object.keys(data.__ppts["internals"][i]).map(
+            x => "<a target='blank' href='/pages/finder.html?method="
+            + btoa(encodeURIComponent(i+'.'+x)) + "'>"+DexcaliburAPI.ui.htmlEncode(x)+"</a>")
+            .join("<br>");
 
-            $("#dxc-detail-intern-tab > tbody").append(
-                "<tr><td class='col-lg-3'>"+DexcaliburAPI.ui.htmlEncode(i)+"</td><td class='col-lg-9'>"+m+"</td></tr>"       
-            );
+        $("#dxc-detail-intern-tab > tbody").append(
+            "<tr><td class='col-lg-3'>"+DexcaliburAPI.ui.htmlEncode(i)+"</td><td class='col-lg-9'>"+m+"</td></tr>"       
+        );
         }
 
-    }
+        }
 
-    $(document).ready(function() {
+        $(document).ready(function() {
         //let id=
-        
-        DexcaliburAPI.util.onLocation(
-            location,
-            {
-                "id": function(value){
-                    DexcaliburAPI.manifest.receivers.get(
-                        value, {
-                        200: function(data){
+        var currentObject = null;
 
-                            let act = JSON.parse(data);
-                            render(act.data);
-                        }
-                    });
-                }
+        DexcaliburAPI.util.onLocation(
+        location,
+        {
+            "id": function(value){
+                DexcaliburAPI.manifest.receivers.get(
+                    value, {
+                    200: function(data){
+
+                        let act = JSON.parse(data);
+                        currentObject = act.data;
+                        render(act.data);
+                    }
+                });
             }
+        }
         )
+
+        $("#sendIntentCustom").click(function(el){
+
+            let id = $("#confIntentId").attr('value');
+            let filt = null, data = null;
+            
+            for(let i=0; i<currentObject.intentFilters.length; i++){
+                if(currentObject.intentFilters[i].__id == id)
+                    filt = currentObject.intentFilters[i];
+            }
+
+            if(filt == null){
+                console.log("IntentFilter not found");
+                return ;
+            }
+
+            if($("#"+id+"-data").length > 0)
+                data = $("#"+id+"-data")[0].value;
+            else
+                data = null;
+                
+            DexcaliburAPI.manifest.intent.send(
+                {
+                    uid: id,
+                    type: 'receiver',
+                    name: currentObject.name,
+                    category: (filt.category.length > 1)? $("#confCatList").val() : null,
+                    action: (filt.action.length > 1)? $("#confActList").val() : null,
+                    data: data,
+                    custom: 1
+                }, {
+                    200: function(data){
+                        console.log(data);
+
+                        $("#confIntentModal").modal('hide');
+                        DexcaliburAPI.ui.alert.success(
+                            `The intent has been emitted.<br>
+                            <code>${data.data}</code>`,
+                            false
+                        );
+
+                    },
+                    404: function(data){
+                        data = data.responseJSON;
+
+                        $("#confIntentModal").modal('hide');
+                        if(data.err != null){
+                            DexcaliburAPI.ui.alert.error(
+                                `${data.err.err} :<br>
+                                <code>${data.err.stderr}</code>`,
+                                false
+                            );
+                        }else{
+                            DexcaliburAPI.ui.alert.error(
+                                data.responseJSON.err
+                            );
+                        }
+                    }
+                } 
+            );
+        });
+
+        $('#dxc-detail-intent-tab').on('click','.sendIntent',function(e){
+            let data = null, curr=null;
+            if($("#"+e.target.id+"-data").length > 0)
+                data = $("#"+e.target.id+"-data")[0].value;
+            else
+                data = null;
+
+
+            for(let i=0; i<currentObject.intentFilters.length; i++){
+                console.log(currentObject.intentFilters[i]);
+                if(currentObject.intentFilters[i].__id==e.target.id)
+                    curr = currentObject.intentFilters[i];
+            }
+
+            if(curr.action.length > 1 || curr.category.length > 1){
+                renderIntentModal(curr);
+                return;
+            }
+
+            DexcaliburAPI.manifest.intent.send(
+                {
+                    uid: e.target.id,
+                    type: 'receiver',
+                    name: currentObject.name,
+                    data: data
+                }, {
+                    200: function(data){
+                        console.log(data);
+
+                        DexcaliburAPI.ui.alert.success(
+                            `The intent has been emitted.<br>
+                            <code>${data.data}</code>`,
+                            false
+                        );
+                    },
+                    404: function(data){
+                        data = data.responseJSON;
+                        if(data.err != null){
+                            DexcaliburAPI.ui.alert.error(
+                                `${data.err.err} :<br>
+                                <code>${data.err.stderr}</code>`,
+                                false
+                            );
+                        }else{
+                            DexcaliburAPI.ui.alert.error(
+                                data.responseJSON.err
+                            );
+                        }
+                    }
+                } 
+            );
+        }); 
+
         
 
     });

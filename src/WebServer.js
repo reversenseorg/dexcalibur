@@ -1116,71 +1116,89 @@ class WebServer {
                 res.status(200).send(JSON.stringify(dev));
             });
 
+        /*
+         * Send an intent to to the default device
+         */
         this.app.route('/api/intent/send')
             .post(function (req, res) {
                 // collect
                 let uid = req.body["uid"];
                 let data = req.body["data"];
+                let action = req.body["action"];
+                let categ = req.body["category"];
+                let custom = false;
                 let msg = null;
 
+                if(req.body["custom"] == 1) custom=true;
 
                 // get intent filter
                 let intentFilter = $.project.getAppAnalyzer().getIntentFilter(req.body["type"],req.body["name"],uid);
                 if(intentFilter == null){
-
+                    Logger.error("[WEBSERVER] IntentFilter not found for the given UID");
                     res.set('Content-Type', 'text/json');
-                    res.status(404).send(JSON.stringify({ data: null, err: "IntentFilter not found for the given UID" }));
+                    res.status(404).send(JSON.stringify({ data: null, err: { err:"IntentFilter not found for the given UID", stderr: null} }));
                     return null;
                 }
 
                 // get default device
                 let device = $.project.devices.getDefault();
                 if(device == null){
+                    Logger.error("[WEBSERVER] Device not connected");
                     res.set('Content-Type', 'text/json');
-                    res.status(404).send(JSON.stringify({ data: null, err: "Device not connected" }));
-                    return null;
+                    res.status(404).send(JSON.stringify({ data: null, err: { err:"Device not connected" , stderr: null} }));
+                    return null;x
                 }
 
                 let callbacks = {
-                    stderr: function(err){
+                    stderr: function(err){                    
+                        Logger.error("[WEBSERVER] An error occured (stderr): "+err);
+                        res.set('Content-Type', 'text/json');
+                        res.status(404).send(JSON.stringify({ data: null, err:{ err:"An error occured", stderr: err}  }));
+                    },
+                    error: function(err){                    
+                        Logger.error("[WEBSERVER] An error occured (err): "+err);
                         res.set('Content-Type', 'text/json');
                         res.status(404).send(JSON.stringify({ data: null, err:{ err:"An error occured", stderr: err}  }));
                     },
                     stdout: function(out){
+                        Logger.info("[WEBSERVER] Intent sent");
                         res.set('Content-Type', 'text/json');
                         res.status(200).send(JSON.stringify({ data: out, err:null }));
                     }
                 }
                 
                 // send command
-                try{
-                    if(intentFilter.hasData()){
-                        msg = device.sendIntent(
-                            intentFilter,
-                            data,
-                            $.project.getPackageName(),
-                            callbacks
-                        );
+                //try{
+
+                    if(!custom){
+                        Logger.info("[WEBSERVER] Send intent whith data");
+                        msg = device.sendIntent({
+                                data: (intentFilter.hasData()? data : null),
+                                app: $.project.getPackageName()
+                            },callbacks,intentFilter);
                     }else{
-                        msg = device.sendIntent(
-                            intentFilter,
-                            null,
-                            $.project.getPackageName(),
-                            callbacks
-                        );
+
+                        Logger.info("[WEBSERVER] Send custom intent");
+                        // custom intent
+                        msg = device.sendIntent({
+                            data: data,
+                            category: categ,
+                            action: action,
+                            app: $.project.getPackageName()
+                        },callbacks,intentFilter);
                     }
-/*                  
+                    Logger.info("[WEBSERVER] Intent sent (#2)");
+/*                  }
                     if(msg.stderr!==null)
                        else
                         res.status(200).send(JSON.stringify({ data: msg.stdout, err:null  }));
                 */
 
-                }catch(excp){
-                    console.log(excp);
-
+                /*}catch(excp){
+                    Logger.error("[WEBSERVER] Intent exception : ",excp);
                     res.set('Content-Type', 'text/json');
                     res.status(404).send(JSON.stringify({ data: null, err: excp.messgae }));
-                }
+                }*/
             });
 
     }

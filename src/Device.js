@@ -1,5 +1,5 @@
 
-
+const Logger = require("./Logger.js")();
 const _MD5_ = require("md5");
 
 const DEV = {
@@ -86,19 +86,48 @@ class Device
         this.device = name;
     }
 
-    
-    sendIntent(intentFilter, data, pPackageName=null, callbacks=null){
+    /**
+     * 
+     * @param {Object} data 
+     * @param {Object} callbacks 
+     * @param {IntentFilter} pIntentFilter An intance of the intent filter 
+     * @param {Boolean} force 
+     */
+    sendIntent(data, callbacks=null, pIntentFilter=null, force=false){
         let msg = {stdout:null, stderr:null};
-        let pkg='';
-        let act = intentFilter.getActions();
+        let pkg='', cmd='am start ';
+        let act = null, cat=null;
         let cb = null;
 
-        if(act.length == 0){
-            throw new Error("This intent filter has not action");
+        if(pIntentFilter==null){
+            Logger.error("[TODO] Implement sendCustomIntent() : intent builder without autocompleting");
+            callbacks.error("[TODO] Implement sendCustomIntent() : intent builder without autocompleting");
+            return;
+            // this.sendCustomIntent(data,callbacks);
         }
-        
-        if(act.length > 1){
-            throw new Error("This intent filter has more than 1 action");
+
+        if(data.category==null && force==false){
+            if(pIntentFilter.getCategories().length-1 > 0){
+                callbacks.error("This intent filter has several categories, and none is given");
+                return;
+            }
+            else if(pIntentFilter.getCategories().length == 1){
+                cat = pIntentFilter.getCategories()[0].getName();
+            }
+        }else{
+            cat = data.category;
+        }
+
+        if(data.action==null && force == false){
+            if(pIntentFilter.getActions().length-1 > 0){
+                callbacks.error("This intent filter has several action, and none is given");
+                return;
+            }
+            else if(pIntentFilter.getActions().length == 1){
+                act = pIntentFilter.getActions()[0].getName();
+            }
+        }else{
+            act = data.action;
         }
 
         if(callbacks != null){
@@ -107,6 +136,7 @@ class Device
                     callbacks.error(err);
                 }
                 else if(stderr && callbacks.stderr!=null){
+                    Logger.error(stderr);
                     callbacks.stderr(stderr);
                 }else{
                     callbacks.stdout(stdout);
@@ -114,15 +144,15 @@ class Device
             }
         }
 
-        if(pPackageName !== null) 
-        pkg = pPackageName;
+        if(data.app !== null) 
+            pkg = data.app;
 
         try{
-            if(data===null){
-                msg.stdout = this.bridge.shellWithEH(`am start -a ${act[0].getName()} ${pkg}`, cb);
-            }else{
-                msg.stdout = this.bridge.shellWithEH(`am start -a ${act[0].getName()} -d ${data} ${pkg}`, cb);
-            }
+            if(act != null && act.length > 0) cmd += `-a ${act} `;
+            if(cat != null && cat.length > 0) cmd += `-c ${cat} `;
+            if(data.data != null && data.data.length > 0) cmd += `-d ${data.data} `;
+            
+            msg.stdout = this.bridge.shellWithEH(cmd+' '+pkg, cb);
         }catch(err){
             msg.stderr = err.stderr;
             Logger.error("[INTENT]",err.stderr);
