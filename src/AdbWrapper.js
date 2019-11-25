@@ -357,6 +357,7 @@ class AdbWrapper
         else
             return UT.execSync(this.path+' shell su -c "'+command+'"');
     }
+
 }
 
 

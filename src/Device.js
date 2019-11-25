@@ -86,6 +86,10 @@ class Device
         this.device = name;
     }
 
+    exec(pCommand, pCallbacks){
+        return this.bridge.shellWithEH(pCommand, pCallbacks);
+    }
+
     /**
      * 
      * @param {Object} data 

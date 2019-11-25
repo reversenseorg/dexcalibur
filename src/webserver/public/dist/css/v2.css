@@ -505,6 +505,39 @@ table.finderTable > tbody > tr > td {
     padding-left: 1em;
 }
 
+
+.dxc-purple-btn {
+    margin-left: 1em;
+    background-color: rgba(44, 44, 99);
+    border: 1px solid rgb(234, 0, 255);
+    color: rgb(234, 0, 255);
+}
+.dxc-purple-btn a.nav-link {
+    color: rgb(234, 0, 255);
+}
+
+.dxc-purple-btn a.nav-link:hover {
+    color: rgba(44, 44, 99);
+    background-color: rgb(234, 0, 255);
+}
+
+
+.dxc-orange-btn {
+    margin-left: 1em;
+    background-color: rgba(44, 44, 99);
+    border: 1px solid rgb(255, 174, 0);
+    color: rgb(255, 174, 0);
+}
+.dxc-orange-btn a.nav-link {
+    color: rgb(255, 174, 0);
+}
+
+.dxc-orange-btn a.nav-link:hover {
+    color: rgba(44, 44, 99);
+    background-color: rgb(255, 174, 0);
+}
+
+
 .dxc-run-btn {
     background-color: rgba(44, 44, 99);
     border: 1px solid rgb(0, 247, 255);
