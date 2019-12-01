@@ -112,18 +112,17 @@ class SaveManager
     
 
     import(pData){
-        let index = null, o=null, hook=null;
+        let index = null, o=null, hook=null, qflag=0;
 
-        console.log(pData);
         if(pData.classes.size > 0){
             index = this._db.getIndex("classes");
             for(let k in pData.classes.data){
                 o = this.context.find.get.class(k);
-                console.log(k,pData.classes.data[k],o);
                 if(o != null){
                     o.setAlias(pData.classes.data[k].alias);
                 }else{
                     this.queue.class.push(pData.classes.data[k]);
+                    qflag++;
                 }
             }
         }
@@ -132,11 +131,11 @@ class SaveManager
             index = this._db.getIndex("methods");
             for(let k in pData.methods.data){
                 o = this.context.find.get.method(k);
-                console.log(k,pData.methods.data[k],o);
                 if(o != null){
                     o.setAlias(pData.methods.data[k].alias);
                 }else{
                     this.queue.method.push(pData.methods.data[k]);
+                    qflag++;
                 }
             }
         }
@@ -145,11 +144,11 @@ class SaveManager
             index = this._db.getIndex("fields");
             for(let k in pData.fields.data){
                 o = this.context.find.get.field(k);
-                console.log(k,pData.fields.data[k],o);
                 if(o != null){
                     o.setAlias(pData.fields.data[k].alias);
                 }else{
                     this.queue.field.push(pData.fields.data[k]);
+                    qflag++;
                 }
             }
         }
@@ -159,7 +158,6 @@ class SaveManager
             for(let k in pData.hooks.data){
                 
                 o = this.context.find.get.method(pData.hooks.data[k].method);
-                console.log(pData.hooks.data[k].method,o);
                 if(o != null){
                     // search if the hook already exists
                     hook = this.context.hook.getProbe(o);
@@ -173,11 +171,16 @@ class SaveManager
                     hook.updateWith(pData.hooks.data[k].hook, o);
                 }else{
                     this.queue.hooks.push(pData.hooks.data[k]);
+                    qflag++;
                 }
             }
         }
 
-        console.log(this.queue);
+        if(qflag>0)
+            Logger.error("[SAVE] "+qflag+" elements have not imported ...");
+        else
+            Logger.info("[SAVE] All elements have imported ...");
+        //console.log(this.queue);
     }
 
     save(){
@@ -240,7 +243,6 @@ class SaveManager
         }
         
         pData = JSON.stringify(data);
-        console.log(pData);
         
        return pData;
     }
@@ -271,7 +273,7 @@ class SaveManager
                 });
 
             }catch(e){
-                console.log(e);
+                //console.log(e);
                 Logger.error("[INSPECTOR][SAVE] "+e.msg);
             }
             
@@ -282,7 +284,7 @@ class SaveManager
         let self=this;
         _fs_.exists(this._filepath, function(pExists){
 
-            console.log(self._filepath+" exists : "+pExists);
+            //console.log(self._filepath+" exists : "+pExists);
             if(pExists){
                 _fs_.readFile(
                     self._filepath, {encoding:'utf-8'}, 
