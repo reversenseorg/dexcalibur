@@ -133,8 +133,10 @@ class Collection
     }
 
     setEntry(key,value){
+        if(!this.hasEntry(key)){
+            this.ctr++;
+        }
         this.values[key] = value;
-        this.ctr++;
     }
 
     addEntry(key,value){

@@ -77,7 +77,7 @@ class VariableObject
  * @param {string} src The hook script source code
  * @constructor 
  */
-function Hook(name,src){
+function Hook(context){
     this.id = null;
 
     // ! important
@@ -85,14 +85,15 @@ function Hook(name,src){
     this.parentID = null;
     this.customName = false;
     this.method = null;
-    this.name = name;
+    this.name = null; //name;
     this.description = null;
-    this.script = src;
+    this.script = null;//src;
     this.enabled = true;
     this.native = false;
     this.isIntercept = false;
     this.onMatch = null;
 
+    this.context = context;
     this.edited = false;
 
     this.method = null;
@@ -119,12 +120,24 @@ function Hook(name,src){
  * @deprecated
  */
 Hook.prototype.setEnable = function(bool){
+    this.context.trigger({
+        type: (bool==true? "probe.enable":"probe.disable"),
+        data: this
+    });
     this.enabled = bool;
 }
 Hook.prototype.enable = function(){
+    this.context.trigger({
+        type: "probe.enable",
+        data: this
+    });
     this.enabled = true;
 }
 Hook.prototype.disable = function(){
+    this.context.trigger({
+        type: "probe.disable",
+        data: this
+    });
     this.enabled = false;
 }
 Hook.prototype.isEnable = function(){
@@ -132,8 +145,17 @@ Hook.prototype.isEnable = function(){
 }
 
 Hook.prototype.modifyScript = function(script){
+
     this.script = script;
     this.edited = true;
+
+    this.context.trigger({
+        type: "probe.post_code_change",
+        data: {            
+            hook: this,
+            method: this.method 
+        }
+    });
 } 
 
 Hook.prototype.hasVariables = function(){
@@ -831,7 +853,7 @@ HookPrimitive.prototype.buildRawMethod = function(raw){
  * @function
  */
 HookPrimitive.prototype.toProbe = function(context,set){
-    let hook = new Hook(), method=null;
+    let hook = new Hook(context), method=null;
     
     hook.variables = this.variables;
 
@@ -863,7 +885,7 @@ HookPrimitive.prototype.toProbe = function(context,set){
  */
 HookPrimitive.prototype.toIntercept = function(context,set){
 
-    let hook = new Hook();
+    let hook = new Hook(context);
 
     hook.variables = this.variables;
 
@@ -1477,7 +1499,7 @@ HookManager.prototype.probe = function(method){
     if(method instanceof CLASS.Class){
         console.log("TODO");
     }else if(method instanceof CLASS.Method){
-        hook = new Hook();
+        hook = new Hook(this.context);
 
         //hook.setID( this.nextHookIdFor(method));
         hook.setID( md5(this.nextHookIdFor(method)));

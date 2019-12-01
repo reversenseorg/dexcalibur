@@ -434,6 +434,14 @@ class WebServer {
                     enable: probe.isEnable()
                 };
                 //if(hook.enable)
+                $.project.trigger({
+                    type: "probe.new",
+                    data: {
+                        hook: probe,
+                        method: meth
+                    } 
+                });
+
                 res.status(200).send(JSON.stringify(dev));
                 /*else
                     res.status(403).send(JSON.stringify(dev));*/
@@ -576,8 +584,13 @@ class WebServer {
                 let alias = req.body['alias'];
 
                 //console.log(alias);
-
-                obj.setAlias(alias);
+                if(alias != null){
+                    obj.setAlias(alias);
+                    $.project.trigger({
+                        type: "class.alias.update",
+                        cls: obj
+                    });
+                }
                 res.status(200).send(JSON.stringify({ success: true }));
             });
 
@@ -800,7 +813,14 @@ class WebServer {
 
                 let alias = req.body['alias'];
 
-                method.setAlias(alias);
+                if(alias != null){
+                    method.setAlias(alias);
+                    $.project.trigger({
+                        type: "method.alias.update",
+                        meth: method
+                    });
+                }
+
                 res.status(200).send(JSON.stringify({ success: true }));
             })
 
@@ -975,9 +995,15 @@ class WebServer {
 
                 let alias = req.body['alias'];
 
-                //console.log(alias);
+                
+                if(alias != null){
+                    obj.setAlias(alias);
+                    $.project.trigger({
+                        type: "field.alias.update",
+                        field: obj
+                    });
+                }
 
-                obj.setAlias(alias);
                 res.status(200).send(JSON.stringify({ success: true }));
             });
 

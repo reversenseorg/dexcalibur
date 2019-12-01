@@ -296,6 +296,41 @@ var DexcaliburAPI = {
                 }
             })
         },
+        autoSave: function(status, success, error){
+            $.ajax("/api/inspectors/saver", {
+                method: "get",
+                data: {
+                    action: "autosave",
+                    status: status,
+                    _t: (new Date()).getTime()
+                },
+                statusCode: {
+                    200: function(data,err){
+                        success(data);
+                    },
+                    404: function(data,err){
+                        error(data);
+                    }
+                }
+            })
+        },
+        autosaveStatus: function(success, error){
+            $.ajax("/api/inspectors/saver", {
+                method: "get",
+                data: {
+                    action: "autosave-status",
+                    _t: (new Date()).getTime()
+                },
+                statusCode: {
+                    200: function(data,err){
+                        success(data);
+                    },
+                    404: function(data,err){
+                        error(data);
+                    }
+                }
+            })
+        },
         open: function(success, error){
             $.ajax("/api/inspectors/saver", {
                 method: "get",

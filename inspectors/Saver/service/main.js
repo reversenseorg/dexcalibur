@@ -282,6 +282,20 @@ function open(context){
     return { status:200, data:{ success:true }};
 }
 
+/**
+ * 
+ * @param {Project} pContext 
+ * @param {String} pStatus  String representing auto-save status : "on" / "off". Default: "on" 
+ */
+function autosave(pContext, pStatus = "on"){
+    pContext.trigger({ type: (pStatus=="on"? "save.autosave.start" : "save.autosave.stop") });
+
+    return { status:200, data:{ success:true }};
+}
+
+function getAutosaveStatus(pContext){
+    return { status:200, data:{ enable:pContext.saveManager.isEnabled() }};
+}
 
 /**
  * Delegate front controller
@@ -295,6 +309,12 @@ Controller.registerHandler(IFC.HANDLER.GET, function(ctx,req,res){
     };
 
     switch(action){
+        case 'autosave':
+            act = autosave(ctx, req.query.status);
+            break;
+        case 'autosave-status':
+            act = getAutosaveStatus(ctx);
+            break;
         case 'save':
             act = save(ctx);
             break;

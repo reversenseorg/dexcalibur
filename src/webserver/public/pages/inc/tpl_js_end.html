@@ -49,6 +49,61 @@
             }).parent().parent().addClass('active');
         }
 
+        DexcaliburAPI.project.autosaveStatus(
+            function(data){
+                //let d = JSON.parse(data);
+                //console.log(d);
+                let menu = $("#autosaveMenu").last();
+                let status = $("#saveStatus").last();
+                let statusSwitch = $("#autosaveSwitch").last();
+
+                if(data.enable==false){
+                    status.removeClass("text-warning");
+                    status.addClass("text-danger");
+                    status.html("OFF");
+                    statusSwitch.removeAttr("checked");
+                    menu.css("visibility","visible");
+                }else{
+                    status.removeClass("text-danger");
+                    status.addClass("text-warning");
+                    status.html("ON");
+                    statusSwitch.attr("checked","");
+                    menu.css("visibility","visible");
+                }
+            },
+            (err)=>{
+                console.log("[DEBUG] ",err);
+            }
+        );
+
+        $("#autosaveSwitch").change(function(e){
+            let status = $("#saveStatus").last();
+            let statusSwitch = $("#autosaveSwitch").last();
+
+            if( status.html() == "ON"){
+                DexcaliburAPI.project.autoSave("off",
+                    function(){
+                        status.removeClass("text-warning");
+                        status.addClass("text-danger");
+                        status.html("OFF");
+                    },
+                    function(){
+                        alert("Auto-save cannot be turn OFF");
+                    }
+                );
+            }else{
+                DexcaliburAPI.project.autoSave("on",
+                    function(){
+                        status.removeClass("text-danger");
+                        status.addClass("text-warning");
+                        status.html("ON");
+                    },
+                    function(){
+                        alert("Auto-save cannot be turn ON");
+                    }
+                );
+            }
+        });
         /*
         $(".navbar-nav > li:first-child a").map((a,b)=>{
             if(b.href==url){
