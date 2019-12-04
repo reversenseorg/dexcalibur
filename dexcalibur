@@ -136,7 +136,11 @@ if(projectArgs.app != null){
     
 
     if(projectArgs.pull != null){
-        Project.pull();
+        try{
+            Project.pull();
+        }catch(exception){
+            Process.exit();
+        }
     }
 
     if(projectArgs.apk != null){

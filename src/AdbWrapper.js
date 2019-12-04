@@ -343,6 +343,24 @@ class AdbWrapper
 
     }
 
+    /**
+     * Execute a command on the device
+     * Same as 'adb shell' commande.
+     * 
+     * @param {*} command The command to execute remotely
+     */
+    shellWithEHsync(command, deviceID = null){
+
+        if(this.deviceID != null || deviceID != null){
+            Logger.info("[ADB] ",this.setup(deviceID)+' shell '+command);
+            return Process.execSync(this.setup(deviceID)+' shell '+command);
+        }else{
+            Logger.info("[ADB] ",this.path+' shell '+command);
+            return Process.execSync(this.path+' shell '+command);
+        }
+
+    }
+
 
     /**
      * Execute a command on the device via 'su -c'

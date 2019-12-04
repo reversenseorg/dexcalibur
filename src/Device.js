@@ -90,8 +90,25 @@ class Device
         return this.bridge.shellWithEH(pCommand, pCallbacks);
     }
 
+    execSync(pCommand){
+        return this.bridge.shellWithEHsync(pCommand);
+    }
+
     /**
      * 
+     * @param {Path|String} pRemotePath 
+     * @param {Path|String} pLocalPath 
+     */ 
+    pull(pRemotePath, pLocalPath){
+        let c = null;
+        c = this.bridge.pull(pRemotePath, pLocalPath, this.id);
+        console.log(c);
+        return c;
+    }
+
+    /**
+     * 
+     * @deprecated
      * @param {Object} data 
      * @param {Object} callbacks 
      * @param {IntentFilter} pIntentFilter An intance of the intent filter 

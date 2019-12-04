@@ -23,6 +23,7 @@ var Bus = require("./Bus.js");
 var Event = require("./Event.js");
 var ApkHelper = require("./ApkHelper.js");
 var FridaGenerator = require("./FridaGenerator.js");
+var AndroidPM = require('./adb/AndroidPackageManager');
 const Platform = require("./Platform.js");
 const SYSCALLS = require("./Syscalls.js");
 //const CONFIG = require("../config.js");
@@ -484,69 +485,59 @@ Project.prototype.loadDB = function(savePath){
  * @function
  */
 Project.prototype.pull = function(device){
-    let adb=this.config.adbPath, ret="", path="", i=0;
+    let adb=this.config.adbPath, ret="", apkPath="", i=0;
     
-    if(this.config.useEmulator) adb+=" -e";
     
     if(device===null || this.devices.hasNotDefault()){
         Logger.warn("[!] Warning ! : device not selected. Searching ...");
         this.devices.scan();
         if(this.devices.count==0){
             Logger.error("[E] No device found");
-            return "";
+            throw new Error("No device connected");
         }
         else if(this.devices.count==1){
             Logger.success("[*] Device selected : "+this.devices.getDefault().id);
         }
         else if(this.devices.count>1){
             Logger.warn("[!] Please choose a device above with *.devices.setDefault(<id>)");
-            return "";
+            return "";            
         }
     }
 
-    if(!this.config.useEmulator && this.devices.getDefault()!==null) 
-        adb+=" -s "+this.devices.getDefault().id;
+    let dev = this.devices.getDefault(), p = null;
+    let pathWD = this.workspace.getWD();
+    apkPath  = Path.join(pathWD, this.getPackageName()+".apk");
 
-    ret = Process.execSync(adb+" shell pm list packages -f").toString("ascii");
-    
-    if(ret.indexOf(this.pkg)==-1){
-        Logger.warn("[!] Package not found");
-        return null;
+    if(dev == null){
+        Logger.error("No device connected. Package cannot be pull");
+        throw new Error("No device connected");
     }
+    p = AndroidPM.getApkPathOf(dev, this.getPackageName());
 
-    ret = ret.split("\n");
-    let t=null,ppath=null;
-    for(let i in ret){
-        if(ret[i].indexOf(this.pkg)>-1){
-            
-            t = ret[i].indexOf(":");
-            ppath = ret[i].substr(t+1,ret[i].lastIndexOf("=")-t-1);
-            break;
-        }
-    } 
-
-    if(typeof ppath !== 'string'){
-        Logger.error("[!] Package not found");
-        return "";
+    if(p == null){
+        Logger.error("[!] Application package cannot be found.");
+        throw new Error("Application package cannot be found.");
     }else{
-        Logger.success("[*] Package found");
+        Logger.success("[+] Package found");
     }
-        
-    //let pathWD = this.workspace.getWD()+this.pkg;
-    let pathWD = Path.join(this.workspace.getWD(),this.pkg);
+
+    if(dev.pull(p, apkPath)==false){
+        Logger.error("Application package cannot been download.");
+        throw new Error("Application package cannot been download.");
+    }
+
     let dexPath = Path.join(this.workspace.getWD(),"dex");
 
     try {
-        Process.execSync(adb+" pull "+ppath+" "+pathWD+".apk");
-        Logger.success("[*] Package downloaded to "+pathWD+".apk");
-
-        ret = Process.execSync(this.config.apktPath+" d -f -m -o "+dexPath+" "+pathWD+".apk").toString("ascii");
+        ret = Process.execSync(this.config.apktPath+" d -f -m -o "+dexPath+" "+apkPath).toString("ascii");
         Logger.success("[*] APK decompiled in "+dexPath);
     }
     catch(exception) {
-        Logger.error("[!] Failed to pull package:");
-        Logger.error(exception);
+        Logger.error("[!] Failed to disassemble package:");
+        Logger.raw(exception);
     }
+    
+    return ;
 };
 
 /**
