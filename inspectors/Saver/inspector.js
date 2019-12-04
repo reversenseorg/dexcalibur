@@ -37,16 +37,22 @@ Saver.on("save.autosave.stop", {
 Saver.on("dxc.fullscan.post", {
     task: function(ctx, event){
         ctx.saveManager = new SaveManager(ctx);
+    }
+});
+
+
+Saver.on("dxc.initialized", {
+    task: function(ctx, event){
+        ctx.saveManager._ready = true;
         ctx.saveManager.restore();
     }
 });
 
 
-
 Saver.on("method.alias.update", {
     task: function(ctx, event){
         try{
-            if(ctx.saveManager.isEnabled()){
+            if(ctx.saveManager.isReady() && ctx.saveManager.isEnabled()){
                 ctx.saveManager.updateAlias(SaveManager.T_METHOD, event.meth); 
                 ctx.saveManager.save();
                 Logger.debug("[INSPECTOR][SAVE] updateAlias() saved");
@@ -63,7 +69,7 @@ Saver.on("method.alias.update", {
 Saver.on("field.alias.update", {
     task: function(ctx, event){
         try{
-            if(ctx.saveManager.isEnabled()){
+            if(ctx.saveManager.isReady() && ctx.saveManager.isEnabled()){
                 ctx.saveManager.updateAlias(SaveManager.T_FIELD, event.field); 
                 ctx.saveManager.save();
                 Logger.debug("[INSPECTOR][SAVE] updateAlias() saved");
@@ -80,7 +86,7 @@ Saver.on("field.alias.update", {
 Saver.on("class.alias.update", {
     task: function(ctx, event){
         try{
-            if(ctx.saveManager.isEnabled()){
+            if(ctx.saveManager.isReady() && ctx.saveManager.isEnabled()){
                 ctx.saveManager.updateAlias(SaveManager.T_CLASS, event.cls); 
                 ctx.saveManager.save();
                 Logger.debug("[INSPECTOR][SAVE] updateAlias() saved");
@@ -98,7 +104,7 @@ Saver.on("class.alias.update", {
 Saver.on("probe.new", {
     task: function(ctx, event){
         try{
-            if(ctx.saveManager.isEnabled()){
+            if(ctx.saveManager.isReady() && ctx.saveManager.isEnabled()){
                 ctx.saveManager.updateHook(event.data); 
                 ctx.saveManager.save();
                 Logger.debug("[INSPECTOR][SAVE] newHook() saved");
@@ -115,7 +121,7 @@ Saver.on("probe.new", {
 Saver.on("probe.post_code_change", {
     task: function(ctx, event){
         try{
-            if(ctx.saveManager.isEnabled()){
+            if(ctx.saveManager.isReady() && ctx.saveManager.isEnabled()){
                 ctx.saveManager.updateHook(event.data); 
                 ctx.saveManager.save();
                 Logger.debug("[INSPECTOR][SAVE] updateHook() saved");
@@ -125,6 +131,42 @@ Saver.on("probe.post_code_change", {
         }catch(e){
             console.log(e);
             Logger.error("[INSPECTOR][SAVE] updateHook() failed");
+        }
+    }
+});
+
+
+Saver.on("probe.enable", {
+    task: function(ctx, event){
+        try{
+            if(ctx.saveManager.isReady() && ctx.saveManager.isEnabled()){
+                ctx.saveManager.updateHookStatus(event.data.hook, true); 
+                ctx.saveManager.save();
+                Logger.debug("[INSPECTOR][SAVE] enable hook saved");
+            }else{
+                Logger.debug("[INSPECTOR][SAVE] enable hook called but not saved : auto-save is disabled");
+            }
+        }catch(e){
+            console.log(e);
+            Logger.error("[INSPECTOR][SAVE] hook.enable() failed : ");
+        }
+    }
+});
+
+
+Saver.on("probe.disable", {
+    task: function(ctx, event){
+        try{
+            if(ctx.saveManager.isReady() && ctx.saveManager.isEnabled()){
+                ctx.saveManager.updateHookStatus(event.data.hook, false); 
+                ctx.saveManager.save();
+                Logger.debug("[INSPECTOR][SAVE] disable status saved");
+            }else{
+                Logger.debug("[INSPECTOR][SAVE] disable hook called but not saved : auto-save is disabled");
+            }
+        }catch(e){
+            console.log(e);
+            Logger.error("[INSPECTOR][SAVE] hook.disable() failed : ");
         }
     }
 });

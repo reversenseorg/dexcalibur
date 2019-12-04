@@ -228,18 +228,6 @@ function importAll(context,data){
     return true;
 }*/
 
-
-/*
-
-A 
-| \
-C  |
-| /
-X
-
-  Si la derniere instructions du bloc precedent est un goto vers le bloc courant  
-
-*/
 function save(context){
     
     let subject=null, bb=null, newbb=null, xref=null;

@@ -437,6 +437,11 @@ Project.prototype.fullscan = function(path){
         type: "filescan.new" 
     }));
 
+
+    this.bus.send(new Event.Event({
+        type: "dxc.initialized" 
+    }));
+
     // make CFG
     //this.analyze.cfg();
     return this;

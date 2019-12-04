@@ -120,25 +120,31 @@ function Hook(context){
  * @deprecated
  */
 Hook.prototype.setEnable = function(bool){
+    this.enabled = bool;
     this.context.trigger({
         type: (bool==true? "probe.enable":"probe.disable"),
-        data: this
+        data: {            
+            hook: this
+        }
     });
-    this.enabled = bool;
 }
 Hook.prototype.enable = function(){
+    this.enabled = true;
     this.context.trigger({
         type: "probe.enable",
-        data: this
+        data: {            
+            hook: this
+        }
     });
-    this.enabled = true;
 }
 Hook.prototype.disable = function(){
+    this.enabled = false;
     this.context.trigger({
         type: "probe.disable",
-        data: this
+        data: {            
+            hook: this
+        }
     });
-    this.enabled = false;
 }
 Hook.prototype.isEnable = function(){
     return this.enabled;
@@ -329,7 +335,7 @@ Hook.prototype.toJsonObject = function(){
             id: this.code.varID,
             data: {}
         };
-        console.log(this.variables);
+        //console.log(this.variables);
         for(let i in this.variables){
             o.variables.data[i] = this.variables[i].write();
         }
@@ -347,7 +353,7 @@ Hook.prototype.updateWith = function(object,method){
     this.id = object.id;
     this.customName = object.customName;
     this.name = object.name;
-    this.enable = object.enable;
+    this.enabled = object.enable;
 
     // resolve method
     this.method = method;

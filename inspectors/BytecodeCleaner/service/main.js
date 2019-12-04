@@ -545,9 +545,9 @@ function hasSingleCall(method){
 }
 
 /**
- * Double static heuristic is when a static method wraps inconditionnally another statis method
+ * Double static heuristic is when a static method wraps  another statis method
  */
-function renameDoubleStatic(database, method){
+function renameDoubleStatic(database, method, pContext){
 
     if(!hasSingleCall(method)) return false;
 
@@ -564,16 +564,27 @@ function renameDoubleStatic(database, method){
 
     // add arg type comparison
     let paramOnly = true;
-    args[0].forEach(x=>{
-        if(x.t !== CONST.LEX.TOKEN.PARAM) paramOnly = false;
-    });
-
+    if(args.length > 0){
+        console.log(args, args[0]) ;
+        args[0].forEach(x=>{
+            if(x.t !== CONST.LEX.TOKEN.PARAM) paramOnly = false;
+        });
+    }
+ 
     if(paramOnly === false) return false;
 
     if(called.enclosingClass.name !== method.enclosingClass.name){
         method.setAlias(called.enclosingClass.name+"_"+called.name);
+        pContext.trigger({
+            type: "method.alias.update",
+            meth: method
+        });
     }else{
         method.setAlias(called.name);
+        pContext.trigger({
+            type: "method.alias.update",
+            meth: method
+        });
     }
 
     return true;
@@ -589,7 +600,7 @@ function renameDoubleStatic(database, method){
  *    move-result-object v0
  * return-object v0
  */
-function renameStaticInterface(database, method){
+function renameStaticInterface(database, method, pContext){
 
     if(!hasSingleCall(method)) return false;
     if(method.args.length==0) return false;
@@ -631,8 +642,17 @@ function renameStaticInterface(database, method){
     // check if some parameters of the called method are defined statically and locally
     if(called.enclosingClass.name !== method.enclosingClass.name){
         method.setAlias(called.enclosingClass.name+"_"+called.name);
+        pContext.trigger({
+            type: "method.alias.update",
+            meth: method
+        });
+
     }else{
         method.setAlias(called.name);
+        pContext.trigger({
+            type: "method.alias.update",
+            meth: method
+        });
     }
 
     return true;
@@ -649,11 +669,11 @@ function wrapClean(context){
 
     // scan with several heuristic
     db.methods.map((k,v)=>{
-        if(renameDoubleStatic(db, v)){
+        if(renameDoubleStatic(db, v, context)){
             ctr.doubleStatic++;
             return;
         } 
-        if(renameStaticInterface(db, v)){
+        if(renameStaticInterface(db, v, context)){
             ctr.staticInterface++;
             return;
         } 
