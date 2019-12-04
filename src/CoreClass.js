@@ -771,7 +771,7 @@ Class.prototype.toJsonObject = function(filter){
         else if(i == "fields"){
             obj.fields = [];
             for(let k in this.fields){
-                m = this.fields[k].toJsonObject(["__signature__","__aliasedSignature__","alias","name","tags"]);
+                m = this.fields[k].toJsonObject(["__signature__","__aliasedSignature__","alias","name","tags","type","modifiers"]);
                 if(this.inherit[k] != null) m.__inherit = true;
                 obj.fields.push(m);
             }
@@ -2245,7 +2245,7 @@ Field.prototype.compare = function(field){
                 // TODO : Not yet supported
                 break;
             case "type":
-                if(this.type != field.type){
+                if(this.type != field.type){    
                     diff.push({ ppt:"type", old:this.type.signature(), new:field.type.signature() });
                 }
                 break;
@@ -2349,7 +2349,7 @@ Field.prototype.toJsonObject = function(fields=null,exclude=null){
                 case "instr":
                     break;
                 case "type":
-                    if(obj.type != null)
+                    if(this.type != null)
                         obj.type = this.type.toJsonObject();
                     else
                         obj.type = null;

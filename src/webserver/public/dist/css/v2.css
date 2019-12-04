@@ -449,7 +449,7 @@ table.finderTable > tbody > tr > td {
 }
 
 .dxc-wrapped-row {
-    word-wrap: break-word;
+    word-wrap: anywhere;
 }
 
 .dxc-second-nav {

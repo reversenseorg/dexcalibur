@@ -167,6 +167,9 @@ var DexcaliburAPI = {
         htmlEncode: (text)=>{
             return $('<div />').text(text).html();
         },
+        finderLink: function(pType, pName){
+            return "/pages/finder.html?"+pType+"="+btoa(encodeURIComponent(pName))+"";
+        },
         tags: {},
         badge: {
             style: {

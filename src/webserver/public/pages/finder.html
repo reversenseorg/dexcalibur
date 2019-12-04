@@ -390,10 +390,10 @@
         },
         modifiers: function(mods){
             let b="";
-            if(mods.private) b+="<i style='color:#F00'>private</i>";
-            if(mods.protected) b+="<i style='color:orange'>protected</i>";
-            if(mods.abstract) b+="<i style='color:purple'>abstract</i>";
-            if(mods.static) b+="<i style='color:blue'>static</i>";
+            if(mods.private) b+="<i style='color:#F00'>private</i>&nbsp;";
+            if(mods.protected) b+="<i style='color:orange'>protected</i>&nbsp;";
+            if(mods.abstract) b+="<i style='color:purple'>abstract</i>&nbsp;";
+            if(mods.static) b+="<i style='color:blue'>static</i>&nbsp;  ";
             return b;
         }
     };
@@ -428,11 +428,19 @@
 
     function renderClassDetail( row ) {
         let body = '', color=null;
-        body += '<p><b>Extends :</b>';
-            console.log(row);
+        if(row.package != null){
+            body +=  `<p><b>Package :</b>&nbsp;&nbsp;<a href="${DexcaliburAPI.ui.finderLink("package",row.package.name)}">${row.package.name} (size: ${row.package.size})</a><br><b>Extends :</b>`;
+        }else{
+            body +=  `<p><b>Package :<b><i>None</i><br><b>Extends :</b>`;
+
+        }
+
         if(row.supers != null){
             for(let i=0; i<row.supers.length; i++){
-                body += "<br>"+("&nbsp;".repeat(i*3))+"-&nbsp;<a href='finder.html?class="+btoa(encodeURIComponent(row.supers[i].name))+"'>"+(row.supers[i].alias!=null? "<b class='alias-text' >"+htmlEncode(row.supers[i].alias)+"</b>" : "")+"&nbsp;"+htmlEncode(row.supers[i].name)+"</a>";
+                body += (i>0?"&lt;":"")+`&nbsp;
+                    <a href='${DexcaliburAPI.ui.finderLink("class",row.supers[i].name)}'>
+                    ${(row.supers[i].alias!=null? "<b class='alias-text text-info' >"+DexcaliburAPI.ui.htmlEncode(row.supers[i].alias)+"</b>":"")}
+                    &nbsp;${DexcaliburAPI.ui.htmlEncode(row.supers[i].name)}</a>&nbsp;`;
             }
         }else{
             body += "<i>None</i>";
@@ -444,7 +452,7 @@
             body += "None"
         }*/
         
-        body += '</p><p><b>Implements :</b>&nbsp;&nbsp;';
+        body += '<br><b>Implements :</b>&nbsp;&nbsp;';
         
         if(row.implements != null){
             //body += "<ul>";
@@ -466,7 +474,15 @@
         body += '</td></tr>';
         body += '</table>
         */
-        body+= '</p><table class="table table-sm"><thead><tr><th scope="col" class="col-sm-2 col-lg-3">Action</th><th scope="col" class="col-sm-1 col-lg-1">Type</th><th scope="col-lg-8">Name</th></thead><tbody>';
+        body+= `</p>
+            <p>Fields</p>
+            <table class="table table-sm">
+                <thead><tr>
+                    <th scope="col" class="col-sm-2 col-lg-3">Action</th>
+                    <th scope="col" class="col-sm-1 col-lg-1">Modifiers</th>
+                    <th scope="col" class="col-sm-1 col-lg-1">Type</th>
+                    <th scope="col-lg-7">Name</th>
+                </thead><tbody>`;
          
         if(row.fields != null){
             for(let i in row.fields){
@@ -477,13 +493,19 @@
                     //'<td><a  class="badge badge-secondary probe" field="'+btoa(encodeURIComponent(row.fields[i].__signature__))+'">Probe OFF</a>&nbsp;&nbsp;'+
                     //'<a class="badge badge-secondary" onclick="intercept(\''+btoa(encodeURIComponent(row.fields[i].__signature__))+'\')">Intercept</a>'+
                     //'<a class="badge badge-purple getterof" target="about" field="'+btoa(encodeURIComponent(row.fields[i].__signature__))+'">getter</a>&nbsp;'+
-                    '<span class="badge badge-pill badge-pink badge-action fieldxref" target="about" field="'+btoa(encodeURIComponent(row.fields[i].__signature__))+'">setters / getters</span></td><td><i>Field</i></td>'+
-                    '<td>';
+                    '<span class="badge badge-pill badge-pink badge-action fieldxref" target="about" field="'+btoa(encodeURIComponent(row.fields[i].__signature__))+'">setters / getters</span></td>'; 
+                
                 
                 if(row.fields[i].modifiers != null) 
-                    body += BS.modifiers(row.fields[i].modifiers);
+                    body += `<td> ${BS.modifiers(row.fields[i].modifiers)}</td>`;
                 else
-                    body += "&nbsp;";
+                    body += "<td></td>";
+                    
+                if(row.fields[i].type != null){
+                    body += `<td><a href="${DexcaliburAPI.ui.finderLink("class",row.fields[i].type.name)}">${row.fields[i].type.name} ${row.fields[i].type.arr?"[]":""}</a></td><td>`;
+                }else
+                    body += `<td></td><td>`;
+
 
                 if(row.fields[i].alias != null){
                     body += '<b>'+htmlEncode(row.fields[i].alias)+'</b>&nbsp;';
@@ -501,13 +523,15 @@
             }
         }
 
+        body+= '</table><p>Methods</p><table class="table table-sm"><thead><tr><th scope="col" class="col-sm-2 col-lg-3">Action</th><th scope="col" class="col-sm-1 col-lg-1">Type</th><th scope="col-lg-8">Name</th></thead><tbody>';
+        
          if(row.methods != null){
              for(let i in row.methods){
                  body += '<tr>'+
                     '<td><span  class="badge badge-pill badge-'+(row.methods[i].probing? 'success':'primary')+' probe" meth="'+btoa(encodeURIComponent(row.methods[i].__signature__))+'">Probe '+(row.methods[i].probing? 'ON&nbsp;&nbsp;':'OFF')+'</span>&nbsp;&nbsp;'+
                     //'<a  class="badge badge-danger">Intercept</a>'+
                     '<span class="badge badge-pill badge-purple badge-action xrefto" target="about" meth="'+btoa(encodeURIComponent(row.methods[i].__signature__))+'">xref to</span>&nbsp;'+
-                    '<span class="badge badge-pill badge-pink badge-action xreffrom" target="about" meth="'+btoa(encodeURIComponent(row.methods[i].__signature__))+'">xref from</span></td><td><i>Method</i>&nbsp;';
+                    '<span class="badge badge-pill badge-pink badge-action xreffrom" target="about" meth="'+btoa(encodeURIComponent(row.methods[i].__signature__))+'">xref from</span></td><td>';
 
                 
                 if(row.methods[i].modifiers != null) 
@@ -864,6 +888,7 @@
             searching: false,
             paging: false,
             columns: [{
+                    className:  'col-md-1 dxc-wrapped-row',
                     render: function(data, type, row, meta ){
                         if(row.t=='s')
                             return BS.badge("purple","set");
@@ -873,6 +898,7 @@
                 },
                 {  
                     // render called/caller name
+                    className:  'col-md-6 dxc-wrapped-row',
                     render: function(data, type, row, meta ){
                         //console.log("xref :",row);
                         let t = '<a target="about" href="finder.html?method='+btoa(encodeURIComponent(row.s))+'">';  
@@ -888,6 +914,8 @@
                  },
                 {  
                     // render tags
+
+                    className:  'col-md-3 dxc-wrapped-row',
                     render: function(data, type, row, meta ){
                         let t = "";
                         if(row.tags==null) return t;
@@ -908,6 +936,8 @@
                     }},
                 { 
                     // render probing btn
+                    
+                    className:  'col-md-2 dxc-wrapped-row',
                     render: function(data, type, row, meta ){
                         if(row.s.indexOf("<clinit>")>-1)
                             return ''; //<a class="badge badge-secondary" tip="Class init cannot be hooked">Probe</a>';
@@ -923,6 +953,8 @@
             searching: false,
             paging: false,
             columns: [{
+
+                    "className":      'col-md-1',
                     render: function(data, type, row, meta ){
                         if(row.t != null){
                             console.log(row);
@@ -939,6 +971,7 @@
                 },
                 {  
                     // render called/caller name
+                    "className":      'col-md-6 dxc-wrapped-row',
                     render: function(data, type, row, meta ){
                         //console.log("xref :",row);
                         let t = null
@@ -971,6 +1004,7 @@
                  },
                 {  
                     // render tags
+                    "className":      'col-md-3 dxc-wrapped-row',
                     render: function(data, type, row, meta ){
                         let t = "";
                         if(row.tags==null) return t;
@@ -991,6 +1025,7 @@
                     }},
                 { 
                     // render probing btn
+                    "className":      'col-md-2 dxc-wrapped-row',
                     render: function(data, type, row, meta ){
                         if(row.s.indexOf("<clinit>")>-1 || (row.t!=null && row.t=='f'))
                             return ''; //<a class="badge badge-secondary" tip="Class init cannot be hooked">Probe</a>';
@@ -1006,9 +1041,9 @@
             let body = '', j=0;
 
             if(from)
-                $('#xrefModalLabel').html("<span class='title'>XRef from </span><h4 class='symbol'>"+htmlEncode(decodeURIComponent(atob(ref)))+"</h4>");
+                $('#xrefModalLabel').html("<span class='title'>XRef from </span><h4 class='symbol dxc-wrapped-row'>"+htmlEncode(decodeURIComponent(atob(ref)))+"</h4>");
             else
-                $('#xrefModalLabel').html("<span class='title'>XRef to</span><h4 class='symbol'>"+htmlEncode(decodeURIComponent(atob(ref)))+"</h4>");
+                $('#xrefModalLabel').html("<span class='title'>XRef to</span><h4 class='symbol dxc-wrapped-row'>"+htmlEncode(decodeURIComponent(atob(ref)))+"</h4>");
 
             
             xrefTable.clear();
@@ -1045,7 +1080,7 @@
         function renderGsetterModal( ref) {
             let body = '', j=0;
 
-            $('#gsetterModalLabel').html("<span class='title'>Setters & getters of </span><h4 class='symbol'>"+htmlEncode(decodeURIComponent(atob(ref)))+"</h4>");
+            $('#gsetterModalLabel').html("<span class='title'>Setters & getters of </span><h4 class='symbol dxc-wrapped-row'>"+htmlEncode(decodeURIComponent(atob(ref)))+"</h4>");
   
             gsetterTable.clear();
             gsetterTable.draw();   
@@ -1090,25 +1125,21 @@
                 paging: false,
                 columns: [
                     {
-                        "className":      'details-control',
+                        "className":      'col-md-1 details-control',
                         "orderable":      false,
                         "data":           null,
                         "defaultContent": ''
                     },
                     {  
+
+                        "className":      'col-md-2 dxc-wrapped-row',
                         render: function(data, type, row, meta ){
-                            console.log(data, type, row, meta);
+                            //console.log(data, type, row, meta);
                             return row.package.name;
-                            /*
-                            if(row.package != undefined)
-                                return row.package.name;
-                            else{
-                                console.log(row);
-                                return "-";
-                            }*/
                         }
                     },
                     {   
+                        "className":      'col-md-6 dxc-wrapped-row',
                         render: function(data, type, row, meta ){
                             let color = (row.tags.indexOf("missing")>-1)? ' style="color:#F00"' : ''; 
                             
@@ -1148,6 +1179,7 @@
                         }
                     },
                     { 
+                        "className":      'col-md-3',
                         render: function(data, type, row, meta ){
                             let b='<span  class="badge badge-pill badge-info badge-action rename" ename="'+btoa(encodeURIComponent(row.name))+'" subt="class" subject="'+btoa(encodeURIComponent(row.name))+'">Rename</span>';
 
@@ -1171,17 +1203,19 @@
                 paging: false,
                 columns: [
                     {
-                        "className":      'details-control',
+                        "className":      'col-md-1 details-control',
                         "orderable":      false,
                         "data":           null,
                         "defaultContent": ''
                     },
                     { 
+                        "className":      'col-md-3 dxc-wrapped-row',
                         render: function(data, type, row, meta ){
                             return ((row.enclosingClass!=null)? htmlEncode(row.enclosingClass) : '[Missing]');
                         }
                     },
                     {  
+                        "className":      'col-md-6 dxc-wrapped-row',
                         render: function(data, type, row, meta ){
                             let color = (row.tags.indexOf("missing")>-1)? ' style="color:#F00"' : ''; 
                             let b= '<span  class="dxc-wrapped-row" meth="'+btoa(encodeURIComponent(row.__signature__))+'"'+color+' >'+(row.alias!=null? '<b>'+htmlEncode(row.alias)+'</b><br>&nbsp;<i class="secondary-text">'+htmlEncode(row.__signature__)+'</i>':'&nbsp;'+htmlEncode(row.__callSignature__))+'</span>';
@@ -1196,6 +1230,7 @@
                     },
                     { 
                         
+                        "className":      'col-md-3',
                         render: function(data, type, row, meta ){
                             //console.log(row.__signature__);
                             let b='<span  class="badge badge-pill badge-primary badge-action probe" meth="'+btoa(encodeURIComponent(row.__signature__))+'">Probe</span>&nbsp;';
@@ -1232,12 +1267,13 @@
                 paging: false,
                 columns: [
                     {
-                        "className":      'details-control',
+                        "className":      'col-md-1 details-control',
                         "orderable":      false,
                         "data":           null,
                         "defaultContent": ''
                     },
                     { 
+                        "className":      'col-md-3 dxc-wrapped-row',
                         render: function(data, type, row, meta ){
                             if(row.enclosingClass!=null){
                                 return "<a href='finder.html?class="+btoa(encodeURIComponent(row.enclosingClass.name))+"'>"+(row.enclosingClass.alias!=null? "<b class='alias-text' >"+htmlEncode(row.enclosingClass.alias)+"</b>" : "")+"&nbsp;"+htmlEncode(row.enclosingClass.name)+"</a>";
@@ -1246,6 +1282,7 @@
                         }
                     },
                     {  
+                        "className":      'col-md-6 dxc-wrapped-row',
                         render: function(data, type, row, meta ){
 
                             let color = (row.tags.indexOf("missing")>-1)? ' style="color:#F00"' : ''; 
@@ -1253,6 +1290,7 @@
                         }
                     },
                     {   
+                        "className":      'col-md-2 dxc-wrapped-row',
                         render: function(data, type, row, meta ){
                             let b='<span  class="badge badge-pill badge-info badge-action  rename" ename="'+btoa(encodeURIComponent(row.name))+'" subt="field" subject="'+btoa(encodeURIComponent(row.__signature__))+'">Rename</span>&nbsp;';
                             b+='<span class="badge badge-pill badge-pink badge-action fieldxref" target="about" field="'+btoa(encodeURIComponent(row.__signature__))+'">setters / getters</span>';
@@ -1277,17 +1315,20 @@
                 paging: false,
                 columns: [
                     {
-                        "className":      'details-control',
+                        "className":      'col-md-1 details-control',
                         "orderable":      false,
                         "data":           null,
                         "defaultContent": ''
                     },
                     { 
+
+                        "className":      'col-md-5 dxc-wrapped-row',
                         render: function(data, type, row, meta ){
                             return (row.caller!=null)? htmlEncode(row.caller) : '[Missing]';
                         }
                     },
                     {  
+                        "className":      'col-md-5 dxc-wrapped-row',
                         render: function(data, type, row, meta ){
                             if(row.callee !== undefined){
                                 let txt = ''
@@ -1309,6 +1350,7 @@
                         }
                     },
                     { 
+                        "className":      'col-md-1',
                         "defaultContent": ''
                     }
                 ],
@@ -1332,13 +1374,14 @@
                 paging: false,
                 columns: [
                     {
-                        //"className":      'details-control',
+                        "className":      'col-md-1',
                         "orderable":      false,
                         "data":           null,
                         "defaultContent": '',
                         "width":"5%"
                     },
                     { 
+                        "className":      'col-md-5',
                         render: function(data, type, row, meta ){
                             if(row.value.length > 60){
                                 let b="";
@@ -1352,12 +1395,14 @@
                         "width":"40%"
                     },
                     {  
+                        "className":      'col-md-5',
                         render: function(data, type, row, meta ){
                             return '<a target="about" class="dxc-wrapped-row"x href="finder.html?method='+btoa(encodeURIComponent(row.instr.method))+'">'+htmlEncode(row.instr.method)+'</a>';
                         },
                         "width":"40%"
                     },
                     {
+                        "className":      'col-md-1',
                          render: function(data, type, row, meta ){
                             return '<span  class="badge badge-pill badge-success badge-action  probe" meth="'+btoa(encodeURIComponent(row.instr.method))+'">Probe</span>&nbsp;';
                          },
@@ -1777,6 +1822,10 @@
                     break;
                 case "class":
                     $("#search_request")[0].value = 'get.class("'+req+'")';
+                    $("#button_search").trigger("click");
+                    break;
+                case "package":
+                    $("#search_request")[0].value = 'class("package.name:^'+req+'")';
                     $("#button_search").trigger("click");
                     break;
             }
