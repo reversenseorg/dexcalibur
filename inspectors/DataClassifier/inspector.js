@@ -21,6 +21,11 @@ var DataClassifierInspector = new Inspector.Inspector({
 // DataClassifierInspector.useGUI();
 
 
+DataClassifierInspector.registerTagCategory(
+    "string.pattern",
+    ["URI", "IP"]
+);
+
 const TAGS = { 
     hash: {
         128: ["md5"], 
@@ -42,7 +47,8 @@ const TAGS = {
 function isASCII(buffer){
     let c = buffer.count();
     for(let i=0; i<c; i++){
-        if(buffer.read(i) > 0x7f || (buffer.read(i) < 0x1f && buffer.read(i) > 0x00)) return false;
+        // && buffer.read(i) > 0x00
+        if(buffer.read(i) > 0x7f || (buffer.read(i) < 0x1f)) return false;
     }
     return true;
 }
@@ -57,6 +63,27 @@ DataClassifierInspector.on("disass.datablock.new",{
             if(isASCII(event.data)) event.data.tags=event.data.tags.concat(["ascii"]);
             //console.log(l,event.data.tags);
         }
+    }
+});
+
+
+DataClassifierInspector.on("dxc.fullscan.post",{
+    task: function(ctx,event){
+
+        let pattern = new RegExp("([^:/]*)://([^/]*)");
+
+        ctx.find.nocase().string("value:^([^:/]*)://([^/]*)")
+            .foreach(function(pOffset,pData){
+                pData.addTag("URI");
+            });
+
+        ctx.find.nocase().array() 
+            .foreach(function(pOffset,pData){
+                if(pattern.exec(pData.values.toString())){
+                    pData.addTag("URI");
+                    console.log(pData.values.toString());
+                }
+            });
     }
 });
 
