@@ -93,15 +93,20 @@
                                 <span class="badge badge-pill badge-primary prefilter" prefilt='call("calleed.name:@@")'>find calls to a method</span>
                                 <span class="badge badge-pill badge-info prefilter" prefilt='call("calleed.name:@@").select("caller")'>find callers of a method</span>
                                 <span class="badge badge-pill badge-info prefilter" prefilt='call("calleed.name:@@").filter("calleed.__signature__:->")'>use of the field</span>
-                                <span class="badge badge-pill badge-warning prefilter" prefilt='class("name:@@")'>find class by name</span>
                                 <span class="badge badge-pill badge-info prefilter" prefilt='class("extends.name:@@")'>find class by extended class</span>
-                                <span class="badge badge-pill badge-info prefilter" prefilt='field("name:@@")'>find field by name</span>
+                                
+                                <span class="badge badge-pill badge-warning prefilter" prefilt='class("name:@@")'>find class by name</span>
+                                <span class="badge badge-pill badge-warning prefilter" prefilt='field("name:@@")'>find field by name</span>
                                 <span class="badge badge-pill badge-warning prefilter" prefilt='method("name:@@")'>find method by name</span>
                                 <span class="badge badge-pill badge-info prefilter" prefilt='method("args.__signature__:@@")'>find method by arg type</span>
                                 <span class="badge badge-pill badge-info prefilter" prefilt='method("ret.__signature__:@@")'>find method by return type</span>
+                                
                                 <span class="badge badge-pill badge-info prefilter" prefilt='string("value:@@")'>Strings containing</span>
                                 <span class="badge badge-pill badge-pink prefilter" prefilt='array("uid:@@")'>static array by method</span>
                                 <span class="badge badge-pill badge-pink prefilter" prefilt='array("tags:@@")'>static array by tag</span>
+
+                                <span class="badge badge-pill badge-purple prefilter" prefilt='string("tags:URL")'>URL</span>
+                                <span class="badge badge-pill badge-purple prefilter" prefilt='array("tags:IP")'>IP</span>
                                 <a class="prefilter-more" href="#">&nbsp;or build your own request ...</a>
 
                             </div>
@@ -793,10 +798,18 @@
         body += '<tr><td>Return</td><td><a class="retlink" href="finder.html?class='+btoa(encodeURIComponent(row.ret.name))+'">'+htmlEncode(row.ret.name)+'</td></tr>';
         body += '</table>';
 
-        let codeID = IdRegister.codeReg.next()
+        if(row.modifiers.native==true){
+            body += `<div class="alert alert-info border border-info show" role="alert">
+                        <p>This function is native.<p>
+                    </div>`;
+            return body;
+        }
+
+        let codeID = IdRegister.codeReg.next();
 
         //body += '<h4>Disassembled bytecode</h4>';
         body += '<div id="'+codeID+'"></div>';
+
         $.ajax(
             "../api/method/disass/"+encodeURIComponent(btoa(encodeURIComponent(row.__signature__))),
             {
@@ -1132,14 +1145,14 @@
                     },
                     {  
 
-                        "className":      'col-md-2 dxc-wrapped-row',
+                        "className":      'col-md-4 dxc-wrapped-row',
                         render: function(data, type, row, meta ){
                             //console.log(data, type, row, meta);
                             return row.package.name;
                         }
                     },
                     {   
-                        "className":      'col-md-6 dxc-wrapped-row',
+                        "className":      'col-md-5 dxc-wrapped-row',
                         render: function(data, type, row, meta ){
                             let color = (row.tags.indexOf("missing")>-1)? ' style="color:#F00"' : ''; 
                             
@@ -1179,7 +1192,7 @@
                         }
                     },
                     { 
-                        "className":      'col-md-3',
+                        "className":      'col-md-2',
                         render: function(data, type, row, meta ){
                             let b='<span  class="badge badge-pill badge-info badge-action rename" ename="'+btoa(encodeURIComponent(row.name))+'" subt="class" subject="'+btoa(encodeURIComponent(row.name))+'">Rename</span>';
 
@@ -1286,7 +1299,11 @@
                         render: function(data, type, row, meta ){
 
                             let color = (row.tags.indexOf("missing")>-1)? ' style="color:#F00"' : ''; 
-                            return '<span  class="dxc-wrapped-row" '+color+'>'+((row.alias!=null? '<b>'+htmlEncode(row.alias)+'</b>&nbsp;':'&nbsp;')+htmlEncode(row.name))+'</span>';
+                            let b = '<span  class="dxc-wrapped-row" '+color+'>'+((row.alias!=null? '<b>'+htmlEncode(row.alias)+'</b>&nbsp;':'&nbsp;')+htmlEncode(row.name));
+                            if(row.tags.indexOf("di")>0) b += BS.badge('success','internal');
+                            //if(row.modifiers.static==true) b += BS.badge('danger','static');
+
+                            return b+'</span>';
                         }
                     },
                     {   
@@ -1652,6 +1669,9 @@
                             if(data.data.length == undefined)/*g_search_type === SEARCH.SINGLE)*/{
                                 $('#dataTables-finder td.details-control').trigger('click');
                             }
+
+                            $(".pre-request").css("display","none");
+                            $(".pre-filter").css("display","block");
                         }
 
                     },
@@ -1719,6 +1739,8 @@
             $(".pre-request").css("display","block");
             $(".pre-filter").css("display","none");
         });
+
+
 
         $('#button_probeall').click(function(e){
             

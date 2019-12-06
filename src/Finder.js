@@ -545,7 +545,7 @@ function Finder(db){
          * 
          */
         hasModifier: function(request,data){
-            return data.modifiers[request.field];
+            return (data.modifiers[request.field]==true);
         }, 
         /**
          * Check if the <data> object is tagged with <pattern>
@@ -589,14 +589,13 @@ function Finder(db){
         
         // parse pattern
         if(pattern.substr(0,3)=="is."){
-            if(lex=pattern.indexOf(":")>-1){
-                token = pattern.substr(3,lex); 
-                pattern = pattern.substr(lex+1);
+            if((lex=pattern.indexOf(":"))>-1){
+                token = pattern.substr(3,lex-3); 
+                pattern = pattern.substr(lex+1,pattern.length-lex-1);
             }else{
-                token = pattern.substr(3); 
+                token = pattern.substr(3, pattern.length-3); 
                 pattern = "";
             }
-    
 
             //console.debug("Modifier search ... "+token+"."+pattern+" == true");
             if(lazy === false){

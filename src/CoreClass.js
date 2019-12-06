@@ -1832,6 +1832,11 @@ class DataBlock
         this.uid += (this.name != null)? this.name : 'data_'+offset;
     }
 
+    /**
+     * 
+     * @param {Array} val 
+     * @param {Boolean} isNegative 
+     */
     pushData(val, isNegative){
         // Increase buffer size if needed
         if(!this.virtual64 && ((this.length+1)*(this.width>>3) > this.values.length)){
@@ -2365,7 +2370,7 @@ Field.prototype.toJsonObject = function(fields=null,exclude=null){
                     break;
                 case "modifiers":
                     if(this.modifiers != null)
-                        obj.modifiers = this.modifiers.toJsonObject(["private","protected"]);
+                        obj.modifiers = this.modifiers.toJsonObject(["private","protected","static"]);
                     else
                         obj.modifiers = null;
                     break;

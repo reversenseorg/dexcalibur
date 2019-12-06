@@ -351,39 +351,6 @@ var DexcaliburAPI = {
                 }
             });
         }
-        /*
-        export: function(data,success, error){
-            $.ajax("/api/inspectors/saver", {
-                method: "get",
-                data: {
-                    action: "open"
-                },
-                statusCode: {
-                    200: function(data,err){
-                        success(data);
-                    },
-                    404: function(data,err){
-                        error(data);
-                    }
-                }
-            });
-        },
-        import: function(file,success, error){
-            $.ajax("/api/inspectors/saver", {
-                method: "get",
-                data: {
-                    action: "open"
-                },
-                statusCode: {
-                    200: function(data,err){
-                        success(data);
-                    },
-                    404: function(data,err){
-                        error(data);
-                    }
-                }
-            });
-        }*/
     },
     hook: {
         manager: {
