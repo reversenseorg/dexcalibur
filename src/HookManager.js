@@ -17,6 +17,10 @@ var HOOK_TYPE = {
     OVERLOAD: 0x3
 };
 
+const HM_SPAWN = 1;
+const HM_ATTACH_GADGET = 2;
+const HM_ATTACH_APP = 3;
+const HM_ATTACH_PID = 4;
 
 function getLetterFromType(typename){
     for(let i in CONST.WORDS){
@@ -1306,21 +1310,38 @@ HookManager.prototype.lastSession = function(){
     return this.sessions[this.sessions.length];
 }
 
+
+HookManager.prototype.startBySpawn = function(pHookScript, pAppName){
+    this.start(pHookScript, HM_SPAWN, pAppName);
+}
+
+HookManager.prototype.startByAttachToGadget = function(pHookScript, pAppName){
+    this.start(pHookScript, HM_ATTACH_GADGET, pAppName);
+}
+
+HookManager.prototype.startByAttachTo = function(pHookScript, pPID=null){
+    this.start(pHookScript, HM_ATTACH_PID, pPID);
+}
+
+HookManager.prototype.startByAttachToApp = function(pHookScript, pAppName){
+    this.start(pHookScript, HM_ATTACH_APP, pAppName);
+}
 /**
  * start -> script ? -> NO : prepareHookScipt()
  *                   -> YES: use given script
  *       -> 
  */
-HookManager.prototype.start = function(hook_script){
+HookManager.prototype.start = function(hook_script, pType=null, pExtra=null){
     
 
     var PROBE_SESSION = this.newSession();
     
     if(hook_script == null){
         hook_script = this.prepareHookScript();
-        console.log(Chalk.yellow(hook_script));
+        //console.log(Chalk.yellow(hook_script));
     }
 
+    var applications=null, pid=-1;
     var APP = this.context.pkg;
     var $ = this;
 
@@ -1334,8 +1355,51 @@ HookManager.prototype.start = function(hook_script){
     var hookRoutine = co.wrap(function *() {
  
         const device = yield FRIDA.getUsbDevice(10000);
-        console.log('usb device:', device);
+       // let session = null;
 
+        Logger.info('usb device:', device);
+
+        switch(pType){
+            case HM_SPAWN:
+                pid = yield device.spawn([pExtra]);
+                session = yield device.attach(pid);
+                Logger.info('spawned:', pid);
+                break;
+            case HM_ATTACH_APP:
+                applications = yield device.enumerateApplications();
+                for(let i=0; i<applications.length; i++){
+                    if(applications[i].identifier == pExtra)
+                        pid = applications[i].pid;
+                }
+
+                if(pid > -1) {
+                    session = yield device.attach(pid);
+                    Logger.info('attached to '+pExtra+" (pid="+pid+")");
+                }else{
+                    throw new Error('Failed to attach to application ('+pExtra+' not running).');
+                }
+                
+                break;
+            case HM_ATTACH_GADGET:
+                applications = yield device.enumerateApplications();
+                if(applications.length == 1 && applications[0].name == "Gadget") {
+                    session = yield device.attach(applications[0].pid);
+                    Logger.info('attached to Gadget:', pid);
+                }else
+                    Logger.error('Failed to attach to Gadget.');
+
+                break;
+            case HM_ATTACH_PID:
+                session = yield device.attach(pExtra);
+                Logger.info('spawned:', pid);
+                break;
+            default:
+                Logger.error('Failed to attach/spawn');
+                return;
+                break;
+        }
+
+        /*
         const applications = yield device.enumerateApplications();
         console.log('[*] Applications:', applications);
         var pid = -1;
@@ -1349,10 +1413,10 @@ HookManager.prototype.start = function(hook_script){
         }
         
         const session = yield device.attach(pid);
-        console.log('attached:', session);
+        console.log('attached:', session);*/
     
         const script = yield session.createScript(hook_script);
-        console.log('script created:', script); 
+        //console.log('script created:', script); 
         //device.resume(pid);
 
         // For frida-node > 11.0.2

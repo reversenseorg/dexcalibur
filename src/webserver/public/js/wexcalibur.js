@@ -142,6 +142,457 @@ function encodeURLParam(val){
     return encodeURIComponent(btoa(encodeURIComponent(val)));
 }
 
+const RequestHelperTYPES = {
+    T_NODE: 1,
+    T_LITTERAL: 2,
+    T_OPMODE: 3,
+    T_MODIFIER: 4
+};
+
+const RequestHelperOPMODE =  {
+    equal: {
+        text: "equals"
+    },
+    match: {
+        text: "match RegExp"
+    },
+    hasModifier: {
+        text: "is private/..."
+    },
+};
+
+const RequestHelperMENU = {
+    modifiers: {
+        "public": {
+            type: RequestHelperTYPES.T_MODIFIER,
+            token: "signature"
+        },
+        "protected": {
+            type: RequestHelperTYPES.T_MODIFIER,
+            token: "signature"
+        },
+        "private": {
+            type: RequestHelperTYPES.T_MODIFIER,
+            token: "signature"
+        },
+        "native": {
+            type: RequestHelperTYPES.T_MODIFIER,
+            token: "signature"
+        },
+        "volatile": {
+            type: RequestHelperTYPES.T_MODIFIER,
+            token: "signature"
+        },
+        "static": {
+            type: RequestHelperTYPES.T_MODIFIER,
+            token: "signature"
+        },
+        "transient": {
+            type: RequestHelperTYPES.T_MODIFIER,
+            token: "signature"
+        },
+    }
+};
+
+const RequestHelperMAP =  {
+    method: {
+        "by name": {
+            type: RequestHelperTYPES.T_LITTERAL,
+            token: "name",
+        },
+        "by args type": {
+            type: RequestHelperTYPES.T_NODE,
+            ref: "class",
+            token: "args"
+        },
+        "by return type": {
+            type: RequestHelperTYPES.T_NODE,
+            ref: "class",
+            token: "ret"
+        },
+        "by enclosing class": {
+            type: RequestHelperTYPES.T_NODE,
+            ref: "class",
+            token: "enclosingClass"
+        },
+        "by class used": {
+            type: RequestHelperTYPES.T_NODE,
+            ref: "class",
+            token: "_useClass"
+        },
+        "by method called": {
+            type: RequestHelperTYPES.T_NODE,
+            ref: "method",
+            token: "_useMethod"
+        },
+        "by field used": {
+            type: RequestHelperTYPES.T_NODE,
+            ref: "field",
+            token: "_useField"
+        },
+        "called by": {
+            type: RequestHelperTYPES.T_NODE,
+            ref: "method",
+            token:"_callers"
+        },
+        "by tag": {
+            type: RequestHelperTYPES.T_LITTERAL,
+            token:"tags"
+        },
+        "by modifiers (private/native/...)": {
+            type: RequestHelperTYPES.T_LITTERAL,
+            token:"tags"
+        }
+    },
+    class: {
+        "by interface": {
+            type: RequestHelperTYPES.T_NODE,
+            token: "implements",
+            ref: "class"
+        },
+        "by super": {
+            type: RequestHelperTYPES.T_NODE,
+            token: "extends",
+            ref: "class"
+        },
+        "FQCN is ...": {
+            type: RequestHelperTYPES.T_LITTERAL,
+            token: "name"
+        },
+        "simpleName is ...": {
+            type: RequestHelperTYPES.T_LITTERAL,
+            token: "simpleName"
+        },
+        package: {
+            type: RequestHelperTYPES.T_NODE,
+            ref: "package",
+            token: "package"
+        },
+        "declaring Method": {
+            type: RequestHelperTYPES.T_NODE,
+            ref: "method",
+            token: "method"
+        },
+        "declaring Field": {
+            type: RequestHelperTYPES.T_NODE,
+            ref: "field",
+            token: "field"
+        },
+        "called by": {
+            type: RequestHelperTYPES.T_NODE,
+            ref: "method",
+            token: "_callers"
+        },
+        "tagged ...": {
+            type: RequestHelperTYPES.T_LITTERAL,
+            token: "tags"
+        }
+    },
+    field: {
+        "where sgtters ... ": {
+            type: RequestHelperTYPES.T_NODE,
+            ref: "method",
+            token: "_getters"
+        },
+        "where setters ... ": {
+            type: RequestHelperTYPES.T_NODE,
+            ref: "method",
+            token: "_setters"
+        },
+        "name is ...": {
+            type: RequestHelperTYPES.T_LITTERAL,
+            token: "name"
+        },
+        "aliased ...": {
+            type: RequestHelperTYPES.T_LITTERAL,
+            token: "alias"
+        },
+        "signature": {
+            type: RequestHelperTYPES.T_LITTERAL,
+            token: "signature"
+        },
+        "where type ...": {
+            type: RequestHelperTYPES.T_NODE,
+            ref: "class",
+            token: "type"
+        },
+        "tagged ...": {
+            type: RequestHelperTYPES.T_LITTERAL,
+            token: "tags"
+        }
+    },
+    string: {
+        "by value": {
+            type: RequestHelperTYPES.T_LITTERAL,
+            token: "value"
+        },
+        "by tag": {
+            type: RequestHelperTYPES.T_LITTERAL,
+            token: "tags"
+        },
+        "by instruction": {
+            type: RequestHelperTYPES.T_NODE,
+            token: "instr",
+            ref: "instruction"
+        },
+    },
+    array: {
+        "by tag": {
+            type: RequestHelperTYPES.T_LITTERAL,
+            token: "tags"
+        },
+    },
+    call: {
+        "by caller": {
+            type: RequestHelperTYPES.T_NODE,
+            ref: "method",
+            token: "caller"
+        },
+        "by called": {
+            type: RequestHelperTYPES.T_NODE,
+            ref: "method",
+            token: "calleed"
+        },
+        "by instruction": {
+            type: RequestHelperTYPES.T_NODE,
+            ref: "instruction",
+            token: "instr"
+        }
+    },
+    instruction: {
+        "by value": {
+            type: RequestHelperTYPES.T_LITTERAL,
+            token: "raw"
+        },
+        "by basic-block offset": {
+            type: RequestHelperTYPES.T_LITTERAL,
+            token: "bb"
+        },
+        "tagged ...": {
+            type: RequestHelperTYPES.T_LITTERAL,
+            token: "tags"
+        },
+        "by opcode": {
+            type: RequestHelperTYPES.T_NODE,
+            token: "opcode",
+            ref: "opcode"
+        }
+    },
+    opcode: {
+        "where basic-block relative offset == ": {
+            type: RequestHelperTYPES.T_LITTERAL,
+            token: "offset"
+        },
+        "where smali == ": {
+            type: RequestHelperTYPES.T_LITTERAL,
+            token: "raw"
+        },
+        "where basic-block offset == ": {
+            type: RequestHelperTYPES.T_LITTERAL,
+            token: "bb"
+        }
+    }
+};
+
+/*
+
+
+    static OPE = {
+        "has tag": {},
+        "is": {},
+    };
+    */
+class RequestHelper
+{
+    constructor(pJQuery, pElement){
+        this.state = [];
+        this.$ = pJQuery;
+        this.view = pElement;
+        this._view = null;
+        this._curr = null;
+        this.listeners = {
+            execute: null
+        };
+
+        this.init();
+    }
+
+    updateListener(){
+        let self = this;
+        this.$(`.${this.view}-choice`).click(function(e){
+
+            let val = e.currentTarget.getAttribute("choiceValue");
+
+            self.$(`#${self.view}-choicelist`).remove();
+            
+            
+            
+
+            if(e.currentTarget.getAttribute("rootChoice")=="1"){
+                self._view.append(
+                    `<div class="dxc-inline-ctn dxc-badge-list"><span class="badge badge-pill badge-primary" class="${self.view}-choosen" choiceValue="${val}">${val}</span></div>`
+                );
+                self.choose(val, true);
+            }else{
+                self._view.append(
+                    `<div class="dxc-inline-ctn dxc-badge-list"><span class="badge badge-pill badge-purple" class="${self.view}-choosen" choiceValue="${val}">${val}</span></div>`
+                );
+                self.choose(val);
+            }
+
+            //self.state.push(val);
+            self.render();
+        });
+        this.$(`.${this.view}-run`).click(function(e){
+
+            self.data = self.$(`#${self.view}-data`).val();
+            self.ppts = {
+                nocase: self.$(`#${self.view}-case`).is(":checked")? false : true, 
+                apponly: self.$(`#${self.view}-apponly`).is(":checked")? true : false,
+            }
+            //self._view.remove(); 
+            //self._view.css("display","none");
+
+            self.execute();
+        });
+        this.$(`#${this.view}-data`).keypress( function (e) {
+            var key = e.which || e.keyCode;
+            if (key === 13) {
+                self.$(`.${self.view}-run`).trigger('click');
+            }   
+        });
+    }
+
+    onCancel(){
+
+    }
+
+    onExecute(pCallback){
+        this.listeners.execute = pCallback;
+    }
+
+    init(){
+        let self = this;
+        this._view = this.$('#'+this.view).last();
+        this.updateListener();
+    }
+
+    reset(){
+        this.state = [];
+        this._curr = null;
+        this._view.empty();
+    }
+
+    choose(pNode, pRoot=false){
+
+
+        let node = this._curr.nodes;
+        let o=null;
+        
+        if(pRoot==true){
+            this._curr = { type:RequestHelperTYPES.T_NODE, root:false, current:pNode, nodes:RequestHelperMAP[ pNode ]}; 
+            o = RequestHelperMAP[ pNode ]; 
+            o.token = pNode;  
+            this.state.push(o);
+        }else if(node[pNode].type == RequestHelperTYPES.T_NODE || pRoot==true){
+            this._curr = { type:RequestHelperTYPES.T_NODE, root:false, current:pNode, nodes:RequestHelperMAP[ node[pNode].ref ]};
+            this.state.push(node[pNode]);
+        }else{
+            this._curr = { type:RequestHelperTYPES.T_LITTERAL, root:false };
+            this.state.push(node[pNode]);
+        }
+
+        return null;
+    }
+
+    execute(){
+        let cmd="",end=false;
+
+        cmd = this.state[0].token+'("';
+
+        for(let i=1; i<this.state.length; i++){
+            if(i>1) cmd+=".";
+            if(end) alert("error in RequestHelper.execute()");
+
+            switch(this.state[i].type)
+            {
+                case RequestHelperTYPES.T_NODE:
+                    cmd += this.state[i].token;
+                    break;
+                case RequestHelperTYPES.T_LITTERAL:
+                    cmd += this.state[i].token+":"+this.data;
+                    break;
+            }
+        }
+
+
+        this.listeners.execute(`${this.ppts.nocase?"nocase().":""}${cmd}")${this.ppts.apponly?'.filter("tags:ds")':""}`);
+    }
+
+    render(){
+        let body = '';
+
+        if(this._curr == null){
+            body = `<div id="${this.view}-choicelist"><ul class="dxc-badge-list">`;
+            for(let i in RequestHelperMAP){
+                body += `<li><span class="badge badge-pill badge-primary ${this.view}-choice" rootChoice="1" choiceValue="${i}">${i}</span></li>`;
+            }
+            this._view.append(body+`</ul></div>`);
+            this._curr = { type:RequestHelperTYPES.T_NODE, root:true, nodes:RequestHelperMAP };
+            this.updateListener();
+        }else if(this._curr.type == RequestHelperTYPES.T_NODE){
+            body = `<div id="${this.view}-choicelist"><ul class="dxc-badge-list">`;
+            for(let i in this._curr.nodes){
+                body += `<li><span class="badge badge-pill badge-purple ${this.view}-choice" rootChoice="0" choiceValue="${i}">${i}</span></li>`;
+            }
+            this._view.append(body+`</ul></div>`);
+            this.updateListener();
+        }else{
+            let path = "";
+            this.state.map(function(o,k){
+
+                path += o.token+" &gt; ";
+            })
+            
+            this.$(`#${this.view} > div.dxc-badge-list`).each(function(pOffset,pEl){
+                pEl.remove();
+            });
+
+            this._view.append(`<div id="${this.view}-choicelist" class="input-group input-group-sm mb-3">
+                <div class="input-group-prepend">
+                    <span class="input-group-text border-dark badge-pink"><i>${path}</i></span>
+                    <span class="input-group-text">
+                        <input type="checkbox" checked id="${this.view}-case" value="1" aria-label="case sensitive search">
+                        <span>&nbsp;Case sensitive</span>
+                    </span>
+                    <span class="input-group-text">
+                        <input type="checkbox" id="${this.view}-apponly" value="1" aria-label="app only search">
+                        <span>&nbsp;App only</span>
+                    </span>
+                </div>  
+                <input type="text" class="form-control"  width="20em" id="${this.view}-data" aria-label="Search pattern" aria-describedby="request-helper-btn1">
+                <div class="input-group-append">
+                    <button class="btn btn-primary btn-sm ${this.view}-run" type="button" id="request-helper-btn1"><span class="fa fa-search"></span>&nbsp;search</button>
+                </div>
+            </div>`);
+
+            this.$(`#${this.view}-data`).focus();
+            this.updateListener();
+
+        }
+
+        return this.$;
+    }
+
+}
+
+class RequestHelperChoice
+{
+    constructor(pRef){
+        this.choices = 0;//RequestHelper.MAP[pRef];
+    }
+}
+
 
 var DexcaliburAPI = {
     ui: {
@@ -264,6 +715,22 @@ var DexcaliburAPI = {
                     }
                 }
             })
+        },
+        list: function(success=null, error=null){
+            $.ajax("/api/device", {
+                method: "get",
+                data: {
+                    _t: (new Date()).getTime()
+                },
+                statusCode: {
+                    200: function(data,err){
+                        if(success != null) success(data);
+                    },
+                    404: function(data,err){
+                        if(error != null) error(data);
+                    }
+                }
+            })
         }
     },
     search: {
@@ -362,12 +829,14 @@ var DexcaliburAPI = {
         clearFutureHook: function(){
             DexcaliburAPI.hook.manager.current = null;
         },
-        start: function(callbackSuccess, callbackErr){
+        start: function(pType, callbackSuccess, callbackErr){
+            let o = {_t: (new Date()).getTime()};
+            for(let i in pType) o[i]=pType[i];
+
+
             $.ajax('/api/probe/start',{
                 method: 'post',
-                data: {
-                    _t: (new Date()).getTime()
-                },
+                data: o,
                 statusCode: {
                     200: callbackSuccess,
                     404: callbackErr

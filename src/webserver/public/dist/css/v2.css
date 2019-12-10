@@ -439,6 +439,34 @@ table.finderTable > tbody > tr > td {
     font-weight: 800;
 }
 
+.prefilter-more {
+    color: #6610f2;
+    cursor: pointer;
+}
+
+.prefilter-more:hover {
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+.dxc-badge-list {
+    list-style: none;
+    font-size: 0.8em;
+}
+
+div.dxc-inline-ctn {
+    display: inline-block;
+    margin-left: 1em;
+}
+
+.dxc-badge-list > li {
+    list-style: none;
+    margin-top: 0.1em;
+}
+
+.dxc-badge-list > li > span {
+    cursor: pointer;
+}
 
 .dxc-horizon-separator {
     border-top: 1px solid rgb(233, 123, 60);

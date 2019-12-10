@@ -1,6 +1,7 @@
 var ut = require("./Utils.js");
 const CLASS = require("./CoreClass.js");
 const FILE = require("./File.js");
+const Logger = require("./Logger.js")();
 var CONST = require("./CoreConst.js");
 var MemoryDb = require("./InMemoryDb.js");
 var AppCmp = require("./AndroidAppComponents.js");
@@ -526,43 +527,47 @@ FinderResult.prototype.show = function(){
     sub = null;
 };
 
+class Finder
+{
+    constructor(pDatabase){
+        this.__DB = pDatabase;
+        this.cache = [];
 
-/**
- * The Finder class represents the search engine.
- * It parses the search request, performs search, and returns a FinderResult object
- * @param {*} db 
- */
-function Finder(db){
+        this._test = {     
+            /**
+             * Check if the <data> object has the <pattern> modifier
+             * 
+             */
+            hasModifier: function(request,data){
+                return (data.modifiers[request.field]==true);
+            }, 
+            /**
+             * Check if the <data> object is tagged with <pattern>
+             * 
+             */ 
+            hasTag: function(request,data){
+                if(data.tags === undefined) 
+                    console.error("Object "+data+" has not 'tags' field");
     
-    this.cache = [];
+                //console.log(data.tags.indexOf(request.pattern), data.tags, request.pattern);
+                return data.tags.indexOf(request.pattern)>-1; 
+            }, 
+            /**
+             * Mock
+             */
+            NO_TEST: true
+        };
 
-    /**
-     * Internal check functions used during searchs
-     */
-    this._test = {     
-        /**
-         * Check if the <data> object has the <pattern> modifier
-         * 
-         */
-        hasModifier: function(request,data){
-            return (data.modifiers[request.field]==true);
-        }, 
-        /**
-         * Check if the <data> object is tagged with <pattern>
-         * 
-         */ 
-        hasTag: function(request,data){
-            if(data.tags === undefined) 
-                console.error("Object "+data+" has not 'tags' field");
+        if(pDatabase != null){
+            Logger.info("[SEARCH] Finder inittialized");
+        }else{
+            Logger.info("[SEARCH] Finder DB is empty");
+        }
+    }
 
-            //console.log(data.tags.indexOf(request.pattern), data.tags, request.pattern);
-            return data.tags.indexOf(request.pattern)>-1; 
-        }, 
-        /**
-         * Mock
-         */
-        NO_TEST: true
-    };
+    updateDB(pDatabase){
+        this.__DB = pDatabase;
+    }
 
     /**
      * To parse a pattern like [native:]*ssl*.
@@ -575,7 +580,7 @@ function Finder(db){
      * @param Boolean lazy If FALSE, verify if the field exists 
      * @returns {SearchPattern} The parsed search pattern, ready to be used  
      */
-    this._getTestFn = function(dataModel, pattern, caseSensitive, lazy=false){
+    _getTestFn(dataModel, pattern, caseSensitive, lazy=false){
         
         //if(lazy===true) console.debug("LAZY mode detected !");
 
@@ -669,9 +674,10 @@ function Finder(db){
         flags += (caseSensitive?"":"i");
         rx = new RegExp(pattern,flags);
 
-        //console.debug("Running search : "+rx.toString());
         if(rx != null){
-            fn = function(x){ return rx.test(x) } ;
+            fn = function(x){ 
+                return rx.test(x) 
+            } ;
         }else{
             fn = this._test.NO_TEST
         }
@@ -680,7 +686,6 @@ function Finder(db){
         if(lazy === false && isDeepSearch===false)
             struct = (dataModel[token] instanceof Array)||(dataModel[token] instanceof Object);
         
-
         return new SearchPattern({ 
             pattern: pattern, 
             field: token, 
@@ -688,9 +693,9 @@ function Finder(db){
             isDeepSearch: isDeepSearch,
             fn: fn, 
         });
-    };
+    }
 
-    this._findObject = function(index, search_pattern, includeMissing=false){
+    _findObject(index, search_pattern, includeMissing=false){
         let matches= new MemoryDb.Index(), k=0, field=undefined;
         
         //console.log(search_pattern);
@@ -733,30 +738,97 @@ function Finder(db){
      * @param {SearchPattern} search A search pattern containing the full path to the field to compare  
      * @returns {Boolean} Return the check result 
      */
-    this.__checkDeepField = function(object,search, offset=0){
+    __checkDeepField(object,search, offset=0){
         let ref=object, i=offset;
 
         if(object == null) return false;
 
-        do{
-            if(ref[search.field[i]]!==undefined && ref[search.field[i]]!==null){
-                if(ref[search.field[i]] instanceof Array){
-                    for(let k in ref[search.field[i]]){
-                        //console.log(search.field[i],ref[search.field[i]]); 
+
+        if(ref[search.field[i]]!==undefined && ref[search.field[i]]!==null){
+            // if nested ppt is an array - such ars method.args
+            /*if(ref[search.field[i]] instanceof Array){
+                for(let k=0; k<ref[search.field[i]].length; k++){
+                    if(ref[search.field[i]][k] instanceof CLASS.ObjectType){
+                        console.log(search.field[i], ref[search.field[i]][k].name, search.field[i+1]);
+                        return this.__checkDeepField( this.__DB.classes.getEntry(ref[search.field[i]][k].name), search, i+1);
+                    }
+                    else if(ref[search.field[i]][k] instanceof CLASS.BasicType){
+                        console.log(search.field[i], ref[search.field[i]][k].name, search.field[i+1]);
+                        return this.__checkDeepField( this.__DB.classes.getEntry(ref[search.field[i]][k].name), search, i+1);
+                    }else{
+                        console.log(search.field[i],ref[search.field[i]]); 
                         return this.__checkDeepField(ref[search.field[i]][k], search, i+1);
+                    }                
+                }
+            }*/
+
+            if(i<search.field.length-1){
+                if(ref[search.field[i]] instanceof Array){
+                    for(let k=0; k<ref[search.field[i]].length; k++){
+                        if(ref[search.field[i]][k] instanceof CLASS.ObjectType){
+                            //console.log(search.field[i], ref[search.field[i]][k].name, search.field[i+1]);
+                            return this.__checkDeepField( this.__DB.classes.getEntry(ref[search.field[i]][k].name), search, i+1);
+                        }
+                        else if(ref[search.field[i]][k] instanceof CLASS.BasicType){
+                            // terminal node (ignore array tag)
+                            return false;
+                        }else{
+                            //console.log(search.field[i],ref[search.field[i]]); 
+                            return this.__checkDeepField(ref[search.field[i]][k], search, i+1);
+                        }                
                     }
                 }else{
+                    if(ref[search.field[i]] instanceof CLASS.ObjectType){
+                        return this.__checkDeepField( this.__DB.classes.getEntry(ref[search.field[i]].name), search, i+1);
+                    }
+                    else if(ref[search.field[i]] instanceof CLASS.BasicType){
+                        return false;
+                    }else{
+                        return this.__checkDeepField(ref[search.field[i]], search, i+1);
+                    }   
+
+                    return this.__checkDeepField(ref[search.field[i]], search, i+1);
+                }
+            }else{
+                ref = ref[search.field[i]];
+            }
+        }
+
+        if(ref != null){
+            return search.fn(ref);
+        }else
+            return false;
+
+        /*
+        do{
+            if(ref[search.field[i]]!==undefined && ref[search.field[i]]!==null){
+                // if nested ppt is an array - such ars method.args
+                if(ref[search.field[i]] instanceof Array){
+                    for(let k=0; k<ref[search.field[i]].length; k++){
+                        if(ref[search.field[i]][k] instanceof CLASS.ObjectType){
+                            console.log(ref[search.field[i]][k].name, search.field[i+1]);
+                            return this.__checkDeepField( this.__DB.classes.getEntry(ref[search.field[i]][k].name), search, i+1);
+                        }
+                        console.log(search.field[i],ref[search.field[i]]); 
+                        return this.__checkDeepField(ref[search.field[i]][k], search, i+1);
+                    }
+                }
+                // else if 
+                else{
                     ref = ref[search.field[i]];
                 }
+            }else{
+                // don't treat intermediate noed 
+                ref = null;
             }
             i++;
-        }while(i<search.field.length);
+        }while(i<search.field.length);*/
 
         //console.log(ref);
-        return search.fn(ref);
+        
     };
 
-    this._findDeepObject = function(index, search_pattern){
+    _findDeepObject(index, search_pattern){
         let matches=new MemoryDb.Index(), k=0, field=undefined;
         
         index.map((k,v)=>{
@@ -774,7 +846,7 @@ function Finder(db){
 
  
     // TODO : Factoriser tous les finds
-    this._findObjectByTag = function(index, search_pattern){
+    _findObjectByTag(index, search_pattern){
         let matches=new MemoryDb.Index();
         
         index.map((k,v)=>{
@@ -790,7 +862,7 @@ function Finder(db){
         return matches;
     };
 
-    this._findObjectByModifier = function(index, search_pattern){
+    _findObjectByModifier(index, search_pattern){
         let matches=new MemoryDb.Index(), k=0, field=undefined;
         
         index.map((k,v)=>{
@@ -812,11 +884,11 @@ function Finder(db){
         return matches;
     };
 
-    this._listObject = function(obj_type){
+    _listObject(obj_type){
         return db[obj_type].getAll();
     };
     
-    this._find = function(index, model, pattern, caseSensitive, lazy=false, includeMissing=false){
+    _find(index, model, pattern, caseSensitive, lazy=false, includeMissing=false){
         if(pattern === null || pattern === undefined) return new FinderResult(index,this);
 
         this.cache.push({ index:index, model:model, case:caseSensitive, lazy:lazy });
@@ -829,7 +901,7 @@ function Finder(db){
             if(spatt.hasTag)
                 return new FinderResult(this._findObjectByTag(index, spatt), this); 
             else if(spatt.isDeepSearch){
-                //console.debug("Running deep search ...")
+                console.debug("Running deep search ...")
                 //return new FinderResult(this._findDeepObject(index, spatt), this);
                 return new FinderResult(this._findDeepObject(index, spatt), this);
             }
@@ -840,13 +912,8 @@ function Finder(db){
         }
     }
 
-    /*
-    this.strings = function(pattern,caseSensitive){
-        new FinderResult(this._findObject(db.fields, spatt));
-    };
-    */
-    return this;
 }
+
 
 /**
  * A specialization of the searchAPI for searching missing object 
@@ -1101,6 +1168,7 @@ function SearchAPI(data){
 
     this.updateDB = function(data){
         _db = this._db = data;
+        this._finder.updateDB(data);
     };
 
     /**

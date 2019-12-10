@@ -105,9 +105,9 @@
                                 <span class="badge badge-pill badge-pink prefilter" prefilt='array("uid:@@")'>static array by method</span>
                                 <span class="badge badge-pill badge-pink prefilter" prefilt='array("tags:@@")'>static array by tag</span>
 
-                                <span class="badge badge-pill badge-purple prefilter" prefilt='string("tags:URL")'>URL</span>
+                                <span class="badge badge-pill badge-purple prefilter" prefilt='string("tags:URI").union($.string("tags:URI"))'>URI</span>
                                 <span class="badge badge-pill badge-purple prefilter" prefilt='array("tags:IP")'>IP</span>
-                                <a class="prefilter-more" href="#">&nbsp;or build your own request ...</a>
+                                <span class="prefilter-more">&nbsp;advanced search ...</a>
 
                             </div>
                             <div class="pre-filter" style="display:none">
@@ -121,9 +121,26 @@
                                 <span class="badge badge-pill badge-purple prefilter" when="before" prefilt='nocase()'>Case ensensitive</span>
                             </div>
                     </div>
+
+                    <div class="card-footer" id="request-helper" style="display:none">
+                        <div class="row">
+                            <div class="col-lg-10">
+                                Search ...
+                            </div>
+                            <div class="col-lg-2">
+                                <button class="btn btn-sm" id="request-helper-view-reset">
+                                    <span class="fa fa-refresh"></span>&nbsp;Reset
+                                </button>
+                                <button class="btn btn-sm" id="request-helper-view-cancel">
+                                    <span class="fa fa-close"></span>&nbsp;Cancel
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="row" id="request-helper-view" style="margin-left:1em;width:70pc;"></div>  
+                    </div>
             </div>
 
-           
 
             <div class="card">
                 <table width="100%"  class="table table-striped table-bordered table-hover finderTable" id="dataTables-finder">
@@ -1523,6 +1540,34 @@
         htmlEncode = function(txt){
             return $("<div />").text(txt).html();
         }
+
+        // ---------------- REQUEST HELPER : START ----------------
+
+        var RHelper = new RequestHelper($, "request-helper-view");
+        RHelper.onExecute(function(pCmd){
+            $("#search_request")[0].value = pCmd;
+            $("#button_search").trigger("click");
+        });
+
+        $(".prefilter-more").click(function(e){
+            if($("#request-helper").css("display")=="block") return;
+            $("#request-helper").css("display","block");
+            RHelper.init();
+            RHelper.render();
+        });
+
+        $("#request-helper-view-reset").click(function(e){
+            RHelper.reset();
+            RHelper.init();
+            RHelper.render();
+        });      
+        $("#request-helper-view-cancel").click(function(e){
+            $("#request-helper").css("display","none");
+            RHelper.reset();
+        });
+
+        // ---------------- REQUEST HELPER : END ------------------
+
 
         //$('#probelogs').
         $('#dataTables-finder tbody').on('click', 'td.details-control', function () {

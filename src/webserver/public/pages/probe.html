@@ -63,8 +63,17 @@
                         </li>
                     -->
                         <li class="nav-item border border-info dxc-run-btn">
-                            <a class="nav-link" id="start-hook" href="#"><span class="fa fa-bolt">&nbsp;</span>Run</a>
+                            <a class="nav-link start-hook" fridaStartType="spawn-self" id="start-hook" href="#"><span class="fa fa-bolt">&nbsp;</span>Run (spawn)</a>
                         </li>
+                        <li class="nav-item dxc-orange-btn">
+                            <a class="nav-link start-hook" fridaStartType="attach-app-self" id="attachtoapp-hook" href="#"><span class="fa fa-bolt">&nbsp;</span>Attach to app</a>
+                        </li>
+                        <li class="nav-item dxc-orange-btn">
+                            <a class="nav-link start-hook" fridaStartType="attach-gadget" id="attachtogadget-hook" href="#"><span class="fa fa-bolt">&nbsp;</span>Attach to Gadget</a>
+                        </li>
+                        <!--<li class="nav-item dxc-purple-btn">
+                            <a class="nav-link start-hook" fridaStartType="attach-pid" id="attachto-hook"><span class="fa fa-bolt">&nbsp;</span>Attach to ...</a>
+                        </li>-->
                     </ul>
                 </div>
 
@@ -110,6 +119,51 @@
             </div>
             <div class="modal-footer">
               <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal fade" id="attachToModal" tabindex="-1" role="dialog" aria-labelledby="attachToModalLabel" aria-hidden="true">
+        <div class="modal-dialog"  role="document">
+          <div class="modal-content" style="width:40pc"  >
+            <div class="modal-header">
+              <h3 class="modal-title" id="attachToModalLabel">Attach to ...</h3>
+            </div>
+            <div class="modal-body">
+                <div class="row" style="margin-bottom: 1em">
+                    <div class="col-lg-8">Select a device:</div>
+                    <div class="col-lg-4" >
+                        <span class="badge badge-secondary badge-pill badge-sm">-</span>
+                    </div>
+                </div>
+                <div class="row" style="margin-bottom: 1em">
+                    <div class="col-lg-12">
+                        <select id="ps-device-list"class="form-control"></select>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-lg-12 dxc-horizon-separator">
+                        <table class="table table-bordered table-hover">
+                            <thead>
+                                <tr>
+                                    <th class="col-md-1">-</th>
+                                    <th class="col-md-1">PID</th>
+                                    <th class="col-md-4">User</th>
+                                    <th class="col-md-6">Process</th>
+                                </tr>
+                            </thead>
+                        </table>
+                    </div>
+                </div>
+            
+           
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary btn-sm" data-dismiss="modal">
+                <span class="fa fa-close"></span>&nbsp;Cancel</button>
+              <button type="button" class="btn btn-success btn-sm" data-dismiss="modal">
+                  <span class="fa fa-bolt"></span>&nbsp;Attach</button>
             </div>
           </div>
         </div>
@@ -775,16 +829,49 @@
             );
         });
 
-        $("#start-hook").click(()=>{
-            DexcaliburAPI.hook.start(
-                function(){
-                    location.href = "/pages/probelog.html"
-                },
-                function(err){
-                    alert(err);
-                }
-            )
+        $(".start-hook").click((e)=>{
+            let type = e.currentTarget.getAttribute("fridaStartType");
+            let config = {};
+
+            if(type == "attach-pid"){
+                DexcaliburAPI.device.list(
+                    function(pData){
+                        let devl = JSON.parse(pData);
+
+                        $("#ps-device-list").empty();
+                        $("#ps-device-list").append(`<option disabled selected hidden>Select ...</option>`);
+                        for(let i=0; i<devl.data.length; i++){
+                            $("#ps-device-list").append(`<option value="${DexcaliburAPI.ui.htmlEncode(devl.data[i].uid)}">${DexcaliburAPI.ui.htmlEncode(devl.data[i].model+' ('+devl.data[i].uid+')')}</option>`)
+                        }
+                        //console.log(data);
+
+                        $("#attachToModal").modal(); 
+                    },
+                    function(err){
+                        console.log(err);
+                    }
+                );  
+            }else{
+                DexcaliburAPI.hook.start(
+                    {
+                        type: type
+                    },
+                    function(data){
+                        location.href = "/pages/probelog.html"
+                    },
+                    function(err){
+                        alert(err);
+                    }
+                );
+
+            }
+
+            console.log(e.currentTarget.getAttribute("fridaStartType"));//.attr("fridaStartType"));
+            
         });
+
+       
+
         $("#enable-all").click(()=>{
             DexcaliburAPI.hook.enableAll({
                 200: function(daata){

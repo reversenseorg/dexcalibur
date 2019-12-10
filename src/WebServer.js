@@ -377,8 +377,43 @@ class WebServer {
 
         this.app.route('/api/probe/start')
             .post(function (req, res) {
-                let hooks = $.project.hook.start();
-                res.status(200).send(JSON.stringify({ enable: true }));
+                Logger.info(`[WEB] Start hooking [pid=${req.body.pid}, app=${req.body.app}, type=${req.body.type}]`);
+               
+                try{
+                    switch(req.body.type){
+                        case "spawn-self":
+                            $.project.hook.startBySpawn(null, $.project.getPackageName());
+                            res.status(200).send(JSON.stringify({ enable: true }));
+                            break;
+                        case "spawn":
+                            $.project.hook.startBySpawn(null, req.body.app);
+                            res.status(200).send(JSON.stringify({ enable: true }));
+                            break;
+                        case "attach-gadget":
+                            $.project.hook.startByAttachToGadget(null);
+                            res.status(200).send(JSON.stringify({ enable: true }));
+                            break;
+                        case "attach-app-self":
+                            $.project.hook.startByAttachToApp(null, $.project.getPackageName());
+                            res.status(200).send(JSON.stringify({ enable: true }));
+                            break;
+                        case "attach-app":
+                            $.project.hook.startByAttachToApp(null, req.body.app);
+                            res.status(200).send(JSON.stringify({ enable: true }));
+                            break;
+                        case "attach-pid":
+                            $.project.hook.startByAttachTo(null, req.body.pid);
+                            res.status(200).send(JSON.stringify({ enable: true }));
+                            break;
+                        default:
+                            res.status(404).send(JSON.stringify({ err: 'Invalid start type' }));
+                            break;
+                    }
+                }catch(exception){
+                    res.status(404).send(JSON.stringify({ err: exception }));
+                }
+
+                
             });
 
         /**
