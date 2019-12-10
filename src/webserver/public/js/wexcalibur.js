@@ -750,7 +750,7 @@ var DexcaliburAPI = {
     analyzer: {},
     project: {
         save: function(success, error){
-            $.ajax("/api/inspectors/saver", {
+            $.ajax("/api/inspectors/Saver", {
                 method: "get",
                 data: {
                     action: "save",
@@ -767,7 +767,7 @@ var DexcaliburAPI = {
             })
         },
         autoSave: function(status, success, error){
-            $.ajax("/api/inspectors/saver", {
+            $.ajax("/api/inspectors/Saver", {
                 method: "get",
                 data: {
                     action: "autosave",
@@ -785,7 +785,7 @@ var DexcaliburAPI = {
             })
         },
         autosaveStatus: function(success, error){
-            $.ajax("/api/inspectors/saver", {
+            $.ajax("/api/inspectors/Saver", {
                 method: "get",
                 data: {
                     action: "autosave-status",
@@ -802,7 +802,7 @@ var DexcaliburAPI = {
             })
         },
         open: function(success, error){
-            $.ajax("/api/inspectors/saver", {
+            $.ajax("/api/inspectors/Saver", {
                 method: "get",
                 data: {
                     action: "open",
