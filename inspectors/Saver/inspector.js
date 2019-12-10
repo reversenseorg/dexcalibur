@@ -12,7 +12,7 @@ const SaveManager = require('./SaveManager.js');
 
 var Saver = new Inspector.Inspector({
     hookSet: new HOOK.HookSet({
-        id: "saver",
+        id: "Saver",
         name: "Saver",
         description: "It offers a way to backup alias/hook and restore it as any save/open feature."
     })
