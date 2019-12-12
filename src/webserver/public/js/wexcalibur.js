@@ -142,6 +142,11 @@ function encodeURLParam(val){
     return encodeURIComponent(btoa(encodeURIComponent(val)));
 }
 
+const RequestHelperHIDDEN = [
+    "opcode",
+    "instruction",
+    "modifiers"
+];
 const RequestHelperTYPES = {
     T_NODE: 1,
     T_LITTERAL: 2,
@@ -161,40 +166,40 @@ const RequestHelperOPMODE =  {
     },
 };
 
-const RequestHelperMENU = {
+
+const RequestHelperMAP =  {
     modifiers: {
         "public": {
             type: RequestHelperTYPES.T_MODIFIER,
-            token: "signature"
+            token: "is.public",
+            css: 'badge-warning'
         },
         "protected": {
             type: RequestHelperTYPES.T_MODIFIER,
-            token: "signature"
+            token: "is.protected",
+            css: 'badge-warning'
         },
         "private": {
             type: RequestHelperTYPES.T_MODIFIER,
-            token: "signature"
+            token: "is.private",
+            css: 'badge-warning'
         },
         "native": {
             type: RequestHelperTYPES.T_MODIFIER,
-            token: "signature"
+            token: "is.native",
+            css: 'badge-warning'
         },
         "volatile": {
             type: RequestHelperTYPES.T_MODIFIER,
-            token: "signature"
+            token: "is.volatile",
+            css: 'badge-warning'
         },
         "static": {
             type: RequestHelperTYPES.T_MODIFIER,
-            token: "signature"
-        },
-        "transient": {
-            type: RequestHelperTYPES.T_MODIFIER,
-            token: "signature"
-        },
-    }
-};
-
-const RequestHelperMAP =  {
+            token: "is.static",
+            css: 'badge-warning'
+        }
+    },
     method: {
         "by name": {
             type: RequestHelperTYPES.T_LITTERAL,
@@ -240,8 +245,8 @@ const RequestHelperMAP =  {
             token:"tags"
         },
         "by modifiers (private/native/...)": {
-            type: RequestHelperTYPES.T_LITTERAL,
-            token:"tags"
+            type: RequestHelperTYPES.T_NODE,
+            ref: "modifiers"
         }
     },
     class: {
@@ -319,21 +324,33 @@ const RequestHelperMAP =  {
         "tagged ...": {
             type: RequestHelperTYPES.T_LITTERAL,
             token: "tags"
+        },
+        "by modifiers":{
+            type: RequestHelperTYPES.T_NODE,
+            ref: "modifiers",
+            css: 'badge-warning'
         }
     },
     string: {
         "by value": {
             type: RequestHelperTYPES.T_LITTERAL,
-            token: "value"
+            token: "value",
+            css: 'badge-warning'
         },
         "by tag": {
             type: RequestHelperTYPES.T_LITTERAL,
-            token: "tags"
+            token: "tags",
+            css: 'badge-warning'
         },
         "by instruction": {
             type: RequestHelperTYPES.T_NODE,
             token: "instr",
             ref: "instruction"
+        },
+        "by method": {
+            type: RequestHelperTYPES.T_NODE,
+            token: "src",
+            ref: "method"
         },
     },
     array: {
@@ -371,6 +388,10 @@ const RequestHelperMAP =  {
         "tagged ...": {
             type: RequestHelperTYPES.T_LITTERAL,
             token: "tags"
+        },
+        "by smali pattern": {
+            type: RequestHelperTYPES.T_LITTERAL,
+            token: "_raw",
         },
         "by opcode": {
             type: RequestHelperTYPES.T_NODE,
@@ -444,7 +465,6 @@ class RequestHelper
             self.render();
         });
         this.$(`.${this.view}-run`).click(function(e){
-
             self.data = self.$(`#${self.view}-data`).val();
             self.ppts = {
                 nocase: self.$(`#${self.view}-case`).is(":checked")? false : true, 
@@ -491,10 +511,14 @@ class RequestHelper
         
         if(pRoot==true){
             this._curr = { type:RequestHelperTYPES.T_NODE, root:false, current:pNode, nodes:RequestHelperMAP[ pNode ]}; 
-            o = RequestHelperMAP[ pNode ]; 
-            o.token = pNode;  
-            this.state.push(o);
+           // o = RequestHelperMAP[ pNode ]; 
+            //console.log(o);
+            //o.token = pNode;  
+            this.state.push(pNode);
         }else if(node[pNode].type == RequestHelperTYPES.T_NODE || pRoot==true){
+            this._curr = { type:RequestHelperTYPES.T_NODE, root:false, current:pNode, nodes:RequestHelperMAP[ node[pNode].ref ]};
+            this.state.push(node[pNode]);
+        }else if(node[pNode].type == RequestHelperTYPES.T_MODIFIER){
             this._curr = { type:RequestHelperTYPES.T_NODE, root:false, current:pNode, nodes:RequestHelperMAP[ node[pNode].ref ]};
             this.state.push(node[pNode]);
         }else{
@@ -508,11 +532,8 @@ class RequestHelper
     execute(){
         let cmd="",end=false;
 
-        cmd = this.state[0].token+'("';
-
         for(let i=1; i<this.state.length; i++){
             if(i>1) cmd+=".";
-            if(end) alert("error in RequestHelper.execute()");
 
             switch(this.state[i].type)
             {
@@ -520,22 +541,30 @@ class RequestHelper
                     cmd += this.state[i].token;
                     break;
                 case RequestHelperTYPES.T_LITTERAL:
-                    cmd += this.state[i].token+":"+this.data;
+                    cmd += `${this.state[i].token}:${this.data}`;
+                    break;
+                case RequestHelperTYPES.T_MODIFIER:
+                    if(this.state.lenth > 2)
+                        cmd += `").filter("${this.state[i].token}`;
+                    else
+                        cmd += `"${this.state[i].token}"`;
                     break;
             }
         }
 
 
-        this.listeners.execute(`${this.ppts.nocase?"nocase().":""}${cmd}")${this.ppts.apponly?'.filter("tags:ds")':""}`);
+        this.listeners.execute(`${this.ppts.nocase?"nocase().":""}${this.state[0]}("${cmd}")${this.ppts.apponly?'.filter("tags:ds")':""}`);
     }
 
     render(){
-        let body = '';
+        let body = '', color = '', classname='';
 
         if(this._curr == null){
             body = `<div id="${this.view}-choicelist"><ul class="dxc-badge-list">`;
             for(let i in RequestHelperMAP){
-                body += `<li><span class="badge badge-pill badge-primary ${this.view}-choice" rootChoice="1" choiceValue="${i}">${i}</span></li>`;
+                if(RequestHelperHIDDEN.indexOf(i)==-1){
+                    body += `<li><span class="badge badge-pill badge-primary ${this.view}-choice" rootChoice="1" choiceValue="${i}">${i}</span></li>`;
+                }
             }
             this._view.append(body+`</ul></div>`);
             this._curr = { type:RequestHelperTYPES.T_NODE, root:true, nodes:RequestHelperMAP };
@@ -543,16 +572,28 @@ class RequestHelper
         }else if(this._curr.type == RequestHelperTYPES.T_NODE){
             body = `<div id="${this.view}-choicelist"><ul class="dxc-badge-list">`;
             for(let i in this._curr.nodes){
-                body += `<li><span class="badge badge-pill badge-purple ${this.view}-choice" rootChoice="0" choiceValue="${i}">${i}</span></li>`;
+                classname = (this._curr.nodes[i].type == RequestHelperTYPES.T_MODIFIER)? `${this.view}-run` : `${this.view}-choice`;
+                color = (this._curr.nodes[i].css!=undefined)? this._curr.nodes[i].css : 'badge-purple';
+                body += `<li><span class="badge badge-pill ${color} ${classname}" rootChoice="0" choiceValue="${i}">${i}</span></li>`;
             }
             this._view.append(body+`</ul></div>`);
             this.updateListener();
-        }else{
+        
+        }/*else if(this._curr.type == RequestHelperTYPES.T_MODIFIER){
+            body = `<div id="${this.view}-choicelist"><ul class="dxc-badge-list">`;
+            for(let i in this._curr.nodes){
+                body += `<li><span class="badge badge-pill badge-info ${this.view}-run" rootChoice="0" choiceValue="${i}">${i}</span></li>`;
+            }
+            this._view.append(body+`</ul></div>`);
+            this.updateListener();
+        }*/else{
             let path = "";
             this.state.map(function(o,k){
-
-                path += o.token+" &gt; ";
-            })
+                if(k==0)
+                    path += o+" &gt; ";
+                else
+                    path += o.token+" &gt; ";
+            });
             
             this.$(`#${this.view} > div.dxc-badge-list`).each(function(pOffset,pEl){
                 pEl.remove();
