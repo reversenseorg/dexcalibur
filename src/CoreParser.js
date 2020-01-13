@@ -39,6 +39,7 @@ PATTERN.INVOKE = " *"+PATTERN.FQCN+"->(.*)";
 PATTERN.INVOKE_SPECIAL = " *([)?"+PATTERN.PRIM_T+"->(.*)";
 
 PATTERN.FORMAT21C = " *([)?"+PATTERN.PRIM_T+"(.*);? *";
+PATTERN.FORMAT22C = " *(\\[)?"+PATTERN.PRIM_T+"([^;]+)?;? *";
 
 PATTERN.REG_TAG = PATTERN.REF_REG_ONE+"\\s*"+PATTERN.TAG;
 
@@ -57,6 +58,7 @@ var RX = {
     TAG: new RegExp("\\s*"+PATTERN.TAG),
     REG_TAG: new RegExp(PATTERN.REF_REG_ONE+"\\s*"+PATTERN.TAG),
     FORMAT21C: new RegExp(PATTERN.FORMAT21C),
+    FORMAT22C: new RegExp(PATTERN.FORMAT22C)
 };
 
 

@@ -14,7 +14,26 @@ function checksum(str, algorithm, encoding) {
       .digest(encoding || 'hex')
   }
 
-module.exports = {
+const NO_FLAG = 0x0;
+const FLAG_CR = 0x1;
+const FLAG_WS = 0x2;
+const FLAG_TB = 0x4;
+
+const PATTERNS = {};
+
+PATTERNS[FLAG_CR] = new RegExp("^[\n]*$");
+PATTERNS[FLAG_WS] = new RegExp("^[\s]*$");
+PATTERNS[FLAG_TB] = new RegExp("^[\t]*$");
+PATTERNS[FLAG_CR | FLAG_WS] = new RegExp("^[\n\s]*$");
+PATTERNS[FLAG_CR | FLAG_TB] = new RegExp("^[\n\t]*$");
+PATTERNS[FLAG_WS | FLAG_TB] = new RegExp("^[\s\t]*$");
+PATTERNS[FLAG_WS | FLAG_CR | FLAG_TB] = new RegExp("^[\s\t\n]*$");
+
+const Util = {
+    FLAG_CR: FLAG_CR,
+    FLAG_WS: FLAG_WS,
+    FLAG_TB: FLAG_TB,
+    NO_FLAG: NO_FLAG,
     /**
      * To encode
      */
@@ -182,6 +201,35 @@ module.exports = {
             s += charset[parseInt(Math.random*charset.length)];
         }
         return s;
-    }  
+    },
+    isEmpty: function( pVar, pFlags=NO_FLAG){
+        let f=null, p=null;
+        switch(typeof pVar){
+            case 'array':
+                if(pFlags != null)
+                    f = (pVar.length==0);
+                else{
+                    f = true;
+                    for(let i=0; i<pVar.length; i++){
+                        f &= Util.isEmpty(pVar[i], Util.FLAG_WS | Util.FLAG_CR);
+                    }
+                }
+                break;
+            case 'string':
+                f = true;
+                if(pFlags == Util.NO_FLAG)
+                    f &= (pVar.length==0);
+                else{
+                    f &= PATTERNS[pFlags].test(pVar);
+                }
+                break;
+            default: 
+                f = undefined;
+                break;
+        }
+
+        return f;
+    }
 };
 
+module.exports = Util;

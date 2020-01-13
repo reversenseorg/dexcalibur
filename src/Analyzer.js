@@ -269,7 +269,7 @@ var Resolver = {
  * @function 
  */
 function mapInstructionFrom(method, data, stats){
-    let bb = null, instruct = null, obj = null, x = null, success=false, cls=[],t=0,t1=0;
+    let bb = null, instruct = null, obj = null, x = null, success=false, stmt=null, tmp=null, t=0,t1=0;
 
     if(! method instanceof CLASS.Method){
         Logger.error("[!] mapping failed : method provided is not an instance of Method.");
@@ -281,6 +281,22 @@ function mapInstructionFrom(method, data, stats){
         bb._parent = method;
         // get basic blocks
         
+        if(bb.hasCatchStatement()){
+            stmt = bb.getCatchStatements();
+            for(let j=0; j<stmt.length; j++){
+                if(stmt[j].getException() != null){
+                    stmt[j].setException( Resolver.type(data, stmt[j].getException().name));
+                }
+                stmt[j].setTryStart( method.getTryStartBlock( stmt[j].getTryStart()));
+                stmt[j].setTryEnd( method.getTryEndBlock( stmt[j].getTryEnd()));
+                t = method.getCatchBlock( stmt[j].getTarget());
+                if(t !==null)
+                    stmt[j].setTarget(t);
+                else
+                    console.log(stmt[j].getTarget());
+            }
+        }
+
         for(let j in bb.stack){
             instruct = bb.stack[j];
             instruct.line = bb.line;    
@@ -343,7 +359,12 @@ function mapInstructionFrom(method, data, stats){
                 // if field not exists, return MissingReference object
 
                 instruct.right = Resolver.field(data, instruct.right);
-                
+
+                /*
+                if(instruct.opcode.type==CONST.INSTR_TYPE.GETTER){
+                    console.log(instruct.right);
+                }
+                */
 
                 //instruct.right = obj;
                 if(instruct.right === undefined || instruct.right._callers === undefined){
