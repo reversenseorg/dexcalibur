@@ -459,6 +459,21 @@ div.dxc-inline-ctn {
     margin-left: 1em;
 }
 
+.dxc-active-item {
+    background-color: #FFF;
+    border-bottom: 5px solid #F70;
+}
+
+.dxc-inactive-item {
+    background-color: #DDD;
+    border-bottom: 5px solid #999;
+}
+
+.dxc-inactive-item:hover {
+    background-color: yellow;
+    border-bottom: 5px solid black;
+}
+
 .dxc-badge-list > li {
     list-style: none;
     margin-top: 0.1em;

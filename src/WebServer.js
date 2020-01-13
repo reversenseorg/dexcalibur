@@ -6,6 +6,7 @@ const VM = require("vm");
 const BodyParser = require("body-parser");
 const Path = require("path");
 const AnalysisHelper = require("./AnalysisHelper.js");
+const Decompiler = require("./Decompiler.js");
 
 const UT = require("./Utils.js");
 const Logger = require("./Logger.js")();
@@ -13,6 +14,7 @@ const CLASS = require("./CoreClass.js");
 const UTF8 = require("./UTF8.js");
 const ANDROID = require("./AndroidAppComponents.js");
 const INTENT = require("./IntentFactory.js");
+const Simplifier = require("./Simplifier.js");
 
 const MimeHelper = {
     isFontFile: function (mime) {
@@ -684,6 +686,37 @@ class WebServer {
 
                 res.status(ret.status).send(JSON.stringify(ret.msg))
             })
+
+         /**
+         * To get full information about a method 
+         */
+        this.app.route('/api/method/decompile/:id')
+        .get(function (req, res) {
+            // collect
+            let dev = {};
+            let method = $.project.find.get.method(UT.decodeURI(UT.b64_decode(req.params.id)));
+
+            let decompiler = Decompiler.getInstance($);
+
+            let simplifyLvl = (req.query.level!=undefined)? req.query.level : 0;
+            dev = decompiler.decompile(method, simplifyLvl);
+
+            res.status(200).send(JSON.stringify(dev));
+        });
+
+        this.app.route('/api/method/simplify/:id')
+        .get(function (req, res) {
+            // collect
+            let dev = {};
+            let method = $.project.find.get.method(UT.decodeURI(UT.b64_decode(req.params.id)));
+
+            let simplifier = Simplifier.getInstance($);
+
+            let simplifyLvl = (req.query.level!=undefined)? req.query.level : 0;
+            dev = simplifier.simplify(method, simplifyLvl);
+
+            res.status(200).send(JSON.stringify(dev));
+        });
 
         /**
          * To get full information about a method 

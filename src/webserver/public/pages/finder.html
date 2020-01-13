@@ -199,7 +199,7 @@
                 </div>
             <div class="modal-body">
                 <div class="input-group mb-8">
-                <input type="text" id="renameModalAlias" class="form-control" style="width:30em" autofocus placeholder="Alias" aria-label="Alias" aria-describedby="basic-addon1">
+                <input type="text" id="renameModalAlias" class="form-control" style="width:30em" autofocus="autofocus" placeholder="Alias" aria-label="Alias" aria-describedby="basic-addon1">
                 <input type="hidden" id="renameModalSubject" class="form-control" style="width:30em" aria-describedby="basic-addon1">
                 <input type="hidden" id="renameModalType" class="form-control" style="width:30em" aria-describedby="basic-addon1">
                 </div>
@@ -350,6 +350,18 @@
         //editor.setUseWorker(false);
         editor.session.setMode("ace/mode/smali");
     }
+
+    function changeAceLanguage(pID, pLang){
+        var editor = ace.edit(pID);
+        editor.session.setMode("ace/mode/"+pLang);
+    }
+
+    function changeAceEditor(id, code){
+        var editor = ace.edit(id);
+        editor.setValue(code);
+    }
+
+
     var IdRegister = new Wexcalibur();
      
 
@@ -823,10 +835,26 @@
         }
 
         let codeID = IdRegister.codeReg.next();
+        let codeID_Simple = IdRegister.codeReg.next();
+
+        //body += `<div class="btn btn-primary simplify" editor="${codeID}" method="${encodeURIComponent(btoa(encodeURIComponent(row.__signature__)))}">Simplify</div>`;
 
         //body += '<h4>Disassembled bytecode</h4>';
+        body += `<ul class="nav">
+                    <li class="nav-item">
+                        <span class="nav-link smali dxc-active-item" editor="${codeID}" hideeditor="${codeID_Simple}" method="${encodeURIComponent(btoa(encodeURIComponent(row.__signature__)))}">Smali</span>
+                    </li>
+                    <li class="nav-item">
+                        <span class="nav-link simplify dxc-inactive-item" hideeditor="${codeID}" editor="${codeID_Simple}" method="${encodeURIComponent(btoa(encodeURIComponent(row.__signature__)))}">
+                            Simplify
+                            <span class="badge badge-pill badge-primary" style="font-size:0.8em">new</span>
+                        </span>
+                    </li>
+                </ul>`;
         body += '<div id="'+codeID+'"></div>';
+        body += '<div id="'+codeID_Simple+'" style="display:none"></div>';
 
+        
         $.ajax(
             "../api/method/disass/"+encodeURIComponent(btoa(encodeURIComponent(row.__signature__))),
             {
@@ -851,7 +879,7 @@
                                         if(data.disass[i].instr[j].value.indexOf("move-result-object")==0)
                                             codeBody += "\t"+data.disass[i].instr[j].value+"\n";
                                         else    
-                                            codeBody += data.disass[i].instr[j].value+"\n";
+                                            codeBody += DexcaliburAPI.ui.htmlEncode(data.disass[i].instr[j].value)+"\n";
                                     }
                                 }   
                             }
@@ -1568,6 +1596,136 @@
 
         // ---------------- REQUEST HELPER : END ------------------
 
+        $('#dataTables-finder tbody').on('click', 'span.simplify', function (e) {
+            let codeID = e.currentTarget.getAttribute('editor');
+            let hide_codeID = e.currentTarget.getAttribute('hideeditor');
+            let method = e.currentTarget.getAttribute('method');
+
+            //console.log(codeID,method);
+            $.ajax(
+                "../api/method/simplify/"+method,
+                {
+                    method: "get",
+                    data: {
+                        level:1
+                    },
+                    statusCode: {
+                        200: function(data){
+                            data = JSON.parse(data);
+                            let codeBody = "";
+                            for(let i=0; i<data.instr.length; i++){
+                                codeBody += data    .instr[i]+"\n";
+                            }
+                            //code.html(codeBody);
+                            $('#'+hide_codeID).css('display','none');
+                            $('#'+codeID).css('display','block');
+
+                            setupAceEditor(codeID);
+                            changeAceLanguage(codeID, "java");
+                            changeAceEditor(codeID, codeBody);
+
+                            $('span.nav-link[editor='+hide_codeID+']').removeClass("dxc-active-item");
+                            $('span.nav-link[editor='+hide_codeID+']').addClass("dxc-inactive-item");
+
+                            $('span.nav-link[editor='+codeID+']').removeClass("dxc-inactive-item");
+                            $('span.nav-link[editor='+codeID+']').addClass("dxc-active-item");
+
+                        }
+                    }
+                }
+            );
+        });
+
+        $('#dataTables-finder tbody').on('click', 'span.smali', function (e) {
+            let codeID = e.currentTarget.getAttribute('editor');
+            let hide_codeID = e.currentTarget.getAttribute('hideeditor');
+            let method = e.currentTarget.getAttribute('method');
+
+            //console.log(codeID,method);
+            $.ajax(
+            "../api/method/disass/"+method,
+            {
+                method: "get",
+                statusCode: {
+                    200: function(data){
+                        data = JSON.parse(data);
+                        let code = $("#"+codeID);
+                        let codeBody = "";
+                        //console.log(data,code);
+                        for(let i=0; i<data.disass.length; i++){
+                            codeBody += "\n";
+                            if(data.disass[i].tag!=null){
+                                codeBody += "."+data.disass[i].tag.substr(1)+"\n";
+                            }
+                            if(data.disass[i].instr.length>0){
+                                //console.log(data.disass[i].instr);
+                                for(let j=0; j<data.disass[i].instr.length; j++){
+                                    if(data.disass[i].instr[j].value == null){
+                                        console.log("Instr is null : <"+i+","+j+">");
+                                    }else{
+                                        if(data.disass[i].instr[j].value.indexOf("move-result-object")==0)
+                                            codeBody += "\t"+data.disass[i].instr[j].value+"\n";
+                                        else    
+                                            codeBody += data.disass[i].instr[j].value+"\n"; //DexcaliburAPI.ui.htmlEncode(data.disass[i].instr[j].value)+"\n";
+                                    }
+                                }   
+                            }
+                        }
+                        //code.html(codeBody);
+
+                        $('#'+hide_codeID).css('display','none');
+                        $('#'+codeID).css('display','block');
+
+                        setupAceEditor(codeID);
+                        changeAceLanguage(codeID, "smali");
+                        changeAceEditor(codeID, codeBody);
+
+                        $('span.nav-link[editor='+hide_codeID+']').removeClass("dxc-active-item");
+                        $('span.nav-link[editor='+hide_codeID+']').addClass("dxc-inactive-item");
+
+                        $('span.nav-link[editor='+codeID+']').removeClass("dxc-inactive-item");
+                        $('span.nav-link[editor='+codeID+']').addClass("dxc-active-item");
+
+                        //code.html("var a=new String('test');");
+                        //setupAceEditor(codeID);
+                    }
+                }
+            }
+        );
+
+            $.ajax(
+                "../api/method/disass/"+method,
+                {
+                    method: "get",
+                    data: {
+                        level:1
+                    },
+                    statusCode: {
+                        200: function(data){
+                            data = JSON.parse(data);
+                            let codeBody = "";
+                            for(let i=0; i<data.instr.length; i++){
+                                codeBody += data    .instr[i]+"\n";
+                            }
+                            //code.html(codeBody);
+                            $('#'+hide_codeID).css('display','none');
+                            $('#'+codeID).css('display','block');
+
+                            setupAceEditor(codeID);
+                            changeAceLanguage(codeID, "java");
+                            changeAceEditor(codeID, codeBody);
+
+                            $('span.nav-link[editor='+hide_codeID+']').removeClass("dxc-active-item");
+                            $('span.nav-link[editor='+hide_codeID+']').addClass("dxc-inactive-item");
+
+                            $('span.nav-link[editor='+codeID+']').removeClass("dxc-inactive-item");
+                            $('span.nav-link[editor='+codeID+']').addClass("dxc-active-item");
+
+                        }
+                    }
+                }
+            );
+        });
 
         //$('#probelogs').
         $('#dataTables-finder tbody').on('click', 'td.details-control', function () {
@@ -1803,11 +1961,23 @@
             $('#probeall_modal').modal('toggle');
         });
 
+        // === Rename logic ===
+
         $(document).on("click",".rename",function(e){
             $("#renameModalSubject").val($(this).attr("subject"));
             $("#renameModalType").val($(this).attr("subt"));
             $("#renameModalAlias").val(decodeURIComponent(atob($(this).attr("ename"))));
             $("#renameModal").modal();
+            $("#renameModalAlias").focus();
+        });
+        $('#renameModal').on('shown.bs.modal', function () {
+           $('#renameModalAlias').trigger('focus')
+        });
+        $("#renameModalAlias").keypress( function (e) {
+            var key = e.which || e.keyCode;
+            if (key === 13) {
+                $(".aliasconfirm").trigger('click');
+            }   
         });
 
         $(document).on("click",".aliasconfirm",function(e){
@@ -1844,6 +2014,8 @@
             });
 
         });
+
+        // === END of Rename logic ===
 
         function setLocationQuery(){
             let q = location.href.indexOf('?');
