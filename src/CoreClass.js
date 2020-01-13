@@ -125,6 +125,46 @@ ByteArray.prototype.toString = function(){
 
 };
 
+
+class CatchStatement
+{
+    constructor(){
+        this.d = [];
+    }
+
+    setException(pClass){
+        this.d[0] = pClass;
+    }
+
+    getException(){
+        return this.d[0];
+    }
+
+    setTryStart(pLabel){
+        this.d[1] = pLabel;
+    }
+
+    getTryStart(){
+        return this.d[1];
+    }
+
+    setTryEnd(pLabel){
+        this.d[2] = pLabel;
+    }
+
+    getTryEnd(){
+        return this.d[2];
+    }
+    
+    setTarget(pLabel){
+        this.d[3] = pLabel;
+    }
+
+    getTarget(){
+        return this.d[3];
+    }
+}
+
 /**
  * A cross reference to a subject
  * @param {*} obj Subject object 
@@ -1529,6 +1569,10 @@ Method.prototype.getTaggedBlock = function(tag){
 };
 
 
+Method.prototype.getBasicBlocks = function(){
+    return this.instr;
+};
+
 Method.prototype.getBlock = function(offset){
     for(let i in this.instr){
         if(i==offset) return this.instr[i];
@@ -1658,6 +1702,60 @@ Method.prototype.getClassUsed = function(){
 Method.prototype.getFieldUsed = function(){
     return this._useField;
 }
+
+Method.prototype.getTryStartBlock = function(pLabel){
+    let bb = this.getBasicBlocks();
+    for(let i=0; i<bb.length; i++){
+        if(bb[i].getTryStartLabel()==pLabel){
+            return bb[i];
+        }
+    }
+    return null;
+}
+
+Method.prototype.getTryEndBlock = function(pLabel){
+    let bb = this.getBasicBlocks();
+    for(let i=0; i<bb.length; i++){
+        if(bb[i].getTryEndLabel()==pLabel){
+            return bb[i];
+        }
+    }
+    return null;
+}
+
+
+Method.prototype.getCatchBlock = function(pLabel){
+    let bb = this.getBasicBlocks();
+    for(let i=0; i<bb.length; i++){
+        if(bb[i].getCatchLabel()==pLabel){
+            return bb[i];
+        }
+    }
+    return null;
+}
+
+Method.prototype.getBasicBlockByLabel = function(pLabel, pType){
+    //if(pType == CONST.INSTR_TYPE.IF){
+    switch(pType)
+    {
+        case CONST.INSTR_TYPE.IF:
+            for(let i=0; i<this.instr.length; i++){ 
+                console.log(this.instr[i]);
+                if(this.instr[i].isConditionalBlock() && this.instr[i].cond_name==pLabel) 
+                    return this.instr[i];
+            }
+            break;
+        case CONST.INSTR_TYPE.GOTO:
+            for(let i=0; i<this.instr.length; i++){ 
+                if(this.instr[i].isGotoBlock() && this.instr[i].goto_name==pLabel) 
+                    return this.instr[i];
+            }
+            break;
+    }
+
+    return null;
+}
+
 Method.prototype.appendBlock = function(block, callback=null){
     if(block instanceof BasicBlock){
         block.offset = this.instr.length;
@@ -1706,14 +1804,35 @@ function SwitchBlock(){
 
     return this;
 }
-
+/*
 function Tag(tag){
     this.$ = STUB_TYPE.TAG;
 
     this.name = tag;
 
     return this;
+}*/
+
+class Tag
+{
+    constructor(pLabel){
+        this.$ = STUB_TYPE.TAG;
+        this.name = pLabel;
+    }
+
+    getLabel(){
+        return this.name.substr(1,this.name.length);
+    }
+
+    isGoto(){
+        return this.name.startsWith(":goto");
+    }
+
+    isCond(){
+        return this.name.startsWith(":cond");
+    }
 }
+
 
 class ArrayData
 {
@@ -2025,7 +2144,7 @@ class BasicBlock
         this.catch_name = null;
         this.try_name = null;
         this.try_end_name = null;
-        this.catch_cond = null;
+        //this.catch_cond = null;
         this.switch_case = null;
         this.switch_statement = null;
         
@@ -2037,13 +2156,78 @@ class BasicBlock
         this.array_data = null;
         this.array_data_name = null;
 
+        this.succ = [];
+        this.pred = [];
+
+        this.catch = [];
+
         if(config!=null)
             for(let i in config)
                 this[i]=config[i];
     }
 
-    //BasicBlock.prototype.export = Savable.export;
-    //BasicBlock.prototype.import=  Savable.import;
+    hasCatchStatement(){
+        return this.catch.length>0;
+    }
+    
+    getCatchStatements(){
+        return this.catch;
+    }
+
+    addCatchStatement(pStmt){
+        this.catch.push(pStmt);
+    }
+
+
+    isVisited(){
+        return (this.visited !== undefined) && (this.visited==true);
+    }
+
+    visit(){
+        this.visited = true;
+        return this;
+    }
+
+    initVisit(){
+        this.visited = false;
+        return this;
+    }
+
+    getSuccessors(){
+        return this.succ;
+    }
+
+    addSuccessor(pBasicBlock){
+        this.succ.push(pBasicBlock);
+    }
+
+    hasSuccessor(pBasicBlock){
+        return this.succ.indexOf(pBasicBlock)>-1;
+    }
+
+    hasSuccessors(){
+        return this.succ.length > 0;
+    }
+
+    getPredecessors(){
+        return this.pred;
+    }
+
+    addPredecessor(pBasicBlock){
+        this.pred.push(pBasicBlock);
+    }
+
+    hasPredecessor(pBasicBlock){
+        return this.pred.indexOf(pBasicBlock)>-1;
+    }
+
+    hasMultiplePredecessors(){
+        return this.pred.length>1;
+    }
+
+    hasPredecessors(){
+        return this.pred.length > 0;
+    }
 
     dump(){
         console.log("\tBasic Block (line "+this.line+"):\n-------------------------");
@@ -2065,7 +2249,7 @@ class BasicBlock
             bb.catch_name = null;
             bb.try_name = null;
             bb.try_end_name = null;
-            bb.catch_cond = null;
+            //bb.catch_name = null;
             bb.duplicate = true;
         }
 
@@ -2092,14 +2276,26 @@ class BasicBlock
     isConditionalBlock(){
         return this.cond_name != null;
     }
+    getCondLabel(){
+        return this.cond_name;
+    }
     setAsGotoBlock(name){
         this.goto_name = name;
     }
     isGotoBlock(){
         return this.goto_name != null;
     }
+    getGotoLabel(){
+        return this.goto_name;
+    }
     setAsTryBlock(name){
         this.try_name = name;
+    }
+    getTryStartLabel(){
+        return this.try_name;
+    }
+    getTryEndLabel(){
+        return this.try_end_name;
     }
     setTryEndName(name){
         this.try_end_name = name;
@@ -2110,14 +2306,21 @@ class BasicBlock
     isTryBlock(){
         return this.try_name != null;
     }
+    isTryEndBlock(){
+        return this.try_end_name != null;
+    }
+
     setAsCatchBlock(name){
         this.catch_name = name;
     }
     setCatchCond(name){
-        this.catch_cond = name;
+        this.catch_name = name;
     }
     isCatchBlock(){
         return this.catch_name != null;
+    }
+    getCatchLabel(){
+        return this.catch_name;
     }
 
     setAsArrayData(name){
@@ -2149,6 +2352,10 @@ class BasicBlock
     }
     getSwitchStatementName(){
         return this.switch_statement;
+    }
+
+    getInstructions(){
+        return this.stack;
     }
 }
 
@@ -2840,6 +3047,10 @@ Instruction.prototype.toJsonObject = function(parent){
     return o;
 };
 
+Instruction.prototype.toString =  function(){
+    return this._raw;
+}
+
 
 Instruction.prototype.addTag = function(tag){
     this.tags.push(tag);  
@@ -2974,15 +3185,23 @@ Variable.prototype.getTags = function(){
  * @param {*} tags some additional tags
  * @constructor
  */
-function ValueConst(value,tags){
-    this.$ = STUB_TYPE.VALUE_CONST;
-    this._value = value;
-    this.tags = tags;
+class ValueConst{
 
-    return this;
+    constructor(pValue, pTags){
+        this.$ = STUB_TYPE.VALUE_CONST;
+        this._value = pValue;
+        this.tags = pTags;
+    }
+
+    getValue(){
+        return this._value;
+    }
 }
+
+
 ValueConst.prototype.import = Savable.import;
 ValueConst.prototype.export = Savable.export;
+
 
 /*
 { 
@@ -3102,7 +3321,8 @@ var all_exports = {
     PackedSwitchStatement: PackedSwitchStatement,
     TagCategory: TagCategory,
     File: File,
-    SerializedObject: SerializedObject
+    SerializedObject: SerializedObject,
+    CatchStatement: CatchStatement
 }; 
 
 SerializedObject.init(all_exports);

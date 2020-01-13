@@ -282,7 +282,7 @@ Disassembler.prototype.methodRaw = function(method){
             }
         }
         else if(bb.switch_statement != null || bb.switch != null){
-            console.log(bb);
+            //console.log(bb);
         }
 
         if(bb.tag !== null){
@@ -291,7 +291,7 @@ Disassembler.prototype.methodRaw = function(method){
         
         for(let j in bb.stack){
             if(bb.stack[j].opcode === undefined){
-                console.log(bb.stack[j]._raw);
+                //console.log(bb.stack[j]._raw);
                 continue;
             }
 
@@ -333,7 +333,18 @@ Disassembler.prototype.methodRaw = function(method){
         }
         if(bb.getTryEndName() != null){
             bbe.instr.push({ value:bb.getTryEndName() });
-            bbe.instr.push({ value:bb.catch_cond });
+        }
+        if(bb.hasCatchStatement()){
+            prefix = bb.getCatchStatements();
+            for(let k=0; k<prefix.length; k++){
+                if(prefix[k].getException()==null)
+                    txt = `.catchall {${prefix[k].getTryStart().getTryStartLabel()} .. ${prefix[k].getTryEnd().getTryEndName()}} ${prefix[k].getTarget().getCatchLabel()}`;
+                else
+                    txt = `.catch ${prefix[k].getException().name} {${prefix[k].getTryStart().getTryStartLabel()} .. ${prefix[k].getTryEnd().getTryEndName()}} ${prefix[k].getTarget().getCatchLabel()}`;
+
+                bbe.instr.push({ value:txt });
+            }
+
         }
 
         result.push(bbe);

@@ -170,11 +170,13 @@ var MainParser = {
 		let r = raw_src.substr(i+1);
 		let m = Core.RX.FORMAT21C.exec(r);
 
+
 		if(m[1]==="[")
 			arr = true;
 
-		if(m[2]=='L')
-			instr.right = new CLASS.ObjectType(Core.PARSER.fqcn(m[3]),arr);
+//		if(m[2]=='L')
+		if(m[1]=='L')
+			instr.right = new CLASS.ObjectType(Core.PARSER.fqcn(m[2]),arr); //3
 		else
 			instr.right = new CLASS.BasicType(m[2],arr);
 
@@ -188,7 +190,8 @@ var MainParser = {
 		instr.left = OpcodeParser.multiVar(raw_src.substr(0,i));
 
 		let r = raw_src.substr(i+1);
-		let m = Core.RX.FORMAT21C.exec(r);
+		let m = Core.RX.FORMAT22C.exec(r);
+
 
 		if(m[1]==="[")
 			arr = true;
@@ -214,7 +217,7 @@ var MainParser = {
 		
 		instr.left = OpcodeParser.multiVar(raw_src.substr(0,i));
 		instr.right = OpcodeParser.fieldReference(raw_src.substr(i+1),raw_src);
-		
+
 		return instr;
 	}, 
 	invoke: function(src,raw_src){
@@ -269,7 +272,8 @@ var MainParser = {
 		let m = Core.RX.REG_TAG.exec(raw_src);
 
 		instr.left = {t:m[1],i:m[2]};//new CLASS.Variable(m[1],m[2]);
-		instr.right = new CLASS.Tag(':'+m[m.length-2]+"_"+m[m.length-1]);
+		//instr.right = new CLASS.Tag(':'+m[m.length-2]+"_"+m[m.length-1]); 
+		instr.right = new CLASS.Tag(m[m.length-1]); 
 
 		return instr;
 	}, 	
@@ -280,7 +284,9 @@ var MainParser = {
 		instr.left = OpcodeParser.multiVar(raw_src.substr(0,i));
 
 		let m = Core.RX.TAG.exec(raw_src.substr(i+1));
-		instr.right = new CLASS.Tag(':'+m[m.length-2]+"_"+m[m.length-1]); //m[m.length-1]);
+		//instr.right = new CLASS.Tag(':'+m[m.length-2]+"_"+m[m.length-1]); //m[m.length-1]);
+		instr.right = new CLASS.Tag(m[m.length-1]); //m[m.length-1]);
+		
 
 		return instr;
 	}, 
@@ -713,7 +719,7 @@ var OPCODE={
 	FILLED_NEW_ARRAY:{ byte:0x24, instr:"filled-new-array", parse: MainParser.format22c, type: CONST.INSTR_TYPE.NEW,reftype:ReferenceType.TYPE, format:Format.Format35c, flag:Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_RESULT },
 	
 	// TODO
-	FILLED_NEW_ARRAY_RANGE:{ byte:0x25, instr:"filled-new-array/range", reftype:ReferenceType.TYPE, format:Format.Format3rc, flag:Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_RESULT },
+	FILLED_NEW_ARRAY_RANGE:{ byte:0x25, instr:"filled-new-array/range", parse: MainParser.format22c,  reftype:ReferenceType.TYPE, format:Format.Format3rc, flag:Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_RESULT },
 	
 	// utilise des tags :array_XX
 	// fill-array-data v0, :array_0
@@ -889,12 +895,12 @@ var OPCODE={
 	INVOKE_INTERFACE_RANGE:{ byte:0x78, instr:"invoke-interface/range", parse: MainParser.invoke, type: CONST.INSTR_TYPE.INVOKE, reftype:ReferenceType.METHOD, format:Format.Format3rc, flag:Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_RESULT },
 	
 	// --------------------------------- MATH OPE ----------------------------------------------
-	NEG_INT:{ byte:0x7b, instr:"neg-int", parse: MainParser.move, type: CONST.INSTR_TYPE.MATH, reftype:ReferenceType.NONE, format:Format.Format12x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER },
-	NOT_INT:{ byte:0x7c, instr:"not-int", parse: MainParser.move, type: CONST.INSTR_TYPE.MATH, reftype:ReferenceType.NONE, format:Format.Format12x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER },
-	NEG_LONG:{ byte:0x7d, instr:"neg-long", parse: MainParser.move, type: CONST.INSTR_TYPE.MATH, reftype:ReferenceType.NONE, format:Format.Format12x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER },
-	NOT_LONG:{ byte:0x7e, instr:"not-long", parse: MainParser.move, type: CONST.INSTR_TYPE.MATH, reftype:ReferenceType.NONE, format:Format.Format12x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER },
-	NEG_FLOAT:{ byte:0x7f, instr:"neg-float", parse: MainParser.move, type: CONST.INSTR_TYPE.MATH, reftype:ReferenceType.NONE, format:Format.Format12x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER },
-	NEG_DOUBLE:{ byte:0x80, instr:"neg-double", parse: MainParser.move, type: CONST.INSTR_TYPE.MATH, reftype:ReferenceType.NONE, format:Format.Format12x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER },
+	NEG_INT:{ byte:0x7b, instr:"neg-int", ope: CONST.LEX.TOKEN.SUB, parse: MainParser.move, type: CONST.INSTR_TYPE.MATH, reftype:ReferenceType.NONE, format:Format.Format12x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER },
+	NOT_INT:{ byte:0x7c, instr:"not-int", ope: CONST.LEX.TOKEN.NOT, parse: MainParser.move, type: CONST.INSTR_TYPE.MATH, reftype:ReferenceType.NONE, format:Format.Format12x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER },
+	NEG_LONG:{ byte:0x7d, instr:"neg-long", ope: CONST.LEX.TOKEN.NEG, parse: MainParser.move, type: CONST.INSTR_TYPE.MATH, reftype:ReferenceType.NONE, format:Format.Format12x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER },
+	NOT_LONG:{ byte:0x7e, instr:"not-long", ope: CONST.LEX.TOKEN.NOT, parse: MainParser.move, type: CONST.INSTR_TYPE.MATH, reftype:ReferenceType.NONE, format:Format.Format12x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER },
+	NEG_FLOAT:{ byte:0x7f, instr:"neg-float", ope: CONST.LEX.TOKEN.NEG, parse: MainParser.move, type: CONST.INSTR_TYPE.MATH, reftype:ReferenceType.NONE, format:Format.Format12x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER },
+	NEG_DOUBLE:{ byte:0x80, instr:"neg-double", ope: CONST.LEX.TOKEN.NEG, parse: MainParser.move, type: CONST.INSTR_TYPE.MATH, reftype:ReferenceType.NONE, format:Format.Format12x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER },
 	
 	// --------------------------------- MATH CAST ----------------------------------------------
 	INT_TO_LONG:{ byte:0x81, instr:"int-to-long", parse: MainParser.move, type: CONST.INSTR_TYPE.MATH_CAST, reftype:ReferenceType.NONE, format:Format.Format12x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER },
@@ -914,91 +920,91 @@ var OPCODE={
 	INT_TO_SHORT:{ byte:0x8f, instr:"int-to-short", parse: MainParser.move, type: CONST.INSTR_TYPE.MATH_CAST, reftype:ReferenceType.NONE, format:Format.Format12x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER },
 	
 	// --------------------------------- MATH ----------------------------------------------
-	ADD_INT:{ byte:0x90, instr:"add-int", parse: MainParser.addrX, type: CONST.INSTR_TYPE.MATH, reftype:ReferenceType.NONE, format:Format.Format23x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER },
-	SUB_INT:{ byte:0x91, instr:"sub-int", parse: MainParser.addrX, type: CONST.INSTR_TYPE.MATH, reftype:ReferenceType.NONE, format:Format.Format23x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER },
-	MUL_INT:{ byte:0x92, instr:"mul-int", parse: MainParser.addrX, type: CONST.INSTR_TYPE.MATH, reftype:ReferenceType.NONE, format:Format.Format23x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER },
-	DIV_INT:{ byte:0x93, instr:"div-int", parse: MainParser.addrX, type: CONST.INSTR_TYPE.MATH, reftype:ReferenceType.NONE, format:Format.Format23x, flag:Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER },
-	REM_INT:{ byte:0x94, instr:"rem-int", parse: MainParser.addrX, type: CONST.INSTR_TYPE.MATH, reftype:ReferenceType.NONE, format:Format.Format23x, flag:Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER },
-	AND_INT:{ byte:0x95, instr:"and-int", parse: MainParser.addrX, type: CONST.INSTR_TYPE.MATH, reftype: ReferenceType.NONE, format: Format.Format23x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER },
-	OR_INT:{ byte:0x96, instr:"or-int", parse: MainParser.addrX, type: CONST.INSTR_TYPE.MATH, reftype: ReferenceType.NONE, format: Format.Format23x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER },
-	XOR_INT:{ byte:0x97, instr:"xor-int", parse: MainParser.addrX, type: CONST.INSTR_TYPE.MATH, reftype: ReferenceType.NONE, format: Format.Format23x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER },
-	SHL_INT:{ byte:0x98, instr:"shl-int", parse: MainParser.addrX, type: CONST.INSTR_TYPE.MATH, reftype: ReferenceType.NONE, format: Format.Format23x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER },
-	SHR_INT:{ byte:0x99, instr:"shr-int", parse: MainParser.addrX, type: CONST.INSTR_TYPE.MATH, reftype: ReferenceType.NONE, format: Format.Format23x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER },
-	USHR_INT:{ byte:0x9a, instr:"ushr-int", parse: MainParser.addrX, type: CONST.INSTR_TYPE.MATH, reftype: ReferenceType.NONE, format: Format.Format23x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER },
-	ADD_LONG:{ byte:0x9b, instr:"add-long", parse: MainParser.addrX, type: CONST.INSTR_TYPE.MATH, reftype: ReferenceType.NONE, format: Format.Format23x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER },
-	SUB_LONG:{ byte:0x9c, instr:"sub-long", parse: MainParser.addrX, type: CONST.INSTR_TYPE.MATH, reftype: ReferenceType.NONE, format: Format.Format23x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER },
-	MUL_LONG:{ byte:0x9d, instr:"mul-long", parse: MainParser.addrX, type: CONST.INSTR_TYPE.MATH, reftype: ReferenceType.NONE, format: Format.Format23x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER },
-	DIV_LONG:{ byte:0x9e, instr:"div-long", parse: MainParser.addrX, type: CONST.INSTR_TYPE.MATH, reftype: ReferenceType.NONE, format: Format.Format23x, flag:Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER },
-	REM_LONG:{ byte:0x9f, instr:"rem-long", parse: MainParser.addrX, type: CONST.INSTR_TYPE.MATH, reftype: ReferenceType.NONE, format: Format.Format23x, flag:Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER },
-	AND_LONG:{ byte:0xa0, instr:"and-long", parse: MainParser.addrX, type: CONST.INSTR_TYPE.MATH, reftype: ReferenceType.NONE, format: Format.Format23x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER },
-	OR_LONG:{ byte:0xa1, instr:"or-long", parse: MainParser.addrX, type: CONST.INSTR_TYPE.MATH, reftype: ReferenceType.NONE, format: Format.Format23x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER },
-	XOR_LONG:{ byte:0xa2, instr:"xor-long", parse: MainParser.addrX, type: CONST.INSTR_TYPE.MATH, reftype: ReferenceType.NONE, format: Format.Format23x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER },
-	SHL_LONG:{ byte:0xa3, instr:"shl-long", parse: MainParser.addrX, type: CONST.INSTR_TYPE.MATH, reftype: ReferenceType.NONE, format: Format.Format23x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER },
-	SHR_LONG:{ byte:0xa4, instr:"shr-long", parse: MainParser.addrX, type: CONST.INSTR_TYPE.MATH, reftype: ReferenceType.NONE, format: Format.Format23x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER },
-	USHR_LONG:{ byte:0xa5, instr:"ushr-long", parse: MainParser.addrX, type: CONST.INSTR_TYPE.MATH, reftype: ReferenceType.NONE, format: Format.Format23x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER },
-	ADD_FLOAT:{ byte:0xa6, instr:"add-float", parse: MainParser.addrX, type: CONST.INSTR_TYPE.MATH, reftype: ReferenceType.NONE, format: Format.Format23x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER },
-	SUB_FLOAT:{ byte:0xa7, instr:"sub-float", parse: MainParser.addrX, type: CONST.INSTR_TYPE.MATH, reftype: ReferenceType.NONE, format: Format.Format23x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER },
-	MUL_FLOAT:{ byte:0xa8, instr:"mul-float", parse: MainParser.addrX, type: CONST.INSTR_TYPE.MATH, reftype: ReferenceType.NONE, format: Format.Format23x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER },
-	DIV_FLOAT:{ byte:0xa9, instr:"div-float", parse: MainParser.addrX, type: CONST.INSTR_TYPE.MATH, reftype: ReferenceType.NONE, format: Format.Format23x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER },
-	REM_FLOAT:{ byte:0xaa, instr:"rem-float", parse: MainParser.addrX, type: CONST.INSTR_TYPE.MATH, reftype: ReferenceType.NONE, format: Format.Format23x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER },
-	ADD_DOUBLE:{ byte:0xab, instr:"add-double", parse: MainParser.addrX, type: CONST.INSTR_TYPE.MATH, reftype: ReferenceType.NONE, format: Format.Format23x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER },
-	SUB_DOUBLE:{ byte:0xac, instr:"sub-double", parse: MainParser.addrX, type: CONST.INSTR_TYPE.MATH, reftype: ReferenceType.NONE, format: Format.Format23x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER },
-	MUL_DOUBLE:{ byte:0xad, instr:"mul-double", parse: MainParser.addrX, type: CONST.INSTR_TYPE.MATH, reftype: ReferenceType.NONE, format: Format.Format23x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER },
-	DIV_DOUBLE:{ byte:0xae, instr:"div-double", parse: MainParser.addrX, type: CONST.INSTR_TYPE.MATH, reftype: ReferenceType.NONE, format: Format.Format23x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER },
-	REM_DOUBLE:{ byte:0xaf, instr:"rem-double", parse: MainParser.addrX, type: CONST.INSTR_TYPE.MATH, reftype: ReferenceType.NONE, format: Format.Format23x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER },
+	ADD_INT:{ byte:0x90, instr:"add-int", ope: CONST.LEX.TOKEN.ADD, parse: MainParser.addrX, type: CONST.INSTR_TYPE.MATH, reftype:ReferenceType.NONE, format:Format.Format23x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER },
+	SUB_INT:{ byte:0x91, instr:"sub-int", ope: CONST.LEX.TOKEN.SUB, parse: MainParser.addrX, type: CONST.INSTR_TYPE.MATH, reftype:ReferenceType.NONE, format:Format.Format23x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER },
+	MUL_INT:{ byte:0x92, instr:"mul-int", ope: CONST.LEX.TOKEN.MUL, parse: MainParser.addrX, type: CONST.INSTR_TYPE.MATH, reftype:ReferenceType.NONE, format:Format.Format23x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER },
+	DIV_INT:{ byte:0x93, instr:"div-int", ope: CONST.LEX.TOKEN.DIV, parse: MainParser.addrX, type: CONST.INSTR_TYPE.MATH, reftype:ReferenceType.NONE, format:Format.Format23x, flag:Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER },
+	REM_INT:{ byte:0x94, instr:"rem-int", ope: CONST.LEX.TOKEN.REM, parse: MainParser.addrX, type: CONST.INSTR_TYPE.MATH, reftype:ReferenceType.NONE, format:Format.Format23x, flag:Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER },
+	AND_INT:{ byte:0x95, instr:"and-int", ope: CONST.LEX.TOKEN.AND, parse: MainParser.addrX, type: CONST.INSTR_TYPE.MATH, reftype: ReferenceType.NONE, format: Format.Format23x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER },
+	OR_INT:{ byte:0x96, instr:"or-int", ope: CONST.LEX.TOKEN.OR, parse: MainParser.addrX, type: CONST.INSTR_TYPE.MATH, reftype: ReferenceType.NONE, format: Format.Format23x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER },
+	XOR_INT:{ byte:0x97, instr:"xor-int", ope: CONST.LEX.TOKEN.XOR, parse: MainParser.addrX, type: CONST.INSTR_TYPE.MATH, reftype: ReferenceType.NONE, format: Format.Format23x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER },
+	SHL_INT:{ byte:0x98, instr:"shl-int", ope: CONST.LEX.TOKEN.SHL, parse: MainParser.addrX, type: CONST.INSTR_TYPE.MATH, reftype: ReferenceType.NONE, format: Format.Format23x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER },
+	SHR_INT:{ byte:0x99, instr:"shr-int", ope: CONST.LEX.TOKEN.SHR, parse: MainParser.addrX, type: CONST.INSTR_TYPE.MATH, reftype: ReferenceType.NONE, format: Format.Format23x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER },
+	USHR_INT:{ byte:0x9a, instr:"ushr-int", ope: CONST.LEX.TOKEN.USHR, parse: MainParser.addrX, type: CONST.INSTR_TYPE.MATH, reftype: ReferenceType.NONE, format: Format.Format23x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER },
+	ADD_LONG:{ byte:0x9b, instr:"add-long", ope: CONST.LEX.TOKEN.ADD, parse: MainParser.addrX, type: CONST.INSTR_TYPE.MATH, reftype: ReferenceType.NONE, format: Format.Format23x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER },
+	SUB_LONG:{ byte:0x9c, instr:"sub-long", ope: CONST.LEX.TOKEN.SUB, parse: MainParser.addrX, type: CONST.INSTR_TYPE.MATH, reftype: ReferenceType.NONE, format: Format.Format23x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER },
+	MUL_LONG:{ byte:0x9d, instr:"mul-long", ope: CONST.LEX.TOKEN.MUL, parse: MainParser.addrX, type: CONST.INSTR_TYPE.MATH, reftype: ReferenceType.NONE, format: Format.Format23x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER },
+	DIV_LONG:{ byte:0x9e, instr:"div-long", ope: CONST.LEX.TOKEN.DIV, parse: MainParser.addrX, type: CONST.INSTR_TYPE.MATH, reftype: ReferenceType.NONE, format: Format.Format23x, flag:Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER },
+	REM_LONG:{ byte:0x9f, instr:"rem-long", ope: CONST.LEX.TOKEN.REM, parse: MainParser.addrX, type: CONST.INSTR_TYPE.MATH, reftype: ReferenceType.NONE, format: Format.Format23x, flag:Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER },
+	AND_LONG:{ byte:0xa0, instr:"and-long", ope: CONST.LEX.TOKEN.AND, parse: MainParser.addrX, type: CONST.INSTR_TYPE.MATH, reftype: ReferenceType.NONE, format: Format.Format23x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER },
+	OR_LONG:{ byte:0xa1, instr:"or-long", ope: CONST.LEX.TOKEN.OR, parse: MainParser.addrX, type: CONST.INSTR_TYPE.MATH, reftype: ReferenceType.NONE, format: Format.Format23x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER },
+	XOR_LONG:{ byte:0xa2, instr:"xor-long", ope: CONST.LEX.TOKEN.XOR, parse: MainParser.addrX, type: CONST.INSTR_TYPE.MATH, reftype: ReferenceType.NONE, format: Format.Format23x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER },
+	SHL_LONG:{ byte:0xa3, instr:"shl-long", ope: CONST.LEX.TOKEN.SHL, parse: MainParser.addrX, type: CONST.INSTR_TYPE.MATH, reftype: ReferenceType.NONE, format: Format.Format23x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER },
+	SHR_LONG:{ byte:0xa4, instr:"shr-long", ope: CONST.LEX.TOKEN.SHR, parse: MainParser.addrX, type: CONST.INSTR_TYPE.MATH, reftype: ReferenceType.NONE, format: Format.Format23x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER },
+	USHR_LONG:{ byte:0xa5, instr:"ushr-long", ope: CONST.LEX.TOKEN.USHR, arse: MainParser.addrX, type: CONST.INSTR_TYPE.MATH, reftype: ReferenceType.NONE, format: Format.Format23x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER },
+	ADD_FLOAT:{ byte:0xa6, instr:"add-float", ope: CONST.LEX.TOKEN.ADD, parse: MainParser.addrX, type: CONST.INSTR_TYPE.MATH, reftype: ReferenceType.NONE, format: Format.Format23x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER },
+	SUB_FLOAT:{ byte:0xa7, instr:"sub-float", ope: CONST.LEX.TOKEN.SUB, parse: MainParser.addrX, type: CONST.INSTR_TYPE.MATH, reftype: ReferenceType.NONE, format: Format.Format23x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER },
+	MUL_FLOAT:{ byte:0xa8, instr:"mul-float", ope: CONST.LEX.TOKEN.MUL, parse: MainParser.addrX, type: CONST.INSTR_TYPE.MATH, reftype: ReferenceType.NONE, format: Format.Format23x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER },
+	DIV_FLOAT:{ byte:0xa9, instr:"div-float", ope: CONST.LEX.TOKEN.DIV, parse: MainParser.addrX, type: CONST.INSTR_TYPE.MATH, reftype: ReferenceType.NONE, format: Format.Format23x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER },
+	REM_FLOAT:{ byte:0xaa, instr:"rem-float", ope: CONST.LEX.TOKEN.REM, parse: MainParser.addrX, type: CONST.INSTR_TYPE.MATH, reftype: ReferenceType.NONE, format: Format.Format23x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER },
+	ADD_DOUBLE:{ byte:0xab, instr:"add-double", ope: CONST.LEX.TOKEN.ADD, parse: MainParser.addrX, type: CONST.INSTR_TYPE.MATH, reftype: ReferenceType.NONE, format: Format.Format23x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER },
+	SUB_DOUBLE:{ byte:0xac, instr:"sub-double", ope: CONST.LEX.TOKEN.SUB, parse: MainParser.addrX, type: CONST.INSTR_TYPE.MATH, reftype: ReferenceType.NONE, format: Format.Format23x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER },
+	MUL_DOUBLE:{ byte:0xad, instr:"mul-double", ope: CONST.LEX.TOKEN.MUL, parse: MainParser.addrX, type: CONST.INSTR_TYPE.MATH, reftype: ReferenceType.NONE, format: Format.Format23x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER },
+	DIV_DOUBLE:{ byte:0xae, instr:"div-double", ope: CONST.LEX.TOKEN.DIV, parse: MainParser.addrX, type: CONST.INSTR_TYPE.MATH, reftype: ReferenceType.NONE, format: Format.Format23x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER },
+	REM_DOUBLE:{ byte:0xaf, instr:"rem-double", ope: CONST.LEX.TOKEN.REM, parse: MainParser.addrX, type: CONST.INSTR_TYPE.MATH, reftype: ReferenceType.NONE, format: Format.Format23x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER },
 	
-	ADD_INT_2ADDR:{ byte:0xb0, instr:"add-int/2addr", parse: MainParser.move, type: CONST.INSTR_TYPE.MATH, reftype:ReferenceType.NONE, format:Format.Format12x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER },
-	SUB_INT_2ADDR:{ byte:0xb1, instr:"sub-int/2addr", parse: MainParser.move, type: CONST.INSTR_TYPE.MATH, reftype:ReferenceType.NONE, format:Format.Format12x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER },
-	MUL_INT_2ADDR:{ byte:0xb2, instr:"mul-int/2addr", parse: MainParser.move, type: CONST.INSTR_TYPE.MATH, reftype:ReferenceType.NONE, format:Format.Format12x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER },
-	DIV_INT_2ADDR:{ byte:0xb3, instr:"div-int/2addr", parse: MainParser.move, type: CONST.INSTR_TYPE.MATH, reftype:ReferenceType.NONE, format:Format.Format12x, flag:Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER },
-	REM_INT_2ADDR:{ byte:0xb4, instr:"rem-int/2addr", parse: MainParser.move, type: CONST.INSTR_TYPE.MATH, reftype:ReferenceType.NONE, format:Format.Format12x, flag:Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER },
-	AND_INT_2ADDR:{ byte:0xb5, instr:"and-int/2addr", parse: MainParser.move, type: CONST.INSTR_TYPE.MATH, reftype:ReferenceType.NONE, format:Format.Format12x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER },
-	OR_INT_2ADDR:{ byte:0xb6, instr:"or-int/2addr", parse: MainParser.move, type: CONST.INSTR_TYPE.MATH, reftype:ReferenceType.NONE, format:Format.Format12x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER },
-	XOR_INT_2ADDR:{ byte:0xb7, instr:"xor-int/2addr", parse: MainParser.move, type: CONST.INSTR_TYPE.MATH, reftype:ReferenceType.NONE, format:Format.Format12x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER },
-	SHL_INT_2ADDR:{ byte:0xb8, instr:"shl-int/2addr", parse: MainParser.move, type: CONST.INSTR_TYPE.MATH, reftype:ReferenceType.NONE, format:Format.Format12x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER },
-	SHR_INT_2ADDR:{ byte:0xb9, instr:"shr-int/2addr", parse: MainParser.move, type: CONST.INSTR_TYPE.MATH, reftype:ReferenceType.NONE, format:Format.Format12x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER },
-	USHR_INT_2ADDR:{ byte:0xba, instr:"ushr-int/2addr", parse: MainParser.move, type: CONST.INSTR_TYPE.MATH, reftype:ReferenceType.NONE, format:Format.Format12x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER },
-	ADD_LONG_2ADDR:{ byte:0xbb, instr:"add-long/2addr", parse: MainParser.move, type: CONST.INSTR_TYPE.MATH, reftype:ReferenceType.NONE, format:Format.Format12x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER },
-	SUB_LONG_2ADDR:{ byte:0xbc, instr:"sub-long/2addr", parse: MainParser.move, type: CONST.INSTR_TYPE.MATH, reftype:ReferenceType.NONE, format:Format.Format12x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER },
-	MUL_LONG_2ADDR:{ byte:0xbd, instr:"mul-long/2addr", parse: MainParser.move, type: CONST.INSTR_TYPE.MATH, reftype:ReferenceType.NONE, format:Format.Format12x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER },
-	DIV_LONG_2ADDR:{ byte:0xbe, instr:"div-long/2addr", parse: MainParser.move, type: CONST.INSTR_TYPE.MATH, reftype:ReferenceType.NONE, format:Format.Format12x, flag:Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER },
-	REM_LONG_2ADDR:{ byte:0xbf, instr:"rem-long/2addr", parse: MainParser.move, type: CONST.INSTR_TYPE.MATH, reftype:ReferenceType.NONE, format:Format.Format12x, flag:Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER },
-	AND_LONG_2ADDR:{ byte:0xc0, instr:"and-long/2addr", parse: MainParser.move, type: CONST.INSTR_TYPE.MATH, reftype:ReferenceType.NONE, format:Format.Format12x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER },
-	OR_LONG_2ADDR:{ byte:0xc1, instr:"or-long/2addr", parse: MainParser.move, type: CONST.INSTR_TYPE.MATH, reftype:ReferenceType.NONE, format:Format.Format12x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER },
-	XOR_LONG_2ADDR:{ byte:0xc2, instr:"xor-long/2addr", parse: MainParser.move, type: CONST.INSTR_TYPE.MATH, reftype:ReferenceType.NONE, format:Format.Format12x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER },
-	SHL_LONG_2ADDR:{ byte:0xc3, instr:"shl-long/2addr", parse: MainParser.move, type: CONST.INSTR_TYPE.MATH, reftype:ReferenceType.NONE, format:Format.Format12x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER },
-	SHR_LONG_2ADDR:{ byte:0xc4, instr:"shr-long/2addr", parse: MainParser.move, type: CONST.INSTR_TYPE.MATH, reftype:ReferenceType.NONE, format:Format.Format12x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER },
-	USHR_LONG_2ADDR:{ byte:0xc5, instr:"ushr-long/2addr", parse: MainParser.move, type: CONST.INSTR_TYPE.MATH, reftype:ReferenceType.NONE, format:Format.Format12x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER },
-	ADD_FLOAT_2ADDR:{ byte:0xc6, instr:"add-float/2addr", parse: MainParser.move, type: CONST.INSTR_TYPE.MATH, reftype:ReferenceType.NONE, format:Format.Format12x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER },
-	SUB_FLOAT_2ADDR:{ byte:0xc7, instr:"sub-float/2addr", parse: MainParser.move, type: CONST.INSTR_TYPE.MATH, reftype:ReferenceType.NONE, format:Format.Format12x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER },
-	MUL_FLOAT_2ADDR:{ byte:0xc8, instr:"mul-float/2addr", parse: MainParser.move, type: CONST.INSTR_TYPE.MATH, reftype:ReferenceType.NONE, format:Format.Format12x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER },
-	DIV_FLOAT_2ADDR:{ byte:0xc9, instr:"div-float/2addr", parse: MainParser.move, type: CONST.INSTR_TYPE.MATH, reftype:ReferenceType.NONE, format:Format.Format12x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER },
-	REM_FLOAT_2ADDR:{ byte:0xca, instr:"rem-float/2addr", parse: MainParser.move, type: CONST.INSTR_TYPE.MATH, reftype:ReferenceType.NONE, format:Format.Format12x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER },
-	ADD_DOUBLE_2ADDR:{ byte:0xcb, instr:"add-double/2addr", parse: MainParser.move, type: CONST.INSTR_TYPE.MATH, reftype:ReferenceType.NONE, format:Format.Format12x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER },
-	SUB_DOUBLE_2ADDR:{ byte:0xcc, instr:"sub-double/2addr", parse: MainParser.move, type: CONST.INSTR_TYPE.MATH, reftype:ReferenceType.NONE, format:Format.Format12x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER },
-	MUL_DOUBLE_2ADDR:{ byte:0xcd, instr:"mul-double/2addr", parse: MainParser.move, type: CONST.INSTR_TYPE.MATH, reftype:ReferenceType.NONE, format:Format.Format12x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER },
-	DIV_DOUBLE_2ADDR:{ byte:0xce, instr:"div-double/2addr", parse: MainParser.move, type: CONST.INSTR_TYPE.MATH, reftype:ReferenceType.NONE, format:Format.Format12x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER },
-	REM_DOUBLE_2ADDR:{ byte:0xcf, instr:"rem-double/2addr", parse: MainParser.move, type: CONST.INSTR_TYPE.MATH, reftype:ReferenceType.NONE, format:Format.Format12x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER },
+	ADD_INT_2ADDR:{ byte:0xb0, instr:"add-int/2addr", ope: CONST.LEX.TOKEN.ADD, parse: MainParser.move, type: CONST.INSTR_TYPE.MATH, reftype:ReferenceType.NONE, format:Format.Format12x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER },
+	SUB_INT_2ADDR:{ byte:0xb1, instr:"sub-int/2addr", ope: CONST.LEX.TOKEN.SUB, parse: MainParser.move, type: CONST.INSTR_TYPE.MATH, reftype:ReferenceType.NONE, format:Format.Format12x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER },
+	MUL_INT_2ADDR:{ byte:0xb2, instr:"mul-int/2addr", ope: CONST.LEX.TOKEN.MUL, parse: MainParser.move, type: CONST.INSTR_TYPE.MATH, reftype:ReferenceType.NONE, format:Format.Format12x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER },
+	DIV_INT_2ADDR:{ byte:0xb3, instr:"div-int/2addr", ope: CONST.LEX.TOKEN.DIV, parse: MainParser.move, type: CONST.INSTR_TYPE.MATH, reftype:ReferenceType.NONE, format:Format.Format12x, flag:Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER },
+	REM_INT_2ADDR:{ byte:0xb4, instr:"rem-int/2addr", ope: CONST.LEX.TOKEN.REM, parse: MainParser.move, type: CONST.INSTR_TYPE.MATH, reftype:ReferenceType.NONE, format:Format.Format12x, flag:Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER },
+	AND_INT_2ADDR:{ byte:0xb5, instr:"and-int/2addr", ope: CONST.LEX.TOKEN.AND, parse: MainParser.move, type: CONST.INSTR_TYPE.MATH, reftype:ReferenceType.NONE, format:Format.Format12x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER },
+	OR_INT_2ADDR:{ byte:0xb6, instr:"or-int/2addr", ope: CONST.LEX.TOKEN.OR, parse: MainParser.move, type: CONST.INSTR_TYPE.MATH, reftype:ReferenceType.NONE, format:Format.Format12x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER },
+	XOR_INT_2ADDR:{ byte:0xb7, instr:"xor-int/2addr", ope: CONST.LEX.TOKEN.XOR, parse: MainParser.move, type: CONST.INSTR_TYPE.MATH, reftype:ReferenceType.NONE, format:Format.Format12x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER },
+	SHL_INT_2ADDR:{ byte:0xb8, instr:"shl-int/2addr", ope: CONST.LEX.TOKEN.SHL, parse: MainParser.move, type: CONST.INSTR_TYPE.MATH, reftype:ReferenceType.NONE, format:Format.Format12x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER },
+	SHR_INT_2ADDR:{ byte:0xb9, instr:"shr-int/2addr", ope: CONST.LEX.TOKEN.SHR, parse: MainParser.move, type: CONST.INSTR_TYPE.MATH, reftype:ReferenceType.NONE, format:Format.Format12x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER },
+	USHR_INT_2ADDR:{ byte:0xba, instr:"ushr-int/2addr", ope: CONST.LEX.TOKEN.USHR, parse: MainParser.move, type: CONST.INSTR_TYPE.MATH, reftype:ReferenceType.NONE, format:Format.Format12x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER },
+	ADD_LONG_2ADDR:{ byte:0xbb, instr:"add-long/2addr", ope: CONST.LEX.TOKEN.ADD, parse: MainParser.move, type: CONST.INSTR_TYPE.MATH, reftype:ReferenceType.NONE, format:Format.Format12x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER },
+	SUB_LONG_2ADDR:{ byte:0xbc, instr:"sub-long/2addr", ope: CONST.LEX.TOKEN.SUB, parse: MainParser.move, type: CONST.INSTR_TYPE.MATH, reftype:ReferenceType.NONE, format:Format.Format12x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER },
+	MUL_LONG_2ADDR:{ byte:0xbd, instr:"mul-long/2addr", ope: CONST.LEX.TOKEN.MUL, parse: MainParser.move, type: CONST.INSTR_TYPE.MATH, reftype:ReferenceType.NONE, format:Format.Format12x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER },
+	DIV_LONG_2ADDR:{ byte:0xbe, instr:"div-long/2addr", ope: CONST.LEX.TOKEN.DIV, parse: MainParser.move, type: CONST.INSTR_TYPE.MATH, reftype:ReferenceType.NONE, format:Format.Format12x, flag:Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER },
+	REM_LONG_2ADDR:{ byte:0xbf, instr:"rem-long/2addr", ope: CONST.LEX.TOKEN.REM, parse: MainParser.move, type: CONST.INSTR_TYPE.MATH, reftype:ReferenceType.NONE, format:Format.Format12x, flag:Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER },
+	AND_LONG_2ADDR:{ byte:0xc0, instr:"and-long/2addr", ope: CONST.LEX.TOKEN.AND, parse: MainParser.move, type: CONST.INSTR_TYPE.MATH, reftype:ReferenceType.NONE, format:Format.Format12x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER },
+	OR_LONG_2ADDR:{ byte:0xc1, instr:"or-long/2addr", ope: CONST.LEX.TOKEN.OR, parse: MainParser.move, type: CONST.INSTR_TYPE.MATH, reftype:ReferenceType.NONE, format:Format.Format12x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER },
+	XOR_LONG_2ADDR:{ byte:0xc2, instr:"xor-long/2addr", ope: CONST.LEX.TOKEN.XOR, parse: MainParser.move, type: CONST.INSTR_TYPE.MATH, reftype:ReferenceType.NONE, format:Format.Format12x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER },
+	SHL_LONG_2ADDR:{ byte:0xc3, instr:"shl-long/2addr", ope: CONST.LEX.TOKEN.SHL, parse: MainParser.move, type: CONST.INSTR_TYPE.MATH, reftype:ReferenceType.NONE, format:Format.Format12x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER },
+	SHR_LONG_2ADDR:{ byte:0xc4, instr:"shr-long/2addr", ope: CONST.LEX.TOKEN.SHR, parse: MainParser.move, type: CONST.INSTR_TYPE.MATH, reftype:ReferenceType.NONE, format:Format.Format12x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER },
+	USHR_LONG_2ADDR:{ byte:0xc5, instr:"ushr-long/2addr", ope: CONST.LEX.TOKEN.USHR, parse: MainParser.move, type: CONST.INSTR_TYPE.MATH, reftype:ReferenceType.NONE, format:Format.Format12x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER },
+	ADD_FLOAT_2ADDR:{ byte:0xc6, instr:"add-float/2addr", ope: CONST.LEX.TOKEN.ADD, parse: MainParser.move, type: CONST.INSTR_TYPE.MATH, reftype:ReferenceType.NONE, format:Format.Format12x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER },
+	SUB_FLOAT_2ADDR:{ byte:0xc7, instr:"sub-float/2addr", ope: CONST.LEX.TOKEN.SUB, parse: MainParser.move, type: CONST.INSTR_TYPE.MATH, reftype:ReferenceType.NONE, format:Format.Format12x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER },
+	MUL_FLOAT_2ADDR:{ byte:0xc8, instr:"mul-float/2addr", ope: CONST.LEX.TOKEN.MUL, parse: MainParser.move, type: CONST.INSTR_TYPE.MATH, reftype:ReferenceType.NONE, format:Format.Format12x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER },
+	DIV_FLOAT_2ADDR:{ byte:0xc9, instr:"div-float/2addr", ope: CONST.LEX.TOKEN.DIV, parse: MainParser.move, type: CONST.INSTR_TYPE.MATH, reftype:ReferenceType.NONE, format:Format.Format12x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER },
+	REM_FLOAT_2ADDR:{ byte:0xca, instr:"rem-float/2addr", ope: CONST.LEX.TOKEN.REM, parse: MainParser.move, type: CONST.INSTR_TYPE.MATH, reftype:ReferenceType.NONE, format:Format.Format12x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER },
+	ADD_DOUBLE_2ADDR:{ byte:0xcb, instr:"add-double/2addr", ope: CONST.LEX.TOKEN.ADD, parse: MainParser.move, type: CONST.INSTR_TYPE.MATH, reftype:ReferenceType.NONE, format:Format.Format12x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER },
+	SUB_DOUBLE_2ADDR:{ byte:0xcc, instr:"sub-double/2addr", ope: CONST.LEX.TOKEN.SUB, parse: MainParser.move, type: CONST.INSTR_TYPE.MATH, reftype:ReferenceType.NONE, format:Format.Format12x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER },
+	MUL_DOUBLE_2ADDR:{ byte:0xcd, instr:"mul-double/2addr", ope: CONST.LEX.TOKEN.MUL, parse: MainParser.move, type: CONST.INSTR_TYPE.MATH, reftype:ReferenceType.NONE, format:Format.Format12x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER },
+	DIV_DOUBLE_2ADDR:{ byte:0xce, instr:"div-double/2addr", ope: CONST.LEX.TOKEN.DIV, parse: MainParser.move, type: CONST.INSTR_TYPE.MATH, reftype:ReferenceType.NONE, format:Format.Format12x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER },
+	REM_DOUBLE_2ADDR:{ byte:0xcf, instr:"rem-double/2addr", ope: CONST.LEX.TOKEN.REM, parse: MainParser.move, type: CONST.INSTR_TYPE.MATH, reftype:ReferenceType.NONE, format:Format.Format12x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER },
 	
-	ADD_INT_LIT16:{ byte:0xd0, instr:"add-int/lit16",  parse: MainParser.format_lit16, type: CONST.INSTR_TYPE.MATH, reftype:ReferenceType.NONE, format:Format.Format22s, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER },
+	ADD_INT_LIT16:{ byte:0xd0, instr:"add-int/lit16",  ope: CONST.LEX.TOKEN.ADD, parse: MainParser.format_lit16, type: CONST.INSTR_TYPE.MATH, reftype:ReferenceType.NONE, format:Format.Format22s, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER },
 	RSUB_INT:{ byte:0xd1, instr:"rsub-int",   parse: MainParser.format_lit16, type: CONST.INSTR_TYPE.MATH, reftype:ReferenceType.NONE, format:Format.Format22s, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER },
-	MUL_INT_LIT16:{ byte:0xd2, instr:"mul-int/lit16",  parse: MainParser.format_lit16, type: CONST.INSTR_TYPE.MATH,  reftype:ReferenceType.NONE, format:Format.Format22s, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER },
-	DIV_INT_LIT16:{ byte:0xd3, instr:"div-int/lit16",  parse: MainParser.format_lit16, type: CONST.INSTR_TYPE.MATH,  reftype:ReferenceType.NONE, format:Format.Format22s, flag:Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER },
-	REM_INT_LIT16:{ byte:0xd4, instr:"rem-int/lit16",  parse: MainParser.format_lit16, type: CONST.INSTR_TYPE.MATH,  reftype:ReferenceType.NONE, format:Format.Format22s, flag:Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER },
-	AND_INT_LIT16:{ byte:0xd5, instr:"and-int/lit16",  parse: MainParser.format_lit16, type: CONST.INSTR_TYPE.MATH,  reftype:ReferenceType.NONE, format:Format.Format22s, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER },
-	OR_INT_LIT16:{ byte:0xd6, instr:"or-int/lit16",  parse: MainParser.format_lit16, type: CONST.INSTR_TYPE.MATH,  reftype:ReferenceType.NONE, format:Format.Format22s, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER },
-	XOR_INT_LIT16:{ byte:0xd7, instr:"xor-int/lit16",  parse: MainParser.format_lit16, type: CONST.INSTR_TYPE.MATH,  reftype:ReferenceType.NONE, format:Format.Format22s, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER },
-	ADD_INT_LIT8:{ byte:0xd8, instr:"add-int/lit8",  parse: MainParser.format_lit16, type: CONST.INSTR_TYPE.MATH,  reftype:ReferenceType.NONE, format:Format.Format22b, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER },
+	MUL_INT_LIT16:{ byte:0xd2, instr:"mul-int/lit16",  ope: CONST.LEX.TOKEN.MUL, parse: MainParser.format_lit16, type: CONST.INSTR_TYPE.MATH,  reftype:ReferenceType.NONE, format:Format.Format22s, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER },
+	DIV_INT_LIT16:{ byte:0xd3, instr:"div-int/lit16",  ope: CONST.LEX.TOKEN.DIV, parse: MainParser.format_lit16, type: CONST.INSTR_TYPE.MATH,  reftype:ReferenceType.NONE, format:Format.Format22s, flag:Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER },
+	REM_INT_LIT16:{ byte:0xd4, instr:"rem-int/lit16",  ope: CONST.LEX.TOKEN.REM, parse: MainParser.format_lit16, type: CONST.INSTR_TYPE.MATH,  reftype:ReferenceType.NONE, format:Format.Format22s, flag:Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER },
+	AND_INT_LIT16:{ byte:0xd5, instr:"and-int/lit16",  ope: CONST.LEX.TOKEN.AND, parse: MainParser.format_lit16, type: CONST.INSTR_TYPE.MATH,  reftype:ReferenceType.NONE, format:Format.Format22s, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER },
+	OR_INT_LIT16:{ byte:0xd6, instr:"or-int/lit16",  ope: CONST.LEX.TOKEN.OR, parse: MainParser.format_lit16, type: CONST.INSTR_TYPE.MATH,  reftype:ReferenceType.NONE, format:Format.Format22s, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER },
+	XOR_INT_LIT16:{ byte:0xd7, instr:"xor-int/lit16",  ope: CONST.LEX.TOKEN.XOR, parse: MainParser.format_lit16, type: CONST.INSTR_TYPE.MATH,  reftype:ReferenceType.NONE, format:Format.Format22s, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER },
+	ADD_INT_LIT8:{ byte:0xd8, instr:"add-int/lit8",  ope: CONST.LEX.TOKEN.ADD,  parse: MainParser.format_lit16, type: CONST.INSTR_TYPE.MATH,  reftype:ReferenceType.NONE, format:Format.Format22b, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER },
 	RSUB_INT_LIT8:{ byte:0xd9, instr:"rsub-int/lit8",  parse: MainParser.format_lit16, type: CONST.INSTR_TYPE.MATH,  reftype:ReferenceType.NONE, format:Format.Format22b, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER },
-	MUL_INT_LIT8:{ byte:0xda, instr:"mul-int/lit8",  parse: MainParser.format_lit16, type: CONST.INSTR_TYPE.MATH,  reftype:ReferenceType.NONE, format:Format.Format22b, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER },
-	DIV_INT_LIT8:{ byte:0xdb, instr:"div-int/lit8",  parse: MainParser.format_lit16, type: CONST.INSTR_TYPE.MATH,  reftype:ReferenceType.NONE, format:Format.Format22b, flag:Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER },
-	REM_INT_LIT8:{ byte:0xdc, instr:"rem-int/lit8",  parse: MainParser.format_lit16, type: CONST.INSTR_TYPE.MATH,  reftype:ReferenceType.NONE, format:Format.Format22b, flag:Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER },
-	AND_INT_LIT8:{ byte:0xdd, instr:"and-int/lit8",  parse: MainParser.format_lit16, type: CONST.INSTR_TYPE.MATH,  reftype:ReferenceType.NONE, format:Format.Format22b, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER },
-	OR_INT_LIT8:{ byte:0xde, instr:"or-int/lit8",  parse: MainParser.format_lit16, type: CONST.INSTR_TYPE.MATH,  reftype:ReferenceType.NONE, format:Format.Format22b, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER },
-	XOR_INT_LIT8:{ byte:0xdf, instr:"xor-int/lit8",  parse: MainParser.format_lit16, type: CONST.INSTR_TYPE.MATH,  reftype:ReferenceType.NONE, format:Format.Format22b, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER },
-	SHL_INT_LIT8:{ byte:0xe0, instr:"shl-int/lit8",  parse: MainParser.format_lit16, type: CONST.INSTR_TYPE.MATH,  reftype:ReferenceType.NONE, format:Format.Format22b, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER },
-	SHR_INT_LIT8:{ byte:0xe1, instr:"shr-int/lit8",  parse: MainParser.format_lit16, type: CONST.INSTR_TYPE.MATH,  reftype:ReferenceType.NONE, format:Format.Format22b, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER },
-	USHR_INT_LIT8:{ byte:0xe2, instr:"ushr-int/lit8",  parse: MainParser.format_lit16, type: CONST.INSTR_TYPE.MATH,  reftype:ReferenceType.NONE, format:Format.Format22b, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER },
+	MUL_INT_LIT8:{ byte:0xda, instr:"mul-int/lit8",  ope: CONST.LEX.TOKEN.MUL, parse: MainParser.format_lit16, type: CONST.INSTR_TYPE.MATH,  reftype:ReferenceType.NONE, format:Format.Format22b, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER },
+	DIV_INT_LIT8:{ byte:0xdb, instr:"div-int/lit8",  ope: CONST.LEX.TOKEN.DIV, parse: MainParser.format_lit16, type: CONST.INSTR_TYPE.MATH,  reftype:ReferenceType.NONE, format:Format.Format22b, flag:Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER },
+	REM_INT_LIT8:{ byte:0xdc, instr:"rem-int/lit8",  ope: CONST.LEX.TOKEN.REM, parse: MainParser.format_lit16, type: CONST.INSTR_TYPE.MATH,  reftype:ReferenceType.NONE, format:Format.Format22b, flag:Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER },
+	AND_INT_LIT8:{ byte:0xdd, instr:"and-int/lit8",  ope: CONST.LEX.TOKEN.AND, parse: MainParser.format_lit16, type: CONST.INSTR_TYPE.MATH,  reftype:ReferenceType.NONE, format:Format.Format22b, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER },
+	OR_INT_LIT8:{ byte:0xde, instr:"or-int/lit8",  ope: CONST.LEX.TOKEN.OR, parse: MainParser.format_lit16, type: CONST.INSTR_TYPE.MATH,  reftype:ReferenceType.NONE, format:Format.Format22b, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER },
+	XOR_INT_LIT8:{ byte:0xdf, instr:"xor-int/lit8",  ope: CONST.LEX.TOKEN.XOR, parse: MainParser.format_lit16, type: CONST.INSTR_TYPE.MATH,  reftype:ReferenceType.NONE, format:Format.Format22b, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER },
+	SHL_INT_LIT8:{ byte:0xe0, instr:"shl-int/lit8",  ope: CONST.LEX.TOKEN.SHL, parse: MainParser.format_lit16, type: CONST.INSTR_TYPE.MATH,  reftype:ReferenceType.NONE, format:Format.Format22b, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER },
+	SHR_INT_LIT8:{ byte:0xe1, instr:"shr-int/lit8",  ope: CONST.LEX.TOKEN.SHR, parse: MainParser.format_lit16, type: CONST.INSTR_TYPE.MATH,  reftype:ReferenceType.NONE, format:Format.Format22b, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER },
+	USHR_INT_LIT8:{ byte:0xe2, instr:"ushr-int/lit8",  ope: CONST.LEX.TOKEN.USHR, parse: MainParser.format_lit16, type: CONST.INSTR_TYPE.MATH,  reftype:ReferenceType.NONE, format:Format.Format22b, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER },
 };
 
 module.exports = {

@@ -9,7 +9,19 @@ var CONST = {
             ARRAY: "[",
             OBJREF: "L",
             PARAM: "p",
-            LOCALVAR: "v"
+            LOCALVAR: "v",
+            ADD: "+",
+            SUB: "-",
+            DIV: "/",
+            MUL: "*",
+            REM: "%",
+            NOT: "!",
+            OR: "|",
+            AND: "&",
+            XOR: "^",
+            SHR: ">>",
+            SHL: "<<",
+            USHR: ">>>"
         },
         STRUCT: {
             CLASS: ".class",
@@ -28,6 +40,9 @@ var CONST = {
             ARRAY_NAME: "array-data",
             PSWITCH: ".packed-switch",
             SSWITCH: ".sparse-switch",
+            CATCH: ".catch",
+            CATCH_ALL: ".catchall",
+
             METHOD_NAME: "method",
             ANNOTATION_NAME: "annotation",
             PSWITCH_NAME: "packed-switch",
@@ -37,6 +52,7 @@ var CONST = {
         LABEL: {
             GOTO: ":goto_",
             COND: ":cond_",
+            CATCH: ":catch_",
             PSWITCH: ":pswitch_",
             SSWITCH: ":sswitch_",
             PSWITCH_DATA: ":pswitch_data_",
@@ -183,6 +199,7 @@ CONST.INSTR_TYPE = {
     CLASS_CHECK: 19,
     MATH_CAST: 20
 }; 
+
 
 CONST.INSTR_TYPE_LABEL = [
     "GETTER",
