@@ -8,7 +8,7 @@ function ApkHelper(ctx){
     this.context = ctx;
 }
 
-ApkHelper.prototype.extract = function(fileSrc, folderDest=null, resource=false){
+ApkHelper.prototype.extract = function(fileSrc, folderDest=null, resource=true){
     if(FS.existsSync(fileSrc)==false){
         console.log(Chalk.bold.red("[*] APK not found "));
         return false;
