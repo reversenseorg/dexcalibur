@@ -177,6 +177,15 @@ class Inspector{
             this.frontController = require(path).injectContext(ctx);
             Logger.info("[Inspector::injectContext][FrontController] "+this.id+" registered !");
         }
+        /*
+        else if(Path.basename(ctx.config.getDexcaliburPath()) !== "src"){
+            path = Path.join(ctx.config.getDexcaliburPath(),"inspectors",this.id,"service","main.js");
+            if(fs.existsSync(path)){
+                this.frontController = require(path).injectContext(ctx);
+                Logger.info("[Inspector::injectContext][FrontController] "+this.id+" registered !");
+            }
+        }*/
+
 
         // declare TagCategory
         let anal = ctx.getAnalyzer();

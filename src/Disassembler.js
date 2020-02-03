@@ -229,9 +229,9 @@ Disassembler.prototype.methodRaw = function(method){
         /*if(bb.isGotoBlock()){
             bbe.instr.push(bb.goto_name);
         }*/
-        if(bb.line>-1){
+        /*if(bb.line>-1){
             bbe.instr.push({ value:".line "+bb.line });
-        }
+        }*/
         if(bb.isGotoBlock()){
             bbe.instr.push({ value:":goto_"+bb.goto_name });
         }
@@ -295,6 +295,11 @@ Disassembler.prototype.methodRaw = function(method){
                 continue;
             }
 
+            // if instruction has "line number" metadata
+            if(bb.stack[j].iline != null){
+                bbe.instr.push({ value:".line "+bb.stack[j].iline });
+            }
+
             line = {
                 if: false,
                 goto: false,
@@ -304,6 +309,8 @@ Disassembler.prototype.methodRaw = function(method){
             line.tag = bb.tag;
             line.bb_offset = i;
             line.bb_roffset = j;
+
+
 
             
             if(bb.stack[j].opcode.instr.indexOf("if-")>-1){
@@ -352,10 +359,6 @@ Disassembler.prototype.methodRaw = function(method){
 
     let d=null;
 
-    result.push({
-        tag: null,
-        instr: [{ value: "# ----------- DATA BLOCKS ----------- " }]
-    });
     for(let j in method.datas){
         d = method.datas[j];
         bbe={
