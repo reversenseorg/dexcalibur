@@ -474,6 +474,48 @@ div.dxc-inline-ctn {
     border-bottom: 5px solid black;
 }
 
+#page-wrapper.dxc-dark .card.dxc-event {
+    border: 1px solid #000;
+    border-radius:0px;
+    background-color: #fff;
+    color: #000;
+    margin: 1em;
+    padding:0px;
+}
+
+
+#page-wrapper.dxc-dark .card.dxc-event .card-header {
+    background-color: #fff;
+    color: #F70 ;  
+    font-size: 0.8em;
+    padding: 0.2em;
+    margin:0px;
+    border:0px;
+}
+
+#page-wrapper.dxc-dark .card.dxc-event .card-body {
+    background-color: #fff;
+    color:#000; 
+    font-size: 0.8em;
+    padding: 0.2em;
+    padding-left: 1em;
+    margin:0px;
+    border: 0px;
+}
+
+
+#page-wrapper.dxc-dark .card.dxc-event:hover
+ {
+    background-color: #e7e7e7;
+    border: 1px solid blue;
+}
+
+#page-wrapper.dxc-dark .card.dxc-event:hover .card-body,
+#page-wrapper.dxc-dark .card.dxc-event:hover .card-header 
+ {
+    background-color: #e7e7e7;
+}
+
 .dxc-badge-list > li {
     list-style: none;
     margin-top: 0.1em;

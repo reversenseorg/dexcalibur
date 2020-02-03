@@ -705,14 +705,20 @@ class WebServer {
         });
 
         this.app.route('/api/method/simplify/:id')
-        .get(function (req, res) {
+        .post(function (req, res) {
             // collect
             let dev = {};
             let method = $.project.find.get.method(UT.decodeURI(UT.b64_decode(req.params.id)));
 
-            let simplifier = Simplifier.getInstance($);
+            let simplifier = Simplifier.getInstance($.project);
+            
+            // init body 
+            simplifier.setParametersValues(req.body.params);
+            simplifier.setInitParentClass(req.body.clinit);
+            simplifier.setMaxDepth(req.body.depth);
 
-            let simplifyLvl = (req.query.level!=undefined)? req.query.level : 0;
+            let simplifyLvl = (req.body.level!=undefined)? req.body.level : 0;
+
             dev = simplifier.simplify(method, simplifyLvl);
 
             res.status(200).send(JSON.stringify(dev));

@@ -788,9 +788,13 @@
     }
 
     function renderMethodDetail( row ) {
-        let body = '', j=0;
+        let body = '', j=0, vmParams='';
 
         console.log(row);
+
+
+        let codeID = IdRegister.codeReg.next();
+        let codeID_Simple = IdRegister.codeReg.next();
 
         //body += '<table class="table table-sm"><thead><tr><th scope="col">Role</th><th scope="col">Action</th><th scope="col">Type</th><th scope="col">Name</th></thead><tbody>';
         body += '<table class="table table-sm nestedTable verticalHead">';
@@ -810,9 +814,25 @@
         body += '<tr><td>Class</td><td><a href="finder.html?class='+btoa(encodeURIComponent(row.enclosingClass))+'">'+htmlEncode(row.enclosingClass)+'</a></td></tr>';
         body += '<tr><td>Fullname</td><td>'+htmlEncode(row.enclosingClass+'.'+row.name)+'</td></tr>';
         
+        if(row.args.length > 0){
+            vmParams  += '<i>&nbsp;Parameters :</i>'
+        }
         for(let i=0;  i<row.args.length; i++){
             sgt = row.args[i].name;
             console.log(row.args[i]);
+
+            vmParams += `<div class="input-group input-group-sm">
+                            <div class="input-group-prepend">
+                                <span class="input-group-text" style="width:3em">p${i}</span>
+                                <span class="input-group-text">
+                                    <input type="checkbox" class="simplifyParamNS" editor="${codeID_Simple}" id="${codeID_Simple}-s-p${i}" value="1" checked/>
+                                    &nbsp;Not set 
+                                </span>
+                            </div>
+                            <input type="text" id="${codeID_Simple}-v-p${i}" class="form-control" placeholder="${sgt+(row.args[i].arr?"[]":"")}" disabled/>
+                        </div>`;
+
+
             body += '<tr><td>Arg '+htmlEncode(i)+'</td><td>';
             
             if(row.args[i].primitive===false)
@@ -834,8 +854,6 @@
             return body;
         }
 
-        let codeID = IdRegister.codeReg.next();
-        let codeID_Simple = IdRegister.codeReg.next();
 
         //body += `<div class="btn btn-primary simplify" editor="${codeID}" method="${encodeURIComponent(btoa(encodeURIComponent(row.__signature__)))}">Simplify</div>`;
 
@@ -846,13 +864,79 @@
                     </li>
                     <li class="nav-item">
                         <span class="nav-link simplify dxc-inactive-item" hideeditor="${codeID}" editor="${codeID_Simple}" method="${encodeURIComponent(btoa(encodeURIComponent(row.__signature__)))}">
-                            Simplify
+                            Run smali (VM)
                             <span class="badge badge-pill badge-primary" style="font-size:0.8em">new</span>
                         </span>
                     </li>
                 </ul>`;
         body += '<div id="'+codeID+'"></div>';
-        body += '<div id="'+codeID_Simple+'" style="display:none"></div>';
+
+        body += `<div id="${codeID_Simple}-view" style="display:none">
+                    <div class="row" style="margin:0px">
+                        <div class="col-md-8" style="background-color:#272822;margin-right:0px;padding-right:0px;">
+                            <div id="${codeID_Simple}"></div>
+                        </div>
+                        <div class="col-md-4" style="background-color:#fff;margin:0px;padding:0px;width:33%">
+                            <ul class="nav" style="width:100%">
+                                <li class="nav-item">
+                                    <span class="nav-link dxc-active-item" veditor="${codeID_Simple}" method="${encodeURIComponent(btoa(encodeURIComponent(row.__signature__)))}">
+                                        Parameters
+                                    </span>
+                                </li>
+                                <li class="nav-item">
+                                    <span class="nav-link dxc-inactive-item" veditor="${codeID_Simple}" method="${encodeURIComponent(btoa(encodeURIComponent(row.__signature__)))}">
+                                        Events
+                                    </span>
+                                </li>
+                                <!-- <li class="nav-item">
+                                    <span class="nav-link dxc-inactive-item" veditor="${codeID_Simple}" method="${encodeURIComponent(btoa(encodeURIComponent(row.__signature__)))}">
+                                        Debug
+                                    </span>
+                                </li> -->
+                            </ul>
+                            `;
+
+                        
+                body += vmParams;
+                                
+                                
+                body += `
+                            <i>&nbsp;Execution settings :</i>   
+                            <div class="input-group input-group-sm mb-1 mt-1">
+                                <div class="input-group-prepend">
+                                    <span class="input-group-text">Callstack max depth</span>
+                                </div>
+                                <input type="number" id="${codeID_Simple}-depth" width="5" class="form-control" value="-1"/>
+                            </div>
+                            <i>&nbsp;VM Settings :<i><br>
+                            <ul>
+                                <li class="nav-item custom-control custom-switch">
+                                    <input type="checkbox" id="${codeID_Simple}-clinit" class="custom-control-input" value="1" checked>
+                                    <label class="custom-control-label" for="${codeID_Simple}-clinit">Execute &lt;clinit&gt; of parent class</label>     
+                                </li>
+                            </ul>
+                            <div class="row" >
+                                    <div class="col-lg-12" style="text-align:center">
+                                        <button type="button" class="btn btn-success btn-sm simplifyRun" editor="${codeID_Simple}" method="${encodeURIComponent(btoa(encodeURIComponent(row.__signature__)))}">
+                                            <span class="fa fa-play">&nbsp;</span>
+                                            Run    
+                                        </button>
+                                    </div>
+                                </div>  
+
+                                <!--
+                                <div class="card-header">
+                                    Undefined array
+                                </div>
+                                <div class="card-body">
+                                    Implicit internal exception thrown
+                                </div>
+                                -->
+                            
+                        </div>
+                    </div>
+                </div>`;
+        //body += '<div id="'+codeID_Simple+'" style="display:none"></div>';
 
         
         $.ajax(
@@ -1601,13 +1685,25 @@
             let hide_codeID = e.currentTarget.getAttribute('hideeditor');
             let method = e.currentTarget.getAttribute('method');
 
+
+            $('#'+hide_codeID).css('display','none');
+            $('#'+codeID+'-view').css('display','block');
+            $('#'+codeID).css('display','block');
+
+            $('span.nav-link[editor='+hide_codeID+']').removeClass("dxc-active-item");
+            $('span.nav-link[editor='+hide_codeID+']').addClass("dxc-inactive-item");
+
+            $('span.nav-link[editor='+codeID+']').removeClass("dxc-inactive-item");
+            $('span.nav-link[editor='+codeID+']').addClass("dxc-active-item");
+
             //console.log(codeID,method);
+            /*
             $.ajax(
                 "../api/method/simplify/"+method,
                 {
                     method: "get",
                     data: {
-                        level:1
+                        level:1,
                     },
                     statusCode: {
                         200: function(data){
@@ -1618,6 +1714,7 @@
                             }
                             //code.html(codeBody);
                             $('#'+hide_codeID).css('display','none');
+                            $('#'+codeID+'-view').css('display','block');
                             $('#'+codeID).css('display','block');
 
                             setupAceEditor(codeID);
@@ -1633,8 +1730,68 @@
                         }
                     }
                 }
+            );*/
+        });
+
+        $('#dataTables-finder tbody').on('click', 'button.simplifyRun', function (e) {
+            let codeID = e.currentTarget.getAttribute('editor');
+            let method = e.currentTarget.getAttribute('method');
+            let l = (codeID+"-s-").length;
+
+            let reqData = {
+                level:1,
+                params: {},
+                depth: parseInt($("#"+codeID+"-depth").val(),10),
+                clinit: $("#"+codeID+"-clinit")[0].checked
+            };
+
+            $("input[id^="+codeID+"-s-]").each((i,e)=>{
+                reqData.params[e.id.substr(l)] = {notset: e.checked };
+            }); 
+
+            $("input[id^="+codeID+"-v-]").each((i,e)=>{
+                if(reqData.params[e.id.substr(l)].notset==false)
+                    reqData.params[e.id.substr(l)].val = e.value ;
+            }); 
+
+            
+            $.ajax(
+                "../api/method/simplify/"+method,
+                {
+                    method: "post",
+                    contentType: 'application/json',
+                    dataType: "json",
+                    data: JSON.stringify(reqData),
+                    statusCode: {
+                        200: function(data){
+                            //data = JSON.parse(data);
+                            let codeBody = "";
+                            for(let i=0; i<data.instr.length; i++){
+                                codeBody += data    .instr[i]+"\n";
+                            }
+
+                            setupAceEditor(codeID);
+                            changeAceLanguage(codeID, "java");
+                            changeAceEditor(codeID, codeBody);
+                        }
+                    }
+                }
             );
         });
+
+        // Enable/disable param value input when not set is checked/unchecked 
+        $('#dataTables-finder tbody').on('change','input.simplifyParamNS', function(e){
+            let codeID = e.currentTarget.getAttribute('editor');
+            let l = codeID.length+3;
+
+            $("input[id^="+codeID+"-v-"+e.currentTarget.id.substr(l)+"]").each((i,a)=>{
+                if(e.currentTarget.checked)
+                    a.disabled = true;
+                else
+                    a.disabled = false;
+            });
+        });
+
 
         $('#dataTables-finder tbody').on('click', 'span.smali', function (e) {
             let codeID = e.currentTarget.getAttribute('editor');
@@ -1673,6 +1830,7 @@
                         }
                         //code.html(codeBody);
 
+                        $('#'+hide_codeID+'-view').css('display','none');
                         $('#'+hide_codeID).css('display','none');
                         $('#'+codeID).css('display','block');
 
