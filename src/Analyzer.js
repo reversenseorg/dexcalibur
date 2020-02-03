@@ -7,7 +7,7 @@ var ut = require("./Utils.js");
 const CLASS = require("./CoreClass.js");
 var CONST = require("./CoreConst.js");
 var VM = require("./VM.js");
-var OPCODE = require("./Opcode.js");
+var OPCODE = require("./Opcode.js").OPCODE;
 const AnalysisHelper = require("./AnalysisHelper.js");
 const AndroidManifestXmlParser = require("./AndroidManifestXmlParser.js");
 const MemoryDb = require("./InMemoryDb.js");
@@ -425,6 +425,7 @@ function mapInstructionFrom(method, data, stats){
                     
                     
                     obj._callers.push(method); 
+                    instruct.right = obj;
 
                     data.call.insert(new CLASS.Call({ 
                         caller:method, 
@@ -439,7 +440,8 @@ function mapInstructionFrom(method, data, stats){
 
                 }
                 success = true;
-            }else   
+            }
+            else   
                 continue;
 
             if(!success){

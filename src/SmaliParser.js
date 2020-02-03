@@ -62,6 +62,8 @@ class SmaliParser
         this.__instr_ctr = null;
         this.__instr_line = null;
 
+        this.currentLine = null;
+
         let self = this;
         this.__appendBlock_callback = {
             // disabled for perform reasons
@@ -407,13 +409,16 @@ class SmaliParser
                 break;
             case LEX.STRUCT.LINE:
                 
-                if(this.__tmp_block != null && this.__tmp_block.stack.length > 0){
+                // .line is just a metadata associated to an instruction
+                /*if(this.__tmp_block != null && this.__tmp_block.stack.length > 0){
 
                     this.__tmp_meth.appendBlock(this.__tmp_block, this.__appendBlock_callback);
                     this.__tmp_block = new CLASS.BasicBlock();
-                }
+                }*/
                 //  && this.__tmp_block.line != null
                 this.__tmp_block.line = parseInt(sml[1],10);
+                this.currentLine = parseInt(sml[1],10);
+
                 // source line number
                 this.__tmp_block.srcln = parseInt(sml[1],10);
                 
@@ -465,7 +470,6 @@ class SmaliParser
                     break;
                 }
 
-
                 if(sml[0].indexOf(':cond_')>-1){
                     if(this.__tmp_block instanceof CLASS.DataBlock || this.__tmp_block.stack.length>0){
                         this.__tmp_meth.appendBlock(this.__tmp_block, this.__appendBlock_callback);
@@ -501,7 +505,8 @@ class SmaliParser
                         this.__tmp_block = new CLASS.BasicBlock();
                     }
                 }
-                else if(sml[0].indexOf(LEX.LABEL.PSWITCH_DATA)>-1 || sml[0].indexOf(LEX.LABEL.SSWITCH_DATA)>-1){
+                // >-1
+                else if(sml[0].indexOf(LEX.LABEL.PSWITCH_DATA)==0 || sml[0].indexOf(LEX.LABEL.SSWITCH_DATA)==0){
 
                     if(this.__tmp_block != null){
                         this.__tmp_meth.appendBlock(this.__tmp_block, this.__appendBlock_callback);
@@ -510,7 +515,8 @@ class SmaliParser
                     
                     this.__tmp_block.setAsSwitchStatement(sml[0]);
                 }
-                else if(sml[0].indexOf(LEX.LABEL.PSWITCH)>-1){
+                // >-1
+                else if(sml[0].indexOf(LEX.LABEL.PSWITCH)==0){
     
                     if(this.__tmp_block.isSwitchStatement()){
                             this.__tmp_block.switch.appendCase(sml[0]);
@@ -519,7 +525,8 @@ class SmaliParser
                     }   
 
                 }
-                else if(sml[0].indexOf(LEX.LABEL.SSWITCH)>-1){
+                // >-1 
+                else if(sml[0].indexOf(LEX.LABEL.SSWITCH)==0){
 
                     if(this.__tmp_block != null
                         && (this.__tmp_block instanceof CLASS.DataBlock 
@@ -530,8 +537,7 @@ class SmaliParser
                         
                     this.__tmp_block.setAsSwitchCase(sml[0]);
                 }
-                else if(sml.length > 2 && sml[2].indexOf(LEX.LABEL.SSWITCH)>-1){
-    
+                else if(sml.length > 2 && sml[2].indexOf(LEX.LABEL.SSWITCH)>-1 && sml[0].indexOf("p")==-1){
                     if(this.__tmp_block.isSwitchStatement()){
                      //   console.log(sml);
                         this.__tmp_block.switch.appendCase(sml[0],sml[2]);
@@ -616,6 +622,10 @@ class SmaliParser
                         this.__instr_ctr++;
                         hdl.offset = this.__instr_ctr;
                         hdl.oline = this.__instr_ctr;
+                        if(this.currentLine != null){
+                            hdl.iline = this.currentLine;
+                            this.currentLine = null;
+                        }
                         this.__tmp_block.stack.push(hdl);
 
                         if(hdl.opcode.type == CONST.INSTR_TYPE.IF || hdl.opcode.type == CONST.INSTR_TYPE.GOTO ) {

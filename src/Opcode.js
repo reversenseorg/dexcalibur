@@ -134,14 +134,12 @@ var MainParser = {
 	},
 	Format23x: function(src,raw_src){
 		let instr = new CLASS.Instruction(); 
-		let v = OpcodeParser.multiVar(raw_src);
+		//let v = OpcodeParser.multiVar(raw_src);
 
-		instr.left = v[0];
-		instr.right = [];
-		if(v[1]!=null)
-			instr.right.push(v[1]);
-		if(v[2]!=null)
-			instr.right.push(v[2]);
+		let v = Core.RX.FORMAT23X.exec(raw_src);
+		
+		instr.left = [new CLASS.RegisterRef(v[2],v[3]), new CLASS.RegisterRef(v[5],v[6]) ];
+		instr.right = new CLASS.RegisterRef(v[8], v[9]);
 	
 		return instr;
 	},
@@ -203,6 +201,7 @@ var MainParser = {
 
 		return instr;
 	},
+	
 	regField: function(src,raw_src){
 		let instr = new CLASS.Instruction(); 
 
@@ -270,6 +269,8 @@ var MainParser = {
 	tagged: function(src,raw_src){
 		let instr = new CLASS.Instruction();
 		let m = Core.RX.REG_TAG.exec(raw_src);
+
+		//if(raw_src.indexOf(":sswitch")>-1) console.log(m);
 
 		instr.left = {t:m[1],i:m[2]};//new CLASS.Variable(m[1],m[2]);
 		//instr.right = new CLASS.Tag(':'+m[m.length-2]+"_"+m[m.length-1]); 
@@ -771,20 +772,20 @@ var OPCODE={
 	IF_LEZ:{ byte:0x3d, instr:"if-lez", parse: MainParser.tagged, type: CONST.INSTR_TYPE.IF, reftype:ReferenceType.NONE, format:Format.Format21t, flag:Opcode.CAN_CONTINUE },
 
 	// --------------------------------- ARRAY OPE ----------------------------------------------
-	AGET:{ byte:0x44, instr:"aget", parse: MainParser.addrX, type: CONST.INSTR_TYPE.ARRAY_GETTER, reftype: ReferenceType.NONE, format: Format.Format23x, flag:Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER },
-	AGET_WIDE:{ byte:0x45, instr:"aget-wide", parse: MainParser.addrX, type: CONST.INSTR_TYPE.ARRAY_GETTER, reftype: ReferenceType.NONE, format: Format.Format23x, flag:Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER },
-	AGET_OBJECT:{ byte:0x46, instr:"aget-object", parse: MainParser.addrX, type: CONST.INSTR_TYPE.ARRAY_GETTER, reftype: ReferenceType.NONE, format: Format.Format23x, flag:Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER },
-	AGET_BOOLEAN:{ byte:0x47, instr:"aget-boolean", parse: MainParser.addrX, type: CONST.INSTR_TYPE.ARRAY_GETTER, reftype: ReferenceType.NONE, format: Format.Format23x, flag:Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER },
-	AGET_BYTE:{ byte:0x48, instr:"aget-byte", parse: MainParser.addrX, type: CONST.INSTR_TYPE.ARRAY_GETTER, reftype: ReferenceType.NONE, format: Format.Format23x, flag:Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER },
-	AGET_CHAR:{ byte:0x49, instr:"aget-char", parse: MainParser.addrX, type: CONST.INSTR_TYPE.ARRAY_GETTER, reftype: ReferenceType.NONE, format: Format.Format23x, flag:Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER },
-	AGET_SHORT:{ byte:0x4a, instr:"aget-short", parse: MainParser.addrX, type: CONST.INSTR_TYPE.ARRAY_GETTER, reftype: ReferenceType.NONE, format: Format.Format23x, flag:Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER },
-	APUT:{ byte:0x4b, instr:"aput", parse: MainParser.addrX, type: CONST.INSTR_TYPE.ARRAY_SETTER, reftype: ReferenceType.NONE, format: Format.Format23x, flag:Opcode.CAN_THROW | Opcode.CAN_CONTINUE },
-	APUT_WIDE:{ byte:0x4c, instr:"aput-wide", parse: MainParser.addrX, type: CONST.INSTR_TYPE.ARRAY_SETTER, reftype: ReferenceType.NONE, format: Format.Format23x, flag:Opcode.CAN_THROW | Opcode.CAN_CONTINUE },
-	APUT_OBJECT:{ byte:0x4d, instr:"aput-object", parse: MainParser.addrX, type: CONST.INSTR_TYPE.ARRAY_SETTER, reftype: ReferenceType.NONE, format: Format.Format23x, flag:Opcode.CAN_THROW | Opcode.CAN_CONTINUE },
-	APUT_BOOLEAN:{ byte:0x4e, instr:"aput-boolean", parse: MainParser.addrX, type: CONST.INSTR_TYPE.ARRAY_SETTER, reftype: ReferenceType.NONE, format: Format.Format23x, flag:Opcode.CAN_THROW | Opcode.CAN_CONTINUE },
-	APUT_BYTE:{ byte:0x4f, instr:"aput-byte", parse: MainParser.addrX, type: CONST.INSTR_TYPE.ARRAY_SETTER, reftype: ReferenceType.NONE, format: Format.Format23x, flag:Opcode.CAN_THROW | Opcode.CAN_CONTINUE },
-	APUT_CHAR:{ byte:0x50, instr:"aput-char", parse: MainParser.addrX, type: CONST.INSTR_TYPE.ARRAY_SETTER, reftype: ReferenceType.NONE, format: Format.Format23x, flag:Opcode.CAN_THROW | Opcode.CAN_CONTINUE },
-	APUT_SHORT:{ byte:0x51, instr:"aput-short", parse: MainParser.addrX, type: CONST.INSTR_TYPE.ARRAY_SETTER, reftype: ReferenceType.NONE, format: Format.Format23x, flag:Opcode.CAN_THROW | Opcode.CAN_CONTINUE },
+	AGET:{ byte:0x44, instr:"aget", parse: MainParser.Format23x, type: CONST.INSTR_TYPE.ARRAY_GETTER, reftype: ReferenceType.NONE, format: Format.Format23x, flag:Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER },
+	AGET_WIDE:{ byte:0x45, instr:"aget-wide", parse: MainParser.Format23x, type: CONST.INSTR_TYPE.ARRAY_GETTER, reftype: ReferenceType.NONE, format: Format.Format23x, flag:Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER },
+	AGET_OBJECT:{ byte:0x46, instr:"aget-object", parse: MainParser.Format23x, type: CONST.INSTR_TYPE.ARRAY_GETTER, reftype: ReferenceType.NONE, format: Format.Format23x, flag:Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER },
+	AGET_BOOLEAN:{ byte:0x47, instr:"aget-boolean", parse: MainParser.Format23x, type: CONST.INSTR_TYPE.ARRAY_GETTER, reftype: ReferenceType.NONE, format: Format.Format23x, flag:Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER },
+	AGET_BYTE:{ byte:0x48, instr:"aget-byte", parse: MainParser.Format23x, type: CONST.INSTR_TYPE.ARRAY_GETTER, reftype: ReferenceType.NONE, format: Format.Format23x, flag:Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER },
+	AGET_CHAR:{ byte:0x49, instr:"aget-char", parse: MainParser.Format23x, type: CONST.INSTR_TYPE.ARRAY_GETTER, reftype: ReferenceType.NONE, format: Format.Format23x, flag:Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER },
+	AGET_SHORT:{ byte:0x4a, instr:"aget-short", parse: MainParser.Format23x, type: CONST.INSTR_TYPE.ARRAY_GETTER, reftype: ReferenceType.NONE, format: Format.Format23x, flag:Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER },
+	APUT:{ byte:0x4b, instr:"aput", parse: MainParser.Format23x, type: CONST.INSTR_TYPE.ARRAY_SETTER, reftype: ReferenceType.NONE, format: Format.Format23x, flag:Opcode.CAN_THROW | Opcode.CAN_CONTINUE },
+	APUT_WIDE:{ byte:0x4c, instr:"aput-wide", parse: MainParser.Format23x, type: CONST.INSTR_TYPE.ARRAY_SETTER, reftype: ReferenceType.NONE, format: Format.Format23x, flag:Opcode.CAN_THROW | Opcode.CAN_CONTINUE },
+	APUT_OBJECT:{ byte:0x4d, instr:"aput-object", parse: MainParser.Format23x, type: CONST.INSTR_TYPE.ARRAY_SETTER, reftype: ReferenceType.NONE, format: Format.Format23x, flag:Opcode.CAN_THROW | Opcode.CAN_CONTINUE },
+	APUT_BOOLEAN:{ byte:0x4e, instr:"aput-boolean", parse: MainParser.Format23x, type: CONST.INSTR_TYPE.ARRAY_SETTER, reftype: ReferenceType.NONE, format: Format.Format23x, flag:Opcode.CAN_THROW | Opcode.CAN_CONTINUE },
+	APUT_BYTE:{ byte:0x4f, instr:"aput-byte", parse: MainParser.Format23x, type: CONST.INSTR_TYPE.ARRAY_SETTER, reftype: ReferenceType.NONE, format: Format.Format23x, flag:Opcode.CAN_THROW | Opcode.CAN_CONTINUE },
+	APUT_CHAR:{ byte:0x50, instr:"aput-char", parse: MainParser.Format23x, type: CONST.INSTR_TYPE.ARRAY_SETTER, reftype: ReferenceType.NONE, format: Format.Format23x, flag:Opcode.CAN_THROW | Opcode.CAN_CONTINUE },
+	APUT_SHORT:{ byte:0x51, instr:"aput-short", parse: MainParser.Format23x, type: CONST.INSTR_TYPE.ARRAY_SETTER, reftype: ReferenceType.NONE, format: Format.Format23x, flag:Opcode.CAN_THROW | Opcode.CAN_CONTINUE },
 	
 	// --------------------------------- INSTANCE OPE ----------------------------------------------
 	IGET:{ byte:0x52, instr:"iget", parse: MainParser.multRegField, type: CONST.INSTR_TYPE.GETTER, reftype:ReferenceType.FIELD, format:Format.Format22c, flag:Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER },
@@ -920,38 +921,38 @@ var OPCODE={
 	INT_TO_SHORT:{ byte:0x8f, instr:"int-to-short", parse: MainParser.move, type: CONST.INSTR_TYPE.MATH_CAST, reftype:ReferenceType.NONE, format:Format.Format12x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER },
 	
 	// --------------------------------- MATH ----------------------------------------------
-	ADD_INT:{ byte:0x90, instr:"add-int", ope: CONST.LEX.TOKEN.ADD, parse: MainParser.addrX, type: CONST.INSTR_TYPE.MATH, reftype:ReferenceType.NONE, format:Format.Format23x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER },
-	SUB_INT:{ byte:0x91, instr:"sub-int", ope: CONST.LEX.TOKEN.SUB, parse: MainParser.addrX, type: CONST.INSTR_TYPE.MATH, reftype:ReferenceType.NONE, format:Format.Format23x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER },
-	MUL_INT:{ byte:0x92, instr:"mul-int", ope: CONST.LEX.TOKEN.MUL, parse: MainParser.addrX, type: CONST.INSTR_TYPE.MATH, reftype:ReferenceType.NONE, format:Format.Format23x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER },
-	DIV_INT:{ byte:0x93, instr:"div-int", ope: CONST.LEX.TOKEN.DIV, parse: MainParser.addrX, type: CONST.INSTR_TYPE.MATH, reftype:ReferenceType.NONE, format:Format.Format23x, flag:Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER },
-	REM_INT:{ byte:0x94, instr:"rem-int", ope: CONST.LEX.TOKEN.REM, parse: MainParser.addrX, type: CONST.INSTR_TYPE.MATH, reftype:ReferenceType.NONE, format:Format.Format23x, flag:Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER },
-	AND_INT:{ byte:0x95, instr:"and-int", ope: CONST.LEX.TOKEN.AND, parse: MainParser.addrX, type: CONST.INSTR_TYPE.MATH, reftype: ReferenceType.NONE, format: Format.Format23x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER },
-	OR_INT:{ byte:0x96, instr:"or-int", ope: CONST.LEX.TOKEN.OR, parse: MainParser.addrX, type: CONST.INSTR_TYPE.MATH, reftype: ReferenceType.NONE, format: Format.Format23x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER },
-	XOR_INT:{ byte:0x97, instr:"xor-int", ope: CONST.LEX.TOKEN.XOR, parse: MainParser.addrX, type: CONST.INSTR_TYPE.MATH, reftype: ReferenceType.NONE, format: Format.Format23x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER },
-	SHL_INT:{ byte:0x98, instr:"shl-int", ope: CONST.LEX.TOKEN.SHL, parse: MainParser.addrX, type: CONST.INSTR_TYPE.MATH, reftype: ReferenceType.NONE, format: Format.Format23x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER },
-	SHR_INT:{ byte:0x99, instr:"shr-int", ope: CONST.LEX.TOKEN.SHR, parse: MainParser.addrX, type: CONST.INSTR_TYPE.MATH, reftype: ReferenceType.NONE, format: Format.Format23x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER },
-	USHR_INT:{ byte:0x9a, instr:"ushr-int", ope: CONST.LEX.TOKEN.USHR, parse: MainParser.addrX, type: CONST.INSTR_TYPE.MATH, reftype: ReferenceType.NONE, format: Format.Format23x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER },
-	ADD_LONG:{ byte:0x9b, instr:"add-long", ope: CONST.LEX.TOKEN.ADD, parse: MainParser.addrX, type: CONST.INSTR_TYPE.MATH, reftype: ReferenceType.NONE, format: Format.Format23x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER },
-	SUB_LONG:{ byte:0x9c, instr:"sub-long", ope: CONST.LEX.TOKEN.SUB, parse: MainParser.addrX, type: CONST.INSTR_TYPE.MATH, reftype: ReferenceType.NONE, format: Format.Format23x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER },
-	MUL_LONG:{ byte:0x9d, instr:"mul-long", ope: CONST.LEX.TOKEN.MUL, parse: MainParser.addrX, type: CONST.INSTR_TYPE.MATH, reftype: ReferenceType.NONE, format: Format.Format23x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER },
-	DIV_LONG:{ byte:0x9e, instr:"div-long", ope: CONST.LEX.TOKEN.DIV, parse: MainParser.addrX, type: CONST.INSTR_TYPE.MATH, reftype: ReferenceType.NONE, format: Format.Format23x, flag:Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER },
-	REM_LONG:{ byte:0x9f, instr:"rem-long", ope: CONST.LEX.TOKEN.REM, parse: MainParser.addrX, type: CONST.INSTR_TYPE.MATH, reftype: ReferenceType.NONE, format: Format.Format23x, flag:Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER },
-	AND_LONG:{ byte:0xa0, instr:"and-long", ope: CONST.LEX.TOKEN.AND, parse: MainParser.addrX, type: CONST.INSTR_TYPE.MATH, reftype: ReferenceType.NONE, format: Format.Format23x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER },
-	OR_LONG:{ byte:0xa1, instr:"or-long", ope: CONST.LEX.TOKEN.OR, parse: MainParser.addrX, type: CONST.INSTR_TYPE.MATH, reftype: ReferenceType.NONE, format: Format.Format23x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER },
-	XOR_LONG:{ byte:0xa2, instr:"xor-long", ope: CONST.LEX.TOKEN.XOR, parse: MainParser.addrX, type: CONST.INSTR_TYPE.MATH, reftype: ReferenceType.NONE, format: Format.Format23x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER },
-	SHL_LONG:{ byte:0xa3, instr:"shl-long", ope: CONST.LEX.TOKEN.SHL, parse: MainParser.addrX, type: CONST.INSTR_TYPE.MATH, reftype: ReferenceType.NONE, format: Format.Format23x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER },
-	SHR_LONG:{ byte:0xa4, instr:"shr-long", ope: CONST.LEX.TOKEN.SHR, parse: MainParser.addrX, type: CONST.INSTR_TYPE.MATH, reftype: ReferenceType.NONE, format: Format.Format23x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER },
-	USHR_LONG:{ byte:0xa5, instr:"ushr-long", ope: CONST.LEX.TOKEN.USHR, arse: MainParser.addrX, type: CONST.INSTR_TYPE.MATH, reftype: ReferenceType.NONE, format: Format.Format23x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER },
-	ADD_FLOAT:{ byte:0xa6, instr:"add-float", ope: CONST.LEX.TOKEN.ADD, parse: MainParser.addrX, type: CONST.INSTR_TYPE.MATH, reftype: ReferenceType.NONE, format: Format.Format23x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER },
-	SUB_FLOAT:{ byte:0xa7, instr:"sub-float", ope: CONST.LEX.TOKEN.SUB, parse: MainParser.addrX, type: CONST.INSTR_TYPE.MATH, reftype: ReferenceType.NONE, format: Format.Format23x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER },
-	MUL_FLOAT:{ byte:0xa8, instr:"mul-float", ope: CONST.LEX.TOKEN.MUL, parse: MainParser.addrX, type: CONST.INSTR_TYPE.MATH, reftype: ReferenceType.NONE, format: Format.Format23x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER },
-	DIV_FLOAT:{ byte:0xa9, instr:"div-float", ope: CONST.LEX.TOKEN.DIV, parse: MainParser.addrX, type: CONST.INSTR_TYPE.MATH, reftype: ReferenceType.NONE, format: Format.Format23x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER },
-	REM_FLOAT:{ byte:0xaa, instr:"rem-float", ope: CONST.LEX.TOKEN.REM, parse: MainParser.addrX, type: CONST.INSTR_TYPE.MATH, reftype: ReferenceType.NONE, format: Format.Format23x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER },
-	ADD_DOUBLE:{ byte:0xab, instr:"add-double", ope: CONST.LEX.TOKEN.ADD, parse: MainParser.addrX, type: CONST.INSTR_TYPE.MATH, reftype: ReferenceType.NONE, format: Format.Format23x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER },
-	SUB_DOUBLE:{ byte:0xac, instr:"sub-double", ope: CONST.LEX.TOKEN.SUB, parse: MainParser.addrX, type: CONST.INSTR_TYPE.MATH, reftype: ReferenceType.NONE, format: Format.Format23x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER },
-	MUL_DOUBLE:{ byte:0xad, instr:"mul-double", ope: CONST.LEX.TOKEN.MUL, parse: MainParser.addrX, type: CONST.INSTR_TYPE.MATH, reftype: ReferenceType.NONE, format: Format.Format23x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER },
-	DIV_DOUBLE:{ byte:0xae, instr:"div-double", ope: CONST.LEX.TOKEN.DIV, parse: MainParser.addrX, type: CONST.INSTR_TYPE.MATH, reftype: ReferenceType.NONE, format: Format.Format23x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER },
-	REM_DOUBLE:{ byte:0xaf, instr:"rem-double", ope: CONST.LEX.TOKEN.REM, parse: MainParser.addrX, type: CONST.INSTR_TYPE.MATH, reftype: ReferenceType.NONE, format: Format.Format23x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER },
+	ADD_INT:{ byte:0x90, instr:"add-int", ope: CONST.LEX.TOKEN.ADD, parse: MainParser.Format23x, type: CONST.INSTR_TYPE.MATH, reftype:ReferenceType.NONE, format:Format.Format23x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER },
+	SUB_INT:{ byte:0x91, instr:"sub-int", ope: CONST.LEX.TOKEN.SUB, parse: MainParser.Format23x, type: CONST.INSTR_TYPE.MATH, reftype:ReferenceType.NONE, format:Format.Format23x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER },
+	MUL_INT:{ byte:0x92, instr:"mul-int", ope: CONST.LEX.TOKEN.MUL, parse: MainParser.Format23x, type: CONST.INSTR_TYPE.MATH, reftype:ReferenceType.NONE, format:Format.Format23x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER },
+	DIV_INT:{ byte:0x93, instr:"div-int", ope: CONST.LEX.TOKEN.DIV, parse: MainParser.Format23x, type: CONST.INSTR_TYPE.MATH, reftype:ReferenceType.NONE, format:Format.Format23x, flag:Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER },
+	REM_INT:{ byte:0x94, instr:"rem-int", ope: CONST.LEX.TOKEN.REM, parse: MainParser.Format23x, type: CONST.INSTR_TYPE.MATH, reftype:ReferenceType.NONE, format:Format.Format23x, flag:Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER },
+	AND_INT:{ byte:0x95, instr:"and-int", ope: CONST.LEX.TOKEN.AND, parse: MainParser.Format23x, type: CONST.INSTR_TYPE.MATH, reftype: ReferenceType.NONE, format: Format.Format23x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER },
+	OR_INT:{ byte:0x96, instr:"or-int", ope: CONST.LEX.TOKEN.OR, parse: MainParser.Format23x, type: CONST.INSTR_TYPE.MATH, reftype: ReferenceType.NONE, format: Format.Format23x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER },
+	XOR_INT:{ byte:0x97, instr:"xor-int", ope: CONST.LEX.TOKEN.XOR, parse: MainParser.Format23x, type: CONST.INSTR_TYPE.MATH, reftype: ReferenceType.NONE, format: Format.Format23x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER },
+	SHL_INT:{ byte:0x98, instr:"shl-int", ope: CONST.LEX.TOKEN.SHL, parse: MainParser.Format23x, type: CONST.INSTR_TYPE.MATH, reftype: ReferenceType.NONE, format: Format.Format23x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER },
+	SHR_INT:{ byte:0x99, instr:"shr-int", ope: CONST.LEX.TOKEN.SHR, parse: MainParser.Format23x, type: CONST.INSTR_TYPE.MATH, reftype: ReferenceType.NONE, format: Format.Format23x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER },
+	USHR_INT:{ byte:0x9a, instr:"ushr-int", ope: CONST.LEX.TOKEN.USHR, parse: MainParser.Format23x, type: CONST.INSTR_TYPE.MATH, reftype: ReferenceType.NONE, format: Format.Format23x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER },
+	ADD_LONG:{ byte:0x9b, instr:"add-long", ope: CONST.LEX.TOKEN.ADD, parse: MainParser.Format23x, type: CONST.INSTR_TYPE.MATH, reftype: ReferenceType.NONE, format: Format.Format23x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER },
+	SUB_LONG:{ byte:0x9c, instr:"sub-long", ope: CONST.LEX.TOKEN.SUB, parse: MainParser.Format23x, type: CONST.INSTR_TYPE.MATH, reftype: ReferenceType.NONE, format: Format.Format23x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER },
+	MUL_LONG:{ byte:0x9d, instr:"mul-long", ope: CONST.LEX.TOKEN.MUL, parse: MainParser.Format23x, type: CONST.INSTR_TYPE.MATH, reftype: ReferenceType.NONE, format: Format.Format23x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER },
+	DIV_LONG:{ byte:0x9e, instr:"div-long", ope: CONST.LEX.TOKEN.DIV, parse: MainParser.Format23x, type: CONST.INSTR_TYPE.MATH, reftype: ReferenceType.NONE, format: Format.Format23x, flag:Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER },
+	REM_LONG:{ byte:0x9f, instr:"rem-long", ope: CONST.LEX.TOKEN.REM, parse: MainParser.Format23x, type: CONST.INSTR_TYPE.MATH, reftype: ReferenceType.NONE, format: Format.Format23x, flag:Opcode.CAN_THROW | Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER },
+	AND_LONG:{ byte:0xa0, instr:"and-long", ope: CONST.LEX.TOKEN.AND, parse: MainParser.Format23x, type: CONST.INSTR_TYPE.MATH, reftype: ReferenceType.NONE, format: Format.Format23x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER },
+	OR_LONG:{ byte:0xa1, instr:"or-long", ope: CONST.LEX.TOKEN.OR, parse: MainParser.Format23x, type: CONST.INSTR_TYPE.MATH, reftype: ReferenceType.NONE, format: Format.Format23x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER },
+	XOR_LONG:{ byte:0xa2, instr:"xor-long", ope: CONST.LEX.TOKEN.XOR, parse: MainParser.Format23x, type: CONST.INSTR_TYPE.MATH, reftype: ReferenceType.NONE, format: Format.Format23x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER },
+	SHL_LONG:{ byte:0xa3, instr:"shl-long", ope: CONST.LEX.TOKEN.SHL, parse: MainParser.Format23x, type: CONST.INSTR_TYPE.MATH, reftype: ReferenceType.NONE, format: Format.Format23x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER },
+	SHR_LONG:{ byte:0xa4, instr:"shr-long", ope: CONST.LEX.TOKEN.SHR, parse: MainParser.Format23x, type: CONST.INSTR_TYPE.MATH, reftype: ReferenceType.NONE, format: Format.Format23x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER },
+	USHR_LONG:{ byte:0xa5, instr:"ushr-long", ope: CONST.LEX.TOKEN.USHR, arse: MainParser.Format23x, type: CONST.INSTR_TYPE.MATH, reftype: ReferenceType.NONE, format: Format.Format23x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER },
+	ADD_FLOAT:{ byte:0xa6, instr:"add-float", ope: CONST.LEX.TOKEN.ADD, parse: MainParser.Format23x, type: CONST.INSTR_TYPE.MATH, reftype: ReferenceType.NONE, format: Format.Format23x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER },
+	SUB_FLOAT:{ byte:0xa7, instr:"sub-float", ope: CONST.LEX.TOKEN.SUB, parse: MainParser.Format23x, type: CONST.INSTR_TYPE.MATH, reftype: ReferenceType.NONE, format: Format.Format23x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER },
+	MUL_FLOAT:{ byte:0xa8, instr:"mul-float", ope: CONST.LEX.TOKEN.MUL, parse: MainParser.Format23x, type: CONST.INSTR_TYPE.MATH, reftype: ReferenceType.NONE, format: Format.Format23x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER },
+	DIV_FLOAT:{ byte:0xa9, instr:"div-float", ope: CONST.LEX.TOKEN.DIV, parse: MainParser.Format23x, type: CONST.INSTR_TYPE.MATH, reftype: ReferenceType.NONE, format: Format.Format23x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER },
+	REM_FLOAT:{ byte:0xaa, instr:"rem-float", ope: CONST.LEX.TOKEN.REM, parse: MainParser.Format23x, type: CONST.INSTR_TYPE.MATH, reftype: ReferenceType.NONE, format: Format.Format23x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER },
+	ADD_DOUBLE:{ byte:0xab, instr:"add-double", ope: CONST.LEX.TOKEN.ADD, parse: MainParser.Format23x, type: CONST.INSTR_TYPE.MATH, reftype: ReferenceType.NONE, format: Format.Format23x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER },
+	SUB_DOUBLE:{ byte:0xac, instr:"sub-double", ope: CONST.LEX.TOKEN.SUB, parse: MainParser.Format23x, type: CONST.INSTR_TYPE.MATH, reftype: ReferenceType.NONE, format: Format.Format23x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER },
+	MUL_DOUBLE:{ byte:0xad, instr:"mul-double", ope: CONST.LEX.TOKEN.MUL, parse: MainParser.Format23x, type: CONST.INSTR_TYPE.MATH, reftype: ReferenceType.NONE, format: Format.Format23x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER },
+	DIV_DOUBLE:{ byte:0xae, instr:"div-double", ope: CONST.LEX.TOKEN.DIV, parse: MainParser.Format23x, type: CONST.INSTR_TYPE.MATH, reftype: ReferenceType.NONE, format: Format.Format23x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER },
+	REM_DOUBLE:{ byte:0xaf, instr:"rem-double", ope: CONST.LEX.TOKEN.REM, parse: MainParser.Format23x, type: CONST.INSTR_TYPE.MATH, reftype: ReferenceType.NONE, format: Format.Format23x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER | Opcode.SETS_WIDE_REGISTER },
 	
 	ADD_INT_2ADDR:{ byte:0xb0, instr:"add-int/2addr", ope: CONST.LEX.TOKEN.ADD, parse: MainParser.move, type: CONST.INSTR_TYPE.MATH, reftype:ReferenceType.NONE, format:Format.Format12x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER },
 	SUB_INT_2ADDR:{ byte:0xb1, instr:"sub-int/2addr", ope: CONST.LEX.TOKEN.SUB, parse: MainParser.move, type: CONST.INSTR_TYPE.MATH, reftype:ReferenceType.NONE, format:Format.Format12x, flag:Opcode.CAN_CONTINUE | Opcode.SETS_REGISTER },

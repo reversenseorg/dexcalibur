@@ -73,6 +73,15 @@ Savable ={
     }
 };
 
+
+class RegisterRef
+{
+    constructor( pType, pIdentifier){
+        this.t = pType;
+        this.i = pIdentifier;
+    }
+}
+
 /**
  * Encapsulate metadata
  * @param {Object} cfg 
@@ -872,21 +881,46 @@ Class.prototype.getPackage = function(){
  * To find a class's method by usins a search pattern
  * @param {String} pattern 
  */
-Class.prototype.getMethod = function(pattern){
+Class.prototype.getMethod = function(pattern, pExactMatch=0){
     let res0 = [], res1=[], rx={}, match=null;
-    for(let i in pattern){
-        rx[i] = new RegExp(pattern[i]);
-    }
-    res1 = this.methods;
-    for(let i in pattern){
-        res0 = res1;
-        res1 = [];
-        for(let meth in res0){
-            match = rx[i].exec(res0[meth][i]);
-            if(match !== null) res1.push(res0[meth]);
+    if(pExactMatch != CONST.EXACT_MATCH){
+        for(let i in pattern){
+            rx[i] = new RegExp(pattern[i]);
+        }
+        res1 = this.methods;
+        for(let i in pattern){
+            res0 = res1;
+            res1 = [];
+            for(let meth in res0){
+                match = rx[i].exec(res0[meth][i]);
+                if(match !== null) res1.push(res0[meth]);
+            }
+        }
+    }else{
+        res1 = this.methods;
+        for(let i in pattern){
+            res0 = res1;
+            res1 = [];
+            for(let meth in res0){
+                if(pattern[i] === res0[meth][i]) 
+                    res1.push(res0[meth]);
+            }
         }
     }
+
     return res1;
+};
+
+Class.prototype.java_getMethod = function(pName, pArgumentsTypes){
+    
+    for(let i in this.methods){
+        if(this.methods[i].name == pName){
+            for(let j=0; j<pArgumentsTypes.length; j++){
+                
+            }
+        }
+    }
+
 };
 
 /**
@@ -910,6 +944,33 @@ Class.prototype.getField = function(pattern){
     return res1;
 }
 
+/**
+ * To get all static fields declared or inherited
+ * @returns {Field[]} An array of fields
+ */
+Class.prototype.getStaticFields = function(){
+    let f = [];
+    for(let i in this.fields){
+        if(this.fields[i].modifiers.static){
+            f.push(this.fields[i]);
+        }
+    }
+    return f;
+}
+
+/**
+ * To get <clinit> method
+ * TODO : do it during analysis
+ * @returns 
+ */
+Class.prototype.getClInit = function(){
+    for(let i in this.methods){
+        if(this.methods[i].name == "<clinit>"){
+            return this.methods[i];
+        }
+    }
+    return null;
+}
 
 Class.prototype.setupMissingTag = function(){
     return (this.tags.push(CONST.TAG.MISSING)); 
@@ -1740,7 +1801,7 @@ Method.prototype.getBasicBlockByLabel = function(pLabel, pType){
     {
         case CONST.INSTR_TYPE.IF:
             for(let i=0; i<this.instr.length; i++){ 
-                console.log(this.instr[i]);
+                //console.log(this.instr[i]);
                 if(this.instr[i].isConditionalBlock() && this.instr[i].cond_name==pLabel) 
                     return this.instr[i];
             }
@@ -2164,6 +2225,19 @@ class BasicBlock
         if(config!=null)
             for(let i in config)
                 this[i]=config[i];
+    }
+
+    /**
+     * To check if the block contains only NOP instruction
+     * @returns {Boolean} Returns TRUE if thhe block contains only NOP instruction, else FALSE
+     */
+    isNOPblock(){
+        for(let i=0; i<this.stack.length; i++){
+            if(this.stack[i].opcode.type != CONST.INSTR_TYPE.NOP){
+                return false;
+            }
+        }
+        return true;
     }
 
     hasCatchStatement(){
@@ -2950,6 +3024,8 @@ function Instruction(config){
 	this._call = null;
     this._parent = null;
 
+    this.iline = null;
+
 
     // operands
     this.opcode = null;
@@ -3322,7 +3398,8 @@ var all_exports = {
     TagCategory: TagCategory,
     File: File,
     SerializedObject: SerializedObject,
-    CatchStatement: CatchStatement
+    CatchStatement: CatchStatement,
+    RegisterRef: RegisterRef
 }; 
 
 SerializedObject.init(all_exports);

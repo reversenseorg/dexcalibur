@@ -1,4 +1,5 @@
 var CONST = {
+    EXACT_MATCH: 1,
     LEX: {
         TOKEN: {
             SPACE: " ",
@@ -30,6 +31,7 @@ var CONST = {
             SRC: ".source",
             LINE: ".line",
             LOCALS: ".locals",
+            LOCAL: ".local",
             REG: ".registers",
             PARAMS: ".params",
             METHOD_BEG: ".method",
@@ -42,7 +44,7 @@ var CONST = {
             SSWITCH: ".sparse-switch",
             CATCH: ".catch",
             CATCH_ALL: ".catchall",
-
+            DBG_RESTART: ".restart",
             METHOD_NAME: "method",
             ANNOTATION_NAME: "annotation",
             PSWITCH_NAME: "packed-switch",
