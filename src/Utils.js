@@ -6,6 +6,7 @@ const crypto = require("crypto");
 
 
 const RE_REPLACE = /[-\/\\^$*+?.()|[\]{}]/g;
+const CR = ""; //\n";
 
 function checksum(str, algorithm, encoding) {
     return crypto

@@ -141,6 +141,24 @@ class ProdLogger
         return callbacks;
     }
 
+    /**
+     * TODO : TestLogger
+     */
+    debugPink(){
+        if(this.debugEnabled)
+            console.log(Chalk.bold.magenta('[DEBUG] '+prefix.join("")+multi_concat(arguments)));
+        return callbacks;
+    }
+
+    /**
+     * TODO : TestLogger
+     */
+    debugBgRed(){
+        if(this.debugEnabled)
+            console.log(Chalk.white.bgRed.bold('[DEBUG] '+prefix.join("")+multi_concat(arguments)));
+        return callbacks;
+    }
+
     warn(){
         if(this.debugEnabled)
             console.log(Chalk.bold.yellow('[DEBUG] '+prefix.join("")+multi_concat(arguments)));
