@@ -129,26 +129,36 @@ function castToDataType(pType, pData){
 }
 
 
+class VM_Exception
+{
+    constructor(){
+
+    }
+}
+
 class Symbol
 {
-    constructor(pVisibility, pType, pValue, pCode=null){
+    static SKIPPED = true;
+
+    constructor(pVisibility, pType, pValue, pCode=null, pSkipped=false){
         this.type = pType;
         this.value = pValue;
         this.visibility = pVisibility;
         this.code = pCode;
         this.regs = []; 
         this.symOffset = false;
+        this.skipped = pSkipped;
     }
 
     print(){
         if(this.value instanceof VM_ClassInstance){
-           return `type:${DTYPE_STRING[this.type]}, value:(ClassInstance)${this.value.parent.name}, code:${this.code}`;
+            return `type:${DTYPE_STRING[this.type]}, value:(ClassInstance)${this.value.parent.name}, code:${this.code}`;
         }
         else if(this.value instanceof CLASS.Class){
             return `type:${DTYPE_STRING[this.type]}, value:${this.value.name}, code:${this.code}`;
         }
         else if(this.value instanceof VM_VirtualArray){
-            return `type:${DTYPE_STRING[this.type]}, value:[${this.value.print()}], code:${this.code}`;
+            return `type:${DTYPE_STRING[this.type]}, value:${this.value.print()}, code:${this.code}`;
         }
         else if(this.value != null){
             switch(this.type){
@@ -164,6 +174,14 @@ class Symbol
         else{
             return `type:${DTYPE_STRING[this.type]}, value:NULL, code:${this.code}`;
         }
+    }
+
+    setSkipped(){
+        this.skipped = true;
+    }
+
+    isSkipped(){
+        return this.skipped;
     }
 
     setCode(pCode){
@@ -191,7 +209,8 @@ class Symbol
     }
 
     isThis(pMethod){
-        return (pMethod instanceof CLASS.Method) && (pMethod.modifiers.static==false);
+        return (pMethod instanceof CLASS.Method) 
+            && (pMethod.modifiers.static==false);
     }
 
     isConcreteArray(){
@@ -416,13 +435,13 @@ class SymTable
         let m= ``, k=0; 
 
         for(let i in this.table){
-            m += `- ${i}, ${this.table[i].print()}
-                 `;
+            m += `  - ${i}, ${this.table[i].print()}
+`;
             k++;
         }
         
         m = `Table size : ${k}
-        `+m;
+`+m;
         return m;
     }
 
@@ -430,12 +449,13 @@ class SymTable
         return this.table; 
     }
 
-    addEntry(pSymbol, pVisibility, pType, pValue, pCode){
+    addEntry(pSymbol, pVisibility, pType, pValue, pCode, pSkipped=false){
         this.table[pSymbol] =  new Symbol(
             pVisibility,
             pType,
             pValue,
-            pCode
+            pCode,
+            pSkipped
         );
 
         return this.table[pSymbol];
@@ -450,7 +470,7 @@ class SymTable
     }
 
     importSymbol(pReg, pSymbol, pExpr){
-        return this.addEntry(pReg, pSymbol.visibility, pSymbol.type, pSymbol.value, pExpr);
+        return this.addEntry(pReg, pSymbol.visibility, pSymbol.type, pSymbol.value, pExpr, pSymbol.skipped);
     }
 
     setSymbol(pReg, pType, pValue, pCode=null){
@@ -519,9 +539,10 @@ class SavedState
 
 class PseudoCodeMaker
 {
-    constructor( pEnable = true){
+    constructor( pVM, pEnable = true){
         this.code = [];
         this.enabled = pEnable;
+        this.vm = pVM;
     }
 
     isEnable(){
@@ -540,8 +561,81 @@ class PseudoCodeMaker
         return this.code.pop();
     }
 
+    getIndent(){
+        return "    ".repeat(this.vm.depth);
+    }
+
+
+    writeInvoke( pMethodRef, pParamsReg){
+        let v = null, rThis=null, vThis=0, rArg=null, vArg=null;
+
+        if(pParamsReg.length > 0){
+            rThis = this.vm.getRegisterName(pParamsReg[0]);
+            vThis = this.vm.stack.getLocalSymbol(rThis);
+
+        }
+
+        // add indent
+        v = this.getIndent();
+
+        // Generate 'instance' part of the call
+        if((pMethodRef instanceof CLASS.Method) && (pMethodRef.name=="<init>"))
+            v += `${rThis} = new ${pMethodRef.enclosingClass.name}(`;
+        else if(this.vm.method.modifiers.static==false && regX=="p0"){
+            v += `this.${pMethodRef.alias!=null? pMethodRef.alias : pMethodRef.name}(`;
+        }
+        else if(vThis.type==DTYPE.CLASS_REF && vThis.hasCode()){
+            v += `${vThis.getCode()}.${pMethodRef.alias!=null? pMethodRef.alias : pMethodRef.name}(`;
+        }
+        else if((vThis.getValue() instanceof VM_ClassInstance) 
+                && (vThis.getValue().hasConcrete()) 
+                && (typeof vThis.getValue().getConcrete() == "string")){
+            v += `"${vThis.getValue().getConcrete()}".${pMethodRef.alias!=null? pMethodRef.alias : pMethodRef.name}(`;
+        }
+        else{
+            v += `${rThis}.${pMethodRef.alias!=null? pMethodRef.alias : pMethodRef.name}(`;
+        }
+
+        // Generate arguments string
+        if(pParamsReg.length > 1){
+            for(let j=1; j<pParamsReg.length; j++){
+
+                rArg = this.vm.getRegisterName(pParamsReg[j]);
+                vArg = this.vm.stack.getLocalSymbol(rArg);
+
+                if(this.vm.isImm(vArg))
+                    v += `${this.vm.getImmediateValue(vArg)},`;
+                else if(vArg.hasCode() && !vArg.isSkipped())
+                    v+= `${vArg.getCode()},`;
+                else if(rArg=="p0" && vArg.isThis(this.vm.method)){
+                    v += `this, `;
+                }
+                else if((vArg.getValue() instanceof VM_ClassInstance) 
+                    && (vArg.getValue().hasConcrete()) 
+                    && (typeof vArg.getValue().getConcrete() == "string")){
+                    v += `"${vArg.getValue().getConcrete()}",`;
+                }
+                else{
+                    v += `${rArg},`;
+                }
+            } 
+            v = v.substr(0, v.length-1);
+        }
+        v += ')';
+
+        this.code.push(v);
+    }
+
+
     push( pCode){
         if(this.enabled) this.code.push(pCode);
+    }
+
+    append( pMessage){
+        if(this.code.length-1 >= 0)
+            this.code[this.code.length-1] += pMessage;
+        else
+            this.code[0] = pMessage;
     }
 
     last(){
@@ -573,7 +667,6 @@ class VM_VirtualArray
             
         m += `](size: ${this.size}, realsize:${this.value.length})`;
 
-        console.log(this.value);
         return m;
     }
     
@@ -697,10 +790,17 @@ class VM_StackEntry
     }
 
 
-    setArguments( pArguments){
+    /**
+     * To set concrete values into parameters
+     * 
+     * @param {Object[]} pArguments 
+     * @param {Boolean} pAutoInstanciate 
+     */
+    setArguments( pArguments, pAutoInstanciate=false){
 
         if(this.method.modifiers.static) p=0;
 
+        console.log("SetArguments", pArguments);
         for(let k in pArguments){
             this.symTab.setSymbol( k, pArguments[i].type, pArguments)
         }
@@ -769,31 +869,31 @@ class VM_StackMemory
      */
     print(){
         let m=`
-        Call stack :
-        `;
+Call stack :
+`;
 
         for(let i=this.callstack.length-1; i>=0; i--){
             m+=`    - ${this.callstack[i].method.signature()} (${i})
-            `;
+`;
         }
 
         m += `
-        Current registers/symbols :
-        `;
+Current registers/symbols :
+`;
 
         m += this.symTab.print();
 
         if(this.ret.length > 0){
             m+= `
-            Return value :
-            `;
+Latest values returned :
+`;
             for(let i=0; i<this.ret.length; i++){
                 if(this.ret[i] != RET_VOID){
-                    m += `    - ${this.ret[i].print()} (${i})
-                    `;
+                    m += `  - ${this.ret[i].print()} (${i})
+`;
                 }else{
-                    m += `    - void (${i})
-                    `;
+                    m += `  - void (${i})
+`;
                 }
 
             }
@@ -971,9 +1071,10 @@ class VM_ClassLoader
         
         if(pClass instanceof CLASS.Class){
             if(this.classes[pClass.name] != undefined) 
-                return;
+                return this.classes[pClass.name];
             clz = pClass;
         }else if(this.classes[pClass] != undefined) 
+        
             return this.classes[pClass];
         else{
             clz = this.vm.context.find.get.class(pClass);
@@ -1173,7 +1274,7 @@ class VM_HeapArea
     }
 
     /**
-     * 
+     * to clear heap area
      */
     clear(){
         this.heap = [];
@@ -1181,6 +1282,9 @@ class VM_HeapArea
     }
 
     /**
+     * To load a class. 
+     * 
+     * Actually only built-in classloader is supported 
      * 
      * @param {Class} pClass The class to load
      */
@@ -1197,15 +1301,22 @@ class VM_HeapArea
     newInstance( pClass, pArgs=[], pConstructor=null){
         let ref=null, clz=null;
         
-        Logger.debugBgRed(`[VM] [HEAP] START : New instance of ${pClass.name}`);
+        if(pClass instanceof CLASS.Class)
+            Logger.debugBgRed(`[VM] [HEAP] START : New instance of ${pClass.name}`);
+        else
+            Logger.debugBgRed(`[VM] [HEAP] START : New instance of ${pClass}`);
 
         // load class if needded
         clz = this.loadClass(pClass);
-        
+
         ref = this.heap.length;
         this.heap.push( new VM_ClassInstance(clz));
 
-        Logger.debugBgRed(`[VM] [HEAP] END  : New instance of ${clz.name}`);
+        if(pClass instanceof CLASS.Class)
+            Logger.debugBgRed(`[VM] [HEAP] END  : New instance of ${pClass.name}`);
+        else
+            Logger.debugBgRed(`[VM] [HEAP] END : New instance of ${pClass}`);
+
         //return ref;
         return this.heap[this.heap.length-1];
     }
@@ -1239,17 +1350,6 @@ class VM_HeapArea
     }
 }
 
-class VM_ExecEngine
-{
-    constructor( pVM){
-        this.vm = pVM;
-        this.trace = null;
-    }
-
-    enableTrace(){
-        this.trace = true;
-    }
-}
 
 /**
  * To define a hook into the VM, it allows to provide custom implementation
@@ -1278,6 +1378,10 @@ class VM_Hook
 class VM_Log
 {
     constructor(){
+        this.logs = [];
+    }
+
+    reset(){
         this.logs = [];
     }
 
@@ -1314,7 +1418,7 @@ class VM
         this.classloader = new VM_ClassLoader(this);
         this.heap = new VM_HeapArea(this, this.classloader);
         this.stack = new VM_StackMemory();
-        this.pcmaker = new PseudoCodeMaker(true);
+        this.pcmaker = new PseudoCodeMaker(this, true);
         this.metharea = new VM_MethodArea();
         this.allocator = new VM_Allocator( this, -1);
 
@@ -1372,12 +1476,14 @@ class VM
      */
     softReset(){
         this.stack = new VM_StackMemory();
-        this.pcmaker = new PseudoCodeMaker(true);
+        this.pcmaker = new PseudoCodeMaker(this, true);
         this.allocator = new VM_Allocator( this, -1);
+        this.logs.reset();
 
         this.savedContexts = {};
         this.visited = [];
         this.currentContext = "root";
+        this.depth = 0;
     }
 
     /**
@@ -1390,6 +1496,7 @@ class VM
         this.pcmaker = new PseudoCodeMaker(true);
         this.metharea = new VM_MethodArea();
         this.allocator = new VM_Allocator( this, -1);
+        this.logs.reset();
 
         this.savedContexts = {};
         this.visited = [];
@@ -1639,34 +1746,34 @@ class VM
         // if method is not static 'this' reference should be instanciate 
         if(this.method.modifiers.static == false){
             if(pThis == null){
-                this.stack.lastMethod().setThis( this.heap.newInstance(this.method.enclosingClass) );
+                this.stack.last().setThis( this.heap.newInstance(this.method.enclosingClass) );
+                console.log(this.stack.symTab.table.p0);
             }else
-                this.stack.lastMethod().setThis( pThis);
+                this.stack.last().setThis( pThis);
         }
 
-
-        // if arguments are passed
-        if((typeof pArguments == 'array') && pArguments.length > 0){
-            console.log("set args");
-            this.stack.last().setArguments(pArguments);
-        }
+        // if arguments are passed, 
+        //if((typeof pArguments == 'array') && pArguments.length > 0){
+        //    console.log("set args");
+        //    this.stack.last().setArguments(pArguments);
+        //}
         // else if flag 'autoInstanceArgs' is true 
         // TODO
-        else if(this.config.autoInstanceArgs && this.method.hasArgs()){
+        // else if(this.config.autoInstanceArgs && this.method.hasArgs()){
+        if(this.config.autoInstanceArgs && this.method.hasArgs()){
+        
             margs = this.method.args;
-            console.log("auto instanciate args");
 
             for(let i=0; i<margs.length; i++){
                 if(margs[i] instanceof CLASS.ObjectType){
-
+                    
                     if((pArguments!=null) && (pArguments["p"+i] !=null)){
-                        console.log(margs[i]);
+                        //console.log(margs[i]);
                         if(pArguments["p"+i].val != null)
-
                             this.stack.last().addArgument(i, getDataTypeOf(margs[i]), 
                                 this.heap.newInstance(margs[i]._name).setConcrete(pArguments["p"+i].val));
                         else if(pArguments["p"+i].notset==true)
-                            this.stack.last().addArgument(i, DTYPE.UNDEFINED, null);
+                            this.stack.last().addArgument(i, getDataTypeOf(margs[i]), this.heap.newInstance(margs[i]._name));
                         else
                             this.stack.last().addArgument(i, getDataTypeOf(margs[i]), 
                                 this.heap.newInstance(margs[i]._name));
@@ -1692,7 +1799,8 @@ class VM
                 }
             }
 
-            console.log(this.stack.print());
+            console.log(this.stack.symTab.table.p0);
+            console.log(this.stack.symTab.table.p1);
         }
         else{
             console.log("nothing to do with args");
@@ -1840,12 +1948,9 @@ class VM
 
         // execute hooks 
         if(this.isHooked(pMethod)){
-
-
-            console.log(this.stack.print());
             this.stack.add( pMethod, pObj, pArgs);
-            this.execHook( pMethod, pObj, pArgs);
             console.log(this.stack.print());
+            this.execHook( pMethod, pObj, pArgs);
             this.stack.pop(); 
             return null;
         }
@@ -1886,6 +1991,12 @@ class VM
         return this.stack.lastReturn();
     }
     
+
+    /**
+     * 
+     * @param {Object[]} pStack 
+     * @param {Integer} pDepth 
+     */
     run( pStack, pDepth=0){
         let i=0, f=0, dec=null, msg=null, ctxRST=null, bbs=null, mode=SINGLE_MODE ;
         let indent = "    ".repeat(this.depth);
@@ -1922,14 +2033,37 @@ class VM
                 else if(dec.inv != null){
                     if(this.stack.callstack.length==1) this.pcmaker.turnOff();
 
-                    console.log("before invoke");
-                    console.log(this.stack.print());
-                    console.log(this.config.maxdepth, this.config.maxdepth - this.stack.depth() );
-
-                    if( (this.config.maxdepth==-1) || (this.config.maxdepth - this.stack.depth()) < 0){
+                    if( (this.config.maxdepth==-1) || (this.config.maxdepth - this.stack.depth()) > 0){
                         this.invoke( dec.inv.meth, dec.inv.obj, dec.inv.args);
+                        if(this.stack.callstack.length==1){
+                            this.pcmaker.turnOn();
+
+                            if(dec.inv.meth.signature() == METH_INVOKE_SIGNATURE
+                                && this.config.simplify>0){
+                                // replace last pseudo-code line by new one
+                                this.pcmaker.pop();
+
+                                this.pcmaker.writeInvoke( dec.inv.meth, dec.inv.obj, dec.inv.args);
+
+                            }
+                        }
+                        
+                        // special case : Method.invoke() could be replace by targetde method  
+                        
+
+
+                    }else if(dec.inv.meth.ret != null){
+                        if(this.stack.callstack.length==1) this.pcmaker.turnOn();
+                        this.pcmaker.append(' // skipped, max depth reached');
+
+                        this.stack.pushReturn( new Symbol(
+                            VTYPE.METH,
+                            getDataTypeOf(dec.inv.meth.ret),
+                            null,
+                            null,
+                            Symbol.SKIPPED
+                        ));
                     }
-                    console.log("after invoke");
                     if(this.stack.callstack.length==1) this.pcmaker.turnOn();
                     i++;
                 }
@@ -2403,27 +2537,25 @@ class VM
             case OPCODE.MOVE_RESULT_WIDE.byte:
 
                 regX = this.getRegisterName(oper.left);
-
-                if(this.stack.length > 0){
-        
-                    regV = this.stack.popReturn();
-
-                    console.log(this.stack.print());
+                console.log(this.stack.print());
                     
-                    if(this.pcmaker.isEnable()){
+                //if(this.stack.ret.length > 0){
+        
+                regV = this.stack.popReturn();
 
-                        v = this.pcmaker.last();
-                        this.pcmaker.pop();
-                        this.pcmaker.push(`${indent}${regX} = ${v.substr(indent.length,v.length)}`);
-                        this.stack.importLocalSymbol(regX, regV, v);
-                    }else{
+                if(this.pcmaker.isEnable()){
 
-                        this.stack.importLocalSymbol(regX, regV, null);
-                    }
+                    v = this.pcmaker.last();
+                    this.pcmaker.pop();
+                    this.pcmaker.push(`${indent}${regX} = ${v.substr(indent.length,v.length)}`);
+                    this.stack.importLocalSymbol(regX, regV, v);
+                }else if(regV != null){
+                    this.stack.importLocalSymbol(regX, regV, null);
+                }  
 
-                }else{
+                /*}else{
                     Logger.debug("move-result skipped");
-                }
+                }*/
         
                 break;
 
@@ -2584,27 +2716,24 @@ class VM
                     // TODO : Invalid range
                 }*/
 
-                console.log(oper.left)
                 if(oper.left.length > 0){
                     for(let j=parseInt(oper.left[0].i,10); j<parseInt(oper.left[1].i,10)+1; j++){
                         regX = this.getRegisterName(oper.left[0].t+j);
                         regV = this.stack.getLocalSymbol(regX);
-                        console.log(regX, regV);
-                        console.log(this.stack.print());
+                        
+                        //console.log(this.stack.print());
                         // add args
                         state.inv.args.push(regV);
 
-                        console.log(regV, this.isImm(regV), this.getImmediateValue(regV) );
+                        //console.log(regV, this.isImm(regV), this.getImmediateValue(regV) );
                         if(this.isImm(regV))
                             v+= this.getImmediateValue(regV)+', ';
-                        else if(regV.hasCode())
+                        else if(regV.hasCode() && !regV.isSkipped())
                             v+= `${regV.getCode()}, `;
                         else
                             v+= regX+', ';
 
                     }
-
-                    console.log(v);
                     v = v.substr(0, v.length-2);
                 }
                 v += ')';
@@ -2631,7 +2760,7 @@ class VM
 
                         if(this.isImm(regV))
                             v+= this.getImmediateValue(regV)+', ';
-                        else if(regV.hasCode())
+                        else if(regV.hasCode() && !regV.isSkipped())
                             v+= `${regV.getCode()}, `;
                         else
                             v+= regX+', ';
@@ -2651,10 +2780,24 @@ class VM
                 regX = this.getRegisterName(oper.left[0]);
                 regV = this.stack.getLocalSymbol(regX);
 
+
                 console.log("invoke "+oper.right.signature());
                 // init invoke
                 state.inv = { meth:oper.right, obj:regV, args:[] };
 
+                if(oper.left.length > 1){
+                    for(let j=1; j<oper.left.length; j++){
+
+                        tmp = this.getRegisterName(oper.left[j]);
+                        regV = this.stack.getLocalSymbol(tmp);
+
+                        state.inv.args.push(regV);
+                    } 
+                }
+
+                this.pcmaker.writeInvoke( oper.right, oper.left);
+
+                /*
                 //console.log(indent.length);
                 if((oper.right instanceof CLASS.Method) && (oper.right.name=="<init>"))
                     v = `${indent}${regX} = new ${oper.right.enclosingClass.name}(`;
@@ -2663,7 +2806,7 @@ class VM
                     f.res = true;
                     this.invokes.push(pInstrOffset);
                 }
-                else if(regV.hasCode()){
+                else if(regV.type==DTYPE.CLASS_REF && regV.hasCode()){
                     v = `${indent}${regV.getCode()}.${oper.right.alias!=null? oper.right.alias : oper.right.name}(`;
                     f.res = true;
                     this.invokes.push(pInstrOffset);
@@ -2681,8 +2824,6 @@ class VM
                     this.invokes.push(pInstrOffset);
                 }
             
-
-                //console.log(this.stack);
 
                 if(oper.left.length > 1){
                     for(let j=1; j<oper.left.length; j++){
@@ -2711,7 +2852,11 @@ class VM
                     v = v.substr(0, v.length-1);
                 }
                 v += ')';
-                state.code.push(v);
+                state.code.push(v);*/
+
+
+
+
                 break;
 
 
@@ -2983,7 +3128,6 @@ class VM
                 }
                 else{
 
-                    console.log(regV);
                     if((regV.getValue() instanceof VM_ClassInstance) && regV.getValue().hasConcrete()){
                         v = `${indent}return ${regX}; // ${regV.getValue().getConcrete()} `;
                     }

@@ -879,22 +879,17 @@
                         <div class="col-md-4" style="background-color:#fff;margin:0px;padding:0px;width:33%">
                             <ul class="nav" style="width:100%">
                                 <li class="nav-item">
-                                    <span class="nav-link dxc-active-item" veditor="${codeID_Simple}" method="${encodeURIComponent(btoa(encodeURIComponent(row.__signature__)))}">
+                                    <span class="nav-link dxc-active-item see_params" veditor="${codeID_Simple}" method="${encodeURIComponent(btoa(encodeURIComponent(row.__signature__)))}">
                                         Parameters
                                     </span>
                                 </li>
                                 <li class="nav-item">
-                                    <span class="nav-link dxc-inactive-item" veditor="${codeID_Simple}" method="${encodeURIComponent(btoa(encodeURIComponent(row.__signature__)))}">
+                                    <span class="nav-link dxc-inactive-item see_events" veditor="${codeID_Simple}" method="${encodeURIComponent(btoa(encodeURIComponent(row.__signature__)))}">
                                         Events
                                     </span>
                                 </li>
-                                <!-- <li class="nav-item">
-                                    <span class="nav-link dxc-inactive-item" veditor="${codeID_Simple}" method="${encodeURIComponent(btoa(encodeURIComponent(row.__signature__)))}">
-                                        Debug
-                                    </span>
-                                </li> -->
                             </ul>
-                            `;
+                            <div id="${codeID_Simple}-params">`;
 
                         
                 body += vmParams;
@@ -904,14 +899,14 @@
                             <i>&nbsp;Execution settings :</i>   
                             <div class="input-group input-group-sm mb-1 mt-1">
                                 <div class="input-group-prepend">
-                                    <span class="input-group-text">Callstack max depth</span>
+                                    <span class="input-group-text">Callstack max depth (-1 = unlimit)</span>
                                 </div>
-                                <input type="number" id="${codeID_Simple}-depth" width="5" class="form-control" value="-1"/>
+                                <input type="number" id="${codeID_Simple}-depth" width="5" class="form-control" value="0"/>
                             </div>
-                            <i>&nbsp;VM Settings :<i><br>
+                            <i>&nbsp;VM Settings :</i><br>
                             <ul>
                                 <li class="nav-item custom-control custom-switch">
-                                    <input type="checkbox" id="${codeID_Simple}-clinit" class="custom-control-input" value="1" checked>
+                                    <input type="checkbox" id="${codeID_Simple}-clinit" class="custom-control-input" value="1">
                                     <label class="custom-control-label" for="${codeID_Simple}-clinit">Execute &lt;clinit&gt; of parent class</label>     
                                 </li>
                             </ul>
@@ -922,17 +917,10 @@
                                             Run    
                                         </button>
                                     </div>
-                                </div>  
-
-                                <!--
-                                <div class="card-header">
-                                    Undefined array
-                                </div>
-                                <div class="card-body">
-                                    Implicit internal exception thrown
-                                </div>
-                                -->
-                            
+                                </div> 
+                            </div>
+                        <div id="${codeID_Simple}-events" style="display:none">
+                            <i>Logs</i>
                         </div>
                     </div>
                 </div>`;
@@ -1696,6 +1684,8 @@
             $('span.nav-link[editor='+codeID+']').removeClass("dxc-inactive-item");
             $('span.nav-link[editor='+codeID+']').addClass("dxc-active-item");
 
+            $('button.simplifyRun[editor='+codeID+']').trigger('click');
+
             //console.log(codeID,method);
             /*
             $.ajax(
@@ -1773,6 +1763,12 @@
                             setupAceEditor(codeID);
                             changeAceLanguage(codeID, "java");
                             changeAceEditor(codeID, codeBody);
+
+                            if(data.logs.length > 0){
+                                for(let i=0; i<data.logs.length; i++){
+                                    $("#"+codeID+"-events").append("[ANDROID::LOG] "+data.logs[i]);
+                                }
+                            }
                         }
                     }
                 }
@@ -1792,6 +1788,33 @@
             });
         });
 
+        $('#dataTables-finder tbody').on('click', 'span.see_params', function(e){
+            let codeID = e.currentTarget.getAttribute('veditor');
+
+
+            $('span.see_events[veditor='+codeID+']').removeClass("dxc-active-item");
+            $('span.see_events[veditor='+codeID+']').addClass("dxc-inactive-item");
+
+            $('span.see_params[veditor='+codeID+']').removeClass("dxc-inactive-item");
+            $('span.see_params[veditor='+codeID+']').addClass("dxc-active-item");
+
+            $("#"+codeID+"-events").css('display','none');
+            $("#"+codeID+"-params").css('display','block');
+        });
+
+
+        $('#dataTables-finder tbody').on('click', 'span.see_events', function(e){
+            let codeID = e.currentTarget.getAttribute('veditor');
+
+            $('span.see_params[veditor='+codeID+']').removeClass("dxc-active-item");
+            $('span.see_params[veditor='+codeID+']').addClass("dxc-inactive-item");
+
+            $('span.see_events[veditor='+codeID+']').removeClass("dxc-inactive-item");
+            $('span.see_events[veditor='+codeID+']').addClass("dxc-active-item");
+
+            $("#"+codeID+"-params").css('display','none');
+            $("#"+codeID+"-events").css('display','block');
+        });
 
         $('#dataTables-finder tbody').on('click', 'span.smali', function (e) {
             let codeID = e.currentTarget.getAttribute('editor');

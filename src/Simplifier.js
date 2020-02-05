@@ -197,6 +197,8 @@ class Simplifier {
                     return null;
                 }
 
+                console.log(pVM.stack.print());
+
                 m = pThis.getValue().getConcrete();
 
                 // make call signature
@@ -206,7 +208,7 @@ class Simplifier {
                     pVM.invoke( m, pArgs[0], pArgs.slice(1));
 
                     // return result from invoked method
-                    return pVM.stack.popRet();
+                    //return pVM.stack.popRet();
                 }else{
                     console.log("Invoke : Method not found")
                 }
@@ -295,18 +297,12 @@ class Simplifier {
         this.vm.defineHook(
             "android.util.Log.d(<java.lang.String><java.lang.String>)<int>",
             function( pVM, pThis, pArgs){
-                let m = null;
-
-
-                console.log(pVM.stack.print());
                 
-                if(pThis.getValue() == null){
-                    Logger.error('[VM] [HOOK] Fail to execute StringBuilder.append() hook : "this" is null.');
-                    return null;
-                }
+                console.log(pArgs[1].getValue());
 
+                
                 if(pArgs[0].getValue().hasConcrete() 
-                && pArgs[1].getValue().hasConcrete()){
+                    && pArgs[1].getValue().hasConcrete()){
                     pVM.writeLog(pArgs[0].getValue().getConcrete()+" "+pArgs[1].getValue().getConcrete());
                 }
                 else if(pArgs[0].getValue().hasConcrete()){
@@ -320,7 +316,7 @@ class Simplifier {
 
                 pVM.stack.pushReturn( new SmaliVM.Symbol(
                     SmaliVM.VTYPE.METH,
-                    SmaliVM.DTYPE.IMM_CHAR,
+                    SmaliVM.DTYPE.IMM_NUMERIC,
                     1,
                     null
                 ));
@@ -330,6 +326,7 @@ class Simplifier {
 
     /**
      * To reset the Simplifier
+     * 
      */
     reset(){
         this.parameters = null;
@@ -337,15 +334,36 @@ class Simplifier {
         this.initParent = true;
     }
 
+    /**
+     * To allow the VM to load and init parent class of the method before runtime
+     * 
+     * It can impact performance, especially if <clinit> calls targeted method.  
+     * 
+     * @param {Boolean} pFlag If TRUE, the parent class of emulated method will be loaded before runtime. Else FALSE
+     */
     setInitParentClass( pFlag){
         this.initParent = pFlag;
     }
 
 
+    /**
+     * To simplify a given method, it produces pseudo-code including optimization:
+     * 
+     * Some optimization are listed below :
+     *  - Concrete value propagation
+     *  - Useless goto are removed
+     *  - If one or more arguments have concrete values, predicate contextually true or false are resolved and removed
+     *  - Some string operation are 
+     * 
+     * @param {require('./CoreClass.js').Method} pMethod The method to simplify
+     * @param {int} pLevel Simplifying level, default is 0 
+     */
     simplify(pMethod, pLevel=0){
         let blocks = [], cs = {
             tag: null,
-            intr: []
+            intr: [],
+            logs: [],
+            events: []
         }, instrStack = null;
 
         // init
@@ -354,10 +372,7 @@ class Simplifier {
 
         this.vm = SmaliVM.VM.getInstance(this.context);
 
-
         this.setupHooks();
-
-        //this.vm = new SmaliVM( pMethod, pMethod.locals, pMethod.args.length);
 
         // to load class declaring the method to execute
         // it helps to solve concrete value stored into fields because lot of
@@ -372,126 +387,25 @@ class Simplifier {
         });
         
         this.vm.simplify = pLevel;
-
-        
         // start to execute the method
         this.vm.softReset();
-        this.vm.start(pMethod, null, this.parameters);
 
-        // get generated pseudo code 
-        cs.instr = this.vm.pcmaker.getCode();
+        try{
+            this.vm.start(pMethod, null, this.parameters);
 
-        // explore blocks
-        //this.vm.cleanVisitedBlock();
-        //this.vm.setSimplifyingLevel(pLevel);
+            cs.instr = this.vm.pcmaker.getCode();
 
-        // create basic CFG => update basic block datat with successsors/predecessors
-        //instrStack = this.analyzeBlocks( pMethod);
-
-        // execute smali and get simplified smali depending of select level
-        //cs.instr = this.startVM2(instrStack);
-
-        Logger.debug(cs.instr.join("\n"));
-
-        return cs;
-    }
-
-    startVM2( pInstructions){
-        let ssmali=null, dec=null, f=0, ctxRST=false, pDepth=0, d=null, i=0;
-        let bbs = this.vm.getEntrypoint().getBasicBlocks();
-        this.vm.depth = 0;
-
-        if(pInstructions.length==0) return ssmali;
-
-        ssmali = this.vm.run2( pInstructions, 0);  
-
-
-        Logger.debug('[SIMPLIFIER] '+this.vm.countUntreated+' instructions not treated');
-        return this.vm.pcmaker.getCode();
-    }
-
-    startVM(){
-        let ssmali=[], dec=null, f=0, ctxRST=false, pDepth=0, d=null;
-        let bbs = this.vm.getEntrypoint().getBasicBlocks();
-        this.vm.depth = 0;
-
-        for(let i=0; i<bbs.length; i++){
+            Logger.debug(cs.instr.join("\n"));
+        }catch(e){
+            //console.log("VM Error caught");
+            console.log(e);
+            cs.instr = ["// An exeception occured at runtime :",this.vm.stack.print()];
             
-            f = 0;
-            ctxRST = false;
-
-            ssmali.push("");
-
-            if(bbs[i].isConditionalBlock()){
-                this.vm.restoreContext(`:cond_${bbs[i].getCondLabel()}`);
-                ctxRST = true;
-                ssmali.push(`${CR}cond_${bbs[i].getCondLabel()}:`);
-                f++;
-            }
-            if(bbs[i].isCatchBlock()){
-                if(f>0) 
-                    ssmali.push(`${bbs[i].getCatchLabel()}:`);
-                else{
-                    ssmali.push(`${CR}${bbs[i].getCatchLabel()}:`);
-                    f++;
-                }
-
-                this.vm.depth++;
-            }
-            if(bbs[i].isGotoBlock()){
-
-                if(this.vm.contextExists(`:cond_${bbs[i].getGotoLabel()}`)){
-                    this.vm.restoreContext(`:cond_${bbs[i].getGotoLabel()}`);
-                }
-                
-                if(f>0) 
-                    ssmali.push(`goto_${bbs[i].getGotoLabel()}:`);
-                else{
-                    ssmali.push(`${CR}goto_${bbs[i].getGotoLabel()}:`);
-                    f++;
-                }
-            }
-            if(bbs[i].isTryBlock()){
-                if(f==0) 
-                    ssmali.push(`try{`);
-                else
-                    ssmali.push(`${CR}try{`);
-
-                this.vm.depth++;
-            }
-
-            // exec basic block 
-            dec = this.vm.run(bbs[i]);  
-
-            if(!Util.isEmpty(dec.code, Util.FLAG_WS | Util.FLAG_CR | Util.FLAG_TB)){
-                ssmali = ssmali.concat(dec.code);      
-            }else{
-                ssmali.push(`// empty block : dead code removed or block already simplified (contant propagated)`)
-            }
-
-            if(bbs[i].isTryEndBlock()){
-                if(bbs[i].hasCatchStatement()){
-                    d = bbs[i].getCatchStatements();
-                    for(let i=0; i<d.length; i++){
-                        if(d[i].getException() != null)
-                            ssmali.push(`${"    ".repeat(this.vm.depth-1)}}catch(${d[i].getException().name}) ${d[i].getTarget().getCatchLabel()}`);
-                        else
-                            ssmali.push(`${"    ".repeat(this.vm.depth-1)}}catchall ${d[i].getTarget().getCatchLabel()}`);
-                    }
-
-                    this.vm.depth--;
-                }else{
-                    ssmali.push(`} try END\n`);
-                    this.vm.depth--;
-                }
-            }
-            else if(bbs[i].isCatchBlock()){
-                this.vm.depth--;
-            }
         }
 
-        Logger.debug('[SIMPLIFIER] '+this.vm.countUntreated+' instructions not treated');
-        return ssmali;
+        cs.logs = this.vm.readLog();
+
+        return cs;
     }
 }
 

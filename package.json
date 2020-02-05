@@ -1,8 +1,8 @@
 {
   "name": "dexcalibur",
-  "version": "0.6.1",
+  "version": "0.6.2",
   "description": "Dynamic binary instrumentation tool designed for Android application and powered by Frida. Offers a GUI and a Node.JS API",
-  "main": "dexcalibur",
+  "main": "src/Project.js",
   "directories": {
     "test": "test"
   },
@@ -33,6 +33,7 @@
   },
   "scripts": {
     "dexcalibur": "node --max-old-space-size=4096 ./dexcalibur",
+    "start": "node --max-old-space-size=4096 ./dexcalibur",
     "test": "mocha"
   },
   "author": "Georges-Bastien MICHEL",
