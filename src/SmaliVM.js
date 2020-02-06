@@ -1825,6 +1825,7 @@ class VM
         else
             return "p"+pReg.i;
     }
+    
 
     getSymbol(pReg){
 //        return this.symTab.getEntry(pReg); 
@@ -2717,8 +2718,10 @@ class VM
                 }*/
 
                 if(oper.left.length > 0){
+                    // parseInt(oper.left[0].i,10
+                    console.log(oper.left);
                     for(let j=parseInt(oper.left[0].i,10); j<parseInt(oper.left[1].i,10)+1; j++){
-                        regX = this.getRegisterName(oper.left[0].t+j);
+                        regX = oper.left[0].t+j;
                         regV = this.stack.getLocalSymbol(regX);
                         
                         //console.log(this.stack.print());
@@ -3358,9 +3361,12 @@ class VM
                     // TODO : track unitiliazed array
                 }
 
-                
-
                 break;
+
+            /*
+            case OPCODE.FILL_ARRAY_DATA.byte:
+
+                break;*/
 
             case OPCODE.GOTO.byte:
             case OPCODE.GOTO_16.byte:
