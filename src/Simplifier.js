@@ -204,8 +204,12 @@ class Simplifier {
                 // make call signature
                 if(m instanceof CLASS.Method){
                     console.log("Invoke : Method ready to be invoked ", m.signature());
+                    
                     //console.log(pArgs);
                     pVM.invoke( m, pArgs[0], pArgs.slice(1));
+
+                    // track invoked method
+                    pVM.stack.addIndirectInvoke(m, pArgs[0], pArgs.slice(1));
 
                     // return result from invoked method
                     //return pVM.stack.popRet();

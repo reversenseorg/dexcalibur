@@ -11,7 +11,7 @@ const PLURAL_MODE = 0x2;
 const RET_VOID = 0x100;
 
 const CR = ""; //\n";k
-
+const METH_INVOKE_SIGNATURE = "java.lang.reflect.Method.invoke(<java.lang.Object><java.lang.Object>[])<java.lang.Object>";
 const VTYPE = {
     METH: 0x1
 };
@@ -565,6 +565,14 @@ class PseudoCodeMaker
         return "    ".repeat(this.vm.depth);
     }
 
+    renderConcrete( pInstance){
+        switch(typeof pInstance.getConcrete()){
+            case 'string':
+                return `"${pInstance.getConcrete()}"`;
+            default:
+                return pInstance.getConcrete();
+        }
+    }
 
     writeInvoke( pMethodRef, pParamsReg){
         let v = null, rThis=null, vThis=0, rArg=null, vArg=null;
@@ -626,6 +634,97 @@ class PseudoCodeMaker
         this.code.push(v);
     }
 
+    
+    writeIndirectInvoke( pInvokerObjRef, pInvokerArgRef, pInvokedMethod, pObj, pArgs){
+        let irObj=null, irArg=null, ivObj=null, ivArg=null,  v = null, rThis=null, vThis=0, rArg=null, vArg=null;
+
+        irObj = this.vm.getRegisterName(pInvokerObjRef);
+        ivObj = this.vm.stack.getLocalSymbol(irObj); 
+
+        irArg = this.vm.getRegisterName(pInvokerArgRef);
+        ivArg = this.vm.stack.getLocalSymbol(irArg);
+
+        if((ivArg.getValue() instanceof VM_VirtualArray) == false){
+            Logger.error("[VM][PCMAKER] PseudoCode generator is not able to simplify Method.invoke() call");
+            return null;
+        }
+
+        // add indent
+        v = this.getIndent();
+
+        // Generate 'instance' part of the call
+        if((pInvokedMethod instanceof CLASS.Method) && (pInvokedMethod.name=="<init>")){
+            // TODO : ??
+            // v += `${rThis} = new ${pInvokedMethod.enclosingClass.name}(`;
+            v += `new ${pInvokedMethod.enclosingClass.name}(`;
+        }
+        // caller is not static, p0 is 'this'
+        else if(this.vm.method.modifiers.static==false && irObj=="p0"){
+            v += `this.${pInvokedMethod.alias!=null? pInvokedMethod.alias : pInvokedMethod.name}(`;
+        }
+        // if invoked method is statis
+        else if(pInvokedMethod.modifiers.static == true){
+            v += `${pInvokedMethod.enclosingClass.alias!=null? pInvokedMethod.enclosingClass.alias : pInvokedMethod.enclosingClass.name}.${pInvokedMethod.alias!=null? pInvokedMethod.alias : pInvokedMethod.name}(`;
+        }
+        // if instance has expr
+        else if(ivObj.type==DTYPE.CLASS_REF && ivObj.hasCode()){
+            v += `${ivObj.getCode()}.${pInvokedMethod.alias!=null? pInvokedMethod.alias : pInvokedMethod.name}(`;
+        }
+        // if object is a class instance
+        else if((ivObj.getValue() instanceof VM_ClassInstance) 
+                && (ivObj.getValue().hasConcrete()) 
+                && (typeof ivObj.getValue().getConcrete() == "string")){
+            v += `"${ivObj.getValue().getConcrete()}".${pInvokedMethod.alias!=null? pInvokedMethod.alias : pInvokedMethod.name}(`;
+        }
+        else{
+            v += `${irObj}.${pInvokedMethod.alias!=null? pInvokedMethod.alias : pInvokedMethod.name}(`;
+        }
+
+        // read array
+        ivArg = ivArg.getValue();
+
+        // Generate arguments string
+        if(ivArg.realSize() > 0){
+            for(let j=0; j<ivArg.realSize(); j++){
+
+                rArg = irArg+"["+j+"]";
+                vArg = ivArg.read(j);
+
+                if(vArg instanceof Symbol){
+                    if(this.vm.isImm(vArg))
+                        v += this.vm.getImmediateValue(vArg);
+                    else if(vArg.hasCode() && !vArg.isSkipped())
+                        v+= vArg.getCode();
+                    else if(rArg=="p0" && vArg.isThis(this.vm.method)){
+                        v += `this`;
+                    }
+                    else if((vArg.getValue() instanceof VM_ClassInstance) 
+                        && (vArg.getValue().hasConcrete()) 
+                        && (typeof vArg.getValue().getConcrete() == "string")){
+                        v += `"${vArg.getValue().getConcrete()}"`;
+                    }
+                    else{
+                        v += rArg;
+                    }
+                }
+                else if(vArg instanceof VM_ClassInstance){
+                    if(vArg.hasConcrete()){
+                        v+= this.vm.pcmaker.renderConcrete(vArg);
+                    }else{
+                        v+= rArg;
+                    }
+                }
+                else{
+                    v+= rArg;
+                }
+                v += ',';                
+            } 
+            v = v.substr(0, v.length-1);
+        }
+        v += ')';
+
+        this.code.push(v);
+    }
 
     push( pCode){
         if(this.enabled) this.code.push(pCode);
@@ -680,6 +779,10 @@ class VM_VirtualArray
 
     getValue(){
         return this.value;
+    }
+
+    read( pOffset){
+        return this.value[pOffset];
     }
 
     write( pOffset, pObject){
@@ -860,6 +963,8 @@ class VM_StackMemory
 
         // the local symbol table of the current method is stored here
         this.symTab = null;
+
+        this.indirect = [];
     }
 
     /**
@@ -903,6 +1008,25 @@ Latest values returned :
     }
 
     /**
+     * To track method invoked indirectly through Reflection API
+     * 
+     * The aim of such tracking is to help future optimization
+     * 
+     */
+    addIndirectInvoke( pMethod, pThis, pArgs){
+        this.indirect.push({ 
+            method: pMethod,
+            obj: pThis,
+            args: pArgs
+        });
+    }
+
+
+    lastIndirectInvoke(){
+        return this.indirect.pop();
+    }
+
+    /**
      * To get the current call stack depth
      * @returns {int} The depth of current call stack. 0 means the top level function is the current function 
      */
@@ -917,7 +1041,6 @@ Latest values returned :
      * @returns {VM_StackEntry} The stack entry 
      */
     current(){
-        console.log("Get current",this.print());
         return this.callstack[this.callstack.length-1];
     }
 
@@ -1043,6 +1166,29 @@ class VM_ClassInstance
     hasConcrete(){
         return (this.concrete != null);
     }
+
+    /**
+     * To set data into an instance property
+     * 
+     * @param {require('./CoreClass.js').Field} pField  Field description from Analyzer  
+     * @param {*} pData  Data to set
+     */
+    setField( pField, pData){
+        this.fields[pField.name] = pData;
+    }
+
+    /**
+     * To get data from a specific property of the instance
+     * 
+     * @param {require('./CoreClass.js').Field} pField  Field description from Analyzer  
+     * @returns {*} Data
+     */
+    getField( pField){
+        if(this.fields[pField.name] === undefined){
+            return null;
+        }else
+            return this.fields[pField.name];
+    }
     
     setConcrete( pData){
         this.concrete = pData;
@@ -1085,7 +1231,10 @@ class VM_ClassLoader
         // import static fields into global symbol table
         if(fields.length > 0){
             for(let i=0; i<fields.length; i++){
-                this.vm.metharea.setGlobalSymbol( fields[i].name, getDataTypeOf(fields[i].type), null, fields[i].name);
+                this.vm.metharea.setGlobalSymbol( 
+                    `${fields[i].enclosingClass.name}.${fields[i].name}`, 
+                    getDataTypeOf(fields[i].type), null, 
+                    `${fields[i].enclosingClass.name}.${fields[i].name}`);
             }
         }
 
@@ -1129,9 +1278,16 @@ class VM_MethodArea
         return this.symTab;
     }
 
+
     setGlobalSymbol( pName, pType, pValue, pCode=null){
+
         Logger.debug(`[VM] [METHAREA] Set global symbol ${pName} ${(pValue!=null)? " = "+pValue : ""}`);
         return this.symTab.setSymbol( pName, pType, pValue, pCode)
+    }
+
+    getGlobalSymbol( pName){
+        Logger.debug(`[VM] [METHAREA] Get global symbol ${pName}`);
+        return this.symTab.getSymbol( pName);
     }
 
     importSymbolTable( pTable){
@@ -2035,16 +2191,25 @@ class VM
                     if(this.stack.callstack.length==1) this.pcmaker.turnOff();
 
                     if( (this.config.maxdepth==-1) || (this.config.maxdepth - this.stack.depth()) > 0){
+                        
+                        
                         this.invoke( dec.inv.meth, dec.inv.obj, dec.inv.args);
+                        
                         if(this.stack.callstack.length==1){
                             this.pcmaker.turnOn();
 
                             if(dec.inv.meth.signature() == METH_INVOKE_SIGNATURE
                                 && this.config.simplify>0){
+
+                                dec = this.stack.lastIndirectInvoke();
+
                                 // replace last pseudo-code line by new one
                                 this.pcmaker.pop();
-
-                                this.pcmaker.writeInvoke( dec.inv.meth, dec.inv.obj, dec.inv.args);
+                                this.pcmaker.writeIndirectInvoke( 
+                                    // Method.invoke() context
+                                    pStack[i].i.left[1], pStack[i].i.left[2],
+                                    // invoked method
+                                    dec.method, dec.obj, dec.args);
 
                             }
                         }
@@ -2204,8 +2369,6 @@ class VM
         let state = { code:[], jump:null, ret:null, inv:null};
         let indent = "    ".repeat(this.depth);
 
-        let localSymTab = this.stack.getLocalSymbolTable();
-        let globalSymTab = this.metharea.getGlobalSymbolTable(); 
 
         ops = pInstrStack;
         oper = ops[pInstrOffset].i;
@@ -2216,7 +2379,7 @@ class VM
 
                 regX = this.getRegisterName(oper.left);
                 //regV = this.allocator.newInstance(oper.right)
-
+                console.log(oper.right);
                 this.stack.setLocalSymbol(regX, DTYPE.OBJECT_REF, this.heap.newInstance( oper.right));
      
                 break;
@@ -2927,7 +3090,7 @@ class VM
             case OPCODE.SGET_WIDE.byte:
             case OPCODE.SGET_BOOLEAN.byte:
                 regX = this.getRegisterName(oper.left);
-                regZ = globalSymTab.getSymbol(oper.right.type._name)
+                regZ = this.metharea.getGlobalSymbol(oper.right.enclosingClass.name+'.'+oper.right.name);
                 regV = oper.right.type._name;
             
                 v = `${regV.endsWith(".String")?"":"("+regV+")"} ${oper.right.enclosingClass.alias!=null?oper.right.enclosingClass.alias:oper.right.enclosingClass.name}.${oper.right.alias!=null? oper.right.alias : oper.right.name}`;
@@ -2943,9 +3106,9 @@ class VM
                     this.stack.importLocalSymbol(regX, regZ);
                 }
 
-                if(this.simplify<1){
+                if(this.config.simplify<1)
                     state.code.push(`${indent}${regX} = ${v};`);
-                }
+                
 
                 break;
 
@@ -2957,9 +3120,13 @@ class VM
             case OPCODE.IPUT_SHORT.byte:
             case OPCODE.IPUT_WIDE.byte:
                 
+                    // data
                     regX = this.getRegisterName(oper.left[0]);
                     regV = this.stack.getLocalSymbol(regX);   
+                    // instance
                     regZ = this.getRegisterName(oper.left[1]); 
+                    regZ = this.stack.getLocalSymbol(regZ); 
+
                     
                     /*
                     if(regV.hasCode()){
@@ -2998,16 +3165,26 @@ class VM
                         }
                     }*/
 
-
                     if(regZ.type == DTYPE.OBJECT_REF){
 
                         label = (this.getRegisterName(oper.left[1])=="p0")? "this": this.getRegisterName(oper.left[1]) ;
-    
-                        v = `${regV.endsWith(".String")?"":"("+regV+")"} ${label}.${oper.right.alias!=null? oper.right.alias : oper.right.name}`;
 
-                        if(regZ.getValue() instanceof VM_ClassInstance){
+//                        v = `${regV.endsWith(".String")?"":"("+regV+")"} ${label}.${oper.right.alias!=null? oper.right.alias : oper.right.name}`;
+                        v = `${label}.${oper.right.alias!=null? oper.right.alias : oper.right.name}`;
+
+
+                        if(regV.getValue() instanceof VM_ClassInstance){
+                            if( !regV.endsWith(".String") ){
+                                v = "("+regV+") "+v;
+                            }
+
                             regZ.getValue().setField( oper.right, this.stack.getLocalSymbol(regX));
-                        }else{
+                        }
+                        /*else if(regZ.getValue() instanceof VM_VirtualArray){
+                            
+                            regZ.getValue().setField( oper.right, this.stack.getLocalSymbol(regX));
+                        }*/
+                        else{
                             //  ClassInstance => not defined
                             regZ.getValue().setField( oper.right, this.stack.getLocalSymbol(regX));
                         }
@@ -3052,7 +3229,7 @@ class VM
                 
                 if(this.isImm(regV)){
                     v = [`${indent}${oper.right.enclosingClass.name}.${oper.right.name}`,this.getImmediateValue(regV)];
-                    globalSymTab.setSymbol(
+                    this.metharea.setGlobalSymbol(
                         `${oper.right.enclosingClass.name}.${oper.right.name}`, 
                         DTYPE.FIELD, 
                         regV.getValue(), 
@@ -3060,7 +3237,7 @@ class VM
                 }
                 else if(regV.hasCode()){
                     v = [`${oper.right.enclosingClass.name}.${oper.right.name}`,regV.getCode()];
-                    globalSymTab.setSymbol(
+                    this.metharea.setGlobalSymbol(
                         `${oper.right.enclosingClass.name}.${oper.right.name}`, 
                         DTYPE.FIELD, 
                         null, 
@@ -3068,7 +3245,7 @@ class VM
                 }
                 else{
                     v = [`${oper.right.enclosingClass.name}.${oper.right.name}`,regX];
-                    globalSymTab.setSymbol(
+                    this.metharea.setGlobalSymbol(
                         `${oper.right.enclosingClass.name}.${oper.right.name}`, 
                         DTYPE.FIELD, 
                         null, 
@@ -3170,7 +3347,7 @@ class VM
                 label = `:cond_${oper.right.name}`;
                 this.saveContext(label);
 
-                if(this.simplify>0){
+                if(this.config.simplify>0){
                     if(this.isImm(this.stack.getLocalSymbol(regX)))
                         regX = this.getImmediateValue(this.stack.getLocalSymbol(regX));
                     if(this.isImm(this.stack.getLocalSymbol(regV)))
@@ -3186,7 +3363,7 @@ class VM
                 label = `:cond_${oper.right.name}`;
                 this.saveContext(label);
 
-                if(this.simplify>0){
+                if(this.config.simplify>0){
                     if(this.isImm(this.stack.getLocalSymbol(regX)))
                         regX = this.getImmediateValue(this.stack.getLocalSymbol(regX));
                     if(this.isImm(this.stack.getLocalSymbol(regV)))
@@ -3202,7 +3379,7 @@ class VM
                 label = `:cond_${oper.right.name}`;
                 this.saveContext(label);
 
-                if(this.simplify>0){
+                if(this.config.simplify>0){
                     if(this.isImm(this.stack.getLocalSymbol(regX)))
                         regX = this.getImmediateValue(this.stack.getLocalSymbol(regX));
                     if(this.isImm(this.stack.getLocalSymbol(regV)))
@@ -3218,7 +3395,7 @@ class VM
                 label = `:cond_${oper.right.name}`;
                 this.saveContext(label);
 
-                if(this.simplify>0){
+                if(this.config.simplify>0){
                     if(this.isImm(this.stack.getLocalSymbol(regX)))
                         regX = this.getImmediateValue(this.stack.getLocalSymbol(regX));
                     if(this.isImm(this.stack.getLocalSymbol(regV)))
@@ -3234,7 +3411,7 @@ class VM
                 label = `:cond_${oper.right.name}`;
                 this.saveContext(label);
 
-                if(this.simplify>0){
+                if(this.config.simplify>0){
                     if(this.isImm(this.stack.getLocalSymbol(regX)))
                         regX = this.getImmediateValue(this.stack.getLocalSymbol(regX));
                     if(this.isImm(this.stack.getLocalSymbol(regV)))
@@ -3250,7 +3427,7 @@ class VM
                 label = `:cond_${oper.right.name}`;
                 this.saveContext(label);
                 
-                if(this.simplify>0){
+                if(this.config.simplify>0){
                     if(this.isImm(this.stack.getLocalSymbol(regX)))
                         regX = this.getImmediateValue(this.stack.getLocalSymbol(regX));
                     if(this.isImm(this.stack.getLocalSymbol(regV)))
@@ -3264,33 +3441,115 @@ class VM
             case OPCODE.IF_EQZ.byte:                
                 regX = this.getRegisterName(oper.left);
                 regV = this.stack.getLocalSymbol(regX);
+                v = null;
 
                 label = `:cond_${oper.right.name}`;
-                this.saveContext(label);
+                //this.saveContext(label);
 
-                if(this.simplify>0){
-                    if(this.isImm(regV))
-                        state.code.push(`${indent}if( ${this.getImmediateValue(regV)} == 0 ) ${label}`);
-                    else if(regV.type == DTYPE.OBJECT_REF){
-                        state.code.push(`${indent}if( ${regX} != null ) ${label}`);
+                if(this.config.simplify>0){
+                    console.log(regV);
+                    if(this.isImm(regV)){
+                        // FALSE case
+                        if(regV.getValue() !== null){
+                            v = `// ${regX}=${this.getImmediateValue(regV)} is not null, so "if(${regX} == 0)" was FALSE. Continue ...`;
+                        }
+                        // TRUE case
+                        else{
+                            v = `// ${regX} is null, so "if(${regX} == 0)" was TRUE. Jump to ${label}`;
+                            state.jump = {type:CONST.INSTR_TYPE.IF, label:oper.right.name};
+                        }
+                    }else if(regV.type == DTYPE.OBJECT_REF){
+                        console.log(regV);
+                        // FALSE case
+                        if(regV.getValue() instanceof VM_ClassInstance){
+
+                            v = `// ${regX}=(ClassInstance)${regV.getValue().parent.name} is not null, so "if(${regX} == 0)" was FALSE. Continue ...`;
+                            
+                            //v = `${indent}if( ${regV.getValue().getConcrete()} != null ) ${label}`;
+                        }
+                        // TRUE
+                        else{
+                            v = `// ${regX}(${regV.hasCode()? regV.getCode():"NULL object"}) is null, so "if(${regX} == 0)" was TRUE. Jump to ${label}`;
+                            state.jump = {type:CONST.INSTR_TYPE.IF, label:oper.right.name};
+                        }
+                        /*
+                        // Unknown case
+                        else if(regV.hasCode()){
+                            v = `${indent}if( ${regV.getCode()} != null ) ${label}`;
+                        }
+                        // TRUE case
+                        else{
+                            v = `// ${regX}(ref) is null, so "if(${regX} == 0)" was TRUE. Jump to ${label}`;
+                            state.jump = {type:CONST.INSTR_TYPE.IF, label:oper.right.name};
+                        }*/
                     }else{
-                        state.code.push(`${indent}if( ${regX} == 0 ) ${label}`);
+                        // Unknown case
+                        v = `${indent}if( ${regX} == 0 ) ${label}`;
+                        this.saveContext(label);
+                        state.jump = {type:CONST.INSTR_TYPE.IF, label:oper.right.name};
                     }
-                }else
-                    state.code.push(`if( ${regX} == 0 ) ${label}`);
+                }else{
+                    v = `if( ${regX} == 0 ) ${label}`;
+                }
+
+                if(v != null)
+                    state.code.push(v);
+
                 break;
-            case OPCODE.IF_NEZ.byte:                
+
+            case OPCODE.IF_NEZ.byte:      
+                /*
+                 if ( x != 0 ) 
+                 if ( x != null )
+                 */          
                 regX = this.getRegisterName(oper.left);
                 regV = this.stack.getLocalSymbol(regX);
                 
                 label = `:cond_${oper.right.name}`;
-                this.saveContext(label);
+                
+                if(this.config.simplify>0){
+                    if(this.isImm(regV)){
+                        // TRUE case
+                        if(regV.getValue() !== null){
+                            v = `// ${regX}=${this.getImmediateValue(regV)} is not null, so "if(${regX} != 0)" was TRUE. Continue ...`;
+                        }
+                        // FALSE case
+                        else{
+                            v = `// ${regX} is null, so "if(${regX} != 0)" was FALSE. Jump to ${label}`;
+                            state.jump = {type:CONST.INSTR_TYPE.IF, label:oper.right.name};
+                        }
+                    }else if(regV.type == DTYPE.OBJECT_REF){
+                        // TRUE case
+                        if(regV.getValue() instanceof VM_ClassInstance){
 
-                if(this.simplify>0 && this.isImm(regV))
-                    state.code.push(`${indent}if( ${this.getImmediateValue(regV)} != 0 ) ${label}`);
-                else{
-                    state.code.push(`${indent}if( ${regX} != 0 ) ${label}`);
-                }break;
+                            v = `// ${regX}=(ClassInstance)${regV.getValue().parent.name} is not null, so "if(${regX} != 0)" was TRUE. Continue ...`;
+                            state.jump = {type:CONST.INSTR_TYPE.IF, label:oper.right.name};
+                            
+                            //v = `${indent}if( ${regV.getValue().getConcrete()} != null ) ${label}`;
+                        }
+                        // Unknown case
+                        else if(regV.hasCode()){
+                            v = `${indent}if( ${regV.getCode()} != null ) ${label}`;
+                        }
+                        // FALSE case
+                        else{
+                            v = `// ${regX}(ref) is null, so "if(${regX} == 0)" was FALSE. Jump to ${label}`;
+                        }
+                    }else{
+                        // Unknown case
+                        v = `${indent}if( ${regX} != 0 ) ${label}`;
+                        this.saveContext(label);
+                        state.jump = {type:CONST.INSTR_TYPE.IF, label:oper.right.name};
+                    }
+                }else{
+                    v = `if( ${regX} != 0 ) ${label}`;
+                }
+
+                if(v != null)
+                    state.code.push(v);
+                
+                
+                break;
             case OPCODE.IF_LTZ.byte:                
                 regX = this.getRegisterName(oper.left);
                 regV = this.stack.getLocalSymbol(regX);
@@ -3298,7 +3557,7 @@ class VM
                 label = `:cond_${oper.right.name}`;
                 this.saveContext(label);
 
-                if(this.simplify>0 && this.isImm(regV))
+                if(this.config.simplify>0 && this.isImm(regV))
                     state.code.push(`${indent}if( ${this.getImmediateValue(regV)} < 0 )`);
                 else
                     state.code.push(`${indent}if( ${regX} < 0 ) ${label}`);
@@ -3310,7 +3569,7 @@ class VM
                 label = `:cond_${oper.right.name}`;
                 this.saveContext(label);
 
-                if(this.simplify>0 && this.isImm(regV))
+                if(this.config.simplify>0 && this.isImm(regV))
                     state.code.push(`${indent}if( ${this.getImmediateValue(regV)} >= 0 ) ${label}`);
                 else
                     state.code.push(`${indent}if( ${regX} >= 0 ) ${label}`);
@@ -3322,7 +3581,7 @@ class VM
                 label = `:cond_${oper.right.name}`;
                 this.saveContext(label);
 
-                if(this.simplify>0 && this.isImm(regV))
+                if(this.config.simplify>0 && this.isImm(regV))
                     state.code.push(`${indent}if( ${this.getImmediateValue(regV)} > 0 ) ${label}`);
                 else
                     state.code.push(`${indent}if( ${regX} > 0 ) ${label}`);
@@ -3334,7 +3593,7 @@ class VM
                 label = `:cond_${oper.right.name}`;
                 this.saveContext(label);
 
-                if(this.simplify>0 && this.isImm(regV))
+                if(this.config.simplify>0 && this.isImm(regV))
                     state.code.push(`${indent}if( ${this.getImmediateValue(regV)} <= 0 ) ${label}`);
                 else
                     state.code.push(`${indent}if( ${regX} <= 0 ) ${label}`);
@@ -3354,7 +3613,7 @@ class VM
                         null
                     );
 
-                    if(this.simplify<1){
+                    if(this.config.simplify<1){
                         state.code.push(`${indent} ${regV} = ${v}`);
                     }
                 }else{
@@ -3363,9 +3622,10 @@ class VM
 
                 break;
 
-            /*
-            case OPCODE.FILL_ARRAY_DATA.byte:
-
+            
+            /*case OPCODE.FILL_ARRAY_DATA.byte:
+                this.method.getDataBlockByTag(oper.right.name);
+                console.log(oper.right);
                 break;*/
 
             case OPCODE.GOTO.byte:
