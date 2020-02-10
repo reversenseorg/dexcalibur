@@ -4,7 +4,7 @@ const Device = require("./Device.js");
 const ApkPackage = require("./AppPackage");
 var Logger = require('./Logger.js')();
 
-
+const EOL = require('os').EOL;
 const fs = require('fs');
 
 const TRANSPORT = {
@@ -15,7 +15,7 @@ const TRANSPORT = {
 
 const emuRE = /^emulator-/;
 
-
+/*
 const DEV = {
     USB: 0x1,
     EMU: 0x2,
@@ -23,7 +23,7 @@ const DEV = {
     SDB: 0x4
 };
 const DEV_NAME = ['unknow','udb','emu','adb','sdb'];
-
+*/
 
 const OS = {
     ANDROID: 0x0,
@@ -38,6 +38,10 @@ const OS_NAME = ['android','linux','tizen'];
  * ADB wrapper
  * 
  * Can be use to manage/interact with a device connected through ADB
+ * ADB Wrapper has two state :
+ *  - Standard state : no device id passed to ADB
+ *  - Specialized state : where all operation are done for a specific device ID 
+ * 
  * @class 
  */
 class AdbWrapper
@@ -45,25 +49,44 @@ class AdbWrapper
     /**
      * 
      * @param {String} adbpath The ADB binary path 
-     * @param {String} deviceID  (optional) The device ID to manage.
+     * @param {String} pDeviceID  (optional) The device ID to manage.
      * @function
      */
-    constructor(adbpath,deviceID = null){
+    constructor(adbpath, pDeviceID = null){
         this.transport = TRANSPORT.USB;
         this.path = adbpath;
-        this.deviceID = (deviceID!=null) ? deviceID : null;
+        this.deviceID = pDeviceID;
     }
 
-
+    /**
+     * To check if ADB is ready to be used. 
+     * 
+     * Actually, it checks only if ADB path is not null :(
+     * TODO : check ADB server state
+     * 
+     * @returns {Boolean} TRUE if ADB is ready to use, else FALSE
+     */
     isReady(){
-        return (this.path != null);
+        return (this.path != null) && (fs.existsSync(this.path));
     }
 
-    setup(deviceID = null){
-        let cmd=this.path+" ";
+    /**
+     * To init the next command, if a device ID is passed as arguments
+     * then the command will use this device, else if a default device ID 
+     * is configured the ID will be use, else no device ID is set. 
+     * 
+     * 
+     * @param {String} deviceID The ID of the device to use 
+     * @returns {String} The begin of the command
+     */
+    setup(pDeviceID = null){
+        let cmd=this.path;
         if(this.transport == TRANSPORT.USB){
-            if(this.deviceID != null || deviceID != null)
+            if(pDeviceID != null)
+                cmd += " -s "+pDeviceID;
+            else if(this.deviceID != null)
                 cmd += " -s "+this.deviceID;
+
         }else if(this.transport == TRANSPORT.TCP){
             cmd += " -e";
         }
@@ -78,6 +101,10 @@ class AdbWrapper
         this.transport = transport_type;
     }
 
+    /**
+     * 
+     * @param {String} deviceId [Optional] A specific device ID
+     */
     listPackages(deviceId = null) {
         var reg = new RegExp("^package:(?<apk_name>.*)");
         var ret = "";
@@ -90,7 +117,7 @@ class AdbWrapper
             
         }
         var packages = [];
-        ret.split('\n').forEach(element => {
+        ret.split( EOL ).forEach(element => {
             var pkg = element.trim();
             if(reg.test(pkg)) {
                 var result  = reg.exec(pkg);
@@ -120,6 +147,14 @@ class AdbWrapper
         });
         return packages;
     }
+
+    /**
+     * To search the path of a specific package into the device
+     * 
+     * @param {String} packageIdentifier The package name of the application 
+     * @param {String} deviceId (Optional) The ID of the device where search the package
+     * @returns {String} The path of the application package into the device
+     */
     getPackagePath(packageIdentifier, deviceId=null) {
         var reg = new RegExp("^package:(?<package_name>.*)");
         var ret = "";
@@ -130,18 +165,20 @@ class AdbWrapper
         else {
             ret = Process.execSync(this.path + " shell pm path " + packageIdentifier).toString("ascii");
         }
-        var path = ret.split('\n')[0].trim();
+        var path = ret.split( require('os').EOL )[0].trim();
         if(reg.test(path)) {
             path = reg.exec(path).groups["package_name"];
             return path;
         }
         return "";
     }
+
+
     listDevices1(){
         let dev = [], ret=null,re=null, data=null, id=null, device=null;
 
         ret = Process.execSync(this.setup()+" devices -l").toString("ascii");
-        ret = ret.split("\n");
+        ret = ret.split( require('os').EOL );
         //re = new RegExp("([0-9A-Za-f]+).*device\susb:([^\s]+)\sproduct:([^\s]+)\smodel:([^\s]+)\sdevice:([^\s]+)");
         //re = new RegExp("^([0-9A-Za-z-\.\:]+).*device (.*)$");
         re = new RegExp("^([0-9A-Za-z-\.\:]+).*(?:device|unauthorized) (.*)$");
@@ -179,17 +216,21 @@ class AdbWrapper
         return dev;
     }
 
-    listDevices(){
+    /**
+     * To parse the output of "adb device -l" command
+     *  
+     * @param {String} pDeviceListStr the ouput of  "adb device -l" command
+     * @returns {Device[]} An array of Device instances corresponding to ADB output
+     */
+    parseDeviceList( pDeviceListStr){
         let dev = [], ret=null,re=null, data=null, id=null, device=null, token=null;
 
-        ret = Process.execSync(this.setup()+" devices -l").toString("ascii");
-        ret = ret.split("\n");
-        //re = new RegExp("([0-9A-Za-f]+).*device\susb:([^\s]+)\sproduct:([^\s]+)\smodel:([^\s]+)\sdevice:([^\s]+)");
-        //re = new RegExp("^([0-9A-Za-z-\.\:]+).*device (.*)$");
-        //re = new RegExp("^([0-9A-Za-z-\.\:]+).*(?:device|unauthorized) (.*)$");
+        ret = pDeviceListStr.split(require('os').EOL);
+        
         re = new RegExp("^([^\\s\\t]+)[\\s\\t]+(.*)");
         
         for(let ln in ret){
+
             if(UT.trim(ret[ln]).length==0 
                 || ret[ln]=="List of devices attached") 
                     continue;
@@ -212,6 +253,7 @@ class AdbWrapper
             device.bridge = new AdbWrapper(this.path, id);
 
             for(let i=0; i<data.length; i++){
+                Logger.debug(`[DEVICE MANAGER] Parsing device list : ${data[i]}`);
                 if(data[i].indexOf(':')>-1){
                     token = data[i].split(':',2);
                     switch(token[0]){
@@ -258,6 +300,99 @@ class AdbWrapper
 
         return dev;
     }
+
+    /**
+     * To list connected devices
+     */
+    listDevices(){
+        return this.parseDeviceList( 
+            Process.execSync(this.setup()+" devices -l")
+                .toString("ascii") );
+    }
+
+    /*
+    listDevices(){
+        let dev = [], ret=null,re=null, data=null, id=null, device=null, token=null;
+
+        ret = Process.execSync(this.setup()+" devices -l").toString("ascii");
+
+
+        ret = ret.split(require('os').EOL);
+        //re = new RegExp("([0-9A-Za-f]+).*device\susb:([^\s]+)\sproduct:([^\s]+)\smodel:([^\s]+)\sdevice:([^\s]+)");
+        //re = new RegExp("^([0-9A-Za-z-\.\:]+).*device (.*)$");
+        //re = new RegExp("^([0-9A-Za-z-\.\:]+).*(?:device|unauthorized) (.*)$");
+        re = new RegExp("^([^\\s\\t]+)[\\s\\t]+(.*)");
+        
+        for(let ln in ret){
+            if(UT.trim(ret[ln]).length==0 
+                || ret[ln]=="List of devices attached") 
+                    continue;
+    
+            data =  re.exec(ret[ln]);
+
+            if(data.length<3){
+                Logger.warning("Invalid device id detected : ", ret[ln]);
+                continue;
+            }
+
+            //console.log(data,ret[ln]);
+            id = data[1];
+            data = data[2].split(" ");
+
+            device = new Device();
+            device.id = id;
+            device.type = OS.ANDROID;
+            device.isEmulated = data[0].match(emuRE);
+            device.bridge = new AdbWrapper(this.path, id);
+
+            for(let i=0; i<data.length; i++){
+                Logger.debug(`[DEVICE MANAGER] Parsing device list : ${data[i]}`);
+                if(data[i].indexOf(':')>-1){
+                    token = data[i].split(':',2);
+                    switch(token[0]){
+                        case 'usb':
+                            console.log("USB",data[i],token);
+                            device.setUsbQualifier(token[1]);
+                            break;
+                        case 'model':
+                            device.setModel(token[1]);
+                            break;
+                        case 'device':
+                            device.setDevice(token[1]);
+                            break;
+                        case 'product':
+                            device.setProduct(token[1]);
+                            break;
+                        case 'transport_id':
+                            device.setTransportId(token[1]);
+                            break;
+                        default:
+                            Logger.info("Unrecognized key (dual token): "+token[0]);
+                            break;
+                    }
+
+                }else{
+                    switch(data[i]){
+                        case 'unauthorized':
+                            device.flagAsUnauthorized();
+                            break;
+                        case 'device':
+                        default:
+                            Logger.info("Unrecognized key (single token) : "+data[1]);
+                            break;
+
+                    }
+                }
+            }
+
+            if(device.isEmulated)
+                device.bridge.setTransport(TRANSPORT.TCP);
+            
+            dev.push(device);
+        }
+
+        return dev;
+    }*/
 
     /**
      * Pull a remote resource into the project workspace
