@@ -1,0 +1,35 @@
+Signature-Version: 1.0
+Created-By: 1.0 (Android)
+SHA-256-Digest-Manifest: 4P6Gmy9AEzKik6R+TXzAIZU5WQXXFVmvImKV4wTEXD4=
+X-Android-APK-Signed: 2
+
+Name: AndroidManifest.xml
+SHA-256-Digest: oJozWeAolI/4wG5ykYV6UMordSK5/E9XMFAz3VVx+58=
+
+Name: classes.dex
+SHA-256-Digest: BPxycg+IffE/iSax0f0MgzyoBivKNY9rF4MFMrzYjtA=
+
+Name: res/layout/activity_main.xml
+SHA-256-Digest: qY9VRgBJ8uta0fF8yr5UjgWYWu9uVp2Z2ayv3FGWoW0=
+
+Name: res/menu/menu_main.xml
+SHA-256-Digest: P7qsxpHKH8siFpZS9DIJ+LmDH5ugPJN1GdFfvghD79c=
+
+Name: res/mipmap-hdpi-v4/ic_launcher.png
+SHA-256-Digest: zpIVF7ppBVlKRCsMwDmVskZcpBlpQlECv2Dxb5B7ylE=
+
+Name: res/mipmap-mdpi-v4/ic_launcher.png
+SHA-256-Digest: az1VMFw0gJmQ2on3axfsDHtp3RICJNmEggcD78yuBJA=
+
+Name: res/mipmap-xhdpi-v4/ic_launcher.png
+SHA-256-Digest: 7fgQ312UBzZOX8qbj+/1deDbW9zUK8FrmmqYTlRZsxE=
+
+Name: res/mipmap-xxhdpi-v4/ic_launcher.png
+SHA-256-Digest: iUGnpRTRphfS2DyalnsZUbGblWn+BTy8D3KvWc/NGGI=
+
+Name: res/mipmap-xxxhdpi-v4/ic_launcher.png
+SHA-256-Digest: KfuGG8K507wiaXWJUwA4gOeurXKdWD2u2HKXygyirPM=
+
+Name: resources.arsc
+SHA-256-Digest: rpsFvKhO6SRHdvrMJeTsKKADx1mtEPfEk4f3NYmPFkk=
+
