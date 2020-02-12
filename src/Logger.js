@@ -1,7 +1,12 @@
+/*
+IMPORTANT :
+-----------
+This file should not include dexcalibur ./src/* file (recursive dependency)
+*/
+
+
 const Chalk = require("chalk");
 const Process = require("process"); 
-
-
 
 var callbacks = {
     exit: function(){

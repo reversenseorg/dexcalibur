@@ -34,7 +34,7 @@
   "scripts": {
     "dexcalibur": "node --max-old-space-size=4096 ./dexcalibur",
     "start": "node --max-old-space-size=4096 ./dexcalibur",
-    "test": "mocha"
+    "test": "DEXCALIBUR_TEST=1 mocha"
   },
   "author": "Georges-Bastien MICHEL",
   "license": "Apache-2.0"

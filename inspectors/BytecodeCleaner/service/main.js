@@ -551,6 +551,8 @@ function renameDoubleStatic(database, method, pContext){
 
     if(!hasSingleCall(method)) return false;
 
+    
+
     // check if the current method is static
     if(method.getModifier().isStatic() === false) return false;
 

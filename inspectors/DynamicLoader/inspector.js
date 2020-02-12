@@ -451,7 +451,7 @@ DynLoaderInspector.on("hook.dex.load", {
 
         let hook = ctx.hook.getHookByID(ut.b64_decode(event.data.hook));
 
-        Logger.info("[INSPECTOR][TASK] DynLoaderInspector new Dex file loaded :\n\tDex: ",event.data.data.dex);
+        Logger.info("[INSPECTOR][TASK] DynLoaderInspector new Dex file loaded :\tDex: ",event.data.data.dex);
 
         // update variable for next time
         hook.getVariable('names').getData().push(event.data.data.dex);
