@@ -202,7 +202,7 @@ function getInstance(config=null, override=false){
             };
         }
 
-        if(config!==null && config.testMode)
+        if((config!==null && config.testMode) || Process.env.DEXCALIBUR_TEST)
             loggerInstance = new TestLogger(config.debugMode);
         else
             loggerInstance = new ProdLogger(config.debugMode);
