@@ -42,12 +42,20 @@ class DeviceManager
          * TODO : add sdb
          * @field 
          */
-        this.Bridges = {
-            ADB: new AdbWrapper(this.config.getAdbPath(),null)
-        };
+        this.Bridges = {};
     
+        if(this.config != null){
+            this.init();
+        }
     }
 
+    init(){
+        if(this.config.getAdbPath() != null){
+            this.Bridges.ADB = new AdbWrapper(this.config.getAdbPath(),null);
+        }else{
+            throw new Error("[DEVICE MANAGER] Bridge client not configured");
+        }
+    }
 
     // scan for available devices 
     /**

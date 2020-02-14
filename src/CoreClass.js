@@ -4,6 +4,8 @@ const NodeCompare = require("./NodeCompare.js");
 //var VM = require("./vm.js");
 var Disassembler = null;
 
+const EOL =  require('os').EOL ;
+
 /**
  * Constant values describing a stub type. 
  */
@@ -610,16 +612,16 @@ function Class(config){
 
     this.help = function(){
         let t="+-------------------- HELP --------------------+";
-        t="\n[-- Methods : ]";
-        t += "\n\t.dump()\tShow the class information (field, methods, modifiers, parents, etc...)";
-        t += "\n\t.hasField(<string>)\tCheck if the class define the given field";
-        t += "\n\t.hasMethod(<string>)\tCheck if the class define the given method";
-        t += "\n\t.help()\tThis help";
-        t="\n[-- Properties : ]";
-        t += "\n\t.instr:<Instruction>\tGet the instruction"; 
-        t += "\n\t.caller:<Method>\tGet the method performing the call"; 
-        t += "\n\t.calleed:<*>\tGet the reference to the calleed";
-        t += "\n";
+        t += EOL+"[-- Methods : ]";
+        t += EOL+"\t.dump()\tShow the class information (field, methods, modifiers, parents, etc...)";
+        t += EOL+"\t.hasField(<string>)\tCheck if the class define the given field";
+        t += EOL+"\t.hasMethod(<string>)\tCheck if the class define the given method";
+        t += EOL+"\t.help()\tThis help";
+        t += EOL+"[-- Properties : ]";
+        t += EOL+"\n\t.instr:<Instruction>\tGet the instruction"; 
+        t += EOL+"\n\t.caller:<Method>\tGet the method performing the call"; 
+        t += EOL+"\t.calleed:<*>\tGet the reference to the calleed";
+        t += EOL;
 
         console.log(t);
     }
@@ -1139,14 +1141,14 @@ function Call(cfg){
 
     this.help = function(){
         let t="+-------------------- HELP --------------------+";
-        t="\n[-- Methods : ]";
-        t += "\n\t.print()\tPrint the call data";
-        t += "\n\t.help()\tThis help";
-        t="\n[-- Properties : ]";
-        t += "\n\t.instr:<Instruction>\tGet the instruction"; 
-        t += "\n\t.caller:<Method>\tGet the method performing the call"; 
-        t += "\n\t.calleed:<*>\tGet the reference to the calleed";
-        t += "\n";
+        t += EOL+"[-- Methods : ]";
+        t += EOL+"\t.print()\tPrint the call data";
+        t += EOL+"\t.help()\tThis help";
+        t += EOL+"[-- Properties : ]";
+        t += EOL+"\t.instr:<Instruction>\tGet the instruction"; 
+        t += EOL+"\t.caller:<Method>\tGet the method performing the call"; 
+        t += EOL+"\t.calleed:<*>\tGet the reference to the calleed";
+        t += EOL;
 
         console.log(t);
     }
@@ -1831,7 +1833,10 @@ Method.prototype.appendBlock = function(block, callback=null){
            callback.datablock(this, block);
     }
 }
-Method.prototype.getDataBlocks = function(){
+Method.prototype.getDataBlockByTag = function( pTag){
+    for(let i=0; i<this.datas.length; i++){
+        console.log(this.datas[i]);
+    }
     return this.datas;
 }
 /*

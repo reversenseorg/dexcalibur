@@ -3,6 +3,7 @@ var Chalk = require("chalk");
 const Path = require("path");
 const Fs = require("fs");
 
+var CoreConst = require('./CoreConst.js');
 
 var Logger = require("./Logger.js")();
 var Configuration = require("./Configuration.js");
@@ -194,7 +195,9 @@ Project.prototype.initDexcalibur = function(pkgName, cfgpath=null, nofrida=0, ap
     +"██║   ██║██╔══╝   ██╔██╗ ██║     ██╔══██║██║     ██║██╔══██╗██║   ██║██╔══██╗\n"
     +"███████╔╝███████╗██╔╝ ██╗╚██████╗██║  ██║███████╗██║██████╔╝╚██████╔╝██║  ██║\n"
     +"╚══════╝ ╚══════╝╚═╝  ╚═╝ ╚═════╝╚═╝  ╚═╝╚══════╝╚═╝╚═════╝  ╚═════╝ ╚═╝  ╚═╝\n"
-    +" v0.6.1                                                        by @FrenchYeti \n"
+    + CoreConst.VERSION
+    + (" ".repeat(78-14-CoreConst.VERSION.length))
+    +"by @FrenchYeti \n"
     +"╔════════════════════════════════════════════════════════════════════════════╗\n"
     +"║ How to use ?                                                               ║\n"
     +"║ > const Dexcalibur = require('./src/Project.js')                           ║\n"
@@ -512,6 +515,11 @@ Project.prototype.pull = function(device){
         Logger.error("No device connected. Package cannot be pull");
         throw new Error("No device connected");
     }
+
+    // TODO replace by AdbWrapper.get
+    // this.devices.getPackagePath(this.getPackageName());
+    // dev.pullPackage(this.getPackageName(), apkPath);
+
     p = AndroidPM.getApkPathOf(dev, this.getPackageName());
 
     if(p == null){

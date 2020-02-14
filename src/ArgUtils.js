@@ -106,7 +106,7 @@ Parser.prototype.getHelp = function(){
             this.help += "\t"+this.param_config[i].name+"\t"+this.param_config[i].help;
             usage += "["+this.param_config[i].name+"]";
         }
-        this.help +="\n";
+        this.help += require('os').EOL ;
     } 
 
     return this.help = usage+"\n\n"+this.help;

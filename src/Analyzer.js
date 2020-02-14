@@ -289,11 +289,16 @@ function mapInstructionFrom(method, data, stats){
                 }
                 stmt[j].setTryStart( method.getTryStartBlock( stmt[j].getTryStart()));
                 stmt[j].setTryEnd( method.getTryEndBlock( stmt[j].getTryEnd()));
-                t = method.getCatchBlock( stmt[j].getTarget());
-                if(t !==null)
-                    stmt[j].setTarget(t);
-                else
-                    console.log(stmt[j].getTarget());
+
+                if((stmt[j].getTarget() instanceof CLASS.BasicBlock) == false){
+                    t = method.getCatchBlock( stmt[j].getTarget());
+                    if(t !==null)
+                        stmt[j].setTarget(t);
+                    else{
+                        Logger.error("Target catch block not found");
+                        console.log( stmt[j].getTarget());
+                    }
+                }
             }
         }
 

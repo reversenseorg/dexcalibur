@@ -18,7 +18,7 @@ class AndroidPackageManager
         
             buff = buff.toString();
             if(buff.startsWith("package:")){
-                buff = buff.substring(8,buff.indexOf("\n"));
+                buff = buff.substring(8,buff.indexOf( require('os').EOL ));
             }else{
                 Logger.error("[PM] Package not found");
                 Logger.debug(buff);

@@ -1,4 +1,5 @@
 var CONST = {
+    VERSION: "0.6.2",
     EXACT_MATCH: 1,
     LEX: {
         TOKEN: {
