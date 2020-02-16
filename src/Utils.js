@@ -4,6 +4,7 @@ const Chalk = require("chalk");
 const Path = require("path");
 const crypto = require("crypto");
 
+const TestHelper = require("./TestHelper.js");
 
 const RE_REPLACE = /[-\/\\^$*+?.()|[\]{}]/g;
 const CR = ""; //\n";
@@ -183,10 +184,15 @@ const Util = {
         return data;
     },
     execSync: function(command,charset){
-        // disable execSync here
-        console.log(Chalk.bold.red("Execute command request : "+command));
+        var ret = null;
+        
+        if(process.env.DEXCALIBUR_TEST){
+            ret = TestHelper.execSync(command);
+        }else{
+            console.log(Chalk.bold.red("Execute command request : "+command));
+            ret = Process.execSync(command);
+        }
 
-        var ret = Process.execSync(command);
         return ret.toString(charset);
     },
     execAsync: function(command,charset,callback){
