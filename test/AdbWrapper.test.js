@@ -15,12 +15,15 @@ var CONFIG = null;
 const TestHelper = require('../src/TestHelper.js');
 const Configuration = require('../src/Configuration.js');
 const AdbWrapper = require('../src/AdbWrapper.js');
+const AppPackage = require('../src/AppPackage');
+const {AdbWrapperError} = require('../src/Errors');
 const Device = require('../src/Device.js')
 
 describe('ADB Wrapper', function() {
 
     beforeEach(function() {
         CONFIG = TestHelper.newConfiguration();
+        TestHelper.clearInterceptors();
     });
 
     afterEach(function() {
@@ -65,6 +68,25 @@ describe('ADB Wrapper', function() {
         });
     });
 
+    describe('setTransport(transport_type)', function() {
+
+        it('USB transport', function () {
+
+            let adbw = new AdbWrapper(CONFIG.getAdbPath());
+            adbw.setTransport(AdbWrapper.USB_TRANSPORT);
+
+            expect(adbw.transport).to.equals(AdbWrapper.USB_TRANSPORT);
+        });
+
+        it('TCP transport', function () {
+
+            let adbw = new AdbWrapper(CONFIG.getAdbPath());
+            adbw.setTransport(AdbWrapper.TCP_TRANSPORT);
+
+            expect(adbw.transport).to.equals(AdbWrapper.TCP_TRANSPORT);
+
+        });
+    });
 
     describe('setup( [deviceID = null])', function() {
         
@@ -170,10 +192,182 @@ describe('ADB Wrapper', function() {
         });
     });
 
+    /*
+    describe('pull(remote_path, local_path, deviceID=null)', function() {
+
+        it('pull existing file', function(){
+            let flag = 0, ret=null;
+            let adbw = new AdbWrapper(CONFIG.getAdbPath());
+
+            TestHelper.interceptExec( function(x){
+                return (x.indexOf("pull /data/app/com.test/base.apk ")>-1);
+            }, `package:/data/app/com.whatsapp-2/base.apk`);
+
+            
+            try{
+                ret = adbw.pull("/data/app/com.test/base.apk", "/tmp/test");
+            }catch(err){
+                flag++;
+            }
+    
+            expect(flag).to.equals(0);
+            expect(ret).to.equals("/data/app/com.whatsapp-2/base.apk");
+        });
+    });*/
+
     describe('getPackagePath(packageIdentifier, deviceId=null)', function() {
 
-       // to do
+            it('single file', function(){
+                let flag = 0, ret=null;
+                let adbw = new AdbWrapper(CONFIG.getAdbPath());
+
+                TestHelper.interceptExec( function(x){
+                    return (x.indexOf("shell pm path com.whatsapp")>-1);
+                }, `package:/data/app/com.whatsapp-2/base.apk`);
+
+                
+                try{
+                    ret = adbw.getPackagePath(`com.whatsapp`);
+                }catch(err){
+                    flag++;
+                }
+        
+                expect(flag).to.equals(0);
+                expect(ret).to.equals("/data/app/com.whatsapp-2/base.apk");
+            });
+
+            it('single file, custom deviceID', function(){
+                let flag = 0, ret=null;
+                let adbw = new AdbWrapper(CONFIG.getAdbPath());
+                let expectedDeviceId = "aabbccddeeff";
+                let dev = false;
+
+                TestHelper.interceptExec( function(x){
+                    if(x.indexOf("shell pm path com.whatsapp")>-1){
+                        dev = (x.indexOf(expectedDeviceId)> -1);
+                        return true;
+                    }else{
+                        dev = false;
+                        return false;
+                    }
+                }, `package:/data/app/com.whatsapp-2/base.apk`);
+
+                
+                try{
+                    ret = adbw.getPackagePath(`com.whatsapp`, expectedDeviceId);
+                }catch(err){
+                    flag++;
+                }
+        
+                expect(flag).to.equals(0);
+                expect(dev).to.equals(true);
+                expect(ret).to.equals("/data/app/com.whatsapp-2/base.apk");
+            });
+
+            it('single file, custom deviceID (false)', function(){
+                let flag = 0, ret=null;
+                let adbw = new AdbWrapper(CONFIG.getAdbPath());
+                let expectedDeviceId = "aabbccddeeff";
+                let dev = false;
+
+                TestHelper.interceptExec( function(x){
+                    if(x.indexOf("shell pm path com.whatsapp")>-1){
+                        dev = (x.indexOf(expectedDeviceId)> -1);
+                        return true;
+                    }else{
+                        dev = false;
+                        return false;
+                    }
+                }, `package:/data/app/com.whatsapp-2/base.apk`);
+
+                
+                try{
+                    ret = adbw.getPackagePath(`com.whatsapp`, "a1a2a3a4a5a6");
+                }catch(err){
+                    flag++;
+                }
+        
+                expect(flag).to.equals(0);
+                expect(dev).to.equals(false);
+                expect(ret).to.equals("/data/app/com.whatsapp-2/base.apk");
+            });
+
+            it('single file, default deviceID', function(){
+                let flag = 0, ret=null;
+                let adbw = new AdbWrapper(CONFIG.getAdbPath(), "a1a2a3a4a5a6a7");
+                let dev = false;
+
+                TestHelper.interceptExec( function(x){
+                    if(x.indexOf("shell pm path com.whatsapp")>-1){
+                        dev = (x.indexOf("a1a2a3a4a5a6a7")> -1);
+                        return true;
+                    }else{
+                        dev = false;
+                        return false;
+                    }
+                }, `package:/data/app/com.whatsapp-2/base.apk`);
+
+                
+                try{
+                    ret = adbw.getPackagePath(`com.whatsapp`);
+                }catch(err){
+                    flag++;
+                }
+        
+                expect(flag).to.equals(0);
+                expect(dev).to.equals(true);
+                expect(ret).to.equals("/data/app/com.whatsapp-2/base.apk");
+            });
+
+            it('single file, custom deviceID, override default deviceID', function(){
+                let flag = 0, ret=null;
+                let adbw = new AdbWrapper(CONFIG.getAdbPath(), "a1a2a3a4a5a6a7");
+                let dev = false;
+
+                TestHelper.interceptExec( function(x){
+                    if(x.indexOf("shell pm path com.whatsapp")>-1){
+                        dev = (x.indexOf("aabbccddeeff")> -1);
+                        return true;
+                    }else{
+                        dev = false;
+                        return false;
+                    }
+                }, `package:/data/app/com.whatsapp-2/base.apk`);
+
+                
+                try{
+                    ret = adbw.getPackagePath(`com.whatsapp`, "aabbccddeeff");
+                }catch(err){
+                    flag++;
+                }
+        
+                expect(flag).to.equals(0);
+                expect(dev).to.equals(true);
+                expect(ret).to.equals("/data/app/com.whatsapp-2/base.apk");
+            });
+
+            it('multiple files', function(){
+                let flag = 0, ret=null;
+                let adbw = new AdbWrapper(CONFIG.getAdbPath());
+
+                // mock child_process.execSync()
+                TestHelper.interceptExec( function(x){
+                    return (x.indexOf("shell pm path com.whatsapp")>-1);
+                }, `package:/data/app/com.whatsapp-2/base.apk${EOL}package:/data/app/com.test/base.apk`);
+
+
+                try{
+                    ret = adbw.getPackagePath(`com.whatsapp`);
+                }catch(err){
+                    flag++;
+                }
+        
+                expect(flag).to.equals(0);
+                expect(ret).to.equals("/data/app/com.whatsapp-2/base.apk");
+            });
     });
+
+
 
     // error: no devices/emulators found
 
@@ -187,7 +381,6 @@ describe('ADB Wrapper', function() {
 
             try{
                 ret = adbw.parsePackageList(`package:com.android.cts.priv.ctsshim${EOL}package:com.google.android.youtube${EOL}package:com.google.android.ext.services${EOL}package:com.android.providers.telephony`);
-                
             }catch(err){
                 flag++;
             }
@@ -196,13 +389,14 @@ describe('ADB Wrapper', function() {
             expect(ret).to.be.an('array');
             expect(ret.length).to.equals(4);
             expect(ret[0].packageIdentifier).to.equals("com.android.cts.priv.ctsshim");
-            expect(ret[0].packagePath).to.equals(null);
+            expect(ret[0]).to.be.an.instanceOf(AppPackage);
             expect(ret[1].packageIdentifier).to.equals("com.google.android.youtube");
-            expect(ret[1].packagePath).to.equals(null);
+            expect(ret[1]).to.be.an.instanceOf(AppPackage);
             expect(ret[2].packageIdentifier).to.equals("com.google.android.ext.services");
-            expect(ret[2].packagePath).to.equals(null);
+            expect(ret[2]).to.be.an.instanceOf(AppPackage);
             expect(ret[3].packageIdentifier).to.equals("com.android.providers.telephony");
-            expect(ret[3].packagePath).to.equals(null);
+            expect(ret[3]).to.be.an.instanceOf(AppPackage);
+
         });
 
         it('invalid ADB output : device/emulators not found', function () {
@@ -214,7 +408,8 @@ describe('ADB Wrapper', function() {
                 adbw.parsePackageList("error: no devices/emulators found");
                 f++;
             }catch(err){
-                expect(err).to.be.not.undefined;
+                expect(err).to.be.an.instanceOf(AdbWrapperError);
+                expect(err.code).to.equals(AdbWrapperError.DEVICE_NOT_FOUND);
             }
 
             expect(f).to.equals(0);
@@ -223,6 +418,63 @@ describe('ADB Wrapper', function() {
 
     describe('listPackages(deviceId = null)', function() {
 
+        it('list packages', function () {
+
+            let adbw = new AdbWrapper(CONFIG.getAdbPath());
+            let f = 0, ret=null;
+
+            // mock "shell pm list packages" output
+            TestHelper.interceptExec( function(x){
+                return (x.indexOf("shell pm list packages")>-1);
+            }, `package:com.android.cts.priv.ctsshim${EOL}package:com.google.android.youtube${EOL}package:com.google.android.ext.services${EOL}package:com.android.providers.telephony`);
+
+            try{
+                ret = adbw.listPackages();
+            }catch(err){
+                f++;
+            }
+
+            expect(f).to.equals(0);
+            expect(ret).to.be.an('array');
+            expect(ret.length).to.equals(4);
+            expect(ret[0].packageIdentifier).to.equals("com.android.cts.priv.ctsshim");
+            expect(ret[0]).to.be.an.instanceOf(AppPackage);
+            expect(ret[1].packageIdentifier).to.equals("com.google.android.youtube");
+            expect(ret[1]).to.be.an.instanceOf(AppPackage);
+            expect(ret[2].packageIdentifier).to.equals("com.google.android.ext.services");
+            expect(ret[2]).to.be.an.instanceOf(AppPackage);
+            expect(ret[3].packageIdentifier).to.equals("com.android.providers.telephony");
+            expect(ret[3]).to.be.an.instanceOf(AppPackage);
+        });
+
         // TODO
+    });
+
+    describe('push(local_path, remote_path, deviceID=null)', function() {
+
+        it('push file, no default device, no specific device', function(){
+            let flag = 0, ret=null, f=false;
+            let adbw = new AdbWrapper(CONFIG.getAdbPath());
+
+            // assert is done by intercepting command 
+            TestHelper.interceptExec( function(x){
+                if(x.indexOf("push /tmp/test_file /data/local/tmp/test_file")>-1){
+                    f = "push /tmp/test_file /data/local/tmp/test_file";
+                }else{
+                    f = x;
+                }
+                return f;
+            }, `package:/data/app/com.whatsapp-2/base.apk`); // todo
+
+            
+            try{
+                ret = adbw.push("/tmp/test_file", "/data/local/tmp/test_file");
+            }catch(err){
+                flag++;
+            }
+    
+            expect(flag).to.equals(0);
+            expect(f).to.equals("push /tmp/test_file /data/local/tmp/test_file");
+        });
     });
 });
