@@ -235,7 +235,7 @@ CONST.BRANCH = {
 };
 
 CONST.RE = {
-    ARRAY_VALUE: /(-)?0x([0-9a-fA-F]+)/
+    ARRAY_VALUE: /(-)?0x([0-9a-fA-F]+)([s]*)/
 };
 
 CONST.MAX = {

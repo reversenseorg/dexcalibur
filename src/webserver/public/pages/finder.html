@@ -736,18 +736,33 @@
         return body;
     }
 
+    function zeroPaddingNumber( pNumber, pWidth){
+        let neg = (pNumber<0);
+        let i = pNumber.toString(16);
+
+        if(neg) i = i.substr(1);
+        if(i.length%2==1) i='0'+i;
+        
+        if(i.length/2 < pWidth){
+            i = ('00'.repeat(pWidth-(i.length/2)))+i;
+        }
+
+        if(neg){
+            return `<span style="color:blue">-${i}</span>`;
+        }else{
+            return `<span style="color:black">${i}</span>`;
+        }
+    }
+
     // print to hexdump format
     function printByteArray(barray, width){
         let d="<pre>";
-        let masks = [0x00,0x0000,0x00000000,0x0000000000000000];
         
         for(let i=0; i<barray.length; i++){
             if(i>0 && i%16==0) d+="<br>";
 
-            if(barray[i]<0x10) 
-                d+= "0";
+            d+= zeroPaddingNumber( barray[i], width>>3); 
 
-            d+= barray[i].toString(16); //('00'.repeat(width>>3))
             d+=" "
         } 
         return d+"</pre>";
@@ -763,7 +778,7 @@
         body += '<tr><td><b>Entry width</b></td><td>'+row.width+'&nbsp; bits</td></tr>';
         body += '</table>';
         
-        body += '<table class="table table-sm"><thead><tr><th scope="col">Tag</th><th scope="col">Data</th></thead><tbody>';
+        body += '<table class="table table-sm"><thead><tr><th scope="col" style="width:10em">Tag</th><th scope="col">Data</th></thead><tbody>';
         
 
 
@@ -771,17 +786,19 @@
             d="";
             body += "<tr><td>"+htmlEncode(row.tags[i])+"</td><td>";
             if(row.tags[i]=="ascii"){
-                row.values.data.map((x)=>{ d+=String.fromCharCode(x)});
+                row.values.map((x)=>{ d+=String.fromCharCode(x)});
             } 
             else{
                 d = "0x";
-                row.values.data.map((x)=>{ d+=x.toString(16) });
+                row.values.map((x)=>{ 
+                    d+=x.toString(16) ;
+                });
             }
 
             body += htmlEncode(d);
             body += "</td></tr>";
         }
-        body += "<tr><td>raw</td><td>"+printByteArray(row.values.data,row.width)+"</td></tr>";
+        body += "<tr><td>raw</td><td>"+printByteArray(row.values,row.width)+"</td></tr>";
          
         body += "</tbody></table>"
         return body;
@@ -1570,7 +1587,7 @@
                     },
                     { 
                         render: function(data, type, row, meta ){
-                            return (row.uid!=null)? htmlEncode(row.uid) : '[Missing]';
+                            return ((row.uid!=null)? htmlEncode(row.uid) : '[Missing]')+" <i style='color:blue'>("+((row.length*row.width)/8)+" bytes)</i>"
                         }
                     },
                     {  

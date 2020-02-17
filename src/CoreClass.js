@@ -1,8 +1,5 @@
-//var Disassembler = require("./Disassembler.js");
 var CONST = require("./CoreConst.js");
 const NodeCompare = require("./NodeCompare.js");
-//var VM = require("./vm.js");
-var Disassembler = null;
 
 const EOL =  require('os').EOL ;
 
@@ -1976,6 +1973,8 @@ class PackedSwitchStatement
     }
 }
 
+
+
 class DataBlock
 {
     constructor(dataWidth=null){
@@ -1987,10 +1986,10 @@ class DataBlock
         this.tag = null;
         this.tags = [];
 
-        this.signed = [];
-
         this.name = null;
-        this.values = Buffer.alloc(CONST.MAX.DATABLOCK_SIZE);
+        //this.values = Buffer.alloc(CONST.MAX.DATABLOCK_SIZE);
+        this.values = [];
+
         this.width = dataWidth;
         this.length = 0;
 
@@ -2017,74 +2016,20 @@ class DataBlock
         this.uid += (this.name != null)? this.name : 'data_'+offset;
     }
 
-    /**
-     * 
-     * @param {Array} val 
-     * @param {Boolean} isNegative 
-     */
-    pushData(val, isNegative){
-        // Increase buffer size if needed
-        if(!this.virtual64 && ((this.length+1)*(this.width>>3) > this.values.length)){
-            this.values = Buffer.alloc(this.values.length+32);
-            this.values.fill(this.values);
+    pushData(val, isNegative, isShort){
+       
+            this.values.push(new Number(val));
+            if(isNegative) 
+                this.values.push( new Number(-this.values.pop() ));
 
-        }
-
-        // Zero padding if needed
-        if(val.length < (this.width>>3)){
-            let tmp = null;
-            tmp = Buffer.alloc(this.width>>3);
-            val.copy(tmp, 0, 0, this.length);
-            val = tmp;
-        }
-
-        if(isNegative) this.signed.push(this.length);
-        switch(this.width>>3){
-            case 1:
-                this.values.writeUInt8(val.readUInt8(0), this.length);
-                break;
-            case 2:
-                this.values.writeUInt16LE(val.readUInt16LE(0), this.length*2);
-                break;
-            case 4:
-                this.values.writeUInt32LE(val.readUInt32LE(0), this.length*4);
-                break;
-            case 8:
-                if(this.virtual64 == true){
-                    this.values.push(val.toString());
-                    // FIXME : NodeJS < 12.0.0 not supports uint64
-                    //console.log("uint64 values are not supported by this NodeJS version");
-                }else{
-                    this.values.writeBigUInt64LE(val.readBigUInt64LE(0), this.length*8);
-                }
-                break;
-            default:    
-                // nothing to do
-                return;
-        }
-        this.length += 1;
+            this.length++;
+            //Logger.debug( (isNegative?'-':'+')+val, this.values[this.values.length-1].toString(16) ); 
     }
 
     read(offset){
-        switch(this.width>>3){
-            case 1:
-                return this.values.readUInt8(offset);
-            case 2:
-                return this.values.readUInt16LE(offset*2);
-            case 4:
-                return this.values.readUInt32BE(offset*4);
-            case 8:
-                if(this.virtual64 == true){
-                    return this.values[offset];
-                    //console.log("This version of node not support 64bit integer !");
-                    //return "NaN";
-                }else{
-                    return this.values.readBigUInt64LE(offset*8);
-                }
-            default:
-                return "NaN";
-        }
+        return this.values[offset];
     }
+
 
     size(){
         return this.length * (this.width >> 3); 
@@ -2108,7 +2053,7 @@ class DataBlock
                 this.width = 8;
                 break;
             case 2:
-                this.width = 15;
+                this.width = 16;
                 break;
             case 4:
                 this.width = 32;
@@ -2131,7 +2076,6 @@ class DataBlock
             if(this[i]==null) continue;
             switch(i){
                 case "tags":
-                case "signed":
                     if(this[i].length > 0) 
                         o[i] = this[i];    
                     break;
@@ -2154,9 +2098,11 @@ class DataBlock
                     break;
             }
         } 
+        console.log(JSON.stringify(this.values));
         return o;
     }
 }
+
 
 class TagCategory
 {

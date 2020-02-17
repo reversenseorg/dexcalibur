@@ -606,9 +606,7 @@ class SmaliParser
 
                     hdl = CONST.RE.ARRAY_VALUE.exec(sml[0]);
                     if(hdl ==null) break; 
-                    if(hdl[2].length == 1) hdl[2] = '0'+hdl[2];
-                    
-                    this.__tmp_block.pushData(Buffer.from(hdl[2],'hex'), (hdl[1] != undefined));
+                    this.__tmp_block.pushData("0x"+hdl[2], (hdl[1] != undefined), (hdl[3]=='s'));
                 }
                 else{
 

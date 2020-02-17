@@ -369,7 +369,10 @@ Disassembler.prototype.methodRaw = function(method){
         bbe.instr.push({ value: d.name });
         bbe.instr.push({ value:CONST.LEX.STRUCT.ARRAY+"  "+d.getByteWidth() });
         for(let k=0; k<d.count(); k++){
-            bbe.instr.push({ value:"    0x"+d.read(k).toString(16) });  
+             if(d.read(k)>=0)
+                 bbe.instr.push({ value:"    0x"+d.read(k).toString(16) });  
+             else
+                 bbe.instr.push({ value:"    "+d.read(k).toString(16).replace('-','-0x') });  
         }
         bbe.instr.push({ value:CONST.LEX.STRUCT.END+"  "+CONST.LEX.STRUCT.ARRAY_NAME});
         result.push(bbe);
