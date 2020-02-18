@@ -28,6 +28,7 @@ var PATTERN = {
     LIT_VAL: "(-?0x[0-9a-f]+)",
     METH: "(.*)\(([^)]*)\)(\[?[A-Za-z]((.+);)?)",
     PRIM_T: "([CJDBISZVLF])",
+    PRIM_T2: "[CJDBISZVF]",
     TAG: ":([a-z_]+)_([0-9a-f]+)",
     ARRAY: "(\\[)"
 };
@@ -52,7 +53,9 @@ PATTERN.REF_FIELD = `${PATTERN.REF_CLASS}->${PATTERN.FIELD_NAME}`;
 PATTERN.FORMAT23X = ` *(${PATTERN.REG_8}),\\s*(${PATTERN.REG_8}),\\s*(${PATTERN.REG_8}) *`;
 PATTERN.FORMAT21C_FIELD = ` *(${PATTERN.REG_8}),\\s*(${PATTERN.REF_FIELD}):${PATTERN.TYPE} *`;
 
-PATTERN.FORMAT21C = " *([)?"+PATTERN.PRIM_T+"(.*);? *";
+// PATTERN.FORMAT21C = " *([)?"+PATTERN.PRIM_T+"(.*);? *";
+PATTERN.FORMAT21C = " *(?<isarray>\\[)?(?<primitive>"+PATTERN.PRIM_T2+")?(?<class>L.+;)? *";
+
 PATTERN.FORMAT22C = " *(\\[)?"+PATTERN.PRIM_T+"([^;]+)?;? *";
 
 PATTERN.REG_TAG = PATTERN.REF_REG_ONE+"\\s*"+PATTERN.TAG;

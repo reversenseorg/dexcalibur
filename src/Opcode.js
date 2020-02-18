@@ -158,7 +158,8 @@ var MainParser = {
 
 		return instr;
 	},
-	// v0, [B
+	// v0, [B  
+	// v0, Ljava/lang/String; 
 	format21c: function(src,raw_src){
 		let instr = new CLASS.Instruction(); 
 		let i = raw_src.lastIndexOf(","), arr=false;
@@ -168,15 +169,20 @@ var MainParser = {
 		let r = raw_src.substr(i+1);
 		let m = Core.RX.FORMAT21C.exec(r);
 
+		if(m == null){
+			Logger.debug("[SmaliParser][FORMAT21C] Unable to parse : ", raw_src);
+			instr.right = null;
+		}else{
 
-		if(m[1]==="[")
-			arr = true;
+			if(m.groups.class!==undefined && m.groups.primitive==undefined){
 
-//		if(m[2]=='L')
-		if(m[1]=='L')
-			instr.right = new CLASS.ObjectType(Core.PARSER.fqcn(m[2]),arr); //3
-		else
-			instr.right = new CLASS.BasicType(m[2],arr);
+				instr.right = new CLASS.ObjectType(
+					Core.PARSER.fqcn(m.groups.class.substr(1, m.groups.class.length-2)), 
+					(m.groups.isarray!==undefined)); //3
+			}else
+				instr.right = new CLASS.BasicType(m[2], (m.groups.isarray!==undefined));
+
+		}
 
 		return instr;
 	},
@@ -228,7 +234,6 @@ var MainParser = {
 
 
 		if(m !== null){
-
 			meth = Core.PARSER.methodName(m[m.length-1]);
 			instr.right = new CLASS.MethodReference({
 				fqcn: Core.PARSER.fqcn(m[m.length-2]),
