@@ -71,7 +71,7 @@
                 <div class="card-body">
                     <div class="input-group">
                         <input type="text" class="form-control" placeholder='class("name:Keystore")' id="search_request">
-                        <span class="input-group-btn">
+                        <span class="input-group-append">
                             <button class="btn btn-primary" id="button_search" type="button">
                                 <span class="fa fa-search">&nbsp;</span>
                                 Search
@@ -750,7 +750,7 @@
         if(neg){
             return `<span style="color:blue">-${i}</span>`;
         }else{
-            return `<span style="color:black">${i}</span>`;
+            return `<span style="color:black"> ${i}</span>`;
         }
     }
 
@@ -762,7 +762,6 @@
             if(i>0 && i%16==0) d+="<br>";
 
             d+= zeroPaddingNumber( barray[i], width>>3); 
-
             d+=" "
         } 
         return d+"</pre>";
@@ -1658,6 +1657,16 @@
             return $("<div />").text(txt).html();
         }
 
+        // ---------------- SEARCH --------------------------------
+
+
+        $("#search_request").keypress( function (e) {
+            var key = e.which || e.keyCode;
+            if (key === 13) {
+                $("#button_search").trigger('click');
+            }   
+        });
+
         // ---------------- REQUEST HELPER : START ----------------
 
         var RHelper = new RequestHelper($, "request-helper-view");
@@ -1702,42 +1711,6 @@
             $('span.nav-link[editor='+codeID+']').addClass("dxc-active-item");
 
             $('button.simplifyRun[editor='+codeID+']').trigger('click');
-
-            //console.log(codeID,method);
-            /*
-            $.ajax(
-                "../api/method/simplify/"+method,
-                {
-                    method: "get",
-                    data: {
-                        level:1,
-                    },
-                    statusCode: {
-                        200: function(data){
-                            data = JSON.parse(data);
-                            let codeBody = "";
-                            for(let i=0; i<data.instr.length; i++){
-                                codeBody += data    .instr[i]+"\n";
-                            }
-                            //code.html(codeBody);
-                            $('#'+hide_codeID).css('display','none');
-                            $('#'+codeID+'-view').css('display','block');
-                            $('#'+codeID).css('display','block');
-
-                            setupAceEditor(codeID);
-                            changeAceLanguage(codeID, "java");
-                            changeAceEditor(codeID, codeBody);
-
-                            $('span.nav-link[editor='+hide_codeID+']').removeClass("dxc-active-item");
-                            $('span.nav-link[editor='+hide_codeID+']').addClass("dxc-inactive-item");
-
-                            $('span.nav-link[editor='+codeID+']').removeClass("dxc-inactive-item");
-                            $('span.nav-link[editor='+codeID+']').addClass("dxc-active-item");
-
-                        }
-                    }
-                }
-            );*/
         });
 
         $('#dataTables-finder tbody').on('click', 'button.simplifyRun', function (e) {
