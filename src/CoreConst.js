@@ -250,6 +250,9 @@ CONST.TAG = {
     MISSING: "missing"
 };
 
+CONST.VM = {
+    IF_DEFAULT_PATH: true
+};
 
 
 module.exports = CONST;

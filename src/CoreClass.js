@@ -339,6 +339,9 @@ ObjectType.prototype.getTags = function(){
     return this.tags;   
 }
 
+ObjectType.prototype.isArray = function(){
+    return this.arr;   
+}
 
 /**
  * Represents a package from the application
@@ -1831,10 +1834,19 @@ Method.prototype.appendBlock = function(block, callback=null){
     }
 }
 Method.prototype.getDataBlockByTag = function( pTag){
+    let ds = []
     for(let i=0; i<this.datas.length; i++){
-        console.log(this.datas[i]);
+        if(this.datas[i].tags.indexOf(pTag)>-1)
+            ds.push(this.datas[i]);
     }
-    return this.datas;
+    return ds;
+}
+Method.prototype.getDataBlockByName = function( pName){
+    for(let i=0; i<this.datas.length; i++){
+        if(this.datas[i].name == pName)
+            return this.datas[i];
+    }
+    return null;
 }
 /*
 Method.prototype.getStringUsed = function(){

@@ -233,6 +233,7 @@ class WebServer {
                 };
                 res.status(200).send(JSON.stringify(dev));
             });
+
         this.app.route('/api/device/setDefault')
             .post(function (req, res) {
                 // collect
@@ -979,6 +980,56 @@ class WebServer {
                 }
                 res.send(JSON.stringify(dev));
             });
+/*
+            this.app.route('/api/projection')
+                .get(function (req, res) {
+
+                    
+                    // 'cmpType' should be a valid index into the database
+                    // 'cmpID' should be a valid ID into 'cmpType' index
+                    // 'cmpProjType' the type of projection to apply
+                    let cmpType = req.params.cmp;
+                    let cmpID = req.params.id;
+                    let cmpProjType = req.params.proj;
+
+                    console.log(req.params);
+
+                    if(cmpID==null || cmpProjType==null || cmpType==null){
+                        res.status(404);
+                        res.send(JSON.stringify({ err: "Invalid params" }));
+                        return;
+                    }
+
+                    if($.project.find.get[cmpType]==null){
+                        res.status(404);
+                        res.send(JSON.stringify({ err: "Invalid component type." }));
+                        return;
+                    }
+
+                    let name = UT.decodeURI(UT.b64_decode(req.params.id));
+                    let act = $.project.find.get[cmpType](name);
+                    let dev = null;
+
+                    let proj = $.project.analyze.getProjection(cmpProjType);
+
+                    proj.process(act);
+
+
+                    if (act instanceof ANDROID.Receiver) {
+                        dev = {
+                            data: act.toJsonObject()
+                        };
+                        res.status(200);
+                    } else {
+                        dev = {
+                            err: "Receiver not found for the given ID",
+                            errCode: null
+                        }
+                        res.status(404);
+                    }
+                    res.send(JSON.stringify(dev));
+                });
+                */
 
         this.app.route('/api/manifest/providers')
             .get(function (req, res) {
@@ -1217,6 +1268,16 @@ class WebServer {
                 };
                 res.status(200).send(JSON.stringify(dev));
             });
+
+        this.app.route('/api/settings')
+            .get(function (req, res) {
+                // collect
+                let dev = {};
+                let cfg = $.project.getConfiguration();
+
+                dev = cfg.toJsonObject();
+                res.status(200).send(JSON.stringify(dev));
+            })
 
         /*
          * Send an intent to to the default device
