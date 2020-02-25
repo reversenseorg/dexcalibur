@@ -822,8 +822,11 @@ class WebServer {
                         //console.log(refs);
                         for (let i = 0; i < refs.length; i++) {
 
-                            // r2 = $.project.find.get.method(refs[i]);
+                            //r2 = $.project.find.get.method(refs[i]);
                             r2 = refs[i];
+                            if( (r2 instanceof CLASS.Method) == false){
+                                r2 = $.project.find.get.method(r2)
+                            }
 
                             tmp = {
                                 // method signature

@@ -321,14 +321,16 @@ function mapInstructionFrom(method, data, stats){
                 instruct.right = Resolver.method(data, instruct.right, instruct.isStaticCall());
 
 
-                instruct.right._callers.push(method); 
+                //instruct.right._callers.push(method); 
+                instruct.right.addCaller(method);
                 
-                
-                data.call.insert(new CLASS.Call({ 
+                tmp = new CLASS.Call({ 
                     caller: method, 
                     calleed: instruct.right, //obj, 
-                    instr: instruct}));
-                
+                    instr: instruct});
+
+                data.call.insert(tmp);
+
                 stats.methodCalls++;
 
 
@@ -839,6 +841,8 @@ function Analyzer(encoding, finder, ctx=null){
 
     this.context = ctx;
     this.finder = finder;
+
+    this.projectionEngines = {};
 
     var config = {
         wsPath: null,
