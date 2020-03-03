@@ -141,13 +141,13 @@ DynLoaderInspector.hookSet.addIntercept({
 
 DynLoaderInspector.hookSet.addIntercept({
     //when: HOOK.BEFORE,
-    method: "java.lang.Class.forName(<java.lang.String>)<java.lang.Class>",
+    method: "java.lang.Class.forName(<java.lang.String><boolean><java.lang.ClassLoader>)<java.lang.Class>",
     onMatch: function(ctx,event){
         DynLoaderInspector.emits("hook.reflect.class.get",event);
     },
     interceptAfter: `  
 
-            //var cls = Java.cast( ret, DEXC_MODULE.common.class.java.lang.Class);
+            //var clscl = Java.cast( arg2.getClass(), DEXC_MODULE.common.class.java.lang.Class);
 
             //var types = Java.array( this.getParameterTypes(), DEXC_MODULE.common.class.java.lang.Class);
 
@@ -155,7 +155,7 @@ DynLoaderInspector.hookSet.addIntercept({
                 id:"@@__HOOK_ID__@@", 
                 match: true, 
                 data: {
-                    name: ret.getCanonicalName()
+                    name: arg0.toString()
                 },
                 after: true, 
                 msg: "Class.forName()", 
@@ -167,6 +167,7 @@ DynLoaderInspector.hookSet.addIntercept({
             });
     `
 });
+
 
 
 /**
@@ -495,7 +496,7 @@ DynLoaderInspector.on("hook.reflect.method.get", {
             //  if no result, do nothing
             // try to resolve reference (it may be an inherited method)
             if(callers.count() == 0){
-                Logger.debug("Callers of '",data.__hidden__trace[1].cls+"."+data.__hidden__trace[1].meth,"' not found!");
+                Logger.info("Callers of '",data.__hidden__trace[1].cls+"."+data.__hidden__trace[1].meth,"' not found!");
                 return false;
             }
 
@@ -503,6 +504,7 @@ DynLoaderInspector.on("hook.reflect.method.get", {
             if(callers.count()>1){
                 Logger.warn("[INSPECTOR][TASK] DynLoaderInspector search Method : there are more than one result");
             }else{
+                //console.log(callers.get(0));
                 caller = callers.get(0);
             }
         }else{
@@ -523,6 +525,7 @@ DynLoaderInspector.on("hook.reflect.method.get", {
             meth.addTag(AnalysisHelper.TAG.Invoked.Dynamically);
 
         // update callers of the calleed methods
+        // console.log('caller:',caller);
         meth.addCaller(caller);
 
         // , { tag: AnalysisHelper.TAG.Called.Dynamically }
@@ -546,7 +549,7 @@ DynLoaderInspector.on("hook.dex.find.class",{
 
         let data = event.data.data;
         let cls = ctx.find.get.class(data.cls);
-        console.log(cls, data);
+        //console.log(cls, data);
         
         if(cls == null){
             cls = ctx.analyze.addClassFromFqcn(data.cls);
@@ -592,23 +595,23 @@ DynLoaderInspector.on("hook.dex.classloader.new",{
 
         Fs.open(localDexFile, 'w+', 0o666,  function(err,fd){
             if(err){
-                console.log("TODO : An error occured when file is created ",err);
+                Logger.error("TODO : An error occured when file is created ",err);
                 return;
             }
 
             Fs.write(fd, data, function(err, written, buffer){
                 if(err){
-                    console.log("TODO : An error occured when file is written ",err);
+                    Logger.error("TODO : An error occured when file is written ",err);
                     return;
                 }
 
                 Fs.close(fd, function(err){
                     if(err){
-                        console.log("TODO : An error occured when file is closed ",err);
+                        Logger.error("TODO : An error occured when file is closed ",err);
                         return;
                     }
 
-                    console.log("Start to disassemble "+localDexFile);
+                    Logger.debug("Start to disassemble "+localDexFile);
 
                     // disass file
                     ctx.dexHelper.disassembleFile(
@@ -637,17 +640,17 @@ DynLoaderInspector.on("hook.dex.classloader.new",{
 
     }
 })
-
+/
 DynLoaderInspector.on("hook.reflect.method.call", {
     task: function(ctx, event){
         Logger.info("[INSPECTOR][TASK] DynLoaderInspector method invoked dynamically ");
-        console.log(event);
+        //console.log(event);
         if(event == null || event.data == null || event.data.data == null) return false;
         let data  = event.data.data;
 
-        console.log(data);
+        //console.log(data);
         let meth = ctx.find.get.method(data.s);
-        console.log(data);
+        //onsole.log(data);
 
         /*
             let rettype = ctx.find.get.class(event.data.data.ret)
@@ -669,6 +672,8 @@ DynLoaderInspector.on("dxc.fullscan.post", {
     task: function(ctx, event){
         Logger.info("[INSPECTOR][TASK] Trying to restore previous data of DynLoaderInspector ... ");
         DynLoaderInspector.restore();
+
+
     }
 });
 
