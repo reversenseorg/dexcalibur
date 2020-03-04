@@ -121,7 +121,7 @@ DynLoaderInspector.hookSet.addIntercept({
                 id:"@@__HOOK_ID__@@", 
                 match: true, 
                 data: {
-                    s: DEXC_MODULE.reflect.getMethodSignature(ret,arg1),
+                    __meth__: DEXC_MODULE.reflect.getMethodSignature(ret,arg1),
                     __hidden__trace: DEXC_MODULE.common.getStackTrace()
                 },
                 after: true, 
@@ -487,7 +487,7 @@ DynLoaderInspector.on("hook.reflect.method.get", {
         let data  = event.data.data, caller = null, callers = null, methd = null;
         
         //console.log(data);
-        meth = ctx.find.get.method(data.s);
+        meth = ctx.find.get.method(data.__meth__);
 
         // find the callers by inspecting the stacktrace
         if(data.__hidden__trace.length > 2){

@@ -203,10 +203,16 @@
                                     if(typeof hookMsg.data == "object"){
                                         for(let i in hookMsg.data){
                                             if(i.indexOf("__hidden__")==0) continue;
-                                            msgdata += htmlEncode(i+" = "+hookMsg.data[i])+"</br>";
+                                            if(i == "__meth__"){
+                                                msgdata += `<a href="/pages/finder.html?method=${btoa(encodeURIComponent(hookMsg.data[i]))}">${hookMsg.data[i]}</a></br>`;
+                                            }else{
+                                                msgdata += htmlEncode(i+" = "+hookMsg.data[i])+"</br>";
+                                            }
                                         }
                                     }else
                                         msgdata = htmlEncode(hookMsg.data);
+                                }else{
+                                   msgdata = "-";
                                 }
                             
 

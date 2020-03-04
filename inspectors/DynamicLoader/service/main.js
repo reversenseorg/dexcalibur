@@ -31,9 +31,10 @@ function getElementsDiscovered(context){
 function cleanupSavedDex(context){
     let files = context.inspectors.get("DynamicLoader").getDB().getIndex("dex");
 
-    console.log(context.inspectors.get("DynamicLoader"), context.inspectors.get("DynamicLoader").getDB());
     files.map(function(k,v){
-        Fs.unlinkSync(v.getPath());
+        try{
+            Fs.unlinkSync(v.getPath());
+        }catch(err){}
     });  
 
     return true;
