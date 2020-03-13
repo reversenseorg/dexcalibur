@@ -16,6 +16,7 @@
     "chalk": "^2.4.1",
     "co": "^4.6.0",
     "crypto": "^1.0.1",
+    "event-stream": "^4.0.1",
     "express": "^4.16.3",
     "file-type": "^10.4.0",
     "frida": "^12.2.26",
@@ -23,6 +24,7 @@
     "md5": "^2.2.1",
     "mime-types": "^2.1.20",
     "properties": "^1.2.1",
+    "r2pipe": "^2.8.0",
     "xml2js": "^0.4.19"
   },
   "devDependencies": {
@@ -31,11 +33,21 @@
     "sinon": "^7.3.2",
     "sinon-chai": "^3.3.0"
   },
+  "bin": {
+    "dexcalibur": "./dexcalibur.js"
+  },
   "scripts": {
     "dexcalibur": "node --max-old-space-size=4096 ./dexcalibur",
     "start": "node --max-old-space-size=4096 ./dexcalibur",
     "test": "DEXCALIBUR_TEST=1 mocha"
   },
-  "author": "Georges-Bastien MICHEL",
+  "engines": {
+    "node": ">=12.0"
+  },
+  "author": {
+    "name": "Georges-Bastien MICHEL",
+    "email": "frenchyeti@protonmail.com"
+  },
+  "homepage": "https://github.com/FrenchYeti/dexcalibur",
   "license": "Apache-2.0"
 }
