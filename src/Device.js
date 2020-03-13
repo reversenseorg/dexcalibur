@@ -1,6 +1,7 @@
 
 const Logger = require("./Logger.js")();
 const _MD5_ = require("md5");
+const _FS_ = require('fs');
 
 const DEV = {
     USB: 0x1,
@@ -104,6 +105,25 @@ class Device
         c = this.bridge.pull(pRemotePath, pLocalPath, this.id);
         console.log(c);
         return c;
+    }
+
+    /**
+     * 
+     * @param {*} pPkgIdentifier 
+     * @param {*} pLocalPath 
+     * @returns {Boolean} Return TRUE if file has been successfully downloaded, else FALSE
+     * @throws {BridgeException} 
+     */
+    pullPackage( pPkgIdentifier, pLocalPath){
+        let path = null;
+
+        // get package path of the app
+        path = this.bridge.getPackagePath(pPkgIdentifier);
+
+        // pull the file
+        this.bridge.pull( path, pLocalPath);       
+
+        return _FS_.existsSync(pLocalPath);
     }
 
     /**
