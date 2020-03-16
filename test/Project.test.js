@@ -6,8 +6,8 @@ const Path = require("path");
 
 // -- App specific --
 
-const TEST_CONFIG = Path.join(process.cwd(),'./test/res/config_test.js');
-const TEST_CONFIG2 = Path.join(process.cwd(),'./test/res/config_test_2.js');
+const TEST_CONFIG = Path.join( __filename, './res/config_test.js');
+const TEST_CONFIG2 = Path.join( __filename, './res/config_test_2.js');
 
 var Logger = null;
 var CONFIG = null;
