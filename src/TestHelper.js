@@ -18,8 +18,8 @@ class TestHelper
     }
     newConfiguration(){
         this.config = new Configuration();
-        this.config.import(require(_path_.join( __filename, '..', this.testCfg.configuration)));
-        this.config.workspacePath = _path_.join( __filename, '../test/workspace/');
+        this.config.import(require(_path_.join( __dirname, '..', this.testCfg.configuration)));
+        this.config.workspacePath = _path_.join( __dirname, '../test/workspace/');
         return this.config;
     } 
 
