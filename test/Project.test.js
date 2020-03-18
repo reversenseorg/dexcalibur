@@ -292,6 +292,7 @@ describe('Project', function() {
         // TODO 
     });
 
+    /*
     describe('startWebServer()', function() {
         let p = null; // new Project("owasp.mstg.uncrackable1", TEST_CONFIG, 1);
 
@@ -311,6 +312,7 @@ describe('Project', function() {
             expect(p.web.port).to.equals(9999);
         });
     });
+    */
 /*
         it('using custom configuration file path', function () {
             p = new Project("owasp.mstg.uncrackable1", TEST_CONFIG, 0);
