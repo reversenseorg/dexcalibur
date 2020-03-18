@@ -2,14 +2,14 @@ CHANGELOG
 
 # Version 0.6
 
-## Lastest
+## 0.6.3
 
 * Add DEXCALIBUR_TEST environment variable : a way to turn some part of code into test mode
 * Add additional colors to Logger.debug : Logger.debugPink(), Logger.debugBgRed()
 * Add some unit test (Configuration, Logger, AdbWrapper, DeviceManager, ...)
 * Extend minimalist smali VM, add support of : invoke-super
 * PseudoCode maker can be turn off
-* Add this file
+* Create CHANGELOG file
 
 ## 0.6.2
 

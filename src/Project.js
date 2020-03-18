@@ -4,6 +4,9 @@ const Path = require("path");
 const Fs = require("fs");
 
 var CoreConst = require('./CoreConst.js');
+var PACKAGE_JSON = require("../package.json");
+
+
 
 var Logger = require("./Logger.js")();
 var Configuration = require("./Configuration.js");
@@ -195,8 +198,8 @@ Project.prototype.initDexcalibur = function(pkgName, cfgpath=null, nofrida=0, ap
     +"██║   ██║██╔══╝   ██╔██╗ ██║     ██╔══██║██║     ██║██╔══██╗██║   ██║██╔══██╗\n"
     +"███████╔╝███████╗██╔╝ ██╗╚██████╗██║  ██║███████╗██║██████╔╝╚██████╔╝██║  ██║\n"
     +"╚══════╝ ╚══════╝╚═╝  ╚═╝ ╚═════╝╚═╝  ╚═╝╚══════╝╚═╝╚═════╝  ╚═════╝ ╚═╝  ╚═╝\n"
-    + CoreConst.VERSION
-    + (" ".repeat(78-14-CoreConst.VERSION.length))
+    + PACKAGE_JSON.version
+    + (" ".repeat(78-14-PACKAGE_JSON.version.length))
     +"by @FrenchYeti \n"
     +"╔════════════════════════════════════════════════════════════════════════════╗\n"
     +"║ How to use ?                                                               ║\n"
