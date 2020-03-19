@@ -1,0 +1,9 @@
+## other configuration excluded from example...
+exclude_patterns:
+- "test/"
+- "src/webserver/"
+- "**/vendor/"
+- "scripts/"
+- "APIs/"
+- "docker/"
+- "bin/"

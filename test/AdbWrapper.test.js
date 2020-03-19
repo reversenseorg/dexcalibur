@@ -53,12 +53,12 @@ describe('ADB Wrapper', function() {
 
     describe('isReady( )', function() {
 
-        it('valid ADB binary path', function () {
+        /*it('valid ADB binary path', function () {
 
             let adbw = new AdbWrapper(CONFIG.getAdbPath());
-;
+            console.log(CONFIG.getAdbPath());
             expect(adbw.isReady()).to.equals(true);
-        });
+        });*/
 
         it('invalid ADB binary path', function () {
 

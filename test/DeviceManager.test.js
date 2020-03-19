@@ -12,6 +12,7 @@ var CONFIG = null;
 
 const TestHelper = require('../src/TestHelper.js');
 const DeviceManager = require('../src/DeviceManager.js');
+const AdbWrapper = require('../src/AdbWrapper');
 
 describe('Device Manager', function() {
 
@@ -37,7 +38,7 @@ describe('Device Manager', function() {
             let dm = new DeviceManager(CONFIG);
 
             expect(dm.config).to.not.equals(null);
-            expect(dm.Bridges.ADB).to.be.an.instanceOf('AdbWrapper');
+            expect(dm.Bridges.ADB).to.be.an.instanceOf(AdbWrapper);
         });
 
     });
