@@ -635,7 +635,28 @@ class RequestHelperChoice
 }
 
 
+
 var DexcaliburAPI = {
+    
+    exec: function( pUrl, pMethod = "get", pData = null, pSuccess = null, pError = null){
+        let data = {  _t: (new Date()).getTime() };
+
+        if(pData != null)
+            for(let i in pData) data[i] = pData[i];
+        
+        $.ajax( pUrl, {
+            method: pMethod,
+            data: data,
+            statusCode: {
+                200: function(data,err){
+                    if(pSuccess != null) pSuccess(data);
+                },
+                404: function(data,err){
+                    if(pError != null) pError(data);
+                }
+            }
+        });
+    },
     ui: {
         __state: {
             rendered: []
@@ -721,6 +742,14 @@ var DexcaliburAPI = {
             //$(document).
         }
     }, 
+    config: {
+        get: function( success=null, error=null){
+            DexcaliburAPI.exec("/api/settings","get",null, success, error);
+        },
+        save: function( pData, success=null, error=null){
+            DexcaliburAPI.exec("/api/settings","post", pData, success, error);
+        }
+    },
     configMgt: {
         getConfiguredBridges: function(){
             $.ajax("/api/config/bridges", {
@@ -1116,6 +1145,11 @@ var DexcaliburAPI = {
     },
     context: {
         tags: []
+    },
+    remote_util: {
+        pathExists: function( pPath, isFolder=false, onSuccess){
+            DexcaliburAPI.exec("/api/settings","get",{ path:pPath, folder:isFolder}, onSuccess, null);
+        }
     },
     util: {
         encodeLocationAction: function(val){

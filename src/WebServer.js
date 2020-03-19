@@ -7,6 +7,7 @@ const BodyParser = require("body-parser");
 const Path = require("path");
 const AnalysisHelper = require("./AnalysisHelper.js");
 const Decompiler = require("./Decompiler.js");
+const Configuration = require("./Configuration.js");
 
 const UT = require("./Utils.js");
 const Logger = require("./Logger.js")();
@@ -1275,10 +1276,63 @@ class WebServer {
         this.app.route('/api/settings')
             .get(function (req, res) {
                 // collect
-                let dev = {};
+                let dev = {
+                    cfg:null,
+                    frida: null
+                };
                 let cfg = $.project.getConfiguration();
 
-                dev = cfg.toJsonObject();
+                dev.cfg = cfg.toJsonObject();
+                dev.frida = cfg.getLocalFridaVersion();
+                res.status(200).send(JSON.stringify(dev));
+            })
+            .post(function (req, res) {
+                // collect
+
+                let data = req.body;
+                console.log(data);
+
+                let dev = { status:null, invalid:null, err:null };
+                //let cfg = Configuration.from(data);
+
+                let cfg = $.project.getConfiguration();
+
+                // clone existing config
+                cfg = cfg.clone();
+
+                // import received data
+                cfg.import( data,
+                    false, // autocomplete
+                    true // override
+                );
+
+                // verifiy fields
+                dev.invalid = cfg.verify();
+
+                try{
+                    if(dev.invalid.length === 0){
+                        console.log("Save configuration changes ...")
+                        //cfg.save();
+                    }else{
+                        console.log(dev.invalid);
+                    }
+                }catch(err){
+                    dev.err = err;
+                    console.log(err);
+                }
+/*
+                let dev = false;
+                let cfg = $.project.getConfiguration();
+
+                cfg = cfg.clone();
+
+                // not autocomplete, force overwrite
+                cfg.import( data,
+                    false, // autocomplete
+                    true // override
+                )
+                
+*/
                 res.status(200).send(JSON.stringify(dev));
             })
 
