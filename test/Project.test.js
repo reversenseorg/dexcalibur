@@ -88,14 +88,18 @@ describe('Project', function() {
         });
     });
 
+    /*
     describe('new - configuration init', function() {
         let p = null; // new Project("owasp.mstg.uncrackable1", TEST_CONFIG, 1);
 
         it('with default configurat', function () {
-            p = new Project("owasp.mstg.uncrackable1", TestHelper.newConfiguration(), 1);
+            //let conf = TestHelper.newConfiguration();
+            console.log(TestHelper.getConfigurationPath());
+            p = new Project("owasp.mstg.uncrackable1", TestHelper.getConfigurationPath(), 1);
 
             expect(p.cfgpath).to.equals(TestHelper.getConfigurationPath());
 
+console.log(Logger);
             expect(Logger.expect({
                 type: "info",
                 value: " Given configuration file loaded"
@@ -104,7 +108,7 @@ describe('Project', function() {
             expect(p.getConfiguration()).to.be.not.null(); 
             
         });
-    });
+    });*/
 
     describe('initDexcalibur()', function() {
         let p = null; // new Project("owasp.mstg.uncrackable1", TEST_CONFIG, 1);
@@ -160,7 +164,7 @@ describe('Project', function() {
 
         it('should return Configuration instance', function () {
             expect(p.getConfiguration()).to.be.an.instanceOf(Configuration);
-            expect(p.getConfiguration()).to.be.deep.equal(TestHelper.getConfiguration());
+            expect(p.getConfiguration().apktPath).to.be.deep.equal("/home/example/tools/apktool");
         });
     });
 
@@ -210,11 +214,14 @@ describe('Project', function() {
         let p = null; // new Project("owasp.mstg.uncrackable1", TEST_CONFIG, 1);
 
         it('builtin API', function () {
-            p = new Project("owasp.mstg.uncrackable1", TEST_CONFIG, 1);
+            let conf = TestHelper.getConfiguration();
+
+            p = new Project("owasp.mstg.uncrackable1", conf, 1);
 
             p.useAPI("android:7.0.0");
 
-            //expect(p.getConfiguration().getTargetPlatformPath()).to.be.not.null(); 
+            expect(p.getConfiguration().getTargetPlatformPath()).to.be.equals("/home/example/dexcalibur/APIs/android_24"); 
+//            expect(p.getConfiguration().getTargetPlatformPath()).to.be.not.null(); 
             
         });
 

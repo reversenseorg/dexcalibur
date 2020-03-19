@@ -10,12 +10,13 @@ const Configuration = require("./Configuration.js");
 class TestHelper
 {
     constructor(){
-        this.testCfg = require("../test/test_configuration.js");
+        this.testCfg = require( _path_.join( __dirname, "../test/test_configuration.js") );
         this.config = null;
         this.interceptors = {
             exec: []
         };
     }
+
     newConfiguration(){
         this.config = new Configuration();
         this.config.import(require(_path_.join( __dirname, this.testCfg.configuration)));
@@ -28,7 +29,8 @@ class TestHelper
     }
 
     getConfigurationPath(){
-        return this.testCfg.configuration;
+        // return this.testCfg.configuration;
+        return _path_.join( __dirname, this.testCfg.configuration);
     }
 
     interceptExec( pInterceptor, pReturn){
