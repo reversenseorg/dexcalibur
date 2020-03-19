@@ -1,15 +1,12 @@
 // global
 var fs = require("fs");
 var Chalk = require("chalk");
-const Path = require("path");
 
 var ut = require("./Utils.js");
 const CLASS = require("./CoreClass.js");
 var CONST = require("./CoreConst.js");
-var VM = require("./VM.js");
 var OPCODE = require("./Opcode.js").OPCODE;
 const AnalysisHelper = require("./AnalysisHelper.js");
-const AndroidManifestXmlParser = require("./AndroidManifestXmlParser.js");
 const MemoryDb = require("./InMemoryDb.js");
 const Event = require("./Event.js").Event;
 const Logger = require("./Logger.js")();
@@ -861,14 +858,28 @@ function Analyzer(encoding, finder, ctx=null){
         if(!filename.endsWith(".smali") && !force)
             return;
 
+        // TODO : replace readFile + string.split by stream
 
         // TODO : test UTF8 support
-        let src=fs.readFileSync(filePath,config.encoding);
+        let src=null, rs=0, cls=null, o=null;
+        let stremParser = false;
+        // parse file using blocking IO and string split
+        if(stremParser){
+            o = SmaliParser.parseStream(filePath, config.encoding, function( pClass){
+                tempDb.classes.addEntry(pClass.fqcn, pClass);
+                rs++;
+            });
+        }else{
+            src=fs.readFileSync(filePath,config.encoding);
+            cls= SmaliParser.parse(src);
+            tempDb.classes.addEntry(cls.fqcn, cls);
+        }
+
         
-        // parse file
-        let cls= SmaliParser.parse(src), o=null;
+        // parse file using stream
+        //while(rs<1);
         
-        tempDb.classes.addEntry(cls.fqcn, cls);
+
         //tempDb.classes[cls.fqcn] = cls;
         //tempDb.classesCtr += 1;
         /* 
@@ -1329,22 +1340,17 @@ Analyzer.prototype.insertIn = function(category, inData){
             this.db[category].addEntry(i, inData[i]);
         }
     }
-};
+}
+
+function tagAsAndroidInternal( pOffset, pElement){
+    pElement.addTag(AnalysisHelper.TAG.Discover.Internal);
+}
 
 Analyzer.prototype.tagAllAsInternal = function(){
-    this.db.classes.map((k,v) => { v.addTag(AnalysisHelper.TAG.Discover.Internal)});
-    this.db.fields.map((k,v) => { v.addTag(AnalysisHelper.TAG.Discover.Internal)});
-    this.db.methods.map((k,v) => { v.addTag(AnalysisHelper.TAG.Discover.Internal)});
-    this.db.strings.map((k,v) => { v.addTag(AnalysisHelper.TAG.Discover.Internal)});
-/*
-    for(let k in this.db.classes)
-        this.db.classes.getEntry(k).addTag(AnalysisHelper.TAG.Discover.Internal);
-    for(let k in this.db.fields)
-        this.db.fields[k].addTag(AnalysisHelper.TAG.Discover.Internal);
-    for(let k in this.db.methods)
-        this.db.methods[k].addTag(AnalysisHelper.TAG.Discover.Internal);
-    for(let k=0; k<this.db.strings.length; k++)
-        this.db.strings[k].addTag(AnalysisHelper.TAG.Discover.Internal);*/
+    this.db.classes.map(tagAsAndroidInternal);
+    this.db.fields.map(tagAsAndroidInternal);
+    this.db.methods.map(tagAsAndroidInternal);
+    this.db.strings.map(tagAsAndroidInternal);
 }
 
 Analyzer.prototype.resolveMethod = function(ref){
