@@ -1,5 +1,7 @@
 .nyc_output/
 .VSCodeCounter/
+.github/
+.travis.yml
 coverage/
 node_modules/
 docker/

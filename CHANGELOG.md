@@ -2,6 +2,11 @@ CHANGELOG
 
 # Version 0.6
 
+## Latest
+
+* Improve test unit
+* Remove frida* fields from configuartion file
+
 ## 0.6.3
 
 * Add DEXCALIBUR_TEST environment variable : a way to turn some part of code into test mode

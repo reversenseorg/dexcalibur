@@ -23,10 +23,6 @@
     // Java path
     javaBinPath: "java",
 
-    // TODO useless : to remove
-    fridaDevPath: "/data/local/frida-server",
-    fridaServerPath: "",
-    
     // do not modified
     deviceId: null,
     useEmulator: false,

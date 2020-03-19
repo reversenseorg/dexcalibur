@@ -27,8 +27,6 @@ module.exports = {
     javaBinPath: "java",
 
     // TODO useless : to remove
-    fridaDevPath: "/data/local/frida-server",
-    fridaServerPath: "",
     fridaBin: 'frida',
     
     // do not modified

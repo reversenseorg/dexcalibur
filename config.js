@@ -19,8 +19,8 @@ module.exports = {
     sdbPath: null,
 
     // TODO useless : to remove
-    fridaDevPath: "/data/local/frida-server",
-    fridaServerPath: "",
+    //fridaDevPath: "/data/local/frida-server",
+    //fridaServerPath: "",
     fridaBin: 'frida',
     
     // do not modified
