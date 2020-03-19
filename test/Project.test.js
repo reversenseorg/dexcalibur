@@ -220,7 +220,8 @@ console.log(Logger);
 
             p.useAPI("android:7.0.0");
 
-            expect(p.getConfiguration().getTargetPlatformPath()).to.be.equals("/home/example/dexcalibur/APIs/android_24"); 
+            expect(p.getConfiguration().getTargetPlatformPath()).to.be.equals(
+                Path.join( __dirname, "../APIs/android_24")); 
 //            expect(p.getConfiguration().getTargetPlatformPath()).to.be.not.null(); 
             
         });

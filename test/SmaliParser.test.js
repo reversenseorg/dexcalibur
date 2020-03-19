@@ -1,21 +1,12 @@
 var chai = require('chai'),
-    sinon = require('sinon'),
-    sinonChai = require('sinon-chai'),
-    process = require("process");
-var expect = chai.expect,
-    should = chai.should();
+    sinonChai = require('sinon-chai');
+var expect = chai.expect;
 
 chai.use(sinonChai);
 
 // --- App specific ---
 
-var Configuration = require('../src/Configuration.js');
-var Platform = require('../src/Platform.js');
-
-const CONFIG = require('./res/config.js');;
-const CONFIG_PATH = './test/res/config.js';
-const PKG_NAME = "unit.test";
-
+var SmaliParser = require('../src/SmaliParser.js');
 
 
 describe('SmaliParser', function() {
@@ -29,71 +20,139 @@ describe('SmaliParser', function() {
        // console.log.restore();
     });
     
-    describe('import', function() {
-        
-     
+    describe('isModifier - test if a word is a valid Access flag', function() {
 
-
-        it('import config no force, no override (default) with invalid value', function () {
-            let conf = new Configuration();
-            conf.import(CONFIG_FAIL);
-
-            expect(conf.encoding).to.equals("utf8");
-            expect(conf.workspacePath).to.equals( "/home/dexcalibur/workspace/");
-            expect(conf.invalid_ppt).to.equals(undefined);
+        it('public', function () {
+            let parser = new SmaliParser();
+            
+            expect(parser.isModifier('public')).to.equals(true);
         });
 
-
-        it('import config forced, no override with invalid value', function () {
-            let conf = new Configuration();
-            conf.import(CONFIG_FAIL, true);
-
-            expect(conf.encoding).to.equals("utf8");
-            expect(conf.workspacePath).to.equals( "/home/dexcalibur/workspace/");
-            expect(conf.invalid_ppt).to.equals("invalid_value");
+        it('protected', function () {
+            let parser = new SmaliParser();
+            
+            expect(parser.isModifier('protected')).to.equals(true);
         });
 
-
-        it('import config no forced with override', function () {
-            let conf = new Configuration();
-            conf.import(CONFIG);
-            expect(conf.dexcaliburPath).to.equals( "/home/dexcalibur/dexcalibur/src/");
-
-            conf.import(CONFIG_2, false, true);
-            expect(conf.dexcaliburPath).to.equals("/home/test/dexcalibur/src/");
+        it('private', function () {
+            let parser = new SmaliParser();
+            
+            expect(parser.isModifier('private')).to.equals(true);
         });
 
-
-        it('import config forced with override', function () {
-            let conf = new Configuration();
-            conf.import(CONFIG);
-            expect(conf.dexcaliburPath).to.equals( "/home/dexcalibur/dexcalibur/src/");
-
-            conf.import(CONFIG_FAIL, true, true);
-            expect(conf.dexcaliburPath).to.equals("/home/test/dexcalibur/src/");
-            expect(conf.invalid_ppt).to.equals("invalid_value");
+        it('static', function () {
+            let parser = new SmaliParser();
+            
+            expect(parser.isModifier('static')).to.equals(true);
         });
 
+        it('final', function () {
+            let parser = new SmaliParser();
+            
+            expect(parser.isModifier('final')).to.equals(true);
+        });
+
+        it('synchronized', function () {
+            let parser = new SmaliParser();
+            
+            expect(parser.isModifier('synchronized')).to.equals(true);
+        });
+
+        it('volatile', function () {
+            let parser = new SmaliParser();
+            
+            expect(parser.isModifier('volatile')).to.equals(true);
+        });
+
+        it('bridge', function () {
+            let parser = new SmaliParser();
+            
+            expect(parser.isModifier('bridge')).to.equals(true);
+        });
+
+        it('varargs', function () {
+            let parser = new SmaliParser();
+            
+            expect(parser.isModifier('varargs')).to.equals(true);
+        });
+
+        it('native', function () {
+            let parser = new SmaliParser();
+            
+            expect(parser.isModifier('native')).to.equals(true);
+        });
+
+        it('interface', function () {
+            let parser = new SmaliParser();
+            
+            expect(parser.isModifier('interface')).to.equals(true);
+        });
+
+        it('abstract', function () {
+            let parser = new SmaliParser();
+            
+            expect(parser.isModifier('abstract')).to.equals(true);
+        });
+
+        it('strictfp', function () {
+            let parser = new SmaliParser();
+            
+            expect(parser.isModifier('strictfp')).to.equals(true);
+        });
+
+        it('synthetic', function () {
+            let parser = new SmaliParser();
+            
+            expect(parser.isModifier('synthetic')).to.equals(true);
+        });
+
+        it('annotation', function () {
+            let parser = new SmaliParser();
+            
+            expect(parser.isModifier('annotation')).to.equals(true);
+        });
+
+        it('enum', function () {
+            let parser = new SmaliParser();
+            
+            expect(parser.isModifier('enum')).to.equals(true);
+        });
+
+        it('constructor', function () {
+            let parser = new SmaliParser();
+            
+            expect(parser.isModifier('constructor')).to.equals(true);
+        });
+
+        it('declared-synchronized', function () {
+            let parser = new SmaliParser();
+            
+            expect(parser.isModifier('declared-synchronized')).to.equals(true);
+        });
+
+        it('system (invalid access flag)', function () {
+            let parser = new SmaliParser();
+            
+            expect(parser.isModifier('system')).to.equals(false);
+        });
+
+        it('.line (invalid access flag)', function () {
+            let parser = new SmaliParser();
+            
+            expect(parser.isModifier('.line')).to.equals(false);
+        });
+
+        it('.method (invalid access flag)', function () {
+            let parser = new SmaliParser();
+            
+            expect(parser.isModifier('.method')).to.equals(false);
+        });
+
+        it('<init> (invalid access flag)', function () {
+            let parser = new SmaliParser();
+            
+            expect(parser.isModifier('<init>')).to.equals(false);
+        });
     });
 
-    describe('get target platform', function() {
-        
-        it('default platform', function () {
-            let conf = new Configuration();
-            conf.import(CONFIG);
-
-            expect(conf.platform_target).to.equals("android:7.0.0");
-            expect(conf.platform_available[conf.platform_target]).to.instanceOf(Platform)
-            expect(conf.getTargetPlatformPath()).to.equals("/home/dexcalibur/dexcalibur/APIs/android_24")
-        });
-
-        it('custom platform', function () {
-            let conf = new Configuration();
-            conf.import(CONFIG);
-
-            conf.platform_target = "custom:vendor1";
-            expect(conf.platform_available["custom:vendor1"]).to.instanceOf(Platform)
-            expect(conf.getTargetPlatformPath()).to.equals("/tmp/android_custom/")
-        });
-    });
 });
