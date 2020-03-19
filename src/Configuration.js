@@ -1,13 +1,30 @@
-const fs = require("fs");
+const _fs_ = require("fs");
+
 const Logger = require("./Logger.js")();
 const Platform = require("./Platform.js");
 const Path = require("path");
+const FridaHelper = require("./FridaHelper");
 
 const NO_EXPORT = ["platform_available"];
+const ENCODING = ["utf8","latin1"];
 
 class Configuration {
+
+    static DXCWS = 0b10;
+    static PLATFORMS = 0b01;
+
     constructor() {
         this.ready = false;
+
+        // reference to DexcaliburWorkspace object
+        this.workspace = null;
+
+        /*
+         * Dexcalibur's workspace
+         * @field
+         */
+        //this.dxcWorkspace = null;
+
 
         // the default encoding ()
         this.encoding = null; //"utf8"
@@ -15,28 +32,24 @@ class Configuration {
         // Dexcalibur src location
         this.dexcaliburPath = null,
 
-            // workspace location : folder where analyzed APK and data are stored
-            this.workspacePath = null, //"/tmp/ws/",
+        // workspace location 
+        // the workspace contains a directory per project folder where analyzed APK and data are stored
+        this.workspacePath = null, //"/tmp/ws/",
 
-            // ADB location
-            this.adbPath = null,
-            this.androidSdkPath = null,
+        // ADB location
+        this.adbPath = null,
+        this.androidSdkPath = null,
 
-            // APKTool location
-            this.apktPath = null,
+        // APKTool location
+        this.apktPath = null,
 
-            // Optional : SDB location
-            this.sdbPath = null,
+        // Optional : SDB location
+        this.sdbPath = null,
 
-            // Java bin path
-            this.javaBinPath = "java"; //"java";
+        // Java bin path
+        this.javaBinPath = "java"; //"java";
 
-        
-       
-        // deprecated
-        // useless : to remove
-        this.fridaDevPath = null; // "/data/local/frida-server",
-        this.fridaServerPath = null; // "~/tools/frida/frida-server",
+        // frida binary
         this.fridaBin = 'frida';
 
         // do not modified
@@ -71,9 +84,83 @@ class Configuration {
         this.platform_available = null;
     }
 
+    /**
+     * To create a Configuration object from a serialized Configuration object
+     * @param {Object} pData Parameters values
+     * @returns {Configuration} Configuration object filled with given data
+     * @method
+     */
+    static from( pData){
+        let cfg = new Configuration();
+
+        cfg.import(pData, false, true);
+
+        return cfg;
+    }
+
+
+    verify(){
+        let verif={ length:0, msg:{} };
+        for(let i in this){
+            switch(i)
+            {
+                case "encoding":
+                    if(ENCODING.indexOf(this[i])==-1){
+                        verif.msg[i] = `Invalid encoding. Supported : UTF8, Latin1`;
+                        verif.length++;
+                    }
+                    break;
+                case "dexcaliburPath":
+                case "adbPath":
+                case "apktPath":
+                case "androidSdkPath":
+                case "tmpDir":
+                case "workspacePath":
+                    console.log(_fs_.existsSync(this[i]), this[i]);
+                    if(_fs_.existsSync(this[i]) == false){
+                        verif.msg[i] = `Invalid path : file or directory not found`;
+                        verif.length++;                        
+                    }
+                    break;
+                case "web_port":
+                    if(this.web_port > 65535 || this.web_port < 0){
+                        verif.msg.web_port = `Invalid port number`;
+                        verif.length++;                        
+                    }
+                    break;
+            }
+        }
+
+        return verif;
+    }
+
+
+    /**
+     * To clone the current instance of Configuration
+     * @returns {Configuration} A clone of current instance
+     * @method
+     */
+    clone(){
+        let cfg = new Configuration();
+        for(let i in this){
+            cfg[i] = this[i];
+        } 
+        return cfg;
+    }
+
     getFridaBin(){
         return this.fridaBin;
     }
+
+    /**
+     * To detect if Frida is installed and get version
+     */
+    getLocalFridaVersion(){
+        return FridaHelper.getLocalFridaVersion(this.fridaBin);
+    }
+
+    
+
 
     /**
      * To get the Java binary path (absolute or relative to $PATH) 
@@ -93,13 +180,13 @@ class Configuration {
      */
     exportTo(path) {
         // remove file
-        if(fs.existsSync(path)==true)
-            fs.unlinkSync(path);
+        if(_fs_.existsSync(path)==true)
+            _fs_.unlinkSync(path);
         // create file
-        fs.openSync(path,'w+');
+        _fs_.openSync(path,'w+');
 
         // write
-        fs.writeFileSync(path, JSON.stringify(this.toJsonObject()))
+        _fs_.writeFileSync(path, JSON.stringify(this.toJsonObject()))
         
         
         return true;
@@ -128,10 +215,14 @@ class Configuration {
             }
         }
 
+        if(typeof this.web_port == "string"){
+            this.web_port = parseInt(this.web_port, 10);
+        }
+
         this.autocomplete();
 
         for (let i in this.platform_available) {
-            this.platform_available[i] = new Platform(this.platform_available[i], Path.join(this.dexcaliburPath, "..", "APIs"));
+            this.platform_available[i] = new Platform(this.platform_available[i], Path.join( __dirname, "..", "APIs"));
         }
 
         this.ready = true;
@@ -222,16 +313,23 @@ class Configuration {
         return this.web_port;
     }
 
-    toJsonObject() {
+    toJsonObject( pInclude=Configuration.PLATFORMS) {
         let o = new Object();
 
         for (let i in this) {
             if(i=='ready') continue;
             switch (i) {
+                case "workspace":
+                    if(pInclude & Configuration.DXCWS){
+                        o[i] = this[i].toJsonObject();
+                    }
+                    break;
                 case "platform_available":
-                    o[i] = {};
-                    for (let k in this[i])
-                        o[i][k] = this[i][k].toJsonObject();
+                    if(pInclude & Configuration.PLATFORMS){
+                        o[i] = {};
+                        for (let k in this[i])
+                            o[i][k] = this[i][k].toJsonObject();
+                    }
                     break;
                 default:
                     if (typeof this[i] != 'function')

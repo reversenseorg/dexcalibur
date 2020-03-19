@@ -2,6 +2,7 @@ var chai = require('chai'),
     sinon = require('sinon'),
     sinonChai = require('sinon-chai'),
     process = require("process");
+    Path = require('path');
 var expect = chai.expect,
     should = chai.should();
 const fs = require("fs");
@@ -181,7 +182,7 @@ describe('Configuration component', function() {
 
             expect(conf.platform_target).to.equals("android:7.0.0");
             expect(conf.platform_available[conf.platform_target]).to.instanceOf(Platform)
-            expect(conf.getTargetPlatformPath()).to.equals("/home/dexcalibur/dexcalibur/APIs/android_24")
+            expect(conf.getTargetPlatformPath()).to.equals( Path.join( __dirname, "../APIs/android_24"));
         });
 
         it('custom platform', function () {
@@ -209,8 +210,6 @@ describe('Configuration component', function() {
                 apktPath: "/usr/local/bin/apktool",
                 sdbPath: null,
                 javaBinPath: "java",
-                fridaDevPath: "/data/local/frida-server",
-                fridaServerPath: "",
                 fridaBin: 'frida',
                 deviceId: null,
                 useEmulator: false,
@@ -223,7 +222,7 @@ describe('Configuration component', function() {
                         name: "android",
                         version : "7.0.0",
                         apiVersion: 24,
-                        binaryPath: "/home/dexcalibur/dexcalibur/APIs/android_24"
+                        binaryPath: Path.join( __dirname, "../APIs/android_24")
                     },
             
                     "custom:vendor1": {
@@ -254,8 +253,6 @@ describe('Configuration component', function() {
                     apktPath: "/usr/local/bin/apktool",
                     sdbPath: null,
                     javaBinPath: "java",
-                    fridaDevPath: "/data/local/frida-server",
-                    fridaServerPath: "",
                     fridaBin: 'frida',
                     deviceId: null,
                     useEmulator: false,
@@ -268,7 +265,7 @@ describe('Configuration component', function() {
                             name: "android",
                             version : "7.0.0",
                             apiVersion: 24,
-                            binaryPath: "/home/dexcalibur/dexcalibur/APIs/android_24"
+                            binaryPath: Path.join( __dirname, "../APIs/android_24")
                         },
                         "custom:vendor1": {
                             name: "android",
