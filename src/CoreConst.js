@@ -79,7 +79,10 @@ var CONST = {
             VARARG: "varargs",
             NATIVE: "native",
             INTERFACE: "interface",
-            ANNOTATION: "annotation"    
+            ANNOTATION: "annotation",    
+            STRICTFP: "strictfp",    
+            SYNCHRONIZED: "synchronized",
+
         }
     },
     JAVA: {
