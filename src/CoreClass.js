@@ -1563,11 +1563,15 @@ Method.prototype.toJsonObject = function(fields=[],exclude=[]){
                     break;
                 case "_callers":
                     obj._callers = [];
-                    //console.log(this._callers.length);
                     for(let j=0; j<this._callers.length ; j++){
                         if(this._callers[j] != undefined)
-                            //console.log("Callers -> ",this._callers[i].signature());
-                            obj._callers.push(this._callers[j].__signature__);
+                            if(this._callers[j] instanceof Method){
+                                //console.log("Callers -> ",this._callers[i].signature());
+                                obj._callers.push(this._callers[j].signature());
+                            }else{
+                                obj._callers.push(this._callers[j]);
+                            }
+                           
                     }
                     break;
                 case "__signature__":
@@ -1856,6 +1860,7 @@ Method.prototype.getArrayUsed = function(){
     return this._useMethod;
 }
 */
+/*
 function CondTag(){
     this.name = null;
 
@@ -1878,7 +1883,7 @@ function SwitchBlock(){
     this.name = null;
 
     return this;
-}
+}*/
 /*
 function Tag(tag){
     this.$ = STUB_TYPE.TAG;
@@ -3163,9 +3168,9 @@ class MissingReference
                 case "_callers":
                     if(this._callers.length > 0){
                         o._callers = [];
-                        for(let i=0; i<this._callers.length; i++) o._callers.push(
-                            this._callers[i].toJsonObject(["__signature__","alias"])
-                        );
+                        for(let i=0; i<this._callers.length; i++){ 
+                            o._callers.push(this._callers[i].toJsonObject(["__signature__","alias"]));
+                        }
                     }
                     break;
                 case "enclosingClass":
@@ -3281,51 +3286,9 @@ StringValue.prototype.getTags = function(){
     return this.tags;   
 }
 
-function NodeMap(){
-    this.data = {};
-}
-
-function NodeList(){
-    this.data = [];
-}
-NodeList.prototype.push = function(node){
-    this.data.push(node);
-}
-NodeList.prototype.count = function(node){
-    this.data.length;
-}
-NodeList.prototype.getBy = function(field,val){
-    let res = new NodeList();
-    for(let i in this.data){
-        if(this.data[i][field] !== undefined 
-            && this.data[i][field]===val){
-                res.push(this.data[i]);
-        }
-    }
-    return res;
-}
 
 
 
-function NodeDB(){
-    // classesCtr = 0,
-    // methodsCtr = 0,
-    // fieldsCtr = 0,
-    
-    this.classes = {};
-    this.fields = {};
-    this.methods = {};
-    this.strings = [];
-    this.packages = [];
-    
-    
-    this.call = [];
-    this.unmapped = [];
-    this.notbinded = [];
-    this.notloaded = [];
-    this.missing =  [];
-    this.parseErrors = [];   
-}
 
 var all_exports = {
     Package: Package,
