@@ -2,9 +2,10 @@
 
 const _FS_ = require('fs');
 const _PATH_ = require('path');
+const _OS_ = require('os');
 
 // Linux : /home/*/.dexcalibur
-const dexcaliburPrefs = _PATH_.join( os.homedir(), '.dexcalibur');
+const dexcaliburPrefs = _PATH_.join( _OS_.homedir(), '.dexcalibur');
 
 // create '.dexcalibur' folder into user home
 if(_FS_.existsSync( dexcaliburPrefs)==false){
