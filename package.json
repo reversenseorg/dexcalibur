@@ -39,7 +39,8 @@
   "scripts": {
     "dexcalibur": "node --max-old-space-size=4096 ./dexcalibur",
     "start": "node --max-old-space-size=4096 ./dexcalibur",
-    "test": "DEXCALIBUR_TEST=1 mocha"
+    "test": "DEXCALIBUR_TEST=1 DEXCALIBUR_PORT=8081 DEXCALIBUR_HOST=127.0.0.1 mocha",
+    "postinstall": "node ./scripts/postinstall.js"
   },
   "engines": {
     "node": ">=12.0"
