@@ -1,6 +1,3 @@
-#!/usr/local/bin/node --max-old-space-size=8192
-//#!/usr/bin/node --max-old-space-size=8192
-
 
 const Process = require("process");
 const FS = require("fs"); 
@@ -92,8 +89,9 @@ if(projectArgs.debug){
 }
 
 
+const DexcaliburEngine = require("./src/DexcaliburEngine.js");
 
-const Dexcalibur = require("./src/Project.js");
+const DexcaliburProject = require("./src/Project.js");
 const PlatformBuilder = require("./src/PlatformBuilder.js");
 const Platform = require("./src/Platform.js");
 const Configuration = require("./src/Configuration.js");
@@ -117,6 +115,13 @@ if(projectArgs.buildApi != null){
     builder.build(target);
 }
 
+var DxcInstance  = null, ready=false;
+if( DexcaliburEngine.isNPMsetup() ){
+    DxcInstance = new DexcaliburEngine();
+    ready = DxcInstance.boot();
+    console.log('Ready :',ready);
+}
+
 
 if(projectArgs.api == null){
     projectArgs.api = "android:7.0.0";
@@ -126,9 +131,9 @@ if(projectArgs.app != null){
     
     var Project = null ;
     if(projectArgs.config != null){
-        Project = new Dexcalibur(projectArgs.app, projectArgs.config, projectArgs.nofrida, projectArgs.api);
+        Project = new DexcaliburProject(projectArgs.app, projectArgs.config, projectArgs.nofrida, projectArgs.api);
     }else{
-        Project = new Dexcalibur(projectArgs.app, null, projectArgs.nofrida, projectArgs.api);
+        Project = new DexcaliburProject(projectArgs.app, null, projectArgs.nofrida, projectArgs.api);
     }
 
     if(projectArgs.useEmu)

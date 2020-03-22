@@ -53,5 +53,9 @@ module.exports = {
             // Custom path can be defined as follow
             // binaryPath: "/tmp/android_custom/"
         }
-    }
+    },
+
+    // !IMPORTANT! :  DO NOT MODIFY
+    installed: false
+    // !IMPORTANT! :  DO NOT MODIFY
 };
