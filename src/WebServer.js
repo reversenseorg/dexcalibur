@@ -56,7 +56,7 @@ class TemplateEngine {
         this.project = project;
         this.tokenRE = new RegExp("<!--##\\s*(.+)\\s+##-->");
         this.tokens = {};
-        this.root = Path.join(project.config.dexcaliburPath, "webserver", "public");
+        this.root = Path.join( __dirname, "webserver", "public");
     }
 
     /**
@@ -91,20 +91,46 @@ class TemplateEngine {
     }
 }
 
-
+/**
+ * Class representing Dexcalibur's web server
+ * 
+ * @class
+ */
 class WebServer {
 
-    constructor(project) {
-        this.project = project;
-        this.tplengine = new TemplateEngine(project);
+    /**
+     * 
+     * @param {Project} pProject 
+     * @constructor
+     */
+    constructor( pProject=null) {
+        this.project = pProject;
+        this.tplengine = new TemplateEngine(pProject);
         this.app = Express();
         this.port = 8000;
-        this.root = Path.join(this.project.config.dexcaliburPath, "webserver", "public");
+//        this.root = Path.join(this.project.config.dexcaliburPath, "webserver", "public");
+        this.root = Path.join( __dirname, "webserver", "public");
+
         this.logs = {
             access: []
         };
     }
 
+    /**
+     * To get Express Application instance used by web server  
+     * 
+     * @returns {require('express').Application} Instance of Express Application
+     * @method
+     */
+    getApplication(){
+        return this.app;
+    }
+
+    /**
+     * To initialize routes of the web server
+     * 
+     * @method
+     */
     initRoute() {
         let $ = this;
 
@@ -1302,8 +1328,8 @@ class WebServer {
 
                 // import received data
                 cfg.import( data,
-                    false, // autocomplete
-                    true // override
+                    false, // autocomplete OFF
+                    true // override ON
                 );
 
                 // verifiy fields
@@ -1312,7 +1338,8 @@ class WebServer {
                 try{
                     if(dev.invalid.length === 0){
                         console.log("Save configuration changes ...")
-                        //cfg.save();
+                        // Ask to current configuration to backup new configuration
+                        $.project.getConfiguration().save(cfg);
                     }else{
                         console.log(dev.invalid);
                     }
@@ -1334,7 +1361,29 @@ class WebServer {
                 
 */
                 res.status(200).send(JSON.stringify(dev));
-            })
+            });
+
+            this.app.route('/api/util/mkdir')
+                .post(function (req, res) {
+                    // collect
+                    let dev = { created:null, err:null };
+                    let data = req.body;
+                    console.log(data);
+
+                    try{
+                        if(fs.existsSync(data.path)==false){
+                            fs.mkdirSync(data.path)
+                            dev.created = fs.existsSync(data.path);
+                        }else{
+                            console.log("path exists");
+                        }
+                    }catch(err){
+                        console.log(err);
+                        dev.err = err;
+                    }
+
+                    res.status(200).send(JSON.stringify(dev));
+                })
 
         /*
          * Send an intent to to the default device

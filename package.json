@@ -1,6 +1,6 @@
 {
   "name": "dexcalibur",
-  "version": "0.6.3",
+  "version": "0.6.4",
   "description": "Dynamic binary instrumentation tool designed for Android application and powered by Frida. Offers a GUI and a Node.JS API",
   "main": "src/Project.js",
   "directories": {
@@ -28,7 +28,7 @@
     "xml2js": "^0.4.19"
   },
   "devDependencies": {
-    "mocha": "^5.2.0",
+    "mocha": "^5.2.0",  
     "mocha-sinon": "^2.1.0",
     "sinon": "^7.3.2",
     "sinon-chai": "^3.3.0"
@@ -40,7 +40,7 @@
     "dexcalibur": "node --max-old-space-size=4096 ./dexcalibur",
     "start": "node --max-old-space-size=4096 ./dexcalibur",
     "test": "DEXCALIBUR_TEST=1 DEXCALIBUR_PORT=8081 DEXCALIBUR_HOST=127.0.0.1 mocha",
-    "postinstall": "node ./scripts/postinstall.js"
+    "postinstall": "scripts/postinstall.js"
   },
   "engines": {
     "node": ">=12.0"

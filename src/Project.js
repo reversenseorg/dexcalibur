@@ -3,6 +3,7 @@ var Chalk = require("chalk");
 const Path = require("path");
 const Fs = require("fs");
 
+
 var CoreConst = require('./CoreConst.js');
 var PACKAGE_JSON = require("../package.json");
 
@@ -585,13 +586,18 @@ Project.prototype.start = function(activity){
  * @param {int} port Optional - The port number to use. By default, the port number from configuration is used.
  * @function
  */
-Project.prototype.startWebserver = function(port=null){
+Project.prototype.startWebserver = function( pPort=null){
     // if port is undefined or null
-    if(port==null){
-        this.web.start(this.config.getWebPort());
-    }else{
-        this.web.start(port);
-    }
+    let port = null;
+    if(process.env.DEXCALIBUR_PORT!=null)
+        port = process.env.DEXCALIBUR_PORT
+    else if(pPort != null)
+        port = pPort;
+    else
+        port = this.config.getWebPort();
+
+    // strat 
+    this.web.start(port);
 }
 
 /**
