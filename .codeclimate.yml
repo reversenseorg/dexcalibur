@@ -1,0 +1,15 @@
+exclude_patterns:
+- "test/"
+- "src/webserver/"
+- "**/vendor/"
+- "scripts/"
+- "APIs/"
+- "docker/"
+- "bin/"
+engines:
+  duplication:
+    enabled: true
+    config:
+      languages:
+        javascript:
+          mass_threshold: 65

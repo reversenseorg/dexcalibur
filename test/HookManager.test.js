@@ -1,46 +1,103 @@
 const chai = require('chai');
-   // sinon = require('sinon'),
-   // sinonChai = require('sinon-chai'),
-const process = require("process");
-const expect = chai.expect,
-    should = chai.should();
+const expect = chai.expect;
 
 //chai.use(sinonChai);*/
 
 // -- App specific --
 
-const TEST_CONFIG = process.cwd()+'/test/res/config_test.js';
-
-//const Configuration = require('../src/Configuration.js');
+var TestHelper = require('../src/TestHelper.js');
 const Project = require('../src/Project.js');
+const Utils = require("../src/Utils.js");
+const Hook = require("../src/HookManager.js");
+
 
 describe('HookManager', function() {
 
-    var HookManager = null;
+    describe('HookManager :: Unit tests', function() {
 
-    before(function() {
+        var context = null;
+
+        beforeEach(function(){
+            context = new Project("owasp.mstg.uncrackable1", TestHelper.newConfiguration(), 0);
+        });
+
+        describe('constructor', function() {
+
+            it('valid context, frida enabled', function() {
+           
+                // get hook instance by hook ID
+                var manager = new Hook.Manager( context, 1);
         
-        //console.log(process.cwd());
-        var project_instance = new Project("owasp.mstg.uncrackable1", TEST_CONFIG, 0);
-        HookManager = project_instance.hook;
-    });
+                expect(manager).to.be.an.instanceOf(Hook.Manager);
+            });
+        
     
-    /*
-    it('#normalizeNodeModName', function() {
+    
+        });
+
+        describe('list()', function() {
+
+            it('no hook ', function() {
+           
+                var manager = new Hook.Manager( context, 1);
+                var hooks = manager.list();
+    
+                expect(hooks.length).to.equals(0);
+            });
         
-        let normalizedName = HookManager.normalizeNodeModName("frida-fs");
+            /*it('several hook ', function() {
+           
+                var manager = new DBI.HookManager( context, 1);
+                var hooks = manager.list();
+    
+                expect(hooks.length).to.equals(0);
+            });*/
+    
+    
+        });
 
-        expect(normalizedName).to.equal("fridaFs");
+    });
 
-        normalizedName = HookManager.normalizeNodeModName("-_ThisIsOk_--fs");
+    describe('HookManager :: Integration tests', function() {
 
-        expect(normalizedName).to.equal("ThisIsOkFs");
+        // augment time limit
+        this.timeout(10000);
 
-        normalizedName = HookManager.normalizeNodeModName("!ThisIsNOk_#fs");
+        var PROJECT = null;
+        
+        // Create a valid context
+        //before(function() {
+            PROJECT = new Project("owasp.mstg.uncrackable1", TestHelper.newConfiguration(), 0);
+            PROJECT.fullscan();
+        //});
+        
+        it('[Integration] List all hooks', function() {
+           
+            // get hook instance by hook ID
+            var flag = false;
+            var hooks = PROJECT.hook.list();
+            
+            console.log(hooks);
 
-        expect(normalizedName).to.equal("ThisIsNOkfs");
+            for(let i=0; i<hooks.length; i++){
+                expect(hooks[i].id).to.be.not.null;
+            }
+            //PROJECT.hook.getHookByID("Zjg3YmRjOTA3ZTVjNzdhNDIxNGM2Yzg5YTM5OGQ4N2Y=");
+        });
 
-        // invalid module name
-        expect(HookManager.normalizeNodeModName("----")).to.throw()
-    });*/
+        it('[Integration] Get inspector by hook ID', function() {
+           
+            // "Class.forName()" hook ID
+            var hookID = Utils.b64_decode("Zjg3YmRjOTA3ZTVjNzdhNDIxNGM2Yzg5YTM5OGQ4N2Y=");
+
+            // get hook instance by hook ID
+            var hook = PROJECT.hook.getHookByID( hookID);
+            
+            // if the hook is defined into an inspector, then is contained 
+            // into an HookSet with the same ID than its inspector
+            var inspector = PROJECT.inspectors.get( hook.getParentID() );
+
+            expect(inspector.id).to.equals("DynamicLoader");
+        });
+    });
 });

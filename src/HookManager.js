@@ -274,6 +274,15 @@ Hook.prototype.setParentID = function(id){
 }
 
 /**
+ * To get the parent ID if available, like an HookSet ID.
+ * @returns {String} The parent ID
+ * @function
+ */
+Hook.prototype.getParentID = function(){
+    return this.parentID;
+}
+
+/**
  * To set the name of the hook. 
  * By default, it's the signature of the hooked method
  * @param {string} id The parent ID 
@@ -327,6 +336,7 @@ Hook.prototype.setInterceptReplace = function(code){
 Hook.prototype.toJsonObject = function(){
     let o = new Object();
     o.id = this.id;
+    o.parentID = this.parentID;
     o.customName = this.customName;
     o.name = this.name;
     o.enable = this.enabled;
@@ -355,6 +365,7 @@ Hook.prototype.toJsonObject = function(){
 
 Hook.prototype.updateWith = function(object,method){
     this.id = object.id;
+    this.parentID = object.parentID;
     this.customName = object.customName;
     this.name = object.name;
     this.enabled = object.enable;

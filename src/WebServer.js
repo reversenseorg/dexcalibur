@@ -539,12 +539,29 @@ class WebServer {
             });
 
         this.app.route('/api/hook/:hookid')
-            .put(function (req, res) {
+            .get(function (req, res) {
+
+                Logger.info("[REST] /api/hook/:hookid GET");
+
+                // get hook instance by ID
                 let hook = $.project.hook.getHookByID(
                     req.params.hookid
                 );
 
+                if (hook == null) {
+                    res.status(404).send({ success: false, error: "Invalid hook ID given" });
+                }else{
+                    res.status(200).send(JSON.stringify({ success: true, hook: hook.toJsonObject() }));
+                }         
+            })
+            .put(function (req, res) {
                 Logger.info("[REST] /api/hook/:hookid EDIT");
+
+
+                let hook = $.project.hook.getHookByID(
+                    req.params.hookid
+                );
+
 
 
                 if (hook == null) {
@@ -587,7 +604,7 @@ class WebServer {
                 let dev={}, hook=null;
 
                 if(req.params.hookid=="all"){
-                    hook = $.project.hook.getHooks();
+                    hook = $.project.hook.list();
                     for(let i in hook){
                         hook[i].enable();
                         dev[i] = {enable: hook[i].isEnable() };
@@ -615,7 +632,7 @@ class WebServer {
                 let dev={}, hook=null;
                 
                 if(req.params.hookid=="all"){
-                    hook = $.project.hook.getHooks();
+                    hook = $.project.hook.list();
                     for(let i in hook){
                         hook[i].disable();
                         dev[i] = {enable: hook[i].isEnable() };
