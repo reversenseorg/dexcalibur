@@ -2,7 +2,18 @@ CHANGELOG
 
 # Version 0.6
 
-## Latest
+
+## latest
+
+* Improve test unit
+* Add GET /api/hook/:hookid endpoint
+
+## 0.6.5
+
+* Improve test unit
+* Add DEXCALIUR_PORT and DEXCALIBUR_HOST variable
+
+## 0.6.4
 
 * Improve test unit
 * Remove frida* fields from configuartion file
