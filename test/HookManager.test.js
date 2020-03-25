@@ -4,24 +4,51 @@ const expect = chai.expect;
 //chai.use(sinonChai);*/
 
 // -- App specific --
-
 var TestHelper = require('../src/TestHelper.js');
 const Project = require('../src/Project.js');
 const Utils = require("../src/Utils.js");
 const Hook = require("../src/HookManager.js");
+var Logger = require('../src/Logger.js')();
 
 
 describe('HookManager', function() {
+
 
     describe('HookManager :: Unit tests', function() {
 
         var context = null;
 
-        beforeEach(function(){
-            context = new Project("owasp.mstg.uncrackable1", TestHelper.newConfiguration(), 0);
-        });
 
         describe('constructor', function() {
+
+            it('frida enabled', function() {
+           
+                // get hook instance by hook ID
+                var manager = new Hook.Manager( null, 0);
+        
+                expect(manager).to.be.an.instanceOf(Hook.Manager);
+                expect(manager.isFridaDisabled()).to.equals(false);
+                expect( TestHelper.checkIfModuleIsLoaded('frida') ).equals(true);
+            });
+
+            it('frida disabled', function() {
+           
+                // get hook instance by hook ID
+                var manager = new Hook.Manager( null, 1);
+        
+                expect(manager).to.be.an.instanceOf(Hook.Manager);
+                expect(manager.isFridaDisabled()).to.equals(true);
+
+                manager.start("Java.perform()");
+                expect(Logger.expect({
+                    type: Logger.T_INFO,
+                    value: "[HOOK MANAGER] Frida is disabled ! Hook and session prepared but not start() ignored"
+                })).to.equals(true);
+            });
+        
+        });
+/*
+        describe('getHooks', function() {
 
             it('valid context, frida enabled', function() {
            
@@ -29,33 +56,23 @@ describe('HookManager', function() {
                 var manager = new Hook.Manager( context, 1);
         
                 expect(manager).to.be.an.instanceOf(Hook.Manager);
+                expect(manager.isFridaDisabled()).to.equals(false);
             });
-        
-    
-    
         });
 
-        describe('list()', function() {
+        describe('getHookByID', function() {
 
-            it('no hook ', function() {
+            it('valid ID', function() {
            
+                // get hook instance by hook ID
                 var manager = new Hook.Manager( context, 1);
-                var hooks = manager.list();
-    
-                expect(hooks.length).to.equals(0);
-            });
+                manager.add
         
-            /*it('several hook ', function() {
-           
-                var manager = new DBI.HookManager( context, 1);
-                var hooks = manager.list();
-    
-                expect(hooks.length).to.equals(0);
-            });*/
-    
-    
+                expect(manager).to.be.an.instanceOf(Hook.Manager);
+                expect(manager.isFridaDisabled()).to.equals(false);
+            });
         });
-
+*/
     });
 
     describe('HookManager :: Integration tests', function() {
@@ -76,8 +93,6 @@ describe('HookManager', function() {
             // get hook instance by hook ID
             var flag = false;
             var hooks = PROJECT.hook.list();
-            
-            console.log(hooks);
 
             for(let i=0; i<hooks.length; i++){
                 expect(hooks[i].id).to.be.not.null;
