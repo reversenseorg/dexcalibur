@@ -4,7 +4,7 @@ const Chalk = require("chalk");
 const Path = require("path");
 const crypto = require("crypto");
 
-const TestHelper = require("./TestHelper.js");
+//const TestHelper = require("./TestHelper.js");
 
 const RE_REPLACE = /[-\/\\^$*+?.()|[\]{}]/g;
 const CR = ""; //\n";
@@ -187,7 +187,7 @@ const Util = {
         var ret = null;
         
         if(process.env.DEXCALIBUR_TEST){
-            ret = TestHelper.execSync(command);
+            ret = require('./TestHelper').execSync(command);
         }else{
             console.log(Chalk.bold.red("Execute command request : "+command));
             ret = Process.execSync(command);
