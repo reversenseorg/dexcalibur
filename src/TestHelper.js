@@ -4,18 +4,60 @@
  */
 const _path_ = require("path");
 const _process_ = require("process");
+const _http_ = require("http");
+
 
 const Configuration = require("./Configuration.js");
 
+/**
+ * Unit test utility class
+ * 
+ * Help to:
+ * - generate a valid Configuration instance into test/* folder
+ * - allow to send request to test web server front controller
+ * 
+ * Test Helper configuration 
+ * 
+ * @class
+ */
 class TestHelper
 {
     constructor(){
+        this.app = null;
         this.testCfg = require( _path_.join( __dirname, "../test/test_configuration.js") );
         this.config = null;
         this.interceptors = {
             exec: []
         };
     }
+
+    /**
+     * To verify if a NodeJS module is loaded or not by its name
+     * 
+     * @param {String} pModuleName Module name
+     * @returns {Boolean} TRUE is the module is loaded, else FALSE
+     * @method
+     */
+    checkIfModuleIsLoaded( pModuleName){
+        let loaded= Object.keys(require('module')._cache);
+        let pattern = '/node_modules/'+pModuleName+'/';
+
+        for(let i=0; i<loaded.length; i++){
+            if(loaded[i].indexOf(pattern)>-1)
+                return true;
+        }
+
+        return false;
+    }
+    /**
+     * To set the web server instance
+     * @param {require('express').Application} pInstance Web server instance  
+     * @method
+     */
+    setWebServerInstance( pInstance){
+        this.app = pInstance;
+    }
+
 
     newConfiguration(){
         this.config = new Configuration();
@@ -66,6 +108,48 @@ class TestHelper
         }
     }
 
+    /**
+     * 
+     * @param {String} pMethod The HTTP method : GET | POST | PUT | DELETE
+     * @param {*} pURL  
+     * @param {*} pData 
+     * @param {*} pContentType 
+     */
+    sendHTTPRequest( pMethod, pURL, pData=null, pContentType = null){
+        let req = null;
+        switch(pMethod){
+            case 'GET':
+                req = _http_.get(pURL);
+                break;
+            case 'POST':
+                req = _http_.post(pURL)
+                    .set('Content-Type', pContentType)
+                    .send(pData);
+                break;
+        }
+
+        return req;
+    }
+    /**
+     * To send serialized data in JSON format through 
+     * an HTTP POST request to a given URL.
+     * 
+     * @param {String} pURL 
+     * @param {Object} pData 
+     */
+    sendRequest_POST_JSON( pURL, pData){
+        return this.sendHTTPRequest( 'POST', pURL, pData, 'application/json'); 
+    }
+
+    /**
+     * To send an HTTP GET request to a given URL.
+     * 
+     * @param {String} pURL 
+     * @param {Object} pData 
+     */
+    sendRequest_GET( pURL){
+        return this.sendHTTPRequest( 'GET', pURL); 
+    }
 }
 
 module.exports =  new TestHelper();
