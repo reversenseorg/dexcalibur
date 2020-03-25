@@ -1353,11 +1353,9 @@ HookManager.prototype.start = function(hook_script, pType=null, pExtra=null){
     }
 
     var applications=null, pid=-1;
-    var APP = this.context.pkg;
-    var $ = this;
 
     if(this.frida_disabled){
-        console.log(Chalk.bold.yellow("[HOOK MANAGER] Frida is disabled ! Hook and session prepared but not start() ignored"));
+        Logger.info("[HOOK MANAGER] Frida is disabled ! Hook and session prepared but not start() ignored");
         return null;
     } 
 
@@ -1410,25 +1408,7 @@ HookManager.prototype.start = function(hook_script, pType=null, pExtra=null){
                 break;
         }
 
-        /*
-        const applications = yield device.enumerateApplications();
-        console.log('[*] Applications:', applications);
-        var pid = -1;
-        if(applications.length == 1 && applications[0].name == "Gadget") {
-            console.log('only found gadget, assuming there is no frida-server');
-            pid = applications[0].pid; 
-        }
-        else {
-            pid = yield device.spawn([APP]);
-            console.log('spawned:', pid);
-        }
-        
-        const session = yield device.attach(pid);
-        console.log('attached:', session);*/
-    
         const script = yield session.createScript(hook_script);
-        //console.log('script created:', script); 
-        //device.resume(pid);
 
         // For frida-node > 11.0.2
         script.message.connect(message => {
@@ -1446,15 +1426,10 @@ HookManager.prototype.start = function(hook_script, pType=null, pExtra=null){
         });
         */
     
-        //yield script.load();
         yield script.load();
 
         console.log('script loaded');
         yield device.resume(pid);
-        /*
-        setInterval(() => {
-            script.post({ name: 'ping' });
-        }, 1000);*/ 
     });
 
     hookRoutine()
