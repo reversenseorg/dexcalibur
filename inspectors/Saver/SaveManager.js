@@ -262,7 +262,7 @@ class SaveManager
         }
 
         if(qflag>0){
-            Logger.error("[SAVE] "+qflag+" elements have not been import. Queued ..");
+            Logger.error("[SAVE] "+qflag+" elements have not been imported. Queued ..");
         }else
             Logger.info("[SAVE] All elements have imported ...");
         //console.log(this.queue);
