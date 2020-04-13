@@ -1,12 +1,15 @@
 const _fs_ = require("fs");
+const _path_ = require("path");
+const _os_ = require("os");
+
 
 const Logger = require("./Logger.js")();
 const Platform = require("./Platform.js");
-const Path = require("path");
 const FridaHelper = require("./FridaHelper");
+const DexcaliburWorkspace = require('./DexcaliburWorkspace');
 
 const NO_EXPORT = ["platform_available"];
-const ENCODING = ["utf8","latin1"];
+const ENCODING = ["utf8","utf16","latin1"];
 
 class Configuration {
 
@@ -17,7 +20,8 @@ class Configuration {
         this.ready = false;
 
         // reference to DexcaliburWorkspace object
-        this.workspace = null;
+        //this.workspace = null;
+
 
         /*
          * Dexcalibur's workspace
@@ -98,10 +102,56 @@ class Configuration {
         return cfg;
     }
 
+    /**
+     * To build a default configuration instance using HOME PATH
+     */
+    static getDefault(){
+        let cfg = new Configuration();
+        
+        cfg.encoding = 'utf8';
+        cfg.workspace = new DexcaliburWorkspace( _path_.join( _os_.homedir(), 'dexcaliburWS') );
+        cfg.web_port = 8000;
+
+        cfg.workspacePath = _path_.join( _os_.homedir(), 'dexcaliburWS');
+        cfg.tmpDir = _path_.join( cfg.workspacePath, '.tmp');
+
+        return cfg;
+    }
+
+    static verifyField( pName, pValue){
+        let result = null;
+
+        switch(pName)
+        {
+            case "encoding":
+                if(ENCODING.indexOf(pValue)==-1){
+                    result = `Invalid encoding. Supported : UTF8, Latin1`;
+                }
+                break;
+            case "dexcaliburPath":
+            case "adbPath":
+            case "apktPath":
+            case "androidSdkPath":
+            case "tmpDir":
+            case "workspacePath":
+                if(_fs_.existsSync(pValue) == true){
+                    result = `Invalid path, this folder already exists.`;                  
+                }
+                break;
+            case "web_port":
+                if(pValue > 65535 || pValue < 0){
+                    result = `Invalid port number`;           
+                }
+                break;
+        }
+
+        return result;
+    }
 
     verify(){
         let verif={ length:0, msg:{} };
         for(let i in this){
+
             switch(i)
             {
                 case "encoding":
@@ -115,10 +165,14 @@ class Configuration {
                 case "apktPath":
                 case "androidSdkPath":
                 case "tmpDir":
+                    if(_fs_.existsSync(this[i]) == true){
+                        verif.msg[i] = `Invalid path: folder not found`;
+                        verif.length++;                        
+                    }
+                    break;
                 case "workspacePath":
-                    console.log(_fs_.existsSync(this[i]), this[i]);
-                    if(_fs_.existsSync(this[i]) == false){
-                        verif.msg[i] = `Invalid path : file or directory not found`;
+                    if(_fs_.existsSync(this[i]) == true){
+                        verif.msg[i] = `Invalid path: this folder already exists.`;
                         verif.length++;                        
                     }
                     break;
@@ -134,6 +188,14 @@ class Configuration {
         return verif;
     }
 
+    /**
+     * 
+     * @param {*} pName 
+     * @param {*} pValue 
+     */
+    setParameter( pName, pValue){
+        this[pName] = pValue;
+    }
 
     /**
      * To clone the current instance of Configuration
@@ -192,6 +254,24 @@ class Configuration {
         return true;
     }
 
+    /**
+     * To save configuration into Dexcalibur workspace
+     * 
+     * It creates a backup of current configuration, and replace
+     * actual configuration file by freshly exported config
+     * 
+     * @param {Configuration} pNewConfig 
+     */
+    save( pNewConfig){
+        // if Dexcalibur workspace path has changed
+        // then current config should be backed up into new Workspace 
+        // in order to allow user to restore old config from new workspace
+        if( this.workspacePath !== pNewConfig.workspacePath){
+            _fs_.copyFile( _path_.join( ),  )
+        }else{
+
+        }
+    }
 
     /**
      *  To import a configuration.
@@ -222,7 +302,7 @@ class Configuration {
         this.autocomplete();
 
         for (let i in this.platform_available) {
-            this.platform_available[i] = new Platform(this.platform_available[i], Path.join( __dirname, "..", "APIs"));
+            this.platform_available[i] = new Platform(this.platform_available[i], _path_.join( __dirname, "..", "APIs"));
         }
 
         this.ready = true;
@@ -275,7 +355,7 @@ class Configuration {
     }
 
     getLocalBinPath() {
-        return Path.join(this.dexcaliburPath, "./../bin");
+        return _path_.join(this.dexcaliburPath, "./../bin");
     }
 
 
@@ -288,7 +368,7 @@ class Configuration {
      */
     getWorkspaceDir() {
         return this.workspacePath;
-   }
+    }
 
     getAndroidSdkDir() {
         return this.androidSdkPath;

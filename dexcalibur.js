@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 
 const Process = require("process");
 const FS = require("fs"); 
@@ -116,12 +117,6 @@ if(projectArgs.buildApi != null){
 }
 
 var DxcInstance  = null, ready=false;
-if( DexcaliburEngine.isNPMsetup() ){
-    DxcInstance = new DexcaliburEngine();
-    ready = DxcInstance.boot();
-    console.log('Ready :',ready);
-}
-
 
 if(projectArgs.api == null){
     projectArgs.api = "android:7.0.0";
@@ -129,27 +124,27 @@ if(projectArgs.api == null){
 
 if(projectArgs.app != null){    
     
-    var Project = null ;
+    var project = null ;
     if(projectArgs.config != null){
-        Project = new DexcaliburProject(projectArgs.app, projectArgs.config, projectArgs.nofrida, projectArgs.api);
+        project = new DexcaliburProject(projectArgs.app, projectArgs.config, projectArgs.nofrida, projectArgs.api);
     }else{
-        Project = new DexcaliburProject(projectArgs.app, null, projectArgs.nofrida, projectArgs.api);
+        project = new DexcaliburProject(projectArgs.app, null, projectArgs.nofrida, projectArgs.api);
     }
 
     if(projectArgs.useEmu)
-        Project.useEmulator();
+    project.useEmulator();
     
 
     if(projectArgs.pull != null){
         try{
-            Project.pull();
+            project.pull();
         }catch(exception){
-            Process.exit();
+            project.exit();
         }
     }
 
     if(projectArgs.apk != null){
-        success = Project.apkHelper.extract(projectArgs.apk);
+        success = project.apkHelper.extract(projectArgs.apk);
         if(success===false){
             Logger.error("[!] Failed to extract data from the APK : ",projectArgs.apk).exit();
         }
@@ -157,11 +152,11 @@ if(projectArgs.app != null){
     else if(projectArgs.apkStdin != null){
 
         let apk_data = FS.readFileSync(0);
-        projectArgs.apk = Project.workspace.getWD()+"/base.apk"; 
+        projectArgs.apk = project.workspace.getWD()+"/base.apk"; 
         try{
             FS.writeFileSync(projectArgs.apk, apk_data);
             Logger.info("[*] Reading APK on stdin ...");
-            success = Project.apkHelper.extract(projectArgs.apk);
+            success = project.apkHelper.extract(projectArgs.apk);
             if(success===false){
                 Logger.error("[!][STDIN] Failed to extract data from the APK : ",err).exit();
             }
@@ -171,12 +166,36 @@ if(projectArgs.app != null){
         }
     }
 
-    Project.useAPI(projectArgs.api).fullscan();
+    project.useAPI(projectArgs.api).fullscan();
 
-    Project.startWebserver(projectArgs.port);
+    project.startWebserver(projectArgs.port);
 
     if(projectArgs.buildClass != null && projectArgs.buildOut != null){
-        var res = Project.find.class("name:"+projectArgs.buildClass);
-        Project.fridaBuilder.class(res).save(projectArgs.buildOut);
+        var res = project.find.class("name:"+projectArgs.buildClass);
+        project.fridaBuilder.class(res).save(projectArgs.buildOut);
     }
 }
+// start install mode if required ( file '~/.dexcalibur/config.json' not exists )
+else if( DexcaliburEngine.requireInstall() ){
+    // pass 
+    dxcInstance = new DexcaliburEngine();
+
+    dxcInstance.prepareInstall();
+
+    dxcInstance.start( projectArgs.port );
+}
+// startup without args
+else{
+    dxcInstance = new DexcaliburEngine();
+
+    dxcInstance.loadWorkspaceFromConfig();
+    
+    ready = dxcInstance.boot();
+
+    if(ready){
+        dxcInstance.start( projectArgs.port );
+    }
+}
+
+
+
