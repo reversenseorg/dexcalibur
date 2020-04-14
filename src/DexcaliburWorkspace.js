@@ -162,13 +162,6 @@ class DexcaliburWorkspace
 
         return projects;
     }
-
-    /*
-    openProject( pProjectUID){
-        let project = new DexcaliburProject(pProjectUID);
-
-        return project;
-    }*/
 }
 
 module.exports = DexcaliburWorkspace;
