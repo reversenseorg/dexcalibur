@@ -7,6 +7,7 @@ var Logger = require("./Logger.js")();
 
 const Configuration = require("./Configuration.js");
 const DexcaliburWorkspace = require("./DexcaliburWorkspace");
+const DexcaliburProject = require("./DexcaliburProject");
 const WebServer = require("./WebServer")
 
 var AdmZip = null;
@@ -83,8 +84,38 @@ class DexcaliburEngine
          * @field
          */
         this.platformMgr = null
+
+        /**
+         * To hold active project
+         */
+        this.active = {};
     }
     
+
+    static printBanner(){
+
+        Logger.info("\n\n"
+        +"███████╗ ███████╗██╗  ██╗ ██████╗ █████╗ ██╗     ██╗██████╗ ██╗   ██╗██████╗\n" 
+        +"██╔═══██╗██╔════╝╚██╗██╔╝██╔════╝██╔══██╗██║     ██║██╔══██╗██║   ██║██╔══██╗\n"
+        +"██║   ██║█████╗   ╚███╔╝ ██║     ███████║██║     ██║██████╔╝██║   ██║██████╔╝\n"
+        +"██║   ██║██╔══╝   ██╔██╗ ██║     ██╔══██║██║     ██║██╔══██╗██║   ██║██╔══██╗\n"
+        +"███████╔╝███████╗██╔╝ ██╗╚██████╗██║  ██║███████╗██║██████╔╝╚██████╔╝██║  ██║\n"
+        +"╚══════╝ ╚══════╝╚═╝  ╚═╝ ╚═════╝╚═╝  ╚═╝╚══════╝╚═╝╚═════╝  ╚═════╝ ╚═╝  ╚═╝\n"
+        + PACKAGE_JSON.version
+        + (" ".repeat(78-14-PACKAGE_JSON.version.length))
+        +"by @FrenchYeti \n"
+        +"╔════════════════════════════════════════════════════════════════════════════╗\n"
+        +"║ How to use ?                                                               ║\n"
+        +"║ > const Dexcalibur = require('./src/Project.js')                           ║\n"
+        +"║ > var project = new Dexcalibur('com.example.test')                         ║\n"
+        +"║ > project.useAPI('android:7.0.0').fullscan()                               ║\n"
+        +"║ > project.find.method('name:loadLibrary')                                  ║\n"
+        +"║                                                                            ║\n"
+        +"║ Read *.help() ! =)                                                         ║\n"
+        +"╚════════════════════════════════════════════════════════════════════════════╝\n"
+        );
+    
+    }
 
     /**
      * To detect if Dexcalibur has been installed by NPM
@@ -311,6 +342,17 @@ class DexcaliburEngine
 
     }
 
+
+    /**
+     * To clear .dexcalibur folder and to trigger a new install
+     * 
+     * @method
+     * @static
+     */
+    static clearInstall(){
+        _fs_.unlinkSync(CONFIG_PATH);
+    }
+
     /**
      * To start installer
      */
@@ -356,6 +398,27 @@ class DexcaliburEngine
 
         // Start the web server serving Installer UI
         this.webserver.start(pWebPort);
+    }
+
+    getProjects(){
+        return this.workspace.listProjects();
+    }
+
+    openProject( pUID){
+        let project = null;
+        try{
+            project = new DexcaliburProject( this, pUID);
+            project.open();
+            this.active[pUID] = project;
+        }catch(err){
+            Logger.error("ENGINE","openProject failed");
+        }
+
+        return project;
+    }
+
+    newProject( pUID){
+
     }
 }
 
