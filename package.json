@@ -11,6 +11,7 @@
     "url": "https://github.com/FrenchYeti/dexcalibur.git"
   },
   "dependencies": {
+    "adm-zip": "^0.4.14",
     "body-parser": "^1.18.3",
     "chai": "^4.1.2",
     "chalk": "^2.4.1",
@@ -28,13 +29,13 @@
     "xml2js": "^0.4.19"
   },
   "devDependencies": {
-    "mocha": "^5.2.0",  
+    "mocha": "^5.2.0",
     "mocha-sinon": "^2.1.0",
     "sinon": "^7.3.2",
     "sinon-chai": "^3.3.0"
   },
   "bin": {
-    "dexcalibur": "node --max-old-space-size=4096 ./dexcalibur.js"
+    "dexcalibur": "./dexcalibur.js"
   },
   "scripts": {
     "start": "node --max-old-space-size=4096 ./dexcalibur",
