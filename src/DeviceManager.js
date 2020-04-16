@@ -1,9 +1,17 @@
-var ut = require("./Utils.js");
-const AdbWrapper = require("./AdbWrapper.js");
+const _path_ = require("path");
 
+var ut = require("./Utils.js");
+
+const AdbWrapperFactory = require("./AdbWrapperFactory.js");
+const DexcaliburWorkspace = require("./DexcaliburWorkspace");
+
+
+const DEVICE_FILE = "devices.json";
+var gInstance = null;
 
 /**
  * To manager connected devices
+ * 
  * @class
  */
 class DeviceManager
@@ -12,7 +20,19 @@ class DeviceManager
      * To create an instance of DeviceManager
      * @param {Configuration} config The configuration object
      */
-    constructor(config=null){
+    constructor(){
+
+        this.dxcWorkspace = DexcaliburWorkspace.getInstance();
+
+        /**
+         * Path of the file where device are stored
+         * @field
+         */
+        this.devFile = _path_.join(
+            this.dxcWorkspace.getDeviceFolderLocation(), 
+            DEVICE_FILE
+        );
+
         /**
          * Configuration object
          * @field 
@@ -42,67 +62,189 @@ class DeviceManager
          * TODO : add sdb
          * @field 
          */
-        this.Bridges = {};
+        this.bridges = {
+            ADB: AdbWrapperFactory.getInstance(
+                _path_.join(
+                    this.dxcWorkspace.getBinaryFolderLocation(),
+                    "adb"
+                )
+            )
+        };
     
-        if(this.config != null){
-            this.init();
-        }
     }
 
-    init(){
-        if(this.config.getAdbPath() != null){
-            this.Bridges.ADB = new AdbWrapper(this.config.getAdbPath(),null);
-        }else{
-            throw new Error("[DEVICE MANAGER] Bridge client not configured");
+    static getInstance(){
+        if(gInstance == null){
+            gInstance = new DeviceManager();
         }
+
+        return gInstance;
     }
 
-    // scan for available devices 
     /**
-     * To detect connected devices from each bridges
+     * To load Devices properties from `.dxc/dev/devices.json` file
+     * 
+     * @method
+     */
+    load(){
+        if(_path_.existsSync( this.devFile) == false)
+            return true;
+
+        let data = null;
+        try{
+            data = JSON.parse( _path_.readFileSync( this.devFile));
+            for(let i=0; i<data.length; i++){
+                this.devices[ data[i].uid ] = Device.fromJsonObject(data[i]);
+            }
+        } catch(err){
+            Logger.error("DEVICE MANAGER","Unable to load devices");
+        }
+
+        return true;
+    }
+
+    /**
+     * To save properties of devices into `.dxc/dev/devices.json` file
+     * 
+     * @method
+     */
+    save(){
+        if(_path_.existsSync( this.devFile) == true){
+            _path_.unlinkSync( this.devFile);
+        } 
+
+        let data = [];
+        for(let i in this.devices){
+            data.push( this.devices[i].toJsonObject());
+        }
+
+        _path_.writeFileSync(
+            this.devFile,
+            data
+        );
+    }
+
+    /**
+     * To turn all device tagged "connected" to "disconnected"
+     */
+    disconnectAll(){
+        for(let uid in this.devices){
+            this.devices[uid].disconnect();
+        }
+    }
+
+    /**
+     * To merge a given device list with cuurent list
+     * 
+     * @param {*} pDeviceList 
+     */
+    updateDeviceList( pDeviceList){
+        let active = 0, uid=null;
+
+        for(let i=0; i<pDeviceList.length; i++){
+
+            uid = pDeviceList[i].getUID();
+            if(this.devices[uid] instanceof Device){
+                this.devices[uid].update(pDeviceList[i]);
+            }else{
+                this.devices[uid] = pDeviceList[i];
+            }
+
+            if(this.devices[uid].isConnected()){
+                active++;
+            }
+        }
+
+        return active;
+    }
+
+    /**
+     * To get a list of connected devices
+     * 
+     * @returns {Device[]} Array of device
+     */
+    getConnectedDevices(){
+        let conn=[];
+        for(let i in this.devices){
+            if(this.devices[i].isConnected()){
+                conn.push(this.devices[i]);
+            }
+        }
+
+        return conn;
+    }
+
+
+    /**
+     * To detect connected devices from each bridges and update
+     * device list
+     * 
      * @function
      */
     scan(){
-         // TODO : scan for new devices
-         let ret="", dev=[], device=null,re=null,id=null, latestDefault=null;
+        let dev=[], activeDev = 0, latestDefault=null;
 
-        this.count = 0;
-        if(this.Bridges.ADB.isReady()){
+        latestDefault = this.getDefault();
 
-            latestDefault = this.getDefault();
-            if(latestDefault != null) latestDefault = latestDefault.uid;
-            
+        this.disconnectAll();
 
-            // flush device list
-            this.devices = {};
 
-            // scan for connected devices
-            dev = this.Bridges.ADB.listDevices();
-            this.count += dev.length;
+        for(let type in this.bridges){
+            if(this.bridges[type].isReady()){
+    
+                // scan for connected devices
+                dev = this.bridges[type].listDevices();
 
-            for(let i in dev){
-                this.devices[dev[i].uid] = dev[i];
+                activeDev += this.updateDeviceList(dev);
+    
+                ut.msgBox("Enumerated devices", Object.keys(this.devices));
             }
-            ut.msgBox("Android devices", Object.keys(this.devices));
-        }/*else{
-            console.log("ADB Bridge is not ready");
-        }*/
+        }
 
-        // TODO :  add SDB and others type of bridge
-        
-        if(this.count==1){
+        // now
+
+        if(activeDev==1){
+    
             // 1 device -> no problem
-            this.setDefault(dev[0].uid);
-            return dev[0];
-        }else if(this.count > 1){
+            this.setDefault(
+                this.getConnectedDevices()[0]
+            );
 
-            if(latestDefault != null && this.devices[latestDefault] != null){
+        }else if(activeDev > 1){
+
+
+
+            // by default, if there are several devices connected
+            // a default device should be selected 
+
+             // 1/ If default device is connected and authorized
+            if(this.devices[latestDefault] != null 
+                && this.devices[latestDefault].isConnected()
+                && this.devices[latestDefault].isAuthorized()){
+
                 this.setDefault(latestDefault);
-                return this.devices[latestDefault];
+                return null;
             }
+
+            // 2/ Only authorized device should be instrumented 
+            dev = [];
+            for(let i in this.devices){
+                if(this.devices[i].isAuthorized()){
+                    dev.push(i);
+                }
+            }
+
+            if(dev.length > 0){
+                this.setDefault(dev[0]);
+                return null;
+            }
+
+
+           
+
             // more device -> select better condition 
             // check if a single is authorized
-            dev = [];
+            /*dev = [];
             for(let i in this.devices){
                 if(this.devices[i].authorized){
                     dev.push(this.devices[i]);
@@ -110,14 +252,15 @@ class DeviceManager
             }
             if(dev.length==1){
                 dev[0].selected = true;
-                return dev[0];
-            }
+            }*/
 
             // check frida at default server location according to configuration
             // TODO
-            return null;
         }
+
+        return null;
     }
+
 
     /**
      * To check if a device is connected, but there is not default device selected.
@@ -134,9 +277,12 @@ class DeviceManager
      * @function
      */
     setDefault(deviceId){
-        if(this.defaultDevice != null){
+
+        // unselect current default device
+        /*if(this.defaultDevice != null){
             this.defaultDevice.selected = false;
-        }
+        }*/
+
 
         for(let i in this.devices){
 
@@ -169,7 +315,7 @@ class DeviceManager
     };
     
     /**
-     * To get all devices
+     * To get all devices (connected or not)
      * @returns {Object} To get an hashmap associtating to each device ID the device instance
      * @function 
      */
@@ -183,7 +329,7 @@ class DeviceManager
      * @function
      */
     toJsonObject(){
-        let json = [], tmp=null;
+        let json = [],;
         for(let i in this.devices){
             json.push(this.devices[i].toJsonObject());
         }
