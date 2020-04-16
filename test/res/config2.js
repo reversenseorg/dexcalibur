@@ -19,7 +19,6 @@ module.exports = {
     // Optional : SDB location
     sdbPath: null,
 
-    fridaBin: 'frida',
     
     // do not modified
     deviceId: null,

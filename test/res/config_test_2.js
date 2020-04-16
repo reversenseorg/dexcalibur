@@ -23,8 +23,6 @@ module.exports = {
     // Java path
     javaBinPath: "java",
 
-    // TODO useless : to remove
-    fridaBin: 'frida',
     
     // do not modified
     deviceId: null,
