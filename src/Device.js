@@ -28,6 +28,7 @@ class Device
 {
     constructor(config=null){
         this.type = null;
+        this.connected = false;
 
         this.bridge = null;
         this.usb = null;
@@ -51,12 +52,76 @@ class Device
             for(let i in config) this[i] = config[i];    
     }
 
+    /**
+     * To get device status : connected / disconnected
+     * 
+     * @returns {Boolean} TRUE if the device is connected, else FALSE  
+     * @method
+     */
+    isConnected(){
+        return (this.connected == true);
+    }
+
+    /**
+    * To get authorized status
+    * 
+    * @returns {Boolean} TRUE if the device is authorized, else FALSE  
+    * @method
+    */
+    isAuthorized(){
+        return (this.authorized == true);
+    }
+
+    /**
+     * To disconnect "logically" a device.
+     * 
+     * This flag is involved into connected device monitoring.
+     * 
+     * @method
+     */
+    disconnect(){
+        this.connected = false;
+    }
+
+
+    /**
+     * To setup internal device UID
+     * 
+     * Since several device can have the same DeviceID value,
+     * UID is built by mixing several DeviceID with several data from `qualifier` array
+     * 
+     * 
+     * @param {String} deviceID Value of DeviceID as returned by the device
+     * @param {String[]} qualifier Additional data 
+     */
     setUID(deviceID, qualifier){
         this.uid = deviceID;
         for(let k in qualifier){
             this.uid += "/"+k+"/"+qualifier[k];
         }
         //this.uid = _MD5_(this.uid);
+    }
+
+
+    /**
+     * To get device UID
+     * 
+     * TODO : fix typo
+     * 
+     * <b>Warning : Device UID is the Dexcalibur internal UID. 
+     * It is not the DeviceID as returned by the device. </b>
+     * 
+     * @returns {String} Internal device UID
+     */
+    getUID(){
+        return this.uid;
+    }
+
+    update( pDevice){
+        this.transportId = pDevice.transportId;
+        this.connected = pDevice.connected;
+        this.authorized = pDevice.authorized;
+        this.usbQualifier = pDevice.usbQualifier;
     }
 
     flagAsUnauthorized(){
