@@ -30,7 +30,7 @@ describe('Device Manager', function() {
             
             let dm = new DeviceManager();
             expect(dm.config).to.equals(null);
-            expect(dm.Bridges.ADB).to.be.undefined;
+            expect(dm.bridges.ADB).to.be.undefined;
         });
 
         it('new device manager instance with config', function () {
@@ -38,7 +38,7 @@ describe('Device Manager', function() {
             let dm = new DeviceManager(CONFIG);
 
             expect(dm.config).to.not.equals(null);
-            expect(dm.Bridges.ADB).to.be.an.instanceOf(AdbWrapper);
+            expect(dm.bridges.ADB).to.be.an.instanceOf(AdbWrapper);
         });
 
     });
