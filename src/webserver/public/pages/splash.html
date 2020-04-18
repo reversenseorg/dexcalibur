@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="">
+    <meta name="author" content="">
+
+    <title>Dexcalibur - Welcome</title>
+
+    <!-- styles -->
+    <!--## pages/inc/tpl_css.html ##-->
+
+    <!--## pages/inc/tpl_js_d3.html ##-->
+ 
+   <!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
+    <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
+    <!--[if lt IE 9]>
+        <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
+        <script src="https://oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js"></script>
+    <![endif]-->
+
+    <style>
+    
+
+    html,
+    body {
+    height: 100%;
+    }
+
+    body {
+        display: -ms-flexbox;
+        display: -webkit-box;
+        display: flex;
+        -ms-flex-align: center;
+        -ms-flex-pack: center;
+        -webkit-box-align: center;
+        align-items: center;
+        -webkit-box-pack: center;
+        justify-content: center;
+        padding-top: 40px;
+        padding-bottom: 40px;
+        background: linear-gradient(120deg, #4B0000 0%, #000000 100%), linear-gradient(300deg, #1E0000 0%, #0038FF 100%, #0038FF 100%), linear-gradient(65deg, #00FFFF 0%, #FF00A8 100%), linear-gradient(185deg, #FF0000 10%, #1400FF 95%), radial-gradient(100% 140% at 100% 0%, #00A3FF 0%, #C10097 100%);
+        background-blend-mode: color-dodge, overlay, difference, color-dodge, normal;  
+    }
+
+    .form-splash {
+        width: 100%;
+        max-width: 330px;
+        padding: 15px;
+        margin: 0 auto;
+    }
+    .form-splash .checkbox {
+        font-weight: 400;
+    }
+    .form-splash .form-control {
+        position: relative;
+        box-sizing: border-box;
+        height: auto;
+        padding: 10px;
+        font-size: 16px;
+    }
+    .form-splash .form-control:focus {
+        z-index: 2;
+    }
+    .form-splash input[type="email"] {
+        margin-bottom: -1px;
+        border-bottom-right-radius: 0;
+        border-bottom-left-radius: 0;
+    }
+    .form-splash input[type="password"] {
+        margin-bottom: 10px;
+        border-top-left-radius: 0;
+        border-top-right-radius: 0;
+    }
+
+    .splash-ctn {
+        width: 40em;
+    }
+
+    .splash-ctn div.card-header {
+        text-align:center;
+    }
+
+    .splash {
+        background-color: #262722;
+        color: #FFF;
+    }
+
+    .splash-menu {
+        margin-left:0px;
+        padding-left: 0px;
+    }
+
+    .splash-menu div.card {
+        border-radius:0px;
+    }
+
+    .dxc-dark li.list-group-item,
+    .splash-home li.list-group-item,
+    .splash-menu li.list-group-item {
+        /*background-color: #262722;*/
+        background-color: #3d3f38;
+        
+        color: #FFF;
+        font-size: 0.8em;
+        cursor:pointer;
+    }
+
+    .dxc-dark li.list-group-item:hover,
+    .splash-home li.list-group-item:hover,
+    .splash-menu li.list-group-item:hover {
+        background-color: #43463e;
+        color: rgb(190, 190, 190);
+        font-size: 0.8em;
+        cursor:pointer;
+    }
+
+    .splash-detail {
+        /*background-image: url("/dist/img/dexcalibur_logo_black2.png");
+        background-position: 40px  10px;*/
+        color:#fff;
+    }
+
+    table.dxc-compact-table {
+        background-color: #262722;
+        margin-top: 1em;
+    }
+    table.dxc-compact-table > tr{
+        border: 1px solid gray;
+    }
+
+    
+    </style>
+</head>
+
+<body class="dxc-dark">
+
+    
+        <!-- Navigation -->
+        <!-- pages/inc/menu.html -->
+        
+                   
+            <div class="row">
+                <div class="col-md-8 col-md-offset-2">
+
+                    <div class='row splash' style="width: 50rem;">
+                    <div class="col-md-4 splash-menu">
+
+                        <div class="card bg-secondary text-white" style="width:100%">
+                            <div class="card-header">
+                                Action
+                            </div>
+                            <ul class="list-group list-group-flush">
+                                <li class="list-group-item dxc-open-project">
+                                    <span class='fa fa-folder-open'>&nbsp;</span>&nbsp;Open an existing project ...
+                                </li>
+                                <li class="list-group-item dxc-open-apk">
+                                    <span class='fa fa-upload'>&nbsp;</span>&nbsp;Upload an APK
+                                </li>
+                                <li class="list-group-item dxc-select-app">
+                                    <span class='fa fa-mobile'>&nbsp;</span>&nbsp;Select an application
+                                </li>
+                                <li class="list-group-item dxc-import">
+                                    <span class='fa fa-archive'>&nbsp;</span>&nbsp;Import ...
+                                </li>
+                            </ul>
+                            <div class="card-header">
+                                Settings
+                            </div>
+                            <ul class="list-group list-group-flush">
+                                <li class="list-group-item dxc-api-manager" >
+                                    <span class='fa fa-upload'>&nbsp;</span>&nbsp;Android APIs manager
+                                </li>
+                                <li class="list-group-item dxc-device-manager">
+                                    <span class='fa fa-mobile'>&nbsp;</span>&nbsp;Device manager
+                                </li>
+                                <li class="list-group-item dxc-plugins">
+                                    <span class='fa fa-archive'>&nbsp;</span>&nbsp;Plugins
+                                </li>
+                            </ul>
+                    </div> 
+                    </div>
+                    <div class="col-md-8 splash-home" style="text-align: center"> 
+                        <img class="logo" src="/dist/img/dexcalibur_logo_black2.png"  style="margin-top:-10em">
+                        <small>Recents :</small> 
+                        <ul class="list-group list-group-flush dxc-project-list" id="dxcProjectList"></ul>
+                    </div>
+                    <div class="col-md-8 splash-open-project" style="display:none"> 
+                        <small>
+                            Click to open an existing project ...
+                        </small>
+                        <ul class="list-group list-group-flush dxc-project-list" id="dxcProjectList2"></ul>
+                    </div>
+                    <div class="col-md-8 splash-open-apk" style="display:none"> 
+                        <h4>APK Analysis</h4>
+                        <small>
+                            Upload an APK to analyze
+                        </small>
+                        <br>
+                        <form>
+                            <label for="apkfile">Choose the file:</label>
+                            <input type="file" class="form-control form-control-sm" id="apkfile">
+                            
+                            <label for="dxcApkAPI">Choose the Plaform/API for the analysis: </label>
+                            <select class="form-control form-control-sm" id="dxcApkAPI">
+                                <option>Select a platform/API version</option>
+                                <optgroup>
+                                    <option>Min Android version supported</option>
+                                    <option>Max Android version supported</option>
+                                </optgroup>
+                                <optgroup>
+                                    <option>android-api 19</option>
+                                </optgroup>
+                            </select>
+                        </form>
+                        
+                    </div>
+                    <div class="col-md-8 splash-select-app" style="display:none"> 
+                        <small>
+                            Browse devices, and select the application to analyze ... 
+                        </small>
+                        <select class="form-control form-control-sm">
+                            <option>Select a device</option>
+                        </select>
+                        <ul class="list-group list-group-flush dxc-app-list" id="dxcAppList"></ul>
+                    </div>
+                    <div class="col-md-8 splash-import" style="display:none"> 
+                        <small>
+                            Select a dexalibur archive to import
+                        </small>
+                        <input type="file" class="form-control form-control-sm" />
+                    </div>
+
+                    <div class="col-md-8 splash-api-manager" style="display:none"> 
+                        <h4>Platform Manager</h4>
+                        <small>
+                            Additionnal platform can be install from here (require internet). It extends Dexcalibur by providing
+                            a more accurate analysis. If you think an application use a function introduced recently, then ensure 
+                            to have the right Android version installed.
+                        </small>
+                        <!--<p>
+                                Let's imagine your application use function introduced into Android 10. If 
+                                Dexcalibur is not properly configured, then the analysis can be performed by using Android 7.0.0 and 
+                                the functions could be not detected.    
+                        </p>-->
+                        <table class="table table-sm table-hover dxc-compact-table">
+                            <thead>
+                                <th>Name</th>
+                                <th>Version</th>
+                                <th>Source</th>
+                                <th>Action</th>
+                            </thead>
+                            <tbody id="dxcApiList"></tbody>
+                        </table>
+                    </div>
+                </div>
+                 
+                 
+                </div>
+            </div>
+
+           <!--
+              <div class="card splash-ctn bg-secondary text-white">
+                <div class="row">
+                    <div class="col-md-6">
+
+                        <div class="card-header">
+                            New project
+                        </div>
+                        Select the action :
+                        <div class="card-body">
+                            <input type="radio" id="splash-new-upl">
+                            <label for="splash-new-upl">Upload an APK</label><br>
+                            <input type="radio" id="splash-new-upl">
+                            <label for="splash-new-upl">Select an application into a coneected device</label>
+                        </div>
+
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card-header">
+                            Open an existing project
+                        </div>
+                    </div>
+                </div>
+              </div>-->
+
+        <!-- /#page-wrapper -->
+
+
+    <!-- /#wrapper -->
+
+    <!--## pages/inc/tpl_js_splash.html ##-->
+    <!--## pages/inc/tpl_ace_js.html ##-->
+
+    <script>
+
+    function setupAceEditor(id){
+        var editor = ace.edit(id);
+        editor.setTheme("ace/theme/monokai"); //
+    
+        editor.setOptions({
+            maxLines: 50, 
+            fontSize: "12pt"
+        });
+        //editor.setUseWorker(false);
+        editor.session.setMode("ace/mode/javascript");
+    }
+   
+    function updateProjectList( pElement){
+        DexcaliburAPI.workspace.list((vData)=>{
+                let el = $(pElement);
+                let data = JSON.parse(vData);
+
+                el.empty();
+
+                if(data.projects.length > 0){
+                    data.projects.map( (vName)=>{
+                        el.append(`
+                            <li class="list-group-item">
+                                <div class="row">
+                                    <!--<div class="col-md-4">Missing image</div>-->
+                                    <div class="col-md-12">
+                                        <div class="proj-desc"><i>No description set</i></div>
+                                        <span class="proj-pkg">${vName}</span>
+                                    </div>
+                                </div>
+                            </li>
+                        `)
+                    });
+                }else{
+                    el.append(`
+                                <li class="list-group-item">
+                                    <div class="row">
+                                        <div class="col-md-12">Workspace is empty</div>
+                                    </div>
+                                </li>
+                            `);
+                }
+            });
+    }
+
+    function openProject( pUID){
+        DexcaliburAPI.workspace.open( pUID, (vData)=>{
+            location.href = "/pages/index_v2.html"; 
+        });
+    }
+
+
+    $(document).ready(function() {
+
+        updateProjectList("#dxcProjectList");
+
+        const SCOPES = {
+            "home": {
+                el:  null,
+                view: "splash-home"
+            },
+            "open-project": {
+                el:  null,
+                view: "splash-open-project",
+                action: function(vEl){
+                    updateProjectList("#dxcProjectList2");
+                }
+            },
+            "open-apk": {
+                el:  null,
+                view: "splash-open-apk"
+            },
+            "select-app": {
+                el:  null,
+                view: "splash-select-app"
+            },
+            "import": {
+                el:  null,
+                view: "splash-import"
+            },
+            "api-manager": {
+                el:  null,
+                view: "splash-api-manager",
+                action: function(vEl){
+                    DexcaliburAPI.platform.list((vData)=>{
+                    
+                        let data = JSON.parse(vData), installMsg;
+
+                        $('#dxcApiList').empty();
+
+                        for(let i in data.platforms){
+
+                            if(data.platforms[i].installed === true){
+                                installMsg = "<span class='fa fa-check text-success'></span>&nbsp;Installed";
+                            }else{
+                                installMsg = "<i class='text-primary dxc-install-plt' dxc-id='"+data.platforms[i].uid+"'><span class='fa fa-download'></span>&nbsp;Click to install<i>";
+                            }
+
+                            $('#dxcApiList').append(`
+                            <tr>
+                                <td>${data.platforms[i].name}</td>
+                                <td>${data.platforms[i].version}</td>
+                                <td>${data.platforms[i].source}</td>
+                                <td>
+                                    <i>${installMsg}</i>   
+                                </td>
+                            </tr>
+                            `);
+                        }
+                    });
+                }
+            },
+            "device-manager": {
+                el:  null,
+                view: "splash-home"
+            },
+            "plugin-manager": {
+                el:  null,
+                view: "splash-home"
+            },
+
+        }
+
+        let context = "home";
+
+        for(let i in SCOPES){
+            $(`.dxc-${i}`).click(function(vData){
+                //alert(i,context);
+                $(`.splash-${context}`).css("display","none");
+                $(`.splash-${i}`).css("display","block");
+                context = i;
+                if(SCOPES[i].action !== null) SCOPES[i].action(vData);
+            })
+        }
+
+         // Add the following code if you want the name of the file appear on select
+        $(".custom-file-input").on("change", function() {
+            var fileName = $(this).val().split("\\").pop();
+            $(this).siblings(".custom-file-label").addClass("selected").html(fileName);
+        });
+
+        $(document).on("click",'i.dxc-install-plt',(pEl)=>{
+            let uid = pEl.target.getAttribute('dxc-id');
+            DexcaliburAPI.platform.install(uid, {
+                onSucess: (vData)=>{
+                    let status = JSON.parse(vData);
+                    if(status.success){
+                        pEl.target.html("Installed");
+                    }else{
+                        alert("Error");
+                    }
+                }
+            })
+        })
+    });
+
+   
+
+    </script>
+</body>
+
+</html>

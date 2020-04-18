@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="">
+    <meta name="author" content="">
+
+    <title>Dexcalibur - Install</title>
+
+    <!-- styles -->
+    <!--## pages/inc/tpl_css.html ##-->
+
+
+    <!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
+    <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
+    <!--[if lt IE 9]>
+        <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
+        <script src="https://oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js"></script>
+    <![endif]-->
+
+    <style>
+    
+    body,
+    #page-wrapper {
+        background: linear-gradient(120deg, #4B0000 0%, #000000 100%), linear-gradient(300deg, #1E0000 0%, #0038FF 100%, #0038FF 100%), linear-gradient(65deg, #00FFFF 0%, #FF00A8 100%), linear-gradient(185deg, #FF0000 10%, #1400FF 95%), radial-gradient(100% 140% at 100% 0%, #00A3FF 0%, #C10097 100%);
+        background-blend-mode: color-dodge, overlay, difference, color-dodge, normal;  
+    }
+
+    #downloadimg:hover {
+        cursor: pointer;
+    }
+
+    .editpath {
+        color:#007bff;
+    }
+
+    .editpath:hover {
+        text-decoration: underline;
+        cursor: pointer;
+    }
+
+    #gsettings > div.row,
+    #esettings > div.row {
+        margin-top:1em;
+    }
+
+    .link {
+        text-decoration: underline;
+    }
+    .link:hover {
+        cursor: pointer;
+    }
+    </style>
+</head>
+
+<body>
+
+
+        <!-- Navigation -->
+        <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+            <a class="navbar-brand" href="/pages/index.html">DEXCALIBUR</a>
+            
+            <h1 class="page-header" style="color:yellow">Configuration</h1>
+        </nav>
+
+        <div id="page-wrapper">
+            
+            <div class="row"  style="margin-top:1em;">
+                    <div class="col-lg-2">&nbsp</div>
+                    <div class="col-lg-8">
+
+                    <p style="background-color: #090d23; border:2px solid yellow;padding:2em;color:yellow">
+                            Dexcalibur has been successfully installed. <br>However, you need to configure external tools and to initialize workspace before to start.
+                    </p>
+
+                    <div class="card" id="gsettings">
+
+                        <div class="card-body" id="gsettings_manual">
+
+                            <div class="row">
+                                <div class="col-lg-3" style="text-align:right">
+                                    <label for="dxc_encoding">File encoding<br><span class="text-danger" style="font-size:0.8em">(required)</span></label>
+                                </div>
+                                <div class="col-lg-8" style="text-align:left">
+                                    <select class="form-control" name="dxc_encoding" id="dxc_encoding" required>
+                                        <option value="utf8">UTF-8</option>
+                                        <option value="utf16">UTF-16</option>
+                                        <option value="latin1">Latin-1</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-lg-3" style="text-align:right">
+                                    <label for="dxc_workspacePath">Workspace path<br><span class="text-danger" style="font-size:0.8em">(required)</span></label>
+                                </div>
+                                <div class="col-lg-8" style="text-align:left">
+                                    <input type="text" class="form-control" name="dxc_workspacePath" id="dxc_workspacePath" required>
+                                    <div class="valid-feedback">
+                                        Folder already exists. If you confirm, it will be override. <!-- <span class="link createMissingFolder" dxc-target="web_port">Create</span> -->
+                                    </div>
+                                    <div class="invalid-feedback" id="dxc_workspacePath_feedback">-</div>
+                                </div>
+                            </div>  
+                            <div class="row">
+                                <div class="col-lg-3" style="text-align:right">
+                                    <label for="dxc_web_port">Default port number<br><span class="text-danger" style="font-size:0.8em">(required)</span></label>
+                                </div>
+                                <div class="col-lg-8" style="text-align:left">
+                                    <input type="number" class="form-control" name="dxc_web_port" id="dxc_web_port" style="width:8em" value="8000" required>
+                                    <div class="invalid-feedback">
+                                        Invalid port number. It must be into the range :  1 - 65535 
+                                    </div>
+                                </div>
+                            </div>  
+                            <div class="row">
+                                <div class="col-lg-3" style="text-align:right">
+                                    <label for="extinstall">External tools</label>
+                                </div>
+                                <div class="col-lg-8" style="text-align:left">
+
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="extinstall" id="auto_extinstall" value="auto" checked>
+                                        <label class="form-check-label" for="auto_extinstall">
+                                            <b>Auto install (recommended)</b><br> Dowload ADB and APKTool into Dexcalibur workspace and generate configuration. 
+                                        </label>
+                                    </div>
+                                    <!--<div class="form-check">
+                                        <input class="form-check-input" type="radio" name="extinstall" id="manual_extinstall" value="manual">
+                                        <label class="form-check-label" for="manual_extinstall">
+                                            <b>Manual install </b><br> ADB and APKTool are already installed. I want setup binary path for each.
+                                        </label>
+                                    </div>-->
+
+                                </div>
+                            </div>
+                            <div class="row" style="margin-top:1em;padding-left:1em;padding-right:1em;">
+                                <div class="col-lg-4"> &nbsp;</div>
+                                <div class="col-lg-4 btn btn-primary dxcStep2">
+                                        <span class="fa fa-arrow-right"></span>&nbsp;Next
+                                </div>
+                                <div class="col-lg-4"> &nbsp;</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card" id="esettings" style="visibility: hidden">
+                        
+                        <div class="card-body" id="esettings_manual" style="visibility:hidden; display:none">
+                            <!--<div class="row">
+                                <div class="col-lg-3" style="text-align:right">
+                                    <label for="androidsdk">Android SDK path<br><i>(optional)</i></label>
+                                </div>
+                                <div class="col-lg-8" style="text-align:left" id="androidsdkstatus">
+                                    <input type="text" class="form-control" id="androidsdkpath" placeholder="/home/example/AndroidSdk">
+                                    <div class="invalid-feedback">
+                                        Invalid Android SDK path 
+                                    </div>
+                                </div>
+                            </div>-->
+                            <div class="row">
+                                <div class="col-lg-1" style="text-align:right">&nbsp;</div>
+                                <div class="col-lg-8" style="text-align:left" id="adbstatus">
+                                    <h2>External dependencies</h2>
+                                    <p>
+                                        Manuel install lets you configure where ADB and APKtool are located.                               
+                                    </p>
+                                </div>
+                                <div class="col-lg-1" style="text-align:right">&nbsp;</div>
+                            </div>
+                            <div class="row">
+                                <div class="col-lg-3" style="text-align:right">
+                                    <label for="adbpath">ADB path&nbsp;<br><span class="text-danger" style="font-size:0.8em">(required)</span></label>
+                                </div>
+                                <div class="col-lg-8" style="text-align:left" id="adbstatus">
+                                    <input type="text" class="form-control is-invalid" id="adbpath" placeholder="/home/example/AndroidSdk/platform-tools/adb" required>
+                                    <div class="invalid-feedback">
+                                        Invalid ADB path. <b>Not installed ? <span class="link dxcAutoinstall" dxc-target="adbpath">install ADB standalone into Dexcalibur workspace by clicking here</span></b>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-lg-3" style="text-align:right">
+                                    <label for="apktpath">APKTool path&nbsp;<br><span class="text-danger" style="font-size:0.8em">(required)</span></label>
+                                </div>
+                                <div class="col-lg-8" style="text-align:left" id="apktstatus">
+                                    <input type="text" class="form-control is-invalid" id="apktpath" placeholder="/home/..." required>
+                                    <div class="invalid-feedback">
+                                        Invalid APKtool path. <b>Not installed ? <span class="link dxcAutoinstall" dxc-target="apktpath">install APKTool standalone into Dexcalibur workspace by clicking here</span></b> 
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row" style="padding-left:1em;padding-right:1em;">
+                                <!--<div class="col-lg-4 btn btn-secondary dxcPrev" dxc-target="gsettings" dxc-current="esettings">
+                                        <span class="fa fa-arrow-left"></span>&nbsp;Previous
+                                </div>-->
+                                <div class="col-lg-4">&nbsp;</div>
+                                <div class="col-lg-4 btn btn-primary dxcNext" dxc-target="androidsettings" dxc-current="esettings">
+                                        <span class="fa fa-arrow-right"></span>&nbsp;Next
+                                </div>
+                                <div class="col-lg-4">&nbsp;</div>
+                            </div>
+                        </div>
+                        <div class="card-body" id="esettings_auto" style="visibility: hidden;">
+                            <div class="row">
+                                <div class="col-lg-1" style="text-align:right">&nbsp;</div>
+                                <div class="col-lg-10" style="text-align:left" id="adbstatus">
+                                    <h2>Install</h2>
+                                    <p>
+                                        Dependencies such as Android platform tools will be downloaded automatically.                                  
+                                    </p>
+                                </div>
+                                <div class="col-lg-1" style="text-align:right">&nbsp;</div>
+                            </div>
+                            <div class="row">
+                                <div class="col-lg-2">&nbsp;</div>
+                                <div class="col-lg-8 text-danger" style="text-align:left" id="adbstatus">
+                                    <div class="progress">
+                                        <div class="progress-bar progress-bar-striped progress-bar-animated"id="install_auto_progress" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" style="width: 0%"></div>
+                                    </div>
+                                    <div style="font-size:0.8em; padding: 0.5em 1em;color:gray" id="install_auto_msg">&nbsp;</div>                               
+                                </div>
+                                <div class="col-lg-2">&nbsp;</div>
+
+                            </div>
+                            <div class="row" style="padding-left:1em;padding-right:1em;">
+                                    <div class="col-lg-4">&nbsp;</div>
+                                    <div class="col-lg-4 btn btn-primary dxcRestart" style="visibility: hidden">
+                                            <span class="fa fa-refresh"></span>&nbsp;Restart
+                                    </div>
+                                    <div class="col-lg-4">&nbsp;</div>
+                                </div>
+                            <!-- <div class="row" style="padding-left:1em;padding-right:1em;">
+                                <div class="col-lg-4 btn btn-secondary dxcPrev" dxc-target="gsettings" dxc-current="esettings">
+                                        <span class="fa fa-arrow-left"></span>&nbsp;Previous
+                                </div>
+                                <div class="col-lg-8">&nbsp;</div>
+                                <div class="col-lg-4 btn btn-secondary dxcNext" dxc-target="androidsettings" dxc-current="esettings">
+                                        <span class="fa fa-arrow-right"></span>&nbsp;Next
+                                </div>
+                            </div>-->
+
+                        </div>
+                    </div>
+
+
+                    <div class="card" id="androidsettings" style="visibility: hidden">
+                        <div class="card-header">
+                            Android API manager
+                        </div>
+                        <div class="row">
+                            <div class="col-lg-3" style="text-align:right">
+                                <label for="dxcws">Android images</label>
+                            </div>
+                            <div class="col-lg-6" style="text-align:left">
+                                <ul class="nav">
+                                    <li class="nav-item">
+                                        <span class="badge badge-pill nav-link badge-primary" id="downloadimg"><span class="fa fa-download">&nbsp;</span>Install more...</a>
+                                    </li>
+                                </ul>
+                                <table class="table table-sm" style="margin-top:5px">
+                                    <thead>
+                                        <th>Default</th>
+                                        <th>Source</th>
+                                        <th>Name</th>
+                                        <th>Version</th>
+                                        <th>Path</th>
+                                    </thead>
+                                    <tbody id="apimanagertbl"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <div class="row" style="padding-left:1em;padding-right:1em;">
+                            <div class="col-lg-12 btn btn-primary dxcNext" dxc-target="fridasettings">
+                                    <span class="fa fa-arrow-right"></span>&nbsp;Next
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card" id="fridasettings" style="visibility: hidden">
+                        <div class="card-header">
+                            Frida
+                        </div>
+                        <div class="row">
+                            <div class="col-lg-3" style="text-align:right">
+                                <label for="dxcws">Local frida version</label>
+                            </div>
+                            <div class="col-lg-6" style="text-align:left"><b id="fridaversion">-</b></div>
+                        </div>
+                        <div class="row" style="padding-left:1em;padding-right:1em;">
+                            <div class="col-lg-12 btn btn-danger dxcRestart">
+                                    <span class="fa fa-refresh"></span>&nbsp;Restart
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- /.row -->
+        </div>
+        </div>
+        </div>
+        <!-- /#page-wrapper -->
+
+
+        <div class="modal fade" id="confirmsave_modal" tabindex="-1" role="dialog" aria-labelledby="confirmSaveModalLabel" aria-hidden="true">
+            <div class="modal-dialog" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">Confirmation</div>
+                    <div class="modal-body">
+                        Are you sure to override configuration ? <br>
+                        <i>(Previous configuration will be saved, use '--restore-config' at launch to use previous config)</i>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-danger" data-dismiss="modal">Abort</button>
+                        <button type="button" class="btn btn-success" id="confirmsave">Confirm</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="modal fade" id="installplatf_modal" tabindex="-1" role="dialog" aria-labelledby="installPlatfModalLabel" aria-hidden="true">
+                <div class="modal-dialog modal-lg" role="document">
+                    <div class="modal-content">
+                        <h4 class="modal-header">Platform manager</h4>
+                        <div class="modal-body">
+                            <i>You can download additional platform image to perform analysis using another base than default Dexcalibur base. If you expect to search call to Android internal class or constructor specific class, you need to have a base containing these references.</i>
+                            <span class="badge badge-pill nav-link badge-primary" id=""><span class="fa fa-search">&nbsp;</span>List packages</a>
+
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                            <button type="button" class="btn btn-success" id="confirminstall">Install</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+
+    <!--## pages/inc/tpl_js_end.html ##-->
+
+    <!-- Page-Level Demo Scripts - Tables - Use for reference -->
+    <script>
+
+    function declareEdit(){
+
+        let html={};
+    
+        // todo 
+        html.apkt = $("#apktstatus").html();
+        html.adb = $("#adbstatus").html();
+        html.androidsdk = $("#androidsdkstatus").html();
+
+        $("#page-wrapper").on('click','.editpath',(x)=>{
+            let i = x.target.getAttribute("dxctarget"), v = x.target.getAttribute("dxcval");
+            $("#"+i+"status").html(html[i]);
+            $("#"+i+"path").val(v);
+            $("#"+i+"path").removeClass('is-invalid');
+            $("#"+i+"path").addClass('is-valid');
+        });
+    }
+
+    let GET_STATUS_REFRESH = 2000;
+
+   
+
+    function startAutoStep2(){
+
+        
+        //$("#install_auto_progress").css("width","10%");
+        //$("#install_auto_msg").html("downloading ...");
+
+        // TIMEOUT / CALLBACK
+        let task = null;
+        
+        task = DexcaliburAPI.config.getInstallStatus( 1000,
+            function(x){
+                let data = JSON.parse(x);
+
+                if(data.percent == 100){
+                    task.stop();
+                }
+
+                if(data.extra !== null){
+                    switch(data.extra){
+                        case "success":
+                            $("#install_auto_progress").addClass('bg-success');
+                            task.stop();
+                            $("#dxcRestart").css('visibility','visible');
+                            //$("#dxcRestart").addClass('btn-primary');
+                            break;
+                        case "error":
+                            $("#install_auto_progress").addClass('bg-danger');
+                            task.stop();
+                            //$("#install_auto_progress").removeClass();
+                            break;
+                    }
+                }
+                $("#install_auto_progress").css("width",data.progress+"%");
+                $("#install_auto_msg").html(data.msg); 
+
+            }
+        );
+
+
+        DexcaliburAPI.config.startInstall({
+            onSuccess: function(x){
+                $("#install_auto_progress").css("width","10%");
+                $("#install_auto_msg").html("starting ..."); 
+                task.start();
+            }
+        });
+    }
+
+    
+    $(document).ready(function() {
+
+        declareEdit();
+        // 
+//        <span class="badge badge-danger">not configured</span>, <a href="">configure ...</a>
+        DexcaliburAPI.config.get(
+            function( pData){
+                data = JSON.parse(pData);
+
+                
+                $("#dxc_workspacePath").val(data.cfg.workspacePath);
+                if(data.invalid.workspacePath !== undefined)
+                    $("#dxc_workspacePath").addClass("is-invalid");
+                else
+                    $("#dxc_workspacePath").addClass("is-valid");
+
+                $("#dxc_web_port").val(data.cfg.web_port);
+                $("#dxc_web_port").addClass("is-valid");
+
+                $("#dxc_encoding").val(data.cfg.encoding);
+                $("#dxc_encoding").addClass("is-valid");
+
+                $("#fridaversion").html(data.frida);
+
+                /*if(data.cfg.adbPath != null){
+                    $("#adbstatus").html("");
+                    $("#adbstatus").append(`<span class="badge badge-success">detected</span>&nbsp;&nbsp;<span dxctarget="adb" dxcval="${data.cfg.adbPath}" class="editpath">edit</span><br><i style="text-secondary"> ${data.cfg.adbPath} </i>`);
+                }
+
+                if(data.cfg.apktPath != null){
+                    $("#apktstatus").html("");
+                    $("#apktstatus").append(`<span class="badge badge-success">detected</span>&nbsp;&nbsp;<span dxctarget="apkt" dxcval="${data.cfg.apktPath}" class="editpath">edit</span><br><i style="text-secondary"> ${data.cfg.apktPath} </i>`);
+                }
+                if(data.cfg.androidSdkPath != null){
+                    $("#androidsdkstatus").html("");
+                    $("#androidsdkstatus").append(`<span class="badge badge-success">detected</span>&nbsp;&nbsp;<span dxctarget="androidsdk" dxcval="${data.cfg.androidSdkPath}" class="editpath">edit</span><br><i style="text-secondary"> ${data.cfg.androidSdkPath} </i>`);
+                }*/
+
+                $("#apimanagertbl").html("");
+                for(let i in data.cfg.platform_available){
+                    $("#apimanagertbl").append(`
+                        <tr>
+                            <td>-</td>
+                            <td>SDK</td>
+                            <td>${i}</td>
+                            <td>${data.cfg.platform_available[i].apiVersion}</td>
+                            <td>${data.cfg.platform_available[i].binaryPath}</td>
+                        </tr>
+                    `);
+                }
+            }
+        );
+
+        $("#downloadimg").click(function(){
+            $('#installplatf_modal').modal();
+        });
+
+        $("#rmls_images").click(function(){
+            
+            
+        });
+
+        $("#confirmdownload").click(function(){
+            
+
+        });
+
+        $("#savesettings").click(function(el){
+            $('#confirmsave_modal').modal();
+        });
+
+        $("#confirmsave").click(function(el){
+            
+            /*
+                fridaDevPath: $("#dxcfridasrvp").val(),
+                fridaServerPath: "",
+                fridaBin: 'frida',
+            */
+            DexcaliburAPI.config.write(
+                function( pData){
+                    let data = JSON.parse(pData);
+
+                    if(data.invalid != null){
+                        for(let i in data.invalid.msg){
+                            alert(i+" is invalid");
+                            $("#dxc_"+i).removeClass('is-valid');
+                            $("#dxc_"+i).addClass('is-invalid');
+                        }
+                    }
+                    $('#confirmsave_modal').modal('toggle');
+                }, function(){
+                    $('#confirmsave_modal').modal('toggle');
+                });
+
+            
+        });
+
+        var activeInput = null;
+
+        $('#page-wrapper').on('focus','input', function(el){
+            activeInput = el.target.getAttribute('id');
+        });
+
+        $('#page-wrapper').on('change','input', function(el){
+            let id = el.target.getAttribute('id');
+
+            if(id != activeInput) 
+                return;
+
+            let val = el.target.value;
+            let data = {};
+
+            if(id.startsWith('dxc_')){
+                data[id.substr(4)] = val;
+            }else{  
+                data[id] = val;
+            }
+
+            DexcaliburAPI.config.verify(
+                data, 
+                function( pData){
+                    let data = JSON.parse(pData);
+
+                    if(data.invalid.length > 0){
+                        for(let i=0; i<data.invalid.length; i++){
+                            $("#dxc_"+data.invalid[i].name).removeClass('is-valid');
+                            $("#dxc_"+data.invalid[i].name).addClass('is-invalid');
+
+                            if(data.invalid[i].name=="workspacePath"){
+                                $("#dxc_"+data.invalid[i].name+"_feedback").html(data.invalid[i].msg);
+                            }
+                        }
+                    }else{
+                        $("#"+id).removeClass('is-invalid');
+                        $("#"+id).addClass('is-valid');
+                    }
+                });
+        });
+
+
+        $('#page-wrapper').on('click','div.dxcNext', function(el){
+            let id = el.target.getAttribute('dxc-target');
+            let idc = el.target.getAttribute('dxc-current');
+
+            $('#'+id).css('visibility','visible');
+            if(idc != null){
+                $('#'+idc).css('display','none');
+            }
+        });
+
+        $('#page-wrapper').on('click','div.dxcStep2', function(el){
+
+            let mode = $('input[name=extinstall]').val();
+
+            DexcaliburAPI.config.validateStep1(
+                {
+                    encoding: $("#dxc_encoding").val(),
+                    web_port: $("#dxc_web_port").val(),
+                    workspacePath: $("#dxc_workspacePath").val(),
+                    mode: "auto"
+                }, 
+                function( pData){
+                    let data = JSON.parse(pData);
+
+                    if(pData.err){
+                        alert("Error");
+                    }else{
+                        $('#gsettings').css('display','none');
+                        $('#esettings').css('visibility','visible');
+
+                        if(mode=="auto"){
+                            $('#esettings_auto').css('visibility','visible');
+                            $('#esettings_auto').css('display','block');
+                            $('#esettings_manual').css('display','none');
+
+                            startAutoStep2();
+
+                        }else{
+                            $('#esettings_manual').css('visibility','visible');
+                            $('#esettings_auto').css('display','none');
+                            $('#esettings_manual').css('display','block');
+                        }
+                    }
+                });
+        });
+
+        $('#page-wrapper').on('click','div.dxcRestart', function(el){
+            DexcaliburAPI.engine.restart();
+        });
+
+        $('#gsettings').on('click','span.createMissingFolder', function(el){
+            let id = el.currentTarget.getAttribute('dxc-target');
+
+            console.log(el,id,$("#dxc_"+id).val());
+            DexcaliburAPI.util.mkdir(
+                {
+                    path: $("#dxc_"+id).val()
+                },
+                function(pData){
+                    let data = JSON.parse(pData);
+
+                    if(data.created){                         
+                        $("#dxc_"+id).removeClass("is-invalid");
+                        $("#dxc_"+id).addClass("is-valid");   
+                    }
+                }
+            
+            );
+        });
+
+
+        //dmTable.ajax.url("../api/device").load();
+        $('#dm-refresh-btn').click(()=>{
+            dmTable.ajax.reload();
+        });
+
+
+        $('#dataTables-example tbody').on('click', 'button.pull-ap', function () {
+           // alert("test");
+            let id = $(this).attr("package");
+            $(this).parent().replaceWith(`<div class="pulsating-circle"></div>`);
+            $.getJSON("/api/pullProject/" + id, function(success) {
+                
+                dmTable.ajax.reload();
+            });
+        });
+    });
+
+   
+    </script>
+
+</body>
+
+</html>
