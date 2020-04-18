@@ -120,7 +120,7 @@ if(projectArgs.buildApi != null){
     builder.build(target);
 }
 
-var DxcInstance  = null, ready=false;
+var dxcInstance  = null, ready=false;
 
 if(projectArgs.reinstall == true){
     DexcaliburEngine.clearInstall();
@@ -129,7 +129,7 @@ if( DexcaliburEngine.requireInstall() ){
     // pass 
     dxcInstance = new DexcaliburEngine();
 
-    dxcInstance.prepareInstall();
+    dxcInstance.prepareInstall( (projectArgs.port!=null) ? projectArgs.port : 8000);
 
     dxcInstance.start( projectArgs.port );
 }
@@ -207,26 +207,6 @@ else{
     
 }
 
-if( DexcaliburEngine.requireInstall() ){
-    // pass 
-    dxcInstance = new DexcaliburEngine();
-
-    dxcInstance.prepareInstall();
-
-    dxcInstance.start( projectArgs.port );
-}
-// startup without args
-else{
-    dxcInstance = new DexcaliburEngine();
-
-    dxcInstance.loadWorkspaceFromConfig();
-    
-    ready = dxcInstance.boot();
-
-    if(ready){
-        dxcInstance.start( projectArgs.port );
-    }
-}
 
 
 
