@@ -634,6 +634,32 @@ class RequestHelperChoice
     }
 }
 
+class ScheduledTask
+{
+    constructor( pInterval, pCallback, pRepeat=true){
+        //this.enabled = false;
+        this.repeat = pRepeat;
+        this.timeout = pInterval;
+        this.callback = pCallback;
+        this.__timer = null;
+    }
+
+    start(){
+        if(this.repeat)
+            this.__timer = setInterval( this.callback, this.timeout);
+        else
+            this.__timer = setTimeout( this.callback, this.timeout);
+
+        return this.__timer;
+    }
+
+    stop(){
+        if(this.repeat)
+            clearInterval( this.__timer);
+        else
+            clearTimeout( this.__timer);
+    }
+}
 
 
 var DexcaliburAPI = {
@@ -742,12 +768,62 @@ var DexcaliburAPI = {
             //$(document).
         }
     }, 
+    workspace: {
+        list: function(success=null, error=null){
+            DexcaliburAPI.exec("/api/workspace/list","get",null, success, error);
+        },
+        open: function( pProjectUID, success=null, error=null){
+            DexcaliburAPI.exec("/api/workspace/open","get", { uid:pProjectUID }, success, error);
+        }
+    },
+    platform: {
+        list: function(success=null, error=null){
+            DexcaliburAPI.exec("/api/platform/list","get",null, success, error);
+        },
+        install: function(pUID, pCallback){
+            DexcaliburAPI.exec("/api/platform/install","post", {uid:pUID}, pCallback.onSuccess, null);
+        }
+    },
     config: {
+        // function
         get: function( success=null, error=null){
             DexcaliburAPI.exec("/api/settings","get",null, success, error);
         },
         save: function( pData, success=null, error=null){
             DexcaliburAPI.exec("/api/settings","post", pData, success, error);
+        },
+        write: function( success=null, error=null){
+            DexcaliburAPI.exec("/api/settings/save","post", null, success, error);
+        },
+        verify: function( pData, success=null, error=null){
+            DexcaliburAPI.exec("/api/settings/verify","post", pData, success, error);
+        },
+        validateStep1: function( pData, success=null, error=null){
+            DexcaliburAPI.exec("/api/settings/step1","post", pData, success, error);
+        },
+        installTool: function( pToolName, success=null, error=null){
+            DexcaliburAPI.exec("/api/ext_install/"+pToolName,"post", null, success, error);
+        },
+        installTool_GetStatus: function( pToolName, success=null, error=null){
+            DexcaliburAPI.exec("/api/ext_install/"+pToolName,"get", null, success, error);
+        },
+        startInstall: function( pCallback){
+            DexcaliburAPI.exec("/api/settings/step2", "post", null, pCallback.onSuccess, pCallback.onError);
+        },
+        getInstallStatus: function( pTimeout, pCallback){
+            return new ScheduledTask(pTimeout, function(){
+                let data = {  _t: (new Date()).getTime() };
+                
+                $.ajax( "/api/settings/step2/status", {
+                    method: "get",
+                    data: data,
+                    statusCode: {
+                        200: function(data,err){
+                            if(pCallback != null) pCallback(data);
+                        }
+                    }
+                });
+            });
         }
     },
     configMgt: {
@@ -1152,6 +1228,9 @@ var DexcaliburAPI = {
         }
     },
     util: {
+        mkdir: function( pData, success=null, error=null){
+            DexcaliburAPI.exec("/api/util/mkdir","post", pData, success, error);
+        },
         encodeLocationAction: function(val){
             return btoa(encodeURIComponent(val));
         },
