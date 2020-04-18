@@ -3,7 +3,11 @@ const Process = require("child_process");
 const Chalk = require("chalk");
 const Path = require("path");
 const crypto = require("crypto");
-const https = require("https");
+
+const _stream_      = require('stream');
+const _got_         = require("got");
+const {promisify}   = require('util');
+
 
 //const TestHelper = require("./TestHelper.js");
 
@@ -240,36 +244,18 @@ const Util = {
     },
     download(pRemoteURL, pLocalPath, pCallbacks, pMode=0o666, pEncoding='binary'){
         
-        https.get( pRemoteURL, (res) => {
-            let ws = null;
-
-            res.on('data', (d) => {
-                if(ws == null){
-                    ws = fs.createWriteStream(pLocalPath, {
-                        flags: 'w+',
-                        mode: 0o777,
-                        encoding: 'binary'
-                    });
-                }
-                
-                ws.write(d);
-            });
-            res.on('end', (e) => {
-                if (!res.complete){
-                    Logger.error('The connection was terminated while the file was still being downloaded');
-                    if(pCallbacks.onError != null)
-                        pCallbacks.onError(e);
-                }
-                else{
-                    ws.close();
-                    if(pCallbacks.onSuccess != null)
-                        pCallbacks.onSuccess(e);
-                }
-            });
-
-        }).on('error', (e) => {
-            pCallbacks.onError(e);
-        });
+        _stream_.pipeline(
+            _got_.stream(pRemoteURL),
+            fs.createWriteStream(pLocalPath, {
+                flags: 'w+',
+                mode: 0o777,
+                encoding: 'binary' // binary
+            }),
+            (err)=>{
+                if(pCallbacks.onSuccess != null)
+                        pCallbacks.onSuccess(err);
+            }
+        );
 
     }
 };

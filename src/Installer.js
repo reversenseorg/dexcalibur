@@ -3,7 +3,16 @@
 const _readline_    = require('readline');
 const _path_        = require('path');
 const _fs_          = require('fs');
-const _https_ = require('https');
+const _stream_      = require('stream');
+const _got_         = require("got");
+
+const _https_       = require('https');
+
+const {URL}         = require("url");
+const {promisify}   = require('util');
+
+//const _pipeline_ = promisify(_stream_.pipeline);
+
 
 
 const Configuration = require('./Configuration');
@@ -95,13 +104,52 @@ class Installer
 
     /**
      * To download remote file
+     * 
+     * @param {URL} pRemoteURL Remote URL
      */
     static download(pRemoteURL, pLocalPath, pCallbacks){
-        
-        _https_.get( pRemoteURL, (res) => {
+
+        /*(async ()=>{
+            await _pipeline_(
+                got.stream(pRemoteURL),
+                fs.createWriteStream(pLocalPath, {
+                    flags: 'w+',
+                    mode: 0o777,
+                    encoding: 'binary' // binary
+                }
+            ))
+        });*/
+
+        _stream_.pipeline(
+            _got_.stream(pRemoteURL),
+            _fs_.createWriteStream(pLocalPath, {
+                flags: 'w+',
+                mode: 0o777,
+                encoding: 'binary' // binary
+            }),
+            (err)=>{
+                if(pCallbacks.onSuccess != null)
+                        pCallbacks.onSuccess(err);
+            }
+        );
+
+        /*
+        // pRemoteURL
+        _https_.get( {
+            host: pRemoteURL.host,
+            path: pRemoteURL.path,
+            headers: {
+                'User-Agent': 'Dexcalibur-installer'
+            }
+        }, (res) => {
             // console.log('statusCode:', res.statusCode);
             // console.log('headers:', res.headers);
 
+            const { statusCode } = res;
+            const contentType = res.headers['content-type'];
+
+            let error;
+            
             let ws = null;
 
             res.on('data', (d) => {
@@ -110,13 +158,15 @@ class Installer
                     ws = _fs_.createWriteStream(pLocalPath, {
                         flags: 'w+',
                         mode: 0o777,
-                        encoding: 'binary'
+                        encoding: 'utf8' // binary
                     });
                 }
                 
                 ws.write(d);
+
             });
             res.on('end', (e) => {
+                console.log('end',e,res);
                 if (!res.complete){
                     Logger.error('The connection was terminated while the file was still being downloaded');
                     if(pCallbacks.onError != null)
@@ -131,8 +181,9 @@ class Installer
 
         }).on('error', (e) => {
             Logger.error(e);
+            console.log('error',e);
         });
-
+        */
     }
 
     static verifyWorkspacePath( pPath){
@@ -168,6 +219,15 @@ class Installer
         });
     }
 
+    addSimpleTask(pName, pCallbacks, pOS=null){
+        this.taskList.push({
+            name: pName,
+            url: null,
+            callbacks: pCallbacks,
+            system: pOS
+        });
+    }
+
     runTask( pTaskOffset, pStep){
         let self = this;
         let task = this.taskList[pTaskOffset];
@@ -175,7 +235,7 @@ class Installer
 
         // download
         if(task.url !== null){
-            this.status = new StatusMessage( this.progress, `Downloading ${task.name} from ${task.url} ...`);
+            this.status = new StatusMessage( this.status.progress, `Downloading ${task.name} from ${task.url} ...`);
             Installer.download( task.url, task.target, {
                 onSuccess: function(vData){
                     self.status.progress += pStep;
@@ -191,7 +251,11 @@ class Installer
                 }
             });
         }else{
-            self.status.progress += pStep;
+            self.status.progress += pStep;         
+            this.status = new StatusMessage( this.progress, `Running : ${task.name}  ...`);
+            task.callbacks.onSuccess(this);
+
+            self.nextTask( pTaskOffset+1, pStep);
         }
 
         // after downlaod
