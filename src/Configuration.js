@@ -19,22 +19,11 @@ class Configuration {
     constructor() {
         this.ready = false;
 
-        // reference to DexcaliburWorkspace object
-        //this.workspace = null;
-
-
-        /*
-         * Dexcalibur's workspace
-         * @field
-         */
-        //this.dxcWorkspace = null;
-
-
         // the default encoding ()
         this.encoding = null; //"utf8"
 
         // Dexcalibur src location
-        this.dexcaliburPath = null,
+        this.dexcaliburPath = _path_.join( __dirname, '..');
 
         // workspace location 
         // the workspace contains a directory per project folder where analyzed APK and data are stored
@@ -53,8 +42,6 @@ class Configuration {
         // Java bin path
         this.javaBinPath = "java"; //"java";
 
-        // frida binary
-        this.fridaBin = 'frida';
 
         // do not modified
         this.deviceId = null; // default : null
@@ -210,16 +197,8 @@ class Configuration {
         return cfg;
     }
 
-    getFridaBin(){
-        return this.fridaBin;
-    }
 
-    /**
-     * To detect if Frida is installed and get version
-     */
-    getLocalFridaVersion(){
-        return FridaHelper.getLocalFridaVersion(this.fridaBin);
-    }
+    
 
     
 
@@ -336,9 +315,6 @@ class Configuration {
         }
         if (this.useEmulator == null) {
             this.useEmulator = false;
-        }
-        if (this.bridge == null) {
-            this.bridge = "adb";
         }
         if (this.web_port == null) {
             this.web_port = 8000;
