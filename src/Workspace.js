@@ -13,7 +13,8 @@ const DIR_NAME = {
     LOGS: "logs",
     APPDATA: "appdata",
     TMP: "tmp",
-    DEXES: "dexes"
+    DEXES: "dexes",
+    DEX: "dex"
 };
 
 /**
@@ -164,6 +165,9 @@ class Workspace{
         if(!_fs_.existsSync(_path_.join(this.path, DIR_NAME.TMP))){
             this.mkWDir(DIR_NAME.TMP);
         }
+        if(!_fs_.existsSync(_path_.join(this.path, DIR_NAME.DEX))){
+            this.mkWDir(DIR_NAME.DEX);
+        }
         Logger.success("[*] Working directory : "+this.path);
     }
 
@@ -203,8 +207,13 @@ class Workspace{
     }
 
     getTmpDir(){
-        return _path_.join(this.path,DIR_NAME.TMP);
+        return _path_.join(this.path, DIR_NAME.TMP);
     }
+
+    getApkDir(){
+        return _path_.join(this.path, DIR_NAME.DEX);
+    }
+
     /**
      * To generate a new timestamped file path
      * @param {string} prefix The string part before the timestamp
