@@ -323,7 +323,7 @@
                             <li class="list-group-item">
                                 <div class="row">
                                     <!--<div class="col-md-4">Missing image</div>-->
-                                    <div class="col-md-12">
+                                    <div class="col-md-12 dxc-project" dxc-id="${vName}">
                                         <div class="proj-desc"><i>No description set</i></div>
                                         <span class="proj-pkg">${vName}</span>
                                     </div>
@@ -345,7 +345,7 @@
 
     function openProject( pUID){
         DexcaliburAPI.workspace.open( pUID, (vData)=>{
-            location.href = "/pages/index_v2.html"; 
+           // location.href = "/pages/index_v2.html"; 
         });
     }
 
@@ -451,6 +451,12 @@
                     }
                 }
             })
+        })
+
+        $(document).on("click",'div.dxc-project',(pEl)=>{
+
+            let uid = pEl.currentTarget.getAttribute('dxc-id');
+            openProject(uid);
         })
     });
 

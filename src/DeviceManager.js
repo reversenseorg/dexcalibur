@@ -34,12 +34,6 @@ class DeviceManager
         );
 
         /**
-         * Configuration object
-         * @field 
-         */
-        this.config = config;
-
-        /**
          * deffault device to use
          * @field 
          */
@@ -66,6 +60,7 @@ class DeviceManager
             ADB: AdbWrapperFactory.getInstance(
                 _path_.join(
                     this.dxcWorkspace.getBinaryFolderLocation(),
+                    "platform-tools",
                     "adb"
                 )
             )
@@ -329,7 +324,7 @@ class DeviceManager
      * @function
      */
     toJsonObject(){
-        let json = [],;
+        let json = [];
         for(let i in this.devices){
             json.push(this.devices[i].toJsonObject());
         }
