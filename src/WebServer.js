@@ -16,6 +16,11 @@ const UTF8 = require("./UTF8.js");
 const ANDROID = require("./AndroidAppComponents.js");
 const INTENT = require("./IntentFactory.js");
 const Simplifier = require("./Simplifier.js");
+const WebTemplateEngine = require('./WebTemplateEngine');
+const Installer = require('./Installer').Installer;
+const PlatformManager = require('./PlatformManager');
+const DeviceManager = require('./DeviceManager');
+
 
 const MimeHelper = {
     isFontFile: function (mime) {
@@ -33,63 +38,6 @@ function decodeURI(uri) {
     return decodeURIComponent(uri);
 }
 
-// Replace 'pattern' by 'replace" in 'source' buffer and 
-// return the new buffer
-function BufferReplace(source, pattern, replace) {
-    let bo = Buffer.alloc(source.length + replace.length - pattern.length);
-    let off = source.indexOf(pattern);
-
-    source.copy(bo, 0, 0, off);
-
-    let rep = Buffer.from(replace, 'binary');
-    rep.copy(bo, off, 0, replace.length);
-
-    source.copy(bo, off + replace.length, off + pattern.length, source.length);
-
-    return bo;
-}
-
-
-class TemplateEngine {
-
-    constructor(project) {
-        this.project = project;
-        this.tokenRE = new RegExp("<!--##\\s*(.+)\\s+##-->");
-        this.tokens = {};
-        this.root = Path.join( __dirname, "webserver", "public");
-    }
-
-    /**
-     * To replace token by the corresponding file content  before
-     * to send the HTTP response to the client.
-     * 
-     * Token should take the form <!--## file/path/to/tpl.html ##-->
-     * 
-     * @param {*} data 
-     */
-    process(data) {
-        let m = null, tpl = null, match = false;
-        do {
-            m = this.tokenRE.exec(data);
-            //console.log(m);
-
-            if (m == null || m.length < 2) {
-                break;
-            }
-            tpl = fs.readFileSync(Path.join(this.root, m[1]), 'binary');
-            // console.log(this.root+m[1],tpl);
-
-            // data = data.replace(m[0], fs.readFileSync(this.root+m[1]));
-            data = BufferReplace(data, m[0], tpl);
-            match = true;
-        } while (this.tokenRE.test(data));
-
-        if (match)
-            return data.toString('utf8');//('ascii'); 
-        else
-            return data;
-    }
-}
 
 /**
  * Class representing Dexcalibur's web server
@@ -104,8 +52,11 @@ class WebServer {
      * @constructor
      */
     constructor( pProject=null) {
+        
+        this.context = null; 
         this.project = pProject;
-        this.tplengine = new TemplateEngine(pProject);
+
+        this.tplengine = new WebTemplateEngine(pProject);
         this.app = Express();
         this.port = 8000;
 //        this.root = Path.join(this.project.config.dexcaliburPath, "webserver", "public");
@@ -114,6 +65,21 @@ class WebServer {
         this.logs = {
             access: []
         };
+
+        this.controller = null;
+    }
+
+    setProject( pProject){
+        this.project = pProject;
+    }
+
+    /**
+     * To set Dexcalibur engine 
+     * 
+     * @param {DexcaliburEngine} pEngine 
+     */
+    setContext( pContext){
+        this.context = pContext;
     }
 
     /**
@@ -126,21 +92,16 @@ class WebServer {
         return this.app;
     }
 
-    /**
-     * To initialize routes of the web server
-     * 
-     * @method
-     */
-    initRoute() {
+    newDispatcher( pHome){
         let $ = this;
 
-        let serveFile = function (req, res) {
+        return function (req, res) {
             //console.log(req.path);
 
             let localPath = $.root + req.path, mime = null;
 
             if (req.path.endsWith("/"))
-                localPath = Path.join($.root, "index.html");
+                localPath = Path.join($.root, pHome);
 
             if (req.path.startsWith("/inspectors/")) {
 
@@ -161,7 +122,7 @@ class WebServer {
                     //console.log(relPath);
 
                     //localPath = inspector[1]+"/web/"+localPath
-                    localPath = Path.join($.project.config.getDexcaliburPath(), "..", "inspectors");
+                    localPath = Path.join( __dirname, "..", "inspectors");
                     localPath = Path.join(localPath, iid, "web", relPath);
 
                     //console.log("[WebServer::inspectors] Path = "+localPath);
@@ -211,20 +172,309 @@ class WebServer {
                 res.status(200).send(data);
             });
         }
+    }
+
+
+    /**
+     * To init routes to static content
+     * 
+     * @method
+     */
+    initStaticRoutes(){
+
+
         // define middleware
         this.app.use(BodyParser.urlencoded({ extended: false }));
         this.app.use(BodyParser.json());
 
         // start server
-        this.app.get('/', serveFile);
-        this.app.get('/index.html', serveFile);
-        this.app.get('/inspectors/*', serveFile);
-        this.app.get('/pages/*', serveFile);
-        this.app.get('/dist/*', serveFile);
-        this.app.get('/data/*', serveFile);
-        this.app.get('/js/*', serveFile);
-        this.app.get('/less/*', serveFile);
-        this.app.get('/vendor/*', serveFile);
+        this.app.get('/', this.controller);
+        this.app.get('/pages/*', this.controller);
+        this.app.get('/dist/*', this.controller);
+        this.app.get('/data/*', this.controller);
+        this.app.get('/js/*', this.controller);
+        this.app.get('/less/*', this.controller);
+        this.app.get('/vendor/*', this.controller);
+    }
+
+    /**
+     * To init routes when Dexcalibur runs install mode
+     * 
+     * @method
+     */
+    initInstallRoutes(){
+
+        let $ = this;
+
+        this.controller = this.newDispatcher( Path.join("pages","install.html"));
+
+        // init routes serving static contents
+        this.initStaticRoutes();
+
+
+        // path configuration
+        this.app.route('/api/settings/step1')
+            .post(function (req, res) {
+                // collect
+
+                let data = req.body;
+                let verif = null;
+                console.log(data);
+
+                let dev = { status:null, invalid:[], err:null };
+                //let cfg = Configuration.from(data);
+
+                let cfg = $.context.getConfiguration();
+
+                // clone existing config
+                //cfg = cfg.clone();
+
+                for(let i in data){
+
+                    if( i != "workspacePath"){
+                        verif = Configuration.verifyField(i, data[i]);
+                        if(verif != null){
+                            dev.invalid.push({ name:i, msg:verif });
+                        }else{
+                            cfg.setParameter( i, data[i]);
+                        }
+                    }
+                }
+
+                try{
+                    if(dev.invalid.length === 0){
+                        $.context.createWorkspace( data.workspacePath );
+                        dev.status = "success";
+
+                    }else{
+                        console.log(dev.invalid);
+                        dev.status = "error";
+                    }
+                }catch(err){
+                    dev.err = err;
+                    console.log(err);
+                    dev.status = "error";
+                }
+
+                res.status(200).send(JSON.stringify(dev));
+            });
+
+            // start dependencies download & install
+            this.app.route('/api/settings/step2')
+                .post(function (req, res) {
+                    // collect
+
+                    let data = req.body;
+                    let verif = null;
+                    console.log(data);
+
+                    let dev = { status:null, invalid:[], err:null };
+
+                    try{
+                        $.context.initInstaller();
+                        $.context.startInstall();
+                    }catch(err){
+                        dev.err = err;
+                        console.log("INSTALLER",err);
+                    }
+    
+                    res.status(200).send(JSON.stringify(dev));
+                });
+
+            this.app.route('/api/settings/step2/status')
+                .get(function (req, res) {
+                    // collect
+                    
+                    let status = $.context.getInstallerStatus();
+                    
+                    res.status(200).send(JSON.stringify({
+                        msg: status.getMessage(),
+                        progress: status.getProgress(),
+                        extra: status.getExtra()
+                    }));
+                });
+
+            // restart        
+            this.app.route('/api/settings/step3')
+                .post(function (req, res) {
+                    // collect
+                    let data = req.body;
+                    let verif = null;
+                    console.log(data);
+
+                    let dev = { status:null, invalid:[], err:null };
+                    //let cfg = Configuration.from(data);
+
+                    let cfg = $.context.getConfiguration();
+
+                    // clone existing config
+                    //cfg = cfg.clone();
+
+                    for(let i in data){
+                        
+                        verif = Configuration.verifyField(i, data[i]);
+                        if(verif != null){
+                            dev.invalid.push({ name:i, msg:verif });
+                        }else{
+                            cfg.setParameter( i, data[i]);
+                        }
+                    }
+
+                    try{
+                        if(dev.invalid.length === 0){
+                            $.context.createWorkspace( data.workspace );
+                        }else{
+                            console.log(dev.invalid);
+                        }
+                    }catch(err){
+                        dev.err = err;
+                        console.log(err);
+                    }
+    
+                    res.status(200).send(JSON.stringify(dev));
+                });
+
+
+            this.app.route('/api/settings/verify')
+                .post(function (req, res) {
+                     // collect
+
+                    let data = req.body;
+                    let verif = null;
+
+                    let dev = { status:null, invalid:[], err:null };
+
+                    for(let i in data){
+                        if( i != "workspacePath"){
+                            verif = Configuration.verifyField(i, data[i]);
+                            if(verif != null){
+                                dev.invalid.push({ name:i, msg:verif });
+                            }
+                        }
+                        else{
+                            verif = Installer.verifyWorkspacePath( data[i]);
+                            if(verif != null){
+                                dev.invalid.push({ name:i, msg:verif+" It will be created automatically !" });
+                            }
+                        }
+                    }
+
+                    res.status(200).send(JSON.stringify(dev));
+                });
+
+        this.app.route('/api/settings')
+            .get(function (req, res) {
+                // collect
+                let dev = {
+                    cfg:null,
+                    frida: null,
+                    invalid:[]
+                };
+
+                let cfg = $.context.getConfiguration() ;
+
+                dev.cfg = cfg.toJsonObject();
+                //dev.frida = cfg.getLocalFridaVersion();
+                //dev.invalid.push( Configuration.verifyField( "workspacePath", $.context.getDefaultWorkspace() ) )
+                res.status(200).send(JSON.stringify(dev));
+            })
+            .post(function (req, res) {
+                // collect
+
+                let data = req.body;
+                let verif = null;
+                console.log(data);
+
+                let dev = { status:null, invalid:[], err:null };
+                //let cfg = Configuration.from(data);
+
+                let cfg = $.context.getConfiguration();
+
+                // clone existing config
+                //cfg = cfg.clone();
+
+                for(let i in data){
+                    verif = Configuration.verifyField(i, data[i]);
+                    if(verif != null){
+                        dev.invalid.push({ name:i, msg:verif });
+                    }
+                }
+
+                try{
+                    if(dev.invalid.length === 0){
+                        console.log("Save configuration changes ...")
+                         // import received data
+                        cfg.import( data,
+                            false, // autocomplete OFF
+                            true // override ON
+                        );
+                        
+                        // Ask to current configuration to backup new configuration
+                        $.context.saveConfiguration(cfg);
+                    }else{
+                        console.log(dev.invalid);
+
+                    }
+                }catch(err){
+                    dev.err = err;
+                    console.log(err);
+                }
+/*
+                let dev = false;
+                let cfg = $.project.getConfiguration();
+
+                cfg = cfg.clone();
+
+                // not autocomplete, force overwrite
+                cfg.import( data,
+                    false, // autocomplete
+                    true // override
+                )
+                
+*/
+                res.status(200).send(JSON.stringify(dev));
+            });
+
+            this.app.route('/api/util/mkdir')
+                .post(function (req, res) {
+                    // collect
+                    let dev = { created:null, err:null };
+                    let data = req.body;
+                    console.log(data);
+
+                    try{
+                        if(fs.existsSync(data.path)==false){
+                            fs.mkdirSync(data.path)
+                            dev.created = fs.existsSync(data.path);
+                        }else{
+                            console.log("path exists");
+                        }
+                    }catch(err){
+                        console.log(err);
+                        dev.err = err;
+                    }
+
+                    res.status(200).send(JSON.stringify(dev));
+                })
+        
+    }
+
+    /**
+     * To initialize routes of the web server
+     * 
+     * @method
+     */
+    initRoutes() {
+        let $ = this;
+
+        this.controller = this.newDispatcher("index.html");
+
+        // init routes serving static contents
+        this.initStaticRoutes();
+
+
+        this.app.get('/index.html', this.controller);
+        this.app.get('/inspectors/*', this.controller);
 
         // Inspector frontController
         this.app.route('/api/inspectors/:inspectorID')
@@ -250,6 +500,86 @@ class WebServer {
 
 
         // API routes 
+        this.app.route('/api/platform/list')
+            .get(function (req, res) {
+
+                // collect
+                let dev = {
+                    platforms: PlatformManager.getInstance().getRemote()
+                };
+
+                res.status(200).send(JSON.stringify(dev));
+            });
+
+        this.app.route('/api/platform/install')
+            .post(async function (req, res) {
+
+                let mgr, dev, platform;
+
+                dev = {
+                    status: false
+                };
+
+                mgr = PlatformManager.getInstance();
+                platform = mgr.getRemotePlatform(req.body['uid']);
+
+                if(platform !== null){
+                    dev.status = await mgr.install(platform);
+                }
+
+                res.status(200).send(JSON.stringify(dev));
+            });
+
+        this.app.route('/api/workspace/list')
+            .get(function (req, res) {
+
+                // collect
+                let dev = {
+                    projects: $.context.getProjects()
+                };
+
+                res.status(200).send(JSON.stringify(dev));
+            });
+
+        this.app.route('/api/workspace/open')
+            .get(function (req, res) {
+
+                let project = $.context.openProject( req.query.uid );
+
+                $.project = project;
+
+                // collect
+                let dev = {
+                    success: true
+                };
+                
+                res.status(200).send(JSON.stringify(dev));
+            });
+
+        this.app.route('/api/workspace/availability')
+            .get(function (req, res) {
+
+                let proj = null, availability = true;
+                switch( req.query.field)
+                {   
+                    case "project.uid":
+                        proj = $.context.workspace.listProjects();
+                        proj.map((vProject)=>{
+                            if(vProject == req.query.value)
+                                availability = false;
+                        })
+                        break;
+                }
+
+
+                // collect
+                let dev = {
+                    availability: availability
+                };
+                
+                res.status(200).send(JSON.stringify(dev));
+            });
+
         this.app.route('/api/device')
             .get(function (req, res) {
                 // scan connected devices
@@ -1562,9 +1892,16 @@ class WebServer {
         }
     }
 
-    start(port) {
-        this.initRoute();
+    useInstallMode(){
+        this.initInstallRoutes();
+    }
 
+    useProductionMode(){
+        this.initRoutes();
+    }
+
+    start(port) {
+        
         if (port == null) {
             this.port = this.project.config.web_port;
         } else {

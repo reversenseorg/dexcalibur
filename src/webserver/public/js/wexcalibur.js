@@ -774,6 +774,9 @@ var DexcaliburAPI = {
         },
         open: function( pProjectUID, success=null, error=null){
             DexcaliburAPI.exec("/api/workspace/open","get", { uid:pProjectUID }, success, error);
+        },
+        checkAvailabilityProjectUID: function(pProjectUID, success=null, error=null){
+            DexcaliburAPI.exec("/api/workspace/availability","get", { field:"project.uid", value:pProjectUID }, success, error);
         }
     },
     platform: {
@@ -800,12 +803,6 @@ var DexcaliburAPI = {
         },
         validateStep1: function( pData, success=null, error=null){
             DexcaliburAPI.exec("/api/settings/step1","post", pData, success, error);
-        },
-        installTool: function( pToolName, success=null, error=null){
-            DexcaliburAPI.exec("/api/ext_install/"+pToolName,"post", null, success, error);
-        },
-        installTool_GetStatus: function( pToolName, success=null, error=null){
-            DexcaliburAPI.exec("/api/ext_install/"+pToolName,"get", null, success, error);
         },
         startInstall: function( pCallback){
             DexcaliburAPI.exec("/api/settings/step2", "post", null, pCallback.onSuccess, pCallback.onError);
