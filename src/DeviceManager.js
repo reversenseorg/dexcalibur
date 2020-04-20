@@ -1,10 +1,11 @@
 const _path_ = require("path");
+const _fs_ = require("fs");
 
 var ut = require("./Utils.js");
 
 const AdbWrapperFactory = require("./AdbWrapperFactory.js");
 const DexcaliburWorkspace = require("./DexcaliburWorkspace");
-
+const Device = require("./Device");
 
 const DEVICE_FILE = "devices.json";
 var gInstance = null;
@@ -82,12 +83,12 @@ class DeviceManager
      * @method
      */
     load(){
-        if(_path_.existsSync( this.devFile) == false)
+        if(_fs_.existsSync( this.devFile) == false)
             return true;
 
         let data = null;
         try{
-            data = JSON.parse( _path_.readFileSync( this.devFile));
+            data = JSON.parse( _fs_.readFileSync( this.devFile));
             for(let i=0; i<data.length; i++){
                 this.devices[ data[i].uid ] = Device.fromJsonObject(data[i]);
             }
@@ -104,8 +105,8 @@ class DeviceManager
      * @method
      */
     save(){
-        if(_path_.existsSync( this.devFile) == true){
-            _path_.unlinkSync( this.devFile);
+        if(_fs_.existsSync( this.devFile) == true){
+            _fs_.unlinkSync( this.devFile);
         } 
 
         let data = [];
@@ -113,9 +114,9 @@ class DeviceManager
             data.push( this.devices[i].toJsonObject());
         }
 
-        _path_.writeFileSync(
+        _fs_.writeFileSync(
             this.devFile,
-            data
+            JSON.stringify(data)
         );
     }
 
@@ -177,7 +178,7 @@ class DeviceManager
      * @function
      */
     scan(){
-        let dev=[], activeDev = 0, latestDefault=null;
+        let dev=[], wrapper=null, activeDev = 0, latestDefault=null;
 
         latestDefault = this.getDefault();
 
@@ -185,10 +186,15 @@ class DeviceManager
 
 
         for(let type in this.bridges){
+
+//            console.log(type, this.bridges[type]);
             if(this.bridges[type].isReady()){
     
                 // scan for connected devices
-                dev = this.bridges[type].listDevices();
+                wrapper  = this.bridges[type].newGenericWrapper();
+                dev = wrapper.listDevices();
+                
+//                listDevices();
 
                 activeDev += this.updateDeviceList(dev);
     
@@ -269,7 +275,7 @@ class DeviceManager
     /**
      * To select a default device
      * @param {String} deviceId 
-     * @function
+     * @method
      */
     setDefault(deviceId){
 
@@ -293,7 +299,7 @@ class DeviceManager
     /**
      * To get the default device
      * @returns {Device} Default device
-     * @function
+     * @method
      */
     getDefault(){
         return this.defaultDevice;
@@ -303,7 +309,7 @@ class DeviceManager
      * To get a device by its deviceID
      * @param {String} deviceId Device ID
      * @returns {Device} The Device instance, else null
-     * @function
+     * @method
      */
     getDevice(deviceId){
         return this.devices[deviceId];
@@ -312,7 +318,7 @@ class DeviceManager
     /**
      * To get all devices (connected or not)
      * @returns {Object} To get an hashmap associtating to each device ID the device instance
-     * @function 
+     * @method 
      */
     getAll(){
         return this.devices;
@@ -321,7 +327,7 @@ class DeviceManager
     /**
      * To export data to JSON
      * @returns {String} JSON payload
-     * @function
+     * @method
      */
     toJsonObject(){
         let json = [];

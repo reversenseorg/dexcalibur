@@ -3,12 +3,43 @@ const AdbWrapper = require("./AdbWrapper");
 
 var gInstance = null;
 
+
+/**
+ * To create AdbWrapper instances : generic or pre-associated to a device
+ * 
+ * @class
+ * @author Georges-B. MICHEL
+ */
 class AdbWrapperFactory
 {
+    /**
+     * 
+     * @param {require('path').Path} pAdbPath Path to ADB binary
+     * @constructor
+     */
     constructor( pAdbPath){
         this.path = pAdbPath;
     }
 
+
+    /**
+     * To check if ADB server is ready
+     * 
+     * @returns {Boolean} TRUE if ADB is reeady, else FALSE
+     * @method
+     */
+    isReady(){
+        return (this.path != null) && (_fs_.existsSync(this.path));
+    }
+
+
+    /**
+     * 
+     * @param {require('path').Path} pAdbPath Path to ADB binary
+     * @returns {AdbWrapperFactory} AdbWrapper factory
+     * @method
+     * @static
+     */
     static getInstance( pAdbPath){
         if(gInstance == null){
             if(_fs_.existsSync(pAdbPath)){
@@ -21,11 +52,31 @@ class AdbWrapperFactory
         return gInstance;
     }
 
-    static newGenericWrapper(){
+    /**
+     * To create a generic AdbWrapper
+     * 
+     * Commands executed by this wrapper not contain device ID (-u / -s / -e)
+     * 
+     * @method
+     * @returns {AdbWrapper} AdbWrapper instance
+     * @public
+     * @method
+     */
+    newGenericWrapper(){
         return new AdbWrapper( gInstance.path);
     }
 
-    static newSpecificWrapper( pDevice){
+     /**
+     * To create a device-specific AdbWrapper
+     * 
+     * For each commands issued by this wrapper,  the device ID is specified
+     * 
+     * @method
+     * @returns {AdbWrapper} AdbWrapper instance
+     * @public
+     * @method
+     */
+    newSpecificWrapper( pDevice){
         return new AdbWrapper( gInstance.path, pDevice.getDeviceUID() );
     }
 

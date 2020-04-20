@@ -7,7 +7,7 @@ var Logger = require('./Logger.js')();
 
 
 const EOL = require('os').EOL;
-const fs = require('fs');
+const _fs_ = require('fs');
 
 const TRANSPORT = {
     USB: 'U',
@@ -73,7 +73,7 @@ class AdbWrapper
      * @returns {Boolean} TRUE if ADB is ready to use, else FALSE
      */
     isReady(){
-        return (this.path != null) && (fs.existsSync(this.path));
+        return (this.path != null) && (_fs_.existsSync(this.path));
     }
 
     /**
@@ -279,6 +279,7 @@ class AdbWrapper
             device.type = OS.ANDROID;
             device.isEmulated = data[0].match(emuRE);
             device.bridge = new AdbWrapper(this.path, id);
+            device.connected = true;
 
             for(let i=0; i<data.length; i++){
                 Logger.debug(`[DEVICE MANAGER] Parsing device list : ${data[i]}`);
@@ -448,7 +449,7 @@ class AdbWrapper
     pullRessource(package_name,remote_path, local_path, deviceID=null){
         if(deviceID != null) {
             var binary_blob = Process.execSync(this.setup(deviceID) + 'shell "run-as '+ package_name+ ' cat ' + remote_path + '"').buffer;
-            fs.writeFile(local_path,binary_blob,function(err) {
+            _fs_.writeFile(local_path,binary_blob,function(err) {
                 if(err) {
                     Logger.error("[ADB] pullRessource() : an error occurs : "+err);
                 }
