@@ -197,27 +197,47 @@
                     </div>
                     <div class="col-md-8 splash-open-apk" style="display:none"> 
                         <h4>APK Analysis</h4>
-                        <small>
-                            Upload an APK to analyze
-                        </small>
-                        <br>
-                        <form>
-                            <label for="apkfile">Choose the file:</label>
-                            <input type="file" class="form-control form-control-sm" id="apkfile">
-                            
-                            <label for="dxcApkAPI">Choose the Plaform/API for the analysis: </label>
-                            <select class="form-control form-control-sm" id="dxcApkAPI">
-                                <option>Select a platform/API version</option>
-                                <optgroup>
-                                    <option>Min Android version supported</option>
-                                    <option>Max Android version supported</option>
-                                </optgroup>
-                                <optgroup>
-                                    <option>android-api 19</option>
-                                </optgroup>
-                            </select>
-                        </form>
-                        
+                        <div class="form-row">
+                            <div class="col-md-10 mb-3">
+                                <label for="validationServer01">Project UID</label>
+                                <input type="text" class="form-control form-control-sm" id="dxcSelectApk_projectUID" placeholder="Project name" value="" required>
+                                <div class="valid-feedback">
+                                    Looks good!
+                                </div>
+                                <div class="invalid-feedback">
+                                    This project UID is not available.
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <!--<div class="col-md-10 mb-3 custom-file">
+                                <input type="file" class="custom-file-input" id="customFile">
+                                <label class="custom-file-label" for="customFile">Choose file</label>
+                            </div>-->
+                            <div class="col-md-10 mb-3">
+                                <label for="customFile">Choose APK</label>
+                                <input type="file" class="form-control-file" id="customFile">
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="col-md-10 mb-3">
+                                <label for="dxcApkAPI">Choose the Plaform/API for the analysis: </label>
+                                <select class="form-control form-control-sm" id="dxcApkAPI">
+                                    <option disabled>Select a platform/API version</option>
+                                    <optgroup label="------------------------------">
+                                        <option value="min">Min Android version supported</option>
+                                        <option value="max">Max Android version supported</option>
+                                    </optgroup>
+                                    <optgroup label="------------------------------" id="dxc-select-platform"></optgroup>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="col-md-8">&nbsp;</div>
+                            <div class="col-md-4">
+                                <button class='btn btn-success'><span class="fa fa-bolt"></span>&nbsp;Start</button>
+                            </div>
+                        </div>
                     </div>
                     <div class="col-md-8 splash-select-app" style="display:none"> 
                         <small>
@@ -257,6 +277,27 @@
                             <tbody id="dxcApiList"></tbody>
                         </table>
                     </div>
+
+                    <div class="col-md-8 splash-device-manager" style="display:none"> 
+                            <h4>Device Manager</h4>
+                            <small>
+                                Here, you can "enroll" a new device. In fact, Dexcalibur will: 
+                                <ul>
+                                    <li>- push Frida server into the device</li>
+                                    <li>- gather metadata about context to involve hook interpretation</li>
+                                    <li>- identify device configuration : TEE, GMS version, ...</li>
+                                </ul> 
+                            </small>
+                            <table class="table table-sm table-hover dxc-compact-table">
+                                <thead>
+                                    <th>Device ID</th>
+                                    <th>Type</th>
+                                    <th>Source</th>
+                                    <th>Action</th>
+                                </thead>
+                                <tbody id="dxcDeviceList"></tbody>
+                            </table>
+                        </div>
                 </div>
                  
                  
@@ -368,7 +409,23 @@
             },
             "open-apk": {
                 el:  null,
-                view: "splash-open-apk"
+                view: "splash-open-apk",
+                action: (vEl)=>{
+                    
+                    DexcaliburAPI.platform.list((vData)=>{
+                        
+                        let data = JSON.parse(vData), platf=null;
+                        
+                        $('#dxc-select-platform').empty();
+
+                        for(let i in data.platforms){
+                            platf = data.platforms[i];
+                            $('#dxc-select-platform').append(`
+                                <option value="${platf.uid}">[${platf.source}] ${platf.name} ${platf.version} (${platf.vendor})${platf.installed==true?"   -   INSTALLED":""}</options>
+                            `);
+                        }
+                    });
+                }
             },
             "select-app": {
                 el:  null,
@@ -412,7 +469,37 @@
             },
             "device-manager": {
                 el:  null,
-                view: "splash-home"
+                view: "splash-device-manager",
+                action: function(vEl){
+                    DexcaliburAPI.device.list((vData)=>{
+                    
+                        let data = JSON.parse(vData);
+
+                        $('#dxcDeviceList').empty();
+
+                        for(let i in data.devices){
+
+                            /*
+                            if(data.platforms[i].installed === true){
+                                installMsg = "<span class='fa fa-check text-success'></span>&nbsp;Installed";
+                            }else{
+                                installMsg = "<i class='text-primary dxc-install-plt' dxc-id='"+data.platforms[i].uid+"'><span class='fa fa-download'></span>&nbsp;Click to install<i>";
+                            }*/
+
+                            $('#dxcDeviceList').append(`
+                            <tr>
+                                <td>${data.platforms[i].uid}</td>
+                                <td>${data.platforms[i].type}</td>
+                                <td>${data.platforms[i].source}</td>
+                                <td>${data.platforms[i].connected}</td>
+                                <td>
+                                    <i>push frida</i>   
+                                </td>
+                            </tr>
+                            `);
+                        }
+                    });
+                }
             },
             "plugin-manager": {
                 el:  null,
@@ -439,15 +526,42 @@
             $(this).siblings(".custom-file-label").addClass("selected").html(fileName);
         });
 
-        $(document).on("click",'i.dxc-install-plt',(pEl)=>{
-            let uid = pEl.target.getAttribute('dxc-id');
-            DexcaliburAPI.platform.install(uid, {
-                onSucess: (vData)=>{
-                    let status = JSON.parse(vData);
-                    if(status.success){
-                        pEl.target.html("Installed");
+        $('#dxcSelectApk_projectUID').on("change", (vEl)=>{
+            let e = $('#dxcSelectApk_projectUID');
+
+            DexcaliburAPI.workspace.checkAvailabilityProjectUID(
+                e.val(),
+                function( vData){
+                    let rep = JSON.parse(vData);
+
+                    e.removeClass("is-valid");
+                    e.removeClass("is-invalid");
+
+                    if(rep.availability){
+                        e.addClass("is-valid");
                     }else{
-                        alert("Error");
+                        e.addClass("is-invalid");
+                    }
+                });
+        });
+
+        $(document).on("click",'i.dxc-install-plt',(pEl)=>{
+            let uid = pEl.currentTarget.getAttribute('dxc-id');
+            
+            pEl.currentTarget.innerHTML = `
+                <div class="progress">
+                <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" aria-valuenow="75" aria-valuemin="0" aria-valuemax="100" style="width: 100%"></div>
+                </div>
+            `;            
+
+            DexcaliburAPI.platform.install(uid, {
+                onSuccess: (vData)=>{
+                    let data = JSON.parse(vData), installMsg="";
+
+                    if(data.status === true){
+                        pEl.target.parentNode.innerHTML = "<span class='fa fa-check text-success'></span>&nbsp;Installed";
+                    }else{
+                        pEl.target.innerHTML = "<i class='text-primary dxc-install-plt' dxc-id='"+uid+"'><span class='fa fa-refresh'></span>&nbsp;Retryl<i>";
                     }
                 }
             })
