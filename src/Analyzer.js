@@ -825,8 +825,9 @@ class AnalyzerDatabase
 
 /**
  * Represents the Application map and the entrypoint for all analysis tasks
+ * 
  * @param {string} encoding The file encoding to use when the bytecode is read (default: raw)  
- * @param {Finder} finder The instance of the main to update when the Applciation map is updated.
+ * @param {Finder} finder The instance of search engine
  * @constructor
  */
 function Analyzer(encoding, finder, ctx=null){
