@@ -1143,466 +1143,428 @@ HookSession.prototype.toJsonObject = function(){
  * @param {Project} ctx The project instance
  * @param {Int} nofrida If equals to 1 then the Frida script will not be loaded and Frida library not include  
  */
-function HookManager(ctx, nofrida=0){
-    this.engine = null;
-    this.context = ctx;
-    this.logs = [];
-    this.hooks = [];
-    this.hooksets = {};
-    this.prologues = [];
-    this.sessions = [];
-    this.requires = [];
-    //this.requiresNode = [];
-    this.listeners = {};
-    this.scanners = {};
-    this._sess = null;
-    this.frida_disabled = nofrida;
+class HookManager
+{
+    constructor(ctx, nofrida=0){
+        this.engine = null;
+        this.context = ctx;
+        this.logs = [];
+        this.hooks = [];
+        this.hooksets = {};
+        this.prologues = [];
+        this.sessions = [];
+        this.requires = [];
+        //this.requiresNode = [];
+        this.listeners = {};
+        this.scanners = {};
+        this._sess = null;
+        this.frida_disabled = nofrida;
 
-    if(this.frida_disabled==0){
-        FRIDA = require("frida");
-        //FRIDA_LOAD = require("frida-load");
-    }
-
-    return this;
-}
-
-/**
- * To get frida_disabled status.
- * 
- * @return {Boolean} Frida-feature status
- */
-HookManager.prototype.isFridaDisabled = function(){
-    return (this.frida_disabled!=0);
-}
-
-HookManager.prototype.help = function(){
-    console.log("Module :\n\tNativeObserver\n\tReflect\n\tRootBypass\n");
-}
-HookManager.prototype.refreshScanner = function(){
-
-    let self = this;
-    UT.forEachFileOf(
-        Path.join(this.context.config.getDexcaliburPath(),"scanner"),
-        function(path,file){
-            let s = file.substr(0,file.lastIndexOf("."));
-            if(self.scanners[s]==null){
-                self.scanners[s] = require(path);
-                self.scanners[s].injectContext(self.context);
-                Logger.info("[HookManager:refreshScanner] New scanner added : "+s);
-            }
-    },false);
-}
-HookManager.prototype.addRequires = function(requires){
-    for(let i=0; i<requires.length; i++)
-        this.requires.push(requires[i]);
-};
-/*
-HookManager.prototype.addRequiresNode = function(requires){
-    for(let i=0; i<requires.length; i++)
-        this.requiresNode.push(requires[i]);
-};*/
-HookManager.prototype.removeRequires = function(requires){
-    let offset=-1;
-    for(let i=0; i<requires.length; i++){
-        offset = this.requires.indexOf(requires[i]);
-        if(offset>-1) this.requires[offset] = null;
-    }
-};
-/*
-HookManager.prototype.removeRequiresNode = function(requires){
-    let offset=-1;
-    for(let i=0; i<requires.length; i++){
-        offset = this.requiresNode.indexOf(requires[i]);
-        if(offset>-1) this.requiresNode[offset] = null;
-    }
-};*/
-
-/**
- * To insert required modules into the generated Frida script
- * 
- * DEXC_MODULE = {};
- */
-HookManager.prototype.prepareRequires = function(){
-    let req = "", loaded = {};   
-    for(let i=0; i<this.requires.length; i++){
-        if(this.requires[i]!=null && loaded[this.requires[i]]==null){
-            req += fs.readFileSync(Path.join(this.context.config.dexcaliburPath,"requires",this.requires[i]+".js"));
-            loaded[this.requires[i]] = true;
+        if(this.frida_disabled==0){
+            FRIDA = require("frida");
+            //FRIDA_LOAD = require("frida-load");
         }
-    }  
-    return req;
-}
 
-/* *
- * To normalize node module name to an object key
- * @param {*} name 
- */
-/*
-HookManager.prototype.normalizeNodeModName = function(name){
-    let n="",o="";
-
-    console.log("Hook script builder","normalize JS name - input :",name);
-    // remove non-ascii character
-    name.split("").map(c=>{
-        let x = c.charCodeAt(0)
-        if((x>96 && x<123)||(x>64 && x<91)||(x>47 && x<58)||x==45||x==95)
-            n += c;
-    });
-
-    console.log("Hook script builder","normalize JS name - afterReplace :",n);
-    // if dash character is followed by a letter, the dash is remove and the letter replaced
-    // by the same with uppercase
-    while((o=n.indexOf("-"))>-1)
-        n = n.replace(n.substr(o,2),n[o+1].toUpperCase());
-    while((o=n.indexOf("_"))>-1)
-        n = n.replace(n.substr(o,2),n[o+1].toUpperCase());
-    
-
-    console.log("Hook script builder","normalize JS name - output after camel case transf :",n);
-    return n;
-}
-
-
-HookManager.prototype.prepareRequiresNode = function(){
-    let js = new JSHelper.JObject();
-    let help = new JSHelper.JWriter();
-    let loaded = {};   
-
-    js.setName("DEXC_NODE");
-    for(let i=0; i<this.requiresNode.length; i++){
-        if(this.requiresNode[i]!=null && loaded[this.requiresNode[i]]==null){
-            js.addRawEntry(
-                this.normalizeNodeModName(this.requiresNode[i]),
-                'require("'+this.requiresNode[i]+'")',
-            );
-            loaded[this.requires[i]] = true;
-        }
-    }  
-    return help.addVariable(js).toScript();
-}*/
-
-HookManager.prototype.prepareHookScript = function(){
-    let script = `Java.perform(function() {
-        var DEXC_MODULE = {};
-    `;
-
-    // include hookset requirements
-    //if(this.requiresNode.length > 0)
-     //   script = this.prepareRequiresNode()+"\n"+script;
-    
-    script += this.prepareRequires();
-       
-    for(let i in this.prologues){
-        if(this.prologues[i].isEnable()){
-            script += this.prologues[i].builtScript;
-        }
+        return this;
     }
 
-
-    for(let i in this.hooks){
-        if(this.hooks[i].isEnable()){
-            if(this.hooks[i].hasVariables()){
-                script += this.hooks[i].setupVariables();                
-            }
-            script += this.hooks[i].script;
-        }
+    /**
+     * To get frida_disabled status.
+     * 
+     * @return {Boolean} Frida-feature status
+     */
+    isFridaDisabled(){
+        return (this.frida_disabled!=0);
     }
 
-    script += "});"
-    return script;
-}
-HookManager.prototype.newSession = function(){
-    var sess =new HookSession(this)
-    // TODO : add configuration flush/keep previous sessions 
-    this.sessions.push(sess);
-    return sess;
-}
-HookManager.prototype.lastSession = function(){
-    return this.sessions[this.sessions.length];
-}
-
-
-HookManager.prototype.startBySpawn = function(pHookScript, pAppName){
-    this.start(pHookScript, HM_SPAWN, pAppName);
-}
-
-HookManager.prototype.startByAttachToGadget = function(pHookScript, pAppName){
-    this.start(pHookScript, HM_ATTACH_GADGET, pAppName);
-}
-
-HookManager.prototype.startByAttachTo = function(pHookScript, pPID=null){
-    this.start(pHookScript, HM_ATTACH_PID, pPID);
-}
-
-HookManager.prototype.startByAttachToApp = function(pHookScript, pAppName){
-    this.start(pHookScript, HM_ATTACH_APP, pAppName);
-}
-/**
- * start -> script ? -> NO : prepareHookScipt()
- *                   -> YES: use given script
- *       -> 
- */
-HookManager.prototype.start = function(hook_script, pType=null, pExtra=null){
-    
-
-    var PROBE_SESSION = this.newSession();
-    
-    if(hook_script == null){
-        hook_script = this.prepareHookScript();
-        //console.log(Chalk.yellow(hook_script));
+    help(){
+        console.log(`Module :
+    NativeObserver
+    Reflect
+    RootBypass`);
     }
 
-    var applications=null, pid=-1;
+    refreshScanner(){
 
-    if(this.frida_disabled){
-        Logger.info("[HOOK MANAGER] Frida is disabled ! Hook and session prepared but not start() ignored");
-        return null;
-    } 
-
-    // start Frida
-    // do spawn + attach
-    var hookRoutine = co.wrap(function *() {
- 
-        const device = yield FRIDA.getUsbDevice(10000);
-       // let session = null;
-
-        Logger.info('usb device:', device);
-
-        switch(pType){
-            case HM_SPAWN:
-                pid = yield device.spawn([pExtra]);
-                session = yield device.attach(pid);
-                Logger.info('spawned:', pid);
-                break;
-            case HM_ATTACH_APP:
-                applications = yield device.enumerateApplications();
-                for(let i=0; i<applications.length; i++){
-                    if(applications[i].identifier == pExtra)
-                        pid = applications[i].pid;
+        let self = this;
+        UT.forEachFileOf(
+            Path.join(__dirname, "..", "scanner"),
+            function(path,file){
+                let s = file.substr(0,file.lastIndexOf("."));
+                if(self.scanners[s]==null){
+                    self.scanners[s] = require(path);
+                    self.scanners[s].injectContext(self.context);
+                    Logger.info("[HookManager:refreshScanner] New scanner added : "+s);
                 }
+            },false);
+    }
+    addRequires(requires){
+        for(let i=0; i<requires.length; i++)
+            this.requires.push(requires[i]);
+    };
 
-                if(pid > -1) {
-                    session = yield device.attach(pid);
-                    Logger.info('attached to '+pExtra+" (pid="+pid+")");
-                }else{
-                    throw new Error('Failed to attach to application ('+pExtra+' not running).');
-                }
-                
-                break;
-            case HM_ATTACH_GADGET:
-                applications = yield device.enumerateApplications();
-                if(applications.length == 1 && applications[0].name == "Gadget") {
-                    session = yield device.attach(applications[0].pid);
-                    Logger.info('attached to Gadget:', pid);
-                }else
-                    Logger.error('Failed to attach to Gadget.');
-
-                break;
-            case HM_ATTACH_PID:
-                session = yield device.attach(pExtra);
-                Logger.info('spawned:', pid);
-                break;
-            default:
-                Logger.error('Failed to attach/spawn');
-                return;
-                break;
+    removeRequires(requires){
+        let offset=-1;
+        for(let i=0; i<requires.length; i++){
+            offset = this.requires.indexOf(requires[i]);
+            if(offset>-1) this.requires[offset] = null;
         }
+    };
 
-        const script = yield session.createScript(hook_script);
+    /**
+     * To insert required modules into the generated Frida script
+     * 
+     * DEXC_MODULE = {};
+     */
+    prepareRequires(){
+        let req = "", loaded = {};   
+        for(let i=0; i<this.requires.length; i++){
+            if(this.requires[i]!=null && loaded[this.requires[i]]==null){
+                req += fs.readFileSync(Path.join(this.context.config.dexcaliburPath,"requires",this.requires[i]+".js"));
+                loaded[this.requires[i]] = true;
+            }
+        }  
+        return req;
+    }
 
-        // For frida-node > 11.0.2
-        script.message.connect(message => {
-            PROBE_SESSION.push(message);//{ msg:message, d:data });
-            //console.log('[*] Message:', message);
-        });
+
+    prepareHookScript(){
+        let script = `Java.perform(function() {
+            var DEXC_MODULE = {};
+        `;
+
+        // include hookset requirements
+        //if(this.requiresNode.length > 0)
+        //   script = this.prepareRequiresNode()+"\n"+script;
         
-        // For frida-node <= 11.0.2
-        /*
-        script.events.listen('message', (message, data) => {
-            //$.logs.push({ msg:message, d:data });
-            PROBE_SESSION.push(message);//{ msg:message, d:data });
-            
-            // console.log(message);//,data);
-        });
-        */
+        script += this.prepareRequires();
+        
+        for(let i in this.prologues){
+            if(this.prologues[i].isEnable()){
+                script += this.prologues[i].builtScript;
+            }
+        }
+
+
+        for(let i in this.hooks){
+            if(this.hooks[i].isEnable()){
+                if(this.hooks[i].hasVariables()){
+                    script += this.hooks[i].setupVariables();                
+                }
+                script += this.hooks[i].script;
+            }
+        }
+
+        script += "});"
+        return script;
+    }
+    newSession(){
+        var sess =new HookSession(this)
+        // TODO : add configuration flush/keep previous sessions 
+        this.sessions.push(sess);
+        return sess;
+    }
+    lastSession(){
+        return this.sessions[this.sessions.length];
+    }
+
+
+    startBySpawn(pHookScript, pAppName){
+        this.start(pHookScript, HM_SPAWN, pAppName);
+    }
+
+    startByAttachToGadget(pHookScript, pAppName){
+        this.start(pHookScript, HM_ATTACH_GADGET, pAppName);
+    }
+
+    startByAttachTo(pHookScript, pPID=null){
+        this.start(pHookScript, HM_ATTACH_PID, pPID);
+    }
+
+    startByAttachToApp(pHookScript, pAppName){
+        this.start(pHookScript, HM_ATTACH_APP, pAppName);
+    }
+    /**
+     * start -> script ? -> NO : prepareHookScipt()
+     *                   -> YES: use given script
+     *       -> 
+     */
+    start(hook_script, pType=null, pExtra=null){
+        
+
+        var PROBE_SESSION = this.newSession();
+        
+        if(hook_script == null){
+            hook_script = this.prepareHookScript();
+            //console.log(Chalk.yellow(hook_script));
+        }
+
+        var applications=null, pid=-1;
+
+        if(this.frida_disabled){
+            Logger.info("[HOOK MANAGER] Frida is disabled ! Hook and session prepared but not start() ignored");
+            return null;
+        } 
+
+        // start Frida
+        // do spawn + attach
+        var hookRoutine = co.wrap(function *() {
     
-        yield script.load();
+            const device = yield FRIDA.getUsbDevice(10000);
+        // let session = null;
 
-        console.log('script loaded');
-        yield device.resume(pid);
-    });
+            Logger.info('usb device:', device);
 
-    hookRoutine()
-        .catch(error => {
-        console.log('error:', error.message);
+            switch(pType){
+                case HM_SPAWN:
+                    pid = yield device.spawn([pExtra]);
+                    session = yield device.attach(pid);
+                    Logger.info('spawned:', pid);
+                    break;
+                case HM_ATTACH_APP:
+                    applications = yield device.enumerateApplications();
+                    for(let i=0; i<applications.length; i++){
+                        if(applications[i].identifier == pExtra)
+                            pid = applications[i].pid;
+                    }
+
+                    if(pid > -1) {
+                        session = yield device.attach(pid);
+                        Logger.info('attached to '+pExtra+" (pid="+pid+")");
+                    }else{
+                        throw new Error('Failed to attach to application ('+pExtra+' not running).');
+                    }
+                    
+                    break;
+                case HM_ATTACH_GADGET:
+                    applications = yield device.enumerateApplications();
+                    if(applications.length == 1 && applications[0].name == "Gadget") {
+                        session = yield device.attach(applications[0].pid);
+                        Logger.info('attached to Gadget:', pid);
+                    }else
+                        Logger.error('Failed to attach to Gadget.');
+
+                    break;
+                case HM_ATTACH_PID:
+                    session = yield device.attach(pExtra);
+                    Logger.info('spawned:', pid);
+                    break;
+                default:
+                    Logger.error('Failed to attach/spawn');
+                    return;
+                    break;
+            }
+
+            const script = yield session.createScript(hook_script);
+
+            // For frida-node > 11.0.2
+            script.message.connect(message => {
+                PROBE_SESSION.push(message);//{ msg:message, d:data });
+                //console.log('[*] Message:', message);
+            });
+            
+            // For frida-node <= 11.0.2
+            /*
+            script.events.listen('message', (message, data) => {
+                //$.logs.push({ msg:message, d:data });
+                PROBE_SESSION.push(message);//{ msg:message, d:data });
+                
+                // console.log(message);//,data);
+            });
+            */
+        
+            yield script.load();
+
+            console.log('script loaded');
+            yield device.resume(pid);
         });
-}
-HookManager.prototype.addHookSet = function(set){
-    if(this.hooksets[set.getID()]!=null){
-        console.log("[Error] HookManager : An hook set already exists for this ID");
+
+        hookRoutine()
+            .catch(error => {
+            console.log('error:', error.message);
+            });
+    }
+    addHookSet(set){
+        if(this.hooksets[set.getID()]!=null){
+            console.log("[Error] HookManager : An hook set already exists for this ID");
+            return false;
+        }
+        this.hooksets[set.getID()] = set;
+        return true;   
+    }
+    getHookSets(){
+        return this.hooksets;   
+    }
+    getHookSet(id){
+        return this.hooksets[id];   
+    }
+    hasListener(hookid){
+        return (this.listeners[hookid] != null);
+    }
+    // add a listener to call when the HookSession receive a HookMessage with match=true
+    addMatchListener(hookid,callback,weight=-1){
+        if(this.listeners[hookid]==null)
+            this.listeners[hookid] = [];
+
+        this.listeners[hookid].push(callback);  
+        return this;
+    }
+    trigger(event){
+
+        // INFO : event.hook = HookMessage.hook = msg.id
+        let hookid = UT.b64_decode(event.hook);
+        if(!this.hasListener(hookid)) return false;
+
+        for(let i=0; i<this.listeners[hookid].length; i++){
+            this.listeners[hookid][i](this.context,event);
+        }
+    }
+    isProbing(method){
+        for(let i in this.hooks){
+            if(this.hooks[i].name == method.__signature__ && this.hooks[i].enable){
+                return true;
+            }
+        }
         return false;
     }
-    this.hooksets[set.getID()] = set;
-    return true;   
-}
-HookManager.prototype.getHookSets = function(){
-    return this.hooksets;   
-}
-HookManager.prototype.getHookSet = function(id){
-    return this.hooksets[id];   
-}
-HookManager.prototype.hasListener = function(hookid){
-    return (this.listeners[hookid] != null);
-}
-// add a listener to call when the HookSession receive a HookMessage with match=true
-HookManager.prototype.addMatchListener = function(hookid,callback,weight=-1){
-    if(this.listeners[hookid]==null)
-        this.listeners[hookid] = [];
 
-    this.listeners[hookid].push(callback);  
-    return this;
-}
-HookManager.prototype.trigger = function(event){
-
-    // INFO : event.hook = HookMessage.hook = msg.id
-    let hookid = UT.b64_decode(event.hook);
-    if(!this.hasListener(hookid)) return false;
-
-    for(let i=0; i<this.listeners[hookid].length; i++){
-        this.listeners[hookid][i](this.context,event);
-    }
-}
-HookManager.prototype.isProbing = function(method){
-    for(let i in this.hooks){
-        if(this.hooks[i].name == method.__signature__ && this.hooks[i].enable){
-            return true;
+    /**
+     * 
+     */
+    getProbe(method){
+        for(let i in this.hooks){
+            if(this.hooks[i].name == method.__signature__){
+                return this.hooks[i];
+            }
         }
-    }
-    return false;
-}
-
-/**
- * 
- */
-HookManager.prototype.getProbe = function(method){
-    for(let i in this.hooks){
-        if(this.hooks[i].name == method.__signature__){
-            return this.hooks[i];
-        }
-    }
-    return null;
-}
-
-/**
- * To get all hooks
- * @returns {Hook[]} An array containing all hooks
- */
-HookManager.prototype.getHooks = function(){
-    return this.hooks;
-}
-
-/**
- * To get a hook by its ID.
- * 
- * @param {String} id The hook ID as provide by the hook trace
- * @return {Hook} The matching hook, then null. 
- * @function
- */
-HookManager.prototype.getHookByID = function(id){
-    for(let i in this.hooks){
-        if(this.hooks[i].id == id){
-            return this.hooks[i];
-        }
-    }
-    return null;
-}
-HookManager.prototype.removeHook = function(hook){
-    let res=[], pop=null;
-    for(let i in this.hooks){
-        if(this.hooks[i].id != hook.getID()){
-            res.push(this.hooks[i]);
-        }else{
-            pop = this.hooks[i];
-        }
-    }
-    this.hooks = res;
-    return pop;
-}
-HookManager.prototype.findHook = function(hookId){
-    for(let i in this.hooks){
-        if(this.hooks[i].id == hookId){
-            return this.hooks[i];
-        }
-    }
-    return null;
-}
-HookManager.prototype.findHookByMethod = function(method){
-    let match = [];
-    for(let i in this.hooks){
-        if(this.hooks[i].name == method.__signature__){
-            match.push(this.hooks[i]);
-        }
-    }
-    return match;
-}
-HookManager.prototype.nextHookIdFor = function(method){
-//    return method.__signature__+"@@"+this.findHookByMethod(method).length;
-    return method.signature()+"@@"+this.findHookByMethod(method).length;
-
-}
-HookManager.prototype.probe = function(method){
-    let hook = null;
-    if(method instanceof CLASS.Class){
-        console.log("TODO");
-    }else if(method instanceof CLASS.Method){
-        hook = new Hook(this.context);
-
-        //hook.setID( this.nextHookIdFor(method));
-        hook.setID( md5(this.nextHookIdFor(method)));
-        
-        //hook.makeProbeFor(method);
-        hook.makeHookFor(method);
-
-        //hook.setMethod(method);
-        // method.setProbing(true);
-        method.probing = true;
-
-        console.log("[PROBE] Add : ",hook.name)
-        this.hooks.push(hook);
-    }
-    return hook;
-}
-
-HookManager.prototype.addPrologue = function(prologue){
-    return this.prologues.push( this.prologue.injectContext(this.context));
-}
-HookManager.prototype.removePrologueOf = function(hookset){
-    let npro = [];
-    for(let i=0; i<this.prologues.length; i++){
-        if(this.prologues[i].parentID != hookset.getID()){
-            npro.push(this.prologues[i]);
-        }   
-    }
-    this.prologues = npro;
-}
-HookManager.prototype.removeHooksOf = function(hookset){
-    let npro = [];
-    for(let i=0; i<this.hooks.length; i++){
-        if(this.hooks[i].parentID != hookset.getID()){
-            npro.push(this.hooks[i]);
-        }   
-    }
-    this.prologues = npro;
-}
-
-HookManager.prototype.list = function(){
-    return this.hooks;
-}
-HookManager.prototype.lastSession = function(){
-    if(this.sessions.length == null){
         return null;
     }
-    return this.sessions[this.sessions.length-1];
+
+    /**
+     * To get all hooks
+     * @returns {Hook[]} An array containing all hooks
+     */
+    getHooks(){
+        return this.hooks;
+    }
+
+    /**
+     * To get a hook by its ID.
+     * 
+     * @param {String} id The hook ID as provide by the hook trace
+     * @return {Hook} The matching hook, then null. 
+     * @function
+     */
+    getHookByID(id){
+        for(let i in this.hooks){
+            if(this.hooks[i].id == id){
+                return this.hooks[i];
+            }
+        }
+        return null;
+    }
+    removeHook(hook){
+        let res=[], pop=null;
+        for(let i in this.hooks){
+            if(this.hooks[i].id != hook.getID()){
+                res.push(this.hooks[i]);
+            }else{
+                pop = this.hooks[i];
+            }
+        }
+        this.hooks = res;
+        return pop;
+    }
+    findHook(hookId){
+        for(let i in this.hooks){
+            if(this.hooks[i].id == hookId){
+                return this.hooks[i];
+            }
+        }
+        return null;
+    }
+    findHookByMethod(method){
+        let match = [];
+        for(let i in this.hooks){
+            if(this.hooks[i].name == method.__signature__){
+                match.push(this.hooks[i]);
+            }
+        }
+        return match;
+    }
+    nextHookIdFor(method){
+    //    return method.__signature__+"@@"+this.findHookByMethod(method).length;
+        return method.signature()+"@@"+this.findHookByMethod(method).length;
+
+    }
+    probe(method){
+        let hook = null;
+        if(method instanceof CLASS.Class){
+            console.log("TODO");
+        }else if(method instanceof CLASS.Method){
+            hook = new Hook(this.context);
+
+            //hook.setID( this.nextHookIdFor(method));
+            hook.setID( md5(this.nextHookIdFor(method)));
+            
+            //hook.makeProbeFor(method);
+            hook.makeHookFor(method);
+
+            //hook.setMethod(method);
+            // method.setProbing(true);
+            method.probing = true;
+
+            console.log("[PROBE] Add : ",hook.name)
+            this.hooks.push(hook);
+        }
+        return hook;
+    }
+
+    addPrologue(prologue){
+        return this.prologues.push( this.prologue.injectContext(this.context));
+    }
+    removePrologueOf(hookset){
+        let npro = [];
+        for(let i=0; i<this.prologues.length; i++){
+            if(this.prologues[i].parentID != hookset.getID()){
+                npro.push(this.prologues[i]);
+            }   
+        }
+        this.prologues = npro;
+    }
+
+
+    removeHooksOf(hookset){
+        let npro = [];
+        for(let i=0; i<this.hooks.length; i++){
+            if(this.hooks[i].parentID != hookset.getID()){
+                npro.push(this.hooks[i]);
+            }   
+        }
+        this.prologues = npro;
+    }
+
+    /**
+     * To list hooks
+     * 
+     * @method
+     */
+    list(){
+        return this.hooks;
+    }
+
+    /**
+     * To get latest hook session
+     * 
+     * @returns {HookSession} Latest hook session
+     * @method
+     */
+    lastSession(){
+        if(this.sessions.length == null){
+            return null;
+        }
+        return this.sessions[this.sessions.length-1];
+    }
 }
 
 /**
