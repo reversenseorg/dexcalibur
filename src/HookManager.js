@@ -1145,6 +1145,12 @@ HookSession.prototype.toJsonObject = function(){
  */
 class HookManager
 {
+    /**
+     * 
+     * @param {*} ctx 
+     * @param {*} nofrida 
+     * @constructor
+     */
     constructor(ctx, nofrida=0){
         this.engine = null;
         this.context = ctx;
@@ -1172,17 +1178,24 @@ class HookManager
      * To get frida_disabled status.
      * 
      * @return {Boolean} Frida-feature status
+     * @method
      */
     isFridaDisabled(){
         return (this.frida_disabled!=0);
     }
 
+    /**
+     * To print help into CLI
+     * 
+     * @method
+     */
     help(){
         console.log(`Module :
     NativeObserver
     Reflect
     RootBypass`);
     }
+
 
     refreshScanner(){
 
@@ -1198,11 +1211,22 @@ class HookManager
                 }
             },false);
     }
+
+    /**
+     * 
+     * @param {*} requires
+     * @method 
+     */
     addRequires(requires){
         for(let i=0; i<requires.length; i++)
             this.requires.push(requires[i]);
     };
 
+    /**
+     * 
+     * @param {*} requires
+     * @method 
+     */
     removeRequires(requires){
         let offset=-1;
         for(let i=0; i<requires.length; i++){
@@ -1215,12 +1239,14 @@ class HookManager
      * To insert required modules into the generated Frida script
      * 
      * DEXC_MODULE = {};
+     * 
+     * @method
      */
     prepareRequires(){
         let req = "", loaded = {};   
         for(let i=0; i<this.requires.length; i++){
             if(this.requires[i]!=null && loaded[this.requires[i]]==null){
-                req += fs.readFileSync(Path.join(this.context.config.dexcaliburPath,"requires",this.requires[i]+".js"));
+                req += fs.readFileSync(Path.join(__dirname,"requires",this.requires[i]+".js"));
                 loaded[this.requires[i]] = true;
             }
         }  
@@ -1228,6 +1254,12 @@ class HookManager
     }
 
 
+    /**
+     * To build global hook scripts
+     * 
+     * @returns {String} Hook script
+     * @method
+     */
     prepareHookScript(){
         let script = `Java.perform(function() {
             var DEXC_MODULE = {};
@@ -1258,17 +1290,34 @@ class HookManager
         script += "});"
         return script;
     }
+
+    /**
+     * To create a new hook session
+     * 
+     * @returns {HookSession} Current - freshly created - hooking session
+     * @method
+     */
     newSession(){
         var sess =new HookSession(this)
         // TODO : add configuration flush/keep previous sessions 
         this.sessions.push(sess);
         return sess;
     }
+
+    /**
+     * @method
+     */
     lastSession(){
         return this.sessions[this.sessions.length];
     }
 
-
+    /**
+     * To start hooking by spawning the target application
+     *  
+     * @param {String} pHookScript Hook script
+     * @param {String} pAppName Application UID
+     * @method 
+     */
     startBySpawn(pHookScript, pAppName){
         this.start(pHookScript, HM_SPAWN, pAppName);
     }
@@ -1285,10 +1334,17 @@ class HookManager
         this.start(pHookScript, HM_ATTACH_APP, pAppName);
     }
     /**
+     * To start hooking
+     * 
      * start -> script ? -> NO : prepareHookScipt()
      *                   -> YES: use given script
      *       -> 
-     */
+     
+      * @param {*} hook_script 
+      * @param {*} pType 
+      * @param {*} pExtra 
+      * @method
+      */
     start(hook_script, pType=null, pExtra=null){
         
 
