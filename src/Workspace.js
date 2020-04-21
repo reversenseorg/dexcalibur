@@ -22,10 +22,15 @@ const DIR_NAME = {
  * wants access/read/write files or folder.  
  * @param {string} pkg The application package name
  * @param {Object} config The  
- * @constructor 
+ * @class 
  */
 class Workspace{
 
+    /**
+     * 
+     * @param {*} pPath 
+     * @constructor
+     */
     constructor ( pPath){
 
         /**
@@ -39,7 +44,7 @@ class Workspace{
      * To export a Workspace instance to a Stub.
      * It is used when Dexcalibur prepare the data to be save in a flat file.
      * @returns {Stub} The Stub containing the Workspace instance data. 
-     * @function
+     * @method
      */
     _export(){
         return new CLASS.Stub(
@@ -52,7 +57,7 @@ class Workspace{
      * To import the given Stub instance into the current Workspace.
      * It is used when Dexcalibur want create a context from a save file.
      * @param {Stub} stub The Stub instance to import 
-     * @function
+     * @method
      */
     _import(stub){
         for(let i in stub){
@@ -63,7 +68,7 @@ class Workspace{
     /**
      * To create a directory into the application working directory.
      * @param {string} dirName The name of the directory to create
-     * @function
+     * @method
      */
     mkWDir(pDirName){
         _fs_.mkdirSync(_path_.join(this.path, pDirName), {recursive: true});
@@ -72,7 +77,7 @@ class Workspace{
     /**
      * To remove the directory with the given name from the application working directory.
      * @param {string} dirName The name of the directory to remove 
-     * @function
+     * @method
      */
     rmWDir(dirName, pAbsolutePath=false){
         if(pAbsolutePath == false){
@@ -98,7 +103,7 @@ class Workspace{
      * Its use absolute path.
      * @param {string} path Absolute file path to check
      * @returns {boolean} Returns TRUE if the file is writable, else FALSE
-     * @function
+     * @method
      */
     isWritable(pPath){
         return _fs_.accessSync(pPath, _fs_.constants.F_OK | _fs_.constants.W_OK);
@@ -107,7 +112,7 @@ class Workspace{
     /**
      * To get the Application working directory
      * @returns {string} The Application worksing directory path
-     * @function
+     * @method
      * @deprecated
      */
     getWD(){
@@ -117,7 +122,7 @@ class Workspace{
     /**
      * To get the Application working directory
      * @returns {string} The Application worksing directory path
-     * @function
+     * @method
      */
     getPath(){
         return this.path;
@@ -138,7 +143,7 @@ class Workspace{
      * To initialize a new Application working directory. 
      * It creates a main folder and nested folders. 
      * If a folder already exists it will not be overwritten.
-     * @function 
+     * @method 
      */
     init(){
         if(!_fs_.existsSync(this.path)){
@@ -174,7 +179,7 @@ class Workspace{
     /**
      * To generate a new timestamped save file path
      * @returns {string} The timestamped save file path
-     * @function
+     * @method
      */
     getNewSavefilePath(){
         let d = new Date();
@@ -219,7 +224,7 @@ class Workspace{
      * @param {string} prefix The string part before the timestamp
      * @param {string} suffix The string part after the timestamp
      * @returns {string} The timestamped save file path
-     * @function
+     * @method
      */
     getTimestampedFilePath(prefix,suffix){
         let d = new Date();

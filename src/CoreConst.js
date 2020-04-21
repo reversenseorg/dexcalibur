@@ -166,6 +166,11 @@ var CONST = {
     CASE_TYPE: {
         PACKED: 0x1,
         SPARSE: 0x2
+    },
+    OS: {
+        ANDROID: 'android',
+        LINUX: 'linux',
+        TIZEN: 'tizen'
     }
 };
 
