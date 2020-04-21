@@ -1,18 +1,29 @@
 const _fs_ = require('fs');
 const _path_ = require('path');
 const _os_ = require("os");
+const _url_ = require("url");
 
 
+var Utils = require("./Utils");
 var Logger = require("./Logger.js")();
+var gAdmZip = null;
+var gEngineInstance = null;
+
 
 const Configuration = require("./Configuration.js");
 const DexcaliburWorkspace = require("./DexcaliburWorkspace");
 const DexcaliburProject = require("./DexcaliburProject");
+const DexcaliburRegistry = require("./DexcaliburRegistry");
+const PlatformManager = require("./PlatformManager");
+const DeviceManager = require("./DeviceManager");
 const WebServer = require("./WebServer")
 
-var AdmZip = null;
+var PACKAGE_JSON = require("../package.json");
+
 const InstallKit  = require('./Installer');
 const CONFIG_PATH = _path_.join( _os_.homedir(), '.dexcalibur', 'config.json');
+
+const FRIDA_BIN = (process.env.DEXCALIBUR_FRIDA !== null)? process.env.DEXCALIBUR_FRIDA : "frida"
 
 /** 
  * List of remote location where each tool can be downloaded 
@@ -21,7 +32,10 @@ const CONFIG_PATH = _path_.join( _os_.homedir(), '.dexcalibur', 'config.json');
 var REMOTE_URLS = {
     // apktool redirect from "https://bitbucket.org/iBotPeaches/apktool/downloads/apktool_2.4.1.jar",
     apktool: "https://bbuseruploads.s3.amazonaws.com/0becf6a1-1706-4f2e-9ae6-891e00a8dd5f/downloads/5b0ec3aa-15d9-462a-8573-3744c8855ee7/apktool_2.4.1.jar?Signature=jmQo3MJSfHOfEwSCRTdjA1zZWns%3D&Expires=1586629301&AWSAccessKeyId=AKIA6KOSE3BNJRRFUUX6&versionId=zmIH9wY6Q_aTyUGAwbMg_KwZ5VWcE4VW&response-content-disposition=attachment%3B%20filename%3D%22apktool_2.4.1.jar%22",
-    adb: null
+    adb: null,
+    officialRegistryAPI: "https://api.github.com/repos/FrenchYeti/dexcalibur-registry/contents/",
+    officialRegistry: "https://github.com/FrenchYeti/dexcalibur-registry/raw/master/",
+    defaultPlatform: "https://github.com/FrenchYeti/dexcalibur-registry/raw/master/platforms/sdk_androidapi_27_google.dex"
 };
 
 switch(process.platform){
@@ -39,6 +53,7 @@ switch(process.platform){
 
 /**
  * 
+ * 
  * Boot :
  *  - Read /home/ * /.dexcalibur/config.json
  *  - If this file is not existing, then Dexcalibur starts into "install mode" 
@@ -49,9 +64,17 @@ switch(process.platform){
  *  - Start Dexcalibur
  *  - When the user selects or creates a project from SplashScreen, corresponding 
  *  Project are loaded / created
+ * 
+ *  @class
  */
 class DexcaliburEngine
 {
+    /**
+     * To instanciate DexcaliburEngine.
+     * 
+     * @private
+     * @constructor
+     */
     constructor(){
         /**
          * Global configuration of Dexcalibur
@@ -86,12 +109,50 @@ class DexcaliburEngine
         this.platformMgr = null
 
         /**
-         * To hold active project
+         * Registry 
+         * @field
+         */
+        this.registry = null;
+
+        /**
+         * To hold active projects
+         * @field
          */
         this.active = {};
     }
     
+    /**
+     * To get an instance of the engine
+     * 
+     * @returns {DexcaliburEngine} engine
+     * @method
+     * @static
+     */
+    static getInstance(){
+        if(gEngineInstance == null){
+            gEngineInstance = new DexcaliburEngine();
+        }
 
+        return gEngineInstance;
+    }
+
+    /**
+     * To get active registry 
+     * 
+     * @returns {DexcaliburRegistry} Current active registry
+     * @method
+     */
+    getRegistry(){
+        return this.registry;
+    }
+
+    /**
+     * To print Dexcalibur banner into CLI at starting
+     *  
+     * @param {Integer} pPort Port number 
+     * @static
+     * @method
+     */
     static printBanner(){
 
         Logger.info("\n\n"
@@ -118,14 +179,48 @@ class DexcaliburEngine
     }
 
     /**
+     * To print Dexcalibur banner into CLI during install
+     *  
+     * @param {Integer} pPort Port number 
+     * @static
+     * @method
+     */
+    static printFirstBanner( pPort){
+        Logger.info("\n\n"
+        +"███████╗ ███████╗██╗  ██╗ ██████╗ █████╗ ██╗     ██╗██████╗ ██╗   ██╗██████╗\n" 
+        +"██╔═══██╗██╔════╝╚██╗██╔╝██╔════╝██╔══██╗██║     ██║██╔══██╗██║   ██║██╔══██╗\n"
+        +"██║   ██║█████╗   ╚███╔╝ ██║     ███████║██║     ██║██████╔╝██║   ██║██████╔╝\n"
+        +"██║   ██║██╔══╝   ██╔██╗ ██║     ██╔══██║██║     ██║██╔══██╗██║   ██║██╔══██╗\n"
+        +"███████╔╝███████╗██╔╝ ██╗╚██████╗██║  ██║███████╗██║██████╔╝╚██████╔╝██║  ██║\n"
+        +"╚══════╝ ╚══════╝╚═╝  ╚═╝ ╚═════╝╚═╝  ╚═╝╚══════╝╚═╝╚═════╝  ╚═════╝ ╚═╝  ╚═╝\n"
+        + PACKAGE_JSON.version
+        + (" ".repeat(78-14-PACKAGE_JSON.version.length))
+        +"by @FrenchYeti \n"
+        +"╔════════════════════════════════════════════════════════════════════════════╗\n"
+        +"║ Dexcalibur is not fully configured, please visit URL below to              ║\n"
+        +"║ finalize install:                                                          ║\n"
+        +"║                                                                            ║\n"
+        +"║ http://127.0.0.1:"+pPort+(" ".repeat(78-20-pPort.length))+"║\n"
+        +"║                                                                            ║\n"
+        +"║ :-)                                                                        ║\n"
+        +"╚════════════════════════════════════════════════════════════════════════════╝\n"
+        );
+    }
+
+    /**
      * To detect if Dexcalibur has been installed by NPM
+     * 
+     * @static
+     * @method
      */
     static requireInstall(){
         return (_fs_.existsSync( CONFIG_PATH) == false);
     }
 
     /**
+     * To load data from workspace and to init registry
      * 
+     * @method
      */
     loadWorkspaceFromConfig(){
         let d = null;
@@ -135,7 +230,8 @@ class DexcaliburEngine
         else
             d = JSON.parse( _fs_.readFileSync(CONFIG_PATH) );
 
-        this.workspace = new DexcaliburWorkspace( d.workspace );
+        this.workspace = DexcaliburWorkspace.getInstance( d.workspace);
+        this.registry = new DexcaliburRegistry( d.registry, d.registryAPI);
     }   
     
     /**
@@ -144,6 +240,7 @@ class DexcaliburEngine
      * Require `this.workspace` is loaded.  
      * 
      * @returns {Boolean} TRUE if ready to start, FALSE if install is required.
+     * @method
      */
     boot( pRestore=false){
         let conf = null, data=null;
@@ -156,6 +253,12 @@ class DexcaliburEngine
 
         // init
         this.init();
+
+        //  enumerate local and remote platforms
+        this.platformMgr.enumerate();
+
+        // load device manager db
+        this.deviceMgr.load();
 
         return true;
     }
@@ -185,6 +288,7 @@ class DexcaliburEngine
     /**
      * To init the context shared by any project
      * 
+     * @method
      */
     init(){
         // setup web server
@@ -193,15 +297,19 @@ class DexcaliburEngine
         this.webserver.setContext(this);
 
         this.webserver.useProductionMode();
+
+        this.deviceMgr = DeviceManager.getInstance();
+
+        this.platformMgr = PlatformManager.getInstance(this);
+
+
 /*
         this.apkHelper = new ApkHelper(this);
 
         // dex helper
         this.dexHelper = new DexHelper(this);
 
-        // ste Device Manager
-        this.devices = new DeviceManager(this.config);
-
+       
         //package Patcher
         this.packagePatcher = new PackagePatcher(pkgName, this.config, this.apkHelper);
 
@@ -233,6 +341,11 @@ class DexcaliburEngine
         
     }
 
+    /**
+     * To init engine before install
+     * 
+     * @method
+     */
     preInstall(){
         // setup web server
         this.webserver = new WebServer(this);
@@ -257,11 +370,20 @@ class DexcaliburEngine
         return this.webserver;
     }
 
-
+    /**
+     * To get platform manager instance
+     * 
+     * @method
+     */
     getPlatformManager(){
         return this.platformMgr;
     }
 
+    /**
+     * To get device manager instance
+     * 
+     * @method
+     */
     getDeviceManager(){
         return this.deviceMgr;
     }
@@ -275,16 +397,20 @@ class DexcaliburEngine
             _fs_.mkdirSync( pPath);
         }
 
-        this.workspace = new DexcaliburWorkspace( pPath);
+        this.workspace = DexcaliburWorkspace.getInstance( pPath);
         this.workspace.init();
+
+        // platform manager and device manager should be reconfigured;
+        this.platformMgr = PlatformManager.getInstance(this);
+        this.platformMgr.enumerate();
     }
 
     initInstaller(){
-        if(AdmZip == null){
-            AdmZip = require('adm-zip');
+        if(gAdmZip == null){
+            gAdmZip = require('adm-zip');
         }
 
-        let tmpAdbPath, tmpApktoolPath;
+        let tmpAdbPath, tmpApktoolPath, tmpPlatformPath;
         let self = this;
 
         // init installer
@@ -294,16 +420,18 @@ class DexcaliburEngine
         // define "ADB install" task 
         tmpAdbPath = _path_.join(this.workspace.tmpFolder,"platform_tools.zip");
         tmpApktoolPath = _path_.join(this.workspace.binFolder,"apktool.jar");
+        tmpPlatformPath = _path_.join(this.workspace.apiFolder,"default.dex");
 
 
         this.installer.addTask(
             "Android platform tools",
+            //new URL(REMOTE_URLS.adb),
             REMOTE_URLS.adb,
             tmpAdbPath,
             {
                 // unzip platform-tools and copy ADB
                 onPostDownload: function( vTask, vStep, vData){
-                    let zip = new AdmZip(tmpAdbPath);
+                    let zip = new gAdmZip(tmpAdbPath);
                     self.installer.progress += vStep;
                     self.installer.status = new InstallKit.StatusMessage( self.installer.progress, "Android platform tool downloaded. Uncompressing ..");
                     zip.extractAllTo( _path_.join(self.workspace.binFolder), true);
@@ -319,6 +447,7 @@ class DexcaliburEngine
 
         this.installer.addTask(
             "APKTool",
+//            new URL(REMOTE_URLS.apktool),
             REMOTE_URLS.apktool,
             tmpApktoolPath,
             {
@@ -331,6 +460,28 @@ class DexcaliburEngine
                     self.installer.progress += 2*vStep;
                     self.workspace.saveConfiguration( self.config);
                     self.installer.status = new InstallKit.StatusMessage( self.installer.progress, "Configuration");
+
+                    // save workspace location into ~/.dexcalibur
+                    /*self.installer.progress += vStep;
+                    self.postInstall();
+                    self.installer.status = new InstallKit.StatusMessage( self.installer.progress, "Finished");*/
+                } 
+            }
+        );
+
+        //console.log(REMOTE_URLS.officialRegistry+"android-sdk-apis/android-27.dex");
+        this.installer.addSimpleTask(
+            "Platform images",
+            {
+                onSuccess: function( vTask, vStep, vData){
+                    // apktool downloaded
+                    self.installer.progress += vStep;
+                    self.installer.status = new InstallKit.StatusMessage( self.installer.progress, "Android 27 downloaded");
+
+                    // backsmali 
+                    let p = self.platformMgr.getRemotePlatform('sdk_androidapi_29_google');
+                    //console.log(p);
+                    self.platformMgr.install( p);
 
                     // save workspace location into ~/.dexcalibur
                     self.installer.progress += vStep;
@@ -350,7 +501,8 @@ class DexcaliburEngine
      * @static
      */
     static clearInstall(){
-        _fs_.unlinkSync(CONFIG_PATH);
+        if(_fs_.existsSync(CONFIG_PATH))
+            _fs_.unlinkSync(CONFIG_PATH);
     }
 
     /**
@@ -368,6 +520,11 @@ class DexcaliburEngine
 
         // Turn routing into "install mode"
         this.webserver.useInstallMode();
+
+        // init registry
+        this.registry = new DexcaliburRegistry( REMOTE_URLS.officialRegistry, REMOTE_URLS.officialRegistryAPI);
+
+        DexcaliburEngine.printFirstBanner(pWebPort+"");
     }
 
     /**
@@ -385,7 +542,9 @@ class DexcaliburEngine
         _fs_.writeFileSync(
             CONFIG_PATH,
             JSON.stringify({
-                workspace: this.workspace.getLocation()
+                workspace: this.workspace.getLocation(),
+                registry: REMOTE_URLS.officialRegistry,
+                registryAPI: REMOTE_URLS.officialRegistryAPI
             })
         );
     }
@@ -404,14 +563,17 @@ class DexcaliburEngine
         return this.workspace.listProjects();
     }
 
-    openProject( pUID){
-        let project = null;
+    async openProject( pUID){
+        let project = null, success = false;
         try{
             project = new DexcaliburProject( this, pUID);
-            project.open();
+            project.init();
+            success = await project.open();
             this.active[pUID] = project;
+            this.webserver.setProject(project);
         }catch(err){
-            Logger.error("ENGINE","openProject failed");
+            console.log(err);
+            Logger.error("ENGINE"," openProject() failed");
         }
 
         return project;
@@ -419,7 +581,25 @@ class DexcaliburEngine
 
     newProject( pUID){
 
+        let project = null;
+        try{
+            project = new DexcaliburProject( this, pUID);
+            this.active[pUID] = project;
+            this.webserver.setProject(project);
+        }catch(err){
+            Logger.error("ENGINE","newProject failed");
+        }
+
+        return project;
     }
+
+    /**
+     * To detect if Frida is installed and get version
+     */
+    getLocalFridaVersion(){
+        return FridaHelper.getLocalFridaVersion(FRIDA_BIN);
+    }
+
 }
 
 module.exports = DexcaliburEngine;

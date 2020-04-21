@@ -6,7 +6,7 @@ const FILENAME_CONFIG = 'config.json';
 const FILENAME_OLDCONFIG = 'config.backup.json';
 const FILENAME_TESTCONFIG = 'config.test.json';
 
-
+var gWorkspaceInstance = null;
 
 /**
  * 
@@ -38,6 +38,7 @@ const FILENAME_TESTCONFIG = 'config.test.json';
  */
 class DexcaliburWorkspace
 {
+
     constructor(pPath){
         this.path = pPath;
 
@@ -51,6 +52,19 @@ class DexcaliburWorkspace
         this.configPath = null;
         this.oldconfigPath = null;
     }
+    
+    /**
+     * 
+     * @param {String} pPath Workspace location
+     */
+    static getInstance( pPath = null){
+        if(gWorkspaceInstance == null){
+            gWorkspaceInstance = new DexcaliburWorkspace(pPath);
+        }
+
+        return gWorkspaceInstance;
+    }
+
 
     // TODO
    /* static isWorkspacePath( pPath){
@@ -143,6 +157,46 @@ class DexcaliburWorkspace
      */
     getConfigurationLocation(){
         return _path_.join( this.cfgFolder, FILENAME_CONFIG);
+    }
+
+    /**
+     * To get the path of the device manager folder into the workspace
+     * 
+     * @returns {String} Path of the folder
+     * @method 
+     */
+    getDeviceFolderLocation(){
+        return this.devFolder;
+    }
+
+    /**
+     * To get the path of the folder containing external tools/binaries
+     * 
+     * @returns {String} Path of the folder
+     * @method 
+     */
+    getBinaryFolderLocation(){
+        return this.binFolder;
+    }
+
+    /**
+     * To get the path of the folder containing platform details
+     * 
+     * @returns {String} Path of the folder
+     * @method 
+     */
+    getPlatformFolderLocation(){
+        return this.apiFolder;
+    }
+
+    /**
+     * To get the path of the temporary folder containing
+     * 
+     * @returns {String} Path of the folder
+     * @method 
+     */
+    getTempFolderLocation(){
+        return this.tmpFolder;
     }
 
     /**
