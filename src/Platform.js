@@ -1,6 +1,7 @@
 const _fs_ = require("fs");
 
 const PLATFORM_RE = new RegExp('(?<source>[^_.]+)_(?<name>[^_.]+)_(?<version>[^_.]+)_(?<vendor>[^_.]+)\.(?<format>[^.]+)');
+const LOCAL_PLATFORM_RE = new RegExp('(?<source>[^_.]+)_(?<name>[^_.]+)_(?<version>[^_.]+)_(?<vendor>[^_.]+)');
 
 
 class Platform
@@ -52,7 +53,21 @@ class Platform
 
     }
 
+    static fromLocalName( pName){
+        let matches = LOCAL_PLATFORM_RE.exec(pName);
 
+        if(matches[0] = pName){
+            return new Platform({
+                source: matches.groups.source,
+                name: matches.groups.name,
+                version: matches.groups.version,
+                vendor: matches.groups.vendor
+            });
+        }else{
+            return null;
+        }
+    }
+    
     setSize( pSize){
         this.size = pSize;
     }

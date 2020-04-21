@@ -85,17 +85,39 @@ class PlatformManager
         (async ()=>{
             this.remote = await this.enumerateRemote();
             this.local = this.enumerateLocal();
+
+            for(let i in this.local){
+                if(this.remote[i] instanceof Platform){
+                    this.local[i] = this.remote[i];
+                }
+            }
         })();
     }
 
     enumerateLocal(){
+        let res = [], p=null;
         let ws = this.engine.workspace.getPlatformFolderLocation();
-
         let files = _fs_.readdirSync(ws);
 
-        console.log(files);
+        for(let i=0; i<files.length; i++){
+            p = Platform.fromLocalName(files[i]);
+            if(p == null) continue;
+
+            p.setLocalPath( _path_.join(ws, files[i]) );
+
+            res[p.getUID()] = p;
+        }
+
+        return res;
     }
     
+    /**
+     * To enumerate platforms of a remote registry
+     *  
+     * @param {require('./DexcaliburRegistry')} pRegistry The remote registry
+     * @returns {Platform[]} An array a platform 
+     * @method
+     */
     async enumerateRemote( pRegistry){
 
         let platforms  = null, p=null, res={};
@@ -124,6 +146,15 @@ class PlatformManager
 
     getRemotePlatform( pName){
         return this.remote[pName];
+    }
+
+    getLocalPlatform( pName){
+        if(this.local[pName] instanceof Platform){
+            return this.local[pName];
+        }
+
+        // throw exception
+        return null;
     }
 }
 
