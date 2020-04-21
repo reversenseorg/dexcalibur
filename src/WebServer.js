@@ -22,7 +22,17 @@ const PlatformManager = require('./PlatformManager');
 const DeviceManager = require('./DeviceManager');
 
 
+/**
+ * @namespace WebServer.MimeHelper
+ */
 const MimeHelper = {
+    /**
+     * To detect if the MIME type is a font
+     * 
+     * @param {String} mime Mime type
+     * @returns {Boolean} TRUE if the MIME type is a font
+     * @function
+     */
     isFontFile: function (mime) {
         let verdict = false;
         ["woff2", "woff", "ttf"].map(x => {
@@ -34,9 +44,6 @@ const MimeHelper = {
     }
 }
 
-function decodeURI(uri) {
-    return decodeURIComponent(uri);
-}
 
 
 /**
@@ -69,6 +76,12 @@ class WebServer {
         this.controller = null;
     }
 
+    /**
+     * To set the active project
+     *  
+     * @param {Project} pProject 
+     * @method
+     */
     setProject( pProject){
         this.project = pProject;
     }
@@ -77,6 +90,7 @@ class WebServer {
      * To set Dexcalibur engine 
      * 
      * @param {DexcaliburEngine} pEngine 
+     * @method
      */
     setContext( pContext){
         this.context = pContext;
@@ -85,13 +99,18 @@ class WebServer {
     /**
      * To get Express Application instance used by web server  
      * 
-     * @returns {require('express').Application} Instance of Express Application
+     * @returns {Express.Application} Instance of Express Application
      * @method
      */
     getApplication(){
         return this.app;
     }
 
+    /**
+     * 
+     * @param {require('path')} pHome The path of the file containing home page
+     * @method
+     */
     newDispatcher( pHome){
         let $ = this;
 
@@ -211,252 +230,7 @@ class WebServer {
         // init routes serving static contents
         this.initStaticRoutes();
 
-
-        // path configuration
-        this.app.route('/api/settings/step1')
-            .post(function (req, res) {
-                // collect
-
-                let data = req.body;
-                let verif = null;
-                console.log(data);
-
-                let dev = { status:null, invalid:[], err:null };
-                //let cfg = Configuration.from(data);
-
-                let cfg = $.context.getConfiguration();
-
-                // clone existing config
-                //cfg = cfg.clone();
-
-                for(let i in data){
-
-                    if( i != "workspacePath"){
-                        verif = Configuration.verifyField(i, data[i]);
-                        if(verif != null){
-                            dev.invalid.push({ name:i, msg:verif });
-                        }else{
-                            cfg.setParameter( i, data[i]);
-                        }
-                    }
-                }
-
-                try{
-                    if(dev.invalid.length === 0){
-                        $.context.createWorkspace( data.workspacePath );
-                        dev.status = "success";
-
-                    }else{
-                        console.log(dev.invalid);
-                        dev.status = "error";
-                    }
-                }catch(err){
-                    dev.err = err;
-                    console.log(err);
-                    dev.status = "error";
-                }
-
-                res.status(200).send(JSON.stringify(dev));
-            });
-
-            // start dependencies download & install
-            this.app.route('/api/settings/step2')
-                .post(function (req, res) {
-                    // collect
-
-                    let data = req.body;
-                    let verif = null;
-                    console.log(data);
-
-                    let dev = { status:null, invalid:[], err:null };
-
-                    try{
-                        $.context.initInstaller();
-                        $.context.startInstall();
-                    }catch(err){
-                        dev.err = err;
-                        console.log("INSTALLER",err);
-                    }
-    
-                    res.status(200).send(JSON.stringify(dev));
-                });
-
-            this.app.route('/api/settings/step2/status')
-                .get(function (req, res) {
-                    // collect
-                    
-                    let status = $.context.getInstallerStatus();
-                    
-                    res.status(200).send(JSON.stringify({
-                        msg: status.getMessage(),
-                        progress: status.getProgress(),
-                        extra: status.getExtra()
-                    }));
-                });
-
-            // restart        
-            this.app.route('/api/settings/step3')
-                .post(function (req, res) {
-                    // collect
-                    let data = req.body;
-                    let verif = null;
-                    console.log(data);
-
-                    let dev = { status:null, invalid:[], err:null };
-                    //let cfg = Configuration.from(data);
-
-                    let cfg = $.context.getConfiguration();
-
-                    // clone existing config
-                    //cfg = cfg.clone();
-
-                    for(let i in data){
-                        
-                        verif = Configuration.verifyField(i, data[i]);
-                        if(verif != null){
-                            dev.invalid.push({ name:i, msg:verif });
-                        }else{
-                            cfg.setParameter( i, data[i]);
-                        }
-                    }
-
-                    try{
-                        if(dev.invalid.length === 0){
-                            $.context.createWorkspace( data.workspace );
-                        }else{
-                            console.log(dev.invalid);
-                        }
-                    }catch(err){
-                        dev.err = err;
-                        console.log(err);
-                    }
-    
-                    res.status(200).send(JSON.stringify(dev));
-                });
-
-
-            this.app.route('/api/settings/verify')
-                .post(function (req, res) {
-                     // collect
-
-                    let data = req.body;
-                    let verif = null;
-
-                    let dev = { status:null, invalid:[], err:null };
-
-                    for(let i in data){
-                        if( i != "workspacePath"){
-                            verif = Configuration.verifyField(i, data[i]);
-                            if(verif != null){
-                                dev.invalid.push({ name:i, msg:verif });
-                            }
-                        }
-                        else{
-                            verif = Installer.verifyWorkspacePath( data[i]);
-                            if(verif != null){
-                                dev.invalid.push({ name:i, msg:verif+" It will be created automatically !" });
-                            }
-                        }
-                    }
-
-                    res.status(200).send(JSON.stringify(dev));
-                });
-
-        this.app.route('/api/settings')
-            .get(function (req, res) {
-                // collect
-                let dev = {
-                    cfg:null,
-                    frida: null,
-                    invalid:[]
-                };
-
-                let cfg = $.context.getConfiguration() ;
-
-                dev.cfg = cfg.toJsonObject();
-                //dev.frida = cfg.getLocalFridaVersion();
-                //dev.invalid.push( Configuration.verifyField( "workspacePath", $.context.getDefaultWorkspace() ) )
-                res.status(200).send(JSON.stringify(dev));
-            })
-            .post(function (req, res) {
-                // collect
-
-                let data = req.body;
-                let verif = null;
-                console.log(data);
-
-                let dev = { status:null, invalid:[], err:null };
-                //let cfg = Configuration.from(data);
-
-                let cfg = $.context.getConfiguration();
-
-                // clone existing config
-                //cfg = cfg.clone();
-
-                for(let i in data){
-                    verif = Configuration.verifyField(i, data[i]);
-                    if(verif != null){
-                        dev.invalid.push({ name:i, msg:verif });
-                    }
-                }
-
-                try{
-                    if(dev.invalid.length === 0){
-                        console.log("Save configuration changes ...")
-                         // import received data
-                        cfg.import( data,
-                            false, // autocomplete OFF
-                            true // override ON
-                        );
-                        
-                        // Ask to current configuration to backup new configuration
-                        $.context.saveConfiguration(cfg);
-                    }else{
-                        console.log(dev.invalid);
-
-                    }
-                }catch(err){
-                    dev.err = err;
-                    console.log(err);
-                }
-/*
-                let dev = false;
-                let cfg = $.project.getConfiguration();
-
-                cfg = cfg.clone();
-
-                // not autocomplete, force overwrite
-                cfg.import( data,
-                    false, // autocomplete
-                    true // override
-                )
-                
-*/
-                res.status(200).send(JSON.stringify(dev));
-            });
-
-            this.app.route('/api/util/mkdir')
-                .post(function (req, res) {
-                    // collect
-                    let dev = { created:null, err:null };
-                    let data = req.body;
-                    console.log(data);
-
-                    try{
-                        if(fs.existsSync(data.path)==false){
-                            fs.mkdirSync(data.path)
-                            dev.created = fs.existsSync(data.path);
-                        }else{
-                            console.log("path exists");
-                        }
-                    }catch(err){
-                        console.log(err);
-                        dev.err = err;
-                    }
-
-                    res.status(200).send(JSON.stringify(dev));
-                })
-        
+        this.app.use('/api/settings', require("./routes/InstallRoutes"));        
     }
 
     /**
@@ -542,15 +316,15 @@ class WebServer {
             });
 
         this.app.route('/api/workspace/open')
-            .get(function (req, res) {
+            .get(async function (req, res) {
 
-                let project = $.context.openProject( req.query.uid );
-
-                $.project = project;
+                let project = null;
+                
+                $.project = await $.context.openProject( req.query.uid );
 
                 // collect
                 let dev = {
-                    success: true
+                    success: $.project.isReady()
                 };
                 
                 res.status(200).send(JSON.stringify(dev));
@@ -581,25 +355,30 @@ class WebServer {
             });
 
         this.app.route('/api/device')
-            .get(function (req, res) {
+            .get(async function (req, res) {
                 // scan connected devices
-                $.project.devices.scan();
-                // collect
-                let dev = {
-                    data: $.project.devices.toJsonObject()
-                };
-                res.status(200).send(JSON.stringify(dev));
+                let dm;
+
+                dm = DeviceManager.getInstance();
+                dm.scan();
+                dm.save();
+
+                res.status(200).send(JSON.stringify({
+                    devices: dm.toJsonObject()
+                }));
             });
+
 
         this.app.route('/api/device/setDefault')
             .post(function (req, res) {
                 // collect
                 let uid = req.body["uid"];
-
+                let dm = DeviceManager.getInstance();
+                
                 res.set('Content-Type', 'text/json');
 
                 if(uid != null){
-                    if($.project.devices.getDevice(uid)==null){
+                    if(dm.getDevice(uid)==null){
                         res.status(404).send(JSON.stringify({
                             error: "Invalid device ID",
                             errcode: "DM2"
@@ -607,7 +386,8 @@ class WebServer {
                         return 1;
                     }
 
-                    $.project.devices.setDefault(uid);
+                    // TODO : change > defaultDevice => project
+                    dm.setDefault(uid);
                     res.status(200).send(JSON.stringify({
                         msg: "Device <b>"+uid+"</b> is the new default device."
                     }));
@@ -1882,6 +1662,9 @@ class WebServer {
 
     }
 
+    /**
+     * @method
+     */
     showAccessLogs() {
         for (let i = 0; this.logs.access.length; i++) {
             code = this.logs.access[i].substr(0, 2);
@@ -1892,14 +1675,30 @@ class WebServer {
         }
     }
 
+    /**
+     * To use routes of install mode
+     * 
+     * @method
+     */
     useInstallMode(){
         this.initInstallRoutes();
     }
 
+    /**
+     * To use routes of production mode
+     * 
+     * @method
+     */
     useProductionMode(){
         this.initRoutes();
     }
 
+    /**
+     * To start the web server
+     * 
+     * @param {Integer} port Port number 
+     * @method
+     */
     start(port) {
         
         if (port == null) {
@@ -1914,6 +1713,7 @@ class WebServer {
         });
     }
 }
+
 
 module.exports = WebServer;
 
