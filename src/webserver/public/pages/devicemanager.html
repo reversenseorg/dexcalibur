@@ -74,11 +74,10 @@
                                         <th>Default</th>
                                         <th>Host UID</th>
                                         <th>Device name</th>
-                                        <th>Type</th>
                                         <th>Model</th>
                                         <th>Product</th>
                                         <th>Status</th>
-                                        <!--<th>Action</th>-->
+                                        <th>Action</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -113,7 +112,6 @@
     <script>
     $(document).ready(function() {
 
-        DexcaliburAPI.device
         let dmTable = $('#dataTables-devices').DataTable({
 
             paging:   false,
@@ -121,24 +119,31 @@
             info:     false,
             searching: false,
 
-            ajax: "../api/device",
+            ajax: {
+                url:  "/api/device",
+                dataSrc: "devices"
+            },
             columns: [
                 {
                     width: "10px",
                     render: function(data, type, row, meta ){
+                        console.log(row);
                         return '<form><input class="devselector" type="radio" value="'+btoa(row.uid)+'" id="deviceSelected-'+btoa(row.uid)+'" name="deviceSelected" '
                         +(row.selected==true? 'checked':'')
                         +'/></form>';
                     }
                 },
                 { data: 'usbQualifier' },
-                { data: 'id' },
-                { data: 'type' },
+                { data: 'uid' },
                 { data: 'model' },
                 { data: 'product' },
                 { 
                     render: function(data, type, row, meta ){
                         return (row.authorized? 'authorized': '<i class="text-danger">unauthorized</i>');
+                    }
+                },{
+                    render: function(data, type, row, meta ){
+                        return "";
                     }
                 }
             ],
