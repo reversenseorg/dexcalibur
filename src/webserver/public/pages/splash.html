@@ -133,6 +133,13 @@
         border: 1px solid gray;
     }
 
+    .dxc-panel-message {
+        text-align: center;
+        background-color: #43463e;
+        color: rgb(190, 190, 190);
+        padding: 0.5rem;
+        margin-top:0.5rem;
+    }
     
     </style>
 </head>
@@ -243,16 +250,27 @@
                         <small>
                             Browse devices, and select the application to analyze ... 
                         </small>
-                        <select class="form-control form-control-sm">
+                        <select class="form-control form-control-sm dxc-select-dev" id="dxcSelectDev" >
                             <option>Select a device</option>
+                            <optgroup id="dxc-optDevices">
+
+                            </optgroup>
                         </select>
+                        <div class="dxc-panel-message" id="dxcSelectAppProgress" style="display: none;">
+                            <div class="progress">
+                                <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100" style="width: 100%"></div>
+                            </div>
+                            <small id="dxcSeclectAppProgMsg">Loading application ...</small>
+                        </div>
                         <ul class="list-group list-group-flush dxc-app-list" id="dxcAppList"></ul>
                     </div>
                     <div class="col-md-8 splash-import" style="display:none"> 
-                        <small>
-                            Select a dexalibur archive to import
-                        </small>
-                        <input type="file" class="form-control form-control-sm" />
+                        <div class="dxc-panel-message">
+                            <small>Sorry, this version not support project import</small><br><br>
+                            <a href="https://www.patreon.com/bePatron?u=19568290" rel="nofollow"><img src="/dist/img/become_a_patreon_button.png" alt="Become a Patron!" data-canonical-src="/dist/img/become_a_patreon_button.png" style="max-width:100%;"></a>
+                            <br>
+                            <small>(Warning : it is an external link !)</small>
+                        </div>
                     </div>
 
                     <div class="col-md-8 splash-api-manager" style="display:none"> 
@@ -283,16 +301,19 @@
                             <small>
                                 Here, you can "enroll" a new device. In fact, Dexcalibur will: 
                                 <ul>
-                                    <li>- push Frida server into the device</li>
-                                    <li>- gather metadata about context to involve hook interpretation</li>
-                                    <li>- identify device configuration : TEE, GMS version, ...</li>
+                                    <li>push Frida server into the device</li>
+                                    <li>gather metadata about context to involve hook interpretation</li>
+                                    <li>identify device configuration : TEE, GMS version, ...</li>
                                 </ul> 
                             </small>
+                            <div class="text-right text-sm">
+                                <a class="btn btn-primary btn-sm dxc-dev-refresh"><span class="fa fa-refresh"></span>&nbsp;Refresh</a>
+                            </div>
                             <table class="table table-sm table-hover dxc-compact-table">
                                 <thead>
                                     <th>Device ID</th>
-                                    <th>Type</th>
-                                    <th>Source</th>
+                                    <th>Model</th>
+                                    <th>Status</th>
                                     <th>Action</th>
                                 </thead>
                                 <tbody id="dxcDeviceList"></tbody>
@@ -351,6 +372,33 @@
         editor.session.setMode("ace/mode/javascript");
     }
    
+    function updateDeviceList( pElement){
+        DexcaliburAPI.device.list((vData)=>{
+                    
+                    let data = JSON.parse(vData);
+
+                    $('#dxcDeviceList').empty();
+
+                    for(let i=0; i<data.devices.length; i++){
+
+                        $('#dxcDeviceList').append(`
+                        <tr>
+                            <td>${data.devices[i].id}</td>
+                            <td>${data.devices[i].model}</td>
+                            <td>
+                                <small>${data.devices[i].connected==true? '<b class="text-success">Connected</b>' : '<b class="text-warning">Disconnected</b>'}</small>
+                                <br>
+                                <small>${data.devices[i].authorized==true? '<b class="text-success">Authorized</b>' : '<b class="text-danger">not authorized</b>'}</small>
+                            </td>
+                            <td>
+                                <i>push frida</i>   
+                            </td>
+                        </tr>
+                        `);
+                    }
+                });
+    }
+
     function updateProjectList( pElement){
         DexcaliburAPI.workspace.list((vData)=>{
                 let el = $(pElement);
@@ -386,7 +434,12 @@
 
     function openProject( pUID){
         DexcaliburAPI.workspace.open( pUID, (vData)=>{
-           // location.href = "/pages/index_v2.html"; 
+            console.log(vData);
+            if(JSON.parse(vData).status == true){
+                location.href = "/pages/index_v2.html"; 
+            }else{
+                alert("error");
+            }
         });
     }
 
@@ -429,7 +482,25 @@
             },
             "select-app": {
                 el:  null,
-                view: "splash-select-app"
+                view: "splash-select-app",
+                action: (vEl)=>{
+                    
+                    DexcaliburAPI.device.list((vData)=>{
+                        
+                        let data = JSON.parse(vData), dev=null;
+                        
+                        $('#dxc-optDevices').empty();
+
+                        for(let i in data.devices){
+                            dev = data.devices[i];
+                            //if(dev.connected == true){
+                                $('#dxc-optDevices').append(`
+                                    <option value="${dev.uid}">[${dev.model}] (${dev.id}) ${dev.enrolled==true?"   -   ENROLLED":""}</options>
+                                `);
+                           // }
+                        }
+                    });
+                }
             },
             "import": {
                 el:  null,
@@ -471,34 +542,7 @@
                 el:  null,
                 view: "splash-device-manager",
                 action: function(vEl){
-                    DexcaliburAPI.device.list((vData)=>{
-                    
-                        let data = JSON.parse(vData);
-
-                        $('#dxcDeviceList').empty();
-
-                        for(let i in data.devices){
-
-                            /*
-                            if(data.platforms[i].installed === true){
-                                installMsg = "<span class='fa fa-check text-success'></span>&nbsp;Installed";
-                            }else{
-                                installMsg = "<i class='text-primary dxc-install-plt' dxc-id='"+data.platforms[i].uid+"'><span class='fa fa-download'></span>&nbsp;Click to install<i>";
-                            }*/
-
-                            $('#dxcDeviceList').append(`
-                            <tr>
-                                <td>${data.platforms[i].uid}</td>
-                                <td>${data.platforms[i].type}</td>
-                                <td>${data.platforms[i].source}</td>
-                                <td>${data.platforms[i].connected}</td>
-                                <td>
-                                    <i>push frida</i>   
-                                </td>
-                            </tr>
-                            `);
-                        }
-                    });
+                    updateDeviceList('#dxcDeviceList');
                 }
             },
             "plugin-manager": {
@@ -571,6 +615,12 @@
 
             let uid = pEl.currentTarget.getAttribute('dxc-id');
             openProject(uid);
+        });
+        $(document).on("click",'a.dxc-dev-refresh',(pEl)=>{
+            updateDeviceList('#dxcDeviceList');
+        })
+        $(document).on('change','select.dxc-select-dev', function(pEvent){
+            $("#dxcSelectAppProgress").css("display","block");
         })
     });
 

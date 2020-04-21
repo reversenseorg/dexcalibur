@@ -53,6 +53,13 @@ class Device
     }
 
     /**
+     * To enroll the device
+     */
+    enroll(){
+
+    }
+
+    /**
      * To get device status : connected / disconnected
      * 
      * @returns {Boolean} TRUE if the device is connected, else FALSE  
@@ -287,11 +294,28 @@ class Device
 
 
     /**
-     * To serialize the Device to JSON string
+     * To unserialize a Device from JSON string
      * @returns {String} JSON-serialized object
      * @function 
      */
-    toJsonObject(){
+    static fromJsonObject( pJsonObject, pOverride = {}){
+        let dev = new Device();
+        for(let i in pJsonObject){
+            dev[i] = pJsonObject[i];
+        }
+        for(let i in pOverride){
+            dev[i] = pOverride[i];
+        }
+
+        return dev;
+    }
+
+    /**
+     * To serialize the Device to JSON string
+     * @returns {JsonObject} JSON-serialized object
+     * @function 
+     */
+    toJsonObject( pOverride = {}){
         let json = new Object();
         for(let i in this){
             if(i=='type'){
@@ -303,6 +327,10 @@ class Device
             else{
                 json[i] = this[i];
             }                       
+        }
+
+        for(let i in pOverride){
+            json[i] = pOverride[i];
         }
         return json;
     }

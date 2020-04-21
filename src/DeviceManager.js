@@ -7,6 +7,8 @@ const AdbWrapperFactory = require("./AdbWrapperFactory.js");
 const DexcaliburWorkspace = require("./DexcaliburWorkspace");
 const Device = require("./Device");
 
+var Logger = require("./Logger")();
+
 const DEVICE_FILE = "devices.json";
 var gInstance = null;
 
@@ -93,7 +95,8 @@ class DeviceManager
                 this.devices[ data[i].uid ] = Device.fromJsonObject(data[i]);
             }
         } catch(err){
-            Logger.error("DEVICE MANAGER","Unable to load devices");
+            console.log(err);
+            Logger.error("[DEVICE MANAGER] Unable to load devices");
         }
 
         return true;
@@ -111,7 +114,9 @@ class DeviceManager
 
         let data = [];
         for(let i in this.devices){
-            data.push( this.devices[i].toJsonObject());
+            data.push( this.devices[i].toJsonObject({
+                connected: false
+            }));
         }
 
         _fs_.writeFileSync(
