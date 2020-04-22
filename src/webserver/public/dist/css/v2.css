@@ -676,6 +676,10 @@ div.dxc-inline-ctn {
     text-align:center;
 }
 
+.navbar-dark .navbar-brand:hover {
+    color: yellow;
+}
+
 /* dark theme */
 /*
 #xrefModal .modal-body {

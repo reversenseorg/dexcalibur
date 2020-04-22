@@ -325,6 +325,17 @@
                 </div>
             </div>
 
+            <div class="modal fade" id="dxcLoadingModal" tabindex="-1" role="dialog" aria-labelledby="mySmallModalLabel" aria-hidden="true">
+                <div class="modal-dialog modal-sm">
+                  <div class="modal-content">                   
+                    <div class="modal-body">
+                        <div class="progress">
+                            <div class="progress-bar progress-bar-striped progress-bar-animated" id="dxcLoadingModalProgress" role="progressbar" aria-valuenow="75" aria-valuemin="0" aria-valuemax="100" style="width: 100%"></div>
+                        </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
            <!--
               <div class="card splash-ctn bg-secondary text-white">
                 <div class="row">
@@ -433,12 +444,19 @@
     }
 
     function openProject( pUID){
+
+
+        $('#dxcLoadingModalProgress').removeClass('bg-danger');
+        $("#dxcLoadingModal").modal();
+        
         DexcaliburAPI.workspace.open( pUID, (vData)=>{
-            console.log(vData);
-            if(JSON.parse(vData).status == true){
+            let data = JSON.parse(vData)
+            
+            if(data.success == true){
                 location.href = "/pages/index_v2.html"; 
             }else{
                 alert("error");
+                $('#dxcLoadingModalProgress').addClass('bg-danger');
             }
         });
     }
@@ -614,6 +632,7 @@
         $(document).on("click",'div.dxc-project',(pEl)=>{
 
             let uid = pEl.currentTarget.getAttribute('dxc-id');
+
             openProject(uid);
         });
         $(document).on("click",'a.dxc-dev-refresh',(pEl)=>{
