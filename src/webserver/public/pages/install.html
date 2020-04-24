@@ -378,7 +378,7 @@
             function(x){
                 let data = JSON.parse(x);
 
-                if(data.percent == 100){
+                if(data.progress >= 100){
                     task.stop();
                 }
 
