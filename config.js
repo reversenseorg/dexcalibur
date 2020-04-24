@@ -17,11 +17,6 @@ module.exports = {
 
     // Optional : SDB location
     sdbPath: null,
-
-    // TODO useless : to remove
-    //fridaDevPath: "/data/local/frida-server",
-    //fridaServerPath: "",
-    fridaBin: 'frida',
     
     // do not modified
     deviceId: null,

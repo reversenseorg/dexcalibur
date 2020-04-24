@@ -99,13 +99,6 @@ describe('Configuration component', function() {
             expect(conf.tmpDir).to.equals("/tmp/");
         });
 
-        it('default bridge', function () {
-            let conf = new Configuration();
-
-            conf.import(CONFIG_TEST);
-
-            expect(conf.bridge).to.equals("adb");
-        });
 
         it('default webserver port', function () {
             let conf = new Configuration();
@@ -210,7 +203,6 @@ describe('Configuration component', function() {
                 apktPath: "/usr/local/bin/apktool",
                 sdbPath: null,
                 javaBinPath: "java",
-                fridaBin: 'frida',
                 deviceId: null,
                 useEmulator: false,
                 tmpDir: "/tmp/",
@@ -253,7 +245,6 @@ describe('Configuration component', function() {
                     apktPath: "/usr/local/bin/apktool",
                     sdbPath: null,
                     javaBinPath: "java",
-                    fridaBin: 'frida',
                     deviceId: null,
                     useEmulator: false,
                     tmpDir: "/tmp/",
@@ -283,12 +274,6 @@ describe('Configuration component', function() {
 
     describe('read properties', function() {        
         
-        it('getFridaBin', function () {
-            let conf = new Configuration();
-            conf.import(CONFIG_TEST);
-
-            expect(conf.getFridaBin()).to.equals("frida");
-        });
 
         it('getDexcaliburPath', function () {
             let conf = new Configuration();
