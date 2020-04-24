@@ -139,11 +139,11 @@
                 { data: 'product' },
                 { 
                     render: function(data, type, row, meta ){
-                        return (row.authorized? 'authorized': '<i class="text-danger">unauthorized</i>');
+                        return (row.enrolled? '<span class="fa fa-check text-success"></span>enrolled': '<span class="fa fa-close text-danger">unauthorized</i>');
                     }
                 },{
                     render: function(data, type, row, meta ){
-                        return "";
+                        return (row.enrolled==false? '<u class="fa fa-refresh">enroll</u>': '');
                     }
                 }
             ],
