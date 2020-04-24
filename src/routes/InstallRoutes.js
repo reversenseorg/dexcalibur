@@ -18,7 +18,6 @@ _router_.post('/step1', function (req, res) {
 
     let data = req.body;
     let verif = null;
-    console.log(data);
 
     let dev = { status:null, invalid:[], err:null };
     //let cfg = Configuration.from(data);
