@@ -298,10 +298,9 @@ class DexcaliburEngine
 
         this.webserver.useProductionMode();
 
-        this.deviceMgr = DeviceManager.getInstance();
-
         this.platformMgr = PlatformManager.getInstance(this);
 
+        this.deviceMgr = DeviceManager.getInstance();
 
 /*
         this.apkHelper = new ApkHelper(this);
@@ -568,6 +567,9 @@ class DexcaliburEngine
         try{
             project = new DexcaliburProject( this, pUID);
             project.init();
+            
+            DexcaliburEngine.printBanner();
+            
             success = await project.open();
             this.active[pUID] = project;
             this.webserver.setProject(project);

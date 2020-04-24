@@ -127,7 +127,7 @@ if(projectArgs.reinstall == true){
 }
 if( DexcaliburEngine.requireInstall() ){
     // pass 
-    dxcInstance = new DexcaliburEngine();
+    dxcInstance = DexcaliburEngine.getInstance();
 
     dxcInstance.prepareInstall( (projectArgs.port!=null) ? projectArgs.port : 8000);
 
@@ -194,7 +194,7 @@ else{
             project.fridaBuilder.class(res).save(projectArgs.buildOut);
         }
     }else{
-        dxcInstance = new DexcaliburEngine();
+        dxcInstance = DexcaliburEngine.getInstance();
 
         dxcInstance.loadWorkspaceFromConfig();
         

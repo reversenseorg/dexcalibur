@@ -71,6 +71,9 @@ class PlatformManager
         }
     }
 
+    isInstalled( pName){
+        return (this.local[pName] instanceof Platform)
+    }
 
     getLocal(){
         return this.local;
@@ -82,9 +85,11 @@ class PlatformManager
 
 
     enumerate(){
+
+        this.local = this.enumerateLocal();
+        
         (async ()=>{
             this.remote = await this.enumerateRemote();
-            this.local = this.enumerateLocal();
 
             for(let i in this.local){
                 if(this.remote[i] instanceof Platform){
@@ -144,6 +149,16 @@ class PlatformManager
         return res;
     }
 
+    getPlatform(pName){
+        if(this.local[pName] instanceof Platform){
+            return this.local[pName];
+        }else if( this.remote[pName] instanceof Platform){
+            return this.remote[pName];
+        }
+
+        // throw exception
+        return null;
+    }
     getRemotePlatform( pName){
         return this.remote[pName];
     }

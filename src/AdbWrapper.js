@@ -2,7 +2,9 @@ const Process = require("child_process");
 const UT = require("./Utils.js");
 const Device = require("./Device.js");
 const ApkPackage = require("./AppPackage");
+const DeviceProfile = require('./DeviceProfile');
 const {AdbWrapperError} = require("./Errors");
+
 var Logger = require('./Logger.js')();
 
 
@@ -16,6 +18,8 @@ const TRANSPORT = {
 };
 
 const emuRE = /^emulator-/;
+
+const PROP_RE = /^\[(?<name>.*)\]\s*:\s*\[(?<value>.*)\]$/;
 
 /*
 const DEV = {
@@ -458,6 +462,31 @@ class AdbWrapper
             return UT.execSync(this.path+' shell su -c "'+command+'"');
     }
 
+
+    /**
+     * 
+     */
+    performProfiling(){
+        let self = this;
+        let profile = new DeviceProfile();
+        let prop = this.shellWithEHsync("getprop");
+        //let prop = this.shellWithEHsync("");
+
+        // GenericProfiler
+        prop = prop.toString().split("\n");
+        prop.map(( ppt)=>{
+            let match = PROP_RE.exec(ppt);
+
+            if(match != null)
+                profile.addProperty(match.groups.name, match.groups.value);
+
+        });
+
+
+        // TeeProfiler
+
+        return profile;
+    }
 }
 
 

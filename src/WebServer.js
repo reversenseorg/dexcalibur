@@ -20,6 +20,7 @@ const WebTemplateEngine = require('./WebTemplateEngine');
 const Installer = require('./Installer').Installer;
 const PlatformManager = require('./PlatformManager');
 const DeviceManager = require('./DeviceManager');
+const FridaHelper = require('./FridaHelper');
 
 
 /**
@@ -354,6 +355,47 @@ class WebServer {
                 res.status(200).send(JSON.stringify(dev));
             });
 
+        this.app.route('/api/device/enroll')
+            .post(async function(req, res){
+                let dm = DeviceManager.getInstance();
+                let uid = req.body['uid'];
+                let opts = req.body['opts'];
+                let dev;
+
+                try{
+                    dev = { success: await dm.enroll(uid, opts) };
+                }catch(err){
+                    console.log(err);
+
+                    dev = { success:false, msg:err };
+                }
+
+                res.status(200).send(JSON.stringify(dev));
+            });
+
+        this.app.route('/api/device/enroll/status')
+            .get(function(req, res){
+                let dm = DeviceManager.getInstance();
+                let uid = req.body['uid'];
+                let  status;
+
+                status = dm.getEnrollStatus(uid);
+
+                if(status == null){
+                    res.status(200).send(JSON.stringify({
+                        msg: null,
+                        progress: null,
+                        extra: null
+                    }));
+                }else{
+                    res.status(200).send(JSON.stringify({
+                        msg: status.getMessage(),
+                        progress: status.getProgress(),
+                        extra: status.getExtra()
+                    }));
+                }
+            });
+
         this.app.route('/api/device')
             .get(async function (req, res) {
                 // scan connected devices
@@ -390,7 +432,7 @@ class WebServer {
                     dm.setDefault(uid);
                     res.status(200).send(JSON.stringify({
                         msg: "Device <b>"+uid+"</b> is the new default device."
-                    }));
+                    }));    
                     return 1;
                 }else{
                     res.status(404).send(JSON.stringify({

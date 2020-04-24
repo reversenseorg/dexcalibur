@@ -842,6 +842,24 @@ var DexcaliburAPI = {
         }
     },
     device: {
+        getEnrollStatus: function( pTimeout, pCallback){
+            return new ScheduledTask(pTimeout, function(){
+                let data = {  _t: (new Date()).getTime() };
+                
+                $.ajax( "/api/device/enroll/status", {
+                    method: "get",
+                    data: data,
+                    statusCode: {
+                        200: function(data,err){
+                            if(pCallback != null) pCallback(data);
+                        }
+                    }
+                });
+            });
+        },
+        enroll: function( pUid, pFridaOpts, pProfileOpts, pCallback){
+            DexcaliburAPI.exec("/api/device/enroll", "post", { uid:pUid, opts:{ profiling:pProfileOpts, frida:pFridaOpts } }, pCallback.onSuccess, pCallback.onError);
+        },
         selectAsDefaultDevice: function(id, success=null, error=null){
             $.ajax("/api/device/setDefault", {
                 method: "post",

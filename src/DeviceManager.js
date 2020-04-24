@@ -6,6 +6,9 @@ var ut = require("./Utils.js");
 const AdbWrapperFactory = require("./AdbWrapperFactory.js");
 const DexcaliburWorkspace = require("./DexcaliburWorkspace");
 const Device = require("./Device");
+const StatusMessage = require("./StatusMessage");
+const FridaHelper = require("./FridaHelper");
+const PlatformManager = require("./PlatformManager");
 
 var Logger = require("./Logger")();
 
@@ -54,6 +57,12 @@ class DeviceManager
          */
         this.devices = {};
       
+
+        /**
+         * @field
+         */
+        this.status = null;
+
         /**
          * Supported bridges
          * TODO : add sdb
@@ -71,6 +80,7 @@ class DeviceManager
     
     }
 
+
     static getInstance(){
         if(gInstance == null){
             gInstance = new DeviceManager();
@@ -78,6 +88,7 @@ class DeviceManager
 
         return gInstance;
     }
+
 
     /**
      * To load Devices properties from `.dxc/dev/devices.json` file
@@ -92,7 +103,8 @@ class DeviceManager
         try{
             data = JSON.parse( _fs_.readFileSync( this.devFile));
             for(let i=0; i<data.length; i++){
-                this.devices[ data[i].uid ] = Device.fromJsonObject(data[i]);
+                if( data[i].uid != null)
+                    this.devices[ data[i].uid ] = Device.fromJsonObject(data[i]);
             }
         } catch(err){
             console.log(err);
@@ -112,12 +124,14 @@ class DeviceManager
             _fs_.unlinkSync( this.devFile);
         } 
 
+
         let data = [];
         for(let i in this.devices){
             data.push( this.devices[i].toJsonObject({
                 connected: false
             }));
         }
+
 
         _fs_.writeFileSync(
             this.devFile,
@@ -299,7 +313,7 @@ class DeviceManager
                 this.devices[i].selected = false;
             }
         }
-    };
+    }
     
     /**
      * To get the default device
@@ -308,7 +322,7 @@ class DeviceManager
      */
     getDefault(){
         return this.defaultDevice;
-    };
+    }
     
     /**
      * To get a device by its deviceID
@@ -318,7 +332,7 @@ class DeviceManager
      */
     getDevice(deviceId){
         return this.devices[deviceId];
-    };
+    }
     
     /**
      * To get all devices (connected or not)
@@ -327,7 +341,7 @@ class DeviceManager
      */
     getAll(){
         return this.devices;
-    };
+    }
     
     /**
      * To export data to JSON
@@ -340,7 +354,80 @@ class DeviceManager
             json.push(this.devices[i].toJsonObject());
         }
         return json;
-    };
+    }
+
+    /**
+     * To enroll a new device or an updated device
+     * 
+     * @param {*} pDevice 
+     * @param {*} pOtions 
+     */
+    async enroll( pDevice, pOtions = {}){
+
+        let device = null, success=false, pf=null, pm=PlatformManager.getInstance();
+
+        // set device
+        if(pDevice instanceof Device)
+            device = pDevice;
+        else
+            device = this.devices[pDevice];
+
+        if(device == null){
+            throw new Error("[DEVICE MANAGER] Unknow device : "+pDevice);
+        }
+        this.status = new StatusMessage(10, "[Device Manager] Start device profiling");
+
+        // Gather data 
+        success = await device.performProfiling( pOtions.profiling);
+
+        if(success){
+            this.status = new StatusMessage(30, this.status.append("[Device Manager] Profiling successfull.\n[Device Manager] Start Frida server install"));
+        }else{
+            this.status = StatusMessage.newError( this.status.append("[Device Manager] Fail to profile the device"));
+        }
+
+        // Install frida 
+        success = await FridaHelper.installServer(device, (pOtions.frida != null? pOtions.frida: {})) ;
+
+        if(success){
+            this.status = new StatusMessage(70, this.status.append("[Device Manager] Frida server installed.\n[Device Manager] Start platform install ..."));
+        }else{
+            this.status = StatusMessage.newError( this.status.append("[Device Manager] Fail"));
+        }
+
+        // Download platform 
+        pf = 'sdk_androidapi_'+device.getProfile().getSystemProfile().getSdkVersion()+'_google';
+
+        if( pm.isInstalled(pf) == false){
+            pf = pm.getRemotePlatform(pf);
+            success = pm.install(pf);
+            if(success) device.setPlatform(pf)
+        }else{
+            device.setPlatform( pm.getLocalPlatform(pf));
+        }
+
+        if(success){
+            this.status = StatusMessage.newSuccess( this.status.append("[Device Manager] Platform (SDK) of target device installed"));
+        }else{
+            this.status = StatusMessage.newError( this.status.append("[Device Manager] Fail"));
+        }
+
+        device.setEnrolled(true);
+
+        // save device manager data
+        this.save();
+
+        return success;
+    }
+
+    setEnrollStatus( pStatus){
+        pStatus.progress =  (this.status==null? 0 : this.status.progress);
+        this.status = pStatus;
+    }
+
+    getEnrollStatus(){
+        return this.status;
+    }
 }
 
 

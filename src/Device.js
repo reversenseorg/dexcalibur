@@ -3,13 +3,18 @@ const Logger = require("./Logger.js")();
 const _MD5_ = require("md5");
 const _FS_ = require('fs');
 
+const DeviceProfile = require('./DeviceProfile');
+const Platform = require('./Platform');
+const PlatformManager = require('./PlatformManager');
+
 const DEV = {
+    UNKNOW:0x0,
     USB: 0x1,
     EMU: 0x2,
     ADB: 0x3,
     SDB: 0x4
 };
-const DEV_NAME = ['unknow','udb','emu','adb','sdb'];
+const DEV_NAME = ['unknow','usb','emu','adb','sdb'];
 
 
 const OS = {
@@ -20,9 +25,12 @@ const OS = {
 const OS_NAME = ['android','linux','tizen'];
 
 
-/**
- * Represents a device
- * @param {*} cfg 
+
+ /**
+ * This class represents a device
+ * 
+ * @class
+ * @author Georges-B MICHEL
  */
 class Device
 {
@@ -48,15 +56,37 @@ class Device
         this.transportId = null;
         this.usbQualifier = null;
 
+        this.profile = null;
+        this.platform = null;
+
+        this.frida = {
+            server: null
+        };
+
+        this.enrolled = false;
+
         if(config !== null)
             for(let i in config) this[i] = config[i];    
     }
 
-    /**
-     * To enroll the device
-     */
-    enroll(){
+    setEnrolled( pStatus = true){
+        this.enrolled = pStatus;
 
+        return this;
+    }
+
+    getProfile(){
+        return this.profile;
+    }
+
+    /**
+     * To get enrollment status
+     * 
+     * @returns {Boolean} Enrollement status : TRUE if the device is enrolled and frida ready, else FALSE
+     * @method
+     */
+    isFridaReady(){
+        return this.enrolled;
     }
 
     /**
@@ -90,6 +120,13 @@ class Device
         this.connected = false;
     }
 
+    /**
+     * 
+     * @param {*} pPath 
+     */
+    setFridaServer( pPath){
+        this.frida.server = pPath;
+    }
 
     /**
      * To setup internal device UID
@@ -109,6 +146,13 @@ class Device
         //this.uid = _MD5_(this.uid);
     }
 
+    getArchitecture(){
+        if(this.profile instanceof DeviceProfile){
+            // FUTURE : add platform adapter
+            return this.profile.get('')
+        }
+        return this.profile
+    }
 
     /**
      * To get device UID
@@ -125,6 +169,10 @@ class Device
     }
 
     update( pDevice){
+        this.bridge = pDevice.bridge;
+        this.model = pDevice.model;
+        this.device = pDevice.device;
+        this.product = pDevice.product;
         this.transportId = pDevice.transportId;
         this.connected = pDevice.connected;
         this.authorized = pDevice.authorized;
@@ -167,6 +215,14 @@ class Device
         return this.bridge.shellWithEHsync(pCommand);
     }
 
+    getPlatform(){
+        return this.platform;
+    }
+
+    setPlatform( pPlatform){
+        this.platform = pPlatform;
+    }
+
     /**
      * 
      * @param {Path|String} pRemotePath 
@@ -177,6 +233,21 @@ class Device
         c = this.bridge.pull(pRemotePath, pLocalPath, this.id);
         console.log(c);
         return c;
+    }
+
+    /**
+     * To push an executable binary 
+     * 
+     * @param {Path|String} pLocalPath 
+     * @param {Path|String} pRemotePath 
+     */
+    pushBinary( pLocalPath, pRemotePath){
+        let success = this.bridge.push( pLocalPath, pRemotePath);
+        if(!success){
+            throw new Error(`[DEVICE] Fail to push '${pLocalPath}' file to '${pRemotePath}'`);
+        }
+
+        return this.bridge.shell(`chmod 777 ${pRemotePath}`);
     }
 
     /**
@@ -197,6 +268,8 @@ class Device
 
         return _FS_.existsSync(pLocalPath);
     }
+
+
 
     /**
      * 
@@ -293,16 +366,53 @@ class Device
     };
 
 
+    async performProfiling( pOptions){
+
+        console.log(this.bridge);
+
+        if(this.bridge != null){
+            this.profile = await this.bridge.performProfiling();
+        }
+
+        return true;
+    }
+
+
     /**
      * To unserialize a Device from JSON string
+     * 
+     * @param {*} pJsonObject 
+     * @param {*} pOverride 
      * @returns {String} JSON-serialized object
-     * @function 
+     * @method 
      */
     static fromJsonObject( pJsonObject, pOverride = {}){
         let dev = new Device();
         for(let i in pJsonObject){
-            dev[i] = pJsonObject[i];
+            switch(i){
+                case 'type':
+                    dev[i] = OS_NAME.indexOf(pJsonObject[i]);
+                    break;
+
+                case 'bridge':
+                    dev[i] = DEV_NAME.indexOf(pJsonObject[i]);
+                    break;
+
+                case 'profile':
+                    dev[i] = ((pJsonObject[i] != null)? DeviceProfile.fromJsonObject(pJsonObject[i]) : null);
+                    break;
+
+                case 'platform':
+                    dev[i] = ((pJsonObject[i] != null)? PlatformManager.getInstance().getPlatform(pJsonObject[i]) : null);
+                    break;
+                
+                default:
+                    dev[i] = pJsonObject[i];
+                    break;
+            }      
+            
         }
+
         for(let i in pOverride){
             dev[i] = pOverride[i];
         }
@@ -312,21 +422,35 @@ class Device
 
     /**
      * To serialize the Device to JSON string
+     * 
+     * @param {Object} pOverride A collection overrided field
      * @returns {JsonObject} JSON-serialized object
-     * @function 
+     * @method 
      */
     toJsonObject( pOverride = {}){
         let json = new Object();
         for(let i in this){
-            if(i=='type'){
-                json[i] = OS_NAME[this[i]];
-            }
-            else if(i=='bridge'){
-                json[i] = DEV_NAME[this[i]];
-            }
-            else{
-                json[i] = this[i];
-            }                       
+            switch(i){
+                case 'type':
+                    json[i] = OS_NAME[this[i]];
+                    break;
+
+                case 'bridge':
+                    json[i] = DEV_NAME[this[i]];
+                    break;
+
+                case 'profile':
+                    json[i] = ((this[i] instanceof DeviceProfile)? this[i].toJsonObject() : null);
+                    break;
+
+                case 'platform':
+                    json[i] = ((this[i] instanceof Platform)? this[i].getUID() : null);
+                    break;
+                
+                default:
+                    json[i] = this[i];
+                    break;
+            }                  
         }
 
         for(let i in pOverride){

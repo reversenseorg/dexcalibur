@@ -141,6 +141,9 @@
         margin-top:0.5rem;
     }
     
+    .splash-panel > h4 {
+        color:yellow;
+    }
     </style>
 </head>
 
@@ -191,18 +194,18 @@
                             </ul>
                     </div> 
                     </div>
-                    <div class="col-md-8 splash-home" style="text-align: center"> 
+                    <div class="col-md-8 splash-panel splash-home" style="text-align: center"> 
                         <img class="logo" src="/dist/img/dexcalibur_logo_black2.png"  style="margin-top:-10em">
                         <small>Recents :</small> 
                         <ul class="list-group list-group-flush dxc-project-list" id="dxcProjectList"></ul>
                     </div>
-                    <div class="col-md-8 splash-open-project" style="display:none"> 
+                    <div class="col-md-8 splash-panel splash-open-project" style="display:none"> 
                         <small>
                             Click to open an existing project ...
                         </small>
                         <ul class="list-group list-group-flush dxc-project-list" id="dxcProjectList2"></ul>
                     </div>
-                    <div class="col-md-8 splash-open-apk" style="display:none"> 
+                    <div class="col-md-8 splash-panel splash-open-apk" style="display:none"> 
                         <h4>APK Analysis</h4>
                         <div class="form-row">
                             <div class="col-md-10 mb-3">
@@ -246,7 +249,8 @@
                             </div>
                         </div>
                     </div>
-                    <div class="col-md-8 splash-select-app" style="display:none"> 
+
+                    <div class="col-md-8 splash-panel splash-select-app" style="display:none"> 
                         <small>
                             Browse devices, and select the application to analyze ... 
                         </small>
@@ -264,7 +268,8 @@
                         </div>
                         <ul class="list-group list-group-flush dxc-app-list" id="dxcAppList"></ul>
                     </div>
-                    <div class="col-md-8 splash-import" style="display:none"> 
+
+                    <div class="col-md-8 splash-panel splash-import" style="display:none"> 
                         <div class="dxc-panel-message">
                             <small>Sorry, this version not support project import</small><br><br>
                             <a href="https://www.patreon.com/bePatron?u=19568290" rel="nofollow"><img src="/dist/img/become_a_patreon_button.png" alt="Become a Patron!" data-canonical-src="/dist/img/become_a_patreon_button.png" style="max-width:100%;"></a>
@@ -273,7 +278,7 @@
                         </div>
                     </div>
 
-                    <div class="col-md-8 splash-api-manager" style="display:none"> 
+                    <div class="col-md-8 splash-panel splash-api-manager" style="display:none"> 
                         <h4>Platform Manager</h4>
                         <small>
                             Additionnal platform can be install from here (require internet). It extends Dexcalibur by providing
@@ -296,14 +301,16 @@
                         </table>
                     </div>
 
-                    <div class="col-md-8 splash-device-manager" style="display:none"> 
+                    <div class="col-md-8 splash-panel splash-device-manager" style="display:none"> 
                             <h4>Device Manager</h4>
                             <small>
                                 Here, you can "enroll" a new device. In fact, Dexcalibur will: 
                                 <ul>
                                     <li>push Frida server into the device</li>
-                                    <li>gather metadata about context to involve hook interpretation</li>
+                                    <li>gather metadata about context to improve hook interpretation</li>
                                     <li>identify device configuration : TEE, GMS version, ...</li>
+                                    <li>identify constructor specific assets</li>
+                                </ul> 
                                 </ul> 
                             </small>
                             <div class="text-right text-sm">
@@ -313,7 +320,8 @@
                                 <thead>
                                     <th>Device ID</th>
                                     <th>Model</th>
-                                    <th>Status</th>
+                                    <th>Online</th>
+                                    <th>Enrolled</th>
                                     <th>Action</th>
                                 </thead>
                                 <tbody id="dxcDeviceList"></tbody>
@@ -332,6 +340,38 @@
                         <div class="progress">
                             <div class="progress-bar progress-bar-striped progress-bar-animated" id="dxcLoadingModalProgress" role="progressbar" aria-valuenow="75" aria-valuemin="0" aria-valuemax="100" style="width: 100%"></div>
                         </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+            <div class="modal fade" id="dxcEnrollModal" tabindex="-1" role="dialog" aria-labelledby="enrollOptModalLabel" aria-hidden="true">
+                <div class="modal-dialog">
+                  <div class="modal-content">                 
+                    <div class="modal-body" >
+                        <div class="progress">
+                            <div class="progress-bar progress-bar-striped progress-bar-animated" id="dxcEnrollModalProgress" role="progressbar" aria-valuenow="75" aria-valuemin="0" aria-valuemax="100" style="width: 100%"></div>
+                        </div>
+                        <pre style="width:100%;background-color:#eee;margin-top:1em;" id="dxcEnrollConsole"></pre>
+                    </div>
+                    <div class="modal-body" style="display:none">
+                        <input type="radio" name="dxcEnrollType" id="dxcEnrollType" class="form-control form-control-sm" placeholder="lets empty if remote install" />
+                        <input type="radio" name="dxcEnrollType" id="dxcEnrollTypeOpt" class="form-control form-control-sm" placeholder="lets empty if remote install" />
+
+                        <b>Frida (optionnal)</b>
+                        <label for="dxcEnrollFridapath">Client path</label>
+                        <input type="text" name="dxcEnrollFridapath" id="dxcEnrollFridapath" class="form-control form-control-sm" />
+
+                        <label for="dxcEnrollFridaLoc">Location of server binary into the device</label>
+                        <input type="text" name="dxcEnrollFridaLoc" id="dxcEnrollFridaLoc" class="form-control form-control-sm" placeholder="Default is /data/local/tmp" />
+
+                        <label for="">Server binary remote URL</label>
+                        <input type="type" id="dxcEnrollFridaRemote" class="form-control form-control-sm" placeholder="lets empty if remote install" />
+                        <input type="text" id="dxcEnrollFridaRemote" class="form-control form-control-sm" placeholder="lets empty if remote install" />
+
+                        <b>Profiling</b>
+                        <label for="dxcEnrollProfileAPI">Analyze Android framework</label>
+                        <input type="checkbox" name="dxcEnrollProfileAPI" id="dxcEnrollProfileAPI" class="form-control form-control-sm" value="1" />
                     </div>
                   </div>
                 </div>
@@ -386,23 +426,27 @@
     function updateDeviceList( pElement){
         DexcaliburAPI.device.list((vData)=>{
                     
-                    let data = JSON.parse(vData);
+                    let data = JSON.parse(vData), d=null;
 
                     $('#dxcDeviceList').empty();
 
                     for(let i=0; i<data.devices.length; i++){
+                        d = data.devices[i];
 
                         $('#dxcDeviceList').append(`
                         <tr>
-                            <td>${data.devices[i].id}</td>
-                            <td>${data.devices[i].model}</td>
-                            <td>
-                                <small>${data.devices[i].connected==true? '<b class="text-success">Connected</b>' : '<b class="text-warning">Disconnected</b>'}</small>
-                                <br>
-                                <small>${data.devices[i].authorized==true? '<b class="text-success">Authorized</b>' : '<b class="text-danger">not authorized</b>'}</small>
+                            <td>${d.id}</td>
+                            <td>${d.model}</td>
+                            <td style="text-align:center">
+                                ${d.connected==true? '<span class="fa fa-check text-success"></span>' : ''}
                             </td>
                             <td>
-                                <i>push frida</i>   
+                                ${d.enrolled==true? '<span class="fa fa-check text-success"></span>' : '<i class="text-warning">Enrollment required</i>'}
+                            </td>
+                            <td>
+                                ${
+                                    (d.connected==true)?(d.enrolled==false? '<span class="badge badge-pill bg-primary enroll" data-target="#dxcEnrollModal" data-dxc-uid="'+d.uid+'">enroll</span>' : '<span class="badge badge-pill bg-secondary devtest">test</span><span class="badge badge-pill bg-primary enroll" data-target="#dxcEnrollModal" data-dxc-uid="'+d.uid+'">re-enroll</span>'):'' 
+                                }   
                             </td>
                         </tr>
                         `);
@@ -641,6 +685,52 @@
         $(document).on('change','select.dxc-select-dev', function(pEvent){
             $("#dxcSelectAppProgress").css("display","block");
         })
+        $(document).on('click', 'span.enroll', (pEv)=>{
+
+            let uid = pEv.currentTarget.getAttribute('data-dxc-uid');
+
+
+            $('#dxcEnrollModal').modal();
+            
+            task = DexcaliburAPI.device.getEnrollStatus( 1000,
+                function(x){
+                        let data = JSON.parse(x);
+
+                        if(data.msg == null) return;
+                        
+                        if(data.percent == 100){
+                            task.stop();
+                        }
+
+                        if(data.extra !== null){
+                            switch(data.extra){
+                                case "success":
+                                    $("#dxcEnrollModalProgress").addClass('bg-success');
+                                    task.stop();
+                                    $('#dxcEnrollModal').modal('toggle');
+                                    updateDeviceList('#dxcDeviceList');
+                                    break;
+                                case "error":
+                                    $("#dxcEnrollModalProgress").addClass('bg-danger');
+                                    task.stop();
+                                    //$("#install_auto_progress").removeClass();
+                                    break;
+                            }
+                        }
+                        $("#dxcEnrollModalProgress").css("width",data.progress+"%");
+                        $("#dxcEnrollConsole").html(data.msg); 
+                    }
+                );
+
+            task.start();
+            
+            DexcaliburAPI.device.enroll( uid, {}, {}, {
+                onSuccess: function(vData){
+                    $("#dxcEnrollModalProgress").css("width","10%");
+                    $("#dxcEnrollConsole").html("starting ..."); 
+                }
+            });
+        });
     });
 
    
