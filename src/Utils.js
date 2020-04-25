@@ -37,6 +37,8 @@ PATTERNS[FLAG_WS | FLAG_TB] = new RegExp("^[\s\t]*$");
 PATTERNS[FLAG_WS | FLAG_CR | FLAG_TB] = new RegExp("^[\s\t\n]*$");
 
 const Util = {
+    ALPHA: 'abcdefghijklmnopqrstuvwxyz',
+    ALPHANUM: 'abcdefghijklmnopqrstuvwxyz0123456789',
     FLAG_CR: FLAG_CR,
     FLAG_WS: FLAG_WS,
     FLAG_TB: FLAG_TB,
