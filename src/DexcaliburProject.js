@@ -18,6 +18,7 @@ var DexHelper = require("./DexHelper.js");
 var InspectorManager = require("./InspectorManager.js");
 var Workspace = require("./Workspace.js");
 var DataAnalyzer = require("./DataAnalyzer.js");
+const DeviceManager = require('./DeviceManager');
 const AndroidAppAnalyzer = require("./AndroidAppAnalyzer.js");
 var GraphMaker = require("./Graph.js");
 var Bus = require("./Bus.js");
@@ -27,8 +28,10 @@ var FridaGenerator = require("./FridaGenerator.js");
 var AndroidPM = require('./adb/AndroidPackageManager');
 const Platform = require("./Platform.js");
 const SYSCALLS = require("./Syscalls.js");
-//const CONFIG = require("../config.js");
 const PlatformManager = require("./PlatformManager");
+const DexcaliburWorkspace = require("./DexcaliburWorkspace");
+const Device = require('./Device');
+const APK = require('./APK');
 
 
 var g_builtinHookSets = {};
@@ -99,8 +102,6 @@ class DexcaliburProject
         // set SC analyzer 
         this.analyze = null;
 
-        this.apkHelper = null;
-
         // dex helper
         this.dexHelper = null;
 
@@ -141,10 +142,64 @@ class DexcaliburProject
          * @field
          */
         this.platform = null;
+
+        /**
+         * Default device
+         */
+        this.device = null;
+
+        /**
+         * Class representing target application
+         * 
+         * activities, ...
+         * 
+         */
+        this.application = null;
+    }
+
+    /**
+     * To suggest a new project name
+     * 
+     * @param {*} pUID 
+     * @method
+     */
+    static suggests( pUID){
+        let original = pUID;
+        let i = 0;
+
+        while( DexcaliburProject.exists(original+"_("+i+")") ) i++;
+
+        return original+"_("+i+")";
+    }
+
+    /**
+     * 
+     * @param {*} pUID 
+     * @method
+     */
+    static exists( pUID){
+        let proj = DexcaliburWorkspace.getInstance().listProjects();
+        let status = false;
+
+        proj.map((vProject)=>{
+            if(vProject == pUID)
+                status = true;
+        });
+
+        return status;
     }
 
     init(){
+        // todo : remove
         this.config = this.engine.getConfiguration();
+
+        console.log( this.engine.workspace.getLocation(), this.uid);
+        // init project workspacex
+        this.workspace = new Workspace( 
+            _path_.join( this.engine.workspace.getLocation(), this.uid )
+        ); 
+
+        this.workspace.init();
 
         // set the Search API which allow the user to perform search
         this.find = new Finder.SearchAPI();
@@ -163,34 +218,124 @@ class DexcaliburProject
             ["256","1024","2048","4096"]
         );
 
-
-        this.apkHelper = new ApkHelper(this);
+        // todo : move to context free
         this.dexHelper = new DexHelper(this);
 
         // pkgName => uid => read project.json
-        this.packagePatcher = new PackagePatcher(this.uid, this.config, this.apkHelper);
+        // todo : move as inspector
+        //this.packagePatcher = new PackagePatcher(this.uid, this.config);
         this.hook = new HookHelper.Manager(this, this.nofrida);
         //this.hook.refreshScanner();
 
-        this.workspace = new Workspace( 
-            _path_.join( this.engine.workspace.getLocation(), this.uid )
-        ); 
 
-        console.log( this.workspace.path, this.workspace.getRuntimeBcDir());
-
+        // file analyzer 
         this.dataAnalyser = new DataAnalyzer.Analyzer(this);
+
         this.bus = new Bus(this); //.setContext(this);
+
+        // manifest / app analyzer
         this.appAnalyzer = new AndroidAppAnalyzer(this);
 
+        // plugins
         this.inspectors = new InspectorManager(this);
         this.inspectors.autoRegister();
         
-        this.fridaBuilder = new FridaGenerator(this);
         this.graph = new GraphMaker(this);
-
-        this.workspace.init();
     }
 
+    /**
+     * To set default device
+     * @method
+     */
+    setDevice( pDevice){
+        this.device = pDevice;
+    }
+    
+
+    /**
+     * @method
+     */
+    getDevice(){
+        return this.device;
+    }
+
+
+    /**
+     * 
+     * @param {*} pPath 
+     */
+    async useAPK( pPath){
+
+        // copy the APK into project workspace
+        this.workspace.changeMainAPK(pPath);
+
+        // load it : decompress file, disass dex files
+        return await ApkHelper.extract( 
+            this.workspace.getApkPath(),
+            this.workspace.getApkDir(),
+            {
+                force: true,
+                match: true
+            }
+        );
+
+    }
+
+    /**
+     * To synchronize project platform used during analysis with device and APK
+     * 
+     * @param {*} pName 
+     * @method
+     * @async
+     */
+    async synchronizePlatform( pName){
+        let pm = PlatformManager.getInstance();
+
+        // select platform
+        switch(pName){
+            case 'dev':
+                this.platform = this.device.getPlatform();
+                break;
+            case 'min':
+                this.platform = pm.getFromAndroidApiVersion(this.application.getMinApiVersion());
+                break;
+            case 'max':
+                this.platform = pm.getFromAndroidApiVersion(this.application.getMaxApiVersion());
+                break;
+            default:
+                if( (this.platform instanceof Platform)==false){
+                    if(this.device instanceof Device){
+                        this.platform = this.device.getPlatform(pName);
+                    }else{
+                        this.platform = pm.getFromAndroidApiVersion(this.application.getMaxApiVersion());
+                    }
+                }
+                break;
+        }
+
+        // check if platform is installed
+        if(this.platform == null){
+            throw new Error("[PROJECT] synchronizePlatform : unkow platform. Aborted")
+        }
+
+        // install platform
+        if(this.platform.checkInstall() == false){
+            Logger.info("[PROJECT] synchronizePlatform : Target platform is not installed. Installing ...")
+            res = await pm.install(this.platform);
+            if(res == true){
+                Logger.info("[PROJECT] synchronizePlatform : Platform installed successfully");
+            }else{
+                throw new Error("[PROJECT] synchronizePlatform : failed to install platform. Aborted")
+            }
+        }else{
+            Logger.success("[PROJECT] Project uses platform : "+this.platform.getUID());
+        }
+
+        // save project
+        this.save();
+
+        return true;
+    }
     /**
      * To get Search Engine   
      * 
@@ -202,10 +347,6 @@ class DexcaliburProject
     }
 
 
-    openAPK(){
-
-    }
-
     /**
      * To open an existing project
      * 
@@ -214,16 +355,96 @@ class DexcaliburProject
      * @method
      */
     async open(){
-        // read project data
-        let self;
-
-        // configure analyzer
-        self = await this.usePlatform('sdk_androidapi_29_google');
-
         // re-scan
-        this.fullscan();
+        return this.fullscan();
     }
 
+    /**
+     * 
+     * @param {*} pContext 
+     * @param {*} pProjectUID 
+     * @param {*} pConfigPath 
+     */
+    static load( pContext, pProjectUID, pConfigPath = null){
+        
+        let project = new DexcaliburProject( pContext, pProjectUID);
+        let data = null;
+
+        project.init();
+
+        if(pConfigPath == null){
+            pConfigPath = project.workspace.getProjectCfgPath();
+        }
+
+        data = Fs.readFileSync( pConfigPath);
+        data = JSON.parse(data);
+
+        for(let i in data){
+            switch(i)
+            {
+                case "device":
+                    project.device = DeviceManager.getInstance().getDevice(data.device);
+                    break;
+                case "package":
+                case "nofrida":
+                    project[i] = data[i];
+                    break;
+                case "apk":
+                    project.workspace.setApk( APK.fromJsonObject(data.apk));
+                    break;
+            }
+        }
+
+        /*
+
+        case "platform":
+            project.platform = this.device.getPlatform(data.platform);
+            break;*/
+
+        if(data.platform != null){
+            project.platform = PlatformManager.getInstance().getPlatform(data.platform);
+        }
+        else if(project.device != null){
+            project.platform = project.device.getPlatform(data.platform);
+        }
+
+        return project;
+    }
+
+    /**
+     * To save project metadata into 'project.json'
+     *  
+     * @param {*} pExportPath 
+     */
+    save( pExportPath = null){
+        if(pExportPath == null){
+            pExportPath = this.workspace.getProjectCfgPath();
+        }
+
+        Fs.writeFileSync(
+            pExportPath, 
+            JSON.stringify(this.toJsonObject())
+        );
+    }
+
+    toJsonObject(){
+        let o = new Object();
+
+        // add last modified, user, etc ...
+        o.uid = this.uid;
+        o.package = this.pkg;
+        o.device = this.device!=null? this.device.getUID() : null;
+        o.platform = this.platform!=null? this.platform.getUID() : null;
+        o.nofrida = this.nofrida;
+
+        if(this.workspace.getApk() !== null){
+            o.apk = this.workspace.getApk().toJsonObject();
+        }else{
+            o.apk = null;
+        }
+        
+        return o;
+    }
     /**
      * To get the data analyzer.
      * 
@@ -381,14 +602,14 @@ class DexcaliburProject
             this.appAnalyzer.importManifest(_path_.join(pPath,"AndroidManifest.xml"));
         }else{
             //        let dexPath = this.workspace.getWD()+"dex";
-            let dexPath = _path_.join(this.workspace.getWD(),"dex");
+            let apkPath = this.workspace.getApkDir();
 
-            Logger.info("Scanning default path : "+dexPath);
+            Logger.info("Scanning default path : "+apkPath);
             
-            this.analyze.path( dexPath);
-            this.dataAnalyser.scan( dexPath, ["smali"]);
+            this.analyze.path( apkPath);
+            this.dataAnalyser.scan( apkPath, ["smali"]);
     //        this.analyze.scanManifest(Path.join(dexPath,"AndroidManifest.xml"));
-            this.appAnalyzer.importManifest(_path_.join(dexPath,"AndroidManifest.xml"));
+            this.appAnalyzer.importManifest(_path_.join(apkPath,"AndroidManifest.xml"));
         }
 
 
@@ -587,6 +808,7 @@ class DexcaliburProject
         if(this.config.useEmulator) sdb+=" -e";
         if(this.config.deviceId!=null) adb+=" -s "+this.config.deviceId;
         
+        // to do change
         ret = Process.execSync(adb+" shell am start "+this.pkg+"/"+activity).toString("ascii");
 
         
@@ -623,6 +845,10 @@ class DexcaliburProject
      */
     getPackageName(){
         return this.pkg;
+    }
+
+    setPackageName( pPackageName){
+        this.pkg = pPackageName;
     }
 }
 

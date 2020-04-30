@@ -4,6 +4,8 @@ var _path_ = require("path");
 var CLASS = require("./CoreClass.js");
 var Logger = require("./Logger.js")();
 
+const APK = require("./APK.js");
+
 const DIR_NAME = {
     SAVE: "save",
     IN: "inputs",
@@ -14,12 +16,17 @@ const DIR_NAME = {
     APPDATA: "appdata",
     TMP: "tmp",
     DEXES: "dexes",
-    DEX: "dex"
+    DEX: "apk" //"dex"
 };
 
 /**
- * Represents the Dexcalibur workspace. It is used when the tool 
- * wants access/read/write files or folder.  
+ * Represents a project workspace. 
+ * 
+ * Dexcalibur glabal workspace contains one sub-workspace per project
+ * 
+ * It is used when the tool 
+ * wants access/read/write files or folder. 
+ *  
  * @param {string} pkg The application package name
  * @param {Object} config The  
  * @class 
@@ -38,6 +45,14 @@ class Workspace{
          * @field
          */
         this.path = pPath;
+
+        /**
+         * @type {APK}
+         * @field
+         */
+        this.mainAPK = new APK(
+            _path_.join(this.path, 'app.apk')
+        );
     }
     
     /**
@@ -215,8 +230,35 @@ class Workspace{
         return _path_.join(this.path, DIR_NAME.TMP);
     }
 
+
+    /**
+     * @method
+     */
+    getProjectCfgPath(){
+        return _path_.join(this.path, 'project.json');
+    }
+    
     getApkDir(){
+
         return _path_.join(this.path, DIR_NAME.DEX);
+    }
+
+    getApkPath(){
+        return this.mainAPK.getPath();
+    }
+
+    getApk(){
+        return this.mainAPK;
+    }
+
+    setApk( pApk){
+        this.mainAPK = pApk; //APK.fromJsonObject( Workspace.getMainApkPath(), pData); 
+    }
+
+
+    changeMainAPK( pPath){
+        _fs_.copyFileSync( pPath, this.getApkPath());
+        this.mainAPK = new APK( this.getApkPath());
     }
 
     /**

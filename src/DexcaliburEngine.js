@@ -25,13 +25,20 @@ const CONFIG_PATH = _path_.join( _os_.homedir(), '.dexcalibur', 'config.json');
 
 const FRIDA_BIN = (process.env.DEXCALIBUR_FRIDA !== null)? process.env.DEXCALIBUR_FRIDA : "frida"
 
+
+const LOGO = "███████╗ ███████╗██╗  ██╗ ██████╗ █████╗ ██╗     ██╗██████╗ ██╗   ██╗██████╗\n" 
+            +"██╔═══██╗██╔════╝╚██╗██╔╝██╔════╝██╔══██╗██║     ██║██╔══██╗██║   ██║██╔══██╗\n"
+            +"██║   ██║█████╗   ╚███╔╝ ██║     ███████║██║     ██║██████╔╝██║   ██║██████╔╝\n"
+            +"██║   ██║██╔══╝   ██╔██╗ ██║     ██╔══██║██║     ██║██╔══██╗██║   ██║██╔══██╗\n"
+            +"███████╔╝███████╗██╔╝ ██╗╚██████╗██║  ██║███████╗██║██████╔╝╚██████╔╝██║  ██║\n"
+            +"╚══════╝ ╚══════╝╚═╝  ╚═╝ ╚═════╝╚═╝  ╚═╝╚══════╝╚═╝╚═════╝  ╚═════╝ ╚═╝  ╚═╝\n";
 /** 
  * List of remote location where each tool can be downloaded 
  * @constant
  */
 var REMOTE_URLS = {
-    // apktool redirect from "https://bitbucket.org/iBotPeaches/apktool/downloads/apktool_2.4.1.jar",
-    apktool: "https://bbuseruploads.s3.amazonaws.com/0becf6a1-1706-4f2e-9ae6-891e00a8dd5f/downloads/5b0ec3aa-15d9-462a-8573-3744c8855ee7/apktool_2.4.1.jar?Signature=jmQo3MJSfHOfEwSCRTdjA1zZWns%3D&Expires=1586629301&AWSAccessKeyId=AKIA6KOSE3BNJRRFUUX6&versionId=zmIH9wY6Q_aTyUGAwbMg_KwZ5VWcE4VW&response-content-disposition=attachment%3B%20filename%3D%22apktool_2.4.1.jar%22",
+    apktool: "https://bitbucket.org/iBotPeaches/apktool/downloads/apktool_2.4.1.jar",
+    //apktool: "https://bbuseruploads.s3.amazonaws.com/0becf6a1-1706-4f2e-9ae6-891e00a8dd5f/downloads/5b0ec3aa-15d9-462a-8573-3744c8855ee7/apktool_2.4.1.jar?Signature=jmQo3MJSfHOfEwSCRTdjA1zZWns%3D&Expires=1586629301&AWSAccessKeyId=AKIA6KOSE3BNJRRFUUX6&versionId=zmIH9wY6Q_aTyUGAwbMg_KwZ5VWcE4VW&response-content-disposition=attachment%3B%20filename%3D%22apktool_2.4.1.jar%22",
     adb: null,
     officialRegistryAPI: "https://api.github.com/repos/FrenchYeti/dexcalibur-registry/contents/",
     officialRegistry: "https://github.com/FrenchYeti/dexcalibur-registry/raw/master/",
@@ -146,6 +153,7 @@ class DexcaliburEngine
         return this.registry;
     }
 
+
     /**
      * To print Dexcalibur banner into CLI at starting
      *  
@@ -153,30 +161,42 @@ class DexcaliburEngine
      * @static
      * @method
      */
-    static printBanner(){
+    static printBanner( ){
 
+            Logger.info("\n\n"
+            + LOGO
+            + PACKAGE_JSON.version
+            + (" ".repeat(78-14-PACKAGE_JSON.version.length))
+            +"by @FrenchYeti \n"
+            +"╔════════════════════════════════════════════════════════════════════════════╗\n"
+            +"║ How to use ?                                                               ║\n"
+            +"║ > const Dexcalibur = require('./src/Project.js')                           ║\n"
+            +"║ > var project = new Dexcalibur('com.example.test')                         ║\n"
+            +"║ > project.useAPI('android:7.0.0').fullscan()                               ║\n"
+            +"║ > project.find.method('name:loadLibrary')                                  ║\n"
+            +"║                                                                            ║\n"
+            +"║ Read *.help() ! =)                                                         ║\n"
+            +"╚════════════════════════════════════════════════════════════════════════════╝\n"
+            );
+        
+    }
+
+    /**
+     * 
+     * @param {*} pPort 
+     */
+    printWebBanner( pPort){
         Logger.info("\n\n"
-        +"███████╗ ███████╗██╗  ██╗ ██████╗ █████╗ ██╗     ██╗██████╗ ██╗   ██╗██████╗\n" 
-        +"██╔═══██╗██╔════╝╚██╗██╔╝██╔════╝██╔══██╗██║     ██║██╔══██╗██║   ██║██╔══██╗\n"
-        +"██║   ██║█████╗   ╚███╔╝ ██║     ███████║██║     ██║██████╔╝██║   ██║██████╔╝\n"
-        +"██║   ██║██╔══╝   ██╔██╗ ██║     ██╔══██║██║     ██║██╔══██╗██║   ██║██╔══██╗\n"
-        +"███████╔╝███████╗██╔╝ ██╗╚██████╗██║  ██║███████╗██║██████╔╝╚██████╔╝██║  ██║\n"
-        +"╚══════╝ ╚══════╝╚═╝  ╚═╝ ╚═════╝╚═╝  ╚═╝╚══════╝╚═╝╚═════╝  ╚═════╝ ╚═╝  ╚═╝\n"
+        + LOGO
         + PACKAGE_JSON.version
         + (" ".repeat(78-14-PACKAGE_JSON.version.length))
         +"by @FrenchYeti \n"
         +"╔════════════════════════════════════════════════════════════════════════════╗\n"
-        +"║ How to use ?                                                               ║\n"
-        +"║ > const Dexcalibur = require('./src/Project.js')                           ║\n"
-        +"║ > var project = new Dexcalibur('com.example.test')                         ║\n"
-        +"║ > project.useAPI('android:7.0.0').fullscan()                               ║\n"
-        +"║ > project.find.method('name:loadLibrary')                                  ║\n"
-        +"║                                                                            ║\n"
-        +"║ Read *.help() ! =)                                                         ║\n"
+        +"║ Visit http://127.0.0.1:"+pPort+(" ".repeat(78-26-(""+pPort).length))+"║\n"
         +"╚════════════════════════════════════════════════════════════════════════════╝\n"
         );
-    
     }
+
 
     /**
      * To print Dexcalibur banner into CLI during install
@@ -187,12 +207,7 @@ class DexcaliburEngine
      */
     static printFirstBanner( pPort){
         Logger.info("\n\n"
-        +"███████╗ ███████╗██╗  ██╗ ██████╗ █████╗ ██╗     ██╗██████╗ ██╗   ██╗██████╗\n" 
-        +"██╔═══██╗██╔════╝╚██╗██╔╝██╔════╝██╔══██╗██║     ██║██╔══██╗██║   ██║██╔══██╗\n"
-        +"██║   ██║█████╗   ╚███╔╝ ██║     ███████║██║     ██║██████╔╝██║   ██║██████╔╝\n"
-        +"██║   ██║██╔══╝   ██╔██╗ ██║     ██╔══██║██║     ██║██╔══██╗██║   ██║██╔══██╗\n"
-        +"███████╔╝███████╗██╔╝ ██╗╚██████╗██║  ██║███████╗██║██████╔╝╚██████╔╝██║  ██║\n"
-        +"╚══════╝ ╚══════╝╚═╝  ╚═╝ ╚═════╝╚═╝  ╚═╝╚══════╝╚═╝╚═════╝  ╚═════╝ ╚═╝  ╚═╝\n"
+        + LOGO
         + PACKAGE_JSON.version
         + (" ".repeat(78-14-PACKAGE_JSON.version.length))
         +"by @FrenchYeti \n"
@@ -292,7 +307,7 @@ class DexcaliburEngine
      */
     init(){
         // setup web server
-        this.webserver = new WebServer(this);
+        this.webserver = new WebServer();
 
         this.webserver.setContext(this);
 
@@ -303,41 +318,11 @@ class DexcaliburEngine
         this.deviceMgr = DeviceManager.getInstance();
 
 /*
-        this.apkHelper = new ApkHelper(this);
-
-        // dex helper
-        this.dexHelper = new DexHelper(this);
-
-       
-        //package Patcher
-        this.packagePatcher = new PackagePatcher(pkgName, this.config, this.apkHelper);
 
         // hook
         this.hook = new HookHelper.Manager(this, nofrida);
         this.hook.refreshScanner();
-
-        // set the workspace API
-        this.workspace = new Workspace(pkgName,this.config);
-
-        // setup File Analyzer
-        this.dataAnalyser = new DataAnalyzer.Analyzer(this);
-
-        this.bus = new Bus(this); //.setContext(this);
-
-        this.appAnalyzer = new AndroidAppAnalyzer(this);
-
-        this.inspectors = new InspectorManager(this);
-
-        let insp = null;
-
-        this.inspectors.autoRegister();
-
-        // FridaBuilder make Frida script chunk from cls
-        this.fridaBuilder = new FridaGenerator(this);
-
-        // 
-        this.graph = new GraphMaker(this);*/
-        
+*/ 
     }
 
     /**
@@ -435,6 +420,7 @@ class DexcaliburEngine
                     self.installer.status = new InstallKit.StatusMessage( self.installer.progress, "Android platform tool downloaded. Uncompressing ..");
                     zip.extractAllTo( _path_.join(self.workspace.binFolder), true);
                     _fs_.unlinkSync(tmpAdbPath);
+                    _fs_.chmodSync( _path_.join(self.workspace.binFolder,'platform-tools','adb'), 0o555);
                     self.installer.progress += vStep;
                     self.installer.status = new InstallKit.StatusMessage( self.installer.progress, "Android platform tool installed");
                 },
@@ -465,6 +451,8 @@ class DexcaliburEngine
                     self.postInstall();
                     self.installer.status = new InstallKit.StatusMessage( self.installer.progress, "Finished");*/
                 } 
+            },{
+                followRedirect: true
             }
         );
 
@@ -554,6 +542,8 @@ class DexcaliburEngine
 
     start( pWebPort){
 
+        
+
         // Start the web server serving Installer UI
         this.webserver.start(pWebPort);
     }
@@ -562,10 +552,35 @@ class DexcaliburEngine
         return this.workspace.listProjects();
     }
 
+    deleteProject( pUID){
+        let success = false;
+        try{
+            let proj = this.webserver.project;
+
+            if(this.active[pUID] != null) this.active[pUID] =  null;
+            if(proj!= null && proj.getUID()==pUID){
+                this.workspace.setProject(null);
+            }
+
+            Utils.recursiveRmDirSync(
+                _path_.join( this.workspace.getLocation(), pUID )
+            );
+
+            success = true;
+        }catch(err){
+            console.log(err);
+            Logger.error("[ENGINE] "," deleteProject() failed");
+        }
+
+        return success;
+    }
+
     async openProject( pUID){
         let project = null, success = false;
         try{
-            project = new DexcaliburProject( this, pUID);
+            project = DexcaliburProject.load(this, pUID);
+
+//            project = new DexcaliburProject( this, pUID);
             project.init();
             
             DexcaliburEngine.printBanner();
@@ -581,18 +596,41 @@ class DexcaliburEngine
         return project;
     }
 
-    newProject( pUID){
+    async newProject( pUID, pApkPath, pDevice, pPlatform='min'){
 
         let project = null;
-        try{
-            project = new DexcaliburProject( this, pUID);
-            this.active[pUID] = project;
-            this.webserver.setProject(project);
-        }catch(err){
-            Logger.error("ENGINE","newProject failed");
+        let success = null;
+
+        //validate or suggest project UID 
+        if(DexcaliburProject.exists(pUID)){
+            pUID = DexcaliburProject.suggests(pUID);
         }
 
-        return project;
+        project = new DexcaliburProject( this, pUID);
+
+        project.init();
+
+
+        DexcaliburEngine.printBanner();
+
+        if(pDevice != null){
+            project.setDevice(pDevice);
+        }
+
+        // open APK, analyze manifest
+        success = await project.useAPK(pApkPath);
+
+        // create project.json file
+        if(success){
+            project.save();
+
+            this.active[pUID] = project;
+            this.webserver.setProject(project);
+
+            return project;
+        }else{
+            return null;
+        }
     }
 
     /**
