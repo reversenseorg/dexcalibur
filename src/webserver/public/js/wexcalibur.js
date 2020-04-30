@@ -775,8 +775,52 @@ var DexcaliburAPI = {
         open: function( pProjectUID, success=null, error=null){
             DexcaliburAPI.exec("/api/workspace/open","get", { uid:pProjectUID }, success, error);
         },
+        delete: function( pProjectUID, success=null, error=null){
+            DexcaliburAPI.exec("/api/workspace/delete","post", { uid:pProjectUID }, success, error);
+        },
         checkAvailabilityProjectUID: function(pProjectUID, success=null, error=null){
             DexcaliburAPI.exec("/api/workspace/availability","get", { field:"project.uid", value:pProjectUID }, success, error);
+        },
+        newProject: function(pOptions, pCallback){
+            DexcaliburAPI.exec("/api/workspace/new","post", pOptions, pCallback.onSuccess, pCallback.onError);
+        },
+        upload: function( pForm, pFileInput, pCallback){
+            
+            var form = $(pForm);
+
+            // you can't pass Jquery form it has to be javascript form object
+            var formData = new FormData(form[0]);
+
+            //if you only need to upload files then 
+            //Grab the File upload control and append each file manually to FormData
+//console.log(form, form.find(pFileInput), form.find("input[type=file]") );
+            var files = form.find(pFileInput)[0].files;
+
+            $.each(files, function() {
+                  var file = $(this);
+                  formData.append(file[0].name, file[0]);
+            });
+
+            //console.log( $(form).valid(), files);
+            //if (form.valid()) {
+                $.ajax({
+                    type: "POST",
+                    url: "/api/workspace/upload",
+                    //dataType: 'json', //not sure but works for me without this
+                    data: formData,
+                    contentType: false, 
+                    processData: false, 
+                    cache: false, 
+                    statusCode: {
+                        200: function(data,err){
+                            if(pCallback.onSuccess != null) pCallback.onSuccess(data);
+                        },
+                        404: function(data,err){
+                            if(pCallback.onError != null) pCallback.onError(data);
+                        }
+                    },
+                });
+           // }
         }
     },
     platform: {
@@ -876,6 +920,9 @@ var DexcaliburAPI = {
                     }
                 }
             })
+        },
+        listApplications: function( pUid, pSystem, pCallback){
+            DexcaliburAPI.exec("/api/device/applications", "get", { uid:pUid, system: pSystem }, pCallback.onSuccess, pCallback.onError);
         },
         list: function(success=null, error=null){
             $.ajax("/api/device", {

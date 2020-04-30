@@ -144,6 +144,15 @@
     .splash-panel > h4 {
         color:yellow;
     }
+
+    .splash-open-apk .multi-collapse{
+        margin-top:1em;
+    }
+
+    #projectTypeOpt {
+        padding-top:1em;
+    }
+
     </style>
 </head>
 
@@ -169,13 +178,13 @@
                                     <span class='fa fa-folder-open'>&nbsp;</span>&nbsp;Open an existing project ...
                                 </li>
                                 <li class="list-group-item dxc-open-apk">
-                                    <span class='fa fa-upload'>&nbsp;</span>&nbsp;Upload an APK
+                                    <span class='fa fa-upload'>&nbsp;</span>&nbsp;New project
                                 </li>
                                 <li class="list-group-item dxc-select-app">
                                     <span class='fa fa-mobile'>&nbsp;</span>&nbsp;Select an application
                                 </li>
-                                <li class="list-group-item dxc-import">
-                                    <span class='fa fa-archive'>&nbsp;</span>&nbsp;Import ...
+                                <li class="list-group-item dxc-import text-warning">
+                                    <span class='fa fa-dollar'>&nbsp;</span>&nbsp;Donate
                                 </li>
                             </ul>
                             <div class="card-header">
@@ -183,7 +192,7 @@
                             </div>
                             <ul class="list-group list-group-flush">
                                 <li class="list-group-item dxc-api-manager" >
-                                    <span class='fa fa-upload'>&nbsp;</span>&nbsp;Android APIs manager
+                                    <span class='fa fa-android'>&nbsp;</span>&nbsp;Android APIs manager
                                 </li>
                                 <li class="list-group-item dxc-device-manager">
                                     <span class='fa fa-mobile'>&nbsp;</span>&nbsp;Device manager
@@ -197,16 +206,18 @@
                     <div class="col-md-8 splash-panel splash-home" style="text-align: center"> 
                         <img class="logo" src="/dist/img/dexcalibur_logo_black2.png"  style="margin-top:-10em">
                         <small>Recents :</small> 
-                        <ul class="list-group list-group-flush dxc-project-list" id="dxcProjectList"></ul>
+                        <ul class="list-group list-group-flush dxc-project-list" style="text-align:left;overflow:auto;height:10em;" id="dxcProjectList"></ul>
                     </div>
                     <div class="col-md-8 splash-panel splash-open-project" style="display:none"> 
+                        <h4>Workspace</h4>
                         <small>
                             Click to open an existing project ...
                         </small>
                         <ul class="list-group list-group-flush dxc-project-list" id="dxcProjectList2"></ul>
                     </div>
-                    <div class="col-md-8 splash-panel splash-open-apk" style="display:none"> 
-                        <h4>APK Analysis</h4>
+                    <div class="col-md-8 splash-panel splash-open-apk" style="display:none;font-size:0.8em;"> 
+                        <h4>New project </h4>
+
                         <div class="form-row">
                             <div class="col-md-10 mb-3">
                                 <label for="validationServer01">Project UID</label>
@@ -219,46 +230,74 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="form-row">
-                            <!--<div class="col-md-10 mb-3 custom-file">
-                                <input type="file" class="custom-file-input" id="customFile">
-                                <label class="custom-file-label" for="customFile">Choose file</label>
-                            </div>-->
-                            <div class="col-md-10 mb-3">
-                                <label for="customFile">Choose APK</label>
-                                <input type="file" class="form-control-file" id="customFile">
-                            </div>
+
+                        <b>What do you want ?</b>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="projectType" id="projectTypeDownload" value="download" >
+                            <label class="form-check-label" for="projectTypeDownload">
+                                Download a remote file
+                            </label>
                         </div>
+
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="projectType" id="projectTypeUpload" value="upload">
+                            <label class="form-check-label" for="projectTypeUpload">
+                                Upload an APK
+                            </label>
+                        </div>
+
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="projectType" id="projectTypeFs" value="fromfs">
+                            <label class="form-check-label" for="projectTypeFs">
+                                Enter absolute path of the APK
+                            </label>
+                        </div>
+
+
+                        <div id="projectTypeOpt"></div>
+
+                        <br>
                         <div class="form-row">
                             <div class="col-md-10 mb-3">
-                                <label for="dxcApkAPI">Choose the Plaform/API for the analysis: </label>
+                                <label for="dxcApkAPI"><b>Choose the Plaform/API for the analysis:</b> </label>
                                 <select class="form-control form-control-sm" id="dxcApkAPI">
                                     <option disabled>Select a platform/API version</option>
                                     <optgroup label="------------------------------">
-                                        <option value="min">Min Android version supported</option>
-                                        <option value="max">Max Android version supported</option>
+                                        <option value="dev">Android version of target device</option>
+                                        <option value="min" selected>Min Android version supported by App</option>
+                                        <option value="max">Max Android version supported by App</option>
                                     </optgroup>
                                     <optgroup label="------------------------------" id="dxc-select-platform"></optgroup>
                                 </select>
                             </div>
                         </div>
+
+                        <div class="form-row">
+                            <div class="col-md-10 mb-3">
+                                <label for="dxcSelectDevProj"><b>Select the default device:</b> </label>
+                                <select class="form-control form-control-sm dxc-select-dev" id="dxcSelectDev2" >
+                                    <option>Select a device</option>
+                                    <optgroup id="dxc-optDevices2"></optgroup>
+                                </select>
+                            </div>
+                        </div>
+
                         <div class="form-row">
                             <div class="col-md-8">&nbsp;</div>
                             <div class="col-md-4">
-                                <button class='btn btn-success'><span class="fa fa-bolt"></span>&nbsp;Start</button>
+                                <button class='btn btn-success createProject'><span class="fa fa-bolt"></span>&nbsp;Continue</button>
                             </div>
                         </div>
                     </div>
 
                     <div class="col-md-8 splash-panel splash-select-app" style="display:none"> 
+                        <h4>Select an application to analyze</h4>
                         <small>
-                            Browse devices, and select the application to analyze ... 
+                            Select a device and an application to analyze ... 
                         </small>
                         <select class="form-control form-control-sm dxc-select-dev" id="dxcSelectDev" >
                             <option>Select a device</option>
-                            <optgroup id="dxc-optDevices">
-
-                            </optgroup>
+                            <optgroup id="dxc-optDevices"></optgroup>
                         </select>
                         <div class="dxc-panel-message" id="dxcSelectAppProgress" style="display: none;">
                             <div class="progress">
@@ -266,12 +305,18 @@
                             </div>
                             <small id="dxcSeclectAppProgMsg">Loading application ...</small>
                         </div>
-                        <ul class="list-group list-group-flush dxc-app-list" id="dxcAppList"></ul>
+                        <table class="table table-sm ttable-hover dxc-compact-table" id="dxcAppList" style="display: none; overflow:auto; height:200px">
+                            <thead>
+                                <th>App name</th>
+                                <th>Action</th>
+                            </thead>
+                            <tbody id="dxcAppListBody" style=""></tbody>
+                        </table>
                     </div>
 
                     <div class="col-md-8 splash-panel splash-import" style="display:none"> 
                         <div class="dxc-panel-message">
-                            <small>Sorry, this version not support project import</small><br><br>
+                            <small>You <span class="fa fa-heart" style="color:#f96854"></span> Dexcalibur ? <br> Please help me to continue Dexcalibur development and give exclusive features and support !</small><br><br>
                             <a href="https://www.patreon.com/bePatron?u=19568290" rel="nofollow"><img src="/dist/img/become_a_patreon_button.png" alt="Become a Patron!" data-canonical-src="/dist/img/become_a_patreon_button.png" style="max-width:100%;"></a>
                             <br>
                             <small>(Warning : it is an external link !)</small>
@@ -333,6 +378,22 @@
                 </div>
             </div>
 
+            <div class="modal fade" id="confirmModal" tabindex="-1" role="dialog" aria-labelledby="confirmModalLabel" aria-hidden="true">
+                <div class="modal-dialog modal-lg" role="document">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h3 class="modal-title" id="confirmModalLabel">Confirmation</h3>
+                        </div>
+                        <div class="modal-body" id="confirmModalMessage">-</div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-dismiss="modal" id="confirmModalCancel">Cancel</button>
+                            <button type="button" class="btn btn-danger" id="confirmModalConfirm">Confirm</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+
             <div class="modal fade" id="dxcLoadingModal" tabindex="-1" role="dialog" aria-labelledby="mySmallModalLabel" aria-hidden="true">
                 <div class="modal-dialog modal-sm">
                   <div class="modal-content">                   
@@ -341,6 +402,7 @@
                             <div class="progress-bar progress-bar-striped progress-bar-animated" id="dxcLoadingModalProgress" role="progressbar" aria-valuenow="75" aria-valuemin="0" aria-valuemax="100" style="width: 100%"></div>
                         </div>
                     </div>
+                    <pre style="width:100%;background-color:#eee;margin-top:1em;" id="dxcLoadingModalConsole"></pre>
                   </div>
                 </div>
               </div>
@@ -428,12 +490,12 @@
                     
                     let data = JSON.parse(vData), d=null;
 
-                    $('#dxcDeviceList').empty();
+                    $(pElement).empty();
 
                     for(let i=0; i<data.devices.length; i++){
                         d = data.devices[i];
 
-                        $('#dxcDeviceList').append(`
+                        $(pElement).append(`
                         <tr>
                             <td>${d.id}</td>
                             <td>${d.model}</td>
@@ -467,9 +529,17 @@
                             <li class="list-group-item">
                                 <div class="row">
                                     <!--<div class="col-md-4">Missing image</div>-->
-                                    <div class="col-md-12 dxc-project" dxc-id="${vName}">
-                                        <div class="proj-desc"><i>No description set</i></div>
+                                    <div class="col-md-7">
+                                        <!-- <div class="proj-desc"><i>No description set</i></div> -->
                                         <span class="proj-pkg">${vName}</span>
+                                    </div>
+                                    <div class="col-md-5">
+                                        <div class="badge badge-pill badge-warning open-project" dxc-id="${vName}">
+                                            <span class="fa fa-link proj-pkg"></span>&nbsp;Open
+                                        </div>
+                                        <div class="badge badge-pill badge-danger del-project" dxc-id="${vName}">
+                                            <span class="fa fa-trash proj-pkg" dxc-id="${vName}"></span>&nbsp;Delete
+                                        </div>
                                     </div>
                                 </div>
                             </li>
@@ -506,6 +576,43 @@
     }
 
 
+
+    function requestConfirm( pMessage, pCallbacks){
+
+        $("#confirmModalMessage").html(pMessage);
+        $("#confirmModalConfirm").off('click');
+        $("#confirmModalCancel").off('click');
+        $("#confirmModal").modal();
+
+        $("#confirmModalConfirm").click( function(){
+            $("#confirmModal").modal('toggle');
+            pCallbacks.onConfirm();
+        });
+        $("#confirmModalCancel").click( function(){
+            $("#confirmModal").modal('toggle');
+            pCallbacks.onCancel();
+        });
+    }
+
+    function deleteProject( pProjectUID){
+        requestConfirm(
+            "Are you sure to delete project '"+DexcaliburAPI.ui.htmlEncode(pProjectUID)+"' ? Files will be removed from disk.",
+            {
+                onConfirm: function(){
+                    DexcaliburAPI.workspace.delete( pProjectUID, (vData)=>{
+                        let data = JSON.parse(vData)
+                        
+                        if(data.success == true){
+                            location.href = "/pages/splash.html"; 
+                        }else{
+                            alert('An error occured. Operation failed.')
+                        }
+                    })
+                }
+            }
+        );
+    }
+
     $(document).ready(function() {
 
         updateProjectList("#dxcProjectList");
@@ -538,6 +645,24 @@
                             $('#dxc-select-platform').append(`
                                 <option value="${platf.uid}">[${platf.source}] ${platf.name} ${platf.version} (${platf.vendor})${platf.installed==true?"   -   INSTALLED":""}</options>
                             `);
+                        }
+
+                        updateDeviceList('#dxcDeviceList2');
+                    });
+
+                    DexcaliburAPI.device.list((vData)=>{
+                        
+                        let data = JSON.parse(vData), dev=null;
+                        
+                        $('#dxc-optDevices2').empty();
+
+                        for(let i in data.devices){
+                            dev = data.devices[i];
+                            //if(dev.connected == true){
+                                $('#dxc-optDevices2').append(`
+                                    <option value="${dev.uid}">[${dev.model}] (${dev.id}) ${dev.enrolled==true?"   -   ENROLLED":""}</options>
+                                `);
+                           // }
                         }
                     });
                 }
@@ -673,17 +798,44 @@
             })
         })
 
-        $(document).on("click",'div.dxc-project',(pEl)=>{
+        $(document).on("click",'div.open-project',(pEl)=>{
 
             let uid = pEl.currentTarget.getAttribute('dxc-id');
 
             openProject(uid);
         });
+        $(document).on("click",'div.del-project',(pEl)=>{
+
+            let uid = pEl.currentTarget.getAttribute('dxc-id');
+
+            deleteProject(uid);
+        });
         $(document).on("click",'a.dxc-dev-refresh',(pEl)=>{
             updateDeviceList('#dxcDeviceList');
         })
-        $(document).on('change','select.dxc-select-dev', function(pEvent){
-            $("#dxcSelectAppProgress").css("display","block");
+        $(document).on('change', '#dxcSelectDev', function(pEvent){
+                console.log(pEvent.currentTarget.value);
+                $("#dxcSelectAppProgress").css("display","block");
+                DexcaliburAPI.device.listApplications( pEvent.currentTarget.value, false, {
+                    onSuccess: (vData)=>{
+                        $("#dxcSelectAppProgress").css("display","none");
+                        $("#dxcAppList").css("display","block");
+
+                        let data = JSON.parse(vData);
+
+                        $("#dxcAppListBody").empty();
+                        for(let i in data.apps){
+                            $("#dxcAppListBody").append(`
+                                <tr>
+                                    <td>${DexcaliburAPI.ui.htmlEncode(data.apps[i].packageIdentifier)}</td>
+                                    <td>
+                                        <span class="badge badge-pill badge-warning scan-app" dxc-device="${data.device}" dxc-app-file="${data.apps[i].packagePath}" dxc-uid="${data.apps[i].packageIdentifier}">Scan</span>&nbsp;    
+                                    </td>
+                                </tr>
+                            `);
+                        }
+                }
+            });
         })
         $(document).on('click', 'span.enroll', (pEv)=>{
 
@@ -728,8 +880,133 @@
                 onSuccess: function(vData){
                     $("#dxcEnrollModalProgress").css("width","10%");
                     $("#dxcEnrollConsole").html("starting ..."); 
+                    task.stop();
                 }
             });
+        });
+        $(document).on('change', 'input[name=projectType]', (pEvent)=>{
+            let id = pEvent.currentTarget.id;
+            let ctn = '';
+
+            switch(id){
+                case 'projectTypeDownload':
+                    ctn = `
+                        <div class="input-group input-group-sm" id="projectDownloadCollapse">
+                            <div class="input-group-prepend">
+                                <div class="input-group-text">URL</div>
+                            </div>
+                            <input type="text" class="form-control form-control-sm" id="projectDownloadURL" placeholder="http://..." value="">
+                        </div>`;
+                    break;
+                case 'projectTypeUpload':
+                    ctn = `
+                            <div class="custom-file" id="projectUploadCollapse">
+                                <form method="post" id="projectUploadForm" enctype='multipart/form-data'>
+                                    <input type="file" class="custom-file-input" name="projectUploadedFile" id="projectUploadedFile">
+                                    <label class="custom-file-label" for="projectUploadedFile">Choose file</label>
+                                </form>
+                            </div>`;
+                    break;
+                case 'projectTypeFs':
+                    ctn = `
+                        <div class="input-group input-group-sm" id="projectFromfsCollapse">
+                            <div class="input-group-prepend">
+                                <div class="input-group-text">Path</div>
+                            </div>
+                            <input type="text" class="form-control form-control-sm" id="projectLocalPath" placeholder="/home/..." value="">
+                        </div>`;
+                    break;
+            }
+
+            $('#projectTypeOpt').empty();
+            $('#projectTypeOpt').html(ctn);
+        });
+
+        $(document).on('change', 'input.custom-file-input', function(pEvent){
+            if(pEvent.currentTarget.files.length > 0){
+                pEvent.currentTarget.labels[0].innerHTML = DexcaliburAPI.ui.htmlEncode(pEvent.currentTarget.files[0].name); 
+            }
+        });
+
+        var newProjectCallback = function( vData){
+            let data = JSON.parse(vData);
+
+            
+            if(data.success == true){
+//                location.href = "/pages/index_v2.html";
+                alert('ok');
+
+            }else{
+                $('#dxcLoadingModalProgress').css('width','100%');
+                $('#dxcLoadingModalProgress').removeClass('bg-primary');
+                $('#dxcLoadingModalProgress').addClass('bg-danger');
+            }
+        };
+
+        $(document).on('click','.scan-app',(pEvent)=>{
+
+
+            let params = {
+                name: pEvent.currentTarget.getAttribute('dxc-uid'),
+                dev: pEvent.currentTarget.getAttribute('dxc-device'),
+                path: pEvent.currentTarget.getAttribute('dxc-app-file'),
+                type: 'select'
+            };
+
+            DexcaliburAPI.workspace.newProject(params, { onSuccess:newProjectCallback });
+        });
+
+        $(document).on('click',".createProject",(pEvent)=>{
+            
+            // dxcLoadingModal
+            let params = {};
+
+
+            params.name = $('#dxcSelectApk_projectUID').val();
+            params.platform = $('#dxcApkAPI').val();
+            params.dev = $('#dxcSelectDev2').val();
+
+            $('#dxcLoadingModal').modal();
+            $('#dxcLoadingModalProgress').css('width','10%');
+            $('#dxcLoadingModalProgress').addClass('bg-primary');
+
+            if( $('#projectTypeUpload').is(':checked') ){
+                params.type = 'upload';
+
+                DexcaliburAPI.workspace.upload(
+                    "#projectUploadForm",
+                    "#projectUploadedFile",
+                    {
+                        onSuccess: function(vData){
+                            let data = JSON.parse(vData);
+
+                            if(data.success){
+                                $('#dxcLoadingModalProgress').css('width','70%');                            
+                                $('#dxcLoadingModalConsole').html("Upload successfull");
+                                params.uploadid = data.upload;
+                                console.log(params);
+                                DexcaliburAPI.workspace.newProject(params, { onSuccess:newProjectCallback });
+                            }else{
+                                $('#dxcLoadingModalProgress').removeClass('bg-primary');
+                                $('#dxcLoadingModalProgress').addClass('bg-danger');
+                                $('#dxcLoadingModalConsole').html(data.msg);
+                            }
+                        }
+                    }
+                );
+            }
+            else if( $('#projectTypeDownload').is(':checked') ){
+                params.type = 'download';
+                params.url = $('#projectDownloadURL').val();
+                DexcaliburAPI.workspace.newProject(params, { onSuccess:newProjectCallback });
+            }
+            else if( $('#projectTypeFs').is(':checked') ){
+                params.type = 'fromfs';
+                params.path = $('#projectLocalPath').val();
+                DexcaliburAPI.workspace.newProject(params, { onSuccess:newProjectCallback });
+            }
+
+
         });
     });
 
