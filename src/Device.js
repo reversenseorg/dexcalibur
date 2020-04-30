@@ -2,10 +2,13 @@
 const Logger = require("./Logger.js")();
 const _MD5_ = require("md5");
 const _FS_ = require('fs');
+const _path_ = require('path');
 
 const DeviceProfile = require('./DeviceProfile');
 const Platform = require('./Platform');
 const PlatformManager = require('./PlatformManager');
+const DexcaliburWorkspace = require('./DexcaliburWorkspace');
+const Utils = require("./Utils");
 
 const DEV = {
     UNKNOW:0x0,
@@ -73,6 +76,10 @@ class Device
         this.enrolled = pStatus;
 
         return this;
+    }
+
+    isEnrolled(){
+        return this.enrolled;
     }
 
     getProfile(){
@@ -146,13 +153,6 @@ class Device
         //this.uid = _MD5_(this.uid);
     }
 
-    getArchitecture(){
-        if(this.profile instanceof DeviceProfile){
-            // FUTURE : add platform adapter
-            return this.profile.get('')
-        }
-        return this.profile
-    }
 
     /**
      * To get device UID
@@ -166,6 +166,10 @@ class Device
      */
     getUID(){
         return this.uid;
+    }
+
+    getBridge(){
+        return this.bridge;
     }
 
     update( pDevice){
@@ -223,6 +227,8 @@ class Device
         this.platform = pPlatform;
     }
 
+
+
     /**
      * 
      * @param {Path|String} pRemotePath 
@@ -230,9 +236,29 @@ class Device
      */ 
     pull(pRemotePath, pLocalPath){
         let c = null;
-        c = this.bridge.pull(pRemotePath, pLocalPath, this.id);
+        c = this.bridge.pull(pRemotePath, pLocalPath);
         console.log(c);
         return c;
+    }
+
+    /**
+     * To pull a fil from a device and store it into temporary folder
+     * 
+     * @param {String} pRemotePath 
+     * @method
+     */
+    pullTemp(pRemotePath){
+        if(this.bridge == null){
+            throw new Error("[DEVICE] Bridge is not ready");
+        }
+        let path = _path_.join(
+            DexcaliburWorkspace.getInstance().getTempFolderLocation(),
+            Utils.randString( 16, Utils.ALPHANUM)+'.remote.apk'
+        );
+
+        let o = this.bridge.pull( pRemotePath, path);
+
+        return path;
     }
 
     /**

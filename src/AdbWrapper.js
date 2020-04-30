@@ -116,7 +116,7 @@ class AdbWrapper
      * 
      * @param {*} pPackageListStr 
      */
-    parsePackageList( pPackageListStr){
+    parsePackageList( pPackageListStr, pOptions){
         var reg = new RegExp("^package:(?<apk_name>.*)");
         var packages = [];
 
@@ -126,6 +126,8 @@ class AdbWrapper
 
         pPackageListStr.split( EOL ).forEach(element => {
             var pkg = element.trim();
+            let app, path = null;
+
             if(reg.test(pkg)) {
                 var result  = reg.exec(pkg);
                 if(result !== null) {
@@ -137,10 +139,20 @@ class AdbWrapper
                     if(reg.test(pathResult)) {
                         pathResult = reg.exec(pathResult).groups['apk_name'];
                     }
+
+                    // package path arg
+                    if(pOptions.indexOf('-f') > -1){
+                        let i = result.groups['apk_name'].lastIndexOf("=");
+                        path = result.groups['apk_name'].substr(0,i);
+                        app = result.groups['apk_name'].substr(i+1);
+                    }else{
+                        path = null;
+                        app = result.groups['apk_name']
+                    }
+
                     packages.push(new ApkPackage({
-                        packageIdentifier: result.groups['apk_name'],
-                        packagePath : pathResult,
-                        
+                        packageIdentifier: app,
+                        packagePath : path
                     }));
                 }
             }
@@ -152,16 +164,12 @@ class AdbWrapper
      * 
      * @param {String} deviceId [Optional] A specific device ID
      */
-    listPackages(deviceId = null) {
+    listPackages( pOtions) {
         let ret ="";
-        if(deviceId !== null) {
-            ret = UT.execSync(this.setup(deviceId) + " shell pm list packages").toString("ascii");
-        }
-        else {
-            ret = UT.execSync(this.path + " shell pm list packages").toString("ascii");        
-        }
-        
-        return this.parsePackageList(ret);
+
+        ret = UT.execSync(this.setup() + " shell pm list packages "+pOtions).toString("ascii");
+
+        return this.parsePackageList(ret, pOtions);
     }
 
 
@@ -219,7 +227,7 @@ class AdbWrapper
      * @param {String} deviceId (Optional) The ID of the device where search the package
      * @returns {String} The path of the application package into the device
      */
-    getPackagePath(packageIdentifier, deviceId=null) {
+    getPackagePath(packageIdentifier) {
         var reg = new RegExp("^package:(?<package_name>.*)");
         var ret = "";
 
@@ -228,7 +236,7 @@ class AdbWrapper
         }else
             ret = Process.execSync(this.setup(deviceId) + " shell pm path " +  packageIdentifier).toString("ascii");
 */
-        ret = UT.execSync(this.setup(deviceId) + " shell pm path " +  packageIdentifier).toString("ascii");
+        ret = UT.execSync(this.setup() + " shell pm path " +  packageIdentifier).toString("ascii");
 
 /*
         if(deviceId !== null) {
@@ -352,11 +360,8 @@ class AdbWrapper
      * @param {*} remote_path The path of the remote resource to download 
      * @param {*} local_path The path where the resource will be stored locally
      */
-    pull(remote_path, local_path, deviceID=null){
-        if(deviceID != null)
-            return UT.execSync(this.setup(deviceID)+' pull '+remote_path+' '+local_path);
-        else
-            return UT.execSync(this.path+' pull '+remote_path+' '+local_path);
+    pull(remote_path, local_path){
+        return UT.execSync(this.setup()+' pull '+remote_path+' '+local_path);
     }
 
     /**
@@ -368,9 +373,9 @@ class AdbWrapper
      * @param {*} local_path The path where the resource will be stored locally
      */
 
-    pullRessource(package_name,remote_path, local_path, deviceID=null){
+    pullRessource(package_name,remote_path, local_path){
         if(deviceID != null) {
-            var binary_blob = Process.execSync(this.setup(deviceID) + 'shell "run-as '+ package_name+ ' cat ' + remote_path + '"').buffer;
+            var binary_blob = Process.execSync(this.setup() + 'shell "run-as '+ package_name+ ' cat ' + remote_path + '"').buffer;
             _fs_.writeFile(local_path,binary_blob,function(err) {
                 if(err) {
                     Logger.error("[ADB] pullRessource() : an error occurs : "+err);
@@ -387,12 +392,8 @@ class AdbWrapper
      * @param {*} local_path The path of the local resource to upload 
      * @param {*} remote_path The path where the resource will be stored remotely
      */
-    push(local_path, remote_path, deviceID=null){
-
-        if(this.deviceID != null || deviceID != null)
-            return UT.execSync(this.setup(deviceID)+' push '+local_path+' '+remote_path);
-        else
-            return UT.execSync(this.path+' push '+local_path+' '+remote_path);
+    push(local_path, remote_path){
+            return UT.execSync(this.setup()+' push '+local_path+' '+remote_path);
     }
 
 
@@ -403,11 +404,19 @@ class AdbWrapper
      * @param {*} command The command to execute remotely
      */
     shell(command, deviceID = null){
+            return UT.execSync(this.setup()+' shell '+command);
+    }
 
-        if(this.deviceID != null || deviceID != null)
-            return UT.execSync(this.setup(deviceID)+' shell '+command);
-        else
-            return UT.execSync(this.path+' shell '+command);
+    /**
+     * Execute a command on the device
+     * Same as 'adb shell' commande.
+     * 
+     * @param {*} command The command to execute remotely
+     */
+    shellWithEH(command, callbacks=null){
+
+        Logger.info("[ADB] ",this.setup()+' shell '+command);
+        return Process.exec(this.setup()+' shell '+command, callbacks);
 
     }
 
@@ -417,33 +426,10 @@ class AdbWrapper
      * 
      * @param {*} command The command to execute remotely
      */
-    shellWithEH(command, callbacks=null, deviceID = null){
+    shellWithEHsync(command){
 
-        if(this.deviceID != null || deviceID != null){
-            Logger.info("[ADB] ",this.setup(deviceID)+' shell '+command);
-            return Process.exec(this.setup(deviceID)+' shell '+command, callbacks);
-        }else{
-            Logger.info("[ADB] ",this.path+' shell '+command);
-            return Process.exec(this.path+' shell '+command, callbacks);
-        }
-
-    }
-
-    /**
-     * Execute a command on the device
-     * Same as 'adb shell' commande.
-     * 
-     * @param {*} command The command to execute remotely
-     */
-    shellWithEHsync(command, deviceID = null){
-
-        if(this.deviceID != null || deviceID != null){
-            Logger.info("[ADB] ",this.setup(deviceID)+' shell '+command);
-            return Process.execSync(this.setup(deviceID)+' shell '+command);
-        }else{
-            Logger.info("[ADB] ",this.path+' shell '+command);
-            return Process.execSync(this.path+' shell '+command);
-        }
+            Logger.info("[ADB] ",this.setup()+' shell '+command);
+            return Process.execSync(this.setup()+' shell '+command);
 
     }
 
@@ -454,12 +440,9 @@ class AdbWrapper
      * 
      * @param {*} command The command to execute remotely
      */
-    privilegedShell(command, deviceID=null){
+    privilegedShell(command){
         
-        if(this.deviceID != null || deviceID != null)
-            return UT.execSync(this.setup(deviceID)+' shell su -c "'+command+'"');
-        else
-            return UT.execSync(this.path+' shell su -c "'+command+'"');
+            return UT.execSync(this.setup()+' shell su -c "'+command+'"');
     }
 
 
