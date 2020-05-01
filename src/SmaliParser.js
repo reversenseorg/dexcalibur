@@ -1,8 +1,11 @@
+const _fs_ = require('fs');
+const _es_ = require('event-stream');
+
+
 var ut = require("./Utils.js"); 
 var OPCODE = require("./Opcode.js");
 var CONST = require("./CoreConst.js");
 const CLASS = require("./CoreClass.js");
-const Chalk = require("chalk");
 const Event = require("./Event.js");
 const Logger = require("./Logger.js")();
 
@@ -55,7 +58,10 @@ class SmaliParser
         this.ctx = context;
         this.state = null; //  state of the parser
         this.subject = null; // parsed smali file
+        
         this.obj = null;
+        this.objReady = false;
+
         this.__tmp_meth = null;
         this.__tmp_block = null;
 
@@ -170,6 +176,10 @@ class SmaliParser
                 case LEX.MODIFIER.ANNOTATION:
                     mod.annotation = true;
                     mod._name += "An";
+                    break;
+                case LEX.MODIFIER.STRICTFP:
+                    mod.strictfp = true;
+                    mod._name += "Fp";
                     break;
                 default:
                     next=false;
@@ -686,7 +696,6 @@ class SmaliParser
         //console.log("[!] this.annotation not implemented");
     }
 
-    // openocd
     parse(src){
         let ls=src.split("\n"), ln=null, sml=null, obj=null;
     
@@ -750,6 +759,119 @@ class SmaliParser
         //console.log(this.obj);
         //this.obj.dump();
         return this.obj;
+    }
+
+    parseStream( pFilePath, pEncoding, pCallback){
+
+        let _self = this, rs=null, stream=null;
+        _self.obj = null;
+        _self.objReady = false;
+
+        stream =_fs_.createReadStream(pFilePath)
+        .pipe(_es_.split())
+        .pipe(_es_.mapSync(function(line){
+    
+                // pause the readstream
+                stream.pause();
+        
+                
+                // process line here and call s.resume() when rdy
+                // function below was for logging memory usage
+                console.log(line);
+        
+                // resume the readstream, possibly from a callback
+                stream.resume();
+            })
+            .on('error', function(err){
+                console.log('Error while reading file.', err);
+            })
+            .on('end', function(){
+                console.log('Read entire file.')
+            })
+        );
+
+        //stream = _fs_.createReadStream(pFilePath,{ encoding: 'utf8' });
+
+        //stream = LineStream(stream);
+
+        /*
+        stream.on('resume', function(){
+            console.log('resume');
+        });*/
+
+     
+        
+/*
+        stream.on('pause', function(){
+            console.log('paused');
+        });
+
+        stream.on('close', function(){
+            console.log("close", _self.obj)
+            pCallback(_self.obj);
+        });
+
+        stream.on('data', function(pLine){
+            let ln=null, sml=null, obj=null;
+
+            console.log(pLine);
+
+            ln=ut.trim(pLine);
+            if(ln.length==0){
+                return;
+            }
+
+            sml=ln.split(LEX.TOKEN.SPACE);
+            switch(sml[0]){
+                case LEX.STRUCT.CLASS:
+                    sml.shift();
+                    _self.class(sml);
+                    break;
+                case LEX.STRUCT.IMPLEMENTS:
+                    sml.shift();
+                    _self.obj.implements.push(_self.fqcn(sml[0]));
+                    break;
+                case LEX.STRUCT.SUPER:
+                    sml.shift();
+                    _self.obj.extends = _self.fqcn(sml[0]);
+                    break;
+                case LEX.STRUCT.SRC: 
+                    _self.obj.source = _self.fspath(sml[1]);
+                    break;
+                case LEX.STRUCT.FIELD:
+                    sml.shift();
+                    obj=_self.field(sml,l);
+                    // use an internal name which combine visibility and field name
+                    //this.obj.fields[obj._hashcode] = obj;
+                    _self.obj.fields[obj.signature()] = obj;
+                    _self.obj._fieldCount++;
+                    
+                    break;
+                case LEX.STRUCT.METHOD_BEG:
+                    _self.state = SML_METH;
+                    _self.method(sml,ln,l);
+                    break;
+                case LEX.STRUCT.ANNOT_BEG:
+                    if(_self.state != SML_METH){
+                        _self.state = SML_ANNO;
+                        _self.annotation(sml);
+                    }
+                    break;
+                default:
+                    switch(_self.state){
+                        case SML_METH:
+                            _self.method(sml,ln,l);
+                            break;
+                        case SML_PSWITCH:
+                            _self.pswitch(sml,ln,l);
+                            break;
+                        case SML_ANNO:
+                            _self.annotation(sml);
+                            break;
+                    }
+                    break;
+            }
+        });*/
     }
 }
 

@@ -2707,6 +2707,7 @@ function Modifiers(config){
     this.varargs = false;
     this.native = false;
     this.interface = false;
+    this.strictfp = false;
 
     this._match = 0;
     this._name = "";
