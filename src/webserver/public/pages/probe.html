@@ -68,8 +68,14 @@
                         <li class="nav-item dxc-orange-btn">
                             <a class="nav-link start-hook" fridaStartType="attach-app-self" id="attachtoapp-hook" href="#"><span class="fa fa-bolt">&nbsp;</span>Attach to app</a>
                         </li>
-                        <li class="nav-item dxc-orange-btn">
+                        <li class="nav-item dxc-purple-btn">
                             <a class="nav-link start-hook" fridaStartType="attach-gadget" id="attachtogadget-hook" href="#"><span class="fa fa-bolt">&nbsp;</span>Attach to Gadget</a>
+                        </li>
+
+                        <li class="nav-item dxc-red-btn">
+                            <a class="nav-link start-server" id="startServer" href="#">
+                                Frida server :&nbsp;<span class="badge badge-pill badge-danger" style="font-size:0.8em" id="statusServer">stopped (click to start)</span>
+                            </a>
                         </li>
                         <!--<li class="nav-item dxc-purple-btn">
                             <a class="nav-link start-hook" fridaStartType="attach-pid" id="attachto-hook"><span class="fa fa-bolt">&nbsp;</span>Attach to ...</a>
@@ -383,6 +389,27 @@
    
 
     $(document).ready(function() {
+
+        DexcaliburAPI.hook.statusServer(
+            {
+                onSuccess: function(vData){
+                    let data = JSON.parse(vData);
+
+                    $("#statusServer").removeClass("badge-success");
+                    $("#statusServer").removeClass("badge-danger");
+
+                    if(data.success){
+                        $("#statusServer").addClass("badge-success");
+                        $("#statusServer").html("running");
+                    }else{
+                        $("#statusServer").addClass("badge-danger");
+                        $("#statusServer").html("stopped (click to start)");
+                    }
+
+
+                }
+            }
+        );
 
         $(document).on("click",".showMethod",function(){
             let method = $(this).attr("methid");
@@ -870,7 +897,31 @@
             
         });
 
-       
+       $("#startServer").click(function(vEvent){
+            DexcaliburAPI.hook.startServer(
+                {  
+                    privileged: true,
+                    path: null
+                },
+                {
+                    onSuccess: function(vData){
+                        let data = JSON.parse(vData);
+
+                        $("#statusServer").removeClass("badge-success");
+                        $("#statusServer").removeClass("badge-danger");
+
+                        if(data.success){
+                            $("#statusServer").addClass("badge-success");
+                            $("#statusServer").html("running");
+                        }else{
+                            $("#statusServer").addClass("badge-danger");
+                            $("#statusServer").html("stopped (click to start)");
+                        }
+
+                    }
+                }
+            )
+       })
 
         $("#enable-all").click(()=>{
             DexcaliburAPI.hook.enableAll({
