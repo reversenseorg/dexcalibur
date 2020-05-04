@@ -5,10 +5,14 @@ const Chalk = require("chalk");
 const VM = require("vm");
 const BodyParser = require("body-parser");
 const Path = require("path");
+
+const _busboy_ = require('busboy');
+
 const AnalysisHelper = require("./AnalysisHelper.js");
 const Decompiler = require("./Decompiler.js");
 const Configuration = require("./Configuration.js");
-
+const Uploader = require('./Uploader');
+const Downloader = require('./Downloader');
 const UT = require("./Utils.js");
 const Logger = require("./Logger.js")();
 const CLASS = require("./CoreClass.js");
@@ -20,8 +24,9 @@ const WebTemplateEngine = require('./WebTemplateEngine');
 const Installer = require('./Installer').Installer;
 const PlatformManager = require('./PlatformManager');
 const DeviceManager = require('./DeviceManager');
-const FridaHelper = require('./FridaHelper');
 
+const FridaHelper = require('./FridaHelper');
+const ApkHelper = require('./ApkHelper');
 
 /**
  * @namespace WebServer.MimeHelper
@@ -59,12 +64,12 @@ class WebServer {
      * @param {Project} pProject 
      * @constructor
      */
-    constructor( pProject=null) {
+    constructor() {
         
         this.context = null; 
-        this.project = pProject;
+        this.project = null; //pProject;
 
-        this.tplengine = new WebTemplateEngine(pProject);
+        this.tplengine = new WebTemplateEngine();
         this.app = Express();
         this.port = 8000;
 //        this.root = Path.join(this.project.config.dexcaliburPath, "webserver", "public");
@@ -73,6 +78,8 @@ class WebServer {
         this.logs = {
             access: []
         };
+
+        this.uploader = null;
 
         this.controller = null;
     }
@@ -305,6 +312,14 @@ class WebServer {
                 res.status(200).send(JSON.stringify(dev));
             });
 
+        this.app.route('/api/workspace/upload')
+            .post(function (req,res){
+                $.uploader.newUpload( req, res, function( vId) {
+                    res.status(200).send(JSON.stringify({ success:true, upload:vId }));
+                    res.end();
+                });
+            });
+
         this.app.route('/api/workspace/list')
             .get(function (req, res) {
 
@@ -316,16 +331,127 @@ class WebServer {
                 res.status(200).send(JSON.stringify(dev));
             });
 
+        this.app.route('/api/workspace/new')
+            .post(async function (req, res) {
+
+                const PLATFORM_MODE = ['dev','min','max'];
+
+                let engine = $.context;
+                let project = null;
+                let dm = null;
+                let device = null;
+                let path = null;
+                let platform = null;
+                let success = false;
+
+                dm = DeviceManager.getInstance();
+                dm.scan();
+                
+                if(req.body['dev'] != null){
+                    device = dm.getDevice( req.body['dev']);
+                    if(device == null || !device.isEnrolled()){
+                        res.status(404).send(JSON.stringify({ success:false, msg:"Device unknow or not enrolled "}));
+                        return;
+                    }
+                }
+
+                if(req.body['name'] == null){
+                    res.status(404).send(JSON.stringify({ success:false, msg:"Invalid project name"}));
+                    return;
+                }
+
+
+                try{
+                    
+    
+                    // first download remote application
+                    // on error : ne‹ project will not create. 
+                    switch(req.body['type'])
+                    {
+                        case 'select':
+                            if(device == null){
+                                res.status(404).send(JSON.stringify({ success:false,  msg:"Device unknow or not enrolled "}));
+                                res.end();
+                            }
+                            platform = device.getPlatform();
+                            path = device.pullTemp( req.body['path'] );
+                            break;
+                        case 'download':
+                            if(PLATFORM_MODE)
+                            platform = PlatformManager.getInstance().getPlatform( req.body['platform']);
+                            path = await Downloader.downloadTemp(req.body['url'], { mode:0o666, encoding:'binary', force:true });
+                            break;
+                        case 'upload':
+                            platform = PlatformManager.getInstance().getPlatform( req.body['platform']);
+                            path = $.uploader.getPathOf(req.body['uploadid']);
+                            break;
+                        case 'fromfs':
+                            platform = PlatformManager.getInstance().getPlatform( req.body['platform']);
+                            path = req.body['path'];
+                            break;
+                    }
+    
+
+                    
+
+                    // chcek if file exists an it is not empty
+                    if( (!fs.existsSync(path)) || (false)){
+                        res.status(404).send(JSON.stringify({   success:false,  msg:"APK file not found "}));
+                        return;
+                    }
+    
+                    // create project : UID , APK [, Device]
+                    project = await $.context.newProject(req.body['name'], path, device);
+
+
+                    if(project != null){
+                        // sync project platform with target platform or APK
+                        success = project.synchronizePlatform( platform);
+                    }
+                    
+                    if(success){
+                        await project.fullscan();
+                        success = project.isReady();
+                    }
+                    
+                    // collect
+                    let dev = {
+                        success: success // project.isReady()
+                    };
+                    
+                    res.status(200).send(JSON.stringify(dev));
+                }catch(err){
+                    console.log(err);
+                    $.setProject(null);
+                    res.status(500).send(JSON.stringify({ msg:"An error occured while project initializing"}));
+                }
+               
+                return ;
+            });
+
         this.app.route('/api/workspace/open')
             .get(async function (req, res) {
-
-                let project = null;
                 
-                $.project = await $.context.openProject( req.query.uid );
+                // refresh connected device
+                DeviceManager.getInstance().scan();
+
+                //$.project = 
+                let project = await $.context.openProject( req.query.uid );
 
                 // collect
                 let dev = {
-                    success: $.project.isReady()
+                    success: project.isReady()
+                };
+                
+                res.status(200).send(JSON.stringify(dev));
+            });
+
+        this.app.route('/api/workspace/delete')
+            .post(async function (req, res) {
+
+                // collect
+                let dev = {
+                    success: $.context.deleteProject( req.body['uid'] )
                 };
                 
                 res.status(200).send(JSON.stringify(dev));
@@ -340,6 +466,7 @@ class WebServer {
                     case "project.uid":
                         proj = $.context.workspace.listProjects();
                         proj.map((vProject)=>{
+                            console.log(vProject,req.query.value);
                             if(vProject == req.query.value)
                                 availability = false;
                         })
@@ -410,6 +537,33 @@ class WebServer {
                 }));
             });
 
+        this.app.route('/api/device/applications')
+            .get(async function (req, res) {
+                // scan connected devices
+                let dev, dm, opts='-f';
+
+                dm = DeviceManager.getInstance();
+                dev = dm.getDevice( req.query.uid );
+
+                if(dev.isEnrolled() == false){
+                    res.status(404).send(JSON.stringify({
+                        msg: 'Device is not enrolled'
+                    }));
+                    return;
+                }
+
+                dm = dev.getBridge().listPackages(opts);
+                dev = [];
+
+                dm.map( (x)=>{
+                    dev.push(x.toJsonObject())
+                });
+
+                res.status(200).send(JSON.stringify({
+                    device: req.query.uid,
+                    apps:dev
+                }));
+            });
 
         this.app.route('/api/device/setDefault')
             .post(function (req, res) {
@@ -443,6 +597,7 @@ class WebServer {
                 }
             });
 
+        // todo : replace by device manager scan()
         this.app.route('/api/packageList')
             .get(function (req, res) {
                 // scan connected devices
@@ -453,6 +608,8 @@ class WebServer {
                 };
                 res.status(200).send(JSON.stringify(packages));
             });
+    
+        // todo : replace by splash/select app        
         this.app.route('/api/changeWorkspace/:projectIdentifier')
             .get(function (req, res) {
                 // scan connected devices
@@ -461,6 +618,8 @@ class WebServer {
 
                 res.status(200).send("{\"status\": \"ok\"}");
             });
+
+        // todo : replace by splash/select app
         this.app.route('/api/pullProject/:packageIdentifier')
             .get(function (req, res) {
                 // scan connected devices
@@ -557,34 +716,88 @@ class WebServer {
                 res.status(200).send(JSON.stringify(data));
             });
 
+        this.app.route('/api/probe/server/start')
+            .post(async function (req, res) {
+
+                let device = null;
+
+                if(req.body['dev']){
+                    device = DeviceManager.getInstance().getDevice(req.param.dev);
+                }else{
+                    device = $.project.getDevice();
+                }
+
+                try{
+                    res.status(200).send(JSON.stringify({
+                        success: await FridaHelper.startServer( device, {
+                            path: req.body['path'],
+                            privileged: (req.body['privileged']=="true"? true: false)
+                        })
+                    }));
+                }catch(err){
+                    console.log(err);
+                    res.status(200).send(JSON.stringify({
+                        success: false
+                    }));
+                }
+            });
+
+        this.app.route('/api/probe/server/status')
+            .get(async function (req, res) {
+
+                let device = null;
+
+                if(req.param.dev){
+                    device = DeviceManager.getInstance().getDevice(req.param.dev);
+                }else{
+                    device = $.project.getDevice();
+                }
+
+                try{
+                    res.status(200).send(JSON.stringify({
+                        success: await FridaHelper.getServerStatus( device)
+                    }));
+                }catch(err){
+                    console.log(err);
+                    res.status(200).send(JSON.stringify({
+                        success: false
+                    }));
+                }
+            });
+
         this.app.route('/api/probe/start')
             .post(function (req, res) {
-                Logger.info(`[WEB] Start hooking [pid=${req.body.pid}, app=${req.body.app}, type=${req.body.type}]`);
                
                 try{
                     switch(req.body.type){
                         case "spawn-self":
-                            $.project.hook.startBySpawn(null, $.project.getPackageName());
+                            Logger.info(`[WEBSERVER] Start hooking [app=${$.project.getPackageName()}, type=spawn-self]`);
+                            $.project.hook.startBySpawn($.project.getPackageName());
                             res.status(200).send(JSON.stringify({ enable: true }));
                             break;
                         case "spawn":
-                            $.project.hook.startBySpawn(null, req.body.app);
+                            Logger.info(`[WEBSERVER] Start hooking [app=${req.body.app}, type=spawn]`);
+                            $.project.hook.startBySpawn(req.body.app);
                             res.status(200).send(JSON.stringify({ enable: true }));
                             break;
                         case "attach-gadget":
-                            $.project.hook.startByAttachToGadget(null);
+                            Logger.info(`[WEBSERVER] Start hooking [pid=Gadget, type=attach-gadget]`);
+                            $.project.hook.startByAttachToGadget();
                             res.status(200).send(JSON.stringify({ enable: true }));
                             break;
                         case "attach-app-self":
-                            $.project.hook.startByAttachToApp(null, $.project.getPackageName());
+                            Logger.info(`[WEBSERVER] Start hooking [app=${req.body.app}, type=attach-app-self]`);
+                            $.project.hook.startByAttachToApp($.project.getPackageName());
                             res.status(200).send(JSON.stringify({ enable: true }));
                             break;
                         case "attach-app":
-                            $.project.hook.startByAttachToApp(null, req.body.app);
+                            Logger.info(`[WEBSERVER] Start hooking [app=${req.body.app}, type=attach-app-x]`);
+                            $.project.hook.startByAttachToApp(req.body.app);
                             res.status(200).send(JSON.stringify({ enable: true }));
                             break;
                         case "attach-pid":
-                            $.project.hook.startByAttachTo(null, req.body.pid);
+                            Logger.info(`[WEBSERVER] Start hooking [pid=${req.body.pid}, type=attach-to-pid`);
+                            $.project.hook.startByAttachTo(req.body.pid);
                             res.status(200).send(JSON.stringify({ enable: true }));
                             break;
                         default:
@@ -592,6 +805,7 @@ class WebServer {
                             break;
                     }
                 }catch(exception){
+                    console.log(exception);
                     res.status(404).send(JSON.stringify({ err: exception }));
                 }
 
@@ -614,6 +828,12 @@ class WebServer {
 
         this.app.route('/api/probe/msg')
             .get(function (req, res) {
+                if($.project == null){
+                    res.status(404).send(JSON.stringify({}));
+                    return null;
+                }
+
+
                 let sess = $.project.hook.lastSession();
                 if (sess == null) {
                     res.status(404).send({ msg: "No session" });
@@ -1578,17 +1798,25 @@ class WebServer {
                 }*/
 
                 // get default device
-                let device = $.project.devices.getDefault();
+                // resfresh dev
+                DeviceManager.getInstance().scan();
+                let device = $.project.getDevice(); // devices.getDefault();
+                console.log(device);
                 if(device == null){
-                    $.project.devices.scan();
-                    device = $.project.devices.getDefault();
+                    //DeviceManager.getInstance().scan();
+                    //$.project.devices.scan();
+                    //device = $.project.devices.getDefault();
 
-                    if(device == null){
-                        Logger.error("[WEBSERVER] Device not connected");
-                        res.set('Content-Type', 'text/json');
-                        res.status(404).send(JSON.stringify({ data: null, err: { err:"Device not connected" , stderr: null} }));
-                        return null;
-                    }
+                    
+                }
+
+                console.log(device);
+
+                if(device == null || !device.isConnected()){
+                    Logger.error("[WEBSERVER] Device not connected");
+                    res.set('Content-Type', 'text/json');
+                    res.status(404).send(JSON.stringify({ data: null, err: { err:"Device not connected" , stderr: null} }));
+                    return null;
                 }
 
                 // init cb
@@ -1733,6 +1961,7 @@ class WebServer {
      */
     useProductionMode(){
         this.initRoutes();
+        this.uploader = Uploader.getInstance(); 
     }
 
     /**
@@ -1744,12 +1973,15 @@ class WebServer {
     start(port) {
         
         if (port == null) {
-            this.port = this.project.config.web_port;
+            this.port = this.context.getConfiguration().getWebPort(); //project.config.web_port;
         } else {
             this.port = port;
         }
 
         let wwwPort = this.port;
+
+        this.context.printWebBanner(wwwPort);
+
         this.app.listen(wwwPort, function () {
             console.log(Chalk.bold.green('Server started on : ' + wwwPort));
         });
