@@ -40,6 +40,15 @@ class PlatformManager
         return gInstance;
     }
 
+    /**
+     * 
+     * @param {*} pApiVersion
+     * @method
+     *  
+     */
+    getFromAndroidApiVersion( pApiVersion){
+        return this.getPlatform('sdk_androidapi_'+pApiVersion+'_google');
+    }
 
     /**
      * 

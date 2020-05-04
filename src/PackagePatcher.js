@@ -3,14 +3,15 @@ const Path = require('path');
 const Process = require('child_process');
 const fs = require('fs');
 
+const ApkHelper = require("./ApkHelper");
+
 class PackagePatcher {
-    constructor(pkgName,config=null, apkHelper) {
-        this.apkHelper = apkHelper;
+    constructor(pkgName,config=null) {
         this.currentPackageName = pkgName;
         this.config = config;
         this.packages = [];
-        this.Bridges = {
-            ADB: new Adb(this.config.getAdbPath(),null)
+        this.bridges = {
+            ADB: AdbWrapperFactory.getInstance().newGenericWrapper()
         };
     }
     /**
@@ -33,15 +34,15 @@ class PackagePatcher {
         fs.mkdirSync(projectDir, {recursive: true});
         fs.mkdirSync(dstPath, {recursive: true});
 
-        var pathResult = this.Bridges.ADB.getPackagePath(packageIdentifier);
-        this.Bridges.ADB.pull(pathResult, tmpPath);
-        this.apkHelper.extract(tmpPath, dstPath);
+        var pathResult = this.bridges.ADB.getPackagePath(packageIdentifier);
+        this.bridges.ADB.pull(pathResult, tmpPath);
+        ApkHelper.extract(tmpPath, dstPath);
     }
 
     scan(){
        this.count = 0;
-       if(this.Bridges.ADB.isReady()){
-           var pkgs = this.Bridges.ADB.listPackages();
+       if(this.bridges.ADB.isReady()){
+           var pkgs = this.bridges.ADB.listPackages();
            this.count += pkgs.length;
 
            for(let i in pkgs){
