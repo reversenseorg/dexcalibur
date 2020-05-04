@@ -35,10 +35,10 @@ class Downloader
         
         // download file
         await pipeline(
-            _got_.stream(pRemotepPath),
+            _got_.stream(pRemoteURL),
             _fs_.createWriteStream( pLocalPath, {
                 flags: 'w+',
-                mode: pOtions.mode!=null ? pOptions.mode : 0o666,
+                mode: pOptions.mode!=null ? pOptions.mode : 0o666,
                 encoding: pOptions.encoding!=null ? pOptions.encoding : 'binary' 
             } )
         );
