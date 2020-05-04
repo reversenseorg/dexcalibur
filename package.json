@@ -28,7 +28,8 @@
     "mime-types": "^2.1.20",
     "properties": "^1.2.1",
     "r2pipe": "^2.8.0",
-    "xml2js": "^0.4.19"
+    "xml2js": "^0.4.19",
+    "xz": "^2.0.2"
   },
   "devDependencies": {
     "mocha": "^5.2.0",
@@ -37,7 +38,7 @@
     "sinon-chai": "^3.3.0"
   },
   "bin": {
-    "dexcalibur": "./dexcalibur.js"
+    "dexcalibur": "./dexcalibur"
   },
   "scripts": {
     "start": "node --max-old-space-size=4096 ./dexcalibur.js",
