@@ -163,92 +163,97 @@ DataCollection.prototype.getBuffers = function(){
     return this.buffers; 
 }
 */
-function DataAnalyzer(ctx){
-    this.context = ctx;
-    this.db = new DataCollection();
-    this.detector = new FileTypeHelper.TypeDetector();
+
+class DataAnalyzer
+{
+    constructor(pCtx){
+        this.context = pCtx;
+        this.db = new DataCollection();
+        this.detector = new FileTypeHelper.TypeDetector();
+    }
+
+    scan(path){
+        let db = this.db;
+        let detector = this.detector;
+        let ctr = 0, file=null, ctx=this.context;
+        //Logger.info("[DATA ANALYZER] Start scan of : ",path);
     
-    return this;    
-}
-
-DataAnalyzer.prototype.scan = function(path){
-    let db = this.db;
-    let detector = this.detector;
-    let ctr = 0, file=null, ctx=this.context;
-    //Logger.info("[DATA ANALYZER] Start scan of : ",path);
-
-    if(path[path.length-1]=='/')
-       path = path.substr(0,path.length-1);
-
-    UT.forEachFileOf(path,function( fpath, fname){
-        let type = null;
-
-        if(checkIfSmali(path, PATH.join(fpath,fname))) return null;
-
-        let ext = fpath.substr(fpath.lastIndexOf('.')+1); 
-
-        //Logger.info("[DATA ANALYZER] Start analyzing file : ",fpath);
+        if(path[path.length-1]=='/')
+           path = path.substr(0,path.length-1);
     
-        type = LIB_filetypeOf( FS.readFileSync(fpath));
-        // make relative path (path in the package)
-
-        if(type != null){
-
-            // Logger.info("[DATA ANALYZER]<1> Push file : ",fpath);
-            file = new FileHelper.File({
-                path: fpath,
-                name: fname,
-                type: type
-            });
+        UT.forEachFileOf(path,function( fpath, fname){
+            let type = null;
+    
             
-            ctx.bus.send(new Event.Event({
-                type: "data.file.new.knownFmt",
-                data: file 
-            }))
-
-            db.pushFile(file);
-        }else{
-            type = detector.search(ext);
-            
-            //console.log(type);
+            if(checkIfSmali(path, PATH.join(fpath,fname))) return null;
+    
+            let ext = fpath.substr(fpath.lastIndexOf('.')+1); 
+    
+            //Logger.info("[DATA ANALYZER] Start analyzing file : ",fpath);
+        
+            type = LIB_filetypeOf( FS.readFileSync(fpath));
+            // make relative path (path in the package)
+    
             if(type != null){
-                //Logger.info("[DATA ANALYZER]<2> Push file : ",fpath);
+    
+                // Logger.info("[DATA ANALYZER]<1> Push file : ",fpath);
                 file = new FileHelper.File({
                     path: fpath,
                     name: fname,
                     type: type
                 });
-                db.pushFile(file);
-                //console.log("Nb : "+db.files.length);
-
+                
                 ctx.bus.send(new Event.Event({
-                    type: "data.file.new.knownExt",
+                    type: "data.file.new.knownFmt",
                     data: file 
                 }))
     
-            }
-            else if(ext=="smali"){
-                //ignore
+                db.pushFile(file);
             }else{
-                //Logger.info("[DATA ANALYZER]<3> Push file : ",fpath);
-                db.pushFile(new FileHelper.File({
-                    path: fpath,
-                    name: fname,
-                    unknow: true
-                }));
-            }
+                type = detector.search(ext);
                 
-        }
-        ctr++;
-    },true);
+                //console.log(type);
+                if(type != null){
+                    //Logger.info("[DATA ANALYZER]<2> Push file : ",fpath);
+                    file = new FileHelper.File({
+                        path: fpath,
+                        name: fname,
+                        type: type
+                    });
+                    db.pushFile(file);
+                    //console.log("Nb : "+db.files.length);
+    
+                    ctx.bus.send(new Event.Event({
+                        type: "data.file.new.knownExt",
+                        data: file 
+                    }))
+        
+                }
+                else if(ext=="smali"){
+                    //ignore
+                }else{
+                    //Logger.info("[DATA ANALYZER]<3> Push file : ",fpath);
+                    db.pushFile(new FileHelper.File({
+                        path: fpath,
+                        name: fname,
+                        unknow: true
+                    }));
+                }
+                    
+            }
+            ctr++;
+        },true);
+    
+        console.log("[*] "+ctr+" files analyzed");
+        return this;
+    }
 
-    console.log("[*] "+ctr+" files analyzed");
-    return this;
-};
+    getDB(){
+        return this.db;
+    }
+}
 
-DataAnalyzer.prototype.getDB = function(){
-    return this.db;
-};
+
 
 
 module.exports = {
