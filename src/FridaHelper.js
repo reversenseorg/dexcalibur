@@ -3,8 +3,12 @@ const _fs_ = require("fs");
 const _path_ = require("path");
 const _stream_      = require('stream');
 const _got_         = require("got");
+const _xz_         = require("xz");
 const {promisify}   = require('util');
+
 const pipeline = promisify(_stream_.pipeline);
+const spawn = promisify(_ps_.spawn);
+
 
 const DexcaliburWorkspace = require("./DexcaliburWorkspace");
 
@@ -13,8 +17,11 @@ const REMOTE_FRIDA_RELEASE_BY_TAGS = 'https://api.github.com/repos/frida/frida/r
 const REMOTE_FRIDA_LATEST_RELEASE = 'https://api.github.com/repos/frida/frida/repo/releases/latest';
 const REMOTE_FRIDA_PATH = '/data/local/tmp/';
 const REMOT_FRIDA_DEFAULT_NAME = 'frida_server';
+
+var _frida_ = null;
 /**
  * @class
+ * @author Georges-B MICHEL
  */
 class FridaHelper
 {
@@ -81,8 +88,44 @@ class FridaHelper
     }
 
 
-    static async startFridaServer( pDevice, pOptions = null){
+    static async startServer( pDevice, pOptions = { path:null, privileged:true }){
+        if(pDevice == null) 
+            throw new Error("[FRIDA HELPER] Unknow device. Device not connected not enrolled ?");
+        if( (pDevice.getFridaServerPath() == null) && (pOptions.path == null))  
+            throw new Error("[FRIDA HELPER] Path of Frida server is unknow");
 
+        let frida = pDevice.getFridaServerPath();
+        let res = null;
+
+        console.log(pOptions);
+
+        if(pOptions.path != null && pOptions.path != '')
+            frida = pOptions.path;
+
+        if(pOptions.privileged)
+            res = await pDevice.privilegedExecSync(frida, {detached:true});
+        else
+            res = pDevice.execSync(frida);
+
+        return res;
+    }
+
+    static async getServerStatus( pDevice, pOptions = { nofrida:false }){
+        if(_frida_ == null){
+            _frida_ = require('frida');
+        }
+
+        let flag = false;
+        let dev = await _frida_.getDevice(pDevice.getUID());
+        
+        try{
+            dev = await dev.enumerateProcesses();
+            flag = true;
+        }catch(err){
+            flag = false;
+        }
+
+        return flag;
     }
 
     /**
@@ -101,7 +144,7 @@ class FridaHelper
      * @static
      */
     static async installServer( pDevice, pOptions = {}){
-        let ver, path, arch, tmp;
+        let ver, xzpath, path, arch, tmp;
 
 
         // retrieve frida version
@@ -117,7 +160,20 @@ class FridaHelper
         }
 
         // download sever
-        path = await FridaHelper.download( tmp, 'frida_server', pOptions);
+        xzpath = await FridaHelper.download( tmp, 'frida_server', pOptions);
+        path = xzpath.substr(0,xzpath.length-3);
+
+        // un-xz
+        await pipeline(
+            _fs_.createReadStream( xzpath),
+            new _xz_.Decompressor(),
+            _fs_.createWriteStream( path, {
+                flags: 'w+',
+                mode: 0o777,
+                encoding: 'binary' 
+            } )
+        );
+
 
         if(pOptions.randomName == true){
             tmp = Util.randomString(8);
