@@ -83,7 +83,7 @@ class DexcaliburEngine
      * @constructor
      */
     constructor(){
-        /**
+        /**git diff 
          * Global configuration of Dexcalibur
          * @field
          */
@@ -153,6 +153,10 @@ class DexcaliburEngine
         return this.registry;
     }
 
+        /* +"║ > const Dexcalibur = require('./src/Project.js')                           ║\n"
+            +"║ > var project = new Dexcalibur('com.example.test')                         ║\n"
+            +"║ > project.useAPI('android:7.0.0').fullscan()                               ║\n"
+            +"║ > project.find.method('name:loadLibrary')                                  ║\n"*/
 
     /**
      * To print Dexcalibur banner into CLI at starting
@@ -169,13 +173,9 @@ class DexcaliburEngine
             + (" ".repeat(78-14-PACKAGE_JSON.version.length))
             +"by @FrenchYeti \n"
             +"╔════════════════════════════════════════════════════════════════════════════╗\n"
-            +"║ How to use ?                                                               ║\n"
-            +"║ > const Dexcalibur = require('./src/Project.js')                           ║\n"
-            +"║ > var project = new Dexcalibur('com.example.test')                         ║\n"
-            +"║ > project.useAPI('android:7.0.0').fullscan()                               ║\n"
-            +"║ > project.find.method('name:loadLibrary')                                  ║\n"
+            +"║ Hey :)                                                                     ║\n"
             +"║                                                                            ║\n"
-            +"║ Read *.help() ! =)                                                         ║\n"
+            +"║ Do you need some help ? Visit http://docs.dexcalibur.org                   ║\n"
             +"╚════════════════════════════════════════════════════════════════════════════╝\n"
             );
         
@@ -578,10 +578,11 @@ class DexcaliburEngine
     async openProject( pUID){
         let project = null, success = false;
         try{
+            DeviceManager.getInstance().scan();
+
             project = DexcaliburProject.load(this, pUID);
 
 //            project = new DexcaliburProject( this, pUID);
-            project.init();
             
             DexcaliburEngine.printBanner();
             
@@ -600,6 +601,8 @@ class DexcaliburEngine
 
         let project = null;
         let success = null;
+
+        DeviceManager.getInstance().scan();
 
         //validate or suggest project UID 
         if(DexcaliburProject.exists(pUID)){
