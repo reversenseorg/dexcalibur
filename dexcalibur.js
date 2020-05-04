@@ -9,7 +9,7 @@ var err = null;
 var projectArgs = {};
 
 var Parser = new ArgParser(projectArgs, [
-    { name:"--api", 
+  /*  { name:"--api", 
         help: "The Android API version to use. It should be one entry of platform_available config option.",
         hasVal:true, 
         callback:(ctx,param)=>{ ctx.api = param.value; } },
@@ -32,28 +32,28 @@ var Parser = new ArgParser(projectArgs, [
     { name:"--apk-stdin", 
         help: "Read the APK to analyze on STDIN",
         hasVal:false, 
-        callback:(ctx,param)=>{ ctx.apkStdin = 1; } },
+        callback:(ctx,param)=>{ ctx.apkStdin = 1; } },*/
     { name:"--port", 
         help: "The web server port number",
         hasVal:true, 
         callback:(ctx,param)=>{ ctx.port = param.value; } },
-    { name:"--emu", 
+   /* { name:"--emu", 
         help: "Use emulated device",
         hasVal: false, 
-        callback: (ctx,param)=>{ ctx.useEmu = true; } },
+        callback: (ctx,param)=>{ ctx.useEmu = true; } },*/
     { name:"--debug", 
         help: "Enable debug",
         hasVal: false, 
         callback: (ctx,param)=>{ ctx.debug = true; } },
-    { name:"--config", 
+    /*{ name:"--config", 
         help: "The path to a custom config file. Default : ./config.js",
         hasVal:true, 
-        callback:(ctx,param)=>{ ctx.config = param.value; } },
+        callback:(ctx,param)=>{ ctx.config = param.value; } },*/
     { name:["--help","-h"], 
         help: "This menu",    
         hasVal:false, 
         callback:(ctx,param)=>{ ctx.help = 1; } },
-    { name:"--no-frida", 
+    /*{ name:"--no-frida", 
         help: "To disable Frida part. It allows to run Dexcalibur to analyze purpose even if Frida is not installed",
         hasVal:false, 
         callback:(ctx,param)=>{ ctx.nofrida = 1; } },
@@ -68,7 +68,7 @@ var Parser = new ArgParser(projectArgs, [
     { name:"--buildApi", 
         help: "To build the representation of the specified Android API",
         hasVal:true, 
-        callback:(ctx,param)=>{ ctx.buildApi = param.value; } },
+        callback:(ctx,param)=>{ ctx.buildApi = param.value; } },*/
     { name:"--reinstall", 
         help: "To clear Dexcalibur configuration",
         hasVal:false, 
@@ -125,7 +125,7 @@ else{
     ready = dxcInstance.boot();
 
     if(ready){
-        dxcInstance.start( projectArgs.port );
+        dxcInstance.start((projectArgs.port!=null) ? projectArgs.port : 8000 );
     }
     
 }
