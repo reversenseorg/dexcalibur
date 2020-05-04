@@ -25,8 +25,7 @@ function BufferReplace(source, pattern, replace) {
  */
 class WebTemplateEngine {
 
-    constructor( pProject) {
-        this.project = pProject;
+    constructor() {
         this.tokenRE = new RegExp("<!--##\\s*(.+)\\s+##-->");
         this.tokens = {};
         this.root = _path_.join( __dirname, "webserver", "public");

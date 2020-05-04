@@ -6,10 +6,14 @@ body {
 body.dxc-dark {
     /*background-color: rgba(44, 44, 99, 0.705);*/
     /*background-color: rgb(106, 106, 144);*/
-    background-color: #3E3E6F;
+    /*background-color: #3E3E6F;*/
 
     /*background-color: rgb(20, 20, 41);*/
-    
+    background-color: #0c072c;
+/*
+    background: linear-gradient(120deg, #4B0000 0%, #000000 100%), linear-gradient(300deg, #1E0000 0%, #0038FF 100%, #0038FF 100%), linear-gradient(65deg, #00FFFF 0%, #FF00A8 100%), linear-gradient(185deg, #FF0000 10%, #1400FF 95%), radial-gradient(100% 140% at 100% 0%, #00A3FF 0%, #C10097 100%);
+    background-blend-mode: color-dodge, overlay, difference, color-dodge, normal; 
+    */
 }
 
 body.dxc-dark table.table-hover tbody tr:hover {
@@ -117,13 +121,18 @@ h1 {
 #page-wrapper {
     padding: 0 15px;
     min-height: 568px;
-    background-color: white;
+    /*background-color: white;*/
+    /*background: linear-gradient(120deg, #4B0000 0%, #000000 100%), linear-gradient(300deg, #1E0000 0%, #0038FF 100%, #0038FF 100%), linear-gradient(65deg, #00FFFF 0%, #FF00A8 100%), linear-gradient(185deg, #FF0000 10%, #1400FF 95%), radial-gradient(100% 140% at 100% 0%, #00A3FF 0%, #C10097 100%);
+    background-blend-mode: color-dodge, overlay, difference, color-dodge, normal;  */
 }
 
 
 .dxc-dark #page-wrapper {
      /*background-color: rgba(44, 44, 99, 0.705);*/
-     background-color: #3E3E6F;
+    background-color: #0c072c; /* #3E3E6F;
+
+    /*background: linear-gradient(120deg, #4B0000 0%, #000000 100%), linear-gradient(300deg, #1E0000 0%, #0038FF 100%, #0038FF 100%), linear-gradient(65deg, #00FFFF 0%, #FF00A8 100%), linear-gradient(185deg, #FF0000 10%, #1400FF 95%), radial-gradient(100% 140% at 100% 0%, #00A3FF 0%, #C10097 100%);
+    background-blend-mode: color-dodge, overlay, difference, color-dodge, normal;*/
      /* ultra dark */
      /* background-color: rgb(20, 20, 41); */
      border-width:0px;
@@ -590,6 +599,21 @@ div.dxc-inline-ctn {
     padding-left: 1em;
 }
 
+
+.dxc-red-btn {
+    margin-left: 1em;
+    background-color: rgba(44, 44, 99);
+    border: 1px solid #f96854;
+    color: #f96854;
+}
+.dxc-red-btn a.nav-link {
+    color: #f96854;
+}
+
+.dxc-red-btn a.nav-link:hover {
+    color: rgba(44, 44, 99);
+    background-color: #f96854;
+}
 
 .dxc-purple-btn {
     margin-left: 1em;
