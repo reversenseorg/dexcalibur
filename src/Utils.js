@@ -212,7 +212,7 @@ const Util = {
     randString: function(size, charset){
         let s="";
         while(s.length <= size){
-            s += charset[parseInt(Math.random*charset.length)];
+            s += charset[parseInt(Math.random()*charset.length)];
         }
         return s;
     },
@@ -260,7 +260,19 @@ const Util = {
         );
 
     },
-    
+    recursiveRmDirSync: function(pPath){
+        if (fs.existsSync(pPath)) {
+          fs.readdirSync(pPath).forEach((file, index) => {
+            const curPath = Path.join(pPath, file);
+            if (fs.lstatSync(curPath).isDirectory()) { 
+              Util.recursiveRmDirSync(curPath);
+            } else {
+              fs.unlinkSync(curPath);
+            }
+          });
+          fs.rmdirSync(pPath);
+        }
+      }
 };
 
 module.exports = Util;
