@@ -1147,13 +1147,12 @@ class HookManager
 {
     /**
      * 
-     * @param {*} ctx 
+     * @param {*} pProject 
      * @param {*} nofrida 
      * @constructor
      */
-    constructor(ctx, nofrida=0){
-        this.engine = null;
-        this.context = ctx;
+    constructor(pProject, pNofrida=0){
+        this.context = pProject;
         this.logs = [];
         this.hooks = [];
         this.hooksets = {};
@@ -1164,15 +1163,17 @@ class HookManager
         this.listeners = {};
         this.scanners = {};
         this._sess = null;
-        this.frida_disabled = nofrida;
+        this.frida_disabled = pNofrida;
 
-        if(this.frida_disabled==0){
+        if(this.frida_disabled==false){
             FRIDA = require("frida");
             //FRIDA_LOAD = require("frida-load");
         }
 
         return this;
     }
+
+
 
     /**
      * To get frida_disabled status.
@@ -1196,7 +1197,9 @@ class HookManager
     RootBypass`);
     }
 
-
+    /**
+     * @deprecated
+     */
     refreshScanner(){
 
         let self = this;
@@ -1318,21 +1321,39 @@ class HookManager
      * @param {String} pAppName Application UID
      * @method 
      */
-    startBySpawn(pHookScript, pAppName){
+    startBySpawn(pAppName, pHookScript= null){
         this.start(pHookScript, HM_SPAWN, pAppName);
     }
 
-    startByAttachToGadget(pHookScript, pAppName){
+    /**
+     * 
+     * @param {*} pAppName 
+     * @param {*} pHookScript 
+     */
+    startByAttachToGadget(pAppName, pHookScript= null){
         this.start(pHookScript, HM_ATTACH_GADGET, pAppName);
     }
 
-    startByAttachTo(pHookScript, pPID=null){
+    /**
+     * 
+     * @param {*} pPID 
+     * @param {*} pHookScript 
+     */
+    startByAttachTo(pPID=null, pHookScript= null){
         this.start(pHookScript, HM_ATTACH_PID, pPID);
     }
 
-    startByAttachToApp(pHookScript, pAppName){
+    /**
+     * 
+     * @param {*} pAppName 
+     * @param {*} pHookScript 
+     */
+    startByAttachToApp(pAppName, pHookScript= null){
         this.start(pHookScript, HM_ATTACH_APP, pAppName);
     }
+
+
+
     /**
      * To start hooking
      * 
@@ -1343,19 +1364,27 @@ class HookManager
       * @param {*} hook_script 
       * @param {*} pType 
       * @param {*} pExtra 
+      * @param {*} pDevice 
+      * 
       * @method
       */
-    start(hook_script, pType=null, pExtra=null){
+     start(hook_script, pType=null, pExtra=null, pDevice=null){
         
-
-        var PROBE_SESSION = this.newSession();
+        let target = null;
+        let PROBE_SESSION = this.newSession();
         
         if(hook_script == null){
             hook_script = this.prepareHookScript();
-            //console.log(Chalk.yellow(hook_script));
         }
 
-        var applications=null, pid=-1;
+        // retrieve default  device from project
+        if(pDevice == null){
+            target = this.context.getDevice();
+        }
+        // else, it uses specified device
+        else{
+            target = pDevice;
+        }
 
         if(this.frida_disabled){
             Logger.info("[HOOK MANAGER] Frida is disabled ! Hook and session prepared but not start() ignored");
@@ -1365,11 +1394,9 @@ class HookManager
         // start Frida
         // do spawn + attach
         var hookRoutine = co.wrap(function *() {
-    
-            const device = yield FRIDA.getUsbDevice(10000);
-        // let session = null;
-
-            Logger.info('usb device:', device);
+            let session = null, pid=null, applications=null;
+            
+            const device = yield FRIDA.getDevice(target.getUID());
 
             switch(pType){
                 case HM_SPAWN:
@@ -1411,35 +1438,32 @@ class HookManager
                     break;
             }
 
+            console.log(session);
             const script = yield session.createScript(hook_script);
 
-            // For frida-node > 11.0.2
-            script.message.connect(message => {
+            console.log(script);
+             // For frida-node > 11.0.2
+             script.message.connect(message => {
                 PROBE_SESSION.push(message);//{ msg:message, d:data });
                 //console.log('[*] Message:', message);
             });
             
-            // For frida-node <= 11.0.2
-            /*
-            script.events.listen('message', (message, data) => {
-                //$.logs.push({ msg:message, d:data });
-                PROBE_SESSION.push(message);//{ msg:message, d:data });
-                
-                // console.log(message);//,data);
-            });
-            */
+            
         
             yield script.load();
 
-            console.log('script loaded');
+            console.log('script loaded', script);
             yield device.resume(pid);
         });
 
         hookRoutine()
             .catch(error => {
+            console.log(error);
             console.log('error:', error.message);
             });
     }
+
+
     addHookSet(set){
         if(this.hooksets[set.getID()]!=null){
             console.log("[Error] HookManager : An hook set already exists for this ID");
@@ -1457,6 +1481,7 @@ class HookManager
     hasListener(hookid){
         return (this.listeners[hookid] != null);
     }
+
     // add a listener to call when the HookSession receive a HookMessage with match=true
     addMatchListener(hookid,callback,weight=-1){
         if(this.listeners[hookid]==null)
