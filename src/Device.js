@@ -136,6 +136,13 @@ class Device
     }
 
     /**
+     * @method
+     */
+    getFridaServerPath(){
+        return this.frida.server;
+    }
+
+    /**
      * To setup internal device UID
      * 
      * Since several device can have the same DeviceID value,
@@ -147,9 +154,9 @@ class Device
      */
     setUID(deviceID, qualifier){
         this.uid = deviceID;
-        for(let k in qualifier){
+/*        for(let k in qualifier){
             this.uid += "/"+k+"/"+qualifier[k];
-        }
+        }*/
         //this.uid = _MD5_(this.uid);
     }
 
@@ -217,6 +224,14 @@ class Device
 
     execSync(pCommand){
         return this.bridge.shellWithEHsync(pCommand);
+    }
+
+
+    async privilegedExecSync(pCommand, pOtions=null){
+        if(pOtions == null)
+            return await this.bridge.privilegedShell(pCommand);
+        else 
+            return await this.bridge.privilegedShell(pCommand, pOtions);
     }
 
     getPlatform(){

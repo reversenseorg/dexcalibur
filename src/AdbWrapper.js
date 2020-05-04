@@ -1,4 +1,6 @@
 const Process = require("child_process");
+const _path_ = require('path');
+
 const UT = require("./Utils.js");
 const Device = require("./Device.js");
 const ApkPackage = require("./AppPackage");
@@ -89,16 +91,39 @@ class AdbWrapper
      * @param {String} deviceID The ID of the device to use 
      * @returns {String} The begin of the command
      */
-    setup(pDeviceID = null){
-        let cmd=this.path;
-        if(this.transport == AdbWrapper.USB_TRANSPORT){
-            if(pDeviceID != null)
-                cmd += " -s "+pDeviceID;
-            else if(this.deviceID != null)
-                cmd += " -s "+this.deviceID;
+    setup(pDeviceID = null, pReturnString =  true){
+        let cmd=null;
 
+        if(pReturnString)
+            cmd = this.path;
+        else
+            cmd = [];
+
+        if(this.transport == AdbWrapper.USB_TRANSPORT){
+            if(pDeviceID != null){
+
+                if(pReturnString) 
+                    cmd += " -s "+pDeviceID;
+                else{
+                    cmd.push("-s")
+                    cmd.push(pDeviceID)
+                }
+
+            }else if(this.deviceID != null){
+
+                if(pReturnString) 
+                    cmd += " -s "+this.deviceID;
+                else{
+                    cmd.push("-s")
+                    cmd.push(this.deviceID)
+                }
+            }
         }else if(this.transport == AdbWrapper.TCP_TRANSPORT){
-            cmd += " -e";
+            if(pReturnString) 
+                cmd += " -e ";
+            else
+                cmd.push("-e")
+
         }
 
         return cmd;
@@ -434,14 +459,31 @@ class AdbWrapper
     }
 
 
+    async detachedShell( pCommand, pArgs = "", ){
+        let args = this.setup(null,false);
+        let ws = require('./DexcaliburWorkspace').getInstance();
+        let out = _fs_.openSync( _path_.join( ws.getTempFolderLocation(), 'out.log'), 'w+', 0o666);
+        let err = _fs_.openSync( _path_.join( ws.getTempFolderLocation(), 'err.log'), 'w+', 0o666);
+
+        args = args.concat(pCommand);
+        console.log(args);
+        let child = Process.spawn(this.path, args, { detached: true, stdio: [ 'ignore', out, err ] });
+        child.unref();
+
+        return true;
+    }
+
+
     /**
      * Execute a command on the device via 'su -c'
      * Same as 'adb shell su -c' commande.
      * 
      * @param {*} command The command to execute remotely
      */
-    privilegedShell(command){
-        
+    async privilegedShell(command, pOptions = {detached: false}){
+        if(pOptions.detached)
+            return await this.detachedShell(["shell","su","-c",command]);
+        else
             return UT.execSync(this.setup()+' shell su -c "'+command+'"');
     }
 
