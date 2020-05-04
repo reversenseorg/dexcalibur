@@ -278,7 +278,6 @@ class DexcaliburProject
                 match: true
             }
         );
-
     }
 
     /**
@@ -579,8 +578,9 @@ class DexcaliburProject
      * @returns {Project} Returns the instance of this project
      * @method
      */
-    fullscan( pPath){
+    async fullscan( pPath){
         let elemnt=null;
+        let success  = false;
 
         // scan OS/Platform
         Logger.info("Scanning platform "+this.platform.getUID());
@@ -599,7 +599,8 @@ class DexcaliburProject
             this.dataAnalyser.scan( pPath, ["smali"]);
             
         // this.analyze.scanManifest(Path.join(path,"AndroidManifest.xml"));
-            this.appAnalyzer.importManifest(_path_.join(pPath,"AndroidManifest.xml"));
+            success = await this.appAnalyzer.importManifest(_path_.join(pPath,"AndroidManifest.xml"));
+
         }else{
             //        let dexPath = this.workspace.getWD()+"dex";
             let apkPath = this.workspace.getApkDir();
@@ -609,10 +610,12 @@ class DexcaliburProject
             this.analyze.path( apkPath);
             this.dataAnalyser.scan( apkPath, ["smali"]);
     //        this.analyze.scanManifest(Path.join(dexPath,"AndroidManifest.xml"));
-            this.appAnalyzer.importManifest(_path_.join(apkPath,"AndroidManifest.xml"));
+            success = await this.appAnalyzer.importManifest(_path_.join(apkPath,"AndroidManifest.xml"));
         }
 
-
+        if(success){
+            this.setPackageName( this.appAnalyzer.getPackageName());
+        }
 
 
         // index static array 
@@ -717,74 +720,6 @@ class DexcaliburProject
         return Backup.restore(savePath);
     }*/
 
-    /**
-     * To download the Application package from the default device, 
-     * uncompress the package, and disassemble the application bytecode 
-     * to smali code.  
-     * @param {Device} device NOT USED
-     * @return {*} TBD
-     * @function
-     */
-    pull(device){
-        let adb=this.config.adbPath, ret="", apkPath="", i=0;
-        
-        
-        if(device===null || this.devices.hasNotDefault()){
-            Logger.warn("[!] Warning ! : device not selected. Searching ...");
-            this.devices.scan();
-            if(this.devices.count==0){
-                Logger.error("[E] No device found");
-                throw new Error("No device connected");
-            }
-            else if(this.devices.count==1){
-                Logger.success("[*] Device selected : "+this.devices.getDefault().id);
-            }
-            else if(this.devices.count>1){
-                Logger.warn("[!] Please choose a device above with *.devices.setDefault(<id>)");
-                return "";            
-            }
-        }
-
-        let dev = this.devices.getDefault(), p = null;
-        let pathWD = this.workspace.getWD();
-        apkPath  = _path_.join(pathWD, this.getPackageName()+".apk");
-
-        if(dev == null){
-            Logger.error("No device connected. Package cannot be pull");
-            throw new Error("No device connected");
-        }
-
-        // TODO replace by AdbWrapper.get
-        // this.devices.getPackagePath(this.getPackageName());
-        // dev.pullPackage(this.getPackageName(), apkPath);
-
-        p = AndroidPM.getApkPathOf(dev, this.getPackageName());
-
-        if(p == null){
-            Logger.error("[!] Application package cannot be found.");
-            throw new Error("Application package cannot be found.");
-        }else{
-            Logger.success("[+] Package found");
-        }
-
-        if(dev.pull(p, apkPath)==false){
-            Logger.error("Application package cannot been download.");
-            throw new Error("Application package cannot been download.");
-        }
-
-        let dexPath = _path_.join(this.workspace.getWD(),"dex");
-
-        try {
-            ret = Process.execSync(this.config.apktPath+" d -f -m -o "+dexPath+" "+apkPath).toString("ascii");
-            Logger.success("[*] APK decompiled in "+dexPath);
-        }
-        catch(exception) {
-            Logger.error("[!] Failed to disassemble package:");
-            Logger.raw(exception);
-        }
-        
-        return ;
-    };
 
     /**
      * To use the emulator by default instead of an USB device
@@ -806,7 +741,7 @@ class DexcaliburProject
         let adb=this.config.adbPath, ret="", path="", i=0;
         
         if(this.config.useEmulator) sdb+=" -e";
-        if(this.config.deviceId!=null) adb+=" -s "+this.config.deviceId;
+        if(this.device instanceof Device) adb+=" -s "+this.device.getUID();
         
         // to do change
         ret = Process.execSync(adb+" shell am start "+this.pkg+"/"+activity).toString("ascii");
