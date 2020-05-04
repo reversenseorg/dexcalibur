@@ -1,19 +1,27 @@
 const fs = require('fs');
 var Path = require("path");
 
+/**
+ * This class represents an application package 
+ */
 class ApkPackage {
-    constructor(config=null){
-        this.config = config;
+
+    /**
+     * 
+     * @param {*} pConfig 
+     */
+    constructor(pConfig=null){
        
         this.packageIdentifier = null;
         this.packagePath =  null;
         this.patched = false;
         this.workspaceExists = false; //
         this.currentWd = false;
-        if(config !== null)
-            for(let i in config)
+
+        if(pConfig !== null)
+            for(let i in pConfig)
             {
-                this[i] = config[i];
+                this[i] = pConfig[i];
             }
     }
 

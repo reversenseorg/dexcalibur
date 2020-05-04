@@ -2,6 +2,9 @@ const _fs_  = require("fs");
 const _Chalk_ = require("chalk");
 const Logger = require("./Logger.js")();
 const _xml2js_ = require("xml2js");
+const _util_ = require('util');
+
+_xml2js_.Parser.prototype.parseStringPromise = _util_.promisify(_xml2js_.parseString);
 
 
 const Android = require("./AndroidAppComponents.js");
@@ -72,91 +75,87 @@ class AndroidAppAnalyzer
 		this.manifestCode = data;
 	}
 
+	getPackageName(){
+		return this.manifest.getAttrPackage();
+	}
+	getManifest(){
+		return this.manifest;
+	}
+
     /**
      * To import an Android manifest from he given path
      * @param {String} path Path to the manifest
      */
-    importManifest(path){
+    async importManifest(path){
         let codeAnal = this.context.getAnalyzer();
-        let self = this;
+		let self = this;
+		let data = null;
 
 
 		Logger.debug("[Manifest] Start parsing");
-        _fs_.exists(path,function(res){
-            if(!res) return;
+		if(!_fs_.existsSync(path)) return null;
 
-            _fs_.readFile(path, (err,data)=>{
-                if(err){
-                    Logger.error("Android Manifest cannot be read : ",err);
-                    return;
-                }
-                if(data == null || data.toString('ascii',0,5)!=="<?xml"){
-                    // it happens if resources have not been extracted
-                    Logger.error("Android Manifest cannot be analyzed because the workspace has been built by using a previous version of Dexcalibur.");
-					// throws excep here
-					return;
-                }
+		data = _fs_.readFileSync(path);
+	
+		if(data == null || data.toString('ascii',0,5)!=="<?xml"){
+			// it happens if resources have not been extracted
+			console.log(data);
+			Logger.error("Android Manifest cannot be analyzed because it seems not decompressed/decoded. It happens sometime when APKTool failed to extract APK content.");
+			// throws excep here
+			return false;
+		}
 
-                //let amp = new AndroidManifestXmlParser(self);
+		//let amp = new AndroidManifestXmlParser(self);
 
-                var parser = new _xml2js_.Parser();
+		var parser = new _xml2js_.Parser();
 
-                parser.parseString(data, function (err, result) {
-                    if(err){
-                        Logger.error("Android Manifest cannot be parsed : ",err);
-                        return;
-                    }
-        
-					let manifest = Android.Manifest.fromXml(result.manifest, self.context);
-					
+		let result = await parser.parseStringPromise(data);
 
-					self.manifest = manifest;
-					self.manifestPath = path;
+		let manifest = Android.Manifest.fromXml(result.manifest, self.context);
+		
 
-					// update internal DB
-					manifest.usesPermissions.map(x => {
-						self.context.trigger({
-							type: "app.permission.new",
-							data: x
-						});
-						codeAnal.db.permissions.insert(x);
-						Logger.debug("[Manifest] Permission found : ",x.name);
-					});
-					manifest.application.activities.map(x => {
-						self.context.trigger({
-							type: "app.activity.new",
-							data: x
-						});
-						codeAnal.db.activities.addEntry(x.name, x);
-					});
-					manifest.application.providers.map(x => {
-						self.context.trigger({
-							type: "app.provider.new",
-							data: x
-						});
-						codeAnal.db.providers.addEntry(x.name, x);
-					});
-					manifest.application.receivers.map(x => {
-						self.context.trigger({
-							type: "app.receiver.new",
-							data: x
-						});
-						codeAnal.db.receivers.addEntry(x.name, x);
-					});
-					manifest.application.services.map(x => {
-						self.context.trigger({
-							type: "app.service.new",
-							data: x
-						});
-						codeAnal.db.services.addEntry(x.name, x);
-					});
-					
+		this.manifest = manifest;
+		this.manifestPath = path;
 
-                });
+		// update internal DB
+		manifest.usesPermissions.map(x => {
+			self.context.trigger({
+				type: "app.permission.new",
+				data: x
+			});
+			codeAnal.db.permissions.insert(x);
+			Logger.debug("[Manifest] Permission found : ",x.name);
+		});
+		manifest.application.activities.map(x => {
+			self.context.trigger({
+				type: "app.activity.new",
+				data: x
+			});
+			codeAnal.db.activities.addEntry(x.name, x);
+		});
+		manifest.application.providers.map(x => {
+			self.context.trigger({
+				type: "app.provider.new",
+				data: x
+			});
+			codeAnal.db.providers.addEntry(x.name, x);
+		});
+		manifest.application.receivers.map(x => {
+			self.context.trigger({
+				type: "app.receiver.new",
+				data: x
+			});
+			codeAnal.db.receivers.addEntry(x.name, x);
+		});
+		manifest.application.services.map(x => {
+			self.context.trigger({
+				type: "app.service.new",
+				data: x
+			});
+			codeAnal.db.services.addEntry(x.name, x);
+		});
 
-            });
-        
-        });
+		return true;
     }
 }
 
