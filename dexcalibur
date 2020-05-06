@@ -7,5 +7,5 @@ then
     NODE_OPTIONS="--max-old-space-size="$2 
 fi
 
-node dexcalibur.js 
+node dexcalibur.js $@
 
