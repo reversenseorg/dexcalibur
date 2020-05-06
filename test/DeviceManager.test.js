@@ -17,7 +17,7 @@ const AdbWrapper = require('../src/AdbWrapper');
 describe('Device Manager', function() {
 
     beforeEach(function() {
-        CONFIG = TestHelper.newConfiguration();
+
     });
 
     afterEach(function() {
@@ -25,6 +25,25 @@ describe('Device Manager', function() {
     });
     
     describe('constructor', function() {
+
+        it('new device manager instance without config', function () {
+            
+            let dm = new DeviceManager();
+            expect(dm.config).to.equals(null);
+            expect(dm.bridges.ADB).to.be.undefined;
+        });
+
+        it('new device manager instance with config', function () {
+
+            let dm = new DeviceManager(CONFIG);
+
+            expect(dm.config).to.not.equals(null);
+            expect(dm.bridges.ADB).to.be.an.instanceOf(AdbWrapper);
+        });
+
+    });
+
+    describe('getInstance()', function() {
 
         it('new device manager instance without config', function () {
             

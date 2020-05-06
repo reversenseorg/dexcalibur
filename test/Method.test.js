@@ -11,12 +11,7 @@ chai.use(sinonChai);
 
 // -- App specific --
 
-const TEST_CONFIG = Path.join(process.cwd(),'./test/res/config_test.js');
-const TEST_CONFIG2 = Path.join(process.cwd(),'./test/res/config_test_2.js');
 
-var Logger = null;
-
-const Project = require('../src/Project.js');
 const CLASS = require("../src/CoreClass.js");
 
 describe('Method node', function() {

@@ -13,7 +13,6 @@ const EOL = require('os').EOL;
 var CONFIG = null;
 
 const TestHelper = require('../src/TestHelper.js');
-const Configuration = require('../src/Configuration.js');
 const AdbWrapper = require('../src/AdbWrapper.js');
 const AppPackage = require('../src/AppPackage');
 const {AdbWrapperError} = require('../src/Errors');
@@ -22,7 +21,6 @@ const Device = require('../src/Device.js')
 describe('ADB Wrapper', function() {
 
     beforeEach(function() {
-        CONFIG = TestHelper.newConfiguration();
         TestHelper.clearInterceptors();
     });
 
