@@ -1,5 +1,12 @@
 const UT = require("./Utils.js");
-const Path = require("path");
+const _path_ = require("path");
+const _fs_ = require('fs');
+const _xz_ = require('xz');
+
+var Logger = require("./Logger")();
+const Inspector = require('./Inspector');
+
+var gInstance = null;
 
 /**
  * @class
@@ -11,12 +18,182 @@ class InspectorManager
      * @param {DexcaliburProject} pProject Project instance
      * @constructor
      */
-    constructor( pProject){
-        this.ctx = pProject;
+    constructor( pEngine){
+        this.engine = pEngine;
+
         this.inspectors = [];
         this.errors = [];
+
+        this.projects = {};
+
+        this.enabled = {};
+
+        this.locals = {};
     }
 
+    static getInstance( pEngine){
+        if(gInstance == null){
+            gInstance = new InspectorManager(pEngine);
+        }
+
+        return gInstance;
+    }
+
+
+    /**
+     * 
+     * @param {*} pRegistry 
+     * @param {*} pName 
+     */
+    async install(pInspector){
+        
+        let reg = null, data = null;
+        let path = _path_.join( this.engine.workspace.getTempFolderLocation(), pInspector.getUID()+".xz");
+
+        await pipeline(
+            _got_.stream(pInspector.getRemotePath()),
+            _xz_.Decompressor(),
+            _fs_.createWriteStream(path)
+        );
+
+        if(_fs_.existsSync(path) == true){
+            pInspector.checkInstall();
+            return true;
+        }else{
+            return false;
+        }
+    }
+
+    isInstalled( pName){
+        return (this.locals[pName] instanceof Inspector)
+    }
+
+    getLocal(){
+        return this.locals;
+    }
+
+    getRemote(){
+        return this.remote;
+    }
+
+
+    enumerate(){
+
+        this.locals = this.enumerateLocal();
+        /*
+        (async ()=>{
+            this.remote = await this.enumerateRemote();
+
+            for(let i in this.local){
+                if(this.remote[i] instanceof Inspector){
+                    this.local[i] = this.remote[i];
+                }
+            }
+        })();*/
+    }
+
+    enumerateLocal(){
+        let res = [], p=null;
+        let ws = _path_.join(__dirname, '..', 'inspectors'); // this.engine.workspace.getPluginsFolderLocation();
+        let files = _fs_.readdirSync(ws);
+
+        for(let i=0; i<files.length; i++){
+            if(this.locals[ files[i] ] == null){
+
+                p = _path_.join( ws, files[i], "main.js");
+
+                if(_fs_.existsSync(p)){
+                    this.locals[ files[i] ] = require(p);
+                }
+            }
+        }
+
+        return this.locals;
+    }
+    
+
+   
+
+    getInspectorsOf(pProject){
+        return this.projects[pProject.getUID()];
+    }
+
+    /**
+     * To enumerate platforms of a remote registry
+     *  
+     * @param {require('./DexcaliburRegistry')} pRegistry The remote registry
+     * @returns {Platform[]} An array a platform 
+     * @method
+     */
+    async enumerateRemote( pRegistry){
+
+        // todo
+        /*
+        let platforms  = null, p=null, res={};
+
+        if(pRegistry == null){
+            pRegistry = this.engine.getRegistry();
+        }
+
+        // retrieve remote platform
+        inspectors = await pRegistry.enumerateInspectors();
+
+        for(let i=0; i<inspectors.length; i++){
+            p = Inspector.fromRemoteName(platforms[i].name);
+            if(p == null) continue;
+
+            p.setRemotePath(platforms[i].download_url);
+            p.setLocalPath( _path_.join(this.engine.workspace.getPlatformFolderLocation(), p.getUID()));
+            p.setSize(platforms[i].size);
+            p.setHash(platforms[i].sha);
+
+            res[p.getUID()] = p;
+        }*/
+        
+        return {};
+    }
+
+    /**
+     * 
+     * @param {*} pProject 
+     * @param {*} pName 
+     * @method
+     */
+    getEnabledInspector(pProject, pName){
+        let all = this.projects[pProject.getUID()];
+
+        if(all == null) 
+            return null;
+
+        return all[pName];
+    }
+
+    /**
+     * 
+     * @param {*} pName 
+     * @method
+     */
+    getRemoteInspector( pName){
+        return this.remote[pName];
+    }
+
+    /**
+     * 
+     * @param {*} pName 
+     * @method
+     */
+    getLocalInspector( pName){
+        if(this.locals[pName] instanceof Inspector){
+            return this.locals[pName];
+        }
+
+        // throw exception
+        return null;
+    }
+
+
+
+    // -----------
 
     /**
      * 
@@ -44,24 +221,48 @@ class InspectorManager
      * Import inspector contained into the folders inspectors/*
      * 
      * @method
+     * @deprecated
      */
-    autoRegister(){
-        let ctx = this.ctx, self=this;
+    autoRegister( pProject){
+        let self=this;
 
         UT.forEachFileOf(
-            Path.join(__dirname,"..","inspectors"), function(path,file){
+            _path_.join(__dirname,"..","inspectors"), function(path,file){
                 let insp = null;
                 
                 if(path.endsWith("/inspector.js")){
-                    insp = require(path).injectContext(ctx);
+                    insp = require(path);
+
+                    if(insp instanceof InspectorFactory){
+                        // todo
+                    }else{
+                        insp.injectContext(pProject);
+                    }
                     // subscribe to events bus
-                    ctx.bus.subscribe(insp);
+                    pProject.bus.subscribe(insp);
                     
                     self.add(insp);
                 }
         },true);
     }
 
+    createInspectorsFor( pProject){
+        let uid = pProject.getUID();
+        
+        if(this.projects[uid] == null){
+            this.projects[uid] = {};
+        }
+
+        for(let i in this.locals){
+            this.projects[uid][i] = this.locals[i].createInstance(pProject);
+
+            pProject.bus.subscribe(this.projects[uid][i]);
+                    
+            //self.add(insp);
+        }
+
+        return true;
+    }
     /**
      * To get an inspector by its UID
      * 
@@ -86,6 +287,33 @@ class InspectorManager
     list(){
         return this.inspectors;
     }
+
+
+     /**
+     * To create inspector for target project
+     * 
+     * @param {*} pProject 
+     * @param {*} pStep 
+     */
+    deployInspectors( pProject, pStep){
+        let uid = pProject.getUID();
+        let insp = "";
+
+        if(this.projects[uid] == null) 
+            return false;
+
+        for(let i in this.projects[uid]){
+            if(this.projects[uid][i].isStartAt(pStep)){
+                this.projects[uid][i].deploy();
+                insp += i+' ';
+            }
+        }
+
+        Logger.info("[INSPECTOR MANAGER] Project["+uid+"], Step["+pStep+"] deploying inspectors : "+(insp.length==0? '<none>':insp));
+
+        return true;
+    }
+
 
     /**
      * 

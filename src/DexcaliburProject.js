@@ -15,6 +15,7 @@ var Finder = require("./Finder.js");
 var PackagePatcher = require("./PackagePatcher.js");
 var HookHelper = require("./HookManager.js");
 var DexHelper = require("./DexHelper.js");
+var Inspector = require("./Inspector");
 var InspectorManager = require("./InspectorManager.js");
 var Workspace = require("./Workspace.js");
 var DataAnalyzer = require("./DataAnalyzer.js");
@@ -157,6 +158,10 @@ class DexcaliburProject
         this.application = null;
     }
 
+    getContext(){
+        return this.engine;
+    }
+
     /**
      * To suggest a new project name
      * 
@@ -190,6 +195,8 @@ class DexcaliburProject
     }
 
     init(){
+        let im = InspectorManager.getInstance();
+
         // todo : remove
         this.config = this.engine.getConfiguration();
 
@@ -231,16 +238,36 @@ class DexcaliburProject
         // file analyzer 
         this.dataAnalyser = new DataAnalyzer.Analyzer(this);
 
+        // create main event bus of this project 
         this.bus = new Bus(this); //.setContext(this);
 
         // manifest / app analyzer
         this.appAnalyzer = new AndroidAppAnalyzer(this);
 
         // plugins
-        this.inspectors = new InspectorManager(this);
-        this.inspectors.autoRegister();
+        im.createInspectorsFor(this);
+        im.deployInspectors(this, Inspector.STEP.BOOT);
+        this.inspectors = im.getInspectorsOf(this);
         
         this.graph = new GraphMaker(this);
+    }
+
+    deployInspectors(pStep){
+        let im = InspectorManager.getInstance();
+
+        im.deployInspectors(this, pStep);
+        this.inspectors = im.getInspectorsOf(this);
+    }
+
+    getUID(){
+        return this.uid;
+    }
+
+    /**
+     * @method
+     */
+    getInspector( pName){
+        return this.inspectors[pName];
     }
 
     /**
@@ -591,6 +618,9 @@ class DexcaliburProject
 
         this.analyze.tagAllAsInternal();
 
+        this.deployInspectors(Inspector.STEP.POST_PLATFORM_SCAN);
+
+
         //this.analyze.path(this.config.platform_available[this.config.platform_target].getBinPath());
 
         // scan files  
@@ -635,7 +665,7 @@ class DexcaliburProject
             let dir=Fs.readdirSync(this.workspace.getRuntimeBcDir());
             for(let i in dir){
                 elemnt = _path_.join(this.workspace.getRuntimeBcDir(),dir[i],"smali");
-                if(Fs.lstatSync(elemnt).isDirectory()){
+                if(Fs.existsSync(elemnt) && Fs.lstatSync(elemnt).isDirectory()){
                     Logger.info("Scanning previously discovered dex chunk : "+elemnt);
                     this.analyze.path(elemnt);
                 }
@@ -652,12 +682,15 @@ class DexcaliburProject
             this.dataAnalyser.scan(this.workspace.getRuntimeFilesDir());
         }
 
+
+
         this.bus.send(new Event.Event({
             type: "dxc.fullscan.post" 
         }));
 
         // deploy inspector's hooksets
-        this.inspectors.deployAll();
+        this.deployInspectors(Inspector.STEP.POST_APP_SCAN);
+        
         
         // trigger event
         this.bus.send(new Event.Event({

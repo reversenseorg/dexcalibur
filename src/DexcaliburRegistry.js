@@ -61,13 +61,27 @@ class DexcaliburRegistry
             response = JSON.parse(response.body);
 
         } catch (error) {
-            throw new Error("[REGISTRY] Unable to enumerate the remote registry");
+            throw new Error("[REGISTRY] enumeratePlatforms(): Unable to enumerate the remote registry");
         } finally {
 
            return response;
         }
     }
 
+    async enumerateInspectors(){
+       
+        var response = null;
+        try {
+            response = await _got_(this.api+"/inspectors");
+            response = JSON.parse(response.body);
+
+        } catch (error) {
+            throw new Error("[REGISTRY] enumerateInspectors(): Unable to enumerate the remote registry");
+        } finally {
+
+           return response;
+        }
+    }
     
 }
 

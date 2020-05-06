@@ -24,7 +24,7 @@ const WebTemplateEngine = require('./WebTemplateEngine');
 const Installer = require('./Installer').Installer;
 const PlatformManager = require('./PlatformManager');
 const DeviceManager = require('./DeviceManager');
-
+const InspectorManager = require('./InspectorManager');
 const FridaHelper = require('./FridaHelper');
 const ApkHelper = require('./ApkHelper');
 
@@ -261,19 +261,21 @@ class WebServer {
         // Inspector frontController
         this.app.route('/api/inspectors/:inspectorID')
             .get(function (req, res) {
-                let insp = $.project.inspectors.get(req.params.inspectorID);
+                let insp = InspectorManager.getInstance().getEnabledInspector( $.project, req.params.inspectorID);
+
 
                 if (insp == false) {
-                    res.status(404).send(JSON.stringify({ msg: $.project.inspectors.lastError() }));
+                    res.status(404).send(JSON.stringify({ msg: "Inspector cannot be retrieved" }));
                     return false;
                 }
-
+                
                 insp.performGet(req, res);
             })
             .post(function (req, res) {
-                let insp = $.project.inspectors.get(req.params.inspectorID);
+                let insp = InspectorManager.getInstance().getEnabledInspector( $.project, req.params.inspectorID);
+
                 if (insp === false) {
-                    res.status(404).send(JSON.stringify({ msg: $.project.inspectors.lastError() }));
+                    res.status(404).send(JSON.stringify({ msg: "Inspector cannot be retrieved" }));
                     return false;
                 }
 
@@ -410,7 +412,7 @@ class WebServer {
                     }
                     
                     if(success){
-                        await project.fullscan();
+                        project = await project.fullscan();
                         success = project.isReady();
                     }
                     
@@ -570,11 +572,13 @@ class WebServer {
                 // collect
                 let uid = req.body["uid"];
                 let dm = DeviceManager.getInstance();
-                
+                let dev = null;
+
                 res.set('Content-Type', 'text/json');
 
                 if(uid != null){
-                    if(dm.getDevice(uid)==null){
+                    dev = dm.getDevice(uid);
+                    if(dev==null){
                         res.status(404).send(JSON.stringify({
                             error: "Invalid device ID",
                             errcode: "DM2"
@@ -582,8 +586,13 @@ class WebServer {
                         return 1;
                     }
 
+                    if($.project != null){
+                        $.project.setDevice(dm.getDevice(uid));
+                        $.project.save();
+                    }
                     // TODO : change > defaultDevice => project
                     dm.setDefault(uid);
+
                     res.status(200).send(JSON.stringify({
                         msg: "Device <b>"+uid+"</b> is the new default device."
                     }));    
@@ -708,7 +717,8 @@ class WebServer {
 
         this.app.route('/api/inspector')
             .get(function (req, res) {
-                let insp = $.project.inspectors.list();
+                let insp = InspectorManager.getInstance().getInspectorsOf($.project);
+
                 let data = { data: [] };
                 for (let i in insp) {
                     data.data.push(insp[i].toJsonObject());

@@ -49,6 +49,7 @@ Bus.prototype.send = function(event){
         return false;
     }
 
+
     for(let i=0; i<this.listener.length; i++){
         // TODO : async / co
         this.listener[i].broadcastEvent(event);   

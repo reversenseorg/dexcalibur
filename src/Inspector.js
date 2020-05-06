@@ -11,6 +11,14 @@ const TASK_CODE = {
     DATA_UPDATE: 2
 };
 
+const TYPE = {
+    BOOT: 'BOOT',
+    POST_APP_SCAN: 'POST_APP_SCAN',
+    POST_PLATFORM_SCAN: 'POST_PLATFORM_SCAN',
+    POST_DEV_SCAN: 'POST_DEV_SCAN',
+    ON_DEMAND: 'ON_DEMAND',
+};
+
 class StaticTask{
 
     constructor(config){
@@ -71,6 +79,9 @@ class Inspector{
         this.preRegisteredTags = [];
         this.db = null;
 
+        this.installed = false;
+        this.step = TYPE.BOOT;
+
         for(let i in config){
             this[i] = config[i];
             if(i=="hookSet"){
@@ -81,6 +92,10 @@ class Inspector{
         }
 
         return this;
+    }
+
+    isInstalled(){
+        return this.installed;
     }
 
     useGUI(){
@@ -136,7 +151,7 @@ class Inspector{
             for(let i=0; i<this.listener[event_type].length; i++){
                 // TODO : async / co
                 // console.log(this.listener[event_type][i]);
-                this.listener[event_type][i].exec(this.context, event);
+                this.listener[event_type][i].exec(this.context, event, this);
             }
         }
         return true;
@@ -164,10 +179,11 @@ class Inspector{
 
 
     /**
-     * 
+     * @method
      */
     injectContext(ctx){
         this.context = ctx;
+        
         this.hookSet.injectContext(ctx);
         Logger.info("[Inspector::injectContext][HookSet] "+this.id+" registered !");
 
@@ -199,9 +215,22 @@ class Inspector{
 
         return this;
     }
+
+    setStartStep(pStep){
+        this.step = pStep;
+    }
+
+    getStartStep(){
+        return this.step;
+    }
+
     setHookSet(hs){
         this.hookSet = hs;
+        this.id = hs.id;
+        this.name = hs.name;
+        this.description = hs.description;
     }
+
     getHookSet(){
         return this.hookSet;
     }
@@ -249,6 +278,20 @@ class Inspector{
         });
     }
 
+    /**
+     * 
+     * @param {*} pStep
+     * @method 
+     */
+    isStartAt(pStep){
+        return (this.step == pStep) 
+    }
+
+    /**
+     * 
+     * @param {*} callback 
+     * @method
+     */
     restore(callback=null){
         let self = this;
         let savePath = Path.join(this.context.workspace.getSaveDir(), this.id+".json");
@@ -266,6 +309,9 @@ class Inspector{
         })
     }
 
+    /**
+     * @method
+     */
     save(){
         if(!this.db instanceof InMemoryDb) return null;
 
@@ -298,6 +344,7 @@ class Inspector{
     /**
      * To cast the current object to an object ready to be serialize (it avoids cyclic reference)
      * @returns {Object} 
+     * @method
      */
     toJsonObject(){
         let o = new Object(), t = null;
@@ -321,5 +368,6 @@ module.exports = {
  //   InspectorController: InspectorController,
     Inspector: Inspector,
     StaticTask: StaticTask,
-    RET: TASK_CODE
+    RET: TASK_CODE,
+    STEP: TYPE
 };

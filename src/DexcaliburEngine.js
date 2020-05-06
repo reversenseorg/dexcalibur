@@ -15,6 +15,7 @@ const DexcaliburWorkspace = require("./DexcaliburWorkspace");
 const DexcaliburProject = require("./DexcaliburProject");
 const DexcaliburRegistry = require("./DexcaliburRegistry");
 const PlatformManager = require("./PlatformManager");
+const InspectorManager = require("./InspectorManager");
 const DeviceManager = require("./DeviceManager");
 const WebServer = require("./WebServer")
 
@@ -113,7 +114,15 @@ class DexcaliburEngine
          * Plateform manager
          * @field
          */
-        this.platformMgr = null
+        this.platformMgr = null;
+
+        /**
+         * Inspector manager
+         * @type {InspectorManager}
+         * @field
+         */
+        this.inspectorMgr = null;
+
 
         /**
          * Registry 
@@ -272,6 +281,9 @@ class DexcaliburEngine
         //  enumerate local and remote platforms
         this.platformMgr.enumerate();
 
+        //  enumerate local and remote inspectors
+        this.inspectorMgr.enumerate();
+
         // load device manager db
         this.deviceMgr.load();
 
@@ -317,6 +329,9 @@ class DexcaliburEngine
 
         this.deviceMgr = DeviceManager.getInstance();
 
+        this.inspectorMgr = InspectorManager.getInstance(this);
+
+
 /*
 
         // hook
@@ -361,6 +376,15 @@ class DexcaliburEngine
      */
     getPlatformManager(){
         return this.platformMgr;
+    }
+
+    /**
+     * To get inspector manager instance
+     * 
+     * @method
+     */
+    getInspectorManager(){
+        return this.inspectorMgr;
     }
 
     /**

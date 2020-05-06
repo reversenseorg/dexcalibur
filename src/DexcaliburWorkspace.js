@@ -48,6 +48,7 @@ class DexcaliburWorkspace
         this.cfgFolder = null;
         this.devFolder = null;
         this.tmpFolder = null;
+        this.pluginsFolder = null;
 
         this.configPath = null;
         this.oldconfigPath = null;
@@ -57,8 +58,8 @@ class DexcaliburWorkspace
      * 
      * @param {String} pPath Workspace location
      */
-    static getInstance( pPath = null){
-        if(gWorkspaceInstance == null){
+    static getInstance( pPath = null, pOverride=false){
+        if(gWorkspaceInstance == null || pOverride==true){
             gWorkspaceInstance = new DexcaliburWorkspace(pPath);
         }
 
@@ -92,6 +93,7 @@ class DexcaliburWorkspace
         this.apiFolder = _path_.join( this.dxcFolder, 'api');
         this.cfgFolder = _path_.join( this.dxcFolder, 'cfg');
         this.devFolder = _path_.join( this.dxcFolder, 'dev');
+        this.pluginsFolder = _path_.join( this.dxcFolder, 'plugins');
         this.tmpFolder = _path_.join( this.dxcFolder, 'tmp');
 
         // config
@@ -104,6 +106,7 @@ class DexcaliburWorkspace
         DexcaliburWorkspace.mkdirIfNotExists(this.cfgFolder);
         DexcaliburWorkspace.mkdirIfNotExists(this.devFolder);
         DexcaliburWorkspace.mkdirIfNotExists(this.tmpFolder);
+        DexcaliburWorkspace.mkdirIfNotExists(this.pluginsFolder);
     }
 
     /**
@@ -157,6 +160,14 @@ class DexcaliburWorkspace
      */
     getConfigurationLocation(){
         return _path_.join( this.cfgFolder, FILENAME_CONFIG);
+    }
+
+
+    /**
+     * 
+     */
+    getPluginsFolderLocation(){
+        return this.pluginsFolder;
     }
 
     /**

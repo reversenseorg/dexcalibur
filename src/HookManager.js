@@ -1221,8 +1221,11 @@ class HookManager
      * @method 
      */
     addRequires(requires){
-        for(let i=0; i<requires.length; i++)
-            this.requires.push(requires[i]);
+        for(let i=0; i<requires.length; i++){
+            if(this.requires.indexOf(requires[i])==-1){
+                this.requires.push(requires[i]);
+            }
+        }
     };
 
     /**
@@ -1253,6 +1256,7 @@ class HookManager
                 loaded[this.requires[i]] = true;
             }
         }  
+
         return req;
     }
 
