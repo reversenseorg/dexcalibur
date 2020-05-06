@@ -18,7 +18,7 @@ function getInvokedMethod(context){
 }
 
 function getExternalDex(context){
-    let files = context.inspectors.get("DynamicLoader").getDB().getIndex("dex");
+    let files = context.getInspector("DynamicLoader").getDB().getIndex("dex");
 
     return files.toJsonObject();
 }
@@ -29,7 +29,7 @@ function getElementsDiscovered(context){
 }
 
 function cleanupSavedDex(context){
-    let files = context.inspectors.get("DynamicLoader").getDB().getIndex("dex");
+    let files = context.getInspector("DynamicLoader").getDB().getIndex("dex");
 
     files.map(function(k,v){
         try{

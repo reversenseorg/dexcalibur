@@ -232,6 +232,7 @@ class SaveManager
                     this.updateHook({ hook:hook });
                 }else{
                    // this.queue.hooks[k] = (pData.hooks.data[k]);
+                    //console.log("test : ",pData.hooks.data[k].method);
                     this.addToQueue("hooks",k,pData.hooks.data[k]);
                     qflag++;
                 }
@@ -264,7 +265,7 @@ class SaveManager
         if(qflag>0){
             Logger.error("[SAVE] "+qflag+" elements have not been imported. Queued ..");
         }else
-            Logger.info("[SAVE] All elements have imported ...");
+            Logger.info("[SAVE] All elements have been imported ...");
         //console.log(this.queue);
 
         this.context.bus.unprevent("probe.disable")

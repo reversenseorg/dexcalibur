@@ -1,23 +1,9 @@
-const HOOK = require("../../src/HookManager.js");
 const Inspector = require("../../src/Inspector.js");
-const Logger = require("../../src/Logger.js")();
+const InspectorFactory = require("../../src/InspectorFactory");
 const Android = require("../../src/AndroidAppComponents.js");
 
 // ===== INIT =====
 
-var PermissionAnalyzer = new Inspector.Inspector({
-    hookSet: new HOOK.HookSet({
-        id: "PermissionAnalyzer",
-        name: "Permission analyzer",
-        description: "[Internal] Built-in android permission analyzer"
-    })
-});
-
-
-PermissionAnalyzer.registerTagCategory(
-    "protectionLevel",
-    ["normal","signature","dangerous","special"]
-);
 
 
 // ===== CONFIG HOOKS =====
@@ -1045,26 +1031,42 @@ const PermissionGroups = {
 
 
 
+var PermissionAnalyzer = new InspectorFactory({
 
-PermissionAnalyzer.on("app.permission.new", {
-    task: function(ctx, event){
-        let i = event.data.name.lastIndexOf('.');
-        let p=false;
+    startStep: Inspector.STEP.POST_APP_SCAN,
 
-        // scan android built-in permissions
-		for(let i in Permissions){
+    tags: {
+        "protectionLevel": ["normal","signature","dangerous","special"]
+    },
+    
+    hookSet: {
+        id: "PermissionAnalyzer",
+        name: "Permission analyzer",
+        description: "[Internal] Built-in android permission analyzer"
+    },
 
-			if(Permissions[i].name===event.data.name){
-                event.data.update(Permissions[i]);
-                return;
-			}
-		}
-
-        if(p===false){
-            event.data.setCustom(true);
-        }
+    eventListeners: {
+        "app.permission.new": function(ctx, event){
+                let i = event.data.name.lastIndexOf('.');
+                let p=false;
+        
+                // scan android built-in permissions
+                for(let i in Permissions){
+        
+                    if(Permissions[i].name===event.data.name){
+                        event.data.update(Permissions[i]);
+                        return;
+                    }
+                }
+        
+                if(p===false){
+                    event.data.setCustom(true);
+                }
+            }
     }
 });
+
+
 
 
 module.exports = PermissionAnalyzer;
