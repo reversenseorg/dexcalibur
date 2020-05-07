@@ -8,6 +8,9 @@ const _http_ = require("http");
 
 
 const Configuration = require("./Configuration.js");
+const DexcaliburWorkspace = require('./DexcaliburWorkspace');
+const DexcaliburEngine = require('./DexcaliburEngine');
+
 
 /**
  * Unit test utility class
@@ -149,6 +152,19 @@ class TestHelper
      */
     sendRequest_GET( pURL){
         return this.sendHTTPRequest( 'GET', pURL); 
+    }
+
+    resetDexcaliburWorkspace( pPath=null){
+        let dxc = DexcaliburWorkspace.getInstance(
+            _path_.join(__dirname,'..','test','ws'), true
+        );
+        dxc.init();
+    }
+
+    getDexcaliburEngine(pForce = false){
+        if(this.engine == null || pForce){
+            this.engine = new DexcaliburEngine();
+        }
     }
 }
 

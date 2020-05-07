@@ -572,8 +572,22 @@ class DexcaliburEngine
         this.webserver.start(pWebPort);
     }
 
+    /**
+     * @method
+     */
     getProjects(){
         return this.workspace.listProjects();
+    }
+
+    /**
+     * @method
+     */
+    getProject(pProjectUID){
+        if(this.active[pProjectUID] instanceof DexcaliburProject){
+            return this.active[pProjectUID]; 
+        }
+
+        return null;
     }
 
     deleteProject( pUID){

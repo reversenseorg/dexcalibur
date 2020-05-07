@@ -40,8 +40,8 @@ class AdbWrapperFactory
      * @method
      * @static
      */
-    static getInstance( pAdbPath){
-        if(gInstance == null){
+    static getInstance( pAdbPath, pOverride = false){
+        if(gInstance == null || pOverride==true){
             if(_fs_.existsSync(pAdbPath)){
                 gInstance = new AdbWrapperFactory( pAdbPath);
             }else{
