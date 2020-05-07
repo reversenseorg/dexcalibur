@@ -1305,8 +1305,6 @@ class WebServer {
                             data.push(tmp);
                         }
 
-                        console.log(data);
-
                         res.status(200).send(JSON.stringify({ data: data }));
                         break;
                     default:
