@@ -884,12 +884,19 @@
                             <span class="badge badge-pill badge-primary" style="font-size:0.8em">new</span>
                         </span>
                     </li>
+                    <li class="nav-item">
+                        <span class="nav-link hookhistory dxc-inactive-item" hideeditor="${codeID};${codeID_Simple}" method="${encodeURIComponent(btoa(encodeURIComponent(row.__signature__)))}">
+                            Hook history
+                            <span class="badge badge-pill badge-primary" style="font-size:0.8em">new</span>
+                        </span>
+                    </li>
                 </ul>`;
         body += '<div id="'+codeID+'"></div>';
 
         body += `<div id="${codeID_Simple}-view" style="display:none">
                     <div class="row" style="margin:0px">
                         <div class="col-md-8" style="background-color:#272822;margin-right:0px;padding-right:0px;">
+                            <div style="width:100%;color:#bbb;background-color:#403127;margin:0px;text-align:right">Configure and click Run -&gt;&nbsp;&nbsp;</div> 
                             <div id="${codeID_Simple}"></div>
                         </div>
                         <div class="col-md-4" style="background-color:#fff;margin:0px;padding:0px;width:33%">
@@ -1710,7 +1717,7 @@
             $('span.nav-link[editor='+codeID+']').removeClass("dxc-inactive-item");
             $('span.nav-link[editor='+codeID+']').addClass("dxc-active-item");
 
-            $('button.simplifyRun[editor='+codeID+']').trigger('click');
+            //$('button.simplifyRun[editor='+codeID+']').trigger('click');
         });
 
         $('#dataTables-finder tbody').on('click', 'button.simplifyRun', function (e) {
@@ -1719,7 +1726,7 @@
             let l = (codeID+"-s-").length;
 
             let reqData = {
-                level:1,
+                level:0,
                 params: {},
                 depth: parseInt($("#"+codeID+"-depth").val(),10),
                 clinit: $("#"+codeID+"-clinit")[0].checked

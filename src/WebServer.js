@@ -1369,7 +1369,7 @@ class WebServer {
             .get(function (req, res) {
                 // collect
                 let dev = {
-                    data: $.project.find.package('tags:ds').toJsonObject(["name"])
+                    data: $.project.find.package().toJsonObject(["name"])
                 };
                 res.status(200).send(JSON.stringify(dev));
             });
