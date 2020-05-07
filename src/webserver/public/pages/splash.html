@@ -197,9 +197,9 @@
                                 <li class="list-group-item dxc-device-manager">
                                     <span class='fa fa-mobile'>&nbsp;</span>&nbsp;Device manager
                                 </li>
-                                <li class="list-group-item dxc-plugins">
+                                <!--<li class="list-group-item dxc-plugins">
                                     <span class='fa fa-archive'>&nbsp;</span>&nbsp;Plugins
-                                </li>
+                                </li>-->
                             </ul>
                     </div> 
                     </div>
@@ -682,11 +682,15 @@
 
                         for(let i in data.devices){
                             dev = data.devices[i];
-                            //if(dev.connected == true){
+                            if(dev.connected == true){
                                 $('#dxc-optDevices').append(`
                                     <option value="${dev.uid}">[${dev.model}] (${dev.id}) ${dev.enrolled==true?"   -   ENROLLED":""}</options>
                                 `);
-                           // }
+                            }else{
+                                $('#dxc-optDevices').append(`
+                                    <option disabled value="${dev.uid}">[${dev.model}] (${dev.id}) ${dev.enrolled==true?"   -   ENROLLED":""} (disconnected)</options>
+                                `);
+                            }
                         }
                     });
                 }
