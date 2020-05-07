@@ -7,10 +7,9 @@ const expect = chai.expect,
 
 chai.use(sinonChai);
 
+const _path_ = require('path');
 const EOL = require('os').EOL;
 
-// -- App specific --
-var CONFIG = null;
 
 const TestHelper = require('../src/TestHelper.js');
 const AdbWrapper = require('../src/AdbWrapper.js');
@@ -19,6 +18,9 @@ const {AdbWrapperError} = require('../src/Errors');
 const Device = require('../src/Device.js')
 
 describe('ADB Wrapper', function() {
+
+    let VALID_ADB_PATH = _path_.join(__dirname, 'ws', '.dxc', 'bin', 'platform-tools', 'adb');
+    let INVALID_ADB_PATH = _path_.join(__dirname, 'ws', '.dxc', 'bin', 'platform-tools', 'invalid_adb');
 
     beforeEach(function() {
         TestHelper.clearInterceptors();
@@ -32,17 +34,17 @@ describe('ADB Wrapper', function() {
 
         it('new without device id', function () {
             
-            let adbw = new AdbWrapper(CONFIG.getAdbPath());
+            let adbw = new AdbWrapper(VALID_ADB_PATH);
 
-            expect(adbw.path).to.equals(CONFIG.getAdbPath());
+            expect(adbw.path).to.equals(VALID_ADB_PATH);
 
         });
 
         it('new with device id', function () {
 
-            let adbw = new AdbWrapper(CONFIG.getAdbPath(), "1a2b3c4d5e6f");
+            let adbw = new AdbWrapper(VALID_ADB_PATH, "1a2b3c4d5e6f");
 
-            expect(adbw.path).to.equals(CONFIG.getAdbPath());
+            expect(adbw.path).to.equals(VALID_ADB_PATH);
             expect(adbw.deviceID).to.equals("1a2b3c4d5e6f");
         });
 
@@ -51,17 +53,15 @@ describe('ADB Wrapper', function() {
 
     describe('isReady( )', function() {
 
-        /*it('valid ADB binary path', function () {
+        it('valid ADB binary path', function () {
 
-            let adbw = new AdbWrapper(CONFIG.getAdbPath());
-            console.log(CONFIG.getAdbPath());
+            let adbw = new AdbWrapper(VALID_ADB_PATH);
             expect(adbw.isReady()).to.equals(true);
-        });*/
+        });
 
         it('invalid ADB binary path', function () {
 
-            let adbw = new AdbWrapper(process.cwd()+"/test/invalide_adb_path");
-
+            let adbw = new AdbWrapper(INVALID_ADB_PATH);
             expect(adbw.isReady()).to.equals(false);
         });
     });
@@ -70,7 +70,7 @@ describe('ADB Wrapper', function() {
 
         it('USB transport', function () {
 
-            let adbw = new AdbWrapper(CONFIG.getAdbPath());
+            let adbw = new AdbWrapper(VALID_ADB_PATH);
             adbw.setTransport(AdbWrapper.USB_TRANSPORT);
 
             expect(adbw.transport).to.equals(AdbWrapper.USB_TRANSPORT);
@@ -78,7 +78,7 @@ describe('ADB Wrapper', function() {
 
         it('TCP transport', function () {
 
-            let adbw = new AdbWrapper(CONFIG.getAdbPath());
+            let adbw = new AdbWrapper(VALID_ADB_PATH);
             adbw.setTransport(AdbWrapper.TCP_TRANSPORT);
 
             expect(adbw.transport).to.equals(AdbWrapper.TCP_TRANSPORT);
@@ -90,34 +90,34 @@ describe('ADB Wrapper', function() {
         
         it('with no device ID', function () {
 
-            let adbw = new AdbWrapper(CONFIG.getAdbPath());
+            let adbw = new AdbWrapper(VALID_ADB_PATH);
             let cmd = adbw.setup();
 
-            expect(cmd).to.equals(CONFIG.getAdbPath());
+            expect(cmd).to.equals(VALID_ADB_PATH);
         });
 
         it('the wrapper initialized with default device ID ', function () {
 
-            let adbw = new AdbWrapper(CONFIG.getAdbPath(), "1a2b3c4d5e6f");
+            let adbw = new AdbWrapper(VALID_ADB_PATH, "1a2b3c4d5e6f");
             let cmd = adbw.setup();
 
-            expect(cmd).to.equals(CONFIG.getAdbPath()+" -s 1a2b3c4d5e6f");
+            expect(cmd).to.equals(VALID_ADB_PATH+" -s 1a2b3c4d5e6f");
         });
 
         it('device ID specified, but the wrapper initialized without default device ID', function () {
 
-            let adbw = new AdbWrapper(CONFIG.getAdbPath());
+            let adbw = new AdbWrapper(VALID_ADB_PATH);
             let cmd = adbw.setup("aabbcceeff");
 
-            expect(cmd).to.equals(CONFIG.getAdbPath()+" -s aabbcceeff");
+            expect(cmd).to.equals(VALID_ADB_PATH+" -s aabbcceeff");
         });
 
         it('device ID specified, but the wrapper initialized with default device ID', function () {
 
-            let adbw = new AdbWrapper(CONFIG.getAdbPath(), "1a2b3c4d5e6f");
+            let adbw = new AdbWrapper(VALID_ADB_PATH, "1a2b3c4d5e6f");
             let cmd = adbw.setup("aabbcceeff");
 
-            expect(cmd).to.equals(CONFIG.getAdbPath()+" -s aabbcceeff");
+            expect(cmd).to.equals(VALID_ADB_PATH+" -s aabbcceeff");
         });
     });
 
@@ -126,7 +126,7 @@ describe('ADB Wrapper', function() {
 
         it('single device (#1)', function () {
 
-            let adbw = new AdbWrapper(CONFIG.getAdbPath());
+            let adbw = new AdbWrapper(VALID_ADB_PATH);
 
             let output = `${EOL}List of devices attached${EOL}02581073e1c3398f       device usb:338755584X product:bullhead model:Nexus_5X device:bullhead transport_id:69`;
 
@@ -141,7 +141,7 @@ describe('ADB Wrapper', function() {
 
        it('single device (#2)', function () {
 
-            let adbw = new AdbWrapper(CONFIG.getAdbPath());
+            let adbw = new AdbWrapper(VALID_ADB_PATH);
 
             let output = `${EOL}List of devices attached${EOL}0a1b2c3d4e5f6e7d device product:bullhead model:Nexus_5X device:bullhead transport_id:22`;
 
@@ -158,7 +158,7 @@ describe('ADB Wrapper', function() {
 
         it('multiple device', function () {
             
-            let adbw = new AdbWrapper(CONFIG.getAdbPath());
+            let adbw = new AdbWrapper(VALID_ADB_PATH);
 
             let output = `${EOL}List of devices attached${EOL}0a1b2c3d4e5f6e7d device product:bullhead model:Nexus_5X device:bullhead transport_id:22${EOL}aabbccddeeff unauthorized product:bullhead model:Nexus_10X device:bullhead transport_id:18`;
 
@@ -178,7 +178,7 @@ describe('ADB Wrapper', function() {
 
         it('on ADB error', function () {
             
-            let adbw = new AdbWrapper(CONFIG.getAdbPath());
+            let adbw = new AdbWrapper(VALID_ADB_PATH);
 
             let output = `${EOL}List of devices attached${EOL}`;
 
@@ -195,7 +195,7 @@ describe('ADB Wrapper', function() {
 
         it('pull existing file', function(){
             let flag = 0, ret=null;
-            let adbw = new AdbWrapper(CONFIG.getAdbPath());
+            let adbw = new AdbWrapper(VALID_ADB_PATH);
 
             TestHelper.interceptExec( function(x){
                 return (x.indexOf("pull /data/app/com.test/base.apk ")>-1);
@@ -217,7 +217,7 @@ describe('ADB Wrapper', function() {
 
             it('single file', function(){
                 let flag = 0, ret=null;
-                let adbw = new AdbWrapper(CONFIG.getAdbPath());
+                let adbw = new AdbWrapper(VALID_ADB_PATH);
 
                 TestHelper.interceptExec( function(x){
                     return (x.indexOf("shell pm path com.whatsapp")>-1);
@@ -234,37 +234,11 @@ describe('ADB Wrapper', function() {
                 expect(ret).to.equals("/data/app/com.whatsapp-2/base.apk");
             });
 
-            it('single file, custom deviceID', function(){
-                let flag = 0, ret=null;
-                let adbw = new AdbWrapper(CONFIG.getAdbPath());
-                let expectedDeviceId = "aabbccddeeff";
-                let dev = false;
-
-                TestHelper.interceptExec( function(x){
-                    if(x.indexOf("shell pm path com.whatsapp")>-1){
-                        dev = (x.indexOf(expectedDeviceId)> -1);
-                        return true;
-                    }else{
-                        dev = false;
-                        return false;
-                    }
-                }, `package:/data/app/com.whatsapp-2/base.apk`);
-
-                
-                try{
-                    ret = adbw.getPackagePath(`com.whatsapp`, expectedDeviceId);
-                }catch(err){
-                    flag++;
-                }
-        
-                expect(flag).to.equals(0);
-                expect(dev).to.equals(true);
-                expect(ret).to.equals("/data/app/com.whatsapp-2/base.apk");
-            });
+            
 
             it('single file, custom deviceID (false)', function(){
                 let flag = 0, ret=null;
-                let adbw = new AdbWrapper(CONFIG.getAdbPath());
+                let adbw = new AdbWrapper(VALID_ADB_PATH);
                 let expectedDeviceId = "aabbccddeeff";
                 let dev = false;
 
@@ -292,7 +266,7 @@ describe('ADB Wrapper', function() {
 
             it('single file, default deviceID', function(){
                 let flag = 0, ret=null;
-                let adbw = new AdbWrapper(CONFIG.getAdbPath(), "a1a2a3a4a5a6a7");
+                let adbw = new AdbWrapper(VALID_ADB_PATH, "a1a2a3a4a5a6a7");
                 let dev = false;
 
                 TestHelper.interceptExec( function(x){
@@ -317,36 +291,9 @@ describe('ADB Wrapper', function() {
                 expect(ret).to.equals("/data/app/com.whatsapp-2/base.apk");
             });
 
-            it('single file, custom deviceID, override default deviceID', function(){
-                let flag = 0, ret=null;
-                let adbw = new AdbWrapper(CONFIG.getAdbPath(), "a1a2a3a4a5a6a7");
-                let dev = false;
-
-                TestHelper.interceptExec( function(x){
-                    if(x.indexOf("shell pm path com.whatsapp")>-1){
-                        dev = (x.indexOf("aabbccddeeff")> -1);
-                        return true;
-                    }else{
-                        dev = false;
-                        return false;
-                    }
-                }, `package:/data/app/com.whatsapp-2/base.apk`);
-
-                
-                try{
-                    ret = adbw.getPackagePath(`com.whatsapp`, "aabbccddeeff");
-                }catch(err){
-                    flag++;
-                }
-        
-                expect(flag).to.equals(0);
-                expect(dev).to.equals(true);
-                expect(ret).to.equals("/data/app/com.whatsapp-2/base.apk");
-            });
-
             it('multiple files', function(){
                 let flag = 0, ret=null;
-                let adbw = new AdbWrapper(CONFIG.getAdbPath());
+                let adbw = new AdbWrapper(VALID_ADB_PATH);
 
                 // mock child_process.execSync()
                 TestHelper.interceptExec( function(x){
@@ -373,13 +320,14 @@ describe('ADB Wrapper', function() {
 
         it('valid ADB output', function () {
 
-            let adbw = new AdbWrapper(CONFIG.getAdbPath());
+            let adbw = new AdbWrapper(VALID_ADB_PATH);
             let ret = null;
             let flag = 0;
 
             try{
                 ret = adbw.parsePackageList(`package:com.android.cts.priv.ctsshim${EOL}package:com.google.android.youtube${EOL}package:com.google.android.ext.services${EOL}package:com.android.providers.telephony`);
             }catch(err){
+                console.log("exception:",err);
                 flag++;
             }
 
@@ -418,7 +366,7 @@ describe('ADB Wrapper', function() {
 
         it('list packages', function () {
 
-            let adbw = new AdbWrapper(CONFIG.getAdbPath());
+            let adbw = new AdbWrapper(VALID_ADB_PATH);
             let f = 0, ret=null;
 
             // mock "shell pm list packages" output
@@ -452,7 +400,7 @@ describe('ADB Wrapper', function() {
 
         it('push file, no default device, no specific device', function(){
             let flag = 0, ret=null, f=false;
-            let adbw = new AdbWrapper(CONFIG.getAdbPath());
+            let adbw = new AdbWrapper(VALID_ADB_PATH);
 
             // assert is done by intercepting command 
             TestHelper.interceptExec( function(x){
