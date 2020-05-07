@@ -704,6 +704,13 @@ div.dxc-inline-ctn {
     color: yellow;
 }
 
+.badge-yellow {
+    background-color: yellow;
+    color:black;
+}
+
+
+
 /* dark theme */
 /*
 #xrefModal .modal-body {

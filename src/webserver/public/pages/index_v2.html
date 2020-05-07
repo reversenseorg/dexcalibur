@@ -141,7 +141,7 @@
    
     var clsTable = null
     $(document).ready(function() {
-
+/*
         clsTable = $('#dataTables-classes').DataTable({
             ajax: "../api/class",
             columns: [
@@ -175,14 +175,10 @@
                 { 
                     data: 'methods',
                     defaultContent: '-'
-                }/*
-                { 
-                    data: 'implements',
-                    defaultContent: '-'
-                }*/
+                }
             ],
             responsive: true
-        });
+        });*/
 
         $('#dataTables-classes tbody').on('click', 'td.details-control', function () {
             var tr = $(this).closest('tr');

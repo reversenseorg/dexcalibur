@@ -1037,6 +1037,12 @@ var DexcaliburAPI = {
         clearFutureHook: function(){
             DexcaliburAPI.hook.manager.current = null;
         },
+        startServer: function(pOtions, pCallback){
+            DexcaliburAPI.exec("/api/probe/server/start","post",pOtions, pCallback.onSuccess, pCallback.onError);
+        },
+        statusServer: function(pCallback){
+            DexcaliburAPI.exec("/api/probe/server/status","get",null, pCallback.onSuccess, pCallback.onError);
+        },
         start: function(pType, callbackSuccess, callbackErr){
             let o = {_t: (new Date()).getTime()};
             for(let i in pType) o[i]=pType[i];

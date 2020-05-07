@@ -395,14 +395,15 @@
 
 
             <div class="modal fade" id="dxcLoadingModal" tabindex="-1" role="dialog" aria-labelledby="mySmallModalLabel" aria-hidden="true">
-                <div class="modal-dialog modal-sm">
+                <div class="modal-dialog">
                   <div class="modal-content">                   
                     <div class="modal-body">
                         <div class="progress">
                             <div class="progress-bar progress-bar-striped progress-bar-animated" id="dxcLoadingModalProgress" role="progressbar" aria-valuenow="75" aria-valuemin="0" aria-valuemax="100" style="width: 100%"></div>
                         </div>
+                        <div style="width:100%;background-color:#eee;margin-top:1em;font-size:0.8em" id="dxcLoadingModalMessage"></div>
+                        <pre style="width:100%;background-color:#eee;margin-top:1em;font-size:0.8em" id="dxcLoadingModalConsole"></pre>
                     </div>
-                    <pre style="width:100%;background-color:#eee;margin-top:1em;" id="dxcLoadingModalConsole"></pre>
                   </div>
                 </div>
               </div>
@@ -561,6 +562,7 @@
 
 
         $('#dxcLoadingModalProgress').removeClass('bg-danger');
+        $('#dxcLoadingModalConsole').html("Performing analysis ... (it can take 30s to 5min depending of application size)<br>If Dexcalibur crashes, increase heap size with '--max-heap 8192' options.");
         $("#dxcLoadingModal").modal();
         
         DexcaliburAPI.workspace.open( pUID, (vData)=>{
@@ -933,9 +935,7 @@
 
             
             if(data.success == true){
-//                location.href = "/pages/index_v2.html";
-                alert('ok');
-
+                location.href = "/pages/index_v2.html";
             }else{
                 $('#dxcLoadingModalProgress').css('width','100%');
                 $('#dxcLoadingModalProgress').removeClass('bg-primary');
@@ -952,6 +952,10 @@
                 path: pEvent.currentTarget.getAttribute('dxc-app-file'),
                 type: 'select'
             };
+
+            $('#dxcLoadingModalProgress').removeClass('bg-danger');
+            $('#dxcLoadingModalConsole').html("Performing analysis ... (it can take 30s to 5min depending of application size)<br>If Dexcalibur crashes, increase heap size with '--max-heap 8192' options.");
+            $("#dxcLoadingModal").modal();
 
             DexcaliburAPI.workspace.newProject(params, { onSuccess:newProjectCallback });
         });

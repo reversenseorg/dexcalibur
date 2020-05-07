@@ -39,8 +39,8 @@
                     <h1 class="page-header">Hook logs</h1>
                 </div>
                 <div class="col-lg-2">
-                    <span class="badge badge-pill badge-danger badge-action probe-restart" style="margin-top:1em;">
-                        <i class="fa fa-refresh"></i>&nbsp;Relaunch
+                    <span class="badge badge-pill badge-yellow badge-action probe-restart" style="margin-top:1em;">
+                        <i class="fa fa-refresh"></i>&nbsp;Re-spawn
                     </span>
                 </div>
             </div>
@@ -364,13 +364,14 @@
             msgStatus = 9999999;
             $("#tabProbeLogs tbody tr").remove();
             DexcaliburAPI.hook.start(
+                "spawn-self",
                 function(){
                     msgStatus = 0;
                 },
                 function(err){
                     alert(err);
                 }
-            )
+            );
             /*
             $.ajax('../api/probe/start',{
                 method: 'post',
