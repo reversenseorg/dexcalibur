@@ -255,6 +255,31 @@ class Simplifier {
             }
         );
 
+        /*this.vm.defineHook(
+            "java.lang.String.<init>(<char>[])<void>",
+            function( pVM, pThis, pArgs){
+                let m = null;
+
+                if(pThis.getValue() == null){
+                    Logger.error('[VM] [HOOK] Fail to execute String.charAt() hook : "this" is null.');
+                    return null;
+                }
+
+//                m = pThis.getValue();
+                //console.log(pThis);
+
+                    pVM.stack.pushReturn( new SmaliVM.Symbol(
+                        SmaliVM.VTYPE.METH,
+                        SmaliVM.DTYPE.OBJECT_REF,
+                        pThis.getValue().getConcrete()[pArgs[0].hasValue()?pArgs[0].getValue():pArgs[0].getCode()],
+                        null
+                    ));
+               
+
+                console.log(pVM.stack.print());
+            }
+        );*/
+
         this.vm.defineHook(
             "java.lang.StringBuilder.append(<java.lang.String>)<java.lang.StringBuilder>",
             function( pVM, pThis, pArgs){
@@ -399,7 +424,7 @@ class Simplifier {
 
             cs.instr = this.vm.pcmaker.getCode();
 
-            Logger.debug(cs.instr.join("\n"));
+            Logger.debug(cs.instr.join( require('os').EOL ));
         }catch(e){
             //console.log("VM Error caught");
             console.log(e);

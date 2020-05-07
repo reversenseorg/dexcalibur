@@ -23,7 +23,7 @@ class Configuration {
         this.encoding = null; //"utf8"
 
         // Dexcalibur src location
-        this.dexcaliburPath = _path_.join( __dirname, '..');
+        // this.dexcaliburPath = _path_.join( __dirname, '..');
 
         // workspace location 
         // the workspace contains a directory per project folder where analyzed APK and data are stored
@@ -34,10 +34,10 @@ class Configuration {
         this.androidSdkPath = null,
 
         // APKTool location
-        this.apktPath = null,
+        // this.apktPath = null,
 
         // Optional : SDB location
-        this.sdbPath = null,
+        // this.sdbPath = null,
 
         // Java bin path
         this.javaBinPath = "java"; //"java";
@@ -266,11 +266,7 @@ class Configuration {
             if (this[i] !== undefined || force) {
                 if ((this[i] != null && overwrite) || this[i] == null) {
                     this[i] = data[i];
-                } else {
-                    Logger.error("[Configuration::import] The property '", i, '" cannot be overwrote.');
-                }
-            } else if (!force) {
-                Logger.error("[Configuration::import] The property '", i, '" not exists.');
+                } 
             }
         }
 
