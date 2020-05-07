@@ -38,7 +38,7 @@
     "sinon-chai": "^3.3.0"
   },
   "bin": {
-    "dexcalibur": "./dexcalibur"
+    "dexcalibur": "--max-old-space-size=8192 ./dexcalibur.js"
   },
   "scripts": {
     "start": "node --max-old-space-size=4096 ./dexcalibur.js",
