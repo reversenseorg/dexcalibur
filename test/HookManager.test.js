@@ -5,7 +5,12 @@ const expect = chai.expect;
 
 // -- App specific --
 var TestHelper = require('../src/TestHelper.js');
-const Project = require('../src/Project.js');
+const DexcaliburProject = require('../src/DexcaliburProject.js');
+const DexcaliburWorkspace = require('../src/DexcaliburWorkspace.js');
+
+const DexcaliburEngine = require('../src/DexcaliburEngine.js');
+
+
 const Utils = require("../src/Utils.js");
 const Hook = require("../src/HookManager.js");
 var Logger = require('../src/Logger.js')();
@@ -13,6 +18,10 @@ var Logger = require('../src/Logger.js')();
 
 describe('HookManager', function() {
 
+    before(function(){
+        TestHelper.resetDexcaliburWorkspace();
+    })
+    
 
     describe('HookManager :: Unit tests', function() {
 
@@ -75,18 +84,25 @@ describe('HookManager', function() {
 */
     });
 
-    describe('HookManager :: Integration tests', function() {
+   /* describe('HookManager :: Integration tests', function() {
 
         // augment time limit
         this.timeout(10000);
 
+
         var PROJECT = null;
+        let engine = DexcaliburEngine.getInstance();
+
+        TestHelper.resetDexcaliburWorkspace();
+
+        engine.workspace = DexcaliburWorkspace.getInstance();
         
-        // Create a valid context
-        //before(function() {
-            PROJECT = new Project("owasp.mstg.uncrackable1", TestHelper.newConfiguration(), 0);
-            PROJECT.fullscan();
-        //});
+        PROJECT = engine.getProject("owasp.mstg.uncrackable1");
+
+        if(PROJECT===null){
+            PROJECT = engine.openProject("owasp.mstg.uncrackable1");
+        }
+        
         
         it('[Integration] List all hooks', function() {
            
@@ -114,5 +130,5 @@ describe('HookManager', function() {
 
             expect(inspector.id).to.equals("DynamicLoader");
         });
-    });
+    });*/
 });

@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <public type="dimen" name="activity_horizontal_margin" id="0x7f010000" />
+    <public type="dimen" name="activity_vertical_margin" id="0x7f010001" />
+    <public type="id" name="action_settings" id="0x7f020000" />
+    <public type="id" name="edit_text" id="0x7f020001" />
+    <public type="layout" name="activity_main" id="0x7f030000" />
+    <public type="menu" name="menu_main" id="0x7f040000" />
+    <public type="mipmap" name="ic_launcher" id="0x7f050000" />
+    <public type="string" name="action_settings" id="0x7f060000" />
+    <public type="string" name="app_name" id="0x7f060001" />
+    <public type="string" name="button_verify" id="0x7f060002" />
+    <public type="string" name="edit_text" id="0x7f060003" />
+    <public type="string" name="thanks" id="0x7f060004" />
+    <public type="style" name="AppTheme" id="0x7f070000" />
+</resources>

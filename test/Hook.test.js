@@ -9,35 +9,37 @@ const expect = chai.expect;
 const TEST_CONFIG = process.cwd()+'/test/res/config_test.js';
 
 var TestHelper = require('../src/TestHelper.js');
-const Project = require('../src/Project.js');
-const Configuration = require('../src/Configuration.js');
-const Inspector = require('../src/Inspector.js');
-const Utils = require("../src/Utils.js");
+const DexcaliburProject = require('../src/DexcaliburProject.js');
+const DexcaliburEngine = require('../src/DexcaliburEngine.js');
+
 const Hook = require("../src/HookManager.js");
 
 
 describe('Hook', function() {
 
-    describe('Hook :: Unit tests', function() {
+    let gEngine = null;
+    let gProject = null;
 
-        var context = null;
+    before(function(){
+        gEngine = DexcaliburEngine.getInstance();
 
-        before(function(){
-            context = new Project("owasp.mstg.uncrackable1", TestHelper.newConfiguration(), 0);
-        });
+        gProject = gEngine.getProject("owasp.mstg.uncrackable1");
 
-        describe('constructor', function() {
+        if(gProject===null){
+            gProject = gEngine.openProject("owasp.mstg.uncrackable1");
+        }
+    })
 
-            it('valid context, frida enabled', function() {
-           
-                // get hook instance by hook ID
-                var manager = new Hook.Manager( context, 1);
+
+    describe('constructor', function() {
+
+        it('valid context', function() {
         
-                expect(manager).to.be.an.instanceOf(Hook.Manager);
-            });
-        });
-
+            // get hook instance by hook ID
+            var hook = new Hook.Hook( gProject);
     
+            expect(manager).to.be.an.instanceOf(Hook.Manager);
+        });
     });
       
 });
