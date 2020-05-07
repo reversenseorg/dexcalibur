@@ -4,10 +4,11 @@ const Path = require("path");
 const Process = require("child_process");
 const Fs = require("fs");
 
+
 const _util_ = require('util');
 const _execFile_ = _util_.promisify(Process.execFile);
 
-
+const Logger = require('./Logger')();
 const DexcaliburWorkspace = require('./DexcaliburWorkspace');
 
 /**
@@ -33,9 +34,9 @@ class DexHelper
         let cmd = Path.join(__dirname, '..', 'bin', "baksmali.jar");
 
         if(process.env.DEXCALIBUR_JAVA != null){
-            return {file:process.env.DEXCALIBUR_JAVA, args:[' -jar ',cmd]};
+            return {file:process.env.DEXCALIBUR_JAVA, args:['-jar',cmd]};
         }else{
-            return {file:'java', args:[' -jar ',cmd]};
+            return {file:'java', args:['-jar',cmd]};
         }
     }
 
@@ -50,11 +51,10 @@ class DexHelper
     static async disassemble( pDexfilePath, pDestPath=null, override=false){
         let baksmali = DexHelper.getBaksmaliCommand();
     
-        if(Fs.existsSync(destPath)){
+        if(Fs.existsSync(pDestPath)){
             if(!override) return;
         }
 
-//        console.log("Exec : ",cmd);
         let { stdout, stderr } =  await _execFile_(
             baksmali.file,
             baksmali.args.concat(["disassemble",pDexfilePath,"-o",pDestPath]));
