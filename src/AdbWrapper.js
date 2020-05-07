@@ -141,7 +141,7 @@ class AdbWrapper
      * 
      * @param {*} pPackageListStr 
      */
-    parsePackageList( pPackageListStr, pOptions){
+    parsePackageList( pPackageListStr, pOptions=''){
         var reg = new RegExp("^package:(?<apk_name>.*)");
         var packages = [];
 
