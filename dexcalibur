@@ -7,5 +7,6 @@ then
     NODE_OPTIONS="--max-old-space-size="$2 
 fi
 
-node dexcalibur.js $@
+
+node $(npm root -g dexcalibur)/dexcalibur/dexcalibur.js $@
 
