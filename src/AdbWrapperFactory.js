@@ -77,7 +77,7 @@ class AdbWrapperFactory
      * @method
      */
     newSpecificWrapper( pDevice){
-        return new AdbWrapper( gInstance.path, pDevice.getDeviceUID() );
+        return new AdbWrapper( gInstance.path, pDevice.getUID() );
     }
 
 }
