@@ -920,6 +920,39 @@ class WebServer {
                 res.status(200).send(JSON.stringify(dev));
             });
 
+        this.app.route('/api/hook/app/detach')
+            .post(async function (req, res) {
+
+                Logger.info("[REST] /api/hook/app/detach POST");
+
+                // get hook instance by ID
+                let session = $.project.hook.lastSession();
+                
+                if (session.fridaScript == null) {
+                    res.status(200).send({ success: false, error: "Invalid frida script" });
+                }else{
+                    let a = await session.fridaScript.unload();
+                    res.status(200).send(JSON.stringify({ success: await session.fridaScript.unload(a) }));
+                }         
+            })
+
+        this.app.route('/api/hook/app/kill')
+            .post(async function (req, res) {
+
+                Logger.info("[REST] /api/hook/frida/kill POST");
+
+                // get hook instance by ID
+                let session = $.project.hook.lastSession();
+
+                
+                if (session.pid == null) {
+                    res.status(200).send({ success: false, error: "Invalid PID" });
+                }else{
+                    let o = await $.project.getDevice().privilegedExecSync('kill '+session.pid, {detached:false});
+                    res.status(200).send(JSON.stringify({ success: true }));
+                }         
+            })
+            
         this.app.route('/api/hook/:hookid')
             .get(function (req, res) {
 
@@ -1268,8 +1301,12 @@ class WebServer {
                             tmp.p = [];
                             if (r2.hasArgs())
                                 r2.getArgsType().map(x => tmp.p.push(x.signature()));
+                                
                             data.push(tmp);
                         }
+
+                        console.log(data);
+
                         res.status(200).send(JSON.stringify({ data: data }));
                         break;
                     default:
@@ -1332,7 +1369,7 @@ class WebServer {
             .get(function (req, res) {
                 // collect
                 let dev = {
-                    data: $.project.find.package().toJsonObject(["name"])
+                    data: $.project.find.package('tags:ds').toJsonObject(["name"])
                 };
                 res.status(200).send(JSON.stringify(dev));
             });
@@ -1409,6 +1446,17 @@ class WebServer {
                 }
                 res.send(JSON.stringify(dev));
             });
+        
+        this.app.route('/api/project/:uid/app/info')
+            .get(function(req, res){
+                if(req.params.uid != "self"){
+                    // not supported
+                    res.status(404).send(JSON.stringify({ msg: 'Operation not supported (TODO)' }));
+                }else{
+                    $.project.getApplication();
+                    res.status(404).send(JSON.stringify({ msg: 'Operation not supported (TODO)' }));
+                }
+            })
 /*
             this.app.route('/api/projection')
                 .get(function (req, res) {
@@ -1970,7 +2018,54 @@ class WebServer {
      * @method
      */
     useProductionMode(){
+        const projectDependentPath = [
+            '/api/hook',
+            '/api/probe',
+            '/api/find',
+            '/api/intent',
+            '/api/scanner',
+            '/api/field',
+            '/api/class',
+            '/api/finder',
+            '/api/package',
+            '/api/tags',
+            '/pages/index',
+            '/pages/finder',
+            '/pages/inspectors',
+            '/pages/probelog',
+            '/pages/probe',
+            '/pages/scanner',
+            '/pages/devicemanager',
+        ];
+
+        let self = this;
+
+        /**
+         * Redirect to /pages/splash.html if there is no project initialized
+         */
+        this.app.use(function(req, res, next){
+            let f = false;
+            if(self.project != null){ next(); return; }
+            if(!req.url.startsWith('/pages/')){ next(); return; }
+
+
+            for(let i=0; i<projectDependentPath.length; i++){
+                if(req.url.startsWith(projectDependentPath[i])) {
+                    console.log(req.url, (projectDependentPath[i]));
+                    f = true;
+                    break;
+                }
+            }
+
+            if(f==false){ next(); return; }
+            
+            console.log("Invalid state for : ",req.url);
+            res.redirect('/pages/splash.html');
+            res.send();
+            
+        });
         this.initRoutes();
+        
         this.uploader = Uploader.getInstance(); 
     }
 

@@ -1025,6 +1025,9 @@ var DexcaliburAPI = {
                     }
                 }
             });
+        },
+        getAppInfo: function(pCallback){
+          //  DexcaliburAPI.exec("/api/project/app/info","get",null, pCallback.onSuccess, pCallback.onError);            
         }
     },
     hook: {
@@ -1095,6 +1098,12 @@ var DexcaliburAPI = {
         },
         newHookModal: function(id){
             //
+        },
+        kill: function(pPID, pCallback){
+            DexcaliburAPI.exec('/api/hook/app/kill', 'post', null, pCallback.onSuccess, pCallback.onError);
+        },
+        detach: function(pCallback){
+            DexcaliburAPI.exec('/api/hook/app/detach', 'post', null,  pCallback.onSuccess, pCallback.onError);
         }
     },
     disass: {},

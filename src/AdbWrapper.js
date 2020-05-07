@@ -372,7 +372,7 @@ class AdbWrapper
     listDevices(){
         Logger.info("[ADB] Enumerating connected devices ...");
         return this.parseDeviceList( 
-            Process.execSync(this.setup()+" devices -l")
+            UT.execSync(this.setup()+" devices -l")
                 .toString("ascii") );
     }
 

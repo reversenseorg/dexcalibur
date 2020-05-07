@@ -35,12 +35,25 @@
         <div id="page-wrapper" class="dxc-dark">
 
             <div class="row">
-                <div class="col-lg-10">
+                <div class="col-lg-8">
                     <h1 class="page-header">Hook logs</h1>
                 </div>
-                <div class="col-lg-2">
+                <div class="col-lg-4">
+
+                    <span class="badge badge-pill badge-info badge-action clear-log" style="margin-top:1em;">
+                        <i class="fa fa-trash"></i>&nbsp;Clear
+                    </span>
+                    &nbsp;
                     <span class="badge badge-pill badge-yellow badge-action probe-restart" style="margin-top:1em;">
                         <i class="fa fa-refresh"></i>&nbsp;Re-spawn
+                    </span>
+                    &nbsp;
+                    <span class="badge badge-pill badge-yellow badge-action detach-app" style="margin-top:1em;">
+                        <i class="fa fa-unlink"></i>&nbsp;Detach
+                    </span>
+                    &nbsp;
+                    <span class="badge badge-pill badge-danger badge-action kill-app" style="margin-top:1em;">
+                        <i class="fa fa-bolt"></i>&nbsp;Kill app
                     </span>
                 </div>
             </div>
@@ -143,11 +156,15 @@
 
     $(document).ready(function() {
 
+
         
 
         let msgStatus = 0;
+        let scheduled = null;
 
-        setInterval(function(){
+        function startToFollow(){
+
+            return setInterval(function(){
             $.ajax("../api/probe/msg",{
                 method: 'get',
                 statusCode: {
@@ -237,6 +254,66 @@
                 }
             });
         },100);
+        };
+
+        if(location.hash=="#autostart"){
+            scheduled = startToFollow();
+        }
+        
+        $('.clear-log').click((pEvent)=>{
+            $("#tabProbeLogs tbody tr").remove();
+        });
+
+        $('.kill-app').click((pEvent)=>{
+            DexcaliburAPI.hook.kill(null,{
+                onSuccess: function(data){
+                    let d = JSON.parse(data);
+                    console.log(d);
+                    
+                    if(scheduled != null){
+                        clearInterval(scheduled);
+                        scheduled = null;
+                    }
+
+                    if(d.success){
+                        alert('App killed successfully');
+                    }
+                },
+                onError: function(data){
+                    let d = JSON.parse(data);
+                    
+                    if(scheduled != null){
+                        clearInterval(scheduled);
+                        scheduled = null;
+                    }
+
+                    if(d.success){
+                        alert('App not killed. Logger stopped');
+                    }
+                }
+            });
+        });
+
+        $('.detach-app').click((pEvent)=>{
+            DexcaliburAPI.hook.detach({
+                onSuccess: function(data){
+                    let d = JSON.parse(data);
+                    console.log(d);
+                    
+                    if(scheduled != null){
+                        clearInterval(scheduled);
+                        scheduled = null;
+                    }
+
+                    if(d.success){
+                        alert('App killed successfully');
+                    }
+                }
+            });
+        });
+
+        //console.log(location);
+        //timer.stop();
 
         //$('#probelogs').
         $('#dataTables-probe tbody').on('click', 'td.details-control', function () {
@@ -364,9 +441,10 @@
             msgStatus = 9999999;
             $("#tabProbeLogs tbody tr").remove();
             DexcaliburAPI.hook.start(
-                "spawn-self",
+                {type:"spawn-self"},
                 function(){
                     msgStatus = 0;
+                    scheduled = startToFollow();            
                 },
                 function(err){
                     alert(err);

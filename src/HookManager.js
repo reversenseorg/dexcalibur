@@ -1054,89 +1054,156 @@ HookPrologue.prototype.toJsonObject = function(){
  *   
  * @param {*} manager 
  */
-function HookSession(manager) {
-    /**
-     * The stack containing the received message
-     * @var 
-     */
-    this.message = [];
-    /**
-     * The associated HookManager
-     * (TODO : 1 hookManager by device)
-     * @var 
-     */
-    this.hookManager = manager;
-    /**
-     * Follow hookset matches
-     */
-    this.sets_matches = {};
-    /**
-     * The timestamp of the session
-     * @var
-     */
-    this.time = UT.time();
-}
+class HookSession
+{
+    constructor(manager) {
+        /**
+         * The stack containing the received message
+         * @var 
+         */
+        this.message = [];
 
-/**
- * To push a new message from a hook into the session.
- * Each message are an instance of HookMessage
- */
-HookSession.prototype.push = function(msg){
-    let hm = new HookMessage();
+        /**
+         * The associated HookManager
+         * (TODO : 1 hookManager by device)
+         * @var 
+         */
+        this.hookManager = manager;
 
-    if(msg.type == "error") return null;
+        /**
+         * Follow hookset matches
+         */
+        this.sets_matches = {};
 
-    // TODO : mettre tout 'msg' dans 'hm' ou 'hm.data'
+        /**
+         * The timestamp of the session
+         * @var
+         */
+        this.time = UT.time();
 
-    // console.log(msg);
-    if(msg.payload.id != undefined && msg.payload.id != null){
-        //hook = this.hookManager.findHook(UT.b64_decode(msg.payload.id));
-        hm.hook = msg.payload.id;
+        /**
+         * To hold some references from frida-node 
+         */
+        this.frida = {
+            session: null,
+            device: null,
+            script: null,
+            pid: null
+        };
     }
 
-    hm.match = (msg.payload.match!=null)? msg.payload.match : false; 
-    hm.msg = msg.payload.msg;
-    hm.data = msg.payload.data;
-    hm.action = msg.payload.action;
-    hm.when = (msg.after)? 1 : 0;
+    set fridaSession( pSession){ this.frida.session = pSession; }
+
+    get fridaSession(){  return this.frida.session; }
 
 
-    if(msg.payload.tags != null) hm.setTags(msg.payload.tags);
-
-    this.message.push(hm)
-    
-    if(hm.match)
-       this.hookManager.trigger(hm);
-
-    return hm;
-}
-HookSession.prototype.addMatch = function(hookset,name,value=null){
-    if(this.sets_matches[hookset]==null) this.sets_matches[hookset] = {};
-    if(this.sets_matches[hookset][name]==null) this.sets_matches[hookset][name] = {};
-
-    if(value!=null)
-        for(let i in value)
-            this.sets_matches[hookset][name][i] = value[i];
-}
-/**
- * 
- */
-HookSession.prototype.hasMessages = function(){
-    return this.message.length>0;
-}
-HookSession.prototype.messages = function(){
-    return this.message;
-}
-HookSession.prototype.toJsonObject = function(){
-    let o = new Object(), msg="";
-    o.message = [];
-    for(let i=0; i<this.message.length; i++){
-        //msg=this.message[i];
-        //o.message.push({ type:(msg.type!=null?msg.type:''), data: msg.payload });
-        o.message.push(this.message[i].toJsonObject());
+    set fridaDevice( pDevice){
+        this.frida.device = pDevice;
     }
-    return o;
+
+    get fridaDevice(){
+        return this.frida.device;
+    }
+
+
+    set fridaScript( pScript){
+        this.frida.script = pScript;
+    }
+
+    get fridaScript(){
+        return this.frida.script;
+    }
+
+
+    set pid( pPID){
+        this.frida.pid = pPID;
+    }
+
+    get pid(){
+        return this.frida.pid;
+    }
+
+    /**
+     * To push a new message from a hook into the session.
+     * Each message are an instance of HookMessage
+     * 
+     * @method
+     */
+    push(msg){
+        let hm = new HookMessage();
+
+        if(msg.type == "error") return null;
+
+        // TODO : mettre tout 'msg' dans 'hm' ou 'hm.data'
+
+        // console.log(msg);
+        if(msg.payload.id != undefined && msg.payload.id != null){
+            //hook = this.hookManager.findHook(UT.b64_decode(msg.payload.id));
+            hm.hook = msg.payload.id;
+        }
+
+        hm.match = (msg.payload.match!=null)? msg.payload.match : false; 
+        hm.msg = msg.payload.msg;
+        hm.data = msg.payload.data;
+        hm.action = msg.payload.action;
+        hm.when = (msg.after)? 1 : 0;
+
+
+        if(msg.payload.tags != null) hm.setTags(msg.payload.tags);
+
+        this.message.push(hm)
+        
+        if(hm.match)
+        this.hookManager.trigger(hm);
+
+        return hm;
+    }
+
+    /**
+     * 
+     * @param {*} hookset 
+     * @param {*} name 
+     * @param {*} value 
+     * @method
+     */
+    addMatch(hookset,name,value=null){
+        if(this.sets_matches[hookset]==null) this.sets_matches[hookset] = {};
+        if(this.sets_matches[hookset][name]==null) this.sets_matches[hookset][name] = {};
+
+        if(value!=null)
+            for(let i in value)
+                this.sets_matches[hookset][name][i] = value[i];
+    }
+
+    /**
+     * @method
+     */
+    hasMessages(){
+        return this.message.length>0;
+    }
+
+    /**
+     * @method
+     */
+    messages(){
+        return this.message;
+    }
+
+    /**
+     * @method
+     */
+    toJsonObject(){
+        let o = new Object(), msg="";
+        o.message = [];
+        for(let i=0; i<this.message.length; i++){
+            //msg=this.message[i];
+            //o.message.push({ type:(msg.type!=null?msg.type:''), data: msg.payload });
+            o.message.push(this.message[i].toJsonObject());
+        }
+        return o;
+    }
 }
+
 
 /**
  * 
@@ -1401,11 +1468,16 @@ class HookManager
             let session = null, pid=null, applications=null;
             
             const device = yield FRIDA.getDevice(target.getUID());
+            PROBE_SESSION.fridaDevice = device;
 
             switch(pType){
                 case HM_SPAWN:
                     pid = yield device.spawn([pExtra]);
+                    PROBE_SESSION.pid = pid;
+                    
                     session = yield device.attach(pid);
+                    PROBE_SESSION.fridaSession = session;
+
                     Logger.info('spawned:', pid);
                     break;
                 case HM_ATTACH_APP:
@@ -1416,7 +1488,10 @@ class HookManager
                     }
 
                     if(pid > -1) {
+                        PROBE_SESSION.pid = pid;
                         session = yield device.attach(pid);
+                        PROBE_SESSION.fridaSession = session;
+
                         Logger.info('attached to '+pExtra+" (pid="+pid+")");
                     }else{
                         throw new Error('Failed to attach to application ('+pExtra+' not running).');
@@ -1426,14 +1501,22 @@ class HookManager
                 case HM_ATTACH_GADGET:
                     applications = yield device.enumerateApplications();
                     if(applications.length == 1 && applications[0].name == "Gadget") {
+                        PROBE_SESSION.pid = applications[0].pid;
+
                         session = yield device.attach(applications[0].pid);
+                        PROBE_SESSION.fridaSession = session;
+
                         Logger.info('attached to Gadget:', pid);
                     }else
                         Logger.error('Failed to attach to Gadget.');
 
                     break;
                 case HM_ATTACH_PID:
-                    session = yield device.attach(pExtra);
+                    PROBE_SESSION.pid = pid;
+
+                    session = yield device.attach(pid);
+                    PROBE_SESSION.fridaSession = session;
+
                     Logger.info('spawned:', pid);
                     break;
                 default:
@@ -1442,19 +1525,19 @@ class HookManager
                     break;
             }
 
-            console.log(session);
             const script = yield session.createScript(hook_script);
 
-            console.log(script);
              // For frida-node > 11.0.2
              script.message.connect(message => {
                 PROBE_SESSION.push(message);//{ msg:message, d:data });
                 //console.log('[*] Message:', message);
-            });
-            
+            });    
             
         
             yield script.load();
+
+
+            PROBE_SESSION.fridaScript = script;
 
             console.log('script loaded', script);
             yield device.resume(pid);
