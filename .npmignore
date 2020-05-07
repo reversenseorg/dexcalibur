@@ -5,6 +5,7 @@
 coverage/
 node_modules/
 docker/
+docs/
 config.js.bkp
 package.json.bkp
 README.1.md
