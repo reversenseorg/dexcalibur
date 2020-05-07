@@ -361,7 +361,6 @@ var DynLoaderInspector = new InspectorFactory({
                 });
         
                 caller.addMethodUsed(meth, call);
-                console.log(meth);
             
         },
 
