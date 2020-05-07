@@ -24,17 +24,20 @@ const DTYPE = {
     IMM_FLOAT: 0x3,
     IMM_BOOLEAN: 0x4,
     IMM_BYTE: 0x5,
-    OBJECT_REF: 0x6,
-    CLASS_REF: 0x7,
-    FIELD_REF: 0x8,
-    VOID: 0x9,
-    UNDEFINED: 0xa,
-    THIS: 0xb,
-    IMM_CHAR: 0xc,
-    ARRAY: 0xd,
-    FIELD: 0xe,
-    INSTANCE: 0xf,
-    WRAPPED_HOOK_RESULT: 0x10
+    IMM_CHAR: 0x6,
+    IMM_SHORT: 0x7,
+    IMM_DOUBLE: 0x8,
+    IMM_LONG: 0x9,
+    OBJECT_REF: 0x20,
+    CLASS_REF: 0x21,
+    FIELD_REF: 0x22,
+    THIS: 0x23,
+    ARRAY: 0x24,
+    FIELD: 0x25,
+    INSTANCE: 0x26,
+    WRAPPED_HOOK_RESULT: 0x2a,
+    VOID: 0x30,
+    UNDEFINED: 0x31,
 };
 
 const DTYPE_STRING = {};
@@ -43,6 +46,9 @@ DTYPE_STRING[DTYPE.IMM_NUMERIC] = "int|long|short";
 DTYPE_STRING[DTYPE.IMM_FLOAT] = "float|double";
 DTYPE_STRING[DTYPE.IMM_BOOLEAN] = "boolean";
 DTYPE_STRING[DTYPE.IMM_BYTE] = "byte";
+DTYPE_STRING[DTYPE.IMM_LONG] = "long";
+DTYPE_STRING[DTYPE.IMM_DOUBLE] = "double";
+DTYPE_STRING[DTYPE.IMM_SHORT] = "short";
 DTYPE_STRING[DTYPE.OBJECT_REF] = "ObjectReference";
 DTYPE_STRING[DTYPE.CLASS_REF] = "ClassReference";
 DTYPE_STRING[DTYPE.FIELD_REF] = "FieldReference";
@@ -57,13 +63,13 @@ DTYPE_STRING[DTYPE.WRAPPED_HOOK_RESULT] = "WrappedHookResult";
 
 const BTYPE_DTYPE = {};
 BTYPE_DTYPE[CONST.JAVA.T_BOOL] = DTYPE.IMM_BOOLEAN;
-BTYPE_DTYPE[CONST.JAVA.T_CHAR] = DTYPE.IMM_NUMERIC;
+BTYPE_DTYPE[CONST.JAVA.T_CHAR] = DTYPE.IMM_CHAR;
 BTYPE_DTYPE[CONST.JAVA.T_INT] = DTYPE.IMM_NUMERIC;
-BTYPE_DTYPE[CONST.JAVA.T_LONG] = DTYPE.IMM_NUMERIC;
-BTYPE_DTYPE[CONST.JAVA.T_SHORT] = DTYPE.IMM_FLOAT;
+BTYPE_DTYPE[CONST.JAVA.T_LONG] = DTYPE.IMM_LONG;
+BTYPE_DTYPE[CONST.JAVA.T_SHORT] = DTYPE.IMM_SHORT;
 BTYPE_DTYPE[CONST.JAVA.T_BYTE] = DTYPE.IMM_BYTE;
 BTYPE_DTYPE[CONST.JAVA.T_FLOAT] = DTYPE.IMM_FLOAT;
-BTYPE_DTYPE[CONST.JAVA.T_DOUBLE] = DTYPE.IMM_FLOAT;
+BTYPE_DTYPE[CONST.JAVA.T_DOUBLE] = DTYPE.IMM_DOUBLE;
 BTYPE_DTYPE[CONST.JAVA.T_OBJ] = DTYPE.OBJECT_REF;
 BTYPE_DTYPE[CONST.JAVA.T_VOID] = DTYPE.VOID;
 
@@ -74,15 +80,15 @@ ATYPE_DTYPE[OPCODE.AGET_BOOLEAN.byte] = DTYPE.IMM_BOOLEAN;
 ATYPE_DTYPE[OPCODE.AGET_BYTE.byte] = DTYPE.IMM_BYTE;
 ATYPE_DTYPE[OPCODE.AGET_CHAR.byte] = DTYPE.IMM_CHAR;
 ATYPE_DTYPE[OPCODE.AGET_OBJECT.byte] = DTYPE.OBJECT_REF;
-ATYPE_DTYPE[OPCODE.AGET_SHORT.byte] = DTYPE.IMM_NUMERIC;
-ATYPE_DTYPE[OPCODE.AGET_WIDE.byte] = DTYPE.IMM_NUMERIC;
+ATYPE_DTYPE[OPCODE.AGET_SHORT.byte] = DTYPE.IMM_SHORT;
+ATYPE_DTYPE[OPCODE.AGET_WIDE.byte] = DTYPE.IMM_LONG;
 ATYPE_DTYPE[OPCODE.APUT.byte] = DTYPE.IMM_NUMERIC;
 ATYPE_DTYPE[OPCODE.APUT_BOOLEAN.byte] = DTYPE.IMM_BOOLEAN;
 ATYPE_DTYPE[OPCODE.APUT_BYTE.byte] = DTYPE.IMM_BYTE;
 ATYPE_DTYPE[OPCODE.APUT_CHAR.byte] = DTYPE.IMM_CHAR;
 ATYPE_DTYPE[OPCODE.APUT_OBJECT.byte] = DTYPE.OBJECT_REF;
-ATYPE_DTYPE[OPCODE.APUT_SHORT.byte] = DTYPE.IMM_NUMERIC;
-ATYPE_DTYPE[OPCODE.APUT_WIDE.byte] = DTYPE.IMM_NUMERIC;
+ATYPE_DTYPE[OPCODE.APUT_SHORT.byte] = DTYPE.IMM_SHORT;
+ATYPE_DTYPE[OPCODE.APUT_WIDE.byte] = DTYPE.IMM_LONG;
 
 
 const SYMBOL_OPE = {};
@@ -103,11 +109,21 @@ SYMBOL_OPE[CONST.LEX.TOKEN.USHR] = 'ushr';
 function getDataTypeOf(pType){
     //Logger.debug("getDataTypeOf: ",pType);
     if(pType instanceof CLASS.ObjectType){
-        return DTYPE.OBJECT_REF;
+        if(pType.isArray())
+            return DTYPE.ARRAY;
+        else
+            return DTYPE.OBJECT_REF;
     }
     else if(pType instanceof VM_ClassInstance){
         return DTYPE.OBJECT_REF;
     }
+    else if(pType instanceof CLASS.BasicType){
+        if(pType.isArray !=undefined && pType.isArray())
+            return DTYPE.ARRAY;
+        else
+            return BTYPE_DTYPE[pType.name];
+    }
+    // basic type
     else{
         return BTYPE_DTYPE[pType.name];
     }
@@ -116,8 +132,12 @@ function getDataTypeOf(pType){
 
 function castToDataType(pType, pData){
     switch(pType){
+        case DTYPE.IMM_BYTE:
+        case DTYPE.IMM_LONG:
+        case DTYPE.IMM_SHORT:
         case DTYPE.IMM_NUMERIC:
             return parseInt(pData,10);
+        case DTYPE.IMM_DOUBLE:
         case DTYPE.IMM_FLOAT:
             return parseFloat(pData);
         case DTYPE.IMM_STRING:
@@ -128,11 +148,18 @@ function castToDataType(pType, pData){
     }
 }
 
-
-class VM_Exception
+/**
+ * 
+ */
+class VM_Exception extends Error
 {
-    constructor(){
 
+    constructor( pCode, pMessage){
+        super(pMessage);
+        // Ensure the name of this error is the same as the class name
+        this.name = this.constructor.name;
+        this.code = pCode;
+        Error.captureStackTrace(this, this.constructor);
     }
 }
 
@@ -208,6 +235,10 @@ class Symbol
         return this.value;
     }
 
+    setValue(pValue){
+        this.value = pValue;
+    }
+
     isThis(pMethod){
         return (pMethod instanceof CLASS.Method) 
             && (pMethod.modifiers.static==false);
@@ -255,15 +286,17 @@ class Symbol
         }
     }
 
-    add(pValue, pType){
+    add(pValue, pType, pOption=null){
         switch(pType){
-            case OPCODE.ADD_INT_2ADDR.byte:
+
             case OPCODE.ADD_LONG_2ADDR.byte:
+            case OPCODE.ADD_LONG.byte:
+                return ((this.value << 32) | (pOption & 0x00000000FFFFFFFF)) + pValue;
+            case OPCODE.ADD_INT_2ADDR.byte:
             case OPCODE.ADD_INT_LIT8.byte:
             case OPCODE.ADD_INT_LIT16.byte:
             case OPCODE.ADD_INT.byte:
-            case OPCODE.ADD_LONG.byte:
-                return parseInt(this.value) + parseInt(pValue);
+                return this.value + pValue;
             case OPCODE.ADD_DOUBLE_2ADDR.byte:
             case OPCODE.ADD_FLOAT_2ADDR.byte:
             case OPCODE.ADD_DOUBLE.byte:
@@ -272,50 +305,53 @@ class Symbol
         }
     }
 
-    sub(pValue, pType){
+    sub(pValue, pType, pOption=null){
         switch(pType){
-            case OPCODE.SUB_INT_2ADDR.byte:
             case OPCODE.SUB_LONG_2ADDR.byte:
+            case OPCODE.SUB_LONG.byte:
+                return ((this.value << 32) | (pOption & 0x00000000FFFFFFFF)) - pValue;
+            case OPCODE.SUB_INT_2ADDR.byte:
             case OPCODE.SUB_INT_LIT8.byte:
             case OPCODE.SUB_INT_LIT16.byte:
             case OPCODE.SUB_INT.byte:
-            case OPCODE.SUB_LONG.byte:
-                return parseInt(this.value) - parseInt(pValue);
+                return this.value - pValue;
             case OPCODE.SUB_DOUBLE_2ADDR.byte:
             case OPCODE.SUB_FLOAT_2ADDR.byte:
             case OPCODE.SUB_DOUBLE.byte:
             case OPCODE.SUB_FLOAT.byte:
-                return parseFloat(this.value) - parseFloat(pValue);
+                return this.value - pValue;
         }
     }
 
-    mul(pValue, pType){
+    mul(pValue, pType, pOption=null){
         switch(pType){
-            case OPCODE.MUL_INT_2ADDR.byte:
+            case OPCODE.MUL_LONG.byte: 
             case OPCODE.MUL_LONG_2ADDR.byte:
+                return ((this.value << 32) | (pOption & 0x00000000FFFFFFFF)) * pValue;
+            case OPCODE.MUL_INT_2ADDR.byte:
             case OPCODE.MUL_INT_LIT8.byte:
             case OPCODE.MUL_INT_LIT16.byte:
             case OPCODE.MUL_INT.byte:
-            case OPCODE.MUL_LONG.byte:
-                return parseInt(this.value) * parseInt(pValue);
+               return this.value * pValue;
             case OPCODE.MUL_DOUBLE_2ADDR.byte:
             case OPCODE.MUL_FLOAT_2ADDR.byte:
             case OPCODE.MUL_DOUBLE.byte:
             case OPCODE.MUL_FLOAT.byte:
-                return parseFloat(this.value) * parseFloat(pValue);
+                return this.value * pValue;
         }
     }
 
 
-    div(pValue, pType){
+    div(pValue, pType, pOption=null){
         switch(pType){
-            case OPCODE.DIV_INT_2ADDR.byte:
             case OPCODE.DIV_LONG_2ADDR.byte:
+            case OPCODE.DIV_LONG.byte:
+                return ((this.value << 32) | (pOption & 0x00000000FFFFFFFF)) / pValue;
+            case OPCODE.DIV_INT_2ADDR.byte:
             case OPCODE.DIV_INT_LIT8.byte:
             case OPCODE.DIV_INT_LIT16.byte:
             case OPCODE.DIV_INT.byte:
-            case OPCODE.DIV_LONG.byte:
-                return parseInt(this.value) / parseInt(pValue);
+                return this.value / pValue;
             case OPCODE.DIV_DOUBLE_2ADDR.byte:
             case OPCODE.DIV_FLOAT_2ADDR.byte:
             case OPCODE.DIV_DOUBLE.byte:
@@ -324,16 +360,16 @@ class Symbol
         }
     }
 
-    rem(pValue, pType){
+    rem(pValue, pType, pOption=null){
         switch(pType){
-            case OPCODE.REM_INT_2ADDR.byte:
             case OPCODE.REM_LONG_2ADDR.byte:
-            case OPCODE.REM_INT_LIT8.byte:
+            case OPCODE.REM_LONG.byte:
+                return ((this.value << 32) | (pOption & 0x00000000FFFFFFFF)) % pValue;
+            case OPCODE.REM_INT_2ADDR.byte:
             case OPCODE.REM_INT_LIT8.byte:
             case OPCODE.REM_INT_LIT16.byte:
             case OPCODE.REM_INT.byte:
-            case OPCODE.REM_LONG.byte:
-                return parseInt(this.value) % parseInt(pValue);
+                return this.value % pValue;
             case OPCODE.REM_DOUBLE_2ADDR.byte:
             case OPCODE.REM_FLOAT_2ADDR.byte:
             case OPCODE.REM_DOUBLE.byte:
@@ -343,80 +379,86 @@ class Symbol
     }
 
     
-    and(pValue, pType){
+    and(pValue, pType, pOption=null){
         switch(pType){
-            case OPCODE.AND_INT_2ADDR.byte:
             case OPCODE.AND_LONG_2ADDR.byte:
+            case OPCODE.AND_LONG.byte:
+                return ((this.value << 32) | (pOption & 0x00000000FFFFFFFF)) & pValue;
+            case OPCODE.AND_INT_2ADDR.byte:
             case OPCODE.AND_INT_LIT8.byte:
             case OPCODE.AND_INT_LIT16.byte:
             case OPCODE.AND_INT.byte:
-            case OPCODE.AND_LONG.byte:
-                return parseInt(this.value) & parseInt(pValue);
+                return this.value & pValue;
         }
     }
 
 
-    or(pValue, pType){
+    or(pValue, pType, pOption=null){
         switch(pType){
-            case OPCODE.OR_INT_2ADDR.byte:
             case OPCODE.OR_LONG_2ADDR.byte:
+            case OPCODE.OR_LONG.byte:
+                return ((this.value << 32) | (pOption & 0x00000000FFFFFFFF)) | pValue;
+            case OPCODE.OR_INT_2ADDR.byte:
             case OPCODE.OR_INT_LIT8.byte:
             case OPCODE.OR_INT_LIT16.byte:
             case OPCODE.OR_INT.byte:
-            case OPCODE.OR_LONG.byte:
-                return parseInt(this.value) | parseInt(pValue);
+                return this.value | pValue;
         }
     }
 
 
-    xor(pValue, pType){
+    xor(pValue, pType, pOption=null){
         switch(pType){
-            case OPCODE.XOR_INT_2ADDR.byte:
             case OPCODE.XOR_LONG_2ADDR.byte:
+            case OPCODE.XOR_LONG.byte:
+                return ((this.value << 32) | (pOption & 0x00000000FFFFFFFF)) ^ pValue;
+            case OPCODE.XOR_INT_2ADDR.byte:
             case OPCODE.XOR_INT_LIT8.byte:
             case OPCODE.XOR_INT_LIT16.byte:
             case OPCODE.XOR_INT.byte:
-            case OPCODE.XOR_LONG.byte:
-                return parseInt(this.value) ^ parseInt(pValue);
+                return this.value ^ pValue;
         }
     }
 
 
-    shl(pValue, pType){
+    shl(pValue, pType, pOption=null){
         switch(pType){
-            case OPCODE.SHL_INT_2ADDR.byte:
             case OPCODE.SHL_LONG_2ADDR.byte:
+            case OPCODE.SHL_LONG.byte:
+                return ((this.value << 32) | (pOption & 0x00000000FFFFFFFF)) << pValue;
+            case OPCODE.SHL_INT_2ADDR.byte:
             case OPCODE.SHL_INT_LIT8.byte:
             case OPCODE.SHL_INT_LIT16.byte:
             case OPCODE.SHL_INT.byte:
-            case OPCODE.SHL_LONG.byte:
-                return parseInt(this.value) << parseInt(pValue);
+                return this.value << pValue;
         }
     }
 
 
-    shr(pValue, pType){
+    shr(pValue, pType, pOption=null){
         switch(pType){
-            case OPCODE.SHR_INT_2ADDR.byte:
             case OPCODE.SHR_LONG_2ADDR.byte:
+            case OPCODE.SHR_LONG.byte:
+                return ((this.value << 32) | (pOption & 0x00000000FFFFFFFF)) >> pValue;
+            case OPCODE.SHR_INT_2ADDR.byte:
             case OPCODE.SHR_INT_LIT8.byte:
             case OPCODE.SHR_INT_LIT16.byte:
             case OPCODE.SHR_INT.byte:
-            case OPCODE.SHR_LONG.byte:
-                return parseInt(this.value) >> parseInt(pValue);
+                return this.value >> pValue;
         }
     }
 
 
-    ushr(pValue, pType){
+    ushr(pValue, pType, pOption=null){
         switch(pType){
-            case OPCODE.USHR_INT_2ADDR.byte:
             case OPCODE.USHR_LONG_2ADDR.byte:
+            case OPCODE.USHR_LONG.byte:
+                return ((this.value << 32) | (pOption & 0x00000000FFFFFFFF)) >>> pValue;
+            case OPCODE.USHR_INT_2ADDR.byte:
             case OPCODE.USHR_INT_LIT8.byte:
             case OPCODE.USHR_INT_LIT16.byte:
             case OPCODE.USHR_INT.byte:
-            case OPCODE.USHR_LONG.byte:
-                return parseInt(this.value) >>> parseInt(pValue);
+                return this.value >>> pValue;
         }
     }    
 }
@@ -613,6 +655,9 @@ class PseudoCodeMaker
 
                 if(this.vm.isImm(vArg))
                     v += `${this.vm.getImmediateValue(vArg)},`;
+                else if(vArg.getValue() instanceof VM_VirtualArray){
+                    v+= vArg.getValue().toString()+',';
+                }
                 else if(vArg.hasCode() && !vArg.isSkipped())
                     v+= `${vArg.getCode()},`;
                 else if(rArg=="p0" && vArg.isThis(this.vm.method)){
@@ -693,6 +738,9 @@ class PseudoCodeMaker
                 if(vArg instanceof Symbol){
                     if(this.vm.isImm(vArg))
                         v += this.vm.getImmediateValue(vArg);
+                    else if(vArg.getValue() instanceof VM_VirtualArray){
+                        v+= vArg.getValue().toString();
+                    }
                     else if(vArg.hasCode() && !vArg.isSkipped())
                         v+= vArg.getCode();
                     else if(rArg=="p0" && vArg.isThis(this.vm.method)){
@@ -752,10 +800,81 @@ class PseudoCodeMaker
 
 class VM_VirtualArray
 {
-    constructor( pType, pSize){
+    constructor( pType=null, pSize=null){
         this.type = pType;
         this.size = pSize;
+        this.symbolicSize = null;
         this.value = [];
+    }
+
+    /**
+     * To allocate a new array and fill it with given 'stringified' data 
+     * 
+     * Input must be formatted like it :
+     * NUMBER   = 0123456789
+     * LETTER   = abcdefABCDEF
+     * HEX      = NUMBER | LETTER [ HEX ]  
+     * INT      = NUMBER [ INT ] 
+     * FLOAT    = <INT> '.' [ <INT> ]
+     * CHAR     = "'" <ASCII_CHAR> "'"
+     * HEX_STR  = '0x' <HEX>
+     * ENTRY    = <CHAR> | <HEX_STR> | <INT> | <FLOAT> 
+     * ARRAY    = '[' <ENTRY> [, <ENTRY> ] ']'
+     * 
+     * Example :
+     *  [ 'n', 'u', 'l', 'l' ]
+     *  [ 12, 127, 500, 30 ]
+     *  [ 0x10, 0xFF, 0xbabe ]
+     *  [ 0, 1. ]
+     * 
+     * @param {String} pArrayStr 
+     */
+    static fromString( pType, pArrayStr){
+        const RE  = new RegExp('[\s\t]*\[[\s\t]*(?<ctn>.*)[\s\t]*\][\s\t]*');
+        let m = RE.exec(pArrayStr);
+        if(m == null){
+            throw new VM_Exception('VM002','Unable to parse bytearray parameter: invalid format');
+        }
+
+        let arr = new VM_VirtualArray(pType, 0);
+        let entries = null, el=null;
+        if(m.groups.ctn.length > 0){
+            entries = m.groups.ctn.split(',');
+            
+            console.log(entries, m);
+            /*
+             * write() is used instead of push() because array size is unknown
+             * and we don't want throw 'array out of bound VM error'. 
+             */
+            for(let i=0; i<entries.length; i++){
+                el = Util.trim(entries[i]);
+                console.log(el);
+                // char
+                if(el[0] == "'" && el.length==3){
+                    arr.write( arr.size, Number.parseInt( el.charCodeAt(1), 10 ) );
+                }
+                // hex
+                else if(el.indexOf('0x')>-1){
+                    if(el[0]=='-')  
+                        arr.write( arr.size, - Number.parseInt( el.substr(1), 16 ));
+                    else
+                        arr.write( arr.size, Number.parseInt( el, 16 ));
+                }
+                // float
+                else if(el.indexOf('.')>-1){
+                    arr.write( arr.size, Number.parseFloat(el) );
+                }
+                // int
+                else{
+                    arr.write( arr.size, Number.parseInt( el, 10) );
+                }
+                arr.size++;
+            }
+        }
+
+        console.log(arr);
+
+        return arr;       
     }
 
     /**
@@ -790,14 +909,69 @@ class VM_VirtualArray
     }
 
     push( pObject){
+        if(this.value.length >= this.size){
+            throw new VM_Exception('VM003','Array out of bound');
+        }
+
         this.value.push(pObject);
     }
 
     pop(){
         return this.value.pop();
     }
+
+    fillWith( pDataBlock){
+        for(let i=0; i<pDataBlock.count(); i++){
+            this.value.push(pDataBlock.read(i));
+        }
+    }
+    
+    setSymbolicSize( pSize){
+        this.size = null;
+        this.symbolicSize = pSize;
+    }
+
+    setConcreteSize( pSize){
+        this.size = pSize;
+    }
+
+    toString(){
+        let v = '[', e=null;
+        //console.log(this);
+        for(let i=0; i<this.value.length; i++){
+            e = this.value[i];
+            if(e instanceof Number){
+                if(e > 0x10 && e<0x7f){
+                    v+=`'${String.fromCharCode(e)}'`;
+                }else if(e < 0){
+                    v+= e.toString(16).replace('-','-0x');
+                }else{
+                    v+= '0x'+e.toString(16);
+                }
+            }else if(e instanceof VM_ClassInstance){
+                v += '<'+e.getClass().name+'@>';
+            }else{
+                console.log(e);
+                v += '<other>';
+            }
+            v += ',';
+        }
+        if(v.length > 1)
+            return v.substr(0, v.length-1)+']';
+        else
+            return '[]'; 
+
+    }
 }
 
+
+/**
+ * Class performing allocation of component such as 
+ * byte array
+ * 
+ * @class
+ * @classdesc Class performing allocation of some components
+ */
 class VM_Allocator
 {
     constructor( pVM, pMemorySize=-1){
@@ -813,7 +987,6 @@ class VM_Allocator
 
         return this.heap[this.top];
     }
-
 }
 
 /**
@@ -838,6 +1011,8 @@ class Monitor
         this.exploredStates.push( this.queuedStates.pop() );
     }
 }
+
+
 
 class VM_HeapEntry
 {
@@ -926,7 +1101,7 @@ class VM_StackEntry
         Logger.debug(`[VM] Init (locals:${this.method.locals}, params:${this.method.args.length})`);
 
         // init parameter register
-        let paramOffset = 0, arg=null;    
+        let paramOffset = 0, arg=null, arr=null;    
         if(this.method.modifiers.static==false){
             this.symTab.setSymbol('p0', DTYPE.OBJECT_REF, pObj);   
             paramOffset = 1;
@@ -1418,10 +1593,22 @@ class VM_MethodArea
 }
 
 /**
+ * Class managing the heap area. This component handle data 
+ * shared by several thread. There is a single heap area per VM instance.
  * 
+ * This class handles class instances, class loaders, static field, and more 
+ * 
+ * @class
+ * @classdesc Class managing the heap area
  */
 class VM_HeapArea
 {
+    /**
+     * To constructr Heap Area
+     * 
+     * @param {VM} pVM The VM instance
+     * @param {VM_ClassLoader} pClassLoader The default class loader
+     */
     constructor( pVM, pClassLoader){
         this.heap = [];
         this.free = [];
@@ -1430,7 +1617,7 @@ class VM_HeapArea
     }
 
     /**
-     * to clear heap area
+     * To clear heap area
      */
     clear(){
         this.heap = [];
@@ -1442,14 +1629,18 @@ class VM_HeapArea
      * 
      * Actually only built-in classloader is supported 
      * 
+     * @method
      * @param {Class} pClass The class to load
+     * 
      */
     loadClass( pClass){
         return this.classloader.load( pClass);
     }
 
     /**
+     * To instanciante a new object from specified class.
      * 
+     * @method
      * @param {Class} pClass the class to instanciate 
      * @param {ObjectType[]|BasicType[]|Symbol[]} pArgs Array of argument to pass to constructor 
      * @returns {VM_ClassInstance} An instance of the class
@@ -1477,6 +1668,13 @@ class VM_HeapArea
         return this.heap[this.heap.length-1];
     }
 
+    /**
+     * To get an element from Heap Area
+     * 
+     * @method
+     * @param {ObjectType} pType 
+     * @param {String} pName 
+     */
     get( pType, pName){
         for(let i=0; i<this.heap.length; i++){
             if((this.heap[i].type ==pType) && (this.heap[i].name == pName)){
@@ -1508,12 +1706,21 @@ class VM_HeapArea
 
 
 /**
- * To define a hook into the VM, it allows to provide custom implementation
+ * Class describing a hook into the VM, it allows to provide custom implementation
  * of method.
  *
+ * @class
+ * @classdesc Class describing a hook into the VM
  */
 class VM_Hook
 {
+    /**
+     * 
+     * @constructor
+     * @param {String} pMethodName The signature of the method to hook
+     * @param {Function} pHook 
+     * @param {Boolean} pEnable 
+     */
     constructor( pMethodName, pHook, pEnable=true){
         this.method = pMethodName;
         this.hook = pHook;
@@ -1522,15 +1729,26 @@ class VM_Hook
 
     /**
      * To execute the hook code with the given context
+     * 
+     * @method
      * @param {VM} pVM The context of the VM
      * @param {VM_ClassInstance} pThis If the method is not static, the instance invoking the method. Else, if the method is static, it is NULL
      * @param {Symbol} pArgs The registers containing value of arguments
+     * @return {*} Value returned by hook function
      */
     exec( pVM, pMethod, pThis, pArgs){
         return this.hook(pVM, pThis, pArgs);
     }
 }
 
+/**
+ * Class logging message from the VM. 
+ * 
+ * It handles internal VM logs and Android logs (thanks to android.Log hooks).
+ * 
+ * @class
+ * @classdesc Class logging message from the VM 
+ */
 class VM_Log
 {
     constructor(){
@@ -1550,11 +1768,29 @@ class VM_Log
     }
 }
 
-/*
-Minimalist Smali VM
-*/
+
+/**
+ * Class managing minimalist smali VM and performing partial smali execution.
+ * 
+ * VM instance is unique (singleton pattern). 
+ * Use getInstance() to get reference. 
+ * 
+ * You can reset different part of the VM quickly by using softReset() or reset().
+ * 
+ *  - softReset() does not reset Heap Area and Method Area. It allows to reuse previously loaded class.
+ *  - reset() does an hard reset. It reset Stack Memory, Method Area, Heap Area, Logger and more.   
+ *  
+ * 
+ * @class
+ * @classdesc Class managing minimalist smali VM and performing partial smali execution.
+ */
 class VM
 {
+
+    /**
+     * Instance of the VM  
+     * @member
+     */
     static __instance =  null;
 
     constructor(pContext, pMethod = null, pLocalSize = null, pParamSize = null){
@@ -1585,7 +1821,6 @@ class VM
         this.simplify = 0;
 
         this.countUntreated = 0;
-        this.branch = null;
         this.depth = 0;
         this.savedContexts = {};
         this.visited = [];
@@ -1604,6 +1839,188 @@ class VM
         this.hooks = {};
     }
 
+    performLongBinaryOp( pOpCode, pDest, pSrc1, pSrc2){
+
+        
+        switch(pOpCode){
+            case OPCODE.ADD_LONG.byte:
+                
+                break;
+
+        }
+    }
+
+    performBinaryOpAddr2( pOpCode, pType, pDest, pSrc1){
+
+    }
+
+
+    /**
+     * 
+     * @param {*} pRegister 
+     */
+    prepareLong( pRegister ){
+        let s = { 
+            mn: this.getRegisterName({ t:pRegister.t, i:pRegister.i }),
+            ln: this.getRegisterName({ t:pRegister.t, i:pRegister.i+1 }),
+            v: null
+        };
+
+        s.m = this.stack.getLocalSymbol( s.mn );
+        s.l = this.stack.getLocalSymbol( s.ln );
+
+        if(this.isImm(s.m) && this.isImm(s.l)){
+            s.v = (s.m << 32) & (s.l & 0x00000000FFFFFFFF);
+        }
+
+        return s;
+    }
+
+    /**
+     * 
+     * @param {*} pOpCode 
+     * @param {*} pType 
+     * @param {*} pDest 
+     * @param {*} pSrc 
+     */
+    performBinaryOp( pOpCode, pType, pDest, pSrc1, pSrc2=null){
+
+        let dst = null, src1 = null, src2 = null;
+
+        src1 = { 
+            m: this.stack.getLocalSymbol( this.getRegisterName({ t:pSrc1.t, i:pSrc1.i+1 })), 
+            l: this.stack.getLocalSymbol( this.getRegisterName({ t:pSrc1.t, i:pSrc1.i })),
+            v: null
+        };
+
+        src2 = { 
+            m: this.stack.getLocalSymbol( this.getRegisterName({ t:pSrc2.t, i:pSrc2.i+1 })), 
+            l: this.stack.getLocalSymbol( this.getRegisterName({ t:pSrc2.t, i:pSrc2.i })),
+            v: null
+        };
+
+        if(this.isImm(src1.m) && this.isImm(src1.l)){
+            src1.v = (src1.m << 32) & (src1.l & 0x00000000FFFFFFFF);
+        }
+
+        if(this.isImm(src2.m) && this.isImm(src2.l)){
+            src2.v = (src2.m << 32) & (src2.l & 0x00000000FFFFFFFF);
+        }
+
+        if(src1.v !== null && src2.v !== null){
+            switch(pOpCode){
+                case OPCODE.ADD_LONG.byte:
+                    dst = src2.m
+                case OPCODE.SUB_LONG.byte:
+                case OPCODE.DIV_LONG.byte:
+                case OPCODE.MUL_LONG.byte:
+                case OPCODE.REM_LONG.byte:
+                case OPCODE.OR_LONG.byte:
+                case OPCODE.XOR_LONG.byte:
+                case OPCODE.AND_LONG.byte:
+                    break;
+                case OPCODE.SHR_LONG.byte:
+                case OPCODE.SHL_LONG.byte:
+                case OPCODE.USHR_LONG.byte:
+                    dst = src2.m
+                    break;
+            }
+            dst = src1.v
+            this.stack.setLocalSymbol(
+                this.getRegisterName({ t:pSrc1.t, i:pSrc1.i+1 }),
+                DTYPE.IMM_LONG,
+
+            );
+        }
+        else if(src1.v !== null){
+
+        }
+        else if(src2.v !== null){
+
+        }
+        else{
+
+        }
+
+        if(pType == DTYPE.IMM_LONG){
+            return this.performLongBinaryOp( pOpCode, pDest, pSrc1, pSrc2);    
+        }
+        else if(pType == DTYPE.IMM_DOUBLE){
+            return this.performLongBinaryOp( pOpCode, pDest, pSrc1, pSrc2);    
+        }
+
+        regX = this.getRegisterName(oper.right);
+        regX = this.stack.getLocalSymbol(regX);
+
+        if(this.isImm(regX)){
+
+            regV = this.getRegisterName(oper.left[0]);
+            regV = this.stack.getLocalSymbol(regV);
+
+            if(this.isImm(regV)){
+//                                this.setSymbol(regX, regX.add(regV.getValue(), oper.opcode.byte));
+
+                
+                this.stack.setLocalSymbol(
+                    regV, 
+                    DTYPE.IMM_NUMERIC,
+                    regX[SYMBOL_OPE[oper.opcode.ope]](regV.getValue(), oper.opcode.byte),
+                    `${this.getImmediateValue(regX)}${oper.opcode.ope}${this.getImmediateValue(regV)}`);
+
+                break;
+            }
+            else{
+
+                if(regV.hasCode()){
+                    this.stack.setLocalSymbol(
+                        regV, 
+                        DTYPE.IMM_NUMERIC,
+                        null,
+                        `(${regV.getCode()})${oper.opcode.ope}${this.getImmediateValue(regV)}`);
+
+                }else{
+                    this.stack.setLocalSymbol(
+                        regV, 
+                        DTYPE.IMM_NUMERIC,
+                        null,
+                        `${this.getRegisterName(oper.left[0])}${oper.opcode.ope}${this.getImmediateValue(regV)}`);    
+                }
+            }
+        }       
+        else {
+
+            regV = this.getRegisterName(oper.left[0]);
+            regV = this.stack.getLocalSymbol(regV);
+
+            if(this.isImm(regV)){
+                if(regX.hasCode()){
+                    this.stack.setLocalSymbol(
+                        regV, 
+                        DTYPE.IMM_NUMERIC,
+                        null,
+                        `${this.getImmediateValue(regV)}${oper.opcode.ope}(${regX.getCode()})`);
+
+                }else{
+                    this.stack.setLocalSymbol(
+                        regV, 
+                        DTYPE.IMM_NUMERIC,
+                        null,
+                        `${this.getImmediateValue(regV)}${oper.opcode.ope}${this.getRegisterName(oper.right)}`);
+                }
+
+                break;
+            }
+            else{
+                this.stack.setLocalSymbol(
+                    regV, 
+                    DTYPE.IMM_NUMERIC,
+                    null,
+                    `${(regV.hasCode()? '('+regV.getCode()+')':this.getRegisterName(oper.left[0]))}${oper.opcode.ope}${(regX.hasCode()? '('+regV.getCode()+')':this.getRegisterName(oper.right))}`);
+            }
+        }
+
+        return "";
+    }
     /**
      * To write a message into VM logs.
      * 
@@ -1658,6 +2075,7 @@ class VM
         this.visited = [];
         this.currentContext = "root";
     }
+
     /**
      * 
      * @param {Class} pClass 
@@ -1753,11 +2171,18 @@ class VM
         return VM.__instance;
     }
 
-
+    /**
+     * @deprecated
+     * @param {*} pSymTab 
+     */
     importGlobalSymbols( pSymTab){
         this.metharea.importSymbolTable( pSymTab); 
     }
 
+    /**
+     * 
+     * @param {String} pLabel 
+     */
     changeContextLabel(pLabel = "root"){
         this.currentContext = pLabel;
     }
@@ -1876,7 +2301,7 @@ class VM
      * @param {*} pLevel 
      */
     start( pMethod, pThis, pArguments=null, pClearHeap=false){
-        let opt = null, margs=null;
+        let opt = null, margs=null, arr=null;
 
         // clean StackMemory 
         this.stack.clear();
@@ -1903,7 +2328,7 @@ class VM
         if(this.method.modifiers.static == false){
             if(pThis == null){
                 this.stack.last().setThis( this.heap.newInstance(this.method.enclosingClass) );
-                console.log(this.stack.symTab.table.p0);
+                //console.log(this.stack.symTab.table.p0);
             }else
                 this.stack.last().setThis( pThis);
         }
@@ -1939,11 +2364,16 @@ class VM
                     }
 
                 }else{
-
                     if((pArguments!=null) && (pArguments["p"+i] !=null)){
-                        if(pArguments["p"+i].val != null)
-                            this.stack.last().addArgument(i, getDataTypeOf(margs[i]), castToDataType(getDataTypeOf(margs[i]), pArguments["p"+i].val));
-                        else if(pArguments["p"+i].notset==true)
+                        if(pArguments["p"+i].val != null){
+                            if(getDataTypeOf(margs[i])==DTYPE.ARRAY){
+                                // parse array string
+                                arr = VM_VirtualArray.fromString( margs[i].type, pArguments["p"+i].val);
+
+                                this.stack.last().addArgument(i, getDataTypeOf(margs[i]), arr);                            
+                            }else
+                                this.stack.last().addArgument(i, getDataTypeOf(margs[i]), castToDataType(getDataTypeOf(margs[i]), pArguments["p"+i].val));
+                        }else if(pArguments["p"+i].notset==true)
                             this.stack.last().addArgument(i, DTYPE.UNDEFINED, null);
                         else
                             this.stack.last().addArgument(i, getDataTypeOf(margs[i]), null);
@@ -1954,13 +2384,10 @@ class VM
                     //this.stack.last().addArgument(i, margs[i], this.allocator.malloc(pArguments[i]));
                 }
             }
-
-            console.log(this.stack.symTab.table.p0);
-            console.log(this.stack.symTab.table.p1);
         }
-        else{
+        /*else{
             console.log("nothing to do with args");
-        }
+        }*/
 
         // clean visited blocks
         this.cleanVisitedBlock();
@@ -2045,6 +2472,9 @@ class VM
                 v = `"${pSymbol.value}"${pSeparator}`;
                 break;
             case DTYPE.IMM_NUMERIC:
+            case DTYPE.IMM_SHORT:
+            case DTYPE.IMM_LONG:
+            case DTYPE.IMM_DOUBLE:
             case DTYPE.IMM_FLOAT:
                 v = `${pSymbol.value}${pSeparator}`;
                 break;
@@ -2367,6 +2797,7 @@ class VM
     execute( pInstrStack, pInstrOffset){
         let ops = [], dec=[],  f={res:false}, v='', regX=null,  regV=null, regZ=null, label=null, oper=null, tmp=[];
         let state = { code:[], jump:null, ret:null, inv:null};
+        let regs = {};
         let indent = "    ".repeat(this.depth);
 
 
@@ -2379,7 +2810,6 @@ class VM
 
                 regX = this.getRegisterName(oper.left);
                 //regV = this.allocator.newInstance(oper.right)
-                console.log(oper.right);
                 this.stack.setLocalSymbol(regX, DTYPE.OBJECT_REF, this.heap.newInstance( oper.right));
      
                 break;
@@ -2394,7 +2824,7 @@ class VM
             case OPCODE.CONST_WIDE_HIGH16.byte:
                 regX = this.getRegisterName(oper.left);
 
-                regV = this.stack.setLocalSymbol(regX, DTYPE.IMM_NUMERIC, oper.right._value);
+                regV = this.stack.setLocalSymbol(regX, DTYPE.IMM_NUMERIC, oper.right._value, null);
                 
                 // assigning concret value are ommited
                 if(this.simplify<1){
@@ -2406,7 +2836,7 @@ class VM
             case OPCODE.CONST_STRING.byte:
                 
                 regX = this.getRegisterName(oper.left);
-                regV = this.stack.setLocalSymbol(regX, DTYPE.IMM_STRING, oper.right._value);
+                regV = this.stack.setLocalSymbol(regX, DTYPE.IMM_STRING, oper.right._value, null);
 
                 if(this.simplify<1)
                     state.code.push(`${indent}${regX} = (String) ${this.getImmediateValue(regV)};`);
@@ -2436,62 +2866,71 @@ class VM
             case OPCODE.REM_INT_LIT8.byte:
             case OPCODE.REM_INT_LIT16.byte:
 
+            case OPCODE.AND_INT_LIT8.byte:
+            case OPCODE.AND_INT_LIT16.byte:
+
+            case OPCODE.OR_INT_LIT8.byte:
+            case OPCODE.OR_INT_LIT16.byte:
+
+            case OPCODE.XOR_INT_LIT8.byte:
+            case OPCODE.XOR_INT_LIT16.byte:
+
+            case OPCODE.SHR_INT_LIT8.byte:
+            case OPCODE.SHL_INT_LIT8.byte:
+            case OPCODE.USHR_INT_LIT8.byte:
+
+                regX = this.getRegisterName(oper.left[1]);
+                regV = this.stack.getLocalSymbol(regX);
+
+
+                if(this.isImm(regV)){
+                    regX = this.getRegisterName(oper.left[0]);
+                    v = regV[SYMBOL_OPE[oper.opcode.ope]](oper.right.getValue(), oper.opcode.byte);
+                    this.stack.setLocalSymbol(regX,  
+                        DTYPE.IMM_NUMERIC, 
+                        v, 
+                        '0x'+v.toString(16));
+
+                    regV = this.stack.getLocalSymbol(regX);
+                    v = `${indent}${this.getRegisterName(oper.left[0])} = ${this.getImmediateValue(regV)};`;
+                    state.code.push(v);
+//                    this.pcmaker.push(v);
+                }else{
+                    regX = this.getRegisterName(oper.left[0]);
+                    this.stack.setLocalSymbol(regX,  
+                        DTYPE.IMM_NUMERIC, 
+                        null, // regV[SYMBOL_OPE[oper.opcode.ope]](oper.right.getValue(), oper.opcode.byte) 
+                        v = `${(regV.hasCode()? '('+regV.getCode()+')':this.getRegisterName(oper.left[1]))}${oper.opcode.ope}${oper.right.getValue()}`);
+
+//                            this.getSymbol(regX).setCode(`${this.getRegisterName(oper.left[1])}+${oper.right.getValue()}`).
+                    state.code.push(`${indent}${this.getRegisterName(oper.left[0])} = ${v};`);
+                }
+                
+
+
                 if(this.simplify<1){
                     v = `${indent}${this.getRegisterName(oper.left[0])} = ${this.getRegisterName(oper.left[1])}${oper.opcode.ope}${oper.right.getValue()};`;
                     state.code.push(v);
-
-                }else{
-                    regX = this.getRegisterName(oper.left[1]);
-                    regV = this.stack.getLocalSymbol(regX);
-
-                    if(this.isImm(regV)){
-                        regX = this.getRegisterName(oper.left[0]);
-                        this.stack.setLocalSymbol(regX,  
-                            DTYPE.IMM_NUMERIC, 
-                            regV[SYMBOL_OPE[oper.opcode.ope]](oper.right.getValue(), oper.opcode.byte), 
-                            this.getImmediateValue(regV));
-
-                        v = `${indent}${this.getRegisterName(oper.left[0])} = ${this.getImmediateValue(regX)};`;
-                        state.code.push(v);
-                    }else{
-                        regX = this.getRegisterName(oper.left[0]);
-                        this.stack.setLocalSymbol(regX,  
-                            DTYPE.IMM_NUMERIC, 
-                            null, // regV[SYMBOL_OPE[oper.opcode.ope]](oper.right.getValue(), oper.opcode.byte) 
-                            v = `${(regV.hasCode()? '('+regV.getCode()+')':this.getRegisterName(oper.left[1]))}${oper.opcode.ope}${oper.right.getValue()}`);
-
-//                            this.getSymbol(regX).setCode(`${this.getRegisterName(oper.left[1])}+${oper.right.getValue()}`).
-                        state.code.push(`${indent}${this.getRegisterName(oper.left[0])} = ${v};`);
-                    }
                 }
+
                 //dec.push(v);
                 //console.log('add-int/lit8 ',v);
                 break;
 
 
             case OPCODE.ADD_INT.byte:
-            case OPCODE.ADD_LONG.byte:
-            case OPCODE.ADD_DOUBLE.byte:
             case OPCODE.ADD_FLOAT.byte:
                 
             case OPCODE.SUB_INT.byte:
-            case OPCODE.SUB_LONG.byte:
-            case OPCODE.SUB_DOUBLE.byte:
             case OPCODE.SUB_FLOAT.byte:
                 
             case OPCODE.MUL_INT.byte:
-            case OPCODE.MUL_LONG.byte:
-            case OPCODE.MUL_DOUBLE.byte:
             case OPCODE.MUL_FLOAT.byte:
                 
             case OPCODE.DIV_INT.byte:
-            case OPCODE.DIV_LONG.byte:
-            case OPCODE.DIV_DOUBLE.byte:
             case OPCODE.DIV_FLOAT.byte:
                 
             case OPCODE.REM_INT.byte:
-            case OPCODE.REM_LONG.byte:
-            case OPCODE.REM_DOUBLE.byte:
             case OPCODE.REM_FLOAT.byte:
 
                 if(this.simplify<1){
@@ -2590,29 +3029,37 @@ class VM
                 break;
 
             case OPCODE.ADD_INT_2ADDR.byte:
-            case OPCODE.ADD_LONG_2ADDR.byte:
-            case OPCODE.ADD_DOUBLE_2ADDR.byte:
             case OPCODE.ADD_FLOAT_2ADDR.byte:
 
             case OPCODE.SUB_INT_2ADDR.byte:
-            case OPCODE.SUB_LONG_2ADDR.byte:
-            case OPCODE.SUB_DOUBLE_2ADDR.byte:
             case OPCODE.SUB_FLOAT_2ADDR.byte:
 
             case OPCODE.MUL_INT_2ADDR.byte:
-            case OPCODE.MUL_LONG_2ADDR.byte:
-            case OPCODE.MUL_DOUBLE_2ADDR.byte:
             case OPCODE.MUL_FLOAT_2ADDR.byte:
 
             case OPCODE.DIV_INT_2ADDR.byte:
-            case OPCODE.DIV_LONG_2ADDR.byte:
-            case OPCODE.DIV_DOUBLE_2ADDR.byte:
             case OPCODE.DIV_FLOAT_2ADDR.byte:
 
             case OPCODE.REM_INT_2ADDR.byte:
-            case OPCODE.REM_LONG_2ADDR.byte:
-            case OPCODE.REM_DOUBLE_2ADDR.byte:
             case OPCODE.REM_FLOAT_2ADDR.byte:
+
+            case OPCODE.AND_INT_2ADDR.byte:
+            case OPCODE.AND_LONG_2ADDR.byte:
+
+            case OPCODE.OR_INT_2ADDR.byte:
+            case OPCODE.OR_LONG_2ADDR.byte:
+
+            case OPCODE.XOR_INT_2ADDR.byte:
+            case OPCODE.XOR_LONG_2ADDR.byte:
+
+            case OPCODE.SHL_INT_2ADDR.byte:
+            case OPCODE.SHL_LONG_2ADDR.byte:
+
+            case OPCODE.SHR_INT_2ADDR.byte:
+            case OPCODE.SHR_LONG_2ADDR.byte:
+
+            case OPCODE.USHR_INT_2ADDR.byte:
+            case OPCODE.USHR_LONG_2ADDR.byte:
                 if(this.simplify<1){
                     v = `${this.getRegisterName(oper.left[0])}${oper.opcode.ope}${this.getRegisterName(oper.right)}`;
 
@@ -2697,11 +3144,272 @@ class VM
                 
                 break;
 
+            // long numbers are stored over two 32bits registers
+            // <op> < 
+            case OPCODE.ADD_LONG.byte:
+            case OPCODE.SUB_LONG.byte:
+            case OPCODE.DIV_LONG.byte:
+            case OPCODE.MUL_LONG.byte:
+            case OPCODE.REM_LONG.byte:
+            case OPCODE.OR_LONG.byte:
+            case OPCODE.XOR_LONG.byte:
+            case OPCODE.AND_LONG.byte:
+                regs.src1 = this.prepareLong(oper.left[1]);
+                regs.src2 = this.prepareLong(oper.right);
+                regs.val = null;
+                regs.code = { m:null, l:null };
+
+                // if both long are concrete
+                if(regs.src1.v!==null && regs.src2.v!==null){
+
+                    regs.val= regs.src1.m[SYMBOL_OPE[oper.opcode.ope]]( 
+                        regs.src2.v, oper.opcode.byte, regs.src1.l.getValue());
+                }
+                else if(regs.src1.v !== null){
+                    regs.code.m = `(${regs.src1.v}${oper.opcode.ope}${regs.src2.mn})`;
+                    regs.code.l = `(${regs.src1.v}${oper.opcode.ope}${regs.src2.ln}) & 0xFFFFFFFF`;
+                }
+                else if(regs.src2.v !== null){
+                    regs.code.m = `(${regs.src1.mn}${oper.opcode.ope}${regs.src2.v})`;
+                    regs.code.l = `(${regs.src1.ln}${oper.opcode.ope}${regs.src2.v}) & 0xFFFFFFFF`;
+                }
+                else{
+                    regs.code.m = `(${regs.src1.mn}${oper.opcode.ope}${regs.src2.mn})`;
+                    regs.code.l = `(${regs.src1.ln}${oper.opcode.ope}${regs.src2.ln}) & 0xFFFFFFFF`;
+                }
+                
+
+                this.stack.setLocalSymbol(
+                    this.getRegisterName({ t:oper.left[0].t, i:oper.left[0].i }),  
+                    DTYPE.IMM_LONG, 
+                    regs.val!==null? (regs.val >> 32) & 0xFFFFFFFF : null, 
+                    regs.code.m);
+                this.stack.setLocalSymbol(
+                    this.getRegisterName({ t:oper.left[0].t, i:oper.left[0].i+1 }),  
+                    DTYPE.IMM_NUMERIC, 
+                    regs.val!==null? regs.val & 0x00000000FFFFFFFF : null, 
+                    regs.code.l);
+                    
+
+                break;
+
+            case OPCODE.SHR_LONG.byte:
+            case OPCODE.SHL_LONG.byte:
+            case OPCODE.USHR_LONG.byte:
+                
+                //TODO
+                break
+
+            case OPCODE.ADD_LONG_2ADDR.byte:
+            case OPCODE.SUB_LONG_2ADDR.byte:
+            case OPCODE.DIV_LONG_2ADDR.byte:
+            case OPCODE.MUL_LONG_2ADDR.byte:
+            case OPCODE.REM_LONG_2ADDR.byte:
+            case OPCODE.OR_LONG_2ADDR.byte:
+            case OPCODE.XOR_LONG_2ADDR.byte:
+            case OPCODE.AND_LONG_2ADDR.byte:
+                regs.src1 = this.prepareLong(oper.left);
+                regs.src2 = this.prepareLong(oper.right);
+                regs.val = null;
+                regs.code = { m:null, l:null };
+
+                // if both long are concrete
+                if(regs.src1.v!==null && regs.src2.v!==null){
+
+                    regs.val= regs.src1.m[SYMBOL_OPE[oper.opcode.ope]]( 
+                        regs.src2.v, oper.opcode.byte, regs.src1.l.getValue());
+                }
+                else if(regs.src1.v !== null){
+                    regs.code.m = `(${regs.src1.v}${oper.opcode.ope}${regs.src2.mn})`;
+                    regs.code.l = `(${regs.src1.v}${oper.opcode.ope}${regs.src2.ln}) & 0xFFFFFFFF`;
+                }
+                else if(regs.src2.v !== null){
+                    regs.code.m = `(${regs.src1.mn}${oper.opcode.ope}${regs.src2.v})`;
+                    regs.code.l = `(${regs.src1.ln}${oper.opcode.ope}${regs.src2.v}) & 0xFFFFFFFF`;
+                }
+                else{
+                    regs.code.m = `(${regs.src1.mn}${oper.opcode.ope}${regs.src2.mn})`;
+                    regs.code.l = `(${regs.src1.ln}${oper.opcode.ope}${regs.src2.ln}) & 0xFFFFFFFF`;
+                }
+                
+                this.stack.setLocalSymbol(
+                    this.getRegisterName({ t:oper.left.t, i:oper.left.i }),  
+                    DTYPE.IMM_LONG, 
+                    regs.val!==null? (regs.val >> 32) & 0xFFFFFFFF : null, 
+                    regs.code.m);
+                this.stack.setLocalSymbol(
+                    this.getRegisterName({ t:oper.left.t, i:oper.left.i+1 }),  
+                    DTYPE.IMM_NUMERIC, 
+                    regs.val!==null? regs.val & 0x00000000FFFFFFFF : null, 
+                    regs.code.l);
+                break;
+
+            case OPCODE.SHR_LONG_2ADDR.byte:
+            case OPCODE.SHL_LONG_2ADDR.byte:
+            case OPCODE.USHR_LONG_2ADDR.byte:
+                // TODO : not supported
+                break;
+
+            case OPCODE.NEG_LONG.byte:
+                // TODO : not supported
+                break;
+
+            // long numbers are stored over two 32bits registers
+            // <op> v0, 
+            case OPCODE.ADD_DOUBLE.byte:
+            case OPCODE.SUB_DOUBLE.byte:
+            case OPCODE.DIV_DOUBLE.byte:
+            case OPCODE.MUL_DOUBLE.byte:
+            case OPCODE.REM_DOUBLE.byte:
+                // TODO : not supported
+                break
+
+            case OPCODE.ADD_DOUBLE_2ADDR.byte:
+            case OPCODE.SUB_DOUBLE_2ADDR.byte:
+            case OPCODE.DIV_DOUBLE_2ADDR.byte:
+            case OPCODE.MUL_DOUBLE_2ADDR.byte:
+            case OPCODE.REM_DOUBLE_2ADDR.byte:
+                // TODO : not supported
+                break;
+
+                
+            case OPCODE.NEG_INT.byte:
+            case OPCODE.NEG_FLOAT.byte:
+            case OPCODE.NEG_DOUBLE.byte:
+
+                regX = this.getRegisterName(oper.right);
+                regV = this.stack.getLocalSymbol(regX);
+
+                if(regV.getValue() !== null){
+                    this.stack.setLocalSymbol(
+                        this.getRegisterName(oper.left), 
+                        regV.type,
+                        -regV.getValue(),
+                        `${this.getImmediateValue(regV)}${oper.opcode.ope}(${regX.getCode()})`);
+                }
+                else if(regV.hasCode()){
+                    this.stack.setLocalSymbol(
+                        this.getRegisterName(oper.left), 
+                        regV.type,
+                        null,
+                        `-(${regV.getCode()})`);
+                }
+                else{
+                    this.stack.setLocalSymbol(
+                        this.getRegisterName(oper.left), 
+                        regV.type,
+                        null,
+                        `-${regX}`);
+                }
+
+                break;
+
+            // int-to-<op>  <dest>, <src>
+            case OPCODE.INT_TO_BYTE.byte:
+                
+                regX = this.getRegisterName(oper.right);
+                regV = this.stack.getLocalSymbol(regX);
+                v = null;
+
+                if(this.isImm(regV))
+                    v = regV.getValue() & 0x000000FF;
+
+                this.stack.setLocalSymbol( 
+                    this.getRegisterName(oper.left), DTYPE.IMM_BYTE, v, `(byte) ${regX}`
+                );
+            
+                break;
+            
+            case OPCODE.INT_TO_CHAR.byte:
+                
+                regX = this.getRegisterName(oper.right);
+                regV = this.stack.getLocalSymbol(regX);
+                v = null;
+
+                if(this.isImm(regV))
+                    v = regV.getValue() & 0x000000FF;
+
+                this.stack.setLocalSymbol( 
+                    this.getRegisterName(oper.left), DTYPE.IMM_CHAR, v, `(char) ${regX}`
+                );
+            
+                break;
+            case OPCODE.INT_TO_FLOAT.byte:
+                
+                regX = this.getRegisterName(oper.right);
+                regV = this.stack.getLocalSymbol(regX);
+                v = null;
+
+                if(this.isImm(regV))
+                    v = regV.getValue();
+
+                this.stack.setLocalSymbol( 
+                    this.getRegisterName(oper.left), DTYPE.IMM_FLOAT, v, `(float) ${regX}`
+                );
+            
+                break;
+                
+            case OPCODE.INT_TO_SHORT.byte:
+                
+                regX = this.getRegisterName(oper.right);
+                regV = this.stack.getLocalSymbol(regX);
+                v = null;
+
+                if(this.isImm(regV))
+                    v = regV.getValue() & 0x0000FFFF;
+
+                this.stack.setLocalSymbol( 
+                    this.getRegisterName(oper.left), DTYPE.IMM_SHORT, v, `(short) ${regX}`
+                );
+            
+                break;
+
+            // cast involving multiple registers
+            case OPCODE.INT_TO_LONG.byte:
+                regX = this.getRegisterName(oper.right);
+                regV = this.stack.getLocalSymbol(regX);
+                v = null;
+
+                if(this.isImm(regV))
+                    v = regV.getValue() & 0x0000FFFF;
+
+                // <dest> = <src>
+                this.stack.setLocalSymbol( 
+                    this.getRegisterName(oper.left), DTYPE.IMM_LONG, 0x00000000, `(long) ${regX}`
+                );
+                // <dest>+1 = 0x00000000
+                this.stack.setLocalSymbol( 
+                    this.getRegisterName({ t:oper.left.t, i:oper.left.i+1 }), DTYPE.IMM_NUMERIC, v, `((long)${regX} >> 32)`
+                );
+
+                break;
+                
+            // verify :
+            // 0x cafebabe deadbeef => v0 = cafebabe ; v1 = deadbeef
+
+            case OPCODE.INT_TO_DOUBLE.byte:
+                regX = this.getRegisterName(oper.right);
+                regV = this.stack.getLocalSymbol(regX);
+                v = null;
+
+                if(this.isImm(regV))
+                    v = regV.getValue() & 0x0000FFFF;
+
+                // <dest> = <src>
+                this.stack.setLocalSymbol( 
+                    this.getRegisterName(oper.left), DTYPE.IMM_DOUBLE, v, `(long) ${regX}`
+                );
+                // <dest>+1 = 0x00000000
+                this.stack.setLocalSymbol( 
+                    this.getRegisterName({ t:oper.left.t, i:oper.left.i+1 }), DTYPE.IMM_NUMERIC, 0x00000000, `((long)${regX} >> 32)`
+                );
+
+                break;
+
             case OPCODE.MOVE_RESULT.byte:
             case OPCODE.MOVE_RESULT_WIDE.byte:
 
                 regX = this.getRegisterName(oper.left);
-                console.log(this.stack.print());
                     
                 //if(this.stack.ret.length > 0){
         
@@ -2727,7 +3435,6 @@ class VM
 
                 regX = this.getRegisterName(oper.left);
 
-                console.log(this.stack.print());
                 if(this.stack.ret.length > 0){
 
                     regV = this.stack.popReturn();
@@ -2771,19 +3478,18 @@ class VM
             case OPCODE.AGET_WIDE.byte:
                 
                 regX = this.stack.getLocalSymbol( this.getRegisterName(oper.right) ); // offset
-                if(oper.left[1] == undefined){
-                    console.log(oper);
-                }
                 regV = this.stack.getLocalSymbol( this.getRegisterName(oper.left[1]) ); // array
 
                 //  TODO:  Index Out-Of-Bound
                 if(this.isImm(regX)){
+                    console.log(regX);
                     if(regV.getValue() instanceof VM_VirtualArray){
                         //console.log("imm - imm", regX, regX.getValue());
                         this.stack.setLocalSymbol(
                             this.getRegisterName(oper.left[0]),
                             ATYPE_DTYPE[oper.opcode.byte],
-                            regV.arrayRead(regX.getValue()),
+//                            regV.arrayRead(regX.getValue()),
+                            regV.getValue().read(regX.getValue()),
                             v = `${regV.hasCode()?regV.getCode():this.getRegisterName(oper.left[1])}[${regX.getValue()}]`);
                     }else{
                         //console.log("imm - sym", regX, regX.getValue());
@@ -2819,15 +3525,19 @@ class VM
 
                 // TODO : Index Out-Of-Bound, Out-Of-Memory 
                 if(this.isImm(regX)){ // concrete offset
+                    console.log('put concrete value');
                     if(regV.getValue() instanceof VM_VirtualArray){ // concrete value
+                        console.log('put array',this.isImm(regZ),regZ.type < DTYPE.OBJECT_REF, (regZ.value != null));
                         if(this.isImm(regZ))
                             regV.arrayWrite(regX.getValue(), regZ.getValue());
                         else
                             regV.arrayWrite(regX.getValue(), regZ);
                     }else{
                         Logger.debug("Non concrete array detected");
+                        console.log("Non concrete array detected");
                     }
                 }else{
+                    console.log('put symbolic value')
                     // offset, // value
                     regV.arrayWriteSymbolic(regX, regZ);
                 }
@@ -2838,18 +3548,21 @@ class VM
                     label = regX.hasCode()? regX.getCode() : this.getRegisterName(oper.right);
                 }
                 
-                v = `${regV.hasCode()?regV.getCode():this.getRegisterName(oper.left[1])}[${label}] = `;
-                
-                if(this.isImm(regZ)){
-                    v += `${this.isImm(regZ)? this.getImmediateValue(regZ):this.getRegisterName(oper.left[0])};`;
-                }else if(regZ.hasCode()){
-                    v += `(${regZ.getCode()});`;
-                }else{
-                    v += `${this.getRegisterName(oper.left[0])};`;
+
+                if(regV.getValue() == null){
+
+                    v = `${regV.hasCode()?regV.getCode():this.getRegisterName(oper.left[1])}[${label}] = `;
+                    
+                    if(this.isImm(regZ)){
+                        v += `${this.isImm(regZ)? this.getImmediateValue(regZ):this.getRegisterName(oper.left[0])};`;
+                    }else if(regZ.hasCode()){
+                        v += `(${regZ.getCode()});`;
+                    }else{
+                        v += `${this.getRegisterName(oper.left[0])};`;
+                    }
+
+                    state.code.push(v);
                 }
-
-
-                state.code.push(v);
                 break;
 
             case OPCODE.MOVE_EXCEPTION.byte:
@@ -2882,7 +3595,6 @@ class VM
 
                 if(oper.left.length > 0){
                     // parseInt(oper.left[0].i,10
-                    console.log(oper.left);
                     for(let j=parseInt(oper.left[0].i,10); j<parseInt(oper.left[1].i,10)+1; j++){
                         regX = oper.left[0].t+j;
                         regV = this.stack.getLocalSymbol(regX);
@@ -2940,6 +3652,8 @@ class VM
                 this.invokes.push(pInstrOffset);
                 break;
 
+            
+            case OPCODE.INVOKE_SUPER.byte:
             case OPCODE.INVOKE_VIRTUAL.byte:
             case OPCODE.INVOKE_DIRECT.byte:
             case OPCODE.INVOKE_INTERFACE.byte:
@@ -2962,69 +3676,7 @@ class VM
                 }
 
                 this.pcmaker.writeInvoke( oper.right, oper.left);
-
-                /*
-                //console.log(indent.length);
-                if((oper.right instanceof CLASS.Method) && (oper.right.name=="<init>"))
-                    v = `${indent}${regX} = new ${oper.right.enclosingClass.name}(`;
-                else if(this.method.modifiers.static==false && regX=="p0"){
-                    v = `${indent}this.${oper.right.alias!=null? oper.right.alias : oper.right.name}(`;
-                    f.res = true;
-                    this.invokes.push(pInstrOffset);
-                }
-                else if(regV.type==DTYPE.CLASS_REF && regV.hasCode()){
-                    v = `${indent}${regV.getCode()}.${oper.right.alias!=null? oper.right.alias : oper.right.name}(`;
-                    f.res = true;
-                    this.invokes.push(pInstrOffset);
-                }
-                else if((regV.getValue() instanceof VM_ClassInstance) 
-                        && (regV.getValue().hasConcrete()) 
-                        && (typeof regV.getValue().getConcrete() == "string")){
-                    v = `${indent}"${regV.getValue().getConcrete()}".${oper.right.alias!=null? oper.right.alias : oper.right.name}(`;
-                    f.res = true;
-                    this.invokes.push(pInstrOffset);
-                }
-                else{
-                    v = `${indent}${regX}.${oper.right.alias!=null? oper.right.alias : oper.right.name}(`;
-                    f.res = true;
-                    this.invokes.push(pInstrOffset);
-                }
-            
-
-                if(oper.left.length > 1){
-                    for(let j=1; j<oper.left.length; j++){
-
-                        tmp = this.getRegisterName(oper.left[j]);
-                        regV = this.stack.getLocalSymbol(tmp);
-
-                        state.inv.args.push(regV);
-
-                        if(this.isImm(regV))
-                            v += `${this.getImmediateValue(regV)},`;
-                        else if(regV.hasCode())
-                            v+= `${regV.getCode()},`;
-                        else if(regV.isThis(this.method)){
-                            v += `this, `;
-                        }
-                        else if((regV.getValue() instanceof VM_ClassInstance) 
-                            && (regV.getValue().hasConcrete()) 
-                            && (typeof regV.getValue().getConcrete() == "string")){
-                            v += `"${regV.getValue().getConcrete()}",`;
-                        }
-                        else{
-                            v += `${tmp},`;
-                        }
-                    } 
-                    v = v.substr(0, v.length-1);
-                }
-                v += ')';
-                state.code.push(v);*/
-
-
-
-
                 break;
-
 
             case OPCODE.IGET.byte:
             case OPCODE.IGET_BYTE.byte:
@@ -3235,6 +3887,14 @@ class VM
                         regV.getValue(), 
                         `${v[0]} = ${v[1]}`);
                 }
+                else if(regV.getValue() instanceof VM_VirtualArray){
+                    v = [`${oper.right.enclosingClass.name}.${oper.right.name}`,regV.getValue().toString()];
+                    this.metharea.setGlobalSymbol(
+                        `${oper.right.enclosingClass.name}.${oper.right.name}`, 
+                        DTYPE.FIELD, 
+                        regV.getValue(), 
+                        `${v[0]} = ${v[1]}`);
+                }
                 else if(regV.hasCode()){
                     v = [`${oper.right.enclosingClass.name}.${oper.right.name}`,regV.getCode()];
                     this.metharea.setGlobalSymbol(
@@ -3391,18 +4051,46 @@ class VM
             case OPCODE.IF_GE.byte:                
                 regX = this.getRegisterName(oper.left[0]);
                 regV = this.getRegisterName(oper.left[1]);
-                
+
                 label = `:cond_${oper.right.name}`;
                 this.saveContext(label);
+                
+                if(this.config.simplify>=0){
+                    regX = this.stack.getLocalSymbol(regX);
+                    regV = this.stack.getLocalSymbol(regV);
 
-                if(this.config.simplify>0){
-                    if(this.isImm(this.stack.getLocalSymbol(regX)))
-                        regX = this.getImmediateValue(this.stack.getLocalSymbol(regX));
-                    if(this.isImm(this.stack.getLocalSymbol(regV)))
-                        regV = this.getImmediateValue(this.stack.getLocalSymbol(regV));
+                    if(regX==null || regV==null){
+                        // impossible to identify valid path :  queueing two path TRUE and FALSE paths 
+                        //this.getContext(label).updateIf();
+                        Logger.debug("IF_GE : impossible");
+                        state.code.push(`${indent}if( ${this.getRegisterName(oper.left[0])} <= ${this.getRegisterName(oper.left[1])} ) ${label}`);
+                        state.jump = {type:CONST.INSTR_TYPE.IF, label:oper.right.name};
+                        break;
+                    }
+
+                    if(this.isImm(regX) && this.isImm(regV)){
+                        if(regX.type !== regV.type){
+                            // need autocast
+                        }
+                        if(regX.getValue() >= regV.getValue()){
+                            state.jump = {type:CONST.INSTR_TYPE.IF, label:oper.right.name};
+                        }
+                        state.code.push(`${indent}if( ${regX.getValue()} <= ${regV.getValue()} ) ${label}`);
+                        Logger.debug("IF_GE : cmp is done");
+
+                    }else{
+                        // impossible to identify valid path :  queueing two path TRUE and FALSE paths 
+                        // default is TRUE path, FALSE is queued
+                        if(CONST.VM.DEFAULT_PATH){
+                            state.jump = {type:CONST.INSTR_TYPE.IF, label:oper.right.name};
+                        } 
+
+                        state.code.push(`${indent}if( ${this.getRegisterName(oper.left[0])} <= ${this.getRegisterName(oper.left[1])} ) ${label}`);
+                        // else continue to execute
+                        Logger.debug("IF_GE : default path");
+
+                    }
                 }
-
-                state.code.push(`${indent}if( ${regX} >= ${regV} ) ${label}`);
                 break;
             case OPCODE.IF_GT.byte:                
                 regX = this.getRegisterName(oper.left[0]);
@@ -3428,13 +4116,37 @@ class VM
                 this.saveContext(label);
                 
                 if(this.config.simplify>0){
-                    if(this.isImm(this.stack.getLocalSymbol(regX)))
-                        regX = this.getImmediateValue(this.stack.getLocalSymbol(regX));
-                    if(this.isImm(this.stack.getLocalSymbol(regV)))
-                        regV = this.getImmediateValue(this.stack.getLocalSymbol(regV));
+                    regX = this.stack.getLocalSymbol(regX);
+                    regV = this.stack.getLocalSymbol(regV);
+
+                    if(regX==null || regV==null){
+                        // impossible to identify valid path :  queueing two path TRUE and FALSE paths 
+                        //this.getContext(label).updateIf();
+                        state.code.push(`${indent}if( ${this.getRegisterName(oper.left[0])} <= ${this.getRegisterName(oper.left[1])} ) ${label}`);
+                        break;
+                    }
+
+                    if(this.isImm(regX) && this.isImm(regV)){
+                        if(regX.type !== regV.type){
+                            // need autocast
+                        }
+                        if(regX.getValue() < regV.getValue()){
+                            state.jump = {type:CONST.INSTR_TYPE.IF, label:oper.right.name};
+                        }
+                        state.code.push(`${indent}if( ${regX.getValue()} <= ${regV.getValue()} ) ${label}`);
+
+                    }else{
+                        // impossible to identify valid path :  queueing two path TRUE and FALSE paths 
+                        // default is TRUE path, FALSE is queued
+                        if(CONST.VM.DEFAULT_PATH){
+                            state.jump = {type:CONST.INSTR_TYPE.IF, label:oper.right.name};
+                        } 
+
+                        state.code.push(`${indent}if( ${this.getRegisterName(oper.left[0])} <= ${this.getRegisterName(oper.left[1])} ) ${label}`);
+                        // else continue to execute
+                    }
                 }
                     
-                state.code.push(`${indent}if( ${regX} <= ${regV} ) ${label}`);
                 break;
 
             // IF zero
@@ -3623,10 +4335,23 @@ class VM
                 break;
 
             
-            /*case OPCODE.FILL_ARRAY_DATA.byte:
-                this.method.getDataBlockByTag(oper.right.name);
-                console.log(oper.right);
-                break;*/
+            case OPCODE.FILL_ARRAY_DATA.byte:
+                
+                regX = this.getRegisterName(oper.left);
+                regV = this.stack.getLocalSymbol(regX);
+                
+                if(regV.getValue() instanceof VM_VirtualArray){
+                    //console.log(oper.right.name);
+                    v = this.method.getDataBlockByName(':array_'+oper.right.name);
+                    regV.getValue().fillWith(v);
+                    if(this.config.simplify<1){
+                        state.code.push(`${indent} ${regX} = ${regV.getValue().toString()}`);
+                    }
+                }else{
+                    throw VM_Exception('VM001','fill-array-data cannot be executed : '+regX+' is not an array');
+                }
+                
+                break;
 
             case OPCODE.GOTO.byte:
             case OPCODE.GOTO_16.byte:
@@ -3635,12 +4360,12 @@ class VM
                 //console.log("GOTO save state for ",label);
                 //console.log(this.stack.current());
                 this.saveContext(label);
-                if(this.simplify<1){
-                    state.code.push(`${indent}goto ${label}`);
-                }else{
+                //if(this.simplify<1){
+                // state.code.push(`${indent}goto ${label}`);
+                //}else{
                     // get basic block 
                     state.jump = {type:CONST.INSTR_TYPE.GOTO, label:oper.right.name};
-                }
+                //}
                 break;
 
             case OPCODE.ARRAY_LENGTH.byte:
@@ -3678,7 +4403,7 @@ class VM
                 }
 
 
-                if(this.simplify<5){
+                if(this.config.simplify<5){
                     state.code.push(v);
                 }
 
@@ -3703,12 +4428,26 @@ class VM
                 else
                     v = `new ${v}[${regX}]`;
 
-                state.code.push(`${indent}${regZ} = ${v};`);
-                this.stack.setLocalSymbol(
-                    regZ, 
-                    DTYPE.ARRAY, 
-                    this.allocator.newArray(oper.right, regV.getValue()), 
-                    null);
+
+                if(this.config.simplify<1){
+                    state.code.push(`${indent}${regZ} = ${v};`);
+                    //this.pcmaker.optimize(regZ);
+                }
+
+                if( regV.getValue() !== null){
+                    this.stack.setLocalSymbol(
+                        regZ, 
+                        DTYPE.ARRAY, 
+                        this.allocator.newArray(oper.right, regV.getValue()), 
+                        null);
+                }else{
+                    this.stack.setLocalSymbol(
+                        regZ, 
+                        DTYPE.ARRAY, 
+                        this.allocator.newArray(oper.right).setSymbolicSize(regV.getCode()), 
+                        null);
+                }
+
 
                 //state.code.push(`${indent}${this.getRegisterName(oper.left[0])} = new ${oper.right._name}[${regX}];`);
                 
@@ -3717,11 +4456,14 @@ class VM
 
                 regV = this.stack.getLocalSymbol( this.getRegisterName(oper.left));
 
-                // check regV type against oper.right
+                
+                console.log(regV);
 
                 //if( regV.getValue().name !== oper.right.name && 
 
                 break;
+
+            
 
             case OPCODE.NOP.byte:
                 break;
