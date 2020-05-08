@@ -476,10 +476,10 @@
                 {  
                    
                     render: function(data, type, row, meta ){
-                        if(row.isIntercept)
-                            return '<span class="badge badge-pill badge-danger">intercept</span>';
+                        if(row.parentID != null)
+                            return (row.color!=null? `<span class="badge badge-pill badge-${row.color}">${row.parentID}</span>`: row.parentID) ;
                         else
-                            return '<span class="badge badge-pill badge-primary">probe</span>';                 
+                            return '<span class="badge badge-pill badge-primary">custom</span>';                 
                     }
                     //defaultContent: '-'
                 },

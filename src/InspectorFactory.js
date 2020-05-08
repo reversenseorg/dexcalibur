@@ -29,13 +29,19 @@ class InspectorFactory
             ins.setStartStep(this._config.startStep);
         }
 
+        if(this._config.color != null){
+            ins.color = this._config.color;
+        }
+
         if(this._config.hookSet != null){
 
 
+
             hs = new Hook.HookSet({
-                id: this._config.hookSet.id,
-                name: this._config.hookSet.name,
-                description: this._config.hookSet.description
+                id: (this._config.id!=null ? this._config.id : this._config.hookSet.id),
+                name: (this._config.name!=null ? this._config.name : this._config.hookSet.name),
+                description: (this._config.description!=null ? this._config.description : this._config.hookSet.description),
+                color: this._config.color
             });
 
             hooks = this._config.hookSet.hooks;

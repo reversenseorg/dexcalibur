@@ -79,6 +79,12 @@ class Inspector{
         this.preRegisteredTags = [];
         this.db = null;
 
+        /**
+         * @type {String}
+         * @field
+         */
+        this.color = null;
+
         this.installed = false;
         this.step = TYPE.BOOT;
 
@@ -93,6 +99,7 @@ class Inspector{
 
         return this;
     }
+
 
     isInstalled(){
         return this.installed;
@@ -226,9 +233,11 @@ class Inspector{
 
     setHookSet(hs){
         this.hookSet = hs;
-        this.id = hs.id;
-        this.name = hs.name;
-        this.description = hs.description;
+        this.hookSet.color = this.color;
+
+        if(this.id==null) this.id = hs.id;
+        if(this.name==null) this.name = hs.name;
+        if(this.description==null) this.description = hs.description;
     }
 
     getHookSet(){

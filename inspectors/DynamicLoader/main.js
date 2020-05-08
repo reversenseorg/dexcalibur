@@ -17,7 +17,10 @@ const DexHelper = require('../../src/DexHelper');
 
 var DynLoaderInspector = new InspectorFactory({
 
-    //
+    id: "DynamicLoader",
+    name: "Dynamic class loader inspector",
+    description: "Update the application representation with Custom classloader and reflection data",
+
     startStep: Inspector.STEP.POST_APP_SCAN,
 
     useGUI: true,
@@ -30,10 +33,10 @@ var DynLoaderInspector = new InspectorFactory({
     tags: {
         "dynamic_loading": ["invoked","loaded"]},
 
+    color: 'purple',
+
+
     hookSet: {
-        id: "DynamicLoader",
-        name: "Dynamic class loader inspector",
-        description: "Update the application representation with Custom classloader and reflection data",
         require: ["Common","Reflect"],
         hookShare: {
             classloader: [],

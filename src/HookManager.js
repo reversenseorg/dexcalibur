@@ -107,6 +107,8 @@ function Hook(context){
     this.after = false;
     this.before = false;
 
+    this.color = null;
+
     this.variables = null,
     this.code = {
         varID: null,
@@ -337,6 +339,7 @@ Hook.prototype.toJsonObject = function(){
     let o = new Object();
     o.id = this.id;
     o.parentID = this.parentID;
+    o.color = this.color;
     o.customName = this.customName;
     o.name = this.name;
     o.enable = this.enabled;
@@ -943,6 +946,7 @@ HookPrimitive.prototype.toIntercept = function(context,set){
         hook.buildCustomScript(method);
     }
 
+    hook.color = this.color;
     //console.log(hook);
     return hook;          
 }
@@ -1750,6 +1754,7 @@ function HookSet(config){
     this.context = null;
     this.enable = false;
     this.requires = [];
+    this.color = null;
    // this.requiresNode = [];
 
     for(let i in config) this[i] = config[i];
@@ -1851,25 +1856,33 @@ HookSet.prototype.addIntercept = function(interceptConfig){
         return null;
     }
 
+    let primitive;
+
     if(interceptConfig.method !=null){
         if(typeof interceptConfig.method != "string"){
             for(let i=0; i<interceptConfig.method.length; i++){
                 primitive = new HookPrimitive(interceptConfig);
                 primitive.setMethod( interceptConfig.method[i]);
                 primitive.isIntercept = true;
+                primitive.color = this.color;
+
                 this.intercepts.push( primitive);            
             }
         }else{
             primitive = new HookPrimitive(interceptConfig);
             primitive.isIntercept = true;
             primitive.setMethod( interceptConfig.method);
+            primitive.color = this.color;
+
             this.intercepts.push( primitive);
         }
     }
     else{
         primitive = new HookPrimitive(interceptConfig);
+        primitive.color = this.color;
         this.intercepts.push( primitive); 
     }
+
 
     return this;
 }
@@ -1888,6 +1901,8 @@ HookSet.prototype.addCustomHook = function(config){
                 primitive.isIntercept = true;
                 primitive.isCustom = true;
                 primitive.setMethod( config.method);
+                primitive.color = this.color;
+
                 this.intercepts.push( primitive);           
             }
         }else{
@@ -1896,6 +1911,8 @@ HookSet.prototype.addCustomHook = function(config){
             primitive.isIntercept = true;
             primitive.isCustom = true;
             primitive.setMethod( config.method);
+            primitive.color = this.color;
+
             this.intercepts.push( primitive);
         }
         
