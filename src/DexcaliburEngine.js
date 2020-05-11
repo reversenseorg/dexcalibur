@@ -246,7 +246,7 @@ class DexcaliburEngine
      * 
      * @method
      */
-    loadWorkspaceFromConfig(pDexcaliburHome=null){
+    loadWorkspaceFromConfig(pDexcaliburHome=null, pOverride=null){
         let d = null;
         
         if(process.env.DEXCALIBUR_HOME != null)
@@ -255,6 +255,10 @@ class DexcaliburEngine
             d = JSON.parse( _fs_.readFileSync( _path_.join( pDexcaliburHome, 'config.json')) );
         else
             d = JSON.parse( _fs_.readFileSync(CONFIG_PATH) );
+
+        if(pOverride != null){
+            for(let i in pOverride) d[i] = pOverride[i];
+        }
 
         this.workspace = DexcaliburWorkspace.getInstance( d.workspace);
         this.registry = new DexcaliburRegistry( d.registry, d.registryAPI);
