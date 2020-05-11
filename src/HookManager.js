@@ -1452,6 +1452,11 @@ class HookManager
             hook_script = this.prepareHookScript();
         }
 
+        if(this.frida_disabled){
+            Logger.info("[HOOK MANAGER] Frida is disabled ! Hook and session prepared but not start() ignored");
+            return null;
+        } 
+
         // retrieve default  device from project
         if(pDevice == null){
             target = this.context.getDevice();
@@ -1460,11 +1465,6 @@ class HookManager
         else{
             target = pDevice;
         }
-
-        if(this.frida_disabled){
-            Logger.info("[HOOK MANAGER] Frida is disabled ! Hook and session prepared but not start() ignored");
-            return null;
-        } 
 
         // start Frida
         // do spawn + attach

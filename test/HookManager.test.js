@@ -49,6 +49,7 @@ describe('HookManager', function() {
                 expect(manager.isFridaDisabled()).to.equals(true);
 
                 manager.start("Java.perform()");
+                
                 expect(Logger.expect({
                     type: Logger.T_INFO,
                     value: "[HOOK MANAGER] Frida is disabled ! Hook and session prepared but not start() ignored"

@@ -15,16 +15,15 @@ var CONFIG = null;
 const TestHelper = require('../src/TestHelper.js');
 const DexcaliburWorkspace = require('../src/DexcaliburWorkspace.js');
 
+var gEngine = null;
+
 describe('DexcaliburWorkspace', function() {
 
     beforeEach(function() {
-        CONFIG = TestHelper.newConfiguration();
+        //gEngine = TestHelper.getDexcaliburEngine();
         TestHelper.clearInterceptors();
     });
 
-    afterEach(function() {
-       // console.log.restore();
-    });
     
     describe('constructor', function() {
 
@@ -43,6 +42,8 @@ describe('DexcaliburWorkspace', function() {
 
         it('new instance', function () {
             
+            DexcaliburWorkspace.clearInstance();
+
             let ws = DexcaliburWorkspace.getInstance('/tmp');
 
             expect(ws).to.be.an.instanceOf(DexcaliburWorkspace);
@@ -51,6 +52,8 @@ describe('DexcaliburWorkspace', function() {
 
         it('override', function () {
             
+            DexcaliburWorkspace.clearInstance();
+
             let ws = DexcaliburWorkspace.getInstance('/tmp');
 
             expect(ws).to.be.an.instanceOf(DexcaliburWorkspace);
@@ -66,8 +69,8 @@ describe('DexcaliburWorkspace', function() {
             
             let ws1 = DexcaliburWorkspace.getInstance('/tmp/f2',true);
 
-            expect(ws).to.be.an.instanceOf(DexcaliburWorkspace);
-            expect(ws.path).to.equals('/tmp/f2');
+            expect(ws1).to.be.an.instanceOf(DexcaliburWorkspace);
+            expect(ws1.path).to.equals('/tmp/f2');
 
             let ws2 = DexcaliburWorkspace.getInstance();
 
@@ -83,8 +86,8 @@ describe('DexcaliburWorkspace', function() {
 
             let ws1 = DexcaliburWorkspace.getInstance('/tmp/f2',true);
 
-            expect(ws).to.be.an.instanceOf(DexcaliburWorkspace);
-            expect(ws.getLocation()).to.equals('/tmp/f2');
+            expect(ws1).to.be.an.instanceOf(DexcaliburWorkspace);
+            expect(ws1.getLocation()).to.equals('/tmp/f2');
         });
 
     });
@@ -95,15 +98,10 @@ describe('DexcaliburWorkspace', function() {
 
             let ws1 = DexcaliburWorkspace.getInstance('/tmp/f2',true);
 
-            expect(ws).to.be.an.instanceOf(DexcaliburWorkspace);
-            expect(ws.getLocation()).to.equals('/tmp/f2');
+            expect(ws1).to.be.an.instanceOf(DexcaliburWorkspace);
+            expect(ws1.getLocation()).to.equals('/tmp/f2');
         });
 
     });
 
-    describe('init()', function() {
-
-      
-
-    });
 });

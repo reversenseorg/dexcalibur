@@ -54,6 +54,10 @@ class DexcaliburWorkspace
         this.oldconfigPath = null;
     }
     
+    static clearInstance(){
+        gWorkspaceInstance = null;
+    }
+    
     /**
      * 
      * @param {String} pPath Workspace location

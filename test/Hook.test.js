@@ -19,13 +19,14 @@ describe('Hook', function() {
     let gEngine = null;
     let gProject = null;
 
-    before(async function(){
-        gEngine = DexcaliburEngine.getInstance();
-
+    /*before(async function(){
         TestHelper.interceptExec( function(x){
             return (x.indexOf("adb devices")>-1);
-        }, `package:com.android.cts.priv.ctsshim${EOL}package:com.google.android.youtube${EOL}package:com.google.android.ext.services${EOL}package:com.android.providers.telephony`);
+        }, `List of devices attached${EOL}01020304050607       device usb:330102034X product:bullhead model:Nexus_5X device:bullhead transport_id:1`);
 
+
+        gEngine = TestHelper.getDexcaliburEngine(true);
+       
 
         gProject = await gEngine.getProject("owasp.mstg.uncrackable1");
 
@@ -44,6 +45,6 @@ describe('Hook', function() {
     
             expect(hook.context).to.be.an.instanceOf(DexcaliburProject);
         });
-    });
+    });*/
       
 });

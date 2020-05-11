@@ -29,6 +29,7 @@ class TestHelper
         this.app = null;
         this.testCfg = require( _path_.join( __dirname, "../test/test_configuration.js") );
         this.config = null;
+        this.engine = null;
         this.interceptors = {
             exec: []
         };
@@ -154,6 +155,11 @@ class TestHelper
         return this.sendHTTPRequest( 'GET', pURL); 
     }
 
+    /**
+     * 
+     * @param {*} pPath 
+     * @method
+     */
     resetDexcaliburWorkspace( pPath=null){
         let dxc = DexcaliburWorkspace.getInstance(
             _path_.join(__dirname,'..','test','ws'), true
@@ -161,10 +167,37 @@ class TestHelper
         dxc.init();
     }
 
+    /**
+     * @method
+     */
+    newDexcaliburEngine(){
+        
+        DexcaliburWorkspace.clearInstance();
+
+        let engine = DexcaliburEngine.getInstance();
+
+        engine.loadWorkspaceFromConfig( 
+            _path_.join( __dirname, '..', 'test', '.dexcalibur'),
+            {
+                workspace: _path_.join( __dirname, '..', 'test', 'ws')
+            });
+
+        engine.boot();
+        
+        return engine;
+    }
+
+    /**
+     * 
+     * @param {*} pForce 
+     * @method
+     */
     getDexcaliburEngine(pForce = false){
         if(this.engine == null || pForce){
-            this.engine = new DexcaliburEngine();
+            this.engine = this.newDexcaliburEngine();
         }
+
+        return this.engine;
     }
 }
 

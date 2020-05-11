@@ -45,7 +45,7 @@ describe('DexcaliburProject', function() {
     let gEngine = null;
 
     before(function(){
-        gEngine = DexcaliburEngine.getInstance();
+        gEngine = new DexcaliburEngine(); //TestHelper.getDexcaliburEngine();
     })
 
     beforeEach(function() {
@@ -71,56 +71,20 @@ describe('DexcaliburProject', function() {
             p = new DexcaliburProject(gEngine, "owasp.mstg.uncrackable1");
            
             // the flag should be 1
-            expect(p.nofrida).to.equals(0);
+            expect(p.engine).to.be.an.instanceOf(DexcaliburEngine);
 
             // if Frida is disabled, the hook manager manager should be aware.
-            expect(p.hook.isFridaDisabled()).to.equals(false);
-        });
-
-        it('default configuration path', function () {
-            p = new DexcaliburProject(gEngine, "owasp.mstg.uncrackable1");
-            p.nofrida
-
-            // the flag should be 1
-            expect(p.nofrida).to.equals(0);
-
-            // if Frida is disabled, the hook manager manager should be aware.
-            expect(p.hook.isFridaDisabled()).to.equals(false);
-        });
-
-        it('workspace ok', function () {
-            p = new DexcaliburProject(gEngine, "owasp.mstg.uncrackable1");
-
+            expect(p.uid).to.equals("owasp.mstg.uncrackable1");
         });
     });
 
     /*
-    describe('new - configuration init', function() {
-        let p = null; // new Project("owasp.mstg.uncrackable1", TEST_CONFIG, 1);
-
-        it('with default configurat', function () {
-            //let conf = TestHelper.newConfiguration();
-            console.log(TestHelper.getConfigurationPath());
-            p = new Project("owasp.mstg.uncrackable1", TestHelper.getConfigurationPath(), 1);
-
-            expect(p.cfgpath).to.equals(TestHelper.getConfigurationPath());
-
-console.log(Logger);
-            expect(Logger.expect({
-                type: "info",
-                value: " Given configuration file loaded"
-            })).to.equals(true); 
-
-            expect(p.getConfiguration()).to.be.not.null(); 
-            
-        });
-    });*/
-
-    describe('initDexcalibur()', function() {
+    describe('init()', function() {
         let p = null; // new Project("owasp.mstg.uncrackable1", TEST_CONFIG, 1);
 
         it('init project', function () {
             p = new DexcaliburProject(gEngine, "owasp.mstg.uncrackable1");
+            p.init();
 
             // test context 
             expect(p.pkg).to.equals("owasp.mstg.uncrackable1");
@@ -132,10 +96,6 @@ console.log(Logger);
             expect(p.appAnalyzer).to.be.an.instanceOf(AndroidAppAnalyzer);
             expect(p.bus).to.be.an.instanceOf(Bus);
             expect(p.graph).to.be.an.instanceOf(GraphMaker);
-
-            // TODO check nested init
-            
-            
             
         });
 
@@ -153,19 +113,16 @@ console.log(Logger);
     describe('changeProject()', function() {
         let p = null; // new Project("owasp.mstg.uncrackable1", TEST_CONFIG, 1);
 
-        /*it('', function () {
-            // todo
-        });*/
     });
 
-    /*describe('getConfiguration()', function() {
+    describe('getConfiguration()', function() {
         let p = new DexcaliburProject( gEngine, "owasp.mstg.uncrackable1");
 
         it('should return Configuration instance', function () {
             expect(p.getConfiguration()).to.be.an.instanceOf(Configuration);
             expect(p.getConfiguration().apktPath).to.be.deep.equal("/home/example/tools/apktool");
         });
-    });*/
+    });
 
     describe('getDataAnalyzer()', function() {
         let p = new DexcaliburProject( gEngine, "owasp.mstg.uncrackable1");
@@ -194,7 +151,7 @@ console.log(Logger);
     describe('showAPIs()', function() {
         let p = null; // new Project("owasp.mstg.uncrackable1", TEST_CONFIG, 1);
 
-        /*it('with default configurat', function () {
+        it('with default configurat', function () {
             p = new Project("owasp.mstg.uncrackable1", TEST_CONFIG, 1);
 
             expect(p.cfgpath).to.equals(TEST_CONFIG);
@@ -206,7 +163,7 @@ console.log(Logger);
 
             expect(p.getConfiguration()).to.be.not.null(); 
             
-        });*/
+        });
     });
 
     describe('useAPI()', function() {
@@ -242,7 +199,7 @@ console.log(Logger);
 
             expect(p.getConfiguration()).to.be.not.null(); 
             
-        });*/
+        });
     });
 
     describe('scanForFiles()', function() {
