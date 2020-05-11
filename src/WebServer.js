@@ -2034,6 +2034,7 @@ class WebServer {
             '/pages/probe',
             '/pages/scanner',
             '/pages/devicemanager',
+            '/inspectors/'
         ];
 
         let self = this;
@@ -2044,12 +2045,11 @@ class WebServer {
         this.app.use(function(req, res, next){
             let f = false;
             if(self.project != null){ next(); return; }
-            if(!req.url.startsWith('/pages/')){ next(); return; }
+            if(!req.url.startsWith('/pages/') && !req.url.startsWith('/inspectors/')){ next(); return; }
 
 
             for(let i=0; i<projectDependentPath.length; i++){
                 if(req.url.startsWith(projectDependentPath[i])) {
-                    console.log(req.url, (projectDependentPath[i]));
                     f = true;
                     break;
                 }
@@ -2057,7 +2057,6 @@ class WebServer {
 
             if(f==false){ next(); return; }
             
-            console.log("Invalid state for : ",req.url);
             res.redirect('/pages/splash.html');
             res.send();
             
