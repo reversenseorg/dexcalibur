@@ -143,6 +143,11 @@ class PlatformManager
         // retrieve remote platform
         platforms = await pRegistry.enumeratePlatforms();
 
+        // if not connected
+        if(platforms == null){
+            return res;
+        }
+
         for(let i=0; i<platforms.length; i++){
             p = Platform.fromRemoteName(platforms[i].name);
             if(p == null) continue;
