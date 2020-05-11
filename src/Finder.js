@@ -5,6 +5,7 @@ const Logger = require("./Logger.js")();
 var CONST = require("./CoreConst.js");
 var MemoryDb = require("./InMemoryDb.js");
 var AppCmp = require("./AndroidAppComponents.js");
+const Accessor = require("./AccessFlags");
 
 
 var DataModel = {
@@ -13,7 +14,7 @@ var DataModel = {
     field: new CLASS.Field(),
     method: new CLASS.Method(),
     call: new CLASS.Call(),
-    modifier: new CLASS.Modifiers(),
+    modifier: new Accessor.AccessFlags(), //CLASS.Modifiers(),
     objectType: new CLASS.ObjectType(),
     basicType: new CLASS.BasicType(),
     value: new CLASS.ValueConst(),
@@ -539,7 +540,8 @@ class Finder
              * 
              */
             hasModifier: function(request,data){
-                return (data.modifiers[request.field]==true);
+                //console.log(request.field, data.modifiers[request.field])
+                return data.modifiers[request.field]; //(data.modifiers[request.field]!==0);
             }, 
             /**
              * Check if the <data> object is tagged with <pattern>

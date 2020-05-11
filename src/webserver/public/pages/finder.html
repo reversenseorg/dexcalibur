@@ -428,6 +428,10 @@
             if(mods.protected) b+="<i style='color:orange'>protected</i>&nbsp;";
             if(mods.abstract) b+="<i style='color:purple'>abstract</i>&nbsp;";
             if(mods.static) b+="<i style='color:blue'>static</i>&nbsp;  ";
+            if(mods.native) b+="<i style='color:green'><b>native<b></i>&nbsp;  ";
+            if(mods.transient) b+="<i style='color:pink'>transient</i>&nbsp;  ";
+            if(mods.volatile) b+="<i style='color:pink'>volatile</i>&nbsp;  ";
+
             return b;
         }
     };
@@ -806,8 +810,6 @@
     function renderMethodDetail( row ) {
         let body = '', j=0, vmParams='';
 
-        console.log(row);
-
 
         let codeID = IdRegister.codeReg.next();
         let codeID_Simple = IdRegister.codeReg.next();
@@ -818,10 +820,8 @@
 
         for(let i in row.modifiers){
             if(j==8) body+="<br>";
-            if(row.modifiers[i]==true){
+            if(i != "visibility"){
                 body += '&nbsp;<span class="badge badge-pill badge-success">'+i+'</span>';
-            }else{
-                body += '&nbsp;<span  class="badge badge-pill badge-secondary">'+i+'</span>';
             }
             j++;
         }
@@ -835,7 +835,6 @@
         }
         for(let i=0;  i<row.args.length; i++){
             sgt = row.args[i].name;
-            console.log(row.args[i]);
 
             vmParams += `<div class="input-group input-group-sm">
                             <div class="input-group-prepend">
@@ -1540,14 +1539,27 @@
                     { 
                         "className":      'col-md-5',
                         render: function(data, type, row, meta ){
+                            console.log(row.tags);
+
+                            let b="";
+
                             if(row.value.length > 60){
-                                let b="";
+
                                 for(let i=0; i<row.value.length/60; i++){
                                     b += htmlEncode(row.value.substr(i*60,60))+"<br>";
                                 }
-                                return b;
-                            }else
-                                return htmlEncode(row.value);
+                                
+                            }else{
+                                b = htmlEncode(row.value);
+                            }
+
+                            if(row.tags.indexOf("dd") > -1){
+                                    b += BS.badge(
+                                            findColorCode("dd")
+                                            , "D-dynamic");
+                                }
+
+                                return b ;
                         },
                         "width":"40%"
                     },

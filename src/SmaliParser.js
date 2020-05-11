@@ -8,6 +8,7 @@ var CONST = require("./CoreConst.js");
 const CLASS = require("./CoreClass.js");
 const Event = require("./Event.js");
 const Logger = require("./Logger.js")();
+const Accessor = require("./AccessFlags");
 
 const SML_MAIN=0;
 const SML_METH=1;
@@ -100,86 +101,86 @@ class SmaliParser
 
     modifier(src){
         if(src instanceof String) src=src.split(LEX.TOKEN.SPACE);
-        let mod = new CLASS.Modifiers(), next=true;
+        let mod = new Accessor.AccessFlags() /*CLASS.Modifiers()*/, next=true;
 
         //if(src.length<2) return ERR_PARSE;
         for(let i=0; i<src.length && next; i++){
             mod._match++;
             switch(ut.trim(src[i])){
                 case LEX.MODIFIER.PRIVATE:
-                    mod.visibility = CONST.JAVA.PRIVATE;
+                    //mod.visibility = CONST.JAVA.PRIVATE;
                     mod.private = true;
-                    mod._name += "Pv";
+                    //mod._name += "Pv";
                     break;
                 case LEX.MODIFIER.PROTECTED:
-                    mod.visibility = CONST.JAVA.PROTECTED;
+                    //mod.visibility = CONST.JAVA.PROTECTED;
                     mod.protected = true;
-                    mod._name += "Pt";
+                    //mod._name += "Pt";
                     break;
                 case LEX.MODIFIER.PUBLIC:
-                    mod.visibility = CONST.JAVA.PUBLIC;
+                    //mod.visibility = CONST.JAVA.PUBLIC;
                     mod.public = true;
-                    mod._name += "Pb";
+                    //mod._name += "Pb";
                     break;
                 case LEX.MODIFIER.STATIC:
                     mod.static = true;
-                    mod._name += "St";
+                    //mod._name += "St";
                     break;
                 case LEX.MODIFIER.VOLATILE:
                     mod.volatile = true;
-                    mod._name += "Vl";
+                    //mod._name += "Vl";
                     break;
                 case LEX.MODIFIER.ABSTRACT:
                     mod.abstract = true;
-                    mod._name += "Ab";
+                    //mod._name += "Ab";
                     break;
                 case LEX.MODIFIER.FINAL:
                     mod.final = true;
-                    mod._name += "Fl";
+                    //mod._name += "Fl";
                     break;
                 case LEX.MODIFIER.CONSTR:
-                    mod.constructor = true;
-                    mod._name += "Ct";
+                    mod.construct = true;
+                    //mod._name += "Ct";
                     break;
                 case LEX.MODIFIER.SYNTHETIC:
                     mod.synth = true;
-                    mod._name += "Sy";
+                    //mod._name += "Sy";
                     break;
                 case LEX.MODIFIER.ENUM:
                     mod.enum = true;
-                    mod._name += "En";
+                    //mod._name += "En";
                     break;
                 case LEX.MODIFIER.TRANSIENT:
                     mod.transient = true;
-                    mod._name += "Tr";
+                    //mod._name += "Tr";
                     break;
                 case LEX.MODIFIER.DECLSYNC:
                     mod.declsync = true;
-                    mod._name += "Ds";
+                    //mod._name += "Ds";
                     break;
                 case LEX.MODIFIER.BRIDGE:
                     mod.bridge = true;
-                    mod._name += "Br";
+                    //mod._name += "Br";
                     break;
                 case LEX.MODIFIER.VARARG:
                     mod.varargs = true;
-                    mod._name += "Va";
+                    //mod._name += "Va";
                     break;
                 case LEX.MODIFIER.NATIVE:
                     mod.native = true;
-                    mod._name += "Na";
+                    //mod._name += "Na";
                     break;
                 case LEX.MODIFIER.INTERFACE:
                     mod.interface = true;
-                    mod._name += "In";
+                    //mod._name += "In";
                     break;
                 case LEX.MODIFIER.ANNOTATION:
                     mod.annotation = true;
-                    mod._name += "An";
+                    //mod._name += "An";
                     break;
                 case LEX.MODIFIER.STRICTFP:
                     mod.strictfp = true;
-                    mod._name += "Fp";
+                    //mod._name += "Fp";
                     break;
                 default:
                     next=false;
@@ -352,7 +353,8 @@ class SmaliParser
 
         // parse modifiers
         f.modifiers = this.modifier(src_arr);
-        
+        //console.log(f.modifiers);
+
         // clean src with identified modifier
         for(let i=0; i<f.modifiers._match; i++) src_arr.shift();
         // parse name and type

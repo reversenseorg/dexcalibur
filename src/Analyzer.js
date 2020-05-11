@@ -11,6 +11,7 @@ const MemoryDb = require("./InMemoryDb.js");
 const Event = require("./Event.js").Event;
 const Logger = require("./Logger.js")();
 var Parser = require("./SmaliParser.js");
+const Accessor = require("./AccessFlags");
 
 var SmaliParser = new Parser();
 
@@ -20,7 +21,7 @@ var DataModel = {
     field: new CLASS.Field(),
     method: new CLASS.Method(),
     call: new CLASS.Call(),
-    modifier: new CLASS.Modifiers(),
+    modifier: new Accessor.AccessFlags(), // CLASS.Modifiers(),
     objectType: new CLASS.ObjectType(),
     basicType: new CLASS.BasicType()
 };
@@ -41,7 +42,7 @@ function resolveInheritedField(fieldRef, parentClass){
                 return parentClass.fields[i];
             }
 
-            if(parentClass.fields[i].modifiers.isNotPrivate()){ 
+            if(parentClass.fields[i].modifiers.private == false){ 
                 parentClass.fields[i].declaringClass = parentClass.fields[i].enclosingClass;
                 parentClass.fields[i].enclosingClass = parentClass;
                 return parentClass.fields[i];
@@ -64,7 +65,7 @@ function resolveInheritedMethod(methodRef, parentClass){
                 return parentClass.methods[i];
             }
 
-            if(parentClass.methods[i].modifiers.isNotPrivate()){ 
+            if(parentClass.methods[i].modifiers.private == false){ 
                 parentClass.methods[i].declaringClass = parentClass.methods[i].enclosingClass;
                 parentClass.methods[i].enclosingClass = parentClass;
                 return parentClass.methods[i];
@@ -111,13 +112,13 @@ function createMissingClass(fqcn,internalDB){
     return missingCls;
 }
 
-function createMissingField(fieldReference, enclosingClass, internalDB, modifiers={public: true}){
+function createMissingField(fieldReference, enclosingClass, internalDB, modifiers=Accessor.PUBLIC){
     let missingField = fieldReference.toField();
 
     missingField.setupMissingTag();
 
     missingField.enclosingClass = enclosingClass;
-    missingField.modifiers = new CLASS.Modifiers(modifiers);
+    missingField.modifiers = new  Accessor.AccessFlags(modifiers)//CLASS.Modifiers(modifiers);
 
     enclosingClass.fields[missingField.signature()] = missingField;
 
@@ -130,7 +131,7 @@ function createMissingField(fieldReference, enclosingClass, internalDB, modifier
 }
 
 
-function createMissingMethod(methodRef, enclosingClass, internalDB, modifiers={public: true}){
+function createMissingMethod(methodRef, enclosingClass, internalDB, modifiers=Accessor.PUBLIC){
     let missingMeth = methodRef.toMethod();
 
     //console.log(enclosingClass.name,missingMeth);
@@ -138,7 +139,7 @@ function createMissingMethod(methodRef, enclosingClass, internalDB, modifiers={p
     missingMeth.setupMissingTag();
 
     missingMeth.enclosingClass = enclosingClass;
-    missingMeth.modifiers = new CLASS.Modifiers(modifiers);
+    missingMeth.modifiers = new Accessor.AccessFlags(modifiers); //CLASS.Modifiers(modifiers);
 
     enclosingClass.methods[missingMeth.signature()] = missingMeth;
 

@@ -1,5 +1,6 @@
 var CONST = require("./CoreConst.js");
 const NodeCompare = require("./NodeCompare.js");
+const Accessor = require('./AccessFlags');
 
 const EOL =  require('os').EOL ;
 
@@ -757,7 +758,8 @@ Class.prototype.import = function(obj){
     // raw impport
     this.raw_import(obj);
     // construct obj
-    this.modifiers = (new Modifiers()).import(obj.modifiers);
+    // this.modifiers = (new Modifiers()).import(obj.modifiers);
+    this.modifiers = new Accessor.AccessFlags(obj.modifiers);
 };
 
 Class.prototype.export = Savable.export;
@@ -1504,7 +1506,9 @@ Method.prototype.import = function(obj){
     // raw impport
     this.raw_import(obj);
     // estor modifiers
-    this.modifiers = (new Modifiers()).import(obj.modifiers);
+    //this.modifiers = (new Modifiers()).import(obj.modifiers);
+    this.modifiers = new Accessor.AccessFlags(obj.modifiers);
+    
     // restore return type
     if(CONST.WORDS.indexOf(obj.ret.name)>-1){
         this.ret = (new BasicType()).import(obj.ret);
@@ -1602,10 +1606,10 @@ Method.prototype.toJsonObject = function(fields=[],exclude=[]){
                     break;
                 case "modifiers":
                     if(this.modifiers != null)
-                        obj.modifiers = this.modifiers.toJsonObject([
-                            "public","private","protected","abstract","native","final","constructor","static"]);
+                        obj.modifiers = this.modifiers.toJsonObject();
                     else
                         obj.modifiers = null;
+
                     break;
             }
         }   
@@ -2512,7 +2516,6 @@ Field.prototype.compare = function(field){
             case "_callers":
             case "instr":
             case "enclosingClass":
-            case "modifiers":
                 // ignore
                 break;
         }
@@ -2537,7 +2540,10 @@ Field.prototype.import = function(obj){
     // raw impport
     this.raw_import(obj);
     // estor modifiers
-    this.modifiers = (new Modifiers()).import(obj.modifiers);
+    // this.modifiers = (new Modifiers()).import(obj.modifiers);
+    this.modifiers = new Accessor.AccessFlags(obj.modifiers);
+
+
     // restore return type
     if(CONST.WORDS.indexOf(obj.type.name)>-1){
         this.ret = (new BasicType()).import(obj.type);
@@ -2619,7 +2625,7 @@ Field.prototype.toJsonObject = function(fields=null,exclude=null){
                     break;
                 case "modifiers":
                     if(this.modifiers != null)
-                        obj.modifiers = this.modifiers.toJsonObject(["private","protected","static"]);
+                        obj.modifiers = this.modifiers.toJsonObject();
                     else
                         obj.modifiers = null;
                     break;
@@ -2713,7 +2719,6 @@ function Modifiers(config){
     this._name = "";
 
     this.tags = [];
-
  
     if(config!==undefined)
         for(let i in config)
