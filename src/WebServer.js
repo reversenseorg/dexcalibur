@@ -436,9 +436,25 @@ class WebServer {
                 
                 // refresh connected device
                 DeviceManager.getInstance().scan();
+                let project = null;
+                project = $.context.getProject( req.query.uid);
+
+                if(project != null){
+                    if($.project == null){
+                        $.setProject( project);
+                    }
+                    else if($.project != null && $.project.getUID()!==req.query.uid){
+                        $.setProject( project);
+                    }
+
+                    res.status(200).send(JSON.stringify({
+                        success: project.isReady()
+                    }));
+                    return ;
+                }
 
                 //$.project = 
-                let project = await $.context.openProject( req.query.uid );
+                project = await $.context.openProject( req.query.uid );
 
                 // collect
                 let dev = {
