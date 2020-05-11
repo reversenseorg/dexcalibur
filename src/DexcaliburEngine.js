@@ -246,11 +246,13 @@ class DexcaliburEngine
      * 
      * @method
      */
-    loadWorkspaceFromConfig(){
+    loadWorkspaceFromConfig(pDexcaliburHome=null){
         let d = null;
         
         if(process.env.DEXCALIBUR_HOME != null)
             d = JSON.parse( _fs_.readFileSync( _path_.join( process.env.DEXCALIBUR_HOME, 'config.json')) );
+        else if(pDexcaliburHome!= null)
+            d = JSON.parse( _fs_.readFileSync( _path_.join( pDexcaliburHome, 'config.json')) );
         else
             d = JSON.parse( _fs_.readFileSync(CONFIG_PATH) );
 
