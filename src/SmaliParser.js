@@ -108,79 +108,61 @@ class SmaliParser
             mod._match++;
             switch(ut.trim(src[i])){
                 case LEX.MODIFIER.PRIVATE:
-                    //mod.visibility = CONST.JAVA.PRIVATE;
                     mod.private = true;
-                    //mod._name += "Pv";
                     break;
                 case LEX.MODIFIER.PROTECTED:
-                    //mod.visibility = CONST.JAVA.PROTECTED;
                     mod.protected = true;
-                    //mod._name += "Pt";
                     break;
                 case LEX.MODIFIER.PUBLIC:
-                    //mod.visibility = CONST.JAVA.PUBLIC;
                     mod.public = true;
-                    //mod._name += "Pb";
                     break;
                 case LEX.MODIFIER.STATIC:
                     mod.static = true;
-                    //mod._name += "St";
                     break;
                 case LEX.MODIFIER.VOLATILE:
                     mod.volatile = true;
-                    //mod._name += "Vl";
                     break;
                 case LEX.MODIFIER.ABSTRACT:
                     mod.abstract = true;
-                    //mod._name += "Ab";
                     break;
                 case LEX.MODIFIER.FINAL:
                     mod.final = true;
-                    //mod._name += "Fl";
                     break;
                 case LEX.MODIFIER.CONSTR:
                     mod.construct = true;
-                    //mod._name += "Ct";
                     break;
                 case LEX.MODIFIER.SYNTHETIC:
                     mod.synth = true;
-                    //mod._name += "Sy";
                     break;
                 case LEX.MODIFIER.ENUM:
                     mod.enum = true;
-                    //mod._name += "En";
                     break;
                 case LEX.MODIFIER.TRANSIENT:
                     mod.transient = true;
-                    //mod._name += "Tr";
                     break;
                 case LEX.MODIFIER.DECLSYNC:
                     mod.declsync = true;
-                    //mod._name += "Ds";
                     break;
                 case LEX.MODIFIER.BRIDGE:
                     mod.bridge = true;
-                    //mod._name += "Br";
                     break;
                 case LEX.MODIFIER.VARARG:
                     mod.varargs = true;
-                    //mod._name += "Va";
                     break;
                 case LEX.MODIFIER.NATIVE:
                     mod.native = true;
-                    //mod._name += "Na";
                     break;
                 case LEX.MODIFIER.INTERFACE:
                     mod.interface = true;
-                    //mod._name += "In";
                     break;
                 case LEX.MODIFIER.ANNOTATION:
                     mod.annotation = true;
-                    //mod._name += "An";
                     break;
                 case LEX.MODIFIER.STRICTFP:
                     mod.strictfp = true;
-                    //mod._name += "Fp";
+                    break;
+                case LEX.MODIFIER.SYNCHRONIZED:
+                    mod.synchronized = true;
                     break;
                 default:
                     next=false;
@@ -306,7 +288,7 @@ class SmaliParser
         for(let i=0; i<mod._match; i++) src.shift();
 
         if(src.length > 1){
-            console.log(src);
+            console.log(src,mod);
             console.log("[!] Method has more modifiers");
         }
 
