@@ -969,6 +969,52 @@ class WebServer {
                 }         
             })
             
+        this.app.route('/api/hook/frida/exec')
+            .post(async function(req, res){
+                let newCode = req.body['code[]'].join("\n");
+                let output = null;
+
+                try{
+                    switch(req.body.type){
+                        case "spawn-self":
+                            Logger.info(`[WEBSERVER] Start with frida console [app=${$.project.getPackageName()}, type=spawn-self]`);
+                            output = await FridaHelper.exec(newCode, FridaHelper.SPAWN, $.project.getPackageName());
+                            break;
+                        case "spawn":
+                            Logger.info(`[WEBSERVER] Start with frida console [app=${req.body.app}, type=spawn]`);
+                            output = await FridaHelper.exec(newCode, FridaHelper.SPAWN, req.body.app);
+                            break;
+                        case "attach-gadget":
+                            Logger.info(`[WEBSERVER] Start with frida console  [pid=Gadget, type=attach-gadget]`);
+                            output = await FridaHelper.exec(newCode, FridaHelper.ATTACH_BY_NAME, "Gadget");
+                            break;
+                        case "attach-app-self":
+                            Logger.info(`[WEBSERVER] Start with frida console  [app=${req.body.app}, type=attach-app-self]`);
+                            output = await FridaHelper.exec(newCode, FridaHelper.ATTACH_BY_NAME, $.project.getPackageName());
+                            break;
+                        case "attach-app":
+                            Logger.info(`[WEBSERVER] Start with frida console  [app=${req.body.app}, type=attach-app-x]`);
+                            output = await FridaHelper.exec(newCode, FridaHelper.ATTACH_BY_NAME, req.body.app);
+                            break;
+                        case "attach-pid":
+                            Logger.info(`[WEBSERVER] Start with frida console  [pid=${req.body.pid}, type=attach-to-pid`);
+                            output = await FridaHelper.exec(newCode, FridaHelper.ATTACH_BY_PID, req.body.pid);
+                            break;
+                        default:
+                            res.status(404).send(JSON.stringify({ err: 'Invalid start type' }));
+                            return;
+                            break;
+                    }
+
+
+                    res.status(200).send(JSON.stringify({ output: await output }));
+                }catch(exception){
+                    console.log(exception);
+                    res.status(404).send(JSON.stringify({ err: exception }));
+                }
+
+            });
+
         this.app.route('/api/hook/:hookid')
             .get(function (req, res) {
 
