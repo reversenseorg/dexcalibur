@@ -2,11 +2,22 @@ CHANGELOG
 
 # Version 0.6
 
+## 0.7.1
 
-## latest
+* Improve detection of non-blocking errors when apktool is running
+* Remove sponsors temporary to prevent legal issue 
+* Improve unit test
+* fix broken links
+* Turn unreachable registry to non-blocking error
 
-* Improve test unit
-* Add GET /api/hook/:hookid endpoint
+## 0.7.0
+
+* Re-design of project management, de vice management, platform management and more
+* Same dexcalibur engine instance can handle/hook simultaneously several projects
+* Better device detection
+* Add installer : UI + automatic install of dependencies, auto conf
+* More ... see http://docs.dexcalibur.org/News.html
+
 
 ## 0.6.5
 
