@@ -415,7 +415,8 @@
             info: 'info',         
             warning: 'warning',         
             danger: 'danger',         
-            secondary: 'secondary'          
+            secondary: 'secondary',
+            success:'success'          
         },
         badge: function(color,data){
             if(BS.color[color]==null) console.error("Given color not exists : ",color);
@@ -1310,6 +1311,9 @@
                             }
 
                             // loaded from an external dex file
+                            if(row.tags.indexOf("di") > -1){
+                                b += BS.badge("success", "internal");
+                            }
                             if(row.tags.indexOf("led") > -1){
                                 b += BS.badge(
                                         findColorCode("led")
