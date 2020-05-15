@@ -11,6 +11,7 @@ const Utils = require('./Utils');
 const Logger = require("./Logger")();
 const DexcaliburWorkspace = require("./DexcaliburWorkspace");
 
+const EOL = require('os').EOL;
 
 
 /**
@@ -114,8 +115,15 @@ class ApkHelper
 
 
         if(stderr){
-            console.log("err:",stderr);
-            return false;
+            stderr = stderr.split(EOL);
+            let no_err = true;
+            stderr.map(x =>{
+                console.log(x);
+                if(x.startsWith('E:')) no_err = false;
+            });
+
+            // throw exception
+            return no_err;
         }else{
             Logger.info("[APK HELPER] APK extracted into : "+pDestination);
             return true;
