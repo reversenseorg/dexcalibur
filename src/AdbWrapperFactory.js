@@ -52,6 +52,7 @@ class AdbWrapperFactory
         return gInstance;
     }
 
+
     /**
      * To create a generic AdbWrapper
      * 

@@ -4,9 +4,13 @@ const Chalk = require("chalk");
 const Path = require("path");
 const crypto = require("crypto");
 
+const _util_ = require('util');
+
 const _stream_      = require('stream');
 const _got_         = require("got");
-const {promisify}   = require('util');
+//const {promisify}   = require('util');
+
+const _exec_ = _util_.promisify(Process.exec);
 
 
 //const TestHelper = require("./TestHelper.js");
@@ -202,12 +206,16 @@ const Util = {
 
         return ret.toString(charset);
     },
-    execAsync: function(command,charset,callback){
-        // disable execSync here
-        console.log(Chalk.bold.red("Async execute command request is not implemented "));
+    execAsync: async function(command){
+        
+        if(process.env.DEXCALIBUR_TEST){
+            ret = await (require('./TestHelper').execAsync(command));
+        }else{
+            console.log(Chalk.bold.red("Execute command request : "+command));
+            ret = await _exec_(command);
+        }
 
-        //var ret = Process.execSync(command);
-        //return ret.toString(charset);
+        return ret;
     },
     randString: function(size, charset){
         let s="";
@@ -272,7 +280,55 @@ const Util = {
           });
           fs.rmdirSync(pPath);
         }
-      }
+      },
+    parseIPv4: function( pAddress, pHasPortNumber=false){
+        const IPv4 = '(?<a>25[0–5]|2[0–4][0–9]|1[0-9]{2}|[0-9]{1,2})\.(?<b>25[0–5]|2[0–4][0–9]|1[0-9]{2}|[0-9]{1,2})\.(?<c>25[0–5]|2[0–4][0–9]|1[0-9]{2}|[0-9]{1,2})\.(?<d>25[0–5]|2[0–4][0–9]|1[0-9]{2}|[0-9]{1,2})';
+        const PORT ='(?<port>[0-9]{1,5})' 
+
+        if(pAddress == null) return { valid:false };
+
+        let RE = new RegExp(IPv4 + (pHasPortNumber? ':'+PORT:''));
+
+        
+        let res = RE.exec(pAddress) ;
+
+        console.log(pAddress,res);
+
+
+        if(res !== null && res.index==0 && pAddress==res[0]){
+
+            if(res.groups.port > 65535) return false;
+
+            return { valid:true, ip: `${res.groups.a}.${res.groups.b}.${res.groups.c}.${res.groups.d}`, port:res.groups.port };
+        }else{
+            return { valid:false };
+        }
+    },/*
+    parseIPv6: function( pAddress, pHasPortNumber=false){
+        const IPv6 =  '^((([0–9A-Fa-f]{1,4}:){7}[0–9A-Fa-f]{1,4})|(([0–9A-Fa-f]{1,4}:){6}:[0–9A-Fa-f]{1,4})|(([0–9A-Fa-f]{1,4}:){5}:([0–9A-Fa-f]{1,4}:)?[0–9A-Fa-f]{1,4})|(([0–9A-Fa-f]{1,4}:){4}:([0–9A-Fa-f]{1,4}:){0,2}[0–9A-Fa-f]{1,4})|(([0–9A-Fa-f]{1,4}:){3}:([0–9A-Fa-f]{1,4}:){0,3}[0–9A-Fa-f]{1,4})|(([0–9A-Fa-f]{1,4}:){2}:([0–9A-Fa-f]{1,4}:){0,4}[0–9A-Fa-f]{1,4})|(([0–9A-Fa-f]{1,4}:){6}((b((25[0–5])|(1d{2})|(2[0–4]d)|(d{1,2}))b).){3}(b((25[0–5])|(1d{2})|(2[0–4]d)|(d{1,2}))b))|(([0–9A-Fa-f]{1,4}:){0,5}:((b((25[0–5])|(1d{2})|(2[0–4]d)|(d{1,2}))b).){3}(b((25[0–5])|(1d{2})|(2[0–4]d)|(d{1,2}))b))|(::([0–9A-Fa-f]{1,4}:){0,5}((b((25[0–5])|(1d{2})|(2[0–4]d)|(d{1,2}))b).){3}(b((25[0–5])|(1d{2})|(2[0–4]d)|(d{1,2}))b))|([0–9A-Fa-f]{1,4}::([0–9A-Fa-f]{1,4}:){0,5}[0–9A-Fa-f]{1,4})|(::([0–9A-Fa-f]{1,4}:){0,6}[0–9A-Fa-f]{1,4})|(([0–9A-Fa-f]{1,4}:){1,7}:))';
+        const PORT ='(?<port>[0-9]{1,5})' 
+
+        if(pAddress == null) return { valid:false };
+
+        let RE = new RegExp(IPv4 + (pHasPortNumber? ':'+PORT:''));
+
+        
+        let res = RE.exec(pAddress) ;
+
+        console.log(pAddress,res);
+
+
+        if(res !== null && res.index==0 && pAddress==res[0]){
+
+            if(res.groups.port > 65535) return false;
+
+            return { valid:true, ip: `${res.groups.a}.${res.groups.b}.${res.groups.c}.${res.groups.d}`, port:res.groups.port };
+        }else{
+            return { valid:false };
+        }
+    },
+*/
+
 };
 
 module.exports = Util;
