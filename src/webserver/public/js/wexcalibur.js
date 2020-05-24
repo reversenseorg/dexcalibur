@@ -939,6 +939,9 @@ var DexcaliburAPI = {
                     }
                 }
             })
+        },
+        connect: function( pIP, pPort, pCallback){
+            DexcaliburAPI.exec('/api/device/connect', 'post', {ip:pIP, port:pPort}, pCallback.onSuccess, pCallback.onError);
         }
     },
     search: {

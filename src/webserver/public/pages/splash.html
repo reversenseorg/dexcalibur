@@ -359,6 +359,7 @@
                                 </ul> 
                             </small>
                             <div class="text-right text-sm">
+                                <a class="btn btn-secondary btn-sm dxc-dev-connect"><span class="fa fa-link"></span>&nbsp;Connect over TCP...</a>&nbsp;
                                 <a class="btn btn-primary btn-sm dxc-dev-refresh"><span class="fa fa-refresh"></span>&nbsp;Refresh</a>
                             </div>
                             <table class="table table-sm table-hover dxc-compact-table">
@@ -403,6 +404,25 @@
                         </div>
                         <div style="width:100%;background-color:#eee;margin-top:1em;font-size:0.8em" id="dxcLoadingModalMessage"></div>
                         <pre style="width:100%;background-color:#eee;margin-top:1em;font-size:0.8em" id="dxcLoadingModalConsole"></pre>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="modal fade" id="dxcDevConnectModal" tabindex="-1" role="dialog" aria-labelledby="devConnectModalLabel" aria-hidden="true">
+                <div class="modal-dialog">
+                  <div class="modal-content">                   
+                    <div class="modal-body">
+                        <label for="devip">Device IP address</label>
+                        <input type="text" id="devip" name="devip" class="form-control form-control-sm" />
+                        <label for="devport">Device Port</label>
+                        <input type="number" id="devport" name="devport" class="form-control form-control-sm" />
+                        <label for="hostip">Host IP address</label>
+                        <input type="text" id="hostip" name="hostip" class="form-control form-control-sm" />
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                        <button type="button" class="btn btn-primary" id="addDevConnect">Add</button>
                     </div>
                   </div>
                 </div>
@@ -489,16 +509,21 @@
     function updateDeviceList( pElement){
         DexcaliburAPI.device.list((vData)=>{
                     
-                    let data = JSON.parse(vData), d=null;
+                    let data = JSON.parse(vData), d=null, ip=null;
 
                     $(pElement).empty();
 
                     for(let i=0; i<data.devices.length; i++){
                         d = data.devices[i];
+                        ip = '';
+
+                        if(d.bridgeData != null){
+                            ip = '<span style="font-size:0.9em;color:yellow">('+d.bridgeData.ip+':'+d.bridgeData.port+')</span>';
+                        }
 
                         $(pElement).append(`
                         <tr>
-                            <td>${d.id}</td>
+                            <td>${d.id}<br>${ip}</td>
                             <td>${d.model}</td>
                             <td style="text-align:center">
                                 ${d.connected==true? '<span class="fa fa-check text-success"></span>' : ''}
@@ -613,6 +638,15 @@
                 }
             }
         );
+    }
+
+    function deviceConnectModal( pCallback){
+        $('#addDevConnect').off('click');
+        $('#addDevConnect').click((pEl)=>{
+            pCallback($('#devip').val(),$('#devport').val(),$('#hostip').val());
+        });
+
+        $('#dxcDevConnectModal').modal();
     }
 
     $(document).ready(function() {
@@ -818,7 +852,14 @@
         });
         $(document).on("click",'a.dxc-dev-refresh',(pEl)=>{
             updateDeviceList('#dxcDeviceList');
-        })
+        });
+        $(document).on("click",'a.dxc-dev-connect',(pEl)=>{
+            deviceConnectModal(function(pIP,pPort, pHostIp){
+                DexcaliburAPI.device.connect(pIP, pPort, pHostIp, (pData)=>{
+                    updateDeviceList('#dxcDeviceList');
+                });
+            });
+        });
         $(document).on('change', '#dxcSelectDev', function(pEvent){
                 console.log(pEvent.currentTarget.value);
                 $("#dxcSelectAppProgress").css("display","block");

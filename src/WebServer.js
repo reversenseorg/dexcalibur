@@ -500,6 +500,24 @@ class WebServer {
                 res.status(200).send(JSON.stringify(dev));
             });
 
+        this.app.route('/api/device/connect')
+            .post(async function(req, res){
+                let dm = DeviceManager.getInstance();
+                let ip = req.body['ip'];
+                let port = req.body['port'];
+                let dev;
+
+                try{
+                    dev = { success: await dm.connect(ip, port) };
+                }catch(err){
+                    console.log(err);
+
+                    dev = { success:false, msg:err };
+                }
+
+                res.status(200).send(JSON.stringify(dev));
+            });
+
         this.app.route('/api/device/enroll')
             .post(async function(req, res){
                 let dm = DeviceManager.getInstance();
@@ -1823,7 +1841,7 @@ class WebServer {
                 // collect
 
                 let data = req.body;
-                console.log(data);
+                //console.log(data);
 
                 let dev = { status:null, invalid:null, err:null };
                 //let cfg = Configuration.from(data);
@@ -1844,11 +1862,11 @@ class WebServer {
 
                 try{
                     if(dev.invalid.length === 0){
-                        console.log("Save configuration changes ...")
+                        Logger.success("Save configuration changes ...")
                         // Ask to current configuration to backup new configuration
                         $.project.getConfiguration().save(cfg);
                     }else{
-                        console.log(dev.invalid);
+                        Logger.error(dev.invalid);
                     }
                 }catch(err){
                     dev.err = err;
@@ -1919,16 +1937,7 @@ class WebServer {
                 // resfresh dev
                 DeviceManager.getInstance().scan();
                 let device = $.project.getDevice(); // devices.getDefault();
-                console.log(device);
-                if(device == null){
-                    //DeviceManager.getInstance().scan();
-                    //$.project.devices.scan();
-                    //device = $.project.devices.getDefault();
-
-                    
-                }
-
-                console.log(device);
+                
 
                 if(device == null || !device.isConnected()){
                     Logger.error("[WEBSERVER] Device not connected");
@@ -2057,9 +2066,9 @@ class WebServer {
         for (let i = 0; this.logs.access.length; i++) {
             code = this.logs.access[i].substr(0, 2);
             if (code == "[4")
-                console.log(Chalk.red(this.logs.access[i]));
+                Logger.error(this.logs.access[i]);
             else
-                console.log(Chalk.green(this.logs.access[i]));
+                Logger.success(this.logs.access[i]);
         }
     }
 
@@ -2147,7 +2156,7 @@ class WebServer {
         this.context.printWebBanner(wwwPort);
 
         this.app.listen(wwwPort, function () {
-            console.log(Chalk.bold.green('Server started on : ' + wwwPort));
+            Logger.success('Server started on : ' + wwwPort);
         });
     }
 }
