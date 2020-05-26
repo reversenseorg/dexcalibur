@@ -10,6 +10,7 @@ const {AdbWrapperError} = require("./Errors");
 var Logger = require('./Logger.js')();
 
 
+
 const EOL = require('os').EOL;
 const _fs_ = require('fs');
 
@@ -20,7 +21,6 @@ const TRANSPORT = {
 };
 
 const emuRE = /^emulator-/;
-
 const PROP_RE = /^\[(?<name>.*)\]\s*:\s*\[(?<value>.*)\]$/;
 
 /*
@@ -55,19 +55,64 @@ const OS_NAME = ['android','linux','tizen'];
 class AdbWrapper
 {
     static USB_TRANSPORT = 'U';
-    static WIFI_TRANSPORT = 'W';
     static TCP_TRANSPORT = 'T';
     
     /**
      * 
      * @param {String} adbpath The ADB binary path 
      * @param {String} pDeviceID  (optional) The device ID to manage.
-     * @function
+     * @constructor
      */
     constructor(adbpath, pDeviceID = null){
+        /**
+         * @field
+         */
         this.transport = AdbWrapper.USB_TRANSPORT;
+
+        /**
+         * @type {Path}
+         * @field
+         */
         this.path = adbpath;
+
+        /**
+         * @field
+         */
         this.deviceID = pDeviceID;
+
+        /**
+         * @field
+         */
+        this.ip = null;
+
+        /**
+         * @field
+         */
+        this.port = null;
+
+        /**
+         * @field
+         */
+        this.host = null;
+    }
+
+
+    /**
+     * 
+     * @param {String} pIP 
+     * @method
+     */
+    setIpAddress(pIP){
+        this.ip = pIP;
+    }
+
+    /**
+     * 
+     * @param {Integer} pNumber 
+     * @method
+     */
+    setPortNumber(pNumber){
+        this.port = pNumber;
     }
 
     /**
@@ -77,6 +122,7 @@ class AdbWrapper
      * TODO : check ADB server state
      * 
      * @returns {Boolean} TRUE if ADB is ready to use, else FALSE
+     * @method
      */
     isReady(){
         return (this.path != null) && (_fs_.existsSync(this.path));
@@ -90,6 +136,7 @@ class AdbWrapper
      * 
      * @param {String} deviceID The ID of the device to use 
      * @returns {String} The begin of the command
+     * @method
      */
     setup(pDeviceID = null, pReturnString =  true){
         let cmd=null;
@@ -120,9 +167,11 @@ class AdbWrapper
             }
         }else if(this.transport == AdbWrapper.TCP_TRANSPORT){
             if(pReturnString) 
-                cmd += " -e ";
-            else
-                cmd.push("-e")
+                cmd += " -s "+this.ip+':'+this.port;
+            else{
+                cmd.push("-s")
+                cmd.push(this.ip+':'+this.port)
+            }
 
         }
 
@@ -131,15 +180,55 @@ class AdbWrapper
 
     /**
      * Set the transport type
+     * @method
      */
     setTransport(transport_type){
         this.transport = transport_type;
+    }
+
+    /**
+     * To check is the bridge use network
+     * 
+     * @method
+     * @since v0.7.1
+     */
+    isNetworkTransport(){
+        return (this.transport === AdbWrapper.TCP_TRANSPORT);
+    }
+
+    /**
+     * @method
+     * @since v0.7.1
+     */
+    isUsbTransport(){
+        return (this.transport === AdbWrapper.TCP_TRANSPORT);
+    }
+
+    /**
+     * 
+     * @param {*} pIpAddress 
+     * @param {*} pPortNumber 
+     * @method
+     */
+    async connect( pIpAddress, pPortNumber){
+
+        ret = await UT.execAsync(this.setup() + " tcpip "+pPortNumber);
+        ret = await UT.execAsync(this.setup() + " connect "+pIpAddress+':'+pPortNumber);
+        
+        if(ret.stderr != null && ret.stderr.length > 0)
+            return false;
+
+        if(ret.stdout.indexOf(`connected to ${pIpAddress}`)==-1)
+            return false;
+
+        return true;
     }
 
 
     /**
      * 
      * @param {*} pPackageListStr 
+     * @method
      */
     parsePackageList( pPackageListStr, pOptions=''){
         var reg = new RegExp("^package:(?<apk_name>.*)");
@@ -188,6 +277,7 @@ class AdbWrapper
     /**
      * 
      * @param {String} deviceId [Optional] A specific device ID
+     * @method
      */
     listPackages( pOtions) {
         let ret ="";
@@ -251,6 +341,7 @@ class AdbWrapper
      * @param {String} packageIdentifier The package name of the application 
      * @param {String} deviceId (Optional) The ID of the device where search the package
      * @returns {String} The path of the application package into the device
+     * @method
      */
     getPackagePath(packageIdentifier) {
         var reg = new RegExp("^package:(?<package_name>.*)");
@@ -286,6 +377,7 @@ class AdbWrapper
      *  
      * @param {String} pDeviceListStr the ouput of  "adb device -l" command
      * @returns {Device[]} An array of Device instances corresponding to ADB output
+     * @method
      */
     parseDeviceList( pDeviceListStr){
         let dev = [], ret=null,re=null, data=null, id=null, device=null, token=null;
@@ -294,6 +386,7 @@ class AdbWrapper
         
         re = new RegExp("^([^\\s\\t]+)[\\s\\t]+(.*)");
         
+
         for(let ln in ret){
 
             if(UT.trim(ret[ln]).length==0 
@@ -307,15 +400,36 @@ class AdbWrapper
                 continue;
             }
 
-            //console.log(data,ret[ln]);
+            device = new Device();
+
+            id = UT.parseIPv4(data[1], true);
+            if(id.valid == false){
+                // USB device, Device ID is returned by ADB 
+                id = data[1];
+                device.id = id;
+                device.bridge = new AdbWrapper(this.path, id);
+
+                device.bridge.transport = AdbWrapper.USB_TRANSPORT;
+
+                Logger.debug('[DEVICE MANAGER][ADB] device ADB ID over USB :', id);
+            }else{
+                // TCP device, unknow Device ID
+                device.id = null;
+                device.bridge = new AdbWrapper(this.path, data[1]);
+
+                device.bridge.transport = AdbWrapper.TCP_TRANSPORT;
+                device.bridge.ip = id.ip;
+                device.bridge.port = id.port;
+                
+                Logger.debug('[DEVICE MANAGER][ADB] device ADB ID over TCP :',data[1]);
+            }
+
+
             id = data[1];
             data = data[2].split(" ");
 
-            device = new Device();
-            device.id = id;
             device.type = OS.ANDROID;
             device.isEmulated = data[0].match(emuRE);
-            device.bridge = new AdbWrapper(this.path, id);
             device.connected = true;
 
             for(let i=0; i<data.length; i++){
@@ -357,9 +471,10 @@ class AdbWrapper
                 }
             }
 
-            if(device.isEmulated)
+            if(device.isEmulated){
                 device.bridge.setTransport(AdbWrapper.TCP_TRANSPORT);
-            
+            }
+
             dev.push(device);
         }
 
@@ -368,6 +483,7 @@ class AdbWrapper
 
     /**
      * To list connected devices
+     * @method
      */
     listDevices(){
         Logger.info("[ADB] Enumerating connected devices ...");
@@ -384,6 +500,7 @@ class AdbWrapper
      * 
      * @param {*} remote_path The path of the remote resource to download 
      * @param {*} local_path The path where the resource will be stored locally
+     * @method
      */
     pull(remote_path, local_path){
         return UT.execSync(this.setup()+' pull '+remote_path+' '+local_path);
@@ -396,6 +513,7 @@ class AdbWrapper
      * @param {*} package_name The package name
      * @param {*} remote_path The path of the remote resource to download 
      * @param {*} local_path The path where the resource will be stored locally
+     * @method
      */
 
     pullRessource(package_name,remote_path, local_path){
@@ -416,6 +534,7 @@ class AdbWrapper
      * 
      * @param {*} local_path The path of the local resource to upload 
      * @param {*} remote_path The path where the resource will be stored remotely
+     * @method
      */
     push(local_path, remote_path){
             return UT.execSync(this.setup()+' push '+local_path+' '+remote_path);
@@ -427,6 +546,7 @@ class AdbWrapper
      * Same as 'adb shell' commande.
      * 
      * @param {*} command The command to execute remotely
+     * @method
      */
     shell(command, deviceID = null){
             return UT.execSync(this.setup()+' shell '+command);
@@ -437,6 +557,7 @@ class AdbWrapper
      * Same as 'adb shell' commande.
      * 
      * @param {*} command The command to execute remotely
+     * @method
      */
     shellWithEH(command, callbacks=null){
 
@@ -450,6 +571,7 @@ class AdbWrapper
      * Same as 'adb shell' commande.
      * 
      * @param {*} command The command to execute remotely
+     * @method
      */
     shellWithEHsync(command){
 
@@ -458,8 +580,15 @@ class AdbWrapper
 
     }
 
-
-    async detachedShell( pCommand, pArgs = "", ){
+    /**
+     * 
+     * @param {String} pCommand 
+     * @param {String} pArgs
+     * @returns {Boolean} TRUE is success, else FALSE
+     * @method
+     * @async  
+     */
+    async detachedShell( pCommand, pArgs = "" ){
         let args = this.setup(null,false);
         let ws = require('./DexcaliburWorkspace').getInstance();
         let out = _fs_.openSync( _path_.join( ws.getTempFolderLocation(), 'out.log'), 'w+', 0o666);
@@ -489,7 +618,7 @@ class AdbWrapper
 
 
     /**
-     * 
+     * @method
      */
     performProfiling(){
         let self = this;
@@ -511,6 +640,34 @@ class AdbWrapper
         // TeeProfiler
 
         return profile;
+    }
+
+    /**
+     * 
+     * @param {Object} pData Poor object
+     * @returns {AdbWrapper} ADB wrapper instance
+     * @method
+     * @static 
+     */
+    static fromJsonObject( pData){
+        let o = new AdbWrapper();
+        for(let i in pData) o[i] = pData[i];
+        return o;
+    }
+
+    /**
+     * @method
+     */
+    toJsonObject( pExcludeList={}){
+        let o = new Object();
+
+        for(let i in this){
+            if(pExcludeList[i] === false) continue;
+            
+            o[i] = this[i];
+        } 
+
+        return o;
     }
 }
 
