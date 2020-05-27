@@ -505,10 +505,77 @@ class WebServer {
                 let dm = DeviceManager.getInstance();
                 let ip = req.body['ip'];
                 let port = req.body['port'];
+                let device = null;
                 let dev;
 
                 try{
-                    dev = { success: await dm.connect(ip, port) };
+                    if(req.body['dev'] !== null){
+                        device = dm.getDevice(req.body['dev']);
+
+                        if(device != null)
+                            Logger.debug('[WEBSERVER][/api/device/connect] Device selected : ',device.getUID());
+                        else
+                            Logger.debug('[WEBSERVER][/api/device/connect] Device not found.');
+                    }
+
+                    dev = { success: await dm.connect(ip, port, device) };
+                    if(dev.success == false){
+                        dev.msg = 'An unknow error happened. See Dexcalibur logs/output for more details.';
+                        res.status(500);
+                    }else{
+                        res.status(200);
+                    }
+                }catch(err){
+                    dev = { success:false, msg:err };
+                    res.status(500)
+                }
+
+                res.send(JSON.stringify(dev));
+            });
+
+        this.app.route('/api/device/clear/:deviceid')
+            .post(function(req, res){
+                let dm = DeviceManager.getInstance();
+                let deviceid = req.params['deviceid'];
+                let dev;
+
+                try{
+                    dev = { success: dm.clear(deviceid) };
+                    res.status(200);
+                }catch(err){
+                    dev = { success:false, msg:err.message };
+                    res.status(500);
+                }
+
+                res.send(JSON.stringify(dev));
+            });
+
+        this.app.route('/api/device/clear')
+            .post(function(req, res){
+                let dm = DeviceManager.getInstance();
+                let dev;
+
+                try{
+                    dev = { success: dm.clear( null) };
+                    res.status(200);
+                }catch(err){
+                    dev = { success:false, msg:err.message };
+                    res.status(500);
+                }
+
+                console.log(dev);
+                res.send(JSON.stringify(dev));
+            });
+
+        this.app.route('/api/device/bridge/:name/kill')
+            .post(async function(req, res){
+                let dm = DeviceManager.getInstance();
+                let name = req.params['name'];
+                let dev;
+
+                try{
+                    dev = dm.getBridgeFactory(name).newGenericWrapper();
+                    dev = { success: await dev.kill() };
                 }catch(err){
                     console.log(err);
 
@@ -569,7 +636,15 @@ class WebServer {
                 dm.save();
 
                 res.status(200).send(JSON.stringify({
-                    devices: dm.toJsonObject()
+                    devices: dm.toJsonObject({
+                        device: {
+                            profile: false,
+                            frida: false,
+                            bridge: {
+                                path: false
+                            }
+                        }
+                    })
                 }));
             });
 
@@ -588,7 +663,7 @@ class WebServer {
                     return;
                 }
 
-                dm = dev.getBridge().listPackages(opts);
+                dm = dev.getDefaultBridge().listPackages(opts);
                 dev = [];
 
                 dm.map( (x)=>{
@@ -872,6 +947,7 @@ class WebServer {
 
         this.app.route('/api/probe/msg')
             .get(function (req, res) {
+                
                 if($.project == null){
                     res.status(404).send(JSON.stringify({}));
                     return null;
@@ -884,12 +960,17 @@ class WebServer {
                     return;
                 }
 
-                if (!sess.hasMessages()) {
+                let startAt = req.query.startAt;
+                let size = req.query.size;
+
+                if (!sess.hasMessages(startAt, size)) {
                     res.status(404).send({ msg: "No messages" });
                     return;
                 }
 
-                let data = { data: sess.toJsonObject() };
+
+
+                let data = { data: sess.toJsonObject(parseInt(startAt,10), parseInt(size,10)) };
                 res.status(200).send(JSON.stringify(data));
             });
 
