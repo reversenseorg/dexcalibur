@@ -369,6 +369,7 @@ class Device
             }
         }
         if(pDevice.connected){
+            // TODO : add configurable priority TCP, USB, ... when several choices are possible
             /*
             if device passed as argument is connected now replace default bridge.
             avoid case : 
