@@ -1,4 +1,7 @@
 
+const  ANONYMIZE_PATTERN = {
+    
+};
 
 function WexRegister(prefix,suffix){
     this.db = [];
@@ -678,7 +681,12 @@ var DexcaliburAPI = {
                     if(pSuccess != null) pSuccess(data);
                 },
                 404: function(data,err){
-                    if(pError != null) pError(data);
+                    console.log(arguments);
+                    if(pError != null) pError(data,err);
+                },
+                500: function(data,err){
+                    console.log(arguments);
+                    if(pError != null) pError(data,err);
                 }
             }
         });
@@ -762,6 +770,16 @@ var DexcaliburAPI = {
                 DexcaliburAPI.ui.alert.requireOnceAlert("dxc-alert-warning", "warning", msg, encode);
             }
         }
+    },
+    anonymize: function( pValue){
+
+        if(pValue==null) return pValue;
+
+        for(let i in ANONYMIZE_PATTERN){
+            if(pValue.indexOf(i)>-1) return ANONYMIZE_PATTERN[i]; 
+        }
+
+        return pValue;
     },
     keyshortcut: {
         init: function(){
@@ -940,8 +958,20 @@ var DexcaliburAPI = {
                 }
             })
         },
-        connect: function( pIP, pPort, pCallback){
-            DexcaliburAPI.exec('/api/device/connect', 'post', {ip:pIP, port:pPort}, pCallback.onSuccess, pCallback.onError);
+        connect: function( pIP, pPort, pDevID, pCallback){
+            DexcaliburAPI.exec('/api/device/connect', 'post', {ip:pIP, port:pPort, dev:pDevID}, pCallback.onSuccess, pCallback.onError);
+        },
+        clear: function( pDeviceID, pCallback){
+            if(pDeviceID == null){
+                DexcaliburAPI.exec('/api/device/clear', 'post', null, pCallback.onSuccess, pCallback.onError);
+            }else{
+                console.log('Not supported');
+            }
+        },
+        bridge: {
+            kill: function(pBridge, pCallback){
+                DexcaliburAPI.exec('/api/device/bridge/'+pBridge+'/kill', 'post', null, pCallback.onSuccess, pCallback.onError);
+            }
         }
     },
     search: {
