@@ -172,9 +172,9 @@ class DexcaliburProject
         let original = pUID;
         let i = 0;
 
-        while( DexcaliburProject.exists(original+"_("+i+")") ) i++;
+        while( DexcaliburProject.exists(original+"_"+i) ) i++;
 
-        return original+"_("+i+")";
+        return original+"_"+i;
     }
 
     /**
