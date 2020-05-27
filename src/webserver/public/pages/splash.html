@@ -162,7 +162,7 @@
         <!-- Navigation -->
         <!-- pages/inc/menu.html -->
         
-                   
+
             <div class="row">
                 <div class="col-md-8 col-md-offset-2">
 
@@ -182,9 +182,6 @@
                                 </li>
                                 <li class="list-group-item dxc-select-app">
                                     <span class='fa fa-mobile'>&nbsp;</span>&nbsp;Select an application
-                                </li>
-                                <li class="list-group-item dxc-import text-warning">
-                                    <span class='fa fa-dollar'>&nbsp;</span>&nbsp;Donate
                                 </li>
                             </ul>
                             <div class="card-header">
@@ -314,14 +311,6 @@
                         </table>
                     </div>
 
-                    <div class="col-md-8 splash-panel splash-import" style="display:none"> 
-                        <div class="dxc-panel-message">
-                            <small>You <span class="fa fa-heart" style="color:#f96854"></span> Dexcalibur ? <br> Please help me to continue Dexcalibur development and give exclusive features and support !</small><br><br>
-                            <a href="https://www.patreon.com/bePatron?u=19568290" rel="nofollow"><img src="/dist/img/become_a_patreon_button.png" alt="Become a Patron!" data-canonical-src="/dist/img/become_a_patreon_button.png" style="max-width:100%;"></a>
-                            <br>
-                            <small>(Warning : it is an external link !)</small>
-                        </div>
-                    </div>
 
                     <div class="col-md-8 splash-panel splash-api-manager" style="display:none"> 
                         <h4>Platform Manager</h4>
@@ -359,7 +348,7 @@
                                 </ul> 
                             </small>
                             <div class="text-right text-sm">
-                                <a class="btn btn-secondary btn-sm dxc-dev-connect"><span class="fa fa-link"></span>&nbsp;Connect over TCP...</a>&nbsp;
+                                <a class="btn btn-secondary btn-sm dxc-dev-connect"><span class="fa fa-wifi"></span>&nbsp;Connect over TCP...</a>&nbsp;
                                 <a class="btn btn-primary btn-sm dxc-dev-refresh"><span class="fa fa-refresh"></span>&nbsp;Refresh</a>
                             </div>
                             <table class="table table-sm table-hover dxc-compact-table">
@@ -372,6 +361,11 @@
                                 </thead>
                                 <tbody id="dxcDeviceList"></tbody>
                             </table>
+
+                            <div class="text-right text-sm mb-5">
+                                <a class="btn btn-sm dxc-dev-killsrv text-warning"><span class="fa fa-bolt"></span>&nbsp;Restart ADB server</a>&nbsp;
+                                <a class="btn btn-danger btn-sm dxc-dev-clear"><span class="fa fa-trash"></span>&nbsp;Remove all</a>&nbsp;
+                            </div>
                         </div>
                 </div>
                  
@@ -413,12 +407,18 @@
                 <div class="modal-dialog">
                   <div class="modal-content">                   
                     <div class="modal-body">
+                 
+                        
                         <label for="devip">Device IP address</label>
                         <input type="text" id="devip" name="devip" class="form-control form-control-sm" />
                         <label for="devport">Device Port</label>
                         <input type="number" id="devport" name="devport" class="form-control form-control-sm" />
-                        <label for="hostip">Host IP address</label>
-                        <input type="text" id="hostip" name="hostip" class="form-control form-control-sm" />
+                
+                        <label for="">If the device is already enrolled, select it. Else lets empty or select 'None'</label>
+                        <select class="form-control form-control-sm dxc-select-dev" id="dxc-selConnDev" placeholder="Select a device">
+                            <option value="none">None</option>
+                            <optgroup id="dxc-connDevices"></optgroup>
+                        </select>
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
@@ -507,34 +507,54 @@
     }
    
     function updateDeviceList( pElement){
+        $(pElement).empty();
+        
+        //$(pElement).append('<tr><td colspan=6 class="text-center">If your device is connected but nothing appears, check device screen.</td></tr>');
+
         DexcaliburAPI.device.list((vData)=>{
                     
-                    let data = JSON.parse(vData), d=null, ip=null;
+                    let data = JSON.parse(vData), d=null, ip=null, b=null;
+                    let act = '', bridges='';
 
                     $(pElement).empty();
 
                     for(let i=0; i<data.devices.length; i++){
                         d = data.devices[i];
-                        ip = '';
+                        bridges = '';
 
-                        if(d.bridgeData != null){
-                            ip = '<span style="font-size:0.9em;color:yellow">('+d.bridgeData.ip+':'+d.bridgeData.port+')</span>';
+                        for(let shortname in d.bridges){
+                            b = d.bridges[shortname];
+
+                            bridges += `
+                                <br><span class="fa fa-${b.transport=='U'?'usb':'wifi'} ml-2"></span>&nbsp;${shortname}&nbsp;<span style="font-size:0.9em;color:yellow">(${b.transport=='U'? b.usbQualifier : b.ip+':'+b.port})</span>
+                            `;
+                        }
+
+                
+
+
+                        if(d.authorized==false){
+                            act = '-';
+                        }else{
+                            act = (d.connected==true)?(d.enrolled==false? '<span class="badge badge-pill bg-primary enroll" data-target="#dxcEnrollModal" data-dxc-uid="'+d.uid+'">enroll</span>' : '<span class="badge badge-pill bg-primary enroll" data-target="#dxcEnrollModal" data-dxc-uid="'+d.uid+'">re-enroll</span>'):'';
                         }
 
                         $(pElement).append(`
                         <tr>
-                            <td>${d.id}<br>${ip}</td>
-                            <td>${d.model}</td>
+                            <td>
+                                ${DexcaliburAPI.anonymize(d.id)}${bridges}
+                            </td>
+                            <td>
+                                ${ d.model}
+                            </td>
                             <td style="text-align:center">
-                                ${d.connected==true? '<span class="fa fa-check text-success"></span>' : ''}
+                                ${ d.connected==true? (d.authorized==true? '<span class="fa fa-check text-success"></span>' : '<span class="fa fa-exclamation-triangle text-danger" data-toggle="tooltip" data-placement="bottom" title="Device : Computer unauthorized. You should allow USB debugging first"></span>') : '' }
                             </td>
                             <td>
                                 ${d.enrolled==true? '<span class="fa fa-check text-success"></span>' : '<i class="text-warning">Enrollment required</i>'}
                             </td>
                             <td>
-                                ${
-                                    (d.connected==true)?(d.enrolled==false? '<span class="badge badge-pill bg-primary enroll" data-target="#dxcEnrollModal" data-dxc-uid="'+d.uid+'">enroll</span>' : '<span class="badge badge-pill bg-secondary devtest">test</span><span class="badge badge-pill bg-primary enroll" data-target="#dxcEnrollModal" data-dxc-uid="'+d.uid+'">re-enroll</span>'):'' 
-                                }   
+                                ${act} 
                             </td>
                         </tr>
                         `);
@@ -557,7 +577,7 @@
                                     <!--<div class="col-md-4">Missing image</div>-->
                                     <div class="col-md-7">
                                         <!-- <div class="proj-desc"><i>No description set</i></div> -->
-                                        <span class="proj-pkg">${vName}</span>
+                                        <span class="proj-pkg">${DexcaliburAPI.anonymize(vName)}</span>
                                     </div>
                                     <div class="col-md-5">
                                         <div class="badge badge-pill badge-warning open-project" dxc-id="${vName}">
@@ -621,6 +641,35 @@
         });
     }
 
+    function removeAllDevice( pViewID){
+        requestConfirm(
+            "Are you sure to remove all devices ? This action cannot be undone. All devices should be enrolled again.",
+            {
+                onConfirm: function(){
+                    DexcaliburAPI.device.clear(null,{
+                        onSuccess: function(){
+                            updateDeviceList(pViewID);
+                        },
+                    onError: (pData)=>{
+                        pData = JSON.parse(pData.responseText);
+
+                        alert(pData.msg);
+                        /*
+                        $(pElementID+' div.modal-body').prepend(`
+                            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                                ${pData.msg}
+                                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                                    <span aria-hidden="true">&times;</span>
+                                </button>
+                            </div>
+                        `);*/
+                    }
+                    })
+                }
+            }
+        );
+    }
+
     function deleteProject( pProjectUID){
         requestConfirm(
             "Are you sure to delete project '"+DexcaliburAPI.ui.htmlEncode(pProjectUID)+"' ? Files will be removed from disk.",
@@ -643,10 +692,28 @@
     function deviceConnectModal( pCallback){
         $('#addDevConnect').off('click');
         $('#addDevConnect').click((pEl)=>{
-            pCallback($('#devip').val(),$('#devport').val(),$('#hostip').val());
+            pCallback( $('#devip').val(), $('#devport').val(), $('#dxc-selConnDev').val(), '#dxcDevConnectModal');
+            
         });
 
-        $('#dxcDevConnectModal').modal();
+        DexcaliburAPI.device.list((vData)=>{
+                        
+            let data = JSON.parse(vData), dev=null, did=null;
+            
+            $('#dxc-connDevices').empty();
+
+            for(let i in data.devices){
+                dev = data.devices[i];
+                if(dev.enrolled == true){
+
+                    $('#dxc-connDevices').append(`
+                        <option value="${dev.uid}">[${dev.model}] ${DexcaliburAPI.anonymize(dev.id)}</options>
+                    `);
+                }
+            }
+
+            $('#dxcDevConnectModal').modal();
+        });
     }
 
     $(document).ready(function() {
@@ -696,7 +763,7 @@
                             dev = data.devices[i];
                             //if(dev.connected == true){
                                 $('#dxc-optDevices2').append(`
-                                    <option value="${dev.uid}">[${dev.model}] (${dev.id}) ${dev.enrolled==true?"   -   ENROLLED":""}</options>
+                                    <option value="${dev.uid}">[${dev.model}] (${DexcaliburAPI.anonymize(dev.id)}) ${dev.enrolled==true?"   -   ENROLLED":""}</options>
                                 `);
                            // }
                         }
@@ -718,11 +785,11 @@
                             dev = data.devices[i];
                             if(dev.connected == true){
                                 $('#dxc-optDevices').append(`
-                                    <option value="${dev.uid}">[${dev.model}] (${dev.id}) ${dev.enrolled==true?"   -   ENROLLED":""}</options>
+                                    <option value="${dev.uid}">[${dev.model}] (${DexcaliburAPI.anonymize(dev.id)}) ${dev.enrolled==true?"   -   ENROLLED":""}</options>
                                 `);
                             }else{
                                 $('#dxc-optDevices').append(`
-                                    <option disabled value="${dev.uid}">[${dev.model}] (${dev.id}) ${dev.enrolled==true?"   -   ENROLLED":""} (disconnected)</options>
+                                    <option disabled value="${dev.uid}">[${dev.model}] (${DexcaliburAPI.anonymize(dev.id)}) ${dev.enrolled==true?"   -   ENROLLED":""} (disconnected)</options>
                                 `);
                             }
                         }
@@ -850,13 +917,42 @@
 
             deleteProject(uid);
         });
+        $(document).on("click",'a.dxc-dev-clear', (pEl)=>{
+            removeAllDevice('#dxcDeviceList');
+        });
         $(document).on("click",'a.dxc-dev-refresh',(pEl)=>{
             updateDeviceList('#dxcDeviceList');
         });
         $(document).on("click",'a.dxc-dev-connect',(pEl)=>{
-            deviceConnectModal(function(pIP,pPort, pHostIp){
-                DexcaliburAPI.device.connect(pIP, pPort, pHostIp, (pData)=>{
-                    updateDeviceList('#dxcDeviceList');
+            $('.alert').alert('close');
+
+            deviceConnectModal(function(pIP, pPort, pDevID, pElementID){
+                DexcaliburAPI.device.connect(pIP, pPort, pDevID, {
+                    onSuccess: (pData)=>{
+                        $(pElementID).modal('toggle');
+                        updateDeviceList('#dxcDeviceList');
+                    },
+                    onError: (pData)=>{
+                        pData = JSON.parse(pData.responseText);
+                        let err = 'Unknow error';
+                        
+                        if(typeof pData.msg === 'string')
+                            err = pData.msg;
+                        else if(pData.msg.stderr !== null)
+                            err = pData.msg.stderr;
+                        else if(pData.msg.stdout !== null)
+                            err = pData.msg.stdout;
+
+
+                        $(pElementID+' div.modal-body').prepend(`
+                            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                                ${err}
+                                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                                    <span aria-hidden="true">&times;</span>
+                                </button>
+                            </div>
+                        `);
+                    }
                 });
             });
         });
@@ -874,7 +970,7 @@
                         for(let i in data.apps){
                             $("#dxcAppListBody").append(`
                                 <tr>
-                                    <td>${DexcaliburAPI.ui.htmlEncode(data.apps[i].packageIdentifier)}</td>
+                                    <td>${DexcaliburAPI.ui.htmlEncode(DexcaliburAPI.anonymize(data.apps[i].packageIdentifier))}</td>
                                     <td>
                                         <span class="badge badge-pill badge-warning scan-app" dxc-device="${data.device}" dxc-app-file="${data.apps[i].packagePath}" dxc-uid="${data.apps[i].packageIdentifier}">Scan</span>&nbsp;    
                                     </td>
@@ -967,6 +1063,21 @@
 
             $('#projectTypeOpt').empty();
             $('#projectTypeOpt').html(ctn);
+        });
+
+        $(document).on('click','a.dxc-dev-killsrv',(pEl)=>{
+            DexcaliburAPI.device.bridge.kill('ADB',{
+                onSuccess: function(pData){
+                    let data = JSON.parse(pData);
+                    console.log(pData);
+                    alert( data.success? 'Success' : 'An error occured (see logs)')
+                },
+                onError: function(pData){
+                    let data = JSON.parse(pData.responseText);
+
+                    alert('Error : '+data.msg);
+                }
+            })
         });
 
         $(document).on('change', 'input.custom-file-input', function(pEvent){
