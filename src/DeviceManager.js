@@ -80,6 +80,20 @@ class DeviceManager
     
     }
 
+    /**
+     * 
+     * @param {String} pName Bridge name 
+     * @since v0.7.2
+     */
+    getBridgeFactory( pName){
+        if(this.bridges[pName]==null){
+            throw new Error('[DEVICE MANAGER] Bridge not supported.');
+        }
+
+        return this.bridges[pName]; 
+    }
+
+
 
     static getInstance(){
         if(gInstance == null){
@@ -124,6 +138,7 @@ class DeviceManager
             _fs_.unlinkSync( this.devFile);
         } 
 
+        //console.log(this.devices);
 
         let data = [];
         for(let i in this.devices){
@@ -140,6 +155,33 @@ class DeviceManager
     }
 
     /**
+     * Remove all device saved or previously enrolled
+     * 
+     * @method
+     */
+    clear(pDeviceID = null){
+
+        if(pDeviceID !== null){
+            throw new Error('Operation not supported');
+        }
+
+        let success = _fs_.existsSync( this.devFile);
+
+        if(success == true){
+            _fs_.unlinkSync( this.devFile);
+            this.devices = {};
+            this.count = 0;
+            this.defaultDevice = null;
+        }
+
+        this.save();
+
+        
+        return success;
+    }
+
+
+    /**
      * To turn all device tagged "connected" to "disconnected"
      */
     disconnectAll(){
@@ -148,30 +190,63 @@ class DeviceManager
         }
     }
 
+    getDeviceByID( pAndroidID){
+        for(let uid in this.devices){
+            if(this.devices[uid].id == pAndroidID){
+                return this.devices[uid];
+            }
+        }
+        return null;
+    }
+
+
     /**
      * To merge a given device list with cuurent list
      * 
      * @param {*} pDeviceList 
      */
     updateDeviceList( pDeviceList){
-        let active = 0, uid=null;
+        let active = 0, uid=null, id=null, dev=null;
+        let devs = {};
 
         for(let i=0; i<pDeviceList.length; i++){
 
             uid = pDeviceList[i].getUID();
+
             if(this.devices[uid] instanceof Device){
                 this.devices[uid].update(pDeviceList[i]);
             }else{
                 this.devices[uid] = pDeviceList[i];
             }
 
+            // count connected devcie
             if(this.devices[uid].isConnected()){
                 active++;
             }
         }
 
+
+        // remove duplicated
+        devs = {};
+        for(let i in this.devices){
+            id = this.devices[i].id;
+
+            if(devs[id] == null){
+                devs[id] = this.devices[i];
+            }else{
+                devs[id].merge( this.devices[i]);
+            }
+        }
+
+        this.devices = {};
+        for(let i in devs) this.devices[devs[i].uid] = devs[i];
+
+        console.log(this.devices);
+
         return active;
     }
+
+
 
     /**
      * To get a list of connected devices
@@ -189,6 +264,30 @@ class DeviceManager
         return conn;
     }
 
+    async connect( pIpAddress, pPortNumber, pDevice){
+        let success = false, wrapper=null;
+
+        
+        for(let i in this.bridges){
+            if(pDevice == null){
+                wrapper = this.bridges[i].newGenericWrapper();
+                success |= await wrapper.connect(pIpAddress, pPortNumber);
+            }else{    
+                wrapper = this.bridges[i].newSpecificWrapper(pDevice);
+                success |= await wrapper.connect(pIpAddress, pPortNumber);
+
+                // create adb wrapper with network config 
+                if(success){
+                    wrapper.ip = pIpAddress;
+                    wrapper.port = pPortNumber;
+                    pDevice.addBridge(wrapper);
+                    pDevice.setDefaultBridge(wrapper.shortname);
+                }
+            }
+        }
+
+        return success;
+    }
 
     /**
      * To detect connected devices from each bridges and update
@@ -348,10 +447,10 @@ class DeviceManager
      * @returns {String} JSON payload
      * @method
      */
-    toJsonObject(){
+    toJsonObject( pExcludeList={}){
         let json = [];
         for(let i in this.devices){
-            json.push(this.devices[i].toJsonObject());
+            json.push(this.devices[i].toJsonObject(null, pExcludeList.device));
         }
         return json;
     }
@@ -363,6 +462,8 @@ class DeviceManager
      * @param {*} pOtions 
      */
     async enroll( pDevice, pOtions = {}){
+
+
 
         let device = null, success=false, pf=null, pm=PlatformManager.getInstance();
 
@@ -384,6 +485,11 @@ class DeviceManager
             this.status = new StatusMessage(30, this.status.append("[Device Manager] Profiling successfull.\n[Device Manager] Start Frida server install"));
         }else{
             this.status = StatusMessage.newError( this.status.append("[Device Manager] Fail to profile the device"));
+        }
+
+        // update device ID if it is unknown 
+        if(device.id == null){
+            device.id = device.retrieveUIDfromDevice();
         }
 
         // Install frida 
