@@ -1,3 +1,4 @@
+const Logger = require('./Logger')();
 
 /**
  * This class represents a status when  
@@ -18,6 +19,8 @@ class StatusMessage
         this.progress = pProgress;
         this.msg = pMessage;
         this.extra = null;
+
+        Logger.debug('<status message> : NEW : ',pMessage);
     }
 
     /**
@@ -30,6 +33,8 @@ class StatusMessage
     static newError( pProgress, pMessage){
         let m  = new StatusMessage(pProgress, pMessage);
         m.extra = "error";
+        Logger.debug('<status message> : ERROR : ',pMessage);
+
         return m;
     }
 
@@ -43,6 +48,8 @@ class StatusMessage
     static newSuccess( pMessage){
         let m  = new StatusMessage(100, pMessage);
         m.extra = "success";
+        Logger.debug('<status message> : SUCCESS : ',pMessage);
+
         return m;
     }
 
