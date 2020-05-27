@@ -4,6 +4,8 @@ const _MD5_ = require("md5");
 const _FS_ = require('fs');
 const _path_ = require('path');
 
+const EOL = require('os').EOL;
+
 const DeviceProfile = require('./DeviceProfile');
 const Platform = require('./Platform');
 const PlatformManager = require('./PlatformManager');
@@ -37,40 +39,172 @@ const OS_NAME = ['android','linux','tizen'];
  */
 class Device
 {
+    /**
+     * 
+     * @param {*} config 
+     * @constructor
+     */
     constructor(config=null){
+        /**
+         * @field
+         */
         this.type = null;
+
+        /**
+         * Flag. TRUE if currently connected, else FALSE
+         * 
+         * @field
+         */
         this.connected = false;
 
+        /**
+         * Default bridge for this devices
+         * 
+         * @field
+         */
         this.bridge = null;
-        this.usb = null;
+
+        /**
+         * Flag. TRUE if this devices is default device for instrumentation
+         * @field
+         * @deprecated 
+         */
         this.selected = false;
         
-        // the operation mode
-        this.opmode = null;
+        /**
+         * @field
+         * @deprecated
+         */
         this.isEmulated = false;
 
-
+        /**
+         * Device internal UID
+         * @field
+         */
         this.uid = null;
+
+        /**
+         * Real device ID
+         * @field
+         */
         this.id =  null;
+
+        /**
+         * TRUE if debugging is authorized, else FALSE
+         * @field
+         */
         this.authorized = true;
+
+        /**
+         * Device model
+         * @field
+         */
         this.model = null;
+
+        /**
+         * Device product name
+         * @field
+         */
         this.product = null;
+
+        // ??s
         this.device = null;
+
+        /**
+         * Transport ID
+         * 
+         * @field
+         * @deprecated
+         */
         this.transportId = null;
+
+        /**
+         * USB qualifier.
+         * Change when computer-side USB port change. It help to differentiate 
+         * several devices with same DeviceID
+         *   
+         * @field
+         */
         this.usbQualifier = null;
 
+        /**
+         * Device profile built by DeviceProfiler
+         * @type {DeviceProfile}
+         * @field
+         */
         this.profile = null;
+
+        /**
+         * Device profile built by DeviceProfiler
+         * @type {DeviceProfile}
+         * @field
+         */
         this.platform = null;
 
+        /**
+         * Hold frida configuration specfic to the device
+         * @type {Object}
+         * @field
+         */
         this.frida = {
             server: null
         };
 
+        /**
+         * Hold all bridges (adb+usb, adb+tcp, sdb+usb, ssh, jtag, ...) configured for this device
+         * 
+         * @type {AdbWrapper[]}
+         * @field
+         */
+        this.bridges = {};
+
+        /**
+         * Flag. TRUE is the device is enrolled, else FALSE
+         * @field
+         */
         this.enrolled = false;
+
+        /**
+         * Flag. TRUE is the device is offline, else FALSE
+         * @field
+         */
+        this.offline = false;
+
 
         if(config !== null)
             for(let i in config) this[i] = config[i];    
     }
+
+    /**
+     * To add a bridge to the device
+     * 
+     * A bridge a way to send command or interact with the device.
+     * 
+     * @param {AdbWrapper} pBridge 
+     * @method
+     */
+    addBridge( pBridge){
+        if(this.bridges[ pBridge.shortname ] == null){
+            this.bridges[ pBridge.shortname ] = pBridge;
+        }
+    }
+
+    getBridge( pName){
+        if(this.bridges[pName] == null)
+            throw new Error(`[DEVICE] The device ${this.uid} not support bridge ${pName}`);
+
+        return this.bridges[pName];
+    }
+
+    setDefaultBridge( pName){
+        this.bridge = this.getBridge(pName);
+        this.setUID(this.bridge.deviceID);
+    }
+
+    getDefaultBridge(){
+        return this.bridge;
+    }
+    
 
     setEnrolled( pStatus = true){
         this.enrolled = pStatus;
@@ -142,6 +276,8 @@ class Device
         return this.frida.server;
     }
 
+   
+
     /**
      * To setup internal device UID
      * 
@@ -175,12 +311,9 @@ class Device
         return this.uid;
     }
 
-    getBridge(){
-        return this.bridge;
-    }
-
     update( pDevice){
         this.bridge = pDevice.bridge;
+        this.bridges = pDevice.bridges;
         this.model = pDevice.model;
         this.device = pDevice.device;
         this.product = pDevice.product;
@@ -188,6 +321,60 @@ class Device
         this.connected = pDevice.connected;
         this.authorized = pDevice.authorized;
         this.usbQualifier = pDevice.usbQualifier;
+    }
+
+    merge( pDevice){
+        for(let i in pDevice){
+            switch(i){
+                case 'enrolled':
+                    if(pDevice.enrolled)
+                        this.enrolled = pDevice.enrolled;
+                    break;
+                case 'bridges':
+                    for(let t in pDevice.bridges){
+                        if(this.bridges[t] == null){
+                            this.bridges[t] = pDevice.bridges[t];
+                        }
+                    }
+                    break;
+                case 'authorized':
+                    if(pDevice.authorized){
+                        this.authorized = true;
+                    }
+                    break;
+                case 'connected':
+                    if(pDevice.connected){
+                        this.connected = true;
+                        this.setDefaultBridge(pDevice.bridge.shortname);
+                    }
+                    break;
+                case 'profile':
+                    if(pDevice.profile != null){
+                        this.profile = pDevice.profile;
+                    }
+                    break;
+                case 'bridge':
+                case 'platform':
+                    //
+                    break;
+                case 'frida':
+                    if(this.frida.server == null && pDevice.frida.server != null){
+                        this.frida.server = pDevice.frida.server;
+                    }
+                    break;
+                default:
+                    if(this[i] == null && pDevice[i]!=null){
+                        this[i] = pDevice[i];
+                    }
+                    break;
+            }
+        }
+        if(pDevice.enrolled){
+            this.enrolled = pDevice.enrolled;
+        }
+        for(let i in pDevice.bridges){
+            this.bridges[i] = pDevice.bridges[i]
+        }
     }
 
     flagAsUnauthorized(){
@@ -252,7 +439,6 @@ class Device
     pull(pRemotePath, pLocalPath){
         let c = null;
         c = this.bridge.pull(pRemotePath, pLocalPath);
-        console.log(c);
         return c;
     }
 
@@ -435,8 +621,12 @@ class Device
                     dev[i] = OS_NAME.indexOf(pJsonObject[i]);
                     break;
 
-                case 'bridge':
-                    dev[i] = DEV_NAME.indexOf(pJsonObject[i]);
+                case 'bridges':
+                    dev.bridges = {};
+                    for( let j in pJsonObject.bridges){
+                        // todo : replace AdbWrapeper by BridgeFactory
+                        dev.bridges[j] = require("./AdbWrapper").fromJsonObject( pJsonObject.bridges[j]);
+                    }
                     break;
 
                 case 'profile':
@@ -454,11 +644,35 @@ class Device
             
         }
 
+        if(dev.bridge != null){
+            dev.setDefaultBridge(dev.bridge);
+        }
+        
         for(let i in pOverride){
             dev[i] = pOverride[i];
         }
 
         return dev;
+    }
+
+    /**
+     * To retrieve UID from device through shell 
+     * 
+     * @method
+     */
+    retrieveUIDfromDevice(){
+        let id = this.bridge.shell('getprop ro.serialno');
+        //console.log('output',id);
+
+        
+        id = id.split(EOL);
+        if(id[0] !== undefined){
+            this.id = id[0];
+        }else{
+            console.log(id);
+        }
+
+        return true;
     }
 
     /**
@@ -468,20 +682,32 @@ class Device
      * @returns {JsonObject} JSON-serialized object
      * @method 
      */
-    toJsonObject( pOverride = {}){
+    toJsonObject( pOverride = {}, pExcludeList={}){
         let json = new Object();
         for(let i in this){
+            if(pExcludeList[i] === false) continue;
+            
             switch(i){
                 case 'type':
                     json[i] = OS_NAME[this[i]];
                     break;
 
                 case 'bridge':
-                    json[i] = DEV_NAME[this[i]];
+                    if(this.bridge != null){
+                        json[i] = this.bridge.shortname;                        
+                    }
+                    break;
+
+                case 'bridges':
+                    json.bridges = {};
+                        // json.bridgeData = this.bridge.toJsonObject();
+                    for(let k in this.bridges){
+                        json.bridges[k] = this.bridges[k].toJsonObject( pExcludeList.bridge);     
+                    };
                     break;
 
                 case 'profile':
-                    json[i] = ((this[i] instanceof DeviceProfile)? this[i].toJsonObject() : null);
+                    json[i] = ((this[i] instanceof DeviceProfile)? this[i].toJsonObject( pExcludeList.profile) : null);
                     break;
 
                 case 'platform':
