@@ -676,6 +676,7 @@ class DexcaliburEngine
 
             return project;
         }else{
+            Logger.error('[ENGINE] Error : APK extraction failed.')
             return null;
         }
     }
