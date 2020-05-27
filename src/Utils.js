@@ -288,12 +288,7 @@ const Util = {
         if(pAddress == null) return { valid:false };
 
         let RE = new RegExp(IPv4 + (pHasPortNumber? ':'+PORT:''));
-
-        
         let res = RE.exec(pAddress) ;
-
-        console.log(pAddress,res);
-
 
         if(res !== null && res.index==0 && pAddress==res[0]){
 
