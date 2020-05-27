@@ -64,6 +64,13 @@ class AdbWrapper
      * @constructor
      */
     constructor(adbpath, pDeviceID = null){
+
+        /**
+         * @field
+         * @since v0.7.2
+         */
+        this.shortname = null;
+
         /**
          * @field
          */
@@ -94,8 +101,12 @@ class AdbWrapper
          * @field
          */
         this.host = null;
-    }
 
+        /**
+         * @field
+         */
+        this.usbQualifier = null;
+    }
 
     /**
      * 
@@ -179,6 +190,20 @@ class AdbWrapper
     }
 
     /**
+     * @async
+     * @method
+     */
+    async kill(){
+        ret = await UT.execAsync(this.setup() + " kill-server");
+        
+        if(ret.stderr != null && ret.stderr.length > 0){
+            throw new Error('[ADB WRAPPER] kill-server : '+ret.stderr);
+        }
+
+
+        return true;
+    }
+    /**
      * Set the transport type
      * @method
      */
@@ -215,11 +240,15 @@ class AdbWrapper
         ret = await UT.execAsync(this.setup() + " tcpip "+pPortNumber);
         ret = await UT.execAsync(this.setup() + " connect "+pIpAddress+':'+pPortNumber);
         
+        console.log(ret.stderr,ret.stdout);
         if(ret.stderr != null && ret.stderr.length > 0)
             return false;
 
         if(ret.stdout.indexOf(`connected to ${pIpAddress}`)==-1)
             return false;
+
+        this.shortname = 'adb+tcp';
+        this.transport = AdbWrapper.TCP_TRANSPORT;
 
         return true;
     }
@@ -381,6 +410,9 @@ class AdbWrapper
      */
     parseDeviceList( pDeviceListStr){
         let dev = [], ret=null,re=null, data=null, id=null, device=null, token=null;
+        let bridge = null;
+
+        Logger.debug(pDeviceListStr);
 
         ret = pDeviceListStr.split(require('os').EOL);
         
@@ -407,29 +439,44 @@ class AdbWrapper
                 // USB device, Device ID is returned by ADB 
                 id = data[1];
                 device.id = id;
-                device.bridge = new AdbWrapper(this.path, id);
+                
+                bridge = new AdbWrapper(this.path, id);
+                bridge.transport = AdbWrapper.USB_TRANSPORT;
+                bridge.shortname = 'adb+usb';
 
-                device.bridge.transport = AdbWrapper.USB_TRANSPORT;
-
-                Logger.debug('[DEVICE MANAGER][ADB] device ADB ID over USB :', id);
+                Logger.debug('[DEVICE MANAGER][ADB] device ADB ID over USB : ', id);
             }else{
                 // TCP device, unknow Device ID
                 device.id = null;
-                device.bridge = new AdbWrapper(this.path, data[1]);
+                bridge = new AdbWrapper(this.path, data[1]);
 
-                device.bridge.transport = AdbWrapper.TCP_TRANSPORT;
-                device.bridge.ip = id.ip;
-                device.bridge.port = id.port;
-                
-                Logger.debug('[DEVICE MANAGER][ADB] device ADB ID over TCP :',data[1]);
+                bridge.transport = AdbWrapper.TCP_TRANSPORT;
+                bridge.ip = id.ip;
+                bridge.port = id.port;
+                bridge.shortname = 'adb+tcp';
+
+                Logger.debug('[DEVICE MANAGER][ADB] device ADB ID over TCP : ',data[1]);
             }
+
+            device.addBridge(bridge);
+            device.setDefaultBridge(bridge.shortname);
 
 
             id = data[1];
             data = data[2].split(" ");
 
+//            device.setUID( 'adb:'+device.bridge.deviceID);
+            //device.setUID( device.bridge.deviceID);
+
+            // TODO : do it while profiling step
             device.type = OS.ANDROID;
+
             device.isEmulated = data[0].match(emuRE);
+            // remove ?
+            if(device.isEmulated){
+                device.bridge.setTransport(AdbWrapper.TCP_TRANSPORT);
+            }
+
             device.connected = true;
 
             for(let i=0; i<data.length; i++){
@@ -438,7 +485,7 @@ class AdbWrapper
                     token = data[i].split(':',2);
                     switch(token[0]){
                         case 'usb':
-                            device.setUsbQualifier(token[1]);
+                            device.bridge.usbQualifier = token[1];
                             break;
                         case 'model':
                             device.setModel(token[1]);
@@ -462,17 +509,23 @@ class AdbWrapper
                         case 'unauthorized':
                             device.flagAsUnauthorized();
                             break;
+                        case 'offline':
+                            device.offline = true;;
+                            device.connected = false;
+                            break;
                         case 'device':
                         default:
-                            Logger.debug("Unrecognized key (single token) : "+data[1]);
+                            Logger.debug("Unrecognized key (single token) : "+data[i]);
                             break;
 
                     }
                 }
             }
 
-            if(device.isEmulated){
-                device.bridge.setTransport(AdbWrapper.TCP_TRANSPORT);
+
+            console.log(device);
+            if(device.bridge.shortname=='adb+tcp' && device.id == null){
+                device.retrieveUIDfromDevice();
             }
 
             dev.push(device);
@@ -670,7 +723,6 @@ class AdbWrapper
         return o;
     }
 }
-
 
 
 
