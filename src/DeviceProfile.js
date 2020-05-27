@@ -345,10 +345,12 @@ class DeviceProfile
     /**
      * @method
      */
-    toJsonObject(){
+    toJsonObject( pExcludeList={}){
         let o = {};
 
         for(let i in this){
+            if(pExcludeList[i] === true) continue;
+            
             if(i == "profiles"){
                 o.profiles = {};
                 for(let k in this.profiles){
