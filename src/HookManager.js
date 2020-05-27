@@ -1182,8 +1182,8 @@ class HookSession
     /**
      * @method
      */
-    hasMessages(){
-        return this.message.length>0;
+    hasMessages( pOffset=0){
+        return this.message.length > pOffset;
     }
 
     /**
@@ -1193,17 +1193,34 @@ class HookSession
         return this.message;
     }
 
+    getMessages( pOffset, pSize ){
+        let arr = [];
+        for(let i=pOffset; i<pOffset+pSize; i++){
+            // not null and not undefined
+            if(this.message[i] != null){
+                arr.push(this.message[i]);
+            }
+        }
+
+        return arr;
+    }
     /**
      * @method
      */
-    toJsonObject(){
-        let o = new Object(), msg="";
+    toJsonObject( pOffset=0, pSize=-1){
+        let o = new Object(), limit=pSize;
         o.message = [];
-        for(let i=0; i<this.message.length; i++){
-            //msg=this.message[i];
-            //o.message.push({ type:(msg.type!=null?msg.type:''), data: msg.payload });
-            o.message.push(this.message[i].toJsonObject());
+
+        if(limit==-1) 
+            limit = this.message.length;
+
+        limit += pOffset;
+        for(let i=pOffset; i<limit; i++){
+            if(this.message[i] != null)
+                o.message.push(this.message[i].toJsonObject());
         }
+
+        o.size = o.message.length;
         return o;
     }
 }

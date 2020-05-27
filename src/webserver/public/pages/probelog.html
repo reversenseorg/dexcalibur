@@ -162,24 +162,52 @@
         let msgStatus = 0;
         let scheduled = null;
 
+
+        let CURR_MSG_OFFSET = -1;
+        let NEXT_MSG_OFFSET = 0;
+        let NEXT_MSG_SET_SIZE = 20;
+        let CONTINUE_PRINT = true;
+
         function startToFollow(){
+            CURR_MSG_OFFSET = -1;
+            NEXT_MSG_OFFSET = 0;
+            CONTINUE_PRINT = true;
 
             return setInterval(function(){
+
+            if(CURR_MSG_OFFSET == NEXT_MSG_OFFSET) return;
+            //if(!CONTINUE_PRINT) return;
+
+            CONTINUE_PRINT = false;
+            CURR_MSG_OFFSET = NEXT_MSG_OFFSET;
             $.ajax("../api/probe/msg",{
                 method: 'get',
+                data: {
+                    startAt: NEXT_MSG_OFFSET,
+                    size: NEXT_MSG_SET_SIZE
+                },
                 statusCode: {
                     200: function(data,err){
                         var d = JSON.parse(data), msg, color_start, color_end, msgdata, hookMsg;
+
+                        if(d.data.size == 0)
+                            CURR_MSG_OFFSET -= 1;
+                        else
+                            NEXT_MSG_OFFSET += d.data.size;
+
+                        CONTINUE_PRINT = true;
                         //console.log(d);
                         
                         //clsTable.draw();
 
-                        if(d.data.message.length>msgStatus){
+                        if(d.data.message.length > 0/*>msgStatus*/){
 
 
                             //$("#probelogs").html("");
 
-                            for(let i=msgStatus; i<d.data.message.length ; i++){
+                            //for(let i=msgStatus; i<d.data.message.length ; i++){
+                            for(let i=0; i<d.data.message.length ; i++){
+
                                 hookMsg = d.data.message[i];
                                 msg = hookMsg.msg;
 
@@ -220,10 +248,17 @@
                                     if(typeof hookMsg.data == "object"){
                                         for(let i in hookMsg.data){
                                             if(i.indexOf("__hidden__")==0) continue;
-                                            if(i == "__meth__"){
-                                                msgdata += `<a href="/pages/finder.html?method=${btoa(encodeURIComponent(hookMsg.data[i]))}">${hookMsg.data[i]}</a></br>`;
-                                            }else{
-                                                msgdata += htmlEncode(i+" = "+hookMsg.data[i])+"</br>";
+                                            switch(i)
+                                            {
+                                                case "__meth__":
+                                                    msgdata += `<a href="/pages/finder.html?method=${btoa(encodeURIComponent(hookMsg.data[i]))}">${hookMsg.data[i]}</a></br>`;
+                                                    break;
+                                                case "__class__":
+                                                    msgdata += `<a href="/pages/finder.html?class=${btoa(encodeURIComponent(hookMsg.data[i]))}">${hookMsg.data[i]}</a></br>`;
+                                                    break;
+                                                default:
+                                                    msgdata += htmlEncode(i+" = "+hookMsg.data[i])+"</br>";
+                                                    break;
                                             }
                                         }
                                     }else
@@ -245,15 +280,19 @@
                                     );
                                 }
                             }
-                            msgStatus = d.data.message.length;
+                            //msgStatus = d.data.message.length;
                         }
                     },
                     404: function(){
                         //alert("Failed to add probe (see logs)")
+                        if(CURR_MSG_OFFSET == NEXT_MSG_OFFSET)
+                            CURR_MSG_OFFSET -= NEXT_MSG_SET_SIZE;
+
+                        //CONTINUE_PRINT = true;
                     }
                 }
             });
-        },100);
+        },200);
         };
 
         if(location.hash=="#autostart"){
@@ -438,12 +477,12 @@
         });
 
         $(document).on("click",".probe-restart",function(){
-            msgStatus = 9999999;
+            //msgStatus = 9999999;
             $("#tabProbeLogs tbody tr").remove();
             DexcaliburAPI.hook.start(
                 {type:"spawn-self"},
                 function(){
-                    msgStatus = 0;
+                    //msgStatus = 0;
                     scheduled = startToFollow();            
                 },
                 function(err){
