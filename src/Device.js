@@ -345,7 +345,6 @@ class Device
                 case 'connected':
                     if(pDevice.connected){
                         this.connected = true;
-                        this.setDefaultBridge(pDevice.bridge.shortname);
                     }
                     break;
                 case 'profile':
@@ -368,6 +367,19 @@ class Device
                     }
                     break;
             }
+        }
+        if(pDevice.connected){
+            /*
+            if device passed as argument is connected now replace default bridge.
+            avoid case : 
+                1/ device identified by USB
+                2/ connected over TCP
+                3/ disconnected from USB
+                4/ restart
+                4'/ ADB restart ?
+                5/ try USB connection when only TCP is available
+            */
+            this.setDefaultBridge(pDevice.bridge.shortname);
         }
         if(pDevice.enrolled){
             this.enrolled = pDevice.enrolled;
