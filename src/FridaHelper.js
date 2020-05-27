@@ -9,7 +9,7 @@ const {promisify}   = require('util');
 const pipeline = promisify(_stream_.pipeline);
 const spawn = promisify(_ps_.spawn);
 
-
+const Logger = require('./Logger')();
 const DexcaliburWorkspace = require("./DexcaliburWorkspace");
 
 const HOST_FRIDA_BIN_NAME = 'frida';
@@ -18,6 +18,11 @@ const REMOTE_FRIDA_LATEST_RELEASE = 'https://api.github.com/repos/frida/frida/re
 const REMOTE_FRIDA_PATH = '/data/local/tmp/';
 const REMOT_FRIDA_DEFAULT_NAME = 'frida_server';
 
+
+const SPAWN = 0x1;
+const ATTACH_BY_NAME = 0x2;
+const ATTACH_BY_PID = 0x3;
+
 var _frida_ = null;
 /**
  * @class
@@ -25,6 +30,105 @@ var _frida_ = null;
  */
 class FridaHelper
 {
+    /**
+     * @field
+     * @static
+     */
+    static SPAWN = 0x1;
+
+    /**
+     * @field
+     * @static
+     */
+    static ATTACH_BY_NAME = 0x2;
+
+    /**
+     * @field
+     * @static
+     */
+    static ATTACH_BY_PID = 0x3;
+/*
+
+    static async exec( pDevice, pScript, pType, pApp){
+        let FRIDA = require('frida');
+
+        var hookRoutine = co.wrap(function *() {
+            let session = null, pid=null, applications=null;
+            
+            const device = yield FRIDA.getDevice(pDevice.getUID());
+
+            switch(pType){
+                case FridaHelper.SPAWN:
+                    pid = yield device.spawn([pExtra]);
+                    
+                    session = yield device.attach(pid);
+
+                    Logger.info('spawned:', pid);
+                    break;
+                case FridaHelper.ATTACH_BY_PID:
+                    applications = yield device.enumerateApplications();
+                    for(let i=0; i<applications.length; i++){
+                        if(applications[i].identifier == pExtra)
+                            pid = applications[i].pid;
+                    }
+
+                    if(pid > -1) {
+                        session = yield device.attach(pid);
+
+                        Logger.info('attached to '+pExtra+" (pid="+pid+")");
+                    }else{
+                        throw new Error('Failed to attach to application ('+pExtra+' not running).');
+                    }
+                    
+                    break;
+                case FridaHelper.ATTACH_BY_NAME:
+                    applications = yield device.enumerateApplications();
+                    if(applications.length == 1 && applications[0].name == "Gadget") {
+
+                        session = yield device.attach(applications[0].pid);
+
+                        Logger.info('attached to Gadget:', pid);
+                    }else
+                        Logger.error('Failed to attach to Gadget.');
+
+                    break;
+                case FridaHelper.ATTACH_BY_PID:
+                    session = yield device.attach(pid);
+                    Logger.info('spawned:', pid);
+                    break;
+                default:
+                    Logger.error('Failed to attach/spawn');
+                    return;
+                    break;
+            }
+
+            const script = yield session.createScript(pScript);
+
+             // For frida-node > 11.0.2
+             script.message.connect(message => {
+                PROBE_SESSION.push(message);//{ msg:message, d:data });
+                //console.log('[*] Message:', message);
+            });    
+            
+        
+            yield script.load();
+
+
+            PROBE_SESSION.fridaScript = script;
+
+            console.log('script loaded', script);
+            yield device.resume(pid);
+
+
+        });
+
+        hookRoutine()
+            .catch(error => {
+            console.log(error);
+            console.log('error:', error.message);
+            });
+
+    }*/
     /**
      * 
      * Return an object formatted like that :
@@ -63,7 +167,7 @@ class FridaHelper
             pLocalName
         );
 
-        console.log(pRemotepPath);
+        Logger.info(`[FRIDA HELPER] Downloading ${pRemotepPath} ...`);
 
         if(_fs_.existsSync(tmp) == true){
             _fs_.unlinkSync(tmp);
@@ -79,6 +183,8 @@ class FridaHelper
                 encoding: 'binary' 
             } )
         );
+
+        Logger.info(`[FRIDA HELPER] ${pRemotepPath}  downloaded. `);
 
         if(_fs_.existsSync(tmp) == true){
             return tmp;
@@ -97,7 +203,7 @@ class FridaHelper
         let frida = pDevice.getFridaServerPath();
         let res = null;
 
-        console.log(pOptions);
+        //console.log(pOptions);
 
         if(pOptions.path != null && pOptions.path != '')
             frida = pOptions.path;
@@ -161,7 +267,10 @@ class FridaHelper
 
         // download sever
         xzpath = await FridaHelper.download( tmp, 'frida_server', pOptions);
+        Logger.info('[FRIDA HELPER] Server download. Path: ',xzpath);
         path = xzpath.substr(0,xzpath.length-3);
+
+        Logger.info('[FRIDA HELPER] Extracting server from archive ...');
 
         // un-xz
         await pipeline(
@@ -189,6 +298,11 @@ class FridaHelper
             pDevice.pushBinary( path, REMOTE_FRIDA_PATH+tmp);
             pDevice.setFridaServer( REMOTE_FRIDA_PATH+tmp);
         }
+
+        // remove downloaded files
+        _fs_.unlinkSync(xzpath);
+        _fs_.unlinkSync(path);
+
 
         return true;
     }
