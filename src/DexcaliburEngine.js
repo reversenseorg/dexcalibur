@@ -273,7 +273,7 @@ class DexcaliburEngine
      * @method
      */
     boot( pRestore=false){
-        let conf = null, data=null;
+        let self=this; 
         
         // init workspace
         this.workspace.init();
@@ -293,6 +293,10 @@ class DexcaliburEngine
         // load device manager db
         this.deviceMgr.load();
 
+        // restart child ADB server
+       
+        this.deviceMgr.getBridgeFactory('ADB').newGenericWrapper().kill();  
+        
         return true;
     }
 
@@ -622,7 +626,7 @@ class DexcaliburEngine
     async openProject( pUID){
         let project = null, success = false;
         try{
-            DeviceManager.getInstance().scan();
+            await DeviceManager.getInstance().scan();
 
             project = DexcaliburProject.load(this, pUID);
 
@@ -646,7 +650,7 @@ class DexcaliburEngine
         let project = null;
         let success = null;
 
-        DeviceManager.getInstance().scan();
+        await DeviceManager.getInstance().scan();
 
         //validate or suggest project UID 
         if(DexcaliburProject.exists(pUID)){

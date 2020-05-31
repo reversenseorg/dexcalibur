@@ -280,6 +280,8 @@ class DexcaliburProject
     
 
     /**
+     * To get device target of the project
+     * 
      * @method
      */
     getDevice(){
