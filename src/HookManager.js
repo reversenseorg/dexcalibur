@@ -10,6 +10,7 @@ const CONST = require("./CoreConst.js");
 const UT = require("./Utils.js");
 const Logger = require("./Logger.js")();
 const JSHelper = require("./JavaScriptHelper.js");
+const FridaHelper = require("./FridaHelper");
 
 var HOOK_TYPE = {
     AFTER: 0x1,
@@ -1486,9 +1487,21 @@ class HookManager
         // start Frida
         // do spawn + attach
         var hookRoutine = co.wrap(function *() {
-            let session = null, pid=null, applications=null;
+            let session = null, pid=null, applications=null, bridge=null;
             
-            const device = yield FRIDA.getDevice(target.getUID());
+            let device = null;
+
+            device = yield FridaHelper.getDevice(target);
+/*
+            bridge = target.getDefaultBridge();
+            
+            if(bridge.isNetworkTransport()){
+                device = yield FRIDA.getDeviceManager().addRemoteDevice(bridge.ip+':'+bridge.port);
+            }else{
+                device = yield FRIDA.getDevice(bridge.deviceID);
+            }
+  */          
+            
             PROBE_SESSION.fridaDevice = device;
 
             switch(pType){
