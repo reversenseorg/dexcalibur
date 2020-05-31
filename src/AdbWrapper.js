@@ -106,6 +106,33 @@ class AdbWrapper
          * @field
          */
         this.usbQualifier = null;
+
+        /**
+         * Bridge connection status
+         * @field
+         */
+        this.up = false;
+    }
+
+    clone( pOverride = {}){
+        let o = new AdbWrapper(this.path, this.deviceID);
+        for(let i in this){
+            if(pOverride[i] !== undefined){
+                o[i] = pOverride[i];
+            }else{
+                o[i] = this[i];
+            }   
+        }
+        return o;
+    }
+    /**
+     * To get connection status
+     * 
+     * @returns {Boolean} TRUE is connected, else FALSE
+     * @method
+     */
+    isConnected(){
+        return this.up;
     }
 
     /**
@@ -194,11 +221,16 @@ class AdbWrapper
      * @method
      */
     async kill(){
-        ret = await UT.execAsync(this.setup() + " kill-server");
-        
-        if(ret.stderr != null && ret.stderr.length > 0){
+        let ret = null;
+
+        ret = await UT.execAsync(this.setup() + " kill-server").catch((err)=>{
+            throw new Error('[ADB WRAPPER] kill-server : '+err);
+        });
+
+
+        /*if(ret.stderr != null && ret.stderr.length > 0){
             throw new Error('[ADB WRAPPER] kill-server : '+ret.stderr);
-        }
+        }*/
 
 
         return true;
@@ -226,7 +258,7 @@ class AdbWrapper
      * @since v0.7.1
      */
     isUsbTransport(){
-        return (this.transport === AdbWrapper.TCP_TRANSPORT);
+        return (this.transport === AdbWrapper.USB_TRANSPORT);
     }
 
     /**
@@ -235,12 +267,14 @@ class AdbWrapper
      * @param {*} pPortNumber 
      * @method
      */
-    async connect( pIpAddress, pPortNumber){
+    async connect( pIpAddress, pPortNumber, pDeviceID){
 
-        ret = await UT.execAsync(this.setup() + " tcpip "+pPortNumber);
-        ret = await UT.execAsync(this.setup() + " connect "+pIpAddress+':'+pPortNumber);
+        ret = await UT.execAsync(this.setup(pDeviceID) + " tcpip "+pPortNumber);
+        //Logger.debug(ret);
+
+        ret = await UT.execAsync(this.setup(pDeviceID) + " connect "+pIpAddress+':'+pPortNumber);
+        //console.log(ret);
         
-        console.log(ret.stderr,ret.stdout);
         if(ret.stderr != null && ret.stderr.length > 0)
             return false;
 
@@ -249,6 +283,7 @@ class AdbWrapper
 
         this.shortname = 'adb+tcp';
         this.transport = AdbWrapper.TCP_TRANSPORT;
+        this.deviceID = pIpAddress+':'+pPortNumber;
 
         return true;
     }
@@ -408,7 +443,7 @@ class AdbWrapper
      * @returns {Device[]} An array of Device instances corresponding to ADB output
      * @method
      */
-    parseDeviceList( pDeviceListStr){
+    async parseDeviceList( pDeviceListStr){
         let dev = [], ret=null,re=null, data=null, id=null, device=null, token=null;
         let bridge = null;
 
@@ -447,7 +482,7 @@ class AdbWrapper
                 Logger.debug('[DEVICE MANAGER][ADB] device ADB ID over USB : ', id);
             }else{
                 // TCP device, unknow Device ID
-                device.id = null;
+                device.id = "<pending...>";
                 bridge = new AdbWrapper(this.path, data[1]);
 
                 bridge.transport = AdbWrapper.TCP_TRANSPORT;
@@ -478,6 +513,7 @@ class AdbWrapper
             }
 
             device.connected = true;
+            device.getDefaultBridge().up = true;
 
             for(let i=0; i<data.length; i++){
                 Logger.debug(`[DEVICE MANAGER] Parsing device list : ${data[i]}`);
@@ -512,6 +548,7 @@ class AdbWrapper
                         case 'offline':
                             device.offline = true;;
                             device.connected = false;
+                            device.getDefaultBridge().up = false;
                             break;
                         case 'device':
                         default:
@@ -523,9 +560,14 @@ class AdbWrapper
             }
 
 
-            console.log(device);
+            //console.log(device);
             if(device.bridge.shortname=='adb+tcp' && device.id == null){
-                device.retrieveUIDfromDevice();
+                try{
+                    await device.retrieveUIDfromDevice();
+                }catch(err){
+                    // catch Device offline but nothing to do
+                    Logger.error("[ADB WRAPPER] List Devices : "+err.message);
+                }
             }
 
             dev.push(device);
@@ -538,9 +580,9 @@ class AdbWrapper
      * To list connected devices
      * @method
      */
-    listDevices(){
+    async listDevices(){
         Logger.info("[ADB] Enumerating connected devices ...");
-        return this.parseDeviceList( 
+        return await this.parseDeviceList( 
             UT.execSync(this.setup()+" devices -l")
                 .toString("ascii") );
     }
@@ -603,6 +645,17 @@ class AdbWrapper
      */
     shell(command, deviceID = null){
             return UT.execSync(this.setup()+' shell '+command);
+    }
+
+     /**
+     * Execute a command on the device
+     * Same as 'adb shell' commande.
+     * 
+     * @param {*} command The command to execute remotely
+     * @method
+     */
+    async shellAsync(command, deviceID = null){
+        return await UT.execAsync(this.setup()+' shell '+command);
     }
 
     /**
@@ -717,7 +770,17 @@ class AdbWrapper
         for(let i in this){
             if(pExcludeList[i] === false) continue;
             
-            o[i] = this[i];
+            switch(i)
+            {
+                case 'bridge':
+                    if(this.bridge != null)
+                        o.bridge = this.bridge.shortname;
+
+                    break;
+                default:
+                    o[i] = this[i];
+                    break;
+            }
         } 
 
         return o;

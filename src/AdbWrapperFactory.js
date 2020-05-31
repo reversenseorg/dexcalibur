@@ -78,7 +78,8 @@ class AdbWrapperFactory
      * @method
      */
     newSpecificWrapper( pDevice){
-        return new AdbWrapper( gInstance.path, pDevice.getUID() );
+        
+        return pDevice.bridge.clone();
     }
 
 }
