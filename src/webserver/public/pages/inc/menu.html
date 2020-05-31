@@ -42,6 +42,7 @@
 
                     <div class="dropdown-menu" aria-labelledby="raDropdownMenuLink">
                         <a class="dropdown-item" href="/inspectors/DynamicLoader/main.html">Dynamic loading</a>
+
                         <!--<a class="dropdown-item" href="/inspectors/dddd.html">Network</a>
                         <a class="dropdown-item" href="/inspectors/eeee.html">File accesses</a>-->
                     </div>
@@ -56,6 +57,7 @@
                             <i class="fa fa-wrench"></i>&nbsp;&nbsp;Settings
                     </a>
                     <div class="dropdown-menu" aria-labelledby="settingsDropdownMenuLink">
+                        <a class="dropdown-item" href="/pages/target_device.html"><span class="fa fa-mobile"></span>&nbsp;Target device</a>
                         <a class="dropdown-item" href="/pages/devicemanager.html"><span class="fa fa-android"></span>&nbsp;Device settings (project)</a>
                         <a class="dropdown-item" href="/pages/packagepatcher.html"><span class="fa fa-archive"></span>&nbsp;Package patcher</a>
                         <a class="dropdown-item" href="/pages/inspectors.html"><span class="fa fa-sitemap"></span>&nbsp;Inspectors (Plugins)</a>
@@ -65,7 +67,18 @@
             </ul>
             </div>
 
-            <ul class="navbar-nav navbar-right" id="autosaveMenu" style="visibility:hidden;">
+            <div class="navbar-right">
+                <ul class="navbar-nav" id="autosaveMenu" style="visibility:hidden;">
+                    <li class="nav-item custom-control custom-switch">
+                        <input type="checkbox" class="custom-control-input" id="autosaveSwitch">
+                        <label class="custom-control-label" for="autosaveSwitch" style="color:#fff">Auto-save</label>     
+                    </li>
+                    <li class="nav-item">
+                        <span id="saveStatus" class="text-warning">ON</span>
+                    </li>
+                </ul>
+            </div>
+            <!--<ul class="navbar-nav navbar-right" id="autosaveMenu" style="visibility:hidden;">
                 <li class="nav-item custom-control custom-switch">
                     <input type="checkbox" class="custom-control-input" id="autosaveSwitch">
                     <label class="custom-control-label" for="autosaveSwitch" style="color:#fff">Auto-save</label>     
@@ -73,7 +86,7 @@
                 <li class="nav-item">
                     <span id="saveStatus" class="text-warning">ON</span>
                 </li>
-            </ul>
+            </ul>-->
             <!-- TODO : Autosave button + user menu -->
             <!--<button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarUserContent" aria-controls="navbarNavDropdown" aria-expanded="false" aria-label="Toggle navigation">
                 <span class="navbar-toggler-icon"></span>
