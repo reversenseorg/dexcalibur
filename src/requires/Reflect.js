@@ -31,6 +31,8 @@ var CLS={
 
 function isInstanceOf(raw_ref, fqcn){
     //var cls = "java.lang.String";
+    if(raw_ref == null) return false;
+
     if(typeof raw_ref != "string"){
         var cls = Java.cast(raw_ref.getClass(), CLS.java.lang.Class);
         return cls.getCanonicalName()==fqcn;
