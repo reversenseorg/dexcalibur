@@ -1,3 +1,12 @@
+@font-face {
+    font-family: RalewayLight;
+    src: url(/vendor/fonts/Raleway-Light.ttf);
+}
+@font-face {
+    font-family: RalewayRegular;
+    src: url(/vendor/fonts/Raleway-Regular.ttf);
+}
+
 body {
     background-color: #FFF;
   /*  font-size: 11px; */
@@ -10,6 +19,7 @@ body.dxc-dark {
 
     /*background-color: rgb(20, 20, 41);*/
     background-color: #0c072c;
+    font-family: RalewayRegular;
 /*
     background: linear-gradient(120deg, #4B0000 0%, #000000 100%), linear-gradient(300deg, #1E0000 0%, #0038FF 100%, #0038FF 100%), linear-gradient(65deg, #00FFFF 0%, #FF00A8 100%), linear-gradient(185deg, #FF0000 10%, #1400FF 95%), radial-gradient(100% 140% at 100% 0%, #00A3FF 0%, #C10097 100%);
     background-blend-mode: color-dodge, overlay, difference, color-dodge, normal; 
@@ -709,6 +719,10 @@ div.dxc-inline-ctn {
     color:black;
 }
 
+.dropdown-item:hover {
+    background: #23215230;
+    cursor: pointer;
+}
 
 
 

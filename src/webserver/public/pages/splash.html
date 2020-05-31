@@ -166,7 +166,7 @@
             <div class="row">
                 <div class="col-md-8 col-md-offset-2">
 
-                    <div class='row splash' style="width: 50rem;">
+                    <div class='row splash' style="width: 60rem;">
                     <div class="col-md-4 splash-menu">
 
                         <div class="card bg-secondary text-white" style="width:100%">
@@ -530,19 +530,20 @@
                             `;
                         }
 
-                
-
-
                         if(d.authorized==false){
                             act = '-';
                         }else{
                             act = (d.connected==true)?(d.enrolled==false? '<span class="badge badge-pill bg-primary enroll" data-target="#dxcEnrollModal" data-dxc-uid="'+d.uid+'">enroll</span>' : '<span class="badge badge-pill bg-primary enroll" data-target="#dxcEnrollModal" data-dxc-uid="'+d.uid+'">re-enroll</span>'):'';
                         }
 
+                        if(Object.keys(d.bridges).indexOf('adb+tcp')>-1){
+                            act += '&nbsp;<span class="badge badge-pill badge-warning connectbridge" data-dxc-uid="'+d.uid+'">TCP connect</span>' 
+                        }
+
                         $(pElement).append(`
                         <tr>
                             <td>
-                                ${DexcaliburAPI.anonymize(d.id)}${bridges}
+                                ${DexcaliburAPI.anonymize(DexcaliburAPI.ui.htmlEncode(d.id))}${bridges}
                             </td>
                             <td>
                                 ${ d.model}
@@ -719,6 +720,18 @@
     $(document).ready(function() {
 
         updateProjectList("#dxcProjectList");
+
+        $(document).on('click','span.connectbridge',pEl => {
+            let devid = pEl.currentTarget.getAttribute("data-dxc-uid");
+            DexcaliburAPI.device.connect(null, null, devid, {
+                onSuccess: function(){
+                    alert('success');
+                },
+                onError: function(){
+                    alert('error');
+                }
+            })
+        });
 
         const SCOPES = {
             "home": {
