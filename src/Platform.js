@@ -118,6 +118,10 @@ class Platform
         return this.apiVersion;
     } 
 
+    /**
+     * @deprecated
+     * @param {*} pPath 
+     */
     setPath( pPath){
         this.path = pPath;
     }
