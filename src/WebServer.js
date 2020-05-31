@@ -347,7 +347,7 @@ class WebServer {
                 let success = false;
 
                 dm = DeviceManager.getInstance();
-                dm.scan();
+                await dm.scan();
                 
                 if(req.body['dev'] != null){
                     device = dm.getDevice( req.body['dev']);
@@ -435,7 +435,7 @@ class WebServer {
             .get(async function (req, res) {
                 
                 // refresh connected device
-                DeviceManager.getInstance().scan();
+                await DeviceManager.getInstance().scan();
                 let project = null;
                 project = $.context.getProject( req.query.uid);
 
@@ -506,7 +506,7 @@ class WebServer {
                 let ip = req.body['ip'];
                 let port = req.body['port'];
                 let device = null;
-                let dev;
+                let data = false;
 
                 try{
                     if(req.body['dev'] !== null){
@@ -516,21 +516,36 @@ class WebServer {
                             Logger.debug('[WEBSERVER][/api/device/connect] Device selected : ',device.getUID());
                         else
                             Logger.debug('[WEBSERVER][/api/device/connect] Device not found.');
+
+                        
                     }
 
-                    dev = { success: await dm.connect(ip, port, device) };
-                    if(dev.success == false){
-                        dev.msg = 'An unknow error happened. See Dexcalibur logs/output for more details.';
+                    if(ip=="" && port==""){
+                        let b = device.getBridge('adb+tcp');
+                        if( b!= null ){
+                           data = await dm.connect( b.ip, b.port, device);
+                        }
+                    }else
+                        data = await dm.connect(ip, port, device);
+
+
+                    if(data){
+                        dm.save();
+                    }
+
+                    data = { success: data };
+                    if(data.success == false){
+                        data.msg = 'An unknow error happened. See Dexcalibur logs/output for more details.';
                         res.status(500);
                     }else{
                         res.status(200);
                     }
                 }catch(err){
-                    dev = { success:false, msg:err };
+                    data = { success:false, msg:err.message };
                     res.status(500)
                 }
 
-                res.send(JSON.stringify(dev));
+                res.send(JSON.stringify(data));
             });
 
         this.app.route('/api/device/clear/:deviceid')
@@ -632,11 +647,11 @@ class WebServer {
                 let dm;
 
                 dm = DeviceManager.getInstance();
-                dm.scan();
+                await dm.scan();
                 dm.save();
 
                 res.status(200).send(JSON.stringify({
-                    devices: dm.toJsonObject({
+                    devices: dm.toJsonObject( {}, {
                         device: {
                             profile: false,
                             frida: false,
@@ -647,6 +662,7 @@ class WebServer {
                     })
                 }));
             });
+
 
         this.app.route('/api/device/applications')
             .get(async function (req, res) {
@@ -712,6 +728,46 @@ class WebServer {
                         errcode: "DM1"
                     }));
                     return 1;
+                }
+            });
+
+        this.app.route('/api/device/:uid/bridge')
+            .put(async function (req, res) {
+                // scan connected devices
+                let dev=null, bridge=null, dm=null, result=false;
+
+                try{
+                    dm = DeviceManager.getInstance();
+                    dev = dm.getDevice(req.params.uid);
+                    bridge = dev.getBridge(req.body['name']);
+
+
+                    if(bridge.up==false){
+                        if(bridge.isNetworkTransport()){
+                            result = await dm.connect( bridge.ip, bridge.port, dev);
+                            if(result){
+                                dev.setDefaultBridge(req.body['name']);
+                                dm.save();
+                                res.status(200).send({ success: true });
+                                return ;
+                            }else{
+                                res.status(500).send({ success: false, msg:'Connection over TCP failed.' });
+                                return ;
+                            }
+                        }else{
+                            res.status(500).send({ success: false, msg:'Please connect the device through USB and retry.' });
+                            return ;
+                        }
+                    }else{
+                        dev.setDefaultBridge(req.body['name']);
+                        dm.save();
+                        res.status(200).send({ success: true });
+
+                        return; 
+                    }
+
+                }catch(err){
+                    res.status(500).send({ success: false, msg:err.message });
                 }
             });
 
@@ -1615,7 +1671,58 @@ class WebServer {
                     $.project.getApplication();
                     res.status(404).send(JSON.stringify({ msg: 'Operation not supported (TODO)' }));
                 }
+            });
+
+        // to get defaukt device of active project
+        this.app.route('/api/project/device')
+            .get(function(req, res){
+                if($.project == null){
+                    res.status(500).send({ success:false, msg:'No active project' });
+                    return ;
+                }
+
+                let dev = null;
+                try{
+                    dev = $.project.getDevice();
+                    if(dev!=null){
+                        res.status(200).send({ success:true, msg:dev.toJsonObject({}, {
+                                bridge: {
+                                    path: false
+                                }
+                            })
+                        });
+                    }else{
+                        res.status(200).send({ success:true, msg:null });
+                    }
+                    
+                }catch(excpt){
+                    res.status(500).send({ success:false, msg:excpt.message });
+                }
+                return;
             })
+            .post(function(req, res){
+                if($.project == null){
+                    res.status(500).send({ success:false, msg:'No active project' });
+                    return ;
+                }
+
+                let dev = null;
+                let uid = null;
+
+                try{
+                    uid = req.body['device'];
+                    dev = DeviceManager.getInstance().getDevice(uid);
+                    if(dev != null){
+                        $.project.setDevice(dev);
+                        $.project.save();
+                    }
+                    res.status(200).send({ success:true });
+                }catch(excpt){
+                    res.status(500).send({ success:false, msg:excpt.message });
+                }
+                return;
+            });
+
 /*
             this.app.route('/api/projection')
                 .get(function (req, res) {
@@ -1995,7 +2102,7 @@ class WebServer {
          * Send an intent to to the default device
          */
         this.app.route('/api/intent/send')
-            .post(function (req, res) {
+            .post(async function (req, res) {
                 // collect
                 let uid = req.body["uid"];
                 let typeIntent = req.body["type"];
@@ -2016,7 +2123,7 @@ class WebServer {
 
                 // get default device
                 // resfresh dev
-                DeviceManager.getInstance().scan();
+                await DeviceManager.getInstance().scan();
                 let device = $.project.getDevice(); // devices.getDefault();
                 
 
