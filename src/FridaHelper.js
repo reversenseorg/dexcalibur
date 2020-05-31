@@ -208,6 +208,12 @@ class FridaHelper
         if(pOptions.path != null && pOptions.path != '')
             frida = pOptions.path;
 
+        if(pDevice.getDefaultBridge().isNetworkTransport()){
+            frida += " -l 0.0.0.0"
+        }
+        
+        //if(pOptions.listen != null)
+
         if(pOptions.privileged)
             res = await pDevice.privilegedExecSync(frida, {detached:true});
         else
@@ -216,18 +222,54 @@ class FridaHelper
         return res;
     }
 
+    /**
+     * 
+     * @param {*} pDevice 
+     * @method
+     */
+    static async getDevice(pDevice){
+        if(_frida_ == null){
+            _frida_ = require('frida');
+        }
+
+        let dev=null, bridge = pDevice.getDefaultBridge();
+
+        if(bridge==null) return null;
+
+        dev = await _frida_.getDevice(bridge.deviceID).catch(async function(err){
+            if(bridge.isNetworkTransport()){
+                return await _frida_.getDeviceManager().addRemoteDevice(bridge.deviceID);
+            }else{
+                return null;
+            }
+        });
+        
+
+        if(dev==null && bridge.isNetworkTransport()){
+            dev = await _frida_.getDeviceManager().addRemoteDevice(bridge.deviceID);
+        }
+
+
+        return dev;
+    }
+
     static async getServerStatus( pDevice, pOptions = { nofrida:false }){
         if(_frida_ == null){
             _frida_ = require('frida');
         }
 
-        let flag = false;
-        let dev = await _frida_.getDevice(pDevice.getUID());
+        let flag = false, dev=null;
         
         try{
+            dev = await FridaHelper.getDevice(pDevice);
+            
+            if(dev==null) 
+                return false;
+
             dev = await dev.enumerateProcesses();
             flag = true;
         }catch(err){
+            Logger.debug(err.message);
             flag = false;
         }
 
