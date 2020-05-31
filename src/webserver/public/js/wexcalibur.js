@@ -681,11 +681,9 @@ var DexcaliburAPI = {
                     if(pSuccess != null) pSuccess(data);
                 },
                 404: function(data,err){
-                    console.log(arguments);
                     if(pError != null) pError(data,err);
                 },
                 500: function(data,err){
-                    console.log(arguments);
                     if(pError != null) pError(data,err);
                 }
             }
@@ -972,6 +970,9 @@ var DexcaliburAPI = {
             kill: function(pBridge, pCallback){
                 DexcaliburAPI.exec('/api/device/bridge/'+pBridge+'/kill', 'post', null, pCallback.onSuccess, pCallback.onError);
             }
+        },
+        setDefaultBridge: function( pUID, pShortname, pCallback){
+            DexcaliburAPI.exec('/api/device/'+pUID+'/bridge','put',{ name:pShortname},pCallback.onSuccess, pCallback.onError);
         }
     },
     search: {
@@ -1061,6 +1062,12 @@ var DexcaliburAPI = {
         },
         getAppInfo: function(pCallback){
           //  DexcaliburAPI.exec("/api/project/app/info","get",null, pCallback.onSuccess, pCallback.onError);            
+        },
+        getDevice: function(pCallback){
+            DexcaliburAPI.exec("/api/project/device",'get',null,pCallback.onSuccess,pCallback.onError);
+        },
+        setDevice: function(pUid, pCallback){
+            DexcaliburAPI.exec("/api/project/device",'post',{device:pUid},pCallback.onSuccess,pCallback.onError);
         }
     },
     hook: {
