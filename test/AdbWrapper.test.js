@@ -124,13 +124,14 @@ describe('ADB Wrapper', function() {
 
     describe('parseDeviceList( )', function() {
 
-        it('single device (#1)', function () {
+        it('single device (#1)', async function () {
 
             let adbw = new AdbWrapper(VALID_ADB_PATH);
 
             let output = `${EOL}List of devices attached${EOL}02581073e1c3398f       device usb:338755584X product:bullhead model:Nexus_5X device:bullhead transport_id:69`;
 
-            let result = adbw.parseDeviceList(output);
+            let result = await adbw.parseDeviceList(output);
+
 
             expect(result).to.be.an('array');
             expect(result.length).to.equals(1);
@@ -139,13 +140,13 @@ describe('ADB Wrapper', function() {
             
         });
 
-       it('single device (#2)', function () {
+       it('single device (#2)',async function () {
 
             let adbw = new AdbWrapper(VALID_ADB_PATH);
 
             let output = `${EOL}List of devices attached${EOL}0a1b2c3d4e5f6e7d device product:bullhead model:Nexus_5X device:bullhead transport_id:22`;
 
-            let result = adbw.parseDeviceList(output);
+            let result = await adbw.parseDeviceList(output);
 
 
             expect(result).to.be.an('array');
@@ -156,13 +157,13 @@ describe('ADB Wrapper', function() {
 
         
 
-        it('multiple device', function () {
+        it('multiple device', async function () {
             
             let adbw = new AdbWrapper(VALID_ADB_PATH);
 
             let output = `${EOL}List of devices attached${EOL}0a1b2c3d4e5f6e7d device product:bullhead model:Nexus_5X device:bullhead transport_id:22${EOL}aabbccddeeff unauthorized product:bullhead model:Nexus_10X device:bullhead transport_id:18`;
 
-            let result = adbw.parseDeviceList(output);
+            let result = await adbw.parseDeviceList(output);
 
 
             expect(result).to.be.an('array');
@@ -176,13 +177,13 @@ describe('ADB Wrapper', function() {
             expect(result[1].authorized).to.equals(false);
         });
 
-        it('on ADB error', function () {
+        it('on ADB error', async function () {
             
             let adbw = new AdbWrapper(VALID_ADB_PATH);
 
             let output = `${EOL}List of devices attached${EOL}`;
 
-            let result = adbw.parseDeviceList(output);
+            let result = await adbw.parseDeviceList(output);
 
 
             expect(result).to.be.an('array');

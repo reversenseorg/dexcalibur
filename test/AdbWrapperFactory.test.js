@@ -121,7 +121,10 @@ describe('AdbWrapperFactory', function() {
             expect(awf.path).to.equals(VALID_ADB_PATH);
 
             let dev = new Device();
-            dev.setUID('an_UID');
+            let b = new AdbWrapper(VALID_ADB_PATH, 'an_UID');
+            b.shortname = 'adb+usb';
+            dev.addBridge(b);
+            dev.setDefaultBridge('adb+usb');
 
             let gw = awf.newSpecificWrapper(dev);
 
