@@ -9,6 +9,7 @@ const Device = require("./Device");
 const StatusMessage = require("./StatusMessage");
 const FridaHelper = require("./FridaHelper");
 const PlatformManager = require("./PlatformManager");
+const Utils = require('./Utils');
 
 var Logger = require("./Logger")();
 
@@ -121,7 +122,6 @@ class DeviceManager
                     this.devices[ data[i].uid ] = Device.fromJsonObject(data[i]);
             }
         } catch(err){
-            console.log(err);
             Logger.error("[DEVICE MANAGER] Unable to load devices");
         }
 
@@ -138,12 +138,15 @@ class DeviceManager
             _fs_.unlinkSync( this.devFile);
         } 
 
-        //console.log(this.devices);
 
         let data = [];
         for(let i in this.devices){
-            data.push( this.devices[i].toJsonObject({
-                connected: false
+            data.push( this.devices[i].toJsonObject( {}, {
+                connected: false,
+                offline: false,
+                bridge: {
+                    up: false
+                }
             }));
         }
 
@@ -199,49 +202,118 @@ class DeviceManager
         return null;
     }
 
+    generateUID(){
+        let uid = Utils.randString(12, Utils.ALPHANUM);
+        if(this.devices[uid]!=null)
+            return generateUID();
+        else
+            return uid;
+    }
+
+    addDevice( pDevice){
+        let uid = this.generateUID();
+        pDevice.setUID(uid);
+        this.devices[uid] = pDevice;
+    }
+
+    getDeviceByIP( pIpAddress, pPort=null, pUp=true){
+        let d=null, b=null;
+        for(let i in this.devices){
+            d = this.devices[i];
+            for(let k in d.bridges){
+                b = d.bridges[k];
+                if(b.isNetworkTransport()){
+                    if(b.ip!==pIpAddress) continue;
+                    if(pPort!==null && b.port!==pPort) continue;
+                    if(pUp==true && b.up==false) continue;
+
+                    return d;
+                }
+            }
+        }
+
+        return null;
+    }
+    
 
     /**
      * To merge a given device list with cuurent list
      * 
      * @param {*} pDeviceList 
      */
-    updateDeviceList( pDeviceList){
-        let active = 0, uid=null, id=null, dev=null;
+    updateDeviceList( pCandidateList){
+        let active = 0, b=null, d=null, id=null, dev=null;
         let devs = {};
 
-        for(let i=0; i<pDeviceList.length; i++){
+        for(let i=0; i<pCandidateList.length; i++){
 
-            uid = pDeviceList[i].getUID();
-
-            if(this.devices[uid] instanceof Device){
-                this.devices[uid].update(pDeviceList[i]);
-            }else{
-                this.devices[uid] = pDeviceList[i];
+            // at this step, candidate device has 1 bridge, no more.
+            if(pCandidateList[i].bridge.isUsbTransport()){
+                id = pCandidateList[i].bridge.deviceID;
+                if(id != null){
+                    // search if device already exists
+                    dev = this.getDeviceByID(id);
+                }else{
+                    // invalid device
+                    Logger.debug("Invalid devices");
+                }
+            }else{  
+                dev = this.getDeviceByIP( pCandidateList[i].bridge.ip, pCandidateList[i].bridge.port);
             }
 
-            // count connected devcie
-            if(this.devices[uid].isConnected()){
+
+            if(dev != null){
+                // a device already exists, then merge
+                dev.update(pCandidateList[i]);
+            }else{
+                // add the new device
+                this.addDevice(pCandidateList[i]);
+            }
+
+            if(pCandidateList[i].isConnected()){
                 active++;
             }
+            
         }
 
+        
 
         // remove duplicated
         devs = {};
         for(let i in this.devices){
+            
+            if(this.devices[i].id=="<pending...>"){
+                for(let k in this.devices[i].bridges){
+                    b = this.devices[i].bridges[k];
+                    if(b.isNetworkTransport()){
+                        d = this.getDeviceByIP(b.ip, b.port, false);
+                        if(d == null){
+                            devs[this.devices[i].uid] = this.devices[i];
+                        }
+                    }else{
+                        d = this.getDeviceByID(b.deviceID);
+
+                        if(d == null){
+                            devs[this.devices[i].uid] = this.devices[i];
+                        }
+                    }
+                }
+            }else{
+                devs[this.devices[i].uid] = this.devices[i];
+            }
+            /*
             id = this.devices[i].id;
 
             if(devs[id] == null){
                 devs[id] = this.devices[i];
             }else{
                 devs[id].merge( this.devices[i]);
-            }
+            }*/
         }
 
-        this.devices = {};
-        for(let i in devs) this.devices[devs[i].uid] = devs[i];
+        this.devices = devs;
+        //for(let i in devs) this.devices[devs[i].uid] = devs[i];
 
-        console.log(this.devices);
 
         return active;
     }
@@ -277,16 +349,18 @@ class DeviceManager
                 success |= await wrapper.connect(pIpAddress, pPortNumber);
 
                 // create adb wrapper with network config 
-                if(success){
+                if(success==1){
                     wrapper.ip = pIpAddress;
                     wrapper.port = pPortNumber;
-                    pDevice.addBridge(wrapper);
-                    pDevice.setDefaultBridge(wrapper.shortname);
+                    pDevice.addBridge(wrapper, true);
+
+                    if(pDevice.bridge==null)
+                        pDevice.setDefaultBridge(wrapper.shortname);
                 }
             }
         }
 
-        return success;
+        return (success==true);
     }
 
     /**
@@ -295,7 +369,7 @@ class DeviceManager
      * 
      * @function
      */
-    scan(){
+    async scan(){
         let dev=[], wrapper=null, activeDev = 0, latestDefault=null;
 
         latestDefault = this.getDefault();
@@ -310,11 +384,13 @@ class DeviceManager
     
                 // scan for connected devices
                 wrapper  = this.bridges[type].newGenericWrapper();
-                dev = wrapper.listDevices();
+                dev = await wrapper.listDevices();
                 
 //                listDevices();
 
+
                 activeDev += this.updateDeviceList(dev);
+               
     
                 ut.msgBox("Enumerated devices", Object.keys(this.devices));
             }
@@ -330,8 +406,6 @@ class DeviceManager
             );
 
         }else if(activeDev > 1){
-
-
 
             // by default, if there are several devices connected
             // a default device should be selected 
@@ -489,7 +563,7 @@ class DeviceManager
 
         // update device ID if it is unknown 
         if(device.id == null){
-            device.id = device.retrieveUIDfromDevice();
+            device.id = await device.retrieveUIDfromDevice();
         }
 
         // Install frida 

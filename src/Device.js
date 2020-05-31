@@ -183,8 +183,8 @@ class Device
      * @param {AdbWrapper} pBridge 
      * @method
      */
-    addBridge( pBridge){
-        if(this.bridges[ pBridge.shortname ] == null){
+    addBridge( pBridge, pOverride=false){
+        if(this.bridges[ pBridge.shortname ] == null || pOverride){
             this.bridges[ pBridge.shortname ] = pBridge;
         }
     }
@@ -198,7 +198,7 @@ class Device
 
     setDefaultBridge( pName){
         this.bridge = this.getBridge(pName);
-        this.setUID(this.bridge.deviceID);
+        //this.setUID(this.bridge.deviceID);
     }
 
     getDefaultBridge(){
@@ -237,7 +237,10 @@ class Device
      * @method
      */
     isConnected(){
-        return (this.connected == true);
+        let up = false;
+        for(let i in this.bridges) up |= this.bridges[i].up;
+        //return (this.connected == true);
+        return up;
     }
 
     /**
@@ -312,14 +315,33 @@ class Device
     }
 
     update( pDevice){
+        let b=null;
+
+        if(this.id==null){
+            this.id = pDevice.id;
+        }
+
         this.bridge = pDevice.bridge;
-        this.bridges = pDevice.bridges;
+
+        for(let i in pDevice.bridges){
+            b = pDevice.bridges[i];
+            this.bridges[i] = b;
+
+            /*if(this.bridges[i] != null){
+                this.bridges[i] = b;
+            }else{
+                this.bridges[i] = 
+            }*/
+        }
+
         this.model = pDevice.model;
         this.device = pDevice.device;
         this.product = pDevice.product;
         this.transportId = pDevice.transportId;
+        // deprecated
         this.connected = pDevice.connected;
         this.authorized = pDevice.authorized;
+        // deprecated
         this.usbQualifier = pDevice.usbQualifier;
     }
 
@@ -343,6 +365,7 @@ class Device
                     }
                     break;
                 case 'connected':
+                    // deprecated
                     if(pDevice.connected){
                         this.connected = true;
                     }
@@ -368,7 +391,8 @@ class Device
                     break;
             }
         }
-        if(pDevice.connected){
+
+        if(pDevice.isConnected()){
             // TODO : add configurable priority TCP, USB, ... when several choices are possible
             /*
             if device passed as argument is connected now replace default bridge.
@@ -380,7 +404,8 @@ class Device
                 4'/ ADB restart ?
                 5/ try USB connection when only TCP is available
             */
-            this.setDefaultBridge(pDevice.bridge.shortname);
+           if(this.bridge == null)
+                this.setDefaultBridge(pDevice.bridge.shortname);
         }
         if(pDevice.enrolled){
             this.enrolled = pDevice.enrolled;
@@ -608,8 +633,6 @@ class Device
 
     async performProfiling( pOptions){
 
-        console.log(this.bridge);
-
         if(this.bridge != null){
             this.profile = await this.bridge.performProfiling();
         }
@@ -673,16 +696,22 @@ class Device
      * 
      * @method
      */
-    retrieveUIDfromDevice(){
-        let id = this.bridge.shell('getprop ro.serialno');
-        //console.log('output',id);
+    async retrieveUIDfromDevice(){
+        if(this.isConnected()===false || this.offline===true) 
+            throw new Error('Device is offline');
 
-        
-        id = id.split(EOL);
+        let id = null;
+        let {stdout, stderr} = await this.bridge.shellAsync('getprop ro.serialno');
+
+        if(stderr != ''){
+            throw new Error(stderr);
+        }
+
+        id = stdout.split(EOL);
         if(id[0] !== undefined){
             this.id = id[0];
         }else{
-            console.log(id);
+            Logger.debug('[DEVICE] DeviceID retrieved from device : ',id);
         }
 
         return true;
@@ -726,7 +755,11 @@ class Device
                 case 'platform':
                     json[i] = ((this[i] instanceof Platform)? this[i].getUID() : null);
                     break;
-                
+            
+                case 'connected':
+                    json[i] = this.isConnected();
+                    break;
+
                 default:
                     json[i] = this[i];
                     break;
