@@ -2,6 +2,11 @@ CHANGELOG
 
 # Version 0.6
 
+## 0.7.2
+
+* Improve device management and communication with remote device over TCP instead of USB
+* Add enrollment of device over TCP
+
 ## 0.7.1
 
 * Improve detection of non-blocking errors when apktool is running
