@@ -1967,7 +1967,7 @@ class VM
                     regX[SYMBOL_OPE[oper.opcode.ope]](regV.getValue(), oper.opcode.byte),
                     `${this.getImmediateValue(regX)}${oper.opcode.ope}${this.getImmediateValue(regV)}`);
 
-                break;
+                //break;
             }
             else{
 
@@ -2008,7 +2008,7 @@ class VM
                         `${this.getImmediateValue(regV)}${oper.opcode.ope}${this.getRegisterName(oper.right)}`);
                 }
 
-                break;
+                
             }
             else{
                 this.stack.setLocalSymbol(

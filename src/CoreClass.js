@@ -965,7 +965,7 @@ Class.prototype.getStaticFields = function(){
 /**
  * To get <clinit> method
  * TODO : do it during analysis
- * @returns 
+ * @returns {Method}
  */
 Class.prototype.getClInit = function(){
     for(let i in this.methods){
