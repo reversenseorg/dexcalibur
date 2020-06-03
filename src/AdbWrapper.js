@@ -114,6 +114,16 @@ class AdbWrapper
         this.up = false;
     }
 
+    /**
+     * To clone. 
+     * 
+     * It returns a new instance of AdbWrapper
+     * 
+     * @param {Object} pOverride Optional. Override configuration (key/value)
+     * @returns {AdbWrapper} New instance with same configuration  
+     * @method
+     * @since v0.7.2
+     */
     clone( pOverride = {}){
         let o = new AdbWrapper(this.path, this.deviceID);
         for(let i in this){
@@ -125,6 +135,7 @@ class AdbWrapper
         }
         return o;
     }
+
     /**
      * To get connection status
      * 
@@ -137,7 +148,7 @@ class AdbWrapper
 
     /**
      * 
-     * @param {String} pIP 
+     * @param {String} pIP IP Address
      * @method
      */
     setIpAddress(pIP){
@@ -146,7 +157,7 @@ class AdbWrapper
 
     /**
      * 
-     * @param {Integer} pNumber 
+     * @param {Integer} pNumber Port number
      * @method
      */
     setPortNumber(pNumber){
@@ -217,6 +228,8 @@ class AdbWrapper
     }
 
     /**
+     * To kill adb-server
+     * 
      * @async
      * @method
      */
@@ -235,8 +248,11 @@ class AdbWrapper
 
         return true;
     }
+
     /**
      * Set the transport type
+     * 
+     * @param {Char} transport_type 
      * @method
      */
     setTransport(transport_type){
@@ -244,9 +260,10 @@ class AdbWrapper
     }
 
     /**
-     * To check is the bridge use network
+     * To check if the bridge uses TCP transport
      * 
      * @method
+     * @returns {Boolean} TRUE if the wrapper is configured to use TCP, else FALSE
      * @since v0.7.1
      */
     isNetworkTransport(){
@@ -254,7 +271,11 @@ class AdbWrapper
     }
 
     /**
+     * To check if the bridge uses USB transport
+
+     * 
      * @method
+     * @returns {Boolean} TRUE if the wrapper is configured to use TCP, else FALSE     * 
      * @since v0.7.1
      */
     isUsbTransport(){
@@ -262,10 +283,15 @@ class AdbWrapper
     }
 
     /**
+     * To connect a remote device over TCP
      * 
-     * @param {*} pIpAddress 
-     * @param {*} pPortNumber 
+     * @param {String} pIpAddress IP Address of target device
+     * @param {Integer} pPortNumber 
+     * @param {String} pDeviceID Target device ID
+     * @returns {Boolean} TRUE if success, else FALSE
+     * @async
      * @method
+     * @since v0.7.2
      */
     async connect( pIpAddress, pPortNumber, pDeviceID){
 
@@ -290,8 +316,25 @@ class AdbWrapper
 
 
     /**
+     * To parse the ADB output. 
      * 
-     * @param {*} pPackageListStr 
+     * It returns a collection of ApkPackage.
+     * ```
+     > let packages = adbWrapper.parsePackageList(`
+    package:com.android.cts.priv.ctsshim
+    ...
+    `) 
+     > console.log(packages)
+    [{
+        packageIdentifier: 'com.android.cts.priv.ctsshim',
+        packagePath: '...'
+    },...]
+     * ```  
+     * 
+     * @param {String} pPackageListStr The ADB output to parse 
+     * @param {String} pOptions [Optional] Additional option to pass to ADB
+     * @returns {ApkPackage[]} The list of package 
+     * @private
      * @method
      */
     parsePackageList( pPackageListStr, pOptions=''){
@@ -339,8 +382,10 @@ class AdbWrapper
     }
 
     /**
+     * To list all packages installed on target device
      * 
      * @param {String} deviceId [Optional] A specific device ID
+     * @returns {AppPackage[]} An array of AppPackage objects
      * @method
      */
     listPackages( pOtions) {
@@ -578,6 +623,9 @@ class AdbWrapper
 
     /**
      * To list connected devices
+     * 
+     * @returns {Device[]} A collection of Device objects
+     * @async
      * @method
      */
     async listDevices(){
@@ -652,6 +700,7 @@ class AdbWrapper
      * Same as 'adb shell' commande.
      * 
      * @param {*} command The command to execute remotely
+     * @async
      * @method
      */
     async shellAsync(command, deviceID = null){
@@ -687,6 +736,9 @@ class AdbWrapper
     }
 
     /**
+     * To execute a command into a detached process.
+     * 
+     * Useful to launch side application such as frida-server
      * 
      * @param {String} pCommand 
      * @param {String} pArgs
@@ -713,7 +765,9 @@ class AdbWrapper
      * Execute a command on the device via 'su -c'
      * Same as 'adb shell su -c' commande.
      * 
-     * @param {*} command The command to execute remotely
+     * @param {String} command The command to execute remotely
+     * @async
+     * @method
      */
     async privilegedShell(command, pOptions = {detached: false}){
         if(pOptions.detached)
@@ -724,6 +778,10 @@ class AdbWrapper
 
 
     /**
+     * To perform profiling of the device associated to this adb wrapper instance.
+     *  
+     * 
+     * @returns {DeviceProfile} The device profile of target device
      * @method
      */
     performProfiling(){
@@ -762,6 +820,10 @@ class AdbWrapper
     }
 
     /**
+     * To tranform an instance to a simple object ready to be JSON serialized 
+     * 
+     * @param {Object} pExcludeList An hashmap key/value of property to exclude
+     * @returns {Object} A simple object ready to be JSON serialized
      * @method
      */
     toJsonObject( pExcludeList={}){
