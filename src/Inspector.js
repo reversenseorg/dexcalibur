@@ -190,9 +190,13 @@ class Inspector{
      */
     injectContext(ctx){
         this.context = ctx;
-        
-        this.hookSet.injectContext(ctx);
-        Logger.info("[Inspector::injectContext][HookSet] "+this.id+" registered !");
+
+        if(this.hookSet != null){
+            this.hookSet.injectContext(ctx);
+            Logger.info("[Inspector::injectContext][HookSet] "+this.id+" registered !");
+        }else{
+            Logger.info("[Inspector::injectContext] "+this.id+" has not hook set.");
+        }
 
         // register front controller
         let path = Path.join(__dirname,"..","inspectors",this.id,"service","main.js");

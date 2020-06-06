@@ -10,7 +10,7 @@ class InspectorFactory
     }
 
     isStartAt(pStep){
-        this.step = pStep;
+        return this.step === pStep;
     }
 
 
@@ -66,7 +66,7 @@ class InspectorFactory
         }
 
         if(this._config.db != null){
-            if(this._config.db.dbms=='inmemory'){
+            if(this._config.db.dbms==='inmemory'){
 
                 ins.useMemoryDB();
 
