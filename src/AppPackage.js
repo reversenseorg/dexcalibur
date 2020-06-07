@@ -3,12 +3,15 @@ var Path = require("path");
 
 /**
  * This class represents an application package 
+ * 
+ * @class
  */
 class ApkPackage {
 
     /**
      * 
      * @param {*} pConfig 
+     * @constructor
      */
     constructor(pConfig=null){
        
@@ -29,7 +32,7 @@ class ApkPackage {
     /**
      * To serialize the Device to JSON string
      * @returns {String} JSON-serialized object
-     * @function 
+     * @method 
      */
     toJsonObject(){
         let json = new Object();

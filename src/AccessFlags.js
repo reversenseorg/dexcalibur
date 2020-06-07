@@ -23,15 +23,15 @@ const PRIVATE_FLAG = 0b10<<16;
 
 
 /**
- * Represents the access flags of a Class/Method/Field
+ * Represents all access flags of a Class/Method/Field and store it as a bitmap.
  * 
  * @class
  */
 class AccessFlags
 {
     /**
-     * 
-     * @param {*} pVisibility 
+     * To create a new AccessFlags 
+     * @param {*} pVisibility Visiblity bitmap. Default is PUBLIC (only)
      * @constructor
      */
     constructor(pVisibility=PUBLIC_FLAG){
@@ -39,6 +39,9 @@ class AccessFlags
         this._match = 0;
     }
 
+    /**
+     * @field
+     */
     set public(pParam){
         this.visibility |= PUBLIC_FLAG;
 
@@ -53,6 +56,9 @@ class AccessFlags
         return (this.visibility & PUBLIC_FLAG)>0;
     }
 
+    /**
+     * @field
+     */
     set private(pParam){
         this.visibility |= PRIVATE_FLAG;
 
@@ -67,6 +73,9 @@ class AccessFlags
         return (this.visibility & PRIVATE_FLAG)>0;
     }
 
+    /**
+     * @field
+     */
     set static(pParam){
         this.visibility |= STATIC_FLAG;
     }
@@ -75,6 +84,9 @@ class AccessFlags
         return (this.visibility & STATIC_FLAG)>0;
     }
     
+    /**
+     * @field
+     */
     set protected(pParam){
         this.visibility |= PROTECTED_FLAG;
 
@@ -90,6 +102,9 @@ class AccessFlags
     }
 
 
+    /**
+     * @field
+     */
     set final(pParam){
         this.visibility |= FINAL_FLAG;
     }
@@ -99,6 +114,9 @@ class AccessFlags
     }
 
 
+    /**
+     * @field
+     */
     set construct(pParam){
         this.visibility |= CONSTRUCT_FLAG;
     }
@@ -108,6 +126,9 @@ class AccessFlags
     }
 
 
+    /**
+     * @field
+     */
     set varargs(pParam){
         this.visibility |= VARARGS_FLAG;
     }
@@ -117,6 +138,9 @@ class AccessFlags
     }
 
 
+    /**
+     * @field
+     */
     set bridge(pParam){
         this.visibility |= BRIDGE_FLAG;
     }
@@ -126,6 +150,9 @@ class AccessFlags
     }
 
 
+    /**
+     * @field
+     */
     set native(pParam){
         this.visibility |= NATIVE_FLAG;
     }
@@ -135,6 +162,9 @@ class AccessFlags
     }
 
 
+    /**
+     * @field
+     */
     set abstract(pParam){
         this.visibility |= ABSTRACT_FLAG;
     }
@@ -144,6 +174,9 @@ class AccessFlags
     }
 
 
+    /**
+     * @field
+     */
     set interface(pParam){
         this.visibility |= INTERFACE_FLAG;
     }
@@ -153,6 +186,9 @@ class AccessFlags
     }
 
 
+    /**
+     * @field
+     */
     set strictfp(pParam){
         this.visibility |= STRICTFP_FLAG;
     }
@@ -162,6 +198,9 @@ class AccessFlags
     }
 
 
+    /**
+     * @field
+     */
     set transient(pParam){
         this.visibility |= TRANS_FLAG;
     }
@@ -171,6 +210,9 @@ class AccessFlags
     }
 
 
+    /**
+     * @field
+     */
     set declsync(pParam){
         this.visibility |= DECLSYNC_FLAG;
     }
@@ -180,6 +222,9 @@ class AccessFlags
     }
 
 
+    /**
+     * @field
+     */
     set enum(pParam){
         this.visibility |= ENUM_FLAG;
     }
@@ -188,6 +233,10 @@ class AccessFlags
         return (this.visibility & ENUM_FLAG)>0;
     }
 
+
+    /**
+     * @field
+     */
     set volatile(pParam){
         this.visibility |= VOLATILE_FLAG;
     }
@@ -197,6 +246,9 @@ class AccessFlags
     }
 
 
+    /**
+     * @field
+     */
     set synchronized(pParam){
         this.visibility |= SYNC_FLAG;
     }
@@ -206,6 +258,9 @@ class AccessFlags
     }
 
 
+    /**
+     * @field
+     */
     set synthetic(pParam){
         this.visibility |= SYNTH_FLAG;
     }
@@ -215,7 +270,13 @@ class AccessFlags
     }
     
 
-    toJsonObject(include=null){
+    /**
+     * To transform a set of access flags as a simple object ready to be serialized
+     *  
+     * @returns {Object} Simple object containing enabled access flags
+     * @method
+     */
+    toJsonObject(){
         let o = new Object();
         o.visibility = this.visibility;
     
@@ -225,7 +286,6 @@ class AccessFlags
         if(this.private) o.private = true;
         if(this.native) o.native = true;
         if(this.transient) o.transient = true;
-        if(this.native) o.native = true;
         if(this.strictfp) o.strictfp = true;
         if(this.declsync) o.declsync = true;
         if(this.construct) o.construct = true;
@@ -242,16 +302,19 @@ class AccessFlags
         return o;
     };
 
-   
+    /**
+     * To print access flags 
+     * 
+     * @returns {String} A string which represents access flags
+     * @method
+     */
     sprint(){
         let dbg="["
 
         if(this.public) dbg += "public,";
         if(this.protected) dbg += "protected,";
         if(this.private) dbg += "private,";
-        if(this.native) dbg += "native,";
         if(this.transient) dbg += "transient,";
-        if(this.native) dbg += "native,";
         if(this.strictfp) dbg += "strictfp,";
         if(this.declsync) dbg += "declsync,";
         if(this.construct) dbg += "construct,";
