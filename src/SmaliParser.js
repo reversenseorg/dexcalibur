@@ -101,7 +101,7 @@ class SmaliParser
 
     modifier(src){
         if(src instanceof String) src=src.split(LEX.TOKEN.SPACE);
-        let mod = new Accessor.AccessFlags() /*CLASS.Modifiers()*/, next=true;
+        let mod = new Accessor.AccessFlags() , next=true;
 
         //if(src.length<2) return ERR_PARSE;
         for(let i=0; i<src.length && next; i++){

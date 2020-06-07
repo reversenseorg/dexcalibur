@@ -1229,8 +1229,8 @@ class HookSession
 
 /**
  * 
- * @param {Project} ctx The project instance
- * @param {Int} nofrida If equals to 1 then the Frida script will not be loaded and Frida library not include  
+ * @param {DexcaliburProject} ctx The project instance
+ * @param {Boolean} nofrida If equals to 1 then the Frida script will not be loaded and Frida library not include  
  */
 class HookManager
 {
@@ -1400,12 +1400,6 @@ class HookManager
         return sess;
     }
 
-    /**
-     * @method
-     */
-    lastSession(){
-        return this.sessions[this.sessions.length];
-    }
 
     /**
      * To start hooking by spawning the target application

@@ -21,6 +21,10 @@ var KeystoreInspector = new InspectorFactory({
 
     startStep: Inspector.STEP.POST_APP_SCAN,
     
+    useGUI: true,
+    
+    color: 'warning',
+
     hookSet: {
         id: "Keystore",
         name: "Keystore inspector",
@@ -114,6 +118,7 @@ var KeystoreInspector = new InspectorFactory({
         },
         "data.file.new.knownExt": function(ctx, event){        
             if(!checkForBKSext(event.data)) return 1;
+            
             Logger.info("[INSPECTOR][TASK] KeystoreInspector BKS detected : ",event.data.name);
             //console.log("Note found : ","value:"+event.data.name));
         
