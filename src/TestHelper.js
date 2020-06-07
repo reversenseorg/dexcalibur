@@ -10,6 +10,7 @@ const _http_ = require("http");
 const Configuration = require("./Configuration.js");
 const DexcaliburWorkspace = require('./DexcaliburWorkspace');
 const DexcaliburEngine = require('./DexcaliburEngine');
+const DexcaliburProject = require('./DexcaliburProject');
 
 
 /**
@@ -198,6 +199,32 @@ class TestHelper
         }
 
         return this.engine;
+    }
+
+    /**
+     *
+     * @returns {DexcaliburProject}
+     */
+    newDexcaliburProject(){
+        this.project = new DexcaliburProject(
+            DexcaliburEngine.getInstance(),
+            'owasp.mstg.uncrackable1'
+        );
+
+        return this.project;
+    }
+
+    /**
+     *
+     * @param pForce
+     * @returns {DexcaliburProject}
+     */
+    getDexcaliburProject(pForce = false){
+        if(this.project == null || pForce){
+            this.project = this.newDexcaliburProject();
+        }
+
+        return this.project;
     }
 }
 
