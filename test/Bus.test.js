@@ -13,6 +13,7 @@ const TestHelper = require('../src/TestHelper.js');
 const DexcaliburEngine = require('../src/DexcaliburEngine');
 const Bus = require('../src/Bus');
 const InspectorFactory = require('../src/InspectorFactory');
+const Inspector = require('../src/Inspector');
 
 describe('Bus', function() {
 
