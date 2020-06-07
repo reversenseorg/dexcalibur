@@ -1,275 +1,87 @@
 'use strict';
 
-const CLASS = require("./CoreClass.js");
 
-class Index
-{
-    static __type = "Index";
+const InMemoryDBIndex = require('./InMemoryDbIndex');
+const InMemoryDBCollection = require('./InMemoryDbCollection');
 
-    constructor(name,elemnt_type = null){
-        //this.etype = elemnt_type;
-        this.name = name;
-        this.refs = [];
-    }
-
-    insert(ref, force=false){
-        if(false || this.refs.indexOf(ref)==-1)
-            this.refs.push(ref);
-    }
-
-    // just a wrapper
-    addEntry(ref){
-        this.insert(ref);
-    }
-    /*
-    TODO
-    delete(ref,cond){
-        for(let i=0; i<this.refs.length; i++)
-            if(cond(this.refs[i])){
-                let arr=
-            }
-
-    }
-    */
-
-
-    map(fn){
-        for(let i=0; i<this.refs.length; i++){
-            fn(i, this.refs[i]);
-        }
-    }
-
-    getEntry(offset){
-        return this.refs[offset];
-    }
-
-    getAll(){
-        return this.refs;
-    }
-
-    isCollection(){
-        return false;
-    }
-
-    isIndex(){
-        return true;
-    }
-
-    size(){
-        return this.refs.length;
-    }
-
-    toJsonObject(){
-        let o=new Object();
-
-        o.name = this.name;
-        o.refs = [];
-        for(let i=0; i<this.refs.length; i++){
-            if(typeof this.refs[i].toJsonObject  === 'function'){
-                o.refs[i] = this.refs[i].toJsonObject()
-            }else{
-                o.refs[i] = this.refs[i];
-            }
-        }
-
-        return o;
-    }
-
-    // ======= serialize ======= 
-
-
-    isSerializable(){
-        let ret = false;
-        for(let i=0; i<this.refs.length ; i++)
-            ret &= this.refs[i].isSerializable();
-        
-        return ret;
-    }
-
-    static unserialize(serialized_obj){
-        let self = new Index(), o=null;
-        self.name = serialized_obj.name;
-        self.refs = [];
-        for(let i=0; i<serialized_obj.refs.length; i++){
-            if(CLASS.SerializedObject.isUnserializable(serialized_obj.refs[i])){
-                o = new CLASS.SerializedObject(serialized_obj.refs[i]);
-                self.refs.push(o.unserialize());
-            }
-            else
-                self.refs.push(serialized_obj.refs[i]);
-        }
-        return self;
-    }
-
-
-    serialize(){
-        let o=new Object();
-
-        o.__type = Index.__type;
-        o.name = this.name;
-        o.refs = [];
-
-        for(let i=0; i<this.refs.length; i++){
-            if(this.refs[i].isSerializable() === true){
-                o.refs.push(this.refs[i].serialize());
-            }else if(typeof this.refs[i].toJsonObject === 'function')
-                o.refs.push(this.refs[i].toJsonObject());
-            else
-                o.refs.push(this.refs[i]);
-        }
-
-        return o;
-    }
-}   
-
-class Collection
-{
-    static __type = "Collection";
-
-    constructor(name,elemnt_type = null){
-        this.name = name;
-        this.ctr = 0;
-        this.values = {};
-    }
-
-    setEntry(key,value){
-        if(!this.hasEntry(key)){
-            this.ctr++;
-        }
-        this.values[key] = value;
-    }
-
-    addEntry(key,value){
-        this.setEntry(key,value);
-    }
-
-    getEntry(key){
-        return this.values[key];
-    }
-
-    getAll(){
-        return this.values;
-    }
-
-    hasEntry(key){
-        return (this.values[key] !== undefined);
-    }
-
-    map(fn){
-        for(let k in this.values){
-            fn(k,this.values[k]);
-        }
-    }
-
-    isCollection(){
-        return true;
-    }
-
-    isIndex(){
-        return false;
-    }
-
-    size(){
-        return this.ctr;
-    }
-
-    toJsonObject(){
-        let o=new Object();
-
-        o.name = this.name;
-        o.ctr = this.ctr;
-        o.values = {};
-        for(let i in this.values){
-            if(typeof this.values[i].toJsonObject === 'function')
-                o.values[i]=this.values[i].toJsonObject();
-            else
-                o.values[i]=this.values[i];
-        }
-
-        return o;
-    }
-
-    // ======= serialize ======= 
-
-    isSerializable(){
-        return true;
-    }
-
-    static unserialize(serialized_obj){
-        let self = new Collection(), o=null;
-        self.name = serialized_obj.name;
-        self.ctr = serialized_obj.ctr;
-        self.values = {};
-        for(let i in serialized_obj.values){
-            
-            if(CLASS.SerializedObject.isUnserializable(serialized_obj.values[i])){
-                o = new new CLASS.SerializedObject(serialized_obj.values[i])
-                self.values[i]=o.unserialize();
-            }
-            else
-                self.values[i]=serialized_obj.values[i];
-        }
-        return self;
-    }
-
-    serialize(){
-        let o=new Object();
-
-        o.__type = Collection.__type;
-        o.name = this.name;
-        o.ctr = this.ctr;
-        o.values = {};
-
-        for(let i in this.values){
-            if(typeof this.values[i].serialize === 'function')
-                o.values[i]=this.values[i].serialize();  
-            if(typeof this.values[i].toJsonObject === 'function')
-                o.values[i]=this.values[i].toJsonObject();
-            else
-                o.values[i]=this.values[i];
-        }
-
-        return o;
-    }
-}   
-
+/**
+ * Represents a database stored into memory (ACID-like)
+ *
+ * @author Georges-B. MICHEL
+ * @class
+ */
 class InMemoryDb
 {
-    constructor(context=null){
+    /**
+     * To create a new DB
+     *
+     * @param {DexcaliburProject} pContext The project associated to this database
+     * @return {InMemoryDb}
+     * @constructor
+     */
+    constructor(pContext=null){
         this.ctx = context;
         this.indexes = {};
         this.sizes = {};
     }
 
+    /**
+     * To create a new collection into current DB
+     *
+     * @param {String} name Name of the collection
+     * @method
+     */
     newCollection(name){
         if(this.indexes[name]!=null) throw new Error("A collection is already set for the given name");
 
-        this.indexes[name] = new Collection(name);
+        this.indexes[name] = new InMemoryDBCollection(name);
     }
 
-
+    /**
+     * To create a new index into current DB
+     *
+     * @param {String} name Name of the index
+     * @method
+     */
     newIndex(name){
         if(this.indexes[name] != undefined) throw new Error("An index already exists for the given name");
 
-        this.indexes[name] = new Index(name);
+        this.indexes[name] = new InMemoryDBIndex(name);
     }
 
+    /**
+     * To get an index by name
+     *
+     * @param {String} name Index name
+     * @returns {InMemoryDBIndex} Index with the given name
+     * @method
+     */
     getIndex(name){
         return this.indexes[name];
     }
 
-    setContext(context){
-        this.ctx = context;
+    /**
+     * To set the context
+     *
+     * @param {DexcaliburProject} pContext
+     * @method
+     */
+    setContext( pContext){
+        this.ctx = pContext;
     }
 
-
+    /**
+     * To transform current DB into a simple object ready to be serialized
+     *
+     * @returns {Object}
+     */
     toJsonObject(){
-        let o=new Object();
+        let o= {};
 
         o.indexes = {};
         for(let i in this.indexes){
             o.indexes[i] = this.indexes[i].toJsonObject();
-            if(this.indexes[i] instanceof Index)
+            if(this.indexes[i] instanceof InMemoryDBIndex)
                 this.indexes[i].__type = "Index";
             else
                 this.indexes[i].__type = "Collection";
@@ -291,9 +103,9 @@ class InMemoryDb
     unserialize(obj){
         for(let i in obj.indexes){
             if(obj.indexes[i].__type === "Index"){
-                this.indexes[i] = Index.unserialize(obj.indexes[i]);
+                this.indexes[i] = InMemoryDBIndex.unserialize(obj.indexes[i]);
             }else{
-                this.indexes[i] = Collection.unserialize(obj.indexes[i]);
+                this.indexes[i] = InMemoryDBCollection.unserialize(obj.indexes[i]);
             }
         }
     }
@@ -317,6 +129,6 @@ class InMemoryDb
 
 module.exports = {
     InMemoryDb: InMemoryDb,
-    Index: Index,
-    Collection: Collection
+    Index: InMemoryDBIndex,
+    Collection: InMemoryDBCollection
 };
