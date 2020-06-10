@@ -2,18 +2,14 @@ const _fs_ = require("fs");
 const _path_ = require("path");
 
 const Logger = require('../../src/Logger.js')(); 
-const DB = require('../../src/InMemoryDb.js'); 
+const DB = require('../../connectors/inmemory/InMemoryDb.js');
 
-/*
-class Entry
-{
-    constructor(pConfig = null){
-        this.type = null;
-        this.id = null;
-    }
-}
-*/
 
+/**
+ * Useful with 'inmemory' DB
+ *
+ * @class
+ */
 class SaveManager
 {
     static EXT = '.bkp';
