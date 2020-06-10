@@ -1,14 +1,8 @@
 var Process = require("child_process");
-var Chalk = require("chalk");
 const _path_ = require("path");
 const Fs = require("fs");
 
-
-var CoreConst = require('./CoreConst.js');
-var PACKAGE_JSON = require("../package.json");
-
 var Logger = require("./Logger.js")();
-var Configuration = require("./Configuration.js");
 var Analyzer = require("./Analyzer.js");
 var AnalysisHelper = require("./AnalysisHelper.js");
 var Finder = require("./Finder.js");
@@ -25,14 +19,13 @@ var GraphMaker = require("./Graph.js");
 var Bus = require("./Bus.js");
 var Event = require("./Event.js");
 var ApkHelper = require("./ApkHelper.js");
-var FridaGenerator = require("./FridaGenerator.js");
-var AndroidPM = require('./adb/AndroidPackageManager');
 const Platform = require("./Platform.js");
 const SYSCALLS = require("./Syscalls.js");
 const PlatformManager = require("./PlatformManager");
 const DexcaliburWorkspace = require("./DexcaliburWorkspace");
 const Device = require('./Device');
 const APK = require('./APK');
+const ConnectorFactory = require('./ConnectorFactory');
 
 
 var g_builtinHookSets = {};
@@ -156,6 +149,13 @@ class DexcaliburProject
          * 
          */
         this.application = null;
+
+        /**
+         *
+         * @type {*}
+         * @field
+         */
+        this.connector = null;
     }
 
     getContext(){
@@ -187,7 +187,7 @@ class DexcaliburProject
         let status = false;
 
         proj.map((vProject)=>{
-            if(vProject == pUID)
+            if(vProject === pUID)
                 status = true;
         });
 
@@ -197,21 +197,33 @@ class DexcaliburProject
     init(){
         let im = InspectorManager.getInstance();
 
-        // todo : remove
-        this.config = this.engine.getConfiguration();
+        // init config
+        // TODO remove engine configuration
+        if(this.config === null) {
+            this.config = this.engine.getConfiguration();
+        }
 
-        console.log( this.engine.workspace.getLocation(), this.uid);
-        // init project workspacex
-        this.workspace = new Workspace( 
-            _path_.join( this.engine.workspace.getLocation(), this.uid )
-        ); 
+        // init project workspace
+        if(this.workspace === null){
+            this.workspace = new Workspace(
+                _path_.join( this.engine.workspace.getLocation(), this.uid )
+            );
 
-        this.workspace.init();
+            this.workspace.init();
+        }
+
+        // init connector
+        console.log(this.connector)
+        if(this.connector === null){
+            this.connector = ConnectorFactory.getInstance().newConnector('inmemory', this);
+
+            console.log(this.connector, ConnectorFactory.getInstance());
+        }
 
         // set the Search API which allow the user to perform search
         this.find = new Finder.SearchAPI();
 
-        // set SC analyzer 
+        // set SC analyzer
         this.analyze = new Analyzer(this.config.encoding, this.find, this);
         
         // set syscall list (bionic) 
@@ -231,6 +243,7 @@ class DexcaliburProject
         // pkgName => uid => read project.json
         // todo : move as inspector
         //this.packagePatcher = new PackagePatcher(this.uid, this.config);
+
         this.hook = new HookHelper.Manager(this, this.nofrida);
         //this.hook.refreshScanner();
 
@@ -250,6 +263,8 @@ class DexcaliburProject
         this.inspectors = im.getInspectorsOf(this);
         
         this.graph = new GraphMaker(this);
+
+
     }
 
     deployInspectors(pStep){
@@ -317,7 +332,7 @@ class DexcaliburProject
      * @async
      */
     async synchronizePlatform( pName){
-        let pm = PlatformManager.getInstance();
+        let pm = PlatformManager.getInstance(), res=false;
 
         // select platform
         switch(pName){
@@ -331,7 +346,7 @@ class DexcaliburProject
                 this.platform = pm.getFromAndroidApiVersion(this.application.getMaxApiVersion());
                 break;
             default:
-                if( (this.platform instanceof Platform)==false){
+                if( (this.platform instanceof Platform) === false){
                     if(this.device instanceof Device){
                         this.platform = this.device.getPlatform(pName);
                     }else{
@@ -347,7 +362,7 @@ class DexcaliburProject
         }
 
         // install platform
-        if(this.platform.checkInstall() == false){
+        if(this.platform.checkInstall() === false){
             Logger.info("[PROJECT] synchronizePlatform : Target platform is not installed. Installing ...")
             res = await pm.install(this.platform);
             if(res == true){
@@ -398,7 +413,15 @@ class DexcaliburProject
         let project = new DexcaliburProject( pContext, pProjectUID);
         let data = null;
 
-        project.init();
+        // Load project from workspace
+        project.config = pContext.getConfiguration();
+
+        project.workspace = new Workspace(
+            _path_.join( pContext.workspace.getLocation(), pProjectUID )
+        );
+
+        project.workspace.init();
+
 
         if(pConfigPath == null){
             pConfigPath = project.workspace.getProjectCfgPath();
@@ -420,14 +443,15 @@ class DexcaliburProject
                 case "apk":
                     project.workspace.setApk( APK.fromJsonObject(data.apk));
                     break;
+                case "connector":
+                    if(data[i].hasOwnProperty('type')){
+                        project.connector = ConnectorFactory.getInstance().newConnector(data[i].type, this, data[i]);
+                    }else{
+                        project.connector = ConnectorFactory.getInstance().newConnector('inmemory', this);
+                    }
+                    break;
             }
         }
-
-        /*
-
-        case "platform":
-            project.platform = this.device.getPlatform(data.platform);
-            break;*/
 
         if(data.platform != null){
             project.platform = PlatformManager.getInstance().getPlatform(data.platform);
@@ -435,6 +459,9 @@ class DexcaliburProject
         else if(project.device != null){
             project.platform = project.device.getPlatform(data.platform);
         }
+
+        // init other properties
+        project.init();
 
         return project;
     }
@@ -464,6 +491,8 @@ class DexcaliburProject
         o.device = this.device!=null? this.device.getUID() : null;
         o.platform = this.platform!=null? this.platform.getUID() : null;
         o.nofrida = this.nofrida;
+
+        o.connector = this.connector.toJsonObject();
 
         if(this.workspace.getApk() !== null){
             o.apk = this.workspace.getApk().toJsonObject();
@@ -515,7 +544,7 @@ class DexcaliburProject
     async usePlatform( pVersion){
         // old
         // this.config.platform_target = pVersion;
-        let pm = this.engine.getPlatformManager(), platform = null;;
+        let pm = this.engine.getPlatformManager(), platform = null;
 
         //new
         this.platform = pm.getLocalPlatform(pVersion);
@@ -528,9 +557,9 @@ class DexcaliburProject
         platform = pm.getRemotePlatform(pVersion);
 
         // if the platform is available remotely, download it
-        if(pm !== null){
+        if(platform !== null){
             status = await pm.install(platform);
-            if(status == true){
+            if(status === true){
                 this.platform = pm.getLocalPlatform(pVersion)
             }else{
                 // TODO : throw exception. platform exists remotely, but install fails.  
@@ -770,12 +799,13 @@ class DexcaliburProject
      * Use the default device. It can used in order to force application crawl. 
      * @param {String} activity The activity to start
      * @returns {ApplicationInstance}  A reference to the process running the Application
-     * @function 
+     * @function
+     * @deprecated
      */
     start(activity){
         let adb=this.config.adbPath, ret="", path="", i=0;
         
-        if(this.config.useEmulator) sdb+=" -e";
+        if(this.config.useEmulator) adb+=" -e";
         if(this.device instanceof Device) adb+=" -s "+this.device.getUID();
         
         // to do change

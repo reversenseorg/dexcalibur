@@ -4,30 +4,34 @@ const ConnectorFactory = require('./ConnectorFactory');
 
 
 /**
+ * Represent a database used by analyzer
+ *
  * @class
  * @author Georges-B. MICHEL
  */
 class AnalyzerDatabase
 {
     /**
+     * To create an analyzer database
      *
-     * @param {DexcaliburProject} context
+     * @param {DexcaliburProject} pContext Project associated to the database
+     * @param {String} pConnectorType [Optional] Default NULL. Connector type
      * @constructor
      */
-    constructor(context, pConnectorType=null){
-        this.ctx = context;
+    constructor(pContext, pConnectorType=null){
+        this.ctx = pContext;
 
         if(pConnectorType !== null){
-            this.conn = ConnectorFactory.getInstance().newConnector(pConnectorType, context);
+            this.conn = ConnectorFactory.getInstance().newConnector(pConnectorType, pContext);
         }else {
-            this.conn = context.connector;
+            this.conn = pContext.connector;
         }
 
         this.conn.connect();
 
-        this.classes =this.conn.getIndex("classes");
-        this.fields =this.conn.getIndex("fields");
-        this.methods =this.conn.getIndex("methods");
+        this.classes =this.conn.getCollection("classes");
+        this.fields =this.conn.getCollection("fields");
+        this.methods =this.conn.getCollection("methods");
         this.call =this.conn.getIndex("call");
         this.unmapped =this.conn.getIndex("unmapped");
         this.notbinded =this.conn.getIndex("notbinded");
@@ -35,16 +39,16 @@ class AnalyzerDatabase
         this.missing =this.conn.getIndex("missing");
         this.parseErrors =this.conn.getIndex("parseErrors");
         this.strings =this.conn.getIndex("strings");
-        this.packages =this.conn.getIndex("packages");
+        this.packages =this.conn.getCollection("packages");
         this.files =this.conn.getIndex("files");
         this.buffers =this.conn.getIndex("buffers");
-        this.datablock =this.conn.getIndex("datablock");
-        this.tagcategories =this.conn.getIndex("tagcategories");
-        this.syscalls =this.conn.getIndex("syscalls");
-        this.activities =this.conn.getIndex("activities");
-        this.receivers =this.conn.getIndex("receivers");
-        this.services =this.conn.getIndex("services");
-        this.providers =this.conn.getIndex("providers");
+        this.datablock =this.conn.getCollection("datablock");
+        this.tagcategories =this.conn.getCollection("tagcategories");
+        this.syscalls =this.conn.getCollection("syscalls");
+        this.activities =this.conn.getCollection("activities");
+        this.receivers =this.conn.getCollection("receivers");
+        this.services =this.conn.getCollection("services");
+        this.providers =this.conn.getCollection("providers");
         this.permissions =this.conn.getIndex("permissions");
 
         // Manifest node

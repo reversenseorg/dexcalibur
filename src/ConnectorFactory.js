@@ -3,17 +3,19 @@
 const _fs_ = require('fs');
 const _path_ = require('path');
 
-const Utils = require('./Utils');
 
 let gInstance = null;
 
 /**
+ * Represent the connector factory.
  *
  * @class
  */
 class ConnectorFactory{
 
     /**
+     * To create a new factory for each connector contaiend into connectors/*
+     *
      * @constructor
      */
     constructor() {
@@ -21,15 +23,19 @@ class ConnectorFactory{
 
         let ws = _path_.join(__dirname, '..', 'connectors');
         let files = _fs_.readdirSync(ws);
+        let p = null
 
         for(let i=0; i<files.length; i++){
-            this.connectors[files[i]] = require(_path_.join( ws, files[i], "adapter.js"));
+            p = _path_.join( ws, files[i], "adapter.js");
+            if(_fs_.existsSync(p))
+                this.connectors[files[i]] = require(p);
         }
     }
 
     /**
+     * To get the instance of ConnectorFactory
      *
-     * @param pForce
+     * @param {Boolean} pForce [Optional] Default FALSE. If TRUE, current instance is overridden
      * @returns {ConnectorFactory}
      * @method
      */
@@ -42,9 +48,12 @@ class ConnectorFactory{
     }
 
     /**
+     * To instanciate a new connector of a specified type
      *
-     * @param {String} pType
-     * @param {DexcaliburProject} pProject
+     * @param {String} pType Connector type. example: 'inmemory'
+     * @param {DexcaliburProject} pProject Project instance
+     * @param {Object} pOptions [Optional] Default NULL.
+     * @method
      */
     newConnector( pType, pProject, pOptions = null){
         if(this.connectors.hasOwnProperty(pType)===false){
