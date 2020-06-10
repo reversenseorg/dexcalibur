@@ -36,7 +36,7 @@ describe('InspectorFactory', function() {
                 },
 
                 eventListeners: {
-                    "testunit.event": function (ctx, event) {
+                    "testunit.event": function () {
                         TestInspectorFlag = true;
                     }
                 }
@@ -66,15 +66,16 @@ describe('InspectorFactory', function() {
                 },
 
                 eventListeners: {
-                    "testunit.event": function (ctx, event) {
+                    "testunit.event": function () {
                         TestInspectorFlag = true;
                     }
                 }
             });
 
+            TestHelper.getDexcaliburProject().init();
             let inspector = inspf.createInstance( TestHelper.getDexcaliburProject());
 
-            expect(inspector).to.be.an.instanceOf(Inspector);
+            expect(inspector).to.be.an.instanceOf(Inspector.Inspector);
             expect(inspector.id).to.equals('UnitTestInspector')
         });
     });
@@ -96,7 +97,7 @@ describe('InspectorFactory', function() {
                 },
 
                 eventListeners: {
-                    "testunit.event": function (ctx, event) {
+                    "testunit.event": function () {
                         TestInspectorFlag = true;
                     }
                 }

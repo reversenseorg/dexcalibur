@@ -1,11 +1,6 @@
-const chai = require('chai'),
-    sinon = require('sinon'),
-    sinonChai = require('sinon-chai'),
-    process = require("process");
-const expect = chai.expect,
-    should = chai.should();
+const chai = require('chai');
+const expect = chai.expect;
 
-chai.use(sinonChai);
 
 // -- App specific --
 
@@ -14,7 +9,7 @@ const DexcaliburEngine = require('../src/DexcaliburEngine');
 const Bus = require('../src/Bus');
 const InspectorFactory = require('../src/InspectorFactory');
 const Inspector = require('../src/Inspector');
-const Event = require('../src/Event');
+const Event = require('../src/Event').Event;
 
 describe('Bus', function() {
 
@@ -30,7 +25,7 @@ describe('Bus', function() {
 
     before(function(){
         TestHelper.resetDexcaliburWorkspace();
-        PROJECT = TestHelper.getDexcaliburProject();
+        PROJECT = TestHelper.getInitializedDexcaliburProject();
 
         TestInspector_1 = new InspectorFactory({
             id: 'UnitTestInspector',
@@ -42,7 +37,7 @@ describe('Bus', function() {
                 "testunit": ["browsable", "exported"]
             },
             eventListeners: {
-                "testunit.POST_APP_SCAN": function (ctx, event) {
+                "testunit.POST_APP_SCAN": function () {
                     TestInspectorFlag_1 = true;
                 }
             }
@@ -54,7 +49,7 @@ describe('Bus', function() {
             description: 'Simple inspector for unit test2',
             startStep: Inspector.STEP.POST_APP_SCAN,
             eventListeners: {
-                "testunit.POST_APP_SCAN": function (ctx, event) {
+                "testunit.POST_APP_SCAN": function () {
                     TestInspectorFlag_2 = true;
                 }
             }
@@ -66,7 +61,7 @@ describe('Bus', function() {
             description: 'Simple inspector for unit test3',
             startStep: Inspector.STEP.BOOT,
             eventListeners: {
-                "testunit.BOOT": function (ctx, event) {
+                "testunit.BOOT": function () {
                     TestInspectorFlag_3 = true;
                 }
             }
@@ -110,8 +105,8 @@ describe('Bus', function() {
 
             bus.prevent("testunit.POST_APP_SCAN");
 
-            bud.send(new Event({ type:"testunit.POST_APP_SCAN" }));
-            bud.send(new Event({ type:"testunit.BOOT" }));
+            bus.send(new Event({ type:"testunit.POST_APP_SCAN" }));
+            bus.send(new Event({ type:"testunit.BOOT" }));
 
             expect(TestInspectorFlag_1).to.equals(false);
             expect(TestInspectorFlag_3).to.equals(true);
@@ -130,8 +125,8 @@ describe('Bus', function() {
 
             bus.prevent("testunit.POST_APP_SCAN");
 
-            bud.send(new Event({ type:"testunit.POST_APP_SCAN" }));
-            bud.send(new Event({ type:"testunit.BOOT" }));
+            bus.send(new Event({ type:"testunit.POST_APP_SCAN" }));
+            bus.send(new Event({ type:"testunit.BOOT" }));
 
             expect(TestInspectorFlag_1).to.equals(false);
             expect(TestInspectorFlag_2).to.equals(false);
