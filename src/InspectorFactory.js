@@ -24,6 +24,10 @@ class InspectorFactory
         let hs = null;
         let hooks = null;
 
+        if(this._config.id != null) ins.id = this._config.id;
+        if(this._config.name != null) ins.name = this._config.name;
+        if(this._config.description != null) ins.description = this._config.description;
+
         if(this._config.startStep != null){
             this.step = this._config.startStep;
             ins.setStartStep(this._config.startStep);
