@@ -2,7 +2,7 @@ const Logger = require("./Logger.js")();
 const IFC = require("./InspectorFrontController.js");
 const fs = require("fs");
 const Path = require("path");
-const InMemoryDb = require("./InMemoryDb.js").InMemoryDb;
+const InMemoryDb = require("../connectors/inmemory/InMemoryDb.js").InMemoryDb;
 //const UT = require("./Utils.js");
 
 const TASK_CODE = {
@@ -90,7 +90,7 @@ class Inspector{
 
         for(let i in config){
             this[i] = config[i];
-            if(i=="hookSet"){
+            if(i==="hookSet"){
                 this.id = config[i].id;
                 this.name = config[i].name;
                 this.description = config[i].description;
@@ -109,9 +109,8 @@ class Inspector{
         this.gui_available = true;
     }
 
-    useMemoryDB(config=null){
-        //console.log(DInMemoryDb);
-        this.db = new InMemoryDb();
+    useMemoryDB( pConnector = null){
+        this.db = new InMemoryDb(pConnector);
 
         return this.db;
     }
@@ -220,9 +219,9 @@ class Inspector{
             anal.addTagCategory(this.preRegisteredTags[i].name, this.preRegisteredTags[i].tags)
         }
 
-        if(this.db instanceof InMemoryDb){
-            this.db.setContext(this.context);
-        }
+        /*if(this.db instanceof InMemoryDb){
+            //this.db.setContext(this.context);
+        }*/
 
         return this;
     }
@@ -256,7 +255,7 @@ class Inspector{
         return this.staticTasks[name];
     }
 
-    getID(name){
+    getID(){
         return this.id;
     }
 
@@ -266,6 +265,7 @@ class Inspector{
     };
 
     // Inspector life-cycle
+    /*
     turnOn(){
         this.running = true;
         if(this.hookSet!=null)
@@ -276,13 +276,13 @@ class Inspector{
         return this.staticTasks[name];
         if(this.hookSet!=null)
             this.hookSet.disable();
-    }
+    }*/
 
     /**
      * emit a new event on the main event bus
      */
     emits(name,event){
-        if(this.events.indexOf(name)==-1)
+        if(this.events.indexOf(name)===-1)
             this.events.push(name);
 
         this.context.bus.send({ 
@@ -297,7 +297,7 @@ class Inspector{
      * @method 
      */
     isStartAt(pStep){
-        return (this.step == pStep) 
+        return (this.step === pStep)
     }
 
     /**
@@ -342,7 +342,7 @@ class Inspector{
                 }
 
                 let data = self.db.serialize();
-                fs.write(fd, JSON.stringify(data), function(err, written, str){
+                fs.write(fd, JSON.stringify(data), function(err){
                     if(err){
                         console.log("Save file cannot be created");
                         return;
@@ -360,7 +360,7 @@ class Inspector{
      * @method
      */
     toJsonObject(){
-        let o = new Object(), t = null;
+        let o = {};
         o.id = this.id;
         o.description = this.description;
         o.name = this.name;
@@ -369,7 +369,7 @@ class Inspector{
         o.hooks = this.hookSet.toJsonObject();
         o.listener = [];
         o.gui_available = this.gui_available;
-        for(var i in this.listener)
+        for(let i in this.listener)
             o.listener.push({ n:i });
         
         return o;
