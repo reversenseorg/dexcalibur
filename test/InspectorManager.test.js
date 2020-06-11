@@ -54,8 +54,6 @@ describe('Inspector Manager', function() {
             let im = new InspectorManager(ENGINE);
 
             im.enumerate();
-
-            console.log(im.locals);
         });
     });
 

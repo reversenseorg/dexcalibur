@@ -263,8 +263,6 @@ class DexcaliburProject
         // init connector
         if(this.connector === null){
             this.connector = ConnectorFactory.getInstance().newConnector('inmemory', this);
-
-            console.log(this.connector, ConnectorFactory.getInstance());
         }
 
         // set the Search API which allow the user to perform search
