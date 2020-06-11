@@ -294,7 +294,7 @@ class AdbWrapper
      * @since v0.7.2
      */
     async connect( pIpAddress, pPortNumber, pDeviceID){
-
+        let ret;
         ret = await UT.execAsync(this.setup(pDeviceID) + " tcpip "+pPortNumber);
         //Logger.debug(ret);
 
@@ -753,7 +753,6 @@ class AdbWrapper
         let err = _fs_.openSync( _path_.join( ws.getTempFolderLocation(), 'err.log'), 'w+', 0o666);
 
         args = args.concat(pCommand);
-        console.log(args);
         let child = Process.spawn(this.path, args, { detached: true, stdio: [ 'ignore', out, err ] });
         child.unref();
 
