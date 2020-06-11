@@ -689,6 +689,11 @@ var DexcaliburAPI = {
             }
         });
     },
+    connector: {
+        list: function (paramCallback) {
+            DexcaliburAPI.exec('/api/connectors','GET', null, paramCallback.onSuccess, paramCallback.onError);
+        }
+    },
     ui: {
         __state: {
             rendered: []
@@ -1454,7 +1459,8 @@ DexcaliburAPI.analyzer.getTags = function(callback){
                         cc = DexcaliburAPI.ui.findColorCode(tags[i]);
                         if(cc==null) console.log("Need more color code"); 
                         for(let j=0; j<tags[i].length;j++){
-                            DexcaliburAPI.context.tags.push(tags[i][j]) = tags[i];
+                            console.log('[DEBUG] getTags...')
+                            DexcaliburAPI.context.tags.push(tags[i][j]);// = tags[i];
                         }
                     }
                 }

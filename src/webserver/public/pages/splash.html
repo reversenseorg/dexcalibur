@@ -15,13 +15,6 @@
     <!--## pages/inc/tpl_css.html ##-->
 
     <!--## pages/inc/tpl_js_d3.html ##-->
- 
-   <!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
-    <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
-    <!--[if lt IE 9]>
-        <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
-        <script src="https://oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js"></script>
-    <![endif]-->
 
     <style>
     
@@ -217,7 +210,7 @@
 
                         <div class="form-row">
                             <div class="col-md-10 mb-3">
-                                <label for="validationServer01">Project UID</label>
+                                <label for="dxcSelectApk_projectUID">Project UID</label>
                                 <input type="text" class="form-control form-control-sm" id="dxcSelectApk_projectUID" placeholder="Project name" value="" required>
                                 <div class="valid-feedback">
                                     Looks good!
@@ -253,6 +246,11 @@
 
                         <div id="projectTypeOpt"></div>
 
+                        <b class="mt-lg-2">Database: </b>
+                        <div class="form-row">
+                            <div class="col-md-10 mb-3" id="projectConnectors"></div>
+                        </div>
+
                         <br>
                         <div class="form-row">
                             <div class="col-md-10 mb-3">
@@ -271,10 +269,10 @@
 
                         <div class="form-row">
                             <div class="col-md-10 mb-3">
-                                <label for="dxcSelectDevProj"><b>Select the default device:</b> </label>
+                                <label for="dxcSelectDev2"><b>Select the default device:</b> </label>
                                 <select class="form-control form-control-sm dxc-select-dev" id="dxcSelectDev2" >
                                     <option>Select a device</option>
-                                    <optgroup id="dxc-optDevices2"></optgroup>
+                                    <optgroup label="Enrolled device" id="dxc-optDevices2"></optgroup>
                                 </select>
                             </div>
                         </div>
@@ -344,8 +342,7 @@
                                     <li>gather metadata about context to improve hook interpretation</li>
                                     <li>identify device configuration : TEE, GMS version, ...</li>
                                     <li>identify constructor specific assets</li>
-                                </ul> 
-                                </ul> 
+                                </ul>
                             </small>
                             <div class="text-right text-sm">
                                 <a class="btn btn-secondary btn-sm dxc-dev-connect"><span class="fa fa-wifi"></span>&nbsp;Connect over TCP...</a>&nbsp;
@@ -414,9 +411,9 @@
                         <label for="devport">Device Port</label>
                         <input type="number" id="devport" name="devport" class="form-control form-control-sm" />
                 
-                        <label for="">If the device is already enrolled, select it. Else lets empty or select 'None'</label>
-                        <select class="form-control form-control-sm dxc-select-dev" id="dxc-selConnDev" placeholder="Select a device">
-                            <option value="none">None</option>
+                        <label for="dxc-selConnDev">If the device is already enrolled, select it. Else lets empty or select 'None'</label>
+                        <select class="form-control form-control-sm dxc-select-dev" id="dxc-selConnDev">
+                            <option value="none" disabled selected>Select a device</option>
                             <optgroup id="dxc-connDevices"></optgroup>
                         </select>
                     </div>
@@ -448,9 +445,8 @@
                         <label for="dxcEnrollFridaLoc">Location of server binary into the device</label>
                         <input type="text" name="dxcEnrollFridaLoc" id="dxcEnrollFridaLoc" class="form-control form-control-sm" placeholder="Default is /data/local/tmp" />
 
-                        <label for="">Server binary remote URL</label>
+                        <label for="dxcEnrollFridaRemote">Server binary remote URL</label>
                         <input type="type" id="dxcEnrollFridaRemote" class="form-control form-control-sm" placeholder="lets empty if remote install" />
-                        <input type="text" id="dxcEnrollFridaRemote" class="form-control form-control-sm" placeholder="lets empty if remote install" />
 
                         <b>Profiling</b>
                         <label for="dxcEnrollProfileAPI">Analyze Android framework</label>
@@ -781,6 +777,24 @@
                            // }
                         }
                     });
+
+                    DexcaliburAPI.connector.list({ onSuccess: (vData)=>{
+                        let data = JSON.parse(vData);
+                        let ele =  $('#projectConnectors');
+                        let k=0;
+
+                        ele.empty();
+
+                        for(let i in data){
+                            ele.append(`
+                                <div  class="custom-control custom-radio rounded ${k==0?'bg-secondary':'border border-secondary'}">
+                                    <input type="radio" id="${data[i].type}" ${k==0?'checked':''} name="dxcConnector" value="${data[i].type}"  class="custom-control-input ml-lg-5">
+                                    <label for="${data[i].type}"  class="custom-control-label"><i>${data[i].name}</i><br>${data[i].description}</label>
+                                </div>
+                            `);
+                            k++;
+                        }
+                    }});
                 }
             },
             "select-app": {
@@ -1006,7 +1020,7 @@
 
                         if(data.msg == null) return;
                         
-                        if(data.percent == 100){
+                        if(data.percent === 100){
                             task.stop();
                         }
 
@@ -1138,6 +1152,8 @@
             params.name = $('#dxcSelectApk_projectUID').val();
             params.platform = $('#dxcApkAPI').val();
             params.dev = $('#dxcSelectDev2').val();
+            params.connector = $('input[name=dxcConnector]:checked').val();
+
 
             $('#dxcLoadingModal').modal();
             $('#dxcLoadingModalProgress').css('width','10%');
@@ -1177,6 +1193,8 @@
                 params.type = 'fromfs';
                 params.path = $('#projectLocalPath').val();
                 DexcaliburAPI.workspace.newProject(params, { onSuccess:newProjectCallback });
+            }else{
+                console.log('Failed to create project');
             }
 
 

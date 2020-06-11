@@ -9,6 +9,7 @@ const Path = require("path");
 const _busboy_ = require('busboy');
 
 const AnalysisHelper = require("./AnalysisHelper.js");
+const ConnectorFactory = require('./ConnectorFactory');
 const Decompiler = require("./Decompiler.js");
 const Configuration = require("./Configuration.js");
 const Uploader = require('./Uploader');
@@ -282,6 +283,15 @@ class WebServer {
                 insp.performPost(req, res);
             })
 
+        // Connectors
+        this.app.route('/api/connectors')
+            .get(function (req, res) {
+                res.status(200).send(
+                    JSON.stringify(
+                        ConnectorFactory.getInstance().toJsonObject()
+                    )
+                );
+            });
 
         // API routes 
         this.app.route('/api/platform/list')
@@ -405,6 +415,8 @@ class WebServer {
                     // create project : UID , APK [, Device]
                     project = await $.context.newProject(req.body['name'], path, device);
 
+                    // to set connector
+                    project.setConnector(req.body['connector']);
 
                     if(project != null){
                         // sync project platform with target platform or APK
@@ -480,11 +492,10 @@ class WebServer {
 
                 let proj = null, availability = true;
                 switch( req.query.field)
-                {   
+                {
                     case "project.uid":
                         proj = $.context.workspace.listProjects();
                         proj.map((vProject)=>{
-                            console.log(vProject,req.query.value);
                             if(vProject == req.query.value)
                                 availability = false;
                         })
