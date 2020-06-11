@@ -294,9 +294,10 @@ class DexcaliburEngine
         this.deviceMgr.load();
 
         // restart child ADB server
-       
-        this.deviceMgr.getBridgeFactory('ADB').newGenericWrapper().kill();  
-        
+        (async function(){
+            self.deviceMgr.getBridgeFactory('ADB').newGenericWrapper().kill();
+        })();
+
         return true;
     }
 
@@ -629,6 +630,8 @@ class DexcaliburEngine
             await DeviceManager.getInstance().scan();
 
             project = DexcaliburProject.load(this, pUID);
+
+            // init
 
 //            project = new DexcaliburProject( this, pUID);
             

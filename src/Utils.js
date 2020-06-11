@@ -207,7 +207,8 @@ const Util = {
         return ret.toString(charset);
     },
     execAsync: async function(command){
-        
+        let ret;
+
         if(process.env.DEXCALIBUR_TEST){
             ret = await (require('./TestHelper').execAsync(command));
         }else{

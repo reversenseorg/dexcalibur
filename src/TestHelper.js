@@ -4,7 +4,10 @@
  */
 const _path_ = require("path");
 const _process_ = require("process");
+const _child_process_ = require("child_process");
 const _http_ = require("http");
+const _util_ = require('util');
+const _exec_ = _util_.promisify(_child_process_.exec);
 
 
 const Configuration = require("./Configuration.js");
@@ -110,6 +113,20 @@ class TestHelper
             return res.ret;
         }else{
             return _process_.execSync( pCmd);
+        }
+    }
+
+    /**
+     * To mock conditionnaly Process.execAsync()
+     *
+     * @param {*} pCmd
+     */
+    async execAsync( pCmd){
+        let res = this.filterInterceptor( "exec", pCmd);
+        if(res.success){
+            return res.ret;
+        }else{
+            return await _exec_(pCmd);;
         }
     }
 
@@ -226,6 +243,25 @@ class TestHelper
 
         return this.project;
     }
+
+
+    /**
+     *
+     * @param pForce
+     * @returns {DexcaliburProject}
+     */
+    getInitializedDexcaliburProject(pForce = false){
+        if(this.project_ready == null || pForce){
+            this.project_ready = new DexcaliburProject(
+                this.newDexcaliburEngine(),
+                'owasp.mstg.uncrackable1'
+            );
+            this.project_ready.init();
+        }
+
+        return this.project_ready;
+    }
+
 }
 
 module.exports =  new TestHelper();
