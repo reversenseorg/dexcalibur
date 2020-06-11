@@ -872,7 +872,7 @@ HookPrimitive.prototype.buildRawMethod = function(raw){
 
 /**
  * To built a probing hook from the current primitive 
- * @param {Project} context The reference to the current Project instance
+ * @param {DexcaliburProject} context The reference to the current Project instance
  * @param {HookSet} set The hookset where the hook primitive is defined
  * @returns {Hook} The hook ready to be injected
  * @function
@@ -1980,17 +1980,21 @@ HookSet.prototype.disable = function(){
     hookManager.removeHooksOf(this);
     this.enable = false;
 }
+
 HookSet.prototype.deploy = function(){
     let hookManager = this.context.hook; //ctx.hook;
     let hook, method, hconfig;
 
-    hookManager.addRequires(this.requires);
-    //hookManager.addRequiresNode(this.requiresNode);
+    // if the hookset is already deployed only not deployed hooks are generated
+    if(this.enable === false){
+        hookManager.addRequires(this.requires);
+        //hookManager.addRequiresNode(this.requiresNode);
 
-    if(this.prologue != null)
-        hookManager.prologues.push(
-            this.prologue.injectContext(this.context)
-        );
+        if(this.prologue != null)
+            hookManager.prologues.push(
+                this.prologue.injectContext(this.context)
+            );
+    }
 
     /*
     if(this.shares != null)
@@ -2017,9 +2021,9 @@ HookSet.prototype.deploy = function(){
             hook = this.intercepts[i].toIntercept(this.context, this);
 
             if(hook.isCustomHook())
-                console.log("[INTERCEPT][HOOK SET][CUSTOM] Add : ",hook.name)
+                Logger.info("[INTERCEPT][HOOK SET][CUSTOM] Add : ",hook.name)
             else
-                console.log("[INTERCEPT][HOOK SET] Add : ",hook.name)
+                Logger.info("[INTERCEPT][HOOK SET] Add : ",hook.name)
             
             this.intercepts[i] = hook;    
             hookManager.hooks.push(this.intercepts[i]);   

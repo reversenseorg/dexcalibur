@@ -346,15 +346,6 @@ class Configuration {
         return this.androidSdkPath;
     }
 
-    getApktoolPath() {
-        return this.apktPath;
-    }
-
-
-    getAdbPath() {
-        return this.adbPath;
-    }
-
 
     getTmpDir() {
         return this.tmpDir;

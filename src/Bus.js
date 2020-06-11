@@ -40,12 +40,11 @@ Bus.prototype.unscribe = function(listener){
     }
     return true;
 }
-
+// TODO fix it
 Bus.prototype.send = function(event){
     
     if(this.prevented[event.type] != undefined && this.prevented[event.type]===true){
         this.prevented[event.type] = false;
-        console.log(this.prevented);
         return false;
     }
 

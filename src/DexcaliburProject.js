@@ -261,7 +261,6 @@ class DexcaliburProject
         }
 
         // init connector
-        console.log(this.connector)
         if(this.connector === null){
             this.connector = ConnectorFactory.getInstance().newConnector('inmemory', this);
 
@@ -792,7 +791,10 @@ class DexcaliburProject
 
         // deploy inspector's hooksets
         this.deployInspectors(Inspector.STEP.POST_APP_SCAN);
-        
+
+        this.bus.send(new Event.Event({
+            type: "dxc.fullscan.post_deploy"
+        }));
         
         // trigger event
         this.bus.send(new Event.Event({
