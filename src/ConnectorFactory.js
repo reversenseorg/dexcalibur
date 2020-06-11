@@ -62,6 +62,20 @@ class ConnectorFactory{
 
         return new this.connectors[pType](pProject, pOptions);
     }
+
+    /**
+     * To serialize all connectors available
+     *
+     * @returns {Object[]} Simple object ready to be JSON-serialized
+     * @method
+     */
+    toJsonObject(){
+        let o=[];
+        for(let i in this.connectors){
+            o.push(this.connectors[i].getProperties());
+        }
+        return o;
+    }
 }
 
 module.exports = ConnectorFactory;

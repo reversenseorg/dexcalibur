@@ -397,6 +397,7 @@ Package.prototype.getAbsoluteSize = function(obj){
     }
     return absz;
 }
+
 Package.prototype.toJsonObject = function(fields){
     let o=new Object();
     if(fields !== null){
@@ -758,7 +759,6 @@ Class.prototype.import = function(obj){
     // raw impport
     this.raw_import(obj);
     // construct obj
-    // this.modifiers = (new Modifiers()).import(obj.modifiers);
     this.modifiers = new Accessor.AccessFlags(obj.modifiers);
 };
 
@@ -1384,7 +1384,7 @@ function Method(config){
         t="\n[-- Properties : ]";
         t += "\n\t.name:<string>\tGet the short name of the method"; 
         t += "\n\t.enclosingClass:<Class>\tGet the enclosing class"; 
-        t += "\n\t.modifiers:<Modifiers>\tGet the modifiers";
+        t += "\n\t.modifiers:<AccessFlags>\tGet the modifiers";
         t += "\n\t.args:<*Type>[]\tGet the argument types";
         t += "\n\t.ret:<*Type>\tGet the type of return value";
         t += "\n\t.locals:<int>\tGet the number de locals";
@@ -1506,7 +1506,6 @@ Method.prototype.import = function(obj){
     // raw impport
     this.raw_import(obj);
     // estor modifiers
-    //this.modifiers = (new Modifiers()).import(obj.modifiers);
     this.modifiers = new Accessor.AccessFlags(obj.modifiers);
     
     // restore return type
@@ -2540,7 +2539,6 @@ Field.prototype.import = function(obj){
     // raw impport
     this.raw_import(obj);
     // estor modifiers
-    // this.modifiers = (new Modifiers()).import(obj.modifiers);
     this.modifiers = new Accessor.AccessFlags(obj.modifiers);
 
 
@@ -2689,110 +2687,6 @@ Field.prototype.getTags = function(){
 }
 
 
-// MODIFIER
-/**
- * Represents the modifiers state of an Application's Class/Method/Field
- * @param {Object} config Optional, an object wich can be used in order to initialize the instance 
- * @constructor
- */
-function Modifiers(config){
-    this.visibility = CONST.JAVA.PUBLIC;
-
-    this.public = false;
-    this.protected = false;
-    this.private = false;
-
-    this.static = false;
-    this.abstract = false;
-    this.constructor = false;
-    this.final = false;
-    this.enum = false;
-    this.transient = false;
-    this.declsync = false;
-    this.bridge = false;
-    this.varargs = false;
-    this.native = false;
-    this.interface = false;
-    this.strictfp = false;
-
-    this._match = 0;
-    this._name = "";
-
-    this.tags = [];
- 
-    if(config!==undefined)
-        for(let i in config)
-            this[i]=config[i];
-
-
-    return this;
-}
-Modifiers.prototype.export = Savable.export;
-Modifiers.prototype.import=  Savable.import;
-
-Modifiers.prototype.toJsonObject = function(include=null){
-    let o = new Object();
-    if(include instanceof Array){
-        for(let i in this){
-            if(include.indexOf(i)>-1 && this[i] != false)
-                o[i] = this[i];
-        }
-    }else{
-        for(let i in this){
-            if(i[0]!=="_" && (typeof this[i] != "array"))
-                o[i] = this[i];
-        }
-    }
-    return o;
-};
-
-/*
-Modifiers.prototype.toJsonObject = function(trueOnly){
-    let o = new Object();
-    if(trueOnly){
-        for(let i in this){
-            if(i[0]!=="_" && (typeof this[i] != "array") && this[i]==true)
-                o[i] = this[i];
-        }
-    }else{
-        for(let i in this){
-            if(i[0]!=="_" && (typeof this[i] != "array"))
-                o[i] = this[i];
-        }
-    }
-    return o;
-};*/
-
-Modifiers.prototype.isNotPrivate = function(){
-    return this.visibility!==CONST.JAVA.PRIVATE;
-};
-
-
-Modifiers.prototype.isStatic = function(){
-    return this.static===true;
-};
-
-Modifiers.prototype.sprint = function(){
-    let dbg="["
-    if(this.static) dbg+="static,";
-    if(this.final) dbg+="final,";
-    if(this.volatile) dbg+="volatile,";
-
-    switch(this.visibility){
-        case CONST.JAVA.PRIVATE:
-            dbg+="private";
-            break;
-        case CONST.JAVA.PROTECTED:
-            dbg+="protected";
-            break;
-        case CONST.JAVA.PUBLIC:
-            dbg+="public";
-            break;
-    }
-    if(this.constructor) dbg+=",constructor";
-    
-    return dbg+"]";
-}
 
 /**
  * Represents a reference to a field in the Application bytecode
@@ -3301,7 +3195,6 @@ var all_exports = {
     Class: Class,
     Method: Method,
     Field: Field,
-    Modifiers: Modifiers,
     DataBlock: DataBlock,
     BasicBlock: BasicBlock,
     ObjectType: ObjectType,

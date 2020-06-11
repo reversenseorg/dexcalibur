@@ -21,6 +21,12 @@ class AnalyzerDatabase
     constructor(pContext, pConnectorType=null){
         this.ctx = pContext;
 
+        /**
+         * DB connector
+         * @type {null}
+         */
+        this.conn = null;
+
         if(pConnectorType !== null){
             this.conn = ConnectorFactory.getInstance().newConnector(pConnectorType, pContext);
         }else {
@@ -53,6 +59,16 @@ class AnalyzerDatabase
 
         // Manifest node
         this.manifest = null;
+    }
+
+    /**
+     * To get DB connector
+     *
+     * @return {InMemoryConnector|*}
+     * @method
+     */
+    getConnector(){
+        return this.conn;
     }
 }
 

@@ -7,12 +7,12 @@ const CLASS = require("./CoreClass.js");
 var CONST = require("./CoreConst.js");
 var OPCODE = require("./Opcode.js").OPCODE;
 const AnalysisHelper = require("./AnalysisHelper.js");
-const MemoryDb = require("./InMemoryDb.js");
 const Event = require("./Event.js").Event;
 const Logger = require("./Logger.js")();
 var Parser = require("./SmaliParser.js");
 const Accessor = require("./AccessFlags");
-
+const ModelPackage = require('./ModelPackage');
+const AnalyzerDatabase = require('./AnalyzerDatabase');
 var SmaliParser = new Parser();
 
 
@@ -21,7 +21,7 @@ var DataModel = {
     field: new CLASS.Field(),
     method: new CLASS.Method(),
     call: new CLASS.Call(),
-    modifier: new Accessor.AccessFlags(), // CLASS.Modifiers(),
+    modifier: new Accessor.AccessFlags(), 
     objectType: new CLASS.ObjectType(),
     basicType: new CLASS.BasicType()
 };
@@ -83,7 +83,7 @@ function resolveInheritedMethod(methodRef, parentClass){
 /**
  * 
  * @param {String} fqcn FQCN of the missing class    
- * @param {InMemoryDB} internalDB an instance of the internal DB 
+ * @param {AnalyzerDatabase} internalDB an instance of the internal DB
  */
 function createMissingClass(fqcn,internalDB){
     // create a class instance from the FQCN value
@@ -100,8 +100,8 @@ function createMissingClass(fqcn,internalDB){
     // update package
     if(missingCls.getPackage() !== null){
         pkg = internalDB.packages.getEntry(pkg);
-        if(!(pkg instanceof CLASS.Package)){
-            pkg = new CLASS.Package(missingCls.getPackage());
+        if(!(pkg instanceof ModelPackage)){
+            pkg = new ModelPackage(missingCls.getPackage());
             internalDB.packages.setEntry(pkg.name,pkg);
         }
 
@@ -118,7 +118,7 @@ function createMissingField(fieldReference, enclosingClass, internalDB, modifier
     missingField.setupMissingTag();
 
     missingField.enclosingClass = enclosingClass;
-    missingField.modifiers = new  Accessor.AccessFlags(modifiers)//CLASS.Modifiers(modifiers);
+    missingField.modifiers = new  Accessor.AccessFlags(modifiers);
 
     enclosingClass.fields[missingField.signature()] = missingField;
 
@@ -139,7 +139,7 @@ function createMissingMethod(methodRef, enclosingClass, internalDB, modifiers=Ac
     missingMeth.setupMissingTag();
 
     missingMeth.enclosingClass = enclosingClass;
-    missingMeth.modifiers = new Accessor.AccessFlags(modifiers); //CLASS.Modifiers(modifiers);
+    missingMeth.modifiers = new Accessor.AccessFlags(modifiers); 
 
     enclosingClass.methods[missingMeth.signature()] = missingMeth;
 
@@ -663,7 +663,7 @@ function MakeMap(data,absoluteDB){
 
         // Build Package instance from the package name (string)
         if(absoluteDB.packages.hasEntry(v.package) == false){
-            absoluteDB.packages.setEntry(v.package,  new CLASS.Package(v.package));
+            absoluteDB.packages.setEntry(v.package,  new ModelPackage(v.package));
         }
         // Append the current class to its Package instance
         absoluteDB.packages.getEntry(v.package).childAppend(v);
@@ -745,83 +745,7 @@ function MakeMap(data,absoluteDB){
     //return data;
 }
 
-/*
-class ApplicationMap
-{
-    constructor(){
-        this.indexes = [];
-    }
-}*/
 
-class AnalyzerDatabase
-{
-    constructor(context){
-        this.ctx = context;
-        this.db = new MemoryDb.InMemoryDb(context);
-
-        this.db.newCollection("classes");
-        this.db.newCollection("fields");
-        this.db.newCollection("methods");
-
-        this.db.newIndex("call");
-        this.db.newIndex("unmapped");
-        this.db.newIndex("notbinded");
-        this.db.newIndex("notloaded");
-        this.db.newIndex("strings");
-        this.db.newCollection("packages");
-        this.db.newCollection("syscalls");
-        this.db.newIndex("missing");
-        this.db.newIndex("parseErrors");
-        this.db.newIndex("files");
-        this.db.newIndex("buffers");
-        this.db.newCollection("datablock");
-        this.db.newCollection("tagcategories");
-
-        this.db.newCollection("activities");
-        this.db.newCollection("receivers");
-        this.db.newCollection("services");
-        this.db.newCollection("providers");
-        this.db.newIndex("permissions");
-
-
-        this.classes = this.db.getIndex("classes");
-        this.fields = this.db.getIndex("fields");
-        this.methods = this.db.getIndex("methods");
-        this.call = this.db.getIndex("call");
-        this.unmapped = this.db.getIndex("unmapped");
-        this.notbinded = this.db.getIndex("notbinded");
-        this.notloaded = this.db.getIndex("notloaded");
-        this.missing = this.db.getIndex("missing");
-        this.parseErrors = this.db.getIndex("parseErrors");
-        this.strings = this.db.getIndex("strings");
-        this.packages = this.db.getIndex("packages");
-        this.files = this.db.getIndex("files");
-        this.buffers = this.db.getIndex("buffers");
-        this.datablock = this.db.getIndex("datablock");
-        this.tagcategories = this.db.getIndex("tagcategories");
-        this.syscalls = this.db.getIndex("syscalls");
-
-        this.activities = this.db.getIndex("activities");
-        this.receivers = this.db.getIndex("receivers");
-        this.services = this.db.getIndex("services");
-        this.providers = this.db.getIndex("providers");
-        this.permissions = this.db.getIndex("permissions");
-
-        this.manifest = null;
-    }
-
-    getDatabase(){
-        return this.db;
-    }
-
-    setManifest(manifest){
-        this.manifest = manifest;
-    }
-
-    getManifest(){
-        return this.manifest;
-    }
-}
 
 
 /**
@@ -836,7 +760,7 @@ function Analyzer(encoding, finder, ctx=null){
 
     var db = this.db = new AnalyzerDatabase(ctx);
 
-    let tempDb = this.tempDb = new AnalyzerDatabase(ctx); 
+    let tempDb = this.tempDb = new AnalyzerDatabase(ctx, 'inmemory');
 
     this.context = ctx;
     this.finder = finder;
@@ -964,7 +888,7 @@ Analyzer.prototype.addClassFromFqcn = function(fqcn){
     if(this.db.packages.hasEntry(pkgn)==true){
         pkg = this.db.packages.getEntry(pkgn);
     }else{
-        pkg = new CLASS.Package(pkgn);
+        pkg = new ModelPackage(pkgn);
         Logger.debug(pkg);
         this.db.packages.setEntry(pkgn, pkg);
     }
@@ -1053,7 +977,7 @@ Analyzer.prototype.flattening = function(method){
 }
 
 /**
- * @deprected
+ * @deprecated
  */
 Analyzer.prototype.findBasicBlocks = function(instr){
     let bblocks = [], blk={};

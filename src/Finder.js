@@ -3,18 +3,19 @@ const CLASS = require("./CoreClass.js");
 const FILE = require("./File.js");
 const Logger = require("./Logger.js")();
 var CONST = require("./CoreConst.js");
-var MemoryDb = require("./InMemoryDb.js");
+var MemoryDb = require("../connectors/inmemory/InMemoryDb.js");
 var AppCmp = require("./AndroidAppComponents.js");
 const Accessor = require("./AccessFlags");
+const ModelPackage = require('./ModelPackage');
 
 
 var DataModel = {
-    package: new CLASS.Package("stub"),
+    package: new ModelPackage("stub"),
     class: new CLASS.Class(),
     field: new CLASS.Field(),
     method: new CLASS.Method(),
     call: new CLASS.Call(),
-    modifier: new Accessor.AccessFlags(), //CLASS.Modifiers(),
+    modifier: new Accessor.AccessFlags(), 
     objectType: new CLASS.ObjectType(),
     basicType: new CLASS.BasicType(),
     value: new CLASS.ValueConst(),
@@ -119,7 +120,7 @@ class FinderJoin
             do{ pref = pref[prop[x++]] }while(x<lp);
 
             this.rootData.map((i,j)=>{
-                y=0; xref = j
+                let y=0, xref = j
                 do{ xref = xref[prop[y++]] }while(y<lp);
 
                 if(xref==pref) 

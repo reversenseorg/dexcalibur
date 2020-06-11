@@ -91,9 +91,18 @@ class DexcaliburProject
         this.apiVersion = null;
 
         // set the Search API which allow the user to perform search
+        /**
+         *
+         * @type {Finder}
+         * @field the finder API configured for this project
+         */
         this.find = null;
 
-        // set SC analyzer 
+        // set SC analyzer
+        /**
+         * @type {Analyzer}
+         * @field The static analyzer for this project
+         */
         this.analyze = null;
 
         // dex helper
@@ -106,15 +115,35 @@ class DexcaliburProject
         this.hook = null;
 
         // set the workspace API
+        /**
+         * @type {Workspace}
+         * @field Project workspace
+         */
         this.workspace = null;
 
         // setup File Analyzer
+        /**
+         * @type {DataAnalyzer}
+         * @field Raw data analyzer unit
+         */
         this.dataAnalyser = null;
 
+        /**
+         * @type {Bus}
+         * @field The event bus
+         */
         this.bus = null;
 
+        /**
+         * @type {AndroidAppAnalyzer}
+         * @field Application topology analyzer unit (depend of application type : apk,bin, ...)
+         */
         this.appAnalyzer = null;
 
+        /**
+         * @type {Inspector[]}
+         * @field All inspectors
+         */
         this.inspectors = null;
 
         // FridaBuilder make Frida script chunk from cls
@@ -143,21 +172,33 @@ class DexcaliburProject
         this.device = null;
 
         /**
-         * Class representing target application
-         * 
-         * activities, ...
-         * 
+         * @field Class representing target application
          */
         this.application = null;
 
         /**
-         *
          * @type {*}
-         * @field
+         * @field Connector
          */
         this.connector = null;
     }
 
+    /**
+     * To select the way to store the internal data
+     *
+     * @param {String} pConnectorType Connector type
+     * @method
+     */
+    setConnector( pConnectorType){
+        this.connector = ConnectorFactory.getInstance().newConnector( pConnectorType, this);
+    }
+
+    /**
+     * To get DexcaliburEngine instance associated to this project
+     *
+     * @returns {DexcaliburEngine} DexcaliburEngine instance
+     * @method
+     */
     getContext(){
         return this.engine;
     }
@@ -178,8 +219,10 @@ class DexcaliburProject
     }
 
     /**
-     * 
-     * @param {*} pUID 
+     * To detect if there is a project with the specified UID
+     *
+     * @param {String} pUID Project UID
+     * @returns {Boolean} TRUE if a project exists, else FALSE
      * @method
      */
     static exists( pUID){
@@ -194,6 +237,11 @@ class DexcaliburProject
         return status;
     }
 
+    /**
+     * To init the project
+     *
+     * @method
+     */
     init(){
         let im = InspectorManager.getInstance();
 
@@ -267,6 +315,19 @@ class DexcaliburProject
 
     }
 
+    /**
+     * To deploy all inspectors starting at the specified step
+     *
+     * Supported step :
+     * - BOOT
+     * - POST_PLATFORM_SCAN
+     * - POST_APP_SCAN
+     * - POST_DEV_SCAN
+     * - ON_DEMAND
+     *
+     * @param {String} pStep Inspector step
+     * @method
+     */
     deployInspectors(pStep){
         let im = InspectorManager.getInstance();
 
@@ -274,11 +335,21 @@ class DexcaliburProject
         this.inspectors = im.getInspectorsOf(this);
     }
 
+    /**
+     * To get the project UID
+     *
+     * @returns {String} ProjectUID
+     * @method
+     */
     getUID(){
         return this.uid;
     }
 
     /**
+     * To get the inspector with specified name
+     *
+     * @param {String} Inspector name
+     * @returns {Inspector} Inspector instance
      * @method
      */
     getInspector( pName){
@@ -492,7 +563,7 @@ class DexcaliburProject
         o.platform = this.platform!=null? this.platform.getUID() : null;
         o.nofrida = this.nofrida;
 
-        o.connector = this.connector.toJsonObject();
+        o.connector = this.connector.constructor.getProperties();
 
         if(this.workspace.getApk() !== null){
             o.apk = this.workspace.getApk().toJsonObject();
