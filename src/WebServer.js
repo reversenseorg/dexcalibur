@@ -1126,6 +1126,10 @@ class WebServer {
                 // get hook instance by ID
                 let session = $.project.hook.lastSession();
 
+                if(session == null){
+                    res.status(200).send({ success: false, error: "Unknow PID" });
+                    return;
+                }
                 
                 if (session.pid == null) {
                     res.status(200).send({ success: false, error: "Invalid PID" });
