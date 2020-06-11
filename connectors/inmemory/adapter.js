@@ -3,6 +3,10 @@
 
 const InMemoryDb = require('./InMemoryDb');
 
+const TYPE  = 'inmemory';
+const NAME = 'InMemory';
+const DESC = 'Data are stored in memory. Only saved data can be restored (such as intercepted bytecode, DEX file loaded dynamically and more)';
+
 /**
  * Represents a database stored into memory (ACID-like)
  *
@@ -21,6 +25,8 @@ class InMemoryConnector
     constructor(pContext=null, pOptions = null){
         this.ctx = pContext;
         this.options = pOptions;
+
+        this.type = TYPE;
 
         this.db = null;
     }
@@ -78,15 +84,28 @@ class InMemoryConnector
      * To transform current DB into a simple object ready to be serialized
      *
      * @returns {Object}
+     * @method
+     * @static
      */
-    toJsonObject() {
+    static getProperties() {
         let o = {};
 
-        o.type = 'inmemory';
+        o.type = TYPE;
+        o.name = NAME;
+        o.description = DESC;
 
         return o;
     }
 
+    /**
+     * To transform current DB into a simple object ready to be serialized
+     *
+     * @returns {Object}
+     * @method
+     */
+    toJsonObject(){
+        return InMemoryConnector.getProperties();
+    }
 }
 
 module.exports = InMemoryConnector;
