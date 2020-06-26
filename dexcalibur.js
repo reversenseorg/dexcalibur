@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-
+const _path_ = require('path');
 const Process = require("process");
 const FS = require("fs"); 
 const ArgParser = require("./src/ArgUtils.js");
@@ -37,6 +37,10 @@ var Parser = new ArgParser(projectArgs, [
         help: "The web server port number",
         hasVal:true, 
         callback:(ctx,param)=>{ ctx.port = param.value; } },
+    { name:"--ui",
+        help: "Change UI location",
+        hasVal:true,
+        callback:(ctx,param)=>{ ctx.uipath = param.value; } },
    /* { name:"--emu", 
         help: "Use emulated device",
         hasVal: false, 
@@ -105,6 +109,13 @@ if(projectArgs.help != null){
 
 var dxcInstance  = null, ready=false;
 
+let dxcWebRoot = null;
+if(projectArgs.uipath!==undefined){
+    dxcWebRoot = (projectArgs.uipath[0]=='/'? projectArgs.uipath : _path_.join(__dirname, projectArgs.uipath));
+}else{
+    dxcWebRoot = _path_.join(__dirname, 'src', 'webserver', 'src');
+}
+
 if(projectArgs.reinstall == true){
     DexcaliburEngine.clearInstall();
 }
@@ -112,9 +123,15 @@ if( DexcaliburEngine.requireInstall() ){
     // pass 
     dxcInstance = DexcaliburEngine.getInstance();
 
-    dxcInstance.prepareInstall( (projectArgs.port!=null) ? projectArgs.port : 8000);
+    dxcInstance.prepareInstall(
+        (projectArgs.port!=null) ? projectArgs.port : 8000,
+        dxcWebRoot
+    );
 
-    dxcInstance.start( projectArgs.port );
+    dxcInstance.start(
+        projectArgs.port,
+        projectArgs.uipath!==undefined? projectArgs.uipath : null
+    );
 }
 else{
 
@@ -122,7 +139,10 @@ else{
 
     dxcInstance.loadWorkspaceFromConfig();
     
-    ready = dxcInstance.boot();
+    ready = dxcInstance.boot(
+        projectArgs.restore===true? true : false,
+        dxcWebRoot
+    );
 
     if(ready){
         dxcInstance.start((projectArgs.port!=null) ? projectArgs.port : 8000 );

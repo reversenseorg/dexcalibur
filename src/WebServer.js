@@ -65,7 +65,7 @@ class WebServer {
      * @param {Project} pProject 
      * @constructor
      */
-    constructor() {
+    constructor( pWebRoot) {
         
         this.context = null; 
         this.project = null; //pProject;
@@ -74,7 +74,10 @@ class WebServer {
         this.app = Express();
         this.port = 8000;
 //        this.root = Path.join(this.project.config.dexcaliburPath, "webserver", "public");
-        this.root = Path.join( __dirname, "webserver", "public");
+       // this.root = Path.join( __dirname, "webserver", "public");
+        this.root = pWebRoot;
+
+        console.log(this.root);
 
         this.logs = {
             access: []

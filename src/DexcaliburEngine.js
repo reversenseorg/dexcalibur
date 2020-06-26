@@ -272,7 +272,7 @@ class DexcaliburEngine
      * @returns {Boolean} TRUE if ready to start, FALSE if install is required.
      * @method
      */
-    boot( pRestore=false){
+    boot( pRestore=false, pWebRoot = null){
         let self=this; 
         
         // init workspace
@@ -282,7 +282,7 @@ class DexcaliburEngine
         this.loadConfig( pRestore);
 
         // init
-        this.init();
+        this.init( pWebRoot);
 
         //  enumerate local and remote platforms
         this.platformMgr.enumerate();
@@ -328,9 +328,14 @@ class DexcaliburEngine
      * 
      * @method
      */
-    init(){
+    init(pWebRoot = null){
+
+        if(pWebRoot === null){
+            pWebRoot = _path_.join(__dirname, 'webserver', 'public');
+        }
+
         // setup web server
-        this.webserver = new WebServer();
+        this.webserver = new WebServer(pWebRoot);
 
         this.webserver.setContext(this);
 
@@ -365,9 +370,9 @@ class DexcaliburEngine
      * 
      * @method
      */
-    preInstall(){
+    preInstall( pWebRoot){
         // setup web server
-        this.webserver = new WebServer(this);
+        this.webserver = new WebServer(pWebRoot);
 
         this.webserver.setContext(this);
     }
@@ -539,10 +544,10 @@ class DexcaliburEngine
     /**
      * To start installer
      */
-    prepareInstall( pWebPort){
+    prepareInstall( pWebPort, pWebRoot){
 
 
-        this.preInstall();
+        this.preInstall(pWebRoot);
 
         // create a default Configuration containing
         // pre-defined paths
