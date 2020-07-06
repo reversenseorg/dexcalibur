@@ -5,8 +5,9 @@ import * as _fs_ from 'fs';
 import * as CLASS from "./CoreClass";
 
 import APK from "./APK";
+
 import * as Log from './Logger';
-let Logger:Log.ProdLogger = Log.newLogger() as Log.ProdLogger;
+let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
 
 const DIR_NAME = {
@@ -255,7 +256,7 @@ export default class Workspace
         return this.mainAPK.getPath();
     }
 
-    getApk():string{
+    getApk():APK{
         return this.mainAPK;
     }
 

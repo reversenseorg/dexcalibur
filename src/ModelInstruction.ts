@@ -1,16 +1,15 @@
 import { CONST } from "./CoreConst";
 import ModelBasicBlock from "./ModelBasicBlock";
 import ModelMethod from "./ModelMethod";
+import {Savable, STUB_TYPE} from "./ModelSavable";
 
 /**
  * Represents an instruction from the Application bytecode
  * @param {Object} config Optional, an object wich can be used in order to initialize the instance
  * @constructor
  */
-export default class ModelInstruction
+export default class ModelInstruction extends Savable
 {
-    //this.$ = STUB_TYPE.INSTR;
-
     _raw:string = null;
     _call:any = null;
     _parent:any = null;
@@ -34,22 +33,16 @@ export default class ModelInstruction
     // TODO : should be inherit
     tags:string[] = [];
 
-    constructor(pConfig:any) {
+    constructor(pConfig:any=null) {
+        super(STUB_TYPE.INSTR);
 
         if(pConfig!==undefined)
             for(let i in pConfig)
                 this[i]=pConfig[i];
     }
-
-
-    export(){
-        // Savable.export;
-        throw new Error('ModelInstruction : export is not supported');
-    }
-
-    import(pData: any){
-        // Savable.import(pData);
-        throw new Error('ModelInstruction : import is not supported');
+    
+    getLine():number{
+        return this.iline;
     }
 
     eval(vm:any){

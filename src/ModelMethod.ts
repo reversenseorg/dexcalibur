@@ -6,7 +6,14 @@ import {ModelPackedSwitchStatement} from "./ModelSwitch";
 import NodeCompare from "./NodeCompare";
 import {Savable, Stub, STUB_TYPE} from "./ModelSavable";
 import {ModelBasicType, ModelObjectType} from "./ModelType";
+import ModelBasicBlock from "./ModelBasicBlock";
+import ModelCatchStatement from "./ModelCatchStatement";
+import ModelCall from "./ModelCall";
 
+
+/*interface LazyMethodReference {
+    string|ModelMethod
+};*/
 
 /**
  * Represents an Application's Method.
@@ -22,9 +29,6 @@ import {ModelBasicType, ModelObjectType} from "./ModelType";
  */
 export default class ModelMethod extends Savable
 {
-    // corresponding stub type to use during export
-    // this.__stub_type__ = STUB_TYPE.METHOD;
-    $ = STUB_TYPE.METHOD;
 
     alias:string = null;
 
@@ -55,7 +59,8 @@ export default class ModelMethod extends Savable
     __signature__:string = null;
     __pretty_signature__:string = null;
 
-    _callers:ModelMethod[] = [];
+    // array of MethodModel signatures
+    _callers:string[]|ModelMethod[] = [];
 
     // store arguments values catch at runtime
     dyn:any = []; // TODO
@@ -78,7 +83,7 @@ export default class ModelMethod extends Savable
      * @constructor
      */
     constructor(pConfig:any = null){
-        super();
+        super(STUB_TYPE.METHOD);
 
         if(pConfig!==undefined)
             for(let i in pConfig)
@@ -347,297 +352,300 @@ export default class ModelMethod extends Savable
 
 
    toJsonObject(fields:string[]=[],exclude:string[]=[]){
-    let obj:any = {};
-    if(fields.length>0){
-        for(let i:number=0; i<fields.length; i++){
-            if(this[fields[i]] != null && this[fields[i]].toJsonObject != null){
-                obj[fields[i]] = this[fields[i]].toJsonObject();
-            }else{
-                obj[fields[i]] = this[fields[i]];
+        let obj:any = {};
+        if(fields.length>0){
+            for(let i:number=0; i<fields.length; i++){
+                if(this[fields[i]] != null && this[fields[i]].toJsonObject != null){
+                    obj[fields[i]] = this[fields[i]].toJsonObject();
+                }else{
+                    obj[fields[i]] = this[fields[i]];
+                }
             }
-        }
-    }else{
-        for(let i in this){
+        }else{
+            for(let i in this){
 
-            if(exclude.indexOf(i)>-1) continue;
-            // if(fields != null && fields.indexOf(i)==-1) continue;
+                if(exclude.indexOf(i)>-1) continue;
+                // if(fields != null && fields.indexOf(i)==-1) continue;
 
-            switch(i){
-                case "_useClass":
-                    obj._useClass = [];
-                    for(let j in this._useClass){
-                        if(this._useClass[i] != undefined)
-                            obj._useClass.push(this._useClass[i].name);
-                    }
-                    break;
-                case "_useMethod":
-                    obj._useMethod = [];
-                    for(let j in this._useMethod){
-                        if(this._useMethod[i] != undefined){
-                            obj._useMethod.push(i); //this._useMethod[i].__signature__);
+                switch(i){
+                    case "_useClass":
+                        obj._useClass = [];
+                        for(let j in this._useClass){
+                            if(this._useClass[i] != undefined)
+                                obj._useClass.push(this._useClass[i].name);
                         }
-                    }
-                    break;
-                case "_useField":
-                    obj._useField = [];
-                    for(let j in this._useField){
-                        if(this._useField[i] != undefined)
-                            obj._useField.push(this._useField[i].__signature__);
-                    }
-                    break;
-                case "_callers":
-                    obj._callers = [];
-                    for(let j=0; j<this._callers.length ; j++){
-                        if(this._callers[j] != undefined)
-                            if(this._callers[j] instanceof ModelMethod){
-                                //console.log("Callers -> ",this._callers[i].signature());
-                                obj._callers.push(this._callers[j].signature());
-                            }else{
-                                obj._callers.push(this._callers[j]);
+                        break;
+                    case "_useMethod":
+                        obj._useMethod = [];
+                        for(let j in this._useMethod){
+                            if(this._useMethod[i] != undefined){
+                                obj._useMethod.push(i); //this._useMethod[i].__signature__);
                             }
+                        }
+                        break;
+                    case "_useField":
+                        obj._useField = [];
+                        for(let j in this._useField){
+                            if(this._useField[i] != undefined)
+                                obj._useField.push(this._useField[i].__signature__);
+                        }
+                        break;
+                    case "_callers":
+                        obj._callers = [];
+                        for(let j=0; j<this._callers.length ; j++){
+                            if(this._callers[j] != undefined)
+                                if(this._callers[j] instanceof ModelMethod){
+                                    //console.log("Callers -> ",this._callers[i].signature());
+                                    obj._callers.push((this._callers[j] as ModelMethod).signature());
+                                }else{
+                                    obj._callers.push(this._callers[j]);
+                                }
 
-                    }
-                    break;
-                case "__signature__":
-                case "__callSignature__":
-                case "__aliasedCallSignature":
-                case "name":
-                case "alias":
-                case "locals":
-                case "registers":
-                case "params":
-                case "tags":
-                    obj[i] = this[i];
-                    break;
-                case "instr":
-                    // basic blocks data are not serialized
-                    break;
-                case "args":
-                    obj.args = [];
-                    for(let j in this.args){
-                        obj.args.push(this.args[j].toJsonObject());
-                    }
-                    break;
-                case "ret":
-                    obj.ret = this.ret.toJsonObject();
-                    break;
-                case "enclosingClass":
-                    obj.enclosingClass = (this.enclosingClass!=null)? this.enclosingClass.name : "";
-                    break;
-                case "modifiers":
-                    if(this.modifiers != null)
-                        obj.modifiers = this.modifiers.toJsonObject();
-                    else
-                        obj.modifiers = null;
+                        }
+                        break;
+                    case "__signature__":
+                    case "__callSignature__":
+                    case "__aliasedCallSignature":
+                    case "name":
+                    case "alias":
+                    case "locals":
+                    case "registers":
+                    case "params":
+                    case "tags":
+                        obj[i] = this[i];
+                        break;
+                    case "instr":
+                        // basic blocks data are not serialized
+                        break;
+                    case "args":
+                        obj.args = [];
+                        for(let j in this.args){
+                            obj.args.push(this.args[j].toJsonObject());
+                        }
+                        break;
+                    case "ret":
+                        obj.ret = this.ret.toJsonObject();
+                        break;
+                    case "enclosingClass":
+                        obj.enclosingClass = (this.enclosingClass!=null)? this.enclosingClass.name : "";
+                        break;
+                    case "modifiers":
+                        if(this.modifiers != null)
+                            obj.modifiers = ModifierFormat.toJsonObject(this.modifiers); //this.modifiers.toJsonObject();
+                        else
+                            obj.modifiers = null;
 
-                    break;
-            }
-        }
-    }
-    return obj;
-};
-
-   disass(cfg){
-    let disass = require("./Disassembler.js")
-
-    if(cfg != null){
-        if(cfg.pretty == true)
-            return disass.methodPretty(this);
-        else if(cfg.raw == true)
-            return disass.methodRaw(this);
-    }else{
-        return disass.method(this);
-    }
-};
-
-
-
-   getTaggedBlock(tag){
-    for(let i in this.instr){
-        if(this.instr[i].tag==tag) return this.instr[i];
-    }
-    return null;
-};
-
-
-   getBasicBlocks(){
-    return this.instr;
-};
-
-   getBlock(offset){
-    for(let i in this.instr){
-        if(i==offset) return this.instr[i];
-    }
-    return null;
-};
-
-   getModifier(){
-    return this.modifiers;
-};
-
-   getInstr(offsetBB,offsetInstr){
-    for(let i in this.instr){
-        if(i == offsetBB){
-            for(let j in this.instr[i].stack){
-                if(j == offsetInstr){
-                    return this.instr[i].stack[j];
+                        break;
                 }
             }
         }
+        return obj;
     }
-    return null;
-};
 
-   getInstrNearTo(offsetBB,offsetInstr,windowSize=3){
-    let min = offsetInstr-windowSize;
-    let max = offsetInstr+windowSize;
-    let instr = [];
+    disass(cfg:any){
+        let disass:any = require("./Disassembler.js")
 
-    for(let i in this.instr){
-        if(i == offsetBB){
-            for(let j in this.instr[i].stack){
-                if(j > min && j < max){
-                    instr.push(this.instr[i].stack[j]);
+        if(cfg != null){
+            if(cfg.pretty == true)
+                return disass.methodPretty(this);
+            else if(cfg.raw == true)
+                return disass.methodRaw(this);
+        }else{
+            return disass.method(this);
+        }
+    }
+
+
+
+   getTaggedBlock(tag:ModelBasicBlock){
+        for(let i in this.instr){
+            if(this.instr[i].tag==tag) return this.instr[i];
+        }
+        return null;
+    }
+
+
+   getBasicBlocks():ModelBasicBlock[]{
+        return this.instr;
+    }
+
+   getBlock(offset:number):ModelBasicBlock{
+        for(let i:number=0; i<this.instr.length; i++){
+            if(i==offset) return this.instr[i];
+        }
+        return null;
+   }
+
+   getModifier():Modifier{
+        return this.modifiers;
+    }
+
+   getInstr(offsetBB:number,offsetInstr:number){
+        for(let i:number=0; i<this.instr.length; i++){
+            if(i == offsetBB){
+                for(let j:number=0; j<this.instr[i].stack.length; j++){
+                    if(j == offsetInstr){
+                        return this.instr[i].stack[j];
+                    }
                 }
             }
         }
+        return null;
     }
-    return instr;
-};
 
+   getInstrNearTo(offsetBB:number,offsetInstr:number,windowSize:number=3):ModelBasicBlock[]{
+        let min:number = offsetInstr-windowSize;
+        let max:number = offsetInstr+windowSize;
+        let instr:ModelBasicBlock[] = [];
 
-   newImplementationBy(cls){
-    let meth = new Method();
-
-    // partial deep copy :
-    //  - primitive value are copied
-    //  - object are passed by reference
-    for(let i in this){
-        if(typeof this[i] != "function"){
-            meth[i]=this[i];
+        for(let i:number=0; i<this.instr.length; i++){
+            if(i == offsetBB){
+                for(let j:number=0; j<this.instr[i].stack.length; j++){
+                    if(j > min && j < max){
+                        instr.push(this.instr[i].stack[j]);
+                    }
+                }
+            }
         }
+        return instr;
     }
-    meth.isDerived = true;
-    meth.declaringClass = cls;
 
-    return meth;
-}
 
-   setProbing(flag){
-    this.probing = flag;
-}
+   newImplementationBy(cls:ModelClass):ModelMethod{
+        let meth:any = new ModelMethod();
 
-   addCallValue(dyn){
-    this.dyn.push(dyn);
-    return this;
-}
-   getCallValues(dyn){
+        // partial deep copy :
+        //  - primitive value are copied
+        //  - object are passed by reference
+        for(let i in this){
+            if(typeof this[i] != "function"){
+                meth[i]=this[i];
+            }
+        }
+        meth.isDerived = true;
+        meth.declaringClass = cls;
+
+        return meth as ModelMethod;
+    }
+
+   setProbing(flag:boolean){
+        this.probing = flag;
+    }
+
+   addCallValue(dyn:any){
+        this.dyn.push(dyn);
+        return this;
+    }
+
+   getCallValues(dyn:any){
     return this.dyn;
 }
-   getAlias(){
+
+   getAlias():string{
     return this.alias;
 }
-   setAlias(name){
+   setAlias(name:string){
     this.alias = name;
     this.__aliasedCallSignature__ = this.aliasedCallSignature();
 }
-   setEnclosingClass(cls){
+   setEnclosingClass(cls:ModelClass){
     this.enclosingClass = cls;
 }
-   getEnclosingClass(){
+   getEnclosingClass():ModelClass{
     return this.enclosingClass;
 }
-   setReturnType(rettype){
+   setReturnType(rettype:ModelObjectType|ModelBasicType){
     this.ret = rettype;
 }
-   getReturnType(){
+   getReturnType():ModelObjectType|ModelBasicType{
     return this.ret;
 }
-   setArgsType(argsType){
+   setArgsType(argsType:any){
     this.args = argsType;
 }
-   getArgsType(){
+   getArgsType():any{
     return this.args;
 }
-   hasArgs(){
+   hasArgs():boolean{
     return this.args.length > 0;
 }
-   addTag(tag){
+   addTag(tag:string){
     this.tags.push(tag);
 }
-   hasTag(tagName){
+   hasTag(tagName:string):boolean{
     return (this.tags.indexOf(tagName) > -1);
 }
-   getTags(){
+   getTags():string[]{
     return this.tags;
 }
-   getCallers(){
+   getCallers():string[]|ModelMethod[]{
     return this._callers;
 }
-   addCaller(meth){
-    if(this._callers.indexOf(meth.signature()) == -1)
-        this._callers.push(meth.signature());
+   addCaller(meth:ModelMethod){
+    if(this._callers.indexOf(meth.signature() as any) == -1)
+        this._callers.push(meth.signature() as any);
 }
-   getMethodUsed(){
+   getMethodUsed():any{
     return this._useMethod;
 }
-   addMethodUsed(method, call){
-    if(this._useMethod[method.signature()] == null)
-        this._useMethod[method.signature()] = [];
+   addMethodUsed(method:ModelMethod, call:ModelCall){
+        if(this._useMethod[method.signature()] == null)
+            this._useMethod[method.signature()] = [];
 
-    this._useMethod[method.signature()].push(call);
-}
-   getClassUsed(){
-    return this._useClass;
-}
-   getFieldUsed(){
-    return this._useField;
-}
-
-   getTryStartBlock(pLabel){
-    let bb = this.getBasicBlocks();
-    for(let i=0; i<bb.length; i++){
-        if(bb[i].getTryStartLabel()==pLabel){
-            return bb[i];
-        }
+        this._useMethod[method.signature()].push(call);
     }
-    return null;
-}
-
-   getTryEndBlock(pLabel){
-    let bb = this.getBasicBlocks();
-    for(let i=0; i<bb.length; i++){
-        if(bb[i].getTryEndLabel()==pLabel){
-            return bb[i];
-        }
+    getClassUsed():any{
+        return this._useClass;
     }
-    return null;
-}
 
-
-   getCatchBlock(pLabel){
-    let bb = this.getBasicBlocks();
-    for(let i=0; i<bb.length; i++){
-        if(bb[i].getCatchLabel()==pLabel){
-            return bb[i];
-        }
+    getFieldUsed():any{
+        return this._useField;
     }
-    return null;
-}
 
-    getBasicBlockByLabel(pLabel:string, pType:string):ModelBasicBlock{
+   getTryStartBlock(pLabel:string):ModelBasicBlock{
+        let bb:ModelBasicBlock[] = this.getBasicBlocks();
+        for(let i=0; i<bb.length; i++){
+            if(bb[i].getTryStartLabel()==pLabel){
+                return bb[i];
+            }
+        }
+        return null;
+    }
+
+   getTryEndBlock(pLabel:string):ModelBasicBlock{
+        let bb:ModelBasicBlock[] = this.getBasicBlocks();
+        for(let i=0; i<bb.length; i++){
+            if(bb[i].getTryEndLabel()==pLabel){
+                return bb[i];
+            }
+        }
+        return null;
+    }
+
+
+   getCatchBlock(pLabel:string):ModelBasicBlock{
+        let bb:ModelBasicBlock[] = this.getBasicBlocks();
+        for(let i=0; i<bb.length; i++){
+            if(bb[i].getCatchLabel()==pLabel){
+                return bb[i];
+            }
+        }
+        return null;
+    }
+
+    getBasicBlockByLabel(pLabel:string, pType:number):ModelBasicBlock{
         //if(pType == CONST.INSTR_TYPE.IF){
         switch(pType)
         {
             case CONST.INSTR_TYPE.IF:
-                for(let i=0; i<this.instr.length; i++){
+                for(let i:number=0; i<this.instr.length; i++){
                     //console.log(this.instr[i]);
                     if(this.instr[i].isConditionalBlock() && this.instr[i].cond_name==pLabel)
                         return this.instr[i];
                 }
                 break;
             case CONST.INSTR_TYPE.GOTO:
-                for(let i=0; i<this.instr.length; i++){
+                for(let i:number=0; i<this.instr.length; i++){
                     if(this.instr[i].isGotoBlock() && this.instr[i].goto_name==pLabel)
                         return this.instr[i];
                 }
@@ -647,28 +655,29 @@ export default class ModelMethod extends Savable
         return null;
     }
 
-   appendBlock = function(block, callback=null){
-    if(block instanceof BasicBlock){
-        block.offset = this.instr.length;
-        this.instr.push(block);
-        if(callback != null && callback.basicblock != null)
-            callback.basicblock(this, block);
+    appendBlock(block:any, callback:any=null){
+        if(block instanceof ModelBasicBlock){
+            block.offset = this.instr.length;
+            this.instr.push(block);
+            if(callback != null && callback.basicblock != null)
+                callback.basicblock(this, block);
+        }
+        else if(block instanceof ModelDataBlock){
+            block.setParent(this, this.datas.length);
+            this.datas.push(block);
+            if(callback != null && callback.datablock != null)
+                callback.datablock(this, block);
+        }
     }
-    else if(block instanceof DataBlock){
-        block.setParent(this, this.datas.length);
-        this.datas.push(block);
-        if(callback != null && callback.datablock != null)
-            callback.datablock(this, block);
+    getDataBlockByTag( pTag:string):ModelDataBlock[]{
+        let ds:ModelDataBlock[] = []
+        for(let i=0; i<this.datas.length; i++){
+            if(this.datas[i].tags.indexOf(pTag)>-1)
+                ds.push(this.datas[i]);
+        }
+        return ds;
     }
-}
-    getDataBlockByTag( pTag){
-    let ds = []
-    for(let i=0; i<this.datas.length; i++){
-        if(this.datas[i].tags.indexOf(pTag)>-1)
-            ds.push(this.datas[i]);
-    }
-    return ds;cd
-}
+
     getDataBlockByName( pName:string):any{
         for(let i:number=0; i<this.datas.length; i++){
             if(this.datas[i].name == pName)

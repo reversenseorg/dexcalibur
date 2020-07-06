@@ -36,7 +36,7 @@ export default class ModelPackage
      * @type {String|Integer|Tag}
      * @field
      */
-    tags:string[]|number[];
+    tags:string[];
 
     /**
      * 
@@ -103,7 +103,7 @@ export default class ModelPackage
             if(this.children[i] instanceof ModelClass)
                 absz++;
             else if(this.children[i] instanceof ModelPackage)
-                absz += this.children[i].getAbsoluteSize();
+                absz += (this.children[i] as ModelPackage).getAbsoluteSize();
         }
         return absz;
     }
@@ -160,7 +160,7 @@ export default class ModelPackage
             o.name = this.name;
             o.children = [];
             for(let i in this.children){
-                o.children.push(this.children[i].toJsonObject());
+                o.children.push(this.children[i].toJsonObject(null)); // TODO args
             }
             o.tags = this.tags;
         }

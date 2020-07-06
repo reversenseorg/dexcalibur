@@ -42,7 +42,8 @@ export const CONST = {
             XOR: "^",
             SHR: ">>",
             SHL: "<<",
-            USHR: ">>>"
+            USHR: ">>>",
+            NEG: '-'
         },
         STRUCT: {
             CLASS: ".class",
@@ -172,15 +173,20 @@ export const CONST = {
         Format31c: 0x12,
         Format35c: 0x13,
         Format3rc: 0x14,
-        Format51l: 0x15
+        Format51l: 0x15,
+        Format32x: 0x16,
+        Format31i: 0x17,
+        Format31t: 0x18
     },
     OPCODE_TYPE: {
         CAN_CONTINUE: 1, // 0
-        CAN_THROW: 2, // 1
-        CAN_INITIALIZE_REFERENCE: 4, // 2
-        SETS_REGISTER: 8, // 3
-        SETS_WIDE_REGISTER: 16, // 4
-        STATIC_CALL: 32
+        CAN_THROW: 1 << 1, // 1
+        CAN_INITIALIZE_REFERENCE: 1 << 2, // 2
+        SETS_REGISTER: 1 << 3, // 3
+        SETS_WIDE_REGISTER: 1 << 4, // 4
+        STATIC_CALL: 1 << 5,
+        SETS_RESULT: 1 << 6,
+        STATIC_FIELD_ACCESSOR: 1 << 7,
     },
     CASE_TYPE: {
         PACKED: 0x1,
@@ -224,7 +230,8 @@ export const CONST = {
         GOTO: 17,
         NEW: 18,
         CLASS_CHECK: 19,
-        MATH_CAST: 20
+        MATH_CAST: 20,
+        ARRAY_LENGTH: 21
     },
     INSTR_TYPE_LABEL: [
         "GETTER",

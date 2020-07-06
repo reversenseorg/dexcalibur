@@ -1,11 +1,12 @@
-import CONST from "./CoreConst";
-import Modifier from "./AccessFlags";
+import {CONST} from "./CoreConst";
+import {Modifier, ModifierFormat} from "./AccessFlags";
 import ModelClass from "./ModelClass";
 import ModelMethod from "./ModelMethod";
-import {Method} from "got";
+import NodeCompare from "./NodeCompare";
+import {Savable, STUB_TYPE} from "./ModelSavable";
 
 
-export default  class ModelField
+export default  class ModelField extends Savable
 {
     // corresponding stub type to use during export
     //this.__stub_type__ = STUB_TYPE.FIELD;
@@ -32,12 +33,12 @@ export default  class ModelField
      * @param pConfig
      */
     constructor(pConfig:any=null) {
+        super(STUB_TYPE.FIELD);
 
         if(pConfig!==undefined)
             for(let i in pConfig)
                 this[i]=pConfig[i];
     }
-
 
 
     setupMissingTag(){
@@ -121,36 +122,24 @@ export default  class ModelField
         return new NodeCompare(this, field, ((diff.length>0)? diff : null));
     }
 
-        /**
-         * To set an alias and update the aliased signature
-         *
-         * @param {String} name The alias value
-         * @function
-         */
-
+    /**
+     * To set an alias and update the aliased signature
+     *
+     * @param {String} name The alias value
+     * @function
+     */
     setAlias(name:string){
         this.alias = name;
         this.aliasedSignature(true);
     }
 
 
-    raw_import(pObj:any){
-        Savable.import(pObj);
-    }
-
     import(obj:any){
         // raw impport
-        this.raw_import(obj);
+        super.import(obj);
+
         // estor modifiers
-        this.modifiers = new Accessor.AccessFlags(obj.modifiers);
-
-
-        // restore return type
-        if(CONST.WORDS.indexOf(obj.type.name)>-1){
-            this.ret = (new BasicType()).import(obj.type);
-        }else{
-            this.ret = (new ObjectType()).import(obj.type);
-        }
+        this.modifiers = new obj.modifiers;
     };
 
     addSetter(meth:ModelMethod){
@@ -173,10 +162,8 @@ export default  class ModelField
     }
 
 
-    //export = Savable.export;
-
-        toJsonObject(fields=null,exclude=null){
-        let obj = new Object();
+    toJsonObject(fields:any=null,exclude:any=null):any{
+        let obj:any = new Object();
         /*if(fields.length>0){
             for(let i in fields){
                 if(this[fields[i]] != null && (typeof this[fields[i]] == "object")){
@@ -196,7 +183,7 @@ export default  class ModelField
                 case "_setters":
                 case "_callers":
                     obj[i] = [];
-                    for(let j=0; j<this[i].length; j++){
+                    for(let j=0; j<(this[i] as any).length; j++){
                         if(this[i][j] != undefined)
                             obj[i].push(this[i][j].__signature__); // getSignature()
                     }
@@ -210,7 +197,7 @@ export default  class ModelField
                     obj[i] = this[i];
                     break;
                 case "tags":
-                    if(this[i].length > 0)
+                    if(this.tags.length > 0)
                         obj[i] = this[i];
                     break;
                 case "instr":
@@ -232,7 +219,7 @@ export default  class ModelField
                     break;
                 case "modifiers":
                     if(this.modifiers != null)
-                        obj.modifiers = this.modifiers.toJsonObject();
+                        obj.modifiers = ModifierFormat.toJsonObject(this.modifiers);
                     else
                         obj.modifiers = null;
                     break;
@@ -255,10 +242,11 @@ export default  class ModelField
     };
 
     sprint():string{
-        let s:string="\t"+this.modifiers.sprint()+" "+this.type.sprint()+" "+this.name;
+        let s:string="\t"+ModifierFormat.sprintModifier(this.modifiers)+" "+this.type.sprint()+" "+this.name;
 
+        /*
         if(this.value != null)
-            s+=" := "+this.value
+            s+=" := "+this.value*/
 
         return s;
     };

@@ -7,14 +7,19 @@ import * as _process_ from "process";
 import * as _child_process_ from "child_process";
 import * as _http_ from "http";
 import * as _util_ from 'util';
+import * as _fs_ from 'fs';
+import DexcaliburEngine from "./DexcaliburEngine";
+import {Application as ExpressApplication} from 'express';
+import Configuration from "./Configuration";
+import DexcaliburWorkspace from "./DexcaliburWorkspace";
+import DexcaliburProject from "./DexcaliburProject";
 
 let _exec_ = _util_.promisify(_child_process_.exec);
 
 
-const Configuration = require("./Configuration.js");
-const DexcaliburWorkspace = require('./DexcaliburWorkspace');
-const DexcaliburEngine = require('./DexcaliburEngine');
-const DexcaliburProject = require('./DexcaliburProject');
+interface ITestInterceptor {
+
+}
 
 
 /**
@@ -31,12 +36,15 @@ const DexcaliburProject = require('./DexcaliburProject');
 export default class TestHelper
 {
     engine:DexcaliburEngine;
+    app:ExpressApplication = null;
+    testCfg:any = null;
+    config:any = null;
+    interceptors:any = null;
+    project:DexcaliburProject = null;
+    project_ready:DexcaliburProject = null;
 
     constructor(){
-        this.app = null;
-        this.testCfg = require( _path_.join( __dirname, "../test/test_configuration.js") );
-        this.config = null;
-        this.engine = null;
+        this.testCfg = JSON.parse( _fs_.readFileSync(_path_.join( __dirname, "config", "config.json")).toString() );
         this.interceptors = {
             exec: []
         };
@@ -44,14 +52,15 @@ export default class TestHelper
 
     /**
      * To verify if a NodeJS module is loaded or not by its name
-     * 
+     * CommonJS only
+     *
      * @param {String} pModuleName Module name
      * @returns {Boolean} TRUE is the module is loaded, else FALSE
      * @method
      */
-    checkIfModuleIsLoaded( pModuleName){
-        let loaded= Object.keys(require('module')._cache);
-        let pattern = '/node_modules/'+pModuleName+'/';
+    checkIfModuleIsLoaded( pModuleName:string):boolean{
+        let loaded:string[]= Object.keys(require('module')._cache);
+        let pattern:string = '/node_modules/'+pModuleName+'/';
 
         for(let i=0; i<loaded.length; i++){
             if(loaded[i].indexOf(pattern)>-1)
@@ -65,34 +74,34 @@ export default class TestHelper
      * @param {require('express').Application} pInstance Web server instance  
      * @method
      */
-    setWebServerInstance( pInstance){
+    setWebServerInstance( pInstance:ExpressApplication){
         this.app = pInstance;
     }
 
 
-    newConfiguration(){
+    newConfiguration():any{
         this.config = new Configuration();
         this.config.import(require(_path_.join( __dirname, this.testCfg.configuration)));
         this.config.workspacePath = _path_.join( __dirname, '../test/workspace/');
         return this.config;
     } 
 
-    getConfiguration(){
+    getConfiguration():any{
         return this.config;
     }
 
-    getConfigurationPath(){
+    getConfigurationPath():string{
         // return this.testCfg.configuration;
         return _path_.join( __dirname, this.testCfg.configuration);
     }
 
-    interceptExec( pInterceptor, pReturn){
+    interceptExec( pInterceptor:any, pReturn:any){
         if( this.interceptors.exec == null) this.interceptors.exec = [];
         this.interceptors.exec.push({ test:pInterceptor, ret:pReturn });
     }
 
-    filterInterceptor( pType, pInput){
-        for(let i=0; i<this.interceptors[pType].length; i++){
+    filterInterceptor( pType:string, pInput:any):any{
+        for(let i:number=0; i<this.interceptors[pType].length; i++){
             if(this.interceptors[pType][i].test(pInput)){
                 return {success:true, ret: this.interceptors[pType][i].ret};
             }
@@ -110,12 +119,12 @@ export default class TestHelper
      * 
      * @param {*} pCmd 
      */
-    execSync( pCmd){
-        let res = this.filterInterceptor( "exec", pCmd);
+    execSync( pCmd:string){
+        let res:any = this.filterInterceptor( "exec", pCmd);
         if(res.success){
             return res.ret;
         }else{
-            return _process_.execSync( pCmd);
+            return _child_process_.execSync( pCmd);
         }
     }
 
@@ -124,8 +133,8 @@ export default class TestHelper
      *
      * @param {*} pCmd
      */
-    async execAsync( pCmd){
-        let res = this.filterInterceptor( "exec", pCmd);
+    async execAsync( pCmd:string):Promise<any>{
+        let res:any = this.filterInterceptor( "exec", pCmd);
         if(res.success){
             return res.ret;
         }else{
@@ -140,17 +149,17 @@ export default class TestHelper
      * @param {*} pData 
      * @param {*} pContentType 
      */
-    sendHTTPRequest( pMethod, pURL, pData=null, pContentType = null){
-        let req = null;
+    sendHTTPRequest( pMethod:string, pURL:string, pData:any=null, pContentType:string = null):_http_.ClientRequest{
+        let req:_http_.ClientRequest = null;
         switch(pMethod){
             case 'GET':
                 req = _http_.get(pURL);
                 break;
-            case 'POST':
+            /*case 'POST':
                 req = _http_.post(pURL)
                     .set('Content-Type', pContentType)
                     .send(pData);
-                break;
+                break;*/
         }
 
         return req;
@@ -162,7 +171,7 @@ export default class TestHelper
      * @param {String} pURL 
      * @param {Object} pData 
      */
-    sendRequest_POST_JSON( pURL, pData){
+    sendRequest_POST_JSON( pURL:string, pData:any):_http_.ClientRequest{
         return this.sendHTTPRequest( 'POST', pURL, pData, 'application/json'); 
     }
 
@@ -172,7 +181,7 @@ export default class TestHelper
      * @param {String} pURL 
      * @param {Object} pData 
      */
-    sendRequest_GET( pURL){
+    sendRequest_GET( pURL:string):_http_.ClientRequest{
         return this.sendHTTPRequest( 'GET', pURL); 
     }
 
@@ -181,9 +190,12 @@ export default class TestHelper
      * @param {*} pPath 
      * @method
      */
-    resetDexcaliburWorkspace( pPath=null){
+    resetDexcaliburWorkspace( pPath:string=null){
+        if(pPath===null){
+            pPath = _path_.join(__dirname,'..','test','ws');
+        }
         let dxc = DexcaliburWorkspace.getInstance(
-            _path_.join(__dirname,'..','test','ws'), true
+            pPath, true
         );
         dxc.init();
     }
@@ -191,11 +203,11 @@ export default class TestHelper
     /**
      * @method
      */
-    newDexcaliburEngine(){
+    newDexcaliburEngine():DexcaliburEngine{
         
         DexcaliburWorkspace.clearInstance();
 
-        let engine = DexcaliburEngine.getInstance();
+        let engine:DexcaliburEngine = DexcaliburEngine.getInstance();
 
         engine.loadWorkspaceFromConfig( 
             _path_.join( __dirname, '..', 'test', '.dexcalibur'),
@@ -213,7 +225,7 @@ export default class TestHelper
      * @param {*} pForce 
      * @method
      */
-    getDexcaliburEngine(pForce = false){
+    getDexcaliburEngine(pForce:boolean = false):DexcaliburEngine{
         if(this.engine == null || pForce){
             this.engine = this.newDexcaliburEngine();
         }
@@ -225,7 +237,7 @@ export default class TestHelper
      *
      * @returns {DexcaliburProject}
      */
-    newDexcaliburProject(){
+    newDexcaliburProject():DexcaliburProject{
         this.project = new DexcaliburProject(
             DexcaliburEngine.getInstance(),
             'owasp.mstg.uncrackable1'
@@ -239,7 +251,7 @@ export default class TestHelper
      * @param pForce
      * @returns {DexcaliburProject}
      */
-    getDexcaliburProject(pForce = false){
+    getDexcaliburProject(pForce:boolean = false):DexcaliburProject{
         if(this.project == null || pForce){
             this.project = this.newDexcaliburProject();
         }
@@ -253,7 +265,7 @@ export default class TestHelper
      * @param pForce
      * @returns {DexcaliburProject}
      */
-    getInitializedDexcaliburProject(pForce = false){
+    getInitializedDexcaliburProject(pForce:boolean = false):DexcaliburProject{
         if(this.project_ready == null || pForce){
             this.project_ready = new DexcaliburProject(
                 this.newDexcaliburEngine(),
@@ -266,5 +278,3 @@ export default class TestHelper
     }
 
 }
-
-module.exports =  new TestHelper();

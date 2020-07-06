@@ -1,8 +1,8 @@
-import fs = require("fs");
-import Process = require("child_process");
+import * as fs from "fs";
+import * as Process from "child_process";
 import chalk from "chalk";
-import Path = require("path");
-import crypto = require("crypto");
+import * as Path from "path";
+import * as crypto from "crypto";
 
 import * as  _util_ from 'util';
 import * as _stream_  from 'stream';

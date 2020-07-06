@@ -17,7 +17,8 @@ export enum STUB_TYPE {
     VARIABLE= 0xc,
     CALL= 0xd,
     NATIVE_FUNC= 0xe,
-    SYSCALL= 0xf
+    SYSCALL= 0xf,
+    TAG
 }
 
 
@@ -41,11 +42,15 @@ export class Stub
 
 export class Savable
 {
-    __stub_type__:STUB_TYPE;
+    $:STUB_TYPE;
 
-    export( pStubType:STUB_TYPE, pExclude):Stub{
+    constructor(pType:STUB_TYPE) {
+        this.$ = pType;
+    }
+
+    export( pStubType:STUB_TYPE=null, pExclude:string[]=null):Stub{
         return new Stub(
-            this.__stub_type__,
+            (pStubType!==null ? pStubType : this.$),
             this,
             pExclude
         )

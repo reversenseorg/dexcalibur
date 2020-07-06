@@ -3,16 +3,36 @@ import * as _fs_ from 'fs';
 import * as _path_ from 'path';
 
 import DexcaliburProject from "./DexcaliburProject";
+import InMemoryDbIndex from "../connectors/inmemory/InMemoryDbIndex";
+import InMemoryDbCollection from "../connectors/inmemory/InMemoryDbCollection";
 
 
 let gInstance:ConnectorFactory = null;
+
+
+export class ConnectorDb
+{
+
+}
+
+export interface IDatabaseAdapter
+{
+    exists():boolean;
+    create():boolean;
+    connect():boolean;
+    close():boolean;
+    getIndex( pName:string):InMemoryDbIndex;
+    getCollection( pName:string):InMemoryDbCollection;
+    toJsonObject():any;
+}
+
 
 /**
  * Represent the connector factory.
  *
  * @class
  */
-export default class ConnectorFactory
+export class ConnectorFactory
 {
     connectors:any = {};
 

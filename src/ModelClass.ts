@@ -1,11 +1,11 @@
-import { Modifier } from "./AccessFlags";
-import { CONST } from "./CoreConst";
-import { EOL } from 'os';
+import {Modifier} from "./AccessFlags";
+import {CONST} from "./CoreConst";
+import {EOL} from 'os';
 import ModelPackage from "./ModelPackage";
 import ModelMethod from "./ModelMethod";
 import ModelField from "./ModelField";
 import NodeCompare from "./NodeCompare";
-
+import {Savable, STUB_TYPE} from "./ModelSavable";
 
 
 interface IClassSet {
@@ -29,11 +29,8 @@ interface IFieldSet {
  * @param {object} config Optional, a hashmap with param/value to initiliaze
  * @constructor
  */
-export default class ModelClass
+export default class ModelClass extends Savable
 {
-    // corresponding stub type to use during export
-    //__stub_type__ = STUB_TYPE.CLASS;
-    // this.$ = STUB_TYPE.CLASS;
 
     //fqcn = null;
     // the FQCN of the class
@@ -103,9 +100,7 @@ export default class ModelClass
     __aliasedCallSignature__:string = null;
 
     constructor(pConfig:any){
-        // corresponding stub type to use during export
-        //this.__stub_type__ = STUB_TYPE.CLASS;
-        //this.$ = STUB_TYPE.CLASS;
+        super(STUB_TYPE.CLASS);
 
         if(pConfig!==undefined)
             for(let i in pConfig)
@@ -284,45 +279,44 @@ export default class ModelClass
         this.raw_import(obj);
 
         // construct obj
-        this.modifiers = new ModifierForm.from(obj.modifiers);
-    };
-
-    export = Savable.export;
-
-    hasOverrideOf(meth)
-    if(meth == null) return null;
-
-    let cs = meth.callSignature();
-    for(let k in this.methods){
-        if(this.methods[k].callSignature()==cs){
-            return this.methods[k];
-        }
+        this.modifiers = obj.modifiers;
     }
-    return null;
-}
+
+
+    hasOverrideOf(meth:ModelMethod):ModelMethod{
+        if(meth == null) return null;
+
+        let cs = meth.callSignature();
+        for(let k in this.methods){
+            if(this.methods[k].callSignature()==cs){
+                return this.methods[k];
+            }
+        }
+        return null;
+    }
 
 
     /**
      * To add inherited method which are not overrided
      */
-    addInheritedMethod(methodRef,parentMethod){
-    this.methods[methodRef] = parentMethod;
-    this.inherit[methodRef] = parentMethod;
-    return this.methods[methodRef];
-}
+    addInheritedMethod(methodRef:string, parentMethod:ModelMethod):ModelMethod{
+        this.methods[methodRef] = parentMethod;
+        this.inherit[methodRef] = parentMethod;
+        return this.methods[methodRef];
+    }
 
-    addInheritedField(localReference, parentField){
-    this.fields[localReference] = parentField;
-    this.inherit[localReference] = parentField;
-    return this.fields[localReference];
-}
+    addInheritedField(localReference:string, parentField:ModelField):ModelField{
+        this.fields[localReference] = parentField;
+        this.inherit[localReference] = parentField;
+        return this.fields[localReference];
+    }
 
 
-    toJsonObject(filter){
-        let obj = new Object(), m=null;
+    toJsonObject():any{
+        let obj:any = {}, m=null;
         for(let i in this){
             if(["_","$"].indexOf(i[0])==-1
-                && (typeof this[i] != 'array')
+                && (Array.isArray(this[i]))
                 && (typeof this[i] != 'object')){
 
                 obj[i] = this[i];
@@ -331,7 +325,7 @@ export default class ModelClass
                 obj.supers = [];
                 if(this.supers instanceof Array)
                     for(let k=0; k<this.supers.length; k++){
-                        if(this.supers[k] instanceof Class)
+                        if(this.supers[k] instanceof ModelClass)
                             obj.supers.push({
                                 name:this.supers[k].signature(),
                                 alias: this.supers[k].getAlias()
@@ -409,13 +403,49 @@ export default class ModelClass
      * To find a class's method by usins a search pattern
      * @param {String} pattern
      */
-    getMethod(pattern, pExactMatch=0){
-    let res0 = [], res1=[], rx={}, match=null;
-    if(pExactMatch != CONST.EXACT_MATCH){
+    getMethod(pattern:any, pExactMatch:number=0):ModelMethod[]{
+        let res0:any = [], res1:any=[], rx:any={}, match:any=null;
+        if(pExactMatch != CONST.EXACT_MATCH){
+            for(let i in pattern){
+                rx[i] = new RegExp(pattern[i]);
+            }
+            res1 = this.methods;
+            for(let i in pattern){
+                res0 = res1;
+                res1 = [];
+                for(let meth in res0){
+                    match = rx[i].exec(res0[meth][i]);
+                    if(match !== null) res1.push(res0[meth]);
+                }
+            }
+        }else{
+            res1 = this.methods;
+            for(let i in pattern){
+                res0 = res1;
+                res1 = [];
+                for(let meth in res0){
+                    if(pattern[i] === res0[meth][i])
+                        res1.push(res0[meth]);
+                }
+            }
+        }
+
+        return res1;
+    }
+
+
+
+    /**
+     * To find a class's field by usins a search pattern
+     * @param {String} pattern
+     * @return {ModelField} Field
+     */
+    getField(pattern:any):ModelField[]{
+        let res0:any = [], res1:any=[], rx:any={}, match:any=null;
         for(let i in pattern){
             rx[i] = new RegExp(pattern[i]);
         }
-        res1 = this.methods;
+        res1 = this.fields;
         for(let i in pattern){
             res0 = res1;
             res1 = [];
@@ -424,110 +454,67 @@ export default class ModelClass
                 if(match !== null) res1.push(res0[meth]);
             }
         }
-    }else{
-        res1 = this.methods;
-        for(let i in pattern){
-            res0 = res1;
-            res1 = [];
-            for(let meth in res0){
-                if(pattern[i] === res0[meth][i])
-                    res1.push(res0[meth]);
-            }
-        }
+        return res1;
     }
-
-    return res1;
-};
-
-    java_getMethod(pName, pArgumentsTypes){
-
-    for(let i in this.methods){
-        if(this.methods[i].name == pName){
-            for(let j=0; j<pArgumentsTypes.length; j++){
-
-            }
-        }
-    }
-
-};
-
-    /**
-     * To find a class's field by usins a search pattern
-     * @param {String} pattern
-     */
-    getField(pattern){
-    let res0 = [], res1=[], rx={}, match=null;
-    for(let i in pattern){
-        rx[i] = new RegExp(pattern[i]);
-    }
-    res1 = this.fields;
-    for(let i in pattern){
-        res0 = res1;
-        res1 = [];
-        for(let meth in res0){
-            match = rx[i].exec(res0[meth][i]);
-            if(match !== null) res1.push(res0[meth]);
-        }
-    }
-    return res1;
-}
 
     /**
      * To get all static fields declared or inherited
-     * @returns {Field[]} An array of fields
+     * @returns {ModelField[]} An array of fields
      */
-    getStaticFields(){
-    let f = [];
-    for(let i in this.fields){
-        if(this.fields[i].modifiers.static){
-            f.push(this.fields[i]);
+    getStaticFields():ModelField[]{
+        let f:ModelField[] = [];
+        for(let i in this.fields){
+            if((this.fields[i].modifiers & Modifier.STATIC)>0){
+                f.push(this.fields[i]);
+            }
         }
+        return f;
     }
-    return f;
-}
 
     /**
      * To get <clinit> method
      * TODO : do it during analysis
      * @returns {Method}
      */
-    getClInit(){
-    for(let i in this.methods){
-        if(this.methods[i].name == "<clinit>"){
-            return this.methods[i];
+    getClInit():ModelMethod{
+        for(let i in this.methods){
+            if(this.methods[i].name == "<clinit>"){
+                return this.methods[i];
+            }
         }
+        return null;
     }
-    return null;
-}
 
     setupMissingTag(){
-    return (this.tags.push(CONST.TAG.MISSING));
-}
-    removeMissingTag(){
-    if(this.tags.length==1)
-        this.tags = [];
-    else{
-        let i = this.tags.indexOf(CONST.TAG.MISSING);
-        let arr = this.tags.slice(0,i);
-        if(i+1<this.tags.length){
-            arr = arr.concat(this.tags.slice(i+1,this.tags.length-i-1));
-        }
-        this.tags = arr;
+        return (this.tags.push(CONST.TAG.MISSING));
     }
-}
-    isMissingClass(){
-    return (this.tags.indexOf(CONST.TAG.MISSING)>-1);
-}
 
-    addTag(tag){
-    this.tags.push(tag);
-}
-    hasTag(tagName){
-    return this.tags.indexOf(tagName)>-1;
-}
-    getTags(){
-    return this.tags;
-}
+    removeMissingTag(){
+        if(this.tags.length==1)
+            this.tags = [];
+        else{
+            let i:number = this.tags.indexOf(CONST.TAG.MISSING);
+            let arr:string[] = this.tags.slice(0,i);
+            if(i+1<this.tags.length){
+                arr = arr.concat(this.tags.slice(i+1,this.tags.length-i-1));
+            }
+            this.tags = arr;
+        }
+    }
+
+    isMissingClass():boolean{
+        return (this.tags.indexOf(CONST.TAG.MISSING)>-1);
+    }
+
+    addTag(tag:string){
+        this.tags.push(tag);
+    }
+    hasTag(tagName:string):boolean{
+        return this.tags.indexOf(tagName)>-1;
+    }
+    getTags():string[]{
+        return this.tags;
+    }
 
     /**
      * To get the implement interface
