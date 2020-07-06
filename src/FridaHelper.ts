@@ -16,7 +16,6 @@ import Util from "./Utils";
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
 const pipeline = promisify(_stream_.pipeline);
-const spawn = promisify(_ps_.spawn);
 
 
 const HOST_FRIDA_BIN_NAME = 'frida';
@@ -30,7 +29,6 @@ const SPAWN = 0x1;
 const ATTACH_BY_NAME = 0x2;
 const ATTACH_BY_PID = 0x3;
 
-var _frida_ = null;
 /**
  * @class
  * @author Georges-B MICHEL
