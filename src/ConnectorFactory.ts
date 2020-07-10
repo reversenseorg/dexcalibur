@@ -5,6 +5,7 @@ import * as _path_ from 'path';
 import DexcaliburProject from "./DexcaliburProject";
 import InMemoryDbIndex from "../connectors/inmemory/InMemoryDbIndex";
 import InMemoryDbCollection from "../connectors/inmemory/InMemoryDbCollection";
+import SerializedObject from "../connectors/inmemory/SerializedObject";
 
 
 let gInstance:ConnectorFactory = null;
@@ -15,17 +16,67 @@ export class ConnectorDb
 
 }
 
+export interface IDbSet {
+    map(fn:any):void;
+
+    getAll():any;
+
+    isCollection():boolean;
+
+    isIndex():boolean;
+
+    size():number;
+
+    toJsonObject():any;
+}
+
+export interface IDbIndex extends IDbSet {
+
+    insert(ref:any, force:boolean):void;
+
+    addEntry(ref:any):void;
+
+    getEntry(offset:number):any;
+}
+
+export interface IDbCollection extends IDbSet
+{
+
+    setEntry(key:string,value:any);
+
+    addEntry(key:string,value:any);
+
+    getEntry(key:string):any;
+
+    hasEntry(key:string):boolean;
+}
+
 export interface IDatabaseAdapter
 {
     exists():boolean;
     create():boolean;
     connect():boolean;
     close():boolean;
-    getIndex( pName:string):InMemoryDbIndex;
-    getCollection( pName:string):InMemoryDbCollection;
+    getIndex( pName:string):IDbIndex;
+    getCollection( pName:string):IDbCollection;
+    getDB():IDatabase;
+    newTemporaryDb( pName:string):IDatabase;
     toJsonObject():any;
 }
 
+
+export interface IDatabase
+{
+    newCollection(name:string):IDbCollection;
+
+    newIndex(name:string):IDbIndex;
+
+    getIndex(name:string):IDbIndex;
+
+    getCollection(name:string):IDbCollection;
+
+    toJsonObject():any;
+}
 
 /**
  * Represent the connector factory.

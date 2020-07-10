@@ -12,7 +12,7 @@ export default class ModelConstantValue extends Savable{
     _value:any = null;
     tags:any = null;
 
-    constructor(pValue:any, pTags:any){
+    constructor(pValue:any=null, pTags:any=null){
         super(STUB_TYPE.VALUE_CONST);
 
         this._value = pValue;

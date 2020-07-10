@@ -3,6 +3,7 @@ import * as _fs_ from "fs";
 
 import AdbWrapper from "./AdbWrapper";
 import {Device} from "./Device";
+import {IBridge, IBridgeFactory} from "./Bridge";
 
 let gInstance:AdbWrapperFactory = null;
 
@@ -13,7 +14,7 @@ let gInstance:AdbWrapperFactory = null;
  * @class
  * @author Georges-B. MICHEL
  */
-export default class AdbWrapperFactory
+export default class AdbWrapperFactory implements IBridgeFactory
 {
     path:string = null;
 
@@ -46,6 +47,7 @@ export default class AdbWrapperFactory
      * @static
      */
     static getInstance( pAdbPath:string, pOverride:boolean = false):AdbWrapperFactory{
+
         if(gInstance == null || pOverride==true){
             if(_fs_.existsSync(pAdbPath)){
                 gInstance = new AdbWrapperFactory( pAdbPath);
@@ -68,7 +70,7 @@ export default class AdbWrapperFactory
      * @public
      * @method
      */
-    newGenericWrapper():AdbWrapper{
+    newGenericWrapper():IBridge{
         return new AdbWrapper( gInstance.path);
     }
 
@@ -82,9 +84,9 @@ export default class AdbWrapperFactory
      * @public
      * @method
      */
-    newSpecificWrapper( pDevice:Device):AdbWrapper{
+    newSpecificWrapper( pDevice:Device):IBridge{
         
-        return pDevice.bridge.clone();
+        return pDevice.getDefaultBridge().clone();
     }
 
 }

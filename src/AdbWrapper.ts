@@ -10,6 +10,7 @@ import DeviceProfile  from './DeviceProfile';
 import {AdbWrapperError} from "./Errors";
 import * as Log from './Logger';
 import DexcaliburWorkspace from "./DexcaliburWorkspace";
+import {IBridge} from "./Bridge";
 
 let Logger:Log.ProdLogger = Log.newLogger() as Log.ProdLogger;
 
@@ -50,7 +51,7 @@ const OS_NAME = ['android','linux','tizen'];
  * 
  * @class 
  */
-export default class AdbWrapper
+export default class AdbWrapper implements IBridge
 {
     static USB_TRANSPORT:string = 'U';
     static TCP_TRANSPORT:string = 'T';
@@ -295,7 +296,7 @@ export default class AdbWrapper
      * @method
      * @since v0.7.2
      */
-    async connect( pIpAddress:string, pPortNumber:number, pDeviceID:string):Promise<boolean>{
+    async connect( pIpAddress:string, pPortNumber:number, pDeviceID:string=null):Promise<boolean>{
         let ret:any;
         ret = await UT.execAsync(this.setup(pDeviceID) + " tcpip "+pPortNumber);
         //Logger.debug(ret);
@@ -447,7 +448,7 @@ export default class AdbWrapper
      * @returns {String} The path of the application package into the device
      * @method
      */
-    getPackagePath(packageIdentifier:string) {
+    getPackagePath(packageIdentifier:string):string {
         let reg:RegExp = new RegExp("^package:(?<package_name>.*)");
         let ret:string = "";
 
@@ -546,6 +547,7 @@ export default class AdbWrapper
             // TODO : do it while profiling step
             device.type = EOsType.ANDROID;
 
+            // use Device Profile instead of isEmulated flag
             device.isEmulated = data[0].match(emuRE);
             // remove ?
             if(device.isEmulated){
@@ -561,7 +563,7 @@ export default class AdbWrapper
                     token = data[i].split(':',2);
                     switch(token[0]){
                         case 'usb':
-                            device.bridge.usbQualifier = token[1];
+                            (device.bridge as AdbWrapper).usbQualifier = token[1];
                             break;
                         case 'model':
                             device.setModel(token[1]);
@@ -740,7 +742,7 @@ export default class AdbWrapper
      * @method
      * @async  
      */
-    async detachedShell( pCommand:string|string[], pArgs:string = "" ){
+    async detachedShell( pCommand:string|string[], pArgs:string = "" ):Promise<boolean>{
         let args:string[] = this.setup(null,false) as string[];
         let ws:DexcaliburWorkspace = require('./DexcaliburWorkspace').getInstance();
         let out:number = _fs_.openSync( _path_.join( ws.getTempFolderLocation(), 'out.log'), 'w+', 0o666);
@@ -825,6 +827,11 @@ export default class AdbWrapper
         } 
 
         return o;
+    }
+
+
+    getDeviceID():string{
+        return this.deviceID;
     }
 }
 

@@ -15,13 +15,14 @@ import PlatformManager from './PlatformManager';
 import DexcaliburWorkspace from './DexcaliburWorkspace';
 import Utils  from "./Utils";
 import AdbWrapper from "./AdbWrapper";
+import {BridgeSuperFactory, IBridge} from "./Bridge";
 
 export enum EDevType  {
-    UNKNOW:0x0,
-    USB: 0x1,
-    EMU: 0x2,
-    ADB: 0x3,
-    SDB: 0x4
+    UNKNOW=0x0,
+    USB= 0x1,
+    EMU= 0x2,
+    ADB= 0x3,
+    SDB= 0x4
 };
 const DEV_NAME = ['unknow','usb','emu','adb','sdb'];
 
@@ -35,7 +36,7 @@ const OS_NAME = ['android','linux','tizen'];
 
 
 interface BridgeList {
-    [p: string]: AdbWrapper
+    [p: string]: IBridge
 }
 
 
@@ -64,7 +65,7 @@ export class Device
      *
      * @field
      */
-    bridge:AdbWrapper = null;
+    bridge:IBridge = null; // AdbWrapper
 
     /**
      * Flag. TRUE if this devices is default device for instrumentation
@@ -194,13 +195,13 @@ export class Device
      * @param {AdbWrapper} pBridge 
      * @method
      */
-    addBridge( pBridge:AdbWrapper, pOverride:boolean=false){
+    addBridge( pBridge:IBridge, pOverride:boolean=false){
         if(this.bridges[ pBridge.shortname ] == null || pOverride){
             this.bridges[ pBridge.shortname ] = pBridge;
         }
     }
 
-    getBridge( pName:string):AdbWrapper{
+    getBridge( pName:string):IBridge{
         if(this.bridges[pName] == null)
             throw new Error(`[DEVICE] The device ${this.uid} not support bridge ${pName}`);
 
@@ -212,7 +213,7 @@ export class Device
         //this.setUID(this.bridge.deviceID);
     }
 
-    getDefaultBridge():AdbWrapper{
+    getDefaultBridge():IBridge{
         return this.bridge;
     }
     
@@ -326,7 +327,7 @@ export class Device
     }
 
     update( pDevice:Device){
-        let b:AdbWrapper=null;
+        let b:IBridge=null;
 
         if(this.id==null){
             this.id = pDevice.id;
@@ -555,11 +556,11 @@ export class Device
      * @param {IntentFilter} pIntentFilter An intance of the intent filter 
      * @param {Boolean} force 
      */
-    sendIntent(data:any, callbacks:any=null, pIntentFilter:IntentFilter=null, force:boolean=false){
-        let msg = {stdout:null, stderr:null};
-        let pkg='', cmd='am start ';
-        let act = null, cat=null;
-        let cb = null;
+    sendIntent(data:any, callbacks:any=null, pIntentFilter:any=null, force:boolean=false):any{
+        let msg:any = {stdout:null, stderr:null};
+        let pkg:string='', cmd:string='am start ';
+        let act:any = null, cat:any=null;
+        let cb:any = null;
 
         if(pIntentFilter==null){
             Logger.error("[TODO] Implement sendCustomIntent() : intent builder without autocompleting");
@@ -630,7 +631,8 @@ export class Device
     * @returns {boolean} Returns TRUE if the file exists on the device, else FALSE
     * @function 
     */
-    hasFile(file, privileged=true){
+    /*
+    hasFile(file:string, privileged:boolean=true):boolean{
         let ret="", i=0;
 
         if(privileged)
@@ -639,7 +641,7 @@ export class Device
             ret = this.bridge.hasFile(file).toString("ascii");
             
         return (ret.indexOf(file)==0);
-    };
+    };*/
 
 
     async performProfiling( pOptions){
@@ -660,19 +662,19 @@ export class Device
      * @returns {String} JSON-serialized object
      * @method 
      */
-    static fromJsonObject( pJsonObject, pOverride = {}){
-        let dev = new Device();
+    static fromJsonObject( pJsonObject:any, pOverride:any = {}):Device{
+        let dev:any = new Device();
         for(let i in pJsonObject){
             switch(i){
                 case 'type':
-                    dev[i] = OS_NAME.indexOf(pJsonObject[i]);
+                    dev.type = OS_NAME.indexOf(pJsonObject[i]);
                     break;
 
                 case 'bridges':
                     dev.bridges = {};
                     for( let j in pJsonObject.bridges){
                         // todo : replace AdbWrapeper by BridgeFactory
-                        dev.bridges[j] = require("./AdbWrapper").fromJsonObject( pJsonObject.bridges[j]);
+                        dev.bridges[j] = BridgeSuperFactory.getFactory(j).fromJsonObject( pJsonObject.bridges[j]);
                     }
                     break;
 
@@ -691,6 +693,8 @@ export class Device
             
         }
 
+        dev = dev as Device;
+
         if(dev.bridge != null){
             dev.setDefaultBridge(dev.bridge);
         }
@@ -703,15 +707,15 @@ export class Device
     }
 
     /**
-     * To retrieve UID from device through shell 
-     * 
+     * To retrieve device specific UID from device through shell
+     *
      * @method
      */
-    async retrieveUIDfromDevice(){
+    async retrieveUIDfromDevice():Promise<boolean>{
         if(this.isConnected()===false || this.offline===true) 
             throw new Error('Device is offline');
 
-        let id = null;
+        let id:string[] = null;
         let {stdout, stderr} = await this.bridge.shellAsync('getprop ro.serialno');
 
         if(stderr != ''){
@@ -735,8 +739,8 @@ export class Device
      * @returns {JsonObject} JSON-serialized object
      * @method 
      */
-    toJsonObject( pOverride = {}, pExcludeList={}){
-        let json = new Object();
+    toJsonObject( pOverride:any = {}, pExcludeList:any={}){
+        let json:any = new Object();
         for(let i in this){
             if(pExcludeList[i] === false) continue;
             
@@ -783,5 +787,3 @@ export class Device
         return json;
     }
 }
-
-module.exports = Device;

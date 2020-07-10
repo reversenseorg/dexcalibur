@@ -2,11 +2,11 @@
 import * as _path_ from 'path';
 import * as _fs_ from 'fs';
 
-import * as CLASS from "./CoreClass";
 
 import APK from "./APK";
 
 import * as Log from './Logger';
+import {Stub, STUB_TYPE} from "./ModelSavable";
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
 
@@ -70,10 +70,7 @@ export default class Workspace
      * @method
      */
     _export():any{
-        return new CLASS.Stub(
-            CLASS.STUB_TYPE.WORKSPACE,
-            this
-        );
+        // REMOVED
     }
 
     /**

@@ -99,7 +99,7 @@ export default class ModelClass extends Savable
     __pretty_signature__:string = null;
     __aliasedCallSignature__:string = null;
 
-    constructor(pConfig:any){
+    constructor(pConfig:any=null){
         super(STUB_TYPE.CLASS);
 
         if(pConfig!==undefined)

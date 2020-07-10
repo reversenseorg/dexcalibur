@@ -1,31 +1,70 @@
-import {BridgeSuperFactory} from "./Bridge";
 
-const _path_ = require("path");
-const _fs_ = require("fs");
+import * as _path_ from "path";
+import * as _fs_ from 'fs';
 
-var ut = require("./Utils.js");
+import {BridgeSuperFactory, IBridge, IBridgeFactory} from "./Bridge";
+import DexcaliburWorkspace from "./DexcaliburWorkspace";
+import {Device} from "./Device";
+import AdbWrapperFactory from "./AdbWrapperFactory";
+import * as Log from './Logger';
+import Util from "./Utils";
+import Platform from "./Platform";
+import PlatformManager from "./PlatformManager";
+import StatusMessage from "./StatusMessage";
+import FridaHelper from "./FridaHelper";
 
-const AdbWrapperFactory = require("./AdbWrapperFactory.js");
-const DexcaliburWorkspace = require("./DexcaliburWorkspace");
-const Device = require("./Device");
-const StatusMessage = require("./StatusMessage");
-const FridaHelper = require("./FridaHelper");
-const PlatformManager = require("./PlatformManager");
-const Utils = require('./Utils');
+let Logger:Log.ProdLogger = Log.newLogger() as Log.ProdLogger;
 
-var Logger = require("./Logger")();
 
 const DEVICE_FILE = "devices.json";
-var gInstance = null;
+
+var gInstance:DeviceManager = null;
+
+interface DeviceList {
+    [id :string] :Device;
+}
 
 /**
  * To manager connected devices
  * 
  * @class
  */
-class DeviceManager
+export default class DeviceManager
 {
     bridgeFactory:BridgeSuperFactory;
+
+    dxcWorkspace:DexcaliburWorkspace;
+
+    /**
+     * Path of the file where device are stored
+     * @field
+     */
+    devFile:string;
+
+    /**
+     * default device to use
+     * @field
+     */
+    defaultDevice:Device;
+
+    /**
+     * Total amount of connected devices
+     * @field
+     */
+    count:number;
+
+    /**
+     * List of connected devices
+     * @field
+     */
+    devices:DeviceList;
+
+    /**
+     * @field
+     */
+    status:any;
+
+    bridges:any;
 
     /**
      * To create an instance of DeviceManager
@@ -35,37 +74,15 @@ class DeviceManager
 
         this.dxcWorkspace = DexcaliburWorkspace.getInstance();
 
-        /**
-         * Path of the file where device are stored
-         * @field
-         */
         this.devFile = _path_.join(
             this.dxcWorkspace.getDeviceFolderLocation(), 
             DEVICE_FILE
         );
 
-        /**
-         * deffault device to use
-         * @field 
-         */
+
         this.defaultDevice = null;
-
-        /**
-         * Total amount of connected devices
-         * @field 
-         */
         this.count = 0;
-
-        /**
-         * List of connected devices
-         * @field 
-         */
         this.devices = {};
-      
-
-        /**
-         * @field
-         */
         this.status = null;
 
         /**
@@ -83,7 +100,16 @@ class DeviceManager
             )
         };
 
-        this.bridges
+        this.bridgeFactory = new BridgeSuperFactory({
+                "adb": AdbWrapperFactory.getInstance(
+                    _path_.join(
+                        this.dxcWorkspace.getBinaryFolderLocation(),
+                        "platform-tools",
+                        "adb"
+                    )
+                )
+            });
+
     
     }
 
@@ -92,17 +118,17 @@ class DeviceManager
      * @param {String} pName Bridge name 
      * @since v0.7.2
      */
-    getBridgeFactory( pName){
-        if(this.bridges[pName]==null){
+    getBridgeFactory( pName:string):IBridgeFactory{
+        if(this.bridgeFactory.isSupported(pName)===false){
             throw new Error('[DEVICE MANAGER] Bridge not supported.');
         }
 
-        return this.bridges[pName]; 
+        return this.bridgeFactory.getFactory(pName);
     }
 
 
 
-    static getInstance(){
+    static getInstance():DeviceManager{
         if(gInstance == null){
             gInstance = new DeviceManager();
         }
@@ -116,13 +142,13 @@ class DeviceManager
      * 
      * @method
      */
-    load(){
+    load():boolean{
         if(_fs_.existsSync( this.devFile) == false)
             return true;
 
-        let data = null;
+        let data:any = null;
         try{
-            data = JSON.parse( _fs_.readFileSync( this.devFile));
+            data = JSON.parse( _fs_.readFileSync( this.devFile).toString());
             for(let i=0; i<data.length; i++){
                 if( data[i].uid != null)
                     this.devices[ data[i].uid ] = Device.fromJsonObject(data[i]);
@@ -145,7 +171,7 @@ class DeviceManager
         } 
 
 
-        let data = [];
+        let data:any = [];
         for(let i in this.devices){
             data.push( this.devices[i].toJsonObject( {}, {
                 connected: false,
@@ -168,10 +194,10 @@ class DeviceManager
      * 
      * @method
      */
-    clear(pDeviceID = null){
+    clear(pDeviceID:string = null):boolean{
 
         if(pDeviceID !== null){
-            throw new Error('Operation not supported');
+            throw new Error('[DEVICE MANAGER] Operation not supported');
         }
 
         let success = _fs_.existsSync( this.devFile);
@@ -199,31 +225,60 @@ class DeviceManager
         }
     }
 
-    getDeviceByID( pAndroidID){
+    /**
+     * To get a device by its ID
+     *
+     * Warning : DeviceID is not the internal DeviceUID but
+     * the device UID set by constructor, such as AndroidID
+     *
+     * @param {String} pDeviceID
+     * @return {Device} The device if it is found, else NULL
+     * @method
+     */
+    getDeviceByID( pDeviceID:string):Device{
         for(let uid in this.devices){
-            if(this.devices[uid].id == pAndroidID){
+            if(this.devices[uid].id == pDeviceID){
                 return this.devices[uid];
             }
         }
         return null;
     }
 
-    generateUID(){
-        let uid = Utils.randString(12, Utils.ALPHANUM);
+    /**
+     * To generate an internal DeviceUID
+     *
+     * @return {String} An available DeviceUID
+     * @method
+     */
+    generateUID():string{
+        let uid = Util.randString(12, Util.ALPHANUM);
         if(this.devices[uid]!=null)
-            return generateUID();
+            return this.generateUID();
         else
             return uid;
     }
 
-    addDevice( pDevice){
-        let uid = this.generateUID();
-        pDevice.setUID(uid);
+    /**
+     * To add a device to the device manager.
+     *
+     * The DeviceUID is regenerated.
+     *
+     * @param {Device} pDevice The device to add
+     */
+    addDevice( pDevice:Device, pReuseUID:boolean = false){
+        let uid:string;
+        if(pReuseUID === false){
+            uid = this.generateUID();
+            pDevice.setUID(uid);
+        }else{
+            uid = pDevice.getUID();
+        }
+
         this.devices[uid] = pDevice;
     }
 
-    getDeviceByIP( pIpAddress, pPort=null, pUp=true){
-        let d=null, b=null;
+    getDeviceByIP( pIpAddress:string, pPort:number=null, pUp:boolean=true):Device{
+        let d:Device=null, b:IBridge=null;
         for(let i in this.devices){
             d = this.devices[i];
             for(let k in d.bridges){
@@ -247,15 +302,15 @@ class DeviceManager
      * 
      * @param {*} pDeviceList 
      */
-    updateDeviceList( pCandidateList){
-        let active = 0, b=null, d=null, id=null, dev=null;
-        let devs = {};
+    updateDeviceList( pCandidateList:Device[]){
+        let active:number = 0, b:IBridge=null, d=null, id:string=null, dev:Device=null;
+        let devs:DeviceList= {};
 
-        for(let i=0; i<pCandidateList.length; i++){
+        for(let i:number=0; i<pCandidateList.length; i++){
 
             // at this step, candidate device has 1 bridge, no more.
             if(pCandidateList[i].bridge.isUsbTransport()){
-                id = pCandidateList[i].bridge.deviceID;
+                id = pCandidateList[i].bridge.getDeviceID();
                 if(id != null){
                     // search if device already exists
                     dev = this.getDeviceByID(id);
@@ -297,7 +352,7 @@ class DeviceManager
                             devs[this.devices[i].uid] = this.devices[i];
                         }
                     }else{
-                        d = this.getDeviceByID(b.deviceID);
+                        d = this.getDeviceByID(b.getDeviceID());
 
                         if(d == null){
                             devs[this.devices[i].uid] = this.devices[i];
@@ -331,8 +386,8 @@ class DeviceManager
      * 
      * @returns {Device[]} Array of device
      */
-    getConnectedDevices(){
-        let conn=[];
+    getConnectedDevices():Device[]{
+        let conn:Device[]=[];
         for(let i in this.devices){
             if(this.devices[i].isConnected()){
                 conn.push(this.devices[i]);
@@ -342,22 +397,28 @@ class DeviceManager
         return conn;
     }
 
-    async connect( pIpAddress, pPortNumber, pDevice){
-        let success = false, wrapper=null;
+    async connect( pIpAddress:string, pPortNumber:string|number, pDevice:Device):Promise<boolean>{
+        let success:boolean = false, wrapper:IBridge=null;
+        let port:number;
+
+        if(typeof pPortNumber === 'string')
+            port = parseInt(pPortNumber);
+        else
+            port = pPortNumber;
 
         
         for(let i in this.bridges){
             if(pDevice == null){
                 wrapper = this.bridges[i].newGenericWrapper();
-                success |= await wrapper.connect(pIpAddress, pPortNumber);
+                success = success || await wrapper.connect(pIpAddress, port);
             }else{    
                 wrapper = this.bridges[i].newSpecificWrapper(pDevice);
-                success |= await wrapper.connect(pIpAddress, pPortNumber);
+                success = success || await wrapper.connect(pIpAddress, port);
 
                 // create adb wrapper with network config 
-                if(success==1){
+                if(success === true){
                     wrapper.ip = pIpAddress;
-                    wrapper.port = pPortNumber;
+                    wrapper.port = port;
                     pDevice.addBridge(wrapper, true);
 
                     if(pDevice.bridge==null)
@@ -376,7 +437,7 @@ class DeviceManager
      * @function
      */
     async scan(){
-        let dev=[], wrapper=null, activeDev = 0, latestDefault=null;
+        let dev:Device[]=[], devID:string[], wrapper:IBridge=null, activeDev:number = 0, latestDefault:Device=null;
 
         latestDefault = this.getDefault();
 
@@ -398,7 +459,7 @@ class DeviceManager
                 activeDev += this.updateDeviceList(dev);
                
     
-                ut.msgBox("Enumerated devices", Object.keys(this.devices));
+                Util.msgBox("Enumerated devices", Object.keys(this.devices));
             }
         }
 
@@ -417,24 +478,24 @@ class DeviceManager
             // a default device should be selected 
 
              // 1/ If default device is connected and authorized
-            if(this.devices[latestDefault] != null 
-                && this.devices[latestDefault].isConnected()
-                && this.devices[latestDefault].isAuthorized()){
+            if(this.devices[latestDefault.getUID()] != null
+                && this.devices[latestDefault.getUID()].isConnected()
+                && this.devices[latestDefault.getUID()].isAuthorized()){
 
                 this.setDefault(latestDefault);
                 return null;
             }
 
             // 2/ Only authorized device should be instrumented 
-            dev = [];
+            devID = [];
             for(let i in this.devices){
                 if(this.devices[i].isAuthorized()){
-                    dev.push(i);
+                    devID.push(i);
                 }
             }
 
-            if(dev.length > 0){
-                this.setDefault(dev[0]);
+            if(devID.length > 0){
+                this.setDefault(devID[0]);
                 return null;
             }
 
@@ -466,7 +527,7 @@ class DeviceManager
      * @function
      * @returns {Boolean} Return TRUE if a device is connected and if there is not default device selected.
      */
-    hasNotDefault(){
+    hasNotDefault():boolean{
         return (this.count==0)||(this.count>1 && this.defaultDevice===null);
     }
 
@@ -475,22 +536,26 @@ class DeviceManager
      * @param {String} deviceId 
      * @method
      */
-    setDefault(deviceId){
+    setDefault(deviceId:Device|string){
 
         // unselect current default device
         /*if(this.defaultDevice != null){
             this.defaultDevice.selected = false;
         }*/
 
+        if(typeof deviceId === 'string'){
+            for(let i in this.devices){
 
-        for(let i in this.devices){
-
-            if(this.devices[i].uid === deviceId){
-                this.devices[i].selected = true;
-                this.defaultDevice = this.devices[i];
-            }else{
-                this.devices[i].selected = false;
+                if(this.devices[i].uid === deviceId){
+                    this.devices[i].selected = true;
+                    this.defaultDevice = this.devices[i];
+                }else{
+                    this.devices[i].selected = false;
+                }
             }
+        }else if(deviceId instanceof Device){
+            deviceId.selected = true;
+            this.defaultDevice = deviceId;
         }
     }
     
@@ -499,7 +564,7 @@ class DeviceManager
      * @returns {Device} Default device
      * @method
      */
-    getDefault(){
+    getDefault():Device{
         return this.defaultDevice;
     }
     
@@ -509,7 +574,7 @@ class DeviceManager
      * @returns {Device} The Device instance, else null
      * @method
      */
-    getDevice(deviceId){
+    getDevice(deviceId:string){
         return this.devices[deviceId];
     }
     
@@ -518,7 +583,7 @@ class DeviceManager
      * @returns {Object} To get an hashmap associtating to each device ID the device instance
      * @method 
      */
-    getAll(){
+    getAll():DeviceList{
         return this.devices;
     }
     
@@ -527,8 +592,8 @@ class DeviceManager
      * @returns {String} JSON payload
      * @method
      */
-    toJsonObject( pExcludeList={}){
-        let json = [];
+    toJsonObject( pExcludeList:any={}){
+        let json:any = [];
         for(let i in this.devices){
             json.push(this.devices[i].toJsonObject(null, pExcludeList.device));
         }
@@ -541,11 +606,11 @@ class DeviceManager
      * @param {*} pDevice 
      * @param {*} pOtions 
      */
-    async enroll( pDevice, pOtions = {}){
+    async enroll( pDevice:Device|string, pOtions:any = {}):Promise<boolean>{
 
 
-
-        let device = null, success=false, pf=null, pm=PlatformManager.getInstance();
+        let device:Device = null, success:boolean=false;
+        let targetPF:Platform, namePF:string=null, pm=PlatformManager.getInstance();
 
         // set device
         if(pDevice instanceof Device)
@@ -569,7 +634,7 @@ class DeviceManager
 
         // update device ID if it is unknown 
         if(device.id == null){
-            device.id = await device.retrieveUIDfromDevice();
+            await device.retrieveUIDfromDevice();
         }
 
         // Install frida 
@@ -582,14 +647,16 @@ class DeviceManager
         }
 
         // Download platform 
-        pf = 'sdk_androidapi_'+device.getProfile().getSystemProfile().getSdkVersion()+'_google';
+        namePF = 'sdk_androidapi_'+device.getProfile().getSystemProfile().getSdkVersion()+'_google';
 
-        if( pm.isInstalled(pf) == false){
-            pf = pm.getRemotePlatform(pf);
-            success = pm.install(pf);
-            if(success) device.setPlatform(pf)
+        if( pm.isInstalled(namePF) == false){
+            targetPF = pm.getRemotePlatform(namePF);
+            success = await pm.install(targetPF);
+            this.status = new StatusMessage(80, this.status.append("[Device Manager] Target platform is not installed. Downloading ..."));
+            if(success)
+                device.setPlatform(targetPF)
         }else{
-            device.setPlatform( pm.getLocalPlatform(pf));
+            device.setPlatform( pm.getLocalPlatform(namePF));
         }
 
         if(success){
@@ -606,15 +673,13 @@ class DeviceManager
         return success;
     }
 
-    setEnrollStatus( pStatus){
+    setEnrollStatus( pStatus:StatusMessage){
         pStatus.progress =  (this.status==null? 0 : this.status.progress);
         this.status = pStatus;
     }
 
-    getEnrollStatus(){
+    getEnrollStatus():StatusMessage{
         return this.status;
     }
 }
 
-
-module.exports = DeviceManager;

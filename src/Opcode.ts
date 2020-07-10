@@ -6,14 +6,8 @@ import DalvikInstructionFormat from "./DalvikInstructionFormat";
 
 
 var Core = require("./CoreParser.js");
-const CLASS = require("./CoreClass.js");
-var ut = require("./Utils.js");
-
-var Logger = require("./Logger.js")();
 
 var LEX = Core.LEX;
-var PARSER = Core.PARSER;
-
 var ReferenceType = CONST.OPCODE_REFTYPE;
 var Format = CONST.OPCODE_FORMAT;
 var Opcode = CONST.OPCODE_TYPE;
@@ -34,7 +28,7 @@ LEX.REG = {
  
 
 
-var OPCODE={
+export var OPCODE={
 	NOP:{ 
 		byte:0x00, 
 		instr:"nop", 

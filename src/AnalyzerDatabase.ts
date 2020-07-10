@@ -1,16 +1,49 @@
-'use strict';
-
-const ConnectorFactory = require('./ConnectorFactory');
-
-
 /**
  * Represent a database used by analyzer
  *
  * @class
  * @author Georges-B. MICHEL
  */
-class AnalyzerDatabase
+import DexcaliburProject from "./DexcaliburProject";
+import {ConnectorFactory, IDatabaseAdapter, IDbCollection, IDbIndex} from "./ConnectorFactory";
+
+
+export default class AnalyzerDatabase
 {
+    ctx:DexcaliburProject = null;
+
+
+    /**
+     * DB connector
+     * @type {null}
+     */
+    conn:IDatabaseAdapter = null;
+
+    classes:IDbCollection = null;
+    fields:IDbCollection = null;
+    methods:IDbCollection = null;
+    call:IDbIndex = null;
+    unmapped:IDbIndex = null;
+    notbinded:IDbIndex = null;
+    notloaded:IDbIndex = null;
+    missing:IDbIndex = null;
+    parseErrors:IDbIndex = null;
+    strings:IDbIndex = null;
+    packages:IDbCollection = null;
+    files:IDbIndex = null;
+    buffers:IDbIndex = null;
+    datablock:IDbCollection = null;
+    tagcategories:IDbCollection = null;
+    syscalls:IDbCollection = null;
+    activities:IDbCollection = null;
+    receivers:IDbCollection = null;
+    services:IDbCollection = null;
+    providers:IDbCollection = null;
+    permissions:IDbIndex = null;
+
+    // Manifest node
+    manifest:any = null;
+
     /**
      * To create an analyzer database
      *
@@ -18,14 +51,8 @@ class AnalyzerDatabase
      * @param {String} pConnectorType [Optional] Default NULL. Connector type
      * @constructor
      */
-    constructor(pContext, pConnectorType=null){
+    constructor(pContext:DexcaliburProject, pConnectorType:string=null){
         this.ctx = pContext;
-
-        /**
-         * DB connector
-         * @type {null}
-         */
-        this.conn = null;
 
         if(pConnectorType !== null){
             this.conn = ConnectorFactory.getInstance().newConnector(pConnectorType, pContext);
@@ -67,9 +94,7 @@ class AnalyzerDatabase
      * @return {InMemoryConnector|*}
      * @method
      */
-    getConnector(){
+    getConnector():IDatabaseAdapter{
         return this.conn;
     }
 }
-
-module.exports = AnalyzerDatabase;

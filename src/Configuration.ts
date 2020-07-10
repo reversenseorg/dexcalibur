@@ -112,7 +112,7 @@ export default class Configuration {
             switch(i)
             {
                 case "encoding":
-                    if(ENCODING.indexOf(this[i])==-1){
+                    if(ENCODING.indexOf(this.encoding)==-1){
                         verif.msg[i] = `Invalid encoding. Supported : UTF8, Latin1`;
                         verif.length++;
                     }

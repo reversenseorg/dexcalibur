@@ -1,59 +1,82 @@
-function Bus(ctx){
-    this.context = ctx;
-    this.listener = [];
-    this.provider = [];
-    this.broadcast = {};
-    this.prevented = {};
+import DexcaliburProject from "./DexcaliburProject";
+import Event from "./Event";
 
-    return this;
-}
-Bus.prototype.setContext = function(ctx){
-    this.context = ctx;
-    return this;
+
+interface BusPreventList {
+    [eventID :string] :boolean
 }
 
-Bus.prototype.prevent = function(name){
-    this.prevented[name] = true;
-    return this;
-}
+export default class Bus
+{
+    context:DexcaliburProject = null;
+    listener:any = [];
+    provider:any = [];
+    broadcast:any = {};
+    prevented:BusPreventList = null;
 
-Bus.prototype.unprevent = function(name){
-    this.prevented[name] = false;
-    return this;
-}
+    constructor(pContext:DexcaliburProject){
+        this.context = pContext;
+        this.listener = [];
+        this.provider = [];
+        this.broadcast = {};
+        this.prevented = {};
 
-Bus.prototype.getListener = function(name){
-    for(let i=0; i<this.listener.length; i++)
-        if(this.listener[i].name == name)
-            return this.listener[i];
-    return null;
-}
-Bus.prototype.subscribe = function(listener){
-    this.listener.push(listener);
-    return this;
-}
-Bus.prototype.unscribe = function(listener){
-    for(let i=0; i<this.listener.length; i++){
-        if(this.listener[i].getId()==listener.getID()){
-            this.listener[i] = null;
+        return this;
+    }
+
+
+    setContext(pContext:DexcaliburProject):Bus{
+        this.context = pContext;
+        return this;
+    }
+
+    prevent(eventName:string):Bus{
+        this.prevented[eventName] = true;
+        return this;
+    }
+
+    unprevent(eventName:string):Bus{
+        this.prevented[eventName] = false;
+        return this;
+    }
+
+    // inspector
+    getListener(eventName:string):any{
+        for(let i:number=0; i<this.listener.length; i++)
+            if(this.listener[i].name == eventName)
+                return this.listener[i];
+        return null;
+    }
+
+    subscribe(listener:any):Bus{
+        this.listener.push(listener);
+        return this;
+    }
+
+
+    unscribe(listener:any):boolean{
+        for(let i=0; i<this.listener.length; i++){
+            if(this.listener[i].getId()==listener.getID()){
+                this.listener[i] = null;
+            }
         }
+        return true;
     }
-    return true;
-}
+
 // TODO fix it
-Bus.prototype.send = function(event){
-    
-    if(this.prevented[event.type] != undefined && this.prevented[event.type]===true){
-        this.prevented[event.type] = false;
-        return false;
-    }
+    send(event:Event):boolean{
+
+        if(this.prevented[event.type] != undefined && this.prevented[event.type]===true){
+            this.prevented[event.type] = false;
+            return false;
+        }
 
 
-    for(let i=0; i<this.listener.length; i++){
-        // TODO : async / co
-        this.listener[i].broadcastEvent(event);   
+        for(let i=0; i<this.listener.length; i++){
+            // TODO : async / co
+            this.listener[i].broadcastEvent(event);
+        }
+        return true;
     }
-    return true;
 }
 
-module.exports = Bus;

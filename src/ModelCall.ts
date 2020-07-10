@@ -24,11 +24,12 @@ export default class ModelCall extends Savable
 
     tags:string[] = [];
 
-    constructor(pConfig:any){
+    constructor(pConfig:any=null){
         super(STUB_TYPE.CALL);
 
         if(pConfig !== undefined)
-            for(let i in pConfig) this[i] = pConfig[i];
+            for(let i in pConfig)
+                this[i] = pConfig[i];
     }
 
     print(){

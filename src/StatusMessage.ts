@@ -37,8 +37,8 @@ export default class StatusMessage
      * @returns {StatusMessage}
      * @static
      */
-    static newError( pProgress:number, pMessage:string):StatusMessage{
-        let m:StatusMessage  = new StatusMessage(pProgress, pMessage);
+    static newError( pMessage:string):StatusMessage{
+        let m:StatusMessage  = new StatusMessage(100, pMessage);
         m.extra = "error";
         Logger.debug('<status message> : ERROR : ',pMessage);
 
