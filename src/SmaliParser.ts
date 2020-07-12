@@ -1,14 +1,27 @@
-const _fs_ = require('fs');
-const _es_ = require('event-stream');
+
+import * as _fs_ from 'fs';
+import * as _es_ from 'event-stream';
 
 
-var ut = require("./Utils.js"); 
-var OPCODE = require("./Opcode.js");
-var CONST = require("./CoreConst.js");
-const CLASS = require("./CoreClass.js");
-const Event = require("./Event.js");
-const Logger = require("./Logger.js")();
-const Accessor = require("./AccessFlags");
+import {CONST} from "./CoreConst";
+import DexcaliburProject from "./DexcaliburProject";
+import ModelMethod from "./ModelMethod";
+import ModelDataBlock from "./ModelDataBlock";
+import ModelBasicBlock from "./ModelBasicBlock";
+import ModelCatchStatement from "./ModelCatchStatement";
+import Event from "./Event";
+import Bus from "./Bus";
+import Util from "./Utils";
+import {Modifier, ModifierFormat} from "./AccessFlags";
+import ModelClass from "./ModelClass";
+import * as Log from './Logger';
+import {ModelBasicType, ModelObjectType} from "./ModelType";
+import ModelField from "./ModelField";
+import {ModelClassReference} from "./ModelReference";
+import OpcodeSmaliParser from "./OpcodeSmaliParser";
+import ModelInstruction from "./ModelInstruction";
+
+
 
 const SML_MAIN=0;
 const SML_METH=1;
@@ -18,17 +31,10 @@ const SML_PSWITCH=3;
 const ERR_PARSE=0;
 const LOG_DBG = false;
 
-var LEX = CONST.LEX;
 
-// todo voir WABT, square attack, mesh
+let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
-var LOG = {
-    DEBUG: function(txt){
-        if(LOG_DBG) console.log(txt); 
-    }
-};
 
-// end of core class
 
 var Checker = {
     isBasicType: function(c){
@@ -53,133 +59,135 @@ var Checker = {
  * Represent the Smali parser 
  * @class
  */
-class SmaliParser
+export default class SmaliParser
 {
-    constructor(context=null){
-        this.ctx = context;
-        this.state = null; //  state of the parser
-        this.subject = null; // parsed smali file
-        
-        this.obj = null;
-        this.objReady = false;
+    inAnnotation:boolean = false;
 
-        this.__tmp_meth = null;
-        this.__tmp_block = null;
+    ctx:DexcaliburProject = null;
+    state:any = null; //  state of the parser
+    subject:any = null; // parsed smali file
 
-        this.__instr_ctr = null;
-        this.__instr_line = null;
+    obj:ModelClass = null;
+    objReady:any = false;
 
-        this.currentLine = null;
+    __tmp_meth:ModelMethod = null;
+    __tmp_block:ModelBasicBlock|ModelDataBlock = null;
 
-        let self = this;
-        this.__appendBlock_callback = {
-            // disabled for perform reasons
-            /*basicblock: function(meth,block){
-                this.ctx.bus.send(new Event.Event({
-                    type: "disass.bb.new" 
-                }));
-            },*/
-            datablock: function(meth,block){
-                self.ctx.bus.send(new Event.Event({
-                    type: "disass.datablock.new",
-                    data: block 
-                }));
-            }
-        };
-    }
+    __instr_ctr:any = null;
+    __instr_line:any = null;
 
-    setContext(context){
+    currentLine:any = null;
+
+    self:any = this;
+
+    constructor(context:DexcaliburProject=null){
         this.ctx = context;
     }
 
-    isModifier(name){
-        for(let i in LEX.MODIFIER) 
-            if(LEX.MODIFIER[i]==name) 
+
+    setContext(context:DexcaliburProject):void{
+        this.ctx = context;
+    }
+
+    isModifier(name:string):boolean{
+        for(let i in CONST.LEX.MODIFIER)
+            if(CONST.LEX.MODIFIER[i]==name)
                 return true;
         return false;
     }
 
-    modifier(src){
-        if(src instanceof String) src=src.split(LEX.TOKEN.SPACE);
-        let mod = new Accessor.AccessFlags() , next=true;
+    static modifier(pSource:string|string[], pMatch:number){
+        if(typeof pSource === 'string')
+            pSource=pSource.split(CONST.LEX.TOKEN.SPACE);
+
+        let mod:Modifier = null, next:boolean = true;
 
         //if(src.length<2) return ERR_PARSE;
-        for(let i=0; i<src.length && next; i++){
-            mod._match++;
-            switch(ut.trim(src[i])){
-                case LEX.MODIFIER.PRIVATE:
-                    mod.private = true;
+        for(let i=0; i<pSource.length && next; i++){
+
+            pMatch++;
+
+            switch(Util.trim(pSource[i])){
+                case CONST.LEX.MODIFIER.PRIVATE:
+                    mod |= Modifier.PRIVATE;
                     break;
-                case LEX.MODIFIER.PROTECTED:
-                    mod.protected = true;
+                case CONST.LEX.MODIFIER.PROTECTED:
+                    mod |= Modifier.PROTECTED;
                     break;
-                case LEX.MODIFIER.PUBLIC:
-                    mod.public = true;
+                case CONST.LEX.MODIFIER.PUBLIC:
+                    mod |= Modifier.PUBLIC;
                     break;
-                case LEX.MODIFIER.STATIC:
-                    mod.static = true;
+                case CONST.LEX.MODIFIER.STATIC:
+                    mod |= Modifier.STATIC;
                     break;
-                case LEX.MODIFIER.VOLATILE:
-                    mod.volatile = true;
+                case CONST.LEX.MODIFIER.VOLATILE:
+                    mod |= Modifier.VOLATILE;
                     break;
-                case LEX.MODIFIER.ABSTRACT:
-                    mod.abstract = true;
+                case CONST.LEX.MODIFIER.ABSTRACT:
+                    mod |= Modifier.ABSTRACT;
                     break;
-                case LEX.MODIFIER.FINAL:
-                    mod.final = true;
+                case CONST.LEX.MODIFIER.FINAL:
+                    mod |= Modifier.FINAL;
                     break;
-                case LEX.MODIFIER.CONSTR:
-                    mod.construct = true;
+                case CONST.LEX.MODIFIER.CONSTR:
+                    mod |= Modifier.CONSTRUCT;
                     break;
-                case LEX.MODIFIER.SYNTHETIC:
-                    mod.synth = true;
+                case CONST.LEX.MODIFIER.SYNTHETIC:
+                    mod |= Modifier.SYNTH;
                     break;
-                case LEX.MODIFIER.ENUM:
-                    mod.enum = true;
+                case CONST.LEX.MODIFIER.ENUM:
+                    mod |= Modifier.ENUM;
                     break;
-                case LEX.MODIFIER.TRANSIENT:
-                    mod.transient = true;
+                case CONST.LEX.MODIFIER.TRANSIENT:
+                    mod |= Modifier.TRANS;
                     break;
-                case LEX.MODIFIER.DECLSYNC:
-                    mod.declsync = true;
+                case CONST.LEX.MODIFIER.DECLSYNC:
+                    mod |= Modifier.DECLSYNC;
                     break;
-                case LEX.MODIFIER.BRIDGE:
-                    mod.bridge = true;
+                case CONST.LEX.MODIFIER.BRIDGE:
+                    mod |= Modifier.BRIDGE;
                     break;
-                case LEX.MODIFIER.VARARG:
-                    mod.varargs = true;
+                case CONST.LEX.MODIFIER.VARARG:
+                    mod |= Modifier.VARARGS;
                     break;
-                case LEX.MODIFIER.NATIVE:
-                    mod.native = true;
+                case CONST.LEX.MODIFIER.NATIVE:
+                    mod |= Modifier.NATIVE;
                     break;
-                case LEX.MODIFIER.INTERFACE:
-                    mod.interface = true;
+                case CONST.LEX.MODIFIER.INTERFACE:
+                    mod |= Modifier.INTERFACE;
                     break;
-                case LEX.MODIFIER.ANNOTATION:
-                    mod.annotation = true;
+                case CONST.LEX.MODIFIER.ANNOTATION: // todo : move
+                    mod |= Modifier.ANNOTATION;
                     break;
-                case LEX.MODIFIER.STRICTFP:
-                    mod.strictfp = true;
+                case CONST.LEX.MODIFIER.STRICTFP:
+                    mod |= Modifier.STRICTFP;
                     break;
-                case LEX.MODIFIER.SYNCHRONIZED:
-                    mod.synchronized = true;
+                case CONST.LEX.MODIFIER.SYNCHRONIZED:
+                    mod |= Modifier.SYNC;
                     break;
                 default:
                     next=false;
-                    mod._match--;
+                    pMatch--;
                     break;
             }
         }
 
-        if(LOG_DBG){
-            LOG.DEBUG("[parser::modifier] "+mod.sprint());
-        }
+        Logger.debug("[parser::modifier] "+ModifierFormat.sprintModifier(mod));
+
         return mod;
     }
 
-    fqcn(src){
-        if(src.length==0) return ERR_PARSE;
-        let raw="";
+    /**
+     * To transform a string representing a FQCN from  smali notation to java notation
+     * @param src
+     * @return {string}
+     * @method
+     */
+    static fqcn(src:string|string[]):string{
+        if(src.length==0)
+            throw new Error('[SMALI PARSER] Empty FQCN detected ( L; or L/; )');
+
+        let raw:string;
         raw = (src instanceof Array)? src[0] : src;
 
         // remove additional chars : "L"  at begin and ";" at end. 
@@ -187,15 +195,22 @@ class SmaliParser
         let s=raw.substr(1,raw.length-2);
         while(s.indexOf("/")>-1) s=s.replace("/",".");
         
-        LOG.DEBUG("[parser::fqcn] "+s);
+        Logger.debug("[parser::fqcn] "+s);
         return s; 
     }
 
-    fspath(src){
-        let s=src;
-        s = s.substr(s.indexOf(LEX.TOKEN.DELIMITER)+1);
-        s = s.substr(0,s.indexOf(LEX.TOKEN.DELIMITER));
-        LOG.DEBUG("[parser::fspath] "+s);
+    /**
+     * To parse and to format a file path extracted from smali file
+     *
+     * @param {string} src
+     * @return {string} Formatted file path
+     * @method
+     */
+    fspath(pSource:string):string{
+        let s:string = pSource;
+        s = s.substr(s.indexOf(CONST.LEX.TOKEN.DELIMITER)+1);
+        s = s.substr(0, s.indexOf(CONST.LEX.TOKEN.DELIMITER));
+        Logger.debug("[parser::fspath] "+s);
         return s;
     }
 
@@ -204,72 +219,128 @@ class SmaliParser
         return CONST.TYPES[c];
     }
 
-    class(src){
-        let fqcn=null,end=-1;
-        LOG.DEBUG("---------------------------------------------\n[parser::class] Start ");
+    /**
+     * To create a ModelClass instance from a class reference
+     * such as 'L/java/lang/String;'
+     *
+     * @param src
+     */
+    class(pInStr:string|string[]):ModelClass{
+        let javaFqcn:string=null, end:number=-1, match:number=0;
+
+        Logger.debug("---------------------------------------------\n[parser::class] Start ");
 
         //console.log("[?] Instruction parsed : "+OPCODE.CTR);
-        if(src instanceof String)
-            src=ut.trim(src).split(LEX.STRUCT.SPACE); 
+        if(typeof pInStr === 'string')
+            pInStr=Util.trim(pInStr).split(CONST.LEX.TOKEN.SPACE);
         
-        if(src[0]==LEX.STRUCT.CLASS)   src.shift();
+        if(pInStr[0]==CONST.LEX.STRUCT.CLASS)
+            pInStr.shift();
 
-        this.obj = new CLASS.Class();
+        this.obj = new ModelClass();
         //console.log(src);
         // parse modifiers
-        this.obj.modifiers = this.modifier(src);
+        this.obj.modifiers = SmaliParser.modifier(pInStr, match);
         //console.log(src);
 
         // clean src with identified modifier
-        for(let i=0; i<this.obj.modifiers._match; i++) src.shift();
+        for(let i:number=0; i<match; i++)
+            pInStr.shift();
 
         // console.log(src);
         // parse nam
-        fqcn = this.fqcn(src);
-        end = fqcn.lastIndexOf(".");
-        this.obj.fqcn = this.obj.name = fqcn;
-        this.obj.package = fqcn.substr(0,end); 
-        this.obj.simpleName = fqcn.substr(end+1); 
-        if(this.obj.name.indexOf(LEX.TOKEN.INNER_FQCN)>-1){
-            this.obj.simpleName = this.obj.simpleName.substr(this.obj.simpleName.indexOf(LEX.TOKEN.INNER_FQCN)+1);
+        javaFqcn = SmaliParser.fqcn(pInStr);
+        end = javaFqcn.lastIndexOf(".");
+        this.obj.name = javaFqcn;
+        //this.obj.fqcn = this.obj.name;
+        this.obj.package = javaFqcn.substr(0,end);
+        this.obj.simpleName = javaFqcn.substr(end+1);
+        if(this.obj.name.indexOf(CONST.LEX.TOKEN.INNER_FQCN)>-1){
+            this.obj.simpleName = this.obj.simpleName.substr(this.obj.simpleName.indexOf(CONST.LEX.TOKEN.INNER_FQCN)+1);
             this.obj.innerClass = true;
-            this.obj.enclosingClass = this.obj.name.substr(0,this.obj.name.indexOf(LEX.TOKEN.INNER_FQCN));
+            this.obj.enclosingClass = new ModelClassReference(
+                this.obj.name.substr(0,this.obj.name.indexOf(CONST.LEX.TOKEN.INNER_FQCN)));
         } 
 
-        this.obj._hashcode = this.obj.hashCode();
+        //this.obj._hashcode = this.obj.hashCode();
 
-        LOG.DEBUG("[parser::class] End\n---------------------------------------------");
+        Logger.debug("[parser::class] End\n---------------------------------------------");
         return this.obj;
     }
 
 
-    type(src){
-        let i=0,l=-1,types=[],s=src,fqn=null,isArray=false;
+    static class(pInStr:string|string[]):ModelClass{
+        let javaFqcn:string=null, end:number=-1, match:number=0;
+        let clz:ModelClass;
+
+        Logger.debug("---------------------------------------------\n[parser::class] Start ");
+
+        //console.log("[?] Instruction parsed : "+OPCODE.CTR);
+        if(typeof pInStr === 'string')
+            pInStr=Util.trim(pInStr).split(CONST.LEX.TOKEN.SPACE);
+
+        if(pInStr[0]==CONST.LEX.STRUCT.CLASS)
+            pInStr.shift();
+
+        clz = new ModelClass();
+        //console.log(src);
+        // parse modifiers
+        clz.modifiers = SmaliParser.modifier(pInStr, match);
+        //console.log(src);
+
+        // clean src with identified modifier
+        for(let i:number=0; i<match; i++)
+            pInStr.shift();
+
+        // console.log(src);
+        // parse nam
+        javaFqcn = SmaliParser.fqcn(pInStr);
+        end = javaFqcn.lastIndexOf(".");
+        clz.name = javaFqcn;
+        //this.obj.fqcn = this.obj.name;
+        clz.package = javaFqcn.substr(0,end);
+        clz.simpleName = javaFqcn.substr(end+1);
+        if(clz.name.indexOf(CONST.LEX.TOKEN.INNER_FQCN)>-1){
+            clz.simpleName = clz.simpleName.substr(clz.simpleName.indexOf(CONST.LEX.TOKEN.INNER_FQCN)+1);
+            clz.innerClass = true;
+            clz.enclosingClass = new ModelClassReference(
+                clz.name.substr(0,clz.name.indexOf(CONST.LEX.TOKEN.INNER_FQCN)));
+        }
+
+        //this.obj._hashcode = this.obj.hashCode();
+
+        Logger.debug("[parser::class] End\n---------------------------------------------");
+        return clz;
+    }
+
+
+    type(src:string):(ModelObjectType|ModelBasicType)[]{
+        let i:number=0,l:number=-1,types:(ModelObjectType|ModelBasicType)[]=[],fqn:string=null,isArray:boolean=false;
 
         while(i<src.length){
-            if(src[i]==LEX.TOKEN.ARRAY){
+            if(src[i]==CONST.LEX.TOKEN.ARRAY){
                 isArray=true;
                 i++;
                 continue;
             }
 
-            if(src[i]==LEX.TOKEN.OBJREF){
+            if(src[i]==CONST.LEX.TOKEN.OBJREF){
                 l=src.indexOf(";",i);
-                fqn=this.fqcn(src.substr(i,l-i+1));
+                fqn=SmaliParser.fqcn(src.substr(i,l-i+1));
                 //console.log(fqn);
-                types.push(new CLASS.ObjectType(fqn, isArray));
+                types.push(new ModelObjectType(fqn, isArray));
                 i=l+1;
                 isArray=false;
                 continue;
 
             }else if(Checker.isBasicType(src[i])){
-                types.push(new CLASS.BasicType(src[i], isArray));
+                types.push(new ModelBasicType(src[i], isArray));
                 i++;
                 isArray = false;
                 continue;
             }
             else{
-                console.log("[!] Unknow type : "+src[i]+" (in "+src+")");
+                Logger.info("[SMALI PARSER] Unknow type : "+src[i]+" (in "+src+")");
                 break;
             }
         }
@@ -279,33 +350,34 @@ class SmaliParser
 
 
     /**
-     * To parse a method header
+     * To parse a method header and update method currently parsed
      */
-    methodHeader(src){
-        let mod = this.modifier(src), raw=null, tmp=null, args=null, ret=null, sa=0, ea=0;
+    methodHeader(pSource:string[], pLineLocation:number){
+        let match = 0;
+        let mod:Modifier = SmaliParser.modifier(pSource, match), raw=null, tmp=null, args=null, ret=null, sa=0, ea=0;
         let argTypes = null;
-        // clean src with identified modifier
-        for(let i=0; i<mod._match; i++) src.shift();
 
-        if(src.length > 1){
-            console.log(src,mod);
-            console.log("[!] Method has more modifiers");
+        // clean src with identified modifier
+        for(let i=0; i<match; i++) pSource.shift();
+
+        if(pSource.length > 1){
+            Logger.info("[SMALI PARSER] Method has more modifiers");
+            // Logger.debug(pSource.join(' '), ModifierFormat.sprintModifier(mod));
         }
 
         this.__tmp_meth.modifiers = mod;
-        raw = ut.trim(src[src.length-1]);
+        raw = Util.trim(pSource[pSource.length-1]);
 
-        // risque d'UTF8 / autre dans le nom, quid des regexp;
-        tmp = raw.substr(0,sa=raw.indexOf(LEX.TOKEN.METH_ARG_B));  
+        // TODO : risque d'UTF8 / autre dans le nom, quid des regexp;
+        tmp = raw.substr(0,sa=raw.indexOf(CONST.LEX.TOKEN.METH_ARG_B));
         this.__tmp_meth.name = tmp;
         
-        args = raw.substr(sa+1,(ea=raw.indexOf(LEX.TOKEN.METH_ARG_E))-sa-1)
-        argTypes = this.type(ut.trim(args));
+        args = raw.substr(sa+1,(ea=raw.indexOf(CONST.LEX.TOKEN.METH_ARG_E))-sa-1)
+        argTypes = this.type(Util.trim(args));
         this.__tmp_meth.args = argTypes;
-        this.__tmp_meth.argsNb = this.__tmp_meth.args.length;
 
         ret=raw.substr(ea+1);
-        ret = this.type(ut.trim(ret))
+        ret = this.type(Util.trim(ret))
         if(ret.length == 0)
             console.log("[!] this.method error : return type of '"+tmp+"("+args+")' cannot be parsed.")
             //exit(0);
@@ -313,13 +385,13 @@ class SmaliParser
         this.__tmp_meth.enclosingClass = this.obj;
         this.__tmp_meth.ret = ret[0];
 
-        this.__tmp_meth._hashcode = this.__tmp_meth.hashCode();
+        //this.__tmp_meth._hashcode = this.__tmp_meth.hashCode();
     }
 
-    instr(src, raw_src, src_line){
-        let inst = null;//new Instruction();
+    instr(src:string[], raw_src:string, src_line:number):ModelInstruction{
+        let inst:ModelInstruction = null;//new Instruction();
 
-        inst = OPCODE.parse(src,raw_src, src_line);
+        inst = OpcodeSmaliParser.parse(src,raw_src, src_line);
 
         if(inst != null){
             //console.log(inst);
@@ -330,15 +402,16 @@ class SmaliParser
         return inst;
     }
 
-    field(src_arr, src_line){
-        let f=new CLASS.Field(), type=null, tmp=null;
+    field(src_arr:string[], src_line:number){
+        let f:ModelField=new ModelField(), type:(ModelBasicType|ModelObjectType)[]=null, tmp:string[]=null;
+        let match = 0;
 
         // parse modifiers
-        f.modifiers = this.modifier(src_arr);
+        f.modifiers = SmaliParser.modifier(src_arr, match);
         //console.log(f.modifiers);
 
         // clean src with identified modifier
-        for(let i=0; i<f.modifiers._match; i++) src_arr.shift();
+        for(let i=0; i<match; i++) src_arr.shift();
         // parse name and type
         tmp=src_arr[0].split(":");
         
@@ -350,204 +423,245 @@ class SmaliParser
         //console.log(type.type[0]._hashcode);
 
         f.enclosingClass = this.obj;
-        f._hashcode = f.hashCode();//Checker.makeFieldHashcode(f.modifiers,this.obj,f.name,f.type);
+        //f._hashcode = f.hashCode();//Checker.makeFieldHashcode(f.modifiers,this.obj,f.name,f.type);
         
         f.signature();
-        f.oline = src_line;
+        //f.oline = src_line;
 
-        LOG.DEBUG("[parser::field] Hashcode : "+f._hashcode);
+        Logger.debug("[parser::field] Hashcode : "+f._hashcode);
 
         src_arr.shift();
 
         // parse value if available
         if(src_arr.length>0){
             // TODO : parse value
-            f.value = src_arr.pop();
+            f.setValue(src_arr.pop());
         }
         return f;
     }
 
+    getBehaviorFor(pElement:string):any{
+        let mainBus:Bus = this.ctx.bus;
+        const standard = {
+            datablock: function(pMethod:ModelMethod, pBlock:ModelDataBlock){
+                mainBus.send(new Event({
+                    type: "disass.datablock.new",
+                    data: pBlock
+                }));
+            }
+        };
 
-    method(src, raw_src, src_line){
+        return standard[pElement];
+    }
+
+    appendBlockTo( pMethod:ModelMethod, pBlock:ModelDataBlock|ModelBasicBlock, pCallback:any=null){
+        let self=this;
+
+        if(pBlock instanceof ModelBasicBlock){
+            pMethod.appendBasicBlock(pBlock, null);
+        }
+        // else if ModelDataBlock
+        else{
+            pMethod.appendDataBlock(pBlock, this.getBehaviorFor('datablock'));
+        }
+    }
+
+    method(src:string[], raw_src:string, src_line:number){
         if(this.state != SML_METH) return null;
         
-        let sml=src, hdl=null, catchStmt=null, tmp=null;
+        let sml:string[]=src, hdl:any=null, catchStmt=null, tmp:any=null;
 
 
-        switch(ut.trim(sml[0])){
-            case LEX.STRUCT.METHOD_BEG:
-                LOG.DEBUG("---------------------------------------------\n[parser::method] Start ");    
-                this.__tmp_meth = new CLASS.Method();
+        switch(Util.trim(sml[0])){
+            case CONST.LEX.STRUCT.METHOD_BEG:
+                Logger.debug("---------------------------------------------\n[parser::method] Start ");
+                this.__tmp_meth = new ModelMethod();
                 sml.shift();
 
-                this.methodHeader(sml,src_line);  
+                this.methodHeader(sml, src_line);
             
-                this.__tmp_meth.__$in_annot = false;
-                this.__tmp_block = new CLASS.BasicBlock();
+                this.inAnnotation = false;
+                this.__tmp_block = new ModelBasicBlock();
                 this.__instr_ctr = 0;
                 break;
-            case LEX.STRUCT.LOCALS:
+            case CONST.LEX.STRUCT.LOCALS:
                 this.__tmp_meth.locals = parseInt(sml[1],10);
                 break;
-            case LEX.STRUCT.PARAMS:
+            case CONST.LEX.STRUCT.PARAMS:
                 // this.__tmp_meth.params = parseInt(sml[1],10);
                 this.__tmp_meth.params.push(
-                    OPCODE.parseParam(sml[1],raw_src)
+                    OpcodeSmaliParser.parseParam(sml, raw_src, src_line)// TODO : sml[1] replaced by sml[]
                 );
                 
                 break;
-            case LEX.STRUCT.REG:
+            case CONST.LEX.STRUCT.REG:
                 this.__tmp_meth.registers = parseInt(sml[1],10);
                 break;
             case ".prologue":
                 break;
-            case LEX.STRUCT.LINE:
+            case CONST.LEX.STRUCT.LINE:
                 
                 // .line is just a metadata associated to an instruction
                 /*if(this.__tmp_block != null && this.__tmp_block.stack.length > 0){
 
                     this.__tmp_meth.appendBlock(this.__tmp_block, this.__appendBlock_callback);
-                    this.__tmp_block = new CLASS.BasicBlock();
+                    this.__tmp_block = new ModelBasicBlock();
                 }*/
                 //  && this.__tmp_block.line != null
+
+                // to set line number extract from basic block metadata
                 this.__tmp_block.line = parseInt(sml[1],10);
                 this.currentLine = parseInt(sml[1],10);
 
                 // source line number
-                this.__tmp_block.srcln = parseInt(sml[1],10);
+                //this.__tmp_block.srcln = parseInt(sml[1],10);
                 
                 break;
-            case LEX.STRUCT.PSWITCH:
+            case CONST.LEX.STRUCT.PSWITCH:
                 
                 if(sml[1] != undefined){
-                    this.__tmp_block.setupPackedSwitchStatement(parseInt(sml[1],16));
+
+                    (this.__tmp_block as ModelBasicBlock).setupPackedSwitchStatement(parseInt(sml[1],16));
                 }
 
                 break;
-            case LEX.STRUCT.SSWITCH:
-                
-                this.__tmp_block.setupSparseSwitchStatement();
-                
-                break;
-            case LEX.STRUCT.ARRAY:
-                this.__tmp_block.setDataWidth(parseInt(sml[1],10));
-                
-                break;
-            case LEX.STRUCT.END:
+            case CONST.LEX.STRUCT.SSWITCH:
 
-                if(sml[1]!=undefined && sml[1]==LEX.STRUCT.METHOD_NAME){
+               //if(this.__tmp_block instanceof  ModelBasicBlock)
+                (this.__tmp_block as ModelBasicBlock).setupSparseSwitchStatement();
+                
+                break;
+            case CONST.LEX.STRUCT.ARRAY:
+
+                (this.__tmp_block as ModelDataBlock).setDataWidth(parseInt(sml[1],10));
+                
+                break;
+            case CONST.LEX.STRUCT.END:
+
+                if(sml[1]!=undefined && sml[1]==CONST.LEX.STRUCT.METHOD_NAME){
                     //hdl = this.__tmp_meth._hashcode;
-                    this.state=SML_MAIN;   
-                    this.__tmp_meth.appendBlock(this.__tmp_block, this.__appendBlock_callback);   
+                    this.state=SML_MAIN;
+                    this.appendBlockTo( this.__tmp_meth, this.__tmp_block);
                     
                     this.obj.methods[ this.__tmp_meth.signature()] = this.__tmp_meth;
                     this.obj._methCount++;
-                    LOG.DEBUG("[parser::method] End\n---------------------------------------------");
-                }else if(sml[1]!=undefined && sml[1]==LEX.STRUCT.ANNOTATION_NAME){
-                    this.__tmp_meth.__$in_annot = false;
+                    Logger.debug("[parser::method] End\n---------------------------------------------");
+                }else if(sml[1]!=undefined && sml[1]==CONST.LEX.STRUCT.ANNOTATION_NAME){
+                   //this.__tmp_meth.__$in_annot = false;
+                    this.inAnnotation = false;
                 }/*
-                else if(sml[1]!=undefined && sml[1]==LEX.STRUCT.PSWITCH_NAME){
+                else if(sml[1]!=undefined && sml[1]==CONST.LEX.STRUCT.PSWITCH_NAME){
                     // nothing to do
                     //console.log("End of packed switch");
                 }xs
-                else if(sml[1]!=undefined && sml[1]==LEX.STRUCT.ARRAY_NAME){
+                else if(sml[1]!=undefined && sml[1]==CONST.LEX.STRUCT.ARRAY_NAME){
 
                 }*/
                 break;
-            case LEX.STRUCT.ANNOT_BEG:
+            case CONST.LEX.STRUCT.ANNOT_BEG:
                 // ignore
-                this.__tmp_meth.__$in_annot = true;
+                // this.__tmp_meth.__$in_annot = true;
+                this.inAnnotation = true;
                 break;
             default: 
-                if(this.__tmp_meth.__$in_annot){
+                if(this.inAnnotation){ //this.__tmp_meth.__$in_annot){
                     // ignore
                     break;
                 }
 
                 if(sml[0].indexOf(':cond_')>-1){
-                    if(this.__tmp_block instanceof CLASS.DataBlock || this.__tmp_block.stack.length>0){
-                        this.__tmp_meth.appendBlock(this.__tmp_block, this.__appendBlock_callback);
-                        this.__tmp_block = new CLASS.BasicBlock();
+                    if(this.__tmp_block instanceof ModelDataBlock || this.__tmp_block.stack.length>0){
+                        this.appendBlockTo( this.__tmp_meth, this.__tmp_block);
+                        this.__tmp_block = new ModelBasicBlock();
                     }
 
                     //this.__tmp_block.tag = sml[0];
-                    this.__tmp_block.setAsConditionalBlock(sml[0].split('_')[1]);
+
+                    (this.__tmp_block as ModelBasicBlock).setAsConditionalBlock(sml[0].split('_')[1]);
 
                 }else if(sml[0].indexOf(':goto_')>-1){
-                    if(this.__tmp_block instanceof CLASS.DataBlock || this.__tmp_block.stack.length>0){
-                        this.__tmp_meth.appendBlock(this.__tmp_block, this.__appendBlock_callback);
-                        this.__tmp_block = new CLASS.BasicBlock();
+                    if(this.__tmp_block instanceof ModelDataBlock || this.__tmp_block.stack.length>0){
+                        this.appendBlockTo( this.__tmp_meth, this.__tmp_block);
+                        this.__tmp_block = new ModelBasicBlock();
                     }
                     //this.__tmp_block.tag = sml[0];
-                    this.__tmp_block.setAsGotoBlock(sml[0].split('_')[1]);
+                    (this.__tmp_block as ModelBasicBlock).setAsGotoBlock(sml[0].split('_')[1]);
 
                 }
                 else if(sml[0].indexOf(':try_start')>-1){
-                    if(this.__tmp_block instanceof CLASS.DataBlock || this.__tmp_block.stack.length>0){
-                        this.__tmp_meth.appendBlock(this.__tmp_block, this.__appendBlock_callback);
-                        this.__tmp_block = new CLASS.BasicBlock();
+                    if(this.__tmp_block instanceof ModelDataBlock || this.__tmp_block.stack.length>0){
+                        this.appendBlockTo( this.__tmp_meth, this.__tmp_block);
+                        this.__tmp_block = new ModelBasicBlock();
                     }
                     //   this.__tmp_block.tag = sml[0];
-                    this.__tmp_block.setAsTryBlock(sml[0]);
+
+                    (this.__tmp_block as ModelBasicBlock).setAsTryBlock(sml[0]);
                     
                 }
                 else if(sml[0].indexOf(':try_end')>-1){
-                    this.__tmp_block.setTryEndName(sml[0]);
+
+                    (this.__tmp_block as ModelBasicBlock).setTryEndName(sml[0]);
 
                     if(this.__tmp_block != null){
-                        this.__tmp_meth.appendBlock(this.__tmp_block, this.__appendBlock_callback);
-                        this.__tmp_block = new CLASS.BasicBlock();
+                        this.appendBlockTo( this.__tmp_meth, this.__tmp_block);
+                        this.__tmp_block = new ModelBasicBlock();
                     }
                 }
                 // >-1
-                else if(sml[0].indexOf(LEX.LABEL.PSWITCH_DATA)==0 || sml[0].indexOf(LEX.LABEL.SSWITCH_DATA)==0){
+                else if(sml[0].indexOf(CONST.LEX.LABEL.PSWITCH_DATA)==0 || sml[0].indexOf(CONST.LEX.LABEL.SSWITCH_DATA)==0){
 
                     if(this.__tmp_block != null){
-                        this.__tmp_meth.appendBlock(this.__tmp_block, this.__appendBlock_callback);
-                        this.__tmp_block = new CLASS.BasicBlock();
+                        this.appendBlockTo( this.__tmp_meth, this.__tmp_block);
+                        this.__tmp_block = new ModelBasicBlock();
                     }
-                    
-                    this.__tmp_block.setAsSwitchStatement(sml[0]);
+
+                    (this.__tmp_block as ModelBasicBlock).setAsSwitchStatement(sml[0]);
                 }
                 // >-1
-                else if(sml[0].indexOf(LEX.LABEL.PSWITCH)==0){
-    
-                    if(this.__tmp_block.isSwitchStatement()){
+                else if(sml[0].indexOf(CONST.LEX.LABEL.PSWITCH)==0){
+
+
+                    if(this.__tmp_block instanceof  ModelBasicBlock) {
+                        if (this.__tmp_block.isSwitchStatement()) {
                             this.__tmp_block.switch.appendCase(sml[0]);
-                    }else{  
-                        this.__tmp_block.setAsSwitchCase(sml[0]);
-                    }   
+                        } else {
 
+                            this.__tmp_block.setAsSwitchCase(sml[0]);
+                        }
+                    }
                 }
                 // >-1 
-                else if(sml[0].indexOf(LEX.LABEL.SSWITCH)==0){
+                else if(sml[0].indexOf(CONST.LEX.LABEL.SSWITCH)==0){
 
                     if(this.__tmp_block != null
-                        && (this.__tmp_block instanceof CLASS.DataBlock 
+                        && (this.__tmp_block instanceof ModelDataBlock
                             || this.__tmp_block.stack.length > 0)){
-                        this.__tmp_meth.appendBlock(this.__tmp_block, this.__appendBlock_callback);
-                        this.__tmp_block = new CLASS.BasicBlock();
+                        this.appendBlockTo( this.__tmp_meth, this.__tmp_block);
+                        this.__tmp_block = new ModelBasicBlock();
                     }
                         
-                    this.__tmp_block.setAsSwitchCase(sml[0]);
+                    (this.__tmp_block as ModelBasicBlock).setAsSwitchCase(sml[0]);
                 }
-                else if(sml.length > 2 && sml[2].indexOf(LEX.LABEL.SSWITCH)>-1 && sml[0].indexOf("p")==-1){
-                    if(this.__tmp_block.isSwitchStatement()){
-                     //   console.log(sml);
-                        this.__tmp_block.switch.appendCase(sml[0],sml[2]);
-                    } 
+                else if(sml.length > 2 && sml[2].indexOf(CONST.LEX.LABEL.SSWITCH)>-1 && sml[0].indexOf("p")==-1){
+
+                    if(this.__tmp_block instanceof  ModelBasicBlock){
+                        if(this.__tmp_block.isSwitchStatement()){
+                            //   console.log(sml);
+                            this.__tmp_block.switch.appendCase(sml[0],sml[2]);
+                        }
+                    }
 
                 }
-                else if(sml[0].indexOf(LEX.LABEL.ARRAY)>-1){
+                else if(sml[0].indexOf(CONST.LEX.LABEL.ARRAY)>-1){
                     // check if tmp block not empty (data or bb)
                     if(this.__tmp_block != null){
-                        this.__tmp_meth.appendBlock(this.__tmp_block, this.__appendBlock_callback);
+                        this.appendBlockTo( this.__tmp_meth, this.__tmp_block);
                     }
-                    this.__tmp_block = new CLASS.DataBlock();
+                    this.__tmp_block = new ModelDataBlock();
                     this.__tmp_block.name = sml[0];
                 }
-                else if(sml[0].indexOf(LEX.STRUCT.CATCH_ALL)>-1){
-                    catchStmt = new CLASS.CatchStatement();
+                else if(sml[0].indexOf(CONST.LEX.STRUCT.CATCH_ALL)>-1){
+                    catchStmt = new ModelCatchStatement();
                     catchStmt.setTryStart(sml[1].substr(1,sml[1].length));
                     catchStmt.setTryEnd(sml[3].substr(0,sml[3].length-1));
                     catchStmt.setTarget(sml[4]);
@@ -558,8 +672,8 @@ class SmaliParser
 
                     //this.__tmp_block.addCatchStatement(catchStmt);
                 }
-                else if(sml[0].indexOf(LEX.STRUCT.CATCH)>-1){
-                    catchStmt = new CLASS.CatchStatement();
+                else if(sml[0].indexOf(CONST.LEX.STRUCT.CATCH)>-1){
+                    catchStmt = new ModelCatchStatement();
                     catchStmt.setException(this.type(sml[1])[0]);
                     catchStmt.setTryStart(sml[2].substr(1,sml[2].length));
                     catchStmt.setTryEnd(sml[4].substr(0,sml[4].length-1));
@@ -570,33 +684,34 @@ class SmaliParser
                     tmp[tmp.length-1].addCatchStatement(catchStmt);
                     /*if(this.__tmp_block != null){
                         this.__tmp_meth.appendBlock(this.__tmp_block, this.__appendBlock_callback);
-                        this.__tmp_block = new CLASS.BasicBlock();
+                        this.__tmp_block = new ModelBasicBlock();
                     }
 
                     this.__tmp_block.addCatchStatement(catchStmt);*/
                 }
-                else if(sml[0].indexOf(LEX.LABEL.CATCH)>-1){
+                else if(sml[0].indexOf(CONST.LEX.LABEL.CATCH)>-1){
                     if(this.__tmp_block != null 
-                        && ( this.__tmp_block instanceof CLASS.DataBlock 
+                        && ( this.__tmp_block instanceof ModelDataBlock
                             || this.__tmp_block.stack.length > 0 )){
-                        this.__tmp_meth.appendBlock(this.__tmp_block, this.__appendBlock_callback);              
-                        this.__tmp_block = new CLASS.BasicBlock();
+                        this.appendBlockTo( this.__tmp_meth, this.__tmp_block);
+                        this.__tmp_block = new ModelBasicBlock();
                     }
 
-                    this.__tmp_block.setCatchCond(raw_src);
+                    (this.__tmp_block as ModelBasicBlock).setCatchCond(raw_src);
                 }
                 else if(sml[0].indexOf(':catchall')>-1){
 
                     if(this.__tmp_block != null 
-                        && ( this.__tmp_block instanceof CLASS.DataBlock 
+                        && ( this.__tmp_block instanceof ModelDataBlock
                             || this.__tmp_block.stack.length > 0 )){
-                        this.__tmp_meth.appendBlock(this.__tmp_block, this.__appendBlock_callback);              
-                        this.__tmp_block = new CLASS.BasicBlock();
+                        this.appendBlockTo( this.__tmp_meth, this.__tmp_block);
+                        this.__tmp_block = new ModelBasicBlock();
                     }
-                    this.__tmp_block.setAsCatchBlock(sml[0]);
+
+                    (this.__tmp_block as ModelBasicBlock).setAsCatchBlock(sml[0]);
 
                 }
-                else if(this.__tmp_block instanceof CLASS.DataBlock){
+                else if(this.__tmp_block instanceof ModelDataBlock){
 
                     hdl = CONST.RE.ARRAY_VALUE.exec(sml[0]);
                     if(hdl ==null) break; 
@@ -604,7 +719,7 @@ class SmaliParser
                 }
                 else{
 
-                    if(this.__tmp_block instanceof CLASS.DataBlock) console.log("Error : DataBlock instead of BasicBlock",this.__tmp_meth);
+                    if(this.__tmp_block instanceof ModelDataBlock) console.log("Error : DataBlock instead of BasicBlock",this.__tmp_meth);
                     if(this.__tmp_block == null) console.log("Error : tmpBlock is null",this.__tmp_meth);
                     hdl = this.instr(sml,raw_src,src_line);
 
@@ -623,9 +738,9 @@ class SmaliParser
                         if(hdl.opcode.type == CONST.INSTR_TYPE.IF || hdl.opcode.type == CONST.INSTR_TYPE.GOTO ) {
 
                             
-                            if(this.__tmp_block instanceof CLASS.DataBlock || this.__tmp_block.stack.length>0){
-                                this.__tmp_meth.appendBlock(this.__tmp_block, this.__appendBlock_callback);
-                                this.__tmp_block = new CLASS.BasicBlock();
+                            if(this.__tmp_block instanceof ModelDataBlock || this.__tmp_block.stack.length>0){
+                                this.appendBlockTo( this.__tmp_meth, this.__tmp_block);
+                                this.__tmp_block = new ModelBasicBlock();
                             }
 
                         }
@@ -634,9 +749,9 @@ class SmaliParser
 
                     // add end of basic block on If / Goto
 /*                    else if(this.isJumpInstruction(sml)){
-                        if(this.__tmp_block instanceof CLASS.DataBlock || this.__tmp_block.stack.length>0){
+                        if(this.__tmp_block instanceof ModelDataBlock || this.__tmp_block.stack.length>0){
                             this.__tmp_meth.appendBlock(this.__tmp_block, this.__appendBlock_callback);
-                            this.__tmp_block = new CLASS.BasicBlock();
+                            this.__tmp_block = new ModelBasicBlock();
                         }
 
                         if(this.__tmp_block == null) console.log("Error : tmpBlock is null",this.__tmp_meth);
@@ -662,16 +777,18 @@ class SmaliParser
         return true;
     }
 
-    annotation(src){
+    annotation(pSource:string|string[]):void{
         if(this.state != SML_ANNO) return null;
 
-        let sml=[], hdl=null;
+        let sml:string[]=[];
 
-        sml=(src instanceof String)? src.split(LEX.TOKEN.SPACE) : src ;
+        sml = (Array.isArray(pSource)==false)?
+                (pSource as string).split(CONST.LEX.TOKEN.SPACE)
+                : (pSource as string[])  ;
         
         // search lexeme
-        switch(ut.trim(sml[0])){
-            case LEX.STRUCT.END:
+        switch(Util.trim(sml[0])){
+            case CONST.LEX.STRUCT.END:
                 if(sml[1]!=undefined && sml[1]=="annotation"){
                     this.state=SML_MAIN;    
                 }
@@ -680,33 +797,34 @@ class SmaliParser
         //console.log("[!] this.annotation not implemented");
     }
 
-    parse(src){
-        let ls=src.split("\n"), ln=null, sml=null, obj=null;
+    parse(pSource:string):ModelClass{
+        let lines:string[]=pSource.split("\n"), line:string=null, sml:string[]=null, obj:any=null;
     
         //console.log(ls);
-        for(let l=0; l<ls.length; l++){
-            ln=ut.trim(ls[l]);
-            if(ln.length==0){
+        for(let l:number=0; l<lines.length; l++){
+            line=Util.trim(lines[l]);
+            if(line.length==0){
                 continue;
             }
-            sml=ln.split(LEX.TOKEN.SPACE);
+            sml=line.split(CONST.LEX.TOKEN.SPACE);
+
             switch(sml[0]){
-                case LEX.STRUCT.CLASS:
+                case CONST.LEX.STRUCT.CLASS:
                     sml.shift();
-                    this.class(sml);
+                    this.obj = SmaliParser.class(sml);
                     break;
-                case LEX.STRUCT.IMPLEMENTS:
+                case CONST.LEX.STRUCT.IMPLEMENTS:
                     sml.shift();
-                    this.obj.implements.push(this.fqcn(sml[0]));
+                    this.obj.implements.push(SmaliParser.fqcn(sml[0]));
                     break;
-                case LEX.STRUCT.SUPER:
+                case CONST.LEX.STRUCT.SUPER:
                     sml.shift();
-                    this.obj.extends = this.fqcn(sml[0]);
+                    this.obj.extends = new ModelClassReference(SmaliParser.fqcn(sml[0]));
                     break;
-                case LEX.STRUCT.SRC: 
+                case CONST.LEX.STRUCT.SRC:
                     this.obj.source = this.fspath(sml[1]);
                     break;
-                case LEX.STRUCT.FIELD:
+                case CONST.LEX.STRUCT.FIELD:
                     sml.shift();
                     obj=this.field(sml,l);
                     // use an internal name which combine visibility and field name
@@ -715,11 +833,11 @@ class SmaliParser
                     this.obj._fieldCount++;
                     
                     break;
-                case LEX.STRUCT.METHOD_BEG:
+                case CONST.LEX.STRUCT.METHOD_BEG:
                     this.state = SML_METH;
-                    this.method(sml,ln,l);
+                    this.method(sml,line,l);
                     break;
-                case LEX.STRUCT.ANNOT_BEG:
+                case CONST.LEX.STRUCT.ANNOT_BEG:
                     if(this.state != SML_METH){
                         this.state = SML_ANNO;
                         this.annotation(sml);
@@ -728,10 +846,11 @@ class SmaliParser
                 default:
                     switch(this.state){
                         case SML_METH:
-                            this.method(sml,ln,l);
+                            this.method(sml,line,l);
                             break;
                         case SML_PSWITCH:
-                            this.pswitch(sml,ln,l);
+                            //this.pswitch(sml,line,l);
+                            Logger.error("[SMALI PARSER] Invalid state detceted : SML_PSWITCH")
                             break;
                         case SML_ANNO:
                             this.annotation(sml);
@@ -745,7 +864,7 @@ class SmaliParser
         return this.obj;
     }
 
-    parseStream( pFilePath, pEncoding, pCallback){
+    parseStream( pFilePath:string, pEncoding, pCallback){
 
         let _self = this, rs=null, stream=null;
         _self.obj = null;
@@ -774,88 +893,6 @@ class SmaliParser
             })
         );
 
-        //stream = _fs_.createReadStream(pFilePath,{ encoding: 'utf8' });
-
-        //stream = LineStream(stream);
-
-        /*
-        stream.on('resume', function(){
-            console.log('resume');
-        });*/
-
-     
-        
-/*
-        stream.on('pause', function(){
-            console.log('paused');
-        });
-
-        stream.on('close', function(){
-            console.log("close", _self.obj)
-            pCallback(_self.obj);
-        });
-
-        stream.on('data', function(pLine){
-            let ln=null, sml=null, obj=null;
-
-            console.log(pLine);
-
-            ln=ut.trim(pLine);
-            if(ln.length==0){
-                return;
-            }
-
-            sml=ln.split(LEX.TOKEN.SPACE);
-            switch(sml[0]){
-                case LEX.STRUCT.CLASS:
-                    sml.shift();
-                    _self.class(sml);
-                    break;
-                case LEX.STRUCT.IMPLEMENTS:
-                    sml.shift();
-                    _self.obj.implements.push(_self.fqcn(sml[0]));
-                    break;
-                case LEX.STRUCT.SUPER:
-                    sml.shift();
-                    _self.obj.extends = _self.fqcn(sml[0]);
-                    break;
-                case LEX.STRUCT.SRC: 
-                    _self.obj.source = _self.fspath(sml[1]);
-                    break;
-                case LEX.STRUCT.FIELD:
-                    sml.shift();
-                    obj=_self.field(sml,l);
-                    // use an internal name which combine visibility and field name
-                    //this.obj.fields[obj._hashcode] = obj;
-                    _self.obj.fields[obj.signature()] = obj;
-                    _self.obj._fieldCount++;
-                    
-                    break;
-                case LEX.STRUCT.METHOD_BEG:
-                    _self.state = SML_METH;
-                    _self.method(sml,ln,l);
-                    break;
-                case LEX.STRUCT.ANNOT_BEG:
-                    if(_self.state != SML_METH){
-                        _self.state = SML_ANNO;
-                        _self.annotation(sml);
-                    }
-                    break;
-                default:
-                    switch(_self.state){
-                        case SML_METH:
-                            _self.method(sml,ln,l);
-                            break;
-                        case SML_PSWITCH:
-                            _self.pswitch(sml,ln,l);
-                            break;
-                        case SML_ANNO:
-                            _self.annotation(sml);
-                            break;
-                    }
-                    break;
-            }
-        });*/
     }
 }
 

@@ -6,6 +6,9 @@ import Util from "./Utils";
 
 
 import * as Log from './Logger';
+import DalvikInstructionFormat from "./DalvikInstructionFormat";
+import {OPCODE} from "./Opcode";
+import ModelInstruction from "./ModelInstruction";
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
 interface MethodInfo {
@@ -15,8 +18,9 @@ interface MethodInfo {
 };
 
 
-export class OpcodeSmaliParser
+export default class OpcodeSmaliParser
 {
+    static CTR = 0;
 
     /**
      * @deprecated
@@ -183,5 +187,66 @@ export class OpcodeSmaliParser
             console.log("[!] Instruction : invalid string value :"+src);
 
         return m[1];
+    }
+
+
+    /**
+     * To find an opcode by its number
+     * @param {number} instr Instruction name
+     * @return {any} Opcode
+     * @static
+     * @method
+     */
+    static findOpcode(byte:number):any{
+        for(let op in OPCODE){
+            // if(i==10) console.log(instr,OPCODE[op].instr);
+            if(byte==OPCODE[op].byte) return OPCODE[op];
+        }
+        return null;
+    }
+
+    /**
+     * To find an opcode by its literal name
+     * @param {string} instr Instruction name
+     * @return {any} Opcode
+     * @static
+     * @method
+     */
+    static find(instr:string){
+        for(let op in OPCODE){
+            // if(i==10) console.log(instr,OPCODE[op].instr);
+            if(instr==OPCODE[op].instr) return OPCODE[op];
+        }
+        return null;
+    }
+
+    /**
+     *
+     * @param src
+     * @param raw_src
+     * @param src_line
+     */
+    static parse(src:string[], raw_src:string, src_line:number):ModelInstruction{
+        let op:any = this.find(src[0]), instr:ModelInstruction = null;
+        OpcodeSmaliParser.CTR++;
+
+        // return UNKNOW instr
+        if(op == null) return null;
+
+        if(op.parse != undefined){
+            instr = op.parse(src,raw_src.substr(raw_src.indexOf(CONST.LEX.TOKEN.SPACE)));
+            instr.opcode = op;
+            //instr.oline = src_line; // line number into smali file
+            instr._raw = raw_src;
+        }
+
+        return instr;
+        /* if(op.byte == OPCODE.SGET_CHAR.byte)
+            console.log("[!] Instr sget-char : "+raw_instr.join(" "));*/
+    }
+
+    static parseParam(src:string[], raw_src:string, src_line:number):any{
+        let instr = DalvikInstructionFormat.setstring(src, raw_src);
+        return { param:instr.left, name:instr.right._value };
     }
 }

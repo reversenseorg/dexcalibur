@@ -250,7 +250,7 @@ export class Finder
         });
 
         return matches;
-    };
+    }
 
     /**
      * To search an object by applying the condition on nested fields.
@@ -261,7 +261,7 @@ export class Finder
      * @param {SearchPattern} search A search pattern containing the full path to the field to compare  
      * @returns {Boolean} Return the check result 
      */
-    __checkDeepField(object:any, search:SearchPattern, offset:number=0):IDbIndex{
+    __checkDeepField(object:any, search:SearchPattern, offset:number=0):boolean{
         let ref=object, i=offset;
 
         if(object == null) return false;
@@ -288,11 +288,11 @@ export class Finder
             if(i<search.field.length-1){
                 if(ref[search.field[i]] instanceof Array){
                     for(let k=0; k<ref[search.field[i]].length; k++){
-                        if(ref[search.field[i]][k] instanceof CLASS.ObjectType){
+                        if(ref[search.field[i]][k] instanceof ModelObjectType){
                             //console.log(search.field[i], ref[search.field[i]][k].name, search.field[i+1]);
                             return this.__checkDeepField( this.__DB.classes.getEntry(ref[search.field[i]][k].name), search, i+1);
                         }
-                        else if(ref[search.field[i]][k] instanceof CLASS.BasicType){
+                        else if(ref[search.field[i]][k] instanceof ModelBasicType){
                             // terminal node (ignore array tag)
                             return false;
                         }else{
@@ -301,10 +301,10 @@ export class Finder
                         }                
                     }
                 }else{
-                    if(ref[search.field[i]] instanceof CLASS.ObjectType){
+                    if(ref[search.field[i]] instanceof ModelObjectType){
                         return this.__checkDeepField( this.__DB.classes.getEntry(ref[search.field[i]].name), search, i+1);
                     }
-                    else if(ref[search.field[i]] instanceof CLASS.BasicType){
+                    else if(ref[search.field[i]] instanceof ModelBasicType){
                         return false;
                     }else{
                         return this.__checkDeepField(ref[search.field[i]], search, i+1);
@@ -405,7 +405,14 @@ export class Finder
     _find(index:IDbIndex|IDbCollection, model:any, pattern:string,
           caseSensitive:boolean, lazy:boolean=false, includeMissing:boolean=false):FinderResult{
 
-        if(pattern === null || pattern === undefined) return new FinderResult(index,this);
+        if(pattern === null || pattern === undefined){
+            if(index.isIndex())
+                return new FinderResult(index as IDbIndex, this);
+            else
+                throw new Error('FINDER : Invalid request');
+
+
+        }
 
         //this.cache.push({ index:index, model:model, case:caseSensitive, lazy:lazy });
 

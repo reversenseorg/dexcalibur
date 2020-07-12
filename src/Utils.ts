@@ -123,13 +123,13 @@ export default class Util {
         return k;
     }
 
-    static makeTable(array:any[], fields:string[]):string{
+    static makeTable(array:any[], fields:string[]=null):string{
         if(array.length == 0) return "";
 
         // filtre les colonnes
         let header:string[] = [], body:any[]=[], row:any={}, w:number=0, maxwidth:any={} ;
 
-        if(fields !== undefined){
+        if(fields !== null){
             for(let i in array[0]){
                 if(fields.indexOf(i)>-1){
                     header.push(i);

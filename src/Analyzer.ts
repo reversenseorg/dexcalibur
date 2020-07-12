@@ -1,30 +1,36 @@
 // global
-var fs = require("fs");
-var Chalk = require("chalk");
 
-var ut = require("./Utils.js");
-const CLASS = require("./CoreClass.js");
-var CONST = require("./CoreConst.js");
-var OPCODE = require("./Opcode.js").OPCODE;
-const AnalysisHelper = require("./AnalysisHelper.js");
+import * as _fs_ from 'fs';
+import Chalk from 'chalk';
+
+
+import {SearchAPI} from "./SearchAPI";
 import Event from "./Event.js";
-const Logger = require("./Logger.js")();
-var Parser = require("./SmaliParser.js");
-const Accessor = require("./AccessFlags");
-const ModelPackage = require('./ModelPackage');
-const AnalyzerDatabase = require('./AnalyzerDatabase');
-var SmaliParser = new Parser();
+import DexcaliburProject from "./DexcaliburProject";
+import AnalyzerDatabase from "./AnalyzerDatabase";
+import ModelClass from "./ModelClass";
+import Util from "./Utils";
+import {ModelClassReference, ModelFieldReference, ModelMethodReference} from "./ModelReference";
+import ModelField from "./ModelField";
+import {Modifier} from "./AccessFlags";
+import ModelMethod from "./ModelMethod";
+import ModelPackage from "./ModelPackage";
+import SmaliParser from "./SmaliParser";
+import * as Log from './Logger';
+import ModelCall from "./ModelCall";
+import ModelStringValue from "./ModelStringValue";
+import {ModelObjectType} from "./ModelType";
+import ModelBasicBlock from "./ModelBasicBlock";
+import ModelInstruction from "./ModelInstruction";
+import TagCategory from "./ModelTagCategory";
+import ModelDataBlock from "./ModelDataBlock";
+import {Method} from "got";
+import {TAG} from "./AnalysisHelper";
+import {IDatabase, IDbIndex} from "./ConnectorFactory";
+import ModelFile from "./ModelFile";
 
+let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
-var DataModel = {
-    class: new CLASS.Class(),
-    field: new CLASS.Field(),
-    method: new CLASS.Method(),
-    call: new CLASS.Call(),
-    modifier: new Accessor.AccessFlags(), 
-    objectType: new CLASS.ObjectType(),
-    basicType: new CLASS.BasicType()
-};
 
 var STATS = {
     idxMethod: 0,
@@ -35,210 +41,229 @@ var STATS = {
     fieldCalls: 0
 };
 
-function resolveInheritedField(fieldRef, parentClass){
-    for(let i in parentClass.fields){
-        if(parentClass.fields[i].name===fieldRef.name){
-            if(parentClass.fields[i].tags.indexOf('missing')>-1){
-                return parentClass.fields[i];
+
+class Resolver
+{
+
+    static resolveInheritedField(pFieldRef:ModelFieldReference, pParentClass:ModelClass):ModelField{
+        for(let i in pParentClass.fields){
+            if(pParentClass.fields[i].name===pFieldRef.name){
+                if(pParentClass.fields[i].tags.indexOf('missing')>-1){
+                    return pParentClass.fields[i];
+                }
+
+                if((pParentClass.fields[i].modifiers & Modifier.PRIVATE) == Modifier.PRIVATE){
+                    pParentClass.fields[i].declaringClass = pParentClass.fields[i].enclosingClass;
+                    pParentClass.fields[i].enclosingClass = pParentClass;
+                    return pParentClass.fields[i];
+                }
             }
-
-            if(parentClass.fields[i].modifiers.private == false){ 
-                parentClass.fields[i].declaringClass = parentClass.fields[i].enclosingClass;
-                parentClass.fields[i].enclosingClass = parentClass;
-                return parentClass.fields[i];
-            }
-        }  
-    }
-
-    if(parentClass.extends instanceof CLASS.Class){
-        return resolveInheritedField(fieldRef, parentClass.extends);
-    }else
-        return null;
-}
-
-
-
-function resolveInheritedMethod(methodRef, parentClass){
-    for(let i in parentClass.methods){
-        if(parentClass.methods[i].name===methodRef.name){
-            if(parentClass.methods[i].tags.indexOf('missing')>-1){
-                return parentClass.methods[i];
-            }
-
-            if(parentClass.methods[i].modifiers.private == false){ 
-                parentClass.methods[i].declaringClass = parentClass.methods[i].enclosingClass;
-                parentClass.methods[i].enclosingClass = parentClass;
-                return parentClass.methods[i];
-            }
-        }  
-    }
-
-    if(parentClass.extends instanceof CLASS.Class){
-        return resolveInheritedMethod(methodRef, parentClass.extends);
-    }else
-        return null;
-}
-
-
-/**
- * 
- * @param {String} fqcn FQCN of the missing class    
- * @param {AnalyzerDatabase} internalDB an instance of the internal DB
- */
-function createMissingClass(fqcn,internalDB){
-    // create a class instance from the FQCN value
-    let missingCls = SmaliParser.class("L"+fqcn+" ");
-    let pkg = null;
-
-    // tag the class instance "missing"
-    missingCls.setupMissingTag();
-
-    // update the internal DB
-    internalDB.classes.setEntry(fqcn, missingCls);
-    internalDB.missing.insert(missingCls);
-
-    // update package
-    if(missingCls.getPackage() !== null){
-        pkg = internalDB.packages.getEntry(pkg);
-        if(!(pkg instanceof ModelPackage)){
-            pkg = new ModelPackage(missingCls.getPackage());
-            internalDB.packages.setEntry(pkg.name,pkg);
         }
 
-        missingCls.setPackage(pkg);
-        pkg.childAppend(missingCls);
+        if(pParentClass.extends instanceof ModelClass){
+            return Resolver.resolveInheritedField(pFieldRef, pParentClass.extends);
+        }else
+            return null;
     }
 
-    return missingCls;
-}
-
-function createMissingField(fieldReference, enclosingClass, internalDB, modifiers=Accessor.PUBLIC){
-    let missingField = fieldReference.toField();
-
-    missingField.setupMissingTag();
-
-    missingField.enclosingClass = enclosingClass;
-    missingField.modifiers = new  Accessor.AccessFlags(modifiers);
-
-    enclosingClass.fields[missingField.signature()] = missingField;
 
 
-    internalDB.fields.setEntry(missingField.signature(), missingField);
-    internalDB.missing.insert(missingField);
+    static resolveInheritedMethod(pMethodRef:ModelMethodReference, pParentClass:ModelClass):ModelMethod{
+        for(let i in pParentClass.methods){
+            if(pParentClass.methods[i].name===pMethodRef.name){
+                if(pParentClass.methods[i].tags.indexOf('missing')>-1){
+                    return pParentClass.methods[i];
+                }
+
+                if(!(pParentClass.methods[i].modifiers & Modifier.PRIVATE)){
+                    pParentClass.methods[i].declaringClass = pParentClass.methods[i].enclosingClass;
+                    pParentClass.methods[i].enclosingClass = pParentClass;
+                    return pParentClass.methods[i];
+                }
+            }
+        }
+
+        if(pParentClass.extends instanceof ModelClass){
+            return Resolver.resolveInheritedMethod(pMethodRef, pParentClass.extends);
+        }else
+            return null;
+    }
 
 
-    return missingField;
-}
+    /**
+     *
+     * @param {String} fqcn FQCN of the missing class
+     * @param {AnalyzerDatabase} internalDB an instance of the internal DB
+     */
+     static createMissingClass(pFqcn:string, pAnalyzerDB:AnalyzerDatabase):ModelClass{
+
+        // create a class instance from the FQCN value
+        let missingCls:ModelClass = SmaliParser.class("L"+pFqcn+" ");
+        let pkg:ModelPackage|string = null;
+
+        // tag the class instance "missing"
+        // a missing definition can help to identify obfuscated application
+        missingCls.setupMissingTag();
+
+        // update the internal DB[
+        pAnalyzerDB.classes.setEntry(pFqcn, missingCls);
+        pAnalyzerDB.missing.insert(missingCls, false);
+
+        // update package
+        pkg = missingCls.getPackage();
+        if(pkg !== null && (typeof pkg === 'string')){
+            pkg = pAnalyzerDB.packages.getEntry(pkg); // TODO ???
+            //if(!(pkg instanceof ModelPackage)){
+            if(pkg == null){
+                pkg = new ModelPackage(missingCls.getPackage() as string);
+                pAnalyzerDB.packages.setEntry((pkg as ModelPackage).name, pkg);
+            }
+
+            missingCls.setPackage(pkg as ModelPackage);
+            (pkg as ModelPackage).childAppend(missingCls);
+        }
+
+        return missingCls;
+    }
+
+    static createMissingField(fieldReference:ModelFieldReference, enclosingClass:ModelClass,
+                              internalDB:AnalyzerDatabase, modifiers:Modifier=Modifier.PUBLIC):ModelField{
+
+        let missingField:ModelField = fieldReference.toField(enclosingClass);
+
+        missingField.setupMissingTag();
+
+        //missingField.enclosingClass = enclosingClass;
+        missingField.modifiers = modifiers;
+
+        enclosingClass.fields[missingField.signature()] = missingField;
 
 
-function createMissingMethod(methodRef, enclosingClass, internalDB, modifiers=Accessor.PUBLIC){
-    let missingMeth = methodRef.toMethod();
-
-    //console.log(enclosingClass.name,missingMeth);
-
-    missingMeth.setupMissingTag();
-
-    missingMeth.enclosingClass = enclosingClass;
-    missingMeth.modifiers = new Accessor.AccessFlags(modifiers); 
-
-    enclosingClass.methods[missingMeth.signature()] = missingMeth;
+        internalDB.fields.setEntry(missingField.signature(), missingField);
+        // TODO : remove from 'missing' index ?
+        internalDB.missing.insert(missingField, false);
 
 
-    internalDB.methods.setEntry(missingMeth.signature(), missingMeth);
-    internalDB.missing.insert(missingMeth);
+        return missingField;
+    }
 
 
-    return missingMeth;
-}
+    static createMissingMethod(methodRef:ModelMethodReference, enclosingClass:ModelClass, internalDB:AnalyzerDatabase, modifiers:Modifier):ModelMethod{
+        let missingMeth:ModelMethod = methodRef.toMethod(enclosingClass);
+
+        //console.log(enclosingClass.name,missingMeth);
+
+        missingMeth.setupMissingTag();
+
+        missingMeth.modifiers = modifiers; // new Accessor.AccessFlags(modifiers);
+
+        enclosingClass.methods[missingMeth.signature()] = missingMeth;
 
 
-var Resolver = {
-    type: function(db, fqcn){
+        internalDB.methods.setEntry(missingMeth.signature(), missingMeth);
+        // TODO : remove from 'missing' index ?
+        internalDB.missing.insert(missingMeth, false);
 
-        if(fqcn instanceof CLASS.Class){ 
-            if(db.classes.hasEntry(fqcn.fqcn)===true)
-                return db.classes.getEntry(fqcn.fqcn);
+
+        return missingMeth;
+    }
+
+    static type(pAnalyzerDB:AnalyzerDatabase, pClass:string|ModelClass):ModelClass{
+
+        if(pClass instanceof ModelClass){
+            if(pAnalyzerDB.classes.hasEntry(pClass.name)===true)
+                return pAnalyzerDB.classes.getEntry(pClass.name);
+            else
+                return Resolver.createMissingClass(pClass.getName(), pAnalyzerDB);
+            // unresolvable class are created as classic Class node but are tagged "MISSING"
         }else{
-            if(db.classes.hasEntry(fqcn)===true)
-                return db.classes.getEntry(fqcn);
+            if(pAnalyzerDB.classes.hasEntry(pClass)===true)
+                return pAnalyzerDB.classes.getEntry(pClass);
+            else
+                return Resolver.createMissingClass(pClass, pAnalyzerDB);
+            // unresolvable class are created as classic Class node but are tagged "MISSING"
         }
-        
+
         // unresolvable class are created as classic Class node but are tagged "MISSING"
-        return createMissingClass(fqcn, db);
-    },
-    field: function(db, fieldRef){
+        // return Resolver.createMissingClass(pClass as string , pAnalyzerDB);
+    }
 
-        let field = db.fields.getEntry(fieldRef.signature());
 
-        if(field instanceof CLASS.Field){
-           return field;
+    static field(pAnalyzerDB:AnalyzerDatabase, pFieldRef:ModelFieldReference):ModelField{
+
+        let field:ModelField = pAnalyzerDB.fields.getEntry(pFieldRef.signature());
+
+        if(field instanceof ModelField){
+            return field;
         }
 
         //  if the field is not indexed, its enclosingClass is explored
-        let cls=db.classes.getEntry(fieldRef.fqcn);
+        let cls=pAnalyzerDB.classes.getEntry(pFieldRef.fqcn);
 
         // if enclosingClass not exists, create it
         if(cls == null){
-            cls = createMissingClass(fieldRef.fqcn, db);
-            return createMissingField( fieldRef, cls, db);
+            cls = Resolver.createMissingClass(pFieldRef.fqcn, pAnalyzerDB);
+            return Resolver.createMissingField( pFieldRef, cls, pAnalyzerDB);
             //field = createMissingField(field, cls, db);
         }
 
 
-        field = cls.fields[fieldRef.signature()];
-        
-        if(field instanceof CLASS.Field){
+        field = cls.fields[pFieldRef.signature()];
+
+        if(field instanceof ModelField){
             return field;
         }
 
 
         // 2. else, if the class has super class, search inherit field
-        if(cls.extends !== null){ 
-            field = resolveInheritedField(fieldRef, cls.extends);
-            
-            if(field instanceof CLASS.Field){
-                cls.addInheritedField(fieldRef, field);
-                db.fields.setEntry(fieldRef, field);
-                
+        if(cls.extends !== null){
+            field = Resolver.resolveInheritedField(pFieldRef, cls.extends);
+
+            if(field instanceof ModelField){
+                cls.addInheritedField(pFieldRef, field);
+                pAnalyzerDB.fields.setEntry(pFieldRef.getName(), field);
+
                 return field;
             }
         }
 
-        // Finally if reference is unsolvable, the a mock field is created and tagged "missing"        
+        // Finally if reference is unsolvable, the a mock field is created and tagged "missing"
 
-        return createMissingField( fieldRef, cls, db);
-    },
-    method: function(db, methRef, isStaticCall){
+        return Resolver.createMissingField( pFieldRef, cls, pAnalyzerDB);
+    }
 
-        let meth = db.methods.getEntry(methRef.signature());
+    static method(pDB:AnalyzerDatabase, pMethRef:ModelMethodReference, isStaticCall:boolean):ModelMethod{
 
-        // 1. search into indexed method 
-        if(meth instanceof CLASS.Method){
+        let meth:ModelMethod = pDB.methods.getEntry(pMethRef.signature());
+
+        // 1. search into indexed method
+        if(meth instanceof ModelMethod){
             return meth;
         }
-        
+
         // 2. else, search into inherited method
-        let cls=db.classes.getEntry(methRef.fqcn);
+        let cls:ModelClass = pDB.classes.getEntry(pMethRef.fqcn);
+        let access:Modifier = Modifier.PUBLIC;
 
-        let signature = methRef.signature();
+        if(isStaticCall) access |= Modifier.STATIC;
 
+        // 2.1 If there is no parent class, then the method definition is missing
         if(cls == null){
-            cls = createMissingClass(methRef.fqcn, db);
-            return createMissingMethod(methRef, cls, db, {
-                public: true,
-                static: isStaticCall
-            });
+            cls = Resolver.createMissingClass(pMethRef.fqcn, pDB);
+
+
+            return Resolver.createMissingMethod(pMethRef, cls, pDB,  access);
         }
 
-        // 2. else, search into inherited method
-        if(cls instanceof CLASS.Class){
-            if(cls.extends instanceof CLASS.Class){
-                meth = resolveInheritedMethod(methRef, cls.extends);
-    
-                if(meth instanceof CLASS.Method){
-                    cls.addInheritedMethod(methRef, meth);
-                    db.methods.setEntry(methRef, meth);
-                    
+        // 2.2 else, search into inherited method
+        if(cls instanceof ModelClass){
+            if(cls.extends instanceof ModelClass){
+                meth = Resolver.resolveInheritedMethod(pMethRef, cls.extends);
+
+                if(meth instanceof ModelMethod){
+                    cls.addInheritedMethod(pMethRef, meth);
+                    pDB.methods.setEntry(pMethRef.getName(), meth);
+
                     return meth;
                 }
             }
@@ -246,608 +271,623 @@ var Resolver = {
 
         // 4. else, mock missing method and class
 
-        return createMissingMethod(methRef, cls, db,  {
-            public: true,
-            static: isStaticCall
-        });
-    }
-};
-
-
-/**
- * To analyze each instruction and resolve symbols
- * 
- * @param {Method} method The method to analyse 
- * @param {Object} data The database to use when resolving 
- * @param {Object} stats The statistics counters
- * @function 
- */
-function mapInstructionFrom(method, data, stats){
-    let bb = null, instruct = null, obj = null, x = null, success=false, stmt=null, tmp=null, t=0,t1=0;
-
-    if(! method instanceof CLASS.Method){
-        Logger.error("[!] mapping failed : method provided is not an instance of Method.");
-    }
-
-    for(let i in method.instr){
-
-        bb = method.instr[i];
-        bb._parent = method;
-        // get basic blocks
-        
-        if(bb.hasCatchStatement()){
-            stmt = bb.getCatchStatements();
-            for(let j=0; j<stmt.length; j++){
-                if(stmt[j].getException() != null){
-                    stmt[j].setException( Resolver.type(data, stmt[j].getException().name));
-                }
-                stmt[j].setTryStart( method.getTryStartBlock( stmt[j].getTryStart()));
-                stmt[j].setTryEnd( method.getTryEndBlock( stmt[j].getTryEnd()));
-
-                if((stmt[j].getTarget() instanceof CLASS.BasicBlock) == false){
-                    t = method.getCatchBlock( stmt[j].getTarget());
-                    if(t !==null)
-                        stmt[j].setTarget(t);
-                    else{
-                        Logger.error("Target catch block not found");
-                        console.log( stmt[j].getTarget());
-                    }
-                }
-            }
-        }
-
-        for(let j in bb.stack){
-            instruct = bb.stack[j];
-            instruct.line = bb.line;    
-            instruct._parent = bb;       
-
-            stats.instrCtr++;
-            if(instruct.isNOP()) continue;
-
-            success = false;
-            if(instruct.isDoingCall()){
-
-                if(instruct.right.special){
-                    // ignore
-                    continue;
-                }
-                
-                instruct.right = Resolver.method(data, instruct.right, instruct.isStaticCall());
-
-
-                //instruct.right._callers.push(method); 
-                instruct.right.addCaller(method);
-                
-                tmp = new CLASS.Call({ 
-                    caller: method, 
-                    calleed: instruct.right, //obj, 
-                    instr: instruct});
-
-                data.call.insert(tmp);
-
-                stats.methodCalls++;
-
-
-                if(method._useClass[instruct.right.fqcn] == undefined){
-                    method._useClass[instruct.right.fqcn] = [];
-                    method._useClassCtr++;
-                }
-                if(method._useMethod[instruct.right.signature()] == undefined){
-                    method._useMethod[instruct.right.signature()] = [];
-                    method._useMethodCtr++;
-                }
-
-
-                method._useClass[instruct.right.fqcn].push(instruct.right.enclosingClass);
-                //method._useMethod[instruct.right.signature()].push(instruct.right);
-                method._useMethod[instruct.right.signature()].push({
-                    bb: i,
-                    instr: j
-                });
-
-
-                
-
-                success = true;
-            }
-            else if(instruct.isCallingField()){
-
-                if(instruct.right == null){
-                    Logger.debug("[SAST] Call : method name is null");
-                }
-
-                // Never returns NULL
-                // if field not exists, return MissingReference object
-
-                instruct.right = Resolver.field(data, instruct.right);
-
-                /*
-                if(instruct.opcode.type==CONST.INSTR_TYPE.GETTER){
-                    console.log(instruct.right);
-                }
-                */
-
-                //instruct.right = obj;
-                if(instruct.right === undefined || instruct.right._callers === undefined){
-                    Logger.debug("[SAST] Call : method cannot be resolved : ", instruct);
-                }
-
-                if(instruct.isSetter()){
-                    instruct.right.addSetter(method);
-                }else{
-                    instruct.right.addGetter(method);
-                }
-                
-                instruct.right._callers.push(method);
- 
-                data.call.insert(new CLASS.Call({ 
-                    caller: method, 
-                    calleed: instruct.right, 
-                    instr: instruct
-                }));
-
-                stats.fieldCalls++;
-                
-                if(method._useClass[instruct.right.fqcn] == undefined){
-                    method._useClass[instruct.right.fqcn] = [];
-                    method._useClassCtr++;
-                }
-                if(method._useField[instruct.right.signature()] == undefined){
-                    method._useField[instruct.right.signature()] = [];
-                    method._useFieldCtr++;
-                }
-                
-                
-                method._useClass[instruct.right.fqcn].push(instruct.right.enclosingClass);
-                method._useField[instruct.right.signature()].push(instruct.right);
-
-
-                success = true;
-            }
-            else if(instruct.isUsingString()){
-
-                // add USAGE: NEW/READ/WRITE
-
-                data.strings.insert(new CLASS.StringValue({ 
-                    src: method, 
-                    instr: instruct, 
-                    value: instruct.right._value }));
-                success=true;
-            }
-            // Resolve Type reference
-            else if(instruct.isReferencingType()){
-
-                // Never returns NULL
-                // if type not exists, return MissingReference object
-                if(instruct.right instanceof CLASS.ObjectType){
-
-                    
-                    obj = Resolver.type(data, instruct.right.name);
-                    
-                    
-                    obj._callers.push(method); 
-                    instruct.right = obj;
-
-                    data.call.insert(new CLASS.Call({ 
-                        caller:method, 
-                        calleed:obj, 
-                        instr:instruct}));
-
-                    if(method._useClass[obj.name] == undefined)
-                        method._useClass[obj.name] = [];
-
-                    //method._useClass[obj._hashcode] = obj;
-                    method._useClass[obj.name].push(instruct);
-
-                }
-                success = true;
-            }
-            else   
-                continue;
-
-            if(!success){
-                data.parseErrors.insert(instruct);
-            }
-                
-        }
+        return Resolver.createMissingMethod(pMethRef, cls, pDB,  access);
     }
 }
 
 
-/*
- make map by linking object :
- -> resolve FQCN
- -> resolve method called
- and create additional index in the DB
- */
-function MakeMap(data,absoluteDB){
-    
-    Logger.raw("\n[*] Start object mapping ...\n------------------------------------------");
-    let step = data.classes.size(), /*data.classesCtr,*/ g=0;   
-    let overrided = [];
-    //let updateLogs = [];
+export default class Analyzer
+{
+    /**
+     * @type {SmaliParser}
+     * @field
+     */
+    parser:SmaliParser = null;
+    db:AnalyzerDatabase = null;
+    tempDB:AnalyzerDatabase = null;
+    context:DexcaliburProject = null;
+    finder:SearchAPI = null;
+    projectionEngines:any = {};
+    encoding:BufferEncoding= null;
 
+    /**
+     *
+     * @param {string} pEncoding
+     * @param {SearchAPI} pSearchAPI
+     * @param {DexcaliburProject} pProject
+     * @constructor
+     */
+    constructor( pEncoding:BufferEncoding, pSearchAPI:SearchAPI, pProject:DexcaliburProject ) {
 
+        this.parser = new SmaliParser(pProject); //.setContext(ctx);
 
-    /*
-    let c = 0;
-    for(let i in data.classes)c++;
-    console.log(Chalk.bold.red("Classes in DB : "+c));
-    */
+        // Internal DB
+        this.db = new AnalyzerDatabase(pProject);
 
-    // merge Absolute DB and Temp DB
-    // if a class has been already analyzed its data will be updated
-    data.classes.map((k,v)=>{
+        // temporary, in memory, database
+        this.tempDB = new AnalyzerDatabase(pProject, 'inmemory');
 
-        // add class to the absoluteDb if missing
-        if(absoluteDB.classes.hasEntry(k) == false){
-            absoluteDB.classes.setEntry(k, v);
-        }else{
-            Logger.debug("[SAST] DB merge > class overrided [ ",k," ]");
-            overrided.push(k);
-            //absoluteDB.classes.getEntry(k).update(v);
+        this.context = pProject;
+        this.finder = pSearchAPI;
+        this.encoding = pEncoding;
+        this.projectionEngines = {};
+    }
+
+    /**
+     * To analyze each instruction and resolve symbols
+     *
+     * @param {Method} method The method to analyse
+     * @param {Object} data The database to use when resolving
+     * @param {Object} stats The statistics counters
+     * @function
+     */
+    static mapInstructionFrom(pMethod:ModelMethod, data:AnalyzerDatabase, stats:any){
+        let bb:ModelBasicBlock = null, instruct:ModelInstruction = null, obj = null;
+        let success:boolean=false, stmt=null, tmp:any=null, t:ModelBasicBlock=null;
+
+        if((pMethod instanceof ModelMethod)===false){
+            Logger.error("[!] mapping failed : method provided is not an instance of Method.");
+            throw new Error("[ANALYZER] mapping failed : method provided is not an instance of Method.")
         }
 
-    });
-    
+        for(let i in pMethod.instr){
 
-    // link class with its fields and methods
-    // for(let i in data.classes)
-    data.classes.map((k,v)=>{
+            bb = pMethod.instr[i];
+            //bb._parent = pMethod; // TODO : removed
+            // get basic blocks
 
-        // make sure we manipulate freshly added class
-        cls = absoluteDB.classes.getEntry(k);
+            if(bb.hasCatchStatement()){
+                stmt = bb.getCatchStatements();
+                for(let j=0; j<stmt.length; j++){
+                    if(stmt[j].getException() != null){
+                        stmt[j].setException( Resolver.type(data, stmt[j].getException().name));
+                    }
+                    stmt[j].setTryStart( pMethod.getTryStartBlock( stmt[j].getTryStart()));
+                    stmt[j].setTryEnd( pMethod.getTryEndBlock( stmt[j].getTryEnd()));
 
-        //  is TRUE if classes are already existing in AbsoluteDB and they are defined also into TempDB
-        let override = (overrided.indexOf(k)>-1);
+                    if((stmt[j].getTarget() instanceof ModelBasicBlock) == false){
+                        t = pMethod.getCatchBlock( stmt[j].getTarget());
+                        if(t !==null)
+                            stmt[j].setTarget(t);
+                        else{
+                            Logger.error("Target catch block not found");
+                            console.log( stmt[j].getTarget());
+                        }
+                    }
+                }
+            }
 
-        let ext = null, greater=null, smaller=null, requireRemap=false, clsSuper=null;
-        
+            for(let j in bb.stack){
+                instruct = bb.stack[j];
+                instruct.iline = bb.line;
+                instruct._parent = bb;
 
-        // the current class is already defined into AbsoluteDB,
-        // so, we check if we need to update superclass of classes already existing into AbsoluteDB before mapping
-        if(override){ 
-            // the v.extends is the string not a Class instance
-            // we get the reference to the superclass from the freshly added class
-            ext = v.getSuperClass();
+                stats.instrCtr++;
+                if(instruct.isNOP()) continue;
 
-            try {
-                // For a given class from TempDB, we check if the reference to the superclass 
-                // from the TempDB's class is the same in AbsoluteDB's class.
-                // Else it means the TempDB's class inherit from another class which directly 
-                // or indirectly inherit of the superclass f AbsoluteDB's class 
-                if(ext != null && cls.hasSuperClass()){
-                    if((cls.getSuperClass() instanceof CLASS.Class) 
-                        && (ext!=cls.getSuperClass().getName())){                        
-                        cls.updateSuper(Resolver.type(absoluteDB, ext));
+                success = false;
+                if(instruct.isDoingCall()){
+
+                    if(instruct.right.special){
+                        // ignore
+                        continue;
+                    }
+
+                    instruct.right = Resolver.method(data, instruct.right, instruct.isStaticCall());
+
+
+                    //instruct.right._callers.push(method);
+                    instruct.right.addCaller(pMethod);
+
+                    tmp = new ModelCall({
+                        caller: pMethod,
+                        calleed: instruct.right, //obj,
+                        instr: instruct});
+
+                    data.call.insert(tmp, false);
+
+                    stats.methodCalls++;
+
+
+                    if(pMethod._useClass[instruct.right.fqcn] == undefined){
+                        pMethod._useClass[instruct.right.fqcn] = [];
+                        pMethod._useClassCtr++;
+                    }
+                    if(pMethod._useMethod[instruct.right.signature()] == undefined){
+                        pMethod._useMethod[instruct.right.signature()] = [];
+                        pMethod._useMethodCtr++;
+                    }
+
+
+                    pMethod._useClass[instruct.right.fqcn].push(instruct.right.enclosingClass);
+                    //method._useMethod[instruct.right.signature()].push(instruct.right);
+                    pMethod._useMethod[instruct.right.signature()].push({
+                        bb: i,
+                        instr: j
+                    });
+
+                    success = true;
+                }
+                else if(instruct.isCallingField()){
+
+                    if(instruct.right == null){
+                        Logger.debug("[SAST] Call : method name is null");
+                    }
+
+                    // Never returns NULL
+                    // if field not exists, return MissingReference object
+
+                    instruct.right = Resolver.field(data, instruct.right);
+
+                    /*
+                    if(instruct.opcode.type==CONST.INSTR_TYPE.GETTER){
+                        console.log(instruct.right);
+                    }
+                    */
+
+                    //instruct.right = obj;
+                    if(instruct.right === undefined || instruct.right._callers === undefined){
+                        Logger.debug("[SAST] Call : method cannot be resolved : ", instruct.toString());
+                    }
+
+                    if(instruct.isSetter()){
+                        instruct.right.addSetter(pMethod);
+                    }else{
+                        instruct.right.addGetter(pMethod);
+                    }
+
+                    instruct.right._callers.push(pMethod);
+
+                    data.call.insert(new ModelCall({
+                        caller: pMethod,
+                        calleed: instruct.right,
+                        instr: instruct
+                    }), false);
+
+                    stats.fieldCalls++;
+
+                    if(pMethod._useClass[instruct.right.fqcn] == undefined){
+                        pMethod._useClass[instruct.right.fqcn] = [];
+                        pMethod._useClassCtr++;
+                    }
+                    if(pMethod._useField[instruct.right.signature()] == undefined){
+                        pMethod._useField[instruct.right.signature()] = [];
+                        pMethod._useFieldCtr++;
+                    }
+
+
+                    pMethod._useClass[instruct.right.fqcn].push(instruct.right.enclosingClass);
+                    pMethod._useField[instruct.right.signature()].push(instruct.right);
+
+
+                    success = true;
+                }
+                else if(instruct.isUsingString()){
+
+                    // add USAGE: NEW/READ/WRITE
+
+                    data.strings.insert(new ModelStringValue({
+                        src: pMethod,
+                        instr: instruct,
+                        value: instruct.right._value }), false);
+                    success=true;
+                }
+                // Resolve Type reference
+                else if(instruct.isReferencingType()){
+
+                    // Never returns NULL
+                    // if type not exists, return MissingReference object
+                    if(instruct.right instanceof ModelObjectType){
+
+
+                        obj = Resolver.type(data, instruct.right.name);
+
+
+                        obj._callers.push(pMethod);
+                        instruct.right = obj;
+
+                        data.call.insert(new ModelCall({
+                            caller:pMethod,
+                            calleed:obj,
+                            instr:instruct}), false);
+
+                        if(pMethod._useClass[obj.name] == undefined)
+                            pMethod._useClass[obj.name] = [];
+
+                        //method._useClass[obj._hashcode] = obj;
+                        pMethod._useClass[obj.name].push(instruct);
+
+                    }
+                    success = true;
+                }
+                else
+                    continue;
+
+                if(!success){
+                    data.parseErrors.insert(instruct, false);
+                }
+
+            }
+        }
+    }
+
+
+    /**
+     make map by linking object :
+     -> resolve FQCN
+     -> resolve method called
+     -> create packages
+     -> build classes hierarchy
+     -> create additional index in the DB
+     ->  ...
+     */
+    static buildModel(data:AnalyzerDatabase, absoluteDB:AnalyzerDatabase){
+
+        Logger.raw("\n[*] Start object mapping ...\n------------------------------------------");
+
+        let step:number = data.classes.size(), /*data.classesCtr,*/ g=0;
+        let overrided:any = [], o:any;
+        //let updateLogs = [];
+
+
+
+        /*
+        let c = 0;
+        for(let i in data.classes)c++;
+        console.log(Chalk.bold.red("Classes in DB : "+c));
+        */
+
+        // STEP 1
+        // merge Absolute DB and Temp DB
+        // if a class has been already analyzed its data will be updated
+        data.classes.map((k:string, v:ModelClass)=>{
+
+            // add class to the absoluteDb if missing
+            if(absoluteDB.classes.hasEntry(k) == false){
+                absoluteDB.classes.setEntry(k, v);
+            }else{
+                Logger.debug("[SAST] DB merge > class overrided [ ",k," ]");
+                overrided.push(k);
+                //absoluteDB.classes.getEntry(k).update(v);
+            }
+
+        });
+
+
+        // STEP 2
+        // link class with its fields and methods
+        // for(let i in data.classes)
+        data.classes.map((k:string, v:ModelClass)=>{
+
+            // make sure we manipulate freshly added class
+            let cls:ModelClass = absoluteDB.classes.getEntry(k);
+
+            //  is TRUE if classes are already existing in AbsoluteDB and they are defined also into TempDB
+            let override:boolean = (overrided.indexOf(k)>-1);
+
+            let ext:any = null, requireRemap:boolean=false;
+
+
+            // the current class is already defined into AbsoluteDB,
+            // so, we check if we need to update superclass of classes already existing into AbsoluteDB before mapping
+            if(override){
+                // the v.extends is the string not a Class instance
+                // we get the reference to the superclass from the freshly added class
+                ext = v.getSuperClass() as ModelClass;
+
+                try {
+                    // For a given class from TempDB, we check if the reference to the superclass
+                    // from the TempDB's class is the same in AbsoluteDB's class.
+                    // Else it means the TempDB's class inherit from another class which directly
+                    // or indirectly inherit of the superclass f AbsoluteDB's class
+                    if(ext != null && cls.hasSuperClass()){
+                        if((cls.getSuperClass() instanceof ModelClass)
+                            && (ext.getName() != cls.getSuperClass().getName())){
+                            cls.updateSuper(Resolver.type(absoluteDB, ext));
+                            requireRemap = true;
+                        }
+
+                    }
+                }
+                catch(ex) {
+                    Logger.error(ex);
+                }
+            }
+            // resolve super classes
+            else if(cls.hasSuperClass()){
+
+    //            if (!(cls.getSuperClass() instanceof CLASS.Class)){
+                if(typeof cls.getSuperClass() === "string"){
+                    cls.extends = Resolver.type(absoluteDB, cls.getSuperClass() as ModelClass);
+                    //cls.updateSuper( Resolver.type(absoluteDB, cls.getSuperClass()));
+                }
+            }
+
+            // map interfaces
+            if(override){
+                // here v.extends is the string not a Class instance
+                ext = v.getInterfaces();
+                if(ext.length != cls.getInterfaces().length){
+
+                    cls.removeAllInterfaces();
+
+                    for(let i=0; i<ext.length; i++){
+                        cls.addInterface(Resolver.type(absoluteDB, ext[i]));
                         requireRemap = true;
                     }
-                    
+
                 }
             }
-            catch(ex) {
-                Logger.error(ex);
+            else if(cls.getInterfaces() != null){
+                for(let j in cls.implements){
+                    cls.implements[j] = Resolver.type(absoluteDB, cls.implements[j]);
+                }
             }
-        }
-        // resolve super classes
-        else if(cls.hasSuperClass()){
-           
-//            if (!(cls.getSuperClass() instanceof CLASS.Class)){ 
-            if(typeof cls.getSuperClass() === "string"){ 
-                cls.extends = Resolver.type(absoluteDB, cls.getSuperClass());
-                //cls.updateSuper( Resolver.type(absoluteDB, cls.getSuperClass()));
-            }
-        }
 
-        // map interfaces
-        if(override){ 
-            // here v.extends is the string not a Class instance
-            ext = v.getInterfaces();
-            if(ext.length != cls.getInterfaces().length){
+            // update or create field nodes relations
+            if(override){
+                Logger.debug("Overriding fields ",k);
 
-                cls.removeAllInterfaces();
-                
-                for(let i=0; i<ext.length; i++){
-                    cls.addInterface(Resolver.type(absoluteDB, ext[i]));
-                    requireRemap = true;
+                for(let j in v.fields){
+                    o=v.fields[j];
+                    o.fqcn = v.getName();
+                    // add relation  Field -- parent --> Class
+                    o.enclosingClass = v;
+
+                    // if the field already exists, check if both differs then update field
+                    if(cls.hasField(o)){
+                        // TODO : Not force override
+                        cls.updateField(o, true);
+
+                        // update db if signature differs (if type differs)
+
+                        //absoluteDB.fields.setEntry(o.signature(), o); //hashCode()
+                    }
+                    // if the field not exists, create it
+                    else{
+                        o.fqcn = cls.getName();
+                        o.enclosingClass = cls;
+                        cls.addField(o);
+                        // if all its ok, there is not conflict
+                        absoluteDB.fields.setEntry(o.signature(), o);
+                    }
+
+                    STATS.idxField++;
                 }
 
-            }
-        }
-        else if(cls.getInterfaces() != null){
-            for(let j in cls.implements){
-                cls.implements[j] = Resolver.type(absoluteDB, cls.implements[j]); 
-            }
-        }
-       
-        // update or create field nodes relations
-        if(override){
-            Logger.debug("Overriding fields ",k);
-            
-            for(let j in v.fields){
-                o=v.fields[j];
-                o.fqcn = v.fqcn;
-                // add relation  Field -- parent --> Class
-                o.enclosingClass = v;
+                // TODO :  if a field is removed from the new version, tag it has "dynamically removed"
 
-                // if the field already exists, check if both differs then update field 
-                if(cls.hasField(o)){
-                    // TODO : Not force override 
-                    cls.updateField(o, true);
-                    
-                    // update db if signature differs (if type differs)
-                    
-                    //absoluteDB.fields.setEntry(o.signature(), o); //hashCode()
-                }
-                // if the field not exists, create it
-                else{
-                    o.fqcn = cls.fqcn;
+            }else{
+                for(let j in cls.fields){
+                    o=cls.fields[j];
+
+                    // broadcast FQCN from Class objects to Field objects
+                    o.fqcn = cls.getName();
                     o.enclosingClass = cls;
-                    cls.addField(o);   
-                    // if all its ok, there is not conflict
-                    absoluteDB.fields.setEntry(o.signature(), o);
-                }
 
-                STATS.idxField++;
+                    // data.fields[o.hashCode()] = o;
+                    absoluteDB.fields.setEntry(o.signature(), o); //hashCode()
+
+                    STATS.idxField++;
+                }
             }
 
-            // TODO :  if a field is removed from the new version, tag it has "dynamically removed"
 
-        }else{
-            for(let j in cls.fields){
-                o=cls.fields[j];
-            
-                // broadcast FQCN from Class objects to Field objects 
-                o.fqcn = cls.fqcn;
-                o.enclosingClass = cls;
-    
-                // data.fields[o.hashCode()] = o;
-                absoluteDB.fields.setEntry(o.signature(), o); //hashCode()
-                
-                STATS.idxField++;
-            }
-        }
+            // update or create methods nodes relations
+            if(override){
+                Logger.debug("Overriding methods ",k);
 
-        
-        // update or create methods nodes relations
-        if(override){
-            Logger.debug("Overriding methods ",k);
+                for(let j in v.methods){
+                    o=v.methods[j];
 
-            for(let j in v.methods){
-                o=v.methods[j];
+                    // add relation  Method -- parent --> Class
+                    o.enclosingClass = v;
 
-                // add relation  Method -- parent --> Class
-                o.enclosingClass = v;
+                    // if the method already exists, check if both differs then update method
+                    if(cls.hasMethod(o)){
+                        // TODO : Not force override
+                        cls.updateMethod(o, true);
 
-                // if the method already exists, check if both differs then update method 
-                if(cls.hasMethod(o)){
-                    // TODO : Not force override 
-                    cls.updateMethod(o, true);
-                    
-                    // update db if signature differs (if type differs)
-                    
-                    //absoluteDB.fields.setEntry(o.signature(), o); //hashCode()
+                        // update db if signature differs (if type differs)
+
+                        //absoluteDB.fields.setEntry(o.signature(), o); //hashCode()
+                    }
+                    // if the field not exists, create it
+                    else{
+                        o.enclosingClass = cls;
+                        cls.addMethod(o);
+                        // if all its ok, there is not conflict
+                        absoluteDB.methods.setEntry(o.signature(), o);
+                    }
+
+                    STATS.idxMethod++;
                 }
-                // if the field not exists, create it
-                else{
+            }else{
+                for(let j in cls.methods){
+                    o=cls.methods[j];
+
                     o.enclosingClass = cls;
-                    cls.addMethod(o);   
-                    // if all its ok, there is not conflict
+                    //data.methods[o.signature()] = o;
+                    //absoluteDB.methods[o.signature()] = o;
                     absoluteDB.methods.setEntry(o.signature(), o);
+
+
+                    STATS.idxMethod++;
                 }
-
-                STATS.idxMethod++;
             }
-        }else{
-            for(let j in cls.methods){
-                o=cls.methods[j];
-                
-                o.enclosingClass = cls;
-                //data.methods[o.signature()] = o;
-                //absoluteDB.methods[o.signature()] = o;
-                absoluteDB.methods.setEntry(o.signature(), o);
-                
-                
-                STATS.idxMethod++;
+        });
+
+        // STEP 3
+        // create packages nodes
+        data.classes.map((k:string,v:ModelClass)=>{
+
+            let pkgName:string = v.package as string;
+            let scr:any = null;
+
+            // Build Package instance from the package name (string)
+            if(absoluteDB.packages.hasEntry(pkgName) == false){
+                absoluteDB.packages.setEntry(pkgName,  new ModelPackage(pkgName));
             }
-        }
-    });
-    
-    // create packages nodes 
-    data.classes.map((k,v)=>{
+            // Append the current class to its Package instance
+            absoluteDB.packages.getEntry(pkgName).childAppend(v);
+            // Replace the package name by the reference to the package instance into the class instance
+            v.package = absoluteDB.packages.getEntry(pkgName);
 
-
-        // Build Package instance from the package name (string)
-        if(absoluteDB.packages.hasEntry(v.package) == false){
-            absoluteDB.packages.setEntry(v.package,  new ModelPackage(v.package));
-        }
-        // Append the current class to its Package instance
-        absoluteDB.packages.getEntry(v.package).childAppend(v);
-        // Replace the package name by the reference to the package instance into the class instance
-        v.package = absoluteDB.packages.getEntry(v.package);
-
-        // discover inherited and override methods (build Class Hierarchy)
-        if(v.getSuperClass() != null){
-            let n=v, sc=null, supers=[];
-            while((sc = n.getSuperClass()) !=null){
-                if(sc instanceof CLASS.Class){
-                    scr = absoluteDB.classes.getEntry(sc.name);
-                }else{
-                    scr = absoluteDB.classes.getEntry(sc);
-                }
-                if(scr == null){
-                    if(sc instanceof CLASS.Class){
-                        Logger.debug("Class ("+sc.name+") not found");
+            // discover inherited and override methods (build Class Hierarchy)
+            if(v.getSuperClass() != null){
+                let n:ModelClass=v, sc:ModelClass=null, supers:ModelClass[]=[];
+                while((sc = n.getSuperClass() as ModelClass) !=null){
+                    if(sc instanceof ModelClass){
+                        scr = absoluteDB.classes.getEntry(sc.getName());
+                    }else{
+                        scr = absoluteDB.classes.getEntry(sc);
                     }
-                    else{ 
-                        Logger.debug("Reference ("+sc+") not found");
+                    if(scr == null){
+                        if(sc instanceof ModelClass){
+                            Logger.debug("Class ("+sc.getName()+") not found");
+                        }
+                        else{
+                            Logger.debug("Reference ("+sc+") not found");
+                        }
+                        break;
                     }
-                    break;
+                    supers.push(scr);
+                    n = scr;
+
+                    if(scr.getSuperClass ==undefined)
+                        break;
                 }
-                supers.push(scr);
-                n = scr;
-
-                if(scr.getSuperClass ==undefined)
-                    break;
-            } 
-            v.setSupersList(supers);
-        }
-    });
-
-
-    Logger.info("DB size : "+absoluteDB.classes.size());
-
-    let off=0; mr=0;
-    let t=0, t1=0;
-
-    // console : progress "bar"
-    data.classes.map((k,v)=>{
-        let em, om, ovr;
-
-        if(v instanceof CLASS.Class){
-            // analyze each instructions
-            for(let j in v.methods){
-                if(v.methods[j] instanceof CLASS.Method){
-                    //mapInstructionFrom(data.classes[i].methods[j], data, STATS);
-                    t = (new Date()).getTime();
-                    mapInstructionFrom(v.methods[j], absoluteDB, STATS);
-                    t1 = (new Date()).getTime();
-                    if(t1-t>150)
-                        Logger.debug((t1-t)+" : "+v.methods[j].signature());
-                }
+                v.setSupersList(supers);
             }
-            
-            
-            
-            off++;
-            if(off%200==0 || off==step)
-                Logger.info(off+"/"+step+" Classes mapped ("+k+")") ;
-        }
-        else{   
-            mr++;
-            if(mr%20==0) Logger.debug(mr+" missing classes");
-        }
-    });
-
-    
-
-    Logger.raw("[*] "+STATS.idxMethod+" methods indexed");
-    Logger.raw("[*] "+STATS.idxField+" fields indexed");
-    Logger.raw("[*] "+STATS.instrCtr+" instructions indexed");
-    //console.log("[*] "+absoluteDB.strings.length+" strings indexed");
-    Logger.raw("[*] "+STATS.methodCalls+" method calls mapped");
-    Logger.raw("[*] "+STATS.fieldCalls+" field calls mapped");
-    // update place where field are called
-    //return data;
-}
+        });
 
 
+        Logger.info("DB size : "+absoluteDB.classes.size());
+
+        let off:number=0, mr:number=0;
+        let t:number=0, t1:number=0;
 
 
-/**
- * Represents the Application map and the entrypoint for all analysis tasks
- * 
- * @param {string} encoding The file encoding to use when the bytecode is read (default: raw)  
- * @param {Finder} finder The instance of search engine
- * @constructor
- */
-function Analyzer(encoding, finder, ctx=null){
-    SmaliParser.setContext(ctx);
+        // STEP 4
+        // console : progress "bar"
+        data.classes.map((k:string,v:ModelClass)=>{
+            let em, om, ovr;
 
-    var db = this.db = new AnalyzerDatabase(ctx);
+            if(v instanceof ModelClass){
+                // analyze each instructions
+                for(let j in v.methods){
+                    if(v.methods[j] instanceof ModelMethod){
 
-    let tempDb = this.tempDb = new AnalyzerDatabase(ctx, 'inmemory');
+                        t = (new Date()).getTime();
+                        Analyzer.mapInstructionFrom(v.methods[j], absoluteDB, STATS);
+                        t1 = (new Date()).getTime();
+                        if(t1-t>150)
+                            Logger.debug((t1-t)+" : "+v.methods[j].signature());
+                    }
+                }
 
-    this.context = ctx;
-    this.finder = finder;
+                off++;
+                if(off%200==0 || off==step)
+                    Logger.info(off+"/"+step+" Classes mapped ("+k+")") ;
+            }
+            else{
+                mr++;
+                if(mr%20==0) Logger.debug(mr+" missing classes");
+            }
+        });
 
-    this.projectionEngines = {};
 
-    var config = {
-        wsPath: null,
-        encoding: encoding
-    };
 
-    this.newTempDb = function(){
-        return new AnalyzerDatabase(ctx);
+        Logger.raw("[*] "+STATS.idxMethod+" methods indexed");
+        Logger.raw("[*] "+STATS.idxField+" fields indexed");
+        Logger.raw("[*] "+STATS.instrCtr+" instructions indexed");
+        //console.log("[*] "+absoluteDB.strings.length+" strings indexed");
+        Logger.raw("[*] "+STATS.methodCalls+" method calls mapped");
+        Logger.raw("[*] "+STATS.fieldCalls+" field calls mapped");
+        // update place where field are called
+        //return data;
+    }
+    /**
+     * To create a new temporary database
+     * @return {AnalyzerDatabase}
+     * @method
+     */
+    newTempDb():AnalyzerDatabase{
+        /*this.debug = {
+            notbinded: ()=>{ return new FinderResult(db.notbinded.getAll()) },
+            unmapped: ()=>{ return new FinderResult(db.unmapped.getAll()) }
+        };*/
+        return new AnalyzerDatabase(this.context);
     }
 
-    this.file = function(filePath, filename, force=false){
+    /**
+     *
+     * @param {string} filePath
+     * @param {string} filename
+     * @param {boolean} force
+     */
+    file( pFilePath:string, pFilename:string, pForce:boolean=false):void{
 
-
-        //console.log(filePath, filename.endsWith(".smali"));
-
-        if(!filename.endsWith(".smali") && !force)
+        if(!pFilename.endsWith(".smali") && !pForce)
             return;
 
         // TODO : replace readFile + string.split by stream
+        // config
+        const streamParser = false;
 
         // TODO : test UTF8 support
-        let src=null, rs=0, cls=null, o=null;
-        let stremParser = false;
+        let src:string =null, rs:number =0, cls:ModelClass=null, o:any=null;
+        let self:Analyzer = this;
+
         // parse file using blocking IO and string split
-        if(stremParser){
-            o = SmaliParser.parseStream(filePath, config.encoding, function( pClass){
-                tempDb.classes.addEntry(pClass.fqcn, pClass);
+        if(streamParser){
+            o = this.parser.parseStream(pFilePath, this.encoding, function( pClass:ModelClass){
+                self.tempDB.classes.addEntry( pClass.name, pClass); // fqcn
                 rs++;
             });
         }else{
-            src=fs.readFileSync(filePath,config.encoding);
-            cls= SmaliParser.parse(src);
-            tempDb.classes.addEntry(cls.fqcn, cls);
+            src=_fs_.readFileSync(pFilePath).toString(this.encoding);
+            cls= this.parser.parse(src);
+            self.tempDB.classes.addEntry( cls.name, cls); // cls.fqcn
         }
+    }
 
-        
-        // parse file using stream
-        //while(rs<1);
-        
+    path(pPath:string):void{
 
-        //tempDb.classes[cls.fqcn] = cls;
-        //tempDb.classesCtr += 1;
-        /* 
-        db.classes[cls.fqcn] = cls;
-        db.classesCtr+=1; */
-    };
+        let self:Analyzer = this;
+        let tempDb:AnalyzerDatabase = this.newTempDb();
 
-    this.debug = {
-        notbinded: ()=>{ return new FinderResult(db.notbinded.getAll()) },
-        unmapped: ()=>{ return new FinderResult(db.unmapped.getAll()) }
-    };
-
-
-    this.path = function(path){
-        
-        ctx.bus.send(new Event({
+        this.context.bus.send(new Event({
             name: "analyze.file.before",
             data: {
-                path: path,
-                analyzer: this
+                path: pPath,
+                analyzer: self
             }
         }));
 
+        // check if the folder exists
+        if(_fs_.existsSync(pPath)===false)
+            throw new Error('[ANALYZER] Path not exisists');
 
-        tempDb = this.newTempDb();
-
-        // TODO : hcek if path exists;
         // ut.forEachFileOf(path,this.file,".smali");
         //ut.forEachFileOf(path,this.file);
-        ut.forEachFileOf(path,(path,file)=>{
-            this.file(path,file,false);
+        Util.forEachFileOf(pPath,(vPath:string, vFile:string)=>{
+            self.file( vPath, vFile,false);
         });
 
         STATS.idxClass = this.db.classes.size();
-        
+
         Logger.raw("[*] Smali analyzing done.\n---------------------------------------")
         Logger.raw("[*] "+tempDb.classes.size()+" classes analyzed. ");
-        
+
         // start object mapping
         // MakeMap(this.db);
-        MakeMap(tempDb, this.db);
-        
-        ctx.bus.send(new Event({
+        Analyzer.buildModel(tempDb, this.db);
+
+        this.context.bus.send(new Event({
             name: "analyze.file.after",
             data: {
-                path: path,
+                path: pPath,
                 analyzer: this
             }
         }));
@@ -858,235 +898,244 @@ function Analyzer(encoding, finder, ctx=null){
     /**
      * To get the internal database
      */
-    this.getData = function(){
+    getData():AnalyzerDatabase{
         Logger.debug("[ERROR::DEV] Deprecated function Analyzer::getData() is called ");
-        return this._db;
+        return this.db;
     }
-}
-
-Analyzer.prototype.getContext = function(){
-    return this.context;
-}
 
 
-/**
- * To get the absolute DB 
- * @returns {AnalyzerDatabase} DB instance
- */
-Analyzer.prototype.getInternalDB = function(){
-    return this.db;
-}
-
-
-Analyzer.prototype.addClassFromFqcn = function(fqcn){
-    let pkg = null;
-    let pkgn = fqcn.substr(0,fqcn.lastIndexOf('.'));
-    if(this.db.packages.hasEntry(pkgn)==true){
-        pkg = this.db.packages.getEntry(pkgn);
-    }else{
-        pkg = new ModelPackage(pkgn);
-        Logger.debug(pkg);
-        this.db.packages.setEntry(pkgn, pkg);
+    getContext():DexcaliburProject{
+        return this.context;
     }
-    //console.log(pkgn,pkg, this.db.packages.hasEntry(pkgn));
-    var cls = new CLASS.Class({
-        fqcn: fqcn,
-        name: fqcn, // deprecated
-        simpleName: fqcn.substr(fqcn.lastIndexOf('.')+1),
-        package: pkg    
-    });
-
-    Logger.debug(cls);
-    pkg.childAppend(cls);
-    this.db.classes.setEntry(fqcn, cls);
-
-    return cls;
-}
-
-Analyzer.prototype.addTagCategory = function(name, taglist){
-    this.db.tagcategories.addEntry(name, new CLASS.TagCategory(name,taglist));
-}
-
-Analyzer.prototype.getTagCategories = function(){
-    return this.db.tagcategories.getAll();
-}
 
 
-/**
- * To initialize the list of syscalls to use
- * @param {*} syscalls 
- * @function
- */
-Analyzer.prototype.useSyscalls = function(syscalls){
-    //this.db.syscalls = {};
-    for(let i=0; i<syscalls.length ; i++){
-        for(let j=0; j<syscalls[i].sysnum.length; j++){
-            if(syscalls[i].sysnum[j]>-1){
-                this.db.syscalls.addEntry(syscalls[i].sysnum[j],  syscalls[i]);
-            }
+    /**
+     * To get the absolute DB
+     * @returns {AnalyzerDatabase} DB instance
+     */
+    getInternalDB():AnalyzerDatabase{
+        return this.db;
+    }
+
+    /**
+     * To add a class to the model by its FQCN
+     *
+     * Usefull when classes are allocated or declared at runtime
+     * by using reflection technics
+     *
+     * @param fqcn
+     */
+    addClassFromFqcn(fqcn:string):ModelClass{
+        let pkg:ModelPackage = null;
+        let pkgn:string = fqcn.substr(0,fqcn.lastIndexOf('.'));
+
+        if(this.db.packages.hasEntry(pkgn)==true){
+            pkg = this.db.packages.getEntry(pkgn);
+        }else{
+            pkg = new ModelPackage(pkgn);
+            //Logger.debug(pkg.toJsonObject(null).toString());
+            this.db.packages.setEntry(pkgn, pkg);
         }
+        //console.log(pkgn,pkg, this.db.packages.hasEntry(pkgn));
+        let cls:ModelClass = new ModelClass({
+            fqcn: fqcn,
+            name: fqcn, // deprecated
+            simpleName: fqcn.substr(fqcn.lastIndexOf('.')+1),
+            package: pkg
+        });
+
+        Logger.debug('[ANALYZER] Add class from FQCN',cls.getName());
+        pkg.childAppend(cls);
+        this.db.classes.setEntry(fqcn, cls);
+
+        return cls;
     }
-};
 
-/**
- * To analyze the decompiled class of Android.jar
- * @param {String} path Path of the folder containing .smali files
- */
-Analyzer.prototype.system = function(path){
-    // TODO : hcek if path exists;
-    //ut.forEachFileOf(path,this.file,".smali");
-    ut.forEachFileOf(path,(path,file)=>{
-        this.file(path,file,false);
-    });
+    addTagCategory(name:string, taglist:string[]){
+        this.db.tagcategories.addEntry(name, new TagCategory(name,taglist));
+    }
 
-    STATS.idxClass = this.db.classes.size();
-    
-    Logger.raw("[*] Smali analyzing done.\n---------------------------------------")
-    Logger.raw("[*] "+STATS.idxClass+" classes analyzed. ");
-    
-    // start object mapping
-    MakeMap(this.db);
+    getTagCategories():any{
+        return this.db.tagcategories.getAll();
+    }
 
-    this.finder.updateDB(this.db);
 
-}
-
-/**
- * @deprecated
- */
-Analyzer.prototype.flattening = function(method){
-    let instr = [], meta={};
-    for(let i in method.instr){
-        meta = {
-            label: (method.instr[i].tag !== null)? method.instr[i].tag : null,
-            line: method.instr[i].line
-        }
-        for(let j in method.instr[i].stack){
-            instr.push(method.instr[i].stack[j]);
-            if(j==0){
-                instr[instr.length-1].meta = meta;
+    /**
+     * To initialize the list of syscalls to use
+     * @param {*} syscalls
+     * @function
+     */
+    useSyscalls(syscalls:any){
+        //this.db.syscalls = {};
+        for(let i=0; i<syscalls.length ; i++){
+            for(let j=0; j<syscalls[i].sysnum.length; j++){
+                if(syscalls[i].sysnum[j]>-1){
+                    this.db.syscalls.addEntry(syscalls[i].sysnum[j],  syscalls[i]);
+                }
             }
         }
     }
 
-    return instr;
-}
+    /**
+     * To analyze the decompiled class of Android.jar
+     * @param {String} path Path of the folder containing .smali files
+     */
+    system(path:string){
+        throw new Error('[ANALYZER] system() : Not implemented');
 
-/**
- * @deprecated
- */
-Analyzer.prototype.findBasicBlocks = function(instr){
-    let bblocks = [], blk={};
-
-    blk = {stack:[], next:[], label:null };
-    for(let i in instr){
-        if(instr[i].meta !== undefined && (instr[i].meta.label !== null)){
-            if(blk.stack.length > 0 && i>0){
-                blk.parent = bblocks[bblocks.length-1];        
-                bblocks.push(blk);    
-            } 
-
-            blk = {stack:[], next:[], label:instr[i].meta.label }; 
-            blk.stack.push(instr[i]);
-        }
-        else if(instr[i].opcode.type==CONST.INSTR_TYPE.IF){
-            blk.stack.push(instr[i]);
-            blk.parent = bblocks[bblocks.length-1];
-            
-            bblocks.push(blk);
-            blk = {stack:[], next:[], label:null }; 
-        }
-        /*else if(instr[i].opcode.type==CONST.INSTR_TYPE.SWITCH){
-
-            bblocks.push(blk);
-            blk = {stack:[], next:[]};
-        }*/
-        else if(instr[i].opcode.type==CONST.INSTR_TYPE.GOTO){
-            //blk.node.pu
-            bblocks.push(blk);
-            blk = {stack:[], next:[], label:null };
-        }
+        //ut.forEachFileOf(path,this.file,".smali");
         /*
-        else if(instr[i].opcode.flag & CONST.OPCODE_TYPE.SETS_REGISTER){
-            bblocks.push(blk);
-            blk = {stack:[]};
-        }*/
-        else{
-            blk.stack.push(instr[i]);
-        }
+        Util.forEachFileOf(path,(path,file)=>{
+            this.file(path,file,false);
+        });
+
+        STATS.idxClass = this.db.classes.size();
+
+        Logger.raw("[*] Smali analyzing done.\n---------------------------------------")
+        Logger.raw("[*] "+STATS.idxClass+" classes analyzed. ");
+
+        // start object mapping
+        Analyzer.buildModel(this.db);
+
+        this.finder.updateDB(this.db);*/
     }
 
-    return bblocks;
-}
-
-
-/**
- * To find a basic block by its label into a basic block list
- * @function
- * @deprecated
- */
-Analyzer.prototype.findBBbyLabel = function(bblocks,label){
-    for(let i=0; i<bblocks.length; i++){
-        bblocks[i].offset = i;
-        if(bblocks[i].label !== null && bblocks[i].label==label){
-            return bblocks[i];
+    /*
+     * @deprecated
+     *//*
+    flattening(method){
+        let instr = [], meta={};
+        for(let i in method.instr){
+            meta = {
+                label: (method.instr[i].tag !== null)? method.instr[i].tag : null,
+                line: method.instr[i].line
+            }
+            for(let j in method.instr[i].stack){
+                instr.push(method.instr[i].stack[j]);
+                if(j==0){
+                    instr[instr.length-1].meta = meta;
+                }
+            }
         }
+
+        return instr;
     }
-    return null;
-};
 
-/**
- * Naive bb tree build by following only conditions and gotos (no try/catch, no switch, ...)
- * @function
- * @deprecated
- */
-Analyzer.prototype.makeTree = function(bblocks){
-    let last = {};
-    for(let i=0; i<bblocks.length; i++){
-        bblocks[i].offset = i;
-        if(bblocks[i].stack.length > 0){
-            last = bblocks[i].stack[bblocks[i].stack.length-1];
+    /**
+     * @deprecated
+     *//*
+    findBasicBlocks(instr){
+        let bblocks = [], blk={};
 
-            switch(last.opcode.type){
-                case CONST.INSTR_TYPE.IF:
-                    bblocks[i].next.push({
-                        jump: CONST.BRANCH.IF_TRUE,
-                        block: this.findBBbyLabel(bblocks,last.right.name) 
-                    });
-                    bblocks[i].next.push({
-                        jump: CONST.BRANCH.IF_FALSE,
-                        block: bblocks[i+1] 
-                    });
-                    break;
-                case CONST.INSTR_TYPE.GOTO:
-                    bblocks[i].next.push({
-                        jump: CONST.BRANCH.INCONDITIONNAL_GOTO,
-                        block: this.findBBbyLabel(bblocks,last.right.name)
-                    });
-                    break;
-                default:
-                    if(bblocks[i+1] != null && bblocks[i+1].label != null){
+        blk = {stack:[], next:[], label:null };
+        for(let i in instr){
+            if(instr[i].meta !== undefined && (instr[i].meta.label !== null)){
+                if(blk.stack.length > 0 && i>0){
+                    blk.parent = bblocks[bblocks.length-1];
+                    bblocks.push(blk);
+                }
+
+                blk = {stack:[], next:[], label:instr[i].meta.label };
+                blk.stack.push(instr[i]);
+            }
+            else if(instr[i].opcode.type==CONST.INSTR_TYPE.IF){
+                blk.stack.push(instr[i]);
+                blk.parent = bblocks[bblocks.length-1];
+
+                bblocks.push(blk);
+                blk = {stack:[], next:[], label:null };
+            }
+            /*else if(instr[i].opcode.type==CONST.INSTR_TYPE.SWITCH){
+
+                bblocks.push(blk);
+                blk = {stack:[], next:[]};
+            }*//*
+            else if(instr[i].opcode.type==CONST.INSTR_TYPE.GOTO){
+                //blk.node.pu
+                bblocks.push(blk);
+                blk = {stack:[], next:[], label:null };
+            }
+            /*
+            else if(instr[i].opcode.flag & CONST.OPCODE_TYPE.SETS_REGISTER){
+                bblocks.push(blk);
+                blk = {stack:[]};
+            }*//*
+            else{
+                blk.stack.push(instr[i]);
+            }
+        }
+
+        return bblocks;
+    }
+
+
+    /**
+     * To find a basic block by its label into a basic block list
+     * @function
+     * @deprecated
+     *//*
+    findBBbyLabel(bblocks,label){
+        for(let i=0; i<bblocks.length; i++){
+            bblocks[i].offset = i;
+            if(bblocks[i].label !== null && bblocks[i].label==label){
+                return bblocks[i];
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Naive bb tree built by following only conditions and gotos (no try/catch, no switch, ...)
+     * @function
+     * @deprecated
+     *//*
+    makeTree(bblocks){
+        let last = {};
+        for(let i=0; i<bblocks.length; i++){
+            bblocks[i].offset = i;
+            if(bblocks[i].stack.length > 0){
+                last = bblocks[i].stack[bblocks[i].stack.length-1];
+
+                switch(last.opcode.type){
+                    case CONST.INSTR_TYPE.IF:
                         bblocks[i].next.push({
-                            jump: CONST.BRANCH.INCONDITIONNAL,
+                            jump: CONST.BRANCH.IF_TRUE,
+                            block: this.findBBbyLabel(bblocks,last.right.name)
+                        });
+                        bblocks[i].next.push({
+                            jump: CONST.BRANCH.IF_FALSE,
                             block: bblocks[i+1]
                         });
-                    }
-                    break;
+                        break;
+                    case CONST.INSTR_TYPE.GOTO:
+                        bblocks[i].next.push({
+                            jump: CONST.BRANCH.INCONDITIONNAL_GOTO,
+                            block: this.findBBbyLabel(bblocks,last.right.name)
+                        });
+                        break;
+                    default:
+                        if(bblocks[i+1] != null && bblocks[i+1].label != null){
+                            bblocks[i].next.push({
+                                jump: CONST.BRANCH.INCONDITIONNAL,
+                                block: bblocks[i+1]
+                            });
+                        }
+                        break;
+                }
             }
         }
+
+        return bblocks;
     }
 
-    return bblocks;
-}
 
+    /**
+     * Use by graph builder
+     * @function
+     * @deprecated
+     *//*
+    showBlock(blk,prefix,styleFn){
 
-/**
- * Use by graph builder
- * @function
- * @deprecated
- */
-Analyzer.prototype.showBlock = function(blk,prefix,styleFn){
-    
     if(blk==null) return;
 
     for(let i in blk.stack){
@@ -1097,12 +1146,12 @@ Analyzer.prototype.showBlock = function(blk,prefix,styleFn){
 };
 
 
-/**
- * Use by graph builder
- * @function
- * @deprecated
- */
-Analyzer.prototype.showCFG_old = function(bblocks, prefix=""){
+    /**
+     * Use by graph builder
+     * @function
+     * @deprecated
+     *//*
+    showCFG_old(bblocks, prefix=""){
 
     let pathTRUE = Chalk.green(prefix+"    |\n"+prefix+"    |\n"+prefix+"    |\n"+prefix+"    +-----[TRUE]-->");
     let path_len = "    +-----[TRUE]-->".length;
@@ -1121,7 +1170,7 @@ Analyzer.prototype.showCFG_old = function(bblocks, prefix=""){
                 switch(bblocks[i].next[j].jump){
                     case CONST.BRANCH.IF_TRUE:
                         Logger.info(prefix+Chalk.bold.green("if TRUE :"));
-                        this.showBlock(bblocks[i].next[j].block, prefix, Chalk.green); 
+                        this.showBlock(bblocks[i].next[j].block, prefix, Chalk.green);
                         break;
                     case CONST.BRANCH.IF_FALSE:
                         Logger.info(prefix+Chalk.bold.red("if FALSE :"));
@@ -1138,209 +1187,213 @@ Analyzer.prototype.showCFG_old = function(bblocks, prefix=""){
 }
 
 
-/**
- * @deprecated
- */
-Analyzer.prototype.showCFG = function(bblocks, offset=0, prefix="", fn=null){
+    /**
+     * @deprecated
+     *//*
+    showCFG(bblocks, offset=0, prefix="", fn=null){
 
-    if(bblocks.length==0 || bblocks[offset]==undefined){
-        Logger.debug(offset+" => not block");
-        return null;
-    } 
+        if(bblocks.length==0 || bblocks[offset]==undefined){
+            Logger.debug(offset+" => not block");
+            return null;
+        }
 
-    let pathTRUE = Chalk.green(prefix+"    |\n"+prefix+"    |\n"+prefix+"    |\n"+prefix+"    +-----[TRUE]-->");
-    let path_len = 6;"    +-----[TRUE]-->".length;
-    let pathFALSE = Chalk.red(prefix+"    |\n"+prefix+"    |\n"+prefix+"    |\n"+prefix+"    +-----[FALSE]->");
-    let pathNEXT = Chalk.yellow(prefix+"    |\n"+prefix+"    |\n"+prefix+"    |\n"+prefix+"    V");
-    let mockFn = x=>x;
-
-    
-    this.showBlock(bblocks[offset], prefix, (fn==null)? mockFn : fn);
+        let pathTRUE = Chalk.green(prefix+"    |\n"+prefix+"    |\n"+prefix+"    |\n"+prefix+"    +-----[TRUE]-->");
+        let path_len = 6;"    +-----[TRUE]-->".length;
+        let pathFALSE = Chalk.red(prefix+"    |\n"+prefix+"    |\n"+prefix+"    |\n"+prefix+"    +-----[FALSE]->");
+        let pathNEXT = Chalk.yellow(prefix+"    |\n"+prefix+"    |\n"+prefix+"    |\n"+prefix+"    V");
+        let mockFn = x=>x;
 
 
-    if(bblocks[offset].next.length > 1){
-        prefix += " ".repeat(path_len);
+        this.showBlock(bblocks[offset], prefix, (fn==null)? mockFn : fn);
 
-        for(let j in bblocks[offset].next){
-            switch(bblocks[offset].next[j].jump){
-                case CONST.BRANCH.IF_TRUE:
-                    Logger.info(prefix+Chalk.bold.green("if TRUE :"));
-                    //this.showBlock(bblocks[offset].next[j], prefix, Chalk.green); 
-                    if(bblocks[offset].next[j].block == null){
-                        
-                    }else{
-                        this.showCFG(bblocks, bblocks[offset].next[j].block.offset+1, prefix, Chalk.green);
-                    }
+
+        if(bblocks[offset].next.length > 1){
+            prefix += " ".repeat(path_len);
+
+            for(let j in bblocks[offset].next){
+                switch(bblocks[offset].next[j].jump){
+                    case CONST.BRANCH.IF_TRUE:
+                        Logger.info(prefix+Chalk.bold.green("if TRUE :"));
+                        //this.showBlock(bblocks[offset].next[j], prefix, Chalk.green);
+                        if(bblocks[offset].next[j].block == null){
+
+                        }else{
+                            this.showCFG(bblocks, bblocks[offset].next[j].block.offset+1, prefix, Chalk.green);
+                        }
                         // this.showCFG(bblocks, bblocks[offset].next[j].offset+1, prefix);
-                    break;
-                case CONST.BRANCH.IF_FALSE:
-                    Logger.info(prefix+Chalk.bold.red("if FALSE :"));
-                    //this.showBlock(bblocks[offset].next[j], prefix, Chalk.red);
-                    this.showCFG(bblocks, offset+1, prefix, Chalk.red);
-                    break;
+                        break;
+                    case CONST.BRANCH.IF_FALSE:
+                        Logger.info(prefix+Chalk.bold.red("if FALSE :"));
+                        //this.showBlock(bblocks[offset].next[j], prefix, Chalk.red);
+                        this.showCFG(bblocks, offset+1, prefix, Chalk.red);
+                        break;
+                }
             }
         }
-    }
-    else if(bblocks[offset].next.length == 1){
-        this.showCFG(bblocks, offset+1, prefix, Chalk.yellow);
-        //console.log(pathNEXT);
-        //this.showBlock(bblocks[i].next[j].block, prefix, Chalk.white);
-    }
-    
-}
-
-/**
- * @deprecated
- */
-Analyzer.prototype.cfg = function(method){
-    let instr = [], meta={}, bblocks = [], blk={};
-
-    // list instr
-    instr = this.flattening(method);
-    
-    
-    // find basic block
-    bblocks = this.findBasicBlocks(instr);
-    
-    // get tree
-    bblocks = this.makeTree(bblocks);
-    
-
-    // show
-    this.showCFG(bblocks,0);
-
-    return bblocks;
-}
-
-/**
- * TODO
- * @param {Class} cls New class to insert into the model 
- */
-Analyzer.prototype.updateWithClass = function(cls){
-    
-};
-
-
-/**
- * @function
- * @deprected
- */
-Analyzer.prototype._updateWithEachFileOf = function(filesDB, update_strategy){
-    //this.db.files 
-    this.db.files.map((k,v)=>{
-        for(let j=0; j<filesDB.length; j++){
-            update_strategy( this.db, filesDB[j], v);
+        else if(bblocks[offset].next.length == 1){
+            this.showCFG(bblocks, offset+1, prefix, Chalk.yellow);
+            //console.log(pathNEXT);
+            //this.showBlock(bblocks[i].next[j].block, prefix, Chalk.white);
         }
-    });
-};
 
-/**
- * @function
- * @deprecated
- */
-Analyzer.prototype.updateFiles = function(filesDB, override){
-    this._updateWithEachFileOf(
-        filesDB,
-        // check if the file can be treated
-        function(db, inFile, dbFile){
-            if((inFile.path == dbFile.path)||override){
-                //dbFile.update(inFile);
+    }
+
+    /**
+     * @deprecated
+     */
+    /*cfg(method){
+        let instr = [], meta={}, bblocks = [], blk={};
+
+        // list instr
+        instr = this.flattening(method);
+
+
+        // find basic block
+        bblocks = this.findBasicBlocks(instr);
+
+        // get tree
+        bblocks = this.makeTree(bblocks);
+
+
+        // show
+        this.showCFG(bblocks,0);
+
+        return bblocks;
+    }*/
+
+    /**
+     * TODO
+     * @param {Class} cls New class to insert into the model
+     */
+    updateWithClass(cls:ModelClass){
+
+    }
+
+
+    /**
+     * @function
+     * @deprected
+     */
+    _updateWithEachFileOf(filesDB:IDatabase, update_strategy:any){
+        //this.db.files
+        /*let idxNames:string[] = Object.keys(filesDB.getAll());
+
+
+        this.db.files.map((k,v)=>{
+            for(let j=0; j<filesDB.length; j++){
+                update_strategy( this.db, filesDB[j], v);
+            }
+        });*/
+    }
+
+    /**
+     * @function
+     * @deprecated
+     */
+    updateFiles(filesDB:IDatabase, override:boolean){
+        this._updateWithEachFileOf(
+            filesDB,
+            // check if the file can be treated
+            function(db, inFile, dbFile){
+                if((inFile.path == dbFile.path)||override){
+                    //dbFile.update(inFile);
+                }else{
+                    db.files.insert(inFile);
+                }
+            }
+        )
+    }
+
+    /**
+     * @param category
+     * @param inData
+     */
+    insertIn(category:string, inData:IDbIndex|ModelFile[]){
+        if(Array.isArray(inData )){
+            for(let i:number=0; i<inData.length; i++){
+                this.db[category].insert(inData[i]);
+            }
+        }else{
+            if(this.db[category] == null || this.db[category].size()==0){
+                this.db[category] = inData;
             }else{
-                db.files.insert(inFile);
+                inData.map((k:number,v:any)=>{
+                    this.db[category].addEntry(v);
+                })
             }
-        }
-    )
-};
-
-Analyzer.prototype.insertIn = function(category, inData){
-    if(inData instanceof Array){
-        for(let i=0; i<inData.length; i++){
-            this.db[category].insert(inData[i]);
-        }
-    }else{
-        for(let i in inData){
-            this.db[category].addEntry(i, inData[i]);
+            /*
+            for(let i in inData){
+                this.db[category].addEntry(i, inData[i]);
+            }*/
         }
     }
-}
 
-function tagAsAndroidInternal( pOffset, pElement){
-    pElement.addTag(AnalysisHelper.TAG.Discover.Internal);
-}
+    static tagAsAndroidInternal( pOffset:any, pElement:any){
+        pElement.addTag(TAG.Discover.Internal);
+    }
 
-Analyzer.prototype.tagAllAsInternal = function(){
-    this.db.classes.map(tagAsAndroidInternal);
-    this.db.fields.map(tagAsAndroidInternal);
-    this.db.methods.map(tagAsAndroidInternal);
-    this.db.strings.map(tagAsAndroidInternal);
-}
+    tagAllAsInternal(){
+        this.db.classes.map(Analyzer.tagAsAndroidInternal);
+        this.db.fields.map(Analyzer.tagAsAndroidInternal);
+        this.db.methods.map(Analyzer.tagAsAndroidInternal);
+        this.db.strings.map(Analyzer.tagAsAndroidInternal);
+    }
 
-Analyzer.prototype.resolveMethod = function(ref){
-    let m = Resolver.method(this.db, ref);
-    Logger.debug(m);
-    return m;
-}
-
-
-Analyzer.prototype.tagAllIf = function(condition, tag){
-    this.tagIf(condition, "classes", tag);
-    this.tagIf(condition, "fields", tag);
-    this.tagIf(condition, "methods", tag);
-    this.tagIf(condition, "strings", tag);
-}
+    resolveMethod(ref:ModelMethodReference):ModelMethod{
+        let m:ModelMethod = Resolver.method(this.db, ref, null);
+        Logger.debug('[ANALYZER] Resolving method : ',m.getName());
+        return m;
+    }
 
 
-Analyzer.prototype.tagIf = function(condition, type, tag){
-    this.db[type].map(function(k,v){
-        if(condition(k,v)){
-            v.addTag(tag);
-        }
-    });
-    /*
-    if(this.db[type] instanceof Array){
-        this.db[type].map(function(x){
-            if(condition(x)){
-                x.addTag(tag);
+    tagAllIf(condition:any, tag:any){
+        this.tagIf(condition, "classes", tag);
+        this.tagIf(condition, "fields", tag);
+        this.tagIf(condition, "methods", tag);
+        this.tagIf(condition, "strings", tag);
+    }
+
+
+    tagIf(condition:any, type:string, tag:any){
+        this.db[type].map(function(k:any,v:any){
+            if(condition(k,v)){
+                v.addTag(tag);
             }
         });
-    }else{
-        for(let k in this.db[type]){
-            if(condition(this.db[type][k])){
-                this.db[type][k].addTag(tag);
+        /*
+        if(this.db[type] instanceof Array){
+            this.db[type].map(function(x){
+                if(condition(x)){
+                    x.addTag(tag);
+                }
+            });
+        }else{
+            for(let k in this.db[type]){
+                if(condition(this.db[type][k])){
+                    this.db[type][k].addTag(tag);
+                }
             }
-        }
-    }*/
+        }*/
+    }
+
+    /**
+     * To scan for new DataBlock and index them
+     */
+    updateDataBlock(){
+        let dd:ModelDataBlock[]=null, dbs:string=null;
+
+        this.db.methods.map((k:string,v:ModelMethod)=>{
+
+            dd = v.getDataBlocks();
+            for(let j=0; j<dd.length; j++){
+                if(dd[j] == null) continue;
+                dbs = dd[j].getUID();
+                if(this.db.datablock.hasEntry(dbs) === false)
+                    this.db.datablock.addEntry(dbs,dd[j]);
+            }
+        });
+    }
+
+
 }
 
-/**
- * To scan for new DataBlock and index them
- */
-Analyzer.prototype.updateDataBlock = function(){
-    let dd=null, dbs=null;
-
-    this.db.methods.map((k,v)=>{
-
-        dd = v.getDataBlocks();
-        for(let j=0; j<dd.length; j++){
-            if(dd[j] == null) continue;
-            dbs = dd[j].getUID();
-            if(this.db.datablock.hasEntry(dbs) === false)
-                this.db.datablock.addEntry(dbs,dd[j]);
-        }
-    });
-    /*
-    for(let i in this.db.methods){
-        dd = this.db.methods[i].getDataBlocks();
-        for(let j=0; j<dd.length; j++){
-            if(dd[j] == null) continue;
-            dbs = dd[j].getUID();
-            if(this.db.datablock[dbs] == null)
-                this.db.datablock[dbs] = dd[j];
-        }
-    }*/
-}
-
-
-
-
-module.exports = Analyzer;

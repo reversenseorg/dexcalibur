@@ -1,21 +1,36 @@
-const _fs_  = require("fs");
-const _Chalk_ = require("chalk");
-const Logger = require("./Logger.js")();
-const _xml2js_ = require("xml2js");
-const _util_ = require('util');
+import * as _fs_ from 'fs';
+import * as _xml2js_ from 'xml2js';
+import * as _util_ from 'util';
+
+import DexcaliburProject from "./DexcaliburProject";
+import {AndroidManifest} from "./android/AndroidManifest";
+import {IntentFilter} from "./android/IntentFilter";
+import AndroidComponent from "./android/AndroidComponent";
+import AndroidActivity from "./android/AndroidActivity";
+import AndroidReceiver from "./android/AndroidReceiver";
+import AndroidProvider from "./android/AndroidProvider";
+import AndroidService from "./android/AndroidService";
+import Analyzer from "./Analyzer";
+import * as Log from './Logger';
+
+let Logger:Log.Logger = Log.newLogger() as Log.Logger;
+
+
 
 _xml2js_.Parser.prototype.parseStringPromise = _util_.promisify(_xml2js_.parseString);
 
 
-const Android = require("./AndroidAppComponents.js");
 
-
-class AndroidAppAnalyzer
+export default class AndroidAppAnalyzer
 {
-    constructor(context){
+	context:DexcaliburProject = null;
+	manifest:AndroidManifest = null;
+	manifestPath:string = null;
+	manifestCode:string = null;
+
+
+    constructor(context:DexcaliburProject){
         this.context = context;
-		this.manifest =  null; //new Android.Manifest(context);
-		this.manifestPath = null;
 	}
 
 	/*
@@ -25,37 +40,37 @@ class AndroidAppAnalyzer
 	}
 	*/
 
-	/**
+	/*
 	 * To get an intent filter by its UID
 	 * 
 	 * @param {String} uid UID of tntent filter 
 	 * @returns {IntentFilter} 	Return the corresponding Intent Filter, else NULL
 	 * @function
 	 */
-	getIntentFilter(type,cmp,uid){
-		let result = null;
+	getIntentFilter(type:string, cmp:string, uid:string):IntentFilter{
+		let result:AndroidComponent = null;
 
 		switch(type)
 		{
 			case "activity":
 				result = this.context.find.get.activity(cmp);
-				if(result instanceof Android.Activity)
+				if(result instanceof AndroidActivity)
 					return result.getIntentFilterByUid(uid);
 				break;
 			case "receiver":
 				result = this.context.find.get.receiver(cmp);
-				if(result instanceof Android.Receiver)
+				if(result instanceof AndroidReceiver)
 					return result.getIntentFilterByUid(uid);
 				break;
 			case "provider":
 				result = this.context.find.get.provider(cmp);
-				if(result instanceof Android.Provider)
+				if(result instanceof AndroidProvider)
 					return result.getIntentFilterByUid(uid);
 				break;
 			case "service":
 				result = this.context.find.get.service(cmp);
 				console.log(cmp,result);
-				if(result instanceof Android.Service)
+				if(result instanceof AndroidService)
 					return result.getIntentFilterByUid(uid);
 				break;
 			default:
@@ -65,20 +80,22 @@ class AndroidAppAnalyzer
 		return null;
 	}
 
-	dumpManifest(){
+	dumpManifest():string{
 		if(this.manifest == null) return null;
 
 		return _fs_.readFileSync(this.manifestPath).toString();
 	}
 
-	updateManifest(data){
+
+	updateManifest(data:string){
 		this.manifestCode = data;
 	}
 
-	getPackageName(){
+	getPackageName():string{
 		return this.manifest.getAttrPackage();
 	}
-	getManifest(){
+
+	getManifest():AndroidManifest{
 		return this.manifest;
 	}
 
@@ -86,9 +103,9 @@ class AndroidAppAnalyzer
      * To import an Android manifest from he given path
      * @param {String} path Path to the manifest
      */
-    async importManifest(path){
-        let codeAnal = this.context.getAnalyzer();
-		let self = this;
+    async importManifest(path:string):Promise<boolean>{
+        let codeAnal:Analyzer = this.context.getAnalyzer();
+		let self:AndroidAppAnalyzer = this;
 		let data = null;
 
 
@@ -107,11 +124,11 @@ class AndroidAppAnalyzer
 
 		//let amp = new AndroidManifestXmlParser(self);
 
-		var parser = new _xml2js_.Parser();
+		let parser:_xml2js_.Parser = new _xml2js_.Parser();
 
-		let result = await parser.parseStringPromise(data);
+		let result:any = await parser.parseStringPromise(data);
 
-		let manifest = Android.Manifest.fromXml(result.manifest, self.context);
+		let manifest:AndroidManifest = AndroidManifest.fromXml(result.manifest, self.context);
 		
 
 		this.manifest = manifest;
@@ -123,7 +140,7 @@ class AndroidAppAnalyzer
 				type: "app.permission.new",
 				data: x
 			});
-			codeAnal.db.permissions.insert(x);
+			codeAnal.db.permissions.insert(x, false);
 			Logger.debug("[Manifest] Permission found : ",x.name);
 		});
 		manifest.application.activities.map(x => {
@@ -159,4 +176,3 @@ class AndroidAppAnalyzer
     }
 }
 
-module.exports = AndroidAppAnalyzer;

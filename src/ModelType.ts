@@ -32,6 +32,10 @@ export class ModelBasicType extends Savable
         this.arr = isArray;
     }
 
+    import(pConfig: any): ModelBasicType {
+        return super.import(pConfig);
+    }
+
     hashcode():string{
         return this._hashcode
     }
@@ -86,6 +90,7 @@ export class ModelBasicType extends Savable
         return "<"+this._name+">"+(this.arr?"[]":"");
     }
 
+
     /**
      * To make an instance of Object which not contain circular reference
      * and which are ready to be serialized.
@@ -122,13 +127,12 @@ export class ModelObjectType extends Savable
         this.tags = [];
     }
 
-
-    import(pData:any){
-        this.import(pData);
+    import(pConfig: any): ModelObjectType {
+        return super.import(pConfig);
     }
 
     export():Stub{
-        return this.export();
+        return super.export();
     }
 
     hashcode():string{

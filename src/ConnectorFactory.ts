@@ -37,6 +37,8 @@ export interface IDbIndex extends IDbSet {
     addEntry(ref:any):void;
 
     getEntry(offset:number):any;
+
+    hasEntry(value:any):boolean
 }
 
 export interface IDbCollection extends IDbSet
@@ -74,6 +76,8 @@ export interface IDatabase
     getIndex(name:string):IDbIndex;
 
     getCollection(name:string):IDbCollection;
+
+    getAll():any;
 
     toJsonObject():any;
 }

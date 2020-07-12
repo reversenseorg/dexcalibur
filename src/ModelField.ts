@@ -19,6 +19,7 @@ export default  class ModelField extends Savable
     type:any = null;
     instr:any = null;
     enclosingClass:ModelClass = null;
+    declaringClass:ModelClass|string = null; // new
     __signature__:string = null;
     __aliasedSignature__:string = null;
     _hashcode:string = null;
@@ -27,6 +28,10 @@ export default  class ModelField extends Savable
     _getters:ModelMethod[] = [];
     _setters:ModelMethod[] = [];
     tags:any = [];
+
+    _:any = {};
+
+    // oline
 
     /**
      *
@@ -40,6 +45,13 @@ export default  class ModelField extends Savable
                 this[i]=pConfig[i];
     }
 
+    setValue(val:any){
+        this._.v = val;
+    }
+
+    getValue(val:any){
+        return this._.v;
+    }
 
     setupMissingTag(){
         return (this.tags.push(CONST.TAG.MISSING));

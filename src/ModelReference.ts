@@ -4,7 +4,9 @@ import ModelField from "./ModelField";
 import ModelMethod from "./ModelMethod";
 import construct = Reflect.construct;
 import {Savable, STUB_TYPE} from "./ModelSavable";
+import * as Log from './Logger';
 
+let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
 /**
  * Represents a reference to a field in the Application bytecode
@@ -20,6 +22,7 @@ export class ModelFieldReference
     _hashcode:string = "";
     tags:any = [];
     enclosingClass:ModelClass|string = null;
+    declaringClass:ModelClass|string = null; // new
 
     /**
      *
@@ -31,6 +34,10 @@ export class ModelFieldReference
             for(let i in pConfig)
                 this[i]=pConfig[i];
 
+    }
+
+    getName():string{
+        return this.name;
     }
 
     /**
@@ -73,6 +80,15 @@ export class ModelClassReference
     constructor(pFQCN:string=null) {
         this.fqcn = pFQCN;
     }
+
+    getName(){
+        return this.fqcn;
+    }
+
+    toJsonObject(){
+        Logger.debug("[MODEL:CLASS:REF] toJsonObject() is not implemented");
+        return {};
+    }
 }
 
 
@@ -103,6 +119,11 @@ export class ModelMethodReference
                 this.hashCode();
             } */
         }
+    }
+
+
+    getName(){
+        return this.fqcn;
     }
 
 

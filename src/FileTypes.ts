@@ -34,7 +34,7 @@ export const TYPES = {
 
 
 // TODO : provide better file detection (binwalk, file, yara, r2, ...)
-export class TypeDetector{
+export class FileTypeDetector{
     /*this.reader = null;
     this.writer = null;
     this.dumper = null;

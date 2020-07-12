@@ -14,6 +14,10 @@ export default class ModelInstruction extends Savable
     _call:any = null;
     _parent:any = null;
 
+    // location into parser file (line number)
+    // oline:number;
+
+    // line number into source (.jav, .kotlin, ...) file. Its a metadata
     iline:number = null;
 
     // operands
@@ -139,7 +143,7 @@ export default class ModelInstruction extends Savable
         o.method = "";
 
         if(this._parent instanceof ModelBasicBlock){
-            o.offset.bb = this._parent.offset;
+            o.offset.bb = this._parent.offset; // TODO : error ?
             if(this._parent._parent instanceof ModelMethod){
                 o.method = this._parent._parent.signature();
             }

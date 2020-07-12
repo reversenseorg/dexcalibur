@@ -34,9 +34,9 @@ export default class ModelMethod extends Savable
 
     name:string = null;
     modifiers:Modifier = null;
-    args:any = []; // TODO
-    ret:any = null; // TODO
-    instr:any = []; // TODO
+    args:(ModelObjectType|ModelBasicType)[] = []; // TODO
+    ret:(ModelObjectType|ModelBasicType) = null; // TODO
+    instr:ModelBasicBlock[] = []; // TODO
 
     datas:any = []; // TODO
     switches:any = []; // TODO
@@ -45,9 +45,10 @@ export default class ModelMethod extends Savable
 
     locals:number = 0;
     registers:number = 0;
-    params:number = 0;
+    params:any = [];
 
     enclosingClass:ModelClass = null;
+    declaringClass:ModelClass|string = null; // TODO : rename for memory perfomance
 
     _hashcode:string = null;
 
@@ -133,6 +134,10 @@ export default class ModelMethod extends Savable
         console.log("\t"+this._hashcode);
     }
 
+    getName(){
+        return this.name;
+    }
+
     /**
      * To build a strings containing the method canonical name, with the arguments types and orders,
      * and the return type. This signature acts as a primary key into the DB and it is the
@@ -173,18 +178,23 @@ export default class ModelMethod extends Savable
 
     // this.signatureFactory("__signature__","name")
     // this.signatureFactory("__alias_signature__","alias")
+    /**
+     * To generate a signature from 'seed'
+     * @param ppt The name of the property where the signature should be stored
+     * @param seed The property involved into signature
+     */
     signatureFactory(ppt:string, seed:string):string{
         if(this[ppt] !== null) return this[ppt];
 
         let xargs:string = "", hash:string ="";
 
-        for(let i in this.args) xargs+=""+this.args[i].signatureFactory(ppt, seed)+"";
+        for(let i in this.args) xargs+=""+this.args[i].signature()+""; // signatureFactory(ppt, seed)
 
         //if(this.fqcn !== undefined)
         //    hash = this.fqcn+"."+this[seed]+"("+xargs+")"+this.ret.signatureFactory(ppt, seed);
         //else{
             //console.log(this.ret);
-            hash = this.enclosingClass[seed]+"."+this[seed]+"("+xargs+")"+this.ret.signatureFactory(ppt, seed);
+            hash = this.enclosingClass[seed]+"."+this[seed]+"("+xargs+")"+this.ret.signature(); //signatureFactory(ppt, seed);
         //}
         this[ppt]  = hash;
         return hash;
@@ -457,7 +467,7 @@ export default class ModelMethod extends Savable
 
 
 
-   getTaggedBlock(tag:ModelBasicBlock){
+   getTaggedBlock(tag:string){
         for(let i in this.instr){
             if(this.instr[i].tag==tag) return this.instr[i];
         }
@@ -655,20 +665,32 @@ export default class ModelMethod extends Savable
         return null;
     }
 
+    appendDataBlock(pBlock:ModelDataBlock, callback:any=null){
+        pBlock.setParent(this, this.datas.length);
+        this.datas.push(pBlock);
+        if(callback != null) callback(this, pBlock);
+    }
+
+    appendBasicBlock(pBlock:ModelBasicBlock, callback:any=null){
+        pBlock.offset = this.instr.length;
+        this.instr.push(pBlock);
+        if(callback != null) callback(this, pBlock);
+    }
+
+    /*
     appendBlock(block:any, callback:any=null){
         if(block instanceof ModelBasicBlock){
             block.offset = this.instr.length;
             this.instr.push(block);
-            if(callback != null && callback.basicblock != null)
-                callback.basicblock(this, block);
+            if(callback != null) callback(this, block);
         }
         else if(block instanceof ModelDataBlock){
             block.setParent(this, this.datas.length);
             this.datas.push(block);
-            if(callback != null && callback.datablock != null)
-                callback.datablock(this, block);
+            if(callback != null) callback(this, block);
         }
-    }
+    }*/
+
     getDataBlockByTag( pTag:string):ModelDataBlock[]{
         let ds:ModelDataBlock[] = []
         for(let i=0; i<this.datas.length; i++){

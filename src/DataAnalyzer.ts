@@ -1,10 +1,17 @@
+
+
+import * as  LIB_filetypeOf from"file-type";
+
+import * as LIB_YAML from "js-yaml";
+import * as LIB_PROP from "properties";
+import DexcaliburProject from "./DexcaliburProject";
+import {FileTypeDetector} from "./FileTypes";
+import ModelFile from "./ModelFile";
+import {ConnectorFactory, IDatabase, IDatabaseAdapter, IDbIndex} from "./ConnectorFactory";
+
 const FS = require("fs");
-const PATH = require("path"); 
-const LIB_filetypeOf = require("file-type");
-const LIB_YAML = require("js-yaml");
-const LIB_PROP = require("properties");
+const PATH = require("path");
 const UT = require("./Utils.js");
-const FileHelper = require("./File.js");
 const FileTypeHelper = require("./FileTypes.js");
 const Logger = require("./Logger.js")();
 const Event = require("./Event.js");
@@ -19,13 +26,16 @@ function checkIfSmali(root, filepath){
     return false;
 }
 
-
-class DataCollection
+/*
+export class DataCollection
 {
-    constructor(config){
-        this.context = null;
+    files:any = null;
+    buffers:any = null;
+
+    constructor(config:any = undefined){
         this.files = [];
         this.buffers = [];
+
 
         if(config!=null)
             for(let i in config) this[i]=config[i];
@@ -63,8 +73,8 @@ class DataCollection
         return this;
     }
 
-    pushBuffer(buff){
-        this.buffers.push(file);
+    pushBuffer(buff:any){
+        this.buffers.push(buff);
         return this;
     }
 
@@ -96,7 +106,7 @@ class DataCollection
         return this.buffers; 
     }
     
-}
+}*/
 
 /*
 DataCollection.prototype.pushFile = function(file){
@@ -164,27 +174,44 @@ DataCollection.prototype.getBuffers = function(){
 }
 */
 
-class DataAnalyzer
+export enum DATA_SCOPE {
+    PKG="bin",
+    DEVICE="dev",
+    STATIC_BUFFER="sbf",
+    DYN_BUFFER="dbf"
+}
+
+export class DataAnalyzer
 {
-    constructor(pCtx){
+    context:DexcaliburProject = null;
+    db:IDatabase = null;
+    detector:FileTypeDetector = null;
+
+    constructor(pCtx:DexcaliburProject){
         this.context = pCtx;
-        this.db = new DataCollection();
-        this.detector = new FileTypeHelper.TypeDetector();
+        this.detector = new FileTypeHelper.FileTypeDetector();
+
+        this.newDB();
     }
 
-    scan(path){
-        let db = this.db;
+    newDB(pName:string="data"){
+        let idb:IDatabaseAdapter = ConnectorFactory.getInstance().newConnector('inmemory',this.context);
+        this.db = idb.newTemporaryDb(pName);
+    }
+
+    scan(path:string, pType:DATA_SCOPE=DATA_SCOPE.PKG){
+        let db:IDbIndex = this.db.getIndex(pType);
         let detector = this.detector;
-        let ctr = 0, file=null, ctx=this.context;
+        let ctr:number = 0, file:ModelFile=null, ctx:DexcaliburProject=this.context;
         //Logger.info("[DATA ANALYZER] Start scan of : ",path);
     
         if(path[path.length-1]=='/')
            path = path.substr(0,path.length-1);
     
-        UT.forEachFileOf(path,function( fpath, fname){
-            let type = null;
+        UT.forEachFileOf(path,function( fpath:string, fname:string){
+            let type:any = null;
     
-            
+            //  TODO : remove
             if(checkIfSmali(path, PATH.join(fpath,fname))) return null;
     
             let ext = fpath.substr(fpath.lastIndexOf('.')+1); 
@@ -197,7 +224,7 @@ class DataAnalyzer
             if(type != null){
     
                 // Logger.info("[DATA ANALYZER]<1> Push file : ",fpath);
-                file = new FileHelper.File({
+                file = new ModelFile({
                     path: fpath,
                     name: fname,
                     type: type
@@ -208,19 +235,19 @@ class DataAnalyzer
                     data: file 
                 }))
     
-                db.pushFile(file);
+                db.addEntry(file);
             }else{
                 type = detector.search(ext);
                 
                 //console.log(type);
                 if(type != null){
                     //Logger.info("[DATA ANALYZER]<2> Push file : ",fpath);
-                    file = new FileHelper.File({
+                    file = new ModelFile({
                         path: fpath,
                         name: fname,
                         type: type
                     });
-                    db.pushFile(file);
+                    db.addEntry(file);
                     //console.log("Nb : "+db.files.length);
     
                     ctx.bus.send(new Event.Event({
@@ -233,7 +260,7 @@ class DataAnalyzer
                     //ignore
                 }else{
                     //Logger.info("[DATA ANALYZER]<3> Push file : ",fpath);
-                    db.pushFile(new FileHelper.File({
+                    db.addEntry(new ModelFile({
                         path: fpath,
                         name: fname,
                         unknow: true
@@ -248,15 +275,11 @@ class DataAnalyzer
         return this;
     }
 
-    getDB(){
+    getDB():IDatabase{
         return this.db;
     }
+
+    getIndex(pType:DATA_SCOPE):IDbIndex{
+        return this.db.getIndex(pType);
+    }
 }
-
-
-
-
-module.exports = {
-    Analyzer: DataAnalyzer,
-    Collection: DataCollection
-};

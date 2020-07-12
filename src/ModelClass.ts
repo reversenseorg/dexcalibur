@@ -6,6 +6,7 @@ import ModelMethod from "./ModelMethod";
 import ModelField from "./ModelField";
 import NodeCompare from "./NodeCompare";
 import {Savable, STUB_TYPE} from "./ModelSavable";
+import {ModelClassReference, ModelFieldReference, ModelMethodReference} from "./ModelReference";
 
 
 interface IClassSet {
@@ -45,7 +46,7 @@ export default class ModelClass extends Savable
 
     // the FQDN of the package
     // the package
-    package:ModelPackage = null;
+    package:ModelPackage|string = null;
 
     // the name of the source file contained into the .source instruction
     source:string = null;
@@ -54,11 +55,11 @@ export default class ModelClass extends Savable
     modifiers:Modifier = null;
 
     // a list of references to the implemented interfaces
-    implements:ModelClass[] = [];
+    implements:(ModelClass|string)[] = [];
 
     // a list of references to the extended classes
-    extends:ModelClass = null;
-    supers:ModelClass[] = null;
+    extends:ModelClass|ModelClassReference = null; //ModelClassReference
+    supers:(ModelClass|ModelClassReference)[] = null;
 
     // a list of references to the appied annotations
     annotations = [];
@@ -77,7 +78,8 @@ export default class ModelClass extends Savable
     _fieldCount:number = 0;
 
     // an hashmap of the inner classes, the key is the FQCN of the subject
-    innerClass:IClassSet = {};
+    // innerClass:IClassSet = {};
+    innerClass:boolean = false;
 
     tags:any = [];
 
@@ -85,7 +87,7 @@ export default class ModelClass extends Savable
      if the current object is enclosed into another class, a reference to
      the enclosing class is stored here
     */
-    enclosingClass:ModelClass = null;
+    enclosingClass:ModelClass|ModelClassReference = null;
 
     // private : a list of the methods containing instructions which use this class
     _callers:string[]|ModelMethod[] = [];
@@ -183,11 +185,11 @@ export default class ModelClass extends Savable
         return (this.extends != null);
     }
 
-    getSuperClass():ModelClass{
+    getSuperClass():ModelClass|ModelClassReference{
         return this.extends;
     }
 
-    getSuperList():ModelClass[]{
+    getSuperList():(ModelClass|ModelClassReference)[]{
         return this.supers;
     }
 
@@ -299,16 +301,26 @@ export default class ModelClass extends Savable
     /**
      * To add inherited method which are not overrided
      */
-    addInheritedMethod(methodRef:string, parentMethod:ModelMethod):ModelMethod{
-        this.methods[methodRef] = parentMethod;
-        this.inherit[methodRef] = parentMethod;
-        return this.methods[methodRef];
+    addInheritedMethod(methodRef:string|ModelMethodReference, parentMethod:ModelMethod):ModelMethod{
+        let n:string=(methodRef instanceof ModelMethodReference) ? methodRef.getName() : methodRef;
+
+        this.methods[n] = parentMethod;
+        this.inherit[n] = parentMethod;
+        return this.methods[n];
     }
 
-    addInheritedField(localReference:string, parentField:ModelField):ModelField{
-        this.fields[localReference] = parentField;
-        this.inherit[localReference] = parentField;
-        return this.fields[localReference];
+    /**
+     *
+     * @param localReference
+     * @param parentField
+     */
+    addInheritedField(localReference:string|ModelFieldReference, parentField:ModelField):ModelField{
+
+        let n:string=(localReference instanceof ModelFieldReference) ? localReference.getName() : localReference;
+
+        this.fields[n] = parentField;
+        this.inherit[n] = parentField;
+        return this.fields[n];
     }
 
 
@@ -327,8 +339,8 @@ export default class ModelClass extends Savable
                     for(let k=0; k<this.supers.length; k++){
                         if(this.supers[k] instanceof ModelClass)
                             obj.supers.push({
-                                name:this.supers[k].signature(),
-                                alias: this.supers[k].getAlias()
+                                name: (this.supers[k] as ModelClass).signature(),
+                                alias: (this.supers[k] as ModelClass).getAlias()
                             }); // call signature
                     }
             }
@@ -349,14 +361,17 @@ export default class ModelClass extends Savable
                 }
             }
             else if(i == "package"){
-                obj.package = this.package.toJsonObject(["name"]);
+                if(this.package instanceof  ModelPackage)
+                    obj.package = this.package.toJsonObject(["name"]);
+                else
+                    obj.package = {name:this.package};
             }
             else if(i == "tags"){
                 obj.tags = this.tags;
             }
             else if(i == "extends"){
                 //obj.extends = (this.extends!=null? this.extends.toJsonObject(["__signature__"]): null);
-                obj.extends = (this.extends!=null? this.extends.name : null);
+                obj.extends = (this.extends!=null && (this.extends instanceof ModelClass))? this.extends.name : null;
                 //obj.extends = (this.extends!=null? { name: this.extends.name, alias:this.extends.alias } : null);
             }
             else if(i == "implements"){
@@ -364,7 +379,8 @@ export default class ModelClass extends Savable
                     obj.implements = [];
 
                     for(let x=0; x<this.implements.length; x++){
-                        obj.implements.push(this.implements[x].name);
+                        if( this.implements[x] instanceof  ModelClass)
+                           obj.implements.push( (this.implements[x] as ModelClass).name);
                     }
                 }
             }
@@ -395,7 +411,7 @@ export default class ModelClass extends Savable
     /**
      * To get the class package
      */
-    getPackage():ModelPackage{
+    getPackage():ModelPackage|string{
         return this.package;
     }
 
@@ -519,7 +535,7 @@ export default class ModelClass extends Savable
     /**
      * To get the implement interface
      */
-    getInterfaces():ModelClass[]{
+    getInterfaces():(ModelClass|string)[]{
         return this.implements;
     }
 
@@ -532,7 +548,7 @@ export default class ModelClass extends Savable
     }
 
     updateSuper(cls:ModelClass){
-        if(cls.getSuperClass().name != this.getSuperClass().name){
+        if(cls.getSuperClass().getName() != this.getSuperClass().getName()){
             // TODO : create NodeChange
             this.extends = cls;
         }

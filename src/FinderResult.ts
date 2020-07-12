@@ -2,40 +2,52 @@ import ModelMethod from "./ModelMethod";
 import ModelClass from "./ModelClass";
 import ModelField from "./ModelField";
 import ModelCall from "./ModelCall";
-import {ModelStringValue} from "./ModelStringValue";
+import ModelStringValue from "./ModelStringValue";
 import {XRef} from "./ModelReference";
+import {Finder} from "./Finder";
+import {IDbIndex} from "./ConnectorFactory";
+import ModelConstantValue from "./ModelConstantValue";
+import {CONST} from "./CoreConst";
+import ModelFile from "./ModelFile";
+import Util from "./Utils";
+import {ModifierFormat} from "./AccessFlags";
+import ModelSyscall from "./ModelSyscall";
 
 
 
 
 export class FinderJoin
 {
-    constructor(rootData,joinData,finder){
+    _finder:Finder = null;
+    rootData:IDbIndex = null;
+    joinData:IDbIndex = null;
+
+    constructor(rootData,joinData,finder:Finder){
         this.rootData = rootData;
         this.joinData = joinData
         this._finder = finder;
     }
 
     // do rootData[]-joinData[]
-    sub(){
-        let res=new MemoryDb.Index(), x=0;
+    sub():FinderResult{
+        let res:IDbIndex = this._finder.newResultSet();
 
-        this.rootData.map((k,v)=>{
+        this.rootData.map((k:string|number, v:any)=>{
             // element ignored if joinData contains
             if(this.joinData.hasEntry(v))
                 return;
             else
-                res.insert(v);
+                res.insert(v, false);
         });
 
         return new FinderResult(res,this._finder);
     }
 
-    on(pattern){
-        let prop = pattern.split(".");
-        let lp = prop.length, pref=null, res=new MemoryDb.Index(), x=0;
+    on(pattern:string):FinderResult{
+        let prop:string[] = pattern.split(".");
+        let lp:number = prop.length, pref:any=null, res=this._finder.newResultSet(), x:number=0;
 
-        this.joinData.map((k,v)=>{
+        this.joinData.map((k:string|number,v:any)=>{
 
             x=0;
             pref = v;
@@ -47,7 +59,7 @@ export class FinderJoin
                 do{ xref = xref[prop[y++]] }while(y<lp);
 
                 if(xref==pref)
-                    res.insert(this.rootData[j]);
+                    res.insert(this.rootData[j], false);
             });
         });
 
@@ -55,93 +67,91 @@ export class FinderJoin
     };
 }
 
-
+/**
+ * @class
+ */
 export class FinderResult
 {
-    data:any;
+    data:IDbIndex;
     _finder:Finder;
 
-    constructor(pData:any, pFinder:Finder=null) {
+    /**
+     *
+     * @param {IDbIndex} pData
+     * @param {Finder} pFinder
+     * @constructor
+     */
+    constructor(pData:IDbIndex, pFinder:Finder=null) {
         this.data = pData;
         this._finder = pFinder;
     }
 
+    /**
+     * To call a function for each entry (same as 'map' for Array objects)
+     *
+     * @param {Function} pFunc Callback function
+     * @method
+     */
     foreach(pFunc:any){
         this.data.map(pFunc);
     }
 
 
-    FinderResult.prototype.getData = function(){
-    return this.data.getAll();
-}
+    /**
+     * To get all data from results as an array
+     *
+     * @returns {Array|Object} Data
+     * @method
+     */
+    getData():any{
+        return this.data.getAll();
+    }
 
     /**
      * To get reference to the method calling each object
+     *
+     * @method
      */
-    FinderResult.prototype.caller = function(){
-    let meth = new MemoryDb.Index(), obj=null;
-    this.data.map((k,v)=>{
-        obj=this.data[i];
+    caller():FinderResult{
+        let meth:IDbIndex = this._finder.newResultSet(), obj:any=null;
+        this.data.map((k,v)=>{
 
-        if(v instanceof CLASS.StringValue){
-            meth.insert(v.src);
-        }
-        else if(v instanceof CLASS.ValueConst){
-            console.error("[!] Not implemented : [ValueConst].method() ")
-        }
-        else if(v instanceof CLASS.Field
-            || v instanceof CLASS.Method
-            || v instanceof CLASS.Class){
-
-            for(let k=0; k<v._callers.length; k++ ){
-                meth.insert(v._callers[k]);
+            if(v instanceof ModelStringValue){
+                meth.insert(v.src, false);
             }
-        }
-        else if(v instanceof CLASS.Call){
-            meth.insert(v.caller)
-        }
-    });/*
-    for(let i in this.data){
-
-        obj=this.data[i];
-
-        if(obj instanceof CLASS.StringValue){
-            meth.push(obj.src);
-        }
-        else if(obj instanceof CLASS.ValueConst){
-            console.error("[!] Not implemented : [ValueConst].method() ")
-        }
-        else if(obj instanceof CLASS.Field
-            || obj instanceof CLASS.Method
-            || obj instanceof CLASS.Class){
-
-            for(let k=0; k<obj._callers.length; k++ ){
-                meth.push(obj._callers[k]);
+            else if(v instanceof ModelConstantValue){
+                console.error("[!] Not implemented : [ValueConst].method() ")
             }
-        }
-        else if(obj instanceof CLASS.Call){
-            meth.push(obj.caller)
-        }
+            else if(v instanceof ModelField
+                || v instanceof ModelMethod
+                || v instanceof ModelClass){
+
+                for(let k=0; k<v._callers.length; k++ ){
+                    meth.insert(v._callers[k], false);
+                }
+            }
+            else if(v instanceof ModelCall){
+                meth.insert(v.caller, false)
+            }
+        });
+        return new FinderResult(meth,this._finder);
     }
-    */
-    return new FinderResult(meth,this._finder);
-};
 
     /**
      * Perform lzing filtering
      * @param {*} pattern
      */
-    FinderResult.prototype.filter = function(pattern, caseSensitive=true){
-    // perform search with lazy mode
-    // not detects fails
-    return this._finder._find(this.data, null, pattern, caseSensitive, true);
-};
+    filter(pattern:string, caseSensitive:boolean=true):FinderResult{
+        // perform search with lazy mode
+        // not detects fails
+        return this._finder._find(this.data, null, pattern, caseSensitive, true);
+    };
 
-    FinderResult.prototype.ifilter = function(pattern){
-    // perform search with lazy mode
-    // not detects fails
-    return this.filter(pattern, false);
-};
+    ifilter(pattern:string):FinderResult{
+        // perform search with lazy mode
+        // not detects fails
+        return this.filter(pattern, false);
+    }
 
 
     /**
@@ -149,37 +159,29 @@ export class FinderResult
      * @param {FinderResult} data Another result set or list of object
      * @returns {FinderResult}
      */
-    FinderResult.prototype.union = function(resultSet){
+    union(resultSet:FinderResult):FinderResult{
 
-    if(typeof resultSet === 'string' || resultSet instanceof String){
-        let res = this._finder._find(resultSet);
-        res.data.map((k,v)=>{
-            if(!this.contains(v))
-                this.data.insert(v);
-        });
-    }else{
         resultSet.data.map((k,v)=>{
             if(!this.contains(v))
-                this.data.insert(v);
+                this.data.insert(v, false);
         });
-    }
 
-    return this;
-};
+        return this;
+    }
 
 
     /**
      * To get the list of callers of each object contained into the current result set
      * @returns {FinderResult} A list of instructions using a reference to this object
      */
-    FinderResult.prototype.callers = function(){
-    let rset = new FinderResult();
+    callers():FinderResult{
+        let data:IDbIndex = this._finder.newResultSet();
 
-    this.data.map((k,v) => {
-        for(let i in v._callers){
-            rset.data.insert(v._callers[i]);
-        }
-    });
+        this.data.map((k,v) => {
+            for(let i in v._callers){
+                data.insert(v._callers[i], false);
+            }
+        });
     /*
     for(let i in this.data){
         for(let k in this.data[i]._callers){
@@ -187,135 +189,141 @@ export class FinderResult
         }
     }*/
 
-    return rset;
-};
+        return new FinderResult(data, this._finder);
+    }
 
     /**
      * To get the count of object into the result set
      * @return {int} The count of object into the result set
      */
-    FinderResult.prototype.count = function(){
-    return this.data.size();
-};
-
-    FinderResult.prototype.get = function(offset){
-    return this.data.getEntry(offset);
-};
-
-    FinderResult.prototype.select = function(member){
-    let data = new MemoryDb.Index();
-
-    this.data.map((k,v)=>{
-        if(v[member] !==undefined) data.insert(v[member]);
-    });
-
-    return new FinderResult(data,this._finder);
-};
-
-    FinderResult.prototype.toString = function(){
-    let out = "";
-    this.data.map((k,x)=>{
-        out += x._hashcode+"\n";
-    });
-    return out;
-}
-
-    FinderResult.prototype.dump = function(){
-    console.log(this.toString());
-};
-
-
-    FinderResult.prototype.toJsonObject = function(fields){
-    let data=[], stub={};
-
-    this.data.map((k,v)=>{
-        if(v.toJsonObject == undefined){
-            console.log("ERROR : toJsonObject() not found");
-        }else if(! (v instanceof CLASS.MissingReference)){
-            data.push(v.toJsonObject(fields));
-        }else{
-            stub = {};
-            for(let k in fields) stub[fields[k]] = "[MissingReference] Object";
-            data.push(stub);
-        }
-    });
-    /*
-    for(let i in this.data){
-        if(this.data[i].toJsonObject == undefined){
-            console.log("ERROR : toJsonObject() not found");
-        }else if(! (this.data[i] instanceof CLASS.MissingReference)){
-            data.push(this.data[i].toJsonObject(fields));
-        }else{
-            stub = {};
-            for(let k in fields) stub[fields[k]] = "[MissingReference]";
-            data.push(stub);
-        }
-    }*/
-    return data;
-};
+    count():number{
+        return this.data.size();
+    }
 
     /**
+     * To get an entry from results by its offset
+     *
+     * @param {Number} offset
+     */
+    get(offset:number):any{
+        return this.data.getEntry(offset);
+    }
+
+    /**
+     * To select an adjacent node for each entries into result set.
+     *
+     * For example, if the result set is a list of 'ModelMethod' object,
+     * then the list of enclosing class for each can be get using
+     * `enclosingClass` parameter
+     *
+     * @param {String} member Relation/property name
+     */
+    select(member:string):FinderResult{
+        let data:IDbIndex = this._finder.newResultSet();
+
+        this.data.map((k,v)=>{
+            if(v[member] !==undefined) data.insert(v[member], false);
+        });
+
+        return new FinderResult(data,this._finder);
+    }
+
+    toString():string{
+        let out:string = "";
+        this.data.map((k,x)=>{
+            out += x._hashcode+"\n";
+        });
+
+        return out;
+    }
+
+    dump(){
+        console.log(this.toString());
+    }
+
+    toJsonObject(fields:any = null):any{
+        let data:any=[];
+
+        this.data.map((k:string|number, v:any)=>{
+            if(v.toJsonObject == undefined){
+                console.log("ERROR : toJsonObject() not found");
+            }else{
+                // TODO : ensure toJsonObject format is write for all entries type
+                data.push(v.toJsonObject(fields));
+            }
+        });
+        return data;
+    }
+
+    /**Ò
      * To search references to the given objects
      */
-    FinderResult.prototype.xref = function(){
-    let data=new MemoryDb.Index();
+    xref():FinderResult{
+        let data:IDbIndex = this._finder.newResultSet();
 
-    this.data.map((k,v)=>{
-        data.insert(new CLASS.XRef(v,v._callers));
-    });
+        this.data.map((k:string|number, v:any)=>{
+            data.insert(new XRef(v,v._callers), false);
+        });
 
-    return new FinderResult(data,this._finder);
-};
+        return new FinderResult(data, this._finder);
+    }
 
-    FinderResult.prototype.help = function(){
-    let t="+-------------------- HELP --------------------+";
-    t += "\n\t.foreach(<fn>)\t\tExecute the function <fn> for each row of the result set";
-    t += "\n\t.caller()\t\tSearch the xref for each row of the result set";
-    t += "\n\t.filter(<pattern>)\tvFilter the result set by searching a pattern (same format than .find(<pattern>) )";
-    t += "\n\t.ifilter(<pattern>)\t\tSame than .filter() but case insensitive";
-    t += "\n\t.contains(<object>)\tvCheck the result set contains the given <object>";
-    t += "\n\t.union(<FinderResult>)\tvPerform an union between two result sets";
-    t += "\n\t.exclude(<pattern>)\tvExclude a subset of objects matching the pattern <pattern>";
-    t += "\n\t.show()\t\tDisplay the result data with a formatted style";
-    t += "\n\t.sshow()\t\tSame than .show() but with lesser data. (Small Show)";
-    t += "\n\t.ssshow(<length>)\t\tSame than .sshow() but with truncate data at <length> char. (Small Small Show)";
-    t += "\n\t.get(<id>)\t\tGet the <id> matching object from the result set.";
-    t += "\n\t.using(<pattern>)\t\tFilter by class/field/method used by the subject";
-    t += "\n\t.count()\t\tGet the count of matching object contained in the result set";
-    t += "\n\t.help()\t\tThis help";
-    t += "\n";
+    help(){
+        let t="+-------------------- HELP --------------------+";
+        t += "\n\t.foreach(<fn>)\t\tExecute the function <fn> for each row of the result set";
+        t += "\n\t.caller()\t\tSearch the xref for each row of the result set";
+        t += "\n\t.filter(<pattern>)\tvFilter the result set by searching a pattern (same format than .find(<pattern>) )";
+        t += "\n\t.ifilter(<pattern>)\t\tSame than .filter() but case insensitive";
+        t += "\n\t.contains(<object>)\tvCheck the result set contains the given <object>";
+        t += "\n\t.union(<FinderResult>)\tvPerform an union between two result sets";
+        t += "\n\t.exclude(<pattern>)\tvExclude a subset of objects matching the pattern <pattern>";
+        t += "\n\t.show()\t\tDisplay the result data with a formatted style";
+        t += "\n\t.sshow()\t\tSame than .show() but with lesser data. (Small Show)";
+        t += "\n\t.ssshow(<length>)\t\tSame than .sshow() but with truncate data at <length> char. (Small Small Show)";
+        t += "\n\t.get(<id>)\t\tGet the <id> matching object from the result set.";
+        t += "\n\t.using(<pattern>)\t\tFilter by class/field/method used by the subject";
+        t += "\n\t.count()\t\tGet the count of matching object contained in the result set";
+        t += "\n\t.help()\t\tThis help";
+        t += "\n";
 
-    console.log(t)
-};
+        console.log(t)
+    }
 
-    FinderResult.prototype.using = function(pattern){
-    let data = new MemoryDb.Index();
+    using(pattern:string, caseSensitive:boolean=true):FinderResult{
+        let data:FinderResult = null;
 
-    if(pattern == null) return this;
+        if(pattern == null) return this;
 
-    data =  this._finder._find(this.data, null, "_useClass."+pattern, caseSensitive, true);
-    data.union(this._finder._find(this.data, null, "_useMethod."+pattern, caseSensitive, true));
-    data.union(this._finder._find(this.data, null, "_useField."+pattern, caseSensitive, true));
+        data =  this._finder._find(this.data, null, "_useClass."+pattern, caseSensitive, true);
+        data.union(this._finder._find(this.data, null, "_useMethod."+pattern, caseSensitive, true));
+        data.union(this._finder._find(this.data, null, "_useField."+pattern, caseSensitive, true));
 
-    return new FinderResult(data,this._finder);
-};
+        return data;
+    }
 
-    FinderResult.prototype.exclude = function(pattern){
-    let res = new MemoryDb.Index();
-    let arg = this._finder.cache[this._finder.cache.length-1];
 
-    let result = this._finder._find(arg.index, arg.model, pattern, arg.case, arg.lazy);
+    exclude(pattern:string):FinderResult{
+        // TODO : implement FinderResult.exclude
+        throw  new Error('FinderResult.exclude is not yet implemented');
+        return null;
+        /*
+        let arg = this._finder.cache[this._finder.cache.length-1];
 
-    return new FinderJoin(this.data,result,this._finder);
-};
+        let result:FinderResult = this._finder._find(arg.index, arg.model, pattern, arg.case, arg.lazy);
 
-    intersect(property:string, pattern:any){
-        let res = new MemoryDb.Index();
+        return new FinderJoin(this.data,result,this._finder);*/
+    }
+
+    intersect(property:string, pattern:any):FinderResult{
+        // TODO : implement FinderResult.intersect
+        throw  new Error('FinderResult.intersect is not yet implemented');
+        return null;
+        /*let res:IDbIndex = this._finder.newResultSet();
         let arg = this._finder.cache[this._finder.cache.length-1];
 
         let result = this._finder._find(arg.index, arg.model, pattern, arg.case, arg.lazy);
 
-        return (new FinderJoin(this.data,result,this._finder)).sub();
+        return (new FinderJoin(this.data,result,this._finder)).sub();*/
     }
 
     /**
@@ -368,7 +376,7 @@ export class FinderResult
                     Calleed: x.calleed.signature()
                 });
             }
-            else if(x instanceof FILE.File){
+            else if(x instanceof ModelFile){
                 sub.push({
                     Name: x.name,
                     Extension: (x.type!=null)? x.type.ext : "[NULL]"
@@ -384,7 +392,7 @@ export class FinderResult
             }
         });
 
-        console.log(ut.makeTable(sub));
+        console.log(Util.makeTable(sub));
         sub = null;
     }
     /**
@@ -397,7 +405,7 @@ export class FinderResult
             if(x instanceof ModelMethod){
                 sub.push({
                     Class: x._hashcode.substr(0,x._hashcode.indexOf('|')),
-                    Modifiers: x.modifiers.sprint(),
+                    Modifiers: ModifierFormat.sprintModifier(x.modifiers),
                     Method: x.name,
                 });
             }
@@ -411,7 +419,7 @@ export class FinderResult
                 sub.push({
                     Class: x.enclosingClass.package+"."+x.enclosingClass.simpleName,
                     Field: x.name,
-                    Modifiers: x.modifiers.sprint()
+                    Modifiers: ModifierFormat.sprintModifier(x.modifiers)
                 });
             }
             else if(x instanceof ModelStringValue){
@@ -434,13 +442,13 @@ export class FinderResult
             else
                 for(let k in x.xref) sub.push({ Subject: "\t  "+x.xref[k].signature() });
         }
-        else if(x instanceof FILE.File){
+        else if(x instanceof ModelFile){
             sub.push({
                 Name: x.path,
                 Extension: (x.type!=null)? x.type.ext : "[NULL]"
             });
         }
-        else if(x instanceof CLASS.Syscall){
+        else if(x instanceof ModelSyscall){
             sub.push({
                 "num": x.sysnum.join(","),
                 "Function": x.func_name,
@@ -453,7 +461,7 @@ export class FinderResult
             sub.push({ Value: x.toString() });
         }
     });
-    console.log(ut.makeTable(sub));
+    console.log(Util.makeTable(sub));
     sub = null;
 }
 
