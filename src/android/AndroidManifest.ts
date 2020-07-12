@@ -131,6 +131,7 @@ export class AndroidManifest
                         })
 
                     }
+                    self.application.setManifest(this);
                     break;
                 default:
                     self.__additionalContent[i] = config[i];

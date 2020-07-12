@@ -17,7 +17,8 @@ export const enum Modifier {
      SYNTH = 0b10 << 13,
      VOLATILE = 0b10 << 14,
      SYNC = 0b10 << 15,
-     PRIVATE = 0b10 << 16
+     PRIVATE = 0b10 << 16,
+     ANNOTATION = 0b10 << 17
 }
 
 export class ModifierFormat
@@ -41,6 +42,7 @@ export class ModifierFormat
           if (pModifier & Modifier.SYNC) dbg += "synchronized,";
           if (pModifier & Modifier.SYNTH) dbg += "synthetic,";
           if (pModifier & Modifier.VOLATILE) dbg += "volatile,";
+          if (pModifier & Modifier.ANNOTATION) dbg += "annotation,";
 
           return dbg + "]";
      }
@@ -62,6 +64,8 @@ export class ModifierFormat
           if ((pModifier & Modifier.FINAL)>0) o.final = true;
           if ((pModifier & Modifier.SYNC)>0) o.sync = true;
           if ((pModifier & Modifier.SYNTH)>0) o.synth = true;
+          if ((pModifier & Modifier.ANNOTATION)>0) o.annotation = true;
+          if ((pModifier & Modifier.VOLATILE)>0) o.volatile = true;
 
           return o;
      }
