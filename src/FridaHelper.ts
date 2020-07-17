@@ -2,6 +2,7 @@ import * as _ps_ from "child_process";
 import * as _fs_ from "fs";
 import * as _path_ from "path";
 import * as _stream_ from 'stream';
+import * as _co_ from 'co';
 import got from "got";
 import * as _xz_ from "xz";
 import {promisify} from 'util';
@@ -13,6 +14,7 @@ import * as Log from './Logger';
 import {Device} from "./Device";
 import AdbWrapper from "./AdbWrapper";
 import Util from "./Utils";
+import {IBridge} from "./Bridge";
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
 const pipeline = promisify(_stream_.pipeline);
@@ -52,28 +54,28 @@ export default class FridaHelper
      * @static
      */
     static ATTACH_BY_PID = 0x3;
-/*
 
-    static async exec( pDevice, pScript, pType, pApp){
-        let FRIDA = require('frida');
 
-        var hookRoutine = co.wrap(function *() {
-            let session = null, pid=null, applications=null;
-            
-            const device = yield FRIDA.getDevice(pDevice.getUID());
+    static async exec( pDevice, pScript, pType, pApp, pExtra:string[]=[]){
+
+        let hookRoutine:any = _co_.wrap(function *() {
+            let session:Frida.Session = null, pid:number=null, applications:Frida.Application[]=null;
+            let output:any = [];
+
+            const device:Frida.Device = yield Frida.getDevice(pDevice.getUID());
 
             switch(pType){
                 case FridaHelper.SPAWN:
-                    pid = yield device.spawn([pExtra]);
+                    pid = yield device.spawn([].concat(pExtra));
                     
                     session = yield device.attach(pid);
 
-                    Logger.info('spawned:', pid);
+                    Logger.info('spawned:', pid+'');
                     break;
                 case FridaHelper.ATTACH_BY_PID:
                     applications = yield device.enumerateApplications();
                     for(let i=0; i<applications.length; i++){
-                        if(applications[i].identifier == pExtra)
+                        if(applications[i].identifier == pExtra[0])
                             pid = applications[i].pid;
                     }
 
@@ -92,14 +94,14 @@ export default class FridaHelper
 
                         session = yield device.attach(applications[0].pid);
 
-                        Logger.info('attached to Gadget:', pid);
+                        Logger.info('attached to Gadget:', pid+'');
                     }else
                         Logger.error('Failed to attach to Gadget.');
 
                     break;
                 case FridaHelper.ATTACH_BY_PID:
                     session = yield device.attach(pid);
-                    Logger.info('spawned:', pid);
+                    Logger.info('spawned:', pid+'');
                     break;
                 default:
                     Logger.error('Failed to attach/spawn');
@@ -111,7 +113,7 @@ export default class FridaHelper
 
              // For frida-node > 11.0.2
              script.message.connect(message => {
-                PROBE_SESSION.push(message);//{ msg:message, d:data });
+                output.push(message);//{ msg:message, d:data });
                 //console.log('[*] Message:', message);
             });    
             
@@ -119,9 +121,9 @@ export default class FridaHelper
             yield script.load();
 
 
-            PROBE_SESSION.fridaScript = script;
+            //PROBE_SESSION.fridaScript = script;
 
-            console.log('script loaded', script);
+            //console.log('script loaded', script);
             yield device.resume(pid);
 
 
@@ -133,7 +135,8 @@ export default class FridaHelper
             console.log('error:', error.message);
             });
 
-    }*/
+    }
+
     /**
      * 
      * Return an object formatted like that :
@@ -233,13 +236,13 @@ export default class FridaHelper
             _frida_ = require('frida');
         }*/
 
-        let dev:Frida.Device=null, bridge:AdbWrapper = pDevice.getDefaultBridge();
+        let dev:Frida.Device=null, bridge:IBridge = pDevice.getDefaultBridge();
 
         if(bridge==null) return null;
 
-        dev = await Frida.getDevice(bridge.deviceID).catch(async function(err){
+        dev = await Frida.getDevice(bridge.getDeviceID()).catch(async function(err){
             if(bridge.isNetworkTransport()){
-                return await Frida.getDeviceManager().addRemoteDevice(bridge.deviceID);
+                return await Frida.getDeviceManager().addRemoteDevice(bridge.getDeviceID());
             }else{
                 return null;
             }
@@ -247,7 +250,7 @@ export default class FridaHelper
         
 
         if(dev==null && bridge.isNetworkTransport()){
-            dev = await Frida.getDeviceManager().addRemoteDevice(bridge.deviceID);
+            dev = await Frida.getDeviceManager().addRemoteDevice(bridge.getDeviceID());
         }
 
 

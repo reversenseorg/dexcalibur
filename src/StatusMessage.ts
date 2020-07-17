@@ -69,6 +69,16 @@ export default class StatusMessage
         return this.msg+"\n"+pMsg;
     }
 
+    update(pProgress:number, pMessage:string, pStep:boolean = false):StatusMessage{
+        if(pStep == true){
+            this.progress += pProgress;
+        }else{
+            this.progress = pProgress;
+        }
+        this.msg = pMessage;
+        return this;
+    }
+
     /**
      * @method
      */

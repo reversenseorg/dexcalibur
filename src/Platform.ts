@@ -1,4 +1,7 @@
 import * as _fs_ from "fs";
+import ModelSyscall from "./ModelSyscall";
+
+import {AndroidSyscalls} from "./android/AndroidSyscalls";
 
 const PLATFORM_RE:RegExp = new RegExp('(?<source>[^_.]+)_(?<name>[^_.]+)_(?<version>[^_.]+)_(?<vendor>[^_.]+)\.(?<format>[^.]+)');
 const LOCAL_PLATFORM_RE:RegExp = new RegExp('(?<source>[^_.]+)_(?<name>[^_.]+)_(?<version>[^_.]+)_(?<vendor>[^_.]+)');
@@ -104,6 +107,10 @@ export default class Platform
         return this.name.indexOf("android")>-1;
     }
 
+    isIOS():boolean{
+        return this.name.indexOf('ios')>-1;
+    }
+
     getPublicVersion():string{
         return this.name+":"+this.version;
     } 
@@ -130,6 +137,14 @@ export default class Platform
 
     checkInstall():boolean{
        return this.installed = _fs_.existsSync(this.localPath);
+    }
+
+    getSyscallList():ModelSyscall[]{
+        if(this.isAndroid()){
+            return AndroidSyscalls;
+        }else{
+            return [];
+        }
     }
 
     toJsonObject():any{

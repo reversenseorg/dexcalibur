@@ -1,0 +1,351 @@
+import HookPrologue from "./HookPrologue";
+import DexcaliburProject from "./DexcaliburProject";
+import Hook from "./Hook";
+import {HookManager} from "./HookManager";
+import * as Log from './Logger';
+import HookPrimitive from "./HookPrimitive";
+
+let Logger:Log.Logger = Log.newLogger() as Log.Logger;
+
+
+/**
+ * @class
+ */
+export default class HookSet
+{
+    id:string = null;
+    name:string = null;
+    description:string = null;
+    prologue:HookPrologue = null;
+
+    // TODO : Merge probes and intercepts
+    intercepts:HookPrimitive[] = [];
+    probes:HookPrimitive[] = [];
+
+    hooks:Hook[] = [];
+
+    context:DexcaliburProject = null;
+    enable:boolean = false;
+    requires:string[] = [];
+    color:any = null;
+    share:any = null;
+
+    /**
+     * Group of hook
+     *
+     * @param {*} config
+     */
+    constructor(pConfig:any=null){
+
+        // this.requiresNode = [];
+        if(pConfig!=null)
+            for(let i in pConfig)
+                this[i] = pConfig[i];
+    }
+
+    isEnable():boolean{
+        return this.enable;
+    }
+
+    getID():string{
+        return this.id;
+    }
+
+    injectContext(context:DexcaliburProject):HookSet{
+        this.context = context;
+
+        // forward to the prologue
+        if(this.prologue!=null)
+            this.prologue.context = this.context;
+
+        // register the hookset to the HookManager
+        this.context.hook.addHookSet(this);
+
+        return this;
+    }
+
+    addPrologue(code:string):HookSet{
+        //this.prologue = code;
+        this.prologue = new HookPrologue({
+            parentID: this.id,
+            script: code
+        });
+
+        return this;
+    }
+
+    require(module:string){
+        this.requires.push(module);
+    }
+    /*
+    requireNodeModule(module){
+        this.requiresNode.push(module);
+    }*/
+    /**
+     * Create a object shared with others hook callback
+     * @param {Object} config Shared object config
+     */
+    addHookShare(config:any):HookSet{
+        this.share = config;
+        return this;
+    }
+
+
+
+    /**
+     * Get the shared object from this hookset
+     * @returns {Object} Shared object
+     * @function
+     */
+    getHookShare():any{
+        return this.share;
+    }
+
+    addProbe(probeConfig:any):HookSet{
+        let probe:HookPrimitive;
+
+        if(probeConfig.method != null){
+            if(typeof probeConfig.method != "string"){
+                probe = null;
+                for(let i=0; i<probeConfig.method.length; i++){
+                    probe = new HookPrimitive(probeConfig);
+                    probe.setMethod( probeConfig.method[i]);
+                    this.probes.push( probe);
+                }
+            }else{
+                probe = new HookPrimitive(probeConfig);
+                probe.setMethod( probeConfig.method);
+                this.probes.push( probe);
+                //this.probes.push( new HookPrimitive(probeConfig));
+            }
+        }else{
+            probe = new HookPrimitive(probeConfig);
+            this.probes.push( probe);
+        }
+        return this;
+    }
+
+    /*
+    addProbe(probeConfig){
+        if(probeConfig.multiple_method != null){
+            let probe = null;
+            for(let i=0; i<probeConfig.multiple_method.length; i++){
+                probe = new HookPrimitive(probeConfig);
+                probe.setMethod( probeConfig.multiple_method[i]);
+                this.probes.push( probe);
+            }
+        }else
+            this.probes.push( new HookPrimitive(probeConfig));
+
+        return this;
+    }
+    */
+    addIntercept(interceptConfig:any):HookSet{
+        if(interceptConfig.method == null && interceptConfig.raw == null){
+            Logger.error("[HOOK MANAGER] addIntercept(): The method to hook is not defined");
+            return null;
+        }
+
+        let primitive:HookPrimitive;
+
+        if(interceptConfig.method !=null){
+            if(typeof interceptConfig.method != "string"){
+                for(let i=0; i<interceptConfig.method.length; i++){
+                    primitive = new HookPrimitive(interceptConfig);
+                    primitive.setMethod( interceptConfig.method[i]);
+                    primitive.isIntercept = true;
+                    primitive.color = this.color;
+
+                    this.intercepts.push( primitive);
+                }
+            }else{
+                primitive = new HookPrimitive(interceptConfig);
+                primitive.isIntercept = true;
+                primitive.setMethod( interceptConfig.method);
+                primitive.color = this.color;
+
+                this.intercepts.push( primitive);
+            }
+        }
+        else{
+            primitive = new HookPrimitive(interceptConfig);
+            primitive.color = this.color;
+            this.intercepts.push( primitive);
+        }
+
+
+        return this;
+    }
+
+    addCustomHook(config:any){
+        if(config.method == null && config.raw == null){
+            Logger.error("[HOOK MANAGER] addCustomHook(): The method to hook is not defined");
+            return null;
+        }
+
+        let primitive:HookPrimitive;
+        if(config.method !=null){
+            if(typeof config.method != "string"){
+                for(let i=0; i<config.method.length; i++){
+                    //config.custom = true;
+                    primitive = new HookPrimitive(config);
+                    primitive.isIntercept = true;
+                    primitive.isCustom = true;
+                    primitive.setMethod( config.method);
+                    primitive.color = this.color;
+
+                    this.intercepts.push( primitive);
+                }
+            }else{
+                //config.custom = true;
+                primitive = new HookPrimitive(config);
+                primitive.isIntercept = true;
+                primitive.isCustom = true;
+                primitive.setMethod( config.method);
+                primitive.color = this.color;
+
+                this.intercepts.push( primitive);
+            }
+
+        }
+    }
+
+    /*
+    addIntercept(interceptConfig){
+        let primitive = null;
+        if(interceptConfig.multiple_method != null){
+            for(let i=0; i<interceptConfig.multiple_method.length; i++){
+                primitive = new HookPrimitive(interceptConfig);
+                primitive.setMethod( interceptConfig.multiple_method[i]);
+                primitive.isIntercept = true;
+                this.intercepts.push( primitive);
+            }
+        }else{
+            primitive = new HookPrimitive(interceptConfig);
+            primitive.isIntercept = true;
+            this.intercepts.push( primitive);
+        }
+
+        return this;
+    }*/
+    /*
+    addSyscallProbe(probeConfig){
+        this.native_probes.push( new HookPrimitive(probeConfig));
+        return this;
+    }
+    addSyscallIntercept(probeConfig){
+        this.native_intercepts.push( new HookPrimitive(probeConfig));
+        return this;
+    }*/
+    /**
+     * To disable all hooks of this set
+     *
+     * @method
+     */
+    disable(){
+        let hookManager:HookManager = this.context.hook;
+
+        if(this.prologue != null)
+            hookManager.removePrologueOf(this);
+
+        hookManager.removeHooksOf(this);
+        this.enable = false;
+    }
+
+    deploy(){
+        let hookManager:HookManager = this.context.hook; //ctx.hook;
+        let hook:Hook;
+
+        // if the hookset is already deployed only not deployed hooks are generated
+        if(this.enable === false){
+            hookManager.addRequires(this.requires);
+            //hookManager.addRequiresNode(this.requiresNode);
+
+            if(this.prologue != null)
+                hookManager.prologues.push(
+                    this.prologue.injectContext(this.context)
+                );
+        }
+
+        /*
+        if(this.shares != null)
+            hookManager.shares.push(
+                this.prologue.injectContext(this.context)
+            );
+                */
+
+        for(let i in this.probes){
+            if(this.hooks[i] == null){
+                hook = this.probes[i].toProbe(this.context, this);
+
+                console.log("[PROBE][HOOK SET] Add : ",hook.name)
+                //this.probes[i] = hook;
+                this.hooks[i] = hook;
+                hookManager.hooks.push(this.hooks[i]);
+
+                if(hook.onMatch != null)
+                    hookManager.addMatchListener(hook.getID(),hook.onMatch);
+            }
+        }
+
+        for(let i in this.intercepts){
+            if(this.hooks[i] == null){
+                hook = this.intercepts[i].toIntercept(this.context, this);
+
+                if(hook.isCustomHook())
+                    Logger.info("[INTERCEPT][HOOK SET][CUSTOM] Add : ",hook.name)
+                else
+                    Logger.info("[INTERCEPT][HOOK SET] Add : ",hook.name)
+
+                //this.intercepts[i] = hook;
+
+                this.hooks[i] = hook;
+                hookManager.hooks.push(this.hooks[i]);
+
+                if(hook.onMatch != null)
+                    hookManager.addMatchListener(hook.getID(),hook.onMatch);
+            }
+        }
+
+        this.enable = true;
+    }
+
+    toJsonObject():any{
+        let o:any = new Object();
+        for(let i in this){
+            switch(i){
+                case "id":
+                case "name":
+                case "enable":
+                case "description":
+                    o[i] = this[i];
+                    break;
+                case "prologue":
+                    if(this[i]!=null)
+                        o[i] = this.prologue.toJsonObject();
+                    else
+                        o[i] = "";
+                    break;
+                case "probes":
+                    o[i] = [];
+                    for(let j=0;  j<this.probes.length; j++)
+                        o[i].push(this[i][j].toJsonObject());
+                    break;
+                case "intercepts":
+                    o[i] = [];
+                    for(let j=0;  j<this.intercepts.length; j++)
+                        o[i].push(this[i][j].toJsonObject());
+                    break;
+                case "hooks":
+                    o[i] = [];
+                    for(let j=0;  j<this.hooks.length; j++)
+                        o[i].push(this[i][j].toJsonObject());
+                    break;
+                case "context":
+                    break;
+            }
+        }
+        return o;
+    }
+
+}

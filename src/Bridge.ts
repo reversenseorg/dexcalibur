@@ -2,6 +2,7 @@ import * as _child_process_ from 'child_process';
 import DeviceProfile from "./DeviceProfile";
 import AdbWrapperFactory from "./AdbWrapperFactory";
 import {Device} from "./Device";
+import AppPackage from "./AppPackage";
 
 
 interface BridgeFactoryList {
@@ -36,6 +37,8 @@ export interface IBridge
 
     listDevices():Promise<Device[]>;
 
+    listPackages(pOptions?:any):AppPackage[];
+
     pull(remote_path:string, local_path:string):string|Buffer;
 
     push(local_path:string, remote_path:string):string|Buffer;
@@ -46,6 +49,8 @@ export interface IBridge
 
     shellWithEHsync(command:string):string|Buffer;
 
+    shellAsync(command:string, deviceID?:string):Promise<any>;
+
     detachedShell( pCommand:string|string[], pArgs:string):Promise<boolean>;
 
     privilegedShell(command:string, pOptions?:any):Promise<boolean|string|Buffer>;
@@ -55,6 +60,8 @@ export interface IBridge
     getPackagePath(packageIdentifier:string):string;
 
     getDeviceID():string;
+
+    toJsonObject(pExcludeList:any):any;
 }
 
 
@@ -66,6 +73,8 @@ export  interface IBridgeFactory
     newGenericWrapper():IBridge;
 
     newSpecificWrapper( pDevice:Device):IBridge;
+
+    fromJsonObject(pObject:any):any;
 }
 
 
@@ -84,6 +93,12 @@ export class BridgeSuperFactory
         return (this.factories[pBridgeName] != null);
     }
 
+    /**
+     * To get the BridgeFactory from a protocol such as "adb+tcp", "adb+usb", ...
+     *
+     * @param pType
+     * @method
+     */
     getFactory(pType:string):IBridgeFactory{
         let params:string[] = pType.split('+');
 

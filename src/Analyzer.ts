@@ -28,6 +28,7 @@ import {Method} from "got";
 import {TAG} from "./AnalysisHelper";
 import {IDatabase, IDbIndex} from "./ConnectorFactory";
 import ModelFile from "./ModelFile";
+import ModelSyscall from "./ModelSyscall";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -297,7 +298,7 @@ export default class Analyzer
      * @param {DexcaliburProject} pProject
      * @constructor
      */
-    constructor( pEncoding:BufferEncoding, pSearchAPI:SearchAPI, pProject:DexcaliburProject ) {
+    constructor( pEncoding:BufferEncoding, pProject:DexcaliburProject ) {
 
         this.parser = new SmaliParser(pProject); //.setContext(ctx);
 
@@ -308,7 +309,7 @@ export default class Analyzer
         this.tempDB = new AnalyzerDatabase(pProject, 'inmemory');
 
         this.context = pProject;
-        this.finder = pSearchAPI;
+        this.finder = pProject.find; //pSearchAPI; // pSearchAPI
         this.encoding = pEncoding;
         this.projectionEngines = {};
     }
@@ -965,7 +966,7 @@ export default class Analyzer
      * @param {*} syscalls
      * @function
      */
-    useSyscalls(syscalls:any){
+    useSyscalls(syscalls:ModelSyscall[]):void{
         //this.db.syscalls = {};
         for(let i=0; i<syscalls.length ; i++){
             for(let j=0; j<syscalls[i].sysnum.length; j++){

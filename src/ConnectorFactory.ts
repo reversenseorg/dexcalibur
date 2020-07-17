@@ -80,6 +80,12 @@ export interface IDatabase
     getAll():any;
 
     toJsonObject():any;
+
+    isSerializable():boolean;
+
+    serialize():any;
+
+    unserialize(input:any):void;
 }
 
 /**

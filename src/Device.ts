@@ -662,7 +662,7 @@ export class Device
      * @returns {String} JSON-serialized object
      * @method 
      */
-    static fromJsonObject( pJsonObject:any, pOverride:any = {}):Device{
+    static fromJsonObject(pBridgeSFactory:BridgeSuperFactory, pJsonObject:any, pOverride:any = {}):Device{
         let dev:any = new Device();
         for(let i in pJsonObject){
             switch(i){
@@ -674,7 +674,7 @@ export class Device
                     dev.bridges = {};
                     for( let j in pJsonObject.bridges){
                         // todo : replace AdbWrapeper by BridgeFactory
-                        dev.bridges[j] = BridgeSuperFactory.getFactory(j).fromJsonObject( pJsonObject.bridges[j]);
+                        dev.bridges[j] = pBridgeSFactory.getFactory(j).fromJsonObject( pJsonObject.bridges[j]);
                     }
                     break;
 
@@ -746,7 +746,7 @@ export class Device
             
             switch(i){
                 case 'type':
-                    json[i] = OS_NAME[this[i]];
+                    json[i] = OS_NAME[this.type];
                     break;
 
                 case 'bridge':
@@ -764,11 +764,11 @@ export class Device
                     break;
 
                 case 'profile':
-                    json[i] = ((this[i] instanceof DeviceProfile)? this[i].toJsonObject( pExcludeList.profile) : null);
+                    json[i] = ((this[i] instanceof DeviceProfile)? this.profile.toJsonObject( pExcludeList.profile) : null);
                     break;
 
                 case 'platform':
-                    json[i] = ((this[i] instanceof Platform)? this[i].getUID() : null);
+                    json[i] = ((this[i] instanceof Platform)? this.platform.getUID() : null);
                     break;
             
                 case 'connected':

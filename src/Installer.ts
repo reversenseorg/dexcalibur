@@ -178,6 +178,10 @@ export default class Installer
         return this.status;
     }
 
+    updateStatus(pProgress:number, pMessage:string):StatusMessage{
+        return this.status.update(pProgress, pMessage);
+    }
+
     checkFridaVersion():boolean{
         let v:string = _ps_.execSync('frida --version').toString();
         if(/[0-9]{1,2}(\.[0-9a-f]+)/.test(v)){

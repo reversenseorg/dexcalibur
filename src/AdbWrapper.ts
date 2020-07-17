@@ -5,7 +5,7 @@ import { EOL } from 'os';
 
 import UT from "./Utils";
 import { Device, EOsType } from "./Device";
-import ApkPackage from "./AppPackage";
+import AppPackage from "./AppPackage";
 import DeviceProfile  from './DeviceProfile';
 import {AdbWrapperError} from "./Errors";
 import * as Log from './Logger';
@@ -336,13 +336,13 @@ export default class AdbWrapper implements IBridge
      * 
      * @param {String} pPackageListStr The ADB output to parse 
      * @param {String} pOptions [Optional] Additional option to pass to ADB
-     * @returns {ApkPackage[]} The list of package 
+     * @returns {AppPackage[]} The list of package
      * @private
      * @method
      */
     parsePackageList( pPackageListStr:string, pOptions:string=''){
         let reg:RegExp = new RegExp("^package:(?<apk_name>.*)");
-        let packages:ApkPackage[] = [];
+        let packages:AppPackage[] = [];
 
         if(pPackageListStr.indexOf("error:")==0){
             throw AdbWrapperError.newDeviceNotFound(`Unable to list package. ADB Error: "${pPackageListStr}"`);
@@ -367,7 +367,7 @@ export default class AdbWrapper implements IBridge
                         app = result.groups['apk_name']
                     }
 
-                    packages.push(new ApkPackage({
+                    packages.push(new AppPackage({
                         packageIdentifier: app,
                         packagePath : path
                     }));
@@ -384,7 +384,7 @@ export default class AdbWrapper implements IBridge
      * @returns {AppPackage[]} An array of AppPackage objects
      * @method
      */
-    listPackages( pOtions:string=""):ApkPackage[] {
+    listPackages( pOtions:string=""):AppPackage[] {
         let ret:string ="";
 
         ret = UT.execSync(this.setup() + " shell pm list packages "+pOtions).toString(); // toString("ascii")

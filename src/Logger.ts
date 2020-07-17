@@ -20,12 +20,13 @@ export enum MessageType {
      T_DEBUG = 3,
      T_WARN = 4,
      T_RAW = 5,
-     T_SUCCESS = 6
+     T_SUCCESS = 6,
+    T_DEBUG_RAW
 }
 
 interface TestMessage {
     type: MessageType,
-    val: string
+    val: string|any
 }
 
 /**
@@ -50,6 +51,7 @@ export interface Logger {
 
     error(...args:string[]):LoggerAction;
     debug(...args:string[]):LoggerAction;
+    debugRAW(...args:any[]):LoggerAction;
     info(...args:string[]):LoggerAction;
     warn(...args:string[]):LoggerAction;
     success(...args:string[]):LoggerAction;
@@ -79,6 +81,12 @@ export class TestLogger implements Logger
     debug(...args :any[]):LoggerAction{
         if(this.debugEnabled)
             this.cache.push({ type:MessageType.T_DEBUG, val:multi_concat(args) });
+        return LoggerAction;
+    }
+
+
+    debugRAW(...args :any[]):LoggerAction{
+        this.cache.push({ type:MessageType.T_DEBUG_RAW, val:args });
         return LoggerAction;
     }
 
@@ -157,6 +165,13 @@ export class ProdLogger implements Logger
     debug(...args :any[]):LoggerAction{
         if(this.debugEnabled)
             console.log(chalk.bold.blue('[DEBUG] '+this.prefix.join("")+multi_concat(args)));
+        return LoggerAction;
+    }
+
+
+    debugRAW(...args :any[]):LoggerAction{
+        if(this.debugEnabled)
+            console.log(args);
         return LoggerAction;
     }
 

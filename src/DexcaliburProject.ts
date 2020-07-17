@@ -25,6 +25,9 @@ import Configuration from "./Configuration";
 import Workspace from "./Workspace";
 import * as Log from './Logger';
 import {TAG} from "./AnalysisHelper";
+import {HookManager} from "./HookManager";
+import Inspector, {INSPECTOR_TYPE} from "./Inspector";
+import InspectorManager from "./InspectorManager";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -101,12 +104,9 @@ export default class DexcaliburProject
     dexHelper:DexHelper = null;
 
     //package Patcher
-    packagePatcher:PackagePatcher = null;
+    // packagePatcher:PackagePatcher = null;
 
-    // hook
-    /**
-     * @deprecated
-     */
+    // hook, deprecated here ?
     hook:HookManager = null;
 
     // set the workspace API
@@ -273,13 +273,15 @@ export default class DexcaliburProject
         }
 
         // set the Search API which allow the user to perform search
-        this.find = new Finder.SearchAPI();
+        this.find = new SearchAPI();
 
         // set SC analyzer
-        this.analyze = new Analyzer(this.config.encoding, this.find, this);
+        this.analyze = new Analyzer(this.config.encoding as BufferEncoding, this);
+        this.find.setDatabase(this.analyze.getData());
         
         // set syscall list (bionic) 
-        this.analyze.useSyscalls(SYSCALLS);
+        this.analyze.useSyscalls(this.platform.getSyscallList());
+
         this.analyze.addTagCategory(
             "hash",
             ["md5","sha1","sha256","sha512"]
@@ -296,7 +298,7 @@ export default class DexcaliburProject
         // todo : move as inspector
         //this.packagePatcher = new PackagePatcher(this.uid, this.config);
 
-        this.hook = new HookHelper.Manager(this, this.nofrida);
+        this.hook = new HookManager(this, this.nofrida);
         //this.hook.refreshScanner();
 
 
@@ -311,7 +313,7 @@ export default class DexcaliburProject
 
         // plugins
         im.createInspectorsFor(this);
-        im.deployInspectors(this, Inspector.STEP.BOOT);
+        im.deployInspectors(this, INSPECTOR_TYPE.BOOT);
         this.inspectors = im.getInspectorsOf(this);
         
         //this.graph = new GraphMaker(this);
@@ -333,7 +335,7 @@ export default class DexcaliburProject
      * @method
      */
     deployInspectors(pStep){
-        let im = InspectorManager.getInstance();
+        let im:InspectorManager = InspectorManager.getInstance();
 
         im.deployInspectors(this, pStep);
         this.inspectors = im.getInspectorsOf(this);
@@ -345,7 +347,7 @@ export default class DexcaliburProject
      * @returns {String} ProjectUID
      * @method
      */
-    getUID(){
+    getUID():string{
         return this.uid;
     }
 
@@ -356,7 +358,7 @@ export default class DexcaliburProject
      * @returns {Inspector} Inspector instance
      * @method
      */
-    getInspector( pName){
+    getInspector( pName):Inspector{
         return this.inspectors[pName];
     }
 
@@ -364,7 +366,7 @@ export default class DexcaliburProject
      * To set default device
      * @method
      */
-    setDevice( pDevice){
+    setDevice( pDevice:Device){
         this.device = pDevice;
     }
     
@@ -374,7 +376,7 @@ export default class DexcaliburProject
      * 
      * @method
      */
-    getDevice(){
+    getDevice():Device{
         return this.device;
     }
 
@@ -383,7 +385,7 @@ export default class DexcaliburProject
      * 
      * @param {*} pPath 
      */
-    async useAPK( pPath){
+    async useAPK( pPath:string):Promise<boolean>{
 
         // copy the APK into project workspace
         this.workspace.changeMainAPK(pPath);
@@ -568,7 +570,7 @@ export default class DexcaliburProject
         o.platform = this.platform!=null? this.platform.getUID() : null;
         o.nofrida = this.nofrida;
 
-        o.connector = this.connector.constructor.getProperties();
+        o.connector = this.connector.toJsonObject(); //constructor.getProperties();
 
         if(this.workspace.getApk() !== null){
             o.apk = this.workspace.getApk().toJsonObject();
@@ -595,7 +597,7 @@ export default class DexcaliburProject
      * @returns {AndroidAppAnalyzer} The application analyzer 
      * @method
      */
-    getAppAnalyzer(){
+    getAppAnalyzer():AndroidAppAnalyzer{
         return this.appAnalyzer;
     }
 
@@ -606,7 +608,7 @@ export default class DexcaliburProject
      * @returns {Analyzer} The internal bytecode analyzer 
      * @method
      */
-    getAnalyzer(){
+    getAnalyzer():Analyzer{
         return this.analyze;
     }
 
@@ -620,7 +622,8 @@ export default class DexcaliburProject
     async usePlatform( pVersion:string){
         // old
         // this.config.platform_target = pVersion;
-        let pm = this.engine.getPlatformManager(), platform = null;
+        let pm:PlatformManager = this.engine.getPlatformManager(), platform:Platform = null;
+        let status:boolean = false;
 
         //new
         this.platform = pm.getLocalPlatform(pVersion);
@@ -658,12 +661,12 @@ export default class DexcaliburProject
      * @deprecated ?
      * @method
      */
-    scan( pPath){
+    scan( pPath:string){
         // make IR 
         if(pPath !== undefined){   
             this.analyze.path( pPath);
         }else{
-            let apkctnPath = this.workspace.getApkDir();
+            let apkctnPath:string = this.workspace.getApkDir();
 
             Fs.mkdirSync(apkctnPath, {recursive: true});
             Logger.info("Scanning default path : "+apkctnPath);
@@ -676,7 +679,7 @@ export default class DexcaliburProject
             this.dataAnalyzer.scan( apkctnPath);
 
             // update internal DB with file analyzer DB
-            this.analyze.insertFiles( this.dataAnalyzer.getDB(), false);
+            this.analyze.insertIn( "files", this.dataAnalyzer.getDB().getIndex('files'));
         }
     }
 
@@ -713,9 +716,9 @@ export default class DexcaliburProject
      * @returns {Project} Returns the instance of this project
      * @method
      */
-    async fullscan( pPath:string){
-        let elemnt=null;
-        let success  = false;
+    async fullscan( pPath:string=null):Promise<DexcaliburProject>{
+        let elemnt:any=null;
+        let success:boolean  = false;
 
         // scan OS/Platform
         Logger.info("Scanning platform "+this.platform.getUID());
@@ -726,7 +729,7 @@ export default class DexcaliburProject
 
         this.analyze.tagAllAsInternal();
 
-        this.deployInspectors(Inspector.STEP.POST_PLATFORM_SCAN);
+        this.deployInspectors(INSPECTOR_TYPE.POST_PLATFORM_SCAN);
 
 
         //this.analyze.path(this.config.platform_available[this.config.platform_target].getBinPath());
@@ -741,7 +744,7 @@ export default class DexcaliburProject
 
         }else{
             //        let dexPath = this.workspace.getWD()+"dex";
-            let apkPath = this.workspace.getApkDir();
+            let apkPath:string = this.workspace.getApkDir();
 
             Logger.info("Scanning default path : "+apkPath);
             
@@ -770,7 +773,7 @@ export default class DexcaliburProject
         // if there is not path specified
         if(pPath == null){
 
-            let dir=Fs.readdirSync(this.workspace.getRuntimeBcDir());
+            let dir:string[]=Fs.readdirSync(this.workspace.getRuntimeBcDir());
             for(let i in dir){
                 elemnt = _path_.join(this.workspace.getRuntimeBcDir(),dir[i],"smali");
                 if(Fs.existsSync(elemnt) && Fs.lstatSync(elemnt).isDirectory()){
@@ -797,7 +800,7 @@ export default class DexcaliburProject
         }));
 
         // deploy inspector's hooksets
-        this.deployInspectors(Inspector.STEP.POST_APP_SCAN);
+        this.deployInspectors(INSPECTOR_TYPE.POST_APP_SCAN);
 
         this.bus.send(new Event({
             type: "dxc.fullscan.post_deploy"
@@ -866,16 +869,6 @@ export default class DexcaliburProject
         return Backup.restore(savePath);
     }*/
 
-
-    /**
-     * To use the emulator by default instead of an USB device
-     * @deprecated
-     * @function
-     */
-    useEmulator(){
-        this.config.useEmulator = true;
-    }
-
     /*
      * To start the application from a specific Activity.
      * Use the default device. It can used in order to force application crawl. 
@@ -897,27 +890,7 @@ export default class DexcaliburProject
         return new ApplicationInstance(0);
     };*/
 
-    /** 
-     * To start the web server
-     * 
-     * @deprecated
-     * @param {int} port Optional - The port number to use. By default, the port number from configuration is used.
-     * @function
-     */
-    startWebserver( pPort:string|number=null){
-        // if port is undefined or null
-        let port = null;
-        if(process.env.DEXCALIBUR_PORT!=null)
-            port = process.env.DEXCALIBUR_PORT
-        else if(pPort != null)
-            port = pPort;
-        else
-            port = this.config.getWebPort();
 
-        this.web.useProductionMode();
-        // start 
-        this.web.start(port);
-    }
 
     /**
      * To get application package name

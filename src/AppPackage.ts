@@ -5,7 +5,7 @@
  * 
  * @class
  */
-export default class ApkPackage {
+export default class AppPackage {
 
     packageIdentifier:string = null;
     packagePath:string =  null;

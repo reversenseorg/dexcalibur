@@ -157,17 +157,21 @@ export class SearchAPI
     get:SearchAPISelector =  null;
     calls:SearchAPICallSelector = null;
 
-    constructor(pData:AnalyzerDatabase){
+    constructor(pData:AnalyzerDatabase=null){
 
-        // AnalyzerDatabase (specialize InMemoryDb)
-        this._db = pData;
         this._queryCache = [];
 
         // set default case sensitivity for all search
         this._caseSensitive = true;
 
-        this._finder = new Finder(this._db);
+        if(pData != null){
+            this.setDatabase(pData);
+        }
+    }
 
+    setDatabase(pData:AnalyzerDatabase){
+        this._db = pData;
+        this._finder = new Finder(this._db);
         this.get = new SearchAPISelector(this._db);
         this.calls = new SearchAPICallSelector(this._db, this._finder);
     }
@@ -282,7 +286,7 @@ export class SearchAPI
         if(pattern === null)
             return res;
         if(typeof pattern === 'string' || pattern instanceof String)
-            return res.filter(pattern);
+            return res.filter(pattern as string);
         else if(pattern instanceof ModelMethod)
             return res.filter("calleed.__signature__:"+pattern.__signature__);
         else

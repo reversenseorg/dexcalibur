@@ -151,7 +151,7 @@ export default class DeviceManager
             data = JSON.parse( _fs_.readFileSync( this.devFile).toString());
             for(let i=0; i<data.length; i++){
                 if( data[i].uid != null)
-                    this.devices[ data[i].uid ] = Device.fromJsonObject(data[i]);
+                    this.devices[ data[i].uid ] = Device.fromJsonObject(this.bridgeFactory, data[i]);
             }
         } catch(err){
             Logger.error("[DEVICE MANAGER] Unable to load devices");
@@ -678,6 +678,10 @@ export default class DeviceManager
         this.status = pStatus;
     }
 
+    /**
+     *
+     * TODO : add device UID as parameter (batched enrollment case)
+     */
     getEnrollStatus():StatusMessage{
         return this.status;
     }

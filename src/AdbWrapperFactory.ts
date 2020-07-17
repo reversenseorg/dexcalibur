@@ -89,4 +89,8 @@ export default class AdbWrapperFactory implements IBridgeFactory
         return pDevice.getDefaultBridge().clone();
     }
 
+
+    fromJsonObject(pObject:any):any{
+        return AdbWrapper.fromJsonObject(pObject);
+    }
 }

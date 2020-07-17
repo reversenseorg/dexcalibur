@@ -12,6 +12,12 @@ import StatusMessage from "./StatusMessage";
 import DexcaliburProject from "./DexcaliburProject";
 import Util from "./Utils";
 import Platform from "./Platform";
+import WebServer from "./WebServer";
+import DeviceManager from "./DeviceManager";
+import InspectorManager from "./InspectorManager";
+import Configuration from "./Configuration";
+import Installer from "./Installer";
+import FridaHelper from "./FridaHelper";
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
 var gAdmZip:any = null;
@@ -126,6 +132,12 @@ export default class DexcaliburEngine
     active:any = {};
 
     /**
+     * installer
+     * @field
+     */
+    installer:Installer = null;
+
+    /**
      * To instanciate DexcaliburEngine.
      * 
      * @private
@@ -222,7 +234,7 @@ export default class DexcaliburEngine
         +"║ Dexcalibur is not fully configured, please visit URL below to              ║\n"
         +"║ finalize install:                                                          ║\n"
         +"║                                                                            ║\n"
-        +"║ http://127.0.0.1:"+pPort+(" ".repeat(78-20-pPort.length))+"║\n"
+        +"║ http://127.0.0.1:"+pPort+(" ".repeat(78-20-(pPort+"").length))+"║\n"
         +"║                                                                            ║\n"
         +"║ :-)                                                                        ║\n"
         +"╚════════════════════════════════════════════════════════════════════════════╝\n"
@@ -436,7 +448,7 @@ export default class DexcaliburEngine
         let self:DexcaliburEngine = this;
 
         // init installer
-        this.installer = new InstallKit.Installer( this);
+        this.installer = new Installer( this);
 
         
         // define "ADB install" task 
@@ -454,16 +466,18 @@ export default class DexcaliburEngine
                 // unzip platform-tools and copy ADB
                 onPostDownload: function( vTask, vStep, vData){
                     let zip = new gAdmZip(tmpAdbPath);
-                    self.installer.progress += vStep;
-                    self.installer.status = new InstallKit.StatusMessage( self.installer.progress, "Android platform tool downloaded. Uncompressing ..");
+                    self.installer.status = new StatusMessage(
+                        self.installer.getStatus().getProgress()+vStep, "Android platform tool downloaded. Uncompressing ..");
                     zip.extractAllTo( _path_.join(self.workspace.binFolder), true);
                     _fs_.unlinkSync(tmpAdbPath);
                     _fs_.chmodSync( _path_.join(self.workspace.binFolder,'platform-tools','adb'), 0o555);
-                    self.installer.progress += vStep;
-                    self.installer.status = new InstallKit.StatusMessage( self.installer.progress, "Android platform tool installed");
+                    self.installer.status = new StatusMessage(
+                        self.installer.getStatus().getProgress()+vStep,
+                        "Android platform tool installed");
                 },
                 onSuccess: function(){
-                    self.installer.status = new InstallKit.StatusMessage( self.installer.progress, "Android platform tool configured");
+                    self.installer.status = new StatusMessage(
+                        self.installer.getStatus().getProgress(), "Android platform tool configured");
                 }
             }
         );
@@ -476,13 +490,14 @@ export default class DexcaliburEngine
             {
                 onPostDownload: function( vTask, vStep, vData){
                     // apktool downloaded
-                    self.installer.progress += 2*vStep;
-                    self.installer.status = new InstallKit.StatusMessage( self.installer.progress, "APKTool installed");
+                    self.installer.status = new StatusMessage(
+                        self.installer.getStatus().getProgress()+2*vStep, "APKTool installed");
+
 
                     // save workspace configuration
-                    self.installer.progress += 2*vStep;
                     self.workspace.saveConfiguration( self.config);
-                    self.installer.status = new InstallKit.StatusMessage( self.installer.progress, "Configuration");
+                    self.installer.status = new StatusMessage(
+                        self.installer.getStatus().getProgress()+2*vStep, "Configuration");
 
                     // save workspace location into ~/.dexcalibur
                     /*self.installer.progress += vStep;
@@ -500,8 +515,8 @@ export default class DexcaliburEngine
             {
                 onSuccess: function( vTask, vStep, vData){
                     // apktool downloaded
-                    self.installer.progress += vStep;
-                    self.installer.status = new InstallKit.StatusMessage( self.installer.progress, "Android 27 downloaded");
+                    self.installer.status = new StatusMessage(
+                        self.installer.getStatus().getProgress()+vStep, "Android 27 downloaded");
 
                     // backsmali 
                     let p = self.platformMgr.getRemotePlatform('sdk_androidapi_29_google');
@@ -509,9 +524,9 @@ export default class DexcaliburEngine
                     self.platformMgr.install( p);
 
                     // save workspace location into ~/.dexcalibur
-                    self.installer.progress += vStep;
                     self.postInstall();
-                    self.installer.status = new InstallKit.StatusMessage( self.installer.progress, "Finished");
+                    self.installer.status = new StatusMessage(
+                        self.installer.getStatus().getProgress()+vStep, "Finished");
                 } 
             }
         );
@@ -583,7 +598,7 @@ export default class DexcaliburEngine
         
 
         // Start the web server serving Installer UI
-        this.webserver.start(pWebPort);
+        this.webserver.start((typeof pWebPort==='string')?parseInt(pWebPort,10):pWebPort);
     }
 
     /**
@@ -610,9 +625,9 @@ export default class DexcaliburEngine
             let proj:DexcaliburProject = this.webserver.project;
 
             if(this.active[pUID] != null) this.active[pUID] =  null;
-            if(proj!= null && proj.getUID()==pUID){
+            /*if(proj!= null && proj.getUID()==pUID){
                 this.workspace.setProject(null);
-            }
+            }*/
 
             Util.recursiveRmDirSync(
                 _path_.join( this.workspace.getLocation(), pUID )
@@ -628,7 +643,7 @@ export default class DexcaliburEngine
     }
 
     async openProject( pUID:string):Promise<DexcaliburProject>{
-        let project:DexcaliburProject = null, success:boolean = false;
+        let project:DexcaliburProject = null, success:any = false;
         try{
             await DeviceManager.getInstance().scan();
 
