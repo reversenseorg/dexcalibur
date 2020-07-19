@@ -159,8 +159,8 @@ export default class DexcaliburDVM implements DexcaliburVM
      */
     prepareLong( pRegister:ModelRegisterReference ):any{
         let s:any = {
-            mn: this.getRegisterName({ t:pRegister.t, i:pRegister.i }), // register holding most significant number
-            ln: this.getRegisterName({ t:pRegister.t, i:pRegister.i+1 }), // register holding least significant number
+            mn: pRegister.getRX(), // this.getRegisterName({ t:pRegister.t, i:pRegister.i }), // register holding most significant number
+            ln: pRegister.getNext().getRX(), //this.getRegisterName({ t:pRegister.t, i:pRegister.i+1 }), // register holding least significant number
             v: null // value
         };
 
@@ -168,7 +168,7 @@ export default class DexcaliburDVM implements DexcaliburVM
         s.l = this.stack.getLocalSymbol( s.ln );
 
         if(this.isImm(s.m) && this.isImm(s.l)){
-            s.v = (s.m << 32) & (s.l & 0x00000000FFFFFFFF);
+            s.v = (s.m << 32) | (s.l & 0x00000000FFFFFFFF); // & replaced by |
         }
 
         return s;
@@ -218,23 +218,23 @@ export default class DexcaliburDVM implements DexcaliburVM
         let dst:any = null, src1:any = null, src2:any = null;
 
         src1 = {
-            m: this.stack.getLocalSymbol( this.getRegisterName({ t:pSrc1.t, i:pSrc1.i+1 })),
-            l: this.stack.getLocalSymbol( this.getRegisterName({ t:pSrc1.t, i:pSrc1.i })),
+            m: this.stack.getLocalSymbol( pSrc1.getNext().getRX() ),//this.getRegisterName({ t:pSrc1.t, i:pSrc1.i+1 })),
+            l: this.stack.getLocalSymbol( pSrc1.getRX() ), //this.getRegisterName({ t:pSrc1.t, i:pSrc1.i })),
             v: null
         };
 
         src2 = {
-            m: this.stack.getLocalSymbol( this.getRegisterName({ t:pSrc2.t, i:pSrc2.i+1 })),
-            l: this.stack.getLocalSymbol( this.getRegisterName({ t:pSrc2.t, i:pSrc2.i })),
+            m: this.stack.getLocalSymbol( pSrc2.getNext().getRX()), // this.getRegisterName({ t:pSrc2.t, i:pSrc2.i+1 })),
+            l: this.stack.getLocalSymbol( pSrc2.getRX() ), //this.getRegisterName({ t:pSrc2.t, i:pSrc2.i })),
             v: null
         };
 
         if(this.isImm(src1.m) && this.isImm(src1.l)){
-            src1.v = (src1.m << 32) & (src1.l & 0x00000000FFFFFFFF);
+            src1.v = (src1.m << 32) | (src1.l & 0x00000000FFFFFFFF); // &
         }
 
         if(this.isImm(src2.m) && this.isImm(src2.l)){
-            src2.v = (src2.m << 32) & (src2.l & 0x00000000FFFFFFFF);
+            src2.v = (src2.m << 32) | (src2.l & 0x00000000FFFFFFFF); // & replaced by
         }
 
         if(src1.v !== null && src2.v !== null){
@@ -257,7 +257,8 @@ export default class DexcaliburDVM implements DexcaliburVM
             }
             dst = src1.v;
             this.stack.setLocalSymbol(
-                this.getRegisterName({ t:pSrc1.t, i:pSrc1.i+1 }),
+                //this.getRegisterName({ t:pSrc1.t, i:pSrc1.i+1 }),
+                pSrc1.getNext().getRX(),
                 DTYPE.IMM_LONG,
                 src1.v
             );
@@ -739,7 +740,8 @@ export default class DexcaliburDVM implements DexcaliburVM
     }
 
     contextExists( pLabel:string):boolean{
-        return (this.stack.current().hasState(pLabel) != null);
+        return false;
+      //  return (this.stack.current().hasState(pLabel) != null);
     }
 
     getEntrypoint():ModelMethod{
