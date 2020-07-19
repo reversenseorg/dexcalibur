@@ -3,6 +3,7 @@ import AndroidProvider from "./AndroidProvider";
 import AndroidService from "./AndroidService";
 import AndroidReceiver from "./AndroidReceiver";
 import {AndroidAttributeSet} from "./AndroidAttribute";
+import {AndroidManifest} from "./AndroidManifest";
 
 
 
@@ -64,6 +65,7 @@ export default class AndroidApplication
 
     usesLibraries = [];
     metaData = [];
+    manifest:AndroidManifest = null;
 
     constructor(config:any=null){
 
@@ -123,6 +125,27 @@ export default class AndroidApplication
         return app;
     }
 
+    setManifest(pManifest:AndroidManifest):void{
+        this.manifest = pManifest;
+    }
+
+
+    getMinApiVersion():string{
+        if(this.manifest != null){
+            return this.manifest.getMinSdkVersion();
+        }else{
+            return null;
+        }
+    }
+
+
+    getTargetApiVersion():string{
+        if(this.manifest != null){
+            return this.manifest.getTargetSdkVersion();
+        }else{
+            return null;
+        }
+    }
 
     /**
      * To serialize to XML

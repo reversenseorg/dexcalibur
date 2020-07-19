@@ -1,7 +1,7 @@
-import ModelSyscall from "./ModelSyscall";
+import ModelSyscall from "../ModelSyscall";
 
 
-export const SYSCALLS = [
+export const AndroidSyscalls = [
 
     new ModelSyscall({
         sys_name: "exit",        
@@ -2206,8 +2206,6 @@ export const SYSCALLS = [
         args: ["int number","..."],
         sysnum: [-1,-1,0]
     })
-    ,
+
    
 ];
-
-module.exports = SYSCALLS;
