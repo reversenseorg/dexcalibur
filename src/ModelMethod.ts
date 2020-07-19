@@ -2,12 +2,10 @@ import {CONST} from "./CoreConst";
 import ModelClass from "./ModelClass";
 import {Modifier, ModifierFormat} from "./AccessFlags";
 import ModelDataBlock from "./ModelDataBlock";
-import {ModelPackedSwitchStatement} from "./ModelSwitch";
 import NodeCompare from "./NodeCompare";
-import {Savable, Stub, STUB_TYPE} from "./ModelSavable";
+import {Savable, STUB_TYPE} from "./ModelSavable";
 import {ModelBasicType, ModelObjectType} from "./ModelType";
 import ModelBasicBlock from "./ModelBasicBlock";
-import ModelCatchStatement from "./ModelCatchStatement";
 import ModelCall from "./ModelCall";
 
 
@@ -548,34 +546,34 @@ export default class ModelMethod extends Savable
     }
 
    getCallValues(dyn:any){
-    return this.dyn;
-}
+        return this.dyn;
+    }
 
    getAlias():string{
-    return this.alias;
-}
+        return this.alias;
+    }
    setAlias(name:string){
-    this.alias = name;
-    this.__aliasedCallSignature__ = this.aliasedCallSignature();
-}
+        this.alias = name;
+        this.__aliasedCallSignature__ = this.aliasedCallSignature();
+    }
    setEnclosingClass(cls:ModelClass){
-    this.enclosingClass = cls;
-}
+        this.enclosingClass = cls;
+    }
    getEnclosingClass():ModelClass{
-    return this.enclosingClass;
-}
+        return this.enclosingClass;
+    }
    setReturnType(rettype:ModelObjectType|ModelBasicType){
-    this.ret = rettype;
-}
+        this.ret = rettype;
+    }
    getReturnType():ModelObjectType|ModelBasicType{
-    return this.ret;
-}
+        return this.ret;
+    }
    setArgsType(argsType:any){
     this.args = argsType;
 }
-   getArgsType():any{
-    return this.args;
-}
+   getArgsType():(ModelObjectType|ModelBasicType)[]{
+        return this.args;
+    }
    hasArgs():boolean{
     return this.args.length > 0;
 }
@@ -708,4 +706,7 @@ export default class ModelMethod extends Savable
         return null;
     }
 
+    isStatic():boolean{
+        return (this.modifiers & Modifier.STATIC)==Modifier.STATIC;
+    }
 }

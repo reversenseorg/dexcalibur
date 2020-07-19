@@ -28,6 +28,8 @@ import {TAG} from "./AnalysisHelper";
 import {HookManager} from "./HookManager";
 import Inspector, {INSPECTOR_TYPE} from "./Inspector";
 import InspectorManager from "./InspectorManager";
+import {DexcaliburVM} from "./DexcaliburVM";
+import Simplifier from "./Simplifier";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -177,6 +179,11 @@ export default class DexcaliburProject
      */
     connector:IDatabaseAdapter = null;
 
+    /**
+     * @field
+     */
+    simplifier:Simplifier = null;
+
 
     /**
      * 
@@ -190,6 +197,7 @@ export default class DexcaliburProject
         this.uid = pUID;
     }
 
+
     /**
      * To select the way to store the internal data
      *
@@ -200,6 +208,33 @@ export default class DexcaliburProject
         this.connector = ConnectorFactory.getInstance().newConnector( pConnectorType, this);
     }
 
+    /**
+     * @return {boolean}
+     * @method
+     */
+    hasVM():boolean{
+        return this.platform.isVmSupported();
+    }
+
+    /**
+     * @return {DexcaliburVM}
+     * @method
+     */
+    getVM():DexcaliburVM {
+        return this.platform.getNewDexcaliburVM(this);
+    }
+
+    /**
+     * @return {Simplifier}
+     * @method
+     */
+    getSimplifier():Simplifier{
+        if(this.simplifier == null){
+            this.simplifier = new Simplifier(this);
+        }
+
+        return this.simplifier;
+    }
     /**
      * To get DexcaliburEngine instance associated to this project
      *

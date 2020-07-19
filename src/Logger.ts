@@ -51,7 +51,9 @@ export interface Logger {
 
     error(...args:string[]):LoggerAction;
     debug(...args:string[]):LoggerAction;
+    debugPink(...args:string[]):LoggerAction;
     debugRAW(...args:any[]):LoggerAction;
+    debugBgRed(...args :any[]):LoggerAction;
     info(...args:string[]):LoggerAction;
     warn(...args:string[]):LoggerAction;
     success(...args:string[]):LoggerAction;
@@ -84,6 +86,17 @@ export class TestLogger implements Logger
         return LoggerAction;
     }
 
+    debugPink(...args :any[]):LoggerAction{
+        if(this.debugEnabled)
+            this.cache.push({ type:MessageType.T_DEBUG, val:multi_concat(args) });
+        return LoggerAction;
+    }
+
+    debugBgRed(...args :any[]):LoggerAction{
+        if(this.debugEnabled)
+            this.cache.push({ type:MessageType.T_DEBUG, val:multi_concat(args) });
+        return LoggerAction;
+    }
 
     debugRAW(...args :any[]):LoggerAction{
         this.cache.push({ type:MessageType.T_DEBUG_RAW, val:args });
@@ -184,9 +197,7 @@ export class ProdLogger implements Logger
         return LoggerAction;
     }
 
-    /**
-     * TODO : TestLogger
-     */
+
     debugBgRed(...args :any[]):LoggerAction{
         if(this.debugEnabled)
             console.log(chalk.white.bgRed.bold('[DEBUG] '+this.prefix.join("")+multi_concat(args)));

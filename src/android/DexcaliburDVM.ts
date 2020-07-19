@@ -26,6 +26,7 @@ import DDVM_Hook from "./DDVM_Hook";
 import ModelBasicBlock from "../ModelBasicBlock";
 import DDVM_VirtualArray from "./DDVM_VirtualArray";
 import ModelCatchStatement from "../ModelCatchStatement";
+import DDVM_Exception from "./DDVM_Exception";
 
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
@@ -1349,11 +1350,12 @@ export default class DexcaliburDVM implements DexcaliburVM
      * @param {Integer} pInstrOffset
      */
     execute( pInstrStack:DDVM_Instruction[], pInstrOffset:number):void{
-        let dec=[],  f={res:false}, v='', regX:any=null,  regV=null, regZ=null, label=null, tmp=[];
-        let oper:ModelInstruction = null;
-        let state = { code:[], jump:null, ret:null, inv:null};
-        let regs = {};
-        let indent = "    ".repeat(this.depth);
+        let f:any={res:false}, v:string='', vx:string[]=null;
+        let regX:any=null,  regV:any=null, regZ:any=null, label:any=null;
+        let oper:ModelInstruction;
+        let state:any = { code:[], jump:null, ret:null, inv:null};
+        let regs:any = {};
+        let indent:string = "    ".repeat(this.depth);
 
 
         oper = pInstrStack[pInstrOffset].i as ModelInstruction;
@@ -1752,12 +1754,14 @@ export default class DexcaliburDVM implements DexcaliburVM
 
 
                 this.stack.setLocalSymbol(
-                    this.getRegisterName({ t:oper.left[0].t, i:oper.left[0].i }),
+                    //this.getRegisterName({ t:oper.left[0].t, i:oper.left[0].i }),
+                    (oper.left[0] as ModelRegisterReference).getRX(),
                     DTYPE.IMM_LONG,
                     regs.val!==null? (regs.val >> 32) & 0xFFFFFFFF : null,
                     regs.code.m);
                 this.stack.setLocalSymbol(
-                    this.getRegisterName({ t:oper.left[0].t, i:oper.left[0].i+1 }),
+                    // this.getRegisterName({ t:oper.left[0].t, i:oper.left[0].i+1 }),
+                    (oper.left[0] as ModelRegisterReference).getNext().getRX(),
                     DTYPE.IMM_NUMERIC,
                     regs.val!==null? regs.val & 0x00000000FFFFFFFF : null,
                     regs.code.l);
@@ -1805,12 +1809,14 @@ export default class DexcaliburDVM implements DexcaliburVM
                 }
 
                 this.stack.setLocalSymbol(
-                    this.getRegisterName({ t:oper.left.t, i:oper.left.i }),
+                    // this.getRegisterName({ t:oper.left.t, i:oper.left.i }),
+                    (oper.left[0] as ModelRegisterReference).getRX(),
                     DTYPE.IMM_LONG,
                     regs.val!==null? (regs.val >> 32) & 0xFFFFFFFF : null,
                     regs.code.m);
                 this.stack.setLocalSymbol(
-                    this.getRegisterName({ t:oper.left.t, i:oper.left.i+1 }),
+                    //this.getRegisterName({ t:oper.left.t, i:oper.left.i+1 }),
+                    (oper.left[0] as ModelRegisterReference).getNext().getRX(),
                     DTYPE.IMM_NUMERIC,
                     regs.val!==null? regs.val & 0x00000000FFFFFFFF : null,
                     regs.code.l);
@@ -2459,36 +2465,36 @@ export default class DexcaliburDVM implements DexcaliburVM
                 regV = this.stack.getLocalSymbol( regX);
 
                 if(this.isImm(regV)){
-                    v = [`${indent}${oper.right.enclosingClass.name}.${oper.right.name}`,this.getImmediateValue(regV)];
+                    vx = [`${indent}${oper.right.enclosingClass.name}.${oper.right.name}`,this.getImmediateValue(regV)];
                     this.metharea.setGlobalSymbol(
                         `${oper.right.enclosingClass.name}.${oper.right.name}`,
                         DTYPE.FIELD,
                         regV.getValue(),
-                        `${v[0]} = ${v[1]}`);
+                        `${vx[0]} = ${vx[1]}`);
                 }
                 else if(regV.getValue() instanceof DDVM_VirtualArray){
-                    v = [`${oper.right.enclosingClass.name}.${oper.right.name}`,regV.getValue().toString()];
+                    vx = [`${oper.right.enclosingClass.name}.${oper.right.name}`,regV.getValue().toString()];
                     this.metharea.setGlobalSymbol(
                         `${oper.right.enclosingClass.name}.${oper.right.name}`,
                         DTYPE.FIELD,
                         regV.getValue(),
-                        `${v[0]} = ${v[1]}`);
+                        `${vx[0]} = ${vx[1]}`);
                 }
                 else if(regV.hasCode()){
-                    v = [`${oper.right.enclosingClass.name}.${oper.right.name}`,regV.getCode()];
+                    vx = [`${oper.right.enclosingClass.name}.${oper.right.name}`,regV.getCode()];
                     this.metharea.setGlobalSymbol(
                         `${oper.right.enclosingClass.name}.${oper.right.name}`,
                         DTYPE.FIELD,
                         null,
-                        `${v[0]} = ${v[1]}`);
+                        `${vx[0]} = ${vx[1]}`);
                 }
                 else{
-                    v = [`${oper.right.enclosingClass.name}.${oper.right.name}`,regX];
+                    vx = [`${oper.right.enclosingClass.name}.${oper.right.name}`,regX];
                     this.metharea.setGlobalSymbol(
                         `${oper.right.enclosingClass.name}.${oper.right.name}`,
                         DTYPE.FIELD,
                         null,
-                        `${v[0]} = ${v[1]}`);
+                        `${vx[0]} = ${vx[1]}`);
                 }
                 /*
                                 if(this.getRegisterName(oper.left)=="p0" && (this.method.modifiers.static==false)){
@@ -2502,7 +2508,7 @@ export default class DexcaliburDVM implements DexcaliburVM
                                 }*/
 
                 //co
-                state.code.push(`${indent}${v[0]} = ${v[1]}`);
+                state.code.push(`${indent}${vx[0]} = ${vx[1]}`);
 
                 break;
 
@@ -2661,7 +2667,7 @@ export default class DexcaliburDVM implements DexcaliburVM
                     }else{
                         // impossible to identify valid path :  queueing two path TRUE and FALSE paths
                         // default is TRUE path, FALSE is queued
-                        if(CONST.VM.DEFAULT_PATH){
+                        if(CONST.VM.IF_DEFAULT_PATH){
                             state.jump = {type:CONST.INSTR_TYPE.IF, label:oper.right.name};
                         }
 
@@ -2718,7 +2724,7 @@ export default class DexcaliburDVM implements DexcaliburVM
                     }else{
                         // impossible to identify valid path :  queueing two path TRUE and FALSE paths
                         // default is TRUE path, FALSE is queued
-                        if(CONST.VM.DEFAULT_PATH){
+                        if(CONST.VM.IF_DEFAULT_PATH){
                             state.jump = {type:CONST.INSTR_TYPE.IF, label:oper.right.name};
                         }
 
@@ -2928,7 +2934,7 @@ export default class DexcaliburDVM implements DexcaliburVM
                         state.code.push(`${indent} ${regX} = ${regV.getValue().toString()}`);
                     }
                 }else{
-                    throw DDVM_Exception('VM001','fill-array-data cannot be executed : '+regX+' is not an array');
+                    throw new DDVM_Exception('VM001','fill-array-data cannot be executed : '+regX+' is not an array');
                 }
 
                 break;

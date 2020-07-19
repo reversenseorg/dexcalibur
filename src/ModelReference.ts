@@ -251,6 +251,34 @@ export class ModelRegisterReference
                 this[i] = pTypeConfig[i];
         }
     }
+
+    getRX():string{
+        return this.t+this.i;
+    }
+
+    isRX(pName):boolean{
+        return (this.t+this.i)===pName[0];
+    }
+
+    getNext():ModelRegisterReference{
+        let reg:ModelRegisterReference = new ModelRegisterReference(this.t, this.i);
+
+        // if(this.i === 0)
+        //    throw new DDVM_Exception('R001','Registers with ID up to ')
+
+        reg.i += 1;
+        return reg;
+    }
+
+    getPrevious():ModelRegisterReference{
+        let reg:ModelRegisterReference = new ModelRegisterReference(this.t, this.i);
+
+        // if(this.i === 0)
+        //    throw new DDVM_Exception('R002','Registers with negative ID are not valid (r0-1.')
+
+        reg.i -= 1;
+        return reg;
+    }
 }
 
 

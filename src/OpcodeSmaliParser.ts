@@ -1,4 +1,4 @@
-import { ModelFieldReference} from "./ModelReference";
+import {ModelFieldReference, ModelRegisterReference} from "./ModelReference";
 import {RX} from "./CoreParser";
 import {CONST} from "./CoreConst";
 import {ModelBasicType, ModelObjectType} from "./ModelType";
@@ -134,7 +134,7 @@ export default class OpcodeSmaliParser
         return RX.REF_REG.exec(src);
     }
 
-    static singleVar(src:string):any{
+    static singleVar(src:string):ModelRegisterReference{
         let m:RegExpExecArray = RX.REF_REG.exec(src);
 
         if(m==null){
@@ -146,11 +146,12 @@ export default class OpcodeSmaliParser
         if(m.length!=3)
             Logger.debug("[!] Instruction : invalid register reference :"+src);
 
-        return {t:m[1],i:m[2]};//new CLASS.Variable(m[1],m[2]);
+        // return {t:m[1],i:m[2]};//new CLASS.Variable(m[1],m[2]);
+        return new ModelRegisterReference(m[1], m[2]);
     }
 
-    static multiVar(raw_src:string):any{
-        let m:RegExpExecArray = null, v:any = [];
+    static multiVar(raw_src:string):ModelRegisterReference[]{
+        let m:RegExpExecArray = null, v:ModelRegisterReference[] = [];
 
         m = RX.REF_REG_MULT.exec(raw_src);
 
@@ -165,9 +166,10 @@ export default class OpcodeSmaliParser
             }
         }else{
             m = RX.REF_REG_INV.exec(raw_src);
-            if(m !== null)
-                v.push({t:m[1],i:m[2]});
-            else if(Util.trim(raw_src) !== "{}")
+            if(m !== null) {
+                //v.push({t: m[1], i: m[2]});
+                v.push(new ModelRegisterReference(m[1], m[2]))
+            }else if(Util.trim(raw_src) !== "{}")
                 console.log(raw_src,m);
         }
 

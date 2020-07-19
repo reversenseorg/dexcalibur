@@ -2,6 +2,9 @@ import * as _fs_ from "fs";
 import ModelSyscall from "./ModelSyscall";
 
 import {AndroidSyscalls} from "./android/AndroidSyscalls";
+import DexcaliburProject from "./DexcaliburProject";
+import DexcaliburDVM from "./android/DexcaliburDVM";
+import {DexcaliburVM} from "./DexcaliburVM";
 
 const PLATFORM_RE:RegExp = new RegExp('(?<source>[^_.]+)_(?<name>[^_.]+)_(?<version>[^_.]+)_(?<vendor>[^_.]+)\.(?<format>[^.]+)');
 const LOCAL_PLATFORM_RE:RegExp = new RegExp('(?<source>[^_.]+)_(?<name>[^_.]+)_(?<version>[^_.]+)_(?<vendor>[^_.]+)');
@@ -109,6 +112,20 @@ export default class Platform
 
     isIOS():boolean{
         return this.name.indexOf('ios')>-1;
+    }
+
+    isVmSupported(){
+        if(this.isAndroid())
+            return true;
+        else
+            return false;
+    }
+
+    getNewDexcaliburVM( pContext:DexcaliburProject):DexcaliburVM{
+        if(this.isAndroid())
+            return new DexcaliburDVM(pContext);
+        else
+            throw new Error('This platform not supports partial emulation or symbolic execution');
     }
 
     getPublicVersion():string{

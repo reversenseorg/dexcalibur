@@ -36,6 +36,7 @@ import HookSet from "./HookSet";
 import * as VM from "vm";
 import {FinderResult} from "./FinderResult";
 import {Intent, IntentCommandFactory} from "./IntentFactory";
+import Simplifier from "./Simplifier";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -1422,46 +1423,29 @@ export default class WebServer
                 res.status(ret.status).send(JSON.stringify(ret.msg))
             })
 
-         /**
-          * TODO : simplifier, vm, ...
-         * To get full information about a method 
-         *//*
-        this.app.route('/api/method/decompile/:id')
-            .get(function (req:ExpressRequest, res:ExpressResponse):any {
-                // collect
-                let dev = {};
-                let method = $.project.find.get.method(Util.decodeURI(Util.b64_decode(req.params.id)));
 
-                let decompiler = Decompiler.getInstance($);
-
-                let simplifyLvl = (req.query.level!=undefined)? req.query.level : 0;
-                dev = decompiler.decompile(method, simplifyLvl);
-
-                res.status(200).send(JSON.stringify(dev));
-            });
-        /*
 
         // TODO : simplifier, vm, ...
         this.app.route('/api/method/simplify/:id')
-        .post(function (req:ExpressRequest, res:ExpressResponse):any {
-            // collect
-            let dev = {};
-            let method = $.project.find.get.method(Util.decodeURI(Util.b64_decode(req.params.id)));
+            .post(function (req:ExpressRequest, res:ExpressResponse):any {
+                // collect
+                let dev:any = {};
+                let method:ModelMethod = $.project.find.get.method(Util.decodeURI(Util.b64_decode(req.params.id)));
 
-            let simplifier = Simplifier.getInstance($.project);
-            
-            // init body 
-            simplifier.setParametersValues(req.body.params);
-            simplifier.setInitParentClass(req.body.clinit);
-            simplifier.setMaxDepth(req.body.depth);
+                let simplifier:Simplifier = $.project.getSimplifier(); // Simplifier.getInstance($.project);
 
-            let simplifyLvl = (req.body.level!=undefined)? req.body.level : 0;
+                // init body
+                simplifier.setParametersValues(req.body.params);
+                simplifier.setInitParentClass(req.body.clinit);
+                simplifier.setMaxDepth(req.body.depth);
 
-            dev = simplifier.simplify(method, simplifyLvl);
+                let simplifyLvl:number = (req.body.level!=undefined)? req.body.level : 0;
 
-            res.status(200).send(JSON.stringify(dev));
-        });
-*/
+                dev = simplifier.simplify(method, simplifyLvl);
+
+                res.status(200).send(JSON.stringify(dev));
+            });
+
         /**
          * To get full information about a method 
          */

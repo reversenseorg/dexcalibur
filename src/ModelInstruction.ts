@@ -2,6 +2,7 @@ import { CONST } from "./CoreConst";
 import ModelBasicBlock from "./ModelBasicBlock";
 import ModelMethod from "./ModelMethod";
 import {Savable, STUB_TYPE} from "./ModelSavable";
+import {ModelRegisterReference} from "./ModelReference";
 
 /**
  * Represents an instruction from the Application bytecode

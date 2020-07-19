@@ -32,7 +32,7 @@ export default class DalvikInstructionFormat {
 
     static addrX(src:string[],raw_src:string):ModelInstruction{
         let instr:ModelInstruction = new ModelInstruction();
-        let v:any = OpcodeSmaliParser.multiVar(raw_src);
+        let v:ModelRegisterReference[] = OpcodeSmaliParser.multiVar(raw_src);
 
         instr.left = v[0];
         instr.right = v.shift();
@@ -194,7 +194,7 @@ export default class DalvikInstructionFormat {
 
         //if(raw_src.indexOf(":sswitch")>-1) console.log(m);
 
-        instr.left = {t:m[1],i:m[2]};//new CLASS.Variable(m[1],m[2]);
+        instr.left = new ModelRegisterReference(m[1], m[2]);//new CLASS.Variable(m[1],m[2]);
         //instr.right = new CLASS.Tag(':'+m[m.length-2]+"_"+m[m.length-1]);
         instr.right = new Tag(m[m.length-1]);
 
@@ -232,7 +232,7 @@ export default class DalvikInstructionFormat {
         let instr:ModelInstruction = new ModelInstruction();
         let m:RegExpExecArray = (new RegExp(PATTERN.CONST_LIT_INSTR)).exec(raw_src);
 
-        instr.left = {t:m[1],i:m[2]};//new CLASS.Variable(m[1],m[2]);
+        instr.left = new ModelRegisterReference(m[1], m[2]);//new CLASS.Variable(m[1],m[2]);
         instr.right = new ModelConstantValue(
             parseInt(m[3]), []
         );
@@ -247,7 +247,7 @@ export default class DalvikInstructionFormat {
 
 
         instr.tags.push(CONST.TAG.STRING);
-        instr.left = {t:m[1], i:m[2]};//new CLASS.Variable(m[1],m[2]);
+        instr.left = new ModelRegisterReference(m[1], m[2]);//new CLASS.Variable(m[1],m[2]);
         //instr.left.tags.push(CONST.TAG.STRING);
 
         instr.right = new ModelConstantValue(
@@ -263,7 +263,7 @@ export default class DalvikInstructionFormat {
 
         //console.log(m,raw_src);
         if(m !== null && m[0] === Util.trim(raw_src)){
-            instr.left = {t:m[1],i:m[2]};//new CLASS.Variable(m[1],m[2]);
+            instr.left = new ModelRegisterReference(m[1], m[2]);//new CLASS.Variable(m[1],m[2]);
             if(m[5] === undefined){
                 instr.right = new ModelBasicType(m[3]);
             }else{
@@ -277,7 +277,7 @@ export default class DalvikInstructionFormat {
 
         //console.log(m,Core.PATTERN.CONST_CLASS_MULT_INSTR,raw_src);
         if(m==null) console.log(raw_src);
-        instr.left = {t:m[1],i:m[2]};//new CLASS.Variable(m[1],m[2]);
+        instr.left = new ModelRegisterReference(m[1], m[2]);//new CLASS.Variable(m[1],m[2]);
 
         if(m[3][0]=='L')
             instr.right = new ModelObjectType(OpcodeSmaliParser.fqcn(m[5]),true);
