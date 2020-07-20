@@ -3,7 +3,6 @@ import * as _path_ from 'path';
 import * as _os_ from 'os';
 
 
-import Platform from "./Platform";
 import DexcaliburWorkspace from './DexcaliburWorkspace' ;
 
 
@@ -85,10 +84,7 @@ export default class Configuration {
                     result = `Invalid encoding. Supported : UTF8, Latin1`;
                 }
                 break;
-            case "dexcaliburPath":
             case "adbPath":
-            case "apktPath":
-            case "androidSdkPath":
             case "tmpDir":
             case "workspacePath":
                 if(_fs_.existsSync(pValue) == true){
@@ -117,18 +113,20 @@ export default class Configuration {
                         verif.length++;
                     }
                     break;
-                case "dexcaliburPath":
                 case "adbPath":
-                case "apktPath":
-                case "androidSdkPath":
+                    if(_fs_.existsSync(this.adbPath) == true){
+                        verif.msg[i] = `Invalid adb path: folder not found`;
+                        verif.length++;
+                    }
+                    break;
                 case "tmpDir":
-                    if(_fs_.existsSync(this[i]) == true){
+                    if(_fs_.existsSync(this.tmpDir) == true){
                         verif.msg[i] = `Invalid path: folder not found`;
                         verif.length++;                        
                     }
                     break;
                 case "workspacePath":
-                    if(_fs_.existsSync(this[i]) == true){
+                    if(_fs_.existsSync(this.workspacePath) == true){
                         verif.msg[i] = `Invalid path: this folder already exists.`;
                         verif.length++;                        
                     }
@@ -269,26 +267,20 @@ export default class Configuration {
      * @function
      */
     autocomplete() {
-        if (this.adbPath == null) {
-            this.adbPath = this.androidSdkPath + "platform-tools/adb";
-        }
         if (this.web_port == null) {
             this.web_port = 8000;
         }
     }
 
-    /**
+    /*
      * To get the absolute path of the Dexcalibur ./src/ folder
      * @returns {String} Dexcalibur src/ path
      * @function 
-     */
+     *
     getDexcaliburPath() {
         return this.dexcaliburPath;
-    }
+    }*/
 
-    getLocalBinPath() {
-        return _path_.join(this.dexcaliburPath, "./../bin");
-    }
 
 
     /**
@@ -302,11 +294,6 @@ export default class Configuration {
         return this.workspacePath;
     }
 
-    getAndroidSdkDir() {
-        return this.androidSdkPath;
-    }
-
-
     getTmpDir() {
         return this.tmpDir;
     }
@@ -316,22 +303,15 @@ export default class Configuration {
         return this.web_port;
     }
 
-    toJsonObject( pInclude=Configuration.PLATFORMS) {
-        let o = new Object();
+    toJsonObject( pInclude=Configuration.PLATFORMS):any {
+        let o:any = new Object();
 
         for (let i in this) {
             if(i=='ready') continue;
             switch (i) {
                 case "workspace":
                     if(pInclude & Configuration.DXCWS){
-                        o[i] = this[i].toJsonObject();
-                    }
-                    break;
-                case "platform_available":
-                    if(pInclude & Configuration.PLATFORMS){
-                        o[i] = {};
-                        for (let k in this[i])
-                            o[i][k] = this[i][k].toJsonObject();
+                        o[i] = this.workspace.getLocation();
                     }
                     break;
                 default:
@@ -344,5 +324,3 @@ export default class Configuration {
         return o;
     }
 }
-
-module.exports = Configuration;

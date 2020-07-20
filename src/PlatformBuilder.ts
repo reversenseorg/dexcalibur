@@ -1,11 +1,10 @@
 import * as _path_ from 'path';
 import * as _fs_ from 'fs';
 
-import DexcaliburEngine from "./DexcaliburEngine";
 import Platform from "./Platform";
-import PlatformBuilder from "../dist/src/PlatformBuilder";
 import Util from "./Utils";
 import * as Log from './Logger';
+import DexcaliburWorkspace from "./DexcaliburWorkspace";
 
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
@@ -21,11 +20,17 @@ export default class AndroidPlatformBuilder
     dxPath:string = null;
     tmpDir:string = null;
 
-    constructor(pConfig) {
-        this.wd = _path_.join(pConfig.getDexcaliburPath(), "APIs");
-        this.android_sdk = pConfig.getAndroidSdkDir();
-        this.java = pConfig.getJavaBin();
-        this.tmpDir = pConfig.getTempFolderLocation();
+    constructor(pWS:DexcaliburWorkspace, pAndroidSdkPath:string=null) {
+        this.wd = _path_.join(pWS.getPlatformFolderLocation());
+        this.android_sdk = pAndroidSdkPath;
+
+        if(process.env.DEXCALIBUR_JAVA != null){
+            this.java = process.env.DEXCALIBUR_JAVA;
+        }else{
+            this.java = 'java';
+        }
+
+        this.tmpDir = pWS.getTempFolderLocation();
     }
 
 
@@ -96,12 +101,6 @@ export default class AndroidPlatformBuilder
         let dex = this.buildDex(dstPath);
 
         Logger.info("Smaling file ...");
-        // Util.execSync(this.config.getSmaluPath());
-
-
-        //ret = Util.execSync("cp "+dex+" "+this.config.getDexcaliburPath()+".jar");
-
-
     }
 
     isBuildable(platform:Platform):boolean {

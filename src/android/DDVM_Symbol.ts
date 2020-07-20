@@ -219,7 +219,7 @@ export default class DDVM_Symbol
             case OPCODE.DIV_FLOAT_2ADDR.byte:
             case OPCODE.DIV_DOUBLE.byte:
             case OPCODE.DIV_FLOAT.byte:
-                return parseFloat(this.value) / parseFloat(pValue);
+                return parseFloat(this.value) / parseFloat(pValue+"");
         }
     }
 
@@ -237,7 +237,7 @@ export default class DDVM_Symbol
             case OPCODE.REM_FLOAT_2ADDR.byte:
             case OPCODE.REM_DOUBLE.byte:
             case OPCODE.REM_FLOAT.byte:
-                return parseFloat(this.value) % parseFloat(pValue);
+                return parseFloat(this.value) % parseFloat(pValue+""); // +"" added
         }
     }
 

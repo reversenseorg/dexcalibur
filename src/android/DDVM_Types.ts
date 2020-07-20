@@ -26,21 +26,23 @@ export class DDVM_Wide
      */
     v:number = null;
 
-    constructor( pDVM:DexcaliburDVM, pRegister:ModelRegisterReference ){
+    vm:any = null;
+
+    constructor( pDVM:any, pRegister:ModelRegisterReference ){
 
         this.mn = pRegister;
         this.ln = pRegister.getNext();
-        this.m = pDVM.stack.getLocalSymbol( this.mn );
-        this.l = pDVM.stack.getLocalSymbol( this.ln );
+        this.m = pDVM.stack.getLocalSymbol( this.mn.getRX() );
+        this.l = pDVM.stack.getLocalSymbol( this.ln.getRX() );
 
         if(pDVM.isImm(this.m) && pDVM.isImm(this.l)){
-            this.v = (this.m.getValue() << 32) & (this.l.getValue() & 0x00000000FFFFFFFF);
+            this.v = (this.m.getValue() << 32) | (this.l.getValue() & 0x00000000FFFFFFFF);
         }
     }
 
     getValue():number{
-        if(this.isImm(this.m) && this.isImm(this.l)){
-            return this.v = (this.m << 32) & (this.l & 0x00000000FFFFFFFF);
+        if(this.vm.isImm(this.m) && this.vm.isImm(this.l)){
+            return this.v = (this.m.getValue() << 32) | (this.l.getValue() & 0x00000000FFFFFFFF);
         }else{
             throw new DDVM_Exception('T001','Long value is not concrete');
         }

@@ -1,4 +1,4 @@
-import {OpcodeSmaliParser} from "./OpcodeSmaliParser";
+import OpcodeSmaliParser from "./OpcodeSmaliParser";
 import {ModelMethodReference, ModelRegisterReference, Tag} from "./ModelReference";
 import {CONST} from "./CoreConst";
 import ModelInstruction from "./ModelInstruction";

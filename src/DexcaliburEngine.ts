@@ -593,7 +593,7 @@ export default class DexcaliburEngine
         return this.installer.getStatus();
     }
 
-    start( pWebPort:string|number){
+    start( pWebPort:string|number, pUI:string=null){
 
         
 
@@ -667,7 +667,7 @@ export default class DexcaliburEngine
     }
 
     // TODO : remove platform ?
-    async newProject( pUID:string, pApkPath:string, pDevice:any, pPlatform:Platform='min'):Promise<DexcaliburProject>{
+    async newProject( pUID:string, pApkPath:string, pDevice:any):Promise<DexcaliburProject>{
 
         let project:DexcaliburProject = null;
         let success:boolean = null;

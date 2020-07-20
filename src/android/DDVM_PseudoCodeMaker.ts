@@ -1,15 +1,30 @@
-import {DexcaliburDVM} from "./DexcaliburDVM";
+import DexcaliburDVM from "./DexcaliburDVM";
 import DDVM_ClassInstance from "./DDVM_ClassInstance";
 import ModelMethod from "../ModelMethod";
 import {DTYPE} from "./DDVM_TypeHelper";
 import {ModelRegisterReference} from "../ModelReference";
+import DDVM_Symbol from "./DDVM_Symbol";
+import DDVM_VirtualArray from "./DDVM_VirtualArray";
+import * as Log from "../Logger";
 
+
+let Logger:Log.Logger = Log.newLogger() as Log.Logger;
+
+/**
+ * @class
+ */
 export default class DDVM_PseudoCodeMaker
 {
     code:string[] = null;
     enabled:boolean = false;
     vm:DexcaliburDVM = null;
 
+    /**
+     *
+     * @param {DexcaliburDVM} pVM
+     * @param {boolean} pEnable
+     * @constructor
+     */
     constructor( pVM:DexcaliburDVM, pEnable:boolean = true){
         this.code = [];
         this.enabled = pEnable;
@@ -45,11 +60,12 @@ export default class DDVM_PseudoCodeMaker
         }
     }
 
-    writeInvoke( pMethodRef:ModelMethod, pParamsReg:ModelRegisterReference[]){
-        let v = null, rThis:string=null, vThis:Symbol=null, rArg=null, vArg=null;
+    writeInvoke( pMethodRef:ModelMethod, pParamsReg:ModelRegisterReference[]):void{
+        let v:string = null, rThis:string=null,  rArg:string=null;
+        let vThis:DDVM_Symbol=null, vArg:DDVM_Symbol=null;
 
         if(pParamsReg.length > 0){
-            rThis = this.vm.getRegisterName(pParamsReg[0]);
+            rThis = pParamsReg[0].getRX();
             vThis = this.vm.stack.getLocalSymbol(rThis);
 
         }
@@ -79,12 +95,12 @@ export default class DDVM_PseudoCodeMaker
         if(pParamsReg.length > 1){
             for(let j=1; j<pParamsReg.length; j++){
 
-                rArg = this.vm.getRegisterName(pParamsReg[j]);
+                rArg = pParamsReg[j].getRX();
                 vArg = this.vm.stack.getLocalSymbol(rArg);
 
                 if(this.vm.isImm(vArg))
                     v += `${this.vm.getImmediateValue(vArg)},`;
-                else if(vArg.getValue() instanceof VM_VirtualArray){
+                else if(vArg.getValue() instanceof DDVM_VirtualArray){
                     v+= vArg.getValue().toString()+',';
                 }
                 else if(vArg.hasCode() && !vArg.isSkipped())
@@ -92,7 +108,7 @@ export default class DDVM_PseudoCodeMaker
                 else if(rArg=="p0" && vArg.isThis(this.vm.method)){
                     v += `this, `;
                 }
-                else if((vArg.getValue() instanceof VM_ClassInstance)
+                else if((vArg.getValue() instanceof DDVM_ClassInstance)
                     && (vArg.getValue().hasConcrete())
                     && (typeof vArg.getValue().getConcrete() == "string")){
                     v += `"${vArg.getValue().getConcrete()}",`;
@@ -109,16 +125,21 @@ export default class DDVM_PseudoCodeMaker
     }
 
 
-    writeIndirectInvoke( pInvokerObjRef, pInvokerArgRef, pInvokedMethod, pObj, pArgs){
-        let irObj=null, irArg=null, ivObj=null, ivArg=null,  v = null, rThis=null, vThis=0, rArg=null, vArg=null;
+    writeIndirectInvoke( pInvokerObjRef:ModelRegisterReference,
+                         pInvokerArgRef:ModelRegisterReference, pInvokedMethod:ModelMethod, pObj, pArgs){
 
-        irObj = this.vm.getRegisterName(pInvokerObjRef);
+        let irObj:string=null, irArg:string=null;
+        let ivObj:DDVM_Symbol=null, ivArg:DDVM_Symbol=null;
+        let v:string = null, rArg=null, vArg=null;
+        let argArr:DDVM_VirtualArray;
+
+        irObj = pInvokerObjRef.getRX(); // this.vm.getRegisterName(pInvokerObjRef);
         ivObj = this.vm.stack.getLocalSymbol(irObj);
 
-        irArg = this.vm.getRegisterName(pInvokerArgRef);
+        irArg = pInvokerArgRef.getRX(); // this.vm.getRegisterName(pInvokerArgRef);
         ivArg = this.vm.stack.getLocalSymbol(irArg);
 
-        if((ivArg.getValue() instanceof VM_VirtualArray) == false){
+        if((ivArg.getValue() instanceof DDVM_VirtualArray) == false){
             Logger.error("[VM][PCMAKER] PseudoCode generator is not able to simplify Method.invoke() call");
             return null;
         }
@@ -127,17 +148,17 @@ export default class DDVM_PseudoCodeMaker
         v = this.getIndent();
 
         // Generate 'instance' part of the call
-        if((pInvokedMethod instanceof CLASS.Method) && (pInvokedMethod.name=="<init>")){
+        if((pInvokedMethod instanceof ModelMethod) && (pInvokedMethod.name=="<init>")){
             // TODO : ??
             // v += `${rThis} = new ${pInvokedMethod.enclosingClass.name}(`;
             v += `new ${pInvokedMethod.enclosingClass.name}(`;
         }
         // caller is not static, p0 is 'this'
-        else if(this.vm.method.modifiers.static==false && irObj=="p0"){
+        else if(this.vm.method.isStatic()===false && irObj=="p0"){
             v += `this.${pInvokedMethod.alias!=null? pInvokedMethod.alias : pInvokedMethod.name}(`;
         }
         // if invoked method is statis
-        else if(pInvokedMethod.modifiers.static == true){
+        else if(pInvokedMethod.isStatic() === true){
             v += `${pInvokedMethod.enclosingClass.alias!=null? pInvokedMethod.enclosingClass.alias : pInvokedMethod.enclosingClass.name}.${pInvokedMethod.alias!=null? pInvokedMethod.alias : pInvokedMethod.name}(`;
         }
         // if instance has expr
@@ -145,7 +166,7 @@ export default class DDVM_PseudoCodeMaker
             v += `${ivObj.getCode()}.${pInvokedMethod.alias!=null? pInvokedMethod.alias : pInvokedMethod.name}(`;
         }
         // if object is a class instance
-        else if((ivObj.getValue() instanceof VM_ClassInstance)
+        else if((ivObj.getValue() instanceof DDVM_ClassInstance)
             && (ivObj.getValue().hasConcrete())
             && (typeof ivObj.getValue().getConcrete() == "string")){
             v += `"${ivObj.getValue().getConcrete()}".${pInvokedMethod.alias!=null? pInvokedMethod.alias : pInvokedMethod.name}(`;
@@ -155,19 +176,19 @@ export default class DDVM_PseudoCodeMaker
         }
 
         // read array
-        ivArg = ivArg.getValue();
+        argArr = (ivArg.getValue() as DDVM_VirtualArray);
 
         // Generate arguments string
-        if(ivArg.realSize() > 0){
-            for(let j=0; j<ivArg.realSize(); j++){
+        if(argArr.realSize() > 0){
+            for(let j=0; j<argArr.realSize(); j++){
 
                 rArg = irArg+"["+j+"]";
-                vArg = ivArg.read(j);
+                vArg = argArr.read(j);
 
-                if(vArg instanceof Symbol){
+                if(vArg instanceof DDVM_Symbol){
                     if(this.vm.isImm(vArg))
                         v += this.vm.getImmediateValue(vArg);
-                    else if(vArg.getValue() instanceof VM_VirtualArray){
+                    else if(vArg.getValue() instanceof DDVM_VirtualArray){
                         v+= vArg.getValue().toString();
                     }
                     else if(vArg.hasCode() && !vArg.isSkipped())
@@ -175,7 +196,7 @@ export default class DDVM_PseudoCodeMaker
                     else if(rArg=="p0" && vArg.isThis(this.vm.method)){
                         v += `this`;
                     }
-                    else if((vArg.getValue() instanceof VM_ClassInstance)
+                    else if((vArg.getValue() instanceof DDVM_ClassInstance)
                         && (vArg.getValue().hasConcrete())
                         && (typeof vArg.getValue().getConcrete() == "string")){
                         v += `"${vArg.getValue().getConcrete()}"`;
@@ -184,9 +205,9 @@ export default class DDVM_PseudoCodeMaker
                         v += rArg;
                     }
                 }
-                else if(vArg instanceof VM_ClassInstance){
+                else if(vArg instanceof DDVM_ClassInstance){
                     if(vArg.hasConcrete()){
-                        v+= this.vm.pcmaker.renderConcrete(vArg);
+                        v+= this.renderConcrete(vArg);
                     }else{
                         v+= rArg;
                     }
@@ -203,25 +224,25 @@ export default class DDVM_PseudoCodeMaker
         this.code.push(v);
     }
 
-    push( pCode){
+    push( pCode:string):void{
         if(this.enabled) this.code.push(pCode);
     }
 
-    append( pMessage){
+    append( pMessage:string):void{
         if(this.code.length-1 >= 0)
             this.code[this.code.length-1] += pMessage;
         else
             this.code[0] = pMessage;
     }
 
-    last(){
+    last():string{
         if(this.enabled && this.code.length>0)
             return this.code[this.code.length-1];
         else
             return null;
     }
 
-    getCode(){
+    getCode():string[]{
         return this.code;
     }
 }
