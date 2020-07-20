@@ -1,0 +1,80 @@
+import InspectorFrontController, {IFC_TYPE} from "../../../src/InspectorFrontController";
+import {TAG} from "../../../src/AnalysisHelper";
+import DexcaliburProject from "../../../src/DexcaliburProject";
+import * as _fs_ from 'fs';
+import {IDbIndex} from "../../../src/ConnectorFactory";
+import {FinderResult} from "../../../src/FinderResult";
+
+var Controller:InspectorFrontController =  new InspectorFrontController();
+
+
+
+/*
+
+*/
+function getInvokedMethod(context:DexcaliburProject):any{
+    let meth:FinderResult = context.find.method("has."+TAG.Invoked.Dynamically);
+    return meth.toJsonObject();
+}
+
+function getExternalDex(context:DexcaliburProject):any{
+    let files:IDbIndex = context.getInspector("DynamicLoader").getDB().getIndex("dex");
+
+    return files.toJsonObject();
+}
+
+function getElementsDiscovered(context:DexcaliburProject):any{
+    let cls:FinderResult = context.find.class("tags:^"+TAG.Discover.Dynamically+"$");
+    return cls.toJsonObject();
+}
+
+function cleanupSavedDex(context:DexcaliburProject):any{
+    let files:IDbIndex = context.getInspector("DynamicLoader").getDB().getIndex("dex");
+
+    files.map(function(k,v){
+        try{
+            _fs_.unlinkSync(v.getPath());
+        }catch(err){}
+    });  
+
+    return true;
+}
+
+/**
+ * Delegate front controller
+ */
+Controller.registerHandler(IFC_TYPE.GET, function(ctx:DexcaliburProject,req:any,res:any):any{
+
+    let action:string = req.query.action;
+    let act:any ={
+        status: 404,
+        data: { error: "Action not found. "}
+    };
+
+    switch(action){
+        case 'refresh_reflect':
+            act.status = 200;
+            act.data.error = null;
+            act.data.data = getInvokedMethod(ctx);
+            break;
+        case 'refresh_dex':
+            act.status = 200;
+            act.data.error = null;
+            act.data.data = getExternalDex(ctx);
+            break;
+        case 'refresh_discover':
+            act.status = 200;
+            act.data.error = null;
+            act.data.data = getElementsDiscovered(ctx);
+            break;
+        case 'cleanup':
+            act.status = 200;
+            act.data.error = null;
+            act.data.data = cleanupSavedDex(ctx);
+            break;
+    }
+
+    res.status(act.status).send(act.data);
+});
+
+export default Controller;
