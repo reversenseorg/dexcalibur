@@ -1,7 +1,6 @@
-import {IFC_TYPE} from "../../../dist/src/InspectorFrontController";
-import InspectorFrontController from "../../../src/InspectorFrontController";
+import InspectorFrontController, {IFC_TYPE} from "../../../src/InspectorFrontController";
 
-export var Controller =  new InspectorFrontController();
+ var Controller:InspectorFrontController =  new InspectorFrontController();
 
 Controller.registerHandler(IFC_TYPE.GET, function(ctx,req,res){
     console.log("GET", req.query);
@@ -13,3 +12,4 @@ Controller.registerHandler(IFC_TYPE.POST, function(ctx,req,res){
     res.send({ msg:"ok" });
 });
 
+export default Controller;

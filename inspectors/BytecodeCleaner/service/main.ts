@@ -708,3 +708,5 @@ Controller.registerHandler(  IFC_TYPE.GET, function(ctx:DexcaliburProject, req:a
 
     res.status(act.status).send(act.data);
 });
+
+export default Controller;

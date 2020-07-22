@@ -1,6 +1,6 @@
-import {InspectorFrontController} from "../../src/InspectorFrontController";
+import InspectorFrontController from "../../../src/InspectorFrontController";
 
-export var Controller =  new InspectorFrontController();
+export default new InspectorFrontController();
 
 
 

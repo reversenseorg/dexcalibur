@@ -20,7 +20,7 @@ import ModelFile from "../../src/ModelFile";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
-var DynLoaderInspector:InspectorFactory = new InspectorFactory({
+export default new InspectorFactory({
 
     id: "DynamicLoader",
     name: "Dynamic class loader inspector",

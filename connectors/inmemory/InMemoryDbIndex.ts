@@ -1,5 +1,6 @@
 
 import SerializedObject from "./SerializedObject";
+import {IDbIndex} from "../../src/ConnectorFactory";
 
 /**
  * Represents an array of element
@@ -8,7 +9,7 @@ import SerializedObject from "./SerializedObject";
  * @class
  * @export
  */
-export default class InMemoryDbIndex
+export default class InMemoryDbIndex implements IDbIndex
 {
     static __type:string = "Index";
     name:string = null;
@@ -100,6 +101,11 @@ export default class InMemoryDbIndex
         return this.refs.length;
     }
 
+
+    hasEntry(value:any):boolean{
+        return (this.refs.indexOf(value) > -1);
+    }
+
     /**
      * To transform current index to simple object ready to be serialized.
      *
@@ -168,5 +174,3 @@ export default class InMemoryDbIndex
         return o;
     }
 }
-
-module.exports = InMemoryDbIndex;

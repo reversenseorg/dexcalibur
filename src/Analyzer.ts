@@ -858,6 +858,8 @@ export default class Analyzer
         let self:Analyzer = this;
         let tempDb:AnalyzerDatabase = this.newTempDb();
 
+        this.tempDB = tempDb;
+
         this.context.bus.send(new Event({
             name: "analyze.file.before",
             data: {
@@ -868,7 +870,7 @@ export default class Analyzer
 
         // check if the folder exists
         if(_fs_.existsSync(pPath)===false)
-            throw new Error('[ANALYZER] Path not exisists');
+            throw new Error('[ANALYZER] Path not exists');
 
         // ut.forEachFileOf(path,this.file,".smali");
         //ut.forEachFileOf(path,this.file);
@@ -900,7 +902,7 @@ export default class Analyzer
      * To get the internal database
      */
     getData():AnalyzerDatabase{
-        Logger.debug("[ERROR::DEV] Deprecated function Analyzer::getData() is called ");
+//        Logger.debug("[ERROR::DEV] Deprecated function Analyzer::getData() is called ");
         return this.db;
     }
 

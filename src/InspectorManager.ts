@@ -271,7 +271,8 @@ export default class InspectorManager
         }
 
         for(let i in this.locals){
-            this.projects[uid][i] = this.locals[i].createInstance(pProject);
+            console.log(i,this.locals[i]);
+            this.projects[uid][i] = (this.locals[i] as any).default.createInstance(pProject);
 
             pProject.bus.subscribe(this.projects[uid][i]);
                     

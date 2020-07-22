@@ -1,15 +1,17 @@
 'use strict';
 
 
-import InMemoryDbIndex from "./InMemoryDbIndex";
 import DexcaliburProject from "../../src/DexcaliburProject";
-import InMemoryDb from "./InMemoryDb";
-import InMemoryDbCollection from "./InMemoryDbCollection";
-import {IDatabaseAdapter} from "../../src/ConnectorFactory";
+import { InMemoryDb, Index, Collection } from "./InMemoryDb";
+import {IDatabase, IDatabaseAdapter} from "../../src/ConnectorFactory";
 
 const TYPE  = 'inmemory';
 const NAME = 'InMemory';
 const DESC = 'Data are stored in memory. Only saved data can be restored (such as intercepted bytecode, DEX file loaded dynamically and more)';
+
+interface DatabaseInstanceList {
+    [name :string] :IDatabase
+}
 
 /**
  * Represents a database stored into memory (ACID-like)
@@ -23,6 +25,7 @@ export default class InMemoryConnector implements IDatabaseAdapter
     options:any = null;
     type:string = TYPE;
     db:InMemoryDb = null;
+    tmpDbs:DatabaseInstanceList = {};
 
     /**
      * To create a new DB
@@ -76,15 +79,29 @@ export default class InMemoryConnector implements IDatabaseAdapter
         return true;
     }
 
-    getIndex( pName:string):InMemoryDbIndex{
+    getIndex( pName:string):Index{
         return this.db.getIndex(pName);
     }
 
 
-    getCollection( pName:string):InMemoryDbCollection{
+    getCollection( pName:string):Collection{
         return this.db.getCollection(pName);
     }
 
+    newTemporaryDb(pName: string): IDatabase {
+
+        this.tmpDbs[pName] = new InMemoryDb(this);
+
+        return this.tmpDbs[pName];
+    }
+
+    clearTemporaryDb( pName:string):void{
+        this.tmpDbs[pName] = null;
+    }
+
+    getDB():IDatabase{
+        return this.db;
+    }
     /**
      * To transform current DB into a simple object ready to be serialized
      *

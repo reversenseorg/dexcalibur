@@ -5,7 +5,7 @@
 import InspectorFactory from "../../src/InspectorFactory";
 import {INSPECTOR_TYPE} from "../../src/Inspector";
 
-export var CleanerInspector:InspectorFactory = new InspectorFactory({
+export default new InspectorFactory({
     startStep: INSPECTOR_TYPE.BOOT,
 
     useGUI: true,

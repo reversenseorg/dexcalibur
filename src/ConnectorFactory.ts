@@ -144,7 +144,8 @@ export class ConnectorFactory
             throw new Error('[CONNECTOR] Unknown connector : '+pType);
         }
 
-        return new this.connectors[pType](pProject, pOptions);
+        //console.log(this.connectors, this.connectors[pType]);
+        return new this.connectors[pType].default(pProject, pOptions);
     }
 
     /**
@@ -156,7 +157,7 @@ export class ConnectorFactory
     toJsonObject():any{
         let o:any=[];
         for(let i in this.connectors){
-            o.push(this.connectors[i].getProperties());
+            o.push(this.connectors[i].default.getProperties());
         }
         return o;
     }

@@ -328,7 +328,7 @@ export default class ModelClass extends Savable
         let obj:any = {}, m=null;
         for(let i in this){
             if(["_","$"].indexOf(i[0])==-1
-                && (Array.isArray(this[i]))
+                && (Array.isArray(this[i])===false)
                 && (typeof this[i] != 'object')){
 
                 obj[i] = this[i];

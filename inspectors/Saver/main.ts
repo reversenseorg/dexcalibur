@@ -10,7 +10,7 @@ let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
 // ===== INIT =====
 
-export var Saver:InspectorFactory = new InspectorFactory({
+var Saver:InspectorFactory = new InspectorFactory({
 
     startStep: INSPECTOR_TYPE.BOOT,
 
@@ -140,3 +140,4 @@ export var Saver:InspectorFactory = new InspectorFactory({
 });
 
 
+export default Saver;

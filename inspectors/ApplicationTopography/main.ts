@@ -63,7 +63,7 @@ function tagByIntent(event:Event):void {
 
 
 // === CONFIG
-var AppTopoInspector = new InspectorFactory({
+export default new InspectorFactory({
 
     startStep: INSPECTOR_TYPE.POST_APP_SCAN,
 

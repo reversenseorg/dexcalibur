@@ -1,0 +1,24 @@
+{
+  "compilerOptions": {
+    "lib": ["es2017"],
+    "target": "es2017",
+    "module": "commonjs",
+    "declaration": true,
+    "outDir": "./dist",
+    "typeRoots": [
+      "node_modules/@types"
+    ],
+    "types": [
+      "node",
+      "mocha",
+      "chai"
+    ]
+  },
+  "include": [
+    "src/**/*.ts",
+    "dexcalibur.ts",
+    "connectors/**/*.ts",
+    "inspectors/**/*.ts"
+  ],
+  "exclude": ["node_modules", "**/*.spec.ts"]
+}

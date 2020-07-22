@@ -1,6 +1,8 @@
 
 
 import * as  LIB_filetypeOf from"file-type";
+import * as _path_ from 'path';
+import * as _fs_ from 'fs';
 
 import * as LIB_YAML from "js-yaml";
 import * as LIB_PROP from "properties";
@@ -8,19 +10,13 @@ import DexcaliburProject from "./DexcaliburProject";
 import {FileTypeDetector} from "./FileTypes";
 import ModelFile from "./ModelFile";
 import {ConnectorFactory, IDatabase, IDatabaseAdapter, IDbIndex} from "./ConnectorFactory";
-
-const FS = require("fs");
-const PATH = require("path");
-const UT = require("./Utils.js");
-const FileTypeHelper = require("./FileTypes.js");
-const Logger = require("./Logger.js")();
-const Event = require("./Event.js");
-const EventType = Event.TYPE;
+import Event from "./Event";
+import Util from "./Utils";
 
 
 function checkIfSmali(root, filepath){
-    if(filepath.indexOf(PATH.join(root,"smali"))==0 
-        && PATH.extname(filepath)==".smali") 
+    if(filepath.indexOf(_path_.join(root,"smali"))==0
+        && _path_.extname(filepath)==".smali")
             return true;
     
     return false;
@@ -59,7 +55,7 @@ export class DataCollection
                 case "yml":
                     //console.log("yml here");
                     //file.data = LIB_YAML.load(
-                    //console.log( FS.readFileSync(file.getPath(), 'utf8'));
+                    //console.log( _fs_.readFileSync(file.getPath(), 'utf8'));
                     this.files.push(file);
                     break;
                     //);
@@ -126,7 +122,7 @@ DataCollection.prototype.pushFile = function(file){
             case "yml":
                 //console.log("yml here");
                 //file.data = LIB_YAML.load(
-                //console.log( FS.readFileSync(file.getPath(), 'utf8'));
+                //console.log( _fs_.readFileSync(file.getPath(), 'utf8'));
                 this.files.push(file);
                 break;
                 //);
@@ -189,7 +185,7 @@ export class DataAnalyzer
 
     constructor(pCtx:DexcaliburProject){
         this.context = pCtx;
-        this.detector = new FileTypeHelper.FileTypeDetector();
+        this.detector = new FileTypeDetector();
 
         this.newDB();
     }
@@ -208,17 +204,17 @@ export class DataAnalyzer
         if(path[path.length-1]=='/')
            path = path.substr(0,path.length-1);
     
-        UT.forEachFileOf(path,function( fpath:string, fname:string){
+        Util.forEachFileOf(path,function( fpath:string, fname:string){
             let type:any = null;
     
             //  TODO : remove
-            if(checkIfSmali(path, PATH.join(fpath,fname))) return null;
+            if(checkIfSmali(path, _path_.join(fpath,fname))) return null;
     
             let ext = fpath.substr(fpath.lastIndexOf('.')+1); 
     
             //Logger.info("[DATA ANALYZER] Start analyzing file : ",fpath);
         
-            type = LIB_filetypeOf( FS.readFileSync(fpath));
+            type = LIB_filetypeOf( _fs_.readFileSync(fpath));
             // make relative path (path in the package)
     
             if(type != null){
@@ -230,7 +226,7 @@ export class DataAnalyzer
                     type: type
                 });
                 
-                ctx.bus.send(new Event.Event({
+                ctx.bus.send(new Event({
                     type: "data.file.new.knownFmt",
                     data: file 
                 }))
@@ -250,7 +246,7 @@ export class DataAnalyzer
                     db.addEntry(file);
                     //console.log("Nb : "+db.files.length);
     
-                    ctx.bus.send(new Event.Event({
+                    ctx.bus.send(new Event({
                         type: "data.file.new.knownExt",
                         data: file 
                     }))

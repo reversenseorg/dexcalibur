@@ -34,7 +34,9 @@ const LOG_DBG = false;
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
-
+interface MatchCounter {
+    c:number
+}
 
 var Checker = {
     isBasicType: function(c){
@@ -96,7 +98,7 @@ export default class SmaliParser
         return false;
     }
 
-    static modifier(pSource:string|string[], pMatch:number){
+    static modifier(pSource:string|string[], pMatch:MatchCounter){
         if(typeof pSource === 'string')
             pSource=pSource.split(CONST.LEX.TOKEN.SPACE);
 
@@ -105,7 +107,7 @@ export default class SmaliParser
         //if(src.length<2) return ERR_PARSE;
         for(let i=0; i<pSource.length && next; i++){
 
-            pMatch++;
+            pMatch.c++;
 
             switch(Util.trim(pSource[i])){
                 case CONST.LEX.MODIFIER.PRIVATE:
@@ -167,7 +169,7 @@ export default class SmaliParser
                     break;
                 default:
                     next=false;
-                    pMatch--;
+                    pMatch.c--;
                     break;
             }
         }
@@ -226,7 +228,7 @@ export default class SmaliParser
      * @param src
      */
     class(pInStr:string|string[]):ModelClass{
-        let javaFqcn:string=null, end:number=-1, match:number=0;
+        let javaFqcn:string=null, end:number=-1; //match:number=0;
 
         Logger.debug("---------------------------------------------\n[parser::class] Start ");
 
@@ -240,11 +242,13 @@ export default class SmaliParser
         this.obj = new ModelClass();
         //console.log(src);
         // parse modifiers
-        this.obj.modifiers = SmaliParser.modifier(pInStr, match);
+        let match2:MatchCounter={c:0};
+        this.obj.modifiers = SmaliParser.modifier(pInStr, match2);
         //console.log(src);
 
+
         // clean src with identified modifier
-        for(let i:number=0; i<match; i++)
+        for(let i:number=0; i<match2.c; i++)
             pInStr.shift();
 
         // console.log(src);
@@ -270,7 +274,7 @@ export default class SmaliParser
 
 
     static class(pInStr:string|string[]):ModelClass{
-        let javaFqcn:string=null, end:number=-1, match:number=0;
+        let javaFqcn:string=null, end:number=-1, match:MatchCounter={c:0};
         let clz:ModelClass;
 
         Logger.debug("---------------------------------------------\n[parser::class] Start ");
@@ -289,7 +293,7 @@ export default class SmaliParser
         //console.log(src);
 
         // clean src with identified modifier
-        for(let i:number=0; i<match; i++)
+        for(let i:number=0; i<match.c; i++)
             pInStr.shift();
 
         // console.log(src);
@@ -353,12 +357,12 @@ export default class SmaliParser
      * To parse a method header and update method currently parsed
      */
     methodHeader(pSource:string[], pLineLocation:number){
-        let match = 0;
+        let match:MatchCounter = {c:0};
         let mod:Modifier = SmaliParser.modifier(pSource, match), raw=null, tmp=null, args=null, ret=null, sa=0, ea=0;
         let argTypes = null;
 
         // clean src with identified modifier
-        for(let i=0; i<match; i++) pSource.shift();
+        for(let i=0; i<match.c; i++) pSource.shift();
 
         if(pSource.length > 1){
             Logger.info("[SMALI PARSER] Method has more modifiers");
@@ -404,14 +408,14 @@ export default class SmaliParser
 
     field(src_arr:string[], src_line:number){
         let f:ModelField=new ModelField(), type:(ModelBasicType|ModelObjectType)[]=null, tmp:string[]=null;
-        let match = 0;
+        let match:MatchCounter = {c:0};
 
         // parse modifiers
         f.modifiers = SmaliParser.modifier(src_arr, match);
         //console.log(f.modifiers);
 
         // clean src with identified modifier
-        for(let i=0; i<match; i++) src_arr.shift();
+        for(let i=0; i<match.c; i++) src_arr.shift();
         // parse name and type
         tmp=src_arr[0].split(":");
         
@@ -895,6 +899,3 @@ export default class SmaliParser
 
     }
 }
-
-
-module.exports = SmaliParser;    

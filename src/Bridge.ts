@@ -85,7 +85,7 @@ export class BridgeSuperFactory
 
     constructor( pConfig:any){
         for(let i in pConfig) {
-            this.factories[i] = pConfig;
+            this.factories[i] = pConfig[i];
         }
     }
 
@@ -102,7 +102,7 @@ export class BridgeSuperFactory
     getFactory(pType:string):IBridgeFactory{
         let params:string[] = pType.split('+');
 
-        if(this.factories[params[0]] !== null){
+        if(this.factories[params[0]] != null){
             return this.factories[params[0]];
         }else{
             throw new Error('[BRIDGE FACTORY] unknow bridge : '+ params[0]);

@@ -121,11 +121,12 @@ export default class Inspector
         this.gui_available = true;
     }
 
-    useMemoryDB():IDatabase{
-        if(this.context == null)
+    useMemoryDB(pContext:DexcaliburProject=null):IDatabase{
+        if(this.context == null && pContext == null)
             throw new Error('[INSPECTOR] DB cannot be initialized because the context is not defined');
 
-        let conn:IDatabaseAdapter = ConnectorFactory.getInstance().newConnector('inmemory', this.context);
+        let conn:IDatabaseAdapter = ConnectorFactory.getInstance()
+            .newConnector('inmemory', this.context!=null?this.context:pContext);
         this.db = conn.newTemporaryDb('insp:db:'+this.name);
 
         return this.db;
@@ -215,7 +216,7 @@ export default class Inspector
         // register front controller
         let path = _path_.join(__dirname,"..","inspectors",this.id,"service","main.js");
         if(_fs_.existsSync(path)){
-            this.frontController = require(path).injectContext(ctx);
+            this.frontController = require(path).default.injectContext(ctx);
             Logger.info("[Inspector::injectContext][FrontController] "+this.id+" registered !");
         }
         /*

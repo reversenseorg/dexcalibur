@@ -54,7 +54,7 @@ export default class AnalyzerDatabase
     constructor(pContext:DexcaliburProject, pConnectorType:string=null){
         this.ctx = pContext;
 
-        if(pConnectorType !== null){
+        if(pConnectorType != null){
             this.conn = ConnectorFactory.getInstance().newConnector(pConnectorType, pContext);
         }else {
             this.conn = pContext.connector;

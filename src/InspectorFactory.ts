@@ -77,7 +77,7 @@ export default class InspectorFactory
         if(this._config.db != null){
             if(this._config.db.dbms==='inmemory'){
 
-                ins.useMemoryDB();
+                ins.useMemoryDB(pProject);
 
                 switch(this._config.db.type){
                     case 'index':

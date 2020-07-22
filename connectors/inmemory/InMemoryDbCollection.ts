@@ -5,9 +5,10 @@
  * @class
  */
 import SerializedObject from "./SerializedObject";
+import {IDbCollection} from "../../src/ConnectorFactory";
 
 
-export default class InMemoryDbCollection
+export default class InMemoryDbCollection implements IDbCollection
 {
     static __type:string = "Collection";
     name:string = null;
@@ -82,7 +83,7 @@ export default class InMemoryDbCollection
         return true;
     }
 
-    static unserialize(serialized_obj:any):any{
+    static unserialize(serialized_obj:any):IDbCollection{
         let self:InMemoryDbCollection = new InMemoryDbCollection(), o=null;
         self.name = serialized_obj.name;
         self.ctr = serialized_obj.ctr;
@@ -96,7 +97,7 @@ export default class InMemoryDbCollection
             else
                 self.values[i]=serialized_obj.values[i];
         }
-        return self;
+        return (self as IDbCollection);
     }
 
     serialize():any{

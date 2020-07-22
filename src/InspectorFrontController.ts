@@ -22,7 +22,7 @@ interface Handlers {
 export default class InspectorFrontController
 {
     ctx:DexcaliburProject = null;
-    handlers:Handlers = null;
+    handlers:Handlers = {};
 
     constructor() {
 

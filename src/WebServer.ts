@@ -187,7 +187,7 @@ export default class WebServer
         let $:WebServer = this;
 
         return function (req:Express.Request, res:Express.Response):void {
-            //console.log(req.path);
+            console.log(req.path);
 
             let localPath:string = $.root + req.path, mime:string = null;
 
@@ -635,7 +635,7 @@ export default class WebServer
                 let dev:any;
 
                 try{
-                    dev = dm.getBridgeFactory(req.params['name']).newGenericWrapper();
+                    dev = dm.getBridgeFactory(req.params['name'].toLowerCase()).newGenericWrapper();
                     dev = { success: await dev.kill() };
                 }catch(err){
                     console.log(err);

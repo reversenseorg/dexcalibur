@@ -22,10 +22,11 @@ let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 var FRIDA = null;
 
 
-var HOOK_TYPE = {
-    AFTER: 0x1,
-    BEFORE: 0x2,
-    OVERLOAD: 0x3
+export enum HOOK_TYPE {
+    NONE,
+    AFTER= 0x1,
+    BEFORE= 0x2,
+    OVERLOAD= 0x3
 };
 
 export enum FRIDA_MODE {

@@ -34,7 +34,7 @@ function isASCII(buffer){
 
 // ===== INIT =====
 
-var DataClassifierInspector = new InspectorFactory({
+var DataClassifierInspector:InspectorFactory = new InspectorFactory({
 
     startStep: INSPECTOR_TYPE.POST_APP_SCAN,
 

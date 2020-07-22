@@ -1,15 +1,14 @@
+import * as _fs_ from 'fs';
+import * as _path_ from 'path';
+
 import Hook from "../../../src/Hook";
 import DexcaliburProject from "../../../src/DexcaliburProject";
 import {HookManager} from "../../../src/HookManager";
 import ModelMethod from "../../../src/ModelMethod";
+import InspectorFrontController, {IFC_TYPE} from "../../../src/InspectorFrontController";
 
-const IFC = require("../../../src/InspectorFrontController.js");
-var CONST = require("../../../src/CoreConst.js");
-const UT = require("../../../src/Utils.js");
-const FS = require("fs");
-const Path = require("path");
 
-var Controller =  new IFC.FrontController();
+var Controller =  new InspectorFrontController();
 
 
 function collectAll(context:DexcaliburProject):any{
@@ -239,14 +238,14 @@ function saveDB(context:DexcaliburProject):any{
     let data:any = collectAll(context);
 
     // get the file wherre the data will eb write
-    let file:string = Path.join(context.workspace.getSaveDir(),"save.json");
+    let file:string = _path_.join(context.workspace.getSaveDir(),"save.json");
 
     // write data
-    FS.writeFileSync(file, JSON.stringify(data));
+    _fs_.writeFileSync(file, JSON.stringify(data));
 
     // verifiy 
-    //console.log(FS.statSync(file));
-    //let success = FS.existsSync(file);
+    //console.log(_fs_.statSync(file));
+    //let success = _fs_.existsSync(file);
     return { status:200, data:{ success:true }};
 }
 
@@ -255,20 +254,20 @@ function openDB(context:DexcaliburProject):any{
 
     console.log("Opening backup ...")
 
-    let file:string = Path.join(context.workspace.getSaveDir(),"save.json");
+    let file:string = _path_.join(context.workspace.getSaveDir(),"save.json");
 
     // check if the file exists
-    if(!FS.existsSync(file)){
+    if(!_fs_.existsSync(file)){
         return { status:404, data:{ success:false, error:"No backup file to open" } };
     }
     
     // read data
-    let data:string = FS.readFileSync(file);
+    let data:string = _fs_.readFileSync(file).toString();
 
     importAll(context, JSON.parse(data));
 
     // verifiy 
-    //console.log(FS.statSync(file));
+    //console.log(_fs_.statSync(file));
 
     return { status:200, data:{ success:true }};
 }
@@ -291,7 +290,7 @@ function getAutosaveStatus(pContext:DexcaliburProject):any{
 /**
  * Delegate front controller
  */
-Controller.registerHandler(IFC.HANDLER.GET, function(ctx,req,res){
+Controller.registerHandler(IFC_TYPE.GET, function(ctx,req,res){
 
     var action = req.query.action;
     var act ={
@@ -320,6 +319,7 @@ Controller.registerHandler(IFC.HANDLER.GET, function(ctx,req,res){
     res.status(act.status).send(act.data);
 });
 
+export default Controller;
 /*
 Controller.registerHandler(IFC.HANDLER.POST, function(ctx,req,res){
     console.log("POST", req.query);

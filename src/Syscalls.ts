@@ -2210,4 +2210,3 @@ export const SYSCALLS = [
    
 ];
 
-module.exports = SYSCALLS;

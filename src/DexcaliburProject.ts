@@ -184,6 +184,7 @@ export default class DexcaliburProject
      */
     simplifier:Simplifier = null;
 
+    saveManager:any = null;
 
     /**
      * 
@@ -198,6 +199,13 @@ export default class DexcaliburProject
     }
 
 
+    setSaveManager(pManager:any){
+        this.saveManager = pManager;
+    }
+
+    getSaveManger():any{
+        return this.saveManager;
+    }
     /**
      * To select the way to store the internal data
      *
@@ -510,7 +518,7 @@ export default class DexcaliburProject
      * @method
      */
     async open(){
-        throw new Error('[DEXCALIBUR PROJECT] open() : Not implemented');
+        //throw new Error('[DEXCALIBUR PROJECT] open() : Not implemented');
         // re-scan
         return this.fullscan();
     }
@@ -770,7 +778,7 @@ export default class DexcaliburProject
         //this.analyze.path(this.config.platform_available[this.config.platform_target].getBinPath());
 
         // scan files  
-        if(pPath !== undefined){   
+        if(pPath != undefined){
             this.analyze.path( pPath);
             this.dataAnalyzer.scan( pPath, DATA_SCOPE.PKG); //["smali"]);
             

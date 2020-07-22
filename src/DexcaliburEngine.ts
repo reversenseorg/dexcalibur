@@ -305,7 +305,7 @@ export default class DexcaliburEngine
 
         // restart child ADB server
         (async function(){
-            self.deviceMgr.getBridgeFactory('ADB').newGenericWrapper().kill();
+            self.deviceMgr.getBridgeFactory('adb').newGenericWrapper().kill();
         })();
 
         return true;

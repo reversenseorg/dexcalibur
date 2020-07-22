@@ -5,11 +5,12 @@
  * @class
  */
 import DexcaliburProject from "../../src/DexcaliburProject";
-import InMemoryConnector from "./adapter";
 import InMemoryDbCollection from "./InMemoryDbCollection";
 import InMemoryDbIndex from "./InMemoryDbIndex";
+import {IDatabase, IDbCollection} from "../../src/ConnectorFactory";
+import InMemoryConnector from "./adapter";
 
-class InMemoryDb
+class InMemoryDb implements IDatabase
 {
     conn:InMemoryConnector = null;
     indexes:any = {};
@@ -28,6 +29,9 @@ class InMemoryDb
         this.sizes = {};
     }
 
+    getAll():any{
+        return this.indexes;
+    }
 
     /**
      * To create a new collection into current DB
@@ -35,10 +39,12 @@ class InMemoryDb
      * @param {String} name Name of the collection
      * @method
      */
-    newCollection(name:string){
+    newCollection(name:string):InMemoryDbCollection{
         if(this.indexes[name]!=null) throw new Error("A collection is already set for the given name");
 
         this.indexes[name] = new InMemoryDbCollection(name);
+
+        return this.indexes[name];
     }
 
     /**
@@ -47,10 +53,12 @@ class InMemoryDb
      * @param {String} name Name of the index
      * @method
      */
-    newIndex(name:string){
+    newIndex(name:string):InMemoryDbIndex{
         if(this.indexes[name] != undefined) throw new Error("An index already exists for the given name");
 
         this.indexes[name] = new InMemoryDbIndex(name);
+
+        return this.indexes[name];
     }
 
     /**
@@ -103,7 +111,7 @@ class InMemoryDb
 
     // ============ serialize ============
 
-    isSerializable(){
+    isSerializable():boolean{
         let ret:boolean=true;
         for(let i in this.indexes){
             ret = ret && this.indexes[i].isSerializable();
@@ -111,7 +119,7 @@ class InMemoryDb
         return ret;
     }
 
-    unserialize(obj){
+    unserialize(obj:any):void{
         for(let i in obj.indexes){
             if(obj.indexes[i].__type === "Index"){
                 this.indexes[i] = InMemoryDbIndex.unserialize(obj.indexes[i]);
@@ -121,7 +129,7 @@ class InMemoryDb
         }
     }
 
-    serialize(){
+    serialize():any{
         let o:any=new Object();
 
         o.indexes = {};
