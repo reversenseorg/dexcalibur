@@ -67,7 +67,7 @@ var DataClassifierInspector:InspectorFactory = new InspectorFactory({
             ctx.find.nocase().string("value:^([^:/]*)://([^/]*)")
                 .foreach(function(pOffset,pData){
                     pData.addTag("URI");
-                    console.log(pData);
+                    //console.log(pData);
                 });
     
             // tag static byte array containing URI
@@ -75,7 +75,7 @@ var DataClassifierInspector:InspectorFactory = new InspectorFactory({
                 .foreach(function(pOffset,pData){
                     if(pattern.exec(pData.values.join(''))){
                         pData.addTag("URI");
-                        console.log(pData.values.join(''));
+                        //console.log(pData.values.join(''));
                     }
                 });
         },

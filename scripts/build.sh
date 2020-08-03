@@ -8,3 +8,4 @@ cp ./package.json ./dist/package.json
 tsc
 
 echo "[+] Copying files"
+grunt build
