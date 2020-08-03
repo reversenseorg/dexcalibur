@@ -1,28 +1,30 @@
-    const _fs_ = require("fs");
-const _express_ = require("express");
-const _router_ = _express_.Router();
+import * as _fs_ from 'fs';
+import * as _express_ from 'express';
+import DexcaliburEngine from "../DexcaliburEngine";
+import WebServer from "../WebServer";
+import Configuration from "../Configuration";
+import StatusMessage from "../StatusMessage";
+import Installer from "../Installer";
 
-const DexcaliburEngine = require("../DexcaliburEngine");
-const Configuration = require("../Configuration");
-const Installer = require('../Installer').Installer;
+export const _router_ = _express_.Router();
 
 /*
  * WebServer instance
  */
-var $ = DexcaliburEngine.getInstance().getWebserver();
+var $:WebServer = DexcaliburEngine.getInstance().getWebserver();
 
 
 // path configuration
-_router_.post('/step1', function (req, res) {
+_router_.post('/step1', function (req:_express_.Request, res:_express_.Response):any {
     // collect
 
-    let data = req.body;
-    let verif = null;
+    let data:any = req.body;
+    let verif:any = null;
 
-    let dev = { status:null, invalid:[], err:null };
+    let dev:any = { status:null, invalid:[], err:null };
     //let cfg = Configuration.from(data);
 
-    let cfg = $.context.getConfiguration();
+    let cfg:Configuration = $.context.getConfiguration();
 
     // clone existing config
     //cfg = cfg.clone();
@@ -58,14 +60,12 @@ _router_.post('/step1', function (req, res) {
 });
 
 // start dependencies download & install
-_router_.post('/step2', function (req, res) {
+_router_.post('/step2', function (req:_express_.Request, res:_express_.Response):any{
         // collect
 
-        let data = req.body;
-        let verif = null;
-        console.log(data);
+        let data:any = req.body;
 
-        let dev = { status:null, invalid:[], err:null };
+        let dev:any = { status:null, invalid:[], err:null };
 
         try{
             $.context.initInstaller();
@@ -79,10 +79,10 @@ _router_.post('/step2', function (req, res) {
     });
 
 //this.app.route('/api/settings/step2/status')
-_router_.get('/step2/status', function (req, res) {
+_router_.get('/step2/status', function (req:_express_.Request, res:_express_.Response):any {
         // collect
         
-        let status = $.context.getInstallerStatus();
+        let status:StatusMessage = $.context.getInstallerStatus();
         
         res.status(200).send(JSON.stringify({
             msg: status.getMessage(),
@@ -91,17 +91,17 @@ _router_.get('/step2/status', function (req, res) {
         }));
     });
 
-// restart        
-_router_.post('/step3', function (req, res) {
+// restart
+// deprecated ?
+_router_.post('/step3', function (req:_express_.Request, res:_express_.Response):any {
         // collect
-        let data = req.body;
-        let verif = null;
-        console.log(data);
+        let data:any = req.body;
+        let verif:any = null;
 
-        let dev = { status:null, invalid:[], err:null };
+        let dev:any = { status:null, invalid:[], err:null };
         //let cfg = Configuration.from(data);
 
-        let cfg = $.context.getConfiguration();
+        let cfg:Configuration = $.context.getConfiguration();
 
         // clone existing config
         //cfg = cfg.clone();
@@ -131,13 +131,13 @@ _router_.post('/step3', function (req, res) {
     });
 
 
-_router_.post('/verify', function (req, res) {
+_router_.post('/verify', function (req:_express_.Request, res:_express_.Response):any {
          // collect
 
-        let data = req.body;
-        let verif = null;
+        let data:any = req.body;
+        let verif:any = null;
 
-        let dev = { status:null, invalid:[], err:null };
+        let dev:any = { status:null, invalid:[], err:null };
 
         for(let i in data){
             if( i != "workspacePath"){
@@ -157,15 +157,15 @@ _router_.post('/verify', function (req, res) {
         res.status(200).send(JSON.stringify(dev));
     });
 
-_router_.get('/', function (req, res) {
+_router_.get('/', function (req:_express_.Request, res:_express_.Response):any {
     // collect
-    let dev = {
+    let dev:any = {
         cfg:null,
         frida: null,
         invalid:[]
     };
 
-    let cfg = $.context.getConfiguration() ;
+    let cfg:Configuration = $.context.getConfiguration() ;
 
     dev.cfg = cfg.toJsonObject();
     //dev.frida = cfg.getLocalFridaVersion();
@@ -176,14 +176,13 @@ _router_.get('/', function (req, res) {
 _router_.post('/api/settings', function (req, res) {
     // collect
 
-    let data = req.body;
-    let verif = null;
-    console.log(data);
+    let data:any = req.body;
+    let verif:any = null;
 
-    let dev = { status:null, invalid:[], err:null };
+    let dev:any = { status:null, invalid:[], err:null };
     //let cfg = Configuration.from(data);
 
-    let cfg = $.context.getConfiguration();
+    let cfg:Configuration = $.context.getConfiguration();
 
     // clone existing config
     //cfg = cfg.clone();
@@ -205,7 +204,7 @@ _router_.post('/api/settings', function (req, res) {
             );
             
             // Ask to current configuration to backup new configuration
-            $.context.saveConfiguration(cfg);
+            $.context.getWorkspace().saveConfiguration(cfg);
         }else{
             console.log(dev.invalid);
 
@@ -230,7 +229,8 @@ _router_.post('/api/settings', function (req, res) {
     res.status(200).send(JSON.stringify(dev));
 });
 
-_router_.post('/api/util/mkdir', function (req, res) {
+/*
+_router_.post('/api/util/mkdir', function (req:_express_.Request, res:_express_.Response):any {
     // collect
     let dev = { created:null, err:null };
     let data = req.body;
@@ -250,7 +250,6 @@ _router_.post('/api/util/mkdir', function (req, res) {
 
     res.status(200).send(JSON.stringify(dev));
 });
+*/
 
-
-module.exports = _router_;
 
