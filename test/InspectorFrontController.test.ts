@@ -1,14 +1,7 @@
-const chai = require('chai'),
-    sinonChai = require('sinon-chai');
-const expect = chai.expect;
-
-chai.use(sinonChai);
-
-// -- App specific --
-
-const TestHelper = require('../src/TestHelper.js');
-const InspectorFrontController = require('../src/InspectorFrontController');
-const DexcaliburProject = require('../src/DexcaliburProject');
+import {expect} from 'chai';
+import {TestHelper} from "../src/TestHelper";
+import InspectorFrontController, {IFC_TYPE} from "../src/InspectorFrontController";
+import DexcaliburProject from "../src/DexcaliburProject";
 
 describe('InspectorFrontController', function() {
 
@@ -20,8 +13,8 @@ describe('InspectorFrontController', function() {
     describe('handler type', function() {
 
         it('export is okey', function () {
-            expect(InspectorFrontController.HANDLER.GET).to.be.not.null;
-            expect(InspectorFrontController.HANDLER.POST).to.be.not.null;
+            expect(IFC_TYPE.GET).to.be.not.null;
+            expect(IFC_TYPE.POST).to.be.not.null;
         });
     });
 
@@ -29,12 +22,12 @@ describe('InspectorFrontController', function() {
 
         it('new instance', function () {
 
-            let inspf = new InspectorFrontController.FrontController();
+            let inspf:InspectorFrontController = new InspectorFrontController();
 
-            expect(inspf).to.be.an.instanceOf(InspectorFrontController.FrontController);
+            expect(inspf).to.be.an.instanceOf(InspectorFrontController);
             expect(inspf.ctx).to.be.null;
-            expect(inspf.hasHandler( InspectorFrontController.HANDLER.GET )).to.equals(false);
-            expect(inspf.hasHandler( InspectorFrontController.HANDLER.POST )).to.equals(false);
+            expect(inspf.hasHandler( IFC_TYPE.GET )).to.equals(false);
+            expect(inspf.hasHandler( IFC_TYPE.POST )).to.equals(false);
         });
 
     });
@@ -43,7 +36,7 @@ describe('InspectorFrontController', function() {
 
         it('with a valid project', function () {
 
-            let inspf = new InspectorFrontController.FrontController();
+            let inspf:InspectorFrontController = new InspectorFrontController();
 
             expect(inspf.ctx).to.be.null;
             inspf.injectContext( TestHelper.getDexcaliburProject());
@@ -56,31 +49,31 @@ describe('InspectorFrontController', function() {
     describe('hasHandler()', function() {
 
         it('with a valid project', function () {
-            let inspf = new InspectorFrontController.FrontController();
+            let inspf:InspectorFrontController = new InspectorFrontController();
 
-            expect(inspf.hasHandler(InspectorFrontController.HANDLER.GET)).to.equals(false);
-            expect(inspf.hasHandler(InspectorFrontController.HANDLER.POST)).to.equals(false);
+            expect(inspf.hasHandler(IFC_TYPE.GET)).to.equals(false);
+            expect(inspf.hasHandler(IFC_TYPE.POST)).to.equals(false);
 
             inspf.registerHandler(
-                InspectorFrontController.HANDLER.GET,
+                IFC_TYPE.GET,
                 function(){
                     console.log('nothing to do');
                 }
             );
 
-            expect(inspf.hasHandler(InspectorFrontController.HANDLER.GET)).to.equals(true);
-            expect(inspf.hasHandler(InspectorFrontController.HANDLER.POST)).to.equals(false);
+            expect(inspf.hasHandler(IFC_TYPE.GET)).to.equals(true);
+            expect(inspf.hasHandler(IFC_TYPE.POST)).to.equals(false);
         });
     });
 
     describe('registerHandler()', function() {
 
         it('one time, GET', function () {
-            let inspf = new InspectorFrontController.FrontController();
+            let inspf:InspectorFrontController = new InspectorFrontController();
             let flag = false;
 
             inspf.registerHandler(
-                InspectorFrontController.HANDLER.GET,
+                IFC_TYPE.GET,
                 function(){
                     flag = true;
                 }
@@ -92,11 +85,11 @@ describe('InspectorFrontController', function() {
         });
 
         it('one time, POST', function () {
-            let inspf = new InspectorFrontController.FrontController();
+            let inspf:InspectorFrontController = new InspectorFrontController();
             let flag = false;
 
             inspf.registerHandler(
-                InspectorFrontController.HANDLER.POST,
+                IFC_TYPE.POST,
                 function(){
                     flag = true;
                 }
@@ -108,19 +101,19 @@ describe('InspectorFrontController', function() {
         });
 
         it('several time, one type', function () {
-            let inspf = new InspectorFrontController.FrontController();
+            let inspf:InspectorFrontController = new InspectorFrontController();
             let flag1 = false;
             let flag2 = false;
 
             inspf.registerHandler(
-                InspectorFrontController.HANDLER.GET,
+                IFC_TYPE.GET,
                 function(){
                     flag1 = true;
                 }
             );
 
             inspf.registerHandler(
-                InspectorFrontController.HANDLER.GET,
+                IFC_TYPE.GET,
                 function(){
                     flag2 = true;
                 }
@@ -133,32 +126,26 @@ describe('InspectorFrontController', function() {
         });
 
         it('one time, multiple type', function () {
-            let inspf = new InspectorFrontController.FrontController();
-            let flag1 = false;
-            let flag2 = false;
-            let flag3 = false;
+            let inspf:InspectorFrontController = new InspectorFrontController();
+            let flag1:boolean = false;
+            let flag2:boolean = false;
+            let flag3:boolean = false;
 
 
             inspf.registerHandler(
-                InspectorFrontController.HANDLER.POST,
+                IFC_TYPE.POST,
                 function(){
                     flag1 = true;
                 }
             );
 
             inspf.registerHandler(
-                InspectorFrontController.HANDLER.GET,
+                IFC_TYPE.GET,
                 function(){
                     flag2 = true;
                 }
             );
 
-            inspf.registerHandler(
-                'unknow',
-                function(){
-                    flag3 = true;
-                }
-            );
 
             inspf.performGet(null, null);
             inspf.performPost(null, null);
@@ -173,12 +160,12 @@ describe('InspectorFrontController', function() {
     describe('performGet()', function() {
 
         it('default', function () {
-            let inspf = new InspectorFrontController.FrontController();
-            let req = { babar: 'c0ff33' };
-            let res = { };
+            let inspf:InspectorFrontController = new InspectorFrontController();
+            let req:any = { babar: 'c0ff33' };
+            let res:any = { };
 
             inspf.registerHandler(
-                InspectorFrontController.HANDLER.GET,
+                IFC_TYPE.GET,
                 function( pCtx, pReq, pRes){
                     pRes.tmp = pReq.babar;
                 }
@@ -193,12 +180,12 @@ describe('InspectorFrontController', function() {
     describe('performPost()', function() {
 
         it('default', function () {
-            let inspf = new InspectorFrontController.FrontController();
-            let req = { babar: 'c0ff33' };
-            let res = { };
+            let inspf:InspectorFrontController = new InspectorFrontController();
+            let req:any = { babar: 'c0ff33' };
+            let res:any = { };
 
             inspf.registerHandler(
-                InspectorFrontController.HANDLER.POST,
+                IFC_TYPE.POST,
                 function( pCtx, pReq, pRes){
                     pRes.tmp = pReq.babar;
                 }

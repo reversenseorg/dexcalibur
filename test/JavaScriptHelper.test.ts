@@ -1,31 +1,21 @@
-const chai = require('chai');
-   // sinon = require('sinon'),
-   // sinonChai = require('sinon-chai'),
-   // process = require("process");
-const expect = chai.expect,
-    should = chai.should();
-
-//chai.use(sinonChai);*/
-
-// -- App specific --
-
-const JHelper = require('../src/JavaScriptHelper.js');
+import {expect} from 'chai';
+import {JSObject,JSWriter} from "../dist/src/JavaScriptHelper";
 
 describe('JavaScriptHelper', function() {
     
-    describe('exports.JObject', function() {
+    describe('exportsJSObject', function() {
         
-        expect(new JHelper.JObject()).to.be.an('object');
+        expect(new JSObject()).to.be.an('object');
     });
 
     describe('exports.JWriter', function() {
         
-        expect(new JHelper.JWriter()).to.be.an('object');
+        expect(new JSWriter()).to.be.an('object');
     });
 
-    describe('#JObject [get|set]Name', function() {
+    describe('JSObject [get|set]Name', function() {
         
-        let obj = new JHelper.JObject();
+        let obj = new JSObject();
 
         try{
             obj.setName("!invalid+name");
@@ -38,9 +28,9 @@ describe('JavaScriptHelper', function() {
 
     });
 
-    describe('#JObject addScalarEntry', function() {
+    describe('JSObject addScalarEntry', function() {
         
-        let obj = new JHelper.JObject();
+        let obj = new JSObject();
 
         expect(obj.entries).to.be.an('array');
         expect(obj.entries.length).to.equal(0);
@@ -70,9 +60,9 @@ describe('JavaScriptHelper', function() {
     });
 
 
-    describe('#JObject addStringEntry', function() {
+    describe('JSObject addStringEntry', function() {
         
-        let obj = new JHelper.JObject();
+        let obj = new JSObject();
 
         expect(obj.entries).to.be.an('array');
         expect(obj.entries.length).to.equal(0);
@@ -101,9 +91,9 @@ describe('JavaScriptHelper', function() {
         expect(obj.entries[1].value).to.be.null;
     });
 
-    describe('#JObject addRawEntry', function() {
+    describe('JSObject addRawEntry', function() {
         
-        let obj = new JHelper.JObject();
+        let obj = new JSObject();
 
         expect(obj.entries).to.be.an('array');
         expect(obj.entries.length).to.equal(0);
@@ -130,10 +120,10 @@ describe('JavaScriptHelper', function() {
         expect(obj.entries[1].value).to.be.null;
     });
 
-    describe('#JObject addObjectEntry', function() {
+    describe('JSObject addObjectEntry', function() {
         
-        let obj = new JHelper.JObject();
-        let extra = new JHelper.JObject();
+        let obj = new JSObject();
+        let extra = new JSObject();
         extra.setName("extraObject");
         extra.addScalarEntry("data",43);
 
@@ -145,7 +135,7 @@ describe('JavaScriptHelper', function() {
         expect(obj.entries.length).to.equal(1);
         expect(obj.entries[0].name).to.equal("h2g2");
         expect(obj.entries[0].value).to.be.an('object');
-        expect(obj.entries[0].value).to.be.an.instanceof(JHelper.JObject);
+        expect(obj.entries[0].value).to.be.an.instanceof(JSObject);
         expect(obj.entries[0].value.getName()).to.equal("extraObject");
         expect(obj.entries[0].value.entries.length).to.equal(1);
         expect(obj.entries[0].value.entries[0].name).to.equal("data");
@@ -167,10 +157,10 @@ describe('JavaScriptHelper', function() {
         expect(obj.entries[1].value).to.be.null;
     });
 
-    describe('#JObject toScript', function() {
+    describe('JSObject toScript', function() {
         
-        let obj = new JHelper.JObject();
-        let extra = new JHelper.JObject();
+        let obj:JSObject = new JSObject();
+        let extra:JSObject = new JSObject();
         extra.setName("extraObject");
         extra.addScalarEntry("data",43);
 

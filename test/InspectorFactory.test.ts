@@ -1,4 +1,7 @@
 import {expect} from 'chai';
+import {TestHelper} from "../dist/src/TestHelper";
+import InspectorFactory from "../dist/src/InspectorFactory";
+import Inspector, {INSPECTOR_TYPE} from "../dist/src/Inspector";
 
 describe('InspectorFactory', function() {
 
@@ -17,7 +20,7 @@ describe('InspectorFactory', function() {
                 name: 'UnitTestInspector',
                 description: 'Simple inspector for unit test',
 
-                startStep: Inspector.STEP.POST_APP_SCAN,
+                startStep: INSPECTOR_TYPE.POST_APP_SCAN,
 
                 useGUI: true,
 
@@ -34,7 +37,7 @@ describe('InspectorFactory', function() {
 
             expect(inspf).to.be.an.instanceOf(InspectorFactory);
             expect(inspf._config.tags.testunit[0]).to.equal("browsable");
-            expect(inspf.step).to.equal(Inspector.STEP.POST_APP_SCAN);
+            expect(inspf.step).to.equal(INSPECTOR_TYPE.POST_APP_SCAN);
         });
 
     });
@@ -47,7 +50,7 @@ describe('InspectorFactory', function() {
                 name: 'UnitTestInspector',
                 description: 'Simple inspector for unit test',
 
-                startStep: Inspector.STEP.POST_APP_SCAN,
+                startStep: INSPECTOR_TYPE.POST_APP_SCAN,
 
                 useGUI: true,
 
@@ -65,7 +68,7 @@ describe('InspectorFactory', function() {
             TestHelper.getDexcaliburProject().init();
             let inspector = inspf.createInstance( TestHelper.getDexcaliburProject());
 
-            expect(inspector).to.be.an.instanceOf(Inspector.Inspector);
+            expect(inspector).to.be.an.instanceOf(Inspector);
             expect(inspector.id).to.equals('UnitTestInspector')
         });
     });
@@ -78,7 +81,7 @@ describe('InspectorFactory', function() {
                 name: 'UnitTestInspector',
                 description: 'Simple inspector for unit test',
 
-                startStep: Inspector.STEP.POST_APP_SCAN,
+                startStep: INSPECTOR_TYPE.POST_APP_SCAN,
 
                 useGUI: true,
 
@@ -93,8 +96,8 @@ describe('InspectorFactory', function() {
                 }
             });
 
-            expect(inspf.isStartAt(Inspector.STEP.POST_APP_SCAN)).to.equals(true);
-            expect(inspf.isStartAt(Inspector.STEP.BOOT)).to.equals(false);
+            expect(inspf.isStartAt(INSPECTOR_TYPE.POST_APP_SCAN)).to.equals(true);
+            expect(inspf.isStartAt(INSPECTOR_TYPE.BOOT)).to.equals(false);
 
         });
     });

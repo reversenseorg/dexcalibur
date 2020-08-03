@@ -1,21 +1,4 @@
-const chai = require('chai');
-   // sinon = require('sinon'),
-   // sinonChai = require('sinon-chai'),
-const process = require("process");
-const expect = chai.expect,
-    should = chai.should();
-
-//chai.use(sinonChai);*/
-
-// -- App specific --
-
-const TEST_CONFIG = process.cwd()+'/test/res/config_test.js';
-
-var TestHelper = require('../src/TestHelper.js');
-const DexcaliburProject = require('../src/DexcaliburProject.js');
-const Configuration = require('../src/Configuration.js');
-const Inspector = require('../src/Inspector.js');
-const Utils = require("../src/Utils.js");
+import {expect} from 'chai';
 
 describe('Inspector', function() {
 

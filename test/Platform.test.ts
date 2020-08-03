@@ -1,8 +1,5 @@
-var chai = require('chai');
-var expect = chai.expect;
-
-const Platform = require("../src/Platform.js");
-
+import {expect} from 'chai';
+import Platform from "../dist/src/Platform";
 
 describe('Platform class', function() {
     

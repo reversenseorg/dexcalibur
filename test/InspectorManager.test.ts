@@ -1,18 +1,7 @@
-const chai = require('chai');
-const process = require("process");
-const expect = chai.expect,  should = chai.should();
-
-//chai.use(sinonChai);*/
-
-// -- App specific --
-
-const TEST_CONFIG = process.cwd()+'/test/res/config_test.js';
-
-let TestHelper = require('../src/TestHelper');
-const Inspector = require('../src/Inspector');
-const DexcaliburEngine = require('../src/DexcaliburEngine');
-const InspectorManager = require('../src/InspectorManager');
-const Utils = require("../src/Utils.js");
+import {expect} from 'chai';
+import {TestHelper} from "../dist/src/TestHelper";
+import InspectorManager from "../dist/src/InspectorManager";
+import DexcaliburEngine from "../dist/src/DexcaliburEngine";
 
 describe('Inspector Manager', function() {
 
@@ -29,8 +18,8 @@ describe('Inspector Manager', function() {
 
     describe('constructor', function() {
         it('new instance', function () {
-            let im = new InspectorManager();
-            expect(im.engine).to.be.undefined;
+            let im:InspectorManager = new InspectorManager(null);
+            expect(im.engine).to.be.null;
             im = new InspectorManager(ENGINE);
             expect(im.engine).to.be.an.instanceOf(DexcaliburEngine);
         });
@@ -38,12 +27,12 @@ describe('Inspector Manager', function() {
 
     describe('getInstance', function() {
         it('fresh', function (){
-            let im = InspectorManager.getInstance(ENGINE);
+            let im:any = InspectorManager.getInstance(ENGINE);
             im.test = true;
             expect(im).to.be.an.instanceOf(InspectorManager);
         });
         it('old', function (){
-            let im = InspectorManager.getInstance();
+            let im:any = InspectorManager.getInstance();
             expect(im).to.be.an.instanceOf(InspectorManager);
             expect(im.test).to.equals(true);
         });
@@ -51,9 +40,9 @@ describe('Inspector Manager', function() {
 
     describe('enumerate', function() {
         it('default', function () {
-            let im = new InspectorManager(ENGINE);
+            let im:InspectorManager = new InspectorManager(ENGINE);
 
-            im.enumerate();
+            im.enumerate();// todo
         });
     });
 

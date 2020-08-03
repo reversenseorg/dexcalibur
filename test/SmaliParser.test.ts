@@ -1,13 +1,5 @@
-var chai = require('chai'),
-    sinonChai = require('sinon-chai');
-var expect = chai.expect;
-
-chai.use(sinonChai);
-
-// --- App specific ---
-
-var SmaliParser = require('../src/SmaliParser.js');
-
+import {expect} from 'chai';
+import SmaliParser from "../src/SmaliParser";
 
 describe('SmaliParser', function() {
 
