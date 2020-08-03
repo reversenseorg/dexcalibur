@@ -1,7 +1,10 @@
 #!/bin/sh
-if [ $(basename $PWD) == 'dexcalibur' ] 
-then 
-    $(jsdoc -d ./docs -r . -c ./scripts/config.jsdoc.json)
-else
-    echo "Go into ./dexcalibur/ folder before to run JSDoc."
-fi
+echo "[+] Removing ./dist folder"
+rm -r ./dist
+
+echo "[+] Transpiling sources to JS"
+mkdir ./dist
+cp ./package.json ./dist/package.json
+tsc
+
+echo "[+] Copying files"
