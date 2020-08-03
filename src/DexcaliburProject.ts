@@ -30,6 +30,9 @@ import Inspector, {INSPECTOR_TYPE} from "./Inspector";
 import InspectorManager from "./InspectorManager";
 import {DexcaliburVM} from "./DexcaliburVM";
 import Simplifier from "./Simplifier";
+import SmaliDisassembler from "./SmaliDisassembler";
+import GraphMaker from "./Graph";
+import IosAppAnalyzer from "./ios/IosAppAnalyzer";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -147,7 +150,7 @@ export default class DexcaliburProject
     fridaBuilder:any = null;
 
     //
-    graph:any = null;
+    graph:GraphMaker = null;
 
     // NEW
 
@@ -292,7 +295,7 @@ export default class DexcaliburProject
      *
      * @method
      */
-    init(){
+    init():void{
         let im:InspectorManager = InspectorManager.getInstance();
 
         // init config
@@ -321,9 +324,7 @@ export default class DexcaliburProject
         // set SC analyzer
         this.analyze = new Analyzer(this.config.encoding as BufferEncoding, this);
         this.find.setDatabase(this.analyze.getData());
-        
-        // set syscall list (bionic) 
-        this.analyze.useSyscalls(this.platform.getSyscallList());
+
 
         this.analyze.addTagCategory(
             "hash",
@@ -352,16 +353,27 @@ export default class DexcaliburProject
         this.bus = new Bus(this); //.setContext(this);
 
         // manifest / app analyzer
-        this.appAnalyzer = new AndroidAppAnalyzer(this);
+        // depend of application type
+        if(this.platform != null){
+            if(this.platform.isAndroid())
+                this.appAnalyzer = new AndroidAppAnalyzer(this);
+            else if(this.platform.isIOS())
+                this.appAnalyzer = new IosAppAnalyzer(this);
+            /*else if(this.platform.isELF())
+                this.appAnalyzer = new BinaryAppAnalyzer(this);
+            else
+                this.appAnalyzer = new OtherAppAnalyzer(this);*/
 
+
+        }else {
+            this.appAnalyzer = new AndroidAppAnalyzer(this);
+        }
         // plugins
         im.createInspectorsFor(this);
         im.deployInspectors(this, INSPECTOR_TYPE.BOOT);
         this.inspectors = im.getInspectorsOf(this);
         
-        //this.graph = new GraphMaker(this);
-
-
+        this.graph = new GraphMaker(this);
     }
 
     /**
@@ -411,6 +423,7 @@ export default class DexcaliburProject
      */
     setDevice( pDevice:Device){
         this.device = pDevice;
+        this.analyze.useSyscalls(this.device.getSyscallList());
     }
     
 
@@ -726,6 +739,14 @@ export default class DexcaliburProject
         }
     }
 
+    getDisassembler(){
+        if(this.platform.isAndroid()){
+            return new SmaliDisassembler();
+        }else{
+            throw new Error('There is not disassembler configured');
+        }
+    }
+
     /**
      * To perform a scan of the set of files (not bytecode/dex/smali).
      * 
@@ -784,9 +805,11 @@ export default class DexcaliburProject
             
         // this.analyze.scanManifest(Path.join(path,"AndroidManifest.xml"));
             success = await this.appAnalyzer.importManifest(_path_.join(pPath,"AndroidManifest.xml"));
+            //success = await this.appAnalyzer.scan(AppPackage); <--- add abstraction
 
         }else{
             //        let dexPath = this.workspace.getWD()+"dex";
+            // To replace by package app (abstraction of apk/ipa/elf/..)
             let apkPath:string = this.workspace.getApkDir();
 
             Logger.info("Scanning default path : "+apkPath);

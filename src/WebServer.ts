@@ -187,7 +187,6 @@ export default class WebServer
         let $:WebServer = this;
 
         return function (req:Express.Request, res:Express.Response):void {
-            console.log(req.path);
 
             let localPath:string = $.root + req.path, mime:string = null;
 
@@ -398,7 +397,7 @@ export default class WebServer
                 let device:Device = null;
                 let path:string = null;
                 let platform:Platform = null;
-                let success:boolean = false;
+                let success:boolean = true;
 
                 dm = DeviceManager.getInstance();
                 await dm.scan();
@@ -446,27 +445,50 @@ export default class WebServer
                             path = req.body['path'];
                             break;
                     }
-    
-
-                    
 
                     // chcek if file exists an it is not empty
                     if( (!_fs_.existsSync(path)) || (false)){
                         res.status(404).send(JSON.stringify({   success:false,  msg:"APK file not found "}));
                         return;
                     }
+
+                    if(['min','max','dev'].indexOf(req.body['platform'])==-1){
+                        platform = device.getPlatform()
+                    }else{
+                        platform = null;
+                    }
+
+                    Logger.info(
+                        '[PROJECT][STEP 2] Detecting device  ... ',
+                              device!==null?'[OK]':'[KO]',
+                             ' Platform ... ',
+                              platform!==null? '[OK]':'[KO]');
     
                     // create project : UID , APK [, Device]
+                    Logger.info('[PROJECT][STEP 2] Creating new project ...');
                     project = await $.context.newProject(req.body['name'], path, device);
 
+                    if(project == null){
+                        Logger.error('[PROJECT][STEP 2] Creating new project failed !');
+                        throw new Error('[PROJECT][STEP 2] Creating new project failed !');
+                    }
+
                     // to set connector
-                    project.setConnector(req.body['connector']);
+                    Logger.info('[PROJECT][STEP 3] Setting connectors ...');
+                    if(req.body['connector'] != null && req.body['connector'].length > 0){
+                        project.setConnector(req.body['connector']);
+                    }else
+                        project.setConnector($.context.getConfiguration().getDefaultConnector());
+
 
                     if(project != null){
+                        Logger.info('[PROJECT][STEP 3.1] Configuring platform ...');
+                        //platform = PlatformManager.getInstance().getDefaultPlatformFor();
                         // sync project platform with target platform or APK
                         success = await project.synchronizePlatform( platform.getUID());
                     }
-                    
+
+                    Logger.info('[PROJECT][STEP 4] Analyzing application ...');
                     if(success){
                         project = await project.fullscan();
                         success = project.isReady();
@@ -1455,7 +1477,7 @@ export default class WebServer
                 let dev:any = {};
                 let method:ModelMethod = $.project.find.get.method(Util.decodeURI(Util.b64_decode(req.params.id)));
 
-                dev.disass = method.disass({ raw: true });
+                dev.disass = method.disass({ raw: true }, $.project.getDisassembler());
 
                 res.status(200).send(JSON.stringify(dev));
             });
@@ -1588,7 +1610,7 @@ export default class WebServer
 
                 if (method != null) {
                     dev = method.toJsonObject();
-                    dev.disass = method.disass({ raw: true });
+                    dev.disass = method.disass({ raw: true }, $.project.getDisassembler());
                 } else {
                     Logger.error('[WEBSERVER] Method solving through reference not yet supported here');
 
@@ -2124,7 +2146,7 @@ export default class WebServer
 */
               /*  res.status(200).send(JSON.stringify(dev));
             });*/
-
+/*
             this.app.route('/api/util/mkdir')
                 .post(function (req:ExpressRequest, res:ExpressResponse):any {
                     // collect
@@ -2145,7 +2167,7 @@ export default class WebServer
                     }
 
                     res.status(200).send(JSON.stringify(dev));
-                })
+                })*/
 
         /*
          * Send an intent to to the default device

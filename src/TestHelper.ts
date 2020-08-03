@@ -33,7 +33,7 @@ interface ITestInterceptor {
  * 
  * @class
  */
-export default class TestHelper
+class TestHelperClass
 {
     engine:DexcaliburEngine;
     app:ExpressApplication = null;
@@ -44,7 +44,7 @@ export default class TestHelper
     project_ready:DexcaliburProject = null;
 
     constructor(){
-        this.testCfg = JSON.parse( _fs_.readFileSync(_path_.join( __dirname, "config", "config.json")).toString() );
+        this.testCfg = JSON.parse( _fs_.readFileSync(_path_.join( __dirname, "..",  "test", "config", "config.json")).toString() );
         this.interceptors = {
             exec: []
         };
@@ -101,6 +101,8 @@ export default class TestHelper
     }
 
     filterInterceptor( pType:string, pInput:any):any{
+        if(this.interceptors[pType] == undefined)return {success:false};
+
         for(let i:number=0; i<this.interceptors[pType].length; i++){
             if(this.interceptors[pType][i].test(pInput)){
                 return {success:true, ret: this.interceptors[pType][i].ret};
@@ -267,10 +269,17 @@ export default class TestHelper
      */
     getInitializedDexcaliburProject(pForce:boolean = false):DexcaliburProject{
         if(this.project_ready == null || pForce){
+
+            TestHelper.interceptExec( function(x){
+                return (x.indexOf("adb kill-server")>-1);
+            }, `true`);
+
+
             this.project_ready = new DexcaliburProject(
                 this.newDexcaliburEngine(),
                 'owasp.mstg.uncrackable1'
             );
+
             this.project_ready.init();
         }
 
@@ -278,3 +287,5 @@ export default class TestHelper
     }
 
 }
+
+export var TestHelper = new TestHelperClass();

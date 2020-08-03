@@ -5,7 +5,7 @@ import Chalk from 'chalk';
 
 
 import {SearchAPI} from "./SearchAPI";
-import Event from "./Event.js";
+import Event from "./Event";
 import DexcaliburProject from "./DexcaliburProject";
 import AnalyzerDatabase from "./AnalyzerDatabase";
 import ModelClass from "./ModelClass";
@@ -169,15 +169,23 @@ class Resolver
         return missingMeth;
     }
 
-    static type(pAnalyzerDB:AnalyzerDatabase, pClass:string|ModelClass):ModelClass{
+    static type(pAnalyzerDB:AnalyzerDatabase, pClass:string|ModelClass|ModelClassReference):ModelClass{
 
+        if(pClass instanceof ModelClassReference){
+            if(pAnalyzerDB.classes.hasEntry(pClass.fqcn)===true)
+                return pAnalyzerDB.classes.getEntry(pClass.fqcn);
+            else
+                return Resolver.createMissingClass(pClass.getName(), pAnalyzerDB);
+            // unresolvable class are created as classic Class node but are tagged "MISSING"
+        }
         if(pClass instanceof ModelClass){
             if(pAnalyzerDB.classes.hasEntry(pClass.name)===true)
                 return pAnalyzerDB.classes.getEntry(pClass.name);
             else
                 return Resolver.createMissingClass(pClass.getName(), pAnalyzerDB);
             // unresolvable class are created as classic Class node but are tagged "MISSING"
-        }else{
+        }
+        else{
             if(pAnalyzerDB.classes.hasEntry(pClass)===true)
                 return pAnalyzerDB.classes.getEntry(pClass);
             else
@@ -334,7 +342,7 @@ export default class Analyzer
         for(let i in pMethod.instr){
 
             bb = pMethod.instr[i];
-            //bb._parent = pMethod; // TODO : removed
+            bb._parent = pMethod;
             // get basic blocks
 
             if(bb.hasCatchStatement()){
@@ -598,7 +606,7 @@ export default class Analyzer
             else if(cls.hasSuperClass()){
 
     //            if (!(cls.getSuperClass() instanceof CLASS.Class)){
-                if(typeof cls.getSuperClass() === "string"){
+                if(cls.getSuperClass() instanceof ModelClassReference){
                     cls.extends = Resolver.type(absoluteDB, cls.getSuperClass() as ModelClass);
                     //cls.updateSuper( Resolver.type(absoluteDB, cls.getSuperClass()));
                 }
@@ -904,6 +912,15 @@ export default class Analyzer
     getData():AnalyzerDatabase{
 //        Logger.debug("[ERROR::DEV] Deprecated function Analyzer::getData() is called ");
         return this.db;
+    }
+
+
+    /**
+     * To get the internal database
+     */
+    getTempData():AnalyzerDatabase{
+//        Logger.debug("[ERROR::DEV] Deprecated function Analyzer::getData() is called ");
+        return this.tempDB;
     }
 
 

@@ -2,7 +2,7 @@ export default class SearchPattern
 {
     fn:any = null;
     pattern:string = null;
-    field:string = null;
+    field:string|string[] = null;
     isModifier:boolean = false;
     isStructField:boolean = false;
     isDeepSearch:boolean = false;

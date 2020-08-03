@@ -69,7 +69,6 @@ export default class AndroidAppAnalyzer
 				break;
 			case "service":
 				result = this.context.find.get.service(cmp);
-				console.log(cmp,result);
 				if(result instanceof AndroidService)
 					return result.getIntentFilterByUid(uid);
 				break;
@@ -97,6 +96,10 @@ export default class AndroidAppAnalyzer
 
 	getManifest():AndroidManifest{
 		return this.manifest;
+	}
+
+	async scan(path:string):Promise<boolean>{
+		return this.importManifest(path);
 	}
 
     /**
@@ -146,28 +149,28 @@ export default class AndroidAppAnalyzer
 		manifest.application.activities.map(x => {
 			self.context.trigger({
 				type: "app.activity.new",
-				data: x
+				data: { obj:x, manifest:manifest}
 			});
 			codeAnal.db.activities.addEntry(x.name, x);
 		});
 		manifest.application.providers.map(x => {
 			self.context.trigger({
 				type: "app.provider.new",
-				data: x
+				data: { obj:x, manifest:manifest}
 			});
 			codeAnal.db.providers.addEntry(x.name, x);
 		});
 		manifest.application.receivers.map(x => {
 			self.context.trigger({
 				type: "app.receiver.new",
-				data: x
+				data: { obj:x, manifest:manifest}
 			});
 			codeAnal.db.receivers.addEntry(x.name, x);
 		});
 		manifest.application.services.map(x => {
 			self.context.trigger({
 				type: "app.service.new",
-				data: x
+				data: { obj:x, manifest:manifest}
 			});
 			codeAnal.db.services.addEntry(x.name, x);
 		});

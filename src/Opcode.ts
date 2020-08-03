@@ -1,9 +1,8 @@
 
 import {CONST} from "./CoreConst";
 import DalvikInstructionFormat from "./DalvikInstructionFormat";
+import * as Core from './CoreParser';
 
-
-var Core = require("./CoreParser.js");
 
 var LEX = Core.LEX;
 var ReferenceType = CONST.OPCODE_REFTYPE;

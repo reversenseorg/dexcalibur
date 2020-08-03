@@ -40,9 +40,13 @@ export default class Configuration {
 
     workspace:DexcaliburWorkspace = null;
 
+    connector:string = 'inmemory';
+
     constructor() {
 
     }
+
+
 
     /**
      * To create a Configuration object from a serialized Configuration object
@@ -67,6 +71,7 @@ export default class Configuration {
         cfg.encoding = 'utf8';
         cfg.workspace = new DexcaliburWorkspace( _path_.join( _os_.homedir(), 'dexcaliburWS') );
         cfg.web_port = 8000;
+        cfg.connector = 'inmemory';
 
         cfg.workspacePath = _path_.join( _os_.homedir(), 'dexcaliburWS');
         cfg.tmpDir = _path_.join( cfg.workspacePath, '.tmp');
@@ -168,7 +173,9 @@ export default class Configuration {
 
     
 
-    
+    getDefaultConnector():string{
+        return this.connector;
+    }
 
 
     /**
@@ -271,16 +278,6 @@ export default class Configuration {
             this.web_port = 8000;
         }
     }
-
-    /*
-     * To get the absolute path of the Dexcalibur ./src/ folder
-     * @returns {String} Dexcalibur src/ path
-     * @function 
-     *
-    getDexcaliburPath() {
-        return this.dexcaliburPath;
-    }*/
-
 
 
     /**

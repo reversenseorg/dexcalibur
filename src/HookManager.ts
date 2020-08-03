@@ -246,7 +246,7 @@ export class HookManager
      *  
      * @param {String} pHookScript Hook script
      * @param {String} pAppName Application UID
-     * @method 
+     * @method
      */
     startBySpawn(pAppName:string, pHookScript:string= null):void{
         this.start(pHookScript, FRIDA_MODE.SPAWN, pAppName);
@@ -305,7 +305,7 @@ export class HookManager
         }
 
         if(this.frida_disabled){
-            Logger.info("[HOOK MANAGER] Frida is disabled ! Hook and session prepared but not start() ignored");
+            throw new Error("[HOOK MANAGER] Frida is disabled ! Hook and session prepared but not start() ignored");
             return null;
         } 
 

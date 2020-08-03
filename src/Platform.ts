@@ -114,6 +114,7 @@ export default class Platform
         return this.name.indexOf('ios')>-1;
     }
 
+
     isVmSupported(){
         if(this.isAndroid())
             return true;

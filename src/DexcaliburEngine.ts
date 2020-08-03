@@ -386,6 +386,16 @@ export default class DexcaliburEngine
         return this.config;
     }
 
+
+    /**
+     * To get Dexcalibur workspace from the current instance
+     * @method
+     * @return {DexcaliburWorkspace}
+     */
+    getWorkspace():DexcaliburWorkspace {
+        return this.workspace;
+    }
+
     /**
      * To get WebServer instance
      * @returns {WebServer} Web server instance
@@ -681,6 +691,7 @@ export default class DexcaliburEngine
 
         project = new DexcaliburProject( this, pUID);
 
+        Logger.info('[ENGINE] Creating new project : ',pUID);
         project.init();
 
 

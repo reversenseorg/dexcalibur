@@ -26,7 +26,7 @@ export enum MessageType {
 
 interface TestMessage {
     type: MessageType,
-    val: string|any
+    val: any
 }
 
 /**
@@ -255,5 +255,4 @@ export function newLogger(config:any =null, override:boolean =false):TestLogger|
     }
 
     return loggerInstance;
-
 }

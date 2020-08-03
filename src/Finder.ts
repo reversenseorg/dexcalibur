@@ -134,20 +134,27 @@ export class Finder
                 pattern = "";
             }
 
+            return new SearchPattern({
+                pattern:pattern,
+                field: token,
+                isModifier:true,
+                fn: Finder.testHasModifier
+            });
+
             //console.debug("Modifier search ... "+token+"."+pattern+" == true");
-            //*f(lazy === false){
-                //if(Modifier[token] !== undefined)
+            /*if(lazy === false){
+                if(Modifier[token] !== undefined)
                     return new SearchPattern({ 
                             pattern:pattern, 
-                            field:token,  
+                            field: token,
                             isModifier:true, 
                             fn: Finder.testHasModifier
                         });
-                /*else{
+                else{
                     console.log("[!] The modifier '"+token+"' not exists for these objects");
-                   * return null;
+                    return null;
                 }
-            }else{*/
+            }else{
                 //console.debug("LAZY filtering ...");
                 return new SearchPattern({ 
                     pattern:pattern, 
@@ -155,7 +162,7 @@ export class Finder
                     isModifier:true, 
                     fn: Finder.testHasModifier
                 });
-            //Ò}
+            }*/
         }
         else if(pattern.substr(0,4)=="has."){
             //console.debug("Tag-based request detected");
@@ -353,8 +360,11 @@ export class Finder
 
     _findDeepObject(index:IDbIndex|IDbCollection, search_pattern:SearchPattern):IDbIndex{
         let matches:IDbIndex=this.newResultSet();
-        
+
+
+
         index.map((k,v)=>{
+
             if(this.__checkDeepField(v, search_pattern))
                 matches.insert(v, false);
         });
@@ -426,6 +436,10 @@ export class Finder
             else if(spatt.isDeepSearch){
                 console.debug("Running deep search ...")
                 //return new FinderResult(this._findDeepObject(index, spatt), this);
+                if(typeof spatt.field === 'string'){
+                    spatt.field = spatt.field.split('.');
+                }
+
                 return new FinderResult(this._findDeepObject(index, spatt), this);
             }
             else

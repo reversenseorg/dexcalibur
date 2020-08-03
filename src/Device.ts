@@ -4,10 +4,10 @@ import * as _fs_ from 'fs';
 import * as _path_ from 'path';
 import * as Process from 'process';
 import {EOL} from 'os';
-
+import {AndroidSyscalls} from './android/AndroidSyscalls';
 
 import * as Log from './Logger';
-let Logger:Log.ProdLogger = Log.newLogger() as Log.ProdLogger;
+let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
 import DeviceProfile from './DeviceProfile';
 import Platform from './Platform';
@@ -16,6 +16,7 @@ import DexcaliburWorkspace from './DexcaliburWorkspace';
 import Utils  from "./Utils";
 import AdbWrapper from "./AdbWrapper";
 import {BridgeSuperFactory, IBridge} from "./Bridge";
+import ModelSyscall from "./ModelSyscall";
 
 export enum EDevType  {
     UNKNOW=0x0,
@@ -171,6 +172,10 @@ export class Device
      */
     offline:boolean = false;
 
+    /**
+     *
+     */
+    syscalls:ModelSyscall[] = null;
 
     /**
      * 
@@ -723,10 +728,10 @@ export class Device
         }
 
         id = stdout.split(EOL);
-        if(id[0] !== undefined){
+        if(id[0] != undefined){
             this.id = id[0];
         }else{
-            Logger.debug('[DEVICE] DeviceID retrieved from device : ',id);
+            Logger.debug('[DEVICE] DeviceID retrieved from device : ',id.join(''));
         }
 
         return true;
@@ -785,5 +790,15 @@ export class Device
             json[i] = pOverride[i];
         }
         return json;
+    }
+
+    getSyscallList():ModelSyscall[]{
+        if(this.syscalls == null){
+            if(this.type===EOsType.ANDROID){
+                this.syscalls = AndroidSyscalls;
+            }
+        }
+
+        return this.syscalls;
     }
 }

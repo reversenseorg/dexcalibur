@@ -144,7 +144,7 @@ export default class ModelInstruction extends Savable
         o.method = "";
 
         if(this._parent instanceof ModelBasicBlock){
-            o.offset.bb = this._parent.offset; // TODO : error ?
+            o.location.bb = this._parent.offset;
             if(this._parent._parent instanceof ModelMethod){
                 o.method = this._parent._parent.signature();
             }

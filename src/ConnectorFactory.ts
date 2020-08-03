@@ -32,6 +32,8 @@ export interface IDbSet {
 
 export interface IDbIndex extends IDbSet {
 
+    name:string;
+
     insert(ref:any, force:boolean):void;
 
     addEntry(ref:any):void;
@@ -43,6 +45,7 @@ export interface IDbIndex extends IDbSet {
 
 export interface IDbCollection extends IDbSet
 {
+    name:string;
 
     setEntry(key:string,value:any);
 
@@ -111,8 +114,10 @@ export class ConnectorFactory
 
         for(let i=0; i<files.length; i++){
             p = _path_.join( ws, files[i], "adapter.js");
-            if(_fs_.existsSync(p))
+            if(_fs_.existsSync(p)) {
                 this.connectors[files[i]] = require(p);
+                console.log(files[i],this.connectors[files[i]]);
+            }
         }
     }
 

@@ -47,13 +47,13 @@ function MethodEditor(method){
 }
 */
 
-export default class Disassembler
+export default class SmaliDisassembler
 {
     constructor() {
 
     }
 
-    method( pMethod:ModelMethod):Disassembler{
+    method( pMethod:ModelMethod):SmaliDisassembler{
 
         let bb:any=null, txt:string="", prefix:string="";
 
@@ -176,7 +176,7 @@ export default class Disassembler
      * @deprecated
      * @param pMethod
      */
-    methodPretty( pMethod:ModelMethod):Disassembler{
+    methodPretty( pMethod:ModelMethod):SmaliDisassembler{
 
         let bb:any=null, ignore:any=[], state:any={};
 
@@ -270,7 +270,7 @@ export default class Disassembler
                 }
 
                 // if instruction has "line number" metadata
-                if(bb.stack[j].iline != null){
+                if(bb.stack[j].iline >= 0){
                     bbe.instr.push({ value:".line "+bb.stack[j].iline });
                 }
 

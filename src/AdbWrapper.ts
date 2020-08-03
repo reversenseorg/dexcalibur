@@ -387,7 +387,7 @@ export default class AdbWrapper implements IBridge
     listPackages( pOtions:string=""):AppPackage[] {
         let ret:string ="";
 
-        ret = UT.execSync(this.setup() + " shell pm list packages "+pOtions).toString(); // toString("ascii")
+        ret = UT.execSync(this.setup() + " shell pm list packages "+pOtions); // toString("ascii")
 
         return this.parsePackageList(ret, pOtions);
     }
@@ -457,7 +457,7 @@ export default class AdbWrapper implements IBridge
         }else
             ret = Process.execSync(this.setup(deviceId) + " shell pm path " +  packageIdentifier).toString("ascii");
 */
-        ret = UT.execSync(this.setup() + " shell pm path " +  packageIdentifier).toString("ascii");
+        ret = UT.execSync(this.setup() + " shell pm path " +  packageIdentifier, "ascii");
 
 /*
         if(deviceId !== null) {
@@ -493,7 +493,7 @@ export default class AdbWrapper implements IBridge
         ret = pDeviceListStr.split(require('os').EOL);
         
         re = new RegExp("^([^\\s\\t]+)[\\s\\t]+(.*)");
-        
+
 
         for(let ln in ret){
 
@@ -602,7 +602,6 @@ export default class AdbWrapper implements IBridge
             }
 
 
-            //console.log(device);
             if(device.bridge.shortname=='adb+tcp' && device.id == null){
                 try{
                     await device.retrieveUIDfromDevice();
@@ -628,8 +627,7 @@ export default class AdbWrapper implements IBridge
     async listDevices():Promise<Device[]>{
         Logger.info("[ADB] Enumerating connected devices ...");
         return await this.parseDeviceList( 
-            UT.execSync(this.setup()+" devices -l")
-                .toString("ascii") );
+            UT.execSync(this.setup()+" devices -l", "ascii")  );
     }
 
     

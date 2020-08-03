@@ -48,15 +48,8 @@ export default class PlatformManager
         return gInstance;
     }
 
-    /**
-     * 
-     * @param {*} pApiVersion
-     * @method
-     *  
-     */
-    getFromAndroidApiVersion( pApiVersion:string):Platform{
-        return this.getPlatform('sdk_androidapi_'+pApiVersion+'_google');
-    }
+
+
 
     /**
      * 
@@ -73,7 +66,7 @@ export default class PlatformManager
         );
 
         if(_fs_.existsSync(path) == true){
-            Utils.execSync(`java -jar ${_path_.join(__dirname,'..','bin','baksmali.jar')} d ${path} -o ${pPlatform.getLocalPath()}`);
+            Utils.execSync(`java -jar ${_path_.join(__dirname,'..','bin','baksmali.jar')} d ${path} -o ${pPlatform.getLocalPath()}`, "ascii");
             _fs_.unlinkSync(path);
             pPlatform.checkInstall();
 
@@ -174,6 +167,7 @@ export default class PlatformManager
         
         return res;
     }
+    
 
     getPlatform(pName:string):Platform{
         if(this.local[pName] instanceof Platform){
@@ -184,6 +178,16 @@ export default class PlatformManager
 
         // throw exception
         return null;
+    }
+    
+     /**
+     * 
+     * @param {*} pApiVersion
+     * @method
+     *  
+     */
+    getFromAndroidApiVersion( pApiVersion:string):Platform{
+        return this.getPlatform('sdk_androidapi_'+pApiVersion+'_google');
     }
 
     getRemotePlatform( pName:string):Platform{

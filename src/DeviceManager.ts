@@ -267,6 +267,7 @@ export default class DeviceManager
      */
     addDevice( pDevice:Device, pReuseUID:boolean = false){
         let uid:string;
+
         if(pReuseUID === false){
             uid = this.generateUID();
             pDevice.setUID(uid);
@@ -306,6 +307,7 @@ export default class DeviceManager
         let active:number = 0, b:IBridge=null, d=null, id:string=null, dev:Device=null;
         let devs:DeviceList= {};
 
+
         for(let i:number=0; i<pCandidateList.length; i++){
 
             // at this step, candidate device has 1 bridge, no more.
@@ -342,7 +344,6 @@ export default class DeviceManager
         // remove duplicated
         devs = {};
         for(let i in this.devices){
-            
             if(this.devices[i].id=="<pending...>"){
                 for(let k in this.devices[i].bridges){
                     b = this.devices[i].bridges[k];
@@ -438,7 +439,7 @@ export default class DeviceManager
      */
     async scan(){
         let dev:Device[]=[], devID:string[], wrapper:IBridge=null, activeDev:number = 0, latestDefault:Device=null;
-
+        let out:string[]=[];
         latestDefault = this.getDefault();
 
         this.disconnectAll();
@@ -452,14 +453,15 @@ export default class DeviceManager
                 // scan for connected devices
                 wrapper  = this.bridges[type].newGenericWrapper();
                 dev = await wrapper.listDevices();
-                
+
 //                listDevices();
 
 
                 activeDev += this.updateDeviceList(dev);
                
-    
-                Util.msgBox("Enumerated devices", Object.keys(this.devices));
+
+                for(let i in this.devices) out.push(`[${i}] ID:${this.devices[i].id}`);
+                Util.msgBox("Enumerated devices [bridge="+type+"]", out);
             }
         }
 

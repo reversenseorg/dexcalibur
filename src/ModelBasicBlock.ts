@@ -2,6 +2,7 @@ import { CONST } from "./CoreConst";
 import ModelCatchStatement from "./ModelCatchStatement";
 import { ModelSwitchCase, ModelPackedSwitchStatement, ModelSparseSwitchStatement } from "./ModelSwitch";
 import ModelInstruction from "./ModelInstruction";
+import ModelMethod from "./ModelMethod";
 
 /**
  * Represents a basic block of dalvik instruction
@@ -16,7 +17,7 @@ export default class ModelBasicBlock
     stack:any = []; // TODO  add Instruction[] type
 
     offset:number = -1;
-    _parent:ModelBasicBlock = null;
+    _parent:ModelMethod = null;
 
     tag:string = null; // TODO add Tag ?
     tags:any = []; // TODO add tag
@@ -171,10 +172,9 @@ export default class ModelBasicBlock
         return bb as ModelBasicBlock;
     }
 
-    disass(){
-        let disass:any = require("./Disassembler.js")
+    disass(pDisassembler:any):any{
 
-        disass.block(this._parent,this,0);
+        return pDisassembler.block(this._parent,this,0);
     }
 
 

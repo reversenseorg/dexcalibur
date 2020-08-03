@@ -450,16 +450,15 @@ export default class ModelMethod extends Savable
         return obj;
     }
 
-    disass(cfg:any){
-        let disass:any = require("./Disassembler.js")
+    disass(pConfig:any, pDisassembler:any){
 
-        if(cfg != null){
-            if(cfg.pretty == true)
-                return disass.methodPretty(this);
-            else if(cfg.raw == true)
-                return disass.methodRaw(this);
+        if(pConfig != null){
+            if(pConfig.pretty == true)
+                return pDisassembler.methodPretty(this);
+            else if(pConfig.raw == true)
+                return pDisassembler.methodRaw(this);
         }else{
-            return disass.method(this);
+            return pDisassembler.method(this);
         }
     }
 

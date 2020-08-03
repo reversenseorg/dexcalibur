@@ -46,7 +46,7 @@ export default class AdbWrapperFactory implements IBridgeFactory
      * @method
      * @static
      */
-    static getInstance( pAdbPath:string, pOverride:boolean = false):AdbWrapperFactory{
+    static getInstance( pAdbPath:string=null, pOverride:boolean = false):AdbWrapperFactory{
 
         if(gInstance == null || pOverride==true){
             if(_fs_.existsSync(pAdbPath)){

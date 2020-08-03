@@ -8,6 +8,8 @@ import * as  _util_ from 'util';
 import * as _stream_  from 'stream';
 import got  from "got";
 
+import {TestHelper} from "./TestHelper";
+
 
 const _exec_:any = _util_.promisify(Process.exec);
 
@@ -206,11 +208,11 @@ export default class Util {
         return data;
     }
 
-    static execSync(command:string, charset:any="utf8"):string|Buffer{
+    static execSync(command:string, charset:any="utf8"):string{
         let ret:Buffer = null;
         
         if(process.env.DEXCALIBUR_TEST){
-            ret = require('./TestHelper').execSync(command);
+            ret = TestHelper.execSync(command);
         }else{
             console.log(chalk.bold.red("Execute command request : "+command));
             ret = Process.execSync(command);
@@ -223,7 +225,7 @@ export default class Util {
         let ret:Promise<any>;
 
         if(process.env.DEXCALIBUR_TEST){
-            ret = await (require('./TestHelper').execAsync(command));
+            ret = await TestHelper.execAsync(command);
         }else{
             console.log(chalk.bold.red("Execute command request : "+command));
             ret = await _exec_(command);
@@ -236,7 +238,7 @@ export default class Util {
         let s:string ="";
 
         while(s.length <= size){
-            s += charset[Math.random() * charset.length];
+            s += charset[Math.round(Math.random() * charset.length)];
         }
         return s;
     }
