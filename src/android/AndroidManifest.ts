@@ -124,7 +124,7 @@ export class AndroidManifest
                     if(config[i] instanceof AndroidApplication){
                         self.application = config[i];
                     }else{
-                        self.application = AndroidApplication.fromXml(config[i][0]);
+                        self.application = AndroidApplication.fromXml(context, config[i][0]);
                         context.trigger({
                             name: "app.application.new",
                             data: self.application

@@ -4,13 +4,15 @@ import AndroidService from "./AndroidService";
 import AndroidReceiver from "./AndroidReceiver";
 import {AndroidAttributeSet} from "./AndroidAttribute";
 import {AndroidManifest} from "./AndroidManifest";
+import {ApplicationBinary} from "../Application";
+import DexcaliburProject from "../DexcaliburProject";
 
 
 
 const ANDROID_PREFIX = "android:";
 const ANDROID_PREFIX_LEN = 8;
 
-export default class AndroidApplication
+export default class AndroidApplication extends ApplicationBinary
 {
     /*static MODEL:any = {
         allowTaskReparenting:["true" | "false"],
@@ -67,7 +69,10 @@ export default class AndroidApplication
     metaData = [];
     manifest:AndroidManifest = null;
 
-    constructor(config:any=null){
+    __context:DexcaliburProject = null;
+
+    constructor(pContext:DexcaliburProject, config:any=null){
+        super(pContext);
 
         if(config!=null)
             for(let i in config)
@@ -75,8 +80,8 @@ export default class AndroidApplication
                     this[i] = config[i];
     }
 
-    static fromXml(xmlobj:any):AndroidApplication{
-        let app:AndroidApplication = new AndroidApplication();
+    static fromXml(pContext:DexcaliburProject, xmlobj:any):AndroidApplication{
+        let app:AndroidApplication = new AndroidApplication(pContext);
 
         for(let i in xmlobj.$){
             if(i.startsWith('android:')){
