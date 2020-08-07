@@ -1,5 +1,8 @@
 import {expect} from 'chai';
-import SmaliParser from "../src/SmaliParser";
+import SmaliParser from "../dist/src/SmaliParser";
+import {TestHelper} from "../dist/src/TestHelper";
+import DexcaliburProject from "../dist/src/DexcaliburProject";
+import {Modifier} from "../src/AccessFlags";
 
 describe('SmaliParser', function() {
 
@@ -11,7 +14,28 @@ describe('SmaliParser', function() {
     afterEach(function() {
        // console.log.restore();
     });
-    
+
+
+    describe('constructor ', function() {
+
+        it('simple', function () {
+            let parser = new SmaliParser( TestHelper.getDexcaliburProject());
+            expect(parser.ctx).to.be.an.instanceOf(DexcaliburProject)
+        });
+    });
+
+
+    describe('setContext', function() {
+
+        it('valid', function () {
+            let parser = new SmaliParser();
+            expect(parser.ctx).to.be.equals(null);
+
+            parser.setContext(TestHelper.getDexcaliburProject());
+            expect(parser.ctx).to.be.an.instanceOf(DexcaliburProject);
+        });
+    });
+
     describe('isModifier - test if a word is a valid Access flag', function() {
 
         it('public', function () {
@@ -147,7 +171,111 @@ describe('SmaliParser', function() {
         });
     });
 
-    describe('isModifier ', function() {
+    describe('SmaliParser::modifier ', function() {
 
+
+        it('string[], matchCounter', function () {
+            let ctr_1 = {c:0};
+
+            let mod = SmaliParser.modifier(
+                [ 'public', 'static', 'final', 'PLAYBACK_TYPE_LOCAL:I', '=', '0x1' ],
+                ctr_1
+            );
+
+            expect(mod).to.equals(Modifier.STATIC|Modifier.PUBLIC|Modifier.FINAL);
+            expect(ctr_1.c).to.equals(3);
+        });
+
+
+        it('string[], matchCounter. Additionnal spaces', function () {
+            let ctr_1 = {c:0};
+
+            let mod = SmaliParser.modifier(
+                [ 'constructor', '<init>', '(ILandroid/media/AudioAttributes;', 'III', ')V' ] ,
+                ctr_1
+            );
+
+            expect(mod).to.equals(Modifier.CONSTRUCT|Modifier.PUBLIC);
+            expect(ctr_1.c).to.equals(1);
+        });
+
+        it('string, matchCounter', function () {
+            let ctr_1 = {c:0};
+
+            let mod = SmaliParser.modifier(
+                'public static final PLAYBACK_TYPE_LOCAL:I = 0x1',
+                ctr_1
+            );
+
+            expect(mod).to.equals(Modifier.STATIC|Modifier.PUBLIC|Modifier.FINAL);
+            expect(ctr_1.c).to.equals(3);
+        });
+    });
+
+    describe('SmaliParser::fqcn', function() {
+
+        it('valid 1', function () {
+            let fq1 = SmaliParser.fqcn('Ljava/lang/String;');
+            expect(fq1).to.be.equals('java.lang.String');
+        });
+        it('valid 2', function () {
+            let fq1 = SmaliParser.fqcn('Ljava/lang/String$A;');
+            expect(fq1).to.be.equals('java.lang.String$A');
+        });
+        it('valid 3', function () {
+            let fq1 = SmaliParser.fqcn('Ljava/lang/String$A$1;');
+            expect(fq1).to.be.equals('java.lang.String$A$1');
+        });
+        it('valid 4', function () {
+            let fq1 = SmaliParser.fqcn('LRootClass;');
+            expect(fq1).to.be.equals('RootClass');
+        });
+        it('valid 5', function () {
+            let fq1 = SmaliParser.fqcn('LString$1$1$A;');
+            expect(fq1).to.be.equals('String$1$1$A');
+        });
+        it('valid 6', function () {
+            let fq1 = SmaliParser.fqcn(['Ljava/lang/String;']);
+            expect(fq1).to.be.equals('java.lang.String');
+        });
+        it('invalid 1', function () {
+            let fq1:any;
+            try{
+                fq1 = SmaliParser.fqcn('L;');
+            }catch(err){
+                fq1 = -1;
+            }
+
+            expect(fq1).to.be.equals(-1);
+        });
+        it('invalid 2', function () {
+            let fq1:any;
+            try{
+                fq1 = SmaliParser.fqcn('L/;');
+            }catch(err){
+                fq1 = -1;
+            }
+
+            expect(fq1).to.be.equals(-1);
+        });
+        it('invalid 3', function () {
+            let fq1:any;
+            try{
+                fq1 = SmaliParser.fqcn([]);
+            }catch(err){
+                fq1 = -1;
+            }
+
+            expect(fq1).to.be.equals(-1);
+        });
+    });
+
+
+    describe('fspath ', function() {
+
+        it('valid 1', function () {
+            let parser = new SmaliParser( TestHelper.getDexcaliburProject());
+            expect(parser.ctx).to.be.an.instanceOf(DexcaliburProject)
+        });
     });
 });

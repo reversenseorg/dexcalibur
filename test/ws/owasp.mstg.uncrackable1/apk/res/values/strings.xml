@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="action_settings">Uncrackable1</string>
+    <string name="app_name">Uncrackable1</string>
+    <string name="button_verify">Verify</string>
+    <string name="edit_text">Enter the Secret String</string>
+    <string name="thanks">With special thanks to Bernhard Mueller for creating the app. Now maintained by the MSTG project. Want more? Check the MSTG playground!</string>
+</resources>
