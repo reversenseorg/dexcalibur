@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="">
+    <meta name="author" content="">
+
+    <title>Dexcalibur - Probe manager</title>
+
+    <!-- styles -->
+    <!--## pages/inc/tpl_css.html ##-->
+
+
+
+
+    <!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
+    <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
+    <!--[if lt IE 9]>
+        <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
+        <script src="https://oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js"></script>
+    <![endif]-->
+
+</head>
+
+<body class="dxc-dark">
+
+
+        <!-- Navigation -->
+        <!--## pages/inc/menu.html ##-->
+
+        <div id="page-wrapper" class="dxc-dark">
+
+            <div class="row">
+                <div class="col-lg-8">
+                    <h1 class="page-header">Hook logs</h1>
+                </div>
+                <div class="col-lg-4">
+
+                    <span class="badge badge-pill badge-info badge-action clear-log" style="margin-top:1em;">
+                        <i class="fa fa-trash"></i>&nbsp;Clear
+                    </span>
+                    &nbsp;
+                    <span class="badge badge-pill badge-yellow badge-action probe-restart" style="margin-top:1em;">
+                        <i class="fa fa-refresh"></i>&nbsp;Re-spawn
+                    </span>
+                    &nbsp;
+                    <span class="badge badge-pill badge-yellow badge-action detach-app" style="margin-top:1em;">
+                        <i class="fa fa-unlink"></i>&nbsp;Detach
+                    </span>
+                    &nbsp;
+                    <span class="badge badge-pill badge-danger badge-action kill-app" style="margin-top:1em;">
+                        <i class="fa fa-bolt"></i>&nbsp;Kill app
+                    </span>
+                </div>
+            </div>
+
+            <div class="row justify-content-center"><div class="col-lg-6" id="alertcontainer"></div></div>
+
+            <div class="panel panel-primary">          
+
+                    <table width="100%" class="table table-sm-4" id="tabProbeLogs">
+                            <thead>
+                                <tr>
+                                    <th>Device</th>
+                                    <th>Type</th>
+                                    <th>Method</th>
+                                    <th>Relevant arguments/subject</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                
+                            </tbody>
+                        </table>
+
+                </div>
+            
+            <!--<div class="modal modal-default">
+                <div class="modal-heading">
+                    <div class="row">
+                        <div class="col-lg-10" style="font-size:1.5em">Probe logs</div>
+                        <div class="col-lg-2">
+                            <button class="btn btn-danger probe-restart">
+                                <i class="fa fa-refresh"></i>&nbsp;Relaunch
+                            </button>
+                        </div>
+                    </div>
+                    
+                </div>                
+                <div class="modal-body" id="probelogs" style="background-color:#fff;font-family: 'Courier New', Courier, monospace">
+                    
+                </div>
+            </div> -->
+
+        </div>
+        <!-- /#page-wrapper -->
+   
+
+
+    <!--## pages/inc/tpl_js_end.html ##-->
+    <!--## pages/inc/tpl_ace_js.html ##-->
+
+
+    <script>
+
+    function setupAceEditor(id){
+        var editor = ace.edit(id);
+        editor.setTheme("ace/theme/monokai"); //
+    
+        editor.setOptions({
+            maxLines: 50, 
+            fontSize: "12pt"
+        });
+        //editor.setUseWorker(false);
+        editor.session.setMode("ace/mode/javascript");
+    }
+    //    setupAceEditor();
+    var IdRegister = new Wexcalibur();
+     
+
+    function htmlEncode(txt){
+        return $("<div />").text(txt).html();
+    }
+
+
+    /* Formatting function for row details - modify as you need */
+    function format ( row ) {
+        // `d` is the original data object for the row
+        let body = '';
+
+ //       body += '<table class="table"><thead><tr><th scope="col">Action</th><th scope="col">Type</th></thead><tbody>';
+        body += '<table class="table"><tbody>';
+        body += '<tr><td><b>Name</b></td><td>'+htmlEncode(row.id)+'</td></tr>';
+        body += '<tr><td><b>Method</b></td><td>'+htmlEncode(row.name)+'</td></tr>';
+        body += '<tr><td><b>Description</b></td><td>'+((row.description!=null)?row.description:'')+'</td></tr>';
+        //body += '<tr><td><b>Intercept</b></td><td>[None]</td></tr>';
+
+        let codeID = IdRegister.codeReg.next();
+
+        body += '</table>';
+        body += '<h4>Hook code</h4><pre id="'+codeID+'">'+atob(row.script)+'</pre>';
+        body += '<div class="row"><div class="col-md-offset-10"><button code="'+codeID+'" hookid="'+row.id+'" class="btn btn-primary savechange">Save changes</button></div></div>';
+        
+        setTimeout(function(){
+            setupAceEditor(codeID);
+        },20);
+
+        return body;
+    }
+
+   
+
+    $(document).ready(function() {
+
+
+        
+
+        let msgStatus = 0;
+        let scheduled = null;
+
+
+        let CURR_MSG_OFFSET = -1;
+        let NEXT_MSG_OFFSET = 0;
+        let NEXT_MSG_SET_SIZE = 20;
+        let CONTINUE_PRINT = true;
+
+        function startToFollow(){
+            CURR_MSG_OFFSET = -1;
+            NEXT_MSG_OFFSET = 0;
+            CONTINUE_PRINT = true;
+
+            return setInterval(function(){
+
+            if(CURR_MSG_OFFSET == NEXT_MSG_OFFSET) return;
+            //if(!CONTINUE_PRINT) return;
+
+            CONTINUE_PRINT = false;
+            CURR_MSG_OFFSET = NEXT_MSG_OFFSET;
+            $.ajax("../api/probe/msg",{
+                method: 'get',
+                data: {
+                    startAt: NEXT_MSG_OFFSET,
+                    size: NEXT_MSG_SET_SIZE
+                },
+                statusCode: {
+                    200: function(data,err){
+                        var d = JSON.parse(data), msg, color_start, color_end, msgdata, hookMsg;
+
+                        if(d.data.size == 0)
+                            CURR_MSG_OFFSET -= 1;
+                        else
+                            NEXT_MSG_OFFSET += d.data.size;
+
+                        CONTINUE_PRINT = true;
+                        //console.log(d);
+                        
+                        //clsTable.draw();
+
+                        if(d.data.message.length > 0/*>msgStatus*/){
+
+
+                            //$("#probelogs").html("");
+
+                            //for(let i=msgStatus; i<d.data.message.length ; i++){
+                            for(let i=0; i<d.data.message.length ; i++){
+
+                                hookMsg = d.data.message[i];
+                                msg = hookMsg.msg;
+
+                                if(msg!==undefined && msg.indexOf("[INTERCEPT]")==0){
+                                    color_start = '<b style="color:#F00">';
+                                    color_end = '</b>';
+                                }   
+                                else{
+                                    color_start="";
+                                    color_end="";
+                                }
+
+                                tag = "", type="",errf=false;
+
+                                if(hookMsg.tags!=null){
+
+                                    for(let j=0; j<hookMsg.tags.length; j++){
+                                        if(hookMsg.tags[j].text=="error") errf=true;
+                                        type += '<span class="badge badge-'+hookMsg.tags[j].style+' badge-pill">'+htmlEncode(hookMsg.tags[j].text)+'</span>'
+                                    }
+                                    if(errf) 
+                                        classes = 'class="warning"';
+                                    else    
+                                        classes = 'class="table-info"';
+                                }
+                               /* else if(hookMsg.match){
+                                    //tag +='&nbsp;<a class="badge badge-warning" style="color:#000;">match</a>';
+                                    classes = 'class="danger"';
+                                    type = '<a class="badge badge-danger">intercept</a>';
+                                }*/else{
+                                    classes = "";
+                                    type = '<span class="badge badge-primary badge-pill">custom</span>';
+                                }
+
+
+                                msgdata = "";
+                                if(hookMsg.data != null){
+                                    if(typeof hookMsg.data == "object"){
+                                        for(let i in hookMsg.data){
+                                            if(i.indexOf("__hidden__")==0) continue;
+                                            switch(i)
+                                            {
+                                                case "__meth__":
+                                                    msgdata += `<a href="/pages/finder.html?method=${btoa(encodeURIComponent(hookMsg.data[i]))}">${hookMsg.data[i]}</a></br>`;
+                                                    break;
+                                                case "__class__":
+                                                    msgdata += `<a href="/pages/finder.html?class=${btoa(encodeURIComponent(hookMsg.data[i]))}">${hookMsg.data[i]}</a></br>`;
+                                                    break;
+                                                default:
+                                                    msgdata += htmlEncode(i+" = "+hookMsg.data[i])+"</br>";
+                                                    break;
+                                            }
+                                        }
+                                    }else
+                                        msgdata = htmlEncode(hookMsg.data);
+                                }else{
+                                   msgdata = "-";
+                                }
+                            
+
+                                if(msg != undefined){
+                                    $("#tabProbeLogs tbody").append(
+                                        `<tr `+classes+`>
+                                            <td>android</td>
+                                            <td>`+type+`</td>
+                                            <td>`+htmlEncode(hookMsg.msg)+`</td>
+                                            <td>`+msgdata+`</td>
+                                            <td>`+htmlEncode(hookMsg.action)+`</td>
+                                        </tr>`
+                                    );
+                                }
+                            }
+                            //msgStatus = d.data.message.length;
+                        }
+                    },
+                    404: function(){
+                        //alert("Failed to add probe (see logs)")
+                        if(CURR_MSG_OFFSET == NEXT_MSG_OFFSET)
+                            CURR_MSG_OFFSET -= NEXT_MSG_SET_SIZE;
+
+                        //CONTINUE_PRINT = true;
+                    }
+                }
+            });
+        },200);
+        };
+
+        if(location.hash=="#autostart"){
+            scheduled = startToFollow();
+        }
+        
+        $('.clear-log').click((pEvent)=>{
+            $("#tabProbeLogs tbody tr").remove();
+        });
+
+        $('.kill-app').click((pEvent)=>{
+            DexcaliburAPI.hook.kill(null,{
+                onSuccess: function(data){
+                    let d = JSON.parse(data);
+                    console.log(d);
+                    
+                    if(scheduled != null){
+                        clearInterval(scheduled);
+                        scheduled = null;
+                    }
+
+                    if(d.success){
+                        alert('App killed successfully');
+                    }
+                },
+                onError: function(data){
+                    let d = JSON.parse(data);
+                    
+                    if(scheduled != null){
+                        clearInterval(scheduled);
+                        scheduled = null;
+                    }
+
+                    if(d.success){
+                        alert('App not killed. Logger stopped');
+                    }
+                }
+            });
+        });
+
+        $('.detach-app').click((pEvent)=>{
+            DexcaliburAPI.hook.detach({
+                onSuccess: function(data){
+                    let d = JSON.parse(data);
+                    console.log(d);
+                    
+                    if(scheduled != null){
+                        clearInterval(scheduled);
+                        scheduled = null;
+                    }
+
+                    if(d.success){
+                        alert('App killed successfully');
+                    }
+                }
+            });
+        });
+
+        //console.log(location);
+        //timer.stop();
+
+        //$('#probelogs').
+        $('#dataTables-probe tbody').on('click', 'td.details-control', function () {
+            var tr = $(this).closest('tr');
+            var row = clsTable.row( tr );
+            //console.log(row.child);
+
+            if ( row.child.isShown() ) {
+                // This row is already open - close it
+                row.child.hide();
+                tr.removeClass('shown');
+            }
+            else {
+                // Open this row
+                row.child( format(row.data()) ).show();
+                tr.addClass('shown');
+            }
+        } );
+
+        let refreshMsgCtr = 0;
+        
+        $(document).on("click",".probe",function(){
+            let DOM_PROBE =$(this);
+            let meth = $(this).attr("meth");
+            let status = $(this).attr("status");
+
+            status = (status=="true") ? "false" : "true";
+            refreshMsgCtr
+
+            $.ajax('../api/probe/'+meth+'?enable='+status,{
+                method: 'put',
+                statusCode: {
+                    200: function(data){
+                        console.log(data);
+                        DOM_PROBE.attr("status",status);
+                        if(status=="true"){
+                            DOM_PROBE.removeClass("badge-danger");
+                            DOM_PROBE.addClass("badge-success");
+                            DOM_PROBE.text("ON").html()
+                        }
+                        else{
+                            DOM_PROBE.removeClass("badge-success");
+                            DOM_PROBE.addClass("badge-danger");
+                            DOM_PROBE.text("OFF").html()
+                        }
+                    },
+                    404: function(){
+                        //alert("Failed to add probe (see logs)")
+                    }
+                }
+            })
+        });
+
+        $(document).on("click",".probe-duplicate",function(){
+            let DOM_PROBE =$(this);
+            let hookid = $(this).attr("meth");
+            let status = $(this).attr("status");
+
+            $.ajax('../api/hook/duplicate?id='+hookid,{
+                method: 'get',
+                statusCode: {
+                    200: function(data){
+                        alert("Hook duplicate"); 
+                    },
+                    404: function(){
+                        // alert("Failed to update the hook")
+                    }
+                }
+            })
+        });
+        $(document).on("click",".probe-update",function(){
+            let hookid = $(this).attr("hookid");
+
+            $.ajax('../api/hook/'+hookid,{
+                method: 'put',
+                data: {
+
+                },
+                statusCode: {
+                    200: function(data){
+                        alert("Hook updated"); 
+                    },
+                    404: function(){
+                        //alert("Failed to update the hook")
+                    }
+                }
+            })
+        });
+
+        $(document).on("click",".probe",function(){
+            let DOM_PROBE =$(this);
+            let hookid = $(this).attr("meth");
+            let status = $(this).attr("status");
+
+            $.ajax('../api/hook/'+hookid+'?enable='+status,{
+                method: 'put',
+                statusCode: {
+                    200: function(data){
+                        //alert("Hook updated");
+                    },
+                    404: function(){
+                        //alert("Failed to update the hook")
+                    }
+                }
+            })
+        });
+
+        // save change action
+        $(document).on("click","button.savechange",function(){
+            
+            $.ajax('../api/probe/edit/'+$(this).attr("hookid"),{
+                method: 'post',
+                data: {
+                    code: ""//$("#"+$(this).attr("code")).html
+                },
+                statusCode: {
+                    200: function(){
+
+                    }
+                }
+            });
+        });
+
+        $(document).on("click",".probe-restart",function(){
+            //msgStatus = 9999999;
+            $("#tabProbeLogs tbody tr").remove();
+            DexcaliburAPI.hook.start(
+                {type:"spawn-self"},
+                function(){
+                    //msgStatus = 0;
+                    scheduled = startToFollow();            
+                },
+                function(err){
+                    alert(err);
+                }
+            );
+            /*
+            $.ajax('../api/probe/start',{
+                method: 'post',
+                statusCode: {
+                    200: function(){
+           //             $("#probelogs").html("");
+                        msgStatus = 0;
+                        
+                        // logTable.clear();
+                        // logTable.draw();
+                    },
+                    404: function(){
+                        alert("Failed to start probing(see logs)")
+                    }
+                }
+            })*/
+        });
+
+        function getAttr(e,attr){
+            for(let i  in e.attributes){
+                if(e.attributes[i].name == attr) return e.attributes[i]; 
+            }
+            return null;
+        }
+
+        $(document).on("click",".editHook",function(e){
+            let id = getAttr(e,"hookId");
+            let codeBlock = e.target.parentElement.nextSibling;
+            //console.log(codeBlock);
+            codeBlock.firstChild.innerHTML = "<textarea>"+$("<div />").text(codeBlock.innerText).html()+"</textarea>";
+            //console.log(id);
+        });
+
+        
+        $(document).on("click",".probe-del",function(e){
+            let id = getAttr(e.target,"hookid");
+            
+            
+            $.ajax("../api/hook/"+id.value,{
+                method: "delete",
+                statusCode: {
+                    200: function(data){
+
+                    },
+                    404: function(data){
+
+                    }
+                }
+            });
+
+            
+        });
+
+        //dmTable.ajax.url("../api/device").load();
+        $('#dm-refresh-btn').click(()=>{
+            clsTable.ajax.reload();
+        });
+    });
+
+
+    </script>
+
+</body>
+
+</html>

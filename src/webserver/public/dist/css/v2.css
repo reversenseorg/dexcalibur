@@ -1,0 +1,763 @@
+@font-face {
+    font-family: RalewayLight;
+    src: url(/vendor/fonts/Raleway-Light.ttf);
+}
+@font-face {
+    font-family: RalewayRegular;
+    src: url(/vendor/fonts/Raleway-Regular.ttf);
+}
+
+body {
+    background-color: #FFF;
+  /*  font-size: 11px; */
+}
+
+body.dxc-dark {
+    /*background-color: rgba(44, 44, 99, 0.705);*/
+    /*background-color: rgb(106, 106, 144);*/
+    /*background-color: #3E3E6F;*/
+
+    /*background-color: rgb(20, 20, 41);*/
+    background-color: #0c072c;
+    font-family: RalewayRegular;
+/*
+    background: linear-gradient(120deg, #4B0000 0%, #000000 100%), linear-gradient(300deg, #1E0000 0%, #0038FF 100%, #0038FF 100%), linear-gradient(65deg, #00FFFF 0%, #FF00A8 100%), linear-gradient(185deg, #FF0000 10%, #1400FF 95%), radial-gradient(100% 140% at 100% 0%, #00A3FF 0%, #C10097 100%);
+    background-blend-mode: color-dodge, overlay, difference, color-dodge, normal; 
+    */
+}
+
+body.dxc-dark table.table-hover tbody tr:hover {
+    background-color: rgba(44, 44, 99, 0.305);
+    cursor: pointer;
+}
+
+
+.dxc-detail-block {
+    font-size: 90%;
+}
+
+.dxc-expandedrow-bg {
+    background: #FFF;
+}
+
+.dxc-dark .dxc-expandedrow-bg {
+    border-top: 1px solid rgb(44, 44, 99);
+    background-color: rgb(235, 235, 235);
+    font-size: 1.3em;
+}
+
+.dxc-dark .dxc-expandedrow-bg h4{
+    color: rgb(44, 44, 99);
+    
+    font-size: 1.2rem;
+    margin-left: 2em;
+    border-bottom: 2px solid rgb(44, 44, 99);
+}
+
+.dxc-dark .dxc-expandedrow-bg table tr:hover td {
+    background-color: none;
+}
+
+
+
+table {
+    font-size:95%;
+} 
+
+.navbar-default {
+    border-color:#FFF;
+}
+.navbar-default .navbar-nav > li {
+    border-bottom-color:#FFF;
+}
+.navbar-default .navbar-nav > li > a {
+    color: #FFF;
+    border-bottom-color:#FFF;
+}
+.navbar-default .navbar-nav > li > a:hover {
+    color: #F70;
+}
+
+.navbar-dark .navbar-nav .nav-link.active {
+    color: rgb(238, 255, 2);
+    font-weight: 800;
+}
+
+
+.navbar-dark .navbar-nav .nav-item.active {
+    background-color: rgb(238, 255, 2);
+    color: #000;
+    font-weight: 800;
+}
+
+.navbar-dark .navbar-nav .nav-item.active a {
+    color: #000;
+}
+
+.navbar-dark .navbar-nav .nav-link.active {
+    background-color: rgb(238, 255, 2);
+    color: #000;
+}
+
+.navbar-nav .custom-switch {
+    padding: .5rem;
+}
+.nav-item.custom-switch label,
+.nav-item.custom-switch input 
+{
+    cursor: pointer;
+}
+
+
+.card-header {
+    padding-top: 0.2em;
+    padding-bottom: 0.2em;
+}
+.page-header {
+    margin-top: 10px;
+}
+.alias-text {
+    color:#000;
+    font-weight: 800;
+}
+h1 {
+    font-size: 22px;
+}
+
+#alertcontainer {
+    margin-top: 1em;
+}
+
+#page-wrapper {
+    padding: 0 15px;
+    min-height: 568px;
+    /*background-color: white;*/
+    /*background: linear-gradient(120deg, #4B0000 0%, #000000 100%), linear-gradient(300deg, #1E0000 0%, #0038FF 100%, #0038FF 100%), linear-gradient(65deg, #00FFFF 0%, #FF00A8 100%), linear-gradient(185deg, #FF0000 10%, #1400FF 95%), radial-gradient(100% 140% at 100% 0%, #00A3FF 0%, #C10097 100%);
+    background-blend-mode: color-dodge, overlay, difference, color-dodge, normal;  */
+}
+
+
+.dxc-dark #page-wrapper {
+     /*background-color: rgba(44, 44, 99, 0.705);*/
+    background-color: #0c072c; /* #3E3E6F;
+
+    /*background: linear-gradient(120deg, #4B0000 0%, #000000 100%), linear-gradient(300deg, #1E0000 0%, #0038FF 100%, #0038FF 100%), linear-gradient(65deg, #00FFFF 0%, #FF00A8 100%), linear-gradient(185deg, #FF0000 10%, #1400FF 95%), radial-gradient(100% 140% at 100% 0%, #00A3FF 0%, #C10097 100%);
+    background-blend-mode: color-dodge, overlay, difference, color-dodge, normal;*/
+     /* ultra dark */
+     /* background-color: rgb(20, 20, 41); */
+     border-width:0px;
+}
+
+#page-wrapper.dxc-dark .card {
+    border: 1px solid rgb(0, 247, 255);
+}
+
+#page-wrapper.dxc-dark .card-header {
+    /*background-color: rgba(44, 44, 99, 0.705);*/
+    background-color: rgb(45, 45, 99);
+    color: rgb(238, 255, 0);
+    border-bottom: 1px solid rgb(255, 0, 212);
+}
+
+#page-wrapper .card {
+    margin:10px 0px; 
+    font-size: 0.9em;
+}
+
+h5.card-header {
+    font-size: 1.2em;
+}
+
+.badge-pill {
+    font-size: 1em;
+}
+
+@media (min-width: 768px) {
+    #page-wrapper {
+        position: inherit;
+        margin: 0 0 0 0px;
+        border-left: 1px solid #e7e7e7;
+    }
+}
+
+@media (min-width: 1200px) {
+    /*body {
+        font-size: 12px;
+    }*/
+
+    #page-wrapper {
+        position: inherit;
+        margin: 0 0 0 0px;
+        border-left: 1px solid #e7e7e7;
+    }
+}
+
+
+.secondary-text {
+    color: gray;
+}
+
+.panel-appcmp-orange  {
+    background: #f9c667; /* Old browsers */
+    background: -moz-linear-gradient(-45deg,  #f9c667 0%, #f79621 100%); /* FF3.6-15 */
+    background: -webkit-linear-gradient(-45deg,  #f9c667 0%,#f79621 100%); /* Chrome10-25,Safari5.1-6 */
+    background: linear-gradient(135deg,  #f9c667 0%,#f79621 100%); /* W3C, IE10+, FF16+, Chrome26+, Opera12+, Safari7+ */
+    filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#f9c667', endColorstr='#f79621',GradientType=1 ); /* IE6-9 fallback on horizontal gradient */
+}
+
+
+.panel-appcmp-grey  {
+    background: #a1a1a1; /* Old browsers */
+    background: -moz-linear-gradient(-45deg,  #ebeae9 0%, #818181 100%); /* FF3.6-15 */
+    background: -webkit-linear-gradient(-45deg,  #ebeae9 0%,#818181 100%); /* Chrome10-25,Safari5.1-6 */
+    background: linear-gradient(135deg,  #ebeae9 0%,#818181 100%); /* W3C, IE10+, FF16+, Chrome26+, Opera12+, Safari7+ */
+    filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#f9c667', endColorstr='#f79621',GradientType=1 ); /* IE6-9 fallback on horizontal gradient */
+}
+
+
+.panel-appcmp-blue  {
+    background: #cfceff; /* Old browsers */
+    background: -moz-linear-gradient(-45deg,  #cfceff 0%, #99a3f7 100%); /* FF3.6-15 */
+    background: -webkit-linear-gradient(-45deg,  #cfceff 0%,#99a3f7 100%); /* Chrome10-25,Safari5.1-6 */
+    background: linear-gradient(135deg,  #cfceff 0%,#99a3f7 100%); /* W3C, IE10+, FF16+, Chrome26+, Opera12+, Safari7+ */
+    filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#f9c667', endColorstr='#f79621',GradientType=1 ); /* IE6-9 fallback on horizontal gradient */
+}
+
+.panel-appcmp-green  {
+    background: #ddb3f8; /* Old browsers */
+    background: -moz-linear-gradient(-45deg,  #ddb3f8 0%, #b666f7 100%); /* FF3.6-15 */
+    background: -webkit-linear-gradient(-45deg,  #ddb3f8 0%,#b666f7 100%); /* Chrome10-25,Safari5.1-6 */
+    background: linear-gradient(135deg,  #ddb3f8 0%,#b666f7 100%); /* W3C, IE10+, FF16+, Chrome26+, Opera12+, Safari7+ */
+    filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#f9c667', endColorstr='#f79621',GradientType=1 ); /* IE6-9 fallback on horizontal gradient */
+}
+
+
+.panel-appcmp-ppts {
+    height: 40em;
+}
+
+.panel-appcmp-ppts .panel-body > table  {
+    height: 36em;
+}
+
+.panel-appcmp-ppts .panel-body > table > tbody {
+    height: 38em;
+    display:block;
+    overflow-y: visible;
+    overflow-x: hidden;
+    font-size: 0.9em;
+}
+
+.panel-appcmp-ppts  {
+    font-size: 1.2em;
+}
+
+.panel-appcmp-orange .badge,
+.panel-appcmp-grey .badge,   
+.panel-appcmp-blue .badge,   
+.panel-appcmp-green .badge   {
+    font-size: 0.8em;
+}
+
+
+.panel-appcmp-orange:hover,
+.panel-appcmp-grey:hover,   
+.panel-appcmp-blue:hover,   
+.panel-appcmp-green:hover   {
+    border:2px solid rgba(255, 0, 0, 0.76);
+    cursor: pointer;
+}
+
+.panel-appcmp-orange .panel-heading, 
+.panel-appcmp-grey .panel-heading,
+.panel-appcmp-blue .panel-heading,
+.panel-appcmp-green .panel-heading   {
+    /*padding-bottom: 0px;*/
+    font-size: 0.9em;
+    color: white;
+    text-align:center;
+    border-bottom: 0px solid orange;
+}
+
+.panel-appcmp-green .panel-heading   {
+    /*padding-bottom: 0px;*/
+    font-size: 1em;
+    color: white;
+    text-align:center;
+    border-bottom: 0px solid orange;
+}
+
+
+.service-name,
+.provider-name,
+.receiver-name,
+.activity-name {
+    font-size: 1.2em; 
+}
+
+
+.panel-appcmp-orange .panel-body, 
+.panel-appcmp-grey .panel-body,
+.panel-appcmp-blue .panel-body,
+.panel-appcmp-green .panel-body    {
+    margin-top: 0px;
+    padding-top: 0px;
+    font-size: 0.8em;
+    color: white;
+    text-align:right;
+}
+
+.panel-appcmp-orange .panel-body a, 
+.panel-appcmp-grey .panel-body a,
+.panel-appcmp-blue .panel-body a ,
+.panel-appcmp-green .panel-body a    {
+    margin: 0px;
+    padding: 0px;
+    font-size: 1.5em;
+}
+
+.panel-appcmp-orange .panel-footer  {
+    background-color: #F70;
+    size: 1.5em;
+    color: wheat;
+}
+
+.col-threat-score {
+    text-align: center;
+}
+
+#perm-detail-title {
+    color: #fff;
+    font-size:1.5em;
+}
+
+#ctn-permission-detail * {
+    color: #fff;
+}
+
+.treemap-card {
+    padding:0px;
+}
+
+
+.dataTable > tbody > tr > td {
+    padding: 0.1em;
+}
+
+
+table.finderTable > tbody > tr > td {
+    padding: 0.2em 0em 0.2em 0.2em;
+}
+
+.nestedTable {
+    border-top: 4px solid rgba(78, 75, 233, 0.5);
+}
+
+.nestedTable > thead > tr > th {
+    padding: 0.1em;
+    background-color: rgb(52, 58, 64, .50);
+    color: #fff;
+    padding-left: 1em;
+    font-weight: 200;
+}
+
+
+.nestedTable > tbody > tr:nth-of-type(2n+1) {
+    background-color: rgb(0,0,0,.04);
+}
+
+.nestedTable > tbody > tr:nth-of-type(2n) {
+    background-color: rgb(0,0,0,.01);
+}
+
+.verticalHead > tbody > tr > td:first-child {
+    font-weight: 800;
+}
+
+.card-footer .prefilter, 
+.card-footer .prefilter-clean{
+    margin: 2px;
+    font-size: 0.8em;
+}
+
+.modal-title .title {
+    font-size: 0.6em;
+}
+.modal-title .symbol {
+    font-size: 0.7em;
+}
+
+/*
+#xrefModalLabel {
+    padding-top:0em;
+    padding-bottom:0em;
+}*/
+
+#xrefModal .modal-header,
+#gsetterModal .modal-header,
+#renameModal .modal-header,
+#newHookModal .modal-header {
+    padding-top: 0px;
+    padding-bottom: 0px;
+}
+
+.modal-header h3 {
+    font-size: 1.4em;
+}
+
+
+#gsetterModal .modal-title .title,
+#xrefModal .modal-title .title {
+    font-size: 0.8em;
+    color: #6610f2;
+}
+
+
+#gsetterModal .modal-title .symbol,
+#xrefModal .modal-title .symbol {
+    font-size: 0.9em;
+    color: #ffffff;
+}
+
+#xrefModal .modal-content,
+#gsetterModal .modal-content,
+#renameModal .modal-content,
+#newHookModal .modal-content {
+    font-size: 0.9em;
+    background-color: #fff;
+}
+
+#gsetterModal .modal-header, 
+#xrefModal .modal-header {
+    background-color: rgba(102,16,242,0.30);
+}
+
+#renameModal .modal-header {
+    border-top: 1px solid rgb(102, 38, 204);
+    background-color: rgba(4, 0, 255, 0.418);
+    color: #fff;
+}
+
+#newHookModal .modal-header {
+    border-top: 1px solid rgba(255, 123, 0, 0.774);
+    background-color: rgba(255, 123, 0, 0.418);
+    color: rgb(196, 72, 0);
+}
+
+
+.dxc-detail-body-sm {
+    font-size: 1em;
+}
+
+#dxc-detail-attr-tab {
+    margin: 0.5em;
+    font-size: 0.8em;
+}
+
+#dxc-detail-attr-tab div.row div:first-child{
+    font-weight: 800;
+}
+
+.prefilter-more {
+    color: #6610f2;
+    cursor: pointer;
+}
+
+.prefilter-more:hover {
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+.dxc-badge-list {
+    list-style: none;
+    font-size: 0.8em;
+}
+
+div.dxc-inline-ctn {
+    display: inline-block;
+    margin-left: 1em;
+}
+
+.dxc-active-item {
+    background-color: #FFF;
+    border-bottom: 5px solid #F70;
+}
+
+.dxc-inactive-item {
+    background-color: #DDD;
+    border-bottom: 5px solid #999;
+}
+
+.dxc-inactive-item:hover {
+    background-color: yellow;
+    border-bottom: 5px solid black;
+}
+
+#page-wrapper.dxc-dark .card.dxc-event {
+    border: 1px solid #000;
+    border-radius:0px;
+    background-color: #fff;
+    color: #000;
+    margin: 1em;
+    padding:0px;
+}
+
+
+#page-wrapper.dxc-dark .card.dxc-event .card-header {
+    background-color: #fff;
+    color: #F70 ;  
+    font-size: 0.8em;
+    padding: 0.2em;
+    margin:0px;
+    border:0px;
+}
+
+#page-wrapper.dxc-dark .card.dxc-event .card-body {
+    background-color: #fff;
+    color:#000; 
+    font-size: 0.8em;
+    padding: 0.2em;
+    padding-left: 1em;
+    margin:0px;
+    border: 0px;
+}
+
+
+#page-wrapper.dxc-dark .card.dxc-event:hover
+ {
+    background-color: #e7e7e7;
+    border: 1px solid blue;
+}
+
+#page-wrapper.dxc-dark .card.dxc-event:hover .card-body,
+#page-wrapper.dxc-dark .card.dxc-event:hover .card-header 
+ {
+    background-color: #e7e7e7;
+}
+
+.dxc-badge-list > li {
+    list-style: none;
+    margin-top: 0.1em;
+}
+
+.dxc-badge-list > li > span {
+    cursor: pointer;
+}
+
+.dxc-horizon-separator {
+    border-top: 1px solid rgb(233, 123, 60);
+    padding-top: 1em;
+}
+.dxc-form-separator {
+    border-left: 1px solid rgb(233, 123, 60);
+}
+
+.dxc-wrapped-row {
+    word-wrap: anywhere;
+}
+
+.dxc-second-nav {
+    background-color: rgba(44, 44, 99, 0.705);
+    color: #fff;
+}
+
+.dxc-second-nav .nav-item a {
+    color: #fff;
+    cursor: pointer;
+}
+
+.dxc-second-nav .nav-item a:hover {
+    color: rgb(238, 255, 0);
+    cursor: pointer;
+}
+
+.dxc-description {
+    padding-left: 4em;
+}
+
+
+.dxc-dark-row {
+    background-color: rgba(44, 44, 99, 0.705);
+}
+
+.dxc-dark table,
+.dxc-dark-row table {
+    background-color: #FFF;
+    font-size: 0.8em;
+}
+
+.dxc-dark-row h1 {
+    color: rgb(238, 255, 0);
+}
+
+.dxc-dark h1.page-header {
+    color: rgb(238, 255, 0);   
+}
+
+.dxc-dark div.dxc-description {
+    color: #95b9f0;   
+}
+.dxc-dark div.dxc-text {
+    color: #95b9f0;   
+}
+
+.dxc-dark div.dxc-description a {
+    color: rgb(238, 255, 0);   
+}
+
+.dxc-dark-row table tbody tr td {
+    padding-left: 1em;
+}
+
+
+.dxc-red-btn {
+    margin-left: 1em;
+    background-color: rgba(44, 44, 99);
+    border: 1px solid #f96854;
+    color: #f96854;
+}
+.dxc-red-btn a.nav-link {
+    color: #f96854;
+}
+
+.dxc-red-btn a.nav-link:hover {
+    color: rgba(44, 44, 99);
+    background-color: #f96854;
+}
+
+.dxc-purple-btn {
+    margin-left: 1em;
+    background-color: rgba(44, 44, 99);
+    border: 1px solid rgb(234, 0, 255);
+    color: rgb(234, 0, 255);
+}
+.dxc-purple-btn a.nav-link {
+    color: rgb(234, 0, 255);
+}
+
+.dxc-purple-btn a.nav-link:hover {
+    color: rgba(44, 44, 99);
+    background-color: rgb(234, 0, 255);
+}
+
+
+.dxc-orange-btn {
+    margin-left: 1em;
+    background-color: rgba(44, 44, 99);
+    border: 1px solid rgb(255, 174, 0);
+    color: rgb(255, 174, 0);
+}
+.dxc-orange-btn a.nav-link {
+    color: rgb(255, 174, 0);
+}
+
+.dxc-orange-btn a.nav-link:hover {
+    color: rgba(44, 44, 99);
+    background-color: rgb(255, 174, 0);
+}
+
+
+.dxc-run-btn {
+    background-color: rgba(44, 44, 99);
+    border: 1px solid rgb(0, 247, 255);
+    color: rgb(0, 247, 255);
+}
+.dxc-run-btn a.nav-link {
+    color: rgb(0, 247, 255);
+}
+
+.dxc-run-btn a.nav-link:hover {
+    color: rgba(44, 44, 99);
+    background-color: rgb(0, 247, 255);
+}
+
+.dxc-hook-ppt div:first-child {
+    font-weight:800;
+    padding-left:2em;
+}
+.dxc-floating-badge {
+    margin-left:2em; 
+    font-size:0.8em; 
+    cursor:pointer
+}
+
+.prefilter,
+.prefilter-clean,
+.probe, 
+.badge-action {
+    cursor: pointer;
+}
+
+.probe {
+    background-color: rgb(32, 42, 189);
+    color: #FFF;
+}
+
+.probing {
+    background-color: rgb(4, 119, 39);
+    color: #FFF;
+}
+
+
+
+#tabProbeLogs tr td {
+    padding-top:0.3em;
+    padding-bottom:0.3em;
+}
+
+
+#dataTables-devices tbody tr td:first-child {
+    text-align:center;
+}
+
+.navbar-dark .navbar-brand:hover {
+    color: yellow;
+}
+
+.badge-yellow {
+    background-color: yellow;
+    color:black;
+}
+
+.dropdown-item:hover {
+    background: #23215230;
+    cursor: pointer;
+}
+
+
+
+/* dark theme */
+/*
+#xrefModal .modal-body {
+    background-color: rgba(24, 7, 51, 1);
+    padding: 0px 6px 6px 6px;
+}
+
+#xrefModal .dataTable {
+    background-color: #fff;
+}
+
+#xrefModal .dataTable {
+    background-color: rgba(24, 7, 51, 1);
+    color: #fff;
+}
+
+#xrefModal .dataTable th {
+    background-color: rgb(56, 59, 99);
+    color: #fff;
+}
+
+#xrefModal .table-bordered {
+    border-color: rgb(87, 91, 151);
+}
+
+#xrefModal .dataTable > tbody > tr:nth-of-type(2n)  {
+    background-color: rgba(24, 7, 51, 1);
+    color: rgba(49, 124, 223, 0.9);
+}
+
+#xrefModal .dataTable > tbody > tr:nth-of-type(2n+1)  {
+    background-color: rgba(39, 40, 82, 0.3);
+    color: rgba(116, 174, 250, 0.9);
+}
+*/

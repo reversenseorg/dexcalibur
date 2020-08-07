@@ -23,25 +23,19 @@ module.exports = function(grunt) {
       'build',
       'To build final package including non-TS required resources',
       function(pProfile){
-            if (arguments.length === 1 && arguments[0]==='help') {
-                  grunt.log.writeln('[HELP] '+this.name+" : [<profile_name>]");
-                  return;
-            }
 
-            let output = grunt.config('build.output');
+            let output = _path_.join(__dirname,grunt.config('build.output'))+'/';
 
-            output = _path_.join(__dirname,output);
-
-              grunt.config.set('copy.core', {
+              /*grunt.config.set('copy.core', {
                   expand: true,
                   dot: true,
                   cwd: 'dexcalibur',
-                  src: 'inspectors/**/web/*',
+                  //src: 'inspectors/web/',
                   dest: output
               });
-              grunt.task.run(['copy:core']);
+              grunt.task.run(['copy:core']);*/
 
-              [
+              let srcs = [
                   './test/**/*',
                   './scripts/**/*',
                   './bin/**/*',
@@ -54,30 +48,16 @@ module.exports = function(grunt) {
                   './src/requires/**/*',
                   './src/routes/**/*',
                   './src/scanner/**/*',
-                  './src/webserver/**/*'
-              ].map(function(pPath){
-                  grunt.config.set('copy.core', {
-                      expand: true,
-                      dot: true,
-                      cwd:'dexcalibur-ts',
-                      src: pPath,
-                      dest: output
-                  });
-                  grunt.task.run(['copy:core']);
+                  './src/webserver/**/*',
+                  './inspectors/**/web/*'
+              ];
+
+              grunt.config.set('copy.core', {
+                  expand: true,
+                  dot: true,
+                  src: srcs,
+                  dest: output
               });
-
-
-
+              grunt.task.run(['copy:core']);
       });
-
-
-
-
-    // +------------------------------------------------+
-    // ----------------- RELEASE TASK -------------------
-    // +------------------------------------------------+
-
-
-
-
 };

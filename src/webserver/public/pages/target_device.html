@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="">
+    <meta name="author" content="">
+
+    <title>Dexcalibur - Target device</title>
+
+    <!--## pages/inc/tpl_css.html ##-->
+
+    <!--## pages/inc/tpl_js_d3.html ##-->
+    <style>
+        #deviceCurrent,
+        #bridgeCurrent {
+            color:#fff;
+            border: 1px solid  #fff;
+            border-radius: 5px;
+        }
+
+    </style>
+</head>
+
+<body class="dxc-dark">
+
+
+        <!--## pages/inc/menu.html ##-->
+
+        <div id="page-wrapper" class="dxc-dark" style="font-family:RalewayLight">
+
+                <div class="row">
+                    <div class="col-lg-12">
+                        <h1 class="page-header">Target Device</h1>
+                    </div>
+                    <!-- /.col-lg-12 -->
+                </div>
+
+                <div class="row">
+                    <div class="col-lg-9 dxc-description">
+                        <p>This panel helps you to select another target device for the project. Only enrolled device can be selected.</p>
+                    </div>  
+                </div>
+
+                <div class="row" style="color:#fff;background-color:#232152;padding:1em;">
+                    <div class="col-lg-1">&nbsp;</div>
+                    <div class="col-lg-2">
+                        Target device
+                    </div>
+                    <div class="col-lg-1 text-right" id="dxcStatus"></div>
+                    <div class="col-lg-2">
+                        <div class="btn-group">
+                            <button type="button" id="deviceCurrent" class="btn btn-sm border-1 dropdown-toggle" style="padding:8px 20px" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                -
+                            </button>
+                            <div class="dropdown-menu">
+                                <h6 class="dropdown-header"><span class="fa fa-circle text-success"></span>&nbsp;connected</h6>
+                                <p id="deviceSelectorConn"></p>
+                                <div class="dropdown-divider"></div>
+                                <h6 class="dropdown-header"><span class="fa fa-circle text-danger"></span>&nbsp;disconnected / not enrolled</h6>
+                                <p id="deviceSelectorDisc"></p>
+                            </div>
+                        </div>
+                    </div>  
+                    <div class="col-lg-6 text-warning">
+                        <span>Only enrolled and connected device can be selected</span>
+                    </div>
+                </div>
+                <div class="row" style="color:#fff;background-color:#232152;padding:1em;">
+                        <div class="col-lg-1">&nbsp;</div>
+                        <div class="col-lg-2">
+                            Bridge
+                        </div>
+                        <div class="col-lg-1 text-right" id="bridgeStatus"></div>
+                        <div class="col-lg-2">
+                            <div class="btn-group">
+                                <button type="button" id="bridgeCurrent" class="btn btn-sm dropdown-toggle" style="padding:8px 20px" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                   -
+                                </button>
+                                <div class="dropdown-menu">
+                                    <h6 class="dropdown-header"><span class="fa fa-circle text-success"></span>&nbsp;up</h6>
+                                    <p id="deviceBridgeConn"></p>
+                                    <div class="dropdown-divider"></div>
+                                    <h6 class="dropdown-header"><span class="fa fa-circle text-danger"></span>&nbsp;down</h6>
+                                    <p id="deviceBridgeDisc"></p>
+                                </div>
+                            </div>
+                        </div>  
+                        <div class="col-lg-6 text-warning">&nbsp;</div>
+                    </div>
+
+        </div>
+        <!-- /#page-wrapper -->
+   
+
+    <!--## pages/inc/tpl_js_end.html ##-->
+
+    <script>
+    
+
+    function updateCurrentDevice(){
+        DexcaliburAPI.project.getDevice({
+            onSuccess: function(pDev){
+                console.log(pDev);
+                $('#deviceCurrent').html( DexcaliburAPI.ui.htmlEncode(pDev.msg.model)+"&nbsp;".repeat(5)+'('+DexcaliburAPI.ui.htmlEncode(pDev.msg.id)+')');
+
+                let bridge = pDev.msg.bridges[pDev.msg.bridge];
+                $('#bridgeCurrent').html(`<span class="fa fa-${pDev.msg.bridge.indexOf('tcp')>-1?'wifi':'usb'}"></span>&nbsp;&nbsp;${DexcaliburAPI.ui.htmlEncode(bridge.shortname)}`);
+
+                $('#deviceBridgeConn').empty();
+                $('#deviceBridgeDisc').empty();
+
+                for(let name in pDev.msg.bridges){
+                    if(pDev.msg.bridges[name].up==true){
+                        $('#deviceBridgeConn').append(`<a dxc-id="${name}:${pDev.msg.uid}" class="dropdown-item dxc-bridge" style="padding-left:0.5em;padding-right:1em;"><span class="fa fa-${name.indexOf('tcp')>-1?'wifi':'usb'}"></span>&nbsp;&nbsp;${name}</a>`);
+                    }else{
+                        $('#deviceBridgeDisc').append(`<a dxc-id="${name}:${pDev.msg.uid}" class="dropdown-item dxc-bridge" tabindex="-1" aria-disabled="true" style="padding-left:0.5em;padding-right:1em;"><span class="fa fa-${name.indexOf('tcp')>-1?'wifi':'usb'}"></span>&nbsp;&nbsp;${name}</a>`);
+                    }
+                };
+            },
+            onError: function(pErr){
+                let err = JSON.parse(pErr.responseText);
+
+            }
+        });
+    }
+
+    function updateDeviceList(){
+        DexcaliburAPI.device.list(function(pList){
+                pList = JSON.parse(pList);
+
+                $('#deviceSelectorConn').empty();
+                $('#deviceSelectorDisc').empty();
+
+                pList.devices.map( dev => {
+     
+                    if(dev.enrolled==true && dev.connected==true){
+                        $('#deviceSelectorConn').append(`<a dxc-id="${dev.uid}" class="dropdown-item dxc-device" style="padding-left:0.5em;padding-right:1em;">&nbsp;&nbsp;${dev.model}&nbsp;&nbsp;${dev.uid}</a>`);
+                    }else{
+                        $('#deviceSelectorDisc').append(`<a dxc-id="${dev.uid}" class="dropdown-item disabled" tabindex="-1" aria-disabled="true" style="padding-left:0.5em;padding-right:1em;">&nbsp;&nbsp;${dev.model}&nbsp;&nbsp;${dev.uid}</a>`);
+                    }
+                });
+
+                
+            },
+            function(pErr){
+                let err = JSON.parse(pErr.responseText);
+
+            }
+        );
+    }
+
+    $(document).ready(function(){
+
+       
+        updateDeviceList();
+        updateCurrentDevice();
+
+        $(document).on('click','a.dxc-device',(pEl)=>{
+            let uid = pEl.currentTarget.getAttribute('dxc-id');
+            
+            DexcaliburAPI.project.setDevice(uid,{
+                onSuccess: function(pData){
+                    if(pData.success){
+                        $('#dxcStatus').html('<span class="fa fa-check text-success" style="font-size:2em"></span>');
+                        updateCurrentDevice();
+                    }else{
+                        $('#dxcStatus').html('<span class="fa fa-times-circle text-danger" style="font-size:2em"></span>');
+                    }
+                    
+                },
+                onError: function(pData){
+                    $('#dxcStatus').html('<span class="fa fa-times-circle text-danger" style="font-size:2em"></span>');
+                }
+            })
+        })   
+        
+        $(document).on('click','a.dxc-bridge',(pEl)=>{
+            let uid = pEl.currentTarget.getAttribute('dxc-id').split(':');
+            
+            DexcaliburAPI.device.setDefaultBridge( uid[1], uid[0], {
+                onSuccess: function(pData){
+                    if(pData.success){
+                        $('#bridgeStatus').html('<span class="fa fa-check text-success" style="font-size:2em"></span>');
+                        updateCurrentDevice();
+                    }else{
+                        $('#bridgeStatus').html('<span class="fa fa-times-circle text-danger" style="font-size:2em"></span>');
+                    }
+                    
+                },
+                onError: function(pData){
+                    $('#bridgeStatus').html('<span class="fa fa-times-circle text-danger" style="font-size:2em"></span>');
+                }
+            })
+        })  
+
+    });
+
+    </script>
+
+</body>
+
+</html>

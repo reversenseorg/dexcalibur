@@ -1,0 +1,68 @@
+{
+  "name": "dexcalibur-ts",
+  "version": "1.0.0",
+  "description": "Android reverse engineering platform focused on dynamic binary instrumentation automation. tPowered by Frida. Offers a GUI and a Node.JS API",
+  "main": "./dist/dexcalibur.js",
+  "directories": {
+    "test": "test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/FrenchYeti/dexcalibur-ts.git"
+  },
+  "dependencies": {
+    "adm-zip": "^0.4.14",
+    "body-parser": "^1.18.3",
+    "busboy": "^0.3.1",
+    "chai": "^4.1.2",
+    "chalk": "^2.4.1",
+    "co": "^4.6.0",
+    "crypto": "^1.0.1",
+    "event-stream": "^4.0.1",
+    "express": "^4.16.3",
+    "file-type": "^10.4.0",
+    "frida": "<=12.10.4",
+    "got": "^10.7.0",
+    "js-yaml": "^3.13.1",
+    "md5": "^2.2.1",
+    "mime-types": "^2.1.20",
+    "properties": "^1.2.1",
+    "r2pipe": "^2.8.0",
+    "xml2js": "^0.4.19",
+    "xz": "^2.0.2"
+  },
+  "devDependencies": {
+    "@types/chai": "^4.2.11",
+    "@types/mocha": "^7.0.2",
+    "grunt-contrib-clean": "^2.0.0",
+    "grunt-contrib-copy": "^1.0.0",
+    "grunt-exec": "^3.0.0",
+    "mocha": "^5.2.0",
+    "mocha-sinon": "^2.1.0",
+    "nyc": "^15.1.0",
+    "sinon": "^7.3.2",
+    "sinon-chai": "^3.3.0",
+    "ts-node": "^8.10.2",
+    "typescript": "^3.9.5"
+  },
+  "bin": {
+    "dexcalibur": "dexcalibur"
+  },
+  "scripts": {
+    "prepare": "npm run build",
+    "build": "./scripts/build.sh",
+    "watch": "tsc -w",
+    "start": "node --max-old-space-size=4096 ./dist/dexcalibur.js",
+    "test": "TS_NODE_COMPILER_OPTIONS='{\"module\":\"commonjs\"}' DEXCALIBUR_TEST=1 DEXCALIBUR_PORT=8081 DEXCALIBUR_HOST=127.0.0.1 mocha -r ts-node/register test/*.test.ts",
+    "postinstall": "node ./scripts/postinstall.js"
+  },
+  "engines": {
+    "node": ">=12.0"
+  },
+  "author": {
+    "name": "Georges-Bastien MICHEL",
+    "email": "frenchyeti@protonmail.com"
+  },
+  "homepage": "https://github.com/FrenchYeti/dexcalibur",
+  "license": "Apache-2.0"
+}
