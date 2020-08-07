@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="">
+    <meta name="author" content="">
+
+    <title>Dexcalibur - File Monitoring</title>
+
+    <!-- styles -->
+    <!--## pages/inc/tpl_css.html ##-->
+
+</head>
+
+<body>
+
+    <div id="wrapper">
+
+        <!-- Navigation -->
+        <!--## pages/inc/menu.html ##-->
+
+        <div id="page-wrapper">
+            <!--<div class="row">
+                <div class="col-lg-12">
+                    <h1 class="page-header" style="font-size:1em">Probe logs</h1>
+                </div>
+            </div>-->
+            <div class="row" style="padding:10px;">
+                <div class="col-lg-8" style="font-size:1.5em">FileSystem Monitoring</div>
+                
+                <div class="col-lg-4">
+                    <button class="btn btn-danger probe-restart">
+                        <i class="fa fa-refresh"></i>&nbsp;Relaunch
+                    </button>&nbsp
+                    <button class="btn btn-primary refresh">
+                        <i class="fa fa-refresh"></i>&nbsp;Refresh
+                    </button>
+                </div>
+            </div>
+
+
+
+        </div>
+        <!-- /#page-wrapper -->
+    </div>
+    <!-- /#wrapper -->
+
+
+    <!--## pages/inc/tpl_js_end.html ##-->
+
+    <script>
+
+    $(document).ready(function() {
+        $(".refresh").click(function(e){
+            $.ajax("/api/inspectors/FileDescriptor", {
+                method: "get",
+                data: {
+                    param1: "test"
+                },
+                status: {
+                    200: function(data,err){
+                        alert("Success");
+                    }
+                }
+            })
+        });
+    });
+
+    </script>
+
+</body>
+
+</html>

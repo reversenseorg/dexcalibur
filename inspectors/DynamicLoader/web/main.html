@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="">
+    <meta name="author" content="">
+
+    <title>Dexcalibur - Dynamic Loader</title>
+
+    <!-- styles -->
+    <!--## pages/inc/tpl_css.html ##-->
+
+
+
+
+    <!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
+    <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
+    <!--[if lt IE 9]>
+        <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
+        <script src="https://oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js"></script>
+    <![endif]-->
+
+</head>
+
+<body class="dxc-dark">
+
+
+        <!-- Navigation -->
+        <!--## pages/inc/menu.html ##-->
+
+        <div id="page-wrapper" class="dxc-dark">
+            
+
+            <div class="row">
+                <div class="col-lg-12">
+                    <h1 class="page-header">Dynamic loader inspector</h1>
+                </div>
+                <!-- /.col-lg-12 -->
+            </div>
+            <div class="row">
+                <div class="col-lg-10 dxc-description">
+                    <p>This <b>inspector</b> hooks Android internals methods involved into dynamic bytecode loading, class loading and dynamic calls using Reflection API. 
+                    It collects and analyse automatically additional Dex file or bytecode loaded at runtime. It is usefull when the application is obfuscated and hides its function calls. 
+                    Files or data loaded at runtime are copied into the local workspace (<code>[project_workspace]/runtime/bytecode</code> folder). 
+                    Copied files are automatically analysed statically at runtime and when dexcalibur starts. These files can be flushed from <b>project settings menu</b>.
+                    <!--<a href="https://dexcalibur.org/docs">See help for more information</a> -->
+                    </p>
+                </div>  
+                <div class="col-lg-2 dxc-text">
+                    <h6>Actions:</h6>
+                    <button class="btn btn-danger cleanup" style="font-size:0.9em; cursor:pointer">
+                        <i class="fa fa-trash"></i>&nbsp;Remove copied files
+                    </button>
+                </div>
+            </div>
+            
+            <div class="card">
+                <h5 class="card-header">Method invoked dynamically</h5>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-lg-10">
+                            <b>Heuristic model :</b>
+                            <ul>
+                                <ol><input type="radio" name="dyncall_heurtype" value="half" checked/>&nbsp;A <i>Class.forName() or a const-class</i> followed by <i>Class.getMethod()</i> is probably a call <b style="color:green">(trust: moderate, rapidity: fast, stability: stable)</b></ol>
+                                <ol><input type="radio" name="dyncall_heurtype" value="mixstat" disabled />&nbsp;A <i>Class.forName() or a const-class<</i> followed by <i>Class.getMethod()</i> followed statically by a <i>Method.invoke()</i> probably call <b style="color:green">(trust: good, rapidity: moderate, stability: stable)</b></ol>
+                                <ol><input type="radio" name="dyncall_heurtype" value="invoke" disabled />&nbsp;A <i>Method.invoke()</i> is probably a call <b style="color:red">(trust: high, rapidity: fast, stability: unstable - can crash the server ! - frida limitation)</b></ol>
+                            </ul>
+                        </div>
+                        <div class="col-lg-2">
+                            <h6>Actions :</h6>
+                            <button class="btn btn-primary refreshReflect">
+                                <i class="fa fa-refresh"></i>&nbsp;Refresh
+                            </button>
+                        </div>
+                    </div>
+                    <p>The table below lists all unique method invoked dynamically. If a method has never been yet discovered, it is tagged 
+                    with the <span class="badge badge-purple">new</span> label.</p>
+                    <table width="100%"  class="table table-striped table-bordered table-hover" id="dataTables-reflect">
+                            <thead>
+                                <tr>
+                                    <th id="finder-col1">-</th>
+                                    <th id="finder-col2">Method</th>
+                                    <th id="finder-col3">Flags</th>
+                                    <th id="finder-col4">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                
+                            </tbody>
+                        </table>
+                </div>
+                <!--
+                <div class="col-lg-4">
+                    <button class="btn btn-danger cleanup">
+                        <i class="fa fa-trash"></i>&nbsp;Remove copied files
+                    </button>
+                </div>-->
+            </div>
+
+            <div class="card">
+                <h5 class="card-header">
+                    Dex file loaded dynamically
+                    <span class="bage badge-pill badge-primary refreshDex" style="margin-left:2em; font-size:0.8em; cursor:pointer">
+                        <i class="fa fa-refresh"></i>&nbsp;Refresh
+                    </span>
+
+                </h5>
+                       <!-- <div class="col-lg-2">
+                            <button class="btn btn-primary refreshDex">
+                                <i class="fa fa-refresh"></i>&nbsp;Refresh
+                            </button>
+                        </div>-->
+                          
+                <div class="card-body">
+                    <p>The table below lists all Dex files gathered at runtime and decompiled dynamically.</p>
+                    <table width="100%"  class="table table-striped table-bordered table-hover" id="dataTables-dex">
+                            <thead>
+                                <tr>
+                                    <th id="finder-col1" class="col-lg-1">-</th>
+                                    <th id="finder-col2" class="col-lg-2">Name</th>
+                                    <th id="finder-col3" class="col-lg-8">Filepath</th>
+                                    <th id="finder-col4" class="col-lg-1">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                
+                            </tbody>
+                        </table>     
+                </div>
+            </div>
+
+            <div class="card">
+                    <h5 class="card-header">Elements discovered 
+                        <span class="bage badge-pill badge-primary refreshDisco" style="margin-left:2em; font-size:0.8em; cursor:pointer">
+                            <i class="fa fa-refresh"></i>&nbsp;Refresh
+                        </span>
+                    </h5>
+                    <!--
+                            <div class="col-lg-2">
+                                <button class="btn btn-primary refreshDisco">
+                                    <i class="fa fa-refresh"></i>&nbsp;Refresh
+                                </button>
+                            </div>-->
+                                
+                    <div class="card-body">
+                        <p>The table below lists all elements discovered (string, class, method, field, array, ...).</p>
+                        <table width="100%"  class="table table-striped table-bordered table-hover" id="dataTables-discover">
+                                <thead>
+                                    <tr>
+                                        <th id="finder-col1" class="col-lg-1">-</th>
+                                        <th id="finder-col2" class="col-lg-2">Type</th>
+                                        <th id="finder-col3" class="col-lg-8">Object</th>
+                                        <th id="finder-col4" class="col-lg-1">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    
+                                </tbody>
+                            </table>     
+                    </div>
+                </div>
+
+
+        </div>
+        <!-- /#page-wrapper -->
+    
+
+
+    <!--## pages/inc/tpl_js_end.html ##-->
+
+   <!--<script src="/js/wexcalibur.js"></script> -->
+    <script>
+
+    function htmlEncode(txt){
+        return $('<div />').text(txt).html();
+    }
+
+    $(document).ready(function() {
+
+        let clsTable = $('#dataTables-reflect').DataTable({
+            searching: false,
+            paging: true,
+            columns: [
+                {
+                    "className":      'details-control',
+                    "orderable":      false,
+                    "data":           null,
+                    "defaultContent": ''
+                },
+                {  
+                    render: function(data, type, row, meta ){
+                        return '<a target="about" href="/pages/finder.html?method='+btoa(encodeURIComponent(row.__signature__))+'">'+htmlEncode(row.__signature__)+'</a>';
+                    }
+                },
+                {  
+                    render: function(data, type, row, meta ){
+                        if(row.tags==null) return "";
+                        let b="";
+                        for(let i=0; i<row.tags.length; i++){
+                            switch(row.tags[i]){
+                                case "id":
+                                    b += DexcaliburAPI.ui.badge.make("pink","invoked");
+                                    break
+                                case "led":
+                                    b += DexcaliburAPI.ui.badge.make("warning","external");
+                                    break
+                                case "new":
+                                    b += DexcaliburAPI.ui.badge.make("purple","new");
+                                    break
+                            }
+                        }
+                        return b;
+                    }
+                 },
+                { 
+                    render: function(data, type, row, meta ){
+                        if(row.name != null)
+                            return '<span class="badge badge-primary badge-pill badge-action probe" meth="'+btoa(encodeURIComponent(row.__signature__))+'">Probe</a>';
+                        else    
+                            return '';
+                    }
+                }
+            ],
+            responsive: true
+        });
+
+        let disTable = $('#dataTables-discover').DataTable({
+            searching: false,
+            paging: false,
+            columns: [
+                {
+                    "className":      'details-control',
+                    "orderable":      false,
+                    "data":           null,
+                    "defaultContent": ''
+                },
+                {  
+                    render: function(data, type, row, meta ){
+                        if(row.simpleName != null){
+                            return "Class";
+                        }
+                        else if(row.ret != null){
+                            return "Method";
+                        }
+                        else if(row.modifiers= null){
+                            return "Field";
+                        }
+                        else if(row.width != null){
+                            return "Data";
+                        }
+                        else if(row.value != null){
+                            return "String";
+                        }
+                        else{
+                            return "???";
+                        }
+                    }
+                },
+                {  
+                    render: function(data, type, row, meta ){
+                        if(row.simpleName != null){
+                            return '<a href="/pages/finder.html?class='+btoa(encodeURIComponent(row.fqcn))+'">'+htmlEncode(row.fqcn)+'</a>';
+                        }
+                        else if(row.ret != null){
+                            return htmlEncode(row.__signature__);
+                        }
+                        else if(row.modifiers= null){
+                            return htmlEncode(row.__signature__);
+                        }
+                        else if(row.width != null){
+                            return htmlEncode(row.name+'('+row.width*row.length+' bits)');
+                        }
+                        else if(row.value != null){
+                            return htmlEncode(row.value);
+                        }
+                        else{
+                            return "???";
+                        }
+                    }
+                 },
+                { 
+                    render: function(data, type, row, meta ){
+                        if(row.name != null)
+                            return '';//'<a  class="badge badge-success probe">more</a>';
+                        else 
+                            return 'None';
+                    }
+                }
+            ],
+            responsive: true
+        });
+
+        let dexTable = $('#dataTables-dex').DataTable({
+            searching: false,
+            paging: false,
+            columns: [
+                {
+                    "className":      'details-control',
+                    "orderable":      false,
+                    "data":           null,
+                    "defaultContent": ''
+                },
+                {  
+                    render: function(data, type, row, meta ){
+                        return row.name;
+                    }
+                },
+                {  
+                    render: function(data, type, row, meta ){
+                        return row.remotePath;
+                    }
+                 },
+                { 
+                    render: function(data, type, row, meta ){
+                        if(row.name != null)
+                            return '';//<a  class="badge badge-success seecontent">Content</a>';
+                        else  
+                            return 'None';
+                    }
+                }
+            ],
+            responsive: true
+        });
+
+        $(".refreshDisco").click(function(e){
+            $.ajax("/api/inspectors/DynamicLoader", {
+                method: "get",
+                data: {
+                    action: "refresh_discover",
+                    t: (new Date()).getTime()
+                },
+                statusCode: {
+                    200: function(data,err){
+                        disTable.clear();
+                        disTable.rows.add(data.data);
+                        disTable.draw();
+                    },
+                    404: function(data,err){
+                        alert("An error occured");
+                    }
+                }
+            })
+        });
+
+        $(".refreshReflect").click(function(e){
+            $.ajax("/api/inspectors/DynamicLoader", {
+                method: "get",
+                data: {
+                    action: "refresh_reflect",
+                    t: (new Date()).getTime()
+                },
+                statusCode: {
+                    200: function(data,err){
+                        clsTable.clear();
+                        clsTable.rows.add(data.data);
+                        clsTable.draw();
+                    },
+                    404: function(data,err){
+                        alert("An error occured");
+                    }
+                }
+            })
+        });
+
+        $(".refreshDex").click(function(e){
+            $.ajax("/api/inspectors/DynamicLoader", {
+                method: "get",
+                data: {
+                    action: "refresh_dex",
+                    t: (new Date()).getTime()
+                },
+                statusCode: {
+                    200: function(data,err){
+                        dexTable.clear();
+                        dexTable.rows.add(data.data.refs);
+                        dexTable.draw();
+                    },
+                    404: function(data,err){
+                        alert("An error occured");
+                    }
+                }
+            })
+        });
+
+
+        $(".cleanup").click(function(e){
+            $.ajax("/api/inspectors/DynamicLoader", {
+                method: "get",
+                data: {
+                    action: "cleanup",
+                    t: (new Date()).getTime()
+                },
+                statusCode: {
+                    200: function(data,err){
+                        let dat = JSON.parse(data);
+
+                        alert(dat.msg);
+                    },
+                    404: function(data,err){
+                        alert("An error occured");
+                    }
+                }
+            })
+        });
+
+        $(".refreshReflect").trigger("click");
+        $(".refreshDisco").trigger("click");
+        $(".refreshDex").trigger("click");
+
+        $(document).on("click",".probe",function(){
+            let DOM_PROBE =$(this);
+            let meth = $(this).attr("meth");
+
+            // DexcaliburAPI.hook.newFutureHook();
+            // $("#newHookModal").modal();
+
+            $.ajax('/api/probe/'+meth,{
+                method: 'post',
+                statusCode: {
+                    200: function(data, err){
+
+                        //console.log(DOM_PROBE,hasClass("badge-primary"));
+                        if(JSON.parse(data).enable){
+                            if(DOM_PROBE.hasClass("badge-primary"))
+                                DOM_PROBE.removeClass("badge-primary");
+
+                            DOM_PROBE.addClass("badge-success");
+                            DOM_PROBE.text("Probe ON").html();
+                        }else{
+
+                            if(DOM_PROBE.hasClass("badge-success"))
+                                DOM_PROBE.removeClass("badge-success");
+
+                            DOM_PROBE.addClass("badge-primary");
+                            DOM_PROBE.text("Probe OFF").html();
+                        }
+                    },
+                    404: function(){
+                        //alert("Failed to add probe (see logs)")
+                    }
+                }
+            })
+        });
+
+    });
+
+    </script>
+
+</body>
+
+</html>

@@ -127,7 +127,6 @@ export default new InspectorFactory({
         },
         "app.receiver.new": function (ctx, event) {
 
-            console.log(event);
 
             let cls:ModelClass;
             if(isRelativeName(event.data.obj.name)){
