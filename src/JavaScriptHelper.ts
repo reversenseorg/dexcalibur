@@ -1,26 +1,33 @@
-const SCALAR_TYPE = 0x1;
-const STRING_TYPE = 0x2;
-const RAW_TYPE = 0x3;
-const OBJECT_TYPE = 0x4;
 
-class JSObject
+enum JS_TYPES {
+    UNDEFINED,
+    SCALAR_TYPE,
+    STRING_TYPE,
+    RAW_TYPE,
+    OBJECT_TYPE
+}
+
+export class JSObject
 {
+    name:string;
+    entries:any;
+
     constructor(){
         this.name = null;
         this.entries = [];
     }
 
-    isValidName(name){
+    isValidName(name:string):boolean{
         return (/^[A-Za-z][A-Za-z0-9_]*$/.test(name));
     }
 
-    setName(name){
+    setName(name:string):JSObject{
         if(! this.isValidName(name)) throw new Error("JSHelper.JSObject invalid name : "+name);
         this.name = name;
         return this;
     }
 
-    addEntry(name, value, type){
+    addEntry(name:string, value:any, type:JS_TYPES):JSObject{
         if(! this.isValidName(name)) throw new Error("JSHelper - invalid key value : "+name);
 
         this.entries.push({
@@ -32,27 +39,27 @@ class JSObject
         return this;
     }
 
-    addScalarEntry(name, value){
-        return this.addEntry(name, value, SCALAR_TYPE);
+    addScalarEntry(name:string, value:any):JSObject{
+        return this.addEntry(name, value, JS_TYPES.SCALAR_TYPE);
     }
 
-    addRawEntry(name, value){
-        return this.addEntry(name, value, RAW_TYPE);
+    addRawEntry(name:string, value:any):JSObject{
+        return this.addEntry(name, value, JS_TYPES.RAW_TYPE);
     }
 
-    addStringEntry(name, value){
-        return this.addEntry(name, value, STRING_TYPE);
+    addStringEntry(name:string, value:string):JSObject{
+        return this.addEntry(name, value, JS_TYPES.STRING_TYPE);
     }
 
-    addObjectEntry(name, value){
-        return this.addEntry(name, value, OBJECT_TYPE);
+    addObjectEntry(name:string, value:any):JSObject{
+        return this.addEntry(name, value, JS_TYPES.OBJECT_TYPE);
     }
 
-    getName(){
+    getName():string{
         return this.name;
     }
 
-    toScript(indentLevel=1){
+    toScript(indentLevel:number=1):string{
         let entry=null, out=`{
 `;
 
@@ -73,16 +80,16 @@ class JSObject
             }
             else{
                 switch(entry.type){
-                    case SCALAR_TYPE:
+                    case JS_TYPES.SCALAR_TYPE:
                         out += entry.value;
                         break;
-                    case STRING_TYPE:
+                    case JS_TYPES.STRING_TYPE:
                         out += '"'+entry.value+'"';
                         break;
-                    case RAW_TYPE:
+                    case JS_TYPES.RAW_TYPE:
                         out += entry.value;
                         break;
-                    case OBJECT_TYPE:
+                    case JS_TYPES.OBJECT_TYPE:
                         out += entry.value.toScript(indentLevel+1);
                         break;
                 }
@@ -93,8 +100,11 @@ class JSObject
     }
 }
 
-class JSWriter
+export class JSWriter
 {
+    use_strict:boolean = false;
+    scripts:string;
+
     constuctor(use_strict=false){
         this.use_strict = use_strict;
         this.scripts = "";
@@ -102,28 +112,23 @@ class JSWriter
             this.scripts = "'use strict';";
     }
 
-    addConstant(obj){
-        if(! obj instanceof JSObject) return null;
+    addConstant(obj:any):JSWriter{
+        if((obj instanceof JSObject)===false) return null;
 
         if(this.scripts === undefined) this.scripts="";
         this.scripts += "\nconst "+obj.getName()+" = "+obj.toScript()+";";
         return this;
     }
 
-    addVariable(obj){
-        if(! obj instanceof JSObject) return null;
+    addVariable(obj:any):JSWriter{
+        if((obj instanceof JSObject)===false) return null;
         
         if(this.scripts === undefined) this.scripts="";
         this.scripts += "\nvar "+obj.getName()+" = "+obj.toScript()+";";
         return this;
     }
 
-    toScript(){
+    toScript():string{
         return this.scripts;
     }
 }
-
-module.exports = {
-    JWriter: JSWriter,
-    JObject: JSObject
-};

@@ -1,4 +1,3 @@
-
 import * as _fs_ from 'fs';
 import * as _es_ from 'event-stream';
 
@@ -20,7 +19,6 @@ import ModelField from "./ModelField";
 import {ModelClassReference} from "./ModelReference";
 import OpcodeSmaliParser from "./OpcodeSmaliParser";
 import ModelInstruction from "./ModelInstruction";
-
 
 
 const SML_MAIN=0;
@@ -45,6 +43,10 @@ var Checker = {
     isObjectType: function(c){
         return c=="L";
     },
+    hasAccess: function(flags:number, access:number){
+        return ((flags & access) == access);
+    }
+    /*
     makeFnHashcode: function(modif,cls,name,args,ret){
         let xargs = "";
         for(let i in args) xargs+="<"+args[i]._hashcode+">";
@@ -53,7 +55,7 @@ var Checker = {
     makeFieldHashcode: function(modif,cls,name,type){
         //console.log(type);
         return modif._name+"|"+cls.name+"|"+name+"|"+type._hashcode;
-    }
+    }*/
 };
 
 
@@ -99,6 +101,7 @@ export default class SmaliParser
     }
 
     static modifier(pSource:string|string[], pMatch:MatchCounter){
+
         if(typeof pSource === 'string')
             pSource=pSource.split(CONST.LEX.TOKEN.SPACE);
 
@@ -174,6 +177,11 @@ export default class SmaliParser
             }
         }
 
+        if((Checker.hasAccess(mod,Modifier.PRIVATE)
+                ||Checker.hasAccess(mod,Modifier.PROTECTED))===false){
+            mod |= Modifier.PUBLIC;
+        }
+
         Logger.debug("[parser::modifier] "+ModifierFormat.sprintModifier(mod));
 
         return mod;
@@ -191,6 +199,9 @@ export default class SmaliParser
 
         let raw:string;
         raw = (src instanceof Array)? src[0] : src;
+
+        if(raw=='L;' || raw=='L/;')
+            throw new Error('[SMALI PARSER] Empty FQCN detected ( L; or L/; )');
 
         // remove additional chars : "L"  at begin and ";" at end. 
         // console.log("PARSER::FQCN > ",src);
@@ -217,9 +228,9 @@ export default class SmaliParser
     }
 
     // char 
-    basicTypes(c){
+    /*basicTypes(c){
         return CONST.TYPES[c];
-    }
+    }*/
 
     /**
      * To create a ModelClass instance from a class reference

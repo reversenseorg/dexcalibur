@@ -17,7 +17,7 @@ export const enum Modifier {
      SYNTH = 0b10 << 13,
      VOLATILE = 0b10 << 14,
      SYNC = 0b10 << 15,
-     PRIVATE = 0b10 << 16,
+     PRIVATE = 0b1 << 16,
      ANNOTATION = 0b10 << 17
 }
 

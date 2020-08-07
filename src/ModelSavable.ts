@@ -27,8 +27,9 @@ export class Stub
 {
     __type__:number = null;
 
-    constructor(type:number, data:any, exclude:any=[]){
+    constructor(type:number, data:any, exclude:any=null){
         this.__type__ = type;
+        if(exclude==null) exclude=[];
 
         for(let i in data){
             if(exclude.indexOf(i)==-1)
