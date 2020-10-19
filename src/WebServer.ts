@@ -37,6 +37,8 @@ import * as VM from "vm";
 import {FinderResult} from "./FinderResult";
 import {Intent, IntentCommandFactory} from "./IntentFactory";
 import Simplifier from "./Simplifier";
+import ModelPackage from "./ModelPackage";
+import ModelClass from "./ModelClass";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -990,6 +992,7 @@ export default class WebServer
                     }));
                 }catch(err){
                     Logger.debugRAW(err);
+                    Logger.raw(err);
                     res.status(200).send(JSON.stringify({
                         success: false
                     }));
@@ -1370,6 +1373,7 @@ export default class WebServer
             .put(function (req:ExpressRequest, res:ExpressResponse):any {
                 // collect
                 let obj = $.project.find.get.class(Util.decodeURI(Util.b64_decode(req.params.id)));
+                let pkg: ModelPackage;
 
                 if (obj == null) {
                     res.status(404).send(JSON.stringify({ error: "Class not found" }));
@@ -1380,6 +1384,23 @@ export default class WebServer
 
                 //console.log(alias);
                 if(alias != null){
+
+                    if(alias == obj.simpleName){
+                        res.status(500).send(JSON.stringify({
+                            success: false,
+                            msg: { type:'warn', msg:'Ignored because the alias not differs from name.'}
+                        }));
+                        return ;
+                    }
+
+                    pkg = obj.getPackage() as ModelPackage;
+                    if(pkg!=null && pkg.hasAliasedClass(alias)){
+                        res.status(500).send(JSON.stringify({
+                            success: false,
+                            msg: { type:'err', msg:'A conflict has been detected. Please choose another alias.'}
+                        }));
+                        return ;
+                    }
                     obj.setAlias(alias);
                     $.project.trigger({
                         type: "class.alias.update",
@@ -1634,6 +1655,7 @@ export default class WebServer
             .put(function (req:ExpressRequest, res:ExpressResponse):any {
                 // collect
                 let method:ModelMethod = $.project.find.get.method(Util.decodeURI(Util.b64_decode(req.params.id)));
+                let cls:ModelClass;
 
                 if (method == null) {
                     res.status(404).send(JSON.stringify({ error: "Method not found" }));
@@ -1643,6 +1665,24 @@ export default class WebServer
                 let alias:string = req.body['alias'];
 
                 if(alias != null){
+
+                    if(alias == method.name){
+                        res.status(500).send(JSON.stringify({
+                            success: false,
+                            msg: { type:'warn', msg:'Ignored because the alias not differs from name.'}
+                        }));
+                        return ;
+                    }
+
+                    cls = method.getEnclosingClass();
+                    if(cls!=null && cls.hasAliasedMethod(alias)){
+                        res.status(500).send(JSON.stringify({
+                            success: false,
+                            msg: { type:'err', msg:'A conflict has been detected. Please choose another alias.'}
+                        }));
+                        return ;
+                    }
+
                     method.setAlias(alias);
                     $.project.trigger({
                         type: "method.alias.update",
@@ -1656,11 +1696,41 @@ export default class WebServer
         // TODO : Useless, too heavy request
         this.app.route('/api/package')
             .get(function (req:ExpressRequest, res:ExpressResponse):any {
-                // collect
-                let dev = {
-                    data: $.project.find.package('name:.*').toJsonObject(["name"])
-                };
-                res.status(200).send(JSON.stringify(dev));
+
+                let format:any = req.query.hasOwnProperty('format')? req.query.format : 'list';
+                let query:string = req.query.hasOwnProperty('query')? req.query.query : '.*';
+                let filter:string = req.query.hasOwnProperty('filter')? req.query.filter : null;
+                let fields:string[] = req.query.hasOwnProperty('fields')? req.query.fields.split(',') : ['name'];
+                let dev:any = {};
+
+
+                try{
+                    if(format=='tree'){
+                        if(query=='.*')
+                            dev.data = $.project.find.package('name:^[^\\.]*$');
+                        else
+                            dev.data = $.project.find.package('name:'+query);
+                    }else{
+                        dev.data = $.project.find.package('name:.*');
+                    }
+
+                    if(filter != null){
+                        dev.data = dev.data.filter(filter);
+                    }
+
+                    dev.data = dev.data.toJsonObject(fields);
+                    res.status(200).send(JSON.stringify(dev));
+                }catch(err){
+                    console.log(err);
+
+                    dev = {
+                        success: false
+                    };
+                    res.status(500).send(JSON.stringify(dev));
+                }
+
+
+
             });
 
 
@@ -1927,6 +1997,7 @@ export default class WebServer
             .put(function (req:ExpressRequest, res:ExpressResponse):any {
                 // collect
                 let obj:ModelField = $.project.find.get.field(Util.decodeURI(Util.b64_decode(req.params.id)));
+                let cls:ModelClass;
 
                 if (obj == null) {
                     res.status(404).send(JSON.stringify({ error: "Field not found" }));
@@ -1937,6 +2008,24 @@ export default class WebServer
 
                 
                 if(alias != null){
+                    if(alias == obj.name){
+                        res.status(500).send(JSON.stringify({
+                            success: false,
+                            msg: { type:'warn', msg:'Ignored because the alias not differs from name.'}
+                        }));
+                        return ;
+                    }
+
+                    cls = obj.getEnclosingClass();
+                    if(cls!=null && cls.hasAliasedField(alias)){
+                        res.status(500).send(JSON.stringify({
+                            success: false,
+                            msg: { type:'warn', msg:'A conflict has been detected. Please choose another alias.'}
+                        }));
+                        return ;
+                    }
+
+
                     obj.setAlias(alias);
                     $.project.trigger({
                         type: "field.alias.update",
@@ -2354,6 +2443,7 @@ export default class WebServer
             '/api/intent',
             '/api/scanner',
             '/api/field',
+            '/api/method',
             '/api/class',
             '/api/finder',
             '/api/package',
@@ -2375,6 +2465,12 @@ export default class WebServer
          */
         this.app.use(function(req:ExpressRequest, res:ExpressResponse, next:any){
             let f = false;
+
+            // TODO : make CORS parameter as env var
+            res.set('Access-Control-Allow-Origin', '*');
+            res.set('Access-Control-Allow-Methods', 'POST, GET, DELETE, OPTIONS, PUT');
+            res.set('Access-Control-Allow-Headers', 'Content-Type');
+
             if(self.project != null){ next(); return; }
             if(!req.url.startsWith('/pages/') && !req.url.startsWith('/inspectors/')){ next(); return; }
 
