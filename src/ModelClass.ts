@@ -248,6 +248,24 @@ export default class ModelClass extends Savable
         this.alias = name;
     }
 
+    hasAliasedMethod( pAlias:string):boolean{
+        let f = false;
+        for(let f in this.methods){
+            if(this.methods[f].getAlias()===pAlias)
+                return true;
+        }
+        return false;
+    }
+
+    hasAliasedField( pAlias:string):boolean{
+        let f = false;
+        for(let f in this.fields){
+            if(this.fields[f].getAlias()===pAlias)
+                return true;
+        }
+        return false;
+    }
+
     /**
      * To dump class into stdout / console
      *

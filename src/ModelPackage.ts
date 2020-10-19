@@ -2,6 +2,7 @@
 import ModelMetadata from "./ModelMetadata";
 import ModelClass from './ModelClass';
 
+
 /**
  * The class represents a Java|* Package
  * 
@@ -9,6 +10,8 @@ import ModelClass from './ModelClass';
  */
 export default class ModelPackage
 {
+    _t:string = null;
+
     /**
      * Package name
      *
@@ -16,6 +19,11 @@ export default class ModelPackage
      * @field
      */
     name:string;
+
+    /**
+     * Package simple name
+     */
+    sname:string;
 
     /**
      * Package metadata
@@ -29,15 +37,28 @@ export default class ModelPackage
      * @type {Class[]|ModelPackage[]}
      * @field
      */
-    children:ModelClass[]|ModelPackage[];
+    children:(ModelPackage|ModelClass)[] = [];
 
     /**
      * Tags
-     * @type {String|Integer|Tag}
+     * @type {string|number|Tag}
      * @field
      */
     tags:string[];
 
+    /**
+     * Alias
+     * @type {string}
+     * @field
+     */
+    alias:string = null;
+
+
+    static fromJavaFQCN( pName:string):ModelPackage {
+        let o = new ModelPackage(pName);
+        // o.sname = pName.split('.').pop();
+        return o;
+    }
     /**
      * 
      * @param {String} pName Package fullname
@@ -45,9 +66,11 @@ export default class ModelPackage
      */
     constructor(pName:string){
         this.name = pName;
+        this.sname = pName.split('.').pop();
         this.children = [];
         this.tags = [];
     }
+
 
     /**
      * 
@@ -139,25 +162,110 @@ export default class ModelPackage
         return this.tags;   
     }   
 
+    setAlias( pAlias:string):void {
+        this.alias = pAlias;
+    }
+
+    getAlias():string {
+        return this.alias;
+    }
+
+    getChildrenByAlias( pName:string):ModelClass|ModelPackage{
+        let c:ModelClass|ModelPackage = null;
+        this.children.map( function(vChild:any){
+            if(vChild.getAlias()===pName) c = vChild;
+        });
+        return c;
+    }
+
+    hasAliasedClass( pAlias:string){
+        let o:ModelClass|ModelPackage = this.getChildrenByAlias(pAlias);
+        return (o!=null)&&(o instanceof ModelClass);
+    }
+
+    hasAliasedPackage( pAlias:string){
+        let o:ModelClass|ModelPackage = this.getChildrenByAlias(pAlias);
+        return (o!=null)&&(o instanceof ModelPackage);
+    }
+
     /**
      * To transform a set of access flags as a simple object ready to be serialized
-     * 
+     *
+     *   children<ModelClass>.name
+     *   children<ModelPackage>.tags
+     *
      * @param {Object[]|String[]} pFields
      * @returns {Object} Simple object containing package content
      * @function 
      */
     toJsonObject( pFields:any):any{
-        let o:any= {};
+        let o:any= {}, k:number, m:any, field:string=null;
+        o.children = [];
+        o._t = 'p'; // TODO : Stub
+
         if(pFields !== null){
-            for(let i in pFields){
-                if(typeof this[pFields[i]] == "object"){
-                    o[pFields[i]] = this[pFields[i]].toJsonObject();
-                }else{
+            /*
+            for(let i=0; i<pFields.length; i++){
+
+                console.log(pFields[i]);
+
+                if((k=pFields[i].indexOf('.'))==-1){
                     o[pFields[i]] = this[pFields[i]];
                 }
+                else if(pFields[i].indexOf("children<ModelClass>")==0){
+                    field = pFields[i].substr(k+1);
+
+
+
+                    console.log('class> ',field);
+                    for(let co=0; co<this.children.length; co++){
+
+                        console.log('class> ',field, this.children[co] instanceof ModelPackage);
+                        if(this.children[co] instanceof ModelClass){
+
+                            m = {type:'c'};
+                            m[field] = this.children[co][field];
+                            o.children.push(m);
+                        }
+                    }
+                }
+                else if(pFields[i].indexOf("children<ModelPackage>")==0){
+                    field = pFields[i].substr(k+1);
+                    console.log('package> ',field);
+                    for(let co=0; co<this.children.length; co++){
+
+                        console.log('package> ',field, this.children[co] instanceof ModelPackage);
+                        if(this.children[co] instanceof ModelPackage){
+
+                            m = {type:'p'};
+                            m[field] = this.children[co][field];
+                            o.children.push(m);
+                        }
+                    }
+                }
+                else {
+                    o[pFields[i]] = this[pFields[i]].toJsonObject(pFields[i].substr(0,k));
+                }
             }
+            */
+            //o[pFields[i]] = this[pFields[i]];
+
+            o.name = this.name;
+            o.sname = this.sname;
+            o.children = [];
+            for(let i=0; i<this.children.length;i++){
+                m = this.children[i];
+                if(m instanceof ModelClass){
+                    o.children.push({ _t:'c', name: m.name, sname: m.simpleName, alias:m.alias, tags: m.tags }) ;
+                }else{
+                    o.children.push({ _t:'p', name: m.name, sname: m.sname, alias:m.alias, tags: m.tags });
+                }
+            }
+            o.tags = this.tags;
+
         }else{
             o.name = this.name;
+            o.sname = this.sname;
             o.children = [];
             for(let i in this.children){
                 o.children.push(this.children[i].toJsonObject(null)); // TODO args
