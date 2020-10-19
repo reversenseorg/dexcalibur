@@ -16,6 +16,7 @@ function getLetterFromType(typename:string):string{
 }
 
 
+
 interface HookCode {
     varID:any,
     before: null,
@@ -358,7 +359,10 @@ export default class Hook
         let val = null;
 
         switch(argtype){
-            case "int":
+            /* case "int":
+                val = argname;
+                break; */
+            default:
                 val = argname;
                 break;
         }
@@ -380,8 +384,8 @@ export default class Hook
      *
      */
     makeArgsHelper(args_arr:(ModelBasicType|ModelObjectType)[]){
-        if(args_arr.length ==0)
-            return null;
+        //if(Objectargs_arr.length ==0)
+        //    return null;
 
         let raw_name:string = null;
         let helper:any = {
@@ -529,7 +533,8 @@ export default class Hook
         if(this.parentID != null){
             tags["@@__CTX__@@"] = "ctx_"+_md5_(this.parentID);
         }
-        if(method.args.length > 0){
+        // @ts-ignore
+        if(Object.keys(method.args).length > 0){
             let argHelp:any = this.makeArgsHelper(method.args);
             tags["@@__ARGS__@@"] = argHelp.call_signature;
             tags["@@__ARGS_DATA__@@"] = "{"+argHelp.data+"}";
@@ -556,7 +561,7 @@ export default class Hook
     
             var meth_@@__METHDEF__@@ = cls_@@__CLSDEF__@@.@@__METHNAME__@@.overload(@@__ARGS__@@);
     
-            meth_@@__METHDEF__@@.implementation(@@__HOOK_ARGS__@@) {
+            meth_@@__METHDEF__@@.implementation = function(@@__HOOK_ARGS__@@) {
         `;
 
         if(this.code.replace != null){
@@ -569,7 +574,7 @@ export default class Hook
             // replace token
             for(let i in tags){
                 do{
-                    script = script.replace(i,tags[i]);
+                    script = script.replace(i as string,tags[i] as string);
                 }while(script.indexOf(i)>-1);
             }
 
@@ -660,7 +665,7 @@ export default class Hook
         if(this.parentID != null){
             tags["@@__CTX__@@"] = "ctx_"+_md5_(this.parentID);
         }
-        if(method.args.length > 0){
+        if(Object.keys(method.args).length > 0){
             let argHelp:any = this.makeArgsHelper(method.args);
             tags["@@__ARGS__@@"] = argHelp.call_signature;
             tags["@@__ARGS_DATA__@@"] = "{"+argHelp.data+"}";

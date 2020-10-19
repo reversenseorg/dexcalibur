@@ -174,6 +174,10 @@ export default  class ModelField extends Savable
     }
 
 
+    getEnclosingClass():ModelClass {
+        return this.enclosingClass;
+    }
+
     toJsonObject(fields:any=null,exclude:any=null):any{
         let obj:any = new Object();
         /*if(fields.length>0){

@@ -322,6 +322,29 @@ export default class Analyzer
         this.projectionEngines = {};
     }
 
+    static createPackage( pName:string, pDb:AnalyzerDatabase):void {
+        let p = pName.split('.'),  fresh:ModelPackage=null;
+        let pkg:string='', ppkg:string=p[0];
+
+
+        for(let i=0; i<p.length; i++){
+            ppkg = pkg;
+            pkg += (i==0?'':'.')+p[i];
+
+            if(pDb.packages.hasEntry(pkg)==false){
+
+                console.log(`creating>  ${pkg} (${pkg.length}) parent=${ppkg}`);
+
+                fresh = ModelPackage.fromJavaFQCN(pkg);
+                pDb.packages.setEntry(pkg,  fresh);
+                if(i>0){
+                    pDb.packages.getEntry( ppkg).childAppend(fresh);
+                }
+            }
+        }
+        //pDb.packages.setEntry(pName,  ModelPackage.fromJavaFQCN(pName));
+    }
+
     /**
      * To analyze each instruction and resolve symbols
      *
@@ -735,7 +758,7 @@ export default class Analyzer
 
             // Build Package instance from the package name (string)
             if(absoluteDB.packages.hasEntry(pkgName) == false){
-                absoluteDB.packages.setEntry(pkgName,  new ModelPackage(pkgName));
+                Analyzer.createPackage( pkgName, absoluteDB);
             }
             // Append the current class to its Package instance
             absoluteDB.packages.getEntry(pkgName).childAppend(v);
@@ -1353,6 +1376,9 @@ export default class Analyzer
     }
 
     tagAllAsInternal(){
+        // TODO : optimize
+        this.db.packages.map(Analyzer.tagAsAndroidInternal)
+
         this.db.classes.map(Analyzer.tagAsAndroidInternal);
         this.db.fields.map(Analyzer.tagAsAndroidInternal);
         this.db.methods.map(Analyzer.tagAsAndroidInternal);
@@ -1367,6 +1393,9 @@ export default class Analyzer
 
 
     tagAllIf(condition:any, tag:any){
+        // TODO : optimize
+        this.tagIf(condition, "packages", tag);
+
         this.tagIf(condition, "classes", tag);
         this.tagIf(condition, "fields", tag);
         this.tagIf(condition, "methods", tag);

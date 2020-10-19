@@ -39,6 +39,7 @@ var Saver:InspectorFactory = new InspectorFactory({
         "method.alias.update": function(ctx:DexcaliburProject, event:Event):any{
             try{
                 if(ctx.saveManager.isReady() && ctx.saveManager.isEnabled()){
+                    console.log(event,event.data);
                     ctx.saveManager.updateAlias("methods", event.data.meth);
                     ctx.saveManager.save();
                     Logger.debug("[INSPECTOR][SAVE] updateAlias() saved");
@@ -68,7 +69,8 @@ var Saver:InspectorFactory = new InspectorFactory({
         "class.alias.update": function(ctx:DexcaliburProject, event:Event):any{
             try{
                 if(ctx.saveManager.isReady() && ctx.saveManager.isEnabled()){
-                    ctx.saveManager.updateAlias("classes", event.data.cls);
+                    console.log(event);
+                    ctx.saveManager.updateAlias("classes", (event as any).cls);
                     ctx.saveManager.save();
                     Logger.debug("[INSPECTOR][SAVE] updateAlias() saved");
                 }else{

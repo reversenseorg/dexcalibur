@@ -2007,7 +2007,8 @@ export default class DexcaliburDVM implements DexcaliburVM
 
                     v = this.pcmaker.last();
                     this.pcmaker.pop();
-                    this.pcmaker.push(`${indent}${regX} = ${v.substr(indent.length,v.length)}`);
+                    //this.pcmaker.push(`${indent}${regX} = ${v.substr(indent.length,v.length)}`);
+                    this.pcmaker.writeVarAsssign( regX, v, indent);
                     this.stack.importLocalSymbol(regX, regV, v);
                 }else if(regV != null){
                     this.stack.importLocalSymbol(regX, regV, null);
@@ -2284,7 +2285,8 @@ export default class DexcaliburDVM implements DexcaliburVM
 
                     if(regZ.getValue() instanceof DDVM_ClassInstance){
                         v = `${regV.endsWith(".String")?"":"("+regV+")"} ${label}.${oper.right.alias!=null? oper.right.alias : oper.right.name}`;
-                        this.stack.setLocalSymbol(regX, DDVM_TypeHelper.getDataTypeOf( oper.right.type), regZ.getValue().readField(oper.right), v);
+                        //console.log(oper.right,regZ.getValue());
+                        this.stack.setLocalSymbol(regX, DDVM_TypeHelper.getDataTypeOf( oper.right.type), regZ.getValue().getField(oper.right.name), v);
                     }else{
                         v = `${regV.endsWith(".String")?"":"("+regV+")"} ${label}.${oper.right.alias!=null? oper.right.alias : oper.right.name}`;
                         this.stack.setLocalSymbol(regX, DDVM_TypeHelper.getDataTypeOf( oper.right.type), null, v);
@@ -2528,8 +2530,8 @@ export default class DexcaliburDVM implements DexcaliburVM
 
                 }else if(this.simplify >= 1 && this.isImm(regV))
                     v = `${indent}return ${this.getImmediateValue(regV)};`;
-                else if(regV.getValue()!=null && regV.getValue().hasConcrete()){
-                    v = `${indent}return ${regX}; // ${regV.getValue().getConcrete()} `;
+                else if(regV.hasConcrete()){
+                    v = `${indent}return ${regV.getValue()}; // ${regX} `; // getConcrete()
                 }else{
                     v = `${indent}return ${regX};`;
                 }

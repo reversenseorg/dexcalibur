@@ -218,6 +218,8 @@ export default class FridaHelper
             frida += " -l 0.0.0.0"
         }
 
+        Logger.info(`[FRIDA HELPER] Start server <privileged:${pOptions.privileged?'true':'false'}>: ${frida} `);
+
         if(pOptions.privileged)
             res = await pDevice.privilegedExecSync(frida, {detached:true});
         else

@@ -90,6 +90,16 @@ export default class DDVM_Symbol
         return this.value;
     }
 
+    /**
+     * Alias of hasValue()
+     *
+     * @method
+     * @returns {boolean} TRUE if concrete value of the symbol is known, else FALSE
+     */
+    hasConcrete():boolean {
+        return this.hasValue();
+    }
+
     hasValue():boolean{
         return (this.value !== null);
     }

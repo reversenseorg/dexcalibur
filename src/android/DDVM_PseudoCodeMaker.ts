@@ -6,6 +6,7 @@ import {ModelRegisterReference} from "../ModelReference";
 import DDVM_Symbol from "./DDVM_Symbol";
 import DDVM_VirtualArray from "./DDVM_VirtualArray";
 import * as Log from "../Logger";
+import {DDVM_PseudoCodeConfiguration} from "./DDVM_PseudoCodeConfiguration";
 
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
@@ -17,7 +18,10 @@ export default class DDVM_PseudoCodeMaker
 {
     code:string[] = null;
     enabled:boolean = false;
+    configuration:DDVM_PseudoCodeConfiguration = null;
     vm:DexcaliburDVM = null;
+
+    args:string[] = [];
 
     /**
      *
@@ -29,6 +33,11 @@ export default class DDVM_PseudoCodeMaker
         this.code = [];
         this.enabled = pEnable;
         this.vm = pVM;
+        this.configuration = new DDVM_PseudoCodeConfiguration();
+    }
+
+    getConfiguration():DDVM_PseudoCodeConfiguration {
+        return this.configuration;
     }
 
     isEnable():boolean{
@@ -224,8 +233,27 @@ export default class DDVM_PseudoCodeMaker
         this.code.push(v);
     }
 
+    writeVarAsssign( pVName:string, pVValue:string, pIndent:string=""):void {
+
+        this.releaseVar(pVName);
+        this.args.push(pVName);
+
+        this.code.push(`${pIndent}${pVName} = ${pVValue.substr(pIndent.length,pVValue.length)}`);
+
+        //this.code.push(v);
+    }
+
+    releaseVar( pVar:string):void{
+        let i:number;
+        if((i = this.args.indexOf(pVar))>-1){
+            this.args[i] = null;
+        }
+    }
+
     push( pCode:string):void{
-        if(this.enabled) this.code.push(pCode);
+        if(this.enabled){
+            this.code.push(pCode);
+        }
     }
 
     append( pMessage:string):void{

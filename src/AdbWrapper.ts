@@ -742,9 +742,10 @@ export default class AdbWrapper implements IBridge
      */
     async detachedShell( pCommand:string|string[], pArgs:string = "" ):Promise<boolean>{
         let args:string[] = this.setup(null,false) as string[];
-        let ws:DexcaliburWorkspace = require('./DexcaliburWorkspace').getInstance();
+        let ws:DexcaliburWorkspace = DexcaliburWorkspace.getInstance();
         let out:number = _fs_.openSync( _path_.join( ws.getTempFolderLocation(), 'out.log'), 'w+', 0o666);
         let err:number = _fs_.openSync( _path_.join( ws.getTempFolderLocation(), 'err.log'), 'w+', 0o666);
+
 
         args = args.concat(pCommand);
         let child:Process.ChildProcess = Process.spawn(this.path, args, { detached: true, stdio: [ 'ignore', out, err ] });
@@ -763,6 +764,7 @@ export default class AdbWrapper implements IBridge
      * @method
      */
     async privilegedShell(command:string, pOptions:any = {detached: false}):Promise<boolean|string|Buffer>{
+        Logger.info(`[ADB] Privileged exec <detached:${pOptions.detached?'true':'false'} : ${command}`);
         if(pOptions.detached)
             return await this.detachedShell(["shell","su","-c",command]);
         else
