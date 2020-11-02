@@ -42,38 +42,6 @@ import ModelClass from "./ModelClass";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
-/*
-const Express = require("express");
-const fs = require("fs");
-const MIME = require("mime-types");
-const Chalk = require("chalk");
-const VM = require("dexcalibur-ts/src/REMOVED/VM");
-const BodyParser = require("body-parser");
-const Path = require("path");
-
-const _busboy_ = require('busboy');
-
-const AnalysisHelper = require("./AnalysisHelper.js");
-const ConnectorFactory = require('./ConnectorFactory');
-const Decompiler = require("./Decompiler.js");
-const Configuration = require("./Configuration.js");
-const Uploader = require('./Uploader');
-const Downloader = require('./Downloader');
-const UT = require("./Utils.js");
-const Logger = require("./Logger.js")();
-const CLASS = require("./CoreClass.js");
-const UTF8 = require("./UTF8.js");
-const ANDROID = require("./AndroidAppComponents.js");
-const INTENT = require("./IntentFactory.js");
-const Simplifier = require("./Simplifier.js");
-const WebTemplateEngine = require('./WebTemplateEngine');
-const Installer = require('./Installer').Installer;
-const PlatformManager = require('./PlatformManager');
-const DeviceManager = require('./DeviceManager');
-const InspectorManager = require('./InspectorManager');
-const FridaHelper = require('./FridaHelper');
-const ApkHelper = require('./ApkHelper');
-*/
 
 /**
  * @namespace WebServer.MimeHelper
@@ -113,6 +81,7 @@ export default class WebServer
 
     tplengine:WebTemplateEngine = null;
     app:ExpressApplication = null;
+    httpServer:any = null;
     port:number = 8000;
 //        root = Path.join(project.config.dexcaliburPath, "webserver", "public");
     // root = _path_.join( __dirname, "webserver", "public");
@@ -1386,7 +1355,7 @@ export default class WebServer
                 if(alias != null){
 
                     if(alias == obj.simpleName){
-                        res.status(500).send(JSON.stringify({
+                        res.status(200).send(JSON.stringify({
                             success: false,
                             msg: { type:'warn', msg:'Ignored because the alias not differs from name.'}
                         }));
@@ -1395,7 +1364,7 @@ export default class WebServer
 
                     pkg = obj.getPackage() as ModelPackage;
                     if(pkg!=null && pkg.hasAliasedClass(alias)){
-                        res.status(500).send(JSON.stringify({
+                        res.status(200).send(JSON.stringify({
                             success: false,
                             msg: { type:'err', msg:'A conflict has been detected. Please choose another alias.'}
                         }));
@@ -1667,7 +1636,7 @@ export default class WebServer
                 if(alias != null){
 
                     if(alias == method.name){
-                        res.status(500).send(JSON.stringify({
+                        res.status(200).send(JSON.stringify({
                             success: false,
                             msg: { type:'warn', msg:'Ignored because the alias not differs from name.'}
                         }));
@@ -1676,7 +1645,7 @@ export default class WebServer
 
                     cls = method.getEnclosingClass();
                     if(cls!=null && cls.hasAliasedMethod(alias)){
-                        res.status(500).send(JSON.stringify({
+                        res.status(200).send(JSON.stringify({
                             success: false,
                             msg: { type:'err', msg:'A conflict has been detected. Please choose another alias.'}
                         }));
@@ -2009,7 +1978,7 @@ export default class WebServer
                 
                 if(alias != null){
                     if(alias == obj.name){
-                        res.status(500).send(JSON.stringify({
+                        res.status(200).send(JSON.stringify({
                             success: false,
                             msg: { type:'warn', msg:'Ignored because the alias not differs from name.'}
                         }));
@@ -2018,7 +1987,7 @@ export default class WebServer
 
                     cls = obj.getEnclosingClass();
                     if(cls!=null && cls.hasAliasedField(alias)){
-                        res.status(500).send(JSON.stringify({
+                        res.status(200).send(JSON.stringify({
                             success: false,
                             msg: { type:'warn', msg:'A conflict has been detected. Please choose another alias.'}
                         }));
@@ -2511,7 +2480,7 @@ export default class WebServer
 
         this.context.printWebBanner(wwwPort);
 
-        this.app.listen(wwwPort, function () {
+        this.httpServer = this.app.listen(wwwPort, function () {
             Logger.success('Server started on : ' + wwwPort);
         });
     }
