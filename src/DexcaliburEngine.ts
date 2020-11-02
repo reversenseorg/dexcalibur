@@ -18,6 +18,8 @@ import InspectorManager from "./InspectorManager";
 import Configuration from "./Configuration";
 import Installer from "./Installer";
 import FridaHelper from "./FridaHelper";
+import {WebsocketServer} from "./WebsocketServer";
+import {TerminalServer} from "./TerminalServer";
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
 var gAdmZip:any = null;
@@ -61,6 +63,11 @@ switch(process.platform){
 }
 
 
+enum MODE {
+    INSTALL,
+    NORMAL
+}
+
 /**
  * 
  * 
@@ -71,7 +78,7 @@ switch(process.platform){
  *  - Else, Dexcalibur starts into "production mode"
  * 
  *  - Init DexcaliburWorkspace  
- *  - Start Dexcalibur
+ *  - Start Dexcalibur (web server and socket server)
  *  - When the user selects or creates a project from SplashScreen, corresponding 
  *  Project are loaded / created
  * 
@@ -137,6 +144,25 @@ export default class DexcaliburEngine
      */
     installer:Installer = null;
 
+
+    /**
+     * Web socket server
+     * @field
+     * @type {WebsocketServer}
+     * @since 1.0.0
+     */
+    wsserver: WebsocketServer = null;
+
+    /**
+     * Terminal server manages all
+     * local and remote (device) terminal sessions
+     *
+     *
+     */
+    terminalSrv: TerminalServer = null;
+
+    mode: MODE = MODE.NORMAL;
+
     /**
      * To instanciate DexcaliburEngine.
      * 
@@ -170,6 +196,10 @@ export default class DexcaliburEngine
      */
     getRegistry():DexcaliburRegistry{
         return this.registry;
+    }
+
+    getTerminalServer():TerminalServer{
+        return this.terminalSrv;
     }
 
         /* +"║ > const Dexcalibur = require('./src/Project.js')                           ║\n"
@@ -294,6 +324,10 @@ export default class DexcaliburEngine
         // init
         this.init( pWebRoot);
 
+        this.terminalSrv = new TerminalServer({
+            _engine: this
+        });
+
         //  enumerate local and remote platforms
         this.platformMgr.enumerate();
 
@@ -350,6 +384,12 @@ export default class DexcaliburEngine
         this.webserver.setContext(this);
 
         this.webserver.useProductionMode();
+
+        // setup web socket server
+        this.wsserver = new WebsocketServer(this);
+
+        // pass allowed origins to init;
+        this.wsserver.init();
 
         this.platformMgr = PlatformManager.getInstance(this);
 
@@ -560,6 +600,7 @@ export default class DexcaliburEngine
      */
     prepareInstall( pWebPort:number|string, pWebRoot:string){
 
+        this.mode = MODE.INSTALL;
 
         this.preInstall(pWebRoot);
 
@@ -603,12 +644,22 @@ export default class DexcaliburEngine
         return this.installer.getStatus();
     }
 
+    /**
+     * To starts servers and child process
+     *
+     * @param pWebPort {number} Port number
+     * @param pUI {Path} (Optional) Web root of the UI
+     */
     start( pWebPort:string|number, pUI:string=null){
-
-        
 
         // Start the web server serving Installer UI
         this.webserver.start((typeof pWebPort==='string')?parseInt(pWebPort,10):pWebPort);
+
+        // if server run in production mode (instead of install mode)
+        // then start web socket server
+        if(this.mode == MODE.NORMAL) {
+            this.wsserver.start((typeof pWebPort === 'string') ? parseInt(pWebPort, 10) + 1 : pWebPort + 1)
+        }
     }
 
     /**
