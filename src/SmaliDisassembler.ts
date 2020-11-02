@@ -7,45 +7,6 @@ import ModelCatchStatement from "./ModelCatchStatement";
 import * as Log from "./Logger";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
-/*
-function Patch(instr){
-    this.patch = instr
-}
-Patch.prototype.alwaysTrue = function(){
-
-}
-Patch.prototype.alwaysFalse = function(){
-    
-}
-Patch.prototype.replace = function(){
-    
-}
-Patch.prototype.move = function(){
-    
-}
-Patch.prototype.deploy = function(){
-
-}
-
-function MethodEditor(method){
-
-
-
-    this.taint = function(bbNo,instrNo,reg){
-
-    };
-
-
-    this.patch = function(bbNo,instrNo){
-
-    };
-
-    // do return after the given instr
-    this.cut = function(instrNo){
-
-    }
-}
-*/
 
 export default class SmaliDisassembler
 {
@@ -198,6 +159,7 @@ export default class SmaliDisassembler
 
         let bb:ModelBasicBlock=null, txt:string="", prefix:ModelCatchStatement[];
         let bbe:any={}, line:any={}, result:any=[], c:any={};
+        let placeholder:number = -1, ln:number = -1;
 
         for(let i in pMethod.instr){
             bb=pMethod.instr[i];
@@ -263,55 +225,59 @@ export default class SmaliDisassembler
                 bbe.tag = bb.tag;
             }
 
-            for(let j in bb.stack){
-                if(bb.stack[j].opcode === undefined){
-                    //console.log(bb.stack[j]._raw);
-                    continue;
-                }
+            if(bb.stack.length > 0){
+                let j:number = 0;
 
-                // if instruction has "line number" metadata
-                if(bb.stack[j].iline >= 0){
-                    bbe.instr.push({ value:".line "+bb.stack[j].iline });
-                }
+                ln = -1;
+                do {
+                    if(bb.stack[j].iline != ln){
+                        //bbe.instr.push({ value:".line "+bb.stack[j].iline });
+                        ln = bb.stack[j].iline;
+                        bbe.instr.push({ value:`.line ${ln}`});
+                    }
 
-                line = {
-                    if: false,
-                    goto: false,
-                    invoke: false,
-                    const: false
-                };
-                line.tag = bb.tag;
-                line.bb_offset = i;
-                line.bb_roffset = j;
+                    if(bb.stack[j].opcode === undefined){
+                        j++
+                        continue;
+                    }
 
+                    line = {
+                        if: false,
+                        goto: false,
+                        invoke: false,
+                        const: false,
+                        tag: bb.tag,
+                        bb_offset: i,
+                        bb_roffset: j
+                    };
 
+                    if(bb.stack[j].opcode.instr.indexOf("if-")>-1){
+                        line.if = true;
+                        line.value = bb.stack[j]._raw;
+                    }
+                    else if(bb.stack[j].opcode.type==CONST.INSTR_TYPE.GOTO){
+                        line.goto = true;
+                        line.value = bb.stack[j]._raw;
+                    }
+                    else if(bb.stack[j].opcode.instr.indexOf("invoke")>-1){
+                        line.value = bb.stack[j]._raw;
+                    }
+                    else if(bb.stack[j].opcode.instr.indexOf("const-string")>-1){
+                        line.string = true;
+                        line.value = bb.stack[j]._raw;
+                    }
+                    else{
+                        line.value = bb.stack[j]._raw;
+                    }
 
+                    bbe.instr.push(line);
+                    j++;
 
-                if(bb.stack[j].opcode.instr.indexOf("if-")>-1){
-                    line.if = true;
-                    line.value = bb.stack[j]._raw;
-                    //line.value = '<i class="code-pink">'+bb.stack[j]._raw+'</i>';
-                }
-                else if(bb.stack[j].opcode.type==CONST.INSTR_TYPE.GOTO){
-                    line.goto = true;
-                    line.value = bb.stack[j]._raw;
-                    //line.value = '<i class="code-blue">'+bb.stack[j]._raw+'</i>';
-                }
-                else if(bb.stack[j].opcode.instr.indexOf("invoke")>-1){
-                    line.value = bb.stack[j]._raw;
-
-                }
-                else if(bb.stack[j].opcode.instr.indexOf("const-string")>-1){
-                    line.string = true;
-                    line.value = bb.stack[j]._raw;
-                }
-                else{
-                    line.value = bb.stack[j]._raw;
-                }
-
-
-                bbe.instr.push(line);
+                }while(j<bb.stack.length);
             }
+
+
+
             if(bb.getTryEndName() != null){
                 bbe.instr.push({ value:bb.getTryEndName() });
             }
@@ -357,24 +323,5 @@ export default class SmaliDisassembler
     }
 }
 
-
-    /*
-            switch(bb.stack[j].opcode.byte){
-                case OPCODE.INVOKE_STATIC.byte:
-                    if(bb.stack[j+1].opcode.byte == OPCODE.MOVE_RESULT){
-                        txt = bb.stack[j+1].left.t;
-                        txt += bb.stack[j+1].left.i+" = ";
-                    }
-                    txt += bb.stack[j].right.signature()+';';
-                    break;
-                case OPCODE.NEW_INSTANCE.byte:
-                    break;
-                case OPCODE.CONST_STRING.byte:
-                case OPCODE.CONST_STRING_JUMBO.byte:
-                    txt = bb.stack[j+1].left.t+bb.stack[j+1].left.t+" = ";
-                    txt += '"'+bb.stack[j+1].right.value+'";';
-                break;
-            }
-            */
 
 
