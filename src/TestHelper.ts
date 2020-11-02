@@ -286,6 +286,14 @@ class TestHelperClass
         return this.project_ready;
     }
 
+    /**
+     * TODO : spawn mock
+     * @param pCmd
+     */
+    spawn(pCmd:string,  pArgs:any=[], pOptions:any={}):any{
+        return null;
+    }
+
 }
 
 export var TestHelper = new TestHelperClass();

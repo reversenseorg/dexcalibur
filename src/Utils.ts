@@ -12,6 +12,7 @@ import {TestHelper} from "./TestHelper";
 
 
 const _exec_:any = _util_.promisify(Process.exec);
+const _spawn_:any = _util_.promisify(Process.spawn);
 
 const RE_REPLACE:RegExp = /[-\/\\^$*+?.()|[\]{}]/g;
 
@@ -229,6 +230,19 @@ export default class Util {
         }else{
             console.log(chalk.bold.red("Execute command request : "+command));
             ret = await _exec_(command);
+        }
+
+        return ret;
+    }
+
+    static spawn(pCmd:string, pArgs:any=[], pOptions:any={}):any{
+        let ret:any;
+
+        if(process.env.DEXCALIBUR_TEST){
+            ret = TestHelper.spawn(pCmd);
+        }else{
+            console.log(chalk.bold.red("Spawning : "+pCmd));
+            ret = Process.spawn(pCmd, pArgs, pOptions);
         }
 
         return ret;
