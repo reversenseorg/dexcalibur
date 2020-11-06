@@ -12,7 +12,7 @@ export class Team {
     projects: DexcaliburProject[] = [];
 }
 
-interface TerminalSessionMap {
+export interface TerminalSessionMap {
     [localid:string] : TerminalSession;
 }
 
@@ -52,6 +52,29 @@ export class User {
 
     addSession( pSession:TerminalSession, pLocalID:string):void {
         this.termSessions[pLocalID] = pSession;
+    }
+
+    /**
+     * To remove a session attached to this user
+     *
+     * @param {TerminalSession} pSession The terminal session to remove
+     * @method@
+     * @since 1.0.0
+     */
+    removeSession( pSession:TerminalSession):void {
+        //let map:TerminalSessionMap = {};
+
+        /*for(let lid in this.termSessions)
+            if(this.termSessions[lid].getSessionID() !== pSession.getSessionID()) {
+                map[lid] = this.termSessions[lid];
+                this.termSessions[lid].closed = true;
+            }*/
+
+        //this.termSessions = map;
+    }
+
+    getSessions():TerminalSessionMap {
+        return this.termSessions;
     }
 
     getLocalIdOf( pSession:TerminalSession):string {

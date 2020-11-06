@@ -1,10 +1,11 @@
+import * as _fs_ from 'fs';
+import {EOL} from 'os';
 import Util from "./Utils";
 import {User} from "./User";
-import * as _child_process_ from "child_process";
-import {promisify} from 'util';
-import * as stream from "stream";
+import * as Log from "./Logger";
 
-const asyncSpawn = promisify(_child_process_.spawn);
+
+let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
 
 const gUIDs = [];
@@ -26,6 +27,9 @@ export class TerminalSession {
     private _stdout_fn:any = null;
     private _stderr_fn:any = null;
     private _close_fn:any = null;
+    private _exited:boolean = false;
+   // private _tmp_fd:any = null;
+   // private _tmp_write:any = null;
 
 
 
@@ -80,6 +84,17 @@ export class TerminalSession {
     }
 
     /**
+     * To check if the instance has one or less owner
+     *
+     * @return {boolean} TRUE if the session has one or less owner. Else FALSE
+     * @method
+     * @since 1.0.0
+     */
+    hasSingleOwner():boolean {
+        return (this._owners.length <= 1);
+    }
+
+    /**
      * To bind this session to the given user
      * Once a session has one or more owner, authentication is required.
      * TODO : add permissions
@@ -95,6 +110,10 @@ export class TerminalSession {
 
     getOwners():User[] {
         return this._owners;
+    }
+
+    setStdinBuffer( pPath:string):void {
+        //this._tmp_write = _fs_.createWriteStream(pPath);
     }
 
     onStdOut(pObserver:any):void {
@@ -121,30 +140,43 @@ export class TerminalSession {
         const opts = {
             shell: (this._type==='default'),
             env: process.env,
-            //detached: true,
             stdio:  'pipe'
         };
 
         const self = this;
         this._process = Util.spawn(this._type, [], opts);
 
+        this._process.stdout.pipe( process.stdout, {end:false});
+
         this._process.stdout.on('data', (vData:any)=>{
-            console.log('child stdout > ',vData);
             this._stdout_fn(self, vData.toString());
         });
 
         this._process.stderr.on('data', (vData:any)=>{
-            console.log('child stderr > ',vData);
             this._stderr_fn(self, vData.toString());
         });
-
+/*
         this._process.on('close', (vData:any)=>{
-            this._close_fn(self, vData);
+            this._close_fn(self, {closed:true, msg:'[Process closed.]'});
+           // this._stderr_fn(self,{closed:true, msg:'[Process closed.]'});
+        });
+*/
+        this._process.on('exit', (vData:any)=>{
+            this._close_fn(self, {closed:true, msg:'[Process exited.]'});
+            //this._stderr_fn(self,{closed:true, msg:'[Process exited.]'});
         });
 
         this._process.unref();
 
         return this;
+    }
+
+    isSocketReady():boolean{
+        return (this._socket != null);
+    }
+
+    isExited():boolean {
+        return this._exited;
     }
 
     sendCommand( pSocket, pCmd:string):void{
@@ -153,18 +185,36 @@ export class TerminalSession {
 
         if(this._process == null) throw  new Error('Command cannot be sent. Session is not ready.');
 
-        this._process.stdin.write(pCmd);
-        this._process.stdin.end();
-
-        this._reinitProcess();
+        this._process.stdin.write(pCmd+EOL);
     }
 
-    close(){
+    close(pUser:User=null){
+        if(this._process != null) {
+            Logger.info(`Killing child process attached to session [SESSID=${this._sessid}] : ${this._process.spawnfile}`);
+            this._process.kill('SIGHUP');
+            this._process = null;
+        }
 
-        if(this._process == null) throw  new Error('Command cannot be exited. Session is not ready.');
-
-        this._process.kill('SIGHUP');
+        this._exited = true;
+        /*if(pUser!=null){
+            pUser.removeSession(this);
+        }*/
     }
+
+    /**
+     *
+     * @param pSocket
+     */
+    exit(pSocket:any):void {
+
+        this._socket = pSocket;
+
+        this.close();
+        this._owners.map((pUser:any) => {
+            pUser.removeSession(this);
+        });
+    }
+
 
     getSocket():any {
         return this._socket;

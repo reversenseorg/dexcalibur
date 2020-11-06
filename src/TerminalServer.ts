@@ -1,5 +1,5 @@
 import DexcaliburEngine from "./DexcaliburEngine";
-import {User} from "./User";
+import {TerminalSessionMap, User} from "./User";
 import {TerminalSession} from "./TerminalSession";
 import * as Log from "./Logger";
 
@@ -48,12 +48,17 @@ export class TerminalServer {
 
     sendOobMsg( pSession:TerminalSession, pData:any){
         pSession.getOwners().map( (pUser:any)=> {
-            pSession.getSocket().sendUTF(JSON.stringify({action:'ext', data:{
-                    closed: true,
-                    msg: pData,
-                    localid: pUser.getLocalIdOf(pSession), //message.data.localid,
-                    sessid: pSession.getSessionID()
-                }}));
+            if(pSession.isSocketReady()) {
+                pSession.getSocket().sendUTF(JSON.stringify({
+                    action: 'ext', data: {
+                        payload: pData,
+                        localid: pUser.getLocalIdOf(pSession), //message.data.localid,
+                        sessid: pSession.getSessionID()
+                    }
+                }));
+            }else{
+                console.log(pData);
+            }
         })
     }
 
@@ -82,6 +87,12 @@ export class TerminalServer {
         return pUnsafeType;
     }
 
+    /**
+     *
+     * @param pUser
+     * @param pSocket
+     * @param pData
+     */
     async processCommand( pUser:User, pSocket:any, pData:string):Promise<any>{
         let message:any, type:string = null, sess:TerminalSession=null;
         try{
@@ -96,9 +107,12 @@ export class TerminalServer {
                 // owners of this session. TODO : add auditors group
                 if(message.data.sessid != null){
                     sess = this.getSession(message.data.sessid);
-                    if(sess != null){
+
+                    if(sess != null && sess.isExited()==false){
                         // check permissions inside
                         sess.addOwner(pUser, message.data.localid);
+                    }else{
+                        sess = null;
                     }
                 }
 
@@ -133,10 +147,34 @@ export class TerminalServer {
                 if(sess == null)
                     throw new Error('Session not found');
 
+                if(sess.isExited())
+                    throw new Error('Session has been closed');
+
                 if(message.data.stdin == null)
                     throw new Error('Command cannot be empty');
 
                 sess.sendCommand(pSocket, message.data.stdin);
+            }
+            else if(message.action=="exit"){
+                sess = this.getSession(message.data.sessid);
+                if(sess == null)
+                    throw new Error('Session not found');
+
+                if(sess.isExited())
+                    throw new Error('Session has been closed');
+
+                sess.exit(pSocket);
+            }
+            else if(message.action=="init"){
+                let sessions:TerminalSessionMap = pUser.getSessions();
+                let s:any = [];
+
+                for(let lid in sessions){
+                    if(sessions[lid].isExited()==false)
+                        s.push({ localid:lid, sessid:sessions[lid].getSessionID() });
+                }
+
+                pSocket.sendUTF(JSON.stringify({ action:'init', data:{ sess: s }}));
             }
         }catch(err){
             console.log(err);
@@ -152,12 +190,24 @@ export class TerminalServer {
 
 
     /**
+     * To create a new session.
      *
-     * @param pUser
-     * @param pPerm
+     * It creates a child process and pipe its stdio with instance's streams.
+     * A session can have multiple owner, it allows several user to share the same terminal I/Os
+     *
+     * @param {string} pType The type of terminal. It depends of OS and user preferences
+     * @param {number} pPerm Permission of the session
+     * @return {Promise<TerminalSession>}
+     * @async
+     * @method
+     * @since 1.0.0
      */
     async newLocalSession( pType:string, pPerm:number = SESSION_PERM.READ|SESSION_PERM.WRITE):Promise<TerminalSession> {
         const sess = new TerminalSession();
+
+        /*sess.setStdinBuffer(
+            this._engine.getWorkspace().createTempFile('xterm_', true)
+        );*/
 
         sess.onStdOut(this.sendOutput);
         sess.onStdErr(this.sendError);
@@ -169,10 +219,19 @@ export class TerminalServer {
     }
 
     /**
+     * To close all sessions held by only the given user
      *
-     * @param pSocket
+     * @param {User} pUser The user account which lost/close the connection
+     * @param {any} pSocket The socket used to communicate with the user which initiate the close.
+     * @method
+     * @since 1.0.0
      */
     close( pUser:User, pSocket:any):void {
+        this._sessions.map( (pSess:TerminalSession) => {
+            if(pSess.isOwner(pUser) && pSess.hasSingleOwner())
+                pSess.close();
+        });
+
         pSocket.sendUTF(
             JSON.stringify({action:'err', data:{
                 msg: 'Connection closed (!)'
