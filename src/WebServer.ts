@@ -2441,10 +2441,11 @@ export default class WebServer
             res.set('Access-Control-Allow-Headers', 'Content-Type');
 
             if(self.project != null){ next(); return; }
-            if(!req.url.startsWith('/pages/') && !req.url.startsWith('/inspectors/')){ next(); return; }
+            if(!req.url.startsWith('/pages/') && !req.url.startsWith('/api/') && !req.url.startsWith('/inspectors/')){ next(); return; }
 
 
             for(let i=0; i<projectDependentPath.length; i++){
+
                 if(req.url.startsWith(projectDependentPath[i])) {
                     f = true;
                     break;
