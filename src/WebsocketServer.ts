@@ -114,7 +114,6 @@ export class WebsocketServer
 
         this.wsServer.on('request', function(request:any) {
 
-            let conn:any = null;
             try{
                 if (!WebsocketServer.originIsAllowed(request.origin)) {
                     // Make sure we only accept requests from an allowed origin
@@ -134,10 +133,22 @@ export class WebsocketServer
                     // do authentication (TODO)
                     let user:User = self.user;
 
-                    // process command
+
+                    // process command for the user
                     if (message.type === 'utf8') {
-                        Logger.info('Received Message: ' + message.utf8Data);
-                        self.engine.getTerminalServer().processCommand(user, conn, message.utf8Data);
+                        let unsafeJSON = JSON.parse(message.utf8Data);
+
+                        if(unsafeJSON['svc']!==undefined){
+                            switch(unsafeJSON.svc){
+                                case 'xterm':
+                                    // TODO : check user permissions
+                                    Logger.info('Received Message: ' + message.utf8Data);
+                                    self.engine.getTerminalServer().processCommand(user, conn, message.utf8Data);
+                                    break;
+                            }
+                        }else{
+                            Logger.info('Received Invalid message: ' + message.utf8Data);
+                        }
                     }
                     else if (message.type === 'binary') {
                         Logger.info('Received Binary Message of ' + message.binaryData.length + ' bytes');
@@ -145,7 +156,9 @@ export class WebsocketServer
                     }
 
                 });
-                conn.on('close', function(reasonCode, description) {
+
+                //function(reasonCode, description)
+                conn.on('close', function() {
 
                     // do authentication (TODO)
                     let user:User = self.user;
@@ -157,28 +170,6 @@ export class WebsocketServer
             }catch(err){
                 Logger.error("[WebSocketServer] An error happened : ",err);
             }
-
-            // hook
-/*
-            let hookConn:any = request.accept('hook-protocol', request.origin);
-
-            Logger.info((new Date()) + ' Connection accepted for hook console');
-
-            hookConn.on('message', function(message:any) :void{
-
-                if (message.type === 'utf8') {
-                    Logger.info('Received Message: ' + message.utf8Data);
-                    hookConn.sendUTF(message.utf8Data);
-                }
-                else if (message.type === 'binary') {
-                    Logger.info('Received Binary Message of ' + message.binaryData.length + ' bytes');
-                    hookConn.sendBytes(message.binaryData);
-                }
-            });
-
-            hookConn.on('close', function(reasonCode, description) {
-                Logger.info((new Date()) + ' Peer ' + hookConn.remoteAddress + ' disconnected.');
-            });*/
         });
     }
 
