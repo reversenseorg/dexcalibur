@@ -1,5 +1,6 @@
 import * as _fs_ from 'fs';
 import * as _path_ from 'path';
+import Util from "./Utils";
 
 
 const FILENAME_CONFIG = 'config.json';
@@ -69,8 +70,13 @@ export default class DexcaliburWorkspace
     }
     
     /**
-     * 
-     * @param {String} pPath Workspace location
+     *
+     *
+     * @param {string} pPath Workspace location
+     * @param {boolean} pOverride If TRUE a new object is instanced. Else not
+     * @return {DexcaliburWorkspace} Workspace object
+     * @method
+     *
      */
     static getInstance( pPath:string = null, pOverride:boolean=false):DexcaliburWorkspace{
         if(gWorkspaceInstance == null || pOverride==true){
@@ -225,6 +231,31 @@ export default class DexcaliburWorkspace
     }
 
 
+    /**
+     * To create a temporary file into dxc workspace temp folder.
+     *
+     * @param {string} pPrefix (Optional) A prefix of the filename. It can helps to sort/flush files
+     * @param {boolean} pTouch (Optional) Default FALSE. If TRUE, the file is touched, it prevents conflicts.
+     * @return {string} Path of the temporary file
+     * @method
+     * @since 1.0.0
+     */
+    createTempFile(pPrefix:string='', pTouch:boolean=false):string {
+        let fpath:string = null;
+        do{
+            fpath = _path_.join(this.tmpFolder, pPrefix+Util.randString(16, Util.ALPHANUM));
+        }while(_fs_.existsSync(fpath));
+
+        if(pTouch){
+            try {
+                const t = new Date();
+                _fs_.utimesSync(fpath, t, t);
+            } catch (err) {
+                _fs_.closeSync(_fs_.openSync(fpath, 'w'));
+            }
+        }
+        return fpath;
+    }
 
     /**
      * To get a list of existing project into the workspace
