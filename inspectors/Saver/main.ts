@@ -69,7 +69,6 @@ var Saver:InspectorFactory = new InspectorFactory({
         "class.alias.update": function(ctx:DexcaliburProject, event:Event):any{
             try{
                 if(ctx.saveManager.isReady() && ctx.saveManager.isEnabled()){
-                    console.log(event);
                     ctx.saveManager.updateAlias("classes", (event as any).cls);
                     ctx.saveManager.save();
                     Logger.debug("[INSPECTOR][SAVE] updateAlias() saved");
