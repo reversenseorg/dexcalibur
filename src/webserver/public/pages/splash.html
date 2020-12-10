@@ -206,38 +206,40 @@
                         <ul class="list-group list-group-flush dxc-project-list" id="dxcProjectList2"></ul>
                     </div>
                     <div class="col-md-8 splash-panel splash-open-apk" style="display:none;font-size:0.8em;"> 
-                        <h4>New project </h4>
+                        <h4>New project :) </h4>
 
                         <div class="form-row">
                             <div class="col-md-10 mb-3">
-                                <label for="dxcSelectApk_projectUID">Project UID</label>
+                                <label for="dxcSelectApk_projectUID">Project UID</label><br>
+                                <i>For each project a folder is created into Dexcalibur workspace. The project UID is the folder name.</i>
                                 <input type="text" class="form-control form-control-sm" id="dxcSelectApk_projectUID" placeholder="Project name" value="" required>
                                 <div class="valid-feedback">
                                     Looks good!
                                 </div>
                                 <div class="invalid-feedback">
-                                    This project UID is not available.
+                                    This project UID is invalid. Project name must be unique and must contain only: A-Z a-z 0-9 - _
                                 </div>
                             </div>
                         </div>
 
                         <b>What do you want ?</b>
+                        <p id="dxcSelectApk_typeMsg" class="invalid-feedback" style="display: none">Please select file/app to analyze</p>
                         <div class="form-check">
-                            <input class="form-check-input" type="radio" name="projectType" id="projectTypeDownload" value="download" >
+                            <input class="form-check-input" type="radio" name="projectType" id="projectTypeDownload" value="download" required>
                             <label class="form-check-label" for="projectTypeDownload">
                                 Download a remote file
                             </label>
                         </div>
 
                         <div class="form-check">
-                            <input class="form-check-input" type="radio" name="projectType" id="projectTypeUpload" value="upload">
+                            <input class="form-check-input" type="radio" name="projectType" id="projectTypeUpload" value="upload" required>
                             <label class="form-check-label" for="projectTypeUpload">
                                 Upload an APK
                             </label>
                         </div>
 
                         <div class="form-check">
-                            <input class="form-check-input" type="radio" name="projectType" id="projectTypeFs" value="fromfs">
+                            <input class="form-check-input" type="radio" name="projectType" id="projectTypeFs" value="fromfs" required>
                             <label class="form-check-label" for="projectTypeFs">
                                 Enter absolute path of the APK
                             </label>
@@ -894,6 +896,7 @@
         $('#dxcSelectApk_projectUID').on("change", (vEl)=>{
             let e = $('#dxcSelectApk_projectUID');
 
+
             DexcaliburAPI.workspace.checkAvailabilityProjectUID(
                 e.val(),
                 function( vData){
@@ -1116,6 +1119,7 @@
         var newProjectCallback = function( vData){
             let data = JSON.parse(vData);
 
+            console.log(data);
             
             if(data.success == true){
                 location.href = "/pages/index_v2.html";
@@ -1154,12 +1158,22 @@
             params.dev = $('#dxcSelectDev2').val();
             params.connector = $('input[name=dxcConnector]:checked').val();
 
+            var source =
+                $('#projectTypeUpload').is(':checked')<<2 |
+                $('#projectTypeDownload').is(':checked')<<1 |
+                $('#projectTypeFs').is(':checked');
+
+            if(source == 0){
+                $('#dxcSelectApk_typeMsg').css('display',"block");
+                return ;
+            }
 
             $('#dxcLoadingModal').modal();
             $('#dxcLoadingModalProgress').css('width','10%');
             $('#dxcLoadingModalProgress').addClass('bg-primary');
 
-            if( $('#projectTypeUpload').is(':checked') ){
+
+            if( source==4 ){
                 params.type = 'upload';
 
                 DexcaliburAPI.workspace.upload(
@@ -1170,7 +1184,7 @@
                             let data = JSON.parse(vData);
 
                             if(data.success){
-                                $('#dxcLoadingModalProgress').css('width','70%');                            
+                                $('#dxcLoadingModalProgress').css('width','100%');
                                 $('#dxcLoadingModalConsole').html("Upload successfull");
                                 params.uploadid = data.upload;
                                 console.log(params);
@@ -1184,17 +1198,17 @@
                     }
                 );
             }
-            else if( $('#projectTypeDownload').is(':checked') ){
+            else if( source == 2 ){
                 params.type = 'download';
                 params.url = $('#projectDownloadURL').val();
                 DexcaliburAPI.workspace.newProject(params, { onSuccess:newProjectCallback });
             }
-            else if( $('#projectTypeFs').is(':checked') ){
+            else if( source == 1){
                 params.type = 'fromfs';
                 params.path = $('#projectLocalPath').val();
                 DexcaliburAPI.workspace.newProject(params, { onSuccess:newProjectCallback });
             }else{
-                console.log('Failed to create project');
+                $('#dxcLoadingModal').toggle();
             }
 
 

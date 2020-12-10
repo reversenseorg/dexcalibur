@@ -23,7 +23,7 @@ var PACKAGE_JSON = require("../package.json");
 
 const InstallKit  = require('./Installer');
 const CONFIG_PATH = _path_.join( _os_.homedir(), '.dexcalibur', 'config.json');
-
+const PROJECT_UID_FMT = /^[A-Za-z0-9-_]+$/;
 const FRIDA_BIN = (process.env.DEXCALIBUR_FRIDA !== null)? process.env.DEXCALIBUR_FRIDA : "frida"
 
 
@@ -349,6 +349,15 @@ class DexcaliburEngine
         this.hook = new HookHelper.Manager(this, nofrida);
         this.hook.refreshScanner();
 */ 
+    }
+
+    /**
+     * To check if given project uid has a valid format
+     *
+     * @param {string} pProjectUID
+     */
+    isValidProjectUID( pProjectUID){
+        return PROJECT_UID_FMT.test(pProjectUID);
     }
 
     /**

@@ -374,7 +374,11 @@ class WebServer {
 
 
                 try{
-                    
+
+                    if($.context.isValidProjectUID(req.body['name'])){
+                        res.status(404).send(JSON.stringify({   success:false,  code:1, msg:"Invalid project UID"}));
+                        return;
+                    }
     
                     // first download remote application
                     // on error : ne‹ project will not create. 
@@ -494,6 +498,12 @@ class WebServer {
                 switch( req.query.field)
                 {
                     case "project.uid":
+
+                        if($.context.isValidProjectUID(req.query.value)==false){
+                            availability = false;
+                            break;
+                        }
+
                         proj = $.context.workspace.listProjects();
                         proj.map((vProject)=>{
                             if(vProject == req.query.value)
@@ -2266,6 +2276,7 @@ class WebServer {
      * @method
      */
     showAccessLogs() {
+        let code;
         for (let i = 0; this.logs.access.length; i++) {
             code = this.logs.access[i].substr(0, 2);
             if (code == "[4")
