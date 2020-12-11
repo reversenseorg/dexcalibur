@@ -358,27 +358,29 @@ class WebServer {
 
                 dm = DeviceManager.getInstance();
                 await dm.scan();
-                
+
+                if(typeof req.body['name']!='string'){
+                    res.status(200).send(JSON.stringify({ success:false, code:1, msg:"Invalid project name"}));
+                    return;
+                }
+                if($.context.isValidProjectUID(req.body['name'])){
+                    res.status(200).send(JSON.stringify({   success:false,  code:1, msg:"Invalid project UID"}));
+                    return;
+                }
+
                 if(req.body['dev'] != null){
                     device = dm.getDevice( req.body['dev']);
                     if(device == null || !device.isEnrolled()){
-                        res.status(404).send(JSON.stringify({ success:false, msg:"Device unknow or not enrolled "}));
+                        res.status(200).send(JSON.stringify({ success:false, code:2, msg:"Device unknow or not enrolled "}));
                         return;
                     }
                 }
 
-                if(req.body['name'] == null){
-                    res.status(404).send(JSON.stringify({ success:false, msg:"Invalid project name"}));
-                    return;
-                }
 
 
                 try{
 
-                    if($.context.isValidProjectUID(req.body['name'])){
-                        res.status(404).send(JSON.stringify({   success:false,  code:1, msg:"Invalid project UID"}));
-                        return;
-                    }
+
     
                     // first download remote application
                     // on error : ne‹ project will not create. 
@@ -386,7 +388,7 @@ class WebServer {
                     {
                         case 'select':
                             if(device == null){
-                                res.status(404).send(JSON.stringify({ success:false,  msg:"Device unknow or not enrolled "}));
+                                res.status(200).send(JSON.stringify({ success:false,  code:2, msg:"Device unknow or not enrolled "}));
                                 res.end();
                             }
                             platform = device.getPlatform();
@@ -412,7 +414,7 @@ class WebServer {
 
                     // chcek if file exists an it is not empty
                     if( (!fs.existsSync(path)) || (false)){
-                        res.status(404).send(JSON.stringify({   success:false,  msg:"APK file not found "}));
+                        res.status(200).send(JSON.stringify({   success:false,  code:5, msg:"APK file not found "}));
                         return;
                     }
     
@@ -441,7 +443,7 @@ class WebServer {
                 }catch(err){
                     console.log(err);
                     $.setProject(null);
-                    res.status(500).send(JSON.stringify({ msg:"An error occured while project initializing"}));
+                    res.status(200).send(JSON.stringify({ success:false, code:-1, msg:"An error occured while project initializing"}));
                 }
                
                 return ;
@@ -956,7 +958,8 @@ class WebServer {
                 }catch(err){
                     console.log(err);
                     res.status(200).send(JSON.stringify({
-                        success: false
+                        success: false,
+                        code: -1
                     }));
                 }
             });
