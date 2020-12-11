@@ -363,7 +363,7 @@ class WebServer {
                     res.status(200).send(JSON.stringify({ success:false, code:1, msg:"Invalid project name"}));
                     return;
                 }
-                if($.context.isValidProjectUID(req.body['name'])){
+                if($.context.isValidProjectUID(req.body['name'])==false){
                     res.status(200).send(JSON.stringify({   success:false,  code:1, msg:"Invalid project UID"}));
                     return;
                 }
@@ -501,13 +501,14 @@ class WebServer {
         this.app.route('/api/workspace/availability')
             .get(function (req, res) {
 
-                let proj = null, availability = true;
+                let proj = null, availability = true, dev=null, code=-1;
                 switch( req.query.field)
                 {
                     case "project.uid":
 
                         if($.context.isValidProjectUID(req.query.value)==false){
                             availability = false;
+                            code = 1;
                             break;
                         }
 
@@ -515,17 +516,29 @@ class WebServer {
                         proj.map((vProject)=>{
                             if(vProject == req.query.value)
                                 availability = false;
+                            code = 2;
                         })
+                        break;
+                    case "device":
+
+
+                        dev = DeviceManager.getInstance().getDevice( req.query.value);
+                        if(dev == null || !dev.isEnrolled()){
+                            availability = false;
+                            return;
+                        }
+
                         break;
                 }
 
 
                 // collect
-                let dev = {
-                    availability: availability
+                let data = {
+                    availability: availability,
+                    code: code
                 };
                 
-                res.status(200).send(JSON.stringify(dev));
+                res.status(200).send(JSON.stringify(data));
             });
 
         this.app.route('/api/device/connect')

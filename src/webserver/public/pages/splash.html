@@ -276,6 +276,12 @@
                                     <option>Select a device</option>
                                     <optgroup label="Enrolled device" id="dxc-optDevices2"></optgroup>
                                 </select>
+                                <div class="valid-feedback">
+                                    Looks good!
+                                </div>
+                                <div class="invalid-feedback">
+                                    Device unknown or not enrolled.
+                                </div>
                             </div>
                         </div>
 
@@ -622,6 +628,11 @@
     }
 
 
+    function flagInputAsInvalid( pEl) {
+        pEl.removeClass("is-valid");
+        pEl.addClass("is-invalid");
+    }
+
 
     function requestConfirm( pMessage, pCallbacks){
 
@@ -913,6 +924,25 @@
                 });
         });
 
+        $('#dxcSelectDev2').on('change', (vEl)=> {
+            let e = $('#dxcSelectDev2');
+
+            DexcaliburAPI.workspace.checkDevice(
+                e.val(),
+                function( vData){
+                    let rep = JSON.parse(vData);
+
+                    e.removeClass("is-valid");
+                    e.removeClass("is-invalid");
+
+                    if(rep.availability){
+                        e.addClass("is-valid");
+                    }else{
+                        e.addClass("is-invalid");
+                    }
+                });
+        });
+
         $(document).on("click",'i.dxc-install-plt',(pEl)=>{
             let uid = pEl.currentTarget.getAttribute('dxc-id');
             
@@ -1016,7 +1046,8 @@
 
 
             $('#dxcEnrollModal').modal();
-            
+
+
             task = DexcaliburAPI.device.getEnrollStatus( 1000,
                 function(x){
                         let data = JSON.parse(x);
@@ -1118,15 +1149,23 @@
 
         var newProjectCallback = function( vData){
             let data = JSON.parse(vData);
-
-            console.log(data);
             
             if(data.success == true){
                 location.href = "/pages/index_v2.html";
             }else{
-                $('#dxcLoadingModalProgress').css('width','100%');
-                $('#dxcLoadingModalProgress').removeClass('bg-primary');
-                $('#dxcLoadingModalProgress').addClass('bg-danger');
+
+                console.log($('#dxcLoadingModal'));
+                $('#dxcLoadingModal').modal('toggle');
+
+                if(data.hasOwnProperty('code')){
+                    if(data.code==1){
+                        flagInputAsInvalid($('#dxcSelectApk_projectUID'));
+                    }else if (data.code==2){
+                        flagInputAsInvalid($('#dxcSelectDev2'));
+                    }
+                }
+
+
             }
         };
 
@@ -1147,13 +1186,18 @@
             DexcaliburAPI.workspace.newProject(params, { onSuccess:newProjectCallback });
         });
 
-        $(document).on('click',".createProject",(pEvent)=>{
+        $(document).on('click',".createProject", (pEvent)=>{
             
             // dxcLoadingModal
             let params = {};
 
-
             params.name = $('#dxcSelectApk_projectUID').val();
+
+            if(/^[A-Za-z0-9-_]+$/.test(params.name) == false){
+                flagInputAsInvalid($('#dxcSelectApk_projectUID'));
+                return;
+            }
+
             params.platform = $('#dxcApkAPI').val();
             params.dev = $('#dxcSelectDev2').val();
             params.connector = $('input[name=dxcConnector]:checked').val();
@@ -1168,13 +1212,15 @@
                 return ;
             }
 
+
+
             $('#dxcLoadingModal').modal();
             $('#dxcLoadingModalProgress').css('width','10%');
             $('#dxcLoadingModalProgress').addClass('bg-primary');
 
-
             if( source==4 ){
                 params.type = 'upload';
+
 
                 DexcaliburAPI.workspace.upload(
                     "#projectUploadForm",
@@ -1184,15 +1230,21 @@
                             let data = JSON.parse(vData);
 
                             if(data.success){
-                                $('#dxcLoadingModalProgress').css('width','100%');
+                                $('#dxcLoadingModalProgress').css('width','30%');
                                 $('#dxcLoadingModalConsole').html("Upload successfull");
                                 params.uploadid = data.upload;
                                 console.log(params);
                                 DexcaliburAPI.workspace.newProject(params, { onSuccess:newProjectCallback });
                             }else{
-                                $('#dxcLoadingModalProgress').removeClass('bg-primary');
-                                $('#dxcLoadingModalProgress').addClass('bg-danger');
-                                $('#dxcLoadingModalConsole').html(data.msg);
+
+
+                                $('#dxcLoadingModal').modal('toggle');
+
+                                if(data.code==1){
+                                    flagInputAsInvalid($('#dxcSelectApk_projectUID'));
+                                }else if (data.code==2){
+                                    flagInputAsInvalid($('#dxcSelectDev2'));
+                                }
                             }
                         }
                     }
@@ -1208,7 +1260,7 @@
                 params.path = $('#projectLocalPath').val();
                 DexcaliburAPI.workspace.newProject(params, { onSuccess:newProjectCallback });
             }else{
-                $('#dxcLoadingModal').toggle();
+                $('#dxcLoadingModal').modal('hide');
             }
 
 

@@ -802,6 +802,9 @@ var DexcaliburAPI = {
         checkAvailabilityProjectUID: function(pProjectUID, success=null, error=null){
             DexcaliburAPI.exec("/api/workspace/availability","get", { field:"project.uid", value:pProjectUID }, success, error);
         },
+        checkDevice: function(pDeviceID, success=null, error=null){
+            DexcaliburAPI.exec("/api/workspace/availability","get", { field:"device", value:pDeviceID }, success, error);
+        },
         newProject: function(pOptions, pCallback){
             DexcaliburAPI.exec("/api/workspace/new","post", pOptions, pCallback.onSuccess, pCallback.onError);
         },
