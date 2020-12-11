@@ -13,6 +13,8 @@ let gInstance = null;
  */
 class ConnectorFactory{
 
+    connectors = {};
+
     /**
      * To create a new factory for each connector contaiend into connectors/*
      *
@@ -61,6 +63,34 @@ class ConnectorFactory{
         }
 
         return new this.connectors[pType](pProject, pOptions);
+    }
+
+    /**
+     * To check if the given connector type is valid or not
+     *
+     * @param pType
+     * @return {boolean}
+     */
+    isValidConnector( pType){
+        let f=false;
+        Object.keys(this.connectors).map( vType => {
+            f |= (vType===pType);
+        });
+        return f;
+    }
+
+    /**
+     * To check if the given connector type is valid or not
+     *
+     * @param pType
+     * @return {boolean}
+     */
+    getDefaultConnector(){
+        let f=Object.keys(this.connectors);
+        if(f.length>0)
+            return f[0];
+        else
+            return "";
     }
 
     /**

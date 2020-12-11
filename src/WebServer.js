@@ -354,7 +354,7 @@ class WebServer {
                 let device = null;
                 let path = null;
                 let platform = null;
-                let success = false;
+                let success = false, connFact = null;
 
                 dm = DeviceManager.getInstance();
                 await dm.scan();
@@ -422,7 +422,12 @@ class WebServer {
                     project = await $.context.newProject(req.body['name'], path, device);
 
                     // to set connector
-                    project.setConnector(req.body['connector']);
+                    connFact =  ConnectorFactory.getInstance();
+                    if((typeof req.body['connector']== "string") && connFact.isValidConnector(req.body['connector'])){
+                        project.setConnector(req.body['connector']);
+                    }else {
+                        project.setConnector(connFact.getDefaultConnector());
+                    }
 
                     if(project != null){
                         // sync project platform with target platform or APK
