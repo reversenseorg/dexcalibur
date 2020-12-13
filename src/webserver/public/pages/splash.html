@@ -1032,7 +1032,7 @@
                                 <tr>
                                     <td>${DexcaliburAPI.ui.htmlEncode(DexcaliburAPI.anonymize(data.apps[i].packageIdentifier))}</td>
                                     <td>
-                                        <span class="badge badge-pill badge-warning scan-app" dxc-device="${data.device}" dxc-app-file="${data.apps[i].packagePath}" dxc-uid="${data.apps[i].packageIdentifier}">Scan</span>&nbsp;    
+                                        <span class="badge badge-pill badge-warning scan-app" dxc-device="${data.device}" dxc-app-file="${data.apps[i].packagePath}" dxc-uid="${data.apps[i].packageIdentifier}">Scan</span>&nbsp;
                                     </td>
                                 </tr>
                             `);
@@ -1171,9 +1171,21 @@
 
         $(document).on('click','.scan-app',(pEvent)=>{
 
+            // normalize project uid
+            let projectUID = "", c;
+            let id = pEvent.currentTarget.getAttribute('dxc-uid');
+            for(let i=0; i<id.length ; i++){
+                c = id[i];
+                if((c>='a' && c<='z')||(c>='A' && c<='Z')||(c>='0' && c<='9')||(c=='-')||(c=='_')){
+                    projectUID += c;
+                }
+                else if(c=='.'){
+                    projectUID += '_';
+                }
+            }
 
             let params = {
-                name: pEvent.currentTarget.getAttribute('dxc-uid'),
+                name: projectUID,
                 dev: pEvent.currentTarget.getAttribute('dxc-device'),
                 path: pEvent.currentTarget.getAttribute('dxc-app-file'),
                 type: 'select'
