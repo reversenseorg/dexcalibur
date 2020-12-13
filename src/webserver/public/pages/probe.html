@@ -950,6 +950,8 @@
                         }else{
                             $("#statusServer").addClass("badge-danger");
                             $("#statusServer").html("stopped (click to start)");
+                            if(data.msg != null)
+                                alert(data.msg);
                         }
 
                     }

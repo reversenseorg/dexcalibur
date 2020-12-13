@@ -939,16 +939,47 @@ class WebServer {
 
                 if(req.body['dev']){
                     device = DeviceManager.getInstance().getDevice(req.param.dev);
+                    if(device==null){
+                        res.status(200).send(JSON.stringify({
+                            success: false,
+                            code: 1,
+                            msg: "Selected device cannot be found."
+                        }));
+                        return ;
+                    }
+
                 }else{
                     device = $.project.getDevice();
+                    if(device==null) {
+                        res.status(200).send(JSON.stringify({
+                            success: false,
+                            code: 2,
+                            msg: "There is not default device associated to this project. Visit 'Settings > Target device'."
+                        }));
+                        return ;
+                    }
                 }
 
-                try{
+                if(device.isConnected()==false){
                     res.status(200).send(JSON.stringify({
-                        success: await FridaHelper.startServer( device, {
-                            path: req.body['path'],
-                            privileged: (req.body['privileged']=="true"? true: false)
-                        })
+                        success: false,
+                        code: 3,
+                        msg: "Device is offline."
+                    }));
+                    return ;
+                }
+
+
+
+                let status = null;
+                try{
+                    status = await FridaHelper.startServer( device, {
+                        path: req.body['path'],
+                        privileged: (req.body['privileged']=="true"? true: false)
+                    });
+
+                    res.status(200).send(JSON.stringify({
+                        success: status
                     }));
                 }catch(err){
                     console.log(err);
