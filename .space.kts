@@ -1,6 +1,6 @@
 job("Run npm test") {
     container("node:alpine") {
-        env["REGISTRY"] = "https://npm.pkg.jetbrains.space/reversense/p/dexcalibur/dxc-npm"
+        env["REGISTRY"] = "https://npm.pkg.jetbrains.space/reversense/p/dxc/dxc-test-npm/"
         shellScript {
             interpreter = "/bin/sh"
             content = """
