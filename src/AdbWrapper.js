@@ -21,7 +21,7 @@ const TRANSPORT = {
 };
 
 const emuRE = /^emulator-/;
-const PROP_RE = /^\[(?<name>.*)\]\s*:\s*\[(?<value>.*)\]$/;
+const PROP_RE = /^\[(?<name>.*)\]\s*:\s*\[(?<value>.*)\]\s*$/;
 
 /*
 const DEV = {
