@@ -1,7 +1,8 @@
 
 
 /**
- * This class represents an application package 
+ * This class is an abstraction of application package
+ *
  * 
  * @class
  */
@@ -12,6 +13,7 @@ export default class AppPackage {
     patched:boolean = false;
     workspaceExists:boolean = false;
     currentWd:boolean = false;
+    removed:boolean = false;
 
     /**
      * 
@@ -44,4 +46,5 @@ export default class AppPackage {
         }
         return json;
     }
+
 }
