@@ -17,12 +17,14 @@ let Logger:Log.ProdLogger = Log.newLogger() as Log.ProdLogger;
 
 
 const DEVICE_FILE = "devices.json";
+const DEVICE_DB = "devices.db";
 
 var gInstance:DeviceManager = null;
 
 interface DeviceList {
     [id :string] :Device;
 }
+
 
 /**
  * To manager connected devices
@@ -65,6 +67,7 @@ export default class DeviceManager
     status:any;
 
     bridges:any;
+
 
     /**
      * To create an instance of DeviceManager
@@ -157,6 +160,7 @@ export default class DeviceManager
             Logger.error("[DEVICE MANAGER] Unable to load devices");
         }
 
+
         return true;
     }
 
@@ -166,10 +170,42 @@ export default class DeviceManager
      * @method
      */
     save(){
-        if(_fs_.existsSync( this.devFile) == true){
-            _fs_.unlinkSync( this.devFile);
-        } 
 
+        /*(async function(pDevList:any){
+            let c:number = -1;
+            let err:any ;
+            Logger.info("Saving DB");
+            for(let uid in pDevList) {
+                Logger.info("Saving DB > "+uid);
+                c = await this._db.asyncCount({uid: uid});
+                Logger.info("Counting device ["+uid+"]", c);
+                if(c==0){
+                    Logger.info("Inserting device ["+uid+"]", c);
+                    err = await this._db.asyncInsert( this.devices[uid].toJsonObject( {}, {
+                        connected: false,
+                        offline: false,
+                        bridge: {
+                            up: false
+                        }
+                    }));
+                    Logger.info("Inserting device ["+uid+"] > out >", err);
+                }else{
+                    Logger.info("Updating device ["+uid+"]", c);
+                    await this._db.asyncUpdate( {uid:uid }, this.devices[uid].toJsonObject( {}, {
+                        connected: false,
+                        offline: false,
+                        bridge: {
+                            up: false
+                        }
+                    }));
+                    Logger.info("Updating device ["+uid+"] > out >", err);
+                }
+            }
+        })(this.devices);*/
+
+        if(_fs_.existsSync(this.devFile)){
+            _fs_.unlinkSync(this.devFile);
+        }
 
         let data:any = [];
         for(let i in this.devices){

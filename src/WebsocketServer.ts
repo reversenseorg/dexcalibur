@@ -123,7 +123,6 @@ export class WebsocketServer
                 }
 
                 // term
-
                 let conn:any = request.accept('term-protocol', request.origin);
 
                 Logger.info((new Date()) + ' Connection accepted for terminal');
@@ -154,7 +153,6 @@ export class WebsocketServer
                         Logger.info('Received Binary Message of ' + message.binaryData.length + ' bytes');
                         self.engine.getTerminalServer().processData(user, conn, message.binaryData);
                     }
-
                 });
 
                 //function(reasonCode, description)

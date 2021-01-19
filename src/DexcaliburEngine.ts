@@ -4,14 +4,12 @@ import PlatformManager from "./PlatformManager";
 import * as  _fs_ from 'fs';
 import * as  _path_ from 'path';
 import * as  _os_ from "os";
-import * as  _url_ from "url";
 import DexcaliburWorkspace from "./DexcaliburWorkspace";
 
 import * as Log from './Logger';
 import StatusMessage from "./StatusMessage";
 import DexcaliburProject from "./DexcaliburProject";
 import Util from "./Utils";
-import Platform from "./Platform";
 import WebServer from "./WebServer";
 import DeviceManager from "./DeviceManager";
 import InspectorManager from "./InspectorManager";
@@ -20,11 +18,24 @@ import Installer from "./Installer";
 import FridaHelper from "./FridaHelper";
 import {WebsocketServer} from "./WebsocketServer";
 import {TerminalServer} from "./TerminalServer";
+import {DexcaliburServerChildProcess, IpcMode} from "./DexcaliburServerChildProcess";
+import {ApkPackage} from "./android/ApkPackage";
+
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
 var gAdmZip:any = null;
 var gEngineInstance:DexcaliburEngine = null;
 var PACKAGE_JSON:any = require("../package.json");
+
+
+
+const LOG_ENABLED = true;
+const LOG_FILE = "/Users/salade/Documents/repos/dexcalibur-codebase/dexcalibur-ui/dexcalibur.logs";
+
+function __log( pMessage:string):void{
+    if(LOG_ENABLED)
+        _fs_.appendFileSync(LOG_FILE, pMessage+_os_.EOL);
+}
 
 const CONFIG_PATH = _path_.join( _os_.homedir(), '.dexcalibur', 'config.json');
 
@@ -161,6 +172,30 @@ export default class DexcaliburEngine
      */
     terminalSrv: TerminalServer = null;
 
+    /**
+     * IPC handlers when Dexcalibur allow IPC comm
+     *
+     * It is instanciated only if Dexcalibur starts with '--ipc' options
+     *
+     * @type {DexcaliburServerChildProcess}
+     * @since 1.0.0
+     * @field
+     */
+    ipcHandler: DexcaliburServerChildProcess = null;
+
+    /**
+     * IPC describes server behavior
+     *
+     * Mode are follow :
+     * - API : the engine starts automatically, it runs the web server and the user can use both IPC and WebApp.
+     * - WAIT : the engine is not initialized and wait for command
+     *
+     * @type {IpcMode}
+     * @since 1.0.0
+     * @fielc
+     */
+    ipcMode: IpcMode = IpcMode.API;
+
     mode: MODE = MODE.NORMAL;
 
     /**
@@ -181,12 +216,48 @@ export default class DexcaliburEngine
      * @static
      */
     static getInstance():DexcaliburEngine{
+
         if(gEngineInstance == null){
             gEngineInstance = new DexcaliburEngine();
         }
 
         return gEngineInstance;
     }
+
+    /**
+     * To enable Inter-Process Communication (IPC)
+     *
+     * When IPC is enabled, Dexcalibur wait command
+     *
+     */
+    enableIPC(pMode:IpcMode):void{
+        __log('[DXC_SRV][ENGINE] Enabling IPC for : '+process.pid);
+        this.ipcHandler = new DexcaliburServerChildProcess(process);
+        this.ipcMode = pMode;
+    }
+
+    /**
+     * To check if the IPC mode is API or WAIT
+     *
+     * Usually, it helps to know if the engine must continue to execute or wait for a command.
+     *
+     * @return {boolean} TRUE is Dexcalibur must wait, else FALSE
+     * @method
+     */
+    isIpcWaitMode():boolean{
+        return (this.ipcMode === IpcMode.WAIT);
+    }
+
+    /**
+     * To disable Inter-Process Communication (IPC)
+     *
+     * When IPC is enabled, Dexcalibur wait command
+     *
+     */
+    disableIPC():void{
+        this.ipcHandler.disable();
+    }
+
 
     /**
      * To get active registry 
@@ -680,6 +751,19 @@ export default class DexcaliburEngine
         return null;
     }
 
+    /**
+     * To get all active projects
+     *
+     * @return {DexcaliburProject[]} Active projects
+     * @method
+     * @since 1.0.0
+     */
+    getActiveProjects():DexcaliburProject[] {
+        return this.active;
+    }
+
+
+
     deleteProject( pUID:string):boolean{
         let success:boolean = false;
         try{
@@ -732,6 +816,7 @@ export default class DexcaliburEngine
 
         let project:DexcaliburProject = null;
         let success:boolean = null;
+        let apkFile:ApkPackage = null;
 
         await DeviceManager.getInstance().scan();
 
@@ -753,10 +838,10 @@ export default class DexcaliburEngine
         }
 
         // open APK, analyze manifest
-        success = await project.useAPK(pApkPath);
+        apkFile = await project.useAPK(pApkPath);
 
         // create project.json file
-        if(success){
+        if(apkFile != null){
             project.save();
 
             this.active[pUID] = project;

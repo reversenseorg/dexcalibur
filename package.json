@@ -11,6 +11,7 @@
     "url": "https://github.com/FrenchYeti/dexcalibur-ts.git"
   },
   "dependencies": {
+    "@types/nedb": "^1.8.11",
     "adm-zip": "^0.4.14",
     "body-parser": "^1.18.3",
     "busboy": "^0.3.1",
@@ -21,11 +22,13 @@
     "event-stream": "^4.0.1",
     "express": "^4.16.3",
     "file-type": "^10.4.0",
-    "frida": "<=12.10.4",
+    "frida": "^14.2.2",
     "got": "^10.7.0",
     "js-yaml": "^3.13.1",
     "md5": "^2.2.1",
     "mime-types": "^2.1.20",
+    "nedb": "^1.8.0",
+    "nedb-async": "^0.1.6",
     "properties": "^1.2.1",
     "r2pipe": "^2.8.0",
     "websocket": "^1.0.32",
@@ -35,6 +38,8 @@
   "devDependencies": {
     "@types/chai": "^4.2.11",
     "@types/mocha": "^7.0.2",
+    "electron": "^11.1.1",
+    "electron-rebuild": "^2.3.4",
     "grunt-contrib-clean": "^2.0.0",
     "grunt-contrib-copy": "^1.0.0",
     "grunt-exec": "^3.0.0",
@@ -47,7 +52,7 @@
     "typescript": "^3.9.5"
   },
   "bin": {
-    "dexcalibur": "dexcalibur"
+    "dexcalibur": "dexcalibur.js"
   },
   "scripts": {
     "prepare": "npm run build",

@@ -33,6 +33,8 @@ import Simplifier from "./Simplifier";
 import SmaliDisassembler from "./SmaliDisassembler";
 import GraphMaker from "./Graph";
 import IosAppAnalyzer from "./ios/IosAppAnalyzer";
+import {AppIcon} from "./AppIcon";
+import {ApkPackage} from "./android/ApkPackage";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -48,6 +50,11 @@ var g_builtinHookSets:any = {};
  */
 function ApplicationInstance(pid){
     this.pid = null;
+}
+
+
+interface DigestSet {
+    [type:string] :string
 }
 
 /**
@@ -188,6 +195,23 @@ export default class DexcaliburProject
     simplifier:Simplifier = null;
 
     saveManager:any = null;
+
+
+    /**
+     * Application Icon
+     *
+     * @type {AppIcon}
+     * @field
+     */
+    icon:AppIcon = null;
+
+    /*
+     * A set of package checksum
+     *
+     * @type {DigestSet}
+     * @field
+     */
+    //checksum:DigestSet = {};
 
     /**
      * 
@@ -441,13 +465,16 @@ export default class DexcaliburProject
      * 
      * @param {*} pPath 
      */
-    async useAPK( pPath:string):Promise<boolean>{
+    async useAPK( pPath:string):Promise<ApkPackage>{
+
+        let success:boolean;
+        let apkFile:ApkPackage = null;
 
         // copy the APK into project workspace
         this.workspace.changeMainAPK(pPath);
 
         // load it : decompress file, disass dex files
-        return await ApkHelper.extract( 
+        success = await ApkHelper.extract(
             this.workspace.getApkPath(),
             this.workspace.getApkDir(),
             {
@@ -455,6 +482,13 @@ export default class DexcaliburProject
                 match: true
             }
         );
+
+        // start analysis ?
+        if(success){
+            apkFile = new ApkPackage();
+        }
+
+        return apkFile;
     }
 
     /**
@@ -536,6 +570,27 @@ export default class DexcaliburProject
         return this.fullscan();
     }
 
+    /**
+     * To get information about a specified project
+     *
+     * @param {DexcaliburEngine} pEngine
+     * @param {string} pProjectUID
+     * @return {any} Project data
+     * @method
+     * @static
+     * @since 1.0.0
+     */
+    static getInformationOf(pEngine:DexcaliburEngine, pProjectUID:string):any {
+
+        let data:any;
+        let ws = new Workspace(
+            _path_.join( pEngine.workspace.getLocation(), pProjectUID )
+        );
+
+        data = Fs.readFileSync( ws.getProjectCfgPath());
+        data = JSON.parse(data);
+        return data;
+    }
     /**
      * 
      * @param {*} pContext 
@@ -810,13 +865,18 @@ export default class DexcaliburProject
         }else{
             //        let dexPath = this.workspace.getWD()+"dex";
             // To replace by package app (abstraction of apk/ipa/elf/..)
+            //  par exemple : getAppDir() => path of folder containing extracted files
             let apkPath:string = this.workspace.getApkDir();
 
             Logger.info("Scanning default path : "+apkPath);
-            
+
+            // code analysis
             this.analyze.path( apkPath);
+
+            // file analysis : icon detection, strings, etc ...
             this.dataAnalyzer.scan( apkPath, DATA_SCOPE.PKG); //["smali"]);
-    //        this.analyze.scanManifest(Path.join(dexPath,"AndroidManifest.xml"));
+
+            // application topology analysis
             success = await this.appAnalyzer.importManifest(_path_.join(apkPath,"AndroidManifest.xml"));
         }
 
@@ -891,6 +951,9 @@ export default class DexcaliburProject
         }));
 
         this.ready = true;
+
+        // update project config (icon, checksum, cert, ...)
+        this.save();
 
         // make CFG
         //this.analyze.cfg();

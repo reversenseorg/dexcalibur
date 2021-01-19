@@ -9,6 +9,7 @@ import * as _stream_  from 'stream';
 import got  from "got";
 
 import {TestHelper} from "./TestHelper";
+import * as _os_ from "os";
 
 
 const _exec_:any = _util_.promisify(Process.exec);
@@ -16,7 +17,7 @@ const _spawn_:any = _util_.promisify(Process.spawn);
 
 const RE_REPLACE:RegExp = /[-\/\\^$*+?.()|[\]{}]/g;
 
-function checksum(str:string, algorithm:string ='md5', encoding:crypto.HexBase64Latin1Encoding ='hex'):string {
+function checksum(str:string, algorithm:string ='md5', encoding:any ='hex'):string {
     return crypto
       .createHash(algorithm || 'md5')
       .update(str, 'utf8')
@@ -29,6 +30,19 @@ const FLAG_WS = 0x2;
 const FLAG_TB = 0x4;
 
 const PATTERNS = {};
+
+
+let PRINT = null;
+
+const LOG_ENABLED = true;
+const LOG_FILE = "/Users/salade/Documents/repos/dexcalibur-codebase/dexcalibur-ui/dexcalibur.logs";
+
+if(LOG_ENABLED)
+    PRINT = function ( pMessage:string){
+        fs.appendFileSync(LOG_FILE, pMessage+_os_.EOL);
+    };
+else
+    PRINT = console.log;
 
 PATTERNS[FLAG_CR] = new RegExp("^[\n]*$");
 PATTERNS[FLAG_WS] = new RegExp("^[\s]*$");
@@ -191,7 +205,7 @@ export default class Util {
             msg += "║ "+ctn[i]+" ".repeat(header.length-ctn[i].length-4)+"║\n";
         }
         
-        console.log(header+msg+"╚"+"═".repeat(header.length-3)+"╝\n"); 
+        PRINT(header+msg+"╚"+"═".repeat(header.length-3)+"╝\n");
     }
 
     static time():number{
@@ -215,7 +229,7 @@ export default class Util {
         if(process.env.DEXCALIBUR_TEST){
             ret = TestHelper.execSync(command);
         }else{
-            console.log(chalk.bold.red("Execute command request : "+command));
+            PRINT(chalk.bold.red("Execute command request : "+command));
             ret = Process.execSync(command);
         }
 
@@ -228,7 +242,7 @@ export default class Util {
         if(process.env.DEXCALIBUR_TEST){
             ret = await TestHelper.execAsync(command);
         }else{
-            console.log(chalk.bold.red("Execute command request : "+command));
+            PRINT(chalk.bold.red("Execute command request : "+command));
             ret = await _exec_(command);
         }
 
@@ -241,7 +255,7 @@ export default class Util {
         if(process.env.DEXCALIBUR_TEST){
             ret = TestHelper.spawn(pCmd);
         }else{
-            console.log(chalk.bold.red("Spawning : "+pCmd));
+            PRINT(chalk.bold.red("Spawning : "+pCmd));
             ret = Process.spawn(pCmd, pArgs, pOptions);
         }
 
@@ -252,7 +266,7 @@ export default class Util {
         let s:string ="";
 
         while(s.length <= size){
-            s += charset[Math.round(Math.random() * charset.length)];
+            s += charset[Math.round(Math.random() * (charset.length-1))];
         }
         return s;
     }

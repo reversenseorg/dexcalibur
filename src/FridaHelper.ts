@@ -299,13 +299,13 @@ export default class FridaHelper
 
 
         // retrieve frida version
-        ver = FridaHelper.getLocalFridaVersion( pOptions.path != null? pOptions.path : HOST_FRIDA_BIN_NAME);
+        ver = FridaHelper.getLocalFridaVersion( pOptions.hostPath != null? pOptions.hostPath : HOST_FRIDA_BIN_NAME);
         
         // get device a architecture
         arch = pDevice.getProfile().getSystemProfile().getArchitecture();
 
-        if(pOptions.remoteURL != null){
-            tmp =  pOptions.remoteURL;
+        if(pOptions.downloadURL != null){
+            tmp =  pOptions.downloadURL;
         }else{
             tmp = `https://github.com/frida/frida/releases/download/${ver.version}/frida-server-${ver.version}-android-${arch}.xz`   
         }

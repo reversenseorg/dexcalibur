@@ -1,5 +1,5 @@
-import _path_ = require("path");
-import _fs_ = require("fs");
+import * as _path_ from "path";
+import * as _fs_ from "fs";
 import got from "got";
 import * as stream from "stream";
 import {promisify} from "util";

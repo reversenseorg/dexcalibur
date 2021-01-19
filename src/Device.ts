@@ -17,6 +17,7 @@ import Utils  from "./Utils";
 import AdbWrapper from "./AdbWrapper";
 import {BridgeSuperFactory, IBridge} from "./Bridge";
 import ModelSyscall from "./ModelSyscall";
+import AppPackage from "./AppPackage";
 
 export enum EDevType  {
     UNKNOW=0x0,
@@ -39,6 +40,7 @@ const OS_NAME = ['android','linux','tizen'];
 interface BridgeList {
     [p: string]: IBridge
 }
+
 
 
  /**
@@ -176,6 +178,16 @@ export class Device
      *
      */
     syscalls:ModelSyscall[] = null;
+
+    /**
+     * List of application package installed
+     *
+     * @type {AppPackage[]}
+     * @field
+     */
+    apps:AppPackage[] = [];
+
+
 
     /**
      * 
@@ -800,5 +812,27 @@ export class Device
         }
 
         return this.syscalls;
+    }
+
+    /**
+     *
+     * @param {AppPackage[]} pApps List of installed application
+     * @return {AppPackage[]} Application removed
+     */
+    updateInstalledApp( pBridge:IBridge = null, pOtions:any = '-f'):void {
+        let bridge:IBridge, apps:AppPackage[];
+
+        // get bridge
+        if(pBridge==null)
+            bridge = this.getDefaultBridge();
+        else
+            bridge = pBridge;
+
+        // list apps
+        this.apps = bridge.listPackages(pOtions);
+    }
+
+    getInstalledApp():AppPackage[] {
+        return this.apps;
     }
 }

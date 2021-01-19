@@ -6,7 +6,26 @@ This file should not include dexcalibur ./src/* file (recursive dependency)
 
 
 import chalk from "chalk";
-import Process = require("process");
+import * as Process from 'process';
+import * as _fs_ from "fs";
+import * as _os_ from "os";
+
+
+
+
+let PRINT = null;
+
+const LOG_ENABLED = true;
+const LOG_FILE = "/Users/salade/Documents/repos/dexcalibur-codebase/dexcalibur-ui/dexcalibur.logs";
+
+if(LOG_ENABLED)
+    PRINT = function ( pMessage:string){
+                _fs_.appendFileSync(LOG_FILE, pMessage+_os_.EOL);
+        };
+else
+    PRINT = console.log;
+
+
 
 class LoggerAction {
     static exit(){
@@ -171,20 +190,20 @@ export class ProdLogger implements Logger
     }
 
     error(...args :any[]):LoggerAction{
-        console.log(chalk.bold.red('[ERROR] '+this.prefix.join("")+multi_concat(args)));
+        PRINT(chalk.bold.red('[ERROR] '+this.prefix.join("")+multi_concat(args)));
         return LoggerAction;
     }
 
     debug(...args :any[]):LoggerAction{
         if(this.debugEnabled)
-            console.log(chalk.bold.blue('[DEBUG] '+this.prefix.join("")+multi_concat(args)));
+            PRINT(chalk.bold.blue('[DEBUG] '+this.prefix.join("")+multi_concat(args)));
         return LoggerAction;
     }
 
 
     debugRAW(...args :any[]):LoggerAction{
         if(this.debugEnabled)
-            console.log(args);
+            PRINT(args);
         return LoggerAction;
     }
 
@@ -193,35 +212,35 @@ export class ProdLogger implements Logger
      */
     debugPink(...args :any[]):LoggerAction{
         if(this.debugEnabled)
-            console.log(chalk.bold.magenta('[DEBUG] '+this.prefix.join("")+multi_concat(args)));
+            PRINT(chalk.bold.magenta('[DEBUG] '+this.prefix.join("")+multi_concat(args)));
         return LoggerAction;
     }
 
 
     debugBgRed(...args :any[]):LoggerAction{
         if(this.debugEnabled)
-            console.log(chalk.white.bgRed.bold('[DEBUG] '+this.prefix.join("")+multi_concat(args)));
+            PRINT(chalk.white.bgRed.bold('[DEBUG] '+this.prefix.join("")+multi_concat(args)));
         return LoggerAction;
     }
 
     warn(...args :any[]):LoggerAction{
         if(this.debugEnabled)
-            console.log(chalk.bold.yellow('[DEBUG] '+this.prefix.join("")+multi_concat(args)));
+            PRINT(chalk.bold.yellow('[DEBUG] '+this.prefix.join("")+multi_concat(args)));
         return LoggerAction;
     }
 
     success(...args :any[]):LoggerAction{
-        console.log(chalk.bold.green(this.prefix.join("")+multi_concat(args)));
+        PRINT(chalk.bold.green(this.prefix.join("")+multi_concat(args)));
         return LoggerAction;
     }
 
     info(...args :any[]):LoggerAction{
-        console.log('[INFO] '+this.prefix.join("")+multi_concat(args));
+        PRINT('[INFO] '+this.prefix.join("")+multi_concat(args));
         return LoggerAction;
     }
 
     raw(...args :any[]):LoggerAction{
-        console.log(multi_concat(args));
+        PRINT(multi_concat(args));
         return LoggerAction;
     }
 

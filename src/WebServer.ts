@@ -76,7 +76,11 @@ export class MimeHelper
 export default class WebServer
 {
 
+    /**
+     *
+     */
     context:DexcaliburEngine = null;
+
     project:DexcaliburProject = null; //pProject;
 
     tplengine:WebTemplateEngine = null;
@@ -645,9 +649,10 @@ export default class WebServer
                 let dev:any;
 
                 try{
+                    Logger.raw(JSON.stringify(req.body));
                     dev = { success: await dm.enroll(req.body['uid'], req.body['opts']) };
                 }catch(err){
-                    console.log(err);
+                    Logger.error(err.message);
 
                     dev = { success:false, msg:err };
                 }
@@ -717,7 +722,11 @@ export default class WebServer
                     return;
                 }
 
-                pkgs = dev.getDefaultBridge().listPackages('-f');
+                dev.updateInstalledApp();
+                //pkgs = dev.getDefaultBridge().listPackages('-f');
+                pkgs = dev.getInstalledApp();
+                dm.save();
+                //dev.updateCache('package',pkgs);
 
                 rep = {
                     device: req.query.uid,
@@ -1776,7 +1785,7 @@ export default class WebServer
                 res.send(JSON.stringify(dev));
             });
         
-        this.app.route('/api/project/:uid/app/info')
+        /*this.app.route('/api/project/:uid/app/info')
             .get(function (req:ExpressRequest, res:ExpressResponse):any {
                 if(req.params.uid != "self"){
                     // not supported
@@ -1784,6 +1793,32 @@ export default class WebServer
                 }else{
                     //$.project.getApplication();
                     res.status(404).send(JSON.stringify({ msg: 'Operation not supported (TODO)' }));
+                }
+            });*/
+
+        this.app.route('/api/project/active')
+            .get(function(req:ExpressRequest, res:ExpressResponse):any {
+                let proj:DexcaliburProject[];
+                let data:any[] = [];
+
+                try{
+                    proj = $.context.getActiveProjects();
+                    for(let i in proj) data.push( proj[i].toJsonObject());
+                    res.status(200).send(JSON.stringify({ success:true, data: data }));
+                }catch(err){
+                    res.status(200).send(JSON.stringify({ success:false, msg: err.message }));
+                }
+            });
+
+        this.app.route('/api/project/info/:uid')
+            .get(function(req:ExpressRequest, res:ExpressResponse):any {
+                let project:DexcaliburProject;
+
+                try{
+                    project = DexcaliburProject.getInformationOf( $.context, req.params.uid);
+                    res.status(200).send(JSON.stringify({ success:true, data: project }));
+                }catch(err){
+                    res.status(200).send(JSON.stringify({ success:false, msg: err.message }));
                 }
             });
 
@@ -2453,10 +2488,12 @@ export default class WebServer
             }
 
             if(f==false){ next(); return; }
-            
-            res.redirect('/pages/splash.html');
-            res.send();
-            
+            if(!self.context.isIpcWaitMode()) {
+                res.redirect('/pages/splash.html');
+                res.send();
+            }
+
+            return;
         });
         this.initRoutes();
         

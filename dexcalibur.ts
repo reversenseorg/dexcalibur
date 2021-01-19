@@ -4,8 +4,26 @@ import * as Process from 'process';
 import ArgParser from './src/ArgUtils.js';
 
 
+import DexcaliburEngine from './src/DexcaliburEngine';
 
-var projectArgs:any = {};
+import * as _fs_ from "fs";
+import * as _os_ from "os";
+
+
+const LOG_ENABLED = true;
+const LOG_FILE = "/Users/salade/Documents/repos/dexcalibur-codebase/dexcalibur-ui/dexcalibur.logs";
+
+function __log( pMessage:string):void{
+    if(LOG_ENABLED)
+        _fs_.appendFileSync(LOG_FILE, pMessage+_os_.EOL);
+}
+
+
+
+var projectArgs:any = {
+    ipc: false,
+    ipcMode: 'API'
+};
 
 var Parser:ArgParser = new ArgParser(projectArgs, [
   /*  { name:"--api", 
@@ -48,6 +66,14 @@ var Parser:ArgParser = new ArgParser(projectArgs, [
         help: "Enable debug",
         hasVal: false, 
         callback: (ctx,param)=>{ ctx.debug = true; } },
+    { name:"--ipc",
+        help: "Enable IPC handlers",
+        hasVal: false,
+        callback: (ctx,param)=>{ ctx.ipc = true; } },
+    { name:"--ipc-mode",
+        help: "To set Dexcalibur behavior when IPC is enabled [ WAIT, API ]. If mode is 'WAIT' then program is commanded exclusively by IPC. Default: API   ",
+        hasVal: true,
+        callback: (ctx,param)=>{ ctx.ipcMode = param.value; } },
     /*{ name:"--config", 
         help: "The path to a custom config file. Default : ./config.js",
         hasVal:true, 
@@ -99,8 +125,6 @@ if(projectArgs.debug){
 }
 
 
-import DexcaliburEngine from './src/DexcaliburEngine';
-
 
 
 if(projectArgs.help != null){
@@ -108,6 +132,8 @@ if(projectArgs.help != null){
     Process.exit();
 }
 
+__log('( =============================================== )')
+__log('[DXC_SRV][ARGS] '+JSON.stringify(projectArgs));
 
 var dxcInstance:DexcaliburEngine, ready:boolean=false;
 
@@ -118,38 +144,51 @@ if(projectArgs.uipath!==undefined){
     dxcWebRoot = null; //_path_.join(__dirname, 'src', 'webserver', 'src');
 }
 
-if(projectArgs.reinstall == true){
-    DexcaliburEngine.clearInstall();
+dxcInstance = DexcaliburEngine.getInstance();
+
+if(projectArgs.ipc == true){
+    __log('[DXC_SRV][IPC] Enabled');
+    dxcInstance.enableIPC(projectArgs.ipcMode);
+}else{
+;
+    __log('[DXC_SRV][IPC] Disabled');
 }
-if( DexcaliburEngine.requireInstall() ){
-    // pass 
-    dxcInstance = DexcaliburEngine.getInstance();
 
-    dxcInstance.prepareInstall(
-        (projectArgs.port!=null) ? projectArgs.port : 8000,
-        dxcWebRoot
-    );
 
-    dxcInstance.start(
-        projectArgs.port,
-        projectArgs.uipath!==undefined? projectArgs.uipath : null
-    );
-}
-else{
+__log('[DXC_SRV][IPC] Waiting for IPC message ...');
+if( !projectArgs.ipc
+    || (projectArgs.ipc && (projectArgs.ipcMode=='API') )){
 
-    dxcInstance = DexcaliburEngine.getInstance();
-
-    dxcInstance.loadWorkspaceFromConfig();
-    
-    ready = dxcInstance.boot(
-        projectArgs.restore===true? true : false,
-        dxcWebRoot
-    );
-
-    if(ready){
-        dxcInstance.start((projectArgs.port!=null) ? projectArgs.port : 8000 );
+    if(projectArgs.reinstall == true){
+        DexcaliburEngine.clearInstall();
     }
-    
+
+    if( DexcaliburEngine.requireInstall() ){
+        // pass
+        dxcInstance.prepareInstall(
+            (projectArgs.port!=null) ? projectArgs.port : 8000,
+            dxcWebRoot
+        );
+
+        dxcInstance.start(
+            projectArgs.port,
+            projectArgs.uipath!==undefined? projectArgs.uipath : null
+        );
+    }
+    else{
+        dxcInstance.loadWorkspaceFromConfig();
+
+        ready = dxcInstance.boot(
+            projectArgs.restore===true? true : false,
+            dxcWebRoot
+        );
+
+        if(ready){
+            dxcInstance.start((projectArgs.port!=null) ? projectArgs.port : 8000 );
+        }
+
+    }
+
 }
 
 
