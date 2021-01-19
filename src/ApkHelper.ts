@@ -7,6 +7,8 @@ import * as _util_ from 'util';
 import DexcaliburWorkspace from "./DexcaliburWorkspace";
 import {EOL} from 'os';
 import * as Log from './Logger';
+import APK from "./APK";
+import {ApkPackage} from "./android/ApkPackage";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -77,6 +79,9 @@ export default class ApkHelper
 
     /**
      * To extract APK file content using APKtool
+     *
+     * TODO : replace APK tool by Dexcalibur extraction tool
+     * TODO : return ApkPackage instance representing app
      *
      * Parameter `pOptions` accepts several APKtoopl options:
      *  - raw_command :  set with raw apktool arguments
