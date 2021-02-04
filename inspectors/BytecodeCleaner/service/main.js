@@ -551,10 +551,10 @@ function renameDoubleStatic(database, method, pContext){
 
     if(!hasSingleCall(method)) return false;
 
-    
 
     // check if the current method is static
-    if(method.getModifier().isStatic() === false) return false;
+    if(method.getModifier().static === false) return false;
+
 
     // get the called method
     let called = database.methods.getEntry( Object.keys(method._useMethod)[0] );
@@ -562,31 +562,34 @@ function renameDoubleStatic(database, method, pContext){
     
     if(called == null 
         || called.getModifier() == null 
-        || called.getModifier().isStatic() === false) return false;
+        || called.getModifier().static === false) return false;
+
+    //let args = called.args;
 
     // add arg type comparison
     let paramOnly = true;
     if(args.length > 0){
-        console.log(args, args[0]) ;
+        args.map( pLocation => {
+            let instr = method.getInstr(pLocation.bb,pLocation.instr);
+            if(instr != null){
+                instr.left.map( vParam => {
+                    if(vParam.t !== CONST.LEX.TOKEN.PARAM) paramOnly = false;
+                })
+            }
+        })
+        /*
+        console.log(args, args[0], method.getInstr(args[0].bb,args[0].instr)) ;
         args[0].forEach(x=>{
             if(x.t !== CONST.LEX.TOKEN.PARAM) paramOnly = false;
-        });
+        });*/
     }
  
     if(paramOnly === false) return false;
 
     if(called.enclosingClass.name !== method.enclosingClass.name){
         method.setAlias(called.enclosingClass.name+"_"+called.name);
-        pContext.trigger({
-            type: "method.alias.update",
-            meth: method
-        });
     }else{
         method.setAlias(called.name);
-        pContext.trigger({
-            type: "method.alias.update",
-            meth: method
-        });
     }
 
     return true;
@@ -625,7 +628,7 @@ function renameStaticInterface(database, method, pContext){
     // TODO :  add check based on the opcode type instead of the modifiers of the called method
     if(called == null 
         || called.getModifier() == null 
-        || called.getModifier().isStatic() === true) return false;
+        || called.getModifier().static === true) return false;
 
 
     // check if the first param of the caller is an 
@@ -635,26 +638,27 @@ function renameStaticInterface(database, method, pContext){
 
     // check if each parameter of the called method are parameter of the caller
     // {p0, p1} or {p0 ... p5}
+
     let paramOnly = true;
-    args[0].forEach(x=>{
-        if(x.t !== CONST.LEX.TOKEN.PARAM) paramOnly = false;
-    });
+    if(args.length > 0){
+        args.map( pLocation => {
+            let instr = method.getInstr(pLocation.bb,pLocation.instr);
+            if(instr != null){
+                instr.left.map( vParam => {
+                    if(vParam.t !== CONST.LEX.TOKEN.PARAM) paramOnly = false;
+                })
+            }
+        })
+    }
+
     if(paramOnly === false) return false;
 
     // check if some parameters of the called method are defined statically and locally
     if(called.enclosingClass.name !== method.enclosingClass.name){
         method.setAlias(called.enclosingClass.name+"_"+called.name);
-        pContext.trigger({
-            type: "method.alias.update",
-            meth: method
-        });
 
     }else{
         method.setAlias(called.name);
-        pContext.trigger({
-            type: "method.alias.update",
-            meth: method
-        });
     }
 
     return true;
@@ -668,19 +672,30 @@ function wrapClean(context){
         doubleStatic: 0,
         staticInterface: 0
     };
+    let edited = [];
+
 
     // scan with several heuristic
     db.methods.map((k,v)=>{
         if(renameDoubleStatic(db, v, context)){
+            edited.push(v);
             ctr.doubleStatic++;
             return;
         } 
         if(renameStaticInterface(db, v, context)){
+            edited.push(v);
             ctr.staticInterface++;
             return;
-        } 
+        }
+
     });
-    
+
+    if(edited.length > 0){
+        context.trigger({
+            type: "method.alias.update.mult",
+            meths: edited
+        });
+    }
 
     return { status:200, data:{ counter:ctr } };
 }
@@ -714,6 +729,7 @@ Controller.registerHandler(IFC.HANDLER.GET, function(ctx,req,res){
             //console.log(act.data.counter),"methods cleaned";
             break;
         case 'wrap_clean':
+            // pause auto-save
             act = wrapClean(ctx);
             break;
     }
