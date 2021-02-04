@@ -582,10 +582,14 @@ Hook.prototype.makeHookFor = function(method){
     }
     if(method.args.length > 0){
         let argHelp = this.makeArgsHelper(method.args);
+        if(argHelp.data=="") argHelp.data = "pass:''";
         tags["@@__ARGS__@@"] = argHelp.call_signature;
         tags["@@__ARGS_DATA__@@"] = "{"+argHelp.data+"}";
         tags["@@__HOOK_ARGS__@@"] = argHelp.hook_args;
         tags["@@__HOOK_ARGS2__@@"] = ", "+argHelp.hook_args;
+    }else{
+
+        tags["@@__ARGS_DATA__@@"] = "{pass:''}";
     }
     
     /*
@@ -714,10 +718,13 @@ Hook.prototype.buildCustomScript = function(method){
     }
     if(method.args.length > 0){
         let argHelp = this.makeArgsHelper(method.args);
+        if(argHelp.data=="") argHelp.data = "pass:1";
         tags["@@__ARGS__@@"] = argHelp.call_signature;
         tags["@@__ARGS_DATA__@@"] = "{"+argHelp.data+"}";
         tags["@@__HOOK_ARGS__@@"] = argHelp.hook_args;
         tags["@@__HOOK_ARGS2__@@"] = ", "+argHelp.hook_args;
+    }else{
+        tags["@@__ARGS_DATA__@@"] = "{ pass: 1 }";
     }
     
     for(let i in tags){
