@@ -1,6 +1,6 @@
 {
   "name": "dexcalibur",
-  "version": "0.7.4",
+  "version": "0.7.5",
   "description": "Android reverse engineering platform focused on dynamic binary instrumentation automation. tPowered by Frida. Offers a GUI and a Node.JS API",
   "main": "dexcalibur.js",
   "directories": {
