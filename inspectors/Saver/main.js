@@ -37,6 +37,35 @@ var Saver = new InspectorFactory({
             ctx.saveManager._ready = true;
             ctx.saveManager.restore();
         },
+        "method.alias.update.mult": function(ctx, event){
+            try{
+                if(ctx.saveManager.isReady() && ctx.saveManager.isEnabled()){
+                    // pause
+
+                    Logger.info("[INSPECTOR][SAVE] multiple alias update() : auto-save disabled");
+                    ctx.saveManager.disable()
+                    // update
+
+                    Logger.info("[INSPECTOR][SAVE] multiple alias update() : browsing "+event.meths.length+" methods");
+                    event.meths.map( vMeth => {
+                        ctx.saveManager.updateAlias(SaveManager.T_METHOD, vMeth);
+                    });
+                    // run
+                    Logger.info("[INSPECTOR][SAVE] multiple alias update() : auto-save enabled");
+                    ctx.saveManager.enable()
+                    // save
+
+                    Logger.info("[INSPECTOR][SAVE] multiple alias update() : saving ...");
+                    ctx.saveManager.save();
+                    Logger.info("[INSPECTOR][SAVE] multiple alias update() saved");
+                }else{
+                    Logger.info("[INSPECTOR][SAVE] multiple alias update() called but not saved : auto-save is disabled");
+                }
+            }catch(e){
+                console.log(e);
+                Logger.error("[INSPECTOR][SAVE] multiple alias update() failed");
+            }
+        },
         "method.alias.update": function(ctx, event){
             try{
                 if(ctx.saveManager.isReady() && ctx.saveManager.isEnabled()){

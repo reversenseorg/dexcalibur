@@ -420,8 +420,10 @@ class SaveManager
                 _fs_.readFile(
                     self._filepath, {encoding:'utf-8'}, 
                     function(err,pData){
-                        if(!err)
+                        if(!err && pData.length>0){
                             self.import(JSON.parse(pData));
+                        }
+
                 });
             }
         });
