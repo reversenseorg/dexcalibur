@@ -576,12 +576,12 @@
                 if(row.methods[i].modifiers != null) 
                     body += BS.modifiers(row.methods[i].modifiers);
                         
-                body += '</td><td><a target="about" href="finder.html?method='+btoa(encodeURIComponent(row.methods[i].__signature__))+'">';
+                body += '</td><td><a target="about" href="finder.html?method='+btoa(encodeURIComponent(row.methods[i].__signature__))+'" ';
 
                 if(row.methods[i].__aliasedCallSignature__ != null)
-                    body += '<b>'+htmlEncode(row.methods[i].__aliasedCallSignature__)+'<b>';
+                    body += 'style="color:black;"><b>'+htmlEncode(row.methods[i].__aliasedCallSignature__)+'<b>';
                 else
-                    body += htmlEncode(row.methods[i].__callSignature__);
+                    body += '>'+htmlEncode(row.methods[i].__callSignature__);
 
                     body += '</a></td>'+
                  '</tr>';
