@@ -39,9 +39,12 @@ import {Intent, IntentCommandFactory} from "./IntentFactory";
 import Simplifier from "./Simplifier";
 import ModelPackage from "./ModelPackage";
 import ModelClass from "./ModelClass";
+import Workspace from "./Workspace";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
+
+const HTTP_CODE_ERROR = 200;
 
 /**
  * @namespace WebServer.MimeHelper
@@ -377,22 +380,23 @@ export default class WebServer
                 dm = DeviceManager.getInstance();
                 await dm.scan();
                 
-                if(req.body['dev'] != null){
-                    device = dm.getDevice( req.body['dev']);
-                    if(device == null || !device.isEnrolled()){
-                        res.status(404).send(JSON.stringify({ success:false, msg:"Device unknow or not enrolled "}));
-                        return;
-                    }
-                }
 
-                if(req.body['name'] == null){
-                    res.status(404).send(JSON.stringify({ success:false, msg:"Invalid project name"}));
-                    return;
-                }
 
 
                 try{
-                    
+
+                    if(req.body['dev'] != null){
+                        device = dm.getDevice( req.body['dev']);
+                        if(device == null || !device.isEnrolled()){
+                            res.status(HTTP_CODE_ERROR).send(JSON.stringify({ success:false, msg:"Device unknow or not enrolled "}));
+                            return;
+                        }
+                    }
+
+                    if(req.body['name'] == null){
+                        res.status(HTTP_CODE_ERROR).send(JSON.stringify({ success:false, msg:"Invalid project name"}));
+                        return;
+                    }
     
                     // first download remote application
                     // on error : ne‹ project will not create. 
@@ -400,7 +404,7 @@ export default class WebServer
                     {
                         case 'select':
                             if(device == null){
-                                res.status(404).send(JSON.stringify({ success:false,  msg:"Device unknow or not enrolled "}));
+                                res.status(HTTP_CODE_ERROR).send(JSON.stringify({ success:false,  msg:"Device unknow or not enrolled "}));
                                 res.end();
                             }
                             platform = device.getPlatform();
@@ -423,7 +427,7 @@ export default class WebServer
 
                     // chcek if file exists an it is not empty
                     if( (!_fs_.existsSync(path)) || (false)){
-                        res.status(404).send(JSON.stringify({   success:false,  msg:"APK file not found "}));
+                        res.status(HTTP_CODE_ERROR).send(JSON.stringify({   success:false,  msg:"APK file not found "}));
                         return;
                     }
 
@@ -478,7 +482,7 @@ export default class WebServer
                 }catch(err){
                     console.log(err);
                     $.setProject(null);
-                    res.status(500).send(JSON.stringify({ msg:"An error occured while project initializing"}));
+                    res.status(HTTP_CODE_ERROR).send(JSON.stringify({ success:false, msg:"An error occured while project initializing"}));
                 }
 
                 return ;
@@ -542,6 +546,136 @@ export default class WebServer
                 res.status(200).send(JSON.stringify({
                     availability: availability
                 }));
+            });
+
+
+        this.app.route('/api/device/fs/list')
+            .get(async function(req:ExpressRequest, res:ExpressResponse):Promise<any> {
+                let data:any[] = [];
+                let target:string ="";
+                let baseDir:string = "";
+                let privileged:boolean = false;
+                let dev:Device = null;
+
+                try{
+                    if( req.query.uid!=null ){
+                        dev = $.context.getDeviceManager().getDevice(req.query.uid);
+                    }
+                    else if($.project !== null){
+                        dev = $.project.getDevice();
+                    }
+                    else{
+                        throw new Error('No active project');
+                    }
+
+
+                    if(dev==null){
+                        throw new Error("Target device not found");
+                    }
+
+                    if(!dev.isConnected()){
+                        throw  new Error("Device is offline");
+                    }
+
+                    switch(req.param.type){
+                        case 'privileged':
+                            privileged = true;
+                            break;
+                        case 'user':
+                        case 'shell':
+                        default:
+                            privileged = false;
+                            break;
+                    }
+
+
+
+
+
+                    if(req.query.app!=null){
+                        baseDir = dev.getDataPathOf(decodeURIComponent(req.query.app))+"/";
+                    }
+
+                    if(req.query.path!=null){
+                        baseDir += decodeURIComponent(req.query.path);
+                    }
+
+                    if(baseDir==""){
+                        baseDir = "/";
+                    }
+
+                    res.status(200).send(JSON.stringify({
+                        success:true,
+                        data: await dev.getDefaultBridge().listFiles(baseDir, {
+                            privileged: privileged
+                        })
+                    }));
+                }catch(err){
+                    res.status(HTTP_CODE_ERROR).send(JSON.stringify({ success:false, msg: err.message }));
+                }
+            });
+
+        this.app.route('/api/device/fs/content')
+            .get(async function(req:ExpressRequest, res:ExpressResponse):Promise<any> {
+                let data:any[] = [];
+                let target:string ="";
+                let baseDir:string = "";
+                let privileged:boolean = false;
+                let dev:Device = null;
+
+                try{
+                    if($.project == null){
+                        throw new Error('No active project');
+                    }
+
+                    switch(req.query.type){
+                        case 'privileged':
+                            privileged = true;
+                            break;
+                        case 'user':
+                        case 'shell':
+                        default:
+                            privileged = false;
+                            break;
+                    }
+
+                    if(req.query.uid!=null){
+                        dev = $.context.getDeviceManager().getDevice(req.query.uid);
+                    }else{
+                        dev = $.project.getDevice();
+                    }
+
+                    if(dev==null){
+                        throw new Error("Target device not found");
+                    }
+
+                    if(!dev.isConnected()){
+                        throw  new Error("Device is offline");
+                    }
+
+
+                    if(req.query.app!=null){
+                        baseDir = dev.getDataPathOf(req.query.app)+"/";
+                    }
+
+
+                    if(req.query.path!=null){
+                        baseDir += req.query.path;
+                    }
+
+                    if(baseDir==""){
+                        throw new Error("Path is empty");
+                    }
+
+                    res.status(200).send(JSON.stringify({
+                        success:true,
+                        data: dev.getDefaultBridge().readFile(baseDir, {
+                            privileged: privileged
+                        })
+                    }));
+                }catch(err){
+                    res.status(HTTP_CODE_ERROR).send(JSON.stringify({ success:false, msg: err.message }));
+                }
             });
 
         this.app.route('/api/device/connect')
@@ -608,6 +742,7 @@ export default class WebServer
 
                 res.send(JSON.stringify(dev));
             });
+
 
         this.app.route('/api/device/clear')
             .post(function (req:ExpressRequest, res:ExpressResponse):any {
@@ -738,6 +873,37 @@ export default class WebServer
                 });
 
                 res.status(200).send(JSON.stringify(rep));
+            });
+
+        this.app.route('/api/device/application/pull')
+            .post(function (req:ExpressRequest, res:ExpressResponse):any {
+                let dm = DeviceManager.getInstance();
+                let dev:Device = null, success:boolean = false, app:AppPackage = null;
+                let rep:any =  {};
+
+                try{
+                    dev =dm.getDevice(req.body['uid']);
+
+                    if(dev == null) throw new Error("Unknown device");
+                    if(!dev.isConnected()) throw new Error("Target device is offline");
+                    if(req.body['package'] == null) throw new Error("Package identifier not specified");
+
+                    if(req.body['path']!=null) {
+                        success = dev.pullPackage(req.body['package'], req.body['path']);
+                        rep = { success:success, data:{}};
+                    }else{
+                        app = dev.getApplicationByID(req.body['package']);
+                        if(app==null) throw new Error("Package not found");
+                        rep = { success:true, data:{ tmp: dev.pullTemp(app.packagePath) }};
+                    }
+
+                    res.status(200);
+                }catch(err){
+                    rep = { success:false, msg:err.message };
+                    res.status(200);
+                }
+
+                res.send(JSON.stringify(rep));
             });
 
         this.app.route('/api/device/setDefault')
@@ -956,7 +1122,7 @@ export default class WebServer
                 let device:Device = null;
 
                 if(req.body['dev']){
-                    device = DeviceManager.getInstance().getDevice(req.param.dev);
+                    device = DeviceManager.getInstance().getDevice(req.body['dev']);
                 }else{
                     device = $.project.getDevice();
                 }
@@ -1002,46 +1168,51 @@ export default class WebServer
 
         this.app.route('/api/probe/start')
             .post(function (req:ExpressRequest, res:ExpressResponse):any {
-               
+
+                let sess:HookSession = null;
                 try{
+
+
+                    sess = this.newSession();
+
                     switch(req.body.type){
                         case "spawn-self":
                             Logger.info(`[WEBSERVER] Start hooking [app=${$.project.getPackageName()}, type=spawn-self]`);
-                            $.project.hook.startBySpawn($.project.getPackageName());
-                            res.status(200).send(JSON.stringify({ enable: true }));
+                            sess = $.project.hook.startBySpawn($.project.getPackageName(), sess);
+                            res.status(200).send(JSON.stringify({ success: true, sessid: sess.getSessionID(), enable: true }));
                             break;
                         case "spawn":
                             Logger.info(`[WEBSERVER] Start hooking [app=${req.body.app}, type=spawn]`);
-                            $.project.hook.startBySpawn(req.body.app);
-                            res.status(200).send(JSON.stringify({ enable: true }));
+                            sess = $.project.hook.startBySpawn(req.body.app, sess);
+                            res.status(200).send(JSON.stringify({ success: true, sessid: sess.getSessionID(), enable: true }));
                             break;
                         case "attach-gadget":
                             Logger.info(`[WEBSERVER] Start hooking [pid=Gadget, type=attach-gadget]`);
-                            $.project.hook.startByAttachToGadget();
-                            res.status(200).send(JSON.stringify({ enable: true }));
+                            sess = $.project.hook.startByAttachToGadget(sess);
+                            res.status(200).send(JSON.stringify({ success: true, sessid: sess.getSessionID(), enable: true }));
                             break;
                         case "attach-app-self":
                             Logger.info(`[WEBSERVER] Start hooking [app=${req.body.app}, type=attach-app-self]`);
-                            $.project.hook.startByAttachToApp($.project.getPackageName());
-                            res.status(200).send(JSON.stringify({ enable: true }));
+                            sess = $.project.hook.startByAttachToApp($.project.getPackageName(), sess);
+                            res.status(200).send(JSON.stringify({ success: true, sessid: sess.getSessionID(), enable: true }));
                             break;
                         case "attach-app":
                             Logger.info(`[WEBSERVER] Start hooking [app=${req.body.app}, type=attach-app-x]`);
-                            $.project.hook.startByAttachToApp(req.body.app);
-                            res.status(200).send(JSON.stringify({ enable: true }));
+                            sess = $.project.hook.startByAttachToApp(req.body.app, sess);
+                            res.status(200).send(JSON.stringify({ success: true, sessid: sess.getSessionID(), enable: true }));
                             break;
                         case "attach-pid":
                             Logger.info(`[WEBSERVER] Start hooking [pid=${req.body.pid}, type=attach-to-pid`);
-                            $.project.hook.startByAttachTo(req.body.pid);
-                            res.status(200).send(JSON.stringify({ enable: true }));
+                            sess = $.project.hook.startByAttachTo(req.body.pid, sess);
+                            res.status(200).send(JSON.stringify({ success: true, sessid: sess.getSessionID(), enable: true }));
                             break;
                         default:
-                            res.status(404).send(JSON.stringify({ err: 'Invalid start type' }));
+                            res.status(HTTP_CODE_ERROR).send(JSON.stringify({ success:false, err: 'Invalid start type' }));
                             break;
                     }
                 }catch(exception){
-                    console.log(exception);
-                    res.status(404).send(JSON.stringify({ err: exception }));
+                    Logger.error(exception.message);
+                    res.status(HTTP_CODE_ERROR).send(JSON.stringify({ success:false, err: exception.message }));
                 }
 
                 
@@ -1166,7 +1337,7 @@ export default class WebServer
         this.app.route('/api/hook/app/kill')
             .post(async function (req:ExpressRequest, res:ExpressResponse):Promise<any> {
 
-                Logger.info("[REST] /api/hook/frida/kill POST");
+                Logger.info("[REST] /api/hook/app/kill POST");
 
                 // get hook instance by ID
                 let session:HookSession = $.project.hook.lastSession();
@@ -1810,6 +1981,31 @@ export default class WebServer
                 }
             });
 
+
+        this.app.route('/api/project/close')
+            .post(function(req:ExpressRequest, res:ExpressResponse):any {
+                let proj:DexcaliburProject = null;
+                let data:any = null;
+                try{
+                   data = $.context.getActiveProjects();
+
+                   for(let uid in data){
+                        if(data[uid].uid == req.body.uid){
+                             proj = data[uid];
+                        }
+                   }
+
+
+                    if(proj != null){
+                        res.status(200).send(JSON.stringify({ success:$.context.closeProject(proj) }));
+                    }else{
+                        throw new Error("Unknown project");
+                    }
+                }catch(err){
+                    res.status(HTTP_CODE_ERROR).send(JSON.stringify({ success:false, msg: err.message }));
+                }
+            });
+
         this.app.route('/api/project/info/:uid')
             .get(function(req:ExpressRequest, res:ExpressResponse):any {
                 let project:DexcaliburProject;
@@ -1922,6 +2118,127 @@ export default class WebServer
                     res.send(JSON.stringify(dev));
                 });
                 */
+
+        this.app.route('/api/project/ws')
+            .post(function(req:ExpressRequest, res:ExpressResponse):any {
+                let proj:DexcaliburProject[];
+                let data:any[] = [];
+                let target:string ="";
+                let unsafePath:string = null;
+
+                try{
+                    if($.project == null){
+                        throw new Error('No active project');
+                    }
+
+                    target = $.project.getWorkspace().getPath();
+
+                    if(req.body['path']!=null){
+
+                        unsafePath = _path_.normalize(req.body['path']);
+                        if(unsafePath.indexOf(target) !== 0){
+                            throw new Error('[SECURITY] Path traversal is not allowed. ');
+                        }else{
+                            target = unsafePath;
+                        }
+                    }
+                    /*
+                    const baseDir = $.project.getWorkspace().getPath();
+                    // prevent path traversal
+                    target = _path_.join(baseDir, req.body['path']!=null?req.body['path']:'');
+                    if(target.indexOf(baseDir) !== 0){
+                        throw new Error('[SECURITY] Path traversal is not allowed. ');
+                    }
+*/
+                    // replace by UUID
+                    Logger.raw(JSON.stringify(_fs_.lstatSync(target)));
+                    Logger.raw(JSON.stringify(_fs_.lstatSync(target).isDirectory()));
+
+                    if(_fs_.lstatSync(target).isDirectory()==false){
+
+                        Logger.raw(_fs_.readFileSync( target).toString());
+                        data = [{
+                            _t: 'c',
+                            p: target,
+                            n: _path_.basename(target),
+                            ctn: _fs_.readFileSync( target, {encoding: "utf-8"})
+                        }];
+                    }else{
+
+                        Logger.raw(target + " is a directory");
+                        _fs_.readdirSync( target).map(( pName:string )=>{
+                            const p = _path_.join(target,pName);
+                            data.push({ n:pName, p:p, _t: (_fs_.lstatSync(p).isDirectory()?'d':'f') });
+                        });
+                    }
+
+
+                    res.status(200).send(JSON.stringify({ success:true, data: data }));
+                }catch(err){
+                    res.status(HTTP_CODE_ERROR).send(JSON.stringify({ success:false, msg: err.message }));
+                }
+            });
+
+
+        this.app.route('/api/application/package/content')
+            .post(function(req:ExpressRequest, res:ExpressResponse):any {
+
+                let pkgId:string = null, data:any[] = [];
+                let target:string = "", apkBase:string = null;
+                let files:string[];
+                let unsafePath:string = null;
+
+                try{
+                    if($.project == null){
+                        throw new Error('No active project');
+                    }
+
+                    /*if(req.body['pkgid']==null){
+                        throw new Error('Package ID is not valid');
+                    }*/
+
+
+                    target = $.project.getWorkspace().getApkDir();
+
+                    if(req.body['path']!=null){
+
+                        unsafePath = _path_.normalize(req.body['path']);
+                        if(unsafePath.indexOf(target) !== 0){
+                            throw new Error('[SECURITY] Path traversal is not allowed. ');
+                        }else{
+                            target = unsafePath;
+                        }
+                    }
+
+                    //target = req.body['path']==null? apkBase : _path_.join(apkBase, req.body['path']);
+
+                    // prevent path traversal
+                    /*if(target.indexOf(apkBase) !== 0){
+                        throw new Error('[SECURITY] Path traversal is not allowed. ');
+                    }*/
+
+                    // replace by UUID
+                    if(_fs_.lstatSync(target).isDirectory()==false){
+                        data = [{
+                            _t: 'c',
+                            p: target,
+                            n: _path_.basename(target),
+                            ctn: _fs_.readFileSync( target, {encoding: "utf-8"})
+                        }];
+                    }else{
+                        _fs_.readdirSync( target).map(( pName:string )=>{
+                            const p = _path_.join(target,pName);
+                            data.push({ n:pName, p:p, _t: (_fs_.lstatSync(p).isDirectory()?'d':'f') });
+                        });
+                    }
+
+
+
+                    res.status(200).send(JSON.stringify({ success:true, data: data }));
+                }catch(err){
+                    res.status(200).send(JSON.stringify({ success:false, msg: err.message }));
+                }
+            });
 
         this.app.route('/api/manifest/providers')
             .get(function (req:ExpressRequest, res:ExpressResponse):any {

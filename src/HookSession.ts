@@ -13,6 +13,14 @@ import HookMessage from "./HookMessage";
 import Util from "./Utils";
 import * as Frida from 'frida';
 import {HookManager} from "./HookManager";
+import {User} from "./User";
+import {WebsocketSession} from "./WebsocketSession";
+import {TerminalSession} from "./TerminalSession";
+import {Logger} from "./Logger";
+import * as Log from "./Logger";
+
+
+let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
 interface FridaBindings {
     session:Frida.Session,
@@ -24,8 +32,11 @@ interface FridaBindings {
 /**
  * @class
  */
-export default class HookSession
+export default class HookSession extends WebsocketSession
 {
+
+
+
     /**
      * The stack containing the received message
      * @field
@@ -57,12 +68,21 @@ export default class HookSession
      */
     frida:FridaBindings = null
 
+
+    active:boolean = true;
+
+
+
+
     /**
      *
      * @param {HookManager} manager
      * @constructor
      */
     constructor(manager) {
+        super();
+
+        // hook
         this.message = [];
         this.hookManager = manager;
         this.sets_matches = {};
@@ -138,7 +158,9 @@ export default class HookSession
 
         if(msg.payload.tags != null) hm.setTags(msg.payload.tags);
 
-        this.message.push(hm)
+        Logger.raw(JSON.stringify(hm));
+        this.send(hm);
+        this.message.push(hm);
 
         if(hm.match)
             this.hookManager.trigger(hm);
@@ -186,6 +208,7 @@ export default class HookSession
     toJsonObject( pOffset:number=0, pSize:number=-1):any{
         let o:any = new Object(), limit:number=pSize;
         o.message = [];
+        o.active = this.active;
 
         if(limit==-1)
             limit = this.message.length;
@@ -199,5 +222,18 @@ export default class HookSession
         o.size = o.message.length;
         return o;
     }
+
+    /**
+     * to check is the hook session is running
+     *
+     */
+    isActive():boolean {
+        return this.active;
+    }
+
+    onExit():void {
+    }
+
+
 }
 

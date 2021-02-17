@@ -4432,7 +4432,7 @@ var AppConfig = function() {
     
 }).call(AppConfig.prototype);
 
-exports.AppConfig = AppConfig;
+exports.environment = AppConfig;
 
 });
 

@@ -741,15 +741,20 @@ export default class AdbWrapper implements IBridge
      * @async  
      */
     async detachedShell( pCommand:string|string[], pArgs:string = "" ):Promise<boolean>{
-        let args:string[] = this.setup(null,false) as string[];
-        let ws:DexcaliburWorkspace = DexcaliburWorkspace.getInstance();
-        let out:number = _fs_.openSync( _path_.join( ws.getTempFolderLocation(), 'out.log'), 'w+', 0o666);
-        let err:number = _fs_.openSync( _path_.join( ws.getTempFolderLocation(), 'err.log'), 'w+', 0o666);
+        try{
+            let args:string[] = this.setup(null,false) as string[];
+            let ws:DexcaliburWorkspace = DexcaliburWorkspace.getInstance();
+            let out:number = _fs_.openSync( _path_.join( ws.getTempFolderLocation(), 'out.log'), 'w+', 0o666);
+            let err:number = _fs_.openSync( _path_.join( ws.getTempFolderLocation(), 'err.log'), 'w+', 0o666);
 
+            args.shift(); // remove adb path
+            args = args.concat(pCommand);
+            let child:Process.ChildProcess = Process.spawn(this.path, args, { detached: true, stdio: [ 'ignore', out, err ] });
+            child.unref();
 
-        args = args.concat(pCommand);
-        let child:Process.ChildProcess = Process.spawn(this.path, args, { detached: true, stdio: [ 'ignore', out, err ] });
-        child.unref();
+        }catch(err){
+            Logger.raw('Detached shell error :'+err.message);
+        }
 
         return true;
     }
@@ -764,7 +769,7 @@ export default class AdbWrapper implements IBridge
      * @method
      */
     async privilegedShell(command:string, pOptions:any = {detached: false}):Promise<boolean|string|Buffer>{
-        Logger.info(`[ADB] Privileged exec <detached:${pOptions.detached?'true':'false'} : ${command}`);
+        Logger.info(`[ADB] Privileged exec <detached:${pOptions.detached?'true':'false'}> : ${command}`);
         if(pOptions.detached)
             return await this.detachedShell(["shell","su","-c",command]);
         else
@@ -832,6 +837,92 @@ export default class AdbWrapper implements IBridge
 
     getDeviceID():string{
         return this.deviceID;
+    }
+
+    /**
+     *
+     * @param pPath
+     * @param pOptions
+     */
+    async listFiles(pPath: string, pOptions?: any): Promise<any[]> {
+        let out:any, cmd:string='ls -al ', files:any[]=[];
+        const RE = /([^\s]+)\s+([^\s]+)\s+([^\s]+)\s+([^\s]+)\s+([^\s]+)\s+([^\s]+)\s+([^\s]+)\s+(.+)/;
+        let rest:any = [];
+
+        if(pOptions.hasOwnProperty('cmd')){
+            cmd = pOptions.cmd;
+        }
+
+
+
+
+        try{
+            if(pOptions.privileged){
+                out = await this.privilegedShell(cmd+pPath);
+            }else{
+                out = Process.execSync( this.setup() + " shell  "+cmd+pPath);
+                out = out.toString();
+            }
+        }catch(err){
+            out = err.stdout.toString();
+        }
+
+        out = out.split("\n");
+        out.shift(); // total
+        out.shift(); // .
+        out.shift(); // ..
+
+
+        if(pPath[pPath.length-1]!=='/'){
+           pPath += '/';
+        }
+
+        // parse line
+        out.map( (vEntry:string) => {
+
+            let f:any = null;
+            let m:any = RE.exec(vEntry);
+
+            if(m==null){
+                rest.push({ src:'out', _t:'r', n:vEntry });
+                return;
+            }
+
+            try{
+                f = {
+                    _t: m[1]!=null? (m[1][0]=='d'? 'd' : 'f') : 'f',
+                    link: m[2],
+                    own: m[3],
+                    grp: m[4],
+                    size: m[5],
+                    date: m[6],
+                    time: m[7],
+                    n: m[8],
+                    p: pPath+m[8],
+                };
+
+                if(m[1]!=null  && m[1][0]=='l'){
+                    f._t = 'l';
+                    const o = m[8].indexOf(' -> ');
+                    if(o>-1){
+                        f._d = m[8].substr(o+4);
+                        f.n = m[8].substr(0,o);
+                        f.p = pPath+m[8].substr(0,o);
+                    }
+                }
+
+                files.push(f);
+            }catch(err){
+                rest.push({ src:'out', _t:'?', n:vEntry });
+            }
+        })
+
+        Logger.raw(JSON.stringify(files));
+        return files;
+    }
+
+    readFile( pPath:string, pOptions:any):any {
+       return null;
     }
 }
 

@@ -64,4 +64,8 @@ export default class ModelFile
     hasMIME(mime:string):boolean{
         return (this.type != null)&&(this.type.mime==mime);
     }
+
+    static unserialize(o):ModelFile {
+        return new ModelFile(o);
+    }
 }

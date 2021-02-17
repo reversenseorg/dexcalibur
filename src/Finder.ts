@@ -23,6 +23,7 @@ import ModelFile from "./ModelFile";
 
 import * as Log from './Logger';
 import {Modifier} from "./AccessFlags";
+import {SearchToken} from "./SearchToken";
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
 var DataModel = {
@@ -136,7 +137,9 @@ export class Finder
 
             return new SearchPattern({
                 pattern:pattern,
-                field: token,
+                field: [new SearchToken({
+                    name:token,
+                })], //token,
                 isModifier:true,
                 fn: Finder.testHasModifier
             });
@@ -190,9 +193,9 @@ export class Finder
             token = pattern.substr(0,lex); 
             pattern = pattern.substr(lex+1);
         }else{
-            // DEFAULT field must be parameterized 
+            // DEFAULT field must be parameterized, it depends of root node
             token = "name";
-            pattern = "";
+            pattern = pattern; //"";
         }
 
 
@@ -204,6 +207,7 @@ export class Finder
         }
 
 
+        // TODO : remove -non-lazy mode
         if(lazy === false && isDeepSearch === false && dataModel[token] === undefined){
             Logger.info("[!] The property '"+token+"' not exists for these objects");
             return null;
@@ -218,23 +222,35 @@ export class Finder
                 return rx.test(x) 
             } ;
         }else{
+            Logger.raw("Nothing to test");
             fn = Finder.testNothing
         }
 
         let struct = false;
+
+        // TODO : remove -non-lazy mode
         if(lazy === false && isDeepSearch===false)
             struct = (dataModel[token] instanceof Array)||(dataModel[token] instanceof Object);
-        
-        return new SearchPattern({ 
-            pattern: pattern, 
-            field: token, 
+
+        return new SearchPattern({
+            pattern: pattern,
+            field: SearchToken.parseTokens(token),
             isStructField: struct,
             isDeepSearch: isDeepSearch,
-            fn: fn, 
+            fn: fn,
         });
     }
 
-    _findObject(index:any, search_pattern, includeMissing:boolean=false):IDbIndex{
+    /**
+     * To search an object into a specified index by a direct field value
+     *
+     *
+     * @param index
+     * @param search_pattern
+     * @param includeMissing
+     * @private
+     */
+    _findObject(index:any, search_pattern:SearchPattern, includeMissing:boolean=false):IDbIndex{
         let matches:IDbIndex = null, field:any=undefined;
         let tmpDb:IDatabase;
 
@@ -243,19 +259,32 @@ export class Finder
 
         matches = tmpDb.newIndex('root');
 
+        let d1:number = 0, d2:number = 0;
         index.map((k:any,v:any)=>{
             // new design removed MissingReference
             /*if(!includeMissing && (v instanceof CLASS.MissingReference))
                 return;*/
 
+
+            d1++;
             if((v instanceof ModelMethod) && (v.modifiers === undefined || v.modifiers === null))
                 return;
+            d2++;
+            field = v[search_pattern.field[0].name];
 
-            field = v[search_pattern.field];
-            if(field!==undefined && search_pattern.fn(field)) 
+            if(d1<10){
+                Logger.raw("Test : "+field+" == "+search_pattern.pattern);
+            }
+            if(field!==undefined && search_pattern.fn(field)) {
                 matches.insert(v, false);
+            }
         });
 
+        Logger.raw("Result size : "+matches.size());
+
+        if(d1 != d2){
+            Logger.raw("Method DB inconsistencies detected:"+d1+" invalid methods ");
+        }
         return matches;
     }
 
@@ -274,7 +303,9 @@ export class Finder
         if(object == null) return false;
 
 
-        if(ref[search.field[i]]!==undefined && ref[search.field[i]]!==null){
+        let node:any = ref[search.field[i].name];
+
+        if(node==undefined) return false;
             // if nested ppt is an array - such ars method.args
             /*if(ref[search.field[i]] instanceof Array){
                 for(let k=0; k<ref[search.field[i]].length; k++){
@@ -292,37 +323,69 @@ export class Finder
                 }
             }*/
 
-            if(i<search.field.length-1){
-                if(ref[search.field[i]] instanceof Array){
-                    for(let k=0; k<ref[search.field[i]].length; k++){
-                        if(ref[search.field[i]][k] instanceof ModelObjectType){
+        if(i<search.field.length-1){
+            if(search.field[i].isIterable()) {
+                if(Array.isArray(node)) {
+                    node.map( (v:any, i:number)=>{
+                        if(v instanceof ModelObjectType){
                             //console.log(search.field[i], ref[search.field[i]][k].name, search.field[i+1]);
-                            return this.__checkDeepField( this.__DB.classes.getEntry(ref[search.field[i]][k].name), search, i+1);
+                            return this.__checkDeepField( this.__DB.classes.getEntry(v.name), search, i+1);
                         }
-                        else if(ref[search.field[i]][k] instanceof ModelBasicType){
+                        else if(v instanceof ModelBasicType){
                             // terminal node (ignore array tag)
                             return false;
                         }else{
-                            //console.log(search.field[i],ref[search.field[i]]); 
-                            return this.__checkDeepField(ref[search.field[i]][k], search, i+1);
-                        }                
+                            //console.log(search.field[i],ref[search.field[i]]);
+                            return this.__checkDeepField(v, search, i+1);
+                        }
+                    });
+                }
+                else if(typeof node == 'object') {
+                    for(let key in node) {
+                        if(node[key] instanceof ModelObjectType){
+                            //console.log(search.field[i], ref[search.field[i]][k].name, search.field[i+1]);
+                            return this.__checkDeepField( this.__DB.classes.getEntry(node[key].name), search, i+1);
+                        }
+                        else if(node[key] instanceof ModelBasicType){
+                            // terminal node (ignore array tag)
+                            return false;
+                        }else{
+                            //console.log(search.field[i],ref[search.field[i]]);
+                            return this.__checkDeepField(node[key], search, i+1);
+                        }
                     }
-                }else{
-                    if(ref[search.field[i]] instanceof ModelObjectType){
-                        return this.__checkDeepField( this.__DB.classes.getEntry(ref[search.field[i]].name), search, i+1);
+                }
+            }
+            else if(Array.isArray(node)){ //instanceof Array){
+                for(let k=0; k<node.length; k++){
+                    if(node[k] instanceof ModelObjectType){
+                        //console.log(search.field[i], ref[search.field[i]][k].name, search.field[i+1]);
+                        return this.__checkDeepField( this.__DB.classes.getEntry(node[k].name), search, i+1);
                     }
-                    else if(ref[search.field[i]] instanceof ModelBasicType){
+                    else if(node[k] instanceof ModelBasicType){
+                        // terminal node (ignore array tag)
                         return false;
                     }else{
-                        return this.__checkDeepField(ref[search.field[i]], search, i+1);
-                    }   
-
-                    return this.__checkDeepField(ref[search.field[i]], search, i+1);
+                        //console.log(search.field[i],ref[search.field[i]]);
+                        return this.__checkDeepField(node[k], search, i+1);
+                    }
                 }
             }else{
-                ref = ref[search.field[i]];
+                if(node instanceof ModelObjectType){
+                    return this.__checkDeepField( this.__DB.classes.getEntry(node.name), search, i+1);
+                }
+                else if(node instanceof ModelBasicType){
+                    return false;
+                }else{
+                    return this.__checkDeepField(node, search, i+1);
+                }
+
+                return this.__checkDeepField(node, search, i+1);
             }
+        }else{
+            ref = node;
         }
+
 
         if(ref != null){
             return search.fn(ref);
@@ -358,21 +421,27 @@ export class Finder
         
     };
 
+
     _findDeepObject(index:IDbIndex|IDbCollection, search_pattern:SearchPattern):IDbIndex{
         let matches:IDbIndex=this.newResultSet();
 
+        try{
 
+            index.map((k,v)=>{
 
-        index.map((k,v)=>{
-
-            if(this.__checkDeepField(v, search_pattern))
-                matches.insert(v, false);
-        });
-/*
-        for(let i in index){
-            if(this.__checkDeepField(index[i], search_pattern))
-                matches.push(index[i]);
-        }*/
+                if(this.__checkDeepField(v, search_pattern)) {
+                    matches.insert(v, false);
+                }
+            });
+            /*
+                    for(let i in index){
+                        if(this.__checkDeepField(index[i], search_pattern))
+                            matches.push(index[i]);
+                    }*/
+        }catch(err){
+            // index is empty or an error occured during comparison
+            Logger.error("[Finder::_findDeepObject] "+err.message);
+        }
 
         return matches;
     };
@@ -427,7 +496,8 @@ export class Finder
         //this.cache.push({ index:index, model:model, case:caseSensitive, lazy:lazy });
 
         let spatt:SearchPattern = this._getTestFn(model, pattern, caseSensitive, lazy);
-        
+
+        Logger.raw(JSON.stringify(spatt));
         if(spatt!=null){
             if(spatt.isModifier)
                 return new FinderResult(this._findObjectByModifier(index, spatt), this); 
@@ -436,9 +506,9 @@ export class Finder
             else if(spatt.isDeepSearch){
                 console.debug("Running deep search ...")
                 //return new FinderResult(this._findDeepObject(index, spatt), this);
-                if(typeof spatt.field === 'string'){
+                /*if(typeof spatt.field === 'string'){
                     spatt.field = spatt.field.split('.');
-                }
+                }*/
 
                 return new FinderResult(this._findDeepObject(index, spatt), this);
             }

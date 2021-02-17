@@ -43,7 +43,7 @@ interface BridgeList {
 
 
 
- /**
+/**
  * This class represents a device
  * 
  * @class
@@ -186,6 +186,9 @@ export class Device
      * @field
      */
     apps:AppPackage[] = [];
+
+
+    //fs: DeviceFileSystem = null;
 
 
 
@@ -834,5 +837,40 @@ export class Device
 
     getInstalledApp():AppPackage[] {
         return this.apps;
+    }
+
+    /**
+     * To get an installed application by package identifier
+     *
+     * @param {string} pPackageId
+     * @return {AppPackage}
+     * @method
+     * @since 1.0.0
+     */
+    getApplicationByID( pPackageId:string):AppPackage{
+        for(let i=0; i<this.apps.length;  i++){
+            if(this.apps[i].packageIdentifier==pPackageId){
+                return this.apps[i];
+            }
+        }
+        return null;
+    }
+
+    /**
+     * To get absolute path of the folder containing application data
+     * of specified app
+     *
+     * @param {string} pPackageId Application package ID
+     * @return {string} Folder absolute path
+     * @method
+     * @since 1.0.0
+     */
+    getDataPathOf( pPackageId:string): string {
+
+        if(this.type===EOsType.ANDROID){
+            return ("/data/data/"+pPackageId).replace(/(\s+)/g, '\\$1');
+        }
+
+        return null;
     }
 }

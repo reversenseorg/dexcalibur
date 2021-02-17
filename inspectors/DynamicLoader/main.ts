@@ -400,6 +400,7 @@ export default new InspectorFactory({
             // 3. Analyze & update graph
             // 4. Workspace cleanup
 
+            if(event.data.data==null) return;
 
 
             let rtWorkingDir = ctx.workspace.getRuntimeBcDir();

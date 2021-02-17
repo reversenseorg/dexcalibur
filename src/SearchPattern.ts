@@ -1,8 +1,10 @@
+import {SearchToken} from "./SearchToken";
+
 export default class SearchPattern
 {
     fn:any = null;
     pattern:string = null;
-    field:string|string[] = null;
+    field: SearchToken[] = []; //string|string[] = null;
     isModifier:boolean = false;
     isStructField:boolean = false;
     isDeepSearch:boolean = false;
@@ -24,4 +26,5 @@ export default class SearchPattern
 
         return o;
     }
+
 }

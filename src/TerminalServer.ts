@@ -32,7 +32,6 @@ export class TerminalServer {
                     sessid: pSession.getSessionID()
                 }}));
         })
-
     }
 
     sendError( pSession:TerminalSession, pData:any){

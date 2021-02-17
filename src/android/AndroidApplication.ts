@@ -69,6 +69,8 @@ export default class AndroidApplication extends ApplicationBinary
     metaData = [];
     manifest:AndroidManifest = null;
 
+    dataDir:string = "";
+
     __context:DexcaliburProject = null;
 
     constructor(pContext:DexcaliburProject, config:any=null){

@@ -144,6 +144,16 @@ export class WebsocketServer
                                     Logger.info('Received Message: ' + message.utf8Data);
                                     self.engine.getTerminalServer().processCommand(user, conn, message.utf8Data);
                                     break;
+                                case 'hookm':
+                                    // TODO : check user permissions
+                                    Logger.info('Received Message: ' + message.utf8Data);
+                                    const p = self.engine.getProject(unsafeJSON['prj']);
+
+                                    if(p!=null) {
+                                        Logger.info('Retrieving hook Message from project ' + p.uid);
+                                        p.hook.processCommand(user, conn, message.utf8Data);
+                                    }
+                                    break;
                             }
                         }else{
                             Logger.info('Received Invalid message: ' + message.utf8Data);

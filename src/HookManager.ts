@@ -15,6 +15,8 @@ import ModelMethod from "./ModelMethod";
 import * as Log from './Logger';
 import FridaHelper from "./FridaHelper";
 import ModelClass from "./ModelClass";
+import {TerminalSession} from "./TerminalSession";
+import {HookSessionMap, TerminalSessionMap, User} from "./User";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -231,11 +233,16 @@ export class HookManager
      * @method
      */
     newSession():HookSession{
-        var sess:HookSession =new HookSession(this)
+        var sess:HookSession =new HookSession(this);
+
         // TODO : add configuration flush/keep previous
         if(this.mustFlushCache()){
             this.sessions = [];
         }
+        if(this.sessions.length > 0)
+            this.sessions[this.sessions.length-1].active = false;
+
+        sess.active = true;
         this.sessions.push(sess);
         return sess;
     }
@@ -248,8 +255,8 @@ export class HookManager
      * @param {String} pAppName Application UID
      * @method
      */
-    startBySpawn(pAppName:string, pHookScript:string= null):void{
-        this.start(pHookScript, FRIDA_MODE.SPAWN, pAppName);
+    startBySpawn(pAppName:string, pSession:HookSession, pHookScript:string= null):HookSession{
+        return this.start(pSession, pHookScript, FRIDA_MODE.SPAWN, pAppName);
     }
 
     /**
@@ -257,8 +264,8 @@ export class HookManager
      * @param {*} pAppName 
      * @param {*} pHookScript 
      */
-    startByAttachToGadget(pHookScript:string= null):void{
-        this.start(pHookScript, FRIDA_MODE.ATTACH_GADGET, "Gadget");
+    startByAttachToGadget(pSession:HookSession, pHookScript:string= null):HookSession{
+        return this.start(pSession, pHookScript, FRIDA_MODE.ATTACH_GADGET, "Gadget");
     }
 
     /**
@@ -266,8 +273,8 @@ export class HookManager
      * @param {*} pPID 
      * @param {*} pHookScript 
      */
-    startByAttachTo(pPID:string=null, pHookScript:string= null):void{
-        this.start(pHookScript, FRIDA_MODE.ATTACH_PID, pPID);
+    startByAttachTo(pPID:string=null, pSession:HookSession, pHookScript:string= null):HookSession{
+        return this.start(pSession, pHookScript, FRIDA_MODE.ATTACH_PID, pPID);
     }
 
     /**
@@ -275,8 +282,8 @@ export class HookManager
      * @param {*} pAppName 
      * @param {*} pHookScript 
      */
-    startByAttachToApp(pAppName:string, pHookScript:string= null):void{
-        this.start(pHookScript, FRIDA_MODE.ATTACH_APP, pAppName);
+    startByAttachToApp(pAppName:string, pSession:HookSession, pHookScript:string= null):HookSession{
+        return this.start(pSession, pHookScript, FRIDA_MODE.ATTACH_APP, pAppName);
     }
 
 
@@ -295,10 +302,10 @@ export class HookManager
       * 
       * @method
       */
-     start(hook_script:string, pType:FRIDA_MODE=null, pExtra:any=null, pDevice:Device=null):void{
+     start(pSession:HookSession, hook_script:string, pType:FRIDA_MODE=null, pExtra:any=null, pDevice:Device=null):HookSession{
         
         let target:Device = null;
-        let PROBE_SESSION:HookSession = this.newSession();
+        let PROBE_SESSION:HookSession = pSession; //this.newSession();
         
         if(hook_script == null){
             hook_script = this.prepareHookScript();
@@ -415,6 +422,8 @@ export class HookManager
             console.log(error);
             Logger.error('error:', error.message);
             });
+
+        return PROBE_SESSION;
     }
 
 
@@ -617,4 +626,201 @@ export class HookManager
         }
         return this.sessions[this.sessions.length-1];
     }
+
+    // HookSession communication
+
+
+    /**
+     * init > new > cmd > exit
+     * @param pUser
+     * @param pSocket
+     * @param pData
+     */
+    async processCommand( pUser:User, pSocket:any, pData:string):Promise<any>{
+        let message:any, type:string = null, sess:HookSession=null;
+        try{
+            message = JSON.parse(pData);
+            // start a new hook session
+            if(message.action=="new"){
+
+                if(message.data.localid == null){
+                    throw new Error('Invalid local ID');
+                }
+
+                // if a valid session ID is provided, the user is added to
+                // owners of this session. TODO : add auditors group
+                if(message.data.sessid != null){
+                    sess = this.getSession(message.data.sessid);
+
+                    if(sess != null && sess.isActive()){
+                        // check permissions inside
+                        sess.addOwner(pUser, message.data.localid);
+                    }else{
+                        sess = null;
+                    }
+                }
+
+                // if session id not provided or session is invalid
+                /*if(sess == null){
+                    // else, create a new session
+                    sess = await this.newLocalSession(
+                        this.validateType(message.data.type)
+                        // , pUser.getACL(TERMINAL_NEW_LOCAL)
+                    );
+
+                    sess.addOwner(pUser, message.data.localid);
+                }*/
+
+
+                if(sess != null){
+
+                    Logger.info('[WEBSOCKET] Sending new session data [SESSID=',sess.getSessionID(),']');
+                    pSocket.sendUTF(JSON.stringify({action:'new', data:{
+                            success: true,
+                            msg: 'Session opened :)',
+                            localid: message.data.localid,
+                            sessid: sess.getSessionID()
+                        }}));
+                }else{
+                    Logger.error('[WEBSOCKET] Session not initialized.')
+                }
+
+            }
+            /*lse if(message.action=="cmd"){
+                sess = this.getSession(message.data.sessid);
+                if(sess == null)
+                    throw new Error('Session not found');
+
+                if(!sess.isActive())
+                    throw new Error('Session has been closed');
+
+                if(message.data.stdin == null)
+                    throw new Error('Command cannot be empty');
+
+                sess.sendCommand(pSocket, message.data.stdin);
+            }
+            /*else if(message.action=="exit"){
+                sess = this.getSession(message.data.sessid);
+                if(sess == null)
+                    throw new Error('Session not found');
+
+                if(sess.isExited())
+                    throw new Error('Session has been closed');
+
+                sess.exit(pSocket);
+            }*/
+            //
+            else if(message.action=="start"){
+
+                let success:boolean = false;
+                let sess:HookSession = null;
+
+                try{
+
+                    sess = this.newSession();
+                    sess.addOwner( pUser, message.data.localid, pSocket);
+
+                    switch(message.data.type){
+                        case "spawn-self":
+                            Logger.info(`[WEBSERVER] Start hooking [app=${this.context.getPackageName()}, type=spawn-self]`);
+                            sess = this.startBySpawn(this.context.getPackageName(), sess);
+                            break;
+                        case "spawn":
+                            Logger.info(`[WEBSERVER] Start hooking [app=${message.data.app}, type=spawn]`);
+                            sess = this.startBySpawn(message.data.app, sess);
+                            break;
+                        case "attach-gadget":
+                            Logger.info(`[WEBSERVER] Start hooking [pid=Gadget, type=attach-gadget]`);
+                            sess = this.startByAttachToGadget(sess);
+                            break;
+                        case "attach-app-self":
+                            Logger.info(`[WEBSERVER] Start hooking [app=${this.context.getPackageName()}, type=attach-app-self]`);
+                            sess = this.startByAttachToApp(this.context.getPackageName(), sess);
+                            break;
+                        case "attach-app":
+                            Logger.info(`[WEBSERVER] Start hooking [app=${message.data.app}, type=attach-app-x]`);
+                            sess = this.startByAttachToApp(message.data.app, sess);
+                            break;
+                        case "attach-pid":
+                            Logger.info(`[WEBSERVER] Start hooking [pid=${message.data.pid}, type=attach-to-pid`);
+                            sess = this.startByAttachTo(message.data.pid, sess );
+                            break;
+                        default:
+                            throw  new Error('Invalid start type' );
+                            break;
+                    }
+
+//                    sess.addOwner()
+                    pSocket.sendUTF(JSON.stringify({
+                        action:'start',
+                        svc:"hookm",
+                        data: {
+                            success: true,
+                            localid: message.data.localid,
+                            sessid: (sess!=null ? sess.getSessionID() : null)
+                        }
+                    }));
+                }catch(exception){
+                    Logger.raw(JSON.stringify(exception));
+                    pSocket.sendUTF(JSON.stringify({
+                        action:'start',
+                        svc:"hookm",
+                        data: {
+                            success: false,
+                            msg: exception.message,
+                            localid: message.data.localid,
+                            sessid: null
+                        }
+                    }));
+                }
+
+
+            }
+            else if(message.action=="conn-last"){
+
+                pSocket.sendUTF(JSON.stringify({
+                    action:'init',
+                    svc:"hookm",
+                    data: {
+                        localid: message.data.localid,
+                        sessid:this.lastSession().getSessionID()
+                    }
+                }));
+            }
+            else if(message.action=="init"){
+                if(this.lastSession())
+                pSocket.sendUTF(JSON.stringify({
+                    action:'init',
+                    svc:"hookm",
+                    data: {
+                        localid: message.data.localid,
+                        sessid:this.lastSession().getSessionID()
+                    }
+                }));
+            }
+        }catch(err){
+            console.log(err);
+            pSocket.sendUTF(JSON.stringify({action:'err', data:{
+                    msg: err.toString()
+                }}));
+        }
+    }
+
+
+    /**
+     * To get a session by its Session ID
+     *
+     * @param {string} pSessID Session ID
+     * @return {TerminalSession}
+     *
+     */
+    getSession(pSessID:string):HookSession {
+        let sess:HookSession = null;
+        this.sessions.map((vSess:any)=>{
+            if(vSess.getSessionID()===pSessID) sess=vSess;
+        });
+
+        return sess;
+    }
+
 }

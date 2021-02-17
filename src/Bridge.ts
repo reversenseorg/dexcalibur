@@ -39,6 +39,8 @@ export interface IBridge
 
     listPackages(pOptions?:any):AppPackage[];
 
+    listFiles( pPath:string, pOptions?:any):Promise<any[]>;
+
     pull(remote_path:string, local_path:string):string|Buffer;
 
     push(local_path:string, remote_path:string):string|Buffer;
@@ -60,6 +62,8 @@ export interface IBridge
     getPackagePath(packageIdentifier:string):string;
 
     getDeviceID():string;
+
+    readFile( pPath:string, pOptions:any):any;
 
     toJsonObject(pExcludeList:any):any;
 }

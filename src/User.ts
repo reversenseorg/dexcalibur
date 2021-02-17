@@ -3,6 +3,8 @@
  */
 import DexcaliburProject from "./DexcaliburProject";
 import {TerminalSession} from "./TerminalSession";
+import HookSession from "./HookSession";
+import {WebsocketSession} from "./WebsocketSession";
 
 export class Team {
     name:string ='';
@@ -16,6 +18,9 @@ export interface TerminalSessionMap {
     [localid:string] : TerminalSession;
 }
 
+export interface HookSessionMap {
+    [localid:string] : HookSession;
+}
 
 export class User {
 
@@ -26,6 +31,7 @@ export class User {
     team: Team = null;
 
     termSessions:TerminalSessionMap = {};
+    hookSessions:HookSessionMap = {};
 
     readonly dateCreate:string = '';
     readonly dateLastModified:string = '';
@@ -54,6 +60,10 @@ export class User {
         this.termSessions[pLocalID] = pSession;
     }
 
+    addHookSession( pSession:any, pLocalID:string):void {
+        this.hookSessions[pLocalID] = pSession;
+    }
+
     /**
      * To remove a session attached to this user
      *
@@ -77,9 +87,21 @@ export class User {
         return this.termSessions;
     }
 
+    getHookSessions():HookSessionMap {
+        return this.hookSessions;
+    }
+
     getLocalIdOf( pSession:TerminalSession):string {
         for(let lid in this.termSessions){
             if(this.termSessions[lid].getSessionID() === pSession.getSessionID()){
+                return lid;
+            }
+        }
+        return null;
+    }
+    getLocalIdOfWS( pSession:WebsocketSession):string {
+        for(let lid in this.hookSessions){
+            if(this.hookSessions[lid].getSessionID() === pSession.getSessionID()){
                 return lid;
             }
         }

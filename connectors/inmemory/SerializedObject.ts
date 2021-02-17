@@ -20,6 +20,7 @@ import ModelStringValue from "../../src/ModelStringValue";
 import {Stub} from "../../src/ModelSavable";
 import {ModelPackedSwitchStatement, ModelSwitchCase} from "../../src/ModelSwitch";
 import ModelCatchStatement from "../../src/ModelCatchStatement";
+import ModelFile from "../../src/ModelFile";
 
 
 
@@ -44,6 +45,7 @@ export default class SerializedObject
         XRef: XRef,
         Tag: Tag,
         Stub: Stub,
+        File: ModelFile,
         ModelSwitchCase: ModelSwitchCase,
         ModelPackedSwitchStatement: ModelPackedSwitchStatement,
         ModelCatchStatement: ModelCatchStatement,

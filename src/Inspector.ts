@@ -10,6 +10,7 @@ import DexcaliburProject from "./DexcaliburProject";
 import InspectorFrontController, {IFC_TYPE} from "./InspectorFrontController";
 import Event from "./Event";
 import * as Log from './Logger';
+import {Stats} from "mocha";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -316,18 +317,20 @@ export default class Inspector
     restore(callback=null):void{
         let self:Inspector = this;
         let savePath:string = _path_.join(this.context.workspace.getSaveDir(), this.id+".json");
-        _fs_.exists(savePath, function(exist){
-            if(!exist){
-                return ;
-            }
+        _fs_.lstat(savePath, (vErr:any, vStat:any)=>{
+            if(vErr == null) {
+                _fs_.readFile(savePath, 'ascii', function(err, data){
 
-            _fs_.readFile(savePath, 'ascii', function(err, data){
-                let o = JSON.parse(data);
-                self.db.unserialize(o);
-                if(typeof callback === 'function')
-                    callback(self);
-            })
-        })
+                    if(/^[\s\t\n\r]*$/.test(data)) return ;
+                    Logger.raw(data);
+                    let o = JSON.parse(data);
+
+                    self.db.unserialize(o);
+                    if(typeof callback === 'function')
+                        callback(self);
+                })
+            }
+        });
     }
 
     /**

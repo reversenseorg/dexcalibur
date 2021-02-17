@@ -861,6 +861,13 @@ export default class DexcaliburEngine
         return FridaHelper.getLocalFridaVersion(FRIDA_BIN);
     }
 
+    closeProject(pProject:DexcaliburProject):boolean {
+        if(this.getActiveProjects().length>0){
+            this.active[pProject.uid] = null;
+            this.active = this.active.filter(x => x !== null);
+        }
+        return pProject.close();
+    }
 }
 
 

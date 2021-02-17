@@ -230,7 +230,10 @@ export default class Util {
             ret = TestHelper.execSync(command);
         }else{
             PRINT(chalk.bold.red("Execute command request : "+command));
-            ret = Process.execSync(command);
+
+                ret = Process.execSync(command);
+
+            PRINT(ret.toString(charset));
         }
 
         return ret.toString(charset);
@@ -241,8 +244,9 @@ export default class Util {
 
         if(process.env.DEXCALIBUR_TEST){
             ret = await TestHelper.execAsync(command);
+            PRINT(JSON.stringify(ret));
         }else{
-            PRINT(chalk.bold.red("Execute command request : "+command));
+            PRINT(chalk.bold.red("Execute command request (async): "+command));
             ret = await _exec_(command);
         }
 

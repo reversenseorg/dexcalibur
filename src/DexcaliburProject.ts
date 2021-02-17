@@ -971,6 +971,32 @@ export default class DexcaliburProject
     }
 
     /**
+     * To close an opened project.
+     *
+     * Must free memory
+     *
+     * @return {boolean}
+     * @method
+     * @since 1.0.0
+     */
+    close():boolean {
+        // save
+        this.save();
+
+        // free
+        this.analyze = null;
+        this.bus = null;
+        this.inspectors = null;
+        this.dataAnalyzer = null;
+        this.appAnalyzer = null;
+        this.application = null;
+        this.device = null;
+
+        return true;
+    }
+
+
+    /**
      * To create an event and push it to the queue.
      * The argulent should be given by using the format expected by the Event constructor.
      * 
@@ -1033,6 +1059,17 @@ export default class DexcaliburProject
 
     setPackageName( pPackageName:string){
         this.pkg = pPackageName;
+    }
+
+    /**
+     * To get project's workspace
+     *
+     * @return {Workspace}
+     * @method
+     * @since 1.0.0
+     */
+    getWorkspace(): Workspace {
+        return this.workspace;
     }
 }
 

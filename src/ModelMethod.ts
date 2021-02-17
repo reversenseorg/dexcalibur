@@ -361,7 +361,7 @@ export default class ModelMethod extends Savable
 
    toJsonObject(fields:string[]=[],exclude:string[]=[]){
         let obj:any = {};
-        if(fields.length>0){
+        if(fields != null && fields.length>0){
             for(let i:number=0; i<fields.length; i++){
                 if(this[fields[i]] != null && this[fields[i]].toJsonObject != null){
                     obj[fields[i]] = this[fields[i]].toJsonObject();

@@ -1,0 +1,146 @@
+import {User} from "./User";
+import Util from "./Utils";
+
+
+// list of HookSession UIDs
+const gUIDs = [];
+
+interface LocalSession {
+    user: User;
+    lid: string;
+    socket: any;
+}
+
+
+export abstract class WebsocketSession {
+
+    protected _socket:any = null;
+
+    protected _sessid:string = null;
+
+    protected _owners: User[] = [];
+
+    protected _clients:LocalSession[] = [];
+
+
+    /**
+     * To generate a valid unique session id
+     *
+     * TODO : use UUID instead of randString()
+     *
+     * @
+     * @since 1.0.0
+     */
+    static generateSessID():string{
+        let uuid:string = null;
+        do{
+            uuid = Util.randString( 16, Util.ALPHANUM);
+        }while(gUIDs.indexOf(uuid)>-1);
+        return uuid;
+    }
+
+
+    constructor() {
+        this._sessid = WebsocketSession.generateSessID();
+    }
+
+    /**
+     * To check if authentication is required
+     *
+     * @return {boolean}
+     * @method
+     * @since 1.0.0
+     */
+    isRequireAuthentication():boolean{
+        return (this._owners.length > 0);
+    }
+
+    /**
+     * To check if the given user is an owner or not
+     *
+     * @param {User} pUser The user to verify
+     * @return {boolean}
+     * @method
+     * @since 1.0.0
+     */
+    isOwner(pUser:User):boolean{
+        let f:boolean = false;
+
+        this._clients.map( (vOwner:LocalSession)=>{
+            if(vOwner.user.is(pUser)) f=true;
+        });
+        return f;
+    }
+
+    /**
+     * To check if the instance has one or less owner
+     *
+     * @return {boolean} TRUE if the session has one or less owner. Else FALSE
+     * @method
+     * @since 1.0.0
+     */
+    hasSingleOwner():boolean {
+        return (this._owners.length <= 1);
+    }
+
+    /**
+     * To bind this session to the given user
+     * Once a session has one or more owner, authentication is required.
+     * TODO : add permissions
+     *
+     * @param {User} pUser Owner of the session
+     * @method
+     * @since 1.0.0
+     */
+    addOwner(pUser:User, pLocalId:string, pSocket:any=null):void {
+        this._clients.push({
+            user: pUser,
+            lid: pLocalId,
+            socket: pSocket
+        });
+        //this._owners.push(pUser);
+        //pUser.addHookSession(this, pLocalId);
+    }
+
+    getOwners():User[] {
+        let usr:User[] = [];
+        this._clients.map( vSess => usr.push(vSess.user));
+        return usr;
+    }
+
+    getSocket():any {
+        return this._socket;
+    }
+
+    getSessionID():string {
+        return this._sessid;
+    }
+
+    send(pData:any):void {
+        this._clients.map( vClients => {
+            //Logger.raw("Send websocket message to : "+vClients.lid+", "+this._sessid)
+            vClients.socket.sendUTF(JSON.stringify({action:'msg', svc:"hookm", data:{
+                success: true,
+                msg: pData,
+                localid: vClients.lid,
+                sessid: this._sessid
+            }}));
+        })
+    }
+
+
+    /**
+     *
+     * @param pSocket
+     */
+    exit(pSocket:any):void {
+
+        this._socket = pSocket;
+
+        this.onExit();
+
+    }
+
+
+    abstract onExit():void ;
+}

@@ -15,6 +15,7 @@ export default class AppPackage {
     currentWd:boolean = false;
     removed:boolean = false;
 
+
     /**
      * 
      * @param {*} pConfig 
