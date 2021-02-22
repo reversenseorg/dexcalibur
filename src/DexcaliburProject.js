@@ -395,7 +395,7 @@ class DexcaliburProject
     /**
      * To synchronize project platform used during analysis with device and APK
      * 
-     * @param {*} pName 
+     * @param {Platform | string} pName 
      * @method
      * @async
      */
@@ -414,13 +414,15 @@ class DexcaliburProject
                 this.platform = pm.getFromAndroidApiVersion(this.application.getMaxApiVersion());
                 break;
             default:
-                if( (this.platform instanceof Platform) === false){
-                    if(this.device instanceof Device){
-                        this.platform = this.device.getPlatform(pName);
-                    }else{
-                        this.platform = pm.getFromAndroidApiVersion(this.application.getMaxApiVersion());
-                    }
-                }
+                if(((pName instanceof Platform) === false) && (typeof pName == 'string' )){
+                    //if(this.device instanceof Device){
+                    //    this.platform = this.device.getPlatform(pName);
+                    //}else{
+                        this.platform = pm.getPlatform(pName); //getFromAndroidApiVersion(this.application.getMaxApiVersion());
+                    //}
+                }else{
+			this.platform = pName;
+		}
                 break;
         }
 
