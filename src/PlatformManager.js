@@ -170,6 +170,8 @@ class PlatformManager
             return this.remote[pName];
         }
 
+        console.log("[ERROR] Platform Manager : "+pName+" is not a valid platform");
+
         // throw exception
         return null;
     }

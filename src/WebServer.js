@@ -395,24 +395,31 @@ class WebServer {
                             path = device.pullTemp( req.body['path'] );
                             break;
                         case 'download':
-                            if(PLATFORM_MODE)
-                            platform = PlatformManager.getInstance().getPlatform( req.body['platform']);
                             path = await Downloader.downloadTemp(req.body['url'], { mode:0o666, encoding:'binary', force:true });
                             break;
                         case 'upload':
-                            platform = PlatformManager.getInstance().getPlatform( req.body['platform']);
                             path = $.uploader.getPathOf(req.body['uploadid']);
                             break;
                         case 'fromfs':
-                            platform = PlatformManager.getInstance().getPlatform( req.body['platform']);
                             path = req.body['path'];
                             break;
                     }
     
 
+                    if(platform==null){
+                        if(PLATFORM_MODE.indexOf(req.body['platform'])==-1){
+                            platform = PlatformManager.getInstance().getPlatform( req.body['platform']);
+                            if(platform==null){
+                                res.status(200).send(JSON.stringify({   success:false,  code:6, msg:"This platform is not installed."}));
+                                return;
+                            }
+                        }else{
+                            platform = req.body['platform'];
+                        }
+                    }
                     
 
-                    // chcek if file exists an it is not empty
+                    // check if file exists an it is not empty
                     if( (!fs.existsSync(path)) || (false)){
                         res.status(200).send(JSON.stringify({   success:false,  code:5, msg:"APK file not found "}));
                         return;

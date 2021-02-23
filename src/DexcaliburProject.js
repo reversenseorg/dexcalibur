@@ -415,20 +415,16 @@ class DexcaliburProject
                 break;
             default:
                 if(((pName instanceof Platform) === false) && (typeof pName == 'string' )){
-                    //if(this.device instanceof Device){
-                    //    this.platform = this.device.getPlatform(pName);
-                    //}else{
-                        this.platform = pm.getPlatform(pName); //getFromAndroidApiVersion(this.application.getMaxApiVersion());
-                    //}
+                    this.platform = pm.getPlatform(pName);
                 }else{
-			this.platform = pName;
-		}
+                    this.platform = pName;
+                }
                 break;
         }
 
         // check if platform is installed
         if(this.platform == null){
-            throw new Error("[PROJECT] synchronizePlatform : unkow platform. Aborted")
+            throw new Error("[PROJECT] synchronizePlatform : unknow platform. Aborted")
         }
 
         // install platform
