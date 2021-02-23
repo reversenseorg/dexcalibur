@@ -460,6 +460,9 @@ class Device
     }
 
     getPlatform(){
+        if(this.platform==null) {
+            Logger.error("[ERROR][DEVICE] The platform of the device [" + this.id + "] is [undefined]. Please, check into Platform Manager the target platform is available, and re-enroll your target device.");
+        }
         return this.platform;
     }
 
