@@ -586,7 +586,8 @@ class DeviceManager
             device.setPlatform( pm.getLocalPlatform(pf));
         }
 
-        if(success){
+
+        if(success && (device.getPlatform()!=null)){
             this.status = StatusMessage.newSuccess( this.status.append("[Device Manager] Platform (SDK) of target device installed"));
         }else{
             this.status = StatusMessage.newError( this.status.append("[Device Manager] Fail"));
@@ -608,6 +609,7 @@ class DeviceManager
     getEnrollStatus(){
         return this.status;
     }
+
 }
 
 
