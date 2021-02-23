@@ -10,6 +10,8 @@ const Event = require("./Event.js");
 const Logger = require("./Logger.js")();
 const Accessor = require("./AccessFlags");
 
+const EOL = require('os').EOL;
+
 const SML_MAIN=0;
 const SML_METH=1;
 const SML_ANNO=2;
@@ -681,7 +683,7 @@ class SmaliParser
     }
 
     parse(src){
-        let ls=src.split("\n"), ln=null, sml=null, obj=null;
+        let ls=src.split(EOL), ln=null, sml=null, obj=null;
     
         //console.log(ls);
         for(let l=0; l<ls.length; l++){
