@@ -51,6 +51,15 @@ export default class InMemoryDbIndex implements IDbIndex
     }
 
     /**
+     *
+     * @param offset
+     * @param ref
+     */
+    setEntry(offset:number, ref:any):void {
+        this.refs[offset] = ref;
+    }
+
+    /**
      * To execute a function for each entry
      *
      * @param {function} fn Callback
