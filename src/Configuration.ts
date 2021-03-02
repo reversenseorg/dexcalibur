@@ -4,10 +4,16 @@ import * as _os_ from 'os';
 
 
 import DexcaliburWorkspace from './DexcaliburWorkspace' ;
+import {ExternalTool, ExternalToolMap} from "./ExternalTool";
 
 
 const NO_EXPORT = ["platform_available"];
 const ENCODING = ["utf8","utf16","latin1"];
+
+
+
+
+
 
 export default class Configuration {
 
@@ -42,8 +48,12 @@ export default class Configuration {
 
     connector:string = 'inmemory';
 
-    constructor() {
+    exttools:ExternalToolMap = {};
 
+    constructor() {
+        this.exttools = {
+            binwalk: new ExternalTool('binwalk','binwalk')
+        };
     }
 
 
@@ -298,6 +308,22 @@ export default class Configuration {
 
     getWebPort():number {
         return this.web_port;
+    }
+
+    getExternalTools():ExternalToolMap {
+        return this.exttools;
+    }
+
+    /**
+     * To get the external tool of the specified UID
+     *
+     * @param {string} pUID
+     * @return {ExternalTool}
+     * @method
+     * @since 1.0.0
+     */
+    getExternalTool( pUID:string):ExternalTool {
+        return this.exttools[pUID];
     }
 
     toJsonObject( pInclude=Configuration.PLATFORMS):any {

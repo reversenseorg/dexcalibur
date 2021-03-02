@@ -38,6 +38,8 @@ export interface IDbIndex extends IDbSet {
 
     addEntry(ref:any):void;
 
+    setEntry(offset:number, ref:any):void;
+
     getEntry(offset:number):any;
 
     hasEntry(value:any):boolean

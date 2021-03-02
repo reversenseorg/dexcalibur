@@ -379,7 +379,7 @@ export class FinderResult
             else if(x instanceof ModelFile){
                 sub.push({
                     Name: x.name,
-                    Extension: (x.type!=null)? x.type.ext : "[NULL]"
+                    Extension: (x.type!=null)? x.type : "[NULL]" // CLEANUP : x.type.ext
                 });
             }
             // TODO : fix *.xref into search API
@@ -445,7 +445,7 @@ export class FinderResult
         else if(x instanceof ModelFile){
             sub.push({
                 Name: x.path,
-                Extension: (x.type!=null)? x.type.ext : "[NULL]"
+                Extension: (x.type!=null)? x.type : "[NULL]"
             });
         }
         else if(x instanceof ModelSyscall){

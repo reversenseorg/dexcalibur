@@ -19,6 +19,7 @@ export default class AnalyzerDatabase
      */
     conn:IDatabaseAdapter = null;
 
+    funcs:IDbCollection = null;
     classes:IDbCollection = null;
     fields:IDbCollection = null;
     methods:IDbCollection = null;

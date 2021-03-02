@@ -1,17 +1,15 @@
-
-
-import * as  LIB_filetypeOf from"file-type";
 import * as _path_ from 'path';
 import * as _fs_ from 'fs';
-
-import * as LIB_YAML from "js-yaml";
-import * as LIB_PROP from "properties";
 import DexcaliburProject from "./DexcaliburProject";
-import {FileTypeDetector} from "./FileTypes";
 import ModelFile from "./ModelFile";
 import {ConnectorFactory, IDatabase, IDatabaseAdapter, IDbIndex} from "./ConnectorFactory";
-import Event from "./Event";
-import Util from "./Utils";
+
+
+import * as Log from './Logger';
+import {BinwalkHelper} from "./BinwalkHelper";
+import DataScope, {DataScopeMap, DataScopePpts} from "./DataScope";
+
+let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
 
 function checkIfSmali(root, filepath){
@@ -170,24 +168,57 @@ DataCollection.prototype.getBuffers = function(){
 }
 */
 
+/*
 export enum DATA_SCOPE {
     PKG="bin",
     DEVICE="dev",
     STATIC_BUFFER="sbf",
     DYN_BUFFER="dbf"
 }
+*/
+
+/*
+export var DATA_SCOPE:DataScopeMap = {
+    PKG: (new DataScope("bin")),
+    DEVICE: (new DataScope("dev")),
+    STATIC_BUFFER: (new DataScope("sbf")),
+    DYN_BUFFER: (new DataScope("dbf"))
+}
+*/
+
 
 export class DataAnalyzer
 {
     context:DexcaliburProject = null;
     db:IDatabase = null;
-    detector:FileTypeDetector = null;
+    //detector:FileTypeDetector = null;
+    binwalk:BinwalkHelper = null;
 
+    scopes:DataScopeMap = {};
+
+    /**
+     * To instanciante a new analyzer of raw data (file, buffer, ...)
+     *
+     * @param {DexcaliburProject} pCtx Project
+     */
     constructor(pCtx:DexcaliburProject){
         this.context = pCtx;
-        this.detector = new FileTypeDetector();
+        this.binwalk = new BinwalkHelper(pCtx.getContext().getConfiguration().getExternalTool('binwalk'));
+
+
+        //STATIC_BUFFER: (new DataScope("sbf")).setPpts(DataScopePpts.PATH, ws.get()),
+        const ws = pCtx.getWorkspace();
+        this.scopes = {
+            PKG: (new DataScope("bin")).setPpts(DataScopePpts.PATH, ws.getApkDir()),
+            DEVICE: (new DataScope("dev")).setPpts(DataScopePpts.PATH, ws.getAppdataDir()),
+            DYN_BUFFER: (new DataScope("dbf")).setPpts(DataScopePpts.PATH, ws.getRuntimeFilesDir())
+        };
 
         this.newDB();
+    }
+
+    getScope(pName:string){
+        return this.scopes[pName];
     }
 
     newDB(pName:string="data"){
@@ -195,21 +226,116 @@ export class DataAnalyzer
         this.db = idb.newTemporaryDb(pName);
     }
 
-    scan(path:string, pType:DATA_SCOPE=DATA_SCOPE.PKG){
-        let db:IDbIndex = this.db.getIndex(pType);
-        let detector = this.detector;
-        let ctr:number = 0, file:ModelFile=null, ctx:DexcaliburProject=this.context;
-        //Logger.info("[DATA ANALYZER] Start scan of : ",path);
+    indexFilesIn(pScope:DataScope):void {
+        const dir = _fs_.readdirSync(pScope.getBasePath());
+
+        if(this.context.platform.isAndroid()){
+            // skip APKtool contents and files
+            if(pScope.getName()=='bin'){
+                dir.map( (vPath:string)=>{
+                    const p = _path_.join(pScope.getBasePath(),vPath);
+                    if(vPath.indexOf('smali')!=0 && vPath!='original' && _fs_.lstatSync(p).isDirectory()){
+                        this.scan(p, pScope);
+                    }
+                })
+            }else{
+                dir.map( (vPath:string)=>{
+                    const p = _path_.join(pScope.getBasePath(),vPath);
+                    if(_fs_.lstatSync(p).isDirectory()){
+                        this.scan(p, pScope);
+                    }
+                })
+            }
+        }else{
+            dir.map( (vPath:string)=>{
+                const p = _path_.join(pScope.getBasePath(),vPath);
+                if(_fs_.lstatSync(p).isDirectory()){
+                    this.scan(p, pScope);
+                }
+            })
+        }
+    }
+
+    /*
+    scanAsApkContent(path:string, pType:DataScope=DATA_SCOPE.PKG){
+        try{
+            this.scan(_path_.join(path,'res'), pType);
+            this.scan(_path_.join(path,'lib'), pType);
+            this.scan(_path_.join(path,'assets'), pType);
+        }catch(err){
+            Logger.error(" scanAsApkContent() "+err.message);
+        }
+    }*/
+
+    private _indexFolders(pPath:string, pFolders:ModelFile[]):void {
+
+        Logger.info("[DATA ANALYZER] Indexing : ",pPath);
+        _fs_.readdirSync(pPath).map( vF => {
+            const p = _path_.join(pPath,vF);
+            if(_fs_.lstatSync(p).isDirectory()) {
+                this._indexFolders(p, pFolders);
+                pFolders.push(new ModelFile({
+                    name: vF,
+                    path: p,
+                    _d: 'd'
+                }));
+            }
+        });
+    }
+
+    /**
+     * To scan the 'path' as APK content
+     *
+     * @param path
+     * @param pType
+     */
+    scan(path:string, pScope:DataScope){
+
+        let db:IDbIndex = this.db.getIndex(pScope.getName());
     
         if(path[path.length-1]=='/')
            path = path.substr(0,path.length-1);
-    
+
+
+        db.addEntry(new ModelFile({
+            name: _path_.basename(path),
+            path: path,
+            _d: 'd'
+        }));
+
+        if(_fs_.readdirSync(path).length==0) return;
+
+
+
+        // if target app is Android App
+        let files:ModelFile[] = this.binwalk.analyzeFolder(path, this.context, checkIfSmali);
+
+        files.map( (f) => {
+            f.setScope(pScope);
+            db.addEntry(f);
+        });
+
+        // complete Binwalk results with folders
+        let folders:ModelFile[] = [];
+        this._indexFolders(path, folders);
+
+        folders.map( (f) => {
+            f.setScope(pScope);
+            db.addEntry(f);
+        });
+
+
+        Logger.info(JSON.stringify(db));
+
+/*
         Util.forEachFileOf(path,function( fpath:string, fname:string){
             let type:any = null;
     
             //  TODO : remove
             if(checkIfSmali(path, _path_.join(fpath,fname))) return null;
-    
+
+
+
             let ext = fpath.substr(fpath.lastIndexOf('.')+1); 
     
             //Logger.info("[DATA ANALYZER] Start analyzing file : ",fpath);
@@ -225,7 +351,9 @@ export class DataAnalyzer
                     name: fname,
                     type: type
                 });
-                
+
+                Logger.info(JSON.stringify(file));
+
                 ctx.bus.send(new Event({
                     type: "data.file.new.knownFmt",
                     data: file 
@@ -266,16 +394,37 @@ export class DataAnalyzer
             }
             ctr++;
         },true);
-    
-        console.log("[*] "+ctr+" files analyzed");
+*/
+        // files.length
+        Logger.info("[*] "+files.length+" files analyzed");
         return this;
     }
 
+    /**
+     * To get data analyzer DB holding data for all files
+     *
+     * @return {IDatabase} Database containing information about file for all scopes
+     * @method
+     * @since 1.0.0
+     */
     getDB():IDatabase{
         return this.db;
     }
 
-    getIndex(pType:DATA_SCOPE):IDbIndex{
-        return this.db.getIndex(pType);
+    /**
+     * To get the index holding file of a specific scope
+     *
+     * Valid scope IDs are : PKG, DEV, DYN_BUFFER, ...
+     *
+     * @param {DataScope|string} pScope Scope or scope ID
+     * @return {IDbIndex} Index containing files
+     * @method
+     * @since 1.0.0
+     */
+    getIndex(pScope:DataScope|string):IDbIndex{
+        if(typeof pScope==='string')
+            return this.db.getIndex(this.scopes[pScope].getName());
+        else
+            return this.db.getIndex(pScope.getName());
     }
 }

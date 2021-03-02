@@ -16,7 +16,7 @@ import PlatformManager from "./PlatformManager";
 import {SearchAPI} from "./SearchAPI";
 import DeviceManager from "./DeviceManager";
 import Event from "./Event";
-import {DATA_SCOPE, DataAnalyzer} from "./DataAnalyzer";
+import {DataAnalyzer} from "./DataAnalyzer";
 import Analyzer from "./Analyzer";
 import ApkHelper from "./ApkHelper";
 import AndroidAppAnalyzer from "./AndroidAppAnalyzer";
@@ -35,6 +35,7 @@ import GraphMaker from "./Graph";
 import IosAppAnalyzer from "./ios/IosAppAnalyzer";
 import {AppIcon} from "./AppIcon";
 import {ApkPackage} from "./android/ApkPackage";
+import NativeAnalyzer from "./NativeAnalyzer";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -51,6 +52,7 @@ var g_builtinHookSets:any = {};
 function ApplicationInstance(pid){
     this.pid = null;
 }
+
 
 
 interface DigestSet {
@@ -130,6 +132,10 @@ export default class DexcaliburProject
 
     // setup File Analyzer
     /**
+     * The first layer analyzer for data file (resources, libs, etc ...)
+     *
+     * It tries to detect file format and build file DB
+     *
      * @type {DataAnalyzer}
      * @field Raw data analyzer unit
      */
@@ -787,7 +793,12 @@ export default class DexcaliburProject
 
             // TODO : improve this step
             // files analysis (signature, ...)
-            this.dataAnalyzer.scan( apkctnPath);
+            //this.dataAnalyzer.scan( apkctnPath);
+            // file analysis : icon detection, strings, etc ...
+            // TODO : multi threading : each file can be treated separately
+            this.dataAnalyzer.indexFilesIn(
+                this.dataAnalyzer.getScope('PKG')
+            );
 
             // update internal DB with file analyzer DB
             this.analyze.insertIn( "files", this.dataAnalyzer.getDB().getIndex('files'));
@@ -839,6 +850,7 @@ export default class DexcaliburProject
         let elemnt:any=null;
         let success:boolean  = false;
 
+
         // scan OS/Platform
         Logger.info("Scanning platform "+this.platform.getUID());
 
@@ -856,7 +868,10 @@ export default class DexcaliburProject
         // scan files  
         if(pPath != undefined){
             this.analyze.path( pPath);
-            this.dataAnalyzer.scan( pPath, DATA_SCOPE.PKG); //["smali"]);
+
+            this.dataAnalyzer.indexFilesIn(
+                this.dataAnalyzer.getScope('PKG')
+            );
             
         // this.analyze.scanManifest(Path.join(path,"AndroidManifest.xml"));
             success = await this.appAnalyzer.importManifest(_path_.join(pPath,"AndroidManifest.xml"));
@@ -870,11 +885,44 @@ export default class DexcaliburProject
 
             Logger.info("Scanning default path : "+apkPath);
 
-            // code analysis
+            // If android or iOS bytecode code analysis
+            // TODO : multi threading
             this.analyze.path( apkPath);
 
             // file analysis : icon detection, strings, etc ...
-            this.dataAnalyzer.scan( apkPath, DATA_SCOPE.PKG); //["smali"]);
+            // TODO : multi threading : each file can be treated separately
+            this.dataAnalyzer.indexFilesIn(
+                this.dataAnalyzer.getScope('PKG')
+            );
+
+            // update internal DB with file from package only (at this step)
+            this.analyze.updateFileIndex(
+                this.dataAnalyzer.getIndex('PKG'), true
+            );
+
+            //this.dataAnalyzer.scanAsApkContent( apkPath, DATA_SCOPE.PKG); //["smali"]); // scan
+
+            // analysis of executable/shared libraries
+            // it starts by identifying native library for the target device achitecture
+
+           this.analyze.initNativeAnalyzer(this.dataAnalyzer.getDB()); //this.dataAnalyzer.getDB()
+
+            if(this.device!=null){
+
+                this.analyze.getNativeAnalyzer().configure(
+                    this.platform,
+                    this.device.getProfile().getSystemProfile().getArchitecture(),
+                );
+            }else{
+                this.analyze.getNativeAnalyzer().configure(
+                    this.platform,
+                    'arm'
+                );
+            }
+
+            //this.analyze.getNativeAnalyzer().
+            this.analyze.doNativeAnalysis();
+
 
             // application topology analysis
             success = await this.appAnalyzer.importManifest(_path_.join(apkPath,"AndroidManifest.xml"));
@@ -902,6 +950,7 @@ export default class DexcaliburProject
             let dir:string[]=Fs.readdirSync(this.workspace.getRuntimeBcDir());
             for(let i in dir){
                 elemnt = _path_.join(this.workspace.getRuntimeBcDir(),dir[i],"smali");
+                Logger.info('Scanning dir : ', elemnt);
                 if(Fs.existsSync(elemnt) && Fs.lstatSync(elemnt).isDirectory()){
                     Logger.info("Scanning previously discovered dex chunk : "+elemnt);
                     this.analyze.path(elemnt);
@@ -916,7 +965,7 @@ export default class DexcaliburProject
                 }, 
                 TAG.Discover.Dynamically);
             
-            this.dataAnalyzer.scan(this.workspace.getRuntimeFilesDir(), DATA_SCOPE.DYN_BUFFER ); //["smali"]);
+            this.dataAnalyzer.scan(this.workspace.getRuntimeFilesDir(), this.dataAnalyzer.getScope('DYN_BUFFER')); //["smali"]);
         }
 
 
@@ -939,7 +988,9 @@ export default class DexcaliburProject
 
         //this.analyze.updateFiles( this.dataAnalyzer.getDB());
 
-        this.analyze.insertIn( "files", this.dataAnalyzer.getDB().getIndex('files'));
+        /*this.analyze.insertIn( "files",
+            this.dataAnalyzer.getDB().getIndex(
+                this.dataAnalyzer.getScope('PKG').getName()));*/
         
         this.bus.send(new Event({
             type: "filescan.new" 
@@ -960,6 +1011,10 @@ export default class DexcaliburProject
         return this;
     };
 
+    async scanNativeLibraries():Promise<boolean> {
+
+        return true;
+    }
     /**
      * To get 'ready' status
      * 

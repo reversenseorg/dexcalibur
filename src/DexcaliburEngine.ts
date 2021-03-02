@@ -20,6 +20,7 @@ import {WebsocketServer} from "./WebsocketServer";
 import {TerminalServer} from "./TerminalServer";
 import {DexcaliburServerChildProcess, IpcMode} from "./DexcaliburServerChildProcess";
 import {ApkPackage} from "./android/ApkPackage";
+import {ExternalTool} from "./ExternalTool";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -804,7 +805,7 @@ export default class DexcaliburEngine
             this.active[pUID] = project;
             this.webserver.setProject(project);
         }catch(err){
-            console.log(err);
+            Logger.error(err.message);
             Logger.error("ENGINE"," openProject() failed");
         }
 

@@ -5,6 +5,7 @@ import DexcaliburProject from "./DexcaliburProject";
 import Util from "./Utils";
 import {ModelBasicType, ModelObjectType} from "./ModelType";
 import {CONST} from "./CoreConst";
+import {ModelFunction} from "./ModelFunction";
 
 
 
@@ -46,7 +47,8 @@ export default class Hook
     context:DexcaliburProject = null;
     edited:boolean = false;
 
-    method:ModelMethod = null;
+    // JavaHook -> ModelMethod, NativeHook -> ?? , InstructionHook -> ??
+    method:ModelMethod|ModelFunction = null;
 
     when:number = 0;
 
@@ -696,7 +698,7 @@ export default class Hook
         this.method = method;
     }
 
-    getMethod():ModelMethod{
+    getMethod():ModelMethod|ModelFunction{
         return this.method;
     }
 }

@@ -873,4 +873,11 @@ export class Device
 
         return null;
     }
+
+    /**
+     * To get the OS type of the device
+     */
+    getType():string {
+        return OS_NAME[this.type];
+    }
 }

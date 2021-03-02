@@ -19,6 +19,7 @@ import AndroidProvider from "./android/AndroidProvider";
 import AndroidService from "./android/AndroidService";
 import {AndroidPermission} from "./android/Permissions";
 import {CONST} from "./CoreConst";
+import {ModelFunction} from "./ModelFunction";
 
 
 
@@ -27,6 +28,7 @@ const DataModel = {
     class: new ModelClass(),
     field: new ModelField(),
     method: new ModelMethod(),
+    funcs: new ModelFunction(),
     call: new ModelCall(),
     objectType: new ModelObjectType(),
     basicType: new ModelBasicType(),
@@ -89,6 +91,10 @@ export class SearchAPISelector
 
     permission(id:number):AndroidPermission{
         return this._db.permissions.getEntry(id)
+    }
+
+    func(id:string):ModelFunction{
+        return this._db.funcs.getEntry(id);
     }
 }
 
@@ -250,6 +256,10 @@ export class SearchAPI
 
     string(pattern:string):FinderResult{
         return  this._finder._find(this._db.strings, DataModel.string, pattern, this._caseSensitive);
+    }
+
+    func(pattern:string):FinderResult{
+        return  this._finder._find(this._db.funcs, DataModel.funcs, pattern, this._caseSensitive);
     }
 
     syscall(pattern:string):FinderResult{

@@ -13,7 +13,7 @@ import Uploader from "./Uploader";
 import PlatformManager from "./PlatformManager";
 import InspectorManager from "./InspectorManager";
 import Inspector from "./Inspector";
-import {ConnectorFactory} from "./ConnectorFactory";
+import {ConnectorFactory, IDbIndex} from "./ConnectorFactory";
 import Platform from "./Platform";
 import DeviceManager from "./DeviceManager";
 import {Device} from "./Device";
@@ -40,6 +40,11 @@ import Simplifier from "./Simplifier";
 import ModelPackage from "./ModelPackage";
 import ModelClass from "./ModelClass";
 import Workspace from "./Workspace";
+import ModelExecutableSection from "./ModelExecutableSection";
+import {ModelFileExecutable} from "./ModelFileExecutable";
+import ModelFile from "./ModelFile";
+import DataScope, {DataScopePpts} from "./DataScope";
+import {ModelFunction} from "./ModelFunction";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -1406,18 +1411,31 @@ export default class WebServer
         this.app.route('/api/hook/:hookid')
             .get(function (req:ExpressRequest, res:ExpressResponse):any {
 
-                Logger.info("[REST] /api/hook/:hookid GET");
+                try{
+                    Logger.info("[REST] /api/hook/:hookid GET");
 
-                // get hook instance by ID
-                let hook:Hook = $.project.hook.getHookByID(
-                    req.params.hookid
-                );
+                    // get hook instance by ID
+                    let hook:Hook = $.project.hook.getHookByID(
+                        req.params.hookid
+                    );
 
-                if (hook == null) {
-                    res.status(404).send({ success: false, error: "Invalid hook ID given" });
-                }else{
-                    res.status(200).send(JSON.stringify({ success: true, hook: hook.toJsonObject() }));
-                }         
+                    let o:any = hook.toJsonObject();
+                    if(hook.native){
+                        o.method = $.project.find.get.func(o.method).toJsonObject();
+                    }else{
+                        o.method = $.project.find.get.method(o.method).toJsonObject();
+                    }
+
+
+                    if (hook == null) {
+                        throw new Error("Invalid hook ID given");
+                    }else{
+                        res.status(200).send(JSON.stringify({ success: true, hook: o }));
+                    }
+                }catch(err){
+                    res.status(HTTP_CODE_ERROR).send({ success: false, error: "Invalid hook ID given" });
+                }
+
             })
             .put(function (req:ExpressRequest, res:ExpressResponse):any {
                 Logger.info("[REST] /api/hook/:hookid EDIT");
@@ -2197,8 +2215,7 @@ export default class WebServer
                         throw new Error('Package ID is not valid');
                     }*/
 
-
-                    target = $.project.getWorkspace().getApkDir();
+                    const SCOPE:DataScope = $.project.dataAnalyzer.getScope('PKG');
 
                     if(req.body['path']!=null){
 
@@ -2208,7 +2225,21 @@ export default class WebServer
                         }else{
                             target = unsafePath;
                         }
+                    }else{
+                        target = SCOPE.getBasePath();
                     }
+
+                    const files:IDbIndex = $.project.dataAnalyzer.getIndex('PKG');
+
+                    files.map( (vOffset:number, vFile:ModelFile)=>{
+                        if(_path_.dirname(vFile.getPath())==target){
+                            data.push({ _uid: vFile.getUID(), n:vFile.getName(), p:vFile.getPath(), _t: vFile._d, t:vFile.getType() });
+                        }
+                    });
+
+//                    target = $.project.getWorkspace().getApkDir();
+
+
 
                     //target = req.body['path']==null? apkBase : _path_.join(apkBase, req.body['path']);
 
@@ -2218,6 +2249,7 @@ export default class WebServer
                     }*/
 
                     // replace by UUID
+                    /*
                     if(_fs_.lstatSync(target).isDirectory()==false){
                         data = [{
                             _t: 'c',
@@ -2231,7 +2263,7 @@ export default class WebServer
                             data.push({ n:pName, p:p, _t: (_fs_.lstatSync(p).isDirectory()?'d':'f') });
                         });
                     }
-
+*/
 
 
                     res.status(200).send(JSON.stringify({ success:true, data: data }));
@@ -2493,11 +2525,162 @@ export default class WebServer
                 res.status(200).send(JSON.stringify(dev));
             });
 
+
+        /*this.app.route('/api/file/list/:scope_id')
+            .get(function (req:ExpressRequest, res:ExpressResponse):any {
+                try{
+                    if(req.query['uid']==null){
+                        throw new Error("[FORMAT::ANALYSIS] #FMT_1 Invalid File UID");
+                    }
+
+                    let search:FinderResult = $.project.find.file('scope:'+req.query['uid']);
+                    if(search==null || search.count()==0){
+                        throw new Error("[FORMAT::ANALYSIS] #FMT_2 File not found");
+                    }else{
+                        res.status(200).send({ success:true, data:search.toJsonObject()});
+                    }
+                }catch(err){
+                    res.status(HTTP_CODE_ERROR).send({ success:false, msg: err.message });
+                }
+            });*/
+
+
+
+        this.app.route('/api/file/view')
+            .get(function (req:ExpressRequest, res:ExpressResponse):any {
+                try{
+                    if(req.query['uid']==null){
+                        throw new Error("[FILE::VIEW] #FILE_1 Invalid File UID or Scope");
+                    }
+
+                    // TODO : validate $.project.dataAnalyzer.isValidScope(req.query['scope']);
+                    //const scope = $.project.dataAnalyzer.getScope(req.query['scope']);
+
+                    let search:FinderResult = $.project.find.file('_uid:'+req.query['uid']);
+                    let data:any = [];
+
+                    if(search==null || search.count()==0){
+                        throw new Error("[FILE::VIEW] #FMT_2 File not found");
+                    }else{
+
+                        // TODO : ajouter ModelFile.read() dont le comportement depend du scope ModelFile.scope
+                        const file = (search.get(0) as ModelFile);
+                        let d:any;
+                        if(_fs_.existsSync(file.getPath())){
+
+                            if(file.isExecutable()){
+                                d = file.toJsonObject({ cmd:'sections:fn_list'});
+                            }else{
+                                d = file.toJsonObject();
+                                d.ctn = _fs_.readFileSync( file.getPath(), {encoding: "utf-8"});
+                            }
+
+                            /*{
+                                _t: 'c',
+                                p: file.getPath(),
+                                n: file.getName(),
+                                _uid: file.getUID(),
+                                t: file.getType(),
+                                ctn: _fs_.readFileSync( target, {encoding: "utf-8"})
+                            }];*/
+                        }
+
+                        res.status(200).send({ success:true, data:d});
+                    }
+                }catch(err){
+                    res.status(HTTP_CODE_ERROR).send({ success:false, msg: err.message });
+                }
+            });
+
+
+        this.app.route('/api/format/analysis')
+            .get(function (req:ExpressRequest, res:ExpressResponse):any {
+                try{
+                    if(req.query['uid']==null){
+                        throw new Error("[FORMAT::ANALYSIS] #FMT_1 Invalid File UID");
+                    }
+
+                    let search:FinderResult = $.project.find.file('_uid:'+req.query['uid']);
+                    if(search==null || search.count()==0){
+                        throw new Error("[FORMAT::ANALYSIS] #FMT_2 File not found");
+                    }else{
+                        res.status(200).send({ success:true, data:search.toJsonObject()});
+                    }
+                }catch(err){
+                    res.status(HTTP_CODE_ERROR).send({ success:false, msg: err.message });
+                }
+            });
+
+
+        this.app.route('/api/native/func')
+            .get(function (req:ExpressRequest, res:ExpressResponse):any {
+                try{
+                    if(req.query['s']==null){
+                        throw new Error("[NATIVE::FUNC] #NAT_3 Invalid Function signature");
+                    }
+
+                    let fn:ModelFunction = $.project.find.get.func(
+                        decodeURIComponent(req.query['uid'])
+                    );
+                    if(fn==null){
+                        throw new Error("[NATIVE::FUNC] #NAT_4 Function not found");
+                    }
+
+                    if(req.query['cmd']!=null){
+                        const cmd = req.query['cmd'].split(':');
+                        if($.project.analyze.getNativeAnalyzer().requireAnalysis( fn.src, cmd)){
+
+                            Logger.info("Executing native analysis of func : ",cmd.join(':'));
+                            $.project.analyze.getNativeAnalyzer().scan(fn.src, cmd, { func:fn });
+                        }
+                    }
+
+
+                    res.status(200).send({ success:true, data:fn.toJsonObject()});
+
+                }catch(err){
+                    res.status(HTTP_CODE_ERROR).send({ success:false, msg: err.message });
+                }
+            });
+
+        this.app.route('/api/native/analysis')
+            .get(function (req:ExpressRequest, res:ExpressResponse):any {
+                try{
+                    if(req.query['uid']==null){
+                        throw new Error("[NATIVE::ANALYSIS] #NAT_1 Invalid File UID");
+                    }
+
+                    let search:FinderResult = $.project.find.file('_uid:'+req.query['uid']);
+                    if(search==null || search.count()==0){
+                        throw new Error("[NATIVE::ANALYSIS] #NAT_2 File not found");
+                    }
+
+                    const cmd = (req.query['cmd']!=null ?  req.query['cmd'].split(':') : ['*']);
+
+                    if($.project.analyze.getNativeAnalyzer().requireAnalysis( search.get(0), cmd)){
+
+                        Logger.info("Executing native analysis : ",cmd.join(':'));
+                        $.project.analyze.getNativeAnalyzer().scan(search.get(0) as ModelFileExecutable, cmd);
+                    }
+
+
+                    let data:any = {};
+
+
+                    data = (search.get(0) as ModelFileExecutable).toJsonObject({ cmd:cmd });
+
+                    res.status(200).send({ success:true, data:data});
+
+                }catch(err){
+                    res.status(HTTP_CODE_ERROR).send({ success:false, msg: err.message });
+                }
+            });
+
         /*this.app.route('/api/settings')
             .get(function (req:ExpressRequest, res:ExpressResponse):any {
                 // collect
                 let dev = {
-                    cfg:null,
+                    cfg:nu
                     frida: null
                 };
                 let cfg: = $.project.getConfiguration();
@@ -2812,6 +2995,9 @@ export default class WebServer
 
             return;
         });
+
+
+
         this.initRoutes();
         
         this.uploader = Uploader.getInstance(); 

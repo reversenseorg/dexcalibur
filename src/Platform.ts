@@ -114,6 +114,12 @@ export default class Platform
         return this.name.indexOf('ios')>-1;
     }
 
+    is( pType:string[]|string):boolean{
+        if(Array.isArray(pType))
+            return pType.filter( val => this.name.indexOf(val)>-1).length>0;
+        else
+            return this.name.indexOf(pType)>-1;
+    }
 
     isVmSupported(){
         if(this.isAndroid())

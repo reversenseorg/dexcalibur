@@ -29,6 +29,8 @@ import {TAG} from "./AnalysisHelper";
 import {IDatabase, IDbIndex} from "./ConnectorFactory";
 import ModelFile from "./ModelFile";
 import ModelSyscall from "./ModelSyscall";
+import NativeAnalyzer from "./NativeAnalyzer";
+import DataScope from "./DataScope";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -299,6 +301,8 @@ export default class Analyzer
     projectionEngines:any = {};
     encoding:BufferEncoding= null;
 
+    a_native:NativeAnalyzer = null;
+
     /**
      *
      * @param {string} pEncoding
@@ -343,6 +347,30 @@ export default class Analyzer
             }
         }
         //pDb.packages.setEntry(pName,  ModelPackage.fromJavaFQCN(pName));
+    }
+
+    initNativeAnalyzer( pFileDB:IDatabase):NativeAnalyzer{
+        this.a_native = new NativeAnalyzer(
+            this.context,
+            this.db,
+            pFileDB
+        );
+
+        return this.a_native;
+    }
+
+
+
+    getNativeAnalyzer():NativeAnalyzer {
+        return this.a_native;
+    }
+
+
+    doNativeAnalysis(pScope:DataScope = null, pOptions:any={}){
+        if(pScope==null)
+            this.a_native.scanAllFiles(pOptions);
+        else
+            this.a_native.scanFileByScope(pScope, pOptions)
     }
 
     /**
@@ -1444,5 +1472,20 @@ export default class Analyzer
     }
 
 
+    /**
+     * To update file index with entry of the given index
+     *
+     * Important :  data are not copied. Entries contained
+     * into argument are passed by reference.
+     *
+     * @param {IDbIndex} index The index containing data to insert
+     * @method
+     * @since 1.0.0
+     */
+    updateFileIndex(index: IDbIndex, pForce:boolean=false) {
+        index.map( (vOffset:number,vVal:any)=>{
+            this.db.files.insert(vVal, pForce);
+        });
+    }
 }
 

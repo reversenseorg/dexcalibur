@@ -1,0 +1,168 @@
+import ModelFile from "./ModelFile";
+import Util from "./Utils";
+import * as _path_ from "path";
+import DexcaliburProject from "./DexcaliburProject";
+import {EOL} from "os";
+import Event from "./Event";
+
+
+import * as Log from './Logger';
+import ModelFileSection from "./ModelFileSection";
+import {ExternalTool} from "./ExternalTool";
+let Logger:Log.Logger = Log.newLogger() as Log.Logger;
+
+export class BinwalkHelper {
+
+
+    private _config:ExternalTool = null;
+
+    constructor( pBinwalkConfig:ExternalTool) {
+        this._config = pBinwalkConfig;
+    }
+
+    /**
+     *
+     * @param pPath
+     * @param pOptions
+     */
+    analyze( pPath:string, pOptions:any = {}):ModelFile {
+
+        let out:string;
+        const RE = /^([0-9]+)\s+(0x[0-9a-fA-F]+)\s+(.+)/;
+        let file:ModelFile = new ModelFile();
+        let res:any, l:string[];
+
+        try{
+            out = Util.execSync(this._config.getPath()+' '+_path_.join(pPath));
+            l = out.split(EOL);
+
+            while(l[0]=="") l.shift();
+
+            l[1] = _path_.normalize(l[1].substr(l[1].indexOf(':')));
+
+            file.name = _path_.basename( l[1]);
+            file.__p.md5 = Util.trim(l[2].substr(l[2].indexOf(':')));
+
+            if(l.length>7){
+                file.__p.m = [];
+            }
+            for(let i=7; i<l.length; i++){
+                if(l[i]!=null){
+                    res = RE.exec(l[i]) ;
+
+                    if(res != null && res[3]!=null){
+                        if(i==7){
+                            file.type = res[3].split(' ')[0];
+                        }
+
+                        // __p = properties
+                        // m = map
+                        // o = offset
+                        // t = type
+                        file.appendSection(new ModelFileSection(res[1], res[3]));
+                    }else{
+                        Logger.info("Format not detected in : "+l[i]);
+                    }
+                }
+            }
+        }catch(err){
+            Logger.error("[FILE FORMAT DETECTION] Binwalk failed to scan path : "+pPath);
+            return null;
+        }
+
+
+        return file;
+
+    }
+
+
+
+    /**
+     * To scan APK content with binwalk
+     * @param pPath
+     * @param pSkipIf
+     */
+    analyzeFolder(pPath:string, pContext:DexcaliburProject, pSkipIf:Function):ModelFile[] {
+
+
+        const lp = pPath.length;
+        let out:string;
+        const RE = /^([0-9]+)\s+(0x[0-9a-fA-F]+)\s+(.+)/;
+        let files:ModelFile[] = [];
+
+        try{
+            out = Util.execSync(this._config.getPath()+' '+_path_.join(pPath,'**','*'));
+        }catch(err){
+            try{
+                out = Util.execSync(this._config.getPath()+' '+_path_.join(pPath,'*'));
+            }catch(err2){
+                Logger.error("[FILE FORMAT DETECTION] Binwalk failed to scan path : "+pPath);
+                return files;
+            }
+        }
+
+
+        out.split(EOL+EOL+EOL).map( pDetails => {
+
+            try{
+
+                let f:ModelFile = new ModelFile();
+                let res:any = null;
+                let l:string[] = pDetails.split(EOL);
+
+                while(l[0]=="") l.shift();
+
+                l[1] = _path_.normalize(Util.trim(l[1].substr(l[1].indexOf(':')+1)));
+
+                // skip file if pSkipIf() return TRUE
+                if(pSkipIf(pPath, l[1])){
+                    l = null;
+                    return;
+                }
+
+                f.name = _path_.basename( l[1]);
+                Logger.info(l[1]);
+                f.path = l[1]; //.substr(lp);
+                f.__p.md5 = Util.trim(l[2].substr(l[2].indexOf(':')));
+
+                if(l.length>7){
+                    f.__p.m = [];
+                }
+                for(let i=7; i<l.length; i++){
+                    if(l[i]!=null){
+                        res = RE.exec(l[i]) ;
+
+                        if(res != null && res[3]!=null){
+                            if(i==7){
+                                f.type = res[3].split(',')[0].split(' ')[0];
+                            }
+
+                            // __p = properties
+                            // m = map
+                            // o = offset
+                            // t = type
+                            f.appendSection( new ModelFileSection(res[1], res[3]));
+                        }else if(l[i].length>0){
+                            Logger.info("Format not detected in : "+l[i]);
+                        }
+                    }
+                }
+
+                files.push(f);
+
+                // TODO : move to a step where UID is set
+                pContext.bus.send(new Event({
+                    type: "data.file.new.knownFmt",
+                    data: f
+                }))
+
+            }catch(err){
+                Logger.error('[File Format DETECTOR] Error on : '+"\n"+pDetails);
+            }
+
+        });
+
+        return files;
+    }
+
+}
