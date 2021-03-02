@@ -31,6 +31,7 @@
     "nedb-async": "^0.1.6",
     "properties": "^1.2.1",
     "r2pipe": "^2.8.0",
+    "r2pipe-promise": "^1.6.0",
     "websocket": "^1.0.32",
     "xml2js": "^0.4.19",
     "xz": "^2.0.2"
