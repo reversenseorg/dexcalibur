@@ -18,7 +18,7 @@
     "src/**/*.ts",
     "dexcalibur.ts",
     "connectors/**/*.ts",
-    "inspectors/**/*.ts"
+    "inspectors/**/*.ts",
   ],
   "exclude": ["node_modules", "**/*.spec.ts"]
 }
