@@ -6,51 +6,97 @@ import InspectorFrontController, {IFC_TYPE} from "../../../src/InspectorFrontCon
 import {CONST} from "../../../src/CoreConst";
 import ModelInstruction from "../../../src/ModelInstruction";
 import ModelBasicBlock from "../../../src/ModelBasicBlock";
+import Util from "../../../src/Utils";
+import {Modifier} from "../../../src/AccessFlags";
 
 var Controller:InspectorFrontController =  new InspectorFrontController();
 
 var DEBUG:boolean = false;
 
+
+function countNopOpcode(pMeth:any):any {
+    let opcode:any = null;
+    let counters = {
+        anyCtr: 0,
+        nopCtr: 0
+    };
+
+    if( pMeth.instr != null && pMeth.instr.length > 0){
+        for(let i=0; i<pMeth.instr.length ; i++){
+            for(let j=0; j<pMeth.instr[i].stack.length; j++){
+                opcode = pMeth.instr[i].stack[j].opcode;
+                if(opcode != null && opcode.type===CONST.INSTR_TYPE.NOP){
+                    counters.nopCtr++;
+                }
+                counters.anyCtr++;
+            }
+        }
+    }
+
+    return counters;
+}
+
+
+
+function cleanNopOpcode(pMeth:any):any {
+    let opcode:any = null;
+    let newbb:any;
+    let counters = {
+        nopCtr: 0
+    };
+
+    if( pMeth.instr != null && pMeth.instr.length > 0){
+        for(let i=0; i<pMeth.instr.length ; i++){
+            newbb = [];
+            for(let j=0; j<pMeth.instr[i].stack.length; j++){
+
+                opcode = pMeth.instr[i].stack[j].opcode;
+                if(opcode != null && opcode.type !==CONST.INSTR_TYPE.NOP){
+                    newbb.push(pMeth.instr[i].stack[j]);
+                }else{
+                    counters.nopCtr++;
+                }
+            }
+            pMeth.instr[i].stack = newbb;
+        }
+    }
+
+    return counters;
+}
+
 /**
  * Count NOP instructions
  */
-function nopCount(context:DexcaliburProject):any{
+function nopCount(context:DexcaliburProject, pMeth:ModelMethod=null):any{
 
     let counters = {
         any: 0,
         nop: 0
     };
 
-    context.analyze.db.methods.map((k:any,v:ModelMethod)=>{
-        let opcode:any = null;
-        if( v.instr != null && v.instr.length > 0){
-            for(let i=0; i<v.instr.length ; i++){
-                for(let j=0; j<v.instr[i].stack.length; j++){
-                    opcode = v.instr[i].stack[j].opcode;
-                    if(opcode != null && opcode.type===CONST.INSTR_TYPE.NOP){
-                        counters.nop++;
-                    }
-                    counters.any++;
-                }
-            }
-
-        }
-    });
+    if(pMeth==null){
+        context.analyze.db.methods.map((k:any,v:ModelMethod)=>{
+            let ctr:any = countNopOpcode(v);
+            counters.any += ctr.anyCtr;
+            counters.nop += ctr.nopCtr;
+        });
+    }else{
+        let ctr:any = countNopOpcode(pMeth);
+        counters.any = ctr.anyCtr;
+        counters.nop = ctr.nopCtr;
+    }
 
 
 
-    return { status:200, data:counters };
+
+    return { status:200, data:{ success:true, data:counters }};
 }
 
 
 
 
-function nopClean(context:DexcaliburProject):any{
-    let  newbb=null;
-    let counters = {
-        nop: 0
-    };
-
+function nopClean(context:DexcaliburProject, pMeth:ModelMethod = null):any{
+    /*
     context.analyze.db.methods.map((k,v)=>{
         let opcode:any=null;
         if( v.instr != null && v.instr.length > 0){
@@ -68,9 +114,23 @@ function nopClean(context:DexcaliburProject):any{
                 v.instr[i].stack = newbb;
             }
         }
-    });
+    });*/
 
-    return { status:200, data:counters };
+    let counters:any = {
+        nop: 0
+    };
+
+    if(pMeth==null){
+        context.analyze.db.methods.map((k:any,v:ModelMethod)=>{
+            let ctr:any = cleanNopOpcode(v);
+            counters.nop += ctr.nopCtr;
+        });
+    }else{
+        let ctr:any = cleanNopOpcode(pMeth);
+        counters.nop = ctr.nopCtr;
+    }
+
+    return { status:200, data:{ success:true, data:counters } };
 }
 
 
@@ -540,50 +600,52 @@ function hasSingleCall(method){
 
 /**
  * TODO
- * Double static heuristic is when a static method wraps  another statis method
+ * Double static heuristic is when a static method wraps  another static method
  */
 function renameDoubleStatic(database:AnalyzerDatabase, method:ModelMethod, pContext:DexcaliburProject):boolean{
-
     if(!hasSingleCall(method)) return false;
-/*
 
 
     // check if the current method is static
-    if(method.isStatic() === false) return false;
+    if((method.getModifier() & Modifier.STATIC) === 0) return false;
+
 
     // get the called method
     let called:ModelMethod = database.methods.getEntry( Object.keys(method._useMethod)[0] );
-    let args:(ModelBasicType|ModelObjectType)[] = []; // Object.values(method._useMethod)[0];
+    let args:any= Object.values(method._useMethod)[0];
 
     if(called == null
         || called.getModifier() == null
-        || called.isStatic() === false) return false;
+        || ((called.getModifier() & Modifier.STATIC) === 0)) return false;
+
+    //let args = called.args;
 
     // add arg type comparison
-    let paramOnly:boolean = true;
+    let paramOnly:number = 0;
     if(args.length > 0){
-        console.log(args, args[0]) ;
+        args.map( pLocation => {
+            let instr:any = method.getInstr(pLocation.bb,pLocation.instr);
+            if(instr != null){
+                instr.left.map( vParam => {
+                    if(vParam.t !== CONST.LEX.TOKEN.PARAM) paramOnly++;// = false;
+                })
+            }
+        })
+        /*
+        console.log(args, args[0], method.getInstr(args[0].bb,args[0].instr)) ;
         args[0].forEach(x=>{
             if(x.t !== CONST.LEX.TOKEN.PARAM) paramOnly = false;
-        });
+        });*/
     }
 
-    if(paramOnly === false) return false;
+    if(paramOnly > 0) return false;
 
     if(called.enclosingClass.name !== method.enclosingClass.name){
         method.setAlias(called.enclosingClass.name+"_"+called.name);
-        pContext.trigger({
-            type: "method.alias.update",
-            meth: method
-        });
     }else{
         method.setAlias(called.name);
-        pContext.trigger({
-            type: "method.alias.update",
-            meth: method
-        });
     }
-*/
+
     return true;
 }
 
@@ -597,7 +659,7 @@ function renameDoubleStatic(database:AnalyzerDatabase, method:ModelMethod, pCont
  *    move-result-object v0
  * return-object v0
  */
-/*
+
 function renameStaticInterface(database:AnalyzerDatabase, method:ModelMethod, pContext:DexcaliburProject):boolean{
 
     if(!hasSingleCall(method)) return false;
@@ -605,7 +667,7 @@ function renameStaticInterface(database:AnalyzerDatabase, method:ModelMethod, pC
 
     // get the called method
     let called:ModelMethod = database.methods.getEntry( Object.keys(method._useMethod)[0] );
-    let args:(ModelObjectType|ModelBasicType)[] = Object.values(method._useMethod)[0];
+    let args:any = Object.values(method._useMethod)[0];
     //let param = method.args[0];
 
     // check if the called method is not null
@@ -619,9 +681,8 @@ function renameStaticInterface(database:AnalyzerDatabase, method:ModelMethod, pC
 
     // check if the method is not static
     // TODO :  add check based on the opcode type instead of the modifiers of the called method
-    if(called == null
-        || called.getModifier() == null
-        || called.getModifier().isStatic() === true) return false;
+    if(called.getModifier() == null
+        || ((called.getModifier() & Modifier.STATIC) === 0)) return false;
 
 
     // check if the first param of the caller is an
@@ -631,54 +692,65 @@ function renameStaticInterface(database:AnalyzerDatabase, method:ModelMethod, pC
 
     // check if each parameter of the called method are parameter of the caller
     // {p0, p1} or {p0 ... p5}
-    let paramOnly:boolean = true;
-    args[0].forEach(x=>{
-        if(x.t !== CONST.LEX.TOKEN.PARAM) paramOnly = false;
-    });
-    if(paramOnly === false) return false;
+
+    let paramOnly:number = 0;
+    if(args.length > 0){
+        args.map( pLocation => {
+            let instr = method.getInstr(pLocation.bb,pLocation.instr);
+            if(instr != null){
+                instr.left.map( vParam => {
+                    if(vParam.t !== CONST.LEX.TOKEN.PARAM)
+                        paramOnly++; // = false;
+                })
+            }
+        })
+    }
+
+    if(paramOnly > 0) return false;
 
     // check if some parameters of the called method are defined statically and locally
     if(called.enclosingClass.name !== method.enclosingClass.name){
         method.setAlias(called.enclosingClass.name+"_"+called.name);
-        pContext.trigger({
-            type: "method.alias.update",
-            meth: method
-        });
 
     }else{
         method.setAlias(called.name);
-        pContext.trigger({
-            type: "method.alias.update",
-            meth: method
-        });
     }
 
     return true;
 }
-*/
 
-function wrapClean(context:DexcaliburProject):any{
+
+
+function wrapClean(context:DexcaliburProject, pMethod:ModelMethod = null):any{
 
     let db:AnalyzerDatabase = context.analyze.getInternalDB();
     let ctr:any = {
-        doubleStatic: 0,
-        staticInterface: 0
+        doubleStatic: {
+            ctr: 0,
+            o: []
+        },
+        staticInterface: {
+            ctr: 0,
+            o: []
+        }
     };
 
     // scan with several heuristic
     db.methods.map((k:any,v:ModelMethod)=>{
         if(renameDoubleStatic(db, v, context)){
-            ctr.doubleStatic++;
+            ctr.doubleStatic.ctr++;
+            ctr.doubleStatic.o.push(v.signature());
             return;
         }
-        /*if(renameStaticInterface(db, v, context)){
-            ctr.staticInterface++;
+        if(renameStaticInterface(db, v, context)){
+            ctr.staticInterface.ctr++;
+            ctr.staticInterface.o.push(v.signature());
             return;
-        }*/
+        }
     });
 
 
-    return { status:200, data:{ counter:ctr } };
+    return { status:200, data:{ success:true, data:{ counter:ctr } }  };
 }
 
 
@@ -688,21 +760,32 @@ function wrapClean(context:DexcaliburProject):any{
  */
 Controller.registerHandler(  IFC_TYPE.GET, function(ctx:DexcaliburProject, req:any, res:any){
 
-    var action = req.query.action;
-    var act ={
-        status: 404,
-        data: { error: "Action not found. "}
+    let action:string = req.query.action;
+    let act:any ={
+        status: 200,
+        data: { success:false, error: "Action not found. "}
     };
+
+    let meth:ModelMethod = null;
+    let n:string = null;
+    if(req.query.meth){
+        n = Util.decodeURI(Util.b64_decode(Util.decodeURI(req.query.meth)));
+        try{
+            meth = ctx.find.get.method(Util.decodeURI(Util.b64_decode(Util.decodeURI(req.query.meth))));
+        }catch(err){
+            res.status(200).send({ success:false, err:"Method not found" });
+        }
+    }
 
     switch(action){
         case 'nop_count':
-            act = nopCount(ctx);
+            act = nopCount(ctx, meth);
             break;
         case 'nop_clean':
-            act = nopClean(ctx);
+            act = nopClean(ctx, meth);
             break;
         case 'wrap_clean':
-            act = wrapClean(ctx);
+            act = wrapClean(ctx, meth);
             break;
     }
 
