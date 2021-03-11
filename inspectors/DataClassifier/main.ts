@@ -64,7 +64,7 @@ var DataClassifierInspector:InspectorFactory = new InspectorFactory({
             let pattern:RegExp = new RegExp("([^:/]*)://([^/]*)");
     
             // tag static strings containing URI
-            ctx.find.nocase().string("value:^([^:/]*)://([^/]*)")
+            ctx.find.nocase().strings("value:^([^:/]*)://([^/]*)")
                 .foreach(function(pOffset,pData){
                     pData.addTag("URI");
                     //console.log(pData);
