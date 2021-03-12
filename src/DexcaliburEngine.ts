@@ -26,7 +26,7 @@ let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
 var gAdmZip:any = null;
 var gEngineInstance:DexcaliburEngine = null;
-var PACKAGE_JSON:any = require("../package.json");
+var PACKAGE_JSON:any = require(_path_.join(__dirname,"..","..","package.json"));
 
 
 
@@ -561,6 +561,10 @@ export default class DexcaliburEngine
         this.platformMgr.enumerate();
     }
 
+    /**
+     * To init installer
+     *
+     */
     initInstaller(){
         if(gAdmZip == null){
             gAdmZip = require('adm-zip');
@@ -735,9 +739,12 @@ export default class DexcaliburEngine
     }
 
     /**
+     * To retrieve project list
+     *
      * @method
      */
     getProjects():string[]{
+
         return this.workspace.listProjects();
     }
 
@@ -762,7 +769,6 @@ export default class DexcaliburEngine
     getActiveProjects():DexcaliburProject[] {
         return this.active;
     }
-
 
 
     deleteProject( pUID:string):boolean{
@@ -862,6 +868,12 @@ export default class DexcaliburEngine
         return FridaHelper.getLocalFridaVersion(FRIDA_BIN);
     }
 
+    /**
+     * To close an opened project
+     *
+     * @param {DexcaliburProject} pProject The project to close
+     * @return {boolean}
+     */
     closeProject(pProject:DexcaliburProject):boolean {
         if(this.getActiveProjects().length>0){
             this.active[pProject.uid] = null;
@@ -869,6 +881,8 @@ export default class DexcaliburEngine
         }
         return pProject.close();
     }
+
+
 }
 
 
