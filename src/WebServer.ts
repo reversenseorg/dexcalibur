@@ -41,14 +41,15 @@ import ModelPackage from "./ModelPackage";
 import ModelClass from "./ModelClass";
 import Workspace from "./Workspace";
 import ModelExecutableSection from "./ModelExecutableSection";
-import {ModelFileExecutable} from "./ModelFileExecutable";
 import ModelFile from "./ModelFile";
 import DataScope, {DataScopePpts} from "./DataScope";
 import {ModelFunction} from "./ModelFunction";
+import HookMessage from "./HookMessage";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
 
+const HTTP_CODE_SUCCESS = 200;
 const HTTP_CODE_ERROR = 200;
 
 /**
@@ -1101,12 +1102,59 @@ export default class WebServer
 
         this.app.route('/api/probe')
             .get(function (req:ExpressRequest, res:ExpressResponse):any {
-                let hooks:Hook[] = $.project.hook.list();
-                let data:any = { data: [] };
-                for (let i in hooks) {
-                    data.data.push(hooks[i].toJsonObject());
+
+
+                try{
+
+                    if($.project == null){
+                        throw new Error("#HM_0 There is not active project")
+                    }
+
+
+                    let hooks:Hook[] = $.project.hook.list();
+
+                    let out:any = {success:false, data:[]};
+
+                    if(req.query['t']!=null && req.query['s']!=null){
+                        let unsafeSignature = decodeURIComponent(Util.b64_decode(decodeURIComponent(req.query['s'])));
+                        switch(req.query['t']){
+                            case "func":
+                                hooks.map( (vHook:Hook) => {
+                                    if(vHook.native){
+                                        if(vHook.hasMethod() && (vHook.getMethod().signature()===unsafeSignature)){
+                                            out.data.push(vHook.toJsonObject());
+                                        }
+                                    }
+                                });
+                                break;
+                            case "meth":
+                                hooks.map( (vHook:Hook) => {
+
+                                    if(!vHook.native){
+                                        if(vHook.hasMethod() && (vHook.getMethod().signature()===unsafeSignature)){
+                                            out.data.push(vHook.toJsonObject());
+                                        }
+                                    }
+                                });
+                                break;
+                        }
+                    }else{
+                        hooks.map( (vH:Hook) => {
+                            out.data.push(vH.toJsonObject());
+                        });
+                    }
+
+
+                    out.success = true;
+
+                    res.status(200).send(JSON.stringify(out));
+
+                }catch(err){
+                    Logger.error("HookManager : get probe : "+err.message);
+                    res.status(HTTP_CODE_ERROR).send(JSON.stringify({ success:false, err:"Hook not found for the given object."}));
                 }
-                res.status(200).send(JSON.stringify(data));
+
+
             });
 
         this.app.route('/api/inspector')
@@ -1131,6 +1179,7 @@ export default class WebServer
                 }else{
                     device = $.project.getDevice();
                 }
+
 
                 try{
                     res.status(200).send(JSON.stringify({
@@ -1237,6 +1286,67 @@ export default class WebServer
                 res.status(200).send(script);
             });
 
+
+        this.app.route('/api/probe/sessions')
+            .get(function (req:ExpressRequest, res:ExpressResponse):any {
+
+                try{
+                    if($.project == null){
+                        throw new Error("There is not active active project");
+                    }
+
+                    let sess:HookSession[] = $.project.hook.getSessions();
+                    let data:any;
+                    let signature:string = null;
+
+                    if (sess.length == 0) {
+                        res.status(HTTP_CODE_SUCCESS).send(JSON.stringify({ success:true, data:[] }));
+                        return;
+                    }
+
+
+                    // collect only sessions containing messages for the given method/function
+                    if(req.query.filter && req.query){
+                        data.sess = [];
+                        signature = decodeURIComponent(Util.b64_decode(decodeURIComponent(req.query.id)));
+                        switch(req.query.filter){
+                            case 'meth':
+                            case 'func':
+                                sess.map( (vHSess:HookSession)=>{
+                                    if (!vHSess.hasMessages()) return;
+
+                                    let s:any  = {msg:[]};
+                                    vHSess.messages().map( (vMsg:HookMessage)=>{
+                                        if(vMsg.msg===signature){
+                                            s.msg.push(vMsg);
+                                        }
+                                    })
+
+                                    if(s.msg.length>0){
+                                        data.sess.push(s);
+                                    }
+                                });
+                                break;
+                        }
+                    }else{
+                        data.sess = [];
+                    }
+
+
+
+                    res.status(HTTP_CODE_SUCCESS).send(JSON.stringify({ success:true, data:data }));
+                }catch(err){
+                    res.status(HTTP_CODE_ERROR).send(JSON.stringify({ success:false, msg:err.message }));
+                }
+
+
+
+
+
+                //let data = { data: sess.toJsonObject(parseInt(startAt,10), parseInt(size,10)) };
+                //res.status(200).send(JSON.stringify(data));
+            });
+
         this.app.route('/api/probe/msg')
             .get(function (req:ExpressRequest, res:ExpressResponse):any {
                 
@@ -1264,63 +1374,109 @@ export default class WebServer
                 res.status(200).send(JSON.stringify(data));
             });
 
+
+
         this.app.route('/api/probe/:method')
             .post(function (req:ExpressRequest, res:ExpressResponse):any {
-                let meth:ModelMethod = $.project.find.get.method(Util.decodeURI(Util.b64_decode(req.params.method)));
-                if (meth == null) {
-                    Logger.info(Util.decodeURI(Util.b64_decode(req.params.method)));
-                    res.status(404).send(JSON.stringify({ msg: "Method not found" }));
-                    return;
-                }
-                if (meth.name == "<clinit>") {
-                    res.status(404).send(JSON.stringify({ msg: "Static blocks (<clinit>) cannot be hooked" }));
-                    return;
-                }
-                let probe:Hook = $.project.hook.getProbe(meth);
-                if (probe == null) {
-                    probe = $.project.hook.probe(meth);
-                }
 
-                //if(hook.enable)
-                $.project.trigger({
-                    type: "probe.new",
-                    data: {
-                        hook: probe,
-                        method: meth
-                    } 
-                });
+                let meth:ModelMethod|ModelFunction;
+                let probe:Hook;
+                let file:any = null;
+                let opts:any = {};
+                try{
+                    if((req.body['_t']!=null) && (req.body['_t']=='func')){
+                        meth = $.project.find.get.func(Util.decodeURI(Util.b64_decode(req.params.method)));
 
-                res.status(200).send(JSON.stringify({
-                    enable: probe.isEnable()
-                }));
-                /*else
-                    res.status(403).send(JSON.stringify(dev));*/
+                        file = $.project.find.file('_uid:'+meth.getDeclaringFile());
+                        if(file.count()>0){
+                            opts =  {
+                                file: (file.get(0) as ModelFile).getName(),
+                                onLeave: true,
+                                onEnter: true,
+                                ptr_mode: 'relative'
+                            }
+                        }else{
+                            opts =  {
+                                onLeave: true,
+                                onEnter: true,
+                                ptr_mode: 'addr'
+                            }
+                        }
+
+
+
+                    }else{
+                        meth = $.project.find.get.method(Util.decodeURI(Util.b64_decode(req.params.method)));
+                    }
+
+                    if (meth == null) {
+                        Logger.error("[API][PROBE::METHOD] Method or Function not found "+Util.decodeURI(Util.b64_decode(req.params.method)));
+                        throw new Error("Method or Function not found");
+                    }
+                    if((meth instanceof ModelMethod) && (meth.name == "<clinit>")){
+                        throw new Error("Static blocks (<clinit>) cannot be hooked");
+                    }
+
+                    probe = $.project.hook.getProbe(meth);
+                    if (probe == null) {
+                        probe = $.project.hook.probe(meth, opts);
+                    }
+
+                    //if(hook.enable)
+
+                    $.project.trigger({
+                        type: "probe.new",
+                        data: {
+                            hook: probe,
+                            method: meth
+                        }
+                    });
+
+                    res.status(200).send(JSON.stringify({ success:true,
+                        enable: probe.isEnable(),
+                        data: { hookid: probe.getID() }
+                    }));
+                }catch(err){
+                    res.status(HTTP_CODE_ERROR).send(JSON.stringify({ success:false, msg: err.message}));
+                }
             })
             .put(function (req:ExpressRequest, res:ExpressResponse):any {
-                let meth:ModelMethod = $.project.find.get.method(Util.decodeURI(Util.b64_decode(req.params.method)));
-                if (meth == null) {
-                    res.status(404).send({ error: "No probe ID given" });
-                    return;
+
+
+                let meth:ModelMethod|ModelFunction;
+                let hook:Hook;
+
+                try{
+                    if((req.body['_t']!=null) && (req.body['_t']=='func')){
+                        meth = $.project.find.get.func(Util.decodeURI(Util.b64_decode(req.params.method)));
+                    }else{
+                        meth = $.project.find.get.method(Util.decodeURI(Util.b64_decode(req.params.method)));
+                    }
+
+                    if (meth == null) {
+                        Logger.error("[API][PROBE::METHOD] Method or Function not found "+Util.decodeURI(Util.b64_decode(req.params.method)));
+                        throw new Error("Method or Function not found");
+                    }
+                    if((meth instanceof ModelMethod) && (meth.name == "<clinit>")){
+                        throw new Error("Static blocks (<clinit>) cannot be hooked");
+                    }
+
+                    let status:string = req.query.enable;
+                    if (status === undefined) {
+                        throw new Error("Invalid hook status");
+                    }
+
+                    hook = $.project.hook.getProbe(meth);
+                    if (status == "true")
+                        hook.enable();
+                    else
+                        hook.disable();
+
+                    res.status(200).send(JSON.stringify({ success:true, data: { enable: hook.isEnable() }}));
+                }catch(err){
+                    res.status(HTTP_CODE_ERROR).send(JSON.stringify({ success:false, msg: err.message}));
                 }
-                let status:string = req.query.enable;
-                Logger.info(status, req.query);
-                if (status === undefined) {
-                    res.status(404).send({ error: "No search request" });
-                    return;
-                }
 
-                let hook:Hook = $.project.hook.getProbe(meth);
-                if (status == "true")
-                    hook.enable();
-                else
-                    hook.disable();
-
-                // collect
-                let dev = {
-                    enable: hook.isEnable()
-                };
-
-                res.status(200).send(JSON.stringify(dev));
             });
 
         this.app.route('/api/hook/app/detach')
@@ -1419,7 +1575,12 @@ export default class WebServer
                         req.params.hookid
                     );
 
+                    if (hook == null) {
+                        throw new Error("Invalid hook ID given");
+                    }
+
                     let o:any = hook.toJsonObject();
+
                     if(hook.native){
                         o.method = $.project.find.get.func(o.method).toJsonObject();
                     }else{
@@ -1427,13 +1588,10 @@ export default class WebServer
                     }
 
 
-                    if (hook == null) {
-                        throw new Error("Invalid hook ID given");
-                    }else{
-                        res.status(200).send(JSON.stringify({ success: true, hook: o }));
-                    }
+                    res.status(200).send(JSON.stringify({ success: true, hook: o }));
+
                 }catch(err){
-                    res.status(HTTP_CODE_ERROR).send({ success: false, error: "Invalid hook ID given" });
+                    res.status(HTTP_CODE_ERROR).send({ success: false, error: err.message });
                 }
 
             })
@@ -1537,6 +1695,39 @@ export default class WebServer
             });
 
         this.app.route('/api/class/:id')
+            .get(function (req:ExpressRequest, res:ExpressResponse):any {
+
+
+                // collect
+                let dev:any = {};
+                let classRef:string;
+                let cls:ModelClass;
+
+                try{
+                    classRef = Util.decodeURI(Util.b64_decode(req.params.id));
+                    cls = $.project.find.get.class(classRef);
+
+                    if (cls != null) {
+                        dev = { success:true, data:cls.toJsonObject() };
+
+                        dev.data.methods = [];
+                        for(let k in cls.methods){
+                            dev.data.methods.push( cls.methods[k].toJsonObject());
+                        }
+
+                        dev.data.fields = [];
+                        for(let k in cls.fields){
+                            dev.data.fields.push( cls.fields[k].toJsonObject());
+                        }
+                    }
+
+                    res.status(HTTP_CODE_SUCCESS).send(JSON.stringify(dev));
+                }catch(err){
+                    Logger.error('[WEBSERVER] Class not found : '+err.message);
+                    res.status(HTTP_CODE_ERROR).send(JSON.stringify({ success:false, err:'[WEBSERVER] Method solving through reference not yet supported here'}));
+                }
+
+            })
             .put(function (req:ExpressRequest, res:ExpressResponse):any {
                 // collect
                 let obj = $.project.find.get.class(Util.decodeURI(Util.b64_decode(req.params.id)));
@@ -1577,6 +1768,7 @@ export default class WebServer
                 res.status(200).send(JSON.stringify({ success: true }));
             });
 
+        /*
         this.app.route('/api/class/implements/:id')
             .get(function (req:ExpressRequest, res:ExpressResponse):any {
                 // collect
@@ -1585,7 +1777,7 @@ export default class WebServer
                 //                let clss = $.project.find.classImplementing(cls);
 
                 res.status(200).send(JSON.stringify(dev));
-            });
+            });*/
 
         this.app.route('/api/graph/:graph_type/:type/:id')
             .get(function (req:ExpressRequest, res:ExpressResponse):any {
@@ -1662,12 +1854,21 @@ export default class WebServer
         this.app.route('/api/method/disass/:id')
             .get(function (req:ExpressRequest, res:ExpressResponse):any {
                 // collect
-                let dev:any = {};
-                let method:ModelMethod = $.project.find.get.method(Util.decodeURI(Util.b64_decode(req.params.id)));
+                let dev:any;
+                let method:ModelMethod;
 
-                dev.disass = method.disass({ raw: true }, $.project.getDisassembler());
+                try{
+                    dev = { success:false };
+                    method = $.project.find.get.method(Util.decodeURI(Util.b64_decode(req.params.id)));
 
-                res.status(200).send(JSON.stringify(dev));
+                    dev.disass = method.disass({ raw: true }, $.project.getDisassembler());
+                    dev.success = true;
+
+                    res.status(200).send(JSON.stringify(dev));
+                }catch(err){
+
+                    res.status(HTTP_CODE_ERROR).send(JSON.stringify({ success:false, msg:"Method cannot be disassembled. "}));
+                }
             });
 
         /**
@@ -1797,7 +1998,13 @@ export default class WebServer
                 let method:ModelMethod = $.project.find.get.method(methRef);
 
                 if (method != null) {
+
+                    if(req.query.probing){
+                        method.setProbing($.project.hook.isProbing(method));
+                    }
+
                     dev = method.toJsonObject();
+                    dev.hooked = ($.project.hook.getProbe(method)!=null);
                     dev.disass = method.disass({ raw: true }, $.project.getDisassembler());
                 } else {
                     Logger.error('[WEBSERVER] Method solving through reference not yet supported here');
@@ -2013,6 +2220,7 @@ export default class WebServer
                         }
                    }
 
+                    $.project = null;
 
                     if(proj != null){
                         res.status(200).send(JSON.stringify({ success:$.context.closeProject(proj) }));
@@ -2569,7 +2777,7 @@ export default class WebServer
                         if(_fs_.existsSync(file.getPath())){
 
                             if(file.isExecutable()){
-                                d = file.toJsonObject({ cmd:'sections:fn_list'});
+                                d = file.toJsonObject({ cmd:'sections:f_list'});
                             }else{
                                 d = file.toJsonObject();
                                 d.ctn = _fs_.readFileSync( file.getPath(), {encoding: "utf-8"});
@@ -2613,9 +2821,9 @@ export default class WebServer
 
 
         this.app.route('/api/native/func')
-            .get(function (req:ExpressRequest, res:ExpressResponse):any {
+            .get(async function (req:ExpressRequest, res:ExpressResponse):Promise<any> {
                 try{
-                    if(req.query['s']==null){
+                    if(req.query['uid']==null){
                         throw new Error("[NATIVE::FUNC] #NAT_3 Invalid Function signature");
                     }
 
@@ -2628,15 +2836,31 @@ export default class WebServer
 
                     if(req.query['cmd']!=null){
                         const cmd = req.query['cmd'].split(':');
-                        if($.project.analyze.getNativeAnalyzer().requireAnalysis( fn.src, cmd)){
+
+                        let file:FinderResult = $.project.find.file('_uid:'+fn.getDeclaringFile());
+                        if(file.count()==0){
+                            throw new Error("[NATIVE::FUNC] #NAT_45 Declaring file not found");
+                        }
+
+
+                        if($.project.analyze.getNativeAnalyzer().requireAnalysis( file.get(0) as ModelFile, cmd, {fn:fn})){
 
                             Logger.info("Executing native analysis of func : ",cmd.join(':'));
-                            $.project.analyze.getNativeAnalyzer().scan(fn.src, cmd, { func:fn });
+                            const success = await $.project.analyze.getNativeAnalyzer().scan( file.get(0) as ModelFile, cmd, { fn:fn });
+
+                            res.status(200).send({ success:(success>-1?true:false), data:fn.toJsonObject() });
+                        }else{
+
+                            Logger.info("Command(s) : "+cmd.join(':')+' already executed for '+fn.getSignature());
+                            res.status(200).send({ success:true, data:fn.toJsonObject()});
                         }
+
+                    }else{
+
+                        res.status(200).send({ success:true, data:fn.toJsonObject()});
                     }
 
 
-                    res.status(200).send({ success:true, data:fn.toJsonObject()});
 
                 }catch(err){
                     res.status(HTTP_CODE_ERROR).send({ success:false, msg: err.message });
@@ -2657,17 +2881,17 @@ export default class WebServer
 
                     const cmd = (req.query['cmd']!=null ?  req.query['cmd'].split(':') : ['*']);
 
-                    if($.project.analyze.getNativeAnalyzer().requireAnalysis( search.get(0), cmd)){
+                    if($.project.analyze.getNativeAnalyzer().requireAnalysis( search.get(0), cmd, null)){
 
                         Logger.info("Executing native analysis : ",cmd.join(':'));
-                        $.project.analyze.getNativeAnalyzer().scan(search.get(0) as ModelFileExecutable, cmd);
+                        $.project.analyze.getNativeAnalyzer().scan(search.get(0) as ModelFile, cmd);
                     }
 
 
                     let data:any = {};
 
 
-                    data = (search.get(0) as ModelFileExecutable).toJsonObject({ cmd:cmd });
+                    data = (search.get(0) as ModelFile).toJsonObject({ cmd:cmd });
 
                     res.status(200).send({ success:true, data:data});
 
