@@ -190,6 +190,17 @@ export default class DexcaliburWorkspace
         return this.pluginsFolder;
     }
 
+
+    /**
+     * To get the path of the folder containing external tools/binaries
+     *
+     * @returns {String} Path of the folder
+     * @method
+     */
+    getConfigFolderLocation():string{
+        return this.cfgFolder;
+    }
+
     /**
      * To get the path of the device manager folder into the workspace
      * 
