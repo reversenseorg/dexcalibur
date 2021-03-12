@@ -17,6 +17,7 @@ import FridaHelper from "./FridaHelper";
 import ModelClass from "./ModelClass";
 import {TerminalSession} from "./TerminalSession";
 import {HookSessionMap, TerminalSessionMap, User} from "./User";
+import {ModelFunction} from "./ModelFunction";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -48,6 +49,7 @@ export enum HOOKSESSION_CACHE_POLICY {
 interface HookSetList {
     [id :string] :HookSet
 }
+
 
 /**
  * 
@@ -87,8 +89,37 @@ export class HookManager
         }else{
             this.frida_disabled = true;
         }
+
+        //
+        this.hooksets.custom = new HookSet({
+            id: "custom",
+            name: "Custom",
+            context: pProject,
+            enable: true
+        })
     }
 
+    /**
+     * To create hookset for each DEX file or binary file analyzed
+     */
+    updateBuiltinHookset():void {
+        // create a hook set per DEX file, it mus be
+        // this.context.analyze.getDexFiles();
+
+        // create a hook set per native file into the project
+        const natives = this.context.analyze.getNativeAnalyzer().getTargetFiles();
+        natives.map( file => {
+           const hs = this.getHookSet(file.getName());
+           if(fs==null){
+               this.addHookSet(new HookSet({
+                   id: file.getName(),
+                   name: file.getName(),
+                   context: this.context,
+                   enable: true
+               }))
+           }
+        });
+    }
 
 
     /**
@@ -248,6 +279,7 @@ export class HookManager
     }
 
 
+
     /**
      * To start hooking by spawning the target application
      *  
@@ -325,6 +357,12 @@ export class HookManager
             target = pDevice;
         }
 
+        if(target == null){
+            Logger.error("[HOOK MANAGER] Device not found. Reconnect your device or select a target device to continue.");
+            throw new Error("[HOOK MANAGER] Device not found. Reconnect your device or select a target device to continue.");
+            return null;
+        }
+
         // start Frida
         // do spawn + attach
         let hookRoutine:any = co.wrap(function *() {
@@ -332,7 +370,15 @@ export class HookManager
             let device:any = null;
 
             device = yield FridaHelper.getDevice(target);
+
+            if(device == null){
+                Logger.error("[HOOK MANAGER][#2] Device not found. Reconnect your device or select a target device to continue.");
+                throw new Error("[HOOK MANAGER][#2] Device not found. Reconnect your device or select a target device to continue.");
+                return null;
+            }
+
 /*
+
             bridge = target.getDefaultBridge();
             
             if(bridge.isNetworkTransport()){
@@ -485,7 +531,7 @@ export class HookManager
     /**
      * 
      */
-    getProbe(method:ModelMethod):Hook{
+    getProbe(method:ModelMethod|ModelFunction):Hook{
         for(let i in this.hooks){
             if(this.hooks[i].name == method.signature()){
                 return this.hooks[i];
@@ -540,7 +586,7 @@ export class HookManager
         return null;
     }
 
-    findHookByMethod(method:ModelMethod):Hook[]{
+    findHookByMethod(method:ModelMethod|ModelFunction):Hook[]{
         let match:Hook[] = [];
         for(let i in this.hooks){
             if(this.hooks[i].name == method.signature()){
@@ -550,13 +596,13 @@ export class HookManager
         return match;
     }
 
-    nextHookIdFor(method:ModelMethod):string{
+    nextHookIdFor(method:ModelMethod|ModelFunction):string{
     //    return method.__signature__+"@@"+this.findHookByMethod(method).length;
+        Logger.info("[HOOK] nextHookIdFor ["+method.signature()+"]")
         return method.signature()+"@@"+this.findHookByMethod(method).length;
-
     }
 
-    probe(method:ModelMethod):Hook{
+    probe(method:ModelMethod|ModelFunction, pOptions:any={}):Hook{
         let hook:Hook = null;
 
         if(method instanceof ModelClass){
@@ -568,7 +614,7 @@ export class HookManager
             hook.setID( md5(this.nextHookIdFor(method)));
             
             //hook.makeProbeFor(method);
-            hook.makeHookFor(method);
+            hook.makeHookFor(method, pOptions);
 
             //hook.setMethod(method);
             // method.setProbing(true);
@@ -576,9 +622,28 @@ export class HookManager
 
             Logger.info("[HOOK MANAGER][PROBE] Add : ",hook.name)
             this.hooks.push(hook);
+        }else if(method instanceof ModelFunction){
+            hook = new Hook(this.context);
+
+            //hook.setID( this.nextHookIdFor(method));
+            hook.setID( md5(this.nextHookIdFor(method)));
+
+            //hook.makeProbeFor(method);
+            hook.makeNativeHookFor(method, pOptions);
+            hook.native = true;
+
+            //hook.setMethod(method);
+            // method.setProbing(true);
+            method.probing = true;
+
+
+            Logger.info("[HOOK MANAGER][NATIVE PROBE] Add : ",hook.name)
+            this.hooks.push(hook);
         }
         return hook;
     }
+
+
 
     addPrologue(prologue:HookPrologue):void{
         this.prologues.push( prologue.injectContext(this.context));
@@ -627,6 +692,13 @@ export class HookManager
         return this.sessions[this.sessions.length-1];
     }
 
+    /**
+     * To retrieve all sessions (warning : it can be heavy)
+     *
+     */
+    getSessions():HookSession[] {
+        return this.sessions;
+    }
     // HookSession communication
 
 
