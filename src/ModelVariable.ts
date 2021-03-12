@@ -2,8 +2,8 @@ import {NodeType} from "./NodeType";
 
 
 export enum ModelVariableType {
-  VAR,
-  REG
+  VAR='var',
+  REG='reg'
 }
 
 interface ModelVariableReference {
@@ -24,6 +24,15 @@ export class ModelVariable {
   type:string = "";
   refs:ModelVariableReference = null;
 
+
+  constructor(pConfig:any = null){
+
+    if(pConfig!==undefined)
+      for(let i in pConfig)
+        this[i]=pConfig[i];
+
+  }
+
   getName():string{
     return this.n;
   }
@@ -35,4 +44,11 @@ export class ModelVariable {
   getRef():ModelVariableReference{
     return this.refs;
   }
+
+  toJsonObject():any {
+    let o:any={};
+    for(let i in this) o[i]=this[i];
+    return o;
+  }
+
 }

@@ -14,5 +14,7 @@ export enum NodeType {
     SWITCH_CASE,
     FUNC,
     EXEC_SECTION,
-    VAR
+    VAR,
+    INSTR_CPU
+
 }

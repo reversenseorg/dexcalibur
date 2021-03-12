@@ -44,7 +44,9 @@ class TestHelperClass
     project_ready:DexcaliburProject = null;
 
     constructor(){
-        this.testCfg = JSON.parse( _fs_.readFileSync(_path_.join( __dirname, "..",  "test", "config", "config.json")).toString() );
+        if(process.env.DEXCALIBUR_TEST)
+            this.testCfg = JSON.parse( _fs_.readFileSync(_path_.join( __dirname, "..",  "test", "config", "config.json")).toString() );
+
         this.interceptors = {
             exec: []
         };

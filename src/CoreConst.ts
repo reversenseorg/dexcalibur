@@ -276,6 +276,7 @@ export const CONST = {
     },
     VM: {
         IF_DEFAULT_PATH: true
-    }
+    },
+
 };
 

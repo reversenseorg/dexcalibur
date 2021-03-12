@@ -39,7 +39,7 @@ export default class ModelMethod extends Savable
     datas:any = []; // TODO
     switches:any = []; // TODO
 
-    probing:boolean = false;
+    probing:boolean = null;
 
     locals:number = 0;
     registers:number = 0;
@@ -420,6 +420,7 @@ export default class ModelMethod extends Savable
                     case "registers":
                     case "params":
                     case "tags":
+                    case "probing":
                         obj[i] = this[i];
                         break;
                     case "instr":
