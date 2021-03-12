@@ -287,6 +287,251 @@ class Resolver
 }
 
 
+
+class ResolverV2
+{
+
+    resolveInheritedField(pFieldRef:ModelFieldReference, pParentClass:ModelClass):ModelField{
+        for(let i in pParentClass.fields){
+            if(pParentClass.fields[i].name===pFieldRef.name){
+                if(pParentClass.fields[i].tags.indexOf('missing')>-1){
+                    return pParentClass.fields[i];
+                }
+
+                if((pParentClass.fields[i].modifiers & Modifier.PRIVATE) == Modifier.PRIVATE){
+                    pParentClass.fields[i].declaringClass = pParentClass.fields[i].enclosingClass;
+                    pParentClass.fields[i].enclosingClass = pParentClass;
+                    return pParentClass.fields[i];
+                }
+            }
+        }
+
+        if(pParentClass.extends instanceof ModelClass){
+            return this.resolveInheritedField(pFieldRef, pParentClass.extends);
+        }else
+            return null;
+    }
+
+
+
+    resolveInheritedMethod(pMethodRef:ModelMethodReference, pParentClass:ModelClass):ModelMethod{
+        for(let i in pParentClass.methods){
+            if(pParentClass.methods[i].name===pMethodRef.name){
+                if(pParentClass.methods[i].tags.indexOf('missing')>-1){
+                    return pParentClass.methods[i];
+                }
+
+                if(!(pParentClass.methods[i].modifiers & Modifier.PRIVATE)){
+                    pParentClass.methods[i].declaringClass = pParentClass.methods[i].enclosingClass;
+                    pParentClass.methods[i].enclosingClass = pParentClass;
+                    return pParentClass.methods[i];
+                }
+            }
+        }
+
+        if(pParentClass.extends instanceof ModelClass){
+            return this.resolveInheritedMethod(pMethodRef, pParentClass.extends);
+        }else
+            return null;
+    }
+
+
+    /**
+     *
+     * @param {String} fqcn FQCN of the missing class
+     * @param {AnalyzerDatabase} internalDB an instance of the internal DB
+     */
+    createMissingClass(pFqcn:string, pAnalyzerDB:AnalyzerDatabase):ModelClass{
+
+        // create a class instance from the FQCN value
+        let missingCls:ModelClass = SmaliParser.class("L"+pFqcn+" ");
+        let pkg:ModelPackage|string = null;
+
+        // tag the class instance "missing"
+        // a missing definition can help to identify obfuscated application
+        missingCls.setupMissingTag();
+
+        // update the internal DB[
+        pAnalyzerDB.classes.setEntry(pFqcn, missingCls);
+        pAnalyzerDB.missing.insert(missingCls, false);
+
+        // update package
+        pkg = missingCls.getPackage();
+        if(pkg !== null && (typeof pkg === 'string')){
+            pkg = pAnalyzerDB.packages.getEntry(pkg); // TODO ???
+            //if(!(pkg instanceof ModelPackage)){
+            if(pkg == null){
+                pkg = new ModelPackage(missingCls.getPackage() as string);
+                pAnalyzerDB.packages.setEntry((pkg as ModelPackage).name, pkg);
+            }
+
+            missingCls.setPackage(pkg as ModelPackage);
+            (pkg as ModelPackage).childAppend(missingCls);
+        }
+
+        return missingCls;
+    }
+
+    createMissingField(fieldReference:ModelFieldReference, enclosingClass:ModelClass,
+                              internalDB:AnalyzerDatabase, modifiers:Modifier=Modifier.PUBLIC):ModelField{
+
+        let missingField:ModelField = fieldReference.toField(enclosingClass);
+
+        missingField.setupMissingTag();
+
+        //missingField.enclosingClass = enclosingClass;
+        missingField.modifiers = modifiers;
+
+        enclosingClass.fields[missingField.signature()] = missingField;
+
+
+        internalDB.fields.setEntry(missingField.signature(), missingField);
+        // TODO : remove from 'missing' index ?
+        internalDB.missing.insert(missingField, false);
+
+
+        return missingField;
+    }
+
+
+    createMissingMethod(methodRef:ModelMethodReference, enclosingClass:ModelClass, internalDB:AnalyzerDatabase, modifiers:Modifier):ModelMethod{
+        let missingMeth:ModelMethod = methodRef.toMethod(enclosingClass);
+
+        //console.log(enclosingClass.name,missingMeth);
+
+        missingMeth.setupMissingTag();
+
+        missingMeth.modifiers = modifiers; // new Accessor.AccessFlags(modifiers);
+
+        enclosingClass.methods[missingMeth.signature()] = missingMeth;
+
+
+        internalDB.methods.setEntry(missingMeth.signature(), missingMeth);
+        // TODO : remove from 'missing' index ?
+        internalDB.missing.insert(missingMeth, false);
+
+
+        return missingMeth;
+    }
+
+    type(pAnalyzerDB:AnalyzerDatabase, pClass:string|ModelClass|ModelClassReference):ModelClass{
+
+        if(pClass instanceof ModelClassReference){
+            if(pAnalyzerDB.classes.hasEntry(pClass.fqcn)===true)
+                return pAnalyzerDB.classes.getEntry(pClass.fqcn);
+            else
+                return this.createMissingClass(pClass.getName(), pAnalyzerDB);
+            // unresolvable class are created as classic Class node but are tagged "MISSING"
+        }
+        if(pClass instanceof ModelClass){
+            if(pAnalyzerDB.classes.hasEntry(pClass.name)===true)
+                return pAnalyzerDB.classes.getEntry(pClass.name);
+            else
+                return this.createMissingClass(pClass.getName(), pAnalyzerDB);
+            // unresolvable class are created as classic Class node but are tagged "MISSING"
+        }
+        else{
+            if(pAnalyzerDB.classes.hasEntry(pClass)===true)
+                return pAnalyzerDB.classes.getEntry(pClass);
+            else
+                return this.createMissingClass(pClass, pAnalyzerDB);
+            // unresolvable class are created as classic Class node but are tagged "MISSING"
+        }
+
+        // unresolvable class are created as classic Class node but are tagged "MISSING"
+        // return Resolver.createMissingClass(pClass as string , pAnalyzerDB);
+    }
+
+
+    field(pAnalyzerDB:AnalyzerDatabase, pFieldRef:ModelFieldReference):ModelField{
+
+        let field:ModelField = pAnalyzerDB.fields.getEntry(pFieldRef.signature());
+
+        if(field instanceof ModelField){
+            return field;
+        }
+
+        //  if the field is not indexed, its enclosingClass is explored
+        let cls=pAnalyzerDB.classes.getEntry(pFieldRef.fqcn);
+
+        // if enclosingClass not exists, create it
+        if(cls == null){
+            cls = this.createMissingClass(pFieldRef.fqcn, pAnalyzerDB);
+            return this.createMissingField( pFieldRef, cls, pAnalyzerDB);
+            //field = createMissingField(field, cls, db);
+        }
+
+
+        field = cls.fields[pFieldRef.signature()];
+
+        if(field instanceof ModelField){
+            return field;
+        }
+
+
+        // 2. else, if the class has super class, search inherit field
+        if(cls.extends !== null){
+            field = this.resolveInheritedField(pFieldRef, cls.extends);
+
+            if(field instanceof ModelField){
+                cls.addInheritedField(pFieldRef, field);
+                pAnalyzerDB.fields.setEntry(pFieldRef.getName(), field);
+
+                return field;
+            }
+        }
+
+        // Finally if reference is unsolvable, the a mock field is created and tagged "missing"
+
+        return this.createMissingField( pFieldRef, cls, pAnalyzerDB);
+    }
+
+     method(pDB:AnalyzerDatabase, pMethRef:ModelMethodReference, isStaticCall:boolean):ModelMethod{
+
+        let meth:ModelMethod = pDB.methods.getEntry(pMethRef.signature());
+
+        // 1. search into indexed method
+        if(meth instanceof ModelMethod){
+            return meth;
+        }
+
+        // 2. else, search into inherited method
+        let cls:ModelClass = pDB.classes.getEntry(pMethRef.fqcn);
+        let access:Modifier = Modifier.PUBLIC;
+
+        if(isStaticCall) access |= Modifier.STATIC;
+
+        // 2.1 If there is no parent class, then the method definition is missing
+        if(cls == null){
+            cls = this.createMissingClass(pMethRef.fqcn, pDB);
+
+
+            return this.createMissingMethod(pMethRef, cls, pDB,  access);
+        }
+
+        // 2.2 else, search into inherited method
+        if(cls instanceof ModelClass){
+            if(cls.extends instanceof ModelClass){
+                meth = this.resolveInheritedMethod(pMethRef, cls.extends);
+
+                if(meth instanceof ModelMethod){
+                    cls.addInheritedMethod(pMethRef, meth);
+                    pDB.methods.setEntry(pMethRef.getName(), meth);
+
+                    return meth;
+                }
+            }
+        }
+
+        // 4. else, mock missing method and class
+
+        return this.createMissingMethod(pMethRef, cls, pDB,  access);
+    }
+}
+
+
+
+
 export default class Analyzer
 {
     /**
@@ -301,7 +546,14 @@ export default class Analyzer
     projectionEngines:any = {};
     encoding:BufferEncoding= null;
 
+    resolver: ResolverV2 = new ResolverV2();
+
     a_native:NativeAnalyzer = null;
+
+    private _diffTag:any = {
+        'di': {}
+    }
+    private _diffTagDef: string = null;
 
     /**
      *
@@ -326,9 +578,9 @@ export default class Analyzer
         this.projectionEngines = {};
     }
 
-    static createPackage( pName:string, pDb:AnalyzerDatabase):void {
+    createPackage( pName:string, pDb:AnalyzerDatabase):void {
         let p = pName.split('.'),  fresh:ModelPackage=null;
-        let pkg:string='', ppkg:string=p[0];
+        let pkg:string='', ppkg:string=p[0], ppkgo:ModelPackage=null;
 
 
         for(let i=0; i<p.length; i++){
@@ -342,11 +594,56 @@ export default class Analyzer
                 fresh = ModelPackage.fromJavaFQCN(pkg);
                 pDb.packages.setEntry(pkg,  fresh);
                 if(i>0){
-                    pDb.packages.getEntry( ppkg).childAppend(fresh);
+                    (ppkgo = pDb.packages.getEntry( ppkg)).childAppend(fresh);
+
+                    // propagate app tag when app package have android package as parent
+                    if(ppkgo.hasTag('di') && (this._diffTagDef=='ds')){
+                        //this.addForDelayedTagging(ppkg);
+                        ppkgo.addTag('ds');
+                    }
+
                 }
             }
         }
         //pDb.packages.setEntry(pName,  ModelPackage.fromJavaFQCN(pName));
+    }
+
+    flushDelayedTagging():void {
+        this._diffTag = {};
+    }
+
+
+    initDelayedTagging(pTag:string=null, pDefault:boolean=false):void{
+        this._diffTag[pTag] = [];
+        if(pDefault)
+            this._diffTagDef = pTag;
+    }
+
+    addForDelayedTagging(pEl:any=null, pTag:string=null):void{
+        if(pTag!==null){
+            this._diffTag[pTag].push(pEl);
+        }else{
+            if(this._diffTag==null){
+                throw new Error("[ANALYZE] addForDelayedTagging : there is not default tag set");
+            }
+            this._diffTag[this._diffTag].push(pEl);
+        }
+    }
+
+
+    execDelayedTagging(pTag:string, pCond:Function=null) {
+        if(this._diffTag==undefined){
+            throw new Error("[ANALYZE] execDelayedTagging : invalid tag ["+pTag+"]");
+        }
+        if(pCond==null){
+            this._diffTag[pTag].map( pEl => { pEl.addTag(pTag) });
+        }else{
+            this._diffTag[pTag].map( pEl => {
+                if(pCond(pEl))
+                    pEl.addTag(pTag) ;
+            });
+
+        }
     }
 
     initNativeAnalyzer( pFileDB:IDatabase):NativeAnalyzer{
@@ -381,7 +678,7 @@ export default class Analyzer
      * @param {Object} stats The statistics counters
      * @function
      */
-    static mapInstructionFrom(pMethod:ModelMethod, data:AnalyzerDatabase, stats:any){
+    mapInstructionFrom(pMethod:ModelMethod, data:AnalyzerDatabase, stats:any){
         let bb:ModelBasicBlock = null, instruct:ModelInstruction = null, obj = null;
         let success:boolean=false, stmt=null, tmp:any=null, t:ModelBasicBlock=null;
 
@@ -400,7 +697,7 @@ export default class Analyzer
                 stmt = bb.getCatchStatements();
                 for(let j=0; j<stmt.length; j++){
                     if(stmt[j].getException() != null){
-                        stmt[j].setException( Resolver.type(data, stmt[j].getException().name));
+                        stmt[j].setException( this.resolver.type(data, stmt[j].getException().name));
                     }
                     stmt[j].setTryStart( pMethod.getTryStartBlock( stmt[j].getTryStart()));
                     stmt[j].setTryEnd( pMethod.getTryEndBlock( stmt[j].getTryEnd()));
@@ -433,7 +730,7 @@ export default class Analyzer
                         continue;
                     }
 
-                    instruct.right = Resolver.method(data, instruct.right, instruct.isStaticCall());
+                    instruct.right = this.resolver.method(data, instruct.right, instruct.isStaticCall());
 
 
                     //instruct.right._callers.push(method);
@@ -477,7 +774,7 @@ export default class Analyzer
                     // Never returns NULL
                     // if field not exists, return MissingReference object
 
-                    instruct.right = Resolver.field(data, instruct.right);
+                    instruct.right = this.resolver.field(data, instruct.right);
 
                     /*
                     if(instruct.opcode.type==CONST.INSTR_TYPE.GETTER){
@@ -540,7 +837,7 @@ export default class Analyzer
                     if(instruct.right instanceof ModelObjectType){
 
 
-                        obj = Resolver.type(data, instruct.right.name);
+                        obj = this.resolver.type(data, instruct.right.name);
 
 
                         obj._callers.push(pMethod);
@@ -581,7 +878,7 @@ export default class Analyzer
      -> create additional index in the DB
      ->  ...
      */
-    static buildModel(data:AnalyzerDatabase, absoluteDB:AnalyzerDatabase){
+    buildModel(data:AnalyzerDatabase, absoluteDB:AnalyzerDatabase){
 
         Logger.raw("\n[*] Start object mapping ...\n------------------------------------------");
 
@@ -643,7 +940,7 @@ export default class Analyzer
                     if(ext != null && cls.hasSuperClass()){
                         if((cls.getSuperClass() instanceof ModelClass)
                             && (ext.getName() != cls.getSuperClass().getName())){
-                            cls.updateSuper(Resolver.type(absoluteDB, ext));
+                            cls.updateSuper(this.resolver.type(absoluteDB, ext));
                             requireRemap = true;
                         }
 
@@ -658,7 +955,7 @@ export default class Analyzer
 
     //            if (!(cls.getSuperClass() instanceof CLASS.Class)){
                 if(cls.getSuperClass() instanceof ModelClassReference){
-                    cls.extends = Resolver.type(absoluteDB, cls.getSuperClass() as ModelClass);
+                    cls.extends = this.resolver.type(absoluteDB, cls.getSuperClass() as ModelClass);
                     //cls.updateSuper( Resolver.type(absoluteDB, cls.getSuperClass()));
                 }
             }
@@ -672,7 +969,7 @@ export default class Analyzer
                     cls.removeAllInterfaces();
 
                     for(let i=0; i<ext.length; i++){
-                        cls.addInterface(Resolver.type(absoluteDB, ext[i]));
+                        cls.addInterface(this.resolver.type(absoluteDB, ext[i]));
                         requireRemap = true;
                     }
 
@@ -680,7 +977,7 @@ export default class Analyzer
             }
             else if(cls.getInterfaces() != null){
                 for(let j in cls.implements){
-                    cls.implements[j] = Resolver.type(absoluteDB, cls.implements[j]);
+                    cls.implements[j] = this.resolver.type(absoluteDB, cls.implements[j]);
                 }
             }
 
@@ -786,7 +1083,7 @@ export default class Analyzer
 
             // Build Package instance from the package name (string)
             if(absoluteDB.packages.hasEntry(pkgName) == false){
-                Analyzer.createPackage( pkgName, absoluteDB);
+                this.createPackage( pkgName, absoluteDB);
             }
             // Append the current class to its Package instance
             absoluteDB.packages.getEntry(pkgName).childAppend(v);
@@ -839,7 +1136,7 @@ export default class Analyzer
                     if(v.methods[j] instanceof ModelMethod){
 
                         t = (new Date()).getTime();
-                        Analyzer.mapInstructionFrom(v.methods[j], absoluteDB, STATS);
+                        this.mapInstructionFrom(v.methods[j], absoluteDB, STATS);
                         t1 = (new Date()).getTime();
                         if(t1-t>150)
                             Logger.debug((t1-t)+" : "+v.methods[j].signature());
@@ -944,7 +1241,8 @@ export default class Analyzer
 
         // start object mapping
         // MakeMap(this.db);
-        Analyzer.buildModel(tempDb, this.db);
+        this.buildModel(tempDb, this.db);
+
 
         this.context.bus.send(new Event({
             name: "analyze.file.after",
@@ -1487,5 +1785,6 @@ export default class Analyzer
             this.db.files.insert(vVal, pForce);
         });
     }
+
 }
 
