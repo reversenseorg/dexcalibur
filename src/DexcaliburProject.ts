@@ -863,7 +863,10 @@ export default class DexcaliburProject
         this.deployInspectors(INSPECTOR_TYPE.POST_PLATFORM_SCAN);
 
 
-        //this.analyze.path(this.config.platform_available[this.config.platform_target].getBinPath());
+        // init delayed tagging for app class injected into 'android' classes/packages
+        this.analyze.flushDelayedTagging();
+        this.analyze.initDelayedTagging(TAG.Discover.Statically, true);
+
 
         // scan files  
         if(pPath != undefined){
@@ -941,6 +944,9 @@ export default class DexcaliburProject
                 return x.hasTag(TAG.Discover.Internal)==false;
             }, 
             TAG.Discover.Statically);
+
+
+        //this.analyze.execDelayedTagging(TAG.Discover.Statically);
 
 
         // scan bytecode gathered during previous instrumentation session
