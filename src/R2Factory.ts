@@ -7,7 +7,6 @@ import * as Log from './Logger';
 import RadareHelper, {R2_TYPE} from "./R2Helper";
 import Bus from "./Bus";
 import DexcaliburProject from "./DexcaliburProject";
-import {ModelFileExecutable} from "./ModelFileExecutable";
 import ModelFile from "./ModelFile";
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -17,10 +16,6 @@ interface R2HelperMap {
     [pBinID:string] :RadareHelper
 }
 
-/**
- * @class
- * @author Georges-B MICHEL
- */
 export default class RadareFactory
 {
     helpers: R2HelperMap = {}
