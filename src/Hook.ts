@@ -6,6 +6,7 @@ import Util from "./Utils";
 import {ModelBasicType, ModelObjectType} from "./ModelType";
 import {CONST} from "./CoreConst";
 import {ModelFunction} from "./ModelFunction";
+import {ModelVariable} from "./ModelVariable";
 
 
 
@@ -168,6 +169,16 @@ export default class Hook
         this.code.custom = script;
     }
 
+    /**
+     * To check if the hook is associated to a method/func
+     *
+     * @return {boolean}
+     * @method
+     */
+    hasMethod():boolean {
+        return (this.method!==null);
+    }
+
 
     /**
      * To check if the hook is called before the hooked function
@@ -296,6 +307,19 @@ export default class Hook
         o.color = this.color;
         o.customName = this.customName;
         o.name = this.name;
+
+        if(this.native){
+            o.native = this.native;
+            const f = (this.method as ModelFunction).getDeclaringFile();
+            if(typeof f==='string')
+                o.file = f;
+            else if(f!==null)
+                o.file = f.getName();
+        }else{
+            // add declaring file for multi-dex
+            // o.file = (this.method as ModelMethod).getDeclaringFile().getName();
+        }
+
         o.enable = this.enabled;
         o.method = this.method.signature();
         o.script = Util.b64_encode(Util.encodeURI(this.script));
@@ -341,6 +365,181 @@ export default class Hook
         };
         return this;
     }
+
+    // ------------- NATIVE ------------
+
+
+    /**
+     * To build the hook code dumping variables
+     * @param pFn
+     * @param pType
+     */
+    prepareVarDump(pFn: ModelFunction, pType:string, pOptions:any={}) {
+
+        if(pFn.hasOwnProperty(pType)==false)
+            throw new Error("[HOOK::MANAGER] Prepare var dump : Invalid variable type");
+
+        let s:string = "{\n";
+        let r:ModelVariable = null;
+        const l = pFn[pType].length;
+
+        for(let i=0; i<l; i++){
+            r = pFn[pType][i];
+            if(typeof r.refs==='string')
+                s += 'arg_'+i+'_'+r.refs+': args['+i+']';
+            else
+                s += 'arg_'+i+': args['+i+']';
+
+            switch(r.type){
+                case 'int32_t':
+                    s+='.toInt32()';
+                    break;
+            }
+
+            s += (i<l-1?',':'');
+        }
+
+        return s+"\n}";
+    }
+
+    prepareRetval(pFn:ModelFunction, pOptions:any={}):string {
+        let s:string = "{\n";
+
+        pFn.regvars.map( vVar => {
+            if (pFn.ctype == "arm32" && vVar.refs == 'r0') {
+                /*if(pOptions.dump!=null){
+
+                }*/
+
+                //if(vVar.type=="int32_t")
+                    s += 'retval:retval.toInt32()';
+            }
+        });
+
+        return s+"\n}";
+    }
+
+    /**
+     * To create the Frida hook script for a specific method.
+     * Each token starting and ending by "@@" will be replaced by his value
+     * in the final script.
+     *
+     * The available tokens are :
+     "@@__CLSDEF__@@": md5(method.enclosingClass.name),
+     "@@__FQCN__@@": method.enclosingClass.name,
+     "@@__METHDEF__@@": md5(method.__signature__),
+     "@@__METHNAME__@@": (method.name=='<init>')? '$init' : method.name,
+     "@@__METHSIGN__@@": method.__signature__,
+     "@@__ARGS__@@": "",
+     "@@__HOOK_ARGS__@@": "",
+     "@@__HOOK_ARGS2__@@": "",
+     "@@__RET__@@": "",
+     "@@__ARGS_VAL__@@": "",
+     "@@__HOOK_ID__@@": UT.b64_encode(this.id),
+     "@@__CTX__@@":"",
+     "@@__ARGS_DATA__@@":"null",
+     "@@__RET_DATA__@@":"",
+     *
+     * The resulting script is stored into the 'script' field of
+     * the 'Hook' instance.
+     *
+     * @param {Method} method The method to hook
+     * @function
+     */
+    makeNativeHookFor(pFn:ModelFunction, pOptions:any={}):boolean{
+        /* TODO : implement MissingReference probing */
+
+        let tags:any = {
+            "@@__LIB_FILE_NAME__@@": (pOptions.file != null? pOptions.file : null),
+            "@@__FN_SYM__@@": pFn.getSymbol(),
+            "@@__FN_ADDR__@@": "0x"+pFn.getAddr().toString(16),
+            "@@__FN_UID__@@": _md5_(pFn.signature()),
+            "@@__VAR__@@": _md5_(this.id)+"_VAR"
+        };
+
+        this.code.varID = tags["@@__VAR__@@"];
+
+        if(this.parentID != null){
+            tags["@@__CTX__@@"] = "ctx_"+_md5_(this.parentID);
+        }
+
+
+        if(pFn.regvars.length>0){
+            tags["@@__REG_VAR_DUMP__@@"] = this.prepareVarDump(pFn, 'regvars', pOptions.regvar);
+        }
+
+        let script:string = 'Intercept.attach(';
+
+        switch(pOptions.ptr_mode){
+            case 'export':
+                script += 'Module.getExportByName(\'@@__LIB_FILE_NAME__@@\',\'@@__FN_SYM__@@\')';
+                break;
+            case 'addr':
+                script += 'ptr(\'@@__FN_ADDR__@@\')';
+                break;
+            case 'relative':
+            default:
+                script += 'Module.findBaseAddress(\'@@__LIB_FILE_NAME__@@\').add(\'@@__FN_ADDR__@@\')';
+                break;
+
+        }
+
+        script += ', {';
+
+        if(pOptions.onEnter){
+
+
+            script += `
+    onEnter(args){
+        send({ 
+            id:"@@__HOOK_ID__@@", 
+            data:@@__REG_VAR_DUMP__@@, 
+            action:"-", 
+            after:false
+        });
+    }`;
+        }
+
+
+        if(pOptions.onLeave){
+
+            tags["@@__RET_DATA__@@"] = this.prepareRetval(pFn, pOptions.ret);
+            if(pOptions.onEnter)script += ', ';
+            script += `
+    onLeave(ret){
+        send({ 
+            id:"@@__HOOK_ID__@@", 
+            data:@@__RET_DATA__@@, 
+            action:"-", 
+            after:true
+        });
+    }`;
+
+        }
+
+        script += `
+});`;
+
+        // replace token
+        for(let i in tags){
+            do{
+                script = script.replace(i,tags[i]);
+            }while(script.indexOf(i)>-1);
+        }
+
+        this.method = pFn;
+        pFn.probing = true;
+        this.name = pFn.signature();
+        this.enable();
+        this.script = script;
+        return true;
+        //console.log(script);
+    }
+
+
+
+
+    // ------------- JAVA --------------
 
     dataObjAutoCast(argtype:string, argname:string):string{
         let val:string = null;
@@ -505,7 +704,7 @@ export default class Hook
      * @param {Method} method The method to hook
      * @function
      */
-    makeHookFor(method:ModelMethod):boolean{
+    makeHookFor(method:ModelMethod, pOptions:any={}):boolean{
         /* TODO : implement MissingReference probing */
 
         let tags:any = {
@@ -701,4 +900,5 @@ export default class Hook
     getMethod():ModelMethod|ModelFunction{
         return this.method;
     }
+
 }
