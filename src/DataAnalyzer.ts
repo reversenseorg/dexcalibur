@@ -269,7 +269,6 @@ export class DataAnalyzer
 
     private _indexFolders(pPath:string, pFolders:ModelFile[]):void {
 
-        Logger.info("[DATA ANALYZER] Indexing : ",pPath);
         _fs_.readdirSync(pPath).map( vF => {
             const p = _path_.join(pPath,vF);
             if(_fs_.lstatSync(p).isDirectory()) {
@@ -324,8 +323,6 @@ export class DataAnalyzer
             db.addEntry(f);
         });
 
-
-        Logger.info(JSON.stringify(db));
 
 /*
         Util.forEachFileOf(path,function( fpath:string, fname:string){
