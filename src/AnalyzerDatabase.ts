@@ -84,6 +84,7 @@ export default class AnalyzerDatabase
         this.services =this.conn.getCollection("services");
         this.providers =this.conn.getCollection("providers");
         this.permissions =this.conn.getIndex("permissions");
+        this.funcs =this.conn.getCollection("funcs");
 
         // Manifest node
         this.manifest = null;
