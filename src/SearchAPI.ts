@@ -96,6 +96,10 @@ export class SearchAPISelector
     func(id:string):ModelFunction{
         return this._db.funcs.getEntry(id);
     }
+
+    files(id:number):ModelFile{
+        return this._db.files.getEntry(id);
+    }
 }
 
 
@@ -254,7 +258,7 @@ export class SearchAPI
         return this._finder._find(this._db.call, DataModel.call, pattern, this._caseSensitive);
     }
 
-    string(pattern:string):FinderResult{
+    strings(pattern:string):FinderResult{
         return  this._finder._find(this._db.strings, DataModel.string, pattern, this._caseSensitive);
     }
 
