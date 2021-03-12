@@ -5,6 +5,7 @@ import DexcaliburProject from "./DexcaliburProject";
 import {TerminalSession} from "./TerminalSession";
 import HookSession from "./HookSession";
 import {WebsocketSession} from "./WebsocketSession";
+import UserRole from "./UserRole";
 
 export class Team {
     name:string ='';
@@ -28,7 +29,10 @@ export class User {
 
     firstname: string = '';
     lastname:string = '';
-    team: Team = null;
+
+    roles:UserRole[] = [];
+
+    obb:any = null;
 
     termSessions:TerminalSessionMap = {};
     hookSessions:HookSessionMap = {};
@@ -106,5 +110,34 @@ export class User {
             }
         }
         return null;
+    }
+
+    /**
+     * To poor object ready to be serialized
+     */
+    toJsonobject():any {
+        let d:any = {};
+        for(let i in this){
+            switch(i){
+                case "termSessions":
+                    d.termsSess =[];
+                    break;
+                case "hookSessions":
+                    d.hooksSess =[];
+                    break;
+                case "roles":
+                    d.roles =[];
+                    this.roles.map( (vRole:UserRole) => { d.roles.push(vRole.getUUID()) });
+                    break;
+                default:
+                    d[i] = this[i];
+                    break;
+            }
+        }
+        return d;
+    }
+
+    static fromJsonObject(vUser: any) :User{
+        return new User(vUser);
     }
 }
