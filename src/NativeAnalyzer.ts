@@ -14,7 +14,6 @@ import ModelFile from "./ModelFile";
 import Platform from "./Platform";
 import {IDatabase, IDbIndex} from "./ConnectorFactory";
 import DataScope from "./DataScope";
-import {ModelFileExecutable} from "./ModelFileExecutable";
 import {ModelFunction} from "./ModelFunction";
 
 
@@ -105,6 +104,15 @@ export default class NativeAnalyzer {
         return f;
     }
 
+    /**
+     * To get the list of native files targeted by the native analyzer
+     *
+     * @return {ModelFile[]}
+     * @method
+     */
+    getTargetFiles():ModelFile[]{
+        return this.scope;
+    }
 
     /**
      * To find files which can be analyzed into internal DB
@@ -185,35 +193,50 @@ export default class NativeAnalyzer {
     }*/
 
 
-    requireAnalysis( pFile:ModelFile, pCommands:string[]):boolean {
+    requireAnalysis( pFile:ModelFile, pCommands:string[], pOptions:any):boolean {
         if(!this.r2factory.isOpened(pFile)){
             return true;
         }else{
-            return this.r2factory.getHelperFor(pFile).isReadyFor(pCommands);
+            return (this.r2factory.getHelperFor(pFile).isReadyFor(pCommands,pOptions)===false);
         }
     }
 
 
-    scan(pFile:ModelFile, pCommands:string[], pOptions:any = {}):void {
+    /**
+     * To execute a set of command into r2.
+     *
+     * Additional arguments can be passed through 'pOptions'
+     *
+     * @param {ModelFile} pFile The file containing data to analyze
+     * @param {string[]} pCommands
+     * @param (any} pOptions Optionnal. Additional argument for the commands
+     * @return {number} Number of command successfully executed
+     * @async
+     * @method
+     * @since 1.0.0
+     */
+    async scan(pFile:ModelFile, pCommands:string[], pOptions:any = {}):Promise<number> {
         let helper:RadareHelper;
+        let i:number;
         try{
             helper = this.r2factory.getHelperFor(pFile);
             if(helper==null){
                 helper = this.analyzeFile(pFile, this.profile);
             }
 
-            helper.runCmd(pCommands, pOptions);
+            i = await helper.runCmd(pCommands, pOptions);
 
         }catch (err) {
-            Logger.error("[R2 HELPER][ERROR] scan : "+err.message)
+            Logger.error("[R2 HELPER][ERROR] scan : "+err.message);
+            i = -1;
         }
+        return i;
     }
 
     analyzeFile(pFile:ModelFile, pProfile:NativeAnalyzerProfile):RadareHelper{
         let helper:RadareHelper;
         try{
 
-            Logger.info('[2] '+JSON.stringify(pFile));
             if(!this.r2factory.isOpened(pFile)){
                 helper = this.r2factory.newLocalInstance(pFile);
             }else{
@@ -221,11 +244,16 @@ export default class NativeAnalyzer {
             }
 
             ( async ()=>{
-                await helper.start(pProfile);
+                const n = await helper.start(pProfile);
 
-                pFile.getFunctions().map( (vFn:ModelFunction) => {
-                    this.db.funcs.addEntry(vFn.signature(), vFn);
-                })
+                Logger.info("[DB::FUNC] executed cmd : "+n);
+                if(n){
+                    pFile.getFunctions().map( (vFn:ModelFunction) => {
+                        this.db.funcs.addEntry(vFn.signature(), vFn);
+                        Logger.info("[DB::FUNC] add func : ", JSON.stringify(vFn));
+                    })
+                }
+
             })();
 
         }catch (err) {

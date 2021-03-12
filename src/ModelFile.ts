@@ -16,25 +16,56 @@ import * as Log from './Logger';
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
 
-const TO_JSON:Function = function (vSrc:any, vTarget:any):any{
-    return function(ppt:string){
+const TO_JSON:Function = function (vSrc:any, vTarget:any, vInArray:boolean=false):any{
+
+    return function(ppt:any){
         Logger.info("auto json")
 
-        if(vSrc[ppt]==undefined){
-            Logger.info('error : ppt undefined : ',ppt);
-            return;
+
+        if(!vInArray){
+
+            Logger.info("[MODEL FILE::TO_JSON] "+ppt);
+            if(vSrc[ppt]==undefined) {
+                Logger.info('error : ppt undefined : ', ppt, JSON.stringify(vSrc));
+                return;
+            }
+
+            if(Array.isArray(vSrc[ppt])){
+                vTarget[ppt] = [];
+                vSrc[ppt].map(TO_JSON(vSrc[ppt],vTarget[ppt],true));
+            }
+            else if(vSrc[ppt].toJsonObject !== undefined){
+                vTarget[ppt] = vSrc[ppt].toJsonObject();
+            }
+            else if(typeof vSrc[ppt] === 'object'){
+                vTarget[ppt] = {}
+                for(let i in vSrc[ppt]){
+                    if(typeof vSrc[ppt][i] === 'object'){
+
+                    }
+                }
+            }
+            else{
+                vTarget[ppt] = vSrc[ppt]
+            }
+        }else{
+
+            Logger.info("[MODEL FILE::TO_JSON] Exporting ",ppt.toJsonObject,JSON.stringify(ppt));
+            if(Array.isArray(ppt)){
+                let p:any[]=[];
+                ppt.map(TO_JSON(ppt,p,true));
+                vTarget.push(p);
+            }
+            else if(ppt.toJsonObject !== undefined){
+                //Logger.info(ppt.name);
+                //Logger.info(ppt.toJsonObject());
+                vTarget.push(ppt.toJsonObject());
+            }
+            else{
+                vTarget.push(ppt);
+            }
         }
 
-        if(Array.isArray(vSrc[ppt])){
-            vTarget[ppt] = [];
-            vSrc[ppt].map(TO_JSON(vSrc[ppt],vTarget[ppt]));
-        }
-        else if(vSrc[ppt].toJsonObject !== undefined){
-            vTarget[ppt] = vSrc[ppt].toJsonObject();
-        }
-        else{
-            vTarget[ppt] = vSrc[ppt]
-        }
     }
 };
 
@@ -63,7 +94,7 @@ export default class ModelFile
 
 
     sections:ModelExecutableSection[] = [];
-    fn_list:ModelFunctionList = {};
+    f_list:ModelFunctionList = {};
 
     /**
      * Additional properties/link for this node
@@ -181,37 +212,58 @@ export default class ModelFile
     toJsonObject(pOpts:any= {}){
         let o:any = new Object();
 
-        if(pOpts.cmd!=null) {
+        /*if(pOpts.cmd!=null) {
             o.__p = {};
 
+            //TO_JSON( this.__p, o.__p)
             pOpts.cmd.split(':').map(
-                TO_JSON( this.__p, o.__p)
+                (vCmd:string)=>{
+                  switch(vCmd){
+                      case "sections":
+                          o.__p.sections = [];
+                          this.__p.sections.map( vSec => { o.__p.sections.push(vSec.toJsonObject() )});
+                          break;
+                      case "f_list":
+                          o.__p.f_list = {};
+                          for(let addr in this.__p.f_list) o.__p.f_list[addr] = this.__p.f_list[addr].toJsonObject();
+                          break;
+                  }
+                }
             );
-        } else{
-            o.__p.sections = [];
-            this.__p.sections.map( (sec:ModelExecutableSection) => {
-                o.__p.sections.push( sec.toJsonObject() );
-            });
+        }*/
 
-            o.__p.fn_list = {};
-            for(let i  in this.__p.fn_list){
-                o.__p.fn_list[i] = this.fn_list[i].toJsonObject();
-            }
-        }
+        Logger.info(JSON.stringify(this.__p.f_list));
 
         for(let i in this){
             switch(i){
                 case '__p':
                     o.__p = {};
                     for(let k in this.__p){
-                        if(typeof this.__p[k]=='object'){
-                            if(typeof this.__p[k]['toJsonObject'] === 'function'){
-                                o.__p[k] = this.__p[k].toJsonObject();
-                            }else{
-                                o.__p[k] = this.__p[k];
-                            }
-                        }else
-                            o.__p[k] = this.__p[k];
+                        switch(k){
+                            case "sections":
+                                o.__p.sections = [];
+                                this.__p.sections.map( (sec:ModelExecutableSection) => {
+                                    o.__p.sections.push( sec.toJsonObject() );
+                                });
+                                break;
+                            case "f_list":
+                                o.__p.f_list = {};
+                                for(let i  in this.__p.f_list){
+                                    o.__p.f_list[i] = this.__p.f_list[i].toJsonObject();
+                                }
+                                break;
+                            default:
+                                if(typeof this.__p[k]=='object'){
+                                    if(typeof this.__p[k]['toJsonObject'] === 'function'){
+                                        o.__p[k] = this.__p[k].toJsonObject();
+                                    }else{
+                                        o.__p[k] = this.__p[k];
+                                    }
+                                }else
+                                    o.__p[k] = this.__p[k];
+                                break;
+                        }
+
                     }
                     break;
                 case '__t':
@@ -226,27 +278,31 @@ export default class ModelFile
 
 
 
-    setProgramSection(pSection:ModelExecutableSection[]):void{
+    setProgramSection(pSection:ModelExecutableSection[]):number{
         this.__p.sections = pSection;
+        return this.__p.sections.length;
     }
 
     hasFuncs():boolean {
-        return this.__p.hasOwnProperty('fn_list');
-    }
-
-    addFunc(pAddress:number, pFunc:ModelFunction):void {
-        //this.fn_list["0x"+pAddress.toString(16)] = pFunc;
-        this.__p.fn_list["0x"+pAddress.toString(16)] = pFunc;
-        pFunc.setDeclaringFile(this);
+        return this.__p.hasOwnProperty('f_list');
     }
 
     appendFunctions(pFuncs:ModelFunction[]):void {
-        if(!this.hasFuncs())
-            this.__p.fn_list = {};
+        try{
+            //Logger.info("R2>Functions extracted (1) ");
+            //Logger.info("R2 Functions extracted : ",JSON.stringify(pFuncs));
 
-        pFuncs.map( vFn => {
-            this.__p.fn_list["0x"+vFn.getAddr().toString(16)] = vFn;
-        });
+            if(this.__p.f_list==undefined)
+                this.__p.f_list = {};
+
+            pFuncs.map( vFn => {
+                vFn.signature();
+                this.__p.f_list["0x"+vFn.getAddr().toString(16)] = vFn;
+            });
+        }catch(err){
+            Logger.error("[ModelFile] "+err.message)
+        }
+
     }
 
     /**
@@ -254,14 +310,14 @@ export default class ModelFile
      */
     getFunctions():ModelFunction[] {
         //return Object.values(this.fn_list);
-        return Object.values(this.__p.fn_list);
+        return Object.values(this.__p.f_list);
     }
 
     getFuncAt(pAddress:number|string):ModelFunction {
-        if(!this.hasFuncs() || !this.__p.fn_list.hasOwnProperty(pAddress)){
+        if(!this.hasFuncs() || !this.__p.f_list.hasOwnProperty(pAddress)){
             throw new Error("Function not found at ["+pAddress+"]");
         }
 
-        return this.__p.fn_list[pAddress];
+        return this.__p.f_list[pAddress];
     }
 }
