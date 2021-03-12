@@ -124,7 +124,7 @@ var KeystoreInspector:InspectorFactory = new InspectorFactory({
         
             
             // search strings occurences into the grah
-            var resStaticStr:any = ctx.find.string("value:"+event.data.name);
+            var resStaticStr:any = ctx.find.strings("value:"+event.data.name);
             
             //var resDynStr = ctx.find.method("name:java.security.Keystore.load(<>,<>)");
             
