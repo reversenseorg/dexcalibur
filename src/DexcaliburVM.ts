@@ -2,6 +2,14 @@ import ModelMethod from "./ModelMethod";
 import DDVM_ClassInstance from "./android/DDVM_ClassInstance";
 
 
+/**
+ * Interface required for any VM into Dexcalibur
+ *
+ * @interface
+ * @export
+ * @since 1.0.0
+ * @author Gezorges-B. MICHEL
+ */
 export interface DexcaliburVM {
 
    // defineHook( pMethodSignature:string, pHook:Function ):void;
