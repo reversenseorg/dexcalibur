@@ -4,6 +4,7 @@ import * as http from "http";
 import * as https from "https";
 import * as Log from "./Logger";
 import {User} from "./User";
+import {Workflow} from "./Workflow";
 
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
@@ -139,6 +140,28 @@ export class WebsocketServer
 
                         if(unsafeJSON['svc']!==undefined){
                             switch(unsafeJSON.svc){
+                                case 'stat':
+                                    // TODO : check user permissions
+                                    Logger.info('Received Message: ' + message.utf8Data);
+                                    if(unsafeJSON.hasOwnProperty('data')) {
+                                        switch (unsafeJSON.data.op) {
+                                            case 'project':
+                                                if (unsafeJSON.data.hasOwnProperty('opts')) {
+                                                    const wf= self.engine.getWorkflow(unsafeJSON.data.opts);
+                                                    // TODO : bind user to localsessid to avoid security issue
+                                                    if(wf!=null){
+                                                        wf.sendStatus(user, conn, { localid: unsafeJSON.data.localid });
+                                                    }else{
+                                                        // start later
+                                                        self.engine.onNewWorkflow(unsafeJSON.data.opts, ((pWorkflow:Workflow)=>{
+                                                            pWorkflow.addFollower(user, conn, { localid: unsafeJSON.data.localid });
+                                                        }));
+                                                    }
+                                                }
+                                                break;
+                                        }
+                                    }
+                                    break;
                                 case 'xterm':
                                     // TODO : check user permissions
                                     Logger.info('Received Message: ' + message.utf8Data);
