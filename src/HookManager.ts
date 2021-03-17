@@ -46,7 +46,7 @@ export enum HOOKSESSION_CACHE_POLICY {
     FLUSH_SESSIONS
 }
 
-interface HookSetList {
+export interface HookSetList {
     [id :string] :HookSet
 }
 
@@ -93,10 +93,42 @@ export class HookManager
         //
         this.hooksets.custom = new HookSet({
             id: "custom",
-            name: "Custom",
+            name: "On-Demand hooks",
             context: pProject,
             enable: true
-        })
+        });
+        this.hooksets.customNative = new HookSet({
+            id: "customNative",
+            name: "On-Demand native hooks",
+            context: pProject,
+            enable: true,
+            native: true
+        });
+    }
+
+    /**
+     * To create a new hook set
+     *
+     * @param pId
+     * @param pOptions
+     */
+    createHookSet(pId:string, pOptions:any={}):HookSet {
+        let hs:HookSet = this.getHookSet(pId);
+        if(hs==null){
+            hs = new HookSet({
+                id: pId,
+                name: (pOptions.hasOwnProperty('name')? pOptions.name : pId),
+                context: this.context,
+                enable: (pOptions.hasOwnProperty('enable')? pOptions.enable : true),
+                native: (pOptions.hasOwnProperty('native')? pOptions.native : false)
+            });
+            for(let k in pOptions) hs[k] = pOptions[k];
+
+            this.addHookSet(hs);
+            return hs;
+        }else{
+            return null;
+        }
     }
 
     /**
@@ -479,6 +511,7 @@ export class HookManager
             return false;
         }
         this.hooksets[set.getID()] = set;
+
         return true;   
     }
 
@@ -486,7 +519,19 @@ export class HookManager
         return this.hooksets;   
     }
 
-    getHookSet(id:string){
+    /**
+     * To get the default hook set for on-demand hook
+     *
+     * @param pNative
+     */
+    getDefaultHookSet(pNative:boolean=false):HookSet{
+         if(pNative)
+            return this.hooksets.customNative;
+         else
+            return this.hooksets.custom;;
+    }
+
+    getHookSet(id:string):HookSet{
         return this.hooksets[id];   
     }
 
@@ -602,12 +647,27 @@ export class HookManager
         return method.signature()+"@@"+this.findHookByMethod(method).length;
     }
 
+
+    /**
+     * To generate a hook for a specific method/function on-demand
+     *
+     * All hook sets which are not "builtin: true" contain "on-demand" hook
+     *
+     * Depending of context, resulting hook is attached to a specific hookset :
+     *  - Hookset corresponding to DEX file declaring the method (even if the DEX have been discovered at runtime)
+     *  - Hookset corresponding to library declaring the function
+     *
+     * If the hookset has flag "dynamic:true", hook are deployed only when the associated file have been loaded.
+     *
+     * @param method
+     * @param pOptions
+     */
     probe(method:ModelMethod|ModelFunction, pOptions:any={}):Hook{
         let hook:Hook = null;
+        let hs:HookSet = null;
 
-        if(method instanceof ModelClass){
-            console.log("TODO");
-        }else if(method instanceof ModelMethod){
+
+        if(method instanceof ModelMethod){
             hook = new Hook(this.context);
 
             //hook.setID( this.nextHookIdFor(method));
@@ -619,6 +679,15 @@ export class HookManager
             //hook.setMethod(method);
             // method.setProbing(true);
             method.probing = true;
+
+
+            if(method.hasTag('ds')||method.hasTag('di')){
+                this.getDefaultHookSet().addHook(hook);
+            }else{
+                Logger.info("hok java",JSON.stringify(method));
+                //this.getHookSetFor(method.getDeclaringFile());
+                this.getDefaultHookSet().addHook(hook);
+            }
 
             Logger.info("[HOOK MANAGER][PROBE] Add : ",hook.name)
             this.hooks.push(hook);
@@ -636,6 +705,30 @@ export class HookManager
             // method.setProbing(true);
             method.probing = true;
 
+            Logger.info("hok native",JSON.stringify(method));
+
+            if(method.src !== null){
+                if(typeof method.src === 'string'){
+                    hs = this.getHookSet(method.src);
+                    if(hs==null){
+                        const f = this.context.find.file('uid:'+method.src).get(0);
+                        hs = this.createHookSet(method.src, { name: (f!=null? f.getName() : method.src), native:true});
+
+                    }
+                }else{
+                    hs = this.getHookSet(method.src.getUID());
+                    if(hs==null){
+                        hs = this.createHookSet(method.src.getUID(), { name:method.src.getName(), native:true});
+                    }
+                }
+
+                if(hs==null){
+                    hs = this.getDefaultHookSet(true);
+                }
+                hs.addHook(hook);
+            }else{
+                this.getDefaultHookSet(true).addHook(hook);
+            }
 
             Logger.info("[HOOK MANAGER][NATIVE PROBE] Add : ",hook.name)
             this.hooks.push(hook);
