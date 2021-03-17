@@ -50,7 +50,8 @@ export default class InspectorFactory
                 id: (this._config.id!=null ? this._config.id : this._config.hookSet.id),
                 name: (this._config.name!=null ? this._config.name : this._config.hookSet.name),
                 description: (this._config.description!=null ? this._config.description : this._config.hookSet.description),
-                color: this._config.color
+                color: this._config.color,
+                builtin: true
             });
 
             hooks = this._config.hookSet.hooks;
