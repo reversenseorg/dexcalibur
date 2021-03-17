@@ -36,6 +36,8 @@ import IosAppAnalyzer from "./ios/IosAppAnalyzer";
 import {AppIcon} from "./AppIcon";
 import {ApkPackage} from "./android/ApkPackage";
 import NativeAnalyzer from "./NativeAnalyzer";
+import {Workflow} from "./Workflow";
+import StatusMessage from "./StatusMessage";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -211,6 +213,8 @@ export default class DexcaliburProject
      */
     icon:AppIcon = null;
 
+    private _wf:Workflow = null;
+
     /*
      * A set of package checksum
      *
@@ -232,6 +236,19 @@ export default class DexcaliburProject
     }
 
 
+    setWorkflow( pWorkflow:Workflow):void {
+        this._wf = pWorkflow;
+    }
+
+    getWorkflow():Workflow {
+        if(this._wf==null){
+            this._wf = new Workflow({ uid: this.getUID() });
+        }
+        return this._wf;
+    }
+
+
+
     setSaveManager(pManager:any){
         this.saveManager = pManager;
     }
@@ -247,6 +264,7 @@ export default class DexcaliburProject
      */
     setConnector( pConnectorType:string):void{
         this.connector = ConnectorFactory.getInstance().newConnector( pConnectorType, this);
+        this.getWorkflow().pushStatus(new StatusMessage( 5, "Connecting to DB")) ;
     }
 
     /**
@@ -480,6 +498,7 @@ export default class DexcaliburProject
         this.workspace.changeMainAPK(pPath);
 
         // load it : decompress file, disass dex files
+        this.getWorkflow().pushStatus(new StatusMessage(2, "Start APK extracting"));
         success = await ApkHelper.extract(
             this.workspace.getApkPath(),
             this.workspace.getApkDir(),
@@ -492,6 +511,7 @@ export default class DexcaliburProject
         // start analysis ?
         if(success){
             apkFile = new ApkPackage();
+            this.getWorkflow().pushStatus(new StatusMessage(5, "APK extracted."));
         }
 
         return apkFile;
@@ -536,17 +556,25 @@ export default class DexcaliburProject
 
         // install platform
         if(this.platform.checkInstall() === false){
+
+            this.getWorkflow().pushStatus(new StatusMessage(0, "Target platform not installed. Installing ...."));
             Logger.info("[PROJECT] synchronizePlatform : Target platform is not installed. Installing ...")
             res = await pm.install(this.platform);
             if(res == true){
+
+                this.getWorkflow().pushStatus(new StatusMessage(2, "Target platform has been successfully installed"));
                 Logger.info("[PROJECT] synchronizePlatform : Platform installed successfully");
             }else{
                 throw new Error("[PROJECT] synchronizePlatform : failed to install platform. Aborted")
             }
         }else{
+
+            this.getWorkflow().pushStatus(new StatusMessage(2, "Target platform is already installed"));
             Logger.success("[PROJECT] Project uses platform : "+this.platform.getUID());
         }
 
+
+        this.getWorkflow().pushStatus(new StatusMessage(4, "Saving platform settings"));
         // save project
         this.save();
 
@@ -854,11 +882,19 @@ export default class DexcaliburProject
         // scan OS/Platform
         Logger.info("Scanning platform "+this.platform.getUID());
 
+        this.getWorkflow().pushStatus(new StatusMessage(10, "Analyzing bytecode of target platform"));
+
         this.analyze.path(this.platform.getLocalPath());
 
-        this.analyze.updateDataBlock();    
+        this.getWorkflow().pushStatus(new StatusMessage(12, "Analyzing byte arrays from target platform"))
+
+        this.analyze.updateDataBlock();
+
+        this.getWorkflow().pushStatus(new StatusMessage(13, "Tagging discovered elements"));
 
         this.analyze.tagAllAsInternal();
+
+        this.getWorkflow().pushStatus(new StatusMessage(14, "Deploying inspectors for [POST_PLATFORM_SCAN]"));
 
         this.deployInspectors(INSPECTOR_TYPE.POST_PLATFORM_SCAN);
 
@@ -867,16 +903,20 @@ export default class DexcaliburProject
         this.analyze.flushDelayedTagging();
         this.analyze.initDelayedTagging(TAG.Discover.Statically, true);
 
+        this.getWorkflow().pushStatus(new StatusMessage(15, "Start analysis of application byte code"));
 
         // scan files  
         if(pPath != undefined){
             this.analyze.path( pPath);
 
+
+            this.getWorkflow().pushStatus(new StatusMessage(16, "Indexing and analysis of flat files"));
             this.dataAnalyzer.indexFilesIn(
                 this.dataAnalyzer.getScope('PKG')
             );
             
         // this.analyze.scanManifest(Path.join(path,"AndroidManifest.xml"));
+            this.getWorkflow().pushStatus(new StatusMessage(17, "Manifest analysis"));
             success = await this.appAnalyzer.importManifest(_path_.join(pPath,"AndroidManifest.xml"));
             //success = await this.appAnalyzer.scan(AppPackage); <--- add abstraction
 
@@ -892,11 +932,16 @@ export default class DexcaliburProject
             // TODO : multi threading
             this.analyze.path( apkPath);
 
+            this.getWorkflow().pushStatus(new StatusMessage(16, "Indexing and analysis of flat files from package"));
+
             // file analysis : icon detection, strings, etc ...
             // TODO : multi threading : each file can be treated separately
             this.dataAnalyzer.indexFilesIn(
                 this.dataAnalyzer.getScope('PKG')
             );
+
+
+            this.getWorkflow().pushStatus(new StatusMessage(17, "Updating analyzer DB with discovered files"));
 
             // update internal DB with file from package only (at this step)
             this.analyze.updateFileIndex(
@@ -907,6 +952,9 @@ export default class DexcaliburProject
 
             // analysis of executable/shared libraries
             // it starts by identifying native library for the target device achitecture
+
+
+            this.getWorkflow().pushStatus(new StatusMessage(18, "Analysis of native libraries"));
 
            this.analyze.initNativeAnalyzer(this.dataAnalyzer.getDB()); //this.dataAnalyzer.getDB()
 
@@ -926,6 +974,7 @@ export default class DexcaliburProject
             //this.analyze.getNativeAnalyzer().
             this.analyze.doNativeAnalysis();
 
+            this.getWorkflow().pushStatus(new StatusMessage(19, "Manifest analysis"));
 
             // application topology analysis
             success = await this.appAnalyzer.importManifest(_path_.join(apkPath,"AndroidManifest.xml"));
@@ -936,9 +985,12 @@ export default class DexcaliburProject
         }
 
 
+        this.getWorkflow().pushStatus(new StatusMessage(20, "Analyzing byte arrays from target platform"));
         // index static array 
-        this.analyze.updateDataBlock();    
+        this.analyze.updateDataBlock();
 
+
+        this.getWorkflow().pushStatus(new StatusMessage(21, "Tagging fresh data and elements"));
         this.analyze.tagAllIf(
             function(k,x){ 
                 return x.hasTag(TAG.Discover.Internal)==false;
@@ -953,6 +1005,8 @@ export default class DexcaliburProject
         // if there is not path specified
         if(pPath == null){
 
+
+            this.getWorkflow().pushStatus(new StatusMessage(22, "Scanning data previously extracted by hooking"));
             let dir:string[]=Fs.readdirSync(this.workspace.getRuntimeBcDir());
             for(let i in dir){
                 elemnt = _path_.join(this.workspace.getRuntimeBcDir(),dir[i],"smali");
@@ -961,9 +1015,10 @@ export default class DexcaliburProject
                     Logger.info("Scanning previously discovered dex chunk : "+elemnt);
                     this.analyze.path(elemnt);
                 }
-            }  
+            }
 
 
+            this.getWorkflow().pushStatus(new StatusMessage(23, "Tagging data previously extracted by hooking"));
             this.analyze.tagAllIf(
                 function(k,x){ 
                     return (x.hasTag(TAG.Discover.Internal)==false)
@@ -979,6 +1034,9 @@ export default class DexcaliburProject
         this.bus.send(new Event({
             type: "dxc.fullscan.post" 
         }));
+
+
+        this.getWorkflow().pushStatus(new StatusMessage(24, "Deploying inspectors [POST_APP_SCAN]"));
 
         // deploy inspector's hooksets
         this.deployInspectors(INSPECTOR_TYPE.POST_APP_SCAN);
@@ -1009,6 +1067,7 @@ export default class DexcaliburProject
 
         this.ready = true;
 
+        this.getWorkflow().pushStatus(new StatusMessage(25, "Saving project ..."));
         // update project config (icon, checksum, cert, ...)
         this.save();
 

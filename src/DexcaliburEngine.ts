@@ -7,7 +7,7 @@ import * as  _os_ from "os";
 import DexcaliburWorkspace from "./DexcaliburWorkspace";
 
 import * as Log from './Logger';
-import StatusMessage from "./StatusMessage";
+import StatusMessage, {StatusSet} from "./StatusMessage";
 import DexcaliburProject from "./DexcaliburProject";
 import Util from "./Utils";
 import WebServer from "./WebServer";
@@ -21,6 +21,7 @@ import {TerminalServer} from "./TerminalServer";
 import {DexcaliburServerChildProcess, IpcMode} from "./DexcaliburServerChildProcess";
 import {ApkPackage} from "./android/ApkPackage";
 import {ExternalTool} from "./ExternalTool";
+import {Workflow} from "./Workflow";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -198,6 +199,13 @@ export default class DexcaliburEngine
     ipcMode: IpcMode = IpcMode.API;
 
     mode: MODE = MODE.NORMAL;
+
+    workflows: Workflow[] = [];
+
+    /**
+     * Hold workflow's callbacks to execute when the WF is created
+     */
+    wfCbs: any = {};
 
     /**
      * To instanciate DexcaliburEngine.
@@ -796,23 +804,37 @@ export default class DexcaliburEngine
 
     async openProject( pUID:string):Promise<DexcaliburProject>{
         let project:DexcaliburProject = null, success:any = false;
+
+        let wf:Workflow = this.getWorkflow( pUID);
+        Logger.info("ENGINE : openProject : workflow : "+(wf!=null? wf.getUID() : '<null>'));
+
         try{
+            wf.pushStatus(new StatusMessage(5, "Scanning connected devices"));
             await DeviceManager.getInstance().scan();
 
+
+            wf.pushStatus(new StatusMessage(7, "Loading project data"));
             project = DexcaliburProject.load(this, pUID);
+
+            project.setWorkflow(wf);
 
             // init
 
 //            project = new DexcaliburProject( this, pUID);
             
             DexcaliburEngine.printBanner();
-            
+
+            wf.stepUp(10);
             success = await project.open();
+
+
+            wf.pushStatus(StatusMessage.newSuccess("Project is ready."));
             this.active[pUID] = project;
             this.webserver.setProject(project);
         }catch(err){
             Logger.error(err.message);
             Logger.error("ENGINE"," openProject() failed");
+            wf.pushStatus(StatusMessage.newError("Project cannot be loaded. See logs for more details"));
         }
 
         return project;
@@ -825,26 +847,42 @@ export default class DexcaliburEngine
         let success:boolean = null;
         let apkFile:ApkPackage = null;
 
+        let wf:Workflow = this.getWorkflow( pUID);
+        if(wf===null){
+            throw new Error("Project is not associated to a workflow.");
+        }
+
+        wf.pushStatus(new StatusMessage( 2, "Scanning connected devices"));
         await DeviceManager.getInstance().scan();
 
-        //validate or suggest project UID 
+        //validate or suggest project UID
+
+        wf.pushStatus(new StatusMessage( 4, "Verify project UID"));
         if(DexcaliburProject.exists(pUID)){
             pUID = DexcaliburProject.suggests(pUID);
         }
 
         project = new DexcaliburProject( this, pUID);
 
+        project.setWorkflow(wf);
+
         Logger.info('[ENGINE] Creating new project : ',pUID);
+
+        wf.pushStatus(new StatusMessage( 6, "Initialize project"));
         project.init();
 
 
         DexcaliburEngine.printBanner();
 
         if(pDevice != null){
+            wf.pushStatus(new StatusMessage( 8, "Set project default device"));
             project.setDevice(pDevice);
         }
 
         // open APK, analyze manifest
+
+        wf.pushStatus(new StatusMessage( 8, "Analyze APK"));
+        wf.stepUp(10);
         apkFile = await project.useAPK(pApkPath);
 
         // create project.json file
@@ -880,6 +918,54 @@ export default class DexcaliburEngine
             this.active = this.active.filter(x => x !== null);
         }
         return pProject.close();
+    }
+
+    /**
+     * To create a new workflow and to attach it to engine
+     * @param pName
+     */
+    newWorkflow(pName:string):Workflow {
+        let wf:Workflow = new Workflow({ uid:'de:'+pName });
+        this.workflows.push(wf);
+        // execute scheduled job
+        if(this.wfCbs[wf.getUID()]!=null){
+            Logger.info("[newWorkflow] Execute scheduled jobs ["+this.wfCbs[wf.getUID()].length+"]");
+            this.wfCbs[wf.getUID()].map( vFn => {
+                vFn(wf);
+            })
+        }
+        return wf;
+    }
+
+    /**
+     * To create a new workflow and to attach it to engine
+     * @param pName
+     */
+    getWorkflow(pUID:string, pExternal:boolean=false):Workflow{
+        let f:Workflow = null;
+        const name = (pExternal? '' : 'de:')+pUID;
+
+        this.workflows.map( (pWF:Workflow)=>{
+            if(pWF.getUID()===name){
+                f = pWF;
+            }
+        });
+        return f;
+    }
+
+    /**
+     * To add job to execute when a workflow with pUID name is created
+     *
+     * @param pUID
+     * @param pCallback
+     * @param pExternal
+     */
+    onNewWorkflow( pUID:string, pCallback:any, pExternal:boolean=false):void {
+        const name = (pExternal? '' : 'de:')+pUID;
+        if(this.wfCbs[name]==null){
+            this.wfCbs[name] = [];
+        }
+        this.wfCbs[name].push(pCallback);
     }
 
 
