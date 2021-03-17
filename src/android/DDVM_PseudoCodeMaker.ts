@@ -69,6 +69,14 @@ export default class DDVM_PseudoCodeMaker
         }
     }
 
+    /**
+     * To write a pseudocode for a method invoked through a single invoke-* ope
+     *
+     * @param {ModelMethod} pMethodRef
+     * @param {ModelRegisterReference[]}  pParamsReg
+     * @method
+     * @author Georges-B. MICHEL
+     */
     writeInvoke( pMethodRef:ModelMethod, pParamsReg:ModelRegisterReference[]):void{
         let v:string = null, rThis:string=null,  rArg:string=null;
         let vThis:DDVM_Symbol=null, vArg:DDVM_Symbol=null;
@@ -134,6 +142,17 @@ export default class DDVM_PseudoCodeMaker
     }
 
 
+    /**
+     * To write a pseudocode replacing a method invoked by using Reflection API
+     *
+     * @param {ModelRegisterReference} pInvokerObjRef
+     * @param {ModelRegisterReference} pInvokerArgRef
+     * @param {ModelRegisterReference}  pInvokedMethod
+     * @param pObj
+     * @param pArgs
+     * @method
+     * @author Georges-B. MICHEL
+     */
     writeIndirectInvoke( pInvokerObjRef:ModelRegisterReference,
                          pInvokerArgRef:ModelRegisterReference, pInvokedMethod:ModelMethod, pObj, pArgs){
 
