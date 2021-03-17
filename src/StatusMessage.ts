@@ -3,6 +3,10 @@
 import * as Log from './Logger';
 let Logger:Log.Logger = Log.newLogger();
 
+export interface StatusSet {
+    [name:string] :StatusMessage[]
+}
+
 /**
  * This class represents a status when  
  * monitor a progressing task is required 
@@ -14,7 +18,7 @@ export default class StatusMessage
 {
     progress:number;
     msg:string;
-    extra:any;
+    extra:any = null;
 
     /**
      * 
@@ -67,6 +71,11 @@ export default class StatusMessage
      */
     append( pMsg:string):string{
         return this.msg+"\n"+pMsg;
+    }
+
+    addProgress( pRelativeProgress:number):StatusMessage {
+        this.progress += pRelativeProgress;
+        return this;
     }
 
     update(pProgress:number, pMessage:string, pStep:boolean = false):StatusMessage{
