@@ -45,6 +45,8 @@ import ModelFile from "./ModelFile";
 import DataScope, {DataScopePpts} from "./DataScope";
 import {ModelFunction} from "./ModelFunction";
 import HookMessage from "./HookMessage";
+import {Workflow} from "./Workflow";
+import {HookSetList} from "./HookManager";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -382,6 +384,7 @@ export default class WebServer
                 let path:string = null;
                 let platform:Platform = null;
                 let success:boolean = true;
+                let wf:Workflow = null;
 
                 dm = DeviceManager.getInstance();
                 await dm.scan();
@@ -403,7 +406,13 @@ export default class WebServer
                         res.status(HTTP_CODE_ERROR).send(JSON.stringify({ success:false, msg:"Invalid project name"}));
                         return;
                     }
-    
+
+                    // init workflow
+                    wf = $.context.newWorkflow(req.body['name']);
+
+
+
+
                     // first download remote application
                     // on error : ne‹ project will not create. 
                     switch(req.body['type'])
@@ -413,35 +422,46 @@ export default class WebServer
                                 res.status(HTTP_CODE_ERROR).send(JSON.stringify({ success:false,  msg:"Device unknow or not enrolled "}));
                                 res.end();
                             }
+                            wf.pushStatus(new StatusMessage(5, "Get target platform"));
                             platform = device.getPlatform();
+                            wf.pushStatus(new StatusMessage(10, "Pull application from device"));
                             path = device.pullTemp( req.body['path'] );
                             break;
                         case 'download':
-                            if(PLATFORM_MODE)
-                            platform = PlatformManager.getInstance().getPlatform( req.body['platform']);
+                            if(PLATFORM_MODE.indexOf(req.body['platform'])==-1){
+                                wf.pushStatus(new StatusMessage(5, "Set target platform"));
+                                platform = PlatformManager.getInstance().getPlatform( req.body['platform']);
+                            }
+                            wf.pushStatus(new StatusMessage(10, "Download target application from remote location"));
                             path = await Downloader.downloadTemp(req.body['url'], { mode:0o666, encoding:'binary', force:true });
                             break;
                         case 'upload':
+                            wf.pushStatus(new StatusMessage(5, "Set target platform"));
                             platform = PlatformManager.getInstance().getPlatform( req.body['platform']);
+                            wf.pushStatus(new StatusMessage(10, "Select previously uploaded application"));
                             path = $.uploader.getPathOf(req.body['uploadid']);
                             break;
                         case 'fromfs':
+                            wf.pushStatus(new StatusMessage(10, "Set target platform"));
                             platform = PlatformManager.getInstance().getPlatform( req.body['platform']);
                             path = req.body['path'];
+                            break;
+                        case 'fromfs':
+                            throw new Error("Project type is invalid")
                             break;
                     }
 
                     // chcek if file exists an it is not empty
                     if( (!_fs_.existsSync(path)) || (false)){
+                        wf.pushStatus(StatusMessage.newError("APK file not found"));
                         res.status(HTTP_CODE_ERROR).send(JSON.stringify({   success:false,  msg:"APK file not found "}));
                         return;
                     }
 
-                    if(['min','max','dev'].indexOf(req.body['platform'])==-1){
-                        platform = device.getPlatform()
-                    }else{
+                    if(['min','max','dev'].indexOf(req.body['platform'])>-1){
                         platform = null;
                     }
+
 
                     Logger.info(
                         '[PROJECT][STEP 2] Detecting device  ... ',
@@ -451,15 +471,23 @@ export default class WebServer
     
                     // create project : UID , APK [, Device]
                     Logger.info('[PROJECT][STEP 2] Creating new project ...');
+
+                    wf.stepUp(15);
+
                     project = await $.context.newProject(req.body['name'], path, device);
+
 
                     if(project == null){
                         Logger.error('[PROJECT][STEP 2] Creating new project failed !');
                         throw new Error('[PROJECT][STEP 2] Creating new project failed !');
                     }
 
+
+                    project.setWorkflow(wf);
+
                     // to set connector
                     Logger.info('[PROJECT][STEP 3] Setting connectors ...');
+
                     if(req.body['connector'] != null && req.body['connector'].length > 0){
                         project.setConnector(req.body['connector']);
                     }else
@@ -468,6 +496,7 @@ export default class WebServer
 
                     if(project != null){
                         Logger.info('[PROJECT][STEP 3.1] Configuring platform ...');
+                        wf.pushStatus(new StatusMessage(10, "Synchronizing target platform with project"));
                         //platform = PlatformManager.getInstance().getDefaultPlatformFor();
                         // sync project platform with target platform or APK
                         success = await project.synchronizePlatform( platform.getUID());
@@ -475,18 +504,26 @@ export default class WebServer
 
                     Logger.info('[PROJECT][STEP 4] Analyzing application ...');
                     if(success){
+                        wf.stepUp(15);
                         project = await project.fullscan();
                         success = project.isReady();
+                        wf.pushStatus(StatusMessage.newSuccess("Project has been created successfully."))
+                    }else{
+                        wf.pushStatus(StatusMessage.newError("Project cannot be created. See logs for more details."))
                     }
                     
                     // collect
                     let dev = {
                         success: success // project.isReady()
                     };
-                    
+
                     res.status(200).send(JSON.stringify(dev));
                 }catch(err){
-                    console.log(err);
+
+                    if(wf!=null){
+                        wf.pushStatus(StatusMessage.newError(err.message))
+                    }
+
                     $.setProject(null);
                     res.status(HTTP_CODE_ERROR).send(JSON.stringify({ success:false, msg:"An error occured while project initializing"}));
                 }
@@ -500,7 +537,12 @@ export default class WebServer
                 // refresh connected device
                 await DeviceManager.getInstance().scan();
                 let project:DexcaliburProject = null;
+                let wf:Workflow;
+
+
                 project = $.context.getProject( req.query.uid);
+
+
 
                 if(project != null){
                     if($.project == null){
@@ -516,13 +558,62 @@ export default class WebServer
                     return ;
                 }
 
-                //$.project = 
+
+                // init workflow
+                wf = $.context.newWorkflow( req.query.uid );
+
+
+                wf.pushStatus(new StatusMessage(5, "Opening project"));
+
                 project = await $.context.openProject( req.query.uid );
 
-                
+
                 res.status(200).send(JSON.stringify({
                     success: project.isReady()
                 }));
+            });
+
+
+        this.app.route('/api/status')
+            .get(async function (req:ExpressRequest, res:ExpressResponse):Promise<any> {
+                //let uid:string = req.body['uid'];
+                let status:StatusMessage = null;
+                let wf:Workflow = null;
+
+                try{
+                    switch(req.query.op){
+                        case 'project':
+                            if(req.query.opts){
+                                wf = $.context.getWorkflow(req.query.opts);
+                                status = wf.getLastStatus();
+                            }
+                            break;
+                        default:
+                            throw new Error("Invalid operation");
+                            break;
+                    }
+
+
+                    if(status == null){
+                        res.status(HTTP_CODE_SUCCESS).send(JSON.stringify({
+                            success: false,
+                            data: null
+                        }));
+                    }else{
+                        res.status(HTTP_CODE_SUCCESS).send(JSON.stringify({
+                            success: true,
+                            data: status.toJsonObject()
+                        }));
+                    }
+                }catch(err){
+                    res.status(HTTP_CODE_ERROR).send(JSON.stringify({
+                        success:false,
+                        msg: err.message
+                    }));
+                    return ;
+                }
+
+
             });
 
         this.app.route('/api/workspace/delete')
@@ -1111,6 +1202,7 @@ export default class WebServer
                     }
 
 
+
                     let hooks:Hook[] = $.project.hook.list();
 
                     let out:any = {success:false, data:[]};
@@ -1139,9 +1231,12 @@ export default class WebServer
                                 break;
                         }
                     }else{
-                        hooks.map( (vH:Hook) => {
-                            out.data.push(vH.toJsonObject());
-                        });
+
+                        let hooksets:HookSetList = $.project.hook.getHookSets();
+
+                        for(let i in hooksets){
+                            out.data.push(hooksets[i].toJsonObject());
+                        }
                     }
 
 
