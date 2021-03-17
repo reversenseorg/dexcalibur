@@ -18,6 +18,27 @@ export default class HookSet
     description:string = null;
     prologue:HookPrologue = null;
 
+    native:boolean = false;
+
+    /**
+     * Flag. Dynamic hookset are deployed at runtime if condition is verified.
+     *
+     * @type {boolean}
+     * @field
+     * @since 1.0.0
+     */
+    dynamic:boolean = false;
+
+
+    /**
+     * Flag. Builtin hookset are defined by inspectors.
+     *
+     * @type {boolean}
+     * @field
+     * @since 1.0.0
+     */
+    builtin:boolean = false;
+
     // TODO : Merge probes and intercepts
     intercepts:HookPrimitive[] = [];
     probes:HookPrimitive[] = [];
@@ -310,6 +331,15 @@ export default class HookSet
         this.enable = true;
     }
 
+    /**
+     * To attach an existing hook to the hook set
+     *
+     * @param {Hook} pHook
+     */
+    addHook(pHook: Hook):void{
+        this.hooks.push(pHook);
+    }
+
     toJsonObject():any{
         let o:any = new Object();
         for(let i in this){
@@ -318,6 +348,9 @@ export default class HookSet
                 case "name":
                 case "enable":
                 case "description":
+                case "builtin":
+                case "dynamic":
+                case "native":
                     o[i] = this[i];
                     break;
                 case "prologue":
