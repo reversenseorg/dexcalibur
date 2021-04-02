@@ -24,7 +24,7 @@ var PATTERN = {
     REF_REG_INTER: "\{([vp][0-9]+) +\.\. +([vp][0-9]+)\}",
     REF_REG_ARR: "\{([vp][0-9]+)(L([^;]+);->(.+):,[vp][0-9]+)*\}",
     REF_REG_MULT: "([vp][0-9]+)(?:, *([vp][0-9]+))?(?:, *([vp][0-9]+))?(?:, *([vp][0-9]+))?(?:, *([vp][0-9]+))?(?:, *([vp][0-9]+))",
-    STR_VAL: "\"(.*)\"$",
+    STR_VAL: "\"(.*)\"", // terminal $ : removed to support invalid smali with char after string delimiter
     LIT_VAL: "(-?0x[0-9a-f]+)",
     METH: "(.*)\(([^)]*)\)(\[?[A-Za-z]((.+);)?)",
     PRIM_T: "([CJDBISZVLF])",
@@ -68,7 +68,7 @@ var RX = {
     REF_REG_MULT: new RegExp(PATTERN.REF_REG_MULT),
     REF_REG_INTER: new RegExp(PATTERN.REF_REG_INTER),
     REF_REG_INV: new RegExp(PATTERN.REF_REG_INV),
-    STR_VAL: new RegExp("\"(.*)\"$"),
+    STR_VAL: new RegExp("\"(.*)\""), // terminal '$' : removed to support invalid smali with char after string delimiter
     PRIM_T: new RegExp(PATTERN.PRIM_T),
     INVOKE: new RegExp(PATTERN.INVOKE),
     INVOKE_SPECIAL: new RegExp(PATTERN.INVOKE_SPECIAL),
