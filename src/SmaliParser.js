@@ -476,12 +476,30 @@ class SmaliParser
                     this.__tmp_block.setAsConditionalBlock(sml[0].split('_')[1]);
 
                 }else if(sml[0].indexOf(':goto_')>-1){
-                    if(this.__tmp_block instanceof CLASS.DataBlock || this.__tmp_block.stack.length>0){
+                    if(this.__tmp_block instanceof CLASS.DataBlock){
+                        if(this.__tmp_block.width!=null){
+                            this.__tmp_meth.appendBlock(this.__tmp_block, this.__appendBlock_callback);
+                            this.__tmp_block = new CLASS.BasicBlock();
+                            this.__tmp_block.setAsGotoBlock(sml[0].split('_')[1]);
+                        }else{
+                            // ignore this case :  invalid smali :
+                            /*
+                            :array_XX
+                            :goto_BB <--- invalid
+                            .array-data A
+                             */
+                        }
+                    }
+                    else if(this.__tmp_block.stack.length>0){
                         this.__tmp_meth.appendBlock(this.__tmp_block, this.__appendBlock_callback);
                         this.__tmp_block = new CLASS.BasicBlock();
+                        this.__tmp_block.setAsGotoBlock(sml[0].split('_')[1]);
+                    }
+                    else{
+
+                        this.__tmp_block.setAsGotoBlock(sml[0].split('_')[1]);
                     }
                     //this.__tmp_block.tag = sml[0];
-                    this.__tmp_block.setAsGotoBlock(sml[0].split('_')[1]);
 
                 }
                 else if(sml[0].indexOf(':try_start')>-1){
