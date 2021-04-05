@@ -119,7 +119,11 @@ export default class Simplifier
      *  - Some string operation are 
      * 
      * @param {require('./CoreClass.js').Method} pMethod The method to simplify
-     * @param {int} pLevel Simplifying level, default is 0 
+     * @param {int} pLevel Simplifying level, default is 0
+     * @return {void}
+     * @method
+     * @since 0.7.x
+     * @author Georges-B. MICHEL
      */
     simplify( pMethod:ModelMethod, pLevel:number=0):void{
 
@@ -161,7 +165,7 @@ export default class Simplifier
             Logger.debug(cs.instr.join( require('os').EOL ));
         }catch(e){
             //console.log("VM Error caught");
-            console.log(e);
+            //console.log(e);
             cs.instr = ["// An exeception occured at runtime :",this.vm.printStackTrace()];
             
         }
