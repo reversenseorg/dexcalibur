@@ -7,7 +7,7 @@ import * as  _os_ from "os";
 import DexcaliburWorkspace from "./DexcaliburWorkspace";
 
 import * as Log from './Logger';
-import StatusMessage, {StatusSet} from "./StatusMessage";
+import StatusMessage from "./StatusMessage";
 import DexcaliburProject from "./DexcaliburProject";
 import Util from "./Utils";
 import WebServer from "./WebServer";
@@ -20,8 +20,8 @@ import {WebsocketServer} from "./WebsocketServer";
 import {TerminalServer} from "./TerminalServer";
 import {DexcaliburServerChildProcess, IpcMode} from "./DexcaliburServerChildProcess";
 import {ApkPackage} from "./android/ApkPackage";
-import {ExternalTool} from "./ExternalTool";
 import {Workflow} from "./Workflow";
+import {ValidationCapable, ValidationRule} from "./Validator";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -32,7 +32,7 @@ var PACKAGE_JSON:any = require(_path_.join(__dirname,"..","..","package.json"));
 
 
 const LOG_ENABLED = true;
-const LOG_FILE = "/Users/salade/Documents/repos/dexcalibur-codebase/dexcalibur-ui/dexcalibur.logs";
+const LOG_FILE = (process.env.DXC_LOG_PATH? process.env.DXC_LOG_PATH : null); //"/Users/salade/Documents/repos/dexcalibur-codebase/dexcalibur-ui/dexcalibur.logs";
 
 function __log( pMessage:string):void{
     if(LOG_ENABLED)
@@ -81,6 +81,10 @@ enum MODE {
     NORMAL
 }
 
+
+export interface DexcaliburProjectMap {
+    [uid:string] :DexcaliburProject
+}
 /**
  * 
  * 
@@ -97,8 +101,9 @@ enum MODE {
  * 
  *  @class
  */
-export default class DexcaliburEngine
+export default class DexcaliburEngine extends ValidationCapable
 {
+
     /**git diff
      * Global configuration of Dexcalibur
      * @field
@@ -149,7 +154,7 @@ export default class DexcaliburEngine
      * To hold active projects
      * @field
      */
-    active:any = {};
+    active:DexcaliburProjectMap = {};
 
     /**
      * installer
@@ -214,7 +219,16 @@ export default class DexcaliburEngine
      * @constructor
      */
     constructor(){
-
+        super({
+            'engine:project.uid.new': [
+                ValidationRule.newCustomAssert( x => {
+                    return (this.workspace.listProjects().indexOf(x)==-1);
+                })
+            ],
+            'engine:project.uid': [
+                ValidationRule.newRegexpAssert(new RegExp('^[a-zA-Z0-9\\_\s.-]+$')),
+            ]
+        })
     }
     
     /**
@@ -681,6 +695,10 @@ export default class DexcaliburEngine
 
     /**
      * To start installer
+     * Only for version < 1.x
+     *
+     * @deprecated
+     * @method
      */
     prepareInstall( pWebPort:number|string, pWebRoot:string){
 
@@ -704,7 +722,11 @@ export default class DexcaliburEngine
 
     /**
      * To start downloading and installing dependencies
-     * @ 
+     *
+     * Only for version < 1.x
+     *
+     * @deprecated
+     * @method
      */
     startInstall(){
         this.installer.run();
@@ -749,6 +771,7 @@ export default class DexcaliburEngine
     /**
      * To retrieve project list
      *
+     * @return {DexcaliburProject[]}
      * @method
      */
     getProjects():string[]{
@@ -757,6 +780,7 @@ export default class DexcaliburEngine
     }
 
     /**
+     * @return {DexcaliburProject} Project for the given UID
      * @method
      */
     getProject(pProjectUID:string):DexcaliburProject{
@@ -770,15 +794,22 @@ export default class DexcaliburEngine
     /**
      * To get all active projects
      *
-     * @return {DexcaliburProject[]} Active projects
+     * @return {DexcaliburProjectMap} A map of cctive projects, indexed by project UIDs
      * @method
      * @since 1.0.0
      */
-    getActiveProjects():DexcaliburProject[] {
+    getActiveProjects():DexcaliburProjectMap {
         return this.active;
     }
 
 
+    /**
+     * To remove a project from the workspace. It erases files.
+     *
+     * @param {string} pUID Project UID
+     * @return {boolean} Rteurn TRUE if operation is successfull, else FALSE
+     * @method
+     */
     deleteProject( pUID:string):boolean{
         let success:boolean = false;
         try{
@@ -802,6 +833,14 @@ export default class DexcaliburEngine
         return success;
     }
 
+    /**
+     * To open a project
+     *
+     * @param {string} pUID The UID of local project to open
+     * @return {Promise<DexcaliburProject>} The project instance
+     * @async
+     * @method
+     */
     async openProject( pUID:string):Promise<DexcaliburProject>{
         let project:DexcaliburProject = null, success:any = false;
 
@@ -841,7 +880,17 @@ export default class DexcaliburEngine
     }
 
     // TODO : remove platform ?
-    async newProject( pUID:string, pApkPath:string, pDevice:any):Promise<DexcaliburProject>{
+    /**
+     * To create a new project.
+     *
+     * @param {string} pUID Project UID, it must unique into target workspace
+     * @param {string} pApkPath Local path of the APK to analayze
+     * @param {Device} pDevice Optional. Default NULL. The default target device for the project.
+     * @return {Promise<DexcaliburProject>} The project instance
+     * @async
+     * @method
+     */
+    async newProject( pUID:string, pApkPath:string, pDevice:any=null):Promise<DexcaliburProject>{
 
         let project:DexcaliburProject = null;
         let success:boolean = null;
@@ -913,10 +962,21 @@ export default class DexcaliburEngine
      * @return {boolean}
      */
     closeProject(pProject:DexcaliburProject):boolean {
-        if(this.getActiveProjects().length>0){
-            this.active[pProject.uid] = null;
-            this.active = this.active.filter(x => x !== null);
+
+        if(Object.keys(this.getActiveProjects()).length>0){
+            let p:any = {};
+            for(let i in this.active){
+                Logger.info(i+' != '+pProject.uid+' == '+(i != pProject.uid));
+                if(i != pProject.uid)
+                    p[i] = this.active[i];
+            }
+//            this.active[pProject.uid] = null;
+//            this.active = this.active.filter(x => x !== null);
+            this.active = p;
+        }else{
+            this.active = {};
         }
+
         return pProject.close();
     }
 
@@ -956,9 +1016,12 @@ export default class DexcaliburEngine
     /**
      * To add job to execute when a workflow with pUID name is created
      *
-     * @param pUID
-     * @param pCallback
-     * @param pExternal
+     * It allows to capture notifications and to track advancement through a progress bar.
+     *
+     * @param {string} pUID Project UID
+     * @param {Function} pCallback A callback function
+     * @param {boolean} pExternal Optional. Default FALSE. TRUE if the workflow is external with a global UID, else FALSE if the workflow is attached to engine
+     * @method
      */
     onNewWorkflow( pUID:string, pCallback:any, pExternal:boolean=false):void {
         const name = (pExternal? '' : 'de:')+pUID;
@@ -967,8 +1030,6 @@ export default class DexcaliburEngine
         }
         this.wfCbs[name].push(pCallback);
     }
-
-
 }
 
 
