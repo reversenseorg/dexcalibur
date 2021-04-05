@@ -8,6 +8,7 @@ import {ConnectorFactory, IDatabase, IDatabaseAdapter, IDbIndex} from "./Connect
 import * as Log from './Logger';
 import {BinwalkHelper} from "./BinwalkHelper";
 import DataScope, {DataScopeMap, DataScopePpts} from "./DataScope";
+import Event from "./Event";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -210,8 +211,10 @@ export class DataAnalyzer
         const ws = pCtx.getWorkspace();
         this.scopes = {
             PKG: (new DataScope("bin")).setPpts(DataScopePpts.PATH, ws.getApkDir()),
+            APPDATA: (new DataScope("app")).setPpts(DataScopePpts.PATH, ws.getAppdataDir()),
             DEVICE: (new DataScope("dev")).setPpts(DataScopePpts.PATH, ws.getAppdataDir()),
-            DYN_BUFFER: (new DataScope("dbf")).setPpts(DataScopePpts.PATH, ws.getRuntimeFilesDir())
+            DYN_BUFFER: (new DataScope("dbf")).setPpts(DataScopePpts.PATH, ws.getRuntimeFilesDir()),
+            DYN_BYTECODE: (new DataScope("bcf")).setPpts(DataScopePpts.PATH, ws.getRuntimeBcDir())
         };
 
         this.newDB();
@@ -324,76 +327,41 @@ export class DataAnalyzer
         });
 
 
-/*
-        Util.forEachFileOf(path,function( fpath:string, fname:string){
-            let type:any = null;
-    
-            //  TODO : remove
-            if(checkIfSmali(path, _path_.join(fpath,fname))) return null;
-
-
-
-            let ext = fpath.substr(fpath.lastIndexOf('.')+1); 
-    
-            //Logger.info("[DATA ANALYZER] Start analyzing file : ",fpath);
-        
-            type = LIB_filetypeOf( _fs_.readFileSync(fpath));
-            // make relative path (path in the package)
-    
-            if(type != null){
-    
-                // Logger.info("[DATA ANALYZER]<1> Push file : ",fpath);
-                file = new ModelFile({
-                    path: fpath,
-                    name: fname,
-                    type: type
-                });
-
-                Logger.info(JSON.stringify(file));
-
-                ctx.bus.send(new Event({
-                    type: "data.file.new.knownFmt",
-                    data: file 
-                }))
-    
-                db.addEntry(file);
-            }else{
-                type = detector.search(ext);
-                
-                //console.log(type);
-                if(type != null){
-                    //Logger.info("[DATA ANALYZER]<2> Push file : ",fpath);
-                    file = new ModelFile({
-                        path: fpath,
-                        name: fname,
-                        type: type
-                    });
-                    db.addEntry(file);
-                    //console.log("Nb : "+db.files.length);
-    
-                    ctx.bus.send(new Event({
-                        type: "data.file.new.knownExt",
-                        data: file 
-                    }))
-        
-                }
-                else if(ext=="smali"){
-                    //ignore
-                }else{
-                    //Logger.info("[DATA ANALYZER]<3> Push file : ",fpath);
-                    db.addEntry(new ModelFile({
-                        path: fpath,
-                        name: fname,
-                        unknow: true
-                    }));
-                }
-                    
-            }
-            ctr++;
-        },true);
-*/
         // files.length
         Logger.info("[*] "+files.length+" files analyzed");
+        return this;
+    }
+
+    "file.post_scan.DYN_BYTECODE"
+
+    /**
+     * To scan the 'path' as APK content
+     *
+     * @param path
+     * @param pType
+     */
+    scanFile(pFile:ModelFile, pScope:DataScope){
+
+
+        let db:IDbIndex = this.db.getIndex(pScope.getName());
+
+        pFile._d  ='f';
+        pFile.setScope(pScope);
+
+        db.addEntry(pFile);
+
+        // if target app is Android App
+        let file:ModelFile = this.binwalk.analyze(pFile.getPath(), this.context);
+
+        for(let p in file){
+            if(pFile[p]==null)
+                pFile[p] = file[p];
+        }
+
+        this.context.bus.send(new Event({
+            type: "file.post_scan."+pScope.getName(),
+            data: pFile
+        }));
         return this;
     }
 
@@ -423,5 +391,23 @@ export class DataAnalyzer
             return this.db.getIndex(this.scopes[pScope].getName());
         else
             return this.db.getIndex(pScope.getName());
+    }
+
+    /**
+     * To index a file already analyzed
+     *
+     * @param pFile
+     * @param pScope
+     */
+    indexFile(pFile: ModelFile, pScope:DataScope=null):void {
+
+        const index:IDbIndex = this.db.getIndex( pScope!=null ? pScope.getName() : pFile.scope.getName() );
+
+        index.addEntry(pFile);
+
+        this.context.bus.send( new Event({
+            type: 'data.file.index',
+            data: pFile
+        }))
     }
 }
