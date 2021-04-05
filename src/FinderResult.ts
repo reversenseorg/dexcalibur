@@ -14,6 +14,10 @@ import {ModifierFormat} from "./AccessFlags";
 import ModelSyscall from "./ModelSyscall";
 
 
+import * as Log from "./Logger";
+
+
+let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
 
 export class FinderJoin
@@ -107,6 +111,46 @@ export class FinderResult
         return this.data.getAll();
     }
 
+    readAccess():FinderResult{
+        let meth:IDbIndex = this._finder.newResultSet(), obj:any=null;
+        this.data.map((k,v)=>{
+
+            if(v instanceof ModelStringValue){
+                meth.insert(v.src, false);
+            }
+            else if(v instanceof ModelConstantValue){
+                console.error("[!] Not implemented : [ValueConst].method() ")
+            }
+            else if(v instanceof ModelField){
+
+                for(let k=0; k<v._getters.length; k++ ){
+                    meth.insert(v._getters[k], false);
+                }
+            }
+        });
+        return new FinderResult(meth,this._finder);
+    }
+
+
+    writeAccess():FinderResult{
+        let meth:IDbIndex = this._finder.newResultSet(), obj:any=null;
+        this.data.map((k,v)=>{
+
+            if(v instanceof ModelStringValue){
+                meth.insert(v.src, false);
+            }
+            else if(v instanceof ModelConstantValue){
+                console.error("[!] Not implemented : [ValueConst].method() ")
+            }
+            else if(v instanceof ModelField){
+
+                for(let k=0; k<v._setters.length; k++ ){
+                    meth.insert(v._setters[k], false);
+                }
+            }
+        });
+        return new FinderResult(meth,this._finder);
+    }
     /**
      * To get reference to the method calling each object
      *
@@ -222,8 +266,20 @@ export class FinderResult
         let data:IDbIndex = this._finder.newResultSet();
 
         this.data.map((k,v)=>{
-            if(v[member] !==undefined) data.insert(v[member], false);
+            if(v.hasOwnProperty(member)===true){
+                Logger.info("[FINDER RESULT] select : <"+member+"> in entry <"+k+"> is OK");
+                if(Array.isArray(v[member])){
+                    v[member].map( x => {
+
+                        //Logger.info("[FINDER RESULT] select : "+x);
+                        data.insert(x, false)
+                    });
+                }else{
+                    data.insert(v[member], false);
+                }
+            }
         });
+
 
         return new FinderResult(data,this._finder);
     }
@@ -246,7 +302,8 @@ export class FinderResult
 
         this.data.map((k:string|number, v:any)=>{
             if(v.toJsonObject == undefined){
-                console.log("ERROR : toJsonObject() not found");
+                //Logger.error("[FINDER RESULT] toJsonObject : toJsonObject() not found");
+                data.push(v);
             }else{
                 // TODO : ensure toJsonObject format is write for all entries type
                 data.push(v.toJsonObject(fields));
@@ -257,6 +314,7 @@ export class FinderResult
 
     /**Ò
      * To search references to the given objects
+     * @deprecated
      */
     xref():FinderResult{
         let data:IDbIndex = this._finder.newResultSet();
