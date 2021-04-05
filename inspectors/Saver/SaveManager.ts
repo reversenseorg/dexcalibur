@@ -403,13 +403,26 @@ export default class SaveManager
      */
     write(pFilepath:string, pData:string):void{
         let self:SaveManager = this;
-        if(_fs_.existsSync(pFilepath)){
-            if(_fs_.existsSync(pFilepath+SaveManager.EXT))
-                 _fs_.unlinkSync(pFilepath+SaveManager.EXT);
 
-            _fs_.renameSync(pFilepath, pFilepath+SaveManager.EXT);
+        try{
+
+            if(_fs_.existsSync(pFilepath)){
+                if(_fs_.existsSync(pFilepath+SaveManager.EXT))
+                    _fs_.unlinkSync(pFilepath+SaveManager.EXT);
+
+                _fs_.renameSync(pFilepath, pFilepath+SaveManager.EXT);
+            }
+
+            _fs_.writeFileSync(pFilepath, pData, { mode:0o666, flag:'w+', encoding:'utf8' });
+            self.context.trigger({
+                type: "save.write",
+                data: self
+            });
+        }catch (e) {
+            Logger.error(e.message);
+            throw new Error(e.message);
         }
-            
+        /*
         _fs_.writeFile(pFilepath, pData, (err:any)=>{
             if(err) 
                 throw new Error(err.message);
@@ -418,7 +431,7 @@ export default class SaveManager
                 type: "save.write",
                 data: self
             });
-        });           
+        }); */
     }
 
     restore(){
