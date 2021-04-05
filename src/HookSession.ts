@@ -13,10 +13,7 @@ import HookMessage from "./HookMessage";
 import Util from "./Utils";
 import * as Frida from 'frida';
 import {HookManager} from "./HookManager";
-import {User} from "./User";
 import {WebsocketSession} from "./WebsocketSession";
-import {TerminalSession} from "./TerminalSession";
-import {Logger} from "./Logger";
 import * as Log from "./Logger";
 
 
@@ -158,7 +155,7 @@ export default class HookSession extends WebsocketSession
 
         if(msg.payload.tags != null) hm.setTags(msg.payload.tags);
 
-        Logger.raw(JSON.stringify(hm));
+        //Logger.raw(JSON.stringify(hm));
         this.send(hm);
         this.message.push(hm);
 
