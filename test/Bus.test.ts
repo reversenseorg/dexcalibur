@@ -96,8 +96,8 @@ describe('Bus', function() {
             TestInspectorFlag_1 = false;
             TestInspectorFlag_3 = false;
 
-            bus.subscribe(TestInspector_1.createInstance(PROJECT));
-            bus.subscribe(TestInspector_3.createInstance(PROJECT));
+            bus.register(TestInspector_1.createInstance(PROJECT));
+            bus.register(TestInspector_3.createInstance(PROJECT));
 
             bus.prevent("testunit.POST_APP_SCAN");
 
@@ -115,9 +115,9 @@ describe('Bus', function() {
             TestInspectorFlag_2 = false;
             TestInspectorFlag_3 = false;
 
-            bus.subscribe(TestInspector_1.createInstance(PROJECT));
-            bus.subscribe(TestInspector_2.createInstance(PROJECT));
-            bus.subscribe(TestInspector_3.createInstance(PROJECT));
+            bus.register(TestInspector_1.createInstance(PROJECT));
+            bus.register(TestInspector_2.createInstance(PROJECT));
+            bus.register(TestInspector_3.createInstance(PROJECT));
 
             bus.prevent("testunit.POST_APP_SCAN");
 
@@ -141,9 +141,9 @@ describe('Bus', function() {
             TestInspectorFlag_2 = false;
             TestInspectorFlag_3 = false;
 
-            bus.subscribe(TestInspector_1.createInstance(PROJECT));
-            bus.subscribe(TestInspector_2.createInstance(PROJECT));
-            bus.subscribe(TestInspector_3.createInstance(PROJECT));
+            bus.register(TestInspector_1.createInstance(PROJECT));
+            bus.register(TestInspector_2.createInstance(PROJECT));
+            bus.register(TestInspector_3.createInstance(PROJECT));
 
             bus.prevent("testunit.POST_APP_SCAN");
 
