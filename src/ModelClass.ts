@@ -7,6 +7,7 @@ import ModelField from "./ModelField";
 import NodeCompare from "./NodeCompare";
 import {Savable, STUB_TYPE} from "./ModelSavable";
 import {ModelClassReference, ModelFieldReference, ModelMethodReference} from "./ModelReference";
+import {ModelLocation} from "./ModelLocation";
 
 
 interface IClassSet {
@@ -101,12 +102,29 @@ export default class ModelClass extends Savable
     __pretty_signature__:string = null;
     __aliasedCallSignature__:string = null;
 
+    /**
+     * Node properties
+     */
+    __p:any = {};
+
     constructor(pConfig:any=null){
         super(STUB_TYPE.CLASS);
 
         if(pConfig!==undefined)
             for(let i in pConfig)
                 this[i]=pConfig[i];
+    }
+
+    set location (pLocation:ModelLocation) {
+        this.__p.loc = pLocation;
+    }
+
+    get location ():ModelLocation {
+        return this.__p.loc;
+    }
+
+    addLocation(pLocation:ModelLocation):void {
+        this.__p.loc = pLocation;
     }
 
     /**
@@ -400,6 +418,11 @@ export default class ModelClass extends Savable
                         if( this.implements[x] instanceof  ModelClass)
                            obj.implements.push( (this.implements[x] as ModelClass).name);
                     }
+                }
+            }
+            else if(i == "__p"){
+                if(this.__p.loc != null){
+                    obj.location = this.__p.loc.toJsonObject();
                 }
             }
         }
