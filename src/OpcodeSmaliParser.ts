@@ -181,6 +181,7 @@ export default class OpcodeSmaliParser
      * @param {String} src
      * @static
      * @function
+     * @deprecated
      */
     static stringValue(src:string):string{
         let m = RX.STR_VAL.exec(src);
