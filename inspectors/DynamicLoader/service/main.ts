@@ -4,6 +4,7 @@ import DexcaliburProject from "../../../src/DexcaliburProject";
 import * as _fs_ from 'fs';
 import {IDbIndex} from "../../../src/ConnectorFactory";
 import {FinderResult} from "../../../src/FinderResult";
+import Event from "../../../src/Event";
 
 var Controller:InspectorFrontController =  new InspectorFrontController();
 
@@ -34,8 +35,16 @@ function cleanupSavedDex(context:DexcaliburProject):any{
     files.map(function(k,v){
         try{
             _fs_.unlinkSync(v.getPath());
+            context.bus.send(new Event({
+                type: "file.del",
+                data: v.getUID()
+            }));
+            v = null;
         }catch(err){}
-    });  
+    });
+
+    context.getInspector("DynamicLoader").getDB().newIndex("dex");
+
 
     return true;
 }
