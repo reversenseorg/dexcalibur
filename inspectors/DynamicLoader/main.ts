@@ -17,6 +17,7 @@ import {TAG} from "../../src/AnalysisHelper";
 import * as Log from "../../src/Logger";
 import ModelCall from "../../src/ModelCall";
 import ModelFile from "../../src/ModelFile";
+import {ModelLocation} from "../../src/ModelLocation";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -54,7 +55,7 @@ export default new InspectorFactory({
                 //when: HOOK.BEFORE,
                 method: "java.lang.Class.getMethod(<java.lang.String><java.lang.Class>[])<java.lang.reflect.Method>",
                 onMatch: function (ctx:DexcaliburProject, event:Event) {
-                    ctx.getInspector("DynamicLoader").emits("hook.reflect.method.get", event);
+                    ctx.getInspector("DynamicLoader").emits("hook.reflect.method.get", event.data);
                 },
                 interceptReplace: `  
                         var ret = meth_@@__METHDEF__@@.call(this, arg0, arg1);
@@ -84,7 +85,7 @@ export default new InspectorFactory({
                 //when: HOOK.BEFORE,
                 method: "java.lang.Class.forName(<java.lang.String><boolean><java.lang.ClassLoader>)<java.lang.Class>",
                 onMatch: function (ctx:DexcaliburProject, event:Event):void {
-                    ctx.getInspector("DynamicLoader").emits("hook.reflect.class.get", event);
+                    ctx.getInspector("DynamicLoader").emits("hook.reflect.class.get", event.data);
                 },
                 interceptAfter: `  
             
@@ -111,7 +112,7 @@ export default new InspectorFactory({
                 //when: HOOK.BEFORE,
                 method: "dalvik.system.BaseDexClassLoader.findClass(<java.lang.String>)<java.lang.Class>",
                 onMatch: function (ctx:DexcaliburProject, event:Event):void {
-                    ctx.getInspector("DynamicLoader").emits("hook.dex.find.class", event);
+                    ctx.getInspector("DynamicLoader").emits("hook.dex.find.class", event.data);
                 },
                 interceptAfter: `   
                         // get classname
@@ -230,7 +231,7 @@ export default new InspectorFactory({
                     "dalvik.system.DexFile.<init>(<java.lang.String>)<void>",
                 ],
                 onMatch: function (ctx:DexcaliburProject, event:Event):void {
-                    ctx.getInspector("DynamicLoader").emits("hook.dex.new", event);
+                    ctx.getInspector("DynamicLoader").emits("hook.dex.new", event.data);
                 },
                 interceptBefore: `     
                         if(isInstanceOf(arg0,"java.io.File"))
@@ -288,18 +289,21 @@ export default new InspectorFactory({
     eventListeners: {
 
         "hook.dex.load": function (ctx:DexcaliburProject, event:Event):void {
-            if (event.data.data.isNew == false) return null;
+            Logger.info("hook.dex.load : ");
+            Logger.info(JSON.stringify(event));
+
+            if (event.data.isNew == false) return null;
 
             let hook = ctx.hook.getHookByID(Util.b64_decode(event.data.hook));
 
-            Logger.info("[INSPECTOR][TASK] DynLoaderInspector new Dex file loaded :\tDex: ", event.data.data.dex);
+            Logger.info("[INSPECTOR][TASK] DynLoaderInspector new Dex file loaded :\tDex: ", event.data.dex);
 
             // update variable for next time
-            hook.getVariable('names').getData().push(event.data.data.dex);
+            hook.getVariable('names').getData().push(event.data.dex);
         },
 
         "hook.dex.new": function (ctx:DexcaliburProject, event:Event):void {
-            Logger.info("[INSPECTOR][TASK] DynLoaderInspector new Dex file", event.data.data.path);
+            Logger.info("[INSPECTOR][TASK] DynLoaderInspector new Dex file", event.data.path);
         },
 
         "hook.reflect.class.get": function (ctx:DexcaliburProject, event:Event):void {
@@ -307,18 +311,20 @@ export default new InspectorFactory({
             //let db = ctx.analyze.db;
 
             // search if the method exists
-            console.log(event.data);
 
-            Logger.info("[INSPECTOR][TASK] DynLoaderInspector search Class ", event.data.data.signature);
+            Logger.info("[INSPECTOR][TASK] DynLoaderInspector search Class ", event.data.signature);
+            //Logger.info(JSON.stringify(event));
+
         },
 
         "hook.reflect.method.get": function (ctx:DexcaliburProject, event:Event):boolean {
             Logger.info("[INSPECTOR][TASK] DynLoaderInspector search Method ");
+            //Logger.info(JSON.stringify(event));
 
             //console.log(event);
-            if (event == null || event.data == null || event.data.data == null) return false;
+            if (event == null || event.data == null) return false;
 
-            let data:any = event.data.data, caller:ModelMethod = null, callers:any = null;
+            let data:any = event.data, caller:ModelMethod = null, callers:any = null;
             let meth:ModelMethod;
 
             //console.log(data);
@@ -379,9 +385,10 @@ export default new InspectorFactory({
 
         "hook.dex.find.class": function (ctx:DexcaliburProject, event:Event):boolean {
             Logger.info("[INSPECTOR][TASK] DynLoaderInspector external class loaded dynamically ");
-            if (event == null || event.data == null || event.data.data == null) return false;
+            //Logger.info(JSON.stringify(event));
+            if (event == null || event.data == null) return false;
 
-            let data = event.data.data;
+            let data = event.data;
             let cls = ctx.find.get.class(data.__class__);
             //console.log(cls, data);
 
@@ -400,24 +407,28 @@ export default new InspectorFactory({
             // 3. Analyze & update graph
             // 4. Workspace cleanup
 
-            if(event.data.data==null) return;
+
+
+            if(event.data==null) return;
 
 
             let rtWorkingDir = ctx.workspace.getRuntimeBcDir();
-            let dexFileName = _path_.basename(event.data.data.arg0);
+            let dexFileName = _path_.basename(event.data.arg0);
             let localDexFile = _path_.join(rtWorkingDir, dexFileName, dexFileName);
             let stat = null, ignore = false;
             let inspector = ctx.getInspector("DynamicLoader");
 
-            Logger.info('Analyzing "'+dexFileName+'" at : '+localDexFile);
+            Logger.info('Analyzing "'+dexFileName+'" at : '+localDexFile+'(fsize:'+event.data.__hidden__data.length+')');
+            //Logger.info(JSON.stringify(event.data));
+
+
 
             // check if file exist
             if (_fs_.existsSync(localDexFile)) {
                 stat = _fs_.lstatSync(localDexFile);
 
-                if (stat.size == event.data.data.__hidden__data.length) {
+                if (stat.size === event.data.__hidden__data.length) {
                     // TODO : then if it is identic do checksum
-                    ignore = true;
                     return;
                 }
             }
@@ -427,9 +438,10 @@ export default new InspectorFactory({
                 _fs_.mkdirSync(_path_.join(rtWorkingDir, dexFileName));
             }
 
-            if (ignore) return null;
+            Logger.info("Ignore dex file : "+(ignore? "TRUE":"FALSE"));
+            //if (ignore) return null;
 
-            let data = Buffer.from(event.data.data.__hidden__data);
+            let data = Buffer.from(event.data.__hidden__data);
 
             _fs_.open(localDexFile, 'w+', 0o666, function (err:any, fd:number) {
                 if (err) {
@@ -437,7 +449,7 @@ export default new InspectorFactory({
                     return;
                 }
 
-                _fs_.write(fd, data, function (err:any, written:number, buffer:Buffer) {
+                _fs_.write(fd, data, function (err:any) {
                     if (err) {
                         Logger.error("TODO : An error occured when file is written ", err);
                         return;
@@ -449,25 +461,67 @@ export default new InspectorFactory({
                             return;
                         }
 
-                        Logger.debug("Start to disassemble " + localDexFile);
+                        Logger.info("Start to disassemble " + localDexFile);
 
                         // disass file
                         let destFolder = _path_.join(rtWorkingDir, dexFileName, "smali");
                         (async function () {
-                            let success = await DexHelper.disassemble(localDexFile, destFolder);
-
-                            if (success != null) {
-                                // do incremental static analysis  of destfolder
-                                ctx.analyze.path(destFolder);
-                                inspector.getDB().getIndex('dex').addEntry(new ModelFile({
+                            let f:ModelFile;
+                            try{
+                                Logger.info("[DYNAMIC LOADER] Indexing DEX file");
+                                f = new ModelFile({
                                     name: dexFileName,
                                     path: localDexFile,
-                                    remotePath: event.data.data.arg0
+                                    scope: ctx.dataAnalyzer.scopes.DYN_BYTECODE
+                                });
+                                ctx.bus.send(new Event({
+                                    type: "file.new.DYN_BYTECODE",
+                                    data: {
+                                        file: f,
+                                        rpath: event.data.arg0
+                                    }
                                 }));
+
+                                inspector.getDB().getIndex('dex').addEntry(f);
                                 inspector.save();
-                            } else {
-                                Logger.error('[DYNAMIC LOADER] Runtime DEX analysis failed.')
+
+
+                                let success = await DexHelper.disassemble(localDexFile, destFolder);
+
+                                if (success != null) {
+                                    // do incremental static analysis  of destfolder
+                                    ctx.analyze.path(destFolder, ModelLocation.fromFile(f));
+
+                                    // attach dex file to discovered class as src file
+                                    ctx.analyze.tagAllIf(
+                                        function(k,x){
+                                            return (x.hasTag(TAG.Discover.Internal)==false)
+                                                && (x.hasTag(TAG.Discover.Statically)==false);
+                                        },
+                                        TAG.Discover.Dynamically);
+
+
+                                    /*f = new ModelFile({
+                                        name: dexFileName,
+                                        path: localDexFile,
+                                        remotePath: event.data.arg0
+                                    });*/
+
+
+
+
+
+                                    //inspector.getDB().getIndex('dex').addEntry(f);
+                                    //inspector.save();
+
+
+                                } else {
+                                    Logger.error('[DYNAMIC LOADER] Runtime DEX analysis failed.')
+                                }
+                            }catch(err){
+                                Logger.error('[DYNAMIC LOADER][ERROR] : '+err.message);
                             }
+
                         })();
                         /*
                         ctx.dexHelpers.disassembleFile(
@@ -498,12 +552,14 @@ export default new InspectorFactory({
 
         "hook.reflect.method.call": function (ctx:DexcaliburProject, event:Event):boolean {
             Logger.info("[INSPECTOR][TASK] DynLoaderInspector method invoked dynamically ");
+            Logger.info(JSON.stringify(event));
+
             //console.log(event);
-            if (event == null || event.data == null || event.data.data == null) return false;
-            let data = event.data.data;
+            if (event == null || event.data == null) return false;
+            let data = event.data;
 
             //console.log(data);
-            let meth = ctx.find.get.method(data.s);
+            // let meth = ctx.find.get.method(data.s);
             //onsole.log(data);
 
             /*
@@ -544,9 +600,11 @@ export default new InspectorFactory({
             let hooks:Hook[] = ctx.hook.getHooks();
             let validMethods:ModelMethod[] = [];
 
+            // TODO : instead of skipping hooks, it should merge hooks
             meth.map( vMethod => {
-                if(!ctx.hook.isProbing(vMethod))
+                if(!ctx.hook.isProbing(vMethod)) {
                     validMethods.push(vMethod.signature());
+                }
             })
 
             meth = null;
@@ -595,7 +653,20 @@ export default new InspectorFactory({
                         `
                 });
                 currentInspector.hookSet.deploy();
-            }            
+            }
+
+            // subscribe
+
+            // save dex file analyzed at runtime
+            /*ctx.bus.subscribe(
+                "file.post_scan.bcf",
+                BusSubscriber.from( pEvent => {
+                    Logger.info("Saaaaaaaaaaaaaavvvvveee ");
+                    Logger.info(JSON.stringify(pEvent));
+
+                    currentInspector.getDB().getIndex('dex').addEntry(pEvent.data);
+                    currentInspector.save();
+            }));*/
         }
     }
 });
