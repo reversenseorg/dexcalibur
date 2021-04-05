@@ -272,15 +272,15 @@ export class Finder
             d2++;
             field = v[search_pattern.field[0].name];
 
-            if(d1<10){
+            /*if(d1<10){
                 Logger.raw("Test : "+field+" == "+search_pattern.pattern);
-            }
+            }*/
             if(field!==undefined && search_pattern.fn(field)) {
                 matches.insert(v, false);
             }
         });
 
-        Logger.raw("Result size : "+matches.size());
+        //Logger.raw("Result size : "+matches.size());
 
         if(d1 != d2){
             Logger.raw("Method DB inconsistencies detected:"+d1+" invalid methods ");
@@ -480,6 +480,23 @@ export class Finder
     /*_listObject(obj_type){
         return this.__DB[obj_type].getAll();
     };*/
+
+    _findByID(index:IDbIndex|IDbCollection, model:any, idHolder:string, pattern:string):FinderResult {
+
+        // create a new collection to hold search results
+        const tmpDb = this.__DB.getConnector().newTemporaryDb('finder:0');
+
+        let matches:IDbIndex = tmpDb.newIndex('root');
+
+        index.map((k:any,v:any)=>{
+            if(v[idHolder] === pattern) {
+                matches.insert(v, false);
+                Logger.info("[FINDER] _findByID :", JSON.stringify(v.toJsonObject()))
+            }
+        });
+
+        return new FinderResult(matches, this);
+    }
     
     _find(index:IDbIndex|IDbCollection, model:any, pattern:string,
           caseSensitive:boolean, lazy:boolean=false, includeMissing:boolean=false):FinderResult{
@@ -497,14 +514,12 @@ export class Finder
 
         let spatt:SearchPattern = this._getTestFn(model, pattern, caseSensitive, lazy);
 
-        Logger.raw(JSON.stringify(spatt));
         if(spatt!=null){
             if(spatt.isModifier)
                 return new FinderResult(this._findObjectByModifier(index, spatt), this); 
             if(spatt.hasTag)
                 return new FinderResult(this._findObjectByTag(index, spatt), this); 
             else if(spatt.isDeepSearch){
-                console.debug("Running deep search ...")
                 //return new FinderResult(this._findDeepObject(index, spatt), this);
                 /*if(typeof spatt.field === 'string'){
                     spatt.field = spatt.field.split('.');
