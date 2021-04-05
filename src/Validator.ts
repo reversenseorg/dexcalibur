@@ -1,0 +1,170 @@
+
+
+
+export enum ValidationType {
+    EQUAL,
+    PINKLIST,
+    REGEXP,
+    CUSTOM
+}
+
+export class ValidationRule {
+    private _o: any = {};
+
+    constructor( pType:ValidationType, pOptions:any=null) {
+        this.type = pType;
+
+        if(pOptions!=null){
+            switch(pType){
+                case ValidationType.EQUAL:
+                    this.refValue = pOptions;
+                    break;
+                case ValidationType.REGEXP:
+                    this.refValue = pOptions;
+                    break;
+                case ValidationType.CUSTOM:
+                    this.testFunc = pOptions;
+                    break;
+            }
+        }
+    }
+
+    public get type():ValidationType {
+        return this._o.t;
+    }
+
+    public set type(pType:ValidationType) {
+        this._o.t = pType;
+    }
+
+    public set refValue(pValue:any) {
+        this._o.r = pValue;
+    }
+
+    public get refValue():any {
+        return this._o.r;
+    }
+
+    public set testFunc(pFunc:Function) {
+        this._o.f = pFunc;
+    }
+
+    public get testFunc():Function {
+        return this._o.f;
+    }
+
+    static newEqualAssert(pRefValue:any):ValidationRule {
+        return new ValidationRule( ValidationType.EQUAL, pRefValue);
+    }
+
+    static newPinklistAssert(pRefValue:any):ValidationRule {
+        return new ValidationRule( ValidationType.PINKLIST, pRefValue);
+    }
+
+    static newRegexpAssert(pRefValue:RegExp):ValidationRule {
+        return new ValidationRule( ValidationType.REGEXP, pRefValue);
+    }
+
+    static newCustomAssert(pFunc:Function):ValidationRule {
+        return new ValidationRule( ValidationType.CUSTOM, pFunc);
+    }
+
+
+    test(pData:any):boolean {
+        switch(this._o.t){
+            case ValidationType.EQUAL:
+                return (pData==this.refValue);
+            case ValidationType.PINKLIST:
+                return (this.refValue.indexOf(pData)>-1);
+            case ValidationType.REGEXP:
+                return (this.refValue).test(pData);
+            case ValidationType.CUSTOM:
+                return (this.testFunc)(pData);
+            default:
+                return false;
+        }
+    }
+}
+
+
+export interface ValidationRulesMap {
+    [name:string] :ValidationRule[]
+}
+
+
+export class ValidationCapable {
+    validator: Validator;
+
+    constructor(pValidationRules:ValidationRulesMap) {
+        this.validator = new Validator(pValidationRules);
+    }
+
+    validate(pName: string, pValue: any): boolean {
+        return this.validator.validate(pName, pValue);
+    }
+
+    canValidate(pName:string):boolean {
+        return this.validator.supports(pName);
+    }
+
+    getValidationErrors():ValidationError[] {
+        return this.validator.getErrors();
+    }
+}
+
+export class ValidationError {
+    public code:number = -1;
+    public msg:string = "";
+
+    constructor( pCode:number, pMsg:string = "") {
+        this.code = pCode;
+        this.msg = pMsg;
+    }
+}
+
+export class Validator {
+
+    private _err:any[] = [];
+    private _rules:ValidationRulesMap = {};
+
+    constructor( pRules:ValidationRulesMap ) {
+        this._rules = pRules;
+    }
+
+    supports(pName):boolean {
+        return (this._rules[pName]!=null);
+    }
+
+    addRule( pName:string, pRule:ValidationRule):Validator{
+        if(this._rules[pName]==null){
+            this._rules[pName] = [];
+        }
+
+        this._rules[pName].push(pRule);
+        return this;
+    }
+
+    validate(pField:string, pValue:any):boolean {
+        this.clearErrors();
+
+        if(!this._rules.hasOwnProperty(pField)){
+            this._err.push(new ValidationError(1, "Field not supported"));
+            return false;
+        }
+
+        let f:boolean = true;
+        this._rules[pField].map( vRule => {
+            f = f && (vRule.test(pValue));
+        })
+
+        return f;
+    }
+
+    clearErrors(){
+        this._err = [];
+    }
+
+    getErrors():ValidationError[] {
+        return this._err;
+    }
+}
