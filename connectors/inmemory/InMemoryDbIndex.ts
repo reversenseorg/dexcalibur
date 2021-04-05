@@ -74,7 +74,7 @@ export default class InMemoryDbIndex implements IDbIndex
     /**
      * To get an entry by its offset
      *
-     * @param {Integer} offset
+     * @param {number} offset
      * @returns {*}
      * @method
      */
@@ -103,7 +103,7 @@ export default class InMemoryDbIndex implements IDbIndex
     /**
      * To get the number of elements into the index
      *
-     * @returns {Integer}
+     * @returns {number}
      * @method
      */
     size():number{
@@ -172,7 +172,7 @@ export default class InMemoryDbIndex implements IDbIndex
         o.refs = [];
 
         for(let i:number=0; i<this.refs.length; i++){
-            if(this.refs[i].isSerializable() === true){
+            if(this.refs[i].hasOwnProperty('isSerializable') && (this.refs[i].isSerializable() === true)){
                 o.refs.push(this.refs[i].serialize());
             }else if(typeof this.refs[i].toJsonObject === 'function')
                 o.refs.push(this.refs[i].toJsonObject());
