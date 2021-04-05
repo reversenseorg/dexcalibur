@@ -8,7 +8,7 @@ import * as BodyParser from 'body-parser';
 
 import WebTemplateEngine from "./WebTemplateEngine";
 import DexcaliburProject from "./DexcaliburProject";
-import DexcaliburEngine from "./DexcaliburEngine";
+import DexcaliburEngine, {DexcaliburProjectMap} from "./DexcaliburEngine";
 import Uploader from "./Uploader";
 import PlatformManager from "./PlatformManager";
 import InspectorManager from "./InspectorManager";
@@ -47,12 +47,54 @@ import {ModelFunction} from "./ModelFunction";
 import HookMessage from "./HookMessage";
 import {Workflow} from "./Workflow";
 import {HookSetList} from "./HookManager";
+import {Finder} from "./Finder";
+import {ValidationCapable, Validator} from "./Validator";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
 
 const HTTP_CODE_SUCCESS = 200;
 const HTTP_CODE_ERROR = 200;
+
+
+/**
+ * To formalize HTTP responses on errors
+ *
+ * @param pRes
+ * @param pMessage
+ * @param pOptions
+ * @function
+ */
+function SEND_ERROR_RESPONSE( pRes:ExpressResponse, pMessage:string, pOptions:any=null):void{
+    pRes.status(
+        (pOptions!=null && pOptions.hasOwnProperty('httpCode'))? pOptions.httpCode : HTTP_CODE_ERROR
+    ).send(JSON.stringify({
+        success:false,
+        msg: pMessage,
+        data: (pOptions!=null &&  pOptions.hasOwnProperty('extra'))? pOptions.extra : null
+    }));
+}
+
+/**
+ * To formalize HTTP responses on successes
+ *
+ * @param {ExpressResponse} pRes
+ * @param {any} pData
+ * @param {any} pOptions
+ * @function
+ */
+function SEND_SUCCESS_RESPONSE( pRes:ExpressResponse, pData:any, pOptions:any=null):void{
+    let data:any = { success:true, data:pData };
+
+    // weak comparison skips undefined and null values
+    if(pOptions!=null && pOptions.extra!=null){
+        Object.keys(pOptions.extra).map( x => data[x] = pOptions.extra[x]);
+    }
+
+    pRes.status(
+        (pOptions!=null &&  pOptions.hasOwnProperty('httpCode'))? pOptions.httpCode : HTTP_CODE_SUCCESS
+    ).send(JSON.stringify(data));
+}
 
 /**
  * @namespace WebServer.MimeHelper
@@ -78,7 +120,9 @@ export class MimeHelper
 }
 
 
-
+interface ValidationCapableCtrl {
+    [name:string] :ValidationCapable
+}
 /**
  * Class representing Dexcalibur's web server
  * 
@@ -110,6 +154,8 @@ export default class WebServer
 
     controller:Function= null;
 
+    validators:ValidationCapableCtrl = {};
+
     /**
      * 
      * @param {Project} pProject 
@@ -136,12 +182,15 @@ export default class WebServer
 
     /**
      * To set the active project
-     *  
+     *
+     *  TODO : add simultaneous project support
+     *
      * @param {Project} pProject 
      * @method
      */
     setProject( pProject:DexcaliburProject){
         this.project = pProject;
+        this.registerValidator('project', pProject);
     }
 
     /**
@@ -152,6 +201,8 @@ export default class WebServer
      */
     setContext( pContext:DexcaliburEngine){
         this.context = pContext;
+        // register validators
+        this.registerValidator('engine', pContext);
     }
 
     /**
@@ -162,6 +213,75 @@ export default class WebServer
      */
     getApplication():Express.Application{
         return this.app;
+    }
+
+    /**
+     *
+     * @param pName
+     * @param pValidator
+     */
+    registerValidator( pName:string, pValidator:ValidationCapable):void{
+        this.validators[pName] = pValidator;
+    }
+
+    private _vsess:any[] = [];
+    newValidationSess():number{
+        return this._vsess.push({ valid:true, err:[]})-1;
+    }
+
+
+    getValidationSess( pSess:number ):any{
+        return this._vsess[pSess];
+    }
+
+
+    removeValidationSess(pID:number):void{
+        this._vsess = this._vsess.filter( (x,i) => (i!=pID) );
+    }
+
+    validateAs( pVSessID:number, pField:string, pValue:any):any {
+        let sess:any = this._vsess[pVSessID];
+
+        if(pField.indexOf(':')>-1){
+            const t = pField.split(':');
+
+            Logger.info("Search validation rule ["+t[1]+"] in ["+t[0]+"] ");
+            if((this.validators.hasOwnProperty(t[0]) !=null)
+                && (this.validators[t[0]].canValidate(t[1]))){
+
+                Logger.info("Validation of ["+pValue+"] as ["+t[1]+"] in ["+t[0]+"] ");
+                sess.valid = sess.valid && this.validators[t[0]].validate(t[1], pValue);
+                if(!sess.valid) {
+                    Logger.info("Validation of ["+pValue+"] as ["+t[1]+"] failed ");
+                    sess.err.push(pField); //.concat(this.validators[v].getValidationErrors());
+                }else{
+                    Logger.info("Validation of ["+pValue+"] as ["+t[1]+"] success ");
+                }
+            }
+
+        }else{
+            for(let v in this.validators){
+                Logger.debug("Scan with ["+v+"] validator : "+ this.validators[v].canValidate(pField));
+                if(this.validators[v].canValidate(pField)){
+
+                    Logger.debug("Validation of ["+pValue+"] as ["+pField+"] ");
+                    sess.valid = sess.valid && this.validators[v].validate(pField, pValue);
+                    if(!sess.valid) {
+
+                        Logger.info("Validation of ["+pValue+"] as ["+pField+"] failed ");
+                        sess.err.push(v+':'+pField); //.concat(this.validators[v].getValidationErrors());
+                        break;
+                    }else{
+
+                        Logger.info("Validation of ["+pValue+"] as ["+pField+"] success ");
+                    }
+                }
+            }
+        }
+
+
+
+        return sess.valid;
     }
 
     /**
@@ -330,31 +450,50 @@ export default class WebServer
         this.app.route('/api/platform/list')
             .get(function (req:ExpressRequest, res:ExpressResponse):any {
 
+                try{
+                    SEND_SUCCESS_RESPONSE( res, {
+                        platforms: PlatformManager.getInstance().getRemote()
+                    });
+
+                }catch(err){
+                    Logger.error(err.message);
+                    SEND_ERROR_RESPONSE( res, "An error occurred");
+                }
+
                 // collect
-                let dev:any = {
+                /*let dev:any = {
                     platforms: PlatformManager.getInstance().getRemote()
                 };
 
-                res.status(200).send(JSON.stringify(dev));
+                res.status(200).send(JSON.stringify(dev));*/
             });
 
         this.app.route('/api/platform/install')
             .post(async function (req:ExpressRequest, res:ExpressResponse):Promise<any> {
 
+
                 let mgr:PlatformManager, dev:any, platform:Platform;
 
-                dev = {
-                    status: false
-                };
+                try{
+                    dev = {
+                        status: false
+                    };
 
-                mgr = PlatformManager.getInstance();
-                platform = mgr.getRemotePlatform(req.body['uid']);
+                    mgr = PlatformManager.getInstance();
 
-                if(platform !== null){
-                    dev.status = await mgr.install(platform);
+
+                    platform = mgr.getRemotePlatform(req.body['uid']);
+
+                    if(platform !== null){
+                        dev.status = await mgr.install(platform);
+                    }
+
+                    SEND_SUCCESS_RESPONSE( res, dev);
+
+                }catch(err){
+                    Logger.error("[WEBSERVER][PLATFORM] Install : "+err.message);
+                    SEND_ERROR_RESPONSE( res, "An error occurred");
                 }
-
-                res.status(200).send(JSON.stringify(dev));
             });
 
         this.app.route('/api/workspace/upload')
@@ -643,6 +782,103 @@ export default class WebServer
                 res.status(200).send(JSON.stringify({
                     availability: availability
                 }));
+            });
+
+        ;
+
+        this.app.route('/api/validation')
+            .get(function (req:ExpressRequest, res:ExpressResponse):any {
+
+                try{
+                    if(req.query.field==null){
+                        throw new Error("Field to validate is missing");
+                    }
+                    if(req.query.hasOwnProperty('val')){
+                        throw new Error("Value to validate is missing");
+                    }
+
+                    let unsafe_field = req.query.field;
+                    let unsafe_val = req.query.val;
+                    let valid:boolean = true;
+                    let err:any[] = [];
+
+                    let vss:number = $.newValidationSess();
+
+                    // local validation
+                    // each case is like a macro-validation involving multiple sub validation
+                    switch(unsafe_field){
+                        case 'project.uid.new':
+                            // a valid project name for a new project must be unique
+                            valid = valid && $.validateAs(vss, 'engine:project.uid', unsafe_val);
+                            valid = valid && $.validateAs(vss, 'engine:project.uid.new', unsafe_val);
+                            break;
+                        case 'device.uid.target':
+                            // a target device must be enrolled first
+                            valid = valid && $.validateAs(vss, 'device:uid', unsafe_val);
+                            valid = valid && $.validateAs(vss, 'device:uid.target', unsafe_val);
+                            break;
+                        case 'platform.uid.target':
+                            // a target platform must be available
+                            valid = valid && $.validateAs(vss, 'platform:uid', unsafe_val);
+                            valid = valid && $.validateAs(vss, 'platform:uid.target', unsafe_val);
+                            break;
+                        default:
+                            valid = valid && $.validateAs(vss, unsafe_field, unsafe_val);
+                            break;
+                    }
+
+                    if(!valid){
+                        valid = false;
+                        err = $.getValidationSess(vss).err;
+                        $.removeValidationSess(vss);
+                    }
+
+                    SEND_SUCCESS_RESPONSE(res, {valid:valid, err:err});
+
+                }catch(err){
+                    SEND_ERROR_RESPONSE(res, "Validation failed");
+                }
+            })
+            .post(function (req:ExpressRequest, res:ExpressResponse):any {
+
+                try{
+                    if(req.body['field']==null){
+                        throw new Error("Field to validate is missing");
+                    }
+                    if(req.body['val']==null){
+                        throw new Error("Value to validate is missing");
+                    }
+
+                    let unsafe_field = req.body.field;
+                    let unsafe_val = req.body.val;
+                    let valid:boolean = true;
+                    let err:any[] = [];
+
+                    let vss:number = $.newValidationSess();
+
+                    // local validation
+                    switch(unsafe_field){
+                        case 'project.uid.new':
+                            valid = valid && $.validateAs(vss, 'project.uid', unsafe_val);
+                            valid = valid && $.validateAs(vss, 'project.uid.new', unsafe_val);
+                            break;
+                        default:
+                            valid = valid && $.validateAs(vss, unsafe_field, unsafe_val);
+                            break;
+                    }
+
+                    if(!valid){
+                        valid = false;
+                        err = $.getValidationSess(vss).err;
+                        $.removeValidationSess(vss);
+                    }
+
+                    SEND_SUCCESS_RESPONSE(res, {valid:valid, err:err});
+
+                }catch(err){
+                    Logger.error("[WEBSERVER][VALIDATION] Error : "+err.message);
+                    SEND_ERROR_RESPONSE(res, "Validation failed");
+                }
             });
 
 
@@ -1277,6 +1513,8 @@ export default class WebServer
 
 
                 try{
+
+                    // TODO : detect if frida connection works
                     res.status(200).send(JSON.stringify({
                         success: await FridaHelper.startServer( device, {
                             path: req.body['path'],
@@ -1519,13 +1757,14 @@ export default class WebServer
 
                     //if(hook.enable)
 
+                    /*
                     $.project.trigger({
                         type: "probe.new",
                         data: {
                             hook: probe,
                             method: meth
                         }
-                    });
+                    });*/
 
                     res.status(200).send(JSON.stringify({ success:true,
                         enable: probe.isEnable(),
@@ -2289,7 +2528,7 @@ export default class WebServer
 
         this.app.route('/api/project/active')
             .get(function(req:ExpressRequest, res:ExpressResponse):any {
-                let proj:DexcaliburProject[];
+                let proj:DexcaliburProjectMap;
                 let data:any[] = [];
 
                 try{
@@ -2298,6 +2537,37 @@ export default class WebServer
                     res.status(200).send(JSON.stringify({ success:true, data: data }));
                 }catch(err){
                     res.status(200).send(JSON.stringify({ success:false, msg: err.message }));
+                }
+            })
+            .post(function(req:ExpressRequest, res:ExpressResponse):any {
+                // [EE] : On enterprise server, for multiple users, store active project into user session
+                // [PE] : On professional, add auth but keep global active project
+                // [CE] : On community ed, just change global active project
+                let proj:DexcaliburProjectMap;
+                let success:boolean = false;
+
+
+                try{
+                    if(!req.body.hasOwnProperty('uid')
+                        || (Util.isEmpty(req.body['uid'], Util.FLAG_WS | Util.FLAG_CR | Util.FLAG_TB))){
+                        throw new Error("Invalid project UID.");
+                    }
+
+                    proj = $.context.getActiveProjects();
+                    for(let i in proj){
+                        if(i==req.body.uid){
+                            $.project = proj[i];
+                            success = true;
+                            break;
+                        }
+                    }
+                    if(success)
+                        SEND_SUCCESS_RESPONSE(res, null);
+                    else
+                        SEND_ERROR_RESPONSE(res, "Sorry. An error happened [#PM_01].");
+                }catch(err){
+                    Logger.error("[WEB SERVER] An error happened [#PM_02] : "+err.message);
+                    SEND_ERROR_RESPONSE(res, "Sorry. An error happened [#PM_02].");
                 }
             });
 
@@ -2389,56 +2659,96 @@ export default class WebServer
                 return;
             });
 
-/*
-            this.app.route('/api/projection')
-                .get(function (req:ExpressRequest, res:ExpressResponse):any {
+        // to get defaukt device of active project
+        this.app.route('/api/project/settings')
+            .post(function (req:ExpressRequest, res:ExpressResponse):any {
+                if($.project == null){
+                    res.status(500).send({ success:false, msg:'No active project' });
+                    return ;
+                }
 
-                    
-                    // 'cmpType' should be a valid index into the database
-                    // 'cmpID' should be a valid ID into 'cmpType' index
-                    // 'cmpProjType' the type of projection to apply
-                    let cmpType = req.params.cmp;
-                    let cmpID = req.params.id;
-                    let cmpProjType = req.params.proj;
+                let dev:Device = null;
+                let plt:Platform = null;
+                let unsafe_UID:string = null;
+                let unsafe_val:any = null;
 
-                    console.log(req.params);
+                try{
+                    unsafe_UID = req.body['project'];
 
-                    if(cmpID==null || cmpProjType==null || cmpType==null){
-                        res.status(404);
-                        res.send(JSON.stringify({ err: "Invalid params" }));
-                        return;
-                    }
+                    if(req.body['device']!=null){
+                        unsafe_val = req.body['device'];
 
-                    if($.project.find.get[cmpType]==null){
-                        res.status(404);
-                        res.send(JSON.stringify({ err: "Invalid component type." }));
-                        return;
-                    }
-
-                    let name = Util.decodeURI(Util.b64_decode(req.params.id));
-                    let act = $.project.find.get[cmpType](name);
-                    let dev = null;
-
-                    let proj = $.project.analyze.getProjection(cmpProjType);
-
-                    proj.process(act);
-
-
-                    if (act instanceof ANDROID.Receiver) {
-                        dev = {
-                            data: act.toJsonObject()
-                        };
-                        res.status(200);
-                    } else {
-                        dev = {
-                            err: "Receiver not found for the given ID",
-                            errCode: null
+                        dev = DeviceManager.getInstance().getDevice(unsafe_val);
+                        if(dev != null){
+                            $.project.setDevice(dev);
+                            $.project.save();
                         }
-                        res.status(404);
                     }
-                    res.send(JSON.stringify(dev));
-                });
-                */
+                    if(req.body['platform']!=null){
+                        unsafe_val = req.body['platform'];
+
+                        $.project.synchronizePlatform(unsafe_val);
+                        $.project.save();
+                    }
+
+                    res.status(200).send({ success:true });
+                }catch(excpt){
+                    res.status(500).send({ success:false, msg:excpt.message });
+                }
+                return;
+            });
+
+
+        /*
+                    this.app.route('/api/projection')
+                        .get(function (req:ExpressRequest, res:ExpressResponse):any {
+
+
+                            // 'cmpType' should be a valid index into the database
+                            // 'cmpID' should be a valid ID into 'cmpType' index
+                            // 'cmpProjType' the type of projection to apply
+                            let cmpType = req.params.cmp;
+                            let cmpID = req.params.id;
+                            let cmpProjType = req.params.proj;
+
+                            console.log(req.params);
+
+                            if(cmpID==null || cmpProjType==null || cmpType==null){
+                                res.status(404);
+                                res.send(JSON.stringify({ err: "Invalid params" }));
+                                return;
+                            }
+
+                            if($.project.find.get[cmpType]==null){
+                                res.status(404);
+                                res.send(JSON.stringify({ err: "Invalid component type." }));
+                                return;
+                            }
+
+                            let name = Util.decodeURI(Util.b64_decode(req.params.id));
+                            let act = $.project.find.get[cmpType](name);
+                            let dev = null;
+
+                            let proj = $.project.analyze.getProjection(cmpProjType);
+
+                            proj.process(act);
+
+
+                            if (act instanceof ANDROID.Receiver) {
+                                dev = {
+                                    data: act.toJsonObject()
+                                };
+                                res.status(200);
+                            } else {
+                                dev = {
+                                    err: "Receiver not found for the given ID",
+                                    errCode: null
+                                }
+                                res.status(404);
+                            }
+                            res.send(JSON.stringify(dev));
+                        });
+                        */
 
         this.app.route('/api/project/ws')
             .post(function(req:ExpressRequest, res:ExpressResponse):any {
@@ -2573,6 +2883,28 @@ export default class WebServer
                 }catch(err){
                     res.status(200).send(JSON.stringify({ success:false, msg: err.message }));
                 }
+            });
+
+
+        /**
+         * /api/application/cmp?type=[dex|ks|libs|strings] ...
+         */
+        this.app.route('/api/application/cmp')
+            .get(function (req:ExpressRequest, res:ExpressResponse):any {
+
+                try{
+                    res.status(HTTP_CODE_SUCCESS).send(JSON.stringify({
+                        success: true,
+                        data: $.project.find.provider('name:.*').toJsonObject()
+                    }));
+                }catch(err){
+                    res.status(HTTP_CODE_ERROR).send(JSON.stringify({
+                        success: false,
+                        msg: err.message
+                    }));
+                }
+
+
             });
 
         this.app.route('/api/manifest/providers')
@@ -2802,6 +3134,8 @@ export default class WebServer
         this.app.route('/api/finder')
             .get(function (req:ExpressRequest, res:ExpressResponse):any {
                 let search:string = req.query.search;
+                let dev:any = {};
+
                 if (search == null) {
                     res.status(404).send({ error: "No search request" });
                 }
@@ -2821,10 +3155,41 @@ export default class WebServer
                 // perform the requests (TODO: ajouter les erreur dans FinderResult)
                 let results:any = VM.runInNewContext('$.project.find.' + u2 + ';', { $: $ });
 
-                // collect
-                let dev:any = {
-                    data: results.toJsonObject()
-                };
+                /*
+                if(req.query.hasOwnProperty('type')
+                    && req.query.type.length>0){
+                    dev.data = [];
+                    switch(req.query.type){
+                        case 'm':
+                            // when a terminal node is an ID
+                            if(results instanceof FinderResult){
+                                (results as FinderResult).foreach( function(v){
+                                    if(v instanceof ModelMethod){
+                                        dev.data.push(v.toJsonObject())
+                                    }else{
+                                        Logger.info(v);
+                                        const mm=$.project.find.get.method(v);
+                                        if(mm!=null){
+                                            if(mm.toJsonObject != null)
+                                                dev.data.push(mm.toJsonObject());
+                                            else
+                                                dev.data.push(mm);
+                                        }
+
+                                    }
+                                })
+                            }else{
+                                dev.data = results;
+                            }
+                            break;
+                    }
+
+                }else{
+                    // collect
+                }*/
+
+
+                dev.data = results.toJsonObject();
                 res.status(200).send(JSON.stringify(dev));
             });
 
@@ -3339,6 +3704,10 @@ export default class WebServer
         let wwwPort = this.port;
 
         this.context.printWebBanner(wwwPort);
+
+
+        this.registerValidator('device', DeviceManager.getInstance());
+        this.registerValidator('platform', PlatformManager.getInstance());
 
         this.httpServer = this.app.listen(wwwPort, function () {
             Logger.success('Server started on : ' + wwwPort);
