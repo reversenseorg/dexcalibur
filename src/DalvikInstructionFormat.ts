@@ -160,6 +160,11 @@ export default class DalvikInstructionFormat {
             if(instr.right==null) console.log(raw_src);
 
         }else{
+            /*
+            The difference between the invokespecial and the invokevirtual instructions is that invokevirtual
+            invokes a method based on the class of the object. The invokespecial instruction is used to invoke
+            instance initialization methods as well as private methods and methods of a superclass of the current class.
+             */
             m = RX.INVOKE_SPECIAL.exec(raw_src.substr(raw_src.lastIndexOf(",")));
 
             if(m == null) console.log("Parsing fail : ",raw_src);
