@@ -46,6 +46,7 @@ export default class SerializedObject
         Tag: Tag,
         Stub: Stub,
         File: ModelFile,
+        ModelFile: ModelFile,
         ModelSwitchCase: ModelSwitchCase,
         ModelPackedSwitchStatement: ModelPackedSwitchStatement,
         ModelCatchStatement: ModelCatchStatement,
