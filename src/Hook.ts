@@ -60,6 +60,8 @@ export default class Hook
     code:any = null;
     variables:any = null;
 
+    constraints:any = null;
+
 
 
 
@@ -490,7 +492,7 @@ export default class Hook
 
 
             script += `
-    onEnter(args){
+    onEnter: function(args){
         send({ 
             id:"@@__HOOK_ID__@@", 
             data:@@__REG_VAR_DUMP__@@, 
@@ -506,7 +508,7 @@ export default class Hook
             tags["@@__RET_DATA__@@"] = this.prepareRetval(pFn, pOptions.ret);
             if(pOptions.onEnter)script += ', ';
             script += `
-    onLeave(ret){
+    onLeave: function(ret){
         send({ 
             id:"@@__HOOK_ID__@@", 
             data:@@__RET_DATA__@@, 
