@@ -12,6 +12,7 @@ import Platform from "./Platform";
 import PlatformManager from "./PlatformManager";
 import StatusMessage from "./StatusMessage";
 import FridaHelper from "./FridaHelper";
+import {ValidationCapable, ValidationRule} from "./Validator";
 
 let Logger:Log.ProdLogger = Log.newLogger() as Log.ProdLogger;
 
@@ -31,7 +32,7 @@ interface DeviceList {
  * 
  * @class
  */
-export default class DeviceManager
+export default class DeviceManager extends ValidationCapable
 {
     bridgeFactory:BridgeSuperFactory;
 
@@ -74,6 +75,14 @@ export default class DeviceManager
      * @param {Configuration} config The configuration object
      */
     constructor(){
+        super({
+            'uid': [
+                ValidationRule.newRegexpAssert(new RegExp('^.*$')) // mock
+            ],
+            'uid.target': [
+                ValidationRule.newRegexpAssert(new RegExp('^.*$')) // mock
+            ]
+        });
 
         this.dxcWorkspace = DexcaliburWorkspace.getInstance();
 
