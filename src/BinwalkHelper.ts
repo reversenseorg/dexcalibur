@@ -79,13 +79,15 @@ export class BinwalkHelper {
 
     /**
      * To scan APK content with binwalk
-     * @param pPath
-     * @param pSkipIf
+     *
+     * @param {string} pPath Folder to scan
+     * @param {DexcaliburProject} pContext Active project
+     * @param {Function} pSkipIf Function to detect is the file must be skipped
+     * @return {ModelFile[]} An array of ModelFile
      */
     analyzeFolder(pPath:string, pContext:DexcaliburProject, pSkipIf:Function):ModelFile[] {
 
 
-        const lp = pPath.length;
         let out:string;
         const RE = /^([0-9]+)\s+(0x[0-9a-fA-F]+)\s+(.+)/;
         let files:ModelFile[] = [];
@@ -121,7 +123,7 @@ export class BinwalkHelper {
                 }
 
                 f.name = _path_.basename( l[1]);
-                Logger.info(l[1]);
+                //Logger.info(l[1]);
                 f.path = l[1]; //.substr(lp);
                 f.__p.md5 = Util.trim(l[2].substr(l[2].indexOf(':')));
 
