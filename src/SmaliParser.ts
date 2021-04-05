@@ -595,12 +595,28 @@ export default class SmaliParser
                     (this.__tmp_block as ModelBasicBlock).setAsConditionalBlock(sml[0].split('_')[1]);
 
                 }else if(sml[0].indexOf(':goto_')>-1){
-                    if(this.__tmp_block instanceof ModelDataBlock || this.__tmp_block.stack.length>0){
+                    if(this.__tmp_block instanceof ModelDataBlock){
+                        if(this.__tmp_block.getByteWidth()>0){
+                            this.appendBlockTo( this.__tmp_meth, this.__tmp_block);
+                            this.__tmp_block = new ModelBasicBlock();
+                            (this.__tmp_block as ModelBasicBlock).setAsGotoBlock(sml[0].split('_')[1]);
+                        }else{
+                            /*
+                            :array_XX
+                            :goto_AA <---- this case
+                            .array-data B
+                             */
+                            // ignore
+                        }
+                    }
+                    else if(this.__tmp_block.stack.length>0){
                         this.appendBlockTo( this.__tmp_meth, this.__tmp_block);
                         this.__tmp_block = new ModelBasicBlock();
+                        (this.__tmp_block as ModelBasicBlock).setAsGotoBlock(sml[0].split('_')[1]);
+                    }else{
+                        (this.__tmp_block as ModelBasicBlock).setAsGotoBlock(sml[0].split('_')[1]);
                     }
                     //this.__tmp_block.tag = sml[0];
-                    (this.__tmp_block as ModelBasicBlock).setAsGotoBlock(sml[0].split('_')[1]);
 
                 }
                 else if(sml[0].indexOf(':try_start')>-1){
