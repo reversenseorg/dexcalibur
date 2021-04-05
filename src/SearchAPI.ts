@@ -20,6 +20,7 @@ import AndroidService from "./android/AndroidService";
 import {AndroidPermission} from "./android/Permissions";
 import {CONST} from "./CoreConst";
 import {ModelFunction} from "./ModelFunction";
+import {IDbCollection, IDbIndex} from "./ConnectorFactory";
 
 
 
@@ -164,6 +165,7 @@ export class SearchAPI
     _caseSensitive:boolean = true;
     _finder:Finder = null;
     _db:AnalyzerDatabase = null;
+    _byID:boolean = false;
     get:SearchAPISelector =  null;
     calls:SearchAPICallSelector = null;
 
@@ -202,6 +204,14 @@ export class SearchAPI
         ]);
     };
 
+    _oneOrMore( pIndex:IDbIndex|IDbCollection, pModel:any, pIdHolder:string, pPattern:string):FinderResult{
+        if(this._byID){
+            this._byID = false;
+            return this._finder._findByID(pIndex, pModel, pIdHolder, pPattern);
+        }else{
+            return this._finder._find(pIndex, pModel, pPattern, this._caseSensitive);
+        }
+    }
     /**
      * Switch case sensitive On/Off of following search
      */
@@ -210,24 +220,44 @@ export class SearchAPI
         return this;
     }
 
+    byID():SearchAPI{
+        this._byID = true;
+        return this;
+    }
+
     class(pattern:string):FinderResult{
-        return this._finder._find(this._db.classes, DataModel.class, pattern, this._caseSensitive);
+        return this._oneOrMore(this._db.classes, DataModel.class, 'name', pattern);
     }
 
     package(pattern:string):FinderResult{
-        return this._finder._find(this._db.packages, DataModel.package, pattern, this._caseSensitive);
+        return this._oneOrMore(this._db.packages, DataModel.package, 'name', pattern);
     }
 
     method(pattern:string):FinderResult{
-        return this._finder._find(this._db.methods, DataModel.method, pattern, this._caseSensitive);
+        return this._oneOrMore(this._db.methods, DataModel.method, '__signature__', pattern);
+        /*
+        if(this._byID){
+            this._byID = false;
+            return this._finder._findByID(this._db.methods, DataModel.method, '__signature__', pattern);
+        }else{
+            return this._finder._find(this._db.methods, DataModel.method, pattern, this._caseSensitive);
+        }*/
     }
 
     field(pattern:string):FinderResult{
-        return this._finder._find(this._db.fields, DataModel.field, pattern, this._caseSensitive);
+        return this._oneOrMore(this._db.fields, DataModel.field, '__signature__', pattern);
+        /*
+        if(this._byID){
+            this._byID = false;
+            return this._finder._findByID(this._db.fields, DataModel.field, '__signature__', pattern);
+        }else{
+            return this._finder._find(this._db.fields, DataModel.field, pattern, this._caseSensitive);
+        }*/
     }
 
     file(pattern:string):FinderResult{
-        return this._finder._find(this._db.files, DataModel.file, pattern, this._caseSensitive);
+        //return this._finder._find(this._db.files, DataModel.file, pattern, this._caseSensitive);
+        return this._oneOrMore(this._db.files, DataModel.file, '_uid', pattern);
     }
 
     array(pattern:string):FinderResult{
@@ -235,7 +265,8 @@ export class SearchAPI
     }
 
     activity(pattern:string):FinderResult{
-        return this._finder._find(this._db.activities, DataModel.activity, pattern, this._caseSensitive);
+        //return this._finder._find(this._db.activities, DataModel.activity, pattern, this._caseSensitive);
+        return this._oneOrMore(this._db.activities, DataModel.activity, '__id', pattern);
     }
 
     service(pattern:string):FinderResult{
