@@ -30,4 +30,10 @@ export default class DataScope {
     getBasePath():string {
         return this._p[DataScopePpts.PATH];
     }
+
+    equals( pScope:DataScope):boolean {
+        if(pScope==null) return false;
+
+        return (pScope.getName()===this.getName());
+    }
 }
