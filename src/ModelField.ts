@@ -4,6 +4,11 @@ import ModelClass from "./ModelClass";
 import ModelMethod from "./ModelMethod";
 import NodeCompare from "./NodeCompare";
 import {Savable, STUB_TYPE} from "./ModelSavable";
+import * as Log from "./Logger";
+import {ModelLocation} from "./ModelLocation";
+
+
+let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
 
 export default  class ModelField extends Savable
@@ -29,6 +34,9 @@ export default  class ModelField extends Savable
     _setters:ModelMethod[] = [];
     tags:any = [];
 
+    /**
+     * Multi typed
+     */
     _:any = {};
 
     // oline
@@ -43,6 +51,18 @@ export default  class ModelField extends Savable
         if(pConfig!==undefined)
             for(let i in pConfig)
                 this[i]=pConfig[i];
+    }
+
+    set location (pLocation:ModelLocation) {
+        this._.loc = pLocation;
+    }
+
+    get location ():ModelLocation {
+        return this._.loc;
+    }
+
+    addLocation(pLocation:ModelLocation):void {
+        this._.loc = pLocation;
     }
 
     setValue(val:any){
@@ -155,8 +175,25 @@ export default  class ModelField extends Savable
     };
 
     addSetter(meth:ModelMethod){
-        if(this._setters.indexOf(meth)==-1)
+
+        // TODO : not optimized, bad complexity
+        let f:boolean = false;
+        const s = meth.signature();
+
+        for(let i=0; i<this._setters.length; i++){
+            if(this._setters[i].signature()==s){
+                f=true;
+                break;
+            }
+        }
+        /*
+        this._setters.map( (vMethod)=>{
+            if(vMethod.signature()==s) f=true;
+        });*/
+
+        if(!f){
             this._setters.push(meth);
+        }
     }
 
     getSetters():ModelMethod[]{
@@ -165,8 +202,25 @@ export default  class ModelField extends Savable
 
 
     addGetter(meth:ModelMethod){
-        if(this._getters.indexOf(meth)==-1)
+        // TODO : not optimized, bad complexity
+        let f:boolean = false;
+        const s = meth.signature();
+
+
+        for(let i=0; i<this._getters.length; i++){
+            if(this._getters[i].signature()==s){
+                f=true;
+                break;
+            }
+        }
+        /*
+        this._getters.map( (vMethod)=>{
+            if(vMethod.signature()==s) f=true;
+        });*/
+
+        if(!f){
             this._getters.push(meth);
+        }
     }
 
     getGetters():ModelMethod[]{
@@ -200,8 +254,10 @@ export default  class ModelField extends Savable
                 case "_callers":
                     obj[i] = [];
                     for(let j=0; j<(this[i] as any).length; j++){
-                        if(this[i][j] != undefined)
-                            obj[i].push(this[i][j].__signature__); // getSignature()
+                        if(this[i][j] != undefined){
+
+                            obj[i].push(this[i][j].signature()); // getSignature()
+                        }
                     }
                     break;
                 case "__signature__":
@@ -231,6 +287,11 @@ export default  class ModelField extends Savable
                         };
                         if(this.enclosingClass.alias!=null)
                             obj.enclosingClass.alias = this.enclosingClass.alias;
+                    }
+                    break;
+                case "_":
+                    if(this._.loc != null){
+                        obj.location = this._.loc.toJsonObject();
                     }
                     break;
                 case "modifiers":
