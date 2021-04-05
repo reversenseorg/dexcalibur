@@ -61,6 +61,7 @@ export class HookManager
     cache_policy:number = HOOKSESSION_CACHE_POLICY.NONE;
     context:DexcaliburProject = null;
    // logs = [];
+
     hooks:Hook[] = [];
     hooksets:HookSetList = {};
     prologues:HookPrologue[] = [];
@@ -643,7 +644,7 @@ export class HookManager
 
     nextHookIdFor(method:ModelMethod|ModelFunction):string{
     //    return method.__signature__+"@@"+this.findHookByMethod(method).length;
-        Logger.info("[HOOK] nextHookIdFor ["+method.signature()+"]")
+        //Logger.info("[HOOK] nextHookIdFor ["+method.signature()+"]")
         return method.signature()+"@@"+this.findHookByMethod(method).length;
     }
 
@@ -691,6 +692,16 @@ export class HookManager
 
             Logger.info("[HOOK MANAGER][PROBE] Add : ",hook.name)
             this.hooks.push(hook);
+
+            // trigger new probe workflow
+            this.context.trigger({
+                type: "probe.new",
+                data: {
+                    hook: hook,
+                    method: method
+                }
+            });
+
         }else if(method instanceof ModelFunction){
             hook = new Hook(this.context);
 
@@ -732,6 +743,14 @@ export class HookManager
 
             Logger.info("[HOOK MANAGER][NATIVE PROBE] Add : ",hook.name)
             this.hooks.push(hook);
+
+            this.context.trigger({
+                type: "probe.new",
+                data: {
+                    hook: hook,
+                    method: method
+                }
+            });
         }
         return hook;
     }
