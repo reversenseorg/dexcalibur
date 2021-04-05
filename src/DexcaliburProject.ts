@@ -10,7 +10,7 @@ import {ConnectorFactory, IDatabaseAdapter} from "./ConnectorFactory";
 import DexHelper from "./DexHelper";
 import {Device} from "./Device";
 import {Finder} from "./Finder";
-import Bus from "./Bus";
+import Bus, {BusSubscriber} from "./Bus";
 import AndroidApplication from "./android/AndroidApplication";
 import PlatformManager from "./PlatformManager";
 import {SearchAPI} from "./SearchAPI";
@@ -38,6 +38,9 @@ import {ApkPackage} from "./android/ApkPackage";
 import NativeAnalyzer from "./NativeAnalyzer";
 import {Workflow} from "./Workflow";
 import StatusMessage from "./StatusMessage";
+import {ValidationCapable, ValidationError, ValidationRule, Validator} from "./Validator";
+import ModelFile from "./ModelFile";
+import {ModelLocation} from "./ModelLocation";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -61,12 +64,23 @@ interface DigestSet {
     [type:string] :string
 }
 
+/*
+const DexcaliburProjectValidator = new Validator({
+    'uid': [
+        ValidationRule.newRegexpAssert(/^[a-zA-Z_-\s]+$/),
+    ],
+    'nofrida': [
+        ValidationRule.newPinklistAssert(['true','false'])
+    ]
+});*/
+
 /**
  * @class
  * @author Georges-B. MICHEL
  */
-export default class DexcaliburProject
+export default class DexcaliburProject extends ValidationCapable
 {
+
 
     /**
      * @type {DexcaliburEngine}
@@ -230,6 +244,14 @@ export default class DexcaliburProject
      * @constructor
      */
     constructor( pEngine:DexcaliburEngine, pUID:string){
+        super({
+            'project:uid': [
+                ValidationRule.newRegexpAssert(new RegExp('^[a-zA-Z_-\s]+$')),
+            ],
+            'project:nofrida': [
+                ValidationRule.newPinklistAssert(['true','false'])
+            ]
+        });
 
         this.engine = pEngine;
         this.uid = pUID;
@@ -240,6 +262,11 @@ export default class DexcaliburProject
         this._wf = pWorkflow;
     }
 
+    /**
+     * To get the workflow attached to this project instance
+     *
+     * @return {Workflow}
+     */
     getWorkflow():Workflow {
         if(this._wf==null){
             this._wf = new Workflow({ uid: this.getUID() });
@@ -422,6 +449,35 @@ export default class DexcaliburProject
         this.inspectors = im.getInspectorsOf(this);
         
         this.graph = new GraphMaker(this);
+
+        // init listeners
+        // data Analyzer
+        this.bus.subscribe("file.new.DYN_BYTECODE", BusSubscriber.from( (pEvent:Event) => {
+            const d = pEvent.getData();
+            Logger.info("[DXC-PROJECT] [SUBSCRIBER] <file.new.DYN_BYTECODE> scanning file : "+d.file.path);
+            Logger.info(JSON.stringify(pEvent));
+
+            if(d.file.hasScope(this.dataAnalyzer.scopes.DYN_BYTECODE)){
+                this.dataAnalyzer.scanFile(
+                    d.file,
+                    d.file.scope
+                );
+            }
+
+            this.dataAnalyzer.indexFile(d.file);
+            this.dataAnalyzer.indexFile(d.file.clone({
+                path:d.rpath,
+                scope:this.getDataAnalyzer().getScope('APPDATA')
+            }));
+        }));
+
+        // update global file index with files indexed by dtaa analyzer
+        this.bus.subscribe( "data.file.index", BusSubscriber.from( (pEvent:Event)=>{
+
+            Logger.info("[DXC-PROJECT] [SUBSCRIBER] <data.file.index> Indexing file : "+pEvent.getData().path);
+            this.analyze.insertIn( "files", [pEvent.getData()]);
+        }));
+
     }
 
     /**
@@ -462,6 +518,10 @@ export default class DexcaliburProject
      * @method
      */
     getInspector( pName):Inspector{
+
+        if(this.inspectors==null){
+            this.inspectors = InspectorManager.getInstance().getInspectorsOf(this);
+        }
         return this.inspectors[pName];
     }
 
@@ -539,13 +599,13 @@ export default class DexcaliburProject
                 this.platform = pm.getFromAndroidApiVersion(this.application.getTargetApiVersion());
                 break;
             default:
-                if( (this.platform instanceof Platform) === false){
-                    if(this.device instanceof Device){
-                        this.platform = this.device.getPlatform(); //pName
-                    }else{
-                        this.platform = pm.getFromAndroidApiVersion(this.application.getTargetApiVersion());
-                    }
-                }
+/*                if(((pName instanceof Platform) === false) && (typeof pName == 'string' )){
+                    this.platform = pm.getPlatform(pName);
+                }else{
+                    this.platform = pName;
+                }*/
+
+                this.platform = pm.getPlatform(pName);
                 break;
         }
 
@@ -833,6 +893,10 @@ export default class DexcaliburProject
         }
     }
 
+    getPlatform():Platform {
+        return this.platform;
+    }
+
     getDisassembler(){
         if(this.platform.isAndroid()){
             return new SmaliDisassembler();
@@ -906,7 +970,7 @@ export default class DexcaliburProject
         this.getWorkflow().pushStatus(new StatusMessage(15, "Start analysis of application byte code"));
 
         // scan files  
-        if(pPath != undefined){
+       /* if(pPath != undefined){
             this.analyze.path( pPath);
 
 
@@ -920,7 +984,7 @@ export default class DexcaliburProject
             success = await this.appAnalyzer.importManifest(_path_.join(pPath,"AndroidManifest.xml"));
             //success = await this.appAnalyzer.scan(AppPackage); <--- add abstraction
 
-        }else{
+        }else{*/
             //        let dexPath = this.workspace.getWD()+"dex";
             // To replace by package app (abstraction of apk/ipa/elf/..)
             //  par exemple : getAppDir() => path of folder containing extracted files
@@ -978,7 +1042,7 @@ export default class DexcaliburProject
 
             // application topology analysis
             success = await this.appAnalyzer.importManifest(_path_.join(apkPath,"AndroidManifest.xml"));
-        }
+       // }
 
         if(success){
             this.setPackageName( this.appAnalyzer.getPackageName());
@@ -1003,31 +1067,83 @@ export default class DexcaliburProject
 
         // scan bytecode gathered during previous instrumentation session
         // if there is not path specified
-        if(pPath == null){
+        //if(pPath == null){
 
 
-            this.getWorkflow().pushStatus(new StatusMessage(22, "Scanning data previously extracted by hooking"));
-            let dir:string[]=Fs.readdirSync(this.workspace.getRuntimeBcDir());
-            for(let i in dir){
-                elemnt = _path_.join(this.workspace.getRuntimeBcDir(),dir[i],"smali");
-                Logger.info('Scanning dir : ', elemnt);
-                if(Fs.existsSync(elemnt) && Fs.lstatSync(elemnt).isDirectory()){
-                    Logger.info("Scanning previously discovered dex chunk : "+elemnt);
-                    this.analyze.path(elemnt);
-                }
+        this.getWorkflow().pushStatus(new StatusMessage(22, "Scanning data previously extracted by hooking"));
+
+        this.dataAnalyzer.scan(this.workspace.getRuntimeFilesDir(), this.dataAnalyzer.getScope('DYN_BUFFER')); //["smali"]);
+        this.analyze.updateFileIndex(
+            this.dataAnalyzer.getIndex('DYN_BUFFER'), true
+        );
+
+        this.dataAnalyzer.scan(this.workspace.getRuntimeBcDir(), this.dataAnalyzer.getScope('DYN_BYTECODE')); //["smali"]);
+        this.analyze.updateFileIndex(
+            this.dataAnalyzer.getIndex('DYN_BYTECODE'), true
+        );
+
+        // scan smali files for each dex files discovered dynamically
+        this.dataAnalyzer.getIndex('DYN_BYTECODE').map( (vOffset:number, vFile:ModelFile)=>{
+
+            const bc = _path_.join( _path_.dirname(vFile.getPath()),"smali");
+            const loc = ModelLocation.fromFile(vFile);
+
+            Logger.info('Scanning dir : ', bc);
+            if(Fs.existsSync(bc)){
+
+                if( Fs.lstatSync(bc).isDirectory()) {
+                    Logger.info("Scanning previously discovered dex chunk : " + bc);
+                    this.analyze.path(bc, loc);
+                }/*else{
+                    // dex files
+                    this.dataAnalyzer.indexFilesIn(
+                        this.dataAnalyzer.getScope('DYN_BYTECODE')
+                    );
+                    this.analyze.updateFileIndex(
+                        this.dataAnalyzer.getIndex('DYN_BYTECODE'), true
+                    );
+                }*/
             }
 
+        });
 
-            this.getWorkflow().pushStatus(new StatusMessage(23, "Tagging data previously extracted by hooking"));
-            this.analyze.tagAllIf(
-                function(k,x){ 
-                    return (x.hasTag(TAG.Discover.Internal)==false)
-                        && (x.hasTag(TAG.Discover.Statically)==false);
-                }, 
-                TAG.Discover.Dynamically);
-            
-            this.dataAnalyzer.scan(this.workspace.getRuntimeFilesDir(), this.dataAnalyzer.getScope('DYN_BUFFER')); //["smali"]);
+        /*
+        let dir:string[]=Fs.readdirSync(this.workspace.getRuntimeBcDir());
+        for(let i in dir){
+            elemnt = _path_.join(this.workspace.getRuntimeBcDir(),dir[i],"smali");
+
+            // deprecated
+            this.find.byID().file()
+
+
+            Logger.info('Scanning dir : ', elemnt);
+            if(Fs.existsSync(elemnt)){
+
+                if( Fs.lstatSync(elemnt).isDirectory()) {
+                    Logger.info("Scanning previously discovered dex chunk : " + elemnt);
+                    this.analyze.path(elemnt);
+                }else{
+                    // dex files
+                    this.dataAnalyzer.indexFilesIn(
+                        this.dataAnalyzer.getScope('DYN_BYTECODE')
+                    );
+                    this.analyze.updateFileIndex(
+                        this.dataAnalyzer.getIndex('DYN_BYTECODE'), true
+                    );
+                }
+            }
         }
+*/
+
+        this.getWorkflow().pushStatus(new StatusMessage(23, "Tagging data previously extracted by hooking"));
+        this.analyze.tagAllIf(
+            function(k,x){
+                return (x.hasTag(TAG.Discover.Internal)==false)
+                    && (x.hasTag(TAG.Discover.Statically)==false);
+            },
+            TAG.Discover.Dynamically);
+
+        //}
 
 
 
@@ -1191,5 +1307,6 @@ export default class DexcaliburProject
     getWorkspace(): Workspace {
         return this.workspace;
     }
+
 }
 
