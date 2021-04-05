@@ -77,30 +77,29 @@ const TO_JSON:Function = function (vSrc:any, vTarget:any, vInArray:boolean=false
  *
  * @class
  */
-export default class ModelFile
-{
-    _uid:string = null;
-    _d:string = 'f';
+export default class ModelFile {
+    _uid: string = null;
+    _d: string = 'f';
 
-    name:string = null;
-    type:string = null;
-    size:number = -1;
-    path:string = null;
-    location:string = null;
+    name: string = null;
+    type: string = null;
+    size: number = -1;
+    path: string = null;
+    location: string = null;
     //trueFile:boolean = false;
 
-    scope:DataScope = null;
+    scope: DataScope = null;
     // scope (app package, app data, device file, ...)
 
 
-    sections:ModelExecutableSection[] = [];
-    f_list:ModelFunctionList = {};
+    sections: ModelExecutableSection[] = [];
+    f_list: ModelFunctionList = {};
 
     /**
      * Additional properties/link for this node
      */
-    __p:any = {};
-    __t:any[] = [];
+    __p: any = {};
+    __t: any[] = [];
 
 
     /**
@@ -108,12 +107,12 @@ export default class ModelFile
      * @param {Object} pConfig
      * @constructor
      */
-    constructor(pConfig:any=null){
+    constructor(pConfig: any = null) {
 
         //this.trueFile = false;
 
-        if(pConfig != null){
-            for(let i in pConfig){
+        if (pConfig != null) {
+            for (let i in pConfig) {
 
                 this[i] = pConfig[i];
                 /*
@@ -127,52 +126,52 @@ export default class ModelFile
                 }*/
             }
 
-            if(this._uid==null && this.scope!==null &&  this.path!=null){
+            if (this._uid == null && this.scope !== null && this.path != null) {
                 this.generateUID();
             }
         }
     }
 
-    getUID():string {
+    getUID(): string {
         return this._uid;
     }
 
-    setScope(pScope:DataScope):void {
+    setScope(pScope: DataScope): void {
         this.scope = pScope;
         this.generateUID();
     }
 
-    generateUID():void {
+    generateUID(): void {
         this._uid = _md5_(this.path);
 
         //do{ this._uid=_md5( Util.randString(6, Util.ALPHANUM) }while( UIDS.indexOf(this._uid)>-1);
     }
 
-    getSize():number{
+    getSize(): number {
         return this.size;
     }
 
-    getPath():string{
+    getPath(): string {
         return this.path;
     }
 
-    getName():string{
+    getName(): string {
         return this.name;
     }
 
-    getType():EncodedDataType|string{
+    getType(): EncodedDataType | string {
         return this.type;
     }
 
-    hasExt(ext:string):boolean{
-        return (_path_.extname(this.path)==ext); //   ext( this.type != null)&&(this.type.ext==ext);
+    hasExt(ext: string): boolean {
+        return (_path_.extname(this.path) == ext); //   ext( this.type != null)&&(this.type.ext==ext);
     }
 
     /**
      * @deprecated
      * @param mime
      */
-    hasMIME(mime:string):boolean{
+    hasMIME(mime: string): boolean {
         throw new Error("hadMIME() is deprecated");
 //        return (this.type != null)&&(this.type.mime==mime);
     }
@@ -184,8 +183,8 @@ export default class ModelFile
      *
      * @param pFileSection
      */
-    appendSection(pFileSection:ModelFileSection):void {
-        if(this.__p.m==null) this.__p.m = [];
+    appendSection(pFileSection: ModelFileSection): void {
+        if (this.__p.m == null) this.__p.m = [];
 
         this.__p.m.push(pFileSection);
     }
@@ -197,20 +196,17 @@ export default class ModelFile
      * @method
      * @since 1.0.0
      */
-    getSections():ModelFileSection[] {
+    getSections(): ModelFileSection[] {
         return this.__p.m;
     }
 
-    static unserialize(o):ModelFile {
-        return new ModelFile(o);
+
+    isExecutable(): boolean {
+        return (['ELF'].indexOf(this.type) > -1);
     }
 
-    isExecutable():boolean {
-        return (['ELF'].indexOf(this.type)>-1);
-    }
-
-    toJsonObject(pOpts:any= {}){
-        let o:any = new Object();
+    toJsonObject(pOpts: any = {}) {
+        let o: any = new Object();
 
         /*if(pOpts.cmd!=null) {
             o.__p = {};
@@ -232,34 +228,33 @@ export default class ModelFile
             );
         }*/
 
-        Logger.info(JSON.stringify(this.__p.f_list));
 
-        for(let i in this){
-            switch(i){
+        for (let i in this) {
+            switch (i) {
                 case '__p':
                     o.__p = {};
-                    for(let k in this.__p){
-                        switch(k){
+                    for (let k in this.__p) {
+                        switch (k) {
                             case "sections":
                                 o.__p.sections = [];
-                                this.__p.sections.map( (sec:ModelExecutableSection) => {
-                                    o.__p.sections.push( sec.toJsonObject() );
+                                this.__p.sections.map((sec: ModelExecutableSection) => {
+                                    o.__p.sections.push(sec.toJsonObject());
                                 });
                                 break;
                             case "f_list":
                                 o.__p.f_list = {};
-                                for(let i  in this.__p.f_list){
+                                for (let i in this.__p.f_list) {
                                     o.__p.f_list[i] = this.__p.f_list[i].toJsonObject();
                                 }
                                 break;
                             default:
-                                if(typeof this.__p[k]=='object'){
-                                    if(typeof this.__p[k]['toJsonObject'] === 'function'){
+                                if (typeof this.__p[k] == 'object') {
+                                    if (typeof this.__p[k]['toJsonObject'] === 'function') {
                                         o.__p[k] = this.__p[k].toJsonObject();
-                                    }else{
+                                    } else {
                                         o.__p[k] = this.__p[k];
                                     }
-                                }else
+                                } else
                                     o.__p[k] = this.__p[k];
                                 break;
                         }
@@ -277,30 +272,29 @@ export default class ModelFile
     }
 
 
-
-    setProgramSection(pSection:ModelExecutableSection[]):number{
+    setProgramSection(pSection: ModelExecutableSection[]): number {
         this.__p.sections = pSection;
         return this.__p.sections.length;
     }
 
-    hasFuncs():boolean {
+    hasFuncs(): boolean {
         return this.__p.hasOwnProperty('f_list');
     }
 
-    appendFunctions(pFuncs:ModelFunction[]):void {
-        try{
+    appendFunctions(pFuncs: ModelFunction[]): void {
+        try {
             //Logger.info("R2>Functions extracted (1) ");
             //Logger.info("R2 Functions extracted : ",JSON.stringify(pFuncs));
 
-            if(this.__p.f_list==undefined)
+            if (this.__p.f_list == undefined)
                 this.__p.f_list = {};
 
-            pFuncs.map( vFn => {
+            pFuncs.map(vFn => {
                 vFn.signature();
-                this.__p.f_list["0x"+vFn.getAddr().toString(16)] = vFn;
+                this.__p.f_list["0x" + vFn.getAddr().toString(16)] = vFn;
             });
-        }catch(err){
-            Logger.error("[ModelFile] "+err.message)
+        } catch (err) {
+            Logger.error("[ModelFile] " + err.message)
         }
 
     }
@@ -308,16 +302,58 @@ export default class ModelFile
     /**
      * To get all native function declared into the file
      */
-    getFunctions():ModelFunction[] {
+    getFunctions(): ModelFunction[] {
         //return Object.values(this.fn_list);
         return Object.values(this.__p.f_list);
     }
 
-    getFuncAt(pAddress:number|string):ModelFunction {
-        if(!this.hasFuncs() || !this.__p.f_list.hasOwnProperty(pAddress)){
-            throw new Error("Function not found at ["+pAddress+"]");
+    getFuncAt(pAddress: number | string): ModelFunction {
+        if (!this.hasFuncs() || !this.__p.f_list.hasOwnProperty(pAddress)) {
+            throw new Error("Function not found at [" + pAddress + "]");
         }
 
         return this.__p.f_list[pAddress];
+    }
+
+
+    isSerializable(obj) {
+        return true; //(obj.serialize !=null) && (typeof obj.serialize==='function');
+    }
+
+    /**
+     *
+     * @param pObj
+     */
+    static serialize(pObj: ModelFile): any {
+        return pObj.toJsonObject();
+    }
+
+
+    /**
+     *
+     * @param pObj
+     */
+    static unserialize(pData: any): ModelFile {
+        return new ModelFile(pData);
+    }
+
+
+    hasScope(pScope: DataScope) {
+        return (pScope.equals(this.scope));
+    }
+
+
+    /**
+     * To clone the current instance, and patch
+     * @param {any} pData Patches
+     *
+     */
+    clone(pData:any = null):ModelFile {
+        let o:ModelFile = new ModelFile(this);
+
+        if(pData!=null)
+            for(let i in pData) o[i] = pData[i];
+
+        return o;
     }
 }
