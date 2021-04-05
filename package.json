@@ -1,5 +1,5 @@
 {
-  "name": "dexcalibur-ts",
+  "name": "@reversense/dexcalibur-ts",
   "version": "1.0.0",
   "description": "Android reverse engineering platform focused on dynamic binary instrumentation automation. tPowered by Frida. Offers a GUI and a Node.JS API",
   "main": "./dist/dexcalibur.js",
