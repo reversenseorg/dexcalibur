@@ -1,7 +1,6 @@
 // global
 
 import * as _fs_ from 'fs';
-import Chalk from 'chalk';
 
 
 import {SearchAPI} from "./SearchAPI";
@@ -31,6 +30,7 @@ import ModelFile from "./ModelFile";
 import ModelSyscall from "./ModelSyscall";
 import NativeAnalyzer from "./NativeAnalyzer";
 import DataScope from "./DataScope";
+import {ModelLocation} from "./ModelLocation";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -714,19 +714,24 @@ export default class Analyzer
                 }
             }
 
+            // iter over each basic block and instruction
             for(let j in bb.stack){
                 instruct = bb.stack[j];
                 instruct.iline = bb.line;
                 instruct._parent = bb;
 
                 stats.instrCtr++;
+                // skip instruction with NOP opcode
                 if(instruct.isNOP()) continue;
 
                 success = false;
+
+                // processing instructions performing calls
+                // invoke-*
                 if(instruct.isDoingCall()){
 
                     if(instruct.right.special){
-                        // ignore
+                        Logger.info("SPEC : "+instruct._raw);
                         continue;
                     }
 
@@ -877,8 +882,9 @@ export default class Analyzer
      -> build classes hierarchy
      -> create additional index in the DB
      ->  ...
+     -> Optional. Linking element to a parent file or other (file declaring element)
      */
-    buildModel(data:AnalyzerDatabase, absoluteDB:AnalyzerDatabase){
+    buildModel(data:AnalyzerDatabase, absoluteDB:AnalyzerDatabase, pLocation:ModelLocation=null){
 
         Logger.raw("\n[*] Start object mapping ...\n------------------------------------------");
 
@@ -898,6 +904,8 @@ export default class Analyzer
         // merge Absolute DB and Temp DB
         // if a class has been already analyzed its data will be updated
         data.classes.map((k:string, v:ModelClass)=>{
+
+            if(pLocation!=null) v.addLocation(pLocation);
 
             // add class to the absoluteDb if missing
             if(absoluteDB.classes.hasEntry(k) == false){
@@ -987,6 +995,9 @@ export default class Analyzer
 
                 for(let j in v.fields){
                     o=v.fields[j];
+
+                    if(pLocation!=null)
+                        o.addLocation(pLocation);
                     o.fqcn = v.getName();
                     // add relation  Field -- parent --> Class
                     o.enclosingClass = v;
@@ -1018,6 +1029,9 @@ export default class Analyzer
                 for(let j in cls.fields){
                     o=cls.fields[j];
 
+                    if(pLocation!=null)
+                        o.addLocation(pLocation);
+
                     // broadcast FQCN from Class objects to Field objects
                     o.fqcn = cls.getName();
                     o.enclosingClass = cls;
@@ -1036,6 +1050,12 @@ export default class Analyzer
 
                 for(let j in v.methods){
                     o=v.methods[j];
+
+                    // adding declaring buffer/file if not into PKG scope
+                    if(pLocation!=null){
+                        o.addLocation(pLocation);
+                    }
+
 
                     // add relation  Method -- parent --> Class
                     o.enclosingClass = v;
@@ -1062,6 +1082,10 @@ export default class Analyzer
             }else{
                 for(let j in cls.methods){
                     o=cls.methods[j];
+
+                    if(pLocation!=null){
+                        o.addLocation(pLocation);
+                    }
 
                     o.enclosingClass = cls;
                     //data.methods[o.signature()] = o;
@@ -1126,7 +1150,7 @@ export default class Analyzer
 
 
         // STEP 4
-        // console : progress "bar"
+        // create xref : search binding and link
         data.classes.map((k:string,v:ModelClass)=>{
             let em, om, ovr;
 
@@ -1209,7 +1233,7 @@ export default class Analyzer
         }
     }
 
-    path(pPath:string):void{
+    path(pPath:string, pLocation:ModelLocation=null):void{
 
         let self:Analyzer = this;
         let tempDb:AnalyzerDatabase = this.newTempDb();
@@ -1241,14 +1265,18 @@ export default class Analyzer
 
         // start object mapping
         // MakeMap(this.db);
-        this.buildModel(tempDb, this.db);
+        if(pLocation!=null)
+            this.buildModel(tempDb, this.db, pLocation);
+        else
+            this.buildModel(tempDb, this.db);
 
 
         this.context.bus.send(new Event({
             name: "analyze.file.after",
             data: {
                 path: pPath,
-                analyzer: this
+                analyzer: this,
+                db: tempDb
             }
         }));
 
