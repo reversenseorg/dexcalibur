@@ -56,10 +56,14 @@ export default class DexHelper
      */
     static async disassemble( pDexfilePath:string, pDestPath:string=null, override:boolean=false):Promise<boolean>{
         let baksmali:any = DexHelper.getBaksmaliCommand();
-    
+
+        Logger.info("[DEX HELPER] Disass "+pDexfilePath+", out: "+pDestPath+', override: '+override);
+
         if(Fs.existsSync(pDestPath)){
             if(!override) return false;
         }
+
+        Logger.info("[DEX HELPER] exec :  "+baksmali.file+" disassemble "+pDexfilePath+" -o "+pDestPath);
 
         let { stderr } =  await _execFile_(
             baksmali.file,
