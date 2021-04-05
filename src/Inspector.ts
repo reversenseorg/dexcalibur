@@ -11,6 +11,7 @@ import InspectorFrontController, {IFC_TYPE} from "./InspectorFrontController";
 import Event from "./Event";
 import * as Log from './Logger';
 import {Stats} from "mocha";
+import {BusBroadcaster} from "./Bus";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -65,7 +66,7 @@ class StaticTask
 
 
 
-export default class Inspector
+export default class Inspector implements BusBroadcaster
 {
     id:string = null;
     name:string = null;
@@ -109,6 +110,9 @@ export default class Inspector
         return this;
     }
 
+    getUID(): string {
+        return this.id;
+    }
 
     /**
      * @return {boolean}
@@ -343,6 +347,7 @@ export default class Inspector
         let savePath:string = _path_.join(this.context.workspace.getSaveDir(), this.id+".json");
         _fs_.exists(savePath, function(exist){
             if(exist){
+                _fs_.chmodSync(savePath, 0o777);
                 _fs_.unlinkSync(savePath);
             }
 
@@ -359,7 +364,11 @@ export default class Inspector
                         return;
                     }
                     console.log("Inspector "+self.id+" backed up");
-                    _fs_.close(fd,function(err){});
+                    _fs_.close(fd,function(err){
+                        if(!err){
+                            _fs_.chmodSync(savePath, 0o777);
+                        }
+                    });
                 });
             })
         })

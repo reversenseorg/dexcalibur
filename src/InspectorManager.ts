@@ -166,6 +166,7 @@ export default class InspectorManager
 
 
     getInspectorsOf(pProject:DexcaliburProject):Inspector[]{
+        //Logger.info("getInspectorsOf:" + pProject.getUID()+" ( "+(pProject==null?'<null>':'<project>')+")");
         return this.projects[pProject.getUID()];
     }
 
@@ -256,13 +257,20 @@ export default class InspectorManager
                         insp.injectContext(pProject);
                     }
                     // subscribe to events bus
-                    pProject.bus.subscribe(insp);
+                    pProject.bus.register(insp);
                     
                     self.add(insp);
                 }
         },true);
     }
 
+
+    /**
+     * To create inspector instance per actives projects
+     *
+     * @param {DexcaliburProject} pProject
+     * @return {boolean}
+     */
     createInspectorsFor( pProject:DexcaliburProject):boolean{
         let uid:string = pProject.getUID();
         
@@ -272,14 +280,12 @@ export default class InspectorManager
 
         for(let i in this.locals){
             this.projects[uid][i] = (this.locals[i] as any).default.createInstance(pProject);
-
-            pProject.bus.subscribe(this.projects[uid][i]);
-                    
-            //self.add(insp);
+            pProject.bus.register(this.projects[uid][i]);
         }
 
         return true;
     }
+
     /**
      * To get an inspector by its UID
      * 
@@ -316,8 +322,11 @@ export default class InspectorManager
         let uid:string = pProject.getUID();
         let insp:string = "";
 
-        if(this.projects[uid] == null) 
+        if(this.projects[uid] == null) {
+            // cannot deployed not initiliazed inspectors
             return false;
+        }
+
 
         for(let i in this.projects[uid]){
             if(this.projects[uid][i].isStartAt(pStep)){
