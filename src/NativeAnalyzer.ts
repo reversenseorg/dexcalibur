@@ -246,11 +246,11 @@ export default class NativeAnalyzer {
             ( async ()=>{
                 const n = await helper.start(pProfile);
 
-                Logger.info("[DB::FUNC] executed cmd : "+n);
+                //Logger.info("[DB::FUNC] executed cmd : "+n);
                 if(n){
                     pFile.getFunctions().map( (vFn:ModelFunction) => {
                         this.db.funcs.addEntry(vFn.signature(), vFn);
-                        Logger.info("[DB::FUNC] add func : ", JSON.stringify(vFn));
+                       // Logger.info("[DB::FUNC] add func : ", JSON.stringify(vFn));
                     })
                 }
 
