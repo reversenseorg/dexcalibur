@@ -8,6 +8,7 @@ import {promisify} from "util";
 import Utils from "./Utils";
 import Platform from "./Platform";
 import DexcaliburRegistry from "./DexcaliburRegistry";
+import {ValidationCapable, ValidationRule} from "./Validator";
 
 
 
@@ -27,13 +28,22 @@ interface IPlatformMap {
  * 
  * @class
  */
-export default class PlatformManager
+export default class PlatformManager extends ValidationCapable
 {
     engine:any;
     remote:any;
     local:any;
 
     constructor( pEngine:any){
+        super({
+            'uid': [
+                ValidationRule.newRegexpAssert(new RegExp('^.*$')) // mock
+            ],
+            'uid.target': [
+                ValidationRule.newRegexpAssert(new RegExp('^.*$')) // mock
+            ]
+        });
+
         this.engine = pEngine;
         this.remote = {};
         this.local = {};
@@ -89,6 +99,9 @@ export default class PlatformManager
     }
 
     getRemote():any{
+        if(Object.keys(this.remote).length==0){
+            this.enumerate();
+        }
         return this.remote;
     }
 
