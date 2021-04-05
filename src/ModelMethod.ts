@@ -7,6 +7,7 @@ import {Savable, STUB_TYPE} from "./ModelSavable";
 import {ModelBasicType, ModelObjectType} from "./ModelType";
 import ModelBasicBlock from "./ModelBasicBlock";
 import ModelCall from "./ModelCall";
+import {ModelLocation} from "./ModelLocation";
 
 
 /*interface LazyMethodReference {
@@ -75,6 +76,8 @@ export default class ModelMethod extends Savable
 
     isDerived:boolean = false; // TODO
 
+    _:any = {};
+
     /**
      *
      *
@@ -87,6 +90,18 @@ export default class ModelMethod extends Savable
         if(pConfig!==undefined)
             for(let i in pConfig)
                 this[i]=pConfig[i];
+    }
+
+    set location (pLocation:ModelLocation) {
+        this._.loc = pLocation;
+    }
+
+    get location ():ModelLocation {
+        return this._.loc;
+    }
+
+    addLocation(pLocation:ModelLocation):void {
+        this._.loc = pLocation;
     }
 
     callSignature2():string{
@@ -149,7 +164,7 @@ export default class ModelMethod extends Savable
     signature():string{
         if(this.__signature__ !== null) return this.__signature__;
 
-        let xargs:string = "", hash:string ="";
+        let xargs:string = "", hash:string;
 
         for(let i in this.args) xargs+=""+this.args[i].signature()+"";
 
@@ -184,7 +199,7 @@ export default class ModelMethod extends Savable
     signatureFactory(ppt:string, seed:string):string{
         if(this[ppt] !== null) return this[ppt];
 
-        let xargs:string = "", hash:string ="";
+        let xargs:string = "", hash:string;
 
         for(let i in this.args) xargs+=""+this.args[i].signature()+""; // signatureFactory(ppt, seed)
 
@@ -438,6 +453,11 @@ export default class ModelMethod extends Savable
                     case "enclosingClass":
                         obj.enclosingClass = (this.enclosingClass!=null)? this.enclosingClass.name : "";
                         break;
+                    case "_":
+                        if(this._.loc != null){
+                            obj.location = this._.loc.toJsonObject();
+                        }
+                        break;
                     case "modifiers":
                         if(this.modifiers != null)
                             obj.modifiers = ModifierFormat.toJsonObject(this.modifiers); //this.modifiers.toJsonObject();
@@ -590,9 +610,23 @@ export default class ModelMethod extends Savable
     return this._callers;
 }
    addCaller(meth:ModelMethod){
-    if(this._callers.indexOf(meth.signature() as any) == -1)
-        this._callers.push(meth.signature() as any);
-}
+        let f:boolean = false;
+        const m = meth.signature();
+
+        for(let i=0; i<this._callers.length; i++){
+            if((this._callers[i] as ModelMethod).signature()===m){
+                f = true;
+                break;
+            }
+        }
+
+        if(!f){
+            this._callers.push(meth as any);
+        }
+
+    //if(this._callers.indexOf(meth.signature() as any) == -1)
+    //    this._callers.push(meth.signature() as any);
+    }
    getMethodUsed():any{
     return this._useMethod;
 }
