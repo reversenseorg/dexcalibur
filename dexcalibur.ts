@@ -10,11 +10,13 @@ import * as _fs_ from "fs";
 import * as _os_ from "os";
 
 
-const LOG_ENABLED = true;
-const LOG_FILE = "/Users/salade/Documents/repos/dexcalibur-codebase/dexcalibur-ui/dexcalibur.logs";
+const LOG_DEF_FILE = false; //"/Users/salade/Documents/repos/dexcalibur-codebase/dexcalibur-ui/dexcalibur.logs";
+const LOG_FILE = (process.env.DXC_LOG_PATH ? process.env.DXC_LOG_PATH : LOG_DEF_FILE);
+
+
 
 function __log( pMessage:string):void{
-    if(LOG_ENABLED)
+    if(LOG_FILE)
         _fs_.appendFileSync(LOG_FILE, pMessage+_os_.EOL);
 }
 
