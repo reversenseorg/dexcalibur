@@ -22,7 +22,6 @@
     "event-stream": "^4.0.1",
     "express": "^4.16.3",
     "file-type": "^10.4.0",
-    "frida": "^14.2.2",
     "got": "^10.7.0",
     "js-yaml": "^3.13.1",
     "md5": "^2.2.1",
@@ -52,6 +51,9 @@
     "ts-node": "^8.10.2",
     "typescript": "^3.9.5"
   },
+  "optionalDependencies": {
+    "frida": "^14.2.2"
+  },
   "bin": {
     "dexcalibur": "dexcalibur.js"
   },
@@ -61,15 +63,25 @@
     "watch": "tsc -w",
     "start": "node --max-old-space-size=4096 ./dist/dexcalibur.js",
     "test": "TS_NODE_COMPILER_OPTIONS='{\"module\":\"commonjs\"}' DEXCALIBUR_TEST=1 DEXCALIBUR_PORT=8081 DEXCALIBUR_HOST=127.0.0.1 mocha -r ts-node/register test/*.test.ts",
-    "postinstall": "node ./scripts/postinstall.js"
+    "postinstall": "node ./scripts/postinstall.js",
+    "prebuilt:node:publish":"npmrc dxc-npm && cp .npmignore.prebuilt .npmignore && npm run build && npm publish --tag prebuilt && cp .npmignore.default .npmignore",
+    "prebuilt:electron:publish":"npmrc dxc-npm && cp .npmignore.prebuilt .npmignore && npm run build && npm publish --tag prebuilt-electron && cp .npmignore.default .npmignore",
+    "electron:rebuild": "",
+    "prepublish": "npmrc dxc-npm",
+    "publish": "cp .npmignore.default .npmignore && npm publish"
   },
   "engines": {
     "node": ">=12.0"
   },
   "author": {
     "name": "Georges-Bastien MICHEL",
-    "email": "frenchyeti@protonmail.com"
+    "email": "georges.michel@protonmail.com"
   },
+  "os": [
+    "darwin",
+    "linux",
+    "win32"
+  ],
   "homepage": "https://github.com/FrenchYeti/dexcalibur",
   "license": "Apache-2.0"
 }
