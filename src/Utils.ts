@@ -93,13 +93,17 @@ export default class Util {
         return encodeURIComponent(uri);
     }
 
-    static trim(str:string):string{
+    static trim(str:string, pRemoveCrlf:boolean=false):string{
         //if(!(str instanceof String)) console.error("trim() : the argument must be a string");
 
-        while(str[0]!=undefined && (str[0]=="\t"||str[0]==" ")) 
-            str=str.substr(1);
+        const wl = (pRemoveCrlf ? ["\t"," "] : ["\t"," ","\r","\n"]);
 
-        while(str[str.length]!=undefined && (str[str.length]=="\t"||str[str.length]==" ")) 
+//        while(str[0]!=undefined && (str[0]=="\t"||str[0]==" "))
+        while(str[0]!=undefined && (wl.indexOf(str[0])>-1))
+                str=str.substr(1);
+
+//        while(str[str.length]!=undefined && (str[str.length]=="\t"||str[str.length]==" "))
+        while(str[str.length-1]!=undefined && (wl.indexOf(str[str.length-1])>-1))
             str=str.substr(0,str.length-1);
 
         return str;
