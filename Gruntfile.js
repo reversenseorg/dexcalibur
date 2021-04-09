@@ -24,7 +24,7 @@ module.exports = function(grunt) {
       'To build final package including non-TS required resources',
       function(pProfile){
 
-            let output = _path_.join(__dirname,grunt.config('build.output'))+'/';
+            let output = _path_.join(__dirname,grunt.config('build.output'),'dexcalibur-ts');
 
               /*grunt.config.set('copy.core', {
                   expand: true,
@@ -44,11 +44,11 @@ module.exports = function(grunt) {
                   './package-lock.json',
                   './dexcalibur',
                   './README.md',
-                  './src/builtinref/**/*',
+    //              './src/builtinref/**/*',
                   './src/requires/**/*',
-                  './src/routes/**/*',
-                  './src/scanner/**/*',
-                  './src/webserver/**/*',
+    //              './src/routes/**/*',
+    //              './src/scanner/**/*',
+    //              './src/webserver/**/*',
                   './inspectors/**/web/*'
               ];
 
