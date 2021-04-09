@@ -15,10 +15,12 @@ import * as _os_ from "os";
 
 let PRINT = null;
 
-const LOG_ENABLED = true;
-const LOG_FILE = "/Users/salade/Documents/repos/dexcalibur-codebase/dexcalibur-ui/dexcalibur.logs";
 
-if(LOG_ENABLED)
+const LOG_DEF_FILE = false;
+const LOG_FILE = (process.env.DXC_LOG_PATH ? process.env.DXC_LOG_PATH : LOG_DEF_FILE);
+
+
+if(LOG_FILE)
     PRINT = function ( pMessage:string){
                 _fs_.appendFileSync(LOG_FILE, pMessage+_os_.EOL);
         };
