@@ -39,7 +39,13 @@ function __log( pMessage:string):void{
         _fs_.appendFileSync(LOG_FILE, pMessage+_os_.EOL);
 }
 
-const CONFIG_PATH = _path_.join( _os_.homedir(), '.dexcalibur', 'config.json');
+let CONFIG_PATH:string;
+if(process.env.DXC_HOME!=null){
+    CONFIG_PATH = process.env.DXC_HOME;
+}else{
+    CONFIG_PATH = _path_.join( _os_.homedir(), '.dexcalibur', 'config.json');
+}
+
 
 const FRIDA_BIN = (process.env.DEXCALIBUR_FRIDA !== null)? process.env.DEXCALIBUR_FRIDA : "frida"
 
