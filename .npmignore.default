@@ -1,0 +1,9 @@
+.npmrc
+.nyc_output/
+.space.kts
+lock-old.json
+dist/*
+TOPORT/*
+node_modules/*
+src/webserver/*
+test/ws/.dxc/bin/*
