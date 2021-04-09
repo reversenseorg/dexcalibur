@@ -332,6 +332,9 @@ export default class SmaliParser
     type(src:string):(ModelObjectType|ModelBasicType)[]{
         let i:number=0,l:number=-1,types:(ModelObjectType|ModelBasicType)[]=[],fqn:string=null,isArray:boolean=false;
 
+        // remove potential whitespaces
+        src = Util.trim(src, true);
+
         while(i<src.length){
             if(src[i]==CONST.LEX.TOKEN.ARRAY){
                 isArray=true;
