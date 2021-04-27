@@ -113,7 +113,7 @@ let dxcWebRoot = null;
 if(projectArgs.uipath!==undefined){
     dxcWebRoot = (projectArgs.uipath[0]=='/'? projectArgs.uipath : _path_.join(__dirname, projectArgs.uipath));
 }else{
-    dxcWebRoot = _path_.join(__dirname, 'src', 'webserver', 'src');
+    dxcWebRoot = _path_.join(__dirname, 'src', 'webserver', 'public');
 }
 
 if(projectArgs.reinstall == true){
