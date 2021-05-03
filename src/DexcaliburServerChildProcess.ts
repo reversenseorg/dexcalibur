@@ -6,7 +6,7 @@ import * as _os_ from "os";
 
 // TODO : remove before prod
 const LOG_ENABLED = true;
-const LOG_DEF_FILE = "/Users/salade/Documents/repos/dexcalibur-codebase/dexcalibur-ui/dexcalibur.logs";
+const LOG_DEF_FILE = "/Users/salade/Documents/repos/dexcalibur-codebase/dexcalibur-ui/server2.logs";
 
 const LOG_FILE = (process.env.DXC_LOG_PATH ? process.env.DXC_LOG_PATH : LOG_DEF_FILE);
 
