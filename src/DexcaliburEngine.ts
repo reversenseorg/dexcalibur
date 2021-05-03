@@ -110,6 +110,15 @@ export interface DexcaliburProjectMap {
 export default class DexcaliburEngine extends ValidationCapable
 {
 
+    /**
+     * Configuration file path
+     * @type {string}
+     * @field
+     * @private
+     * @since 1.0.0
+     */
+    private _configPath:string = null;
+
     /**git diff
      * Global configuration of Dexcalibur
      * @field
@@ -382,6 +391,16 @@ export default class DexcaliburEngine extends ValidationCapable
     }
 
     /**
+     * To set configuration path
+     * @param {string} pPath Configuartion file path
+     * @method
+     * @since 1.0.0
+     */
+    setConfigurationPath(pPath:string):void {
+        this._configPath = pPath;
+    }
+
+    /**
      * To load data from workspace and to init registry
      * 
      * @method
@@ -391,7 +410,10 @@ export default class DexcaliburEngine extends ValidationCapable
         
         if(process.env.DEXCALIBUR_HOME != null)
             d = JSON.parse( _fs_.readFileSync( _path_.join( process.env.DEXCALIBUR_HOME, 'config.json')).toString() );
-        else if(pDexcaliburHome!= null)
+        else if(this._configPath != null) {
+            const data = JSON.parse(_fs_.readFileSync(this._configPath).toString());
+            d = data.server;
+        }else if(pDexcaliburHome!= null)
             d = JSON.parse( _fs_.readFileSync( _path_.join( pDexcaliburHome, 'config.json')).toString() );
         else
             d = JSON.parse( _fs_.readFileSync(CONFIG_PATH).toString() );
@@ -399,6 +421,8 @@ export default class DexcaliburEngine extends ValidationCapable
         if(pOverride != null){
             for(let i in pOverride) d[i] = pOverride[i];
         }
+
+        _fs_.writeFileSync('/Users/salade/Documents/repos/dexcalibur-codebase/dexcalibur-ts/electron.logs','Config from installer'+JSON.stringify(d)+"\n"+process.env.DEXCALIBUR_HOME+"\n"+this._configPath);
 
         this.workspace = DexcaliburWorkspace.getInstance( d.workspace);
         this.registry = new DexcaliburRegistry( d.registry, d.registryAPI);
