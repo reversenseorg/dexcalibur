@@ -24,7 +24,7 @@ module.exports = function(grunt) {
       'To build final package including non-TS required resources',
       function(pProfile){
 
-            let output = _path_.join(__dirname,grunt.config('build.output'),'dexcalibur-ts');
+            let output = _path_.join(__dirname,grunt.config('build.output')); //,'dexcalibur-ts');
 
               /*grunt.config.set('copy.core', {
                   expand: true,
