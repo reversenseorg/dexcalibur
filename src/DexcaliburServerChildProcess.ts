@@ -23,6 +23,9 @@ export interface IpcMessage {
   data: any;
 }
 
+
+
+
 /**
  * Represents the Dexcalibur Engine
  * when dexcalibur is spawned from another process
@@ -179,10 +182,13 @@ export class DexcaliburServerChildProcess {
 
     let ready:boolean=false;
 
-    if(DexcaliburEngine.requireInstall()){
-      this.send({ cmd:'started', data: { success:false, msg:'Dexcalibur is not installed'}});
-      return;
+    if(pOptions.hasOwnProperty('cfg') && _fs_.existsSync(pOptions.cfg)){
+        this.engine.setConfigurationPath(pOptions.cfg);
+    }else if(DexcaliburEngine.requireInstall()){
+        this.send({ cmd:'started', data: { success:false, msg:'Dexcalibur is not installed'}});
+        return;
     }
+
 
     let dxcWebRoot:string = null;
 
@@ -192,6 +198,7 @@ export class DexcaliburServerChildProcess {
       pOptions.restore===true? true : false,
       dxcWebRoot
     );
+
 
     if(ready){
       this.engine.start((pOptions.port!=null) ? pOptions.port : 8000 );
