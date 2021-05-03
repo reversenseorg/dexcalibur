@@ -1,12 +1,7 @@
 import {NodeType} from "./NodeType";
 import {ModelBasicType, ModelObjectType} from "./ModelType";
 import ModelFile from "./ModelFile";
-import {ModifierFormat} from "./AccessFlags";
-import {ModelVariable} from "../../dexcalibur-ui/dxc-web/src/app/models/ModelVariable";
-import ModelCall from "./ModelCall";
-import {ModelNativeRef} from "../../dexcalibur-ui/dxc-web/src/app/models/ModelNativeRef";
 import ModelCpuInstruction from "./ModelCpuInstruction";
-import {TOPO_ICONS} from "../../dexcalibur-ui/dxc-web/src/app/components/topology/icons";
 
 export interface ModelFunctionList {
     [pAddress:string] :ModelFunction
@@ -19,6 +14,8 @@ const CMD_ATTR_MAPPING = {
 
 
 import * as Log from './Logger';
+import {ModelVariable} from "./ModelVariable";
+import {ModelNativeRef} from "./ModelNativeRef";
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
 const TO_JSON:Function = function (vSrc:any, vTarget:any, vInArray:boolean=false):any{
