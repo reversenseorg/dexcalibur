@@ -663,6 +663,8 @@ export default class WebServer
                         wf.pushStatus(StatusMessage.newError(err.message))
                     }
 
+                    Logger.error(err.message);
+
                     $.setProject(null);
                     res.status(HTTP_CODE_ERROR).send(JSON.stringify({ success:false, msg:"An error occured while project initializing"}));
                 }
