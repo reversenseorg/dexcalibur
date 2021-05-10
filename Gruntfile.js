@@ -41,6 +41,7 @@ module.exports = function(grunt) {
                   './bin/**/*',
                   './node_modules/**/*',
                   './package.json',
+                  './info.json',
                   './package-lock.json',
                   './dexcalibur',
                   './README.md',
