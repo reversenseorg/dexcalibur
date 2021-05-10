@@ -27,7 +27,9 @@ let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
 var gAdmZip:any = null;
 var gEngineInstance:DexcaliburEngine = null;
-var PACKAGE_JSON:any = require(_path_.join(__dirname,"..","..","package.json"));
+var PACKAGE_JSON:any =  require(_path_.join(__dirname,"..",'info.json'));
+
+//require( _path_.join( process.env.DXC_SRV_PATH ? __dirname,"..","..","package.json"));
 
 
 
