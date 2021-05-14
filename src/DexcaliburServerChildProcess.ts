@@ -97,25 +97,31 @@ export class DexcaliburServerChildProcess {
     __log('[DXC-SRV][DISPATCH-IPC] Caught message : '+pMessage.cmd);
     if(this.active === false) return;
 
-
-    switch(pMessage.cmd){
-      case 'start':
-        this.engine = DexcaliburEngine.getInstance();
-        this.start(pMessage.data);
-        break;
-      case 'install':
-        this.install(pMessage.data);
-        break;
-      case 'reinstall':
-        this.reinstall(pMessage.data);
-        break;
-      case 'project-ready':
-        this.isProjectReady(pMessage.data);
-        break;
-      default:
-        __log('[DXC-SRV][DISPATCH-IPC] Invalid IPC command : '+pMessage.cmd);
-        break;
+    try{
+      switch(pMessage.cmd){
+        case 'start':
+          this.engine = DexcaliburEngine.getInstance();
+          this.start(pMessage.data);
+          break;
+        case 'install':
+          this.install(pMessage.data);
+          break;
+        case 'reinstall':
+          this.reinstall(pMessage.data);
+          break;
+        case 'project-ready':
+          this.isProjectReady(pMessage.data);
+          break;
+        default:
+          __log('[DXC-SRV][DISPATCH-IPC] Invalid IPC command : '+pMessage.cmd);
+          break;
+      }
+    }catch(err){
+      __log(`[DXC-SRV][DISPATCH-IPC] Exception caught : 
+        ${err.message}
+      `);
     }
+
   }
 
   /**
