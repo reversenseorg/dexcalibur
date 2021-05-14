@@ -65,11 +65,11 @@
     "start": "node --max-old-space-size=4096 ./dist/dexcalibur.js",
     "test": "TS_NODE_COMPILER_OPTIONS='{\"module\":\"commonjs\"}' DEXCALIBUR_TEST=1 DEXCALIBUR_PORT=8081 DEXCALIBUR_HOST=127.0.0.1 mocha -r ts-node/register test/*.test.ts",
     "postinstall": "node ./scripts/postinstall.js",
-    "prebuilt:node:publish":"npmrc dxc-npm && cp .npmignore.prebuilt .npmignore && npm run build && npm publish --tag prebuilt && cp .npmignore.default .npmignore",
-    "prebuilt:electron:publish":"npmrc dxc-npm && cp .npmignore.prebuilt .npmignore && npm run build && npm publish --tag prebuilt-electron && cp .npmignore.default .npmignore",
+    "o_prebuilt:node:publish":"npmrc dxc-npm &&  cp .npmignore.prebuilt .npmignore && npm run build && npm publish --tag prebuilt && cp .npmignore.default .npmignore",
+    "o_prebuilt:electron:publish":"npmrc dxc-npm && cp .npmignore.prebuilt .npmignore && npm run build && npm publish --tag prebuilt-electron && cp .npmignore.default .npmignore",
     "electron:rebuild": "",
-    "prepublish": "npmrc dxc-npm",
-    "publish": "cp .npmignore.default .npmignore && npm publish"
+    "o_prepublish": "npmrc dxc-npm",
+    "publish": "npmrc dxc-npm && cp .npmignore.default .npmignore && npm publish"
   },
   "engines": {
     "node": ">=12.0"
