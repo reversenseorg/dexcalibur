@@ -3708,11 +3708,9 @@ export default class WebServer
      * @param {Integer} port Port number 
      * @method
      */
-    start(port:number) {
+    start(port:number = null) {
         
-        if (port == null) {
-            this.port = this.context.getConfiguration().getWebPort(); //project.config.web_port;
-        } else {
+        if (port !== null) {
             this.port = port;
         }
 
