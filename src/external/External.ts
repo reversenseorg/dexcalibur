@@ -66,7 +66,10 @@ export namespace External {
 
             for(let i in pConfig){
                 if(pConfig.hasOwnProperty(i)){
-                    this.tools[i] = new Tool(i, pConfig[i]);
+                    if(typeof pConfig[i] === 'string')
+                        this.tools[i] = new Tool(i, { path:pConfig[i] });
+                    else
+                        this.tools[i] = new Tool(i, pConfig[i] );
                 }
             }
         }
