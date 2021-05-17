@@ -49,6 +49,8 @@ import {Workflow} from "./Workflow";
 import {HookSetList} from "./HookManager";
 import {Finder} from "./Finder";
 import {ValidationCapable, Validator} from "./Validator";
+import {Core} from "./Core";
+import WebServerSettings = Core.Configuration.WebServerSettings;
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -178,6 +180,17 @@ export default class WebServer
         this.uploader = null;
 
         this.controller = null;
+    }
+
+    /**
+     * To set params value with settings from global settings
+     *
+     * @param {WebServerSettings} pSettings
+     * @method
+     * @since 1.0.0
+     */
+    configure( pSettings:WebServerSettings):void {
+        this.port = pSettings.getHttpPort();
     }
 
     /**
