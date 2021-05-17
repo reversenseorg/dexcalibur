@@ -222,7 +222,7 @@ export class WebsocketServer
     start( pPort:number) :void {
 
         if (pPort == null) {
-            this.port = this.engine.getConfiguration().getWebPort(); //project.config.web_port;
+            this.port = this.engine.getSettings().getWebserverSettings().getWsPort();
         } else {
             this.port = pPort;
         }

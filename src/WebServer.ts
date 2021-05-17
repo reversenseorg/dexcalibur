@@ -39,8 +39,7 @@ import {Intent, IntentCommandFactory} from "./IntentFactory";
 import Simplifier from "./Simplifier";
 import ModelPackage from "./ModelPackage";
 import ModelClass from "./ModelClass";
-import Workspace from "./Workspace";
-import ModelExecutableSection from "./ModelExecutableSection";
+import ProjectWorkspace from "./ProjectWorkspace";
 import ModelFile from "./ModelFile";
 import DataScope, {DataScopePpts} from "./DataScope";
 import {ModelFunction} from "./ModelFunction";
@@ -399,12 +398,12 @@ export default class WebServer
      */
     initInstallRoutes(){
 
-        this.controller = this.newDispatcher( _path_.join("pages","install.html"));
+        //this.controller = this.newDispatcher( _path_.join("pages","install.html"));
 
         // init routes serving static contents
-        this.initStaticRoutes();
+        //this.initStaticRoutes();
 
-        this.app.use('/api/settings', require("./routes/InstallRoutes"));        
+        //this.app.use('/api/settings', require("./routes/InstallRoutes"));
     }
 
     /**
@@ -642,7 +641,7 @@ export default class WebServer
                     if(req.body['connector'] != null && req.body['connector'].length > 0){
                         project.setConnector(req.body['connector']);
                     }else
-                        project.setConnector($.context.getConfiguration().getDefaultConnector());
+                        project.setConnector($.context.getWorkspace().getSettings().getDefaultConnector());
 
 
                     if(project != null){
@@ -3625,11 +3624,14 @@ export default class WebServer
 
     /**
      * To use routes of install mode
-     * 
+     *
+     * DO NOT REMOVE : Subject to change
+     *
+     * @deprecated since 1.0.0
      * @method
      */
     useInstallMode():void{
-        this.initInstallRoutes();
+       // this.initInstallRoutes();
     }
 
     /**

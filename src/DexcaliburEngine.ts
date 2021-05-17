@@ -104,8 +104,6 @@ export interface DexcaliburProjectMap {
  * 
  * Boot :
  *  - Read /home/ * /.dexcalibur/config.json
- *  - If this file is not existing, then Dexcalibur starts into "install mode" 
- * and import the configuration file specified by "/home/ * /.dexcalibur/config.json"
  *  - Else, Dexcalibur starts into "production mode"
  * 
  *  - Init DexcaliburWorkspace  
@@ -186,12 +184,6 @@ export default class DexcaliburEngine extends ValidationCapable
      * @field
      */
     active:DexcaliburProjectMap = {};
-
-    /**
-     * installer
-     * @field
-     */
-    installer:Installer = null;
 
 
     /**
@@ -389,8 +381,8 @@ export default class DexcaliburEngine extends ValidationCapable
 
     /**
      * To print Dexcalibur banner into CLI during install
-     *  
-     * @param {Integer} pPort Port number 
+     *
+     * @param {Integer} pPort Port number
      * @static
      * @method
      */
@@ -413,12 +405,14 @@ export default class DexcaliburEngine extends ValidationCapable
 
     /**
      * To detect if Dexcalibur has been installed by NPM
-     * 
+     * TODO : replace by dexcalibur-installer
+     *
      * @static
      * @method
      */
     static requireInstall():boolean{
-        return (_fs_.existsSync( CONFIG_PATH) == false);
+        // to implement or it asssumes dexcalibur is already installed
+        return false;//  (_fs_.existsSync( CONFIG_PATH) == false);
     }
 
     /**
@@ -475,34 +469,6 @@ export default class DexcaliburEngine extends ValidationCapable
 
     }
 
-    /**
-     * To load data from workspace and to init registry
-     * 
-     * @method
-     * @deprecated
-     */
-    loadWorkspaceFromConfig(pDexcaliburHome:string=undefined, pOverride:any=undefined){
-        let d:any = null;
-
-        if(process.env.DEXCALIBUR_HOME != null)
-            d = JSON.parse( _fs_.readFileSync( _path_.join( process.env.DEXCALIBUR_HOME, 'config.json')).toString() );
-        else if(this._configPath != null) {
-            const data = JSON.parse(_fs_.readFileSync(this._configPath).toString());
-            d = data.server;
-        }else if(pDexcaliburHome!= null)
-            d = JSON.parse( _fs_.readFileSync( _path_.join( pDexcaliburHome, 'config.json')).toString() );
-        else
-            d = JSON.parse( _fs_.readFileSync(CONFIG_PATH).toString() );
-
-        if(pOverride != null){
-            for(let i in pOverride) d[i] = pOverride[i];
-        }
-
-        _fs_.writeFileSync('/Users/salade/Documents/repos/dexcalibur-codebase/dexcalibur-ts/electron.logs','Config from installer'+JSON.stringify(d)+"\n"+process.env.DEXCALIBUR_HOME+"\n"+this._configPath);
-
-        this.workspace = DexcaliburWorkspace.getInstance( d.workspace);
-        this.registry = new DexcaliburRegistry( d.registry, d.registryAPI);
-    }   
     
     /**
      * To instenciate and initialize main components
@@ -510,7 +476,7 @@ export default class DexcaliburEngine extends ValidationCapable
      * At this step
      * Require `this.workspace` is loaded.  
      * 
-     * @returns {Boolean} TRUE if ready to start, FALSE if install is required.
+     * @returns {Boolean} TRUE if ready to start
      * @method
      */
     boot( pRestore:boolean=false, pWebRoot:string = null){
@@ -520,7 +486,7 @@ export default class DexcaliburEngine extends ValidationCapable
         this.workspace.init();
 
         // read configuration file into target workspace
-        this.loadWorkspaceConfig( pRestore);
+        // this.loadWorkspaceConfig( pRestore);
 
         // init
         this.init( pWebRoot);
@@ -546,27 +512,6 @@ export default class DexcaliburEngine extends ValidationCapable
         return true;
     }
 
-    /**
-     * 
-     * @param {Boolean} pRestore If TRUE backed up configuration is loaded,  
-     * @method
-     */
-    loadWorkspaceConfig( pRestore:boolean) {
-        let data:any = null;
-
-        try{
-            if(pRestore){
-                data = this.workspace.readConfigurationBackupFile();
-            }else{
-                data = this.workspace.readConfigurationFile();
-            }
-
-            this.config = Configuration.from( data );
-        }catch(e){
-            console.log(e);
-            Logger.error(`Dexcalibur configuration file not found.`);
-        }
-    }
 
     /**
      * To get engine global settings
@@ -625,18 +570,6 @@ export default class DexcaliburEngine extends ValidationCapable
         this.hook = new HookHelper.Manager(this, nofrida);
         this.hook.refreshScanner();
 */ 
-    }
-
-    /**
-     * To init engine before install
-     * 
-     * @method
-     */
-    preInstall( pWebRoot:string){
-        // setup web server
-        this.webserver = new WebServer(pWebRoot);
-
-        this.webserver.setContext(this);
     }
 
     /**
@@ -714,172 +647,6 @@ export default class DexcaliburEngine extends ValidationCapable
         this.platformMgr.enumerate();
     }
 
-    /**
-     * To init installer
-     *
-     */
-    initInstaller(){
-        if(gAdmZip == null){
-            gAdmZip = require('adm-zip');
-        }
-
-        let tmpAdbPath:string, tmpApktoolPath:string, tmpPlatformPath:string;
-        let self:DexcaliburEngine = this;
-
-        // init installer
-        this.installer = new Installer( this);
-
-        
-        // define "ADB install" task 
-        tmpAdbPath = _path_.join(this.workspace.tmpFolder,"platform_tools.zip");
-        tmpApktoolPath = _path_.join(this.workspace.binFolder,"apktool.jar");
-        tmpPlatformPath = _path_.join(this.workspace.apiFolder,"default.dex");
-
-
-        this.installer.addTask(
-            "Android platform tools",
-            //new URL(REMOTE_URLS.adb),
-            REMOTE_URLS.adb,
-            tmpAdbPath,
-            {
-                // unzip platform-tools and copy ADB
-                onPostDownload: function( vTask, vStep, vData){
-                    let zip = new gAdmZip(tmpAdbPath);
-                    self.installer.status = new StatusMessage(
-                        self.installer.getStatus().getProgress()+vStep, "Android platform tool downloaded. Uncompressing ..");
-                    zip.extractAllTo( _path_.join(self.workspace.binFolder), true);
-                    _fs_.unlinkSync(tmpAdbPath);
-                    _fs_.chmodSync( _path_.join(self.workspace.binFolder,'platform-tools','adb'), 0o555);
-                    self.installer.status = new StatusMessage(
-                        self.installer.getStatus().getProgress()+vStep,
-                        "Android platform tool installed");
-                },
-                onSuccess: function(){
-                    self.installer.status = new StatusMessage(
-                        self.installer.getStatus().getProgress(), "Android platform tool configured");
-                }
-            }
-        );
-
-        this.installer.addTask(
-            "APKTool",
-//            new URL(REMOTE_URLS.apktool),
-            REMOTE_URLS.apktool,
-            tmpApktoolPath,
-            {
-                onPostDownload: function( vTask, vStep, vData){
-                    // apktool downloaded
-                    self.installer.status = new StatusMessage(
-                        self.installer.getStatus().getProgress()+2*vStep, "APKTool installed");
-
-
-                    // save workspace configuration
-                    self.workspace.saveConfiguration( self.config);
-                    self.installer.status = new StatusMessage(
-                        self.installer.getStatus().getProgress()+2*vStep, "Configuration");
-
-                    // save workspace location into ~/.dexcalibur
-                    /*self.installer.progress += vStep;
-                    self.postInstall();
-                    self.installer.status = new InstallKit.StatusMessage( self.installer.progress, "Finished");*/
-                } 
-            },{
-                followRedirect: true
-            }
-        );
-
-        //console.log(REMOTE_URLS.officialRegistry+"android-sdk-apis/android-27.dex");
-        this.installer.addSimpleTask(
-            "Platform images",
-            {
-                onSuccess: function( vTask, vStep, vData){
-                    // apktool downloaded
-                    self.installer.status = new StatusMessage(
-                        self.installer.getStatus().getProgress()+vStep, "Android 27 downloaded");
-
-                    // backsmali 
-                    let p = self.platformMgr.getRemotePlatform('sdk_androidapi_29_google');
-                    //console.log(p);
-                    self.platformMgr.install( p);
-
-                    // save workspace location into ~/.dexcalibur
-                    self.postInstall();
-                    self.installer.status = new StatusMessage(
-                        self.installer.getStatus().getProgress()+vStep, "Finished");
-                } 
-            }
-        );
-
-    }
-
-
-    /**
-     * To clear .dexcalibur folder and to trigger a new install
-     * 
-     * @method
-     * @static
-     */
-    static clearInstall(){
-        if(_fs_.existsSync(CONFIG_PATH))
-            _fs_.unlinkSync(CONFIG_PATH);
-    }
-
-    /**
-     * To start installer
-     * Only for version < 1.x
-     *
-     * @deprecated
-     * @method
-     */
-    prepareInstall( pWebPort:number|string, pWebRoot:string){
-
-        this.mode = MODE.INSTALL;
-
-        this.preInstall(pWebRoot);
-
-        // create a default Configuration containing
-        // pre-defined paths
-        this.config = Configuration.getDefault();
-
-
-        // Turn routing into "install mode"
-        this.webserver.useInstallMode();
-
-        // init registry
-        this.registry = new DexcaliburRegistry( REMOTE_URLS.officialRegistry, REMOTE_URLS.officialRegistryAPI);
-
-        DexcaliburEngine.printFirstBanner(pWebPort+"");
-    }
-
-    /**
-     * To start downloading and installing dependencies
-     *
-     * Only for version < 1.x
-     *
-     * @deprecated
-     * @method
-     */
-    startInstall(){
-        this.installer.run();
-    }
-
-    /**
-     * 
-     */
-    postInstall(){
-        _fs_.writeFileSync(
-            CONFIG_PATH,
-            JSON.stringify({
-                workspace: this.workspace.getLocation(),
-                registry: REMOTE_URLS.officialRegistry,
-                registryAPI: REMOTE_URLS.officialRegistryAPI
-            })
-        );
-    }
-
-    getInstallerStatus():StatusMessage{
-        return this.installer.getStatus();
-    }
 
     /**
      * To starts servers and child process

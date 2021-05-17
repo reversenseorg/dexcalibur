@@ -13,6 +13,8 @@ import {Application as ExpressApplication} from 'express';
 import Configuration from "./Configuration";
 import DexcaliburWorkspace from "./DexcaliburWorkspace";
 import DexcaliburProject from "./DexcaliburProject";
+import {Settings} from "./Settings";
+import GlobalSettings = Settings.GlobalSettings;
 
 let _exec_ = _util_.promisify(_child_process_.exec);
 
@@ -213,11 +215,12 @@ class TestHelperClass
 
         let engine:DexcaliburEngine = DexcaliburEngine.getInstance();
 
-        engine.loadWorkspaceFromConfig( 
-            _path_.join( __dirname, '..', 'test', '.dexcalibur'),
-            {
+        let cfg:GlobalSettings = GlobalSettings.load(
+            _path_.join( __dirname, '..', 'test', '.dexcalibur','config.json'),{
                 workspace: _path_.join( __dirname, '..', 'test', 'ws')
             });
+
+        engine.loadConfiguration(cfg);
 
         engine.boot();
         

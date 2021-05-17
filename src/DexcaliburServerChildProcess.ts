@@ -92,8 +92,8 @@ export class DexcaliburServerChildProcess {
    * All commands below are supported:
    *
    * - `start` : Get, or create a new, DexcaliburEngine instance, see start() for more options
-   * - `install` :
-   * - `reinstall` :
+   * - `install` : REMOVED
+   * - `reinstall` : REMOVED
    * - `project-ready` :
    *
    *
@@ -112,12 +112,6 @@ export class DexcaliburServerChildProcess {
         case 'start':
           this.engine = DexcaliburEngine.getInstance();
           this.start(pMessage.data);
-          break;
-        case 'install':
-          this.install(pMessage.data);
-          break;
-        case 'reinstall':
-          this.reinstall(pMessage.data);
           break;
         case 'project-ready':
           this.isProjectReady(pMessage.data);
@@ -148,48 +142,6 @@ export class DexcaliburServerChildProcess {
   /*
   ---------------- DXC BOOTLOADER -------------
    */
-
-  /**
-   * To re-install dexcalibur.
-   *
-   * It starts by removing Dexcalibur configuration files and run install.
-   *
-   * @method
-   * @since v1.0.0
-   */
-  reinstall(pOptions:any = {}):void {
-
-    DexcaliburEngine.clearInstall();
-
-    this.install(pOptions,'reinstalled');
-  }
-
-
-  /**
-   * To install dexcalibur.
-   *
-   * It creates workspace, generates settings, download plugins and more
-   *
-   * @method
-   * @since v1.0.0
-   */
-  install(pOptions:any = {}, pCmd:string='installed'):void {
-    assert.notEqual(this.engine, null);
-
-    let port:number = (pOptions.port!=null) ? pOptions.port : 8000;
-
-    this.engine.prepareInstall(
-      port,
-      ""
-    );
-
-    this.engine.start(
-      port,
-      pOptions.uipath!==undefined? pOptions.uipath : null
-    );
-
-    this.send({ cmd:pCmd });
-  }
 
   /**
    * To start Dexcalibur server through IPC

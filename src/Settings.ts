@@ -146,6 +146,87 @@ export namespace Settings {
     }
 
     /**
+     *
+     */
+    export class WorkspaceSettings {
+
+        static DEFAULT_ENCODING = 'utf8';
+        static DEFAULT_CONN = 'inmemory'
+
+        private connector: string;
+        private encoding: string;
+
+        constructor( pConfig:any) {
+            this.connector = (pConfig.connector==null ? WorkspaceSettings.DEFAULT_CONN : pConfig.connector);
+            this.encoding =(pConfig.encoding==null ? WorkspaceSettings.DEFAULT_ENCODING : pConfig.encoding);
+        }
+
+        getDefaultConnector():string  {
+            return this.connector;
+        }
+
+        getDefaultEncoding():string  {
+            return this.encoding;
+        }
+
+        exportTo( pPath:string){
+            _fs_.writeFileSync(pPath, JSON.stringify(this), { encoding:'utf8', mode:'w+' });
+        }
+
+        /**
+         *
+         * @param pPath
+         */
+        static importFrom( pPath:string){
+            return new WorkspaceSettings(JSON.parse(_fs_.readFileSync(pPath).toString()));
+        }
+    }
+
+    /**
+     *
+     */
+    export class ProjectSettings {
+
+        static DEFAULT_CONN:string = 'inmemory';
+
+        private connector:string;
+        private encoding: string;
+        private device: string;
+        private package: string;
+        private nofrida: boolean;
+
+        constructor( pConfig:any) {
+            this.encoding = pConfig.encoding;
+            this.device = pConfig.device;
+            this.package = pConfig.package;
+            this.nofrida = pConfig.nofrida;
+            this.nofrida = pConfig.nofrida;
+            this.connector = (pConfig.connector != null ? pConfig.connector : ProjectSettings.DEFAULT_CONN);
+        }
+
+        getEncoding():string {
+            return this.encoding
+        }
+
+        getDeviceID():string {
+            return this.device
+        }
+
+        getPackage():string {
+            return this.package
+        }
+
+        getConnector():string {
+            return this.connector
+        }
+
+        setDeviceID( pDevID:string):void {
+            this.device = pDevID;
+        }
+    }
+
+
+    /**
      * Represent global configuration
      * @class
      * @export

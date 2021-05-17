@@ -1,6 +1,7 @@
 import * as _fs_ from 'fs';
 import * as _path_ from 'path';
 import Util from "./Utils";
+import {Settings} from "./Settings";
 
 
 const FILENAME_CONFIG = 'config.json';
@@ -47,8 +48,11 @@ export default class DexcaliburWorkspace
     devFolder:string = null;
     tmpFolder:string = null;
     pluginsFolder:string = null;
+
     configPath:string = null;
     oldconfigPath:string = null;
+
+    settings:Settings.WorkspaceSettings;
 
     constructor(pPath:string){
         this.path = pPath;
@@ -120,6 +124,7 @@ export default class DexcaliburWorkspace
         this.configPath = _path_.join( this.cfgFolder, FILENAME_CONFIG);
         this.oldconfigPath = _path_.join( this.cfgFolder, FILENAME_OLDCONFIG);
 
+
         DexcaliburWorkspace.mkdirIfNotExists(this.dxcFolder);
         DexcaliburWorkspace.mkdirIfNotExists(this.binFolder);
         DexcaliburWorkspace.mkdirIfNotExists(this.apiFolder);
@@ -127,7 +132,10 @@ export default class DexcaliburWorkspace
         DexcaliburWorkspace.mkdirIfNotExists(this.devFolder);
         DexcaliburWorkspace.mkdirIfNotExists(this.tmpFolder);
         DexcaliburWorkspace.mkdirIfNotExists(this.pluginsFolder);
+
+        this.settings = this.readSettings();
     }
+
 
     /**
      * To get location of Dexcalibur's workspace 
@@ -139,11 +147,12 @@ export default class DexcaliburWorkspace
     }
 
     /**
-     * To save Configuration instance into workspace, and to 
+     * To save workspace settings  into workspace, and to
      * create a copy of the current configuration
-     * @param {Configuration} pNewConfiguration 
+     *
+     * @param {Settings.WorkspaceSettings} pNewConfiguration
      */
-    saveConfiguration( pNewConfiguration:any){
+    saveSettings(){
         // remove old configuration
         if(_fs_.existsSync( this.oldconfigPath )){
             _fs_.unlinkSync( this.oldconfigPath);
@@ -159,18 +168,25 @@ export default class DexcaliburWorkspace
 
         // export new to current
         if(process.env.DEXCALIBUR_TEST)
-            pNewConfiguration.exportTo( _path_.join( this.cfgFolder, FILENAME_TESTCONFIG) );
+            this.settings.exportTo( _path_.join( this.cfgFolder, FILENAME_TESTCONFIG) );
         else
-            pNewConfiguration.exportTo( this.configPath );
+            this.settings.exportTo( this.configPath );
     }
 
-    readConfigurationFile():any{
-        return JSON.parse( _fs_.readFileSync( this.configPath).toString("ascii"));
+    /**
+     * To read workspace settings (default project settings, and so)
+     *
+     * @param pRestore
+     */
+    readSettings( pRestore:boolean = false):Settings.WorkspaceSettings {
+        const p = pRestore? this.oldconfigPath : this.configPath;
+
+        if(_fs_.existsSync(p))
+            return Settings.WorkspaceSettings.importFrom( p );
+        else
+            return new Settings.WorkspaceSettings({});
     }
 
-    readConfigurationBackupFile():any{
-        return JSON.parse( _fs_.readFileSync( this.oldconfigPath).toString("ascii"));
-    }
 
     /**
      * To get the path of the configuration file into the workspace
@@ -284,5 +300,9 @@ export default class DexcaliburWorkspace
         });
 
         return projects;
+    }
+
+    getSettings():Settings.WorkspaceSettings {
+        return this.settings;
     }
 }

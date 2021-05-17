@@ -35,7 +35,7 @@ const DIR_NAME = {
  * @param {Object} config The  
  * @class 
  */
-export default class Workspace
+export default class ProjectWorkspace
 {
     path:string = null;
     mainAPK:APK = null;

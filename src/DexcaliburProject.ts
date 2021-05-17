@@ -21,8 +21,7 @@ import Analyzer from "./Analyzer";
 import ApkHelper from "./ApkHelper";
 import AndroidAppAnalyzer from "./AndroidAppAnalyzer";
 import DexcaliburEngine from "./DexcaliburEngine";
-import Configuration from "./Configuration";
-import Workspace from "./Workspace";
+import ProjectWorkspace from "./ProjectWorkspace";
 import * as Log from './Logger';
 import {TAG} from "./AnalysisHelper";
 import {HookManager} from "./HookManager";
@@ -41,6 +40,8 @@ import StatusMessage from "./StatusMessage";
 import {ValidationCapable, ValidationError, ValidationRule, Validator} from "./Validator";
 import ModelFile from "./ModelFile";
 import {ModelLocation} from "./ModelLocation";
+import {Settings} from "./Settings";
+import WorkspaceSettings = Settings.WorkspaceSettings;
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -103,7 +104,7 @@ export default class DexcaliburProject extends ValidationCapable
     /**
      * @field Instance of project's configuration
      */
-    config:Configuration = null;
+    config:Settings.ProjectSettings = null; //Configuration
 
     /**
      * @field Flag
@@ -141,10 +142,10 @@ export default class DexcaliburProject extends ValidationCapable
 
     // set the workspace API
     /**
-     * @type {Workspace}
+     * @type {ProjectWorkspace}
      * @field Project workspace
      */
-    workspace:Workspace = null;
+    workspace:ProjectWorkspace = null;
 
     // setup File Analyzer
     /**
@@ -375,13 +376,19 @@ export default class DexcaliburProject extends ValidationCapable
 
         // init config
         // TODO remove engine configuration
-        if(this.config === null) {
-            this.config = this.engine.getConfiguration();
-        }
+        /*if(this.config === null) {
+            this.config = new Settings.ProjectSettings({
+                encoding: 'utf8'
+            }); //this.engine.getConfiguration();
+        }*/
+
+        // workspace settings provide defaults value when value are not yet
+        // configured at project level
+        const wsSettings:Settings.WorkspaceSettings = this.engine.workspace.getSettings();
 
         // init project workspace
         if(this.workspace === null){
-            this.workspace = new Workspace(
+            this.workspace = new ProjectWorkspace(
                 _path_.join( this.engine.workspace.getLocation(), this.uid )
             );
 
@@ -390,14 +397,14 @@ export default class DexcaliburProject extends ValidationCapable
 
         // init connector
         if(this.connector === null){
-            this.connector = ConnectorFactory.getInstance().newConnector('inmemory', this);
+            this.connector = ConnectorFactory.getInstance().newConnector(wsSettings.getDefaultConnector() , this);
         }
 
         // set the Search API which allow the user to perform search
         this.find = new SearchAPI();
 
         // set SC analyzer
-        this.analyze = new Analyzer(this.config.encoding as BufferEncoding, this);
+        this.analyze = new Analyzer(wsSettings.getDefaultEncoding() as BufferEncoding, this);
         this.find.setDatabase(this.analyze.getData());
 
 
@@ -677,7 +684,7 @@ export default class DexcaliburProject extends ValidationCapable
     static getInformationOf(pEngine:DexcaliburEngine, pProjectUID:string):any {
 
         let data:any;
-        let ws = new Workspace(
+        let ws = new ProjectWorkspace(
             _path_.join( pEngine.workspace.getLocation(), pProjectUID )
         );
 
@@ -697,9 +704,9 @@ export default class DexcaliburProject extends ValidationCapable
         let data:any = null;
 
         // Load project from workspace
-        project.config = pEngine.getConfiguration();
+        //project.config = pEngine.getConfiguration();
 
-        project.workspace = new Workspace(
+        project.workspace = new ProjectWorkspace(
             _path_.join( pEngine.workspace.getLocation(), pProjectUID )
         );
 
@@ -1300,11 +1307,11 @@ export default class DexcaliburProject extends ValidationCapable
     /**
      * To get project's workspace
      *
-     * @return {Workspace}
+     * @return {ProjectWorkspace}
      * @method
      * @since 1.0.0
      */
-    getWorkspace(): Workspace {
+    getWorkspace(): ProjectWorkspace {
         return this.workspace;
     }
 
