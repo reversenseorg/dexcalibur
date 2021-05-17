@@ -1,7 +1,6 @@
-import {Core} from "./Core";
+import {External} from "./external/External";
 
-
-export default class JavaHelper extends Core.External.ExternalHelper {
+export default class JavaHelper extends External.ExternalHelper {
 
     static getJRE():string {
         if(process.env.DEXCALIBUR_JAVA != null){

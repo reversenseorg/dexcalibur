@@ -5,8 +5,7 @@ import * as https from "https";
 import * as Log from "./Logger";
 import {User} from "./User";
 import {Workflow} from "./Workflow";
-import {Core} from "./Core";
-import WebServerSettings = Core.Configuration.WebServerSettings;
+import {Settings} from "./Settings";
 
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
@@ -92,7 +91,7 @@ export class WebsocketServer
      * @method
      * @since v1.0.0
      */
-    init( pConfig:WebServerSettings):void{
+    init( pConfig:Settings.WebServerSettings):void{
 
         const self = this;
 

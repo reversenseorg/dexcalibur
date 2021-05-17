@@ -2,8 +2,7 @@ import DexcaliburEngine from "./DexcaliburEngine";
 import * as assert from "assert";
 import * as _fs_ from "fs";
 import * as _os_ from "os";
-import {Core} from "./Core";
-import GlobalSettings = Core.Configuration.GlobalSettings;
+import {Settings} from "./Settings";
 
 
 // TODO : remove before prod
@@ -211,11 +210,11 @@ export class DexcaliburServerChildProcess {
   start(pOptions:any = {}):void {
 
     let ready:boolean=false;
-    let cfg:GlobalSettings;
+    let cfg:Settings.GlobalSettings;
 
     if(pOptions.hasOwnProperty('cfg') && _fs_.existsSync(pOptions.cfg)){
         this.engine.setConfigurationPath(pOptions.cfg);
-        cfg = GlobalSettings.load(pOptions.cfg);
+        cfg = Settings.GlobalSettings.load(pOptions.cfg);
     }else if(DexcaliburEngine.requireInstall()){
         this.send({ cmd:'started', data: { success:false, msg:'Dexcalibur is not installed'}});
         return;
@@ -223,7 +222,7 @@ export class DexcaliburServerChildProcess {
 
 
     if(cfg === undefined){
-      cfg = GlobalSettings.load();
+      cfg = Settings.GlobalSettings.load();
     }
 
     let dxcWebRoot:string = null;

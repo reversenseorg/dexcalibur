@@ -11,6 +11,7 @@ import APK from "./APK";
 import {ApkPackage} from "./android/ApkPackage";
 import {Core} from "./Core";
 import JavaHelper from "./JavaHelper";
+import {External} from "./external/External";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -30,7 +31,7 @@ interface IExternalCommand {
  * @class
  * @author Georges-B. MICHEL
  */
-export default class ApkHelper extends Core.External.ExternalHelper
+export default class ApkHelper extends External.ExternalHelper
 {
 
     /**

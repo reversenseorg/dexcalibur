@@ -12,6 +12,7 @@ import * as Log from './Logger';
 import DexcaliburProject from "./DexcaliburProject";
 import {Core} from "./Core";
 import JavaHelper from "./JavaHelper";
+import {External} from "./external/External";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -20,7 +21,7 @@ let Logger:Log.Logger = Log.newLogger() as Log.Logger;
  * @class
  * @author Georges-B. MICHEL
  */
-export default class DexHelper extends  Core.External.ExternalHelper
+export default class DexHelper extends  External.ExternalHelper
 {
     context = null;
     baskmaliCmd:string = null;

@@ -14,7 +14,7 @@ import StatusMessage from "./StatusMessage";
 import FridaHelper from "./FridaHelper";
 import {ValidationCapable, ValidationRule} from "./Validator";
 import DexcaliburEngine from "./DexcaliburEngine";
-import {Core} from "./Core";
+import {External} from "./external/External";
 
 let Logger:Log.ProdLogger = Log.newLogger() as Log.ProdLogger;
 
@@ -74,7 +74,7 @@ export default class DeviceManager extends ValidationCapable
     /**
      *
      */
-    private _tm: Core.External.ToolManager;
+    private _tm: External.ToolManager;
 
     /**
      * To create an instance of DeviceManager

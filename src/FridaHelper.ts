@@ -12,11 +12,9 @@ import DexcaliburWorkspace from "./DexcaliburWorkspace";
 
 import * as Log from './Logger';
 import {Device} from "./Device";
-import AdbWrapper from "./AdbWrapper";
 import Util from "./Utils";
 import {IBridge} from "./Bridge";
-import {ExternalTool} from "./ExternalTool";
-import {Core} from "./Core";
+import {External} from "./external/External";
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
 const pipeline = promisify(_stream_.pipeline);
@@ -37,7 +35,7 @@ const ATTACH_BY_PID = 0x3;
  * @class
  * @author Georges-B MICHEL
  */
-export default class FridaHelper extends Core.External.ExternalHelper
+export default class FridaHelper extends External.ExternalHelper
 {
     /**
      * @field

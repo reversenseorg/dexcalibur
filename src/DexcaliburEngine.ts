@@ -22,9 +22,12 @@ import {DexcaliburServerChildProcess, IpcMode} from "./DexcaliburServerChildProc
 import {ApkPackage} from "./android/ApkPackage";
 import {Workflow} from "./Workflow";
 import {ValidationCapable, ValidationRule} from "./Validator";
-import {Core} from "./Core";
-import GlobalSettings = Core.Configuration.GlobalSettings;
 import ApkHelper from "./ApkHelper";
+import JavaHelper from "./JavaHelper";
+import {BinwalkHelper} from "./BinwalkHelper";
+import DexHelper from "./DexHelper";
+import {External} from "./external/External";
+import {Settings} from "./Settings";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -169,7 +172,7 @@ export default class DexcaliburEngine extends ValidationCapable
      * @type {Core.External.ToolManager}
      * @field
      */
-    extMgr:Core.External.ToolManager = null;
+    extMgr:External.ToolManager = null;
 
 
     /**
@@ -246,7 +249,7 @@ export default class DexcaliburEngine extends ValidationCapable
      * @field
      * @type {Core.Configuration.GlobalSettings}
      */
-    private settings: Core.Configuration.GlobalSettings;
+    private settings: Settings.GlobalSettings;
 
     /**
      * To instanciate DexcaliburEngine.
@@ -321,7 +324,7 @@ export default class DexcaliburEngine extends ValidationCapable
     /**
      *
      */
-    getToolManager():Core.External.ToolManager {
+    getToolManager():External.ToolManager {
         return this.extMgr;
     }
 
@@ -436,7 +439,7 @@ export default class DexcaliburEngine extends ValidationCapable
      * @param {Core.Configuration.GlobalSettings} pConfig
      * @version 1.0.0
      */
-    loadConfiguration( pConfig:GlobalSettings):void {
+    loadConfiguration( pConfig:Settings.GlobalSettings):void {
         this.settings = pConfig;
 
         this.initServerSettings();
@@ -572,7 +575,7 @@ export default class DexcaliburEngine extends ValidationCapable
      * @method
      * @since 1.0.0
      */
-    getSettings():GlobalSettings {
+    getSettings():Settings.GlobalSettings {
         return this.settings;
     }
 
@@ -588,8 +591,13 @@ export default class DexcaliburEngine extends ValidationCapable
         }
 
         // init external tool manager
-        this.extMgr = new Core.External.ToolManager(this.settings.getExternalSettings());
-        this.extMgr.configureHelpers();
+        this.extMgr = new External.ToolManager(this.settings.getExternalSettings());
+        //this.extMgr.configureHelpers();
+        JavaHelper.init(this.extMgr.getTool('java'));
+        FridaHelper.init(this.extMgr.getTool('frida'));
+        ApkHelper.init(this.extMgr.getTool('apktool'));
+        BinwalkHelper.init(this.extMgr.getTool('binwalk'));
+        DexHelper.init(this.extMgr.getTool('baksmali'));
 
         // setup web server
         this.webserver = new WebServer(pWebRoot);

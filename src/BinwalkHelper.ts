@@ -10,9 +10,10 @@ import * as Log from './Logger';
 import ModelFileSection from "./ModelFileSection";
 import {ExternalTool} from "./ExternalTool";
 import {Core} from "./Core";
+import {External} from "./external/External";
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
-export class BinwalkHelper extends  Core.External.ExternalHelper {
+export class BinwalkHelper extends  External.ExternalHelper {
 
 
 

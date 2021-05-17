@@ -220,7 +220,7 @@ export namespace Core {
                 }
             }
 
-            getServerSettings():ServerSettings {
+            getServerSettings(): ServerSettings {
                 return this.srv;
             }
 
@@ -235,103 +235,5 @@ export namespace Core {
     }
 
 
-    export namespace External {
 
-
-        import ExternalSettings = Core.Configuration.ExternalSettings;
-
-        export class Tool {
-
-            _uid: string;
-            /**
-             * Hold tool version
-             */
-            private _v:string;
-
-            private _p: string;
-
-
-            /**
-             *
-             * @param pUID
-             * @param pConfig
-             */
-            constructor( pUID:string, pConfig:Core.Configuration.ExternalToolParams) {
-                this._uid = pUID
-                this._p = pConfig.path;
-            }
-
-            getPath():string {
-                return this._p;
-            }
-
-            getVersion():string {
-                return this._v;
-            }
-
-            getUID():string {
-                return this._uid;
-            }
-        }
-
-        export interface ToolSet  {
-            [uid :string] :Tool;
-        }
-
-        export class ExternalHelper {
-
-            protected static tool:Tool;
-
-            public static init( pTool:Tool){
-                this.tool = pTool;
-            }
-
-            public static getExtPath():string {
-                if(this.tool==undefined){
-                    throw new Error('Tool is not configured');
-                }
-                return this.tool.getPath();
-            }
-        }
-
-        export class ToolManager {
-
-            private tools: ToolSet;
-
-            constructor( pConfig:ExternalSettings) {
-                this.tools = {};
-
-                for(let i in pConfig){
-                    if(pConfig.hasOwnProperty(i)){
-                        this.tools[i] = new Tool(i, pConfig[i]);
-                    }
-                }
-            }
-
-            /**
-             * To configure application wide helpers leveraging external tools
-             */
-            configureHelpers():void {
-                // r2helper uses r2-pipe
-                // adb is configured by DeviceManager
-                // python is not yet used
-
-                // built-in helpers
-                JavaHelper.init(this.tools.java);
-                FridaHelper.init(this.tools.frida);
-                ApkHelper.init(this.tools.apktool);
-                BinwalkHelper.init(this.tools.binwalk);
-                DexHelper.init(this.tools.baksmali);
-            }
-
-
-            getTool( pUID:string) :Tool {
-                return this.tools[pUID];
-            }
-
-            addTool( pTool:Tool):void {
-                this.tools[pTool.getUID()] = pTool;
-            }
-        }
-    }
 }
