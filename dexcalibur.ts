@@ -28,30 +28,6 @@ var projectArgs:any = {
 };
 
 var Parser:ArgParser = new ArgParser(projectArgs, [
-  /*  { name:"--api", 
-        help: "The Android API version to use. It should be one entry of platform_available config option.",
-        hasVal:true, 
-        callback:(ctx,param)=>{ ctx.api = param.value; } },
-    { name:"--pull", 
-        help: "To pull the APK file of the targeted application from the device",
-        hasVal:false, 
-        callback:(ctx,param)=>{ ctx.pull = 1; } },
-    { name:"--devices", 
-        help: "To list connected devices",
-        hasVal:false, 
-        callback:(ctx,param)=>{ ctx.devices = 1; } },
-    { name:"--app", 
-        help: "The targeted application name (if already analyzed)",
-        hasVal:true, 
-        callback:(ctx,param)=>{ ctx.app = param.value; } },
-    { name:"--apk", 
-        help: "The path to the target APK file",
-        hasVal:true, 
-        callback:(ctx,param)=>{ ctx.apk = param.value; } },
-    { name:"--apk-stdin", 
-        help: "Read the APK to analyze on STDIN",
-        hasVal:false, 
-        callback:(ctx,param)=>{ ctx.apkStdin = 1; } },*/
     { name:"--port", 
         help: "The web server port number",
         hasVal:true, 
@@ -60,10 +36,6 @@ var Parser:ArgParser = new ArgParser(projectArgs, [
         help: "Change UI location",
         hasVal:true,
         callback:(ctx,param)=>{ ctx.uipath = param.value; } },
-   /* { name:"--emu", 
-        help: "Use emulated device",
-        hasVal: false, 
-        callback: (ctx,param)=>{ ctx.useEmu = true; } },*/
     { name:"--debug", 
         help: "Enable debug",
         hasVal: false, 
@@ -76,30 +48,10 @@ var Parser:ArgParser = new ArgParser(projectArgs, [
         help: "To set Dexcalibur behavior when IPC is enabled [ WAIT, API ]. If mode is 'WAIT' then program is commanded exclusively by IPC. Default: API   ",
         hasVal: true,
         callback: (ctx,param)=>{ ctx.ipcMode = param.value; } },
-    /*{ name:"--config", 
-        help: "The path to a custom config file. Default : ./config.js",
-        hasVal:true, 
-        callback:(ctx,param)=>{ ctx.config = param.value; } },*/
     { name:["--help","-h"], 
         help: "This menu",    
         hasVal:false, 
         callback:(ctx,param)=>{ ctx.help = 1; } },
-    /*{ name:"--no-frida", 
-        help: "To disable Frida part. It allows to run Dexcalibur to analyze purpose even if Frida is not installed",
-        hasVal:false, 
-        callback:(ctx,param)=>{ ctx.nofrida = 1; } },
-    { name:"--buildClass", 
-        help: "To generate Frida script with a Java.use for each class contained into the specified package (see docs)",
-        hasVal:true, 
-        callback:(ctx,param)=>{ ctx.buildClass = param.value; } },
-    { name:"--buildOut", 
-        help: "The output directory",
-        hasVal:true, 
-        callback:(ctx,param)=>{ ctx.buildOut = param.value; } },
-    { name:"--buildApi", 
-        help: "To build the representation of the specified Android API",
-        hasVal:true, 
-        callback:(ctx,param)=>{ ctx.buildApi = param.value; } },*/
     { name:"--reinstall", 
         help: "To clear Dexcalibur configuration",
         hasVal:false, 
@@ -110,6 +62,9 @@ Parser.parse(Process.argv);
 
 
 import * as Log from "./src/Logger";
+import {Core} from "./src/Core";
+import GlobalSettings = Core.Configuration.GlobalSettings;
+import {Settings} from "./src/Settings";
 
 var Logger:Log.Logger = null;
 
@@ -146,13 +101,14 @@ if(projectArgs.uipath!==undefined){
     dxcWebRoot = null; //_path_.join(__dirname, 'src', 'webserver', 'src');
 }
 
+// create an empty single (not yet initialiazed) instance of engine
 dxcInstance = DexcaliburEngine.getInstance();
 
 if(projectArgs.ipc == true){
     __log('[DXC_SRV][IPC] Enabled');
+    // when IPC are enabled, engine will be initialized only if ipcMode is 'API'
     dxcInstance.enableIPC(projectArgs.ipcMode);
 }else{
-;
     __log('[DXC_SRV][IPC] Disabled');
 }
 
@@ -161,13 +117,14 @@ __log('[DXC_SRV][IPC] Waiting for IPC message ...');
 if( !projectArgs.ipc
     || (projectArgs.ipc && (projectArgs.ipcMode=='API') )){
 
+    /*// TODO : replace by dexcalibur-installer
     if(projectArgs.reinstall == true){
         DexcaliburEngine.clearInstall();
-    }
+    }*/
 
     if( DexcaliburEngine.requireInstall() ){
-        // pass
-        dxcInstance.prepareInstall(
+        // TODO : replace by dexcalibur-installer
+        /*dxcInstance.prepareInstall(
             (projectArgs.port!=null) ? projectArgs.port : 8000,
             dxcWebRoot
         );
@@ -175,18 +132,21 @@ if( !projectArgs.ipc
         dxcInstance.start(
             projectArgs.port,
             projectArgs.uipath!==undefined? projectArgs.uipath : null
-        );
+        );*/
     }
     else{
-        dxcInstance.loadWorkspaceFromConfig();
-
+        // load global settings
+        const cfg:Settings.GlobalSettings = Settings.GlobalSettings.load();
+        // init engine with settings
+        dxcInstance.loadConfiguration(cfg);
+        // boot engine
         ready = dxcInstance.boot(
             projectArgs.restore===true? true : false,
             dxcWebRoot
         );
 
         if(ready){
-            dxcInstance.start((projectArgs.port!=null) ? projectArgs.port : 8000 );
+            dxcInstance.start((projectArgs.port!=null) ? projectArgs.port : null);
         }
 
     }
