@@ -13,6 +13,8 @@ import PlatformManager from "./PlatformManager";
 import StatusMessage from "./StatusMessage";
 import FridaHelper from "./FridaHelper";
 import {ValidationCapable, ValidationRule} from "./Validator";
+import DexcaliburEngine from "./DexcaliburEngine";
+import {Core} from "./Core";
 
 let Logger:Log.ProdLogger = Log.newLogger() as Log.ProdLogger;
 
@@ -69,12 +71,16 @@ export default class DeviceManager extends ValidationCapable
 
     bridges:any;
 
+    /**
+     *
+     */
+    private _tm: Core.External.ToolManager;
 
     /**
      * To create an instance of DeviceManager
      * @param {Configuration} config The configuration object
      */
-    constructor(){
+    constructor(pEngine:DexcaliburEngine){
         super({
             'uid': [
                 ValidationRule.newRegexpAssert(new RegExp('^.*$')) // mock
@@ -97,6 +103,8 @@ export default class DeviceManager extends ValidationCapable
         this.devices = {};
         this.status = null;
 
+        this._tm = pEngine.getToolManager();
+
         /**
          * Supported bridges
          * TODO : add sdb
@@ -104,21 +112,20 @@ export default class DeviceManager extends ValidationCapable
          */
         this.bridges = {
             ADB: AdbWrapperFactory.getInstance(
+                this._tm.getTool('adb').getPath()
+            )
+        };
+        /*
                 _path_.join(
                     this.dxcWorkspace.getBinaryFolderLocation(),
                     "platform-tools",
                     "adb"
                 )
-            )
-        };
+         */
 
         this.bridgeFactory = new BridgeSuperFactory({
                 "adb": AdbWrapperFactory.getInstance(
-                    _path_.join(
-                        this.dxcWorkspace.getBinaryFolderLocation(),
-                        "platform-tools",
-                        "adb"
-                    )
+                    this._tm.getTool('adb').getPath()
                 )
             });
 
@@ -140,9 +147,10 @@ export default class DeviceManager extends ValidationCapable
 
 
 
-    static getInstance():DeviceManager{
+    static getInstance( pEngine:DexcaliburEngine=undefined):DeviceManager{
         if(gInstance == null){
-            gInstance = new DeviceManager();
+            if(pEngine===undefined) throw new Error('[DEVICE MANAGER] Failed to create new DM instance :  engine is undefined');
+            gInstance = new DeviceManager(pEngine);
         }
 
         return gInstance;
