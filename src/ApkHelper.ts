@@ -9,6 +9,8 @@ import {EOL} from 'os';
 import * as Log from './Logger';
 import APK from "./APK";
 import {ApkPackage} from "./android/ApkPackage";
+import {Core} from "./Core";
+import JavaHelper from "./JavaHelper";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -28,8 +30,9 @@ interface IExternalCommand {
  * @class
  * @author Georges-B. MICHEL
  */
-export default class ApkHelper
+export default class ApkHelper extends Core.External.ExternalHelper
 {
+
     /**
      * To get begin of the command to start Apktool
      *
@@ -37,16 +40,7 @@ export default class ApkHelper
      * @static
      */
     static getApktoolCommand():IExternalCommand{
-        let cmd:string = _path_.join(
-            DexcaliburWorkspace.getInstance().getBinaryFolderLocation(),
-            'apktool.jar'
-        )
-
-        if(process.env.DEXCALIBUR_JAVA != null){
-            return {file:process.env.DEXCALIBUR_JAVA, args:[' -jar ',cmd]};
-        }else{
-            return {file:'java', args:['-jar',cmd]};
-        }
+        return {file:JavaHelper.getJRE(), args:['-jar',ApkHelper.getExtPath()]};
     }
 
     /**

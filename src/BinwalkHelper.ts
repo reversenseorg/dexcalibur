@@ -9,15 +9,15 @@ import Event from "./Event";
 import * as Log from './Logger';
 import ModelFileSection from "./ModelFileSection";
 import {ExternalTool} from "./ExternalTool";
+import {Core} from "./Core";
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
-export class BinwalkHelper {
+export class BinwalkHelper extends  Core.External.ExternalHelper {
 
 
-    private _config:ExternalTool = null;
 
-    constructor( pBinwalkConfig:ExternalTool) {
-        this._config = pBinwalkConfig;
+    constructor() {
+        super()
     }
 
     /**
@@ -33,7 +33,7 @@ export class BinwalkHelper {
         let res:any, l:string[];
 
         try{
-            out = Util.execSync(this._config.getPath()+' '+_path_.join(pPath));
+            out = Util.execSync(BinwalkHelper.getExtPath()+' '+_path_.join(pPath));
             l = out.split(EOL);
 
             while(l[0]=="") l.shift();
@@ -93,10 +93,10 @@ export class BinwalkHelper {
         let files:ModelFile[] = [];
 
         try{
-            out = Util.execSync(this._config.getPath()+' '+_path_.join(pPath,'**','*'));
+            out = Util.execSync(BinwalkHelper.getExtPath()+' '+_path_.join(pPath,'**','*'));
         }catch(err){
             try{
-                out = Util.execSync(this._config.getPath()+' '+_path_.join(pPath,'*'));
+                out = Util.execSync(BinwalkHelper.getExtPath()+' '+_path_.join(pPath,'*'));
             }catch(err2){
                 Logger.error("[FILE FORMAT DETECTION] Binwalk failed to scan path : "+pPath);
                 return files;

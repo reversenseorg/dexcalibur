@@ -15,6 +15,8 @@ import {Device} from "./Device";
 import AdbWrapper from "./AdbWrapper";
 import Util from "./Utils";
 import {IBridge} from "./Bridge";
+import {ExternalTool} from "./ExternalTool";
+import {Core} from "./Core";
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
 const pipeline = promisify(_stream_.pipeline);
@@ -35,7 +37,7 @@ const ATTACH_BY_PID = 0x3;
  * @class
  * @author Georges-B MICHEL
  */
-export default class FridaHelper
+export default class FridaHelper extends Core.External.ExternalHelper
 {
     /**
      * @field
@@ -54,6 +56,11 @@ export default class FridaHelper
      * @static
      */
     static ATTACH_BY_PID = 0x3;
+
+
+    constructor() {
+        super()
+    }
 
 
     static async exec( pDevice, pScript, pType, pApp, pExtra:string[]=[]){
@@ -149,7 +156,7 @@ export default class FridaHelper
      * @param {*} pFridaPath 
      */
     static getLocalFridaVersion(pFridaPath:string):any{
-        let out:string = _ps_.execSync(pFridaPath + ' --version').toString();
+        let out:string = _ps_.execSync(FridaHelper.getExtPath()+' --version').toString(); //pFridaPath + ' --version').toString();
         let ver:string = out.slice(0 , out.lastIndexOf( require('os').EOL )).toString();
         let v:string[] = ver.split('.');
         return {
@@ -299,6 +306,7 @@ export default class FridaHelper
 
 
         // retrieve frida version
+        // TODO : replace by version from external tool settings
         ver = FridaHelper.getLocalFridaVersion( pOptions.hostPath != null? pOptions.hostPath : HOST_FRIDA_BIN_NAME);
         
         // get device a architecture

@@ -10,6 +10,8 @@ const _execFile_ = _util_.promisify(Process.execFile);
 
 import * as Log from './Logger';
 import DexcaliburProject from "./DexcaliburProject";
+import {Core} from "./Core";
+import JavaHelper from "./JavaHelper";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -18,15 +20,17 @@ let Logger:Log.Logger = Log.newLogger() as Log.Logger;
  * @class
  * @author Georges-B. MICHEL
  */
-export default class DexHelper
+export default class DexHelper extends  Core.External.ExternalHelper
 {
     context = null;
     baskmaliCmd:string = null;
     baskmali:string = null;
 
     constructor(ctx:DexcaliburProject){
+        super();
+
         this.context = ctx;
-        this.baskmaliCmd = ctx.config.getJavaBin()+" -jar ";
+        this.baskmaliCmd = JavaHelper.getJRE()+" -jar ";
         this.baskmali = Path.join(__dirname, '..', 'bin', "baksmali.jar");
     }
 
@@ -39,11 +43,7 @@ export default class DexHelper
     static getBaksmaliCommand():any {
         let cmd = Path.join(__dirname, '..', 'bin', "baksmali.jar");
 
-        if(process.env.DEXCALIBUR_JAVA != null){
-            return {file:process.env.DEXCALIBUR_JAVA, args:['-jar',cmd]};
-        }else{
-            return {file:'java', args:['-jar',cmd]};
-        }
+        return {file:JavaHelper.getJRE(), args:['-jar',cmd]};
     }
 
     /**
