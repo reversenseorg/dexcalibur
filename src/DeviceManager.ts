@@ -105,15 +105,14 @@ export default class DeviceManager extends ValidationCapable
 
         this._tm = pEngine.getToolManager();
 
+        const adbPath = _path_.join(this._tm.getTool('adb').getPath(), 'adb');
         /**
          * Supported bridges
          * TODO : add sdb
          * @field 
          */
         this.bridges = {
-            ADB: AdbWrapperFactory.getInstance(
-                this._tm.getTool('adb').getPath()
-            )
+            ADB: AdbWrapperFactory.getInstance(adbPath)
         };
         /*
                 _path_.join(
@@ -124,9 +123,7 @@ export default class DeviceManager extends ValidationCapable
          */
 
         this.bridgeFactory = new BridgeSuperFactory({
-                "adb": AdbWrapperFactory.getInstance(
-                    this._tm.getTool('adb').getPath()
-                )
+                "adb": AdbWrapperFactory.getInstance(adbPath)
             });
 
     

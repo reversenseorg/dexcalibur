@@ -116,14 +116,14 @@ export interface DexcaliburProjectMap {
 export default class DexcaliburEngine extends ValidationCapable
 {
 
-    /**
+    /*
      * Configuration file path
      * @type {string}
      * @field
      * @private
      * @since 1.0.0
      */
-    private _configPath:string = null;
+   // private _configPath:string = null;
 
     /**git diff
      * Global configuration of Dexcalibur
@@ -422,7 +422,7 @@ export default class DexcaliburEngine extends ValidationCapable
      * @since 1.0.0
      */
     setConfigurationPath(pPath:string):void {
-        this._configPath = pPath;
+        //this._configPath = pPath;
     }
 
     /**

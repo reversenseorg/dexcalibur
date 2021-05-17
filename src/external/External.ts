@@ -64,14 +64,15 @@ export namespace External {
         constructor( pConfig:Settings.ExternalSettings) {
             this.tools = {};
 
-            for(let i in pConfig){
-                if(pConfig.hasOwnProperty(i)){
-                    if(typeof pConfig[i] === 'string')
-                        this.tools[i] = new Tool(i, { path:pConfig[i] });
-                    else
-                        this.tools[i] = new Tool(i, pConfig[i] );
-                }
-            }
+            pConfig.getToolList().map( vName => {
+                const t = pConfig.getTool(vName);
+
+                if(typeof t === 'string')
+                    this.tools[vName] = new Tool(vName, { path:t });
+                else
+                    this.tools[vName] = new Tool(vName, t );
+            });
+
         }
 
 

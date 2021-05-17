@@ -140,8 +140,16 @@ export namespace Settings {
             this._all = pConfig;
         }
 
+        getToolList():string[]  {
+            return Object.keys(this._all);
+        }
+
         getTool( pUID:string) :any {
             return this._all[pUID];
+        }
+
+        getAll():any{
+            return this._all;
         }
     }
 

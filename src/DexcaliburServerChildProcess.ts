@@ -165,9 +165,10 @@ export class DexcaliburServerChildProcess {
     let cfg:Settings.GlobalSettings;
 
     if(pOptions.hasOwnProperty('cfg') && _fs_.existsSync(pOptions.cfg)){
-        this.engine.setConfigurationPath(pOptions.cfg);
+        //this.engine.setConfigurationPath(pOptions.cfg);
         cfg = Settings.GlobalSettings.load(pOptions.cfg);
     }else if(DexcaliburEngine.requireInstall()){
+       // not implemented
         this.send({ cmd:'started', data: { success:false, msg:'Dexcalibur is not installed'}});
         return;
     }
@@ -176,6 +177,9 @@ export class DexcaliburServerChildProcess {
     if(cfg === undefined){
       cfg = Settings.GlobalSettings.load();
     }
+
+
+    __log('[DXC-SRV][IPC] Global settings loaded : '+JSON.stringify(cfg));
 
     let dxcWebRoot:string = null;
 
