@@ -5,6 +5,8 @@ import * as https from "https";
 import * as Log from "./Logger";
 import {User} from "./User";
 import {Workflow} from "./Workflow";
+import {Core} from "./Core";
+import WebServerSettings = Core.Configuration.WebServerSettings;
 
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
@@ -80,6 +82,8 @@ export class WebsocketServer
         return true;
     }
 
+
+
     /**
      * To initialize web socket server.
      *
@@ -88,7 +92,7 @@ export class WebsocketServer
      * @method
      * @since v1.0.0
      */
-    init():void{
+    init( pConfig:WebServerSettings):void{
 
         const self = this;
 
@@ -107,6 +111,9 @@ export class WebsocketServer
                 autoAcceptConnections: false
             })
         }
+
+        // set port number with data from global settings
+        this.port = pConfig.getWsPort();
 
         this.wsServer.on('close', function(webSocketConnection:any, closeReason:any, description:string) {
 
