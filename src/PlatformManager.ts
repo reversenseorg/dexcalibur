@@ -9,6 +9,7 @@ import Utils from "./Utils";
 import Platform from "./Platform";
 import DexcaliburRegistry from "./DexcaliburRegistry";
 import {ValidationCapable, ValidationRule} from "./Validator";
+import DexcaliburEngine from "./DexcaliburEngine";
 
 
 
@@ -30,7 +31,7 @@ interface IPlatformMap {
  */
 export default class PlatformManager extends ValidationCapable
 {
-    engine:any;
+    engine:DexcaliburEngine;
     remote:any;
     local:any;
 
@@ -57,6 +58,7 @@ export default class PlatformManager extends ValidationCapable
 
         return gInstance;
     }
+
 
 
 
@@ -110,7 +112,7 @@ export default class PlatformManager extends ValidationCapable
 
         this.local = this.enumerateLocal();
 
-        let registry:DexcaliburRegistry = this.engine.getRegistry();
+        let registry:DexcaliburRegistry = this.engine.getSettings().getServerSettings().getRegistry();
 
         (async ()=>{
             this.remote = await this.enumerateRemote(registry);
@@ -155,7 +157,7 @@ export default class PlatformManager extends ValidationCapable
         let res:any={};
 
         if(pRegistry == null){
-            pRegistry = this.engine.getRegistry();
+            pRegistry = this.engine.getSettings().getServerSettings().getRegistry();
         }
 
         // retrieve remote platform
