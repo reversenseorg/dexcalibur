@@ -2,6 +2,8 @@ import DexcaliburEngine from "./DexcaliburEngine";
 import * as assert from "assert";
 import * as _fs_ from "fs";
 import * as _os_ from "os";
+import {Core} from "./Core";
+import GlobalSettings = Core.Configuration.GlobalSettings;
 
 
 // TODO : remove before prod
@@ -62,6 +64,8 @@ export class DexcaliburServerChildProcess {
 
   /**
    *
+   * Send back an 'initialized' message over IPC
+   *
    * @param {NodeJS.Process} pProcess Process reference
    * @constructor
    */
@@ -86,6 +90,13 @@ export class DexcaliburServerChildProcess {
    */
 
   /**
+   * All commands below are supported:
+   *
+   * - `start` : Get, or create a new, DexcaliburEngine instance, see start() for more options
+   * - `install` :
+   * - `reinstall` :
+   * - `project-ready` :
+   *
    *
    * @param {any}
    * @method
@@ -182,25 +193,42 @@ export class DexcaliburServerChildProcess {
   }
 
   /**
-   * To start Dexcalibur server
+   * To start Dexcalibur server through IPC
    *
+   * If no options are passed, Dexcalibur read configuration file at default location
+   * (<APP>/dxc.config.json).
    *
+   * If no options are passed AND Dexcalibur requires install, then a warning message
+   * is sent back over IPC
+   *
+   * Options supported :
+   * - `cfg` [String] Path of configuration file
+   *
+   * @param {any} pOptions Optional. A set of options for "start"
+   * @method
+   * @since 1.0.0
    */
   start(pOptions:any = {}):void {
 
     let ready:boolean=false;
+    let cfg:GlobalSettings;
 
     if(pOptions.hasOwnProperty('cfg') && _fs_.existsSync(pOptions.cfg)){
         this.engine.setConfigurationPath(pOptions.cfg);
+        cfg = GlobalSettings.load(pOptions.cfg);
     }else if(DexcaliburEngine.requireInstall()){
         this.send({ cmd:'started', data: { success:false, msg:'Dexcalibur is not installed'}});
         return;
     }
 
 
+    if(cfg === undefined){
+      cfg = GlobalSettings.load();
+    }
+
     let dxcWebRoot:string = null;
 
-    this.engine.loadWorkspaceFromConfig();
+    this.engine.loadConfiguration(cfg);
 
     ready = this.engine.boot(
       pOptions.restore===true? true : false,
@@ -209,7 +237,7 @@ export class DexcaliburServerChildProcess {
 
 
     if(ready){
-      this.engine.start((pOptions.port!=null) ? pOptions.port : 8000 );
+      this.engine.start(pOptions.port);
       this.send( {cmd:'started', data: {success:true }});
       return ;
     }else{
