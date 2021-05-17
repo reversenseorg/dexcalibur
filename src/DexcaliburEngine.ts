@@ -879,10 +879,17 @@ export default class DexcaliburEngine extends ValidationCapable
      * @param pWebPort {number} Port number
      * @param pUI {Path} (Optional) Web root of the UI
      */
-    start( pWebPort:string|number, pUI:string=null){
+    start( pWebPort:string|number=null, pUI:string=null){
+
+        const s =this.getSettings().getWebserverSettings();
+
 
         // Start the web server serving Installer UI
-        this.webserver.start((typeof pWebPort==='string')?parseInt(pWebPort,10):pWebPort);
+        if(pWebPort==null){
+            this.webserver.start();
+        }else{
+            this.webserver.start((typeof pWebPort==='string')?parseInt(pWebPort,10):pWebPort);
+        }
 
         // if server run in production mode (instead of install mode)
         // then start web socket server
