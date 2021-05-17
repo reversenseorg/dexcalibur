@@ -204,7 +204,7 @@ export class DataAnalyzer
      */
     constructor(pCtx:DexcaliburProject){
         this.context = pCtx;
-        this.binwalk = new BinwalkHelper(pCtx.getContext().getConfiguration().getExternalTool('binwalk'));
+        this.binwalk = new BinwalkHelper(); //pCtx.getContext().getConfiguration().getExternalTool('binwalk'));
 
 
         //STATIC_BUFFER: (new DataScope("sbf")).setPpts(DataScopePpts.PATH, ws.get()),
