@@ -22,6 +22,9 @@ import {DexcaliburServerChildProcess, IpcMode} from "./DexcaliburServerChildProc
 import {ApkPackage} from "./android/ApkPackage";
 import {Workflow} from "./Workflow";
 import {ValidationCapable, ValidationRule} from "./Validator";
+import {Core} from "./Core";
+import GlobalSettings = Core.Configuration.GlobalSettings;
+import ApkHelper from "./ApkHelper";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -162,6 +165,14 @@ export default class DexcaliburEngine extends ValidationCapable
 
 
     /**
+     * External tool manager
+     * @type {Core.External.ToolManager}
+     * @field
+     */
+    extMgr:Core.External.ToolManager = null;
+
+
+    /**
      * Registry
      * @field
      */
@@ -230,6 +241,14 @@ export default class DexcaliburEngine extends ValidationCapable
     wfCbs: any = {};
 
     /**
+     * Hold global settings : server and external tools settings
+     * @privat
+     * @field
+     * @type {Core.Configuration.GlobalSettings}
+     */
+    private settings: Core.Configuration.GlobalSettings;
+
+    /**
      * To instanciate DexcaliburEngine.
      * 
      * @private
@@ -267,7 +286,8 @@ export default class DexcaliburEngine extends ValidationCapable
     /**
      * To enable Inter-Process Communication (IPC)
      *
-     * When IPC is enabled, Dexcalibur wait command
+     * When IPC is enabled, Dexcalibur is waiting for incoming commands.
+     * Handler of such IPC are implemented into DexcaliburServerChildProcess
      *
      */
     enableIPC(pMode:IpcMode):void{
@@ -298,6 +318,12 @@ export default class DexcaliburEngine extends ValidationCapable
         this.ipcHandler.disable();
     }
 
+    /**
+     *
+     */
+    getToolManager():Core.External.ToolManager {
+        return this.extMgr;
+    }
 
     /**
      * To get active registry 
@@ -403,13 +429,58 @@ export default class DexcaliburEngine extends ValidationCapable
     }
 
     /**
+     * To load and to initialize global settings of this engine instance
+     *
+     * It inits server settings and external tool settings (such as path)
+     *
+     * @param {Core.Configuration.GlobalSettings} pConfig
+     * @version 1.0.0
+     */
+    loadConfiguration( pConfig:GlobalSettings):void {
+        this.settings = pConfig;
+
+        this.initServerSettings();
+        this.initExternalSettings();
+    }
+
+    /**
+     * To init server settings such as :
+     *  - web server settings
+     *  - workspace settings
+     *  - dexcalibur registry settings
+     *
+     *  @method
+     *  @since 1.0.0
+     */
+    initServerSettings(): void{
+        const ss=this.settings.getServerSettings();
+
+        try{
+            this.workspace = ss.getWorkspace();
+            this.workspace.init();
+
+            this.registry = ss.getRegistry();
+        }catch(err){
+
+        }
+    }
+
+    /**
+     *
+     */
+    initExternalSettings(): void{
+
+    }
+
+    /**
      * To load data from workspace and to init registry
      * 
      * @method
+     * @deprecated
      */
-    loadWorkspaceFromConfig(pDexcaliburHome:string=null, pOverride:any=null){
+    loadWorkspaceFromConfig(pDexcaliburHome:string=undefined, pOverride:any=undefined){
         let d:any = null;
-        
+
         if(process.env.DEXCALIBUR_HOME != null)
             d = JSON.parse( _fs_.readFileSync( _path_.join( process.env.DEXCALIBUR_HOME, 'config.json')).toString() );
         else if(this._configPath != null) {
@@ -431,8 +502,9 @@ export default class DexcaliburEngine extends ValidationCapable
     }   
     
     /**
-     * To load bootstrap file or configuration from home.
-     * 
+     * To instenciate and initialize main components
+     *
+     * At this step
      * Require `this.workspace` is loaded.  
      * 
      * @returns {Boolean} TRUE if ready to start, FALSE if install is required.
@@ -444,8 +516,8 @@ export default class DexcaliburEngine extends ValidationCapable
         // init workspace
         this.workspace.init();
 
-        // read configuration file into target workspace 
-        this.loadConfig( pRestore);
+        // read configuration file into target workspace
+        this.loadWorkspaceConfig( pRestore);
 
         // init
         this.init( pWebRoot);
@@ -476,7 +548,7 @@ export default class DexcaliburEngine extends ValidationCapable
      * @param {Boolean} pRestore If TRUE backed up configuration is loaded,  
      * @method
      */
-    loadConfig( pRestore:boolean) {
+    loadWorkspaceConfig( pRestore:boolean) {
         let data:any = null;
 
         try{
@@ -494,6 +566,17 @@ export default class DexcaliburEngine extends ValidationCapable
     }
 
     /**
+     * To get engine global settings
+     *
+     * @return  {GlobalSettings}
+     * @method
+     * @since 1.0.0
+     */
+    getSettings():GlobalSettings {
+        return this.settings;
+    }
+
+    /**
      * To init the context shared by any project
      * 
      * @method
@@ -504,22 +587,26 @@ export default class DexcaliburEngine extends ValidationCapable
             pWebRoot = _path_.join(__dirname, 'webserver', 'public');
         }
 
+        // init external tool manager
+        this.extMgr = new Core.External.ToolManager(this.settings.getExternalSettings());
+        this.extMgr.configureHelpers();
+
         // setup web server
         this.webserver = new WebServer(pWebRoot);
-
+        this.webserver.configure(this.settings.getWebserverSettings());
         this.webserver.setContext(this);
-
         this.webserver.useProductionMode();
 
         // setup web socket server
         this.wsserver = new WebsocketServer(this);
+        // pass allowed origins to init
+        this.wsserver.init(this.settings.getWebserverSettings());
 
-        // pass allowed origins to init;
-        this.wsserver.init();
 
+        // First call to PlatformManager : it inits
         this.platformMgr = PlatformManager.getInstance(this);
 
-        this.deviceMgr = DeviceManager.getInstance();
+        this.deviceMgr = DeviceManager.getInstance(this);
 
         this.inspectorMgr = InspectorManager.getInstance(this);
 
@@ -599,8 +686,12 @@ export default class DexcaliburEngine extends ValidationCapable
     }
 
     /**
-     * To create the workspace
+     * To create the workspace from web installer
+     *
+     * TODO :  this method will be removed
+     *
      * @param {String} pPath Path where the workspace will be created
+     * @deprecated
      */
     createWorkspace( pPath:string){
         if(_fs_.existsSync( pPath) == false){
@@ -982,6 +1073,8 @@ export default class DexcaliburEngine extends ValidationCapable
 
     /**
      * To detect if Frida is installed and get version
+     *
+     * @deprecated in v1.0.0
      */
     getLocalFridaVersion():string{
         return FridaHelper.getLocalFridaVersion(FRIDA_BIN);
