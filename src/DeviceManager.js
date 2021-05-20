@@ -287,7 +287,7 @@ class DeviceManager
                     b = this.devices[i].bridges[k];
                     if(b.isNetworkTransport()){
                         d = this.getDeviceByIP(b.ip, b.port, false);
-                        if(d == null){
+                        if(d != null){
                             devs[this.devices[i].uid] = this.devices[i];
                         }
                     }else{
