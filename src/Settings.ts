@@ -2,6 +2,14 @@ import DexcaliburRegistry from "./DexcaliburRegistry";
 import DexcaliburWorkspace from "./DexcaliburWorkspace";
 import * as _path_ from "path";
 import * as _fs_ from "fs";
+import * as _os_ from "os";
+
+
+const LOG_FILE = (process.env.DXC_LOG_PATH ? process.env.DXC_LOG_PATH : null);
+function __log( pMessage:string):void{
+    if(LOG_FILE!=null)
+        _fs_.appendFileSync(LOG_FILE, pMessage+_os_.EOL);
+}
 
 /**
  * Declare class related to global configuration
@@ -287,14 +295,11 @@ export namespace Settings {
                     for(let i in pOverride) data[i] = pOverride[i];
                 }
 
-                _fs_.writeFileSync('/Users/salade/Documents/repos/dexcalibur-codebase/dexcalibur-ts/electron.logs',
-                    'Configuration loaded : '+JSON.stringify(data));
+                __log("[GLOBAL SETTINGS] load : success : "+JSON.stringify(data));
 
                 gs = new GlobalSettings(data);
             }catch(err){
-
-                _fs_.writeFileSync('/Users/salade/Documents/repos/dexcalibur-codebase/dexcalibur-ts/electron.logs',
-                    'Configuration not loaded : '+err.message);
+                __log("[GLOBAL SETTINGS] load : error : "+err.message+" "+pConfigPath);
             }finally {
                 return gs;
             }

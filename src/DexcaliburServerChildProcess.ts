@@ -6,13 +6,11 @@ import {Settings} from "./Settings";
 
 
 // TODO : remove before prod
-const LOG_ENABLED = true;
-const LOG_DEF_FILE = "/Users/salade/Documents/repos/dexcalibur-codebase/dexcalibur-ui/server2.logs";
+//const LOG_ENABLED = true;
 
-const LOG_FILE = (process.env.DXC_LOG_PATH ? process.env.DXC_LOG_PATH : LOG_DEF_FILE);
-
+const LOG_FILE = (process.env.DXC_LOG_PATH ? process.env.DXC_LOG_PATH : null);
 function __log( pMessage:string):void{
-  if(LOG_ENABLED)
+  if(LOG_FILE!=null)
     _fs_.appendFileSync(LOG_FILE, pMessage+_os_.EOL);
 }
 
@@ -163,6 +161,9 @@ export class DexcaliburServerChildProcess {
 
     let ready:boolean=false;
     let cfg:Settings.GlobalSettings;
+
+
+    __log('[DXC-SRV][IPC] settings receipt : '+JSON.stringify(pOptions));
 
     if(pOptions.hasOwnProperty('cfg') && _fs_.existsSync(pOptions.cfg)){
         //this.engine.setConfigurationPath(pOptions.cfg);
