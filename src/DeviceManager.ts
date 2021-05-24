@@ -105,7 +105,7 @@ export default class DeviceManager extends ValidationCapable
 
         this._tm = pEngine.getToolManager();
 
-        const adbPath = _path_.join(this._tm.getTool('adb').getPath(), 'adb');
+        const adbPath = this._tm.getTool('adb').getPath();
         /**
          * Supported bridges
          * TODO : add sdb
