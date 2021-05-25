@@ -58,8 +58,6 @@ Parser.parse(Process.argv);
 
 
 import * as Log from "./src/Logger";
-import {Core} from "./src/Core";
-import GlobalSettings = Core.Configuration.GlobalSettings;
 import {Settings} from "./src/Settings";
 
 var Logger:Log.Logger = null;
