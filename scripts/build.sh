@@ -14,12 +14,12 @@ echo "[+] Copying files"
 grunt build
 
 
-#if [ $DXC_PROD = 1 ]; then
-  # echo "[+] Move files : hook requirements, etc .."
-#  mv ./dist/src/requires ./dist/dexcalibur-ts/src/requires
+if [ $DXC_PROD = 1 ]; then
+  echo "[+] Move files : hook requirements, etc .."
+  mv ./dist/src/requires ./dist/dexcalibur-ts/src/requires
 
-  # echo "[+] Move files : binaries."
- # mv ./dist/bin ./dist/dexcalibur-ts/bin
-#fi
+  #echo "[+] Move files : binaries."
+  #mv ./dist/bin ./dist/dexcalibur-ts/bin
+fi
 
 

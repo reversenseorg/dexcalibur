@@ -1,6 +1,6 @@
 #!/bin/sh
 echo "[+] Removing ./dist folder"
-rm -r ./dist
+rm -rf ./dist
 
 echo "[+] Transpiling sources to JS"
 mkdir ./dist
@@ -21,6 +21,6 @@ cp -r ./src/requires ./dist/src/requires
 
 for i in ./inspectors/*/web
 do
-  [[ -d "$i" ]] || break
+  # [[ -d "$i" ]] || break
   cp -r $i ./dist/$i
 done

@@ -80,7 +80,7 @@ switch(script.t){
         console.log("[ERROR] BAT command are not yet supported.")
         break;
     case "sh":
-        _fs_.chmodSync(script.f, 0o555); // add +x
+        _fs_.chmodSync(script.f, 0o777); // add +x
         _child_.spawnSync(script.f,[], {
             stdio: 'inherit',
             shell: true,
