@@ -7,7 +7,6 @@ import ApkHelper from "./ApkHelper";
 import {BinwalkHelper} from "./BinwalkHelper";
 import JavaHelper from "./JavaHelper";
 import DexHelper from "./DexHelper";
-import {__log} from "../../dexcalibur-ui/dxc-web/src/app/core/Log";
 
 
 export namespace Core {
