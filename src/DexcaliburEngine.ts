@@ -35,15 +35,9 @@ var gAdmZip:any = null;
 var gEngineInstance:DexcaliburEngine = null;
 var PACKAGE_JSON:any =  require(_path_.join(__dirname,"..",'info.json'));
 
-//require( _path_.join( process.env.DXC_SRV_PATH ? __dirname,"..","..","package.json"));
-
-
-
-const LOG_ENABLED = true;
-const LOG_FILE = (process.env.DXC_LOG_PATH? process.env.DXC_LOG_PATH : null); //"/Users/salade/Documents/repos/dexcalibur-codebase/dexcalibur-ui/dexcalibur.logs";
-
+const LOG_FILE = (process.env.DXC_LOG_PATH? process.env.DXC_LOG_PATH : null);
 function __log( pMessage:string):void{
-    if(LOG_ENABLED)
+    if(LOG_FILE!=null)
         _fs_.appendFileSync(LOG_FILE, pMessage+_os_.EOL);
 }
 

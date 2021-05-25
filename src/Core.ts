@@ -7,6 +7,7 @@ import ApkHelper from "./ApkHelper";
 import {BinwalkHelper} from "./BinwalkHelper";
 import JavaHelper from "./JavaHelper";
 import DexHelper from "./DexHelper";
+import {__log} from "../../dexcalibur-ui/dxc-web/src/app/core/Log";
 
 
 export namespace Core {
@@ -207,14 +208,11 @@ export namespace Core {
                         for(let i in pOverride) data[i] = pOverride[i];
                     }
 
-                    _fs_.writeFileSync('/Users/salade/Documents/repos/dexcalibur-codebase/dexcalibur-ts/electron.logs',
-                        'Configuration loaded : '+JSON.stringify(data));
+                    __log("[GLOBAL SETTINGS] load : success : "+JSON.stringify(data));
 
                     gs = new GlobalSettings(data);
                 }catch(err){
-
-                    _fs_.writeFileSync('/Users/salade/Documents/repos/dexcalibur-codebase/dexcalibur-ts/electron.logs',
-                        'Configuration not loaded : '+err.message);
+                    __log("[GLOBAL SETTINGS] load : error : "+err.message+" "+pConfigPath);
                 }finally {
                     return gs;
                 }

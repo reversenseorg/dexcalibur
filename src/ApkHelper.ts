@@ -2,14 +2,9 @@
 
 import * as _ps_ from 'child_process';
 import * as _fs_ from 'fs';
-import * as _path_ from 'path';
 import * as _util_ from 'util';
-import DexcaliburWorkspace from "./DexcaliburWorkspace";
 import {EOL} from 'os';
 import * as Log from './Logger';
-import APK from "./APK";
-import {ApkPackage} from "./android/ApkPackage";
-import {Core} from "./Core";
 import JavaHelper from "./JavaHelper";
 import {External} from "./external/External";
 

@@ -34,10 +34,9 @@ const PATTERNS = {};
 
 let PRINT = null;
 
-const LOG_ENABLED = true;
-const LOG_FILE = "/Users/salade/Documents/repos/dexcalibur-codebase/dexcalibur-ui/dexcalibur.logs";
+const LOG_FILE = (process.env.DXC_LOG_PATH? process.env.DXC_LOG_PATH : null);
 
-if(LOG_ENABLED)
+if(LOG_FILE!=null)
     PRINT = function ( pMessage:string){
         fs.appendFileSync(LOG_FILE, pMessage+_os_.EOL);
     };

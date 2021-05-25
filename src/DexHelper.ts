@@ -10,7 +10,6 @@ const _execFile_ = _util_.promisify(Process.execFile);
 
 import * as Log from './Logger';
 import DexcaliburProject from "./DexcaliburProject";
-import {Core} from "./Core";
 import JavaHelper from "./JavaHelper";
 import {External} from "./external/External";
 
