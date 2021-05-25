@@ -11,9 +11,6 @@ import * as _os_ from "os";
 
 
 const LOG_FILE = (process.env.DXC_LOG_PATH ? process.env.DXC_LOG_PATH : null);
-
-
-
 function __log( pMessage:string):void{
     if(LOG_FILE!=null)
         _fs_.appendFileSync(LOG_FILE, pMessage+_os_.EOL);
