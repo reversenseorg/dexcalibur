@@ -59,8 +59,8 @@
   },
   "scripts": {
     "prepare": "npm run build",
-    "build": "./scripts/build.sh",
-    "build:prod": "DXC_PROD=1 ./scripts/build.sh",
+    "build": "node ./scripts/run_os_script.js build",
+    "build:prod": "DXC_PROD=1 node ./scripts/run_os_script.js build",
     "watch": "tsc -w",
     "start": "node --max-old-space-size=4096 ./dist/dexcalibur.js",
     "test": "TS_NODE_COMPILER_OPTIONS='{\"module\":\"commonjs\"}' DEXCALIBUR_TEST=1 DEXCALIBUR_PORT=8081 DEXCALIBUR_HOST=127.0.0.1 mocha -r ts-node/register test/*.test.ts",
