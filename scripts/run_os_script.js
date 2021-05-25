@@ -43,7 +43,8 @@ var os_scripts = {
 }
 
 // scan scripts directory
-_fs_.readdirSync(_path_.join(__dirname, 'os_scripts'), { encoding:'utf8'})
+const base = _path_.join(__dirname, 'os_scripts');
+_fs_.readdirSync(base, { encoding:'utf8'})
     .map( vFile => {
         const t = _path_.basename(vFile).split('.');
 
@@ -53,7 +54,7 @@ _fs_.readdirSync(_path_.join(__dirname, 'os_scripts'), { encoding:'utf8'})
 
             // test if t[1] and t[2] are not empty
             os_scripts[t[0]][t[1]] = {
-                f: vFile,
+                f: _path_.join(base,vFile),
                 t: t[2]
             };
         }catch(err){
@@ -63,7 +64,6 @@ _fs_.readdirSync(_path_.join(__dirname, 'os_scripts'), { encoding:'utf8'})
 
 console.log(JSON.stringify(os_scripts));
 
-process.exit(0);
 
 // execute script
 var script = os_scripts[OS];
@@ -73,13 +73,25 @@ if(script==null || !script.hasOwnProperty(process.argv[2])){
 }
 
 script = script[process.argv[2]];
+console.log("[STARTING] "+script.f+" [type="+script.t+"]  for "+OS);
+
 switch(script.t){
     case "bat":
+        console.log("[ERROR] BAT command are not yet supported.")
+        break;
     case "sh":
-        _child_.execSync(script.f);
+        _child_.spawnSync(script.f,[], {
+            stdio: 'inherit',
+            shell: true,
+            cwd: process.cwd()
+        });
         break;
     case "js":
-        _child_.execSync('node '+script.f);
+        _child_.spawnSync('node',[script.f], {
+            stdio: 'inherit',
+            shell: false,
+            cwd: process.cwd()
+        });
         break;
     default:
         console.log("Nothing to execute");
