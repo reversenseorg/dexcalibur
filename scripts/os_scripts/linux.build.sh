@@ -14,10 +14,13 @@ cp -r ./scripts/ ./dist/scripts
 cp -r ./node_modules/ ./dist/node_modules
 cp -r ./package.json ./dist/package.json
 cp -r ./info.json ./dist/info.json
-cp -r ./package-lock.json ./dist/package-lock.json
 cp -r ./dexcalibur ./dist/dexcalibur
 cp -r ./README.md ./dist/scripts
 cp -r ./src/requires ./dist/src/requires
+
+if [ -f "./package-lock.json" ]; then
+  cp -r ./package-lock.json ./dist/package-lock.json
+fi
 
 for i in ./inspectors/*/web
 do
