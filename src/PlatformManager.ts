@@ -10,6 +10,7 @@ import Platform from "./Platform";
 import DexcaliburRegistry from "./DexcaliburRegistry";
 import {ValidationCapable, ValidationRule} from "./Validator";
 import DexcaliburEngine from "./DexcaliburEngine";
+import DexHelper from "./DexHelper";
 
 
 
@@ -78,7 +79,8 @@ export default class PlatformManager extends ValidationCapable
         );
 
         if(_fs_.existsSync(path) == true){
-            Utils.execSync(`java -jar ${_path_.join(__dirname,'..','bin','baksmali.jar')} d ${path} -o ${pPlatform.getLocalPath()}`, "ascii");
+            DexHelper.disassemble(path, pPlatform.getLocalPath());
+            //Utils.execSync(`java -jar ${_path_.join(__dirname,'..','bin','baksmali.jar')} d ${path} -o ${pPlatform.getLocalPath()}`, "ascii");
             _fs_.unlinkSync(path);
             pPlatform.checkInstall();
 
