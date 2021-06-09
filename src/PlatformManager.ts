@@ -13,6 +13,8 @@ import DexcaliburEngine from "./DexcaliburEngine";
 import DexHelper from "./DexHelper";
 
 
+import * as Log from './Logger';
+let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
 let pipeline:any = promisify(stream.pipeline);
 let gInstance:PlatformManager = null;
@@ -178,6 +180,8 @@ export default class PlatformManager extends ValidationCapable
             p.setLocalPath( _path_.join(this.engine.workspace.getPlatformFolderLocation(), p.getUID()));
             p.setSize(platforms[i].size);
             p.setHash(platforms[i].sha);
+
+            Logger.info("Platforms : "+p.toJsonObject());
 
             res[p.getUID()] = p;
         }
