@@ -62,7 +62,6 @@ _fs_.readdirSync(base, { encoding:'utf8'})
         }
     });
 
-console.log(JSON.stringify(os_scripts));
 
 
 // execute script
