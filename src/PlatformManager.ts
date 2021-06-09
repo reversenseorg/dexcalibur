@@ -181,7 +181,7 @@ export default class PlatformManager extends ValidationCapable
             p.setSize(platforms[i].size);
             p.setHash(platforms[i].sha);
 
-            Logger.info("Platforms : "+p.toJsonObject());
+            Logger.info("Platforms : "+JSON.stringify(p.toJsonObject()));
 
             res[p.getUID()] = p;
         }

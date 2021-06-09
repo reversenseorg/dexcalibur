@@ -693,8 +693,11 @@ export default class DeviceManager extends ValidationCapable
         success = await FridaHelper.installServer(device, (pOtions.frida != null? pOtions.frida: {})) ;
 
         if(success){
+            Logger.info("[Device Manager] Frida server installed.\n[Device Manager] Start platform install ...");
             this.status = new StatusMessage(70, this.status.append("[Device Manager] Frida server installed.\n[Device Manager] Start platform install ..."));
         }else{
+
+            Logger.info("[Device Manager] Fail");
             this.status = StatusMessage.newError( this.status.append("[Device Manager] Fail"));
         }
 
@@ -702,18 +705,27 @@ export default class DeviceManager extends ValidationCapable
         namePF = 'sdk_androidapi_'+device.getProfile().getSystemProfile().getSdkVersion()+'_google';
 
         if( pm.isInstalled(namePF) == false){
+
+            Logger.info("[Device Manager] Installing platform : "+namePF);
             targetPF = pm.getRemotePlatform(namePF);
             success = await pm.install(targetPF);
+            Logger.info("[Device Manager] Target platform is not installed. Downloading ...");
             this.status = new StatusMessage(80, this.status.append("[Device Manager] Target platform is not installed. Downloading ..."));
-            if(success)
+            if(success) {
                 device.setPlatform(targetPF)
+            }
         }else{
+            Logger.info("[Device Manager] Platform found : "+namePF);
             device.setPlatform( pm.getLocalPlatform(namePF));
         }
 
         if(success){
+
+            Logger.info("[Device Manager] Platform (SDK) of target device installed");
             this.status = StatusMessage.newSuccess( this.status.append("[Device Manager] Platform (SDK) of target device installed"));
         }else{
+
+            Logger.info("[Device Manager] Platform install fail");
             this.status = StatusMessage.newError( this.status.append("[Device Manager] Fail"));
         }
 
