@@ -708,11 +708,14 @@ export default class DeviceManager extends ValidationCapable
 
             Logger.info("[Device Manager] Installing platform : "+namePF);
             targetPF = pm.getRemotePlatform(namePF);
-            success = await pm.install(targetPF);
-            Logger.info("[Device Manager] Target platform is not installed. Downloading ...");
+
             this.status = new StatusMessage(80, this.status.append("[Device Manager] Target platform is not installed. Downloading ..."));
+            success = await pm.install(targetPF);
             if(success) {
+                Logger.info("[Device Manager] Target platform has been installed. ...");
                 device.setPlatform(targetPF)
+            }else{
+                Logger.error("[Device Manager] Target platform cannot be  installed. ...");
             }
         }else{
             Logger.info("[Device Manager] Platform found : "+namePF);

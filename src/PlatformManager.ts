@@ -74,21 +74,26 @@ export default class PlatformManager extends ValidationCapable
     async install(pPlatform:Platform, pCallback:any=null):Promise<boolean>{
 
         let path:string = _path_.join( this.engine.workspace.getTempFolderLocation(), pPlatform.getUID()+".dex");
-
+        let success;
         await pipeline(
             got.stream(pPlatform.getRemotePath()),
             _fs_.createWriteStream(path)
         );
 
         if(_fs_.existsSync(path) == true){
-            DexHelper.disassemble(path, pPlatform.getLocalPath());
+            success = await DexHelper.disassemble(path, pPlatform.getLocalPath());
             //Utils.execSync(`java -jar ${_path_.join(__dirname,'..','bin','baksmali.jar')} d ${path} -o ${pPlatform.getLocalPath()}`, "ascii");
-            _fs_.unlinkSync(path);
-            pPlatform.checkInstall();
+            //_fs_.unlinkSync(path);
+            if(success){
+                pPlatform.checkInstall();
 
-            if(pCallback != null){
-                pCallback();
+                if(pCallback != null){
+                    pCallback();
+                }
+            }else{
+                Logger.error("[PlatformManager] Platform cannot be analyzed");
             }
+
 
             return true;
         }else{
