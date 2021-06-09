@@ -261,7 +261,7 @@ export namespace Settings {
         constructor( pConfig:any=null) {
             this.srv = new ServerSettings(pConfig.server);
             this.bin = new ExternalSettings(pConfig.bin);
-            this.web = new WebServerSettings(pConfig.http, pConfig.ws);
+            this.web = new WebServerSettings(pConfig.server.http, pConfig.server.ws); //(pConfig.http, pConfig.ws);
         }
 
         static getDefaultLocation():string {
