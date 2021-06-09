@@ -268,6 +268,8 @@ export default class RadareHelper
         let k:number = 0;
         let data:any;
 
+        Logger.info('[R2] Run command : '+pCommands);
+
         for(let i=0; i<pCommands.length; i++){
             switch(pCommands[i]){
                 case 'sections':
@@ -326,6 +328,7 @@ export default class RadareHelper
      async start(pProfile:any):Promise<any>{
         let data:any = null;
         try {
+            Logger.info(`[R2] Start analysis of : ${this.target.getPath()}`)
             this._p = await R2Pipe.open(this.target.getPath());
 
             let res:any = await this._p.cmd("aa;aac");
