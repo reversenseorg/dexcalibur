@@ -3,19 +3,22 @@ import { URL } from "url";
 import got from "got";
 
 
+import * as Log from './Logger';
+let Logger:Log.Logger = Log.newLogger() as Log.Logger;
+
 const PLATFORM_FOLDER = "platforms";
 const DEVICE_FOLDER = "devices";
 
 
 export default class DexcaliburRegistry
 {
-    url:URL;
-    api:URL;
+    url:string;
+    api:string;
 
     constructor( pRegistryURL:string, pRegistryApiURL:string ){
 
-        this.url = new URL(pRegistryURL);
-        this.api = new URL(pRegistryApiURL);
+        this.url = pRegistryURL; //new URL(pRegistryURL);
+        this.api = pRegistryApiURL; //new URL(pRegistryApiURL);
 
         /*
         this.cache = {
@@ -65,9 +68,9 @@ export default class DexcaliburRegistry
             response = JSON.parse(response.body);
 
         } catch (error) {
+            Logger.error("[REGISTRY] enumeratePlatforms(): Unable to enumerate the remote registry : "+error.message);
             throw new Error("[REGISTRY] enumeratePlatforms(): Unable to enumerate the remote registry");
         } finally {
-
            return response;
         }
     }
@@ -80,6 +83,7 @@ export default class DexcaliburRegistry
             response = JSON.parse(response.body);
 
         } catch (error) {
+            Logger.error("[REGISTRY] enumerateInspectors(): Unable to enumerate the remote registry : "+error.message);
             throw new Error("[REGISTRY] enumerateInspectors(): Unable to enumerate the remote registry");
         } finally {
 
