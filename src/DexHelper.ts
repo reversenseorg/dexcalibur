@@ -42,6 +42,11 @@ export default class DexHelper extends  External.ExternalHelper
      */
     static getBaksmaliCommand():any {
         let cmd = DexHelper.getExtPath(); //Path.join(__dirname, '..', 'bin', "baksmali.jar");
+        try{
+            Logger.info("[i] getBaksmaliCommand : "+DexHelper.getExtPath());
+        }catch(err){
+            Logger.info("[i] getBaksmaliCommand (e) : "+err.message)
+        }
 
         return {file:JavaHelper.getJRE(), args:['-jar',cmd]};
     }
@@ -63,7 +68,7 @@ export default class DexHelper extends  External.ExternalHelper
             if(!override) return false;
         }
 
-        Logger.info("[DEX HELPER] exec :  "+baksmali.file+" disassemble "+pDexfilePath+" -o "+pDestPath);
+        Logger.info("[DEX HELPER] exec :  "+baksmali.args[1]+" disassemble "+pDexfilePath+" -o "+pDestPath);
 
         let { stderr } =  await _execFile_(
             baksmali.file,
