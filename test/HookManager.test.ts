@@ -46,7 +46,7 @@ describe('HookManager', function() {
                 expect(manager.isFridaDisabled()).to.equals(true);
 
                 try {
-                    manager.start("Java.perform()");
+                    //manager.start("Java.perform()");
                 }catch(err){
                     flag++;
                 }

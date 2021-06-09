@@ -16,12 +16,12 @@ import DexcaliburProject from "../dist/src/DexcaliburProject";
 import {SearchAPI} from "../dist/src/SearchAPI";
 import Analyzer from "../dist/src/Analyzer";
 import {HookManager} from "../dist/src/HookManager";
-import Workspace from "../dist/src/Workspace";
 import {DataAnalyzer} from "../dist/src/DataAnalyzer";
 import AndroidAppAnalyzer from "../dist/src/AndroidAppAnalyzer";
 import Bus from "../dist/src/Bus";
 import GraphMaker from "../dist/src/Graph";
 import {TestHelper} from "../dist/src/TestHelper";
+import ProjectWorkspace from "../src/ProjectWorkspace";
 
 let Logger:Log.TestLogger;
 
@@ -77,7 +77,7 @@ describe('DexcaliburProject', function() {
             expect(p.find).to.be.an.instanceOf(SearchAPI);
             expect(p.analyze).to.be.an.instanceOf(Analyzer);
             expect(p.hook).to.be.an.instanceOf(HookManager);
-            expect(p.workspace).to.be.an.instanceOf(Workspace);
+            expect(p.workspace).to.be.an.instanceOf(ProjectWorkspace);
             expect(p.dataAnalyzer).to.be.an.instanceOf(DataAnalyzer);
             expect(p.appAnalyzer).to.be.an.instanceOf(AndroidAppAnalyzer);
             expect(p.bus).to.be.an.instanceOf(Bus);
