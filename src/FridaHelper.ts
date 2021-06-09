@@ -23,7 +23,7 @@ const pipeline = promisify(_stream_.pipeline);
 const HOST_FRIDA_BIN_NAME = 'frida';
 const REMOTE_FRIDA_RELEASE_BY_TAGS = 'https://api.github.com/repos/frida/frida/repo/releases/tags/';
 const REMOTE_FRIDA_LATEST_RELEASE = 'https://api.github.com/repos/frida/frida/repo/releases/latest';
-const REMOTE_FRIDA_PATH = '/data/local/tmp/';
+const REMOTE_FRIDA_PATH = '/data/local/tmp/frida-server';
 const REMOT_FRIDA_DEFAULT_NAME = 'frida_server';
 
 
@@ -317,7 +317,7 @@ export default class FridaHelper extends External.ExternalHelper
         }
 
         // download sever
-        xzpath = await FridaHelper.download( tmp, 'frida_server');
+        xzpath = await FridaHelper.download( tmp, 'frida_server.xz');
         Logger.info('[FRIDA HELPER] Server download. Path: ',xzpath);
         path = xzpath.substr(0,xzpath.length-3);
 
@@ -338,7 +338,7 @@ export default class FridaHelper extends External.ExternalHelper
         if(pOptions.randomName == true){
             tmp = Util.randString(8, Util.ALPHANUM);
         }else{
-            tmp = REMOT_FRIDA_DEFAULT_NAME;
+            tmp = ""; //REMOT_FRIDA_DEFAULT_NAME;
         }
 
         // push binary
