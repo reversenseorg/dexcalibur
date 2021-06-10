@@ -13,26 +13,32 @@ const EOL = require('os').EOL;
 const TEST_WS:string = _path_.join(__dirname,'ws');
 const TEST_APP = "eshard_test"
 
-describe('Hook', function() {
+describe('Radare2 Helper', function() {
 
-    let BIN_SCOPE:DataScope;
-    let BIN_FILE:ModelFile;
 
-    before( function(){
-
-        BIN_SCOPE = (new DataScope("bin")).setPpts(DataScopePpts.PATH, _path_.join(TEST_WS,TEST_APP,'apk'));
-        BIN_FILE = new ModelFile({
-            path: _path_.join(TEST_WS,TEST_APP,'apk','lib','armeabi','libcrackmelib.so'),
-            type: 'ELF',
-            name: 'libcrackmelib.so',
-            scope: BIN_SCOPE
-        });
-    });
 
 
     describe('new local instance', function() {
 
-        let analyzer:RadareHelper = new RadareHelper( BIN_FILE, R2_TYPE.LOCAL);
+        let BIN_SCOPE:DataScope;
+        let BIN_FILE:ModelFile;
+        let analyzer:RadareHelper;
+
+        before( function(){
+
+            BIN_SCOPE = (new DataScope("bin")).setPpts(DataScopePpts.PATH, _path_.join(TEST_WS,TEST_APP,'apk'));
+            BIN_FILE = new ModelFile({
+                path: _path_.join(TEST_WS,TEST_APP,'apk','lib','armeabi','libcrackmelib.so'),
+                type: 'ELF',
+                name: 'libcrackmelib.so',
+                scope: BIN_SCOPE
+            });
+
+            analyzer = new RadareHelper( BIN_FILE, R2_TYPE.LOCAL);
+
+        });
+
+
 
         it('is same file', async function() {
             expect(analyzer.target.getUID()).to.be.an.instanceOf(BIN_FILE.getUID());
@@ -42,20 +48,38 @@ describe('Hook', function() {
     describe('start local analyzer of Android lib', function() {
 
 
-        let analyzer:RadareHelper = new RadareHelper( BIN_FILE, R2_TYPE.LOCAL);
+        let BIN_SCOPE:DataScope;
+        let BIN_FILE:ModelFile;
+        let analyzer:RadareHelper;
         let res:any;
         let success:boolean;
-        try{
-            res = analyzer.start(NativeAnalyzerProfile.ANDROID_LIB);
-            success = true;
-        }catch (e) {
-            console.log("ERROR : "+e.message);
-            success = false;
-        }
+
+        before( function(){
+
+            BIN_SCOPE = (new DataScope("bin")).setPpts(DataScopePpts.PATH, _path_.join(TEST_WS,TEST_APP,'apk'));
+            BIN_FILE = new ModelFile({
+                path: _path_.join(TEST_WS,TEST_APP,'apk','lib','armeabi','libcrackmelib.so'),
+                type: 'ELF',
+                name: 'libcrackmelib.so',
+                scope: BIN_SCOPE
+            });
+
+            analyzer = new RadareHelper( BIN_FILE, R2_TYPE.LOCAL);
+
+            try{
+                res = analyzer.start(NativeAnalyzerProfile.ANDROID_LIB);
+                success = true;
+            }catch (e) {
+                console.log(e.message);
+                success = false;
+            }
+        });
+
+
 
 
         it('Spawn without exception', async function() {
-            expect(success).to.equal(false);
+            expect(success).to.equal(true);
         });
     });
       
