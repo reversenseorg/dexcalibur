@@ -23,8 +23,11 @@ import {ModelNativeRef} from "./ModelNativeRef";
 import ModelInstruction from "./ModelInstruction";
 import ModelCpuInstruction from "./ModelCpuInstruction";
 import {ModelVariable} from "./ModelVariable";
+import {External} from "./external/External";
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
+import * as r2p from 'r2pipe'
+//r2p.r2bin = "";
 
 export enum R2_TYPE {
     LOCAL,
@@ -105,6 +108,8 @@ export default class RadareHelper
         this._t = pType;
         this.target = pBinary;
         this.opts = pOptions;
+
+        this.init();
     }
 
     /**
@@ -309,6 +314,19 @@ export default class RadareHelper
         }
 
         return k;
+    }
+
+    /**
+     * To patch r2 path into r2pipe module
+     */
+    init():void {
+        if(r2p.r2bin[0]!=='/'){
+            const p:string = require('os').platform();
+            if(p == "linux" || p == "darwin"){
+                // TODO : replace by programmatic way
+                r2p.r2bin = _ps_.execSync("which radare2").toString()
+            }
+        }
     }
 
     /**
