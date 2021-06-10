@@ -28,6 +28,7 @@ import {BinwalkHelper} from "./BinwalkHelper";
 import DexHelper from "./DexHelper";
 import {External} from "./external/External";
 import {Settings} from "./Settings";
+import RadareHelper from "./R2Helper";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -537,6 +538,7 @@ export default class DexcaliburEngine extends ValidationCapable
         ApkHelper.init(this.extMgr.getTool('apktool'));
         BinwalkHelper.init(this.extMgr.getTool('binwalk'));
         DexHelper.init(this.extMgr.getTool('baksmali'));
+        RadareHelper.init(this.extMgr.getTool('radare2'));
 
         // setup web server
         this.webserver = new WebServer(pWebRoot);
