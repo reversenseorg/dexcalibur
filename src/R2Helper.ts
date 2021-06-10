@@ -331,7 +331,9 @@ export default class RadareHelper
             Logger.info(`[R2] Start analysis of : ${this.target.getPath()}`)
             this._p = await R2Pipe.open(this.target.getPath());
 
-            let res:any = await this._p.cmd("aa;aac");
+            let res:any = await this._p.cmd("aa;aac").catch(err => {
+                Logger.error(`[R2] Error aa;aac : ${err.message}`)
+            });
 
             if(res!=null){
                 data = await this.runCmd(['sections','f_list']);
@@ -341,6 +343,16 @@ export default class RadareHelper
          }
 
          return data;
+    }
+
+    /**
+     * To quit R2 child process
+     *
+     */
+    quit():void {
+         if(this._p != null){
+             this._p.quit();
+         }
     }
 
     extractInformation(){
