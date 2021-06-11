@@ -404,6 +404,33 @@ export default class Hook
         return s+"\n}";
     }
 
+    /**
+     * To build the hook code dumping variables
+     * @param pFn
+     * @param pType
+     */
+    prepareCpuCtxDump(pSize:number=9, pOptions:any={}) {
+
+        let s:string = "{\n";
+        let r:ModelVariable = null;
+
+        for(let i=0; i<pSize; i++){
+            // add name depending of platform and reg size
+            s += 'reg_'+0+': args['+i+']';
+            // TODO : depend of address width and device
+            switch('int32_t'){
+                default:
+                case 'int32_t':
+                    s+='.toInt32()';
+                    break;
+            }
+
+            s += (i<pSize-1?',':'');
+        }
+
+        return s+"\n}";
+    }
+
     prepareRetval(pFn:ModelFunction, pOptions:any={}):string {
         let s:string = "{\n";
 
@@ -456,7 +483,9 @@ export default class Hook
             "@@__FN_SYM__@@": pFn.getSymbol(),
             "@@__FN_ADDR__@@": "0x"+pFn.getAddr().toString(16),
             "@@__FN_UID__@@": _md5_(pFn.signature()),
-            "@@__VAR__@@": _md5_(this.id)+"_VAR"
+            "@@__VAR__@@": _md5_(this.id)+"_VAR",
+            "@@__HOOK_ID__@@": Util.b64_encode(this.id),
+            "@@__MSG__@@": "Native:"+pFn.getDeclaringFile()+':'+pFn.getSymbol(),
         };
 
         this.code.varID = tags["@@__VAR__@@"];
@@ -468,6 +497,8 @@ export default class Hook
 
         if(pFn.regvars.length>0){
             tags["@@__REG_VAR_DUMP__@@"] = this.prepareVarDump(pFn, 'regvars', pOptions.regvar);
+        }else{
+            tags["@@__REG_VAR_DUMP__@@"] = this.prepareCpuCtxDump(9);
         }
 
         let script:string = 'Intercept.attach(';
@@ -495,6 +526,7 @@ export default class Hook
     onEnter: function(args){
         send({ 
             id:"@@__HOOK_ID__@@", 
+            msg: "@@__MSG__@@ (in)",
             data:@@__REG_VAR_DUMP__@@, 
             action:"-", 
             after:false
@@ -512,6 +544,7 @@ export default class Hook
         send({ 
             id:"@@__HOOK_ID__@@", 
             data:@@__RET_DATA__@@, 
+            msg: "@@__MSG__@@ (out)",
             action:"-", 
             after:true
         });
