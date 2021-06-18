@@ -664,7 +664,10 @@ export default class WebServer
                     
                     // collect
                     let dev = {
-                        success: success // project.isReady()
+                        success: success, // project.isReady(),
+                        data: {
+                            uid: (project != null ? project.getUID() : null)
+                        }
                     };
 
                     res.status(200).send(JSON.stringify(dev));
