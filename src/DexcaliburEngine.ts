@@ -1,3 +1,9 @@
+const _fixPath_ = require("fix-path");
+
+if(require('os').platform()=="darwin"){
+    _fixPath_();
+}
+
 import DexcaliburRegistry from "./DexcaliburRegistry";
 import PlatformManager from "./PlatformManager";
 
