@@ -1,3 +1,5 @@
+import {AuthenticationService} from "./user/auth/AuthenticationService";
+
 const _fixPath_ = require("fix-path");
 
 if(require('os').platform()=="darwin"){
@@ -238,11 +240,19 @@ export default class DexcaliburEngine extends ValidationCapable
 
     /**
      * Hold global settings : server and external tools settings
-     * @privat
+     * @private
      * @field
      * @type {Core.Configuration.GlobalSettings}
      */
     private settings: Settings.GlobalSettings;
+
+    /**
+     * Hold authentication service for the current instance of engine
+     * @private
+     * @field
+     * @type {AuthenticationService}
+     */
+    private authsvc: AuthenticationService;
 
     /**
      * To instanciate DexcaliburEngine.
@@ -442,6 +452,13 @@ export default class DexcaliburEngine extends ValidationCapable
     }
 
     /**
+     * To save global settings
+     */
+    saveConfiguration():void {
+        this.settings.save();
+    }
+
+    /**
      * To init server settings such as :
      *  - web server settings
      *  - workspace settings
@@ -456,6 +473,10 @@ export default class DexcaliburEngine extends ValidationCapable
         try{
             this.workspace = ss.getWorkspace();
             this.workspace.init();
+            
+            this.authsvc = new AuthenticationService(
+                ss.getAuthenticationSettings()
+            );
 
             this.registry = ss.getRegistry();
         }catch(err){
@@ -463,6 +484,13 @@ export default class DexcaliburEngine extends ValidationCapable
         }
     }
 
+    /**
+     * To get authentication service
+     */
+    getAuthService(): AuthenticationService{
+        return this.authsvc;
+    }
+    
     /**
      *
      */
