@@ -1,10 +1,9 @@
+/*
 import * as _fs_ from "fs";
 
 import {User} from "./User";
 import DexcaliburEngine from "./DexcaliburEngine";
 
-import * as Log from "./Logger";
-let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
 
 enum EXEC_MODE {
@@ -26,9 +25,6 @@ export class UserManager {
         this.context = pEngine;
     }
 
-    /**
-     * To load user account from FS
-     */
     load():void {
         let d:any;
         try{
@@ -46,9 +42,6 @@ export class UserManager {
         }
     }
 
-    /**
-     * To save user account to FS
-     */
     save():void {
         let p:string ;
         let data:any = {
@@ -70,10 +63,7 @@ export class UserManager {
         }
     }
 
-    /**
-     * To check if a user
-     * @param pUser
-     */
+
     isValidState(pUser:User):boolean {
         return true;
     }
@@ -86,3 +76,4 @@ export class UserManager {
         return true;
     }
 }
+*/
