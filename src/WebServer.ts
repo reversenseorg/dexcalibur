@@ -3462,6 +3462,25 @@ export default class WebServer
                     res.status(200).send(JSON.stringify(dev));
                 })*/
 
+        this.app.route('/api/auth/:type')
+            .post(async function (req:ExpressRequest, res:ExpressResponse):Promise<any> {
+                try{
+                    switch(req.params.type){
+                        case 'pwd':
+                            $.context.getAuthService()
+                                .newPasswordAuthenticator()
+                                .doAuthentication(req.body["login"], req.body["pwd"]);
+
+                            SEND_SUCCESS_RESPONSE(res, { success:true, token:'aaaa' });
+                            break;
+                        default:
+                            SEND_ERROR_RESPONSE( res, "Authentication type not supported");
+                            break;
+                    }
+                }catch(err){
+                    SEND_ERROR_RESPONSE( res, "Authentication error : "+err.message);
+                }
+            });
         /*
          * Send an intent to to the default device
          */
@@ -3608,6 +3627,8 @@ export default class WebServer
                     res.status(404).send(JSON.stringify({ data: null, err: excp.messgae }));
                 }*/
             });
+
+
 
     }
 
