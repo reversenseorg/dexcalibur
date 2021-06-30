@@ -3,6 +3,7 @@ import DexcaliburWorkspace from "./DexcaliburWorkspace";
 import * as _path_ from "path";
 import * as _fs_ from "fs";
 import * as _os_ from "os";
+import {AuthType} from "./user/auth/AuthTypes";
 
 
 const LOG_FILE = (process.env.DXC_LOG_PATH ? process.env.DXC_LOG_PATH : null);
@@ -10,6 +11,12 @@ function __log( pMessage:string):void{
     if(LOG_FILE!=null)
         _fs_.appendFileSync(LOG_FILE, pMessage+_os_.EOL);
 }
+
+
+function getValueFrom( pObject:any, pField:string, pDefaultValue:any):any {
+    return (pObject.hasOwnProperty(pField)? pObject[pField] : pDefaultValue);
+}
+
 
 /**
  * Declare class related to global configuration
@@ -47,6 +54,70 @@ export namespace Settings {
     }
 
     /**
+     * Represent authentication configuration
+     *
+     * Such as user data DB location, authenticator enabled, policy,
+     * auth enforced, ...
+     *
+     * @class
+     * @export
+     */
+    export class AuthenticationSettings {
+
+
+        private _supported:AuthType[] = [];
+        private _policy:any = null;
+        private _db:any = null;
+
+        /**
+         * Create an object which hold server settings from global settings files and env var
+         *
+         * @param {number} pHttp HTTP port of web server. Can be override by DXC_HTTP_PORT env var
+         * @param {number} pWs Websocket port of web server. Can be override by DXC_WS_PORT env var
+         * @constructor
+         * @since 1.0.0
+         */
+        constructor( pConfig:any ) {
+            this._db = getValueFrom( pConfig, 'db', null);
+            this._policy = getValueFrom( pConfig, 'policy', null);
+            this._supported = getValueFrom( pConfig, 'supported', [AuthType.PASSWORD]);
+        }
+
+
+        get supported(): AuthType[] {
+            return this._supported;
+        }
+
+        set supported(value: AuthType[]) {
+            this._supported = value;
+        }
+
+        get policy(): any {
+            return this._policy;
+        }
+
+        set policy(value: any) {
+            this._policy = value;
+        }
+
+        get db(): any {
+            return this._db;
+        }
+
+        set db(value: any) {
+            this._db = value;
+        }
+
+        toObject():any {
+            return {
+                db: this._db,
+                policy: this._policy,
+                supported: this._supported
+            };
+        }
+    }
+
+    /**
      * Represents server configuration
      * @class
      * @export
@@ -72,6 +143,14 @@ export namespace Settings {
          */
         private space:DexcaliburWorkspace;
 
+        /**
+         * Path of Dexcalibur workspace
+         * @field
+         * @type {string}
+         * @private
+         */
+        private auth:AuthenticationSettings;
+
         constructor( pConfig:any=null) {
 
             if(pConfig.hasOwnProperty('workspace')){
@@ -81,6 +160,10 @@ export namespace Settings {
             if(pConfig.hasOwnProperty('registry')){
                 this.registry = new DexcaliburRegistry(pConfig.registry, pConfig.registryAPI);
             }
+
+            if(pConfig.hasOwnProperty('auth')){
+                this.auth = new AuthenticationSettings(pConfig.auth);
+            }
         }
 
         getRegistry():DexcaliburRegistry {
@@ -89,6 +172,19 @@ export namespace Settings {
 
         getWorkspace():DexcaliburWorkspace {
             return this.space;
+        }
+
+        getAuthenticationSettings():AuthenticationSettings {
+            return this.auth;
+        }
+
+        toObject():any {
+            return {
+                workspace:  this.space.getLocation(),
+                registry: this.registry.url,
+                registryAPI: this.registry.api,
+                auth: this.auth.toObject()
+            };
         }
     }
 
@@ -157,6 +253,10 @@ export namespace Settings {
         }
 
         getAll():any{
+            return this._all;
+        }
+
+        toObject():any {
             return this._all;
         }
     }
@@ -249,6 +349,8 @@ export namespace Settings {
      */
     export class GlobalSettings {
 
+        private _path:string = null;
+
         private bin: ExternalSettings;
         private srv: ServerSettings;
         private web: WebServerSettings;
@@ -265,6 +367,13 @@ export namespace Settings {
         }
 
         static getDefaultLocation():string {
+            /*let p:string;
+            switch(require('os').platform()){
+                case 'darwin':
+                    p = _path_.join( require('os').homedir(), 'Application Support', 'DexcaliburPRO', GLOBAL_CFG_NAME);
+                    break;
+            }*/
+            // old path (v <= 0.7.x)
             return _path_.join( require('os').homedir(), '.dexcalibur', GLOBAL_CFG_NAME);
         }
         /**
@@ -298,11 +407,47 @@ export namespace Settings {
                 __log("[GLOBAL SETTINGS] load : success : "+JSON.stringify(data));
 
                 gs = new GlobalSettings(data);
+                gs.setPath(path);
             }catch(err){
                 __log("[GLOBAL SETTINGS] load : error : "+err.message+" "+pConfigPath);
             }finally {
                 return gs;
             }
+        }
+
+
+        /**
+         * To set location of the file containing current settings
+         *
+         * @param pPath
+         */
+        setPath(pPath:string):void {
+            this._path = pPath;
+        }
+
+        /**
+         * To save global settings
+         *
+         * @param pDestPath
+         */
+        save( pDestPath:string = null){
+            let o:any = {
+                bin: this.bin.toObject(),
+                srv: this.srv.toObject()
+            };
+
+            o.srv.http = this.web.getHttpPort();
+            o.srv.ws = this.web.getWsPort();
+
+            // if the path of the new file, is the same than current file,
+            // then create a backup of current config
+            if(this._path != null && (pDestPath == null || pDestPath===this._path)){
+                _fs_.copyFileSync(this._path, this._path+'.bkp');
+            }
+
+            _fs_.writeFileSync(
+                pDestPath!=null ? pDestPath : this._path,
+                JSON.stringify(o));
         }
 
         getServerSettings():ServerSettings {
