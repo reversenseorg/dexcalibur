@@ -33,7 +33,7 @@ export class AuthenticationSettings {
      */
     constructor( pConfig:any ) {
         this._db = getValueFrom( pConfig, 'db', null);
-        this._policy = getValueFrom( pConfig, 'policy', null);
+        this._policy = getValueFrom( pConfig, 'policy', { enforced:true });
         this._supported = getValueFrom( pConfig, 'supported', [AuthType.PASSWORD]);
     }
 

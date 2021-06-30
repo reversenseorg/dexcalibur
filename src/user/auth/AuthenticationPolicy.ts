@@ -1,4 +1,3 @@
-import {Settings} from "../../Settings";
 import {AuthType} from "./AuthTypes";
 import {AuthenticationSettings} from "./AuthenticationSettings";
 
@@ -28,7 +27,7 @@ export class AuthenticationPolicy {
         this.delay = getValueFrom(p, 'delay', true);
         this.resetAfter = getValueFrom(p, 'resetAfter', 3600);
         this.maxAttempts = getValueFrom(p, 'maxAttempts', -1);
-        this.supported = getValueFrom(pSettings, 'supported', [AuthType.NONE]);
+        this.supported = pSettings.supported;
         this.defaultType = getValueFrom(p, 'defaultType', AuthType.NONE);
 
         if(this.supported==null || this.supported.indexOf(this.defaultType)==-1){
