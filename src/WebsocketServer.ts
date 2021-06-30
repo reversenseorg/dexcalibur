@@ -173,6 +173,10 @@ export class WebsocketServer
                                     Logger.info('Received Message: ' + message.utf8Data);
                                     self.engine.getTerminalServer().processCommand(user, conn, message.utf8Data);
                                     break;
+                                case '_ping':
+                                    // TODO : check user permissions
+                                    conn.sendUTF(JSON.stringify({action:'_ping', data:{ success: true, msg:'pong' }}));
+                                    break;
                                 case 'hookm':
                                     // TODO : check user permissions
                                     Logger.info('Received Message: ' + message.utf8Data);
