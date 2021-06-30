@@ -463,6 +463,7 @@ export default class DexcaliburEngine extends ValidationCapable
      *  - web server settings
      *  - workspace settings
      *  - dexcalibur registry settings
+     *  - authentication service
      *
      *  @method
      *  @since 1.0.0
@@ -480,7 +481,7 @@ export default class DexcaliburEngine extends ValidationCapable
 
             this.registry = ss.getRegistry();
         }catch(err){
-
+            Logger.error("DexcaliburEngine : "+err.message);
         }
     }
 
