@@ -52,12 +52,14 @@ export class AuthenticationService {
         ) as IDatabaseAdapter;
         this._dba.connect()
 
+        // import temporary DB after a fresh install
         if(_fs_.existsSync(this.settings.db.uri)==false){
             if(_fs_.existsSync(this.settings.db.uri+".temp")==true){
                 this.createUserDB(
                     JSON.parse(_fs_.readFileSync(this.settings.db.uri+".temp", {encoding:'utf8'}))
                 );
-                this.save();
+                // during import, there is no backup of current user DB
+                this.save(false);
             }else{
                 throw new AuthenticationException("Authentication Service cannot be initilized : user DB is missing at "+this.settings.db.uri);
             }
@@ -91,9 +93,11 @@ export class AuthenticationService {
      *
      * @method
      */
-    save(){
+    save(pDoCopy:boolean = true){
         if(this.settings.db.dbms=='inmemory'){
-            _fs_.copyFileSync(this.settings.db.uri,this.settings.db.uri+'.bkp');
+            if(pDoCopy) {
+                _fs_.copyFileSync(this.settings.db.uri, this.settings.db.uri + '.bkp');
+            }
             _fs_.writeFileSync(this.settings.db.uri, this._dba.getDB().serialize());
         }
     }
