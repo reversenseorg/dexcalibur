@@ -55,7 +55,7 @@ export class AuthenticationService {
         if(_fs_.existsSync(this.settings.db.uri)==false){
             if(_fs_.existsSync(this.settings.db.uri+".temp")==true){
                 this.createUserDB(
-                    JSON.parse(_fs_.readFileSync(this.settings.db.uri, {encoding:'utf8'}))
+                    JSON.parse(_fs_.readFileSync(this.settings.db.uri+".temp", {encoding:'utf8'}))
                 );
                 this.save();
             }else{
