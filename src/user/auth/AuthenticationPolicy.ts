@@ -1,6 +1,6 @@
 import {Settings} from "../../Settings";
 import {AuthType} from "./AuthTypes";
-import AuthenticationSettings = Settings.AuthenticationSettings;
+import {AuthenticationSettings} from "./AuthenticationSettings";
 
 
 function getValueFrom( pObject:any, pField:string, pDefaultValue:any):any {
@@ -28,7 +28,7 @@ export class AuthenticationPolicy {
         this.delay = getValueFrom(p, 'delay', true);
         this.resetAfter = getValueFrom(p, 'resetAfter', 3600);
         this.maxAttempts = getValueFrom(p, 'maxAttempts', -1);
-        this.supported = getValueFrom(p, 'supported', [AuthType.NONE]);
+        this.supported = getValueFrom(pSettings, 'supported', [AuthType.NONE]);
         this.defaultType = getValueFrom(p, 'defaultType', AuthType.NONE);
 
         if(this.supported==null || this.supported.indexOf(this.defaultType)==-1){

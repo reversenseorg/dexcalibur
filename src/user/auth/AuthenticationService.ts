@@ -1,13 +1,12 @@
 import * as _fs_ from 'fs';
 
 import {Authenticator, AuthType, AuthenticationException} from "./AuthTypes";
-import {Settings} from "../../Settings";
-import AuthenticationSettings = Settings.AuthenticationSettings;
 import {AuthenticationPolicy} from "./AuthenticationPolicy";
 import {PasswordAuthenticator} from "./Authenticator";
 import {ConnectorFactory, IDatabaseAdapter, IDbIndex} from "../../ConnectorFactory";
 import {UserAccount} from "../UserAccount";
 import {User} from "../../User";
+import {AuthenticationSettings} from "./AuthenticationSettings";
 
 export class AuthenticationService {
 
