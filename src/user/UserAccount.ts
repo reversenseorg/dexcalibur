@@ -1,5 +1,5 @@
 import {Person} from "./Person";
-import Util from "../../../dexcalibur-ui/dxc-web/src/installer/dxc/Utils";
+import Util from "../Utils";
 import {createHash} from "crypto";
 import {AuthenticationException} from "./auth/AuthTypes";
 
