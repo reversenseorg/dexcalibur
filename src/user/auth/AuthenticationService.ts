@@ -1,11 +1,10 @@
 import * as _fs_ from 'fs';
 
-import {Authenticator, AuthType, AuthenticationException} from "./AuthTypes";
+import {AuthCode, AuthenticationException, Authenticator, AuthType} from "./AuthTypes";
 import {AuthenticationPolicy} from "./AuthenticationPolicy";
 import {PasswordAuthenticator} from "./Authenticator";
 import {ConnectorFactory, IDatabaseAdapter, IDbIndex} from "../../ConnectorFactory";
 import {UserAccount} from "../UserAccount";
-import {User} from "../../User";
 import {AuthenticationSettings} from "./AuthenticationSettings";
 
 export class AuthenticationService {
@@ -14,8 +13,8 @@ export class AuthenticationService {
     policy:AuthenticationPolicy;
 
 
-    private _users:IDbIndex;
-    private _dba:IDatabaseAdapter = null;
+    _users:IDbIndex;
+    _dba:IDatabaseAdapter = null;
 
 
     constructor( pSettings:AuthenticationSettings) {
@@ -63,9 +62,29 @@ export class AuthenticationService {
                 throw new AuthenticationException("Authentication Service cannot be initilized : user DB is missing at "+this.settings.db.uri);
             }
         }else{
-            this._dba.getDB().unserialize(_fs_.readFileSync(this.settings.db.uri, {encoding:'utf8'}));
+            this.importUserDB(this.settings.db.dbms);
         }
 
+    }
+
+    importUserDB( pDBMS:string){
+        this._dba.getDB().unserialize(
+            JSON.parse(_fs_.readFileSync(
+                this.settings.db.uri, {encoding:'utf8'}
+            ))
+        );
+        this._users = this._dba.getDB().getIndex('users');
+
+        if(pDBMS == 'inmemory'){
+            let self:any = this;
+            this._users.map(function(o,v) {
+                self._users.setEntry(o, new UserAccount(v));
+            });
+        }
+    }
+
+    getUserIndex():IDbIndex {
+        return this._users;
     }
 
     /**
@@ -97,7 +116,7 @@ export class AuthenticationService {
             if(pDoCopy) {
                 _fs_.copyFileSync(this.settings.db.uri, this.settings.db.uri + '.bkp');
             }
-            _fs_.writeFileSync(this.settings.db.uri, this._dba.getDB().serialize());
+            _fs_.writeFileSync(this.settings.db.uri, JSON.stringify( this._dba.getDB().serialize()));
         }
     }
 
@@ -117,17 +136,17 @@ export class AuthenticationService {
         let usr:UserAccount = null;
 
         if(pUsername==null || pUsername.length==0){
-            throw new AuthenticationException("Username cannot be empty");
+            throw new AuthenticationException("Username cannot be empty", AuthCode.EMPTY_USERNAME);
         }
 
-        this._users.map( vUsr => {
-            if(vUsr.username === pUsername){
+        this._users.map(function(vO, vUsr){
+            if(vUsr.hasUsername(pUsername)){
                 usr = vUsr;
             }
-        })
+        });
 
         if(usr == null){
-            throw new AuthenticationException("Username not found");
+            throw new AuthenticationException("Username not found", AuthCode.INVALID_USERNAME);
         }
 
         return usr;

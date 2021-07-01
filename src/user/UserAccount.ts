@@ -1,7 +1,6 @@
 import {Person} from "./Person";
-import Util from "../Utils";
 import {createHash} from "crypto";
-import {AuthenticationException} from "./auth/AuthTypes";
+import {AuthCode, AuthenticationException} from "./auth/AuthTypes";
 
 export class UserAccount {
 
@@ -76,6 +75,10 @@ export class UserAccount {
         return this._locked;
     }
 
+    hasUsername(pUsername:string):boolean {
+        return (this._username === pUsername);
+    }
+
     passwordEquals( pUnsafe:string):void {
         // add padding
         let pwd:string = pUnsafe;
@@ -95,7 +98,7 @@ export class UserAccount {
         hash.update(pwd);
 
         if(hash.digest('hex')!==this.password){
-            throw new AuthenticationException("Password are differents");
+            throw new AuthenticationException("Password are differents", AuthCode.INVALID_PASSWORD);
         }
     }
 }
