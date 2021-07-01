@@ -21,6 +21,9 @@ import {Stub} from "../../src/ModelSavable";
 import {ModelPackedSwitchStatement, ModelSwitchCase} from "../../src/ModelSwitch";
 import ModelCatchStatement from "../../src/ModelCatchStatement";
 import ModelFile from "../../src/ModelFile";
+import {UserAccount} from "../../src/user/UserAccount";
+import UserRole from "../../src/UserRole";
+import {Person} from "../../src/user/Person";
 
 
 
@@ -50,7 +53,10 @@ export default class SerializedObject
         ModelSwitchCase: ModelSwitchCase,
         ModelPackedSwitchStatement: ModelPackedSwitchStatement,
         ModelCatchStatement: ModelCatchStatement,
-        ModelRegisterReference: ModelRegisterReference
+        ModelRegisterReference: ModelRegisterReference,
+        UserAccount: UserAccount,
+        UserRole: UserRole,
+        Person: Person
     };
 
     __type:string = null;
