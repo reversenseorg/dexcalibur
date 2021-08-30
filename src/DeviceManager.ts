@@ -170,6 +170,8 @@ export default class DeviceManager extends ValidationCapable
                 if( data[i].uid != null)
                     this.devices[ data[i].uid ] = Device.fromJsonObject(this.bridgeFactory, data[i]);
             }
+
+            Logger.info("[DEVICE MANAGER] Known Devices : "+Object.keys(this.devices));
         } catch(err){
             Logger.error("[DEVICE MANAGER] Unable to load devices");
         }
