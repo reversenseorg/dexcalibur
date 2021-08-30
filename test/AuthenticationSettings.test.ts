@@ -18,7 +18,7 @@ describe('AuthenticationSettings', function() {
 
         it('new instance with default settings', function () {
 
-            let settings:any = new AuthenticationSettings({
+            let settings:any = new AuthenticationSettings(null, {
                 db: {
                     dbms: 'inmemory',
                     uri: USER_DB
@@ -37,7 +37,7 @@ describe('AuthenticationSettings', function() {
 
         it('new instance with config', function () {
 
-            let settings:any = new AuthenticationSettings({
+            let settings:any = new AuthenticationSettings(null, {
                 db: {
                     dbms: 'inmemory',
                     user: 'db_user_1',
@@ -67,7 +67,7 @@ describe('AuthenticationSettings', function() {
 
     describe('toJson', function() {
 
-        let settings:any = new AuthenticationSettings({
+        let settings:any = new AuthenticationSettings(null, {
             db: {
                 dbms: 'inmemory',
                 user: 'db_user_1',

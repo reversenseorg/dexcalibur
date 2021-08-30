@@ -30,7 +30,7 @@ describe('AuthenticationService', function() {
 
 
     beforeEach(function(){
-        auth_settings = new AuthenticationSettings({
+        auth_settings = new AuthenticationSettings(null, {
             db: {
                 dbms: 'inmemory',
                 user: null,
@@ -136,7 +136,7 @@ describe('AuthenticationService', function() {
             let pwd_auth:Authenticator = null;
             try{
 
-                auth_svc_2 = new AuthenticationService(new AuthenticationSettings({
+                auth_svc_2 = new AuthenticationService(new AuthenticationSettings(null, {
                     db: {
                         dbms: 'inmemory',
                         user: null,
@@ -179,7 +179,7 @@ describe('AuthenticationService', function() {
             auth_svc.save(false);
 
             // reload DB into another service
-            let auth_svc_2  =  new AuthenticationService(new AuthenticationSettings({
+            let auth_svc_2  =  new AuthenticationService(new AuthenticationSettings(null, {
                 db: {
                     dbms: 'inmemory',
                     user: null,
@@ -213,7 +213,7 @@ describe('AuthenticationService', function() {
             auth_svc.save();
 
             // reload DB into another service
-            let auth_svc_2  =  new AuthenticationService(new AuthenticationSettings({
+            let auth_svc_2  =  new AuthenticationService(new AuthenticationSettings(null, {
                 db: {
                     dbms: 'inmemory',
                     user: null,
@@ -232,7 +232,7 @@ describe('AuthenticationService', function() {
             }));
 
             // reload DB into another service
-            let auth_svc_3  =  new AuthenticationService(new AuthenticationSettings({
+            let auth_svc_3  =  new AuthenticationService(new AuthenticationSettings(null, {
                 db: {
                     dbms: 'inmemory',
                     user: null,

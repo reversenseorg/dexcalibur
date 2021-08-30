@@ -10,7 +10,7 @@ const TEST_CONFIG2 = Path.join( __dirname, './res/config_test_2.js');
 var CONFIG = null;
 
 import * as Log from '../dist/src/Logger';
-import {TestLogger} from "../src/Logger";
+import {TestLogger} from "../dist/src/Logger";
 import DexcaliburEngine from "../dist/src/DexcaliburEngine";
 import DexcaliburProject from "../dist/src/DexcaliburProject";
 import {SearchAPI} from "../dist/src/SearchAPI";
@@ -21,7 +21,7 @@ import AndroidAppAnalyzer from "../dist/src/AndroidAppAnalyzer";
 import Bus from "../dist/src/Bus";
 import GraphMaker from "../dist/src/Graph";
 import {TestHelper} from "../dist/src/TestHelper";
-import ProjectWorkspace from "../src/ProjectWorkspace";
+import ProjectWorkspace from "../dist/src/ProjectWorkspace";
 
 let Logger:Log.TestLogger;
 

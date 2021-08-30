@@ -1,5 +1,1 @@
-{
-    "workspace":"",
-    "registry":"https://github.com/FrenchYeti/dexcalibur-registry/raw/master/",
-    "registryAPI":"https://api.github.com/repos/FrenchYeti/dexcalibur-registry/contents/"
-}
+{"bin":{"java":"java","python":"python3","frida":"frida","radare2":"r2","adb":"/Users/salade/Documents/dxc3/.dxc/bin/platform-tools/adb","apktool":"/Users/salade/Documents/dxc3/.dxc/bin/apktool.jar","baksmali":"/Users/salade/Documents/dxc3/.dxc/bin/baksmali.jar","binwalk":"binwalk"},"server":{"registry":"https://github.com/FrenchYeti/dexcalibur-registry/raw/master/","registryAPI":"https://api.github.com/repos/FrenchYeti/dexcalibur-registry/contents/","http":8000,"ws":8001,"auth":{"db":{"dbms":"inmemory","user":null,"pwd":null,"port":0,"uri":"/Users/salade/Library/Application Support/DexcaliburPRO/userdb.json"},"policy":{"enforced":false},"supported":["pwd"]},"workspace":"/Users/salade/Documents/dxc3"}}

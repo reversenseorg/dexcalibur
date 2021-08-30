@@ -15,7 +15,7 @@ describe('AuthenticationPolicy', function() {
     let pol_default:AuthenticationPolicy;
 
     before(function(){
-        pol_fixed  = new AuthenticationPolicy(new AuthenticationSettings({
+        pol_fixed  = new AuthenticationPolicy(new AuthenticationSettings(null, {
             db: {
                 dbms: 'inmemory',
                 user: null,
@@ -33,7 +33,7 @@ describe('AuthenticationPolicy', function() {
             supported: [AuthType.PASSWORD,AuthType.TOKEN]
         }));
 
-        pol_default = new AuthenticationPolicy(new AuthenticationSettings({
+        pol_default = new AuthenticationPolicy(new AuthenticationSettings(null, {
             db: {
                 dbms: 'inmemory',
                 uri: USER_DB
