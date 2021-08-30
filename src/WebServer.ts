@@ -4,6 +4,8 @@ import * as Express from 'express';
 import {Application as ExpressApplication, Request as ExpressRequest, Response as ExpressResponse} from 'express';
 import * as MIME from 'mime-types';
 import * as BodyParser from 'body-parser';
+import * as _cookieParser_ from 'cookie-parser';
+
 
 
 import WebTemplateEngine from "./WebTemplateEngine";
@@ -49,6 +51,20 @@ import {HookSetList} from "./HookManager";
 import {Finder} from "./Finder";
 import {ValidationCapable, Validator} from "./Validator";
 import {Settings} from "./Settings";
+import {UserSession} from "./user/session/UserSession";
+import {UserService} from "./user/UserService";
+import AccessControl from "./user/acl/AccessControl";
+import {AccessZone} from "./user/acl/Zones";
+import {ProjectAccessControl} from "./user/acl/rbac/ProjectAccessContol";
+import {DeviceManagerException} from "./errors/DeviceManagerException";
+import {DexcaliburConnectionException} from "./errors/DexcaliburConnectionException";
+import ConnectionSettings = Settings.ConnectionSettings;
+import {ConnectionManager} from "./remote/ConnectionManager";
+import {DexcaliburConnectionParams} from "./remote/DexcaliburConnectionParams";
+import {ConnectionCredentials} from "./remote/ConnectionCredentials";
+import {ConnectionHandler} from "./remote/ConnectionHandler";
+import {ConnectionManagerException} from "./errors/ConnectionManagerException";
+import {UserAccount} from "./user/UserAccount";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -103,7 +119,7 @@ export class MimeHelper
 {
     /**
      * To detect if the MIME type is a font
-     * 
+     *
      * @param {String} mime Mime type
      * @returns {Boolean} TRUE if the MIME type is a font
      * @function
@@ -125,7 +141,7 @@ interface ValidationCapableCtrl {
 }
 /**
  * Class representing Dexcalibur's web server
- * 
+ *
  * @class
  */
 export default class WebServer
@@ -157,13 +173,13 @@ export default class WebServer
     validators:ValidationCapableCtrl = {};
 
     /**
-     * 
-     * @param {Project} pProject 
+     *
+     * @param {Project} pProject
      * @constructor
      */
     constructor( pWebRoot:string) {
-        
-        this.context = null; 
+
+        this.context = null;
         this.project = null; //pProject;
 
         this.tplengine = new WebTemplateEngine();
@@ -196,7 +212,7 @@ export default class WebServer
      *
      *  TODO : add simultaneous project support
      *
-     * @param {Project} pProject 
+     * @param {Project} pProject
      * @method
      */
     setProject( pProject:DexcaliburProject){
@@ -205,9 +221,9 @@ export default class WebServer
     }
 
     /**
-     * To set Dexcalibur engine 
-     * 
-     * @param {DexcaliburEngine} pEngine 
+     * To set Dexcalibur engine
+     *
+     * @param {DexcaliburEngine} pEngine
      * @method
      */
     setContext( pContext:DexcaliburEngine){
@@ -217,8 +233,8 @@ export default class WebServer
     }
 
     /**
-     * To get Express Application instance used by web server  
-     * 
+     * To get Express Application instance used by web server
+     *
      * @returns {Express.Application} Instance of Express Application
      * @method
      */
@@ -296,7 +312,7 @@ export default class WebServer
     }
 
     /**
-     * 
+     *
      * @param {require('path')} pHome The path of the file containing home page
      * @method
      */
@@ -372,7 +388,7 @@ export default class WebServer
 
     /**
      * To init routes to static content
-     * 
+     *
      * @method
      */
     initStaticRoutes(){
@@ -393,7 +409,7 @@ export default class WebServer
 
     /**
      * To init routes when Dexcalibur runs install mode
-     * 
+     *
      * @method
      */
     initInstallRoutes(){
@@ -408,7 +424,7 @@ export default class WebServer
 
     /**
      * To initialize routes of the web server
-     * 
+     *
      * @method
      */
     initRoutes() {
@@ -433,7 +449,7 @@ export default class WebServer
                     res.status(404).send(JSON.stringify({ msg: "Inspector cannot be retrieved" }));
                     return false;
                 }
-                
+
                 insp.performGet(req, res);
             })
             .post(function (req:ExpressRequest, res:ExpressResponse):any {
@@ -457,7 +473,7 @@ export default class WebServer
                 );
             });
 
-        // API routes 
+        // API routes
         this.app.route('/api/platform/list')
             .get(function (req:ExpressRequest, res:ExpressResponse):any {
 
@@ -518,9 +534,32 @@ export default class WebServer
         this.app.route('/api/workspace/list')
             .get(function (req:ExpressRequest, res:ExpressResponse):any {
 
-                res.status(200).send(JSON.stringify({
-                    projects: $.context.getProjects()
-                }));
+                let _DATA:any;
+                let user:UserAccount;
+                try {
+                    if (req.dxc!=null && $.context.getUserService().verifySession(req.dxc.sess)) {
+                        user = (req.dxc.sess as UserSession).getUserAccount();
+
+                        //_DATA = {projects: $.context.getProjectInfo(user.getProjects() };
+
+
+                        // $.context.getProjects()
+                        res.status(200).send(JSON.stringify({
+                            projects: $.context.getProjects()
+                        }));
+
+                        //SEND_SUCCESS_RESPONSE(res, _DATA);
+                    }else{
+                        SEND_ERROR_RESPONSE(res, "Authentication required");
+                    }
+
+                }catch(err){
+                    Logger.error("[API][REMOTE CONNECTION SETTINGS] List device : "+err.message+"\n"+err.stack);
+                    //_HTTP_CODE = HTTP_CODE_ERROR;
+                    //_DATA = JSON.stringify({ success:false, err:"Devices cannot be listed."});
+                    SEND_ERROR_RESPONSE(res, err.message);
+                }
+
             });
 
         this.app.route('/api/workspace/new')
@@ -538,7 +577,7 @@ export default class WebServer
 
                 dm = DeviceManager.getInstance();
                 await dm.scan();
-                
+
 
 
 
@@ -564,7 +603,7 @@ export default class WebServer
 
 
                     // first download remote application
-                    // on error : ne‹ project will not create. 
+                    // on error : ne‹ project will not create.
                     switch(req.body['type'])
                     {
                         case 'select':
@@ -618,7 +657,7 @@ export default class WebServer
                               device!==null?'[OK]':'[KO]',
                              ' Platform ... ',
                               platform!==null? '[OK]':'[KO]');
-    
+
                     // create project : UID , APK [, Device]
                     Logger.info('[PROJECT][STEP 2] Creating new project ...');
 
@@ -661,7 +700,7 @@ export default class WebServer
                     }else{
                         wf.pushStatus(StatusMessage.newError("Project cannot be created. See logs for more details."))
                     }
-                    
+
                     // collect
                     let dev = {
                         success: success, // project.isReady(),
@@ -688,7 +727,7 @@ export default class WebServer
 
         this.app.route('/api/workspace/open')
             .get(async function (req:ExpressRequest, res:ExpressResponse):Promise<any> {
-                
+
                 // refresh connected device
                 await DeviceManager.getInstance().scan();
                 let project:DexcaliburProject = null;
@@ -794,7 +833,7 @@ export default class WebServer
                         break;
                 }
 
-                
+
                 res.status(200).send(JSON.stringify({
                     availability: availability
                 }));
@@ -1044,7 +1083,7 @@ export default class WebServer
                         else
                             Logger.debug('[WEBSERVER][/api/device/connect] Device not found.');
 
-                        
+
                     }
 
                     if(ip=="" && port==""){
@@ -1172,22 +1211,34 @@ export default class WebServer
             .get(async function (req:ExpressRequest, res:ExpressResponse):Promise<any> {
                 // scan connected devices
                 let dm:DeviceManager;
+                let _HTTP_CODE:number, _DATA:any;
+                try{
+                    dm = DeviceManager.getInstance();
+                    await dm.scan();
+                    dm.save();
 
-                dm = DeviceManager.getInstance();
-                await dm.scan();
-                dm.save();
-
-                res.status(200).send(JSON.stringify({
-                    devices: dm.toJsonObject(  {
-                        device: {
-                            profile: false,
-                            frida: false,
-                            bridge: {
-                                path: false
+                    _HTTP_CODE = HTTP_CODE_SUCCESS;
+                    _DATA = {
+                        devices: dm.toJsonObject(  {
+                            device: {
+                                profile: false,
+                                frida: false,
+                                bridge: {
+                                    path: false
+                                }
                             }
-                        }
-                    })
-                }));
+                        })
+                    };
+
+                    SEND_SUCCESS_RESPONSE(res, _DATA);
+                }catch(err){
+                    Logger.error("[API][DEVICE] List device : "+err.message+"\n"+err.stack);
+                    //_HTTP_CODE = HTTP_CODE_ERROR;
+                    //_DATA = JSON.stringify({ success:false, err:"Devices cannot be listed."});
+                    SEND_ERROR_RESPONSE(res, "Devices cannot be listed.");
+                }
+
+                //res.status(_HTTP_CODE).send(_DATA);
             });
 
 
@@ -1195,33 +1246,42 @@ export default class WebServer
             .get(async function (req:ExpressRequest, res:ExpressResponse):Promise<any> {
                 // scan connected devices
                 let dev:Device, dm:DeviceManager, pkgs:AppPackage[], rep:any;
+                let _HTTP_CODE:number, _DATA:any;
 
-                dm = DeviceManager.getInstance();
-                dev = dm.getDevice( req.query.uid );
+                try{
 
-                if(dev.isEnrolled() == false){
-                    res.status(404).send(JSON.stringify({
-                        msg: 'Device is not enrolled'
-                    }));
-                    return;
+                    dm = DeviceManager.getInstance();
+                    dev = dm.getDevice( req.query.uid );
+
+                    if(dev.isEnrolled() == false){
+                        throw new Error('Device is not enrolled');
+                    }
+
+                    dev.updateInstalledApp();
+                    //pkgs = dev.getDefaultBridge().listPackages('-f');
+                    pkgs = dev.getInstalledApp();
+                    dm.save();
+                    //dev.updateCache('package',pkgs);
+
+                    rep = {
+                        device: req.query.uid,
+                        apps:[]
+                    };
+
+                    pkgs.map( (x:AppPackage)=>{
+                        rep.apps.push(x.toJsonObject())
+                    });
+
+                    _DATA = rep;
+                    _HTTP_CODE = HTTP_CODE_SUCCESS;
+
+                }catch(err){
+                    Logger.error("[API][DEVICE] List apps from device : "+err.message+"\n"+err.stack);
+                    _HTTP_CODE = HTTP_CODE_ERROR;
+                    _DATA = { success:false, err:err.message};
                 }
 
-                dev.updateInstalledApp();
-                //pkgs = dev.getDefaultBridge().listPackages('-f');
-                pkgs = dev.getInstalledApp();
-                dm.save();
-                //dev.updateCache('package',pkgs);
-
-                rep = {
-                    device: req.query.uid,
-                    apps:[]
-                };
-
-                pkgs.map( (x:AppPackage)=>{
-                    rep.apps.push(x.toJsonObject())
-                });
-
-                res.status(200).send(JSON.stringify(rep));
+                res.status(_HTTP_CODE).send(_DATA);
             });
 
         this.app.route('/api/device/application/pull')
@@ -1229,6 +1289,8 @@ export default class WebServer
                 let dm = DeviceManager.getInstance();
                 let dev:Device = null, success:boolean = false, app:AppPackage = null;
                 let rep:any =  {};
+
+                let _HTTP_CODE:number, _DATA:any;
 
                 try{
                     dev =dm.getDevice(req.body['uid']);
@@ -1246,33 +1308,40 @@ export default class WebServer
                         rep = { success:true, data:{ tmp: dev.pullTemp(app.packagePath) }};
                     }
 
-                    res.status(200);
+                    _DATA = rep;
+                    _HTTP_CODE = HTTP_CODE_SUCCESS;
+
                 }catch(err){
-                    rep = { success:false, msg:err.message };
-                    res.status(200);
+                    Logger.error("[API][DEVICE] Pull app from device : "+err.message+"\n"+err.stack);
+                    _DATA = { success:false, msg:err.message };
+                    _HTTP_CODE = HTTP_CODE_ERROR;
                 }
 
-                res.send(JSON.stringify(rep));
+                res.status(_HTTP_CODE).send(_DATA);
             });
 
         this.app.route('/api/device/setDefault')
             .post(function (req:ExpressRequest, res:ExpressResponse):any {
                 // collect
                 let uid:string = req.body["uid"];
+                let puid:string = req.body["pid"]; // project uid
                 let dm:DeviceManager = DeviceManager.getInstance();
-                let dev:Device = null;
+                let dev:Device = null, errcode:string = null;
 
-                res.set('Content-Type', 'text/json');
+                let _HTTP_CODE:number, _DATA:any;
 
-                if(uid != null){
+                try{
+                    res.set('Content-Type', 'text/json');
+                    if(uid == null)
+                        throw DeviceManagerException.DEVICE_ID_NULL();
+
+
                     dev = dm.getDevice(uid);
-                    if(dev==null){
-                        res.status(404).send(JSON.stringify({
-                            error: "Invalid device ID",
-                            errcode: "DM2"
-                        }));
-                        return 1;
-                    }
+                    if(dev==null)
+                        //errcode = "DM2";
+                        //throw new DeviceManagerException("Invalid device ID");
+                        throw DeviceManagerException.DEVICE_NOT_FOUND();
+
 
                     if($.project != null){
                         $.project.setDevice(dm.getDevice(uid));
@@ -1281,17 +1350,20 @@ export default class WebServer
                     // TODO : change > defaultDevice => project
                     dm.setDefault(uid);
 
-                    res.status(200).send(JSON.stringify({
+
+                    _DATA = {
                         msg: "Device <b>"+uid+"</b> is the new default device."
-                    }));    
-                    return 1;
-                }else{
-                    res.status(404).send(JSON.stringify({
-                        error: "Invalid device ID",
-                        errcode: "DM1"
-                    }));
-                    return 1;
+                    };
+                    _HTTP_CODE = HTTP_CODE_SUCCESS;
+
+                }catch(err){
+                    Logger.error("[API][DEVICE] Set default device for project: "+err.message+"\n"+err.stack);
+                    _DATA = { success:false, error:err.message, errcode:errcode };
+                    _HTTP_CODE = HTTP_CODE_ERROR;
                 }
+
+                res.status(_HTTP_CODE).send(_DATA);
+
             });
 
         this.app.route('/api/device/:uid/bridge')
@@ -1326,7 +1398,7 @@ export default class WebServer
                         dm.save();
                         res.status(200).send({ success: true });
 
-                        return; 
+                        return;
                     }
 
                 }catch(err){
@@ -1344,7 +1416,7 @@ export default class WebServer
                     data: $.project.packagePatcher.toJsonObject()
                 }));
             });*/
-    
+
         // todo : replace by splash/select app
         /*
         this.app.route('/api/changeWorkspace/:projectIdentifier')
@@ -1618,11 +1690,11 @@ export default class WebServer
                     res.status(HTTP_CODE_ERROR).send(JSON.stringify({ success:false, err: exception.message }));
                 }
 
-                
+
             });
 
         /**
-         * To download the resulting Frida script 
+         * To download the resulting Frida script
          */
         this.app.route('/api/probe/download')
             .get(function (req:ExpressRequest, res:ExpressResponse):any {
@@ -1698,7 +1770,7 @@ export default class WebServer
 
         this.app.route('/api/probe/msg')
             .get(function (req:ExpressRequest, res:ExpressResponse):any {
-                
+
                 if($.project == null){
                     res.status(404).send(JSON.stringify({}));
                     return null;
@@ -1836,13 +1908,13 @@ export default class WebServer
 
                 // get hook instance by ID
                 let session:HookSession = $.project.hook.lastSession();
-                
+
                 if (session.fridaScript == null) {
                     res.status(200).send({ success: false, error: "Invalid frida script" });
                 }else{
                     let a:any = await session.fridaScript.unload();
                     res.status(200).send(JSON.stringify({ success: await session.fridaScript.unload(a) }));
-                }         
+                }
             })
 
         this.app.route('/api/hook/app/kill')
@@ -1857,13 +1929,13 @@ export default class WebServer
                     res.status(200).send({ success: false, error: "Unknow PID" });
                     return;
                 }
-                
+
                 if (session.pid == null) {
                     res.status(200).send({ success: false, error: "Invalid PID" });
                 }else{
                     let o = await $.project.getDevice().privilegedExecSync('kill '+session.pid, {detached:false});
                     res.status(200).send(JSON.stringify({ success: true }));
-                }         
+                }
             })
 
         // TODO : review exec type
@@ -1964,7 +2036,7 @@ export default class WebServer
                 //hook.script = newCode;
                 hook.modifyScript(newCode);
 
-                //let success = $.project.hook.removeHook(hook);            
+                //let success = $.project.hook.removeHook(hook);
 
                 res.status(200).send(JSON.stringify({ success: true }));
             })
@@ -2016,12 +2088,12 @@ export default class WebServer
                 res.status(200).send(JSON.stringify(dev));
             });
 
-        
+
         this.app.route('/api/hook/disable/:hookid')
             .put(function (req:ExpressRequest, res:ExpressResponse):any {
 
                 let dev:any={};
-                
+
                 if(req.params.hookid=="all"){
                     let hooks:Hook[] = $.project.hook.list();
                     for(let i in hooks){
@@ -2032,14 +2104,14 @@ export default class WebServer
                     let hook:Hook = $.project.hook.getHookByID(
                         req.params.hookid
                     );
-    
+
                     hook.disable();
                     // collect
                     dev = {
                         enable: hook.isEnable()
                     };
                 }
-                
+
 
                 res.status(200).send(JSON.stringify(dev));
             });
@@ -2153,7 +2225,7 @@ export default class WebServer
 
                 switch (req.params.type) {
                     case 'method':
-                        // retrieve the method 
+                        // retrieve the method
                         from = $.project.find.get.method(Util.decodeURI(Util.b64_decode(req.params.id)));
                         if (from == null) {
                             ret = { status: 404, msg: { err: "Given method not found" } };
@@ -2199,7 +2271,7 @@ export default class WebServer
             });
 
         /**
-         * To get full information about a method 
+         * To get full information about a method
          */
         this.app.route('/api/method/disass/:id')
             .get(function (req:ExpressRequest, res:ExpressResponse):any {
@@ -2271,7 +2343,7 @@ export default class WebServer
                             tmp = {
                                 // method signature
                                 s: m.signature(),
-                                // aliased signature 
+                                // aliased signature
                                 a: m.__aliasedCallSignature__,
                                 // return type signature
                                 r: (m.getReturnType() != null ? m.getReturnType().signature() : null),
@@ -2285,7 +2357,7 @@ export default class WebServer
                             data.push(tmp);
                         });
                         /*
-                        Object.keys(method.getClassUsed()).forEach( x => data.push({ 
+                        Object.keys(method.getClassUsed()).forEach( x => data.push({
                             // method signature
                             s: x,
                             // type
@@ -2315,7 +2387,7 @@ export default class WebServer
                             tmp = {
                                 // method signature
                                 s: r2.signature(),
-                                // aliased signature 
+                                // aliased signature
                                 a: r2.__aliasedCallSignature__,
                                 // return type signature
                                 r: (r2.getReturnType() != null ? r2.getReturnType().signature() : null),
@@ -2326,7 +2398,7 @@ export default class WebServer
                             tmp.p = [];
                             if (r2.hasArgs())
                                 r2.getArgsType().map(x => tmp.p.push(x.signature()));
-                                
+
                             data.push(tmp);
                         }
 
@@ -2499,7 +2571,7 @@ export default class WebServer
                 res.status(200).send(JSON.stringify(dev));
             });
 
-        // receivers 
+        // receivers
 
         this.app.route('/api/manifest/receivers')
             .get(function (req:ExpressRequest, res:ExpressResponse):any {
@@ -2530,7 +2602,7 @@ export default class WebServer
                 }
                 res.send(JSON.stringify(dev));
             });
-        
+
         /*this.app.route('/api/project/:uid/app/info')
             .get(function (req:ExpressRequest, res:ExpressResponse):any {
                 if(req.params.uid != "self"){
@@ -2646,7 +2718,7 @@ export default class WebServer
                     }else{
                         res.status(200).send({ success:true, msg:null });
                     }
-                    
+
                 }catch(excpt){
                     res.status(500).send({ success:false, msg:excpt.message });
                 }
@@ -2690,6 +2762,14 @@ export default class WebServer
 
                 try{
                     unsafe_UID = req.body['project'];
+
+                    // check if the current user can access to this project
+                    AccessControl.check(
+                        AccessZone.PROJECT,
+                        ProjectAccessControl.access.SETTINGS_EDIT,
+                        unsafe_UID,
+                        req.dxc.sess
+                    );
 
                     if(req.body['device']!=null){
                         unsafe_val = req.body['device'];
@@ -3010,7 +3090,7 @@ export default class WebServer
 
                 let alias:string = req.body['alias'];
 
-                
+
                 if(alias != null){
                     if(alias == obj.name){
                         res.status(200).send(JSON.stringify({
@@ -3076,14 +3156,14 @@ export default class WebServer
                 let dev = {};
                 //let sign = Util.decodeURI(Util.b64_decode(req.params.id));
                 let field = $.project.find.get.field(Util.decodeURI(Util.b64_decode(req.params.id)));
-                setters = field.getSetters(); 
+                setters = field.getSetters();
                 getters = field.getGetters();
 
                 for(let i=0; i<setters.length; i++)
                     dev.setters = setters[i].toJsonObject();
                 for(let i=0; i<getters.length; i++)
                     dev.getters = getters[i].toJsonObject();
-                
+
                 //dev = field.toJsonObject(["__setters"]);
                 // dev.htg = $.project.graph.htg(method);
 
@@ -3435,7 +3515,7 @@ export default class WebServer
                     false, // autocomplete
                     true // override
                 )
-                
+
 */
               /*  res.status(200).send(JSON.stringify(dev));
             });*/
@@ -3467,11 +3547,20 @@ export default class WebServer
                 try{
                     switch(req.params.type){
                         case 'pwd':
-                            $.context.getAuthService()
-                                .newPasswordAuthenticator()
-                                .doAuthentication(req.body["login"], req.body["pwd"]);
+                            // TODO : sanitize input
+                            let sess:UserSession = $.context
+                                                        .getUserService()
+                                                        .do1StepPasswordAuthentication(
+                                                            req.body["login"],
+                                                            req.body["pwd"]
+                                                        );
 
-                            SEND_SUCCESS_RESPONSE(res, { success:true, token:'aaaa' });
+                            res.cookie(
+                                $.context.getUserService().getCookieName(),
+                                sess.getSessUID(),
+                                { maxAge: 7*24*60, expires: 0  }
+                            );
+                            SEND_SUCCESS_RESPONSE(res, { success:true, token:sess.getSessUID() });
                             break;
                         default:
                             SEND_ERROR_RESPONSE( res, "Authentication type not supported");
@@ -3480,6 +3569,144 @@ export default class WebServer
                 }catch(err){
                     SEND_ERROR_RESPONSE( res, "Authentication error : "+err.message);
                 }
+            });
+
+        this.app.route('/api/remote/connections')
+            .get(async function (req:ExpressRequest, res:ExpressResponse):Promise<any> {
+
+                let conn:any,  _DATA:any;
+                try{
+                    conn = $.context.getSettings().getConnectionSettings();
+                    if(conn == null){
+                        _DATA = { conn:null};
+                    }else{
+                        _DATA = { conn:conn.toObject() };
+                    }
+
+                    SEND_SUCCESS_RESPONSE(res, _DATA);
+                }catch(err){
+                    Logger.error("[API][REMOTE CONNECTION SETTINGS] List device : "+err.message+"\n"+err.stack);
+                    //_HTTP_CODE = HTTP_CODE_ERROR;
+                    //_DATA = JSON.stringify({ success:false, err:"Devices cannot be listed."});
+                    SEND_ERROR_RESPONSE(res, "Connections not found : "+err.message);
+                }
+
+            });
+
+        this.app.route('/api/remote/auth')
+            .post(async function (req:ExpressRequest, res:ExpressResponse):Promise<any> {
+
+                let conn:ConnectionSettings, param:DexcaliburConnectionParams, _DATA:any;
+                let handler:ConnectionHandler;
+                try{
+                    conn = $.context.getSettings().getConnectionSettings();
+
+                    if(req.body['conn']==null)
+                        throw new DexcaliburConnectionException("Connection name is required",0);
+
+                    param = conn.getConnectionParamsFor(req.body['conn']);
+
+
+                    // TODO replace by better check
+                    if(param.getName()=="local"){
+                        if(req.dxc == null || req.dxc.sess == null){
+                            if(req.dxc == null) req.dxc = {};
+                            req.dxc.sess = $.context.getUserService().do1StepPasswordAuthentication(
+                                req.body['login'],
+                                req.body['pwd']
+                            );
+
+                            req.dxc.sess.addConnection( param.getName(), new ConnectionHandler(param) );
+
+                            res.cookie(
+                                $.context.getUserService().getCookieName(),
+                                req.dxc.sess.getSessUID(),
+                                { maxAge: 7*24*60, expires: 0  }
+                            );
+                            _DATA= { token:req.dxc.sess.getSessUID() };
+                        }else{
+                            // todo : flush + recreate sessions
+                            _DATA= { token:"none", msg:"Already authenticated" };
+                        }
+                    }else{
+                        handler = await $.context.getConnectionManager().open(
+                            param,
+                            (new ConnectionCredentials())
+                                .setUsername(req.body['login'])
+                                .setCredential(req.body['pwd'])
+                        );
+
+                        if(req.dxc.sess != null){
+                            req.dxc.sess.addConnection( param.getName(), handler );
+
+                            _DATA= { token:req.dxc.sess.getSessUID() };
+                        }else{
+                            throw new ConnectionManagerException("Unable to link a connection to a user : user not connected");
+                        }
+                    }
+
+
+                    SEND_SUCCESS_RESPONSE(res, _DATA);
+                }catch(err){
+                    Logger.error("[API][AUTHENTICATION] An error occured : "+err.message+"\n"+err.stack);
+                    //_HTTP_CODE = HTTP_CODE_ERROR;
+                    //_DATA = JSON.stringify({ success:false, err:"Devices cannot be listed."});
+                    SEND_ERROR_RESPONSE(res, err.message);
+                }
+
+            });
+
+        this.app.route('/api/remote/logout')
+            .get(async function (req:ExpressRequest, res:ExpressResponse):Promise<any> {
+
+                try {
+                    if (req.dxc!=null && $.context.getUserService().verifySession(req.dxc.sess)) {
+
+                        $.context.getUserService().closeSession(req.dxc.sess);
+
+                        SEND_SUCCESS_RESPONSE(res, {msg:"Session destroyed"});
+                    }else{
+                        SEND_SUCCESS_RESPONSE(res, {msg:"Session not found"})
+                    }
+                }catch(err){
+                    Logger.error("[API][REMOTE CONNECTION LOGOUT] Session logout : "+err.message+"\n"+err.stack);
+                    //_HTTP_CODE = HTTP_CODE_ERROR;
+                    //_DATA = JSON.stringify({ success:false, err:"Devices cannot be listed."});
+                    SEND_SUCCESS_RESPONSE(res, {msg:"Session not found : "+err.message });
+                }
+
+            });
+
+        this.app.route('/api/account')
+            .get(async function (req:ExpressRequest, res:ExpressResponse):Promise<any> {
+
+                let _DATA:any;
+                let user:UserAccount;
+                try {
+                    if ($.context.getUserService().verifySession(req.dxc.sess)) {
+                        user = (req.dxc.sess as UserSession).getUserAccount();
+
+                        _DATA = {success: true, account: {
+                            username: user.username,
+                            uid: user.getUID(),
+                            role: {
+                                name: user.getUserRole().name,
+                                uid: user.getUserRole().uid
+                            }
+                        }};
+
+                        SEND_SUCCESS_RESPONSE(res, _DATA);
+                    }else{
+                        SEND_ERROR_RESPONSE(res, "Authentication required");
+                    }
+
+                }catch(err){
+                    Logger.error("[API][REMOTE CONNECTION SETTINGS] List device : "+err.message+"\n"+err.stack);
+                    //_HTTP_CODE = HTTP_CODE_ERROR;
+                    //_DATA = JSON.stringify({ success:false, err:"Devices cannot be listed."});
+                    SEND_ERROR_RESPONSE(res, err.message);
+                }
+
             });
         /*
          * Send an intent to to the default device
@@ -3492,6 +3719,9 @@ export default class WebServer
                 let extraAdb:string = req.body["extraAdb"];
                 let factory:any = null;
                 let app:any;
+
+
+                res.set('Content-Type', 'text/json');
 
                 // if(req.body["custom"] == 1) custom=true;
 
@@ -3508,24 +3738,23 @@ export default class WebServer
                 // resfresh dev
                 await DeviceManager.getInstance().scan();
                 let device:Device = $.project.getDevice(); // devices.getDefault();
-                
+
 
                 if(device == null || !device.isConnected()){
                     Logger.error("[WEBSERVER] Device not connected");
-                    res.set('Content-Type', 'text/json');
                     res.status(404).send(JSON.stringify({ data: null, err: { err:"Device not connected" , stderr: null} }));
                     return null;
                 }
 
                 // init cb
                 /*let callbacks = {
-                    stderr: function(err){                    
+                    stderr: function(err){
                         Logger.error("[WEBSERVER] An error occured (stderr): "+err);
                         res.set('Content-Type', 'text/json');
                         res.status(404).send(JSON.stringify({ data: null, err:{ err:"An error occured", stderr: err}  }));
                         return ;
                     },
-                    error: function(err){                    
+                    error: function(err){
                         Logger.error("[WEBSERVER] An error occured (err): "+err);
                         res.set('Content-Type', 'text/json');
                         res.status(404).send(JSON.stringify({ data: null, err:{ err:"An error occured", stderr: err}  }));
@@ -3540,14 +3769,14 @@ export default class WebServer
                 }*/
 
                 let callbacks:Function = function(err:any, stdout:any, stderr:any):void{
-                    if(err){                      
+                    if(err){
                         Logger.error("[WEBSERVER] An error occured (err): "+err);
                         res.set('Content-Type', 'text/json');
                         res.status(404).send(JSON.stringify({ data: null, err:{ err:"An error occured", stderr: err, msg:''+err}  }));
                         return ;
                     }
 
-                    if(stderr){                  
+                    if(stderr){
                         Logger.error("[WEBSERVER] An error occured (stderr): "+stderr);
                         res.set('Content-Type', 'text/json');
                         res.status(404).send(JSON.stringify({ data: null, err:{ err:"An error occured", stderr: stderr}  }));
@@ -3559,7 +3788,7 @@ export default class WebServer
                         return ;
                     }
                 };
-                
+
                 if(req.body["app"]==null)
                     app=null;
 
@@ -3572,10 +3801,10 @@ export default class WebServer
                     app = null;
                 }
 
-                // prepare intent 
-                Logger.info("[WEBSERVER] Send intent whith data"); 
+                // prepare intent
+                Logger.info("[WEBSERVER] Send intent whith data");
                 factory = new IntentCommandFactory(
-                    typeIntent, 
+                    typeIntent,
                     app,
                     extraAdb);
 
@@ -3660,7 +3889,7 @@ export default class WebServer
 
     /**
      * To use routes of production mode
-     * 
+     *
      * @method
      */
     useProductionMode():void{
@@ -3676,6 +3905,7 @@ export default class WebServer
             '/api/finder',
             '/api/package',
             '/api/tags',
+            '/api/remote',
             '/pages/index',
             '/pages/finder',
             '/pages/inspectors',
@@ -3687,6 +3917,73 @@ export default class WebServer
         ];
 
         let self:WebServer = this;
+        let usr_svc:UserService = self.context.getUserService();
+
+        /**
+         * Redirect to /pages/splash.html if there is no project initialized
+         */
+        this.app.use(function(req:ExpressRequest, res:ExpressResponse, next:any){
+
+            // TODO : make CORS parameter as env var
+            res.set('Access-Control-Allow-Origin', '*');
+            res.set('Access-Control-Allow-Methods', 'POST, GET, DELETE, OPTIONS, PUT');
+            res.set('Access-Control-Allow-Headers', 'Content-Type');
+
+            if(req.url.startsWith('/api/')){
+                res.set('Content-Type', 'text/json');
+            }
+
+            next();
+        });
+
+
+        /**
+         * Gather cookie
+         */
+
+        this.app.use(_cookieParser_());
+
+        /**
+         * Open session and attach to request
+         */
+        this.app.use(function(req:ExpressRequest, res:ExpressResponse, next:any){
+            Logger.debug("[API][SESSION] Processing request : "+req.originalUrl);
+
+            if(self.project != null){ next(); return; }
+            if(!req.url.startsWith('/api/') && !req.url.startsWith('/inspectors/')){ next(); return; }
+
+            try{
+                Logger.info("[SESSION] Query param : "+JSON.stringify(Object.keys(req.query))+" , "+usr_svc.getQueryParam());
+                if(req.cookies!=null && req.cookies[usr_svc.getCookieName()] != null){
+                    Logger.info("[SESSION] Opening session from cookie ...");
+                    req.dxc = {
+                        sess: usr_svc.openSession(req.cookies[usr_svc.getCookieName()])
+                    };
+                    Logger.info("[SESSION] Opening session from cookie : Done");
+                }
+                else if(req.query[usr_svc.getQueryParam()]!=null){
+
+                    Logger.info("[SESSION] Opening session from query ...");
+                    req.dxc = {
+                        sess: usr_svc.openSession(req.query[usr_svc.getQueryParam()])
+                    };
+                    Logger.info("[SESSION] Opening session from query : Done");
+                }
+                else{
+                    if(!req.hasOwnProperty('dxc')) req.dxc = {};
+                    if(!req.dxc.hasOwnProperty('sess')) req.dxc.sess = null;
+                    Logger.error("[SESSION] Cookie/token not found");
+                }
+            }catch(err){
+                Logger.error("[SESSION] Cookie/token value cannot be retrieved \n"+err.messgae+"\n"+err.stack)
+            }
+
+            next();
+            return;
+        });
+
+
+
 
         /**
          * Redirect to /pages/splash.html if there is no project initialized
@@ -3694,10 +3991,8 @@ export default class WebServer
         this.app.use(function(req:ExpressRequest, res:ExpressResponse, next:any){
             let f = false;
 
-            // TODO : make CORS parameter as env var
-            res.set('Access-Control-Allow-Origin', '*');
-            res.set('Access-Control-Allow-Methods', 'POST, GET, DELETE, OPTIONS, PUT');
-            res.set('Access-Control-Allow-Headers', 'Content-Type');
+
+            Logger.debug("[API][REDIRECT] Processing request : "+req.originalUrl);
 
             if(self.project != null){ next(); return; }
             if(!req.url.startsWith('/pages/') && !req.url.startsWith('/api/') && !req.url.startsWith('/inspectors/')){ next(); return; }
@@ -3711,30 +4006,34 @@ export default class WebServer
                 }
             }
 
-            if(f==false){ next(); return; }
-            if(!self.context.isIpcWaitMode()) {
+            if(f==false){
+                next();
+            }else if(!self.context.isIpcWaitMode()) {
+                Logger.info("[API][REDIRECT] Processing request (not IPC wait mode): "+req.originalUrl);
                 res.redirect('/pages/splash.html');
                 res.send();
+                return ;
+            }else{
+                //   next();
             }
-
-            return;
         });
 
 
 
+
         this.initRoutes();
-        
-        this.uploader = Uploader.getInstance(); 
+
+        this.uploader = Uploader.getInstance();
     }
 
     /**
      * To start the web server
-     * 
-     * @param {Integer} port Port number 
+     *
+     * @param {Integer} port Port number
      * @method
      */
     start(port:number = null) {
-        
+
         if (port !== null) {
             this.port = port;
         }
