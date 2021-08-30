@@ -18,6 +18,7 @@
     "chai": "^4.1.2",
     "chalk": "^2.4.1",
     "co": "^4.6.0",
+    "cookie-parser": "^1.4.5",
     "crypto": "^1.0.1",
     "event-stream": "^4.0.1",
     "express": "^4.16.3",
@@ -32,6 +33,7 @@
     "properties": "^1.2.1",
     "r2pipe": "^2.8.0",
     "r2pipe-promise": "^1.6.0",
+    "rxjs": "^7.1.0",
     "websocket": "^1.0.32",
     "xml2js": "^0.4.19",
     "xz": "^2.0.2"
@@ -75,7 +77,9 @@
     "electron:rebuild": "",
     "patch:node": "node ./scripts/run_os_script.js prebuild-node",
     "patch:electron": "node ./scripts/run_os_script.js prebuild-electron",
+    "patch:electron:v85": "node ./scripts/run_os_script.js prebuild-electron v85",
     "dist-patch:electron": "node ./scripts/run_os_script.js postbuild-electron",
+    "dist-patch:electron:v85": "node ./scripts/run_os_script.js postbuild-electron v85",
     "o_prepublish": "npmrc dxc-npm",
     "publish": "npmrc dxc-npm && cp .npmignore.default .npmignore && npm publish"
   },
