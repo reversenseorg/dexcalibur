@@ -60,6 +60,24 @@ export default class Util {
     static NO_FLAG:number =  NO_FLAG;
 
     /**
+     * To retrieve the value of an arbitrary field from an arbitrary object
+     * and to return a default fixed value if the field not exists.
+     *
+     * Important : it work only is the requested field has not getter.
+     *
+     * @param {any} pRawObject The target object
+     * @param {string} pFieldName The field name
+     * @param {any} pDefault The default value is the field is empty
+     * @return {any} The value of the field or the default value
+     * @method
+     * @static
+     * @since 1.0
+     */
+    static getValue( pRawObject:any, pFieldName:string, pDefault:any):any {
+        return (pRawObject!=null && pRawObject.hasOwnProperty(pFieldName)? pRawObject[pFieldName] : pDefault);
+    }
+
+    /**
      * To encode
      */
     static sha1_file(path:string){
