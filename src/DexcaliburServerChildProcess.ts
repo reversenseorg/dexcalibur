@@ -180,7 +180,7 @@ export class DexcaliburServerChildProcess {
     }
 
 
-    __log('[DXC-SRV][IPC] Global settings loaded : '+JSON.stringify(cfg));
+    __log('[DXC-SRV][IPC] Global settings loaded : '+cfg.toJson()); //JSON.stringify(cfg.toObject()));
 
     let dxcWebRoot:string = null;
 
@@ -194,9 +194,11 @@ export class DexcaliburServerChildProcess {
 
     if(ready){
       this.engine.start(pOptions.port);
+      __log('[DXC-SRV][IPC] Dexcalibur engine has started.');
       this.send( {cmd:'started', data: {success:true }});
       return ;
     }else{
+      __log('[DXC-SRV][IPC] Dexcalibur engine is not ready.');
       this.send( {cmd:'started', data: {success:false, msg:'Dexcalibur engine is not ready.' }});
       return ;
     }
