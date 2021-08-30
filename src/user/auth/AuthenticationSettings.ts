@@ -1,10 +1,9 @@
 import {AuthType} from "./AuthTypes";
+import {Settings} from "../../Settings";
+import ServerSettings = Settings.ServerSettings;
+import {SessionSettings} from "../session/SessionSettings";
+import Util from "../../Utils";
 
-
-
-function getValueFrom( pObject:any, pField:string, pDefaultValue:any):any {
-    return (pObject.hasOwnProperty(pField)? pObject[pField] : pDefaultValue);
-}
 
 
 /**
@@ -21,7 +20,9 @@ export class AuthenticationSettings {
 
     private _supported:AuthType[] = [];
     private _policy:any = null;
+    private _sess:any = null;
     private _db:any = null;
+    private _parent:ServerSettings;
 
     /**
      * Create an object which hold server settings from global settings files and env var
@@ -31,10 +32,12 @@ export class AuthenticationSettings {
      * @constructor
      * @since 1.0.0
      */
-    constructor( pConfig:any ) {
-        this._db = getValueFrom( pConfig, 'db', null);
-        this._policy = getValueFrom( pConfig, 'policy', { enforced:true });
-        this._supported = getValueFrom( pConfig, 'supported', [AuthType.PASSWORD]);
+    constructor( pParent:ServerSettings, pConfig:any ) {
+        this._parent = pParent;
+        this._db = Util.getValue( pConfig, 'db', null);
+        this._policy = Util.getValue( pConfig, 'policy', { enforced:true });
+        this._supported = Util.getValue( pConfig, 'supported', [AuthType.PASSWORD]);
+        this._sess = new SessionSettings( this, Util.getValue( pConfig, 'sess', null))
     }
 
 
@@ -62,11 +65,31 @@ export class AuthenticationSettings {
         this._db = value;
     }
 
+    /**
+     * To get raw session settings
+     *
+     * @return {any} session settings from auth configuration
+     * @method
+     */
+    getSessionSettings():SessionSettings {
+        return this._sess;
+    }
+
+    /**
+     * To trigger configuration backup
+     *
+     * @param pDestFile
+     */
+    save(pDestFile:string = null):any {
+        this._parent.save(pDestFile);
+    }
+
     toObject():any {
         return {
             db: this._db,
             policy: this._policy,
-            supported: this._supported
+            supported: this._supported,
+            sess: this._sess.toObject()
         };
     }
 }

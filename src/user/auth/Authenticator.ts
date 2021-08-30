@@ -37,6 +37,10 @@ export class AuthenticationResult {
     getCode():AuthCode {
         return this._code;
     }
+
+    getAccount():UserAccount {
+        return this._account;
+    }
 }
 
 

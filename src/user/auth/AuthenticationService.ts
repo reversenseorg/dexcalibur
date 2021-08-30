@@ -6,6 +6,7 @@ import {PasswordAuthenticator} from "./Authenticator";
 import {ConnectorFactory, IDatabaseAdapter, IDbIndex} from "../../ConnectorFactory";
 import {UserAccount} from "../UserAccount";
 import {AuthenticationSettings} from "./AuthenticationSettings";
+import AccessControl from "../acl/AccessControl";
 
 export class AuthenticationService {
 
@@ -15,6 +16,7 @@ export class AuthenticationService {
 
     _users:IDbIndex;
     _dba:IDatabaseAdapter = null;
+
 
 
     constructor( pSettings:AuthenticationSettings) {
@@ -67,6 +69,11 @@ export class AuthenticationService {
 
     }
 
+    /**
+     * To load user account from the default User DB
+     *
+     * @param pDBMS
+     */
     importUserDB( pDBMS:string){
         this._dba.getDB().unserialize(
             JSON.parse(_fs_.readFileSync(
@@ -78,6 +85,9 @@ export class AuthenticationService {
         if(pDBMS == 'inmemory'){
             let self:any = this;
             this._users.map(function(o,v) {
+                if(v.role == null){
+                    v.role = AccessControl.defaultRole;
+                }
                 self._users.setEntry(o, new UserAccount(v));
             });
         }
@@ -139,14 +149,17 @@ export class AuthenticationService {
             throw new AuthenticationException("Username cannot be empty", AuthCode.EMPTY_USERNAME);
         }
 
+
+        let d:string = "";
         this._users.map(function(vO, vUsr){
+            d += vUsr.username+", ";
             if(vUsr.hasUsername(pUsername)){
                 usr = vUsr;
             }
         });
 
         if(usr == null){
-            throw new AuthenticationException("Username not found", AuthCode.INVALID_USERNAME);
+            throw new AuthenticationException("Username not found : "+d, AuthCode.INVALID_USERNAME);
         }
 
         return usr;
