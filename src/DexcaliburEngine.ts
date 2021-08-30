@@ -1,11 +1,3 @@
-import {AuthenticationService} from "./user/auth/AuthenticationService";
-
-const _fixPath_ = require("fix-path");
-
-if(require('os').platform()=="darwin"){
-    _fixPath_();
-}
-
 import DexcaliburRegistry from "./DexcaliburRegistry";
 import PlatformManager from "./PlatformManager";
 
@@ -22,7 +14,6 @@ import WebServer from "./WebServer";
 import DeviceManager from "./DeviceManager";
 import InspectorManager from "./InspectorManager";
 import Configuration from "./Configuration";
-import Installer from "./Installer";
 import FridaHelper from "./FridaHelper";
 import {WebsocketServer} from "./WebsocketServer";
 import {TerminalServer} from "./TerminalServer";
@@ -37,6 +28,19 @@ import DexHelper from "./DexHelper";
 import {External} from "./external/External";
 import {Settings} from "./Settings";
 import RadareHelper from "./R2Helper";
+import {UserService} from "./user/UserService";
+import AccessControl from "./user/acl/AccessControl";
+import {AccessZone} from "./user/acl/Zones";
+import {ProjectAccessControl} from "./user/acl/rbac/ProjectAccessContol";
+import {SettingsAccessControl} from "./user/acl/rbac/SettingsAccessContol";
+import {IDexcaliburEngine} from "./IDexcaliburEngine";
+import {ConnectionManager} from "./remote/ConnectionManager";
+
+const _fixPath_ = require("fix-path");
+
+if(require('os').platform()=="darwin"){
+    _fixPath_();
+}
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -116,7 +120,7 @@ export interface DexcaliburProjectMap {
  * 
  *  @class
  */
-export default class DexcaliburEngine extends ValidationCapable
+export default class DexcaliburEngine extends ValidationCapable implements IDexcaliburEngine
 {
 
     /*
@@ -217,6 +221,15 @@ export default class DexcaliburEngine extends ValidationCapable
     ipcHandler: DexcaliburServerChildProcess = null;
 
     /**
+     * Create / manage remote connections
+     *
+     * @type {ConnectionManager}Ò
+     * @since 1.0.0
+     * @field
+     */
+    connManager: ConnectionManager = null;
+
+    /**
      * IPC describes server behavior
      *
      * Mode are follow :
@@ -247,12 +260,12 @@ export default class DexcaliburEngine extends ValidationCapable
     private settings: Settings.GlobalSettings;
 
     /**
-     * Hold authentication service for the current instance of engine
+     * Hold user service for the current instance of engine
      * @private
      * @field
-     * @type {AuthenticationService}
+     * @type {UserService}
      */
-    private authsvc: AuthenticationService;
+    private userSvc: UserService;
 
     /**
      * To instanciate DexcaliburEngine.
@@ -270,7 +283,19 @@ export default class DexcaliburEngine extends ValidationCapable
             'engine:project.uid': [
                 ValidationRule.newRegexpAssert(new RegExp('^[a-zA-Z0-9\\_\s.-]+$')),
             ]
-        })
+        });
+
+        this.initAccessControl();
+    }
+
+    initAccessControl():void {
+        AccessControl.init();
+
+        //AccessControl.registerZone( AccessZone.GLOBAL, EngineAccessControl)
+        AccessControl.registerZone( AccessZone.PROJECT, new ProjectAccessControl());
+        AccessControl.registerZone( AccessZone.GLOBAL, new SettingsAccessControl());
+
+        //AccessControl.startAudit();
     }
     
     /**
@@ -284,6 +309,8 @@ export default class DexcaliburEngine extends ValidationCapable
 
         if(gEngineInstance == null){
             gEngineInstance = new DexcaliburEngine();
+
+
         }
 
         return gEngineInstance;
@@ -449,6 +476,7 @@ export default class DexcaliburEngine extends ValidationCapable
 
         this.initServerSettings();
         this.initExternalSettings();
+        this.initConnectionsSettings();
     }
 
     /**
@@ -474,22 +502,24 @@ export default class DexcaliburEngine extends ValidationCapable
         try{
             this.workspace = ss.getWorkspace();
             this.workspace.init();
-            
-            this.authsvc = new AuthenticationService(
+
+            this.userSvc = new UserService(
                 ss.getAuthenticationSettings()
             );
 
             this.registry = ss.getRegistry();
+            Logger.info("[ENGINE] server settings init : Done");
         }catch(err){
-            Logger.error("DexcaliburEngine : "+err.message);
+            Logger.error("[ENGINE] server settings init : "+err.message+"\n"+err.stack);
         }
     }
 
+
     /**
-     * To get authentication service
+     * To get user / session / authentication services
      */
-    getAuthService(): AuthenticationService{
-        return this.authsvc;
+    getUserService(): UserService{
+        return this.userSvc;
     }
     
     /**
@@ -499,7 +529,30 @@ export default class DexcaliburEngine extends ValidationCapable
 
     }
 
-    
+    /**
+     *
+     */
+    initConnectionsSettings(): void{
+        let conns = this.settings.getConnectionSettings();
+        if(conns == null || conns.countConnections()===0){
+            this.settings.createConnectionSettings();
+            this.settings.save();
+        }else{
+            console.log(conns);
+        }
+
+        this.connManager = new ConnectionManager(this);
+    }
+
+    /**
+     * To get connection manager associate to this instance
+     * @method
+     * @return {ConnectionManager}
+     */
+    getConnectionManager():ConnectionManager {
+        return this.connManager;
+    }
+
     /**
      * To instenciate and initialize main components
      *
@@ -665,7 +718,7 @@ export default class DexcaliburEngine extends ValidationCapable
      * @param {String} pPath Path where the workspace will be created
      * @deprecated
      */
-    createWorkspace( pPath:string){
+    createWorkspace( pPath:string):void{
         if(_fs_.existsSync( pPath) == false){
             _fs_.mkdirSync( pPath);
         }
