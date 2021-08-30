@@ -122,6 +122,9 @@ export default class InspectorManager
             }
         }
 
+
+        Logger.info("[DEVICE MANAGER] Inspectors found  : "+Object.keys(this.locals));
+
         return this.locals;
     }
     
