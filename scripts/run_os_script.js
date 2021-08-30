@@ -35,7 +35,7 @@ if(process.argv.length<=2){
 
 
 // get script name
-const SCRIPT_NAME = process.argv[3];
+//const SCRIPT_NAME = process.argv[3];
 var os_scripts = {
     linux: {},
     darwin: {},
@@ -67,27 +67,27 @@ _fs_.readdirSync(base, { encoding:'utf8'})
 // execute script
 var script = os_scripts[OS];
 if(script==null || !script.hasOwnProperty(process.argv[2])){
-    console.log("[ERROR] Script not found for : "+OS+", "+process.argv[2]);
+    console.log("\x1b[31m[ERROR] Script not found for : "+OS+", "+process.argv[2]+"\x1b[0m");
     process.exit(0);
 }
 
 script = script[process.argv[2]];
-console.log("[STARTING] "+script.f+" [type="+script.t+"]  for "+OS);
+console.log("\x1b[34m[STARTING] "+script.f+" [type="+script.t+"]  for "+OS+"\x1b[0m ");
 
 switch(script.t){
     case "bat":
-        console.log("[ERROR] BAT command are not yet supported.")
+        console.log("\x1b[31m[ERROR] BAT command are not yet supported.\x1b[0m")
         break;
     case "sh":
         _fs_.chmodSync(script.f, 0o777); // add +x
-        _child_.spawnSync(script.f,[], {
+        _child_.spawnSync(script.f,(process.argv.length>3 ? process.argv.slice(3) : []), {
             stdio: 'inherit',
             shell: true,
             cwd: process.cwd()
         });
         break;
     case "js":
-        _child_.spawnSync('node',[script.f], {
+        _child_.spawnSync('node',[script.f].concat(process.argv.slice(3)), {
             stdio: 'inherit',
             shell: false,
             cwd: process.cwd()
@@ -99,7 +99,7 @@ switch(script.t){
 }
 
 
-console.log("-- Done --");
+console.log("-- Bye. --");
 
 
 
