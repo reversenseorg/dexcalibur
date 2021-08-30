@@ -5,6 +5,8 @@ import * as _fs_ from "fs";
 import * as _os_ from "os";
 import {AuthType} from "./user/auth/AuthTypes";
 import {AuthenticationSettings} from "./user/auth/AuthenticationSettings";
+import {DexcaliburConnectionParams, DexcaliburConnectionParamsList} from "./remote/DexcaliburConnectionParams";
+import {ConnectionSettingsException} from "./errors/ConnectionSettingsException";
 
 
 const LOG_FILE = (process.env.DXC_LOG_PATH ? process.env.DXC_LOG_PATH : null);
@@ -49,12 +51,34 @@ export namespace Settings {
         params?: string[]
     }
 
+    export abstract class AbstractSettings {
+
+        protected parent:AbstractSettings = null;
+
+        constructor( pParent:AbstractSettings = null) {
+            this.parent = pParent;
+        }
+
+        /**
+         * To trigger global saving
+         *
+         * @param {string} pDestPath Optional. Backup file path
+         * @method
+         */
+        save(pDestPath:string = null):any {
+            return (this.parent!=null ? this.parent.save(pDestPath) : null)
+        }
+
+
+        abstract toObject():any;
+    }
+
     /**
      * Represents server configuration
      * @class
      * @export
      */
-    export class ServerSettings {
+    export class ServerSettings extends AbstractSettings {
 
 
         /**
@@ -83,19 +107,24 @@ export namespace Settings {
          */
         private auth:AuthenticationSettings;
 
-        constructor( pConfig:any=null) {
+        constructor( pParent:GlobalSettings, pConfig:any=null) {
 
-            if(pConfig.hasOwnProperty('workspace')){
-                this.space = DexcaliburWorkspace.getInstance(pConfig.workspace);
+            super(pParent);
+
+            if(pConfig!=null){
+                if(pConfig.hasOwnProperty('workspace')){
+                    this.space = DexcaliburWorkspace.getInstance(pConfig.workspace);
+                }
+
+                if(pConfig.hasOwnProperty('registry')){
+                    this.registry = new DexcaliburRegistry(pConfig.registry, pConfig.registryAPI);
+                }
+
+                if(pConfig.hasOwnProperty('auth')){
+                    this.auth = new AuthenticationSettings(this, pConfig.auth);
+                }
             }
 
-            if(pConfig.hasOwnProperty('registry')){
-                this.registry = new DexcaliburRegistry(pConfig.registry, pConfig.registryAPI);
-            }
-
-            if(pConfig.hasOwnProperty('auth')){
-                this.auth = new AuthenticationSettings(pConfig.auth);
-            }
         }
 
         getRegistry():DexcaliburRegistry {
@@ -108,6 +137,16 @@ export namespace Settings {
 
         getAuthenticationSettings():AuthenticationSettings {
             return this.auth;
+        }
+
+        /**
+         * To trigger global saving
+         *
+         * @param {string} pDestPath Optional. Backup file path
+         * @method
+         */
+        save(pDestPath:string = null):any {
+            return this.parent.save(pDestPath);
         }
 
         toObject():any {
@@ -125,7 +164,7 @@ export namespace Settings {
      * @class
      * @export
      */
-    export class WebServerSettings {
+    export class WebServerSettings extends AbstractSettings {
 
         /**
          * HTTP port for internal web server
@@ -143,6 +182,7 @@ export namespace Settings {
          */
         private _ws:number = DEFAULT_WS_PORT;
 
+
         /**
          * Create an object which hold server settings from global settings files and env var
          *
@@ -151,10 +191,13 @@ export namespace Settings {
          * @constructor
          * @since 1.0.0
          */
-        constructor( pHttp:number, pWs:number) {
+        constructor( pParent:GlobalSettings, pHttp:number, pWs:number) {
+            super(pParent);
+
             this._http = (process.env.DXC_HTTP_PORT ? parseInt(process.env.DXC_HTTP_PORT,10) : pHttp);
             this._ws = (process.env.DXC_WS_PORT ? parseInt(process.env.DXC_WS_PORT,10) : pWs);
         }
+
 
         /**
          *
@@ -166,13 +209,22 @@ export namespace Settings {
         getWsPort():number {
             return this._ws;
         }
+
+        toObject(): any {
+            return {
+                http: this._http,
+                ws: this._ws
+            }
+        }
     }
 
-    export class ExternalSettings {
+    export class ExternalSettings extends AbstractSettings {
 
         private _all: any;
 
-        constructor( pConfig:any) {
+
+        constructor( pParent:GlobalSettings, pConfig:any) {
+            super(pParent);
             this._all = pConfig;
         }
 
@@ -274,18 +326,87 @@ export namespace Settings {
     }
 
 
+    export class    ConnectionSettings extends AbstractSettings {
+
+        private _all: DexcaliburConnectionParamsList = {};
+
+        static newInstance( pParent:GlobalSettings, pName:string, pIp:string, pPort:number):ConnectionSettings {
+            return new ConnectionSettings(
+                pParent, {
+                    all: [{
+                        ip: pIp,
+                        name: pName,
+                        port: pPort
+                    }]
+                }
+            );
+        }
+
+        constructor( pParent:GlobalSettings, pConfig:any) {
+            super(pParent);
+            if(pConfig.hasOwnProperty('all')){
+                pConfig.all.map( o => {
+                    const s = DexcaliburConnectionParams.fromPoorObject(o);
+                    this._all[s.getName()] = s;
+                });
+            }
+        }
+
+        /**
+         *
+         * @param pName
+         */
+        getConnectionParamsFor( pName:string) :DexcaliburConnectionParams  {
+            if(this._all[pName] != null){
+                return this._all[pName];
+            }else{
+                throw ConnectionSettingsException.NO_CONNECTION_FOR_NAME();
+            }
+        }
+
+        /**
+         * To save a connection configurartion into settings
+         * @param pParam
+         */
+        addConnectionParam( pParam:DexcaliburConnectionParams, pSaveFile:string = null) :any {
+            if(this._all[pParam.getName()] !== null){
+                throw ConnectionSettingsException.NAME_ALREADY_USED();
+            }else{
+                this._all[pParam.getName()] = pParam;
+                return this.save(pSaveFile);
+            }
+        }
+
+        countConnections():number {
+            return Object.keys(this._all).length;
+        }
+
+        getAll():any{
+            return this._all;
+        }
+
+        toObject():any {
+            let o:any =  {
+                all: Object.values(this._all)
+            };
+
+            return o;
+        }
+    }
+
     /**
      * Represent global configuration
      * @class
      * @export
      */
-    export class GlobalSettings {
+    export class GlobalSettings extends AbstractSettings{
 
         private _path:string = null;
 
         private bin: ExternalSettings;
         private srv: ServerSettings;
         private web: WebServerSettings;
+        private conn: ConnectionSettings = null;
 
         /**
          *
@@ -293,9 +414,15 @@ export namespace Settings {
          * @constructor
          */
         constructor( pConfig:any=null) {
-            this.srv = new ServerSettings(pConfig.server);
-            this.bin = new ExternalSettings(pConfig.bin);
-            this.web = new WebServerSettings(pConfig.server.http, pConfig.server.ws); //(pConfig.http, pConfig.ws);
+            super(null);
+
+            this.srv = new ServerSettings(this, pConfig.srv); // server
+            this.bin = new ExternalSettings(this, pConfig.bin);
+            this.web = new WebServerSettings(this, pConfig.srv.http, pConfig.srv.ws); //(pConfig.http, pConfig.ws);
+
+            if(pConfig.hasOwnProperty('conn')){
+                this.conn = new ConnectionSettings(this, pConfig.conn);
+            }
         }
 
         static getDefaultLocation():string {
@@ -341,7 +468,7 @@ export namespace Settings {
                 gs = new GlobalSettings(data);
                 gs.setPath(path);
             }catch(err){
-                __log("[GLOBAL SETTINGS] load : error : "+err.message+" "+pConfigPath);
+                __log("[GLOBAL SETTINGS] load : error : "+err.message+" "+pConfigPath+"\n"+err.stack);
             }finally {
                 return gs;
             }
@@ -363,14 +490,6 @@ export namespace Settings {
          * @param pDestPath
          */
         save( pDestPath:string = null){
-            let o:any = {
-                bin: this.bin.toObject(),
-                srv: this.srv.toObject()
-            };
-
-            o.srv.http = this.web.getHttpPort();
-            o.srv.ws = this.web.getWsPort();
-
             // if the path of the new file, is the same than current file,
             // then create a backup of current config
             if(this._path != null && (pDestPath == null || pDestPath===this._path)){
@@ -379,7 +498,9 @@ export namespace Settings {
 
             _fs_.writeFileSync(
                 pDestPath!=null ? pDestPath : this._path,
-                JSON.stringify(o));
+                JSON.stringify(
+                    this.toObject()
+                ));
         }
 
         getServerSettings():ServerSettings {
@@ -392,6 +513,34 @@ export namespace Settings {
 
         getWebserverSettings(): WebServerSettings {
             return this.web;
+        }
+
+        getConnectionSettings(): ConnectionSettings {
+            return this.conn;
+        }
+
+        toObject(): any {
+            let o:any = {
+                bin: this.bin.toObject(),
+                srv: this.srv.toObject()
+            };
+
+            if(this.conn != null){
+                o.conn = this.conn.toObject();
+            }
+
+            o.srv.http = this.web.getHttpPort();
+            o.srv.ws = this.web.getWsPort();
+
+            return o;
+        }
+
+        toJson():string {
+            return JSON.stringify(this.toObject());
+        }
+
+        createConnectionSettings(): ConnectionSettings {
+            return this.conn = ConnectionSettings.newInstance(this, "local", "127.0.0.1", this.getWebserverSettings().getHttpPort());
         }
     }
 }
