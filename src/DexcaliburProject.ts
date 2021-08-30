@@ -42,6 +42,8 @@ import ModelFile from "./ModelFile";
 import {ModelLocation} from "./ModelLocation";
 import {Settings} from "./Settings";
 import WorkspaceSettings = Settings.WorkspaceSettings;
+import {User} from "./User";
+import {UserAccount} from "./user/UserAccount";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -228,6 +230,8 @@ export default class DexcaliburProject extends ValidationCapable
      */
     icon:AppIcon = null;
 
+    owner: UserAccount = null;
+
     private _wf:Workflow = null;
 
     /*
@@ -256,6 +260,14 @@ export default class DexcaliburProject extends ValidationCapable
 
         this.engine = pEngine;
         this.uid = pUID;
+    }
+
+    getOwner():UserAccount {
+       return this.owner;
+    }
+
+    isOwnedBy( pUser:UserAccount):boolean {
+        return (this.owner != null && this.owner.is(pUser));
     }
 
 
@@ -485,6 +497,13 @@ export default class DexcaliburProject extends ValidationCapable
             this.analyze.insertIn( "files", [pEvent.getData()]);
         }));
 
+        this.initAuthorizations();
+    }
+
+    initAuthorizations():void {
+        if(this.owner==null){
+
+        }
     }
 
     /**
