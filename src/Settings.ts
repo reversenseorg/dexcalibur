@@ -404,7 +404,7 @@ export namespace Settings {
         private _path:string = null;
 
         private bin: ExternalSettings;
-        private srv: ServerSettings;
+        private server: ServerSettings;
         private web: WebServerSettings;
         private conn: ConnectionSettings = null;
 
@@ -416,9 +416,9 @@ export namespace Settings {
         constructor( pConfig:any=null) {
             super(null);
 
-            this.srv = new ServerSettings(this, pConfig.srv); // server
+            this.server = new ServerSettings(this, pConfig.server); // server
             this.bin = new ExternalSettings(this, pConfig.bin);
-            this.web = new WebServerSettings(this, pConfig.srv.http, pConfig.srv.ws); //(pConfig.http, pConfig.ws);
+            this.web = new WebServerSettings(this, pConfig.server.http, pConfig.server.ws); //(pConfig.http, pConfig.ws);
 
             if(pConfig.hasOwnProperty('conn')){
                 this.conn = new ConnectionSettings(this, pConfig.conn);
@@ -504,7 +504,7 @@ export namespace Settings {
         }
 
         getServerSettings():ServerSettings {
-            return this.srv;
+            return this.server;
         }
 
         getExternalSettings(): ExternalSettings {
@@ -522,15 +522,15 @@ export namespace Settings {
         toObject(): any {
             let o:any = {
                 bin: this.bin.toObject(),
-                srv: this.srv.toObject()
+                server: this.server.toObject()
             };
 
             if(this.conn != null){
                 o.conn = this.conn.toObject();
             }
 
-            o.srv.http = this.web.getHttpPort();
-            o.srv.ws = this.web.getWsPort();
+            o.server.http = this.web.getHttpPort();
+            o.server.ws = this.web.getWsPort();
 
             return o;
         }
