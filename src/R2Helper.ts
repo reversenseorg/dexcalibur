@@ -318,15 +318,20 @@ export default class RadareHelper
      */
     static init( pTool:External.Tool):void {
         //if(r2p.r2bin[0]!=='/'){
-        if(pTool.getPath()[0]!=='/'){
-            const p:string = require('os').platform();
-            if(p == "linux" || p == "darwin"){
-                // TODO : replace by programmatic way
-                const rp = _ps_.execSync("which radare2").toString();
-                // remove CR
-                r2p.r2bin = rp.substr(0, rp.length-1);
+        try{
+            if(pTool.getPath()[0]!=='/'){
+                const p:string = require('os').platform();
+                if(p == "linux" || p == "darwin"){
+                    // TODO : replace by programmatic way
+                    const rp = _ps_.execSync("which radare2").toString();
+                    // remove CR
+                    r2p.r2bin = rp.substr(0, rp.length-1);
+                }
             }
+        }catch(err){
+            Logger.error(err.message+" "+err.stack);
         }
+
     }
 
     /**
