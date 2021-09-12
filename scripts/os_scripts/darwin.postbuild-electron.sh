@@ -2,6 +2,8 @@
 
 echo "[+] Setup Electron Frida-binding into 'dist' "
 
+rm ./dist/node_modules/frida/build/Release/frida_binding.node
+
 if [ $# -lt 1 ]; then
   echo "[+] Copying default file ' ./scripts/frida/electron_frida_binding.node ' "
   cp ./scripts/frida/electron_frida_binding.node ./dist/node_modules/frida/build/Release/frida_binding.node
@@ -13,4 +15,12 @@ else
     echo "\x1b[31m[!] Error : File ' ./scripts/frida/electron_frida_binding."$1".node ' not found \x1b[0m"
   fi
 fi
+
+# if apple silicon, do codesign
+if [[ `uname -m` == 'arm64' ]]; then
+  echo "[+] Doing ad-hoc code signing "
+  codesign --force -s "le_potager" ./dist/node_modules/frida/build/Release/frida_binding.node
+fi
+
+
 

@@ -65,12 +65,16 @@ import {ConnectionCredentials} from "./remote/ConnectionCredentials";
 import {ConnectionHandler} from "./remote/ConnectionHandler";
 import {ConnectionManagerException} from "./errors/ConnectionManagerException";
 import {UserAccount} from "./user/UserAccount";
+import {DEVICE_WEB_API} from "./webapi/device.web.api";
+import {AUTH_WEB_API} from "./webapi/auth.web.api";
+import {SETTINGS_WEB_API} from "./webapi/settings.web.api";
+import {PROBE_SERVER_WEB_API} from "./webapi/probe-server.web.api";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
 
-const HTTP_CODE_SUCCESS = 200;
-const HTTP_CODE_ERROR = 200;
+export const HTTP_CODE_SUCCESS = 200;
+export const HTTP_CODE_ERROR = 200;
 
 
 /**
@@ -194,6 +198,26 @@ export default class WebServer
         this.uploader = null;
 
         this.controller = null;
+    }
+
+    /**
+     *
+     * @param pRes
+     * @param pData
+     * @param pOptions
+     */
+    sendSuccess( pRes:ExpressResponse, pData:any, pOptions:any = null){
+        SEND_SUCCESS_RESPONSE( pRes, pData, pOptions);
+    }
+
+    /**
+     *
+     * @param pRes
+     * @param pMessage
+     * @param pOptions
+     */
+    sendError( pRes:ExpressResponse, pMessage:any, pOptions:any = null){
+        SEND_ERROR_RESPONSE( pRes, pMessage, pOptions);
     }
 
     /**
@@ -393,9 +417,6 @@ export default class WebServer
      */
     initStaticRoutes(){
 
-        // define middleware
-        this.app.use(BodyParser.urlencoded({ extended: false }));
-        this.app.use(BodyParser.json());
 
         // start server
         this.app.get('/', this.controller);
@@ -542,22 +563,17 @@ export default class WebServer
 
                         //_DATA = {projects: $.context.getProjectInfo(user.getProjects() };
 
-
-                        // $.context.getProjects()
-                        res.status(200).send(JSON.stringify({
+                        $.sendSuccess( res, {
                             projects: $.context.getProjects()
-                        }));
-
-                        //SEND_SUCCESS_RESPONSE(res, _DATA);
+                        });
                     }else{
                         SEND_ERROR_RESPONSE(res, "Authentication required");
+                        $.sendError( res, "Authentication required")
                     }
 
                 }catch(err){
                     Logger.error("[API][REMOTE CONNECTION SETTINGS] List device : "+err.message+"\n"+err.stack);
-                    //_HTTP_CODE = HTTP_CODE_ERROR;
-                    //_DATA = JSON.stringify({ success:false, err:"Devices cannot be listed."});
-                    SEND_ERROR_RESPONSE(res, err.message);
+                    $.sendError( res, err.message)
                 }
 
             });
@@ -937,474 +953,8 @@ export default class WebServer
             });
 
 
-        this.app.route('/api/device/fs/list')
-            .get(async function(req:ExpressRequest, res:ExpressResponse):Promise<any> {
-                let data:any[] = [];
-                let target:string ="";
-                let baseDir:string = "";
-                let privileged:boolean = false;
-                let dev:Device = null;
 
-                try{
-                    if( req.query.uid!=null ){
-                        dev = $.context.getDeviceManager().getDevice(req.query.uid);
-                    }
-                    else if($.project !== null){
-                        dev = $.project.getDevice();
-                    }
-                    else{
-                        throw new Error('No active project');
-                    }
 
-
-                    if(dev==null){
-                        throw new Error("Target device not found");
-                    }
-
-                    if(!dev.isConnected()){
-                        throw  new Error("Device is offline");
-                    }
-
-                    switch(req.param.type){
-                        case 'privileged':
-                            privileged = true;
-                            break;
-                        case 'user':
-                        case 'shell':
-                        default:
-                            privileged = false;
-                            break;
-                    }
-
-
-
-
-
-                    if(req.query.app!=null){
-                        baseDir = dev.getDataPathOf(decodeURIComponent(req.query.app))+"/";
-                    }
-
-                    if(req.query.path!=null){
-                        baseDir += decodeURIComponent(req.query.path);
-                    }
-
-                    if(baseDir==""){
-                        baseDir = "/";
-                    }
-
-                    res.status(200).send(JSON.stringify({
-                        success:true,
-                        data: await dev.getDefaultBridge().listFiles(baseDir, {
-                            privileged: privileged
-                        })
-                    }));
-                }catch(err){
-                    res.status(HTTP_CODE_ERROR).send(JSON.stringify({ success:false, msg: err.message }));
-                }
-            });
-
-        this.app.route('/api/device/fs/content')
-            .get(async function(req:ExpressRequest, res:ExpressResponse):Promise<any> {
-                let data:any[] = [];
-                let target:string ="";
-                let baseDir:string = "";
-                let privileged:boolean = false;
-                let dev:Device = null;
-
-                try{
-                    if($.project == null){
-                        throw new Error('No active project');
-                    }
-
-                    switch(req.query.type){
-                        case 'privileged':
-                            privileged = true;
-                            break;
-                        case 'user':
-                        case 'shell':
-                        default:
-                            privileged = false;
-                            break;
-                    }
-
-                    if(req.query.uid!=null){
-                        dev = $.context.getDeviceManager().getDevice(req.query.uid);
-                    }else{
-                        dev = $.project.getDevice();
-                    }
-
-                    if(dev==null){
-                        throw new Error("Target device not found");
-                    }
-
-                    if(!dev.isConnected()){
-                        throw  new Error("Device is offline");
-                    }
-
-
-                    if(req.query.app!=null){
-                        baseDir = dev.getDataPathOf(req.query.app)+"/";
-                    }
-
-
-                    if(req.query.path!=null){
-                        baseDir += req.query.path;
-                    }
-
-                    if(baseDir==""){
-                        throw new Error("Path is empty");
-                    }
-
-                    res.status(200).send(JSON.stringify({
-                        success:true,
-                        data: dev.getDefaultBridge().readFile(baseDir, {
-                            privileged: privileged
-                        })
-                    }));
-                }catch(err){
-                    res.status(HTTP_CODE_ERROR).send(JSON.stringify({ success:false, msg: err.message }));
-                }
-            });
-
-        this.app.route('/api/device/connect')
-            .post(async function(req:ExpressRequest, res:ExpressResponse):Promise<any>{
-                let dm:DeviceManager = DeviceManager.getInstance();
-                let ip:string = req.body['ip'];
-                let port:string = req.body['port'];
-                let device:Device = null;
-                let data:any = null;
-
-                try{
-                    if(req.body['dev'] !== null){
-                        device = dm.getDevice(req.body['dev']);
-
-                        if(device != null)
-                            Logger.debug('[WEBSERVER][/api/device/connect] Device selected : ',device.getUID());
-                        else
-                            Logger.debug('[WEBSERVER][/api/device/connect] Device not found.');
-
-
-                    }
-
-                    if(ip=="" && port==""){
-                        let b = device.getBridge('adb+tcp');
-                        if( b!= null ){
-                           data = await dm.connect( b.ip, b.port, device);
-                        }
-                    }else
-                        data = await dm.connect(ip, port, device);
-
-
-                    if(data){
-                        dm.save();
-                    }
-
-                    data = { success: data };
-                    if(data.success == false){
-                        data.msg = 'An unknow error happened. See Dexcalibur logs/output for more details.';
-                        res.status(500);
-                    }else{
-                        res.status(200);
-                    }
-                }catch(err){
-                    data = { success:false, msg:err.message };
-                    res.status(500)
-                }
-
-                res.send(JSON.stringify(data));
-            });
-
-        this.app.route('/api/device/clear/:deviceid')
-            .post(function (req:ExpressRequest, res:ExpressResponse):any {
-                let dm:DeviceManager = DeviceManager.getInstance();
-                let deviceid:string = req.params['deviceid'];
-                let dev:any;
-
-                try{
-                    dev = { success: dm.clear(deviceid) };
-                    res.status(200);
-                }catch(err){
-                    dev = { success:false, msg:err.message };
-                    res.status(500);
-                }
-
-                res.send(JSON.stringify(dev));
-            });
-
-
-        this.app.route('/api/device/clear')
-            .post(function (req:ExpressRequest, res:ExpressResponse):any {
-                let dm = DeviceManager.getInstance();
-                let dev;
-
-                try{
-                    dev = { success: dm.clear( null) };
-                    res.status(200);
-                }catch(err){
-                    dev = { success:false, msg:err.message };
-                    res.status(500);
-                }
-
-                console.log(dev);
-                res.send(JSON.stringify(dev));
-            });
-
-        this.app.route('/api/device/bridge/:name/kill')
-            .post(async function (req:ExpressRequest, res:ExpressResponse):Promise<any> {
-                let dm:DeviceManager = DeviceManager.getInstance();
-                let dev:any;
-
-                try{
-                    dev = dm.getBridgeFactory(req.params['name'].toLowerCase()).newGenericWrapper();
-                    dev = { success: await dev.kill() };
-                }catch(err){
-                    console.log(err);
-
-                    dev = { success:false, msg:err };
-                }
-
-                res.status(200).send(JSON.stringify(dev));
-            });
-
-        this.app.route('/api/device/enroll')
-            .post(async function (req:ExpressRequest, res:ExpressResponse):Promise<any> {
-                let dm:DeviceManager = DeviceManager.getInstance();
-                let dev:any;
-
-                try{
-                    Logger.raw(JSON.stringify(req.body));
-                    dev = { success: await dm.enroll(req.body['uid'], req.body['opts']) };
-                }catch(err){
-                    Logger.error(err.message);
-
-                    dev = { success:false, msg:err };
-                }
-
-                res.status(200).send(JSON.stringify(dev));
-            });
-
-        this.app.route('/api/device/enroll/status')
-            .get(function (req:ExpressRequest, res:ExpressResponse):any {
-                let dm:DeviceManager = DeviceManager.getInstance();
-                //let uid:string = req.body['uid'];
-                let status:StatusMessage;
-
-                // TODO : dm.getEnrollStatus(uid);
-                status = dm.getEnrollStatus();
-
-                if(status == null){
-                    res.status(200).send(JSON.stringify({
-                        msg: null,
-                        progress: null,
-                        extra: null
-                    }));
-                }else{
-                    res.status(200).send(JSON.stringify({
-                        msg: status.getMessage(),
-                        progress: status.getProgress(),
-                        extra: status.getExtra()
-                    }));
-                }
-            });
-
-        this.app.route('/api/device')
-            .get(async function (req:ExpressRequest, res:ExpressResponse):Promise<any> {
-                // scan connected devices
-                let dm:DeviceManager;
-                let _HTTP_CODE:number, _DATA:any;
-                try{
-                    dm = DeviceManager.getInstance();
-                    await dm.scan();
-                    dm.save();
-
-                    _HTTP_CODE = HTTP_CODE_SUCCESS;
-                    _DATA = {
-                        devices: dm.toJsonObject(  {
-                            device: {
-                                profile: false,
-                                frida: false,
-                                bridge: {
-                                    path: false
-                                }
-                            }
-                        })
-                    };
-
-                    SEND_SUCCESS_RESPONSE(res, _DATA);
-                }catch(err){
-                    Logger.error("[API][DEVICE] List device : "+err.message+"\n"+err.stack);
-                    //_HTTP_CODE = HTTP_CODE_ERROR;
-                    //_DATA = JSON.stringify({ success:false, err:"Devices cannot be listed."});
-                    SEND_ERROR_RESPONSE(res, "Devices cannot be listed.");
-                }
-
-                //res.status(_HTTP_CODE).send(_DATA);
-            });
-
-
-        this.app.route('/api/device/applications')
-            .get(async function (req:ExpressRequest, res:ExpressResponse):Promise<any> {
-                // scan connected devices
-                let dev:Device, dm:DeviceManager, pkgs:AppPackage[], rep:any;
-                let _HTTP_CODE:number, _DATA:any;
-
-                try{
-
-                    dm = DeviceManager.getInstance();
-                    dev = dm.getDevice( req.query.uid );
-
-                    if(dev.isEnrolled() == false){
-                        throw new Error('Device is not enrolled');
-                    }
-
-                    dev.updateInstalledApp();
-                    //pkgs = dev.getDefaultBridge().listPackages('-f');
-                    pkgs = dev.getInstalledApp();
-                    dm.save();
-                    //dev.updateCache('package',pkgs);
-
-                    rep = {
-                        device: req.query.uid,
-                        apps:[]
-                    };
-
-                    pkgs.map( (x:AppPackage)=>{
-                        rep.apps.push(x.toJsonObject())
-                    });
-
-                    _DATA = rep;
-                    _HTTP_CODE = HTTP_CODE_SUCCESS;
-
-                }catch(err){
-                    Logger.error("[API][DEVICE] List apps from device : "+err.message+"\n"+err.stack);
-                    _HTTP_CODE = HTTP_CODE_ERROR;
-                    _DATA = { success:false, err:err.message};
-                }
-
-                res.status(_HTTP_CODE).send(_DATA);
-            });
-
-        this.app.route('/api/device/application/pull')
-            .post(function (req:ExpressRequest, res:ExpressResponse):any {
-                let dm = DeviceManager.getInstance();
-                let dev:Device = null, success:boolean = false, app:AppPackage = null;
-                let rep:any =  {};
-
-                let _HTTP_CODE:number, _DATA:any;
-
-                try{
-                    dev =dm.getDevice(req.body['uid']);
-
-                    if(dev == null) throw new Error("Unknown device");
-                    if(!dev.isConnected()) throw new Error("Target device is offline");
-                    if(req.body['package'] == null) throw new Error("Package identifier not specified");
-
-                    if(req.body['path']!=null) {
-                        success = dev.pullPackage(req.body['package'], req.body['path']);
-                        rep = { success:success, data:{}};
-                    }else{
-                        app = dev.getApplicationByID(req.body['package']);
-                        if(app==null) throw new Error("Package not found");
-                        rep = { success:true, data:{ tmp: dev.pullTemp(app.packagePath) }};
-                    }
-
-                    _DATA = rep;
-                    _HTTP_CODE = HTTP_CODE_SUCCESS;
-
-                }catch(err){
-                    Logger.error("[API][DEVICE] Pull app from device : "+err.message+"\n"+err.stack);
-                    _DATA = { success:false, msg:err.message };
-                    _HTTP_CODE = HTTP_CODE_ERROR;
-                }
-
-                res.status(_HTTP_CODE).send(_DATA);
-            });
-
-        this.app.route('/api/device/setDefault')
-            .post(function (req:ExpressRequest, res:ExpressResponse):any {
-                // collect
-                let uid:string = req.body["uid"];
-                let puid:string = req.body["pid"]; // project uid
-                let dm:DeviceManager = DeviceManager.getInstance();
-                let dev:Device = null, errcode:string = null;
-
-                let _HTTP_CODE:number, _DATA:any;
-
-                try{
-                    res.set('Content-Type', 'text/json');
-                    if(uid == null)
-                        throw DeviceManagerException.DEVICE_ID_NULL();
-
-
-                    dev = dm.getDevice(uid);
-                    if(dev==null)
-                        //errcode = "DM2";
-                        //throw new DeviceManagerException("Invalid device ID");
-                        throw DeviceManagerException.DEVICE_NOT_FOUND();
-
-
-                    if($.project != null){
-                        $.project.setDevice(dm.getDevice(uid));
-                        $.project.save();
-                    }
-                    // TODO : change > defaultDevice => project
-                    dm.setDefault(uid);
-
-
-                    _DATA = {
-                        msg: "Device <b>"+uid+"</b> is the new default device."
-                    };
-                    _HTTP_CODE = HTTP_CODE_SUCCESS;
-
-                }catch(err){
-                    Logger.error("[API][DEVICE] Set default device for project: "+err.message+"\n"+err.stack);
-                    _DATA = { success:false, error:err.message, errcode:errcode };
-                    _HTTP_CODE = HTTP_CODE_ERROR;
-                }
-
-                res.status(_HTTP_CODE).send(_DATA);
-
-            });
-
-        this.app.route('/api/device/:uid/bridge')
-            .put(async function (req:ExpressRequest, res:ExpressResponse):Promise<any> {
-                // scan connected devices
-                let dev:Device=null, bridge:IBridge=null, dm:DeviceManager=null, result:boolean=false;
-
-                try{
-                    dm = DeviceManager.getInstance();
-                    dev = dm.getDevice(req.params.uid);
-                    bridge = dev.getBridge(req.body['name']);
-
-
-                    if(bridge.up==false){
-                        if(bridge.isNetworkTransport()){
-                            //result = await dm.connect( bridge.ip, bridge.port, dev);
-                            if(await dm.connect( bridge.ip, bridge.port, dev)){
-                                dev.setDefaultBridge(req.body['name']);
-                                dm.save();
-                                res.status(200).send({ success: true });
-                                return ;
-                            }else{
-                                res.status(500).send({ success: false, msg:'Connection over TCP failed.' });
-                                return ;
-                            }
-                        }else{
-                            res.status(500).send({ success: false, msg:'Please connect the device through USB and retry.' });
-                            return ;
-                        }
-                    }else{
-                        dev.setDefaultBridge(req.body['name']);
-                        dm.save();
-                        res.status(200).send({ success: true });
-
-                        return;
-                    }
-
-                }catch(err){
-                    res.status(500).send({ success: false, msg:err.message });
-                }
-            });
 
         // todo : replace by device manager scan()
         /*this.app.route('/api/packageList')
@@ -1587,7 +1137,7 @@ export default class WebServer
                 }
                 res.status(200).send(JSON.stringify(data));
             });
-
+/*
         this.app.route('/api/probe/server/start')
             .post(async function (req:ExpressRequest, res:ExpressResponse):Promise<any> {
 
@@ -1639,7 +1189,7 @@ export default class WebServer
                         success: false
                     }));
                 }
-            });
+            });*/
 
         this.app.route('/api/probe/start')
             .post(function (req:ExpressRequest, res:ExpressResponse):any {
@@ -3571,112 +3121,6 @@ export default class WebServer
                 }
             });
 
-        this.app.route('/api/remote/connections')
-            .get(async function (req:ExpressRequest, res:ExpressResponse):Promise<any> {
-
-                let conn:any,  _DATA:any;
-                try{
-                    conn = $.context.getSettings().getConnectionSettings();
-                    if(conn == null){
-                        _DATA = { conn:null};
-                    }else{
-                        _DATA = { conn:conn.toObject() };
-                    }
-
-                    SEND_SUCCESS_RESPONSE(res, _DATA);
-                }catch(err){
-                    Logger.error("[API][REMOTE CONNECTION SETTINGS] List device : "+err.message+"\n"+err.stack);
-                    //_HTTP_CODE = HTTP_CODE_ERROR;
-                    //_DATA = JSON.stringify({ success:false, err:"Devices cannot be listed."});
-                    SEND_ERROR_RESPONSE(res, "Connections not found : "+err.message);
-                }
-
-            });
-
-        this.app.route('/api/remote/auth')
-            .post(async function (req:ExpressRequest, res:ExpressResponse):Promise<any> {
-
-                let conn:ConnectionSettings, param:DexcaliburConnectionParams, _DATA:any;
-                let handler:ConnectionHandler;
-                try{
-                    conn = $.context.getSettings().getConnectionSettings();
-
-                    if(req.body['conn']==null)
-                        throw new DexcaliburConnectionException("Connection name is required",0);
-
-                    param = conn.getConnectionParamsFor(req.body['conn']);
-
-
-                    // TODO replace by better check
-                    if(param.getName()=="local"){
-                        if(req.dxc == null || req.dxc.sess == null){
-                            if(req.dxc == null) req.dxc = {};
-                            req.dxc.sess = $.context.getUserService().do1StepPasswordAuthentication(
-                                req.body['login'],
-                                req.body['pwd']
-                            );
-
-                            req.dxc.sess.addConnection( param.getName(), new ConnectionHandler(param) );
-
-                            res.cookie(
-                                $.context.getUserService().getCookieName(),
-                                req.dxc.sess.getSessUID(),
-                                { maxAge: 7*24*60, expires: 0  }
-                            );
-                            _DATA= { token:req.dxc.sess.getSessUID() };
-                        }else{
-                            // todo : flush + recreate sessions
-                            _DATA= { token:"none", msg:"Already authenticated" };
-                        }
-                    }else{
-                        handler = await $.context.getConnectionManager().open(
-                            param,
-                            (new ConnectionCredentials())
-                                .setUsername(req.body['login'])
-                                .setCredential(req.body['pwd'])
-                        );
-
-                        if(req.dxc.sess != null){
-                            req.dxc.sess.addConnection( param.getName(), handler );
-
-                            _DATA= { token:req.dxc.sess.getSessUID() };
-                        }else{
-                            throw new ConnectionManagerException("Unable to link a connection to a user : user not connected");
-                        }
-                    }
-
-
-                    SEND_SUCCESS_RESPONSE(res, _DATA);
-                }catch(err){
-                    Logger.error("[API][AUTHENTICATION] An error occured : "+err.message+"\n"+err.stack);
-                    //_HTTP_CODE = HTTP_CODE_ERROR;
-                    //_DATA = JSON.stringify({ success:false, err:"Devices cannot be listed."});
-                    SEND_ERROR_RESPONSE(res, err.message);
-                }
-
-            });
-
-        this.app.route('/api/remote/logout')
-            .get(async function (req:ExpressRequest, res:ExpressResponse):Promise<any> {
-
-                try {
-                    if (req.dxc!=null && $.context.getUserService().verifySession(req.dxc.sess)) {
-
-                        $.context.getUserService().closeSession(req.dxc.sess);
-
-                        SEND_SUCCESS_RESPONSE(res, {msg:"Session destroyed"});
-                    }else{
-                        SEND_SUCCESS_RESPONSE(res, {msg:"Session not found"})
-                    }
-                }catch(err){
-                    Logger.error("[API][REMOTE CONNECTION LOGOUT] Session logout : "+err.message+"\n"+err.stack);
-                    //_HTTP_CODE = HTTP_CODE_ERROR;
-                    //_DATA = JSON.stringify({ success:false, err:"Devices cannot be listed."});
-                    SEND_SUCCESS_RESPONSE(res, {msg:"Session not found : "+err.message });
-                }
-
-            });
-
         this.app.route('/api/account')
             .get(async function (req:ExpressRequest, res:ExpressResponse):Promise<any> {
 
@@ -3919,6 +3363,11 @@ export default class WebServer
         let self:WebServer = this;
         let usr_svc:UserService = self.context.getUserService();
 
+
+        // define middleware
+        this.app.use(BodyParser.urlencoded({ extended: false }));
+        this.app.use(BodyParser.json());
+
         /**
          * Redirect to /pages/splash.html if there is no project initialized
          */
@@ -3932,6 +3381,8 @@ export default class WebServer
             if(req.url.startsWith('/api/')){
                 res.set('Content-Type', 'text/json');
             }
+
+            req.dxc = {};
 
             next();
         });
@@ -3947,9 +3398,8 @@ export default class WebServer
          * Open session and attach to request
          */
         this.app.use(function(req:ExpressRequest, res:ExpressResponse, next:any){
-            Logger.debug("[API][SESSION] Processing request : "+req.originalUrl);
+            Logger.info("[API][SESSION] Processing request : "+req.originalUrl);
 
-            if(self.project != null){ next(); return; }
             if(!req.url.startsWith('/api/') && !req.url.startsWith('/inspectors/')){ next(); return; }
 
             try{
@@ -3985,14 +3435,27 @@ export default class WebServer
 
 
 
+        DEVICE_WEB_API.injectServer(this);
+        AUTH_WEB_API.injectServer(this);
+        SETTINGS_WEB_API.injectServer(this);
+        PROBE_SERVER_WEB_API.injectServer(this);
+
+
+
+        this.app.use('/api/device', DEVICE_WEB_API.getRouter());
+        this.app.use('/api/remote', AUTH_WEB_API.getRouter());
+        this.app.use('/api/settings', SETTINGS_WEB_API.getRouter());
+        this.app.use('/api/hookserver', PROBE_SERVER_WEB_API.getRouter());
+
         /**
          * Redirect to /pages/splash.html if there is no project initialized
          */
+        /*
         this.app.use(function(req:ExpressRequest, res:ExpressResponse, next:any){
             let f = false;
 
 
-            Logger.debug("[API][REDIRECT] Processing request : "+req.originalUrl);
+            Logger.info("[API][REDIRECT] Processing request : "+req.originalUrl);
 
             if(self.project != null){ next(); return; }
             if(!req.url.startsWith('/pages/') && !req.url.startsWith('/api/') && !req.url.startsWith('/inspectors/')){ next(); return; }
@@ -4014,9 +3477,12 @@ export default class WebServer
                 res.send();
                 return ;
             }else{
+                Logger.error("[API][REDIRECT] Processing request (not IPC wait mode): "+req.originalUrl);
                 //   next();
             }
         });
+
+         */
 
 
 
