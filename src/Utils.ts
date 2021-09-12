@@ -244,20 +244,23 @@ export default class Util {
         return data;
     }
 
-    static execSync(command:string, charset:any="utf8"):string{
-        let ret:Buffer = null;
+    static execSync(command:string, charset:any="utf8", opts:any=null):string{
+        let ret:string;
         
         if(process.env.DEXCALIBUR_TEST){
             ret = TestHelper.execSync(command);
         }else{
             PRINT(chalk.bold.red("Execute command request : "+command));
 
-                ret = Process.execSync(command);
+            if(opts!=null)
+                ret = Process.execSync(command,opts);
+            else
+                ret = Process.execSync(command).toString(charset);
 
-            PRINT(ret.toString(charset));
+            PRINT(ret);
         }
 
-        return ret.toString(charset);
+        return ret;
     }
 
     static async  execAsync(command:string):Promise<any>{
