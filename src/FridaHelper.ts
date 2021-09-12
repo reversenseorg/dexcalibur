@@ -15,6 +15,7 @@ import {Device} from "./Device";
 import Util from "./Utils";
 import {IBridge} from "./Bridge";
 import {External} from "./external/External";
+import {Process} from "frida/dist";
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
 const pipeline = promisify(_stream_.pipeline);
@@ -31,6 +32,16 @@ const SPAWN = 0x1;
 const ATTACH_BY_NAME = 0x2;
 const ATTACH_BY_PID = 0x3;
 
+
+interface FridaInstance {
+    device: Device;
+    path?: string;
+    privileged?:boolean;
+}
+
+interface FridaInstanceMap {
+    [deviceID:string] :FridaInstance;
+}
 /**
  * @class
  * @author Georges-B MICHEL
@@ -55,6 +66,7 @@ export default class FridaHelper extends External.ExternalHelper
      */
     static ATTACH_BY_PID = 0x3;
 
+    static instances:FridaInstanceMap;
 
     constructor() {
         super()
@@ -213,11 +225,17 @@ export default class FridaHelper extends External.ExternalHelper
         if( (pDevice.getFridaServerPath() == null) && (pOptions.path == null))  
             throw new Error("[FRIDA HELPER] Path of Frida server is unknow");
 
+        let meta:FridaInstance = {
+            device: pDevice,
+        };
         let frida:string = pDevice.getFridaServerPath();
         let res:any = null;
 
         if(pOptions.path != null && pOptions.path != '')
             frida = pOptions.path;
+
+
+        meta.path = pOptions.path;
 
         if(pDevice.getDefaultBridge().isNetworkTransport()){
             frida += " -l 0.0.0.0"
@@ -225,12 +243,46 @@ export default class FridaHelper extends External.ExternalHelper
 
         Logger.info(`[FRIDA HELPER] Start server <privileged:${pOptions.privileged?'true':'false'}>: ${frida} `);
 
+        meta.privileged = pOptions.privileged;
+
+        FridaHelper.instances[pDevice.getUID()] = meta;
+
         if(pOptions.privileged)
             res = await pDevice.privilegedExecSync(frida, {detached:true});
         else
             res = pDevice.execSync(frida);
 
+        Logger.info(JSON.stringify(res));
+
         return res;
+    }
+
+
+    static async stopServer( pDevice:Device, pOptions:any = { path:null, privileged:true }):Promise<boolean>{
+
+        if(pDevice == null)
+            throw new Error("[FRIDA HELPER] Unknow device. Device not connected not enrolled ?");
+
+
+        if(FridaHelper.instances[pDevice.getUID()]==null){
+            throw new Error("[FRIDA HELPER] Frida server instance not found.");
+        }
+
+        const meta:FridaInstance = FridaHelper.instances[pDevice.getUID()];
+
+        let fdev:Frida.Device = await Frida.getDevice( pDevice.id);
+
+        let pss:Process[] = await fdev.enumerateProcesses();
+        for(let i=0;i< pss.length; i++){
+            Logger.info("[FRIDA HELPER] ps: "+pss[i].name);
+            if(pss[i].name.indexOf("frida-server")>-1){
+                fdev.kill(pss[i].pid);
+                return true;
+                break;
+            }
+        }
+
+        return false;
     }
 
     /**

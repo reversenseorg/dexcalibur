@@ -6,6 +6,8 @@ export enum ErrorCode {
     PARSER = 40000,
     SMALI_PARSER = 41000,
     SECURITY = 90000,
+    SECURITY_RUNTIME = 91000,
+    SETTINGS = 95000,
     REMOTE = 20000,
     REMOTE_DEXCALIBUR= 21000
 }
@@ -34,7 +36,7 @@ export class MonitoredError extends Error {
     }
 
 
-    getExtra():string {
+    getExtra():any {
         return this.extra;
     }
 
