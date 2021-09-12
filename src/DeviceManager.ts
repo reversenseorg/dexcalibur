@@ -532,7 +532,7 @@ export default class DeviceManager extends ValidationCapable
             // a default device should be selected 
 
              // 1/ If default device is connected and authorized
-            if(this.devices[latestDefault.getUID()] != null
+            if(latestDefault!=null && this.devices[latestDefault.getUID()] != null
                 && this.devices[latestDefault.getUID()].isConnected()
                 && this.devices[latestDefault.getUID()].isAuthorized()){
 
