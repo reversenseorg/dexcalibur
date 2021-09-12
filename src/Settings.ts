@@ -7,6 +7,8 @@ import {AuthType} from "./user/auth/AuthTypes";
 import {AuthenticationSettings} from "./user/auth/AuthenticationSettings";
 import {DexcaliburConnectionParams, DexcaliburConnectionParamsList} from "./remote/DexcaliburConnectionParams";
 import {ConnectionSettingsException} from "./errors/ConnectionSettingsException";
+import {IncomingValue, SanitizedValue, UnsafeValue} from "./security/SanitizedValue";
+import {GlobalSettingsException} from "./errors/GlobalSettingsException";
 
 
 const LOG_FILE = (process.env.DXC_LOG_PATH ? process.env.DXC_LOG_PATH : null);
@@ -69,6 +71,11 @@ export namespace Settings {
             return (this.parent!=null ? this.parent.save(pDestPath) : null)
         }
 
+
+
+        abstract sanitize( pName:string, pValue:any):IncomingValue;
+
+        abstract update( pValue:IncomingValue):void;
 
         abstract toObject():any;
     }
@@ -137,6 +144,15 @@ export namespace Settings {
 
         getAuthenticationSettings():AuthenticationSettings {
             return this.auth;
+        }
+
+        sanitize(pName: string, pValue: any): IncomingValue {
+            throw GlobalSettingsException.SETTING_UNKNOW();
+        }
+
+
+        update( pValue:IncomingValue):void {
+            throw GlobalSettingsException.SETTING_UNKNOW();
         }
 
         /**
@@ -210,6 +226,37 @@ export namespace Settings {
             return this._ws;
         }
 
+
+        sanitize(pName: string, pValue: any): IncomingValue {
+            // todo
+            switch(pName){
+                case "ws":
+                case "http":
+                    const d = (typeof  pValue == 'string' ? parseInt(pValue,10) : pValue);
+                    if(d > 1 && d < 65534){
+                        return new SanitizedValue(pName, d);
+                    }else{
+                        return new UnsafeValue(pName, d);
+                    }
+                    break;
+                default:
+                    throw GlobalSettingsException.SETTING_UNKNOW();
+            }
+        }
+
+        update( pValue:IncomingValue):void {
+            switch (pValue.getName()) {
+                case "http":
+                    this._http = pValue.getValue();
+                    break;
+                case "ws":
+                    this._ws = pValue.getValue();
+                    break;
+                default:
+                    throw GlobalSettingsException.SETTING_UNKNOW();
+            }
+        }
+
         toObject(): any {
             return {
                 http: this._http,
@@ -234,6 +281,24 @@ export namespace Settings {
 
         getTool( pUID:string) :any {
             return this._all[pUID];
+        }
+
+
+        sanitize(pName: string, pValue: any): IncomingValue {
+
+            if(Object.keys(this._all).indexOf(pName)>-1){
+                if(_fs_.existsSync(pValue)){
+                    return new SanitizedValue(pName, pValue);
+                }else{
+                    return new UnsafeValue(pName, pValue);
+                }
+            }else{
+                throw GlobalSettingsException.SETTING_UNKNOW();
+            }
+        }
+
+        update( pValue:IncomingValue):void {
+            this._all[pValue.getName()] = pValue.getValue();
         }
 
         getAll():any{
@@ -273,6 +338,15 @@ export namespace Settings {
             _fs_.writeFileSync(pPath, JSON.stringify(this), { encoding:'utf8', mode:'w+' });
         }
 
+
+        sanitize(pName: string, pValue: any): IncomingValue {
+            throw GlobalSettingsException.SETTING_UNKNOW();
+        }
+
+
+        update( pValue:IncomingValue):void {
+            throw GlobalSettingsException.SETTING_UNKNOW();
+        }
         /**
          *
          * @param pPath
@@ -323,6 +397,7 @@ export namespace Settings {
         setDeviceID( pDevID:string):void {
             this.device = pDevID;
         }
+
     }
 
 
@@ -383,6 +458,16 @@ export namespace Settings {
 
         getAll():any{
             return this._all;
+        }
+
+
+        sanitize(pName: string, pValue: any): IncomingValue {
+            throw GlobalSettingsException.SETTING_UNKNOW();
+        }
+
+
+        update( pValue:IncomingValue):void {
+            throw GlobalSettingsException.SETTING_UNKNOW();
         }
 
         toObject():any {
@@ -474,6 +559,15 @@ export namespace Settings {
             }
         }
 
+
+        sanitize(pName: string, pValue: any): IncomingValue {
+            throw GlobalSettingsException.SETTING_UNKNOW();
+        }
+
+
+        update( pValue:IncomingValue):void {
+            throw GlobalSettingsException.SETTING_UNKNOW();
+        }
 
         /**
          * To set location of the file containing current settings

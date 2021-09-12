@@ -67,7 +67,6 @@ export class SessionService {
         this._sess[sess.getSessUID()] = sess;
 
 
-
         return sess;
     }
 
