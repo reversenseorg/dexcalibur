@@ -1,6 +1,7 @@
 
 import {AuthenticationSettings} from "../auth/AuthenticationSettings";
 import Util from "../../Utils";
+import {SecurityZone} from "../../security/SecurityZone";
 
 
 
@@ -62,7 +63,7 @@ export class SessionSettings{
         this._parent.save(pDestFile);
     }
 
-    toObject():any {
+    toObject( pZone:SecurityZone = SecurityZone.PUBLIC):any {
         return {
             _tmpStorage: this._tmpStorage,
             _fsBased: this._fsBased,

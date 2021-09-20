@@ -11,7 +11,9 @@ import {UserSession} from "./session/UserSession";
 import {SessionCode, SessionException} from "./session/SessionException";
 import {AuthenticationResult} from "./auth/Authenticator";
 import {AuthenticationException} from "../errors/AuthenticationException";
+import * as Log from '../Logger';
 
+let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
 export class UserService {
 
@@ -53,12 +55,17 @@ export class UserService {
      */
     verifySession( pSession:UserSession):boolean {
         try{
+
+            Logger.info("Verify session is not null : "+JSON.stringify(pSession));
+            Logger.info("All session : "+JSON.stringify( Object.keys(this.sessSvc.listAllSession())));
             if( pSession != null && pSession.isActive()){
                 return true;
             }else{
                 throw SessionException.INVALID_SESSION();
             } // TODO : add expiration check
         }catch(err){
+            //console.log(err.message+err.stack);
+            Logger.info(err.message+"\n\t"+err.stack);
             throw SessionException.INVALID_SESSION();
         }
     }

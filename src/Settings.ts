@@ -3,12 +3,12 @@ import DexcaliburWorkspace from "./DexcaliburWorkspace";
 import * as _path_ from "path";
 import * as _fs_ from "fs";
 import * as _os_ from "os";
-import {AuthType} from "./user/auth/AuthTypes";
 import {AuthenticationSettings} from "./user/auth/AuthenticationSettings";
 import {DexcaliburConnectionParams, DexcaliburConnectionParamsList} from "./remote/DexcaliburConnectionParams";
 import {ConnectionSettingsException} from "./errors/ConnectionSettingsException";
 import {IncomingValue, SanitizedValue, UnsafeValue} from "./security/SanitizedValue";
 import {GlobalSettingsException} from "./errors/GlobalSettingsException";
+import {SecurityZone} from "./security/SecurityZone";
 
 
 const LOG_FILE = (process.env.DXC_LOG_PATH ? process.env.DXC_LOG_PATH : null);
@@ -24,7 +24,7 @@ function __log( pMessage:string):void{
  */
 export namespace Settings {
 
-    export const GLOBAL_CFG_NAME:string = "dxc.json";
+    export const GLOBAL_CFG_NAME = "dxc.json";
 
     /**
      * Default http port for webserver
@@ -46,7 +46,7 @@ export namespace Settings {
      * @const
      * @export
      */
-    export const DEFAULT_WS_PORT:number = 8001;
+    export const DEFAULT_WS_PORT = 8001;
 
     export interface ExternalToolParams {
         path: string,
@@ -114,6 +114,15 @@ export namespace Settings {
          */
         private auth:AuthenticationSettings;
 
+
+        /**
+         * Max heap size allowed for engine
+         * @field
+         * @type number
+         * @private
+         */
+        private heapSize:number = 4096;
+
         constructor( pParent:GlobalSettings, pConfig:any=null) {
 
             super(pParent);
@@ -146,13 +155,38 @@ export namespace Settings {
             return this.auth;
         }
 
+
+        getHeapSize():number {
+            return this.heapSize;
+        }
+
+
         sanitize(pName: string, pValue: any): IncomingValue {
-            throw GlobalSettingsException.SETTING_UNKNOW();
+            switch(pName){
+                case "heapSize":
+                    const d = (typeof  pValue == 'string' ? parseInt(pValue,10) : pValue);
+                    if(d > 2048){
+                        return new SanitizedValue(pName, d);
+                    }else{
+                        return new UnsafeValue(pName, d);
+                    }
+                    break;
+                default:
+                    throw GlobalSettingsException.SETTING_UNKNOW();
+            }
         }
 
 
         update( pValue:IncomingValue):void {
-            throw GlobalSettingsException.SETTING_UNKNOW();
+
+            switch (pValue.getName()) {
+                case "heapSize":
+                    this.heapSize = pValue.getValue();
+                    break;
+                default:
+                    throw GlobalSettingsException.SETTING_UNKNOW();
+
+            }
         }
 
         /**
@@ -165,15 +199,17 @@ export namespace Settings {
             return this.parent.save(pDestPath);
         }
 
-        toObject():any {
+        toObject(pZone:SecurityZone = SecurityZone.PUBLIC):any {
             return {
                 workspace:  this.space.getLocation(),
                 registry: this.registry.url,
                 registryAPI: this.registry.api,
-                auth: this.auth.toObject()
+                auth: this.auth.toObject(pZone),
+                heapSize: this.heapSize
             };
         }
     }
+
 
     /**
      * Represent web server configuration
@@ -257,7 +293,7 @@ export namespace Settings {
             }
         }
 
-        toObject(): any {
+        toObject(pZone:SecurityZone = SecurityZone.PUBLIC): any {
             return {
                 http: this._http,
                 ws: this._ws
@@ -305,7 +341,7 @@ export namespace Settings {
             return this._all;
         }
 
-        toObject():any {
+        toObject(pZone:SecurityZone = SecurityZone.PUBLIC):any {
             return this._all;
         }
     }
@@ -361,7 +397,7 @@ export namespace Settings {
      */
     export class ProjectSettings {
 
-        static DEFAULT_CONN:string = 'inmemory';
+        static DEFAULT_CONN = 'inmemory';
 
         private connector:string;
         private encoding: string;
@@ -470,8 +506,8 @@ export namespace Settings {
             throw GlobalSettingsException.SETTING_UNKNOW();
         }
 
-        toObject():any {
-            let o:any =  {
+        toObject(pZone:SecurityZone = SecurityZone.PUBLIC):any {
+            const o:any =  {
                 all: Object.values(this._all)
             };
 
@@ -542,10 +578,10 @@ export namespace Settings {
 
 
             try{
-                let data:any = JSON.parse( _fs_.readFileSync(path).toString());
+                const data:any = JSON.parse( _fs_.readFileSync(path).toString());
 
                 if(pOverride != null){
-                    for(let i in pOverride) data[i] = pOverride[i];
+                    for(const i in pOverride) data[i] = pOverride[i];
                 }
 
                 __log("[GLOBAL SETTINGS] load : success : "+JSON.stringify(data));
@@ -613,14 +649,14 @@ export namespace Settings {
             return this.conn;
         }
 
-        toObject(): any {
-            let o:any = {
-                bin: this.bin.toObject(),
-                server: this.server.toObject()
+        toObject(pZone:SecurityZone = SecurityZone.PUBLIC): any {
+            const o:any = {
+                bin: this.bin.toObject(pZone),
+                server: this.server.toObject(pZone)
             };
 
             if(this.conn != null){
-                o.conn = this.conn.toObject();
+                o.conn = this.conn.toObject(pZone);
             }
 
             o.server.http = this.web.getHttpPort();
@@ -629,8 +665,8 @@ export namespace Settings {
             return o;
         }
 
-        toJson():string {
-            return JSON.stringify(this.toObject());
+        toJson(pZone:SecurityZone = SecurityZone.PRIVATE):string {
+            return JSON.stringify(this.toObject(pZone));
         }
 
         createConnectionSettings(): ConnectionSettings {

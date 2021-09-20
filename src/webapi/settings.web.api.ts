@@ -3,6 +3,7 @@ import WebServer from "../WebServer";
 import {Router, Request, Response} from "express";
 import * as Log from "../Logger";
 import {GlobalSettingsException} from "../errors/GlobalSettingsException";
+import {SecurityZone} from "../security/SecurityZone";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 export const SETTINGS_WEB_API: DelegateWebApi = new DelegateWebApi();
@@ -18,16 +19,16 @@ SETTINGS_WEB_API.addPublicRoute(
             try{
                 switch (req.query['type']){
                     case 'ext':
-                        data = $.context.getSettings().getExternalSettings().toObject();
+                        data = $.context.getSettings().getExternalSettings().toObject(SecurityZone.PUBLIC);
                         break;
                     case 'srv':
-                        data = $.context.getSettings().getServerSettings().toObject();
+                        data = $.context.getSettings().getServerSettings().toObject(SecurityZone.PUBLIC);
                         break;
                     case 'web':
-                        data = $.context.getSettings().getWebserverSettings().toObject();
+                        data = $.context.getSettings().getWebserverSettings().toObject(SecurityZone.PUBLIC);
                         break;
                     case 'conn':
-                        data = $.context.getSettings().getConnectionSettings().toObject();
+                        data = $.context.getSettings().getConnectionSettings().toObject(SecurityZone.PUBLIC);
                         break;
                     default:
                         throw GlobalSettingsException.CATEGORY_UNKNOW();
