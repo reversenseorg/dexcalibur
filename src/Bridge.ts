@@ -65,6 +65,12 @@ export interface IBridge
 
     readFile( pPath:string, pOptions:any):any;
 
+    addPrivilegedStrategy( pName:string, pOptions:any):void;
+
+    execBridgeCommand( pCommand:string):void;
+
+    spawnShell( pOptions:any ):any;
+
     toJsonObject(pExcludeList:any):any;
 }
 
