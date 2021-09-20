@@ -55,7 +55,7 @@
     "typescript": "^3.9.5"
   },
   "optionalDependencies": {
-    "frida": "^14.2.2"
+    "frida": "^15.0.19"
   },
   "bin": {
     "dexcalibur": "dexcalibur.js"
