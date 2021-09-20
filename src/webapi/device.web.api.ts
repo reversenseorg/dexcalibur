@@ -146,8 +146,6 @@ DEVICE_WEB_API.addAsyncPublicRoute(
                 }));*/
             } catch (err) {
                 $.sendError( res, err.message);
-
-                // res.status(HTTP_CODE_ERROR).send(JSON.stringify({success: false, msg: err.message}));
             }
         }
     });
