@@ -9,6 +9,9 @@ import Event from "./Event";
 import * as Log from './Logger';
 import ModelFileSection from "./ModelFileSection";
 import {External} from "./external/External";
+import * as _fs_ from "fs";
+import * as  _ps_ from "child_process";
+import DexcaliburWorkspace from "./DexcaliburWorkspace";
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
 export class BinwalkHelper extends  External.ExternalHelper {
@@ -86,22 +89,57 @@ export class BinwalkHelper extends  External.ExternalHelper {
      */
     analyzeFolder(pPath:string, pContext:DexcaliburProject, pSkipIf:Function):ModelFile[] {
 
-
         let out:string;
         const RE = /^([0-9]+)\s+(0x[0-9a-fA-F]+)\s+(.+)/;
         let files:ModelFile[] = [];
+        let opts = {stdio: [null,null,null] };
+        let tmp:string;
 
         try{
-            out = Util.execSync(BinwalkHelper.getExtPath()+' '+_path_.join(pPath,'**','*'));
+
+            tmp = DexcaliburWorkspace.getInstance().createTempFile('binwalk-', true);
+
+            opts.stdio[2] = _fs_.openSync(tmp, 'w+');
+
+            Logger.info(JSON.stringify(process.env));
+            Logger.info(Util.execSync("which binwalk"));
+
+            out = Util.execSync(BinwalkHelper.getExtPath()+' '+_path_.join(pPath,'**','*')+' > '+tmp, "utf8", opts);
+
+            if(Util.isEmpty(out, Util.FLAG_CR | Util.FLAG_WS) || out.length==0) {
+                out = _fs_.readFileSync(tmp).toString();
+                _fs_.closeSync(opts.stdio[2]);
+                //_fs_.unlinkSync(tmp);
+                Logger.info("[BINWALK HELPER] Binwalk stdout is empty, reading file ("+tmp+") "+out.length+" = "+out);
+            }else{
+                Logger.info("[BINWALK HELPER] Binwalk stdout not empty : "+out.length+" = "+out);
+            }
         }catch(err){
+            Logger.error("[BINWALK HELPER] Binwalk failed to scan path (1) : "+pPath+"\n"+err.message+"\n"+err.stack);
             try{
-                out = Util.execSync(BinwalkHelper.getExtPath()+' '+_path_.join(pPath,'*'));
+                tmp = DexcaliburWorkspace.getInstance().createTempFile('binwalk-', true);
+
+                opts.stdio[2] = _fs_.openSync(tmp, 'w+');
+
+                out = Util.execSync(BinwalkHelper.getExtPath()+' '+_path_.join(pPath,'*'),"utf8", opts);
+
+                if(Util.isEmpty(out, Util.FLAG_CR | Util.FLAG_WS) || out.length==0) {
+                    out = _fs_.readFileSync(tmp).toString();
+                    _fs_.closeSync(opts.stdio[2]);
+                    //_fs_.unlinkSync(tmp);
+                    Logger.info("[BINWALK HELPER] Binwalk stdout is empty, reading file ("+tmp+") "+out.length+" = "+out);
+                }else{
+                    Logger.info("[BINWALK HELPER] Binwalk stdout not empty : "+out.length+" = "+out);
+                }
+
+                //out = Util.execSync(BinwalkHelper.getExtPath()+' '+_path_.join(pPath,'*'));
             }catch(err2){
-                Logger.error("[FILE FORMAT DETECTION] Binwalk failed to scan path : "+pPath);
+                Logger.error("[BINWALK HELPER] Binwalk failed to scan path (2) : "+pPath+"\n"+err2.message+"\n"+err2.stack);
                 return files;
             }
         }
 
+        Logger.info(out);
 
         out.split(EOL+EOL+EOL).map( pDetails => {
 
@@ -158,7 +196,7 @@ export class BinwalkHelper extends  External.ExternalHelper {
                 }))
 
             }catch(err){
-                Logger.error('[File Format DETECTOR] Error on : '+"\n"+pDetails);
+                Logger.error('[BINWALK HELPER] Error while "analyzeFolder" : '+"\n"+err.message);
             }
 
         });
