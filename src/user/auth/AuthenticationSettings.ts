@@ -1,9 +1,9 @@
 import {AuthType} from "./AuthTypes";
 import {Settings} from "../../Settings";
-import ServerSettings = Settings.ServerSettings;
 import {SessionSettings} from "../session/SessionSettings";
 import Util from "../../Utils";
-
+import {SecurityZone} from "../../security/SecurityZone";
+import ServerSettings = Settings.ServerSettings;
 
 
 /**
@@ -84,12 +84,12 @@ export class AuthenticationSettings {
         this._parent.save(pDestFile);
     }
 
-    toObject():any {
+    toObject(pZone:SecurityZone = SecurityZone.PUBLIC):any {
         return {
             db: this._db,
             policy: this._policy,
             supported: this._supported,
-            sess: this._sess.toObject()
+            sess: this._sess.toObject(pZone)
         };
     }
 }
