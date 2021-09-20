@@ -3,6 +3,8 @@ import {EOL} from 'os';
 import Util from "./Utils";
 import {User} from "./User";
 import * as Log from "./Logger";
+import {Device} from "./Device";
+import AdbWrapper from "./AdbWrapper";
 
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
@@ -31,7 +33,12 @@ export class TerminalSession {
    // private _tmp_fd:any = null;
    // private _tmp_write:any = null;
 
-
+    /**
+     * Privileged shell
+     * @private
+     */
+    private _priv:boolean;
+    private _dev:Device = null;
 
     /**
      * To generate a valid unique session id
@@ -112,6 +119,16 @@ export class TerminalSession {
         return this._owners;
     }
 
+    setDevice(pDev:Device, pPrivileged:boolean){
+        this._dev = pDev;
+        if(pPrivileged!==null){
+            this._priv = pPrivileged;
+        }else{
+            // TODO : replace by default value from project settings (inhreited from global settings)
+            this._priv = false;
+        }
+    }
+
     setStdinBuffer( pPath:string):void {
         //this._tmp_write = _fs_.createWriteStream(pPath);
     }
@@ -133,26 +150,43 @@ export class TerminalSession {
      */
     async createLocalSession(pType:string='default'):Promise<TerminalSession>{
         this._type = pType;
-        return this._reinitProcess();
+        return this._reinitProcess(null);
     }
 
-    private _reinitProcess():any{
+
+    async createDeviceSession(pDevice:Device, pPrivileged:boolean):Promise<TerminalSession>{
+        this._type = 'dev';
+        this._priv = pPrivileged;
+        return this._reinitProcess(pDevice);
+    }
+
+
+    private _reinitProcess(pDevice:Device=null):any{
         const opts = {
-            shell: (this._type==='default'),
+            shell: (pDevice===null && this._type==='default'),
             env: process.env,
             stdio:  'pipe'
         };
 
         const self = this;
-        this._process = Util.spawn(this._type, [], opts);
+        if(pDevice===null){
+            Logger.info("[TERMINAL SESSION] Spawn local shell with opts : "+JSON.stringify(opts));
+            this._process = Util.spawn(this._type, [], opts);
+        }else{
+            Logger.info("[TERMINAL SESSION] Spawn device shell with opts : "+JSON.stringify(opts));
+            this._process = pDevice.getDefaultBridge().spawnShell(opts); // Util.spawn(this._type, [], opts);
+        }
 
-        this._process.stdout.pipe( process.stdout, {end:false});
+
+        //this._process.stdout.pipe( process.stdout, {end:false});
 
         this._process.stdout.on('data', (vData:any)=>{
+            Logger.raw("out: "+vData.toString());
             this._stdout_fn(self, vData.toString());
         });
 
         this._process.stderr.on('data', (vData:any)=>{
+            Logger.raw("err: "+vData.toString());
             this._stderr_fn(self, vData.toString());
         });
 /*
@@ -185,7 +219,25 @@ export class TerminalSession {
 
         if(this._process == null) throw  new Error('Command cannot be sent. Session is not ready.');
 
-        this._process.stdin.write(pCmd+EOL);
+        if(this._dev != null){
+            if(this._priv){
+                Logger.info((this._dev.getDefaultBridge() as AdbWrapper).getStrategy('su').prepareString(pCmd)+EOL);
+                this._process.stdin.write(
+                    (this._dev.getDefaultBridge() as AdbWrapper).getStrategy('su').prepareString(pCmd)+EOL
+                );
+            }else{
+
+                Logger.info((this._dev.getDefaultBridge() as AdbWrapper).setup()+' '+pCmd+EOL);
+                this._process.stdin.write(
+                    //(this._dev.getDefaultBridge() as AdbWrapper).setup()+' '+pCmd+EOL
+                    pCmd+EOL
+                );
+            }
+
+
+        }else{
+            this._process.stdin.write(pCmd+EOL);
+        }
     }
 
     close(pUser:User=null){

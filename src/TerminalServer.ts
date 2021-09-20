@@ -2,9 +2,18 @@ import DexcaliburEngine from "./DexcaliburEngine";
 import {TerminalSessionMap, User} from "./User";
 import {TerminalSession} from "./TerminalSession";
 import * as Log from "./Logger";
+import {Device} from "./Device";
 
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
+
+
+export enum TerminalSessionType {
+    SH='sh',
+    DEV='dev',
+    BASH='bash'
+}
+
 
 enum SESSION_PERM {
     NONE,
@@ -36,6 +45,7 @@ export class TerminalServer {
 
     sendError( pSession:TerminalSession, pData:any){
         pSession.getOwners().map( (pUser:any)=> {
+            Logger.error(JSON.stringify(pData))
             pSession.getSocket().sendUTF(JSON.stringify({action:'err', data:{
                     success: false,
                     stderr: pData,
@@ -77,11 +87,11 @@ export class TerminalServer {
         return sess;
     }
 
-    validateType(pUnsafeType:string):string {
-        const types=['bash'];
+    validateType(pUnsafeType:TerminalSessionType):string {
+        const types=[TerminalSessionType.BASH,TerminalSessionType.DEV,TerminalSessionType.SH];
 
         if(types.indexOf(pUnsafeType)==-1)
-            throw  new Error('Invalid terminal type. Supported : '+types.concat(','));
+            throw  new Error('Invalid terminal type. Supported : '+(types as string[]).concat(','));
 
         return pUnsafeType;
     }
@@ -93,7 +103,7 @@ export class TerminalServer {
      * @param pData
      */
     async processCommand( pUser:User, pSocket:any, pData:string):Promise<any>{
-        let message:any, type:string = null, sess:TerminalSession=null;
+        let message:any, type:string = null, sess:TerminalSession=null, dev:Device=null;
         try{
             message = JSON.parse(pData);
             if(message.action=="new"){
@@ -115,19 +125,54 @@ export class TerminalServer {
                     }
                 }
 
+                if(message.data.type==TerminalSessionType.DEV) {
+                    dev = this._engine.getDeviceManager().getDevice(message.data.opts.target);
+                }
+
+
                 // if session id not provided or session is invalid
                 if(sess == null){
-                    // else, create a new session
-                    sess = await this.newLocalSession(
-                        this.validateType(message.data.type)
-                        // , pUser.getACL(TERMINAL_NEW_LOCAL)
-                    );
 
-                    sess.addOwner(pUser, message.data.localid);
+                    if(message.data.type==TerminalSessionType.DEV){
+
+                        // else, create a new session
+                        try{
+                            sess = await this.newDeviceSession(
+                                dev,
+                                message.data.opts.hasOwnProperty('priv') ? message.data.opts.priv : false);
+
+                            sess.addOwner(pUser, message.data.localid);
+                        }catch (err1){
+                            Logger.error(err1.message);
+                            Logger.error(err1.stack);
+                        }
+
+
+                    }else{
+                        // else, create a new session
+                        sess = await this.newLocalSession(
+                            this.validateType(message.data.type)
+                            // , pUser.getACL(TERMINAL_NEW_LOCAL)
+                        );
+
+                        sess.addOwner(pUser, message.data.localid);
+
+                    }
+
+
+
                 }
 
 
                 if(sess != null){
+
+
+                    if(dev!==null){
+                        sess.setDevice(
+                            dev,
+                            message.data.hasOwnProperty('privileged') ? message.data.privileged : null
+                        );
+                    }
 
                     Logger.info('[WEBSOCKET] Sending new session data [SESSID=',sess.getSessionID(),']');
                     pSocket.sendUTF(JSON.stringify({action:'new', data:{
@@ -176,7 +221,8 @@ export class TerminalServer {
                 pSocket.sendUTF(JSON.stringify({ action:'init', data:{ sess: s }}));
             }
         }catch(err){
-            console.log(err);
+            Logger.error(err.message);
+            Logger.error(err.stack);
             pSocket.sendUTF(JSON.stringify({action:'err', data:{
                 msg: err.toString()
             }}));
@@ -213,6 +259,35 @@ export class TerminalServer {
         sess.onClose(this.sendOobMsg);
 
         await sess.createLocalSession(pType);
+        this._sessions.push(sess);
+        return sess;
+    }
+
+    /**
+     * To create a new session for a given device
+     *
+     * It creates a child process and pipe its stdio with instance's streams.
+     * A session can have multiple owner, it allows several user to share the same terminal I/Os
+     *
+     * @param pDevice
+     * @param {number} pPerm Permission of the session
+     * @return {Promise<TerminalSession>}
+     * @async
+     * @method
+     * @since 1.0.0
+     */
+    async newDeviceSession( pDevice:Device, pPrivileged:boolean, pPerm:number = SESSION_PERM.READ|SESSION_PERM.WRITE):Promise<TerminalSession> {
+        const sess = new TerminalSession();
+
+        /*sess.setStdinBuffer(
+            this._engine.getWorkspace().createTempFile('xterm_', true)
+        );*/
+
+        sess.onStdOut(this.sendOutput);
+        sess.onStdErr(this.sendError);
+        sess.onClose(this.sendOobMsg);
+
+        await sess.createDeviceSession(pDevice, pPrivileged);
         this._sessions.push(sess);
         return sess;
     }
