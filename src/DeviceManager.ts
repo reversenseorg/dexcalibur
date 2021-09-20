@@ -229,7 +229,8 @@ export default class DeviceManager extends ValidationCapable
                 connected: false,
                 offline: false,
                 bridge: {
-                    up: false
+                    up: false,
+                    strategies: false
                 }
             }));
         }
