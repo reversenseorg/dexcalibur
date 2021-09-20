@@ -11,6 +11,12 @@ import {AdbWrapperError} from "./Errors";
 import * as Log from './Logger';
 import DexcaliburWorkspace from "./DexcaliburWorkspace";
 import {IBridge} from "./Bridge";
+import {AdbBridgeException} from "./errors/AdbBridgeException";
+import {
+    PrivilegedExecutionPhase,
+    PrivilegedExecutionStrategy,
+    PrivilegedExecutionStrategyMap, PrivilegedExecutionType
+} from "./PrivilegedExecutionStrategy";
 
 let Logger:Log.ProdLogger = Log.newLogger() as Log.ProdLogger;
 
@@ -55,6 +61,8 @@ export default class AdbWrapper implements IBridge
 {
     static USB_TRANSPORT:string = 'U';
     static TCP_TRANSPORT:string = 'T';
+
+    strategies:PrivilegedExecutionStrategyMap = {};
 
     /**
      * @field
@@ -127,6 +135,16 @@ export default class AdbWrapper implements IBridge
          * @field
          */
         this.deviceID = pDeviceID;
+
+        this.addPrivilegedStrategy('su', new PrivilegedExecutionStrategy({
+           name: 'su',
+           phases: [new PrivilegedExecutionPhase({
+               type: PrivilegedExecutionType.COMMAND,
+               devBin: "su",
+               devBinArgs: ['-c']
+           })]
+        }));
+
     }
 
     /**
@@ -190,6 +208,40 @@ export default class AdbWrapper implements IBridge
      */
     isReady():boolean{
         return (this.path != null) && (_fs_.existsSync(this.path));
+    }
+
+
+    /**
+     *
+     * @param pName
+     * @param pOptions
+     */
+    addPrivilegedStrategy( pName:string, pStrategy:PrivilegedExecutionStrategy):void {
+        this.strategies[pName] = pStrategy;
+        pStrategy.setBridge(this);
+    }
+
+    /**
+     *
+     * @param string pName Strategy name
+     */
+    getStrategy(pName:string):PrivilegedExecutionStrategy {
+        return this.strategies[pName];
+    }
+
+    /**
+     * To execute a bridge command such as "adb root"
+     * where the command is "root"
+     * @param pCommand
+     */
+    async execBridgeCommand( pCommand:string):Promise<boolean> {
+        let ret:Promise<string> = null;
+
+        ret = await UT.execAsync(this.setup() + " "+pCommand).catch((err:string)=>{
+            throw AdbBridgeException.BRIDGE_COMMAND_FAILURE(err);
+        });
+
+        return true;
     }
 
     /**
@@ -759,6 +811,49 @@ export default class AdbWrapper implements IBridge
         return true;
     }
 
+    /**
+     * To execute a command into a detached process.
+     *
+     * Useful to launch side application such as frida-server
+     *
+     * @param {String} pCommand
+     * @param {String} pArgs
+     * @returns {Boolean} TRUE is success, else FALSE
+     * @method
+     * @async
+     */
+    spawnShell( pOptions:any ):Process.ChildProcess{
+        let child:Process.ChildProcess = null;
+        let ws:DexcaliburWorkspace, sid:string, outStream:_fs_.ReadStream, errStream:_fs_.ReadStream;
+
+        //let rep:string = null;
+        try{
+
+            let args:string[] = this.setup(null,false) as string[];
+            pOptions.shell = false;
+            args.shift();
+            args.push("shell");
+
+            ws = DexcaliburWorkspace.getInstance();
+            sid = UT.randString(6, UT.ALPHANUM);
+            //outStream = _fs_.createReadStream(_path_.join( ws.getTempFolderLocation(), sid+'_out.log'), {flags:'w+', mode:0o666 });
+            //errStream = _fs_.createReadStream(_path_.join( ws.getTempFolderLocation(), sid+'_err.log'), {flags:'w+', mode:0o666 });
+
+            pOptions.stdio = 'pipe'; // ['pipe',outStream,errStream];
+            child = Process.spawn(this.path, args, pOptions);
+
+            // child.stdout = outStream;
+            // child.stderr = errStream;
+            //rep = Process.execSync(args.join(" "), pOptions); //{ detached: true, stdio: [ 'ignore', out, err ] });
+            //child.unref();
+
+        }catch(err){
+            Logger.raw('ADB : Spawn shell error :'+err.message);
+        }
+
+        return child;
+    }
+
 
     /**
      * Execute a command on the device via 'su -c'
@@ -768,12 +863,21 @@ export default class AdbWrapper implements IBridge
      * @async
      * @method
      */
-    async privilegedShell(command:string, pOptions:any = {detached: false}):Promise<boolean|string|Buffer>{
+    async privilegedShell(command:string, pOptions:any = {detached: false, strategy:'su'}):Promise<boolean|string|Buffer>{
         Logger.info(`[ADB] Privileged exec <detached:${pOptions.detached?'true':'false'}> : ${command}`);
+
+        const stt = this.getStrategy(pOptions.strategy);
+
+        if(Object.values(this.strategies).length>0){
+
+        }else{
+
+        }
+
         if(pOptions.detached)
-            return await this.detachedShell(["shell","su","-c",command]);
+            return await this.detachedShell(stt.prepareArray( [command], this)); //["shell","su","-c",command]);
         else
-            return UT.execSync(this.setup()+' shell su -c "'+command+'"');
+            return UT.execSync(this.setup()+stt.prepareString(command, this)) ; //' shell su -c "'+command+'"');
     }
 
 
@@ -828,6 +932,7 @@ export default class AdbWrapper implements IBridge
 
         for(let i in this){
             if(pExcludeList[i] === false) continue;
+            if(i=='strategies') continue;
             o[i] = this[i];
         } 
 
