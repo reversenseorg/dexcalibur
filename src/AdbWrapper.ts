@@ -140,6 +140,8 @@ export default class AdbWrapper implements IBridge
            name: 'su',
            phases: [new PrivilegedExecutionPhase({
                type: PrivilegedExecutionType.COMMAND,
+               priv: true,
+               bridgeCmd: "shell",
                devBin: "su",
                devBinArgs: ['-c']
            })]
@@ -868,16 +870,21 @@ export default class AdbWrapper implements IBridge
 
         const stt = this.getStrategy(pOptions.strategy);
 
-        if(Object.values(this.strategies).length>0){
-
-        }else{
-
-        }
 
         if(pOptions.detached)
             return await this.detachedShell(stt.prepareArray( [command], this)); //["shell","su","-c",command]);
-        else
-            return UT.execSync(this.setup()+stt.prepareString(command, this)) ; //' shell su -c "'+command+'"');
+        else{
+
+            try{
+                Logger.info(this.setup()+' '+stt.prepareString(command, this));
+            }catch(e){
+                Logger.info(e.message);
+                Logger.info(e.stack);
+            }
+
+            return UT.execSync(this.setup()+' '+stt.prepareString(command, this)) ; //' shell su -c "'+command+'"');
+        }
+
     }
 
 
@@ -962,6 +969,7 @@ export default class AdbWrapper implements IBridge
 
 
         try{
+            Logger.info(JSON.stringify(pOptions));
             if(pOptions.privileged){
                 out = await this.privilegedShell(cmd+pPath);
             }else{
@@ -1026,8 +1034,85 @@ export default class AdbWrapper implements IBridge
         return files;
     }
 
-    readFile( pPath:string, pOptions:any):any {
-       return null;
+    private parseProcessOut( pRaw:string):any[] {
+
+        let out:any, pss:any[]=[], head:string[];
+
+        out = pRaw.split("\n");
+        head = out.shift().split(/\s+/g); // total
+
+
+        head.filter( (vHead:string, vIndex:number) => {
+            return vHead.length>0;
+        });
+
+        // parse line
+        out.map( (vEntry:string) => {
+
+            let ps:any = {};
+            let m:any = vEntry.split(/\s+/g);
+
+
+
+            try{
+                head.map( (vHead:string, vIndex:number) => {
+                    ps[vHead] = m[vIndex];
+                });
+                pss.push(ps);
+            }catch(err){
+                Logger.error(err.msg);
+            }
+        });
+
+        return pss;
+    }
+
+    async listProcesses( pOptions:any):Promise<any>{
+        let out:any, cmd:string='ps -A ';
+
+        if(pOptions.hasOwnProperty('cmd')){
+            cmd = pOptions.cmd;
+        }
+
+        try{
+            Logger.info(JSON.stringify(pOptions));
+            if(pOptions.privileged){
+                out = await this.privilegedShell(cmd);
+            }else{
+                out = Process.execSync( this.setup() + " shell  "+cmd);
+                out = out.toString();
+            }
+
+            out = this.parseProcessOut(out);
+        }catch(err){
+            out = err.stdout.toString();
+        }
+
+        Logger.raw(out);
+        return out;
+    }
+
+    async readFile( pPath:string, pOptions:any):Promise<any> {
+        let out:any, cmd:string='cat ';
+
+        if(pOptions.hasOwnProperty('cmd')){
+            cmd = pOptions.cmd;
+        }
+
+        try{
+            Logger.info(JSON.stringify(pOptions));
+            if(pOptions.privileged){
+                out = await this.privilegedShell(cmd+pPath);
+            }else{
+                out = Process.execSync( this.setup() + " shell  "+cmd+pPath);
+                out = out.toString();
+            }
+        }catch(err){
+            out = err.stdout.toString();
+        }
+
+        Logger.raw(out);
+        return out;
     }
 }
 

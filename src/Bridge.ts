@@ -71,6 +71,8 @@ export interface IBridge
 
     spawnShell( pOptions:any ):any;
 
+    listProcesses( pOptions:any):Promise<any[]>;
+
     toJsonObject(pExcludeList:any):any;
 }
 

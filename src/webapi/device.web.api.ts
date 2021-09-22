@@ -44,7 +44,7 @@ DEVICE_WEB_API.addAsyncPublicRoute(
                     throw  new Error("Device is offline");
                 }
 
-                switch(req.param.type){
+                switch(req.query.type){
                     case 'privileged':
                         privileged = true;
                         break;
@@ -144,6 +144,58 @@ DEVICE_WEB_API.addAsyncPublicRoute(
                         privileged: privileged
                     })
                 }));*/
+            } catch (err) {
+                $.sendError( res, err.message);
+            }
+        }
+    });
+
+
+DEVICE_WEB_API.addAsyncPublicRoute(
+    '/processes',
+    {
+        'get': async function (req: Request, res: Response): Promise<any> {
+            let privileged: boolean = false;
+            let dev: Device = null;
+            let $: WebServer = req.dxc.$;
+
+            try {
+                switch (req.query.type) {
+                    case 'privileged':
+                        privileged = true;
+                        break;
+                    case 'user':
+                    case 'shell':
+                    default:
+                        privileged = false;
+                        break;
+                }
+
+                if (req.query.uid != null) {
+                    dev = $.context.getDeviceManager().getDevice(req.query.uid);
+                } if ($.project !== null) {
+                    dev = $.project.getDevice();
+                }
+
+                if (dev == null) {
+                    throw new Error("Target device not found");
+                }
+
+                if (!dev.isConnected()) {
+                    throw  new Error("Device is offline");
+                }
+
+
+                $.sendSuccess( res, await dev.getDefaultBridge().listProcesses({
+                    privileged: privileged
+                }));
+                /*
+                                res.status(200).send(JSON.stringify({
+                                    success: true,
+                                    data: dev.getDefaultBridge().readFile(baseDir, {
+                                        privileged: privileged
+                                    })
+                                }));*/
             } catch (err) {
                 $.sendError( res, err.message);
             }
