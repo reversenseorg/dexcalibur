@@ -469,7 +469,9 @@ class DexcaliburEngine
                     self.installer.status = new InstallKit.StatusMessage( self.installer.progress, "Android platform tool downloaded. Uncompressing ..");
                     zip.extractAllTo( _path_.join(self.workspace.binFolder), true);
                     _fs_.unlinkSync(tmpAdbPath);
-                    _fs_.chmodSync( _path_.join(self.workspace.binFolder,'platform-tools','adb'), 0o555);
+                    if(require('os').platform()!=="win32"){
+                        _fs_.chmodSync( _path_.join(self.workspace.binFolder,'platform-tools','adb'), 0o555);
+                    }
                     self.installer.progress += vStep;
                     self.installer.status = new InstallKit.StatusMessage( self.installer.progress, "Android platform tool installed");
                 },
