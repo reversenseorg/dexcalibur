@@ -3,7 +3,7 @@ const _fs_ = require("fs");
 const _path_ = require("path");
 const _stream_      = require('stream');
 const _got_         = require("got");
-const _xz_         = require("xz");
+const _xz_         = require("lzma-native");
 const {promisify}   = require('util');
 
 const pipeline = promisify(_stream_.pipeline);

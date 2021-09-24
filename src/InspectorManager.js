@@ -1,7 +1,7 @@
 const UT = require("./Utils.js");
 const _path_ = require("path");
 const _fs_ = require('fs');
-const _xz_ = require('xz');
+const _xz_ = require('lzma-native');
 
 var Logger = require("./Logger")();
 const Inspector = require('./Inspector');
