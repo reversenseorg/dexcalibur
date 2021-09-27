@@ -74,7 +74,7 @@ class DeviceManager
                 _path_.join(
                     this.dxcWorkspace.getBinaryFolderLocation(),
                     "platform-tools",
-                    (require('os').platform()==="win32"? "abd.exe":"adb")
+                    (require('os').platform()==="win32"? "adb.exe":"adb")
                 )
             )
         };
