@@ -1,6 +1,7 @@
-import {ConnectorDb, ConnectorFactory, IDatabase, IDatabaseAdapter, IDbCollection} from "./ConnectorFactory";
+
 import DexcaliburProject from "./DexcaliburProject";
 import {Tag} from "./Tag";
+import {IDbCollection} from "./persist/orm/DbAbstraction";
 
 
 export class TagManager {

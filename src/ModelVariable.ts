@@ -1,4 +1,4 @@
-import {NodeType} from "./NodeType";
+import {NodeInternalType} from "./NodeInternalType";
 
 
 export enum ModelVariableType {
@@ -18,7 +18,7 @@ interface ModelVariableReference {
  * @class
  */
 export class ModelVariable {
-  _t:NodeType = NodeType.VAR;
+  _t:NodeInternalType = NodeInternalType.VAR;
   __t:ModelVariableType = ModelVariableType.VAR;
   n:string = "";
   type:string = "";

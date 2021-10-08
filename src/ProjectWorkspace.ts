@@ -149,6 +149,15 @@ export default class ProjectWorkspace
         return this.path;
     }
 
+    /**
+     * To get Project 's DB opath
+     *
+     * @method
+     */
+    getDbPath():string {
+        return _path_.join(this.getPath(), "project.db");
+    }
+
     /*
      * To remove the current Application working directory
      * @returns {void} 

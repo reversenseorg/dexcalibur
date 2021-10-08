@@ -13,6 +13,12 @@ let UIDS:string[]=[];
 
 
 import * as Log from './Logger';
+import {IPersistent} from "./persist/orm/IPersistent";
+import {DbColumnTemplate, DbPersistTemplate} from "./persist/orm/DbColumnTemplate";
+import {DbDataType, DbKeyType, DbSerialize} from "./persist/orm/DbAbstraction";
+import {NodeType} from "./persist/orm/NodeType";
+import {NodeProperty} from "./persist/orm/NodeProperty";
+import {NodeInternalType} from "./NodeInternalType";
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
 
@@ -77,9 +83,45 @@ const TO_JSON:Function = function (vSrc:any, vTarget:any, vInArray:boolean=false
  *
  * @class
  */
-export default class ModelFile {
+export default class ModelFile implements IPersistent {
+
+    static TYPE:NodeType = new NodeType(
+        "files",
+        NodeInternalType.FILE,
+        [
+            (new NodeProperty("uid")).type(DbDataType.STRING).key(DbKeyType.PRIMARY),
+            (new NodeProperty("name")).type(DbDataType.STRING).def(null),
+            (new NodeProperty("type")).type(DbDataType.STRING).def(null),
+            (new NodeProperty("size")).type(DbDataType.INTEGER).def(-1),
+            (new NodeProperty("path")).type(DbDataType.STRING).def(null),
+            (new NodeProperty("location")).type(DbDataType.STRING).def(null),
+            (new NodeProperty("scope")).type(DbDataType.STRING).def(null),
+            (new NodeProperty("__p")).volatile().type(DbDataType.STRING).serialize(DbSerialize.JSON),
+            (new NodeProperty("__t")).volatile().type(DbDataType.STRING).serialize(DbSerialize.JSON),
+            (new NodeProperty("_d")).type(DbDataType.STRING).def('f'),
+            (new NodeProperty("_r")).type(DbDataType.STRING),
+            (new NodeProperty("sections")).type(DbDataType.STRING).serialize(DbSerialize.JSON),
+            (new NodeProperty("f_list")).volatile()
+    ]);
+
+
     _uid: string = null;
+
+    /**
+     * Object type
+     * @type {string}
+     * @field
+     * @public
+     */
     _d: string = 'f';
+
+    /**
+     * Relative path to Scope's base path
+     * @type {string}
+     * @field
+     * @private
+     */
+    private _r:string = null;
 
     name: string = null;
     type: string = null;
@@ -88,6 +130,14 @@ export default class ModelFile {
     location: string = null;
     //trueFile:boolean = false;
 
+    /**
+     * Scope including this file.
+     *
+     * Some commons scopes are package, app data folder, device FS, folders where dex buffers are downloaded, ...
+     *
+     * @type {DataScope}
+     * @field
+     */
     scope: DataScope = null;
     // scope (app package, app data, device file, ...)
 
@@ -139,6 +189,20 @@ export default class ModelFile {
     setScope(pScope: DataScope): void {
         this.scope = pScope;
         this.generateUID();
+
+        this._r = this.path.substr( pScope.getBasePath().length);
+    }
+
+    hasRelDir(pPath:string):boolean {
+        return this.hasDir(pPath,true);
+    }
+
+    hasDir( pPath:string, pRelative:boolean = false):boolean {
+        if(pRelative){
+            return _path_.dirname(this._r)==pPath;
+        }else{
+            return _path_.dirname(this.path)==pPath;
+        }
     }
 
     generateUID(): void {
@@ -153,6 +217,14 @@ export default class ModelFile {
 
     getPath(): string {
         return this.path;
+    }
+
+    getRealPath():string {
+        return this.path;
+    }
+
+    getRelativePath():string {
+        return this._r;
     }
 
     getName(): string {
@@ -357,3 +429,5 @@ export default class ModelFile {
         return o;
     }
 }
+
+ModelFile.TYPE.builder(ModelFile);

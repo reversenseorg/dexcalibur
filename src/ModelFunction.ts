@@ -1,4 +1,4 @@
-import {NodeType} from "./NodeType";
+import {NodeInternalType} from "./NodeInternalType";
 import {ModelBasicType, ModelObjectType} from "./ModelType";
 import ModelFile from "./ModelFile";
 import ModelCpuInstruction from "./ModelCpuInstruction";
@@ -67,7 +67,7 @@ const TO_JSON:Function = function (vSrc:any, vTarget:any, vInArray:boolean=false
  */
 export class ModelFunction {
 
-    _t:NodeType = NodeType.FUNC;
+    _t:NodeInternalType = NodeInternalType.FUNC;
 
     sz:number = -1;
 

@@ -3,7 +3,7 @@
 
 import DexcaliburProject from "../../src/DexcaliburProject";
 import { InMemoryDb, Index, Collection } from "./InMemoryDb";
-import {IDatabase, IDatabaseAdapter} from "../../src/ConnectorFactory";
+import {IDatabase, IDatabaseAdapter} from "../../src/persist/orm/DbAbstraction";
 
 const TYPE  = 'inmemory';
 const NAME = 'InMemory';

@@ -3,7 +3,7 @@ import ModelBasicBlock from "./ModelBasicBlock";
 import ModelMethod from "./ModelMethod";
 import {Savable, STUB_TYPE} from "./ModelSavable";
 import {ModelRegisterReference} from "./ModelReference";
-import {NodeType} from "./NodeType";
+import {NodeInternalType} from "./NodeInternalType";
 import {ModelFunction} from "./ModelFunction";
 
 
@@ -31,7 +31,7 @@ export enum ModelInstructionType {
  */
 export default class ModelCpuInstruction
 {
-    _t:NodeType = NodeType.INSTR_CPU;
+    _t:NodeInternalType = NodeInternalType.INSTR_CPU;
     offset:number
     ptr:number = null;
     refptr:boolean = false;

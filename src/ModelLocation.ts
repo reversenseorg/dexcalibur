@@ -1,5 +1,5 @@
 import ModelFile from "./ModelFile";
-import {NodeType} from "./NodeType";
+import {NodeInternalType} from "./NodeInternalType";
 
 export enum LocationType {
     FILE,
@@ -48,7 +48,7 @@ export class ModelLocation {
     toJsonObject(){
         if(this._t === LocationType.FILE){
             return {
-                _t: NodeType.FILE,
+                _t: NodeInternalType.FILE,
                 _f: this.file.toJsonObject()
             };
         }else{

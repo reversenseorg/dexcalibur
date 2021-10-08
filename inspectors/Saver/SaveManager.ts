@@ -1,10 +1,11 @@
 import * as _fs_ from 'fs';
 import * as _path_ from 'path';
 
-import {ConnectorFactory, IDatabase, IDbCollection} from "../../src/ConnectorFactory";
+import {ConnectorFactory} from "../../src/ConnectorFactory";
 import DexcaliburProject from "../../src/DexcaliburProject";
 import InMemoryConnector from "../../connectors/inmemory/adapter";
 import * as Log from "../../src/Logger";
+import {IDatabase} from "../../src/persist/orm/DbAbstraction";
 
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;

@@ -3,10 +3,11 @@ import * as _fs_ from 'fs';
 import {AuthCode, AuthenticationException, Authenticator, AuthType} from "./AuthTypes";
 import {AuthenticationPolicy} from "./AuthenticationPolicy";
 import {PasswordAuthenticator} from "./Authenticator";
-import {ConnectorFactory, IDatabaseAdapter, IDbIndex} from "../../ConnectorFactory";
+import {ConnectorFactory} from "../../ConnectorFactory";
 import {UserAccount} from "../UserAccount";
 import {AuthenticationSettings} from "./AuthenticationSettings";
 import AccessControl from "../acl/AccessControl";
+import {IDatabaseAdapter, IDbIndex} from "../../persist/orm/DbAbstraction";
 
 export class AuthenticationService {
 

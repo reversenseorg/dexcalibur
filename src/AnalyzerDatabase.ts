@@ -5,7 +5,8 @@
  * @author Georges-B. MICHEL
  */
 import DexcaliburProject from "./DexcaliburProject";
-import {ConnectorFactory, IDatabaseAdapter, IDbCollection, IDbIndex} from "./ConnectorFactory";
+import {ConnectorFactory } from "./ConnectorFactory";
+import {IDatabaseAdapter, IDbCollection, IDbIndex} from "./persist/orm/DbAbstraction";
 
 
 export default class AnalyzerDatabase

@@ -5,13 +5,14 @@ import * as _path_ from 'path';
 import * as Express from 'express';
 
 import HookSet from "./HookSet";
-import {ConnectorFactory, IDatabase, IDatabaseAdapter} from "./ConnectorFactory";
+import {ConnectorFactory} from "./ConnectorFactory";
 import DexcaliburProject from "./DexcaliburProject";
 import InspectorFrontController, {IFC_TYPE} from "./InspectorFrontController";
 import Event from "./Event";
 import * as Log from './Logger';
 import {Stats} from "mocha";
 import {BusBroadcaster} from "./Bus";
+import {IDatabase, IDatabaseAdapter} from "./persist/orm/DbAbstraction";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 

@@ -1,4 +1,4 @@
-import {NodeType} from "./NodeType";
+import {NodeInternalType} from "./NodeInternalType";
 
 /**
  * Represents a section into an executable file
@@ -6,7 +6,7 @@ import {NodeType} from "./NodeType";
  */
 export default class ModelExecutableSection {
 
-    _t:NodeType = NodeType.EXEC_SECTION;
+    _t:NodeInternalType = NodeInternalType.EXEC_SECTION;
 
     paddr:number = -1;
     vaddr:number = -1;

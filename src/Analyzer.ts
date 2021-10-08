@@ -25,12 +25,14 @@ import TagCategory from "./ModelTagCategory";
 import ModelDataBlock from "./ModelDataBlock";
 import {Method} from "got";
 import {TAG} from "./AnalysisHelper";
-import {IDatabase, IDbIndex} from "./ConnectorFactory";
 import ModelFile from "./ModelFile";
 import ModelSyscall from "./ModelSyscall";
 import NativeAnalyzer from "./NativeAnalyzer";
 import DataScope from "./DataScope";
 import {ModelLocation} from "./ModelLocation";
+import {Workflow} from "./Workflow";
+import StatusMessage from "./StatusMessage";
+import {IDatabase, IDbIndex} from "./persist/orm/DbAbstraction";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -550,10 +552,14 @@ export default class Analyzer
 
     a_native:NativeAnalyzer = null;
 
+    _wf:Workflow;
+
+
     private _diffTag:any = {
         'di': {}
     }
     private _diffTagDef: string = null;
+
 
     /**
      *
@@ -576,6 +582,14 @@ export default class Analyzer
         this.finder = pProject.find; //pSearchAPI; // pSearchAPI
         this.encoding = pEncoding;
         this.projectionEngines = {};
+    }
+
+    setWorkflow(pWf:Workflow):void{
+        this._wf = pWf;
+        if(this.a_native != null){
+            this.a_native.setWorkflow(pWf);
+        }
+
     }
 
     createPackage( pName:string, pDb:AnalyzerDatabase):void {
@@ -652,6 +666,10 @@ export default class Analyzer
             this.db,
             pFileDB
         );
+
+        if(this._wf != null){
+            this.a_native.setWorkflow(this._wf);
+        }
 
         return this.a_native;
     }
@@ -894,6 +912,7 @@ export default class Analyzer
 
 
 
+        this._wf.computeStepUp(data.classes.size()*4);
         /*
         let c = 0;
         for(let i in data.classes)c++;
@@ -916,12 +935,18 @@ export default class Analyzer
                 //absoluteDB.classes.getEntry(k).update(v);
             }
 
+
+            g++;
+            if(g%100==0){
+                this._wf.pushDirectStatus('[1/4] merging new classes  :'+g+'/'+step);
+            }
         });
 
 
         // STEP 2
         // link class with its fields and methods
         // for(let i in data.classes)
+        g=0;
         data.classes.map((k:string, v:ModelClass)=>{
 
             // make sure we manipulate freshly added class
@@ -1096,10 +1121,16 @@ export default class Analyzer
                     STATS.idxMethod++;
                 }
             }
+
+            g++;
+            if(g%100==0){
+                this._wf.pushDirectStatus('[2/4] assembling classes :'+g+'/'+step);
+            }
         });
 
         // STEP 3
         // create packages nodes
+        g=0;
         data.classes.map((k:string,v:ModelClass)=>{
 
             let pkgName:string = v.package as string;
@@ -1140,6 +1171,12 @@ export default class Analyzer
                 }
                 v.setSupersList(supers);
             }
+
+
+            g++;
+            if(g%100==0){
+                this._wf.pushDirectStatus('[3/4] creating package nodes  :'+g+'/'+step);
+            }
         });
 
 
@@ -1151,6 +1188,7 @@ export default class Analyzer
 
         // STEP 4
         // create xref : search binding and link
+        g=0;
         data.classes.map((k:string,v:ModelClass)=>{
             let em, om, ovr;
 
@@ -1175,6 +1213,13 @@ export default class Analyzer
                 mr++;
                 if(mr%20==0) Logger.debug(mr+" missing classes");
             }
+
+            g++;
+            if(g%100==0){
+                this._wf.pushDirectStatus('[4/4] creating xref  :'+g+'/'+step);
+            }
+
+            //this._wf.pushDirectStatus(new StatusMessage(this._wf.getLastStatus().getProgress(), '[4/4] creating xref :'+(g++)+'/'+step));
         });
 
 
@@ -1254,9 +1299,17 @@ export default class Analyzer
 
         // ut.forEachFileOf(path,this.file,".smali");
         //ut.forEachFileOf(path,this.file);
+        let c:number = 0;
         Util.forEachFileOf(pPath,(vPath:string, vFile:string)=>{
             self.file( vPath, vFile,false);
+            c++;
+            if(c%100==0){
+                self._wf.pushDirectStatus( c+' classes parsed');
+            }
         });
+
+        // compute step for progress
+        self._wf.computeStepUp(Math.round(c/100));
 
         STATS.idxClass = this.db.classes.size();
 

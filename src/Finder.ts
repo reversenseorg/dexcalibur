@@ -3,7 +3,6 @@ import {SearchAPI} from "./SearchAPI";
 import {FinderResult} from "./FinderResult";
 import SearchPattern from "./SearchPattern";
 import ModelMethod from "./ModelMethod";
-import {IDatabase, IDbCollection, IDbIndex} from "./ConnectorFactory";
 import AndroidActivity from "./android/AndroidActivity";
 import AndroidReceiver from "./android/AndroidReceiver";
 import AndroidProvider from "./android/AndroidProvider";
@@ -24,6 +23,7 @@ import ModelFile from "./ModelFile";
 import * as Log from './Logger';
 import {Modifier} from "./AccessFlags";
 import {SearchToken} from "./SearchToken";
+import {IDatabase, IDbCollection, IDbIndex} from "./persist/orm/DbAbstraction";
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
 var DataModel = {
