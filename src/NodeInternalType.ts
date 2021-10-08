@@ -1,4 +1,4 @@
-export enum NodeType {
+export enum NodeInternalType {
     BASIC_BLOCK,
     CLASS,
     METHOD,
@@ -15,6 +15,7 @@ export enum NodeType {
     FUNC,
     EXEC_SECTION,
     VAR,
-    INSTR_CPU
+    INSTR_CPU,
+    FILE_SECTION
 
 }
