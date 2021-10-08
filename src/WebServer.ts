@@ -69,6 +69,7 @@ import {DEVICE_WEB_API} from "./webapi/device.web.api";
 import {AUTH_WEB_API} from "./webapi/auth.web.api";
 import {SETTINGS_WEB_API} from "./webapi/settings.web.api";
 import {PROBE_SERVER_WEB_API} from "./webapi/probe-server.web.api";
+import {APP_WEB_API} from "./webapi/app.web.api";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -775,7 +776,7 @@ export default class WebServer
 
                 wf.pushStatus(new StatusMessage(5, "Opening project"));
 
-                project = await $.context.openProject( req.query.uid );
+                project = await $.context.openProject( req.query.uid);
 
 
                 res.status(200).send(JSON.stringify({
@@ -2457,101 +2458,8 @@ export default class WebServer
             });
 
 
-        this.app.route('/api/application/package/content')
-            .post(function(req:ExpressRequest, res:ExpressResponse):any {
-
-                let pkgId:string = null, data:any[] = [];
-                let target:string = "", apkBase:string = null;
-                let files:string[];
-                let unsafePath:string = null;
-
-                try{
-                    if($.project == null){
-                        throw new Error('No active project');
-                    }
-
-                    /*if(req.body['pkgid']==null){
-                        throw new Error('Package ID is not valid');
-                    }*/
-
-                    const SCOPE:DataScope = $.project.dataAnalyzer.getScope('PKG');
-
-                    if(req.body['path']!=null){
-
-                        unsafePath = _path_.normalize(req.body['path']);
-                        if(unsafePath.indexOf(target) !== 0){
-                            throw new Error('[SECURITY] Path traversal is not allowed. ');
-                        }else{
-                            target = unsafePath;
-                        }
-                    }else{
-                        target = SCOPE.getBasePath();
-                    }
-
-                    const files:IDbIndex = $.project.dataAnalyzer.getIndex('PKG');
-
-                    files.map( (vOffset:number, vFile:ModelFile)=>{
-                        if(_path_.dirname(vFile.getPath())==target){
-                            data.push({ _uid: vFile.getUID(), n:vFile.getName(), p:vFile.getPath(), _t: vFile._d, t:vFile.getType() });
-                        }
-                    });
-
-//                    target = $.project.getWorkspace().getApkDir();
 
 
-
-                    //target = req.body['path']==null? apkBase : _path_.join(apkBase, req.body['path']);
-
-                    // prevent path traversal
-                    /*if(target.indexOf(apkBase) !== 0){
-                        throw new Error('[SECURITY] Path traversal is not allowed. ');
-                    }*/
-
-                    // replace by UUID
-                    /*
-                    if(_fs_.lstatSync(target).isDirectory()==false){
-                        data = [{
-                            _t: 'c',
-                            p: target,
-                            n: _path_.basename(target),
-                            ctn: _fs_.readFileSync( target, {encoding: "utf-8"})
-                        }];
-                    }else{
-                        _fs_.readdirSync( target).map(( pName:string )=>{
-                            const p = _path_.join(target,pName);
-                            data.push({ n:pName, p:p, _t: (_fs_.lstatSync(p).isDirectory()?'d':'f') });
-                        });
-                    }
-*/
-
-
-                    res.status(200).send(JSON.stringify({ success:true, data: data }));
-                }catch(err){
-                    res.status(200).send(JSON.stringify({ success:false, msg: err.message }));
-                }
-            });
-
-
-        /**
-         * /api/application/cmp?type=[dex|ks|libs|strings] ...
-         */
-        this.app.route('/api/application/cmp')
-            .get(function (req:ExpressRequest, res:ExpressResponse):any {
-
-                try{
-                    res.status(HTTP_CODE_SUCCESS).send(JSON.stringify({
-                        success: true,
-                        data: $.project.find.provider('name:.*').toJsonObject()
-                    }));
-                }catch(err){
-                    res.status(HTTP_CODE_ERROR).send(JSON.stringify({
-                        success: false,
-                        msg: err.message
-                    }));
-                }
-
-
-            });
 
         this.app.route('/api/manifest/providers')
             .get(function (req:ExpressRequest, res:ExpressResponse):any {
@@ -3410,6 +3318,13 @@ export default class WebServer
                         sess: usr_svc.openSession(req.cookies[usr_svc.getCookieName()])
                     };
                     Logger.info("[SESSION] Opening session from cookie : Done");
+
+
+                    if(req.query._puid != null && req.dxc.sess != null){
+                        //if(self.context.)
+                        req.dxc.project = (req.dxc.sess as UserSession)
+                            .getActiveProjectByUID(self.context, req.query._puid);
+                    }
                 }
                 else if(req.query[usr_svc.getQueryParam()]!=null){
 
@@ -3418,6 +3333,12 @@ export default class WebServer
                         sess: usr_svc.openSession(req.query[usr_svc.getQueryParam()])
                     };
                     Logger.info("[SESSION] Opening session from query : Done");
+
+                    if(req.query._puid != null && req.dxc.sess != null){
+                        //if(self.context.)
+                        req.dxc.project = (req.dxc.sess as UserSession)
+                            .getActiveProjectByUID(self.context, req.query._puid);
+                    }
                 }
                 else{
                     if(!req.hasOwnProperty('dxc')) req.dxc = {};
@@ -3439,6 +3360,7 @@ export default class WebServer
         AUTH_WEB_API.injectServer(this);
         SETTINGS_WEB_API.injectServer(this);
         PROBE_SERVER_WEB_API.injectServer(this);
+        APP_WEB_API.injectServer(this);
 
 
 
@@ -3446,6 +3368,7 @@ export default class WebServer
         this.app.use('/api/remote', AUTH_WEB_API.getRouter());
         this.app.use('/api/settings', SETTINGS_WEB_API.getRouter());
         this.app.use('/api/hookserver', PROBE_SERVER_WEB_API.getRouter());
+        this.app.use('/api/application', APP_WEB_API.getRouter());
 
         /**
          * Redirect to /pages/splash.html if there is no project initialized
@@ -3504,7 +3427,7 @@ export default class WebServer
             this.port = port;
         }
 
-        let wwwPort = this.port;
+        const wwwPort = this.port;
 
         this.context.printWebBanner(wwwPort);
 
