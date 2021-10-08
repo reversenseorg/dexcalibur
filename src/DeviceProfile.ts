@@ -1,3 +1,4 @@
+import {ABI, AbiManager} from "./binary/ABI";
 
 
 enum TYPE {
@@ -73,6 +74,28 @@ export class SystemProfile implements  Profile
      */
     getABI():string{
         return this.prop['ro.product.cpu.abi'];
+    }
+
+    /**
+     * To get ABI
+     *
+     * @method
+     */
+    getABIlist(pAddrSize:number=-1):ABI[]{
+        let list:string = null;
+        if(pAddrSize===32){
+            list = this.prop['ro.product.cpu.abi'];
+        }else if(pAddrSize===64){
+            list = this.prop['ro.product.cpu.abi'];
+        }else {
+            list = this.prop['ro.product.cpu.abi'];
+        }
+
+        if(list != null){
+            return AbiManager.from(list.split(','));
+        }else{
+            return null;
+        }
     }
 
     /**
