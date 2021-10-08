@@ -7,8 +7,8 @@
 import DexcaliburProject from "../../src/DexcaliburProject";
 import InMemoryDbCollection from "./InMemoryDbCollection";
 import InMemoryDbIndex from "./InMemoryDbIndex";
-import {IDatabase, IDbCollection} from "../../src/ConnectorFactory";
 import InMemoryConnector from "./adapter";
+import {IDatabase} from "../../src/persist/orm/DbAbstraction";
 
 class InMemoryDb implements IDatabase
 {
