@@ -1,6 +1,10 @@
 import {DelegateAccessControl} from "../DelegateAccessControl";
 import {Access, AccesErrCode, AccessException, AccessMap, AccessType} from "../Access";
 import {UserSession} from "../../session/UserSession";
+import {AccessAttribute, AccessAttributeMap} from "../AccessAttribute";
+import DexcaliburProject from "../../../DexcaliburProject";
+import {UserAccount} from "../../UserAccount";
+import AccessControl from "../AccessControl";
 
 
 export class ProjectAccessControl extends DelegateAccessControl {
@@ -16,6 +20,13 @@ export class ProjectAccessControl extends DelegateAccessControl {
         PROJ_DELETE_OWN: new Access( AccessType.WRITE, 'PROJ_DELETE_OWN', 'Delete own projects'),
         PROJ_DELETE_ANY: new Access( AccessType.WRITE, 'PROJ_DELETE_ANY', 'Delete any projects'),
         PROJ_META_READ: new Access( AccessType.WRITE, 'PROJ_META_READ', 'Read project meta data (list)'),
+        PROJ_PKG_READ: new Access( AccessType.READ, 'PROJ_PKG_READ', 'Read package content'),
+        PROJ_NEW_OWN_WF: new Access( AccessType.WRITE, 'PROJ_NEW_OWN_WF', 'Create new project workflow'),
+        PROJ_APPDATA_READ: new Access( AccessType.READ, 'PROJ_APPDATA_READ', 'Read app data content on the device'),
+    };
+
+    static attr:AccessAttributeMap = {
+        OWNER: new AccessAttribute( 'owner')
     };
 
     constructor() {
@@ -31,8 +42,32 @@ export class ProjectAccessControl extends DelegateAccessControl {
      */
     check(pAccess: Access, pSession: UserSession, pExtra:any = null) {
         switch (pAccess.name) {
+            case 'PROJ_OPEN_OWN':
+            case 'PROJ_PKG_READ':
+                if(pSession.getUserAccount().getUserRole().hasAccess(pAccess)===false){
+                    throw new AccessException("[PROJECT] Access violation, current user has not enough privilege ("+pAccess.name+") ", AccesErrCode.VIOLATION)
+                }
+                break;
             default:
                 throw new AccessException("Access unknow : rejected ", AccesErrCode.ACCESS_UNKNOWN)
+        }
+    }
+
+    /**
+     *
+     * @param pAccess
+     * @param pSession
+     */
+    checkAttr(pAttr: AccessAttribute, pSession: UserSession, pProject:DexcaliburProject = null) {
+        switch (pAttr.name) {
+            case 'owner':
+                // verify project owner is the current user
+                if(pSession.getUserAccount().getUID() !== pProject.getAccessAttribute(pAttr.name).value){
+                    throw new AccessException("[PROJECT] The project is not owned by the user : rejected ", AccesErrCode.VIOLATION);
+                }
+                break;
+            default:
+                throw new AccessException("Access attribute unknow : rejected ", AccesErrCode.ATTR_UNKNOWN)
         }
     }
 }
