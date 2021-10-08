@@ -110,10 +110,10 @@ export default class Util {
         return encodeURIComponent(uri);
     }
 
-    static trim(str:string, pRemoveCrlf:boolean=false):string{
+    static trim(str:string, pNoRmCrlf:boolean=false):string{
         //if(!(str instanceof String)) console.error("trim() : the argument must be a string");
 
-        const wl = (pRemoveCrlf ? ["\t"," "] : ["\t"," ","\r","\n"]);
+        const wl = (pNoRmCrlf ? ["\t"," "] : ["\t"," ","\r","\n"]);
 
 //        while(str[0]!=undefined && (str[0]=="\t"||str[0]==" "))
         while(str[0]!=undefined && (wl.indexOf(str[0])>-1))
@@ -253,11 +253,11 @@ export default class Util {
             PRINT(chalk.bold.red("Execute command request : "+command));
 
             if(opts!=null)
-                ret = Process.execSync(command,opts);
+                ret = Process.execSync(command, opts).toString();
             else
                 ret = Process.execSync(command).toString(charset);
 
-            PRINT(ret);
+            //PRINT(ret);
         }
 
         return ret;
