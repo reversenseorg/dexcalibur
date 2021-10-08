@@ -73,26 +73,28 @@ export class DelegateWebApi
         for(let httpVerb in pHandlers){
             if(pAsync){
                 this.router[httpVerb](pRoute, async function(req:Request, res:Response):Promise<any> {
+                    req.dxc.$ = self.srv;
                     try{
-                        if(this.srv.context.getUserService().verifySession(req.dxc.sess)){
-                            pHandlers[httpVerb](self.srv, req, res);
+                        if(self.srv.context.getUserService().verifySession(req.dxc.sess)){
+                            pHandlers[httpVerb](req, res);
                         }else{
-                            this.srv.sendError( res, "Authentication is required. Incident has been saved.");
+                            self.srv.sendError( res, "Authentication is required. Incident has been saved.");
                         }
                     }catch(err){
-                        this.srv.sendError( res, "Authentication failed : "+err.message);
+                        self.srv.sendError( res, "Authentication failed : "+err.message);
                     }
                 });
             }else{
                 this.router[httpVerb](pRoute, function(req:Request, res:Response):any {
+                    req.dxc.$ = self.srv;
                     try{
-                        if(this.srv.context.getUserService().verifySession(req.dxc.sess)){
-                            pHandlers[httpVerb](self.srv, req, res);
+                        if(self.srv.context.getUserService().verifySession(req.dxc.sess)){
+                            pHandlers[httpVerb](req, res);
                         }else{
-                            this.srv.sendError( res, "Authentication is required. Incident has been saved.");
+                            self.srv.sendError( res, "Authentication is required. Incident has been saved.");
                         }
                     }catch(err){
-                        this.srv.sendError( res, "Authentication failed : "+err.message);
+                        self.srv.sendError( res, "Authentication failed : "+err.message);
                     }
                 });
             }
