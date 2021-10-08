@@ -35,6 +35,9 @@ import {ProjectAccessControl} from "./user/acl/rbac/ProjectAccessContol";
 import {SettingsAccessControl} from "./user/acl/rbac/SettingsAccessContol";
 import {IDexcaliburEngine} from "./IDexcaliburEngine";
 import {ConnectionManager} from "./remote/ConnectionManager";
+import ShellHelper from "./ShellHelper";
+import Tool = External.Tool;
+import {GlobalAccessControl} from "./user/acl/rbac/GlobalAccessContol";
 
 const _fixPath_ = require("fix-path");
 
@@ -294,6 +297,7 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
         //AccessControl.registerZone( AccessZone.GLOBAL, EngineAccessControl)
         AccessControl.registerZone( AccessZone.PROJECT, new ProjectAccessControl());
         AccessControl.registerZone( AccessZone.GLOBAL, new SettingsAccessControl());
+        AccessControl.registerZone( AccessZone.GENERIC, new GlobalAccessControl());
 
         //AccessControl.startAudit();
     }
@@ -621,6 +625,13 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
         // init external tool manager
         this.extMgr = new External.ToolManager(this.settings.getExternalSettings());
         //this.extMgr.configureHelpers();
+        if(this.extMgr.getTool('shell')!=null){
+            ShellHelper.init(this.extMgr.getTool('shell'));
+        }else{
+            this.extMgr.addTool(new Tool('shell', { path:ShellHelper.getDefaultPath() }), true);
+            ShellHelper.init(this.extMgr.getTool('shell'));
+        }
+
         JavaHelper.init(this.extMgr.getTool('java'));
         FridaHelper.init(this.extMgr.getTool('frida'));
         ApkHelper.init(this.extMgr.getTool('apktool'));
@@ -769,6 +780,8 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
     }
 
     /**
+     * To get active project by its UID
+     *
      * @return {DexcaliburProject} Project for the given UID
      * @method
      */
@@ -844,7 +857,6 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
             wf.pushStatus(new StatusMessage(7, "Loading project data"));
             project = DexcaliburProject.load(this, pUID);
 
-            project.setWorkflow(wf);
 
             // init
 
@@ -852,7 +864,7 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
             
             DexcaliburEngine.printBanner();
 
-            wf.stepUp(10);
+            wf.stepUp(0.1);
             success = await project.open();
 
 
