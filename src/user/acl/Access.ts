@@ -5,7 +5,9 @@ export enum AccesErrCode {
     NO_ZONE,
     ACCESS_UNKNOWN,
     NO_DEFAULT_ROLE,
-    ROLE_UNDEFINED
+    ROLE_UNDEFINED,
+    ATTR_UNKNOWN,
+    VIOLATION
 };
 
 
