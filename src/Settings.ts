@@ -320,9 +320,9 @@ export namespace Settings {
         }
 
 
-        sanitize(pName: string, pValue: any): IncomingValue {
+        sanitize(pName: string, pValue: any, pForce = false): IncomingValue {
 
-            if(Object.keys(this._all).indexOf(pName)>-1){
+            if(Object.keys(this._all).indexOf(pName)>-1 || pForce){
                 if(_fs_.existsSync(pValue)){
                     return new SanitizedValue(pName, pValue);
                 }else{
