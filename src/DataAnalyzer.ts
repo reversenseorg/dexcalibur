@@ -2,13 +2,17 @@ import * as _path_ from 'path';
 import * as _fs_ from 'fs';
 import DexcaliburProject from "./DexcaliburProject";
 import ModelFile from "./ModelFile";
-import {ConnectorFactory, IDatabase, IDatabaseAdapter, IDbIndex} from "./ConnectorFactory";
+import {ConnectorFactory} from "./ConnectorFactory";
 
 
 import * as Log from './Logger';
 import {BinwalkHelper} from "./BinwalkHelper";
 import DataScope, {DataScopeMap, DataScopePpts} from "./DataScope";
 import Event from "./Event";
+import {FileAnalysisType} from "./AnalyzerConfiguration";
+import {MagicHelper} from "./MagicHelper";
+import {Workflow} from "./Workflow";
+import {IDatabase, IDatabaseAdapter, IDbIndex} from "./persist/orm/DbAbstraction";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -194,8 +198,10 @@ export class DataAnalyzer
     db:IDatabase = null;
     //detector:FileTypeDetector = null;
     binwalk:BinwalkHelper = null;
+    magic:MagicHelper = null;
 
     scopes:DataScopeMap = {};
+    _wf:Workflow;
 
     /**
      * To instanciante a new analyzer of raw data (file, buffer, ...)
@@ -205,6 +211,7 @@ export class DataAnalyzer
     constructor(pCtx:DexcaliburProject){
         this.context = pCtx;
         this.binwalk = new BinwalkHelper();
+        this.magic = new MagicHelper();
 
 
         //STATIC_BUFFER: (new DataScope("sbf")).setPpts(DataScopePpts.PATH, ws.get()),
@@ -217,17 +224,27 @@ export class DataAnalyzer
             DYN_BYTECODE: (new DataScope("bcf")).setPpts(DataScopePpts.PATH, ws.getRuntimeBcDir())
         };
 
-        this.newDB();
+        this.db = pCtx.getDB();
+
+        // this.newDB();
+    }
+
+
+    setWorkflow(pWf:Workflow):void{
+        this._wf = pWf;
+        this.binwalk.setWorkflow(this._wf);
+        this.magic.setWorkflow(this._wf);
     }
 
     getScope(pName:string){
         return this.scopes[pName];
     }
 
-    newDB(pName:string="data"){
-        let idb:IDatabaseAdapter = ConnectorFactory.getInstance().newConnector('inmemory',this.context);
+    /*newDB(pName:string="files.db"){
+        // inmemory
+        let idb:IDatabaseAdapter = ConnectorFactory.getInstance().newConnector('sqlite',this.context);
         this.db = idb.newTemporaryDb(pName);
-    }
+    }*/
 
     indexFilesIn(pScope:DataScope):void {
         const dir = _fs_.readdirSync(pScope.getBasePath());
@@ -238,14 +255,14 @@ export class DataAnalyzer
                 dir.map( (vPath:string)=>{
                     const p = _path_.join(pScope.getBasePath(),vPath);
                     if(vPath.indexOf('smali')!=0 && vPath!='original' && _fs_.lstatSync(p).isDirectory()){
-                        this.scan(p, pScope);
+                        this.scan(p, pScope, vPath);
                     }
                 })
             }else{
                 dir.map( (vPath:string)=>{
                     const p = _path_.join(pScope.getBasePath(),vPath);
                     if(_fs_.lstatSync(p).isDirectory()){
-                        this.scan(p, pScope);
+                        this.scan(p, pScope, vPath);
                     }
                 })
             }
@@ -253,22 +270,12 @@ export class DataAnalyzer
             dir.map( (vPath:string)=>{
                 const p = _path_.join(pScope.getBasePath(),vPath);
                 if(_fs_.lstatSync(p).isDirectory()){
-                    this.scan(p, pScope);
+                    this.scan(p, pScope, vPath);
                 }
             })
         }
     }
 
-    /*
-    scanAsApkContent(path:string, pType:DataScope=DATA_SCOPE.PKG){
-        try{
-            this.scan(_path_.join(path,'res'), pType);
-            this.scan(_path_.join(path,'lib'), pType);
-            this.scan(_path_.join(path,'assets'), pType);
-        }catch(err){
-            Logger.error(" scanAsApkContent() "+err.message);
-        }
-    }*/
 
     private _indexFolders(pPath:string, pFolders:ModelFile[]):void {
 
@@ -291,7 +298,7 @@ export class DataAnalyzer
      * @param path
      * @param pType
      */
-    scan(path:string, pScope:DataScope){
+    scan(path:string, pScope:DataScope, pRelPath:string = null){
 
         let db:IDbIndex = this.db.getIndex(pScope.getName());
     
@@ -302,15 +309,34 @@ export class DataAnalyzer
         db.addEntry(new ModelFile({
             name: _path_.basename(path),
             path: path,
+            _r: pRelPath,
             _d: 'd'
         }));
 
         if(_fs_.readdirSync(path).length==0) return;
 
 
-
+        let files:ModelFile[]
         // if target app is Android App
-        let files:ModelFile[] = this.binwalk.analyzeFolder(path, this.context, checkIfSmali);
+        switch (this.context.getAnalyzerConfiguration().fileAnalysisMode){
+            case FileAnalysisType.DEEP:
+                // deep mode use only binwalk + internals
+                files = this.binwalk.analyzeFolder(path, this.context, "**/*.smali");
+                break;
+            case FileAnalysisType.MAGIC:
+                // magic mode use only magic number (file cmd)
+                //files = this.magic.analyzeFolder(path, this.context, checkIfSmali);
+                files = this.magic.analyzeFolder(path, this.context, "**/*.smali");
+                break;
+            case FileAnalysisType.SMART:
+                // smart mode mixes magic and deep.
+                // Huge files, executable or raw files are scanned with binwalk
+                //files = this.binwalk.analyzeFolder(path, this.context, checkIfSmali);
+                break;
+        }
+
+
+
 
         files.map( (f) => {
             f.setScope(pScope);
