@@ -24,6 +24,7 @@ import ModelCpuInstruction from "./ModelCpuInstruction";
 import {ModelVariable} from "./ModelVariable";
 import {External} from "./external/External";
 import {ExternalTool} from "./ExternalTool";
+import ShellHelper from "./ShellHelper";
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
 //r2p.r2bin = "";
@@ -323,7 +324,7 @@ export default class RadareHelper
                 const p:string = require('os').platform();
                 if(p == "linux" || p == "darwin"){
                     // TODO : replace by programmatic way
-                    const rp = _ps_.execSync("which radare2").toString();
+                    const rp = _ps_.execSync("which radare2", {shell:ShellHelper.getExtPath()}).toString();
                     // remove CR
                     r2p.r2bin = rp.substr(0, rp.length-1);
                 }
