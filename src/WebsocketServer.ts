@@ -1,4 +1,4 @@
-import { server as WebSocketServer } from 'websocket';
+import {server as WebSocketServer} from 'websocket';
 import DexcaliburEngine from "./DexcaliburEngine";
 import * as http from "http";
 import * as https from "https";
@@ -6,6 +6,13 @@ import * as Log from "./Logger";
 import {User} from "./User";
 import {Workflow} from "./Workflow";
 import {Settings} from "./Settings";
+import {UserSession} from "./user/session/UserSession";
+import {UserService} from "./user/UserService";
+import DexcaliburProject from "./DexcaliburProject";
+import AccessControl from "./user/acl/AccessControl";
+import {AccessZone} from "./user/acl/Zones";
+import {GlobalAccessControl} from "./user/acl/rbac/GlobalAccessContol";
+import {ProjectAccessControl} from "./user/acl/rbac/ProjectAccessContol";
 
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
@@ -82,7 +89,6 @@ export class WebsocketServer
     }
 
 
-
     /**
      * To initialize web socket server.
      *
@@ -136,66 +142,111 @@ export class WebsocketServer
 
                 conn.on('message', function(message:any) :void{
 
-                    // do authentication (TODO)
+                    const usrSvc:UserService = self.engine.getUserService();
+
+                    // do authentication / retrieve user session
+
                     let user:User = self.user;
 
+                    try{
 
-                    // process command for the user
-                    if (message.type === 'utf8') {
-                        let unsafeJSON = JSON.parse(message.utf8Data);
+                        // process command for the user
+                        if (message.type === 'utf8') {
+                            let unsafeJSON = JSON.parse(message.utf8Data);
 
-                        if(unsafeJSON['svc']!==undefined){
-                            switch(unsafeJSON.svc){
-                                case 'stat':
-                                    // TODO : check user permissions
-                                    Logger.info('Received Message: ' + message.utf8Data);
-                                    if(unsafeJSON.hasOwnProperty('data')) {
-                                        switch (unsafeJSON.data.op) {
-                                            case 'project':
-                                                if (unsafeJSON.data.hasOwnProperty('opts')) {
-                                                    const wf= self.engine.getWorkflow(unsafeJSON.data.opts);
-                                                    // TODO : bind user to localsessid to avoid security issue
-                                                    if(wf!=null){
-                                                        wf.sendStatus(user, conn, { localid: unsafeJSON.data.localid });
-                                                    }else{
-                                                        // start later
-                                                        self.engine.onNewWorkflow(unsafeJSON.data.opts, ((pWorkflow:Workflow)=>{
-                                                            pWorkflow.addFollower(user, conn, { localid: unsafeJSON.data.localid });
-                                                        }));
-                                                    }
-                                                }
-                                                break;
-                                        }
-                                    }
-                                    break;
-                                case 'xterm':
-                                    // TODO : check user permissions
-                                    Logger.info('Received Message: ' + message.utf8Data);
-                                    self.engine.getTerminalServer().processCommand(user, conn, message.utf8Data);
-                                    break;
-                                case '_ping':
-                                    // TODO : check user permissions
-                                    conn.sendUTF(JSON.stringify({action:'_ping', data:{ success: true, msg:'pong' }}));
-                                    break;
-                                case 'hookm':
-                                    // TODO : check user permissions
-                                    Logger.info('Received Message: ' + message.utf8Data);
-                                    const p = self.engine.getProject(unsafeJSON['prj']);
-
-                                    if(p!=null) {
-                                        Logger.info('Retrieving hook Message from project ' + p.uid);
-                                        p.hook.processCommand(user, conn, message.utf8Data);
-                                    }
-                                    break;
+                            // do authent / retieve user session
+                            let sess:UserSession = null;
+                            if(unsafeJSON[usrSvc.getQueryParam()]!=null){
+                                Logger.info("[SESSION] Opening session from websocket msg : ...");
+                                sess= usrSvc.openSession(
+                                    unsafeJSON[usrSvc.getQueryParam()]
+                                );
+                                Logger.info("[SESSION] Opening session from websocket msg : Done");
                             }
-                        }else{
-                            Logger.info('Received Invalid message: ' + message.utf8Data);
+
+                            // retrieve target project
+                            let prj:DexcaliburProject = null;
+                            if(unsafeJSON._puid != null && sess != null){
+                                //if(self.context.)
+                                prj = sess.getActiveProjectByUID(self.engine, unsafeJSON._puid);
+                            }
+
+
+                            if(unsafeJSON['svc']!==undefined){
+                                switch(unsafeJSON.svc){
+                                    case 'stat':
+
+                                        Logger.info('Received Message: ' + message.utf8Data);
+                                        if(unsafeJSON.hasOwnProperty('data')) {
+                                            switch (unsafeJSON.data.op) {
+                                                case 'project':
+
+                                                    if (unsafeJSON.data.hasOwnProperty('opts')) {
+                                                        const wf= self.engine.getWorkflow(unsafeJSON.data.opts);
+                                                        // TODO : bind user to localsessid to avoid security issue
+
+
+                                                        AccessControl.check(
+                                                            AccessZone.PROJECT,
+                                                            ProjectAccessControl.access.PROJ_OPEN_OWN,
+                                                            prj,
+                                                            sess
+                                                        );
+
+                                                        if(wf!=null){
+                                                            AccessControl.check(
+                                                                AccessZone.GENERIC,
+                                                                GlobalAccessControl.access.GLOB_SHOW_ALL_WORKFLOWS,
+                                                                wf,
+                                                                sess
+                                                            );
+
+                                                            wf.sendStatus(user, conn, { localid: unsafeJSON.data.localid });
+                                                        }else{
+                                                            // start later
+                                                            self.engine.onNewWorkflow(unsafeJSON.data.opts, ((pWorkflow:Workflow)=>{
+                                                                pWorkflow.declarOwner(sess.getUserAccount(), conn, { localid: unsafeJSON.data.localid });
+                                                            }));
+                                                        }
+                                                    }
+                                                    break;
+                                            }
+                                        }
+                                        break;
+                                    case 'xterm':
+                                        // TODO : check user permissions
+                                        Logger.info('Received Message: ' + message.utf8Data);
+                                        self.engine.getTerminalServer().processCommand(user, conn, message.utf8Data);
+                                        break;
+                                    case '_ping':
+                                        // TODO : check user permissions
+                                        conn.sendUTF(JSON.stringify({action:'_ping', data:{ success: true, msg:'pong' }}));
+                                        break;
+                                    case 'hookm':
+                                        // TODO : check user permissions
+                                        Logger.info('Received Message: ' + message.utf8Data);
+                                        const p = self.engine.getProject(unsafeJSON['prj']);
+
+                                        if(p!=null) {
+                                            Logger.info('Retrieving hook Message from project ' + p.uid);
+                                            p.hook.processCommand(user, conn, message.utf8Data);
+                                        }
+                                        break;
+                                }
+                            }else{
+                                Logger.info('Received Invalid message: ' + message.utf8Data);
+                            }
                         }
+                        else if (message.type === 'binary') {
+                            Logger.info('Received Binary Message of ' + message.binaryData.length + ' bytes');
+                            self.engine.getTerminalServer().processData(user, conn, message.binaryData);
+                        }
+                    }catch (err1){
+
+                        Logger.error('[WEBSOCKET] Cmd: "project", Error : '+err1.message);
                     }
-                    else if (message.type === 'binary') {
-                        Logger.info('Received Binary Message of ' + message.binaryData.length + ' bytes');
-                        self.engine.getTerminalServer().processData(user, conn, message.binaryData);
-                    }
+
+
                 });
 
                 //function(reasonCode, description)
