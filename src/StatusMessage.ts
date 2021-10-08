@@ -65,6 +65,19 @@ export default class StatusMessage
     }
 
     /**
+     * To create a direct message
+     *
+     * It is a non cached msg + lambda progress bar
+     *
+     * @param {String} pMessage
+     * @returns {StatusMessage}
+     * @static
+     */
+    static newDirect( pMessage:string):StatusMessage{
+        return  new StatusMessage(-1, pMessage);
+    }
+
+    /**
      * 
      * @param {*} pMsg 
      * @method
