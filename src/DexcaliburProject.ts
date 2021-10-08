@@ -1,12 +1,10 @@
-
-import * as Process from "child_process";
 import * as  _path_ from "path";
 import * as  Fs from "fs";
 
 import DexcaliburWorkspace from "./DexcaliburWorkspace";
 import Platform from "./Platform";
 import APK from "./APK";
-import {ConnectorFactory, IDatabaseAdapter} from "./ConnectorFactory";
+import {ConnectorFactory} from "./ConnectorFactory";
 import DexHelper from "./DexHelper";
 import {Device} from "./Device";
 import {Finder} from "./Finder";
@@ -34,16 +32,19 @@ import GraphMaker from "./Graph";
 import IosAppAnalyzer from "./ios/IosAppAnalyzer";
 import {AppIcon} from "./AppIcon";
 import {ApkPackage} from "./android/ApkPackage";
-import NativeAnalyzer from "./NativeAnalyzer";
 import {Workflow} from "./Workflow";
 import StatusMessage from "./StatusMessage";
-import {ValidationCapable, ValidationError, ValidationRule, Validator} from "./Validator";
+import {ValidationCapable, ValidationRule} from "./Validator";
 import ModelFile from "./ModelFile";
 import {ModelLocation} from "./ModelLocation";
 import {Settings} from "./Settings";
-import WorkspaceSettings = Settings.WorkspaceSettings;
-import {User} from "./User";
 import {UserAccount} from "./user/UserAccount";
+import {IAuditableAccess} from "./user/acl/IAuditableAccess";
+import {AccessAttribute, AccessAttributeMap} from "./user/acl/AccessAttribute";
+import {ProjectAccessControl} from "./user/acl/rbac/ProjectAccessContol";
+import {AnalyzerConfiguration, FileAnalysisType} from "./AnalyzerConfiguration";
+import {IDatabase, IDatabaseAdapter} from "./persist/orm/DbAbstraction";
+import SqliteConnector from "../connectors/sqlite/adapter";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -81,8 +82,15 @@ const DexcaliburProjectValidator = new Validator({
  * @class
  * @author Georges-B. MICHEL
  */
-export default class DexcaliburProject extends ValidationCapable
+export default class DexcaliburProject extends ValidationCapable implements IAuditableAccess
 {
+
+    /**
+     * List of attributes involved into security controls
+     * @type AccessAttributeMap
+     * @field
+     */
+    _attr:AccessAttributeMap = {};
 
 
     /**
@@ -215,6 +223,12 @@ export default class DexcaliburProject extends ValidationCapable
     connector:IDatabaseAdapter = null;
 
     /**
+     * @type {IDatabase}
+     * @field
+     */
+    db:IDatabase = null;
+
+    /**
      * @field
      */
     simplifier:Simplifier = null;
@@ -233,6 +247,8 @@ export default class DexcaliburProject extends ValidationCapable
     owner: UserAccount = null;
 
     private _wf:Workflow = null;
+
+    private analCfg:AnalyzerConfiguration = new AnalyzerConfiguration();
 
     /*
      * A set of package checksum
@@ -260,6 +276,31 @@ export default class DexcaliburProject extends ValidationCapable
 
         this.engine = pEngine;
         this.uid = pUID;
+
+        this.initAccessAttributes();
+    }
+
+    /**
+     *
+     */
+    initAccessAttributes(){
+        for(const k in ProjectAccessControl.attr){
+            this._attr[k] = ProjectAccessControl.attr[k].clone();
+        }
+    }
+
+    getAnalyzerConfiguration():AnalyzerConfiguration {
+        return this.analCfg;
+    }
+
+    /**
+     * To get access attribute by its name
+     *
+     * @param {string} pName Attribute name
+     * @return {AccessAttribute}
+     */
+    getAccessAttribute(pName: string): AccessAttribute {
+        return this._attr[pName];
     }
 
     getOwner():UserAccount {
@@ -273,6 +314,8 @@ export default class DexcaliburProject extends ValidationCapable
 
     setWorkflow( pWorkflow:Workflow):void {
         this._wf = pWorkflow;
+        if(this.analyze!=null) this.analyze.setWorkflow(pWorkflow);
+        if(this.dataAnalyzer!=null) this.dataAnalyzer.setWorkflow(pWorkflow);
     }
 
     /**
@@ -378,6 +421,11 @@ export default class DexcaliburProject extends ValidationCapable
         return status;
     }
 
+
+    getDB():IDatabase {
+        return this.db;
+    }
+
     /**
      * To init the project
      *
@@ -397,6 +445,9 @@ export default class DexcaliburProject extends ValidationCapable
         // workspace settings provide defaults value when value are not yet
         // configured at project level
         const wsSettings:Settings.WorkspaceSettings = this.engine.workspace.getSettings();
+        const wf:Workflow = this.engine.getWorkflow(this.uid);
+
+        this.setWorkflow(wf);
 
         // init project workspace
         if(this.workspace === null){
@@ -412,11 +463,17 @@ export default class DexcaliburProject extends ValidationCapable
             this.connector = ConnectorFactory.getInstance().newConnector(wsSettings.getDefaultConnector() , this);
         }
 
+        // open/create db
+        const sqliteConn:SqliteConnector = ConnectorFactory.getInstance().newConnector('sqlite' , this)
+        sqliteConn.connect(this.workspace.getDbPath());
+        this.db = sqliteConn.getDB();
+
         // set the Search API which allow the user to perform search
         this.find = new SearchAPI();
 
         // set SC analyzer
         this.analyze = new Analyzer(wsSettings.getDefaultEncoding() as BufferEncoding, this);
+        this.analyze.setWorkflow(wf)
         this.find.setDatabase(this.analyze.getData());
 
 
@@ -442,6 +499,7 @@ export default class DexcaliburProject extends ValidationCapable
 
         // file analyzer 
         this.dataAnalyzer = new DataAnalyzer(this);
+        this.dataAnalyzer.setWorkflow(wf)
 
         // create main event bus of this project 
         this.bus = new Bus(this); //.setContext(this);
@@ -501,9 +559,10 @@ export default class DexcaliburProject extends ValidationCapable
     }
 
     initAuthorizations():void {
-        if(this.owner==null){
 
-        }
+        /*if(this._attr.OWNER == null){
+            this._attr.OWNER.value = this.getContext().getUserService().getAuthenticationService().getDefaultUser()
+        }*/
     }
 
     /**
@@ -745,9 +804,18 @@ export default class DexcaliburProject extends ValidationCapable
                 case "device":
                     project.device = DeviceManager.getInstance().getDevice(data.device);
                     break;
+                case "anal":
+                    project.analCfg = AnalyzerConfiguration.from(data.anal);
+                    project.analCfg.fileAnalysisMode = FileAnalysisType.DEEP;
+                    break;
                 case "package":
                 case "nofrida":
                     project[i] = data[i];
+                    break;
+                case "_attr":
+                    for(const k in data._attr){
+                        project._attr[k] = AccessAttribute.from(data._attr[k]);
+                    }
                     break;
                 case "apk":
                     project.workspace.setApk( APK.fromJsonObject(data.apk));
@@ -761,6 +829,8 @@ export default class DexcaliburProject extends ValidationCapable
                     break;
             }
         }
+
+
 
         if(data.platform != null){
             project.platform = PlatformManager.getInstance().getPlatform(data.platform);
@@ -801,7 +871,15 @@ export default class DexcaliburProject extends ValidationCapable
         o.platform = this.platform!=null? this.platform.getUID() : null;
         o.nofrida = this.nofrida;
 
+        o.anal = this.analCfg.toJsonObject();
+
         o.connector = this.connector.toJsonObject(); //constructor.getProperties();
+
+        o._attr = {};
+        for(const n in this._attr){
+            o._attr[n] = this._attr[n].toJsonObject();
+        }
+
 
         if(this.workspace.getApk() !== null){
             o.apk = this.workspace.getApk().toJsonObject();
@@ -972,15 +1050,21 @@ export default class DexcaliburProject extends ValidationCapable
         // scan OS/Platform
         Logger.info("Scanning platform "+this.platform.getUID());
 
-        this.getWorkflow().pushStatus(new StatusMessage(10, "Analyzing bytecode of target platform"));
+        this.analyze.setWorkflow(this.getWorkflow());
+        this.dataAnalyzer.setWorkflow(this.getWorkflow());
+
+        this.getWorkflow().setStep('Platform analysis', 10);
+        this.getWorkflow().pushStatus(new StatusMessage(5, "Analyzing bytecode of target platform"));
 
         this.analyze.path(this.platform.getLocalPath());
 
-        this.getWorkflow().pushStatus(new StatusMessage(12, "Analyzing byte arrays from target platform"))
+        this.getWorkflow().pushStatus(new StatusMessage(11, "Analyzing byte arrays from target platform"))
 
         this.analyze.updateDataBlock();
 
-        this.getWorkflow().pushStatus(new StatusMessage(13, "Tagging discovered elements"));
+
+        this.getWorkflow().pushStatus(new StatusMessage(12, "Tagging discovered elements"));
+        //this.getWorkflow().setStep('Triage', 20);
 
         this.analyze.tagAllAsInternal();
 
@@ -993,6 +1077,7 @@ export default class DexcaliburProject extends ValidationCapable
         this.analyze.flushDelayedTagging();
         this.analyze.initDelayedTagging(TAG.Discover.Statically, true);
 
+        this.getWorkflow().setStep('App bytecode', 40);
         this.getWorkflow().pushStatus(new StatusMessage(15, "Start analysis of application byte code"));
 
         // scan files  
@@ -1022,16 +1107,20 @@ export default class DexcaliburProject extends ValidationCapable
             // TODO : multi threading
             this.analyze.path( apkPath);
 
-            this.getWorkflow().pushStatus(new StatusMessage(16, "Indexing and analysis of flat files from package"));
+
+            this.getWorkflow().setStep('App resources', 60);
+            this.getWorkflow().pushStatus(new StatusMessage(41, "Indexing and analysis of flat files from package"));
 
             // file analysis : icon detection, strings, etc ...
             // TODO : multi threading : each file can be treated separately
+
             this.dataAnalyzer.indexFilesIn(
                 this.dataAnalyzer.getScope('PKG')
             );
 
 
-            this.getWorkflow().pushStatus(new StatusMessage(17, "Updating analyzer DB with discovered files"));
+            this.getWorkflow().setStep('Runtime data', 80);
+            this.getWorkflow().pushStatus(new StatusMessage(60, "Updating analyzer DB with discovered files"));
 
             // update internal DB with file from package only (at this step)
             this.analyze.updateFileIndex(
@@ -1044,7 +1133,8 @@ export default class DexcaliburProject extends ValidationCapable
             // it starts by identifying native library for the target device achitecture
 
 
-            this.getWorkflow().pushStatus(new StatusMessage(18, "Analysis of native libraries"));
+            this.getWorkflow().setStep('App native libraries', 85);
+            this.getWorkflow().pushStatus(new StatusMessage(80, "Analysis of native libraries"));
 
            this.analyze.initNativeAnalyzer(this.dataAnalyzer.getDB()); //this.dataAnalyzer.getDB()
 
@@ -1053,18 +1143,21 @@ export default class DexcaliburProject extends ValidationCapable
                 this.analyze.getNativeAnalyzer().configure(
                     this.platform,
                     this.device.getProfile().getSystemProfile().getArchitecture(),
+                    (this.analCfg.useDeviceABI()? this.device.getProfile().getSystemProfile().getABIlist() : [])
                 );
             }else{
                 this.analyze.getNativeAnalyzer().configure(
                     this.platform,
-                    'arm'
+                    'arm',
+                    this.device.getProfile().getSystemProfile().getABIlist()
                 );
             }
 
             //this.analyze.getNativeAnalyzer().
             this.analyze.doNativeAnalysis();
 
-            this.getWorkflow().pushStatus(new StatusMessage(19, "Manifest analysis"));
+            this.getWorkflow().setStep('Application topology analysis', 91);
+            this.getWorkflow().pushStatus(new StatusMessage(86, "Manifest analysis"));
 
             // application topology analysis
             success = await this.appAnalyzer.importManifest(_path_.join(apkPath,"AndroidManifest.xml"));
@@ -1075,12 +1168,12 @@ export default class DexcaliburProject extends ValidationCapable
         }
 
 
-        this.getWorkflow().pushStatus(new StatusMessage(20, "Analyzing byte arrays from target platform"));
+        this.getWorkflow().pushStatus(new StatusMessage(95, "Analyzing byte arrays from target platform"));
         // index static array 
         this.analyze.updateDataBlock();
 
 
-        this.getWorkflow().pushStatus(new StatusMessage(21, "Tagging fresh data and elements"));
+        this.getWorkflow().pushStatus(new StatusMessage(96, "Tagging fresh data and elements"));
         this.analyze.tagAllIf(
             function(k,x){ 
                 return x.hasTag(TAG.Discover.Internal)==false;
@@ -1096,7 +1189,7 @@ export default class DexcaliburProject extends ValidationCapable
         //if(pPath == null){
 
 
-        this.getWorkflow().pushStatus(new StatusMessage(22, "Scanning data previously extracted by hooking"));
+        this.getWorkflow().pushStatus(new StatusMessage(97, "Scanning data previously extracted by hooking"));
 
         this.dataAnalyzer.scan(this.workspace.getRuntimeFilesDir(), this.dataAnalyzer.getScope('DYN_BUFFER')); //["smali"]);
         this.analyze.updateFileIndex(
