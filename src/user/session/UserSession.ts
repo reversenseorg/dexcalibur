@@ -2,6 +2,11 @@ import {UserAccount} from "../UserAccount";
 import {SessionCode, SessionException} from "./SessionException";
 import Util from "../../Utils";
 import {ConnectionHandler, ConnectionHandlerMap} from "../../remote/ConnectionHandler";
+import DexcaliburEngine from "../../DexcaliburEngine";
+import DexcaliburProject from "../../DexcaliburProject";
+import AccessControl from "../acl/AccessControl";
+import {AccessZone} from "../acl/Zones";
+import {ProjectAccessControl} from "../acl/rbac/ProjectAccessContol";
 
 export class UserSession {
 
@@ -95,6 +100,36 @@ export class UserSession {
             throw new SessionException("Data cannot be read : Session has been destroyed.", SessionCode.DESTROYED);
 
         return this._project;
+    }
+
+
+    /**
+     * To get an active project by its UID
+     *
+     * @param pContext
+     * @param pProjectUID
+     */
+    getActiveProjectByUID( pContext:DexcaliburEngine, pProjectUID:string):DexcaliburProject {
+
+        // check if the user is the project owner
+        // replace by read access ?
+        /*AccessControl.checkAttr(
+            AccessZone.PROJECT,
+            ProjectAccessControl.attr.OWNER,
+            pContext.getProject(pProjectUID),
+            this.getUserAccount()
+        );*/
+
+
+        AccessControl.check(
+            AccessZone.PROJECT,
+            ProjectAccessControl.access.PROJ_OPEN_OWN,
+            pContext.getProject(pProjectUID),
+            this
+        );
+
+
+        return pContext.getProject(pProjectUID);
     }
 
     addConnection( pName:string, pHandler:ConnectionHandler):void {

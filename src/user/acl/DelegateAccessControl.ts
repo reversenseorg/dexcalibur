@@ -1,5 +1,6 @@
 import {Access, AccessMap, AccessProperty, AccessType} from "./Access";
 import {UserSession} from "../session/UserSession";
+import {AccessAttribute, AccessAttributeMap} from "./AccessAttribute";
 
 
 export abstract class DelegateAccessControl {
@@ -8,6 +9,7 @@ export abstract class DelegateAccessControl {
     static uid:string;
 
     static access:AccessMap = {};
+    static attr:AccessAttributeMap = {};
 
     constructor() {
 
@@ -17,9 +19,17 @@ export abstract class DelegateAccessControl {
         this.access[pUID] = pAccess;
     }
 
+    static registerAttributes(pUID:string, pAttr:AccessAttribute) {
+        this.attr[pUID] = pAttr;
+    }
+
 
     static getAccess(pUID:string):Access {
         return this.access[pUID];
+    }
+
+    static getAttr(pUID:string):AccessAttribute {
+        return this.attr[pUID];
     }
 
     /**
@@ -64,4 +74,6 @@ export abstract class DelegateAccessControl {
 
 
     abstract check(pAccess:Access, pSession:UserSession, pExtra:any);
+
+    abstract checkAttr(pAccess:AccessAttribute, pSession:UserSession, pExtra:any);
 }

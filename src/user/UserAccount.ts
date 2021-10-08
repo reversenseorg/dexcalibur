@@ -5,6 +5,9 @@ import {UserRole} from "./acl/rbac/UserRole";
 import AccessControl from "./acl/AccessControl";
 import {ProjectURI} from "../project/ProjectGlobalUID";
 import DexcaliburProject from "../DexcaliburProject";
+import DexcaliburEngine from "../DexcaliburEngine";
+import {AccessZone} from "./acl/Zones";
+import {ProjectAccessControl} from "./acl/rbac/ProjectAccessContol";
 
 export class UserAccount {
 

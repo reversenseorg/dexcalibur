@@ -7,6 +7,7 @@ import {UserSession} from "../session/UserSession";
 import {DelegateAccessControl} from "./DelegateAccessControl";
 import {UserRole, UserRoleMap} from "./rbac/UserRole";
 import {BUILT_IN_DEFAULT_ROLE, BUILT_IN_ROLES} from "./Roles";
+import {AccessAttribute} from "./AccessAttribute";
 
 
 export interface DelegateAccessControlMap {
@@ -75,6 +76,14 @@ export default class AccessControl {
     static hasZone(pZone:AccessZone):void {
         if(AccessControl.zones[pZone] == null)
             throw new AccessException("There is not access zone assigned to  '"+pZone+"'",AccesErrCode.NO_ZONE);
+    }
+
+    /**
+     * To check if the given session can access to the given entry
+     */
+    static checkAttr(pZone:AccessZone, pAttr:AccessAttribute, pAccessObject:any, pIssuer:any):void {
+        AccessControl.hasZone(pZone);
+        AccessControl.zones[pZone].checkAttr(pAttr, pIssuer, pAccessObject);
     }
 
 

@@ -1,4 +1,4 @@
-import {AccessMap} from "../Access";
+import {Access, AccessMap} from "../Access";
 
 export interface  UserRoleMap {
     [uid:string] :UserRole;
@@ -44,7 +44,11 @@ export class UserRole {
         this._access = value;
     }
 
-    addAccess():void {
+    addAccess(pAccess:Access):void {
+        this._access[pAccess.name] = pAccess;
+    }
 
+    hasAccess(pAccess:Access):boolean {
+        return (this._access[pAccess.name] != null)
     }
 }
