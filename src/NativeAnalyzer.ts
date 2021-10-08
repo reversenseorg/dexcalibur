@@ -12,9 +12,11 @@ import RadareFactory from "./R2Factory";
 import RadareHelper from "./R2Helper";
 import ModelFile from "./ModelFile";
 import Platform from "./Platform";
-import {IDatabase, IDbIndex} from "./ConnectorFactory";
 import DataScope from "./DataScope";
 import {ModelFunction} from "./ModelFunction";
+import {ABI} from "./binary/ABI";
+import {Workflow} from "./Workflow";
+import {IDatabase, IDbIndex} from "./persist/orm/DbAbstraction";
 
 
 export enum NativeAnalyzerProfile{
@@ -49,6 +51,9 @@ export default class NativeAnalyzer {
 
     arch:string = '';
     fmt:string[] = [];
+    abi:ABI[] = null;
+
+    _wf:Workflow;
 
     /**
      *
@@ -72,6 +77,9 @@ export default class NativeAnalyzer {
         this.finder = pProject.find; //pSearchAPI; // pSearchAPI
     }
 
+    setWorkflow(pWF:Workflow){
+        this._wf = pWF;
+    }
     /**
      * To find files which can be analyzed into internal DB
      *
@@ -120,16 +128,18 @@ export default class NativeAnalyzer {
      * @param pPlatform
      * @param pArch
      */
-    configure( pPlatform:Platform,  pArch:string):void {
+    configure( pPlatform:Platform,  pArch:string, pABI:ABI[]=null):void {
         this.arch = pArch;
 
         if(pPlatform.isAndroid() || pPlatform.is(['linux','tizen'])){
             this.fmt = ['ELF'];
             this.profile = NativeAnalyzerProfile.ANDROID_LIB;
+            this.abi = pABI;
         }
         else if(pPlatform.isIOS()){
             this.fmt = ['Mach-O'];
             this.profile = NativeAnalyzerProfile.IOS_LIB;
+            this.abi = pABI;
         }
     }
 
@@ -174,6 +184,8 @@ export default class NativeAnalyzer {
         if(!this.targets.hasOwnProperty('all'))
             this.targets.all = [];
 
+
+        this._wf.computeStepUp(this.db.files.size());
         this.db.files.map( (pOffset:number, pFile:ModelFile) => {
 
             if(this.fmt.indexOf(pFile.type)>-1){
