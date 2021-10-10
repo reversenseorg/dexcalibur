@@ -1,6 +1,6 @@
 import {Access, AccessMap, AccessProperty, AccessType} from "./Access";
-import {UserSession} from "../session/UserSession";
 import {AccessAttribute, AccessAttributeMap} from "./AccessAttribute";
+import {UserAccount} from "../UserAccount";
 
 
 export abstract class DelegateAccessControl {
@@ -73,7 +73,7 @@ export abstract class DelegateAccessControl {
     }
 
 
-    abstract check(pAccess:Access, pSession:UserSession, pExtra:any);
+    abstract check(pAccess:Access, pAccount:UserAccount, pExtra:any);
 
-    abstract checkAttr(pAccess:AccessAttribute, pSession:UserSession, pExtra:any);
+    abstract checkAttr(pAccess:AccessAttribute, pAccount:UserAccount, pExtra:any);
 }
