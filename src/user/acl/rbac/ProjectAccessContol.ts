@@ -41,11 +41,11 @@ export class ProjectAccessControl extends DelegateAccessControl {
      * @param pAccess
      * @param pSession
      */
-    check(pAccess: Access, pSession: UserSession, pExtra:any = null) {
+    check(pAccess: Access, pAccount:UserAccount, pExtra:any = null) {
         switch (pAccess.name) {
             case 'PROJ_OPEN_OWN':
             case 'PROJ_PKG_READ':
-                if(pSession.getUserAccount().getUserRole().hasAccess(pAccess)===false){
+                if(pAccount.getUserRole().hasAccess(pAccess)===false){
                     throw new AccessException("[PROJECT] Access violation, current user has not enough privilege ("+pAccess.name+") ", AccesErrCode.VIOLATION)
                 }
                 break;
@@ -59,11 +59,11 @@ export class ProjectAccessControl extends DelegateAccessControl {
      * @param pAccess
      * @param pSession
      */
-    checkAttr(pAttr: AccessAttribute, pSession: UserSession, pProject:DexcaliburProject = null) {
+    checkAttr(pAttr: AccessAttribute, pAccount:UserAccount, pProject:DexcaliburProject = null) {
         switch (pAttr.name) {
             case 'owner':
                 // verify project owner is the current user
-                if(pSession.getUserAccount().getUID() !== pProject.getAccessAttribute(pAttr.name).value){
+                if(pAccount.getUID() !== pProject.getAccessAttribute(pAttr.name).value){
                     throw new AccessException("[PROJECT] The project is not owned by the user : rejected ", AccesErrCode.VIOLATION);
                 }
                 break;
