@@ -3,6 +3,7 @@ import {Access, AccesErrCode, AccessException, AccessMap, AccessType} from "../A
 import {UserSession} from "../../session/UserSession";
 import {AccessAttribute, AccessAttributeMap} from "../AccessAttribute";
 import DexcaliburProject from "../../../DexcaliburProject";
+import {UserAccount} from "../../UserAccount";
 
 
 export class SettingsAccessControl extends DelegateAccessControl {
@@ -30,7 +31,7 @@ export class SettingsAccessControl extends DelegateAccessControl {
      * @param pAccess
      * @param pSession
      */
-    check(pAccess: Access, pSession: UserSession, pExtra:any = null) {
+    check(pAccess: Access, pAccount:UserAccount, pExtra:any = null) {
         switch (pAccess.name) {
             default:
                 throw new AccessException("Settings : Access unknow => rejected ", AccesErrCode.ACCESS_UNKNOWN)
@@ -41,10 +42,11 @@ export class SettingsAccessControl extends DelegateAccessControl {
     /**
      * Settings have not yet security attributes.
      *
-     * @param pAccess
-     * @param pSession
+     * @param pAttr
+     * @param pAccount
+     * @param pExtra
      */
-    checkAttr(pAttr: AccessAttribute, pSession: UserSession, pExtra:any = null) {
+    checkAttr(pAttr: AccessAttribute, pAccount:UserAccount, pExtra:any = null) {
         throw new AccessException("Settings : Access attribute unknow => rejected ", AccesErrCode.ATTR_UNKNOWN);
     }
 }
