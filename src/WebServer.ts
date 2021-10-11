@@ -42,14 +42,11 @@ import {Intent, IntentCommandFactory} from "./IntentFactory";
 import Simplifier from "./Simplifier";
 import ModelPackage from "./ModelPackage";
 import ModelClass from "./ModelClass";
-import ProjectWorkspace from "./ProjectWorkspace";
 import ModelFile from "./ModelFile";
-import DataScope, {DataScopePpts} from "./DataScope";
 import {ModelFunction} from "./ModelFunction";
 import HookMessage from "./HookMessage";
 import {Workflow} from "./Workflow";
 import {HookSetList} from "./HookManager";
-import {Finder} from "./Finder";
 import {ValidationCapable, Validator} from "./Validator";
 import {Settings} from "./Settings";
 import {UserSession} from "./user/session/UserSession";
@@ -57,20 +54,13 @@ import {UserService} from "./user/UserService";
 import AccessControl from "./user/acl/AccessControl";
 import {AccessZone} from "./user/acl/Zones";
 import {ProjectAccessControl} from "./user/acl/rbac/ProjectAccessContol";
-import {DeviceManagerException} from "./errors/DeviceManagerException";
-import {DexcaliburConnectionException} from "./errors/DexcaliburConnectionException";
-import ConnectionSettings = Settings.ConnectionSettings;
-import {ConnectionManager} from "./remote/ConnectionManager";
-import {DexcaliburConnectionParams} from "./remote/DexcaliburConnectionParams";
-import {ConnectionCredentials} from "./remote/ConnectionCredentials";
-import {ConnectionHandler} from "./remote/ConnectionHandler";
-import {ConnectionManagerException} from "./errors/ConnectionManagerException";
 import {UserAccount} from "./user/UserAccount";
 import {DEVICE_WEB_API} from "./webapi/device.web.api";
 import {AUTH_WEB_API} from "./webapi/auth.web.api";
 import {SETTINGS_WEB_API} from "./webapi/settings.web.api";
 import {PROBE_SERVER_WEB_API} from "./webapi/probe-server.web.api";
 import {APP_WEB_API} from "./webapi/app.web.api";
+import {PROJECT_MGT_WEB_API} from "./webapi/proj-mgt.web.api";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -2082,7 +2072,7 @@ export default class WebServer
                         AccessZone.PROJECT,
                         ProjectAccessControl.access.SETTINGS_EDIT,
                         unsafe_UID,
-                        req.dxc.sess
+                        req.dxc.sess.getUserAccount()
                     );
 
                     if(req.body['device']!=null){
@@ -3124,6 +3114,7 @@ export default class WebServer
         SETTINGS_WEB_API.injectServer(this);
         PROBE_SERVER_WEB_API.injectServer(this);
         APP_WEB_API.injectServer(this);
+        PROJECT_MGT_WEB_API.injectServer(this);
 
 
 
@@ -3132,6 +3123,7 @@ export default class WebServer
         this.app.use('/api/settings', SETTINGS_WEB_API.getRouter());
         this.app.use('/api/hookserver', PROBE_SERVER_WEB_API.getRouter());
         this.app.use('/api/application', APP_WEB_API.getRouter());
+        this.app.use('/api/workspace', PROJECT_MGT_WEB_API.getRouter());
 
         /**
          * Redirect to /pages/splash.html if there is no project initialized
