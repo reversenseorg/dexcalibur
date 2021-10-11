@@ -61,6 +61,7 @@ import {SETTINGS_WEB_API} from "./webapi/settings.web.api";
 import {PROBE_SERVER_WEB_API} from "./webapi/probe-server.web.api";
 import {APP_WEB_API} from "./webapi/app.web.api";
 import {PROJECT_MGT_WEB_API} from "./webapi/proj-mgt.web.api";
+import {PLATFORM_WEB_API} from "./webapi/platform.web.api";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -487,54 +488,8 @@ export default class WebServer
             });
 
         // API routes
-        this.app.route('/api/platform/list')
-            .get(function (req:ExpressRequest, res:ExpressResponse):any {
-
-                try{
-                    SEND_SUCCESS_RESPONSE( res, {
-                        platforms: PlatformManager.getInstance().getRemote()
-                    });
-
-                }catch(err){
-                    Logger.error(err.message);
-                    SEND_ERROR_RESPONSE( res, "An error occurred");
-                }
-
-                // collect
-                /*let dev:any = {
-                    platforms: PlatformManager.getInstance().getRemote()
-                };
-
-                res.status(200).send(JSON.stringify(dev));*/
-            });
-
-        this.app.route('/api/platform/install')
-            .post(async function (req:ExpressRequest, res:ExpressResponse):Promise<any> {
 
 
-                let mgr:PlatformManager, dev:any, platform:Platform;
-
-                try{
-                    dev = {
-                        status: false
-                    };
-
-                    mgr = PlatformManager.getInstance();
-
-
-                    platform = mgr.getRemotePlatform(req.body['uid']);
-
-                    if(platform !== null){
-                        dev.status = await mgr.install(platform);
-                    }
-
-                    SEND_SUCCESS_RESPONSE( res, dev);
-
-                }catch(err){
-                    Logger.error("[WEBSERVER][PLATFORM] Install : "+err.message);
-                    SEND_ERROR_RESPONSE( res, "An error occurred");
-                }
-            });
 
 
 
@@ -580,36 +535,6 @@ export default class WebServer
 
             });
 
-        this.app.route('/api/workspace/delete')
-            .post(async function (req:ExpressRequest, res:ExpressResponse):Promise<any> {
-
-                res.status(200).send(JSON.stringify({
-                    success: $.context.deleteProject( req.body['uid'] )
-                }));
-            });
-
-        this.app.route('/api/workspace/availability')
-            .get(function (req:ExpressRequest, res:ExpressResponse):any {
-
-                let proj:string[] = null, availability:boolean = true;
-                switch( req.query.field)
-                {
-                    case "project.uid":
-                        proj = $.context.workspace.listProjects();
-                        proj.map((vProject)=>{
-                            if(vProject == req.query.value)
-                                availability = false;
-                        })
-                        break;
-                }
-
-
-                res.status(200).send(JSON.stringify({
-                    availability: availability
-                }));
-            });
-
-        ;
 
         this.app.route('/api/validation')
             .get(function (req:ExpressRequest, res:ExpressResponse):any {
@@ -3115,6 +3040,7 @@ export default class WebServer
         PROBE_SERVER_WEB_API.injectServer(this);
         APP_WEB_API.injectServer(this);
         PROJECT_MGT_WEB_API.injectServer(this);
+        PLATFORM_WEB_API.injectServer(this);
 
 
 
@@ -3124,6 +3050,7 @@ export default class WebServer
         this.app.use('/api/hookserver', PROBE_SERVER_WEB_API.getRouter());
         this.app.use('/api/application', APP_WEB_API.getRouter());
         this.app.use('/api/workspace', PROJECT_MGT_WEB_API.getRouter());
+        this.app.use('/api/platform', PLATFORM_WEB_API.getRouter());
 
         /**
          * Redirect to /pages/splash.html if there is no project initialized
