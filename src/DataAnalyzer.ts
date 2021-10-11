@@ -300,7 +300,7 @@ export class DataAnalyzer
      */
     scan(path:string, pScope:DataScope, pRelPath:string = null){
 
-        let db:IDbIndex = this.db.getIndex(pScope.getName());
+        let db:IDbIndex = this.db.getIndex(pScope.getIndexName());
     
         if(path[path.length-1]=='/')
            path = path.substr(0,path.length-1);
@@ -369,12 +369,12 @@ export class DataAnalyzer
     scanFile(pFile:ModelFile, pScope:DataScope){
 
 
-        let db:IDbIndex = this.db.getIndex(pScope.getName());
+        let idx:IDbIndex = this.db.getIndex(pScope.getIndexName());
 
         pFile._d  ='f';
         pFile.setScope(pScope);
 
-        db.addEntry(pFile);
+        idx.addEntry(pFile);
 
         // if target app is Android App
         let file:ModelFile = this.binwalk.analyze(pFile.getPath(), this.context);
@@ -414,9 +414,9 @@ export class DataAnalyzer
      */
     getIndex(pScope:DataScope|string):IDbIndex{
         if(typeof pScope==='string')
-            return this.db.getIndex(this.scopes[pScope].getName());
+            return this.db.getIndex(this.scopes[pScope].getIndexName());
         else
-            return this.db.getIndex(pScope.getName());
+            return this.db.getIndex(pScope.getIndexName());
     }
 
     /**
@@ -427,7 +427,7 @@ export class DataAnalyzer
      */
     indexFile(pFile: ModelFile, pScope:DataScope=null):void {
 
-        const index:IDbIndex = this.db.getIndex( pScope!=null ? pScope.getName() : pFile.scope.getName() );
+        const index:IDbIndex = this.db.getIndex( pScope!=null ? pScope.getIndexName() : pFile.scope.getIndexName() );
 
         index.addEntry(pFile);
 
