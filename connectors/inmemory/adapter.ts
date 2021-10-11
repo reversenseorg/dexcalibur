@@ -62,7 +62,7 @@ export default class InMemoryConnector implements IDatabaseAdapter
      *
      * @method
      */
-    connect():boolean{
+    connect( pOptions:any  = null):boolean{
         // nothing to do
         this.db = new InMemoryDb(this);
         return true;

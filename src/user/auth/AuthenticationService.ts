@@ -51,7 +51,7 @@ export class AuthenticationService {
                 uri: this.settings.db.uri
             }
         ) as IDatabaseAdapter;
-        this._dba.connect()
+        this._dba.connect({});
 
         // import temporary DB after a fresh install
         if(_fs_.existsSync(this.settings.db.uri)==false){

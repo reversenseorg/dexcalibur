@@ -111,7 +111,7 @@ export interface IDatabaseAdapter
 {
     exists():boolean;
     create():boolean;
-    connect():boolean;
+    connect(pOptions:any):any;
     close():boolean;
     getIndex( pName:string):IDbIndex;
     getCollection( pName:string):IDbCollection;

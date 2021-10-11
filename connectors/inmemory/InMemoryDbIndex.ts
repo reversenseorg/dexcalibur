@@ -1,6 +1,6 @@
 
 import SerializedObject from "./SerializedObject";
-import {IDbIndex} from "../../src/ConnectorFactory";
+import {IDbIndex} from "../../src/persist/orm/DbAbstraction";
 
 /**
  * Represents an array of element

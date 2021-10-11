@@ -108,6 +108,10 @@ export class NodeProperty {
         return this;
     }
 
+    getKeyOffset():number {
+        return this._k_p;
+    }
+
     isPrimaryKey():boolean {
         return (this._key == DbKeyType.PRIMARY);
     }

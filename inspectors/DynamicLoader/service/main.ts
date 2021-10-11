@@ -2,7 +2,7 @@ import InspectorFrontController, {IFC_TYPE} from "../../../src/InspectorFrontCon
 import {TAG} from "../../../src/AnalysisHelper";
 import DexcaliburProject from "../../../src/DexcaliburProject";
 import * as _fs_ from 'fs';
-import {IDbIndex} from "../../../src/ConnectorFactory";
+import {IDbIndex} from "../../../src/persist/orm/DbAbstraction";
 import {FinderResult} from "../../../src/FinderResult";
 import Event from "../../../src/Event";
 

@@ -5,7 +5,7 @@
  * @class
  */
 import SerializedObject from "./SerializedObject";
-import {IDbCollection} from "../../src/ConnectorFactory";
+import {IDbCollection} from "../../src/persist/orm/DbAbstraction";
 
 
 export default class InMemoryDbCollection implements IDbCollection

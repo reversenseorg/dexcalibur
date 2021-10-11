@@ -49,7 +49,7 @@ export class DbColumnTemplate {
     }
 
     static from(pConfig:any):DbColumnTemplate {
-        const tpl = new DbColumnTemplate();
+        const tpl = new DbColumnTemplate(pConfig.hasOwnProperty('name')? pConfig.name : null);
         for(const i in pConfig){
             this[i] = pConfig[i]
         }
@@ -95,6 +95,6 @@ export class DbColumnTemplate {
 
 
     isIndexed():boolean {
-        return this.idx;
+        return this._idx;
     }
 }
