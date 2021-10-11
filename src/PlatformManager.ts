@@ -14,6 +14,7 @@ import DexHelper from "./DexHelper";
 
 
 import * as Log from './Logger';
+import {PlatformManagerException} from "./errors/PlatformManagerException";
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
 let pipeline:any = promisify(stream.pipeline);
@@ -91,12 +92,13 @@ export default class PlatformManager extends ValidationCapable
                     pCallback();
                 }
             }else{
-                Logger.error("[PlatformManager] Platform cannot be analyzed");
+                throw PlatformManagerException.PLATFORM_NOT_ANALYZED();
             }
 
 
             return true;
         }else{
+            throw PlatformManagerException.PLATFORM_NOT_INSTALLED();
             return false;
         }
     }
