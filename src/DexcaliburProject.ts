@@ -45,6 +45,11 @@ import {ProjectAccessControl} from "./user/acl/rbac/ProjectAccessContol";
 import {AnalyzerConfiguration, FileAnalysisType} from "./AnalyzerConfiguration";
 import {IDatabase, IDatabaseAdapter} from "./persist/orm/DbAbstraction";
 import SqliteConnector from "../connectors/sqlite/adapter";
+import AccessControl from "./user/acl/AccessControl";
+import {AccessZone} from "./user/acl/Zones";
+import {UserSession} from "./user/session/UserSession";
+import {AccesErrCode, AccessException} from "./user/acl/Access";
+import Util from "./Utils";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -307,8 +312,53 @@ export default class DexcaliburProject extends ValidationCapable implements IAud
        return this.owner;
     }
 
-    isOwnedBy( pUser:UserAccount):boolean {
-        return (this.owner != null && this.owner.is(pUser));
+    static deleteCloseProject( pEngine:DexcaliburEngine, pUID:string, pAccount:UserAccount){
+        const project = new DexcaliburProject(pEngine, pUID);
+
+        const data = JSON.parse( Fs.readFileSync( project.workspace.getProjectCfgPath()).toString());
+
+        if(data._attr != null){
+            for(const k in data._attr){
+                project._attr[k] = AccessAttribute.from(data._attr[k]);
+            }
+        }
+
+        if(project.isOwnedBy(pAccount)){
+            Util.recursiveRmDirSync(
+                _path_.join( pEngine.workspace.getLocation(), pUID )
+            );
+        }
+
+    }
+
+    isOwnedBy( pAccount:UserAccount):boolean {
+        let ret_owned:boolean = false;
+
+        try{
+            AccessControl.checkAttr(
+                AccessZone.PROJECT,
+                ProjectAccessControl.attr.OWNER,
+                this,
+                pAccount.getUID()
+            );
+
+            ret_owned = true;
+
+        }catch(errACL){
+            if((errACL as AccessException).getCode() === AccesErrCode.VIOLATION){
+                AccessControl.check(
+                    AccessZone.PROJECT,
+                    ProjectAccessControl.access.PROJ_CHOWN,
+                    this,
+                    pAccount
+                );
+
+                ret_owned = true;
+            }
+        }
+
+        return ret_owned;
+        //return (this.owner != null && this.owner.is(pUser));
     }
 
 
@@ -776,10 +826,12 @@ export default class DexcaliburProject extends ValidationCapable implements IAud
      * @param {*} pProjectUID 
      * @param {*} pConfigPath 
      */
-    static load( pEngine:DexcaliburEngine, pProjectUID:string, pConfigPath:string = null):DexcaliburProject{
+    static load( pEngine:DexcaliburEngine, pProjectUID:string, pAcc:UserAccount, pConfigPath:string = null):DexcaliburProject{
         
         let project:DexcaliburProject = new DexcaliburProject( pEngine, pProjectUID);
         let data:any = null;
+
+
 
         // Load project from workspace
         //project.config = pEngine.getConfiguration();
@@ -829,6 +881,8 @@ export default class DexcaliburProject extends ValidationCapable implements IAud
                     break;
             }
         }
+
+        project.isOwnedBy(pAcc);
 
 
 
@@ -1007,6 +1061,49 @@ export default class DexcaliburProject extends ValidationCapable implements IAud
         }else{
             throw new Error('There is not disassembler configured');
         }
+    }
+
+
+    /**
+     * To change project owner
+     *
+     * Only a user with PROJ_CHOWN or the current owner of the project
+     * can change the owner
+     *
+     * @param pAuthorSess
+     * @param pNewOwner
+     */
+    changeOwner( pAuthorSess:UserSession, pNewOwner:UserAccount):DexcaliburProject {
+
+        if(this._attr.OWNER.value===null){
+            this._attr.OWNER.value = pNewOwner.getUID();
+        }else{
+            try{
+                AccessControl.checkAttr(
+                    AccessZone.PROJECT,
+                    ProjectAccessControl.attr.OWNER,
+                    this,
+                    pAuthorSess.getUserAccount().getUID()
+                );
+
+                this._attr.OWNER.value = pNewOwner.getUID();
+
+            }catch(errACL){
+                if((errACL as AccessException).getCode() === AccesErrCode.VIOLATION){
+                    AccessControl.check(
+                        AccessZone.PROJECT,
+                        ProjectAccessControl.access.PROJ_CHOWN,
+                        this,
+                        pAuthorSess.getUserAccount()
+                    );
+
+                    this._attr.OWNER.value = pNewOwner.getUID();
+                }
+            }
+        }
+
+
+        return this;
     }
 
     /**

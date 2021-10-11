@@ -38,6 +38,7 @@ import {ConnectionManager} from "./remote/ConnectionManager";
 import ShellHelper from "./ShellHelper";
 import Tool = External.Tool;
 import {GlobalAccessControl} from "./user/acl/rbac/GlobalAccessContol";
+import {UserAccount} from "./user/UserAccount";
 
 const _fixPath_ = require("fix-path");
 
@@ -812,21 +813,27 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
      * @return {boolean} Rteurn TRUE if operation is successfull, else FALSE
      * @method
      */
-    deleteProject( pUID:string):boolean{
+    deleteProject( pAccount:UserAccount, pUID:string):boolean{
         let success:boolean = false;
         try{
-            let proj:DexcaliburProject = this.webserver.project;
+            // if the project is already loaded, instance can be retrieved
+            // from engine instance
+            // else project must be loaded first
+            if(this.active[pUID] != null){
+                // verifiy the project is owned byt he issuer
+                if(this.active[pUID].isOwnedBy(pAccount)){
+                    // if the project is local remmove it
 
-            if(this.active[pUID] != null) this.active[pUID] =  null;
-            /*if(proj!= null && proj.getUID()==pUID){
-                this.workspace.setProject(null);
-            }*/
+                    Util.recursiveRmDirSync(
+                        _path_.join( this.workspace.getLocation(), pUID )
+                    );
 
-            Util.recursiveRmDirSync(
-                _path_.join( this.workspace.getLocation(), pUID )
-            );
+                    success = true;
+                    this.active[pUID] =  null;
+                }
+            }else{
+            }
 
-            success = true;
         }catch(err){
             console.log(err);
             Logger.error("[ENGINE] "," deleteProject() failed");
@@ -843,7 +850,7 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
      * @async
      * @method
      */
-    async openProject( pUID:string):Promise<DexcaliburProject>{
+    async openProject( pUserAccount:UserAccount, pUID:string):Promise<DexcaliburProject>{
         let project:DexcaliburProject = null, success:any = false;
 
         let wf:Workflow = this.getWorkflow( pUID);
@@ -855,7 +862,7 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
 
 
             wf.pushStatus(new StatusMessage(7, "Loading project data"));
-            project = DexcaliburProject.load(this, pUID);
+            project = DexcaliburProject.load(this, pUID, pUserAccount);
 
 
             // init
@@ -870,7 +877,8 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
 
             wf.pushStatus(StatusMessage.newSuccess("Project is ready."));
             this.active[pUID] = project;
-            this.webserver.setProject(project);
+
+            //this.webserver.setProject(project);
         }catch(err){
             Logger.error(err.message);
             Logger.error("ENGINE"," openProject() failed");
@@ -891,7 +899,7 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
      * @async
      * @method
      */
-    async newProject( pUID:string, pApkPath:string, pDevice:any=null):Promise<DexcaliburProject>{
+    async newProject( pUID:string, pApkPath:string, pDevice:any=null, pUserAccount:UserAccount = null):Promise<DexcaliburProject>{
 
         let project:DexcaliburProject = null;
         let success:boolean = null;
@@ -913,6 +921,10 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
         }
 
         project = new DexcaliburProject( this, pUID);
+
+        if(pUserAccount != null){
+            project.changeOwner( null, pUserAccount);
+        }
 
         project.setWorkflow(wf);
 
