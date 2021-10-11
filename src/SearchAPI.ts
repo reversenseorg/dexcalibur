@@ -20,7 +20,7 @@ import AndroidService from "./android/AndroidService";
 import {AndroidPermission} from "./android/Permissions";
 import {CONST} from "./CoreConst";
 import {ModelFunction} from "./ModelFunction";
-import {IDbCollection, IDbIndex} from "./ConnectorFactory";
+import {IDbCollection, IDbIndex} from "./persist/orm/DbAbstraction";
 
 
 

@@ -5,7 +5,7 @@ import ModelCall from "./ModelCall";
 import ModelStringValue from "./ModelStringValue";
 import {XRef} from "./ModelReference";
 import {Finder} from "./Finder";
-import {IDbIndex} from "./ConnectorFactory";
+import {IDbIndex} from "./persist/orm/DbAbstraction";
 import ModelConstantValue from "./ModelConstantValue";
 import {CONST} from "./CoreConst";
 import ModelFile from "./ModelFile";
