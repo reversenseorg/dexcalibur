@@ -149,6 +149,18 @@ export class Workflow  implements IAuditableAccess {
     }
 
     /**
+     * To change workflow owner
+     *
+     * @param {UserAccount} pAccount
+     * @return {Workflow} This instance
+     * @method
+     */
+    changeOwner( pAccount:UserAccount):Workflow {
+        this._attr.OWNER.value = pAccount.getUID();
+        return this;
+    }
+
+    /**
      * To define workflow owner
      *
      * The owner is also a follower
@@ -162,6 +174,12 @@ export class Workflow  implements IAuditableAccess {
         this.addFollower(pUser,pSocket,pOpts);
     }
 
+    /**
+     *
+     * @param pUser
+     * @param pSocket
+     * @param pOpts
+     */
     addFollower( pUser:any, pSocket:any, pOpts:any={}):void {
         // TODO : check is pUser has sufficient permission to follow this workflow
         // TODO : implement custom-control for add follower access attr
@@ -169,6 +187,10 @@ export class Workflow  implements IAuditableAccess {
         this.followers.push({ user:pUser, socket:pSocket, opts:pOpts  });
     }
 
+    /**
+     *
+     * @param pDirectOpts
+     */
     sendStatusToFollowers( pDirectOpts:any = null):void {
 
         Logger.debug("[WORKFLOW] sendStatusToFollowers count : "+this.followers.length);

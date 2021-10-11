@@ -190,7 +190,7 @@ export class WebsocketServer
                                                             AccessZone.PROJECT,
                                                             ProjectAccessControl.access.PROJ_OPEN_OWN,
                                                             prj,
-                                                            sess
+                                                            sess.getUserAccount()
                                                         );
 
                                                         if(wf!=null){
@@ -198,7 +198,7 @@ export class WebsocketServer
                                                                 AccessZone.GENERIC,
                                                                 GlobalAccessControl.access.GLOB_SHOW_ALL_WORKFLOWS,
                                                                 wf,
-                                                                sess
+                                                                sess.getUserAccount()
                                                             );
 
                                                             wf.sendStatus(user, conn, { localid: unsafeJSON.data.localid });
