@@ -1,10 +1,8 @@
 
-import SerializedObject from "./SerializedObject";
-import {IDbIndex} from "../../src/ConnectorFactory";
-import {DbColumnTemplate} from "../../src/persist/orm/DbColumnTemplate";
-import {DbSetType} from "../../src/persist/orm/DbAbstraction";
+import {DbSetType, IDbIndex} from "../../src/persist/orm/DbAbstraction";
 import {SqliteAPI} from "./SqliteAPI";
-import {NodeProperty} from "../../src/persist/orm/NodeProperty";
+import {SqliteException} from "./SqliteException";
+import {NodeType} from "../../src/persist/orm/NodeType";
 
 /**
  * Represents an array of element
@@ -19,8 +17,7 @@ export default class SqliteDbIndex implements IDbIndex
 
     name:string = null;
     refs:any = [];
-    model:any = null;
-    tpl: NodeProperty[] = [];
+    _tpl: NodeType = null;
     private _s:SqliteAPI;
 
 
@@ -30,16 +27,15 @@ export default class SqliteDbIndex implements IDbIndex
      * @param {String} name
      * @constructor
      */
-    constructor(pSqliteApi:SqliteAPI, name:string, pTpl:NodeProperty[], pModel:any){
+    constructor(pSqliteApi:SqliteAPI, name:string, pTpl:NodeType){
         this.name = name;
         this.refs = [];
-        this.model = pModel;
-        this.tpl = pTpl;
+        this._tpl = pTpl;
         this._s = pSqliteApi;
     }
 
     create(){
-        this._s._createTable( this.name, this.tpl, {notExists:true});
+        this._s._createTable( this.name, this._tpl.getProperties(), {notExists:true});
     }
 
     /**
@@ -156,15 +152,19 @@ export default class SqliteDbIndex implements IDbIndex
 
 
     isSerializable():boolean{
-        let ret:boolean = false;
+        /*let ret:boolean = false;
         for(let i:number=0; i<this.refs.length ; i++)
             ret = ret && this.refs[i].isSerializable();
 
-        return ret;
+        return ret;*/
+
+        return false;
     }
 
     static unserialize(serialized_obj:any){
-        let self:SqliteDbIndex = new SqliteDbIndex(), o=null;
+        throw new SqliteException("SqliteDbIndex are not serializable");
+        /*
+        let self:SqliteDbIndex = new SqliteDbIndex(serialized_obj.name), o=null;
         self.name = serialized_obj.name;
         self.refs = [];
         for(let i:number=0; i<serialized_obj.refs.length; i++){
@@ -175,11 +175,14 @@ export default class SqliteDbIndex implements IDbIndex
             else
                 self.refs.push(serialized_obj.refs[i]);
         }
-        return self;
+        return self;*/
     }
 
 
     serialize(){
+
+        throw new SqliteException("SqliteDbIndex are not serializable");
+        /*
         let o:any = {};
 
         o.__type = SqliteDbIndex.__type;
@@ -195,6 +198,6 @@ export default class SqliteDbIndex implements IDbIndex
                 o.refs.push(this.refs[i]);
         }
 
-        return o;
+        return o;*/
     }
 }

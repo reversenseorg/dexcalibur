@@ -1,5 +1,6 @@
 'use strict';
 
+import * as _path_ from "path";
 import * as _fs_ from "fs";
 import * as _sqlite_ from "better-sqlite3";
 import DexcaliburProject from "../../src/DexcaliburProject";
@@ -76,7 +77,7 @@ export default class SqliteConnector implements IDatabaseAdapter
             this.create(pPath);
         }
 
-        return true;
+        return this.db;
     }
 
 
@@ -99,14 +100,23 @@ export default class SqliteConnector implements IDatabaseAdapter
         return this.db.getCollection(pName);
     }
 
-    newTemporaryDb(pName: string): IDatabase {
+    newTemporaryDb(pPath: string): IDatabase {
+        let p:string;
+        if(!_path_.isAbsolute(pPath) || !_fs_.existsSync(pPath)){
+            p = _path_.join(this.ctx.getWorkspace().getPath(),pPath);
+        }else{
+            p = pPath;
+        }
 
-        this.tmpDbs[pName] = new SqliteDb(this, pName);
+        const dbname = _path_.basename(pPath);
 
-        return this.tmpDbs[pName];
+        this.tmpDbs[dbname] = new SqliteDb(p, this);
+
+        return this.tmpDbs[dbname];
     }
 
     clearTemporaryDb( pName:string):void{
+        // todo : wipe or delete db
         this.tmpDbs[pName] = null;
     }
 

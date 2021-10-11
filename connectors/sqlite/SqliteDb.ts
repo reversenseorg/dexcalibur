@@ -21,6 +21,7 @@ import {
 import {SqliteAPI} from "./SqliteAPI";
 import {DbColumnTemplate} from "../../src/persist/orm/DbColumnTemplate";
 import {NodeType} from "../../src/persist/orm/NodeType";
+import {NodeProperty} from "../../src/persist/orm/NodeProperty";
 
 
 const METADATA_TABLE = "dxc_meta";
@@ -43,7 +44,7 @@ class SqliteDb implements IDatabase
      * @return {SqliteDb}
      * @constructor
      */
-    constructor(pPath=null, pConnector:SqliteConnector, ){
+    constructor(pPath=null, pConnector:SqliteConnector ){
         this.conn = pConnector;
         this.indexes = {};
         this.sizes = {};
@@ -64,8 +65,8 @@ class SqliteDb implements IDatabase
         if(f) return;
 
         this._s._createTable(METADATA_TABLE, [
-            (new DbColumnTemplate("name")).type(DbDataType.STRING).key(DbKeyType.PRIMARY),
-            (new DbColumnTemplate("type")).type(DbDataType.STRING).def("Index").notnull()
+            (new NodeProperty("name")).type(DbDataType.STRING).key(DbKeyType.PRIMARY),
+            (new NodeProperty("type")).type(DbDataType.STRING).def("Index").notnull()
         ]);
     }
 
@@ -105,7 +106,7 @@ class SqliteDb implements IDatabase
         }
 
 
-        this.indexes[name] = new SqliteDbCollection(this._s, name, pNodeType.getProperties(), null);
+        this.indexes[name] = new SqliteDbCollection(this._s, name, pNodeType);
 
         return this.indexes[name] as SqliteDbCollection;
     }
@@ -134,7 +135,7 @@ class SqliteDb implements IDatabase
             //throw new SqliteException("An index already exists for the given name");
         }
 
-        this.indexes[name] = new SqliteDbIndex(this._s, name, pNodeType.getProperties(), null);
+        this.indexes[name] = new SqliteDbIndex(this._s, name, pNodeType);
 
         return this.indexes[name] as SqliteDbIndex;
     }
@@ -146,12 +147,12 @@ class SqliteDb implements IDatabase
      * @returns {InMemoryDBIndex} Index with the given name
      * @method
      */
-    getIndex(name:string pTemplate:NodeType = null):SqliteDbIndex{
+    getIndex(name:string, pTemplate:NodeType = null):SqliteDbIndex{
         if(this.indexes.hasOwnProperty(name)===false){
             this.newIndex(name);
         }
 
-        return this.indexes[name];
+        return this.indexes[name] as SqliteDbIndex;
     }
 
     /**
@@ -165,7 +166,7 @@ class SqliteDb implements IDatabase
         if(this.indexes.hasOwnProperty(name)===false){
             this.newCollection(name);
         }
-        return this.indexes[name];
+        return this.indexes[name] as SqliteDbCollection;
     }
 
     /**
@@ -179,10 +180,6 @@ class SqliteDb implements IDatabase
         o.indexes = {};
         for(let i in this.indexes){
             o.indexes[i] = this.indexes[i].toJsonObject();
-            if(this.indexes[i] instanceof SqliteDbIndex)
-                this.indexes[i].__type = DbSetType.INDEX;
-            else
-                this.indexes[i].__type = DbSetType.COLL;
         }
 
         return o;
@@ -191,24 +188,28 @@ class SqliteDb implements IDatabase
     // ============ serialize ============
 
     isSerializable():boolean{
-        let ret:boolean=true;
+        return false;
+        /*let ret:boolean=true;
         for(let i in this.indexes){
             ret = ret && this.indexes[i].isSerializable();
         }
-        return ret;
+        return ret;*/
     }
 
     unserialize(obj:any):void{
+        /*
         for(let i in obj.indexes){
             if(obj.indexes[i].__type === "Index"){
                 this.indexes[i] = SqliteDbIndex.unserialize(obj.indexes[i]);
             }else{
                 this.indexes[i] = SqliteDbCollection.unserialize(obj.indexes[i]);
             }
-        }
+        }*/
     }
 
     serialize():any{
+        return null;
+        /*
         let o:any=new Object();
 
         o.indexes = {};
@@ -221,7 +222,7 @@ class SqliteDb implements IDatabase
                 o.indexes[i] = this.indexes[i];
         }
 
-        return o;
+        return o;*/
     }
 }
 

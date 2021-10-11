@@ -5,10 +5,12 @@
  * @class
  */
 import SerializedObject from "./SerializedObject";
-import {IDbCollection} from "../../src/ConnectorFactory";
-import {DbSetType} from "../../src/persist/orm/DbAbstraction";
+import {DbSetType, IDbCollection} from "../../src/persist/orm/DbAbstraction";
 import {NodeProperty} from "../../src/persist/orm/NodeProperty";
-import {SqliteAPI} from "./SqliteAPI";
+import {PreparedStatementList, SqliteAPI} from "./SqliteAPI";
+import {SqliteException} from "./SqliteException";
+import {NodeType} from "../../src/persist/orm/NodeType";
+
 
 
 export default class SqliteDbCollection implements IDbCollection
@@ -17,9 +19,10 @@ export default class SqliteDbCollection implements IDbCollection
     name:string = null;
     private _c = 0;
     values:any = {};
-    private _tpl: NodeProperty[] = [];
+    private _tpl: NodeType = null;
 
     private _s:SqliteAPI = null;
+    private _ps:PreparedStatementList;
 
 
     /**
@@ -28,20 +31,21 @@ export default class SqliteDbCollection implements IDbCollection
      * @param {String} name
      * @constructor
      */
-    constructor(pSqliteApi:SqliteAPI, name:string, pTpl:NodeProperty[]){
+    constructor(pSqliteApi:SqliteAPI, name:string, pTpl:NodeType){
         this.name = name;
         this._tpl = pTpl;
         this._s = pSqliteApi;
         this._c = 0;
 
         // TODO : generate prepared statements
+        this._ps = this._s._generatePreparedStmt(name, this._tpl);
     }
 
     /**
      * To create table where data will be stored
      */
     create(){
-        this._s._createTable( this.name, this._tpl, {notExists:true});
+        this._s._createTable( this.name, this._tpl.getProperties(), {notExists:true});
     }
 
 
@@ -49,8 +53,7 @@ export default class SqliteDbCollection implements IDbCollection
         if(!this.hasEntry(key)){
             this._c++;
         }
-        this.values[key] = value;
-        this._s._insert( this.name, this._tpl)
+        this._s._execInsert(this._ps.insertSingle, value);
     }
 
     addEntry(key:string,value:any){
@@ -58,11 +61,11 @@ export default class SqliteDbCollection implements IDbCollection
     }
 
     getEntry(key:string):any{
-        return this.values[key];
+        return this._s._execSelect(this._ps.selectSingle, [key]);
     }
 
     getAll():any{
-        return this.values;
+        return this._s._execSelectAll(this._ps.selectSingle,[]);
     }
 
     hasEntry(key:string):boolean{
@@ -91,7 +94,7 @@ export default class SqliteDbCollection implements IDbCollection
         let o:any= {};
 
         o.name = this.name;
-        o.ctr = this.ctr;
+        o._c = this._c;
         o.values = {};
         for(let i in this.values){
             if(typeof this.values[i].toJsonObject === 'function')
@@ -106,10 +109,12 @@ export default class SqliteDbCollection implements IDbCollection
     // ======= serialize =======
 
     isSerializable():boolean{
-        return true;
+        return false;
     }
 
     static unserialize(serialized_obj:any):IDbCollection{
+        throw  new SqliteException("SqliteDbCollection  are not unserializable");
+        /*
         let self:SqliteDbCollection = new SqliteDbCollection(), o=null;
         self.name = serialized_obj.name;
         self._c = serialized_obj._c;
@@ -123,10 +128,13 @@ export default class SqliteDbCollection implements IDbCollection
             else
                 self.values[i]=serialized_obj.values[i];
         }
-        return (self as IDbCollection);
+        return (self as IDbCollection);*/
     }
 
     serialize():any{
+        throw  new SqliteException("SqliteDbCollection  are not serializable");
+
+        /*
         let o:any= {};
 
         o.__type = SqliteDbCollection.__type;
@@ -144,6 +152,6 @@ export default class SqliteDbCollection implements IDbCollection
                 o.values[i]=this.values[i];
         }
 
-        return o;
+        return o;*/
     }
 }
