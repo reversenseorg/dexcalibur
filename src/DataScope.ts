@@ -9,12 +9,22 @@ export enum DataScopePpts {
 }
 
 export default class DataScope {
+    _i:string = "files_"
     _n:string = null;
     _p:any = null;
 
     constructor( pName:string, pOpts:any={}){
         this._n = pName;
         this._p = pOpts;
+    }
+
+
+    setIndexPrefix(pPrefix:string){
+        this._i = pPrefix;
+    }
+
+    getIndexName():string {
+        return this._i+this._n;
     }
 
     getName():string {
