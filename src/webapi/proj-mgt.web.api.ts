@@ -1,0 +1,398 @@
+import {DelegateWebApi} from "./DelegateWebApi";
+import {Device} from "../Device";
+import WebServer from "../WebServer";
+import DeviceManager from "../DeviceManager";
+import {Request, Response} from "express";
+import * as Log from "../Logger";
+import {UserSession} from "../user/session/UserSession";
+import DexcaliburProject from "../DexcaliburProject";
+import {UserAccount} from "../user/UserAccount";
+import Platform from "../Platform";
+import {Workflow} from "../Workflow";
+import StatusMessage from "../StatusMessage";
+import PlatformManager from "../PlatformManager";
+import Downloader from "../Downloader";
+import * as _fs_ from "fs";
+import {DexcaliburProjectException} from "../errors/DexcaliburProjectException";
+import {AuthenticationException} from "../errors/AuthenticationException";
+import AccessControl from "../user/acl/AccessControl";
+import {AccessZone} from "../user/acl/Zones";
+import {ProjectAccessControl} from "../user/acl/rbac/ProjectAccessContol";
+import {ConnectionHandler} from "../remote/ConnectionHandler";
+import {Settings} from "../Settings";
+import ConnectionSettings = Settings.ConnectionSettings;
+import {DexcaliburConnectionException} from "../errors/DexcaliburConnectionException";
+
+let Logger:Log.Logger = Log.newLogger() as Log.Logger;
+export const PROJECT_MGT_WEB_API: DelegateWebApi = new DelegateWebApi();
+
+PROJECT_MGT_WEB_API.addAuthenticatedRoute(
+    '/list',
+    {
+        'get': async (req:Request, res:Response)=>{
+
+            let $:WebServer = req.dxc.$;
+            let user:UserAccount;
+
+            try {
+                if (req.dxc!=null && $.context.getUserService().verifySession(req.dxc.sess)) {
+                    user = (req.dxc.sess as UserSession).getUserAccount();
+
+                    $.sendSuccess( res, {
+                        projects: user.getProjects()
+                    });
+                }
+            }catch(err){
+                Logger.error("[API][PROJECT MGT] Unable to list projects : "+err.message+"\n"+err.stack);
+                $.sendError( res, err.message);
+            }
+        }
+    }
+);
+
+
+PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
+    '/new',
+    {
+        'post': async (req:Request, res:Response)=>{
+
+
+            const PLATFORM_MODE = ['dev','min','max'];
+
+            let $:WebServer = req.dxc.$;
+
+            let project:DexcaliburProject = null;
+            let dm:DeviceManager = null;
+            let device:Device = null;
+            let path:string = null;
+            let user:UserAccount = null;
+            let platform:Platform = null;
+            let success:boolean = true;
+            let wf:Workflow = null;
+
+
+
+            try{
+                if(req.dxc==null || !$.context.getUserService().verifySession(req.dxc.sess)){
+                    throw  AuthenticationException.AUTHENTICATION_FAILED();
+                }
+
+                dm = DeviceManager.getInstance();
+                await dm.scan();
+
+
+                user = (req.dxc.sess as UserSession).getUserAccount();
+
+                if(req.body['dev'] != null){
+                    device = dm.getDevice( req.body['dev']);
+                    if(device == null || !device.isEnrolled()){
+                        throw DexcaliburProjectException.TARGET_DEVICE_NOT_ENROLLED();
+                    }
+                }
+
+                if(req.body['name'] == null){
+                    throw DexcaliburProjectException.INVALID_NAME();
+                }
+
+                // init workflow
+                wf = $.context.newWorkflow(req.body['name']).changeOwner(user);
+
+
+                // first download remote application
+                // on error : ne‹ project will not create.
+                switch(req.body['type'])
+                {
+                    case 'select':
+                        if(device == null){
+                            throw DexcaliburProjectException.TARGET_DEVICE_NOT_FOUND();
+                        }
+                        wf.pushStatus(new StatusMessage(5, "Get target platform"));
+                        platform = device.getPlatform();
+                        wf.pushStatus(new StatusMessage(10, "Pull application from device"));
+                        path = device.pullTemp( req.body['path'] );
+                        break;
+                    case 'download':
+                        if(PLATFORM_MODE.indexOf(req.body['platform'])==-1){
+                            wf.pushStatus(new StatusMessage(5, "Set target platform"));
+                            platform = PlatformManager.getInstance().getPlatform( req.body['platform']);
+                        }
+                        wf.pushStatus(new StatusMessage(10, "Download target application from remote location"));
+                        path = await Downloader.downloadTemp(req.body['url'], { mode:0o666, encoding:'binary', force:true });
+                        break;
+                    case 'upload':
+                        wf.pushStatus(new StatusMessage(5, "Set target platform"));
+                        platform = PlatformManager.getInstance().getPlatform( req.body['platform']);
+                        wf.pushStatus(new StatusMessage(10, "Select previously uploaded application"));
+//                        path = $.uploader.getPathOf(req.body['uploadid']);
+                        path = $.uploader.getPathOf((req.dxc.sess as UserSession).getData('proj_upload_id'));
+
+                        break;
+                    case 'fromfs':
+                        wf.pushStatus(new StatusMessage(10, "Set target platform"));
+                        platform = PlatformManager.getInstance().getPlatform( req.body['platform']);
+                        path = req.body['path'];
+                        break;
+                    case 'fromfs':
+                        throw new Error("Project type is invalid")
+                        break;
+                }
+
+                // chcek if file exists an it is not empty
+                if( (!_fs_.existsSync(path)) || (false)){
+                    throw DexcaliburProjectException.APP_FILE_OT_FOUND();
+                }
+
+                if(['min','max','dev'].indexOf(req.body['platform'])>-1){
+                    platform = null;
+                }
+
+
+                Logger.info(
+                    '[PROJECT][STEP 2] Detecting device  ... ',
+                    device!==null?'[OK]':'[KO]',
+                    ' Platform ... ',
+                    platform!==null? '[OK]':'[KO]');
+
+                // create project : UID , APK [, Device]
+                Logger.info('[PROJECT][STEP 2] Creating new project ...');
+
+                wf.stepUp(15);
+
+                project = await $.context.newProject(req.body['name'], path, device, user);
+
+                if(project == null){
+                    throw DexcaliburProjectException.STEP2_FAILURE();
+                }
+
+                project.setWorkflow(wf);
+
+                // to set connector
+                Logger.info('[PROJECT][STEP 3] Setting connectors ...');
+
+                if(req.body['connector'] != null && req.body['connector'].length > 0){
+                    project.setConnector(req.body['connector']);
+                }else
+                    project.setConnector($.context.getWorkspace().getSettings().getDefaultConnector());
+
+
+                if(project != null){
+                    Logger.info('[PROJECT][STEP 3.1] Configuring platform ...');
+                    wf.pushStatus(new StatusMessage(10, "Synchronizing target platform with project"));
+                    //platform = PlatformManager.getInstance().getDefaultPlatformFor();
+                    // sync project platform with target platform or APK
+                    success = await project.synchronizePlatform( platform.getUID());
+                }
+
+                Logger.info('[PROJECT][STEP 4] Analyzing application ...');
+                if(success){
+                    wf.stepUp(15);
+                    project = await project.fullscan();
+                    success = project.isReady();
+                    wf.pushStatus(StatusMessage.newSuccess("Project has been created successfully."))
+                }
+
+                if(!success){
+                    throw DexcaliburProjectException.NEW_PROJECT_FAIL();
+                }
+
+
+                $.sendSuccess( res, {
+                    uid: (project != null ? project.getUID() : null)
+                });
+            }catch(err){
+
+                if(wf!=null){
+                    wf.pushStatus(StatusMessage.newError(err.message))
+                }
+
+                Logger.error("[API][PROJECT MGT] "+err.message+"\n\t"+err.stack);
+                $.sendError(res, err.message);
+            }
+
+            return ;
+
+        }
+    }
+);
+
+/*
+ * ROUTE
+ * Upload a file into target workspace
+ *
+ */
+PROJECT_MGT_WEB_API.addAuthenticatedRoute(
+    '/upload',
+    {
+        'post':  (req:Request, res:Response)=>{
+
+
+            let $:WebServer = req.dxc.$;
+            let user:UserAccount;
+            try {
+
+                if(req.dxc==null || !$.context.getUserService().verifySession(req.dxc.sess)){
+                    throw  AuthenticationException.AUTHENTICATION_FAILED();
+                }
+
+                $.uploader.newUpload( req, res,function( vId:string):any {
+                    // save upload UID into user session
+                    req.dxc.sess.addData('proj_upload_id', vId);
+
+                    $.sendSuccess( res, { upload:vId });
+                    res.end();
+                });
+
+            }catch(err){
+                Logger.error("[API][PROJECT MGT] Project upload failed : "+err.message+"\n"+err.stack);
+                $.sendError( res, err.message)
+            }
+
+
+        }
+    }
+)
+
+
+PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
+    '/open',
+    {
+        'get': async (req:Request, res:Response)=>{
+
+
+            let $:WebServer = req.dxc.$;
+            let project:DexcaliburProject = null;
+            let wf:Workflow;
+            let user:UserAccount;
+
+            try {
+                if(req.dxc==null || !$.context.getUserService().verifySession(req.dxc.sess)) {
+                    throw AuthenticationException.AUTHENTICATION_FAILED();
+                }
+
+                user = req.dxc.sess.getUserAccount();
+
+                // refresh connected device
+                await DeviceManager.getInstance().scan();
+
+
+                project = $.context.getProject( req.query.uid);
+
+                AccessControl.check(
+                    AccessZone.PROJECT,
+                    ProjectAccessControl.access.PROJ_OPEN_OWN,
+                    project,
+                    req.dxc.sess.getUserAccount()
+                );
+
+                if(project != null){
+
+                    // if the project is already opened, it is set as active (foregrounf) project
+                    req.dxc.sess.setData('prj_active', project);
+
+                    /*
+                    if($.project == null){
+                        $.setProject( project);
+                    }
+                    else if($.project != null && $.project.getUID()!==req.query.uid){
+                        $.setProject( project);
+                    }*/
+
+                    if(project.isReady()){
+                        $.sendSuccess( res, {});
+                    }else{
+                        $.sendError( res, "Project is open but not ready");
+                    }
+                    return ;
+                }
+
+
+                // init workflow
+                wf = $.context.newWorkflow( req.query.uid ).changeOwner(user);
+
+
+                wf.pushStatus(new StatusMessage(5, "Opening project"));
+
+                project = await $.context.openProject( user, req.query.uid);
+
+                if(project.isReady()){
+                    req.dxc.sess.setData('prj_active', project);
+                    $.sendSuccess( res, {})
+                }else{
+                    throw DexcaliburProjectException.OPEN_PROJECT_FAILURE();
+                }
+
+            }catch(err){
+                Logger.error("[API][PROJECT MGT] Opening project failed : "+err.message+"\n"+err.stack);
+                $.sendError( res, err.message)
+            }
+
+
+        }
+    }
+)
+
+PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
+    '/delete',
+    {
+        'post': async (req:Request, res:Response)=>{
+
+            let $:WebServer = req.dxc.$;
+            let user:UserAccount;
+
+            try {
+                if (req.dxc!=null && $.context.getUserService().verifySession(req.dxc.sess)) {
+                    user = (req.dxc.sess as UserSession).getUserAccount();
+
+                    if(req.dxc.project == null){
+                        throw DexcaliburProjectException.DELETE_PROJ_FAILURE_NOTFOUND();
+                    }
+
+                    $.sendSuccess( res, {
+                        projects: $.context.deleteProject( user, (req.dxc.project as DexcaliburProject).getUID() )
+                    });
+                }
+            }catch(err){
+                Logger.error("[API][PROJECT MGT] Unable to delete project : "+err.message+"\n"+err.stack);
+                $.sendError( res, err.message);
+            }
+        }
+    }
+);
+
+
+PROJECT_MGT_WEB_API.addAuthenticatedRoute(
+    '/availability',
+    {
+        'get':  (req:Request, res:Response)=>{
+
+            let $:WebServer = req.dxc.$;
+            let availability:boolean = true;
+
+            try {
+                if(req.query.conn != null && req.query.conn != ConnectionSettings.LOCAL){
+                    throw DexcaliburConnectionException.REMOTE_OPERATION_NOT_SUPPORTED();
+                }
+
+                switch( req.query.field)
+                {
+                    case "project.uid":
+                        const proj = $.context.workspace.listProjects();
+                        proj.map((vProject)=>{
+                            if(vProject == req.query.value)
+                                availability = false;
+                        })
+                        break;
+                }
+
+
+                $.sendSuccess(res, { availability: availability });
+            }catch(err){
+                Logger.error("[API][PROJECT MGT] Unable to verify availability of the value: "+err.message+"\n"+err.stack);
+                $.sendError( res, err.message);
+            }
+        }
+    }
+);
+
+
+
