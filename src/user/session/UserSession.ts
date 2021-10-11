@@ -125,7 +125,7 @@ export class UserSession {
             AccessZone.PROJECT,
             ProjectAccessControl.access.PROJ_OPEN_OWN,
             pContext.getProject(pProjectUID),
-            this
+            this.getUserAccount()
         );
 
 
