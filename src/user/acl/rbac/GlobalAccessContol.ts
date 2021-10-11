@@ -1,8 +1,8 @@
 import {DelegateAccessControl} from "../DelegateAccessControl";
 import {Access, AccesErrCode, AccessException, AccessMap, AccessType} from "../Access";
-import {UserSession} from "../../session/UserSession";
 import {AccessAttribute, AccessAttributeMap} from "../AccessAttribute";
 import {Workflow} from "../../../Workflow";
+import {UserAccount} from "../../UserAccount";
 
 
 export class GlobalAccessControl extends DelegateAccessControl {
@@ -27,20 +27,21 @@ export class GlobalAccessControl extends DelegateAccessControl {
     /**
      *
      * @param pAccess
-     * @param pSession
+     * @param pAccount
+     * @param pExtra
      */
-    check(pAccess: Access, pSession: UserSession, pExtra:any = null) {
+    check(pAccess: Access, pAccount:UserAccount, pExtra:any = null) {
         switch (pAccess.name) {
             case 'GLOB_SHOW_ALL_WORKFLOWS':
-                if(pSession.getUserAccount().getUserRole().hasAccess(pAccess)===false){
+                if(pAccount.getUserRole().hasAccess(pAccess)===false){
                     throw new AccessException("[PROJECT] Access violation, current user has not enough privilege ("+pAccess.name+") ", AccesErrCode.VIOLATION)
                 }
             case 'GLOB_SHOW_OWN_WORKFLOWS':
-                if(pSession.getUserAccount().getUserRole().hasAccess(pAccess)===false){
+                if(pAccount.getUserRole().hasAccess(pAccess)===false){
                     throw new AccessException("[PROJECT] Access violation, current user has not enough privilege ("+pAccess.name+") ", AccesErrCode.VIOLATION)
                 }else{
                     // do attributes check to verify ownership
-                    this.checkAttr( GlobalAccessControl.attr.OWNER, pSession, pExtra);
+                    this.checkAttr( GlobalAccessControl.attr.OWNER, pAccount, pExtra);
                 }
                 break;
             default:
@@ -53,11 +54,11 @@ export class GlobalAccessControl extends DelegateAccessControl {
      * @param pAccess
      * @param pSession
      */
-    checkAttr(pAttr: AccessAttribute, pSession: UserSession, pWf:Workflow = null) {
+    checkAttr(pAttr: AccessAttribute, pAccount:UserAccount, pWf:Workflow = null) {
         switch (pAttr.name) {
             case 'owner':
                 // verify project owner is the current user
-                if(pSession.getUserAccount().getUID() !== pWf.getAccessAttribute(pAttr.name).value){
+                if(pAccount.getUID() !== pWf.getAccessAttribute(pAttr.name).value){
                     throw new AccessException("[GLOBAL] The object is not owned by the user : rejected ", AccesErrCode.VIOLATION);
                 }
                 break;

@@ -3,11 +3,11 @@
  */
 import {AccessZone} from "./Zones";
 import {Access, AccesErrCode, AccessException} from "./Access";
-import {UserSession} from "../session/UserSession";
 import {DelegateAccessControl} from "./DelegateAccessControl";
 import {UserRole, UserRoleMap} from "./rbac/UserRole";
 import {BUILT_IN_DEFAULT_ROLE, BUILT_IN_ROLES} from "./Roles";
 import {AccessAttribute} from "./AccessAttribute";
+import {UserAccount} from "../UserAccount";
 
 
 export interface DelegateAccessControlMap {
@@ -90,9 +90,9 @@ export default class AccessControl {
     /**
      * To check if the given session can access to the given entry
      */
-    static check(pZone:AccessZone, pControl:Access, pAccessObject:any, pSession:UserSession):void {
+    static check(pZone:AccessZone, pControl:Access, pAccessObject:any, pAccount:UserAccount):void {
         AccessControl.hasZone(pZone);
-        AccessControl.zones[pZone].check(pControl, pSession, pAccessObject);
+        AccessControl.zones[pZone].check(pControl, pAccount, pAccessObject);
     }
 
     static getDefaultRole(): UserRole {
