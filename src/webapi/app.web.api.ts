@@ -6,7 +6,7 @@ import {Request, Response} from "express";
 import * as Log from "../Logger";
 import DataScope from "../DataScope";
 import * as _path_ from "path";
-import {IDbIndex} from "../ConnectorFactory";
+import {IDbIndex} from "../persist/orm/DbAbstraction";
 import ModelFile from "../ModelFile";
 import DexcaliburProject from "../DexcaliburProject";
 import * as path from "path";
