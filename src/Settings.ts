@@ -439,6 +439,8 @@ export namespace Settings {
 
     export class    ConnectionSettings extends AbstractSettings {
 
+        static LOCAL = 'local';
+
         private _all: DexcaliburConnectionParamsList = {};
 
         static newInstance( pParent:GlobalSettings, pName:string, pIp:string, pPort:number):ConnectionSettings {
