@@ -62,7 +62,7 @@ export default class AnalyzerDatabase
             this.conn = pContext.connector;
         }
 
-        this.conn.connect();
+        this.conn.connect({});
 
         this.classes =this.conn.getCollection("classes");
         this.fields =this.conn.getCollection("fields");
