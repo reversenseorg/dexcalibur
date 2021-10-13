@@ -6,7 +6,7 @@ import {Request, Response} from "express";
 import * as Log from "../Logger";
 import DataScope from "../DataScope";
 import * as _path_ from "path";
-import {IDbIndex} from "../persist/orm/DbAbstraction";
+import {IDbCollection, IDbIndex} from "../persist/orm/DbAbstraction";
 import ModelFile from "../ModelFile";
 import DexcaliburProject from "../DexcaliburProject";
 import * as path from "path";
@@ -91,7 +91,7 @@ APP_WEB_API.addAuthenticatedRoute(
                     target = ".";//_path_.sep;//SCOPE.getBasePath();
                 }
 
-                const files:IDbIndex = proj.dataAnalyzer.getIndex('PKG');
+                const files:IDbCollection = proj.dataAnalyzer.getIndex('PKG');
 
                 files.map( (vOffset:number, vFile:ModelFile)=>{
                     // Logger.info(vFile.getRelativePath()+" =?= "+target+" > "+vFile.hasRelDir(target));

@@ -39,7 +39,7 @@ PROJECT_MGT_WEB_API.addAuthenticatedRoute(
                     user = (req.dxc.sess as UserSession).getUserAccount();
 
                     $.sendSuccess( res, {
-                        projects: user.getProjects()
+                        projects: user.listProjects($.context)
                     });
                 }
             }catch(err){
@@ -287,7 +287,7 @@ PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
                 if(project != null){
 
                     // if the project is already opened, it is set as active (foregrounf) project
-                    req.dxc.sess.setData('prj_active', project);
+                    (req.dxc.sess as UserSession).setDefaultActiveProject(project);
 
                     /*
                     if($.project == null){
@@ -315,7 +315,8 @@ PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
                 project = await $.context.openProject( user, req.query.uid);
 
                 if(project.isReady()){
-                    req.dxc.sess.setData('prj_active', project);
+                    req.dxc.sess.setDefaultActiveProject(project);
+
                     $.sendSuccess( res, {})
                 }else{
                     throw DexcaliburProjectException.OPEN_PROJECT_FAILURE();
