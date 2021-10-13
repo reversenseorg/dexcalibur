@@ -2,11 +2,13 @@ import {UserAccount} from "../UserAccount";
 import {SessionCode, SessionException} from "./SessionException";
 import Util from "../../Utils";
 import {ConnectionHandler, ConnectionHandlerMap} from "../../remote/ConnectionHandler";
-import DexcaliburEngine from "../../DexcaliburEngine";
+import DexcaliburEngine, {DexcaliburProjectMap} from "../../DexcaliburEngine";
 import DexcaliburProject from "../../DexcaliburProject";
 import AccessControl from "../acl/AccessControl";
 import {AccessZone} from "../acl/Zones";
 import {ProjectAccessControl} from "../acl/rbac/ProjectAccessContol";
+import {Settings} from "../../Settings";
+import {IDexcaliburEngine} from "../../IDexcaliburEngine";
 
 export class UserSession {
 
@@ -25,7 +27,8 @@ export class UserSession {
 
     // uid of project associated to the current session
     // TODO : add instance UID instead of project UID
-    _project: string[] = [];
+    _project: DexcaliburProjectMap = {};
+    _defaultProject: DexcaliburProject = null;
 
     _data:any = {};
 
@@ -91,6 +94,24 @@ export class UserSession {
     }
 
     /**
+     * To refresh the list of active projects associated to this session
+     *
+     * @param pEngine
+     */
+    refreshActiveProject( pEngine:IDexcaliburEngine):void {
+
+        // TODO : add ACL which allows non-owner but authorized auditor (group/team) to work on this project
+        this._project = pEngine.getActiveProjects(this.getUserAccount());
+
+        if(this._defaultProject == null){
+            const PUIDS = Object.keys(this._project);
+            if(PUIDS.length > 0){
+                this._defaultProject = this._project[PUIDS[0]];
+            }
+        }
+    }
+
+    /**
      * To get a list of active project associated to the session
      *
      * @return {string[]} Array of project UID
@@ -99,9 +120,46 @@ export class UserSession {
         if(this._destroyed > -1)
             throw new SessionException("Data cannot be read : Session has been destroyed.", SessionCode.DESTROYED);
 
-        return this._project;
+        return Object.keys(this._project);
     }
 
+    getActiveProject( pUID:string = null):DexcaliburProject {
+
+        const PUIDS = Object.keys(this._project);
+
+        if(PUIDS.length==0){
+            throw SessionException.NO_ACTIVE_PROJECT();
+        }
+
+        if(PUIDS.length>1 && pUID==null){
+            throw SessionException.MULTIPLE_ACTIVE_PROJECT();
+        }
+
+        if(pUID!=null){
+            if(!this._project.hasOwnProperty(pUID)){
+                throw SessionException.INVALID_ACTIVE_PROJECT_UID();
+            }
+            return this._project[pUID];
+        }else{
+            return this._project[PUIDS[0]];
+        }
+    }
+
+    setDefaultActiveProject( pProject:DexcaliburProject):void {
+        // TODO : add ACL which allows non-owner but authorized auditor (group/team) to work on this project
+        /*
+        AccessControl.checkAttr(
+            AccessZone.PROJECT,
+            ProjectAccessControl.attr.GROUP,
+            pProject,
+            this.getUserAccount()
+        )*/
+        if(!this._project.hasOwnProperty(pProject.getUID())){
+            this._project[pProject.getUID()] = pProject;
+        }
+        this._defaultProject = pProject;
+        this.addData('prj_active', pProject);
+    }
 
     /**
      * To get an active project by its UID
