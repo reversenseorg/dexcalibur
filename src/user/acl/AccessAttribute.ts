@@ -48,14 +48,22 @@ export class AccessAttribute {
         return new AccessAttribute(this._n);
     }
 
+
     /**
      * To serialize into poor object ready to be serialized
      *
+     * @param {boolean} pAll If true object is converted into poor object, else, only value is serialized
+     * @method
      */
-    toJsonObject():any {
-        return {
-            _n: this._n,
-            _v: (this._v != null && this._v.hasOwnProperty('toJsonObject'))? this._v.toJsonObject() : this._v
-        };
+    toJsonObject(pAll:boolean = false):any {
+        if(pAll){
+            return {
+                _n: this._n,
+                _v: (this._v != null && this._v.hasOwnProperty('toJsonObject'))? this._v.toJsonObject() : this._v
+            };
+        }else{
+            return (this._v != null && this._v.hasOwnProperty('toJsonObject'))? this._v.toJsonObject() : this._v;
+        }
+
     }
 }
