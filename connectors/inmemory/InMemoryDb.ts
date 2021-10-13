@@ -9,7 +9,16 @@ import InMemoryDbCollection from "./InMemoryDbCollection";
 import InMemoryDbIndex from "./InMemoryDbIndex";
 import InMemoryConnector from "./adapter";
 import {IDatabase} from "../../src/persist/orm/DbAbstraction";
+import {NodeType} from "../../src/persist/orm/NodeType";
 
+/**
+ * Represent a "in memory" database
+ *
+ * It supports two way to store data : index (stack) and collection (key/value map)
+ *
+ * @implements {IDatabase}
+ * @class
+ */
 class InMemoryDb implements IDatabase
 {
     conn:InMemoryConnector = null;
@@ -34,12 +43,23 @@ class InMemoryDb implements IDatabase
     }
 
     /**
+     * To check if a node set (index or collection) exists or not
+     *
+     * @param {string} pName Node set name
+     * @return {boolean} TRUE is exists, else FALSE
+     * @method
+     */
+    exists(pName:string):boolean {
+        return (this.indexes[pName] != null);
+    }
+
+    /**
      * To create a new collection into current DB
      *
      * @param {String} name Name of the collection
      * @method
      */
-    newCollection(name:string):InMemoryDbCollection{
+    newCollection(name:string, pNodeType:NodeType = null):InMemoryDbCollection{
         if(this.indexes[name]!=null) throw new Error("A collection is already set for the given name");
 
         this.indexes[name] = new InMemoryDbCollection(name);
@@ -53,7 +73,7 @@ class InMemoryDb implements IDatabase
      * @param {String} name Name of the index
      * @method
      */
-    newIndex(name:string):InMemoryDbIndex{
+    newIndex(name:string, pNodeType:NodeType = null):InMemoryDbIndex{
         if(this.indexes[name] != undefined) throw new Error("An index already exists for the given name");
 
         this.indexes[name] = new InMemoryDbIndex(name);
@@ -68,12 +88,13 @@ class InMemoryDb implements IDatabase
      * @returns {InMemoryDBIndex} Index with the given name
      * @method
      */
-    getIndex(name:string):InMemoryDbIndex{
+    getIndex(name:string, pNodeType:NodeType = null):InMemoryDbIndex{
         if(this.indexes.hasOwnProperty(name)===false){
-            this.newIndex(name);
+            this.newIndex(name, pNodeType);
         }
         return this.indexes[name];
     }
+
 
     /**
      * To get an index by name
@@ -82,9 +103,9 @@ class InMemoryDb implements IDatabase
      * @returns {InMemoryDBIndex} Index with the given name
      * @method
      */
-    getCollection(name:string):InMemoryDbCollection{
+    getCollection(name:string, pNodeType:NodeType = null):InMemoryDbCollection{
         if(this.indexes.hasOwnProperty(name)===false){
-            this.newCollection(name);
+            this.newCollection(name, pNodeType);
         }
         return this.indexes[name];
     }

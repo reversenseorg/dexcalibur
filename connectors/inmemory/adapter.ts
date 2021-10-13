@@ -85,7 +85,7 @@ export default class InMemoryConnector implements IDatabaseAdapter
 
 
     getCollection( pName:string):Collection{
-        return this.db.getCollection(pName);
+        return this.db.getCollection(pName, null);
     }
 
     newTemporaryDb(pName: string): IDatabase {
