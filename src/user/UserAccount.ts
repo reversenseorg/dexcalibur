@@ -5,9 +5,10 @@ import {UserRole} from "./acl/rbac/UserRole";
 import AccessControl from "./acl/AccessControl";
 import {ProjectURI} from "../project/ProjectGlobalUID";
 import DexcaliburProject from "../DexcaliburProject";
-import DexcaliburEngine from "../DexcaliburEngine";
+import DexcaliburEngine, {DexcaliburProjectMap} from "../DexcaliburEngine";
 import {AccessZone} from "./acl/Zones";
 import {ProjectAccessControl} from "./acl/rbac/ProjectAccessContol";
+import {IDexcaliburEngine} from "../IDexcaliburEngine";
 
 export class UserAccount {
 
@@ -170,7 +171,21 @@ export class UserAccount {
         }
     }
 
-    getProjects():ProjectURI[] {
+    getActiveProjects():ProjectURI[] {
         return this._projects;
+    }
+
+    /**
+     * To list project viewable / auditable / owned
+     *
+     * @param pEngine
+     */
+    listProjects( pEngine:IDexcaliburEngine):string[] {
+        const l = pEngine.listProjectsOf(this);
+        let out:string[] = [];
+        for(const i in l){
+            out.push(i);
+        }
+        return out;
     }
 }
