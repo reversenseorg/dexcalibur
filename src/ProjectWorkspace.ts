@@ -7,6 +7,7 @@ import APK from "./APK";
 
 import * as Log from './Logger';
 import {Stub, STUB_TYPE} from "./ModelSavable";
+import {RuntimeSecurityException} from "./errors/RuntimeSecurityException";
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
 
@@ -288,6 +289,20 @@ export default class ProjectWorkspace
         return _path_.join(this.path,DIR_NAME.SAVE,prefix+d.getTime()+suffix);
     }
 
+    /**
+     * To join a path relative to project workspace root directory
+     *
+     * @param pRelPath
+     * @return {string}
+     */
+    join( pRelPath:string ):string {
+        const unsafe = _path_.join(this.getPath(), pRelPath);
+        if(unsafe.indexOf(this.getPath())!=0){
+            throw RuntimeSecurityException.PATH_TRAVERSAL_IS_FORBIDDEN();
+        }
+
+        return unsafe;
+    }
 
 }
 
