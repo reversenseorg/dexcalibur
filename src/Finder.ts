@@ -94,7 +94,7 @@ export class Finder
     newResultSet():IDbIndex
     {
         this.counter++;
-        return this.__tmp.newIndex('finder:'+this.counter);
+        return this.__tmp.newIndex('finder:'+this.counter, null);
     }
 
     updateDB(pDatabase:AnalyzerDatabase){
@@ -257,7 +257,7 @@ export class Finder
         // create a new collection to hold search results
         tmpDb = this.__DB.getConnector().newTemporaryDb('finder:0');
 
-        matches = tmpDb.newIndex('root');
+        matches = tmpDb.newIndex('root', null);
 
         let d1:number = 0, d2:number = 0;
         index.map((k:any,v:any)=>{
@@ -486,7 +486,7 @@ export class Finder
         // create a new collection to hold search results
         const tmpDb = this.__DB.getConnector().newTemporaryDb('finder:0');
 
-        let matches:IDbIndex = tmpDb.newIndex('root');
+        let matches:IDbIndex = tmpDb.newIndex('root', null);
 
         index.map((k:any,v:any)=>{
             if(v[idHolder] === pattern) {

@@ -32,7 +32,7 @@ import DataScope from "./DataScope";
 import {ModelLocation} from "./ModelLocation";
 import {Workflow} from "./Workflow";
 import StatusMessage from "./StatusMessage";
-import {IDatabase, IDbIndex} from "./persist/orm/DbAbstraction";
+import {IDatabase, IDbIndex, IDbSet} from "./persist/orm/DbAbstraction";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -1861,9 +1861,11 @@ export default class Analyzer
      * @method
      * @since 1.0.0
      */
-    updateFileIndex(index: IDbIndex, pForce:boolean=false) {
-        index.map( (vOffset:number,vVal:any)=>{
-            this.db.files.insert(vVal, pForce);
+    updateFileIndex(index: IDbSet, pForce:boolean=false) {
+        //this.db.files = index;
+
+        index.map( (vOffset:any,vVal:any)=>{
+            this.db.files.addEntry(vVal); //, pForce);
         });
     }
 

@@ -12,12 +12,14 @@ import {NodeProperty} from "./persist/orm/NodeProperty";
 export default class ModelFileSection {
 
     static TYPE:NodeType = new NodeType("file_sections", NodeInternalType.FILE_SECTION, [
-        (new NodeProperty("uid")).type(DbDataType.INTEGER).key(DbKeyType.PRIMARY).def(null),
+       // (new NodeProperty("uid")).type(DbDataType.INTEGER).key(DbKeyType.PRIMARY).def(null),
         (new NodeProperty("o")).type(DbDataType.INTEGER).def(-1),
+        (new NodeProperty("l")).type(DbDataType.INTEGER).def(null),
         (new NodeProperty("t")).type(DbDataType.STRING).def(null),
     ]);
 
     o:number = -1;
+    l:number = -1;
     t:string = "";
 
     constructor(pOffset:number, pType:string) {
@@ -31,5 +33,9 @@ export default class ModelFileSection {
 
     getType():string {
         return this.t;
+    }
+
+    toJsonObject(){
+        return this;
     }
 }

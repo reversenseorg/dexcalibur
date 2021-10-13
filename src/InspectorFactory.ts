@@ -82,10 +82,10 @@ export default class InspectorFactory
 
                 switch(this._config.db.type){
                     case 'index':
-                        ins.getDB().newIndex(this._config.db.name);
+                        ins.getDB().newIndex(this._config.db.name, null);
                         break;
                     case 'collection':
-                        ins.getDB().newCollection(this._config.db.name);
+                        ins.getDB().newCollection(this._config.db.name,null);
                         break;
                 }
             }   

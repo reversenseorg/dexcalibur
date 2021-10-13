@@ -89,18 +89,20 @@ export default class ModelFile implements IPersistent {
         "files",
         NodeInternalType.FILE,
         [
-            (new NodeProperty("uid")).type(DbDataType.STRING).key(DbKeyType.PRIMARY),
+            (new NodeProperty("_r")).type(DbDataType.STRING).key(DbKeyType.PRIMARY), // path relative to scope root
+            (new NodeProperty("_uid")).type(DbDataType.STRING), //.key(DbKeyType.PRIMARY),
             (new NodeProperty("name")).type(DbDataType.STRING).def(null),
             (new NodeProperty("type")).type(DbDataType.STRING).def(null),
             (new NodeProperty("size")).type(DbDataType.INTEGER).def(-1),
             (new NodeProperty("path")).type(DbDataType.STRING).def(null),
             (new NodeProperty("location")).type(DbDataType.STRING).def(null),
-            (new NodeProperty("scope")).type(DbDataType.STRING).def(null),
+            (new NodeProperty("_d")).type(DbDataType.STRING).def('f'),
+
+            (new NodeProperty("scope")).volatile().type(DbDataType.STRING).def(null).serialize(DbSerialize.JSON),
+            (new NodeProperty("sections")).volatile().multiple(ModelFileSection.TYPE).type(DbDataType.STRING).serialize(DbSerialize.JSON),
+
             (new NodeProperty("__p")).volatile().type(DbDataType.STRING).serialize(DbSerialize.JSON),
             (new NodeProperty("__t")).volatile().type(DbDataType.STRING).serialize(DbSerialize.JSON),
-            (new NodeProperty("_d")).type(DbDataType.STRING).def('f'),
-            (new NodeProperty("_r")).type(DbDataType.STRING),
-            (new NodeProperty("sections")).type(DbDataType.STRING).serialize(DbSerialize.JSON),
             (new NodeProperty("f_list")).volatile()
     ]);
 

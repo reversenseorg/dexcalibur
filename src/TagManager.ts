@@ -9,7 +9,7 @@ export class TagManager {
     _db:IDbCollection;
 
     constructor(pContext:DexcaliburProject) {
-        this._db = pContext.connector.getDB().getCollection("tags");
+        this._db = pContext.connector.getDB().getCollection("tags", null);
     }
 
     getTag( pName:string ):Tag {

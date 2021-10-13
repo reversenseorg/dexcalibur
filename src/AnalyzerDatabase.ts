@@ -75,7 +75,7 @@ export default class AnalyzerDatabase
         this.parseErrors =this.conn.getIndex("parseErrors");
         this.strings =this.conn.getIndex("strings");
         this.packages =this.conn.getCollection("packages");
-        this.files =this.conn.getIndex("files");
+        this.files = this.conn.getIndex("files");
         this.buffers =this.conn.getIndex("buffers");
         this.datablock =this.conn.getCollection("datablock");
         this.tagcategories =this.conn.getCollection("tagcategories");

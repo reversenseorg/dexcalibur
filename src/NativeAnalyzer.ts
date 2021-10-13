@@ -99,7 +99,7 @@ export default class NativeAnalyzer {
 
         //const basePath = this.context.getWorkspace()
 
-        this.fileDB.getIndex(pScopeType).map( (pOffset:number, pFile:ModelFile) => {
+        this.fileDB.getIndex(pScopeType, ModelFile.TYPE).map( (pOffset:number, pFile:ModelFile) => {
 
             if(fmt.indexOf(pFile.type)>-1){
                 f.push(pFile);
@@ -163,7 +163,7 @@ export default class NativeAnalyzer {
         if(!this.targets.hasOwnProperty(pScope.getName()))
             this.targets[pScope.getName()] = [];
 
-        let idx:IDbIndex = this.fileDB.getIndex(pScope.getName());
+        let idx:IDbIndex = this.fileDB.getIndex(pScope.getName(), ModelFile.TYPE);
 
         idx.map( (pOffset:number, pFile:ModelFile) => {
 
