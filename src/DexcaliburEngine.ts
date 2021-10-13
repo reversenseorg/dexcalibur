@@ -36,9 +36,9 @@ import {SettingsAccessControl} from "./user/acl/rbac/SettingsAccessContol";
 import {IDexcaliburEngine} from "./IDexcaliburEngine";
 import {ConnectionManager} from "./remote/ConnectionManager";
 import ShellHelper from "./ShellHelper";
-import Tool = External.Tool;
 import {GlobalAccessControl} from "./user/acl/rbac/GlobalAccessContol";
 import {UserAccount} from "./user/UserAccount";
+import Tool = External.Tool;
 
 const _fixPath_ = require("fix-path");
 
@@ -772,13 +772,33 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
     /**
      * To retrieve project list
      *
-     * @return {DexcaliburProject[]}
+     * @return {string[]}
      * @method
      */
     getProjects():string[]{
 
         return this.workspace.listProjects();
     }
+
+
+    /**
+     *
+     * @param pUser
+     */
+    listProjectsOf( pUser:UserAccount):DexcaliburProjectMap {
+        const PUIDS = this.workspace.listProjects();
+        let map:DexcaliburProjectMap = {};
+        PUIDS.map( (vUID:string)=>{
+            try{
+                // only authorized user can read metadata
+                map[vUID] = DexcaliburProject.getInformationOf( this, vUID, pUser);
+            }catch(err){
+                Logger.error(err.message+" "+err.stack);
+            }
+        });
+        return map;
+    }
+
 
     /**
      * To get active project by its UID
@@ -795,14 +815,27 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
     }
 
     /**
-     * To get all active projects
+     * To get all active projects of the engine instance, optionnaly filtered by owner
      *
      * @return {DexcaliburProjectMap} A map of cctive projects, indexed by project UIDs
      * @method
      * @since 1.0.0
      */
-    getActiveProjects():DexcaliburProjectMap {
-        return this.active;
+    getActiveProjects(pUser:UserAccount = null):DexcaliburProjectMap {
+
+        // TODO : add ACL which allows non-owner but authorized auditor (group/team) to work on this project
+
+        if(pUser === null){
+            return this.active;
+        }else{
+            const sub:DexcaliburProjectMap = {};
+            for(const uid in this.active){
+                if(this.active[uid].isOwnedBy(pUser)){
+                    sub[uid] = this.active[uid];
+                }
+            }
+            return sub;
+        }
     }
 
 
@@ -880,8 +913,7 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
 
             //this.webserver.setProject(project);
         }catch(err){
-            Logger.error(err.message);
-            Logger.error("ENGINE"," openProject() failed");
+            Logger.error("ENGINE"," openProject() failed : "+err.message+"\n"+err.stack);
             wf.pushStatus(StatusMessage.newError("Project cannot be loaded. See logs for more details"));
         }
 
@@ -961,6 +993,7 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
         }
     }
 
+
     /**
      * To detect if Frida is installed and get version
      *
@@ -976,7 +1009,16 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
      * @param {DexcaliburProject} pProject The project to close
      * @return {boolean}
      */
-    closeProject(pProject:DexcaliburProject):boolean {
+    closeProject( pUser:UserAccount, pProject:DexcaliburProject):boolean {
+
+        AccessControl.check(
+            AccessZone.PROJECT,
+            ProjectAccessControl.access.CLOSE_OWN_PROJECT,
+            this,
+            pUser
+        );
+
+        // TODO : remove project from others sessions
 
         if(Object.keys(this.getActiveProjects()).length>0){
             let p:any = {};

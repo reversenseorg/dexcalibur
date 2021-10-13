@@ -13,6 +13,7 @@ import {UserService} from "./user/UserService";
 import {TerminalServer} from "./TerminalServer";
 import DexcaliburRegistry from "./DexcaliburRegistry";
 import {External} from "./external/External";
+import {UserAccount} from "./user/UserAccount";
 
 
 export interface IDexcaliburProjectMap {
@@ -20,11 +21,11 @@ export interface IDexcaliburProjectMap {
 }
 
 export interface IDexcaliburEngine {
-    closeProject(pProject:DexcaliburProject):boolean;
-    deleteProject( pUID:string):boolean;
+    closeProject( pUser:UserAccount, pProject:DexcaliburProject):boolean;
+    deleteProject( pUser:UserAccount, pUID:string):boolean;
     disableIPC():void;
     enableIPC(pMode:IpcMode):void;
-    getActiveProjects():IDexcaliburProjectMap;
+    getActiveProjects(pUser:UserAccount):IDexcaliburProjectMap;
     getConfiguration():Configuration;
     getSettings():Settings.GlobalSettings;
     getUserService(): UserService;
@@ -39,10 +40,11 @@ export interface IDexcaliburEngine {
     createWorkspace( pPath:string):void;
     getProjects():string[];
     getProject(pProjectUID:string):DexcaliburProject;
-    openProject( pUID:string):Promise<DexcaliburProject>;
+    openProject( pUser:UserAccount, pUID:string):Promise<DexcaliburProject>;
     newProject( pUID:string, pApkPath:string, pDevice:any):Promise<DexcaliburProject>;
     getLocalFridaVersion():string;
     newWorkflow(pName:string):Workflow;
     getWorkflow(pUID:string, pExternal:boolean):Workflow;
     onNewWorkflow( pUID:string, pCallback:any, pExternal:boolean):void;
+    listProjectsOf( pUser:UserAccount):DexcaliburProjectMap;
 }
