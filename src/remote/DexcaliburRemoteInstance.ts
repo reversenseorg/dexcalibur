@@ -13,18 +13,20 @@ import WebServer from "../WebServer";
 import {Workflow} from "../Workflow";
 import DexcaliburWorkspace from "../DexcaliburWorkspace";
 import {IpcMode} from "../DexcaliburServerChildProcess";
+import {UserAccount} from "../user/UserAccount";
+import {DexcaliburProjectMap} from "../DexcaliburEngine";
 
 export class DexcaliburRemoteInstance implements IDexcaliburEngine {
 
 
-    closeProject(pProject: DexcaliburProject): boolean {
+    closeProject(pUser:UserAccount, pProject: DexcaliburProject): boolean {
         return false;
     }
 
     createWorkspace(pPath: string): void {
     }
 
-    deleteProject(pUID: string): boolean {
+    deleteProject(pUserAccount:UserAccount, pUID: string): boolean {
         return false;
     }
 
@@ -34,7 +36,7 @@ export class DexcaliburRemoteInstance implements IDexcaliburEngine {
     enableIPC(pMode: IpcMode): void {
     }
 
-    getActiveProjects(): IDexcaliburProjectMap {
+    getActiveProjects( pUserAccount:UserAccount): IDexcaliburProjectMap {
         return undefined;
     }
 
@@ -106,8 +108,24 @@ export class DexcaliburRemoteInstance implements IDexcaliburEngine {
     onNewWorkflow(pUID: string, pCallback: any, pExternal: boolean): void {
     }
 
-    openProject(pUID: string): Promise<DexcaliburProject> {
+    openProject(pUserAccount:UserAccount, pUID: string): Promise<DexcaliburProject> {
         return Promise.resolve(undefined);
+    }
+
+    /**
+     *
+     * @param pUser
+     */
+    listProjectsOf( pUser:UserAccount):DexcaliburProjectMap {
+        /*const PUIDS = this.workspace.listProjects();
+        let map:DexcaliburProjectMap = {};
+        PUIDS.map( (vUID:string)=>{
+            try{
+                // only authorized user can read metadata
+                map[vUID] = DexcaliburProject.getInformationOf( this, vUID, pUser);
+            }catch(err){}
+        });*/
+        return null;
     }
 
 }
