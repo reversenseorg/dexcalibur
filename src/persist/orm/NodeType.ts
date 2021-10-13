@@ -7,12 +7,18 @@ export interface NodePropertyMap {
     [pptName:string] :NodeProperty;
 }
 
+export interface NodeTypeMap {
+    [typeName:string] :NodeType;
+}
+
 /**
  * Represents the type of the node
  *
  * @class
  */
 export class NodeType {
+
+    static ALL:NodeTypeMap = {}
 
     /**
      * The internal (short) name of the node type
@@ -41,6 +47,12 @@ export class NodeType {
     _ppts:NodePropertyMap = {};
 
     /**
+     * Primary Key
+     * cannot be a composite key
+     */
+    _pk:NodeProperty = null;
+
+    /**
      *
      * @param {string} pName Node type name
      * @param {NodeProperty[]} pCols
@@ -50,6 +62,18 @@ export class NodeType {
         this._name = pName;
         this._type = pInternalType;
         this.updateProperties(pCols);
+
+        if(NodeType.ALL[pName]==null){
+            NodeType.ALL[pName] = this;
+        }
+    }
+
+    /**
+     *
+     * @param pName
+     */
+    static lookup(pName:string) :NodeType {
+        return NodeType.ALL[pName];
     }
 
     builder(pConstructor:any):NodeType {
@@ -70,6 +94,9 @@ export class NodeType {
     updateProperties(pCols:NodeProperty[]):void {
         pCols.map( (vPpt:NodeProperty) => {
             this._ppts[vPpt.getName()] = vPpt;
+            if(vPpt.isPrimaryKey()){
+                this._pk = vPpt;
+            }
         })
     }
 
@@ -91,5 +118,13 @@ export class NodeType {
      */
     getProperties():NodeProperty[] {
         return Object.values(this._ppts);
+    }
+
+    getPrimaryKey():NodeProperty {
+        return this._pk;
+    }
+
+    getType():NodeInternalType{
+        return this._type;
     }
 }
