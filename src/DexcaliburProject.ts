@@ -50,6 +50,8 @@ import {AccessZone} from "./user/acl/Zones";
 import {UserSession} from "./user/session/UserSession";
 import {AccesErrCode, AccessException} from "./user/acl/Access";
 import Util from "./Utils";
+import {Auditable} from "./Auditable";
+import {GlobalAccessControl} from "./user/acl/rbac/GlobalAccessContol";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -87,15 +89,8 @@ const DexcaliburProjectValidator = new Validator({
  * @class
  * @author Georges-B. MICHEL
  */
-export default class DexcaliburProject extends ValidationCapable implements IAuditableAccess
+export default class DexcaliburProject extends Auditable implements IAuditableAccess
 {
-
-    /**
-     * List of attributes involved into security controls
-     * @type AccessAttributeMap
-     * @field
-     */
-    _attr:AccessAttributeMap = {};
 
 
     /**
@@ -255,6 +250,7 @@ export default class DexcaliburProject extends ValidationCapable implements IAud
 
     private analCfg:AnalyzerConfiguration = new AnalyzerConfiguration();
 
+
     /*
      * A set of package checksum
      *
@@ -281,8 +277,6 @@ export default class DexcaliburProject extends ValidationCapable implements IAud
 
         this.engine = pEngine;
         this.uid = pUID;
-
-        this.initAccessAttributes();
     }
 
     /**
@@ -290,22 +284,12 @@ export default class DexcaliburProject extends ValidationCapable implements IAud
      */
     initAccessAttributes(){
         for(const k in ProjectAccessControl.attr){
-            this._attr[k] = ProjectAccessControl.attr[k].clone();
+            this.setAccessAttribute(ProjectAccessControl.attr[k], ProjectAccessControl.attr[k].value);
         }
     }
 
     getAnalyzerConfiguration():AnalyzerConfiguration {
         return this.analCfg;
-    }
-
-    /**
-     * To get access attribute by its name
-     *
-     * @param {string} pName Attribute name
-     * @return {AccessAttribute}
-     */
-    getAccessAttribute(pName: string): AccessAttribute {
-        return this._attr[pName];
     }
 
     getOwner():UserAccount {
@@ -318,9 +302,7 @@ export default class DexcaliburProject extends ValidationCapable implements IAud
         const data = JSON.parse( Fs.readFileSync( project.workspace.getProjectCfgPath()).toString());
 
         if(data._attr != null){
-            for(const k in data._attr){
-                project._attr[k] = AccessAttribute.from(data._attr[k]);
-            }
+            project.importAccessAttributes(data._attr);
         }
 
         if(project.isOwnedBy(pAccount)){
@@ -339,13 +321,13 @@ export default class DexcaliburProject extends ValidationCapable implements IAud
                 AccessZone.PROJECT,
                 ProjectAccessControl.attr.OWNER,
                 this,
-                pAccount.getUID()
+                pAccount
             );
 
             ret_owned = true;
 
         }catch(errACL){
-            if((errACL as AccessException).getCode() === AccesErrCode.VIOLATION){
+            if(errACL.hasOwnProperty('getCode') &&  ((errACL as AccessException).getCode() === AccesErrCode.VIOLATION)){
                 AccessControl.check(
                     AccessZone.PROJECT,
                     ProjectAccessControl.access.PROJ_CHOWN,
@@ -354,7 +336,7 @@ export default class DexcaliburProject extends ValidationCapable implements IAud
                 );
 
                 ret_owned = true;
-            }
+            }else{throw  errACL;}
         }
 
         return ret_owned;
@@ -610,9 +592,6 @@ export default class DexcaliburProject extends ValidationCapable implements IAud
 
     initAuthorizations():void {
 
-        /*if(this._attr.OWNER == null){
-            this._attr.OWNER.value = this.getContext().getUserService().getAuthenticationService().getDefaultUser()
-        }*/
     }
 
     /**
@@ -809,17 +788,29 @@ export default class DexcaliburProject extends ValidationCapable implements IAud
      * @static
      * @since 1.0.0
      */
-    static getInformationOf(pEngine:DexcaliburEngine, pProjectUID:string):any {
+    static getInformationOf(pEngine:DexcaliburEngine, pProjectUID:string, pAccount:UserAccount = null):any {
 
-        let data:any;
-        let ws = new ProjectWorkspace(
-            _path_.join( pEngine.workspace.getLocation(), pProjectUID )
+        // create a minimalist instance of project to check if the user own or not this project
+        const project = new DexcaliburProject(pEngine, pProjectUID);
+
+        project.workspace = new ProjectWorkspace(_path_.join( pEngine.workspace.getLocation(), pProjectUID));
+
+        const data = JSON.parse( Fs.readFileSync( project.workspace.getProjectCfgPath()).toString());
+
+        if(data._attr != null){
+            project.importAccessAttributes(data._attr);
+        }
+
+        AccessControl.check(
+            AccessZone.PROJECT,
+            ProjectAccessControl.access.PROJ_OPEN_OWN,
+            project,
+            pAccount
         );
 
-        data = Fs.readFileSync( ws.getProjectCfgPath());
-        data = JSON.parse(data);
         return data;
     }
+
     /**
      * 
      * @param {*} pContext 
@@ -865,9 +856,7 @@ export default class DexcaliburProject extends ValidationCapable implements IAud
                     project[i] = data[i];
                     break;
                 case "_attr":
-                    for(const k in data._attr){
-                        project._attr[k] = AccessAttribute.from(data._attr[k]);
-                    }
+                    project.importAccessAttributes(data._attr);
                     break;
                 case "apk":
                     project.workspace.setApk( APK.fromJsonObject(data.apk));
@@ -928,10 +917,9 @@ export default class DexcaliburProject extends ValidationCapable implements IAud
         o.anal = this.analCfg.toJsonObject();
 
         o.connector = this.connector.toJsonObject(); //constructor.getProperties();
-
         o._attr = {};
         for(const n in this._attr){
-            o._attr[n] = this._attr[n].toJsonObject();
+            o._attr[n] = (this._attr[n].hasOwnProperty('toJsonObject')?this._attr[n].toJsonObject():this._attr[n]);
         }
 
 
@@ -1042,12 +1030,15 @@ export default class DexcaliburProject extends ValidationCapable implements IAud
             //this.dataAnalyzer.scan( apkctnPath);
             // file analysis : icon detection, strings, etc ...
             // TODO : multi threading : each file can be treated separately
-            this.dataAnalyzer.indexFilesIn(
-                this.dataAnalyzer.getScope('PKG')
-            );
+
+            if(this.dataAnalyzer.isScopeIndexed('PKG')==false){
+                this.dataAnalyzer.indexFilesIn(
+                    this.dataAnalyzer.getScope('PKG')
+                );
+            }
 
             // update internal DB with file analyzer DB
-            this.analyze.insertIn( "files", this.dataAnalyzer.getDB().getIndex('files'));
+            this.analyze.insertIn( "files", this.dataAnalyzer.getDB().getCollection('files', ModelFile.TYPE).getAll());
         }
     }
 
@@ -1075,21 +1066,22 @@ export default class DexcaliburProject extends ValidationCapable implements IAud
      */
     changeOwner( pAuthorSess:UserSession, pNewOwner:UserAccount):DexcaliburProject {
 
-        if(this._attr.OWNER.value===null){
-            this._attr.OWNER.value = pNewOwner.getUID();
+        if(this.getAccessAttribute(ProjectAccessControl.attr.OWNER)===null){
+            this.setAccessAttribute(ProjectAccessControl.attr.OWNER, pNewOwner.getUID());
+            //this._attr.OWNER.value = pNewOwner.getUID();
         }else{
             try{
                 AccessControl.checkAttr(
                     AccessZone.PROJECT,
                     ProjectAccessControl.attr.OWNER,
                     this,
-                    pAuthorSess.getUserAccount().getUID()
+                    pAuthorSess.getUserAccount()
                 );
 
-                this._attr.OWNER.value = pNewOwner.getUID();
+                this.setAccessAttribute(ProjectAccessControl.attr.OWNER, pNewOwner.getUID());
 
             }catch(errACL){
-                if((errACL as AccessException).getCode() === AccesErrCode.VIOLATION){
+                if(errACL.hasOwnProperty('getCode') && ((errACL as AccessException).getCode() === AccesErrCode.VIOLATION)){
                     AccessControl.check(
                         AccessZone.PROJECT,
                         ProjectAccessControl.access.PROJ_CHOWN,
@@ -1097,7 +1089,9 @@ export default class DexcaliburProject extends ValidationCapable implements IAud
                         pAuthorSess.getUserAccount()
                     );
 
-                    this._attr.OWNER.value = pNewOwner.getUID();
+                    this.setAccessAttribute(ProjectAccessControl.attr.OWNER, pNewOwner.getUID());
+                }else{
+                    throw errACL;
                 }
             }
         }

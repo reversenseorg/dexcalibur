@@ -9,6 +9,7 @@ import {GlobalAccessControl} from "./user/acl/rbac/GlobalAccessContol";
 import {UserAccount} from "./user/UserAccount";
 import AccessControl from "./user/acl/AccessControl";
 import {AccessZone} from "./user/acl/Zones";
+import {Auditable} from "./Auditable";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -17,15 +18,8 @@ export interface WorkflowFollower {
     socket: any;
 }
 
-export class Workflow  implements IAuditableAccess {
+export class Workflow extends Auditable implements IAuditableAccess {
 
-
-    /**
-     * List of attributes involved into security controls
-     * @type AccessAttributeMap
-     * @field
-     */
-    _attr:AccessAttributeMap = {};
 
 
     /**
@@ -66,8 +60,9 @@ export class Workflow  implements IAuditableAccess {
     private _m:string = "";
 
     constructor( pConfig:any = {}) {
+        super(null);
+
         for(let i in pConfig) this[i] = pConfig[i];
-        this.initAccessAttributes();
     }
 
 
@@ -94,8 +89,9 @@ export class Workflow  implements IAuditableAccess {
      * @since 1.0.0
      */
     initAccessAttributes(){
+
         for(const k in GlobalAccessControl.attr){
-            this._attr[k] = GlobalAccessControl.attr[k].clone();
+            this.setAccessAttribute(GlobalAccessControl.attr[k], GlobalAccessControl.attr[k].value);
         }
     }
 
@@ -156,7 +152,8 @@ export class Workflow  implements IAuditableAccess {
      * @method
      */
     changeOwner( pAccount:UserAccount):Workflow {
-        this._attr.OWNER.value = pAccount.getUID();
+        //this._attr.OWNER.value = pAccount.getUID();
+        this.setAccessAttribute(GlobalAccessControl.attr.OWNER, pAccount.getUID());
         return this;
     }
 
@@ -169,8 +166,9 @@ export class Workflow  implements IAuditableAccess {
      * @param pSocket
      * @param pOpts
      */
-    declarOwner( pUser:UserAccount, pSocket:any, pOpts:any={}):void {
-        this._attr.OWNER.value = pUser.getUID();
+    declareOwner( pUser:UserAccount, pSocket:any, pOpts:any={}):void {
+        //this._attr.OWNER.value = pUser.getUID();
+        this.setAccessAttribute(GlobalAccessControl.attr.OWNER, pUser.getUID());
         this.addFollower(pUser,pSocket,pOpts);
     }
 
@@ -229,16 +227,5 @@ export class Workflow  implements IAuditableAccess {
                     sessid: ''
                 }}));
         }
-    }
-
-
-    /**
-     * To get access attribute by its name
-     *
-     * @param {string} pName Attribute name
-     * @return {AccessAttribute}
-     */
-    getAccessAttribute(pName: string): AccessAttribute {
-        return this._attr[pName];
     }
 }
