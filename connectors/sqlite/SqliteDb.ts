@@ -4,11 +4,10 @@
  * @author Georges-B. MICHEL
  * @class
  */
-import {Database} from "better-sqlite3";
+import * as Database from "better-sqlite3";
 import SqliteDbCollection from "./SqliteDbCollection";
 import SqliteDbIndex from "./SqliteDbIndex";
 import SqliteConnector from "./adapter";
-import {SqliteException} from "./SqliteException";
 import {
     DbDataType,
     DbKeyType,
@@ -16,19 +15,33 @@ import {
     DbSetType,
     DbSizesMap,
     IDatabase,
-    IDbIndex
+    IDbSet
 } from "../../src/persist/orm/DbAbstraction";
-import {SqliteAPI} from "./SqliteAPI";
-import {DbColumnTemplate} from "../../src/persist/orm/DbColumnTemplate";
+import {PreparedStatementList, SqliteAPI} from "./SqliteAPI";
 import {NodeType} from "../../src/persist/orm/NodeType";
 import {NodeProperty} from "../../src/persist/orm/NodeProperty";
+import * as Log from "../../src/Logger";
+import {NodeInternalType} from "../../src/NodeInternalType";
 
+let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
 const METADATA_TABLE = "dxc_meta";
 
 class SqliteDb implements IDatabase
 {
+    static TYPE:NodeType = new NodeType(
+        METADATA_TABLE,
+        NodeInternalType.INTERNAL_DB,
+        [
+            (new NodeProperty("name")).type(DbDataType.STRING).key(DbKeyType.PRIMARY),
+            (new NodeProperty("type")).type(DbDataType.STRING).def("Index").notnull(),
+            (new NodeProperty("node")).type(DbDataType.STRING)
+        ]
+    );
+
     _s:SqliteAPI = null;
+    private _ps:PreparedStatementList;
+    _tables:string[] = [];
 
     name:string = null;
     path:string = null;
@@ -37,6 +50,7 @@ class SqliteDb implements IDatabase
     indexes:DbSetMap = {};
     sizes:DbSizesMap = {};
 
+
     /**
      * To create a new DB
      *
@@ -44,12 +58,16 @@ class SqliteDb implements IDatabase
      * @return {SqliteDb}
      * @constructor
      */
-    constructor(pPath=null, pConnector:SqliteConnector ){
+    constructor(pPath:string =null, pConnector:SqliteConnector ){
         this.conn = pConnector;
         this.indexes = {};
         this.sizes = {};
 
-        this._s = new SqliteAPI( new Database(pPath));
+        let db = new Database(pPath, { verbose:Logger.raw });
+
+        this._s = new SqliteAPI( db );
+        this._ps = this._s._generatePreparedStmt(METADATA_TABLE, SqliteDb.TYPE);
+
     }
 
     /**
@@ -64,15 +82,51 @@ class SqliteDb implements IDatabase
 
         if(f) return;
 
-        this._s._createTable(METADATA_TABLE, [
-            (new NodeProperty("name")).type(DbDataType.STRING).key(DbKeyType.PRIMARY),
-            (new NodeProperty("type")).type(DbDataType.STRING).def("Index").notnull()
-        ]);
+        this._s._createTable(SqliteDb.TYPE.getName(), SqliteDb.TYPE.getProperties());
     }
 
 
-    _addCollection( pCollection:SqliteDbCollection){
+    /**
+     * To refresh some meta data including :
+     *
+     * - table name list
+     *
+     * @private
+     */
+    private _refresh():any {
+        this._tables = this._s._getTables();
+        Logger.info(JSON.stringify(this._tables));
+    }
 
+    /**
+     * To verify if a table exists or not
+     *
+     * @param pName
+     * @private
+     */
+    exists( pName:string):boolean {
+        return this._tables.indexOf(pName)>-1;
+    }
+
+    /**
+     *
+     */
+    loadIndexes(){
+        if(Object.keys(this.indexes).length==0){
+            const idx = this._s._execSelectAllNoData('SELECT name, type FROM '+METADATA_TABLE);
+            if(idx!=null){
+                Logger.raw(JSON.stringify(idx));
+                idx.map( info => {
+                    if(this.indexes[info.name]==null){
+                        if(info.type == DbSetType.INDEX){
+                            this.indexes[info.name] = this.newIndex(info.name, NodeType.lookup(info.node));
+                        }else{
+                            this.indexes[info.name] = this.newCollection(info.name, NodeType.lookup(info.node));
+                        }
+                    }
+                })
+            }
+        }
     }
 
 
@@ -80,16 +134,6 @@ class SqliteDb implements IDatabase
         return this.indexes;
     }
 
-    /**
-     * To create a table with property string-based primary key into current DB
-     *
-     * @param {String} name Name of the collection
-     * @method
-     */
-    newCollection(name:string, pModel:any=null):SqliteDbCollection{
-        throw new SqliteException("Raw collection are not supported : columns must fixed");
-    }
-
 
     /**
      * To create a table with property string-based primary key into current DB
@@ -97,7 +141,7 @@ class SqliteDb implements IDatabase
      * @param {String} name Name of the collection
      * @method
      */
-    newNodeCollection(pNodeType:NodeType, pIndexName:string = null):SqliteDbCollection{
+    newCollection(pIndexName:string, pNodeType:NodeType):SqliteDbCollection{
         const name:string = ( pIndexName!=null ? pIndexName : pNodeType.getName() );
 
         if(this.indexes[name]!=null){
@@ -106,7 +150,18 @@ class SqliteDb implements IDatabase
         }
 
 
-        this.indexes[name] = new SqliteDbCollection(this._s, name, pNodeType);
+        this.indexes[name] = (new SqliteDbCollection(this._s, name, pNodeType));
+
+        // if there is not table for this collection, it is created
+        if(!this.exists(name)){
+            (this.indexes[name] as SqliteDbCollection).create();
+            this._s._execInsert( this._ps.insertSingle,{
+                name: name,
+                type: DbSetType.COLL,
+                node: pNodeType.getType()
+            });
+            this._refresh();
+        }
 
         return this.indexes[name] as SqliteDbCollection;
     }
@@ -118,16 +173,7 @@ class SqliteDb implements IDatabase
      * @param {String} name Name of the index
      * @method
      */
-    newIndex(pName:string):SqliteDbIndex{
-        throw new SqliteException("Raw index are not supported : columns must fixed");
-    }
-    /**
-     * To create a table with  numeric-based primary key (id) into current DB
-     *
-     * @param {String} name Name of the index
-     * @method
-     */
-    newNodeIndex(pNodeType:NodeType, pIndexName:string = null):SqliteDbIndex{
+    newIndex(pIndexName:string, pNodeType:NodeType):SqliteDbIndex{
         const name:string = ( pIndexName!=null ? pIndexName : pNodeType.getName() );
 
         if(this.indexes[name] != undefined){
@@ -135,7 +181,18 @@ class SqliteDb implements IDatabase
             //throw new SqliteException("An index already exists for the given name");
         }
 
-        this.indexes[name] = new SqliteDbIndex(this._s, name, pNodeType);
+        this.indexes[name] = (new SqliteDbIndex(this._s, name, pNodeType))
+
+        // if there is not table for this index, it is created
+        if(!this.exists(name)){
+            (this.indexes[name] as SqliteDbIndex).create();
+            this._s._execInsert( this._ps.insertSingle,{
+                name: name,
+                type: DbSetType.INDEX,
+                node: pNodeType.getType()
+            });
+            this._refresh();
+        }
 
         return this.indexes[name] as SqliteDbIndex;
     }
@@ -149,7 +206,7 @@ class SqliteDb implements IDatabase
      */
     getIndex(name:string, pTemplate:NodeType = null):SqliteDbIndex{
         if(this.indexes.hasOwnProperty(name)===false){
-            this.newIndex(name);
+            this.newIndex(name, pTemplate);
         }
 
         return this.indexes[name] as SqliteDbIndex;
@@ -162,9 +219,9 @@ class SqliteDb implements IDatabase
      * @returns {InMemoryDBIndex} Index with the given name
      * @method
      */
-    getCollection(name:string):SqliteDbCollection{
+    getCollection(name:string, pTemplate:NodeType = null):SqliteDbCollection{
         if(this.indexes.hasOwnProperty(name)===false){
-            this.newCollection(name);
+            this.newCollection(name, pTemplate);
         }
         return this.indexes[name] as SqliteDbCollection;
     }

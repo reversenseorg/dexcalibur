@@ -6,6 +6,9 @@ import * as _sqlite_ from "better-sqlite3";
 import DexcaliburProject from "../../src/DexcaliburProject";
 import { SqliteDb, Index, Collection } from "./SqliteDb";
 import {IDatabase, IDatabaseAdapter} from "../../src/persist/orm/DbAbstraction";
+import * as Log from "../../src/Logger";
+
+let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
 const TYPE  = 'sqlite';
 const NAME = 'Sqlite';
@@ -54,14 +57,16 @@ export default class SqliteConnector implements IDatabaseAdapter
      * @returns {boolean}
      */
     create(pPath:string = null):boolean{
-        try{
+        //try{
             this.db = new SqliteDb(pPath, this);
             this.db.install();
             return true;
-        }catch(err){
+        /*}catch(err){
+            Logger.error(err.message+"\n"+err.stack);
+
             this.db = null;
             return false;
-        }
+        }*/
     }
 
     /**
@@ -70,12 +75,15 @@ export default class SqliteConnector implements IDatabaseAdapter
      * @method
      */
     connect( pPath:string):SqliteDb{
-        // nothing to do
         if(_fs_.existsSync(pPath)){
             this.db = new SqliteDb(pPath, this);
         }else{
+            Logger.info("Creating new db : "+pPath);
             this.create(pPath);
         }
+
+        // load indexes
+        this.db.loadIndexes() ;
 
         return this.db;
     }
@@ -97,7 +105,7 @@ export default class SqliteConnector implements IDatabaseAdapter
 
 
     getCollection( pName:string):Collection{
-        return this.db.getCollection(pName);
+        return this.db.getCollection(pName, null);
     }
 
     newTemporaryDb(pPath: string): IDatabase {
