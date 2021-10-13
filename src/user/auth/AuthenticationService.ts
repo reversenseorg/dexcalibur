@@ -81,7 +81,7 @@ export class AuthenticationService {
                 this.settings.db.uri, {encoding:'utf8'}
             ))
         );
-        this._users = this._dba.getDB().getIndex('users');
+        this._users = this._dba.getDB().getIndex('users', null);
 
         if(pDBMS == 'inmemory'){
             let self:any = this;
@@ -104,7 +104,7 @@ export class AuthenticationService {
      * @param pRawData
      */
     createUserDB( pRawData:any):void {
-        this._users = this._dba.getDB().newIndex('users');
+        this._users = this._dba.getDB().newIndex('users',null);
         this._users.addEntry( new UserAccount({
             username: pRawData.login,
             password: pRawData.pwd,
