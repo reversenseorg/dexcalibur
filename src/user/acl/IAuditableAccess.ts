@@ -4,5 +4,5 @@ export interface IAuditableAccess {
 
     _attr:AccessAttributeMap;
 
-    getAccessAttribute(pName:string):AccessAttribute;
+    getAccessAttribute(pAttr:AccessAttribute):any;
 }
