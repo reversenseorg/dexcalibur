@@ -482,7 +482,7 @@ export default new InspectorFactory({
                                     }
                                 }));
 
-                                inspector.getDB().getIndex('dex').addEntry(f);
+                                inspector.getDB().getIndex('dex',null).addEntry(f);
                                 inspector.save();
 
 
@@ -511,7 +511,7 @@ export default new InspectorFactory({
 
 
 
-                                    //inspector.getDB().getIndex('dex').addEntry(f);
+                                    //inspector.getDB().getIndex('dex',null).addEntry(f);
                                     //inspector.save();
 
 

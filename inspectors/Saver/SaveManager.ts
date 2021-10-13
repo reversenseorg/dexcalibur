@@ -138,11 +138,11 @@ export default class SaveManager
     }
 
     initInternalDB():void{
-        this._db.newCollection("classes");
-        this._db.newCollection("fields");
-        this._db.newCollection("methods");
-        this._db.newCollection("hooks");
-        this._db.newCollection("hooks-status");
+        this._db.newCollection("classes", null);
+        this._db.newCollection("fields", null);
+        this._db.newCollection("methods", null);
+        this._db.newCollection("hooks", null);
+        this._db.newCollection("hooks-status", null);
     }
 /*
     newAlias( pType, pObject){
@@ -165,18 +165,18 @@ export default class SaveManager
             case "classes":
             case "methods":
             case "fields":
-                this._db.getCollection(pType).addEntry(pObject.signature(),pObject);
+                this._db.getCollection(pType, null).addEntry(pObject.signature(),pObject);
                 break;
         }
     }
 
     updateHook( pObject:any):void{
-        this._db.getCollection("hooks").addEntry(pObject.hook.id, pObject.hook);
+        this._db.getCollection("hooks", null).addEntry(pObject.hook.id, pObject.hook);
     }
 
     
     updateHookStatus( pHook, pEnable){
-        this._db.getCollection("hooks-status").addEntry(pHook.id, pEnable);
+        this._db.getCollection("hooks-status", null).addEntry(pHook.id, pEnable);
     }
 
     import(pData:any){
@@ -292,11 +292,11 @@ export default class SaveManager
         let data:any={}, coll=null, pData=null;
         let self=this;
 
-        data.methods = {data:{}, size:self._db.getCollection("methods").size()};
-        data.fields = {data:{}, size:self._db.getCollection("fields").size()};
-        data.classes = {data:{}, size:self._db.getCollection("classes").size()};
-        data.hooks = {data:{}, size:self._db.getCollection("hooks").size()};
-        data["hooks-status"] = {data:{}, size:self._db.getCollection("hooks-status").size()};
+        data.methods = {data:{}, size:self._db.getCollection("methods", null).size()};
+        data.fields = {data:{}, size:self._db.getCollection("fields", null).size()};
+        data.classes = {data:{}, size:self._db.getCollection("classes", null).size()};
+        data.hooks = {data:{}, size:self._db.getCollection("hooks", null).size()};
+        data["hooks-status"] = {data:{}, size:self._db.getCollection("hooks-status", null).size()};
 
         //if(this.queue.fields)
 
@@ -342,7 +342,7 @@ export default class SaveManager
         }
 
         if(data.fields.size > 0){
-            coll = self._db.getCollection("fields");
+            coll = self._db.getCollection("fields", null);
             coll.map(function(ref:any,obj:any){
                 data.fields.data[ref] = {
                     type: SaveManager.T_FIELD,
@@ -352,7 +352,7 @@ export default class SaveManager
         }
 
         if(data.methods.size > 0){
-            coll = self._db.getCollection("methods");
+            coll = self._db.getCollection("methods", null);
             coll.map(function(ref:any,obj:any){
                 data.methods.data[ref] = {
                     type: SaveManager.T_METHOD,
@@ -362,7 +362,7 @@ export default class SaveManager
         }
 
         if(data.classes.size > 0){
-            coll = self._db.getCollection("classes");
+            coll = self._db.getCollection("classes", null);
             coll.map(function(ref:any,obj:any){
                 data.classes.data[ref] = {
                     type: SaveManager.T_CLASS,
@@ -372,7 +372,7 @@ export default class SaveManager
         }
 
         if(data.hooks.size > 0){
-            coll = self._db.getCollection("hooks");
+            coll = self._db.getCollection("hooks", null);
             coll.map(function(ref:any,obj:any){
                 data.hooks.data[ref] = {
                     type: SaveManager.T_HOOK,
@@ -384,7 +384,7 @@ export default class SaveManager
         }
 
         if(data["hooks-status"].size > 0){
-            coll = self._db.getCollection("hooks-status");
+            coll = self._db.getCollection("hooks-status", null);
             coll.map(function(ref:any,obj:any){
                 data["hooks-status"].data[ref] = {
                     type: SaveManager.T_HOOK_STATUS,

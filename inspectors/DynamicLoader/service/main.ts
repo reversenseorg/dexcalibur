@@ -19,7 +19,7 @@ function getInvokedMethod(context:DexcaliburProject):any{
 }
 
 function getExternalDex(context:DexcaliburProject):any{
-    let files:IDbIndex = context.getInspector("DynamicLoader").getDB().getIndex("dex");
+    let files:IDbIndex = context.getInspector("DynamicLoader").getDB().getIndex("dex",null);
 
     return files.toJsonObject();
 }
@@ -30,7 +30,7 @@ function getElementsDiscovered(context:DexcaliburProject):any{
 }
 
 function cleanupSavedDex(context:DexcaliburProject):any{
-    let files:IDbIndex = context.getInspector("DynamicLoader").getDB().getIndex("dex");
+    let files:IDbIndex = context.getInspector("DynamicLoader").getDB().getIndex("dex",null);
 
     files.map(function(k,v){
         try{
@@ -43,7 +43,7 @@ function cleanupSavedDex(context:DexcaliburProject):any{
         }catch(err){}
     });
 
-    context.getInspector("DynamicLoader").getDB().newIndex("dex");
+    context.getInspector("DynamicLoader").getDB().newIndex("dex",null);
 
 
     return true;
