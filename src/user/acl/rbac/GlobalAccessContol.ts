@@ -58,7 +58,7 @@ export class GlobalAccessControl extends DelegateAccessControl {
         switch (pAttr.name) {
             case 'owner':
                 // verify project owner is the current user
-                if(pAccount.getUID() !== pWf.getAccessAttribute(pAttr.name).value){
+                if(pAccount.getUID() !== pWf.getAccessAttribute(pAttr)){
                     throw new AccessException("[GLOBAL] The object is not owned by the user : rejected ", AccesErrCode.VIOLATION);
                 }
                 break;

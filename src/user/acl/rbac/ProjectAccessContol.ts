@@ -24,10 +24,12 @@ export class ProjectAccessControl extends DelegateAccessControl {
         PROJ_PKG_READ: new Access( AccessType.READ, 'PROJ_PKG_READ', 'Read package content'),
         PROJ_NEW_OWN_WF: new Access( AccessType.WRITE, 'PROJ_NEW_OWN_WF', 'Create new project workflow'),
         PROJ_APPDATA_READ: new Access( AccessType.READ, 'PROJ_APPDATA_READ', 'Read app data content on the device'),
+        CLOSE_PROJECT: new Access( AccessType.EXE, 'CLOSE_PROJECT', 'Close the project according to owner and group attributes'),
     };
 
     static attr:AccessAttributeMap = {
         OWNER: new AccessAttribute( 'owner')
+   //     GROUP: new AccessAttribute( 'group')
     };
 
     constructor() {
@@ -43,6 +45,18 @@ export class ProjectAccessControl extends DelegateAccessControl {
      */
     check(pAccess: Access, pAccount:UserAccount, pExtra:any = null) {
         switch (pAccess.name) {
+            case 'CLOSE_OWN_PROJECT':
+                this.checkAttr(
+                    ProjectAccessControl.attr.OWNER,
+                    pAccount,
+                    pExtra,
+                    "Project cannot be closed. "
+                );
+            case 'CLOSE_ANY_PROJECT':
+                if(pAccount.getUserRole().hasAccess(pAccess)===false){
+                    throw new AccessException("[PROJECT] Access violation, current user has not enough privilege ("+pAccess.name+") ", AccesErrCode.VIOLATION)
+                }
+                break;
             case 'PROJ_OPEN_OWN':
             case 'PROJ_PKG_READ':
                 if(pAccount.getUserRole().hasAccess(pAccess)===false){
@@ -59,12 +73,12 @@ export class ProjectAccessControl extends DelegateAccessControl {
      * @param pAccess
      * @param pSession
      */
-    checkAttr(pAttr: AccessAttribute, pAccount:UserAccount, pProject:DexcaliburProject = null) {
+    checkAttr(pAttr: AccessAttribute, pAccount:UserAccount, pProject:DexcaliburProject = null, pMessage:string = "") {
         switch (pAttr.name) {
             case 'owner':
                 // verify project owner is the current user
-                if(pAccount.getUID() !== pProject.getAccessAttribute(pAttr.name).value){
-                    throw new AccessException("[PROJECT] The project is not owned by the user : rejected ", AccesErrCode.VIOLATION);
+                if(pAccount.getUID() !== pProject.getAccessAttribute(pAttr)){
+                    throw new AccessException("[PROJECT] "+pMessage+" The project is not owned by the user : rejected ", AccesErrCode.VIOLATION);
                 }
                 break;
             default:
