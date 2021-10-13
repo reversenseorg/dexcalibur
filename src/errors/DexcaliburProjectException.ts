@@ -15,7 +15,9 @@ export class DexcaliburProjectException extends MonitoredError {
     static NEW_PROJECT_FAIL = ()=>{ return new DexcaliburProjectException("Project cannot be created. See logs for more details. ", ErrorCode.PROJECT + 106) };
     static OPEN_PROJECT_FAILURE = ()=>{ return new DexcaliburProjectException("The project cannot be opened", ErrorCode.PROJECT + 107) };
     static DELETE_PROJ_FAILURE_NOTFOUND = ()=>{ return new DexcaliburProjectException("Delete failure : project is not found.", ErrorCode.PROJECT + 108) };
-
+    static INVALID_OR_NOT_ACTIVE = ()=>{ return new DexcaliburProjectException("Specified project is invalid or not active", ErrorCode.PROJECT + 109) };
+    static CLOSE_PROJECT_FAILURE = ()=>{ return new DexcaliburProjectException("The project cannot be closed", ErrorCode.PROJECT + 110) };
+    static NO_PROJECT_SPECIFIED = ()=>{ return new DexcaliburProjectException("There is not valid project specified.", ErrorCode.PROJECT + 111) };
 
 
     constructor( pMsg:string, pCode:number = null, pExtra:any = null) {
