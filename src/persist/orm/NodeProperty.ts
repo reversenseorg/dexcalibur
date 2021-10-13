@@ -15,6 +15,7 @@ export class NodeProperty {
     _n:NodeType = null;
     _v:boolean = false;
     _u:boolean = false;
+    _m:boolean = false;
 
 
     /**
@@ -172,6 +173,10 @@ export class NodeProperty {
         return this._serialize;
     }
 
+    isSerialized():boolean {
+        return (this._serialize != null);
+    }
+
     /**
      * To set the serializing method : JSON, XML, ..
      *
@@ -179,12 +184,28 @@ export class NodeProperty {
      * @return {NodeProperty} This instance. Chainable
      * @method
      */
-    link(pNode:NodeType):NodeProperty{
+    single(pNode:NodeType):NodeProperty{
         this._n = pNode;
+        this._m = false;
         return this;
     }
 
-    getNodeTemplate():NodeType {
+    multiple(pNodeType:NodeType):NodeProperty {
+        this._m = true;
+        this._n = pNodeType;
+        return this;
+    }
+
+    isMultiple():boolean {
+        return this._m;
+    }
+
+
+    isNode():boolean {
+        return (this._n != null);
+    }
+
+    getNodeType():NodeType {
         return this._n;
     }
 }
