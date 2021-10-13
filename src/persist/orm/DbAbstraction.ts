@@ -1,3 +1,4 @@
+import {NodeType} from "./NodeType";
 
 export enum DbDataType {
     // strings
@@ -123,15 +124,17 @@ export interface IDatabaseAdapter
 
 export interface IDatabase
 {
-    newCollection(name:string):IDbCollection;
+    newCollection(name:string, pNodeType:NodeType):IDbCollection;
 
-    newIndex(name:string):IDbIndex;
+    newIndex(name:string, pNodeType:NodeType):IDbIndex;
 
-    getIndex(name:string):IDbIndex;
+    getIndex(name:string, pNodeType:NodeType):IDbIndex;
 
-    getCollection(name:string):IDbCollection;
+    getCollection(name:string, pNodeType:NodeType):IDbCollection;
 
     getAll():any;
+
+    exists(pName:string):boolean ;
 
     toJsonObject():any;
 
