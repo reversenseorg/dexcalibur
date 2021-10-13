@@ -9,6 +9,7 @@ import {
     AndroidScreen,
     AndroidSupportedScreen
 } from "./DeviceComponent";
+import {AndroidRRO} from "./AndroidRRO";
 
 export class AndroidManifest
 {
@@ -30,6 +31,8 @@ export class AndroidManifest
     compatibleScreens:AndroidScreen[] = [];
     supportsGlTextures:AndroidGlTexture[] = [];
     application:AndroidApplication = null;
+
+    overlays:AndroidRRO[] = [];
 
     __context:DexcaliburProject = null;
     __additionalContent:any = {};
@@ -132,6 +135,11 @@ export class AndroidManifest
 
                     }
                     self.application.setManifest(self);
+                    break;
+                case 'overlay':
+                    config['overlay'].map(function(k){
+                        self.overlays.push(AndroidRRO.fromXml(k.$));
+                    });
                     break;
                 default:
                     self.__additionalContent[i] = config[i];
@@ -237,6 +245,12 @@ export class AndroidManifest
                 o['uses-feature'].push(perm.toXmlObject());
             });
         }
+        if(this.overlays != null && this.overlays.length > 0){
+            o['overlay'] = [];
+            this.overlays.map(over => {
+                o['overlay'].push(over.toXmlObject());
+            });
+        }
 
         o.application = this.application.toXmlObject();
 
@@ -322,5 +336,11 @@ export class AndroidManifest
         return res;
     }
 
+    hasEntries( pPpt:string):boolean {
+        return this[pPpt].length > 0;
+    }
 
+    isRuntimeResourceOverlay():boolean {
+        return (this.overlays.length >0);
+    }
 }
