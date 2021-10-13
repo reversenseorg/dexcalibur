@@ -205,7 +205,7 @@ export class WebsocketServer
                                                         }else{
                                                             // start later
                                                             self.engine.onNewWorkflow(unsafeJSON.data.opts, ((pWorkflow:Workflow)=>{
-                                                                pWorkflow.declarOwner(sess.getUserAccount(), conn, { localid: unsafeJSON.data.localid });
+                                                                pWorkflow.declareOwner(sess.getUserAccount(), conn, { localid: unsafeJSON.data.localid });
                                                             }));
                                                         }
                                                     }
