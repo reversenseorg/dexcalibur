@@ -146,34 +146,40 @@ export default class AndroidAppAnalyzer
 			codeAnal.db.permissions.insert(x, false);
 			Logger.debug("[Manifest] Permission found : ",x.name);
 		});
-		manifest.application.activities.map(x => {
-			self.context.trigger({
-				type: "app.activity.new",
-				data: { obj:x, manifest:manifest}
+
+		if(manifest.application != null){
+
+			manifest.application.activities.map(x => {
+				self.context.trigger({
+					type: "app.activity.new",
+					data: { obj:x, manifest:manifest}
+				});
+				codeAnal.db.activities.addEntry(x.name, x);
 			});
-			codeAnal.db.activities.addEntry(x.name, x);
-		});
-		manifest.application.providers.map(x => {
-			self.context.trigger({
-				type: "app.provider.new",
-				data: { obj:x, manifest:manifest}
+			manifest.application.providers.map(x => {
+				self.context.trigger({
+					type: "app.provider.new",
+					data: { obj:x, manifest:manifest}
+				});
+				codeAnal.db.providers.addEntry(x.name, x);
 			});
-			codeAnal.db.providers.addEntry(x.name, x);
-		});
-		manifest.application.receivers.map(x => {
-			self.context.trigger({
-				type: "app.receiver.new",
-				data: { obj:x, manifest:manifest}
+			manifest.application.receivers.map(x => {
+				self.context.trigger({
+					type: "app.receiver.new",
+					data: { obj:x, manifest:manifest}
+				});
+				codeAnal.db.receivers.addEntry(x.name, x);
 			});
-			codeAnal.db.receivers.addEntry(x.name, x);
-		});
-		manifest.application.services.map(x => {
-			self.context.trigger({
-				type: "app.service.new",
-				data: { obj:x, manifest:manifest}
+			manifest.application.services.map(x => {
+				self.context.trigger({
+					type: "app.service.new",
+					data: { obj:x, manifest:manifest}
+				});
+				codeAnal.db.services.addEntry(x.name, x);
 			});
-			codeAnal.db.services.addEntry(x.name, x);
-		});
+
+		}
+
 
 		return true;
     }
