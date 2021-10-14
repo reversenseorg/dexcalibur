@@ -12,7 +12,7 @@ import Event from "./Event";
 import {FileAnalysisType} from "./AnalyzerConfiguration";
 import {MagicHelper} from "./MagicHelper";
 import {Workflow} from "./Workflow";
-import {IDatabase, IDatabaseAdapter, IDbIndex} from "./persist/orm/DbAbstraction";
+import {IDatabase, IDatabaseAdapter, IDbCollection, IDbIndex} from "./persist/orm/DbAbstraction";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -246,6 +246,14 @@ export class DataAnalyzer
         this.db = idb.newTemporaryDb(pName);
     }*/
 
+    isScopeIndexed(pScope:DataScope|string):boolean {
+        if(typeof pScope === 'string'){
+            return this.db.exists(this.getScope(pScope).getIndexName());
+        }else{
+            return this.db.exists(pScope.getIndexName());
+        }
+    }
+
     indexFilesIn(pScope:DataScope):void {
         const dir = _fs_.readdirSync(pScope.getBasePath());
 
@@ -300,13 +308,15 @@ export class DataAnalyzer
      */
     scan(path:string, pScope:DataScope, pRelPath:string = null){
 
-        let db:IDbIndex = this.db.getIndex(pScope.getIndexName());
+        // let db:IDbIndex = this.db.getIndex(pScope.getIndexName(), ModelFile.TYPE);
+        let db:IDbCollection = this.db.getCollection(pScope.getIndexName(), ModelFile.TYPE);
     
         if(path[path.length-1]=='/')
            path = path.substr(0,path.length-1);
 
 
-        db.addEntry(new ModelFile({
+        //db.addEntry(new ModelFile({
+        db.setEntry(pRelPath, new ModelFile({
             name: _path_.basename(path),
             path: path,
             _r: pRelPath,
@@ -340,7 +350,8 @@ export class DataAnalyzer
 
         files.map( (f) => {
             f.setScope(pScope);
-            db.addEntry(f);
+            //db.addEntry(f);
+            db.setEntry(f.getRelativePath(), f);
         });
 
         // complete Binwalk results with folders
@@ -349,7 +360,8 @@ export class DataAnalyzer
 
         folders.map( (f) => {
             f.setScope(pScope);
-            db.addEntry(f);
+            //db.addEntry(f);
+            db.setEntry(f.getRelativePath(), f);
         });
 
 
@@ -369,12 +381,14 @@ export class DataAnalyzer
     scanFile(pFile:ModelFile, pScope:DataScope){
 
 
-        let idx:IDbIndex = this.db.getIndex(pScope.getIndexName());
+        //let idx:IDbIndex = this.db.getIndex(pScope.getIndexName(), ModelFile.TYPE);
+        let idx:IDbCollection = this.db.getCollection(pScope.getIndexName(), ModelFile.TYPE);
 
         pFile._d  ='f';
         pFile.setScope(pScope);
 
-        idx.addEntry(pFile);
+        //idx.addEntry(pFile);
+        idx.setEntry(pFile.getRelativePath(), pFile);
 
         // if target app is Android App
         let file:ModelFile = this.binwalk.analyze(pFile.getPath(), this.context);
@@ -412,11 +426,15 @@ export class DataAnalyzer
      * @method
      * @since 1.0.0
      */
-    getIndex(pScope:DataScope|string):IDbIndex{
-        if(typeof pScope==='string')
-            return this.db.getIndex(this.scopes[pScope].getIndexName());
-        else
-            return this.db.getIndex(pScope.getIndexName());
+    getIndex(pScope:DataScope|string):IDbCollection{
+        if(typeof pScope==='string') {
+            // return this.db.getIndex(this.scopes[pScope].getIndexName(), ModelFile.TYPE);
+            return this.db.getCollection(this.scopes[pScope].getIndexName(), ModelFile.TYPE);
+        }else{
+            //return this.db.getIndex(pScope.getIndexName(), ModelFile.TYPE);
+            return this.db.getCollection(pScope.getIndexName(), ModelFile.TYPE);
+        }
+
     }
 
     /**
@@ -427,9 +445,12 @@ export class DataAnalyzer
      */
     indexFile(pFile: ModelFile, pScope:DataScope=null):void {
 
-        const index:IDbIndex = this.db.getIndex( pScope!=null ? pScope.getIndexName() : pFile.scope.getIndexName() );
+        //const index:IDbIndex = this.db.getIndex( pScope!=null ? pScope.getIndexName() : pFile.scope.getIndexName(), ModelFile.TYPE );
+        const index:IDbCollection = this.db.getCollection( pScope!=null ? pScope.getIndexName() : pFile.scope.getIndexName(), ModelFile.TYPE );
 
-        index.addEntry(pFile);
+//        index.addEntry(pFile);
+        index.setEntry(pFile.getRelativePath(), pFile);
+
 
         this.context.bus.send( new Event({
             type: 'data.file.index',
