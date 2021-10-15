@@ -3,6 +3,10 @@ import {UserAccount} from "../UserAccount";
 import {UserSession} from "./UserSession";
 import Util from "../../Utils";
 import {SessionCode, SessionException} from "./SessionException";
+import {IDatabase, IDbCollection} from "../../persist/orm/DbAbstraction";
+import {ConnectorFactory} from "../../ConnectorFactory";
+import SqliteConnector from "../../../connectors/sqlite/adapter";
+import * as Log from "../../Logger";
 
 /**
  * Represents the map session ID / session object
@@ -14,6 +18,8 @@ export interface UserSessionMap {
 }
 
 
+let Logger:Log.Logger = Log.newLogger() as Log.Logger;
+
 /**
  * Represents the component managing session at runtime
  *
@@ -23,15 +29,36 @@ export class SessionService {
 
     private _settings:SessionSettings;
 
-    private _sess: UserSessionMap = {};
+    private _sess: UserSessionMap = {}; // cache
+    private _s: IDbCollection = null;
+
+    private _sessDB: IDatabase = null;
 
     constructor( pSettings:SessionSettings) {
         this._settings = pSettings;
         this._settings.save();
+        this.loadSessionDB();
     }
 
     getSettings():SessionSettings {
         return this._settings;
+    }
+
+    loadSessionDB():void {
+        if(this._sessDB == null){
+            const sqliConn:SqliteConnector = ConnectorFactory.getInstance().newConnector('sqlite', null);
+            sqliConn.connect(this._settings.getStorage())
+        }
+    }
+
+    importSessions( pCollection:IDbCollection){
+        this._s = pCollection;
+        this._s.map( (o:number, v:UserSession) => {
+            this._sess[v.getSessUID()] = v;
+
+            // wakeup project ..
+            Logger.raw( v.toJsonObject());
+        });
     }
 
     /**
@@ -44,7 +71,7 @@ export class SessionService {
         let sessid:string;
         do {
             sessid = Util.randString( 16, Util.ALPHANUM);
-        }while( this._sess.hasOwnProperty(sessid));
+        }while( this._sess[sessid]!=null);
         return sessid;
     }
 
@@ -64,6 +91,9 @@ export class SessionService {
         }
 
         // add session to active list
+        this._s.setEntry( sess.getSessUID(), sess);
+
+        // update cache
         this._sess[sess.getSessUID()] = sess;
 
 
@@ -75,8 +105,11 @@ export class SessionService {
         return true;
     }
 
-    listAllSession(): UserSessionMap {
-        return this._sess;
+    listAllSession(pFromCache = true): UserSessionMap {
+        if(pFromCache)
+            return this._sess;
+        else
+            return this._s.getAll();
     }
 
 
@@ -91,16 +124,23 @@ export class SessionService {
         pSession.destroy();
 
         // remove session from active sessions list
-        this._sess[pSession.getSessUID()] = null;
+        this._s.removeEntry(pSession.getSessUID());
+
 
         // remove session file if session management uses FS
         if(this._settings.isFsBased()){
             this.removeSessionFiles(pSession.getSessUID());
         }
 
+        // remove from cache
+        delete this._sess[pSession.getSessUID()];
+
         return true;
     }
 
+    wakeUpSession(pSession:UserSession):UserSession{
+        return pSession;
+    }
 
     /**
      * To retrieve a session by its uid
@@ -113,12 +153,13 @@ export class SessionService {
         // TODO ACL : check current users can retrieve session of other users from the team
 
 
-        const sess:UserSession = this._sess[pSessUID];
-
-        if(sess==null)
+        if(this._sess[pSessUID]!=null){
+            return this._sess[pSessUID];
+        }else if(this._s.hasEntry(pSessUID)){
+            return this._sess[pSessUID] = this.wakeUpSession( this._s.getEntry(pSessUID));
+        }else{
             throw new SessionException("There is not session with the given Session UID", SessionCode.INVALID_SESSID)
-
-        return sess;
+        }
     }
 
     /**
@@ -132,6 +173,7 @@ export class SessionService {
         // TODO ACL : check current users can retrieve session of other users from the team
 
         let sess:UserSession[] = [];
+
         for(let sid in this._sess){
             if(this._sess[sid]==null)
                 continue;
@@ -146,15 +188,34 @@ export class SessionService {
             }
         }
 
+        if(sess.length == 0){
+            this._s.map( (o:number, v:UserSession)=> {
+                if(v.isOwnedBy(pAccount)){
+                    if(pOnlyActive){
+                        if(v.isActive()) {
+                            sess.push( this.wakeUpSession(v));
+                        }
+                    }else{
+                        sess.push(this.wakeUpSession(v));
+                    }
+                }
+            })
+        }
+
 
         return sess;
     }
 
     flush(): void {
-        for(let i in this._sess)
-            this._sess[i].destroy();
+        this._s.map( (o:number, sess:UserSession)=> {
+            // destroy
+            sess.destroy();
+            // remove from cache
+            delete this._sess[sess.getSessUID()];
+            // remove from DB
+            this._s.removeEntry(sess.getSessUID())
+        });
 
-        this._sess = null;
         this._sess = {};
     }
 }

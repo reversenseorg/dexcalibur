@@ -7,7 +7,7 @@ import {ConnectorFactory} from "../../ConnectorFactory";
 import {UserAccount} from "../UserAccount";
 import {AuthenticationSettings} from "./AuthenticationSettings";
 import AccessControl from "../acl/AccessControl";
-import {IDatabaseAdapter, IDbIndex} from "../../persist/orm/DbAbstraction";
+import {IDatabase, IDatabaseAdapter, IDbCollection, IDbIndex} from "../../persist/orm/DbAbstraction";
 
 export class AuthenticationService {
 
@@ -15,7 +15,7 @@ export class AuthenticationService {
     policy:AuthenticationPolicy;
 
 
-    _users:IDbIndex;
+    _users:IDbCollection;
     _dba:IDatabaseAdapter = null;
 
 
@@ -24,10 +24,10 @@ export class AuthenticationService {
         this.settings = pSettings;
         this.policy = new AuthenticationPolicy(pSettings);
 
-        this.initUserDB();
+        //this.initUserDB();
     }
 
-    /**
+    /*
      * To init user database
      *
      * Only available connector can be used. It is the place
@@ -39,6 +39,7 @@ export class AuthenticationService {
      * If the user database not exists, it is created and filled with <uri> file content
      *
      */
+    /*
     initUserDB():void{
 
         this._dba = ConnectorFactory.getInstance().newConnector(
@@ -65,23 +66,46 @@ export class AuthenticationService {
                 throw new AuthenticationException("Authentication Service cannot be initilized : user DB is missing at "+this.settings.db.uri);
             }
         }else{
-            this.importUserDB(this.settings.db.dbms);
+            this.importUsers(this.settings.db.dbms);
         }
 
-    }
+    }*/
 
     /**
      * To load user account from the default User DB
      *
      * @param pDBMS
      */
+    importUsers( pColl:IDbCollection){
+        this._users = pColl; //this._dba.getDB().getCollection('users', UserAccount.TYPE);
+
+        this._users.map( (o,v) => {
+
+            if(v.role == null){
+                v.role = AccessControl.defaultRole;
+            }
+            /*
+            if(this._dba.getType()=='inmemory'){
+                this._users.setEntry(o, new UserAccount(v));
+            }else{
+                this._users.update(o, new UserAccount(v));
+            }*/
+        });
+    }
+
+    /*
+     * To load user account from the default User DB
+     *
+     * @param pDBMS
+     */
+    /*
     importUserDB( pDBMS:string){
         this._dba.getDB().unserialize(
             JSON.parse(_fs_.readFileSync(
                 this.settings.db.uri, {encoding:'utf8'}
             ))
         );
-        this._users = this._dba.getDB().getIndex('users', null);
+        this._users = this._dba.getDB().getCollection('users', null);
 
         if(pDBMS == 'inmemory'){
             let self:any = this;
@@ -92,9 +116,9 @@ export class AuthenticationService {
                 self._users.setEntry(o, new UserAccount(v));
             });
         }
-    }
+    }*/
 
-    getUserIndex():IDbIndex {
+    getUserIndex():IDbCollection {
         return this._users;
     }
 
@@ -104,8 +128,8 @@ export class AuthenticationService {
      * @param pRawData
      */
     createUserDB( pRawData:any):void {
-        this._users = this._dba.getDB().newIndex('users',null);
-        this._users.addEntry( new UserAccount({
+        this._users = this._dba.getDB().newCollection('users',null);
+        this._users.addEntry( pRawData.login, new UserAccount({
             username: pRawData.login,
             password: pRawData.pwd,
             salt: pRawData.s,

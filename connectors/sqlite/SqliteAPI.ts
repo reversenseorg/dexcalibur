@@ -397,11 +397,11 @@ export class SqliteAPI {
 
     _execSelectAll( pStmt:string, pData:any):any {
         Logger.debug("Exec _execSelectAll : "+pStmt+"\n"+JSON.stringify(pData));
-        this._db.prepare(pStmt).all(pData)
+        return this._db.prepare(pStmt).all(pData)
     }
 
     _execSelectAllNoData( pStmt:string):any {
         Logger.debug("Exec _execSelectAllNoData : "+pStmt+"\n");
-        this._db.prepare(pStmt).all()
+        return this._db.prepare(pStmt).all()
     }
 }

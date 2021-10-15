@@ -61,6 +61,11 @@ export default class InMemoryDbCollection implements IDbCollection
         return this.ctr;
     }
 
+
+    removeEntry(key: any): boolean {
+        return (delete this.values[key]);
+    }
+
     toJsonObject():any{
         let o:any= {};
 

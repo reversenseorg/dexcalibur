@@ -44,6 +44,11 @@ export default class SqliteConnector implements IDatabaseAdapter
         this.options = pOptions;
     }
 
+
+    getType(): string {
+        return this.type;
+    }
+
     /**
      * empty
      * @returns {boolean}

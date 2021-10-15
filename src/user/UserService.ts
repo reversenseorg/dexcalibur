@@ -12,18 +12,113 @@ import {SessionCode, SessionException} from "./session/SessionException";
 import {AuthenticationResult} from "./auth/Authenticator";
 import {AuthenticationException} from "../errors/AuthenticationException";
 import * as Log from '../Logger';
+import {IDatabase, IDatabaseAdapter, IDbCollection} from "../persist/orm/DbAbstraction";
+import {ConnectorFactory} from "../ConnectorFactory";
+import SqliteConnector from "../../connectors/sqlite/adapter";
+import {SqliteDb} from "../../connectors/sqlite/SqliteDb";
+import * as _fs_ from "fs";
 
-let Logger:Log.Logger = Log.newLogger() as Log.Logger;
+const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
 export class UserService {
 
     authSvc: AuthenticationService;
     sessSvc: SessionService;
 
+    private _db:IDatabase = null;
+    private _requireMigrate = false;
+    private _settings: AuthenticationSettings = null;
 
     constructor(pSettings:AuthenticationSettings) {
+        this._settings = pSettings;
+
+        this.loadDB(pSettings);
+
+        if(_fs_.existsSync()){
+            this.migrateDB(pSettings);
+        }
+
         this.authSvc = new AuthenticationService(pSettings);
+        this.authSvc.importUsers(this._db.getCollection('user', UserAccount.TYPE));
+
         this.sessSvc = new SessionService( pSettings.getSessionSettings());
+        this.sessSvc.importSessions(this._db.getCollection('session', UserSession.TYPE));
+    }
+
+
+
+    /**
+     *
+     * @param pOldDB
+     * @param pNewDB
+     */
+    migrateDB( pType:string, pURI:string){
+        // TODO : add db authent
+        try{
+            const adapter:IDatabaseAdapter = ConnectorFactory.getInstance().newConnector(pType, null);
+            const DB:SqliteDb = adapter.connect(pURI);
+            const userColl = DB.getCollection( 'user', UserAccount.TYPE);
+
+            const target:IDbCollection = this._db.getCollection('user', UserAccount.TYPE);
+            this._db.getCollection( 'user', UserAccount.TYPE).map( (vUser:UserAccount)=>{
+                target.addEntry( vUser.getUID(), vUser);
+            });
+
+            Logger.raw("[AUTH SVC] Old DB as be migrated to SQLite DB");
+        }catch(err){
+            throw AuthenticationException.MIGRATION_ERROR(err);
+        }
+
+    }
+
+    /**
+     * To init user database
+     *
+     * Only available connector can be used. It is the place
+     * where connection to the database is performed.
+     *
+     * If the file at 'uri' is not found (1st run after install), it searchs
+     * for <uri>.temp JSON file  with 1st user data.
+     *
+     * If the user database not exists, it is created and filled with <uri> file content
+     *
+     */
+    loadDB( pSettings:AuthenticationSettings, pDBMS:string=null):void{
+
+        const dba:any = ConnectorFactory.getInstance().newConnector(
+            pSettings.db.dbms, // inmemory / sqlite / neo4j
+            null,
+            {
+                user: pSettings.db.user,
+                pwd: pSettings.db.pwd,
+                port: pSettings.db.port,
+                uri: pSettings.db.uri
+            }
+        ) as IDatabaseAdapter;
+
+        dba.connect(pSettings.db.uri);
+
+        if(pSettings.db.dbms == 'inmemory'){
+            this._requireMigrate = true;
+        }
+
+        this._db = dba.getDB();
+        // import temporary DB after a fresh install
+        /*
+        if(_fs_.existsSync(this.settings.db.uri)==false){
+            if(_fs_.existsSync(this.settings.db.uri+".temp")==true){
+                this.createUserDB(
+                    JSON.parse(_fs_.readFileSync(this.settings.db.uri+".temp", {encoding:'utf8'}))
+                );
+                // during import, there is no backup of current user DB
+                this.save(false);
+            }else{
+                throw new AuthenticationException("Authentication Service cannot be initilized : user DB is missing at "+this.settings.db.uri);
+            }
+        }else{
+            this.importUserDB(this.settings.db.dbms);
+        }*/
+
     }
 
     createSession( pAccount: UserAccount): UserSession {

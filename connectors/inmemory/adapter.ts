@@ -102,6 +102,11 @@ export default class InMemoryConnector implements IDatabaseAdapter
     getDB():IDatabase{
         return this.db;
     }
+
+    getType(): string {
+        return this.type;
+    }
+
     /**
      * To transform current DB into a simple object ready to be serialized
      *

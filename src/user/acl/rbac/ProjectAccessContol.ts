@@ -24,7 +24,7 @@ export class ProjectAccessControl extends DelegateAccessControl {
         PROJ_PKG_READ: new Access( AccessType.READ, 'PROJ_PKG_READ', 'Read package content'),
         PROJ_NEW_OWN_WF: new Access( AccessType.WRITE, 'PROJ_NEW_OWN_WF', 'Create new project workflow'),
         PROJ_APPDATA_READ: new Access( AccessType.READ, 'PROJ_APPDATA_READ', 'Read app data content on the device'),
-        CLOSE_PROJECT: new Access( AccessType.EXE, 'CLOSE_PROJECT', 'Close the project according to owner and group attributes'),
+        CLOSE_OWN_PROJECT: new Access( AccessType.EXE, 'CLOSE_OWN_PROJECT', 'Close the project according to owner and group attributes'),
     };
 
     static attr:AccessAttributeMap = {

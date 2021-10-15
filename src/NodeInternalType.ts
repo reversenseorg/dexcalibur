@@ -18,5 +18,7 @@ export enum NodeInternalType {
     INSTR_CPU,
     FILE_SECTION,
     PLATFORM_PPT,
-    INTERNAL_DB
+    INTERNAL_DB,
+    USER_ACCOUNT,
+    USER_SESSION
 }

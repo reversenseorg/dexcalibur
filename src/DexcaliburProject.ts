@@ -566,6 +566,8 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
             Logger.info("[DXC-PROJECT] [SUBSCRIBER] <file.new.DYN_BYTECODE> scanning file : "+d.file.path);
             Logger.info(JSON.stringify(pEvent));
 
+
+
             if(d.file.hasScope(this.dataAnalyzer.scopes.DYN_BYTECODE)){
                 this.dataAnalyzer.scanFile(
                     d.file,
@@ -1205,9 +1207,16 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
             // file analysis : icon detection, strings, etc ...
             // TODO : multi threading : each file can be treated separately
 
-            this.dataAnalyzer.indexFilesIn(
-                this.dataAnalyzer.getScope('PKG')
-            );
+            if(this.dataAnalyzer.hasIndexed(this.dataAnalyzer.getScope('PKG'))){
+                this.dataAnalyzer.indexFilesIn(
+                    this.dataAnalyzer.getScope('PKG')
+                );
+            }/*else{
+                this.dataAnalyzer.loadIndex(
+                    this.dataAnalyzer.getScope('PKG')
+                );
+            }*/
+
 
 
             this.getWorkflow().setStep('Runtime data', 80);

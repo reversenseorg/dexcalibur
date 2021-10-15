@@ -72,18 +72,29 @@ export default class SqliteDbCollection implements IDbCollection
         return this._s._execSelect(this._ps.selectSingle, [key]);
     }
 
+    /**
+     * To read all entries from the colelction and instanciate node
+     *
+     * @param {boolean} pList If TRUE, then it returns an array, else it returns an object indexed by primary key value
+     * @return {any|any[]} List or hashmap of entries
+     * @method
+     * @since 1.0.0
+     */
     getAll(pList = false):any{
-        const res = this._s._execSelectAll(this._ps.selectSingle,[]);
+        const res = this._s._execSelectAll(this._ps.selectAll,[]);
+
+        Logger.raw(res);
+        Logger.raw(this._tpl.getBuilder());
         let all:any;
         if(pList){
             all = [];
             res.map( (vEntry:any)=>{
-                all.push(this._tpl.getBuilder()(vEntry));
+                all.push(new (this._tpl.getBuilder())(vEntry));
             });
         }else{
             all = {};
             res.map( (vEntry:any)=>{
-                all[vEntry[this._tpl.getPrimaryKey().getName()]] = this._tpl.getBuilder()(vEntry);
+                all[vEntry[this._tpl.getPrimaryKey().getName()]] = new (this._tpl.getBuilder())(vEntry);
             });
         }
 
@@ -92,17 +103,34 @@ export default class SqliteDbCollection implements IDbCollection
         return all;
     }
 
-    hasEntry(key:string):boolean{
+    /**
+     * To check if an entry exists for the specified key
+     *
+     * By default it filters by primary key
+     *
+     * @param {any} pKey Key value
+     * @return {boolean} Return TRUE is an entry exists, else FALSE
+     * @method
+     * @since 1.0.0
+     */
+    hasEntry(pKey:any):boolean{
         const p:any = {};
-        p[this._tpl.getPrimaryKey().getName()] = key
+        p[this._tpl.getPrimaryKey().getName()] = pKey
 
         return (this._s._execSelect(this._ps.selectSingle, p) != null)
     }
 
-    map(fn:any){
-        for(let k in this.values){
-            fn(k,this.values[k]);
-        }
+    /**
+     * To execute a function for each entry
+     *
+     * Same as map function over an array
+     *
+     * @param {function} pFn The callback function
+     * @method
+     * @since 1.0.0
+     */
+    map(pFn:any){
+        this.getAll(true).map( (k:any, i:number) => { pFn(i,k) });
     }
 
     isCollection(){
@@ -115,6 +143,12 @@ export default class SqliteDbCollection implements IDbCollection
 
     size():number{
         return this._c;
+    }
+
+
+    removeEntry(key: any): boolean {
+        this._s._execInsert( this._ps.removeSingle, [key]);
+        return true;
     }
 
     toJsonObject():any{

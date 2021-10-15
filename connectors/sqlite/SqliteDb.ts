@@ -105,15 +105,16 @@ class SqliteDb implements IDatabase
      * @private
      */
     exists( pName:string):boolean {
-        return this._tables.indexOf(pName)>-1;
+        Logger.debug(JSON.stringify(this._tables.indexOf(pName)));
+        return (this._tables.indexOf(pName)>-1);// this.indexes[pName]!=null;
     }
 
     /**
      *
      */
     loadIndexes(){
-        if(Object.keys(this.indexes).length==0){
-            const idx = this._s._execSelectAllNoData('SELECT name, type FROM '+METADATA_TABLE);
+       // if(Object.keys(this.indexes).length==0){
+            const idx = this._s._execSelectAllNoData(this._ps.selectAll);
             if(idx!=null){
                 Logger.raw(JSON.stringify(idx));
                 idx.map( info => {
@@ -126,7 +127,7 @@ class SqliteDb implements IDatabase
                     }
                 })
             }
-        }
+       // }
     }
 
 
@@ -158,7 +159,7 @@ class SqliteDb implements IDatabase
             this._s._execInsert( this._ps.insertSingle,{
                 name: name,
                 type: DbSetType.COLL,
-                node: pNodeType.getType()
+                node: pNodeType.getName()
             });
             this._refresh();
         }

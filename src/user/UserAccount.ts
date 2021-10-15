@@ -4,13 +4,30 @@ import {AuthCode, AuthenticationException} from "./auth/AuthTypes";
 import {UserRole} from "./acl/rbac/UserRole";
 import AccessControl from "./acl/AccessControl";
 import {ProjectURI} from "../project/ProjectGlobalUID";
-import DexcaliburProject from "../DexcaliburProject";
-import DexcaliburEngine, {DexcaliburProjectMap} from "../DexcaliburEngine";
-import {AccessZone} from "./acl/Zones";
-import {ProjectAccessControl} from "./acl/rbac/ProjectAccessContol";
 import {IDexcaliburEngine} from "../IDexcaliburEngine";
+import {IPersistent} from "../persist/orm/IPersistent";
+import {NodeType} from "../persist/orm/NodeType";
+import {NodeInternalType} from "../NodeInternalType";
+import {NodeProperty} from "../persist/orm/NodeProperty";
+import {DbDataType, DbKeyType} from "../persist/orm/DbAbstraction";
 
-export class UserAccount {
+export class UserAccount implements IPersistent{
+
+    static TYPE:NodeType = new NodeType(
+        'user',
+        NodeInternalType.USER_ACCOUNT,
+        [
+            (new NodeProperty('_uid')).type(DbDataType.STRING).key(DbKeyType.PRIMARY),
+            (new NodeProperty('_time')).type(DbDataType.STRING),
+            (new NodeProperty('_username')).type(DbDataType.STRING).notnull().unique(),
+            (new NodeProperty('_password')).type(DbDataType.STRING).notnull(),
+            (new NodeProperty('_salt')).type(DbDataType.STRING).notnull(),
+            (new NodeProperty('_locked')).type(DbDataType.BOOLEAN).def(false),
+            (new NodeProperty('_padding')).type(DbDataType.STRING).notnull(),
+            (new NodeProperty('_person')).volatile().type(DbDataType.STRING),
+            (new NodeProperty('_role')).volatile().type(DbDataType.STRING),
+        ]
+    );
 
     private _uid:string;
     private _person: Person;
@@ -189,3 +206,5 @@ export class UserAccount {
         return out;
     }
 }
+
+UserAccount.TYPE.builder(UserAccount);

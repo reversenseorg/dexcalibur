@@ -7,10 +7,31 @@ import DexcaliburProject from "../../DexcaliburProject";
 import AccessControl from "../acl/AccessControl";
 import {AccessZone} from "../acl/Zones";
 import {ProjectAccessControl} from "../acl/rbac/ProjectAccessContol";
-import {Settings} from "../../Settings";
 import {IDexcaliburEngine} from "../../IDexcaliburEngine";
+import {NodeType} from "../../persist/orm/NodeType";
+import {NodeInternalType} from "../../NodeInternalType";
+import {NodeProperty} from "../../persist/orm/NodeProperty";
+import {DbDataType, DbKeyType, DbSerialize} from "../../persist/orm/DbAbstraction";
+import {IPersistent} from "../../persist/orm/IPersistent";
 
-export class UserSession {
+export class UserSession implements IPersistent{
+
+    static TYPE:NodeType = new NodeType(
+        'session',
+        NodeInternalType.USER_SESSION,
+        [
+            (new NodeProperty('_uid')).type(DbDataType.STRING).key(DbKeyType.PRIMARY),
+            (new NodeProperty('_acc')).single(UserAccount.TYPE).notnull(),
+            (new NodeProperty('_created')).type(DbDataType.INTEGER),
+            (new NodeProperty('_destroyed')).type(DbDataType.INTEGER),
+            (new NodeProperty('_project')).volatile().type(DbDataType.STRING).serialize(DbSerialize.JSON),
+            (new NodeProperty('_defaultProject')).volatile().type(DbDataType.STRING),
+            (new NodeProperty('_data')).volatile().type(DbDataType.STRING).notnull(),
+            (new NodeProperty('_person')).volatile().type(DbDataType.STRING),
+            (new NodeProperty('_conn')).volatile().type(DbDataType.STRING),
+        ]
+    );
+
 
     private _uid:string;
     private _acc: UserAccount;
@@ -211,4 +232,19 @@ export class UserSession {
 
         return (pName==null ? this._data : this._data[pName]);
     }
+
+    toJsonObject():any {
+        const o:any = {};
+        o._uid = this._uid;
+        o._created = this._created;
+        o._destroyed = this._destroyed;
+        o._project = Object.keys(this._project);
+        o._defaultProject = this._defaultProject!=null ? this._defaultProject.getUID() : null;
+        o._acc = this._acc.getUID();
+        //o._data = this._uid;
+        o._conn = Object.keys(this._conn);
+        return o;
+    }
 }
+
+UserSession.TYPE.builder(UserSession);

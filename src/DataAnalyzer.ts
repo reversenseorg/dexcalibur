@@ -300,6 +300,10 @@ export class DataAnalyzer
         });
     }
 
+    hasIndexed(pScope:DataScope):boolean {
+        return this.db.exists(pScope.getIndexName());
+    }
+
     /**
      * To scan the 'path' as APK content
      *

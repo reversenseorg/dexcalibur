@@ -83,7 +83,9 @@ export interface IDbIndex extends IDbSet {
 
     getEntry(offset:number):any;
 
-    hasEntry(value:any):boolean
+    hasEntry(value:any):boolean;
+
+    removeEntry(key: any):boolean;
 }
 
 export interface DbSetMap {
@@ -106,6 +108,8 @@ export interface IDbCollection extends IDbSet
     getEntry(key:string):any;
 
     hasEntry(key:string):boolean;
+
+    removeEntry(key: any):boolean;
 }
 
 export interface IDatabaseAdapter
@@ -117,6 +121,7 @@ export interface IDatabaseAdapter
     getIndex( pName:string):IDbIndex;
     getCollection( pName:string):IDbCollection;
     getDB():IDatabase;
+    getType():string;
     newTemporaryDb( pName:string):IDatabase;
     toJsonObject():any;
 }

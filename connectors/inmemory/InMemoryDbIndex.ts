@@ -115,6 +115,11 @@ export default class InMemoryDbIndex implements IDbIndex
         return (this.refs.indexOf(value) > -1);
     }
 
+    removeEntry(key: any): boolean {
+        this.refs[key] = null;
+        return true;
+    }
+
     /**
      * To transform current index to simple object ready to be serialized.
      *

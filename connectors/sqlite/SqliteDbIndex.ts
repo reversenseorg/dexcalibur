@@ -96,9 +96,7 @@ export default class SqliteDbIndex implements IDbIndex
      * @method
      */
     map(fn:any){
-        for(let i:number=0; i<this.refs.length; i++){
-            fn(i, this.refs[i]);
-        }
+        this.getAll().map( (k,i) => fn(i,k));
     }
 
     /**
@@ -127,7 +125,7 @@ export default class SqliteDbIndex implements IDbIndex
         const data = this._s._execSelectAllNoData(this._ps.selectAll);
         const ret = [];
         data.map( entry => {
-            ret.push(this._tpl.getBuilder()(entry));
+            ret.push(new (this._tpl.getBuilder())(entry));
         })
         return ret;
     }
@@ -137,6 +135,12 @@ export default class SqliteDbIndex implements IDbIndex
     }
 
     isIndex():boolean{
+        return true;
+    }
+
+
+    removeEntry(key: any): boolean {
+        this._s._execInsert( this._ps.removeSingle, [key]);
         return true;
     }
 
