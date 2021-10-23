@@ -21,6 +21,7 @@ export class AndroidManifest
     permissionGroups:AndroidPermissionGroup[] = [];
     instrumentation:AndroidInstrumentation[] = [];
     usesPermissionsSdk23:AndroidPermissionSdk23[] = [];
+    //protectedBroadcast:AndroidBroadcast[] = []
 
     usesSdk:any = {};
 
@@ -141,6 +142,11 @@ export class AndroidManifest
                         self.overlays.push(AndroidRRO.fromXml(k.$));
                     });
                     break;
+               /* case 'protected-broadcast':
+                    config['protected-broadcast'].map(function(k){
+                        self.protectedBroadcast.push(Android.fromXml(k.$));
+                    });
+                    break;*/
                 default:
                     self.__additionalContent[i] = config[i];
                     break;
