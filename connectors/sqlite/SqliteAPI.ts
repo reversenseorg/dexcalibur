@@ -8,11 +8,11 @@ import * as Log from "../../src/Logger";
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
 export interface PreparedStatementList {
-    selectSingle :string,
-    selectAll :string,
-    insertSingle :string,
-    updateSingle :string,
-    removeSingle :string,
+    selectSingle :any,
+    selectAll :any,
+    insertSingle :any,
+    updateSingle :any,
+    removeSingle :any,
 }
 
 
@@ -63,19 +63,13 @@ export class SqliteAPI {
         return res;
     }
 
-    /**
-     * To extract a list of bind params from a node instance
-     *
-     * @param pObject
-     * @param pProperties
-     * @param pSubset
-     * @private
-     */
-    _extractParams( pObject:any, pProperties:NodeProperty[], pSubset:string[] = null):any{
+    _prepareParams( pObject:any, pNodeType:NodeType, pSubset:string[] = null):any {
 
         const pars:any = {};
-        pProperties.map( (vPPT:NodeProperty) => {
+
+        pNodeType.getProperties().map( (vPPT:NodeProperty) => {
             if(vPPT.isVolatile()) return;
+            if(vPPT.isMultiple()) return;
             if(pSubset != null && pSubset.indexOf(vPPT.getName())==-1) return;
 
             const name = vPPT.getName();
@@ -97,11 +91,45 @@ export class SqliteAPI {
             }else{
                 if(vPPT.isSerialized()){
                     pars[name] = this._serializeProperty( pObject, vPPT);
+                }else if(vPPT.isBoolean()){
+                    pars[name] = pObject[name]===true ? 1 : 0;
+                }else if(vPPT.hasSleep()){
+                    pars[name] = vPPT.doSleep( { p:pObject[name], self:pObject });
+                    Logger.raw("====> SLEEP property "+name+" => after : "+pars[name]);
                 }else{
                     pars[name] = pObject[name];
                 }
             }
         });
+
+        return pars;
+    }
+
+
+    /**
+     * To extract a list of bind params from a node instance
+     *
+     * @param pObject
+     * @param pProperties
+     * @param pSubset
+     * @private
+     */
+    _extractParams( pObject:any, pNodeType:NodeType, pSubset:string[] = null):any{
+
+        let pars:any = {};
+        let t:string;
+
+        /*if(pNodeType.hasExternalProperties()){
+            pNodeType.getExternalProperties().map( (vPpt:NodeProperty)=>{
+                t = vPpt.getNodeType().getName();
+                pars[t] = [];
+                if(Array.isArray(pObject[vPpt.getName()])){
+                    pObject[vPpt.getName()].map( x => { pars[t].push( this._prepareParams(x, vPpt.getNodeType(), pSubset))})
+                }
+            });
+        }else{*/
+            pars = this._prepareParams(pObject, pNodeType, pSubset);
+        //}
 
         return pars;
     }
@@ -112,10 +140,10 @@ export class SqliteAPI {
      * @return {any[]} A list of table names
      * @method
      */
-    _getTables():any[] {
+    _getTables():string[] {
         return this._db
             .prepare("SELECT name FROM sqlite_master WHERE type =? AND name NOT LIKE ?")
-            .all('table','sqlite_%');
+            .all('table','sqlite_%').map( x => x.name);
     }
 
     _getDB():Database {
@@ -170,10 +198,10 @@ export class SqliteAPI {
     }
 
 
-    _declareColumnStmt( vTPL:NodeProperty): string {
+    _declareColumnStmt( vTPL:NodeProperty, vExtTPL:NodeProperty = null): string {
         let s:string = "";
-        const t = this._getTypes(vTPL.getType());
-        const def = vTPL.getDefaultValue();
+        const t = this._getTypes( vExtTPL==null ? vTPL.getType() : vExtTPL.getType());
+        const def = vExtTPL==null ? vTPL.getDefaultValue() : vExtTPL.getDefaultValue();
 
         if(vTPL.isKey()){
             if(vTPL.isPrimaryKey()){
@@ -202,7 +230,7 @@ export class SqliteAPI {
             s += "NOT NULL ";
         }
 
-        return `${vTPL.getName()} ${this._getTypes(vTPL.getType())} ${s}`;
+        return `${vTPL.getName()} ${t} ${s}`;
     }
 
     /**
@@ -215,24 +243,93 @@ export class SqliteAPI {
 
         let c:string = "";
         let i = 0;
+        let constraint = '';
 
         pColumns.map( (vTPL, vI:number) => {
+
+            if(vTPL.isCompositeKey()){
+                constraint += vTPL.getName()+',';
+            }
+
+            if(vTPL.isNode()){
+                if(!vTPL.isMultiple()){
+                    c += this._declareColumnStmt(vTPL, vTPL.getNodeType().getPrimaryKey())+',';
+                    i++;
+                }
+                return;
+            }
+
             if(!vTPL.isVolatile()){
                 c += this._declareColumnStmt(vTPL)+',';
                 i++;
             }
-        })
+        });
 
         if(i==0) throw new SqliteException("The table '"+pTableName+"' must have at least one column. ");
 
         c = c.slice(0, -1);
 
-        const req = `CREATE TABLE ${pOptions.notExists? 'IF NOT EXISTS' : ''} "${pTableName}" ( ${c} )`;
+        const req = `CREATE TABLE ${pOptions.notExists? 'IF NOT EXISTS' : ''} "${pTableName}" ( ${c} ${constraint.length>0? ', PRIMARY KEY ('+constraint.slice(0,-1)+')': ''})`;
 
 
         Logger.debug('SqliteAPI : ',req);
         return this._db
             .exec(req);
+    }
+
+
+    _dropTable(pTableName:string, pOptions:any = {}):void{
+
+        const req = `DROP TABLE ${pOptions.notExists? 'IF NOT EXISTS' : ''} "${pTableName}" `;
+
+        Logger.debug('SqliteAPI : ',req);
+        return this._db.exec(req);
+    }
+
+    /**
+     *
+     * @param pTableName
+     * @param pColumns
+     * @param pOptions
+     */
+    _alterTable(pTableName:string, pNewColumns:NodeProperty[],  pOptions:any = {add:true}):void{
+
+        let c = "", col = "";
+        let i = 0, o = -1;
+        let ppt:NodeProperty = null;
+
+        // diff properties
+        for(let j=0; j<pNewColumns.length ; j++){
+            ppt = pNewColumns[j];
+
+            if(ppt.isCompositeKey()){
+                // recreate table is required (flush data)
+                this._dropTable( pTableName);
+                this._createTable( pTableName, pNewColumns, pOptions);
+                return;
+            }
+
+            if(pOptions.add){
+                if(ppt.isNode()){
+                    if(!ppt.isMultiple()){
+                        col = this._declareColumnStmt(ppt, ppt.getNodeType().getPrimaryKey());
+                    }
+                }
+                else if(!ppt.isVolatile()){
+                    col = this._declareColumnStmt(ppt);
+                }
+                col = " ADD COLUMN "+col;
+            }else{
+                col = " DROP COLUMN "+ppt.getName();
+            }
+
+
+            // add column
+            c = `ALTER TABLE "${pTableName}" ${col}`;
+
+            Logger.info('SqliteAPI : ',c);
+            this._db.exec(c);
+        }
     }
 
     /**
@@ -248,7 +345,7 @@ export class SqliteAPI {
         let i = 0;
         pNodeType.getProperties().map( (vPpt:NodeProperty) => {
 
-            if(vPpt.isVolatile()) return;
+            if(vPpt.isVolatile() || vPpt.isMultiple()) return;
 
             if(pProperties.length>0){
                 if(pProperties.indexOf(vPpt.getName())>-1){
@@ -272,11 +369,32 @@ export class SqliteAPI {
         return s;
     }
 
+
+    _extractKey( pObject:any, pNodeType:NodeType):any {
+        if(pNodeType.hasCompositeKey()){
+            const key = {};
+            pNodeType.getCompositeKey().map( (p:NodeProperty, offset:number)=>{
+                const pname = p.getName();
+                if(p.isNode()){
+                    key[pname] = pObject[pname];
+                    if(key[pname] != null){
+                        key[pname] = key[pname][p.getNodeType().getPrimaryKey().getName()];
+                    }
+                }else{
+                    key[pname] = pObject[pname];
+                }
+            })
+            return key;
+        }else{
+            return pObject[pNodeType.getPrimaryKey().getName()];
+        }
+    }
+
     _generateUpdateSingle(pTableName:string,  pNodeType:NodeType, pProperties:string[] = []):string {
         let s:string = `UPDATE  "${pTableName}" SET `;
         let i = 0;
         pNodeType.getProperties().map( (vPpt:NodeProperty) => {
-            if(vPpt.isVolatile()) return;
+            if(vPpt.isVolatile() || vPpt.isMultiple()) return;
 
             if(pProperties.length>0){
                 if(pProperties.indexOf(vPpt.getName())>-1){
@@ -305,7 +423,7 @@ export class SqliteAPI {
         let p:string  = ` FROM "${pTableName}" ${ !pAll ? 'WHERE '+this._generateWhereStmt(pNodeType):''} `;
 
         pNodeType.getProperties().map( (vPpt:NodeProperty) => {
-            if(vPpt.isVolatile()) return;
+            if(vPpt.isVolatile() || vPpt.isMultiple()) return;
 
             if(pProperties.length>0){
                 if(pProperties.indexOf(vPpt.getName())>-1){
@@ -333,7 +451,7 @@ export class SqliteAPI {
         let keys:NodeProperty[] = []
         pNodeType.getProperties().map( (vPpt:NodeProperty) => {
 
-            if(vPpt.isVolatile()) return;
+            if(vPpt.isVolatile() || vPpt.isMultiple()) return;
 
             if(vPpt.isPrimaryKey()){
                 keys.push(vPpt);
@@ -363,7 +481,8 @@ export class SqliteAPI {
         return `DELETE FROM ${pTableName} WHERE ${this._generateWhereStmt(pNodeType)}`;
     }
 
-    _generatePreparedStmt( pTableName:string, pNodeType:NodeType):PreparedStatementList {
+
+    _generateSimplePreparedStmt( pTableName:string, pNodeType:NodeType):PreparedStatementList {
         const stmt:PreparedStatementList = {
             selectSingle: this._generateSelect(pTableName, pNodeType, [], false),
             selectAll: this._generateSelect(pTableName, pNodeType, [], true),
@@ -372,6 +491,34 @@ export class SqliteAPI {
             updateSingle: this._generateUpdateSingle(pTableName, pNodeType)
         }
         return stmt;
+    }
+
+    _generatePreparedStmt( pTableName:string, pNodeType:NodeType):PreparedStatementList {
+
+        return this._generateSimplePreparedStmt( pTableName, pNodeType);
+        /*
+        if(pNodeType.hasExternalProperties()){
+            const stmt:any = {
+                selectSingle: {},
+                selectAll: {},
+                insertSingle: {},
+                removeSingle: {},
+                updateSingle: {},
+            };
+
+            pNodeType.getExternalProperties().map( (vPpt:NodeProperty)=>{
+               const type = vPpt.getNodeType();
+               stmt.selectSingle[vPpt.getName()] = this._generateSelect(type.getName(), type, [], false);
+               stmt.selectAll[vPpt.getName()] = this._generateSelect(type.getName(), type, [], true);
+                stmt.insertSingle[vPpt.getName()] = this._generateInsertSingle(type.getName(), type);
+                stmt.removeSingle[vPpt.getName()] = this._generateRemoveSingle(type.getName(), type);
+                stmt.updateSingle[vPpt.getName()] = this._generateUpdateSingle(type.getName(), type);
+            });
+
+            return stmt;
+        }else{
+            return this._generateSimplePreparedStmt( pTableName, pNodeType);
+        }*/
     }
 
     /**
@@ -385,23 +532,67 @@ export class SqliteAPI {
 
     }
 
-    _execInsert( pStmt:string, pData:any):any{
-        Logger.debug("Exec _execInsert : "+pStmt+"\n"+JSON.stringify(pData));
-        return this._db.prepare(pStmt).run(pData);
+    _execInsert( pStmt:any, pData:any):any{
+
+        if(typeof pStmt === 'string'){
+
+            Logger.info("Exec _execInsert (simple) : "+pStmt+"\n"+JSON.stringify(pData));
+            return this._db.prepare(pStmt).run(pData);
+        }else{
+            let res:any = {};
+            for(const i in pStmt){
+                Logger.info("Exec _execInsert"+i+" (complex) : "+pStmt[i]+"\n"+JSON.stringify(pData[i]));
+                res[i] = this._db.prepare(pStmt[i]).run(pData[i]);
+            }
+            return res;
+        }
     }
 
-    _execSelect( pStmt:string, pData:any):any {
-        Logger.debug("Exec _execSelect : "+pStmt+"\n"+JSON.stringify(pData));
-        return this._db.prepare(pStmt).get(pData);
+    _execSelect( pStmt:any, pData:any):any {
+
+        if(typeof pStmt === 'string'){
+
+            Logger.info("Exec _execSelect (simple) : "+pStmt+"\n"+JSON.stringify(pData));
+            return this._db.prepare(pStmt).get(pData);
+        }else{
+            let res:any = {};
+            for(const i in pStmt){
+                Logger.info("Exec _execSelect "+i+" (complex) : "+pStmt[i]+"\n"+JSON.stringify(pData[i]));
+                res[i] = this._db.prepare(pStmt[i]).get(pData[i]);
+            }
+            return res;
+        }
     }
 
-    _execSelectAll( pStmt:string, pData:any):any {
-        Logger.debug("Exec _execSelectAll : "+pStmt+"\n"+JSON.stringify(pData));
-        return this._db.prepare(pStmt).all(pData)
+    _execSelectAll( pStmt:any, pData:any):any {
+
+        if(typeof pStmt === 'string'){
+
+            Logger.info("Exec _execSelectAll (simple) : "+pStmt+"\n");
+            return this._db.prepare(pStmt).all();
+        }else{
+            let res:any = {};
+            for(const i in pStmt){
+                Logger.info("Exec _execSelectAll "+i+" (complex) : "+pStmt[i]);
+                res[i] = this._db.prepare(pStmt[i]).all();
+            }
+            return res;
+        }
     }
 
-    _execSelectAllNoData( pStmt:string):any {
-        Logger.debug("Exec _execSelectAllNoData : "+pStmt+"\n");
-        return this._db.prepare(pStmt).all()
+    _execSelectAllNoData( pStmt:any):any {
+
+        if(typeof pStmt === 'string'){
+
+            Logger.info("Exec _execSelectAllNoData (simple) : "+pStmt);
+            return this._db.prepare(pStmt).all();
+        }else{
+            let res:any = {};
+            for(const i in pStmt){
+                Logger.info("Exec _execSelectAllNoData"+i+" (complex) : "+pStmt[i]);
+                res[i] = this._db.prepare(pStmt[i]).all();
+            }
+            return res;
+        }
     }
 }

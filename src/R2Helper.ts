@@ -330,6 +330,7 @@ export default class RadareHelper
                 }
             }
         }catch(err){
+            r2p.r2bin = "r2";
             Logger.error(err.message+" "+err.stack);
         }
 

@@ -8,6 +8,15 @@ import {UserAccount} from "../UserAccount";
 import {AuthenticationSettings} from "./AuthenticationSettings";
 import AccessControl from "../acl/AccessControl";
 import {IDatabase, IDatabaseAdapter, IDbCollection, IDbIndex} from "../../persist/orm/DbAbstraction";
+import * as Log from "../../Logger";
+import DexcaliburEngine from "../../DexcaliburEngine";
+import {NodeProperty} from "../../persist/orm/NodeProperty";
+
+interface UserCache {
+    [username:string] :UserAccount;
+}
+
+let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
 export class AuthenticationService {
 
@@ -16,12 +25,16 @@ export class AuthenticationService {
 
 
     _users:IDbCollection;
+    _cache:UserCache = {};
     _dba:IDatabaseAdapter = null;
 
+    private _ctx:DexcaliburEngine = null;
 
 
-    constructor( pSettings:AuthenticationSettings) {
+
+    constructor( pSettings:AuthenticationSettings, pContext:DexcaliburEngine = null) {
         this.settings = pSettings;
+        this._ctx = pContext;
         this.policy = new AuthenticationPolicy(pSettings);
 
         //this.initUserDB();
@@ -77,13 +90,26 @@ export class AuthenticationService {
      * @param pDBMS
      */
     importUsers( pColl:IDbCollection){
-        this._users = pColl; //this._dba.getDB().getCollection('users', UserAccount.TYPE);
+        this._users = pColl;
+        this._users.map( (o,v:UserAccount) => {
 
-        this._users.map( (o,v) => {
+            Logger.info('---- Wakeup user --- ');
+            this.wakeUpUser(v)
 
             if(v.role == null){
                 v.role = AccessControl.defaultRole;
+
+                // update
+                Logger.info('---- Update user role --- ');
+                this._users.setEntry(v.getUID(), v);
             }
+
+            this._cache[v.getUID()] = v;
+
+            Logger.info('---- import next user --- ');
+
+
+            Logger.info(JSON.stringify(v));
             /*
             if(this._dba.getType()=='inmemory'){
                 this._users.setEntry(o, new UserAccount(v));
@@ -93,50 +119,28 @@ export class AuthenticationService {
         });
     }
 
-    /*
-     * To load user account from the default User DB
-     *
-     * @param pDBMS
-     */
-    /*
-    importUserDB( pDBMS:string){
-        this._dba.getDB().unserialize(
-            JSON.parse(_fs_.readFileSync(
-                this.settings.db.uri, {encoding:'utf8'}
-            ))
-        );
-        this._users = this._dba.getDB().getCollection('users', null);
+    wakeUpUser(pUser:UserAccount):void {
+        const ppt:NodeProperty[] = UserAccount.TYPE.getProperties();
+        ppt.map( vP => {
+      //      if(vP.hasWakeUp()){
+    //            pUser[vP.getName()] = vP.doWakeUp({ p:pUser[vP.getName()], self:pUser, ctx:this._ctx });
+        //    }
+        })
+    }
 
-        if(pDBMS == 'inmemory'){
-            let self:any = this;
-            this._users.map(function(o,v) {
-                if(v.role == null){
-                    v.role = AccessControl.defaultRole;
-                }
-                self._users.setEntry(o, new UserAccount(v));
-            });
-        }
-    }*/
+
+
+    sleepUser(pData:any):any {
+        const ppt:NodeProperty[] = UserAccount.TYPE.getProperties();
+        ppt.map( vP => {
+       //     if(vP.hasSleep()){
+         //       pData[vP.getName()] = vP.doSleep({ p:pData[vP.getName()], self:pData, ctx:this._ctx });
+           // }
+        })
+    }
 
     getUserIndex():IDbCollection {
         return this._users;
-    }
-
-    /**
-     * To create and init the User DB with
-     *
-     * @param pRawData
-     */
-    createUserDB( pRawData:any):void {
-        this._users = this._dba.getDB().newCollection('users',null);
-        this._users.addEntry( pRawData.login, new UserAccount({
-            username: pRawData.login,
-            password: pRawData.pwd,
-            salt: pRawData.s,
-            padding: pRawData.p,
-            time: pRawData.time,
-            locked: false
-        }));
     }
 
     /**
@@ -165,6 +169,10 @@ export class AuthenticationService {
         return new PasswordAuthenticator(this);
     }
 
+    flushCache(){
+        this._cache = {};
+    }
+
     // todo replace
 
     findUser( pUsername:string):UserAccount {
@@ -174,17 +182,20 @@ export class AuthenticationService {
             throw new AuthenticationException("Username cannot be empty", AuthCode.EMPTY_USERNAME);
         }
 
+        if(this._cache[pUsername]!=null){
+            return this._cache[pUsername];
+        }
 
-        let d:string = "";
+        //let d:string = "";
         this._users.map(function(vO, vUsr){
-            d += vUsr.username+", ";
+            //d += vUsr.username+", ";
             if(vUsr.hasUsername(pUsername)){
                 usr = vUsr;
             }
         });
 
         if(usr == null){
-            throw new AuthenticationException("Username not found : "+d, AuthCode.INVALID_USERNAME);
+            throw new AuthenticationException("Username not found : "+pUsername, AuthCode.INVALID_USERNAME);
         }
 
         return usr;

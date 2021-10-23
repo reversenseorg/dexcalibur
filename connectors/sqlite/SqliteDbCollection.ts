@@ -11,6 +11,7 @@ import {PreparedStatementList, SqliteAPI} from "./SqliteAPI";
 import {SqliteException} from "./SqliteException";
 import {NodeType} from "../../src/persist/orm/NodeType";
 import * as Log from "../../src/Logger";
+import DexcaliburEngine from "../../src/DexcaliburEngine";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -23,7 +24,7 @@ export default class SqliteDbCollection implements IDbCollection
     values:any = {};
     private _tpl: NodeType = null;
     private _key_cache:any[] = [];
-
+    private _extra:any = {};
     private _s:SqliteAPI = null;
     private _ps:PreparedStatementList;
 
@@ -40,8 +41,13 @@ export default class SqliteDbCollection implements IDbCollection
         this._s = pSqliteApi;
         this._c = 0;
 
-        // TODO : generate prepared statements
         this._ps = this._s._generatePreparedStmt(name, this._tpl);
+
+        // update prepared statement cache when node type change
+        this._tpl.onChange( (x:NodeProperty[]) => {
+            this._ps = this._s._generatePreparedStmt(name, this._tpl);
+            this._s._alterTable( this.name, x, {add:true});
+        });
     }
 
     /**
@@ -49,29 +55,84 @@ export default class SqliteDbCollection implements IDbCollection
      */
     create(){
         this._s._createTable( this.name, this._tpl.getProperties(), {notExists:true});
+
         return this;
     }
 
+    /**
+     * To keep  a trace of collection linked to the current collection
+     *
+     * @param pColl
+     */
+    link( pColl:SqliteDbCollection):void {
+        this._extra[pColl.name] = pColl;
+    }
 
-    setEntry(key:string,value:any){
+    getExtra( pName:string):SqliteDbCollection {
+        return this._extra[pName];
+    }
+
+
+    setEntry(key:any,value:any){
         if(!this.hasEntry(key)){
             this._c++;
-        }
 
-        this._s._execInsert(
-            this._ps.insertSingle,
-            this._s._extractParams(value, this._tpl.getProperties())
-        );
+            this._s._execInsert(
+                this._ps.insertSingle,
+                this._s._extractParams(value, this._tpl)
+            );
+        }else{
+            this._s._execInsert(
+                this._ps.updateSingle,
+                this._s._extractParams(value, this._tpl)
+            );
+        }
     }
 
     addEntry(key:string,value:any){
         this.setEntry(key,value);
     }
 
-    getEntry(key:string):any{
-        return this._s._execSelect(this._ps.selectSingle, [key]);
-    }
+    /**
+     * To recover non volatile links broken by persistence
+     *
+     * @param pData
+     * @private
+     */
+    private _relink(pData:any):any {
+        const o = new (this._tpl.getBuilder())(pData);
 
+        this._tpl.getProperties().map( (vPpt:NodeProperty)=>{
+            if(vPpt.hasWakeUp()){
+                Logger.raw(JSON.stringify(o[vPpt.getName()]));
+                Logger.raw(vPpt.getName());
+                o[vPpt.getName()] = vPpt.doWakeUp({
+                    self: o,
+                    ctx: DexcaliburEngine.getInstance(),
+                    p: o[vPpt.getName()]
+                })
+            }
+        });
+
+        if(this._tpl.hasLinks()){
+            const lks:NodeProperty[] = this._tpl.getLinks();
+            lks.map( (vPpt:NodeProperty)=>{
+                if(vPpt.hasSource()){
+                    if(vPpt.isMultiple()){
+                        // in this case (multiple) a foreign key is stored into another table
+                        o[vPpt.getName()] = vPpt.getSource()(o);
+                    }else{
+                        o[vPpt.getName()] = vPpt.getSource()(pData[vPpt.getName()]);
+                        /*if(o[vPpt.getName()].length>0){
+                            o[vPpt.getName()] = o[vPpt.getName()][0];
+                        }*/
+                    }
+
+                }
+            });
+        }
+        return o;
+    }
     /**
      * To read all entries from the colelction and instanciate node
      *
@@ -82,25 +143,45 @@ export default class SqliteDbCollection implements IDbCollection
      */
     getAll(pList = false):any{
         const res = this._s._execSelectAll(this._ps.selectAll,[]);
-
-        Logger.raw(res);
-        Logger.raw(this._tpl.getBuilder());
+        let i:number =0;
         let all:any;
+
+
         if(pList){
             all = [];
             res.map( (vEntry:any)=>{
-                all.push(new (this._tpl.getBuilder())(vEntry));
+                i++;
+                all.push( this._relink(vEntry));
             });
         }else{
             all = {};
             res.map( (vEntry:any)=>{
-                all[vEntry[this._tpl.getPrimaryKey().getName()]] = new (this._tpl.getBuilder())(vEntry);
+                i++;
+                all[vEntry[this._tpl.getPrimaryKey().getName()]] = this._relink(vEntry);
             });
         }
 
-        Logger.raw(JSON.stringify(all));
+
+
+        this._c = i;
+
+        //Logger.raw(JSON.stringify(all));
 
         return all;
+    }
+
+
+    /**
+     * To execute a function for each entry
+     *
+     * Same as map function over an array
+     *
+     * @param {function} pFn The callback function
+     * @method
+     * @since 1.0.0
+     */
+    map(pFn:any){
+        this.getAll(true).map( (k:any, i:number) => { pFn(i,k) });
     }
 
     /**
@@ -114,23 +195,69 @@ export default class SqliteDbCollection implements IDbCollection
      * @since 1.0.0
      */
     hasEntry(pKey:any):boolean{
-        const p:any = {};
-        p[this._tpl.getPrimaryKey().getName()] = pKey
 
-        return (this._s._execSelect(this._ps.selectSingle, p) != null)
+        if(typeof pKey === 'object'){
+            return (this._s._execSelect(this._ps.selectSingle, pKey) != null)
+        }else{
+            const p:any = {};
+            p[this._tpl.getPrimaryKey().getName()] = pKey;
+            return (this._s._execSelect(this._ps.selectSingle, p) != null)
+        }
+    }
+
+
+
+    getEntry(key:any):any{
+        if(typeof key === 'object'){
+            return this._relink(this._s._execSelect(this._ps.selectSingle, key));
+        }else{
+            const p={};
+            p[this._tpl.getPrimaryKey().getName()] = key;
+            return this._relink(this._s._execSelect(this._ps.selectSingle, p));
+        }
+    }
+
+
+    updateEntry( pEntry:any):boolean {
+        const pk = this._s._extractKey(pEntry, this._tpl);
+        if(this.hasEntry(pk)){
+            this._s._execInsert(
+                this._ps.updateSingle,
+                this._s._extractParams(pEntry, this._tpl)
+            );
+        }else{
+            this._s._execInsert(
+                this._ps.insertSingle,
+                this._s._extractParams(pEntry, this._tpl)
+            );
+        }
+
+        return true;
     }
 
     /**
-     * To execute a function for each entry
      *
-     * Same as map function over an array
-     *
-     * @param {function} pFn The callback function
-     * @method
-     * @since 1.0.0
+     * @param key
      */
-    map(pFn:any){
-        this.getAll(true).map( (k:any, i:number) => { pFn(i,k) });
+    removeEntry(key: any): boolean {
+
+        let res = false;
+        try {
+            if (typeof key === 'object') {
+                this._s._execInsert(this._ps.removeSingle, key);
+            } else {
+                const p = {};
+                p[this._tpl.getPrimaryKey().getName()] = key;
+                this._s._execInsert(this._ps.removeSingle, p);
+            }
+
+            res = true;
+
+        } catch (err) {
+            Logger.error('[SQLITE] Remove entry failed : ', err.message);
+        }
+
+        return res;
     }
 
     isCollection(){
@@ -146,10 +273,6 @@ export default class SqliteDbCollection implements IDbCollection
     }
 
 
-    removeEntry(key: any): boolean {
-        this._s._execInsert( this._ps.removeSingle, [key]);
-        return true;
-    }
 
     toJsonObject():any{
         let o:any= {};

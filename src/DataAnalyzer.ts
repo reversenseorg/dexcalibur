@@ -254,6 +254,11 @@ export class DataAnalyzer
         }
     }
 
+    loadIndex(pScope:DataScope): void {
+        const coll:IDbCollection = this.db.getCollection(pScope.getIndexName(), ModelFile.TYPE);
+        //coll.getAll();
+    }
+
     indexFilesIn(pScope:DataScope):void {
         const dir = _fs_.readdirSync(pScope.getBasePath());
 
@@ -320,10 +325,11 @@ export class DataAnalyzer
 
 
         //db.addEntry(new ModelFile({
-        db.setEntry(pRelPath, new ModelFile({
+        db.setEntry(pRelPath==null ? '/' : pRelPath, new ModelFile({
             name: _path_.basename(path),
             path: path,
-            _r: pRelPath,
+            scope: pScope,
+            _r: pRelPath==null ? '/' : pRelPath,
             _d: 'd'
         }));
 

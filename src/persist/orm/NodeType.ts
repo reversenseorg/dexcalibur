@@ -1,6 +1,8 @@
 import {DbColumnTemplate} from "./DbColumnTemplate";
 import {NodeProperty} from "./NodeProperty";
 import {NodeInternalType} from "../../NodeInternalType";
+import {DbKeyType} from "./DbAbstraction";
+import * as Log from "../../Logger";
 
 
 export interface NodePropertyMap {
@@ -11,6 +13,8 @@ export interface NodeTypeMap {
     [typeName:string] :NodeType;
 }
 
+
+let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 /**
  * Represents the type of the node
  *
@@ -51,6 +55,30 @@ export class NodeType {
      * cannot be a composite key
      */
     _pk:NodeProperty = null;
+    _cpk:NodeProperty[] = [];
+
+    /**
+     * List of properties pointing to node(s)
+     *
+     */
+    _l:NodeProperty[] = null;
+
+    /**
+     * List of node properties with multiple chrildren
+     */
+    _m:NodeProperty[] = [];
+
+    /**
+     * Data source for this node
+     */
+    _src:any = null;
+
+
+    /**
+     * Listener hash map
+     */
+    _ev:any = {}
+
 
     /**
      *
@@ -61,11 +89,12 @@ export class NodeType {
     constructor( pName:string, pInternalType:NodeInternalType, pCols:NodeProperty[]) {
         this._name = pName;
         this._type = pInternalType;
-        this.updateProperties(pCols);
 
         if(NodeType.ALL[pName]==null){
             NodeType.ALL[pName] = this;
         }
+
+        this.updateProperties(pCols, {init:true});
     }
 
     /**
@@ -76,13 +105,31 @@ export class NodeType {
         return NodeType.ALL[pName];
     }
 
+    onChange( pFn ){
+        if(!this._ev.hasOwnProperty('change')) this._ev.change = [];
+        this._ev.change.push(pFn);
+    }
+
     builder(pConstructor:any):NodeType {
         this._builder = pConstructor;
         return this;
     }
 
+
     getBuilder():any{
         return this._builder;
+    }
+
+    hasProperty(pName:string) :boolean {
+        return (this._ppts[pName]!=null)
+    }
+
+
+    /**
+     * To add dynamically a property
+     */
+    addProperty( pName:string, pNode:NodeProperty):void{
+        this._ppts[pName] = pNode;
     }
 
     /**
@@ -91,14 +138,68 @@ export class NodeType {
      * @param {NodeProperty[]} pCols A list of properties to insert into this template
      * @method
      */
-    updateProperties(pCols:NodeProperty[]):void {
+    updateProperties(pCols:NodeProperty[], pOpts:any = {init:false}):void {
         pCols.map( (vPpt:NodeProperty) => {
             this._ppts[vPpt.getName()] = vPpt;
             if(vPpt.isPrimaryKey()){
-                this._pk = vPpt;
+
+                let p:NodeProperty;
+                if(vPpt.isNode()){
+                    p = vPpt.getNodeType().getPrimaryKey();
+                }else{
+                    p = vPpt;
+                }
+
+                if(p.getKeyOffset()>0){
+                    this._cpk[p.getKeyOffset()] = p;
+                }else{
+                    this._pk = p;
+                }
+            }else if(vPpt.isCompositeKey()){
+
+                let p:NodeProperty;
+                if(vPpt.isNode()){
+                    p = vPpt.getNodeType().getPrimaryKey();
+                }else{
+                    p = vPpt;
+                }
+                this._cpk[p.getKeyOffset()] = p;
             }
-        })
+
+            if(!vPpt.isVolatile()){
+                if(vPpt.isNode()){
+                    if(this._l==null) this._l = [];
+                    this._l.push(vPpt);
+                }
+
+                if(vPpt.isMultiple()){
+                    this._m.push(vPpt);
+                    const fk = this.getName()+this.getPrimaryKey().getName();
+                    if(!vPpt.getNodeType().hasProperty(fk)){
+                        Logger.raw(JSON.stringify(this.getPrimaryKey().clone({ _name:fk }).key(DbKeyType.COMPOSITE, 0)));
+                        vPpt.getNodeType().updateProperties([
+                            //this.getPrimaryKey().clone({ _name:this.getName() }).key(DbKeyType.COMPOSITE, 0)
+                            this.getPrimaryKey().clone({ _name:fk }).key(DbKeyType.COMPOSITE, 0)
+                        ]);
+                    }
+                    /*
+                    if(!vPpt.getNodeType().hasProperty(this.getName())){
+                        vPpt.getNodeType().updateProperties([
+                            //this.getPrimaryKey().clone({ _name:this.getName() }).key(DbKeyType.COMPOSITE, 0)
+                            this.getPrimaryKey().clone({ _name:this.getName() }).key(DbKeyType.COMPOSITE, 0)
+                        ]);
+                    }*/
+                }
+            }
+
+        });
+
+        if(!pOpts.init){
+            this.trigger('change', pCols);
+        }
     }
+
+
 
     /**
      * To get the node type name
@@ -124,7 +225,69 @@ export class NodeType {
         return this._pk;
     }
 
+    getCompositeKey():NodeProperty[] {
+        return this._cpk;
+    }
+
     getType():NodeInternalType{
         return this._type;
     }
+
+    getExternalProperties():NodeProperty[] {
+        return this._m;
+    }
+
+    hasExternalProperties():boolean {
+        return (this._m.length > 0);
+    }
+
+    /**
+     * To check if the node type require composite primary key
+     * to be uniquely identified
+     *
+     * @return {boolean} TRUE if primary key is composite, else FALSE
+     * @method
+     * @since 1.0.0
+     */
+    hasCompositeKey():boolean {
+        return (this._cpk.length>0);
+    }
+
+    hasLinks(){
+        return (this._l!=null);
+    }
+
+    getLinks(){
+        return this._l;
+    }
+
+    source(pSrc:any):any {
+        this._src = pSrc;
+        return this;
+    }
+
+    hasSource():boolean{
+        return this._src != null;
+    }
+
+    getSource():any{
+        return this._src;
+    }
+
+    subscribe( pOpeName:string, pCallback:any):NodeType {
+        this._ev[pOpeName] = pCallback;
+        return this;
+    }
+
+    trigger( pOpeName:string, pValue:any):any {
+        if(!this._ev.hasOwnProperty(pOpeName)) return ;
+
+        if(Array.isArray(this._ev[pOpeName])){
+            this._ev[pOpeName].map( f => { f(pValue) });
+            return null;
+        }else{
+            return this._ev[pOpeName](pValue);
+        }
+    }
+
 }

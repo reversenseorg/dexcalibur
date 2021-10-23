@@ -6,6 +6,7 @@ export enum ErrorCode {
     REMOTE = 20000,
     REMOTE_DEXCALIBUR= 21000,
     AUTH=30000,
+    USER_SERVICE=31000,
     PARSER = 40000,
     PROJECT = 50000,
     SMALI_PARSER = 41000,

@@ -1,5 +1,13 @@
 import {DbDataType, DbKeyType, DbSerialize} from "./DbAbstraction";
 import {NodeType} from "./NodeType";
+import DexcaliburEngine from "../../DexcaliburEngine";
+
+
+export interface NodePropertyState {
+    p: any,
+    ctx?: DexcaliburEngine,
+    self?:any
+}
 
 export class NodeProperty {
 
@@ -16,6 +24,13 @@ export class NodeProperty {
     _v:boolean = false;
     _u:boolean = false;
     _m:boolean = false;
+    _src:any = null;
+
+    // sleep
+    _s:any = null;
+
+    // wakeup
+    _wu:any = null;
 
 
     /**
@@ -37,9 +52,9 @@ export class NodeProperty {
      * @static
      */
     static from(pConfig:any):NodeProperty {
-        const tpl = new NodeProperty(pConfig.name);
+        const tpl = new NodeProperty(pConfig._name);
         for(const i in pConfig){
-            this[i] = pConfig[i]
+            tpl[i] = pConfig[i]
         }
         return tpl;
     }
@@ -177,6 +192,12 @@ export class NodeProperty {
         return (this._serialize != null);
     }
 
+
+    isBoolean():boolean {
+        return (this._type === DbDataType.BOOLEAN);
+    }
+
+
     /**
      * To set the serializing method : JSON, XML, ..
      *
@@ -184,15 +205,23 @@ export class NodeProperty {
      * @return {NodeProperty} This instance. Chainable
      * @method
      */
-    single(pNode:NodeType):NodeProperty{
-        this._n = pNode;
+    single(pNodeType:NodeType):NodeProperty{
+        this._n = pNodeType;
         this._m = false;
+
+        if(pNodeType.hasSource())
+            this.source(pNodeType.getSource());
+
         return this;
     }
 
     multiple(pNodeType:NodeType):NodeProperty {
         this._m = true;
         this._n = pNodeType;
+
+        if(pNodeType.hasSource())
+            this.source(pNodeType.getSource());
+
         return this;
     }
 
@@ -207,5 +236,78 @@ export class NodeProperty {
 
     getNodeType():NodeType {
         return this._n;
+    }
+
+    /**
+     * To add a function to serialize data before sleep
+     *
+     * @param pFn
+     */
+    sleep( pFn:any){
+        this._s = pFn;
+        return this;
+    }
+
+    doSleep( pAny:NodePropertyState):any{
+        return this._s(pAny);
+    }
+
+
+    /**
+     * To add a function to wake up data after sleep
+     *
+     * @param pFn
+     */
+    wakeUp( pFn:any):any{
+        this._wu = pFn;
+        return this;
+    }
+
+    doWakeUp( pAny:NodePropertyState){
+        return this._wu(pAny);
+    }
+
+    hasSleep(){
+        return (this._s !== null);
+    }
+
+    hasWakeUp(){
+        return (this._wu !== null);
+    }
+
+    source(pSrc:any):any {
+        this._src = pSrc;
+        return this;
+    }
+
+    hasSource():boolean{
+        if(this._src != null) {
+            return true
+        }else if(this.isNode() && this.getNodeType().hasSource()){
+            // source is inherited from node type at runtime (lazy)
+            this._src = this.getNodeType().getSource();
+            return true;
+        }
+
+        return false;
+    }
+
+    getSource():any{
+        return this._src;
+    }
+
+    /**
+     * To clone the current property.
+     *
+     * It creates a new instance
+     *
+     * @param {any} pOverride
+     */
+    clone(pOverride:any = {}):NodeProperty{
+        let o = NodeProperty.from(this);
+        for(const i in pOverride){
+            o[i] = pOverride[i];
+        }
+        return o;
     }
 }

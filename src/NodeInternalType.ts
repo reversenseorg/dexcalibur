@@ -20,5 +20,6 @@ export enum NodeInternalType {
     PLATFORM_PPT,
     INTERNAL_DB,
     USER_ACCOUNT,
-    USER_SESSION
+    USER_SESSION,
+    USER_SESSION_DATA
 }

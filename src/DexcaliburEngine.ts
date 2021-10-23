@@ -110,6 +110,7 @@ enum MODE {
 export interface DexcaliburProjectMap {
     [uid:string] :DexcaliburProject
 }
+
 /**
  * 
  * 
@@ -126,6 +127,12 @@ export interface DexcaliburProjectMap {
  */
 export default class DexcaliburEngine extends ValidationCapable implements IDexcaliburEngine
 {
+
+    static DEFAULT_UID = "local:dxc";
+    /**
+     *
+     */
+    UID:string = DexcaliburEngine.DEFAULT_UID;
 
     /*
      * Configuration file path
@@ -509,7 +516,8 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
             this.workspace.init();
 
             this.userSvc = new UserService(
-                ss.getAuthenticationSettings()
+                ss.getAuthenticationSettings(),
+                this
             );
 
             this.registry = ss.getRegistry();

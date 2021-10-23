@@ -52,6 +52,7 @@ import {AccesErrCode, AccessException} from "./user/acl/Access";
 import Util from "./Utils";
 import {Auditable} from "./Auditable";
 import {GlobalAccessControl} from "./user/acl/rbac/GlobalAccessContol";
+import DataScope from "./DataScope";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -1020,12 +1021,13 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
             this.analyze.path( pPath);
         }else{
             let apkctnPath:string = this.workspace.getApkDir();
-
             Fs.mkdirSync(apkctnPath, {recursive: true});
             Logger.info("Scanning default path : "+apkctnPath);
 
             // bytecode analysis (from smali file)
             this.analyze.path( apkctnPath);
+
+            const pkgScope = this.dataAnalyzer.getScope('PKG');
 
             // TODO : improve this step
             // files analysis (signature, ...)
@@ -1033,10 +1035,8 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
             // file analysis : icon detection, strings, etc ...
             // TODO : multi threading : each file can be treated separately
 
-            if(this.dataAnalyzer.isScopeIndexed('PKG')==false){
-                this.dataAnalyzer.indexFilesIn(
-                    this.dataAnalyzer.getScope('PKG')
-                );
+            if(this.dataAnalyzer.isScopeIndexed(pkgScope)==false){
+                this.dataAnalyzer.indexFilesIn(pkgScope);
             }
 
             // update internal DB with file analyzer DB
@@ -1206,16 +1206,12 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
 
             // file analysis : icon detection, strings, etc ...
             // TODO : multi threading : each file can be treated separately
-
-            if(this.dataAnalyzer.hasIndexed(this.dataAnalyzer.getScope('PKG'))){
-                this.dataAnalyzer.indexFilesIn(
-                    this.dataAnalyzer.getScope('PKG')
-                );
-            }/*else{
-                this.dataAnalyzer.loadIndex(
-                    this.dataAnalyzer.getScope('PKG')
-                );
-            }*/
+            const pkgScope:DataScope = this.dataAnalyzer.getScope('PKG');
+            if(!this.dataAnalyzer.hasIndexed(pkgScope)) {
+                this.dataAnalyzer.indexFilesIn(pkgScope);
+            }else{
+                this.dataAnalyzer.loadIndex(pkgScope );
+            }
 
 
 

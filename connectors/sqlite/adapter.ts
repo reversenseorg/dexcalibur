@@ -18,6 +18,11 @@ interface DatabaseInstanceList {
     [name :string] :IDatabase
 }
 
+interface SqliteDatabaseInstanceList {
+    [name :string] :SqliteDb
+}
+
+
 /**
  * Represents a database stored into memory (ACID-like)
  *
@@ -26,6 +31,8 @@ interface DatabaseInstanceList {
  */
 export default class SqliteConnector implements IDatabaseAdapter
 {
+    static SHARED:SqliteDatabaseInstanceList = {};
+
     ctx:DexcaliburProject = null;
     options:any = null;
     type:string = TYPE;
@@ -61,10 +68,15 @@ export default class SqliteConnector implements IDatabaseAdapter
      * empty
      * @returns {boolean}
      */
-    create(pPath:string = null):boolean{
+    create(pPath:string = null, pShared = false):boolean{
         //try{
             this.db = new SqliteDb(pPath, this);
             this.db.install();
+
+            if(pShared){
+                SqliteConnector.SHARED[pPath] = this.db;
+            }
+
             return true;
         /*}catch(err){
             Logger.error(err.message+"\n"+err.stack);
@@ -79,7 +91,13 @@ export default class SqliteConnector implements IDatabaseAdapter
      *
      * @method
      */
-    connect( pPath:string):SqliteDb{
+    connect( pPath:string, pShared = false):SqliteDb{
+
+        if(SqliteConnector.SHARED[pPath]!=null && pShared){
+            return SqliteConnector.SHARED[pPath] as SqliteDb;
+        }
+
+        Logger.raw("=============== START CONNECTING TO SQLITE ("+pPath+")....."+_fs_.existsSync(pPath))
         if(_fs_.existsSync(pPath)){
             this.db = new SqliteDb(pPath, this);
         }else{
@@ -87,9 +105,15 @@ export default class SqliteConnector implements IDatabaseAdapter
             this.create(pPath);
         }
 
+
+        if(pShared){
+            SqliteConnector.SHARED[pPath] =  this.db;
+        }
+
         // load indexes
         this.db.loadIndexes() ;
 
+        Logger.raw("=============== SQLITE IS READY  .....")
         return this.db;
     }
 
@@ -133,8 +157,12 @@ export default class SqliteConnector implements IDatabaseAdapter
         this.tmpDbs[pName] = null;
     }
 
-    getDB():IDatabase{
-        return this.db;
+    getDB(pPath:string = null):IDatabase{
+        if(pPath != null){
+            return SqliteConnector.SHARED[pPath];
+        }else{
+            return this.db;
+        }
     }
     /**
      * To transform current DB into a simple object ready to be serialized

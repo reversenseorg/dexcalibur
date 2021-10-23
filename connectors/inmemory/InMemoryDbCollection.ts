@@ -6,11 +6,13 @@
  */
 import SerializedObject from "./SerializedObject";
 import {IDbCollection} from "../../src/persist/orm/DbAbstraction";
+import {NodeType} from "../../src/persist/orm/NodeType";
 
 
 export default class InMemoryDbCollection implements IDbCollection
 {
     static __type:string = "Collection";
+
     name:string = null;
     ctr:number = 0;
     values:any = {};

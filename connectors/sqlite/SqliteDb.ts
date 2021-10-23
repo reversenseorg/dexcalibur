@@ -67,7 +67,7 @@ class SqliteDb implements IDatabase
 
         this._s = new SqliteAPI( db );
         this._ps = this._s._generatePreparedStmt(METADATA_TABLE, SqliteDb.TYPE);
-
+        this._refresh();
     }
 
     /**
@@ -78,7 +78,7 @@ class SqliteDb implements IDatabase
     install(){
         const t = this._s._getTables();
         let f = false;
-        t.map( v => { if(v.name==METADATA_TABLE) f = true; })
+        t.map( v => { if(v == METADATA_TABLE) f = true; })
 
         if(f) return;
 
@@ -98,6 +98,7 @@ class SqliteDb implements IDatabase
         Logger.info(JSON.stringify(this._tables));
     }
 
+
     /**
      * To verify if a table exists or not
      *
@@ -105,8 +106,9 @@ class SqliteDb implements IDatabase
      * @private
      */
     exists( pName:string):boolean {
-        Logger.debug(JSON.stringify(this._tables.indexOf(pName)));
-        return (this._tables.indexOf(pName)>-1);// this.indexes[pName]!=null;
+        this._refresh();
+        this.loadIndexes();
+        return (this._tables.indexOf(pName)>-1 && this.indexes[pName]!=null);// this.indexes[pName]!=null;
     }
 
     /**
@@ -153,8 +155,25 @@ class SqliteDb implements IDatabase
 
         this.indexes[name] = (new SqliteDbCollection(this._s, name, pNodeType));
 
+
+        if(pNodeType.hasExternalProperties()){
+            pNodeType.getExternalProperties().map( (ppt:NodeProperty) => {
+                if(!this.exists(ppt.getNodeType().getName())){
+                    const c:SqliteDbCollection = this.newCollection(ppt.getNodeType().getName(), ppt.getNodeType());
+                    (this.indexes[name] as SqliteDbCollection).link(c);
+                    Logger.raw("LINKING new extra coll "+c.name+" TO "+(this.indexes[name] as any).name);
+                }else{
+
+                    const b:SqliteDbCollection = this.getCollection(ppt.getNodeType().getName(), ppt.getNodeType());
+                    (this.indexes[name] as SqliteDbCollection).link(b);
+                    Logger.raw("LINKING existing extra coll "+b.name+" TO "+(this.indexes[name] as any).name);
+                }
+            });
+        }
+
         // if there is not table for this collection, it is created
-        if(!this.exists(name)){
+        this._refresh();
+        if(this._tables.indexOf(name)==-1){
             (this.indexes[name] as SqliteDbCollection).create();
             this._s._execInsert( this._ps.insertSingle,{
                 name: name,
@@ -185,7 +204,8 @@ class SqliteDb implements IDatabase
         this.indexes[name] = (new SqliteDbIndex(this._s, name, pNodeType))
 
         // if there is not table for this index, it is created
-        if(!this.exists(name)){
+        this._refresh();
+        if(this._tables.indexOf(name)==-1){
             (this.indexes[name] as SqliteDbIndex).create();
             this._s._execInsert( this._ps.insertSingle,{
                 name: name,

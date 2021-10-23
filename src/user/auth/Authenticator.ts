@@ -88,7 +88,11 @@ export class PasswordAuthenticator implements Authenticator{
         try{
             acc = this.svc.findUser(pUsername);
 
+            Logger.info("[AUTH] Retrieve user by name ("+pUsername+") = "+JSON.stringify(acc));
             this.verifyPassword( acc, pPwd);
+
+
+            Logger.info("[AUTH] User ("+pUsername+") authenticated ");
 
             // create session token
 
