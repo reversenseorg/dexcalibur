@@ -8,8 +8,9 @@ import {IDexcaliburEngine} from "../IDexcaliburEngine";
 import {IPersistent} from "../persist/orm/IPersistent";
 import {NodeType} from "../persist/orm/NodeType";
 import {NodeInternalType} from "../NodeInternalType";
-import {NodeProperty} from "../persist/orm/NodeProperty";
+import {NodeProperty, NodePropertyState} from "../persist/orm/NodeProperty";
 import {DbDataType, DbKeyType} from "../persist/orm/DbAbstraction";
+import {UserService} from "./UserService";
 
 export class UserAccount implements IPersistent{
 
@@ -25,7 +26,9 @@ export class UserAccount implements IPersistent{
             (new NodeProperty('_locked')).type(DbDataType.BOOLEAN).def(false),
             (new NodeProperty('_padding')).type(DbDataType.STRING).notnull(),
             (new NodeProperty('_person')).volatile().type(DbDataType.STRING),
-            (new NodeProperty('_role')).volatile().type(DbDataType.STRING),
+            (new NodeProperty('_role')).type(DbDataType.STRING)
+                .sleep( (x:NodePropertyState) => { return (x.p !=null ? x.p.uid : null) ; } )
+                .wakeUp( (x:NodePropertyState) => { return (x.p!=null ? AccessControl.getRole(x.p) : null) }),
         ]
     );
 
@@ -49,7 +52,7 @@ export class UserAccount implements IPersistent{
         if(pConfig != null){
             for(let i in pConfig) this[i] = pConfig[i];
         }
-        // TODO : replace by incremental uid
+        // TODO : replace by uuid
         if(this._uid==null && this._username!=null){
             this._uid = this._username;
         }
@@ -108,7 +111,10 @@ export class UserAccount implements IPersistent{
     }
 
     get role(): string {
-        return this._role.name;
+        if(this._role != null)
+            return this._role.name;
+        else
+            return null;
     }
 
     set role(value: string) {

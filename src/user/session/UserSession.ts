@@ -10,9 +10,13 @@ import {ProjectAccessControl} from "../acl/rbac/ProjectAccessContol";
 import {IDexcaliburEngine} from "../../IDexcaliburEngine";
 import {NodeType} from "../../persist/orm/NodeType";
 import {NodeInternalType} from "../../NodeInternalType";
-import {NodeProperty} from "../../persist/orm/NodeProperty";
+import {NodeProperty, NodePropertyState} from "../../persist/orm/NodeProperty";
 import {DbDataType, DbKeyType, DbSerialize} from "../../persist/orm/DbAbstraction";
 import {IPersistent} from "../../persist/orm/IPersistent";
+import {User} from "../../User";
+import {AuthenticationService} from "../auth/AuthenticationService";
+import {UserService} from "../UserService";
+import {SessionData} from "./SessionData";
 
 export class UserSession implements IPersistent{
 
@@ -25,10 +29,14 @@ export class UserSession implements IPersistent{
             (new NodeProperty('_created')).type(DbDataType.INTEGER),
             (new NodeProperty('_destroyed')).type(DbDataType.INTEGER),
             (new NodeProperty('_project')).volatile().type(DbDataType.STRING).serialize(DbSerialize.JSON),
-            (new NodeProperty('_defaultProject')).volatile().type(DbDataType.STRING),
-            (new NodeProperty('_data')).volatile().type(DbDataType.STRING).notnull(),
-            (new NodeProperty('_person')).volatile().type(DbDataType.STRING),
-            (new NodeProperty('_conn')).volatile().type(DbDataType.STRING),
+            (new NodeProperty('_defaultProject')).type(DbDataType.STRING)
+                .sleep( (x:NodePropertyState)=>{ return (x.p!=null? x.p.getUID() : null)})
+                .wakeUp( (x:NodePropertyState) =>  { return (x.p!=null ? (x.ctx as DexcaliburEngine).getProject(x.p) : null)}),
+            (new NodeProperty('_data'))
+                .multiple(SessionData.TYPE),
+            (new NodeProperty('_conn')).type(DbDataType.STRING)
+                .sleep( (x:NodePropertyState)=>{ return null; })
+                .wakeUp( (x:NodePropertyState) =>  { return x.p })
         ]
     );
 
@@ -233,14 +241,15 @@ export class UserSession implements IPersistent{
         if(this._destroyed > -1)
             throw new SessionException("Data cannot be read : Session has been destroyed.", SessionCode.DESTROYED);
 
-        this._data[pName] = pValue;
+        this._data[pName] = new SessionData({ session_uid:this.getSessUID(), _sess:this, _name:pName, _value:pValue });
+        UserSession.TYPE.trigger('save_data', this._data[pName]);
     }
 
     getData( pName:string = null):any  {
         if(this._destroyed > -1)
             throw new SessionException("Data cannot be read : Session has been destroyed.", SessionCode.DESTROYED);
 
-        return (pName==null ? this._data : this._data[pName]);
+        return (pName==null ? this._data : this._data[pName].getValue());
     }
 
     toJsonObject():any {

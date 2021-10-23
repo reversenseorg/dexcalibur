@@ -7,6 +7,9 @@ import {IDatabase, IDbCollection} from "../../persist/orm/DbAbstraction";
 import {ConnectorFactory} from "../../ConnectorFactory";
 import SqliteConnector from "../../../connectors/sqlite/adapter";
 import * as Log from "../../Logger";
+import DexcaliburEngine from "../../DexcaliburEngine";
+import {SessionData} from "./SessionData";
+import SqliteDbCollection from "../../../connectors/sqlite/SqliteDbCollection";
 
 /**
  * Represents the map session ID / session object
@@ -31,13 +34,20 @@ export class SessionService {
 
     private _sess: UserSessionMap = {}; // cache
     private _s: IDbCollection = null;
-
+    private _storage:string;
     private _sessDB: IDatabase = null;
+    private _ctx:DexcaliburEngine = null;
 
-    constructor( pSettings:SessionSettings) {
+    constructor( pSettings:SessionSettings, pContext:DexcaliburEngine=null, pSessStorage:string = null) {
         this._settings = pSettings;
         this._settings.save();
+        this._storage = pSessStorage!==null ? pSessStorage : this._settings.getStorage();
         this.loadSessionDB();
+    }
+
+
+    flushCache(){
+        this._sess = {};
     }
 
     getSettings():SessionSettings {
@@ -45,19 +55,17 @@ export class SessionService {
     }
 
     loadSessionDB():void {
-        if(this._sessDB == null){
-            const sqliConn:SqliteConnector = ConnectorFactory.getInstance().newConnector('sqlite', null);
-            sqliConn.connect(this._settings.getStorage())
-        }
+        //if(this._sessDB == null){
+        //    const sqliConn:SqliteConnector = ConnectorFactory.getInstance().newConnector('sqlite', null);
+        //    sqliConn.connect(this._storage, true);
+        //    this._sessDB = sqliConn.getDB();
+        // }
     }
 
     importSessions( pCollection:IDbCollection){
         this._s = pCollection;
         this._s.map( (o:number, v:UserSession) => {
             this._sess[v.getSessUID()] = v;
-
-            // wakeup project ..
-            Logger.raw( v.toJsonObject());
         });
     }
 
@@ -80,15 +88,13 @@ export class SessionService {
      * @param pAccount
      */
     newSession( pAccount:UserAccount):UserSession {
+        if(pAccount == null)
+            throw new SessionException("Account is mandatory", SessionCode.ACCOUNT_LOCKED);
+
         if(pAccount.isLocked()) // TODO : add bypass for admin role
             throw new SessionException("Account is locked", SessionCode.ACCOUNT_LOCKED);
 
-        let sess:UserSession = new UserSession(this._generateSessID(), pAccount);
-
-        // TODO !: create folder
-        if(this._settings.isFsBased()){
-
-        }
+        let sess:UserSession = UserSession.create(this._generateSessID(), pAccount);
 
         // add session to active list
         this._s.setEntry( sess.getSessUID(), sess);
@@ -96,10 +102,37 @@ export class SessionService {
         // update cache
         this._sess[sess.getSessUID()] = sess;
 
-
         return sess;
     }
 
+    updateSessionData( pSessionData:SessionData):boolean {
+        (this._s as SqliteDbCollection)
+            .getExtra(SessionData.TYPE.getName())
+            .updateEntry(pSessionData);
+
+
+        return true;
+    }
+
+    findSessionData( pSession:UserSession, pName:string = null):SessionData[] {
+
+        let s:SessionData[] = [];
+        if(pName != null){
+            (this._s as SqliteDbCollection).getExtra(SessionData.TYPE.getName()).map( (x:any )=> {
+                if(x.getName()==pName && x.session_uid===pSession.getSessUID()){
+                    s.push(x);
+                }
+            });
+        }else{
+            (this._s as SqliteDbCollection).getExtra(SessionData.TYPE.getName()).map( (x:any )=> {
+                if(x.session_uid===pSession.getSessUID()){
+                    s.push(x);
+                }
+            });
+        }
+
+        return s;
+    }
 
     removeSessionFiles( pSessUID:string):boolean {
         return true;
@@ -156,7 +189,7 @@ export class SessionService {
         if(this._sess[pSessUID]!=null){
             return this._sess[pSessUID];
         }else if(this._s.hasEntry(pSessUID)){
-            return this._sess[pSessUID] = this.wakeUpSession( this._s.getEntry(pSessUID));
+            return this._sess[pSessUID] = this._s.getEntry(pSessUID); //this.wakeUpSession( this._s.getEntry(pSessUID));
         }else{
             throw new SessionException("There is not session with the given Session UID", SessionCode.INVALID_SESSID)
         }

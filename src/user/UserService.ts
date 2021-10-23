@@ -12,43 +12,189 @@ import {SessionCode, SessionException} from "./session/SessionException";
 import {AuthenticationResult} from "./auth/Authenticator";
 import {AuthenticationException} from "../errors/AuthenticationException";
 import * as Log from '../Logger';
-import {IDatabase, IDatabaseAdapter, IDbCollection} from "../persist/orm/DbAbstraction";
+import {IDatabase, IDatabaseAdapter, IDbCollection, IDbIndex} from "../persist/orm/DbAbstraction";
 import {ConnectorFactory} from "../ConnectorFactory";
 import SqliteConnector from "../../connectors/sqlite/adapter";
 import {SqliteDb} from "../../connectors/sqlite/SqliteDb";
 import * as _fs_ from "fs";
+import {UserServiceException} from "../errors/UserServiceException";
+import {MonitoredError} from "../errors/MonitoredError";
+import DexcaliburEngine from "../DexcaliburEngine";
+import {SessionData} from "./session/SessionData";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
+interface UserServiceMap {
+    [pEngineUri:string] :UserService
+}
+
+const gInstance:UserServiceMap = {}
+
 export class UserService {
 
+    //ctx:DexcaliburEngine = null;
     authSvc: AuthenticationService;
     sessSvc: SessionService;
 
     private _db:IDatabase = null;
-    private _requireMigrate = false;
     private _settings: AuthenticationSettings = null;
+    _ctx:DexcaliburEngine = null;
 
-    constructor(pSettings:AuthenticationSettings) {
+    constructor(pSettings:AuthenticationSettings, pContext:DexcaliburEngine = null) {
         this._settings = pSettings;
+        this._ctx = pContext;
 
-        this.loadDB(pSettings);
+        UserAccount.TYPE.source(UserService.findUser);
+        SessionData.TYPE.source(UserService.findAllSessionData);
+        UserSession.TYPE.subscribe('save_data', UserService.saveSessionData);
 
-        if(_fs_.existsSync()){
-            this.migrateDB(pSettings);
+        this.initService(pContext);
+    }
+
+
+    static findUser(pUsername:string, pEngineUID:string = null):UserAccount {
+        const svc:UserService = gInstance[pEngineUID!=null ? pEngineUID : DexcaliburEngine.DEFAULT_UID];
+
+        if(svc==null){
+            throw UserServiceException.MISSING_CONTEXT();
         }
 
-        this.authSvc = new AuthenticationService(pSettings);
-        this.authSvc.importUsers(this._db.getCollection('user', UserAccount.TYPE));
-
-        this.sessSvc = new SessionService( pSettings.getSessionSettings());
-        this.sessSvc.importSessions(this._db.getCollection('session', UserSession.TYPE));
+        return svc.authSvc.findUser(pUsername);
     }
 
 
 
+    static findAllSessionData( pSession:UserSession, pEngineUID:string = null):SessionData[] {
+        const svc:UserService = gInstance[pEngineUID!=null ? pEngineUID : DexcaliburEngine.DEFAULT_UID];
+
+        if(svc==null){
+            throw UserServiceException.MISSING_CONTEXT();
+        }
+
+        return UserService.findSessionData({ session:pSession, _name:null},pEngineUID);
+    }
+
+
+    static findSessionData( pData:any, pEngineUID:string = null):SessionData[] {
+        const svc:UserService = gInstance[pEngineUID!=null ? pEngineUID : DexcaliburEngine.DEFAULT_UID];
+
+        if(svc==null){
+            throw UserServiceException.MISSING_CONTEXT();
+        }
+
+        return svc.sessSvc.findSessionData(pData.session, pData._name);
+    }
+
+
+    static saveSessionData(pSessionData:SessionData, pEngineUID:string = null):boolean {
+
+        const svc:UserService = gInstance[pEngineUID!=null ? pEngineUID : DexcaliburEngine.DEFAULT_UID];
+
+        if(svc==null){
+            throw UserServiceException.MISSING_CONTEXT();
+        }
+
+
+        return svc.sessSvc.updateSessionData(pSessionData);
+    }
+
     /**
      *
+     */
+    initService(pContext:DexcaliburEngine):void {
+
+        gInstance[pContext.UID] = this;
+
+        this.authSvc = new AuthenticationService(this._settings, pContext);
+        this.sessSvc = new SessionService( this._settings.getSessionSettings(),pContext);
+
+
+        try{
+            // load currently configured db : inmemory or sqlite
+            Logger.raw('----------- BEFORE LOAD 1 ------------ ');
+            this.loadDB(this._settings.db);
+            Logger.raw('----------- AFTER LOAD 1 ------------ ');
+
+            // verify state / version
+            if(this.isUserDbReady()){
+
+                Logger.raw('----------- AFTER USER IS READY ------------ ');
+                this.authSvc.importUsers(this._db.getCollection('user', UserAccount.TYPE));
+
+                Logger.raw('----------- RESTORING SESSIONS ------------ ');
+                this.sessSvc.importSessions(this._db.getCollection('session', UserSession.TYPE));
+
+                Logger.raw('----------- START USER SERVICE ------------ ');
+                if(this.authSvc._users.size()==0){
+                    throw UserServiceException.EMPTY_USER_DB();
+                }
+
+
+            }
+        }catch(err){
+            let dburi:string = null;
+
+            Logger.error(err.message,err.stack);
+            switch (err.getCode()){
+                // (re)create from JSON file
+                case UserServiceException.ERR.MISSING_DB:
+                case UserServiceException.ERR.EMPTY_USER_DB:
+                    dburi = this._settings.db.uri.slice(0,-3)+".json";
+                    if(_fs_.existsSync(dburi)){
+                        if(_fs_.existsSync(this._settings.db.uri))
+                            _fs_.unlinkSync(this._settings.db.uri);
+                        this._db = null;
+                        this.migrateDB('inmemory', dburi);
+                    }else{
+                        throw UserServiceException.UNRECOVERABLE_USER_DB();
+                    }
+                    break;
+                // migrate from json to sqlite
+                case UserServiceException.ERR.WRONG_DB_FORMAT:
+                    if(this._settings.db.dbms !== 'inmemory'){
+                        throw UserServiceException.UNRECOVERABLE_USER_DB();
+                    }
+
+                    dburi = this._settings.db.uri;
+                    this._db = null;
+
+                    if(dburi!=null && _fs_.existsSync(dburi)){
+
+                        Logger.raw('----------- START TO MIGRATE 2 ('+dburi+')  ---------');
+                        this.migrateDB('inmemory', dburi);
+                        Logger.raw('----------- STOP TO MIGRATE 2  ---------');
+                    }else{
+                        throw UserServiceException.UNRECOVERABLE_USER_DB();
+                    }
+                    break;
+                case UserServiceException.ERR.INCONSISTENT_DB:
+                case UserServiceException.ERR.DB_IS_NOT_READY:
+                    break;
+            }
+        }
+    }
+
+    /**
+     * To check / invalidate old
+     * @param pSettings
+     */
+    isUserDbReady(pSettings:any = null):boolean{
+        const settings = pSettings!=null ? pSettings : this._settings;
+
+
+        if(this._db == null){
+            throw UserServiceException.DB_IS_NOT_READY();
+        }
+
+        if(!this._db.exists('user')){
+            throw UserServiceException.INCONSISTENT_DB();
+        }
+
+        return true;
+    }
+
+    /**
+     * If current db is not sqlite, create it; else load existing
      * @param pOldDB
      * @param pNewDB
      */
@@ -56,16 +202,55 @@ export class UserService {
         // TODO : add db authent
         try{
             const adapter:IDatabaseAdapter = ConnectorFactory.getInstance().newConnector(pType, null);
-            const DB:SqliteDb = adapter.connect(pURI);
-            const userColl = DB.getCollection( 'user', UserAccount.TYPE);
+            adapter.connect(pURI)
+            const DB:IDatabase = adapter.getDB();
 
-            const target:IDbCollection = this._db.getCollection('user', UserAccount.TYPE);
-            this._db.getCollection( 'user', UserAccount.TYPE).map( (vUser:UserAccount)=>{
-                target.addEntry( vUser.getUID(), vUser);
+            if(pType == 'inmemory'){
+                DB.unserialize(
+                    JSON.parse(_fs_.readFileSync(
+                        pURI, {encoding:'utf8'}
+                    ))
+                );
+            }
+
+            const userSource:IDbCollection = DB.getCollection( 'users', UserAccount.TYPE);
+
+            if(this._settings.db.dbms == 'inmemory'){
+                const path = this._settings.db.uri.endsWith('.json') ? this._settings.db.uri.slice(0,-5)+'.db' : this._settings.db.uri+'.db';
+                this._settings.db.uri = path;
+                this._settings.db.dbms = 'sqlite';
+                this.loadDB(this._settings.db, true);
+
+            }else if(this._db == null){
+                const path = this._settings.db.uri.endsWith('.db') ? this._settings.db.uri : this._settings.db.uri+'.db';
+                this._settings.db.uri = path;
+                this._settings.db.dbms = 'sqlite';
+                this.loadDB(this._settings.db, true);
+            }else{
+                    throw new Error(" Unable to migrate userDB ");
+            }
+
+
+            Logger.raw('----------- CREATE NEW USER COLLECTIOn INTO NEW DB  ---------');
+            const userDest:IDbCollection = this._db.getCollection('user', UserAccount.TYPE);
+
+            Logger.raw('----------- BROWSE DB TO IMPORT ('+this._settings.db.uri+') ---------',userSource.size()+"");
+            userSource.map( (vOffset:number, vUser:any)=>{
+                Logger.raw(JSON.stringify(vUser));
+                vUser._locked = (vUser._locked? 1 : 0);
+                userDest.addEntry( vUser.uid, new UserAccount(vUser));
             });
 
-            Logger.raw("[AUTH SVC] Old DB as be migrated to SQLite DB");
+
+
+            if(userDest.size()>0){
+                this._settings.save();
+                this.initService(this._ctx);
+            }
+
+            Logger.raw("[AUTH SVC] Old DB has be migrated to SQLite DB");
         }catch(err){
+            Logger.error(err.message,err.stack);
             throw AuthenticationException.MIGRATION_ERROR(err);
         }
 
@@ -83,26 +268,30 @@ export class UserService {
      * If the user database not exists, it is created and filled with <uri> file content
      *
      */
-    loadDB( pSettings:AuthenticationSettings, pDBMS:string=null):void{
+    loadDB( pDbSettings:any, pForce = false):void{
+
+        if(!pForce && pDbSettings.dbms != 'sqlite'){
+            throw UserServiceException.WRONG_DB_FORMAT();
+        }
+
+        if(!pForce && !_fs_.existsSync(pDbSettings.uri)){
+            throw UserServiceException.MISSING_DB();
+        }
 
         const dba:any = ConnectorFactory.getInstance().newConnector(
-            pSettings.db.dbms, // inmemory / sqlite / neo4j
+            pDbSettings.dbms, // inmemory / sqlite / neo4j
             null,
             {
-                user: pSettings.db.user,
-                pwd: pSettings.db.pwd,
-                port: pSettings.db.port,
-                uri: pSettings.db.uri
+                user: pDbSettings.user,
+                pwd: pDbSettings.pwd,
+                port: pDbSettings.port,
+                uri: pDbSettings.uri
             }
         ) as IDatabaseAdapter;
 
-        dba.connect(pSettings.db.uri);
+        dba.connect(pDbSettings.uri, true);
 
-        if(pSettings.db.dbms == 'inmemory'){
-            this._requireMigrate = true;
-        }
-
-        this._db = dba.getDB();
+        this._db = dba.getDB(pDbSettings.uri);
         // import temporary DB after a fresh install
         /*
         if(_fs_.existsSync(this.settings.db.uri)==false){
@@ -151,8 +340,8 @@ export class UserService {
     verifySession( pSession:UserSession):boolean {
         try{
 
-            Logger.info("Verify session is not null : "+JSON.stringify(pSession));
-            Logger.info("All session : "+JSON.stringify( Object.keys(this.sessSvc.listAllSession())));
+            //Logger.info("Verify session is not null : "+JSON.stringify(pSession));
+            //Logger.info("All session : "+JSON.stringify( Object.keys(this.sessSvc.listAllSession())));
             if( pSession != null && pSession.isActive()){
                 return true;
             }else{
