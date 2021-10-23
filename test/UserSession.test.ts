@@ -36,7 +36,7 @@ describe('UserSession', function() {
 
         it('with settings', function () {
 
-            let sess:UserSession = new UserSession(SESSID,ACCOUNT);
+            let sess:UserSession = UserSession.create(SESSID,ACCOUNT);
 
             expect(sess.getSessUID()).to.equal("a0a1a2a3a4a5");
             expect(sess.getUserAccount().hasUsername("dxc_user_1")).to.be.true;
@@ -47,7 +47,7 @@ describe('UserSession', function() {
     describe('Verify session owner', function() {
 
         it('with valid owner', function () {
-            let sess:UserSession = new UserSession(SESSID,ACCOUNT);
+            let sess:UserSession =  UserSession.create(SESSID,ACCOUNT);
             let err:number;
             try{
                 expect(sess.isOwnedBy(ACCOUNT)).to.be.true;
@@ -60,7 +60,7 @@ describe('UserSession', function() {
         });
 
         it('with invalid owner', function () {
-            let sess:UserSession = new UserSession(SESSID,ACCOUNT);
+            let sess:UserSession =  UserSession.create(SESSID,ACCOUNT);
             let err:number;
             try{
                 expect(sess.isOwnedBy(ACCOUNT)).to.be.true;
@@ -79,7 +79,7 @@ describe('UserSession', function() {
     describe('After to be destroyed, a session ...', function() {
 
         it('... must be flagged', function () {
-            let sess:UserSession = new UserSession(SESSID,ACCOUNT);
+            let sess:UserSession = UserSession.create(SESSID,ACCOUNT);
             let err:number;
             try{
                 expect(sess.isActive()).to.be.true;
@@ -94,7 +94,7 @@ describe('UserSession', function() {
         });
 
         it('... must be block access to data', function () {
-            let sess:UserSession = new UserSession(SESSID,ACCOUNT);
+            let sess:UserSession = UserSession.create(SESSID,ACCOUNT);
             let err:number;
             try{
 

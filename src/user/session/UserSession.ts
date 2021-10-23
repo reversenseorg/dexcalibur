@@ -55,7 +55,15 @@ export class UserSession implements IPersistent{
 
     _conn:ConnectionHandlerMap = {};
 
-    constructor( pSessUID:string, pAccount: UserAccount) {
+    constructor( pConfig:any) {
+
+        for(let i in pConfig){
+            this[i] = pConfig[i];
+
+        }
+    }
+
+    static create( pSessUID:string, pAccount: UserAccount):UserSession {
 
         if((pAccount instanceof UserAccount)==false)
             throw new SessionException("Session cannot be created : invalid user account", SessionCode.INVALID_ACCOUNT);
@@ -63,9 +71,11 @@ export class UserSession implements IPersistent{
         if(Util.isEmpty(pSessUID, Util.FLAG_CR | Util.FLAG_WS))
             throw new SessionException("Session cannot be created : invalid user account", SessionCode.EMPTY_SESSID);
 
-        this._uid = pSessUID;
-        this._acc = pAccount
-        this._created = Date.now();
+        return new UserSession({
+            _uid: pSessUID,
+            _acc: pAccount,
+            _created:  Date.now()
+        });
     }
 
     /**
