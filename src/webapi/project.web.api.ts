@@ -214,11 +214,11 @@ PROJECT_WEB_API.addAuthenticatedRoute(
                 if (req.dxc == null || !$.context.getUserService().verifySession(req.dxc.sess)) {
                     throw AuthenticationException.AUTHENTICATION_FAILED();
                 }
-                if (res.dxc.project == null || !req.dxc.project.isReady()) {
+                if (req.dxc.project == null || !req.dxc.project.isReady()) {
                     throw DexcaliburProjectException.NO_PROJECT_SPECIFIED();
                 }
 
-                const dev:Device = res.dxc.project.getDevice();
+                const dev:Device = req.dxc.project.getDevice();
                 if(dev!=null){
                     $.sendSuccess(res, dev.toJsonObject({}, {
                         bridge: {
@@ -241,7 +241,7 @@ PROJECT_WEB_API.addAuthenticatedRoute(
                 if (req.dxc == null || !$.context.getUserService().verifySession(req.dxc.sess)) {
                     throw AuthenticationException.AUTHENTICATION_FAILED();
                 }
-                if (res.dxc.project == null || !req.dxc.project.isReady()) {
+                if (req.dxc.project == null || !req.dxc.project.isReady()) {
                     throw DexcaliburProjectException.NO_PROJECT_SPECIFIED();
                 }
 
@@ -281,7 +281,7 @@ PROJECT_WEB_API.addAuthenticatedRoute(
 
                 if(req.body['project']!=null){
                     project = $.context.getActiveProjects(req.dxc.sess.getUserAccount())[req.body['project']];
-                }else if(res.dxc.project != null){
+                }else if(req.dxc.project != null){
                     project = req.dxc.project;
                 }
 
@@ -329,7 +329,7 @@ PROJECT_WEB_API.addAuthenticatedRoute(
 PROJECT_WEB_API.addAuthenticatedRoute(
     '/ws',
     {
-        'get': (req: Request, res: Response) => {
+        'post': (req: Request, res: Response) => {
 
             let $: WebServer = req.dxc.$;
             let project:DexcaliburProject = null;
@@ -346,7 +346,7 @@ PROJECT_WEB_API.addAuthenticatedRoute(
 
                 if(req.body['project']!=null){
                     project = $.context.getActiveProjects(req.dxc.sess.getUserAccount())[req.body['project']];
-                }else if(res.dxc.project != null){
+                }else if(req.dxc.project != null){
                     project = req.dxc.project;
                 }
 
@@ -386,6 +386,7 @@ PROJECT_WEB_API.addAuthenticatedRoute(
                     });
                 }
 
+                $.sendSuccess( res, data);
             } catch (err) {
                 Logger.error("[API][PROJECT] Project workspace cannot be browsed. Cause : " + err.message + "\n\t" + err.stack);
                 $.sendError(res, "Project workspace cannot be browsed. Cause : " + err.message);
@@ -394,6 +395,49 @@ PROJECT_WEB_API.addAuthenticatedRoute(
     }
 );
 
+
+/**
+ * To enumerate exisiting categories and tags
+ */
+PROJECT_WEB_API.addAuthenticatedRoute(
+    '/tags',
+    {
+        'get': (req: Request, res: Response) => {
+
+            const $: WebServer = req.dxc.$;
+            let project:DexcaliburProject = null;
+
+            try {
+                if (req.dxc == null || !$.context.getUserService().verifySession(req.dxc.sess)) {
+                    throw AuthenticationException.AUTHENTICATION_FAILED();
+                }
+
+                if(req.body['project']!=null){
+                    project = $.context.getActiveProjects(req.dxc.sess.getUserAccount())[req.body['project']];
+                }else if(req.dxc.project != null){
+                    project = req.dxc.project;
+                }
+
+                if(project == null || !project.isReady()) {
+                    throw DexcaliburProjectException.NO_PROJECT_SPECIFIED();
+                }
+
+                // collect
+                const data:any = [];
+                const tagc:any = project.analyze.getTagCategories();
+                for (let i = 0; i < tagc.length; i++) {
+                    data.push(tagc[i].toJsonObject());
+                }
+
+                $.sendSuccess( res, data);
+
+            } catch (err) {
+                Logger.error("[API][PROJECT] Tag categories cannot be retrieved. Cause : " + err.message + "\n\t" + err.stack);
+                $.sendError(res, "Tag categories cannot be retrieved. Cause : " + err.message);
+            }
+        },
+    }
+);
 
 /*
             this.app.route('/api/projection')
