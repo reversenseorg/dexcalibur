@@ -21,5 +21,6 @@ export enum NodeInternalType {
     INTERNAL_DB,
     USER_ACCOUNT,
     USER_SESSION,
-    USER_SESSION_DATA
+    USER_SESSION_DATA,
+    DATA_SCOPE
 }
