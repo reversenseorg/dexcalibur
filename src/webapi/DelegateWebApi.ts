@@ -26,14 +26,21 @@ export class DelegateWebApi
 {
     srv: WebServer;
     router: Router;
+    private _l:any = null;
 
     constructor() {
         this.router = new Router();
     }
 
+    onInject( pCallback:any ) {
+        this._l = pCallback;
+    }
 
     injectServer( pWebserver: WebServer):void {
         this.srv = pWebserver;
+        if(this._l != null){
+            (this._l)(this, WebServer);
+        }
     }
 
     getRouter():Router {
