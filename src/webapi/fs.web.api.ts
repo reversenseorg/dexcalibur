@@ -45,19 +45,33 @@ FS_WEB_API.addAuthenticatedRoute(
                 }
 
                 // TODO : validate $.project.dataAnalyzer.isValidScope(req.query['scope']);
-                //const scope = $.project.dataAnalyzer.getScope(req.query['scope']);
 
-                const search:FinderResult = project.find.file('_uid:'+req.query['uid']);
+                let file:ModelFile;
+                if(req.query['scope']!=null
+                    && Object.keys(project.dataAnalyzer.scopes).indexOf(req.query.scope)>-1){
 
-                if(search==null || search.count()==0){
-                    throw new Error("[FILE::VIEW] #FMT_2 File not found");
+                    const scope = project.dataAnalyzer.getScope(req.query['scope']);
+
+                    file = project.dataAnalyzer.getIndex(scope).getEntry(req.query['path']);
+                }else{
+                    const search:FinderResult = project.find.file('_uid:'+req.query['uid']);
+
+                    if(search==null || search.count()==0){
+                        throw new Error("[FILE::VIEW] #FMT_2 File not found");
+                    }
+
+                    // TODO : ajouter ModelFile.read() dont le comportement depend du scope ModelFile.scope
+                    file = (search.get(0) as ModelFile);
                 }
 
-                // TODO : ajouter ModelFile.read() dont le comportement depend du scope ModelFile.scope
-                const file = (search.get(0) as ModelFile);
+
+
+
                 let d:any;
+                // replace path by local path (for remote file)
                 if(_fs_.existsSync(file.getPath())){
 
+                    Logger.raw(file.__p.f_list)
                     if(file.isExecutable()){
                         d = file.toJsonObject({ cmd:'sections:f_list'});
                     }else{

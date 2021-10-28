@@ -1744,11 +1744,11 @@ export default class Analyzer
         this._updateWithEachFileOf(
             filesDB,
             // check if the file can be treated
-            function(db, inFile, dbFile){
+            (db, inFile:ModelFile, dbFile)=>{
                 if((inFile.path == dbFile.path)||override){
                     //dbFile.update(inFile);
                 }else{
-                    db.files.insert(inFile);
+                    db.files.addEntry(inFile.getUID(), inFile); // insert(inFile);
                 }
             }
         )
@@ -1864,8 +1864,8 @@ export default class Analyzer
     updateFileIndex(index: IDbSet, pForce:boolean=false) {
         //this.db.files = index;
 
-        index.map( (vOffset:any,vVal:any)=>{
-            this.db.files.addEntry(vVal); //, pForce);
+        index.map( (vOffset:any,vVal:ModelFile)=>{
+            this.db.files.addEntry(vVal.getUID() , vVal); //, pForce);
         });
     }
 

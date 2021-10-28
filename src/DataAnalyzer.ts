@@ -13,6 +13,8 @@ import {FileAnalysisType} from "./AnalyzerConfiguration";
 import {MagicHelper} from "./MagicHelper";
 import {Workflow} from "./Workflow";
 import {IDatabase, IDatabaseAdapter, IDbCollection, IDbIndex} from "./persist/orm/DbAbstraction";
+import SqliteDbCollection from "../connectors/sqlite/SqliteDbCollection";
+import {IAnalyzerUnit} from "./analyzer/IAnalyzerUnit";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -192,7 +194,7 @@ export var DATA_SCOPE:DataScopeMap = {
 */
 
 
-export class DataAnalyzer
+export class DataAnalyzer implements IAnalyzerUnit
 {
     context:DexcaliburProject = null;
     db:IDatabase = null;
@@ -217,18 +219,69 @@ export class DataAnalyzer
         //STATIC_BUFFER: (new DataScope("sbf")).setPpts(DataScopePpts.PATH, ws.get()),
         const ws = pCtx.getWorkspace();
         this.scopes = {
-            PKG: (new DataScope("bin")).setPpts(DataScopePpts.PATH, ws.getApkDir()),
-            APPDATA: (new DataScope("app")).setPpts(DataScopePpts.PATH, ws.getAppdataDir()),
-            DEVICE: (new DataScope("dev")).setPpts(DataScopePpts.PATH, ws.getAppdataDir()),
-            DYN_BUFFER: (new DataScope("dbf")).setPpts(DataScopePpts.PATH, ws.getRuntimeFilesDir()),
-            DYN_BYTECODE: (new DataScope("bcf")).setPpts(DataScopePpts.PATH, ws.getRuntimeBcDir())
+           /* PKG: (new DataScope("bin", 'PKG')).setPpts(DataScopePpts.PATH, ws.getApkDir()),
+            APPDATA: (new DataScope("app",'APPDATA')).setPpts(DataScopePpts.PATH, ws.getAppdataDir()),
+            DEVICE: (new DataScope("dev",'DEVICE')).setPpts(DataScopePpts.PATH, ws.getAppdataDir()),
+            DYN_BUFFER: (new DataScope("dbf",'DYN_BUFFER')).setPpts(DataScopePpts.PATH, ws.getRuntimeFilesDir()),
+            DYN_BYTECODE: (new DataScope("bcf",'DYN_BYTECODE')).setPpts(DataScopePpts.PATH, ws.getRuntimeBcDir())*/
         };
 
         this.db = pCtx.getDB();
 
+        if(!this.db.exists(DataScope.TYPE.getName())){
+            this.createDataScopes();
+        }
+
+        this.initDataScope();
         // this.newDB();
     }
 
+    createDataScopes(){
+        const ws = this.context.getWorkspace();
+        const coll = this.db.newCollection( DataScope.TYPE.getName(), DataScope.TYPE);
+        coll.setEntry('PKG', (DataScope.create("bin", 'PKG')).setPpts(DataScopePpts.PATH, ws.getApkDir()));
+        coll.setEntry('APPDATA', (DataScope.create("app", 'APPDATA')).setPpts(DataScopePpts.PATH, ws.getAppdataDir()));
+        coll.setEntry('DEVICE', (DataScope.create("dev", 'DEVICE')).setPpts(DataScopePpts.PATH, ws.getAppdataDir()));
+        coll.setEntry('DYN_BUFFER', (DataScope.create("dbf", 'DYN_BUFFER')).setPpts(DataScopePpts.PATH, ws.getRuntimeFilesDir()));
+        coll.setEntry('DYN_BYTECODE', (DataScope.create("bcf", 'DYN_BYTECODE')).setPpts(DataScopePpts.PATH, ws.getRuntimeBcDir()));
+    }
+
+    initDataScope(){
+        const scopes = this.db.getCollection( DataScope.TYPE.getName(), DataScope.TYPE);
+        this.scopes = {
+            PKG: scopes.getEntry('PKG'),
+            APPDATA: scopes.getEntry('APPDATA'),
+            DEVICE: scopes.getEntry('DEVICE'),
+            DYN_BUFFER: scopes.getEntry('DYN_BUFFER'),
+            DYN_BYTECODE: scopes.getEntry('DYN_BYTECODE'),
+        }
+    }
+
+
+
+
+    parseUID(pUID:string):any {
+        const t = pUID.split(':');
+        if( t.length < 2) throw new Error('Invalid ModelFile UID');
+
+        return {
+            scope: this.scopes[t[0]],
+            hash: t[1]
+        }
+    }
+
+    findFile(pUID:string):ModelFile{
+        const o =this.parseUID(pUID);
+        let f:ModelFile;
+
+        (this.getIndex(o.scope) as SqliteDbCollection).map( (vO:number, vFile:ModelFile)=>{
+            if(vFile.getUID() === pUID){
+                f = vFile;
+            }
+        });
+
+        return f;
+    }
 
     setWorkflow(pWf:Workflow):void{
         this._wf = pWf;

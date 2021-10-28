@@ -1,3 +1,8 @@
+import {NodeType} from "./persist/orm/NodeType";
+import {NodeInternalType} from "./NodeInternalType";
+import {NodeProperty, NodePropertyState} from "./persist/orm/NodeProperty";
+import {DbDataType, DbKeyType, DbSerialize} from "./persist/orm/DbAbstraction";
+import {IPersistent} from "./persist/orm/IPersistent";
 
 export interface DataScopeMap {
     [name:string] :DataScope
@@ -8,19 +13,54 @@ export enum DataScopePpts {
     OTHER="o"
 }
 
-export default class DataScope {
-    _i:string = "files_"
+const DEFAULT_PREFIX = "files_";
+
+export default class DataScope implements IPersistent{
+
+    static TYPE:NodeType = new NodeType(
+        "data_scope",
+        NodeInternalType.DATA_SCOPE,
+        [
+            (new NodeProperty("__i")).type(DbDataType.STRING).key(DbKeyType.PRIMARY),
+            (new NodeProperty("_i")).type(DbDataType.STRING).def(DEFAULT_PREFIX), // path relative to scope root
+            (new NodeProperty("_n")).type(DbDataType.STRING).unique(),
+            (new NodeProperty("_p"))
+                .type(DbDataType.STRING)
+                .sleep( (x:NodePropertyState)=>{ return (x.p!=null ? JSON.stringify(x.p) : null)})
+                .wakeUp( (x:NodePropertyState)=>{ return (x.p!=null ? JSON.parse(x.p) : null)})
+        ]);
+
+    __:NodeInternalType = NodeInternalType.DATA_SCOPE;
+
+    __i:string;
+    _i:string = DEFAULT_PREFIX;
     _n:string = null;
     _p:any = null;
 
-    constructor( pName:string, pOpts:any={}){
-        this._n = pName;
-        this._p = pOpts;
+    constructor( pConfig:any = {}){
+        for(let i in pConfig){
+            this[i] = pConfig[i];
+        }
     }
 
+    static create(pName:string, pInternalName:string, pOpts:any={}):DataScope{
+        return new DataScope({
+            _n: pName,
+            _p: pOpts,
+            __i: pInternalName
+        });
+    }
+
+    getUID():string {
+        return this._n;
+    }
 
     setIndexPrefix(pPrefix:string){
         this._i = pPrefix;
+    }
+
+    getInternalName():string {
+        return this.__i;
     }
 
     getIndexName():string {
@@ -47,3 +87,4 @@ export default class DataScope {
         return (pScope.getName()===this.getName());
     }
 }
+DataScope.TYPE.builder(DataScope);

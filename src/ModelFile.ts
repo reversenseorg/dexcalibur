@@ -1,24 +1,21 @@
-
 import * as _path_ from 'path';
 import * as _md5_ from 'md5';
 import {EncodedDataType} from "./FileTypes";
 import ModelFileSection from "./ModelFileSection";
-import Util from "./Utils";
 import DataScope from "./DataScope";
 import ModelExecutableSection from "./ModelExecutableSection";
 import {ModelFunction, ModelFunctionList} from "./ModelFunction";
+import * as Log from './Logger';
+import {IPersistent} from "./persist/orm/IPersistent";
+import {DbDataType, DbKeyType, DbSerialize} from "./persist/orm/DbAbstraction";
+import {NodeType} from "./persist/orm/NodeType";
+import {NodeProperty} from "./persist/orm/NodeProperty";
+import {NodeInternalType} from "./NodeInternalType";
 
 
 let UIDS:string[]=[];
 
 
-import * as Log from './Logger';
-import {IPersistent} from "./persist/orm/IPersistent";
-import {DbColumnTemplate, DbPersistTemplate} from "./persist/orm/DbColumnTemplate";
-import {DbDataType, DbKeyType, DbSerialize} from "./persist/orm/DbAbstraction";
-import {NodeType} from "./persist/orm/NodeType";
-import {NodeProperty} from "./persist/orm/NodeProperty";
-import {NodeInternalType} from "./NodeInternalType";
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
 
@@ -98,7 +95,14 @@ export default class ModelFile implements IPersistent {
             (new NodeProperty("location")).type(DbDataType.STRING).def(null),
             (new NodeProperty("_d")).type(DbDataType.STRING).def('f'),
 
-            (new NodeProperty("scope")).volatile().type(DbDataType.STRING).def(null).serialize(DbSerialize.JSON),
+            (new NodeProperty("scope")).single(DataScope.TYPE),
+                /*
+                .type(DbDataType.STRING)
+                .def(null)
+                .sleep( (x:NodePropertyState)=>{ return (x.p!=null ? (x.p as DataScope).getInternalName() : null )})
+                .wakeUp( (x:NodePropertyState)=>{ return (x.p!=null ?  x.p : null )}),*/
+            // (x.ctx as DexcaliburProject).getDataAnalyzer().getScope(x.p)
+
             (new NodeProperty("sections")).volatile().multiple(ModelFileSection.TYPE).type(DbDataType.STRING).serialize(DbSerialize.JSON),
 
             (new NodeProperty("__p")).volatile().type(DbDataType.STRING).serialize(DbSerialize.JSON),
@@ -106,6 +110,8 @@ export default class ModelFile implements IPersistent {
             (new NodeProperty("f_list")).volatile()
     ]);
 
+
+    __:NodeInternalType = NodeInternalType.FILE;
 
     _uid: string = null;
 
@@ -154,6 +160,7 @@ export default class ModelFile implements IPersistent {
     __t: any[] = [];
 
 
+
     /**
      *
      * @param {Object} pConfig
@@ -178,11 +185,18 @@ export default class ModelFile implements IPersistent {
                 }*/
             }
 
-            if (this._uid == null && this.scope !== null && this.path != null) {
-                this.generateUID();
+            if (this._uid == null && this.scope != null) {
+                if(this._r != null){
+                    this.generateUID();
+                }else{
+                    // update UID
+                    this.setScope(this.scope);
+                }
+
             }
         }
     }
+
 
     getUID(): string {
         return this._uid;
@@ -190,11 +204,13 @@ export default class ModelFile implements IPersistent {
 
     setScope(pScope: DataScope): void {
         this.scope = pScope;
-        this.generateUID();
-
         this._r = this.path.substr( pScope.getBasePath().length);
+        this.generateUID();
     }
 
+    getScope():DataScope {
+        return this.scope;
+    }
     hasRelDir(pPath:string):boolean {
         return this.hasDir(pPath,true);
     }
@@ -208,7 +224,9 @@ export default class ModelFile implements IPersistent {
     }
 
     generateUID(): void {
-        this._uid = _md5_(this.path);
+        this._uid = this.scope.getInternalName()+':'+_md5_(this._r);
+
+        //this._uid = _md5_(this.path);
 
         //do{ this._uid=_md5( Util.randString(6, Util.ALPHANUM) }while( UIDS.indexOf(this._uid)>-1);
     }
@@ -282,7 +300,8 @@ export default class ModelFile implements IPersistent {
     toJsonObject(pOpts: any = {}) {
         let o: any = new Object();
 
-        /*if(pOpts.cmd!=null) {
+
+        if(pOpts!=null && pOpts.hasOwnProperty('cmd')) {
             o.__p = {};
 
             //TO_JSON( this.__p, o.__p)
@@ -291,16 +310,19 @@ export default class ModelFile implements IPersistent {
                   switch(vCmd){
                       case "sections":
                           o.__p.sections = [];
-                          this.__p.sections.map( vSec => { o.__p.sections.push(vSec.toJsonObject() )});
+                          if(this.__p.sections!=null)
+                            this.__p.sections.map( vSec => { o.__p.sections.push(vSec.toJsonObject() )});
                           break;
                       case "f_list":
                           o.__p.f_list = {};
-                          for(let addr in this.__p.f_list) o.__p.f_list[addr] = this.__p.f_list[addr].toJsonObject();
+                          if(this.__p.f_list!=null)
+                            for(let addr in this.__p.f_list)
+                                o.__p.f_list[addr] = this.__p.f_list[addr].toJsonObject();
                           break;
                   }
                 }
             );
-        }*/
+        }
 
 
         for (let i in this) {
@@ -311,15 +333,14 @@ export default class ModelFile implements IPersistent {
                         switch (k) {
                             case "sections":
                                 o.__p.sections = [];
-                                this.__p.sections.map((sec: ModelExecutableSection) => {
-                                    o.__p.sections.push(sec.toJsonObject());
-                                });
+                                if(this.__p.sections!=null)
+                                    this.__p.sections.map( vSec => { o.__p.sections.push(vSec.toJsonObject() )});
                                 break;
                             case "f_list":
                                 o.__p.f_list = {};
-                                for (let i in this.__p.f_list) {
-                                    o.__p.f_list[i] = this.__p.f_list[i].toJsonObject();
-                                }
+                                if(this.__p.f_list!=null)
+                                    for(let addr in this.__p.f_list)
+                                        o.__p.f_list[addr] = this.__p.f_list[addr].toJsonObject();
                                 break;
                             default:
                                 if (typeof this.__p[k] == 'object') {
