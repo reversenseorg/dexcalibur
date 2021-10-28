@@ -103,7 +103,7 @@ export default class Platform
      */
     getInternalName():string{
         // TODO : add file path check in order to avoid traversal path
-        return this.name+"_"+this.apiVersion;
+        return this.name+"_"+this.version; //apiVersion;
     }
 
     isAndroid():boolean{
