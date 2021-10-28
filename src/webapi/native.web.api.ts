@@ -8,6 +8,10 @@ import {AuthenticationException} from "../errors/AuthenticationException";
 import {DexcaliburProjectException} from "../errors/DexcaliburProjectException";
 import {ModelFunction} from "../ModelFunction";
 import {FinderResult} from "../FinderResult";
+import NativeAnalyzer from "../NativeAnalyzer";
+import {NativeAnalyzerException} from "../errors/NativeAnalyzerException";
+import {NativeAnalyzerCommands} from "../analyzer/NativeAnalyzerCommands";
+import Util from "../Utils";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -91,6 +95,77 @@ NATIVE_WEB_API.addAsyncAuthenticatedRoute(
 
 
 NATIVE_WEB_API.addAuthenticatedRoute(
+    '/func/:b64_uid',
+    {
+        'put': function (req:Request, res:Response):any {
+            const $: WebServer = req.dxc.$;
+            let project:DexcaliburProject = null;
+
+            try{
+
+                // ========== SECURITY CHECKS
+
+                if (req.dxc == null || !$.context.getUserService().verifySession(req.dxc.sess)) {
+                    throw AuthenticationException.AUTHENTICATION_FAILED();
+                }
+
+                if(req.body['project']!=null){
+                    project = $.context.getActiveProjects(req.dxc.sess.getUserAccount())[req.body['project']];
+                }else if(req.dxc.project != null){
+                    project = req.dxc.project;
+                }
+
+                if(project == null || !project.isReady()) {
+                    throw DexcaliburProjectException.NO_PROJECT_SPECIFIED();
+                }
+
+                // ========== LOGIC
+                if(req.params['b64_uid']==null){
+                    throw NativeAnalyzerException.INVALID_FUNC_SIGN();
+                }
+
+                const signature = decodeURIComponent(Util.b64_decode(decodeURIComponent(req.params['b64_uid'])));
+                Logger.info('[API][NATIVE] Searching function : '+req.params['b64_uid'],'     ',decodeURIComponent(Util.b64_decode(req.params['b64_uid'])));
+
+                const fn:ModelFunction = project.find.get.func(
+                    signature
+                );
+
+                if(fn==null){
+                    throw NativeAnalyzerException.UNKNOW_FUNC();
+                }
+
+                const alias:string = req.body['alias'];
+
+                if(alias != null){
+
+                    if(alias == fn.name){
+                        throw NativeAnalyzerException.ALIAS_MUST_DIFFERS_FROM_NAME();
+                    }
+
+
+                    fn.setAlias(alias);
+                    project.trigger({
+                        type: "function.alias.update",
+                        func: fn
+                    });
+                }
+
+
+                // ========== RESPONSE
+                $.sendSuccess( res, {});
+
+
+            }catch(err){
+                Logger.error("[API][NATIVE] Fail to edit (alias) native function. Cause : " + err.message + "\n\t" + err.stack);
+                $.sendError(res, " Fail to edit (alias) native function. Cause : " + err.message);
+            }
+        }
+    }
+);
+
+
+NATIVE_WEB_API.addAuthenticatedRoute(
     '/analysis',
     {
         'get':  function (req:Request, res:Response):any {
@@ -120,6 +195,8 @@ NATIVE_WEB_API.addAuthenticatedRoute(
                     throw new Error("[NATIVE::ANALYSIS] #NAT_1 Invalid File UID");
                 }
 
+
+
                 const search:FinderResult = project.find.file('_uid:'+req.query['uid']);
                 if(search==null || search.count()==0){
                     throw new Error("[NATIVE::ANALYSIS] #NAT_2 File not found");
@@ -141,5 +218,85 @@ NATIVE_WEB_API.addAuthenticatedRoute(
         }
     }
 );
+
+
+NATIVE_WEB_API.addAsyncAuthenticatedRoute(
+    '/disass/func',
+    {
+        'get':  async function (req:Request, res:Response):Promise<any> {
+            const $: WebServer = req.dxc.$;
+            let project:DexcaliburProject = null;
+
+            try{
+
+                // ========== SECURITY CHECKS
+
+                if (req.dxc == null || !$.context.getUserService().verifySession(req.dxc.sess)) {
+                    throw AuthenticationException.AUTHENTICATION_FAILED();
+                }
+
+                if(req.body['project']!=null){
+                    project = $.context.getActiveProjects(req.dxc.sess.getUserAccount())[req.body['project']];
+                }else if(req.dxc.project != null){
+                    project = req.dxc.project;
+                }
+
+                if(project == null || !project.isReady()) {
+                    throw DexcaliburProjectException.NO_PROJECT_SPECIFIED();
+                }
+
+                // ========== LOGIC
+                if(req.query['uid']==null){
+                    throw new Error("Function UID is missing");
+                }
+
+                const fn_uid = req.query['uid'];
+                const fn:ModelFunction = project.find.get.func(fn_uid); // .func.get('_uid:'+req.query['uid']);
+                if(fn == null){
+                    throw new Error("Function ("+fn_uid+") not found ");
+                }
+
+/*
+                let file:any = fn.getDeclaringFile();
+                if(typeof file === 'string'){
+                    Logger.info("[NATIVE ANALYZER] Declaring file is a string : "+file);
+                    const f:ModelFile = project.find.get.files(file);
+                    file = f ;
+                    Logger.info("[NATIVE ANALYZER] Declaring file has been retrieved from DB : "+f.getUID());
+                }else{
+                    Logger.info("[NATIVE ANALYZER] Relative path of declaring file of target fn is : "+file.getRelativePath());
+                }
+            */
+
+
+                const natAnal:NativeAnalyzer = project.analyze.getNativeAnalyzer();
+                let commands:string[];
+                if(req.query['cmd']!=null){
+                    commands = NativeAnalyzerCommands.getFuncCmd(req.query['cmd']);
+                }else{
+                    commands = [NativeAnalyzerCommands.FUNC_CMD.DISASS];
+                }
+
+                /*if(natAnal.requireAnalysis( file as ModelFile, commands, null)){
+                    //Logger.error('[ANTIVEZ ANALYZER] Already analyzed files : '+Object.keys(natAnal.r2factory.helpers).join(' : '));
+                    throw NativeAnalyzerException.ANALYSIS_REQUIRED((file as ModelFile).getRelativePath());
+                }*/
+
+                Logger.info("[NATIVE ANALYZER] Commands : ",commands.join(', '))
+                const success = await natAnal.analyzeFunction(fn, commands, null);
+
+                if(success)
+                    $.sendSuccess( res,fn.toJsonObjectWithCmd(commands));
+                else
+                    $.sendError(res, " Disassembly of function failed without errors :( Please file an issue, if this error occurs.");
+                    // (search.get(0) as ModelFile).toJsonObject({ cmd:cmd }));
+            }catch(err){
+                Logger.error("[API][NATIVE] Disassembly of function failed. Cause : " + err.message + "\n\t" + err.stack);
+                $.sendError(res, " Disassembly of function failed. Cause : " + err.message);
+            }
+        }
+    }
+);
+
 
 
