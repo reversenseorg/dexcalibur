@@ -66,6 +66,7 @@ import {NATIVE_WEB_API} from "./webapi/native.web.api";
 import {FS_WEB_API} from "./webapi/fs.web.api";
 import {USER_WEB_API} from "./webapi/user.web.api";
 import {HOOK_WEB_API} from "./webapi/hook.web.api";
+import {INSPECTOR_WEB_API} from "./webapi/inspectors.web.api";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -1373,6 +1374,7 @@ export default class WebServer
         FS_WEB_API.injectServer(this);
         USER_WEB_API.injectServer(this);
         HOOK_WEB_API.injectServer(this);
+        INSPECTOR_WEB_API.injectServer(this);
 
 
         this.app.use('/api/device', DEVICE_WEB_API.getRouter());
@@ -1389,6 +1391,7 @@ export default class WebServer
         this.app.use('/api/file', FS_WEB_API.getRouter());
         this.app.use('/api/user', USER_WEB_API.getRouter());
         this.app.use('/api/hook', HOOK_WEB_API.getRouter());
+        this.app.use('/api/plugin', INSPECTOR_WEB_API.getRouter());
         /**
          * Redirect to /pages/splash.html if there is no project initialized
          */
