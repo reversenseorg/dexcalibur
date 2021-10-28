@@ -11,6 +11,7 @@ import {IDatabase} from "../../src/persist/orm/DbAbstraction";
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
 interface BackupQueue {
+    functions:any;
     methods:any ;
     fields:any ;
     classes:any ;
@@ -33,6 +34,7 @@ export default class SaveManager
     static T_FIELD = 3;
     static T_HOOK = 4;
     static T_HOOK_STATUS = 5;
+    static T_FUNC = 6;
 
 
     context:DexcaliburProject = null;
@@ -53,6 +55,7 @@ export default class SaveManager
         this._db = conn.newTemporaryDb('save');
 
         this.queue = {
+            functions: {},
             methods:{},
             fields:{},
             classes:{},
@@ -60,6 +63,7 @@ export default class SaveManager
             "hooks-status": {}
         };
         this.queueSize = {
+            functions:0,
             methods:0,
             fields:0,
             classes:0,
@@ -139,6 +143,7 @@ export default class SaveManager
 
     initInternalDB():void{
         this._db.newCollection("classes", null);
+        this._db.newCollection("functions", null);
         this._db.newCollection("fields", null);
         this._db.newCollection("methods", null);
         this._db.newCollection("hooks", null);
@@ -162,6 +167,7 @@ export default class SaveManager
     updateAlias( pType:string, pObject:any):void{
 
         switch(pType){
+            case "functions":
             case "classes":
             case "methods":
             case "fields":
@@ -219,6 +225,20 @@ export default class SaveManager
                 }else{
             //        this.queue.field[k] = (pData.fields.data[k]);
                     this.addToQueue("fields",k,pData.fields.data[k]);
+                    qflag++;
+                }
+            }
+        }
+
+        if(pData.functions!=null && pData.functions.size > 0){
+            for(let k in pData.functions.data){
+                o = this.context.find.get.func(k);
+                if(o != null){
+                    o.setAlias(pData.functions.data[k].alias);
+                    this.updateAlias("functions", o);
+                }else{
+                    //        this.queue.field[k] = (pData.fields.data[k]);
+                    this.addToQueue("functions",k,pData.functions.data[k]);
                     qflag++;
                 }
             }
@@ -293,6 +313,7 @@ export default class SaveManager
         let self=this;
 
         data.methods = {data:{}, size:self._db.getCollection("methods", null).size()};
+        data.functions = {data:{}, size:self._db.getCollection("functions", null).size()};
         data.fields = {data:{}, size:self._db.getCollection("fields", null).size()};
         data.classes = {data:{}, size:self._db.getCollection("classes", null).size()};
         data.hooks = {data:{}, size:self._db.getCollection("hooks", null).size()};
@@ -305,6 +326,14 @@ export default class SaveManager
                 data.fields.data[i] = {
                     type: SaveManager.T_FIELD,
                     alias: this.queue.fields[i].alias
+                };
+            }
+        }
+        if(this.queueSize.methods > 0){
+            for(let i in this.queue.functions){
+                data.functions.data[i] = {
+                    type: SaveManager.T_FUNC,
+                    alias: this.queue.functions[i].alias
                 };
             }
         }
@@ -356,6 +385,16 @@ export default class SaveManager
             coll.map(function(ref:any,obj:any){
                 data.methods.data[ref] = {
                     type: SaveManager.T_METHOD,
+                    alias: obj.getAlias()
+                };
+            });
+        }
+
+        if(data.functions!=null && data.functions.size > 0){
+            coll = self._db.getCollection("functions", null);
+            coll.map(function(ref:any,obj:any){
+                data.functions.data[ref] = {
+                    type: SaveManager.T_FUNC,
                     alias: obj.getAlias()
                 };
             });
