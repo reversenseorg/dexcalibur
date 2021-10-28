@@ -722,7 +722,7 @@ export class HookManager
                 if(typeof method.src === 'string'){
                     hs = this.getHookSet(method.src);
                     if(hs==null){
-                        const f = this.context.find.file('uid:'+method.src).get(0);
+                        const f = this.context.find.file('_uid:'+method.src).get(0);
                         hs = this.createHookSet(method.src, { name: (f!=null? f.getName() : method.src), native:true});
 
                     }
