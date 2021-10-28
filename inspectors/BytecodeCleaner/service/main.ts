@@ -8,6 +8,17 @@ import ModelInstruction from "../../../src/ModelInstruction";
 import ModelBasicBlock from "../../../src/ModelBasicBlock";
 import Util from "../../../src/Utils";
 import {Modifier} from "../../../src/AccessFlags";
+import {DelegateWebApi} from "../../../src/webapi/DelegateWebApi";
+import WebServer from "../../../src/WebServer";
+import {AuthenticationException} from "../../../src/errors/AuthenticationException";
+import {DexcaliburProjectException} from "../../../src/errors/DexcaliburProjectException";
+import Inspector from "../../../src/Inspector";
+import InspectorManager from "../../../src/InspectorManager";
+import {Request, Response} from "express";
+import * as Log from "../../../src/Logger";
+
+
+let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
 var Controller:InspectorFrontController =  new InspectorFrontController();
 
@@ -791,5 +802,78 @@ Controller.registerHandler(  IFC_TYPE.GET, function(ctx:DexcaliburProject, req:a
 
     res.status(act.status).send(act.data);
 });
+
+
+const PLUGIN_WEB_API: DelegateWebApi = new DelegateWebApi();
+
+
+/**
+ * /api/application/cmp?type=[dex|ks|libs|strings] ...
+ */
+PLUGIN_WEB_API.addAuthenticatedRoute(
+    '/:action',
+    {
+        'get': function (req:Request, res:Response):any {
+
+            const $: WebServer = req.dxc.$;
+            let project:DexcaliburProject = null;
+
+            try{
+
+                // ========== SECURITY CHECKS
+
+                if (req.dxc == null || !$.context.getUserService().verifySession(req.dxc.sess)) {
+                    throw AuthenticationException.AUTHENTICATION_FAILED();
+                }
+
+                if(req.body['project']!=null){
+                    project = $.context.getActiveProjects(req.dxc.sess.getUserAccount())[req.body['project']];
+                }else if(req.dxc.project != null){
+                    project = req.dxc.project;
+                }
+
+                if(project == null || !project.isReady()) {
+                    throw DexcaliburProjectException.NO_PROJECT_SPECIFIED();
+                }
+
+                // ========== LOGIC
+                const action:string = req.params.action;
+                let act:any ={
+                    status: 200,
+                    data: { success:false, error: "Action not found. "}
+                };
+
+                let meth:ModelMethod = null;
+                if(req.query.meth){
+                    const n = Util.decodeURI(Util.b64_decode(Util.decodeURI(req.query.meth)));
+                    meth = project.find.get.method(n);
+                }
+
+                switch(action){
+                    case 'nop_count':
+                        act = nopCount(project, meth);
+                        break;
+                    case 'nop_clean':
+                        act = nopClean(project, meth);
+                        break;
+                    case 'wrap_clean':
+                        act = wrapClean(project, meth);
+                        break;
+                }
+
+                $.sendSuccess(res, act.data);
+
+            }catch(err){
+                Logger.error("[INSPECTOR][BytecodeCleaner] Operation cannot be done. Cause : " + err.message + "\n\t" + err.stack);
+                $.sendError(res, "[BytecodeCleaner] Operation cannot be done. Cause : " + err.message);
+            }
+
+
+        }
+    }
+
+);
+
+Controller.registerDelegateWebApi(PLUGIN_WEB_API);
 
 export default Controller;
