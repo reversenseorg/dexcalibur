@@ -12,6 +12,7 @@ import ModelClass from "../ModelClass";
 import ModelField from "../ModelField";
 import ModelPackage from "../ModelPackage";
 import * as VM from "vm";
+import {FinderResult} from "../FinderResult";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 export const CODE_WEB_API: DelegateWebApi = new DelegateWebApi();
@@ -32,8 +33,9 @@ CODE_WEB_API.addAuthenticatedRoute(
             let format:any = req.query.hasOwnProperty('format')? req.query.format : 'list';
             let query:string = req.query.hasOwnProperty('query')? req.query.query : '.*';
             let filter:string = req.query.hasOwnProperty('filter')? req.query.filter : null;
+            let filter2:string = req.query.hasOwnProperty('filter2')? req.query.filter2 : null;
             let fields:string[] = req.query.hasOwnProperty('fields')? req.query.fields.split(',') : ['name'];
-            let data:any = {};
+            let data:FinderResult;
 
 
             try{
@@ -66,6 +68,13 @@ CODE_WEB_API.addAuthenticatedRoute(
                     data = data.filter(filter);
                 }
 
+                if(filter2 != null && filter2.indexOf(':ds')>-1){
+                    // replace all by tagged 'executable by target platform'
+                    const d = project.find.file( 'type:ELF', project.dataAnalyzer.getScope('PKG'));
+                    data = data.union(d);
+                }
+
+                fields.push('__');
                 $.sendSuccess( res, data.toJsonObject(fields));
             }catch(err){
                 Logger.error("[API][CODE] Content of package cannot be listed. Cause : " + err.message + "\n\t" + err.stack);
