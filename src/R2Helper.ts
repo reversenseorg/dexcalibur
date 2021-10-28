@@ -25,6 +25,8 @@ import {ModelVariable} from "./ModelVariable";
 import {External} from "./external/External";
 import {ExternalTool} from "./ExternalTool";
 import ShellHelper from "./ShellHelper";
+import Util from "./Utils";
+import {NativeAnalyzerCommands} from "./analyzer/NativeAnalyzerCommands";
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
 //r2p.r2bin = "";
@@ -229,7 +231,6 @@ export default class RadareHelper
         }
 
 
-        Logger.info("Parsed functions ", JSON.stringify(fns))
         return fns;
     }
 
@@ -271,7 +272,7 @@ export default class RadareHelper
         let k:number = 0;
         let data:any;
 
-        Logger.info('[R2] Run command : '+pCommands);
+        Logger.info('[R2] Run command : '+pCommands.join(','));
 
         for(let i=0; i<pCommands.length; i++){
             switch(pCommands[i]){
@@ -287,7 +288,7 @@ export default class RadareHelper
                     this.target.appendFunctions(await this.parseFunctionList(await data, { src:this.target }));
                     if(data) k++;
                     break;
-                case 'f_disass':
+                case NativeAnalyzerCommands.FUNC_CMD.DISASS:
                     if((pOptions.fn instanceof  ModelFunction) && (pOptions.fn.getAddr()!=null)){
                         data = await this._p.cmdj("pdfj @ "+pOptions.fn.getAddr());
                         if(data != null){
@@ -318,8 +319,18 @@ export default class RadareHelper
      * To patch r2 path into r2pipe module
      */
     static init( pTool:External.Tool):void {
-        //if(r2p.r2bin[0]!=='/'){
-        try{
+
+        if(pTool.getPath()[0]!=='/') {
+            Logger.info("[R2] $PATH env : ",process.env.PATH);
+
+            r2p.r2bin = Util.whereIs(r2p.r2bin);
+
+            Logger.info("[R2] Path of radare2 found into  : ",r2p.r2bin);
+        }else{
+            r2p.r2bin = pTool.getPath();
+            Logger.info("[R2] Path of radare2 manually configured   : ",r2p.r2bin);
+        }
+        /*try{
             if(pTool.getPath()[0]!=='/'){
                 const p:string = require('os').platform();
                 if(p == "linux" || p == "darwin"){
@@ -328,11 +339,13 @@ export default class RadareHelper
                     // remove CR
                     r2p.r2bin = rp.substr(0, rp.length-1);
                 }
+            }else{
+
             }
         }catch(err){
             r2p.r2bin = "r2";
             Logger.error(err.message+" "+err.stack);
-        }
+        }*/
 
     }
 
@@ -364,7 +377,7 @@ export default class RadareHelper
                 data = await this.runCmd(['sections','f_list']);
             }
          } catch(err)  {
-             Logger.error(`[R2] Error: ${err.message}`)
+             Logger.error(`[R2] Error: ${err.message} ${err.stack}`)
          }
 
          return data;

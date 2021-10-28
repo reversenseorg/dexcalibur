@@ -50,6 +50,7 @@ export default class RadareFactory
      * @return {RadareHelper}
      */
     getHelperFor(pBinary:ModelFile):RadareHelper {
+        Logger.raw(Object.keys(this.helpers).join(";"),"          '",pBinary.getUID(),"'")
         return this.helpers[pBinary.getUID()];
     }
 
@@ -59,7 +60,9 @@ export default class RadareFactory
      * @param pBinary
      */
     isOpened(pBinary:ModelFile):boolean {
-        return this.helpers.hasOwnProperty(pBinary.getUID());
+        //Logger.raw(Object.keys(this.helpers).join(";"),"          ",pBinary.getUID())
+        //return this.helpers.hasOwnProperty(pBinary.getUID());
+        return (Object.keys(this.helpers).indexOf(pBinary.getUID())>-1);
     }
 
 }
