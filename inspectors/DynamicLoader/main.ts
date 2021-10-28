@@ -18,6 +18,12 @@ import * as Log from "../../src/Logger";
 import ModelCall from "../../src/ModelCall";
 import ModelFile from "../../src/ModelFile";
 import {ModelLocation} from "../../src/ModelLocation";
+import {DelegateWebApi} from "../../src/webapi/DelegateWebApi";
+import WebServer from "../../src/WebServer";
+import {AuthenticationException} from "../../src/errors/AuthenticationException";
+import {DexcaliburProjectException} from "../../src/errors/DexcaliburProjectException";
+import {Rules} from "../BytecodeCleaner/src/Rules";
+import {DYNAMICLOADER_WEB_API} from "./src/main.web.api";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -28,6 +34,8 @@ export default new InspectorFactory({
     description: "Update the application representation with Custom classloader and reflection data",
 
     startStep: INSPECTOR_TYPE.POST_APP_SCAN,
+
+    webapi: DYNAMICLOADER_WEB_API,
 
     useGUI: true,
 
