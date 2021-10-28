@@ -390,9 +390,28 @@ export class FinderResult
      */
     contains(obj:any):boolean{
         let f:number=0;
-        this.data.map((k:any,v:any)=>{
-            if(obj._hashcode===v._hashcode) f++;
-        });
+
+        // if, it is an instance of a formalized node
+        if(obj.hasOwnProperty('__')){
+            this.data.map((k:any,v:any)=>{
+                if(v.hasOwnProperty('__')){
+                    if(obj.getUID()===v.getUID()) f++;
+                }else if(v.hasOwnProperty('_hashcode')){
+                    if(obj._hashcode===v._hashcode) f++;
+                }else{
+                    throw new Error("Nodes cannot be compared (#1)");
+                }
+            });
+        }else{
+            this.data.map((k:any,v:any)=>{
+                if(v.hasOwnProperty('_hashcode')){
+                    if(obj._hashcode===v._hashcode) f++;
+                }else{
+                    throw new Error("Nodes cannot be compared (#2)");
+                }
+            });
+        }
+
 
         // TODO : remove
         //        console.log("[DBG] "+obj._hashcode+" not contained");
