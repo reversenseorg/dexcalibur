@@ -2,16 +2,53 @@ import Inspector, {INSPECTOR_TYPE} from "./Inspector";
 import DexcaliburProject from "./DexcaliburProject";
 import HookSet from "./HookSet";
 import Hook from "./Hook";
+import {DelegateWebApi} from "./webapi/DelegateWebApi";
+import WebServer from "./WebServer";
+import * as Log from "./Logger";
+import DexcaliburEngine from "./DexcaliburEngine";
 
+
+let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
 export default class InspectorFactory
 {
     _config:any = null;
     step:INSPECTOR_TYPE = null;
+    webapi: DelegateWebApi = null;
+
+    /**
+     * Flag. True if webapi is ready
+     * @private
+     */
+    private _r:boolean  = false;
 
     constructor( pModel:any ){
         this._config = pModel;
         this.step = pModel.startStep;
+        if(pModel.hasOwnProperty('webapi'))
+            this.webapi = pModel.webapi
+    }
+
+    hasWebApi():boolean {
+        return (this.webapi != null);
+    }
+
+    isWebApiReady():boolean {
+        return this._r;
+    }
+
+    registerWebServer(pWebServer:WebServer){
+        if(this.hasWebApi() && !this.isWebApiReady()){
+            Logger.raw("[InspectorFactory] registering web server. Plugin = ", this._config.id );
+            if(this._config.id == null){
+                throw new Error("Inspector has not UID");
+            }
+
+            this.webapi.injectServer(pWebServer);
+            pWebServer.getApplication().use('/api/inspector/'+this._config.id, this.webapi.getRouter());
+            this._r = true;
+            Logger.raw("[InspectorFactory] API endpoint mapped for : "+this._config.id);
+        }
     }
 
     isStartAt(pStep:INSPECTOR_TYPE):boolean{
@@ -28,6 +65,8 @@ export default class InspectorFactory
         let ins:Inspector = new Inspector();
         let hs:HookSet = null;
         let hooks:Hook[] = null;
+
+        this.registerWebServer(DexcaliburEngine.getInstance().getWebserver());
 
         if(this._config.id != null) ins.id = this._config.id;
         if(this._config.name != null) ins.name = this._config.name;

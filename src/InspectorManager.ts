@@ -10,6 +10,7 @@ import InspectorFactory from "./InspectorFactory";
 import Util from "./Utils";
 import DexcaliburRegistry from "./DexcaliburRegistry";
 import * as Log from './Logger';
+import WebServer from "./WebServer";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -123,7 +124,7 @@ export default class InspectorManager
         }
 
 
-        Logger.info("[DEVICE MANAGER] Inspectors found  : "+Object.keys(this.locals));
+        Logger.info("[INSPECTOR MANAGER] Inspectors found  : "+Object.keys(this.locals));
 
         return this.locals;
     }
@@ -276,13 +277,19 @@ export default class InspectorManager
      */
     createInspectorsFor( pProject:DexcaliburProject):boolean{
         let uid:string = pProject.getUID();
-        
+        let factory:InspectorFactory;
+        const ws:WebServer = DexcaliburEngine.getInstance().getWebserver();
+
         if(this.projects[uid] == null){
             this.projects[uid] = {};
         }
 
         for(let i in this.locals){
-            this.projects[uid][i] = (this.locals[i] as any).default.createInstance(pProject);
+            factory = (this.locals[i] as any).default;
+            if(factory.hasWebApi() && !factory.isWebApiReady()){
+                factory.registerWebServer(ws);
+            }
+            this.projects[uid][i] = factory.createInstance(pProject);
             pProject.bus.register(this.projects[uid][i]);
         }
 

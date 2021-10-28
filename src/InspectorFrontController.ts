@@ -1,6 +1,7 @@
 import * as Express from 'express';
 
 import DexcaliburProject from "./DexcaliburProject";
+import {DelegateWebApi} from "./webapi/DelegateWebApi";
 
 
 const HANDLER_TYPE = {
@@ -23,6 +24,7 @@ export default class InspectorFrontController
 {
     ctx:DexcaliburProject = null;
     handlers:Handlers = {};
+    webapi:DelegateWebApi = null;
 
     constructor() {
 
@@ -39,6 +41,11 @@ export default class InspectorFrontController
 
     registerHandler(type:IFC_TYPE, handler:any):void{
         this.handlers[type] = handler;
+    }
+
+
+    registerDelegateWebApi( pWebApi:DelegateWebApi):void{
+        this.webapi = pWebApi;
     }
 
     performGet(req:Express.Request, res:Express.Response):any{

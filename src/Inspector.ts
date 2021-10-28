@@ -13,6 +13,8 @@ import * as Log from './Logger';
 import {Stats} from "mocha";
 import {BusBroadcaster} from "./Bus";
 import {IDatabase, IDatabaseAdapter} from "./persist/orm/DbAbstraction";
+import {DelegateWebApi} from "./webapi/DelegateWebApi";
+import WebServer from "./WebServer";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -85,6 +87,7 @@ export default class Inspector implements BusBroadcaster
     frontController:InspectorFrontController = null;
     preRegisteredTags:any = [];
     db:IDatabase = null;
+   // webapi:DelegateWebApi = null;
 
     /**
      * @type {String}
