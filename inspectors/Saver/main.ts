@@ -36,6 +36,21 @@ var Saver:InspectorFactory = new InspectorFactory({
             ctx.saveManager._ready = true;
             ctx.saveManager.restore();
         },
+        "function.alias.update": function(ctx:DexcaliburProject, event:Event):any{
+            try{
+                if(ctx.saveManager.isReady() && ctx.saveManager.isEnabled()){
+                    console.log(event,event.data);
+                    ctx.saveManager.updateAlias("functions", event.data.meth);
+                    ctx.saveManager.save();
+                    Logger.debug("[INSPECTOR][SAVE] updateAlias() saved");
+                }else{
+                    Logger.debug("[INSPECTOR][SAVE] updateAlias() called but not saved : auto-save is disabled");
+                }
+            }catch(e){
+                console.log(e);
+                Logger.error("[INSPECTOR][SAVE] updateAlias() failed");
+            }
+        },
         "method.alias.update": function(ctx:DexcaliburProject, event:Event):any{
             try{
                 if(ctx.saveManager.isReady() && ctx.saveManager.isEnabled()){
