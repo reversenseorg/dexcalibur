@@ -289,6 +289,7 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
         }
     }
 
+
     getAnalyzerConfiguration():AnalyzerConfiguration {
         return this.analCfg;
     }
@@ -533,6 +534,7 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
         // file analyzer 
         this.dataAnalyzer = new DataAnalyzer(this);
         this.dataAnalyzer.setWorkflow(wf)
+        this.find.addAnalyzerUnit( 'data', this.dataAnalyzer);
 
         // create main event bus of this project 
         this.bus = new Bus(this); //.setContext(this);
@@ -1250,7 +1252,9 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
             }
 
             //this.analyze.getNativeAnalyzer().
-            this.analyze.doNativeAnalysis();
+            Logger.info("[ANALYZER] Scan every native library and executable contained into package");
+            this.analyze.doNativeAnalysis(pkgScope);
+
 
             this.getWorkflow().setStep('Application topology analysis', 91);
             this.getWorkflow().pushStatus(new StatusMessage(86, "Manifest analysis"));
