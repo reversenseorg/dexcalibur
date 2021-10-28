@@ -97,6 +97,9 @@ export class NodeType {
         this.updateProperties(pCols, {init:true});
     }
 
+    is(pObject:any):boolean{
+        return (pObject.hasOwnProperty('__')!=null) && (pObject.__ === this._type);
+    }
     /**
      *
      * @param pName
@@ -138,7 +141,7 @@ export class NodeType {
      * @param {NodeProperty[]} pCols A list of properties to insert into this template
      * @method
      */
-    updateProperties(pCols:NodeProperty[], pOpts:any = {init:false}):void {
+    updateProperties(pCols:NodeProperty[], pOpts:any = {init:false}):NodeType {
         pCols.map( (vPpt:NodeProperty) => {
             this._ppts[vPpt.getName()] = vPpt;
             if(vPpt.isPrimaryKey()){
@@ -197,6 +200,8 @@ export class NodeType {
         if(!pOpts.init){
             this.trigger('change', pCols);
         }
+
+        return this;
     }
 
 
