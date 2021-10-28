@@ -1,6 +1,13 @@
 
 import ModelMetadata from "./ModelMetadata";
 import ModelClass from './ModelClass';
+import {NodeType} from "./persist/orm/NodeType";
+import {NodeInternalType} from "./NodeInternalType";
+import {NodeProperty} from "./persist/orm/NodeProperty";
+import {DbDataType, DbKeyType, DbSerialize} from "./persist/orm/DbAbstraction";
+import DataScope from "./DataScope";
+import ModelFileSection from "./ModelFileSection";
+import {IPersistent} from "./persist/orm/IPersistent";
 
 
 /**
@@ -8,8 +15,13 @@ import ModelClass from './ModelClass';
  * 
  * @class
  */
-export default class ModelPackage
+export default class ModelPackage implements IPersistent
 {
+
+    static TYPE:NodeType = new NodeType( "code_package", NodeInternalType.PACKAGE, []);
+
+    __:NodeInternalType = NodeInternalType.PACKAGE;
+
     _t:string = null;
 
     /**
@@ -71,6 +83,9 @@ export default class ModelPackage
         this.tags = [];
     }
 
+    getUID():string {
+        return this.name;
+    }
 
     /**
      * 
@@ -202,6 +217,7 @@ export default class ModelPackage
         let o:any= {}, k:number, m:any, field:string=null;
         o.children = [];
         o._t = 'p'; // TODO : Stub
+        o.__ = this.__;
 
         if(pFields !== null){
             /*
@@ -255,10 +271,10 @@ export default class ModelPackage
             o.children = [];
             for(let i=0; i<this.children.length;i++){
                 m = this.children[i];
-                if(m instanceof ModelClass){
-                    o.children.push({ _t:'c', name: m.name, sname: m.simpleName, alias:m.alias, tags: m.tags }) ;
+                if(ModelClass.TYPE.is(m)){
+                    o.children.push({ __:NodeInternalType.CLASS, _t:'c', name: m.name, sname: m.simpleName, alias:m.alias, tags: m.tags }) ;
                 }else{
-                    o.children.push({ _t:'p', name: m.name, sname: m.sname, alias:m.alias, tags: m.tags });
+                    o.children.push({ __:NodeInternalType.PACKAGE, _t:'p', name: m.name, sname: m.sname, alias:m.alias, tags: m.tags });
                 }
             }
             o.tags = this.tags;

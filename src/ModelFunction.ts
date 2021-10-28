@@ -8,14 +8,16 @@ export interface ModelFunctionList {
 }
 
 
-const CMD_ATTR_MAPPING = {
-    f_disass: ['instr']
-}
-
 
 import * as Log from './Logger';
 import {ModelVariable} from "./ModelVariable";
 import {ModelNativeRef} from "./ModelNativeRef";
+import {NodeType} from "./persist/orm/NodeType";
+import {NodeProperty, NodePropertyState} from "./persist/orm/NodeProperty";
+import {DbDataType, DbKeyType, DbSerialize} from "./persist/orm/DbAbstraction";
+import ModelFileSection from "./ModelFileSection";
+import {IPersistent} from "./persist/orm/IPersistent";
+import {NativeAnalyzerCommands} from "./analyzer/NativeAnalyzerCommands";
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
 const TO_JSON:Function = function (vSrc:any, vTarget:any, vInArray:boolean=false):any{
@@ -65,9 +67,62 @@ const TO_JSON:Function = function (vSrc:any, vTarget:any, vInArray:boolean=false
  * TODO : the ModelMethod class should extends ModelFunction class,
  * TODO : because a POO method is like a function specialization
  */
-export class ModelFunction {
+export class ModelFunction implements IPersistent {
 
-    _t:NodeInternalType = NodeInternalType.FUNC;
+    static CMD_MAPPING = {
+        [NativeAnalyzerCommands.FUNC_CMD.DISASS]: ['instr']
+    };
+
+    static TYPE:NodeType = new NodeType(
+        "func_native",
+        NodeInternalType.FUNC,
+        [
+            (new NodeProperty("__s")).type(DbDataType.STRING).key(DbKeyType.PRIMARY), // path relative to scope root
+            //(new NodeProperty("_uid")).type(DbDataType.STRING), //.key(DbKeyType.PRIMARY),
+            (new NodeProperty("name")).type(DbDataType.STRING).def(null),
+            (new NodeProperty("alias")).type(DbDataType.STRING).def(null),
+            (new NodeProperty("nbbs")).type(DbDataType.INTEGER).def(-1),
+            (new NodeProperty("addr")).type(DbDataType.INTEGER).def(-1),
+            (new NodeProperty("edges")).type(DbDataType.INTEGER).def(0),
+            (new NodeProperty("src")).single(ModelFile.TYPE),
+            (new NodeProperty("stack")).type(DbDataType.INTEGER).def(-1),
+            (new NodeProperty("sz")).type(DbDataType.INTEGER).def(-1),
+
+            (new NodeProperty("regvars"))
+                .type(DbDataType.STRING)
+                .sleep( (x:NodePropertyState)=>{ return (x.p!=null ? JSON.stringify(x.p) : null)})
+                .wakeUp( (x:NodePropertyState)=>{ return (x.p!=null ? JSON.parse(x.p) : null)}),
+
+            (new NodeProperty("spvars"))
+                .type(DbDataType.STRING)
+                .sleep( (x:NodePropertyState)=>{ return (x.p!=null ? JSON.stringify(x.p) : null)})
+                .wakeUp( (x:NodePropertyState)=>{ return (x.p!=null ? JSON.parse(x.p) : null)}),
+
+            (new NodeProperty("cref"))
+                .type(DbDataType.STRING)
+                .sleep( (x:NodePropertyState)=>{ return (x.p!=null ? JSON.stringify(x.p) : null)})
+                .wakeUp( (x:NodePropertyState)=>{ return (x.p!=null ? JSON.parse(x.p) : null)}),
+
+            (new NodeProperty("dref"))
+                .type(DbDataType.STRING)
+                .sleep( (x:NodePropertyState)=>{ return (x.p!=null ? JSON.stringify(x.p) : null)})
+                .wakeUp( (x:NodePropertyState)=>{ return (x.p!=null ? JSON.parse(x.p) : null)}),
+
+            (new NodeProperty("xcref"))
+                .type(DbDataType.STRING)
+                .sleep( (x:NodePropertyState)=>{ return (x.p!=null ? JSON.stringify(x.p) : null)})
+                .wakeUp( (x:NodePropertyState)=>{ return (x.p!=null ? JSON.parse(x.p) : null)}),
+
+            (new NodeProperty("xdref"))
+                .type(DbDataType.STRING)
+                .sleep( (x:NodePropertyState)=>{ return (x.p!=null ? JSON.stringify(x.p) : null)})
+                .wakeUp( (x:NodePropertyState)=>{ return (x.p!=null ? JSON.parse(x.p) : null)}),
+
+
+            (new NodeProperty("ctype")).type(DbDataType.STRING)
+        ]);
+
+    __:NodeInternalType = NodeInternalType.FUNC;
 
     sz:number = -1;
 
@@ -104,6 +159,7 @@ export class ModelFunction {
     probing?:boolean;
 
     instr:ModelCpuInstruction[];
+    alias:string = null;
 
     // signature
     __s:string = null;
@@ -118,6 +174,18 @@ export class ModelFunction {
 
     }
 
+    getUID():string {
+        return this.__s;
+    }
+
+    /**
+     * A function is volatile, if it has not been defined into a library file
+     *
+     */
+    isVolatile():boolean {
+        return (this.src == null);
+    }
+
     /**
      * To get signature of the function
      *
@@ -127,10 +195,10 @@ export class ModelFunction {
      */
     signature():string{
         if(this.__s==null){
-            if(this.src instanceof ModelFile){
-                this.__s = this.src.getUID();
-            }else if(this.src != null){
-                this.__s = this.src;
+            if(ModelFile.TYPE.is(this.src )){
+                this.__s = (this.src as ModelFile).getUID();
+            }else if(typeof this.src === 'string'){
+                this.__s = (this.src as string);
             }else{
                 this.__s = '<unknow>';
             }
@@ -158,10 +226,12 @@ export class ModelFunction {
         return this.addr;
     }
 
-    /*
+
     setDeclaringFile(pFile:ModelFile):void{
-        this._s.df = pFile;
-    }*/
+        this.src = pFile;
+    }
+
+
     getDeclaringFile():ModelFile|string{
         return this.src;
     }
@@ -179,12 +249,26 @@ export class ModelFunction {
         return this.__s;
     }
 
+
+    /**
+     * To set an alias and update the aliased signature
+     *
+     * @param {String} name The alias value
+     * @function
+     */
+    setAlias(name:string){
+        this.alias = name;
+        //this.aliasedSignature(true);
+    }
+
     toJsonObjectWithCmd(pCommand:string[],fields:string[]=[],exclude:string[]=[]){
         let obj:any = this.toJsonObject(fields,exclude);
+        //let filt:string[] = [];
 
         for(let i=0; i<pCommand.length; i++){
-            if( CMD_ATTR_MAPPING[pCommand[i]] != null){
-                CMD_ATTR_MAPPING[pCommand[i]].map( vAttr => {
+            if( ModelFunction.CMD_MAPPING[pCommand[i]] != null){
+                ModelFunction.CMD_MAPPING[pCommand[i]].map( vAttr => {
+                    Logger.raw("Prepare model fun json object w/ : "+vAttr);
                     if(typeof this[vAttr] === 'object'){
                         if(this[vAttr].hasOwnProperty('toJsonObject')){
                             obj[vAttr] = this[vAttr].toJsonObject();
@@ -241,12 +325,16 @@ export class ModelFunction {
                         })
                         break;
                     case "src":
-                        if(this.src instanceof ModelFile)
-                            { // @ts-ignore
-                                obj.src = this.src.getUID();
-                            }
-                        else
+                        if(typeof this.src === 'string'){
                             obj.src = this.src;
+                        }else{
+                            obj.src = this.src._uid;
+                        }
+                        /*
+                        if(ModelFile.TYPE.is(this.src)){
+                            obj.src = (this.src as ModelFile).getUID();
+                        }else
+                            obj.src = this.src;*/
                         break;
                     case "instr":
                         if(this.instr!=null && Array.isArray(this.instr)){ // @ts-ignore
@@ -264,3 +352,4 @@ export class ModelFunction {
         return obj;
     }
 }
+ModelFunction.TYPE.builder(ModelFunction);

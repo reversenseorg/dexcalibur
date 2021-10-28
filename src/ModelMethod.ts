@@ -8,6 +8,11 @@ import {ModelBasicType, ModelObjectType} from "./ModelType";
 import ModelBasicBlock from "./ModelBasicBlock";
 import ModelCall from "./ModelCall";
 import {ModelLocation} from "./ModelLocation";
+import {NodeType} from "./persist/orm/NodeType";
+import {NodeInternalType} from "./NodeInternalType";
+import {NodeProperty, NodePropertyState} from "./persist/orm/NodeProperty";
+import {DbDataType, DbKeyType} from "./persist/orm/DbAbstraction";
+import {IPersistent} from "./persist/orm/IPersistent";
 
 
 /*interface LazyMethodReference {
@@ -26,9 +31,11 @@ import {ModelLocation} from "./ModelLocation";
  *
  * @class
  */
-export default class ModelMethod extends Savable
+export default class ModelMethod extends Savable implements IPersistent
 {
+    static TYPE:NodeType = new NodeType( "code_method", NodeInternalType.METHOD, []);
 
+    __:NodeInternalType = NodeInternalType.METHOD;
     alias:string = null;
 
     name:string = null;
@@ -42,8 +49,8 @@ export default class ModelMethod extends Savable
 
     probing:boolean = null;
 
-    locals:number = 0;
-    registers:number = 0;
+    locals = 0;
+    registers = 0;
     params:any = [];
 
     enclosingClass:ModelClass = null;
@@ -88,7 +95,7 @@ export default class ModelMethod extends Savable
         super(STUB_TYPE.METHOD);
 
         if(pConfig!==undefined)
-            for(let i in pConfig)
+            for(const i in pConfig)
                 this[i]=pConfig[i];
     }
 
@@ -102,6 +109,10 @@ export default class ModelMethod extends Savable
 
     addLocation(pLocation:ModelLocation):void {
         this._.loc = pLocation;
+    }
+
+    getUID():string {
+        return this.__signature__;
     }
 
     callSignature2():string{
@@ -426,6 +437,7 @@ export default class ModelMethod extends Savable
 
                         }
                         break;
+                    case "__":
                     case "__signature__":
                     case "__callSignature__":
                     case "__aliasedCallSignature":
@@ -645,7 +657,7 @@ export default class ModelMethod extends Savable
     }
 
    getTryStartBlock(pLabel:string):ModelBasicBlock{
-        let bb:ModelBasicBlock[] = this.getBasicBlocks();
+        const bb:ModelBasicBlock[] = this.getBasicBlocks();
         for(let i=0; i<bb.length; i++){
             if(bb[i].getTryStartLabel()==pLabel){
                 return bb[i];
@@ -655,7 +667,7 @@ export default class ModelMethod extends Savable
     }
 
    getTryEndBlock(pLabel:string):ModelBasicBlock{
-        let bb:ModelBasicBlock[] = this.getBasicBlocks();
+       const bb:ModelBasicBlock[] = this.getBasicBlocks();
         for(let i=0; i<bb.length; i++){
             if(bb[i].getTryEndLabel()==pLabel){
                 return bb[i];
@@ -666,7 +678,7 @@ export default class ModelMethod extends Savable
 
 
    getCatchBlock(pLabel:string):ModelBasicBlock{
-        let bb:ModelBasicBlock[] = this.getBasicBlocks();
+        const bb:ModelBasicBlock[] = this.getBasicBlocks();
         for(let i=0; i<bb.length; i++){
             if(bb[i].getCatchLabel()==pLabel){
                 return bb[i];
@@ -680,14 +692,14 @@ export default class ModelMethod extends Savable
         switch(pType)
         {
             case CONST.INSTR_TYPE.IF:
-                for(let i:number=0; i<this.instr.length; i++){
+                for(let i=0; i<this.instr.length; i++){
                     //console.log(this.instr[i]);
                     if(this.instr[i].isConditionalBlock() && this.instr[i].cond_name==pLabel)
                         return this.instr[i];
                 }
                 break;
             case CONST.INSTR_TYPE.GOTO:
-                for(let i:number=0; i<this.instr.length; i++){
+                for(let i=0; i<this.instr.length; i++){
                     if(this.instr[i].isGotoBlock() && this.instr[i].goto_name==pLabel)
                         return this.instr[i];
                 }
@@ -744,3 +756,4 @@ export default class ModelMethod extends Savable
         return (this.modifiers & Modifier.STATIC)==Modifier.STATIC;
     }
 }
+ModelMethod.TYPE.builder(ModelMethod);

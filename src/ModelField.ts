@@ -6,13 +6,23 @@ import NodeCompare from "./NodeCompare";
 import {Savable, STUB_TYPE} from "./ModelSavable";
 import * as Log from "./Logger";
 import {ModelLocation} from "./ModelLocation";
+import {NodeType} from "./persist/orm/NodeType";
+import {NodeInternalType} from "./NodeInternalType";
+import {NodeProperty, NodePropertyState} from "./persist/orm/NodeProperty";
+import {DbDataType, DbKeyType} from "./persist/orm/DbAbstraction";
+import {IPersistent} from "./persist/orm/IPersistent";
 
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
 
-export default  class ModelField extends Savable
+export default  class ModelField extends Savable implements IPersistent
 {
+
+    static TYPE:NodeType = new NodeType( "code_field", NodeInternalType.FIELD, []);
+
+    __:NodeInternalType = NodeInternalType.FIELD;
+
     // corresponding stub type to use during export
     //this.__stub_type__ = STUB_TYPE.FIELD;
     //$ = STUB_TYPE.FIELD;
@@ -22,7 +32,7 @@ export default  class ModelField extends Savable
     name:string = null;
     modifiers:Modifier = null;
     type:any = null;
-    instr:any = null;
+    //instr:any = null;
     enclosingClass:ModelClass = null;
     declaringClass:ModelClass|string = null; // new
     __signature__:string = null;
@@ -59,6 +69,10 @@ export default  class ModelField extends Savable
 
     get location ():ModelLocation {
         return this._.loc;
+    }
+
+    getUID():string {
+        return this.__signature__;
     }
 
     addLocation(pLocation:ModelLocation):void {
@@ -144,7 +158,7 @@ export default  class ModelField extends Savable
                 case "_getters":
                 case "_setters":
                 case "_callers":
-                case "instr":
+               // case "instr":
                 case "enclosingClass":
                     // ignore
                     break;
@@ -260,6 +274,7 @@ export default  class ModelField extends Savable
                         }
                     }
                     break;
+                case "__":
                 case "__signature__":
                 case "__aliasedSignature__":
                 case "fqcn":
@@ -272,8 +287,8 @@ export default  class ModelField extends Savable
                     if(this.tags.length > 0)
                         obj[i] = this[i];
                     break;
-                case "instr":
-                    break;
+                //case "instr":
+                //    break;
                 case "type":
                     if(this.type != null)
                         obj.type = this.type.toJsonObject();
@@ -368,9 +383,5 @@ export default  class ModelField extends Savable
     }
 
 }
-/**
- * Represents an Application's Field
- * @param {Object} config Optional, an object wich can be used in order to initialize the instance
- * @constructor
- */
+ModelField.TYPE.builder(ModelField);
 

@@ -39,6 +39,7 @@ import ShellHelper from "./ShellHelper";
 import {GlobalAccessControl} from "./user/acl/rbac/GlobalAccessContol";
 import {UserAccount} from "./user/UserAccount";
 import Tool = External.Tool;
+import {NodeSchema} from "./NodeSchema";
 
 const _fixPath_ = require("fix-path");
 
@@ -296,6 +297,7 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
             ]
         });
 
+        NodeSchema.init();
         this.initAccessControl();
     }
 

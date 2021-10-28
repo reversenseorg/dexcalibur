@@ -3,6 +3,8 @@ import ModelBasicBlock from "./ModelBasicBlock";
 import ModelMethod from "./ModelMethod";
 import {Savable, STUB_TYPE} from "./ModelSavable";
 import {ModelRegisterReference} from "./ModelReference";
+import {NodeType} from "./persist/orm/NodeType";
+import {NodeInternalType} from "./NodeInternalType";
 
 /**
  * Represents an instruction from the Application bytecode
@@ -11,6 +13,9 @@ import {ModelRegisterReference} from "./ModelReference";
  */
 export default class ModelInstruction extends Savable
 {
+    static TYPE:NodeType = new NodeType( "code_instr", NodeInternalType.INSTRUCTION, []);
+    __:NodeInternalType = NodeInternalType.INSTRUCTION;
+
     _raw:string = null;
     _call:any = null;
     _parent:any = null;

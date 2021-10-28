@@ -8,6 +8,11 @@ import NodeCompare from "./NodeCompare";
 import {Savable, STUB_TYPE} from "./ModelSavable";
 import {ModelClassReference, ModelFieldReference, ModelMethodReference} from "./ModelReference";
 import {ModelLocation} from "./ModelLocation";
+import {IPersistent} from "./persist/orm/IPersistent";
+import {NodeType} from "./persist/orm/NodeType";
+import {NodeInternalType} from "./NodeInternalType";
+import {NodeProperty, NodePropertyState} from "./persist/orm/NodeProperty";
+import {DbDataType, DbKeyType} from "./persist/orm/DbAbstraction";
 
 
 interface IClassSet {
@@ -31,8 +36,11 @@ interface IFieldSet {
  * @param {object} config Optional, a hashmap with param/value to initiliaze
  * @constructor
  */
-export default class ModelClass extends Savable
+export default class ModelClass extends Savable implements IPersistent
 {
+    static TYPE:NodeType = new NodeType( "code_class", NodeInternalType.CLASS, []);
+
+    __:NodeInternalType = NodeInternalType.CLASS;
 
     //fqcn = null;
     // the FQCN of the class
@@ -113,6 +121,13 @@ export default class ModelClass extends Savable
         if(pConfig!==undefined)
             for(let i in pConfig)
                 this[i]=pConfig[i];
+    }
+
+    /**
+     * To get UID (FQCN)
+     */
+    getUID():string {
+        return this.name;
     }
 
     set location (pLocation:ModelLocation) {
@@ -369,6 +384,9 @@ export default class ModelClass extends Savable
 
                 obj[i] = this[i];
             }
+            else if(i == '__'){
+                obj.__ = this.__;
+            }
             else if(i == "supers"){
                 obj.supers = [];
                 if(this.supers instanceof Array)
@@ -534,7 +552,7 @@ export default class ModelClass extends Savable
      * @returns {Method}
      */
     getClInit():ModelMethod{
-        for(let i in this.methods){
+        for(const i in this.methods){
             if(this.methods[i].name == "<clinit>"){
                 return this.methods[i];
             }
@@ -595,3 +613,4 @@ export default class ModelClass extends Savable
         }
     }
 }
+

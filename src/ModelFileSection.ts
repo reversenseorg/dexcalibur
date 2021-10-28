@@ -1,4 +1,4 @@
-import {DbDataType, DbKeyType} from "./persist/orm/DbAbstraction";
+import {DbDataType} from "./persist/orm/DbAbstraction";
 import {NodeType} from "./persist/orm/NodeType";
 import {NodeInternalType} from "./NodeInternalType";
 import {NodeProperty} from "./persist/orm/NodeProperty";
@@ -17,6 +17,7 @@ export default class ModelFileSection {
         (new NodeProperty("l")).type(DbDataType.INTEGER).def(null),
         (new NodeProperty("t")).type(DbDataType.STRING).def(null),
     ]);
+    __:NodeInternalType = NodeInternalType.FILE_SECTION;
 
     o:number = -1;
     l:number = -1;
@@ -39,3 +40,4 @@ export default class ModelFileSection {
         return this;
     }
 }
+ModelFileSection.TYPE.builder(ModelFileSection);
