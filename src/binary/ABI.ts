@@ -9,11 +9,14 @@ export enum AddressSize {
 }
 
 export enum AbiType {
+    arm_v5='armv5',
     armeabi='armeabi-v7a',
     armeabi_v7a='armeabi-v7a',
     arm64_v8a='arm64-v8a',
     x86='x86',
     x86_64='x86_64',
+    mips='mips',
+    mips64='mips64',
 }
 
 export enum InstructionSet {
@@ -23,19 +26,21 @@ export enum InstructionSet {
     AARCH64='AArch64',
     x86='x86',
     x86_64='x86_64',
+    MIPS='mips',
+    MIPS_64='mips64',
 }
 
 
 export class ABI {
     name:string ;
 
+    altNames:string[];
     /**
      * Max address size supported
      */
     asize: AddressSize;
     instrSet:InstructionSet[] = [];
-   // incomptability:string[] = [];
-    weight: number = 0;
+    weight = 0;
 
     constructor( pConfig:any) {
         for(const i in pConfig){
@@ -49,6 +54,11 @@ export class ABI {
 
 export class AbiManager {
     static ABI:any = {
+        [AbiType.arm_v5]: new ABI({
+            name:AbiType.arm_v5,
+            asize: AddressSize.BITS_32,
+            instrSet:[
+                InstructionSet.ARMEABI] }),
         [AbiType.arm64_v8a]: new ABI({
             name:AbiType.arm64_v8a,
             asize: AddressSize.BITS_64,
@@ -68,10 +78,24 @@ export class AbiManager {
             weight:0 }),
         [AbiType.x86_64]: new ABI({
             name:AbiType.x86_64,
-            asize: AddressSize.BITS_64 }),
+            asize: AddressSize.BITS_64,
+            instrSet:[
+                InstructionSet.x86_64] }),
         [AbiType.x86]: new ABI({
             name:AbiType.x86,
-            asize: AddressSize.BITS_32 })
+            asize: AddressSize.BITS_32,
+            instrSet:[
+                InstructionSet.x86] }),
+        [AbiType.mips]: new ABI({
+            name:AbiType.mips,
+            asize: AddressSize.BITS_32,
+            instrSet:[
+                InstructionSet.MIPS] }),
+        [AbiType.mips64]: new ABI({
+            name:AbiType.mips64,
+            asize: AddressSize.BITS_64,
+            instrSet:[
+                InstructionSet.MIPS_64] })
     }
 
     /**
