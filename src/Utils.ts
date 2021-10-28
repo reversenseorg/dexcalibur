@@ -10,6 +10,7 @@ import got  from "got";
 
 import {TestHelper} from "./TestHelper";
 import * as _os_ from "os";
+import * as path from "path";
 
 
 const _exec_:any = _util_.promisify(Process.exec);
@@ -381,6 +382,32 @@ export default class Util {
         }
     }
 
+    /**
+     * To search the absolute path of an executable file by browsing $PATH
+     *
+     * @param pExecName
+     */
+    static whereIs(pExecName:string):string{
+        let ret:string = null, p:string = null;
+
+        switch(_os_.platform()){
+            case "freebsd":
+            case "linux":
+            case "darwin":
+            case "android":
+                const roots = process.env.PATH.split(':');
+                for(let i=0; i<roots.length ; i++){
+                    p = Path.join(roots[i], pExecName);
+                    if(fs.existsSync(p)){
+                        ret = p;
+                        break;
+                    }
+                }
+                break;
+        }
+
+        return ret;
+    }
 
     /*
     static parseIPv6( pAddress, pHasPortNumber=false){
