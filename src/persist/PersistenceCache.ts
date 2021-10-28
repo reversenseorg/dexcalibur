@@ -66,6 +66,8 @@ export default class PersistenceCache {
     private _inames:string[];
 
 
+    private _ready:boolean;
+
     /**
      *
      * @param {string[]} pIndexedPpt A list of node properties used as index to access this cache
@@ -84,10 +86,16 @@ export default class PersistenceCache {
      * @method
      * @since 1.0.0
      */
-    private _create(){
+    create(){
+        if(this._inames.length==0){
+            this._ready = false;
+            return;
+        }
+
         this._inames.map( vName => {
             this._i[vName] = {};
         });
+        this._ready = true;
     }
 
     /**
@@ -99,6 +107,8 @@ export default class PersistenceCache {
      * @since 1.0.0
      */
     has(pUid:string, pIndexName:string = DEFAULT_INDEX_NAME):boolean {
+        if(!this._ready) return false;
+
         return this.indexOf(pUid, pIndexName) > -1;
     }
 
@@ -112,6 +122,8 @@ export default class PersistenceCache {
      * @since 1.0.0
      */
     indexOf(pUid:string, pIndexName:string = DEFAULT_INDEX_NAME):number {
+        if(!this._ready) return -1;
+
         const o = this._i[pIndexName][pUid];
         return ((o!=null) && (this._d[o]!=null))? o : -1 ;
     }
@@ -128,6 +140,8 @@ export default class PersistenceCache {
      * @since 1.0.0
      */
     get( pOffset:number):any{
+        if(!this._ready) return null;
+
        return this._d[pOffset];
     }
 
@@ -144,8 +158,53 @@ export default class PersistenceCache {
      * @since 1.0.0
      */
     getEntry(pUid:string, pIndexName:string = DEFAULT_INDEX_NAME):any {
+        if(!this._ready) return null;
+
         const o = this._i[pIndexName][pUid];
         return this._d[o];
+    }
+
+    /**
+     * To get qn entry by the value of a specified property.
+     *
+     * The property must be an index of the cache, declared when the cache has been instancied.
+     *
+     *
+     * @param {any} pObject
+     * @return {any}
+     * @method
+     * @since 1.0.0
+     */
+    remove( pObject:any):void {
+        if(!this._ready) return null;
+
+        this._inames.map( vNames => {
+            if(pObject[vNames] != null){
+                let i = this._i[vNames][pObject[vNames]];
+                if(i > 0){
+                    this._i[vNames][pObject[vNames]] = -1;
+                }
+                if(this._d[i]!=null) this._d[i] = null;
+            }
+        });
+    }
+
+    removeEntry(pUid:string, pIndexName:string = DEFAULT_INDEX_NAME):any {
+        if(!this._ready) return null;
+
+        const o = this._i[pIndexName][pUid];
+        const obj = this._d[o];
+        if(obj != null){
+            this._inames.map( vNames => {
+                if(obj[vNames] != null){
+                    let i = this._i[vNames][obj[vNames]];
+                    if(i > 0){
+                        this._i[vNames][obj[vNames]] = -1;
+                    }
+                }
+            });
+        }
+        this._d[o] = null;
     }
 
     /**
@@ -159,6 +218,8 @@ export default class PersistenceCache {
      * @since 1.0.0
      */
     push( pObject:any):number {
+        if(!this._ready) return -1;
+
         // must be transaction
         const o = this._d.push(pObject) - 1;
         this._inames.map( vNames => {
@@ -191,7 +252,13 @@ export default class PersistenceCache {
         delete this._d;
         this._i = {};
         this._d = [];
-        this._create();
+        this.create();
     }
 
+    /**
+     *
+     */
+    isReady():boolean {
+        return this._ready;
+    }
 }

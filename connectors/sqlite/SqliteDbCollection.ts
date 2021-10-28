@@ -12,6 +12,7 @@ import {SqliteException} from "./SqliteException";
 import {NodeType} from "../../src/persist/orm/NodeType";
 import * as Log from "../../src/Logger";
 import DexcaliburEngine from "../../src/DexcaliburEngine";
+import PersistenceCache from "../../src/persist/PersistenceCache";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -27,6 +28,7 @@ export default class SqliteDbCollection implements IDbCollection
     private _extra:any = {};
     private _s:SqliteAPI = null;
     private _ps:PreparedStatementList;
+    private _cache:PersistenceCache;
 
 
     /**
@@ -48,8 +50,31 @@ export default class SqliteDbCollection implements IDbCollection
             this._ps = this._s._generatePreparedStmt(name, this._tpl);
             this._s._alterTable( this.name, x, {add:true});
         });
+
+        // if cachable
+        this._initCache();
     }
 
+    /**
+     * To create collection cache
+     *
+     * @private
+     */
+    private _initCache():void {
+        // indexed properties used to access cache
+        // these properties MUST be UNIQUE and should 'cast-able' as string
+        const idx:string[] = [];
+
+        this._tpl.getProperties().map( vPPt => {
+            if(vPPt.isPrimaryKey() || vPPt.isUnique()){
+                idx.push(vPPt.getName());
+            }
+        });
+
+        Logger.info("[SQLITE] Creating cache for nodes '"+this._tpl.getName()+"' with indexes : "+idx.join(', '));
+        this._cache = new PersistenceCache(idx);
+        this._cache.create();
+    }
     /**
      * To create table where data will be stored
      */
@@ -81,7 +106,14 @@ export default class SqliteDbCollection implements IDbCollection
                 this._ps.insertSingle,
                 this._s._extractParams(value, this._tpl)
             );
+
+            // on success, push into cache
+            const pk = this._tpl.getPrimaryKey().getName();
+            if((this._cache != null) && (!this._cache.has( key, pk))){
+                this._cache.push(value);
+            }
         }else{
+
             this._s._execInsert(
                 this._ps.updateSingle,
                 this._s._extractParams(value, this._tpl)
@@ -136,28 +168,56 @@ export default class SqliteDbCollection implements IDbCollection
     /**
      * To read all entries from the colelction and instanciate node
      *
+     * If this `getAll()` is forced, cache will be overrided causing data loss
+     * of non saved data.
+     *
      * @param {boolean} pList If TRUE, then it returns an array, else it returns an object indexed by primary key value
+     * @param {boolean} pForce If TRUE, all entries are retrieved from DB, else, cached entries are agregated with entry from DB
      * @return {any|any[]} List or hashmap of entries
      * @method
      * @since 1.0.0
      */
-    getAll(pList = false):any{
+    getAll(pList = false, pForce = false):any{
         const res = this._s._execSelectAll(this._ps.selectAll,[]);
         let i:number =0;
         let all:any;
+        let obj:any;
+        let pk:string ;
+
+        if(this._tpl.getPrimaryKey()!=null){
+            pk = this._tpl.getPrimaryKey().getName();
+        }else{
+            Logger.error("[SQLITE] Node '"+this._tpl.getName()+"' has not primary key");
+            pk = null;
+        }
 
 
         if(pList){
             all = [];
+
             res.map( (vEntry:any)=>{
                 i++;
-                all.push( this._relink(vEntry));
+                if(!pForce && pk != null && (obj = this._cache.getEntry( vEntry[pk], pk ))!=null){
+                    all.push( obj);
+                }else{
+                    obj = this._relink(vEntry);
+                    this._cache.push(obj);
+                    all.push( obj);
+                }
             });
         }else{
             all = {};
             res.map( (vEntry:any)=>{
                 i++;
-                all[vEntry[this._tpl.getPrimaryKey().getName()]] = this._relink(vEntry);
+                //all[vEntry[this._tpl.getPrimaryKey().getName()]] = this._relink(vEntry);
+
+                if(!pForce && pk != null && (obj = this._cache.getEntry( vEntry[pk], pk ))!=null){
+                    all[vEntry[pk]] = obj;
+                }else{
+                    obj = this._relink(vEntry);
+                    this._cache.push(obj);
+                    all[vEntry[pk]] = obj;
+                }
             });
         }
 
@@ -211,9 +271,17 @@ export default class SqliteDbCollection implements IDbCollection
         if(typeof key === 'object'){
             return this._relink(this._s._execSelect(this._ps.selectSingle, key));
         }else{
-            const p={};
-            p[this._tpl.getPrimaryKey().getName()] = key;
-            return this._relink(this._s._execSelect(this._ps.selectSingle, p));
+
+            const e = this._cache.getEntry( key, this._tpl.getPrimaryKey().getName());
+            if(e != null){
+                return  e;
+            }else{
+                const p={};
+                p[this._tpl.getPrimaryKey().getName()] = key;
+                return this._relink(this._s._execSelect(this._ps.selectSingle, p));
+            }
+
+
         }
     }
 
@@ -247,8 +315,10 @@ export default class SqliteDbCollection implements IDbCollection
                 this._s._execInsert(this._ps.removeSingle, key);
             } else {
                 const p = {};
-                p[this._tpl.getPrimaryKey().getName()] = key;
+                const pk = this._tpl.getPrimaryKey().getName();
+                p[pk] = key;
                 this._s._execInsert(this._ps.removeSingle, p);
+                this._cache.removeEntry( key, pk);
             }
 
             res = true;
