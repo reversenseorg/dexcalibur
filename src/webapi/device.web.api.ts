@@ -25,6 +25,7 @@ DEVICE_WEB_API.addAsyncPublicRoute(
             let $:WebServer = req.dxc.$;
 
             try{
+
                 if( req.query.uid!=null ){
                     dev = $.context.getDeviceManager().getDevice(req.query.uid);
                 }
@@ -91,8 +92,10 @@ DEVICE_WEB_API.addAsyncPublicRoute(
             let $: WebServer = req.dxc.$;
 
             try {
-                if ($.project == null) {
-                    throw new Error('No active project');
+                if (req.query.uid != null) {
+                    dev = $.context.getDeviceManager().getDevice(req.query.uid);
+                } else {
+                    dev = $.project.getDevice();
                 }
 
                 switch (req.query.type) {
@@ -104,12 +107,6 @@ DEVICE_WEB_API.addAsyncPublicRoute(
                     default:
                         privileged = false;
                         break;
-                }
-
-                if (req.query.uid != null) {
-                    dev = $.context.getDeviceManager().getDevice(req.query.uid);
-                } else {
-                    dev = $.project.getDevice();
                 }
 
                 if (dev == null) {
