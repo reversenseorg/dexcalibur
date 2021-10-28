@@ -16,12 +16,16 @@ import DataScope from "./DataScope";
 import {ModelFunction} from "./ModelFunction";
 import {ABI} from "./binary/ABI";
 import {Workflow} from "./Workflow";
-import {IDatabase, IDbIndex} from "./persist/orm/DbAbstraction";
+import {IDatabase, IDbCollection, IDbIndex} from "./persist/orm/DbAbstraction";
+import {NativeAnalyzerProfile} from "./NativeAnalyzerProfile";
+import AndroidNativeAnalyzerProfile from "./android/analyzer/AndroidNativeAnalyzerProfile";
+import IosNativeAnalyzerProfile from "./ios/analyzer/IosNativeAnalyzerProfile";
+import {NativeAnalyzerException} from "./errors/NativeAnalyzerException";
 
 
-export enum NativeAnalyzerProfile{
-    ANDROID_LIB,
-    IOS_LIB
+export const PROFILES = {
+    ANDROID_LIB: new AndroidNativeAnalyzerProfile({ }),
+    IOS_LIB: new IosNativeAnalyzerProfile({})
 }
 
 export interface NativeFileList {
@@ -131,14 +135,16 @@ export default class NativeAnalyzer {
     configure( pPlatform:Platform,  pArch:string, pABI:ABI[]=null):void {
         this.arch = pArch;
 
+        Logger.info("[NATIVE ANALYZER] configure with : ",pPlatform.getInternalName(),pArch,JSON.stringify(pABI));
+
         if(pPlatform.isAndroid() || pPlatform.is(['linux','tizen'])){
             this.fmt = ['ELF'];
-            this.profile = NativeAnalyzerProfile.ANDROID_LIB;
+            this.profile = PROFILES.ANDROID_LIB;
             this.abi = pABI;
         }
         else if(pPlatform.isIOS()){
             this.fmt = ['Mach-O'];
-            this.profile = NativeAnalyzerProfile.IOS_LIB;
+            this.profile = PROFILES.IOS_LIB;
             this.abi = pABI;
         }
     }
@@ -158,32 +164,57 @@ export default class NativeAnalyzer {
      * @param pScope
      * @param pOptions
      */
-    scanFileByScope(pScope:DataScope, pOptions:any={}):void {
+    scanFileByScope(pScope:DataScope, pProfile:NativeAnalyzerProfile=null):void {
+
+
+        Logger.info("[NATIVE ANALYSIS] Scanning scope : ",pScope.getIndexName()," ",pScope.getBasePath());
 
         if(!this.targets.hasOwnProperty(pScope.getName()))
             this.targets[pScope.getName()] = [];
 
-        let idx:IDbIndex = this.fileDB.getIndex(pScope.getName(), ModelFile.TYPE);
+//        let idx:IDbIndex = this.fileDB.getColl(pScope.getName(), ModelFile.TYPE);
+        let idx:IDbCollection = this.fileDB.getCollection(pScope.getIndexName(), ModelFile.TYPE);
+
+        const profile = pProfile!=null ? pProfile : this.profile;
 
         idx.map( (pOffset:number, pFile:ModelFile) => {
 
+            Logger.debug(`[NATIVE ANALYSIS] Scanning file from (scope:${pScope.getName()}) : ${pFile.getRelativePath()}`);
+
             if(this.fmt.indexOf(pFile.type)>-1){
+
+                // ABI detected into file
+                // File is receivable if ABI is determined by file path if the scope is APK
+                //
+                if(this.profile.name == PROFILES.ANDROID_LIB.name){
+                    if(pScope.getName()=="bin"){
+                        Logger.info("[NATIVE] ",pFile.getRelativePath()," ",JSON.stringify(this.abi)," ",this.profile.isAbiCompliant( pFile, this.abi)+"");
+                        if(this.profile.isAbiCompliant( pFile, this.abi)){
+                            this.targets[pScope.getName()].push(pFile);
+                            this.analyzeFile(pFile, profile);
+                        }
+                    }else{
+                        this.targets[pScope.getName()].push(pFile);
+                        this.analyzeFile(pFile, profile);
+                    }
+                }
                 /*if(!(pFile instanceof ModelFileExecutable)){
                     pFile = new ModelFileExecutable(pFile);
                     idx.setEntry( pOffset, new ModelFileExecutable(pFile))
                 }*/
-                this.targets[pScope.getName()].push(pFile);
-
-                this.analyzeFile(pFile, this.profile);
             }
-        })
+        });
+
+        //this.fileDB.
     }
 
-    scanAllFiles(pOptions:any):void{
+    scanAllFiles(pProfile:NativeAnalyzerProfile = null):void{
 
         if(!this.targets.hasOwnProperty('all'))
             this.targets.all = [];
 
+
+        const profile = pProfile!=null ? pProfile : this.profile;
 
         this._wf.computeStepUp(this.db.files.size());
         this.db.files.map( (pOffset:number, pFile:ModelFile) => {
@@ -191,7 +222,7 @@ export default class NativeAnalyzer {
             if(this.fmt.indexOf(pFile.type)>-1){
                 this.targets.all.push(pFile);
 
-                this.analyzeFile(pFile, this.profile);
+                this.analyzeFile(pFile, profile);
             }
         });
     }
@@ -214,6 +245,7 @@ export default class NativeAnalyzer {
     }
 
 
+
     /**
      * To execute a set of command into r2.
      *
@@ -230,10 +262,12 @@ export default class NativeAnalyzer {
     async scan(pFile:ModelFile, pCommands:string[], pOptions:any = {}):Promise<number> {
         let helper:RadareHelper;
         let i:number;
+
+        const profile = pOptions.hasOwnProperty('profile')? pOptions.profile : this.profile;
         try{
             helper = this.r2factory.getHelperFor(pFile);
             if(helper==null){
-                helper = this.analyzeFile(pFile, this.profile);
+                helper = this.analyzeFile(pFile, profile);
             }
 
             i = await helper.runCmd(pCommands, pOptions);
@@ -262,7 +296,7 @@ export default class NativeAnalyzer {
                 if(n){
                     pFile.getFunctions().map( (vFn:ModelFunction) => {
                         this.db.funcs.addEntry(vFn.signature(), vFn);
-                       // Logger.info("[DB::FUNC] add func : ", JSON.stringify(vFn));
+                         Logger.info("[DB::FUNC] add func : ", vFn.signature(), " ", vFn.name);
                     })
                 }
 
@@ -272,10 +306,70 @@ export default class NativeAnalyzer {
             Logger.error("[R2 HELPER][ERROR] "+err.message)
 
         }
+
         return helper;
     }
 
-    analyzeMemory(){
+    getHelperForFunc(pFunc:ModelFunction):RadareHelper {
+
+        let file = pFunc.getDeclaringFile();
+        if(typeof file === 'string'){
+            file = this.context.dataAnalyzer.findFile(file)
+
+            if(file != null){
+                pFunc.setDeclaringFile(file);
+            }
+
+
+            return this.r2factory.getHelperFor(file as ModelFile);
+        }else if(ModelFile.TYPE.is(file)){
+           return this.r2factory.getHelperFor(file as ModelFile);
+        }else{
+            throw NativeAnalyzerException.CANNOT_DISASS_VOLATILE();
+        }
+    }
+    /**
+     *
+     * @param pFunc
+     * @param pCommands
+     * @param pProfile
+     */
+    async analyzeFunction(pFunc:ModelFunction, pCommands:string[], pProfile:NativeAnalyzerProfile):Promise<any>{
+
+        let helper:RadareHelper;
+        try{
+
+            helper = this.getHelperForFunc(pFunc); //this.r2factory.getHelperFor(pFunc.getDeclaringFile() as ModelFile);
+
+            if(helper==null){
+                Logger.error("[NATIVE ANALYZER] Helper for function '"+pFunc.getSignature()+"' is not found ");
+                return null;
+            }
+
+            const n = await helper.runCmd(pCommands, {
+                fn: pFunc
+            });
+
+            //Logger.info("[DB::FUNC] executed cmd : "+n);
+            if(n){
+                Logger.info("[NATIVE ANALYZER] Function '"+pFunc.getSignature()+"' has been successfully analyzed ");
+                return true;
+            }else{
+                Logger.error("[NATIVE ANALYZER] Analysis of function '"+pFunc.getSignature()+"' failed ");
+                return false;
+
+            }
+
+
+        }catch (err) {
+            Logger.error("[NATIVE ANALYZER] "+err.message, err.stack)
+            return false;
+        }
+
+        return true;
+    }
+
+    analyzeMemory():void{
 
     }
 
