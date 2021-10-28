@@ -21,6 +21,10 @@ import {AndroidPermission} from "./android/Permissions";
 import {CONST} from "./CoreConst";
 import {ModelFunction} from "./ModelFunction";
 import {IDbCollection, IDbIndex} from "./persist/orm/DbAbstraction";
+import DataScope, {DataScopeMap} from "./DataScope";
+import {IAnalyzerUnit} from "./analyzer/IAnalyzerUnit";
+import {SearchEngineException} from "./errors/SearchEngineException";
+import {DataAnalyzer} from "./DataAnalyzer";
 
 
 
@@ -98,7 +102,7 @@ export class SearchAPISelector
         return this._db.funcs.getEntry(id);
     }
 
-    files(id:number):ModelFile{
+    files(id:string):ModelFile{
         return this._db.files.getEntry(id);
     }
 }
@@ -153,6 +157,10 @@ export class SearchAPICallSelector
         this._db.call.map((k,v) => { console.log("\t"+v.instr._raw) });
     }
 }
+
+interface AnalyzerUnitList {
+    [name:string] :IAnalyzerUnit
+}
 /**
  * The SearchAPI. Allow the user to perform search into the object
  * database.
@@ -169,6 +177,8 @@ export class SearchAPI
     get:SearchAPISelector =  null;
     calls:SearchAPICallSelector = null;
 
+    _analyzers:AnalyzerUnitList = {}
+
     constructor(pData:AnalyzerDatabase=null){
 
         this._queryCache = [];
@@ -179,6 +189,15 @@ export class SearchAPI
         if(pData != null){
             this.setDatabase(pData);
         }
+    }
+
+    /**
+     * To register an external anylzer unit into finder to extend serach API
+     * @param pName
+     * @param pAnalyzerInstance
+     */
+    addAnalyzerUnit( pName:string, pAnalyzerInstance:IAnalyzerUnit){
+        this._analyzers[pName] = pAnalyzerInstance;
     }
 
     setDatabase(pData:AnalyzerDatabase){
@@ -255,9 +274,32 @@ export class SearchAPI
         }*/
     }
 
-    file(pattern:string):FinderResult{
-        //return this._finder._find(this._db.files, DataModel.file, pattern, this._caseSensitive);
-        return this._oneOrMore(this._db.files, DataModel.file, '_uid', pattern);
+    file(pattern:string, pScope:DataScope = null):FinderResult{
+        let fileDB:IDbCollection;
+
+        if(!this._analyzers.hasOwnProperty('data'))
+            throw  SearchEngineException.ANALYSIS_UNIT_NOT_READY('data');
+
+        const dataAnal:DataAnalyzer = this._analyzers.data as DataAnalyzer;
+        if(pScope != null){
+            fileDB = dataAnal.getIndex(pScope);
+            return this._oneOrMore(fileDB, DataModel.file, '_uid', pattern);
+        }else{
+            const scopes:DataScopeMap = dataAnal.scopes;
+            let res:FinderResult;
+            let k = 0;
+
+            for(let i in scopes){
+                if(k == 0){
+                    res = this._oneOrMore(dataAnal.getIndex(scopes[i]), DataModel.file, '_uid', pattern);
+                }else{
+                    res = res.union( this._oneOrMore(dataAnal.getIndex(scopes[i]), DataModel.file, '_uid', pattern));
+                }
+                k++;
+            }
+
+            return res;
+        }
     }
 
     array(pattern:string):FinderResult{
