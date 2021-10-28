@@ -10,7 +10,6 @@ import {NodeType} from "../persist/orm/NodeType";
 import {NodeInternalType} from "../NodeInternalType";
 import {NodeProperty, NodePropertyState} from "../persist/orm/NodeProperty";
 import {DbDataType, DbKeyType} from "../persist/orm/DbAbstraction";
-import {UserService} from "./UserService";
 
 export class UserAccount implements IPersistent{
 
@@ -31,6 +30,7 @@ export class UserAccount implements IPersistent{
                 .wakeUp( (x:NodePropertyState) => { return (x.p!=null ? AccessControl.getRole(x.p) : null) }),
         ]
     );
+    __:NodeInternalType = NodeInternalType.USER_ACCOUNT;
 
     private _uid:string;
     private _person: Person;

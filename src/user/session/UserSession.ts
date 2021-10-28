@@ -39,6 +39,7 @@ export class UserSession implements IPersistent{
                 .wakeUp( (x:NodePropertyState) =>  { return x.p })
         ]
     );
+    __:NodeInternalType = NodeInternalType.USER_SESSION;
 
 
     private _uid:string;
@@ -114,6 +115,10 @@ export class UserSession implements IPersistent{
      * @return {string} Session UID
      */
     getSessUID():string {
+        return this._uid;
+    }
+
+    getUID(): any {
         return this._uid;
     }
 

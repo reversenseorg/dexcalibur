@@ -6,9 +6,10 @@ import {UserAccount} from "../UserAccount";
 import {UserSession} from "./UserSession";
 import DexcaliburEngine from "../../DexcaliburEngine";
 import DexcaliburProject from "../../DexcaliburProject";
+import {IPersistent} from "../../persist/orm/IPersistent";
 
 
-export class SessionData {
+export class SessionData implements IPersistent{
 
     static TYPE:NodeType = new NodeType(
         'session_data',
@@ -41,6 +42,7 @@ export class SessionData {
                 })
         ]
     );
+    __:NodeInternalType = NodeInternalType.USER_SESSION_DATA;
 
     _sess:UserSession;
     _name:string;
@@ -60,6 +62,10 @@ export class SessionData {
 
     getValue():any {
         return this._value;
+    }
+
+    getUID(): any {
+        return this._sess.getSessUID()+':'+this._name;
     }
 }
 
