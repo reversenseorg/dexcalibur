@@ -15,6 +15,7 @@ import {Workflow} from "./Workflow";
 import {IDatabase, IDatabaseAdapter, IDbCollection, IDbIndex} from "./persist/orm/DbAbstraction";
 import SqliteDbCollection from "../connectors/sqlite/SqliteDbCollection";
 import {IAnalyzerUnit} from "./analyzer/IAnalyzerUnit";
+import {UTIL_CONST} from "./util/UtilConstants";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -239,7 +240,10 @@ export class DataAnalyzer implements IAnalyzerUnit
     createDataScopes(){
         const ws = this.context.getWorkspace();
         const coll = this.db.newCollection( DataScope.TYPE.getName(), DataScope.TYPE);
-        coll.setEntry('PKG', (DataScope.create("bin", 'PKG')).setPpts(DataScopePpts.PATH, ws.getApkDir()));
+        coll.setEntry('PKG', (DataScope.create("bin", 'PKG'))
+            .setPpts(DataScopePpts.PATH, ws.getApkDir())
+            .setPpts(DataScopePpts.PATH_SEP, UTIL_CONST.PATH_SEPARATOR.POSIX)
+        );
         coll.setEntry('APPDATA', (DataScope.create("app", 'APPDATA')).setPpts(DataScopePpts.PATH, ws.getAppdataDir()));
         coll.setEntry('DEVICE', (DataScope.create("dev", 'DEVICE')).setPpts(DataScopePpts.PATH, ws.getAppdataDir()));
         coll.setEntry('DYN_BUFFER', (DataScope.create("dbf", 'DYN_BUFFER')).setPpts(DataScopePpts.PATH, ws.getRuntimeFilesDir()));
