@@ -1,6 +1,8 @@
 import {DbDataType, DbKeyType, DbSerialize} from "./DbAbstraction";
 import {NodeType} from "./NodeType";
 import DexcaliburEngine from "../../DexcaliburEngine";
+import {ValidationRule} from "../../Validator";
+import {IncomingValue, SanitizedValue, UnsafeValue} from "../../security/SanitizedValue";
 
 
 export interface NodePropertyState {
@@ -25,6 +27,13 @@ export class NodeProperty {
     _u:boolean = false;
     _m:boolean = false;
     _src:any = null;
+
+    /**
+     * Validation rule to use during sanitization
+     * @field
+     * @type {ValidationRule[]}
+     */
+    _val:ValidationRule[] = [];
 
     // sleep
     _s:any = null;
@@ -309,5 +318,54 @@ export class NodeProperty {
             o[i] = pOverride[i];
         }
         return o;
+    }
+
+    /**
+     * To check if the property can sanitize its values or not
+     *
+     * @return {boolean} Returns TRUE if at least one validation rule is defined, else FALSE
+     * @method
+     * @since 1.0.0
+     */
+    isSanitizable():boolean {
+        return (this._val.length > 0);
+    }
+
+    /**
+     * To add a validation rule
+     *
+     * @param {ValidationRule} pRule The validation rule
+     * @return {NodeProperty} Chainable. This instance
+     * @method
+     * @since 1.0.0
+     */
+    addValidationRule( pRule:ValidationRule):NodeProperty{
+        this._val.push(pRule);
+        return this;
+    }
+
+    /**
+     * To sanitize a value according to its validation rules
+     *
+     * @param {any} pValue Unsafe value
+     * @return {IncomingValue} Encapsulqted value
+     * @method
+     * @since 1.0.0
+     */
+    sanitize(pValue:any):IncomingValue {
+        if(this._val.length>0){
+            let f = true;
+            this._val.map( (vRule:ValidationRule) => {
+                f = f && (vRule.test(pValue));
+            });
+
+            if(f){
+                return new SanitizedValue(this.getName(), pValue);
+            }else{
+                return new UnsafeValue(this.getName(), pValue);
+            }
+        }else{
+            return new UnsafeValue(this.getName(), pValue);
+        }
     }
 }

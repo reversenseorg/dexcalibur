@@ -1,5 +1,6 @@
 import * as _path_ from 'path';
 import * as _md5_ from 'md5';
+import * as OS from 'os';
 import {EncodedDataType} from "./FileTypes";
 import ModelFileSection from "./ModelFileSection";
 import DataScope from "./DataScope";
@@ -11,6 +12,7 @@ import {DbDataType, DbKeyType, DbSerialize} from "./persist/orm/DbAbstraction";
 import {NodeType} from "./persist/orm/NodeType";
 import {NodeProperty} from "./persist/orm/NodeProperty";
 import {NodeInternalType} from "./NodeInternalType";
+import {ValidationRule} from "./Validator";
 
 
 let UIDS:string[]=[];
@@ -72,6 +74,10 @@ const TO_JSON:Function = function (vSrc:any, vTarget:any, vInArray:boolean=false
     }
 };
 
+export enum ModelFileType {
+    FILE = 'f',
+    FOLDER = 'd'
+}
 
 
 /**
@@ -87,7 +93,7 @@ export default class ModelFile implements IPersistent {
         NodeInternalType.FILE,
         [
             (new NodeProperty("_r")).type(DbDataType.STRING).key(DbKeyType.PRIMARY), // path relative to scope root
-            (new NodeProperty("_uid")).type(DbDataType.STRING), //.key(DbKeyType.PRIMARY),
+            (new NodeProperty("_uid")).type(DbDataType.STRING).addValidationRule(ValidationRule.newRegexpAssert(/^[a-zA-Z0-9_]+:[a-f0-9]{32}$/)), //.key(DbKeyType.PRIMARY),
             (new NodeProperty("name")).type(DbDataType.STRING).def(null),
             (new NodeProperty("type")).type(DbDataType.STRING).def(null),
             (new NodeProperty("size")).type(DbDataType.INTEGER).def(-1),
@@ -121,7 +127,7 @@ export default class ModelFile implements IPersistent {
      * @field
      * @public
      */
-    _d: string = 'f';
+    _d: string = ModelFileType.FILE;
 
     /**
      * Relative path to Scope's base path
@@ -172,8 +178,15 @@ export default class ModelFile implements IPersistent {
 
         if (pConfig != null) {
             for (let i in pConfig) {
+                switch (i){
+                    case 'path':
+                        this.path = _path_.normalize(pConfig.path);
+                        break;
+                    default:
+                        this[i] = pConfig[i];
+                        break;
+                }
 
-                this[i] = pConfig[i];
                 /*
                 if(i!=="type")
                     this[i] = pConfig[i];
@@ -202,9 +215,32 @@ export default class ModelFile implements IPersistent {
         return this._uid;
     }
 
+    /**
+     * To compute the path relative to the scope according to final context
+     * (device or host).
+     *
+     * Because the OS of a device can be linux-based and host Windows
+     *
+     *
+     * @param pBasePath
+     * @private
+     */
+    private _computePathRelativeToScope(): string {
+        /*const sp = _path_.normalize(this.scope.getBasePath());
+        if(OS.platform()==='win32'){
+            const rp = this.path.substr(sp.length);
+            rp.split(_path_.sep);
+            if(this.scope.)
+            return rp.split(_path_.sep).join('')
+
+        }else{*/
+            return this.path.substr(this.scope.getBasePath().length);
+       // }
+    }
+
     setScope(pScope: DataScope): void {
         this.scope = pScope;
-        this._r = this.path.substr( pScope.getBasePath().length);
+        this._r = this._computePathRelativeToScope(); // path.substr( pScope.getBasePath().length);
         this.generateUID();
     }
 

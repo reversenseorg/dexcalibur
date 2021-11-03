@@ -3,6 +3,8 @@ import {NodeProperty} from "./NodeProperty";
 import {NodeInternalType} from "../../NodeInternalType";
 import {DbKeyType} from "./DbAbstraction";
 import * as Log from "../../Logger";
+import {IncomingValue, SanitizedValue, UnsafeValue} from "../../security/SanitizedValue";
+import {GlobalSettingsException} from "../../errors/GlobalSettingsException";
 
 
 export interface NodePropertyMap {
@@ -205,6 +207,31 @@ export class NodeType {
     }
 
 
+    /**
+     * To sanitize a value according to its property,
+     *
+     * If the property is not sanitizable, value is encapsulated into
+     * UnsafeValue instance providing RASP protection.
+     *
+     * Property can be commonly not sanitizable because :
+     * - Data sanitization format is not define
+     * - Sanitization is not configured
+     *
+     *
+     * @param {string} pName
+     * @param {any} pValue
+     * @return {IncomingValue}
+     * @method
+     */
+    sanitize(pName: string, pValue: any): IncomingValue {
+        const ppt:NodeProperty = this._ppts[pName];
+
+        if(ppt.isSanitizable()){
+            return ppt.sanitize(pValue);
+        }else{
+            return new UnsafeValue(pName, pValue);
+        }
+    }
 
     /**
      * To get the node type name
@@ -294,5 +321,6 @@ export class NodeType {
             return this._ev[pOpeName](pValue);
         }
     }
+
 
 }
