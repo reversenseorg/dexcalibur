@@ -4,6 +4,11 @@ export enum FileAnalysisType {
     SMART='smart'
 }
 
+export enum NativeAnalysisMode {
+    AUTO='auto',
+    MANUAL='manual'
+}
+
 /**
  *
  */
@@ -16,8 +21,10 @@ export class AnalyzerConfiguration {
      */
     ppts:any = {
         devAbi: true,
+        abi: null,
         arch: 'arm',
-        faMode: FileAnalysisType.DEEP
+        faMode: FileAnalysisType.DEEP,
+        naMode: NativeAnalysisMode.AUTO
     };
 
     constructor(pConfig:any = null) {
@@ -30,11 +37,14 @@ export class AnalyzerConfiguration {
 
     /**
      * To check if ABI to analyze must be the same than target device
+     * TODO : rename
      * @method
      */
     useDeviceABI():boolean {
         return this.ppts.devAbi;
     }
+
+
 
     set fileAnalysisMode(mode:FileAnalysisType) {
         this.ppts.faMode = mode;
@@ -42,6 +52,50 @@ export class AnalyzerConfiguration {
 
     get fileAnalysisMode():FileAnalysisType {
         return this.ppts.faMode;
+    }
+
+
+    setFileAnalysisMode(pMode:string){
+        switch (pMode){
+            case "deep":
+                this.ppts.faMode = FileAnalysisType.DEEP;
+                break;
+            case "magic":
+                this.ppts.faMode = FileAnalysisType.MAGIC;
+                break;
+            case "smart":
+                this.ppts.faMode = FileAnalysisType.SMART;
+                break;
+        }
+    }
+
+
+    setNativeAnalysisMode(pMode:string){
+        switch (pMode){
+            case "auto":
+                this.ppts.naMode = NativeAnalysisMode.AUTO;
+                break;
+            case "manual":
+                this.ppts.naMode = NativeAnalysisMode.MANUAL;
+                break;
+        }
+    }
+
+    isAutoNativeAnalysis(){
+        return (this.ppts.naMode == NativeAnalysisMode.AUTO);
+    }
+
+    useAutoNativeAnalysis() {
+        this.ppts.naMode = NativeAnalysisMode.AUTO;
+    }
+
+    useManualNativeAnalysis() {
+        this.ppts.naMode = NativeAnalysisMode.MANUAL;
+    }
+
+
+    get nativeAnalysisMode():FileAnalysisType {
+        return this.ppts.naMode;
     }
 
     static from(pObj:any):AnalyzerConfiguration {

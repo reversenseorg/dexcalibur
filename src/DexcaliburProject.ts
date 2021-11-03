@@ -1252,8 +1252,12 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
             }
 
             //this.analyze.getNativeAnalyzer().
-            Logger.info("[ANALYZER] Scan every native library and executable contained into package");
-            this.analyze.doNativeAnalysis(pkgScope);
+            //if(this.analCfg.isAutoNativeAnalysis()){
+                Logger.info("[ANALYZER] Scan every native library and executable contained into package");
+                this.analyze.doNativeAnalysis(pkgScope, null, { skipAuto: this.analCfg.isAutoNativeAnalysis() });
+            // }else{
+            //    Logger.info("[ANALYZER] Scan of every native library and executable contained into package has been skipped by configuration");
+            // }
 
 
             this.getWorkflow().setStep('Application topology analysis', 91);

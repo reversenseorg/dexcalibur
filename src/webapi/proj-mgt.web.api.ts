@@ -69,7 +69,7 @@ PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
             let platform:Platform = null;
             let success:boolean = true;
             let wf:Workflow = null;
-
+            let anal:any = null;
 
 
             try{
@@ -92,6 +92,13 @@ PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
 
                 if(req.body['name'] == null){
                     throw DexcaliburProjectException.INVALID_NAME();
+                }
+
+
+                if(req.body['cfg'] == null){
+                    throw DexcaliburProjectException.INVALID_NAME();
+                }else{
+                    anal = req.body['cfg'];
                 }
 
                 // init workflow
@@ -181,6 +188,15 @@ PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
                     //platform = PlatformManager.getInstance().getDefaultPlatformFor();
                     // sync project platform with target platform or APK
                     success = await project.synchronizePlatform( platform.getUID());
+                }
+
+                if(anal != null){
+
+                    Logger.info('[PROJECT][STEP 3.2] Configuring Analyzers ...');
+                    // wf.pushStatus(new StatusMessage(11, "Configuring Analyzers"));
+                    const analCfg = project.getAnalyzerConfiguration(); // platform.getUID());
+                    analCfg.setFileAnalysisMode(anal.fa_mode);
+                    analCfg.setNativeAnalysisMode(anal.na_mode);
                 }
 
                 Logger.info('[PROJECT][STEP 4] Analyzing application ...');
