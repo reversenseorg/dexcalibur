@@ -3,6 +3,7 @@ import {NodeInternalType} from "./NodeInternalType";
 import {NodeProperty, NodePropertyState} from "./persist/orm/NodeProperty";
 import {DbDataType, DbKeyType, DbSerialize} from "./persist/orm/DbAbstraction";
 import {IPersistent} from "./persist/orm/IPersistent";
+import * as _path_ from 'path';
 
 export interface DataScopeMap {
     [name:string] :DataScope
@@ -10,6 +11,7 @@ export interface DataScopeMap {
 
 export enum DataScopePpts {
     PATH="p",
+    PATH_SEP="s",
     OTHER="o"
 }
 
@@ -35,9 +37,11 @@ export default class DataScope implements IPersistent{
     __i:string;
     _i:string = DEFAULT_PREFIX;
     _n:string = null;
-    _p:any = null;
+    _p:any = {};
 
     constructor( pConfig:any = {}){
+        this.setPpts( DataScopePpts.PATH_SEP, _path_.sep);
+
         for(let i in pConfig){
             this[i] = pConfig[i];
         }
