@@ -1,4 +1,4 @@
-
+import * as _path_ from 'path';
 
 export default class APK
 {
@@ -12,7 +12,7 @@ export default class APK
     libs:any = null;
 
     constructor( pPath:string = null){
-        this.path = pPath;
+        this.path = pPath!=null ? _path_.normalize(pPath) : pPath;
     }
 
     getLibPath(){
@@ -28,12 +28,25 @@ export default class APK
     }
 
     setPath( pPath:string){
-        this.path = pPath;
+        this.path = _path_.normalize(pPath);
     }
 
+    /**
+     * TODO : Add NodeType definition and prevent prototype pollution
+     * @param pConfig
+     */
     static fromJsonObject(pConfig):APK{
         let o:any = new APK();
-        for(let i in pConfig) o[i] = pConfig[i];
+        for(let i in pConfig){
+            switch(i){
+                case 'path':
+                    o.path = _path_.normalize(pConfig.path);
+                    break;
+                default:
+                    o[i] = pConfig[i];
+                    break;
+            }
+        }
         return o as APK;
     }
 
