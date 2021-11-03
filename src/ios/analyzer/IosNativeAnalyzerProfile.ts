@@ -19,7 +19,7 @@ export default class IosNativeAnalyzerProfile implements NativeAnalyzerProfile {
      * @param pFile
      * @param pAbiList
      */
-    isAbiCompliant(pFile:ModelFile, pAbiList:ABI[]):boolean {
-        return true;
+    isAbiCompliant(pFile:ModelFile, pAbiList:ABI[]):number {
+        return 0;
     }
 }

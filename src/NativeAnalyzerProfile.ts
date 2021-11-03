@@ -5,5 +5,5 @@ export interface NativeAnalyzerProfile {
 
     name:string;
 
-    isAbiCompliant( pFile:ModelFile, pABIs:ABI[]):boolean;
+    isAbiCompliant( pFile:ModelFile, pABIs:ABI[]):number;
 }
