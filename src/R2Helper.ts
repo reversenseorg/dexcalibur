@@ -275,6 +275,9 @@ export default class RadareHelper
         Logger.info('[R2] Run command : '+pCommands.join(','));
 
         for(let i=0; i<pCommands.length; i++){
+
+            if(this._h[pCommands[i]] === true && pOptions.force!==true) continue;
+
             switch(pCommands[i]){
                 case 'sections':
                     data = await this._p.cmdj("iSj");
