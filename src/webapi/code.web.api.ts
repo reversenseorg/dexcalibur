@@ -13,6 +13,7 @@ import ModelField from "../ModelField";
 import ModelPackage from "../ModelPackage";
 import * as VM from "vm";
 import {FinderResult} from "../FinderResult";
+import DataScope from "../DataScope";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 export const CODE_WEB_API: DelegateWebApi = new DelegateWebApi();
@@ -69,9 +70,13 @@ CODE_WEB_API.addAuthenticatedRoute(
                 }
 
                 if(filter2 != null && filter2.indexOf(':ds')>-1){
+                    const scope:DataScope = project.dataAnalyzer.getScope('PKG')
                     // replace all by tagged 'executable by target platform'
-                    const d = project.find.file( 'type:ELF', project.dataAnalyzer.getScope('PKG'));
-                    data = data.union(d);
+                    //const d = project.find.file( 'type:ELF', scope);
+                    // filter d by analyzed files
+                    const analyzed = project.getAnalyzer().getNativeAnalyzer().getAnalyzedFiles(scope);
+                    //FinderResult
+                    data = data.unionWithList(analyzed);
                 }
 
                 fields.push('__');
