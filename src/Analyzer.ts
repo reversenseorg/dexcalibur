@@ -681,11 +681,11 @@ export default class Analyzer
     }
 
 
-    doNativeAnalysis(pScope:DataScope = null, pOptions:any={}){
+    doNativeAnalysis(pScope:DataScope = null, pProfile:any={}, pOptions=null){
         if(pScope==null)
-            this.a_native.scanAllFiles(pOptions);
+            this.a_native.scanAllFiles(pProfile);
         else
-            this.a_native.scanFileByScope(pScope, pOptions)
+            this.a_native.scanFileByScope(pScope, pProfile, pOptions)
     }
 
     /**
