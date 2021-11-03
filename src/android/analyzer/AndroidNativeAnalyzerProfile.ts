@@ -1,7 +1,11 @@
+import * as _path_ from 'path';
 import {NativeAnalyzerProfile} from "../../NativeAnalyzerProfile";
 import ModelFile from "../../ModelFile";
 import {ABI, AbiManager, AbiType} from "../../binary/ABI";
+import {AbiException} from "../../errors/AbiException";
 
+import * as Log from '../../Logger';
+let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
 export default class AndroidNativeAnalyzerProfile implements NativeAnalyzerProfile {
 
@@ -10,8 +14,8 @@ export default class AndroidNativeAnalyzerProfile implements NativeAnalyzerProfi
     devABI: boolean = false;
 
     static abiFolders:any = {
-        [AbiType.arm64_v8a]  : ['arm64','arm64-v8a','armeabi'],
-        [AbiType.armeabi_v7a]  : ['arm','armeabi-v7a','armeabi'],
+        [AbiType.arm64_v8a]  : ['arm64','arm64-v8a'],
+        [AbiType.armeabi_v7a]  : ['arm','armeabi-v7a'],
         [AbiType.arm_v5]  : ['armv5','armeabi'],
         [AbiType.x86]  : ['x86','i386','ia-32'],
         [AbiType.x86_64]  : ['x86_64','x64'],
@@ -31,30 +35,44 @@ export default class AndroidNativeAnalyzerProfile implements NativeAnalyzerProfi
      * To verify is a file is compatible with a list of ABI
      * @param pFile
      * @param pAbiList
+     * @return {number} Offset of the ABI detected into the specified ABI list (lower offset, is the privilegied version), -1 if not found
      */
-    isAbiCompliant(pFile:ModelFile, pAbiList:ABI[]):boolean {
+    isAbiCompliant(pFile:ModelFile, pAbiList:ABI[]):number {
 
-        if(!pFile.isExecutable()) return false;
+        if(!pFile.isExecutable()){
+            throw AbiException.UNDETECTABLE_ABI('File is not flagged executable');
+        }
+        if(pAbiList.length == 0){
+            return -1;
+        }
 
+        // Future split using DataScope's path separator instead of serparator from host
         const rpath = pFile.getRelativePath();
         let alt:string[];
-        let compliant = false;
-        if(rpath.startsWith('/lib/')){
-            for(let i=0; i<pAbiList.length; i++){
+        let offset = -1;
 
+        if(rpath == null){
+            throw AbiException.UNDETECTABLE_ABI('File path is empty');
+        }
+
+        const s = rpath.split(_path_.sep);
+
+
+        if(s[1]==='lib' && s[2]!=null){
+            const top = pAbiList.length-1;
+            for(let i=0; i<=top; i++){
                 alt = AndroidNativeAnalyzerProfile.abiFolders[pAbiList[i].name];
-
                 for(let j=0; j<alt.length; j++){
-                    if(rpath.startsWith('/lib/'+alt[j]+'/')){
-                        compliant = true;
+                    if(alt[j] === s[2]){
+                        offset = top-i;
                         break;
                     }
                 }
             }
         }else{
             // todo : check by extracting ABI version from ELF header
-            compliant = true;
+            offset = 0;
         }
-        return compliant;
+        return offset;
     }
 }
