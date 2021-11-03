@@ -213,6 +213,22 @@ export class FinderResult
         return this;
     }
 
+    /**
+     * Same union() but merge the data contained into the specified array
+     * with
+     * @param pObject
+     */
+    unionWithList( pObject:any[]):FinderResult {
+        //createFinderResultFromList
+
+        pObject.map((k:any)=>{
+            if(!this.contains(k))
+                this.data.insert(k, false);
+        });
+
+        return this;
+    }
+
 
     /**
      * To get the list of callers of each object contained into the current result set

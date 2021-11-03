@@ -54,7 +54,14 @@ export class Finder
     __DB:AnalyzerDatabase = null;
     __tmp:IDatabase = null;
     cache:any = null;
-    counter:number = 0;
+
+    /**
+     * Latest Index UID into FinderResult DB
+     * @field
+     * @type {number}
+     * @private
+     */
+    private counter = 0;
 
     constructor(pDatabase:AnalyzerDatabase){
         this.__DB = pDatabase;
@@ -91,6 +98,14 @@ export class Finder
         // just a mock
     }
 
+    /**
+     * To create a fresh - empty - result set
+     *
+     * That is an Index (a list of object) into Finder Result In-Memory DB
+     *
+     * @method
+     * @return {IDbIndex}
+     */
     newResultSet():IDbIndex
     {
         this.counter++;
@@ -536,6 +551,17 @@ export class Finder
         }
     }
 
+    /**
+     * To create a FinderResult object from objects passed into arguments
+     *
+     * @param {any[]} pObjects
+     * @return {FinderResult} Return a FinderResult object filled with arguments
+     */
+    createFinderResultFromList( pObjects:any[]):FinderResult {
+        const res = this.newResultSet();
+        pObjects.map( (x,i) => res.insert(i,x));
+        return new FinderResult(res, this);
+    }
 }
 
 /*
