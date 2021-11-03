@@ -12,6 +12,7 @@ import NativeAnalyzer from "../NativeAnalyzer";
 import {NativeAnalyzerException} from "../errors/NativeAnalyzerException";
 import {NativeAnalyzerCommands} from "../analyzer/NativeAnalyzerCommands";
 import Util from "../Utils";
+import {AbiManager} from "../binary/ABI";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -293,6 +294,89 @@ NATIVE_WEB_API.addAsyncAuthenticatedRoute(
             }catch(err){
                 Logger.error("[API][NATIVE] Disassembly of function failed. Cause : " + err.message + "\n\t" + err.stack);
                 $.sendError(res, " Disassembly of function failed. Cause : " + err.message);
+            }
+        }
+    }
+);
+
+
+NATIVE_WEB_API.addAsyncAuthenticatedRoute(
+    '/analyze/:type',
+    {
+        'post': async function (req:Request, res:Response):Promise<any> {
+            const $: WebServer = req.dxc.$;
+            let project:DexcaliburProject = null;
+
+            try{
+
+                // ========== SECURITY CHECKS
+
+                if (req.dxc == null || !$.context.getUserService().verifySession(req.dxc.sess)) {
+                    throw AuthenticationException.AUTHENTICATION_FAILED();
+                }
+
+                if(req.body['project']!=null){
+                    project = $.context.getActiveProjects(req.dxc.sess.getUserAccount())[req.body['project']];
+                }else if(req.dxc.project != null){
+                    project = req.dxc.project;
+                }
+
+                if(project == null || !project.isReady()) {
+                    throw DexcaliburProjectException.NO_PROJECT_SPECIFIED();
+                }
+
+                // ========== LOGIC
+                if(req.body['uid']==null){
+                    throw NativeAnalyzerException.MISSING_FILE("<null>");
+                }
+
+                if(['file'].indexOf(req.params['type'])==-1){
+                    throw new Error("Data type not supported");
+                }
+
+                switch (req.params['type']){
+                    case 'file':
+                        const sanitizedUID = ModelFile.TYPE.sanitize( '_uid', req.body['uid']);
+                        const file:ModelFile = project.find.get.files(sanitizedUID.getValue());
+                        if(file==null){
+                            throw new Error("[NATIVE::ANALYSIS] #NAT_2 File not found");
+                        }
+
+                        const cmd = (req.body['cmd']!=null ?  req.body['cmd'].split(':') : ['*']);
+
+                        if(project.analyze.getNativeAnalyzer().requireAnalysis( file, cmd, null) || (req.body['force']===true)){
+                            const n = await project.analyze.getNativeAnalyzer().scan( file, cmd);
+                            if(n>-1){
+                                $.sendSuccess( res, file.toJsonObject({ cmd:cmd.join(':') }));
+                            }else{
+                                throw new Error('Analysis failed');
+                            }
+                        }else{
+                            throw new Error('File already analyzed (cache response)');
+                        }
+
+                        break;
+                }
+
+            }catch(err){
+                Logger.error("[API][NATIVE] Perform native analysis failed. Cause : " + err.message + "\n\t" + err.stack);
+                $.sendError(res, " Perform native analysis failed. Cause : " + err.message);
+            }
+        }
+    }
+);
+
+NATIVE_WEB_API.addPublicRoute(
+    '/public/settings/abi',
+    {
+        'get':  async function (req:Request, res:Response):Promise<any> {
+            const $: WebServer = req.dxc.$;
+
+            try{
+                $.sendSuccess( res, AbiManager.ABI);
+            }catch(err){
+                Logger.error("[API][NATIVE] List of ABI supported cannot be retrieved. Cause : " + err.message + "\n\t" + err.stack);
+                $.sendError(res, " List of ABI supported cannot be retrieved. Cause : " + err.message);
             }
         }
     }
