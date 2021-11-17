@@ -1,0 +1,166 @@
+import * as fs from "fs";
+import * as Path from "path";
+import ModelFile from "../ModelFile";
+import {ModelFunction} from "../ModelFunction";
+import KeyPoint from "./KeyPoint";
+import KeyPointManager from "./KeyPointManager";
+import NativeFunctionHook from "./NativeFunctionHook";
+import {HookManager} from "./HookManager";
+import {HookScriptBuilderException} from "../errors/HookScriptBuilderException";
+
+
+export default class HookScriptBuilder {
+
+    private requires:string[] = [];
+
+    private _hm:HookManager;
+
+    constructor( pHookManager:HookManager) {
+        this._hm = pHookManager;
+    }
+
+    private _isDynamicLoadingRequired( pHooks:NativeFunctionHook[]){
+        let f = false;
+        pHooks.map( (pNatHook)=>{
+            if(this._hm.hasKeyPointAncestor(pNatHook.getKeyPoint(), "core.native.dl.load")){
+                f = true;
+            }
+        });
+        return f;
+    }
+
+    /**
+     *
+     * @param pModuleVar
+     * @param pHook
+     * @private
+     */
+    private _writeNativeFuncLocation( pModuleVar:string, pHook:NativeFunctionHook):string {
+        if(pHook.isTargetExportedSymbol()){
+            return `${pModuleVar}.findExportByName("${pHook.getTarget().getSymbol()}")`;
+        }
+        else if(pHook.isTargetStaticOffset()){
+            return `${pModuleVar}.base.add(${pHook.getTarget()})`;
+        }
+        else if(pHook.isTargetLocalSymbol()){
+            return `DXC_TOOL.findLocalSymbol(${pModuleVar}, "${pHook.getTarget().getSymbol()}")`;
+        }
+        else if(pHook.isTargetByPointer()){
+            if(typeof pHook.getTarget() === "number"){
+                return `ptr(${pHook.getTarget()})`;
+            }else{
+                return `ptr(${(pHook.getTarget() as ModelFunction).getAddr()})`;
+            }
+        }
+        else if(pHook.isRawTarget()){
+            return pHook.getTarget();
+        }else{
+            throw HookScriptBuilderException.UNTARGETABLE_NATIVE_HOOK();
+        }
+    }
+
+    /**
+     *
+     * @param pHook
+     * @private
+     */
+    private _writeNativeHook( pModuleVar:string, pHook:NativeFunctionHook):string {
+
+        let onEnter = "", onLeave = "";
+
+        if(pHook.is)
+
+        let s = `
+            Interceptor.attach(${this._writeNativeFuncLocation(pModuleVar,pHook)}, {
+                ${ }
+                onEnter: function(args){
+                    var s = args[0].readCString();
+                    this.p = ((s==null || s.length==0) ? '<self>' : s);
+                },
+                onLeave: function(ret){
+                    if(DL[""+ret]==null){
+                        DL[""+ret] = this.p;
+                    }
+                    if(LOG_BIN) console.log("libc > dlopen > "+ret+" ("+DL[""+ret]+")");
+                }
+            });
+        `;
+
+        return s;
+    }
+
+    private _writeNativeHookDeclaring(pFuncs:NativeFunctionHook[]): string {
+        let code:string = "\n";
+        let c = 0, m = pFuncs.length-1;
+        pFuncs.map( (pHook:NativeFunctionHook)=>{
+            code += `
+        "${pHook.getTarget().getSymbol()}":function (vMod){
+            ${this._writeNativeHook(pHook)}
+        }${c<m ? ',':''}            
+`;
+        })
+    }
+
+    private _writeNativeLib( pLibraryName:string, pFuncs:NativeFunctionHook[]):string {
+
+
+
+        return `
+DXC.HOOK["${pLibraryName}"] = {
+    __mod: null,
+    __dynamic__:${this._isDynamicLoadingRequired(pFuncs)},
+    __hook: {
+        @@__FUNC_HOOKS__@@
+    }
+}
+        `;
+    }
+
+
+    /**
+     * To add a required JS library (declared into 'requires' folder)
+     *
+     * @param {string[]} requires
+     * @method
+     */
+    addRequires(requires:string[]):void{
+        for(let i=0; i<requires.length; i++){
+            if(this.requires.indexOf(requires[i])==-1){
+                this.requires.push(requires[i]);
+            }
+        }
+    }
+
+    /**
+     * To remove specific JS libraries from libraries required.
+     *
+     * @param {*} requires
+     * @method
+     */
+    removeRequires(requires:string[]):void{
+        let offset=-1;
+        for(let i=0; i<requires.length; i++){
+            offset = this.requires.indexOf(requires[i]);
+            if(offset>-1) this.requires[offset] = null;
+        }
+    }
+
+    /**
+     * To insert required modules into the generated Frida script
+     *
+     *
+     * @method
+     */
+    prepareRequires():string{
+        let req:any = "", loaded:any = {};
+        for(let i=0; i<this.requires.length; i++){
+            if(this.requires[i]!=null && loaded[this.requires[i]]==null){
+                req += fs.readFileSync(Path.join(__dirname,"requires",this.requires[i]+".js"));
+                loaded[this.requires[i]] = true;
+            }
+        }
+
+        return req;
+    }
+
+}
