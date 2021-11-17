@@ -1,23 +1,29 @@
-
 import * as co from 'co';
-import * as fs from 'fs';
 import * as md5 from 'md5';
-import * as Path from 'path';
 
-import HookSession from "./HookSession";
-import DexcaliburProject from "./DexcaliburProject";
-import HookPrologue from "./HookPrologue";
-import HookSet from "./HookSet";
-import Hook from "./Hook";
-import {Device} from "./Device";
-import Util from "./Utils";
-import ModelMethod from "./ModelMethod";
-import * as Log from './Logger';
-import FridaHelper from "./FridaHelper";
-import ModelClass from "./ModelClass";
-import {TerminalSession} from "./TerminalSession";
-import {HookSessionMap, TerminalSessionMap, User} from "./User";
-import {ModelFunction} from "./ModelFunction";
+import HookSession from "../HookSession";
+import DexcaliburProject from "../DexcaliburProject";
+import HookPrologue from "../HookPrologue";
+import HookSet from "../HookSet";
+import Hook from "../Hook";
+import {Device} from "../Device";
+import Util from "../Utils";
+import ModelMethod from "../ModelMethod";
+import * as Log from '../Logger';
+import FridaHelper from "../FridaHelper";
+import {TerminalSession} from "../TerminalSession";
+import {User} from "../User";
+import {ModelFunction} from "../ModelFunction";
+import {HookManagerException} from "../errors/HookManagerException";
+import HookScriptBuilder from "./HookScriptBuilder";
+import KeyPointManager from "./KeyPointManager";
+import KeyPoint from "./KeyPoint";
+import JavaMethodHook from "./JavaMethodHook";
+import NativeFunctionHook from "./NativeFunctionHook";
+import {NodeInternalType} from "../NodeInternalType";
+import {AbstractHook} from "./AbstractHook";
+import {JavaHookBuilder} from "./builders/JavaHookBuilder";
+import {HookBuilder} from "./builders/HookBuider";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -62,13 +68,21 @@ export class HookManager
     context:DexcaliburProject = null;
    // logs = [];
 
+    jhooks:JavaMethodHook[] = [];
+    nhooks:NativeFunctionHook[] = [];
+
     hooks:Hook[] = [];
+
     hooksets:HookSetList = {};
     prologues:HookPrologue[] = [];
     sessions:HookSession[] = [];
-    requires:string[] = [];
-    //requiresNode = [];
     listeners:any = {};
+
+
+
+    kp_mgr:KeyPointManager = null;
+    hk_builder:HookBuilder = null;
+    builder:HookScriptBuilder = null;
 
     scanners:any = {}; // deprecated
 
@@ -91,20 +105,53 @@ export class HookManager
             this.frida_disabled = true;
         }
 
-        //
-        this.hooksets.custom = new HookSet({
-            id: "custom",
-            name: "On-Demand hooks",
-            context: pProject,
-            enable: true
-        });
-        this.hooksets.customNative = new HookSet({
+        this.kp_mgr = pProject.getKeyPointManager();
+        this.hk_builder = new HookBuilder( this.context );
+        this.builder = new HookScriptBuilder( this );
+
+        this.initBuiltInHookSets();
+    }
+
+    private initBuiltInHookSets(){
+        if(this.context.platform.isAndroid()){
+            this.addHookSet(new HookSet({
+                id: "custom",
+                name: "Custom Java hooks",
+                context: this.context,
+                enable: true
+            }));
+        }
+
+        this.addHookSet(this.hooksets.customNative = new HookSet({
             id: "customNative",
-            name: "On-Demand native hooks",
-            context: pProject,
+            name: "Custome native hooks",
+            context: this.context,
             enable: true,
             native: true
-        });
+        }));
+    }
+
+
+    /**
+     * To verify if a key point depends (so has an ancestor at runtime)
+     * of another key point by using its name
+     *
+     * @param {KeyPoint} pKeyPoint
+     * @param {string} pAncestorUID
+     */
+    hasKeyPointAncestor( pKeyPoint:KeyPoint, pAncestorUID:string):boolean{
+        let k:KeyPoint = pKeyPoint;
+        let found = false;
+
+        while(k.hasAncestor()){
+            k = k.getAncestor();
+            if(k.getUID() === pAncestorUID){
+                found = true;
+                break;
+            }
+        }
+
+        return found;
     }
 
     /**
@@ -143,7 +190,7 @@ export class HookManager
         const natives = this.context.analyze.getNativeAnalyzer().getTargetFiles();
         natives.map( file => {
            const hs = this.getHookSet(file.getName());
-           if(fs==null){
+           if(hs==null){
                this.addHookSet(new HookSet({
                    id: file.getName(),
                    name: file.getName(),
@@ -195,51 +242,6 @@ export class HookManager
             },false);
     }*/
 
-    /**
-     * To add a required JS library (declared into 'requires' folder)
-     *
-     * @param {string[]} requires
-     * @method 
-     */
-    addRequires(requires:string[]):void{
-        for(let i=0; i<requires.length; i++){
-            if(this.requires.indexOf(requires[i])==-1){
-                this.requires.push(requires[i]);
-            }
-        }
-    };
-
-    /**
-     * To remove specific JS libraries from libraries required.
-     *
-     * @param {*} requires
-     * @method 
-     */
-    removeRequires(requires:string[]):void{
-        let offset=-1;
-        for(let i=0; i<requires.length; i++){
-            offset = this.requires.indexOf(requires[i]);
-            if(offset>-1) this.requires[offset] = null;
-        }
-    };
-
-    /**
-     * To insert required modules into the generated Frida script
-     *
-     * 
-     * @method
-     */
-    prepareRequires():string{
-        let req:any = "", loaded:any = {};
-        for(let i=0; i<this.requires.length; i++){
-            if(this.requires[i]!=null && loaded[this.requires[i]]==null){
-                req += fs.readFileSync(Path.join(__dirname,"requires",this.requires[i]+".js"));
-                loaded[this.requires[i]] = true;
-            }
-        }  
-
-        return req;
-    }
 
 
     /**
@@ -259,7 +261,7 @@ export class HookManager
         //if(this.requiresNode.length > 0)
         //   script = this.prepareRequiresNode()+"\n"+script;
         
-        script += this.prepareRequires();
+        //script += this.prepareRequires();
         
         for(let i in this.prologues){
             if(this.prologues[i].isEnable()){
@@ -506,9 +508,9 @@ export class HookManager
     }
 
 
-    addHookSet(set:HookSet):boolean{
+    addHookSet(set:any):boolean{
         if(this.hooksets[set.getID()]!=null){
-            console.log("[Error] HookManager : An hook set already exists for this ID");
+            throw HookManagerException.EXISTING_HOOK_SET();
             return false;
         }
         this.hooksets[set.getID()] = set;
@@ -595,6 +597,107 @@ export class HookManager
     }
 
     /**
+     * To find a hook by hooked method and key point
+     * @param pMethod
+     * @param pKeyPoint
+     */
+    getJavaMethodHook( pMethod:ModelMethod, pKeyPoint:KeyPoint):JavaMethodHook {
+        let hook:JavaMethodHook = null, h:JavaMethodHook = null;
+
+        for(let i=0; i<this.jhooks.length; i++){
+            h = this.jhooks[i];
+            if(h.getTarget().getUID() === pMethod.getUID()){
+                if(h.getKeyPoint().getUID() === pKeyPoint.getUID()){
+                    hook = h;
+                    break;
+                }
+            }
+        }
+
+        return hook;
+    }
+
+    /**
+     * To count hook for a specific node type / target
+     * @param pList
+     * @param pNode
+     * @private
+     */
+    private _countHook( pList:AbstractHook[], pNode:ModelFunction|ModelMethod):number {
+        let c = 0;
+
+        for(let i=0; i<pList.length; i++){
+            if(pList[i].getTarget().getUID() === pNode.getUID()){
+                c++;
+            }
+        }
+
+        return c;
+    }
+
+    /**
+     *
+     * @param pMethod
+     */
+    countJavaHook( pMethod:ModelMethod):number {
+        return this._countHook(this.jhooks, pMethod);
+    }
+
+    /**
+     *
+     * @param pFun
+     */
+    countNativeHook( pFun:ModelFunction):number {
+        return this._countHook(this.nhooks, pFun);
+    }
+
+    /**
+     * To create a java method hook at a specific key point
+     * @param pMethod
+     * @param pKeyPoint
+     */
+    createJavaMethodHook( pMethod:ModelMethod, pKeyPoint:KeyPoint):JavaMethodHook {
+        const hook:JavaMethodHook = new JavaMethodHook();
+
+        hook.setGUID( md5(this.nextHookGUIDFor(pMethod)));
+        hook.setKeyPoint(pKeyPoint);
+        hook.setTarget(pMethod);
+        hook.setManager(this);
+
+        //hook.makeProbeFor(method);
+        //this.builder.
+        hook.makeHookFor(method, pOptions);
+
+        //hook.setMethod(method);
+        // method.setProbing(true);
+        pMethod.probing = true;
+        pMethod.hooks.push( hook);
+
+
+        if(pMethod.hasTag('ds')||pMethod.hasTag('di')){
+            this.getDefaultHookSet().addHook(hook);
+        }else{
+            Logger.info("hook java",JSON.stringify(pMethod));
+            //this.getHookSetFor(method.getDeclaringFile());
+            this.getDefaultHookSet().addHook(hook);
+        }
+
+        Logger.info("[HOOK MANAGER][JAVA HOOK] Created successfully : ",hook.name)
+        this.jhooks.push(hook);
+
+        // trigger new probe workflow
+        this.context.trigger({
+            type: "probe.new",
+            data: {
+                hook: hook,
+                method: pMethod,
+                keypoint: pKeyPoint
+            }
+        });
+    }
+
+
+    /**
      * To get a hook by its ID.
      * 
      * @param {String} id The hook ID as provide by the hook trace
@@ -623,6 +726,11 @@ export class HookManager
         return pop;
     }
 
+    /**
+     * To get a hook by its ID
+     *
+     * @param {string} hookId
+     */
     findHook(hookId:string):Hook{
         for(let i in this.hooks){
             if(this.hooks[i].id == hookId){
@@ -632,6 +740,10 @@ export class HookManager
         return null;
     }
 
+    /**
+     * To retrieve everay hook targeting a method or a function
+     * @param method
+     */
     findHookByMethod(method:ModelMethod|ModelFunction):Hook[]{
         let match:Hook[] = [];
         for(let i in this.hooks){
@@ -642,10 +754,30 @@ export class HookManager
         return match;
     }
 
+    /**
+     * To create the GUID of the next hook
+     *
+     * @since 1.0.0
+     * @param method
+     */
+    nextHookGUIDFor(pTarget:ModelMethod|ModelFunction):string{
+        //    return method.__signature__+"@@"+this.findHookByMethod(method).length;
+        //Logger.info("[HOOK] nextHookIdFor ["+method.signature()+"]")
+        if(pTarget.__ === NodeInternalType.METHOD){
+            return pTarget.__+":"+pTarget.getUID()+"@@"+this.countJavaHook(pTarget as ModelMethod);
+        }else{
+            return pTarget.__+":"+pTarget.getUID()+"@@"+this.countNativeHook(pTarget as ModelFunction);
+        }
+    }
+
+    /**
+     * @deprecated
+     * @param method
+     */
     nextHookIdFor(method:ModelMethod|ModelFunction):string{
     //    return method.__signature__+"@@"+this.findHookByMethod(method).length;
         //Logger.info("[HOOK] nextHookIdFor ["+method.signature()+"]")
-        return method.signature()+"@@"+this.findHookByMethod(method).length;
+        return method.__+":"+method.signature()+"@@"+this.findHookByMethod(method).length;
     }
 
 
