@@ -46,7 +46,7 @@ import ModelFile from "./ModelFile";
 import {ModelFunction} from "./ModelFunction";
 import HookMessage from "./HookMessage";
 import {Workflow} from "./Workflow";
-import {HookSetList} from "./HookManager";
+import {HookSetList} from "./hook/HookManager";
 import {ValidationCapable, Validator} from "./Validator";
 import {Settings} from "./Settings";
 import {UserSession} from "./user/session/UserSession";
@@ -67,6 +67,7 @@ import {FS_WEB_API} from "./webapi/fs.web.api";
 import {USER_WEB_API} from "./webapi/user.web.api";
 import {HOOK_WEB_API} from "./webapi/hook.web.api";
 import {INSPECTOR_WEB_API} from "./webapi/inspectors.web.api";
+import {KEYPOINT_WEB_API} from "./webapi/keypoint.web.api";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -1375,6 +1376,7 @@ export default class WebServer
         USER_WEB_API.injectServer(this);
         HOOK_WEB_API.injectServer(this);
         INSPECTOR_WEB_API.injectServer(this);
+        KEYPOINT_WEB_API.injectServer(this);
 
 
         this.app.use('/api/device', DEVICE_WEB_API.getRouter());
@@ -1392,6 +1394,7 @@ export default class WebServer
         this.app.use('/api/user', USER_WEB_API.getRouter());
         this.app.use('/api/hook', HOOK_WEB_API.getRouter());
         this.app.use('/api/plugin', INSPECTOR_WEB_API.getRouter());
+        this.app.use('/api/keypoint', KEYPOINT_WEB_API.getRouter());
         /**
          * Redirect to /pages/splash.html if there is no project initialized
          */

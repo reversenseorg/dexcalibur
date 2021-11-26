@@ -6,6 +6,7 @@ import {DelegateWebApi} from "./webapi/DelegateWebApi";
 import WebServer from "./WebServer";
 import * as Log from "./Logger";
 import DexcaliburEngine from "./DexcaliburEngine";
+import HookStrategy from "./hook/HookStrategy";
 
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
@@ -66,7 +67,11 @@ export default class InspectorFactory
         let hs:HookSet = null;
         let hooks:Hook[] = null;
 
-        this.registerWebServer(DexcaliburEngine.getInstance().getWebserver());
+
+        if(this.hasWebApi() && !this.isWebApiReady()){
+            this.registerWebServer(DexcaliburEngine.getInstance().getWebserver());
+        }
+
 
         if(this._config.id != null) ins.id = this._config.id;
         if(this._config.name != null) ins.name = this._config.name;
@@ -83,8 +88,6 @@ export default class InspectorFactory
 
         if(this._config.hookSet != null){
 
-
-
             hs = new HookSet({
                 id: (this._config.id!=null ? this._config.id : this._config.hookSet.id),
                 name: (this._config.name!=null ? this._config.name : this._config.hookSet.name),
@@ -97,7 +100,20 @@ export default class InspectorFactory
 
             if(hooks != null){
                 hooks.map((vHookCfg)=>{
-                    hs.addIntercept(vHookCfg);
+                    const strat = HookStrategy.from(vHookCfg);
+                    if(strat.hasLoadKeyPoint()){
+                        strat.setLoadKeyPoint(
+                          pProject.getKeyPointManager().getKeyPoint(strat.loadOn)
+                        );
+                    }
+
+                    if(strat.hasUnloadKeyPoint()){
+                        strat.setUnloadKeyPoint(
+                            pProject.getKeyPointManager().getKeyPoint(strat.unloadOn)
+                        );
+                    }
+
+                    hs.addStrategy(strat);
                 });
             }
 

@@ -3,9 +3,10 @@ import * as _path_ from 'path';
 
 import Hook from "../../../src/Hook";
 import DexcaliburProject from "../../../src/DexcaliburProject";
-import {HookManager} from "../../../src/HookManager";
+import {HookManager} from "../../../src/hook/HookManager";
 import ModelMethod from "../../../src/ModelMethod";
 import InspectorFrontController, {IFC_TYPE} from "../../../src/InspectorFrontController";
+import {AbstractHook} from "../../../src/hook/AbstractHook";
 
 
 var Controller =  new InspectorFrontController();
@@ -47,7 +48,7 @@ function collectAll(context:DexcaliburProject):any{
         }
 
         // hooks
-        let hook:Hook = context.hook.getProbe(v);
+        const hook:AbstractHook = context.hook.getProbe(v);
         if(hook !== null){
             if(db.methods[k] == null) 
                 db.methods[k] = {};
@@ -65,7 +66,7 @@ function collectAll(context:DexcaliburProject):any{
 
 function importAll(context:DexcaliburProject, data:any):boolean{
     let o:any=null, s:any=null, WDB:any = context.analyze.db, ctr:number=0;
-    let meth:ModelMethod, hook:Hook;
+    let meth:ModelMethod, hook:AbstractHook;
 
     for(let k in data.classes){
         o = data.classes[k];
@@ -111,7 +112,7 @@ function importAll(context:DexcaliburProject, data:any):boolean{
             
             // if thereis not hook, call the hook manager and generate one
             if(hook == null){
-                hook = context.hook.probe(meth);
+                hook = context.hook.createJavaMethodHook(meth);
             }
 
             // update the current hook with the imported data

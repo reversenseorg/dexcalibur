@@ -8,6 +8,7 @@ import {INSPECTOR_TYPE} from "../../src/Inspector";
 import DexcaliburProject from "../../src/DexcaliburProject";
 import Event from "../../src/Event";
 import * as Log from "../../src/Logger";
+import ModelMethod from "../../src/ModelMethod";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -37,8 +38,10 @@ var FingerprintInspector:InspectorFactory = new InspectorFactory({
 
         hooks: [
             {
-                //when: HOOK.BEFORE,
-                method: "android.telephony.TelephonyManager.getDeviceId()<java.lang.String>",
+                search: {
+                    type: ModelMethod.TYPE,
+                    uid: "android.telephony.TelephonyManager.getDeviceId()<java.lang.String>"
+                },
                 onMatch: function(ctx:DexcaliburProject,event:Event):any{
                     ctx.getInspector("Fingerprint").emits("fingerprint.device.getId",event);
                 },

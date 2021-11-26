@@ -3,6 +3,7 @@ import InspectorFactory from "../../src/InspectorFactory";
 import DexcaliburProject from "../../src/DexcaliburProject";
 import Event from "../../src/Event";
 import * as Log from "../../src/Logger";
+import ModelMethod from "../../src/ModelMethod";
 
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
@@ -19,17 +20,20 @@ var IssueInspector:InspectorFactory = new InspectorFactory({
         description: "Track and save security exception and device logs",
         require: ["Reflect"],
         hooks: [{
-            //when: HOOK.BEFORE,
-            method: [
-                "java.lang.SecurityException.<init>()<void>",	
-                "java.lang.SecurityException.<init>(<java.lang.String>)<void>",	
-                "java.lang.SecurityException.<init>(<java.lang.String><java.lang.Throwable>)<void>",	
-                "java.lang.SecurityException.<init>(<java.lang.Throwable>)<void>"
-            ],
+
+            search: {
+                type: ModelMethod.TYPE,
+                uid: [
+                    "java.lang.SecurityException.<init>()<void>",
+                    "java.lang.SecurityException.<init>(<java.lang.String>)<void>",
+                    "java.lang.SecurityException.<init>(<java.lang.String><java.lang.Throwable>)<void>",
+                    "java.lang.SecurityException.<init>(<java.lang.Throwable>)<void>"
+                ]
+            },
             onMatch: function(ctx:DexcaliburProject,event:Event):any{
                 ctx.getInspector("IssueObserver").emits("hook.except.security.new",event);
             },
-            interceptBefore: ` 
+            before: ` 
         
                     var msg="";    
                     if(isInstanceOf(arg0,"java.lang.String"))

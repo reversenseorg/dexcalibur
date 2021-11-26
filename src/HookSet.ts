@@ -1,9 +1,11 @@
 import HookPrologue from "./HookPrologue";
 import DexcaliburProject from "./DexcaliburProject";
 import Hook from "./Hook";
-import {HookManager} from "./HookManager";
+import {HookManager} from "./hook/HookManager";
 import * as Log from './Logger';
 import HookPrimitive from "./HookPrimitive";
+import HookStrategy from "./hook/HookStrategy";
+import {AbstractHook} from "./hook/AbstractHook";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -43,13 +45,15 @@ export default class HookSet
     intercepts:HookPrimitive[] = [];
     probes:HookPrimitive[] = [];
 
-    hooks:Hook[] = [];
+    hooks:AbstractHook[] = [];
 
     context:DexcaliburProject = null;
     enable:boolean = false;
     requires:string[] = [];
     color:any = null;
     share:any = null;
+
+    strats:HookStrategy[] = [];
 
     /**
      * Group of hook
@@ -273,13 +277,17 @@ export default class HookSet
         this.enable = false;
     }
 
+    addStrategy(pStrat:HookStrategy){
+        this.strats.push(pStrat);
+    }
+
     deploy(){
         let hookManager:HookManager = this.context.hook; //ctx.hook;
         let hook:Hook;
 
         // if the hookset is already deployed only not deployed hooks are generated
         if(this.enable === false){
-            hookManager.addRequires(this.requires);
+            hookManager.builder.addRequires(this.requires);
             //hookManager.addRequiresNode(this.requiresNode);
 
             if(this.prologue != null)
@@ -295,6 +303,41 @@ export default class HookSet
             );
                 */
 
+        this.strats.map( (vStrat)=>{
+
+            // generate hook templates
+            vStrat.run(this.context);
+
+            /*
+            vStrat.hooks.map( (vHook)=>{
+                if(this.hooks[vHook.getUID()] == null){
+
+                }else{
+                   // this.hooks[vHook.getUID()]
+                }
+
+
+                hookManager.hooks.push(this.hooks[i]);
+
+                if(hook.onMatch != null)
+                    hookManager.addMatchListener(hook.getID(),hook.onMatch);
+            });
+
+            /*
+            if(this.hooks[i] == null){
+                hook = this.probes[i].toProbe(this.context, this);
+
+                console.log("[PROBE][HOOK SET] Add : ",hook.name)
+                //this.probes[i] = hook;
+                this.hooks[i] = hook;
+                hookManager.hooks.push(this.hooks[i]);
+
+                if(hook.onMatch != null)
+                    hookManager.addMatchListener(hook.getID(),hook.onMatch);
+            }*/
+        });
+
+        /*
         for(let i in this.probes){
             if(this.hooks[i] == null){
                 hook = this.probes[i].toProbe(this.context, this);
@@ -326,7 +369,7 @@ export default class HookSet
                 if(hook.onMatch != null)
                     hookManager.addMatchListener(hook.getID(),hook.onMatch);
             }
-        }
+        }*/
 
         this.enable = true;
     }
@@ -336,7 +379,7 @@ export default class HookSet
      *
      * @param {Hook} pHook
      */
-    addHook(pHook: Hook):void{
+    addHook(pHook: AbstractHook):void{
         this.hooks.push(pHook);
     }
 

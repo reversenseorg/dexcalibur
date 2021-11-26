@@ -1,6 +1,6 @@
 import {DelegateWebApi} from "./DelegateWebApi";
 import {Device} from "../Device";
-import WebServer, {HTTP_CODE_ERROR, HTTP_CODE_SUCCESS} from "../WebServer";
+import WebServer from "../WebServer";
 import {Request, Response} from "express";
 import * as Log from "../Logger";
 import DexcaliburProject from "../DexcaliburProject";
@@ -10,11 +10,13 @@ import HookSession from "../HookSession";
 import FridaHelper from "../FridaHelper";
 import Hook from "../Hook";
 import Util from "../Utils";
-import {HookSetList} from "../HookManager";
+import {HookSetList} from "../hook/HookManager";
 import HookMessage from "../HookMessage";
 import ModelMethod from "../ModelMethod";
 import {ModelFunction} from "../ModelFunction";
 import ModelFile from "../ModelFile";
+import {AbstractHook} from "../hook/AbstractHook";
+import {NodeInternalType} from "../NodeInternalType";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 export const HOOK_WEB_API: DelegateWebApi = new DelegateWebApi();
@@ -807,7 +809,7 @@ HOOK_WEB_API.addAuthenticatedRoute(
 
 
                 let meth:ModelMethod|ModelFunction;
-                let probe:Hook;
+                let probe:AbstractHook;
                 let file:any = null;
                 let opts:any = {};
 
@@ -840,16 +842,21 @@ HOOK_WEB_API.addAuthenticatedRoute(
                     Logger.error("[API][PROBE::METHOD] Method or Function not found "+Util.decodeURI(Util.b64_decode(req.params.method)));
                     throw new Error("Method or Function not found");
                 }
-                if((meth instanceof ModelMethod) && (meth.name == "<clinit>")){
+                if((meth.__ === NodeInternalType.METHOD) && (meth.name == "<clinit>")){
                     throw new Error("Static blocks (<clinit>) cannot be hooked");
                 }
 
                 probe = project.hook.getProbe(meth);
                 if (probe == null) {
-                    probe = project.hook.probe(meth, opts);
+                    if(meth.__ === NodeInternalType.METHOD){
+                        probe = project.hook.createJavaMethodHook(meth as ModelMethod, null);
+                    }else{
+                        probe = project.hook.createNativeFunctionHook(meth as ModelFunction, opts);
+
+                    }
                 }
 
-                $.sendSuccess( res, { hookid: probe.getID(), enable: probe.isEnable() });
+                $.sendSuccess( res, { hookid: probe.getGUID(), enable: probe.isEnable() });
 
             }catch(err){
                 Logger.error("[API][HOOK] Hook messages cannot be retrieved. Cause : " + err.message + "\n\t" + err.stack);
@@ -881,7 +888,7 @@ HOOK_WEB_API.addAuthenticatedRoute(
                 // ========== LOGIC
 
                 let meth:ModelMethod|ModelFunction;
-                let hook:Hook;
+
 
                 if((req.body['_t']!=null) && (req.body['_t']=='func')){
                     meth = project.find.get.func(Util.decodeURI(Util.b64_decode(req.params.method)));
@@ -893,7 +900,7 @@ HOOK_WEB_API.addAuthenticatedRoute(
                     Logger.error("[API][PROBE::METHOD] Method or Function not found "+Util.decodeURI(Util.b64_decode(req.params.method)));
                     throw new Error("Method or Function not found");
                 }
-                if((meth instanceof ModelMethod) && (meth.name == "<clinit>")){
+                if((meth.__ === NodeInternalType.METHOD) && (meth.name == "<clinit>")){
                     throw new Error("Static blocks (<clinit>) cannot be hooked");
                 }
 
@@ -902,11 +909,11 @@ HOOK_WEB_API.addAuthenticatedRoute(
                     throw new Error("Invalid hook status");
                 }
 
-                hook = project.hook.getProbe(meth);
+                const hook:AbstractHook = project.hook.getProbe(meth);
                 if (status == "true")
                     hook.enable();
                 else
-                    hook.disable();
+                    hook.enable(false);
 
                 $.sendSuccess(res, { enable: hook.isEnable() });
 

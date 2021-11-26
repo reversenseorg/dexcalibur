@@ -22,7 +22,6 @@ import JavaMethodHook from "./JavaMethodHook";
 import NativeFunctionHook from "./NativeFunctionHook";
 import {NodeInternalType} from "../NodeInternalType";
 import {AbstractHook} from "./AbstractHook";
-import {JavaHookBuilder} from "./builders/JavaHookBuilder";
 import {HookBuilder} from "./builders/HookBuider";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
@@ -112,17 +111,24 @@ export class HookManager
         this.initBuiltInHookSets();
     }
 
+    /**
+     * To get key point manager
+     */
+    getKeyPointManager():KeyPointManager {
+        return this.kp_mgr;
+    }
+
     private initBuiltInHookSets(){
-        if(this.context.platform.isAndroid()){
+        //if(this.context.platform.isAndroid()){
             this.addHookSet(new HookSet({
                 id: "custom",
                 name: "Custom Java hooks",
                 context: this.context,
                 enable: true
             }));
-        }
+        //}
 
-        this.addHookSet(this.hooksets.customNative = new HookSet({
+        this.addHookSet(new HookSet({
             id: "customNative",
             name: "Custome native hooks",
             context: this.context,
@@ -579,14 +585,29 @@ export class HookManager
     /**
      * 
      */
-    getProbe(method:ModelMethod|ModelFunction):Hook{
+    getProbe(method:ModelMethod|ModelFunction):AbstractHook{
+        let h:AbstractHook[] = this.jhooks;
+        if(method.__ === NodeInternalType.FUNC){
+            h = this.nhooks;
+        }
+
+        for(let i in h){
+            if(h[i].getTarget().getUID() == method.getUID){
+                return h[i];
+            }
+        }
+        return null;
+    }
+
+    /*
+    getProbe(method:ModelMethod|ModelFunction):AbstractHook{
         for(let i in this.hooks){
             if(this.hooks[i].name == method.signature()){
                 return this.hooks[i];
             }
         }
         return null;
-    }
+    }*/
 
     /**
      * To get all hooks
@@ -651,22 +672,33 @@ export class HookManager
         return this._countHook(this.nhooks, pFun);
     }
 
+    createNativeFunctionHook( pFunc:ModelFunction, pOpts:any, pKeyPoint:KeyPoint = null):NativeFunctionHook {
+        return null;
+    }
+
     /**
+     *
      * To create a java method hook at a specific key point
      * @param pMethod
      * @param pKeyPoint
      */
-    createJavaMethodHook( pMethod:ModelMethod, pKeyPoint:KeyPoint):JavaMethodHook {
+    createJavaMethodHook( pMethod:ModelMethod, pKeyPoint:KeyPoint = null):JavaMethodHook {
         const hook:JavaMethodHook = new JavaMethodHook();
 
         hook.setGUID( md5(this.nextHookGUIDFor(pMethod)));
-        hook.setKeyPoint(pKeyPoint);
+
+        if(pKeyPoint===null){
+            hook.setKeyPoint(this.getKeyPointManager().getKeyPoint("core.java.app"));
+        }else{
+            hook.setKeyPoint(pKeyPoint);
+        }
+
         hook.setTarget(pMethod);
         hook.setManager(this);
 
         //hook.makeProbeFor(method);
         //this.builder.
-        hook.makeHookFor(method, pOptions);
+        //hook.makeHookFor(method, pOptions);
 
         //hook.setMethod(method);
         // method.setProbing(true);
@@ -694,6 +726,8 @@ export class HookManager
                 keypoint: pKeyPoint
             }
         });
+
+        return hook;
     }
 
 
@@ -794,7 +828,9 @@ export class HookManager
      *
      * @param method
      * @param pOptions
+     * @deprecated
      */
+    /*
     probe(method:ModelMethod|ModelFunction, pOptions:any={}):Hook{
         let hook:Hook = null;
         let hs:HookSet = null;
@@ -885,7 +921,7 @@ export class HookManager
             });
         }
         return hook;
-    }
+    }*/
 
 
 
@@ -1139,4 +1175,24 @@ export class HookManager
         return sess;
     }
 
+    /**
+     *
+     * @param pKeyPoint
+     */
+    getHookByKeyPoint( pKeyPoint:KeyPoint):AbstractHook[] {
+        const hk:AbstractHook[] = [];
+        const uid = pKeyPoint.getUID();
+
+        this.jhooks.map( (vHook:JavaMethodHook)=>{
+            if(vHook.getKeyPoint().getUID() == uid)
+                hk.push(vHook);
+        });
+
+        this.nhooks.map( (vHook:NativeFunctionHook)=>{
+            if(vHook.getKeyPoint().getUID() == uid)
+                hk.push(vHook);
+        });
+
+        return hk;
+    }
 }

@@ -286,9 +286,9 @@ export default class InspectorManager
 
         for(let i in this.locals){
             factory = (this.locals[i] as any).default;
-            if(factory.hasWebApi() && !factory.isWebApiReady()){
+            /*if(factory.hasWebApi() && !factory.isWebApiReady()){
                 factory.registerWebServer(ws);
-            }
+            }*/
             this.projects[uid][i] = factory.createInstance(pProject);
             pProject.bus.register(this.projects[uid][i]);
         }
@@ -336,7 +336,6 @@ export default class InspectorManager
             // cannot deployed not initiliazed inspectors
             return false;
         }
-
 
         for(let i in this.projects[uid]){
             if(this.projects[uid][i].isStartAt(pStep)){

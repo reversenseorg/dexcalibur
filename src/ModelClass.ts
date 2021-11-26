@@ -53,6 +53,8 @@ export default class ModelClass extends Savable implements IPersistent
     // the Simple name of the class (the last part of the FQCN)
     simpleName:string = null;
 
+    innerName?:string;
+
     // the FQDN of the package
     // the package
     package:ModelPackage|string = null;

@@ -6,6 +6,8 @@ import {DbDataType, DbKeyType} from "./persist/orm/DbAbstraction";
 import ModelField from "./ModelField";
 import ModelPackage from "./ModelPackage";
 import ModelClass from "./ModelClass";
+import KeyPoint from "./hook/KeyPoint";
+import {ValidationRule} from "./Validator";
 
 
 ModelMethod.TYPE.updateProperties([
@@ -101,6 +103,24 @@ ModelClass.TYPE.updateProperties([
                 .wakeUp( (x:NodePropertyState) => { return (x.p != null ? JSON.parse(x.p) : null )})
 
     ]).builder(ModelClass);
+
+
+KeyPoint.TYPE.updateProperties([
+        (new NodeProperty("name")).type(DbDataType.STRING).key(DbKeyType.PRIMARY),
+        (new NodeProperty("token")).type(DbDataType.STRING).def(null),
+        (new NodeProperty("description")).type(DbDataType.STRING).def(null),
+        (new NodeProperty("code")).type(DbDataType.STRING).def(null),
+        (new NodeProperty("generator"))
+            .type(DbDataType.STRING)
+            .sleep(x => { return (x!=null ? x.toString() : null) })
+            .wakeUp( x => { return null  }) // (x != null ? Function(x) : null)
+            .def(null),
+        (new NodeProperty("type")).type(DbDataType.NUMERIC),
+        (new NodeProperty("weight")).type(DbDataType.NUMERIC),
+        (new NodeProperty("parent")).volatile().single(KeyPoint.TYPE).def(null),
+        (new NodeProperty("children")).volatile().multiple(KeyPoint.TYPE),
+        (new NodeProperty("_c")).type(DbDataType.STRING).def(null)
+    ]).builder(KeyPoint);
 
 export class NodeSchema{
 

@@ -1,4 +1,4 @@
-const HOOK = require("../HookManager.js");
+const HOOK = require("../hook/HookManager.ts");
 
 
 var KeystoreScanner = new HOOK.HookSet({

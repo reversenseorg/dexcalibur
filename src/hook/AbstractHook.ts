@@ -1,9 +1,8 @@
 import KeyPoint from "./KeyPoint";
-import ModelMethod from "../ModelMethod";
-import HookStrategy from "./HookStrategy";
 import {HookManager} from "./HookManager";
 import HookTemplateFragment from "./HookTemplateFragment";
-import HookSet from "./HookSet";
+import HookSet from "../HookSet";
+import Util from "../Utils";
 
 
 export abstract class AbstractHook {
@@ -54,12 +53,29 @@ export abstract class AbstractHook {
 
     protected  _code:string = null;
 
+    protected  _vars:string = null;
+
+    public customName:string = null;
+
+    public color:string = null;
+
     private _time:number = null;
     /**
      *
      */
     public parentID:string = null;
 
+    public edited:boolean = false;
+
+    unloadOn(pKeyPoint:KeyPoint):AbstractHook {
+        this._unloadkp = pKeyPoint;
+        return this;
+    }
+
+    loadOn(pKeyPoint:KeyPoint):AbstractHook {
+        this._loadkp = pKeyPoint;
+        return this;
+    }
 
     setManager(pHM:HookManager){
         this._mgr = pHM;
@@ -167,7 +183,66 @@ export abstract class AbstractHook {
         return this._replace;
     }
 
+    isEnable():boolean {
+        return this._enabled;
+    }
+
     abstract  isTarget(pNode: any): boolean;
     abstract  getTarget(): any;
     abstract  build(pContext:any): any;
+
+
+    toJsonObject(){
+        let o:any = {};
+        o.id = this.getGUID();
+        o.parentID = this.parentID;
+        o.color = this.color;
+        o.customName = this.customName;
+        o.name = this.name;
+
+
+        o.enable = this._enabled;
+        o.script = Util.b64_encode(Util.encodeURI(this._code));
+        o.edited = this.edited;
+
+        /*if(this._varID != null){
+            o.variables = {
+                id: this._varID,
+                data: {}
+            };
+            //console.log(this.variables);
+            for(let i in this._vars){
+                o.variables.data[i] = this.variables[i].write();
+            }
+        }*/
+
+        o.code = {
+            //variable: (this.code.variable!=null)? UT.b64_decode(this.code.dynamic) : null,
+            before: [],
+            after: [],
+            replace: [],
+        };
+        return o;
+    }
+
+
+    updateWith(object:any, method:any){
+        this._uid = object.id;
+        this.parentID = object.parentID;
+        this.customName = object.customName;
+        this.name = object.name;
+        this._enabled = object.enable;
+
+
+        this._code = Util.decodeURI(Util.b64_decode(object.script));
+        this.edited = object.edited;
+        /*
+        this.code = {
+            dynamic: (object.code.dynamic!=null)? Util.b64_decode(object.code.dynamic) : null,
+            before: (object.code.before!=null)? Util.b64_decode(object.code.before) : null,
+            after: (object.code.after!=null)? Util.b64_decode(object.code.after) : null,
+            replace: (object.code.replace!=null)? Util.b64_decode(object.code.replace) : null,
+        };*/
+        return this;
+    }
 }

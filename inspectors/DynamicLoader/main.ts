@@ -60,12 +60,14 @@ export default new InspectorFactory({
         },
         hooks: [
             {
-                //when: HOOK.BEFORE,
-                method: "java.lang.Class.getMethod(<java.lang.String><java.lang.Class>[])<java.lang.reflect.Method>",
+                search: {
+                    type: ModelMethod.TYPE,
+                    uid: "java.lang.Class.getMethod(<java.lang.String><java.lang.Class>[])<java.lang.reflect.Method>"
+                },
                 onMatch: function (ctx:DexcaliburProject, event:Event) {
                     ctx.getInspector("DynamicLoader").emits("hook.reflect.method.get", event.data);
                 },
-                interceptReplace: `  
+                before: `  
                         var ret = meth_@@__METHDEF__@@.call(this, arg0, arg1);
                         var cls = Java.cast( ret.getDeclaringClass(), DEXC_MODULE.common.class.java.lang.Class);
                         
@@ -90,12 +92,14 @@ export default new InspectorFactory({
                         return ret;
                 `
             }, {
-                //when: HOOK.BEFORE,
-                method: "java.lang.Class.forName(<java.lang.String><boolean><java.lang.ClassLoader>)<java.lang.Class>",
+                search: {
+                    type: ModelMethod.TYPE,
+                    uid: "java.lang.Class.forName(<java.lang.String><boolean><java.lang.ClassLoader>)<java.lang.Class>"
+                },
                 onMatch: function (ctx:DexcaliburProject, event:Event):void {
                     ctx.getInspector("DynamicLoader").emits("hook.reflect.class.get", event.data);
                 },
-                interceptAfter: `  
+                after: `  
             
                         //var clscl = Java.cast( arg2.getClass(), DEXC_MODULE.common.class.java.lang.Class);
             
@@ -117,12 +121,14 @@ export default new InspectorFactory({
                         });
                 `
             }, {
-                //when: HOOK.BEFORE,
-                method: "dalvik.system.BaseDexClassLoader.findClass(<java.lang.String>)<java.lang.Class>",
+                search: {
+                    type: ModelMethod.TYPE,
+                    uid: "dalvik.system.BaseDexClassLoader.findClass(<java.lang.String>)<java.lang.Class>"
+                },
                 onMatch: function (ctx:DexcaliburProject, event:Event):void {
                     ctx.getInspector("DynamicLoader").emits("hook.dex.find.class", event.data);
                 },
-                interceptAfter: `   
+                after: `   
                         // get classname
                         var cls = Java.cast(ret, CLS.java.lang.Class);
                         // collect methods
@@ -144,13 +150,16 @@ export default new InspectorFactory({
                         });
                 `
             }, {
-                //when: HOOK.BEFORE,
-                method: "dalvik.system.DexClassLoader.<init>(<java.lang.String><java.lang.String><java.lang.String><java.lang.ClassLoader>)<void>",
+                search: {
+                  type: ModelMethod.TYPE,
+                  uid: "dalvik.system.DexClassLoader.<init>(<java.lang.String><java.lang.String><java.lang.String><java.lang.ClassLoader>)<void>"
+                },
+                //method: "dalvik.system.DexClassLoader.<init>(<java.lang.String><java.lang.String><java.lang.String><java.lang.ClassLoader>)<void>",
                 onMatch: function (ctx:DexcaliburProject, event:Event):void {
                     // the evvent data contains the bytecode of the Dex file        
                     ctx.getInspector("DynamicLoader").emits("hook.dex.classloader.new", event.data);
                 },
-                interceptBefore: `   
+                before: `   
                 
                         send({ 
                             id:"@@__HOOK_ID__@@", 
@@ -172,8 +181,10 @@ export default new InspectorFactory({
             
                 `
             }, {
-                //when: HOOK.BEFORE,
-                method: "dalvik.system.DexFile.loadDex(<java.lang.String><java.lang.String><int>)<dalvik.system.DexFile>",
+                search: {
+                    type: ModelMethod.TYPE,
+                    uid: "dalvik.system.DexFile.loadDex(<java.lang.String><java.lang.String><int>)<dalvik.system.DexFile>"
+                },
                 onMatch: function (ctx:DexcaliburProject, event:Event):void{
                     ctx.getInspector("DynamicLoader").emits("hook.dex.load", event.data);
                 },
@@ -233,15 +244,17 @@ export default new InspectorFactory({
                         
                 `
             }, {
-                //when: HOOK.BEFORE,
-                method: [
-                    "dalvik.system.DexFile.<init>(<java.io.File>)<void>",
-                    "dalvik.system.DexFile.<init>(<java.lang.String>)<void>",
-                ],
+                search: {
+                    type: ModelMethod.TYPE,
+                    uid: [
+                        "dalvik.system.DexFile.<init>(<java.io.File>)<void>",
+                        "dalvik.system.DexFile.<init>(<java.lang.String>)<void>",
+                    ]
+                },
                 onMatch: function (ctx:DexcaliburProject, event:Event):void {
                     ctx.getInspector("DynamicLoader").emits("hook.dex.new", event.data);
                 },
-                interceptBefore: `     
+                before: `     
                         if(isInstanceOf(arg0,"java.io.File"))
                             path = arg0.getAbsolutePath();
                         else

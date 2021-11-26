@@ -12,7 +12,7 @@
 import HookMessage from "./HookMessage";
 import Util from "./Utils";
 import * as Frida from 'frida';
-import {HookManager} from "./HookManager";
+import {HookManager} from "./hook/HookManager";
 import {WebsocketSession} from "./WebsocketSession";
 import * as Log from "./Logger";
 

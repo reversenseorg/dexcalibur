@@ -22,7 +22,7 @@ import DexcaliburEngine from "./DexcaliburEngine";
 import ProjectWorkspace from "./ProjectWorkspace";
 import * as Log from './Logger';
 import {TAG} from "./AnalysisHelper";
-import {HookManager} from "./HookManager";
+import {HookManager} from "./hook/HookManager";
 import Inspector, {INSPECTOR_TYPE} from "./Inspector";
 import InspectorManager from "./InspectorManager";
 import {DexcaliburVM} from "./DexcaliburVM";
@@ -53,6 +53,7 @@ import Util from "./Utils";
 import {Auditable} from "./Auditable";
 import {GlobalAccessControl} from "./user/acl/rbac/GlobalAccessContol";
 import DataScope from "./DataScope";
+import KeyPointManager from "./hook/KeyPointManager";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -150,6 +151,8 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
 
     // hook, deprecated here ?
     hook:HookManager = null;
+
+    kpmgr:KeyPointManager = null;
 
     // set the workspace API
     /**
@@ -294,6 +297,10 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
         return this.analCfg;
     }
 
+    getHookManager():HookManager {
+        return this.hook;
+    }
+
     getOwner():UserAccount {
        return this.owner;
     }
@@ -373,6 +380,11 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
     getSaveManger():any{
         return this.saveManager;
     }
+
+    getKeyPointManager():KeyPointManager{
+        return this.kpmgr;
+    }
+
     /**
      * To select the way to store the internal data
      *
@@ -527,7 +539,6 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
         // todo : move as inspector
         //this.packagePatcher = new PackagePatcher(this.uid, this.config);
 
-        this.hook = new HookManager(this, this.nofrida);
         //this.hook.refreshScanner();
 
 
@@ -542,10 +553,14 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
         // manifest / app analyzer
         // depend of application type
         if(this.platform != null){
-            if(this.platform.isAndroid())
+            if(this.platform.isAndroid()){
+                this.kpmgr = KeyPointManager.newForAndroid(this);
                 this.appAnalyzer = new AndroidAppAnalyzer(this);
-            else if(this.platform.isIOS())
+            }
+            else if(this.platform.isIOS()){
+                this.kpmgr = KeyPointManager.newForIOS(this);
                 this.appAnalyzer = new IosAppAnalyzer(this);
+            }
             /*else if(this.platform.isELF())
                 this.appAnalyzer = new BinaryAppAnalyzer(this);
             else
@@ -553,8 +568,12 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
 
 
         }else {
+            this.kpmgr = KeyPointManager.newForAndroid(this);
             this.appAnalyzer = new AndroidAppAnalyzer(this);
         }
+
+        this.hook = new HookManager(this, this.nofrida);
+
         // plugins
         im.createInspectorsFor(this);
         im.deployInspectors(this, INSPECTOR_TYPE.BOOT);

@@ -175,7 +175,7 @@ export class ModelFunction implements IPersistent {
     }
 
     getUID():string {
-        return this.__s;
+        return this.signature();
     }
 
     /**

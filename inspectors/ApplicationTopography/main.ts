@@ -1,4 +1,4 @@
-import * as HOOK from '../../src/HookManager';
+import * as HOOK from '../../src/hook/HookManager';
 
 import ClassAnalyzer from './src/ClassAnalyzer';
 import {IntentFilter} from "../../src/android/IntentFilter";

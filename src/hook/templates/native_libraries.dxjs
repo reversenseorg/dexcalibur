@@ -1,0 +1,7 @@
+DXC.HOOK["@@__LIB_NAME__@@"] = {
+    __mod: null,
+    __dynamic__:false,
+    __hook: {
+        @@__FUNC_HOOKS__@@
+    }
+}

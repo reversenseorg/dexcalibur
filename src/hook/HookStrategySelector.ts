@@ -18,7 +18,7 @@ export default class HookStrategySelector {
      */
     type:NodeType = null;
 
-    uid?:string = null;
+    uid?:any = null;
 
     req?:string = null;
 
@@ -34,6 +34,7 @@ export default class HookStrategySelector {
         if(pConfig!=null)
             for(let i in pConfig)
                 this[i] = pConfig[i];
+
     }
 
     static from(pData:any):HookStrategySelector {
@@ -42,6 +43,18 @@ export default class HookStrategySelector {
 
     isSearchRequest():boolean {
         return (this.req != null);
+    }
+
+    getUids():string[] {
+        if(this.isUidList()){
+            return this.uid;
+        }else{
+            return [this.uid];
+        }
+    }
+
+    isUidList():boolean {
+        return (this.uid != null && Array.isArray(this.uid));
     }
 
     isUidSelector():boolean {

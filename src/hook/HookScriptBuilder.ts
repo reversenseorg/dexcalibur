@@ -7,8 +7,14 @@ import KeyPointManager from "./KeyPointManager";
 import NativeFunctionHook from "./NativeFunctionHook";
 import {HookManager} from "./HookManager";
 import {HookScriptBuilderException} from "../errors/HookScriptBuilderException";
+import {AbstractHook} from "./AbstractHook";
+import * as Log from "../Logger";
 
+let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
+interface KeyPointTagMap {
+    [tag:string] :KeyPoint;
+}
 export default class HookScriptBuilder {
 
     private requires:string[] = [];
@@ -68,11 +74,10 @@ export default class HookScriptBuilder {
 
         let onEnter = "", onLeave = "";
 
-        if(pHook.is)
 
         let s = `
             Interceptor.attach(${this._writeNativeFuncLocation(pModuleVar,pHook)}, {
-                ${ }
+                
                 onEnter: function(args){
                     var s = args[0].readCString();
                     this.p = ((s==null || s.length==0) ? '<self>' : s);
@@ -95,10 +100,12 @@ export default class HookScriptBuilder {
         pFuncs.map( (pHook:NativeFunctionHook)=>{
             code += `
         "${pHook.getTarget().getSymbol()}":function (vMod){
-            ${this._writeNativeHook(pHook)}
+            ${this._writeNativeHook("vMod", pHook)}
         }${c<m ? ',':''}            
 `;
         })
+
+        return code;
     }
 
     private _writeNativeLib( pLibraryName:string, pFuncs:NativeFunctionHook[]):string {
@@ -163,4 +170,56 @@ DXC.HOOK["${pLibraryName}"] = {
         return req;
     }
 
+    /**
+     * To generate script for all keypoints with the same parent
+     *
+     * @param pKeyPoints
+     */
+    buildNestedScript( pKeyPoints:KeyPoint[] ){
+
+        const maps = {};
+        pKeyPoints.map( (vKP:KeyPoint)=>{
+
+            const hk = this._hm.getHookByKeyPoint( vKP);
+
+            let s = "";
+            hk.map( (vHook:AbstractHook) => {
+                s += "\n"+vHook.getGeneratedCode()+"\n";
+            });
+
+            const gen = vKP.generateCode(s);
+
+            if(vKP.hasChildrenKeyPoints()){
+                const m = this.buildNestedScript(vKP.getChildrenKeyPoints());
+                for(const token in m)  maps[token] = m[token];
+            }
+
+            maps[vKP.getToken()] = gen;
+        });
+
+        return maps;
+    }
+
+    build(){
+        let script = "";
+        const kpm:KeyPointManager  =  this._hm.getKeyPointManager();
+
+        const kps:KeyPoint[] = kpm.getTopLevelKeyPoints();
+
+        const tokens = this.buildNestedScript(kps);
+
+        kps.map( (vKP:KeyPoint) => {
+            script += `\n// =======================\n// KeyPoint : ${vKP.getName()} \n// ======================= \n ${vKP.getCodeCache()}\n"`;
+        });
+
+        for(const uid in tokens){
+            do{
+                script = script.replace(uid as string,tokens[uid] as string);
+            }while(script.indexOf(uid)>-1);
+        }
+
+        Logger.info("[HOOK BUILDER : output :] \n "+script);
+
+        return script;
+    }
 }

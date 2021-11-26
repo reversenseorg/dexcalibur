@@ -22,5 +22,7 @@ export enum NodeInternalType {
     USER_ACCOUNT,
     USER_SESSION,
     USER_SESSION_DATA,
-    DATA_SCOPE
+    DATA_SCOPE,
+    KEY_POINT,
+    HOOK_BUILDER_RULE
 }

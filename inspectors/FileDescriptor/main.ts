@@ -4,9 +4,10 @@
 
 import InspectorFactory from "../../src/InspectorFactory";
 import {INSPECTOR_TYPE} from "../../src/Inspector";
-import {HOOK_TYPE} from "../../src/HookManager";
+import {HOOK_TYPE} from "../../src/hook/HookManager";
 import DexcaliburProject from "../../src/DexcaliburProject";
 import Event from "../../src/Event";
+import ModelMethod from "../../src/ModelMethod";
 
 var FileDescriptorInspector:InspectorFactory = new InspectorFactory({
 
@@ -26,17 +27,19 @@ var FileDescriptorInspector:InspectorFactory = new InspectorFactory({
         require: ["Reflect","Common"],
         hooks: [
             {
-                when: HOOK_TYPE.BEFORE,
-                method: [
-                    "java.io.File.<init>(<java.io.File><java.lang.String>)<void>",
-                    "java.io.File.<init>(<java.lang.String>)<void>",
-                    "java.io.File.<init>(<java.lang.String><java.lang.String>)<void>",
-                    "java.io.File.<init>(<java.net.URI>)<void>"
-                ],
+                search: {
+                    type: ModelMethod.TYPE,
+                    uid: [
+                        "java.io.File.<init>(<java.io.File><java.lang.String>)<void>",
+                        "java.io.File.<init>(<java.lang.String>)<void>",
+                        "java.io.File.<init>(<java.lang.String><java.lang.String>)<void>",
+                        "java.io.File.<init>(<java.net.URI>)<void>"
+                    ]
+                },
                 onMatch: function(ctx:DexcaliburProject,event:Event):void{
                     ctx.getInspector("FileDescriptor").emits("hook.file.new",event);
                 },
-                interceptBefore: `
+                before: `
                 
                     var msg={ arg0:"<null>", arg1:"<null>" }; 
             

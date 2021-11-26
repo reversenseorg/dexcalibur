@@ -2,8 +2,9 @@ import * as Log from "../../src/Logger";
 import InspectorFactory from "../../src/InspectorFactory";
 import {INSPECTOR_TYPE} from "../../src/Inspector";
 import DexcaliburProject from "../../src/DexcaliburProject";
-import {HOOK_TYPE} from "../../src/HookManager";
+import {HOOK_TYPE} from "../../src/hook/HookManager";
 import Event from "../../src/Event";
+import ModelMethod from "../../src/ModelMethod";
 
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
@@ -36,17 +37,20 @@ var KeystoreInspector:InspectorFactory = new InspectorFactory({
         require: ["StringUtils"],
         hooks: [
             {
-                //when: HOOK.BEFORE,
-                method: [
-                    "java.security.KeyStore.getInstance(<java.lang.String>)<java.security.KeyStore>",
-                    "java.security.KeyStore.getInstance(<java.lang.String><java.lang.String>)<java.security.KeyStore>",
-                    "java.security.KeyStore.getInstance(<java.lang.String><java.security.Provider>)<java.security.KeyStore>"
-                ],
+
+                search: {
+                    type: ModelMethod.TYPE,
+                    uid:  [
+                        "java.security.KeyStore.getInstance(<java.lang.String>)<java.security.KeyStore>",
+                        "java.security.KeyStore.getInstance(<java.lang.String><java.lang.String>)<java.security.KeyStore>",
+                        "java.security.KeyStore.getInstance(<java.lang.String><java.security.Provider>)<java.security.KeyStore>"
+                    ]
+                },
                 onMatch: function(ctx:DexcaliburProject,event:Event):any{
                     console.log("[LISTENER][KeyStore.getInstance] embedded keystore detected",event.data);
                     ctx.getInspector("Keystore").emits("hook.keystore.getter.instance", event);
                 },
-                interceptBefore: `     
+                before: `     
                     
                         send({ 
                             id:"@@__HOOK_ID__@@", 
@@ -64,8 +68,12 @@ var KeystoreInspector:InspectorFactory = new InspectorFactory({
                         });
                 `
             },{
-                when: HOOK_TYPE.BEFORE,
-                method: [ "java.security.KeyStore.load(<java.io.InputStream><char>[])<void>"],
+                search: {
+                    type: ModelMethod.TYPE,
+                    uid:  [
+                        "java.security.KeyStore.load(<java.io.InputStream><char>[])<void>"
+                    ]
+                },
                 onMatch: function(ctx:DexcaliburProject,event:Event):any{
                
                     // follow match
@@ -85,7 +93,7 @@ var KeystoreInspector:InspectorFactory = new InspectorFactory({
                     ctx.getInspector("Keystore").emits("hook.keystore.load", event);
             
                 },
-                interceptBefore: `
+                before: `
                     
                     var pwd = Java.array('char',arguments[1]);
                     

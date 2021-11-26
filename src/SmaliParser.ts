@@ -270,12 +270,22 @@ export default class SmaliParser
         //this.obj.fqcn = this.obj.name;
         this.obj.package = javaFqcn.substr(0,end);
         this.obj.simpleName = javaFqcn.substr(end+1);
-        if(this.obj.name.indexOf(CONST.LEX.TOKEN.INNER_FQCN)>-1){
-            this.obj.simpleName = this.obj.simpleName.substr(this.obj.simpleName.indexOf(CONST.LEX.TOKEN.INNER_FQCN)+1);
+
+        /*if(this.obj.name.indexOf(CONST.LEX.TOKEN.INNER_FQCN)>-1){
+            //this.obj.simpleName = this.obj.simpleName.substr(this.obj.simpleName.indexOf(CONST.LEX.TOKEN.INNER_FQCN)+1);
+            this.obj.innerName = this.obj.simpleName.substr(this.obj.simpleName.indexOf(CONST.LEX.TOKEN.INNER_FQCN)+1);
             this.obj.innerClass = true;
             this.obj.enclosingClass = new ModelClassReference(
                 this.obj.name.substr(0,this.obj.name.indexOf(CONST.LEX.TOKEN.INNER_FQCN)));
-        } 
+        }*/
+
+        if(this.obj.name.indexOf(CONST.LEX.TOKEN.INNER_FQCN)>-1){
+            //this.obj.simpleName = this.obj.simpleName.substr(this.obj.simpleName.indexOf(CONST.LEX.TOKEN.INNER_FQCN)+1);
+            this.obj.innerName = this.obj.simpleName.substr(this.obj.simpleName.lastIndexOf(CONST.LEX.TOKEN.INNER_FQCN)+1);
+            this.obj.innerClass = true;
+            this.obj.enclosingClass = new ModelClassReference(
+                this.obj.name.substr(0,this.obj.name.lastIndexOf(CONST.LEX.TOKEN.INNER_FQCN)));
+        }
 
         //this.obj._hashcode = this.obj.hashCode();
 
@@ -315,12 +325,22 @@ export default class SmaliParser
         //this.obj.fqcn = this.obj.name;
         clz.package = javaFqcn.substr(0,end);
         clz.simpleName = javaFqcn.substr(end+1);
+
+
+        if(clz.name.indexOf(CONST.LEX.TOKEN.INNER_FQCN)>-1){
+            clz.innerName = clz.simpleName.substr(clz.simpleName.lastIndexOf(CONST.LEX.TOKEN.INNER_FQCN)+1);
+            clz.innerClass = true;
+            clz.enclosingClass = new ModelClassReference(
+                clz.name.substr(0,clz.name.lastIndexOf(CONST.LEX.TOKEN.INNER_FQCN)));
+        }
+
+        /*
         if(clz.name.indexOf(CONST.LEX.TOKEN.INNER_FQCN)>-1){
             clz.simpleName = clz.simpleName.substr(clz.simpleName.indexOf(CONST.LEX.TOKEN.INNER_FQCN)+1);
             clz.innerClass = true;
             clz.enclosingClass = new ModelClassReference(
                 clz.name.substr(0,clz.name.indexOf(CONST.LEX.TOKEN.INNER_FQCN)));
-        }
+        }*/
 
         //this.obj._hashcode = this.obj.hashCode();
 

@@ -5,9 +5,10 @@
 
 import {INSPECTOR_TYPE} from "../../src/Inspector";
 import InspectorFactory from "../../src/InspectorFactory";
-import {HOOK_TYPE} from "../../src/HookManager";
+import {HOOK_TYPE} from "../../src/hook/HookManager";
 import Event from "../../src/Event";
 import DexcaliburProject from "../../src/DexcaliburProject";
+import ModelMethod from "../../src/ModelMethod";
 
 var NativeLibraryInspector:InspectorFactory = new InspectorFactory({
 
@@ -24,15 +25,17 @@ var NativeLibraryInspector:InspectorFactory = new InspectorFactory({
             refs: {}
         },
         hooks: [{
-            when: HOOK_TYPE.BEFORE,
-            method: [
-                "java.lang.System.load(<java.lang.String>)<void>",
-                "java.lang.System.loadLibrary(<java.lang.String>)<void>",
-            ],
+            search: {
+                type: ModelMethod.TYPE,
+                uid: [
+                    "java.lang.System.load(<java.lang.String>)<void>",
+                    "java.lang.System.loadLibrary(<java.lang.String>)<void>",
+                ]
+            },
             onMatch: function(ctx:DexcaliburProject,event:Event):any{
                 ctx.getInspector("NativeLibrary").emits("hook.nativelib.inject",event);
             },
-            interceptReplace: `
+            replace: `
                     send({ 
                         id:"@@__HOOK_ID__@@", 
                         match: false, 
@@ -99,15 +102,17 @@ var NativeLibraryInspector:InspectorFactory = new InspectorFactory({
                 return null;
             `
             },{
-                when: HOOK_TYPE.BEFORE,
-                method: [
-                    "java.lang.Runtime.load(<java.lang.String>)<void>",
-                    "java.lang.Runtime.loadLibrary(<java.lang.String>)<void>"
-                ],
+                search: {
+                    type: ModelMethod.TYPE,
+                    uid: [
+                        "java.lang.Runtime.load(<java.lang.String>)<void>",
+                        "java.lang.Runtime.loadLibrary(<java.lang.String>)<void>"
+                    ]
+                },
                 onMatch: function(ctx:DexcaliburProject,event:Event):any{
                     ctx.getInspector("NativeLibrary").emits("hook.nativelib.load", event);
                 },
-                interceptBefore: `
+                before: `
                     send({ 
                         id:"@@__HOOK_ID__@@", 
                         match: true, 

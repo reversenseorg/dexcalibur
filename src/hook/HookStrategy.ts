@@ -9,13 +9,16 @@
  */
 import DexcaliburProject from "../DexcaliburProject";
 import HookStrategySelector from "./HookStrategySelector";
-import VM from "vm";
+import * as VM from "vm";
 import {FinderResult} from "../FinderResult";
 import HookTemplate from "./HookTemplate";
 import {IHook} from "./IHook";
 import JavaMethodHook from "./JavaMethodHook";
 import KeyPoint from "./KeyPoint";
 import HookTemplateFragment from "./HookTemplateFragment";
+import {AbstractHook} from "./AbstractHook";
+import ModelMethod from "../ModelMethod";
+import {ModelFunction} from "../ModelFunction";
 
 export default class HookStrategy {
 
@@ -25,7 +28,7 @@ export default class HookStrategy {
      */
     search:HookStrategySelector = null;
 
-    hooks:IHook[] = []
+    hooks:AbstractHook[] = []
 
     weight:number = -1;
 
@@ -36,6 +39,12 @@ export default class HookStrategy {
     on:string = null;
 
     onMatch:any = null;
+
+    loadOn:string = null;
+    unloadOn:string = null;
+
+    load_kp:KeyPoint = null;
+    unload_kp:KeyPoint = null;
 
     key_point:KeyPoint = null;
 
@@ -84,6 +93,22 @@ export default class HookStrategy {
         return o;
     }
 
+    hasLoadKeyPoint():boolean {
+        return (this.load_kp != null) || (this.loadOn != null);
+    }
+
+    hasUnloadKeyPoint():boolean {
+        return (this.unload_kp != null) || (this.unloadOn != null);
+    }
+
+    setUnloadKeyPoint( pKeyPoint:KeyPoint):void {
+        this.unload_kp = pKeyPoint;
+    }
+
+    setLoadKeyPoint( pKeyPoint:KeyPoint):void {
+        this.load_kp = pKeyPoint;
+    }
+
     setSearchEngineRequest(pRequest:string) {
         this.search.setRequest(pRequest);
     }
@@ -113,8 +138,8 @@ export default class HookStrategy {
                 }
 
                 h.appendBefore(this.before);
-                h.appendAfter(this.before);
-                h.appendBefore(this.before);
+                h.appendAfter(this.after);
+                h.appendReplace(this.replace);
 
                 h.build(pContext);
             })
@@ -130,17 +155,32 @@ export default class HookStrategy {
         }
     }
 
+    /**
+     * To run the strategy :  it research things to hook and create hook
+     * @param pContext
+     */
     run(pContext:DexcaliburProject){
         if(this.search.getRequest() != null){
             return this._runOnSEResults(pContext);
         }
 
-        let hk:any = null;
         if(this.search.isMethod()){
-            hk = new JavaMethodHook()
+            this.search.getUids().map( (x:string) => {
+                const m:ModelMethod = pContext.find.get.method(x)
+
+                if(m != null){
+                    pContext.getHookManager().createJavaMethodHook(m, this.load_kp).unloadOn(this.unload_kp);
+                }
+            });
         }
         else if(this.search.isNativeFunc()){
+            this.search.getUids().map( (x:string) => {
+                const m:ModelFunction = pContext.find.get.func(x)
 
+                if(m != null){
+                    pContext.getHookManager().createNativeFunctionHook(m, this.load_kp).unloadOn(this.unload_kp);
+                }
+            });
         }
         else if(this.search.isSystemCall()){
 

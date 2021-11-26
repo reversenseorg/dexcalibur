@@ -13,6 +13,7 @@ import {NodeInternalType} from "./NodeInternalType";
 import {NodeProperty, NodePropertyState} from "./persist/orm/NodeProperty";
 import {DbDataType, DbKeyType} from "./persist/orm/DbAbstraction";
 import {IPersistent} from "./persist/orm/IPersistent";
+import JavaMethodHook from "./hook/JavaMethodHook";
 
 
 /*interface LazyMethodReference {
@@ -48,6 +49,8 @@ export default class ModelMethod extends Savable implements IPersistent
     switches:any = []; // TODO
 
     probing:boolean = null;
+
+    hooks:JavaMethodHook[] = [];
 
     locals = 0;
     registers = 0;
@@ -107,12 +110,16 @@ export default class ModelMethod extends Savable implements IPersistent
         return this._.loc;
     }
 
+    getHooks():JavaMethodHook[] {
+        return this.hooks;
+    }
+
     addLocation(pLocation:ModelLocation):void {
         this._.loc = pLocation;
     }
 
     getUID():string {
-        return this.__signature__;
+        return this.signature();
     }
 
     callSignature2():string{
@@ -449,6 +456,10 @@ export default class ModelMethod extends Savable implements IPersistent
                     case "tags":
                     case "probing":
                         obj[i] = this[i];
+                        break;
+                    case "hooks":
+                        obj.hooks = [];
+                        this.hooks.map(x => obj.hooks.push( x.getGUID() ));
                         break;
                     case "instr":
                         // basic blocks data are not serialized

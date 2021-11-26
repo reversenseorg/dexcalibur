@@ -80,6 +80,8 @@ export class SqliteAPI {
                             vPPT.getNodeType()
                                 .getPrimaryKey()
                                 .getName()];
+                    }else{
+                        pars[name] = null;
                     }
                 }else{
                     if(vPPT.isSerialized()){

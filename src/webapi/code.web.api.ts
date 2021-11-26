@@ -69,7 +69,7 @@ CODE_WEB_API.addAuthenticatedRoute(
                     data = data.filter(filter);
                 }
 
-                if(filter2 != null && filter2.indexOf(':ds')>-1){
+                if(!req.query.hasOwnProperty('query') && filter2 != null && filter2.indexOf(':ds')>-1){
                     const scope:DataScope = project.dataAnalyzer.getScope('PKG')
                     // replace all by tagged 'executable by target platform'
                     //const d = project.find.file( 'type:ELF', scope);

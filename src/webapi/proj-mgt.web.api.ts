@@ -355,8 +355,29 @@ PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
 
             let $:WebServer = req.dxc.$;
             let user:UserAccount;
+            let project:DexcaliburProject;
 
             try {
+                if (req.dxc == null || !$.context.getUserService().verifySession(req.dxc.sess)) {
+                    throw AuthenticationException.AUTHENTICATION_FAILED();
+                }
+
+                if(req.body['project']!=null){
+                    project = $.context.getActiveProjects(req.dxc.sess.getUserAccount())[req.body['project']];
+                }else if(req.dxc.project != null){
+                    project = req.dxc.project;
+                }
+
+                if(project == null || !project.isReady()) {
+                    throw DexcaliburProjectException.NO_PROJECT_SPECIFIED();
+                }
+
+                user = (req.dxc.sess as UserSession).getUserAccount();
+
+                $.sendSuccess( res, {
+                    projects: $.context.deleteProject( user, project.getUID() )
+                });
+
                 if (req.dxc!=null && $.context.getUserService().verifySession(req.dxc.sess)) {
                     user = (req.dxc.sess as UserSession).getUserAccount();
 

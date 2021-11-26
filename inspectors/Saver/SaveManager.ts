@@ -6,6 +6,7 @@ import DexcaliburProject from "../../src/DexcaliburProject";
 import InMemoryConnector from "../../connectors/inmemory/adapter";
 import * as Log from "../../src/Logger";
 import {IDatabase} from "../../src/persist/orm/DbAbstraction";
+import KeyPointManager from "../../src/hook/KeyPointManager";
 
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
@@ -254,7 +255,8 @@ export default class SaveManager
                     
                     // if thereis not hook, call the hook manager and generate one
                     if(hook == null){
-                        hook = this.context.hook.probe(o);
+                        //hook = this.context.hook.probe(o);
+                        hook = this.context.hook.createJavaMethodHook(o);
                     }
 
                     // update the current hook with the imported data
