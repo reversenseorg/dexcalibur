@@ -165,6 +165,11 @@ export default class SqliteDbCollection implements IDbCollection
         }
         return o;
     }
+
+    getAsList():any[] {
+        return this.getAll(true);
+    }
+
     /**
      * To read all entries from the colelction and instanciate node
      *
@@ -278,7 +283,14 @@ export default class SqliteDbCollection implements IDbCollection
             }else{
                 const p={};
                 p[this._tpl.getPrimaryKey().getName()] = key;
-                return this._relink(this._s._execSelect(this._ps.selectSingle, p));
+
+                const o = this._s._execSelect(this._ps.selectSingle, p);
+                Logger.raw( (typeof o)+"  "+o);
+                if( o == null){
+                    return null;
+                }else{
+                    return this._relink(o);
+                }
             }
 
 

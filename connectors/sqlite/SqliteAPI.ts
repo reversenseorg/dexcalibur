@@ -232,7 +232,7 @@ export class SqliteAPI {
             s += "NOT NULL ";
         }
 
-        return `${vTPL.getName()} ${t} ${s}`;
+        return `"${vTPL.getName()}" ${t} ${s}`;
     }
 
     /**
@@ -250,7 +250,7 @@ export class SqliteAPI {
         pColumns.map( (vTPL, vI:number) => {
 
             if(vTPL.isCompositeKey()){
-                constraint += vTPL.getName()+',';
+                constraint += `"${vTPL.getName()}" ,`;;
             }
 
             if(vTPL.isNode()){
@@ -320,9 +320,9 @@ export class SqliteAPI {
                 else if(!ppt.isVolatile()){
                     col = this._declareColumnStmt(ppt);
                 }
-                col = " ADD COLUMN "+col;
+                col = ` ADD COLUMN "${col}"`;
             }else{
-                col = " DROP COLUMN "+ppt.getName();
+                col = ` DROP COLUMN "${ppt.getName()}"`;
             }
 
 
@@ -352,7 +352,7 @@ export class SqliteAPI {
             if(pProperties.length>0){
                 if(pProperties.indexOf(vPpt.getName())>-1){
                     i++
-                    s += vPpt.getName()+',';
+                    s += `"${vPpt.getName()}",`;
                     //p += '?,';
                     p += '@'+vPpt.getName()+','
                 }
@@ -360,7 +360,7 @@ export class SqliteAPI {
                 i++
                 //p += '?,' ;
                 p += '@'+vPpt.getName()+','
-                s += vPpt.getName()+',';
+                s +=  `"${vPpt.getName()}",`;
             }
         });
 
@@ -401,11 +401,11 @@ export class SqliteAPI {
             if(pProperties.length>0){
                 if(pProperties.indexOf(vPpt.getName())>-1){
                     i++
-                    s += vPpt.getName()+' = @'+vPpt.getName()+' ,';
+                    s += `"${vPpt.getName()}" = @${vPpt.getName()} ,`; // vPpt.getName()+' = @'+vPpt.getName()+' ,';
                 }
             }else{
                 i++
-                s += vPpt.getName()+' = @'+vPpt.getName()+' ,';
+                s +=  `"${vPpt.getName()}" = @${vPpt.getName()} ,`; // vPpt.getName()+' = @'+vPpt.getName()+' ,';
             }
         });
         s = s.slice(0,-1)+ ' WHERE '+this._generateWhereStmt(pNodeType);
@@ -429,10 +429,10 @@ export class SqliteAPI {
 
             if(pProperties.length>0){
                 if(pProperties.indexOf(vPpt.getName())>-1){
-                    s += vPpt.getName()+',';
+                    s +=  `"${vPpt.getName()}",`;
                 }
             }else{
-                s += vPpt.getName()+',';
+                s += `"${vPpt.getName()}",`;
             }
         });
 
@@ -468,7 +468,7 @@ export class SqliteAPI {
 
             for(let i=0; i<keys.length; i++ ){
                 if(i>0) s += ' AND '
-                s += keys[i].getName()+' = @'+keys[i].getName()+' ';
+                s += `"${keys[i].getName()}" = @${keys[i].getName()}`; //keys[i].getName()+' = @'+keys[i].getName()+' ';
             }
 
         }else{

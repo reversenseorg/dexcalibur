@@ -73,6 +73,13 @@ export default class SqliteDbIndex implements IDbIndex
         this.insert(ref);
     }
 
+
+
+    updateEntry(offset:number, ref:any) {
+        this.refs[offset] = ref;
+        this._s._execInsert(this._ps.updateSingle, ref);
+    }
+
     /**
      *
      * @param offset
@@ -97,6 +104,11 @@ export default class SqliteDbIndex implements IDbIndex
      */
     map(fn:any){
         this.getAll().map( (k,i) => fn(i,k));
+    }
+
+
+    getAsList():any[] {
+        return this.getAll();
     }
 
     /**
