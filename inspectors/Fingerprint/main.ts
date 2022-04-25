@@ -38,14 +38,19 @@ var FingerprintInspector:InspectorFactory = new InspectorFactory({
 
         hooks: [
             {
+                name: "read_DeviceID",
+                descr: "To detect read of device ID",
                 search: {
                     type: ModelMethod.TYPE,
                     uid: "android.telephony.TelephonyManager.getDeviceId()<java.lang.String>"
-                },
+                },/*
                 onMatch: function(ctx:DexcaliburProject,event:Event):any{
                     ctx.getInspector("Fingerprint").emits("fingerprint.device.getId",event);
-                },
-                interceptReplace: `  
+                },*/
+                preprocessor: ` 
+                    pCtx.getInspector("Fingerprint").emits("fingerprint.device.getId", pEvent.data);
+                `,
+                replace: `  
             
                         send({ 
                             id:"@@__HOOK_ID__@@", 

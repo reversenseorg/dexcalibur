@@ -37,7 +37,8 @@ var KeystoreInspector:InspectorFactory = new InspectorFactory({
         require: ["StringUtils"],
         hooks: [
             {
-
+                name: "instance",
+                descr: "To detect new keystore instance",
                 search: {
                     type: ModelMethod.TYPE,
                     uid:  [
@@ -46,10 +47,14 @@ var KeystoreInspector:InspectorFactory = new InspectorFactory({
                         "java.security.KeyStore.getInstance(<java.lang.String><java.security.Provider>)<java.security.KeyStore>"
                     ]
                 },
-                onMatch: function(ctx:DexcaliburProject,event:Event):any{
+                /*onMatch: function(ctx:DexcaliburProject,event:Event):any{
                     console.log("[LISTENER][KeyStore.getInstance] embedded keystore detected",event.data);
                     ctx.getInspector("Keystore").emits("hook.keystore.getter.instance", event);
-                },
+                },*/
+                preprocessor: ` 
+                    console.log("[LISTENER][KeyStore.getInstance] embedded keystore detected",pEvent.data);
+                    pCtx.getInspector("Keystore").emits("hook.keystore.getter.instance", pEvent.data);
+                `,
                 before: `     
                     
                         send({ 
@@ -68,31 +73,37 @@ var KeystoreInspector:InspectorFactory = new InspectorFactory({
                         });
                 `
             },{
+                name: "load",
+                descr: "To detect load of keystore",
                 search: {
                     type: ModelMethod.TYPE,
                     uid:  [
                         "java.security.KeyStore.load(<java.io.InputStream><char>[])<void>"
                     ]
                 },
+                preprocessor: ` 
+                    console.log("[LISTENER][KeyStore.load]",pEvent.data);
+                    pCtx.getInspector("Keystore").emits("hook.keystore.load", pEvent);
+                `,/*
                 onMatch: function(ctx:DexcaliburProject,event:Event):any{
                
                     // follow match
-                    /* ctx.hook.lastSession().addMatch(
+                    ctx.hook.lastSession().addMatch(
                         KeystoreInspector.hookSet.id,
                         "java.security.KeyStore.load(<java.io.InputStream><char>[])<void>"
-                    ); */
+                    );
                     
                     console.log("[LISTENER][Keystore.load]",event.data);
                     
                     // DBI events
-                    /*ctx.bus.send(new Event.Event({
+                    ctx.bus.send(new Event.Event({
                         type: "hook.keystore.load",
                         data: event.data
-                    }));*/
+                    }));
             
                     ctx.getInspector("Keystore").emits("hook.keystore.load", event);
             
-                },
+                },*/
                 before: `
                     
                     var pwd = Java.array('char',arguments[1]);

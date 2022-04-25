@@ -25,6 +25,8 @@ var NativeLibraryInspector:InspectorFactory = new InspectorFactory({
             refs: {}
         },
         hooks: [{
+            name: "load",
+            descr: "To detect loading of native library",
             search: {
                 type: ModelMethod.TYPE,
                 uid: [
@@ -32,9 +34,12 @@ var NativeLibraryInspector:InspectorFactory = new InspectorFactory({
                     "java.lang.System.loadLibrary(<java.lang.String>)<void>",
                 ]
             },
+            preprocessor: ` 
+                pCtx.getInspector("NativeLibrary").emits("hook.nativelib.inject",pEvent);
+            `,/*
             onMatch: function(ctx:DexcaliburProject,event:Event):any{
                 ctx.getInspector("NativeLibrary").emits("hook.nativelib.inject",event);
-            },
+            },*/
             replace: `
                     send({ 
                         id:"@@__HOOK_ID__@@", 
@@ -102,6 +107,8 @@ var NativeLibraryInspector:InspectorFactory = new InspectorFactory({
                 return null;
             `
             },{
+                name: "load2",
+                descr: "To detect loading of native library",
                 search: {
                     type: ModelMethod.TYPE,
                     uid: [
@@ -109,9 +116,12 @@ var NativeLibraryInspector:InspectorFactory = new InspectorFactory({
                         "java.lang.Runtime.loadLibrary(<java.lang.String>)<void>"
                     ]
                 },
-                onMatch: function(ctx:DexcaliburProject,event:Event):any{
+                /*onMatch: function(ctx:DexcaliburProject,event:Event):any{
                     ctx.getInspector("NativeLibrary").emits("hook.nativelib.load", event);
-                },
+                },*/
+                preprocessor: ` 
+                    pCtx.getInspector("NativeLibrary").emits("hook.nativelib.load",pEvent);
+                `,
                 before: `
                     send({ 
                         id:"@@__HOOK_ID__@@", 

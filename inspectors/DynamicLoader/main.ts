@@ -24,6 +24,7 @@ import {AuthenticationException} from "../../src/errors/AuthenticationException"
 import {DexcaliburProjectException} from "../../src/errors/DexcaliburProjectException";
 import {Rules} from "../BytecodeCleaner/src/Rules";
 import {DYNAMICLOADER_WEB_API} from "./src/main.web.api";
+import {AbstractHook} from "../../src/hook/AbstractHook";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -60,15 +61,20 @@ export default new InspectorFactory({
         },
         hooks: [
             {
+                name: "Reflection_getMethod",
+                descr: "To retrieve affected node when a method is retrieved from ReflectionAPI",
                 search: {
                     type: ModelMethod.TYPE,
                     uid: "java.lang.Class.getMethod(<java.lang.String><java.lang.Class>[])<java.lang.reflect.Method>"
                 },
-                onMatch: function (ctx:DexcaliburProject, event:Event) {
+                preprocessor: `
+                    pCtx.getInspector("DynamicLoader").emits("hook.reflect.method.get", pEvent.data);
+                `,
+                /*onMatch: function (ctx:DexcaliburProject, event:Event) {
                     ctx.getInspector("DynamicLoader").emits("hook.reflect.method.get", event.data);
-                },
-                before: `  
-                        var ret = meth_@@__METHDEF__@@.call(this, arg0, arg1);
+                },*/
+                after: `  
+                        // var ret = meth_@@__METHDEF__@@.call(this, arg0, arg1);
                         var cls = Java.cast( ret.getDeclaringClass(), DEXC_MODULE.common.class.java.lang.Class);
                         
                         send({ 
@@ -92,13 +98,18 @@ export default new InspectorFactory({
                         return ret;
                 `
             }, {
+                name: "Reflection_Class.forName",
+                descr: "To retrieve affected class when a class is retrieved from ReflectionAPI",
                 search: {
                     type: ModelMethod.TYPE,
                     uid: "java.lang.Class.forName(<java.lang.String><boolean><java.lang.ClassLoader>)<java.lang.Class>"
                 },
-                onMatch: function (ctx:DexcaliburProject, event:Event):void {
+                /*onMatch: function (ctx:DexcaliburProject, event:Event):void {
                     ctx.getInspector("DynamicLoader").emits("hook.reflect.class.get", event.data);
-                },
+                },*/
+                preprocessor: `
+                    pCtx.getInspector("DynamicLoader").emits("hook.reflect.class.get", pEvent.data);
+                `,
                 after: `  
             
                         //var clscl = Java.cast( arg2.getClass(), DEXC_MODULE.common.class.java.lang.Class);
@@ -121,13 +132,19 @@ export default new InspectorFactory({
                         });
                 `
             }, {
+                name: "DexCL_findClass",
+                descr: "To detect class found explicitely",
                 search: {
                     type: ModelMethod.TYPE,
-                    uid: "dalvik.system.BaseDexClassLoader.findClass(<java.lang.String>)<java.lang.Class>"
+                    uid: "dalvik.system.BaseDexClassLoader.findClass(<java.lang.String>)<java.lang.Class>",
+                    // success: { obfuscation: +2 }
                 },
-                onMatch: function (ctx:DexcaliburProject, event:Event):void {
+                preprocessor: `
+                    pCtx.getInspector("DynamicLoader").emits("hook.dex.find.class", pEvent.data);
+                `,
+               /* onMatch: function (ctx:DexcaliburProject, event:Event):void {
                     ctx.getInspector("DynamicLoader").emits("hook.dex.find.class", event.data);
-                },
+                },*/
                 after: `   
                         // get classname
                         var cls = Java.cast(ret, CLS.java.lang.Class);
@@ -150,15 +167,21 @@ export default new InspectorFactory({
                         });
                 `
             }, {
+                name: "DexCL_new",
+                descr: "To detect new Dex class loader",
                 search: {
                   type: ModelMethod.TYPE,
                   uid: "dalvik.system.DexClassLoader.<init>(<java.lang.String><java.lang.String><java.lang.String><java.lang.ClassLoader>)<void>"
                 },
-                //method: "dalvik.system.DexClassLoader.<init>(<java.lang.String><java.lang.String><java.lang.String><java.lang.ClassLoader>)<void>",
+                /* //method: "dalvik.system.DexClassLoader.<init>(<java.lang.String><java.lang.String><java.lang.String><java.lang.ClassLoader>)<void>",
                 onMatch: function (ctx:DexcaliburProject, event:Event):void {
                     // the evvent data contains the bytecode of the Dex file        
                     ctx.getInspector("DynamicLoader").emits("hook.dex.classloader.new", event.data);
-                },
+                },*/
+                preprocessor: `
+                    // the event data contains the bytecode of the Dex file       
+                    pCtx.getInspector("DynamicLoader").emits("hook.dex.classloader.new", pEvent.data);
+                `,
                 before: `   
                 
                         send({ 
@@ -181,17 +204,23 @@ export default new InspectorFactory({
             
                 `
             }, {
+                name: "Dex_loadExternal",
+                descr: "To detect loading of external dex file",
                 search: {
                     type: ModelMethod.TYPE,
                     uid: "dalvik.system.DexFile.loadDex(<java.lang.String><java.lang.String><int>)<dalvik.system.DexFile>"
                 },
+                /*
                 onMatch: function (ctx:DexcaliburProject, event:Event):void{
                     ctx.getInspector("DynamicLoader").emits("hook.dex.load", event.data);
-                },
+                },*/
+                preprocessor: ` 
+                    pCtx.getInspector("DynamicLoader").emits("hook.dex.load", pEvent.data);
+                `,
                 variables: {
                     names: new HookVariableArray([])
                 },
-                interceptBefore: `
+                before: `
                 
                         var doCondition = true;
             
@@ -244,16 +273,22 @@ export default new InspectorFactory({
                         
                 `
             }, {
+                name: "Dex_new",
+                descr: "To detect new Dex file created explicitely",
                 search: {
                     type: ModelMethod.TYPE,
                     uid: [
                         "dalvik.system.DexFile.<init>(<java.io.File>)<void>",
                         "dalvik.system.DexFile.<init>(<java.lang.String>)<void>",
                     ]
-                },
+                },/*
                 onMatch: function (ctx:DexcaliburProject, event:Event):void {
                     ctx.getInspector("DynamicLoader").emits("hook.dex.new", event.data);
                 },
+*/
+                preprocessor: ` 
+                    pCtx.getInspector("DynamicLoader").emits("hook.dex.new", pEvent.data);
+                `,
                 before: `     
                         if(isInstanceOf(arg0,"java.io.File"))
                             path = arg0.getAbsolutePath();
@@ -618,7 +653,7 @@ export default new InspectorFactory({
             });
 
             // remove already hooked methods from methods to hook
-            let hooks:Hook[] = ctx.hook.getHooks();
+            let hooks:AbstractHook[] = ctx.hook.getHooks();
             let validMethods:ModelMethod[] = [];
 
             // TODO : instead of skipping hooks, it should merge hooks

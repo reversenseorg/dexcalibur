@@ -27,6 +27,8 @@ var FileDescriptorInspector:InspectorFactory = new InspectorFactory({
         require: ["Reflect","Common"],
         hooks: [
             {
+                name: "File_new",
+                descr: "To detect new File instance",
                 search: {
                     type: ModelMethod.TYPE,
                     uid: [
@@ -36,9 +38,12 @@ var FileDescriptorInspector:InspectorFactory = new InspectorFactory({
                         "java.io.File.<init>(<java.net.URI>)<void>"
                     ]
                 },
-                onMatch: function(ctx:DexcaliburProject,event:Event):void{
+                /*onMatch: function(ctx:DexcaliburProject,event:Event):void{
                     ctx.getInspector("FileDescriptor").emits("hook.file.new",event);
-                },
+                },*/
+                preprocessor: ` 
+                    pCtx.getInspector("FileDescriptor").emits("hook.file.new", pEvent.data);
+                `,
                 before: `
                 
                     var msg={ arg0:"<null>", arg1:"<null>" }; 

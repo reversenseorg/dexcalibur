@@ -21,6 +21,8 @@ var IssueInspector:InspectorFactory = new InspectorFactory({
         require: ["Reflect"],
         hooks: [{
 
+            name: "SecurityException_new",
+            descr: "To detect new security exception",
             search: {
                 type: ModelMethod.TYPE,
                 uid: [
@@ -29,10 +31,13 @@ var IssueInspector:InspectorFactory = new InspectorFactory({
                     "java.lang.SecurityException.<init>(<java.lang.String><java.lang.Throwable>)<void>",
                     "java.lang.SecurityException.<init>(<java.lang.Throwable>)<void>"
                 ]
-            },
+            },/*
             onMatch: function(ctx:DexcaliburProject,event:Event):any{
                 ctx.getInspector("IssueObserver").emits("hook.except.security.new",event);
-            },
+            },*/
+            preprocessor: ` 
+                pCtx.getInspector("IssueObserver").emits("hook.except.security.new", pEvent.data);
+            `,
             before: ` 
         
                     var msg="";    
