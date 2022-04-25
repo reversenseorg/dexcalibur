@@ -60,6 +60,9 @@ export enum DbSetType {
 export interface IDbSet {
     map(fn:any):void;
 
+
+    getAsList():any[];
+
     getAll():any;
 
     isCollection():boolean;
@@ -86,6 +89,8 @@ export interface IDbIndex extends IDbSet {
     hasEntry(value:any):boolean;
 
     removeEntry(key: any):boolean;
+
+    updateEntry(key:any, ref:any);
 }
 
 export interface DbSetMap {
@@ -104,6 +109,8 @@ export interface IDbCollection extends IDbSet
     setEntry(key:string,value:any);
 
     addEntry(key:string,value:any);
+
+    updateEntry(value:any);
 
     getEntry(key:string):any;
 

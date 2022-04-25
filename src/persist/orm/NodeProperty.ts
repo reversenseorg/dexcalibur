@@ -26,6 +26,12 @@ export class NodeProperty {
     _v:boolean = false;
     _u:boolean = false;
     _m:boolean = false;
+    /**
+     * Foreign Key name into target node
+     * @type {string}
+     * @field
+     */
+    _m_kn:string = null;
     _src:any = null;
 
     /**
@@ -224,8 +230,9 @@ export class NodeProperty {
         return this;
     }
 
-    multiple(pNodeType:NodeType):NodeProperty {
+    multiple(pNodeType:NodeType, pFkName:string = null):NodeProperty {
         this._m = true;
+        this._m_kn = pFkName;
         this._n = pNodeType;
 
         if(pNodeType.hasSource())
@@ -236,6 +243,10 @@ export class NodeProperty {
 
     isMultiple():boolean {
         return this._m;
+    }
+
+    getTargetFKName():string {
+        return this._m_kn;
     }
 
 

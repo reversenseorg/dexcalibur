@@ -5,6 +5,7 @@ import {DbKeyType} from "./DbAbstraction";
 import * as Log from "../../Logger";
 import {IncomingValue, SanitizedValue, UnsafeValue} from "../../security/SanitizedValue";
 import {GlobalSettingsException} from "../../errors/GlobalSettingsException";
+import {SqliteException} from "../../../connectors/sqlite/SqliteException";
 
 
 export interface NodePropertyMap {
@@ -138,6 +139,29 @@ export class NodeType {
     }
 
     /**
+     * To clone the current primary key in order to inject
+     * it into another node type as foreign key
+     *
+     * @param {DbKeyType} pKeyType
+     * @param {number} pOffset Offset if foreign key is used as composite key into target node. Default : 0
+     * @param {string} pName Value to override default foreign key name. Default is [NodeType.name][NodeProperty.name]
+     * @return {NodeProperty} The freshly cloned property
+     */
+    asForeignKey( pKeyType:DbKeyType, pOffset =0, pName:string = null):NodeProperty{
+        const pk=this.getPrimaryKey();
+        const fk={
+            _name:pName!=null ? pName : this.getName()+pk.getName()
+        };
+
+        if(!pk.isCompositeKey()){
+            return this.getPrimaryKey().clone(fk).key(pKeyType, pOffset)
+        }else {
+            throw new SqliteException("Injection of composite foreign keys are not supported : node=" + this.getName());
+        }
+    }
+
+
+    /**
      * To update the properties of the node template
      *
      * @param {NodeProperty[]} pCols A list of properties to insert into this template
@@ -179,14 +203,21 @@ export class NodeType {
 
                 if(vPpt.isMultiple()){
                     this._m.push(vPpt);
-                    const fk = this.getName()+this.getPrimaryKey().getName();
+                    let fk = vPpt.getTargetFKName();
+                    if(fk == null)
+                        fk = this.getName()+this.getPrimaryKey().getName();
+
+
                     if(!vPpt.getNodeType().hasProperty(fk)){
+                        // n:n => create join table
+                        // temporary, store serialized obj
                         Logger.raw(JSON.stringify(this.getPrimaryKey().clone({ _name:fk }).key(DbKeyType.COMPOSITE, 0)));
                         vPpt.getNodeType().updateProperties([
                             //this.getPrimaryKey().clone({ _name:this.getName() }).key(DbKeyType.COMPOSITE, 0)
                             this.getPrimaryKey().clone({ _name:fk }).key(DbKeyType.COMPOSITE, 0)
                         ]);
                     }
+                    // n:1, target node must have
                     /*
                     if(!vPpt.getNodeType().hasProperty(this.getName())){
                         vPpt.getNodeType().updateProperties([
@@ -198,6 +229,8 @@ export class NodeType {
             }
 
         });
+
+        Logger.raw(this.getName()+' => '+Object.keys(this._ppts).join(','));
 
         if(!pOpts.init){
             this.trigger('change', pCols);
