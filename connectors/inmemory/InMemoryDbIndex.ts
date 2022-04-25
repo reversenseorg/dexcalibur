@@ -60,6 +60,16 @@ export default class InMemoryDbIndex implements IDbIndex
     }
 
     /**
+     *
+     * @param offset
+     * @param ref
+     */
+    updateEntry(offset:number, ref:any) {
+        this.refs[offset] = ref;
+    }
+
+
+    /**
      * To execute a function for each entry
      *
      * @param {function} fn Callback
@@ -91,6 +101,12 @@ export default class InMemoryDbIndex implements IDbIndex
     getAll():any{
         return this.refs;
     }
+
+
+    getAsList():any[] {
+        return this.getAll();
+    }
+
 
     isCollection():boolean{
         return false;

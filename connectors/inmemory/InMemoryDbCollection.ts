@@ -33,8 +33,19 @@ export default class InMemoryDbCollection implements IDbCollection
         this.setEntry(key,value);
     }
 
+    updateEntry(value:any):any{
+        throw new Error('Update : Operation not supported.');
+    }
+
+
+
     getEntry(key:string):any{
         return this.values[key];
+    }
+
+
+    getAsList():any[] {
+        return Object.values(this.values);
     }
 
     getAll():any{
