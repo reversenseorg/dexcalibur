@@ -14,6 +14,7 @@ import {NodeProperty, NodePropertyState} from "./persist/orm/NodeProperty";
 import {DbDataType, DbKeyType} from "./persist/orm/DbAbstraction";
 import {IPersistent} from "./persist/orm/IPersistent";
 import JavaMethodHook from "./hook/JavaMethodHook";
+import {INode} from "./INode";
 
 
 /*interface LazyMethodReference {
@@ -32,7 +33,7 @@ import JavaMethodHook from "./hook/JavaMethodHook";
  *
  * @class
  */
-export default class ModelMethod extends Savable implements IPersistent
+export default class ModelMethod extends Savable implements INode,IPersistent
 {
     static TYPE:NodeType = new NodeType( "code_method", NodeInternalType.METHOD, []);
 
@@ -612,26 +613,26 @@ export default class ModelMethod extends Savable implements IPersistent
         return this.ret;
     }
    setArgsType(argsType:any){
-    this.args = argsType;
-}
+        this.args = argsType;
+    }
    getArgsType():(ModelObjectType|ModelBasicType)[]{
         return this.args;
     }
    hasArgs():boolean{
-    return this.args.length > 0;
-}
+        return this.args.length > 0;
+    }
    addTag(tag:string){
-    this.tags.push(tag);
-}
+        this.tags.push(tag);
+    }
    hasTag(tagName:string):boolean{
-    return (this.tags.indexOf(tagName) > -1);
-}
+        return (this.tags.indexOf(tagName) > -1);
+    }
    getTags():string[]{
-    return this.tags;
-}
+        return this.tags;
+    }
    getCallers():string[]|ModelMethod[]{
-    return this._callers;
-}
+        return this._callers;
+    }
    addCaller(meth:ModelMethod){
         let f:boolean = false;
         const m = meth.signature();

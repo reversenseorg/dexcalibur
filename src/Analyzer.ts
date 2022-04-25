@@ -31,8 +31,8 @@ import NativeAnalyzer from "./NativeAnalyzer";
 import DataScope from "./DataScope";
 import {ModelLocation} from "./ModelLocation";
 import {Workflow} from "./Workflow";
-import StatusMessage from "./StatusMessage";
 import {IDatabase, IDbIndex, IDbSet} from "./persist/orm/DbAbstraction";
+import {NodeInternalType} from "./NodeInternalType";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -582,6 +582,38 @@ export default class Analyzer
         this.finder = pProject.find; //pSearchAPI; // pSearchAPI
         this.encoding = pEncoding;
         this.projectionEngines = {};
+    }
+
+    /**
+     * To search a node by its type and UID value
+     *
+     * @param pNodeType {NodeInternalType}
+     * @param pUID {string}
+     * @method
+     */
+    searchNode( pNodeType:NodeInternalType, pUID:string):any {
+        switch(pNodeType){
+            case NodeInternalType.FILE:
+                return this.finder.byID().file(pUID).get(0);
+                break;
+            case NodeInternalType.METHOD:
+                return this.finder.byID().method(pUID).get(0);
+                break;
+            case NodeInternalType.CLASS:
+                return this.finder.byID().class(pUID).get(0);
+                break;
+            case NodeInternalType.FIELD:
+                return this.finder.byID().field(pUID).get(0);
+                break;
+            case NodeInternalType.PACKAGE:
+                return this.finder.byID().package(pUID).get(0);
+                break;
+            case NodeInternalType.FUNC:
+                return this.finder.byID().func(pUID).get(0);
+                break;
+            default:
+                return null;
+        }
     }
 
     setWorkflow(pWf:Workflow):void{

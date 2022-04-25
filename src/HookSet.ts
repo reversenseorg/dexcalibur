@@ -6,6 +6,8 @@ import * as Log from './Logger';
 import HookPrimitive from "./HookPrimitive";
 import HookStrategy from "./hook/HookStrategy";
 import {AbstractHook} from "./hook/AbstractHook";
+import {NodeType} from "./persist/orm/NodeType";
+import {NodeInternalType} from "./NodeInternalType";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -15,11 +17,15 @@ let Logger:Log.Logger = Log.newLogger() as Log.Logger;
  */
 export default class HookSet
 {
+    static TYPE:NodeType = new NodeType( "hook_set", NodeInternalType.HOOK_SET, []);
+
+    __:NodeInternalType = NodeInternalType.HOOK_SET;
+
     id:string = null;
     name:string = null;
     description:string = null;
+    category:string = null;
     prologue:HookPrologue = null;
-
     native:boolean = false;
 
     /**
@@ -50,8 +56,8 @@ export default class HookSet
     context:DexcaliburProject = null;
     enable:boolean = false;
     requires:string[] = [];
-    color:any = null;
-    share:any = null;
+    color:any = {};
+    share:any = {};
 
     strats:HookStrategy[] = [];
 
@@ -84,7 +90,8 @@ export default class HookSet
             this.prologue.context = this.context;
 
         // register the hookset to the HookManager
-        this.context.hook.addHookSet(this);
+        //this.context.hook.addHookSet(this);
+        this.context.hook.registerHookSet(this);
 
         return this;
     }

@@ -5,6 +5,8 @@ import {AndroidSyscalls} from "./android/AndroidSyscalls";
 import DexcaliburProject from "./DexcaliburProject";
 import DexcaliburDVM from "./android/DexcaliburDVM";
 import {DexcaliburVM} from "./DexcaliburVM";
+import * as Log from "./Logger";
+let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
 const PLATFORM_RE:RegExp = new RegExp('(?<source>[^_.]+)_(?<name>[^_.]+)_(?<version>[^_.]+)_(?<vendor>[^_.]+)\.(?<format>[^.]+)');
 const LOCAL_PLATFORM_RE:RegExp = new RegExp('(?<source>[^_.]+)_(?<name>[^_.]+)_(?<version>[^_.]+)_(?<vendor>[^_.]+)');
@@ -53,10 +55,16 @@ export default class Platform
 
     }
 
+    /**
+     * To create a platform from a name
+     *
+     * @param {string} pName Local platform name
+     */
     static fromLocalName( pName:string):Platform{
-        let matches:any = LOCAL_PLATFORM_RE.exec(pName);
+        // parse platform name
+        const matches:any = LOCAL_PLATFORM_RE.exec(pName);
 
-        if(matches[0] === pName){
+        if(matches != null && matches[0] === pName){
             return new Platform({
                 source: matches.groups.source,
                 name: matches.groups.name,
@@ -64,6 +72,7 @@ export default class Platform
                 vendor: matches.groups.vendor
             });
         }else{
+            Logger.raw(`invalid platform name = ${pName}`);
             return null;
         }
     }

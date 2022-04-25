@@ -68,6 +68,7 @@ import {USER_WEB_API} from "./webapi/user.web.api";
 import {HOOK_WEB_API} from "./webapi/hook.web.api";
 import {INSPECTOR_WEB_API} from "./webapi/inspectors.web.api";
 import {KEYPOINT_WEB_API} from "./webapi/keypoint.web.api";
+import {SCRIPT_WEB_API} from "./webapi/script.web.api";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -1389,6 +1390,7 @@ export default class WebServer
         this.app.use('/api/project', PROJECT_WEB_API.getRouter());
         this.app.use('/api/code', CODE_WEB_API.getRouter());
         this.app.use('/api/android', ANDROID_WEB_API.getRouter());
+        this.app.use('/api/scripts', SCRIPT_WEB_API.getRouter());
         this.app.use('/api/native', NATIVE_WEB_API.getRouter());
         this.app.use('/api/file', FS_WEB_API.getRouter());
         this.app.use('/api/user', USER_WEB_API.getRouter());

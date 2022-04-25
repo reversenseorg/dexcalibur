@@ -47,7 +47,7 @@ export class SystemProfile implements  Profile
             new RegExp('^.*\.dalvik\.'),
         ];
 
-        for(let i:number=0; i<patterns.length; i++){
+        for(let i=0; i<patterns.length; i++){
             if(patterns[i].test(pData)){
                 return true;
             }
@@ -81,7 +81,7 @@ export class SystemProfile implements  Profile
      *
      * @method
      */
-    getABIlist(pAddrSize:number=-1):ABI[]{
+    getABIlist(pAddrSize=-1):ABI[]{
         let list:string = null;
         if(pAddrSize===32){
             list = this.prop['ro.product.cpu.abi'];
@@ -112,7 +112,7 @@ export class SystemProfile implements  Profile
      * @method     
      */
     getArchitecture():string{
-        let abi:string = this.prop['ro.product.cpu.abi'];
+        const abi:string = this.prop['ro.product.cpu.abi'];
         if(abi == null){
             throw new Error('[DEVICE PROFILE] Architecture of targeted device cannot be retrieved through CPU ABI.')
         }
@@ -128,15 +128,15 @@ export class SystemProfile implements  Profile
     }
 
     static fromJsonObject( pJson:any):SystemProfile{
-        let o:SystemProfile = new SystemProfile();
-        for(let i in pJson)
+        const o:SystemProfile = new SystemProfile();
+        for(const i in pJson)
             o[i] = pJson[i];
         return o;
     }
 
     toJsonObject():any{
-        let o:any = {};
-        for(let i in this){
+        const o:any = {};
+        for(const i in this){
             o[i] = this[i];
         }
         return o;
@@ -165,7 +165,7 @@ export class BuildProfile implements Profile
             new RegExp('^.*\.dalvik\.'),
         ];
 
-        for(let i:number=0; i<patterns.length; i++){
+        for(let i=0; i<patterns.length; i++){
             if(patterns[i].test(pData)){
                 return true;
             }
@@ -184,8 +184,8 @@ export class BuildProfile implements Profile
 
 
     toJsonObject():any{
-        let o:any = {};
-        for(let i in this){
+        const o:any = {};
+        for(const i in this){
             o[i] = this[i];
         }
         return o;
@@ -215,7 +215,7 @@ export class NetworkProfile implements Profile
             new RegExp('^.*\.wifi\.'),            
         ];
 
-        for(let i:number=0; i<patterns.length; i++){
+        for(let i=0; i<patterns.length; i++){
             if(patterns[i].test(pData)){
                 return true;
             }
@@ -239,8 +239,8 @@ export class NetworkProfile implements Profile
      * @static
      */
     static fromJsonObject( pJson):NetworkProfile{
-        let o:NetworkProfile = new NetworkProfile();
-        for(let i in pJson)
+        const o:NetworkProfile = new NetworkProfile();
+        for(const i in pJson)
             o[i] = pJson[i];
         return o;
     }
@@ -249,8 +249,8 @@ export class NetworkProfile implements Profile
      * @method
      */
     toJsonObject():any{
-        let o:any = {};
-        for(let i in this){
+        const o:any = {};
+        for(const i in this){
             o[i] = this[i];
         }
         return o;
@@ -288,7 +288,7 @@ export default class DeviceProfile
             network: new NetworkProfile()
         }
 
-        for(let i in pOptions){
+        for(const i in pOptions){
             this[i] = pOptions[i];
         }
     }
@@ -325,10 +325,10 @@ export default class DeviceProfile
      * @method
      */
     addProperty( pName:string, pValue:any):boolean{
-        let profiled:boolean = false;
+        let profiled = false;
 
         this.sys_prop[pName] = pValue;
-        for(let i in this.profiles){
+        for(const i in this.profiles){
             if(this.profiles[i].is(pName)){
                 this.profiles[i].setProperty(pName, this.sys_prop[pName]);
                 profiled = true;
@@ -358,12 +358,12 @@ export default class DeviceProfile
      * @static
      */
     static fromJsonObject( pJson):DeviceProfile{
-        let o:DeviceProfile = new DeviceProfile();
+        const o:DeviceProfile = new DeviceProfile();
 
-        for(let i in pJson){
+        for(const i in pJson){
             if(i == "profiles"){
                 o.profiles = {};
-                for(let k in pJson[i]){
+                for(const k in pJson[i]){
                     switch(k){
                         case 'system':
                             o.profiles.system = SystemProfile.fromJsonObject(pJson[i][k]);
@@ -381,14 +381,14 @@ export default class DeviceProfile
      * @method
      */
     toJsonObject( pExcludeList:any={}):any{
-        let o:any = {};
+        const o:any = {};
 
-        for(let i in this){
+        for(const i in this){
             if(pExcludeList[i] === true) continue;
             
             if(i == "profiles"){
                 o.profiles = {};
-                for(let k in this.profiles){
+                for(const k in this.profiles){
                     o.profiles[k] = this.profiles[k].toJsonObject();
                 }
             }else

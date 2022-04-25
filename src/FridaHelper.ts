@@ -66,7 +66,7 @@ export default class FridaHelper extends External.ExternalHelper
      */
     static ATTACH_BY_PID = 0x3;
 
-    static instances:FridaInstanceMap;
+    static instances:FridaInstanceMap = {};
 
     constructor() {
         super()

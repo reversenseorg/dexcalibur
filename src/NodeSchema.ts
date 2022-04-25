@@ -1,13 +1,87 @@
 import ModelMethod from "./ModelMethod";
-import {NodeType} from "./persist/orm/NodeType";
-import {NodeInternalType} from "./NodeInternalType";
 import {NodeProperty, NodePropertyState} from "./persist/orm/NodeProperty";
-import {DbDataType, DbKeyType} from "./persist/orm/DbAbstraction";
+import {DbDataType, DbKeyType, DbSerialize} from "./persist/orm/DbAbstraction";
 import ModelField from "./ModelField";
 import ModelPackage from "./ModelPackage";
 import ModelClass from "./ModelClass";
 import KeyPoint from "./hook/KeyPoint";
-import {ValidationRule} from "./Validator";
+import {BookmarkType} from "./bookmark/BookmarkType";
+import {Bookmark} from "./bookmark/Bookmark";
+import JavaMethodHook from "./hook/JavaMethodHook";
+import NativeFunctionHook from "./hook/NativeFunctionHook";
+import HookTemplateFragment from "./hook/HookTemplateFragment";
+import HookStrategy from "./hook/HookStrategy";
+import HookSet from "./HookSet";
+import {UserSession} from "./user/session/UserSession";
+import {SessionData} from "./user/session/SessionData";
+import {UserAccount} from "./user/UserAccount";
+import AccessControl from "./user/acl/AccessControl";
+import DexcaliburEngine from "./DexcaliburEngine";
+import DexcaliburProject from "./DexcaliburProject";
+import HookStrategySelector from "./hook/HookStrategySelector";
+
+UserAccount.TYPE.updateProperties([
+    (new NodeProperty('_uid')).type(DbDataType.STRING).key(DbKeyType.PRIMARY),
+    (new NodeProperty('_time')).type(DbDataType.STRING),
+    (new NodeProperty('_username')).type(DbDataType.STRING).notnull().unique(),
+    (new NodeProperty('_password')).type(DbDataType.STRING).notnull(),
+    (new NodeProperty('_salt')).type(DbDataType.STRING).notnull(),
+    (new NodeProperty('_locked')).type(DbDataType.BOOLEAN).def(false),
+    (new NodeProperty('_padding')).type(DbDataType.STRING).notnull(),
+    (new NodeProperty('_person')).volatile().type(DbDataType.STRING),
+    (new NodeProperty('_role')).type(DbDataType.STRING)
+        .sleep( (x:NodePropertyState) => { return (x.p !=null ? x.p.uid : null) ; } )
+        .wakeUp( (x:NodePropertyState) => { return (x.p!=null ? AccessControl.getRole(x.p) : null) }),
+]).builder(UserAccount);
+
+UserSession.TYPE.updateProperties([
+    // (new NodeProperty('_uid')).type(DbDataType.STRING).key(DbKeyType.PRIMARY),
+
+    (new NodeProperty('_uid')).type(DbDataType.STRING).key(DbKeyType.PRIMARY),
+    (new NodeProperty('_acc')).single(UserAccount.TYPE).notnull(),
+    (new NodeProperty('_created')).type(DbDataType.INTEGER),
+    (new NodeProperty('_destroyed')).type(DbDataType.INTEGER),
+    (new NodeProperty('_project')).volatile().type(DbDataType.STRING).serialize(DbSerialize.JSON),
+    (new NodeProperty('_defaultProject')).type(DbDataType.STRING)
+        .sleep( (x:NodePropertyState)=>{ return (x.p!=null? x.p.getUID() : null)})
+        .wakeUp( (x:NodePropertyState) =>  { return (x.p!=null ? (x.ctx as DexcaliburEngine).getProject(x.p) : null)}),
+
+    (new NodeProperty('_conn')).type(DbDataType.STRING)
+        .sleep( (x:NodePropertyState)=>{ return null; })
+        .wakeUp( (x:NodePropertyState) =>  { return x.p })
+]).builder(UserSession);
+
+SessionData.TYPE.updateProperties([
+    UserSession.TYPE.asForeignKey(DbKeyType.COMPOSITE, 0),
+    (new NodeProperty('_name')).type(DbDataType.STRING).key(DbKeyType.COMPOSITE, 1),
+    (new NodeProperty('_value'))
+        .type(DbDataType.STRING)
+        .sleep( (x:NodePropertyState) => {
+            let c:any = x.p;
+            switch(x.self._name){
+                case 'prj_active':
+                    c = (x.p as DexcaliburProject).getUID();
+                    break;
+
+            }
+            return c;
+        })
+        .wakeUp( (x:NodePropertyState) => {
+            let c:any = x.p;
+            switch(x.self._name){
+                case 'prj_active':
+                    c = x.ctx.getProject(x.p);
+                    break;
+            }
+            return c;
+        })
+]).builder(SessionData);
+
+UserSession.TYPE.updateProperties([
+    (new NodeProperty('_data')).multiple(SessionData.TYPE)
+]);
+
+
 
 
 ModelMethod.TYPE.updateProperties([
@@ -121,6 +195,257 @@ KeyPoint.TYPE.updateProperties([
         (new NodeProperty("children")).volatile().multiple(KeyPoint.TYPE),
         (new NodeProperty("_c")).type(DbDataType.STRING).def(null)
     ]).builder(KeyPoint);
+
+
+
+BookmarkType.TYPE.updateProperties([
+        (new NodeProperty("id")).type(DbDataType.NUMERIC).key(DbKeyType.PRIMARY),
+        (new NodeProperty("name")).type(DbDataType.STRING).unique(),
+        (new NodeProperty("descr")).type(DbDataType.STRING).def(null),
+        (new NodeProperty("priority")).type(DbDataType.NUMERIC).def(null),
+        (new NodeProperty("theme"))
+            .type(DbDataType.STRING)
+            .sleep( (x:NodePropertyState) => { return (x.p != null ? JSON.stringify(x.p) : null )})
+            .wakeUp( (x:NodePropertyState) => { return (x.p != null ? JSON.parse(x.p) : null )})
+    ]).builder(BookmarkType);
+
+Bookmark.TYPE.updateProperties([
+    (new NodeProperty("name")).type(DbDataType.STRING).key(DbKeyType.PRIMARY),
+    (new NodeProperty("descr")).type(DbDataType.STRING).def(null),
+    (new NodeProperty("category")).type(DbDataType.STRING).def(null),
+    (new NodeProperty("type")).single(BookmarkType.TYPE)
+]).builder(Bookmark);
+
+
+HookSet.TYPE.updateProperties([
+    (new NodeProperty("id")).type(DbDataType.STRING).key(DbKeyType.PRIMARY),
+    (new NodeProperty("name")).type(DbDataType.STRING).unique(),
+    (new NodeProperty("description")).type(DbDataType.STRING).def(null),
+    (new NodeProperty("category")).type(DbDataType.STRING).def(null),
+    (new NodeProperty("prologue")).volatile(),
+    (new NodeProperty("color")).def(null)
+        .type(DbDataType.STRING)
+        .sleep( (x:NodePropertyState) => { return (x.p != null ? JSON.stringify(x.p) : null )})
+        .wakeUp( (x:NodePropertyState) => { return (x.p != null ? JSON.parse(x.p) : null )}),
+    (new NodeProperty("share")).def(null)
+        .type(DbDataType.STRING)
+        .sleep( (x:NodePropertyState) => { return (x.p != null ? JSON.stringify(x.p) : null )})
+        .wakeUp( (x:NodePropertyState) => { return (x.p != null ? JSON.parse(x.p) : null )}),
+    (new NodeProperty("require")).def(null)
+        .type(DbDataType.STRING)
+        .sleep( (x:NodePropertyState) => { return (x.p != null ? JSON.stringify(x.p) : null )})
+        .wakeUp( (x:NodePropertyState) => { return (x.p != null ? JSON.parse(x.p) : null )})
+]).builder(HookSet);
+
+HookStrategy.TYPE.updateProperties([
+    (new NodeProperty("_uid")).type(DbDataType.STRING).key(DbKeyType.PRIMARY),
+    (new NodeProperty("name")).type(DbDataType.STRING).def(null),
+    (new NodeProperty("descr")).type(DbDataType.STRING).def(null),
+    (new NodeProperty("preprocessor")).type(DbDataType.STRING).def(null),
+    (new NodeProperty("on")).type(DbDataType.STRING).def(null),
+    (new NodeProperty("onMatch"))
+        .type(DbDataType.STRING)
+        .def(null)
+        .sleep( (x:NodePropertyState) => { return null; })
+        .wakeUp( (x:NodePropertyState) => { return (x.self.preprocessor != null ? HookStrategy.newPreprocessorFn(x.self.preprocessor) : null )}),
+    (new NodeProperty("loadOn")).type(DbDataType.STRING).def(null),
+    (new NodeProperty("unloadOn")).type(DbDataType.STRING).def(null),
+    (new NodeProperty("load_kp")).volatile().single(KeyPoint.TYPE).def(null),
+    (new NodeProperty("unload_kp")).volatile().single(KeyPoint.TYPE).def(null),
+    (new NodeProperty("hookset")).single(HookSet.TYPE).def(null),
+    //(HookSet.TYPE.asForeignKey(DbKeyType.FOREIGN, 0, "hookset_id")),
+    (new NodeProperty("before"))//.single(HookTemplateFragment.TYPE)
+        .type(DbDataType.STRING)
+        .sleep( (x:NodePropertyState) => { return (x.p != null ? JSON.stringify(x.p.toJsonObject()) : null )})
+        .wakeUp( (x:NodePropertyState) => { return (x.p != null ? HookTemplateFragment.fromJsonObject(JSON.parse(x.p)) : null )}),
+    (new NodeProperty("replace"))//.single(HookTemplateFragment.TYPE)
+        .type(DbDataType.STRING)
+        .sleep( (x:NodePropertyState) => { return (x.p != null ? JSON.stringify(x.p.toJsonObject()) : null )})
+        .wakeUp( (x:NodePropertyState) => { return (x.p != null ? HookTemplateFragment.fromJsonObject(JSON.parse(x.p)) : null )}),
+    (new NodeProperty("after"))//.single(HookTemplateFragment.TYPE)
+        .type(DbDataType.STRING)
+        .sleep( (x:NodePropertyState) => { return (x.p != null ? JSON.stringify(x.p.toJsonObject()) : null )})
+        .wakeUp( (x:NodePropertyState) => { return (x.p != null ? HookTemplateFragment.fromJsonObject(JSON.parse(x.p)) : null )}),
+    (new NodeProperty("hooks")).volatile(),
+    (new NodeProperty("search"))
+        .type(DbDataType.STRING)
+        .sleep( (x:NodePropertyState) => { return (x.p != null ? JSON.stringify(x.p.toJsonObject()) : null )})
+        .wakeUp( (x:NodePropertyState) => { return (x.p != null ? HookStrategySelector.fromJsonObject(JSON.parse(x.p)) : null )})
+]).builder(HookStrategy);
+HookSet.TYPE.updateProperties([(new NodeProperty("strats")).multiple(HookStrategy.TYPE,"hookset")]);
+
+HookTemplateFragment.TYPE.updateProperties([
+    (new NodeProperty("_uid")).type(DbDataType.STRING).key(DbKeyType.PRIMARY),
+    (new NodeProperty("name")).type(DbDataType.STRING).def(null),
+    (new NodeProperty("_descr")).type(DbDataType.STRING).def(null),
+    (new NodeProperty("_tpl")).type(DbDataType.STRING).def(null),
+    (new NodeProperty("_w")).type(DbDataType.NUMERIC).def(null),
+    (new NodeProperty("_cache")).type(DbDataType.STRING).def(null),
+    (new NodeProperty("_preproc")).type(DbDataType.BOOLEAN).def(null),
+    (new NodeProperty("_strategy")).single(HookStrategy.TYPE)
+]).builder(JavaMethodHook);
+
+JavaMethodHook.TYPE.updateProperties([
+    (new NodeProperty("_uid")).type(DbDataType.STRING).key(DbKeyType.PRIMARY),
+    (new NodeProperty("name")).type(DbDataType.STRING).def(null),
+    (new NodeProperty("_t")).type(DbDataType.STRING).def(null),
+   // (new NodeProperty("_hookset")).single(BookmarkType.TYPE),
+    (new NodeProperty("_loadkp")).single(KeyPoint.TYPE),
+    (new NodeProperty("_unloadkp")).single(KeyPoint.TYPE),
+    (new NodeProperty("_after"))
+       // .multiple(HookTemplateFragment.TYPE)
+        .type(DbDataType.STRING)
+        .sleep( (x:NodePropertyState) => {
+            if(x.self!=null){
+                const o = [];
+                (x.self as JavaMethodHook).getAfter().map( (t:HookTemplateFragment) => { o.push(t.toJsonObject()) } );
+                return JSON.stringify(o);
+            }else{
+                return null;
+            }
+        })
+        .wakeUp( (x:NodePropertyState) => {
+
+            if(x.p!=null){
+                const o = [];
+                JSON.parse(x.p).map( (data) => {
+                    o.push( HookTemplateFragment.fromJsonObject(data));
+                } );
+                return o;
+            }else{
+                return null;
+            }
+        }),
+    (new NodeProperty("_before"))
+        // .multiple(HookTemplateFragment.TYPE)
+        .type(DbDataType.STRING)
+        .sleep( (x:NodePropertyState) => {
+            if(x.self!=null){
+                const o = [];
+                (x.self as JavaMethodHook).getAfter().map( (t:HookTemplateFragment) => { o.push(t.toJsonObject()) } );
+                return JSON.stringify(o);
+            }else{
+                return null;
+            }
+        })
+        .wakeUp( (x:NodePropertyState) => {
+
+            if(x.p!=null){
+                const o = [];
+                JSON.parse(x.p).map( (data) => {
+                    o.push( HookTemplateFragment.fromJsonObject(data));
+                } );
+                return o;
+            }else{
+                return null;
+            }
+        }),
+    (new NodeProperty("_replace"))
+        // .multiple(HookTemplateFragment.TYPE)
+        .type(DbDataType.STRING)
+        .sleep( (x:NodePropertyState) => {
+            if(x.self!=null){
+                const o = [];
+                (x.self as JavaMethodHook).getAfter().map( (t:HookTemplateFragment) => { o.push(t.toJsonObject()) } );
+                return JSON.stringify(o);
+            }else{
+                return null;
+            }
+        })
+        .wakeUp( (x:NodePropertyState) => {
+
+            if(x.p!=null){
+                const o = [];
+                JSON.parse(x.p).map( (data) => {
+                    o.push( HookTemplateFragment.fromJsonObject(data));
+                } );
+                return o;
+            }else{
+                return null;
+            }
+        })
+]).builder(JavaMethodHook);
+
+NativeFunctionHook.TYPE.updateProperties([
+    (new NodeProperty("_uid")).type(DbDataType.STRING).key(DbKeyType.PRIMARY),
+    (new NodeProperty("name")).type(DbDataType.STRING).def(null),
+    (new NodeProperty("_t")).type(DbDataType.STRING).def(null),
+   // (new NodeProperty("_hookset")).single(BookmarkType.TYPE),
+    (new NodeProperty("_loadkp")).single(KeyPoint.TYPE),
+    (new NodeProperty("_unloadkp")).single(KeyPoint.TYPE),
+    (new NodeProperty("_after"))
+        // .multiple(HookTemplateFragment.TYPE)
+        .type(DbDataType.STRING)
+        .sleep( (x:NodePropertyState) => {
+            if(x.self!=null){
+                const o = [];
+                (x.self as JavaMethodHook).getAfter().map( (t:HookTemplateFragment) => { o.push(t.toJsonObject()) } );
+                return JSON.stringify(o);
+            }else{
+                return null;
+            }
+        })
+        .wakeUp( (x:NodePropertyState) => {
+
+            if(x.p!=null){
+                const o = [];
+                JSON.parse(x.p).map( (data) => {
+                    o.push( HookTemplateFragment.fromJsonObject(data));
+                } );
+                return o;
+            }else{
+                return null;
+            }
+        }),
+    (new NodeProperty("_before"))
+        // .multiple(HookTemplateFragment.TYPE)
+        .type(DbDataType.STRING)
+        .sleep( (x:NodePropertyState) => {
+            if(x.self!=null){
+                const o = [];
+                (x.self as JavaMethodHook).getAfter().map( (t:HookTemplateFragment) => { o.push(t.toJsonObject()) } );
+                return JSON.stringify(o);
+            }else{
+                return null;
+            }
+        })
+        .wakeUp( (x:NodePropertyState) => {
+
+            if(x.p!=null){
+                const o = [];
+                JSON.parse(x.p).map( (data) => {
+                    o.push( HookTemplateFragment.fromJsonObject(data));
+                } );
+                return o;
+            }else{
+                return null;
+            }
+        }),
+    (new NodeProperty("_replace"))
+        // .multiple(HookTemplateFragment.TYPE)
+        .type(DbDataType.STRING)
+        .sleep( (x:NodePropertyState) => {
+            if(x.self!=null){
+                const o = [];
+                (x.self as JavaMethodHook).getAfter().map( (t:HookTemplateFragment) => { o.push(t.toJsonObject()) } );
+                return JSON.stringify(o);
+            }else{
+                return null;
+            }
+        })
+        .wakeUp( (x:NodePropertyState) => {
+
+            if(x.p!=null){
+                const o = [];
+                JSON.parse(x.p).map( (data) => {
+                    o.push( HookTemplateFragment.fromJsonObject(data));
+                } );
+                return o;
+            }else{
+                return null;
+            }
+        })
+]).builder(NativeFunctionHook);
 
 export class NodeSchema{
 

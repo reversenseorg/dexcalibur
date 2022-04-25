@@ -7,6 +7,9 @@ import WebServer from "./WebServer";
 import * as Log from "./Logger";
 import DexcaliburEngine from "./DexcaliburEngine";
 import HookStrategy from "./hook/HookStrategy";
+import {HookManager} from "./hook/HookManager";
+import {HookDbApi} from "./hook/HookDbApi";
+import {InspectorFactoryException} from "./errors/InspectorFactoryException";
 
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
@@ -64,8 +67,11 @@ export default class InspectorFactory
      */
     createInstance( pProject:DexcaliburProject):Inspector{
         let ins:Inspector = new Inspector();
+        let hmgr:HookManager = pProject.getHookManager();
+        let hapi:HookDbApi = hmgr.getDbAPI();
         let hs:HookSet = null;
         let hooks:Hook[] = null;
+        let hsuid:string = null;
 
 
         if(this.hasWebApi() && !this.isWebApiReady()){
@@ -88,46 +94,87 @@ export default class InspectorFactory
 
         if(this._config.hookSet != null){
 
-            hs = new HookSet({
-                id: (this._config.id!=null ? this._config.id : this._config.hookSet.id),
-                name: (this._config.name!=null ? this._config.name : this._config.hookSet.name),
-                description: (this._config.description!=null ? this._config.description : this._config.hookSet.description),
-                color: this._config.color,
-                builtin: true
-            });
+            hsuid = (this._config.id!=null ? this._config.id : this._config.hookSet.id);
 
+            Logger.raw("IS STRATEGY EXISTS ?? : "+hsuid+"  "+hapi.isHookSetExists(hsuid));
+            if(hapi.isHookSetExists(hsuid)){
+                hs = hapi.getHookSet(hsuid);
+            }else{
+                hs = hmgr.createHookSet(hsuid, {
+                    name: (this._config.hookSet.name!=null ? this._config.hookSet.name : this._config.name),
+                    description: (this._config.hookSet.description!=null ? this._config.hookSet.description : this._config.description),
+                    //require: (this._config.require!=null ? this._config.require : this._config.hookSet.require),
+                    hookshare: (this._config.hookSet.hookshare!=null ? this._config.hookSet.hookshare : null),
+                    color: this._config.color,
+                    builtin: true
+                });
+
+
+                if(this._config.hookSet.hookShare != null){
+                    hs.addHookShare(this._config.hookSet.hookShare);
+                }
+
+                if(this._config.hookSet.require != null){
+                    this._config.hookSet.require.map((k,v)=>{
+                        hs.require(k);
+                    });
+                }
+                if(this._config.require != null){
+                    this._config.require.map((k,v)=>{
+                        hs.require(k);
+                    });
+                }
+
+
+            }
+
+            if(hs == null){
+                throw InspectorFactoryException.HOOKSET_CANNOT_BE_CREATED(this._config.name!=null ? this._config.name : this._config.hookSet.name);
+            }
+
+
+            // browse hook strategy
             hooks = this._config.hookSet.hooks;
 
             if(hooks != null){
                 hooks.map((vHookCfg)=>{
-                    const strat = HookStrategy.from(vHookCfg);
-                    if(strat.hasLoadKeyPoint()){
-                        strat.setLoadKeyPoint(
-                          pProject.getKeyPointManager().getKeyPoint(strat.loadOn)
-                        );
+                    if(vHookCfg.name == null){
+                        throw InspectorFactoryException.STRATEGY_NAME_IS_MANDATORY(ins.getUID());
                     }
 
-                    if(strat.hasUnloadKeyPoint()){
-                        strat.setUnloadKeyPoint(
-                            pProject.getKeyPointManager().getKeyPoint(strat.unloadOn)
-                        );
-                    }
+                    const stratUID = hsuid+":"+vHookCfg.name;
+                    let strat:HookStrategy = null;
 
+                    if(!hapi.isStrategyExists(stratUID)){
+                        strat = HookStrategy.from(vHookCfg);
+
+                        strat.setUID(stratUID);
+
+                        if(strat.hasLoadKeyPoint()){
+                            strat.setLoadKeyPoint(
+                                pProject.getKeyPointManager().getKeyPoint(strat.loadOn)
+                            );
+                        }
+
+                        if(strat.hasUnloadKeyPoint()){
+                            strat.setUnloadKeyPoint(
+                                pProject.getKeyPointManager().getKeyPoint(strat.unloadOn)
+                            );
+                        }
+
+
+                        hapi.createHookStrategy(strat);
+
+                    }else{
+                        strat = hmgr.getHookStrategy(stratUID);
+                    }
                     hs.addStrategy(strat);
-                });
-            }
-
-            if(this._config.hookSet.hookShare != null){
-                hs.addHookShare(this._config.hookSet.hookShare);
-            }
-
-            if(this._config.hookSet.require != null){
-                this._config.hookSet.require.map((k,v)=>{
-                    hs.require(k);
+                    hapi.updateHookStrategy(strat);
                 });
             }
 
             ins.setHookSet(hs);
+            hapi.updateHookSet(hs);
         }
 
         if(this._config.db != null){

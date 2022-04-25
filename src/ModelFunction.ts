@@ -18,6 +18,7 @@ import {DbDataType, DbKeyType, DbSerialize} from "./persist/orm/DbAbstraction";
 import ModelFileSection from "./ModelFileSection";
 import {IPersistent} from "./persist/orm/IPersistent";
 import {NativeAnalyzerCommands} from "./analyzer/NativeAnalyzerCommands";
+import {INode} from "./INode";
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
 const TO_JSON:Function = function (vSrc:any, vTarget:any, vInArray:boolean=false):any{
@@ -67,7 +68,7 @@ const TO_JSON:Function = function (vSrc:any, vTarget:any, vInArray:boolean=false
  * TODO : the ModelMethod class should extends ModelFunction class,
  * TODO : because a POO method is like a function specialization
  */
-export class ModelFunction implements IPersistent {
+export class ModelFunction implements INode, IPersistent {
 
     static CMD_MAPPING = {
         [NativeAnalyzerCommands.FUNC_CMD.DISASS]: ['instr']
@@ -160,11 +161,14 @@ export class ModelFunction implements IPersistent {
 
     instr:ModelCpuInstruction[];
     alias:string = null;
+    hooks:any[] = []
 
     // signature
     __s:string = null;
 
     _s:any = {};
+
+    tags:any = []; // TODO
 
     constructor(pConfig:any = null){
 
@@ -249,6 +253,18 @@ export class ModelFunction implements IPersistent {
         return this.__s;
     }
 
+
+    hasTag(tagName:string):boolean{
+        return (this.tags.indexOf(tagName) > -1);
+    }
+
+    getTags():string[]{
+        return this.tags;
+    }
+
+    addTag(tag:string){
+        this.tags.push(tag);
+    }
 
     /**
      * To set an alias and update the aliased signature

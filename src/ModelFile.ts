@@ -13,6 +13,7 @@ import {NodeType} from "./persist/orm/NodeType";
 import {NodeProperty} from "./persist/orm/NodeProperty";
 import {NodeInternalType} from "./NodeInternalType";
 import {ValidationRule} from "./Validator";
+import {INode} from "./INode";
 
 
 let UIDS:string[]=[];
@@ -80,13 +81,14 @@ export enum ModelFileType {
 }
 
 
+
 /**
  * Represent a file which exists into Application data,
  * at rest or at runtime
  *
  * @class
  */
-export default class ModelFile implements IPersistent {
+export default class ModelFile implements INode,IPersistent {
 
     static TYPE:NodeType = new NodeType(
         "files",

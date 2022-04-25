@@ -62,6 +62,7 @@ export default class AdbWrapper implements IBridge
     static USB_TRANSPORT:string = 'U';
     static TCP_TRANSPORT:string = 'T';
 
+    static DEFAULT_PRIV_STRATEGY:string = 'su';
     strategies:PrivilegedExecutionStrategyMap = {};
 
     /**
@@ -867,6 +868,10 @@ export default class AdbWrapper implements IBridge
      */
     async privilegedShell(command:string, pOptions:any = {detached: false, strategy:'su'}):Promise<boolean|string|Buffer>{
         Logger.info(`[ADB] Privileged exec <detached:${pOptions.detached?'true':'false'}> : ${command}`);
+
+        if(!pOptions.hasOwnProperty('strategy') || pOptions.strategy==null){
+            pOptions.strategy = AdbWrapper.DEFAULT_PRIV_STRATEGY;
+        }
 
         const stt = this.getStrategy(pOptions.strategy);
 

@@ -54,6 +54,7 @@ import {Auditable} from "./Auditable";
 import {GlobalAccessControl} from "./user/acl/rbac/GlobalAccessContol";
 import DataScope from "./DataScope";
 import KeyPointManager from "./hook/KeyPointManager";
+import {ScriptManager} from "./ScriptManager";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -151,6 +152,12 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
 
     // hook, deprecated here ?
     hook:HookManager = null;
+
+    /**
+     * @field
+     * @type {ScriptManager}
+     */
+    scriptManager:ScriptManager = null;
 
     kpmgr:KeyPointManager = null;
 
@@ -573,6 +580,8 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
         }
 
         this.hook = new HookManager(this, this.nofrida);
+
+        this.scriptManager = new ScriptManager(this);
 
         // plugins
         im.createInspectorsFor(this);

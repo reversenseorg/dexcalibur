@@ -593,18 +593,24 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
             _engine: this
         });
 
+        Logger.raw('PASS0');
         //  enumerate local and remote platforms
         this.platformMgr.enumerate();
 
+        Logger.raw('PASSA');
         //  enumerate local and remote inspectors
         this.inspectorMgr.enumerate();
+        Logger.raw('PASSB');
 
         // load device manager db
         this.deviceMgr.load();
+        Logger.raw('PASS3');
 
         // restart child ADB server
         (async function(){
             self.deviceMgr.getBridgeFactory('adb').newGenericWrapper().kill();
+
+            Logger.raw('PASS4');
         })();
 
         return true;
@@ -628,6 +634,8 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
      * @method
      */
     init(pWebRoot:string = null){
+
+
 
         if(pWebRoot === null){
             pWebRoot = _path_.join(__dirname, 'webserver', 'public');
@@ -661,14 +669,12 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
         // pass allowed origins to init
         this.wsserver.init(this.settings.getWebserverSettings());
 
-
         // First call to PlatformManager : it inits
         this.platformMgr = PlatformManager.getInstance(this);
 
         this.deviceMgr = DeviceManager.getInstance(this);
 
         this.inspectorMgr = InspectorManager.getInstance(this);
-
 
 /*
 

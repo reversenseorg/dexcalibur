@@ -55,6 +55,11 @@ export default class PlatformManager extends ValidationCapable
     }
 
 
+    /**
+     * To get the platform manager
+     *
+     * @param pEngine
+     */
     static getInstance( pEngine:any = null):PlatformManager{
         if(gInstance == null){
             gInstance = new PlatformManager(pEngine);
@@ -120,12 +125,16 @@ export default class PlatformManager extends ValidationCapable
 
 
     enumerate(){
-
+        Logger.raw("do enumerateLocal");
         this.local = this.enumerateLocal();
-
+        Logger.raw("OK");
+        Logger.raw(JSON.stringify(this.local));
         let registry:DexcaliburRegistry = this.engine.getSettings().getServerSettings().getRegistry();
 
+        Logger.raw(JSON.stringify(this.engine.getSettings().getServerSettings().getRegistry()) );
+        Logger.raw("PASS_OK");
         (async ()=>{
+            Logger.raw("do enumerateRemote");
             this.remote = await this.enumerateRemote(registry);
 
             for(let i in this.local){
@@ -139,11 +148,19 @@ export default class PlatformManager extends ValidationCapable
     enumerateLocal():any{
         let res:IPlatformMap = {};
         let p:Platform = null;
+
+        // retrieve path of folder where target platform files are saved
         let ws:string = this.engine.workspace.getPlatformFolderLocation();
         let files:string[] = _fs_.readdirSync(ws);
 
+        Logger.raw(`platform folder = ${ws}`);
+        Logger.raw(`platform folder content = ${files.join("\n\t")}`);
+
         for(let i=0; i<files.length; i++){
+
+            Logger.raw(`platform name = ${files[i]}`);
             p = Platform.fromLocalName(files[i]);
+            Logger.raw(`platform obj = ${p}`);
             if(p == null) continue;
 
             p.setLocalPath( _path_.join(ws, files[i]) );
