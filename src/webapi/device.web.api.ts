@@ -148,6 +148,33 @@ DEVICE_WEB_API.addAsyncPublicRoute(
     });
 
 
+
+DEVICE_WEB_API.addAsyncPublicRoute(
+    '/profile/:type',
+    {
+        'get': (req:Request, res:Response):any => {
+            let dev:Device = null;
+            let $:WebServer = req.dxc.$;
+
+            try{
+                if (req.query.uid != null) {
+                    dev = $.context.getDeviceManager().getDevice(req.query.uid);
+                } else if ($.project != null){
+                    dev = $.project.getDevice();
+                } else{
+                    throw new Error("Target device not found");
+                }
+
+                if(dev != null)
+                    $.sendSuccess(res, dev.getProfile().toJsonObject());
+                else
+                    $.sendError( res, 'Cannot remove all devices');
+            }catch(err){
+                $.sendError( res, err.message);
+            }
+        }
+    });
+
 DEVICE_WEB_API.addAsyncPublicRoute(
     '/processes',
     {
@@ -301,6 +328,8 @@ DEVICE_WEB_API.addAsyncPublicRoute(
             }
         }
     });
+
+
 
 
 DEVICE_WEB_API.addAsyncPublicRoute(

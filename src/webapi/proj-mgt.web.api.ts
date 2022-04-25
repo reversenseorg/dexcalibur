@@ -95,9 +95,9 @@ PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
                 }
 
 
-                if(req.body['cfg'] == null){
-                    throw DexcaliburProjectException.INVALID_NAME();
-                }else{
+                if(req.body['cfg'] != null){
+               //     throw DexcaliburProjectException.INVALID_NAME();
+               // }else{
                     anal = req.body['cfg'];
                 }
 

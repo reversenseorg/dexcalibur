@@ -17,6 +17,7 @@ import {ModelFunction} from "../ModelFunction";
 import ModelFile from "../ModelFile";
 import {AbstractHook} from "../hook/AbstractHook";
 import {NodeInternalType} from "../NodeInternalType";
+import KeyPoint from "../hook/KeyPoint";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 export const HOOK_WEB_API: DelegateWebApi = new DelegateWebApi();
@@ -220,17 +221,17 @@ HOOK_WEB_API.addAuthenticatedRoute(
 
                 // ========== LOGIC
                 // get hook instance by ID
-                const hook:Hook = project.hook.getHookByID(
+                const hook:AbstractHook = project.hook.getHookByID(
                     req.params.hookid
                 );
 
                 if (hook == null) {
-                    throw new Error("Invalid hook ID given");
+                    throw new Error("Invalid hook ID given : "+req.params.hookid);
                 }
 
-                let o:any = hook.toJsonObject();
+                const o:any = hook.toJsonObject();
 
-                if(hook.native){
+                if(hook.isTargetNodeType(NodeInternalType.FUNC)){
                     o.method = project.find.get.func(o.method).toJsonObject();
                 }else{
                     o.method = project.find.get.method(o.method).toJsonObject();
@@ -266,7 +267,7 @@ HOOK_WEB_API.addAuthenticatedRoute(
                 }
 
                 // ========== LOGIC
-                let hook:Hook = project.hook.getHookByID(
+                const hook:AbstractHook = project.hook.getHookByID(
                     req.params.hookid
                 );
 
@@ -275,9 +276,10 @@ HOOK_WEB_API.addAuthenticatedRoute(
                     throw  new Error("Invalid hook ID given");
                 }
 
-                let newCode:string = req.body['code[]'].join("\n");
+                // depend of fragment and optio
+                //let newCode:string = req.body['code[]'].join("\n");
                 //hook.script = newCode;
-                hook.modifyScript(newCode);
+                //hook.modifyScript(newCode);
 
                 $.sendSuccess( res, {});
 
@@ -309,7 +311,7 @@ HOOK_WEB_API.addAuthenticatedRoute(
                 }
 
                 // ========== LOGIC
-                let hook:Hook = project.hook.getHookByID(
+                let hook:AbstractHook = project.hook.getHookByID(
                     //Util.b64_decode(req.params.hookid)
                     req.params.hookid
                 );
@@ -319,7 +321,7 @@ HOOK_WEB_API.addAuthenticatedRoute(
                     throw new Error("No probe ID given" );
                 }
 
-                let success:Hook = project.hook.removeHook(hook);
+                let success:boolean = project.hook.removeHook(hook);
 
                 if(!success){
                     throw new Error("Hook cannot be removed");
@@ -374,7 +376,7 @@ HOOK_WEB_API.addAuthenticatedRoute(
 
                     $.sendSuccess(res, dev);
                 }else {
-                    let hook: Hook = project.hook.getHookByID(
+                    let hook: AbstractHook = project.hook.getHookByID(
                         req.params.hookid
                     );
 
@@ -431,11 +433,11 @@ HOOK_WEB_API.addAuthenticatedRoute(
                     }
                     $.sendSuccess(res, dev);
                 }else{
-                    let hook:Hook = $.project.hook.getHookByID(
+                    let hook:AbstractHook = $.project.hook.getHookByID(
                         req.params.hookid
                     );
 
-                    hook.disable();
+                    hook.enable(false);
                     // collect
                     $.sendSuccess(res, {
                         enable: hook.isEnable()
@@ -481,7 +483,7 @@ HOOK_WEB_API.addAuthenticatedRoute(
                 // ========== LOGIC
 
                 const hooks:Hook[] = project.hook.list();
-                const data:any = [];
+                let data:any = [];
 
                 if(req.query['t']!=null && req.query['s']!=null){
                     const unsafeSignature:string = decodeURIComponent(Util.b64_decode(decodeURIComponent(req.query['s'])));
@@ -506,6 +508,31 @@ HOOK_WEB_API.addAuthenticatedRoute(
                             });
                             break;
                     }
+                }else if(req.query['f'] !=null ){
+
+
+                    switch(req.query['f']){
+                        case 'process':
+                            // group hook by process (main, isolated, fork from ..., fork #1, spawn, ...)
+                            break;
+                        case 'thread':
+                            // group hook by future thread
+                            break;
+                        case 'keypoint':
+                            data = project.hook.getHooks();
+                            break;
+                        case 'thema':
+                            // group hook by process (main, isolated, fork from ..., fork #1, spawn, ...)
+                            break;
+                        default:
+                            data = project.hook.getHooks();
+                            break;
+                    }
+                    const hooksets:HookSetList = project.hook.getHookSets();
+
+                    for(const i in hooksets){
+                        data.push(hooksets[i].toJsonObject());
+                    }
                 }else{
 
                     const hooksets:HookSetList = project.hook.getHookSets();
@@ -527,6 +554,65 @@ HOOK_WEB_API.addAuthenticatedRoute(
     }
 );
 
+HOOK_WEB_API.addAuthenticatedRoute(
+    '/list/kp/:id',
+    {
+        'get': function (req:Request, res:Response):any {
+            const $: WebServer = req.dxc.$;
+            let project:DexcaliburProject = null;
+
+            try{
+
+                // ========== SECURITY CHECKS
+
+                if (req.dxc == null || !$.context.getUserService().verifySession(req.dxc.sess)) {
+                    throw AuthenticationException.AUTHENTICATION_FAILED();
+                }
+
+                if(req.body['project']!=null){
+                    project = $.context.getActiveProjects(req.dxc.sess.getUserAccount())[req.body['project']];
+                }else if(req.dxc.project != null){
+                    project = req.dxc.project;
+                }
+
+                if(project == null || !project.isReady()) {
+                    throw DexcaliburProjectException.NO_PROJECT_SPECIFIED();
+                }
+
+                // ========== LOGIC
+                if(req.params.id == null){
+                    throw new Error("KeyPoint UID must be specified");
+                }
+
+                const kp:KeyPoint = project.getKeyPointManager().getKeyPoint(req.params.id);
+
+                if(kp == null){
+                    throw new Error("KeyPoint not found");
+                }
+
+                const data = {
+                    load: [],
+                    unload: project.hook.getHookByUnloadKeyPoint(kp)
+                };
+
+                let hooks:AbstractHook[] = project.hook.getHookByLoadKeyPoint(kp);
+                hooks.map( (hx:AbstractHook)=>{
+                    data.load.push( hx.toJsonObject())
+                });
+                hooks = project.hook.getHookByUnloadKeyPoint(kp);
+                hooks.map( (hx:AbstractHook)=>{
+                    data.unload.push( hx.toJsonObject())
+                });
+
+
+                $.sendSuccess(res, data);
+            }catch(err){
+                Logger.error("[API][HOOK] Hook cannot be listed. Cause : " + err.message + "\n\t" + err.stack);
+                $.sendError(res, " Hook cannot be listed. Cause : " + err.message);
+            }
+        }
+    }
+);
 
 
 HOOK_WEB_API.addAuthenticatedRoute(
@@ -846,14 +932,21 @@ HOOK_WEB_API.addAuthenticatedRoute(
                     throw new Error("Static blocks (<clinit>) cannot be hooked");
                 }
 
-                probe = project.hook.getProbe(meth);
+                opts.loadKP = (req.body['loadkp']!=null ? project.getKeyPointManager().getKeyPoint(req.body['loadkp']) : null);
+                opts.unloadKP = (req.body['unloadkp']!=null ? project.getKeyPointManager().getKeyPoint(req.body['unloadkp']) : null);
+                opts.location = req.body['loc'];
+                opts.weight = req.body['weight']
+
+                probe = project.hook.getProbe(meth, opts);
                 if (probe == null) {
                     if(meth.__ === NodeInternalType.METHOD){
-                        probe = project.hook.createJavaMethodHook(meth as ModelMethod, null);
+                        probe = project.hook.createJavaMethodHook(meth as ModelMethod, opts);
                     }else{
                         probe = project.hook.createNativeFunctionHook(meth as ModelFunction, opts);
-
                     }
+                }else{
+                    // modify hook to merge existing with new
+                    probe.extends( opts);
                 }
 
                 $.sendSuccess( res, { hookid: probe.getGUID(), enable: probe.isEnable() });
