@@ -24,21 +24,9 @@ export class UserSession implements IPersistent{
         'session',
         NodeInternalType.USER_SESSION,
         [
-            (new NodeProperty('_uid')).type(DbDataType.STRING).key(DbKeyType.PRIMARY),
-            (new NodeProperty('_acc')).single(UserAccount.TYPE).notnull(),
-            (new NodeProperty('_created')).type(DbDataType.INTEGER),
-            (new NodeProperty('_destroyed')).type(DbDataType.INTEGER),
-            (new NodeProperty('_project')).volatile().type(DbDataType.STRING).serialize(DbSerialize.JSON),
-            (new NodeProperty('_defaultProject')).type(DbDataType.STRING)
-                .sleep( (x:NodePropertyState)=>{ return (x.p!=null? x.p.getUID() : null)})
-                .wakeUp( (x:NodePropertyState) =>  { return (x.p!=null ? (x.ctx as DexcaliburEngine).getProject(x.p) : null)}),
-            (new NodeProperty('_data'))
-                .multiple(SessionData.TYPE),
-            (new NodeProperty('_conn')).type(DbDataType.STRING)
-                .sleep( (x:NodePropertyState)=>{ return null; })
-                .wakeUp( (x:NodePropertyState) =>  { return x.p })
         ]
     );
+
     __:NodeInternalType = NodeInternalType.USER_SESSION;
 
 

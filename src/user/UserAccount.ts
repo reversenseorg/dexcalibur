@@ -17,7 +17,7 @@ export class UserAccount implements IPersistent{
         'user',
         NodeInternalType.USER_ACCOUNT,
         [
-            (new NodeProperty('_uid')).type(DbDataType.STRING).key(DbKeyType.PRIMARY),
+            /*(new NodeProperty('_uid')).type(DbDataType.STRING).key(DbKeyType.PRIMARY),
             (new NodeProperty('_time')).type(DbDataType.STRING),
             (new NodeProperty('_username')).type(DbDataType.STRING).notnull().unique(),
             (new NodeProperty('_password')).type(DbDataType.STRING).notnull(),
@@ -27,7 +27,7 @@ export class UserAccount implements IPersistent{
             (new NodeProperty('_person')).volatile().type(DbDataType.STRING),
             (new NodeProperty('_role')).type(DbDataType.STRING)
                 .sleep( (x:NodePropertyState) => { return (x.p !=null ? x.p.uid : null) ; } )
-                .wakeUp( (x:NodePropertyState) => { return (x.p!=null ? AccessControl.getRole(x.p) : null) }),
+                .wakeUp( (x:NodePropertyState) => { return (x.p!=null ? AccessControl.getRole(x.p) : null) }),*/
         ]
     );
     __:NodeInternalType = NodeInternalType.USER_ACCOUNT;

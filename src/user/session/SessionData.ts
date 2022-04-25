@@ -15,31 +15,6 @@ export class SessionData implements IPersistent{
         'session_data',
         NodeInternalType.USER_SESSION_DATA,
         [
-            (new NodeProperty('_name'))
-                .type(DbDataType.STRING)
-                .key(DbKeyType.COMPOSITE, 1),
-
-            (new NodeProperty('_value'))
-                .type(DbDataType.STRING)
-                .sleep( (x:NodePropertyState) => {
-                    let c:any = x.p;
-                    switch(x.self._name){
-                        case 'prj_active':
-                            c = (x.p as DexcaliburProject).getUID();
-                            break;
-
-                    }
-                    return c;
-                })
-                .wakeUp( (x:NodePropertyState) => {
-                    let c:any = x.p;
-                    switch(x.self._name){
-                        case 'prj_active':
-                            c = x.ctx.getProject(x.p);
-                            break;
-                    }
-                    return c;
-                })
         ]
     );
     __:NodeInternalType = NodeInternalType.USER_SESSION_DATA;
@@ -69,4 +44,4 @@ export class SessionData implements IPersistent{
     }
 }
 
-SessionData.TYPE.builder(SessionData);
+//SessionData.TYPE.builder(SessionData);
