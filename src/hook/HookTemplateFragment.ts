@@ -1,8 +1,18 @@
 import HookStrategy from "./HookStrategy";
+import {NodeType} from "../persist/orm/NodeType";
+import {NodeInternalType} from "../NodeInternalType";
 
 
 export default class HookTemplateFragment {
 
+
+    static TYPE:NodeType = new NodeType( "hook_fragment", NodeInternalType.HOOK_FRAGMENT, []);
+
+    __:NodeInternalType = NodeInternalType.HOOK_FRAGMENT;
+
+
+    private _uid:string = null;
+    public name:string = null;
     private _strategy: HookStrategy = null;
 
     private _descr:string = null;
@@ -14,6 +24,7 @@ export default class HookTemplateFragment {
     private _cache:string = null;
 
     private _preproc:boolean = true;
+
 
     /**
      * Group of hook
@@ -65,6 +76,14 @@ export default class HookTemplateFragment {
         return this._strategy
     }
 
+    setUID(pUID:string){
+        this._uid = pUID;
+    }
+
+    getUID():string {
+        return this._uid;
+    }
+
     isPreProcessed():boolean {
         return this._preproc;
     }
@@ -102,5 +121,33 @@ export default class HookTemplateFragment {
 
     getGeneratedCode():string {
         return this._cache;
+    }
+
+    static fromJsonObject(pObject:any){
+        const o:HookTemplateFragment = new HookTemplateFragment();
+
+        if(pObject._uid != null){
+            o._uid = pObject._uid;
+        }
+        o.name = pObject.name;
+        o.description = pObject.descr;
+        o.weight = pObject.weight;
+        o.template = pObject.tpl;
+        o._cache = pObject._cache;
+        o._preproc = pObject._preproc;
+
+        return o;
+    }
+
+    toJsonObject():any {
+        const o:any = {};
+        o._uid = this._uid;
+        o.name = this.name;
+        o.descr = this.description;
+        o.weight = this.weight;
+        o.tpl = this.template;
+        o._cache = this._cache;
+        o._preproc = this._preproc;
+        return o;
     }
 }

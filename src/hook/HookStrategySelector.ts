@@ -85,4 +85,20 @@ export default class HookStrategySelector {
         return (this.type.getType() === null);
     }
 
+    static fromJsonObject(pObj:any):HookStrategySelector {
+        const o = new HookStrategySelector();
+        if(pObj.req != null) o.req = pObj.req;
+        if(pObj.uid != null) o.uid = pObj.uid;
+        if(pObj.type != null) o.type = NodeType.lookup(pObj.type);
+        return o;
+    }
+
+    toJsonObject():any {
+        const o:any = {};
+        if(this.req != null) o.req = this.req;
+        if(this.uid != null) o.uid = this.uid;
+
+        o.type = this.type.getName();
+        return o;
+    }
 }

@@ -6,6 +6,7 @@ import {DbDataType, DbKeyType, DbSerialize} from "../persist/orm/DbAbstraction";
 import {ValidationRule} from "../Validator";
 import DataScope from "../DataScope";
 import ModelFileSection from "../ModelFileSection";
+import {INode, INodeMap} from "../INode";
 
 export enum KeyPointType {
     HOOK=0,
@@ -22,8 +23,13 @@ export interface KeyPointLifecycleEvent {
     data?:any;
 }
 
+export enum KeyPointRole {
+    LOAD='load',
+    UNLOAD='unload',
+    ANY='*'
+}
 /**
- * Represents a key point into application cinetiq
+ * Represents a key point into application timeé
  *
  * from where hook can be load/unload or action triggered
  *
@@ -34,6 +40,7 @@ export default class KeyPoint implements IPersistent {
     static TYPE:NodeType = new NodeType("key_point", NodeInternalType.KEY_POINT, []);
     __:NodeInternalType = NodeInternalType.KEY_POINT;
 
+    deps:string[] = [];
 
     /**
      * If the key point is from a state caught by another key point
@@ -50,20 +57,43 @@ export default class KeyPoint implements IPersistent {
 
     token:string;
     description:string;
-    code:string = "";
+    condition:string;
+    code:string;
     //genCode: string = null;
     generator: any = null;
-    weight:number = -1;
+    weight:number;
     type: KeyPointType = KeyPointType.HOOK;
+    node:INodeMap = {};
+    _c:string;
 
-    _c:string = "";
-   // bus:Subject<KeyPointLifecycleEvent> = new Subject<KeyPointLifecycleEvent>();
-
-    constructor(pConfig:any={}) {
-        for(let i in pConfig){
+    constructor(pConfig:any={}){
+        this.weight = -1;
+        for(const i in pConfig){
             this[i] = pConfig[i];
         }
     }
+
+    hasNode(pNode:INode):boolean {
+        return (this.node[pNode.getUID()]  != null);
+    }
+
+    addNode(pNode:INode):any {
+        this.node[pNode.getUID()] = pNode ;
+    }
+
+    getNodes():INodeMap {
+        return this.node;
+    }
+
+    getNode(pUID:string):INode {
+        return this.node[pUID];
+    }
+
+    getFirstNode():INode {
+        return Object.values(this.node)[0];
+    }
+
+
 
     hasAncestor():boolean {
         return this.parent!=null;
@@ -73,8 +103,20 @@ export default class KeyPoint implements IPersistent {
         return this.parent;
     }
 
+    setCondition(pConditionName:string){
+        this.condition = pConditionName;
+    }
+
+    getCondition():string {
+        return this.condition;
+    }
+
     getToken():string {
         return this.token;
+    }
+
+    setToken(pToken:string) {
+        this.token = pToken;
     }
 
     getUID():string {
@@ -89,6 +131,10 @@ export default class KeyPoint implements IPersistent {
         return this.weight;
     }
 
+    setWeight(weight:number) {
+        this.weight = weight;
+    }
+
     setName(pName:string) {
         this.name = pName;
     }
@@ -96,8 +142,6 @@ export default class KeyPoint implements IPersistent {
     isHookBased():boolean {
         return this.type === KeyPointType.HOOK;
     }
-
-
 
     generateCode(vCode:string){
         if(this.generator != null){
@@ -115,6 +159,10 @@ export default class KeyPoint implements IPersistent {
         return this.description;
     }
 
+    setDescription(pDescr:string) {
+        this.description = pDescr;
+    }
+
     getChildrenKeyPoints():KeyPoint[] {
         return this.children;
     }
@@ -123,12 +171,38 @@ export default class KeyPoint implements IPersistent {
         return (this.children.length > 0);
     }
 
+
+    setKeypointType(keypointType:KeyPointType) {
+        this.type = keypointType;
+    }
+
+    /**
+     * To add a JS module required by the keypoint code
+     *
+     * @param pModule {string} JS module required by the code
+     */
+    require(pModule:string):void {
+        this.deps.push(pModule);
+    }
+
     /**
      * To notify attached hooks and actionables, the key point has been removed
      *
      * @method
      */
     removed():void {
+        // TODO
+        //this.bus.next({ event:KeyPointLifecycleEventType.KP_DELETED });
+    }
+
+
+    /**
+     * To notify attached hooks and actionables, the key point has been updated
+     *
+     * @method
+     */
+    updated():void {
+        // TODO
         //this.bus.next({ event:KeyPointLifecycleEventType.KP_DELETED });
     }
 
@@ -138,15 +212,24 @@ export default class KeyPoint implements IPersistent {
      * @method
      */
     trigger( pSource:any):void {
+        // TODO
         //this.bus.next({ event:KeyPointLifecycleEventType.REACHED, data:pSource });
     }
 
     toJsonObject():any {
         const o:any = {};
-        for(let i in this){
+        for(const i in this){
             switch (i){
                 case 'parent':
                     o.parent = this.parent==null ? null :  this.parent.getUID();
+                    break;
+                case 'children':
+                    o.children = [];
+                    this.children.map( c => o.children.push(c.getUID()));
+                    break;
+                case 'node':
+                    o.node = [];
+                    for(const k in this.node) o.node.push({ __:this.node[k].__, uid:this.node[k].getUID() });
                     break;
                 default:
                     o[i] = this[i];

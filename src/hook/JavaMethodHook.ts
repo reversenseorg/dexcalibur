@@ -1,17 +1,19 @@
-import {IHook} from "./IHook";
 import ModelMethod from "../ModelMethod";
-import KeyPoint from "./KeyPoint";
 import {AbstractHook} from "./AbstractHook";
-import HookTemplateFragment from "./HookTemplateFragment";
 import DexcaliburProject from "../DexcaliburProject";
-import Util from "../Utils";
 import {HookScriptBuilderException} from "../errors/HookScriptBuilderException";
-import {ModelFunction} from "../ModelFunction";
+import {NodeInternalType} from "../NodeInternalType";
+import {NodeType} from "../persist/orm/NodeType";
 
 
 export default class JavaMethodHook extends AbstractHook {
 
 
+    static TYPE:NodeType = new NodeType( "hook_java", NodeInternalType.HOOK_JAVA, []);
+
+    __:NodeInternalType = NodeInternalType.HOOK_JAVA;
+
+    protected _t:NodeInternalType = NodeInternalType.METHOD;
     /**
      * Targeted method
      * @field
@@ -79,5 +81,9 @@ export default class JavaMethodHook extends AbstractHook {
 
         o.method = method;
         return o;
+    }
+
+    destroy(pContext: any): any {
+        // remove from db
     }
 }

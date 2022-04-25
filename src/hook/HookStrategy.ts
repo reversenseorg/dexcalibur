@@ -7,6 +7,7 @@
  *
  * @class
  */
+import * as _md5_ from "md5";
 import DexcaliburProject from "../DexcaliburProject";
 import HookStrategySelector from "./HookStrategySelector";
 import * as VM from "vm";
@@ -19,18 +20,36 @@ import HookTemplateFragment from "./HookTemplateFragment";
 import {AbstractHook} from "./AbstractHook";
 import ModelMethod from "../ModelMethod";
 import {ModelFunction} from "../ModelFunction";
+import NativeFunctionHook from "./NativeFunctionHook";
+import {NodeType} from "../persist/orm/NodeType";
+import {NodeInternalType} from "../NodeInternalType";
+
+export const DEFAULT_PRIORITY = -1;
 
 export default class HookStrategy {
 
+
+    static TYPE:NodeType = new NodeType( "hook_strategy", NodeInternalType.HOOK_STRATEGY, []);
+
+    __:NodeInternalType = NodeInternalType.HOOK_STRATEGY;
+
+    _uid:string = null;
+    name:string = null;
+    descr:string = null;
+
+    preprocessor: string = null;
     /**
      * Search Engine request
      * @private
      */
     search:HookStrategySelector = null;
 
-    hooks:AbstractHook[] = []
+    /**
+     * @deprecated
+     */
+    //hooks:AbstractHook[] = []
 
-    weight:number = -1;
+    weight = DEFAULT_PRIORITY;
 
     before:HookTemplateFragment = null;
     after:HookTemplateFragment = null;
@@ -59,7 +78,7 @@ export default class HookStrategy {
 
         // this.requiresNode = [];
         if(pConfig!=null)
-            for(let i in pConfig)
+            for(const i in pConfig)
                 this[i] = pConfig[i];
 
 
@@ -67,6 +86,10 @@ export default class HookStrategy {
 
     static from(pConfig:any):HookStrategy {
         const o:HookStrategy = new HookStrategy(pConfig);
+
+        if(pConfig.preprocessor != null){
+            o.updatePreprocessorSrc(pConfig.preprocessor);
+        }
 
         if(o.search != null){
             o.search = HookStrategySelector.from(o.search);
@@ -91,6 +114,31 @@ export default class HookStrategy {
         }
 
         return o;
+    }
+
+    getUID():string {
+        return this._uid;
+    }
+
+    setUID(pUID:string) {
+        this._uid = pUID;
+        if(this.before != null){
+            this.before.setUID( _md5_( pUID+':bef') );
+        }
+        if(this.after != null){
+            this.after.setUID( _md5_( pUID+':aft') );
+        }
+        if(this.replace != null){
+            this.replace.setUID( _md5_( pUID+':repl') );
+        }
+    }
+
+    getName():string {
+        return this.name;
+    }
+
+    setName(pName:string) {
+        this.name = pName;
     }
 
     hasLoadKeyPoint():boolean {
@@ -121,6 +169,15 @@ export default class HookStrategy {
         this.on = pEventName;
     }
 
+    updatePreprocessorSrc( pSource:string):void {
+        this.preprocessor = pSource;
+        this.onMatch = new Function('pCtx', 'pEvent', this.preprocessor);
+    }
+
+    setPreprocessorFn( pFunc:any):void {
+        this.preprocessor = null;
+        this.onMatch = pFunc;
+    }
     /**
      *
      * @param pContext
@@ -134,14 +191,19 @@ export default class HookStrategy {
             results.foreach( (pRes)=>{
                 let h:JavaMethodHook = pContext.hook.getJavaMethodHook( pRes, this.key_point);
                 if(h == null){
-                    h = pContext.hook.createJavaMethodHook( pRes, this.key_point);
+                    h = pContext.hook.createJavaMethodHook( pRes, { loadKP: this.key_point });
                 }
 
-                h.appendBefore(this.before);
-                h.appendAfter(this.after);
-                h.appendReplace(this.replace);
+                if(this.before != null) h.appendBefore(this.before);
+                if(this.after != null) h.appendAfter(this.after);
+                if(this.replace != null) h.appendReplace(this.replace);
 
                 h.build(pContext);
+
+                if(this.onMatch != null){
+                    pContext.getHookManager().addMatchListener(h.getGUID(), this.onMatch);
+                }
+
             })
         }
         else if(this.search.isNativeFunc()){
@@ -160,30 +222,59 @@ export default class HookStrategy {
      * @param pContext
      */
     run(pContext:DexcaliburProject){
+
+
         if(this.search.getRequest() != null){
             return this._runOnSEResults(pContext);
         }
 
         if(this.search.isMethod()){
             this.search.getUids().map( (x:string) => {
+                let jhook:JavaMethodHook = null;
                 const m:ModelMethod = pContext.find.get.method(x)
 
                 if(m != null){
-                    pContext.getHookManager().createJavaMethodHook(m, this.load_kp).unloadOn(this.unload_kp);
+                    jhook = pContext.getHookManager().createJavaMethodHook(m, {loadKP:  this.load_kp })
+                    jhook.unloadOn(this.unload_kp);
+                    if(this.before != null) jhook.appendBefore(this.before);
+                    if(this.after != null) jhook.appendAfter(this.after);
+                    if(this.replace != null) jhook.appendReplace(this.replace);
+                    jhook.build(pContext);
+
+
+                    if(this.onMatch != null){
+                        pContext.getHookManager().addMatchListener(jhook.getGUID(), this.onMatch);
+                    }
                 }
             });
         }
         else if(this.search.isNativeFunc()){
-            this.search.getUids().map( (x:string) => {
+            this.search.getUids().map( (x:string) =>
+            {
+                let nhook:NativeFunctionHook = null;
                 const m:ModelFunction = pContext.find.get.func(x)
 
                 if(m != null){
-                    pContext.getHookManager().createNativeFunctionHook(m, this.load_kp).unloadOn(this.unload_kp);
+                    nhook = pContext.getHookManager().createNativeFunctionHook(m, {loadKP:  this.load_kp });
+                    nhook.unloadOn(this.unload_kp);
+                    if(this.before != null) nhook.appendBefore(this.before);
+                    if(this.after != null) nhook.appendAfter(this.after);
+                    if(this.replace != null) nhook.appendReplace(this.replace);
+                    nhook.build();
+
+
+                    if(this.onMatch != null){
+                        pContext.getHookManager().addMatchListener(nhook.getGUID(), this.onMatch);
+                    }
                 }
             });
         }
         else if(this.search.isSystemCall()){
 
         }
+    }
+
+    static newPreprocessorFn( pSource: string):any {
+        return (new Function('pCtx', 'pEvent', pSource)) ;
     }
 }

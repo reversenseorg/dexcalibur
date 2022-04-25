@@ -53,7 +53,7 @@ export default class NewHookSet {
             this.prolog.context = this.ctx;
 
         // register the hookset to the HookManager
-        this.ctx.hook.addHookSet(this);
+        // this.ctx.hook.addHookSet(this);
 
         return this;
     }

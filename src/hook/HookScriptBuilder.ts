@@ -108,11 +108,17 @@ export default class HookScriptBuilder {
         return code;
     }
 
-    private _writeNativeLib( pLibraryName:string, pFuncs:NativeFunctionHook[]):string {
+    // InstructionHook
+     _writeNativeLib( pLibraryName:string, pFuncs:NativeFunctionHook[], pInstrs:any[] = null):string {
 
-
-
-        return `
+        if( pInstrs != null){
+            return `
+Interruptor.newAgent({ 
+    @@__CONTENT__@@ 
+}).startOnLoad('${pLibraryName}');
+        `;
+        }else{
+            return `
 DXC.HOOK["${pLibraryName}"] = {
     __mod: null,
     __dynamic__:${this._isDynamicLoadingRequired(pFuncs)},
@@ -121,6 +127,9 @@ DXC.HOOK["${pLibraryName}"] = {
     }
 }
         `;
+        }
+
+
     }
 
 

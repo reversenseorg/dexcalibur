@@ -3,17 +3,21 @@ import {HookManager} from "./HookManager";
 import HookTemplateFragment from "./HookTemplateFragment";
 import HookSet from "../HookSet";
 import Util from "../Utils";
+import {NodeType} from "../persist/orm/NodeType";
+import {NodeInternalType} from "../NodeInternalType";
 
 
 export abstract class AbstractHook {
 
     public name:string;
 
+    protected _t:NodeInternalType = null;
+
     protected _mgr:HookManager = null;
 
     protected _uid:string = null;
 
-    protected _hookset:HookSet = null;
+    //protected _hookset:HookSet = null;
 
     /**
      * Key Point from where the hook is loaded or unload
@@ -89,12 +93,34 @@ export abstract class AbstractHook {
         return this._uid;
     }
 
+
+    getVariable(pID:string){
+        return this._vars[pID];
+    }
+
     setVariableID(pID:string){
         this._varID = pID;
     }
 
     getVariableID():string {
         return this._varID;
+    }
+
+    getLoadKeyPoint():KeyPoint {
+        return this._loadkp;
+    }
+
+    getUnloadKeyPoint():KeyPoint {
+        return this._unloadkp;
+    }
+
+
+    setLoadKeyPoint(pKP:KeyPoint) {
+        this._loadkp = pKP;
+    }
+
+    setUnloadKeyPoint(pKP:KeyPoint) {
+        this._unloadkp = pKP;
     }
 
     getKeyPoint():KeyPoint {
@@ -187,9 +213,14 @@ export abstract class AbstractHook {
         return this._enabled;
     }
 
+    isTargetNodeType( pNodeType:NodeInternalType){
+        return (this._t === pNodeType);
+    }
+
     abstract  isTarget(pNode: any): boolean;
     abstract  getTarget(): any;
     abstract  build(pContext:any): any;
+    abstract  destroy(pContext:any): any;
 
 
     toJsonObject(){
@@ -205,6 +236,26 @@ export abstract class AbstractHook {
         o.script = Util.b64_encode(Util.encodeURI(this._code));
         o.edited = this.edited;
 
+        o._after = []
+        if(this._after.length > 0){
+            this._after.map( (x:HookTemplateFragment) => {
+                o._after.push( x.toJsonObject());
+            })
+        }
+        o._before = []
+        if(this._before.length > 0){
+            this._before.map( (x:HookTemplateFragment) => {
+                o._before.push( x.toJsonObject());
+            })
+        }
+        o._replace = []
+        if(this._replace.length > 0){
+            this._replace.map( (x:HookTemplateFragment) => {
+                o._replace.push( x.toJsonObject());
+            })
+        }
+
+
         /*if(this._varID != null){
             o.variables = {
                 id: this._varID,
@@ -216,13 +267,17 @@ export abstract class AbstractHook {
             }
         }*/
 
-        o.code = {
+        /*o.code = {
             //variable: (this.code.variable!=null)? UT.b64_decode(this.code.dynamic) : null,
             before: [],
             after: [],
             replace: [],
-        };
+        };*/
         return o;
+    }
+
+    extends( pOptions:any){
+
     }
 
 

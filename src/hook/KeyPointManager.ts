@@ -6,6 +6,7 @@ import {UTIL_CONST} from "../util/UtilConstants";
 import {KeyPointManagerException} from "../errors/KeyPointManagerException";
 import SqliteDbCollection from "../../connectors/sqlite/SqliteDbCollection";
 import {SqliteDb} from "../../connectors/sqlite/SqliteDb";
+import {KeyPointGenerator, KeyPointOptions} from "./KeyPointGenerator";
 
 
 export interface KeyPointMap {
@@ -34,9 +35,12 @@ export default class KeyPointManager {
      */
     private _db:SqliteDbCollection;
 
-
+    private _project:DexcaliburProject = null;
     private _os:number = OS.ANDROID;
     private targetPlatform:any = null;
+
+
+    private generator:KeyPointGenerator = null;
 
     /**
      * To hold key points by name
@@ -50,40 +54,62 @@ export default class KeyPointManager {
         for(let i in pConfig){
             this[i] = pConfig[i];
         }
+        this.generator = new KeyPointGenerator(this);
     }
-
-    /*
-    load(pDB:SqliteDb):KeyPointManager {
-        if(pDB == null) throw KeyPointManagerException.INVALID_DB();
-
-        this._db = pDB.newCollection( KeyPoint.TYPE.getName(), KeyPoint.TYPE);
-
-        if(this._db.size() == 0){
-
-        }
-
-        return this;
-    }*/
 
     static newForAndroid(pProject:DexcaliburProject, pConfig:any={}){
         pConfig._os = OS.ANDROID;
-        return (new KeyPointManager(pConfig)).init(pProject.getDB());
+        return (new KeyPointManager(pConfig)).setProject(pProject).init(pProject.getDB());
     }
 
 
     static newForIOS(pProject:DexcaliburProject, pConfig:any={}){
         pConfig._os = OS.IOS;
-        return (new KeyPointManager(pConfig)).init(pProject.getDB());
+        return (new KeyPointManager(pConfig)).setProject(pProject).init(pProject.getDB());
     }
 
     static newForLinux(pProject:DexcaliburProject, pConfig:any={}){
         pConfig._os = OS.LINUX;
-        return (new KeyPointManager(pConfig)).init(pProject.getDB());
+        return (new KeyPointManager(pConfig)).setProject(pProject).init(pProject.getDB());
     }
 
     static newForWindows(pProject:DexcaliburProject, pConfig:any={}){
         pConfig._os = OS.WIN;
-        return (new KeyPointManager(pConfig)).init(pProject.getDB());
+        return (new KeyPointManager(pConfig)).setProject(pProject).init(pProject.getDB());
+    }
+
+    setProject(pProject:DexcaliburProject):KeyPointManager {
+        this._project = pProject;
+        return this;
+    }
+
+    getProject():DexcaliburProject {
+        return this._project;
+    }
+
+    generateToken(pKeyPoint:KeyPoint, pOptions:KeyPointOptions):string{
+        return this.generator.generateToken(pKeyPoint, pOptions.getConditionName());
+    }
+
+    private _createBinLoadKeyPoint(){
+        const kp:KeyPoint = new KeyPoint({
+            name: KeyPointManager.INTERNAL_SUFFIX+"bin.load",
+            description: "At this point, classes.dex file is loaded and every Android API is available.",
+            token: "@@__KP::LIB_LOAD__@@",
+            code: `
+                Java.perform(()=>{ 
+                    @@__CONTENT__@@
+                });"
+            `
+            /*generator: function(vCode:string):string{
+
+                function(vCode){
+                    return "Java.perform(()=>{ \n\n"+vCode+"});";
+                }
+            }*/
+        });
+
+        this.addInternalKeyPoint(kp);
     }
 
     private _createJavaAppKeyPoint(){
@@ -126,6 +152,19 @@ export default class KeyPointManager {
         this.addInternalKeyPoint(kp);
     }
 
+    public hasActiveInstructionHook():boolean {
+        return this._project.getHookManager().hasActiveInstructionHook();
+    }
+
+    /**
+     * To generate the template of a key point's code
+     *
+     * @param pKP
+     * @param pModel
+     */
+    public generate( pKP:KeyPoint, pOptions:KeyPointOptions):KeyPoint{
+        return this.generator.generate(pKP, pOptions);
+    }
     /*
     private _createDalvikReadyKeyPoint(){
         const kp:KeyPoint = new KeyPoint({
@@ -148,7 +187,7 @@ export default class KeyPointManager {
     init( pDB:IDatabase):KeyPointManager{
         if(pDB == null) throw KeyPointManagerException.INVALID_DB();
 
-        this._db = (pDB as SqliteDb).newCollection( KeyPoint.TYPE.getName(), KeyPoint.TYPE) ;
+        this._db = (pDB as SqliteDb).getCollection( KeyPoint.TYPE.getName(), KeyPoint.TYPE) ;
         this._db.getAll(false, true);
 
         if(this._db.size() == 0){
@@ -168,6 +207,33 @@ export default class KeyPointManager {
     remove(pKeyPoint:KeyPoint):void {
         this._db.removeEntry(pKeyPoint.getUID());
         pKeyPoint.removed();
+    }
+
+    /**
+     * To remove one or more keypoint by token name instead of UID
+     *
+     * Can be used as alternative to remove an existing key point because
+     * token are unique.
+     *
+     * @param pToken {string} KeyPoint replacement token
+     * @method
+     */
+    removeByToken(pToken:string):boolean {
+        const e:KeyPoint[] = this._db.getAll(true, true);
+        let rem = 0;
+        e.map( (vKP:KeyPoint) => {
+            if(vKP.getToken()===pToken){
+                this.remove(vKP);
+                rem++;
+            }
+        } )
+
+        return (rem > 0);
+    }
+
+    update(pKeyPoint:KeyPoint):void {
+        this._db.updateEntry(pKeyPoint);
+        pKeyPoint.updated();
     }
 
     /**

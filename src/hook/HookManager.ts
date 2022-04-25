@@ -17,12 +17,16 @@ import {ModelFunction} from "../ModelFunction";
 import {HookManagerException} from "../errors/HookManagerException";
 import HookScriptBuilder from "./HookScriptBuilder";
 import KeyPointManager from "./KeyPointManager";
-import KeyPoint from "./KeyPoint";
+import KeyPoint, {KeyPointRole} from "./KeyPoint";
 import JavaMethodHook from "./JavaMethodHook";
 import NativeFunctionHook from "./NativeFunctionHook";
 import {NodeInternalType} from "../NodeInternalType";
 import {AbstractHook} from "./AbstractHook";
 import {HookBuilder} from "./builders/HookBuider";
+import {IDatabase} from "../persist/orm/DbAbstraction";
+import {HookDbApi} from "./HookDbApi";
+import SqliteDbCollection from "../../connectors/sqlite/SqliteDbCollection";
+import HookStrategy from "./HookStrategy";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -56,6 +60,9 @@ export interface HookSetList {
 }
 
 
+export const CUSTOM_HOOKSET_JAVA = "customJava";
+export const CUSTOM_HOOKSET_NATIVE = "customNative";
+export const CUSTOM_HOOKSET_OBJC = "customObjc";
 /**
  * 
  * @param {DexcaliburProject} ctx The project instance
@@ -64,6 +71,8 @@ export interface HookSetList {
 export class HookManager
 {
     cache_policy:number = HOOKSESSION_CACHE_POLICY.NONE;
+    db:HookDbApi = null;
+
     context:DexcaliburProject = null;
    // logs = [];
 
@@ -107,6 +116,7 @@ export class HookManager
         this.kp_mgr = pProject.getKeyPointManager();
         this.hk_builder = new HookBuilder( this.context );
         this.builder = new HookScriptBuilder( this );
+        this.db = new HookDbApi(pProject.getDB());
 
         this.initBuiltInHookSets();
     }
@@ -118,25 +128,41 @@ export class HookManager
         return this.kp_mgr;
     }
 
+    getDbAPI():HookDbApi {
+        return this.db;
+    }
+
     private initBuiltInHookSets(){
-        //if(this.context.platform.isAndroid()){
-            this.addHookSet(new HookSet({
-                id: "custom",
+
+        // do if platform supports ( java / native / obj / kotlin ) ... add Hookset ...
+
+        if(!this.db.isHookSetExists(CUSTOM_HOOKSET_JAVA)){
+            //if(this.context.platform.isAndroid()){
+            this._addHookSet(new HookSet({
+                id: CUSTOM_HOOKSET_JAVA,
                 name: "Custom Java hooks",
                 context: this.context,
                 enable: true
             }));
-        //}
+            //}
+        }
 
-        this.addHookSet(new HookSet({
-            id: "customNative",
-            name: "Custome native hooks",
-            context: this.context,
-            enable: true,
-            native: true
-        }));
+
+        if(!this.db.isHookSetExists(CUSTOM_HOOKSET_NATIVE)){
+            this._addHookSet(new HookSet({
+                id: CUSTOM_HOOKSET_NATIVE,
+                name: "Custome native hooks",
+                context: this.context,
+                enable: true,
+                native: true
+            }));
+        }
     }
 
+    hasActiveInstructionHook():boolean {
+        // TODO: implement instruction hooking
+        return false;
+    }
 
     /**
      * To verify if a key point depends (so has an ancestor at runtime)
@@ -168,22 +194,44 @@ export class HookManager
      */
     createHookSet(pId:string, pOptions:any={}):HookSet {
         let hs:HookSet = this.getHookSet(pId);
+        //Logger.raw(hs);
         if(hs==null){
+            Logger.raw("NEW "+pId+" "+((pOptions.hasOwnProperty('name')? pOptions.name : pId))+" => "+JSON.stringify(pOptions));
             hs = new HookSet({
                 id: pId,
                 name: (pOptions.hasOwnProperty('name')? pOptions.name : pId),
                 context: this.context,
+                description: (pOptions.hasOwnProperty('description') ? pOptions.description : ""),
                 enable: (pOptions.hasOwnProperty('enable')? pOptions.enable : true),
-                native: (pOptions.hasOwnProperty('native')? pOptions.native : false)
+                native: (pOptions.hasOwnProperty('native')? pOptions.native : false),
+                builtin: (pOptions.hasOwnProperty('builtin')? pOptions.builtin : false),
+                color: (pOptions.hasOwnProperty('color')? pOptions.color : {})
             });
-            for(let k in pOptions) hs[k] = pOptions[k];
+            for(const k in pOptions) hs[k] = pOptions[k];
 
-            this.addHookSet(hs);
+            this._addHookSet(hs);
             return hs;
         }else{
-            return null;
+            Logger.raw(pId+" "+hs.name+" => "+hs.toJsonObject());
+            return hs;
         }
     }
+
+    registerHookSet(pHookSet:HookSet):void{
+
+    }
+
+    /**
+     * To get a stragtegy by its uid
+     * @param pUID
+     */
+    getHookStrategy(pUID:string):HookStrategy {
+        return this.db.strategies.getEntry(pUID);
+    }
+
+    /*createHookStrategy( pStrategy:HookStrategy):boolean {
+        return this.getDbAPI().createHookStrategy(pStrategy);
+    }*/
 
     /**
      * To create hookset for each DEX file or binary file analyzed
@@ -197,7 +245,7 @@ export class HookManager
         natives.map( file => {
            const hs = this.getHookSet(file.getName());
            if(hs==null){
-               this.addHookSet(new HookSet({
+               this._addHookSet(new HookSet({
                    id: file.getName(),
                    name: file.getName(),
                    context: this.context,
@@ -514,18 +562,22 @@ export class HookManager
     }
 
 
-    addHookSet(set:any):boolean{
-        if(this.hooksets[set.getID()]!=null){
-            throw HookManagerException.EXISTING_HOOK_SET();
-            return false;
-        }
-        this.hooksets[set.getID()] = set;
+    private _addHookSet(pHookSet: HookSet):boolean{
 
-        return true;   
+         if(this.db.isHookSetExists(pHookSet.getID())){
+             throw HookManagerException.EXISTING_HOOK_SET();
+         }
+
+         this.db.sets.addEntry( pHookSet.getID(), pHookSet);
+
+         //this.hooksets[pHookSet.getID()] = pHookSet;
+
+
+         return true;
     }
 
     getHookSets():HookSetList{
-        return this.hooksets;   
+        return this.db.sets.getAll();
     }
 
     /**
@@ -535,13 +587,13 @@ export class HookManager
      */
     getDefaultHookSet(pNative:boolean=false):HookSet{
          if(pNative)
-            return this.hooksets.customNative;
+            return this.db.sets.getEntry(CUSTOM_HOOKSET_NATIVE);
          else
-            return this.hooksets.custom;;
+             return this.db.sets.getEntry(CUSTOM_HOOKSET_JAVA);
     }
 
     getHookSet(id:string):HookSet{
-        return this.hooksets[id];   
+        return this.db.sets.getEntry(id);
     }
 
     hasListener(hookid:string){
@@ -585,18 +637,33 @@ export class HookManager
     /**
      * 
      */
-    getProbe(method:ModelMethod|ModelFunction):AbstractHook{
+    getProbe(method:ModelMethod|ModelFunction, pOptions:any = {}):AbstractHook{
         let h:AbstractHook[] = this.jhooks;
+        let hook:AbstractHook = null;
         if(method.__ === NodeInternalType.FUNC){
             h = this.nhooks;
         }
 
         for(let i in h){
             if(h[i].getTarget().getUID() == method.getUID){
-                return h[i];
+                hook = h[i];
+                break;
             }
         }
-        return null;
+        if(hook != null){
+            if(pOptions.loadKP != null && hook.getLoadKeyPoint() !=null){
+                if(hook.getLoadKeyPoint().getUID() !== pOptions.loadKP.getUID()){
+                    return null;
+                }
+            }
+            if(pOptions.unloadKP != null && hook.getUnloadKeyPoint() !=null){
+                if(hook.getUnloadKeyPoint().getUID() !== pOptions.unloadKP.getUID()){
+                    return null;
+                }
+            }
+        }
+
+        return hook;
     }
 
     /*
@@ -613,8 +680,8 @@ export class HookManager
      * To get all hooks
      * @returns {Hook[]} An array containing all hooks
      */
-    getHooks():Hook[]{
-        return this.hooks;
+    getHooks():AbstractHook[]{
+        return (this.jhooks as AbstractHook[]).concat(this.nhooks); // this.hooks;
     }
 
     /**
@@ -672,8 +739,64 @@ export class HookManager
         return this._countHook(this.nhooks, pFun);
     }
 
-    createNativeFunctionHook( pFunc:ModelFunction, pOpts:any, pKeyPoint:KeyPoint = null):NativeFunctionHook {
+    createSyscallHook( pSyscalls:string[], pOpts:any, pKeyPoint:KeyPoint = null):NativeFunctionHook {
         return null;
+    }
+
+    createInstructionHook( pAddr:ModelFunction, pOpts:any, pKeyPoint:KeyPoint = null):NativeFunctionHook {
+        return null;
+    }
+
+    createNativeFunctionHook( pFunc:ModelFunction, pOpts:any, pKeyPoint:KeyPoint = null):NativeFunctionHook {
+        const hook:NativeFunctionHook = new NativeFunctionHook();
+
+        hook.setGUID( md5(this.nextHookGUIDFor(pFunc)));
+
+        if(pOpts.loadKP == null){
+            hook.setLoadKeyPoint(this.getKeyPointManager().getKeyPoint("core.java.app"));
+        }else{
+            hook.setLoadKeyPoint(pOpts.loadKP);
+        }
+
+        if(pOpts.unloadKP !== null){
+            hook.setUnloadKeyPoint(pOpts.unloadKP);
+        }
+
+        hook.setTarget(pFunc);
+        hook.setManager(this);
+
+        //hook.makeProbeFor(method);
+        //this.builder.
+        //hook.makeHookFor(method, pOptions);
+
+        //hook.setMethod(method);
+        // method.setProbing(true);
+        pFunc.probing = true;
+        pFunc.hooks.push( hook);
+
+
+        if(pFunc.hasTag('ds')||pFunc.hasTag('di')){
+            this.getDefaultHookSet().addHook(hook);
+        }else{
+            Logger.info("hook function ",JSON.stringify(pFunc));
+            //this.getHookSetFor(method.getDeclaringFile());
+            this.getDefaultHookSet().addHook(hook);
+        }
+
+        Logger.info("[HOOK MANAGER][JAVA HOOK] Created successfully : ",hook.name)
+        this.nhooks.push(hook);
+
+        // trigger new probe workflow
+        this.context.trigger({
+            type: "probe.new",
+            data: {
+                hook: hook,
+                func: pFunc,
+                hasUnloadKP: (pOpts.unloadKP !== null)
+            }
+        });
+
+        return hook;
     }
 
     /**
@@ -682,15 +805,19 @@ export class HookManager
      * @param pMethod
      * @param pKeyPoint
      */
-    createJavaMethodHook( pMethod:ModelMethod, pKeyPoint:KeyPoint = null):JavaMethodHook {
+    createJavaMethodHook( pMethod:ModelMethod, pOptions:any = {}):JavaMethodHook {
         const hook:JavaMethodHook = new JavaMethodHook();
 
         hook.setGUID( md5(this.nextHookGUIDFor(pMethod)));
 
-        if(pKeyPoint===null){
-            hook.setKeyPoint(this.getKeyPointManager().getKeyPoint("core.java.app"));
+        if(pOptions.loadKP == null){
+            hook.setLoadKeyPoint(this.getKeyPointManager().getKeyPoint("core.java.app"));
         }else{
-            hook.setKeyPoint(pKeyPoint);
+            hook.setLoadKeyPoint(pOptions.loadKP);
+        }
+
+        if(pOptions.unloadKP !== null){
+            hook.setUnloadKeyPoint(pOptions.unloadKP);
         }
 
         hook.setTarget(pMethod);
@@ -723,7 +850,7 @@ export class HookManager
             data: {
                 hook: hook,
                 method: pMethod,
-                keypoint: pKeyPoint
+                hasUnloadKP: (pOptions.unloadKP !== null)
             }
         });
 
@@ -738,17 +865,61 @@ export class HookManager
      * @return {Hook} The matching hook, then null. 
      * @function
      */
-    getHookByID(id:string):Hook{
-        for(let i in this.hooks){
-            if(this.hooks[i].id == id){
-                return this.hooks[i];
-            }
-        }
-        return null;
+    getHookByID(guid:string):AbstractHook{
+
+        let hook:AbstractHook = null;
+
+        this.jhooks.map( (vHook:JavaMethodHook)=>{
+            if(vHook.getGUID() == guid)
+                hook = vHook;
+        });
+
+        if(hook != null) return hook;
+
+        this.nhooks.map( (vHook:NativeFunctionHook)=>{
+            if(vHook.getGUID() == guid)
+                hook = vHook;
+        });
+
+        return hook;
     }
 
-    removeHook(hook:Hook):Hook{
-        let res:Hook[]=[], pop:Hook=null;
+    /**
+     * To remove permanently a hook.
+     *
+     * This action cannot be undone
+     *
+     * @param {AbstractHook} pHook
+     * @return {boolean} TRUE if successfully removed, else FALSE
+     */
+    removeHook(pHook:AbstractHook):boolean{
+
+        const uid = pHook.getGUID();
+        let offset = -1;
+        let coll:AbstractHook[] = null;
+
+        if(pHook.isTargetNodeType(NodeInternalType.FUNC)){
+            coll = this.nhooks;
+        }
+        else if(pHook.isTargetNodeType(NodeInternalType.METHOD)){
+            coll = this.jhooks;
+        }
+
+        coll.map( (vHook:AbstractHook, i)=>{
+            if(vHook.getGUID() == uid){
+                vHook.destroy(this.context);
+                offset = i;
+            }
+        });
+
+        if(offset > -1){
+            coll.splice(offset, 1);
+            return true;
+        }else{
+            return false;
+        }
+
+        /*let res:Hook[]=[], pop:Hook=null;
         for(let i in this.hooks){
             if(this.hooks[i].id != hook.getID()){
                 res.push(this.hooks[i]);
@@ -756,8 +927,7 @@ export class HookManager
                 pop = this.hooks[i];
             }
         }
-        this.hooks = res;
-        return pop;
+        this.hooks = res;*/
     }
 
     /**
@@ -1175,24 +1345,67 @@ export class HookManager
         return sess;
     }
 
+
+
     /**
      *
      * @param pKeyPoint
      */
-    getHookByKeyPoint( pKeyPoint:KeyPoint):AbstractHook[] {
+    private _getHookByKeyPointWithRole( pKeyPoint:KeyPoint, pRole:KeyPointRole):AbstractHook[] {
+
+        let fn:any;
+        switch (pRole) {
+            case 'load':
+                fn = "getLoadKeyPoint";
+                break;
+            case 'unload':
+                fn = "getUnloadKeyPoint";
+                break;
+            default:
+                fn = "getKeyPoint";
+                break;
+        }
         const hk:AbstractHook[] = [];
         const uid = pKeyPoint.getUID();
 
         this.jhooks.map( (vHook:JavaMethodHook)=>{
-            if(vHook.getKeyPoint().getUID() == uid)
+            const kp = vHook[fn]()
+            if(kp!=null && kp.getUID() == uid)
                 hk.push(vHook);
         });
 
         this.nhooks.map( (vHook:NativeFunctionHook)=>{
-            if(vHook.getKeyPoint().getUID() == uid)
+            const kp = vHook[fn]()
+            if(kp!=null && kp.getUID() == uid)
                 hk.push(vHook);
         });
 
         return hk;
     }
+
+    /**
+     *
+     * @param pKeyPoint
+     */
+    getHookByKeyPoint( pKeyPoint:KeyPoint):AbstractHook[] {
+        return this._getHookByKeyPointWithRole( pKeyPoint, KeyPointRole.ANY);
+    }
+
+    /**
+     *
+     * @param pKeyPoint
+     */
+    getHookByLoadKeyPoint( pKeyPoint:KeyPoint):AbstractHook[] {
+        return this._getHookByKeyPointWithRole( pKeyPoint, KeyPointRole.LOAD);
+    }
+
+
+    /**
+     *
+     * @param pKeyPoint
+     */
+    getHookByUnloadKeyPoint( pKeyPoint:KeyPoint):AbstractHook[] {
+        return this._getHookByKeyPointWithRole( pKeyPoint, KeyPointRole.UNLOAD);
+    }
+
 }
