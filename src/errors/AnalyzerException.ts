@@ -4,7 +4,8 @@ export enum AnalyzerErrCode {
     GENERIC=1000,
     JAVA=2000,
     OBJC=3000,
-    NATIV=4000
+    NATIV=4000,
+    SCRIPT=5000
 }
 
 export class AnalyzerException extends MonitoredError {
