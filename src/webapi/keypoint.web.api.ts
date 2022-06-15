@@ -9,6 +9,7 @@ import {NodeInternalType, NodeInternalTypeName} from "../NodeInternalType";
 import {KeyPointOptions} from "../hook/KeyPointGenerator";
 import DexcaliburProject from "../DexcaliburProject";
 import {INode} from "../INode";
+import {AbstractHook} from "../hook/AbstractHook";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 export const KEYPOINT_WEB_API: DelegateWebApi = new DelegateWebApi();
@@ -229,8 +230,9 @@ KEYPOINT_WEB_API.addAuthenticatedRoute(
                     kpm.remove(kp);
                     $.sendSuccess(res,  null);
                 }else{
-                    kpm.removeByToken(kp.getToken());
-                    throw KeyPointManagerException.UNKNOW_KEYPOINT(req.params['uid']);
+                    if(!kpm.removeByToken(kp.getToken())){
+                        throw KeyPointManagerException.UNKNOW_KEYPOINT(req.params['uid']);
+                    }
                 }
             }catch(err){
                 Logger.error("[API][KEY POINTS] Key Point cannot be removed. Cause : " + err.message + "\n\t" + err.stack);
@@ -269,5 +271,79 @@ KEYPOINT_WEB_API.addAuthenticatedRoute(
     }
 );
 
+
+
+KEYPOINT_WEB_API.addAuthenticatedRoute(
+    '/enable',
+    {
+        'post': function (req:Request, res:Response):any {
+            const $: WebServer = req.dxc.$;
+
+            try{
+                // ========== LOGIC
+                const unsafeKeypointID = req.body['kp'];
+                const unsafeEnable = parseInt(req.body['enable'], 10);
+                const project:DexcaliburProject = req.dxc.project;
+
+                if( unsafeEnable > 1 || unsafeEnable < 0){
+                    throw new KeyPointManagerException("Key point status not supported. Value : 1 or 0");
+                }
+
+                const kp:KeyPoint = project.getKeyPointManager().getKeyPoint(unsafeKeypointID);
+                kp.active( unsafeEnable===1? true : false);
+                project.getKeyPointManager().update(kp);
+
+                $.sendSuccess(res,  kp.toJsonObject());
+            }catch(err){
+                Logger.error("[API][KEY POINTS] Status of Key Point cannot be changed. Cause : " + err.message + "\n\t" + err.stack);
+                $.sendError(res, "Status of Key Point cannot be changed. Cause : " + err.message);
+            }
+        },
+    },{
+        readProject: true
+    }
+);
+
+
+KEYPOINT_WEB_API.addAuthenticatedRoute(
+    '/attach/hook',
+    {
+        'post': function (req:Request, res:Response):any {
+            const $: WebServer = req.dxc.$;
+
+            try{
+                // ========== LOGIC
+                const kpm:KeyPointManager = req.dxc.project.getKeyPointManager();
+                const unsafeHookID = req.body['hook'];
+                const unsafeKeypointID = req.body['kp'];
+                const unsafeHookAction = req.body['type'];
+                const project:DexcaliburProject = req.dxc.project;
+
+                if( ['load','unload'].indexOf(unsafeHookAction) == -1){
+                    throw new KeyPointManagerException("Type of hook action not supported. Value : load/unload")
+                }
+
+                const hk:AbstractHook = project.getHookManager().getHookByID(unsafeHookID);
+                const kp:KeyPoint = project.getKeyPointManager().getKeyPoint(unsafeKeypointID);
+
+                if(hk.hasKeyPointFor(unsafeHookAction)){
+                    hk.detachKeyPoint(unsafeHookAction);
+                    hk.attachKeyPoint(unsafeHookAction, kp);
+                }else{
+                    hk.attachKeyPoint(unsafeHookAction, kp);
+                }
+
+                project.getHookManager().save(hk);
+
+                $.sendSuccess(res,  null);
+            }catch(err){
+                Logger.error("[API][KEY POINTS] Key Point cannot be removed. Cause : " + err.message + "\n\t" + err.stack);
+                $.sendError(res, "Key Point cannot be removed. Cause : " + err.message);
+            }
+        },
+    },{
+        readProject: true
+    }
+);
 
 
