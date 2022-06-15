@@ -13,6 +13,17 @@ let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
 
 /**
+ * A hook set contains all hooking strategies for a given inspector.
+ *
+ * Draft : The hook set contains all hook fragments resulting from execution of all associated hook strategies.
+ * As one hook set can have several hook strategies, it can contain very different hooks
+ *
+ * All hook from a hook set can share dependencies :
+ * - internal/external modules
+ * - prologue
+ *
+ * A `prologue` is a piece of code required by one or several hook fragments from a same hook set.
+ *
  * @class
  */
 export default class HookSet
@@ -39,7 +50,7 @@ export default class HookSet
 
 
     /**
-     * Flag. Builtin hookset are defined by inspectors.
+     * Flag. Builtin hookset are defined by builtin inspectors.
      *
      * @type {boolean}
      * @field
@@ -53,18 +64,48 @@ export default class HookSet
 
     hooks:AbstractHook[] = [];
 
+    /**
+     * The context
+     *
+     * @type {DexcaliburProject}
+     * @field
+     * @public
+     */
     context:DexcaliburProject = null;
+
     enable:boolean = false;
+
+    /**
+     * The list of internal dexcalibur modules or external libraries required by the hookset
+     */
     requires:string[] = [];
+
     color:any = {};
+
+    /**
+     * This object contains every variables shared by hooks from this hook set into final agent script
+     *
+     * @field
+     * @public
+     */
     share:any = {};
 
+    /**
+     * The list of hook strategies defined into this hook set.
+     *
+     * Every hook strategies will try to generate hook fragments which will be merged into hook.
+     *
+     * @field
+     * @type {HookStrategy[]}
+     * @public
+     */
     strats:HookStrategy[] = [];
 
     /**
      * Group of hook
      *
      * @param {*} config
+     * @constructor
      */
     constructor(pConfig:any=null){
 
@@ -74,14 +115,41 @@ export default class HookSet
                 this[i] = pConfig[i];
     }
 
+    /**
+     * To check if the hook set is enable or not.
+     *
+     * TODO: check usage
+     */
     isEnable():boolean{
         return this.enable;
     }
 
+    /**
+     * To get the UID of this hookset
+     *
+     * @return {string} UID
+     * @method
+     */
     getID():string{
         return this.id;
     }
 
+    /**
+     * To initialiaze the hooks but not execute it. It happens one time per app run even if hooks are not redeployed
+     *
+     * TODO : investigate passed flag for re-analyze feature
+     *
+     * It performs any actions not dependent of the target app :
+     * - setting context
+     * - update prologue context
+     * - register this hook set into Hook Manager
+     *
+     * The Hook Manager can control this hook set only after this step
+     *
+     * @param {DexcaliburProject} context Project associated to this hook set
+     * @return {HookSet} This instance
+     * @method
+     */
     injectContext(context:DexcaliburProject):HookSet{
         this.context = context;
 
@@ -96,6 +164,10 @@ export default class HookSet
         return this;
     }
 
+    /**
+     *
+     * @param code
+     */
     addPrologue(code:string):HookSet{
         //this.prologue = code;
         this.prologue = new HookPrologue({
@@ -106,8 +178,15 @@ export default class HookSet
         return this;
     }
 
+    /**
+     * Add internal/external dependencies
+     *
+     * @param module
+     */
     require(module:string){
-        this.requires.push(module);
+        if(this.requires.indexOf(module)==-1){
+            this.requires.push(module);
+        }
     }
     /*
     requireNodeModule(module){
@@ -115,6 +194,7 @@ export default class HookSet
     }*/
     /**
      * Create a object shared with others hook callback
+     *
      * @param {Object} config Shared object config
      */
     addHookShare(config:any):HookSet{
@@ -284,10 +364,19 @@ export default class HookSet
         this.enable = false;
     }
 
+    /**
+     * To add a strategy to this hook set
+     *
+     * @param {HookStrategy} pStrat
+     * @return
+     */
     addStrategy(pStrat:HookStrategy){
         this.strats.push(pStrat);
     }
 
+    /**
+     * To deploy this hook set
+     */
     deploy(){
         let hookManager:HookManager = this.context.hook; //ctx.hook;
         let hook:Hook;
