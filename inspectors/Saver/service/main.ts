@@ -7,7 +7,9 @@ import {HookManager} from "../../../src/hook/HookManager";
 import ModelMethod from "../../../src/ModelMethod";
 import InspectorFrontController, {IFC_TYPE} from "../../../src/InspectorFrontController";
 import {AbstractHook} from "../../../src/hook/AbstractHook";
+import * as Log from "../../../src/Logger";
 
+let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
 var Controller =  new InspectorFrontController();
 
@@ -113,6 +115,7 @@ function importAll(context:DexcaliburProject, data:any):boolean{
             // if thereis not hook, call the hook manager and generate one
             if(hook == null){
                 hook = context.hook.createJavaMethodHook(meth);
+                Logger.info("[SAVE MANAGER] Import Java hook : "+hook.getGUID())
             }
 
             // update the current hook with the imported data

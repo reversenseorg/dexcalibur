@@ -245,6 +245,7 @@ export default class SaveManager
             }
         }
 
+        /*
         if(pData.hooks.size > 0){
             for(let k in pData.hooks.data){
                 
@@ -291,7 +292,7 @@ export default class SaveManager
                     qflag++;
                 }
             }
-        }
+        }*/
 
         if(qflag>0){
             Logger.error("[SAVE] "+qflag+" elements have not been imported. Queued ..");

@@ -34,7 +34,7 @@ var Saver:InspectorFactory = new InspectorFactory({
         },
         "dxc.initialized": function(ctx:DexcaliburProject, event:Event):any{
             ctx.saveManager._ready = true;
-            ctx.saveManager.restore();
+            //ctx.saveManager.restore();
         },
         "function.alias.update": function(ctx:DexcaliburProject, event:Event):any{
             try{
