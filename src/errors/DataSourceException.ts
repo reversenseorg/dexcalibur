@@ -1,0 +1,17 @@
+import {ErrorCode, MonitoredError} from "./MonitoredError";
+
+export class DataSourceException extends MonitoredError {
+
+    code:number;
+    extra:any;
+
+    static ALL = {};
+
+    static NO_HANDLER_DEFINED = (pName:string)=>{ return new DataSourceException("There is no handle inside data source for this node type :"+pName, ErrorCode.GENERIC + 10) };
+
+    constructor( pMsg:string, pCode:number = null, pExtra:any = null) {
+        super('DATA SOURCE', pMsg);
+        this.code = pCode;
+        this.extra = pExtra;
+    }
+}
