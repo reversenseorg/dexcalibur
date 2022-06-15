@@ -24,7 +24,7 @@ interface SqliteDatabaseInstanceList {
 
 
 /**
- * Represents a database stored into memory (ACID-like)
+ * Represents a SQLite file-based database
  *
  * @author Georges-B. MICHEL
  * @class

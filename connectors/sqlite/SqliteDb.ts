@@ -22,6 +22,7 @@ import {NodeType} from "../../src/persist/orm/NodeType";
 import {NodeProperty} from "../../src/persist/orm/NodeProperty";
 import * as Log from "../../src/Logger";
 import {NodeInternalType} from "../../src/NodeInternalType";
+import DexcaliburProject from "../../src/DexcaliburProject";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -118,7 +119,7 @@ class SqliteDb implements IDatabase
        // if(Object.keys(this.indexes).length==0){
             const idx = this._s._execSelectAllNoData(this._ps.selectAll);
             if(idx!=null){
-                Logger.raw(JSON.stringify(idx));
+                Logger.debug(JSON.stringify(idx));
                 idx.map( info => {
                     if(this.indexes[info.name]==null){
                         if(info.type == DbSetType.INDEX){
@@ -153,7 +154,7 @@ class SqliteDb implements IDatabase
         }
 
 
-        this.indexes[name] = (new SqliteDbCollection(this._s, name, pNodeType));
+        this.indexes[name] = (new SqliteDbCollection(this._s, name, pNodeType)).setDB(this);
 
 
         if(pNodeType.hasExternalProperties()){
@@ -172,6 +173,8 @@ class SqliteDb implements IDatabase
         }
 
         // if there is not table for this collection, it is created
+
+
         this._refresh();
         if(this._tables.indexOf(name)==-1){
             (this.indexes[name] as SqliteDbCollection).create();
@@ -201,7 +204,7 @@ class SqliteDb implements IDatabase
             //throw new SqliteException("An index already exists for the given name");
         }
 
-        this.indexes[name] = (new SqliteDbIndex(this._s, name, pNodeType))
+        this.indexes[name] = (new SqliteDbIndex(this._s, name, pNodeType)).setDB(this)
 
         // if there is not table for this index, it is created
         this._refresh();
@@ -261,6 +264,13 @@ class SqliteDb implements IDatabase
         }
 
         return o;
+    }
+
+    /**
+     * To get the instance of the project for this DB
+     */
+    getProject():DexcaliburProject {
+        return this.conn.ctx;
     }
 
     // ============ serialize ============

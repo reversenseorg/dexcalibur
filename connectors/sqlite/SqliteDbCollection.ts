@@ -5,7 +5,7 @@
  * @class
  */
 import SerializedObject from "./SerializedObject";
-import {DbSetType, IDbCollection} from "../../src/persist/orm/DbAbstraction";
+import {DbSetType, IDatabase, IDbCollection} from "../../src/persist/orm/DbAbstraction";
 import {NodeProperty} from "../../src/persist/orm/NodeProperty";
 import {PreparedStatementList, SqliteAPI} from "./SqliteAPI";
 import {SqliteException} from "./SqliteException";
@@ -13,8 +13,9 @@ import {NodeType} from "../../src/persist/orm/NodeType";
 import * as Log from "../../src/Logger";
 import DexcaliburEngine from "../../src/DexcaliburEngine";
 import PersistenceCache from "../../src/persist/PersistenceCache";
+import {SqliteDb} from "./SqliteDb";
 
-let Logger:Log.Logger = Log.newLogger() as Log.Logger;
+const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
 
 export default class SqliteDbCollection implements IDbCollection
@@ -29,6 +30,7 @@ export default class SqliteDbCollection implements IDbCollection
     private _s:SqliteAPI = null;
     private _ps:PreparedStatementList;
     private _cache:PersistenceCache;
+    public _db:IDatabase;
 
 
     /**
@@ -53,6 +55,13 @@ export default class SqliteDbCollection implements IDbCollection
 
         // if cachable
         this._initCache();
+    }
+
+
+
+    setDB(pDB:SqliteDb):any {
+        this._db = pDB;
+        return this;
     }
 
     /**
@@ -136,8 +145,8 @@ export default class SqliteDbCollection implements IDbCollection
 
         this._tpl.getProperties().map( (vPpt:NodeProperty)=>{
             if(vPpt.hasWakeUp()){
-                Logger.raw(JSON.stringify(o[vPpt.getName()]));
-                Logger.raw(vPpt.getName());
+                //Logger.raw(JSON.stringify(o[vPpt.getName()]));
+                //Logger.raw(vPpt.getName());
                 o[vPpt.getName()] = vPpt.doWakeUp({
                     self: o,
                     ctx: DexcaliburEngine.getInstance(),
@@ -149,6 +158,10 @@ export default class SqliteDbCollection implements IDbCollection
         if(this._tpl.hasLinks()){
             const lks:NodeProperty[] = this._tpl.getLinks();
             lks.map( (vPpt:NodeProperty)=>{
+
+
+                // 2 case : sqlite DB or inmemory DB
+
                 if(vPpt.hasSource()){
                     if(vPpt.isMultiple()){
                         // in this case (multiple) a foreign key is stored into another table
@@ -158,6 +171,22 @@ export default class SqliteDbCollection implements IDbCollection
                         /*if(o[vPpt.getName()].length>0){
                             o[vPpt.getName()] = o[vPpt.getName()][0];
                         }*/
+                    }
+                }else{
+                    // add wakeUp
+
+                    const nt = vPpt.getNodeType();
+                    const v = pData[vPpt.getName()];
+
+                    if(nt.getDataSource() != null){
+                        if(vPpt.isMultiple()){
+                            // in this case (multiple) a foreign key is stored into another table
+                            Logger.info("LINKING MULT EXT :! "+nt.getSourceAlias() );
+                            o[vPpt.getName()] = nt.getDataSource().findMult(nt, this._db.getProject(), v);
+                        }else{
+                            o[vPpt.getName()] = nt.getDataSource().find(nt, this._db.getProject(), v);
+                            Logger.info("LINKING SINGLE EXT "+vPpt.getName()+": "+nt.getSourceAlias()+": "+v );
+                        }
                     }
 
                 }
@@ -226,12 +255,7 @@ export default class SqliteDbCollection implements IDbCollection
             });
         }
 
-
-
         this._c = i;
-
-        //Logger.raw(JSON.stringify(all));
-
         return all;
     }
 
@@ -285,7 +309,6 @@ export default class SqliteDbCollection implements IDbCollection
                 p[this._tpl.getPrimaryKey().getName()] = key;
 
                 const o = this._s._execSelect(this._ps.selectSingle, p);
-                Logger.raw( (typeof o)+"  "+o);
                 if( o == null){
                     return null;
                 }else{

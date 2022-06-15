@@ -4,9 +4,10 @@ import {PreparedStatementList, SqliteAPI} from "./SqliteAPI";
 import {SqliteException} from "./SqliteException";
 import {NodeType} from "../../src/persist/orm/NodeType";
 import {NodeProperty} from "../../src/persist/orm/NodeProperty";
+import {SqliteDb} from "./SqliteDb";
 
 /**
- * Represents an array of element
+ * Represents an array of element stored in a SQLite table
  *
  * @author Georges-B. MICHEL
  * @class
@@ -21,8 +22,16 @@ export default class SqliteDbIndex implements IDbIndex
     _tpl: NodeType = null;
     _pk: NodeProperty = null; //primary key
 
+    _db:SqliteDb = null;
+
+    /**
+     * @type {SqliteAPI}
+     * @private
+     */
     private _s:SqliteAPI;
+
     private _ps:PreparedStatementList;
+
 
 
     /**
@@ -41,6 +50,11 @@ export default class SqliteDbIndex implements IDbIndex
 
         // TODO : generate prepared statements
         this._ps = this._s._generatePreparedStmt(name, this._tpl);
+    }
+
+    setDB(pDB:SqliteDb):any {
+        this._db = pDB;
+        return this;
     }
 
     create(){

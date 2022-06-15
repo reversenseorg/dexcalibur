@@ -97,7 +97,7 @@ export class SqliteAPI {
                     pars[name] = pObject[name]===true ? 1 : 0;
                 }else if(vPPT.hasSleep()){
                     pars[name] = vPPT.doSleep( { p:pObject[name], self:pObject });
-                    Logger.raw("====> SLEEP property "+name+" => after : "+pars[name]);
+                   // Logger.debug("====> SLEEP property "+name+" => after : "+pars[name]);
                 }else{
                     pars[name] = pObject[name];
                 }
@@ -329,7 +329,7 @@ export class SqliteAPI {
             // add column
             c = `ALTER TABLE "${pTableName}" ${col}`;
 
-            Logger.info('SqliteAPI : ',c);
+            Logger.debug('SqliteAPI : ',c);
             this._db.exec(c);
         }
     }
@@ -571,7 +571,9 @@ export class SqliteAPI {
         if(typeof pStmt === 'string'){
 
             Logger.info("Exec _execSelectAll (simple) : "+pStmt+"\n");
-            return this._db.prepare(pStmt).all();
+            const d = this._db.prepare(pStmt).all();
+            //Logger.info(JSON.stringify(d));
+            return d;
         }else{
             let res:any = {};
             for(const i in pStmt){
