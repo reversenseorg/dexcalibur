@@ -16,6 +16,7 @@ export default class InMemoryDbCollection implements IDbCollection
     name:string = null;
     ctr:number = 0;
     values:any = {};
+    _db:any;
 
     constructor(name:string = null){
         this.name = name;

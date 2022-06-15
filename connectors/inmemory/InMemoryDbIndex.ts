@@ -14,6 +14,7 @@ export default class InMemoryDbIndex implements IDbIndex
     static __type:string = "Index";
     name:string = null;
     refs:any = [];
+    _db:any;
 
 
     /**

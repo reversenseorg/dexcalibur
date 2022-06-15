@@ -130,6 +130,10 @@ class InMemoryDb implements IDatabase
         return o;
     }
 
+    getProject(): DexcaliburProject {
+        return this.conn.ctx;
+    }
+
     // ============ serialize ============
 
     isSerializable():boolean{
