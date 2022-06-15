@@ -323,24 +323,6 @@ export default class HookSet
     }
 
     /*
-    addIntercept(interceptConfig){
-        let primitive = null;
-        if(interceptConfig.multiple_method != null){
-            for(let i=0; i<interceptConfig.multiple_method.length; i++){
-                primitive = new HookPrimitive(interceptConfig);
-                primitive.setMethod( interceptConfig.multiple_method[i]);
-                primitive.isIntercept = true;
-                this.intercepts.push( primitive);
-            }
-        }else{
-            primitive = new HookPrimitive(interceptConfig);
-            primitive.isIntercept = true;
-            this.intercepts.push( primitive);
-        }
-
-        return this;
-    }*/
-    /*
     addSyscallProbe(probeConfig){
         this.native_probes.push( new HookPrimitive(probeConfig));
         return this;
