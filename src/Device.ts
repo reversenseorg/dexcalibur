@@ -253,6 +253,16 @@ export class Device
     }
 
     /**
+     * To check if the device is running under Android (according to user settings)
+     *
+     * @return {boolean} Return TRUE if
+     * @method
+     */
+    isAndroid():boolean {
+        return (this.platform != null && this.platform.isAndroid());
+    }
+
+    /**
      * To get enrollment status
      * 
      * @returns {Boolean} Enrollement status : TRUE if the device is enrolled and frida ready, else FALSE
