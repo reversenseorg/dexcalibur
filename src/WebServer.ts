@@ -69,6 +69,7 @@ import {HOOK_WEB_API} from "./webapi/hook.web.api";
 import {INSPECTOR_WEB_API} from "./webapi/inspectors.web.api";
 import {KEYPOINT_WEB_API} from "./webapi/keypoint.web.api";
 import {SCRIPT_WEB_API} from "./webapi/script.web.api";
+import {HOOK_FRAGS_WEB_API} from "./webapi/hook-fragment.web.api";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -1252,6 +1253,7 @@ export default class WebServer
     useProductionMode():void{
         const projectDependentPath:string[] = [
             '/api/hook',
+            '/api/hook_frag',
             '/api/probe',
             '/api/find',
             '/api/intent',
@@ -1376,6 +1378,7 @@ export default class WebServer
         FS_WEB_API.injectServer(this);
         USER_WEB_API.injectServer(this);
         HOOK_WEB_API.injectServer(this);
+        HOOK_FRAGS_WEB_API.injectServer(this);
         INSPECTOR_WEB_API.injectServer(this);
         KEYPOINT_WEB_API.injectServer(this);
 
@@ -1395,6 +1398,7 @@ export default class WebServer
         this.app.use('/api/file', FS_WEB_API.getRouter());
         this.app.use('/api/user', USER_WEB_API.getRouter());
         this.app.use('/api/hook', HOOK_WEB_API.getRouter());
+        this.app.use('/api/hook_frag', HOOK_FRAGS_WEB_API.getRouter());
         this.app.use('/api/plugin', INSPECTOR_WEB_API.getRouter());
         this.app.use('/api/keypoint', KEYPOINT_WEB_API.getRouter());
         /**
