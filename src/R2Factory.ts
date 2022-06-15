@@ -32,7 +32,7 @@ export default class RadareFactory
      * @param pURL
      */
     newRemoteInstance( pBinary:ModelFile, pURL:string): RadareHelper {
-        return this.helpers[pBinary.getUID()] = new RadareHelper( pBinary, R2_TYPE.HTTP, { url:pURL });
+        return this.helpers[pBinary.getUID()] = new RadareHelper( pBinary, R2_TYPE.HTTP, { url:pURL, ctx:this.ctx });
     }
 
     /**
@@ -40,7 +40,7 @@ export default class RadareFactory
      * @param pBinary
      */
     newLocalInstance( pBinary:ModelFile): RadareHelper {
-        return this.helpers[pBinary.getUID()] = new RadareHelper( pBinary, R2_TYPE.LOCAL);
+        return this.helpers[pBinary.getUID()] = new RadareHelper( pBinary, R2_TYPE.LOCAL, { ctx:this.ctx });
     }
 
     /**

@@ -88,6 +88,8 @@ export namespace Settings {
     export class ServerSettings extends AbstractSettings {
 
 
+        static SUPPORTED_ARCH = ["aarch64","aarch32","x64","x86"];
+
         /**
          * Dexcalibur remote registry
          *
@@ -121,7 +123,15 @@ export namespace Settings {
          * @type number
          * @private
          */
-        private heapSize:number = 4096;
+        private heapSize = 4096;
+
+        /**
+         * Default architecture
+         * @field
+         * @type number
+         * @private
+         */
+        private defaultArch = 'aarch64';
 
         constructor( pParent:GlobalSettings, pConfig:any=null) {
 
@@ -141,6 +151,10 @@ export namespace Settings {
                 }
             }
 
+        }
+
+        getDefaultArchitecture():string {
+            return this.defaultArch;
         }
 
         getRegistry():DexcaliburRegistry {
@@ -171,6 +185,13 @@ export namespace Settings {
                         return new UnsafeValue(pName, d);
                     }
                     break;
+                case "defaultArch":
+                    if(ServerSettings.SUPPORTED_ARCH.indexOf(pValue)>-1){
+                        return new SanitizedValue(pName, pValue);
+                    }else{
+                        return new UnsafeValue(pName, pValue);
+                    }
+                    break;
                 default:
                     throw GlobalSettingsException.SETTING_UNKNOW();
             }
@@ -182,6 +203,9 @@ export namespace Settings {
             switch (pValue.getName()) {
                 case "heapSize":
                     this.heapSize = pValue.getValue();
+                    break;
+                case "defaultArch":
+                    this.defaultArch = pValue.getValue();
                     break;
                 default:
                     throw GlobalSettingsException.SETTING_UNKNOW();
@@ -205,7 +229,8 @@ export namespace Settings {
                 registry: this.registry.url,
                 registryAPI: this.registry.api,
                 auth: this.auth.toObject(pZone),
-                heapSize: this.heapSize
+                heapSize: this.heapSize,
+                defaultArch: this.defaultArch
             };
         }
     }

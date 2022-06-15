@@ -1,32 +1,20 @@
-import * as _ps_ from "child_process";
-import * as _fs_ from "fs";
-import * as _path_ from "path";
-import * as _stream_ from 'stream';
-import * as _co_ from 'co';
-import got from "got";
-import * as _xz_ from "xz";
 //import * as r2 from 'r2pipe';
 import * as r2p from 'r2pipe'
 import {R2Pipe} from 'r2pipe-promise';
 
-import DexcaliburWorkspace from "./DexcaliburWorkspace";
-
-import {EOL} from "os";
-
 import * as Log from './Logger';
-import ModelFileSection from "./ModelFileSection";
 import ModelExecutableSection from "./ModelExecutableSection";
 import {ModelFunction} from "./ModelFunction";
 import ModelFile from "./ModelFile";
 import {ModelNativeRef} from "./ModelNativeRef";
-import ModelInstruction from "./ModelInstruction";
 import ModelCpuInstruction from "./ModelCpuInstruction";
-import {ModelVariable} from "./ModelVariable";
+import {ModelVariable, ModelVariableLocation} from "./ModelVariable";
 import {External} from "./external/External";
-import {ExternalTool} from "./ExternalTool";
-import ShellHelper from "./ShellHelper";
 import Util from "./Utils";
 import {NativeAnalyzerCommands} from "./analyzer/NativeAnalyzerCommands";
+import {DATATYPE_CATEGORY, TypeManager} from "./types/TypeManager";
+import {DataType} from "./types/DataType";
+
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
 //r2p.r2bin = "";
@@ -40,6 +28,13 @@ export enum R2_TYPE {
 
 const COLS_SECTIONS = {'Nm':'n', 'Vaddr':'vaddr', 'Paddr':'paddr', 'Size':'sz', 'Memsz':'memsz', 'Perms':'perm', 'Name':'name'};
 const COLS_AFL = ['addr','sz','bbs','name'];
+
+const ARCH_RET = {
+    aarch64: "x0",
+    aarch32: "r0",
+    // x64: "rdx",
+    // x86: "edx",
+}
 
 /**
  * @class
@@ -98,6 +93,14 @@ export default class RadareHelper
      */
     opts:any = {};
 
+    /**
+     * Type manager of the project
+     *
+     * @field
+     * @type {TypeManager}
+     * @since 1.0.0
+     */
+    private _typeMgr: TypeManager;
 
     /**
      *
@@ -110,6 +113,7 @@ export default class RadareHelper
         this._t = pType;
         this.target = pBinary;
         this.opts = pOptions;
+        this._typeMgr = pOptions.ctx.getTypeManager();
     }
 
     /**
@@ -149,6 +153,7 @@ export default class RadareHelper
      * @since 1.0.0
      */
     async parseFunctionList(pOut:any, pOptions:any = null):Promise<ModelFunction[]> {
+
         let fns:ModelFunction[] = [];
 
 
@@ -168,6 +173,17 @@ export default class RadareHelper
                     src: pOptions.src.getUID()
                 });
 
+                if(!vFn.noreturn){
+                    // todo : implement multi arch
+                    f.setReturn(
+                        new ModelVariable({
+                            n: "ret",
+                            __t: ModelVariableLocation.REG,
+                            type: this._typeMgr.getNativeType("uint64_t"),
+                            ref: ARCH_RET.aarch64
+                        })
+                    );
+                }
 
                 if(vFn.hasOwnProperty('callrefs')){
                     vFn.callrefs.map( ref => {
@@ -208,14 +224,28 @@ export default class RadareHelper
                     });
                 }
 
-                ['regvars','spvars','bpvars'].map( vType => {
+                if(vFn.hasOwnProperty('regvars')){
+                    f.regvars = [];
+                    vFn.regvars.map( ref => {
+                        f.regvars.push( new ModelVariable({
+                                n: ref.name,
+                                __t: (ref.kind==ModelVariableLocation.REG ? ModelVariableLocation.REG:ModelVariableLocation.STACK),
+                                type: this._typeMgr.getNativeType(ref.type),
+                                ref: ref.refs
+                            })
+                        )
+                    });
+                }
+
+
+                ['spvars','bpvars'].map( vType => {
                     if(vFn.hasOwnProperty(vType)){
                         f[vType] = [];
                         vFn[vType].map( ref => {
                             f[vType].push( new ModelVariable({
                                     n: ref.name,
-                                    __t: ref.kind,
-                                    type: ref.type,
+                                    __t: (ref.kind==ModelVariableLocation.REG ? ModelVariableLocation.REG:ModelVariableLocation.STACK),
+                                    type: this._typeMgr.getNativeType(ref.type),
                                     ref: ref.refs
                                 })
                             )
@@ -271,6 +301,8 @@ export default class RadareHelper
     async runCmd( pCommands:string[], pOptions:any= {}):Promise<number> {
         let k:number = 0;
         let data:any;
+
+
 
         Logger.info('[R2] Run command : '+pCommands.join(','));
 
@@ -376,6 +408,10 @@ export default class RadareHelper
                 Logger.error(`[R2] Error aa;aac : ${err.message}`)
             });
 
+            if(!this._typeMgr.isInitialized(DATATYPE_CATEGORY.NATIVE)){
+                await this.initDataTypes();
+            }
+
             if(res!=null){
                 data = await this.runCmd(['sections','f_list']);
             }
@@ -384,6 +420,43 @@ export default class RadareHelper
          }
 
          return data;
+    }
+
+
+    /**
+     * To initialize or update native types into TypeManager by importing types from r2
+     *
+     * @return {Promise<boolean>}
+     * @async
+     * @method
+     */
+    async initDataTypes():Promise<any>{
+        let success = false;
+        let data:any;
+        try {
+
+            if(!this._typeMgr.isInitialized(DATATYPE_CATEGORY.NATIVE)){
+
+                data = await this._p.cmd("tj").catch(err => {
+                    Logger.error(`[R2] Error 'tj' : ${err.message}`)
+                });
+
+                const types:DataType[] = [];
+                data.map( (vData:any)=>{
+                    const t = new DataType(vData.name, vData.size);
+                    t.fmt = vData.format;
+                    types.push(t);
+                })
+                success = this._typeMgr.initTypes( DATATYPE_CATEGORY.NATIVE, await types);
+            }else{
+                success = true;
+            }
+        } catch(err)  {
+            Logger.error(`[R2] Error: ${err.message} ${err.stack}`)
+
+        }
+
+        return data;
     }
 
     /**
