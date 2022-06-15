@@ -135,7 +135,7 @@ PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
 
                         break;
                     case 'fromfs':
-                        wf.pushStatus(new StatusMessage(10, "Set target platform"));
+                        wf.pushStatus(new StatusMessage(5, "Set target platform"));
                         platform = PlatformManager.getInstance().getPlatform( req.body['platform']);
                         path = req.body['path'];
                         break;
@@ -149,9 +149,11 @@ PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
                     throw DexcaliburProjectException.APP_FILE_OT_FOUND();
                 }
 
+
+/*
                 if(['min','max','dev'].indexOf(req.body['platform'])>-1){
                     platform = null;
-                }
+                }*/
 
 
                 Logger.info(
@@ -187,6 +189,8 @@ PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
                     wf.pushStatus(new StatusMessage(10, "Synchronizing target platform with project"));
                     //platform = PlatformManager.getInstance().getDefaultPlatformFor();
                     // sync project platform with target platform or APK
+
+
                     success = await project.synchronizePlatform( platform.getUID());
                 }
 
@@ -355,40 +359,38 @@ PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
 
             let $:WebServer = req.dxc.$;
             let user:UserAccount;
-            let project:DexcaliburProject;
+            let unsafeProjectUID:string;
 
             try {
                 if (req.dxc == null || !$.context.getUserService().verifySession(req.dxc.sess)) {
                     throw AuthenticationException.AUTHENTICATION_FAILED();
                 }
 
-                if(req.body['project']!=null){
-                    project = $.context.getActiveProjects(req.dxc.sess.getUserAccount())[req.body['project']];
-                }else if(req.dxc.project != null){
-                    project = req.dxc.project;
+                Logger.raw(">>> "+req.body['uid'] );
+                // close the project if it is opened
+                if(req.body['uid'] == null){
+                    if (req.dxc!=null && $.context.getUserService().verifySession(req.dxc.sess)) {
+                        if(req.dxc.project == null){
+                            throw DexcaliburProjectException.DELETE_PROJ_FAILURE_NOTFOUND();
+                        }
+
+                        unsafeProjectUID = (req.dxc.project as DexcaliburProject).getUID();
+                    }
+                }else{
+                    unsafeProjectUID = req.body['uid'];
                 }
 
-                if(project == null || !project.isReady()) {
+                if(unsafeProjectUID == null){
                     throw DexcaliburProjectException.NO_PROJECT_SPECIFIED();
                 }
 
-                user = (req.dxc.sess as UserSession).getUserAccount();
+
 
                 $.sendSuccess( res, {
-                    projects: $.context.deleteProject( user, project.getUID() )
+                    remove: $.context.deleteProject( req.dxc.sess.getUserAccount(),  unsafeProjectUID)
                 });
 
-                if (req.dxc!=null && $.context.getUserService().verifySession(req.dxc.sess)) {
-                    user = (req.dxc.sess as UserSession).getUserAccount();
 
-                    if(req.dxc.project == null){
-                        throw DexcaliburProjectException.DELETE_PROJ_FAILURE_NOTFOUND();
-                    }
-
-                    $.sendSuccess( res, {
-                        projects: $.context.deleteProject( user, (req.dxc.project as DexcaliburProject).getUID() )
-                    });
-                }
             }catch(err){
                 Logger.error("[API][PROJECT MGT] Unable to delete project : "+err.message+"\n"+err.stack);
                 $.sendError( res, err.message);

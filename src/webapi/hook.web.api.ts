@@ -10,7 +10,7 @@ import HookSession from "../HookSession";
 import FridaHelper from "../FridaHelper";
 import Hook from "../Hook";
 import Util from "../Utils";
-import {HookSetList} from "../hook/HookManager";
+import {HookManager, HookSetList} from "../hook/HookManager";
 import HookMessage from "../HookMessage";
 import ModelMethod from "../ModelMethod";
 import {ModelFunction} from "../ModelFunction";
@@ -18,6 +18,7 @@ import ModelFile from "../ModelFile";
 import {AbstractHook} from "../hook/AbstractHook";
 import {NodeInternalType} from "../NodeInternalType";
 import KeyPoint from "../hook/KeyPoint";
+import HookStrategy from "../hook/HookStrategy";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 export const HOOK_WEB_API: DelegateWebApi = new DelegateWebApi();
@@ -33,23 +34,7 @@ HOOK_WEB_API.addAsyncAuthenticatedRoute(
 
             try{
 
-                // ========== SECURITY CHECKS
-
-                if (req.dxc == null || !$.context.getUserService().verifySession(req.dxc.sess)) {
-                    throw AuthenticationException.AUTHENTICATION_FAILED();
-                }
-
-                if(req.body['project']!=null){
-                    project = $.context.getActiveProjects(req.dxc.sess.getUserAccount())[req.body['project']];
-                }else if(req.dxc.project != null){
-                    project = req.dxc.project;
-                }
-
-                if(project == null || !project.isReady()) {
-                    throw DexcaliburProjectException.NO_PROJECT_SPECIFIED();
-                }
-
-                // ========== LOGIC
+                project = req.dxc.project;
 
                 // get hook instance by ID
                 const session:HookSession = project.hook.lastSession();
@@ -66,6 +51,8 @@ HOOK_WEB_API.addAsyncAuthenticatedRoute(
                 $.sendError(res, "Hooked application cannot be detached. Cause : " + err.message);
             }
         }
+    },{
+        readProject: true
     }
 );
 
@@ -79,24 +66,7 @@ HOOK_WEB_API.addAsyncAuthenticatedRoute(
             let project:DexcaliburProject = null;
 
             try{
-
-                // ========== SECURITY CHECKS
-
-                if (req.dxc == null || !$.context.getUserService().verifySession(req.dxc.sess)) {
-                    throw AuthenticationException.AUTHENTICATION_FAILED();
-                }
-
-                if(req.body['project']!=null){
-                    project = $.context.getActiveProjects(req.dxc.sess.getUserAccount())[req.body['project']];
-                }else if(req.dxc.project != null){
-                    project = req.dxc.project;
-                }
-
-                if(project == null || !project.isReady()) {
-                    throw DexcaliburProjectException.NO_PROJECT_SPECIFIED();
-                }
-
-                // ========== LOGIC
+                project = req.dxc.project;
 
                 // get hook instance by ID
                 const session:HookSession = project.hook.lastSession();
@@ -116,6 +86,8 @@ HOOK_WEB_API.addAsyncAuthenticatedRoute(
                 $.sendError(res, "Hooked application cannot be killed. Cause : " + err.message);
             }
         }
+    },{
+        readProject: true
     }
 );
 
@@ -129,24 +101,7 @@ HOOK_WEB_API.addAsyncAuthenticatedRoute(
             let project:DexcaliburProject = null;
 
             try{
-
-                // ========== SECURITY CHECKS
-
-                if (req.dxc == null || !$.context.getUserService().verifySession(req.dxc.sess)) {
-                    throw AuthenticationException.AUTHENTICATION_FAILED();
-                }
-
-                if(req.body['project']!=null){
-                    project = $.context.getActiveProjects(req.dxc.sess.getUserAccount())[req.body['project']];
-                }else if(req.dxc.project != null){
-                    project = req.dxc.project;
-                }
-
-                if(project == null || !project.isReady()) {
-                    throw DexcaliburProjectException.NO_PROJECT_SPECIFIED();
-                }
-
-                // ========== LOGIC
+                project = req.dxc.project;
                 const newCode:string = req.body['code[]'].join("\n");
                 let output:any = null;
                 const dev:Device = project.getDevice();
@@ -190,8 +145,54 @@ HOOK_WEB_API.addAsyncAuthenticatedRoute(
                 $.sendError(res, "Frida cannot be started. Cause : " + err.message);
             }
         }
+    },{
+        readProject: true
     }
 );
+
+HOOK_WEB_API.addAsyncAuthenticatedRoute(
+    '/frida/build',
+    {
+        'get': async function (req:Request, res:Response):Promise<any> {
+            const $: WebServer = req.dxc.$;
+
+            try{
+                $.sendSuccess(res, (req.dxc.project as DexcaliburProject).getHookManager().buildAgentScript());
+            }catch(err){
+                Logger.error("[API][HOOK] Frida agent script cannot be built. Cause : " + err.message + "\n\t" + err.stack);
+                $.sendError(res, "Frida agent script cannot be built. Cause : " + err.message);
+            }
+        }
+    },{
+        readProject: true
+    }
+);
+
+
+HOOK_WEB_API.addAsyncAuthenticatedRoute(
+    '/strategies',
+    {
+        'get': async function (req:Request, res:Response):Promise<any> {
+            const $: WebServer = req.dxc.$;
+
+            try{
+                const strats = (req.dxc.project as DexcaliburProject).getHookManager().getHookStrategies();
+                const data = [];
+                strats.map( (vS:HookStrategy)=> {
+                    data.push( vS.toJsonObject());
+                });
+
+                $.sendSuccess(res, data);
+            }catch(err){
+                Logger.error("[API][HOOK] Frida agent script cannot be built. Cause : " + err.message + "\n\t" + err.stack);
+                $.sendError(res, "Frida agent script cannot be built. Cause : " + err.message);
+            }
+        }
+    },{
+        readProject: true
+    }
+);
+
 
 // replace /hook/:id by /hook/get/:id
 HOOK_WEB_API.addAuthenticatedRoute(
@@ -202,24 +203,8 @@ HOOK_WEB_API.addAuthenticatedRoute(
             let project:DexcaliburProject = null;
 
             try{
+                project = req.dxc.project;
 
-                // ========== SECURITY CHECKS
-
-                if (req.dxc == null || !$.context.getUserService().verifySession(req.dxc.sess)) {
-                    throw AuthenticationException.AUTHENTICATION_FAILED();
-                }
-
-                if(req.body['project']!=null){
-                    project = $.context.getActiveProjects(req.dxc.sess.getUserAccount())[req.body['project']];
-                }else if(req.dxc.project != null){
-                    project = req.dxc.project;
-                }
-
-                if(project == null || !project.isReady()) {
-                    throw DexcaliburProjectException.NO_PROJECT_SPECIFIED();
-                }
-
-                // ========== LOGIC
                 // get hook instance by ID
                 const hook:AbstractHook = project.hook.getHookByID(
                     req.params.hookid
@@ -249,24 +234,8 @@ HOOK_WEB_API.addAuthenticatedRoute(
             let project:DexcaliburProject = null;
 
             try{
+                project = req.dxc.project;
 
-                // ========== SECURITY CHECKS
-
-                if (req.dxc == null || !$.context.getUserService().verifySession(req.dxc.sess)) {
-                    throw AuthenticationException.AUTHENTICATION_FAILED();
-                }
-
-                if(req.body['project']!=null){
-                    project = $.context.getActiveProjects(req.dxc.sess.getUserAccount())[req.body['project']];
-                }else if(req.dxc.project != null){
-                    project = req.dxc.project;
-                }
-
-                if(project == null || !project.isReady()) {
-                    throw DexcaliburProjectException.NO_PROJECT_SPECIFIED();
-                }
-
-                // ========== LOGIC
                 const hook:AbstractHook = project.hook.getHookByID(
                     req.params.hookid
                 );
@@ -293,24 +262,8 @@ HOOK_WEB_API.addAuthenticatedRoute(
             let project:DexcaliburProject = null;
 
             try{
+                project = req.dxc.project;
 
-                // ========== SECURITY CHECKS
-
-                if (req.dxc == null || !$.context.getUserService().verifySession(req.dxc.sess)) {
-                    throw AuthenticationException.AUTHENTICATION_FAILED();
-                }
-
-                if(req.body['project']!=null){
-                    project = $.context.getActiveProjects(req.dxc.sess.getUserAccount())[req.body['project']];
-                }else if(req.dxc.project != null){
-                    project = req.dxc.project;
-                }
-
-                if(project == null || !project.isReady()) {
-                    throw DexcaliburProjectException.NO_PROJECT_SPECIFIED();
-                }
-
-                // ========== LOGIC
                 let hook:AbstractHook = project.hook.getHookByID(
                     //Util.b64_decode(req.params.hookid)
                     req.params.hookid
@@ -334,6 +287,8 @@ HOOK_WEB_API.addAuthenticatedRoute(
                 $.sendError(res, "Hook cannot be dropped. Cause : " + err.message);
             }
         }
+    },{
+        readProject: true
     }
 );
 
@@ -345,24 +300,7 @@ HOOK_WEB_API.addAuthenticatedRoute(
             const $: WebServer = req.dxc.$;
             let project:DexcaliburProject = null;
             try{
-
-                // ========== SECURITY CHECKS
-
-                if (req.dxc == null || !$.context.getUserService().verifySession(req.dxc.sess)) {
-                    throw AuthenticationException.AUTHENTICATION_FAILED();
-                }
-
-                if(req.body['project']!=null){
-                    project = $.context.getActiveProjects(req.dxc.sess.getUserAccount())[req.body['project']];
-                }else if(req.dxc.project != null){
-                    project = req.dxc.project;
-                }
-
-                if(project == null || !project.isReady()) {
-                    throw DexcaliburProjectException.NO_PROJECT_SPECIFIED();
-                }
-
-                // ========== LOGIC
+                project = req.dxc.project;
 
                 let dev:any={};
 
@@ -393,6 +331,8 @@ HOOK_WEB_API.addAuthenticatedRoute(
                 $.sendError(res, " Hook cannot be enabled. Cause : " + err.message);
             }
         }
+    },{
+        readProject: true
     }
 );
 
@@ -405,35 +345,18 @@ HOOK_WEB_API.addAuthenticatedRoute(
             let project:DexcaliburProject = null;
 
             try{
-
-                // ========== SECURITY CHECKS
-
-                if (req.dxc == null || !$.context.getUserService().verifySession(req.dxc.sess)) {
-                    throw AuthenticationException.AUTHENTICATION_FAILED();
-                }
-
-                if(req.body['project']!=null){
-                    project = $.context.getActiveProjects(req.dxc.sess.getUserAccount())[req.body['project']];
-                }else if(req.dxc.project != null){
-                    project = req.dxc.project;
-                }
-
-                if(project == null || !project.isReady()) {
-                    throw DexcaliburProjectException.NO_PROJECT_SPECIFIED();
-                }
-
-                // ========== LOGIC
+                project = req.dxc.project as DexcaliburProject;
                 let dev:any={};
 
                 if(req.params.hookid=="all"){
-                    let hooks:Hook[] = $.project.hook.list();
+                    let hooks:Hook[] = project.hook.list();
                     for(let i in hooks){
                         hooks[i].disable();
                         dev[i] = {enable: hooks[i].isEnable() };
                     }
                     $.sendSuccess(res, dev);
                 }else{
-                    let hook:AbstractHook = $.project.hook.getHookByID(
+                    let hook:AbstractHook = project.hook.getHookByID(
                         req.params.hookid
                     );
 
@@ -450,6 +373,8 @@ HOOK_WEB_API.addAuthenticatedRoute(
                 $.sendError(res, " Hook cannot be disabled. Cause : " + err.message);
             }
         }
+    }, {
+        readProject: true
     }
 );
 
@@ -463,51 +388,30 @@ HOOK_WEB_API.addAuthenticatedRoute(
             let project:DexcaliburProject = null;
 
             try{
+                project = req.dxc.project;
 
-                // ========== SECURITY CHECKS
-
-                if (req.dxc == null || !$.context.getUserService().verifySession(req.dxc.sess)) {
-                    throw AuthenticationException.AUTHENTICATION_FAILED();
-                }
-
-                if(req.body['project']!=null){
-                    project = $.context.getActiveProjects(req.dxc.sess.getUserAccount())[req.body['project']];
-                }else if(req.dxc.project != null){
-                    project = req.dxc.project;
-                }
-
-                if(project == null || !project.isReady()) {
-                    throw DexcaliburProjectException.NO_PROJECT_SPECIFIED();
-                }
-
-                // ========== LOGIC
-
-                const hooks:Hook[] = project.hook.list();
+                const hookMgr:HookManager = project.getHookManager();
                 let data:any = [];
 
                 if(req.query['t']!=null && req.query['s']!=null){
                     const unsafeSignature:string = decodeURIComponent(Util.b64_decode(decodeURIComponent(req.query['s'])));
+                    let target:ModelMethod|ModelFunction = null;
                     switch(req.query['t']){
                         case "func":
-                            hooks.map( (vHook:Hook) => {
-                                if(vHook.native){
-                                    if(vHook.hasMethod() && (vHook.getMethod().signature()===unsafeSignature)){
-                                        data.push(vHook.toJsonObject());
-                                    }
-                                }
-                            });
+                            target = project.getSearchEngine().get.func(unsafeSignature);
                             break;
                         case "meth":
-                            hooks.map( (vHook:Hook) => {
-
-                                if(!vHook.native){
-                                    if(vHook.hasMethod() && (vHook.getMethod().signature()===unsafeSignature)){
-                                        data.push(vHook.toJsonObject());
-                                    }
-                                }
-                            });
+                            target = project.getSearchEngine().get.method(unsafeSignature);
                             break;
                     }
+
+                    if(target != null){
+                        hookMgr.getProbes(target).map( (vHook:AbstractHook) => {
+                            data.push(vHook.toJsonObject());
+                        });
+                    }
+
+
                 }else if(req.query['f'] !=null ){
 
 
@@ -551,6 +455,8 @@ HOOK_WEB_API.addAuthenticatedRoute(
                 $.sendError(res, " Hook cannot be listed. Cause : " + err.message);
             }
         }
+    },{
+        readProject: true
     }
 );
 
@@ -562,22 +468,7 @@ HOOK_WEB_API.addAuthenticatedRoute(
             let project:DexcaliburProject = null;
 
             try{
-
-                // ========== SECURITY CHECKS
-
-                if (req.dxc == null || !$.context.getUserService().verifySession(req.dxc.sess)) {
-                    throw AuthenticationException.AUTHENTICATION_FAILED();
-                }
-
-                if(req.body['project']!=null){
-                    project = $.context.getActiveProjects(req.dxc.sess.getUserAccount())[req.body['project']];
-                }else if(req.dxc.project != null){
-                    project = req.dxc.project;
-                }
-
-                if(project == null || !project.isReady()) {
-                    throw DexcaliburProjectException.NO_PROJECT_SPECIFIED();
-                }
+                project = req.dxc.project;
 
                 // ========== LOGIC
                 if(req.params.id == null){
@@ -592,7 +483,7 @@ HOOK_WEB_API.addAuthenticatedRoute(
 
                 const data = {
                     load: [],
-                    unload: project.hook.getHookByUnloadKeyPoint(kp)
+                    unload: [] //project.hook.getHookByUnloadKeyPoint(kp)
                 };
 
                 let hooks:AbstractHook[] = project.hook.getHookByLoadKeyPoint(kp);
@@ -611,6 +502,8 @@ HOOK_WEB_API.addAuthenticatedRoute(
                 $.sendError(res, " Hook cannot be listed. Cause : " + err.message);
             }
         }
+    },{
+        readProject: true
     }
 );
 
@@ -624,23 +517,7 @@ HOOK_WEB_API.addAuthenticatedRoute(
 
             try{
 
-                // ========== SECURITY CHECKS
-
-                if (req.dxc == null || !$.context.getUserService().verifySession(req.dxc.sess)) {
-                    throw AuthenticationException.AUTHENTICATION_FAILED();
-                }
-
-                if(req.body['project']!=null){
-                    project = $.context.getActiveProjects(req.dxc.sess.getUserAccount())[req.body['project']];
-                }else if(req.dxc.project != null){
-                    project = req.dxc.project;
-                }
-
-                if(project == null || !project.isReady()) {
-                    throw DexcaliburProjectException.NO_PROJECT_SPECIFIED();
-                }
-
-                // ========== LOGIC
+                project = req.dxc.project;
 
                 let sess:HookSession = this.newSession();
 
@@ -681,6 +558,8 @@ HOOK_WEB_API.addAuthenticatedRoute(
                 $.sendError(res, " Hooking cannot be started. Cause : " + err.message);
             }
         }
+    },{
+        readProject: true
     }
 );
 
@@ -696,23 +575,7 @@ HOOK_WEB_API.addAuthenticatedRoute(
 
             try{
 
-                // ========== SECURITY CHECKS
-
-                if (req.dxc == null || !$.context.getUserService().verifySession(req.dxc.sess)) {
-                    throw AuthenticationException.AUTHENTICATION_FAILED();
-                }
-
-                if(req.body['project']!=null){
-                    project = $.context.getActiveProjects(req.dxc.sess.getUserAccount())[req.body['project']];
-                }else if(req.dxc.project != null){
-                    project = req.dxc.project;
-                }
-
-                if(project == null || !project.isReady()) {
-                    throw DexcaliburProjectException.NO_PROJECT_SPECIFIED();
-                }
-
-                // ========== LOGIC
+                project = req.dxc.project;
 
                 /*res.set('Content-Type', 'application/octet-stream');
                 res.set('Content-Length', script.length);
@@ -728,6 +591,8 @@ HOOK_WEB_API.addAuthenticatedRoute(
                 $.sendError(res, " Hook cannot be generated. Cause : " + err.message);
             }
         }
+    },{
+        readProject: true
     }
 );
 
@@ -743,24 +608,7 @@ HOOK_WEB_API.addAuthenticatedRoute(
             let project:DexcaliburProject = null;
 
             try{
-
-                // ========== SECURITY CHECKS
-
-                if (req.dxc == null || !$.context.getUserService().verifySession(req.dxc.sess)) {
-                    throw AuthenticationException.AUTHENTICATION_FAILED();
-                }
-
-                if(req.body['project']!=null){
-                    project = $.context.getActiveProjects(req.dxc.sess.getUserAccount())[req.body['project']];
-                }else if(req.dxc.project != null){
-                    project = req.dxc.project;
-                }
-
-                if(project == null || !project.isReady()) {
-                    throw DexcaliburProjectException.NO_PROJECT_SPECIFIED();
-                }
-
-                // ========== LOGIC
+                project = req.dxc.project;
 
                 let sess:HookSession[] = project.hook.getSessions();
                 let data:any = {sess:[]};
@@ -807,6 +655,8 @@ HOOK_WEB_API.addAuthenticatedRoute(
                 $.sendError(res, " Hook sessions cannot be listed. Cause : " + err.message);
             }
         }
+    },{
+        readProject: true
     }
 );
 
@@ -820,25 +670,7 @@ HOOK_WEB_API.addAuthenticatedRoute(
             let project:DexcaliburProject = null;
 
             try{
-
-                // ========== SECURITY CHECKS
-
-                if (req.dxc == null || !$.context.getUserService().verifySession(req.dxc.sess)) {
-                    throw AuthenticationException.AUTHENTICATION_FAILED();
-                }
-
-                if(req.body['project']!=null){
-                    project = $.context.getActiveProjects(req.dxc.sess.getUserAccount())[req.body['project']];
-                }else if(req.dxc.project != null){
-                    project = req.dxc.project;
-                }
-
-                if(project == null || !project.isReady()) {
-                    throw DexcaliburProjectException.NO_PROJECT_SPECIFIED();
-                }
-
-                // ========== LOGIC
-
+                project = req.dxc.project;
 
                 let sess:HookSession = project.hook.lastSession();
                 if (sess == null) {
@@ -862,6 +694,8 @@ HOOK_WEB_API.addAuthenticatedRoute(
                 $.sendError(res, " Hook messages cannot be retrieved. Cause : " + err.message);
             }
         }
+    },{
+        readProject: true
     }
 );
 
@@ -875,23 +709,7 @@ HOOK_WEB_API.addAuthenticatedRoute(
 
             try{
 
-                // ========== SECURITY CHECKS
-
-                if (req.dxc == null || !$.context.getUserService().verifySession(req.dxc.sess)) {
-                    throw AuthenticationException.AUTHENTICATION_FAILED();
-                }
-
-                if(req.body['project']!=null){
-                    project = $.context.getActiveProjects(req.dxc.sess.getUserAccount())[req.body['project']];
-                }else if(req.dxc.project != null){
-                    project = req.dxc.project;
-                }
-
-                if(project == null || !project.isReady()) {
-                    throw DexcaliburProjectException.NO_PROJECT_SPECIFIED();
-                }
-
-                // ========== LOGIC
+                project = req.dxc.project;
 
 
                 let meth:ModelMethod|ModelFunction;
@@ -944,10 +762,13 @@ HOOK_WEB_API.addAuthenticatedRoute(
                     }else{
                         probe = project.hook.createNativeFunctionHook(meth as ModelFunction, opts);
                     }
+                    probe.build(project);
                 }else{
                     // modify hook to merge existing with new
                     probe.extends( opts);
                 }
+
+                project.hook.save(probe, true);
 
                 $.sendSuccess( res, { hookid: probe.getGUID(), enable: probe.isEnable() });
 
@@ -961,24 +782,7 @@ HOOK_WEB_API.addAuthenticatedRoute(
             let project:DexcaliburProject = null;
 
             try{
-
-                // ========== SECURITY CHECKS
-
-                if (req.dxc == null || !$.context.getUserService().verifySession(req.dxc.sess)) {
-                    throw AuthenticationException.AUTHENTICATION_FAILED();
-                }
-
-                if(req.body['project']!=null){
-                    project = $.context.getActiveProjects(req.dxc.sess.getUserAccount())[req.body['project']];
-                }else if(req.dxc.project != null){
-                    project = req.dxc.project;
-                }
-
-                if(project == null || !project.isReady()) {
-                    throw DexcaliburProjectException.NO_PROJECT_SPECIFIED();
-                }
-
-                // ========== LOGIC
+                project = req.dxc.project;
 
                 let meth:ModelMethod|ModelFunction;
 
@@ -1015,6 +819,8 @@ HOOK_WEB_API.addAuthenticatedRoute(
                 $.sendError(res, " Hook messages cannot be retrieved. Cause : " + err.message);
             }
         }
+    },{
+        readProject: true
     }
 );
 
