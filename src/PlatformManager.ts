@@ -15,6 +15,8 @@ import DexHelper from "./DexHelper";
 
 import * as Log from './Logger';
 import {PlatformManagerException} from "./errors/PlatformManagerException";
+import {Device} from "./Device";
+import AndroidApplication from "./android/AndroidApplication";
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
 let pipeline:any = promisify(stream.pipeline);
@@ -23,6 +25,12 @@ let gInstance:PlatformManager = null;
 
 interface IPlatformMap {
     [key: string]: Platform;
+}
+
+export enum PLATFORM_STUBS {
+    DEVICE = "dev",
+    APP_MIN = "min",
+    APP_TARGET = "app",
 }
 
 /**
@@ -35,9 +43,10 @@ interface IPlatformMap {
  */
 export default class PlatformManager extends ValidationCapable
 {
+
     engine:DexcaliburEngine;
     remote:any;
-    local:any;
+    local: IPlatformMap;
 
     constructor( pEngine:any){
         super({
@@ -129,7 +138,7 @@ export default class PlatformManager extends ValidationCapable
         this.local = this.enumerateLocal();
         Logger.raw("OK");
         Logger.raw(JSON.stringify(this.local));
-        let registry:DexcaliburRegistry = this.engine.getSettings().getServerSettings().getRegistry();
+        const registry:DexcaliburRegistry = this.engine.getSettings().getServerSettings().getRegistry();
 
         Logger.raw(JSON.stringify(this.engine.getSettings().getServerSettings().getRegistry()) );
         Logger.raw("PASS_OK");
@@ -137,7 +146,7 @@ export default class PlatformManager extends ValidationCapable
             Logger.raw("do enumerateRemote");
             this.remote = await this.enumerateRemote(registry);
 
-            for(let i in this.local){
+            for(const i in this.local){
                 if(this.remote[i] instanceof Platform){
                     this.local[i] = this.remote[i];
                 }
@@ -145,13 +154,29 @@ export default class PlatformManager extends ValidationCapable
         })();
     }
 
+    /**
+     * To check if the UID point to a stub platform
+     *
+     * @param pUID {string} Platform internal UID
+     * @return {boolean} Return TRUE if the platform is a stub platform , else FALSE
+     * @method
+     */
+    isStub( pUID:string):boolean{
+        return (this.local[pUID] != null && this.local[pUID].isStub());
+    }
+
     enumerateLocal():any{
-        let res:IPlatformMap = {};
+        const res:IPlatformMap = {};
         let p:Platform = null;
 
+        // push stub platforms
+        res[PLATFORM_STUBS.DEVICE] = new Platform({ uid:PLATFORM_STUBS.DEVICE, stub:true });
+        res[PLATFORM_STUBS.APP_MIN] = new Platform({ uid:PLATFORM_STUBS.APP_MIN, stub:true });
+        res[PLATFORM_STUBS.APP_TARGET] = new Platform({ uid:PLATFORM_STUBS.APP_TARGET, stub:true });
+
         // retrieve path of folder where target platform files are saved
-        let ws:string = this.engine.workspace.getPlatformFolderLocation();
-        let files:string[] = _fs_.readdirSync(ws);
+        const ws:string = this.engine.workspace.getPlatformFolderLocation();
+        const files:string[] = _fs_.readdirSync(ws);
 
         Logger.raw(`platform folder = ${ws}`);
         Logger.raw(`platform folder content = ${files.join("\n\t")}`);
@@ -168,6 +193,8 @@ export default class PlatformManager extends ValidationCapable
             res[p.getUID()] = p;
         }
 
+        Logger.raw(JSON.stringify(Object.keys(res)));
+
         return res;
     }
     
@@ -182,7 +209,7 @@ export default class PlatformManager extends ValidationCapable
 
         let platforms:any = {};
         let p:Platform = null;
-        let res:any={};
+        const res:IPlatformMap={};
 
         if(pRegistry == null){
             pRegistry = this.engine.getSettings().getServerSettings().getRegistry();
@@ -212,10 +239,45 @@ export default class PlatformManager extends ValidationCapable
         
         return res;
     }
-    
+
+    /**
+     * To get a stub instance of Platform depending of device/app
+     *
+     * @param pDevice {Device} Target device where the application will be executed
+     * @param pApp {AndroidApplication} Targeted application
+     * @param pUID {string} Platform name
+     * @return {Platform} A concrete platform instance corresponding to a stubed platform
+     * @method
+     */
+    getStubPlatform(pDevice:Device, pApp:AndroidApplication, pUID:string):Platform {
+
+        if(pDevice.isAndroid()){
+            switch (pUID) {
+                case PLATFORM_STUBS.DEVICE:
+                    return pDevice.getPlatform();
+                    break;
+                case PLATFORM_STUBS.APP_MIN:
+                    return this.getFromAndroidApiVersion(pApp.getMinApiVersion());
+                    break;
+                case PLATFORM_STUBS.APP_TARGET:
+                    return this.getFromAndroidApiVersion(pApp.getTargetApiVersion());
+                    break;
+                default:
+                    throw PlatformManagerException.STUB_PLATFORM_NOT_SUPPORTED();
+            }
+        }else{
+            throw PlatformManagerException.STUB_PLATFORMS_NOT_AVAILABLE();
+        }
+    }
 
     getPlatform(pName:string):Platform{
-        if(this.local[pName] instanceof Platform){
+
+        Logger.raw(pName);
+        Logger.raw(JSON.stringify(Object.keys(this.local)));
+        Logger.raw(JSON.stringify(this.local[pName]));
+
+        //if(this.local[pName] instanceof Platform){
+        if(this.local[pName] != null){
             return this.local[pName];
         }else if( this.remote[pName] instanceof Platform){
             return this.remote[pName];

@@ -11,7 +11,11 @@ let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 const PLATFORM_RE:RegExp = new RegExp('(?<source>[^_.]+)_(?<name>[^_.]+)_(?<version>[^_.]+)_(?<vendor>[^_.]+)\.(?<format>[^.]+)');
 const LOCAL_PLATFORM_RE:RegExp = new RegExp('(?<source>[^_.]+)_(?<name>[^_.]+)_(?<version>[^_.]+)_(?<vendor>[^_.]+)');
 
-
+/**
+ * Represent a target platform
+ *
+ * @class
+ */
 export default class Platform
 {
     uid:string = null;
@@ -26,7 +30,8 @@ export default class Platform
     size:number = null;
     remoteURL:string = null;
     localPath:string = null;
-    installed:boolean = false;
+    installed = false;
+    stub = false;
 
     apiVersion:string = null;
     binaryPath:string = null;
@@ -103,7 +108,10 @@ export default class Platform
     }
 
     getUID():string{
-        return this.uid = `${this.source}_${this.name}_${this.version}_${this.vendor}`;
+        if(!this.stub)
+            return this.uid = `${this.source}_${this.name}_${this.version}_${this.vendor}`;
+        else
+            return this.uid;
     }
 
     /**
@@ -128,6 +136,10 @@ export default class Platform
             return pType.filter( val => this.name.indexOf(val)>-1).length>0;
         else
             return this.name.indexOf(pType)>-1;
+    }
+
+    isStub():boolean {
+        return this.stub;
     }
 
     isVmSupported(){
