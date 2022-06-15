@@ -64,10 +64,12 @@ export default class KeyPoint implements IPersistent {
     weight:number;
     type: KeyPointType = KeyPointType.HOOK;
     node:INodeMap = {};
+    enabled:boolean;
     _c:string;
 
     constructor(pConfig:any={}){
         this.weight = -1;
+        this.enabled = true;
         for(const i in pConfig){
             this[i] = pConfig[i];
         }
@@ -93,6 +95,9 @@ export default class KeyPoint implements IPersistent {
         return Object.values(this.node)[0];
     }
 
+    hasNodes():boolean {
+        return (Object.values(this.node).length > 0);
+    }
 
 
     hasAncestor():boolean {
@@ -183,6 +188,24 @@ export default class KeyPoint implements IPersistent {
      */
     require(pModule:string):void {
         this.deps.push(pModule);
+    }
+
+    /**
+     * To check if the key point require some externals/shared libs/code
+     *
+     * @return {boolean}
+     * @method
+     */
+    hasDependencies():boolean {
+        return (this.deps.length > 0);
+    }
+
+    getDependencies():string[] {
+        return this.deps;
+    }
+
+    active( pStatut:boolean):void {
+        this.enabled = pStatut;
     }
 
     /**

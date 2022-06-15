@@ -8,6 +8,11 @@ import SqliteDbCollection from "../../connectors/sqlite/SqliteDbCollection";
 import {SqliteDb} from "../../connectors/sqlite/SqliteDb";
 import {KeyPointGenerator, KeyPointOptions} from "./KeyPointGenerator";
 
+export enum DEOPT_TYPE {
+    NONE,
+    BOOT,
+    ALL // override others
+}
 
 export interface KeyPointMap {
     [name:string] :KeyPoint
@@ -150,6 +155,43 @@ export default class KeyPointManager {
         });
 
         this.addInternalKeyPoint(kp);
+    }
+
+    /**
+     * To get all external/shared libs/code required
+     *
+     * @return {string[]}
+     * @method
+     */
+    public getGlobalRequirements():string[] {
+        const reqs:string[] = [];
+        this.getKeyPoints().map( (kp:KeyPoint) => {
+            if(kp.hasDependencies()){
+                kp.getDependencies().map( d => {
+                    if(reqs.indexOf(d) == -1){
+                        reqs.push(d);
+                    }
+                });
+            }
+        });
+        return reqs;
+    }
+
+
+    /**
+     * To detect if deoptimize is required
+     */
+    public needDeoptimize():DEOPT_TYPE {
+        let mode:DEOPT_TYPE = DEOPT_TYPE.NONE;
+        let kp:KeyPoint = this.getKeyPoint('core.java.boot.before');
+        if(kp != null && kp.hasNodes()){
+            return DEOPT_TYPE.BOOT;
+        }
+
+        kp = this.getKeyPoint('core.java.boot');
+        if(kp != null && kp.hasNodes()){
+            return DEOPT_TYPE.ALL;
+        }
     }
 
     public hasActiveInstructionHook():boolean {
