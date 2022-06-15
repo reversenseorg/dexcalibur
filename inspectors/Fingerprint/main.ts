@@ -36,7 +36,7 @@ var FingerprintInspector:InspectorFactory = new InspectorFactory({
 
         require: ["Common","Reflect"],
 
-        hooks: [
+        strategies: [
             {
                 name: "read_DeviceID",
                 descr: "To detect read of device ID",

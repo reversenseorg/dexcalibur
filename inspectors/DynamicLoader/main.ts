@@ -59,7 +59,7 @@ export default new InspectorFactory({
             classloader: [],
             additionalDex: []
         },
-        hooks: [
+        strategies: [
             {
                 name: "Reflection_getMethod",
                 descr: "To retrieve affected node when a method is retrieved from ReflectionAPI",
@@ -178,12 +178,12 @@ export default new InspectorFactory({
                     // the evvent data contains the bytecode of the Dex file        
                     ctx.getInspector("DynamicLoader").emits("hook.dex.classloader.new", event.data);
                 },*/
-                preprocessor: `
-                    // the event data contains the bytecode of the Dex file       
+
+                // the event data contains the bytecode of the Dex file
+                preprocessor: ` 
                     pCtx.getInspector("DynamicLoader").emits("hook.dex.classloader.new", pEvent.data);
                 `,
-                before: `   
-                
+                before: ` 
                         send({ 
                             id:"@@__HOOK_ID__@@", 
                             match: true, 
@@ -201,7 +201,6 @@ export default new InspectorFactory({
                             }], 
                             action:"Log" 
                         });
-            
                 `
             }, {
                 name: "Dex_loadExternal",

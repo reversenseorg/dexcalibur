@@ -35,7 +35,7 @@ var KeystoreInspector:InspectorFactory = new InspectorFactory({
             stream: []
         },
         require: ["StringUtils"],
-        hooks: [
+        strategies: [
             {
                 name: "instance",
                 descr: "To detect new keystore instance",

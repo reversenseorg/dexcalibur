@@ -19,7 +19,7 @@ var IssueInspector:InspectorFactory = new InspectorFactory({
         name: "Issue observer",
         description: "Track and save security exception and device logs",
         require: ["Reflect"],
-        hooks: [{
+        strategies: [{
 
             name: "SecurityException_new",
             descr: "To detect new security exception",

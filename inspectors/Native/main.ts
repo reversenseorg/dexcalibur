@@ -24,7 +24,7 @@ var NativeLibraryInspector:InspectorFactory = new InspectorFactory({
             stream: [],
             refs: {}
         },
-        hooks: [{
+        strategies: [{
             name: "load",
             descr: "To detect loading of native library",
             search: {

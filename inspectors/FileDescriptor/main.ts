@@ -25,7 +25,7 @@ var FileDescriptorInspector:InspectorFactory = new InspectorFactory({
             refs: {}
         },
         require: ["Reflect","Common"],
-        hooks: [
+        strategies: [
             {
                 name: "File_new",
                 descr: "To detect new File instance",
