@@ -13,6 +13,7 @@ import {NodeType} from "./persist/orm/NodeType";
 import {NodeInternalType} from "./NodeInternalType";
 import {NodeProperty, NodePropertyState} from "./persist/orm/NodeProperty";
 import {DbDataType, DbKeyType} from "./persist/orm/DbAbstraction";
+import {DataSourceHelper} from "./DataSourceHelper";
 
 
 interface IClassSet {
@@ -38,7 +39,7 @@ interface IFieldSet {
  */
 export default class ModelClass extends Savable implements IPersistent
 {
-    static TYPE:NodeType = new NodeType( "code_class", NodeInternalType.CLASS, []);
+    static TYPE:NodeType = (new NodeType( "code_class", NodeInternalType.CLASS, [])).dataSource(DataSourceHelper.MEM, "class");
 
     __:NodeInternalType = NodeInternalType.CLASS;
 

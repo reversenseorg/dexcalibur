@@ -2,6 +2,8 @@ import { CONST } from "./CoreConst";
 import {Savable, Stub, STUB_TYPE} from "./ModelSavable";
 
 
+
+
 /**
  * Represent a primitive type
  * @class

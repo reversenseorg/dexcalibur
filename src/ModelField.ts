@@ -11,6 +11,7 @@ import {NodeInternalType} from "./NodeInternalType";
 import {NodeProperty, NodePropertyState} from "./persist/orm/NodeProperty";
 import {DbDataType, DbKeyType} from "./persist/orm/DbAbstraction";
 import {IPersistent} from "./persist/orm/IPersistent";
+import {DataSourceHelper} from "./DataSourceHelper";
 
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
@@ -19,7 +20,7 @@ let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 export default  class ModelField extends Savable implements IPersistent
 {
 
-    static TYPE:NodeType = new NodeType( "code_field", NodeInternalType.FIELD, []);
+    static TYPE:NodeType = (new NodeType( "code_field", NodeInternalType.FIELD, [])).dataSource(DataSourceHelper.MEM, "field");
 
     __:NodeInternalType = NodeInternalType.FIELD;
 

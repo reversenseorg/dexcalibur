@@ -19,6 +19,8 @@ import ModelFileSection from "./ModelFileSection";
 import {IPersistent} from "./persist/orm/IPersistent";
 import {NativeAnalyzerCommands} from "./analyzer/NativeAnalyzerCommands";
 import {INode} from "./INode";
+import {DataSourceHelper} from "./DataSourceHelper";
+import {DataType} from "./types/DataType";
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
 const TO_JSON:Function = function (vSrc:any, vTarget:any, vInArray:boolean=false):any{
@@ -74,7 +76,7 @@ export class ModelFunction implements INode, IPersistent {
         [NativeAnalyzerCommands.FUNC_CMD.DISASS]: ['instr']
     };
 
-    static TYPE:NodeType = new NodeType(
+    static TYPE:NodeType = (new NodeType(
         "func_native",
         NodeInternalType.FUNC,
         [
@@ -121,7 +123,7 @@ export class ModelFunction implements INode, IPersistent {
 
 
             (new NodeProperty("ctype")).type(DbDataType.STRING)
-        ]);
+        ])).dataSource(DataSourceHelper.MEM, "func");
 
     __:NodeInternalType = NodeInternalType.FUNC;
 
@@ -136,8 +138,8 @@ export class ModelFunction implements INode, IPersistent {
 
     name: string = null;
 
-    args:(ModelObjectType|ModelBasicType)[] = [];
-    ret:(ModelObjectType|ModelBasicType) = null;
+    args:ModelVariable[] = [];
+    ret:ModelVariable = null;
 
     src:ModelFile|string = null;
 
@@ -176,6 +178,22 @@ export class ModelFunction implements INode, IPersistent {
             for(let i in pConfig)
                 this[i]=pConfig[i];
 
+    }
+
+    setReturn( pType:ModelVariable){
+        this.ret = pType;
+    }
+
+    getReturn():ModelVariable {
+        return this.ret;
+    }
+
+    setParams( pVars:ModelVariable[]){
+        this.args = pVars;
+    }
+
+    getParams():ModelVariable[] {
+        return this.args;
     }
 
     getUID():string {

@@ -8,6 +8,7 @@ import {DbDataType, DbKeyType, DbSerialize} from "./persist/orm/DbAbstraction";
 import DataScope from "./DataScope";
 import ModelFileSection from "./ModelFileSection";
 import {IPersistent} from "./persist/orm/IPersistent";
+import {DataSourceHelper} from "./DataSourceHelper";
 
 
 /**
@@ -18,7 +19,7 @@ import {IPersistent} from "./persist/orm/IPersistent";
 export default class ModelPackage implements IPersistent
 {
 
-    static TYPE:NodeType = new NodeType( "code_package", NodeInternalType.PACKAGE, []);
+    static TYPE:NodeType = (new NodeType( "code_package", NodeInternalType.PACKAGE, [])).dataSource(DataSourceHelper.MEM, "package");
 
     __:NodeInternalType = NodeInternalType.PACKAGE;
 

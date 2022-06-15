@@ -1,8 +1,14 @@
 import {NodeInternalType} from "./NodeInternalType";
+import {DataType} from "./types/DataType";
 
 
 export enum ModelVariableType {
   VAR='var',
+  REG='reg'
+}
+
+export enum ModelVariableLocation {
+  STACK='arg',
   REG='reg'
 }
 
@@ -19,9 +25,9 @@ interface ModelVariableReference {
  */
 export class ModelVariable {
   _t:NodeInternalType = NodeInternalType.VAR;
-  __t:ModelVariableType = ModelVariableType.VAR;
+  __t:ModelVariableLocation = ModelVariableLocation.STACK;
   n:string = "";
-  type:string = "";
+  type:DataType;
   refs:ModelVariableReference = null;
 
 
@@ -37,7 +43,28 @@ export class ModelVariable {
     return this.n;
   }
 
-  getType():string{
+  /**
+   * TODO
+   */
+  isArray():boolean {
+    return false;
+  }
+
+  /**
+   * To check if the variable is stored
+   */
+  isRegister(){
+    return (this.__t==ModelVariableLocation.REG);
+  }
+
+  /**
+   * TODO
+   */
+  isPointer():boolean {
+    return false;
+  }
+
+  getType():DataType{
     return this.type;
   }
 

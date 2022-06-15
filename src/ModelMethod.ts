@@ -15,6 +15,7 @@ import {DbDataType, DbKeyType} from "./persist/orm/DbAbstraction";
 import {IPersistent} from "./persist/orm/IPersistent";
 import JavaMethodHook from "./hook/JavaMethodHook";
 import {INode} from "./INode";
+import {DataSourceHelper} from "./DataSourceHelper";
 
 
 /*interface LazyMethodReference {
@@ -35,7 +36,7 @@ import {INode} from "./INode";
  */
 export default class ModelMethod extends Savable implements INode,IPersistent
 {
-    static TYPE:NodeType = new NodeType( "code_method", NodeInternalType.METHOD, []);
+    static TYPE:NodeType = (new NodeType( "code_method", NodeInternalType.METHOD, [])).dataSource(DataSourceHelper.MEM, "method");
 
     __:NodeInternalType = NodeInternalType.METHOD;
     alias:string = null;

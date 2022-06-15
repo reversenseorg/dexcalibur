@@ -19,6 +19,8 @@ import AccessControl from "./user/acl/AccessControl";
 import DexcaliburEngine from "./DexcaliburEngine";
 import DexcaliburProject from "./DexcaliburProject";
 import HookStrategySelector from "./hook/HookStrategySelector";
+import {ModelFunction} from "./ModelFunction";
+import {DataSourceHelper} from "./DataSourceHelper";
 
 UserAccount.TYPE.updateProperties([
     (new NodeProperty('_uid')).type(DbDataType.STRING).key(DbKeyType.PRIMARY),
@@ -32,7 +34,7 @@ UserAccount.TYPE.updateProperties([
     (new NodeProperty('_role')).type(DbDataType.STRING)
         .sleep( (x:NodePropertyState) => { return (x.p !=null ? x.p.uid : null) ; } )
         .wakeUp( (x:NodePropertyState) => { return (x.p!=null ? AccessControl.getRole(x.p) : null) }),
-]).builder(UserAccount);
+]).dataSource(DataSourceHelper.FILE).builder(UserAccount);
 
 UserSession.TYPE.updateProperties([
     // (new NodeProperty('_uid')).type(DbDataType.STRING).key(DbKeyType.PRIMARY),
@@ -49,7 +51,7 @@ UserSession.TYPE.updateProperties([
     (new NodeProperty('_conn')).type(DbDataType.STRING)
         .sleep( (x:NodePropertyState)=>{ return null; })
         .wakeUp( (x:NodePropertyState) =>  { return x.p })
-]).builder(UserSession);
+]).dataSource(DataSourceHelper.FILE).builder(UserSession);
 
 SessionData.TYPE.updateProperties([
     UserSession.TYPE.asForeignKey(DbKeyType.COMPOSITE, 0),
@@ -75,7 +77,7 @@ SessionData.TYPE.updateProperties([
             }
             return c;
         })
-]).builder(SessionData);
+]).dataSource(DataSourceHelper.FILE).builder(SessionData);
 
 UserSession.TYPE.updateProperties([
     (new NodeProperty('_data')).multiple(SessionData.TYPE)
@@ -191,10 +193,16 @@ KeyPoint.TYPE.updateProperties([
             .def(null),
         (new NodeProperty("type")).type(DbDataType.NUMERIC),
         (new NodeProperty("weight")).type(DbDataType.NUMERIC),
+        (new NodeProperty("enabled")).type(DbDataType.BOOLEAN),
+        (new NodeProperty("deps"))
+            .type(DbDataType.STRING)
+            .sleep( (x:NodePropertyState) => { return (x.p != null ? JSON.stringify(x.p) : null )})
+            .wakeUp( (x:NodePropertyState) => { return (x.p != null ? JSON.parse(x.p) : null )}),
+        (new NodeProperty("condition")).type(DbDataType.STRING),
         (new NodeProperty("parent")).volatile().single(KeyPoint.TYPE).def(null),
         (new NodeProperty("children")).volatile().multiple(KeyPoint.TYPE),
         (new NodeProperty("_c")).type(DbDataType.STRING).def(null)
-    ]).builder(KeyPoint);
+    ]).dataSource(DataSourceHelper.FILE).builder(KeyPoint);
 
 
 
@@ -207,14 +215,14 @@ BookmarkType.TYPE.updateProperties([
             .type(DbDataType.STRING)
             .sleep( (x:NodePropertyState) => { return (x.p != null ? JSON.stringify(x.p) : null )})
             .wakeUp( (x:NodePropertyState) => { return (x.p != null ? JSON.parse(x.p) : null )})
-    ]).builder(BookmarkType);
+    ]).dataSource(DataSourceHelper.FILE).builder(BookmarkType);
 
 Bookmark.TYPE.updateProperties([
     (new NodeProperty("name")).type(DbDataType.STRING).key(DbKeyType.PRIMARY),
     (new NodeProperty("descr")).type(DbDataType.STRING).def(null),
     (new NodeProperty("category")).type(DbDataType.STRING).def(null),
     (new NodeProperty("type")).single(BookmarkType.TYPE)
-]).builder(Bookmark);
+]).dataSource(DataSourceHelper.FILE).builder(Bookmark);
 
 
 HookSet.TYPE.updateProperties([
@@ -231,11 +239,11 @@ HookSet.TYPE.updateProperties([
         .type(DbDataType.STRING)
         .sleep( (x:NodePropertyState) => { return (x.p != null ? JSON.stringify(x.p) : null )})
         .wakeUp( (x:NodePropertyState) => { return (x.p != null ? JSON.parse(x.p) : null )}),
-    (new NodeProperty("require")).def(null)
+    (new NodeProperty("requires")).def(null)
         .type(DbDataType.STRING)
         .sleep( (x:NodePropertyState) => { return (x.p != null ? JSON.stringify(x.p) : null )})
         .wakeUp( (x:NodePropertyState) => { return (x.p != null ? JSON.parse(x.p) : null )})
-]).builder(HookSet);
+]).dataSource(DataSourceHelper.FILE).builder(HookSet);
 
 HookStrategy.TYPE.updateProperties([
     (new NodeProperty("_uid")).type(DbDataType.STRING).key(DbKeyType.PRIMARY),
@@ -270,8 +278,10 @@ HookStrategy.TYPE.updateProperties([
     (new NodeProperty("search"))
         .type(DbDataType.STRING)
         .sleep( (x:NodePropertyState) => { return (x.p != null ? JSON.stringify(x.p.toJsonObject()) : null )})
-        .wakeUp( (x:NodePropertyState) => { return (x.p != null ? HookStrategySelector.fromJsonObject(JSON.parse(x.p)) : null )})
-]).builder(HookStrategy);
+        .wakeUp( (x:NodePropertyState) => { return (x.p != null ? HookStrategySelector.fromJsonObject(JSON.parse(x.p)) : null )}),
+    (new NodeProperty("passed")).type(DbDataType.NUMERIC).def(null),
+]).dataSource(DataSourceHelper.FILE).builder(HookStrategy);
+
 HookSet.TYPE.updateProperties([(new NodeProperty("strats")).multiple(HookStrategy.TYPE,"hookset")]);
 
 HookTemplateFragment.TYPE.updateProperties([
@@ -282,14 +292,17 @@ HookTemplateFragment.TYPE.updateProperties([
     (new NodeProperty("_w")).type(DbDataType.NUMERIC).def(null),
     (new NodeProperty("_cache")).type(DbDataType.STRING).def(null),
     (new NodeProperty("_preproc")).type(DbDataType.BOOLEAN).def(null),
-    (new NodeProperty("_strategy")).single(HookStrategy.TYPE)
-]).builder(JavaMethodHook);
+    (new NodeProperty("_strategy")).single(HookStrategy.TYPE).def(null),
+]).dataSource(DataSourceHelper.FILE).builder(JavaMethodHook);
 
 JavaMethodHook.TYPE.updateProperties([
     (new NodeProperty("_uid")).type(DbDataType.STRING).key(DbKeyType.PRIMARY),
     (new NodeProperty("name")).type(DbDataType.STRING).def(null),
     (new NodeProperty("_t")).type(DbDataType.STRING).def(null),
+    (new NodeProperty("_target")).single(ModelMethod.TYPE),
    // (new NodeProperty("_hookset")).single(BookmarkType.TYPE),
+    (new NodeProperty("_code")).type(DbDataType.STRING).def(null),
+    (new NodeProperty("_time")).type(DbDataType.STRING).def(null),
     (new NodeProperty("_loadkp")).single(KeyPoint.TYPE),
     (new NodeProperty("_unloadkp")).single(KeyPoint.TYPE),
     (new NodeProperty("_after"))
@@ -305,8 +318,7 @@ JavaMethodHook.TYPE.updateProperties([
             }
         })
         .wakeUp( (x:NodePropertyState) => {
-
-            if(x.p!=null){
+            if(x.p!=null && x.p.length>0){
                 const o = [];
                 JSON.parse(x.p).map( (data) => {
                     o.push( HookTemplateFragment.fromJsonObject(data));
@@ -322,7 +334,7 @@ JavaMethodHook.TYPE.updateProperties([
         .sleep( (x:NodePropertyState) => {
             if(x.self!=null){
                 const o = [];
-                (x.self as JavaMethodHook).getAfter().map( (t:HookTemplateFragment) => { o.push(t.toJsonObject()) } );
+                (x.self as JavaMethodHook).getBefore().map( (t:HookTemplateFragment) => { o.push(t.toJsonObject()) } );
                 return JSON.stringify(o);
             }else{
                 return null;
@@ -330,7 +342,7 @@ JavaMethodHook.TYPE.updateProperties([
         })
         .wakeUp( (x:NodePropertyState) => {
 
-            if(x.p!=null){
+            if(x.p!=null && x.p.length>0){
                 const o = [];
                 JSON.parse(x.p).map( (data) => {
                     o.push( HookTemplateFragment.fromJsonObject(data));
@@ -346,7 +358,7 @@ JavaMethodHook.TYPE.updateProperties([
         .sleep( (x:NodePropertyState) => {
             if(x.self!=null){
                 const o = [];
-                (x.self as JavaMethodHook).getAfter().map( (t:HookTemplateFragment) => { o.push(t.toJsonObject()) } );
+                (x.self as JavaMethodHook).getReplace().map( (t:HookTemplateFragment) => { o.push(t.toJsonObject()) } );
                 return JSON.stringify(o);
             }else{
                 return null;
@@ -354,7 +366,7 @@ JavaMethodHook.TYPE.updateProperties([
         })
         .wakeUp( (x:NodePropertyState) => {
 
-            if(x.p!=null){
+            if(x.p!=null && x.p.length>0){
                 const o = [];
                 JSON.parse(x.p).map( (data) => {
                     o.push( HookTemplateFragment.fromJsonObject(data));
@@ -364,12 +376,13 @@ JavaMethodHook.TYPE.updateProperties([
                 return null;
             }
         })
-]).builder(JavaMethodHook);
+]).dataSource(DataSourceHelper.FILE).builder(JavaMethodHook);
 
 NativeFunctionHook.TYPE.updateProperties([
     (new NodeProperty("_uid")).type(DbDataType.STRING).key(DbKeyType.PRIMARY),
     (new NodeProperty("name")).type(DbDataType.STRING).def(null),
     (new NodeProperty("_t")).type(DbDataType.STRING).def(null),
+    (new NodeProperty("_target")).single(ModelFunction.TYPE),
    // (new NodeProperty("_hookset")).single(BookmarkType.TYPE),
     (new NodeProperty("_loadkp")).single(KeyPoint.TYPE),
     (new NodeProperty("_unloadkp")).single(KeyPoint.TYPE),
@@ -445,7 +458,7 @@ NativeFunctionHook.TYPE.updateProperties([
                 return null;
             }
         })
-]).builder(NativeFunctionHook);
+]).dataSource(DataSourceHelper.FILE).builder(NativeFunctionHook);
 
 export class NodeSchema{
 
