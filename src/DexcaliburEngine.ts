@@ -38,8 +38,10 @@ import {ConnectionManager} from "./remote/ConnectionManager";
 import ShellHelper from "./ShellHelper";
 import {GlobalAccessControl} from "./user/acl/rbac/GlobalAccessContol";
 import {UserAccount} from "./user/UserAccount";
-import Tool = External.Tool;
 import {NodeSchema} from "./NodeSchema";
+import {DexcaliburUpdater} from "./DexcaliburUpdater";
+import Tool = External.Tool;
+import {DXC_LIFECYCLE_EVENT} from "./CoreConst";
 
 const _fixPath_ = require("fix-path");
 
@@ -250,9 +252,20 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
      *
      * @type {IpcMode}
      * @since 1.0.0
-     * @fielc
+     * @field
      */
     ipcMode: IpcMode = IpcMode.API;
+
+    /**
+     * The Updater is the component performing server update and executing patches
+     *
+     * It is also useful to apply patch to repair DB
+     *
+     * @type {DexcaliburUpdater}
+     * @since 1.0.0
+     * @field
+     */
+    updater:DexcaliburUpdater;
 
     mode: MODE = MODE.NORMAL;
 
@@ -579,7 +592,12 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
      */
     boot( pRestore:boolean=false, pWebRoot:string = null){
         let self:DexcaliburEngine=this;
-        
+
+        // create updater
+        this.updater = DexcaliburUpdater.getInstance(this);
+
+        this.updater.run( DXC_LIFECYCLE_EVENT.ENG_BEFORE_WS_INIT);
+
         // init workspace
         this.workspace.init();
 
@@ -593,24 +611,30 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
             _engine: this
         });
 
-        Logger.raw('PASS0');
+        Logger.debug('PASS0');
         //  enumerate local and remote platforms
         this.platformMgr.enumerate();
 
-        Logger.raw('PASSA');
+        this.updater.run( DXC_LIFECYCLE_EVENT.PLATFORM_MGR_AFTER_INIT);
+
+        Logger.debug('PASSA');
         //  enumerate local and remote inspectors
         this.inspectorMgr.enumerate();
-        Logger.raw('PASSB');
+        Logger.debug('PASSB');
+
+        this.updater.run( DXC_LIFECYCLE_EVENT.INSPECT_MGR_AFTER_INIT);
 
         // load device manager db
         this.deviceMgr.load();
-        Logger.raw('PASS3');
+        Logger.debug('PASS3');
+
+        this.updater.run( DXC_LIFECYCLE_EVENT.DEV_MGR_AFTER_INIT);
 
         // restart child ADB server
         (async function(){
             self.deviceMgr.getBridgeFactory('adb').newGenericWrapper().kill();
 
-            Logger.raw('PASS4');
+            Logger.debug('PASS4');
         })();
 
         return true;
@@ -863,7 +887,7 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
      * @method
      */
     deleteProject( pAccount:UserAccount, pUID:string):boolean{
-        let success:boolean = false;
+        let success = false;
         try{
             // if the project is already loaded, instance can be retrieved
             // from engine instance
@@ -873,6 +897,8 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
                 if(this.active[pUID].isOwnedBy(pAccount)){
                     // if the project is local remmove it
 
+                    this.updater.run( DXC_LIFECYCLE_EVENT.CLOSE_PROJECT, this.active[pUID]);
+
                     Util.recursiveRmDirSync(
                         _path_.join( this.workspace.getLocation(), pUID )
                     );
@@ -881,6 +907,15 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
                     this.active[pUID] =  null;
                 }
             }else{
+                // TODO : add ACL
+
+
+                this.updater.run( DXC_LIFECYCLE_EVENT.CLOSE_PROJECT, pUID);
+
+                Util.recursiveRmDirSync(
+                    _path_.join( this.workspace.getLocation(), pUID )
+                );
+                success = true;
             }
 
         }catch(err){
@@ -926,6 +961,9 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
 
             wf.pushStatus(StatusMessage.newSuccess("Project is ready."));
             this.active[pUID] = project;
+
+
+            this.updater.run( DXC_LIFECYCLE_EVENT.OPEN_PROJECT, project);
 
             //this.webserver.setProject(project);
         }catch(err){
@@ -1001,6 +1039,9 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
 
             this.active[pUID] = project;
             this.webserver.setProject(project);
+
+
+            this.updater.run( DXC_LIFECYCLE_EVENT.NEW_PROJECT, project);
 
             return project;
         }else{
