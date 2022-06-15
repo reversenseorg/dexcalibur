@@ -1,4 +1,5 @@
 import {NodeType} from "./NodeType";
+import DexcaliburProject from "../../DexcaliburProject";
 
 export enum DbDataType {
     // strings
@@ -78,6 +79,8 @@ export interface IDbIndex extends IDbSet {
 
     name:string;
 
+    _db:any;
+
     insert(ref:any, force:boolean):void;
 
     addEntry(ref:any):void;
@@ -106,6 +109,8 @@ export interface IDbCollection extends IDbSet
 {
     name:string;
 
+    _db:IDatabase;
+
     setEntry(key:string,value:any);
 
     addEntry(key:string,value:any);
@@ -119,6 +124,13 @@ export interface IDbCollection extends IDbSet
     removeEntry(key: any):boolean;
 }
 
+/**
+ * Interface for a connector to a database.
+ *
+ * Classes implementing this interface are responsible to connection/authentication to DBMS
+ *
+ * @interface
+ */
 export interface IDatabaseAdapter
 {
     exists():boolean;
@@ -155,4 +167,6 @@ export interface IDatabase
     serialize():any;
 
     unserialize(input:any):void;
+
+    getProject():DexcaliburProject;
 }

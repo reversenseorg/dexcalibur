@@ -1,3 +1,6 @@
+import * as Log from "../Logger";
+
+let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
 /**
  * @interface
@@ -161,7 +164,7 @@ export default class PersistenceCache {
         if(!this._ready) return null;
 
         const o = this._i[pIndexName][pUid];
-        return this._d[o];
+        return (o!=null ? this._d[o] : null);
     }
 
     /**

@@ -3,6 +3,7 @@ import {NodeType} from "./NodeType";
 import DexcaliburEngine from "../../DexcaliburEngine";
 import {ValidationRule} from "../../Validator";
 import {IncomingValue, SanitizedValue, UnsafeValue} from "../../security/SanitizedValue";
+import {DataSource} from "../../DataSource";
 
 
 export interface NodePropertyState {
@@ -303,10 +304,17 @@ export class NodeProperty {
     hasSource():boolean{
         if(this._src != null) {
             return true
-        }else if(this.isNode() && this.getNodeType().hasSource()){
-            // source is inherited from node type at runtime (lazy)
-            this._src = this.getNodeType().getSource();
-            return true;
+        }else if(this.isNode()){
+            if(this.getNodeType().hasSource()){
+                // source is inherited from node type at runtime (lazy)
+                this._src = this.getNodeType().getSource();
+                return true;
+            }else{
+                // same source
+                //this._src = this.getNodeType().getSource();
+                return false;
+            }
+
         }
 
         return false;

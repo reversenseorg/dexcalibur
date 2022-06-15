@@ -6,6 +6,8 @@ import * as Log from "../../Logger";
 import {IncomingValue, SanitizedValue, UnsafeValue} from "../../security/SanitizedValue";
 import {GlobalSettingsException} from "../../errors/GlobalSettingsException";
 import {SqliteException} from "../../../connectors/sqlite/SqliteException";
+import {DataSource} from "../../DataSource";
+import {DataSourceHelper} from "../../DataSourceHelper";
 
 
 export interface NodePropertyMap {
@@ -72,9 +74,19 @@ export class NodeType {
     _m:NodeProperty[] = [];
 
     /**
-     * Data source for this node
+     * Data source callback for this node
      */
     _src:any = null;
+
+    /**
+     * Data source
+     */
+    _ds:DataSource = null; //DataSourceHelper.FILE;
+
+    /**
+     * Data Source alias
+     */
+    _dsa:string = null;
 
 
     /**
@@ -91,6 +103,7 @@ export class NodeType {
      */
     constructor( pName:string, pInternalType:NodeInternalType, pCols:NodeProperty[]) {
         this._name = pName;
+        this._dsa = pName;
         this._type = pInternalType;
 
         if(NodeType.ALL[pName]==null){
@@ -307,6 +320,13 @@ export class NodeType {
     }
 
     /**
+     *
+     */
+    getSourceAlias():string {
+        return this._dsa;
+    }
+
+    /**
      * To check if the node type require composite primary key
      * to be uniquely identified
      *
@@ -330,6 +350,22 @@ export class NodeType {
         this._src = pSrc;
         return this;
     }
+
+    dataSource(pSrc:DataSource, pExtra:any = null):any {
+        this._ds = pSrc;
+//        this._ds.register(this, pExtra);
+        if(pExtra != null){
+            this._dsa = pExtra;
+        }
+
+        return this;
+    }
+
+
+    getDataSource():DataSource {
+        return this._ds;
+    }
+
 
     hasSource():boolean{
         return this._src != null;
