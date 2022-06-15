@@ -8,6 +8,7 @@ import HookTemplateFragment from "./HookTemplateFragment";
 import KeyPoint from "./KeyPoint";
 import {SqliteException} from "../../connectors/sqlite/SqliteException";
 import SqliteDbCollection from "../../connectors/sqlite/SqliteDbCollection";
+import {NodeInternalType} from "../NodeInternalType";
 
 /**
  * Represents every datat set related to hook management
@@ -111,6 +112,7 @@ export class HookDbApi {
         return this.strategies.updateEntry(pStrategy);
     }
 
+
     createHookSet( pSet:HookSet):void {
         return this.sets.addEntry( pSet.getID(), pSet);
     }
@@ -140,7 +142,52 @@ export class HookDbApi {
         return this.fragments.addEntry( pFrag.getUID(), pFrag);
     }
 
-    updateFragments( pFrag:HookTemplateFragment):void {
+    updateFragment( pFrag:HookTemplateFragment):void {
         return this.fragments.updateEntry( pFrag);
+    }
+
+    save( pCreate = false){
+        this.jhooks.map( (vHook:JavaMethodHook)=>{
+            if(this.jhooks.hasEntry(vHook.getGUID())){
+                this.updateJavaHook( vHook);
+            }else{
+                this.createJavaHook( vHook);
+            }
+        });
+
+        this.nhooks.map( (vHook:NativeFunctionHook)=>{
+            if(this.nhooks.hasEntry(vHook.getGUID())){
+                this.updateNativeHook( vHook);
+            }else{
+                this.createNativeHook( vHook);
+            }
+        });
+
+
+        this.strategies.map( (vStra:HookStrategy)=>{
+            if(this.strategies.hasEntry(vStra.getUID())){
+                this.updateHookStrategy( vStra);
+            }else{
+                this.createHookStrategy( vStra);
+            }
+        });
+
+
+        this.fragments.map( (vFrag:HookTemplateFragment)=>{
+            if(this.fragments.hasEntry(vFrag.getUID())){
+                this.updateFragment( vFrag);
+            }else{
+                this.createFragment( vFrag);
+            }
+        });
+
+
+        this.sets.map( (vSet:HookSet)=>{
+            if(this.sets.hasEntry(vSet.getID())){
+                this.updateHookSet( vSet);
+            }else{
+                this.createHookSet( vSet);
+            }
+        });
     }
 }

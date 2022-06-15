@@ -186,6 +186,10 @@ export class JavaHookBuilder{
         return helper;
     }
 
+    static isCodeEmpty(pCode:string):boolean {
+        return Util.isEmpty( pCode, Util.FLAG_WS|Util.FLAG_CR|Util.FLAG_TB);
+    }
+
     /**
      * To merge fragments according to priority, and replacing tags
      * Fragment with preprocess disabled are not modified.
@@ -195,10 +199,15 @@ export class JavaHookBuilder{
      */
     mergeFragments( pFragment:HookTemplateFragment[], pTags:any ):string{
         let script = "";
+        let code:string;
 
         if(pFragment.length == 1){
+
+            code = pFragment[0].getCodeTemplate();
+            if(code==null || JavaHookBuilder.isCodeEmpty(code)) return script;
+
             script += `
-              ${pFragment[0].getCodeTemplate()}      
+              ${code}      
             `;
 
             // replace token
@@ -211,11 +220,15 @@ export class JavaHookBuilder{
             }
 
         }else{
-            for(let i=pFragment.length-1; i<=0; i--){
+            for(let i=pFragment.length-1; i>=0; i--){
+
+                code = pFragment[i].getCodeTemplate();
+                if(code==null || JavaHookBuilder.isCodeEmpty(code)) continue;
+
                 script += `
                     (function(@@__HOOK_ARGS_STUBS__@@){
-                        ${pFragment[i].getCodeTemplate()}  
-                    })(@@__HOOK_ARGS__@@)
+                        ${code}  
+                    })(@@__HOOK_ARGS__@@);
                 `;
 
                 if(pFragment[i].isPreProcessed()){
@@ -322,14 +335,16 @@ export class JavaHookBuilder{
         /*
          TODO : dont redifine cls_$$ and meth_$$ when another hook has
           already defined it. Improve performance, reduce script size
+
+          Define vars per key point namespace
          */
+
+
 
         let script = `
     
             var cls_@@__CLSDEF__@@ = Java.use('@@__FQCN__@@');
-    
             var meth_@@__METHDEF__@@ = cls_@@__CLSDEF__@@.@@__METHNAME__@@.overload(@@__ARGS__@@);
-    
             meth_@@__METHDEF__@@.implementation = function(@@__HOOK_ARGS__@@) {
                 var ret = null;
         `;

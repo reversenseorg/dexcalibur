@@ -1,9 +1,8 @@
 import * as fs from "fs";
 import * as Path from "path";
-import ModelFile from "../ModelFile";
 import {ModelFunction} from "../ModelFunction";
 import KeyPoint from "./KeyPoint";
-import KeyPointManager from "./KeyPointManager";
+import KeyPointManager, {DEOPT_TYPE} from "./KeyPointManager";
 import NativeFunctionHook from "./NativeFunctionHook";
 import {HookManager} from "./HookManager";
 import {HookScriptBuilderException} from "../errors/HookScriptBuilderException";
@@ -209,15 +208,77 @@ DXC.HOOK["${pLibraryName}"] = {
         return maps;
     }
 
+    private _appendRequirements( pScript:string,  pRequires:string[]):string {
+        pRequires.map( (vReq:string)=>{
+           const p = vReq.split("/");
+           switch(p[0]){
+               case "interruptor":
+                   if(p[1] != null){
+                       pScript += `
+const DXC_LIB.${p[0].toUpperCase()} = require("${p[0]}").${p[1]}( ${p[2]!=null ? p[2]:''});`
+                   }else{
+                       pScript += `
+const DXC_LIB.${p[0].toUpperCase()} = require("${p[0]}");`
+                   }
+                   break;
+               // JNI, frida-systruc, frida-fs, ...
+               default:
+                   pScript += `
+const DXC_LIB.${p[0].toUpperCase()} = require("${p[0]}");`
+                   break;
+           }
+        });
+
+        return pScript;
+    }
+
+    /**
+     *
+     * @param pScript
+     * @param pDeoptType
+     * @private
+     */
+    private _appendDeoptimize( pScript:string, pDeoptType:DEOPT_TYPE):string {
+        switch (pDeoptType){
+            case DEOPT_TYPE.ALL:
+                pScript += `
+Java.deoptimizeEverything();`
+                break;
+            case DEOPT_TYPE.BOOT:
+                pScript += `
+Java.deoptimizeBoot();`
+                break;
+        }
+        return pScript;
+    }
+
+
+    /**
+     * To build Frida's agent script
+     */
     build(){
         let script = "";
+
         const kpm:KeyPointManager  =  this._hm.getKeyPointManager();
+        const topl_kps:KeyPoint[] = kpm.getTopLevelKeyPoints();
+        const leaf_kps:KeyPoint[] = kpm.getLeafKeyPoints();
+        const req:any = kpm.getGlobalRequirements();
+        const deopt:DEOPT_TYPE = kpm.needDeoptimize();
 
-        const kps:KeyPoint[] = kpm.getTopLevelKeyPoints();
+        // append top level requirements
+        if(req.length > 0){
+            script = this._appendRequirements( script, req)+"\n";
+        }
 
-        const tokens = this.buildNestedScript(kps);
+        // detect if deoptimizing is required
+        if(deopt != DEOPT_TYPE.NONE){
+            script = this._appendDeoptimize( script, deopt);
+        }
 
-        kps.map( (vKP:KeyPoint) => {
+        // process top-level key point
+        const tokens = this.buildNestedScript(topl_kps);
+
+        topl_kps.map( (vKP:KeyPoint) => {
             script += `\n// =======================\n// KeyPoint : ${vKP.getName()} \n// ======================= \n ${vKP.getCodeCache()}\n"`;
         });
 

@@ -19,11 +19,19 @@ export default class JavaMethodHook extends AbstractHook {
      * @field
      * @
      */
-    private _target:ModelMethod = null;
+    public _target:ModelMethod = null;
 
     public method:ModelMethod;
 
 
+    constructor( pData:any = null) {
+        super();
+
+        if(pData !== null)
+            for(const i in pData){
+                this[i] = pData[i];
+            }
+    }
 
     /**
      * To check if the hook target the specified method

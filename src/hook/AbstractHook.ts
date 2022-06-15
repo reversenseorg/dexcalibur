@@ -5,11 +5,31 @@ import HookSet from "../HookSet";
 import Util from "../Utils";
 import {NodeType} from "../persist/orm/NodeType";
 import {NodeInternalType} from "../NodeInternalType";
+import {HookManagerException} from "../errors/HookManagerException";
+import HookStrategy from "./HookStrategy";
 
 
+
+export enum HOOK_FRAGMENT_POS {
+    BEFORE = 'before',
+    AFTER = 'after',
+    REPLACE = 'replace',
+}
+
+export const UID_POS_MAPPING = {
+    [HOOK_FRAGMENT_POS.BEFORE]: "bef",
+    [HOOK_FRAGMENT_POS.AFTER]: "aft",
+    [HOOK_FRAGMENT_POS.REPLACE]: "repl",
+};
+
+/**
+ * The abstraction for all Java and Native hook
+ */
 export abstract class AbstractHook {
 
     public name:string;
+
+    public __:NodeInternalType;
 
     protected _t:NodeInternalType = null;
 
@@ -131,6 +151,43 @@ export abstract class AbstractHook {
         this._kp = pKP;
     }
 
+    hasKeyPointFor( pType:string){
+        if(pType === 'load'){
+            return (this._loadkp != null);
+        }
+        else if(pType === 'unload'){
+            return (this._unloadkp != null);
+        }
+        else{
+            return false;
+        }
+    }
+
+    detachKeyPoint( pType:string){
+
+        switch(pType){
+            case "load":
+                this._loadkp = null;
+                break;
+            case "unload":
+                this._unloadkp = null;
+                break;
+        }
+    }
+
+    /**
+     *
+     * @param pType
+     * @param pKP
+     */
+    attachKeyPoint(pType:any,  pKP:KeyPoint){
+        if(pType == "load"){
+            this._loadkp = pKP;
+        }else{
+            this._unloadkp = pKP;
+        }
+    }
+
     enable( pBool = true){
         this._enabled = pBool;
     }
@@ -146,6 +203,99 @@ export abstract class AbstractHook {
 
     getLastModified():number {
         return this._time;
+    }
+
+    /**
+     * To add an extra hook template fragment (not rattached to a strategy)
+     *
+     * @param pPosition
+     * @param pFragment
+     */
+    addExtraFragment( pPosition:HOOK_FRAGMENT_POS, pFragment:HookTemplateFragment):void {
+
+        // update fragment UID and save it (out of hook strategy)
+        pFragment.setUID(
+            HookStrategy.generateFragmentUID(pPosition, pFragment, null)
+        );
+
+        this._mgr.save(pFragment);
+
+        // attach the fragment to the hook
+        if(pPosition === HOOK_FRAGMENT_POS.BEFORE){
+            this.appendBefore(pFragment);
+        }
+        else if(pPosition === HOOK_FRAGMENT_POS.AFTER){
+            this.appendAfter(pFragment);
+        }
+        else if(pPosition === HOOK_FRAGMENT_POS.REPLACE){
+            this.appendReplace(pFragment);
+        }
+        else{
+            throw HookManagerException.UNKNOW_HOOK_FRAGMENT_POS();
+        }
+
+        // save the hook
+        this._mgr.save(this);
+    }
+
+    /**
+     * To get a fragment from this hook by its UID
+     *
+     * @param {string} pFragmentUID Fragment UID
+     * @return {HookTemplateFragment} Hook template fragment
+     * @method
+     */
+    getFragment( pFragmentUID:string ):HookTemplateFragment {
+        let frag:HookTemplateFragment = null;
+        const pos = ["_before","_after","_replace"];
+        let fl:number;
+
+        for(let k=0; k<pos.length; k++){
+            fl = this[pos[k]].length ;
+            for(let i = 0; i<fl; i++){
+                if(this[pos[k]][i].getUID()===pFragmentUID){
+                    frag = this[pos[k]][i];
+                    break;
+                }
+            }
+            if(frag != null) break;
+        }
+
+        return frag;
+    }
+
+    /**
+     * To remove a fragment from the hook.
+     *
+     * It not remove the fragment from the DB.
+     *
+     *
+     * @param {(string|HookTemplateFragment)} pFragment
+     *
+     */
+    removeFragment( pFragment:string|HookTemplateFragment ):HookTemplateFragment {
+        let frag:HookTemplateFragment = null;
+        const uid = (typeof pFragment !== "string")? pFragment.getUID() : pFragment;
+        const pos = ["_before","_after","_replace"];
+        let fl:number;
+
+        for(let k=0; k<pos.length; k++){
+
+            this[pos[k]] = (this[pos[k]] as Array<any>).filter(
+                (x:HookTemplateFragment) => {
+                    if(x.getUID()!==uid){
+                        frag = x;
+                        return false;
+                    }else{
+                        return true;
+                    }
+                }
+            )
+        }
+
+        this._mgr.save(this);
+
+        return frag;
     }
 
     /**
@@ -207,6 +357,28 @@ export abstract class AbstractHook {
 
     getReplace():HookTemplateFragment[] {
         return this._replace;
+    }
+
+    /**
+     * To get all fragment template for the given location
+     *
+     * @param {string} pLocation Location name
+     * @return {HookTemplateFragment[]} The list of HookTemplateFragment for the specified location
+     * @method
+     */
+    getFragmentsByLocation( pLocation:string):HookTemplateFragment[] {
+        if(pLocation === "before"){
+            return this._before;
+        }
+        else if(pLocation === "after"){
+            return this._after;
+        }
+        else if(pLocation === "replace"){
+            return this._replace;
+        }
+        else{
+            throw HookManagerException.UNKNOW_HOOK_FRAGMENT_POS();
+        }
     }
 
     isEnable():boolean {
@@ -287,6 +459,14 @@ export abstract class AbstractHook {
         this.customName = object.customName;
         this.name = object.name;
         this._enabled = object.enable;
+
+        if(object._unloadkp != null){
+            this._unloadkp = object._unloadkp;
+        }
+
+        if(object._loadkp != null){
+            this._loadkp = object._loadkp;
+        }
 
 
         this._code = Util.decodeURI(Util.b64_decode(object.script));

@@ -1,12 +1,4 @@
-/**
- * Represents the object which search pattern into application and generate
- * corresponding insttrumentation.
- *
- * By default, such HookStrategy are executed when the application has been analyzed,
- * however if it is attached to particular a particular event, it can be trigged earlier or later.
- *
- * @class
- */
+
 import * as _md5_ from "md5";
 import DexcaliburProject from "../DexcaliburProject";
 import HookStrategySelector from "./HookStrategySelector";
@@ -17,15 +9,33 @@ import {IHook} from "./IHook";
 import JavaMethodHook from "./JavaMethodHook";
 import KeyPoint from "./KeyPoint";
 import HookTemplateFragment from "./HookTemplateFragment";
-import {AbstractHook} from "./AbstractHook";
+import {AbstractHook, HOOK_FRAGMENT_POS, UID_POS_MAPPING} from "./AbstractHook";
 import ModelMethod from "../ModelMethod";
 import {ModelFunction} from "../ModelFunction";
 import NativeFunctionHook from "./NativeFunctionHook";
 import {NodeType} from "../persist/orm/NodeType";
 import {NodeInternalType} from "../NodeInternalType";
+import {HookManager} from "./HookManager";
 
 export const DEFAULT_PRIORITY = -1;
 
+
+
+/**
+ * Represents the object which search a pattern into the application graphs and generate
+ * corresponding instrumentation.
+ *
+ * By default, such HookStrategy are executed when the application has been analyzed,
+ * however if it is attached to a particular event, it can be trigged earlier or later.
+ *
+ * A hook strategy search a group of nodes to hook, and it generate fragments of hook code
+ * inserted before/intead-of/after selected codes.
+ *
+ * Finally the hook manager will merge all fragments according to conditions (key point, shared code, requirements, ...)
+ * and generate final script for each node.
+ *
+ * @class
+ */
 export default class HookStrategy {
 
 
@@ -67,14 +77,19 @@ export default class HookStrategy {
 
     key_point:KeyPoint = null;
 
+    passed = 0;
 
 
     /**
      * Group of hook
      *
      * @param {*} config
+     * @constructor
+     *
      */
     constructor(pConfig:any=null){
+
+        this.passed = 0;
 
         // this.requiresNode = [];
         if(pConfig!=null)
@@ -84,6 +99,14 @@ export default class HookStrategy {
 
     }
 
+    /**
+     * To create a hook strategy from raw object
+     *
+     * @param {any} pConfig
+     * @return {HookStrategy}  A fresh HookStrategy instance
+     * @method
+     * @static
+     */
     static from(pConfig:any):HookStrategy {
         const o:HookStrategy = new HookStrategy(pConfig);
 
@@ -97,39 +120,77 @@ export default class HookStrategy {
 
         if(pConfig.before != null){
             o.before = new HookTemplateFragment();
-            o.before.strategy = o;
+            o.before.setStrategy(o);
             o.before.template = pConfig.before;
         }
 
         if(pConfig.after != null){
             o.after = new HookTemplateFragment();
-            o.after.strategy = o;
+            o.after.setStrategy(o);
             o.after.template = pConfig.after;
         }
 
         if(pConfig.replace != null){
             o.replace = new HookTemplateFragment();
-            o.replace.strategy = o;
+            o.replace.setStrategy(o);
             o.replace.template = pConfig.replace;
         }
 
         return o;
     }
 
+    /**
+     * To get strategy UID
+     *
+     * @return {string} Object UID
+     * @method
+     */
     getUID():string {
         return this._uid;
     }
 
+
+    /**
+     * To generate an UID for a hook fragment
+     *
+     * @param pPosition
+     * @param pFrag
+     * @param {HookStrategy} pStrategy  The parent strategy
+     * @return {string} Generate UID for hook fragment template for a specified strategy
+     * @method
+     * @static
+     */
+    static generateFragmentUID( pPosition:HOOK_FRAGMENT_POS, pFrag:HookTemplateFragment, pStrategy:HookStrategy = null):string {
+        if(pStrategy != null){
+            return _md5_( pStrategy.getUID()+':'+UID_POS_MAPPING[pPosition]+':'+pFrag.name );
+        }else{
+            return _md5_( '::::'+UID_POS_MAPPING[pPosition]+':'+pFrag.name );
+        }
+
+    }
+
+    /**
+     * Set strategy UID and compute new UID for children fragments
+     *
+     * @param {string} pUID Strategy UID
+     * @method
+     */
     setUID(pUID:string) {
         this._uid = pUID;
         if(this.before != null){
-            this.before.setUID( _md5_( pUID+':bef') );
+            this.before.setUID(
+                HookStrategy.generateFragmentUID(HOOK_FRAGMENT_POS.BEFORE, this.before, this)
+            );
         }
         if(this.after != null){
-            this.after.setUID( _md5_( pUID+':aft') );
+            this.after.setUID(
+                HookStrategy.generateFragmentUID(HOOK_FRAGMENT_POS.AFTER, this.after, this)
+            );
         }
         if(this.replace != null){
-            this.replace.setUID( _md5_( pUID+':repl') );
+            this.replace.setUID(
+                HookStrategy.generateFragmentUID(HOOK_FRAGMENT_POS.REPLACE, this.replace, this)
+            );
         }
     }
 
@@ -183,7 +244,7 @@ export default class HookStrategy {
      * @param pContext
      * @private
      */
-    private _runOnSEResults(pContext:DexcaliburProject){
+    private _runOnSEResults(pContext:DexcaliburProject):boolean{
 
         const results:FinderResult = (VM.runInNewContext('project.find.' + this.search.getRequest() + ';', { project: pContext }) as FinderResult);
 
@@ -192,6 +253,7 @@ export default class HookStrategy {
                 let h:JavaMethodHook = pContext.hook.getJavaMethodHook( pRes, this.key_point);
                 if(h == null){
                     h = pContext.hook.createJavaMethodHook( pRes, { loadKP: this.key_point });
+                    h.unloadOn(this.unload_kp);
                 }
 
                 if(this.before != null) h.appendBefore(this.before);
@@ -215,35 +277,62 @@ export default class HookStrategy {
         else if(this.search.isRaw()){
 
         }
+
+        // mark as passed
+        return true;
     }
 
     /**
      * To run the strategy :  it research things to hook and create hook
-     * @param pContext
+     *
+     * @param {DexcaliburProject} pContext The current project
+     * @param {boolean} Force to run if the strategy is already passed
+     * @return {number} Return `passed` flag
+     * @method
      */
-    run(pContext:DexcaliburProject){
+    run(pContext:DexcaliburProject, pForce = false):number{
 
-
-        if(this.search.getRequest() != null){
-            return this._runOnSEResults(pContext);
+        // skip if already executed previously
+        if((this.passed == 1) && !pForce){
+            return 1;
         }
 
+        // if there is a search request
+        if(this.search.getRequest() != null){
+            this.passed = this._runOnSEResults(pContext) ? 1 : 0;
+
+            pContext.hook.save(this);
+            return this.passed;
+        }
+
+        const hm:HookManager = pContext.getHookManager();
+
+        // else
         if(this.search.isMethod()){
             this.search.getUids().map( (x:string) => {
                 let jhook:JavaMethodHook = null;
                 const m:ModelMethod = pContext.find.get.method(x)
 
                 if(m != null){
-                    jhook = pContext.getHookManager().createJavaMethodHook(m, {loadKP:  this.load_kp })
-                    jhook.unloadOn(this.unload_kp);
+                    jhook = hm.getJavaMethodHook(m);
+
+                    if(jhook == null){
+                        jhook = hm.createJavaMethodHook(m, {loadKP:  this.load_kp })
+                        jhook.unloadOn(this.unload_kp);
+                    }
+
                     if(this.before != null) jhook.appendBefore(this.before);
                     if(this.after != null) jhook.appendAfter(this.after);
                     if(this.replace != null) jhook.appendReplace(this.replace);
+
+                    // update hook script
                     jhook.build(pContext);
+
+                    hm.save(jhook);
 
 
                     if(this.onMatch != null){
-                        pContext.getHookManager().addMatchListener(jhook.getGUID(), this.onMatch);
+                        hm.addMatchListener(jhook.getGUID(), this.onMatch);
                     }
                 }
             });
@@ -255,16 +344,17 @@ export default class HookStrategy {
                 const m:ModelFunction = pContext.find.get.func(x)
 
                 if(m != null){
-                    nhook = pContext.getHookManager().createNativeFunctionHook(m, {loadKP:  this.load_kp });
+                    nhook = hm.createNativeFunctionHook(m, {loadKP:  this.load_kp });
                     nhook.unloadOn(this.unload_kp);
                     if(this.before != null) nhook.appendBefore(this.before);
                     if(this.after != null) nhook.appendAfter(this.after);
                     if(this.replace != null) nhook.appendReplace(this.replace);
                     nhook.build();
+                    hm.save(nhook);
 
 
                     if(this.onMatch != null){
-                        pContext.getHookManager().addMatchListener(nhook.getGUID(), this.onMatch);
+                        hm.addMatchListener(nhook.getGUID(), this.onMatch);
                     }
                 }
             });
@@ -272,9 +362,41 @@ export default class HookStrategy {
         else if(this.search.isSystemCall()){
 
         }
+        // mark as passed
+        this.passed = 1;
+        pContext.hook.save(this);
+        return this.passed;
     }
 
     static newPreprocessorFn( pSource: string):any {
         return (new Function('pCtx', 'pEvent', pSource)) ;
+    }
+
+    /**
+     * To export to json
+     */
+    toJsonObject():any{
+        const o:any = {};
+        for(const i in Object.keys(this)){
+            switch(i){
+                case 'after':
+                case 'before':
+                case 'replace':
+                    o[i] = (this[i] !== null ? (this[i] as HookTemplateFragment).toJsonObject() : null);
+                    break;
+                case 'load_kp':
+                case 'unload_kp':
+                case 'key_point':
+                    o[i] = (this[i] !== null ? (this[i] as KeyPoint).getUID() : null);
+                    break;
+                case 'search':
+                    o.search = (this.search !== null ? this.search.toJsonObject() : null);
+                    break;
+                default:
+                    o[i] = this[i];
+                    break;
+            }
+        }
+        return o;
     }
 }

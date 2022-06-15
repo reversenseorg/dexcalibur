@@ -23,10 +23,9 @@ import NativeFunctionHook from "./NativeFunctionHook";
 import {NodeInternalType} from "../NodeInternalType";
 import {AbstractHook} from "./AbstractHook";
 import {HookBuilder} from "./builders/HookBuider";
-import {IDatabase} from "../persist/orm/DbAbstraction";
 import {HookDbApi} from "./HookDbApi";
-import SqliteDbCollection from "../../connectors/sqlite/SqliteDbCollection";
 import HookStrategy from "./HookStrategy";
+import HookTemplateFragment from "./HookTemplateFragment";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -132,6 +131,21 @@ export class HookManager
         return this.db;
     }
 
+    load(){
+        this.jhooks = this.db.jhooks.getAsList();
+        this.jhooks.map( h => {
+            //Logger.info(h.getTarget().getUID())
+            h.setManager(this)
+        });
+        this.nhooks = this.db.nhooks.getAsList();
+        this.nhooks.map( h => {
+            h.setManager(this)
+        });
+        this.hooksets = this.db.sets.getAll();
+        //this.jhooks = this.db.jhooks.getAsList();
+        Logger.info(`[HOOK MANAGER] Load complete { java=${this.jhooks.length}, native=${this.nhooks.length}, sets=${Object.keys(this.hooksets).length}   }`);
+    }
+
     private initBuiltInHookSets(){
 
         // do if platform supports ( java / native / obj / kotlin ) ... add Hookset ...
@@ -227,6 +241,14 @@ export class HookManager
      */
     getHookStrategy(pUID:string):HookStrategy {
         return this.db.strategies.getEntry(pUID);
+    }
+
+    /**
+     * To get all hook strategies
+     * @param pUID
+     */
+    getHookStrategies():HookStrategy[] {
+        return this.db.strategies.getAll();
     }
 
     /*createHookStrategy( pStrategy:HookStrategy):boolean {
@@ -337,6 +359,16 @@ export class HookManager
         return script;
     }
 
+    /**
+     * To build the Frida's agent script
+     *
+     * @return {string}
+     * @method
+     */
+    buildAgentScript(): string {
+        return this.builder.build();
+    }
+
     setCachePolicy( pPolicy:any):void{
         this.cache_policy = pPolicy;
     }
@@ -407,7 +439,56 @@ export class HookManager
         return this.start(pSession, pHookScript, FRIDA_MODE.ATTACH_APP, pAppName);
     }
 
+    saveAll(){
+        //this.db.save();
+    }
+    /**
+     *
+     * @param pObject
+     */
+    save( pObject:AbstractHook|JavaMethodHook|NativeFunctionHook|HookStrategy|HookSet|HookTemplateFragment, pCreate = false ){
 
+        switch (pObject.__) {
+            case NodeInternalType.HOOK_JAVA:
+                if(!pCreate){
+                    this.db.updateJavaHook(pObject as JavaMethodHook);
+                }else{
+                    this.db.createJavaHook(pObject as JavaMethodHook);
+                }
+                break;
+            case NodeInternalType.HOOK_NATIVE:
+                if(!pCreate){
+                    this.db.updateNativeHook(pObject as NativeFunctionHook);
+                }else{
+                    this.db.createNativeHook(pObject as NativeFunctionHook);
+                }
+                break;
+            case NodeInternalType.HOOK_STRATEGY:
+                if(!pCreate){
+                    this.db.updateHookStrategy(pObject as HookStrategy);
+                }else{
+                    this.db.createHookStrategy(pObject as HookStrategy);
+                }
+                break;
+            case NodeInternalType.HOOK_SET:
+                if(!pCreate){
+                    this.db.updateHookSet(pObject as HookSet);
+                }else{
+                    this.db.createHookSet(pObject as HookSet);
+                }
+                break;
+            case NodeInternalType.HOOK_FRAGMENT:
+                if(!pCreate){
+                    this.db.updateFragment(pObject as HookTemplateFragment);
+                }else{
+                    this.db.createFragment(pObject as HookTemplateFragment);
+                }
+                break;
+            default:
+                throw HookManagerException.CANNOT_SAVE_UNRECOGNIZED_OBJ();
+                break;
+        }
+    }
 
     /**
      * To start hooking
@@ -635,7 +716,35 @@ export class HookManager
     }
 
     /**
-     * 
+     * To get all Java hooks independently of status
+     *
+     * @return {JavaMethodHook[]} An array of Java hooks
+     * @method
+     * @since 1.0.0
+     */
+    getJavaHooks():JavaMethodHook[] {
+        return this.jhooks;
+    }
+
+    /**
+     * To get all Native hooks independently of status
+     *
+     * @return {NativeFunctionHook[]} An array of Native hooks
+     * @method
+     * @since 1.0.0
+     */
+    getNativeHooks():NativeFunctionHook[] {
+        return this.nhooks;
+    }
+
+    /**
+     * To get a hook targeting the specified method of function and according to
+     * additional options such as load/unload key points
+     *
+     * @param {(ModelMethod|ModelFunction)} The target method/function
+     * @return {AbstractHook[]} An array of hooks
+     * @method
+     * @since 1.0.0
      */
     getProbe(method:ModelMethod|ModelFunction, pOptions:any = {}):AbstractHook{
         let h:AbstractHook[] = this.jhooks;
@@ -644,7 +753,8 @@ export class HookManager
             h = this.nhooks;
         }
 
-        for(let i in h){
+        for(const i in h){
+            Logger.raw(JSON.stringify(h[i].toJsonObject()));
             if(h[i].getTarget().getUID() == method.getUID){
                 hook = h[i];
                 break;
@@ -664,6 +774,32 @@ export class HookManager
         }
 
         return hook;
+    }
+
+    /**
+     * To get all hooks targeting the specified method of function
+     *
+     * @param {(ModelMethod|ModelFunction)} The target method/function
+     * @return {AbstractHook[]} An array of hooks
+     * @method
+     * @since 1.0.0
+     */
+
+    getProbes(method:ModelMethod|ModelFunction):AbstractHook[]{
+        let all:AbstractHook[] = this.jhooks;
+        const hooks:AbstractHook[] = [];
+
+        if(method.__ === NodeInternalType.FUNC){
+            all = this.nhooks;
+        }
+
+        for(const i in all){
+            if(all[i].getTarget().getUID() == method.getUID()){
+                hooks.push(all[i]);
+            }
+        }
+
+        return hooks;
     }
 
     /*
@@ -689,21 +825,42 @@ export class HookManager
      * @param pMethod
      * @param pKeyPoint
      */
-    getJavaMethodHook( pMethod:ModelMethod, pKeyPoint:KeyPoint):JavaMethodHook {
+    getJavaMethodHook( pMethod:ModelMethod, pKeyPoints:any = {}):JavaMethodHook {
         let hook:JavaMethodHook = null, h:JavaMethodHook = null;
+        const kpt = Object.keys(pKeyPoints).length;
 
         for(let i=0; i<this.jhooks.length; i++){
             h = this.jhooks[i];
             if(h.getTarget().getUID() === pMethod.getUID()){
-                if(h.getKeyPoint().getUID() === pKeyPoint.getUID()){
+                if(kpt == 0){
                     hook = h;
                     break;
+                }else{
+                    for(const kp in pKeyPoints){
+                        switch (kp) {
+                            case '_loadKp':
+                                if(h.getLoadKeyPoint().getUID() === pKeyPoints._loadkp.getUID()){
+                                    hook = h;
+                                    break;
+                                }
+                                break;
+                            case '_unloadKp':
+                                if(h.getUnloadKeyPoint().getUID() === pKeyPoints._unloadkp.getUID()){
+                                    hook = h;
+                                    break;
+                                }
+                                break;
+                        }
+                    }
+                    if(hook != null) break;
                 }
             }
         }
 
         return hook;
     }
+
+
 
     /**
      * To count hook for a specific node type / target
@@ -715,7 +872,10 @@ export class HookManager
         let c = 0;
 
         for(let i=0; i<pList.length; i++){
-            if(pList[i].getTarget().getUID() === pNode.getUID()){
+
+            //Logger.info(`[HOOK MANAGER] _countHook( ${JSON.stringify(pList[i])}, ${pNode} )`);
+            // if(pList[i].getTarget().getUID() === pNode.getUID()){
+            if((pList[i] as any)._uid === pNode.getUID()){
                 c++;
             }
         }
@@ -783,7 +943,7 @@ export class HookManager
             this.getDefaultHookSet().addHook(hook);
         }
 
-        Logger.info("[HOOK MANAGER][JAVA HOOK] Created successfully : ",hook.name)
+        Logger.info("[HOOK MANAGER][NATIVE HOOK] Created successfully : ",hook.name)
         this.nhooks.push(hook);
 
         // trigger new probe workflow
@@ -843,6 +1003,7 @@ export class HookManager
 
         Logger.info("[HOOK MANAGER][JAVA HOOK] Created successfully : ",hook.name)
         this.jhooks.push(hook);
+        this.save(hook, true);
 
         // trigger new probe workflow
         this.context.trigger({

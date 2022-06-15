@@ -2,7 +2,10 @@ import HookStrategy from "./HookStrategy";
 import {NodeType} from "../persist/orm/NodeType";
 import {NodeInternalType} from "../NodeInternalType";
 
-
+/**
+ * A HookTemplateFragment is a piece of the hook template associated to a location (before/after/replace a call)
+ *
+ */
 export default class HookTemplateFragment {
 
 
@@ -12,7 +15,9 @@ export default class HookTemplateFragment {
 
 
     private _uid:string = null;
+
     public name:string = null;
+
     private _strategy: HookStrategy = null;
 
     private _descr:string = null;
@@ -74,6 +79,10 @@ export default class HookTemplateFragment {
 
     get strategy():HookStrategy {
         return this._strategy
+    }
+
+    setStrategy(pStrategy:HookStrategy){
+        this._strategy = pStrategy;
     }
 
     setUID(pUID:string){
