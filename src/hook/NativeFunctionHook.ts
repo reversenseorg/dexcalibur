@@ -6,6 +6,8 @@ import HookTemplate from "./HookTemplate";
 import {AbstractHook} from "./AbstractHook";
 import {NodeInternalType} from "../NodeInternalType";
 import {NodeType} from "../persist/orm/NodeType";
+import {DataSourceHelper} from "../DataSourceHelper";
+import {HookScriptBuilderException} from "../errors/HookScriptBuilderException";
 
 export enum HookTargetType {
     STATIC_OFFSET,
@@ -20,7 +22,7 @@ export enum HookTargetType {
 export default class NativeFunctionHook extends AbstractHook {
 
 
-    static TYPE:NodeType = new NodeType( "hook_native", NodeInternalType.HOOK_NATIVE, []);
+    static TYPE:NodeType = (new NodeType( "hook_native", NodeInternalType.HOOK_NATIVE, []));
 
     __:NodeInternalType = NodeInternalType.HOOK_NATIVE;
 
@@ -40,6 +42,14 @@ export default class NativeFunctionHook extends AbstractHook {
     private _weight = 0;
 
 
+    constructor( pData:any = null) {
+        super();
+
+        if(pData != null)
+            for(const i in pData){
+                this[i] = pData[i];
+            }
+    }
 
     isTargetExportedSymbol(){
         return (this._targetType==HookTargetType.EXPORTED_SYMBOL);
@@ -105,8 +115,15 @@ export default class NativeFunctionHook extends AbstractHook {
         return o;
     }
 
-    build():string{
-        return null;
+    build():any{
+        if(this._target == null){
+            throw HookScriptBuilderException.UNTARGETABLE_NATIVE_HOOK();
+        }
+
+        this.setGeneratedCode( this._mgr.hk_builder.native.build(this));
+        this.enable();
+
+        return true;
     }
 
     destroy(pContext: any): any {
