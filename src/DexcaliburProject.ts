@@ -34,13 +34,12 @@ import {AppIcon} from "./AppIcon";
 import {ApkPackage} from "./android/ApkPackage";
 import {Workflow} from "./Workflow";
 import StatusMessage from "./StatusMessage";
-import {ValidationCapable, ValidationRule} from "./Validator";
+import {ValidationRule} from "./Validator";
 import ModelFile from "./ModelFile";
 import {ModelLocation} from "./ModelLocation";
 import {Settings} from "./Settings";
 import {UserAccount} from "./user/UserAccount";
 import {IAuditableAccess} from "./user/acl/IAuditableAccess";
-import {AccessAttribute, AccessAttributeMap} from "./user/acl/AccessAttribute";
 import {ProjectAccessControl} from "./user/acl/rbac/ProjectAccessContol";
 import {AnalyzerConfiguration, FileAnalysisType} from "./AnalyzerConfiguration";
 import {IDatabase, IDatabaseAdapter} from "./persist/orm/DbAbstraction";
@@ -51,10 +50,10 @@ import {UserSession} from "./user/session/UserSession";
 import {AccesErrCode, AccessException} from "./user/acl/Access";
 import Util from "./Utils";
 import {Auditable} from "./Auditable";
-import {GlobalAccessControl} from "./user/acl/rbac/GlobalAccessContol";
 import DataScope from "./DataScope";
 import KeyPointManager from "./hook/KeyPointManager";
 import {ScriptManager} from "./ScriptManager";
+import {TypeManager} from "./types/TypeManager";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -246,6 +245,7 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
 
     saveManager:any = null;
 
+    typeManager:TypeManager;
 
     /**
      * Application Icon
@@ -479,6 +479,10 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
         return this.db;
     }
 
+    getTypeManager():TypeManager {
+        return this.typeManager;
+    }
+
     /**
      * To init the project
      *
@@ -499,6 +503,8 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
         // configured at project level
         const wsSettings:Settings.WorkspaceSettings = this.engine.workspace.getSettings();
         const wf:Workflow = this.engine.getWorkflow(this.uid);
+
+        this.typeManager = new TypeManager();
 
         this.setWorkflow(wf);
 
@@ -546,7 +552,6 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
         // todo : move as inspector
         //this.packagePatcher = new PackagePatcher(this.uid, this.config);
 
-        //this.hook.refreshScanner();
 
 
         // file analyzer 
@@ -580,7 +585,9 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
         }
 
         this.hook = new HookManager(this, this.nofrida);
+        // move HookManager loading to "after app analysis"
 
+        // load hook DB
         this.scriptManager = new ScriptManager(this);
 
         // plugins
@@ -732,9 +739,17 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
      * @async
      */
     async synchronizePlatform( pName:string):Promise<boolean>{
-        let pm:PlatformManager = PlatformManager.getInstance(), res:boolean=false;
+        const pm:PlatformManager = PlatformManager.getInstance();
+        let res = false;
+
+        if(pm.isStub(pName)){
+            this.platform = pm.getStubPlatform(this.device, this.application, pName);
+        }else{
+            this.platform = pm.getPlatform(pName);
+        }
 
         // select platform
+        /*
         switch(pName){
             case 'dev':
                 this.platform = this.device.getPlatform();
@@ -746,15 +761,10 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
                 this.platform = pm.getFromAndroidApiVersion(this.application.getTargetApiVersion());
                 break;
             default:
-/*                if(((pName instanceof Platform) === false) && (typeof pName == 'string' )){
-                    this.platform = pm.getPlatform(pName);
-                }else{
-                    this.platform = pName;
-                }*/
 
                 this.platform = pm.getPlatform(pName);
                 break;
-        }
+        }*/
 
         // check if platform is installed
         if(this.platform == null){
@@ -935,6 +945,8 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
             pExportPath, 
             JSON.stringify(this.toJsonObject())
         );
+
+        this.hook.saveAll();
     }
 
     toJsonObject():any{
@@ -978,7 +990,8 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
     /**
      * To get the application analyzer, which includes manifest and permission analysis.
      * 
-     * @returns {AndroidAppAnalyzer} The application analyzer 
+     * @returns {AndroidAppAnalyzer} The application analyzer
+     * @deprecated
      * @method
      */
     getAppAnalyzer():AndroidAppAnalyzer{
@@ -1169,6 +1182,11 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
         let elemnt:any=null;
         let success:boolean  = false;
 
+        // scan pkg
+
+        // application topology analysis
+        success = await this.appAnalyzer.importManifest(_path_.join(this.workspace.getApkDir(),"AndroidManifest.xml"));
+
 
         // scan OS/Platform
         Logger.info("Scanning platform "+this.platform.getUID());
@@ -1230,6 +1248,8 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
             // TODO : multi threading
             this.analyze.path( apkPath);
 
+            // load hooks
+            this.hook.load();
 
             this.getWorkflow().setStep('App resources', 60);
             this.getWorkflow().pushStatus(new StatusMessage(41, "Indexing and analysis of flat files from package"));
@@ -1274,7 +1294,7 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
             }else{
                 this.analyze.getNativeAnalyzer().configure(
                     this.platform,
-                    'arm',
+                    this.engine.getSettings().getServerSettings().getDefaultArchitecture(), // project architecture
                     this.device.getProfile().getSystemProfile().getABIlist()
                 );
             }
@@ -1292,7 +1312,7 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
             this.getWorkflow().pushStatus(new StatusMessage(86, "Manifest analysis"));
 
             // application topology analysis
-            success = await this.appAnalyzer.importManifest(_path_.join(apkPath,"AndroidManifest.xml"));
+            //success = await this.appAnalyzer.importManifest(_path_.join(apkPath,"AndroidManifest.xml"));
        // }
 
         if(success){
@@ -1435,8 +1455,10 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
         this.ready = true;
 
         this.getWorkflow().pushStatus(new StatusMessage(25, "Saving project ..."));
+
         // update project config (icon, checksum, cert, ...)
         this.save();
+
 
         // make CFG
         //this.analyze.cfg();
