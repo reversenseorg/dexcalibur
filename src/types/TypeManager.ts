@@ -1,5 +1,8 @@
 import {DataType} from "./DataType";
+import * as Log from "../Logger";
 
+
+let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
 interface DataTypeMap {
     [name:string] :DataType
@@ -27,7 +30,7 @@ export class TypeManager {
      * @param pCategory
      * @param pTypes
      */
-    initTypes( pCategory:DATATYPE_CATEGORY, pTypes:DataType[] ):boolean{
+    async initTypes( pCategory:DATATYPE_CATEGORY, pTypes:DataType[] ):Promise<boolean>{
         let success = true;
         switch (pCategory){
             case DATATYPE_CATEGORY.JAVA:
