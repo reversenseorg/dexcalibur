@@ -369,8 +369,20 @@ export default class ModelFile implements INode,IPersistent {
         }
 
 
+        if(o.__p==null) o.__p = {};
         for (let i in this) {
             switch (i) {
+                case "sections":
+                    o.sections = [];
+                    if(this.sections!=null)
+                        this.sections.map( vSec => { o.sections.push(vSec.toJsonObject() )});
+                    break;
+                case "f_list":
+                    o.f_list = {};
+                    if(this.f_list!=null)
+                        for(const addr in this.f_list)
+                            o.f_list[addr] = this.f_list[addr].toJsonObject();
+                    break;
                 case '__p':
                     o.__p = {};
                     for (let k in this.__p) {
