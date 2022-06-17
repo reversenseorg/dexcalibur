@@ -224,7 +224,7 @@ export class NativeHookBuilder{
         switch(pMode){
             case 'export': return  'Module.getExportByName(\'@@__LIB_FILE_NAME__@@\',\'@@__FN_SYM__@@\')';
             case 'addr': return 'ptr(\'@@__FN_ADDR__@@\')';
-            case 'relative': return 'Module.findBaseAddress(\'@@__LIB_FILE_NAME__@@\').add(\'@@__FN_ADDR__@@\')';
+            case 'relative': return 'Module.findBaseAddress(\'@@__LIB_FILE_NAME__@@\').add(@@__FN_ADDR__@@)';
             default: return 'Module.findBaseAddress(\'@@__LIB_FILE_NAME__@@\').add(\'@@__FN_ADDR__@@\')';
         }
     }
@@ -283,7 +283,7 @@ export class NativeHookBuilder{
             "@@__ARGS_DATA__@@":"null",
             "@@__RET_DATA__@@":"",
             "@@__VAR__@@":"",
-            "@@__FN_ADDR__@@": target.getAddr(),
+            "@@__FN_ADDR__@@": "0x"+target.getAddr().toString(16),
             "@@__FN_SYM__@@": target.getSymbol()
         };
 
@@ -341,6 +341,9 @@ export class NativeHookBuilder{
         }
 
         if(pNativeHook.hasReplaceFragments()){
+
+            replace = this.mergeFragments(pNativeHook.getReplace(), tags);
+
             if(before === null && after === null){
                 script = `    
                     Interceptor.replace(
@@ -351,7 +354,19 @@ export class NativeHookBuilder{
                     );
                 `;
             }else{
-                replace = this.mergeFragments(pNativeHook.getReplace(), tags);
+                script = `    
+                    Interceptor.replace(
+                        ${fnAddr},
+                        new NativeCallback(function(@@__HOOK_ARGS__@@){
+                            ${before!=null?before:''}
+                            
+                            ${this.mergeFragments(pNativeHook.getReplace(), tags)}
+                           
+                            ${after!=null?after:''}
+                            
+                        }, @@__RET_TYPE__@@, @@__ARGS_TYPE__@@)
+                    );
+                `;
             }
         }else{
             script = `    
@@ -359,10 +374,6 @@ export class NativeHookBuilder{
                     ${fnAddr},
                     {
             `;
-        }
-
-        // case where before/after are also defined
-        if(replace != null){
             if(before != null){
                 script += `
                     onEnter: function(args){
@@ -380,6 +391,7 @@ export class NativeHookBuilder{
                 });
             `;
         }
+
 
         // replace token
         for(const i in tags){

@@ -131,19 +131,44 @@ export class HookManager
         return this.db;
     }
 
+    /**
+     * To load all hookset and Java hook from the db
+     *
+     * TODO : make it dependent of target app/platform (android or not)
+     *
+     * @method
+     * @since 1.0.0
+     */
     load(){
+
         this.jhooks = this.db.jhooks.getAsList();
         this.jhooks.map( h => {
             //Logger.info(h.getTarget().getUID())
             h.setManager(this)
         });
-        this.nhooks = this.db.nhooks.getAsList();
-        this.nhooks.map( h => {
-            h.setManager(this)
-        });
+
         this.hooksets = this.db.sets.getAll();
         //this.jhooks = this.db.jhooks.getAsList();
         Logger.info(`[HOOK MANAGER] Load complete { java=${this.jhooks.length}, native=${this.nhooks.length}, sets=${Object.keys(this.hooksets).length}   }`);
+    }
+
+    /**
+     * To load all native hook from the db
+     *
+     * TODO : make it dependent of target app/platform (android or not)
+     *
+     * @method
+     * @since 1.0.0
+     */
+    loadNativeHook(){
+
+        // get previously parsed lib
+
+        // load native hooks
+        this.nhooks = this.db.nhooks.getAsList();
+        this.nhooks.map( h => {
+            h.setManager(this);
+        });
     }
 
     private initBuiltInHookSets(){
@@ -755,7 +780,7 @@ export class HookManager
 
         for(const i in h){
             Logger.raw(JSON.stringify(h[i].toJsonObject()));
-            if(h[i].getTarget().getUID() == method.getUID){
+            if(h[i].getTarget().getUID() == method.getUID()){
                 hook = h[i];
                 break;
             }
@@ -938,13 +963,13 @@ export class HookManager
         if(pFunc.hasTag('ds')||pFunc.hasTag('di')){
             this.getDefaultHookSet().addHook(hook);
         }else{
-            Logger.info("hook function ",JSON.stringify(pFunc));
             //this.getHookSetFor(method.getDeclaringFile());
             this.getDefaultHookSet().addHook(hook);
         }
 
-        Logger.info("[HOOK MANAGER][NATIVE HOOK] Created successfully : ",hook.name)
+        Logger.info("[HOOK MANAGER][NATIVE HOOK] Created successfully : ",hook.getTarget().getUID())
         this.nhooks.push(hook);
+        this.save(hook, true);
 
         // trigger new probe workflow
         this.context.trigger({
@@ -1001,7 +1026,7 @@ export class HookManager
             this.getDefaultHookSet().addHook(hook);
         }
 
-        Logger.info("[HOOK MANAGER][JAVA HOOK] Created successfully : ",hook.name)
+        Logger.info("[HOOK MANAGER][JAVA HOOK] Created successfully : ",hook.getTarget().getName())
         this.jhooks.push(hook);
         this.save(hook, true);
 

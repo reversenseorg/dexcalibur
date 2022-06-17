@@ -8,6 +8,7 @@ import {NodeInternalType} from "../NodeInternalType";
 import {NodeType} from "../persist/orm/NodeType";
 import {DataSourceHelper} from "../DataSourceHelper";
 import {HookScriptBuilderException} from "../errors/HookScriptBuilderException";
+import ModelFile from "../ModelFile";
 
 export enum HookTargetType {
     STATIC_OFFSET,
@@ -106,11 +107,12 @@ export default class NativeFunctionHook extends AbstractHook {
     toJsonObject(): any {
         let o = super.toJsonObject();
 
+        o.func = this.getTarget().getUID();
         const f = (this.getTarget() as ModelFunction).getDeclaringFile();
         if(typeof f==='string')
             o.file = f;
         else if(f!==null)
-            o.file = f.getName();
+            o.file = (f as ModelFile).getName();
 
         return o;
     }
