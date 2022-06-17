@@ -2,6 +2,7 @@ import {DataSource} from "./DataSource";
 import DexcaliburProject from "./DexcaliburProject";
 import {NodeType} from "./persist/orm/NodeType";
 import * as Log from "./Logger";
+import {NodeInternalType} from "./NodeInternalType";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -12,6 +13,17 @@ export class DataSourceHelper {
         single: function(pProject:DexcaliburProject, pNodeType:NodeType, pUID:any):any{
             Logger.debug("DATA SOURCE [MEM]> GET > "+pNodeType.getSourceAlias()+" : "+pUID+" ...");
             const o = pProject.getSearchEngine().get[pNodeType.getSourceAlias()](pUID);
+
+            /*
+            if(o == null && pNodeType.getType()===NodeInternalType.FUNC){
+                // function not exists because r2 must be re-opened
+                if(/^[A-Z]+:[0-9a-f]+:.+$/.test(pUID)){
+                    pProject.getAnalyzer().getNativeAnalyzer().analyzeFile(
+                         pProject.getSearchEngine().get.files( pUID.substr(0, pUID.lastIndexOf(':'))),
+                    )
+                }
+            }*/
+
             Logger.debug("DATA SOURCE [MEM]> GET > "+pNodeType.getSourceAlias()+" : "+pUID+" : "+(o!=null ? o.getUID() : 'NULL'));
             return o;
         }
@@ -25,5 +37,4 @@ export class DataSourceHelper {
             return o;
         }
     });
-
 }
