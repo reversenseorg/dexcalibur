@@ -54,6 +54,7 @@ import DataScope from "./DataScope";
 import KeyPointManager from "./hook/KeyPointManager";
 import {ScriptManager} from "./ScriptManager";
 import {TypeManager} from "./types/TypeManager";
+import {AnalyzerState} from "./AnalyzerState";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -527,14 +528,16 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
         sqliteConn.connect(this.workspace.getDbPath());
         this.db = sqliteConn.getDB();
 
+
+
         // set the Search API which allow the user to perform search
         this.find = new SearchAPI();
 
         // set SC analyzer
         this.analyze = new Analyzer(wsSettings.getDefaultEncoding() as BufferEncoding, this);
+        this.analyze.restoreState(this.getAnalyzerState('xast'))
         this.analyze.setWorkflow(wf)
         this.find.setDatabase(this.analyze.getData());
-
 
         this.analyze.addTagCategory(
             "hash",
@@ -557,21 +560,36 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
         // file analyzer 
         this.dataAnalyzer = new DataAnalyzer(this);
         this.dataAnalyzer.setWorkflow(wf)
+        this.dataAnalyzer.restoreState(this.getAnalyzerState('data'));
         this.find.addAnalyzerUnit( 'data', this.dataAnalyzer);
 
         // create main event bus of this project 
         this.bus = new Bus(this); //.setContext(this);
 
+        let state:any;
         // manifest / app analyzer
         // depend of application type
         if(this.platform != null){
             if(this.platform.isAndroid()){
                 this.kpmgr = KeyPointManager.newForAndroid(this);
                 this.appAnalyzer = new AndroidAppAnalyzer(this);
+
+                state = this.getAnalyzerState('android-app');
+                if(state == null){
+                    state = new AnalyzerState({ _uid:'android-app',  state:{}, modified: -1});
+                }
+                this.appAnalyzer.restoreState(state);
             }
             else if(this.platform.isIOS()){
                 this.kpmgr = KeyPointManager.newForIOS(this);
                 this.appAnalyzer = new IosAppAnalyzer(this);
+
+
+                state = this.getAnalyzerState('ios-app');
+                if(state == null){
+                    state = new AnalyzerState({ _uid:'ios-app',  state:{}, modified: -1});
+                }
+                this.appAnalyzer.restoreState(state);
             }
             /*else if(this.platform.isELF())
                 this.appAnalyzer = new BinaryAppAnalyzer(this);
@@ -582,6 +600,13 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
         }else {
             this.kpmgr = KeyPointManager.newForAndroid(this);
             this.appAnalyzer = new AndroidAppAnalyzer(this);
+
+
+            state = this.getAnalyzerState('android-app');
+            if(state == null){
+                state = new AnalyzerState({ _uid:'android-app',  state:{}, modified: -1});
+            }
+            this.appAnalyzer.restoreState(state);
         }
 
         this.hook = new HookManager(this, this.nofrida);
@@ -1282,7 +1307,8 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
             this.getWorkflow().setStep('App native libraries', 85);
             this.getWorkflow().pushStatus(new StatusMessage(80, "Analysis of native libraries"));
 
-           this.analyze.initNativeAnalyzer(this.dataAnalyzer.getDB()); //this.dataAnalyzer.getDB()
+
+            this.analyze.initNativeAnalyzer(this.dataAnalyzer.getDB()); //this.dataAnalyzer.getDB()
 
             if(this.device!=null){
 
@@ -1299,14 +1325,22 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
                 );
             }
 
-            //this.analyze.getNativeAnalyzer().
-            //if(this.analCfg.isAutoNativeAnalysis()){
-                Logger.info("[ANALYZER] Scan every native library and executable contained into package");
-                this.analyze.doNativeAnalysis(pkgScope, null, { skipAuto: this.analCfg.isAutoNativeAnalysis() });
-            // }else{
-            //    Logger.info("[ANALYZER] Scan of every native library and executable contained into package has been skipped by configuration");
-            // }
+            this.analyze.restoreNativeAnalyzer();
 
+            Logger.info("[ANALYZER] Scan every native library and executable contained into package");
+            //this.analyze.doNativeAnalysis(pkgScope, null, { skipAuto: this.analCfg.isAutoNativeAnalysis() });
+
+
+            if(await this.analyze.doNativeAnalysisAsync(
+                pkgScope,
+                null,
+                { skipAuto: this.analCfg.isAutoNativeAnalysis() })){
+
+                // native hook are loaded only if depending files have been loaded
+                this.hook.loadNativeHook();
+            }
+
+            // loadSyscall / Instr hook
 
             this.getWorkflow().setStep('Application topology analysis', 91);
             this.getWorkflow().pushStatus(new StatusMessage(86, "Manifest analysis"));
@@ -1581,5 +1615,33 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
         return this.workspace;
     }
 
+    /**
+     *
+     * @param pAnal
+     * @private
+     */
+    getAnalyzerState(pAnal:string):AnalyzerState {
+        const coll = this.db.getCollection(AnalyzerState.TYPE.getName(), AnalyzerState.TYPE);
+
+        let state:AnalyzerState = coll.getEntry(pAnal);
+        if(state == null){
+            state = new AnalyzerState({ _uid:pAnal, state:{}, modified:-1 });
+            coll.addEntry(pAnal, state);
+        }
+
+        if(!state.isReady()) state.setContext(this);
+
+        return state;
+    }
+
+    /**
+     * To the state of an analyzer
+     *
+     * @param pState
+     */
+    saveAnalyzerState(pState:AnalyzerState) {
+        const coll = this.db.getCollection(AnalyzerState.TYPE.getName(), AnalyzerState.TYPE);
+        return coll.updateEntry(pState);
+    }
 }
 

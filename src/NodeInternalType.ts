@@ -33,7 +33,8 @@ export enum NodeInternalType {
     HOOK_STRATEGY,
     HOOK_GROUP,
     HOOK_SET,
-    SCRIPT
+    SCRIPT,
+    ANAL_STATE
 }
 
 export const NodeInternalTypeName = {
