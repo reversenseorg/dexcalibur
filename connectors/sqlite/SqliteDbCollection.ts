@@ -130,7 +130,7 @@ export default class SqliteDbCollection implements IDbCollection
         }
     }
 
-    addEntry(key:string,value:any){
+    addEntry(key:string,value:any):void{
         this.setEntry(key,value);
     }
 
