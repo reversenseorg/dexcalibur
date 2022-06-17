@@ -4,8 +4,6 @@ import WebServer from "../WebServer";
 import {Request, Response} from "express";
 import * as Log from "../Logger";
 import DexcaliburProject from "../DexcaliburProject";
-import {AuthenticationException} from "../errors/AuthenticationException";
-import {DexcaliburProjectException} from "../errors/DexcaliburProjectException";
 import HookSession from "../HookSession";
 import FridaHelper from "../FridaHelper";
 import Hook from "../Hook";
@@ -214,12 +212,15 @@ HOOK_WEB_API.addAuthenticatedRoute(
                     throw new Error("Invalid hook ID given : "+req.params.hookid);
                 }
 
-                const o:any = hook.toJsonObject();
-
-                if(hook.isTargetNodeType(NodeInternalType.FUNC)){
-                    o.method = project.find.get.func(o.method).toJsonObject();
+                let o:any = hook.toJsonObject();
+                if(hook.__==NodeInternalType.HOOK_NATIVE){
+                    if(hook.getTarget() != null){
+                        o.func = (hook.getTarget() as ModelFunction).toJsonObject();
+                    }
                 }else{
-                    o.method = project.find.get.method(o.method).toJsonObject();
+                    if(hook.getTarget() != null){
+                        o.method = (hook.getTarget() as ModelMethod).toJsonObject();
+                    }
                 }
 
                 $.sendSuccess( res, {hook:o});
@@ -714,38 +715,50 @@ HOOK_WEB_API.addAuthenticatedRoute(
 
                 let meth:ModelMethod|ModelFunction;
                 let probe:AbstractHook;
-                let file:any = null;
+                let file:ModelFile = null;
                 let opts:any = {};
 
                 if((req.body['_t']!=null) && (req.body['_t']=='func')){
-                    meth = project.find.get.func(Util.decodeURI(Util.b64_decode(req.params.method)));
 
-                    file = project.find.file('_uid:'+meth.getDeclaringFile());
-                    if(file.count()>0){
+                    meth = project.find.get.func(Util.decodeURI(Util.b64_decode(Util.decodeURI(req.params.method))));
+                    if (meth == null) {
+                        Logger.error("[API][HOOK::FUNCTION] Function not found "+Util.b64_decode(Util.decodeURI(req.params.method)));
+                        throw new Error("Method or Function not found");
+                    }
+
+                    const lib = meth.getDeclaringFile();
+                    if( (typeof lib) ==='string'){
+                        file = project.find.get.files(lib as string);
+                        if(file != null){
+                            // update function
+                            (meth as ModelFunction).setDeclaringFile(file);
+                        }
+                    }else if(lib != null){
+                        file = project.find.get.files((lib as ModelFile).getUID()) ;
+                    }
+
+                    //file = project.find.get.files(meth.getDeclaringFile()) file('_uid:'+meth.getDeclaringFile());
+                    if(file != null){
                         opts =  {
-                            file: (file.get(0) as ModelFile).getName(),
-                            onLeave: true,
-                            onEnter: true,
+                            lib: file,
+                            file: file.getName(),
                             ptr_mode: 'relative'
                         }
                     }else{
                         opts =  {
-                            onLeave: true,
-                            onEnter: true,
                             ptr_mode: 'addr'
                         }
                     }
 
-
-
                 }else{
                     meth = project.find.get.method(Util.decodeURI(Util.b64_decode(req.params.method)));
+                    if (meth == null) {
+                        Logger.error("[API][HOOK::METHOD] Method not found "+Util.decodeURI(Util.b64_decode(req.params.method)));
+                        throw new Error("Method or Function not found");
+                    }
                 }
 
-                if (meth == null) {
-                    Logger.error("[API][PROBE::METHOD] Method or Function not found "+Util.decodeURI(Util.b64_decode(req.params.method)));
-                    throw new Error("Method or Function not found");
-                }
+
                 if((meth.__ === NodeInternalType.METHOD) && (meth.name == "<clinit>")){
                     throw new Error("Static blocks (<clinit>) cannot be hooked");
                 }
@@ -770,7 +783,7 @@ HOOK_WEB_API.addAuthenticatedRoute(
 
                 project.hook.save(probe, true);
 
-                $.sendSuccess( res, { hookid: probe.getGUID(), enable: probe.isEnable() });
+                $.sendSuccess( res, { hook: probe.toJsonObject(), hookid: probe.getGUID(), enable: probe.isEnable() });
 
             }catch(err){
                 Logger.error("[API][HOOK] Hook messages cannot be retrieved. Cause : " + err.message + "\n\t" + err.stack);

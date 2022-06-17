@@ -14,6 +14,7 @@ import ModelPackage from "../ModelPackage";
 import * as VM from "vm";
 import {FinderResult} from "../FinderResult";
 import DataScope from "../DataScope";
+import ModelFile from "../ModelFile";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 export const CODE_WEB_API: DelegateWebApi = new DelegateWebApi();
@@ -74,7 +75,8 @@ CODE_WEB_API.addAuthenticatedRoute(
                     // replace all by tagged 'executable by target platform'
                     //const d = project.find.file( 'type:ELF', scope);
                     // filter d by analyzed files
-                    const analyzed = project.getAnalyzer().getNativeAnalyzer().getAnalyzedFiles(scope);
+                    const analyzed = project.getAnalyzer().getNativeAnalyzer().getAnalyzableFiles(scope);
+
                     //FinderResult
                     data = data.unionWithList(analyzed);
                 }
