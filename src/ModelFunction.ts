@@ -21,6 +21,8 @@ import {NativeAnalyzerCommands} from "./analyzer/NativeAnalyzerCommands";
 import {INode} from "./INode";
 import {DataSourceHelper} from "./DataSourceHelper";
 import {DataType} from "./types/DataType";
+import NativeFunctionHook from "./hook/NativeFunctionHook";
+import {AbstractHook} from "./hook/AbstractHook";
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
 const TO_JSON:Function = function (vSrc:any, vTarget:any, vInArray:boolean=false):any{
@@ -138,12 +140,19 @@ export class ModelFunction implements INode, IPersistent {
 
     name: string = null;
 
+    /**
+     * Same as regvars
+     */
     args:ModelVariable[] = [];
     ret:ModelVariable = null;
 
     src:ModelFile|string = null;
 
+    /**
+     *
+     */
     regvars:ModelVariable[] = [];
+
     spvars:ModelVariable[] = [];
     bpvars:ModelVariable[] = [];
 
@@ -228,9 +237,17 @@ export class ModelFunction implements INode, IPersistent {
             this.__s += ':'+this.name; //+':0x'+this.addr.toString(16);
         }
 
+        Logger.debug("[MODEL FUNCTION] Signature() : ",this.__s);
+
         return this.__s;
     }
 
+    /**
+     * To get the symbol of this function
+     *
+     * @return {string} the symbol
+     * @method
+     */
     getSymbol():string {
         return this.name;
     }
@@ -248,7 +265,10 @@ export class ModelFunction implements INode, IPersistent {
         return this.addr;
     }
 
-
+    /**
+     *
+     * @param pFile
+     */
     setDeclaringFile(pFile:ModelFile):void{
         this.src = pFile;
     }
@@ -339,13 +359,13 @@ export class ModelFunction implements INode, IPersistent {
                 // if(fields != null && fields.indexOf(i)==-1) continue;
 
                 switch(i){
+                    case "args":
                     case "regvars":
                     case "spvars":
                     case "bpvars":
-                    case "instr":
                         obj[i] = [];
                         // @ts-ignore
-                        (this[i] as any[]).map( (vVar:ModelVariable) => { if(vVar!=undefined) obj[i].push(vVar.toJsonObject()) })
+                        (this[i] as any[]).map( (vVar:ModelVariable) => { if(vVar!=null) obj[i].push(vVar.toJsonObject()) })
                         break;
                     case "cref":
                     case "xcref":
@@ -353,16 +373,20 @@ export class ModelFunction implements INode, IPersistent {
                     case "xdref":
                         obj[i] = [];
                         // @ts-ignore
-                        (this[i] as any[]).map( (vVar:ModelVariable) => {
-                            if(vVar!=undefined)
+                        (this[i] as any[]).map( (vVar:ModelNativeRef) => {
+                            if(vVar!=null)
                                 obj[i].push(vVar)
                         })
+                        break;
+
+                    case "ret":
+                        obj.ret = (this.ret!=null ? this.ret.toJsonObject() : null)
                         break;
                     case "src":
                         if(typeof this.src === 'string'){
                             obj.src = this.src;
                         }else{
-                            obj.src = this.src._uid;
+                            obj.src = this.src.getUID();
                         }
                         /*
                         if(ModelFile.TYPE.is(this.src)){
@@ -375,6 +399,10 @@ export class ModelFunction implements INode, IPersistent {
                             obj.instr = [];
                             this.instr.map( vInstr => { obj.instr.push(vInstr.toJsonObject(['func'])) });
                         }
+                        break;
+                    case 'hooks':
+                        obj.hooks = [];
+                        this.hooks.map( (vHook:AbstractHook)=>{ obj.hooks.push( vHook.getGUID() )});
                         break;
                     default:
                         obj[i] = this[i]

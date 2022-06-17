@@ -392,7 +392,7 @@ export default class Hook
             else
                 s += 'arg_'+i+': args['+i+']';
 
-            switch(r.type){
+            switch(r.type.getName()){
                 case 'int32_t':
                     s+='.toInt32()';
                     break;

@@ -73,8 +73,17 @@ export class ModelVariable {
   }
 
   toJsonObject():any {
-    let o:any={};
-    for(let i in this) o[i]=this[i];
+    const o:any={};
+    for(const i in this){
+      switch (i){
+        case 'type':
+          o.type = (this.type != null ? this.type.getName() : null);
+          break;
+        default:
+          o[i]=this[i];
+          break;
+      }
+    }
     return o;
   }
 
