@@ -170,7 +170,7 @@ export default class RadareHelper
                     edges: vFn.edges,
                     stack: vFn.stackframe,
                     ctype: vFn.calltype,
-                    src: pOptions.src.getUID()
+                    src: pOptions.src //.getUID()
                 });
 
                 if(!vFn.noreturn){
@@ -235,6 +235,7 @@ export default class RadareHelper
                             })
                         )
                     });
+                    f.args = f.regvars;
                 }
 
 
@@ -315,12 +316,14 @@ export default class RadareHelper
                     data = await this._p.cmdj("iSj");
                     this._h.sections = true;
                     this.target.setProgramSection(await this.parseSections(await data));
+                    this.target.tagAs('$r');
                     if(data) k++;
                     break;
                 case 'f_list':
                     data = await this._p.cmdj("aflj");
                     this._h.f_list = true;
                     this.target.appendFunctions(await this.parseFunctionList(await data, { src:this.target }));
+                    this.target.tagAs('$r');
                     if(data) k++;
                     break;
                 case NativeAnalyzerCommands.FUNC_CMD.DISASS:
@@ -441,13 +444,17 @@ export default class RadareHelper
                     Logger.error(`[R2] Error 'tj' : ${err.message}`)
                 });
 
+                if(typeof data === 'string'){
+                    data = JSON.parse(data);
+                }
+
                 const types:DataType[] = [];
                 data.map( (vData:any)=>{
-                    const t = new DataType(vData.name, vData.size);
+                    const t = new DataType(vData.type, vData.size);
                     t.fmt = vData.format;
                     types.push(t);
                 })
-                success = this._typeMgr.initTypes( DATATYPE_CATEGORY.NATIVE, await types);
+                success = await this._typeMgr.initTypes( DATATYPE_CATEGORY.NATIVE, types);
             }else{
                 success = true;
             }
