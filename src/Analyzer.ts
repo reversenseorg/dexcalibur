@@ -33,6 +33,7 @@ import {ModelLocation} from "./ModelLocation";
 import {Workflow} from "./Workflow";
 import {IDatabase, IDbIndex, IDbSet} from "./persist/orm/DbAbstraction";
 import {NodeInternalType} from "./NodeInternalType";
+import {AnalyzerState} from "./AnalyzerState";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -548,6 +549,8 @@ export default class Analyzer
     projectionEngines:any = {};
     encoding:BufferEncoding= null;
 
+    state:AnalyzerState = null;
+
     resolver: ResolverV2 = new ResolverV2();
 
     a_native:NativeAnalyzer = null;
@@ -582,6 +585,18 @@ export default class Analyzer
         this.finder = pProject.find; //pSearchAPI; // pSearchAPI
         this.encoding = pEncoding;
         this.projectionEngines = {};
+    }
+
+
+    /**
+     * To restore the analyzer state
+     *
+     * @param {AnalyzerState} pState
+     */
+    restoreState(pState:AnalyzerState):boolean {
+
+        this.state = pState;
+        return false;
     }
 
     /**
@@ -692,12 +707,27 @@ export default class Analyzer
         }
     }
 
+    /**
+     * To load and init the analyzer for native files
+     *
+     * It creates an analyzer for the specified File database, next it restore
+     * the state from the previous execution.
+     *
+     * State holds :
+     * - libraries analyzed previously, except if the user ask to forget analysis
+     *
+     * @param {IDatabase} pFileDB
+     * @return {NativeAnalyzer}
+     * @method
+     * @since 1.0.0
+     */
     initNativeAnalyzer( pFileDB:IDatabase):NativeAnalyzer{
         this.a_native = new NativeAnalyzer(
             this.context,
             this.db,
             pFileDB
         );
+
 
         if(this._wf != null){
             this.a_native.setWorkflow(this._wf);
@@ -706,6 +736,19 @@ export default class Analyzer
         return this.a_native;
     }
 
+    restoreNativeAnalyzer(){
+
+        // try to restore native anal
+        let nativState:AnalyzerState = this.context.getAnalyzerState('native');
+        if(nativState == null){
+            // create a new object to hold the state
+            nativState = new AnalyzerState({ _uid:'native', state:{}, modified:-1 });
+        }
+
+        // restore the state, and set the object holding the state
+        this.a_native.restoreState(nativState);
+
+    }
 
 
     getNativeAnalyzer():NativeAnalyzer {
@@ -718,6 +761,16 @@ export default class Analyzer
             this.a_native.scanAllFiles(pProfile);
         else
             this.a_native.scanFileByScope(pScope, pProfile, pOptions)
+    }
+
+    async doNativeAnalysisAsync(pScope:DataScope = null, pProfile:any={}, pOptions=null):Promise<boolean>{
+        let success:boolean;
+        if(pScope==null)
+            success = await this.a_native.scanAllFilesAsync(pProfile);
+        else
+            success = await this.a_native.asyncScanFileByScope(pScope, pProfile, pOptions);
+
+        return success;
     }
 
     /**

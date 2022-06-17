@@ -21,6 +21,8 @@ import {NativeAnalyzerProfile} from "./NativeAnalyzerProfile";
 import AndroidNativeAnalyzerProfile from "./android/analyzer/AndroidNativeAnalyzerProfile";
 import IosNativeAnalyzerProfile from "./ios/analyzer/IosNativeAnalyzerProfile";
 import {NativeAnalyzerException} from "./errors/NativeAnalyzerException";
+import {AnalyzerState} from "./AnalyzerState";
+import {DataAnalyzer} from "./DataAnalyzer";
 
 
 export const PROFILES = {
@@ -42,11 +44,28 @@ export default class NativeAnalyzer {
     tempDB:AnalyzerDatabase = null;
     fileDB:IDatabase = null;
 
+    state:AnalyzerState = null;
+
     finder:SearchAPI = null;
     encoding:BufferEncoding= null;
 
     scope:ModelFile[] = [];
+
+    /**
+     * List of analyzed files grouped per scope
+     *
+     * @type {NativeFileList}
+     * @field
+     */
     targets:NativeFileList = {};
+
+    /**
+     * List of analyzable files grouped per scope
+     *
+     * @type {NativeFileList}
+     * @field
+     */
+    targetable:NativeFileList = {};
 
     r2factory: RadareFactory=null;
     context:DexcaliburProject = null;
@@ -55,10 +74,18 @@ export default class NativeAnalyzer {
 
     arch:string = '';
     fmt:string[] = [];
+
+    /**
+     * List of ABI supported by this instance
+     *
+     * @type {NativeFileList}
+     * @field
+     */
     abi:ABI[] = null;
 
     _wf:Workflow;
 
+    waitQueue:ModelFile[] = [];
     /**
      *
      * @param {string} pEncoding
@@ -79,6 +106,41 @@ export default class NativeAnalyzer {
 
         this.context = pProject;
         this.finder = pProject.find; //pSearchAPI; // pSearchAPI
+    }
+
+    /**
+     * To restore the analyzer state
+     *
+     * @param {AnalyzerState} pState
+     */
+    restoreState(pState:AnalyzerState):boolean {
+
+
+        this.state = pState;
+
+        if(this.state.state.openedLib==null) this.state.state.openedLib = [];
+
+        Logger.info("[NATIVE ANALYZER] Restoring state : "+JSON.stringify(this.state.state));
+        this.state.state.openedLib.map((pFileUID: string) => {
+
+            Logger.info("[NATIVE ANALYZER] Restoring file : "+pFileUID);
+            const file = this.context.getSearchEngine().get.files(pFileUID);
+
+            if (file != null) {
+                Logger.info("[NATIVE ANALYZER] Add file to analysis queue : "+file.getUID());
+                this.waitQueue.push(file);
+
+                //Logger.info("[NATIVE ANALYZER] Analyzing file : "+file.getUID());
+                //this.analyzeFile(file, this.profile);
+                //file.tagAs('$r');
+                //this.context.dataAnalyzer.getIndex(file.getScope()).updateEntry(file);
+                //this.targets[file.getScope().getName()].push(file);
+            }else{
+                Logger.info("[NATIVE ANALYZER] File '"+pFileUID+"' cannot be analyzed : file not found")
+            }
+        });
+
+        return true;
     }
 
     setWorkflow(pWF:Workflow){
@@ -127,11 +189,21 @@ export default class NativeAnalyzer {
     }
 
     /**
+     * To get the list of analyzed file only per scope
      *
      * @param {DataScope} pScope
      */
     getAnalyzedFiles(pScope:DataScope):ModelFile[]{
         return this.targets[pScope.getName()];
+    }
+
+    /**
+     * To get the list of file analyzable/analyzed per scope
+     *
+     * @param {DataScope} pScope
+     */
+    getAnalyzableFiles(pScope:DataScope):ModelFile[]{
+        return this.targetable[pScope.getName()];
     }
 
     /**
@@ -156,14 +228,156 @@ export default class NativeAnalyzer {
             this.abi = pABI;
         }
     }
-
     /**
+
      * To append a file to the current scope
      *
      * @param pFile
      */
     addFileToScope(pFile:ModelFile):void {
         this.scope.push(pFile);
+    }
+
+    isFileAnalyzed(pFile:ModelFile|string):boolean {
+        return (this.state.state.openedLib.indexOf(
+            ((typeof pFile)==='string')? pFile : (pFile as ModelFile).getUID()
+        )>-1);
+
+    }
+
+    /**
+     * To check if a file is in the wait queue
+     *
+     * @param {ModelFile} pFile
+     * @private
+     */
+    private _isInWaitQueue( pFile:ModelFile):boolean {
+        for(let i=0; i<this.waitQueue.length; i++){
+            if(this.waitQueue[i].getUID()===pFile.getUID()){
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * To remove a file from the wait queue
+     *
+     * @param {ModelFile} pFile
+     * @private
+     */
+    private _removeFromWaitQueue( pFile:ModelFile):void {
+        this.waitQueue = this.waitQueue.filter( (f:ModelFile)=> (f.getUID()!==pFile.getUID()));
+    }
+
+    /**
+     * To scan all acceptable files into given scope
+     *
+     * @param pScope
+     * @param pOptions
+     */
+    async asyncScanFileByScope(pScope:DataScope, pProfile:NativeAnalyzerProfile=null, pOptions:any = {}):Promise<boolean> {
+
+
+        Logger.info("[NATIVE ANALYSIS] Scanning scope : ",pScope.getIndexName()," ",pScope.getBasePath());
+
+        if(!this.targets.hasOwnProperty(pScope.getName()))
+            this.targets[pScope.getName()] = [];
+
+        if(!this.targetable.hasOwnProperty(pScope.getName()))
+            this.targetable[pScope.getName()] = [];
+
+//        let idx:IDbIndex = this.fileDB.getColl(pScope.getName(), ModelFile.TYPE);
+        let idx:IDbCollection = this.fileDB.getCollection(pScope.getIndexName(), ModelFile.TYPE);
+
+        const profile = pProfile!=null ? pProfile : this.profile;
+
+        const targetable:any = {};
+
+        // gather targetable file
+        idx.map( (pOffset:number, pFile:ModelFile) => {
+
+            Logger.debug(`[NATIVE ANALYSIS] Scanning file from (scope:${pScope.getName()}) : ${pFile.getRelativePath()}`);
+
+            if(this.fmt.indexOf(pFile.type)>-1){
+
+                const fn:string = pFile.getName();
+
+                // ABI detected into file
+                // File is receivable if ABI is determined by file path if the scope is APK
+                //
+                if(this.profile.name == PROFILES.ANDROID_LIB.name){
+                    if(pScope.getInternalName()== "PKG"){
+                        Logger.info("[NATIVE] ",pFile.getRelativePath()," ",JSON.stringify(this.abi)," ",this.profile.isAbiCompliant( pFile, this.abi)+"");
+                        const o:number = (this.profile as AndroidNativeAnalyzerProfile).isAbiCompliant( pFile, this.abi);
+
+                        if(o>-1){
+                            if(targetable[fn] == null){
+                                targetable[fn] = [];
+                            }
+                            targetable[fn].push({ pref:o, file:pFile})
+                        }
+                    }else{
+                        // by default, if ABI compliance check cannot be
+                        // based on file path (as into apk), file is considered compliant
+                        // todo : add ABI detection or let user force analysis
+                        // targetable.push(pFile);
+
+                        // this.targets[pScope.getName()].push(pFile);
+                        if(targetable[fn] == null){
+                            targetable[fn] = [];
+                        }
+
+                        targetable[fn].push({ pref:targetable[fn].length, file:pFile});
+
+
+
+                        /* if(pOptions==null || !pOptions.skipAuto){
+                            this.analyzeFile(pFile, profile);
+                        }else{
+                            Logger.info("[ANALYZER] Native analysis of "+pFile.getRelativePath()+" has been skipped by configuration (#1)");
+                        }*/
+                    }
+                }
+            }
+        });
+
+
+        // analyze gathered files
+        for(const fname in targetable){
+            // keep the file with the prefered ABI
+            const prefered = targetable[fname].sort( (a,b)=> (a.pref < b.pref)).pop();
+            if(prefered != null){
+
+                const file:ModelFile = prefered.file;
+
+                this.targetable[pScope.getName()].push(file)
+
+                if(pOptions==null || !pOptions.skipAuto){
+                    // default analysis
+                    await this.analyzeFileAsync(file, profile);
+                    // updated the list of analyzed file per scope
+                    this.targets[pScope.getName()].push(file)
+
+                }else if(this._isInWaitQueue(file)){
+                    // remove the file from the queue
+                    this._removeFromWaitQueue(file);
+                    // analyze file
+                    await this.analyzeFileAsync(file, profile);
+                    // updated the list of analyzed file per scope
+                    this.targets[pScope.getName()].push(file)
+
+                }else{
+                    Logger.info("[NATIVE ANALYZER] Native analysis of "+file.getRelativePath()+" has been skipped by configuration (#2)");
+                }
+
+            }else{
+                Logger.error(`[NATIVE ANALYZER] Compliant ABI are detected , but none are preferred [file=${fname}, ABIs=${JSON.stringify(this.abi)}, pref=${prefered.pref}`);
+            }
+
+        }
+
+        return true;
     }
 
     /**
@@ -180,6 +394,9 @@ export default class NativeAnalyzer {
         if(!this.targets.hasOwnProperty(pScope.getName()))
             this.targets[pScope.getName()] = [];
 
+        if(!this.targetable.hasOwnProperty(pScope.getName()))
+            this.targetable[pScope.getName()] = [];
+
 //        let idx:IDbIndex = this.fileDB.getColl(pScope.getName(), ModelFile.TYPE);
         let idx:IDbCollection = this.fileDB.getCollection(pScope.getIndexName(), ModelFile.TYPE);
 
@@ -194,20 +411,21 @@ export default class NativeAnalyzer {
 
             if(this.fmt.indexOf(pFile.type)>-1){
 
+                const fn:string = pFile.getName();
+
                 // ABI detected into file
                 // File is receivable if ABI is determined by file path if the scope is APK
                 //
                 if(this.profile.name == PROFILES.ANDROID_LIB.name){
-                    if(pScope.getName()=="bin"){
+                    if(pScope.getInternalName()== "PKG"){
                         Logger.info("[NATIVE] ",pFile.getRelativePath()," ",JSON.stringify(this.abi)," ",this.profile.isAbiCompliant( pFile, this.abi)+"");
-                        const o:number = this.profile.isAbiCompliant( pFile, this.abi);
-                        const fn:string = pFile.getName();
+                        const o:number = (this.profile as AndroidNativeAnalyzerProfile).isAbiCompliant( pFile, this.abi);
 
                         if(o>-1){
                             if(targetable[fn] == null){
                                 targetable[fn] = [];
                             }
-                            targetable[fn][o] = pFile;
+                            targetable[fn].push({ pref:o, file:pFile})
                         }
                     }else{
                         // by default, if ABI compliance check cannot be
@@ -215,13 +433,20 @@ export default class NativeAnalyzer {
                         // todo : add ABI detection or let user force analysis
                         // targetable.push(pFile);
 
-                        this.targets[pScope.getName()].push(pFile);
+                        // this.targets[pScope.getName()].push(pFile);
+                        if(targetable[fn] == null){
+                            targetable[fn] = [];
+                        }
 
-                        if(pOptions==null || !pOptions.skipAuto){
+                        targetable[fn].push({ pref:targetable[fn].length, file:pFile});
+
+
+
+                        /* if(pOptions==null || !pOptions.skipAuto){
                             this.analyzeFile(pFile, profile);
                         }else{
                             Logger.info("[ANALYZER] Native analysis of "+pFile.getRelativePath()+" has been skipped by configuration (#1)");
-                        }
+                        }*/
                     }
                 }
             }
@@ -229,19 +454,35 @@ export default class NativeAnalyzer {
 
 
         // analyze gathered files
-        for(let k in targetable){
-            const f = targetable[k].pop();
-            if(f != undefined){
+        for(const fname in targetable){
+            // keep the file with the prefered ABI
+            const prefered = targetable[fname].sort( (a,b)=> (a.pref < b.pref)).pop();
+            if(prefered != null){
 
-                this.targets[pScope.getName()].push(f);
+                const file:ModelFile = prefered.file;
+
+                this.targetable[pScope.getName()].push(file)
 
                 if(pOptions==null || !pOptions.skipAuto){
-                    this.analyzeFile(f, profile);
+                    // default analysis
+                    this.analyzeFile(file, profile);
+                    // updated the list of analyzed file per scope
+                    this.targets[pScope.getName()].push(file)
+
+                }else if(this._isInWaitQueue(file)){
+                    // remove the file from the queue
+                    this._removeFromWaitQueue(file);
+                    // analyze file
+                    this.analyzeFile(file, profile);
+                    // updated the list of analyzed file per scope
+                    this.targets[pScope.getName()].push(file)
+
                 }else{
-                    Logger.info("[NATIVE ANALYZER] Native analysis of "+f.getRelativePath()+" has been skipped by configuration (#2)");
+                    Logger.info("[NATIVE ANALYZER] Native analysis of "+file.getRelativePath()+" has been skipped by configuration (#2)");
                 }
+
             }else{
-                Logger.error("[NATIVE ANALYZER] Compliant ABI are detected , but none are preferred (file="+f.getName()+") "+JSON.stringify(this.abi)+" "+targetable[k].length)
+                Logger.error(`[NATIVE ANALYZER] Compliant ABI are detected , but none are preferred [file=${fname}, ABIs=${JSON.stringify(this.abi)}, pref=${prefered.pref}`);
             }
 
         }
@@ -269,6 +510,29 @@ export default class NativeAnalyzer {
                 this.analyzeFile(pFile, profile);
             }
         });
+    }
+
+    async scanAllFilesAsync(pProfile:NativeAnalyzerProfile = null):Promise<boolean>{
+
+        if(!this.targets.hasOwnProperty('all'))
+            this.targets.all = [];
+
+
+        const profile = pProfile!=null ? pProfile : this.profile;
+        let success = true;
+
+        this._wf.computeStepUp(this.db.files.size());
+        this.db.files.map( async (pOffset:number, pFile:ModelFile) => {
+
+            if(this.fmt.indexOf(pFile.type)>-1){
+                this.targets.all.push(pFile);
+
+                const h = await this.analyzeFileAsync(pFile, profile);
+                success = success && (h!=null ? true : false);
+            }
+        });
+
+        return success;
     }
 
     /*
@@ -335,15 +599,23 @@ export default class NativeAnalyzer {
                 helper = this.r2factory.getHelperFor(pFile);
             }
 
+            //pFile.tagAs('$r');
             ( async ()=>{
                 const n = await helper.start(pProfile);
 
-                //Logger.info("[DB::FUNC] executed cmd : "+n);
+                Logger.info("[DB::FUNC] executed cmd : "+n);
                 if(n){
                     pFile.getFunctions().map( (vFn:ModelFunction) => {
                         this.db.funcs.addEntry(vFn.signature(), vFn);
                          Logger.info("[DB::FUNC] add func : ", vFn.signature(), " ", vFn.name);
-                    })
+                    });
+
+
+                    Logger.info("[DB::FUNC]File flagged analyzed : ", pFile.getUID());
+                    if(this.state.state.openedLib.indexOf(pFile.getUID())==-1){
+                        this.state.state.openedLib.push(pFile.getUID());
+                        this.state.save();
+                    }
                 }
 
             })();
@@ -375,6 +647,11 @@ export default class NativeAnalyzer {
                     Logger.info("[DB::FUNC] add func : ", vFn.signature(), " ", vFn.name);
                 })
 
+                pFile.tagAs('$r');
+                if(this.state.state.openedLib.indexOf(pFile.getUID())==-1){
+                    this.state.state.openedLib.push(pFile.getUID());
+                    this.state.save();
+                }
                 return helper
             }else{
 

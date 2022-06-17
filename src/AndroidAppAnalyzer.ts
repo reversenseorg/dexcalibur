@@ -12,6 +12,7 @@ import AndroidProvider from "./android/AndroidProvider";
 import AndroidService from "./android/AndroidService";
 import Analyzer from "./Analyzer";
 import * as Log from './Logger';
+import {AnalyzerState} from "./AnalyzerState";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -28,9 +29,24 @@ export default class AndroidAppAnalyzer
 	manifestPath:string = null;
 	manifestCode:string = null;
 
+	state:AnalyzerState = null;
 
     constructor(context:DexcaliburProject){
         this.context = context;
+	}
+
+	/**
+	 * To restore the analyzer state
+	 *
+	 * @param {AnalyzerState} pState
+	 */
+	restoreState(pState:AnalyzerState):boolean {
+		if(pState != null){
+			this.state = pState;
+			return true;
+		}
+
+		return false;
 	}
 
 	/*

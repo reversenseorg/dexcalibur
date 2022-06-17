@@ -16,6 +16,7 @@ import {IDatabase, IDatabaseAdapter, IDbCollection, IDbIndex} from "./persist/or
 import SqliteDbCollection from "../connectors/sqlite/SqliteDbCollection";
 import {IAnalyzerUnit} from "./analyzer/IAnalyzerUnit";
 import {UTIL_CONST} from "./util/UtilConstants";
+ import {AnalyzerState} from "./AnalyzerState";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -203,6 +204,9 @@ export class DataAnalyzer implements IAnalyzerUnit
     binwalk:BinwalkHelper = null;
     magic:MagicHelper = null;
 
+
+    state:AnalyzerState = null;
+
     scopes:DataScopeMap = {};
     _wf:Workflow;
 
@@ -235,6 +239,21 @@ export class DataAnalyzer implements IAnalyzerUnit
 
         this.initDataScope();
         // this.newDB();
+    }
+
+    /**
+     * To restore the analyzer state
+     *
+     * @param {AnalyzerState} pState
+     */
+    restoreState(pState:AnalyzerState):boolean {
+        if(pState != null){
+            this.state = pState;
+            // nothing to do
+            return true;
+        }
+
+        return false;
     }
 
     createDataScopes(){
