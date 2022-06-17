@@ -33,9 +33,14 @@ export default class AndroidNativeAnalyzerProfile implements NativeAnalyzerProfi
 
     /**
      * To verify is a file is compatible with a list of ABI
-     * @param pFile
-     * @param pAbiList
+     *
+     * It returns the offset of the ABI in the specified list
+     *
+     *
+     * @param {ModelFile} pFile The file to verify
+     * @param {ABI[]} pAbiList A list of supported ABI
      * @return {number} Offset of the ABI detected into the specified ABI list (lower offset, is the privilegied version), -1 if not found
+     * @method
      */
     isAbiCompliant(pFile:ModelFile, pAbiList:ABI[]):number {
 
