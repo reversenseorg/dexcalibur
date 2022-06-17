@@ -212,6 +212,12 @@ export default class ModelFile implements INode,IPersistent {
         }
     }
 
+    tagAs(pTag:string){
+        if(!this.__p.hasOwnProperty('tag')) this.__p.tag = [];
+        if(this.__p.tag.indexOf(pTag)==-1){
+            this.__p.tag.push(pTag);
+        }
+    }
 
     getUID(): string {
         return this._uid;
@@ -400,6 +406,7 @@ export default class ModelFile implements INode,IPersistent {
                     break;
             }
         }
+
 
         return o;
     }
