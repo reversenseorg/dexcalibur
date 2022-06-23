@@ -56,7 +56,10 @@ export default class HookTemplateFragment {
 
 
     set weight(pWeight:number) {
-        this._w = pWeight;
+        if(pWeight===null){
+            this._w = -1;
+        }else
+            this._w = pWeight;
     }
 
     get weight():number {
@@ -140,7 +143,9 @@ export default class HookTemplateFragment {
         }
         o.name = pObject.name;
         o.description = pObject.descr;
-        o.weight = pObject.weight;
+        o._w = pObject.weight;
+        if(o._w==null) o._w = -1;
+
         o.template = pObject.tpl;
         o._cache = pObject._cache;
         o._preproc = pObject._preproc;
@@ -153,7 +158,7 @@ export default class HookTemplateFragment {
         o._uid = this._uid;
         o.name = this.name;
         o.descr = this.description;
-        o.weight = this.weight;
+        o.weight = this._w;
         o.tpl = this.template;
         o._cache = this._cache;
         o._preproc = this._preproc;

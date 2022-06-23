@@ -3,6 +3,7 @@ import KeyPointManager from "./KeyPointManager";
 import ModelFile from "../ModelFile";
 import {NodeInternalType} from "../NodeInternalType";
 import {INode} from "../INode";
+import {Device} from "../Device";
 
 export const KeyPointFileEvent = {
     LINKER: 'linker',
@@ -74,6 +75,11 @@ export class KeyPointOptions {
     }
 }
 
+enum INSTR_LEVEL {
+    JAVA,
+    NATIVE,
+    INSTR
+}
 
 /**
  * A generator to generate fragment of code for key point
@@ -82,8 +88,32 @@ export class KeyPointGenerator {
 
     mgr:KeyPointManager = null;
 
+    target:Device = null;
+
+    require:any = {
+        interruptor: false
+    };
+
+    deepestInstrLvl:INSTR_LEVEL = INSTR_LEVEL.INSTR;
+
     constructor(pKeyPointMgr:KeyPointManager) {
         this.mgr = pKeyPointMgr;
+    }
+
+    setTarget( pDevice:Device){
+        this.target = pDevice;
+    }
+
+    getTarget():Device{
+        return this.target;
+    }
+
+    setInstrLevel(pLvl:INSTR_LEVEL):void {
+        this.deepestInstrLvl = pLvl;
+    }
+
+    isStalkerReady():boolean {
+        return (this.deepestInstrLvl == INSTR_LEVEL.INSTR);
     }
 
     generateToken(pKeyPoint:KeyPoint, pEvent:string):string {
@@ -97,7 +127,7 @@ export class KeyPointGenerator {
         }
     }
 
-    private generateForField( pKeyPoint:KeyPoint, pOptions:KeyPointOptions):KeyPoint {
+    private generateForField( pKeyPoint:KeyPoint, pOptions:KeyPointOptions, pHookOpts:any):KeyPoint {
         switch(pOptions.getConditionName()){
             case 'r':
                 // read access
@@ -115,7 +145,7 @@ export class KeyPointGenerator {
         return pKeyPoint;
     }
 
-    private generateForMethod( pKeyPoint:KeyPoint, pOptions:KeyPointOptions):KeyPoint {
+    private generateForMethod( pKeyPoint:KeyPoint, pOptions:KeyPointOptions, pHookOpts:any):KeyPoint {
         switch(pOptions.getConditionName()){
             case 'def':
                 // on method defined
@@ -130,7 +160,7 @@ export class KeyPointGenerator {
         return pKeyPoint;
     }
 
-    private generateForClass( pKeyPoint:KeyPoint, pOptions:KeyPointOptions):KeyPoint {
+    private generateForClass( pKeyPoint:KeyPoint, pOptions:KeyPointOptions, pHookOpts:any):KeyPoint {
         switch(pOptions.getConditionName()){
             case 'load':
                 // on class load
@@ -148,7 +178,7 @@ export class KeyPointGenerator {
         return pKeyPoint;
     }
 
-    private generateForPackage( pKeyPoint:KeyPoint, pOptions:KeyPointOptions):KeyPoint {
+    private generateForPackage( pKeyPoint:KeyPoint, pOptions:KeyPointOptions, pHookOpts:any):KeyPoint {
         switch(pOptions.getConditionName()){
             case 'load':
                 // load a class from the target package
@@ -157,7 +187,7 @@ export class KeyPointGenerator {
         return pKeyPoint;
     }
 
-    private generateForFile( pKeyPoint:KeyPoint, pOptions:KeyPointOptions):KeyPoint {
+    private generateForFile( pKeyPoint:KeyPoint, pOptions:KeyPointOptions, pHookOpts:any):KeyPoint {
         const lib:ModelFile = (pKeyPoint.getFirstNode() as ModelFile);
         const libName = lib.getName();
 
@@ -197,6 +227,35 @@ export class KeyPointGenerator {
                 }
                 break
             case 'dlo':
+
+                if(this.isStalkerReady()){
+                    this.require.interruptor = true;
+                    this.require.followThread = true;
+                    pKeyPoint.code = `
+                    Interruptor.newAgentTracer({
+                        followThread: ${pHookOpts.followThread},
+                        followFork: ${pHookOpts.followFork }
+                        /* @@__CONTENT_SYSCALL__@@*/
+                        onStart: (vMod)=>{
+                             /*@@__CONTENT__@@*/
+                        }
+                    }).startOnLoad(/${libName}/);
+                    `;
+                }else{
+                    pKeyPoint.code = `
+                    Process.findModuleByName('linker64').enumerateSymbols().forEach(sym => {
+                        if (sym.name.indexOf('do_dlopen') >= 0) {
+                            do_dlopen = sym.address;
+                        } else if (sym.name.indexOf('call_constructor') >= 0) {
+                            call_ctor = sym.address;
+                        } else if(sym.name.indexOf('__dl__ZN11ScopedTrace3EndEv') >= 0){
+                            scopedTrace = sym.address;
+                        }
+                    });
+                
+                    `;
+                }
+
                 // DL_OPEN
                 break
             case 'o':
@@ -215,7 +274,7 @@ export class KeyPointGenerator {
         return pKeyPoint;
     }
 
-    private generateForFunction( pKeyPoint:KeyPoint, pOptions:KeyPointOptions):KeyPoint {
+    private generateForFunction( pKeyPoint:KeyPoint, pOptions:KeyPointOptions, pHookOpts:any):KeyPoint {
         switch(pOptions.getConditionName()){
             case 'bef':
                 break
@@ -231,26 +290,27 @@ export class KeyPointGenerator {
 
         const target:INode = pKeyPoint.getFirstNode();
 
+        const hmopts:any = this.mgr.getProject().getHookManager().options;
         // search for existing keypoint targeting the same node
 
         switch (target.__) {
             case NodeInternalType.FILE:
-                this.generateForFile( pKeyPoint, pOptions);
+                this.generateForFile( pKeyPoint, pOptions, hmopts);
                 break;
             case NodeInternalType.PACKAGE:
-                this.generateForPackage( pKeyPoint, pOptions);
+                this.generateForPackage( pKeyPoint, pOptions, hmopts);
                 break;
             case NodeInternalType.CLASS:
-                this.generateForClass( pKeyPoint, pOptions);
+                this.generateForClass( pKeyPoint, pOptions, hmopts);
                 break;
             case NodeInternalType.METHOD:
-                this.generateForMethod( pKeyPoint, pOptions);
+                this.generateForMethod( pKeyPoint, pOptions, hmopts);
                 break;
             case NodeInternalType.FIELD:
-                this.generateForField( pKeyPoint, pOptions);
+                this.generateForField( pKeyPoint, pOptions, hmopts);
                 break;
             case NodeInternalType.FUNC:
-                this.generateForFunction( pKeyPoint, pOptions);
+                this.generateForFunction( pKeyPoint, pOptions, hmopts);
                 break;
         }
 

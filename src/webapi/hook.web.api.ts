@@ -191,6 +191,29 @@ HOOK_WEB_API.addAsyncAuthenticatedRoute(
     }
 );
 
+HOOK_WEB_API.addAuthenticatedRoute(
+    '/global/opts',
+    {
+        'post': async function (req:Request, res:Response):Promise<any> {
+            const $: WebServer = req.dxc.$;
+
+            try{
+                const hm = (req.dxc.project as DexcaliburProject).getHookManager();
+
+                for(const opt in req.body.opts){
+                    hm.updateOptions( opt, req.body.opts[opt]);
+                }
+
+                $.sendSuccess(res, hm.options);
+            }catch(err){
+                Logger.error("[API][HOOK] Global options cannot be updated. Cause : " + err.message + "\n\t" + err.stack);
+                $.sendError(res, "Global options cannot be updated. Cause : " + err.message);
+            }
+        }
+    },{
+        readProject: true
+    }
+);
 
 // replace /hook/:id by /hook/get/:id
 HOOK_WEB_API.addAuthenticatedRoute(
@@ -429,14 +452,19 @@ HOOK_WEB_API.addAuthenticatedRoute(
                         case 'thema':
                             // group hook by process (main, isolated, fork from ..., fork #1, spawn, ...)
                             break;
-                        default:
-                            data = project.hook.getHooks();
+                        case 'inspector':
+                            const hooksets:HookSetList = project.hook.getHookSets();
+                            for(const i in hooksets){
+                                data.push(hooksets[i].toJsonObject());
+                            }
                             break;
-                    }
-                    const hooksets:HookSetList = project.hook.getHookSets();
-
-                    for(const i in hooksets){
-                        data.push(hooksets[i].toJsonObject());
+                        case '*':
+                        default:
+                            const hk:AbstractHook[] = project.hook.getHooks();
+                            hk.map( (h:AbstractHook) => {
+                                data.push(h.toJsonObject())
+                            });
+                            break;
                     }
                 }else{
 

@@ -46,6 +46,7 @@ export abstract class AbstractHook {
     protected _kp:KeyPoint = null;
 
     protected _loadkp:KeyPoint = null;
+
     protected _unloadkp:KeyPoint = null;
 
     /**
@@ -220,6 +221,7 @@ export abstract class AbstractHook {
 
         this._mgr.save(pFragment);
 
+        //Logger.raw("XXXX> "+pPosition+" >>>> "+(pPosition === HOOK_FRAGMENT_POS.BEFORE ))
         // attach the fragment to the hook
         if(pPosition === HOOK_FRAGMENT_POS.BEFORE){
             this.appendBefore(pFragment);
@@ -397,11 +399,15 @@ export abstract class AbstractHook {
 
     toJsonObject(){
         let o:any = {};
+        o.__ = this.__;
         o.id = this.getGUID();
         o.parentID = this.parentID;
         o.color = this.color;
         o.customName = this.customName;
         o.name = this.name;
+
+        o._loadkp = (this._loadkp!=null ? this._loadkp.getUID() : null);
+        o._unloadkp = (this._unloadkp!=null ? this._unloadkp.getUID() : null);
 
 
         o.enable = this._enabled;

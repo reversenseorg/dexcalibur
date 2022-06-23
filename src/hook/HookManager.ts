@@ -85,6 +85,10 @@ export class HookManager
     sessions:HookSession[] = [];
     listeners:any = {};
 
+    options:any = {
+        followThread: false,
+        followFork: false
+    };
 
 
     kp_mgr:KeyPointManager = null;
@@ -129,6 +133,10 @@ export class HookManager
 
     getDbAPI():HookDbApi {
         return this.db;
+    }
+
+    updateOptions( pName:string, pOpt:any):void {
+        this.options[pName] = pOpt;
     }
 
     /**
@@ -536,6 +544,7 @@ export class HookManager
         
         if(hook_script == null){
             hook_script = this.prepareHookScript();
+            Logger.debug("[HOOK MANAGER] Prepared script : \n"+hook_script);
         }
 
         if(this.frida_disabled){
@@ -1084,11 +1093,16 @@ export class HookManager
         let offset = -1;
         let coll:AbstractHook[] = null;
 
-        if(pHook.isTargetNodeType(NodeInternalType.FUNC)){
+
+        if(pHook.__ == NodeInternalType.HOOK_NATIVE){//pHook.isTargetNodeType(NodeInternalType.FUNC)){
             coll = this.nhooks;
         }
-        else if(pHook.isTargetNodeType(NodeInternalType.METHOD)){
+        else if(pHook.__ == NodeInternalType.HOOK_JAVA){//pHook.isTargetNodeType(NodeInternalType.METHOD)){
             coll = this.jhooks;
+        }
+
+        if(coll==null){
+            throw HookManagerException.HOOK_NOT_FOUND(pHook.getGUID());
         }
 
         coll.map( (vHook:AbstractHook, i)=>{

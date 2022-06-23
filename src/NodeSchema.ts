@@ -289,7 +289,7 @@ HookTemplateFragment.TYPE.updateProperties([
     (new NodeProperty("name")).type(DbDataType.STRING).def(null),
     (new NodeProperty("_descr")).type(DbDataType.STRING).def(null),
     (new NodeProperty("_tpl")).type(DbDataType.STRING).def(null),
-    (new NodeProperty("_w")).type(DbDataType.NUMERIC).def(null),
+    (new NodeProperty("_w")).type(DbDataType.NUMERIC).def(-1),
     (new NodeProperty("_cache")).type(DbDataType.STRING).def(null),
     (new NodeProperty("_preproc")).type(DbDataType.BOOLEAN).def(null),
     (new NodeProperty("_strategy")).single(HookStrategy.TYPE).def(null),
@@ -383,6 +383,8 @@ NativeFunctionHook.TYPE.updateProperties([
     (new NodeProperty("name")).type(DbDataType.STRING).def(null),
     (new NodeProperty("_t")).type(DbDataType.STRING).def(null),
     (new NodeProperty("_target")).single(ModelFunction.TYPE),
+    (new NodeProperty("_code")).type(DbDataType.STRING).def(null),
+    (new NodeProperty("_time")).type(DbDataType.STRING).def(null),
    // (new NodeProperty("_hookset")).single(BookmarkType.TYPE),
     (new NodeProperty("_loadkp")).single(KeyPoint.TYPE),
     (new NodeProperty("_unloadkp")).single(KeyPoint.TYPE),
@@ -416,7 +418,7 @@ NativeFunctionHook.TYPE.updateProperties([
         .sleep( (x:NodePropertyState) => {
             if(x.self!=null){
                 const o = [];
-                (x.self as JavaMethodHook).getAfter().map( (t:HookTemplateFragment) => { o.push(t.toJsonObject()) } );
+                (x.self as JavaMethodHook).getBefore().map( (t:HookTemplateFragment) => { o.push(t.toJsonObject()) } );
                 return JSON.stringify(o);
             }else{
                 return null;
@@ -440,7 +442,7 @@ NativeFunctionHook.TYPE.updateProperties([
         .sleep( (x:NodePropertyState) => {
             if(x.self!=null){
                 const o = [];
-                (x.self as JavaMethodHook).getAfter().map( (t:HookTemplateFragment) => { o.push(t.toJsonObject()) } );
+                (x.self as JavaMethodHook).getReplace().map( (t:HookTemplateFragment) => { o.push(t.toJsonObject()) } );
                 return JSON.stringify(o);
             }else{
                 return null;

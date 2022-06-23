@@ -57,6 +57,10 @@ HOOK_FRAGS_WEB_API.addAuthenticatedRoute(
                     req.params.hookid
                 )
 
+                if(hook == null){
+                    throw HookManagerException.HOOK_NOT_FOUND(req.params.hookid);
+                }
+
                 if(req.body.pos == null){
                     throw HookManagerException.UNKNOW_HOOK_FRAGMENT_POS();
                 }
@@ -126,7 +130,7 @@ HOOK_FRAGS_WEB_API.addAuthenticatedRoute(
             try{
                 project = req.dxc.project;
 
-                if(req.params.hookid == null || req.body.frag_uid == null){
+                if(req.params.hookid == null || req.query.frag_uid == null){
                     throw HookManagerException.HOOK_FRAGMENT_NOT_FOUND();
                 }
 
@@ -140,9 +144,9 @@ HOOK_FRAGS_WEB_API.addAuthenticatedRoute(
                 }
 
                 // find, remove, update
-                const frag:HookTemplateFragment = hook.removeFragment(req.body.frag_uid);
+                const frag:HookTemplateFragment = hook.removeFragment(req.query.frag_uid);
 
-                $.sendSuccess(res, frag.toJsonObject());
+                $.sendSuccess(res, { hook: hook.toJsonObject(), frag:frag });
 
             }catch(err){
                 Logger.error("[API][HOOK] Hook fragment cannot be removed . Cause : " + err.message + "\n\t" + err.stack);

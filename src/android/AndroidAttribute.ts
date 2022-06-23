@@ -88,6 +88,9 @@ export const AndroidAttributeModel:AndroidAttributeMap = {
     readPermission: new AndroidAttribute( null, ATTR_TYPE.STRING, "readPermission"),
     syncable: new AndroidAttribute( null, ATTR_TYPE.BOOLEAN, "syncable"),
     writePermission: new AndroidAttribute( null, ATTR_TYPE.STRING, "writePermission"),
+    protectionLevel: new AndroidAttribute( null, ATTR_TYPE.STRING, "protectionLevel"),
+    permissionGroup: new AndroidAttribute( null, ATTR_TYPE.STRING, "permissionGroup"),
+    description: new AndroidAttribute( null, ATTR_TYPE.STRING_RES, "description"),
 
     // allow an application to be shared by multiple user instead of have multiple instance of the same app
     // so, if the shared component is vulnerable it can allow an app to give RCE on other app

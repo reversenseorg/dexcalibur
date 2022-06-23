@@ -96,7 +96,7 @@ export class NativeHookBuilder{
 
         const helper:any = {
             // Value to pass to the "overload()" method of Frida
-            //call_signature: "",
+            decl: "",
             // Value to set as parameters name in the hook and in the call
             // to the hooked function
             hook_args: "",
@@ -122,8 +122,9 @@ export class NativeHookBuilder{
             }else{
                 // not implemented
             }
-            helper.types += param.getType().getName()+sep;
-            helper.hook_args +=  "args["+v+"] "+sep;
+            helper.types += `'${param.getType().getName()}'${sep}`;
+            helper.hook_args +=  "args_"+v+sep;
+            helper.decl +=  "args"+v+" "+sep;
             v++;
         }
 
@@ -193,7 +194,7 @@ export class NativeHookBuilder{
                 if(code==null || NativeHookBuilder.isCodeEmpty(code)) continue;
 
                 script += `
-                    ((@@__HOOK_ARGS_STUBS__@@)=>{
+                    ((@@__NESTED_ARGS__@@)=>{
                         ${code}  
                     })(@@__HOOK_ARGS__@@);
                 `;
@@ -273,6 +274,7 @@ export class NativeHookBuilder{
             "@@__FUNCNAME__@@": (target.name=='<init>')? '$init' : target.name,
             "@@__FUNCSIGN__@@": target.getUID(),
             "@@__HOOK_ARGS__@@": "",
+            "@@__NESTED_ARGS__@@": "",
             "@@__RET__@@": "",
             "@@__RET_TYPE__@@": target.getReturn().getType().getName(),
             "@@__ARGS_VAL__@@": "",
@@ -315,6 +317,7 @@ export class NativeHookBuilder{
             tags["@@__ARGS_DATA__@@"] = "{"+argHelper.data+"}";
             tags["@@__ARGS_TYPE__@@"] = "["+argHelper.types+"]";
             tags["@@__HOOK_ARGS__@@"] = argHelper.hook_args;
+            tags["@@__NESTED_ARGS__@@"] = argHelper.decl;
         }
 
 
@@ -350,7 +353,7 @@ export class NativeHookBuilder{
                         ${fnAddr},
                         new NativeCallback(function(@@__HOOK_ARGS__@@){
                             ${this.mergeFragments(pNativeHook.getReplace(), tags)}
-                        }, @@__RET_TYPE__@@, @@__ARGS_TYPE__@@)
+                        }, '@@__RET_TYPE__@@', @@__ARGS_TYPE__@@)
                     );
                 `;
             }else{
@@ -364,7 +367,7 @@ export class NativeHookBuilder{
                            
                             ${after!=null?after:''}
                             
-                        }, @@__RET_TYPE__@@, @@__ARGS_TYPE__@@)
+                        }, '@@__RET_TYPE__@@', @@__ARGS_TYPE__@@)
                     );
                 `;
             }

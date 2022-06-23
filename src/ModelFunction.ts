@@ -319,6 +319,7 @@ export class ModelFunction implements INode, IPersistent {
         let obj:any = this.toJsonObject(fields,exclude);
         //let filt:string[] = [];
 
+        obj.__ = this.__;
         for(let i=0; i<pCommand.length; i++){
             if( ModelFunction.CMD_MAPPING[pCommand[i]] != null){
                 ModelFunction.CMD_MAPPING[pCommand[i]].map( vAttr => {
