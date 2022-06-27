@@ -7,6 +7,8 @@ import {ValidationRule} from "../Validator";
 import DataScope from "../DataScope";
 import ModelFileSection from "../ModelFileSection";
 import {INode, INodeMap} from "../INode";
+import Util from "../Utils";
+import {KeyPointException} from "../errors/KeyPointException";
 
 export enum KeyPointType {
     HOOK=0,
@@ -58,7 +60,7 @@ export default class KeyPoint implements IPersistent {
     token:string;
     description:string;
     condition:string;
-    code:string;
+    code = "";
     //genCode: string = null;
     generator: any = null;
     weight:number;
@@ -148,14 +150,34 @@ export default class KeyPoint implements IPersistent {
         return this.type === KeyPointType.HOOK;
     }
 
-    generateCode(vCode:string){
+    /**
+     * To generate the final code of the keypoint by replacing tokens by generated piece of code
+     *  of children key points.
+     *
+     *  Put it in the code cache
+     *
+     * @param {string} vCode Code for children keypoints
+     * @throws {KeyPointException}
+     * @return {string} The generated code for this keypoint and all children
+     * @method
+     */
+    generateCode(vCode:string):string{
         if(this.generator != null){
             return this._c = (this.generator)(vCode);
         }else{
+            if(Util.isEmpty(this.code, Util.FLAG_WS | Util.FLAG_CR | Util.FLAG_TB)){
+                throw KeyPointException.INVALID_KP(this.getUID())
+            }
+
             return this._c = this.code.replace("@@__CONTENT__@@", vCode); //+"\n"+vCode;
         }
     }
 
+    /**
+     * To get the code cache
+     *
+     * @method
+     */
     getCodeCache():string {
         return this._c;
     }
