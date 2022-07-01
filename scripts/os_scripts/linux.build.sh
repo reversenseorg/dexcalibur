@@ -9,6 +9,10 @@ tsc
 #echo "[+] Copying package.json"
 #cp ./package.json ./dist/dexcalibur-ts/package.json
 
+echo "[+] Copying agent libs"
+mkdir ./dist/agent
+cp -r ../dexcalibur-agent/dist/*.js ./dist/agent/.
+
 echo "[+] Copying files"
 cp -r ./scripts/ ./dist/scripts
 cp -r ./node_modules/ ./dist/node_modules
