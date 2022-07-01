@@ -2,6 +2,7 @@ import * as _fs_ from 'fs';
 import * as _path_ from 'path';
 import Util from "./Utils";
 import {Settings} from "./Settings";
+import HookWorkspace from "./hook/HookWorkspace";
 
 
 const FILENAME_CONFIG = 'config.json';
@@ -51,6 +52,7 @@ export default class DexcaliburWorkspace
 
     configPath:string = null;
     oldconfigPath:string = null;
+
 
     settings:Settings.WorkspaceSettings;
 
@@ -134,6 +136,8 @@ export default class DexcaliburWorkspace
         DexcaliburWorkspace.mkdirIfNotExists(this.pluginsFolder);
 
         this.settings = this.readSettings();
+
+
     }
 
 

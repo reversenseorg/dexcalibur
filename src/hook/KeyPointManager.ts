@@ -93,7 +93,7 @@ export default class KeyPointManager {
     }
 
     generateToken(pKeyPoint:KeyPoint, pOptions:KeyPointOptions):string{
-        return this.generator.generateToken(pKeyPoint, pOptions.getConditionName());
+        return this.generator.generateToken(pKeyPoint, pOptions.getConditionName(), null);
     }
 
     private _createBinLoadKeyPoint(){
@@ -103,7 +103,7 @@ export default class KeyPointManager {
             token: "@@__KP::LIB_LOAD__@@",
             code: `
                 Java.perform(()=>{ 
-                    @@__CONTENT__@@
+                    /*@@__CONTENT__@@*/
                 });"
             `
             /*generator: function(vCode:string):string{
@@ -123,9 +123,9 @@ export default class KeyPointManager {
             description: "At this point, classes.dex file is loaded and every Android API is available.",
             token: "@@__KP::JAVA_APP_LOADED__@@",
             code: `
-                Java.perform(()=>{ 
-                    @@__CONTENT__@@
-                });"
+Java.perform(()=>{ 
+    /*@@__CONTENT__@@*/
+});
             `
             /*generator: function(vCode:string):string{
 
@@ -144,9 +144,9 @@ export default class KeyPointManager {
             description: "At this point, Dalvik packages and classes.dex files are not loaded, only most basic classes are avilable.",
             token: "@@__KP::BOOT_LOADED__@@",
             code: `
-                Java.deoptimizeEverything();
-                   
-                @@__CONTENT__@@
+Java.deoptimizeEverything();
+   
+/*@@__CONTENT__@@*/
             `
             /*
             generator: function(vCode:string):string{
@@ -232,6 +232,7 @@ export default class KeyPointManager {
         this._db = (pDB as SqliteDb).getCollection( KeyPoint.TYPE.getName(), KeyPoint.TYPE) ;
         this._db.getAll(false, true);
 
+
         if(this._db.size() == 0){
             switch (this._os){
                 case OS.ANDROID:
@@ -302,6 +303,13 @@ export default class KeyPointManager {
         return this._db.getEntry(pName);
     }
 
+    /**
+     * To get all key points
+     *
+     *
+     * @return {KeyPoint[]} List of KPs
+     * @method
+     */
     getKeyPoints():KeyPoint[] {
         return this._db.getAll(true);
     }
@@ -310,14 +318,25 @@ export default class KeyPointManager {
      * To get a list ok KP without ancestor, and sorted by weight
      * Highest weight is lowest offset
      *
+     *     (+)   (+)  (+)    <==== SELECTED KP
+     *    /  \         |
+     *   +   +         +
+     *   |   |        / \
+     *   +   +       +  +
+     *
+     *
+     * @return {KeyPoint[]} List of top level KP
+     * @method
      */
     getTopLevelKeyPoints():KeyPoint[] {
         const kps:KeyPoint[] = [];
 
+        // gather KP node without ancestor
         this._db.map( (i:number, kp:KeyPoint)=>{
             if(!kp.hasAncestor()) kps.push(kp);
         });
 
+        // sort the list by node weight
         kps.sort( (a, b)=>{
             return (b.getWeight() - a.getWeight());
         });
@@ -327,6 +346,9 @@ export default class KeyPointManager {
 
     /**
      * To get the list of key points without children keypoints
+     *
+     * @return {KeyPoint[]} List of terminal KP
+     * @method
      */
     getLeafKeyPoints():KeyPoint[] {
         const kps:KeyPoint[] = [];

@@ -3,7 +3,10 @@ import {NodeInternalType} from "./NodeInternalType";
 
 export enum LocationType {
     FILE,
-    MEM
+    MEM,
+    PLATFORM,
+    APP,
+    DYN
 }
 
 /**
@@ -29,6 +32,16 @@ export class ModelLocation {
         return this._p.file;
     }
 
+    /**
+     * To get the location type
+     *
+     * There are several location type app :
+     * - static *.dex,
+     */
+    getType():LocationType {
+        return this._t;
+    }
+
     static fromFile(pFile:ModelFile):ModelLocation {
         let o:ModelLocation = new ModelLocation();
         o.file = pFile;
@@ -40,6 +53,13 @@ export class ModelLocation {
      */
     isFileBased():boolean {
         return (this._t == LocationType.FILE);
+    }
+
+    /**
+     *
+     */
+    isBuiltIn():boolean {
+        return (this._t >= LocationType.PLATFORM);
     }
 
     /**
@@ -58,4 +78,10 @@ export class ModelLocation {
             };
         }
     }
+}
+
+
+export const CodeLocation = {
+    APP: new ModelLocation({ _t:LocationType.APP }),
+    PLATFORM: new ModelLocation({ _t:LocationType.PLATFORM }),
 }

@@ -36,7 +36,7 @@ import {Workflow} from "./Workflow";
 import StatusMessage from "./StatusMessage";
 import {ValidationRule} from "./Validator";
 import ModelFile from "./ModelFile";
-import {ModelLocation} from "./ModelLocation";
+import {CodeLocation, ModelLocation} from "./ModelLocation";
 import {Settings} from "./Settings";
 import {UserAccount} from "./user/UserAccount";
 import {IAuditableAccess} from "./user/acl/IAuditableAccess";
@@ -55,6 +55,7 @@ import KeyPointManager from "./hook/KeyPointManager";
 import {ScriptManager} from "./ScriptManager";
 import {TypeManager} from "./types/TypeManager";
 import {AnalyzerState} from "./AnalyzerState";
+import {IAppAnalyzer} from "./analyzer/IAppAnalyzer";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -189,7 +190,7 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
      * @type {AndroidAppAnalyzer}
      * @field Application topology analyzer unit (depend of application type : apk,bin, ...)
      */
-    appAnalyzer = null;
+    appAnalyzer:IAppAnalyzer = null;
 
     /**
      * @type {Inspector[]}
@@ -1013,13 +1014,13 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
 
 
     /**
-     * To get the application analyzer, which includes manifest and permission analysis.
+     * To get the application analyzer
      * 
      * @returns {AndroidAppAnalyzer} The application analyzer
-     * @deprecated
+     * deprecated
      * @method
      */
-    getAppAnalyzer():AndroidAppAnalyzer{
+    getAppAnalyzer():IAppAnalyzer{
         return this.appAnalyzer;
     }
 
@@ -1088,7 +1089,7 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
         if(pPath !== undefined){   
             this.analyze.path( pPath);
         }else{
-            let apkctnPath:string = this.workspace.getApkDir();
+            let apkctnPath:string = this.appAnalyzer.getDefaultTargetPath(); //.workspace.getApkDir();
             Fs.mkdirSync(apkctnPath, {recursive: true});
             Logger.info("Scanning default path : "+apkctnPath);
 
@@ -1207,11 +1208,8 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
         let elemnt:any=null;
         let success:boolean  = false;
 
-        // scan pkg
-
         // application topology analysis
-        success = await this.appAnalyzer.importManifest(_path_.join(this.workspace.getApkDir(),"AndroidManifest.xml"));
-
+        success = await this.appAnalyzer.prepareFullScan();
 
         // scan OS/Platform
         Logger.info("Scanning platform "+this.platform.getUID());
@@ -1222,7 +1220,7 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
         this.getWorkflow().setStep('Platform analysis', 10);
         this.getWorkflow().pushStatus(new StatusMessage(5, "Analyzing bytecode of target platform"));
 
-        this.analyze.path(this.platform.getLocalPath());
+        this.analyze.path(this.platform.getLocalPath(), CodeLocation.PLATFORM);
 
         this.getWorkflow().pushStatus(new StatusMessage(11, "Analyzing byte arrays from target platform"))
 
@@ -1265,13 +1263,15 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
             //        let dexPath = this.workspace.getWD()+"dex";
             // To replace by package app (abstraction of apk/ipa/elf/..)
             //  par exemple : getAppDir() => path of folder containing extracted files
-            let apkPath:string = this.workspace.getApkDir();
+            const targetPath:string = await this.appAnalyzer.getDefaultTargetPath();
 
-            Logger.info("Scanning default path : "+apkPath);
+
+
+            Logger.info("Scanning default path : "+targetPath);
 
             // If android or iOS bytecode code analysis
             // TODO : multi threading
-            this.analyze.path( apkPath);
+            this.analyze.path( targetPath, CodeLocation.APP);
 
             // load hooks
             this.hook.load();
@@ -1350,7 +1350,7 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
        // }
 
         if(success){
-            this.setPackageName( this.appAnalyzer.getPackageName());
+            this.setPackageName( this.appAnalyzer.getAppUid());
         }
 
 

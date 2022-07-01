@@ -21,6 +21,10 @@ import DexcaliburProject from "./DexcaliburProject";
 import HookStrategySelector from "./hook/HookStrategySelector";
 import {ModelFunction} from "./ModelFunction";
 import {DataSourceHelper} from "./DataSourceHelper";
+import {INodeMap} from "./INode";
+import {NodeInternalType} from "./NodeInternalType";
+import {NodeType} from "./persist/orm/NodeType";
+import {DataSource} from "./DataSource";
 
 UserAccount.TYPE.updateProperties([
     (new NodeProperty('_uid')).type(DbDataType.STRING).key(DbKeyType.PRIMARY),
@@ -201,8 +205,27 @@ KeyPoint.TYPE.updateProperties([
         (new NodeProperty("condition")).type(DbDataType.STRING),
         (new NodeProperty("parent")).volatile().single(KeyPoint.TYPE).def(null),
         (new NodeProperty("children")).volatile().multiple(KeyPoint.TYPE),
-        (new NodeProperty("_c")).type(DbDataType.STRING).def(null)
-    ]).dataSource(DataSourceHelper.FILE).builder(KeyPoint);
+        (new NodeProperty("_c")).type(DbDataType.STRING).def(null),
+        (new NodeProperty("node"))
+            .type(DbDataType.STRING)
+            .sleep( (x:NodePropertyState) => {
+                const o = [];
+                for(const uid in x.p){
+                    o.push({
+                        __:x.p[uid].__,
+                        uid: (x.p[uid].getUID != null ? x.p[uid].getUID() : x.p[uid].uid)
+                    });
+                }
+                return JSON.stringify(o);
+            })
+            .wakeUp( (x:NodePropertyState) => {
+                const o = {};
+                JSON.parse(x.p).map( v => {
+                    o[v.uid] = v;
+                });
+                return o;
+            })
+        ]).dataSource(DataSourceHelper.FILE).builder(KeyPoint);
 
 
 

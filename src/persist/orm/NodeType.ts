@@ -18,8 +18,13 @@ export interface NodeTypeMap {
     [typeName:string] :NodeType;
 }
 
+export interface NodeInternalTypeMap {
+    [internalType:string] :NodeType;
+}
+
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
+
 /**
  * Represents the type of the node
  *
@@ -28,6 +33,7 @@ let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 export class NodeType {
 
     static ALL:NodeTypeMap = {}
+    static INTERN:NodeInternalTypeMap = {}
 
     /**
      * The internal (short) name of the node type
@@ -109,6 +115,9 @@ export class NodeType {
         if(NodeType.ALL[pName]==null){
             NodeType.ALL[pName] = this;
         }
+        if(NodeType.INTERN[pInternalType]==null){
+            NodeType.INTERN[pInternalType] = this;
+        }
 
         this.updateProperties(pCols, {init:true});
     }
@@ -117,11 +126,29 @@ export class NodeType {
         return (pObject.hasOwnProperty('__')!=null) && (pObject.__ === this._type);
     }
     /**
+     * To get the NodeType by its name
      *
-     * @param pName
+     * @param {string} pName The NodeType name
+     * @return {NodeType} The NodeType object with the specified name
+     * @static
+     * @method
      */
     static lookup(pName:string) :NodeType {
         return NodeType.ALL[pName];
+    }
+
+    /**
+     * To get the NodeType by its InternalNodeType ID
+     *
+     * This method is useful to unserialize object
+     *
+     * @param {number} pInternalID The NodeType numeric ID
+     * @return {NodeType} The NodeType object with the specified ID
+     * @static
+     * @method
+     */
+    static getByID(pInternalID:number) :NodeType {
+        return NodeType.INTERN[pInternalID];
     }
 
     onChange( pFn ){

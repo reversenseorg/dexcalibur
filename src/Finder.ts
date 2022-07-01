@@ -506,7 +506,7 @@ export class Finder
         index.map((k:any,v:any)=>{
             if(v[idHolder] === pattern) {
                 matches.insert(v, false);
-                Logger.info("[FINDER] _findByID :", JSON.stringify(v.toJsonObject()))
+                //Logger.info("[FINDER] _findByID :", JSON.stringify(v.toJsonObject()))
             }
         });
 

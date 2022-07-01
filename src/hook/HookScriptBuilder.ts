@@ -8,6 +8,7 @@ import {HookManager} from "./HookManager";
 import {HookScriptBuilderException} from "../errors/HookScriptBuilderException";
 import {AbstractHook} from "./AbstractHook";
 import * as Log from "../Logger";
+import {KeyPointOptions} from "./KeyPointGenerator";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -113,7 +114,7 @@ export default class HookScriptBuilder {
         if( pInstrs != null){
             return `
 Interruptor.newAgent({ 
-    @@__CONTENT__@@ 
+    /*@@__CONTENT__@@*/ 
 }).startOnLoad('${pLibraryName}');
         `;
         }else{
@@ -186,16 +187,51 @@ DXC.HOOK["${pLibraryName}"] = {
     buildNestedScript( pKeyPoints:KeyPoint[] ){
 
         const maps = {};
+
+        // for each keypoints
         pKeyPoints.map( (vKP:KeyPoint)=>{
 
-            const hk = this._hm.getHookByKeyPoint( vKP);
+            // get hook loaded by this KP
+            const hk = this._hm.getHookByLoadKeyPoint(vKP); // this._hm.getHookByKeyPoint( vKP);
 
+            // skip keypoints without child
+            if(hk.length == 0){
+                return ;
+            }
+
+            // generate code for each hook to load from this key point and concatenate it
             let s = "";
             hk.map( (vHook:AbstractHook) => {
-                s += "\n"+vHook.getGeneratedCode()+"\n";
+                let gc:string = vHook.getGeneratedCode();
+                if(gc == null || gc.length==0){
+                    vHook.build(this._hm.context);
+                    gc = vHook.getGeneratedCode();
+                }
+
+                s += "\n"+gc+"\n";
             });
 
-            const gen = vKP.generateCode(s);
+            // TODO : generate code for child key point
+
+            Logger.info("[HOOK SCRIPT BUILDER] buildNestedScript: \n"+s)
+
+            //try{
+                // if the keypoint template has been never generated, create it :
+                if(!vKP.isTemplateReady()){
+                    this._hm.getKeyPointManager().generate(vKP, new KeyPointOptions({
+                        condition: vKP.getCondition()
+                    }));
+                    // TODO : backup/save
+                }
+
+                // merge code loading hooks with key point template
+               const gen = vKP.generateCode(s);
+           /* }catch(e){
+                this._hm.getKeyPointManager().generate(vKP, new KeyPointOptions({
+                    condition: vKP.getCondition()
+                }));
+            }*/
+
 
             if(vKP.hasChildrenKeyPoints()){
                 const m = this.buildNestedScript(vKP.getChildrenKeyPoints());
@@ -207,6 +243,21 @@ DXC.HOOK["${pLibraryName}"] = {
 
         return maps;
     }
+
+    /**
+     *
+     * @param pScript
+     * @param pOptions
+     * @private
+     */
+    private _appendInternals( pScript:string, pOptions:any = null):string {
+        pScript += "\nvar DXC = require('../dist/dxc-agent.android.arm64.min.js').newDxcAgent(\n";
+        if(pOptions != null) pScript += JSON.stringify(pOptions);
+        pScript += ");\n";
+
+        return pScript;
+    }
+
 
     private _appendRequirements( pScript:string,  pRequires:string[]):string {
         pRequires.map( (vReq:string)=>{
@@ -259,35 +310,47 @@ Java.deoptimizeBoot();`
     build(){
         let script = "";
 
+        Logger.info("[HOOK SCRIPT BUILDER] Build : start ... \n");
         const kpm:KeyPointManager  =  this._hm.getKeyPointManager();
         const topl_kps:KeyPoint[] = kpm.getTopLevelKeyPoints();
         const leaf_kps:KeyPoint[] = kpm.getLeafKeyPoints();
         const req:any = kpm.getGlobalRequirements();
         const deopt:DEOPT_TYPE = kpm.needDeoptimize();
+        Logger.info("[HOOK SCRIPT BUILDER] Build : before _appendInternals: \n");
 
+        script = this._appendInternals( script);
+
+        Logger.info("[HOOK SCRIPT BUILDER] Build : _appendInternals: \n"+script);
         // append top level requirements
         if(req.length > 0){
             script = this._appendRequirements( script, req)+"\n";
+            Logger.info("[HOOK SCRIPT BUILDER] Build : _appendRequirements: \n"+script);
         }
 
         // detect if deoptimizing is required
-        if(deopt != DEOPT_TYPE.NONE){
+        if(kpm.getKeyPoint('core.java.boot').hasNodes()){
             script = this._appendDeoptimize( script, deopt);
+            Logger.info("[HOOK SCRIPT BUILDER] Build : _appendDeoptimize: \n"+script);
         }
 
         // process top-level key point
         const tokens = this.buildNestedScript(topl_kps);
 
         topl_kps.map( (vKP:KeyPoint) => {
-            script += `\n// =======================\n// KeyPoint : ${vKP.getName()} \n// ======================= \n ${vKP.getCodeCache()}\n"`;
+            script += `\n// =======================\n// KeyPoint : ${vKP.getName()} \n// ======================= \n ${vKP.getCodeCache()}\n`;
+            Logger.info("[HOOK SCRIPT BUILDER] Build : top KP : \n"+script);
         });
 
-        for(const uid in tokens){
-            do{
-                script = script.replace(uid as string,tokens[uid] as string);
-            }while(script.indexOf(uid)>-1);
+        if(script != null){
+            for(const uid in tokens){
+                do{
+                    script = script.replace(uid as string,tokens[uid] as string);
+                }while(script.indexOf(uid)>-1);
+            }
         }
 
+
+        Logger.debug("[HOOK SCRIPT BUILDER] Build : token replace: \n"+script);
         Logger.info("[HOOK BUILDER : output :] \n "+script);
 
         return script;

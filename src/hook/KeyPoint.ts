@@ -1,14 +1,12 @@
 import {IPersistent} from "../persist/orm/IPersistent";
 import {NodeType} from "../persist/orm/NodeType";
 import {NodeInternalType} from "../NodeInternalType";
-import {NodeProperty} from "../persist/orm/NodeProperty";
-import {DbDataType, DbKeyType, DbSerialize} from "../persist/orm/DbAbstraction";
-import {ValidationRule} from "../Validator";
-import DataScope from "../DataScope";
-import ModelFileSection from "../ModelFileSection";
 import {INode, INodeMap} from "../INode";
 import Util from "../Utils";
 import {KeyPointException} from "../errors/KeyPointException";
+import * as Log from "../Logger";
+
+let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
 export enum KeyPointType {
     HOOK=0,
@@ -151,6 +149,15 @@ export default class KeyPoint implements IPersistent {
     }
 
     /**
+     * To verify if the key point template is ready
+     *
+     * @method
+     */
+    isTemplateReady():boolean {
+        return (this.code != null && !Util.isEmpty(this.code, Util.FLAG_WS | Util.FLAG_TB | Util.FLAG_CR));
+    }
+
+    /**
      * To generate the final code of the keypoint by replacing tokens by generated piece of code
      *  of children key points.
      *
@@ -165,11 +172,18 @@ export default class KeyPoint implements IPersistent {
         if(this.generator != null){
             return this._c = (this.generator)(vCode);
         }else{
-            if(Util.isEmpty(this.code, Util.FLAG_WS | Util.FLAG_CR | Util.FLAG_TB)){
+            if(this.code == null || Util.isEmpty(this.code, Util.FLAG_WS | Util.FLAG_CR | Util.FLAG_TB)){
                 throw KeyPointException.INVALID_KP(this.getUID())
             }
 
-            return this._c = this.code.replace("@@__CONTENT__@@", vCode); //+"\n"+vCode;
+            Logger.info("[KEY POINT] generateCode : kp code : \n"+this.code);
+
+
+            if(this.hasChildrenKeyPoints()){
+                vCode += "\n@@__KP_CONTENT__@@\n";
+            }
+
+            return this._c = this.code.replace("/*@@__CONTENT__@@*/", vCode); //+"\n"+vCode;
         }
     }
 
@@ -274,7 +288,11 @@ export default class KeyPoint implements IPersistent {
                     break;
                 case 'node':
                     o.node = [];
-                    for(const k in this.node) o.node.push({ __:this.node[k].__, uid:this.node[k].getUID() });
+                    for(const k in this.node)
+                        o.node.push({
+                            __:this.node[k].__,
+                            uid: (typeof this.node[k].getUID === 'function'?  this.node[k].getUID()  : (this.node[k] as any).uid)
+                        });
                     break;
                 default:
                     o[i] = this[i];

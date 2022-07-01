@@ -8,6 +8,7 @@ import APK from "./APK";
 import * as Log from './Logger';
 import {Stub, STUB_TYPE} from "./ModelSavable";
 import {RuntimeSecurityException} from "./errors/RuntimeSecurityException";
+import HookWorkspace from "./hook/HookWorkspace";
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
 
@@ -21,7 +22,8 @@ const DIR_NAME = {
     APPDATA: "appdata",
     TMP: "tmp",
     DEXES: "dexes",
-    DEX: "apk" //"dex"
+    DEX: "apk", //"dex"
+    HKWS: "hooks"
 };
 
 /**
@@ -40,6 +42,7 @@ export default class ProjectWorkspace
 {
     path:string = null;
     mainAPK:APK = null;
+    hookWS:HookWorkspace = null;
 
     /**
      * 
@@ -204,6 +207,16 @@ export default class ProjectWorkspace
         if(!_fs_.existsSync(_path_.join(this.path, DIR_NAME.DEX))){
             this.mkWDir(DIR_NAME.DEX);
         }
+        if(!_fs_.existsSync(_path_.join(this.path, DIR_NAME.HKWS))){
+            this.mkWDir(DIR_NAME.HKWS);
+        }
+
+        this.hookWS = new HookWorkspace({
+            _base:_path_.join(this.path, DIR_NAME.HKWS),
+            ws:this
+        });
+        this.hookWS.init();
+
         Logger.success("[*] Working directory : "+this.path);
     }
 
@@ -275,6 +288,10 @@ export default class ProjectWorkspace
     changeMainAPK( pPath:string){
         _fs_.copyFileSync( pPath, this.getApkPath());
         this.mainAPK = new APK( this.getApkPath());
+    }
+
+    getHookWorkspace():HookWorkspace {
+        return this.hookWS;
     }
 
     /**

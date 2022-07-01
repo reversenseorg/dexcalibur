@@ -410,4 +410,7 @@ export default class FridaHelper extends External.ExternalHelper
         return true;
     }
 
+    static async compileScript( pPath:string):Promise<boolean> {
+        return true;
+    }
 }

@@ -100,7 +100,15 @@ HOOK_WEB_API.addAsyncAuthenticatedRoute(
 
             try{
                 project = req.dxc.project;
-                const newCode:string = req.body['code[]'].join("\n");
+                let newCode:string;
+
+                if(req.body['code[]'] != null){
+                    newCode = req.body['code[]'].join("\n");
+                }else{
+                    newCode = (req.dxc.project as DexcaliburProject).getHookManager().buildAgentScript();
+                }
+
+
                 let output:any = null;
                 const dev:Device = project.getDevice();
 

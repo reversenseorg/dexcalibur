@@ -26,6 +26,7 @@ import {HookBuilder} from "./builders/HookBuider";
 import {HookDbApi} from "./HookDbApi";
 import HookStrategy from "./HookStrategy";
 import HookTemplateFragment from "./HookTemplateFragment";
+import HookWorkspace from "./HookWorkspace";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -399,7 +400,20 @@ export class HookManager
      * @method
      */
     buildAgentScript(): string {
-        return this.builder.build();
+        let script:string = null;
+        const ws:HookWorkspace = this.context.getWorkspace().getHookWorkspace();
+
+        try{
+            script = this.builder.build();
+            Logger.info("[HOOK MANAGER] Hook script template built")
+            ws.writeDefaultScript(script);
+            script = ws.compileDefaultScript();
+            Logger.info("[HOOK MANAGER] Hook script built and compiled successfully.")
+        }catch(e){
+            Logger.error("[HOOK MANAGER] Hook script cannot be built or compiled : "+e.message)
+        }
+
+        return script;
     }
 
     setCachePolicy( pPolicy:any):void{
@@ -1608,4 +1622,12 @@ export class HookManager
         return this._getHookByKeyPointWithRole( pKeyPoint, KeyPointRole.UNLOAD);
     }
 
+    /**
+     * To check if the hook workspace of the project is ready
+     *
+     * @private
+     */
+    private _isHookWsReady():boolean{
+        return this.context.getWorkspace().getHookWorkspace().isReady();
+    }
 }

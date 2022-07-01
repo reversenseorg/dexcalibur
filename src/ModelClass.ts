@@ -73,6 +73,9 @@ export default class ModelClass extends Savable implements IPersistent
     extends:ModelClass|ModelClassReference = null; //ModelClassReference
     supers:(ModelClass|ModelClassReference)[] = null;
 
+    // the class loader of the current class
+    loader:ModelClass = null;
+
     // a list of references to the appied annotations
     annotations = [];
 
@@ -244,6 +247,19 @@ export default class ModelClass extends Savable implements IPersistent
     aliasedSignature():string{
         return this.alias;
     }
+
+    /**
+     * To get the node representing the class laoder of the current class
+     *
+     * @return {ModelClass} The class loader
+     * @method
+     */
+    getClassLoader():ModelClass {
+        return this.loader;
+    }
+
+
+
 
     /**
      * Broken

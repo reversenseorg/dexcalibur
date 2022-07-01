@@ -13,6 +13,8 @@ import AndroidService from "./android/AndroidService";
 import Analyzer from "./Analyzer";
 import * as Log from './Logger';
 import {AnalyzerState} from "./AnalyzerState";
+import {IAppAnalyzer} from "./analyzer/IAppAnalyzer";
+import * as _path_ from "path";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -22,7 +24,7 @@ _xml2js_.Parser.prototype.parseStringPromise = _util_.promisify(_xml2js_.parseSt
 
 
 
-export default class AndroidAppAnalyzer
+export default class AndroidAppAnalyzer implements IAppAnalyzer
 {
 	context:DexcaliburProject = null;
 	manifest:AndroidManifest = null;
@@ -33,6 +35,36 @@ export default class AndroidAppAnalyzer
 
     constructor(context:DexcaliburProject){
         this.context = context;
+	}
+
+
+	getAppUid():string {
+		return this.context.getAppAnalyzer().getPackageName()
+	}
+
+
+	/**
+	 * To perform some action at very first step of a full scan
+	 *
+	 */
+	async prepareFullScan():Promise<boolean>{
+
+		const success:boolean = await this.importManifest(_path_.join(this.context.getWorkspace().getApkDir(),"AndroidManifest.xml"));
+
+		return success;
+	}
+
+	/**
+	 * To get the path of the file or folder to scan by default when an APK is analyzed
+	 *
+	 * For Android, the default value is the path of the folder containing the content of
+	 * the package.
+	 *
+	 * @return {string} The path of the folder containing the decoded content of the APK
+	 * @method
+	 */
+	getDefaultTargetPath():string{
+		return this.context.getWorkspace().getApkDir();
 	}
 
 	/**

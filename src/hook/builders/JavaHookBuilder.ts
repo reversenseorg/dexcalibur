@@ -362,6 +362,8 @@ export class JavaHookBuilder{
         // BEFORE insert
         if(pJavaHook.hasBeforeFragments()){
             script += this.mergeFragments(pJavaHook.getBefore(), tags);
+        }else{
+            script += JavaHookBuilder.createDefaultBeforeFragment();
         }
 
         if(pJavaHook.hasReplaceFragments()){
@@ -376,7 +378,9 @@ export class JavaHookBuilder{
         //  AFTER insert
         if(pJavaHook.hasAfterFragments()){
             script += this.mergeFragments(pJavaHook.getAfter(), tags);
-        }
+        }/*else{
+            script += JavaHookBuilder.createDefaultAfterFragment();
+        }*/
 
         script += `
             return ret;

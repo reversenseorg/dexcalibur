@@ -217,7 +217,7 @@ export class NativeHookBuilder{
     }
 
     static createDefaultAfterFragment():string {
-        return `send({ id:"@@__HOOK_ID__@@", msg:"@@__FUNCSIGN__@@", data:@@__RET_DATA__@@, after:false @@__RET_VAL__@@ });`;
+        return `send({ id:"@@__HOOK_ID__@@", msg:"@@__FUNCSIGN__@@", data:@@__RET_DATA__@@, after:true @@__RET_VAL__@@ });`;
     }
 
     getCodeForFuncAddr(pFunc:ModelFunction, pMode:string):string{
@@ -352,6 +352,8 @@ export class NativeHookBuilder{
                     Interceptor.replace(
                         ${fnAddr},
                         new NativeCallback(function(@@__HOOK_ARGS__@@){
+                            ${NativeHookBuilder.createDefaultBeforeFragment()}
+                            
                             ${this.mergeFragments(pNativeHook.getReplace(), tags)}
                         }, '@@__RET_TYPE__@@', @@__ARGS_TYPE__@@)
                     );
@@ -381,6 +383,11 @@ export class NativeHookBuilder{
                 script += `
                     onEnter: function(args){
                         ${before}
+                    }${after!=null?',':''}`;
+            }else{
+                script += `
+                    onEnter: function(args){
+                        ${NativeHookBuilder.createDefaultBeforeFragment()}
                     }${after!=null?',':''}`;
             }
             if(after != null){

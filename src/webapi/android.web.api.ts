@@ -12,6 +12,7 @@ import AndroidProvider from "../android/AndroidProvider";
 import AndroidService from "../android/AndroidService";
 import {AndroidPermission} from "../android/Permissions";
 import {FinderResult} from "../FinderResult";
+import AndroidAppAnalyzer from "../AndroidAppAnalyzer";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 export const ANDROID_WEB_API: DelegateWebApi = new DelegateWebApi();
@@ -44,7 +45,7 @@ ANDROID_WEB_API.addAuthenticatedRoute(
                 }
 
                 // ========== LOGIC + RESPONSE
-                $.sendSuccess( res, project.getAppAnalyzer().dumpManifest());
+                $.sendSuccess( res, (project.getAppAnalyzer() as AndroidAppAnalyzer).dumpManifest());
             }catch(err){
                 Logger.error("[API][CODE] Search query failed. Cause : " + err.message + "\n\t" + err.stack);
                 $.sendError(res, "Search query failed. Cause : " + err.message);
@@ -75,7 +76,7 @@ ANDROID_WEB_API.addAuthenticatedRoute(
                 // ========== LOGIC + RESPONSE
                 const newCode:string = req.body['code[]'].join("\n");
                 //hook.script = newCode;
-                project.getAppAnalyzer().updateManifest(newCode);
+                (project.getAppAnalyzer() as AndroidAppAnalyzer).updateManifest(newCode);
 
                 $.sendSuccess( res, {});
             }catch(err){

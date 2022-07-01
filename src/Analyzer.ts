@@ -639,6 +639,16 @@ export default class Analyzer
 
     }
 
+    /**
+     * To create a package node into app graph
+     *
+     * Every parent or intermediate packages will be created if they not exit
+     *
+     *
+     * @param {string} pName Package UID
+     * @param {AnalyzerDatabase} pDb The app DB where the package must be created
+     * @method
+     */
     createPackage( pName:string, pDb:AnalyzerDatabase):void {
         let p = pName.split('.'),  fresh:ModelPackage=null;
         let pkg:string='', ppkg:string=p[0], ppkgo:ModelPackage=null;
@@ -736,6 +746,12 @@ export default class Analyzer
         return this.a_native;
     }
 
+    /**
+     * To restore the state of  the native analyzer when the project is re-opened
+     *
+     * @method
+     * @since 1.0.0
+     */
     restoreNativeAnalyzer(){
 
         // try to restore native anal
@@ -991,7 +1007,8 @@ export default class Analyzer
 
         Logger.raw("\n[*] Start object mapping ...\n------------------------------------------");
 
-        let step:number = data.classes.size(), /*data.classesCtr,*/ g=0;
+        const step:number = data.classes.size(); /*data.classesCtr,*/
+        let g=0;
         let overrided:any = [], o:any;
         //let updateLogs = [];
 
@@ -1534,267 +1551,6 @@ export default class Analyzer
 
         this.finder.updateDB(this.db);*/
     }
-
-    /*
-     * @deprecated
-     *//*
-    flattening(method){
-        let instr = [], meta={};
-        for(let i in method.instr){
-            meta = {
-                label: (method.instr[i].tag !== null)? method.instr[i].tag : null,
-                line: method.instr[i].line
-            }
-            for(let j in method.instr[i].stack){
-                instr.push(method.instr[i].stack[j]);
-                if(j==0){
-                    instr[instr.length-1].meta = meta;
-                }
-            }
-        }
-
-        return instr;
-    }
-
-    /**
-     * @deprecated
-     *//*
-    findBasicBlocks(instr){
-        let bblocks = [], blk={};
-
-        blk = {stack:[], next:[], label:null };
-        for(let i in instr){
-            if(instr[i].meta !== undefined && (instr[i].meta.label !== null)){
-                if(blk.stack.length > 0 && i>0){
-                    blk.parent = bblocks[bblocks.length-1];
-                    bblocks.push(blk);
-                }
-
-                blk = {stack:[], next:[], label:instr[i].meta.label };
-                blk.stack.push(instr[i]);
-            }
-            else if(instr[i].opcode.type==CONST.INSTR_TYPE.IF){
-                blk.stack.push(instr[i]);
-                blk.parent = bblocks[bblocks.length-1];
-
-                bblocks.push(blk);
-                blk = {stack:[], next:[], label:null };
-            }
-            /*else if(instr[i].opcode.type==CONST.INSTR_TYPE.SWITCH){
-
-                bblocks.push(blk);
-                blk = {stack:[], next:[]};
-            }*//*
-            else if(instr[i].opcode.type==CONST.INSTR_TYPE.GOTO){
-                //blk.node.pu
-                bblocks.push(blk);
-                blk = {stack:[], next:[], label:null };
-            }
-            /*
-            else if(instr[i].opcode.flag & CONST.OPCODE_TYPE.SETS_REGISTER){
-                bblocks.push(blk);
-                blk = {stack:[]};
-            }*//*
-            else{
-                blk.stack.push(instr[i]);
-            }
-        }
-
-        return bblocks;
-    }
-
-
-    /**
-     * To find a basic block by its label into a basic block list
-     * @function
-     * @deprecated
-     *//*
-    findBBbyLabel(bblocks,label){
-        for(let i=0; i<bblocks.length; i++){
-            bblocks[i].offset = i;
-            if(bblocks[i].label !== null && bblocks[i].label==label){
-                return bblocks[i];
-            }
-        }
-        return null;
-    }
-
-    /**
-     * Naive bb tree built by following only conditions and gotos (no try/catch, no switch, ...)
-     * @function
-     * @deprecated
-     *//*
-    makeTree(bblocks){
-        let last = {};
-        for(let i=0; i<bblocks.length; i++){
-            bblocks[i].offset = i;
-            if(bblocks[i].stack.length > 0){
-                last = bblocks[i].stack[bblocks[i].stack.length-1];
-
-                switch(last.opcode.type){
-                    case CONST.INSTR_TYPE.IF:
-                        bblocks[i].next.push({
-                            jump: CONST.BRANCH.IF_TRUE,
-                            block: this.findBBbyLabel(bblocks,last.right.name)
-                        });
-                        bblocks[i].next.push({
-                            jump: CONST.BRANCH.IF_FALSE,
-                            block: bblocks[i+1]
-                        });
-                        break;
-                    case CONST.INSTR_TYPE.GOTO:
-                        bblocks[i].next.push({
-                            jump: CONST.BRANCH.INCONDITIONNAL_GOTO,
-                            block: this.findBBbyLabel(bblocks,last.right.name)
-                        });
-                        break;
-                    default:
-                        if(bblocks[i+1] != null && bblocks[i+1].label != null){
-                            bblocks[i].next.push({
-                                jump: CONST.BRANCH.INCONDITIONNAL,
-                                block: bblocks[i+1]
-                            });
-                        }
-                        break;
-                }
-            }
-        }
-
-        return bblocks;
-    }
-
-
-    /**
-     * Use by graph builder
-     * @function
-     * @deprecated
-     *//*
-    showBlock(blk,prefix,styleFn){
-
-    if(blk==null) return;
-
-    for(let i in blk.stack){
-        Logger.info(prefix+styleFn("| "+blk.stack[i]._raw));
-        //if()
-    }
-    //console.log(styleFn("-------------------------------------"));
-};
-
-
-    /**
-     * Use by graph builder
-     * @function
-     * @deprecated
-     *//*
-    showCFG_old(bblocks, prefix=""){
-
-    let pathTRUE = Chalk.green(prefix+"    |\n"+prefix+"    |\n"+prefix+"    |\n"+prefix+"    +-----[TRUE]-->");
-    let path_len = "    +-----[TRUE]-->".length;
-    let pathFALSE = Chalk.red(prefix+"    |\n"+prefix+"    |\n"+prefix+"    |\n"+prefix+"    +-----[FALSE]->");
-    let pathNEXT = Chalk.yellow(prefix+"    |\n"+prefix+"    |\n"+prefix+"    |\n"+prefix+"    V");
-    let mockFn = x=>x;
-
-    for(let i=0; i<bblocks.length; i++){
-
-        this.showBlock(bblocks[i], prefix, mockFn);
-
-        if(bblocks[i].next.length > 1){
-            prefix += " ".repeat(path_len);
-
-            for(let j in bblocks[i].next){
-                switch(bblocks[i].next[j].jump){
-                    case CONST.BRANCH.IF_TRUE:
-                        Logger.info(prefix+Chalk.bold.green("if TRUE :"));
-                        this.showBlock(bblocks[i].next[j].block, prefix, Chalk.green);
-                        break;
-                    case CONST.BRANCH.IF_FALSE:
-                        Logger.info(prefix+Chalk.bold.red("if FALSE :"));
-                        this.showBlock(bblocks[i].next[j].block, prefix, Chalk.red);
-                        break;
-                }
-            }
-        }
-        else if(bblocks[i].next.length == 1){
-            Logger.info(pathNEXT);
-            this.showBlock(bblocks[i].next[j].block, prefix, Chalk.white);
-        }
-    }
-}
-
-
-    /**
-     * @deprecated
-     *//*
-    showCFG(bblocks, offset=0, prefix="", fn=null){
-
-        if(bblocks.length==0 || bblocks[offset]==undefined){
-            Logger.debug(offset+" => not block");
-            return null;
-        }
-
-        let pathTRUE = Chalk.green(prefix+"    |\n"+prefix+"    |\n"+prefix+"    |\n"+prefix+"    +-----[TRUE]-->");
-        let path_len = 6;"    +-----[TRUE]-->".length;
-        let pathFALSE = Chalk.red(prefix+"    |\n"+prefix+"    |\n"+prefix+"    |\n"+prefix+"    +-----[FALSE]->");
-        let pathNEXT = Chalk.yellow(prefix+"    |\n"+prefix+"    |\n"+prefix+"    |\n"+prefix+"    V");
-        let mockFn = x=>x;
-
-
-        this.showBlock(bblocks[offset], prefix, (fn==null)? mockFn : fn);
-
-
-        if(bblocks[offset].next.length > 1){
-            prefix += " ".repeat(path_len);
-
-            for(let j in bblocks[offset].next){
-                switch(bblocks[offset].next[j].jump){
-                    case CONST.BRANCH.IF_TRUE:
-                        Logger.info(prefix+Chalk.bold.green("if TRUE :"));
-                        //this.showBlock(bblocks[offset].next[j], prefix, Chalk.green);
-                        if(bblocks[offset].next[j].block == null){
-
-                        }else{
-                            this.showCFG(bblocks, bblocks[offset].next[j].block.offset+1, prefix, Chalk.green);
-                        }
-                        // this.showCFG(bblocks, bblocks[offset].next[j].offset+1, prefix);
-                        break;
-                    case CONST.BRANCH.IF_FALSE:
-                        Logger.info(prefix+Chalk.bold.red("if FALSE :"));
-                        //this.showBlock(bblocks[offset].next[j], prefix, Chalk.red);
-                        this.showCFG(bblocks, offset+1, prefix, Chalk.red);
-                        break;
-                }
-            }
-        }
-        else if(bblocks[offset].next.length == 1){
-            this.showCFG(bblocks, offset+1, prefix, Chalk.yellow);
-            //console.log(pathNEXT);
-            //this.showBlock(bblocks[i].next[j].block, prefix, Chalk.white);
-        }
-
-    }
-
-    /**
-     * @deprecated
-     */
-    /*cfg(method){
-        let instr = [], meta={}, bblocks = [], blk={};
-
-        // list instr
-        instr = this.flattening(method);
-
-
-        // find basic block
-        bblocks = this.findBasicBlocks(instr);
-
-        // get tree
-        bblocks = this.makeTree(bblocks);
-
-
-        // show
-        this.showCFG(bblocks,0);
-
-        return bblocks;
-    }*/
 
     /**
      * TODO

@@ -42,12 +42,21 @@ import {NodeSchema} from "./NodeSchema";
 import {DexcaliburUpdater} from "./DexcaliburUpdater";
 import Tool = External.Tool;
 import {DXC_LIFECYCLE_EVENT} from "./CoreConst";
+import AppUtils from "../../dexcalibur-ui/dxc-web/src/app/core/Utils";
 
+
+if(require('os').platform()=="darwin"){
+    __log('(i0,6  =================================================== )');
+    AppUtils.updateEnvPATH();
+    __log('(i0,7  =================================================== )');
+}
+
+/*
 const _fixPath_ = require("fix-path");
 
 if(require('os').platform()=="darwin"){
     _fixPath_();
-}
+}*/
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -592,6 +601,7 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
      */
     boot( pRestore:boolean=false, pWebRoot:string = null){
         let self:DexcaliburEngine=this;
+
 
         // create updater
         this.updater = DexcaliburUpdater.getInstance(this);
