@@ -362,6 +362,18 @@ export namespace Settings {
             this._all[pValue.getName()] = pValue.getValue();
         }
 
+        /**
+         * To add "dynamically" a new settings to ExternalSettings
+         *
+         * @param pName
+         * @param pValue
+         * @method
+         */
+        add( pName:string, pValue:any){
+            this._all[pName] = pValue;
+            this.save();
+        }
+
         getAll():any{
             return this._all;
         }
