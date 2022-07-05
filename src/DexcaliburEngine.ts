@@ -42,13 +42,10 @@ import {NodeSchema} from "./NodeSchema";
 import {DexcaliburUpdater} from "./DexcaliburUpdater";
 import Tool = External.Tool;
 import {DXC_LIFECYCLE_EVENT} from "./CoreConst";
-import AppUtils from "../../dexcalibur-ui/dxc-web/src/app/core/Utils";
 
 
-if(require('os').platform()=="darwin"){
-    __log('(i0,6  =================================================== )');
-    AppUtils.updateEnvPATH();
-    __log('(i0,7  =================================================== )');
+if(_os_.platform()=="darwin"){
+    Util.updateEnvPATH();
 }
 
 /*
@@ -58,11 +55,11 @@ if(require('os').platform()=="darwin"){
     _fixPath_();
 }*/
 
-let Logger:Log.Logger = Log.newLogger() as Log.Logger;
+const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
-var gAdmZip:any = null;
-var gEngineInstance:DexcaliburEngine = null;
-var PACKAGE_JSON:any =  require(_path_.join(__dirname,"..",'info.json'));
+let gEngineInstance:DexcaliburEngine = null;
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const PACKAGE_JSON:any =  require(_path_.join(__dirname,"..",'info.json'));
 
 const LOG_FILE = (process.env.DXC_LOG_PATH? process.env.DXC_LOG_PATH : null);
 function __log( pMessage:string):void{
@@ -91,7 +88,7 @@ const LOGO = "███████╗ ███████╗██╗  ██
  * List of remote location where each tool can be downloaded 
  * @constant
  */
-var REMOTE_URLS:any = {
+const REMOTE_URLS:any = {
     apktool: "https://bitbucket.org/iBotPeaches/apktool/downloads/apktool_2.4.1.jar",
     //apktool: "https://bbuseruploads.s3.amazonaws.com/0becf6a1-1706-4f2e-9ae6-891e00a8dd5f/downloads/5b0ec3aa-15d9-462a-8573-3744c8855ee7/apktool_2.4.1.jar?Signature=jmQo3MJSfHOfEwSCRTdjA1zZWns%3D&Expires=1586629301&AWSAccessKeyId=AKIA6KOSE3BNJRRFUUX6&versionId=zmIH9wY6Q_aTyUGAwbMg_KwZ5VWcE4VW&response-content-disposition=attachment%3B%20filename%3D%22apktool_2.4.1.jar%22",
     adb: null,
@@ -563,14 +560,14 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
      *
      */
     initExternalSettings(): void{
-
+        return ;
     }
 
     /**
      *
      */
     initConnectionsSettings(): void{
-        let conns = this.settings.getConnectionSettings();
+        const conns = this.settings.getConnectionSettings();
         if(conns == null || conns.countConnections()===0){
             this.settings.createConnectionSettings();
             this.settings.save();
@@ -599,8 +596,9 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
      * @returns {Boolean} TRUE if ready to start
      * @method
      */
-    boot( pRestore:boolean=false, pWebRoot:string = null){
-        let self:DexcaliburEngine=this;
+    boot( pRestore=false, pWebRoot:string = null){
+        // eslint-disable-next-line @typescript-eslint/no-this-alias
+        const self:DexcaliburEngine=this;
 
 
         // create updater
@@ -837,7 +835,7 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
      */
     listProjectsOf( pUser:UserAccount):DexcaliburProjectMap {
         const PUIDS = this.workspace.listProjects();
-        let map:DexcaliburProjectMap = {};
+        const map:DexcaliburProjectMap = {};
         PUIDS.map( (vUID:string)=>{
             try{
                 // only authorized user can read metadata
@@ -947,7 +945,7 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
     async openProject( pUserAccount:UserAccount, pUID:string):Promise<DexcaliburProject>{
         let project:DexcaliburProject = null, success:any = false;
 
-        let wf:Workflow = this.getWorkflow( pUID);
+        const wf:Workflow = this.getWorkflow( pUID);
         Logger.info("ENGINE : openProject : workflow : "+(wf!=null? wf.getUID() : '<null>'));
 
         try{
@@ -998,10 +996,9 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
     async newProject( pUID:string, pApkPath:string, pDevice:any=null, pUserAccount:UserAccount = null):Promise<DexcaliburProject>{
 
         let project:DexcaliburProject = null;
-        let success:boolean = null;
         let apkFile:ApkPackage = null;
 
-        let wf:Workflow = this.getWorkflow( pUID);
+        const wf:Workflow = this.getWorkflow( pUID);
         if(wf===null){
             throw new Error("Project is not associated to a workflow.");
         }
@@ -1088,8 +1085,8 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
         // TODO : remove project from others sessions
 
         if(Object.keys(this.getActiveProjects()).length>0){
-            let p:any = {};
-            for(let i in this.active){
+            const p:any = {};
+            for(const i in this.active){
                 Logger.info(i+' != '+pProject.uid+' == '+(i != pProject.uid));
                 if(i != pProject.uid)
                     p[i] = this.active[i];
@@ -1109,7 +1106,7 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
      * @param pName
      */
     newWorkflow(pName:string):Workflow {
-        let wf:Workflow = new Workflow({ uid:'de:'+pName });
+        const wf:Workflow = new Workflow({ uid:'de:'+pName });
         this.workflows.push(wf);
         // execute scheduled job
         if(this.wfCbs[wf.getUID()]!=null){
@@ -1125,7 +1122,7 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
      * To create a new workflow and to attach it to engine
      * @param pName
      */
-    getWorkflow(pUID:string, pExternal:boolean=false):Workflow{
+    getWorkflow(pUID:string, pExternal=false):Workflow{
         let f:Workflow = null;
         const name = (pExternal? '' : 'de:')+pUID;
 
@@ -1147,7 +1144,7 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
      * @param {boolean} pExternal Optional. Default FALSE. TRUE if the workflow is external with a global UID, else FALSE if the workflow is attached to engine
      * @method
      */
-    onNewWorkflow( pUID:string, pCallback:any, pExternal:boolean=false):void {
+    onNewWorkflow( pUID:string, pCallback:any, pExternal=false):void {
         const name = (pExternal? '' : 'de:')+pUID;
         if(this.wfCbs[name]==null){
             this.wfCbs[name] = [];
