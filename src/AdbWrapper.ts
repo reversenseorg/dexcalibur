@@ -285,6 +285,11 @@ export default class AdbWrapper implements IBridge
 
     }
 
+    //
+    killProcess( pPID:number, pSignal = 9){
+
+    }
+
     /**
      * To kill adb-server
      * 
@@ -873,7 +878,7 @@ export default class AdbWrapper implements IBridge
             pOptions.strategy = AdbWrapper.DEFAULT_PRIV_STRATEGY;
         }
 
-        const stt = this.getStrategy(pOptions.strategy);
+        let stt:PrivilegedExecutionStrategy = this.getStrategy(pOptions.strategy);
 
 
         if(pOptions.detached)
@@ -915,6 +920,8 @@ export default class AdbWrapper implements IBridge
 
 
         // TeeProfiler
+
+
 
         return profile;
     }

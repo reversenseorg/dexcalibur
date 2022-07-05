@@ -26,6 +26,12 @@ export class SystemProfile implements  Profile
 {
     prop:any;
 
+
+    /**
+     * To handle the case where the final user specify this device is emulated
+     */
+    emulated = false;
+
     constructor(){
         this.prop = {};
     }
@@ -75,6 +81,14 @@ export class SystemProfile implements  Profile
     getABI():string{
         return this.prop['ro.product.cpu.abi'];
     }
+
+    /**
+     * To check from props if the device is an emulator r
+     */
+    isEmulator():boolean {
+        return this.prop['ro.build.product'].startsWith('emulat') || this.emulated;
+    }
+
 
     /**
      * To get ABI
@@ -259,7 +273,10 @@ export class NetworkProfile implements Profile
 
 
 /**
- * 
+ *
+ *
+ * TODO: Refactor as AndroidDeviceProfile, add IDeviceProfile interface
+ *
  * @class
  * @author Georges-B MICHEL
  */

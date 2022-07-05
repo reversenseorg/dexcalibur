@@ -493,12 +493,33 @@ export class Device
         return this.bridge.shellWithEHsync(pCommand);
     }
 
-
     async privilegedExecSync(pCommand:string, pOtions:any=null):Promise<any>{
-        if(pOtions == null)
-            return await this.bridge.privilegedShell(pCommand);
-        else 
-            return await this.bridge.privilegedShell(pCommand, pOtions);
+        // if and android emulator is used
+        if(!this.profile.getSystemProfile().isEmulator()){
+            if(pOtions == null)
+                return await this.bridge.privilegedShell(pCommand);
+            else
+                return await this.bridge.privilegedShell(pCommand, pOtions);
+        }
+
+
+        return await this.bridge.detachedShell(pCommand,"");
+    }
+
+    /**
+     * To kill a process by sending SIGNAL to process with PID
+     *
+     * @param pPID
+     * @param pSignal
+     */
+    async killProcess( pPID:number, pSignal:number = null):Promise<any>{
+        const cmd = `kill ${pSignal!=null ? "-s "+pSignal:""} ${pPID}`;
+        // isEmulator vs isPrivilegeRequired (adb root ? adb shell su ?)
+        if(!this.profile.getSystemProfile().isEmulator()){
+            return await this.bridge.privilegedShell(cmd);
+        }else{
+            return await this.bridge.detachedShell(cmd,"");
+        }
     }
 
     getPlatform():Platform{
