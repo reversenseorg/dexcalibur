@@ -303,7 +303,7 @@ export class JavaHookBuilder{
             "@@__VAR__@@":""
         };
 
-        tags["@@__VAR__@@"] = _md5_(pJavaHook.getGUID())+"_VAR";
+        tags["@@__VAR__@@"] = "v"+_md5_(pJavaHook.getGUID())+"_VAR";
         pJavaHook.setVariableID(tags["@@__VAR__@@"]);
 
         //this.code.varID = tags["@@__VAR__@@"];

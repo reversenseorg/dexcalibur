@@ -105,7 +105,7 @@ HOOK_WEB_API.addAsyncAuthenticatedRoute(
                 if(req.body['code[]'] != null){
                     newCode = req.body['code[]'].join("\n");
                 }else{
-                    newCode = (req.dxc.project as DexcaliburProject).getHookManager().buildAgentScript();
+                    newCode = await (req.dxc.project as DexcaliburProject).getHookManager().buildAgentScript();
                 }
 
 
@@ -163,7 +163,7 @@ HOOK_WEB_API.addAsyncAuthenticatedRoute(
             const $: WebServer = req.dxc.$;
 
             try{
-                $.sendSuccess(res, (req.dxc.project as DexcaliburProject).getHookManager().buildAgentScript());
+                $.sendSuccess(res, await (req.dxc.project as DexcaliburProject).getHookManager().buildAgentScript());
             }catch(err){
                 Logger.error("[API][HOOK] Frida agent script cannot be built. Cause : " + err.message + "\n\t" + err.stack);
                 $.sendError(res, "Frida agent script cannot be built. Cause : " + err.message);

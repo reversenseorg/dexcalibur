@@ -483,7 +483,7 @@ export default class Hook
             "@@__FN_SYM__@@": pFn.getSymbol(),
             "@@__FN_ADDR__@@": "0x"+pFn.getAddr().toString(16),
             "@@__FN_UID__@@": _md5_(pFn.signature()),
-            "@@__VAR__@@": _md5_(this.id)+"_VAR",
+            "@@__VAR__@@": "v"+_md5_(this.id)+"_VAR",
             "@@__HOOK_ID__@@": Util.b64_encode(this.id),
             "@@__MSG__@@": "Native:"+pFn.getDeclaringFile()+':'+pFn.getSymbol(),
         };
@@ -760,7 +760,7 @@ export default class Hook
             "@@__VAR__@@":""
         };
 
-        tags["@@__VAR__@@"] = _md5_(this.id)+"_VAR";
+        tags["@@__VAR__@@"] = "v"+_md5_(this.id)+"_VAR";
         this.code.varID = tags["@@__VAR__@@"];
 
         let retHelp:any = this.makeRetHelper(method.ret);
@@ -890,7 +890,7 @@ export default class Hook
             "@@__RET_DATA__@@":""
         };
 
-        tags["@@__VAR__@@"] = tags["@@__HOOK_ID__@@"]+"_VAR";
+        tags["@@__VAR__@@"] = "v"+tags["@@__HOOK_ID__@@"]+"_VAR";
 
         this.code.varID = tags["@@__VAR__@@"];
 

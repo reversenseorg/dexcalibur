@@ -55,7 +55,7 @@ SETTINGS_WEB_API.addPublicRoute(
                     throw GlobalSettingsException.SETTING_UNKNOW();
                 }
 
-                switch (req.query['type']){
+                switch (req.body['type']){
                     case 'ext':
                         settings = $.context.getSettings().getExternalSettings();
                         break;

@@ -299,7 +299,7 @@ export class NativeHookBuilder{
             tags["@@__LIB_FILE_NAME__@@"] = (lib as ModelFile).getName();
         }
 
-        tags["@@__VAR__@@"] = _md5_(pNativeHook.getGUID())+"_VAR";
+        tags["@@__VAR__@@"] = "v"+_md5_(pNativeHook.getGUID())+"_VAR";
         pNativeHook.setVariableID(tags["@@__VAR__@@"]);
 
         //this.code.varID = tags["@@__VAR__@@"];

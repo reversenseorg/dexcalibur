@@ -251,7 +251,7 @@ DXC.HOOK["${pLibraryName}"] = {
      * @private
      */
     private _appendInternals( pScript:string, pOptions:any = null):string {
-        pScript += "\nvar DXC = require('../dist/dxc-agent.android.arm64.min.js').newDxcAgent(\n";
+        pScript += "\nvar DXC = require('./lib/dxc-agent.android.arm64.min.js').newDxcAgent(\n";
         if(pOptions != null) pScript += JSON.stringify(pOptions);
         pScript += ");\n";
 
@@ -337,8 +337,10 @@ Java.deoptimizeBoot();`
         const tokens = this.buildNestedScript(topl_kps);
 
         topl_kps.map( (vKP:KeyPoint) => {
-            script += `\n// =======================\n// KeyPoint : ${vKP.getName()} \n// ======================= \n ${vKP.getCodeCache()}\n`;
-            Logger.info("[HOOK SCRIPT BUILDER] Build : top KP : \n"+script);
+            if(vKP.getCodeCache() != null && vKP.enabled){
+                script += `\n// =======================\n// KeyPoint : ${vKP.getName()} \n// ======================= \n ${vKP.getCodeCache()}\n`;
+                Logger.info("[HOOK SCRIPT BUILDER] Build : top KP : \n"+script);
+            }
         });
 
         if(script != null){

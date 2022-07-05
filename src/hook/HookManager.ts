@@ -399,19 +399,19 @@ export class HookManager
      * @return {string}
      * @method
      */
-    buildAgentScript(): string {
+    async buildAgentScript():Promise<string> {
         let script:string = null;
         const ws:HookWorkspace = this.context.getWorkspace().getHookWorkspace();
 
-        try{
+        //try{
             script = this.builder.build();
             Logger.info("[HOOK MANAGER] Hook script template built")
             ws.writeDefaultScript(script);
-            script = ws.compileDefaultScript();
+            script = await  ws.compileDefaultScript();
             Logger.info("[HOOK MANAGER] Hook script built and compiled successfully.")
-        }catch(e){
-            Logger.error("[HOOK MANAGER] Hook script cannot be built or compiled : "+e.message)
-        }
+        //}catch(e){
+        //    Logger.error("[HOOK MANAGER] Hook script cannot be built or compiled : "+e.message)
+        //}
 
         return script;
     }

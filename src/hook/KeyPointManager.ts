@@ -93,7 +93,7 @@ export default class KeyPointManager {
     }
 
     generateToken(pKeyPoint:KeyPoint, pOptions:KeyPointOptions):string{
-        return this.generator.generateToken(pKeyPoint, pOptions.getConditionName(), null);
+        return this.generator.generateToken(null, pKeyPoint, pOptions.getConditionName());
     }
 
     private _createBinLoadKeyPoint(){
