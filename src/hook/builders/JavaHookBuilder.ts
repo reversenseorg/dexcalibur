@@ -190,6 +190,14 @@ export class JavaHookBuilder{
         return Util.isEmpty( pCode, Util.FLAG_WS|Util.FLAG_CR|Util.FLAG_TB);
     }
 
+    private _replaceFragID( pCode:string, pFragID:string):string {
+
+        do{
+            pCode = pCode.replace("@@__FRAG_ID__@@", pFragID);
+        }while(pCode.indexOf("@@__FRAG_ID__@@")>-1);
+
+        return pCode;
+    }
     /**
      * To merge fragments according to priority, and replacing tags
      * Fragment with preprocess disabled are not modified.
@@ -207,7 +215,7 @@ export class JavaHookBuilder{
             if(code==null || JavaHookBuilder.isCodeEmpty(code)) return script;
 
             script += `
-              ${code}      
+              ${this._replaceFragID(code,pFragment[0].getUID()) }      
             `;
 
             // replace token
@@ -227,7 +235,7 @@ export class JavaHookBuilder{
 
                 script += `
                     (function(@@__HOOK_ARGS_STUBS__@@){
-                        ${code}  
+                        ${this._replaceFragID(code,pFragment[i].getUID())}  
                     })(@@__HOOK_ARGS__@@);
                 `;
 
