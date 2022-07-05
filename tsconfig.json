@@ -5,6 +5,10 @@
     "module": "commonjs",
     "declaration": true,
     "outDir": "./dist",
+    "esModuleInterop": false,
+    "allowSyntheticDefaultImports": false,
+    "moduleResolution": "node",
+    "allowJs": true,
     "typeRoots": [
       "node_modules/@types"
     ],
@@ -18,7 +22,7 @@
     "src/**/*.ts",
     "dexcalibur.ts",
     "connectors/**/*.ts",
-    "inspectors/**/*.ts",
+    "inspectors/**/*.ts"
   ],
   "exclude": ["node_modules", "**/*.spec.ts"]
 }
