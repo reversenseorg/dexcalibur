@@ -11,7 +11,10 @@ import got  from "got";
 import {TestHelper} from "./TestHelper";
 import * as _os_ from "os";
 import * as path from "path";
+import * as Log from "./Logger";
 
+
+let Logger:Log.ProdLogger = Log.newLogger() as Log.ProdLogger;
 
 const _exec_:any = _util_.promisify(Process.exec);
 const _spawn_:any = _util_.promisify(Process.spawn);
@@ -395,9 +398,11 @@ export default class Util {
             case "linux":
             case "darwin":
             case "android":
+            default:
                 const roots = process.env.PATH.split(':');
                 for(let i=0; i<roots.length ; i++){
-                    p = Path.join(roots[i], pExecName);
+                    p = Path.join(roots[i], pExecName)
+                    Logger.info("[UTILS] whereIs: "+p);
                     if(fs.existsSync(p)){
                         ret = p;
                         break;
@@ -409,31 +414,70 @@ export default class Util {
         return ret;
     }
 
-    /*
-    static parseIPv6( pAddress, pHasPortNumber=false){
-        const IPv6 =  '^((([0–9A-Fa-f]{1,4}:){7}[0–9A-Fa-f]{1,4})|(([0–9A-Fa-f]{1,4}:){6}:[0–9A-Fa-f]{1,4})|(([0–9A-Fa-f]{1,4}:){5}:([0–9A-Fa-f]{1,4}:)?[0–9A-Fa-f]{1,4})|(([0–9A-Fa-f]{1,4}:){4}:([0–9A-Fa-f]{1,4}:){0,2}[0–9A-Fa-f]{1,4})|(([0–9A-Fa-f]{1,4}:){3}:([0–9A-Fa-f]{1,4}:){0,3}[0–9A-Fa-f]{1,4})|(([0–9A-Fa-f]{1,4}:){2}:([0–9A-Fa-f]{1,4}:){0,4}[0–9A-Fa-f]{1,4})|(([0–9A-Fa-f]{1,4}:){6}((b((25[0–5])|(1d{2})|(2[0–4]d)|(d{1,2}))b).){3}(b((25[0–5])|(1d{2})|(2[0–4]d)|(d{1,2}))b))|(([0–9A-Fa-f]{1,4}:){0,5}:((b((25[0–5])|(1d{2})|(2[0–4]d)|(d{1,2}))b).){3}(b((25[0–5])|(1d{2})|(2[0–4]d)|(d{1,2}))b))|(::([0–9A-Fa-f]{1,4}:){0,5}((b((25[0–5])|(1d{2})|(2[0–4]d)|(d{1,2}))b).){3}(b((25[0–5])|(1d{2})|(2[0–4]d)|(d{1,2}))b))|([0–9A-Fa-f]{1,4}::([0–9A-Fa-f]{1,4}:){0,5}[0–9A-Fa-f]{1,4})|(::([0–9A-Fa-f]{1,4}:){0,6}[0–9A-Fa-f]{1,4})|(([0–9A-Fa-f]{1,4}:){1,7}:))';
-        const PORT ='(?<port>[0-9]{1,5})' 
 
-        if(pAddress == null) return { valid:false };
+    static ANSI = /[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-PRZcf-nqry=><]/g;
 
-        let RE = new RegExp(IPv4 + (pHasPortNumber? ':'+PORT:''));
+    static stripAnsi( pText:string):string  {
+        return (typeof pText === 'string' ? pText.replace(Util.ANSI, '') : pText);
+    }
 
-        
-        let res = RE.exec(pAddress) ;
+    static getDefaultShell():string{
+        const env = process.env;
 
-        console.log(pAddress,res);
-
-
-        if(res !== null && res.index==0 && pAddress==res[0]){
-
-            if(res.groups.port > 65535) return false;
-
-            return { valid:true, ip: `${res.groups.a}.${res.groups.b}.${res.groups.c}.${res.groups.d}`, port:res.groups.port };
-        }else{
-            return { valid:false };
+        if (process.platform === 'darwin') {
+            return env.SHELL || '/bin/bash';
         }
-    },
-*/
 
-};
+        if (process.platform === 'win32') {
+            return env.COMSPEC || 'cmd.exe';
+        }
+
+        return env.SHELL || '/bin/sh';
+    }
+
+    static getEnv(pEnv:string, shell:any=null):any{
+        if (process.platform === 'win32') {
+            return process.env;
+        }
+
+        try {
+            const getEnvSh = [ shell || Util.getDefaultShell(), '-ilc', 'env; exit'].join(" ");
+            const stdout = Process.execSync( getEnvSh, {
+                shell: shell || Util.getDefaultShell(),
+                timeout: 200,
+            }); //.stdout;
+
+            const ret = [];
+
+            Util.stripAnsi(stdout.toString()).split('\n').forEach(x => {
+                const parts = x.split('=');
+                ret[parts.shift()] = parts.join('=');
+                //ret.push(parts.join(=));
+            });
+
+            return ret[pEnv];
+        } catch (err) {
+            if (shell) {
+                throw err;
+            } else {
+                return process.env;
+            }
+        }
+    }
+
+    static updateEnvPATH(){
+        if (process.platform !== 'darwin') {
+            return;
+        }
+
+        process.env.PATH = Util.getEnv('PATH') || [
+            './node_modules/.bin',
+            '/.nodebrew/current/bin',
+            '/usr/local/bin',
+            process.env.PATH
+        ].join(':');
+    }
+
+
+}
 
