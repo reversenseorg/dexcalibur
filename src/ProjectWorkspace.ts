@@ -9,7 +9,8 @@ import * as Log from './Logger';
 import {Stub, STUB_TYPE} from "./ModelSavable";
 import {RuntimeSecurityException} from "./errors/RuntimeSecurityException";
 import HookWorkspace from "./hook/HookWorkspace";
-let Logger:Log.Logger = Log.newLogger() as Log.Logger;
+
+const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
 
 const DIR_NAME = {
@@ -85,7 +86,7 @@ export default class ProjectWorkspace
      * @method
      */
     _import(stub:any){
-        for(let i in stub){
+        for(const i in stub){
             if(this[i] !== undefined) this[i] = stub[i];
         }
     }
@@ -104,14 +105,14 @@ export default class ProjectWorkspace
      * @param {string} dirName The name of the directory to remove 
      * @method
      */
-    rmWDir(dirName:string, pAbsolutePath:boolean=false){
+    rmWDir(dirName:string, pAbsolutePath=false){
         if(pAbsolutePath == false){
             dirName = _path_.join( this.path, dirName);
         }
 
         if(_fs_.existsSync(dirName)){
             _fs_.readdirSync(dirName).forEach((file,i)=>{
-                let p:string = _path_.join(dirName,file);
+                const p:string = _path_.join(dirName,file);
                 if(_fs_.lstatSync(p).isDirectory()){
                     this.rmWDir(p, true);
                 }else{
@@ -132,7 +133,7 @@ export default class ProjectWorkspace
      */
     isWritable(pPath:string){
         return _fs_.accessSync(pPath, _fs_.constants.F_OK | _fs_.constants.W_OK);
-    };
+    }
 
     /**
      * To get the Application working directory
@@ -213,7 +214,7 @@ export default class ProjectWorkspace
 
         this.hookWS = new HookWorkspace({
             _base:_path_.join(this.path, DIR_NAME.HKWS),
-            ws:this
+            _ws:this
         });
         this.hookWS.init();
 
@@ -226,8 +227,7 @@ export default class ProjectWorkspace
      * @method
      */
     getNewSavefilePath():string{
-        let d = new Date();
-        return _path_.join(this.path, DIR_NAME.SAVE, "autosave."+d.getTime()+".ddb");
+        return _path_.join(this.path, DIR_NAME.SAVE, "autosave."+(new Date()).getTime()+".ddb");
     }
 
 
@@ -302,8 +302,7 @@ export default class ProjectWorkspace
      * @method
      */
     getTimestampedFilePath(prefix:string,suffix:string):string{
-        let d = new Date();
-        return _path_.join(this.path,DIR_NAME.SAVE,prefix+d.getTime()+suffix);
+        return _path_.join(this.path,DIR_NAME.SAVE,prefix+(new Date()).getTime()+suffix);
     }
 
     /**
