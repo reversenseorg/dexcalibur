@@ -73,10 +73,12 @@ HOOK_WEB_API.addAsyncAuthenticatedRoute(
                     throw new Error("Unknow PID");
                 }
 
+                // TODO : replace by Device.killProcess( PID, SIGNAL )
+
                 if (session.pid == null) {
                     throw new Error("Invalid PID");
                 }else{
-                    const o = await project.getDevice().privilegedExecSync('kill '+session.pid, {detached:false});
+                    const o = await project.getDevice().killProcess(session.pid); // privilegedExecSync('kill '+session.pid, {detached:false});
                     $.sendSuccess(res, o);
                 }
             }catch(err){
