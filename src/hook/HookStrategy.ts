@@ -47,6 +47,22 @@ export default class HookStrategy {
     name:string = null;
     descr:string = null;
 
+    /**
+     * A boolean to turn ON/OFF auto-emit of event for each hook trigged
+     *
+     * @type {boolean}
+     * @field
+     */
+    autoEmit:boolean = false;
+
+    /**
+     * The name of the event emitted
+     *
+     * @type {string}
+     * @field
+     */
+    emitEvent:string = null;
+
     preprocessor: string = null;
     /**
      * Search Engine request
@@ -331,8 +347,8 @@ export default class HookStrategy {
                     hm.save(jhook);
 
 
-                    if(this.onMatch != null){
-                        hm.addMatchListener(jhook.getGUID(), this.onMatch);
+                    if(this.preprocessor != null){
+                        hm.addMatchListener(jhook.getGUID(), this.preprocessor);
                     }
                 }
             });
@@ -353,8 +369,8 @@ export default class HookStrategy {
                     hm.save(nhook);
 
 
-                    if(this.onMatch != null){
-                        hm.addMatchListener(nhook.getGUID(), this.onMatch);
+                    if(this.preprocessor != null){
+                        hm.addMatchListener(nhook.getGUID(), this.preprocessor);
                     }
                 }
             });
@@ -368,6 +384,11 @@ export default class HookStrategy {
         return this.passed;
     }
 
+    /**
+     * NOT USED
+     *
+     * @param pSource
+     */
     static newPreprocessorFn( pSource: string):any {
         return (new Function('pCtx', 'pEvent', pSource)) ;
     }

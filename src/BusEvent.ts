@@ -1,4 +1,4 @@
-export default class Event
+export default class BusEvent
 {
     type:string = null;
     data:any = null;

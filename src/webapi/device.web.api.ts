@@ -6,8 +6,9 @@ import DeviceManager from "../DeviceManager";
 import StatusMessage from "../StatusMessage";
 import AppPackage from "../AppPackage";
 import {DeviceManagerException} from "../errors/DeviceManagerException";
-import {IBridge} from "../Bridge";
+import {BridgeInstallOptions, IBridge} from "../Bridge";
 import {Router, Request, Response} from "express";
+import DexcaliburProject from "../DexcaliburProject";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -169,6 +170,40 @@ DEVICE_WEB_API.addAsyncPublicRoute(
                     $.sendSuccess(res, dev.getProfile().toJsonObject());
                 else
                     $.sendError( res, 'Cannot remove all devices');
+            }catch(err){
+                $.sendError( res, err.message);
+            }
+        }
+    });
+
+
+
+DEVICE_WEB_API.addAsyncPublicRoute(
+    '/frida/settings',
+    {
+        'post': (req:Request, res:Response):any => {
+            let dev:Device = null;
+            let $:WebServer = req.dxc.$;
+
+            try{
+                if (req.body.uid != null) {
+                    dev = $.context.getDeviceManager().getDevice(req.body.uid);
+                } else if ($.project != null){
+                    dev = $.project.getDevice();
+                } else{
+                    throw DeviceManagerException.DEVICE_NOT_FOUND();
+                }
+
+                if(!req.body.hasOwnProperty('opts')){
+                    throw new Error("Invalid frida options.")
+                }
+
+                const unsafeOptions = req.body.opts;
+
+                dev.setFridaServerOptions(unsafeOptions);
+                $.context.getDeviceManager().save();
+
+                $.sendSuccess(res, dev.getProfile().toJsonObject());
             }catch(err){
                 $.sendError( res, err.message);
             }
@@ -425,7 +460,7 @@ DEVICE_WEB_API.addAsyncPublicRoute(
                 devices: dm.toJsonObject(  {
                     device: {
                         profile: false,
-                        frida: false,
+                        frida: true,
                         bridge: {
                             path: false
                         }
@@ -440,6 +475,7 @@ DEVICE_WEB_API.addAsyncPublicRoute(
     }
 });
 
+//
 
 
 DEVICE_WEB_API.addAsyncPublicRoute(
@@ -521,6 +557,56 @@ DEVICE_WEB_API.addPublicRoute(
         }
     });
 
+DEVICE_WEB_API.addAsyncAuthenticatedRoute(
+    '/application/install/project',
+    {
+        'post': async (req:Request, res:Response):Promise<any> => {
+            let dev:Device;
+            let $:WebServer = req.dxc.$;
+            let project:DexcaliburProject;
+
+            try{
+                project = req.dxc.project;
+
+                if (req.body.uid != null) {
+                    dev = $.context.getDeviceManager().getDevice(req.body.uid);
+                } else if (project != null){
+                    dev = project.getDevice();
+                } else{
+                    throw DeviceManagerException.DEVICE_ID_NULL();
+                }
+
+                if(dev == null) {
+                    throw DeviceManagerException.DEVICE_NOT_FOUND();
+                }
+
+
+                if(!req.body.hasOwnProperty('opts')){
+                    throw new Error("Invalid frida options.")
+                }
+
+                let installOpts:BridgeInstallOptions = {
+                    multiple: false,
+                    opts: []
+                };
+
+                if(req.body.hasOwnProperty('opts'))
+                    installOpts = dev.prepareInstallOptions(req.body.opts);
+
+                const success =  await dev.installApp([project.getWorkspace().getApkPath()], installOpts);
+
+                if(success)
+                    $.sendSuccess(res, {});
+                else
+                    throw new Error('An unknown error occurred at install');
+            }catch(err){
+                Logger.error("[API][DEVICE] Install project app failed : "+err.message+"\n"+err.stack);
+                $.sendError( res, err.message);
+            }
+        }
+    },{
+        readProject: true
+    });
 
 DEVICE_WEB_API.addPublicRoute(
     '/api/device/setDefault',

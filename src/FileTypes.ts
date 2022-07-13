@@ -7,7 +7,7 @@ import Util from "./Utils";
 import ModelFile from "./ModelFile";
 import {EOL} from 'os';
 import DexcaliburProject from "./DexcaliburProject";
-import Event from "./Event";
+import BusEvent from "./BusEvent";
 
 
 import * as Log from './Logger';
@@ -155,7 +155,7 @@ export class FileTypeDetector{
 
                 files.push(f);
 
-                pContext.bus.send(new Event({
+                pContext.bus.send(new BusEvent({
                     type: "data.file.new.knownFmt",
                     data: f
                 }))

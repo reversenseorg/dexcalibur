@@ -237,10 +237,23 @@ class SqliteDb implements IDatabase
     }
 
     /**
+     * To get an index by node type
+     *
+     * @param {NodeType} pTemplate Node type
+     * @returns {SqliteDbIndex} Index with the given name
+     * @method
+     * @since 1.0.0
+     */
+    getIndexOf(pTemplate:NodeType):SqliteDbIndex{
+        return this.getIndex(pTemplate.getName(), pTemplate);
+    }
+
+    /**
      * To get an index by name
      *
      * @param {String} name Index name
-     * @returns {InMemoryDBIndex} Index with the given name
+     * @param {NodeType} pTemplate Default is NULL. Node type
+     * @returns {SqliteDbCollection} Index with the given name
      * @method
      */
     getCollection(name:string, pTemplate:NodeType = null):SqliteDbCollection{
@@ -248,6 +261,18 @@ class SqliteDb implements IDatabase
             this.newCollection(name, pTemplate);
         }
         return this.indexes[name] as SqliteDbCollection;
+    }
+
+    /**
+     * To get a collection by node type
+     *
+     * @param {NodeType} pTemplate Node type
+     * @returns {SqliteDbCollection} Index with the given name
+     * @method
+     * @since 1.0.0
+     */
+    getCollectionOf(pTemplate:NodeType):SqliteDbCollection{
+        return this.getCollection(pTemplate.getName(), pTemplate);
     }
 
     /**

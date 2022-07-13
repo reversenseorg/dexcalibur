@@ -2,6 +2,8 @@ import HookStrategy from "./HookStrategy";
 import {NodeType} from "../persist/orm/NodeType";
 import {NodeInternalType} from "../NodeInternalType";
 
+
+
 /**
  * A HookTemplateFragment is a piece of the hook template associated to a location (before/after/replace a call)
  *

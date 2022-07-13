@@ -11,11 +11,14 @@ import DexcaliburWorkspace from "./DexcaliburWorkspace";
 
 
 import * as Log from './Logger';
-import {Device} from "./Device";
+import {Device, FridaServerOptions, FridaServerTransport} from "./Device";
 import Util from "./Utils";
 import {IBridge} from "./Bridge";
 import {External} from "./external/External";
 import {Process} from "frida/dist";
+import * as _os_ from "os";
+import {FridaHelperException} from "./errors/FridaHelperException";
+
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
 const pipeline = promisify(_stream_.pipeline);
@@ -35,6 +38,7 @@ const ATTACH_BY_PID = 0x3;
 
 interface FridaInstance {
     device: Device;
+    opts?:FridaServerOptions;
     path?: string;
     privileged?:boolean;
 }
@@ -42,6 +46,7 @@ interface FridaInstance {
 interface FridaInstanceMap {
     [deviceID:string] :FridaInstance;
 }
+
 /**
  * @class
  * @author Georges-B MICHEL
@@ -87,7 +92,7 @@ export default class FridaHelper extends External.ExternalHelper
                     
                     session = yield device.attach(pid);
 
-                    Logger.info('spawned:', pid+'');
+                    Logger.info(`[FRIDA HELPER] exec [SPAWN][cmd= ${pExtra.join(',')} ] : ${pid}`);
                     break;
                 case FridaHelper.ATTACH_BY_PID:
                     applications = yield device.enumerateApplications();
@@ -99,8 +104,10 @@ export default class FridaHelper extends External.ExternalHelper
                     if(pid > -1) {
                         session = yield device.attach(pid);
 
-                        Logger.info('attached to '+pExtra+" (pid="+pid+")");
+                        //Logger.info('attached to '+pExtra+" (pid="+pid+")");
+                        Logger.info(`[FRIDA HELPER] exec [ATTACH_BY_PID][pid=${pid}]`);
                     }else{
+                        Logger.error('[FRIDA HELPER] exec : Failed to attach to app by pid.');
                         throw new Error('Failed to attach to application ('+pExtra+' not running).');
                     }
                     
@@ -111,17 +118,18 @@ export default class FridaHelper extends External.ExternalHelper
 
                         session = yield device.attach(applications[0].pid);
 
-                        Logger.info('attached to Gadget:', pid+'');
+                        Logger.info(`[FRIDA HELPER] exec [ATTACH_BY_NAME][name=${applications[0].name}] : ${pid}`);
                     }else
-                        Logger.error('Failed to attach to Gadget.');
+                        Logger.error('[FRIDA HELPER] exec : Failed to attach to app by name.');
 
                     break;
-                case FridaHelper.ATTACH_BY_PID:
+                /* case FridaHelper.ATTACH_BY_PID:
                     session = yield device.attach(pid);
-                    Logger.info('spawned:', pid+'');
-                    break;
+                    Logger.info('[FRIDA HELPER] exec [attach_by_pid] :', pid+'');
+                    Logger.info(`[FRIDA HELPER] exec [ATTACH_BY_PID][pid=${pid}]`);
+                    break; */
                 default:
-                    Logger.error('Failed to attach/spawn');
+                    Logger.error(`[FRIDA HELPER] exec : Failed to attach/spawn, action not supported : ${pType}`);
                     return;
                     break;
             }
@@ -154,6 +162,7 @@ export default class FridaHelper extends External.ExternalHelper
 
     }
 
+
     /**
      * 
      * Return an object formatted like that :
@@ -166,9 +175,9 @@ export default class FridaHelper extends External.ExternalHelper
      * @param {*} pFridaPath 
      */
     static getLocalFridaVersion(pFridaPath:string):any{
-        let out:string = _ps_.execSync(FridaHelper.getExtPath()+' --version').toString(); //pFridaPath + ' --version').toString();
-        let ver:string = out.slice(0 , out.lastIndexOf( require('os').EOL )).toString();
-        let v:string[] = ver.split('.');
+        const out:string = _ps_.execSync(FridaHelper.getExtPath()+' --version').toString(); //pFridaPath + ' --version').toString();
+        const ver:string = out.slice(0 , out.lastIndexOf( _os_.EOL )).toString();
+        const v:string[] = ver.split('.');
         return {
             version: ver,
             major: v[0],
@@ -219,44 +228,110 @@ export default class FridaHelper extends External.ExternalHelper
     }
 
 
-    static async startServer( pDevice:Device, pOptions:any = { path:null, privileged:true }):Promise<string>{
-        if(pDevice == null) 
-            throw new Error("[FRIDA HELPER] Unknow device. Device not connected not enrolled ?");
-        if( (pDevice.getFridaServerPath() == null) && (pOptions.path == null))  
-            throw new Error("[FRIDA HELPER] Path of Frida server is unknow");
 
-        let meta:FridaInstance = {
+    static async startServer( pDevice:Device, pOptions:any = { /*timeout:250, path:null, privileged:true*/  }):Promise<boolean>{
+        if(pDevice == null)
+            throw FridaHelperException.INVALID_DEVICE();
+
+        if( (pDevice.getFridaServerPath() == null) && (pOptions.path == null))
+            throw FridaHelperException.INVALID_FRIDA_SERVER_PATH();
+
+        // get server options from device settings
+        const options:FridaServerOptions = pDevice.getFridaServerOptions();
+        const meta:FridaInstance = {
             device: pDevice,
+            path: null
         };
-        let frida:string = pDevice.getFridaServerPath();
-        let res:any = null;
 
-        if(pOptions.path != null && pOptions.path != '')
-            frida = pOptions.path;
-
-
-        meta.path = pOptions.path;
-
-        if(pDevice.getDefaultBridge().isNetworkTransport()){
-            frida += " -l 0.0.0.0"
+        // update options with override config
+        for(const name in pOptions){
+            if(pOptions[name] != null){
+                switch(pOptions){
+                    case 'port':
+                    case 'timeout':
+                        if(pOptions[name] > -1){
+                            options[name] = pOptions[name];
+                        }
+                        break;
+                    case 'before':
+                    case 'transport':
+                    case 'server':
+                        if(!Util.isEmpty(pOptions[name], Util.FLAG_WS|Util.FLAG_CR|Util.FLAG_TB)){
+                            options[name] = pOptions[name];
+                        }
+                        break;
+                    case 'privileged':
+                        options[name] = pOptions[name];
+                        break;
+                }
+            }
         }
 
-        Logger.info(`[FRIDA HELPER] Start server <privileged:${pOptions.privileged?'true':'false'}>: ${frida} `);
+        // get configured path of frida-server for the target device
+        //let frida:string = options.server;
+        let command = options.server;
+        let res:any = null;
 
-        meta.privileged = pOptions.privileged;
+        // if the device is connected over the network through ADB
+        if(pDevice.getDefaultBridge().isNetworkTransport() || (options.transport === FridaServerTransport.NETWORK)){
+            command += " -l 0.0.0.0"
+            if(options.port > -1){
+                command += ":"+options.port+" ";
+            }
+        }
 
-        FridaHelper.instances[pDevice.getUID()] = meta;
+        Logger.info(`[FRIDA HELPER] Start server (${JSON.stringify(options)}>: ${command} `);
 
-        if(pOptions.privileged)
-            res = await pDevice.privilegedExecSync(frida, {detached:true});
-        else
-            res = pDevice.execSync(frida);
+        // stored meta data about frida server instance
+        FridaHelper.instances[pDevice.getUID()] = {
+            device:pDevice,
+            opts:options
+        };
 
-        Logger.info(JSON.stringify(res));
+        const spawnOpts = {
+            unref:false,
+            detached:false,
+            err: null,
+            out: null
+        }
 
-        return res;
+        if(pOptions.privileged){
+            spawnOpts.detached = true;
+            spawnOpts.unref = true;
+            if((options.before != null)
+                && (!Util.isEmpty(options.before, Util.FLAG_WS|Util.FLAG_CR|Util.FLAG_TB))){
+                res = await pDevice.privilegedExecSync(options.before, { detached:false, unref:false });
+            }
+            res = await pDevice.privilegedExecSync(command, spawnOpts);
+        }else{
+            if((options.before != null)
+                && (!Util.isEmpty(options.before, Util.FLAG_WS|Util.FLAG_CR|Util.FLAG_TB))){
+                res = await pDevice.execDetached(options.before, spawnOpts);
+            }
+            res = pDevice.execDetached(command, spawnOpts);
+        }
+
+        await Util.asyncTimeout(pOptions.timeout);
+
+        return (async function(){
+            if(pOptions.privileged){
+                // detached shell, out/err must be pulled manually
+                //Logger.info( `[FRIDA HELPER] frida spawned (privileged:true) : \n err=${ _fs_.readFileSync(spawnOpts.err).toString() } `);
+                // Logger.info( `[FRIDA HELPER] frida spawned (privileged:true) : \n out=${ _fs_.readFileSync(spawnOpts.out).toString() } `);
+                const error = _fs_.readFileSync(spawnOpts.err).toString();
+                if(error.indexOf("unknown command")>-1){
+                    throw FridaHelperException.SPAWN_FAILED(error);
+                }else{
+                    Logger.info( `[FRIDA HELPER] frida spawned (privileged:true) : \n out=${ _fs_.readFileSync(spawnOpts.out).toString() } `);
+                }
+            }else{
+                // out/err are returned as a Buffer
+                Logger.info( `[FRIDA HELPER] frida spawned (privileged:false) : \n out=${ res.toString() } `);
+            }
+
+            return true;
+        })();
     }
-
 
     static async stopServer( pDevice:Device, pOptions:any = { path:null, privileged:true }):Promise<boolean>{
 

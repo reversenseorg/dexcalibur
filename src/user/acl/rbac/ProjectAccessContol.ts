@@ -52,16 +52,27 @@ export class ProjectAccessControl extends DelegateAccessControl {
                     pExtra,
                     "Project cannot be closed. "
                 );
+            case 'PROJ_PKG_READ':
+            case 'PROJ_SETTINGS_EDIT':
+            case 'PROJ_SETTINGS_READ':
             case 'CLOSE_ANY_PROJECT':
                 if(pAccount.getUserRole().hasAccess(pAccess)===false){
                     throw new AccessException("[PROJECT] Access violation, current user has not enough privilege ("+pAccess.name+") ", AccesErrCode.VIOLATION)
                 }
                 break;
+
             case 'PROJ_OPEN_OWN':
-            case 'PROJ_PKG_READ':
+                // the role MUST have access right
                 if(pAccount.getUserRole().hasAccess(pAccess)===false){
                     throw new AccessException("[PROJECT] Access violation, current user has not enough privilege ("+pAccess.name+") ", AccesErrCode.VIOLATION)
                 }
+                // AND user must be owner
+                /*this.checkAttr(
+                    ProjectAccessControl.attr.OWNER,
+                    pAccount,
+                    pExtra,
+                    "Project cannot be opened. "
+                )*/
                 break;
             default:
                 throw new AccessException("Access unknow : rejected ", AccesErrCode.ACCESS_UNKNOWN)

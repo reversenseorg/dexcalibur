@@ -1,13 +1,15 @@
 import * as _child_process_ from 'child_process';
 import DeviceProfile from "./DeviceProfile";
-import AdbWrapperFactory from "./AdbWrapperFactory";
 import {Device} from "./Device";
 import AppPackage from "./AppPackage";
+import {AndroidPackageInstallOptions} from "./android/bridge/AndroidInstallOptions";
 
 
 interface BridgeFactoryList {
     [name: string] :any
 }
+
+export type BridgeInstallOptions = AndroidPackageInstallOptions;
 
 export interface IBridge
 {
@@ -49,11 +51,11 @@ export interface IBridge
 
     shellWithEH(command:string, callbacks:any):_child_process_.ChildProcess;
 
-    shellWithEHsync(command:string):string|Buffer;
+    shellWithEHsync(command:string, pOptions?:any):string|Buffer;
 
     shellAsync(command:string, deviceID?:string):Promise<any>;
 
-    detachedShell( pCommand:string|string[], pArgs:string):Promise<boolean>;
+    detachedShell( pCommand:string|string[], pArgs:string, pOptions?:any):Promise<any>;
 
     privilegedShell(command:string, pOptions?:any):Promise<boolean|string|Buffer>;
 
@@ -74,6 +76,10 @@ export interface IBridge
     listProcesses( pOptions:any):Promise<any[]>;
 
     toJsonObject(pExcludeList:any):any;
+
+    installApp(pAppPath: string[], pOptions: BridgeInstallOptions): Promise<boolean>;
+
+    prepareInstallOptions(pOptions:any):BridgeInstallOptions;
 }
 
 

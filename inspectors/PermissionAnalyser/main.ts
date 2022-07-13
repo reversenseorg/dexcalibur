@@ -13,7 +13,7 @@
 import {AndroidPermission, AndroidPermissionGroup, AndroidProtectionLevel} from "../../src/android/Permissions";
 import InspectorFactory from "../../src/InspectorFactory";
 import {INSPECTOR_TYPE} from "../../src/Inspector";
-import Event from "../../src/Event";
+import BusEvent from "../../src/BusEvent";
 import DexcaliburProject from "../../src/DexcaliburProject";
 
 const Permissions = {
@@ -1048,7 +1048,7 @@ var PermissionAnalyzer:InspectorFactory = new InspectorFactory({
     },
 
     eventListeners: {
-        "app.permission.new": function(ctx:DexcaliburProject, event:Event):any{
+        "app.permission.new": function(ctx:DexcaliburProject, event:BusEvent):any{
                 let i = event.data.name.lastIndexOf('.');
                 let p=false;
         

@@ -27,6 +27,12 @@ import {HookDbApi} from "./HookDbApi";
 import HookStrategy from "./HookStrategy";
 import HookTemplateFragment from "./HookTemplateFragment";
 import HookWorkspace from "./HookWorkspace";
+import {DeviceManagerException} from "../errors/DeviceManagerException";
+import * as Frida from 'frida';
+import {Script} from "frida/dist";
+import {RuntimeEvent} from "./RuntimeEvent";
+import HookMessageV2 from "./HookMessageV2";
+import HookFragmentPreset from "./HookFragmentPreset";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -72,6 +78,8 @@ export class HookManager
 {
     cache_policy:number = HOOKSESSION_CACHE_POLICY.NONE;
     db:HookDbApi = null;
+
+    presets:HookFragmentPreset;
 
     context:DexcaliburProject = null;
    // logs = [];
@@ -121,6 +129,7 @@ export class HookManager
         this.hk_builder = new HookBuilder( this.context );
         this.builder = new HookScriptBuilder( this );
         this.db = new HookDbApi(pProject.getDB());
+        this.presets = new HookFragmentPreset();
 
         this.initBuiltInHookSets();
     }
@@ -361,6 +370,7 @@ export class HookManager
      * 
      * @returns {String} Hook script
      * @method
+     * @deprecated
      */
     prepareHookScript():string{
         let script:string = `Java.perform(function() {
@@ -485,6 +495,47 @@ export class HookManager
     startByAttachToApp(pAppName:string, pSession:HookSession, pHookScript:string= null):HookSession{
         return this.start(pSession, pHookScript, FRIDA_MODE.ATTACH_APP, pAppName);
     }
+
+
+    /**
+     * To start hooking by spawning the target application
+     *
+     * @param {String} pHookScript Hook script
+     * @param {String} pAppName Application UID
+     * @method
+     */
+    async asyncStartBySpawn(pAppName:string, pSession:HookSession, pHookScript:string= null):Promise<HookSession>{
+        return await this.asyncStart(pSession, pHookScript, FRIDA_MODE.SPAWN, pAppName);
+    }
+
+    /**
+     *
+     * @param {*} pAppName
+     * @param {*} pHookScript
+     */
+    async asyncStartByAttachToGadget(pSession:HookSession, pHookScript:string= null):Promise<HookSession>{
+        return await this.asyncStart(pSession, pHookScript, FRIDA_MODE.ATTACH_GADGET, "Gadget");
+    }
+
+    /**
+     *
+     * @param {*} pPID
+     * @param {*} pHookScript
+     */
+    async asyncStartByAttachTo(pPID:string=null, pSession:HookSession, pHookScript:string= null):Promise<HookSession>{
+        return await this.asyncStart(pSession, pHookScript, FRIDA_MODE.ATTACH_PID, pPID);
+    }
+
+    /**
+     *
+     * @param {*} pAppName
+     * @param {*} pHookScript
+     */
+    async asyncStartByAttachToApp(pAppName:string, pSession:HookSession, pHookScript:string= null):Promise<HookSession>{
+        return await this.asyncStart(pSession, pHookScript, FRIDA_MODE.ATTACH_APP, pAppName);
+    }
+
+
 
     saveAll(){
         //this.db.save();
@@ -667,7 +718,7 @@ export class HookManager
              // For frida-node > 11.0.2
              script.message.connect((message:string) => {
                 PROBE_SESSION.push(message);//{ msg:message, d:data });
-                //console.log('[*] Message:', message);
+                Logger.info('[*] Message:', message);
             });    
             
         
@@ -677,19 +728,174 @@ export class HookManager
             PROBE_SESSION.fridaScript = script;
 
             Logger.info('script loaded');
-            Logger.debug(script);
+            //Logger.debug(script);
             yield device.resume(pid);
+            Logger.info('program resumed' );
         });
 
         hookRoutine()
             .catch(error => {
-            console.log(error);
             Logger.error('error:', error.message);
             });
 
         return PROBE_SESSION;
     }
 
+
+    /**
+     * To start hooking
+     *
+     * start -> script ? -> NO : prepareHookScipt()
+     *                   -> YES: use given script
+     *       ->
+
+     * @param {*} hook_script
+     * @param {*} pType
+     * @param {*} pExtra
+     * @param {*} pDevice
+     *
+     * @method
+     */
+    async asyncStart(pSession:HookSession, hook_script:string, pType:FRIDA_MODE=null, pExtra:any=null, pDevice:Device=null):Promise<HookSession>{
+
+        let target:Device = null;
+        let fridaDevice:Frida.Device = null;
+        let fridaScript:Frida.Script = null;
+        let script:string = hook_script;
+        let session:any = null, pid:any=null, applications:any=null;
+        const PROBE_SESSION:HookSession = pSession; //this.newSession();
+
+        if(script == null){
+            script = await this.buildAgentScript();
+            // Logger.debug("[HOOK MANAGER] Prepared script : \n"+script);
+        }
+
+        if(this.frida_disabled){
+            throw new Error("[HOOK MANAGER] Frida is disabled ! Hook and session prepared but not start() ignored");
+            return null;
+        }
+
+        // retrieve default  device from project
+        // else, it uses specified device
+        if(pDevice == null){
+            target = this.context.getDevice();
+        }
+        else{
+            target = pDevice;
+        }
+
+        if(target == null){
+            Logger.error("[HOOK MANAGER] Device not found. Reconnect your device or select a target device to continue.");
+            throw DeviceManagerException.DEVICE_NOT_FOUND();
+        }
+
+        // start Frida
+
+        fridaDevice = await FridaHelper.getDevice(target);
+
+        if(fridaDevice == null){
+            Logger.error("[HOOK MANAGER][#2] Device not found. Reconnect your device or select a target device to continue.");
+            throw HookManagerException.FRIDA_DEVICE_NOT_FOUND(target.getUID())
+            return null;
+        }
+
+        /*
+
+                    bridge = target.getDefaultBridge();
+
+                    if(bridge.isNetworkTransport()){
+                        device = yield FRIDA.getDeviceManager().addRemoteDevice(bridge.ip+':'+bridge.port);
+                    }else{
+                        device = yield FRIDA.getDevice(bridge.deviceID);
+                    }
+          */
+
+        PROBE_SESSION.fridaDevice = fridaDevice;
+
+        switch(pType){
+            case FRIDA_MODE.SPAWN:
+                pid = await fridaDevice.spawn([pExtra]);
+                PROBE_SESSION.pid = pid;
+
+                Logger.info(`[HOOK MANAGER] async exec [SPAWN][cmd= ${pExtra} ] spawned : ${pid}`);
+
+                session = await fridaDevice.attach(pid);
+                PROBE_SESSION.fridaSession = session;
+
+                Logger.info(`[HOOK MANAGER] async exec [SPAWN][cmd= ${pExtra} ] attached : ${pid}`);
+                break;
+            case FRIDA_MODE.ATTACH_APP:
+                applications = await fridaDevice.enumerateApplications();
+                for(let i=0; i<applications.length; i++){
+                    if(applications[i].identifier == pExtra)
+                        pid = applications[i].pid;
+                }
+
+                if(pid > -1) {
+                    PROBE_SESSION.pid = pid;
+                    session = await fridaDevice.attach(pid);
+                    PROBE_SESSION.fridaSession = session;
+
+                    Logger.info('attached to '+pExtra+" (pid="+pid+")");
+                    Logger.info(`[HOOK MANAGER] async exec [ATTACH_BY_NAME][name=${applications[0].name}] : ${pid}`);
+                }else{
+                    throw new Error('Failed to attach to application ('+pExtra+' not running).');
+                }
+
+                break;
+            case FRIDA_MODE.ATTACH_GADGET:
+                applications = await fridaDevice.enumerateApplications();
+                if(applications.length == 1 && applications[0].name == "Gadget") {
+                    PROBE_SESSION.pid = applications[0].pid;
+
+                    session = await fridaDevice.attach(applications[0].pid);
+                    PROBE_SESSION.fridaSession = session;
+
+                    Logger.info(`[HOOK MANAGER] async exec [ATTACH_TO_GADGET][name=Gadget] : ${pid}`);
+                }else
+                    Logger.error('Failed to attach to Gadget.');
+
+                break;
+            case FRIDA_MODE.ATTACH_PID:
+                PROBE_SESSION.pid = pid;
+
+                session = await fridaDevice.attach(pid);
+                PROBE_SESSION.fridaSession = session;
+
+                Logger.info(`[HOOK MANAGER] async exec [ATTACH_BY_PID][pid=${pid}]`);
+                break;
+            default:
+                Logger.error('Failed to attach/spawn');
+                return;
+        }
+
+        fridaScript = await session.createScript(script);
+        Logger.info('[HOOK MANAGER] async exec : script created');
+
+        // For frida-node > 11.0.2
+        /*fridaScript.message.connect((message:any) => {
+            PROBE_SESSION.push(message);//{ msg:message, d:data });
+            Logger.info('[*] Message:', message);
+        });*/
+
+        PROBE_SESSION.fridaScript = fridaScript;
+        fridaScript.message.connect(this._onScriptMessage.bind(this, PROBE_SESSION));
+
+        Logger.info('[HOOK MANAGER] async exec : handler set');
+
+        await fridaScript.load();
+        Logger.info('[HOOK MANAGER] async exec : script loaded, pid='+pid);
+
+        await fridaDevice.resume(pid);
+        Logger.info('[HOOK MANAGER] async exec : resume');
+
+        return PROBE_SESSION;
+    }
+
+    _onScriptMessage( pHookSession:HookSession, pMessage:any, pData:any){
+        Logger.info('[*] Message: ', pMessage);
+        pHookSession.push(pMessage);
+    }
 
     private _addHookSet(pHookSet: HookSet):boolean{
 
@@ -1451,6 +1657,7 @@ export class HookManager
                 let success:boolean = false;
                 let sess:HookSession = null;
 
+                Logger.info(`[HOOK MANAGER][WEBSOCKET][cmd=start]`);
                 try{
 
                     sess = this.newSession();
@@ -1458,31 +1665,32 @@ export class HookManager
 
                     switch(message.data.type){
                         case "spawn-self":
-                            Logger.info(`[WEBSERVER] Start hooking [app=${this.context.getPackageName()}, type=spawn-self]`);
-                            sess = this.startBySpawn(this.context.getPackageName(), sess);
+                            Logger.info(`[HOOK MANAGER][WEBSOCKET] Start hooking [app=${this.context.getPackageName()}, type=spawn-self]`);
+                            sess = await this.asyncStartBySpawn(this.context.getPackageName(), sess);
                             break;
                         case "spawn":
-                            Logger.info(`[WEBSERVER] Start hooking [app=${message.data.app}, type=spawn]`);
-                            sess = this.startBySpawn(message.data.app, sess);
+                            Logger.info(`[HOOK MANAGER][WEBSOCKET] Start hooking [app=${message.data.app}, type=spawn]`);
+                            sess = await this.asyncStartBySpawn(message.data.app, sess);
                             break;
                         case "attach-gadget":
-                            Logger.info(`[WEBSERVER] Start hooking [pid=Gadget, type=attach-gadget]`);
-                            sess = this.startByAttachToGadget(sess);
+                            Logger.info(`[HOOK MANAGER][WEBSOCKET] Start hooking [pid=Gadget, type=attach-gadget]`);
+                            sess = await this.asyncStartByAttachToGadget(sess);
                             break;
                         case "attach-app-self":
-                            Logger.info(`[WEBSERVER] Start hooking [app=${this.context.getPackageName()}, type=attach-app-self]`);
-                            sess = this.startByAttachToApp(this.context.getPackageName(), sess);
+                            Logger.info(`[HOOK MANAGER][WEBSOCKET] Start hooking [app=${this.context.getPackageName()}, type=attach-app-self]`);
+                            sess = await this.asyncStartByAttachToApp(this.context.getPackageName(), sess);
                             break;
                         case "attach-app":
-                            Logger.info(`[WEBSERVER] Start hooking [app=${message.data.app}, type=attach-app-x]`);
-                            sess = this.startByAttachToApp(message.data.app, sess);
+                            Logger.info(`[HOOK MANAGER][WEBSOCKET] Start hooking [app=${message.data.app}, type=attach-app-x]`);
+                            sess = await this.asyncStartByAttachToApp(message.data.app, sess);
                             break;
                         case "attach-pid":
-                            Logger.info(`[WEBSERVER] Start hooking [pid=${message.data.pid}, type=attach-to-pid`);
-                            sess = this.startByAttachTo(message.data.pid, sess );
+                            Logger.info(`[HOOK MANAGER][WEBSOCKET] Start hooking [pid=${message.data.pid}, type=attach-to-pid`);
+                            sess = await this.asyncStartByAttachTo(message.data.pid, sess );
                             break;
                         default:
-                            throw  new Error('Invalid start type' );
+                            Logger.error('[HOOK MANAGER] Invalid start type');
+                            throw  new Error('[HOOK MANAGER] Invalid start type' );
                             break;
                     }
 
@@ -1497,6 +1705,7 @@ export class HookManager
                         }
                     }));
                 }catch(exception){
+                    Logger.error("[HOOK MANAGER] processCommand [cmd=start] : "+exception.toString()+" \n "+exception.stack);
                     Logger.raw(JSON.stringify(exception));
                     pSocket.sendUTF(JSON.stringify({
                         action:'start',
@@ -1525,17 +1734,17 @@ export class HookManager
             }
             else if(message.action=="init"){
                 if(this.lastSession())
-                pSocket.sendUTF(JSON.stringify({
-                    action:'init',
-                    svc:"hookm",
-                    data: {
-                        localid: message.data.localid,
-                        sessid:this.lastSession().getSessionID()
-                    }
-                }));
+                    pSocket.sendUTF(JSON.stringify({
+                        action:'init',
+                        svc:"hookm",
+                        data: {
+                            localid: message.data.localid,
+                            sessid:this.lastSession().getSessionID()
+                        }
+                    }));
             }
         }catch(err){
-            console.log(err);
+            Logger.error("[HOOK MANAGER] processCommand : \n"+err.toString());
             pSocket.sendUTF(JSON.stringify({action:'err', data:{
                     msg: err.toString()
                 }}));
@@ -1629,5 +1838,15 @@ export class HookManager
      */
     private _isHookWsReady():boolean{
         return this.context.getWorkspace().getHookWorkspace().isReady();
+    }
+
+
+    /**
+     * To push the event into global pipe
+     *
+     * @param  {RuntimeEvent} pEvent
+     */
+    newRuntimeEvent(pEvent: RuntimeEvent<HookMessageV2>) {
+        this.context.bus.send(pEvent);
     }
 }

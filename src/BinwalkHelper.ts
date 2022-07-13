@@ -3,7 +3,7 @@ import Util from "./Utils";
 import * as _path_ from "path";
 import DexcaliburProject from "./DexcaliburProject";
 import {EOL} from "os";
-import Event from "./Event";
+import BusEvent from "./BusEvent";
 import * as _glob_ from "glob";
 
 
@@ -270,7 +270,7 @@ export class BinwalkHelper extends  External.ExternalHelper implements IFileAnal
                 files.push(f);
 
                 if(pContext!=null){
-                    pContext.bus.send(new Event({
+                    pContext.bus.send(new BusEvent({
                         type: "data.file.new.knownFmt",
                         data: f
                     }))

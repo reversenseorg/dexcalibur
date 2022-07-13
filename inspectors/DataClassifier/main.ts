@@ -1,7 +1,7 @@
 import InspectorFactory from "../../src/InspectorFactory";
 import {INSPECTOR_TYPE} from "../../src/Inspector";
 import DexcaliburProject from "../../src/DexcaliburProject";
-import Event from "../../src/Event";
+import BusEvent from "../../src/BusEvent";
 
 
 const TAGS = {
@@ -49,7 +49,7 @@ var DataClassifierInspector:InspectorFactory = new InspectorFactory({
     },
 
     eventListeners: {
-        "disass.datablock.new": function(ctx:DexcaliburProject, event:Event):void{
+        "disass.datablock.new": function(ctx:DexcaliburProject, event:BusEvent):void{
             if(event.data!=null){
                 let l = event.data.count()*event.data.width;
                 if(TAGS.hash[l] != null) event.data.tags=event.data.tags.concat(TAGS.hash[l]);
@@ -59,7 +59,7 @@ var DataClassifierInspector:InspectorFactory = new InspectorFactory({
                 //console.log(l,event.data.tags);
             }
         },
-        "dxc.fullscan.post": function(ctx:DexcaliburProject,event:Event):void{
+        "dxc.fullscan.post": function(ctx:DexcaliburProject,event:BusEvent):void{
     
             let pattern:RegExp = new RegExp("([^:/]*)://([^/]*)");
     

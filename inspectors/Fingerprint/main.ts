@@ -6,7 +6,7 @@
 import InspectorFactory from "../../src/InspectorFactory";
 import {INSPECTOR_TYPE} from "../../src/Inspector";
 import DexcaliburProject from "../../src/DexcaliburProject";
-import Event from "../../src/Event";
+import BusEvent from "../../src/BusEvent";
 import * as Log from "../../src/Logger";
 import ModelMethod from "../../src/ModelMethod";
 
@@ -25,6 +25,7 @@ var FingerprintInspector:InspectorFactory = new InspectorFactory({
         name: "Dynamic & static fingerprint inspector",
         description: "Detect tests, gather values and spoof fingerprint",
 
+        // must be updated at runtime
         hookShare: {
             fake: {
                 imei: "222222222222222222222",
@@ -34,7 +35,7 @@ var FingerprintInspector:InspectorFactory = new InspectorFactory({
         },
 
 
-        require: ["Common","Reflect"],
+        require: [],
 
         strategies: [
             {
@@ -46,12 +47,23 @@ var FingerprintInspector:InspectorFactory = new InspectorFactory({
                 },/*
                 onMatch: function(ctx:DexcaliburProject,event:Event):any{
                     ctx.getInspector("Fingerprint").emits("fingerprint.device.getId",event);
-                },*/
+                },
                 preprocessor: ` 
                     pCtx.getInspector("Fingerprint").emits("fingerprint.device.getId", pEvent.data);
-                `,
+                `,*/
+                autoEmit: true,
+                emitEvent: "fingerprint.device.getId",
                 replace: `  
             
+                        DXC.send({
+                            hid: "@@__HOOK_ID__@@",
+                            fid: "@@__FRAG_ID__@@",
+                            data: {
+                                name: "fakeID"
+                            }
+                        });
+                        
+                        /*
                         send({ 
                             id:"@@__HOOK_ID__@@", 
                             match: true, 
@@ -65,7 +77,7 @@ var FingerprintInspector:InspectorFactory = new InspectorFactory({
                                 text: "fingerprint"
                             }], 
                             action: "Bypass" 
-                        });
+                        });*/
             
                         return "fakeID";
                 `
@@ -74,7 +86,7 @@ var FingerprintInspector:InspectorFactory = new InspectorFactory({
     },
 
     eventListeners: {
-        "fingerprint.device.getId": function(ctx:DexcaliburProject,event:Event):any{
+        "fingerprint.device.getId": function(ctx:DexcaliburProject,event:BusEvent):any{
             Logger.info("[INSPECTOR][TASK] FingerprintInspector : getDeviceId ");
         }
     }

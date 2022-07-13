@@ -6,7 +6,7 @@ import InspectorFactory from "../../src/InspectorFactory";
 import {INSPECTOR_TYPE} from "../../src/Inspector";
 import {HOOK_TYPE} from "../../src/hook/HookManager";
 import DexcaliburProject from "../../src/DexcaliburProject";
-import Event from "../../src/Event";
+import BusEvent from "../../src/BusEvent";
 import ModelMethod from "../../src/ModelMethod";
 
 var FileDescriptorInspector:InspectorFactory = new InspectorFactory({
@@ -38,12 +38,15 @@ var FileDescriptorInspector:InspectorFactory = new InspectorFactory({
                         "java.io.File.<init>(<java.net.URI>)<void>"
                     ]
                 },
+
                 /*onMatch: function(ctx:DexcaliburProject,event:Event):void{
                     ctx.getInspector("FileDescriptor").emits("hook.file.new",event);
-                },*/
+                },
                 preprocessor: ` 
                     pCtx.getInspector("FileDescriptor").emits("hook.file.new", pEvent.data);
-                `,
+                `,*/
+                autoEmit: true,
+                emitEvent: "hook.file.new",
                 before: `
                 
                     var msg={ arg0:"<null>", arg1:"<null>" }; 
@@ -62,6 +65,13 @@ var FileDescriptorInspector:InspectorFactory = new InspectorFactory({
                         msg.arg1 = arg1;
                     }
             
+                     DXC.send({
+                            hid: "@@__HOOK_ID__@@",
+                            fid: "@@__FRAG_ID__@@",
+                            data: msg
+                        });
+                    
+                    /*
                     send({ 
                         id:"@@__HOOK_ID__@@", 
                         match: true, 
@@ -73,14 +83,14 @@ var FileDescriptorInspector:InspectorFactory = new InspectorFactory({
                             text: "fs"
                         }],
                         action:"None" 
-                    });
+                    });*/
                 `
             }
         ]
     },
 
     eventListeners: {
-        "hook.file.new": function(ctx:DexcaliburProject,event:Event):void{
+        "hook.file.new": function(ctx:DexcaliburProject,event:BusEvent):void{
                 // new meth
                 // get the Hook from the Hook backtrace message
                 //var hook = ctx.hook.getHookByID(event.hook);

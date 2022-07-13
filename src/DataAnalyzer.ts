@@ -8,7 +8,7 @@ import {ConnectorFactory} from "./ConnectorFactory";
 import * as Log from './Logger';
 import {BinwalkHelper} from "./BinwalkHelper";
 import DataScope, {DataScopeMap, DataScopePpts} from "./DataScope";
-import Event from "./Event";
+import BusEvent from "./BusEvent";
 import {FileAnalysisType} from "./AnalyzerConfiguration";
 import {MagicHelper} from "./MagicHelper";
 import {Workflow} from "./Workflow";
@@ -484,7 +484,7 @@ export class DataAnalyzer implements IAnalyzerUnit
                 pFile[p] = file[p];
         }
 
-        this.context.bus.send(new Event({
+        this.context.bus.send(new BusEvent({
             type: "file.post_scan."+pScope.getName(),
             data: pFile
         }));
@@ -538,7 +538,7 @@ export class DataAnalyzer implements IAnalyzerUnit
         index.setEntry(pFile.getRelativePath(), pFile);
 
 
-        this.context.bus.send( new Event({
+        this.context.bus.send( new BusEvent({
             type: 'data.file.index',
             data: pFile
         }))

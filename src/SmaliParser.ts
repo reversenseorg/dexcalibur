@@ -8,7 +8,7 @@ import ModelMethod from "./ModelMethod";
 import ModelDataBlock from "./ModelDataBlock";
 import ModelBasicBlock from "./ModelBasicBlock";
 import ModelCatchStatement from "./ModelCatchStatement";
-import Event from "./Event";
+import BusEvent from "./BusEvent";
 import Bus from "./Bus";
 import Util from "./Utils";
 import {Modifier, ModifierFormat} from "./AccessFlags";
@@ -482,7 +482,7 @@ export default class SmaliParser
         let mainBus:Bus = this.ctx.bus;
         const standard = {
             datablock: function(pMethod:ModelMethod, pBlock:ModelDataBlock){
-                mainBus.send(new Event({
+                mainBus.send(new BusEvent({
                     type: "disass.datablock.new",
                     data: pBlock
                 }));

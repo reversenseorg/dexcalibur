@@ -339,12 +339,12 @@ PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
 
                     $.sendSuccess( res, {})
                 }else{
-                    throw DexcaliburProjectException.OPEN_PROJECT_FAILURE();
+                    throw DexcaliburProjectException.OPEN_PROJECT_FAILURE(req.query.uid);
                 }
 
             }catch(err){
                 Logger.error("[API][PROJECT MGT] Opening project failed : "+err.message+"\n"+err.stack);
-                $.sendError( res, err.message)
+                $.sendError( res, "Project ["+req.query.uid+"] cannot be opened.")
             }
 
 

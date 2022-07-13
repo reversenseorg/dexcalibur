@@ -13,7 +13,7 @@ import HookSet from "./HookSet";
 import {ConnectorFactory} from "./ConnectorFactory";
 import DexcaliburProject from "./DexcaliburProject";
 import InspectorFrontController, {IFC_TYPE} from "./InspectorFrontController";
-import Event from "./Event";
+import BusEvent from "./BusEvent";
 import * as Log from './Logger';
 import {Stats} from "mocha";
 import {BusBroadcaster} from "./Bus";
@@ -395,10 +395,10 @@ export default class Inspector implements BusBroadcaster
      * TODO: add asynchronous task
      * TODO: improve performance => multi-thread ?
      *
-     * @param {Event} event  The event from main Bus
+     * @param {BusEvent} event  The event from main Bus
      * @method
      */
-    broadcastEvent(event:Event){
+    broadcastEvent(event:BusEvent){
         const event_type:string = event.type;
 
         //Logger.info( event_type, this.listener[event_type]);
@@ -574,7 +574,7 @@ export default class Inspector implements BusBroadcaster
         if(this.events.indexOf(name)===-1)
             this.events.push(name);
 
-        this.context.bus.send(new Event({
+        this.context.bus.send(new BusEvent({
             type: name, 
             data: event 
         }));

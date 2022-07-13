@@ -54,7 +54,7 @@ export class UserSession implements IPersistent{
 
     constructor( pConfig:any) {
 
-        for(let i in pConfig){
+        for(const i in pConfig){
             this[i] = pConfig[i];
 
         }

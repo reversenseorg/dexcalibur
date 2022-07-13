@@ -17,6 +17,7 @@ import {AbstractHook} from "../hook/AbstractHook";
 import {NodeInternalType} from "../NodeInternalType";
 import KeyPoint from "../hook/KeyPoint";
 import HookStrategy from "../hook/HookStrategy";
+import HookFragmentPreset from "../hook/HookFragmentPreset";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 export const HOOK_WEB_API: DelegateWebApi = new DelegateWebApi();
@@ -547,10 +548,10 @@ HOOK_WEB_API.addAuthenticatedRoute(
 );
 
 
-HOOK_WEB_API.addAuthenticatedRoute(
+HOOK_WEB_API.addAsyncAuthenticatedRoute(
     '/start',
     {
-        'post': function (req:Request, res:Response):any {
+        'post': async function (req:Request, res:Response):Promise<any> {
             const $: WebServer = req.dxc.$;
             let project:DexcaliburProject = null;
 
@@ -563,27 +564,27 @@ HOOK_WEB_API.addAuthenticatedRoute(
                 switch(req.body.type){
                     case "spawn-self":
                         Logger.info(`[WEBSERVER] Start hooking [app=${project.getPackageName()}, type=spawn-self]`);
-                        sess = project.hook.startBySpawn(project.getPackageName(), sess);
+                        sess = await project.hook.asyncStartBySpawn(project.getPackageName(), sess);
                         break;
                     case "spawn":
                         Logger.info(`[WEBSERVER] Start hooking [app=${req.body.app}, type=spawn]`);
-                        sess = project.hook.startBySpawn(req.body.app, sess);
+                        sess = await project.hook.asyncStartBySpawn(req.body.app, sess);
                         break;
                     case "attach-gadget":
                         Logger.info(`[WEBSERVER] Start hooking [pid=Gadget, type=attach-gadget]`);
-                        sess = project.hook.startByAttachToGadget(sess);
+                        sess = await project.hook.asyncStartByAttachToGadget(sess);
                         break;
                     case "attach-app-self":
                         Logger.info(`[WEBSERVER] Start hooking [app=${req.body.app}, type=attach-app-self]`);
-                        sess = project.hook.startByAttachToApp(project.getPackageName(), sess);
+                        sess = await project.hook.asyncStartByAttachToApp(project.getPackageName(), sess);
                         break;
                     case "attach-app":
                         Logger.info(`[WEBSERVER] Start hooking [app=${req.body.app}, type=attach-app-x]`);
-                        sess = project.hook.startByAttachToApp(req.body.app, sess);
+                        sess = await project.hook.asyncStartByAttachToApp(req.body.app, sess);
                         break;
                     case "attach-pid":
                         Logger.info(`[WEBSERVER] Start hooking [pid=${req.body.pid}, type=attach-to-pid`);
-                        sess = project.hook.startByAttachTo(req.body.pid, sess);
+                        sess = await project.hook.asyncStartByAttachTo(req.body.pid, sess);
                         break;
                     default:
                         throw new Error('Invalid start type');
@@ -606,24 +607,47 @@ HOOK_WEB_API.addAuthenticatedRoute(
 
 
 HOOK_WEB_API.addAuthenticatedRoute(
-    '/download',
+    '/libs/update',
     {
         'get': function (req:Request, res:Response):any {
             const $: WebServer = req.dxc.$;
             let project:DexcaliburProject = null;
 
             try{
+                project = req.dxc.project;
+                project.getWorkspace().getHookWorkspace().updateHookLibs(true);
+                $.sendSuccess(res, true);
+            }catch(err){
+                Logger.error("[API][HOOK] Hook libs cannot be updated. Cause : " + err.message + "\n\t" + err.stack);
+                $.sendError(res, " Hook libs cannot be updated. Cause : " + err.message);
+            }
+        }
+    },{
+        readProject: true
+    }
+);
+
+
+
+
+HOOK_WEB_API.addAsyncAuthenticatedRoute(
+    '/download',
+    {
+        'get': async function (req:Request, res:Response):Promise<any> {
+            const $: WebServer = req.dxc.$;
+            let project:DexcaliburProject = null;
+
+            try{
 
                 project = req.dxc.project;
+                const script = await project.hook.buildAgentScript();
 
-                /*res.set('Content-Type', 'application/octet-stream');
+                res.set('Content-Type', 'application/octet-stream');
                 res.set('Content-Length', script.length);
                 res.set('Content-Disposition', 'attachment; filename="hook.js"');
                 res.set('Expires', '0');
-                res.status(200).send(script);*/
 
-                $.sendSuccess(res, project.hook.prepareHookScript());
-
+                $.sendSuccess(res, script);
 
             }catch(err){
                 Logger.error("[API][HOOK] Hook cannot be generated. Cause : " + err.message + "\n\t" + err.stack);
@@ -806,6 +830,7 @@ HOOK_WEB_API.addAuthenticatedRoute(
                 opts.location = req.body['loc'];
                 opts.weight = req.body['weight']
 
+
                 probe = project.hook.getProbe(meth, opts);
                 if (probe == null) {
                     if(meth.__ === NodeInternalType.METHOD){
@@ -817,6 +842,23 @@ HOOK_WEB_API.addAuthenticatedRoute(
                 }else{
                     // modify hook to merge existing with new
                     probe.extends( opts);
+                }
+
+                // add fragment
+                const fragOpts = req.body['frag'];
+                if(fragOpts != null){
+
+                    if(fragOpts.before){
+                        probe.appendBefore(
+                            project.hook.presets.generateFragment(fragOpts, probe, fragOpts)
+                        );
+                    }
+                    if(fragOpts.after){
+                        probe.appendAfter(
+                            project.hook.presets.generateFragment(fragOpts, probe, fragOpts)
+                        );
+
+                    }
                 }
 
                 project.hook.save(probe, true);

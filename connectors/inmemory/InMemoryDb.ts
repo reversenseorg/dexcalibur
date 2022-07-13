@@ -10,6 +10,8 @@ import InMemoryDbIndex from "./InMemoryDbIndex";
 import InMemoryConnector from "./adapter";
 import {IDatabase} from "../../src/persist/orm/DbAbstraction";
 import {NodeType} from "../../src/persist/orm/NodeType";
+import SqliteDbIndex from "../sqlite/SqliteDbIndex";
+import SqliteDbCollection from "../sqlite/SqliteDbCollection";
 
 /**
  * Represent a "in memory" database
@@ -95,6 +97,17 @@ class InMemoryDb implements IDatabase
         return this.indexes[name];
     }
 
+    /**
+     * To get an index by node type
+     *
+     * @param {NodeType} pTemplate Node type
+     * @returns {InMemoryDbIndex} Index with the given name
+     * @method
+     * @since 1.0.0
+     */
+    getIndexOf(pTemplate:NodeType):InMemoryDbIndex{
+        return this.getIndex(pTemplate.getName(), pTemplate);
+    }
 
     /**
      * To get an index by name
@@ -108,6 +121,18 @@ class InMemoryDb implements IDatabase
             this.newCollection(name, pNodeType);
         }
         return this.indexes[name];
+    }
+
+    /**
+     * To get a collection by node type
+     *
+     * @param {NodeType} pTemplate Node type
+     * @returns {InMemoryDbCollection} Index with the given name
+     * @method
+     * @since 1.0.0
+     */
+    getCollectionOf(pTemplate:NodeType):InMemoryDbCollection{
+        return this.getCollection(pTemplate.getName(), pTemplate);
     }
 
     /**

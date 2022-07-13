@@ -15,9 +15,10 @@ import PlatformManager from './PlatformManager';
 import DexcaliburWorkspace from './DexcaliburWorkspace';
 import Utils  from "./Utils";
 import AdbWrapper from "./AdbWrapper";
-import {BridgeSuperFactory, IBridge} from "./Bridge";
+import {BridgeInstallOptions, BridgeSuperFactory, IBridge} from "./Bridge";
 import ModelSyscall from "./ModelSyscall";
 import AppPackage from "./AppPackage";
+import {DeviceManagerException} from "./errors/DeviceManagerException";
 
 export enum EDevType  {
     UNKNOW=0x0,
@@ -41,7 +42,20 @@ interface BridgeList {
     [p: string]: IBridge
 }
 
+export enum FridaServerTransport {
+    USB='U',
+    NETWORK='H'
+}
 
+
+export interface FridaServerOptions {
+    server: string,
+    transport:FridaServerTransport,
+    privileged:boolean,
+    port:number,
+    timeout:number,
+    before:string
+}
 
 /**
  * This class represents a device
@@ -141,7 +155,7 @@ export class Device
     profile:DeviceProfile = null;
 
     /**
-     * Device profile built by DeviceProfiler
+     * Device profile built by DeviceProfiler after device scan
      * @type {DeviceProfile}
      * @field
      */
@@ -152,7 +166,14 @@ export class Device
      * @type {Object}
      * @field
      */
-    frida:any;
+    frida:FridaServerOptions = {
+        server:'',
+        privileged: true,
+        transport: FridaServerTransport.USB,
+        timeout: 250,
+        port:-1,
+        before:null
+    };
 
     /**
      * Hold all bridges (adb+usb, adb+tcp, sdb+usb, ssh, jtag, ...) configured for this device
@@ -198,10 +219,6 @@ export class Device
      * @constructor
      */
     constructor(config:any=null){
-
-        this.frida = {
-            server: null
-        }
 
         if(config !== null)
             for(let i in config) this[i] = config[i];    
@@ -279,8 +296,8 @@ export class Device
      * @method
      */
     isConnected():boolean{
-        let up:boolean = false;
-        for(let i in this.bridges)
+        let up = false;
+        for(const i in this.bridges)
             up = up || this.bridges[i].up;
         //return (this.connected == true);
         return up;
@@ -322,6 +339,25 @@ export class Device
         return this.frida.server;
     }
 
+    /**
+     * To update or replace Frida Server settings
+     *
+     * @param {FridaServerOptions} pOptions Options to install and start frida server
+     * @param {boolean} pReplace If TRUE specified options replace existing options, else the current options are updated
+     * @method
+     * @since 1.0.0
+     */
+    setFridaServerOptions( pOptions:FridaServerOptions, pReplace = false){
+        if(pReplace){
+            this.frida = pOptions;
+        }else{
+            for(const i in pOptions) this.frida[i] = pOptions[i];
+        }
+    }
+
+    getFridaServerOptions():FridaServerOptions {
+        return this.frida;
+    }
    
 
     /**
@@ -365,7 +401,7 @@ export class Device
 
         this.bridge = pDevice.bridge;
 
-        for(let i in pDevice.bridges){
+        for(const i in pDevice.bridges){
             b = pDevice.bridges[i];
             this.bridges[i] = b;
 
@@ -388,14 +424,14 @@ export class Device
     }
 
     merge( pDevice:Device){
-        for(let i in pDevice){
+        for(const i in pDevice){
             switch(i){
                 case 'enrolled':
                     if(pDevice.enrolled)
                         this.enrolled = pDevice.enrolled;
                     break;
                 case 'bridges':
-                    for(let t in pDevice.bridges){
+                    for(const t in pDevice.bridges){
                         if(this.bridges[t] == null){
                             this.bridges[t] = pDevice.bridges[t];
                         }
@@ -452,7 +488,7 @@ export class Device
         if(pDevice.enrolled){
             this.enrolled = pDevice.enrolled;
         }
-        for(let i in pDevice.bridges){
+        for(const i in pDevice.bridges){
             this.bridges[i] = pDevice.bridges[i]
         }
     }
@@ -489,21 +525,36 @@ export class Device
         return this.bridge.shellWithEH(pCommand, pCallbacks);
     }
 
-    execSync(pCommand:string):any{
-        return this.bridge.shellWithEHsync(pCommand);
+    execSync(pCommand:string, pOptions:any = null):any{
+        return this.bridge.shellWithEHsync(pCommand, pOptions);
     }
 
-    async privilegedExecSync(pCommand:string, pOtions:any=null):Promise<any>{
+    /**
+     * To exec a command inside a detached shell
+     *
+     * TODO : use multi-thread
+     *
+     * @param {string} pCommand
+     * @param {string} pOptions
+     * @method
+     * @async
+     * @since 1.0.0
+     */
+    async execDetached(pCommand:string, pOptions:any = null):Promise<any>{
+        return await this.bridge.detachedShell(pCommand,"", pOptions);
+    }
+
+    async privilegedExecSync(pCommand:string, pOptions:any=null):Promise<any>{
         // if and android emulator is used
         if(!this.profile.getSystemProfile().isEmulator()){
-            if(pOtions == null)
+            if(pOptions == null)
                 return await this.bridge.privilegedShell(pCommand);
             else
-                return await this.bridge.privilegedShell(pCommand, pOtions);
+                return await this.bridge.privilegedShell(pCommand, pOptions);
         }
 
 
-        return await this.bridge.detachedShell(pCommand,"");
+        return await this.bridge.detachedShell(pCommand,"", pOptions);
     }
 
     /**
@@ -538,9 +589,7 @@ export class Device
      * @param {Path|String} pLocalPath 
      */ 
     pull(pRemotePath:string, pLocalPath:string):string|Buffer{
-        let c:string|Buffer;
-        c = this.bridge.pull(pRemotePath, pLocalPath);
-        return c;
+        return this.bridge.pull(pRemotePath, pLocalPath);
     }
 
     /**
@@ -553,7 +602,7 @@ export class Device
         if(this.bridge == null){
             throw new Error("[DEVICE] Bridge is not ready");
         }
-        let path:string = _path_.join(
+        const path:string = _path_.join(
             DexcaliburWorkspace.getInstance().getTempFolderLocation(),
             Utils.randString( 16, Utils.ALPHANUM)+'.remote.apk'
         );
@@ -570,7 +619,7 @@ export class Device
      * @param {Path|String} pRemotePath 
      */
     pushBinary( pLocalPath:string, pRemotePath:string):string|Buffer{
-        let success:string|Buffer = this.bridge.push( pLocalPath, pRemotePath);
+        const success:string|Buffer = this.bridge.push( pLocalPath, pRemotePath);
         if(success === undefined || success === null){
             throw new Error(`[DEVICE] Fail to push '${pLocalPath}' file to '${pRemotePath}'`);
         }
@@ -607,9 +656,9 @@ export class Device
      * @param {IntentFilter} pIntentFilter An intance of the intent filter 
      * @param {Boolean} force 
      */
-    sendIntent(data:any, callbacks:any=null, pIntentFilter:any=null, force:boolean=false):any{
-        let msg:any = {stdout:null, stderr:null};
-        let pkg:string='', cmd:string='am start ';
+    sendIntent(data:any, callbacks:any=null, pIntentFilter:any=null, force=false):any{
+        const msg:any = {stdout:null, stderr:null};
+        let pkg ='', cmd ='am start ';
         let act:any = null, cat:any=null;
         let cb:any = null;
 
@@ -767,7 +816,7 @@ export class Device
             throw new Error('Device is offline');
 
         let id:string[] = null;
-        let {stdout, stderr} = await this.bridge.shellAsync('getprop ro.serialno');
+        const  {stdout, stderr} = await this.bridge.shellAsync('getprop ro.serialno');
 
         if(stderr != ''){
             throw new Error(stderr);
@@ -791,8 +840,8 @@ export class Device
      * @method 
      */
     toJsonObject( pOverride:any = {}, pExcludeList:any={}){
-        let json:any = new Object();
-        for(let i in this){
+        const json:any = new Object();
+        for(const i in this){
             if(pExcludeList[i] === false) continue;
             
             switch(i){
@@ -910,5 +959,28 @@ export class Device
      */
     getType():string {
         return OS_NAME[this.type];
+    }
+
+    /**
+     * To install an application on the device
+     *
+     * @param pAppPath
+     * @param pOptions
+     */
+    async installApp( pAppPath:string[], pOptions:any):Promise<boolean> {
+        if(!this.isConnected()) {
+            throw DeviceManagerException.DEVICE_NOT_CONNECTED(this.uid);
+        }
+        if(!this.isEnrolled()) {
+            throw DeviceManagerException.DEVICE_NOT_ENROLLED(this.uid);
+        }
+
+        return this.bridge.installApp(pAppPath, pOptions);
+    }
+
+    prepareInstallOptions(pOptions:any):BridgeInstallOptions {
+
+        return this.bridge.prepareInstallOptions(pOptions);
+
     }
 }

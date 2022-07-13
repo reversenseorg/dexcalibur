@@ -15,6 +15,8 @@ import * as Frida from 'frida';
 import {HookManager} from "./hook/HookManager";
 import {WebsocketSession} from "./WebsocketSession";
 import * as Log from "./Logger";
+import HookMessageV2 from "./hook/HookMessageV2";
+import {RuntimeEvent, RuntimeEventType} from "./hook/RuntimeEvent";
 
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
@@ -24,6 +26,10 @@ interface FridaBindings {
     device: Frida.Device,
     script: Frida.Script,
     pid: number
+}
+
+export interface HookSessionOptions {
+    rawOutput:boolean
 }
 
 /**
@@ -38,7 +44,8 @@ export default class HookSession extends WebsocketSession
      * The stack containing the received message
      * @field
      */
-    message:HookMessage[] = [];
+    message:RuntimeEvent<HookMessageV2>[] = [];
+    // message:HookMessage[] = [];
 
     /**
      * The associated HookManager
@@ -68,7 +75,7 @@ export default class HookSession extends WebsocketSession
 
     active:boolean = true;
 
-
+    opts:HookSessionOptions;
 
 
     /**
@@ -90,6 +97,9 @@ export default class HookSession extends WebsocketSession
             script: null,
             pid: null
         };
+        this.opts = {
+            rawOutput: false
+        }
     }
 
     set fridaSession( pSession:Frida.Session){
@@ -127,6 +137,10 @@ export default class HookSession extends WebsocketSession
         return this.frida.pid;
     }
 
+    setOptions(pOptions:HookSessionOptions){
+        this.opts = pOptions;
+    }
+
     /**
      * To push a new message from a hook into the session.
      * Each message are an instance of HookMessage
@@ -134,33 +148,64 @@ export default class HookSession extends WebsocketSession
      * @method
      */
     push(msg:any){
-        let hm:HookMessage = new HookMessage();
+
+        const hm:HookMessageV2 = new HookMessageV2();
+        const ev:RuntimeEvent<HookMessageV2> = new RuntimeEvent<HookMessageV2>({
+            type: RuntimeEventType.HOOK,
+            raw: hm,
+            node: null
+        });
 
         if(msg.type == "error") return null;
 
         // TODO : mettre tout 'msg' dans 'hm' ou 'hm.data'
 
         // console.log(msg);
+
+        // message are bound to fragment and not hook
         if(msg.payload.id != undefined && msg.payload.id != null){
             //hook = this.hookManager.findHook(UT.b64_decode(msg.payload.id));
-            hm.hook = msg.payload.id;
+           // hm.hook = msg.payload.id;
         }
 
-        hm.match = (msg.payload.match!=null)? msg.payload.match : false;
-        hm.msg = msg.payload.msg;
+        // 'match' is not yet used because fragment/keypoint allow to issue hook message conditionnaly & agent-side
+        // hm.match = (msg.payload.match!=null)? msg.payload.match : false;
+
+        // 'msg' is informational text such as FQCN or signature of method hooked
+        // hm.msg = msg.payload.msg;
+
         hm.data = msg.payload.data;
-        hm.action = msg.payload.action;
-        hm.when = (msg.after)? 1 : 0;
+
+        // 'Action' is already known by fragment
+        // hm.action = msg.payload.action;
+
+        // 'When' is the fragment location before/after/replace
+        // hm.when = (msg.after)? 1 : 0;
 
 
-        if(msg.payload.tags != null) hm.setTags(msg.payload.tags);
+        // 'payload.tags' is updated host-side  by Inspectors
+        // if(msg.payload.tags != null) hm.setTags(msg.payload.tags);
 
         //Logger.raw(JSON.stringify(hm));
-        this.send(hm);
+
+        // cache hook msg
         this.message.push(hm);
 
-        if(hm.match)
-            this.hookManager.trigger(hm);
+        // TODO : send raw hook message only if specified
+        if(this.opts.rawOutput){
+            this.send(hm);
+        }else{
+            // process hook message as RuntimeEvent
+            this.hookManager.newRuntimeEvent(new RuntimeEvent<HookMessageV2>({
+                type: RuntimeEventType.HOOK,
+                raw: hm,
+                node: null
+            }));
+        }
+
+        // TODO : remove 'match' from hook message template
+        // if(hm.match)
+        //    this.hookManager.trigger(hm);
 
         return hm;
     }
@@ -176,7 +221,7 @@ export default class HookSession extends WebsocketSession
     /**
      * @method
      */
-    messages():HookMessage[]{
+    messages():RuntimeEvent<HookMessageV2>{
         return this.message;
     }
 

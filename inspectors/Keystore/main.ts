@@ -3,7 +3,7 @@ import InspectorFactory from "../../src/InspectorFactory";
 import {INSPECTOR_TYPE} from "../../src/Inspector";
 import DexcaliburProject from "../../src/DexcaliburProject";
 import {HOOK_TYPE} from "../../src/hook/HookManager";
-import Event from "../../src/Event";
+import BusEvent from "../../src/BusEvent";
 import ModelMethod from "../../src/ModelMethod";
 
 
@@ -50,11 +50,13 @@ var KeystoreInspector:InspectorFactory = new InspectorFactory({
                 /*onMatch: function(ctx:DexcaliburProject,event:Event):any{
                     console.log("[LISTENER][KeyStore.getInstance] embedded keystore detected",event.data);
                     ctx.getInspector("Keystore").emits("hook.keystore.getter.instance", event);
-                },*/
+                },
                 preprocessor: ` 
                     console.log("[LISTENER][KeyStore.getInstance] embedded keystore detected",pEvent.data);
                     pCtx.getInspector("Keystore").emits("hook.keystore.getter.instance", pEvent.data);
-                `,
+                `,*/
+                autoEmit: true,
+                emitEvent: "hook.keystore.get.instance",
                 before: `     
                     
                         send({ 
@@ -81,6 +83,9 @@ var KeystoreInspector:InspectorFactory = new InspectorFactory({
                         "java.security.KeyStore.load(<java.io.InputStream><char>[])<void>"
                     ]
                 },
+                autoEmit: true,
+                emitEvent: "hook.keystore.load",
+                /*
                 preprocessor: ` 
                     console.log("[LISTENER][KeyStore.load]",pEvent.data);
                     pCtx.getInspector("Keystore").emits("hook.keystore.load", pEvent);
@@ -108,6 +113,17 @@ var KeystoreInspector:InspectorFactory = new InspectorFactory({
                     
                     var pwd = Java.array('char',arguments[1]);
                     
+                    DXC.send({
+                        hid: "@@__HOOK_ID__@@",
+                        fid: "@@__FRAG_ID__@@",
+                        data: {
+                            stream: "<stream>",
+                            pwd: "<pwd>",
+                            type: this.type
+                        },
+                        msg: "@@__METHSIGN__@@"
+                    });
+                    /*
                     send({ 
                         id:"@@__HOOK_ID__@@", 
                         match: true, 
@@ -123,19 +139,19 @@ var KeystoreInspector:InspectorFactory = new InspectorFactory({
                             text: "keystore"
                         }], 
                         action:"Logging keystore load" 
-                    });
+                    });*/
                 `
             }
         ]
     },
 
     eventListeners: {
-        "hook.keystore.load": function(ctx:DexcaliburProject,event:Event):any{
+        "hook.keystore.load": function(ctx:DexcaliburProject,event:BusEvent):any{
             Logger.info("[INSPECTOR][TASK] KeystoreInspector keystore loaded ")
             //ctx.get.method("java.security.KeyStore.load(<java.io.InputStream><char>[])<void>")
             //        .addArgsValue(ctx.hook.lastSession(), event)
         },
-        "data.file.new.knownExt": function(ctx:DexcaliburProject,event:Event):any{
+        "data.file.new.knownExt": function(ctx:DexcaliburProject,event:BusEvent):any{
             if(!checkForBKSext(event.data)) return 1;
             
             Logger.info("[INSPECTOR][TASK] KeystoreInspector BKS detected : ",event.data.name);

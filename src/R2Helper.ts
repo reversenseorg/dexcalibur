@@ -14,6 +14,7 @@ import Util from "./Utils";
 import {NativeAnalyzerCommands} from "./analyzer/NativeAnalyzerCommands";
 import {DATATYPE_CATEGORY, TypeManager} from "./types/TypeManager";
 import {DataType} from "./types/DataType";
+import {TagManager} from "./TagManager";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -103,6 +104,15 @@ export default class RadareHelper
     private _typeMgr: TypeManager;
 
     /**
+     * Tag manager of the project
+     *
+     * @field
+     * @type {TypeManager}
+     * @since 1.0.0
+     */
+    private _tagMgr: TagManager;
+
+    /**
      *
      * @param {ModelFile} pBinary File to analyze
      * @param {R2_TYPE} pType
@@ -114,6 +124,7 @@ export default class RadareHelper
         this.target = pBinary;
         this.opts = pOptions;
         this._typeMgr = pOptions.ctx.getTypeManager();
+        this._tagMgr = pOptions.ctx.getTagManager();
     }
 
     /**
@@ -172,6 +183,15 @@ export default class RadareHelper
                     ctype: vFn.calltype,
                     src: pOptions.src //.getUID()
                 });
+
+                if(vFn.name.startsWith('sym.')){
+                    if(vFn.name.startsWith('sym.imp.')){
+                        f.symbol = vFn.name.substring(8);
+                    }else{
+                        f.addTag( )
+                        f.symbol = vFn.name.substring(4);
+                    }
+                }
 
                 if(!vFn.noreturn){
                     // todo : implement multi arch

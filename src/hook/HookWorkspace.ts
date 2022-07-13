@@ -320,9 +320,7 @@ export default class HookWorkspace {
             cwd: this._base,
             standalone: null
         }) as Promise<void>).then( x=>{
-            Logger.raw(`[HOOK WORKSPACE] frida-compile done`);
             const s =  _fs_.readFileSync(pOutputPath, { encoding:'utf8' });
-            Logger.raw(`[HOOK WORKSPACE] frida-compile [out=\n${s}`);
             return s;
         });
     }

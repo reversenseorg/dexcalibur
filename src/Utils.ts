@@ -114,6 +114,24 @@ export default class Util {
         return encodeURIComponent(uri);
     }
 
+    /**
+     * To promisify setTimeout
+     *
+     * @param {number} pDuration
+     * @return {Promise<any>}
+     * @method
+     * @since 1.0.0
+     */
+    static async asyncTimeout( pDuration:number):Promise<any> {
+        return new Promise( resolve => setTimeout( resolve, pDuration));
+    }
+
+    /**
+     * To remove empty characters from the begin and the end of a string
+     *
+     * @param str
+     * @param pNoRmCrlf
+     */
     static trim(str:string, pNoRmCrlf:boolean=false):string{
         //if(!(str instanceof String)) console.error("trim() : the argument must be a string");
 
@@ -254,14 +272,13 @@ export default class Util {
         if(process.env.DEXCALIBUR_TEST){
             ret = TestHelper.execSync(command);
         }else{
-            PRINT(chalk.bold.red("Execute command request : "+command));
+            Logger.info("[UTIL] execSync : "+command);
 
             if(opts!=null)
                 ret = Process.execSync(command, opts).toString();
             else
                 ret = Process.execSync(command).toString(charset);
 
-            //PRINT(ret);
         }
 
         return ret;
@@ -271,10 +288,11 @@ export default class Util {
         let ret:Promise<any>;
 
         if(process.env.DEXCALIBUR_TEST){
+            Logger.info("[UTIL] execAsync <TEST>in : "+command);
             ret = await TestHelper.execAsync(command);
-            PRINT(JSON.stringify(ret));
+            Logger.info("[UTIL] execAsync <TEST>out : "+ret);
         }else{
-            PRINT(chalk.bold.red("Execute command request (async): "+command));
+            Logger.info("[UTIL] execSync : "+command);
             ret = await _exec_(command);
         }
 
@@ -287,7 +305,7 @@ export default class Util {
         if(process.env.DEXCALIBUR_TEST){
             ret = TestHelper.spawn(pCmd);
         }else{
-            PRINT(chalk.bold.red("Spawning : "+pCmd));
+            Logger.info("[UTIL] spawn : "+pCmd);
             ret = Process.spawn(pCmd, pArgs, pOptions);
         }
 

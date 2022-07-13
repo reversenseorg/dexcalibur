@@ -7,7 +7,7 @@ import * as _path_ from 'path';
 import InspectorFactory from "../../src/InspectorFactory";
 import {INSPECTOR_TYPE} from "../../src/Inspector";
 import DexcaliburProject from "../../src/DexcaliburProject";
-import Event from "../../src/Event";
+import BusEvent from "../../src/BusEvent";
 import {HookVariableArray} from "../../src/HookVariable";
 import Util from "../../src/Utils";
 import Hook from "../../src/Hook";
@@ -67,17 +67,22 @@ export default new InspectorFactory({
                     type: ModelMethod.TYPE,
                     uid: "java.lang.Class.getMethod(<java.lang.String><java.lang.Class>[])<java.lang.reflect.Method>"
                 },
-                preprocessor: `
-                    pCtx.getInspector("DynamicLoader").emits("hook.reflect.method.get", pEvent.data);
-                `,
-                /*onMatch: function (ctx:DexcaliburProject, event:Event) {
-                    ctx.getInspector("DynamicLoader").emits("hook.reflect.method.get", event.data);
-                },*/
+                autoEmit: true,
+                emitEvent: "hook.reflect.method.get",
                 after: `  
                         // var ret = meth_@@__METHDEF__@@.call(this, arg0, arg1);
                         var cls = Java.cast( ret.getDeclaringClass(), DEXC_MODULE.common.class.java.lang.Class);
                         
-                        send({ 
+                        DXC.send({
+                            hid: "@@__HOOK_ID__@@",
+                            fid: "@@__FRAG_ID__@@",
+                            data: {
+                                __meth__: DXC.java.getMethodSignature(ret,arg1),
+                                __trace__: DXC.java.getStackTrace()
+                            }
+                        });
+                        
+                        /*send({ 
                             id:"@@__HOOK_ID__@@", 
                             match: true, 
                             data: {
@@ -91,11 +96,7 @@ export default new InspectorFactory({
                                 text: "invoke"
                             }], 
                             action: "Update" 
-                        });
-            
-                        //  if(!@@__CTX__@@_invokeHooked) @@__CTX__@@_startInvokeHooking();
-            
-                        return ret;
+                        });*/
                 `
             }, {
                 name: "Reflection_Class.forName",
@@ -104,18 +105,22 @@ export default new InspectorFactory({
                     type: ModelMethod.TYPE,
                     uid: "java.lang.Class.forName(<java.lang.String><boolean><java.lang.ClassLoader>)<java.lang.Class>"
                 },
-                /*onMatch: function (ctx:DexcaliburProject, event:Event):void {
-                    ctx.getInspector("DynamicLoader").emits("hook.reflect.class.get", event.data);
-                },*/
-                preprocessor: `
-                    pCtx.getInspector("DynamicLoader").emits("hook.reflect.class.get", pEvent.data);
-                `,
+                autoEmit: true,
+                emitEvent: "hook.reflect.class.get",
                 after: `  
             
                         //var clscl = Java.cast( arg2.getClass(), DEXC_MODULE.common.class.java.lang.Class);
-            
                         //var types = Java.array( this.getParameterTypes(), DEXC_MODULE.common.class.java.lang.Class);
             
+                        DXC.send(
+                            "@@__HOOK_ID__@@",
+                            "@@__FRAG_ID__@@",
+                            {
+                                __class__: arg0.toString()
+                            }
+                        );
+                        
+                        /*
                         send({ 
                             id:"@@__HOOK_ID__@@", 
                             match: true, 
@@ -129,7 +134,7 @@ export default new InspectorFactory({
                                 text: "dynamic"
                             }], 
                             action: "Update" 
-                        });
+                        });*/
                 `
             }, {
                 name: "DexCL_findClass",
@@ -139,7 +144,9 @@ export default new InspectorFactory({
                     uid: "dalvik.system.BaseDexClassLoader.findClass(<java.lang.String>)<java.lang.Class>",
                     // success: { obfuscation: +2 }
                 },
-                preprocessor: `
+                autoEmit: true,
+                emitEvent: "hook.dex.find.class",
+                /*preprocessor: `
                     pCtx.getInspector("DynamicLoader").emits("hook.dex.find.class", pEvent.data);
                 `,
                /* onMatch: function (ctx:DexcaliburProject, event:Event):void {
@@ -151,6 +158,15 @@ export default new InspectorFactory({
                         // collect methods
                         // cls.getMethods();
             
+            
+                        DXC.send(
+                            "@@__HOOK_ID__@@",
+                            "@@__FRAG_ID__@@",
+                            {
+                                __class__: cls.getName()
+                            }
+                        );
+                        /*
                         send({ 
                             id:"@@__HOOK_ID__@@", 
                             match: true, 
@@ -164,7 +180,7 @@ export default new InspectorFactory({
                                 text: "dynamic"
                             }], 
                             action:"Log" 
-                        });
+                        });*/
                 `
             }, {
                 name: "DexCL_new",
@@ -173,6 +189,8 @@ export default new InspectorFactory({
                   type: ModelMethod.TYPE,
                   uid: "dalvik.system.DexClassLoader.<init>(<java.lang.String><java.lang.String><java.lang.String><java.lang.ClassLoader>)<void>"
                 },
+                autoEmit: true,
+                emitEvent: "hook.dex.classloader.new",
                 /* //method: "dalvik.system.DexClassLoader.<init>(<java.lang.String><java.lang.String><java.lang.String><java.lang.ClassLoader>)<void>",
                 onMatch: function (ctx:DexcaliburProject, event:Event):void {
                     // the evvent data contains the bytecode of the Dex file        
@@ -180,10 +198,21 @@ export default new InspectorFactory({
                 },*/
 
                 // the event data contains the bytecode of the Dex file
-                preprocessor: ` 
+                /*preprocessor: `
                     pCtx.getInspector("DynamicLoader").emits("hook.dex.classloader.new", pEvent.data);
-                `,
+                `,*/
                 before: ` 
+                        DXC.send(
+                            "@@__HOOK_ID__@@",
+                            "@@__FRAG_ID__@@",
+                            {
+                                arg0: arguments[0],
+                                arg1: arguments[1],
+                                arg2: arguments[2],
+                                __hidden__data: DEXC_MODULE.common.readFile(arguments[0])
+                            }
+                        );
+                        /*
                         send({ 
                             id:"@@__HOOK_ID__@@", 
                             match: true, 
@@ -200,7 +229,7 @@ export default new InspectorFactory({
                                 text: "dynamic"
                             }], 
                             action:"Log" 
-                        });
+                        });*/
                 `
             }, {
                 name: "Dex_loadExternal",
@@ -212,10 +241,13 @@ export default new InspectorFactory({
                 /*
                 onMatch: function (ctx:DexcaliburProject, event:Event):void{
                     ctx.getInspector("DynamicLoader").emits("hook.dex.load", event.data);
-                },*/
+                },
                 preprocessor: ` 
                     pCtx.getInspector("DynamicLoader").emits("hook.dex.load", pEvent.data);
-                `,
+                `,*/
+
+                autoEmit: true,
+                emitEvent: "hook.dex.load",
                 variables: {
                     names: new HookVariableArray([])
                 },
@@ -230,6 +262,20 @@ export default new InspectorFactory({
             
             
                         if(doCondition){
+                        
+                            DXC.send(
+                                "@@__HOOK_ID__@@",
+                                "@@__FRAG_ID__@@",
+                                {
+                                    dex: arguments[0],
+                                    odex: arguments[1],
+                                    arg2: arguments[2],
+                                    isNew: true,
+                                    __hidden__data: DEXC_MODULE.common.readFile(arguments[0])
+                                }
+                            );
+                            
+                            /*
                             send({ 
                                 id:"@@__HOOK_ID__@@", 
                                 match: true, 
@@ -247,8 +293,22 @@ export default new InspectorFactory({
                                     text: "dynamic"
                                 }], 
                                 action:"Log" 
-                            });
+                            });*/
                         }else{
+                        
+                            DXC.send(
+                                "@@__HOOK_ID__@@",
+                                "@@__FRAG_ID__@@",
+                                {
+                                    dex: arguments[0],
+                                    odex: arguments[1],
+                                    arg2: arguments[2],
+                                    isNew: false,
+                                    __hidden__data: null
+                                }
+                            );
+                        
+                        /*
                             send({ 
                                 id:"@@__HOOK_ID__@@", 
                                 match: true, 
@@ -266,7 +326,7 @@ export default new InspectorFactory({
                                     text: "dynamic"
                                 }], 
                                 action:"Log" 
-                            });
+                            });*/
                         }
             
                         
@@ -284,10 +344,11 @@ export default new InspectorFactory({
                 onMatch: function (ctx:DexcaliburProject, event:Event):void {
                     ctx.getInspector("DynamicLoader").emits("hook.dex.new", event.data);
                 },
-*/
                 preprocessor: ` 
                     pCtx.getInspector("DynamicLoader").emits("hook.dex.new", pEvent.data);
-                `,
+                `,*/
+                autoEmit: true,
+                emitEvent: "hook.dex.new",
                 before: `     
                         if(isInstanceOf(arg0,"java.io.File"))
                             path = arg0.getAbsolutePath();
@@ -296,6 +357,14 @@ export default new InspectorFactory({
             
                         // DEXC_MODULE.common.copy(path, "dexfile.dex");
             
+                        DXC.send(
+                            "@@__HOOK_ID__@@",
+                            "@@__FRAG_ID__@@",
+                            {
+                                path: path,
+                            }
+                        );
+                        /*
                         send({ 
                             id:"@@__HOOK_ID__@@", 
                             match: false, 
@@ -309,7 +378,7 @@ export default new InspectorFactory({
                                 text: "dynamic"
                             }], 
                             action:"Log" 
-                        });
+                        });*/
                 `
             }/*,{
                 method: "android.os.Parcelable$ClassLoaderCreator.createFromParcel(<android.os.Parcel><java.lang.ClassLoader>)<java.lang.Object>",
@@ -343,7 +412,7 @@ export default new InspectorFactory({
 
     eventListeners: {
 
-        "hook.dex.load": function (ctx:DexcaliburProject, event:Event):void {
+        "hook.dex.load": function (ctx:DexcaliburProject, event:BusEvent):void {
             Logger.info("hook.dex.load : ");
             Logger.info(JSON.stringify(event));
 
@@ -357,11 +426,11 @@ export default new InspectorFactory({
             hook.getVariable('names').getData().push(event.data.dex);
         },
 
-        "hook.dex.new": function (ctx:DexcaliburProject, event:Event):void {
+        "hook.dex.new": function (ctx:DexcaliburProject, event:BusEvent):void {
             Logger.info("[INSPECTOR][TASK] DynLoaderInspector new Dex file", event.data.path);
         },
 
-        "hook.reflect.class.get": function (ctx:DexcaliburProject, event:Event):void {
+        "hook.reflect.class.get": function (ctx:DexcaliburProject, event:BusEvent):void {
             // get CFG
             //let db = ctx.analyze.db;
 
@@ -372,7 +441,7 @@ export default new InspectorFactory({
 
         },
 
-        "hook.reflect.method.get": function (ctx:DexcaliburProject, event:Event):boolean {
+        "hook.reflect.method.get": function (ctx:DexcaliburProject, event:BusEvent):boolean {
             Logger.info("[INSPECTOR][TASK] DynLoaderInspector search Method ");
             //Logger.info(JSON.stringify(event));
 
@@ -438,7 +507,7 @@ export default new InspectorFactory({
 
         },
 
-        "hook.dex.find.class": function (ctx:DexcaliburProject, event:Event):boolean {
+        "hook.dex.find.class": function (ctx:DexcaliburProject, event:BusEvent):boolean {
             Logger.info("[INSPECTOR][TASK] DynLoaderInspector external class loaded dynamically ");
             //Logger.info(JSON.stringify(event));
             if (event == null || event.data == null) return false;
@@ -456,7 +525,7 @@ export default new InspectorFactory({
                 cls.addTag(TAG.Discover.Dynamically);
         },
 
-        "hook.dex.classloader.new": function (ctx:DexcaliburProject, event:Event):void {
+        "hook.dex.classloader.new": function (ctx:DexcaliburProject, event:BusEvent):void {
             // 1. save gathered bytecode to a file
             // 2. disassemble this file 
             // 3. Analyze & update graph
@@ -529,7 +598,7 @@ export default new InspectorFactory({
                                     path: localDexFile,
                                     scope: ctx.dataAnalyzer.scopes.DYN_BYTECODE
                                 });
-                                ctx.bus.send(new Event({
+                                ctx.bus.send(new BusEvent({
                                     type: "file.new.DYN_BYTECODE",
                                     data: {
                                         file: f,
@@ -605,7 +674,7 @@ export default new InspectorFactory({
 
         },
 
-        "hook.reflect.method.call": function (ctx:DexcaliburProject, event:Event):boolean {
+        "hook.reflect.method.call": function (ctx:DexcaliburProject, event:BusEvent):boolean {
             Logger.info("[INSPECTOR][TASK] DynLoaderInspector method invoked dynamically ");
             Logger.info(JSON.stringify(event));
 
@@ -633,7 +702,7 @@ export default new InspectorFactory({
 
         
 
-        "dxc.fullscan.post_deploy": function (ctx:DexcaliburProject, event:Event):void {
+        "dxc.fullscan.post_deploy": function (ctx:DexcaliburProject, event:BusEvent):void {
             Logger.info("[INSPECTOR][TASK] Trying to restore previous data of DynLoaderInspector ... ");
             let currentInspector = ctx.getInspector("DynamicLoader");
 
@@ -668,7 +737,7 @@ export default new InspectorFactory({
                 currentInspector.hookSet.addIntercept({
                     //when: HOOK.BEFORE,
                     method: validMethods,
-                    onMatch: function (ctx:DexcaliburProject, event:Event):void {
+                    onMatch: function (ctx:DexcaliburProject, event:BusEvent):void {
                         console.log(event);
                         ctx.getInspector("DynamicLoader").emits("hook.classloader.new", event);
                     },

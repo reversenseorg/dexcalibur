@@ -1,7 +1,7 @@
 import {INSPECTOR_TYPE} from "../../src/Inspector";
 import InspectorFactory from "../../src/InspectorFactory";
 import DexcaliburProject from "../../src/DexcaliburProject";
-import Event from "../../src/Event";
+import BusEvent from "../../src/BusEvent";
 import * as Log from "../../src/Logger";
 import ModelMethod from "../../src/ModelMethod";
 
@@ -34,10 +34,13 @@ var IssueInspector:InspectorFactory = new InspectorFactory({
             },/*
             onMatch: function(ctx:DexcaliburProject,event:Event):any{
                 ctx.getInspector("IssueObserver").emits("hook.except.security.new",event);
-            },*/
+            },
             preprocessor: ` 
                 pCtx.getInspector("IssueObserver").emits("hook.except.security.new", pEvent.data);
-            `,
+            `,*/
+
+            autoEmit: true,
+            emitEvent: "hook.except.security.new",
             before: ` 
         
                     var msg="";    
@@ -46,6 +49,15 @@ var IssueInspector:InspectorFactory = new InspectorFactory({
                     else
                         msg = "<unknow>";
         
+        
+                    DXC.send({
+                        hid: "@@__HOOK_ID__@@",
+                        fid: "@@__FRAG_ID__@@",
+                        data: {
+                            msg: msg
+                        }
+                    });
+                    /*
                     send({ 
                         id:"@@__HOOK_ID__@@", 
                         match: true, 
@@ -59,13 +71,13 @@ var IssueInspector:InspectorFactory = new InspectorFactory({
                             text: "error"
                         }],
                         action: "" 
-                    });
+                    });*/
             `
         }]
     },
     
     eventListeners: {
-        "hook.except.security.new": function(ctx:DexcaliburProject,event:Event):any{
+        "hook.except.security.new": function(ctx:DexcaliburProject,event:BusEvent):any{
             Logger.info("[INSPECTOR][TASK] IssueObserver new Security Exception ",event.data.msg);
         }
     }

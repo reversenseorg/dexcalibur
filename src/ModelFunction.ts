@@ -85,6 +85,7 @@ export class ModelFunction implements INode, IPersistent {
             (new NodeProperty("__s")).type(DbDataType.STRING).key(DbKeyType.PRIMARY), // path relative to scope root
             //(new NodeProperty("_uid")).type(DbDataType.STRING), //.key(DbKeyType.PRIMARY),
             (new NodeProperty("name")).type(DbDataType.STRING).def(null),
+            (new NodeProperty("symbol")).type(DbDataType.STRING).def(null),
             (new NodeProperty("alias")).type(DbDataType.STRING).def(null),
             (new NodeProperty("nbbs")).type(DbDataType.INTEGER).def(-1),
             (new NodeProperty("addr")).type(DbDataType.INTEGER).def(-1),
@@ -139,6 +140,8 @@ export class ModelFunction implements INode, IPersistent {
     addr:number = -1;
 
     name: string = null;
+
+    symbol:string = null;
 
     /**
      * Same as regvars
@@ -247,8 +250,20 @@ export class ModelFunction implements INode, IPersistent {
      *
      * @return {string} the symbol
      * @method
+     * @since 1.0.0
      */
     getSymbol():string {
+        return this.symbol;
+    }
+
+    /**
+     * To get the internal name as returned by the decompiler/disass backend
+     *
+     * @return {string} the internal function identifier
+     * @method
+     * @since 1.0.0
+     */
+    getInternalName():string {
         return this.name;
     }
 

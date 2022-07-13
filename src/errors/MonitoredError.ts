@@ -25,6 +25,7 @@ export enum ErrorCode {
     SETTINGS = 95000,
 }
 
+
 export class MonitoredError extends Error {
 
     /**

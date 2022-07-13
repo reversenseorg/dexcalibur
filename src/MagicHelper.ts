@@ -3,7 +3,7 @@ import Util from "./Utils";
 import * as _path_ from "path";
 import DexcaliburProject from "./DexcaliburProject";
 import {EOL} from "os";
-import Event from "./Event";
+import BusEvent from "./BusEvent";
 import * as _glob_ from "glob";
 import * as _os_ from "os";
 import * as _fs_ from "fs";
@@ -162,7 +162,7 @@ export class MagicHelper extends  External.ExternalHelper implements IFileAnalyz
                 files.push(f);
 
                 if(pContext!=null){
-                    pContext.bus.send(new Event({
+                    pContext.bus.send(new BusEvent({
                         type: "data.file.new.knownFmt",
                         data: f
                     }))

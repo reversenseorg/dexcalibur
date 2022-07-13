@@ -208,6 +208,8 @@ export class JavaHookBuilder{
     mergeFragments( pFragment:HookTemplateFragment[], pTags:any ):string{
         let script = "";
         let code:string;
+        const tags = pTags;
+
 
         if(pFragment.length == 1){
 

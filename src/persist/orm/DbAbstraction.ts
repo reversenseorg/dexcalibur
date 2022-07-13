@@ -154,7 +154,11 @@ export interface IDatabase
 
     getIndex(name:string, pNodeType:NodeType):IDbIndex;
 
+    getIndexOf(pNodeType:NodeType):IDbIndex;
+
     getCollection(name:string, pNodeType:NodeType):IDbCollection;
+
+    getCollectionOf(pNodeType:NodeType):IDbCollection;
 
     getAll():any;
 

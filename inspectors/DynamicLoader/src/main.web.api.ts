@@ -9,7 +9,7 @@ import {FinderResult} from "../../../src/FinderResult";
 import {TAG} from "../../../src/AnalysisHelper";
 import {IDbIndex} from "../../../src/persist/orm/DbAbstraction";
 import * as _fs_ from "fs";
-import Event from "../../../src/Event";
+import BusEvent from "../../../src/BusEvent";
 import {IFC_TYPE} from "../../../src/InspectorFrontController";
 import Controller from "../service/main";
 import {DelegateWebApi} from "../../../src/webapi/DelegateWebApi";
@@ -47,7 +47,7 @@ class Rules {
         files.map(function(k,v){
             try{
                 _fs_.unlinkSync(v.getPath());
-                context.bus.send(new Event({
+                context.bus.send(new BusEvent({
                     type: "file.del",
                     data: v.getUID()
                 }));

@@ -4,7 +4,7 @@ import DexcaliburProject from "../../../src/DexcaliburProject";
 import * as _fs_ from 'fs';
 import {IDbIndex} from "../../../src/persist/orm/DbAbstraction";
 import {FinderResult} from "../../../src/FinderResult";
-import Event from "../../../src/Event";
+import BusEvent from "../../../src/BusEvent";
 
 var Controller:InspectorFrontController =  new InspectorFrontController();
 
@@ -35,7 +35,7 @@ function cleanupSavedDex(context:DexcaliburProject):any{
     files.map(function(k,v){
         try{
             _fs_.unlinkSync(v.getPath());
-            context.bus.send(new Event({
+            context.bus.send(new BusEvent({
                 type: "file.del",
                 data: v.getUID()
             }));

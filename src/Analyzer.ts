@@ -4,7 +4,7 @@ import * as _fs_ from 'fs';
 
 
 import {SearchAPI} from "./SearchAPI";
-import Event from "./Event";
+import BusEvent from "./BusEvent";
 import DexcaliburProject from "./DexcaliburProject";
 import AnalyzerDatabase from "./AnalyzerDatabase";
 import ModelClass from "./ModelClass";
@@ -1387,7 +1387,7 @@ export default class Analyzer
 
         this.tempDB = tempDb;
 
-        this.context.bus.send(new Event({
+        this.context.bus.send(new BusEvent({
             name: "analyze.file.before",
             data: {
                 path: pPath,
@@ -1426,7 +1426,7 @@ export default class Analyzer
             this.buildModel(tempDb, this.db);
 
 
-        this.context.bus.send(new Event({
+        this.context.bus.send(new BusEvent({
             name: "analyze.file.after",
             data: {
                 path: pPath,

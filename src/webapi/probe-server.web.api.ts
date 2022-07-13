@@ -8,6 +8,7 @@ import * as Log from "../Logger";
 import {AuthenticationException} from "../errors/AuthenticationException";
 import {DexcaliburProjectException} from "../errors/DexcaliburProjectException";
 import DexcaliburProject from "../DexcaliburProject";
+import {FridaHelperException} from "../errors/FridaHelperException";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 export const PROBE_SERVER_WEB_API: DelegateWebApi = new DelegateWebApi();
@@ -18,13 +19,14 @@ PROBE_SERVER_WEB_API.addAsyncAuthenticatedRoute(
         'post': async (req:Request, res:Response)=>{
 
             let device:Device = null;
+            const $: WebServer = req.dxc.$;
             let project:DexcaliburProject = null;
-            let $:WebServer = req.dxc.$;
 
             try{
+                project = req.dxc.project;
                 // ========== SECURITY CHECKS
 
-                if (req.dxc == null || !$.context.getUserService().verifySession(req.dxc.sess)) {
+                /*if (req.dxc == null || !$.context.getUserService().verifySession(req.dxc.sess)) {
                     throw AuthenticationException.AUTHENTICATION_FAILED();
                 }
 
@@ -36,7 +38,7 @@ PROBE_SERVER_WEB_API.addAsyncAuthenticatedRoute(
 
                 if(project == null || !project.isReady()) {
                     throw DexcaliburProjectException.NO_PROJECT_SPECIFIED();
-                }
+                }*/
 
                 // ==== LOGIC
                 if(req.body['dev']){
@@ -44,20 +46,28 @@ PROBE_SERVER_WEB_API.addAsyncAuthenticatedRoute(
                 }else{
                     device = project.getDevice();
                 }
+
+                // req.body['path']
+
                 // TODO : detect if frida connection works
-                if(await FridaHelper.startServer( device, {
+                const serverStarted = await FridaHelper.startServer( device, {
                     path: req.body['path'],
-                    privileged: (req.body['privileged']=="true"? true: false)
-                })){
+                    privileged: (req.body['privileged']=="true"? true: false),
+                    timeout: req.body['timeout']!=null ? parseInt(req.body['timeout'],10) : 250
+                });
+
+                if(serverStarted){
                     $.sendSuccess(res, {});
                 }else{
-                    $.sendError(res, "Hook server cannot start");
+                    throw FridaHelperException.SPAWN_FAILED("unknow error")
                 }
             }catch(err){
                 Logger.error("[API][HOOK SERVER] Server cannot start : "+err.message+"\n\t"+err.stack);
-                $.sendError(res, "Hook server cannot start");
+                $.sendError(res, err.message);
             }
         }
+    },{
+        readProject: true
     }
 )
 

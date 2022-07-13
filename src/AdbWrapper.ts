@@ -10,13 +10,16 @@ import DeviceProfile  from './DeviceProfile';
 import {AdbWrapperError} from "./Errors";
 import * as Log from './Logger';
 import DexcaliburWorkspace from "./DexcaliburWorkspace";
-import {IBridge} from "./Bridge";
+import {BridgeInstallOptions, IBridge} from "./Bridge";
 import {AdbBridgeException} from "./errors/AdbBridgeException";
 import {
     PrivilegedExecutionPhase,
     PrivilegedExecutionStrategy,
     PrivilegedExecutionStrategyMap, PrivilegedExecutionType
 } from "./PrivilegedExecutionStrategy";
+import {BridgeException} from "./errors/BridgeException";
+import Util from "./Utils";
+import {AndroidInstallOptionsEnum, AndroidPackageInstallOptions} from "./android/bridge/AndroidInstallOptions";
 
 let Logger:Log.ProdLogger = Log.newLogger() as Log.ProdLogger;
 
@@ -782,9 +785,10 @@ export default class AdbWrapper implements IBridge
      * @param {*} command The command to execute remotely
      * @method
      */
-    shellWithEHsync(command:string):string|Buffer{
+    shellWithEHsync(command:string, pOptions:any = null):string|Buffer{
 
             Logger.info("[ADB] ",this.setup()+' shell '+command);
+
             return Process.execSync(this.setup()+' shell '+command);
 
     }
@@ -800,20 +804,30 @@ export default class AdbWrapper implements IBridge
      * @method
      * @async  
      */
-    async detachedShell( pCommand:string|string[], pArgs:string = "" ):Promise<boolean>{
+    async detachedShell( pCommand:string|string[], pArgs:string = "", pOptions:any = { detached:true, unref:true, delay:0 } ):Promise<any>{
+
+        let child:Process.ChildProcess=null;
         try{
             let args:string[] = this.setup(null,false) as string[];
             let ws:DexcaliburWorkspace = DexcaliburWorkspace.getInstance();
-            let out:number = _fs_.openSync( _path_.join( ws.getTempFolderLocation(), 'out.log'), 'w+', 0o666);
-            let err:number = _fs_.openSync( _path_.join( ws.getTempFolderLocation(), 'err.log'), 'w+', 0o666);
 
-            args.shift(); // remove adb path
+            pOptions.err = _path_.join( ws.getTempFolderLocation(), 'err.log');
+            pOptions.out = _path_.join( ws.getTempFolderLocation(), 'out.log');
+
+            let out:number = _fs_.openSync( pOptions.out, 'w+', 0o666);
+            let err:number = _fs_.openSync( pOptions.err, 'w+', 0o666);
+
+
+
+            args.shift(); // remove adb path from begin
+            args.push('shell');
             args = args.concat(pCommand);
-            let child:Process.ChildProcess = Process.spawn(this.path, args, { detached: true, stdio: [ 'ignore', out, err ] });
-            child.unref();
+            child = Process.spawn(this.path, args, { detached: pOptions.detached, stdio: [ 'ignore', out, err ] });
+            if(pOptions.unref) child.unref();
+            Logger.info( `[ADB WRAPPER] detachedShell spawned: ${this.path} ,  ${args}  `);
 
         }catch(err){
-            Logger.raw('Detached shell error :'+err.message);
+            Logger.error('[ADB WRAPPER] Detached shell error :'+err.message);
         }
 
         return true;
@@ -882,7 +896,7 @@ export default class AdbWrapper implements IBridge
 
 
         if(pOptions.detached)
-            return await this.detachedShell(stt.prepareArray( [command], this)); //["shell","su","-c",command]);
+            return await this.detachedShell(stt.prepareArray( [command], this), pOptions); //["shell","su","-c",command]);
         else{
 
             try{
@@ -1104,6 +1118,13 @@ export default class AdbWrapper implements IBridge
         return out;
     }
 
+    /**
+     *
+     * @param pPath
+     * @param pOptions
+     * @async
+     * @method
+     */
     async readFile( pPath:string, pOptions:any):Promise<any> {
         let out:any, cmd:string='cat ';
 
@@ -1125,6 +1146,79 @@ export default class AdbWrapper implements IBridge
 
         Logger.raw(out);
         return out;
+    }
+
+    /**
+     *
+     * @param {string[]} pPath Paths of package to install
+     * @param {AndroidPackageInstallOptions} pOptions Install options
+     * @return
+     * @async
+     * @since 1.0.0
+     */
+   async installApp( pPath:string[], pOptions:AndroidPackageInstallOptions):Promise<boolean> {
+        let cmd:string, success:boolean;
+
+        if(pPath.length==0){
+            AdbBridgeException.APK_PATH_IS_NULL();
+        }
+
+        // pick the right install command
+        if(pPath.length == 1){
+            cmd = "install";
+        }else{
+            if(pOptions.multiple){
+                cmd = "install-multiple";
+            }else{
+                cmd = "install-multi-package";
+            }
+        }
+
+        // add options
+        if(pOptions.hasOwnProperty('opts')){
+            cmd += pOptions.opts.join(" ");
+        }
+
+        // append apk path(s)
+        cmd += " "+pPath.join(" ");
+
+        //try{
+           const out = await Util.execAsync(this.setup(null,true)+" "+cmd);
+            //success = true;
+        /*}catch(err){
+            Logger.error("[ADB WRAPPER] installApp : ["+err.code+"] "+err.message)
+            Logger.error("[ADB WRAPPER] installApp (??): ["+err.stdout.toString())
+            out = err.stdout.toString();
+            success = false;
+        }*/
+
+        Logger.raw("\n"+out);
+        return true;
+    }
+
+
+    /**
+     * To prepare a list oif verified options to install applications
+     *
+     * @param {any} pOptions
+     * @return {AndroidPackageInstallOptions}
+     * @method
+     * @since 1.0.0
+     */
+    prepareInstallOptions(pOptions:any):AndroidPackageInstallOptions {
+       const verifiedOpts = {
+           multiple: false,
+           opts: []
+       };
+
+       const validOpts = Object.keys(AndroidInstallOptionsEnum);
+       for(const ppt in pOptions){
+           if(validOpts.includes(ppt)){
+               verifiedOpts.opts.push(AndroidInstallOptionsEnum[ppt]);
+           }
+       }
+
+       return verifiedOpts;
     }
 }
 

@@ -1,17 +1,21 @@
 import {ErrorCode, MonitoredError} from "./MonitoredError";
 import {PassthroughValue, SanitizedValue, UnsafeValue} from "../security/SanitizedValue";
 
-
+export enum HookErrCode {
+    GENERIC=100,
+    FRIDA=200
+}
 
 export class HookManagerException extends MonitoredError {
 
     static ERR = {
-        EXISTING_HOOK_SET: ErrorCode.HOOK_MANAGER + 101,
-        DB_NOT_INITIALIZED: ErrorCode.HOOK_MANAGER + 102,
-        CANNOT_SAVE_UNRECOGNIZED_OBJ: ErrorCode.HOOK_MANAGER + 103,
-        UNKNOW_HOOK_FRAGMENT_POS: ErrorCode.HOOK_MANAGER + 104,
-        HOOK_FRAGMENT_NOT_FOUND: ErrorCode.HOOK_MANAGER + 105,
-        HOOK_NOT_FOUND: ErrorCode.HOOK_MANAGER + 106,
+        EXISTING_HOOK_SET: ErrorCode.HOOK_MANAGER + HookErrCode.GENERIC + 1,
+        DB_NOT_INITIALIZED: ErrorCode.HOOK_MANAGER + HookErrCode.GENERIC + 2,
+        CANNOT_SAVE_UNRECOGNIZED_OBJ: ErrorCode.HOOK_MANAGER + HookErrCode.GENERIC + 3,
+        UNKNOW_HOOK_FRAGMENT_POS: ErrorCode.HOOK_MANAGER + HookErrCode.GENERIC + 4,
+        HOOK_FRAGMENT_NOT_FOUND: ErrorCode.HOOK_MANAGER + HookErrCode.GENERIC + 5,
+        HOOK_NOT_FOUND: ErrorCode.HOOK_MANAGER + HookErrCode.GENERIC + 6,
+        FRIDA_DEVICE_NOT_FOUND: ErrorCode.HOOK_MANAGER + HookErrCode.GENERIC + 7,
     };
 
     static EXISTING_HOOK_SET = ()=>{ return new HookManagerException(" An hook set already exists for this ID",HookManagerException.ERR.EXISTING_HOOK_SET) };
@@ -20,6 +24,7 @@ export class HookManagerException extends MonitoredError {
     static DB_NOT_INITIALIZED = ()=>{ return new HookManagerException(" Fatal error: Database is not initiliazed",HookManagerException.ERR.DB_NOT_INITIALIZED) };
     static CANNOT_SAVE_UNRECOGNIZED_OBJ = ()=>{ return new HookManagerException(" Fatal error: Save of unrecognized object failed ",HookManagerException.ERR.CANNOT_SAVE_UNRECOGNIZED_OBJ) };
     static HOOK_NOT_FOUND = (vUID:string)=>{ return new HookManagerException(" Fatal error: Hook not found : "+vUID,HookManagerException.ERR.HOOK_NOT_FOUND) };
+    static FRIDA_DEVICE_NOT_FOUND = (vUID:string)=>{ return new HookManagerException(" Fatal error: device not found by frida : "+vUID,HookManagerException.ERR.FRIDA_DEVICE_NOT_FOUND) };
 
     constructor( pMsg:string, pCode:number = null, pExtra:any = null) {
         super('HOOK MANAGER', pMsg, pCode, pExtra);

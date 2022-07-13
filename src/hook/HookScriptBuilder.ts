@@ -213,7 +213,7 @@ DXC.HOOK["${pLibraryName}"] = {
 
             // TODO : generate code for child key point
 
-            Logger.info("[HOOK SCRIPT BUILDER] buildNestedScript: \n"+s)
+            //Logger.debug("[HOOK SCRIPT BUILDER] buildNestedScript: \n"+s)
 
             //try{
                 // if the keypoint template has been never generated, create it :
@@ -310,27 +310,27 @@ Java.deoptimizeBoot();`
     build(){
         let script = "";
 
-        Logger.info("[HOOK SCRIPT BUILDER] Build : start ... \n");
+        //Logger.info("[HOOK SCRIPT BUILDER] Build : start ... \n");
         const kpm:KeyPointManager  =  this._hm.getKeyPointManager();
         const topl_kps:KeyPoint[] = kpm.getTopLevelKeyPoints();
         const leaf_kps:KeyPoint[] = kpm.getLeafKeyPoints();
         const req:any = kpm.getGlobalRequirements();
         const deopt:DEOPT_TYPE = kpm.needDeoptimize();
-        Logger.info("[HOOK SCRIPT BUILDER] Build : before _appendInternals: \n");
+        //Logger.info("[HOOK SCRIPT BUILDER] Build : before _appendInternals: \n");
 
         script = this._appendInternals( script);
 
-        Logger.info("[HOOK SCRIPT BUILDER] Build : _appendInternals: \n"+script);
+        //Logger.info("[HOOK SCRIPT BUILDER] Build : _appendInternals: \n"+script);
         // append top level requirements
         if(req.length > 0){
             script = this._appendRequirements( script, req)+"\n";
-            Logger.info("[HOOK SCRIPT BUILDER] Build : _appendRequirements: \n"+script);
+            //Logger.info("[HOOK SCRIPT BUILDER] Build : _appendRequirements: \n"+script);
         }
 
         // detect if deoptimizing is required
         if(kpm.getKeyPoint('core.java.boot').hasNodes()){
             script = this._appendDeoptimize( script, deopt);
-            Logger.info("[HOOK SCRIPT BUILDER] Build : _appendDeoptimize: \n"+script);
+            //Logger.info("[HOOK SCRIPT BUILDER] Build : _appendDeoptimize: \n"+script);
         }
 
         // process top-level key point
@@ -339,7 +339,7 @@ Java.deoptimizeBoot();`
         topl_kps.map( (vKP:KeyPoint) => {
             if(vKP.getCodeCache() != null && vKP.enabled){
                 script += `\n// =======================\n// KeyPoint : ${vKP.getName()} \n// ======================= \n ${vKP.getCodeCache()}\n`;
-                Logger.info("[HOOK SCRIPT BUILDER] Build : top KP : \n"+script);
+                //Logger.info("[HOOK SCRIPT BUILDER] Build : top KP : \n"+script);
             }
         });
 
@@ -352,8 +352,8 @@ Java.deoptimizeBoot();`
         }
 
 
-        Logger.debug("[HOOK SCRIPT BUILDER] Build : token replace: \n"+script);
-        Logger.info("[HOOK BUILDER : output :] \n "+script);
+        //Logger.debug("[HOOK SCRIPT BUILDER] Build : token replace: \n"+script);
+        //Logger.info("[HOOK BUILDER : output :] \n "+script);
 
         return script;
     }

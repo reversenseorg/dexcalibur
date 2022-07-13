@@ -21,7 +21,7 @@ import * as _fs_ from "fs";
 import {AuthenticationException} from "../errors/AuthenticationException";
 import {DexcaliburProjectException} from "../errors/DexcaliburProjectException";
 
-let Logger:Log.Logger = Log.newLogger() as Log.Logger;
+const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 export const PROJECT_WEB_API: DelegateWebApi = new DelegateWebApi();
 
 /*
@@ -74,18 +74,17 @@ PROJECT_WEB_API.addAuthenticatedRoute(
     {
         'get':  (req:Request, res:Response)=>{
 
-            let $:WebServer = req.dxc.$;
+            const $:WebServer = req.dxc.$;
 
             try{
                 if(req.dxc==null || !$.context.getUserService().verifySession(req.dxc.sess)) {
                     throw AuthenticationException.AUTHENTICATION_FAILED();
                 }
 
-                let proj:DexcaliburProjectMap;
                 const data:any[] = [];
+                const proj = $.context.getActiveProjects(req.dxc.sess.getUserAccount());
 
-                proj = $.context.getActiveProjects(req.dxc.sess.getUserAccount());
-                for(let i in proj) data.push( proj[i].toJsonObject());
+                for(const i in proj) data.push( proj[i].toJsonObject());
                 $.sendSuccess( res, data);
 
             }catch(err){
@@ -95,13 +94,13 @@ PROJECT_WEB_API.addAuthenticatedRoute(
         },
         'post': (req:Request, res:Response)=>{
 
-            let $:WebServer = req.dxc.$;
+            const $:WebServer = req.dxc.$;
 
             // [EE] : On enterprise server, for multiple users, store active project into user session
             // [PE] : On professional, add auth but keep global active project
             // [CE] : On community ed, just change global active project
             let proj:DexcaliburProjectMap;
-            let success:boolean = false;
+            let success = false;
 
             try{
                 if(req.dxc==null || !$.context.getUserService().verifySession(req.dxc.sess)) {
@@ -115,13 +114,15 @@ PROJECT_WEB_API.addAuthenticatedRoute(
                 }
 
                 proj = $.context.getActiveProjects(req.dxc.sess.getUserAccount());
-                for(let i in proj){
-                    if(i==req.body._puid){
+                for(const i in proj){
+                    if(i===req.body.uid){
                         (req.dxc.sess as UserSession).setDefaultActiveProject(proj[i]);
                         success = true;
                         break;
                     }
                 }
+
+
                 if(success){
                     $.sendSuccess( res, {})
                 }else{
@@ -141,7 +142,7 @@ PROJECT_WEB_API.addAuthenticatedRoute(
     {
         'post':  (req:Request, res:Response)=>{
 
-            let $:WebServer = req.dxc.$;
+            const $:WebServer = req.dxc.$;
 
             try{
                 if(req.dxc==null || !$.context.getUserService().verifySession(req.dxc.sess)) {
@@ -185,7 +186,7 @@ PROJECT_WEB_API.addAuthenticatedRoute(
     {
         'get': (req: Request, res: Response) => {
 
-            let $: WebServer = req.dxc.$;
+            const $: WebServer = req.dxc.$;
 
             try {
                 if (req.dxc == null || !$.context.getUserService().verifySession(req.dxc.sess)) {
@@ -208,7 +209,7 @@ PROJECT_WEB_API.addAuthenticatedRoute(
     {
         'get': (req: Request, res: Response) => {
 
-            let $: WebServer = req.dxc.$;
+            const $: WebServer = req.dxc.$;
 
             try {
                 if (req.dxc == null || !$.context.getUserService().verifySession(req.dxc.sess)) {
@@ -235,7 +236,7 @@ PROJECT_WEB_API.addAuthenticatedRoute(
         },
         'post': (req: Request, res: Response) => {
 
-            let $: WebServer = req.dxc.$;
+            const $: WebServer = req.dxc.$;
 
             try {
                 if (req.dxc == null || !$.context.getUserService().verifySession(req.dxc.sess)) {
@@ -267,33 +268,19 @@ PROJECT_WEB_API.addAuthenticatedRoute(
     {
         'post': (req: Request, res: Response) => {
 
-            let $: WebServer = req.dxc.$;
+            const $: WebServer = req.dxc.$;
             let project:DexcaliburProject = null;
             let dev:Device = null;
-            let plt:Platform = null;
-            let unsafe_UID:string = null;
             let unsafe_val:any = null;
 
             try {
-                if (req.dxc == null || !$.context.getUserService().verifySession(req.dxc.sess)) {
-                    throw AuthenticationException.AUTHENTICATION_FAILED();
-                }
+                // valid only after authentication
+                project =  req.dxc.project;
 
-                if(req.body['project']!=null){
-                    project = $.context.getActiveProjects(req.dxc.sess.getUserAccount())[req.body['project']];
-                }else if(req.dxc.project != null){
-                    project = req.dxc.project;
-                }
-
-                if(project == null || !project.isReady()) {
-                    throw DexcaliburProjectException.NO_PROJECT_SPECIFIED();
-                }
-
-
-                // check if the current user can access to this project
+                // check if the current user can edit settings of this project
                 AccessControl.check(
                     AccessZone.PROJECT,
-                    ProjectAccessControl.access.SETTINGS_EDIT,
+                    ProjectAccessControl.access.PROJ_SETTINGS_EDIT,
                     req.dxc.project,
                     req.dxc.sess.getUserAccount()
                 );
@@ -322,6 +309,8 @@ PROJECT_WEB_API.addAuthenticatedRoute(
                 $.sendError(res, "Project settings cannot be edited. Cause : " + err.message);
             }
         },
+    },{
+        readProject: true
     }
 );
 
@@ -331,13 +320,12 @@ PROJECT_WEB_API.addAuthenticatedRoute(
     {
         'post': (req: Request, res: Response) => {
 
-            let $: WebServer = req.dxc.$;
+            const $: WebServer = req.dxc.$;
             let project:DexcaliburProject = null;
             let proj:DexcaliburProject[];
             let data:any[] = [];
-            let target:string ="";
-            let unsafePath:string = null;
-            let rpath:string = "";
+            let target ="";
+            let rpath = "";
 
             try {
                 if (req.dxc == null || !$.context.getUserService().verifySession(req.dxc.sess)) {

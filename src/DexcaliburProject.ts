@@ -13,7 +13,7 @@ import AndroidApplication from "./android/AndroidApplication";
 import PlatformManager from "./PlatformManager";
 import {SearchAPI} from "./SearchAPI";
 import DeviceManager from "./DeviceManager";
-import Event from "./Event";
+import BusEvent from "./BusEvent";
 import {DataAnalyzer} from "./DataAnalyzer";
 import Analyzer from "./Analyzer";
 import ApkHelper from "./ApkHelper";
@@ -56,6 +56,7 @@ import {ScriptManager} from "./ScriptManager";
 import {TypeManager} from "./types/TypeManager";
 import {AnalyzerState} from "./AnalyzerState";
 import {IAppAnalyzer} from "./analyzer/IAppAnalyzer";
+import {TagManager} from "./tags/TagManager";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -248,6 +249,8 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
     saveManager:any = null;
 
     typeManager:TypeManager;
+
+    tagManager:TagManager;
 
     /**
      * Application Icon
@@ -486,6 +489,17 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
     }
 
     /**
+     * To get the tag manager of the project
+     *
+     * @return {TagManager} The tag manager of the project
+     * @method
+     * @since 1.0.0
+     */
+    getTagManager():TagManager {
+        return this.tagManager;
+    }
+
+    /**
      * To init the project
      *
      * @method
@@ -625,7 +639,7 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
 
         // init listeners
         // data Analyzer
-        this.bus.subscribe("file.new.DYN_BYTECODE", BusSubscriber.from( (pEvent:Event) => {
+        this.bus.subscribe("file.new.DYN_BYTECODE", BusSubscriber.from( (pEvent:BusEvent) => {
             const d = pEvent.getData();
             Logger.info("[DXC-PROJECT] [SUBSCRIBER] <file.new.DYN_BYTECODE> scanning file : "+d.file.path);
             Logger.info(JSON.stringify(pEvent));
@@ -647,7 +661,7 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
         }));
 
         // update global file index with files indexed by dtaa analyzer
-        this.bus.subscribe( "data.file.index", BusSubscriber.from( (pEvent:Event)=>{
+        this.bus.subscribe( "data.file.index", BusSubscriber.from( (pEvent:BusEvent)=>{
 
             Logger.info("[DXC-PROJECT] [SUBSCRIBER] <data.file.index> Indexing file : "+pEvent.getData().path);
             this.analyze.insertIn( "files", [pEvent.getData()]);
@@ -1452,7 +1466,7 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
 
 
 
-        this.bus.send(new Event({
+        this.bus.send(new BusEvent({
             type: "dxc.fullscan.post" 
         }));
 
@@ -1462,12 +1476,12 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
         // deploy inspector's hooksets
         this.deployInspectors(INSPECTOR_TYPE.POST_APP_SCAN);
 
-        this.bus.send(new Event({
+        this.bus.send(new BusEvent({
             type: "dxc.fullscan.post_deploy"
         }));
         
         // trigger event
-        this.bus.send(new Event({
+        this.bus.send(new BusEvent({
             type: "dxc.appview.new" 
         }));
 
@@ -1477,12 +1491,12 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
             this.dataAnalyzer.getDB().getIndex(
                 this.dataAnalyzer.getScope('PKG').getName()));*/
         
-        this.bus.send(new Event({
+        this.bus.send(new BusEvent({
             type: "filescan.new" 
         }));
 
 
-        this.bus.send(new Event({
+        this.bus.send(new BusEvent({
             type: "dxc.initialized" 
         }));
 
@@ -1547,7 +1561,7 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
      * @function
      */
     trigger(eventData:any){
-        this.bus.send(new Event(eventData));
+        this.bus.send(new BusEvent(eventData));
     }
 
     // Make a backup of the project 

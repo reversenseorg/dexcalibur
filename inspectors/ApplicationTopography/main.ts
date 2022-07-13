@@ -6,7 +6,7 @@ import InspectorFactory from "../../src/InspectorFactory";
 import Inspector, {INSPECTOR_TYPE} from "../../src/Inspector";
 import DexcaliburProject from "../../src/DexcaliburProject";
 import ModelClass from "../../src/ModelClass";
-import Event from "../../src/Event";
+import BusEvent from "../../src/BusEvent";
 import AndroidActivity from "../../src/android/AndroidActivity";
 import * as Log from "../../src/Logger";
 
@@ -42,7 +42,7 @@ const TAGS_SIGNATURE = {
     }
 }
 
-function tagByIntent(event:Event):void {
+function tagByIntent(event:BusEvent):void {
     let intents:IntentFilter[] = event.data.obj.getIntentFilters();
     intents.map(i => {
         i.getActions().map(a => {
@@ -84,7 +84,7 @@ export default new InspectorFactory({
     },
 
     eventListeners: {
-        "app.activity.new": function (ctx:DexcaliburProject, event:Event):any {
+        "app.activity.new": function (ctx:DexcaliburProject, event:BusEvent):any {
         
             // to retrieve class implementign this activity
             let t:any;

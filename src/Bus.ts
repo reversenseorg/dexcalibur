@@ -1,5 +1,5 @@
 import DexcaliburProject from "./DexcaliburProject";
-import Event from "./Event";
+import BusEvent from "./BusEvent";
 import * as Log from "./Logger";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
@@ -15,7 +15,7 @@ interface EventSubscribers {
 
 export interface BusBroadcaster {
     getUID():string;
-    broadcastEvent(pEvent:Event):void
+    broadcastEvent(pEvent:BusEvent):void
 }
 
 
@@ -43,7 +43,7 @@ export class BusSubscriber {
         this._p = false;
     }
 
-    exec(pEvent:Event):void {
+    exec(pEvent:BusEvent):void {
         if(!this._p) this._f(pEvent);
     }
 }
@@ -199,7 +199,7 @@ export default class Bus
      *
      * @param event
      */
-    send(event:Event):boolean{
+    send(event:BusEvent):boolean{
 
         if(this.prevented.hasOwnProperty(event.type) && this.prevented[event.type]===true){
             Logger.info("[BUS] <"+event.type+"> prevented ...");

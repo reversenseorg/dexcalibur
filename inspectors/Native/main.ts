@@ -6,7 +6,7 @@
 import {INSPECTOR_TYPE} from "../../src/Inspector";
 import InspectorFactory from "../../src/InspectorFactory";
 import {HOOK_TYPE} from "../../src/hook/HookManager";
-import Event from "../../src/Event";
+import BusEvent from "../../src/BusEvent";
 import DexcaliburProject from "../../src/DexcaliburProject";
 import ModelMethod from "../../src/ModelMethod";
 
@@ -34,6 +34,10 @@ var NativeLibraryInspector:InspectorFactory = new InspectorFactory({
                     "java.lang.System.loadLibrary(<java.lang.String>)<void>",
                 ]
             },
+
+            autoEmit: true,
+            emitEvent: "hook.nativelib.inject",
+            /*
             preprocessor: ` 
                 pCtx.getInspector("NativeLibrary").emits("hook.nativelib.inject",pEvent);
             `,/*
@@ -118,11 +122,23 @@ var NativeLibraryInspector:InspectorFactory = new InspectorFactory({
                 },
                 /*onMatch: function(ctx:DexcaliburProject,event:Event):any{
                     ctx.getInspector("NativeLibrary").emits("hook.nativelib.load", event);
-                },*/
+                },
                 preprocessor: ` 
                     pCtx.getInspector("NativeLibrary").emits("hook.nativelib.load",pEvent);
-                `,
+                `,*/
+                autoEmit: true,
+                emitEvent: "hook.nativelib.load",
                 before: `
+                
+                    DXC.send({
+                        hid: "@@__HOOK_ID__@@",
+                        fid: "@@__FRAG_ID__@@",
+                        data: {
+                            path:arg0
+                        },
+                        msg: "@@__METHSIGN__@@"
+                    });
+                    /*
                     send({ 
                         id:"@@__HOOK_ID__@@", 
                         match: true, 
@@ -135,6 +151,7 @@ var NativeLibraryInspector:InspectorFactory = new InspectorFactory({
                         }], 
                         action:"None" 
                     });
+                    */
                 `
             }
 
