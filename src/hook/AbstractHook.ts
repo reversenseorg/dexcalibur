@@ -454,8 +454,11 @@ export abstract class AbstractHook {
         return o;
     }
 
+    /**
+     * Not used
+     * @param pOptions
+     */
     extends( pOptions:any){
-
     }
 
 

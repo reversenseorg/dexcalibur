@@ -20,6 +20,7 @@ import {ProjectAccessControl} from "../user/acl/rbac/ProjectAccessContol";
 import * as _fs_ from "fs";
 import {AuthenticationException} from "../errors/AuthenticationException";
 import {DexcaliburProjectException} from "../errors/DexcaliburProjectException";
+import {TagManager} from "../tags/TagManager";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 export const PROJECT_WEB_API: DelegateWebApi = new DelegateWebApi();
@@ -412,7 +413,9 @@ PROJECT_WEB_API.addAuthenticatedRoute(
 
                 // collect
                 const data:any = [];
-                const tagc:any = project.analyze.getTagCategories();
+
+                const tmgr:TagManager = project.getTagManager();
+                const tagc:any = tmgr.getCategories();
                 for (let i = 0; i < tagc.length; i++) {
                     data.push(tagc[i].toJsonObject());
                 }

@@ -313,7 +313,7 @@ export class XRef
  *
  * @class
  */
-export class Tag extends Savable
+export class CodeLabel extends Savable
 {
     /**
      * Label value

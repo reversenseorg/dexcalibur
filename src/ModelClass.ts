@@ -14,6 +14,7 @@ import {NodeInternalType} from "./NodeInternalType";
 import {NodeProperty, NodePropertyState} from "./persist/orm/NodeProperty";
 import {DbDataType, DbKeyType} from "./persist/orm/DbAbstraction";
 import {DataSourceHelper} from "./DataSourceHelper";
+import {INode} from "./INode";
 
 
 interface IClassSet {
@@ -37,7 +38,7 @@ interface IFieldSet {
  * @param {object} config Optional, a hashmap with param/value to initiliaze
  * @constructor
  */
-export default class ModelClass extends Savable implements IPersistent
+export default class ModelClass extends Savable implements INode, IPersistent
 {
     static TYPE:NodeType = (new NodeType( "code_class", NodeInternalType.CLASS, [])).dataSource(DataSourceHelper.MEM, "class");
 
@@ -96,7 +97,7 @@ export default class ModelClass extends Savable implements IPersistent
     // innerClass:IClassSet = {};
     innerClass:boolean = false;
 
-    tags:any = [];
+    tags:number[] = [];
 
     /*
      if the current object is enclosed into another class, a reference to
@@ -579,36 +580,6 @@ export default class ModelClass extends Savable implements IPersistent
         return null;
     }
 
-    setupMissingTag(){
-        return (this.tags.push(CONST.TAG.MISSING));
-    }
-
-    removeMissingTag(){
-        if(this.tags.length==1)
-            this.tags = [];
-        else{
-            let i:number = this.tags.indexOf(CONST.TAG.MISSING);
-            let arr:string[] = this.tags.slice(0,i);
-            if(i+1<this.tags.length){
-                arr = arr.concat(this.tags.slice(i+1,this.tags.length-i-1));
-            }
-            this.tags = arr;
-        }
-    }
-
-    isMissingClass():boolean{
-        return (this.tags.indexOf(CONST.TAG.MISSING)>-1);
-    }
-
-    addTag(tag:string){
-        this.tags.push(tag);
-    }
-    hasTag(tagName:string):boolean{
-        return this.tags.indexOf(tagName)>-1;
-    }
-    getTags():string[]{
-        return this.tags;
-    }
 
     /**
      * To get the implement interface

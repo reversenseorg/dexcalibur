@@ -3,7 +3,8 @@ import {PassthroughValue, SanitizedValue, UnsafeValue} from "../security/Sanitiz
 
 export enum HookErrCode {
     GENERIC=100,
-    FRIDA=200
+    FRIDA=200,
+    MESSAGE=300
 }
 
 export class HookManagerException extends MonitoredError {

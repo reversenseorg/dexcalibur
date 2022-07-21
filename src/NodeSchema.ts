@@ -25,6 +25,8 @@ import {INodeMap} from "./INode";
 import {NodeInternalType} from "./NodeInternalType";
 import {NodeType} from "./persist/orm/NodeType";
 import {DataSource} from "./DataSource";
+import {TagCategory} from "./tags/TagCategory";
+import {Tag} from "./tags/Tag";
 
 UserAccount.TYPE.updateProperties([
     (new NodeProperty('_uid')).type(DbDataType.STRING).key(DbKeyType.PRIMARY),
@@ -111,7 +113,8 @@ ModelMethod.TYPE.updateProperties([
         (new NodeProperty("params")).volatile(),
 
         (new NodeProperty("enclosingClass")).single(ModelClass.TYPE),
-        (new NodeProperty("declaringClass")).single(ModelClass.TYPE)
+        (new NodeProperty("declaringClass")).single(ModelClass.TYPE),
+        (new NodeProperty("tags")).type(DbDataType.STRING).serialize(DbSerialize.JSON).def("[]"),
     ]).builder(ModelMethod);
 
 
@@ -484,6 +487,24 @@ NativeFunctionHook.TYPE.updateProperties([
             }
         })
 ]).dataSource(DataSourceHelper.FILE).builder(NativeFunctionHook);
+
+TagCategory.TYPE.updateProperties([
+    (new NodeProperty('name')).type(DbDataType.STRING).key(DbKeyType.PRIMARY).notnull(),
+    (new NodeProperty('descr')).type(DbDataType.STRING),
+    (new NodeProperty('_tags')).volatile().multiple(Tag.TYPE),
+    (new NodeProperty("tags")).type(DbDataType.STRING).serialize(DbSerialize.JSON).def("[]"),
+]).dataSource(DataSourceHelper.FILE).builder(TagCategory);
+
+Tag.TYPE.updateProperties([
+    (new NodeProperty('_uid')).type(DbDataType.STRING).key(DbKeyType.PRIMARY),
+    (new NodeProperty('_')).type(DbDataType.NUMERIC),
+    (new NodeProperty('label')).type(DbDataType.STRING),
+    (new NodeProperty('name')).type(DbDataType.STRING),
+    (new NodeProperty('descr')).type(DbDataType.STRING),
+    (new NodeProperty('category')).single(TagCategory.TYPE),
+    (new NodeProperty("tags")).type(DbDataType.STRING).serialize(DbSerialize.JSON).def("[]"),
+    (new NodeProperty("style")).type(DbDataType.STRING).serialize(DbSerialize.JSON).def("{}"),
+]).dataSource(DataSourceHelper.FILE).builder(Tag);
 
 export class NodeSchema{
 

@@ -70,6 +70,7 @@ import {INSPECTOR_WEB_API} from "./webapi/inspectors.web.api";
 import {KEYPOINT_WEB_API} from "./webapi/keypoint.web.api";
 import {SCRIPT_WEB_API} from "./webapi/script.web.api";
 import {HOOK_FRAGS_WEB_API} from "./webapi/hook-fragment.web.api";
+import {TAG_MGT_WEB_API} from "./webapi/tag.web.api";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -1381,6 +1382,7 @@ export default class WebServer
         HOOK_FRAGS_WEB_API.injectServer(this);
         INSPECTOR_WEB_API.injectServer(this);
         KEYPOINT_WEB_API.injectServer(this);
+        TAG_MGT_WEB_API.injectServer(this);
 
 
         this.app.use('/api/device', DEVICE_WEB_API.getRouter());
@@ -1401,6 +1403,7 @@ export default class WebServer
         this.app.use('/api/hook_frag', HOOK_FRAGS_WEB_API.getRouter());
         this.app.use('/api/plugin', INSPECTOR_WEB_API.getRouter());
         this.app.use('/api/keypoint', KEYPOINT_WEB_API.getRouter());
+        this.app.use('/api/tag', TAG_MGT_WEB_API.getRouter());
         /**
          * Redirect to /pages/splash.html if there is no project initialized
          */

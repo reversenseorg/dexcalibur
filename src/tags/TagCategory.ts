@@ -2,7 +2,7 @@ import {NodeType} from "../persist/orm/NodeType";
 import {NodeInternalType} from "../NodeInternalType";
 import {Tag} from "./Tag";
 import {NodeProperty} from "../persist/orm/NodeProperty";
-import {DbDataType, DbKeyType} from "../persist/orm/DbAbstraction";
+import {DbDataType, DbKeyType, DbSerialize} from "../persist/orm/DbAbstraction";
 import {UserAccount} from "../user/UserAccount";
 import {INode} from "../INode";
 
@@ -13,29 +13,23 @@ import {INode} from "../INode";
  *
  * @class
  */
-export default class TagCategory implements INode
+export class TagCategory implements INode
 {
     static TYPE:NodeType = new NodeType(
         'tag_category',
         NodeInternalType.TAG_CATEGORY,
-        [
-            (new NodeProperty('_uid')).type(DbDataType.STRING).key(DbKeyType.PRIMARY),
-            (new NodeProperty('name')).type(DbDataType.STRING).notnull(),
-            (new NodeProperty('descr')).type(DbDataType.STRING),
-            (new NodeProperty('tags')).multiple(Tag.TYPE).volatile(),
-        ]
+        []
     );
     __:NodeInternalType = NodeInternalType.TAG_CATEGORY;
 
-
-    _uid:string = null;
     /**
      * Category name
      */
     name:string = null;
     descr:string = null;
-    taglist:string[] = [];
-    tags:Tag[] = [];
+    tags:number[] = [];
+
+    private _tags:Tag[] = [];
 
     /**
      *
@@ -45,9 +39,9 @@ export default class TagCategory implements INode
     constructor(pConfig:any) {
         for(const i in pConfig){
             this[i] = pConfig[i];
-
         }
     }
+
     /*
     constructor(name:string, taglist:string[]){
         this.name = name;
@@ -60,23 +54,29 @@ export default class TagCategory implements INode
     }
     */
 
-
+    /**
+     * Add a tag to the category
+     * @param pTag
+     */
     addTag(pTag:Tag){
-        if(this.tags.indexOf(pTag)==-1)
-            this.tags.push(pTag);
+        if(this._tags.indexOf(pTag)==-1){
+            pTag.setFQN(this.getUID()+'.'+pTag.name);
+            pTag.category = this;
+            this._tags.push(pTag);
+        }
     }
 
     getTags():Tag[]{
-        return this.tags;
+        return this._tags;
     }
 
     toJsonObject():any{
         const o:any = new Object();
         o.name = this.name;
         o.descr = this.descr;
-        o.tags = [];
-        this.tags.map( (vTag:Tag) => {
-            o.tags.push(vTag.toJsonObject());
+        o._tags = [];
+        this._tags.map( (vTag:Tag) => {
+            o._tags.push(vTag.toJsonObject());
         })
         return o;
     }
@@ -85,7 +85,7 @@ export default class TagCategory implements INode
      *
      */
     getUID(): string {
-        return this._uid;
+        return this.name;
     }
 }
 TagCategory.TYPE.builder(TagCategory);

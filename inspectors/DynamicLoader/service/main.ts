@@ -14,7 +14,7 @@ var Controller:InspectorFrontController =  new InspectorFrontController();
 
 */
 function getInvokedMethod(context:DexcaliburProject):any{
-    let meth:FinderResult = context.find.method("has."+TAG.Invoked.Dynamically);
+    let meth:FinderResult = context.find.method("has."+context.getTagManager().getTag("code.call.dynamic"));
     return meth.toJsonObject();
 }
 
@@ -25,7 +25,7 @@ function getExternalDex(context:DexcaliburProject):any{
 }
 
 function getElementsDiscovered(context:DexcaliburProject):any{
-    let cls:FinderResult = context.find.class("tags:^"+TAG.Discover.Dynamically+"$");
+    let cls:FinderResult = context.find.class("tags:^"+context.getTagManager().getTag("code.call.dynamic")+"$");
     return cls.toJsonObject();
 }
 

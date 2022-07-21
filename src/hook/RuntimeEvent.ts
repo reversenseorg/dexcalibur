@@ -29,7 +29,7 @@ export class RuntimeEvent<P> extends BusEvent {
 
     node:INode[] = null;
 
-    tag:Tag[] = [];
+    tags:Tag[] = [];
 
     constructor( pConfig:any) {
         super(pConfig);
@@ -46,5 +46,37 @@ export class RuntimeEvent<P> extends BusEvent {
 
     isHookMessage(){
         return (this.type==RuntimeEventType.HOOK);
+    }
+
+    setNodes(pNodes:INode[]){
+        this.node = pNodes;
+    }
+
+    addNode(pNode:INode){
+        this.node.push(pNode);
+    }
+
+    /**
+     * To make an instance of Object which not contain circular reference
+     * and which are ready to be serialized.
+     * @returns {Object} Returns an Object instance representing the type
+     */
+    toJsonObject():any{
+        const o:any = new Object();
+
+        o.type = this.type
+        o.node = this.data;
+        o.tags = [];
+
+        this.tags.map( (vTag:Tag) => {
+            o.tags.push(vTag.getUUID());
+        })
+
+        o.raw = (this.raw != null ? (this.raw as any).toJsonObject() : null);
+
+        //if(this.tags != null && this.tags.length > 0)
+        //    o.tags = this.tags;
+
+        return o;
     }
 }

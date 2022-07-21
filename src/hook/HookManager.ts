@@ -92,6 +92,10 @@ export class HookManager
     hooksets:HookSetList = {};
     prologues:HookPrologue[] = [];
     sessions:HookSession[] = [];
+
+    /**
+     * @deprecated
+     */
     listeners:any = {};
 
     options:any = {
@@ -893,8 +897,9 @@ export class HookManager
     }
 
     _onScriptMessage( pHookSession:HookSession, pMessage:any, pData:any){
-        Logger.info('[*] Message: ', pMessage);
-        pHookSession.push(pMessage);
+        Logger.info('[*] Message: ', JSON.stringify(pMessage));
+        if(pMessage.payload!=null)
+            pHookSession.push(pMessage.payload);
     }
 
     private _addHookSet(pHookSet: HookSet):boolean{
@@ -931,11 +936,21 @@ export class HookManager
         return this.db.sets.getEntry(id);
     }
 
+    /**
+     *
+     * @deprecated
+     * @param hookid
+     */
     hasListener(hookid:string){
         return (this.listeners[hookid] != null);
     }
 
     // add a listener to call when the HookSession receive a HookMessage with match=true
+    /**
+     * @deprecated
+     * @param hookid
+     * @param callback
+     */
     addMatchListener(hookid:string, callback:any):HookManager{
         if(this.listeners[hookid]==null)
             this.listeners[hookid] = [];
@@ -947,7 +962,7 @@ export class HookManager
     /**
      *
      * @param pHookMessage
-     * @deprecated ?
+     * @deprecated
      */
     trigger(pHookMessage:any):void{
 
@@ -1162,6 +1177,7 @@ export class HookManager
     }
 
     createNativeFunctionHook( pFunc:ModelFunction, pOpts:any, pKeyPoint:KeyPoint = null):NativeFunctionHook {
+        const tmgr = this.context.getTagManager();
         const hook:NativeFunctionHook = new NativeFunctionHook();
 
         hook.setGUID( md5(this.nextHookGUIDFor(pFunc)));
@@ -1189,7 +1205,8 @@ export class HookManager
         pFunc.hooks.push( hook);
 
 
-        if(pFunc.hasTag('ds')||pFunc.hasTag('di')){
+        if(tmgr.getTag("discover.static").match(pFunc)
+            || tmgr.getTag("discover.internal").match(pFunc)){
             this.getDefaultHookSet().addHook(hook);
         }else{
             //this.getHookSetFor(method.getDeclaringFile());
@@ -1220,6 +1237,7 @@ export class HookManager
      * @param pKeyPoint
      */
     createJavaMethodHook( pMethod:ModelMethod, pOptions:any = {}):JavaMethodHook {
+        const tmgr = this.context.getTagManager();
         const hook:JavaMethodHook = new JavaMethodHook();
 
         hook.setGUID( md5(this.nextHookGUIDFor(pMethod)));
@@ -1247,7 +1265,8 @@ export class HookManager
         pMethod.hooks.push( hook);
 
 
-        if(pMethod.hasTag('ds')||pMethod.hasTag('di')){
+        if( tmgr.getTag("discover.static").match(pMethod)
+            || tmgr.getTag("discover.internal").match(pMethod)){
             this.getDefaultHookSet().addHook(hook);
         }else{
             Logger.info("hook java",JSON.stringify(pMethod));
@@ -1404,114 +1423,6 @@ export class HookManager
         return method.__+":"+method.signature()+"@@"+this.findHookByMethod(method).length;
     }
 
-
-    /**
-     * To generate a hook for a specific method/function on-demand
-     *
-     * All hook sets which are not "builtin: true" contain "on-demand" hook
-     *
-     * Depending of context, resulting hook is attached to a specific hookset :
-     *  - Hookset corresponding to DEX file declaring the method (even if the DEX have been discovered at runtime)
-     *  - Hookset corresponding to library declaring the function
-     *
-     * If the hookset has flag "dynamic:true", hook are deployed only when the associated file have been loaded.
-     *
-     * @param method
-     * @param pOptions
-     * @deprecated
-     */
-    /*
-    probe(method:ModelMethod|ModelFunction, pOptions:any={}):Hook{
-        let hook:Hook = null;
-        let hs:HookSet = null;
-
-
-        if(method instanceof ModelMethod){
-            hook = new Hook(this.context);
-
-            //hook.setID( this.nextHookIdFor(method));
-            hook.setID( md5(this.nextHookIdFor(method)));
-            
-            //hook.makeProbeFor(method);
-            hook.makeHookFor(method, pOptions);
-
-            //hook.setMethod(method);
-            // method.setProbing(true);
-            method.probing = true;
-
-
-            if(method.hasTag('ds')||method.hasTag('di')){
-                this.getDefaultHookSet().addHook(hook);
-            }else{
-                Logger.info("hok java",JSON.stringify(method));
-                //this.getHookSetFor(method.getDeclaringFile());
-                this.getDefaultHookSet().addHook(hook);
-            }
-
-            Logger.info("[HOOK MANAGER][PROBE] Add : ",hook.name)
-            this.hooks.push(hook);
-
-            // trigger new probe workflow
-            this.context.trigger({
-                type: "probe.new",
-                data: {
-                    hook: hook,
-                    method: method
-                }
-            });
-
-        }else if(method instanceof ModelFunction){
-            hook = new Hook(this.context);
-
-            //hook.setID( this.nextHookIdFor(method));
-            hook.setID( md5(this.nextHookIdFor(method)));
-
-            //hook.makeProbeFor(method);
-            hook.makeNativeHookFor(method, pOptions);
-            hook.native = true;
-
-            //hook.setMethod(method);
-            // method.setProbing(true);
-            method.probing = true;
-
-            Logger.info("hok native",JSON.stringify(method));
-
-            if(method.src !== null){
-                if(typeof method.src === 'string'){
-                    hs = this.getHookSet(method.src);
-                    if(hs==null){
-                        const f = this.context.find.file('_uid:'+method.src).get(0);
-                        hs = this.createHookSet(method.src, { name: (f!=null? f.getName() : method.src), native:true});
-
-                    }
-                }else{
-                    hs = this.getHookSet(method.src.getUID());
-                    if(hs==null){
-                        hs = this.createHookSet(method.src.getUID(), { name:method.src.getName(), native:true});
-                    }
-                }
-
-                if(hs==null){
-                    hs = this.getDefaultHookSet(true);
-                }
-                hs.addHook(hook);
-            }else{
-                this.getDefaultHookSet(true).addHook(hook);
-            }
-
-            Logger.info("[HOOK MANAGER][NATIVE PROBE] Add : ",hook.name)
-            this.hooks.push(hook);
-
-            this.context.trigger({
-                type: "probe.new",
-                data: {
-                    hook: hook,
-                    method: method
-                }
-            });
-        }
-        return hook;
-    }*/
 
 
 
@@ -1842,11 +1753,22 @@ export class HookManager
 
 
     /**
-     * To push the event into global pipe
+     * To push the event into global pipe.
+     *
+     * The hook manager will complete object according to fragment / hook / strategies
      *
      * @param  {RuntimeEvent} pEvent
      */
     newRuntimeEvent(pEvent: RuntimeEvent<HookMessageV2>) {
+
+        // multi-thread it ?
+        const msg:HookMessageV2 = pEvent.getMessage();
+        const frag = msg.getFragment();
+
+        if(frag.isPreProcessed()){
+            frag.getStrategy().onMatch
+        }
+
         this.context.bus.send(pEvent);
     }
 }

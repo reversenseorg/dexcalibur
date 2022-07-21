@@ -23,6 +23,7 @@ import {DataSourceHelper} from "./DataSourceHelper";
 import {DataType} from "./types/DataType";
 import NativeFunctionHook from "./hook/NativeFunctionHook";
 import {AbstractHook} from "./hook/AbstractHook";
+import {Tag} from "./tags/Tag";
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
 const TO_JSON:Function = function (vSrc:any, vTarget:any, vInArray:boolean=false):any{
@@ -93,6 +94,7 @@ export class ModelFunction implements INode, IPersistent {
             (new NodeProperty("src")).single(ModelFile.TYPE),
             (new NodeProperty("stack")).type(DbDataType.INTEGER).def(-1),
             (new NodeProperty("sz")).type(DbDataType.INTEGER).def(-1),
+            (new NodeProperty("tags")).type(DbDataType.STRING).serialize(DbSerialize.JSON).def("[]"),
 
             (new NodeProperty("regvars"))
                 .type(DbDataType.STRING)
@@ -182,7 +184,7 @@ export class ModelFunction implements INode, IPersistent {
 
     _s:any = {};
 
-    tags:any = []; // TODO
+    tags:number[] = []; // TODO
 
     constructor(pConfig:any = null){
 
@@ -306,17 +308,22 @@ export class ModelFunction implements INode, IPersistent {
         return this.__s;
     }
 
-
-    hasTag(tagName:string):boolean{
-        return (this.tags.indexOf(tagName) > -1);
+    hasTag(vTag:Tag):boolean{
+        const uuid = vTag.getUUID()
+        for(let i=0; i<this.tags.length; i++){
+            if(this.tags[i]===uuid){
+                return true;
+            }
+        }
+        return false;
     }
 
-    getTags():string[]{
+    getTags():number[]{
         return this.tags;
     }
 
-    addTag(tag:string){
-        this.tags.push(tag);
+    addTag(vTag:Tag){
+        this.tags.push(vTag.getUUID());
     }
 
     /**

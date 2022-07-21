@@ -267,6 +267,7 @@ CODE_WEB_API.addAuthenticatedRoute(
 
                 // ========== LOGIC
                 const type:string = req.query.type;
+                const tmgr = project.getTagManager();
 
                 // collect
                 const  method:ModelMethod = project.find.get.method(Util.decodeURI(Util.b64_decode(req.params.id)));
@@ -282,6 +283,9 @@ CODE_WEB_API.addAuthenticatedRoute(
                     case "from":
                         Object.keys(method.getMethodUsed()).forEach(function (x) {
                             let m:ModelMethod = project.find.get.method(x);
+
+
+
                             tmp = {
                                 // method signature
                                 s: m.signature(),
@@ -318,6 +322,8 @@ CODE_WEB_API.addAuthenticatedRoute(
                         refs = method.getCallers();
                         //console.log(refs);
                         for (let i:number = 0; i < refs.length; i++) {
+                            const tags:number[] = [];
+
 
                             //r2 = $.project.find.get.method(refs[i]);
                             r2 = refs[i];
@@ -333,8 +339,12 @@ CODE_WEB_API.addAuthenticatedRoute(
                                 // return type signature
                                 r: (r2.getReturnType() != null ? r2.getReturnType().signature() : null),
                                 // tags
-                                tags: r2.getTags()
+                                tags: []
                             };
+
+                            r2.getTags().map( t => {
+                                tmp.tags.push(t.getUUID());
+                            });
                             // args signatures
                             tmp.p = [];
                             if (r2.hasArgs())

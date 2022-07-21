@@ -1057,6 +1057,7 @@ export default class DexcaliburDVM implements DexcaliburVM
      */
     invoke( pMethod:ModelMethod, pObj:DDVM_ClassInstance, pArgs:DDVM_Symbol[]):DDVM_Symbol{
         let opt = null;
+        const internTag = this.context.getTagManager().getTag("discover.internal");
 
         // if the method is hooked, then execute the hook instead
         // of initial method
@@ -1075,7 +1076,7 @@ export default class DexcaliburDVM implements DexcaliburVM
 
         // If mockAndroidInternals=TRUE,then invoke of Android Internal methods should be ignored
         // return value is symbolic
-        if(this.config.mockAndroidInternals && pMethod.hasTag('di')){
+        if(this.config.mockAndroidInternals && internTag.match(pMethod)){
             Logger.debugPink(`[DVM] [INVOKE] Android Internal method ignored by config (mockAndroidInternals) : ${pMethod.signature()}`);
             this.stack.pushReturn(new DDVM_Symbol(
                 DDVM_TypeHelper.getDataTypeOf(pMethod.ret),

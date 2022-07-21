@@ -11,7 +11,7 @@ import {
     ModelFieldReference,
     ModelMethodReference,
     ModelRegisterReference,
-    Tag,
+    CodeLabel,
     XRef
 } from "../../src/ModelReference";
 import ModelInstruction from "../../src/ModelInstruction";
@@ -46,7 +46,7 @@ export default class SerializedObject
         ModelConstantValue: ModelConstantValue,
         ModelStringValue: ModelStringValue,
         XRef: XRef,
-        Tag: Tag,
+        Tag: CodeLabel,
         Stub: Stub,
         File: ModelFile,
         ModelFile: ModelFile,

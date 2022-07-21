@@ -278,7 +278,7 @@ export class JavaHookBuilder{
      "@@__HOOK_ARGS2__@@": "",
      "@@__RET__@@": "",
      "@@__ARGS_VAL__@@": "",
-     "@@__HOOK_ID__@@": UT.b64_encode(this.id),
+     "@@__HOOK_ID__@@": this.id,
      "@@__CTX__@@":"",
      "@@__ARGS_DATA__@@":"null",
      "@@__RET_DATA__@@":"",
@@ -306,7 +306,7 @@ export class JavaHookBuilder{
             "@@__HOOK_ARGS_STUBS__@@": "",
             "@@__RET__@@": "",
             "@@__ARGS_VAL__@@": "",
-            "@@__HOOK_ID__@@": Util.b64_encode(pJavaHook.getGUID()),
+            "@@<__HOOK_ID__@@": pJavaHook.getGUID(),
             "@@__CTX__@@":"",
             "@@__ARGS_DATA__@@":"null",
             "@@__RET_DATA__@@":"",
@@ -372,9 +372,9 @@ export class JavaHookBuilder{
         // BEFORE insert
         if(pJavaHook.hasBeforeFragments()){
             script += this.mergeFragments(pJavaHook.getBefore(), tags);
-        }else{
+        }/*else{
             script += JavaHookBuilder.createDefaultBeforeFragment();
-        }
+        }*/
 
         if(pJavaHook.hasReplaceFragments()){
             script += this.mergeFragments(pJavaHook.getReplace(), tags);

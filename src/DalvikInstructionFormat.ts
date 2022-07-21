@@ -1,5 +1,5 @@
 import OpcodeSmaliParser from "./OpcodeSmaliParser";
-import {ModelMethodReference, ModelRegisterReference, Tag} from "./ModelReference";
+import {ModelMethodReference, ModelRegisterReference, CodeLabel} from "./ModelReference";
 import {CONST} from "./CoreConst";
 import ModelInstruction from "./ModelInstruction";
 import {ModelBasicType, ModelObjectType} from "./ModelType";
@@ -8,6 +8,7 @@ import Util from "./Utils";
 import ModelConstantValue from "./ModelConstantValue";
 
 import * as Log from './Logger';
+import {Tag} from "./tags/Tag";
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
 export default class DalvikInstructionFormat {
@@ -188,7 +189,7 @@ export default class DalvikInstructionFormat {
 
 
         instr.left = null;
-        instr.right = new Tag(m[m.length-1]);
+        instr.right = new CodeLabel(m[m.length-1]);
 
         return instr;
     }
@@ -201,7 +202,7 @@ export default class DalvikInstructionFormat {
 
         instr.left = new ModelRegisterReference(m[1], m[2]);//new CLASS.Variable(m[1],m[2]);
         //instr.right = new CLASS.Tag(':'+m[m.length-2]+"_"+m[m.length-1]);
-        instr.right = new Tag(m[m.length-1]);
+        instr.right = new CodeLabel(m[m.length-1]);
 
         return instr;
     }
@@ -214,7 +215,7 @@ export default class DalvikInstructionFormat {
 
         let m:RegExpExecArray = RX.TAG.exec(raw_src.substr(i+1));
         //instr.right = new CLASS.Tag(':'+m[m.length-2]+"_"+m[m.length-1]); //m[m.length-1]);
-        instr.right = new Tag(m[m.length-1]); //m[m.length-1]);
+        instr.right = new CodeLabel(m[m.length-1]); //m[m.length-1]);
 
 
         return instr;
@@ -246,17 +247,17 @@ export default class DalvikInstructionFormat {
         return instr;
     }
 
-    static setstring(src:string[],raw_src:string):ModelInstruction{
+    static setstring(src:string[],raw_src:string,pTags:any):ModelInstruction{
         let instr:ModelInstruction = new ModelInstruction();
         let m:RegExpExecArray = (new RegExp(PATTERN.STR_INSTR)).exec(raw_src);
 
 
-        instr.tags.push(CONST.TAG.STRING);
+        instr.tags.push(pTags.STRING);
         instr.left = new ModelRegisterReference(m[1], m[2]);//new CLASS.Variable(m[1],m[2]);
         //instr.left.tags.push(CONST.TAG.STRING);
 
         instr.right = new ModelConstantValue(
-            m[3], [CONST.TAG.STRING,CONST.TAG.STRING_DECL]
+            m[3], [pTags.STRING,pTags.STRING_DECL]
         );
 
         return instr;

@@ -1,14 +1,10 @@
-
 import ModelMetadata from "./ModelMetadata";
 import ModelClass from './ModelClass';
 import {NodeType} from "./persist/orm/NodeType";
 import {NodeInternalType} from "./NodeInternalType";
-import {NodeProperty} from "./persist/orm/NodeProperty";
-import {DbDataType, DbKeyType, DbSerialize} from "./persist/orm/DbAbstraction";
-import DataScope from "./DataScope";
-import ModelFileSection from "./ModelFileSection";
 import {IPersistent} from "./persist/orm/IPersistent";
 import {DataSourceHelper} from "./DataSourceHelper";
+import {Savable, STUB_TYPE} from "./ModelSavable";
 
 
 /**
@@ -16,7 +12,7 @@ import {DataSourceHelper} from "./DataSourceHelper";
  * 
  * @class
  */
-export default class ModelPackage implements IPersistent
+export default class ModelPackage extends Savable implements IPersistent
 {
 
     static TYPE:NodeType = (new NodeType( "code_package", NodeInternalType.PACKAGE, [])).dataSource(DataSourceHelper.MEM, "package");
@@ -57,7 +53,7 @@ export default class ModelPackage implements IPersistent
      * @type {string|number|Tag}
      * @field
      */
-    tags:string[];
+    tags:number[];
 
     /**
      * Alias
@@ -78,6 +74,8 @@ export default class ModelPackage implements IPersistent
      * @constructor 
      */
     constructor(pName:string){
+        super(STUB_TYPE.PACKAGE);
+
         this.name = pName;
         this.sname = pName.split('.').pop();
         this.children = [];
@@ -147,36 +145,6 @@ export default class ModelPackage implements IPersistent
         return absz;
     }
 
-    /**
-     * To verify if the package is tagged or not
-     * 
-     * @param {String} pTagName Tag name
-     * @function
-     */
-    addTag(pTagName:string){
-        this.tags.push(pTagName);
-    }
-
-    /**
-     * To verify if the package is tagged or not
-     * 
-     * @param {String} pTagName Tag name
-     * @returns {Boolean} TRUE if the package is tagged, else FALSE 
-     * @function
-     */
-    hasTag(pTagName:string):boolean{
-        return this.tags.indexOf(pTagName)>-1; 
-    }
-
-    /**
-     * To get tags of this package
-     * 
-     * @returns {Tag[]|String[]} A list of tags
-     * @function
-     */
-    getTags():string[]{
-        return this.tags;   
-    }   
 
     setAlias( pAlias:string):void {
         this.alias = pAlias;

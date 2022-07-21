@@ -115,9 +115,9 @@ export class ModelObjectType extends Savable
     arr:boolean = false;
     _name:string = null;
     _hashcode:string = null;
-    tags:string[] = null;
+    tags:number[] = null;
 
-    constructor(pFQCN:string=null, isArray:boolean=false) {
+    constructor(pFQCN:string=null, isArray=false) {
         super(STUB_TYPE.OBJ_TYPE);
 
         if(pFQCN!==null){
@@ -177,18 +177,6 @@ export class ModelObjectType extends Savable
         obj.arr = this.arr;
         obj.primitive = false;
         return obj;
-    }
-
-    addTag(tag:string){
-        this.tags.push(tag);
-    }
-
-    hasTag(tagName:string):boolean{
-        return this.tags.indexOf(tagName)>-1;
-    }
-
-    getTags():string[]{
-        return this.tags;
     }
 
     isArray():boolean{

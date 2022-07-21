@@ -152,6 +152,8 @@ export default class SqliteDbCollection implements IDbCollection
                     ctx: DexcaliburEngine.getInstance(),
                     p: o[vPpt.getName()]
                 })
+            }else if(!vPpt.isVolatile() && vPpt.isSerialized()){
+                o[vPpt.getName()] = this._s._unserializeProperty(o, vPpt);
             }
         });
 
@@ -234,6 +236,7 @@ export default class SqliteDbCollection implements IDbCollection
                 if(!pForce && pk != null && (obj = this._cache.getEntry( vEntry[pk], pk ))!=null){
                     all.push( obj);
                 }else{
+                    Logger.raw(JSON.stringify(vEntry))
                     obj = this._relink(vEntry);
                     this._cache.push(obj);
                     all.push( obj);

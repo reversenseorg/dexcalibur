@@ -484,7 +484,7 @@ export default class Hook
             "@@__FN_ADDR__@@": "0x"+pFn.getAddr().toString(16),
             "@@__FN_UID__@@": _md5_(pFn.signature()),
             "@@__VAR__@@": "v"+_md5_(this.id)+"_VAR",
-            "@@__HOOK_ID__@@": Util.b64_encode(this.id),
+            "@@__HOOK_ID__@@": this.id,
             "@@__MSG__@@": "Native:"+pFn.getDeclaringFile()+':'+pFn.getSymbol(),
         };
 
@@ -753,7 +753,7 @@ export default class Hook
             "@@__HOOK_ARGS2__@@": "",
             "@@__RET__@@": "",
             "@@__ARGS_VAL__@@": "",
-            "@@__HOOK_ID__@@": Util.b64_encode(this.id),
+            "@@__HOOK_ID__@@": this.id,
             "@@__CTX__@@":"",
             "@@__ARGS_DATA__@@":"null",
             "@@__RET_DATA__@@":"",
@@ -884,7 +884,7 @@ export default class Hook
             "@@__HOOK_ARGS2__@@": "",
             "@@__RET__@@": "",
             "@@__ARGS_VAL__@@": "",
-            "@@__HOOK_ID__@@": Util.b64_encode(this.id),
+            "@@__HOOK_ID__@@": this.id,
             "@@__CTX__@@":"",
             "@@__ARGS_DATA__@@":"null",
             "@@__RET_DATA__@@":""

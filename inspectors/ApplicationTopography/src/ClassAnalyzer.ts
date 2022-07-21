@@ -17,15 +17,16 @@ export default class ClassAnalyzer
             return false;
         }
 
+        const platformInternal_tag = _context_.getTagManager().getTag("discover.internal");
         let used=null, dep = {}, meth=null, cs=null;
         for(let i in cls.methods){
             used = cls.methods[i].getMethodUsed();
 
-            for(let methSign in used){
+            for(const methSign in used){
                 meth = _context_.find.get.method(methSign); 
                 if(meth == null) continue;
                 
-                if(meth.hasTag(TAG.Discover.Internal)){
+                if(platformInternal_tag.match(meth)){
                     if(dep[meth.enclosingClass.name]==null)
                         dep[meth.enclosingClass.name] = {};
 

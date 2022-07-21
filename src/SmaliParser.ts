@@ -74,6 +74,8 @@ export default class SmaliParser
     obj:ModelClass = null;
     objReady:any = false;
 
+    opcodeParser:OpcodeSmaliParser;
+
     __tmp_meth:ModelMethod = null;
     __tmp_block:ModelBasicBlock|ModelDataBlock = null;
 
@@ -84,13 +86,19 @@ export default class SmaliParser
 
     self:any = this;
 
-    constructor(context:DexcaliburProject=null){
-        this.ctx = context;
+    constructor(pContext:DexcaliburProject=null){
+        if(pContext!=null)
+            this.setContext(pContext)
     }
 
-
+    /**
+     * To set the context of this parser
+     *
+     * @param context
+     */
     setContext(context:DexcaliburProject):void{
         this.ctx = context;
+        this.opcodeParser = new OpcodeSmaliParser(this.ctx);
     }
 
     isModifier(name:string):boolean{
@@ -429,7 +437,7 @@ export default class SmaliParser
     instr(src:string[], raw_src:string, src_line:number):ModelInstruction{
         let inst:ModelInstruction = null;//new Instruction();
 
-        inst = OpcodeSmaliParser.parse(src,raw_src, src_line);
+        inst = this.opcodeParser.parse(src,raw_src, src_line);
 
         if(inst != null){
             //console.log(inst);
@@ -528,7 +536,7 @@ export default class SmaliParser
             case CONST.LEX.STRUCT.PARAMS:
                 // this.__tmp_meth.params = parseInt(sml[1],10);
                 this.__tmp_meth.params.push(
-                    OpcodeSmaliParser.parseParam(sml, raw_src, src_line)// TODO : sml[1] replaced by sml[]
+                    this.opcodeParser.parseParamInContext(sml, raw_src, src_line)// TODO : sml[1] replaced by sml[]
                 );
                 
                 break;

@@ -14,7 +14,7 @@ import Util from "./Utils";
 import {NativeAnalyzerCommands} from "./analyzer/NativeAnalyzerCommands";
 import {DATATYPE_CATEGORY, TypeManager} from "./types/TypeManager";
 import {DataType} from "./types/DataType";
-import {TagManager} from "./TagManager";
+import {TagManager} from "./tags/TagManager";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -188,7 +188,6 @@ export default class RadareHelper
                     if(vFn.name.startsWith('sym.imp.')){
                         f.symbol = vFn.name.substring(8);
                     }else{
-                        f.addTag( )
                         f.symbol = vFn.name.substring(4);
                     }
                 }

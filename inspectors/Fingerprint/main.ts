@@ -55,6 +55,7 @@ var FingerprintInspector:InspectorFactory = new InspectorFactory({
                 emitEvent: "fingerprint.device.getId",
                 replace: `  
             
+                        ret = "fakeID";
                         DXC.send({
                             hid: "@@__HOOK_ID__@@",
                             fid: "@@__FRAG_ID__@@",
@@ -79,7 +80,6 @@ var FingerprintInspector:InspectorFactory = new InspectorFactory({
                             action: "Bypass" 
                         });*/
             
-                        return "fakeID";
                 `
             }
         ]

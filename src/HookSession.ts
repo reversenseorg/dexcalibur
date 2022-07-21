@@ -17,6 +17,7 @@ import {WebsocketSession} from "./WebsocketSession";
 import * as Log from "./Logger";
 import HookMessageV2 from "./hook/HookMessageV2";
 import {RuntimeEvent, RuntimeEventType} from "./hook/RuntimeEvent";
+import {HookMessageException} from "./errors/HookMessageException";
 
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
@@ -45,7 +46,7 @@ export default class HookSession extends WebsocketSession
      * @field
      */
     message:RuntimeEvent<HookMessageV2>[] = [];
-    // message:HookMessage[] = [];
+    //message:HookMessageV2[] = [];
 
     /**
      * The associated HookManager
@@ -83,7 +84,7 @@ export default class HookSession extends WebsocketSession
      * @param {HookManager} manager
      * @constructor
      */
-    constructor(manager) {
+    constructor(manager: HookManager) {
         super();
 
         // hook
@@ -147,7 +148,7 @@ export default class HookSession extends WebsocketSession
      *
      * @method
      */
-    push(msg:any){
+    push(pRawMsg:any){
 
         const hm:HookMessageV2 = new HookMessageV2();
         const ev:RuntimeEvent<HookMessageV2> = new RuntimeEvent<HookMessageV2>({
@@ -156,17 +157,17 @@ export default class HookSession extends WebsocketSession
             node: null
         });
 
-        if(msg.type == "error") return null;
+        //if(pRawMsg.type == "error") return null;
 
         // TODO : mettre tout 'msg' dans 'hm' ou 'hm.data'
 
         // console.log(msg);
+        if(pRawMsg.hid == null) throw HookMessageException.MISSING_HOOK_ID();
+        if(pRawMsg.fid == null) throw HookMessageException.MISSING_FRAG_ID();
 
-        // message are bound to fragment and not hook
-        if(msg.payload.id != undefined && msg.payload.id != null){
-            //hook = this.hookManager.findHook(UT.b64_decode(msg.payload.id));
-           // hm.hook = msg.payload.id;
-        }
+        hm.hook = this.hookManager.getHookByID(pRawMsg.hid);
+
+        hm.frag = hm.hook.getFragment(pRawMsg.fid);
 
         // 'match' is not yet used because fragment/keypoint allow to issue hook message conditionnaly & agent-side
         // hm.match = (msg.payload.match!=null)? msg.payload.match : false;
@@ -174,7 +175,7 @@ export default class HookSession extends WebsocketSession
         // 'msg' is informational text such as FQCN or signature of method hooked
         // hm.msg = msg.payload.msg;
 
-        hm.data = msg.payload.data;
+        hm.data = pRawMsg.data;
 
         // 'Action' is already known by fragment
         // hm.action = msg.payload.action;
@@ -189,18 +190,27 @@ export default class HookSession extends WebsocketSession
         //Logger.raw(JSON.stringify(hm));
 
         // cache hook msg
-        this.message.push(hm);
+        this.message.push(ev);
 
         // TODO : send raw hook message only if specified
-        if(this.opts.rawOutput){
-            this.send(hm);
-        }else{
+
+        this.send({
+            data: pRawMsg.data,
+            node: {
+                __: hm.hook.getTarget()!=null ?  hm.hook.getTarget().__ : null,
+                uid: hm.hook.getTarget()!=null ?  hm.hook.getTarget().getUID() : null
+            },
+            hook: {
+                __: hm.hook.__,
+                uid: hm.hook.getGUID(),
+            },
+            frag:  hm.frag.getUID()
+        });
+
+        if(!this.opts.rawOutput){
             // process hook message as RuntimeEvent
-            this.hookManager.newRuntimeEvent(new RuntimeEvent<HookMessageV2>({
-                type: RuntimeEventType.HOOK,
-                raw: hm,
-                node: null
-            }));
+            // this.send(ev);
+            //this.hookManager.newRuntimeEvent(ev);
         }
 
         // TODO : remove 'match' from hook message template
@@ -214,14 +224,14 @@ export default class HookSession extends WebsocketSession
     /**
      * @method
      */
-    hasMessages( pOffset:number=0){
+    hasMessages( pOffset=0):boolean{
         return this.message.length > pOffset;
     }
 
     /**
      * @method
      */
-    messages():RuntimeEvent<HookMessageV2>{
+    messages():RuntimeEvent<HookMessageV2>[]{
         return this.message;
     }
 
@@ -233,7 +243,7 @@ export default class HookSession extends WebsocketSession
      * @method
      */
     getMessages( pOffset:number, pSize:number ):HookMessage[]{
-        let arr = [];
+        const arr = [];
         for(let i=pOffset; i<pOffset+pSize; i++){
             // not null and not undefined
             if(this.message[i] != null){
@@ -247,7 +257,7 @@ export default class HookSession extends WebsocketSession
     /**
      * @method
      */
-    toJsonObject( pOffset:number=0, pSize:number=-1):any{
+    toJsonObject( pOffset=0, pSize=-1):any{
         let o:any = new Object(), limit:number=pSize;
         o.message = [];
         o.active = this.active;

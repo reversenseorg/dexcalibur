@@ -18,6 +18,9 @@ import {NodeInternalType} from "../NodeInternalType";
 import KeyPoint from "../hook/KeyPoint";
 import HookStrategy from "../hook/HookStrategy";
 import HookFragmentPreset from "../hook/HookFragmentPreset";
+import {RuntimeEvent} from "../hook/RuntimeEvent";
+import HookMessageV2 from "../hook/HookMessageV2";
+import {INode} from "../INode";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 export const HOOK_WEB_API: DelegateWebApi = new DelegateWebApi();
@@ -693,14 +696,21 @@ HOOK_WEB_API.addAuthenticatedRoute(
                             sess.map( (vHSess:HookSession)=>{
                                 if (!vHSess.hasMessages()) return;
 
-                                let s:any  = {msg:[]};
-                                vHSess.messages().map( (vMsg:HookMessage)=>{
-                                    if(vMsg.msg===signature){
-                                        s.msg.push(vMsg);
-                                    }
-                                })
+                                const s:any  = {msg:[]};
+                                const msgs = vHSess.messages();
+                                let match = false;
 
-                                if(s.msg.length>0){
+                                for(let i=0; i<msgs.length; i++){
+
+                                    msgs[i].node.map( (vNode:INode)=>{
+                                        if(vNode.getUID()===signature){
+                                            match = true;
+                                        }
+                                    });
+                                    if(match) break;
+                                }
+
+                                if(match){
                                     data.sess.push(s);
                                 }
                             });
@@ -828,7 +838,8 @@ HOOK_WEB_API.addAuthenticatedRoute(
                 opts.loadKP = (req.body['loadkp']!=null ? project.getKeyPointManager().getKeyPoint(req.body['loadkp']) : null);
                 opts.unloadKP = (req.body['unloadkp']!=null ? project.getKeyPointManager().getKeyPoint(req.body['unloadkp']) : null);
                 opts.location = req.body['loc'];
-                opts.weight = req.body['weight']
+                opts.weight = req.body['weight'];
+                opts.behavior = req.body['behavior'];
 
 
                 probe = project.hook.getProbe(meth, opts);
@@ -839,25 +850,31 @@ HOOK_WEB_API.addAuthenticatedRoute(
                         probe = project.hook.createNativeFunctionHook(meth as ModelFunction, opts);
                     }
                     probe.build(project);
-                }else{
+                }
+
+                if(probe != null || opts.behavior != null){
                     // modify hook to merge existing with new
-                    probe.extends( opts);
+                    probe.extends( opts.behavior);
                 }
 
                 // add fragment
-                const fragOpts = req.body['frag'];
-                if(fragOpts != null){
+                //const fragOpts = req.body['frag'];
+                if(opts.behavior != null){
 
-                    if(fragOpts.before){
+                    if(opts.location.before){
                         probe.appendBefore(
-                            project.hook.presets.generateFragment(fragOpts, probe, fragOpts)
+                            project.hook.presets.generateFragment(probe, opts.behavior, 'before')
                         );
                     }
-                    if(fragOpts.after){
+                    if(opts.location.after){
                         probe.appendAfter(
-                            project.hook.presets.generateFragment(fragOpts, probe, fragOpts)
+                            project.hook.presets.generateFragment(probe, opts.behavior, 'before')
                         );
-
+                    }
+                    if(opts.location.replace){
+                        probe.appendAfter(
+                            project.hook.presets.generateFragment(probe, opts.behavior, 'replace')
+                        );
                     }
                 }
 

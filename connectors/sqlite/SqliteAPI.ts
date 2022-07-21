@@ -63,6 +63,50 @@ export class SqliteAPI {
         return res;
     }
 
+    /**
+     * To serialize a node property
+     *
+     * @param pObject
+     * @param pProperties
+     * @private
+     */
+    _unserializeProperty( pObject:any, pProperty:NodeProperty):string {
+
+        const name = pProperty.getName();
+        let res:any = null;
+
+        switch(pProperty.getSerializeMethod()){
+            case DbSerialize.JSON:
+                /*if(pProperty.isMultiple()){
+                    res = [];
+                    const tmp =  JSON.parse(res);
+                    if(Array.isArray(pObject[name])){
+                        if(pObject[name].length > 0){
+                            res = [];
+                            pObject[name].map( (val:any) => {
+                                res.push(val.hasOwnProperty('toJsonObject')? val.toJsonObject() : val[name]);
+                            })
+                        }else{
+                            res = pObject[name];
+                        }
+                    }
+                }else{
+                    //res = pObject[name].hasOwnProperty('fromJsonObject')? pProperty.builder.fromJsonObject(pObject[name]) : pObject[name];
+
+                    res = JSON.parse(res);
+                }*/
+
+                res = JSON.parse(pObject[name]);
+
+                break;
+            case DbSerialize.RAW:
+                res = pObject[name];
+                break;
+        }
+
+        return res;
+    }
+
     _prepareParams( pObject:any, pNodeType:NodeType, pSubset:string[] = null):any {
 
         const pars:any = {};

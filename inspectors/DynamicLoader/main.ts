@@ -448,6 +448,7 @@ export default new InspectorFactory({
             //console.log(event);
             if (event == null || event.data == null) return false;
 
+            const tmgr = ctx.getTagManager();
             let data:any = event.data, caller:ModelMethod = null, callers:any = null;
             let meth:ModelMethod;
 
@@ -486,8 +487,9 @@ export default new InspectorFactory({
             }
 
             // tag the method as "invoked dynamically"
-            if (!meth.hasTag(TAG.Invoked.Dynamically))
-                meth.addTag(TAG.Invoked.Dynamically);
+            const DYN_CALL_TAG = tmgr.getTag("code.call.dynamic");
+
+            meth.addTag(DYN_CALL_TAG);
 
             // update callers of the calleed methods
             // console.log('caller:',caller);
@@ -500,7 +502,7 @@ export default new InspectorFactory({
                 calleed: meth,
                 instr: null,
                 line: data.__hidden__trace[2].line,
-                tags: [TAG.Invoked.Dynamically]
+                tags: [DYN_CALL_TAG.getUUID()]
             });
 
             caller.addMethodUsed(meth, call);
@@ -521,8 +523,9 @@ export default new InspectorFactory({
             }
 
 
-            if (!cls.hasTag(TAG.Discover.Dynamically))
-                cls.addTag(TAG.Discover.Dynamically);
+            const DYN_CALL_TAG = ctx.getTagManager().getTag("code.call.dynamic");
+
+            cls.addTag(DYN_CALL_TAG);
         },
 
         "hook.dex.classloader.new": function (ctx:DexcaliburProject, event:BusEvent):void {
@@ -535,6 +538,9 @@ export default new InspectorFactory({
 
             if(event.data==null) return;
 
+            const platform_tag = ctx.getTagManager().getTag("discover.internal");
+            const sast_tag = ctx.getTagManager().getTag("discover.static");
+            const dast_tag = ctx.getTagManager().getTag("discover.dynamic");
 
             let rtWorkingDir = ctx.workspace.getRuntimeBcDir();
             let dexFileName = _path_.basename(event.data.arg0);
@@ -591,6 +597,7 @@ export default new InspectorFactory({
                         let destFolder = _path_.join(rtWorkingDir, dexFileName, "smali");
                         (async function () {
                             let f:ModelFile;
+
                             try{
                                 Logger.info("[DYNAMIC LOADER] Indexing DEX file");
                                 f = new ModelFile({
@@ -618,11 +625,9 @@ export default new InspectorFactory({
 
                                     // attach dex file to discovered class as src file
                                     ctx.analyze.tagAllIf(
-                                        function(k,x){
-                                            return (x.hasTag(TAG.Discover.Internal)==false)
-                                                && (x.hasTag(TAG.Discover.Statically)==false);
-                                        },
-                                        TAG.Discover.Dynamically);
+                                        (k,x)=>{
+                                            return (!platform_tag.match(x) && !sast_tag.match(x));
+                                        },dast_tag);
 
 
                                     /*f = new ModelFile({
@@ -632,13 +637,8 @@ export default new InspectorFactory({
                                     });*/
 
 
-
-
-
                                     //inspector.getDB().getIndex('dex',null).addEntry(f);
                                     //inspector.save();
-
-
                                 } else {
                                     Logger.error('[DYNAMIC LOADER] Runtime DEX analysis failed.')
                                 }

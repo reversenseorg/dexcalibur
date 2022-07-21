@@ -1,3 +1,5 @@
+import {AbstractHook} from "./AbstractHook";
+import HookTemplateFragment from "./HookTemplateFragment";
 
 
 export default class HookMessageV2
@@ -36,6 +38,10 @@ export default class HookMessageV2
      */
     event?:string = null;
 
+    hook?:AbstractHook;
+
+    frag?:HookTemplateFragment;
+
 
     /**
      * To represent a message sent by a hook from the device to the desktop
@@ -48,6 +54,15 @@ export default class HookMessageV2
         }
         return this;
     }
+
+    getFragment():HookTemplateFragment  {
+        return this.frag;
+    }
+
+    getHook():AbstractHook  {
+        return this.hook;
+    }
+
     /**
      * To make an instance of Object which not contain circular reference
      * and which are ready to be serialized.

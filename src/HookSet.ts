@@ -360,7 +360,7 @@ export default class HookSet
      * To deploy this hook set
      */
     deploy(){
-        let hookManager:HookManager = this.context.hook; //ctx.hook;
+        let hookManager:HookManager = this.context.hook;
         let hook:Hook;
 
         // if the hookset is already deployed only not deployed hooks are generated
@@ -382,72 +382,10 @@ export default class HookSet
                 */
 
         this.strats.map( (vStrat)=>{
-
             // generate hook templates
             vStrat.run(this.context);
-
-            /*
-            vStrat.hooks.map( (vHook)=>{
-                if(this.hooks[vHook.getUID()] == null){
-
-                }else{
-                   // this.hooks[vHook.getUID()]
-                }
-
-
-                hookManager.hooks.push(this.hooks[i]);
-
-                if(hook.onMatch != null)
-                    hookManager.addMatchListener(hook.getID(),hook.onMatch);
-            });
-
-            /*
-            if(this.hooks[i] == null){
-                hook = this.probes[i].toProbe(this.context, this);
-
-                console.log("[PROBE][HOOK SET] Add : ",hook.name)
-                //this.probes[i] = hook;
-                this.hooks[i] = hook;
-                hookManager.hooks.push(this.hooks[i]);
-
-                if(hook.onMatch != null)
-                    hookManager.addMatchListener(hook.getID(),hook.onMatch);
-            }*/
         });
 
-        /*
-        for(let i in this.probes){
-            if(this.hooks[i] == null){
-                hook = this.probes[i].toProbe(this.context, this);
-
-                console.log("[PROBE][HOOK SET] Add : ",hook.name)
-                //this.probes[i] = hook;
-                this.hooks[i] = hook;
-                hookManager.hooks.push(this.hooks[i]);
-
-                if(hook.onMatch != null)
-                    hookManager.addMatchListener(hook.getID(),hook.onMatch);
-            }
-        }
-
-        for(let i in this.intercepts){
-            if(this.hooks[i] == null){
-                hook = this.intercepts[i].toIntercept(this.context, this);
-
-                if(hook.isCustomHook())
-                    Logger.info("[INTERCEPT][HOOK SET][CUSTOM] Add : ",hook.name)
-                else
-                    Logger.info("[INTERCEPT][HOOK SET] Add : ",hook.name)
-
-                //this.intercepts[i] = hook;
-
-                this.hooks[i] = hook;
-                hookManager.hooks.push(this.hooks[i]);
-
-                if(hook.onMatch != null)
-                    hookManager.addMatchListener(hook.getID(),hook.onMatch);
-            }
-        }*/
 
         this.enable = true;
     }

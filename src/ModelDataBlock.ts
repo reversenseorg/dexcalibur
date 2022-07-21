@@ -1,13 +1,42 @@
 import ModelMethod from "./ModelMethod";
+import {Savable, STUB_TYPE} from "./ModelSavable";
+import {NodeInternalType} from "./NodeInternalType";
+import {NodeType} from "./persist/orm/NodeType";
+import {NodeProperty} from "./persist/orm/NodeProperty";
+import {DbDataType, DbKeyType, DbSerialize} from "./persist/orm/DbAbstraction";
+import {ValidationRule} from "./Validator";
+import DataScope from "./DataScope";
+import ModelFileSection from "./ModelFileSection";
 
 
-export default class ModelDataBlock
+export default class ModelDataBlock extends Savable
 {
+    static TYPE:NodeType = new NodeType(
+        "data_block",
+        NodeInternalType.DATA_BLOCK,
+        [
+            (new NodeProperty("uid")).type(DbDataType.STRING).key(DbKeyType.PRIMARY), // path relative to scope root
+            (new NodeProperty("line")).type(DbDataType.NUMERIC).def(null),
+            (new NodeProperty("offset")).type(DbDataType.NUMERIC).def(null),
+            (new NodeProperty("name")).type(DbDataType.STRING).def(null),
+            (new NodeProperty("length")).type(DbDataType.NUMERIC).def(0),
+            (new NodeProperty("values")).type(DbDataType.BLOB).def(null),
+            (new NodeProperty("location")).type(DbDataType.STRING).def(null),
+            (new NodeProperty("tags")).type(DbDataType.STRING).serialize(DbSerialize.JSON),
+            (new NodeProperty("virtual64")).type(DbDataType.BOOLEAN).def(false),
+            (new NodeProperty("width")).type(DbDataType.NUMERIC).def(1),
+            (new NodeProperty("_d")).type(DbDataType.STRING).def('f'),
+            (new NodeProperty("_d")).type(DbDataType.STRING).def('f'),
+
+            (new NodeProperty("parent")).single(ModelMethod.TYPE),
+        ]);
+
+    __:NodeInternalType = NodeInternalType.DATA_BLOCK;
+
     line:number = -1;
     offset:number = -1;
-    stack = [];
+    //stack = [];
     tag = null;
-    tags:string[] = [];
     name:string = null;
     values:any = [];
     width:number = 0;
@@ -17,6 +46,7 @@ export default class ModelDataBlock
     parent:ModelMethod = null;
 
     constructor(dataWidth:number=null){
+        super(STUB_TYPE.BYTE_ARRAY);
 
         this.width = dataWidth;
         this.virtual64 = false;
@@ -101,8 +131,7 @@ export default class ModelDataBlock
             if(this[i]==null) continue;
             switch(i){
                 case "tags":
-                    if(this.tags.length > 0)
-                        o[i] = this[i];
+                    o[i] = this[i];
                     break;
                 case "line":
                 case "offset":
@@ -123,7 +152,7 @@ export default class ModelDataBlock
                     break;
             }
         }
-        console.log(JSON.stringify(this.values));
         return o;
     }
 }
+ModelDataBlock.TYPE.builder(ModelDataBlock);

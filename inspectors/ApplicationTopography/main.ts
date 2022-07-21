@@ -42,23 +42,37 @@ const TAGS_SIGNATURE = {
     }
 }
 
-function tagByIntent(event:BusEvent):void {
-    let intents:IntentFilter[] = event.data.obj.getIntentFilters();
+function tagByIntent(context:DexcaliburProject, event:BusEvent):void {
+    const intents:IntentFilter[] = event.data.obj.getIntentFilters();
     intents.map(i => {
         i.getActions().map(a => {
-            let t:any = TAGS_SIGNATURE.action[a.getName()];
+            const t:any = TAGS_SIGNATURE.action[a.getName()];
             if (t != null) {
                 event.data.obj.addTag(t);
             }
         });
 
         i.getCategories().map(a => {
-            let t:any = TAGS_SIGNATURE.category[a.getName()];
+            const t:any = TAGS_SIGNATURE.category[a.getName()];
             if (t != null) {
                 event.data.obj.addTag(t);
             }
         });
     });
+}
+
+
+function tagByAttr(context:DexcaliburProject, pAttr:any, event:BusEvent):void {
+
+    let t:any;
+    for (const i in pAttr) {
+        t = TAGS_SIGNATURE.category[i];
+        if (t != null) {
+            if (pAttr[i] == t.value) {
+                event.data.obj.addTag(t.tag);
+            }
+        }
+    }
 }
 
 function isRelativeName(pName){
@@ -74,7 +88,8 @@ export default new InspectorFactory({
     useGUI: true,
 
     tags : {
-        "intent.action": ["browsable", "exported"]
+        "intent.action": ["browsable", "exported"],
+        "topo.android":["ACTIVITY","RECEIVER","PROVIDER","SERVICE"]
     },
 
     hookSet: {
@@ -85,7 +100,7 @@ export default new InspectorFactory({
 
     eventListeners: {
         "app.activity.new": function (ctx:DexcaliburProject, event:BusEvent):any {
-        
+
             // to retrieve class implementign this activity
             let t:any;
             let cls:ModelClass;
@@ -99,24 +114,17 @@ export default new InspectorFactory({
 
             if(cls != null) {
                 event.data.obj.setImplementedBy(cls);
-                cls.addTag("ACTIVITY");
+                cls.addTag( ctx.getTagManager().getTag("topo.android.ACTIVITY"));
             }
 
             act = event.getData().obj;
-            // tag by intent filter  
-            tagByIntent(event);
 
+            // tag by intent filter  
+            tagByIntent(ctx, event);
 
             // tag by attributes
-            let attr:any = act.getAttributes();
-            for (let i in attr) {
-                t = TAGS_SIGNATURE.category[i];
-                if (t != null) {
-                    if (attr[i] == t.value) {
-                        event.data.obj.addTag(t.tag);
-                    }
-                }
-            }
+            tagByAttr(ctx, act.getAttributes(), event);
+
     
             // search dependencies to platform method and class
             if (ClassAnalyzer.searchInternalDependencies(ctx, event.data.obj) === true) {
@@ -137,24 +145,18 @@ export default new InspectorFactory({
             let t:any;
             if (cls instanceof ModelClass) {
                 event.data.obj.setImplementedBy(cls);
-                cls.addTag("RECEIVER");
+                cls.addTag(ctx.getTagManager().getTag("topo.android.RECEIVER"));
             }
-    
-    
-            // tag by intent filter  
-            tagByIntent(event);
-    
-    
+
+
+
+            // tag by intent filter
+            tagByIntent(ctx, event);
+
             // tag by attributes
-            let attr = event.data.obj.getAttributes();
-            for (let i in attr) {
-                t = TAGS_SIGNATURE.category[i];
-                if (t != null) {
-                    if (attr[i] == t.value) {
-                        event.data.obj.addTag(t.tag);
-                    }
-                }
-            }
+            tagByAttr(ctx, event.data.obj.getAttributes(), event);
+
+
     
             // search dependencies to platform method and class
             if (ClassAnalyzer.searchInternalDependencies(ctx, event.data.obj) === true) {
@@ -174,24 +176,15 @@ export default new InspectorFactory({
             let t:any;
             if (cls instanceof ModelClass) {
                 event.data.obj.setImplementedBy(cls);
-                cls.addTag("PROVIDER");
+                cls.addTag(ctx.getTagManager().getTag("topo.android.PROVIDER") );
             }
-    
-    
+
+
             // tag by intent filter  
-            tagByIntent(event);
-    
-    
+            tagByIntent(ctx, event);
+
             // tag by attributes
-            let attr = event.data.obj.getAttributes();
-            for (let i in attr) {
-                t = TAGS_SIGNATURE.category[i];
-                if (t != null) {
-                    if (attr[i] == t.value) {
-                        event.data.obj.addTag(t.tag);
-                    }
-                }
-            }
+            tagByAttr(ctx, event.data.obj.getAttributes(), event);
     
             // search dependencies to platform method and class
             if (ClassAnalyzer.searchInternalDependencies(ctx, event.data.obj) === true) {
@@ -212,23 +205,15 @@ export default new InspectorFactory({
                 let t:any;
                 if (cls instanceof ModelClass) {
                     event.data.obj.setImplementedBy(cls);
-                    cls.addTag("SERVICE");
+                    cls.addTag(ctx.getTagManager().getTag("topo.android.SERVICE") );
                 }
-        
-                // tag by intent filter  
-                tagByIntent(event);
-        
-        
+
+
+                // tag by intent filter
+                tagByIntent(ctx, event);
+
                 // tag by attributes
-                let attr = event.data.obj.getAttributes();
-                for (let i in attr) {
-                    t = TAGS_SIGNATURE.category[i];
-                    if (t != null) {
-                        if (attr[i] == t.value) {
-                            event.data.obj.addTag(t.tag);
-                        }
-                    }
-                }
+                tagByAttr(ctx, event.data.obj.getAttributes(), event);
         
                 // search dependencies to platform method and class
                 if (ClassAnalyzer.searchInternalDependencies(ctx, event.data.obj) === true) {

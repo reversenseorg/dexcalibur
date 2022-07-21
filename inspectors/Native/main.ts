@@ -45,70 +45,45 @@ var NativeLibraryInspector:InspectorFactory = new InspectorFactory({
                 ctx.getInspector("NativeLibrary").emits("hook.nativelib.inject",event);
             },*/
             replace: `
-                    send({ 
-                        id:"@@__HOOK_ID__@@", 
-                        match: false, 
-                        data: {path:arg0},
-                        after: false, 
-                        msg: "Native inspector (@@__METHSIGN__@@)", 
-                        tags: [{
-                            style:"success",
-                            text: "native"
-                        }], 
-                        action: "None" 
+            
+            DXC.send({
+                hid: "@@__HOOK_ID__@@",
+                fid: "@@__FRAG_ID__@@",
+                data: {
+                    path: arg0,
+                    when: 'before'
+                }
+            });
+                    
+        
+            try { 
+                const loaded = DEXC_MODULE.common.class.java.lang.Runtime.getRuntime().loadLibrary0(
+                    DEXC_MODULE.common.class.dalvik.system.VMStack.getCallingClassLoader(), arg0); 
+
+                if(arg0 === 'MY_LIB') { 
+                
+                    DXC.send({
+                        hid: "@@__HOOK_ID__@@",
+                        fid: "@@__FRAG_ID__@@",
+                        data: {
+                            path: arg0,
+                            when: 'after_MY_LIB'
+                        }
                     });
-        
-                    try { 
-                        const loaded = DEXC_MODULE.common.class.java.lang.Runtime.getRuntime().loadLibrary0(
-                            DEXC_MODULE.common.class.dalvik.system.VMStack.getCallingClassLoader(), arg0); 
-        
-                        if(arg0 === 'MY_LIB') { 
-                            /*
-                            var mylib = Module.findBaseAddress("MY_LIB.so")
-                            Interceptor.attach( ptr(mylib).add(0x1000), {
-                                onEnter: function(args){
-                                    send("ptrace bypassed");
-                                    return 0;
-                                },
-                                onLeave: function(args){
-                                    send("ptrace called => leave");
-                                    return 0;
-                                }
-                            });
-                            */
-        
-                            send({ 
-                                id:"@@__HOOK_ID__@@", 
-                                match: false, 
-                                data: "'"+arg0+"' hooked",
-                                after: true, 
-                                msg: "Native inspector (@@__METHSIGN__@@)", 
-                                tags: [{
-                                    style:"success",
-                                    text: "native"
-                                }], 
-                                action: "None" 
-                            });
-                        } 
-                        return loaded; 
-                    } catch(ex) { 
-                        console.log(ex); 
-                    } 
-        
-                send({ 
-                    id:"@@__HOOK_ID__@@", 
-                    match: false, 
-                    data: "An error occured",
-                    after: true, 
-                    msg: "Native inspector (@@__METHSIGN__@@)", 
-                    tags: [{
-                        style:"success",
-                        text: "native"
-                    }], 
-                    action: "None" 
+                } 
+                return loaded; 
+            } catch(ex) { 
+                DXC.send({
+                    hid: "@@__HOOK_ID__@@",
+                    fid: "@@__FRAG_ID__@@",
+                    data: {
+                        err: ex,
+                        when: 'error'
+                    }
                 });
-        
+                
                 return null;
+            } 
             `
             },{
                 name: "load2",

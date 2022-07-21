@@ -10,6 +10,8 @@ import HookStrategy from "./hook/HookStrategy";
 import {HookManager} from "./hook/HookManager";
 import {HookDbApi} from "./hook/HookDbApi";
 import {InspectorFactoryException} from "./errors/InspectorFactoryException";
+import {TagCategory} from "./tags/TagCategory";
+import {Tag} from "./tags/Tag";
 
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
@@ -233,9 +235,16 @@ export default class InspectorFactory
         }
 
         // If the inspector adds own tag categories, add them
+        let tagcat:TagCategory;
         if(this._config.tags != null){
             for(const i in this._config.tags){
-                ins.registerTagCategory(i, this._config.tags[i]);
+                tagcat = new TagCategory({ name: i });
+
+                this._config.tags[i].map( (vName:string)=>{
+                    tagcat.addTag(new Tag({ name:vName }))
+                });
+
+                ins.registerTagCategory(tagcat);
             }  
         }
 

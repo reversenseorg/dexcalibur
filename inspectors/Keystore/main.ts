@@ -59,6 +59,15 @@ var KeystoreInspector:InspectorFactory = new InspectorFactory({
                 emitEvent: "hook.keystore.get.instance",
                 before: `     
                     
+                    DXC.send({
+                        hid: "@@__HOOK_ID__@@",
+                        fid: "@@__FRAG_ID__@@",
+                        data: {
+                            name: arg0
+                        }
+                    });
+            
+            /*
                         send({ 
                             id:"@@__HOOK_ID__@@", 
                             match: true, 
@@ -72,7 +81,7 @@ var KeystoreInspector:InspectorFactory = new InspectorFactory({
                                 text: "keystore"
                             }], 
                             action:"Log" 
-                        });
+                        });*/
                 `
             },{
                 name: "load",

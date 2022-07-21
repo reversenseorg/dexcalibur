@@ -35,7 +35,14 @@ export enum NodeInternalType {
     HOOK_SET,
     SCRIPT,
     ANAL_STATE,
-    TAG
+    TAG,
+    DATA_BLOCK,
+    STRING,
+    ANDROID_ACTIVITY,
+    ANDROID_PROVIDER,
+    ANDROID_RECEIVER,
+    ANDROID_SERVICE,
+    ANDROID_PERM
 }
 
 export const NodeInternalTypeName = {
@@ -74,5 +81,14 @@ export const NodeInternalTypeName = {
     [NodeInternalType.HOOK_STRATEGY]: "HOOK_STRATEGY",
     [NodeInternalType.HOOK_GROUP]: "HOOK_GROUP",
     [NodeInternalType.HOOK_SET]: "HOOK_SET",
-    [NodeInternalType.SCRIPT]: "SCRIPT"
+    [NodeInternalType.SCRIPT]: "SCRIPT",
+    [NodeInternalType.ANAL_STATE]: "ANAL_STATE",
+    [NodeInternalType.TAG]: "TAG",
+    [NodeInternalType.DATA_BLOCK]: "DATA_BLOCK",
+    [NodeInternalType.STRING]: "STRING",
+    [NodeInternalType.ANDROID_ACTIVITY]: "ANDROID_ACTIVITY",
+    [NodeInternalType.ANDROID_RECEIVER]: "ANDROID_RECEIVER",
+    [NodeInternalType.ANDROID_PROVIDER]: "ANDROID_PROVIDER",
+    [NodeInternalType.ANDROID_SERVICE]: "ANDROID_SERVICE",
+    [NodeInternalType.ANDROID_PERM]: "ANDROID_PERM"
 }

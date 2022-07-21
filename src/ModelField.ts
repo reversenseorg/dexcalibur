@@ -88,27 +88,6 @@ export default  class ModelField extends Savable implements IPersistent
         return this._.v;
     }
 
-    setupMissingTag(){
-        return (this.tags.push(CONST.TAG.MISSING));
-    }
-
-    removeMissingTag(){
-        if(this.tags.length==1)
-            this.tags = [];
-        else{
-            let i:number = this.tags.indexOf(CONST.TAG.MISSING);
-            let arr:any = this.tags.slice(0,i);
-            if(i+1<this.tags.length){
-                arr = arr.concat(this.tags.slice(i+1,this.tags.length-i-1));
-            }
-            this.tags = arr;
-        }
-    }
-
-    isMissingClass():boolean{
-        return (this.tags.indexOf(CONST.TAG.MISSING)>-1);
-    }
-
     /**
      * To generate the aliased signature. This signature is used only by the GUI
      * component. Its aim is to improve the user experience by propagating the
@@ -355,7 +334,7 @@ export default  class ModelField extends Savable implements IPersistent
     hashCode():string{
         if(this.enclosingClass === undefined) console.log(this);
         return this.enclosingClass.name+"|"+this.name;//+"|"+this.type._hashcode;
-    };
+    }
 
 
     signature():string{
@@ -367,20 +346,6 @@ export default  class ModelField extends Savable implements IPersistent
             this.__signature__ = this.fqcn+";->"+this.name;
 
         return this.__signature__;
-    };
-
-
-
-    addTag(tag:any){
-        this.tags.push(tag);
-    }
-
-    hasTag(tagName:string):any{
-        return this.tags.indexOf(tagName)>-1;
-    }
-
-    getTags():any{
-        return this.tags;
     }
 
 }

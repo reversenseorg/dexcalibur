@@ -9,6 +9,7 @@ import * as Log from './Logger';
 import DalvikInstructionFormat from "./DalvikInstructionFormat";
 import {OPCODE} from "./Opcode";
 import ModelInstruction from "./ModelInstruction";
+import DexcaliburProject from "./DexcaliburProject";
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
 interface MethodInfo {
@@ -22,6 +23,27 @@ export default class OpcodeSmaliParser
 {
     static CTR = 0;
 
+    static STATIC_TAGS = {
+        STRING: CONST.TAG.STRING,
+        STRING_DECL: CONST.TAG.STRING_DECL
+    };
+
+    instrCtr:number = 0;
+    tags:any;
+    context:DexcaliburProject;
+
+    constructor(pProject:DexcaliburProject) {
+        this.context = pProject;
+        this._initTags();
+    }
+
+    private _initTags(){
+        const tmgr = this.context.getTagManager();
+        this.tags = {
+            STRING: tmgr.getTag("data.type.string").getUUID(),
+            STRING_DECL: tmgr.getTag("code.global.declare-string").getUUID()
+        }
+    }
     /**
      * @deprecated
      * @param name
@@ -224,6 +246,45 @@ export default class OpcodeSmaliParser
     }
 
     /**
+     * To find an opcode by its literal name
+     * @param {string} instr Instruction name
+     * @return {any} Opcode
+     * @method
+     */
+    findInContext(instr:string){
+        for(const op in OPCODE){
+            // if(i==10) console.log(instr,OPCODE[op].instr);
+            if(instr==OPCODE[op].instr) return OPCODE[op];
+        }
+        return null;
+    }
+
+    /**
+     *
+     * @param src
+     * @param raw_src
+     * @param src_line
+     */
+    parse(src:string[], raw_src:string, src_line:number):ModelInstruction{
+        let op:any = this.findInContext(src[0]), instr:ModelInstruction = null;
+        this.instrCtr++;
+
+        // return UNKNOW instr
+        if(op == null) return null;
+
+        if(op.parse != undefined){
+            instr = op.parse(src,raw_src.substr(raw_src.indexOf(CONST.LEX.TOKEN.SPACE)),this.tags);
+            instr.opcode = op;
+            //instr.oline = src_line; // line number into smali file
+            instr._raw = raw_src;
+        }
+
+        return instr;
+        /* if(op.byte == OPCODE.SGET_CHAR.byte)
+            console.log("[!] Instr sget-char : "+raw_instr.join(" "));*/
+    }
+
+    /**
      *
      * @param src
      * @param raw_src
@@ -237,7 +298,7 @@ export default class OpcodeSmaliParser
         if(op == null) return null;
 
         if(op.parse != undefined){
-            instr = op.parse(src,raw_src.substr(raw_src.indexOf(CONST.LEX.TOKEN.SPACE)));
+            instr = op.parse(src,raw_src.substr(raw_src.indexOf(CONST.LEX.TOKEN.SPACE)),OpcodeSmaliParser.STATIC_TAGS);
             instr.opcode = op;
             //instr.oline = src_line; // line number into smali file
             instr._raw = raw_src;
@@ -248,8 +309,38 @@ export default class OpcodeSmaliParser
             console.log("[!] Instr sget-char : "+raw_instr.join(" "));*/
     }
 
+    /**
+     *
+     * To parse param name is such case:
+     *
+     * .method parameters(IILjava/lang/String;)V
+     *   .param p3, "stringParameter"
+     *
+     * @param src
+     * @param raw_src
+     * @param src_line
+     */
     static parseParam(src:string[], raw_src:string, src_line:number):any{
-        let instr = DalvikInstructionFormat.setstring(src, raw_src);
+        const instr = DalvikInstructionFormat.setstring(src, raw_src, {
+            STRING: CONST.TAG.STRING,
+            STRING_DECL: CONST.TAG.STRING_DECL
+        });
+        return { param:instr.left, name:instr.right._value };
+    }
+
+    /**
+     *
+     * To parse param name is such case:
+     *
+     * .method parameters(IILjava/lang/String;)V
+     *   .param p3, "stringParameter"
+     *
+     * @param src
+     * @param raw_src
+     * @param src_line
+     */
+    parseParamInContext(src:string[], raw_src:string, src_line:number):any{
+        const instr = DalvikInstructionFormat.setstring(src, raw_src, this.tags);
         return { param:instr.left, name:instr.right._value };
     }
 }

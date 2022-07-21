@@ -21,7 +21,8 @@ import ModelStringValue from "./ModelStringValue";
 import {ModelObjectType} from "./ModelType";
 import ModelBasicBlock from "./ModelBasicBlock";
 import ModelInstruction from "./ModelInstruction";
-import TagCategory from "./ModelTagCategory";
+//import TagCategory from "./ModelTagCategory";
+
 import ModelDataBlock from "./ModelDataBlock";
 import {Method} from "got";
 import {TAG} from "./AnalysisHelper";
@@ -34,6 +35,8 @@ import {Workflow} from "./Workflow";
 import {IDatabase, IDbIndex, IDbSet} from "./persist/orm/DbAbstraction";
 import {NodeInternalType} from "./NodeInternalType";
 import {AnalyzerState} from "./AnalyzerState";
+import {TagManager} from "./tags/TagManager";
+import {Tag} from "./tags/Tag";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -48,256 +51,25 @@ var STATS = {
 };
 
 
-class Resolver
-{
-
-    static resolveInheritedField(pFieldRef:ModelFieldReference, pParentClass:ModelClass):ModelField{
-        for(let i in pParentClass.fields){
-            if(pParentClass.fields[i].name===pFieldRef.name){
-                if(pParentClass.fields[i].tags.indexOf('missing')>-1){
-                    return pParentClass.fields[i];
-                }
-
-                if((pParentClass.fields[i].modifiers & Modifier.PRIVATE) == Modifier.PRIVATE){
-                    pParentClass.fields[i].declaringClass = pParentClass.fields[i].enclosingClass;
-                    pParentClass.fields[i].enclosingClass = pParentClass;
-                    return pParentClass.fields[i];
-                }
-            }
-        }
-
-        if(pParentClass.extends instanceof ModelClass){
-            return Resolver.resolveInheritedField(pFieldRef, pParentClass.extends);
-        }else
-            return null;
-    }
-
-
-
-    static resolveInheritedMethod(pMethodRef:ModelMethodReference, pParentClass:ModelClass):ModelMethod{
-        for(let i in pParentClass.methods){
-            if(pParentClass.methods[i].name===pMethodRef.name){
-                if(pParentClass.methods[i].tags.indexOf('missing')>-1){
-                    return pParentClass.methods[i];
-                }
-
-                if(!(pParentClass.methods[i].modifiers & Modifier.PRIVATE)){
-                    pParentClass.methods[i].declaringClass = pParentClass.methods[i].enclosingClass;
-                    pParentClass.methods[i].enclosingClass = pParentClass;
-                    return pParentClass.methods[i];
-                }
-            }
-        }
-
-        if(pParentClass.extends instanceof ModelClass){
-            return Resolver.resolveInheritedMethod(pMethodRef, pParentClass.extends);
-        }else
-            return null;
-    }
-
-
-    /**
-     *
-     * @param {String} fqcn FQCN of the missing class
-     * @param {AnalyzerDatabase} internalDB an instance of the internal DB
-     */
-     static createMissingClass(pFqcn:string, pAnalyzerDB:AnalyzerDatabase):ModelClass{
-
-        // create a class instance from the FQCN value
-        let missingCls:ModelClass = SmaliParser.class("L"+pFqcn+" ");
-        let pkg:ModelPackage|string = null;
-
-        // tag the class instance "missing"
-        // a missing definition can help to identify obfuscated application
-        missingCls.setupMissingTag();
-
-        // update the internal DB[
-        pAnalyzerDB.classes.setEntry(pFqcn, missingCls);
-        pAnalyzerDB.missing.insert(missingCls, false);
-
-        // update package
-        pkg = missingCls.getPackage();
-        if(pkg !== null && (typeof pkg === 'string')){
-            pkg = pAnalyzerDB.packages.getEntry(pkg); // TODO ???
-            //if(!(pkg instanceof ModelPackage)){
-            if(pkg == null){
-                pkg = new ModelPackage(missingCls.getPackage() as string);
-                pAnalyzerDB.packages.setEntry((pkg as ModelPackage).name, pkg);
-            }
-
-            missingCls.setPackage(pkg as ModelPackage);
-            (pkg as ModelPackage).childAppend(missingCls);
-        }
-
-        return missingCls;
-    }
-
-    static createMissingField(fieldReference:ModelFieldReference, enclosingClass:ModelClass,
-                              internalDB:AnalyzerDatabase, modifiers:Modifier=Modifier.PUBLIC):ModelField{
-
-        let missingField:ModelField = fieldReference.toField(enclosingClass);
-
-        missingField.setupMissingTag();
-
-        //missingField.enclosingClass = enclosingClass;
-        missingField.modifiers = modifiers;
-
-        enclosingClass.fields[missingField.signature()] = missingField;
-
-
-        internalDB.fields.setEntry(missingField.signature(), missingField);
-        // TODO : remove from 'missing' index ?
-        internalDB.missing.insert(missingField, false);
-
-
-        return missingField;
-    }
-
-
-    static createMissingMethod(methodRef:ModelMethodReference, enclosingClass:ModelClass, internalDB:AnalyzerDatabase, modifiers:Modifier):ModelMethod{
-        let missingMeth:ModelMethod = methodRef.toMethod(enclosingClass);
-
-        //console.log(enclosingClass.name,missingMeth);
-
-        missingMeth.setupMissingTag();
-
-        missingMeth.modifiers = modifiers; // new Accessor.AccessFlags(modifiers);
-
-        enclosingClass.methods[missingMeth.signature()] = missingMeth;
-
-
-        internalDB.methods.setEntry(missingMeth.signature(), missingMeth);
-        // TODO : remove from 'missing' index ?
-        internalDB.missing.insert(missingMeth, false);
-
-
-        return missingMeth;
-    }
-
-    static type(pAnalyzerDB:AnalyzerDatabase, pClass:string|ModelClass|ModelClassReference):ModelClass{
-
-        if(pClass instanceof ModelClassReference){
-            if(pAnalyzerDB.classes.hasEntry(pClass.fqcn)===true)
-                return pAnalyzerDB.classes.getEntry(pClass.fqcn);
-            else
-                return Resolver.createMissingClass(pClass.getName(), pAnalyzerDB);
-            // unresolvable class are created as classic Class node but are tagged "MISSING"
-        }
-        if(pClass instanceof ModelClass){
-            if(pAnalyzerDB.classes.hasEntry(pClass.name)===true)
-                return pAnalyzerDB.classes.getEntry(pClass.name);
-            else
-                return Resolver.createMissingClass(pClass.getName(), pAnalyzerDB);
-            // unresolvable class are created as classic Class node but are tagged "MISSING"
-        }
-        else{
-            if(pAnalyzerDB.classes.hasEntry(pClass)===true)
-                return pAnalyzerDB.classes.getEntry(pClass);
-            else
-                return Resolver.createMissingClass(pClass, pAnalyzerDB);
-            // unresolvable class are created as classic Class node but are tagged "MISSING"
-        }
-
-        // unresolvable class are created as classic Class node but are tagged "MISSING"
-        // return Resolver.createMissingClass(pClass as string , pAnalyzerDB);
-    }
-
-
-    static field(pAnalyzerDB:AnalyzerDatabase, pFieldRef:ModelFieldReference):ModelField{
-
-        let field:ModelField = pAnalyzerDB.fields.getEntry(pFieldRef.signature());
-
-        if(field instanceof ModelField){
-            return field;
-        }
-
-        //  if the field is not indexed, its enclosingClass is explored
-        let cls=pAnalyzerDB.classes.getEntry(pFieldRef.fqcn);
-
-        // if enclosingClass not exists, create it
-        if(cls == null){
-            cls = Resolver.createMissingClass(pFieldRef.fqcn, pAnalyzerDB);
-            return Resolver.createMissingField( pFieldRef, cls, pAnalyzerDB);
-            //field = createMissingField(field, cls, db);
-        }
-
-
-        field = cls.fields[pFieldRef.signature()];
-
-        if(field instanceof ModelField){
-            return field;
-        }
-
-
-        // 2. else, if the class has super class, search inherit field
-        if(cls.extends !== null){
-            field = Resolver.resolveInheritedField(pFieldRef, cls.extends);
-
-            if(field instanceof ModelField){
-                cls.addInheritedField(pFieldRef, field);
-                pAnalyzerDB.fields.setEntry(pFieldRef.getName(), field);
-
-                return field;
-            }
-        }
-
-        // Finally if reference is unsolvable, the a mock field is created and tagged "missing"
-
-        return Resolver.createMissingField( pFieldRef, cls, pAnalyzerDB);
-    }
-
-    static method(pDB:AnalyzerDatabase, pMethRef:ModelMethodReference, isStaticCall:boolean):ModelMethod{
-
-        let meth:ModelMethod = pDB.methods.getEntry(pMethRef.signature());
-
-        // 1. search into indexed method
-        if(meth instanceof ModelMethod){
-            return meth;
-        }
-
-        // 2. else, search into inherited method
-        let cls:ModelClass = pDB.classes.getEntry(pMethRef.fqcn);
-        let access:Modifier = Modifier.PUBLIC;
-
-        if(isStaticCall) access |= Modifier.STATIC;
-
-        // 2.1 If there is no parent class, then the method definition is missing
-        if(cls == null){
-            cls = Resolver.createMissingClass(pMethRef.fqcn, pDB);
-
-
-            return Resolver.createMissingMethod(pMethRef, cls, pDB,  access);
-        }
-
-        // 2.2 else, search into inherited method
-        if(cls instanceof ModelClass){
-            if(cls.extends instanceof ModelClass){
-                meth = Resolver.resolveInheritedMethod(pMethRef, cls.extends);
-
-                if(meth instanceof ModelMethod){
-                    cls.addInheritedMethod(pMethRef, meth);
-                    pDB.methods.setEntry(pMethRef.getName(), meth);
-
-                    return meth;
-                }
-            }
-        }
-
-        // 4. else, mock missing method and class
-
-        return Resolver.createMissingMethod(pMethRef, cls, pDB,  access);
-    }
-}
-
 
 
 class ResolverV2
 {
 
+    private _ctx:DexcaliburProject;
+
+    private _missingTag:Tag;
+
+
+    constructor(pContext:DexcaliburProject) {
+        this._ctx = pContext;
+        this._missingTag = pContext.getTagManager().getTag("global.missing");
+    }
+
     resolveInheritedField(pFieldRef:ModelFieldReference, pParentClass:ModelClass):ModelField{
         for(let i in pParentClass.fields){
             if(pParentClass.fields[i].name===pFieldRef.name){
-                if(pParentClass.fields[i].tags.indexOf('missing')>-1){
+                if(this._missingTag.match(pParentClass.fields[i])){
                     return pParentClass.fields[i];
                 }
 
@@ -320,7 +92,7 @@ class ResolverV2
     resolveInheritedMethod(pMethodRef:ModelMethodReference, pParentClass:ModelClass):ModelMethod{
         for(let i in pParentClass.methods){
             if(pParentClass.methods[i].name===pMethodRef.name){
-                if(pParentClass.methods[i].tags.indexOf('missing')>-1){
+                if(this._missingTag.match(pParentClass.methods[i])){
                     return pParentClass.methods[i];
                 }
 
@@ -352,7 +124,7 @@ class ResolverV2
 
         // tag the class instance "missing"
         // a missing definition can help to identify obfuscated application
-        missingCls.setupMissingTag();
+        missingCls.addTag(this._missingTag);
 
         // update the internal DB[
         pAnalyzerDB.classes.setEntry(pFqcn, missingCls);
@@ -380,7 +152,7 @@ class ResolverV2
 
         let missingField:ModelField = fieldReference.toField(enclosingClass);
 
-        missingField.setupMissingTag();
+        missingField.addTag(this._missingTag);
 
         //missingField.enclosingClass = enclosingClass;
         missingField.modifiers = modifiers;
@@ -402,7 +174,7 @@ class ResolverV2
 
         //console.log(enclosingClass.name,missingMeth);
 
-        missingMeth.setupMissingTag();
+        missingMeth.addTag(this._missingTag);
 
         missingMeth.modifiers = modifiers; // new Accessor.AccessFlags(modifiers);
 
@@ -549,9 +321,11 @@ export default class Analyzer
     projectionEngines:any = {};
     encoding:BufferEncoding= null;
 
+    tagCache:any;
+
     state:AnalyzerState = null;
 
-    resolver: ResolverV2 = new ResolverV2();
+    resolver: ResolverV2;
 
     a_native:NativeAnalyzer = null;
 
@@ -559,9 +333,9 @@ export default class Analyzer
 
 
     private _diffTag:any = {
-        'di': {}
+        'discover.internal': []
     }
-    private _diffTagDef: string = null;
+    private _diffTagDef: Tag = null;
 
 
     /**
@@ -585,6 +359,12 @@ export default class Analyzer
         this.finder = pProject.find; //pSearchAPI; // pSearchAPI
         this.encoding = pEncoding;
         this.projectionEngines = {};
+        this.resolver = new ResolverV2(pProject);
+        this.tagCache = {
+            Discover: {
+                Internal: pProject.getTagManager().getTag("discover.internal")
+            }
+        }
     }
 
 
@@ -653,6 +433,9 @@ export default class Analyzer
         let p = pName.split('.'),  fresh:ModelPackage=null;
         let pkg:string='', ppkg:string=p[0], ppkgo:ModelPackage=null;
 
+        const sastTag = this.context.getTagManager().getTag("discover.static");
+        const internalTag = this.context.getTagManager().getTag("discover.internal");
+
 
         for(let i=0; i<p.length; i++){
             ppkg = pkg;
@@ -668,9 +451,9 @@ export default class Analyzer
                     (ppkgo = pDb.packages.getEntry( ppkg)).childAppend(fresh);
 
                     // propagate app tag when app package have android package as parent
-                    if(ppkgo.hasTag('di') && (this._diffTagDef=='ds')){
+                    if(internalTag.match(ppkgo) && (this._diffTagDef.getUUID()==sastTag.getUUID())){
                         //this.addForDelayedTagging(ppkg);
-                        ppkgo.addTag('ds');
+                        ppkgo.addTag(sastTag);
                     }
 
                 }
@@ -684,8 +467,8 @@ export default class Analyzer
     }
 
 
-    initDelayedTagging(pTag:string=null, pDefault:boolean=false):void{
-        this._diffTag[pTag] = [];
+    initDelayedTagging(pTag:Tag=null, pDefault=false):void{
+        this._diffTag[pTag.getUID()] = [];
         if(pDefault)
             this._diffTagDef = pTag;
     }
@@ -697,7 +480,7 @@ export default class Analyzer
             if(this._diffTag==null){
                 throw new Error("[ANALYZE] addForDelayedTagging : there is not default tag set");
             }
-            this._diffTag[this._diffTag].push(pEl);
+            this._diffTag[this._diffTagDef.getUID()].push(pEl);
         }
     }
 
@@ -1503,14 +1286,6 @@ export default class Analyzer
         return cls;
     }
 
-    addTagCategory(name:string, taglist:string[]){
-        this.db.tagcategories.addEntry(name, new TagCategory(name,taglist));
-    }
-
-    getTagCategories():any{
-        return this.db.tagcategories.getAll();
-    }
-
 
     /**
      * To initialize the list of syscalls to use
@@ -1619,22 +1394,26 @@ export default class Analyzer
         }
     }
 
-    static tagAsAndroidInternal( pOffset:any, pElement:any){
-        pElement.addTag(TAG.Discover.Internal);
+    tagAsAndroidInternal( pOffset:any, pElement:any){
+        pElement.addTag(this.tagCache.Discover.Internal);
     }
 
     tagAllAsInternal(){
-        // TODO : optimize
-        this.db.packages.map(Analyzer.tagAsAndroidInternal)
 
-        this.db.classes.map(Analyzer.tagAsAndroidInternal);
-        this.db.fields.map(Analyzer.tagAsAndroidInternal);
-        this.db.methods.map(Analyzer.tagAsAndroidInternal);
-        this.db.strings.map(Analyzer.tagAsAndroidInternal);
+        const self = this;
+        const cb = ((pOffset:any, pElement:any)=>{
+            pElement.addTag(self.tagCache.Discover.Internal);
+        })
+        // TODO : optimize
+        this.db.packages.map(cb)
+        this.db.classes.map(cb);
+        this.db.fields.map(cb);
+        this.db.methods.map(cb);
+        this.db.strings.map(cb);
     }
 
     resolveMethod(ref:ModelMethodReference):ModelMethod{
-        let m:ModelMethod = Resolver.method(this.db, ref, null);
+        let m:ModelMethod = this.resolver.method(this.db, ref, null);
         Logger.debug('[ANALYZER] Resolving method : ',m.getName());
         return m;
     }

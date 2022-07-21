@@ -20,6 +20,7 @@ import {BusBroadcaster} from "./Bus";
 import {IDatabase, IDatabaseAdapter} from "./persist/orm/DbAbstraction";
 import {DelegateWebApi} from "./webapi/DelegateWebApi";
 import WebServer from "./WebServer";
+import {TagCategory} from "./tags/TagCategory";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -250,7 +251,7 @@ export default class Inspector implements BusBroadcaster
      * @type {boolean}
      * @public
      */
-    preRegisteredTags = [];
+    preRegisteredTags:TagCategory[] = [];
 
 
     /**
@@ -440,12 +441,11 @@ export default class Inspector implements BusBroadcaster
     /**
      * To add a new tag category to this plugin (to extend tagging system)
      *
-     * @param {string} name Name of the tag category
-     * @param {any} tag The list of new tags for this category
      * @method
+     * @param vCategory
      */
-    registerTagCategory(name:string, tags:any){
-        this.preRegisteredTags.push({ name:name, tags:tags });
+    registerTagCategory( vCategory:TagCategory ){
+        this.preRegisteredTags.push(vCategory);
     }
 
 
@@ -488,9 +488,9 @@ export default class Inspector implements BusBroadcaster
 
 
         // declare TagCategory
-        const anal = ctx.getAnalyzer();
+        const tmgr = ctx.getTagManager();
         for(let i=0; i<this.preRegisteredTags.length; i++){
-            anal.addTagCategory(this.preRegisteredTags[i].name, this.preRegisteredTags[i].tags)
+            tmgr.addCategory(this.preRegisteredTags[i]);
         }
 
         /*if(this.db instanceof InMemoryDb){

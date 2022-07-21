@@ -40,8 +40,6 @@ export default class ModelInstruction extends Savable
     // VM
     value:any = null;
 
-    // TODO : should be inherit
-    tags:string[] = [];
 
     constructor(pConfig:any=null) {
         super(STUB_TYPE.INSTR);
@@ -160,17 +158,5 @@ export default class ModelInstruction extends Savable
 
     toString():string{
         return this._raw;
-    }
-
-    addTag(tag:string){
-        this.tags.push(tag);
-    }
-
-    hasTag(tagName:string):boolean{
-        return this.tags.indexOf(tagName)>-1;
-    }
-
-    getTags():string[]{
-        return this.tags;
     }
 }

@@ -16,6 +16,7 @@ import {IPersistent} from "./persist/orm/IPersistent";
 import JavaMethodHook from "./hook/JavaMethodHook";
 import {INode} from "./INode";
 import {DataSourceHelper} from "./DataSourceHelper";
+import {Tag} from "./tags/Tag";
 
 
 /*interface LazyMethodReference {
@@ -78,15 +79,18 @@ export default class ModelMethod extends Savable implements INode,IPersistent
     dyn:any = []; // TODO
 
     _useClass:any = {};
-    _useClassCtr:number = 0;
+    _useClassCtr = 0;
     _useMethod:any = {};
-    _useMethodCtr:number = 0;
+    _useMethodCtr = 0;
     _useField:any = {};
-    _useFieldCtr:number = 0;
+    _useFieldCtr = 0;
 
-    tags:any = []; // TODO
+    /**
+     * All tags of the node
+     */
+    tags:number[] = [];
 
-    isDerived:boolean = false; // TODO
+    isDerived = false; // TODO
 
     _:any = {};
 
@@ -126,8 +130,8 @@ export default class ModelMethod extends Savable implements INode,IPersistent
 
     callSignature2():string{
         if(this.__callSignature__===null){
-            let xargs:string = "";
-            for(let i in this.args) xargs+="<"+this.args[i]._hashcode+">";
+            let xargs = "";
+            for(const i in this.args) xargs+="<"+this.args[i]._hashcode+">";
 
             this.__callSignature__ = this.name+"("+xargs+")"+this.ret._hashcode;
         }
@@ -137,8 +141,8 @@ export default class ModelMethod extends Savable implements INode,IPersistent
 
     aliasedCallSignature():string{
         if(this.__aliasedCallSignature__===null){
-            let xargs:string = "";
-            for(let i in this.args) xargs+=this.args[i].signature();
+            let xargs = "";
+            for(const i in this.args) xargs+=this.args[i].signature();
 
             this.__aliasedCallSignature__ = this.alias+"("+xargs+")"+this.ret.signature();
         }
@@ -148,8 +152,8 @@ export default class ModelMethod extends Savable implements INode,IPersistent
 
     callSignature():string{
         if(this.__callSignature__===null){
-            let xargs:string = "";
-            for(let i in this.args) xargs+=this.args[i].signature();
+            let xargs = "";
+            for(const i in this.args) xargs+=this.args[i].signature();
 
             this.__callSignature__ = this.name+"("+xargs+")"+this.ret.signature();
         }
@@ -158,8 +162,8 @@ export default class ModelMethod extends Savable implements INode,IPersistent
     }
 
     hashCode():string{
-        let xargs:string = "";
-        for(let i in this.args) xargs+="<"+this.args[i]._hashcode+">";
+        let xargs = "";
+        for(const i in this.args) xargs+="<"+this.args[i]._hashcode+">";
         return this.enclosingClass.name+"|"+this.name+"|"+xargs+"|"+this.ret._hashcode;
     }
 
@@ -262,26 +266,8 @@ export default class ModelMethod extends Savable implements INode,IPersistent
     }
 
 
-    setupMissingTag():any{
-        return (this.tags.push(CONST.TAG.MISSING));
-    }
 
-    removeMissingTag(){
-        if(this.tags.length==1)
-            this.tags = [];
-        else{
-            let i:number = this.tags.indexOf(CONST.TAG.MISSING);
-            let arr:string[] = this.tags.slice(0,i);
-            if(i+1<this.tags.length){
-                arr = arr.concat(this.tags.slice(i+1,this.tags.length-i-1));
-            }
-            this.tags = arr;
-        }
-    }
 
-   isMissingClass():boolean{
-        return (this.tags.indexOf(CONST.TAG.MISSING)>-1);
-    }
 
 
     countUsedMethods():number{
@@ -319,6 +305,12 @@ export default class ModelMethod extends Savable implements INode,IPersistent
                 case "name":
                 case "locals":
                 case "registers":
+                case "tags":
+                    // TODO : add tag compare
+                    /*if(this.tags.length>0){
+                        diff.push({ ppt:"tags", old:this[i], new:meth.params });
+                    }*/
+                    break;
                 case "params":
                     if(this.params != meth.params){
                         diff.push({ ppt:i, old:this[i], new:meth.params });
@@ -622,15 +614,7 @@ export default class ModelMethod extends Savable implements INode,IPersistent
    hasArgs():boolean{
         return this.args.length > 0;
     }
-   addTag(tag:string){
-        this.tags.push(tag);
-    }
-   hasTag(tagName:string):boolean{
-        return (this.tags.indexOf(tagName) > -1);
-    }
-   getTags():string[]{
-        return this.tags;
-    }
+
    getCallers():string[]|ModelMethod[]{
         return this._callers;
     }

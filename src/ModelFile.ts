@@ -101,6 +101,7 @@ export default class ModelFile implements INode,IPersistent {
             (new NodeProperty("size")).type(DbDataType.INTEGER).def(-1),
             (new NodeProperty("path")).type(DbDataType.STRING).def(null),
             (new NodeProperty("location")).type(DbDataType.STRING).def(null),
+            (new NodeProperty("tags")).type(DbDataType.STRING).serialize(DbSerialize.JSON),
             (new NodeProperty("_d")).type(DbDataType.STRING).def('f'),
 
             (new NodeProperty("scope")).single(DataScope.TYPE),
@@ -144,6 +145,7 @@ export default class ModelFile implements INode,IPersistent {
     size: number = -1;
     path: string = null;
     location: string = null;
+    tags:number[] = [];
     //trueFile:boolean = false;
 
     /**

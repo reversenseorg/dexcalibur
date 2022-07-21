@@ -2,23 +2,25 @@ import InspectorFactory from "../../src/InspectorFactory";
 import {INSPECTOR_TYPE} from "../../src/Inspector";
 import DexcaliburProject from "../../src/DexcaliburProject";
 import BusEvent from "../../src/BusEvent";
+import ModelStringValue from "../../src/ModelStringValue";
+import ModelDataBlock from "../../src/ModelDataBlock";
 
 
 const TAGS = {
     hash: {
-        128: ["md5"], 
-        256: ["sha1","sha256"],
-        512: ["sha512"]
+        128: ["data.hash.md5"],
+        256: ["data.hash.sha1","data.hash.sha256"],
+        512: ["data.hash.sha512"]
     },
     asym_key: {
-        1024: ["rsa-1024"], 
-        2048: ["rsa-2048"],
-        4096: ["rsa-4096"],
+        1024: ["data.len.key-1024"],
+        2048: ["data.len.key-2048"],
+        4096: ["data.len.key-4096"],
     },
     sym_key: {
-        128: ["key-128"], 
-        256: ["key-256"],
-        196: ["key-196"]
+        128: ["data.len.key-128"],
+        256: ["data.len.key-256"],
+        196: ["data.len.key-196"]
     }
 };
 
@@ -51,30 +53,37 @@ var DataClassifierInspector:InspectorFactory = new InspectorFactory({
     eventListeners: {
         "disass.datablock.new": function(ctx:DexcaliburProject, event:BusEvent):void{
             if(event.data!=null){
+                const tmgr = ctx.getTagManager();
                 let l = event.data.count()*event.data.width;
-                if(TAGS.hash[l] != null) event.data.tags=event.data.tags.concat(TAGS.hash[l]);
-                if(TAGS.asym_key[l] != null) event.data.tags=event.data.tags.concat(TAGS.asym_key[l]);
-                if(TAGS.sym_key[l] != null) event.data.tags=event.data.tags.concat(TAGS.sym_key[l]);
-                if(isASCII(event.data)) event.data.tags=event.data.tags.concat(["ascii"]);
+                let tagUIDs = [];
+                if(TAGS.hash[l] != null) tagUIDs=tagUIDs.concat(TAGS.hash[l]);
+                if(TAGS.asym_key[l] != null) tagUIDs=tagUIDs.concat(TAGS.asym_key[l]);
+                if(TAGS.sym_key[l] != null) tagUIDs=tagUIDs.concat(TAGS.sym_key[l]);
+                if(isASCII(event.data)) tagUIDs.push("data.charset.ascii");
+
+                tagUIDs.map( x => {
+                    event.data.addTag( tmgr.getTag(x));
+                })
                 //console.log(l,event.data.tags);
             }
         },
         "dxc.fullscan.post": function(ctx:DexcaliburProject,event:BusEvent):void{
-    
+
+            const tag_URI = ctx.getTagManager().getTag("string.pattern.URI");
             let pattern:RegExp = new RegExp("([^:/]*)://([^/]*)");
     
             // tag static strings containing URI
             ctx.find.nocase().strings("value:^([^:/]*)://([^/]*)")
-                .foreach(function(pOffset,pData){
-                    pData.addTag("URI");
+                .foreach((pOffset:number,pData:ModelStringValue)=>{
+                    pData.addTag(tag_URI);
                     //console.log(pData);
                 });
     
             // tag static byte array containing URI
             ctx.find.nocase().array('name:.*')
-                .foreach(function(pOffset,pData){
+                .foreach((pOffset:number,pData:ModelDataBlock)=>{
                     if(pattern.exec(pData.values.join(''))){
-                        pData.addTag("URI");
+                        pData.addTag(tag_URI);
                         //console.log(pData.values.join(''));
                     }
                 });

@@ -21,7 +21,6 @@ import AndroidAppAnalyzer from "./AndroidAppAnalyzer";
 import DexcaliburEngine from "./DexcaliburEngine";
 import ProjectWorkspace from "./ProjectWorkspace";
 import * as Log from './Logger';
-import {TAG} from "./AnalysisHelper";
 import {HookManager} from "./hook/HookManager";
 import Inspector, {INSPECTOR_TYPE} from "./Inspector";
 import InspectorManager from "./InspectorManager";
@@ -498,7 +497,6 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
     getTagManager():TagManager {
         return this.tagManager;
     }
-
     /**
      * To init the project
      *
@@ -519,6 +517,8 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
         // configured at project level
         const wsSettings:Settings.WorkspaceSettings = this.engine.workspace.getSettings();
         const wf:Workflow = this.engine.getWorkflow(this.uid);
+
+        this.tagManager = new TagManager();
 
         this.typeManager = new TypeManager();
 
@@ -543,7 +543,8 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
         sqliteConn.connect(this.workspace.getDbPath());
         this.db = sqliteConn.getDB();
 
-
+        // once Project DB is ready, init tag manager and load presets
+        this.tagManager.init(this);
 
         // set the Search API which allow the user to perform search
         this.find = new SearchAPI();
@@ -554,6 +555,8 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
         this.analyze.setWorkflow(wf)
         this.find.setDatabase(this.analyze.getData());
 
+        // TODO : moved to TagManager presets
+        /*
         this.analyze.addTagCategory(
             "hash",
             ["md5","sha1","sha256","sha512"]
@@ -561,7 +564,7 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
         this.analyze.addTagCategory(
             "key",
             ["256","1024","2048","4096"]
-        );
+        );*/
 
         // todo : move to context free
         this.dexHelper = new DexHelper(this);
@@ -1222,6 +1225,10 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
         let elemnt:any=null;
         let success:boolean  = false;
 
+        const sastTag = this.tagManager.getTag("discover.static");
+        const dastTag = this.tagManager.getTag("discover.dynamic");
+        const internTag = this.tagManager.getTag("discover.internal");
+
         // application topology analysis
         success = await this.appAnalyzer.prepareFullScan();
 
@@ -1253,7 +1260,7 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
 
         // init delayed tagging for app class injected into 'android' classes/packages
         this.analyze.flushDelayedTagging();
-        this.analyze.initDelayedTagging(TAG.Discover.Statically, true);
+        this.analyze.initDelayedTagging(sastTag, true);
 
         this.getWorkflow().setStep('App bytecode', 40);
         this.getWorkflow().pushStatus(new StatusMessage(15, "Start analysis of application byte code"));
@@ -1375,10 +1382,8 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
 
         this.getWorkflow().pushStatus(new StatusMessage(96, "Tagging fresh data and elements"));
         this.analyze.tagAllIf(
-            function(k,x){ 
-                return x.hasTag(TAG.Discover.Internal)==false;
-            }, 
-            TAG.Discover.Statically);
+            (k,x) => {  return !internTag.match(x); },
+            sastTag);
 
 
         //this.analyze.execDelayedTagging(TAG.Discover.Statically);
@@ -1456,11 +1461,10 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
 
         this.getWorkflow().pushStatus(new StatusMessage(23, "Tagging data previously extracted by hooking"));
         this.analyze.tagAllIf(
-            function(k,x){
-                return (x.hasTag(TAG.Discover.Internal)==false)
-                    && (x.hasTag(TAG.Discover.Statically)==false);
+            (k,x)=>{
+                return (!internTag.match(x)) && (!sastTag.match(x));
             },
-            TAG.Discover.Dynamically);
+            dastTag);
 
         //}
 

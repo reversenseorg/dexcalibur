@@ -22,7 +22,6 @@ export default class ModelCall extends Savable
     object:any = null;
     subject:any = null;
 
-    tags:string[] = [];
 
     constructor(pConfig:any=null){
         super(STUB_TYPE.CALL);
@@ -80,18 +79,4 @@ export default class ModelCall extends Savable
         }
         return obj;
     };
-
-
-    addTag(tag:string){
-        this.tags.push(tag);
-    }
-
-    hasTag(tagName:string):boolean{
-        return this.tags.indexOf(tagName)>-1;
-    }
-
-    getTags():string[]{
-        return this.tags;
-    }
-
 }
