@@ -7,6 +7,7 @@ import ModelMethod from "../../ModelMethod";
 import Util from "../../Utils";
 import JavaMethodHook from "../JavaMethodHook";
 import HookTemplateFragment from "../HookTemplateFragment";
+import DexcaliburProject from "../../DexcaliburProject";
 
 
 function getLetterFromType(typename:string):string{
@@ -27,7 +28,11 @@ export class JavaHookBuilder{
 
     //private _rules:HookBuilderRule[] = [];
     //private _db:IDbCollection;
+    private ctx:DexcaliburProject;
 
+    constructor(pContext:DexcaliburProject){
+        this.ctx = pContext;
+    }
 
     /**
      * To return the code snippet required to cast an object instance
@@ -254,13 +259,6 @@ export class JavaHookBuilder{
         return script;
     }
 
-    static createDefaultBeforeFragment():string {
-        return `send({ id:"@@__HOOK_ID__@@", msg:"@@__METHSIGN__@@", data:@@__ARGS_DATA__@@, action:"None before", after:false @@__ARGS_VAL__@@ });`;
-    }
-
-    static createDefaultAfterFragment():string {
-        return `send({ id:"@@__HOOK_ID__@@", msg:"@@__METHSIGN__@@", data:@@__ARGS_DATA__@@, action:"None before", after:false @@__ARGS_VAL__@@ });`;
-    }
 
     /**
      * To create the Frida hook script for a specific method.
@@ -300,13 +298,14 @@ export class JavaHookBuilder{
             "@@__METHDEF__@@": _md5_(target.getUID()),
             "@@__METHNAME__@@": (target.name=='<init>')? '$init' : target.name,
             "@@__METHSIGN__@@": target.getUID(),
+            "@@__APP_NAME__@@": this.ctx.getPackageName(),
             "@@__ARGS__@@": "",
             "@@__HOOK_ARGS__@@": "",
             "@@__HOOK_ARGS2__@@": "",
             "@@__HOOK_ARGS_STUBS__@@": "",
             "@@__RET__@@": "",
             "@@__ARGS_VAL__@@": "",
-            "@@<__HOOK_ID__@@": pJavaHook.getGUID(),
+            "@@__HOOK_ID__@@": pJavaHook.getGUID(),
             "@@__CTX__@@":"",
             "@@__ARGS_DATA__@@":"null",
             "@@__RET_DATA__@@":"",
@@ -372,9 +371,7 @@ export class JavaHookBuilder{
         // BEFORE insert
         if(pJavaHook.hasBeforeFragments()){
             script += this.mergeFragments(pJavaHook.getBefore(), tags);
-        }/*else{
-            script += JavaHookBuilder.createDefaultBeforeFragment();
-        }*/
+        }
 
         if(pJavaHook.hasReplaceFragments()){
             script += this.mergeFragments(pJavaHook.getReplace(), tags);
@@ -388,9 +385,7 @@ export class JavaHookBuilder{
         //  AFTER insert
         if(pJavaHook.hasAfterFragments()){
             script += this.mergeFragments(pJavaHook.getAfter(), tags);
-        }/*else{
-            script += JavaHookBuilder.createDefaultAfterFragment();
-        }*/
+        }
 
         script += `
             return ret;
@@ -406,56 +401,4 @@ export class JavaHookBuilder{
 
         return script;
     }
-
-
-    /*
-    buildCustom(pJavaHook:JavaMethodHook):boolean{
-
-        const target:ModelMethod = pJavaHook.getTarget();
-        let builtScript:string = pJavaHook.getCustomFragment();
-
-        const tags:any = {
-            "@@__CLSDEF__@@": _md5_(target.enclosingClass.name),
-            "@@__FQCN__@@": target.enclosingClass.name,
-            "@@__METHDEF__@@": _md5_(target.__signature__),
-            "@@__METHNAME__@@": (target.name=='<init>')? '$init' : target.name,
-            "@@__METHSIGN__@@": target.__signature__,
-            "@@__ARGS__@@": "",
-            "@@__HOOK_ARGS__@@": "",
-            "@@__HOOK_ARGS2__@@": "",
-            "@@__RET__@@": "",
-            "@@__ARGS_VAL__@@": "",
-            "@@__HOOK_ID__@@": Util.b64_encode(this.id),
-            "@@__CTX__@@":"",
-            "@@__ARGS_DATA__@@":"null",
-            "@@__RET_DATA__@@":""
-        };
-
-        tags["@@__VAR__@@"] = tags["@@__HOOK_ID__@@"]+"_VAR";
-
-        pJavaHook.setVariableID(tags["@@__VAR__@@"]);
-
-
-        const retHelp:any = this.makeRetHelper(target.ret);
-        tags["@@__RET_DATA__@@"] = "{"+retHelp.data+"}";
-
-        if(this.parentID != null){
-            tags["@@__CTX__@@"] = "ctx_"+_md5_(this.parentID);
-        }
-        if(Object.keys(target.args).length > 0){
-            let argHelp:any = this.makeArgsHelper(target.args);
-            tags["@@__ARGS__@@"] = argHelp.call_signature;
-            tags["@@__ARGS_DATA__@@"] = "{"+argHelp.data+"}";
-            tags["@@__HOOK_ARGS__@@"] = argHelp.hook_args;
-            tags["@@__HOOK_ARGS2__@@"] = ", "+argHelp.hook_args;
-        }
-
-        for(let i in tags){
-            while(builtScript.indexOf(i)>-1){
-                builtScript = builtScript.replace(i,tags[i]);
-            }
-        }
-
-        return true;
-    }*/
 }

@@ -12,6 +12,7 @@ const CODE_GLOBAL = new TagCategory({ name: "code.global" });
 const CODE_DALVIK = new TagCategory({ name: "code.dalvik" });
 const CODE_CALL = new TagCategory({ name: "code.call" });
 const CODE_LOAD = new TagCategory({ name: "data.len" });
+const RUNTIME_MSG = new TagCategory({ name: "runtime.msg" });
 const DISCOVER = new TagCategory({ name: "discover" });
 
 const CODE_NATIVE_TAGS = [
@@ -74,6 +75,17 @@ const DATA_CHARSET_TAGS = [
 const CODE_LOAD_TAGS = [
     new Tag({ name:"external" }) // led
 ];
+
+const RUNTIME_TAGS = [
+    new Tag({ name:"hook" }),
+    new Tag({ name:"fs" }),
+    new Tag({ name:"nfc" }),
+    new Tag({ name:"bluetooth" }),
+    new Tag({ name:"net" }),
+    new Tag({ name:"cert" }),
+    new Tag({ name:"mem" }),
+    new Tag({ name:"tee" })
+];
 /*
 Discover: {
     Statically: "ds",
@@ -102,6 +114,7 @@ DATA_CHARSET_TAGS.map( x => { DATA_CHARSET.addTag(x); });
 GLOBAL_TAGS.map( x => { GLOBAL.addTag(x); });
 
 DISCOVER_TAGS.map( x => { DISCOVER.addTag(x); });
+RUNTIME_TAGS.map( x => { RUNTIME_MSG.addTag(x); });
 
 export const TAG_CATEGORY_PRESETS = [
     GLOBAL,
@@ -115,6 +128,8 @@ export const TAG_CATEGORY_PRESETS = [
     DATA_TYPE,
     DATA_CHARSET,
     DATA_HASH,
-    DATA_LEN
+    DATA_LEN,
+
+    RUNTIME_MSG
 ];
 

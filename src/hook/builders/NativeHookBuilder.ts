@@ -13,6 +13,7 @@ import {ModelVariable} from "../../ModelVariable";
 import {DataType} from "../../types/DataType";
 import {NativeHookBuilderException} from "../../errors/NativeHookBuilderException";
 import ModelFile from "../../ModelFile";
+import DexcaliburProject from "../../DexcaliburProject";
 
 const FRIDA_READ_API = ['readU8','readS8','readU16','readS16','readU32','readS32','readU64','readS64'];
 
@@ -30,6 +31,13 @@ function getLetterFromType(typename:string):string{
  * @class
  */
 export class NativeHookBuilder{
+
+
+    private ctx:DexcaliburProject;
+
+    constructor(pContext:DexcaliburProject){
+        this.ctx = pContext;
+    }
 
     getValueFromCpuContext(pVar:ModelVariable):string{
         let code = "";
@@ -175,8 +183,9 @@ export class NativeHookBuilder{
             if(code==null || NativeHookBuilder.isCodeEmpty(code)) return script;
 
             script += `
-              ${code}      
+              ${this._replaceFragID(code,pFragment[0].getUID())}      
             `;
+
 
             // replace token
             if(pFragment[0].isPreProcessed()){
@@ -195,7 +204,7 @@ export class NativeHookBuilder{
 
                 script += `
                     ((@@__NESTED_ARGS__@@)=>{
-                        ${code}  
+                        ${this._replaceFragID(code,pFragment[i].getUID())}  
                     })(@@__HOOK_ARGS__@@);
                 `;
 
@@ -212,12 +221,21 @@ export class NativeHookBuilder{
         return script;
     }
 
-    static createDefaultBeforeFragment():string {
-        return `send({ id:"@@__HOOK_ID__@@", msg:"@@__FUNCSIGN__@@", data:@@__ARGS_DATA__@@, after:false @@__ARGS_VAL__@@ });`;
+    static createDefaultFragment():string {
+        return `DXC.send( "@@__HOOK_ID__@@", "@@__FRAG_ID__@@", @@__ARGS_DATA__@@ );`;
     }
 
     static createDefaultAfterFragment():string {
-        return `send({ id:"@@__HOOK_ID__@@", msg:"@@__FUNCSIGN__@@", data:@@__RET_DATA__@@, after:true @@__RET_VAL__@@ });`;
+        return `DXC.send({ id:"@@__HOOK_ID__@@", msg:"@@__FUNCSIGN__@@", data:@@__RET_DATA__@@, after:true @@__RET_VAL__@@ });`;
+    }
+
+    private _replaceFragID( pCode:string, pFragID:string):string {
+
+        do{
+            pCode = pCode.replace("@@__FRAG_ID__@@", pFragID);
+        }while(pCode.indexOf("@@__FRAG_ID__@@")>-1);
+
+        return pCode;
     }
 
     getCodeForFuncAddr(pFunc:ModelFunction, pMode:string):string{
@@ -273,6 +291,7 @@ export class NativeHookBuilder{
             "@@__FUNCDEF__@@": _md5_(target.getUID()),
             "@@__FUNCNAME__@@": (target.name=='<init>')? '$init' : target.name,
             "@@__FUNCSIGN__@@": target.getUID(),
+            "@@__APP_NAME__@@": this.ctx.getPackageName(),
             "@@__HOOK_ARGS__@@": "",
             "@@__NESTED_ARGS__@@": "",
             "@@__RET__@@": "",
@@ -345,15 +364,12 @@ export class NativeHookBuilder{
 
         if(pNativeHook.hasReplaceFragments()){
 
-            replace = this.mergeFragments(pNativeHook.getReplace(), tags);
 
             if(before === null && after === null){
                 script = `    
                     Interceptor.replace(
                         ${fnAddr},
                         new NativeCallback(function(@@__HOOK_ARGS__@@){
-                            ${NativeHookBuilder.createDefaultBeforeFragment()}
-                            
                             ${this.mergeFragments(pNativeHook.getReplace(), tags)}
                         }, '@@__RET_TYPE__@@', @@__ARGS_TYPE__@@)
                     );
@@ -384,12 +400,8 @@ export class NativeHookBuilder{
                     onEnter: function(args){
                         ${before}
                     }${after!=null?',':''}`;
-            }else{
-                script += `
-                    onEnter: function(args){
-                        ${NativeHookBuilder.createDefaultBeforeFragment()}
-                    }${after!=null?',':''}`;
             }
+
             if(after != null){
                 script += `
                     onLeave: function(@@__RET__@@){

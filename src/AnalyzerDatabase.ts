@@ -7,6 +7,13 @@
 import DexcaliburProject from "./DexcaliburProject";
 import {ConnectorFactory } from "./ConnectorFactory";
 import {IDatabaseAdapter, IDbCollection, IDbIndex} from "./persist/orm/DbAbstraction";
+import {NodeInternalType} from "./NodeInternalType";
+import ModelFile from "./ModelFile";
+import ModelPackage from "./ModelPackage";
+import ModelClass from "./ModelClass";
+import ModelMethod from "./ModelMethod";
+import ModelField from "./ModelField";
+import {ModelFunction} from "./ModelFunction";
 
 
 export default class AnalyzerDatabase
@@ -99,5 +106,30 @@ export default class AnalyzerDatabase
      */
     getConnector():IDatabaseAdapter{
         return this.conn;
+    }
+
+    searchNode( pTypeUID:number, pUID:string):any{
+        let res:any = null;
+        switch (pTypeUID) {
+            case NodeInternalType.FILE:
+                res = this.files.getEntry(pUID);
+                break;
+            case NodeInternalType.PACKAGE:
+                res = this.packages.getEntry(pUID);
+                break;
+            case NodeInternalType.CLASS:
+                res = this.classes.getEntry(pUID);
+                break;
+            case NodeInternalType.METHOD:
+                res = this.methods.getEntry(pUID);
+                break;
+            case NodeInternalType.FIELD:
+                res = this.fields.getEntry(pUID);
+                break;
+            case NodeInternalType.FUNC:
+                res = this.funcs.getEntry(pUID);
+                break;
+        }
+        return res;
     }
 }

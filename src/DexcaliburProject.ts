@@ -23,7 +23,7 @@ import ProjectWorkspace from "./ProjectWorkspace";
 import * as Log from './Logger';
 import {HookManager} from "./hook/HookManager";
 import Inspector, {INSPECTOR_TYPE} from "./Inspector";
-import InspectorManager from "./InspectorManager";
+import InspectorManager, {InspectorMap} from "./InspectorManager";
 import {DexcaliburVM} from "./DexcaliburVM";
 import Simplifier from "./Simplifier";
 import SmaliDisassembler from "./SmaliDisassembler";
@@ -196,7 +196,7 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
      * @type {Inspector[]}
      * @field All inspectors
      */
-    inspectors:Inspector[] = null;
+    inspectors:InspectorMap = null;
 
     // FridaBuilder make Frida script chunk from cls
     fridaBuilder:any = null;
@@ -691,7 +691,7 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
      * @method
      */
     deployInspectors(pStep){
-        let im:InspectorManager = InspectorManager.getInstance();
+        const im:InspectorManager = InspectorManager.getInstance();
 
         im.deployInspectors(this, pStep);
         this.inspectors = im.getInspectorsOf(this);
@@ -720,6 +720,18 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
             this.inspectors = InspectorManager.getInstance().getInspectorsOf(this);
         }
         return this.inspectors[pName];
+    }
+
+
+    /**
+     * To get all inspectors for this project
+     *
+     * @returns {Inspector[]} List of Inspector instances for the project
+     * @method
+     */
+    getInspectors():InspectorMap{
+
+        return this.inspectors;
     }
 
     /**

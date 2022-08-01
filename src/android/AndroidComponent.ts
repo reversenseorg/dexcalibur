@@ -6,6 +6,7 @@ import * as _md5_ from 'md5';
 import {AndroidIntentable} from "./Intent";
 import ModelClass from "../ModelClass";
 import {AndroidAttributeSet} from "./AndroidAttribute";
+import {NodeInternalType} from "../NodeInternalType";
 
 
 const ANDROID_PREFIX = "android:";
@@ -13,6 +14,8 @@ const ANDROID_PREFIX_LEN = 8;
 
 export default class AndroidComponent extends AndroidIntentable
 {
+    __:NodeInternalType;
+
     androidPrefixed:string[] = [];
     attr:AndroidAttributeSet = {};
 
@@ -110,6 +113,7 @@ export default class AndroidComponent extends AndroidIntentable
     toJsonObject():any{
         let o:any = new Object();
 
+        o.__ = this.__;
         o.__id = this.__id;
         o.label = this.label;
         o.name = this.name;

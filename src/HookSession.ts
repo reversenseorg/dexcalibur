@@ -18,6 +18,8 @@ import * as Log from "./Logger";
 import HookMessageV2 from "./hook/HookMessageV2";
 import {RuntimeEvent, RuntimeEventType} from "./hook/RuntimeEvent";
 import {HookMessageException} from "./errors/HookMessageException";
+import {TagHashMap, TagManager, TagMap, TagNameMap} from "./tags/TagManager";
+import {INode} from "./INode";
 
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
@@ -40,12 +42,11 @@ export default class HookSession extends WebsocketSession
 {
 
 
-
     /**
      * The stack containing the received message
      * @field
      */
-    message:RuntimeEvent<HookMessageV2>[] = [];
+    message:RuntimeEvent<any>[] = [];
     //message:HookMessageV2[] = [];
 
     /**
@@ -78,6 +79,9 @@ export default class HookSession extends WebsocketSession
 
     opts:HookSessionOptions;
 
+    tags:TagHashMap;
+
+    offset = 0;
 
     /**
      *
@@ -101,6 +105,7 @@ export default class HookSession extends WebsocketSession
         this.opts = {
             rawOutput: false
         }
+        this.tags = this.hookManager.getMessageTags();
     }
 
     set fridaSession( pSession:Frida.Session){
@@ -151,10 +156,8 @@ export default class HookSession extends WebsocketSession
     push(pRawMsg:any){
 
         const hm:HookMessageV2 = new HookMessageV2();
-        const ev:RuntimeEvent<HookMessageV2> = new RuntimeEvent<HookMessageV2>({
-            type: RuntimeEventType.HOOK,
-            raw: hm,
-            node: null
+        const ev:RuntimeEvent<any> = new RuntimeEvent<any>({
+            type: RuntimeEventType.HOOK
         });
 
         //if(pRawMsg.type == "error") return null;
@@ -165,17 +168,21 @@ export default class HookSession extends WebsocketSession
         if(pRawMsg.hid == null) throw HookMessageException.MISSING_HOOK_ID();
         if(pRawMsg.fid == null) throw HookMessageException.MISSING_FRAG_ID();
 
+        // update hook message
+        hm.setSession(this);
+        hm.uid = this.offset;
         hm.hook = this.hookManager.getHookByID(pRawMsg.hid);
 
+        if(hm.hook)
         hm.frag = hm.hook.getFragment(pRawMsg.fid);
-
-        // 'match' is not yet used because fragment/keypoint allow to issue hook message conditionnaly & agent-side
-        // hm.match = (msg.payload.match!=null)? msg.payload.match : false;
-
-        // 'msg' is informational text such as FQCN or signature of method hooked
-        // hm.msg = msg.payload.msg;
-
         hm.data = pRawMsg.data;
+
+        // fill runtiume event
+        ev.addNode(hm.hook.getTarget() as INode);
+        ev.raw = hm;
+        ev.addTag(this.tags.HOOK);
+
+        this.offset++;
 
         // 'Action' is already known by fragment
         // hm.action = msg.payload.action;
@@ -194,23 +201,38 @@ export default class HookSession extends WebsocketSession
 
         // TODO : send raw hook message only if specified
 
-        this.send({
-            data: pRawMsg.data,
-            node: {
-                __: hm.hook.getTarget()!=null ?  hm.hook.getTarget().__ : null,
-                uid: hm.hook.getTarget()!=null ?  hm.hook.getTarget().getUID() : null
-            },
-            hook: {
-                __: hm.hook.__,
-                uid: hm.hook.getGUID(),
-            },
-            frag:  hm.frag.getUID()
-        });
+
 
         if(!this.opts.rawOutput){
             // process hook message as RuntimeEvent
-            // this.send(ev);
-            //this.hookManager.newRuntimeEvent(ev);
+            const jsonNode = [];
+            ev.node.map( x => jsonNode.push( x.__!=null ? (x as any).toJsonObject() : x));
+
+            this.send({
+                data:{
+                    id: hm.uid,
+                    data: hm.data,
+                    hook:  hm.hook.toJsonObject(),
+                    frag:  hm.frag.toJsonObject()
+                },
+                node: jsonNode,
+                tags: ev.tags
+            });
+            this.hookManager.newRuntimeEvent(ev);
+        }else{
+            this.send({
+                id: hm.uid,
+                data: pRawMsg.data,
+                node: {
+                    __: hm.hook.getTarget()!=null ?  hm.hook.getTarget().__ : null,
+                    uid: hm.hook.getTarget()!=null ?  hm.hook.getTarget().getUID() : null
+                },
+                hook: {
+                    __: hm.hook.__,
+                    uid: hm.hook.getGUID(),
+                },
+                frag:  hm.frag.getUID()
+            });
         }
 
         // TODO : remove 'match' from hook message template
@@ -261,6 +283,13 @@ export default class HookSession extends WebsocketSession
         let o:any = new Object(), limit:number=pSize;
         o.message = [];
         o.active = this.active;
+        o.time = this.time;
+        o.offset = this.offset;
+        o.tags = [];
+        for(const k in this.tags) o.tags.push(this.tags[k].getUUID())
+
+        o.opts = this.opts;
+        o._sessid = this._sessid;
 
         if(limit==-1)
             limit = this.message.length;

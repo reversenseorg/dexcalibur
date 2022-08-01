@@ -3,10 +3,13 @@
 import * as Log from '../Logger';
 import {IntentFilter} from "./IntentFilter";
 import AndroidComponent from "./AndroidComponent";
+import {NodeInternalType} from "../NodeInternalType";
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
 export default class AndroidService extends AndroidComponent
 {
+    __:NodeInternalType = NodeInternalType.ANDROID_SERVICE;
+
     constructor(config:any=null){
         super();
 

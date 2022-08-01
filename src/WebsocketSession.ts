@@ -1,5 +1,6 @@
 import {User} from "./User";
 import Util from "./Utils";
+import {RuntimeEvent} from "./hook/RuntimeEvent";
 
 
 // list of HookSession UIDs
@@ -125,6 +126,18 @@ export abstract class WebsocketSession {
                 localid: vClients.lid,
                 sessid: this._sessid
             }}));
+        })
+    }
+
+    sendRuntimeEvent(pEvent:RuntimeEvent<any>):void {
+        this._clients.map( vClients => {
+            //Logger.raw("Send websocket message to : "+vClients.lid+", "+this._sessid)
+            vClients.socket.sendUTF(JSON.stringify({action:'msg', svc:"hookm", data:{
+                    success: true,
+                    msg: pEvent.toJsonObject(),
+                    localid: vClients.lid,
+                    sessid: this._sessid
+                }}));
         })
     }
 

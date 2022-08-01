@@ -728,7 +728,7 @@ export default class WebServer
             });
         */
 
-
+/*
         this.app.route('/api/inspector')
             .get(function (req:ExpressRequest, res:ExpressResponse):any {
                 // TODO : throw error if $.project is null (installing state, splash screen, ...)

@@ -16,8 +16,8 @@ export class HookBuilder {
     native:NativeHookBuilder = null;
 
     constructor( pContext:DexcaliburProject) {
-        this.java = new JavaHookBuilder();
-        this.native = new NativeHookBuilder();
+        this.java = new JavaHookBuilder(pContext);
+        this.native = new NativeHookBuilder(pContext);
     }
 
     /**

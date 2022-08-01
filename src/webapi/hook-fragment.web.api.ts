@@ -122,7 +122,16 @@ HOOK_FRAGS_WEB_API.addAuthenticatedRoute(
                 Logger.error("[API][HOOK] Hook fragment cannot be edited . Cause : " + err.message + "\n\t" + err.stack);
                 $.sendError(res, "Hook fragment cannot be edited . Cause : " + err.message);
             }
-        },
+        }
+    },{
+        readProject: true
+    }
+);
+
+
+HOOK_FRAGS_WEB_API.addAuthenticatedRoute(
+    '/hook_frag/:hookid/:fragid',
+    {
         'delete': async function (req:Request, res:Response):Promise<any> {
             const $: WebServer = req.dxc.$;
             let project:DexcaliburProject = null;
@@ -130,7 +139,7 @@ HOOK_FRAGS_WEB_API.addAuthenticatedRoute(
             try{
                 project = req.dxc.project;
 
-                if(req.params.hookid == null || req.query.frag_uid == null){
+                if(req.params.hookid == null || req.params.fragid == null){
                     throw HookManagerException.HOOK_FRAGMENT_NOT_FOUND();
                 }
 
@@ -144,7 +153,7 @@ HOOK_FRAGS_WEB_API.addAuthenticatedRoute(
                 }
 
                 // find, remove, update
-                const frag:HookTemplateFragment = hook.removeFragment(req.query.frag_uid);
+                const frag:HookTemplateFragment = hook.removeFragment(req.params.fragid);
 
                 $.sendSuccess(res, { hook: hook.toJsonObject(), frag:frag });
 

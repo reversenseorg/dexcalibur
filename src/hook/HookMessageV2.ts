@@ -1,5 +1,6 @@
 import {AbstractHook} from "./AbstractHook";
 import HookTemplateFragment from "./HookTemplateFragment";
+import HookSession from "../HookSession";
 
 
 export default class HookMessageV2
@@ -7,7 +8,7 @@ export default class HookMessageV2
     /**
      *
      */
-    uid:string = null;
+    uid:number = null;
 
     /**
      * Hook ID
@@ -42,6 +43,8 @@ export default class HookMessageV2
 
     frag?:HookTemplateFragment;
 
+    session:any = null;
+
 
     /**
      * To represent a message sent by a hook from the device to the desktop
@@ -63,6 +66,12 @@ export default class HookMessageV2
         return this.hook;
     }
 
+    setSession(pSession:HookSession){
+        this.session=pSession;
+    }
+
+
+
     /**
      * To make an instance of Object which not contain circular reference
      * and which are ready to be serialized.
@@ -70,6 +79,7 @@ export default class HookMessageV2
      */
     toJsonObject():any{
         let o:any = new Object();
+        o.uid = this.uid;
         o.data = this.data;
         o.hid = this.hid;
         o.fid = this.fid;

@@ -16,9 +16,11 @@ import NativeFunctionHook from "./NativeFunctionHook";
 import {NodeType} from "../persist/orm/NodeType";
 import {NodeInternalType} from "../NodeInternalType";
 import {HookManager} from "./HookManager";
+import * as Log from "../Logger";
 
 export const DEFAULT_PRIORITY = -1;
 
+const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
 
 /**
@@ -262,14 +264,24 @@ export default class HookStrategy {
      */
     private _runOnSEResults(pContext:DexcaliburProject):boolean{
 
+        const hm:HookManager = pContext.getHookManager();
         const results:FinderResult = (VM.runInNewContext('project.find.' + this.search.getRequest() + ';', { project: pContext }) as FinderResult);
 
         if(this.search.isMethod()){
-            results.foreach( (pRes)=>{
-                let h:JavaMethodHook = pContext.hook.getJavaMethodHook( pRes, this.key_point);
+            results.foreach( (vI, pRes)=>{
+                if(!pRes.hasOwnProperty('__') || (pRes.__!=NodeInternalType.METHOD)){
+
+                    Logger.error("[HOOK STRATEGY] _runOnSEResults (project.find." + this.search.getRequest() + "): Not a method : "+JSON.stringify(Object.keys(pRes)));
+                    return;
+                }
+
+                let h:JavaMethodHook = pContext.hook.getJavaMethodHook( pRes);
+                let create = false;
+
                 if(h == null){
-                    h = pContext.hook.createJavaMethodHook( pRes, { loadKP: this.key_point });
+                    h = pContext.hook.createJavaMethodHook( pRes, { loadKP: this.load_kp });
                     h.unloadOn(this.unload_kp);
+                    create = true;
                 }
 
                 if(this.before != null) h.appendBefore(this.before);
@@ -278,6 +290,8 @@ export default class HookStrategy {
 
                 h.build(pContext);
 
+                hm.save(h,create);
+
                 if(this.onMatch != null){
                     pContext.getHookManager().addMatchListener(h.getGUID(), this.onMatch);
                 }
@@ -285,7 +299,12 @@ export default class HookStrategy {
             })
         }
         else if(this.search.isNativeFunc()){
+            results.foreach( (pRes)=>{
+                if(!pRes.hasOwnProperty('__') || (pRes.__!=NodeInternalType.FUNC)){
+                    return;
+                }
 
+            })
         }
         else if(this.search.isSystemCall()){
 
@@ -306,7 +325,7 @@ export default class HookStrategy {
      * @return {number} Return `passed` flag
      * @method
      */
-    run(pContext:DexcaliburProject, pForce = false):number{
+    run(pContext:DexcaliburProject, pForce = false, pDbCreate = false):number{
 
         // skip if already executed previously
         if((this.passed == 1) && !pForce){
@@ -317,7 +336,7 @@ export default class HookStrategy {
         if(this.search.getRequest() != null){
             this.passed = this._runOnSEResults(pContext) ? 1 : 0;
 
-            pContext.hook.save(this);
+            pContext.hook.save(this,pDbCreate);
             return this.passed;
         }
 
@@ -327,7 +346,14 @@ export default class HookStrategy {
         if(this.search.isMethod()){
             this.search.getUids().map( (x:string) => {
                 let jhook:JavaMethodHook = null;
+                let create = false;
                 const m:ModelMethod = pContext.find.get.method(x)
+
+                // if method is missing, create it
+                if(m == null){
+                    pContext.getAnalyzer().createMissingMethod(x);
+
+                }
 
                 if(m != null){
                     jhook = hm.getJavaMethodHook(m);
@@ -335,6 +361,7 @@ export default class HookStrategy {
                     if(jhook == null){
                         jhook = hm.createJavaMethodHook(m, {loadKP:  this.load_kp })
                         jhook.unloadOn(this.unload_kp);
+                        create = true;
                     }
 
                     if(this.before != null) jhook.appendBefore(this.before);
@@ -344,7 +371,7 @@ export default class HookStrategy {
                     // update hook script
                     jhook.build(pContext);
 
-                    hm.save(jhook);
+                    hm.save(jhook, create);
 
 
                     if(this.preprocessor != null){
@@ -357,16 +384,25 @@ export default class HookStrategy {
             this.search.getUids().map( (x:string) =>
             {
                 let nhook:NativeFunctionHook = null;
-                const m:ModelFunction = pContext.find.get.func(x)
+                const m:ModelFunction = pContext.find.get.func(x);
+                let create = true;
 
                 if(m != null){
-                    nhook = hm.createNativeFunctionHook(m, {loadKP:  this.load_kp });
-                    nhook.unloadOn(this.unload_kp);
+                    nhook = hm.getNativeFunctionHook(m)
+
+                    if(nhook == null){
+                        nhook = hm.createNativeFunctionHook(m, {loadKP:  this.load_kp });
+                        nhook.unloadOn(this.unload_kp);
+                        create = true;
+                    }
+
+
                     if(this.before != null) nhook.appendBefore(this.before);
                     if(this.after != null) nhook.appendAfter(this.after);
                     if(this.replace != null) nhook.appendReplace(this.replace);
-                    nhook.build();
-                    hm.save(nhook);
+
+                    nhook.build(pContext);
+                    hm.save(nhook,create);
 
 
                     if(this.preprocessor != null){
@@ -380,7 +416,7 @@ export default class HookStrategy {
         }
         // mark as passed
         this.passed = 1;
-        pContext.hook.save(this);
+        pContext.hook.save(this, pDbCreate);
         return this.passed;
     }
 
@@ -398,16 +434,18 @@ export default class HookStrategy {
      */
     toJsonObject():any{
         const o:any = {};
-        for(const i in Object.keys(this)){
+        for(const i in this){
             switch(i){
                 case 'after':
                 case 'before':
                 case 'replace':
+                    // @ts-ignore
                     o[i] = (this[i] !== null ? (this[i] as HookTemplateFragment).toJsonObject() : null);
                     break;
                 case 'load_kp':
                 case 'unload_kp':
                 case 'key_point':
+                    // @ts-ignore
                     o[i] = (this[i] !== null ? (this[i] as KeyPoint).getUID() : null);
                     break;
                 case 'search':

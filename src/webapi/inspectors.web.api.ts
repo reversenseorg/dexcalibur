@@ -11,7 +11,7 @@ import ModelFile from "../ModelFile";
 import DexcaliburProject from "../DexcaliburProject";
 import * as path from "path";
 import Inspector from "../Inspector";
-import InspectorManager from "../InspectorManager";
+import InspectorManager, {InspectorMap} from "../InspectorManager";
 import {AuthenticationException} from "../errors/AuthenticationException";
 import {DexcaliburProjectException} from "../errors/DexcaliburProjectException";
 import FridaHelper from "../FridaHelper";
@@ -32,22 +32,7 @@ INSPECTOR_WEB_API.addAuthenticatedRoute(
             let project:DexcaliburProject = null;
 
             try{
-
-                // ========== SECURITY CHECKS
-
-                if (req.dxc == null || !$.context.getUserService().verifySession(req.dxc.sess)) {
-                    throw AuthenticationException.AUTHENTICATION_FAILED();
-                }
-
-                if(req.body['project']!=null){
-                    project = $.context.getActiveProjects(req.dxc.sess.getUserAccount())[req.body['project']];
-                }else if(req.dxc.project != null){
-                    project = req.dxc.project;
-                }
-
-                if(project == null || !project.isReady()) {
-                    throw DexcaliburProjectException.NO_PROJECT_SPECIFIED();
-                }
+                project = req.dxc.project;
 
                 // ========== LOGIC
                 const insp:Inspector = InspectorManager.getInstance().getEnabledInspector(
@@ -74,22 +59,7 @@ INSPECTOR_WEB_API.addAuthenticatedRoute(
             let project:DexcaliburProject = null;
 
             try{
-
-                // ========== SECURITY CHECKS
-
-                if (req.dxc == null || !$.context.getUserService().verifySession(req.dxc.sess)) {
-                    throw AuthenticationException.AUTHENTICATION_FAILED();
-                }
-
-                if(req.body['project']!=null){
-                    project = $.context.getActiveProjects(req.dxc.sess.getUserAccount())[req.body['project']];
-                }else if(req.dxc.project != null){
-                    project = req.dxc.project;
-                }
-
-                if(project == null || !project.isReady()) {
-                    throw DexcaliburProjectException.NO_PROJECT_SPECIFIED();
-                }
+                project = req.dxc.project;
 
                 // ========== LOGIC
                 const insp:Inspector = InspectorManager.getInstance().getEnabledInspector(
@@ -108,7 +78,43 @@ INSPECTOR_WEB_API.addAuthenticatedRoute(
                 $.sendError(res, "Request cannot be forwarded to inspector. Cause : " + err.message);
             }
         }
+    },{
+        readProject: true
     }
 
+);
+
+
+INSPECTOR_WEB_API.addAuthenticatedRoute(
+    '/inspector/list',
+    {
+        'get': function (req:Request, res:Response):any {
+
+            const $: WebServer = req.dxc.$;
+            let project:DexcaliburProject = null;
+
+            try{
+                project = req.dxc.project;
+
+                // ========== LOGIC
+                const insp:InspectorMap = project.getInspectors()
+                const data = [];
+
+                for(const uid in insp){
+                    data.push( insp[uid].toJsonObject());
+                }
+
+
+                $.sendSuccess(res, data);
+            }catch(err){
+                Logger.error("[API][PLUGINS] Request cannot be forwarded to inspector. Cause : " + err.message + "\n\t" + err.stack);
+                $.sendError(res, "Request cannot be forwarded to inspector. Cause : " + err.message);
+            }
+
+
+        }
+    },{
+        readProject: true
+    }
 );
 

@@ -33,6 +33,7 @@ import {Script} from "frida/dist";
 import {RuntimeEvent} from "./RuntimeEvent";
 import HookMessageV2 from "./HookMessageV2";
 import HookFragmentPreset from "./HookFragmentPreset";
+import {TagHashMap, TagNameMap} from "../tags/TagManager";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -112,6 +113,7 @@ export class HookManager
 
     _sess = null;
     frida_disabled:boolean = false;
+    private _sessTags: TagHashMap = null;
 
     /**
      * 
@@ -378,7 +380,7 @@ export class HookManager
      */
     prepareHookScript():string{
         let script:string = `Java.perform(function() {
-            var DEXC_MODULE = {};
+            
         `;
 
         // include hookset requirements
@@ -439,6 +441,24 @@ export class HookManager
             !== HOOKSESSION_CACHE_POLICY.FLUSH_SESSIONS);
     }
 
+    private _initMessageTags() {
+        const mgr = this.context.getTagManager();
+        this._sessTags =  {
+            HOOK: mgr.getTag('runtime.msg.hook'),
+            FS: mgr.getTag('runtime.msg.fs'),
+            MEM: mgr.getTag('runtime.msg.mem'),
+            TEE: mgr.getTag('runtime.msg.tee'),
+            CERT: mgr.getTag('runtime.msg.cert'),
+            NETWORK: mgr.getTag('runtime.msg.net'),
+            NFC: mgr.getTag('runtime.msg.nfc'),
+            BT: mgr.getTag('runtime.msg.bluetooth'),
+        }
+    }
+
+    getMessageTags():TagHashMap {
+        return this._sessTags;
+    }
+
     /**
      * To create a new hook session
      * 
@@ -446,7 +466,11 @@ export class HookManager
      * @method
      */
     newSession():HookSession{
-        var sess:HookSession =new HookSession(this);
+        if(this._sessTags == null){
+            this._initMessageTags();
+        }
+
+        const sess:HookSession =new HookSession(this);
 
         // TODO : add configuration flush/keep previous
         if(this.mustFlushCache()){
@@ -1129,6 +1153,46 @@ export class HookManager
         return hook;
     }
 
+    /**
+     * To find a hook by hooked method and key point
+     * @param pMethod
+     * @param pKeyPoint
+     */
+    getNativeFunctionHook( pFunc:ModelFunction, pKeyPoints:any = {}):NativeFunctionHook {
+        let hook:NativeFunctionHook = null, h:NativeFunctionHook = null;
+        const kpt = Object.keys(pKeyPoints).length;
+
+        for(let i=0; i<this.nhooks.length; i++){
+            h = this.nhooks[i];
+            if(h.getTarget().getUID() === pFunc.getUID()){
+                if(kpt == 0){
+                    hook = h;
+                    break;
+                }else{
+                    for(const kp in pKeyPoints){
+                        switch (kp) {
+                            case '_loadKp':
+                                if(h.getLoadKeyPoint().getUID() === pKeyPoints._loadkp.getUID()){
+                                    hook = h;
+                                    break;
+                                }
+                                break;
+                            case '_unloadKp':
+                                if(h.getUnloadKeyPoint().getUID() === pKeyPoints._unloadkp.getUID()){
+                                    hook = h;
+                                    break;
+                                }
+                                break;
+                        }
+                    }
+                    if(hook != null) break;
+                }
+            }
+        }
+
+        return hook;
+    }
+
 
 
     /**
@@ -1480,6 +1544,20 @@ export class HookManager
     getSessions():HookSession[] {
         return this.sessions;
     }
+
+    /**
+     * To get a session by UID
+     *
+     * @param {string} pUID
+     */
+    getSession( pUID:string):HookSession  {
+        for(let i=0; i<this.sessions.length; i++){
+            if(this.sessions[i].getSessionID()===pUID){
+                return this.sessions[i];
+            }
+        }
+        return null;
+    }
     // HookSession communication
 
 
@@ -1663,21 +1741,6 @@ export class HookManager
     }
 
 
-    /**
-     * To get a session by its Session ID
-     *
-     * @param {string} pSessID Session ID
-     * @return {TerminalSession}
-     *
-     */
-    getSession(pSessID:string):HookSession {
-        let sess:HookSession = null;
-        this.sessions.map((vSess:any)=>{
-            if(vSess.getSessionID()===pSessID) sess=vSess;
-        });
-
-        return sess;
-    }
 
 
 
@@ -1765,8 +1828,11 @@ export class HookManager
         const msg:HookMessageV2 = pEvent.getMessage();
         const frag = msg.getFragment();
 
-        if(frag.isPreProcessed()){
-            frag.getStrategy().onMatch
+        if(frag.isPreProcessed() && frag.getStrategy()!=null){
+            if(frag.getStrategy().onMatch != null){
+                frag.getStrategy().onMatch.apply(this.context, pEvent);
+            }
+
         }
 
         this.context.bus.send(pEvent);

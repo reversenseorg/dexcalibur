@@ -300,6 +300,19 @@ export abstract class AbstractHook {
         return frag;
     }
 
+    protected _containsTemplateFragment(pArr:HookTemplateFragment[], pFrag:HookTemplateFragment):boolean {
+        let exists = false;
+        pArr.map( x => {
+            if(x.getUID() == pFrag.getUID()){
+                exists = true;
+            }
+        })
+
+        // ignore if already exists
+        if(exists) return true;
+
+        return false;
+    }
     /**
      * To append fragement according to its priority
      *
@@ -308,6 +321,12 @@ export abstract class AbstractHook {
      * @protected
      */
     protected _appendFragment( pArr:HookTemplateFragment[], pFrag:HookTemplateFragment):void {
+
+
+        // ignore if already exists
+        if(this._containsTemplateFragment( pArr, pFrag)) return;
+
+
         if(pFrag.weight > -1){
             let newIndex = 0;
             for(let i=0; i<pArr.length; i++){

@@ -8,6 +8,7 @@ import {
     AndroidAttributeSet,
     ATTR_TYPE
 } from "./AndroidAttribute";
+import {NodeInternalType} from "../NodeInternalType";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -15,6 +16,7 @@ let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
 export default class AndroidProvider extends AndroidComponent
 {
+    __:NodeInternalType = NodeInternalType.ANDROID_PROVIDER;
 
     static MODEL:AndroidAttribute[] = [
         AndroidAttributeModel.authorities,

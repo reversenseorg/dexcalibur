@@ -18,14 +18,12 @@ import SmaliParser from "./SmaliParser";
 import * as Log from './Logger';
 import ModelCall from "./ModelCall";
 import ModelStringValue from "./ModelStringValue";
-import {ModelObjectType} from "./ModelType";
+import {ModelBasicType, ModelObjectType} from "./ModelType";
 import ModelBasicBlock from "./ModelBasicBlock";
 import ModelInstruction from "./ModelInstruction";
 //import TagCategory from "./ModelTagCategory";
-
 import ModelDataBlock from "./ModelDataBlock";
 import {Method} from "got";
-import {TAG} from "./AnalysisHelper";
 import ModelFile from "./ModelFile";
 import ModelSyscall from "./ModelSyscall";
 import NativeAnalyzer from "./NativeAnalyzer";
@@ -35,8 +33,8 @@ import {Workflow} from "./Workflow";
 import {IDatabase, IDbIndex, IDbSet} from "./persist/orm/DbAbstraction";
 import {NodeInternalType} from "./NodeInternalType";
 import {AnalyzerState} from "./AnalyzerState";
-import {TagManager} from "./tags/TagManager";
 import {Tag} from "./tags/Tag";
+import {CONST} from "./CoreConst";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -1394,6 +1392,8 @@ export default class Analyzer
         }
     }
 
+
+
     tagAsAndroidInternal( pOffset:any, pElement:any){
         pElement.addTag(this.tagCache.Discover.Internal);
     }
@@ -1489,5 +1489,63 @@ export default class Analyzer
         });
     }
 
+
+    static SmaliTypes = {
+         char :'C',
+         long :'J',
+         double :'D',
+         byte :'B',
+         int :'I',
+         short :'S',
+         boolean :'Z',
+         void :'V',
+         Object :'L',
+        float : 'F'
+    }
+
+    createMissingMethod( pSignature: string ) {
+
+        // TODO : change
+
+        const p1 = pSignature.indexOf('(');
+        let x = pSignature.substr(0, p1);
+        let d = x.lastIndexOf('.');
+        const fqcn = x.substr(0, d);
+        const name = x.substr(d+1);
+        const args = [];
+        let ret = new ModelBasicType( 'V'  );
+
+        let b = pSignature.substr(p1+1, pSignature.indexOf(')')-p1-1);
+        b.split('>').map( v => {
+            const t = v.substr(1);
+
+            if(t.indexOf('[')>0){
+                args.push(
+                    new ModelBasicType( Analyzer.SmaliTypes[t.substr(0,t.length-2)], true )
+                );
+            }else{
+                args.push(
+                    new ModelBasicType( Analyzer.SmaliTypes[t],  )
+                );
+            }
+        })
+
+
+
+        let clzz = this.db.classes.getEntry(fqcn);
+
+        if(clzz==null){
+            clzz = this.resolver.createMissingClass(fqcn, this.db);
+        }
+
+        const ref = new ModelMethodReference({
+            fqcn: clzz.getUID(),
+            name: name,
+            args: args,
+            ret: ret
+        });
+
+        this.resolver.createMissingMethod( ref, clzz, this.db, Modifier.PUBLIC);
+    }
 }
 

@@ -9,7 +9,6 @@ import FridaHelper from "../FridaHelper";
 import Hook from "../Hook";
 import Util from "../Utils";
 import {HookManager, HookSetList} from "../hook/HookManager";
-import HookMessage from "../HookMessage";
 import ModelMethod from "../ModelMethod";
 import {ModelFunction} from "../ModelFunction";
 import ModelFile from "../ModelFile";
@@ -17,9 +16,7 @@ import {AbstractHook} from "../hook/AbstractHook";
 import {NodeInternalType} from "../NodeInternalType";
 import KeyPoint from "../hook/KeyPoint";
 import HookStrategy from "../hook/HookStrategy";
-import HookFragmentPreset from "../hook/HookFragmentPreset";
-import {RuntimeEvent} from "../hook/RuntimeEvent";
-import HookMessageV2 from "../hook/HookMessageV2";
+import {RuntimeEventType} from "../hook/RuntimeEvent";
 import {INode} from "../INode";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
@@ -676,48 +673,52 @@ HOOK_WEB_API.addAuthenticatedRoute(
             try{
                 project = req.dxc.project;
 
-                let sess:HookSession[] = project.hook.getSessions();
-                let data:any = {sess:[]};
+                let sess:HookSession[];
+                const data = {sess:[]};
                 let signature:string = null;
 
-                if (sess.length == 0) {
-                    $.sendSuccess(res, data);
-                    return;
+
+                if(req.query.sess!=null){
+                    sess = [ project.hook.getSession( req.query.sess)];
+                }else{
+                    sess = project.hook.getSessions();
                 }
 
 
                 // collect only sessions containing messages for the given method/function
-                if(req.query.filter){
-                    data.sess = [];
+                if(req.query.node){
                     signature = decodeURIComponent(Util.b64_decode(decodeURIComponent(req.query.id)));
-                    switch(req.query.filter){
-                        case 'meth':
-                        case 'func':
+
+                    switch(req.query.node){
+                        case NodeInternalType.METHOD:
+                        case NodeInternalType.FUNC:
                             sess.map( (vHSess:HookSession)=>{
                                 if (!vHSess.hasMessages()) return;
 
-                                const s:any  = {msg:[]};
+                                let msg:any[] = [];
                                 const msgs = vHSess.messages();
-                                let match = false;
 
-                                for(let i=0; i<msgs.length; i++){
 
-                                    msgs[i].node.map( (vNode:INode)=>{
-                                        if(vNode.getUID()===signature){
-                                            match = true;
-                                        }
-                                    });
-                                    if(match) break;
-                                }
+                                msgs.map( x => {
+                                    if(x.type !== RuntimeEventType.HOOK) return false;
 
-                                if(match){
-                                    data.sess.push(s);
+                                    if(x.node.filter( y => (y.getUID() == signature)).length > 0){
+                                        msg.push( x.toJsonObject());
+                                    }
+                                });
+
+                                if(msg.length > 0){
+                                    data.sess.push(msg);
                                 }
                             });
                             break;
                     }
+
+
                 }else{
-                    data.sess = [];
+                    sess.map( x => {
+                        data.sess.push(x.toJsonObject(0,0));
+                    })
                 }
 
                 $.sendSuccess(res, data);
@@ -790,7 +791,9 @@ HOOK_WEB_API.addAuthenticatedRoute(
                 let file:ModelFile = null;
                 let opts:any = {};
 
-                if((req.body['_t']!=null) && (req.body['_t']=='func')){
+                const targetType = req.body.__ ;
+
+                if(targetType === NodeInternalType.FUNC){
 
                     meth = project.find.get.func(Util.decodeURI(Util.b64_decode(Util.decodeURI(req.params.method))));
                     if (meth == null) {
@@ -822,12 +825,14 @@ HOOK_WEB_API.addAuthenticatedRoute(
                         }
                     }
 
-                }else{
+                }else if(targetType === NodeInternalType.METHOD){
                     meth = project.find.get.method(Util.decodeURI(Util.b64_decode(req.params.method)));
                     if (meth == null) {
                         Logger.error("[API][HOOK::METHOD] Method not found "+Util.decodeURI(Util.b64_decode(req.params.method)));
                         throw new Error("Method or Function not found");
                     }
+                }else{
+                    throw new Error("The target node is not supported.");
                 }
 
 

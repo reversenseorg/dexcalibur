@@ -21,6 +21,16 @@ export interface InspectorFactorySet {
     [id :string] :InspectorFactory;
 }
 
+
+export interface InspectorMap {
+    [inspectorID :string] :Inspector;
+}
+
+export interface ProjectInspectorMap {
+
+    [projectUID :string] :InspectorMap;
+}
+
 /**
  * @class
  */
@@ -31,7 +41,7 @@ export default class InspectorManager
     inspectors:Inspector[] = [];
     errors:string[] = [];
 
-    projects:any = {};
+    projects:ProjectInspectorMap = {};
 
     enabled:any = {};
 
@@ -109,8 +119,8 @@ export default class InspectorManager
 
     enumerateLocal():InspectorFactorySet{
         let p:string =null;
-        let ws:string = _path_.join(__dirname, '..', 'inspectors'); // this.engine.workspace.getPluginsFolderLocation();
-        let files:string[] = _fs_.readdirSync(ws);
+        const ws:string = _path_.join(__dirname, '..', 'inspectors'); // this.engine.workspace.getPluginsFolderLocation();
+        const files:string[] = _fs_.readdirSync(ws);
 
         for(let i=0; i<files.length; i++){
             if(this.locals[ files[i] ] == null){
@@ -169,7 +179,7 @@ export default class InspectorManager
     }
 
 
-    getInspectorsOf(pProject:DexcaliburProject):Inspector[]{
+    getInspectorsOf(pProject:DexcaliburProject):InspectorMap{
         //Logger.info("getInspectorsOf:" + pProject.getUID()+" ( "+(pProject==null?'<null>':'<project>')+")");
         return this.projects[pProject.getUID()];
     }
@@ -181,7 +191,7 @@ export default class InspectorManager
      * @method
      */
     getEnabledInspector(pProject:DexcaliburProject, pName:string):Inspector{
-        let all:Inspector[] = this.projects[pProject.getUID()];
+        const all = this.projects[pProject.getUID()];
 
         if(all == null) 
             return null;
@@ -245,7 +255,7 @@ export default class InspectorManager
      * @deprecated
      */
     autoRegister( pProject:DexcaliburProject){
-        let self:InspectorManager=this;
+        const self:InspectorManager=this;
 
         Util.forEachFileOf(
             _path_.join(__dirname,"..","inspectors"), function(path:string){
@@ -276,7 +286,7 @@ export default class InspectorManager
      * @return {boolean}
      */
     createInspectorsFor( pProject:DexcaliburProject):boolean{
-        let uid:string = pProject.getUID();
+        const uid:string = pProject.getUID();
         let factory:InspectorFactory;
         const ws:WebServer = DexcaliburEngine.getInstance().getWebserver();
 
@@ -284,7 +294,7 @@ export default class InspectorManager
             this.projects[uid] = {};
         }
 
-        for(let i in this.locals){
+        for(const i in this.locals){
             factory = (this.locals[i] as any).default;
             /*if(factory.hasWebApi() && !factory.isWebApiReady()){
                 factory.registerWebServer(ws);
@@ -329,8 +339,8 @@ export default class InspectorManager
      * @param {*} pStep 
      */
     deployInspectors( pProject:DexcaliburProject, pStep:INSPECTOR_TYPE):boolean{
-        let uid:string = pProject.getUID();
-        let insp:string = "";
+        const uid:string = pProject.getUID();
+        let insp = "";
 
         if(this.projects[uid] == null) {
             // cannot deployed not initiliazed inspectors
@@ -366,7 +376,7 @@ export default class InspectorManager
      * @method
      */
     deployAll():void{
-        for(let k in this.inspectors)
+        for(const k in this.inspectors)
             this.inspectors[k].deploy();
     }
 
@@ -377,7 +387,7 @@ export default class InspectorManager
      * @method
      */
     deploy(name:string):boolean{
-        let insp:Inspector = this.get(name);
+        const insp:Inspector = this.get(name);
         if(insp instanceof Inspector){
             insp.deploy();
             return true;

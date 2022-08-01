@@ -32,6 +32,8 @@ export default class HookTemplateFragment {
 
     private _preproc:boolean = true;
 
+    private _keypoint:string = null;
+
 
     /**
      * Group of hook
@@ -84,6 +86,14 @@ export default class HookTemplateFragment {
 
     get strategy():HookStrategy {
         return this._strategy
+    }
+
+    isKeyPoint():boolean {
+        return (this._keypoint!==null);
+    }
+
+    getKeyPointName():string {
+        return this._keypoint;
     }
 
     setStrategy(pStrategy:HookStrategy){

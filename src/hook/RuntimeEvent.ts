@@ -25,11 +25,13 @@ export class RuntimeEvent<P> extends BusEvent {
 
     type:RuntimeEventType = null;
 
+    id:any = null;
+
     raw: P = null;
 
-    node:INode[] = null;
+    node:INode[] = [];
 
-    tags:Tag[] = [];
+    tags:number[] = [];
 
     constructor( pConfig:any) {
         super(pConfig);
@@ -53,8 +55,38 @@ export class RuntimeEvent<P> extends BusEvent {
     }
 
     addNode(pNode:INode){
+        if(this.node == null){
+            this.node = [];
+        }
         this.node.push(pNode);
     }
+
+
+    addTag(vTag:Tag){
+        const uuid = vTag.getUUID();
+
+        if(!Array.isArray(this.tags)){
+            this.tags = [];
+        }
+
+        if(this.tags.indexOf(uuid)==-1)
+            this.tags.push(uuid);
+    }
+
+    hasTag(vTag:Tag):boolean{
+        const uuid = vTag.getUUID()
+        for(let i=0; i<this.tags.length; i++){
+            if(this.tags[i]===uuid){
+                return true;
+            }
+        }
+        return false;
+    }
+
+    getTags():number[]{
+        return this.tags;
+    }
+
 
     /**
      * To make an instance of Object which not contain circular reference
@@ -65,13 +97,8 @@ export class RuntimeEvent<P> extends BusEvent {
         const o:any = new Object();
 
         o.type = this.type
-        o.node = this.data;
-        o.tags = [];
-
-        this.tags.map( (vTag:Tag) => {
-            o.tags.push(vTag.getUUID());
-        })
-
+        o.node = this.node;
+        o.tags = this.tags;
         o.raw = (this.raw != null ? (this.raw as any).toJsonObject() : null);
 
         //if(this.tags != null && this.tags.length > 0)

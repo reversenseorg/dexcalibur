@@ -319,6 +319,7 @@ HookTemplateFragment.TYPE.updateProperties([
     (new NodeProperty("_cache")).type(DbDataType.STRING).def(null),
     (new NodeProperty("_preproc")).type(DbDataType.BOOLEAN).def(null),
     (new NodeProperty("_strategy")).single(HookStrategy.TYPE).def(null),
+    (new NodeProperty("_keypoint")).type(DbDataType.STRING).def(null),
 ]).dataSource(DataSourceHelper.FILE).builder(JavaMethodHook);
 
 JavaMethodHook.TYPE.updateProperties([

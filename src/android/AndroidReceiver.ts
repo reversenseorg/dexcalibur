@@ -1,11 +1,13 @@
 import {IntentFilter} from "./IntentFilter";
 import * as Log from '../Logger';
 import AndroidComponent from "./AndroidComponent";
+import {NodeInternalType} from "../NodeInternalType";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
 export default class AndroidReceiver extends AndroidComponent
 {
+    __:NodeInternalType = NodeInternalType.ANDROID_RECEIVER;
 
     constructor(config:any=null){
         super();

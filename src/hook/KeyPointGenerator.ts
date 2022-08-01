@@ -13,6 +13,10 @@ import {KeyPointManagerException} from "../errors/KeyPointManagerException";
 import ModelPackage from "../ModelPackage";
 import ModelField from "../ModelField";
 import ModelMethod from "../ModelMethod";
+import AnalyzerDatabase from "../AnalyzerDatabase";
+import DexcaliburProject from "../DexcaliburProject";
+import {AbstractHook, HOOK_FRAGMENT_POS} from "./AbstractHook";
+import HookTemplateFragment from "./HookTemplateFragment";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -99,6 +103,8 @@ export class KeyPointGenerator {
 
     mgr:KeyPointManager = null;
 
+    analDB:AnalyzerDatabase = null;
+
     target:Device = null;
 
     require:any = {
@@ -136,11 +142,15 @@ export class KeyPointGenerator {
     }
 
     generateToken(pObj:any, pKeyPoint:KeyPoint, pEvent:string):string {
-        const node:INode = this.getTargetNode(pKeyPoint);
+        let node:INode = this.getTargetNode(pKeyPoint);
+
+        if(pObj !== null){
+            node = pObj;
+        }
 
         switch (node.__) {
             case NodeInternalType.FILE:
-                return `@@__KP::FILE::${pEvent}::${(pObj as ModelFile).getName()}__@@`;
+                return `@@__KP::FILE::${pEvent}::${(node as ModelFile).getName()}__@@`;
                 break;
             default:
                 return `@@__KP::CUSTOM::${pKeyPoint.getName()}_${pEvent}__@@`;
@@ -161,11 +171,24 @@ export class KeyPointGenerator {
                 break
             case 'vis':
                 // visibility change over reflection
-                code =  `/* TODO *//*@@__CONTENT__@@*/`;
+                code =  `
+                DXC.onModifierChange({
+                    class: "${pField.getEnclosingClass().getName()}",
+                    name: "${pField.name}"
+                }, ()=>{
+                    /*@@__CONTENT__@@*/
+                })`;
                 break
             case 'def':
                 // define
-                code =  `/* TODO *//*@@__CONTENT__@@*/`;
+                code =  `
+                DXC.onFieldDefine({
+                    class: "${pField.getEnclosingClass().getName()}",
+                    name: "${pField.name}"
+                 }, ()=>{
+                    /*@@__CONTENT__@@*/
+                 });`;
+
                 break
         }
         pKeyPoint.code = code;
@@ -174,18 +197,64 @@ export class KeyPointGenerator {
 
     private generateForMethod( pMeth:ModelMethod, pKeyPoint:KeyPoint, pOptions:KeyPointOptions, pHookOpts:any):KeyPoint {
         let code:string = "";
+        let project:DexcaliburProject = this.mgr.getProject();
+        let hm:HookManager = project.getHookManager();
+        let hook:AbstractHook = null;
+
         switch(pOptions.getConditionName()){
             case 'def':
                 // on method defined
-                code =  `/* TODO *//*@@__CONTENT__@@*/`;
+                const args = [];
+                pMeth.args.map( x => {
+                    args.push(x._hashcode);
+                });
+
+                code =  `
+                DXC.onMethodDefine({
+                    class: "${pMeth.getEnclosingClass().getName()}",
+                    name: "${pMeth.getName()}"
+                    args: ${JSON.stringify(args)},
+                    ret: "${pMeth.getReturnType()._hashcode}"
+                 }, ()=>{
+                    /*@@__CONTENT__@@*/
+                 });`;
+
                 break
             case 'bef':
+                // detect is the method is already hooked
+                hook = hm.getProbe(pMeth);
+                if(hook == null){
+                    hook = hm.createJavaMethodHook(pMeth);
+                }
+
                 // before method call
-                code =  `/* TODO *//*@@__CONTENT__@@*/`;
+                //pKeyPoint.
+                hook.addExtraFragment( HOOK_FRAGMENT_POS.BEFORE, new HookTemplateFragment({
+                    _keypoint: pKeyPoint.getUID(),
+                    name: pKeyPoint.getName()+"_frag",
+                    _descr: "Special fragment to load/unload hooks associated to the KeyPoint '"+pKeyPoint.getName()+"'",
+                    _w:1000
+                }));
+
+                code =  `/*@@__CONTENT__@@*/`;
                 break
             case 'aft':
-                // after call
-                code =  `/* TODO *//*@@__CONTENT__@@*/`;
+                // detect is the method is already hooked
+                hook = hm.getProbe(pMeth);
+                if(hook == null){
+                    hook = hm.createJavaMethodHook(pMeth);
+                }
+
+                // before method call
+                //pKeyPoint.
+                hook.addExtraFragment( HOOK_FRAGMENT_POS.AFTER, new HookTemplateFragment({
+                    _keypoint: pKeyPoint.getUID(),
+                    name: pKeyPoint.getName()+"_frag",
+                    _descr: "Special fragment to load/unload hooks associated to the KeyPoint '"+pKeyPoint.getName()+"'",
+                    _w:1000
+                }));
+
+                code =  `/*@@__CONTENT__@@*/`;
                 break
         }
         pKeyPoint.code = code;
@@ -204,14 +273,17 @@ export class KeyPointGenerator {
 
         switch (loc.getType()) {
             case LocationType.APP:
-                classFactory = `DxcAgent.getDefaultClassLoader()`;
+                classFactory = `DXC.classLoader.path`;
                 break;
             case LocationType.PLATFORM:
-                classFactory = `DxcAgent.getPlatformClassLoader()`;
+                classFactory = `DXC.classLoader.boot`;
                 break;
             case LocationType.FILE:
             case LocationType.DYN:
-                classFactory = `DxcAgent.getClassLoader("${loc.file.getName()}")`;
+                classFactory = `DXC.classLoader.appCL("${loc.file.getName()}")`;
+                break;
+            default:
+                classFactory = "Java";
                 break;
         }
         if(loc._t==CodeLocation.APP._t){
@@ -227,6 +299,7 @@ export class KeyPointGenerator {
                 break
             case 'def':
                 // on class define
+
 
                 // get info about the classloader to hook in order to hook the class to load
                 code =  `/* TODO *//*@@__CONTENT__@@*/`;
@@ -278,7 +351,7 @@ ${classFactory}.use("${pClass.getName()}").onAnyNew((vArgs)=>{
                 if(pFile.isExecutable()){
                     pKeyPoint.code = `  
 Interceptor.attach( 
-    Process.findModuleByName("${libName}").findExportByName,
+    Process.findModuleByName("${libName}").findExportByName("JNI_Onload"),
     { 
         onEnter:function(args){
             DXC.JVM["${libName}"] = args[0];
@@ -415,12 +488,12 @@ DXC.onDlSymOf( "${pFunc.getSymbol()}", (vMod)=>{
         const target:any = this.getTargetNode(pKeyPoint);
         const hmopts:any = this.mgr.getProject().getHookManager().options;
         const targetUID = (target.hasOwnProperty('uid')? target.uid : target.getUID());
-        const obj = this.mgr.getProject()
-                                .getAnalyzer()
-                                    .searchNode(
+        let analDB:any =  this.mgr.getProject().getAnalyzer();
+        const obj =  analDB.searchNode(
                                         target.__,
                                         targetUID
                                     );
+
 
         if(obj==null){
             Logger.error("[KEY POINT GENERATOR] Node associated to the target cannot be found (type="+target.__+", uid="+targetUID+")");

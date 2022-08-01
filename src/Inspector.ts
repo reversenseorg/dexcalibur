@@ -668,9 +668,24 @@ export default class Inspector implements BusBroadcaster
         o.name = this.name;
         o.running = this.running;
         o.events = this.events;
+        o.installed = this.installed;
+        o.step = this.step;
+
+        o.db = null;
+        if(this.db != null){
+            o.db = this.db.toJsonObject();
+        }
+
         o.hooks = this.hookSet.toJsonObject();
-        o.listener = [];
+
+        o.preRegisteredTags = [];
+        this.preRegisteredTags.map( (c)=>{
+            o.preRegisteredTags.push(c.toJsonObject());
+        })
+
         o.gui_available = this.gui_available;
+
+        o.listener = [];
         for(const i in this.listener)
             o.listener.push({ n:i });
         

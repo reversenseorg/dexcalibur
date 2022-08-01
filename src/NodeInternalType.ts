@@ -42,7 +42,9 @@ export enum NodeInternalType {
     ANDROID_PROVIDER,
     ANDROID_RECEIVER,
     ANDROID_SERVICE,
-    ANDROID_PERM
+    ANDROID_PERM,
+    INSPECTOR,
+    HOOK_SESSION
 }
 
 export const NodeInternalTypeName = {
@@ -90,5 +92,7 @@ export const NodeInternalTypeName = {
     [NodeInternalType.ANDROID_RECEIVER]: "ANDROID_RECEIVER",
     [NodeInternalType.ANDROID_PROVIDER]: "ANDROID_PROVIDER",
     [NodeInternalType.ANDROID_SERVICE]: "ANDROID_SERVICE",
-    [NodeInternalType.ANDROID_PERM]: "ANDROID_PERM"
+    [NodeInternalType.ANDROID_PERM]: "ANDROID_PERM",
+    [NodeInternalType.INSPECTOR]: "INSPECTOR",
+    [NodeInternalType.HOOK_SESSION]: "HOOK_SESSION"
 }

@@ -1,13 +1,9 @@
-
-
-import * as _md5_ from 'md5';
-
-
 import * as Log from '../Logger';
-import ModelClass from "../ModelClass";
 import {IntentFilter} from "./IntentFilter";
 import AndroidComponent from "./AndroidComponent";
 import {AndroidPermission} from "./Permissions";
+import {NodeInternalType} from "../NodeInternalType";
+
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
 
@@ -64,6 +60,8 @@ class AndroidActivityAlias
  */
 export default class AndroidActivity extends AndroidComponent
 {
+    __:NodeInternalType = NodeInternalType.ANDROID_ACTIVITY;
+
     static MODEL = {
         allowEmbedded:["true" , "false"],
         allowTaskReparenting:["true" , "false"],

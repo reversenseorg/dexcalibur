@@ -14,6 +14,10 @@ export interface TagNameMap {
 export interface TagCategoryMap {
     [name:string] :TagCategory
 }
+export interface TagHashMap {
+    [name:string] :Tag
+}
+
 
 
 export class TagManager {

@@ -9,6 +9,7 @@ import {NodeType} from "../persist/orm/NodeType";
 import {DataSourceHelper} from "../DataSourceHelper";
 import {HookScriptBuilderException} from "../errors/HookScriptBuilderException";
 import ModelFile from "../ModelFile";
+import DexcaliburProject from "../DexcaliburProject";
 
 export enum HookTargetType {
     STATIC_OFFSET,
@@ -117,7 +118,7 @@ export default class NativeFunctionHook extends AbstractHook {
         return o;
     }
 
-    build():any{
+    build(pContext:DexcaliburProject = null):any{
         if(this._target == null){
             throw HookScriptBuilderException.UNTARGETABLE_NATIVE_HOOK();
         }

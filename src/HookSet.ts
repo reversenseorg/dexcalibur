@@ -59,7 +59,14 @@ export default class HookSet
     builtin:boolean = false;
 
     // TODO : Merge probes and intercepts
+    /**
+     * @deprecated
+     */
     intercepts:HookPrimitive[] = [];
+
+    /**
+     * @deprecated
+     */
     probes:HookPrimitive[] = [];
 
     hooks:AbstractHook[] = [];
@@ -201,7 +208,22 @@ export default class HookSet
         this.share = config;
         return this;
     }
-
+    /**
+     * To get a strategy attached to ,this hook set by its name
+     *
+     * @param {string} pName
+     * @return {HookStrategy}
+     * @method
+     * @since 1.0.0
+     */
+    getStrategyByName(pName:string):HookStrategy{
+        for(let i=0; i<this.strats.length; i++){
+            if(this.strats[i].getName()==pName){
+                return this.strats[i];
+            }
+        }
+        return null;
+    }
 
 
     /**
@@ -353,6 +375,10 @@ export default class HookSet
      * @return
      */
     addStrategy(pStrat:HookStrategy){
+
+        if(pStrat.getUID()==null){
+            pStrat.setUID(this.getID()+":"+pStrat.getName())
+        }
         this.strats.push(pStrat);
     }
 
@@ -432,6 +458,11 @@ export default class HookSet
                     o[i] = [];
                     for(let j=0;  j<this.hooks.length; j++)
                         o[i].push(this[i][j].toJsonObject());
+                    break;
+                case "strats":
+                    o.strats = [];
+                    for(let j=0;  j<this.strats.length; j++)
+                        o.strats.push(this.strats[j].toJsonObject());
                     break;
                 case "context":
                     break;

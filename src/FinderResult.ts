@@ -286,9 +286,11 @@ export class FinderResult
                 Logger.info("[FINDER RESULT] select : <"+member+"> in entry <"+k+"> is OK");
                 if(Array.isArray(v[member])){
                     v[member].map( x => {
-
-                        //Logger.info("[FINDER RESULT] select : "+x);
                         data.insert(x, false)
+                    });
+                }if(typeof (v[member])==='object'){
+                    Object.values(v[member]).map(x => {
+                        data.insert(x, false);
                     });
                 }else{
                     data.insert(v[member], false);

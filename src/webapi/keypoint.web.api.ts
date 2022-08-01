@@ -173,8 +173,8 @@ KEYPOINT_WEB_API.addAuthenticatedRoute(
                 // ========== LOGIC
                 // get hook instance by ID
                // const uid =  KeyPoint.TYPE.getPrimaryKey().sanitize(req.param['uid']); //KeyPoint.TYPE.
-                const kp:KeyPoint = $.project.getKeyPointManager().getKeyPoint(req.params['uid']);
-                const unsafeData = req.body
+                const kp:KeyPoint = req.dxc.project.getKeyPointManager().getKeyPoint(req.body.uid);
+                const unsafeData = req.body.opts
 
                 for(const unsafePPT in unsafeData){
                     switch (unsafePPT){
@@ -188,6 +188,7 @@ KEYPOINT_WEB_API.addAuthenticatedRoute(
                             kp.setDescription(unsafeData[unsafePPT]);
                             break;
                         case 'code':
+                            kp.code = unsafeData[unsafePPT];
                             break;
                         case 'generator':
                             break;
@@ -207,10 +208,9 @@ KEYPOINT_WEB_API.addAuthenticatedRoute(
                 }
 
 
-
                 req.dxc.project.getKeyPointManager().update(kp);
 
-                $.sendSuccess(res,  req.dxc.project.getKeyPointManager().getKeyPoint(req.params['uid']).toJsonObject());
+                $.sendSuccess(res,  {});
             }catch(err){
                 Logger.error("[API][KEY POINTS] Key Point cannot be updated. Cause : " + err.message + "\n\t" + err.stack);
                 $.sendError(res, "Key Point cannot be updated. Cause : " + err.message);
