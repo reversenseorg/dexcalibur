@@ -56,13 +56,13 @@ var FingerprintInspector:InspectorFactory = new InspectorFactory({
                 replace: `  
             
                         ret = "fakeID";
-                        DXC.send({
-                            hid: "@@__HOOK_ID__@@",
-                            fid: "@@__FRAG_ID__@@",
-                            data: {
+                        DXC.send(
+                            "@@__HOOK_ID__@@",
+                            "@@__FRAG_ID__@@",
+                            {
                                 name: "fakeID"
                             }
-                        });
+                        );
                         
                         /*
                         send({ 

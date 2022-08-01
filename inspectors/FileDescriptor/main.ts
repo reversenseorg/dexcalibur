@@ -65,11 +65,11 @@ var FileDescriptorInspector:InspectorFactory = new InspectorFactory({
                         msg.arg1 = arg1;
                     }
             
-                     DXC.send({
-                            hid: "@@__HOOK_ID__@@",
-                            fid: "@@__FRAG_ID__@@",
-                            data: msg
-                        });
+                     DXC.send(
+                         "@@__HOOK_ID__@@",
+                         "@@__FRAG_ID__@@",
+                          msg
+                      );
                     
                     /*
                     send({ 

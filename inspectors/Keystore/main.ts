@@ -59,13 +59,13 @@ var KeystoreInspector:InspectorFactory = new InspectorFactory({
                 emitEvent: "hook.keystore.get.instance",
                 before: `     
                     
-                    DXC.send({
-                        hid: "@@__HOOK_ID__@@",
-                        fid: "@@__FRAG_ID__@@",
-                        data: {
+                    DXC.send(
+                        "@@__HOOK_ID__@@",
+                        "@@__FRAG_ID__@@",
+                        {
                             name: arg0
                         }
-                    });
+                    );
             
             /*
                         send({ 
@@ -122,16 +122,16 @@ var KeystoreInspector:InspectorFactory = new InspectorFactory({
                     
                     var pwd = Java.array('char',arguments[1]);
                     
-                    DXC.send({
-                        hid: "@@__HOOK_ID__@@",
-                        fid: "@@__FRAG_ID__@@",
-                        data: {
+                    DXC.send(
+                    "@@__HOOK_ID__@@",
+                    "@@__FRAG_ID__@@",
+                        {
                             stream: "<stream>",
                             pwd: "<pwd>",
-                            type: this.type
-                        },
-                        msg: "@@__METHSIGN__@@"
-                    });
+                            type: this.type,
+                            __msg__:"@@__METHSIGN__@@"
+                        }
+                    );
                     /*
                     send({ 
                         id:"@@__HOOK_ID__@@", 

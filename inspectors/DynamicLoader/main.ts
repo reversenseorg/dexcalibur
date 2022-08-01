@@ -25,6 +25,8 @@ import {DexcaliburProjectException} from "../../src/errors/DexcaliburProjectExce
 import {Rules} from "../BytecodeCleaner/src/Rules";
 import {DYNAMICLOADER_WEB_API} from "./src/main.web.api";
 import {AbstractHook} from "../../src/hook/AbstractHook";
+import JavaMethodHook from "../../src/hook/JavaMethodHook";
+import HookStrategy from "../../src/hook/HookStrategy";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -71,23 +73,23 @@ export default new InspectorFactory({
                 emitEvent: "hook.reflect.method.get",
                 after: `  
                         // var ret = meth_@@__METHDEF__@@.call(this, arg0, arg1);
-                        var cls = Java.cast( ret.getDeclaringClass(), DEXC_MODULE.common.class.java.lang.Class);
+                        var cls = Java.cast( ret.getDeclaringClass(), DXC.java.class.java.lang.Class);
                         
-                        DXC.send({
-                            hid: "@@__HOOK_ID__@@",
-                            fid: "@@__FRAG_ID__@@",
-                            data: {
+                        DXC.send(
+                            "@@__HOOK_ID__@@",
+                            "@@__FRAG_ID__@@",
+                            {
                                 __meth__: DXC.java.getMethodSignature(ret,arg1),
                                 __trace__: DXC.java.getStackTrace()
                             }
-                        });
+                        );
                         
                         /*send({ 
                             id:"@@__HOOK_ID__@@", 
                             match: true, 
                             data: {
-                                __meth__: DEXC_MODULE.reflect.getMethodSignature(ret,arg1),
-                                __hidden__trace: DEXC_MODULE.common.getStackTrace()
+                                __meth__: DXC.java.getMethodSignature(ret,arg1),
+                                __hidden__trace: DXC.java.getStackTrace()
                             },
                             after: true, 
                             msg: "Class.getMethod()", 
@@ -109,32 +111,15 @@ export default new InspectorFactory({
                 emitEvent: "hook.reflect.class.get",
                 after: `  
             
-                        //var clscl = Java.cast( arg2.getClass(), DEXC_MODULE.common.class.java.lang.Class);
-                        //var types = Java.array( this.getParameterTypes(), DEXC_MODULE.common.class.java.lang.Class);
             
                         DXC.send(
                             "@@__HOOK_ID__@@",
                             "@@__FRAG_ID__@@",
                             {
-                                __class__: arg0.toString()
+                                class: { __:DXC.NODE.CLASS, fqcn: arg0.toString() }
                             }
                         );
                         
-                        /*
-                        send({ 
-                            id:"@@__HOOK_ID__@@", 
-                            match: true, 
-                            data: {
-                                __class__: arg0.toString()
-                            },
-                            after: true, 
-                            msg: "Class.forName()", 
-                            tags: [{
-                                style:"purple",
-                                text: "dynamic"
-                            }], 
-                            action: "Update" 
-                        });*/
                 `
             }, {
                 name: "DexCL_findClass",
@@ -153,34 +138,15 @@ export default new InspectorFactory({
                     ctx.getInspector("DynamicLoader").emits("hook.dex.find.class", event.data);
                 },*/
                 after: `   
-                        // get classname
-                        var cls = Java.cast(ret, CLS.java.lang.Class);
-                        // collect methods
-                        // cls.getMethods();
-            
+                        var cls = Java.cast(ret, DXC.java.lang.Class);
             
                         DXC.send(
                             "@@__HOOK_ID__@@",
                             "@@__FRAG_ID__@@",
                             {
-                                __class__: cls.getName()
+                                class: { __:DXC.NODE.CLASS, fqcn: cls.getName() }
                             }
                         );
-                        /*
-                        send({ 
-                            id:"@@__HOOK_ID__@@", 
-                            match: true, 
-                            data: {
-                                __class__: cls.getName()
-                            },
-                            after: true, 
-                            msg: "BaseDexClassLoader.findClass()", 
-                            tags: [{
-                                style:"purple",
-                                text: "dynamic"
-                            }], 
-                            action:"Log" 
-                        });*/
                 `
             }, {
                 name: "DexCL_new",
@@ -209,7 +175,7 @@ export default new InspectorFactory({
                                 arg0: arguments[0],
                                 arg1: arguments[1],
                                 arg2: arguments[2],
-                                __hidden__data: DEXC_MODULE.common.readFile(arguments[0])
+                                __hidden__data: DXC.java.readFile(arguments[0])
                             }
                         );
                         /*
@@ -220,7 +186,7 @@ export default new InspectorFactory({
                                 arg0: arguments[0],
                                 arg1: arguments[1],
                                 arg2: arguments[2],
-                                __hidden__data: DEXC_MODULE.common.readFile(arguments[0])
+                                __hidden__data: DXC.java.readFile(arguments[0])
                             },
                             after: true, 
                             msg: "DexClassLoader.<init>()", 
@@ -271,7 +237,7 @@ export default new InspectorFactory({
                                     odex: arguments[1],
                                     arg2: arguments[2],
                                     isNew: true,
-                                    __hidden__data: DEXC_MODULE.common.readFile(arguments[0])
+                                    __hidden__data: DXC.java.readFile(arguments[0])
                                 }
                             );
                             
@@ -284,7 +250,7 @@ export default new InspectorFactory({
                                     odex: arguments[1],
                                     arg2: arguments[2],
                                     isNew: true,
-                                    __hidden__data: DEXC_MODULE.common.readFile(arguments[0])
+                                    __hidden__data: DXC.java.readFile(arguments[0])
                                 },
                                 after: false, 
                                 msg: "DexFile.loadDex()", 
@@ -350,35 +316,66 @@ export default new InspectorFactory({
                 autoEmit: true,
                 emitEvent: "hook.dex.new",
                 before: `     
-                        if(isInstanceOf(arg0,"java.io.File"))
+                        if(DXC.util.isInstanceOf(arg0,"java.io.File"))
                             path = arg0.getAbsolutePath();
                         else
                             path = arg0;
-            
-                        // DEXC_MODULE.common.copy(path, "dexfile.dex");
             
                         DXC.send(
                             "@@__HOOK_ID__@@",
                             "@@__FRAG_ID__@@",
                             {
-                                path: path,
+                                dexFile: { __:DXC.NODE.FILE, path: path }
                             }
                         );
-                        /*
-                        send({ 
-                            id:"@@__HOOK_ID__@@", 
-                            match: false, 
-                            data: {
-                                path: path,
-                            },
-                            after: false, 
-                            msg: "DexFile.<init>()", 
-                            tags: [{
-                                style:"purple",
-                                text: "dynamic"
-                            }], 
-                            action:"Log" 
-                        });*/
+                        
+                `
+            }, {
+                name: "DexFile_createCookie",
+                descr: "To gather Dex buffer/file loaded dynamically",
+                search: {
+                    type: ModelMethod.TYPE,
+                    uid: "dalvik.system.DexFile.createCookieWithArray(<byte[]><int><int>)<void>"
+                },
+                autoEmit: true,
+                emitEvent: "hook.dex.buffer.new",
+                /* //method: "dalvik.system.DexClassLoader.<init>(<java.lang.String><java.lang.String><java.lang.String><java.lang.ClassLoader>)<void>",
+                onMatch: function (ctx:DexcaliburProject, event:Event):void {
+                    // the evvent data contains the bytecode of the Dex file
+                    ctx.getInspector("DynamicLoader").emits("hook.dex.classloader.new", event.data);
+                },*/
+
+                // the event data contains the bytecode of the Dex file
+                /*preprocessor: `
+                    pCtx.getDevice().pull(pEvent.data.)
+
+                    pCtx.getInspector("DynamicLoader").emits("hook.dex.classloader.new", pEvent.data);
+                `,*/
+                before: ` 
+                        // to prevent out of memory issue, byte array is wrote into application folder
+                        // by the application itself
+                
+                        const d = '/data/data/@@__APP_NAME__@@';
+                        let p = 'inmemory_'+end+'_'+Date.now()+'.dex';
+                
+                        let f = DXC.java.class.java.io.File.$new(d, p);
+                        let fos = DXC.java.class.java.io.FileOuputStream.$new(f);
+                        fos.write(arg0);
+                        fos.close();
+                
+                        //send({ app_path: d+"/"+p });
+                
+                
+                        DXC.send(
+                            "@@__HOOK_ID__@@",
+                            "@@__FRAG_ID__@@",
+                            {
+                                __: DXC.NODE.FILE,
+                                path: d+"/"+p,
+                                arg2: arguments[2],
+                                __hidden__data: DXC.java.readFile(arguments[0])
+                            }
+                        );
                 `
             }/*,{
                 method: "android.os.Parcelable$ClassLoaderCreator.createFromParcel(<android.os.Parcel><java.lang.ClassLoader>)<java.lang.Object>",
@@ -542,11 +539,12 @@ export default new InspectorFactory({
             const sast_tag = ctx.getTagManager().getTag("discover.static");
             const dast_tag = ctx.getTagManager().getTag("discover.dynamic");
 
-            let rtWorkingDir = ctx.workspace.getRuntimeBcDir();
-            let dexFileName = _path_.basename(event.data.arg0);
-            let localDexFile = _path_.join(rtWorkingDir, dexFileName, dexFileName);
-            let stat = null, ignore = false;
-            let inspector = ctx.getInspector("DynamicLoader");
+            const rtWorkingDir = ctx.workspace.getRuntimeBcDir();
+            const dexFileName = _path_.basename(event.data.arg0);
+            const localDexFile = _path_.join(rtWorkingDir, dexFileName, dexFileName);
+            let stat = null;
+            let ignore = false;
+            const inspector = ctx.getInspector("DynamicLoader");
 
             Logger.info('Analyzing "'+dexFileName+'" at : '+localDexFile+'(fsize:'+event.data.__hidden__data.length+')');
             //Logger.info(JSON.stringify(event.data));
@@ -704,93 +702,53 @@ export default new InspectorFactory({
 
         "dxc.fullscan.post_deploy": function (ctx:DexcaliburProject, event:BusEvent):void {
             Logger.info("[INSPECTOR][TASK] Trying to restore previous data of DynLoaderInspector ... ");
-            let currentInspector = ctx.getInspector("DynamicLoader");
 
-            currentInspector.restore();
+            const hm = ctx.getHookManager();
+            const startName = "Custom_ClassLoaders";
+            const selfHS = ctx.getInspector("DynamicLoader").getHookSet();
+            let strat:HookStrategy = selfHS.getStrategyByName(startName);
 
-            // generate hooks for every class which extend ClassLoader
-
-            let classes = ctx.find.class("extends.name:ClassLoader");
-            let meth = [];
-
-            classes.foreach((pOffset,pCls) => {
-                let m = pCls.getMethod({ name: '<init>' }, true);
-                m.map(x=>{
-                    meth.push(x);
-                })
-            });
-
-            // remove already hooked methods from methods to hook
-            let hooks:AbstractHook[] = ctx.hook.getHooks();
-            let validMethods:ModelMethod[] = [];
-
-            // TODO : instead of skipping hooks, it should merge hooks
-            meth.map( vMethod => {
-                if(!ctx.hook.isProbing(vMethod)) {
-                    validMethods.push(vMethod.signature());
-                }
-            })
-
-            meth = null;
-
-            if(validMethods.length > 0){
-                currentInspector.hookSet.addIntercept({
-                    //when: HOOK.BEFORE,
-                    method: validMethods,
-                    onMatch: function (ctx:DexcaliburProject, event:BusEvent):void {
-                        console.log(event);
-                        ctx.getInspector("DynamicLoader").emits("hook.classloader.new", event);
+            if(strat == null){
+                strat = HookStrategy.from({
+                    name: startName,
+                    description: "",
+                    search: {
+                        type: ModelMethod.TYPE,
+                        req: `method("enclosingClass.extends.name:ClassLoader").filter("name:<init>")`
                     },
-                    interceptBefore: `     
-    
-                            var data ={}; 
-                            var path="", path2="";
-    
-                            for(var i=0; i<arguments.length; i++){
-                                if(isInstanceOf(arguments[i],"java.io.File")){
-                                    data['arg'+i] = arguments[i].getAbsolutePath();
-                                    data['__hidden__targ'+i] = 'f';
-                                }
-                                else if(isInstanceOf(arguments[i],"java.net.URL")){
-                                    data['arg'+i] = arguments[i].toString();
-                                    data['__hidden__targ'+i] = 'u';
-                                }
-                                else{
-                                    data['arg'+i] = arguments[i];
-                                    data['__hidden__targ'+i] = 's';
-                                }
-                            }
+                    autoEmit: true,
+                    emitEvent: "hook.classloader.new",
+                    before: `
+var data ={}; 
+var path="", path2="";
 
-                
-                            send({ 
-                                id:"@@__HOOK_ID__@@", 
-                                match: false, 
-                                data: data,
-                                after: false, 
-                                msg: "@@__FQCN__@@.@@__METHNAME__@@()", 
-                                tags: [{
-                                    style:"purple",
-                                    text: "dynamic"
-                                }], 
-                                action:"trace" 
-                            });
-                        `
+for(var i=0; i<arguments.length; i++){
+    if(DXC.util.isInstanceOf(arguments[i],"java.io.File")){
+        data['arg'+i] = { __:DXC.NODE.FILE, path:arguments[i].getAbsolutePath() };
+    }
+    else if(DXC.util.isInstanceOf(arguments[i],"java.net.URL")){
+        data['arg'+i] = { __:DXC.NODE.FILE, url:arguments[i].toString() };
+    }
+    else{
+        data['arg'+i] = { __:DXC.NODE.STRING, path:arguments[i] };
+    }
+}
+
+DXC.send(
+    "@@__HOOK_ID__@@",
+    "@@__FRAG_ID__@@",
+    data
+);
+`
+
                 });
-                currentInspector.hookSet.deploy();
+
+
+                selfHS.addStrategy(strat);
+
+                strat.run(ctx, false, true);
             }
 
-            // subscribe
-
-            // save dex file analyzed at runtime
-            /*ctx.bus.subscribe(
-                "file.post_scan.bcf",
-                BusSubscriber.from( pEvent => {
-                    Logger.info("Saaaaaaaaaaaaaavvvvveee ");
-                    Logger.info(JSON.stringify(pEvent));
-
-                    currentInspector.getDB().getIndex('dex').addEntry(pEvent.data);
-                    currentInspector.save();
-            }));*/
         }
     }
 });

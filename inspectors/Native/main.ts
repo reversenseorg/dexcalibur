@@ -46,41 +46,41 @@ var NativeLibraryInspector:InspectorFactory = new InspectorFactory({
             },*/
             replace: `
             
-            DXC.send({
-                hid: "@@__HOOK_ID__@@",
-                fid: "@@__FRAG_ID__@@",
-                data: {
+            DXC.send(
+                "@@__HOOK_ID__@@",
+                "@@__FRAG_ID__@@",
+                {
                     path: arg0,
                     when: 'before'
                 }
-            });
+            );
                     
         
             try { 
-                const loaded = DEXC_MODULE.common.class.java.lang.Runtime.getRuntime().loadLibrary0(
-                    DEXC_MODULE.common.class.dalvik.system.VMStack.getCallingClassLoader(), arg0); 
+                const loaded = DXC.java.class.java.lang.Runtime.getRuntime().loadLibrary0(
+                    DXC.java.class.dalvik.system.VMStack.getCallingClassLoader(), arg0); 
 
                 if(arg0 === 'MY_LIB') { 
                 
-                    DXC.send({
-                        hid: "@@__HOOK_ID__@@",
-                        fid: "@@__FRAG_ID__@@",
-                        data: {
+                    DXC.send(
+                        "@@__HOOK_ID__@@",
+                        "@@__FRAG_ID__@@",
+                        {
                             path: arg0,
                             when: 'after_MY_LIB'
                         }
-                    });
+                    );
                 } 
                 return loaded; 
             } catch(ex) { 
-                DXC.send({
-                    hid: "@@__HOOK_ID__@@",
-                    fid: "@@__FRAG_ID__@@",
-                    data: {
+                DXC.send(
+                "@@__HOOK_ID__@@",
+                "@@__FRAG_ID__@@",
+                    {
                         err: ex,
                         when: 'error'
                     }
-                });
+                );
                 
                 return null;
             } 
@@ -105,14 +105,15 @@ var NativeLibraryInspector:InspectorFactory = new InspectorFactory({
                 emitEvent: "hook.nativelib.load",
                 before: `
                 
-                    DXC.send({
-                        hid: "@@__HOOK_ID__@@",
-                        fid: "@@__FRAG_ID__@@",
-                        data: {
-                            path:arg0
-                        },
-                        msg: "@@__METHSIGN__@@"
-                    });
+                    DXC.send(
+                    "@@__HOOK_ID__@@",
+                    "@@__FRAG_ID__@@",
+                        {
+                            path:arg0,
+                            __msg__:"@@__METHSIGN__@@"
+                        }
+                        
+                    );
                     /*
                     send({ 
                         id:"@@__HOOK_ID__@@", 
