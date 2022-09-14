@@ -9,7 +9,7 @@ import {AbstractHook} from "./hook/AbstractHook";
 import {NodeType} from "./persist/orm/NodeType";
 import {NodeInternalType} from "./NodeInternalType";
 
-let Logger:Log.Logger = Log.newLogger() as Log.Logger;
+const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
 
 /**
@@ -37,7 +37,7 @@ export default class HookSet
     description:string = null;
     category:string = null;
     prologue:HookPrologue = null;
-    native:boolean = false;
+    native = false;
 
     /**
      * Flag. Dynamic hookset are deployed at runtime if condition is verified.
@@ -46,7 +46,7 @@ export default class HookSet
      * @field
      * @since 1.0.0
      */
-    dynamic:boolean = false;
+    dynamic = false;
 
 
     /**
@@ -56,7 +56,7 @@ export default class HookSet
      * @field
      * @since 1.0.0
      */
-    builtin:boolean = false;
+    builtin = false;
 
     // TODO : Merge probes and intercepts
     /**
@@ -80,7 +80,7 @@ export default class HookSet
      */
     context:DexcaliburProject = null;
 
-    enable:boolean = false;
+    enable = false;
 
     /**
      * The list of internal dexcalibur modules or external libraries required by the hookset
@@ -111,14 +111,14 @@ export default class HookSet
     /**
      * Group of hook
      *
-     * @param {*} config
+     * @param {any} pConfig
      * @constructor
      */
     constructor(pConfig:any=null){
 
         // this.requiresNode = [];
         if(pConfig!=null)
-            for(let i in pConfig)
+            for(const i in pConfig)
                 this[i] = pConfig[i];
     }
 
@@ -190,7 +190,7 @@ export default class HookSet
      *
      * @param module
      */
-    require(module:string){
+    require(module:string):void{
         if(this.requires.indexOf(module)==-1){
             this.requires.push(module);
         }
@@ -235,6 +235,10 @@ export default class HookSet
         return this.share;
     }
 
+    /**
+     * @deprecated
+     * @param probeConfig
+     */
     addProbe(probeConfig:any):HookSet{
         let probe:HookPrimitive;
 
@@ -311,6 +315,11 @@ export default class HookSet
         return this;
     }
 
+    /**
+     *
+     * @param config
+     * @deprecated
+     */
     addCustomHook(config:any){
         if(config.method == null && config.raw == null){
             Logger.error("[HOOK MANAGER] addCustomHook(): The method to hook is not defined");
@@ -359,7 +368,7 @@ export default class HookSet
      * @method
      */
     disable(){
-        let hookManager:HookManager = this.context.hook;
+        const hookManager:HookManager = this.context.hook;
 
         if(this.prologue != null)
             hookManager.removePrologueOf(this);
@@ -386,8 +395,7 @@ export default class HookSet
      * To deploy this hook set
      */
     deploy(){
-        let hookManager:HookManager = this.context.hook;
-        let hook:Hook;
+        const hookManager:HookManager = this.context.hook;
 
         // if the hookset is already deployed only not deployed hooks are generated
         if(this.enable === false){
@@ -426,16 +434,21 @@ export default class HookSet
     }
 
     toJsonObject():any{
-        let o:any = new Object();
-        for(let i in this){
+        const o:any = {};
+        for(const i in this){
             switch(i){
+                case "__":
                 case "id":
                 case "name":
+                case "color":
                 case "enable":
                 case "description":
                 case "builtin":
                 case "dynamic":
                 case "native":
+                case "requires":
+                case "share":
+                case "category":
                     o[i] = this[i];
                     break;
                 case "prologue":

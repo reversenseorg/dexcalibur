@@ -21,6 +21,8 @@ import {IDatabase, IDatabaseAdapter} from "./persist/orm/DbAbstraction";
 import {DelegateWebApi} from "./webapi/DelegateWebApi";
 import WebServer from "./WebServer";
 import {TagCategory} from "./tags/TagCategory";
+import {NodeType} from "./persist/orm/NodeType";
+import {NodeInternalType} from "./NodeInternalType";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -145,6 +147,10 @@ class StaticTask
  */
 export default class Inspector implements BusBroadcaster
 {
+    static TYPE:NodeType = new NodeType( "inspectors", NodeInternalType.INSPECTOR, []);
+
+    __:NodeInternalType = NodeInternalType.INSPECTOR;
+
     /**
      * The inspector ID is a string and it must be unique for entire engine
      *
@@ -663,6 +669,7 @@ export default class Inspector implements BusBroadcaster
      */
     toJsonObject():any{
         const o:any = {};
+        o.__ = this.__;
         o.id = this.id;
         o.description = this.description;
         o.name = this.name;
