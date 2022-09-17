@@ -11,7 +11,6 @@ import Util from "../Utils";
 import ModelMethod from "../ModelMethod";
 import * as Log from '../Logger';
 import FridaHelper from "../FridaHelper";
-import {TerminalSession} from "../TerminalSession";
 import {User} from "../User";
 import {ModelFunction} from "../ModelFunction";
 import {HookManagerException} from "../errors/HookManagerException";
@@ -29,16 +28,15 @@ import HookTemplateFragment from "./HookTemplateFragment";
 import HookWorkspace from "./HookWorkspace";
 import {DeviceManagerException} from "../errors/DeviceManagerException";
 import * as Frida from 'frida';
-import {Script} from "frida/dist";
 import {RuntimeEvent} from "./RuntimeEvent";
 import HookMessageV2 from "./HookMessageV2";
 import HookFragmentPreset from "./HookFragmentPreset";
 import {TagHashMap, TagNameMap} from "../tags/TagManager";
 
-let Logger:Log.Logger = Log.newLogger() as Log.Logger;
+const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
 
-var FRIDA = null;
+let FRIDA = null;
 
 
 export enum HOOK_TYPE {
@@ -46,7 +44,7 @@ export enum HOOK_TYPE {
     AFTER= 0x1,
     BEFORE= 0x2,
     OVERLOAD= 0x3
-};
+}
 
 export enum FRIDA_MODE {
     NONE,
@@ -64,6 +62,17 @@ export enum HOOKSESSION_CACHE_POLICY {
 
 export interface HookSetList {
     [id :string] :HookSet
+}
+
+export interface HookOptions {
+    loadKP?:KeyPoint,
+    unloadKP?:KeyPoint,
+    location?:string,
+    weight?:number,
+    behavior?:any,
+    lib?:string,
+    file?:string,
+    ptr_mode?:string
 }
 
 
@@ -112,7 +121,7 @@ export class HookManager
     scanners:any = {}; // deprecated
 
     _sess = null;
-    frida_disabled:boolean = false;
+    frida_disabled = false;
     private _sessTags: TagHashMap = null;
 
     /**
@@ -121,7 +130,7 @@ export class HookManager
      * @param {*} nofrida 
      * @constructor
      */
-    constructor(pProject:DexcaliburProject, pNofrida:boolean=false){
+    constructor(pProject:DexcaliburProject, pNofrida=false){
 
         this.context = pProject;
         if(pNofrida===false){
@@ -280,8 +289,8 @@ export class HookManager
         }
     }
 
-    registerHookSet(pHookSet:HookSet):void{
-
+    registerHookSet(pHookSet:HookSet):void {
+        return ;
     }
 
     /**
@@ -379,7 +388,7 @@ export class HookManager
      * @deprecated
      */
     prepareHookScript():string{
-        let script:string = `Java.perform(function() {
+        let script = `Java.perform(function() {
             
         `;
 
@@ -389,14 +398,14 @@ export class HookManager
         
         //script += this.prepareRequires();
         
-        for(let i in this.prologues){
+        for(const i in this.prologues){
             if(this.prologues[i].isEnable()){
                 script += this.prologues[i].builtScript;
             }
         }
 
 
-        for(let i in this.hooks){
+        for(const i in this.hooks){
             if(this.hooks[i].isEnable()){
                 if(this.hooks[i].hasVariables()){
                     script += this.hooks[i].setupVariables();                
@@ -633,7 +642,7 @@ export class HookManager
      start(pSession:HookSession, hook_script:string, pType:FRIDA_MODE=null, pExtra:any=null, pDevice:Device=null):HookSession{
         
         let target:Device = null;
-        let PROBE_SESSION:HookSession = pSession; //this.newSession();
+        const PROBE_SESSION:HookSession = pSession; //this.newSession();
         
         if(hook_script == null){
             hook_script = this.prepareHookScript();
@@ -662,7 +671,7 @@ export class HookManager
 
         // start Frida
         // do spawn + attach
-        let hookRoutine:any = co.wrap(function *() {
+        const hookRoutine:any = co.wrap(function *() {
             let session:any = null, pid:any=null, applications:any=null;
             let device:any = null;
 
@@ -949,7 +958,7 @@ export class HookManager
      *
      * @param pNative
      */
-    getDefaultHookSet(pNative:boolean=false):HookSet{
+    getDefaultHookSet(pNative=false):HookSet{
          if(pNative)
             return this.db.sets.getEntry(CUSTOM_HOOKSET_NATIVE);
          else
@@ -991,7 +1000,7 @@ export class HookManager
     trigger(pHookMessage:any):void{
 
         // INFO : event.hook = HookMessage.hook = msg.id
-        let hookid = Util.b64_decode(pHookMessage.hook);
+        const hookid = Util.b64_decode(pHookMessage.hook);
         if(!this.hasListener(hookid)) return ;
 
         for(let i=0; i<this.listeners[hookid].length; i++){
@@ -1000,7 +1009,7 @@ export class HookManager
     }
 
     isProbing(method:ModelMethod):boolean{
-        for(let i in this.hooks){
+        for(const i in this.hooks){
             if(this.hooks[i].name == method.signature() && this.hooks[i].enable){
                 return true;
             }
@@ -1232,15 +1241,44 @@ export class HookManager
         return this._countHook(this.nhooks, pFun);
     }
 
+    /**
+     * To create an syscall hook
+     *
+     * TODO : link to DxcAgent
+     *
+     * @param pAddr
+     * @param pOpts
+     * @param pKeyPoint
+     */
     createSyscallHook( pSyscalls:string[], pOpts:any, pKeyPoint:KeyPoint = null):NativeFunctionHook {
         return null;
     }
 
+    /**
+     * To create an instruction-level hook
+     *
+     * TODO
+     *
+     * @param pAddr
+     * @param pOpts
+     * @param pKeyPoint
+     * @method
+     * @since 1.0.0
+     */
     createInstructionHook( pAddr:ModelFunction, pOpts:any, pKeyPoint:KeyPoint = null):NativeFunctionHook {
         return null;
     }
 
-    createNativeFunctionHook( pFunc:ModelFunction, pOpts:any, pKeyPoint:KeyPoint = null):NativeFunctionHook {
+    /**
+     * To create a native hook targeting the specified function
+     *
+     * @param {ModelFunction} pFunc Function to hook
+     * @param {any} pOpts Hook options
+     * @param pKeyPoint
+     * @method
+     * @since 1.0.0
+     */
+    createNativeFunctionHook( pFunc:ModelFunction, pOpts:HookOptions, pKeyPoint:KeyPoint = null):NativeFunctionHook {
         const tmgr = this.context.getTagManager();
         const hook:NativeFunctionHook = new NativeFunctionHook();
 
@@ -1256,6 +1294,7 @@ export class HookManager
             hook.setUnloadKeyPoint(pOpts.unloadKP);
         }
 
+        hook.setContext(this.context);
         hook.setTarget(pFunc);
         hook.setManager(this);
 
@@ -1297,10 +1336,13 @@ export class HookManager
     /**
      *
      * To create a java method hook at a specific key point
-     * @param pMethod
+     *
+     * @param {ModelMethod} pMethod
      * @param pKeyPoint
+     * @method
+     * @since 1.0.0
      */
-    createJavaMethodHook( pMethod:ModelMethod, pOptions:any = {}):JavaMethodHook {
+    createJavaMethodHook( pMethod:ModelMethod, pOptions:HookOptions = {}):JavaMethodHook {
         const tmgr = this.context.getTagManager();
         const hook:JavaMethodHook = new JavaMethodHook();
 
@@ -1316,6 +1358,7 @@ export class HookManager
             hook.setUnloadKeyPoint(pOptions.unloadKP);
         }
 
+        hook.setContext(this.context);
         hook.setTarget(pMethod);
         hook.setManager(this);
 
@@ -1395,13 +1438,16 @@ export class HookManager
         const uid = pHook.getGUID();
         let offset = -1;
         let coll:AbstractHook[] = null;
+        let type:NodeInternalType = null;
 
 
-        if(pHook.__ == NodeInternalType.HOOK_NATIVE){//pHook.isTargetNodeType(NodeInternalType.FUNC)){
+        if(pHook.__ == NodeInternalType.HOOK_NATIVE){//pHook.isTargetNodeType(NodeInternalType.FUNC)){,
             coll = this.nhooks;
+            type = NodeInternalType.HOOK_NATIVE;
         }
         else if(pHook.__ == NodeInternalType.HOOK_JAVA){//pHook.isTargetNodeType(NodeInternalType.METHOD)){
             coll = this.jhooks;
+            type = NodeInternalType.HOOK_JAVA;
         }
 
         if(coll==null){
@@ -1410,7 +1456,15 @@ export class HookManager
 
         coll.map( (vHook:AbstractHook, i)=>{
             if(vHook.getGUID() == uid){
-                vHook.destroy(this.context);
+                vHook.destroy();
+                if(type == NodeInternalType.HOOK_NATIVE){//pHook.isTargetNodeType(NodeInternalType.FUNC)){,
+                    coll = this.nhooks;
+                    this.db.removeNativeHook(vHook as NativeFunctionHook);
+                }
+                else if(type == NodeInternalType.HOOK_JAVA){//pHook.isTargetNodeType(NodeInternalType.METHOD)){
+                    coll = this.jhooks;
+                    this.db.removeJavaHook(vHook as JavaMethodHook);
+                }
                 offset = i;
             }
         });
@@ -1439,7 +1493,7 @@ export class HookManager
      * @param {string} hookId
      */
     findHook(hookId:string):Hook{
-        for(let i in this.hooks){
+        for(const i in this.hooks){
             if(this.hooks[i].id == hookId){
                 return this.hooks[i];
             }
@@ -1452,8 +1506,8 @@ export class HookManager
      * @param method
      */
     findHookByMethod(method:ModelMethod|ModelFunction):Hook[]{
-        let match:Hook[] = [];
-        for(let i in this.hooks){
+        const match:Hook[] = [];
+        for(const i in this.hooks){
             if(this.hooks[i].name == method.signature()){
                 match.push(this.hooks[i]);
             }
@@ -1495,7 +1549,7 @@ export class HookManager
     }
 
     removePrologueOf(pHookSet:HookSet):void{
-        let newList:HookPrologue[] = [];
+        const newList:HookPrologue[] = [];
         for(let i=0; i<this.prologues.length; i++){
             if(this.prologues[i].parentID != pHookSet.getID()){
                 newList.push(this.prologues[i]);
@@ -1506,7 +1560,7 @@ export class HookManager
 
 
     removeHooksOf(pHookSet:HookSet):void{
-        let newList:Hook[] = [];
+        const newList:Hook[] = [];
         for(let i=0; i<this.hooks.length; i++){
             if(this.hooks[i].parentID != pHookSet.getID()){
                 newList.push(this.hooks[i]);
@@ -1568,7 +1622,7 @@ export class HookManager
      * @param pData
      */
     async processCommand( pUser:User, pSocket:any, pData:string):Promise<any>{
-        let message:any, type:string = null, sess:HookSession=null;
+        let message:any,  sess:HookSession=null;
         try{
             message = JSON.parse(pData);
             // start a new hook session
@@ -1643,7 +1697,6 @@ export class HookManager
             //
             else if(message.action=="start"){
 
-                let success:boolean = false;
                 let sess:HookSession = null;
 
                 Logger.info(`[HOOK MANAGER][WEBSOCKET][cmd=start]`);

@@ -81,6 +81,7 @@ export class HookDbApi {
         return this.nhooks.getAll();
     }
 
+
     createHookStrategy( pStrategy:HookStrategy):void {
         const r = this.strategies.addEntry( pStrategy.getUID(), pStrategy);
 
@@ -112,6 +113,24 @@ export class HookDbApi {
         return this.strategies.updateEntry(pStrategy);
     }
 
+    /**
+     * To remove a hook strategy from the hook db
+     *
+     * @param pStrategy
+     */
+    removeHookStrategy( pStrategy:HookStrategy):boolean {
+        if(pStrategy.before != null){
+            this.fragments.removeEntry(pStrategy.before.getUID());
+        }
+        if(pStrategy.after != null){
+            this.fragments.removeEntry(pStrategy.after.getUID());
+        }
+        if(pStrategy.replace != null){
+            this.fragments.removeEntry(pStrategy.replace.getUID());
+        }
+
+        return this.strategies.removeEntry(pStrategy.getUID());
+    }
 
     createHookSet( pSet:HookSet):void {
         return this.sets.addEntry( pSet.getID(), pSet);
@@ -121,12 +140,26 @@ export class HookDbApi {
         return this.sets.updateEntry(pSet);
     }
 
+    /**
+     * To remove an hook set from the db
+     *
+     * @param pSet
+     */
+    removeHookSet( pSet:HookSet):boolean {
+        return this.sets.removeEntry(pSet.getID());
+    }
+
+
     createJavaHook( pHook:JavaMethodHook):void {
         return this.jhooks.addEntry( pHook.getGUID(), pHook);
     }
 
     updateJavaHook( pHook:JavaMethodHook):void {
         return this.jhooks.updateEntry( pHook);
+    }
+
+    removeJavaHook( pHook:JavaMethodHook):boolean {
+        return this.jhooks.removeEntry( pHook.getGUID());
     }
 
 
@@ -138,12 +171,20 @@ export class HookDbApi {
         return this.nhooks.updateEntry( pHook);
     }
 
+    removeNativeHook( pHook:NativeFunctionHook):boolean {
+        return this.nhooks.removeEntry( pHook.getGUID());
+    }
+
     createFragment( pFrag:HookTemplateFragment):void {
         return this.fragments.addEntry( pFrag.getUID(), pFrag);
     }
 
     updateFragment( pFrag:HookTemplateFragment):void {
         return this.fragments.updateEntry( pFrag);
+    }
+
+    removeFragment( pFrag:HookTemplateFragment):boolean {
+        return this.fragments.removeEntry( pFrag.getUID());
     }
 
     save( pCreate = false){

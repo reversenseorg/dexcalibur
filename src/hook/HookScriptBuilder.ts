@@ -204,7 +204,8 @@ DXC.HOOK["${pLibraryName}"] = {
             hk.map( (vHook:AbstractHook) => {
                 let gc:string = vHook.getGeneratedCode();
                 if(gc == null || gc.length==0){
-                    vHook.build(this._hm.context);
+                    vHook.setContext(this._hm.context);
+                    vHook.build();
                     gc = vHook.getGeneratedCode();
                 }
 

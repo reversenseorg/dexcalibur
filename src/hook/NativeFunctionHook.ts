@@ -118,7 +118,7 @@ export default class NativeFunctionHook extends AbstractHook {
         return o;
     }
 
-    build(pContext:DexcaliburProject = null):any{
+    build():any{
         if(this._target == null){
             throw HookScriptBuilderException.UNTARGETABLE_NATIVE_HOOK();
         }
@@ -129,7 +129,7 @@ export default class NativeFunctionHook extends AbstractHook {
         return true;
     }
 
-    destroy(pContext: any): any {
+    destroy(): any {
 
     }
 }

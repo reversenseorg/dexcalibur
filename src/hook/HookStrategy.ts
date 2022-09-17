@@ -280,6 +280,7 @@ export default class HookStrategy {
 
                 if(h == null){
                     h = pContext.hook.createJavaMethodHook( pRes, { loadKP: this.load_kp });
+                    h.setContext(pContext);
                     h.unloadOn(this.unload_kp);
                     create = true;
                 }
@@ -288,7 +289,7 @@ export default class HookStrategy {
                 if(this.after != null) h.appendAfter(this.after);
                 if(this.replace != null) h.appendReplace(this.replace);
 
-                h.build(pContext);
+                h.build();
 
                 hm.save(h,create);
 
@@ -369,7 +370,7 @@ export default class HookStrategy {
                     if(this.replace != null) jhook.appendReplace(this.replace);
 
                     // update hook script
-                    jhook.build(pContext);
+                    jhook.build();
 
                     hm.save(jhook, create);
 
@@ -401,7 +402,7 @@ export default class HookStrategy {
                     if(this.after != null) nhook.appendAfter(this.after);
                     if(this.replace != null) nhook.appendReplace(this.replace);
 
-                    nhook.build(pContext);
+                    nhook.build();
                     hm.save(nhook,create);
 
 

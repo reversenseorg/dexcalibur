@@ -1,5 +1,5 @@
 import KeyPoint from "./KeyPoint";
-import {HookManager} from "./HookManager";
+import {HookManager, HookOptions} from "./HookManager";
 import HookTemplateFragment from "./HookTemplateFragment";
 import HookSet from "../HookSet";
 import Util from "../Utils";
@@ -7,6 +7,7 @@ import {NodeType} from "../persist/orm/NodeType";
 import {NodeInternalType} from "../NodeInternalType";
 import {HookManagerException} from "../errors/HookManagerException";
 import HookStrategy from "./HookStrategy";
+import DexcaliburProject from "../DexcaliburProject";
 
 
 
@@ -91,6 +92,12 @@ export abstract class AbstractHook {
     public parentID:string = null;
 
     public edited:boolean = false;
+
+    private _ctx:DexcaliburProject = null;
+
+    setContext(pProject:DexcaliburProject){
+        this._ctx = pProject;
+    }
 
     unloadOn(pKeyPoint:KeyPoint):AbstractHook {
         this._unloadkp = pKeyPoint;
@@ -340,16 +347,19 @@ export abstract class AbstractHook {
         }
     }
 
-    appendBefore(pFrag: HookTemplateFragment){
+    appendBefore(pFrag: HookTemplateFragment, pSync = true){
         this._appendFragment( this._before, pFrag);
+        if(pSync) this.build();
     }
 
-    appendAfter(pFrag: HookTemplateFragment){
+    appendAfter(pFrag: HookTemplateFragment, pSync = true){
         this._appendFragment( this._after, pFrag);
+        if(pSync) this.build();
     }
 
-    appendReplace(pFrag: HookTemplateFragment){
+    appendReplace(pFrag: HookTemplateFragment, pSync = true){
         this._appendFragment( this._replace, pFrag);
+        if(pSync) this.build();
     }
 
     private _hasFragments( pArr:HookTemplateFragment[]){
@@ -412,8 +422,8 @@ export abstract class AbstractHook {
 
     abstract  isTarget(pNode: any): boolean;
     abstract  getTarget(): any;
-    abstract  build(pContext:any): any;
-    abstract  destroy(pContext:any): any;
+    abstract  build(): any;
+    abstract  destroy(): any;
 
 
     toJsonObject(){
@@ -477,7 +487,7 @@ export abstract class AbstractHook {
      * Not used
      * @param pOptions
      */
-    extends( pOptions:any){
+    extends( pOptions:HookOptions){
     }
 
 

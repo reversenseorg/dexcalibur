@@ -1,7 +1,9 @@
-import {AbstractHook} from "./AbstractHook";
+import {AbstractHook, HOOK_FRAGMENT_POS, UID_POS_MAPPING} from "./AbstractHook";
 import HookTemplateFragment from "./HookTemplateFragment";
 import ModelMethod from "../ModelMethod";
+import HookStrategy from "./HookStrategy";
 
+import * as _md5_ from "md5";
 export enum HookFragmentPresetType {
     TRACK='track',
     TRACK_PARAM='trackpar',
@@ -50,10 +52,12 @@ export default class HookFragmentPreset {
                         frag.name = "trace_args";
                         frag.description = "To trace the params value";
                         frag.setCodeTemplate(this._createMethodTrack(pHook, pOptions, true ));
+                        frag.setUID(HookFragmentPreset.generateFragmentUID(pHook, HOOK_FRAGMENT_POS.BEFORE, frag, null));
                     }else{
                         frag.name = "trace_return_value";
                         frag.description = "To trace the return value";
                         frag.setCodeTemplate(this._createMethodTrack(pHook, pOptions, false ));
+                        frag.setUID(HookFragmentPreset.generateFragmentUID(pHook, HOOK_FRAGMENT_POS.AFTER, frag, null));
                     }
                 }
                 break;
@@ -62,6 +66,7 @@ export default class HookFragmentPreset {
                     frag.name = "tamper_param";
                     frag.description = "To tamper the values from parameters before the call";
                     frag.setCodeTemplate(this._createTamperJavaParam(pHook, pOptions ));
+                    frag.setUID(HookFragmentPreset.generateFragmentUID(pHook, HOOK_FRAGMENT_POS.BEFORE, frag, null));
                 }
                 break;
             case HookFragmentPresetType.TAMPER_RET:
@@ -69,9 +74,24 @@ export default class HookFragmentPreset {
                     frag.name = "trace_return_value";
                     frag.description = "To tamper the value returned by the method after the call";
                     frag.setCodeTemplate(this._createTamperJavaRet(pHook, pOptions ));
+                    frag.setUID(HookFragmentPreset.generateFragmentUID(pHook, HOOK_FRAGMENT_POS.AFTER, frag, null));
                 }
                 break;
         }
         return frag;
+    }
+
+    /**
+     * To generate an UID for a hook fragment
+     *
+     * @param pPosition
+     * @param pFrag
+     * @param {HookStrategy} pStrategy  The parent strategy
+     * @return {string} Generate UID for hook fragment template for a specified strategy
+     * @method
+     * @static
+     */
+    static generateFragmentUID( pHook:AbstractHook, pPosition:HOOK_FRAGMENT_POS, pFrag:HookTemplateFragment, pStrategy:HookStrategy = null):string {
+        return _md5_( ':::'+pHook.getGUID()+':'+UID_POS_MAPPING[pPosition]+':'+pFrag.name );
     }
 }

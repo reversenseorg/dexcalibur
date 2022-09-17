@@ -65,7 +65,14 @@ export default class JavaMethodHook extends AbstractHook {
         this.name = pTarget.name;
     }
 
-    build(pContext:DexcaliburProject):boolean{
+    /**
+     * To generate hook source code
+     *
+     * @param {DexcaliburProject} pContext Project
+     * @method
+     * @since 1.0.0
+     */
+    build():boolean{
 
         if(this._target == null){
             throw HookScriptBuilderException.UNTARGETABLE_JAVA_HOOK();
@@ -91,7 +98,7 @@ export default class JavaMethodHook extends AbstractHook {
         return o;
     }
 
-    destroy(pContext: any): any {
+    destroy(): any {
         // remove from db
     }
 }
