@@ -13,11 +13,13 @@ export class InspectorFactoryException extends MonitoredError {
 
     static ERR = {
         HOOKSET_CANNOT_BE_CREATED: ErrorCode.INSPECTOR_FACT + InspectorFactoryError.HOOKSET+ 1,
+        INSPECTOR_NOT_FOUND: ErrorCode.INSPECTOR_FACT + InspectorFactoryError.GENERIC+ 1,
         STRATEGY_NAME_IS_MANDATORY: ErrorCode.INSPECTOR_FACT + InspectorFactoryError.STRATEGY+ 2,
     };
 
     static HOOKSET_CANNOT_BE_CREATED = (uid)=>{ return new InspectorFactoryException(" Hookset cannot be created : "+uid,InspectorFactoryException.ERR.HOOKSET_CANNOT_BE_CREATED) };
     static STRATEGY_NAME_IS_MANDATORY = (uid)=>{ return new InspectorFactoryException(" Strategy name is mandatory. Inspector : "+uid,InspectorFactoryException.ERR.STRATEGY_NAME_IS_MANDATORY) };
+    static INSPECTOR_NOT_FOUND = (uid)=>{ return new InspectorFactoryException(" Inspector not found : "+uid,InspectorFactoryException.ERR.INSPECTOR_NOT_FOUND) };
 
     constructor( pMsg:string, pCode:number = null, pExtra:any = null) {
         super('INSPECTOR FACTORY', pMsg, pCode, pExtra);
