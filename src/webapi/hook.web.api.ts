@@ -18,6 +18,7 @@ import KeyPoint from "../hook/KeyPoint";
 import HookStrategy from "../hook/HookStrategy";
 import {RuntimeEventType} from "../hook/RuntimeEvent";
 import {INode} from "../INode";
+import {InspectorFactoryException} from "../errors/InspectorFactoryException";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 export const HOOK_WEB_API: DelegateWebApi = new DelegateWebApi();
@@ -326,6 +327,80 @@ HOOK_WEB_API.addAuthenticatedRoute(
         readProject: true
     }
 );
+
+HOOK_WEB_API.addAuthenticatedRoute(
+    '/getBy/inspector',
+    {
+        'get': function (req:Request, res:Response):any {
+            const $: WebServer = req.dxc.$;
+            let project:DexcaliburProject = null;
+
+            try{
+                project = req.dxc.project;
+
+                // gather the list of fragment UID from the inspector
+                const insp = project.getInspector(req.query.uid);
+                if(insp==null) throw InspectorFactoryException.INSPECTOR_NOT_FOUND(req.query.uid);
+
+                const frags = [];
+                let matches:any = [];
+                insp.getHookSet().strats.map( (x:HookStrategy) => {
+                    if(x.before != null) frags.push(x.before.getUID());
+                    if(x.after != null) frags.push(x.after.getUID());
+                    if(x.replace != null) frags.push(x.replace.getUID());
+                })
+
+                // filter hooks by fragment UID
+                project.hook.getHooks().map( (h:AbstractHook)=>{
+                    const hf = [h.getBefore(),h.getAfter(),h.getReplace()];
+                    for(let j=0; j<3; j++){
+                        for(let i=0; i<hf[j].length; i++){
+                            if( frags.indexOf(hf[j][i].getUID())>-1){
+                                matches.push(h);
+                                return ;
+                            }
+                        }
+                    }
+                });
+
+                // deduplicate
+                const h = [];
+                matches = matches.filter( (vHook:AbstractHook)=>{
+                    if(h.indexOf(vHook.getGUID())==-1){
+                        h.push(vHook.getGUID());
+                        return true;
+                    }else
+                        return false;
+                })
+
+                // serialize
+                const data = [];
+                matches.map( h => {
+                    const o:any = h.toJsonObject();
+                    if(h.__==NodeInternalType.HOOK_NATIVE){
+                        if(h.getTarget() != null){
+                            o.func = (h.getTarget() as ModelFunction).toJsonObject();
+                        }
+                    }else{
+                        if(h.getTarget() != null){
+                            o.method = (h.getTarget() as ModelMethod).toJsonObject();
+                        }
+                    }
+                    data.push(o)
+                });
+
+                $.sendSuccess( res, data);
+
+            }catch(err){
+                Logger.error("[API][HOOK] Hook cannot be retrieved. Cause : " + err.message + "\n\t" + err.stack);
+                $.sendError(res, "Hook cannot be retrieved. Cause : " + err.message);
+            }
+        }
+    },{
+        readProject: true
+    }
+);
+
 
 
 HOOK_WEB_API.addAuthenticatedRoute(
@@ -790,9 +865,11 @@ HOOK_WEB_API.addAuthenticatedRoute(
                 let probe:AbstractHook;
                 let file:ModelFile = null;
                 let opts:any = {};
+                let newHook = false;
 
                 const targetType = req.body.__ ;
 
+                // get reference to the targeted node
                 if(targetType === NodeInternalType.FUNC){
 
                     meth = project.find.get.func(Util.decodeURI(Util.b64_decode(Util.decodeURI(req.params.method))));
@@ -801,6 +878,7 @@ HOOK_WEB_API.addAuthenticatedRoute(
                         throw new Error("Method or Function not found");
                     }
 
+                    // get the reference to the file where the function is declared
                     const lib = meth.getDeclaringFile();
                     if( (typeof lib) ==='string'){
                         file = project.find.get.files(lib as string);
@@ -813,6 +891,9 @@ HOOK_WEB_API.addAuthenticatedRoute(
                     }
 
                     //file = project.find.get.files(meth.getDeclaringFile()) file('_uid:'+meth.getDeclaringFile());
+
+                    // if declaring file is found, information are added to hook options
+                    // to allow to use relative offset and symbol, instead of absolute offset
                     if(file != null){
                         opts =  {
                             lib: file,
@@ -825,7 +906,9 @@ HOOK_WEB_API.addAuthenticatedRoute(
                         }
                     }
 
-                }else if(targetType === NodeInternalType.METHOD){
+                }
+                // same as above with Java
+                else if(targetType === NodeInternalType.METHOD){
                     meth = project.find.get.method(Util.decodeURI(Util.b64_decode(req.params.method)));
                     if (meth == null) {
                         Logger.error("[API][HOOK::METHOD] Method not found "+Util.decodeURI(Util.b64_decode(req.params.method)));
@@ -835,31 +918,41 @@ HOOK_WEB_API.addAuthenticatedRoute(
                     throw new Error("The target node is not supported.");
                 }
 
-
+                // prevent tries to hook class initializer (static blocks)
                 if((meth.__ === NodeInternalType.METHOD) && (meth.name == "<clinit>")){
                     throw new Error("Static blocks (<clinit>) cannot be hooked");
                 }
 
+                // get instance for key points
                 opts.loadKP = (req.body['loadkp']!=null ? project.getKeyPointManager().getKeyPoint(req.body['loadkp']) : null);
                 opts.unloadKP = (req.body['unloadkp']!=null ? project.getKeyPointManager().getKeyPoint(req.body['unloadkp']) : null);
+
+                // prepare others options
                 opts.location = req.body['loc'];
                 opts.weight = req.body['weight'];
                 opts.behavior = req.body['behavior'];
 
-
+                // search if the target function is already hooked, with same load/unload key point, and get it
                 probe = project.hook.getProbe(meth, opts);
+
+                // if the hook not exists, it is created
                 if (probe == null) {
+                    // create hook
                     if(meth.__ === NodeInternalType.METHOD){
                         probe = project.hook.createJavaMethodHook(meth as ModelMethod, opts);
                     }else{
                         probe = project.hook.createNativeFunctionHook(meth as ModelFunction, opts);
                     }
-                    probe.build(project);
+                    newHook = true;
+
+                    // generate hook code body
+                    probe.build();
                 }
 
-                if(probe != null || opts.behavior != null){
+                // if a behavior is defined, update hook to add relevant fragments
+                if(probe != null && opts.behavior != null){
                     // modify hook to merge existing with new
-                    probe.extends( opts.behavior);
+                    probe.extends( opts);
                 }
 
                 // add fragment
@@ -868,22 +961,26 @@ HOOK_WEB_API.addAuthenticatedRoute(
 
                     if(opts.location.before){
                         probe.appendBefore(
-                            project.hook.presets.generateFragment(probe, opts.behavior, 'before')
+                            project.hook.presets.generateFragment(probe, opts.behavior, 'before'), false
                         );
                     }
                     if(opts.location.after){
                         probe.appendAfter(
-                            project.hook.presets.generateFragment(probe, opts.behavior, 'before')
+                            project.hook.presets.generateFragment(probe, opts.behavior, 'after'), false
                         );
                     }
                     if(opts.location.replace){
                         probe.appendAfter(
-                            project.hook.presets.generateFragment(probe, opts.behavior, 'replace')
+                            project.hook.presets.generateFragment(probe, opts.behavior, 'replace'), false
                         );
                     }
+                    
+                    // update global script
+                    probe.build();
                 }
 
-                project.hook.save(probe, true);
+                // save and create
+                project.hook.save(probe, newHook);
 
                 $.sendSuccess( res, { hook: probe.toJsonObject(), hookid: probe.getGUID(), enable: probe.isEnable() });
 

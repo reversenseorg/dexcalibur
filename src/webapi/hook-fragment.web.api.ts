@@ -109,7 +109,7 @@ HOOK_FRAGS_WEB_API.addAuthenticatedRoute(
                 if(req.body.code){
                     frag.setCodeTemplate( req.body.code);
                     project.getHookManager().save(frag);
-                    hook.build(project);
+                    hook.build();
                 }else{
                     project.getHookManager().save(frag);
                 }
