@@ -252,9 +252,11 @@ export class SqliteAPI {
         if(vTPL.isKey()){
             if(vTPL.isPrimaryKey()){
                 s += "PRIMARY KEY ";
-            }else if(vTPL.isForeignKey()) {
+            }/*
+            // not supported by sqlite
+            else if(vTPL.isForeignKey()) {
                 s += "FOREIGN KEY ";
-            }
+            }*/
         }
 
         if(vTPL.isUnique()){
