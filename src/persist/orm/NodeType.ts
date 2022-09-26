@@ -252,10 +252,19 @@ export class NodeType {
                         // n:n => create join table
                         // temporary, store serialized obj
                         Logger.raw(JSON.stringify(this.getPrimaryKey().clone({ _name:fk }).key(DbKeyType.COMPOSITE, 0)));
-                        vPpt.getNodeType().updateProperties([
-                            //this.getPrimaryKey().clone({ _name:this.getName() }).key(DbKeyType.COMPOSITE, 0)
-                            this.getPrimaryKey().clone({ _name:fk }).key(DbKeyType.COMPOSITE, 0)
-                        ]);
+
+                        if(this._pk != null){
+                            // if a primary key is already defined, primary key from foreign table is defined as FOREIGN
+                            vPpt.getNodeType().updateProperties([
+                                this.getPrimaryKey().clone({ _name:fk }).key(DbKeyType.FOREIGN, 0)
+                            ]);
+                        }else{
+                            // if a primary key is not defined, primary key from foreign table is defined as COMPOSITE
+                            vPpt.getNodeType().updateProperties([
+                                this.getPrimaryKey().clone({ _name:fk }).key(DbKeyType.COMPOSITE, 0)
+                            ]);
+                        }
+
                     }
                     // n:1, target node must have
                     /*
