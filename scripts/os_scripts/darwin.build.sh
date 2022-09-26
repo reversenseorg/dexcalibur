@@ -17,12 +17,12 @@ else
   #curl --header "Authorization: Bearer $BUILD_HOST_API_TOKEN" -o ./dist/agent/. "$BUILD_HOST/repository/downloadAll/$BUILD_ID_DXCAGENT/.lastSuccessful/"
   mkdir ./dist/tmp
   if [ "$DXC_CICD_API_AUTH" = "basic" ]; then
-    curl -u "%system.teamcity.auth.userId%:%system.teamcity.auth.password%" -o ./dist/tmp/artifacts.zip "%teamcity.serverUrl%/httpAuth/app/rest/builds/id:%teamcity.build.id%/.lastSuccessful/"
+    curl -u "$DXC_CICD_API_USER:$DXC_CICD_API_PWD" -o ./dist/tmp/artifacts.zip "$DXC_CICD_HOST/httpAuth/repository/downloadAll/$BUILD_ID_DXCAGENT/.lastSuccessful/"
   else
     curl --header "Authorization: Bearer $DXC_CICD_API_TOKEN" -o ./dist/tmp/artifacts.zip "$DXC_CICD_HOST/repository/downloadAll/$BUILD_ID_DXCAGENT/.lastSuccessful/"
   fi
 
-  if [ -f ./dist/agent/artifacts.zip ] ; then
+  if [ -f ./dist/tmp/artifacts.zip ] ; then
     echo "Artifacts download successfully, unzipping ..."
     unzip -d ./dist/agent ./dist/tmp/artifacts.zip
   else
