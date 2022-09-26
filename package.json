@@ -21,7 +21,6 @@
     "chalk": "^2.4.1",
     "co": "^4.6.0",
     "cookie-parser": "^1.4.5",
-    "crypto": "^1.0.1",
     "event-stream": "^4.0.1",
     "express": "^4.16.3",
     "file-type": "^10.4.0",
