@@ -10,8 +10,20 @@ tsc
 #cp ./package.json ./dist/dexcalibur-ts/package.json
 
 echo "[+] Copying agent libs"
-mkdir ./dist/agent
-cp -r ../dexcalibur-agent/dist/*.js ./dist/agent/.
+if [ $DXC_USE_ARTIFACTS = 0 ]; then
+  mkdir ./dist/agent
+  cp ../dexcalibur-agent/dxc-agent.*.min.js ./dist/agent/.
+else
+  #curl --header "Authorization: Bearer $BUILD_HOST_API_TOKEN" -o ./dist/agent/. "$BUILD_HOST/repository/downloadAll/$BUILD_ID_DXCAGENT/.lastSuccessful/"
+  mkdir ./dist/tmp
+  curl -u "%system.teamcity.auth.userId%:%system.teamcity.auth.password%" -o ./dist/tmp/artifacts.zip "%teamcity.serverUrl%/httpAuth/app/rest/builds/id:%teamcity.build.id%/.lastSuccessful/"
+  if [ -f ./dist/agent/artifacts.zip ] ; then
+    echo "Artifacts download uccessfully, unzipping ..."
+    unzip -d ./dist/agent ./dist/tmp/artifacts.zip
+  else
+    echo "[!] Artifacts cannot be downloaded : error"
+  fi
+fi
 
 echo "[+] Copying files"
 cp -r ./scripts/ ./dist/scripts
