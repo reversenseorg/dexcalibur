@@ -35,6 +35,7 @@ export default class AndroidProvider extends AndroidComponent
         AndroidAttributeModel.syncable,
         AndroidAttributeModel.writePermission,
         AndroidAttributeModel.singleUser,
+        AndroidAttributeModel.visibleToInstantApps
     ];
 
 
@@ -51,7 +52,7 @@ export default class AndroidProvider extends AndroidComponent
                         AndroidAttributeModel[name].with(config[i])
                     );
                 }else{
-                    throw new Error("Unsupported attribute detected on provider : "+name)
+                    Logger.error("[PROVIDER] Unsupported attribute detected on provider : "+name);
                 }
             }
 

@@ -95,4 +95,5 @@ export const AndroidAttributeModel:AndroidAttributeMap = {
     // allow an application to be shared by multiple user instead of have multiple instance of the same app
     // so, if the shared component is vulnerable it can allow an app to give RCE on other app
     singleUser: new AndroidAttribute( null, ATTR_TYPE.STRING, "singleUser"),
+    visibleToInstantApps: new AndroidAttribute( null, ATTR_TYPE.BOOLEAN, "visibleToInstantApps")
 };
