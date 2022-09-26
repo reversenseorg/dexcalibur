@@ -3,6 +3,10 @@ import HookMessageV2 from "./HookMessageV2";
 import HookMessage from "../HookMessage";
 import {Tag} from "../tags/Tag";
 import BusEvent from "../BusEvent";
+import {NodeType} from "../persist/orm/NodeType";
+import {NodeInternalType} from "../NodeInternalType";
+import {NodeProperty, NodePropertyState} from "../persist/orm/NodeProperty";
+import {DbDataType, DbKeyType, DbSerialize} from "../persist/orm/DbAbstraction";
 
 export enum RuntimeEventType {
     HOOK= 'h',
@@ -21,7 +25,55 @@ export enum RuntimeEventType {
  *
  * @class
  */
-export class RuntimeEvent<P> extends BusEvent {
+export class RuntimeEvent<P> extends BusEvent implements INode {
+
+    static TYPE:NodeType = new NodeType( "runtime_evt", NodeInternalType.RUNTIME_EVENT,
+        [
+            (new NodeProperty("id")).type(DbDataType.STRING).key(DbKeyType.PRIMARY),
+            (new NodeProperty("type")).type(DbDataType.STRING).def(null),
+            (new NodeProperty("_s")).type(DbDataType.BOOLEAN).def(true),
+            (new NodeProperty("raw"))
+                .type(DbDataType.STRING)
+                .sleep( (x:NodePropertyState)=>{
+                    if(x.p != null){
+                        return JSON.stringify(x.p.toJsonObject());
+                    }else{
+                        return null;
+                    }
+                })
+                .wakeUp( (x:NodePropertyState)=>{
+                    switch (x.self.type){
+                        case RuntimeEventType.HOOK:
+                        default:
+                            return new HookMessageV2(JSON.parse(x.p));
+                            break;
+                    }
+                    return (x.p!=null ? JSON.parse(x.p) : null)
+                })
+                .def(null),
+            (new NodeProperty("node"))
+                .type(DbDataType.STRING)
+                .sleep( (x:NodePropertyState)=>{
+                    //const t = Object.keys(x.p);
+                    const t = [];
+                    // transform a list of INode to a list of Node UID+type
+                    x.p.map( n => t.push({ __:n.__, uid:n.getUID() }));
+                    return JSON.stringify(t);
+                })
+                .wakeUp( (x:NodePropertyState)=>{
+                    return (x.p!=null ? JSON.parse(x.p) : null)
+                })
+                .def("[]"),
+            (new NodeProperty("tags"))
+                .type(DbDataType.STRING)
+                .sleep( (x:NodePropertyState)=>{
+                    //const t = Object.keys(x.p);
+                    return JSON.stringify(Object.keys(x.p));
+                })
+                .wakeUp( (x:NodePropertyState)=>{ return (x.p!=null ? JSON.parse(x.p) : null)})
+                .def("[]")
+        ]);
+    __:NodeInternalType = NodeInternalType.RUNTIME_EVENT;
 
     type:RuntimeEventType = null;
 
@@ -33,12 +85,29 @@ export class RuntimeEvent<P> extends BusEvent {
 
     tags:number[] = [];
 
+    /**
+     * Save flag. FALSE = not saved
+     */
+    _s = false;
+
     constructor( pConfig:any) {
         super(pConfig);
 
         for(const i in this){
             this[i] = pConfig[i];
         }
+    }
+
+    set saved(pFlag:boolean) {
+        this._s = pFlag;
+    }
+
+    get saved():boolean {
+        return this._s;
+    }
+
+    getUID():any {
+        return this.id;
     }
 
     getMessage():P {

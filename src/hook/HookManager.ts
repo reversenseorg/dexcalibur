@@ -57,7 +57,8 @@ export enum FRIDA_MODE {
 
 export enum HOOKSESSION_CACHE_POLICY {
     NONE,
-    FLUSH_SESSIONS
+    FLUSH_SESSIONS,
+    STORE_SESSIONS
 }
 
 export interface HookSetList {
@@ -86,7 +87,7 @@ export const CUSTOM_HOOKSET_OBJC = "customObjc";
  */
 export class HookManager
 {
-    cache_policy:number = HOOKSESSION_CACHE_POLICY.NONE;
+
     db:HookDbApi = null;
 
     presets:HookFragmentPreset;
@@ -110,7 +111,8 @@ export class HookManager
 
     options:any = {
         followThread: false,
-        followFork: false
+        followFork: false,
+        cache_policy: HOOKSESSION_CACHE_POLICY.FLUSH_SESSIONS
     };
 
 
@@ -161,7 +163,14 @@ export class HookManager
     }
 
     updateOptions( pName:string, pOpt:any):void {
-        this.options[pName] = pOpt;
+        switch (pName) {
+            case 'cache_policy':
+                this.setCachePolicy(parseInt(pOpt));
+                break;
+            default:
+                this.options[pName] = pOpt;
+                break;
+        }
     }
 
     /**
@@ -442,12 +451,11 @@ export class HookManager
     }
 
     setCachePolicy( pPolicy:any):void{
-        this.cache_policy = pPolicy;
+        this.options.cache_policy = pPolicy;
     }
 
     mustFlushCache():boolean{
-        return ((this.cache_policy & HOOKSESSION_CACHE_POLICY.FLUSH_SESSIONS)
-            !== HOOKSESSION_CACHE_POLICY.FLUSH_SESSIONS);
+        return (this.options.cache_policy == HOOKSESSION_CACHE_POLICY.FLUSH_SESSIONS);
     }
 
     private _initMessageTags() {
@@ -479,17 +487,25 @@ export class HookManager
             this._initMessageTags();
         }
 
+        const last:HookSession = this.sessions[this.sessions.length-1];
         const sess:HookSession =new HookSession(this);
 
         // TODO : add configuration flush/keep previous
+        if(last != null) last.active = false;
+
         if(this.mustFlushCache()){
             this.sessions = [];
+        }else{
+            // backup session and messages
+            if(last != null){
+                this.db.updateHookSession(this.sessions[this.sessions.length-1]);
+            }
         }
-        if(this.sessions.length > 0)
-            this.sessions[this.sessions.length-1].active = false;
+
 
         sess.active = true;
         this.sessions.push(sess);
+        this.db.createHookSession(sess);
         return sess;
     }
 
@@ -1596,7 +1612,12 @@ export class HookManager
      *
      */
     getSessions():HookSession[] {
-        return this.sessions;
+
+        if(this.db.sessions.size()>this.sessions.length){
+            return this.db.sessions.getAsList();
+        }else{
+            return this.sessions;
+        }
     }
 
     /**
@@ -1605,12 +1626,20 @@ export class HookManager
      * @param {string} pUID
      */
     getSession( pUID:string):HookSession  {
+        let cached:HookSession = null;
         for(let i=0; i<this.sessions.length; i++){
             if(this.sessions[i].getSessionID()===pUID){
-                return this.sessions[i];
+                cached =  this.sessions[i];
+                break;
             }
         }
-        return null;
+
+        if(cached == null){
+            cached = this.db.getSession(pUID);
+            this.sessions.push(cached);
+        }
+
+        return cached;
     }
     // HookSession communication
 

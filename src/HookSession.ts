@@ -20,7 +20,14 @@ import {RuntimeEvent, RuntimeEventType} from "./hook/RuntimeEvent";
 import {HookMessageException} from "./errors/HookMessageException";
 import {TagHashMap, TagManager, TagMap, TagNameMap} from "./tags/TagManager";
 import {INode} from "./INode";
-
+import {NodeType} from "./persist/orm/NodeType";
+import {NodeInternalType} from "./NodeInternalType";
+import {NodeProperty, NodePropertyState} from "./persist/orm/NodeProperty";
+import {DbDataType, DbKeyType, DbSerialize} from "./persist/orm/DbAbstraction";
+import {ValidationRule} from "./Validator";
+import DataScope from "./DataScope";
+import ModelFileSection from "./ModelFileSection";
+import * as _md5_ from "md5";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -38,9 +45,46 @@ export interface HookSessionOptions {
 /**
  * @class
  */
-export default class HookSession extends WebsocketSession
+export default class HookSession extends WebsocketSession implements INode
 {
+    static TYPE:NodeType = new NodeType( "hook_session", NodeInternalType.HOOK_SESSION,
+        [
+            (new NodeProperty("_uid")).type(DbDataType.STRING).key(DbKeyType.PRIMARY),
+            (new NodeProperty("message")).multiple(RuntimeEvent.TYPE).def("[]"),
+            (new NodeProperty("hookManager")).volatile(),
+            (new NodeProperty("sets_matches")).volatile().def(null),
+            (new NodeProperty("time")).type(DbDataType.NUMERIC).def(-1),
+            (new NodeProperty("frida"))
+                .type(DbDataType.STRING)
+                .sleep( (x:NodePropertyState)=>{
+                    if(x.p==null) return {};
 
+                    return JSON.stringify({
+                        pid: x.p.pid,
+                        session: null,
+                        device: null,
+                        script: null
+                    });
+                })
+                .wakeUp( (x:NodePropertyState)=>{
+                    return (x.p!=null ? JSON.parse(x.p) : null);
+                })
+                .def(0),
+            (new NodeProperty("active")).type(DbDataType.BOOLEAN).def(false),
+            (new NodeProperty("opts")).type(DbDataType.STRING).serialize(DbSerialize.JSON).def(null),
+            (new NodeProperty("offset")).type(DbDataType.NUMERIC).def(0),
+            (new NodeProperty("evTags"))
+                .type(DbDataType.STRING)
+                .sleep( (x:NodePropertyState)=>{
+                    //const t = Object.keys(x.p);
+                    return JSON.stringify(Object.keys(x.p));
+                })
+                .wakeUp( (x:NodePropertyState)=>{ return (x.p!=null ? JSON.parse(x.p) : null)})
+                .def(0)
+        ]);
+    __:NodeInternalType = NodeInternalType.HOOK_SESSION;
+
+    public _uid:string = null;
 
     /**
      * The stack containing the received message
@@ -75,11 +119,13 @@ export default class HookSession extends WebsocketSession
     frida:FridaBindings = null
 
 
-    active:boolean = true;
+    active = true;
 
     opts:HookSessionOptions;
 
-    tags:TagHashMap;
+    evTags:TagHashMap = {};
+
+    tags = [];
 
     offset = 0;
 
@@ -91,11 +137,17 @@ export default class HookSession extends WebsocketSession
     constructor(manager: HookManager) {
         super();
 
+        // not enough unique for collaborative mode
+        // should be bound to the device also
+        const now =  Util.time();
+
+        this._uid = _md5_(now);
+
         // hook
         this.message = [];
         this.hookManager = manager;
         this.sets_matches = {};
-        this.time = Util.time();
+        this.time = now;
         this.frida = {
             session: null,
             device: null,
@@ -105,7 +157,11 @@ export default class HookSession extends WebsocketSession
         this.opts = {
             rawOutput: false
         }
-        this.tags = this.hookManager.getMessageTags();
+        this.evTags = this.hookManager.getMessageTags();
+    }
+
+    getUID():string {
+        return this._uid;
     }
 
     set fridaSession( pSession:Frida.Session){
@@ -157,7 +213,8 @@ export default class HookSession extends WebsocketSession
 
         const hm:HookMessageV2 = new HookMessageV2();
         const ev:RuntimeEvent<any> = new RuntimeEvent<any>({
-            type: RuntimeEventType.HOOK
+            type: RuntimeEventType.HOOK,
+            id: this.getUID()+':'+this.message.length
         });
 
         //if(pRawMsg.type == "error") return null;
@@ -180,7 +237,7 @@ export default class HookSession extends WebsocketSession
         // fill runtiume event
         ev.addNode(hm.hook.getTarget() as INode);
         ev.raw = hm;
-        ev.addTag(this.tags.HOOK);
+        ev.addTag(this.evTags.HOOK);
 
         this.offset++;
 
@@ -280,13 +337,16 @@ export default class HookSession extends WebsocketSession
      * @method
      */
     toJsonObject( pOffset=0, pSize=-1):any{
-        let o:any = new Object(), limit:number=pSize;
+        const o:any = new Object();
+        let limit:number=pSize;
+        o._uid = this._uid;
         o.message = [];
         o.active = this.active;
         o.time = this.time;
         o.offset = this.offset;
-        o.tags = [];
-        for(const k in this.tags) o.tags.push(this.tags[k].getUUID())
+        o.evTags = [];
+
+        for(const k in this.evTags) o.evTags.push(this.evTags[k].getUUID())
 
         o.opts = this.opts;
         o._sessid = this._sessid;
@@ -313,6 +373,7 @@ export default class HookSession extends WebsocketSession
     }
 
     onExit():void {
+        //
     }
 
 

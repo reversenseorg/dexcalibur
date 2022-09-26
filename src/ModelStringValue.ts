@@ -5,9 +5,7 @@ import {DataSourceHelper} from "./DataSourceHelper";
 import {INode} from "./INode";
 import {NodeProperty, NodePropertyState} from "./persist/orm/NodeProperty";
 import {DbDataType, DbKeyType, DbSerialize} from "./persist/orm/DbAbstraction";
-import ModelFile from "./ModelFile";
 import {createHash} from "crypto";
-import {Utils} from "../../dexcalibur-agent/dist/interruptor/src/common/Utils";
 import Util from "./Utils";
 
 export default class ModelStringValue extends Savable

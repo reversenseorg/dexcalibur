@@ -19,6 +19,9 @@ import HookStrategy from "../hook/HookStrategy";
 import {RuntimeEventType} from "../hook/RuntimeEvent";
 import {INode} from "../INode";
 import {InspectorFactoryException} from "../errors/InspectorFactoryException";
+import {HookManagerException} from "../errors/HookManagerException";
+import {WebApiWindowing} from "./internals/WebApiWindowing";
+import * as vm from "vm";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 export const HOOK_WEB_API: DelegateWebApi = new DelegateWebApi();
@@ -490,6 +493,9 @@ HOOK_WEB_API.addAuthenticatedRoute(
 
 
 
+
+
+
 HOOK_WEB_API.addAuthenticatedRoute(
     '/list',
     {
@@ -821,22 +827,46 @@ HOOK_WEB_API.addAuthenticatedRoute(
             try{
                 project = req.dxc.project;
 
-                let sess:HookSession = project.hook.lastSession();
-                if (sess == null) {
-                    $.sendError( res, "No past sessions found");
-                    return;
+                // 2 cases :
+                // - get message by targeted node
+                // - get message by session
+                // - both
+
+                // gather sessions
+                let sessions:HookSession[];
+                if( req.query.hasOwnProperty('sess') != null   && req.query.sess != null){
+                    if(req.query.sess == 'last'){
+                        sessions = [project.hook.lastSession()];
+                    }else{
+                        sessions = [project.hook.getSession(req.query.sess)];
+                    }
+                }else{
+                    sessions = project.hook.getSessions();
                 }
 
-                let startAt = req.query.startAt;
-                let size = req.query.size;
-
-                if (!sess.hasMessages(startAt)) {
-                    $.sendError( res, "No past messages found");
-                    return;
+                if (sessions==null || sessions.length==0) {
+                    throw HookManagerException.HOOK_SESSION_NOT_FOUND();
                 }
 
-                $.sendSuccess(res, sess.toJsonObject(parseInt(startAt,10), parseInt(size,10)));
+                // gather messages  with windowing
+                let startAt, size;
+                if(req.dxc.filt != null){
+                    startAt = (req.query.filt as WebApiWindowing).getStartOffset();
+                    size = (req.query.filt as WebApiWindowing).getLength();
+                }else{
+                    startAt = parseInt(req.query.startAt);
+                    size = parseInt(req.query.size);
+                }
 
+                const data = {};
+                sessions.map( (vSess:HookSession)=>{
+                    data[vSess.getSessionID()] = []
+                    vSess.getMessages(startAt,size).map((vMsg)=>{
+                        data[vSess.getSessionID()].push(vMsg.toJsonObject());
+                    })
+                });
+
+                $.sendSuccess(res, data);
 
             }catch(err){
                 Logger.error("[API][HOOK] Hook messages cannot be retrieved. Cause : " + err.message + "\n\t" + err.stack);

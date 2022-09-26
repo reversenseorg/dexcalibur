@@ -9,6 +9,8 @@ import KeyPoint from "./KeyPoint";
 import {SqliteException} from "../../connectors/sqlite/SqliteException";
 import SqliteDbCollection from "../../connectors/sqlite/SqliteDbCollection";
 import {NodeInternalType} from "../NodeInternalType";
+import HookSession from "../HookSession";
+import {RuntimeEvent} from "./RuntimeEvent";
 
 /**
  * Represents every datat set related to hook management
@@ -21,6 +23,8 @@ export class HookDbApi {
     public sets:IDbCollection = null;
     public jhooks:IDbCollection = null;
     public nhooks:IDbCollection = null;
+    public sessions:IDbCollection = null;
+    public events:IDbCollection = null;
 
     constructor( pDatabase:IDatabase) {
         this._db = pDatabase;
@@ -37,6 +41,8 @@ export class HookDbApi {
         this.fragments = this._db.getCollection(HookTemplateFragment.TYPE.getName(), HookTemplateFragment.TYPE);
         this.jhooks = this._db.getCollection(JavaMethodHook.TYPE.getName(), JavaMethodHook.TYPE);
         this.nhooks = this._db.getCollection(NativeFunctionHook.TYPE.getName(), NativeFunctionHook.TYPE);
+        this.sessions = this._db.getCollection(HookSession.TYPE.getName(), HookSession.TYPE);
+        this.events = this._db.getCollection(RuntimeEvent.TYPE.getName(), RuntimeEvent.TYPE);
     }
 
     /**
@@ -61,6 +67,14 @@ export class HookDbApi {
         return this.nhooks.hasEntry(pUID);
     }
 
+    isHookSessionExists(pUID:string){
+        return this.sessions.hasEntry(pUID);
+    }
+
+    isRuntimeEventExists(pUID:string){
+        return this.events.hasEntry(pUID);
+    }
+
     getStrategy( pUID:string) :HookStrategy{
         return this.strategies.getEntry(pUID);
     }
@@ -79,6 +93,14 @@ export class HookDbApi {
 
     getAllNativeHook( pUID:string) :JavaMethodHook[]{
         return this.nhooks.getAll();
+    }
+
+    getSession( pUID:string) :HookSession{
+        return this.sessions.getEntry(pUID);
+    }
+
+    getRuntimeEvent( pUID:string) :RuntimeEvent<any>{
+        return this.events.getEntry(pUID);
     }
 
 
@@ -149,6 +171,21 @@ export class HookDbApi {
         return this.sets.removeEntry(pSet.getID());
     }
 
+    createHookSession( pSess:HookSession):void {
+        this.sessions.addEntry( pSess.getUID(), pSess);
+
+        if(pSess.message.length > 0){
+            pSess.message.map( (vEvent:RuntimeEvent<any>)=>{
+                this.events.addEntry( vEvent.getUID(),  vEvent);
+            })
+        }
+
+        return this.sessions.addEntry( pSess.getUID(), pSess);
+    }
+
+    createRuntimeEvent( pEvent:RuntimeEvent<any>):void {
+        return this.events.addEntry( pEvent.getUID(), pEvent);
+    }
 
     createJavaHook( pHook:JavaMethodHook):void {
         return this.jhooks.addEntry( pHook.getGUID(), pHook);
@@ -156,6 +193,28 @@ export class HookDbApi {
 
     updateJavaHook( pHook:JavaMethodHook):void {
         return this.jhooks.updateEntry( pHook);
+    }
+
+    updateHookSession( pSession:HookSession):void {
+        const res = this.sessions.updateEntry( pSession);
+        pSession.messages().map((vEvent)=>{
+            if(!vEvent.saved){
+                this.events.addEntry( vEvent.getUID(), vEvent);
+                vEvent.saved = true;
+            }
+        });
+    }
+
+    updateRuntimeEvent( pEvent:RuntimeEvent<any>):void {
+        return this.events.updateEntry( pEvent);
+    }
+
+    removeHookSession( pSession:HookSession):boolean {
+        return this.sessions.removeEntry( pSession.getUID());
+    }
+
+    removeRuntimeEvent( pEvent:RuntimeEvent<any>):boolean {
+        return this.events.removeEntry( pEvent.getUID());
     }
 
     removeJavaHook( pHook:JavaMethodHook):boolean {
@@ -228,6 +287,22 @@ export class HookDbApi {
                 this.updateHookSet( vSet);
             }else{
                 this.createHookSet( vSet);
+            }
+        });
+
+        this.sessions.map( (vSess:HookSession)=>{
+            if(this.sessions.hasEntry(vSess.getUID())){
+                this.updateHookSession( vSess);
+            }else{
+                this.createHookSession( vSess);
+            }
+        });
+
+        this.events.map( (vEvent:RuntimeEvent<any>)=>{
+            if(this.events.hasEntry(vEvent.getUID())){
+                this.updateRuntimeEvent( vEvent);
+            }else{
+                this.createRuntimeEvent( vEvent);
             }
         });
     }

@@ -71,6 +71,7 @@ import {KEYPOINT_WEB_API} from "./webapi/keypoint.web.api";
 import {SCRIPT_WEB_API} from "./webapi/script.web.api";
 import {HOOK_FRAGS_WEB_API} from "./webapi/hook-fragment.web.api";
 import {TAG_MGT_WEB_API} from "./webapi/tag.web.api";
+import {WebApiWindowing} from "./webapi/internals/WebApiWindowing";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -643,169 +644,6 @@ export default class WebServer
 
 
 
-
-        // todo : replace by device manager scan()
-        /*this.app.route('/api/packageList')
-            .get(function (req:ExpressRequest, res:ExpressResponse):any {
-                // scan connected devices
-                $.project.packagePatcher.scan();
-
-                res.status(200).send(JSON.stringify({
-                    data: $.project.packagePatcher.toJsonObject()
-                }));
-            });*/
-
-        // todo : replace by splash/select app
-        /*
-        this.app.route('/api/changeWorkspace/:projectIdentifier')
-            .get(async function (req:ExpressRequest, res:ExpressResponse):Promise<any> {
-
-                // $.project.changeProject(req.params.projectIdentifier);
-
-                let proj:DexcaliburProject = await $.context.openProject(req.params.projectIdentifier);
-                // collect
-
-                res.status(200).send(`{"status": "${proj!=null ? 'ok':'nok'}"}`);
-            });
-
-        // todo : replace by splash/select app
-        this.app.route('/api/pullProject/:packageIdentifier')
-            .get(function (req:ExpressRequest, res:ExpressResponse):any {
-                // scan connected devices
-                //console.log(req.params.packageIdentifier)
-                $.project.packagePatcher.pullPackage(req.params.packageIdentifier);
-                // collect
-                $.project.changeProject(req.params.packageIdentifier);
-                res.status(200).send(JSON.stringify({ message: "ok" }));
-            });
-
-        // not used
-        this.app.route('/api/stats')
-            .get(function (req:ExpressRequest, res:ExpressResponse):any {
-                // collect
-                let dev = {
-                    class: {
-                        count: $.project.find.class().count()
-                    },
-                    method: {
-                        count: $.project.find.method().count()
-                    },
-                    field: {
-                        count: $.project.find.field().count()
-                    },
-                    calls: {
-                        count: $.project.find.calls().count()
-                    },
-                    activity: {
-                        count: $.project.find.nocase().class("name:activity$").count()
-                    },
-                    provider: {
-                        count: $.project.find.nocase().class("name:provider$").count()
-                    },
-                    service: {
-                        count: $.project.find.nocase().class("name:service$").count()
-                    },
-                    broadcast: {
-                        count: $.project.find.nocase().class("name:broadcast$").count()
-                    },
-                    nfc_ctrl: {
-                        count: $.project.find.nocase().class("name:nfccontroller").count()
-                    },
-                    mst_ctrl: {
-                        count: $.project.find.nocase().class("name:mstcontroller").count()
-                    }
-                };
-                res.status(200).send(JSON.stringify(dev));
-            });
-        /*
-        this.app.route('/api/probe')
-            .get(function(req,res){
-                // collect
-                let dev = {
-                    data: $.project.find.class().toJsonObject()
-                };
-                res.status(200).send(JSON.stringify(dev));
-            });
-        */
-
-/*
-        this.app.route('/api/inspector')
-            .get(function (req:ExpressRequest, res:ExpressResponse):any {
-                // TODO : throw error if $.project is null (installing state, splash screen, ...)
-                let insp:Inspector[] = InspectorManager.getInstance().getInspectorsOf($.project);
-
-                let data:any  = { data: [] };
-                for (let i in insp) {
-                    data.data.push(insp[i].toJsonObject());
-                }
-                res.status(200).send(JSON.stringify(data));
-            });
-/*
-        this.app.route('/api/probe/server/start')
-            .post(async function (req:ExpressRequest, res:ExpressResponse):Promise<any> {
-
-                let device:Device = null;
-
-                if(req.body['dev']){
-                    device = DeviceManager.getInstance().getDevice(req.body['dev']);
-                }else{
-                    device = $.project.getDevice();
-                }
-
-
-                try{
-
-                    // TODO : detect if frida connection works
-                    res.status(200).send(JSON.stringify({
-                        success: await FridaHelper.startServer( device, {
-                            path: req.body['path'],
-                            privileged: (req.body['privileged']=="true"? true: false)
-                        })
-                    }));
-                }catch(err){
-                    Logger.debugRAW(err);
-                    Logger.raw(err);
-                    res.status(200).send(JSON.stringify({
-                        success: false
-                    }));
-                }
-            });
-
-        this.app.route('/api/probe/server/status')
-            .get(async function (req:ExpressRequest, res:ExpressResponse):Promise<any> {
-
-                let device:Device = null;
-
-                if(req.param.dev){
-                    device = DeviceManager.getInstance().getDevice(req.param.dev);
-                }else{
-                    device = $.project.getDevice();
-                }
-
-                try{
-                    res.status(200).send(JSON.stringify({
-                        success: await FridaHelper.getServerStatus( device)
-                    }));
-                }catch(err){
-                    console.log(err);
-                    res.status(200).send(JSON.stringify({
-                        success: false
-                    }));
-                }
-            });*/
-
-
-        /*
-        this.app.route('/api/class/implements/:id')
-            .get(function (req:ExpressRequest, res:ExpressResponse):any {
-                // collect
-                let dev = {};
-                let cls = $.project.find.get.class(Util.decodeURI(Util.b64_decode(req.params.id)));
-                //                let clss = $.project.find.classImplementing(cls);
-
-                res.status(200).send(JSON.stringify(dev));
-            });*/
-
         this.app.route('/api/graph/:graph_type/:type/:id')
             .get(function (req:ExpressRequest, res:ExpressResponse):any {
                 let data = {}, ret = null, from = null;
@@ -913,26 +751,7 @@ export default class WebServer
                 res.status(200).send(JSON.stringify({ data: { running: true }, err: null }));
             })
 
-
-        /*this.app.route('/api/file/list/:scope_id')
-            .get(function (req:ExpressRequest, res:ExpressResponse):any {
-                try{
-                    if(req.query['uid']==null){
-                        throw new Error("[FORMAT::ANALYSIS] #FMT_1 Invalid File UID");
-                    }
-
-                    let search:FinderResult = $.project.find.file('scope:'+req.query['uid']);
-                    if(search==null || search.count()==0){
-                        throw new Error("[FORMAT::ANALYSIS] #FMT_2 File not found");
-                    }else{
-                        res.status(200).send({ success:true, data:search.toJsonObject()});
-                    }
-                }catch(err){
-                    res.status(HTTP_CODE_ERROR).send({ success:false, msg: err.message });
-                }
-            });*/
-
-
+/*
 
         this.app.route('/api/format/analysis')
             .get(function (req:ExpressRequest, res:ExpressResponse):any {
@@ -951,92 +770,7 @@ export default class WebServer
                     res.status(HTTP_CODE_ERROR).send({ success:false, msg: err.message });
                 }
             });
-
-        /*this.app.route('/api/settings')
-            .get(function (req:ExpressRequest, res:ExpressResponse):any {
-                // collect
-                let dev = {
-                    cfg:nu
-                    frida: null
-                };
-                let cfg: = $.project.getConfiguration();
-
-                dev.cfg = cfg.toJsonObject();
-                dev.frida = cfg.getLocalFridaVersion();
-                res.status(200).send(JSON.stringify(dev));
-            })
-            .post(function (req:ExpressRequest, res:ExpressResponse):any {
-                // collect
-
-                let data = req.body;
-                //console.log(data);
-
-                let dev = { status:null, invalid:null, err:null };
-                //let cfg = Configuration.from(data);
-
-                let cfg = $.project.getConfiguration();
-
-                // clone existing config
-                cfg = cfg.clone();
-
-                // import received data
-                cfg.import( data,
-                    false, // autocomplete OFF
-                    true // override ON
-                );
-
-                // verifiy fields
-                dev.invalid = cfg.verify();
-
-                try{
-                    if(dev.invalid.length === 0){
-                        Logger.success("Save configuration changes ...")
-                        // Ask to current configuration to backup new configuration
-                        $.project.getConfiguration().save(cfg);
-                    }else{
-                        Logger.error(dev.invalid);
-                    }
-                }catch(err){
-                    dev.err = err;
-                    console.log(err);
-                }
-/*
-                let dev = false;
-                let cfg = $.project.getConfiguration();
-
-                cfg = cfg.clone();
-
-                // not autocomplete, force overwrite
-                cfg.import( data,
-                    false, // autocomplete
-                    true // override
-                )
-
 */
-              /*  res.status(200).send(JSON.stringify(dev));
-            });*/
-/*
-            this.app.route('/api/util/mkdir')
-                .post(function (req:ExpressRequest, res:ExpressResponse):any {
-                    // collect
-                    let dev:any = { created:null, err:null };
-                    let data:any = req.body;
-                    console.log(data);
-
-                    try{
-                        if(_fs_.existsSync(data.path)==false){
-                            _fs_.mkdirSync(data.path)
-                            dev.created = _fs_.existsSync(data.path);
-                        }else{
-                            console.log("path exists");
-                        }
-                    }catch(err){
-                        console.log(err);
-                        dev.err = err;
-                    }
-
-                    res.status(200).send(JSON.stringify(dev));
-                })*/
 
         this.app.route('/api/auth/:type')
             .post(async function (req:ExpressRequest, res:ExpressResponse):Promise<any> {
@@ -1356,6 +1090,42 @@ export default class WebServer
                 }
             }catch(err){
                 Logger.error("[SESSION] Cookie/token value cannot be retrieved \n"+err.messgae+"\n"+err.stack)
+            }
+
+            next();
+            return;
+        });
+
+
+        /**
+         * Parse windowing options
+         */
+        this.app.use(function(req:ExpressRequest, res:ExpressResponse, next:any){
+
+            if(!req.url.startsWith('/api/') && !req.url.startsWith('/inspectors/')){ next(); return; }
+
+
+
+            try{
+
+                if(!req.dxc.hasOwnProperty('filt')){
+                    if(req.query.hasOwnProperty('__f'))
+                        req.dxc = { filt: JSON.parse(req.query.__f) } ;
+                    else if(req.body.hasOwnProperty('__f'))
+                        req.dxc = { filt: JSON.parse(req.body.__f) } ;
+
+                    if(req.dxc.filt!=null){
+                        req.dxc.filt = WebApiWindowing.parse(req.dxc.filt);
+                    }else{
+                        req.dxc.filt = new WebApiWindowing();
+                    }
+                }
+
+
+                Logger.info("[WEBSERVER][HTTP] Parse windowing options : "+JSON.stringify(req.dxc.filt));
+
+            }catch(err){
+                Logger.error("[WEBSERVER][HTTP] Parse windowing options cannot be retrieved \n"+err.messgae+"\n"+err.stack)
             }
 
             next();
