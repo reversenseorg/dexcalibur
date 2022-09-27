@@ -202,6 +202,10 @@ DXC.HOOK["${pLibraryName}"] = {
             // generate code for each hook to load from this key point and concatenate it
             let s = "";
             hk.map( (vHook:AbstractHook) => {
+
+                // skip disabled hooks
+                if(!vHook.isEnable()) return;
+
                 let gc:string = vHook.getGeneratedCode();
                 if(gc == null || gc.length==0){
                     vHook.setContext(this._hm.context);

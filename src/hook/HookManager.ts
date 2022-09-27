@@ -1727,6 +1727,7 @@ export class HookManager
             else if(message.action=="start"){
 
                 let sess:HookSession = null;
+                let script:string = null;
 
                 Logger.info(`[HOOK MANAGER][WEBSOCKET][cmd=start]`);
                 try{
@@ -1734,30 +1735,34 @@ export class HookManager
                     sess = this.newSession();
                     sess.addOwner( pUser, message.data.localid, pSocket);
 
+                    if((message.data.script != null) && (message.data.script.length>0)){
+                        script = message.data.script;
+                    }
+
                     switch(message.data.type){
                         case "spawn-self":
                             Logger.info(`[HOOK MANAGER][WEBSOCKET] Start hooking [app=${this.context.getPackageName()}, type=spawn-self]`);
-                            sess = await this.asyncStartBySpawn(this.context.getPackageName(), sess);
+                            sess = await this.asyncStartBySpawn(this.context.getPackageName(), sess, script);
                             break;
                         case "spawn":
                             Logger.info(`[HOOK MANAGER][WEBSOCKET] Start hooking [app=${message.data.app}, type=spawn]`);
-                            sess = await this.asyncStartBySpawn(message.data.app, sess);
+                            sess = await this.asyncStartBySpawn(message.data.app, sess, script);
                             break;
                         case "attach-gadget":
                             Logger.info(`[HOOK MANAGER][WEBSOCKET] Start hooking [pid=Gadget, type=attach-gadget]`);
-                            sess = await this.asyncStartByAttachToGadget(sess);
+                            sess = await this.asyncStartByAttachToGadget(sess, script);
                             break;
                         case "attach-app-self":
                             Logger.info(`[HOOK MANAGER][WEBSOCKET] Start hooking [app=${this.context.getPackageName()}, type=attach-app-self]`);
-                            sess = await this.asyncStartByAttachToApp(this.context.getPackageName(), sess);
+                            sess = await this.asyncStartByAttachToApp(this.context.getPackageName(), sess, script);
                             break;
                         case "attach-app":
                             Logger.info(`[HOOK MANAGER][WEBSOCKET] Start hooking [app=${message.data.app}, type=attach-app-x]`);
-                            sess = await this.asyncStartByAttachToApp(message.data.app, sess);
+                            sess = await this.asyncStartByAttachToApp(message.data.app, sess, script);
                             break;
                         case "attach-pid":
                             Logger.info(`[HOOK MANAGER][WEBSOCKET] Start hooking [pid=${message.data.pid}, type=attach-to-pid`);
-                            sess = await this.asyncStartByAttachTo(message.data.pid, sess );
+                            sess = await this.asyncStartByAttachTo(message.data.pid, sess, script );
                             break;
                         default:
                             Logger.error('[HOOK MANAGER] Invalid start type');
