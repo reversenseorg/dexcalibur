@@ -30,6 +30,13 @@ else
   fi
 fi
 
+# verify dexcalibur-agent files exists
+if [ -f ./dist/agent/dxc-agent.android.min.js ] ; then
+  echo "[*] dexcalibur-agent files have been copied"
+else
+  echo "[!] dexcalibur-agent files have not been copied"
+fi
+
 echo "[+] Copying files"
 cp -r ./scripts/ ./dist/scripts
 cp -r ./node_modules/ ./dist/node_modules
