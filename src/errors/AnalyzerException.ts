@@ -5,7 +5,10 @@ export enum AnalyzerErrCode {
     JAVA=2000,
     OBJC=3000,
     NATIV=4000,
-    SCRIPT=5000
+    SCRIPT=5000,
+    ANDROID_APP=6000,
+    IOS_APP=7000,
+    BIN_APP=8000
 }
 
 export class AnalyzerException extends MonitoredError {

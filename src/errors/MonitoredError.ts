@@ -13,6 +13,7 @@ export enum ErrorCode {
     ANALYZER= 60000,
     ANALYZER_NATIV= 62000,
     ANALYZER_SEARCH = 63000,
+    ANALYZER_APP=64000,
     HOOK = 70000,
     HOOK_MANAGER = 71000,
     KP_MANAGER = 72000,
@@ -62,7 +63,7 @@ export class MonitoredError extends Error {
      *
      * @param pIncludeExtra
      */
-    toObject(pIncludeExtra:boolean=false):any {
+    toObject(pIncludeExtra=false):any {
         return {
             cmp: this.cmp,
             code: this.code,
