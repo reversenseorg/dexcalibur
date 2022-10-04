@@ -49,9 +49,9 @@ fi
 
 # if apple silicon, do codesign
 if [[ `uname -m` == 'arm64' ]]; then
-  echo "[+] Doing ad-hoc code signing "
-  codesign --force -s "le_potager" ./dist/node_modules/frida/build/Release/frida_binding.node
-  codesign --force -s "le_potager" ./dist/node_modules/better-sqlite3/build/Release/better_sqlite3.node
+  echo "[+] Doing ad-hoc code signing with identity '$DXC_SIGNING_IDENTITY'"
+  codesign --force -s "$DXC_SIGNING_IDENTITY" ./dist/node_modules/frida/build/Release/frida_binding.node
+  codesign --force -s "$DXC_SIGNING_IDENTITY" ./dist/node_modules/better-sqlite3/build/Release/better_sqlite3.node
 fi
 
 
