@@ -137,10 +137,10 @@ export default class ClassAnalyzer
 
         // flatten
         for(const k in api){
-            api[k].xrefs = Object.values(api[k].xrefs);
+            api[k].methods = Object.values(api[k].methods);
         }
 
-        api = Object.values(api)
+        api = Object.values(api);
 
         if(pClass instanceof AndroidComponent)
             pClass.addNodeProperty("internals", api );
