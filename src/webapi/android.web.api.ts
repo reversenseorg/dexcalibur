@@ -13,6 +13,8 @@ import AndroidService from "../android/AndroidService";
 import {AndroidPermission} from "../android/Permissions";
 import {FinderResult} from "../FinderResult";
 import AndroidAppAnalyzer from "../AndroidAppAnalyzer";
+import {NodeInternalType} from "../NodeInternalType";
+import AndroidComponent from "../android/AndroidComponent";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 export const ANDROID_WEB_API: DelegateWebApi = new DelegateWebApi();
@@ -118,6 +120,48 @@ ANDROID_WEB_API.addAuthenticatedRoute(
                 $.sendError(res, "Activities not found. Cause : " + err.message);
             }
         }
+    }
+);
+
+
+
+ANDROID_WEB_API.addAsyncAuthenticatedRoute(
+    '/component/:uid',
+    {
+        'post': async function (req:Request, res:Response):Promise<any> {
+            const $: WebServer = req.dxc.$;
+            let project:DexcaliburProject = null;
+
+            try{
+                project = req.dxc.project;
+
+                let cmp:AndroidComponent;
+                switch (req.body.type){
+                    case NodeInternalType.ANDROID_ACTIVITY:
+                        cmp = project.find.get.activity(req.body.uid);
+                        break;
+                    case NodeInternalType.ANDROID_PROVIDER:
+                        cmp = project.find.get.provider(req.body.uid);
+                        break;
+                    case NodeInternalType.ANDROID_RECEIVER:
+                        cmp = project.find.get.receiver(req.body.uid);
+                        break;
+                    case NodeInternalType.ANDROID_SERVICE:
+                        cmp = project.find.get.service(req.body.uid);
+                        break;
+                }
+
+                const apiXref = (project.getAppAnalyzer() as AndroidAppAnalyzer).scanComponentXrefToAPI(cmp,true);
+
+                // ========== LOGIC + RESPONSE
+                $.sendSuccess( res, apiXref );
+            }catch(err){
+                Logger.error("[API][ANDROID ANALYZER] Activities not found. Cause : " + err.message + "\n\t" + err.stack);
+                $.sendError(res, "Activities not found. Cause : " + err.message);
+            }
+        }
+    },{
+        readProject: true
     }
 );
 

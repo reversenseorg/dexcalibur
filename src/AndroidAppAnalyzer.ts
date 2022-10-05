@@ -15,6 +15,10 @@ import * as Log from './Logger';
 import {AnalyzerState} from "./AnalyzerState";
 import {IAppAnalyzer} from "./analyzer/IAppAnalyzer";
 import * as _path_ from "path";
+import ModelMethod from "./ModelMethod";
+import ModelClass from "./ModelClass";
+import ClassAnalyzer from "../inspectors/ApplicationTopography/src/ClassAnalyzer";
+import {NodeInternalType} from "./NodeInternalType";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -37,11 +41,121 @@ export default class AndroidAppAnalyzer implements IAppAnalyzer
         this.context = context;
 	}
 
+	/**
+	 * To check if a name is relative to the package name
+	 * @param pName
+	 */
+	static isRelativeName(pName:string):boolean {
+		return (pName[0]=='.');
+	}
 
+	getComponentFullName( pManifest:AndroidManifest, pClassName:string):string {
+		if(AndroidAppAnalyzer.isRelativeName(pClassName)){
+			return pManifest.attributes.package+pClassName;
+		}else{
+			return pClassName;
+		}
+	}
+
+
+	/**
+	 * To get the app UID
+	 *
+	 * @method
+	 */
 	getAppUid():string {
 		return this.context.getAppAnalyzer().getPackageName()
 	}
 
+	/**
+	 * To tag a class as implementation for a component
+	 * @param pClass
+	 * @param pComponent
+	 */
+	tagClassAsComponent( pClass:ModelClass, pComponent:AndroidComponent ){
+		let tag:string = null;
+		switch (pComponent.__){
+			case NodeInternalType.ANDROID_ACTIVITY:
+				tag = "topo.android.ACTIVITY";
+				break;
+			case NodeInternalType.ANDROID_SERVICE:
+				tag = "topo.android.SERVICE";
+				break;
+			case NodeInternalType.ANDROID_RECEIVER:
+				tag = "topo.android.RECEIVER";
+				break;
+			case NodeInternalType.ANDROID_PROVIDER:
+				tag = "topo.android.PROVIDER";
+				break;
+			case NodeInternalType.ANDROID_PERM:
+				tag = "topo.android.PERM";
+				break;
+		}
+
+		if(tag != null){
+			pClass.addTag( this.context.getTagManager().getTag(tag));
+		}
+	}
+
+	scanComponent(pComponent:AndroidComponent, pUpdate = true){
+		this.scanComponentXrefToAPI(pComponent, pUpdate);
+
+		// tag by intent filter
+		//this.tagCmpWithIntent(pComponent);
+
+		// tag by attributes
+		//this.tagCmpWithAttr(pComponent);
+	}
+
+	/**
+	 * To scan and update ultimate cross references to Android API from the specified component
+	 *
+	 * @param pComponent
+	 */
+	scanComponentXrefToAPI( pComponent:AndroidComponent, pUpdate = true ):any {
+
+		// to retrieve class implementign the componenet
+		const fqcn = this.getComponentFullName( this.manifest, pComponent.getName());
+
+		const cls:ModelClass = this.context.find.get.class(fqcn);
+
+		if ((cls != null) && (cls instanceof ModelClass)) {
+			pComponent.setImplementedBy(cls);
+			if(pUpdate){
+				this.tagClassAsComponent(cls, pComponent);
+			}
+		}else{
+			Logger.error("[ANDROID ANAL][Scan XREF] Fail to map internal dependencies mapped for ["+fqcn+"] : class not found");
+			return true;
+		}
+
+		// search dependencies to platform method and class
+		const apiXref = ClassAnalyzer.searchInternalDependencies(this.context, pComponent);
+		if (apiXref!==false) {
+			Logger.info("[ANDROID ANAL][Scan XREF] Internal dependencies mapped for : ", fqcn);
+		} else {
+			Logger.error("[ANDROID ANAL][Scan XREF] Fail to map internal dependencies mapped for : ", fqcn);
+		}
+		return apiXref;
+	}
+
+	/**
+	 * To scan and update ultimate cross references to Android API from the specified component
+	 *
+	 * @param pComponent
+	 */
+	scanMethodXrefToAPI( pMethod:ModelMethod, pUpdate = true ):any {
+
+	}
+
+	/**
+	 * To scan and update ultimate cross references to Android API from the specified component
+	 *
+	 * @param pComponent
+	 */
+	scanFunctionXrefToAPI( pMethod:ModelMethod, pUpdate = true ):any {
+
+	}
 
 	/**
 	 * To perform some action at very first step of a full scan
@@ -53,6 +167,8 @@ export default class AndroidAppAnalyzer implements IAppAnalyzer
 
 		return success;
 	}
+
+
 
 	/**
 	 * To get the path of the file or folder to scan by default when an APK is analyzed
@@ -155,7 +271,7 @@ export default class AndroidAppAnalyzer implements IAppAnalyzer
      * @param {String} path Path to the manifest
      */
     async importManifest(path:string):Promise<boolean>{
-        let codeAnal:Analyzer = this.context.getAnalyzer();
+        const codeAnal:Analyzer = this.context.getAnalyzer();
 		let self:AndroidAppAnalyzer = this;
 		let data = null;
 
