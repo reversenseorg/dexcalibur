@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@reversense/dexcalibur-frida-compile": "^10.2.5",
+    "@reversense/interruptor": "^1.0.7",
     "@types/nedb": "^1.8.11",
     "adm-zip": "^0.4.14",
     "better-sqlite3": "^7.4.3",
