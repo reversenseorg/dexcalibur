@@ -1,10 +1,14 @@
-import {ABI, AbiManager} from "./binary/ABI";
+import {ABI, AbiManager, InstructionSet} from "./binary/ABI";
+import {AbiException} from "./errors/AbiException";
 
 
 enum TYPE {
     mobile= 'mobile',
     watch= 'watch',
     tv= 'tv',
+    automotive='automotive',
+    iot='iot',
+    computer='computer',
     other= 'other'
 }
 
@@ -73,13 +77,28 @@ export class SystemProfile implements  Profile
         }product
     }*/
 
+    getISAs():InstructionSet[] {
+        const devabi:ABI = this.getABI();
+        if(devabi!=null){
+            return devabi.instrSet;
+        }else{
+            throw AbiException.UNDETECTABLE_ISA(this.prop['ro.product.cpu.abi']);
+        }
+    }
+
     /**
      * To get ABI
      * 
      * @method   
      */
-    getABI():string{
-        return this.prop['ro.product.cpu.abi'];
+    getABI():ABI {
+        const abis = AbiManager.from(this.prop['ro.product.cpu.abi']);
+
+        if(abis.length>0){
+            return abis[0];
+        }else{
+            return null;
+        }
     }
 
     /**
@@ -333,6 +352,27 @@ export default class DeviceProfile
      */
     isTV():boolean{
         return this.type == TYPE.tv;
+    }
+
+    /**
+     * @method
+     */
+    isComputer():boolean{
+        return this.type == TYPE.computer;
+    }
+
+    /**
+     * @method
+     */
+    isAutomotive():boolean{
+        return this.type == TYPE.automotive;
+    }
+
+    /**
+     * @method
+     */
+    isIoT():boolean{
+        return this.type == TYPE.iot;
     }
 
     /**
