@@ -45,7 +45,8 @@ export enum NodeInternalType {
     ANDROID_PERM,
     INSPECTOR,
     HOOK_SESSION,
-    RUNTIME_EVENT
+    RUNTIME_EVENT,
+    HOOK_SYSCALL
 }
 
 export const NodeInternalTypeName = {
@@ -96,5 +97,6 @@ export const NodeInternalTypeName = {
     [NodeInternalType.ANDROID_PERM]: "ANDROID_PERM",
     [NodeInternalType.INSPECTOR]: "INSPECTOR",
     [NodeInternalType.HOOK_SESSION]: "HOOK_SESSION",
-    [NodeInternalType.RUNTIME_EVENT]: "RUNTIME_EVENT"
+    [NodeInternalType.RUNTIME_EVENT]: "RUNTIME_EVENT",
+    [NodeInternalType.HOOK_SYSCALL]: "HOOK_SYSCALL"
 }

@@ -4,9 +4,9 @@ import DalvikInstructionFormat from "./DalvikInstructionFormat";
 import * as Core from './CoreParser';
 
 
-var LEX = Core.LEX;
-var ReferenceType = CONST.OPCODE_REFTYPE;
-var Format = CONST.OPCODE_FORMAT;
+const LEX = Core.LEX;
+const ReferenceType = CONST.OPCODE_REFTYPE;
+const Format = CONST.OPCODE_FORMAT;
 const OpcodeType = CONST.OPCODE_TYPE;
 
 
@@ -25,7 +25,7 @@ LEX.REG = {
  
 
 
-export var OPCODE:any = {
+export const OPCODE:any = {
 	NOP:{ 
 		byte:0x00, 
 		instr:"nop", 
