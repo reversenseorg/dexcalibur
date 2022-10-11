@@ -136,8 +136,37 @@ export interface DexcaliburProjectMap {
  */
 export default class DexcaliburEngine extends ValidationCapable implements IDexcaliburEngine
 {
+    /**
+     * @type {string}
+     * @field Minimal version of the engine
+     * @static
+     * @since 1.1.0
+     */
+    static VERSION_MIN = "0.1";
 
+    /**
+     * @type {string}
+     * @field Default version of the engine instance for this server
+     * @static
+     * @since 1.1.0
+     */
+    static VERSION = "1.1.0";
+
+    /**
+     * @type {string}
+     * @field Default engine UID
+     * @static
+     */
     static DEFAULT_UID = "local:dxc";
+
+    /**
+     * @type {string}
+     * @field Version of the engine for this instance
+     * @static
+     * @since 1.1.0
+     */
+    version = DexcaliburEngine.VERSION;
+
     /**
      *
      */
@@ -976,7 +1005,9 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
             //this.webserver.setProject(project);
         }catch(err){
             Logger.error("ENGINE"," openProject() failed : "+err.message+"\n"+err.stack);
-            wf.pushStatus(StatusMessage.newError("Project cannot be loaded. See logs for more details"));
+            wf.pushStatus(StatusMessage.newError("Project cannot be loaded. See logs for more details : "+err.message));
+            project = null;
+            throw err;
         }
 
         return project;
@@ -1078,7 +1109,7 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
         AccessControl.check(
             AccessZone.PROJECT,
             ProjectAccessControl.access.CLOSE_OWN_PROJECT,
-            this,
+            pProject,
             pUser
         );
 

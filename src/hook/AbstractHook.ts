@@ -91,7 +91,7 @@ export abstract class AbstractHook {
      */
     public parentID:string = null;
 
-    public edited:boolean = false;
+    public edited = false;
 
     private _ctx:DexcaliburProject = null;
 
@@ -427,7 +427,7 @@ export abstract class AbstractHook {
 
 
     toJsonObject(){
-        let o:any = {};
+        const o:any = {};
         o.__ = this.__;
         o.id = this.getGUID();
         o.parentID = this.parentID;
@@ -488,6 +488,7 @@ export abstract class AbstractHook {
      * @param pOptions
      */
     extends( pOptions:HookOptions){
+        // todo
     }
 
 
