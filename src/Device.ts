@@ -31,11 +31,16 @@ const DEV_NAME = ['unknow','usb','emu','adb','sdb'];
 
 
 export enum EOsType  {
-    ANDROID= 0x0,
-    LINUX= 0x1,
-    TIZEN= 0x2
+    ANDROID,
+    LINUX,
+    TIZEN,
+    DARWIN,
+    MACOS,
+    IOS,
+    WIN10,
+    WINNT
 };
-const OS_NAME = ['android','linux','tizen'];
+const OS_NAME = ['android','linux','tizen','darwin','macos','ios','windows10','windowsNT'];
 
 
 interface BridgeList {
