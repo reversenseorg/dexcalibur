@@ -85,17 +85,17 @@ export default class ModelClass extends Savable implements INode, IPersistent
     inherit = {};
 
     // the count of methods inside the class
-    _methCount:number = 0;
+    _methCount = 0;
 
     // a list of the declared fields
     fields:IFieldSet = {};
 
     // the count of declared fields
-    _fieldCount:number = 0;
+    _fieldCount = 0;
 
     // an hashmap of the inner classes, the key is the FQCN of the subject
     // innerClass:IClassSet = {};
-    innerClass:boolean = false;
+    innerClass = false;
 
     tags:number[] = [];
 
@@ -126,7 +126,7 @@ export default class ModelClass extends Savable implements INode, IPersistent
         super(STUB_TYPE.CLASS);
 
         if(pConfig!==undefined)
-            for(let i in pConfig)
+            for(const i in pConfig)
                 this[i]=pConfig[i];
     }
 
@@ -157,7 +157,7 @@ export default class ModelClass extends Savable implements INode, IPersistent
     }
 
     help() {
-        let t:string ="+-------------------- HELP --------------------+";
+        let t ="+-------------------- HELP --------------------+";
         t += EOL+"[-- Methods : ]";
         t += EOL+"\t.dump()\tShow the class information (field, methods, modifiers, parents, etc...)";
         t += EOL+"\t.hasField(<string>)\tCheck if the class define the given field";
@@ -187,8 +187,8 @@ export default class ModelClass extends Savable implements INode, IPersistent
         this.fields[field.signature()] = field;
     }
 
-    updateField(field:ModelField, override:boolean=false){
-        let diff:NodeCompare = this.fields[field.signature()].compare(field);
+    updateField(field:ModelField, override=false){
+        const diff:NodeCompare = this.fields[field.signature()].compare(field);
         // if not identic => update, else nothiong to do
         if(!diff.isIdentic()){
             if(override)
@@ -211,8 +211,8 @@ export default class ModelClass extends Savable implements INode, IPersistent
         this.methods[meth.signature()] = meth;
     }
 
-    updateMethod(meth:ModelMethod, override:boolean=false){
-        let diff:NodeCompare = this.methods[meth.signature()].compare(meth);
+    updateMethod(meth:ModelMethod, override=false){
+        const diff:NodeCompare = this.methods[meth.signature()].compare(meth);
         // if not identic => update, else nothiong to do
         if(!diff.isIdentic()){
             if(override)
@@ -268,7 +268,7 @@ export default class ModelClass extends Savable implements INode, IPersistent
      * @param override
      * @deprecated
      */
-    prettySignature(override:boolean=false):string{
+    prettySignature(override=false):string{
         if(!override && this.__pretty_signature__ != null){
             return this.__pretty_signature__;
         }
@@ -302,8 +302,7 @@ export default class ModelClass extends Savable implements INode, IPersistent
     }
 
     hasAliasedMethod( pAlias:string):boolean{
-        let f = false;
-        for(let f in this.methods){
+        for(const f in this.methods){
             if(this.methods[f].getAlias()===pAlias)
                 return true;
         }
@@ -311,8 +310,7 @@ export default class ModelClass extends Savable implements INode, IPersistent
     }
 
     hasAliasedField( pAlias:string):boolean{
-        let f = false;
-        for(let f in this.fields){
+        for(const f in this.fields){
             if(this.fields[f].getAlias()===pAlias)
                 return true;
         }
@@ -334,17 +332,17 @@ export default class ModelClass extends Savable implements INode, IPersistent
             console.log("Source : "+this.source);
 
         console.log("--------------------------------------\nFields :");
-        for(let k in this.fields){
+        for(const k in this.fields){
             console.log( this.fields[k].sprint());
         }
         console.log("--------------------------------------\nMethods :");
-        for(let k in this.methods){
+        for(const k in this.methods){
             console.log( this.methods[k].sprint());
         }
     }
 
     raw_import(data:any) {
-        for(let i in data) this[i] = data[i];
+        for(const i in data) this[i] = data[i];
     }
 
     import(obj:any){
@@ -359,8 +357,8 @@ export default class ModelClass extends Savable implements INode, IPersistent
     hasOverrideOf(meth:ModelMethod):ModelMethod{
         if(meth == null) return null;
 
-        let cs = meth.callSignature();
-        for(let k in this.methods){
+        const cs = meth.callSignature();
+        for(const k in this.methods){
             if(this.methods[k].callSignature()==cs){
                 return this.methods[k];
             }
@@ -373,7 +371,7 @@ export default class ModelClass extends Savable implements INode, IPersistent
      * To add inherited method which are not overrided
      */
     addInheritedMethod(methodRef:string|ModelMethodReference, parentMethod:ModelMethod):ModelMethod{
-        let n:string=(methodRef instanceof ModelMethodReference) ? methodRef.getName() : methodRef;
+        const n:string=(methodRef instanceof ModelMethodReference) ? methodRef.getName() : methodRef;
 
         this.methods[n] = parentMethod;
         this.inherit[n] = parentMethod;
@@ -387,7 +385,7 @@ export default class ModelClass extends Savable implements INode, IPersistent
      */
     addInheritedField(localReference:string|ModelFieldReference, parentField:ModelField):ModelField{
 
-        let n:string=(localReference instanceof ModelFieldReference) ? localReference.getName() : localReference;
+        const n:string=(localReference instanceof ModelFieldReference) ? localReference.getName() : localReference;
 
         this.fields[n] = parentField;
         this.inherit[n] = parentField;
@@ -396,8 +394,9 @@ export default class ModelClass extends Savable implements INode, IPersistent
 
 
     toJsonObject():any{
-        let obj:any = {}, m=null;
-        for(let i in this){
+        const obj:any = {};
+        let m:any = null;
+        for(const i in this){
             if(["_","$"].indexOf(i[0])==-1
                 && (Array.isArray(this[i])===false)
                 && (typeof this[i] != 'object')){
@@ -420,7 +419,7 @@ export default class ModelClass extends Savable implements INode, IPersistent
             }
             else if(i == "methods"){
                 obj.methods = [];
-                for(let k in this.methods){
+                for(const k in this.methods){
                     m = this.methods[k].toJsonObject(["__signature__","__aliasedCallSignature__","__callSignature__","probing","modifiers","alias","name","tags"]);
                     if(this.inherit[k] != null) m.__inherit = true;
                     obj.methods.push(m); // call signature
@@ -428,7 +427,7 @@ export default class ModelClass extends Savable implements INode, IPersistent
             }
             else if(i == "fields"){
                 obj.fields = [];
-                for(let k in this.fields){
+                for(const k in this.fields){
                     m = this.fields[k].toJsonObject(["__signature__","__aliasedSignature__","alias","name","tags","type","modifiers"]);
                     if(this.inherit[k] != null) m.__inherit = true;
                     obj.fields.push(m);
@@ -462,6 +461,23 @@ export default class ModelClass extends Savable implements INode, IPersistent
                 if(this.__p.loc != null){
                     obj.location = this.__p.loc.toJsonObject();
                 }
+            }
+            else if(i == "_callers"){
+                obj._callers = [];
+                let vXref;
+                for(const k in this._callers){
+                    vXref = this._callers[k];
+                    if(typeof (vXref)==="string")
+                        obj._callers.push(vXref);
+                    else if(vXref.hasOwnProperty('toJsonObject'))
+                        obj._callers.push(vXref.toJsonObject());
+                }
+                /*this._callers.map( (vXref)=>{
+                    if(typeof (vXref)==="string")
+                        obj._callers.push(vXref);
+                    else if(vXref.hasOwnProperty('toJsonObject'))
+                        obj._callers.push(vXref.toJsonObject());
+                })*/
             }
         }
         return obj;
@@ -498,27 +514,28 @@ export default class ModelClass extends Savable implements INode, IPersistent
      * To find a class's method by usins a search pattern
      * @param {String} pattern
      */
-    getMethod(pattern:any, pExactMatch:number=0):ModelMethod[]{
-        let res0:any = [], res1:any=[], rx:any={}, match:any=null;
+    getMethod(pattern:any, pExactMatch=0):ModelMethod[]{
+        let res0:any = [], res1:any=[], match:any=null;
+        const rx:any={};
         if(pExactMatch != CONST.EXACT_MATCH){
-            for(let i in pattern){
+            for(const i in pattern){
                 rx[i] = new RegExp(pattern[i]);
             }
             res1 = this.methods;
-            for(let i in pattern){
+            for(const i in pattern){
                 res0 = res1;
                 res1 = [];
-                for(let meth in res0){
+                for(const meth in res0){
                     match = rx[i].exec(res0[meth][i]);
                     if(match !== null) res1.push(res0[meth]);
                 }
             }
         }else{
             res1 = this.methods;
-            for(let i in pattern){
+            for(const i in pattern){
                 res0 = res1;
                 res1 = [];
-                for(let meth in res0){
+                for(const meth in res0){
                     if(pattern[i] === res0[meth][i])
                         res1.push(res0[meth]);
                 }
@@ -536,15 +553,16 @@ export default class ModelClass extends Savable implements INode, IPersistent
      * @return {ModelField} Field
      */
     getField(pattern:any):ModelField[]{
-        let res0:any = [], res1:any=[], rx:any={}, match:any=null;
-        for(let i in pattern){
+        let res0:any = [], res1:any=[], match:any=null;
+        const rx:any = {};
+        for(const i in pattern){
             rx[i] = new RegExp(pattern[i]);
         }
         res1 = this.fields;
-        for(let i in pattern){
+        for(const i in pattern){
             res0 = res1;
             res1 = [];
-            for(let meth in res0){
+            for(const meth in res0){
                 match = rx[i].exec(res0[meth][i]);
                 if(match !== null) res1.push(res0[meth]);
             }
@@ -557,8 +575,8 @@ export default class ModelClass extends Savable implements INode, IPersistent
      * @returns {ModelField[]} An array of fields
      */
     getStaticFields():ModelField[]{
-        let f:ModelField[] = [];
-        for(let i in this.fields){
+        const f:ModelField[] = [];
+        for(const i in this.fields){
             if((this.fields[i].modifiers & Modifier.STATIC)>0){
                 f.push(this.fields[i]);
             }
