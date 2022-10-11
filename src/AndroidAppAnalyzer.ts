@@ -17,10 +17,10 @@ import {IAppAnalyzer} from "./analyzer/IAppAnalyzer";
 import * as _path_ from "path";
 import ModelMethod from "./ModelMethod";
 import ModelClass from "./ModelClass";
-import ClassAnalyzer from "../inspectors/ApplicationTopography/src/ClassAnalyzer";
 import {NodeInternalType} from "./NodeInternalType";
+import {AndroidApiClassXrefList, AndroidCodeAnalyzer} from "./android/analyzer/AndroidCodeAnalyzer";
 
-let Logger:Log.Logger = Log.newLogger() as Log.Logger;
+const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
 
 
@@ -112,7 +112,7 @@ export default class AndroidAppAnalyzer implements IAppAnalyzer
 	 *
 	 * @param pComponent
 	 */
-	scanComponentXrefToAPI( pComponent:AndroidComponent, pUpdate = true ):any {
+	scanComponentXrefToAPI( pComponent:AndroidComponent, pDeth, pUpdate = true ):AndroidApiClassXrefList {
 
 		// to retrieve class implementign the componenet
 		const fqcn = this.getComponentFullName( this.manifest, pComponent.getName());
@@ -126,26 +126,36 @@ export default class AndroidAppAnalyzer implements IAppAnalyzer
 			}
 		}else{
 			Logger.error("[ANDROID ANAL][Scan XREF] Fail to map internal dependencies mapped for ["+fqcn+"] : class not found");
-			return true;
+			return null;
 		}
 
 		// search dependencies to platform method and class
-		const apiXref = ClassAnalyzer.searchInternalDependencies(this.context, pComponent);
-		if (apiXref!==false) {
+		const apiXref = AndroidCodeAnalyzer.searchInternalDependencies(this.context, pComponent, pDeth);
+		if (apiXref!==null) {
 			Logger.info("[ANDROID ANAL][Scan XREF] Internal dependencies mapped for : ", fqcn);
 		} else {
 			Logger.error("[ANDROID ANAL][Scan XREF] Fail to map internal dependencies mapped for : ", fqcn);
+
 		}
 		return apiXref;
 	}
 
 	/**
-	 * To scan and update ultimate cross references to Android API from the specified component
+	 * To scan and update ultimate cross references to Android API from the specified class
 	 *
 	 * @param pComponent
 	 */
-	scanMethodXrefToAPI( pMethod:ModelMethod, pUpdate = true ):any {
+	scanClassXrefToAPI( pClass:ModelClass, pDeth:number, pUpdate = true ):AndroidApiClassXrefList {
+		return AndroidCodeAnalyzer.searchClassInternalDependencies(this.context, pClass, pDeth, pUpdate);
+	}
 
+	/**
+	 * To scan and update ultimate cross references to Android API from the specified method
+	 *
+	 * @param pComponent
+	 */
+	scanMethodXrefToAPI( pMethod:ModelMethod, pDeth:number, pUpdate = true ):AndroidApiClassXrefList {
+		return AndroidCodeAnalyzer.searchMethodInternalDependencies(this.context, pMethod, pDeth, pUpdate );
 	}
 
 	/**
@@ -154,7 +164,8 @@ export default class AndroidAppAnalyzer implements IAppAnalyzer
 	 * @param pComponent
 	 */
 	scanFunctionXrefToAPI( pMethod:ModelMethod, pUpdate = true ):any {
-
+		// todo
+		return null;
 	}
 
 	/**
@@ -272,7 +283,7 @@ export default class AndroidAppAnalyzer implements IAppAnalyzer
      */
     async importManifest(path:string):Promise<boolean>{
         const codeAnal:Analyzer = this.context.getAnalyzer();
-		let self:AndroidAppAnalyzer = this;
+		//let self:AndroidAppAnalyzer = this;
 		let data = null;
 
 
@@ -291,11 +302,11 @@ export default class AndroidAppAnalyzer implements IAppAnalyzer
 
 		//let amp = new AndroidManifestXmlParser(self);
 
-		let parser:_xml2js_.Parser = new _xml2js_.Parser();
+		const parser:_xml2js_.Parser = new _xml2js_.Parser();
 
-		let result:any = await parser.parseStringPromise(data);
+		const result:any = await parser.parseStringPromise(data);
 
-		let manifest:AndroidManifest = AndroidManifest.fromXml(result.manifest, self.context);
+		const manifest:AndroidManifest = AndroidManifest.fromXml(result.manifest, this.context);
 		
 
 		this.manifest = manifest;
@@ -303,7 +314,7 @@ export default class AndroidAppAnalyzer implements IAppAnalyzer
 
 		// update internal DB
 		manifest.usesPermissions.map(x => {
-			self.context.trigger({
+			this.context.trigger({
 				type: "app.permission.new",
 				data: x
 			});
@@ -314,28 +325,28 @@ export default class AndroidAppAnalyzer implements IAppAnalyzer
 		if(manifest.application != null){
 
 			manifest.application.activities.map(x => {
-				self.context.trigger({
+				this.context.trigger({
 					type: "app.activity.new",
 					data: { obj:x, manifest:manifest}
 				});
 				codeAnal.db.activities.addEntry(x.name, x);
 			});
 			manifest.application.providers.map(x => {
-				self.context.trigger({
+				this.context.trigger({
 					type: "app.provider.new",
 					data: { obj:x, manifest:manifest}
 				});
 				codeAnal.db.providers.addEntry(x.name, x);
 			});
 			manifest.application.receivers.map(x => {
-				self.context.trigger({
+				this.context.trigger({
 					type: "app.receiver.new",
 					data: { obj:x, manifest:manifest}
 				});
 				codeAnal.db.receivers.addEntry(x.name, x);
 			});
 			manifest.application.services.map(x => {
-				self.context.trigger({
+				this.context.trigger({
 					type: "app.service.new",
 					data: { obj:x, manifest:manifest}
 				});
