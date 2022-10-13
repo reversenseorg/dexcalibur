@@ -32,6 +32,8 @@ import {RuntimeEvent} from "./RuntimeEvent";
 import HookMessageV2 from "./HookMessageV2";
 import HookFragmentPreset from "./HookFragmentPreset";
 import {TagHashMap, TagNameMap} from "../tags/TagManager";
+import SystemCallHook from "./SystemCallHook";
+import ModelSyscall from "../ModelSyscall";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -97,6 +99,7 @@ export class HookManager
 
     jhooks:JavaMethodHook[] = [];
     nhooks:NativeFunctionHook[] = [];
+    shooks:SystemCallHook[] = [];
 
     hooks:Hook[] = [];
 
@@ -1226,7 +1229,7 @@ export class HookManager
      * @param pNode
      * @private
      */
-    private _countHook( pList:AbstractHook[], pNode:ModelFunction|ModelMethod):number {
+    private _countHook( pList:AbstractHook[], pNode:ModelFunction|ModelMethod|ModelSyscall):number {
         let c = 0;
 
         for(let i=0; i<pList.length; i++){
@@ -1258,6 +1261,14 @@ export class HookManager
     }
 
     /**
+     *
+     * @param pFun
+     */
+    countSysCallHook( pSysCall:ModelSyscall):number {
+        return this._countHook(this.shooks, pSysCall);
+    }
+
+    /**
      * To create an syscall hook
      *
      * TODO : link to DxcAgent
@@ -1266,8 +1277,59 @@ export class HookManager
      * @param pOpts
      * @param pKeyPoint
      */
-    createSyscallHook( pSyscalls:string[], pOpts:any, pKeyPoint:KeyPoint = null):NativeFunctionHook {
-        return null;
+    createSyscallHook( pSyscall:ModelSyscall, pOpts:any, pKeyPoint:KeyPoint = null):SystemCallHook {
+        const tmgr = this.context.getTagManager();
+        const hook:SystemCallHook = new SystemCallHook();
+
+        hook.setGUID( md5(this.nextHookGUIDFor(pSyscall)));
+
+        if(pOpts.loadKP == null){
+            hook.setLoadKeyPoint(this.getKeyPointManager().getKeyPoint("core.java.app"));
+        }else{
+            hook.setLoadKeyPoint(pOpts.loadKP);
+        }
+
+        if(pOpts.unloadKP !== null){
+            hook.setUnloadKeyPoint(pOpts.unloadKP);
+        }
+
+        hook.setContext(this.context);
+        hook.setTarget(pSyscall);
+        hook.setManager(this);
+
+        //hook.makeProbeFor(method);
+        //this.builder.
+        //hook.makeHookFor(method, pOptions);
+
+        //hook.setMethod(method);
+        // method.setProbing(true);
+        pSyscall.probing = true;
+        pSyscall.hooks.push( hook);
+
+
+        if(tmgr.getTag("discover.static").match(pSyscall)
+            || tmgr.getTag("discover.internal").match(pSyscall)){
+            this.getDefaultHookSet().addHook(hook);
+        }else{
+            //this.getHookSetFor(method.getDeclaringFile());
+            this.getDefaultHookSet().addHook(hook);
+        }
+
+        Logger.info("[HOOK MANAGER][NATIVE HOOK] Created successfully : ",hook.getTarget().getUID())
+        this.shooks.push(hook);
+        this.save(hook, true);
+
+        // trigger new probe workflow
+        this.context.trigger({
+            type: "probe.new",
+            data: {
+                hook: hook,
+                func: pSyscall,
+                hasUnloadKP: (pOpts.unloadKP !== null)
+            }
+        });
+
+        return hook;
     }
 
     /**
@@ -1537,13 +1599,19 @@ export class HookManager
      * @since 1.0.0
      * @param method
      */
-    nextHookGUIDFor(pTarget:ModelMethod|ModelFunction):string{
+    nextHookGUIDFor(pTarget:ModelMethod|ModelFunction|ModelSyscall):string{
         //    return method.__signature__+"@@"+this.findHookByMethod(method).length;
         //Logger.info("[HOOK] nextHookIdFor ["+method.signature()+"]")
-        if(pTarget.__ === NodeInternalType.METHOD){
-            return pTarget.__+":"+pTarget.getUID()+"@@"+this.countJavaHook(pTarget as ModelMethod);
-        }else{
-            return pTarget.__+":"+pTarget.getUID()+"@@"+this.countNativeHook(pTarget as ModelFunction);
+        switch (pTarget.__) {
+            case NodeInternalType.METHOD:
+                return pTarget.__+":"+pTarget.getUID()+"@@"+this.countJavaHook(pTarget as ModelMethod);
+                break;
+            case NodeInternalType.FUNC:
+                return pTarget.__+":"+pTarget.getUID()+"@@"+this.countNativeHook(pTarget as ModelFunction);
+                break;
+            case NodeInternalType.SYSCALL:
+                return pTarget.__+":"+pTarget.getUID()+"@@"+this.countSysCallHook(pTarget as ModelSyscall);
+                break;
         }
     }
 
