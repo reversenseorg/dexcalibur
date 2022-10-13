@@ -57,6 +57,10 @@ import {AnalyzerState} from "./AnalyzerState";
 import {IAppAnalyzer} from "./analyzer/IAppAnalyzer";
 import {TagManager} from "./tags/TagManager";
 import {DexcaliburProjectException} from "./errors/DexcaliburProjectException";
+import {InstructionSet} from "./binary/ABI";
+import {Architecture} from "./Architecture";
+import {OperatingSystem} from "./OperatingSystem";
+import ModelSyscallFactory from "./ModelSyscallFactory";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -231,6 +235,14 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
     device:Device = null;
 
     /**
+     * @type {InstructionSet[]}
+     * @field List of Instruction Set Architecture supported by this project
+     */
+    archs:Architecture[] = [];
+
+    os:OperatingSystem = OperatingSystem.ANDROID;
+
+    /**
      * @field Class representing target application
      */
     application:AndroidApplication = null;
@@ -272,6 +284,7 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
 
     private analCfg:AnalyzerConfiguration = new AnalyzerConfiguration();
 
+    private _archReady:Architecture[] = [];
 
     /*
      * A set of package checksum
@@ -321,6 +334,10 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
 
     getOwner():UserAccount {
        return this.owner;
+    }
+
+    getArchitectures():Architecture[] {
+        return this.archs;
     }
 
     static deleteCloseProject( pEngine:DexcaliburEngine, pUID:string, pAccount:UserAccount){
@@ -751,9 +768,29 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
      */
     setDevice( pDevice:Device){
         this.device = pDevice;
-        this.analyze.useSyscalls(this.device.getSyscallList());
+        this.updateTargetInfo(this.device);
     }
-    
+
+    updateTargetInfo(pDevice:Device):void {
+        if(pDevice!=null){
+            const ssp = pDevice.getProfile().getSystemProfile();
+            this.archs = [ssp.getArchitecture()];
+            this.os = ssp.getOperatingSystem();
+
+            this.updateSyscalls()
+        }
+    }
+
+    /**
+     * To check if the project has target ISA
+     *
+     * @return {boolean} TRUE if there is one or several ISA
+     * @method
+     * @since 1.1.0
+     */
+    hasArchitectureOS():boolean {
+        return (this.archs.length>0 && this.os!=null);
+    }
 
     /**
      * To get device target of the project
@@ -953,6 +990,28 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
         return true;
     }
 
+    /**
+     * To init target ISA
+     *
+     * @method
+     * @since 1.1.0
+     */
+    updateSyscalls( pDevice:Device = null):void {
+        if(pDevice != null){
+            const arch = pDevice.getProfile().getSystemProfile().getArchitecture();
+            if(this._archReady.indexOf(arch)==-1){
+                this.analyze.useSyscalls(pDevice.getSyscallList());
+                this._archReady.push(arch);
+            }
+        }
+        this.archs.map( (vArch)=>{
+            if(this._archReady.indexOf(vArch)==-1){
+                this.analyze.useSyscalls(
+                    ModelSyscallFactory.getSyscallListFrom(vArch, this.os)
+                );
+            }
+        });
+    }
 
     /**
      * 
@@ -988,6 +1047,7 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
         if(!data.hasOwnProperty('engineVersion')){
             data.engineVersion = project.engineVersion = DexcaliburEngine.VERSION_MIN;
         }
+
 
         try{
             project.isCompatibleWithEngine(pEngine);
@@ -1034,8 +1094,26 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
                         project.connector = ConnectorFactory.getInstance().newConnector('inmemory', project);
                     }
                     break;
+                case "archs":
+                    project.archs = data.archs;
+                    break;
+                case "os":
+                    project.os = data.os;
+                    break;
             }
         }
+
+
+        if(project.getDevice()!=null){
+            const ssp = project.getDevice().getProfile().getSystemProfile();
+            if(!data.hasOwnProperty('archs') ){
+                project.archs = [ssp.getArchitecture(true)];
+            }
+            if(!data.hasOwnProperty('os')){
+                project.os = ssp.getOperatingSystem(true);
+            }
+        }
+
 
         project.engineVersion = data.engineVersion;
 
@@ -1084,6 +1162,8 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
         // add last modified, user, etc ...
         o.uid = this.uid;
         o.package = this.pkg;
+        // o.archs = this.archs;
+        // o.os = this.os;
         o.device = this.device!=null? this.device.getUID() : null;
         o.platform = this.platform!=null? this.platform.getUID() : null;
         o.nofrida = this.nofrida;

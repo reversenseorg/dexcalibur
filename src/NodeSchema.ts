@@ -27,6 +27,7 @@ import {NodeType} from "./persist/orm/NodeType";
 import {DataSource} from "./DataSource";
 import {TagCategory} from "./tags/TagCategory";
 import {Tag} from "./tags/Tag";
+import SystemCallHook from "./hook/SystemCallHook";
 
 UserAccount.TYPE.updateProperties([
     (new NodeProperty('_uid')).type(DbDataType.STRING).key(DbKeyType.PRIMARY),
@@ -405,6 +406,90 @@ JavaMethodHook.TYPE.updateProperties([
         })
 ]).dataSource(DataSourceHelper.FILE).builder(JavaMethodHook);
 
+
+
+SystemCallHook.TYPE.updateProperties([
+    (new NodeProperty("_uid")).type(DbDataType.STRING).key(DbKeyType.PRIMARY),
+    (new NodeProperty("name")).type(DbDataType.STRING).def(null),
+    (new NodeProperty("_t")).type(DbDataType.STRING).def(null),
+    (new NodeProperty("_target")).single(ModelMethod.TYPE),
+    (new NodeProperty("_code")).type(DbDataType.STRING).def(null),
+    (new NodeProperty("_time")).type(DbDataType.STRING).def(null),
+    (new NodeProperty("_loadkp")).single(KeyPoint.TYPE),
+    (new NodeProperty("_unloadkp")).single(KeyPoint.TYPE),
+    (new NodeProperty("_after"))
+        // .multiple(HookTemplateFragment.TYPE)
+        .type(DbDataType.STRING)
+        .sleep( (x:NodePropertyState) => {
+            if(x.self!=null){
+                const o = [];
+                (x.self as SystemCallHook).getAfter().map( (t:HookTemplateFragment) => { o.push(t.toJsonObject()) } );
+                return JSON.stringify(o);
+            }else{
+                return null;
+            }
+        })
+        .wakeUp( (x:NodePropertyState) => {
+            if(x.p!=null && x.p.length>0){
+                const o = [];
+                JSON.parse(x.p).map( (data) => {
+                    o.push( HookTemplateFragment.fromJsonObject(data));
+                } );
+                return o;
+            }else{
+                return null;
+            }
+        }),
+    (new NodeProperty("_before"))
+        // .multiple(HookTemplateFragment.TYPE)
+        .type(DbDataType.STRING)
+        .sleep( (x:NodePropertyState) => {
+            if(x.self!=null){
+                const o = [];
+                (x.self as SystemCallHook).getBefore().map( (t:HookTemplateFragment) => { o.push(t.toJsonObject()) } );
+                return JSON.stringify(o);
+            }else{
+                return null;
+            }
+        })
+        .wakeUp( (x:NodePropertyState) => {
+
+            if(x.p!=null && x.p.length>0){
+                const o = [];
+                JSON.parse(x.p).map( (data) => {
+                    o.push( HookTemplateFragment.fromJsonObject(data));
+                } );
+                return o;
+            }else{
+                return null;
+            }
+        }),
+    (new NodeProperty("_replace"))
+        // .multiple(HookTemplateFragment.TYPE)
+        .type(DbDataType.STRING)
+        .sleep( (x:NodePropertyState) => {
+            if(x.self!=null){
+                const o = [];
+                (x.self as SystemCallHook).getReplace().map( (t:HookTemplateFragment) => { o.push(t.toJsonObject()) } );
+                return JSON.stringify(o);
+            }else{
+                return null;
+            }
+        })
+        .wakeUp( (x:NodePropertyState) => {
+
+            if(x.p!=null && x.p.length>0){
+                const o = [];
+                JSON.parse(x.p).map( (data) => {
+                    o.push( HookTemplateFragment.fromJsonObject(data));
+                } );
+                return o;
+            }else{
+                return null;
+            }
+        })
+]).dataSource(DataSourceHelper.FILE).builder(SystemCallHook);
+
 NativeFunctionHook.TYPE.updateProperties([
     (new NodeProperty("_uid")).type(DbDataType.STRING).key(DbKeyType.PRIMARY),
     (new NodeProperty("name")).type(DbDataType.STRING).def(null),
@@ -509,5 +594,8 @@ Tag.TYPE.updateProperties([
 
 export class NodeSchema{
 
-    static init(){}
+    static init(){
+        // nothing to do
+        // BUT KEEP IT TO FORCE INIT (important !)
+    }
 }

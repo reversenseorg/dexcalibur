@@ -545,9 +545,8 @@ export class FinderResult
         }
         else if(x instanceof ModelSyscall){
             sub.push({
-                "num": x.sysnum.join(","),
-                "Function": x.func_name,
-                "Syscall": x.sys_name,
+                "num": x.sysnum,
+                "Syscall": x.name,
                 "Params": x.args.join(","),
                 "Return Type": x.ret
             });

@@ -34,7 +34,6 @@ import {IDatabase, IDbIndex, IDbSet} from "./persist/orm/DbAbstraction";
 import {NodeInternalType} from "./NodeInternalType";
 import {AnalyzerState} from "./AnalyzerState";
 import {Tag} from "./tags/Tag";
-import {CONST} from "./CoreConst";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -117,7 +116,7 @@ class ResolverV2
     createMissingClass(pFqcn:string, pAnalyzerDB:AnalyzerDatabase):ModelClass{
 
         // create a class instance from the FQCN value
-        let missingCls:ModelClass = SmaliParser.class("L"+pFqcn+" ");
+        const missingCls:ModelClass = SmaliParser.class("L"+pFqcn+" ");
         let pkg:ModelPackage|string = null;
 
         // tag the class instance "missing"
@@ -1290,14 +1289,17 @@ export default class Analyzer
      * @param {*} syscalls
      * @function
      */
-    useSyscalls(syscalls:ModelSyscall[]):void{
+    useSyscalls( syscalls:ModelSyscall[]):void{
         //this.db.syscalls = {};
         for(let i=0; i<syscalls.length ; i++){
+
+            this.db.syscalls.addEntry(syscalls[i].getUID(),  syscalls[i]);
+            /*
             for(let j=0; j<syscalls[i].sysnum.length; j++){
                 if(syscalls[i].sysnum[j]>-1){
                     this.db.syscalls.addEntry(syscalls[i].sysnum[j],  syscalls[i]);
                 }
-            }
+            }*/
         }
     }
 

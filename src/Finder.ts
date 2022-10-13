@@ -15,7 +15,6 @@ import ModelCall from "./ModelCall";
 import {ModelBasicType, ModelObjectType} from "./ModelType";
 import ModelStringValue from "./ModelStringValue";
 import ModelConstantValue from "./ModelConstantValue";
-import ModelSyscall from "./ModelSyscall";
 import ModelDataBlock from "./ModelDataBlock";
 import ModelFile from "./ModelFile";
 
@@ -24,9 +23,10 @@ import * as Log from './Logger';
 import {Modifier} from "./AccessFlags";
 import {SearchToken} from "./SearchToken";
 import {IDatabase, IDbCollection, IDbIndex} from "./persist/orm/DbAbstraction";
-let Logger:Log.Logger = Log.newLogger() as Log.Logger;
-
-var DataModel = {
+import ModelSyscall from "./ModelSyscall";
+const Logger:Log.Logger = Log.newLogger() as Log.Logger;
+/*
+const DataModel = {
     package: new ModelPackage("stub"),
     class: new ModelClass(),
     field: new ModelField(),
@@ -44,7 +44,7 @@ var DataModel = {
     provider: new AndroidProvider(),
     service: new AndroidService(),
     permission: new AndroidPermission(),
-};
+};*/
 
 
 
