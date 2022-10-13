@@ -1,6 +1,5 @@
 import * as HOOK from '../../src/hook/HookManager';
 
-import ClassAnalyzer from './src/ClassAnalyzer';
 import {IntentFilter} from "../../src/android/IntentFilter";
 import InspectorFactory from "../../src/InspectorFactory";
 import Inspector, {INSPECTOR_TYPE} from "../../src/Inspector";
@@ -10,6 +9,7 @@ import BusEvent from "../../src/BusEvent";
 import AndroidActivity from "../../src/android/AndroidActivity";
 import * as Log from "../../src/Logger";
 import {AndroidManifest} from "../../src/android/AndroidManifest";
+import {AndroidCodeAnalyzer} from "../../src/android/analyzer/AndroidCodeAnalyzer";
 
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
@@ -139,7 +139,7 @@ export default new InspectorFactory({
 
     
             // search dependencies to platform method and class
-            if (ClassAnalyzer.searchInternalDependencies(ctx, event.data.obj)!==false) {
+            if (AndroidCodeAnalyzer.searchInternalDependencies(ctx, event.data.obj)!=null) {
                 Logger.info("[AppTopo][activity] Internal dependencies mapped for : ", event.data.obj.name);
             } else {
                 Logger.error("[AppTopo][activity] Fail to map internal dependencies mapped for : ", event.data.obj.name);
@@ -168,7 +168,7 @@ export default new InspectorFactory({
 
     
             // search dependencies to platform method and class
-            if (ClassAnalyzer.searchInternalDependencies(ctx, event.data.obj)!==false) {
+            if (AndroidCodeAnalyzer.searchInternalDependencies(ctx, event.data.obj)!=null) {
                 Logger.info("[AppTopo][receiver] Internal dependencies mapped for : ", event.data.obj.name);
             } else {
                 Logger.error("[AppTopo][receiver] Fail to map internal dependencies mapped for : ", event.data.obj.name);
@@ -195,7 +195,7 @@ export default new InspectorFactory({
             tagByAttr(ctx, event.data.obj.getAttributes(), event);
     
             // search dependencies to platform method and class
-            if (ClassAnalyzer.searchInternalDependencies(ctx, event.data.obj)!==false) {
+            if (AndroidCodeAnalyzer.searchInternalDependencies(ctx, event.data.obj)!=null) {
                 Logger.info("[AppTopo][provider] Internal dependencies mapped for : ", event.data.obj.name);
             } else {
                 Logger.error("[AppTopo][provider] Fail to map internal dependencies mapped for : ", event.data.obj.name);
@@ -222,7 +222,7 @@ export default new InspectorFactory({
             tagByAttr(ctx, event.data.obj.getAttributes(), event);
 
             // search dependencies to platform method and class
-            if (ClassAnalyzer.searchInternalDependencies(ctx, event.data.obj)!==false) {
+            if (AndroidCodeAnalyzer.searchInternalDependencies(ctx, event.data.obj)!=null) {
                 Logger.info("[AppTopo][service] Internal dependencies mapped for : ", event.data.obj.name);
             } else {
                 Logger.error("[AppTopo][service] Fail to map internal dependencies mapped for : ", event.data.obj.name);
