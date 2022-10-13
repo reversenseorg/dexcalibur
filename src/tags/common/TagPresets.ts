@@ -14,6 +14,8 @@ const CODE_CALL = new TagCategory({ name: "code.call" });
 const CODE_LOAD = new TagCategory({ name: "data.len" });
 const RUNTIME_MSG = new TagCategory({ name: "runtime.msg" });
 const DISCOVER = new TagCategory({ name: "discover" });
+//const AUDIT_THREAT = new TagCategory({ name: "audit.threat" });
+const AUDIT_TYPE = new TagCategory({ name: "audit.type" });
 
 const CODE_NATIVE_TAGS = [
     new Tag({ name:"export" }),
@@ -21,6 +23,10 @@ const CODE_NATIVE_TAGS = [
     new Tag({ name:"not_stripped" })
 ];
 
+const AUDIT_TYPE_TAGS = [
+    new Tag({ name:"security" }),
+    new Tag({ name:"privacy" }),
+];
 
 const DATA_TYPE_TAGS = [
     new Tag({ name:"string" }),
@@ -115,6 +121,7 @@ GLOBAL_TAGS.map( x => { GLOBAL.addTag(x); });
 
 DISCOVER_TAGS.map( x => { DISCOVER.addTag(x); });
 RUNTIME_TAGS.map( x => { RUNTIME_MSG.addTag(x); });
+AUDIT_TYPE_TAGS.map( x => { AUDIT_TYPE.addTag(x); });
 
 export const TAG_CATEGORY_PRESETS = [
     GLOBAL,
@@ -130,6 +137,7 @@ export const TAG_CATEGORY_PRESETS = [
     DATA_HASH,
     DATA_LEN,
 
-    RUNTIME_MSG
+    RUNTIME_MSG,
+    AUDIT_TYPE
 ];
 
