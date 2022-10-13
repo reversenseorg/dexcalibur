@@ -121,6 +121,7 @@ export class DexcaliburServerChildProcess {
     }catch(err){
       __log(`[DXC-SRV][DISPATCH-IPC] Exception caught : 
         ${err.message}
+        ${err.stack}
       `);
     }
 

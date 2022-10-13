@@ -1,15 +1,15 @@
 import * as _fs_ from "fs";
-import ModelSyscall from "./ModelSyscall";
 
-import {AndroidSyscalls} from "./android/AndroidSyscalls";
 import DexcaliburProject from "./DexcaliburProject";
 import DexcaliburDVM from "./android/DexcaliburDVM";
 import {DexcaliburVM} from "./DexcaliburVM";
 import * as Log from "./Logger";
-let Logger:Log.Logger = Log.newLogger() as Log.Logger;
+import {OperatingSystem} from "./OperatingSystem";
+import {Architecture} from "./Architecture";
 
-const PLATFORM_RE:RegExp = new RegExp('(?<source>[^_.]+)_(?<name>[^_.]+)_(?<version>[^_.]+)_(?<vendor>[^_.]+)\.(?<format>[^.]+)');
-const LOCAL_PLATFORM_RE:RegExp = new RegExp('(?<source>[^_.]+)_(?<name>[^_.]+)_(?<version>[^_.]+)_(?<vendor>[^_.]+)');
+const Logger:Log.Logger = Log.newLogger() as Log.Logger;
+const PLATFORM_RE = new RegExp('(?<source>[^_.]+)_(?<name>[^_.]+)_(?<version>[^_.]+)_(?<vendor>[^_.]+)\.(?<format>[^.]+)');
+const LOCAL_PLATFORM_RE = new RegExp('(?<source>[^_.]+)_(?<name>[^_.]+)_(?<version>[^_.]+)_(?<vendor>[^_.]+)');
 
 /**
  * Represent a target platform
@@ -33,18 +33,22 @@ export default class Platform
     installed = false;
     stub = false;
 
+    // TODO : os + arch
+    os:OperatingSystem = null;
+    arch:Architecture = null;
+
     apiVersion:string = null;
     binaryPath:string = null;
 
     constructor(pPlatformConfig:any ){
 
-        for(let i in pPlatformConfig) this[i] = pPlatformConfig[i];
+        for(const i in pPlatformConfig) this[i] = pPlatformConfig[i];
 
         return this;
     }
 
     static fromRemoteName( pName:string):Platform{
-        let matches:any = PLATFORM_RE.exec(pName);
+        const matches:any = PLATFORM_RE.exec(pName);
 
         if(matches[0] === pName){
             return new Platform({
@@ -184,18 +188,11 @@ export default class Platform
        return this.installed = _fs_.existsSync(this.localPath);
     }
 
-    getSyscallList():ModelSyscall[]{
-        if(this.isAndroid()){
-            return AndroidSyscalls;
-        }else{
-            return [];
-        }
-    }
 
     toJsonObject():any{
-        let o:any = {};
+        const o:any = {};
 
-        for(let i in this){
+        for(const i in this){
             if(typeof this[i] == 'function') continue;
             o[i] = this[i];
         }

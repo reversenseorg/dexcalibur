@@ -1,6 +1,7 @@
 import {NodeInternalType} from "./NodeInternalType";
+import {IPersistent} from "./persist/orm/IPersistent";
 
-export interface INode {
+export interface INode extends IPersistent{
     __:NodeInternalType;
     getUID():string;
     tags:number[];
