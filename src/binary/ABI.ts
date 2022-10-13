@@ -24,6 +24,7 @@ export enum InstructionSet {
     THUMB2='Thumb-2',
     VFPV3='VFPv3-D16',
     AARCH64='AArch64',
+    AARCH32='AArch32',
     x86='x86',
     x86_64='x86_64',
     MIPS='mips',
@@ -51,7 +52,11 @@ export class ABI {
 
 }
 
-
+/**
+ * A class to explore ABIs from the knowledge DB
+ *
+ * @class
+ */
 export class AbiManager {
     static ABI:any = {
         [AbiType.arm_v5]: new ABI({
@@ -99,10 +104,29 @@ export class AbiManager {
     }
 
     /**
+     * To get all ISA supported by an ABI
+     *
+     * @param {AbiType} pAbi
+     * @return {InstructionSet[]} A list of ISA
+     * @method
+     * @since 1.1.0
+     */
+    static getISAsFromABI( pAbi:AbiType):InstructionSet[]{
+        if(AbiManager.ABI[pAbi] != null){
+            return (AbiManager.ABI[pAbi] as ABI).instrSet;
+        }else {
+            throw AbiException.UNKNOW_ABI(pAbi);
+        }
+    }
+
+
+    /**
      * To get a list of ABI instance from a single ABI name or a list of ABI name
      *
-     * @param pAbi
-     * @return
+     * @param {AbiType | AbiType[]} pAbi One or several ABI name
+     * @return { ABI[] } A list of ABI instances
+     * @method
+     * @since 1.0.0
      */
     static from( pAbi:string | string[]): ABI[] {
         const abis = (!Array.isArray(pAbi)? [pAbi] : pAbi);
