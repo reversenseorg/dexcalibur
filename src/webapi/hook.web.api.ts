@@ -250,7 +250,7 @@ HOOK_WEB_API.addAuthenticatedRoute(
                     throw new Error("Invalid hook ID given : "+req.params.hookid);
                 }
 
-                let o:any = hook.toJsonObject();
+                const o:any = hook.toJsonObject();
                 if(hook.__==NodeInternalType.HOOK_NATIVE){
                     if(hook.getTarget() != null){
                         o.func = (hook.getTarget() as ModelFunction).toJsonObject();
@@ -303,7 +303,7 @@ HOOK_WEB_API.addAuthenticatedRoute(
             try{
                 project = req.dxc.project;
 
-                let hook:AbstractHook = project.hook.getHookByID(
+                const hook:AbstractHook = project.hook.getHookByID(
                     //Util.b64_decode(req.params.hookid)
                     req.params.hookid
                 );
@@ -313,7 +313,7 @@ HOOK_WEB_API.addAuthenticatedRoute(
                     throw new Error("No probe ID given" );
                 }
 
-                let success:boolean = project.hook.removeHook(hook);
+                const success:boolean = project.hook.removeHook(hook);
 
                 if(!success){
                     throw new Error("Hook cannot be removed");
@@ -415,19 +415,19 @@ HOOK_WEB_API.addAuthenticatedRoute(
             try{
                 project = req.dxc.project;
 
-                let dev:any={};
+                const dev:any={};
 
                 if(req.params.hookid=="all"){
 
-                    let hooks:Hook[] = project.hook.list();
-                    for(let i in hooks){
+                    const hooks:Hook[] = project.hook.list();
+                    for(const i in hooks){
                         hooks[i].enable();
                         dev[i] = {enable: hooks[i].isEnable() };
                     }
 
                     $.sendSuccess(res, dev);
                 }else {
-                    let hook: AbstractHook = project.hook.getHookByID(
+                    const hook: AbstractHook = project.hook.getHookByID(
                         req.params.hookid
                     );
 
@@ -459,17 +459,17 @@ HOOK_WEB_API.addAuthenticatedRoute(
 
             try{
                 project = req.dxc.project as DexcaliburProject;
-                let dev:any={};
+                const dev:any={};
 
                 if(req.params.hookid=="all"){
-                    let hooks:Hook[] = project.hook.list();
-                    for(let i in hooks){
+                    const hooks:Hook[] = project.hook.list();
+                    for(const i in hooks){
                         hooks[i].disable();
                         dev[i] = {enable: hooks[i].isEnable() };
                     }
                     $.sendSuccess(res, dev);
                 }else{
-                    let hook:AbstractHook = project.hook.getHookByID(
+                    const hook:AbstractHook = project.hook.getHookByID(
                         req.params.hookid
                     );
 
@@ -776,7 +776,7 @@ HOOK_WEB_API.addAuthenticatedRoute(
                             sess.map( (vHSess:HookSession)=>{
                                 if (!vHSess.hasMessages()) return;
 
-                                let msg:any[] = [];
+                                const msg:any[] = [];
                                 const msgs = vHSess.messages();
 
 
@@ -1043,7 +1043,7 @@ HOOK_WEB_API.addAuthenticatedRoute(
                     throw new Error("Static blocks (<clinit>) cannot be hooked");
                 }
 
-                let status:string = req.query.enable;
+                const status:string = req.query.enable;
                 if (status === undefined) {
                     throw new Error("Invalid hook status");
                 }
