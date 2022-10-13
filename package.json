@@ -1,6 +1,6 @@
 {
   "name": "@reversense/dexcalibur-ts",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "description": "Android reverse engineering platform focused on dynamic binary instrumentation automation. tPowered by Frida. Offers a GUI and a Node.JS API",
   "main": "./dist/dexcalibur.js",
   "directories": {
@@ -33,6 +33,7 @@
     "mime-types": "^2.1.20",
     "nedb": "^1.8.0",
     "nedb-async": "^0.1.6",
+    "node-forge": "^1.3.1",
     "properties": "^1.2.1",
     "r2pipe": "^2.8.0",
     "r2pipe-promise": "^1.6.0",
@@ -44,7 +45,8 @@
   "devDependencies": {
     "@types/chai": "^4.2.11",
     "@types/mocha": "^7.0.2",
-    "electron": "^11.1.1",
+    "@types/node-forge": "^1.3.0",
+    "electron": "^13.2.1",
     "electron-rebuild": "^2.3.4",
     "grunt-contrib-clean": "^2.0.0",
     "grunt-contrib-copy": "^1.0.0",
@@ -81,8 +83,10 @@
     "patch:node": "node ./scripts/run_os_script.js prebuild-node",
     "patch:electron": "node ./scripts/run_os_script.js prebuild-electron",
     "patch:electron:v85": "node ./scripts/run_os_script.js prebuild-electron v85",
+    "patch:electron:v107": "node ./scripts/run_os_script.js prebuild-electron v107",
     "dist-patch:electron": "node ./scripts/run_os_script.js postbuild-electron",
     "dist-patch:electron:v85": "node ./scripts/run_os_script.js postbuild-electron v85",
+    "dist-patch:electron:v107": "node ./scripts/run_os_script.js postbuild-electron v107",
     "o_prepublish": "npmrc dxc-npm",
     "publish": "npmrc dxc-npm && cp .npmignore.default .npmignore && npm publish"
   },
@@ -99,5 +103,5 @@
     "win32"
   ],
   "homepage": "https://github.com/FrenchYeti/dexcalibur",
-  "license": "Apache-2.0"
+  "license": "Copyright Georges-B Michel , Reversense SAS"
 }
