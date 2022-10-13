@@ -104,6 +104,7 @@ PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
                 // init workflow
                 wf = $.context.newWorkflow(req.body['name']).changeOwner(user);
 
+                // TODO : retrieve platform from special value of req.body['platform'] : target, from target device, target API version from manifest , ...
 
                 // first download remote application
                 // on error : ne‹ project will not create.
@@ -334,7 +335,7 @@ PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
 
                 project = await $.context.openProject( user, req.query.uid);
 
-                if(project.isReady()){
+                if(project!=null && project.isReady()){
                     req.dxc.sess.setDefaultActiveProject(project);
 
                     $.sendSuccess( res, {})
@@ -344,7 +345,7 @@ PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
 
             }catch(err){
                 Logger.error("[API][PROJECT MGT] Opening project failed : "+err.message+"\n"+err.stack);
-                $.sendError( res, "Project ["+req.query.uid+"] cannot be opened.")
+                $.sendError( res, "Project ["+req.query.uid+"] cannot be opened : "+err.message);
             }
 
 
