@@ -4,6 +4,9 @@ import {Device} from "./Device";
 import AppPackage from "./AppPackage";
 import {AndroidPackageInstallOptions} from "./android/bridge/AndroidInstallOptions";
 
+export interface DeviceProfilingOptions {
+    type: "network" | "build" | "system" | "trust" | "acl" | "all";
+}
 
 interface BridgeFactoryList {
     [name: string] :any
@@ -35,7 +38,7 @@ export interface IBridge
 
     kill():Promise<any>;
 
-    performProfiling():DeviceProfile;
+    performProfiling(pOptions?:DeviceProfilingOptions):Promise<DeviceProfile>;
 
     listDevices():Promise<Device[]>;
 
