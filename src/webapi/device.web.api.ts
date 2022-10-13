@@ -153,7 +153,7 @@ DEVICE_WEB_API.addAsyncPublicRoute(
 DEVICE_WEB_API.addAsyncPublicRoute(
     '/profile/:type',
     {
-        'get': (req:Request, res:Response):any => {
+        'get': async (req:Request, res:Response):any => {
             let dev:Device = null;
             let $:WebServer = req.dxc.$;
 
@@ -166,10 +166,70 @@ DEVICE_WEB_API.addAsyncPublicRoute(
                     throw new Error("Target device not found");
                 }
 
-                if(dev != null)
-                    $.sendSuccess(res, dev.getProfile().toJsonObject());
-                else
+                if(dev != null) {
+                    switch (req.params.type){
+                        case 'network':
+                            $.sendSuccess(res, dev.getProfile().getNetworkProfile().toJsonObject());
+                            break;
+                        case 'build':
+                            $.sendSuccess(res, dev.getProfile().getBuildProfile().toJsonObject());
+                            break;
+                        case 'trust':
+                            $.sendSuccess(res, dev.getProfile().getTrustProfile().toJsonObject());
+                            break;
+                        case 'system':
+                            $.sendSuccess(res, dev.getProfile().getSystemProfile().toJsonObject());
+                            break;
+                        case 'all':
+                        default:
+                            $.sendSuccess(res, dev.getProfile().toJsonObject());
+                            break;
+                    }
+                }else
                     $.sendError( res, 'Cannot remove all devices');
+            }catch(err){
+                $.sendError( res, err.message);
+            }
+        },
+        'post': async (req:Request, res:Response):any => {
+            let dev:Device = null;
+            let $:WebServer = req.dxc.$;
+
+            try{
+                if (req.body.uid != null) {
+                    dev = $.context.getDeviceManager().getDevice(req.body.uid);
+                } else if ($.project != null){
+                    dev = $.project.getDevice();
+                } else{
+                    throw new Error("Target device not found");
+                }
+
+                const opts = (req.body.hasOwnProperty('opts')? req.body.opts : {} );
+                opts.type = req.params.type;
+                await dev.performProfiling(opts);
+
+                if(dev != null){
+                    switch (req.params.type){
+                        case 'network':
+                            $.sendSuccess(res, dev.getProfile().getNetworkProfile().toJsonObject());
+                            break;
+                        case 'build':
+                            $.sendSuccess(res, dev.getProfile().getBuildProfile().toJsonObject());
+                            break;
+                        case 'trust':
+                            $.sendSuccess(res, dev.getProfile().getTrustProfile().toJsonObject());
+                            break;
+                        case 'system':
+                            $.sendSuccess(res, dev.getProfile().getSystemProfile().toJsonObject());
+                            break;
+                        case 'all':
+                        default:
+                            $.sendSuccess(res, dev.getProfile().toJsonObject());
+                            break;
+                    }
+                }
+                else
+                    $.sendError( res, 'Profiling error : device not found');
             }catch(err){
                 $.sendError( res, err.message);
             }
@@ -476,6 +536,30 @@ DEVICE_WEB_API.addAsyncPublicRoute(
 });
 
 //
+DEVICE_WEB_API.addAsyncPublicRoute(
+    '/syscalls',
+    {
+        'get': async (req:Request, res:Response):Promise<any> => {
+            // scan connected devices
+            let dev:Device, dm:DeviceManager;
+            const $:WebServer = req.dxc.$;
+
+            try{
+
+                dm = DeviceManager.getInstance();
+                dev = dm.getDevice( req.query.uid );
+
+                if(dev.isEnrolled() == false){
+                    throw new Error('Device is not enrolled');
+                }
+
+                $.sendSuccess( res, dev.getSyscallList());
+            }catch(err){
+                Logger.error("[API][DEVICE] List of system calls cannot be retrieved for the specified device : "+err.message+"\n"+err.stack);
+                $.sendError( res, "[API][DEVICE] List of system calls cannot be retrieved for the specified device : "+err.message);
+            }
+        }
+    });
 
 
 DEVICE_WEB_API.addAsyncPublicRoute(
