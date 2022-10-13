@@ -52,10 +52,10 @@ var FileDescriptorInspector:InspectorFactory = new InspectorFactory({
                     var msg={ arg0:"<null>", arg1:"<null>" }; 
             
                     if(arg0!=null){ 
-                        if(isInstanceOf(arg0, "java.io.File")){
+                        if(DXC.util.isInstanceOf(arg0, "java.io.File")){
                             msg.arg0 = arg0.getAbsolutePath();
                         }
-                        else if(isInstanceOf(arg0, "java.net.URI"))
+                        else if(DXC.util.isInstanceOf(arg0, "java.net.URI"))
                             msg.arg0 = arg0.toString();
                         else
                             msg.arg0 = arg0;
