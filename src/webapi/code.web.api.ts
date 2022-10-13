@@ -15,6 +15,10 @@ import * as VM from "vm";
 import {FinderResult} from "../FinderResult";
 import DataScope from "../DataScope";
 import ModelFile from "../ModelFile";
+import {NodeInternalType} from "../NodeInternalType";
+import AndroidAppAnalyzer from "../AndroidAppAnalyzer";
+import {AndroidApiClassXrefList, AndroidCodeAnalyzer} from "../android/analyzer/AndroidCodeAnalyzer";
+import {AndroidAnalyzerException} from "../errors/android/AndroidAnalyzerException";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 export const CODE_WEB_API: DelegateWebApi = new DelegateWebApi();
@@ -237,6 +241,56 @@ CODE_WEB_API.addAuthenticatedRoute(
     }
 );
 
+CODE_WEB_API.addAuthenticatedRoute(
+    '/android/xref/:type/:uid',
+    {
+        'get': function (req:Request, res:Response):any {
+
+            const $: WebServer = req.dxc.$;
+            let project:DexcaliburProject = null;
+
+            try{
+                project = req.dxc.project;
+                const anal = (project.getAppAnalyzer() as AndroidAppAnalyzer);
+                const unsafeUID = Util.decodeURI(Util.b64_decode(req.params.uid));
+                let depth:number;
+                let data:AndroidApiClassXrefList = null;
+
+                if(req.query.depth != null){
+                    const unsafeDepth = parseInt( req.query.depth, 10 );
+                    depth = (unsafeDepth >= -1 && unsafeDepth < Infinity)? unsafeDepth : AndroidCodeAnalyzer.XREF_MAX_DEPTH;
+                }else{
+                    depth = AndroidCodeAnalyzer.XREF_MAX_DEPTH;
+                }
+
+                switch (req.params.type){
+                    case NodeInternalType.CLASS:
+                        data = anal.scanClassXrefToAPI(project.find.get.class(unsafeUID), depth, false)
+                        break;
+                    case NodeInternalType.METHOD:
+                        const meth = project.find.get.method(unsafeUID)
+                        data = anal.scanMethodXrefToAPI(meth, depth, false);
+                        break;
+                    case NodeInternalType.FUNC:
+                        // todo
+                        break;
+                }
+                if(data!=null){
+                    $.sendSuccess( res, AndroidCodeAnalyzer.classXrefListToJson(data));
+                }else{
+                    throw AndroidAnalyzerException.ANDROID_XREF_NOT_PROCESSED(unsafeUID);
+                }
+
+            }catch(err){
+                Logger.error("[API][CODE] Method cannot be retrieved. Cause : " + err.message + "\n\t" + err.stack);
+                $.sendError(res, "Method cannot be retrieved. Cause : " + err.message);
+            }
+        }
+    },{
+        readProject: true
+    }
+);
+
 
 CODE_WEB_API.addAuthenticatedRoute(
     '/method/xref/:id',
@@ -244,26 +298,12 @@ CODE_WEB_API.addAuthenticatedRoute(
         'get': function (req:Request, res:Response):any {
 
 
-            let $: WebServer = req.dxc.$;
+            const $: WebServer = req.dxc.$;
             let project:DexcaliburProject = null;
 
             try{
 
-                // ========== SECURITY CHECKS
-
-                if (req.dxc == null || !$.context.getUserService().verifySession(req.dxc.sess)) {
-                    throw AuthenticationException.AUTHENTICATION_FAILED();
-                }
-
-                if(req.body['project']!=null){
-                    project = $.context.getActiveProjects(req.dxc.sess.getUserAccount())[req.body['project']];
-                }else if(req.dxc.project != null){
-                    project = req.dxc.project;
-                }
-
-                if(project == null || !project.isReady()) {
-                    throw DexcaliburProjectException.NO_PROJECT_SPECIFIED();
-                }
+                project = req.dxc.project;
 
                 // ========== LOGIC
                 const type:string = req.query.type;
@@ -339,12 +379,13 @@ CODE_WEB_API.addAuthenticatedRoute(
                                 // return type signature
                                 r: (r2.getReturnType() != null ? r2.getReturnType().signature() : null),
                                 // tags
-                                tags: []
+                                tags: r2.getTags()
                             };
 
-                            r2.getTags().map( t => {
+                            /*(r2 as ModelMethod).getTags().map( t => {
                                 tmp.tags.push(t.getUUID());
-                            });
+                            });*/
+
                             // args signatures
                             tmp.p = [];
                             if (r2.hasArgs())
@@ -366,6 +407,8 @@ CODE_WEB_API.addAuthenticatedRoute(
                 $.sendError(res, "Xref cannot be retrieved. Cause : " + err.message);
             }
         }
+    },{
+        readProject: true
     }
 );
 
@@ -376,26 +419,11 @@ CODE_WEB_API.addAuthenticatedRoute(
         'get': function (req:Request, res:Response):any {
 
 
-            let $: WebServer = req.dxc.$;
+            const $: WebServer = req.dxc.$;
             let project:DexcaliburProject = null;
 
             try{
-
-                // ========== SECURITY CHECKS
-
-                if (req.dxc == null || !$.context.getUserService().verifySession(req.dxc.sess)) {
-                    throw AuthenticationException.AUTHENTICATION_FAILED();
-                }
-
-                if(req.body['project']!=null){
-                    project = $.context.getActiveProjects(req.dxc.sess.getUserAccount())[req.body['project']];
-                }else if(req.dxc.project != null){
-                    project = req.dxc.project;
-                }
-
-                if(project == null || !project.isReady()) {
-                    throw DexcaliburProjectException.NO_PROJECT_SPECIFIED();
-                }
+                project = req.dxc.project;
 
                 // ========== LOGIC
 
@@ -431,26 +459,12 @@ CODE_WEB_API.addAuthenticatedRoute(
         'put': function (req:Request, res:Response):any {
 
 
-            let $: WebServer = req.dxc.$;
+            const $: WebServer = req.dxc.$;
             let project:DexcaliburProject = null;
 
             try{
 
-                // ========== SECURITY CHECKS
-
-                if (req.dxc == null || !$.context.getUserService().verifySession(req.dxc.sess)) {
-                    throw AuthenticationException.AUTHENTICATION_FAILED();
-                }
-
-                if(req.body['project']!=null){
-                    project = $.context.getActiveProjects(req.dxc.sess.getUserAccount())[req.body['project']];
-                }else if(req.dxc.project != null){
-                    project = req.dxc.project;
-                }
-
-                if(project == null || !project.isReady()) {
-                    throw DexcaliburProjectException.NO_PROJECT_SPECIFIED();
-                }
+                project = req.dxc.project;
 
                 // ========== LOGIC
 // collect
@@ -498,6 +512,8 @@ CODE_WEB_API.addAuthenticatedRoute(
                 $.sendError(res, "Method cannot be aliased. Cause : " + err.message);
             }
         }
+    },{
+        readProject: true
     }
 );
 
