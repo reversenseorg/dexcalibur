@@ -1,33 +1,22 @@
-
-
 import * as _fs_ from 'fs';
 import * as _path_ from 'path';
-import * as Process from 'process';
 import {EOL} from 'os';
-import {AndroidSyscalls} from './android/AndroidSyscalls';
 
 import * as Log from './Logger';
-let Logger:Log.Logger = Log.newLogger() as Log.Logger;
-
 import DeviceProfile from './DeviceProfile';
 import Platform from './Platform';
 import PlatformManager from './PlatformManager';
 import DexcaliburWorkspace from './DexcaliburWorkspace';
-import Utils  from "./Utils";
-import AdbWrapper from "./AdbWrapper";
+import Utils from "./Utils";
 import {BridgeInstallOptions, BridgeSuperFactory, IBridge} from "./Bridge";
 import ModelSyscall from "./ModelSyscall";
 import AppPackage from "./AppPackage";
 import {DeviceManagerException} from "./errors/DeviceManagerException";
+import {OperatingSystem} from "./OperatingSystem";
+import ModelSyscallFactory from "./ModelSyscallFactory";
+import {Architecture} from "./Architecture";
 
-export enum EDevType  {
-    UNKNOW=0x0,
-    USB= 0x1,
-    EMU= 0x2,
-    ADB= 0x3,
-    SDB= 0x4
-};
-const DEV_NAME = ['unknow','usb','emu','adb','sdb'];
+const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
 
 export enum EOsType  {
@@ -39,7 +28,7 @@ export enum EOsType  {
     IOS,
     WIN10,
     WINNT
-};
+}
 const OS_NAME = ['android','linux','tizen','darwin','macos','ios','windows10','windowsNT'];
 
 
@@ -73,14 +62,14 @@ export class Device
     /**
      * @field
      */
-    type:EOsType = null;
+    type:OperatingSystem = null;
 
     /**
      * Flag. TRUE if currently connected, else FALSE
      *
      * @field
      */
-    connected:boolean = false;
+    connected = false;
 
     /**
      * Default bridge for this devices
@@ -94,13 +83,13 @@ export class Device
      * @field
      * @deprecated
      */
-    selected:boolean = false;
+    selected = false;
 
     /**
      * @field
      * @deprecated
      */
-    isEmulated:boolean = false;
+    isEmulated = false;
 
     /**
      * Device internal UID
@@ -118,7 +107,7 @@ export class Device
      * TRUE if debugging is authorized, else FALSE
      * @field
      */
-    authorized:boolean = true;
+    authorized = true;
 
     /**
      * Device model
@@ -192,18 +181,18 @@ export class Device
      * Flag. TRUE is the device is enrolled, else FALSE
      * @field
      */
-    enrolled:boolean = false;
+    enrolled = false;
 
     /**
      * Flag. TRUE is the device is offline, else FALSE
      * @field
      */
-    offline:boolean = false;
+    offline = false;
 
     /**
      *
      */
-    syscalls:ModelSyscall[] = null;
+    syscalls:ModelSyscall[] = [];
 
     /**
      * List of application package installed
@@ -214,7 +203,9 @@ export class Device
     apps:AppPackage[] = [];
 
 
-    //fs: DeviceFileSystem = null;
+    os:OperatingSystem;
+
+    arch:Architecture;
 
 
 
@@ -226,7 +217,7 @@ export class Device
     constructor(config:any=null){
 
         if(config !== null)
-            for(let i in config) this[i] = config[i];    
+            for(const i in config) this[i] = config[i];
     }
 
     /**
@@ -237,7 +228,7 @@ export class Device
      * @param {AdbWrapper} pBridge 
      * @method
      */
-    addBridge( pBridge:IBridge, pOverride:boolean=false){
+    addBridge( pBridge:IBridge, pOverride=false){
         if(this.bridges[ pBridge.shortname ] == null || pOverride){
             this.bridges[ pBridge.shortname ] = pBridge;
         }
@@ -260,7 +251,7 @@ export class Device
     }
     
 
-    setEnrolled( pStatus:boolean = true){
+    setEnrolled( pStatus = true){
         this.enrolled = pStatus;
 
         return this;
@@ -749,12 +740,22 @@ export class Device
     };*/
 
 
-    async performProfiling( pOptions){
+    async performProfiling( pOptions:any = null){
 
         if(this.bridge != null){
-            this.profile = await this.bridge.performProfiling();
+            this.profile = await this.bridge.performProfiling(pOptions);
+
+            if(pOptions.type=="all" || pOptions.type=="system"){
+                this.os = this.profile.getSystemProfile().getOperatingSystem();
+                this.arch = this.profile.getSystemProfile().getArchitecture();
+                this.getSyscallList();
+            }
         }
 
+        return true;
+    }
+
+    async updateProfiling( pProfileName:string, pOptions:any = null){
         return true;
     }
 
@@ -769,15 +770,26 @@ export class Device
      */
     static fromJsonObject(pBridgeSFactory:BridgeSuperFactory, pJsonObject:any, pOverride:any = {}):Device{
         let dev:any = new Device();
-        for(let i in pJsonObject){
+        for(const i in pJsonObject){
             switch(i){
-                case 'type':
+                /*case 'type':
                     dev.type = OS_NAME.indexOf(pJsonObject[i]);
+                    break;*/
+
+                case "syscalls":
+                    /*if(pJsonObject.syscalls.length>0 && !Array.isArray(pJsonObject.syscalls[0].sysnum)){
+                        dev.syscalls = [];
+                        pJsonObject.syscalls.map( x => {
+                            let v;
+                            dev.syscalls.push(v = new ModelSyscall(x));
+                            Logger.info('[DEVICE] Load syscall from backup  : '+JSON.stringify(v));
+                        });
+                    }*/
                     break;
 
                 case 'bridges':
                     dev.bridges = {};
-                    for( let j in pJsonObject.bridges){
+                    for( const j in pJsonObject.bridges){
                         // todo : replace AdbWrapeper by BridgeFactory
                         dev.bridges[j] = pBridgeSFactory.getFactory(j).fromJsonObject( pJsonObject.bridges[j]);
                     }
@@ -804,7 +816,7 @@ export class Device
             dev.setDefaultBridge(dev.bridge);
         }
         
-        for(let i in pOverride){
+        for(const i in pOverride){
             dev[i] = pOverride[i];
         }
 
@@ -863,9 +875,9 @@ export class Device
                 case 'bridges':
                     json.bridges = {};
                         // json.bridgeData = this.bridge.toJsonObject();
-                    for(let k in this.bridges){
+                    for(const k in this.bridges){
                         json.bridges[k] = this.bridges[k].toJsonObject( pExcludeList.bridge);     
-                    };
+                    }
                     break;
 
                 case 'profile':
@@ -886,17 +898,17 @@ export class Device
             }                  
         }
 
-        for(let i in pOverride){
+        for(const i in pOverride){
             json[i] = pOverride[i];
         }
         return json;
     }
 
     getSyscallList():ModelSyscall[]{
-        if(this.syscalls == null){
-            if(this.type===EOsType.ANDROID){
-                this.syscalls = AndroidSyscalls;
-            }
+
+        Logger.info("[DEVICE][SYSCALL]["+(this.syscalls == null || this.syscalls.length==0)+"] "+this.arch+" "+this.os);
+        if(this.syscalls == null || this.syscalls.length==0){
+            this.syscalls = ModelSyscallFactory.getSyscallListFrom(this.arch, this.os);
         }
 
         return this.syscalls;
@@ -952,8 +964,10 @@ export class Device
      */
     getDataPathOf( pPackageId:string): string {
 
-        if(this.type===EOsType.ANDROID){
-            return ("/data/data/"+pPackageId).replace(/(\s+)/g, '\\$1');
+        switch (this.os) {
+            case OperatingSystem.ANDROID:
+                return ("/data/data/"+pPackageId).replace(/(\s+)/g, '\\$1');
+                break;
         }
 
         return null;

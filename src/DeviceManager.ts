@@ -15,6 +15,7 @@ import FridaHelper from "./FridaHelper";
 import {ValidationCapable, ValidationRule} from "./Validator";
 import DexcaliburEngine from "./DexcaliburEngine";
 import {External} from "./external/External";
+import {DeviceManagerException} from "./errors/DeviceManagerException";
 
 let Logger:Log.ProdLogger = Log.newLogger() as Log.ProdLogger;
 
@@ -167,8 +168,20 @@ export default class DeviceManager extends ValidationCapable
         try{
             data = JSON.parse( _fs_.readFileSync( this.devFile).toString());
             for(let i=0; i<data.length; i++){
-                if( data[i].uid != null)
+                if( data[i].uid != null){
                     this.devices[ data[i].uid ] = Device.fromJsonObject(this.bridgeFactory, data[i]);
+                    this.devices[ data[i].uid ].getSyscallList()
+                    /*
+                    if(this.devices[ data[i].uid ].syscalls.length == 0){
+                        // update syscall backup
+                        if(this.devices[ data[i].uid ].getSyscallList() != null){
+
+                            Logger.info("[DEVICE MANAGER] System calls : "+JSON.stringify(this.devices[ data[i].uid ].getSyscallList()));
+                           // this.save();
+                        }
+                    }*/
+                }
+
             }
 
             Logger.info("[DEVICE MANAGER] Known Devices : "+Object.keys(this.devices));
@@ -655,6 +668,20 @@ export default class DeviceManager extends ValidationCapable
         return json;
     }
 
+    /**
+     * @param pDevice
+     * @param pOptions
+     * @async
+     */
+    async performDeviceProfiling( pDevice:Device, pOptions:any){
+        try{
+            await pDevice.performProfiling(pOptions);
+            //this.save();
+        }catch (err){
+            throw DeviceManagerException.DEVICE_PROFILING_FAILED(pDevice.getUID(),err.message);
+        }
+
+    }
     /**
      * To enroll a new device or an updated device
      * 

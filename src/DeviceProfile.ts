@@ -1,5 +1,8 @@
 import {ABI, AbiManager, InstructionSet} from "./binary/ABI";
 import {AbiException} from "./errors/AbiException";
+import {Architecture} from "./Architecture";
+import {OperatingSystem} from "./OperatingSystem";
+import Certificate from "./formats/common/Certificate";
 
 
 enum TYPE {
@@ -36,6 +39,10 @@ export class SystemProfile implements  Profile
      */
     emulated = false;
 
+    arch:Architecture = null;
+
+    os:OperatingSystem = null;
+
     constructor(){
         this.prop = {};
     }
@@ -48,13 +55,12 @@ export class SystemProfile implements  Profile
             new RegExp('^sukernel\.'),
             new RegExp('^sys\.'),
             new RegExp('^.*\.recovery_id\.*'),
-
-
             new RegExp('^ro\.build\.'),
             new RegExp('^ro\.hwui\.'),
             new RegExp('^ro\.build\.'),
             new RegExp('^ro\.error\.'),
             new RegExp('^.*\.dalvik\.'),
+            new RegExp('^uname$'),
         ];
 
         for(let i=0; i<patterns.length; i++){
@@ -85,6 +91,31 @@ export class SystemProfile implements  Profile
             throw AbiException.UNDETECTABLE_ISA(this.prop['ro.product.cpu.abi']);
         }
     }
+
+    getOperatingSystem(pUpdate=false):OperatingSystem {
+        if(this.os != null && !pUpdate) return this.os;
+
+        const uname:string = this.prop['uname'];
+
+        if(uname == null){
+            throw new Error('[DEVICE PROFILE] Operating System cannot be retrieved : uname is null.')
+        }
+
+        if(uname.indexOf('arm64')){
+            this.os = OperatingSystem.ANDROID;
+        }else if(uname.startsWith('Linux')){
+            this.os = OperatingSystem.LINUX;
+        }else if(uname.startsWith('Darwin')){
+            this.os = OperatingSystem.MACOS;
+        }/*else{
+            throw AbiException.UNDETECTABLE_OS(this.prop['uname']);
+        }*/
+        // return abi;
+
+        return this.os;
+    }
+
+
 
     /**
      * To get ABI
@@ -144,20 +175,27 @@ export class SystemProfile implements  Profile
      * To get device architecture
      * @method     
      */
-    getArchitecture():string{
+    getArchitecture(pUpdate=false):Architecture{
+
+        if(this.arch != null && !pUpdate) return this.arch;
+
         const abi:string = this.prop['ro.product.cpu.abi'];
         if(abi == null){
             throw new Error('[DEVICE PROFILE] Architecture of targeted device cannot be retrieved through CPU ABI.')
         }
 
-        if(abi.startsWith('arm64'))
-            return 'arm64';
-        else if(abi.startsWith('arm'))
-            return 'arm';
-        else if(abi.startsWith('x86_64'))
-            return 'x86_64';
-        else
-            return abi;
+        if(abi.startsWith('arm64')){
+            this.arch = Architecture.AARCH64;
+        }else if(abi.startsWith('arm')){
+            this.arch = Architecture.AARCH32;
+        }else if(abi.startsWith('x86_64')){
+            this.arch = Architecture.X86_64;
+        }else{
+            throw AbiException.UNDETECTABLE_ISA(this.prop['ro.product.cpu.abi']);
+        }
+        // return abi;
+
+        return this.arch;
     }
 
     static fromJsonObject( pJson:any):SystemProfile{
@@ -215,6 +253,17 @@ export class BuildProfile implements Profile
         this.prop[pName] = pValue;
     }
 
+    /**
+     *
+     * @param {*} pJson
+     * @static
+     */
+    static fromJsonObject( pJson):BuildProfile{
+        const o:BuildProfile = new BuildProfile();
+        for(const i in pJson)
+            o[i] = pJson[i];
+        return o;
+    }
 
     toJsonObject():any{
         const o:any = {};
@@ -293,6 +342,182 @@ export class NetworkProfile implements Profile
 
 /**
  *
+ * @class
+ * @author Georges-B MICHEL
+ */
+export class PermissionProfile implements Profile
+{
+    prop:any;
+
+    constructor(){
+        this.prop = {};
+    }
+
+    is(pData:any){
+        const patterns = [
+            new RegExp('^.*\.radio\.'),
+            new RegExp('^.*\.net\.'),
+            new RegExp('^.*\.wlan\.'),
+            new RegExp('^.*\.telephony\.'),
+            new RegExp('^.*\.ril\.'),
+            new RegExp('^.*\.wifi\.'),
+        ];
+
+        for(let i=0; i<patterns.length; i++){
+            if(patterns[i].test(pData)){
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     *
+     * @param {*} pName
+     * @param {*} pValue
+     */
+    setProperty( pName:string, pValue:any){
+        this.prop[pName] = pValue;
+    }
+
+    /**
+     *
+     * @param {*} pJson
+     * @static
+     */
+    static fromJsonObject( pJson):NetworkProfile{
+        const o:NetworkProfile = new NetworkProfile();
+        for(const i in pJson)
+            o[i] = pJson[i];
+        return o;
+    }
+
+    /**
+     * @method
+     */
+    toJsonObject():any{
+        const o:any = {};
+        for(const i in this){
+            o[i] = this[i];
+        }
+        return o;
+    }
+}
+
+
+
+/**
+ *
+ * @class
+ * @author Georges-B MICHEL
+ */
+export class TrustProfile implements Profile
+{
+    prop:any;
+
+    customACs:Certificate[] = [];
+    systemACs:Certificate[] = [];
+
+    constructor(){
+        this.prop = {};
+    }
+
+    is(pData:any){
+        const patterns = [
+            new RegExp('^cacerts-'),
+        ];
+
+        for(let i=0; i<patterns.length; i++){
+            if(patterns[i].test(pData)){
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     *
+     * @param {*} pName
+     * @param {*} pValue
+     */
+    setProperty( pName:string, pValue:any){
+        switch(pName){
+            case 'cacerts-added':
+                this.customACs = pValue;
+                break;
+            case 'cacerts':
+                this.systemACs = pValue;
+                break;
+            default:
+                this.prop[pName] = pValue;
+                break;
+        }
+    }
+
+    /**
+     * To get custom AC certificate from the device
+     *
+     * @return {Certificate[]}
+     * @method
+     * @since 1.1.0
+     */
+    getCustomACs():Certificate[] {
+        return this.prop['cacerts-added'];
+    }
+
+    /**
+     * To get custom AC certificate from the device
+     *
+     * @return {Certificate[]}
+     * @method
+     * @since 1.1.0
+     */
+    getSystemACs():Certificate[] {
+        return []; //this.prop['cacerts-added'];
+    }
+
+    /**
+     *
+     * @param {*} pJson
+     * @static
+     */
+    static fromJsonObject( pJson):TrustProfile{
+        const o:TrustProfile = new TrustProfile();
+        for(const i in pJson)
+            o[i] = pJson[i];
+        return o;
+    }
+
+    /**
+     * @method
+     */
+    toJsonObject():any{
+        const o:any = {};
+        for(const i in this){
+            switch (i){
+                case 'customACs':
+                    o.customACs = [];
+                    this.customACs.map( (vCert)=>{ o.customACs.push(vCert.toJsonObject()) });
+                    break;
+                case 'systemACs':
+                    o.systemACs = [];
+                    this.systemACs.map( (vCert)=>{ o.systemACs.push(vCert.toJsonObject()) });
+                    break;
+                default:
+                    o[i] = this[i];
+                    break;
+            }
+        }
+        return o;
+    }
+}
+
+
+
+/**
+ *
  *
  * TODO: Refactor as AndroidDeviceProfile, add IDeviceProfile interface
  *
@@ -321,7 +546,9 @@ export default class DeviceProfile
             //radio: null,
             //dalvik: null,
             system: new SystemProfile(),
-            network: new NetworkProfile()
+            network: new NetworkProfile(),
+            trust: new TrustProfile(),
+            build: new BuildProfile()
         }
 
         for(const i in pOptions){
@@ -381,13 +608,14 @@ export default class DeviceProfile
      * @param {*} pValue 
      * @method
      */
-    addProperty( pName:string, pValue:any):boolean{
+    addProperty( pName:string, pValue:any, pAsSys=true):boolean{
         let profiled = false;
 
-        this.sys_prop[pName] = pValue;
+        if(pAsSys) this.sys_prop[pName] = pValue;
+
         for(const i in this.profiles){
             if(this.profiles[i].is(pName)){
-                this.profiles[i].setProperty(pName, this.sys_prop[pName]);
+                this.profiles[i].setProperty(pName, pValue);
                 profiled = true;
             }
         }
@@ -404,8 +632,22 @@ export default class DeviceProfile
     /**
      * @method
      */
+    getTrustProfile():TrustProfile{
+        return this.profiles.trust;
+    }
+
+    /**
+     * @method
+     */
     getBuildProfile():BuildProfile{
         return this.profiles.build;
+    }
+
+    /**
+     * @method
+     */
+    getNetworkProfile():NetworkProfile{
+        return this.profiles.network;
     }
 
     /**
@@ -424,8 +666,16 @@ export default class DeviceProfile
                     switch(k){
                         case 'system':
                             o.profiles.system = SystemProfile.fromJsonObject(pJson[i][k]);
+                            break;
                         case 'network':
                             o.profiles.network = NetworkProfile.fromJsonObject(pJson[i][k]);
+                            break;
+                        case 'trust':
+                            o.profiles.trust = TrustProfile.fromJsonObject(pJson[i][k]);
+                            break;
+                        case 'build':
+                            o.profiles.build = BuildProfile.fromJsonObject(pJson[i][k]);
+                            break;
                     }
                 } 
             }else
