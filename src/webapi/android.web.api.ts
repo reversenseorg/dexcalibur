@@ -15,6 +15,8 @@ import {FinderResult} from "../FinderResult";
 import AndroidAppAnalyzer from "../AndroidAppAnalyzer";
 import {NodeInternalType} from "../NodeInternalType";
 import AndroidComponent from "../android/AndroidComponent";
+import {AndroidCodeAnalyzer} from "../android/analyzer/AndroidCodeAnalyzer";
+import {AndroidAnalyzerException} from "../errors/android/AndroidAnalyzerException";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 export const ANDROID_WEB_API: DelegateWebApi = new DelegateWebApi();
@@ -135,6 +137,14 @@ ANDROID_WEB_API.addAsyncAuthenticatedRoute(
             try{
                 project = req.dxc.project;
 
+                let depth:number;
+                if(req.query.depth != null){
+                    const unsafeDepth = parseInt( req.query.depth, 10 );
+                    depth = (unsafeDepth >= -1 && unsafeDepth < Infinity)? unsafeDepth : AndroidCodeAnalyzer.XREF_MAX_DEPTH;
+                }else{
+                    depth = AndroidCodeAnalyzer.XREF_MAX_DEPTH;
+                }
+
                 let cmp:AndroidComponent;
                 switch (req.body.type){
                     case NodeInternalType.ANDROID_ACTIVITY:
@@ -151,13 +161,19 @@ ANDROID_WEB_API.addAsyncAuthenticatedRoute(
                         break;
                 }
 
-                const apiXref = (project.getAppAnalyzer() as AndroidAppAnalyzer).scanComponentXrefToAPI(cmp,true);
+                const apiXref = (project.getAppAnalyzer() as AndroidAppAnalyzer).scanComponentXrefToAPI(cmp,depth,true);
 
                 // ========== LOGIC + RESPONSE
-                $.sendSuccess( res, apiXref );
+                //$.sendSuccess( res, apiXref );
+
+                if(apiXref!=null){
+                    $.sendSuccess( res, AndroidCodeAnalyzer.classXrefListToJson(apiXref));
+                }else{
+                    throw AndroidAnalyzerException.ANDROID_XREF_NOT_PROCESSED(req.body.uid);
+                }
             }catch(err){
-                Logger.error("[API][ANDROID ANALYZER] Activities not found. Cause : " + err.message + "\n\t" + err.stack);
-                $.sendError(res, "Activities not found. Cause : " + err.message);
+                Logger.error("[API][ANDROID ANALYZER] Component not found. Cause : " + err.message + "\n\t" + err.stack);
+                $.sendError(res, "Component not found. Cause : " + err.message);
             }
         }
     },{
