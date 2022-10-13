@@ -4,13 +4,13 @@ import * as _fs_ from 'fs';
 import { EOL } from 'os';
 
 import UT from "./Utils";
-import { Device, EOsType } from "./Device";
+import { Device } from "./Device";
 import AppPackage from "./AppPackage";
 import DeviceProfile  from './DeviceProfile';
 import {AdbWrapperError} from "./Errors";
 import * as Log from './Logger';
 import DexcaliburWorkspace from "./DexcaliburWorkspace";
-import {BridgeInstallOptions, IBridge} from "./Bridge";
+import {BridgeInstallOptions, DeviceProfilingOptions, IBridge} from "./Bridge";
 import {AdbBridgeException} from "./errors/AdbBridgeException";
 import {
     PrivilegedExecutionPhase,
@@ -20,9 +20,15 @@ import {
 import {BridgeException} from "./errors/BridgeException";
 import Util from "./Utils";
 import {AndroidInstallOptionsEnum, AndroidPackageInstallOptions} from "./android/bridge/AndroidInstallOptions";
+import {OperatingSystem} from "./OperatingSystem";
+import CertificateHelper from "./formats/helpers/CertificateHelper";
+import Certificate from "./formats/common/Certificate";
 
 let Logger:Log.ProdLogger = Log.newLogger() as Log.ProdLogger;
 
+
+
+import * as _crypto_ from  "crypto";
 
 enum ETransportType {
     USB     = 'U',
@@ -608,7 +614,7 @@ export default class AdbWrapper implements IBridge
             //device.setUID( device.bridge.deviceID);
 
             // TODO : do it while profiling step
-            device.type = EOsType.ANDROID;
+            device.type = OperatingSystem.ANDROID;
 
             // use Device Profile instead of isEmulated flag
             device.isEmulated = data[0].match(emuRE);
@@ -919,18 +925,87 @@ export default class AdbWrapper implements IBridge
      * @returns {DeviceProfile} The device profile of target device
      * @method
      */
-    performProfiling():DeviceProfile{
-        let profile:DeviceProfile = new DeviceProfile();
-        let prop:string[] = this.shellWithEHsync("getprop").toString().split("\n");
+    async performProfiling(pOptions?:DeviceProfilingOptions):Promise<DeviceProfile>{
+        const profile:DeviceProfile = new DeviceProfile();
+        const type = (pOptions!=null ? pOptions.type : "all" );
+        const tmpName = this.deviceID+"_"+UT.time();
+        const localTmpFolder = _path_.join(DexcaliburWorkspace.getInstance().getTempFolderLocation(),tmpName);
+
+
+
+        if(!_fs_.existsSync(localTmpFolder)){ _fs_.mkdirSync(localTmpFolder) }
 
         // GenericProfiler
-        prop.map(( ppt)=>{
-            let match:RegExpExecArray = PROP_RE.exec(ppt);
+        if(type=="all" || type=="system" || type=="build" ){
+            try{
+                const prop:string[] = this.shellWithEHsync("getprop").toString().split("\n");
+                prop.map(( ppt)=>{
+                    const match:RegExpExecArray = PROP_RE.exec(ppt);
 
-            if(match != null)
-                profile.addProperty(match.groups.name, match.groups.value);
+                    if(match != null)
+                        profile.addProperty(match.groups.name, match.groups.value);
 
-        });
+                });
+            }catch(err){
+                Logger.error(err.message);
+                Logger.error(err.stack);
+            }
+
+
+            // system info
+            try{
+                const uname:string = this.shellWithEHsync("uname -a").toString();
+                profile.addProperty('uname', uname);
+            }catch(err){
+                Logger.error(err.message);
+                Logger.error(err.stack);
+            }
+
+        }
+
+        // permissions
+        if(type=="all" || type=="acl") {
+            /*try {
+                const uname: string = this.shellWithEHsync("uname -a").toString();
+                profile.addProperty('uname', uname);
+            } catch (err) { }*/
+        }
+
+        // network
+        if(type=="all" || type=="network") {
+            /*try {
+                const uname: string = this.shellWithEHsync("uname -a").toString();
+                profile.addProperty('uname', uname);
+            } catch (err) { }*/
+        }
+
+        // certificate
+        if(type=="all" || type=="trust"){
+            try{
+                const cacert = _path_.join(localTmpFolder,'cacerts-added');
+                const cas:Certificate[] = [];
+                this.shellWithEHsync(" mkdir /data/local/tmp/"+tmpName+"");
+                await this.privilegedShell(" cp -r /data/misc/user/0/cacerts-added /data/local/tmp/"+tmpName+"/cacerts-added");
+                await this.privilegedShell(" chmod 777 /data/local/tmp/"+tmpName+"/cacerts-added")
+                this.pull("/data/local/tmp/"+tmpName+"/cacerts-added",cacert);
+
+                UT.forEachFileOf(cacert, (vCertPath)=>{
+                    const cert = CertificateHelper.parseX509(vCertPath, '/data/misc/user/0/cacerts-added/'+_path_.basename(vCertPath));
+                    Logger.info("XXXX cacerts-added +1 : "+JSON.stringify(cert.issuer));
+                    Logger.info("XXXX cacerts-added +1 2 : "+JSON.stringify(cert.extensions));
+                    Logger.info("XXXX cacerts-added +1 3 : "+JSON.stringify(cert.toJsonObject()));
+                    cas.push(cert);
+
+                    //Logger.info("XXXX cacerts-added +1 : "+JSON.stringify(cas[cas.length-1].toJsonObject()));
+                },true);
+
+                profile.addProperty('cacerts-added', cas, false);
+            }catch(err){
+                Logger.info(err.message);
+                Logger.info(err.stack);
+            }
+        }
+
 
 
         // TeeProfiler
@@ -948,8 +1023,8 @@ export default class AdbWrapper implements IBridge
      * @static 
      */
     static fromJsonObject( pData:any):AdbWrapper{
-        let o:any = new AdbWrapper();
-        for(let i in pData) o[i] = pData[i];
+        const o:any = new AdbWrapper();
+        for(const i in pData) o[i] = pData[i];
         return o as AdbWrapper;
     }
 
