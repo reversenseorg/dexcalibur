@@ -6,11 +6,12 @@ import DeviceManager from "../DeviceManager";
 import StatusMessage from "../StatusMessage";
 import AppPackage from "../AppPackage";
 import {DeviceManagerException} from "../errors/DeviceManagerException";
-import {BridgeInstallOptions, IBridge} from "../Bridge";
+import {BridgeInstallOptions, DeviceProfilingOptions, IBridge} from "../Bridge";
 import {Router, Request, Response} from "express";
 import DexcaliburProject from "../DexcaliburProject";
+import {MonitoredError} from "../errors/MonitoredError";
 
-let Logger:Log.Logger = Log.newLogger() as Log.Logger;
+const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
 export const DEVICE_WEB_API: DelegateWebApi = new DelegateWebApi();
 
@@ -18,12 +19,10 @@ DEVICE_WEB_API.addAsyncPublicRoute(
     '/fs/list',
     {
         'get': async (req, res)=>{
-            let data:any[] = [];
-            let target:string ="";
-            let baseDir:string = "";
-            let privileged:boolean = false;
+            let baseDir = "";
+            let privileged = false;
             let dev:Device = null;
-            let $:WebServer = req.dxc.$;
+            const $:WebServer = req.dxc.$;
 
             try{
 
@@ -85,12 +84,10 @@ DEVICE_WEB_API.addAsyncPublicRoute(
     '/fs/content',
     {
         'get': async function (req: Request, res: Response): Promise<any> {
-            let data: any[] = [];
-            let target: string = "";
-            let baseDir: string = "";
-            let privileged: boolean = false;
+            let baseDir = "";
+            let privileged = false;
             let dev: Device = null;
-            let $: WebServer = req.dxc.$;
+            const $: WebServer = req.dxc.$;
 
             try {
                 if (req.query.uid != null) {
@@ -153,9 +150,9 @@ DEVICE_WEB_API.addAsyncPublicRoute(
 DEVICE_WEB_API.addAsyncPublicRoute(
     '/profile/:type',
     {
-        'get': async (req:Request, res:Response):any => {
+        'get': async (req:Request, res:Response):Promise<any> => {
             let dev:Device = null;
-            let $:WebServer = req.dxc.$;
+            const $:WebServer = req.dxc.$;
 
             try{
                 if (req.query.uid != null) {
@@ -191,9 +188,9 @@ DEVICE_WEB_API.addAsyncPublicRoute(
                 $.sendError( res, err.message);
             }
         },
-        'post': async (req:Request, res:Response):any => {
+        'post': async (req:Request, res:Response):Promise<any> => {
             let dev:Device = null;
-            let $:WebServer = req.dxc.$;
+            const $:WebServer = req.dxc.$;
 
             try{
                 if (req.body.uid != null) {
@@ -204,11 +201,14 @@ DEVICE_WEB_API.addAsyncPublicRoute(
                     throw new Error("Target device not found");
                 }
 
-                const opts = (req.body.hasOwnProperty('opts')? req.body.opts : {} );
+                const opts:DeviceProfilingOptions = (req.body.hasOwnProperty('opts')? req.body.opts : {} );
                 opts.type = req.params.type;
+                opts.profile = dev.getProfile();
+                opts.refresh = true;
                 await dev.performProfiling(opts);
 
                 if(dev != null){
+                    $.context.getDeviceManager().save();
                     switch (req.params.type){
                         case 'network':
                             $.sendSuccess(res, dev.getProfile().getNetworkProfile().toJsonObject());
@@ -243,7 +243,7 @@ DEVICE_WEB_API.addAsyncPublicRoute(
     {
         'post': (req:Request, res:Response):any => {
             let dev:Device = null;
-            let $:WebServer = req.dxc.$;
+            const $:WebServer = req.dxc.$;
 
             try{
                 if (req.body.uid != null) {
@@ -274,9 +274,9 @@ DEVICE_WEB_API.addAsyncPublicRoute(
     '/processes',
     {
         'get': async function (req: Request, res: Response): Promise<any> {
-            let privileged: boolean = false;
+            let privileged = false;
             let dev: Device = null;
-            let $: WebServer = req.dxc.$;
+            const $: WebServer = req.dxc.$;
 
             try {
                 switch (req.query.type) {
@@ -326,12 +326,12 @@ DEVICE_WEB_API.addAsyncPublicRoute(
     '/connect',
     {
         'post': async (req:Request, res:Response):Promise<any> => {
-            let dm:DeviceManager = DeviceManager.getInstance();
-            let ip:string = req.body['ip'];
-            let port:string = req.body['port'];
+            const dm:DeviceManager = DeviceManager.getInstance();
+            const ip:string = req.body['ip'];
+            const port:string = req.body['port'];
             let device:Device = null;
             let data:any = null;
-            let $:WebServer = req.dxc.$;
+            const $:WebServer = req.dxc.$;
 
             try{
                 if(req.body['dev'] !== null){
@@ -346,7 +346,7 @@ DEVICE_WEB_API.addAsyncPublicRoute(
                 }
 
                 if(ip=="" && port==""){
-                    let b = device.getBridge('adb+tcp');
+                    const b = device.getBridge('adb+tcp');
                     if( b!= null ){
                         data = await dm.connect( b.ip, b.port, device);
                     }
@@ -382,10 +382,9 @@ DEVICE_WEB_API.addAsyncPublicRoute(
     '/clear/:deviceid',
     {
         'post': (req:Request, res:Response):any => {
-            let dm:DeviceManager = DeviceManager.getInstance();
-            let deviceid:string = req.params['deviceid'];
-            let dev:any;
-            let $:WebServer = req.dxc.$;
+            const dm:DeviceManager = DeviceManager.getInstance();
+            const deviceid:string = req.params['deviceid'];
+            const $:WebServer = req.dxc.$;
 
             try{
                 //dev = { success:  };
@@ -410,8 +409,8 @@ DEVICE_WEB_API.addAsyncPublicRoute(
     '/clear',
     {
         'post': (req:Request, res:Response):any => {
-            let dm = DeviceManager.getInstance();
-            let $:WebServer = req.dxc.$;
+            const dm = DeviceManager.getInstance();
+            const $:WebServer = req.dxc.$;
 
             try{
                 if(dm.clear( null))
@@ -431,9 +430,9 @@ DEVICE_WEB_API.addAsyncPublicRoute(
     '/bridge/:name/kill',
     {
         'post': async  (req:Request, res:Response):Promise<any> => {
-            let dm:DeviceManager = DeviceManager.getInstance();
-            let dev:any;
-            let $:WebServer = req.dxc.$;
+            const dm:DeviceManager = DeviceManager.getInstance();
+            let dev:IBridge;
+            const $:WebServer = req.dxc.$;
 
             try{
                 dev = dm.getBridgeFactory(req.params['name'].toLowerCase()).newGenericWrapper();
@@ -452,8 +451,8 @@ DEVICE_WEB_API.addAsyncPublicRoute(
     '/enroll',
     {
         'post': async (req:Request, res:Response):Promise<any> => {
-            let dm:DeviceManager = DeviceManager.getInstance();
-            let $:WebServer = req.dxc.$;
+            const dm:DeviceManager = DeviceManager.getInstance();
+            const $:WebServer = req.dxc.$;
 
             try{
                 if(await dm.enroll(req.body['uid'], req.body['opts']))
@@ -472,10 +471,10 @@ DEVICE_WEB_API.addAsyncPublicRoute(
     '/enroll/status',
     {
         'get':  (req:Request, res:Response):any => {
-            let dm:DeviceManager = DeviceManager.getInstance();
+            const dm:DeviceManager = DeviceManager.getInstance();
             //let uid:string = req.body['uid'];
             let status:StatusMessage;
-            let $:WebServer = req.dxc.$;
+            const $:WebServer = req.dxc.$;
 
             try{
                 // TODO : dm.getEnrollStatus(uid);
@@ -509,7 +508,7 @@ DEVICE_WEB_API.addAsyncPublicRoute(
     'get': async (req:Request, res:Response):Promise<any> => {
         // scan connected devices
         let dm:DeviceManager;
-        let $:WebServer = req.dxc.$;
+        const $:WebServer = req.dxc.$;
 
         try{
             dm = DeviceManager.getInstance();
@@ -568,8 +567,7 @@ DEVICE_WEB_API.addAsyncPublicRoute(
     'get': async (req:Request, res:Response):Promise<any> => {
         // scan connected devices
         let dev:Device, dm:DeviceManager, pkgs:AppPackage[], rep:any;
-        let _HTTP_CODE:number, _DATA:any;
-        let $:WebServer = req.dxc.$;
+        const $:WebServer = req.dxc.$;
 
         try{
 
@@ -608,12 +606,10 @@ DEVICE_WEB_API.addPublicRoute(
     '/application/pull',
     {
         'post': (req:Request, res:Response):any => {
-            let dm = DeviceManager.getInstance();
-            let dev:Device = null, success:boolean = false, app:AppPackage = null;
-            let rep:any =  {};
-            let $:WebServer = req.dxc.$;
+            const dm = DeviceManager.getInstance();
+            let dev:Device = null, success = false, app:AppPackage = null;
+            const $:WebServer = req.dxc.$;
 
-            let _HTTP_CODE:number, _DATA:any;
 
             try{
                 dev =dm.getDevice(req.body['uid']);
@@ -646,7 +642,7 @@ DEVICE_WEB_API.addAsyncAuthenticatedRoute(
     {
         'post': async (req:Request, res:Response):Promise<any> => {
             let dev:Device;
-            let $:WebServer = req.dxc.$;
+            const $:WebServer = req.dxc.$;
             let project:DexcaliburProject;
 
             try{
@@ -697,11 +693,10 @@ DEVICE_WEB_API.addPublicRoute(
     {
         'post': (req:Request, res:Response):any => {
             // collect
-            let uid:string = req.body["uid"];
-            let puid:string = req.body["pid"]; // project uid
-            let dm:DeviceManager = DeviceManager.getInstance();
-            let dev:Device = null, errcode:string = null;
-            let $:WebServer = req.dxc.$;
+            const uid:string = req.body["uid"];
+            const dm:DeviceManager = DeviceManager.getInstance();
+            let dev:Device = null;
+            const $:WebServer = req.dxc.$;
 
             try{
                 res.set('Content-Type', 'text/json');
@@ -727,7 +722,7 @@ DEVICE_WEB_API.addPublicRoute(
             }catch(err){
                 Logger.error("[API][DEVICE] Set default device for project: "+err.message+"\n"+err.stack);
                 //_DATA = { success:false, error:err.message, errcode:errcode };
-                $.sendError( res, err.message, { error:err.message, errcode:errcode })
+                $.sendError( res, err.message, { error:err.message, errcode:(err as MonitoredError).getCode() })
             }
         }
     });
@@ -738,8 +733,8 @@ DEVICE_WEB_API.addAsyncPublicRoute(
     {
         'put': async (req:Request, res:Response):Promise<any> => {
             // scan connected devices
-            let dev:Device=null, bridge:IBridge=null, dm:DeviceManager=null, result:boolean=false;
-            let $:WebServer = req.dxc.$;
+            let dev:Device=null, bridge:IBridge=null, dm:DeviceManager=null;
+            const $:WebServer = req.dxc.$;
 
             try{
                 dm = DeviceManager.getInstance();
