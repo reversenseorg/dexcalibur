@@ -52,12 +52,15 @@ export class ABI {
 
 }
 
+
 /**
  * A class to explore ABIs from the knowledge DB
  *
  * @class
  */
 export class AbiManager {
+
+    // TODO add armeabi
     static ABI:any = {
         [AbiType.arm_v5]: new ABI({
             name:AbiType.arm_v5,
@@ -134,9 +137,9 @@ export class AbiManager {
         abis.map( (pAbiName:string)=>{
             if(AbiManager.ABI[pAbiName] != null){
                 out.push( AbiManager.ABI[pAbiName] );
-            }else {
+            }/*else {
                 throw AbiException.UNKNOW_ABI(pAbiName);
-            }
+            }*/
         });
         return out;
     }
