@@ -3,18 +3,19 @@ import * as _path_ from 'path';
 import {EOL} from 'os';
 
 import * as Log from './Logger';
-import DeviceProfile from './DeviceProfile';
+import DeviceProfile from './device/DeviceProfile';
 import Platform from './Platform';
 import PlatformManager from './PlatformManager';
 import DexcaliburWorkspace from './DexcaliburWorkspace';
 import Utils from "./Utils";
-import {BridgeInstallOptions, BridgeSuperFactory, IBridge} from "./Bridge";
+import {BridgeInstallOptions, BridgeSuperFactory, DeviceProfilingOptions, IBridge} from "./Bridge";
 import ModelSyscall from "./ModelSyscall";
 import AppPackage from "./AppPackage";
 import {DeviceManagerException} from "./errors/DeviceManagerException";
 import {OperatingSystem} from "./OperatingSystem";
 import ModelSyscallFactory from "./ModelSyscallFactory";
 import {Architecture} from "./Architecture";
+import DeviceProfileFactory from './device/DeviceProfileFactory';
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -740,9 +741,15 @@ export class Device
     };*/
 
 
-    async performProfiling( pOptions:any = null){
+    /**
+     * Platform profiling
+     *
+     * @param pOptions
+     */
+    async performProfiling( pOptions:DeviceProfilingOptions = null){
 
         if(this.bridge != null){
+            //this.profile = DeviceProfileFactory.update(this.bridge, this.profile, pOptions);
             this.profile = await this.bridge.performProfiling(pOptions);
 
             if(pOptions.type=="all" || pOptions.type=="system"){
@@ -796,11 +803,11 @@ export class Device
                     break;
 
                 case 'profile':
-                    dev[i] = ((pJsonObject[i] != null)? DeviceProfile.fromJsonObject(pJsonObject[i]) : null);
+                    dev.profile = ((pJsonObject.profile != null)? DeviceProfileFactory.fromJsonObject(pJsonObject.profile) : null);
                     break;
 
                 case 'platform':
-                    dev[i] = ((pJsonObject[i] != null)? PlatformManager.getInstance().getPlatform(pJsonObject[i]) : null);
+                    dev.platform = ((pJsonObject.platform != null)? PlatformManager.getInstance().getPlatform(pJsonObject.platform) : null);
                     break;
                 
                 default:
@@ -903,6 +910,63 @@ export class Device
         }
         return json;
     }
+
+
+    /**
+     * To serialize the Device to JSON string
+     *
+     * @param {Object} pOverride A collection overrided field
+     * @returns {JsonObject} JSON-serialized object
+     * @method
+     */
+    toSave( pOverride:any = {}, pExcludeList:any={}){
+        const json:any = new Object();
+        for(const i in this){
+            if(pExcludeList[i] === false) continue;
+
+            switch(i){
+                case 'type':
+                    json[i] = OS_NAME[this.type];
+                    break;
+
+                case 'bridge':
+                    if(this.bridge != null){
+                        json[i] = this.bridge.shortname;
+                    }
+                    break;
+
+                case 'bridges':
+                    json.bridges = {};
+                    // json.bridgeData = this.bridge.toJsonObject();
+                    for(const k in this.bridges){
+                        json.bridges[k] = this.bridges[k].toJsonObject( pExcludeList.bridge);
+                    }
+                    break;
+
+                case 'profile':
+                    json[i] = ((this[i] instanceof DeviceProfile)? this.profile.toSave( pExcludeList.profile) : null);
+                    break;
+
+                case 'platform':
+                    json[i] = ((this[i] instanceof Platform)? this.platform.getUID() : null);
+                    break;
+
+                case 'connected':
+                    json[i] = this.isConnected();
+                    break;
+
+                default:
+                    json[i] = this[i];
+                    break;
+            }
+        }
+
+        for(const i in pOverride){
+            json[i] = pOverride[i];
+        }
+        return json;
+    }
+
 
     getSyscallList():ModelSyscall[]{
 

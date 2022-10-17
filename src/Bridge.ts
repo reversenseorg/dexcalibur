@@ -1,11 +1,17 @@
 import * as _child_process_ from 'child_process';
-import DeviceProfile from "./DeviceProfile";
+import DeviceProfile from "./device/DeviceProfile";
 import {Device} from "./Device";
 import AppPackage from "./AppPackage";
 import {AndroidPackageInstallOptions} from "./android/bridge/AndroidInstallOptions";
 
 export interface DeviceProfilingOptions {
-    type: "network" | "build" | "system" | "trust" | "acl" | "all";
+    tmp?: string;
+    profile?:DeviceProfile;
+    localTmp?: string;
+    remoteTmp?: string;
+    type?: "network" | "build" | "system" | "trust" | "acl" | "all";
+    uids?:string[];
+    refresh?:boolean;
 }
 
 interface BridgeFactoryList {
@@ -38,7 +44,7 @@ export interface IBridge
 
     kill():Promise<any>;
 
-    performProfiling(pOptions?:DeviceProfilingOptions):Promise<DeviceProfile>;
+    performProfiling(pProfile?:DeviceProfilingOptions):Promise<DeviceProfile>;
 
     listDevices():Promise<Device[]>;
 

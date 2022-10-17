@@ -2,7 +2,7 @@
 import * as _path_ from "path";
 import * as _fs_ from 'fs';
 
-import {BridgeSuperFactory, IBridge, IBridgeFactory} from "./Bridge";
+import {BridgeSuperFactory, DeviceProfilingOptions, IBridge, IBridgeFactory} from "./Bridge";
 import DexcaliburWorkspace from "./DexcaliburWorkspace";
 import {Device} from "./Device";
 import AdbWrapperFactory from "./AdbWrapperFactory";
@@ -17,18 +17,23 @@ import DexcaliburEngine from "./DexcaliburEngine";
 import {External} from "./external/External";
 import {DeviceManagerException} from "./errors/DeviceManagerException";
 
-let Logger:Log.ProdLogger = Log.newLogger() as Log.ProdLogger;
+const Logger:Log.ProdLogger = Log.newLogger() as Log.ProdLogger;
 
 
 const DEVICE_FILE = "devices.json";
 const DEVICE_DB = "devices.db";
 
-var gInstance:DeviceManager = null;
+let gInstance:DeviceManager = null;
 
 interface DeviceList {
     [id :string] :Device;
 }
 
+
+export interface DeviceEnrollmentOptions {
+    frida?:any;
+    profiling?:DeviceProfilingOptions;
+}
 
 /**
  * To manager connected devices
@@ -236,9 +241,9 @@ export default class DeviceManager extends ValidationCapable
             _fs_.unlinkSync(this.devFile);
         }
 
-        let data:any = [];
-        for(let i in this.devices){
-            data.push( this.devices[i].toJsonObject( {}, {
+        const data:any = [];
+        for(const i in this.devices){
+            data.push( this.devices[i].toSave( {}, {
                 connected: false,
                 offline: false,
                 bridge: {
@@ -266,7 +271,7 @@ export default class DeviceManager extends ValidationCapable
             throw new Error('[DEVICE MANAGER] Operation not supported');
         }
 
-        let success = _fs_.existsSync( this.devFile);
+        const success = _fs_.existsSync( this.devFile);
 
         if(success == true){
             _fs_.unlinkSync( this.devFile);
@@ -286,7 +291,7 @@ export default class DeviceManager extends ValidationCapable
      * To turn all device tagged "connected" to "disconnected"
      */
     disconnectAll(){
-        for(let uid in this.devices){
+        for(const uid in this.devices){
             this.devices[uid].disconnect();
         }
     }
@@ -302,7 +307,7 @@ export default class DeviceManager extends ValidationCapable
      * @method
      */
     getDeviceByID( pDeviceID:string):Device{
-        for(let uid in this.devices){
+        for(const uid in this.devices){
             if(this.devices[uid].id == pDeviceID){
                 return this.devices[uid];
             }
@@ -317,7 +322,7 @@ export default class DeviceManager extends ValidationCapable
      * @method
      */
     generateUID():string{
-        let uid = Util.randString(12, Util.ALPHANUM);
+        const uid = Util.randString(12, Util.ALPHANUM);
         if(this.devices[uid]!=null)
             return this.generateUID();
         else
@@ -331,7 +336,7 @@ export default class DeviceManager extends ValidationCapable
      *
      * @param {Device} pDevice The device to add
      */
-    addDevice( pDevice:Device, pReuseUID:boolean = false){
+    addDevice( pDevice:Device, pReuseUID = false){
         let uid:string;
 
         if(pReuseUID === false){
@@ -344,11 +349,11 @@ export default class DeviceManager extends ValidationCapable
         this.devices[uid] = pDevice;
     }
 
-    getDeviceByIP( pIpAddress:string, pPort:number=null, pUp:boolean=true):Device{
+    getDeviceByIP( pIpAddress:string, pPort:number=null, pUp=true):Device{
         let d:Device=null, b:IBridge=null;
-        for(let i in this.devices){
+        for(const i in this.devices){
             d = this.devices[i];
-            for(let k in d.bridges){
+            for(const k in d.bridges){
                 b = d.bridges[k];
                 if(b.isNetworkTransport()){
                     if(b.ip!==pIpAddress) continue;
@@ -370,11 +375,11 @@ export default class DeviceManager extends ValidationCapable
      * @param {*} pDeviceList 
      */
     updateDeviceList( pCandidateList:Device[]){
-        let active:number = 0, b:IBridge=null, d=null, id:string=null, dev:Device=null;
+        let active = 0, b:IBridge=null, d=null, id:string=null, dev:Device=null;
         let devs:DeviceList= {};
 
 
-        for(let i:number=0; i<pCandidateList.length; i++){
+        for(let i=0; i<pCandidateList.length; i++){
 
             // at this step, candidate device has 1 bridge, no more.
             if(pCandidateList[i].bridge.isUsbTransport()){
@@ -409,9 +414,9 @@ export default class DeviceManager extends ValidationCapable
 
         // remove duplicated
         devs = {};
-        for(let i in this.devices){
+        for(const i in this.devices){
             if(this.devices[i].id=="<pending...>"){
-                for(let k in this.devices[i].bridges){
+                for(const k in this.devices[i].bridges){
                     b = this.devices[i].bridges[k];
                     if(b.isNetworkTransport()){
                         d = this.getDeviceByIP(b.ip, b.port, false);
@@ -454,8 +459,8 @@ export default class DeviceManager extends ValidationCapable
      * @returns {Device[]} Array of device
      */
     getConnectedDevices():Device[]{
-        let conn:Device[]=[];
-        for(let i in this.devices){
+        const conn:Device[]=[];
+        for(const i in this.devices){
             if(this.devices[i].isConnected()){
                 conn.push(this.devices[i]);
             }
@@ -465,7 +470,7 @@ export default class DeviceManager extends ValidationCapable
     }
 
     async connect( pIpAddress:string, pPortNumber:string|number, pDevice:Device):Promise<boolean>{
-        let success:boolean = false, wrapper:IBridge=null;
+        let success = false, wrapper:IBridge=null;
         let port:number;
 
         if(typeof pPortNumber === 'string')
@@ -474,7 +479,7 @@ export default class DeviceManager extends ValidationCapable
             port = pPortNumber;
 
         
-        for(let i in this.bridges){
+        for(const i in this.bridges){
             if(pDevice == null){
                 wrapper = this.bridges[i].newGenericWrapper();
                 success = success || await wrapper.connect(pIpAddress, port);
@@ -504,14 +509,14 @@ export default class DeviceManager extends ValidationCapable
      * @function
      */
     async scan(){
-        let dev:Device[]=[], devID:string[], wrapper:IBridge=null, activeDev:number = 0, latestDefault:Device=null;
-        let out:string[]=[];
+        let dev:Device[]=[], devID:string[], wrapper:IBridge=null, activeDev = 0, latestDefault:Device=null;
+        const out:string[]=[];
         latestDefault = this.getDefault();
 
         this.disconnectAll();
 
 
-        for(let type in this.bridges){
+        for(const type in this.bridges){
 
 //            console.log(type, this.bridges[type]);
             if(this.bridges[type].isReady()){
@@ -526,7 +531,7 @@ export default class DeviceManager extends ValidationCapable
                 activeDev += this.updateDeviceList(dev);
                
 
-                for(let i in this.devices) out.push(`[${i}] ID:${this.devices[i].id}`);
+                for(const i in this.devices) out.push(`[${i}] ID:${this.devices[i].id}`);
                 Util.msgBox("Enumerated devices [bridge="+type+"]", out);
             }
         }
@@ -556,7 +561,7 @@ export default class DeviceManager extends ValidationCapable
 
             // 2/ Only authorized device should be instrumented 
             devID = [];
-            for(let i in this.devices){
+            for(const i in this.devices){
                 if(this.devices[i].isAuthorized()){
                     devID.push(i);
                 }
@@ -612,7 +617,7 @@ export default class DeviceManager extends ValidationCapable
         }*/
 
         if(typeof deviceId === 'string'){
-            for(let i in this.devices){
+            for(const i in this.devices){
 
                 if(this.devices[i].uid === deviceId){
                     this.devices[i].selected = true;
@@ -661,8 +666,8 @@ export default class DeviceManager extends ValidationCapable
      * @method
      */
     toJsonObject( pExcludeList:any={}){
-        let json:any = [];
-        for(let i in this.devices){
+        const json:any = [];
+        for(const i in this.devices){
             json.push(this.devices[i].toJsonObject(null, pExcludeList.device));
         }
         return json;
@@ -673,10 +678,10 @@ export default class DeviceManager extends ValidationCapable
      * @param pOptions
      * @async
      */
-    async performDeviceProfiling( pDevice:Device, pOptions:any){
+    async performDeviceProfiling( pDevice:Device, pOptions:DeviceProfilingOptions){
         try{
             await pDevice.performProfiling(pOptions);
-            //this.save();
+            this.save();
         }catch (err){
             throw DeviceManagerException.DEVICE_PROFILING_FAILED(pDevice.getUID(),err.message);
         }
@@ -688,11 +693,12 @@ export default class DeviceManager extends ValidationCapable
      * @param {*} pDevice 
      * @param {*} pOtions 
      */
-    async enroll( pDevice:Device|string, pOtions:any = {}):Promise<boolean>{
+    async enroll( pDevice:Device|string, pOtions:DeviceEnrollmentOptions = {}):Promise<boolean>{
 
 
-        let device:Device = null, success:boolean=false;
-        let targetPF:Platform, namePF:string=null, pm=PlatformManager.getInstance();
+        let device:Device = null, success=false;
+        let targetPF:Platform, namePF:string=null;
+        const pm=PlatformManager.getInstance();
 
         // set device
         if(pDevice instanceof Device)

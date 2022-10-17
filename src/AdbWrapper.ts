@@ -6,29 +6,26 @@ import { EOL } from 'os';
 import UT from "./Utils";
 import { Device } from "./Device";
 import AppPackage from "./AppPackage";
-import DeviceProfile  from './DeviceProfile';
+import DeviceProfile, {ProfileMap} from './device/DeviceProfile';
 import {AdbWrapperError} from "./Errors";
 import * as Log from './Logger';
 import DexcaliburWorkspace from "./DexcaliburWorkspace";
-import {BridgeInstallOptions, DeviceProfilingOptions, IBridge} from "./Bridge";
+import {DeviceProfilingOptions, IBridge} from "./Bridge";
 import {AdbBridgeException} from "./errors/AdbBridgeException";
 import {
     PrivilegedExecutionPhase,
     PrivilegedExecutionStrategy,
     PrivilegedExecutionStrategyMap, PrivilegedExecutionType
 } from "./PrivilegedExecutionStrategy";
-import {BridgeException} from "./errors/BridgeException";
 import Util from "./Utils";
 import {AndroidInstallOptionsEnum, AndroidPackageInstallOptions} from "./android/bridge/AndroidInstallOptions";
 import {OperatingSystem} from "./OperatingSystem";
-import CertificateHelper from "./formats/helpers/CertificateHelper";
-import Certificate from "./formats/common/Certificate";
 
-let Logger:Log.ProdLogger = Log.newLogger() as Log.ProdLogger;
+const Logger:Log.ProdLogger = Log.newLogger() as Log.ProdLogger;
 
-
-
-import * as _crypto_ from  "crypto";
+import AndroidDeviceProfile from "./android/profiles/AndroidDeviceProfile";
+import {NosyProfile} from "./device/profile/NosyProfile";
+import {IProfile} from "./device/profile/IProfile";
 
 enum ETransportType {
     USB     = 'U',
@@ -39,21 +36,6 @@ enum ETransportType {
 
 const emuRE = /^emulator-/;
 const PROP_RE = /^\[(?<name>.*)\]\s*:\s*\[(?<value>.*)\]$/;
-
-/*
-const DEV = {
-    USB: 0x1,
-    EMU: 0x2,
-    ADB: 0x3,
-    SDB: 0x4
-};
-const DEV_NAME = ['unknow','udb','emu','adb','sdb'];
-*/
-
-
-
-const OS_NAME = ['android','linux','tizen'];
-
 
 
 /**
@@ -68,10 +50,10 @@ const OS_NAME = ['android','linux','tizen'];
  */
 export default class AdbWrapper implements IBridge
 {
-    static USB_TRANSPORT:string = 'U';
-    static TCP_TRANSPORT:string = 'T';
+    static USB_TRANSPORT = 'U';
+    static TCP_TRANSPORT = 'T';
 
-    static DEFAULT_PRIV_STRATEGY:string = 'su';
+    static DEFAULT_PRIV_STRATEGY = 'su';
     strategies:PrivilegedExecutionStrategyMap = {};
 
     /**
@@ -120,7 +102,7 @@ export default class AdbWrapper implements IBridge
      * Bridge connection status
      * @field
      */
-    up:boolean = false;
+    up = false;
 
     /**
      * 
@@ -170,8 +152,8 @@ export default class AdbWrapper implements IBridge
      * @since v0.7.2
      */
     clone( pOverride:any = {}):AdbWrapper{
-        let o:any = new AdbWrapper(this.path, this.deviceID);
-        for(let i in this){
+        const o:any = new AdbWrapper(this.path, this.deviceID);
+        for(const i in this){
             if(pOverride[i] !== undefined){
                 o[i] = pOverride[i];
             }else{
@@ -266,8 +248,8 @@ export default class AdbWrapper implements IBridge
      * @returns {String|String[]} The begin of the command
      * @method
      */
-    setup(pDeviceID:string = null, pReturnString:boolean =  true):string|string[]{
-        let cmd:string[]=[this.path];
+    setup(pDeviceID:string = null, pReturnString =  true):string|string[]{
+        const cmd:string[]=[this.path];
 
 
         if(this.transport == AdbWrapper.USB_TRANSPORT){
@@ -294,9 +276,14 @@ export default class AdbWrapper implements IBridge
 
     }
 
-    //
-    killProcess( pPID:number, pSignal = 9){
-
+    /**
+     * To kill a process by its PID with the specified signal
+     *
+     * @param pPID
+     * @param pSignal Optional.
+     */
+    killProcess( pPID:number, pSignal = 9):string|Buffer{
+        return this.shell(" kill -"+pSignal+" "+pPID);
     }
 
     /**
@@ -409,26 +396,26 @@ export default class AdbWrapper implements IBridge
      * @private
      * @method
      */
-    parsePackageList( pPackageListStr:string, pOptions:string=''){
-        let reg:RegExp = new RegExp("^package:(?<apk_name>.*)");
-        let packages:AppPackage[] = [];
+    parsePackageList( pPackageListStr:string, pOptions=''){
+        const reg = new RegExp("^package:(?<apk_name>.*)");
+        const packages:AppPackage[] = [];
 
         if(pPackageListStr.indexOf("error:")==0){
             throw AdbWrapperError.newDeviceNotFound(`Unable to list package. ADB Error: "${pPackageListStr}"`);
         }
 
         pPackageListStr.split( EOL ).forEach((element:string) => {
-            let pkg:string = element.trim();
+            const pkg = element.trim();
             let app:string, path:string = null;
 
             if(reg.test(pkg)) {
-                let result:RegExpExecArray  = reg.exec(pkg);
+                const result:RegExpExecArray  = reg.exec(pkg);
                 if(result !== null) {
 
 
                     // package path arg
                     if(pOptions.indexOf('-f') > -1){
-                        let i = result.groups['apk_name'].lastIndexOf("=");
+                        const i = result.groups['apk_name'].lastIndexOf("=");
                         path = result.groups['apk_name'].substr(0,i);
                         app = result.groups['apk_name'].substr(i+1);
                     }else{
@@ -453,12 +440,14 @@ export default class AdbWrapper implements IBridge
      * @returns {AppPackage[]} An array of AppPackage objects
      * @method
      */
-    listPackages( pOtions:string=""):AppPackage[] {
-        let ret:string ="";
+    listPackages( pOtions=""):AppPackage[] {
+        //let ret:string;
 
-        ret = UT.execSync(this.setup() + " shell pm list packages "+pOtions); // toString("ascii")
+        //ret = UT.execSync(this.setup() + " shell pm list packages "+pOtions); // toString("ascii")
 
-        return this.parsePackageList(ret, pOtions);
+        return this.parsePackageList(
+            UT.execSync(this.setup() + " shell pm list packages "+pOtions)
+        , pOtions);
     }
 
 
@@ -518,15 +507,14 @@ export default class AdbWrapper implements IBridge
      * @method
      */
     getPackagePath(packageIdentifier:string):string {
-        let reg:RegExp = new RegExp("^package:(?<package_name>.*)");
-        let ret:string = "";
+        const reg = new RegExp("^package:(?<package_name>.*)");
 
         /*if(Process.env.DEXCALIBUR_ENV){
             ret = TestHelper.execSync(this.setup(deviceId) + " shell pm path " +  packageIdentifier).toString("ascii");
         }else
             ret = Process.execSync(this.setup(deviceId) + " shell pm path " +  packageIdentifier).toString("ascii");
 */
-        ret = UT.execSync(this.setup() + " shell pm path " +  packageIdentifier, "ascii");
+        const ret = UT.execSync(this.setup() + " shell pm path " +  packageIdentifier, "ascii");
 
 /*
         if(deviceId !== null) {
@@ -537,7 +525,7 @@ export default class AdbWrapper implements IBridge
             ret = Process.execSync(this.path + " shell pm path " + packageIdentifier).toString("ascii");
         }*/
 
-        let path:string = ret.split( require('os').EOL )[0].trim();
+        let path:string = ret.split( EOL )[0].trim();
         if(reg.test(path)) {
             path = reg.exec(path).groups["package_name"];
             return path;
@@ -554,17 +542,17 @@ export default class AdbWrapper implements IBridge
      * @method
      */
     async parseDeviceList( pDeviceListStr:string):Promise<Device[]>{
-        let dev:Device[] = [], ret:string[], re:RegExp, data:any=null, id:any=null, device:Device=null, token:any=null;
+        const dev:Device[] = [];
+        let data:any=null, id:any=null, device:Device=null, token:any=null;
         let bridge:AdbWrapper = null;
 
         Logger.debug(pDeviceListStr);
 
-        ret = pDeviceListStr.split(require('os').EOL);
-        
-        re = new RegExp("^([^\\s\\t]+)[\\s\\t]+(.*)");
+        const ret = pDeviceListStr.split(EOL);
+        const re = new RegExp("^([^\\s\\t]+)[\\s\\t]+(.*)");
 
 
-        for(let ln in ret){
+        for(const ln in ret){
 
             if(UT.trim(ret[ln]).length==0 
                 || ret[ln]=="List of devices attached") 
@@ -626,7 +614,7 @@ export default class AdbWrapper implements IBridge
             device.connected = true;
             device.getDefaultBridge().up = true;
 
-            for(let i:number=0; i<data.length; i++){
+            for(let i=0; i<data.length; i++){
                 Logger.debug(`[DEVICE MANAGER] Parsing device list : ${data[i]}`);
                 if(data[i].indexOf(':')>-1){
                     token = data[i].split(':',2);
@@ -657,7 +645,7 @@ export default class AdbWrapper implements IBridge
                             device.flagAsUnauthorized();
                             break;
                         case 'offline':
-                            device.offline = true;;
+                            device.offline = true;
                             device.connected = false;
                             device.getDefaultBridge().up = false;
                             break;
@@ -725,7 +713,7 @@ export default class AdbWrapper implements IBridge
      */
 
     pullRessource(package_name:string,remote_path:string, local_path:string){
-            let binary_blob:Buffer = Process.execSync(this.setup() + 'shell "run-as '+ package_name+ ' cat ' + remote_path + '"');
+        const binary_blob:Buffer = Process.execSync(this.setup() + 'shell "run-as '+ package_name+ ' cat ' + remote_path + '"');
             _fs_.writeFile(local_path,binary_blob,function(err) {
                 if(err) {
                     Logger.error("[ADB] pullRessource() : an error occurs : "+err);
@@ -808,29 +796,35 @@ export default class AdbWrapper implements IBridge
      * @param {String} pArgs
      * @returns {Boolean} TRUE is success, else FALSE
      * @method
-     * @async  
+     * @async
+     * //  pArgs = "",
      */
-    async detachedShell( pCommand:string|string[], pArgs:string = "", pOptions:any = { detached:true, unref:true, delay:0 } ):Promise<any>{
+    async detachedShell( pCommand:string|string[], pOptions:any = { detached:true, unref:true, delay:0 } ):Promise<any>{
 
         let child:Process.ChildProcess=null;
         try{
             let args:string[] = this.setup(null,false) as string[];
-            let ws:DexcaliburWorkspace = DexcaliburWorkspace.getInstance();
+            const ws:DexcaliburWorkspace =  DexcaliburWorkspace.getInstance();
+            const time = UT.time();
 
-            pOptions.err = _path_.join( ws.getTempFolderLocation(), 'err.log');
-            pOptions.out = _path_.join( ws.getTempFolderLocation(), 'out.log');
+            pOptions.err = _path_.join( ws.getTempFolderLocation(), (time+'_err.log'));
+            pOptions.out = _path_.join( ws.getTempFolderLocation(), (time+'_out.log'));
 
-            let out:number = _fs_.openSync( pOptions.out, 'w+', 0o666);
-            let err:number = _fs_.openSync( pOptions.err, 'w+', 0o666);
+            const out:number = _fs_.openSync( pOptions.out, 'w+', 0o666);
+            const err:number = _fs_.openSync( pOptions.err, 'w+', 0o666);
 
 
 
             args.shift(); // remove adb path from begin
-            args.push('shell');
+            if(pCommand[0] !== "shell"){
+                args.push('shell');
+            }
+
+
             args = args.concat(pCommand);
             child = Process.spawn(this.path, args, { detached: pOptions.detached, stdio: [ 'ignore', out, err ] });
             if(pOptions.unref) child.unref();
-            Logger.info( `[ADB WRAPPER] detachedShell spawned: ${this.path} ,  ${args}  `);
+            Logger.info( `[ADB WRAPPER] detachedShell spawned: ${this.path} ,  ${args}  (opts)`);
 
         }catch(err){
             Logger.error('[ADB WRAPPER] Detached shell error :'+err.message);
@@ -857,7 +851,7 @@ export default class AdbWrapper implements IBridge
         //let rep:string = null;
         try{
 
-            let args:string[] = this.setup(null,false) as string[];
+            const args:string[] = this.setup(null,false) as string[];
             pOptions.shell = false;
             args.shift();
             args.push("shell");
@@ -898,7 +892,7 @@ export default class AdbWrapper implements IBridge
             pOptions.strategy = AdbWrapper.DEFAULT_PRIV_STRATEGY;
         }
 
-        let stt:PrivilegedExecutionStrategy = this.getStrategy(pOptions.strategy);
+        const stt:PrivilegedExecutionStrategy = this.getStrategy(pOptions.strategy);
 
 
         if(pOptions.detached)
@@ -924,95 +918,77 @@ export default class AdbWrapper implements IBridge
      * 
      * @returns {DeviceProfile} The device profile of target device
      * @method
+     * @async
      */
-    async performProfiling(pOptions?:DeviceProfilingOptions):Promise<DeviceProfile>{
-        const profile:DeviceProfile = new DeviceProfile();
-        const type = (pOptions!=null ? pOptions.type : "all" );
-        const tmpName = this.deviceID+"_"+UT.time();
-        const localTmpFolder = _path_.join(DexcaliburWorkspace.getInstance().getTempFolderLocation(),tmpName);
+    async performProfiling(pOptions:DeviceProfilingOptions):Promise<DeviceProfile>{
+
+        if(pOptions.profile==null){
+            pOptions.profile = new AndroidDeviceProfile();
+        }
+
+        if(pOptions.type==null){
+            pOptions.type = "all";
+        }
+
+        if(pOptions.tmp==null){
+            pOptions.tmp = this.deviceID+"_"+UT.time();
+        }
+
+        if(pOptions.localTmp==null){
+            pOptions.localTmp = _path_.join(DexcaliburWorkspace.getInstance().getTempFolderLocation(),pOptions.tmp);
+        }
+
+        if(pOptions.remoteTmp==null){
+            pOptions.remoteTmp = "/data/local/tmp/"+pOptions.tmp;
+        }
+
+        // get the list of profile
+        //const profs:ProfileMap = pOptions.profile.getProfiles(pOptions.hasOwnProperty('uids')? pOptions.uids : null);
+        const profs:ProfileMap = (new AndroidDeviceProfile()).getProfiles(pOptions.hasOwnProperty('uids')? pOptions.uids : null);
 
 
+        // create local temporary folder
+        if(!_fs_.existsSync(pOptions.localTmp)){
+            _fs_.mkdirSync(pOptions.localTmp);
+        }
 
-        if(!_fs_.existsSync(localTmpFolder)){ _fs_.mkdirSync(localTmpFolder) }
+        // create remote folder
+        this.shellWithEHsync(" mkdir /data/local/tmp/"+pOptions.tmp+"");
 
         // GenericProfiler
-        if(type=="all" || type=="system" || type=="build" ){
-            try{
-                const prop:string[] = this.shellWithEHsync("getprop").toString().split("\n");
-                prop.map(( ppt)=>{
-                    const match:RegExpExecArray = PROP_RE.exec(ppt);
-
-                    if(match != null)
-                        profile.addProperty(match.groups.name, match.groups.value);
-
-                });
-            }catch(err){
-                Logger.error(err.message);
-                Logger.error(err.stack);
-            }
+        pOptions.profile.update( this, pOptions);
 
 
-            // system info
-            try{
-                const uname:string = this.shellWithEHsync("uname -a").toString();
-                profile.addProperty('uname', uname);
-            }catch(err){
-                Logger.error(err.message);
-                Logger.error(err.stack);
-            }
+        // perform detection not based on properties
+        let freshProf:IProfile;
+        for(const name in profs){
+            Logger.info("[ADB][type="+pOptions.type+"] profile '"+name+"' [isNosy="+(profs[name].isNosy()?'true':'false')+"][uid="+(profs[name].uid)+"] ")
+            if(pOptions.type !== "all" && pOptions.type!==name) continue;
 
-        }
-
-        // permissions
-        if(type=="all" || type=="acl") {
-            /*try {
-                const uname: string = this.shellWithEHsync("uname -a").toString();
-                profile.addProperty('uname', uname);
-            } catch (err) { }*/
-        }
-
-        // network
-        if(type=="all" || type=="network") {
-            /*try {
-                const uname: string = this.shellWithEHsync("uname -a").toString();
-                profile.addProperty('uname', uname);
-            } catch (err) { }*/
-        }
-
-        // certificate
-        if(type=="all" || type=="trust"){
-            try{
-                const cacert = _path_.join(localTmpFolder,'cacerts-added');
-                const cas:Certificate[] = [];
-                this.shellWithEHsync(" mkdir /data/local/tmp/"+tmpName+"");
-                await this.privilegedShell(" cp -r /data/misc/user/0/cacerts-added /data/local/tmp/"+tmpName+"/cacerts-added");
-                await this.privilegedShell(" chmod 777 /data/local/tmp/"+tmpName+"/cacerts-added")
-                this.pull("/data/local/tmp/"+tmpName+"/cacerts-added",cacert);
-
-                UT.forEachFileOf(cacert, (vCertPath)=>{
-                    const cert = CertificateHelper.parseX509(vCertPath, '/data/misc/user/0/cacerts-added/'+_path_.basename(vCertPath));
-                    Logger.info("XXXX cacerts-added +1 : "+JSON.stringify(cert.issuer));
-                    Logger.info("XXXX cacerts-added +1 2 : "+JSON.stringify(cert.extensions));
-                    Logger.info("XXXX cacerts-added +1 3 : "+JSON.stringify(cert.toJsonObject()));
-                    cas.push(cert);
-
-                    //Logger.info("XXXX cacerts-added +1 : "+JSON.stringify(cas[cas.length-1].toJsonObject()));
-                },true);
-
-                profile.addProperty('cacerts-added', cas, false);
-            }catch(err){
-                Logger.info(err.message);
-                Logger.info(err.stack);
+            if(profs[name].isNosy()){
+                freshProf = await (profs[name] as NosyProfile).performProfiling(this, pOptions);
+                if(freshProf != null){
+                    Logger.info("[ADB][type="+pOptions.type+"] profile '"+name+"' : success ")
+                    pOptions.profile.updateSubProfile(name, freshProf);
+                }else{
+                    Logger.error("[ADB][type="+pOptions.type+"] profile '"+name+"' : failed ")
+                }
             }
         }
 
+        // perform generic detection based on properties
+        pOptions.profile.refresh();
 
 
-        // TeeProfiler
+        // remove local temporary folder
+        if(!_fs_.existsSync(pOptions.localTmp)){
+            _fs_.unlinkSync(pOptions.localTmp);
+        }
 
+        // remove remote folder
+        this.shellWithEHsync(" rm -r /data/local/tmp/"+pOptions.tmp+"");
 
-
-        return profile;
+        return pOptions.profile;
     }
 
     /**
@@ -1036,9 +1012,9 @@ export default class AdbWrapper implements IBridge
      * @method
      */
     toJsonObject( pExcludeList:any={}):any{
-        let o:any = {};
+        const o:any = {};
 
-        for(let i in this){
+        for(const i in this){
             if(pExcludeList[i] === false) continue;
             if(i=='strategies') continue;
             o[i] = this[i];
@@ -1058,9 +1034,9 @@ export default class AdbWrapper implements IBridge
      * @param pOptions
      */
     async listFiles(pPath: string, pOptions?: any): Promise<any[]> {
-        let out:any, cmd:string='ls -al ', files:any[]=[];
-        const RE = /([^\s]+)\s+([^\s]+)\s+([^\s]+)\s+([^\s]+)\s+([^\s]+)\s+([^\s]+)\s+([^\s]+)\s+(.+)/;
-        let rest:any = [];
+        let out:any, cmd='ls -al ';
+        const files:any[]=[];
+        const rest:any = [];
 
         if(pOptions.hasOwnProperty('cmd')){
             cmd = pOptions.cmd;
@@ -1095,7 +1071,7 @@ export default class AdbWrapper implements IBridge
         out.map( (vEntry:string) => {
 
             let f:any = null;
-            let m:any = RE.exec(vEntry);
+            const m:any = /([^\s]+)\s+([^\s]+)\s+([^\s]+)\s+([^\s]+)\s+([^\s]+)\s+([^\s]+)\s+([^\s]+)\s+(.+)/.exec(vEntry);
 
             if(m==null){
                 rest.push({ src:'out', _t:'r', n:vEntry });
@@ -1137,10 +1113,9 @@ export default class AdbWrapper implements IBridge
 
     private parseProcessOut( pRaw:string):any[] {
 
-        let out:any, pss:any[]=[], head:string[];
-
-        out = pRaw.split("\n");
-        head = out.shift().split(/\s+/g); // total
+        const pss:any[]=[] ;
+        const out = pRaw.split("\n");
+        const head = out.shift().split(/\s+/g); // total
 
 
         head.filter( (vHead:string, vIndex:number) => {
@@ -1150,10 +1125,8 @@ export default class AdbWrapper implements IBridge
         // parse line
         out.map( (vEntry:string) => {
 
-            let ps:any = {};
-            let m:any = vEntry.split(/\s+/g);
-
-
+            const ps:any = {};
+            const m:any = vEntry.split(/\s+/g);
 
             try{
                 head.map( (vHead:string, vIndex:number) => {
@@ -1169,7 +1142,7 @@ export default class AdbWrapper implements IBridge
     }
 
     async listProcesses( pOptions:any):Promise<any>{
-        let out:any, cmd:string='ps -A ';
+        let out:any, cmd='ps -A ';
 
         if(pOptions.hasOwnProperty('cmd')){
             cmd = pOptions.cmd;
@@ -1201,7 +1174,7 @@ export default class AdbWrapper implements IBridge
      * @method
      */
     async readFile( pPath:string, pOptions:any):Promise<any> {
-        let out:any, cmd:string='cat ';
+        let out:any, cmd='cat ';
 
         if(pOptions.hasOwnProperty('cmd')){
             cmd = pOptions.cmd;
