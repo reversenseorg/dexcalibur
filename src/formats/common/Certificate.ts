@@ -4,29 +4,54 @@ import * as CRYPTO from "node-forge"
 export interface CertificateValidity {
     notBefore:Date;
     notAfter:Date;
+    exp:boolean;
 }
 
 export type CertificateField = CRYPTO.pki.CertificateField;
 export type PublicKey = CRYPTO.pki.PublicKey;
 
+export enum CertificateFormat {
+    PEM="pem",
+    DER="der"
+}
 /**
  * @class
  * @since 1.1.0
  */
 export default class Certificate {
 
-    static fromX509( pCertBuffer:Buffer|string):any{
+    static fromJsonObject( pObj:any) :Certificate {
+        let cert:Certificate;
+        if(pObj._raw != null){
+            cert = Certificate.fromX509(pObj._raw);
+        } else{
+            cert = null;
+        }
+        return cert;
 
+    }
+
+    static fromX509( pCertBuffer:Buffer|string, pInputFormat:CertificateFormat = CertificateFormat.DER):any{
+
+        const now:Date = new Date();
         let obj:CRYPTO.asn1.Asn1;
+        let raw:any = null;
+        let cert:CRYPTO.pki.Certificate;
+
         if(typeof pCertBuffer==="string"){
-            obj = CRYPTO.asn1.fromDer( pCertBuffer);
+            raw = pCertBuffer;
         }else{
-            obj = CRYPTO.asn1.fromDer( pCertBuffer.toString());
+            raw = pCertBuffer.toString();
         }
 
-        const cert:CRYPTO.pki.Certificate = CRYPTO.pki.certificateFromAsn1(obj);
+        if(pInputFormat==CertificateFormat.DER){
+            cert = CRYPTO.pki.certificateFromAsn1(CRYPTO.asn1.fromDer( raw))
+        }else{
+            cert = CRYPTO.pki.certificateFromPem(raw)
+        }
 
         const c = new Certificate({
+            _raw: pCertBuffer,
             _cert: cert,
             //fingerprint:  pCertificate.fingerprint256,
             //infoAccess:  pCertificate.infoAccess,
@@ -41,9 +66,17 @@ export default class Certificate {
         });
 
 
+
+        if(now.getTime() > cert.validity.notAfter.getTime()){
+            c.validity.exp = true;
+        }else{
+            c.validity.exp = false;
+        }
+
         return c;
     }
 
+    private _raw:Buffer|string = null;
     private _cert:CRYPTO.pki.Certificate = null;
 
     //fingerprint:string;
@@ -76,9 +109,10 @@ export default class Certificate {
         return this._cert;
     }
 
-    toJsonObject(){
+    toJsonObject(pExclude:string[] =[]){
         const o:any = {};
         for(const i in this){
+            if(pExclude.indexOf(i)>-1) continue;
             switch (i){
                 /*case 'publicKey':
                     o.publicKey = this.publicKey.export({
@@ -96,6 +130,13 @@ export default class Certificate {
                 case '_remote':
                     o._remote = this._remote;
                     break;*/
+                case '_raw':
+                    if(typeof (o._raw)==='string'){
+                        o._raw = this._raw;
+                    }else if(o._raw != null){
+                        o._raw = this._raw.toString;
+                    }
+                    break;
                 default:
                     // skip private
                     if(i[0]!="_"){
