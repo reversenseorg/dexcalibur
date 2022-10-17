@@ -246,6 +246,8 @@ export default class HookWorkspace {
         const agentSrc = _path_.join(__dirname, '..','..', 'agent');
         const destBase = _path_.join(this._base, DIR_NAME.LIB);
 
+        Logger.info("[HOOK WORKSPACE] Copy the content of Agent folder ["+agentSrc+"]  to  ["+destBase+"] ");
+
         _fs_.readdirSync(agentSrc).map( (vFileName:string)=>{
             const src = _path_.join(agentSrc,vFileName);
             const dest = _path_.join(destBase,vFileName)

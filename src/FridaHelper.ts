@@ -18,6 +18,7 @@ import {External} from "./external/External";
 import {Process} from "frida/dist";
 import * as _os_ from "os";
 import {FridaHelperException} from "./errors/FridaHelperException";
+import {Architecture} from "./Architecture";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -293,22 +294,26 @@ export default class FridaHelper extends External.ExternalHelper
             detached:false,
             err: null,
             out: null
-        }
+        };
 
         if(pOptions.privileged){
             spawnOpts.detached = true;
             spawnOpts.unref = true;
+
             if((options.before != null)
                 && (!Util.isEmpty(options.before, Util.FLAG_WS|Util.FLAG_CR|Util.FLAG_TB))){
-                res = await pDevice.privilegedExecSync(options.before, { detached:false, unref:false });
+                //command = options.before+" && "+command;
+                await pDevice.privilegedExecSync(options.before, { detached:false, unref:false });
             }
-            res = await pDevice.privilegedExecSync(command, spawnOpts);
+            await pDevice.privilegedExecSync(command, spawnOpts);
         }else{
             if((options.before != null)
                 && (!Util.isEmpty(options.before, Util.FLAG_WS|Util.FLAG_CR|Util.FLAG_TB))){
-                res = await pDevice.execDetached(options.before, spawnOpts);
+                await pDevice.execDetached(options.before, spawnOpts);
+                //command = options.before+" && "+command;
             }
-            res = pDevice.execDetached(command, spawnOpts);
+            pDevice.execDetached(command, spawnOpts);
+            // res = pDevice.execDetached(command, spawnOpts);
         }
 
         await Util.asyncTimeout(pOptions.timeout);
@@ -318,6 +323,8 @@ export default class FridaHelper extends External.ExternalHelper
                 // detached shell, out/err must be pulled manually
                 //Logger.info( `[FRIDA HELPER] frida spawned (privileged:true) : \n err=${ _fs_.readFileSync(spawnOpts.err).toString() } `);
                 // Logger.info( `[FRIDA HELPER] frida spawned (privileged:true) : \n out=${ _fs_.readFileSync(spawnOpts.out).toString() } `);
+                Logger.info( `[FRIDA HELPER] post frida spawned (privileged:true) : \n spawnOpts=${ JSON.stringify(spawnOpts) } `);
+                Logger.info( `[FRIDA HELPER] post frida spawned (privileged:true) : \n err=${ spawnOpts.err } `);
                 const error = _fs_.readFileSync(spawnOpts.err).toString();
                 if(error.indexOf("unknown command")>-1){
                     throw FridaHelperException.SPAWN_FAILED(error);
@@ -440,7 +447,22 @@ export default class FridaHelper extends External.ExternalHelper
         if(pOptions.downloadURL != null){
             tmp =  pOptions.downloadURL;
         }else{
-            tmp = `https://github.com/frida/frida/releases/download/${ver.version}/frida-server-${ver.version}-android-${arch}.xz`   
+            let a:string = arch;
+            switch (arch){
+                case Architecture.AARCH32:
+                    a = "arm";
+                    break;
+                case Architecture.AARCH64:
+                    a = "arm64";
+                    break;
+                case Architecture.X86:
+                    a = "x86";
+                    break;
+                case Architecture.X86_64:
+                    a = "x86_64";
+                    break;
+            }
+            tmp = `https://github.com/frida/frida/releases/download/${ver.version}/frida-server-${ver.version}-android-${a}.xz`
         }
 
         // download sever
