@@ -409,7 +409,7 @@ Process.findModuleByName('linker64').enumerateSymbols().forEach(sym => {
             case 'open':
                 // FS open
                 pKeyPoint.code = `
-DXC.onSyscall( "open", {file=/${libName}$/}, (vMod)=>{
+DXC.onSyscall( "open", {file:/${libName}$/}, (vMod)=>{
      /*@@__CONTENT__@@*/
 });
                 `;
@@ -417,7 +417,7 @@ DXC.onSyscall( "open", {file=/${libName}$/}, (vMod)=>{
             case 'write':
                 // FS write
                 pKeyPoint.code = `
-DXC.onSyscall( "write", {file=/${libName}$/}, (vMod)=>{
+DXC.onSyscall( "write", {file:/${libName}$/}, (vMod)=>{
      /*@@__CONTENT__@@*/
 });
                 `;
@@ -425,7 +425,7 @@ DXC.onSyscall( "write", {file=/${libName}$/}, (vMod)=>{
             case 'read':
                 // FS read
                 pKeyPoint.code = `
-DXC.onSyscall( "read", {file=/${libName}$/}, (vMod)=>{
+DXC.onSyscall( "read", {file:/${libName}$/}, (vMod)=>{
      /*@@__CONTENT__@@*/
 });
                 `;
@@ -433,7 +433,7 @@ DXC.onSyscall( "read", {file=/${libName}$/}, (vMod)=>{
             case 'del':
                 // FS delete
                 pKeyPoint.code = `
-DXC.onSyscall( "unlink", {file=/${libName}$/}, (vMod)=>{
+DXC.onSyscall( "unlink", {file:/${libName}$/}, (vMod)=>{
      /*@@__CONTENT__@@*/
 });
                 `;
@@ -442,7 +442,7 @@ DXC.onSyscall( "unlink", {file=/${libName}$/}, (vMod)=>{
                 // FS delete
                 pKeyPoint.code = `
 // lookup the path associated to the FD on mmap syscall
-DXC.onMemoryMapping(  {file=/${libName}$/}, (vMod)=>{
+DXC.onMemoryMapping(  {file:/${libName}$/}, (vMod)=>{
      /*@@__CONTENT__@@*/
 });
                 `;

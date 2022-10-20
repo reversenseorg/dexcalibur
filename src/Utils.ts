@@ -132,7 +132,7 @@ export default class Util {
      * @param str
      * @param pNoRmCrlf
      */
-    static trim(str:string, pNoRmCrlf:boolean=false):string{
+    static trim(str:string, pNoRmCrlf=false):string{
         //if(!(str instanceof String)) console.error("trim() : the argument must be a string");
 
         const wl = (pNoRmCrlf ? ["\t"," "] : ["\t"," ","\r","\n"]);
