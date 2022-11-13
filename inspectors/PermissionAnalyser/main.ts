@@ -346,7 +346,10 @@ const Permissions = {
         name:"android.permission.BIND_VOICE_INTERACTION",
         label:"BIND_VOICE_INTERACTION",
         description: `
+        Must be required by a {@class:android.service.voice.VoiceInteractionService}, to ensure that only the system can bind to it. 
         
+        Note:
+        This permission is required to define hotword detection.
         `
      }),
     BIND_VPN_SERVICE: new AndroidPermission({
