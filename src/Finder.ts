@@ -47,7 +47,24 @@ const DataModel = {
 };*/
 
 
-
+/**
+ *    eventType {
+ *        uid:...,
+ *        id:1 ,
+ *        src: winlog,
+ *        name: CreateProcess
+ *    }
+ *
+ *    event{
+ *        src: winlog | orc | atera
+ *        ...
+ *    }
+ *
+ *
+ *
+ *    event("type:CreateProcess").filter("").select('parent')
+ *    byID().event(ID).select('parent')
+ */
 
 export class Finder
 {
