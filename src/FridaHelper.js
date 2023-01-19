@@ -276,6 +276,55 @@ class FridaHelper
         return flag;
     }
 
+    
+    /**
+     * To get the download URL of frida server for the specified device and options
+     *
+     * @param pDevice
+     * @param pOptions
+     * @return {*}
+     */
+    static getDownloadUrl(pDevice,pOptions){
+        // retrieve frida version
+        const ver = FridaHelper.getLocalFridaVersion( pOptions.path != null? pOptions.path : HOST_FRIDA_BIN_NAME);
+
+        // get device a architecture
+        const arch = pDevice.getProfile().getSystemProfile().getArchitecture();
+
+        let tmp = "";
+        if(pOptions.remoteURL != null){
+            tmp =  pOptions.remoteURL;
+        }else{
+            tmp = `https://github.com/frida/frida/releases/download/${ver.version}/frida-server-${ver.version}-android-${arch}.xz`
+        }
+
+        return tmp;
+    }
+
+    /**
+     * To get the remote path of frida server based on options
+     *
+     * @param pOptions
+     * @return {*}
+     */
+    static getFridaServerRemotePath(pOptions){
+        let tmp="";
+        if(pOptions.randomName == true){
+            tmp = Util.randomString(8);
+        }else{
+            tmp = REMOT_FRIDA_DEFAULT_NAME;
+        }
+
+        // push binary
+        if(pOptions.devicePath != null ){
+            tmp = pOptions.devicePath+tmp;
+        }else{
+            tmp = REMOTE_FRIDA_PATH+tmp;
+        }
+
+        return tmp;
+    }
+    
     /**
      * To download and push Frida server binary into the device
      * 
