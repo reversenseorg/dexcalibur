@@ -1,5 +1,6 @@
 const _path_ = require("path");
 const _fs_ = require("fs");
+const _os_ = require('os');
 
 var ut = require("./Utils.js");
 
@@ -565,9 +566,20 @@ class DeviceManager
         if(device.id == null){
             device.id = await device.retrieveUIDfromDevice();
         }
+        
+        if(_os_.platform()==='darwin' && _os_.arch()==='arm64'){
 
-        // Install frida 
-        success = await FridaHelper.installServer(device, (pOtions.frida != null? pOtions.frida: {})) ;
+            this.status = new StatusMessage(50, this.status.append("[Device Manager] Frida server cannot be downloaded and installed automatically because this operation is not supported on your darwin/arm64."));
+
+            const dlURL = FridaHelper.getDownloadUrl(device,(pOtions.frida != null? pOtions.frida: {}));
+            this.status = new StatusMessage(51, this.status.append("[Device Manager] Please download & extract Frida server at : "+dlURL));
+            this.status = new StatusMessage(52, this.status.append("[Device Manager] Then, push it to : "+FridaHelper.getFridaServerRemotePath((pOtions.frida != null? pOtions.frida: {}))));
+
+            success = true;
+        }else{
+            // Install frida
+            success = await FridaHelper.installServer(device, (pOtions.frida != null? pOtions.frida: {})) ;
+        }
 
         if(success){
             this.status = new StatusMessage(70, this.status.append("[Device Manager] Frida server installed.\n[Device Manager] Start platform install ..."));
