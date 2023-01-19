@@ -388,6 +388,7 @@
                             $("#install_auto_progress").addClass('bg-success');
                             task.stop();
                             $("#dxcRestart").css('visibility','visible');
+                            data.msg = data.msg+" Please kill and restart Dexcalibur from the CLI and refresh this home page."
                             //$("#dxcRestart").addClass('btn-primary');
                             break;
                         case "error":
