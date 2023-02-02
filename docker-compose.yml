@@ -1,0 +1,12 @@
+---
+version: "3"
+services:
+  android-dexcalibur:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: dexcalibur:2023.01
+    container_name: android-dexcalibur
+    network_mode: "host"
+    volumes:
+      - /tmp/dexcalibur:/shared

@@ -1,105 +1,56 @@
-FROM ubuntu:16.04
-MAINTAINER @FrenchYeti "frenchyeti@protonmail.com"
+# ------------------------- Dexcalibur Docker image
+FROM ubuntu:20.04
 
-RUN useradd -ms /bin/bash dexcalibur
- 
-# support multiarch: i386 architecture
-# install Java
-# install essential tools
-# install Nodejs
-RUN dpkg --add-architecture i386 && \
-    apt-get update -y && \
-    apt-get install -y libncurses5:i386 libc6:i386 libstdc++6:i386 lib32gcc1 lib32ncurses5 lib32z1 zlib1g:i386 && \
-    apt-get install -y --no-install-recommends openjdk-8-jdk && \
-    apt-get install -y git wget zip curl autotools-dev automake && \
-	apt-get install -y usbutils python3 python3-dev python3-pip gcc-multilib
+MAINTAINER cryptax
+ENV REFRESHED_AT 2023-01-19
 
-RUN	curl -sL https://deb.nodesource.com/setup_12.x  | bash -
-RUN apt-get update -y && \
-	apt-get install -y nodejs && \
-	nodejs -v && \
-	npm -v
-
-# download and install Gradle
-# https://services.gradle.org/distributions/
-ARG GRADLE_VERSION=4.10.3
-RUN cd /opt && \
-    wget -q https://services.gradle.org/distributions/gradle-${GRADLE_VERSION}-bin.zip && \
-    unzip gradle*.zip && \
-    ls -d */ | sed 's/\/*$//g' | xargs -I{} mv {} gradle && \
-    rm gradle*.zip
+ARG DEBIAN_FRONTEND=noninteractive
+ARG JDK_VERSION=8
+ENV FRIDA_VERSION 16.0.8
+ENV FRIDA_SERVER frida-server-${FRIDA_VERSION}-android-x86_64.xz
 
 
-# download and install Android SDK
-# https://developer.android.com/studio/#downloads
-# ARG ANDROID_SDK_VERSION=4333796
-# RUN mkdir -p /opt/android-sdk && cd /opt/android-sdk && \
-# 	wget -q https://dl.google.com/android/repository/sdk-tools-linux-4333796.zip && \
-#	unzip *tools*linux*.zip && \
-#	rm *tools*linux*.zip
+# --------------------- Various requirements -------------------------
+RUN apt-get update && \
+       apt-get install -yqq curl dirmngr apt-transport-https lsb-release ca-certificates adb \
+        python3-pip python openjdk-${JDK_VERSION}-jdk build-essential wget bash git
+
+# ----------------------- Install NodeJS -----------------------------------------------        
 
 
-# set the environment variables
-ENV JAVA_HOME /usr/lib/jvm/java-8-openjdk-amd64
-ENV GRADLE_HOME /opt/gradle
-ENV ANDROID_HOME /opt/android-sdk
-# ENV PATH ${PATH}:${GRADLE_HOME}/bin:${ANDROID_HOME}/emulator:${ANDROID_HOME}/tools:${ANDROID_HOME}/platform-tools:${ANDROID_HOME}/tools/bin
-ENV PATH ${PATH}:${GRADLE_HOME}/bin
-ENV _JAVA_OPTIONS -XX:+UnlockExperimentalVMOptions -XX:+UseCGroupMemoryLimitForHeap
+RUN mkdir /usr/local/nvm
+ENV NVM_DIR /usr/local/nvm
+ENV NODE_VERSION 19.4.0
 
-# accept the license agreements of the SDK components
-# ADD license_accepter.sh /opt/
-# RUN /opt/license_accepter.sh $ANDROID_HOME
+RUN curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.3/install.sh | bash \
+    && . $NVM_DIR/nvm.sh \
+    && nvm install $NODE_VERSION \
+    && nvm alias default $NODE_VERSION \
+    && nvm use default
 
-# setup adb and dexcalibur server
-EXPOSE 5037 8000 31415
+ENV NODE_PATH $NVM_DIR/v$NODE_VERSION/lib/node_modules
+ENV PATH $NVM_DIR/versions/node/v$NODE_VERSION/bin:$PATH
 
+RUN node -v
+RUN npm -v
 
-
-# Install android tools + sdk
-ENV ANDROID_HOME /opt/android-sdk-linux
-ENV PATH $PATH:${ANDROID_HOME}/tools:$ANDROID_HOME/platform-tools
-
-# Install APKTool
-RUN mkdir -p /home/dexcalibur/tools/apktool && \
-	cd /home/dexcalibur/tools/apktool && \
-	wget -q https://raw.githubusercontent.com/iBotPeaches/Apktool/master/scripts/linux/apktool && \
-	wget -q https://bitbucket.org/iBotPeaches/apktool/downloads/apktool_2.4.0.jar && \
-	mv *.jar apktool.jar && \
-	mv apktool* /usr/local/bin/. && \
-	chmod +x /usr/local/bin/apktool*
-	
-
-# RUN wget -qO- "http://dl.google.com/android/android-sdk_r24.3.4-linux.tgz" | tar -zx -C /opt && \
-#     echo y | android update sdk --no-ui --all --filter platform-tools --force
-
-# install platform-tools (ADB)
-RUN head -c 5 /dev/random > random_bytes2 && mkdir /home/dexcalibur/platform-tools/ && \ 
-	cd /home/dexcalibur/platform-tools/ && \
-	wget -q https://dl.google.com/android/repository/platform-tools-latest-linux.zip && \
-	unzip *.zip && \
-	rm *.zip 
-
-ENV PATH ${PATH}:${GRADLE_HOME}/bin:/home/dexcalibur/platform-tools/platform-tools
-RUN echo 'adb forward tcp:31415 tcp:31415' >> /home/dexcalibur/.bashrc
-
-#Install Frida
-RUN pip3 install colorama prompt-toolkit pygments
-RUN pip3 install frida	
+# ----------------------- Install Frida -----------------------------------------------        
 RUN pip3 install frida-tools
+RUN mkdir -p /workshop && wget -q -O /workshop/${FRIDA_SERVER} https://github.com/frida/frida/releases/download/${FRIDA_VERSION}/${FRIDA_SERVER} && cd /workshop && unxz ${FRIDA_SERVER}
+
+# ----------------------- Install Dexcalibur -----------------------------------------------
+RUN git clone https://github.com/FrenchYeti/dexcalibur
+RUN cd dexcalibur && npm install -g 
+
+# ------------------------- Clean up
+RUN apt-get clean && apt-get autoclean && apt-get autoremove -y && \
+    rm -rf /var/lib/apt/lists/* /tmp/* /usr/share/doc/* > /dev/null 2>&1
+
+# ------------------------- Final matter
+WORKDIR /workshop
+VOLUME ["/data"] 
+CMD [ "/bin/bash" ]
 
 
-# Setup Dexcalibur
-WORKDIR /home/dexcalibur
+EXPOSE 8000
 
-RUN head -c 5 /dev/random > random_bytes && git clone https://github.com/FrenchYeti/dexcalibur.git && \
-	cd /home/dexcalibur/dexcalibur && \
-	/usr/bin/npm install && /usr/bin/npm uninstall frida && /usr/bin/npm install frida@12.6.1 
-	
-ADD docker/config.js dexcalibur/config.js
-
-
-
-WORKDIR /home/dexcalibur/dexcalibur
-VOLUME ["/home/dexcalibur/workspace"]
-CMD ["/bin/sh"]
