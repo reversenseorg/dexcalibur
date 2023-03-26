@@ -1,7 +1,6 @@
-import {NodeInternalType} from "./NodeInternalType";
-import {ModelBasicType, ModelObjectType} from "./ModelType";
-import ModelFile from "./ModelFile";
-import ModelCpuInstruction from "./ModelCpuInstruction";
+import {NodeInternalType} from "./NodeInternalType.js";
+import ModelFile from "./ModelFile.js";
+import ModelCpuInstruction from "./ModelCpuInstruction.js";
 
 export interface ModelFunctionList {
     [pAddress:string] :ModelFunction
@@ -9,21 +8,18 @@ export interface ModelFunctionList {
 
 
 
-import * as Log from './Logger';
-import {ModelVariable} from "./ModelVariable";
-import {ModelNativeRef} from "./ModelNativeRef";
-import {NodeType} from "./persist/orm/NodeType";
-import {NodeProperty, NodePropertyState} from "./persist/orm/NodeProperty";
-import {DbDataType, DbKeyType, DbSerialize} from "./persist/orm/DbAbstraction";
-import ModelFileSection from "./ModelFileSection";
-import {IPersistent} from "./persist/orm/IPersistent";
-import {NativeAnalyzerCommands} from "./analyzer/NativeAnalyzerCommands";
-import {INode} from "./INode";
-import {DataSourceHelper} from "./DataSourceHelper";
-import {DataType} from "./types/DataType";
-import NativeFunctionHook from "./hook/NativeFunctionHook";
-import {AbstractHook} from "./hook/AbstractHook";
-import {Tag} from "./tags/Tag";
+import * as Log from './Logger.js';
+import {ModelVariable} from "./ModelVariable.js";
+import {ModelNativeRef} from "./ModelNativeRef.js";
+import {NodeType} from "./persist/orm/NodeType.js";
+import {NodeProperty, NodePropertyState} from "./persist/orm/NodeProperty.js";
+import {DbDataType, DbKeyType, DbSerialize} from "./persist/orm/DbAbstraction.js";
+import {IPersistent} from "./persist/orm/IPersistent.js";
+import {NativeAnalyzerCommands} from "./analyzer/NativeAnalyzerCommands.js";
+import {INode} from "./INode.js";
+import {DataSourceHelper} from "./DataSourceHelper.js";
+import {AbstractHook} from "./hook/AbstractHook.js";
+import {Tag} from "./tags/Tag.js";
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
 const TO_JSON:Function = function (vSrc:any, vTarget:any, vInArray:boolean=false):any{

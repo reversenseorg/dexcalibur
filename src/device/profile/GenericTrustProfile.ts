@@ -1,5 +1,5 @@
-import {Profile} from "./Profile";
-import Certificate from "../../formats/common/Certificate";
+import {Profile} from "./Profile.js";
+import Certificate from "../../formats/common/Certificate.js";
 
 export default abstract class GenericTrustProfile extends Profile {
 

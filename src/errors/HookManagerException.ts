@@ -1,5 +1,4 @@
-import {ErrorCode, MonitoredError} from "./MonitoredError";
-import {PassthroughValue, SanitizedValue, UnsafeValue} from "../security/SanitizedValue";
+import {ErrorCode, MonitoredError} from "./MonitoredError.js";
 
 export enum HookErrCode {
     GENERIC=100,

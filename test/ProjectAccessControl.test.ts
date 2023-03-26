@@ -1,20 +1,21 @@
 
 import {expect} from 'chai';
-import {UserAccount} from "../dist/src/user/UserAccount";
-import {AuthCode} from "../dist/src/user/auth/AuthTypes";
-import AccessControl from "../dist/src/user/acl/AccessControl";
-import {ProjectAccessControl} from "../dist/src/user/acl/rbac/ProjectAccessContol";
-import {DelegateAccessControl} from "../dist/src/user/acl/DelegateAccessControl";
-import {Access, AccessProperty, AccessType} from "../dist/src/user/acl/Access";
-import {UserRole} from "../dist/src/user/acl/rbac/UserRole";
-import {AccessFactory} from "../src/user/acl/AccessFactory";
-import {UserSession} from "../dist/src/user/session/UserSession";
-import {UserService} from "../dist/src/user/UserService";
-import {AuthenticationSettings} from "../dist/src/user/auth/AuthenticationSettings";
-import {Settings} from "../dist/src/Settings";
+import {UserAccount} from "../dist/src/user/UserAccount.js";
+import {AuthCode} from "../dist/src/user/auth/AuthTypes.js";
+import AccessControl from "../dist/src/user/acl/AccessControl.js";
+import {ProjectAccessControl} from "../dist/src/user/acl/rbac/ProjectAccessContol.js";
+import {DelegateAccessControl} from "../dist/src/user/acl/DelegateAccessControl.js";
+import {Access, AccessProperty, AccessType} from "../dist/src/user/acl/Access.js";
+import {UserRole} from "../dist/src/user/acl/rbac/UserRole.js";
+import {AccessFactory} from "../src/user/acl/AccessFactory.js";
+import {UserSession} from "../dist/src/user/session/UserSession.js";
+import {UserService} from "../dist/src/user/UserService.js";
+import {AuthenticationSettings} from "../dist/src/user/auth/AuthenticationSettings.js";
+import {Settings} from "../dist/src/Settings.js";
 import ServerSettings = Settings.ServerSettings;
 import * as _path_ from "path";
-import {AuthType} from "../dist/src/user/auth/AuthTypes";
+import {AuthType} from "../dist/src/user/auth/AuthTypes.js";
+import Util from "../src/Utils.js";
 
 let usr:UserAccount = null;
 
@@ -35,7 +36,7 @@ let settings_parent_stub:ServerSettings = new class extends ServerSettings {
     }
 };
 
-const USER_DB:string = _path_.join(__dirname,'config','userdb.json');
+const USER_DB:string = _path_.join(Util.__dirname(import.meta.url),'config','userdb.json');
 
 let account:UserAccount = null;
 describe('ProjectAccessControl', function() {

@@ -1,21 +1,21 @@
-import ModelFile from "./ModelFile";
-import Util from "./Utils";
+import ModelFile from "./ModelFile.js";
+import Util from "./Utils.js";
 import * as _path_ from "path";
-import DexcaliburProject from "./DexcaliburProject";
+import DexcaliburProject from "./DexcaliburProject.js";
 import {EOL} from "os";
-import BusEvent from "./BusEvent";
+import BusEvent from "./BusEvent.js";
 import * as _glob_ from "glob";
 
 
-import * as Log from './Logger';
-import ModelFileSection from "./ModelFileSection";
-import {External} from "./external/External";
+import * as Log from './Logger.js';
+import ModelFileSection from "./ModelFileSection.js";
+import {External} from "./external/External.js";
 import * as _fs_ from "fs";
 import * as  _ps_ from "child_process";
-import DexcaliburWorkspace from "./DexcaliburWorkspace";
-import {IFileAnalyzer} from "./analyzer/IFileAnalyzer";
-import StatusMessage from "./StatusMessage";
-import ShellHelper from "./ShellHelper";
+import DexcaliburWorkspace from "./DexcaliburWorkspace.js";
+import {IFileAnalyzer} from "./analyzer/IFileAnalyzer.js";
+import StatusMessage from "./StatusMessage.js";
+import ShellHelper from "./ShellHelper.js";
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
 export class BinwalkHelper extends  External.ExternalHelper implements IFileAnalyzer{

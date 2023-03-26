@@ -4,9 +4,10 @@ import {TestHelper} from "../dist/src/TestHelper";
 import {AuthType} from "../dist/src/user/auth/AuthTypes";
 import {AuthenticationSettings} from "../dist/src/user/auth/AuthenticationSettings";
 import {AuthenticationPolicy} from "../dist/src/user/auth/AuthenticationPolicy";
+import Util from "../src/Utils.js";
 
-const USER_DB:string = _path_.join(__dirname,'config','userdb.json');
-const USER_DB_TMP:string = _path_.join(__dirname,'config','userdb.json.temp');
+const USER_DB:string = _path_.join(Util.__dirname(import.meta.url),'config','userdb.json');
+const USER_DB_TMP:string = _path_.join(Util.__dirname(import.meta.url),'config','userdb.json.temp');
 
 describe('AuthenticationPolicy', function() {
 

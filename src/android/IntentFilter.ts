@@ -1,5 +1,5 @@
-import {IntentActionCriteria, IntentCategoryCriteria, IntentDataCriteria} from "./Intent";
-import AndroidActivity from "./AndroidActivity";
+import {IntentActionCriteria, IntentCategoryCriteria, IntentDataCriteria} from "./Intent.js";
+import AndroidActivity from "./AndroidActivity.js";
 
 
 const UID_SEPARATOR = "-";

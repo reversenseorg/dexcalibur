@@ -1,11 +1,11 @@
 import * as _fs_ from "fs";
 
-import DexcaliburProject from "./DexcaliburProject";
-import DexcaliburDVM from "./android/DexcaliburDVM";
-import {DexcaliburVM} from "./DexcaliburVM";
-import * as Log from "./Logger";
-import {OperatingSystem} from "./OperatingSystem";
-import {Architecture} from "./Architecture";
+import DexcaliburProject from "./DexcaliburProject.js";
+import DexcaliburDVM from "./android/DexcaliburDVM.js";
+import {DexcaliburVM} from "./DexcaliburVM.js";
+import * as Log from "./Logger.js";
+import {OperatingSystem} from "./OperatingSystem.js";
+import {Architecture} from "./Architecture.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 const PLATFORM_RE = new RegExp('(?<source>[^_.]+)_(?<name>[^_.]+)_(?<version>[^_.]+)_(?<vendor>[^_.]+)\.(?<format>[^.]+)');

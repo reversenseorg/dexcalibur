@@ -1,9 +1,11 @@
-import {AuthType} from "./AuthTypes";
-import {Settings} from "../../Settings";
-import {SessionSettings} from "../session/SessionSettings";
-import Util from "../../Utils";
-import {SecurityZone} from "../../security/SecurityZone";
+import {AuthType} from "./AuthTypes.js";
+import {Settings} from "../../Settings.js";
+import {SessionSettings} from "../session/SessionSettings.js";
+import Util from "../../Utils.js";
+import {SecurityZone} from "../../security/SecurityZone.js";
 import ServerSettings = Settings.ServerSettings;
+import { DbmsConnSettings } from "../../core/db/DbmsConnSettings.js";
+import {AuthenticationPolicy} from "./AuthenticationPolicy.js";
 
 
 /**
@@ -21,7 +23,7 @@ export class AuthenticationSettings {
     private _supported:AuthType[] = [];
     private _policy:any = null;
     private _sess:any = null;
-    private _db:any = null;
+    private _db:DbmsConnSettings = null;
     private _parent:ServerSettings;
 
     /**
@@ -34,8 +36,15 @@ export class AuthenticationSettings {
      */
     constructor( pParent:ServerSettings, pConfig:any ) {
         this._parent = pParent;
+
+        if(pConfig==null) pConfig = {};
+
         this._db = Util.getValue( pConfig, 'db', null);
-        this._policy = Util.getValue( pConfig, 'policy', { enforced:true });
+        if(! pConfig.hasOwnProperty('policy')){
+            pConfig.policy = {enforced:true};
+        }
+
+        this._policy = new AuthenticationPolicy(pConfig);
         this._supported = Util.getValue( pConfig, 'supported', [AuthType.PASSWORD]);
         this._sess = new SessionSettings( this, Util.getValue( pConfig, 'sess', null))
     }
@@ -82,6 +91,37 @@ export class AuthenticationSettings {
      */
     save(pDestFile:string = null):any {
         this._parent.save(pDestFile);
+    }
+
+    getDbString():string {
+        if(this._db==null){
+            return "null";
+        }
+
+        return `{
+    \t dbms = ${this._db.dbms}
+    \t uri = ${this._db.uri}
+    \t port = ${this._db.port}
+    \t username = ${this._db.user}
+    \t passwd = ${this._db.pwd}
+}`;
+    }
+
+
+    getPolicyString():string {
+        if(this.policy==null){
+            return "null";
+        }
+        return this._policy.explains();
+    }
+
+
+    getSupportedString():string {
+        if(this._supported==null){
+            return "null";
+        }
+
+        return "[ "+this._supported.join(",")+" ]";
     }
 
     toObject(pZone:SecurityZone = SecurityZone.PUBLIC):any {

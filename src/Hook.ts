@@ -1,12 +1,12 @@
 import * as _md5_ from 'md5';
 
-import ModelMethod from "./ModelMethod";
-import DexcaliburProject from "./DexcaliburProject";
-import Util from "./Utils";
-import {ModelBasicType, ModelObjectType} from "./ModelType";
-import {CONST} from "./CoreConst";
-import {ModelFunction} from "./ModelFunction";
-import {ModelVariable} from "./ModelVariable";
+import ModelMethod from "./ModelMethod.js";
+import DexcaliburProject from "./DexcaliburProject.js";
+import Util from "./Utils.js";
+import {ModelBasicType, ModelObjectType} from "./ModelType.js";
+import {CONST} from "./CoreConst.js";
+import {ModelFunction} from "./ModelFunction.js";
+import {ModelVariable} from "./ModelVariable.js";
 
 
 
@@ -435,7 +435,7 @@ export default class Hook
         let s:string = "{\n";
 
         pFn.regvars.map( vVar => {
-            if (pFn.ctype == "arm32" && vVar.refs == 'r0') {
+            if (pFn.ctype == "arm32" && vVar.refs.reg == 'r0') {
                 /*if(pOptions.dump!=null){
 
                 }*/

@@ -1,7 +1,7 @@
 /**
  * @class
  */
-import DDVM_Symbol from "./DDVM_Symbol";
+import DDVM_Symbol from "./DDVM_Symbol.js";
 
 export interface DDVM_SymbolMap {
     [symbolName :string] :DDVM_Symbol;

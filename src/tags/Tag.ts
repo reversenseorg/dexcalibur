@@ -1,9 +1,7 @@
-import {NodeType} from "../persist/orm/NodeType";
-import {NodeInternalType} from "../NodeInternalType";
-import {NodeProperty, NodePropertyState} from "../persist/orm/NodeProperty";
-import {DbDataType, DbKeyType, DbSerialize} from "../persist/orm/DbAbstraction";
-import {INode} from "../INode";
-import {TagCategory} from "./TagCategory";
+import {NodeType} from "../persist/orm/NodeType.js";
+import {NodeInternalType} from "../NodeInternalType.js";
+import {INode} from "../INode.js";
+import {TagCategory} from "./TagCategory.js";
 
 
 export interface TagMap {

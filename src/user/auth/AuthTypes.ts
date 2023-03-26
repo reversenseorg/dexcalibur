@@ -15,7 +15,9 @@ export enum AuthCode {
     EMPTY_USERNAME,
     ACCOUNT_LOCKED,
     ACCOUNT_DEACTIVATED,
-    MAX_ATTEMPTS_REACHED
+    MAX_ATTEMPTS_REACHED,
+
+    NOT_CONFIGURED
 }
 
 export interface Authenticator {
@@ -25,6 +27,8 @@ export interface Authenticator {
 export class AuthenticationException extends Error {
 
     _c:AuthCode = AuthCode.NONE
+
+
     constructor(pMsg, pCode:AuthCode = AuthCode.NONE) {
         super(pMsg);
         this._c = pCode;

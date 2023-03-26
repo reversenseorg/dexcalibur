@@ -39,10 +39,10 @@ describe('Inspector Manager', function() {
     });
 
     describe('enumerate', function() {
-        it('default', function () {
+        it('default', async function () {
             let im:InspectorManager = new InspectorManager(ENGINE);
 
-            im.enumerate();// todo
+            await im.enumerate();// todo
         });
     });
 

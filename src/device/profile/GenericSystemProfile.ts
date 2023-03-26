@@ -1,7 +1,7 @@
-import {Architecture} from "../../Architecture";
-import {OperatingSystem} from "../../OperatingSystem";
-import {ABI, InstructionSet} from "../../binary/ABI";
-import {Profile} from "./Profile";
+import {Architecture} from "../../Architecture.js";
+import {OperatingSystem} from "../../OperatingSystem.js";
+import {ABI, InstructionSet} from "../../binary/ABI.js";
+import {Profile} from "./Profile.js";
 
 /**
  *

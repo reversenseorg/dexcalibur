@@ -4,8 +4,8 @@ import * as Path from 'path';
 
 // -- App specific --
 
-const TEST_CONFIG = Path.join( __dirname, './res/config_test.js');
-const TEST_CONFIG2 = Path.join( __dirname, './res/config_test_2.js');
+const TEST_CONFIG = Path.join( Util.__dirname(import.meta.url), './res/config_test.js');
+const TEST_CONFIG2 = Path.join( Util.__dirname(import.meta.url), './res/config_test_2.js');
 
 var CONFIG = null;
 
@@ -15,13 +15,14 @@ import DexcaliburEngine from "../dist/src/DexcaliburEngine";
 import DexcaliburProject from "../dist/src/DexcaliburProject";
 import {SearchAPI} from "../dist/src/SearchAPI";
 import Analyzer from "../dist/src/Analyzer";
-import {HookManager} from "../dist/src/HookManager";
-import {DataAnalyzer} from "../dist/src/DataAnalyzer";
-import AndroidAppAnalyzer from "../dist/src/AndroidAppAnalyzer";
-import Bus from "../dist/src/Bus";
-import GraphMaker from "../dist/src/Graph";
-import {TestHelper} from "../dist/src/TestHelper";
-import ProjectWorkspace from "../dist/src/ProjectWorkspace";
+import {HookManager} from "../dist/src/HookManager.js";
+import {DataAnalyzer} from "../dist/src/DataAnalyzer.js";
+import AndroidAppAnalyzer from "../dist/src/AndroidAppAnalyzer.js";
+import Bus from "../dist/src/Bus.js";
+import GraphMaker from "../dist/src/Graph.js";
+import {TestHelper} from "../dist/src/TestHelper.js";
+import ProjectWorkspace from "../dist/src/ProjectWorkspace.js";
+import Util from "../src/Utils.js";
 
 let Logger:Log.TestLogger;
 

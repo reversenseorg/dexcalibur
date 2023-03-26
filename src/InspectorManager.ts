@@ -3,14 +3,14 @@ import * as  _fs_ from 'fs';
 import * as  _xz_ from 'xz';
 import got from 'got';
 
-import DexcaliburEngine from "./DexcaliburEngine";
-import Inspector, {INSPECTOR_TYPE} from "./Inspector";
-import DexcaliburProject from "./DexcaliburProject";
-import InspectorFactory from "./InspectorFactory";
-import Util from "./Utils";
-import DexcaliburRegistry from "./DexcaliburRegistry";
-import * as Log from './Logger';
-import WebServer from "./WebServer";
+import DexcaliburEngine from "./DexcaliburEngine.js";
+import Inspector, {INSPECTOR_TYPE} from "./Inspector.js";
+import DexcaliburProject from "./DexcaliburProject.js";
+import InspectorFactory from "./InspectorFactory.js";
+import Util from "./Utils.js";
+import DexcaliburRegistry from "./DexcaliburRegistry.js";
+import * as Log from './Logger.js';
+import WebServer from "./WebServer.js";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -102,9 +102,9 @@ export default class InspectorManager
     }
 
 
-    enumerate(){
+    async enumerate(){
 
-        this.locals = this.enumerateLocal();
+        this.locals = await this.enumerateLocal();
 
         /*(async ()=>{
             this.remote = await this.enumerateRemote();
@@ -117,9 +117,9 @@ export default class InspectorManager
         })();*/
     }
 
-    enumerateLocal():InspectorFactorySet{
+    async enumerateLocal():Promise<InspectorFactorySet>{
         let p:string =null;
-        const ws:string = _path_.join(__dirname, '..', 'inspectors'); // this.engine.workspace.getPluginsFolderLocation();
+        const ws:string = _path_.join(Util.__dirname(import.meta.url), '..', 'inspectors'); // this.engine.workspace.getPluginsFolderLocation();
         const files:string[] = _fs_.readdirSync(ws);
 
         for(let i=0; i<files.length; i++){
@@ -128,7 +128,7 @@ export default class InspectorManager
                 p = _path_.join( ws, files[i], "main.js");
 
                 if(_fs_.existsSync(p)){
-                    this.locals[ files[i] ] = require(p);
+                    this.locals[ files[i] ] = (await import(p)).default; //require(p);
                 }
             }
         }

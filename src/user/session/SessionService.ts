@@ -1,15 +1,15 @@
-import {SessionSettings} from "./SessionSettings";
-import {UserAccount} from "../UserAccount";
-import {UserSession} from "./UserSession";
-import Util from "../../Utils";
-import {SessionCode, SessionException} from "./SessionException";
-import {IDatabase, IDbCollection} from "../../persist/orm/DbAbstraction";
-import {ConnectorFactory} from "../../ConnectorFactory";
-import SqliteConnector from "../../../connectors/sqlite/adapter";
-import * as Log from "../../Logger";
-import DexcaliburEngine from "../../DexcaliburEngine";
-import {SessionData} from "./SessionData";
-import SqliteDbCollection from "../../../connectors/sqlite/SqliteDbCollection";
+import {SessionSettings} from "./SessionSettings.js";
+import {UserAccount} from "../UserAccount.js";
+import {UserSession} from "./UserSession.js";
+import Util from "../../Utils.js";
+import {SessionCode, SessionException} from "./SessionException.js";
+import {IDatabase, IDbCollection} from "../../persist/orm/DbAbstraction.js";
+import {ConnectorFactory} from "../../ConnectorFactory.js";
+import SqliteConnector from "../../../connectors/sqlite/adapter.js";
+import * as Log from "../../Logger.js";
+import DexcaliburEngine from "../../DexcaliburEngine.js";
+import {SessionData} from "./SessionData.js";
+import SqliteDbCollection from "../../../connectors/sqlite/SqliteDbCollection.js";
 
 /**
  * Represents the map session ID / session object

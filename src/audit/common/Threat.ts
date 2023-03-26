@@ -1,5 +1,5 @@
-import {INode} from "../../INode";
-import DataProperty from "./DataProperty";
+import {INode} from "../../INode.js";
+import DataProperty from "./DataProperty.js";
 
 
 export default class Threat {

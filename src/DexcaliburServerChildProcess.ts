@@ -1,8 +1,8 @@
-import DexcaliburEngine from "./DexcaliburEngine";
+import DexcaliburEngine from "./DexcaliburEngine.js";
 import * as assert from "assert";
 import * as _fs_ from "fs";
 import * as _os_ from "os";
-import {Settings} from "./Settings";
+import {Settings} from "./Settings.js";
 
 
 // TODO : remove before prod
@@ -109,7 +109,7 @@ export class DexcaliburServerChildProcess {
       switch(pMessage.cmd){
         case 'start':
           this.engine = DexcaliburEngine.getInstance();
-          this.start(pMessage.data);
+          (async ()=>{  this.start(pMessage.data); })();
           break;
         case 'project-ready':
           this.isProjectReady(pMessage.data);
@@ -158,7 +158,7 @@ export class DexcaliburServerChildProcess {
    * @method
    * @since 1.0.0
    */
-  start(pOptions:any = {}):void {
+  async start(pOptions:any = {}):Promise<void> {
 
     let ready:boolean=false;
     let cfg:Settings.GlobalSettings;
@@ -187,7 +187,7 @@ export class DexcaliburServerChildProcess {
 
     this.engine.loadConfiguration(cfg);
 
-    ready = this.engine.boot(
+    ready = await this.engine.boot(
       pOptions.restore===true? true : false,
       dxcWebRoot
     );

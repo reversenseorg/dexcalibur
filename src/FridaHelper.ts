@@ -3,22 +3,23 @@ import * as _fs_ from "fs";
 import * as _path_ from "path";
 import * as _stream_ from 'stream';
 import * as _co_ from 'co';
-import got from "got";
+import * as Got from "got";
+const got = Got.default;
 import * as _xz_ from "xz";
 import {promisify} from 'util';
 import * as Frida from 'frida';
-import DexcaliburWorkspace from "./DexcaliburWorkspace";
+import DexcaliburWorkspace from "./DexcaliburWorkspace.js";
 
 
-import * as Log from './Logger';
-import {Device, FridaServerOptions, FridaServerTransport} from "./Device";
-import Util from "./Utils";
-import {IBridge} from "./Bridge";
-import {External} from "./external/External";
+import * as Log from './Logger.js';
+import {Device, FridaServerOptions, FridaServerTransport} from "./Device.js";
+import Util from "./Utils.js";
+import {IBridge} from "./Bridge.js";
+import {External} from "./external/External.js";
 import {Process} from "frida/dist";
 import * as _os_ from "os";
-import {FridaHelperException} from "./errors/FridaHelperException";
-import {Architecture} from "./Architecture";
+import {FridaHelperException} from "./errors/FridaHelperException.js";
+import {Architecture} from "./Architecture.js";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 

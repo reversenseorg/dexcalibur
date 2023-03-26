@@ -7,8 +7,8 @@
  *
  * @class
  */
-import {NodeType} from "../persist/orm/NodeType";
-import {NodeInternalType} from "../NodeInternalType";
+import {NodeType} from "../persist/orm/NodeType.js";
+import {NodeInternalType} from "../NodeInternalType.js";
 
 export default class HookStrategySelector {
 

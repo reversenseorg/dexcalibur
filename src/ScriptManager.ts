@@ -1,5 +1,5 @@
-import {Script} from "./Script";
-import DexcaliburProject from "./DexcaliburProject";
+import {Script} from "./Script.js";
+import DexcaliburProject from "./DexcaliburProject.js";
 
 
 export class ScriptManager {

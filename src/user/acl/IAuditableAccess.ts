@@ -1,4 +1,4 @@
-import {AccessAttribute, AccessAttributeMap} from "./AccessAttribute";
+import {AccessAttribute, AccessAttributeMap} from "./AccessAttribute.js";
 
 export interface IAuditableAccess {
 

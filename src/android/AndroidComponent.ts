@@ -3,10 +3,10 @@
  */
 
 import * as _md5_ from 'md5';
-import {AndroidIntentable} from "./Intent";
-import ModelClass from "../ModelClass";
-import {AndroidAttributeSet} from "./AndroidAttribute";
-import {NodeInternalType} from "../NodeInternalType";
+import {AndroidIntentable} from "./Intent.js";
+import ModelClass from "../ModelClass.js";
+import {AndroidAttributeSet} from "./AndroidAttribute.js";
+import {NodeInternalType} from "../NodeInternalType.js";
 
 
 const ANDROID_PREFIX = "android:";

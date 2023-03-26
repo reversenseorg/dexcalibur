@@ -3,8 +3,8 @@ import * as _path_ from 'path';
 import * as _os_ from 'os';
 
 
-import DexcaliburWorkspace from './DexcaliburWorkspace' ;
-import {ExternalTool, ExternalToolMap} from "./ExternalTool";
+import DexcaliburWorkspace from './DexcaliburWorkspace.js' ;
+import {ExternalTool, ExternalToolMap} from "./ExternalTool.js";
 
 
 const NO_EXPORT = ["platform_available"];

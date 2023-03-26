@@ -1,7 +1,6 @@
-import {ModelRegisterReference} from "../ModelReference";
-import DDVM_Symbol from "./DDVM_Symbol";
-import DexcaliburDVM from "./DexcaliburDVM";
-import DDVM_Exception from "./DDVM_Exception";
+import {ModelRegisterReference} from "../ModelReference.js";
+import DDVM_Symbol from "./DDVM_Symbol.js";
+import DDVM_Exception from "./DDVM_Exception.js";
 
 
 export class DDVM_Wide

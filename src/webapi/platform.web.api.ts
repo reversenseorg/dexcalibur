@@ -1,13 +1,13 @@
-import {DelegateWebApi} from "./DelegateWebApi";
-import {Device} from "../Device";
-import WebServer from "../WebServer";
-import DeviceManager from "../DeviceManager";
-import FridaHelper from "../FridaHelper";
+import {DelegateWebApi} from "./DelegateWebApi.js";
+import {Device} from "../Device.js";
+import WebServer from "../WebServer.js";
+import DeviceManager from "../DeviceManager.js";
+import FridaHelper from "../FridaHelper.js";
 import {Router, Request, Response} from "express";
-import * as Log from "../Logger";
-import PlatformManager from "../PlatformManager";
-import Platform from "../Platform";
-import {PlatformManagerException} from "../errors/PlatformManagerException";
+import * as Log from "../Logger.js";
+import PlatformManager from "../PlatformManager.js";
+import Platform from "../Platform.js";
+import {PlatformManagerException} from "../errors/PlatformManagerException.js";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 export const PLATFORM_WEB_API: DelegateWebApi = new DelegateWebApi();

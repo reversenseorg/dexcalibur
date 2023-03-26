@@ -1,5 +1,5 @@
-import {Settings} from "../Settings";
-import {Workflow} from "../Workflow";
+import {Settings} from "../Settings.js";
+import {Workflow} from "../Workflow.js";
 
 
 export namespace External {

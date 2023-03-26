@@ -1,11 +1,11 @@
-import {NodeType} from "./persist/orm/NodeType";
-import {NodeInternalType} from "./NodeInternalType";
-import {DataSourceHelper} from "./DataSourceHelper";
-import {INode} from "./INode";
-import {NodeProperty} from "./persist/orm/NodeProperty";
-import {DbDataType, DbKeyType, DbSerialize} from "./persist/orm/DbAbstraction";
-import {OperatingSystem} from "./OperatingSystem";
-import {Architecture} from "./Architecture";
+import {NodeType} from "./persist/orm/NodeType.js";
+import {NodeInternalType} from "./NodeInternalType.js";
+import {DataSourceHelper} from "./DataSourceHelper.js";
+import {INode} from "./INode.js";
+import {NodeProperty} from "./persist/orm/NodeProperty.js";
+import {DbDataType, DbKeyType, DbSerialize} from "./persist/orm/DbAbstraction.js";
+import {OperatingSystem} from "./OperatingSystem.js";
+import {Architecture} from "./Architecture.js";
 
 
 /**

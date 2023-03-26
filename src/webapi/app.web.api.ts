@@ -1,14 +1,12 @@
-import {DelegateWebApi} from "./DelegateWebApi";
-import {Device} from "../Device";
-import WebServer, {HTTP_CODE_ERROR, HTTP_CODE_SUCCESS} from "../WebServer";
-import DeviceManager from "../DeviceManager";
+import {DelegateWebApi} from "./DelegateWebApi.js";
+import WebServer, {HTTP_CODE_ERROR, HTTP_CODE_SUCCESS} from "../WebServer.js";
 import {Request, Response} from "express";
-import * as Log from "../Logger";
-import DataScope from "../DataScope";
+import * as Log from "../Logger.js";
+import DataScope from "../DataScope.js";
 import * as _path_ from "path";
-import {IDbCollection, IDbIndex} from "../persist/orm/DbAbstraction";
-import ModelFile from "../ModelFile";
-import DexcaliburProject from "../DexcaliburProject";
+import {IDbCollection, IDbIndex} from "../persist/orm/DbAbstraction.js";
+import ModelFile from "../ModelFile.js";
+import DexcaliburProject from "../DexcaliburProject.js";
 import * as path from "path";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;

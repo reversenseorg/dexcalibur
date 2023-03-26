@@ -1,9 +1,9 @@
 import {Database} from "better-sqlite3";
-import {DbDataType, DbSerialize} from "../../src/persist/orm/DbAbstraction";
-import {NodeProperty} from "../../src/persist/orm/NodeProperty";
-import {NodeType} from "../../src/persist/orm/NodeType";
-import {SqliteException} from "./SqliteException";
-import * as Log from "../../src/Logger";
+import {DbDataType, DbSerialize} from "../../src/persist/orm/DbAbstraction.js";
+import {NodeProperty} from "../../src/persist/orm/NodeProperty.js";
+import {NodeType} from "../../src/persist/orm/NodeType.js";
+import {SqliteException} from "./SqliteException.js";
+import * as Log from "../../src/Logger.js";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -584,12 +584,12 @@ export class SqliteAPI {
 
         if(typeof pStmt === 'string'){
 
-            Logger.info("Exec _execInsert (simple) : "+pStmt+"\n"+JSON.stringify(pData));
+            Logger.debug("Exec _execInsert (simple) : "+pStmt+"\n"+JSON.stringify(pData));
             return this._db.prepare(pStmt).run(pData);
         }else{
             let res:any = {};
             for(const i in pStmt){
-                Logger.info("Exec _execInsert"+i+" (complex) : "+pStmt[i]+"\n"+JSON.stringify(pData[i]));
+                Logger.debug("Exec _execInsert"+i+" (complex) : "+pStmt[i]+"\n"+JSON.stringify(pData[i]));
                 res[i] = this._db.prepare(pStmt[i]).run(pData[i]);
             }
             return res;
@@ -600,12 +600,12 @@ export class SqliteAPI {
 
         if(typeof pStmt === 'string'){
 
-            Logger.info("Exec _execSelect (simple) : "+pStmt+"\n"+JSON.stringify(pData));
+            Logger.debug("Exec _execSelect (simple) : "+pStmt+"\n"+JSON.stringify(pData));
             return this._db.prepare(pStmt).get(pData);
         }else{
             let res:any = {};
             for(const i in pStmt){
-                Logger.info("Exec _execSelect "+i+" (complex) : "+pStmt[i]+"\n"+JSON.stringify(pData[i]));
+                Logger.debug("Exec _execSelect "+i+" (complex) : "+pStmt[i]+"\n"+JSON.stringify(pData[i]));
                 res[i] = this._db.prepare(pStmt[i]).get(pData[i]);
             }
             return res;
@@ -616,14 +616,14 @@ export class SqliteAPI {
 
         if(typeof pStmt === 'string'){
 
-            Logger.info("Exec _execSelectAll (simple) : "+pStmt+"\n");
+            Logger.debug("Exec _execSelectAll (simple) : "+pStmt+"\n");
             const d = this._db.prepare(pStmt).all();
             //Logger.info(JSON.stringify(d));
             return d;
         }else{
             let res:any = {};
             for(const i in pStmt){
-                Logger.info("Exec _execSelectAll "+i+" (complex) : "+pStmt[i]);
+                Logger.debug("Exec _execSelectAll "+i+" (complex) : "+pStmt[i]);
                 res[i] = this._db.prepare(pStmt[i]).all();
             }
             return res;
@@ -634,12 +634,12 @@ export class SqliteAPI {
 
         if(typeof pStmt === 'string'){
 
-            Logger.info("Exec _execSelectAllNoData (simple) : "+pStmt);
+            Logger.debug("Exec _execSelectAllNoData (simple) : "+pStmt);
             return this._db.prepare(pStmt).all();
         }else{
             let res:any = {};
             for(const i in pStmt){
-                Logger.info("Exec _execSelectAllNoData"+i+" (complex) : "+pStmt[i]);
+                Logger.debug("Exec _execSelectAllNoData"+i+" (complex) : "+pStmt[i]);
                 res[i] = this._db.prepare(pStmt[i]).all();
             }
             return res;

@@ -1,6 +1,5 @@
-import {ErrorCode, MonitoredError} from "./MonitoredError";
-import {PassthroughValue, SanitizedValue, UnsafeValue} from "../security/SanitizedValue";
-import {HookBuilderError} from "./HookScriptBuilderException";
+import {ErrorCode, MonitoredError} from "./MonitoredError.js";
+import {HookBuilderError} from "./HookScriptBuilderException.js";
 
 
 

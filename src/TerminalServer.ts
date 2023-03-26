@@ -1,8 +1,8 @@
-import DexcaliburEngine from "./DexcaliburEngine";
-import {TerminalSessionMap, User} from "./User";
-import {TerminalSession} from "./TerminalSession";
-import * as Log from "./Logger";
-import {Device} from "./Device";
+import DexcaliburEngine from "./DexcaliburEngine.js";
+import {TerminalSessionMap, User} from "./User.js";
+import {TerminalSession} from "./TerminalSession.js";
+import * as Log from "./Logger.js";
+import {Device} from "./Device.js";
 
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;

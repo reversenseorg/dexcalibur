@@ -1,10 +1,10 @@
 
 
 // modif : isImm
-import {CONST} from "../CoreConst";
-import {OPCODE} from "../Opcode";
-import {ModelBasicType, ModelObjectType} from "../ModelType";
-import DDVM_ClassInstance from "./DDVM_ClassInstance";
+import {CONST} from "../CoreConst.js";
+import {OPCODE} from "../Opcode.js";
+import {ModelBasicType, ModelObjectType} from "../ModelType.js";
+import DDVM_ClassInstance from "./DDVM_ClassInstance.js";
 
 export const DTYPE = {
     IMM_STRING: 0x1,

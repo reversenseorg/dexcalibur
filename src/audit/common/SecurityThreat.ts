@@ -1,4 +1,4 @@
-import Threat from "./Threat";
+import Threat from "./Threat.js";
 
 
 export default class SecurityThreat extends Threat {

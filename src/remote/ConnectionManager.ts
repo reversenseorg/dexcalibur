@@ -1,9 +1,9 @@
-import {IDexcaliburEngine} from "../IDexcaliburEngine";
-import {DexcaliburConnectionParams} from "./DexcaliburConnectionParams";
-import {ConnectionCredentials} from "./ConnectionCredentials";
-import {ConnectionHandler} from "./ConnectionHandler";
-import {AuthType} from "../user/auth/AuthTypes";
-import {ConnectionManagerException} from "../errors/ConnectionManagerException";
+import {IDexcaliburEngine} from "../IDexcaliburEngine.js";
+import {DexcaliburConnectionParams} from "./DexcaliburConnectionParams.js";
+import {ConnectionCredentials} from "./ConnectionCredentials.js";
+import {ConnectionHandler} from "./ConnectionHandler.js";
+import {AuthType} from "../user/auth/AuthTypes.js";
+import {ConnectionManagerException} from "../errors/ConnectionManagerException.js";
 
 
 export class ConnectionManager {

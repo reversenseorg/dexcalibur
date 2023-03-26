@@ -1,7 +1,7 @@
-import HookTemplateFragment from "./HookTemplateFragment";
-import {NodeType} from "../persist/orm/NodeType";
-import {NodeInternalType} from "../NodeInternalType";
-import HookStrategy from "./HookStrategy";
+import HookTemplateFragment from "./HookTemplateFragment.js";
+import {NodeType} from "../persist/orm/NodeType.js";
+import {NodeInternalType} from "../NodeInternalType.js";
+import HookStrategy from "./HookStrategy.js";
 
 
 export class HookFragment {

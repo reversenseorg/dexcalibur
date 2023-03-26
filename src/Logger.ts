@@ -1,14 +1,13 @@
+import chalk from "chalk";
+import * as Process from 'process';
+import * as _fs_ from "fs";
+import * as _os_ from "os";
+
 /*
 IMPORTANT :
 -----------
 This file should not include dexcalibur ./src/* file (recursive dependency)
 */
-
-
-import chalk from "chalk";
-import * as Process from 'process';
-import * as _fs_ from "fs";
-import * as _os_ from "os";
 
 
 

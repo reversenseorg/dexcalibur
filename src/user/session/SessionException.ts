@@ -1,4 +1,4 @@
-import {ErrorCode, MonitoredError} from "../../errors/MonitoredError";
+import {ErrorCode, MonitoredError} from "../../errors/MonitoredError.js";
 
 
 export enum SessionCode {

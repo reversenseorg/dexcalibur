@@ -2,20 +2,20 @@
 import * as _path_ from "path";
 import * as _fs_ from 'fs';
 
-import {BridgeSuperFactory, DeviceProfilingOptions, IBridge, IBridgeFactory} from "./Bridge";
-import DexcaliburWorkspace from "./DexcaliburWorkspace";
-import {Device} from "./Device";
-import AdbWrapperFactory from "./AdbWrapperFactory";
-import * as Log from './Logger';
-import Util from "./Utils";
-import Platform from "./Platform";
-import PlatformManager from "./PlatformManager";
-import StatusMessage from "./StatusMessage";
-import FridaHelper from "./FridaHelper";
-import {ValidationCapable, ValidationRule} from "./Validator";
-import DexcaliburEngine from "./DexcaliburEngine";
-import {External} from "./external/External";
-import {DeviceManagerException} from "./errors/DeviceManagerException";
+import {BridgeSuperFactory, DeviceProfilingOptions, IBridge, IBridgeFactory} from "./Bridge.js";
+import DexcaliburWorkspace from "./DexcaliburWorkspace.js";
+import {Device} from "./Device.js";
+import AdbWrapperFactory from "./AdbWrapperFactory.js";
+import * as Log from './Logger.js';
+import Util from "./Utils.js";
+import Platform from "./Platform.js";
+import PlatformManager from "./PlatformManager.js";
+import StatusMessage from "./StatusMessage.js";
+import FridaHelper from "./FridaHelper.js";
+import {ValidationCapable, ValidationRule} from "./Validator.js";
+import DexcaliburEngine from "./DexcaliburEngine.js";
+import {External} from "./external/External.js";
+import {DeviceManagerException} from "./errors/DeviceManagerException.js";
 
 const Logger:Log.ProdLogger = Log.newLogger() as Log.ProdLogger;
 

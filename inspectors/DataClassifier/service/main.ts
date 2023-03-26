@@ -1,4 +1,4 @@
-import InspectorFrontController, {IFC_TYPE} from "../../../src/InspectorFrontController";
+import InspectorFrontController, {IFC_TYPE} from "../../../src/InspectorFrontController.js";
 
  var Controller:InspectorFrontController =  new InspectorFrontController();
 

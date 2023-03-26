@@ -1,4 +1,4 @@
-import ModelSyscall from "./ModelSyscall";
+import ModelSyscall from "./ModelSyscall.js";
 
 
 export const SYSCALLS = [

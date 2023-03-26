@@ -1,14 +1,15 @@
 import * as fs from "fs";
 import * as Path from "path";
-import {ModelFunction} from "../ModelFunction";
-import KeyPoint from "./KeyPoint";
-import KeyPointManager, {DEOPT_TYPE} from "./KeyPointManager";
-import NativeFunctionHook from "./NativeFunctionHook";
-import {HookManager} from "./HookManager";
-import {HookScriptBuilderException} from "../errors/HookScriptBuilderException";
-import {AbstractHook} from "./AbstractHook";
-import * as Log from "../Logger";
-import {KeyPointOptions} from "./KeyPointGenerator";
+import {ModelFunction} from "../ModelFunction.js";
+import KeyPoint from "./KeyPoint.js";
+import KeyPointManager, {DEOPT_TYPE} from "./KeyPointManager.js";
+import NativeFunctionHook from "./NativeFunctionHook.js";
+import {HookManager} from "./HookManager.js";
+import {HookScriptBuilderException} from "../errors/HookScriptBuilderException.js";
+import {AbstractHook} from "./AbstractHook.js";
+import * as Log from "../Logger.js";
+import {KeyPointOptions} from "./KeyPointGenerator.js";
+import Util from "../Utils.js";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -171,7 +172,7 @@ DXC.HOOK["${pLibraryName}"] = {
         let req:any = "", loaded:any = {};
         for(let i=0; i<this.requires.length; i++){
             if(this.requires[i]!=null && loaded[this.requires[i]]==null){
-                req += fs.readFileSync(Path.join(__dirname,"requires",this.requires[i]+".js"));
+                req += fs.readFileSync(Path.join(Util.__dirname(import.meta.url),"requires",this.requires[i]+".js"));
                 loaded[this.requires[i]] = true;
             }
         }

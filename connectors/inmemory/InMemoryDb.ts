@@ -4,14 +4,12 @@
  * @author Georges-B. MICHEL
  * @class
  */
-import DexcaliburProject from "../../src/DexcaliburProject";
-import InMemoryDbCollection from "./InMemoryDbCollection";
-import InMemoryDbIndex from "./InMemoryDbIndex";
-import InMemoryConnector from "./adapter";
-import {IDatabase} from "../../src/persist/orm/DbAbstraction";
-import {NodeType} from "../../src/persist/orm/NodeType";
-import SqliteDbIndex from "../sqlite/SqliteDbIndex";
-import SqliteDbCollection from "../sqlite/SqliteDbCollection";
+import DexcaliburProject from "../../src/DexcaliburProject.js";
+import InMemoryDbCollection from "./InMemoryDbCollection.js";
+import InMemoryDbIndex from "./InMemoryDbIndex.js";
+import InMemoryConnector from "./adapter.js";
+import {IDatabase} from "../../src/persist/orm/DbAbstraction.js";
+import {NodeType} from "../../src/persist/orm/NodeType.js";
 
 /**
  * Represent a "in memory" database

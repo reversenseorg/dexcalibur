@@ -1,18 +1,18 @@
-import {DelegateWebApi} from "./DelegateWebApi";
-import WebServer, {HTTP_CODE_ERROR, HTTP_CODE_SUCCESS} from "../WebServer";
+import {DelegateWebApi} from "./DelegateWebApi.js";
+import WebServer, {HTTP_CODE_ERROR, HTTP_CODE_SUCCESS} from "../WebServer.js";
 import {Request, Response} from "express";
-import * as Log from "../Logger";
-import ModelFile from "../ModelFile";
-import DexcaliburProject from "../DexcaliburProject";
-import {AuthenticationException} from "../errors/AuthenticationException";
-import {DexcaliburProjectException} from "../errors/DexcaliburProjectException";
-import {ModelFunction} from "../ModelFunction";
-import {FinderResult} from "../FinderResult";
-import NativeAnalyzer from "../NativeAnalyzer";
-import {NativeAnalyzerException} from "../errors/NativeAnalyzerException";
-import {NativeAnalyzerCommands} from "../analyzer/NativeAnalyzerCommands";
-import Util from "../Utils";
-import {AbiManager} from "../binary/ABI";
+import * as Log from "../Logger.js";
+import ModelFile from "../ModelFile.js";
+import DexcaliburProject from "../DexcaliburProject.js";
+import {AuthenticationException} from "../errors/AuthenticationException.js";
+import {DexcaliburProjectException} from "../errors/DexcaliburProjectException.js";
+import {ModelFunction} from "../ModelFunction.js";
+import {FinderResult} from "../FinderResult.js";
+import NativeAnalyzer from "../NativeAnalyzer.js";
+import {NativeAnalyzerException} from "../errors/NativeAnalyzerException.js";
+import {NativeAnalyzerCommands} from "../analyzer/NativeAnalyzerCommands.js";
+import Util from "../Utils.js";
+import {AbiManager} from "../binary/ABI.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 

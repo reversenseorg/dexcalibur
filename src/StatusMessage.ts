@@ -1,6 +1,6 @@
 
 
-import * as Log from './Logger';
+import * as Log from './Logger.js';
 let Logger:Log.Logger = Log.newLogger();
 
 export interface StatusSet {

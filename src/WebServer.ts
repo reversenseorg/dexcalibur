@@ -1,77 +1,55 @@
 import * as _path_ from 'path';
 import * as _fs_ from 'fs';
-import * as Express from 'express';
+import express from 'express';
 import {Application as ExpressApplication, Request as ExpressRequest, Response as ExpressResponse} from 'express';
 import * as MIME from 'mime-types';
-import * as BodyParser from 'body-parser';
+import * as _bodyparser_ from 'body-parser';
 import * as _cookieParser_ from 'cookie-parser';
+const BodyParser = _bodyparser_.default;
+const CookieParser = _cookieParser_.default;
 
 
+import WebTemplateEngine from "./WebTemplateEngine.js";
+import DexcaliburProject from "./DexcaliburProject.js";
+import DexcaliburEngine, {DexcaliburProjectMap} from "./DexcaliburEngine.js";
+import Uploader from "./Uploader.js";
+import PlatformManager from "./PlatformManager.js";
+import InspectorManager from "./InspectorManager.js";
+import Inspector from "./Inspector.js";
+import {ConnectorFactory} from "./ConnectorFactory.js";
+import DeviceManager from "./DeviceManager.js";
+import {Device} from "./Device.js";
+import * as Log from './Logger.js';
+import StatusMessage from "./StatusMessage.js";
+import Util from "./Utils.js";
+import HookSet from "./HookSet.js";
+import {Intent, IntentCommandFactory} from "./IntentFactory.js";
+import {Workflow} from "./Workflow.js";
+import {ValidationCapable, Validator} from "./Validator.js";
+import {Settings} from "./Settings.js";
+import {UserSession} from "./user/session/UserSession.js";
+import {UserService} from "./user/UserService.js";
 
-import WebTemplateEngine from "./WebTemplateEngine";
-import DexcaliburProject from "./DexcaliburProject";
-import DexcaliburEngine, {DexcaliburProjectMap} from "./DexcaliburEngine";
-import Uploader from "./Uploader";
-import PlatformManager from "./PlatformManager";
-import InspectorManager from "./InspectorManager";
-import Inspector from "./Inspector";
-import {ConnectorFactory} from "./ConnectorFactory";
-import {IDbCollection, IDbIndex} from "./persist/orm/DbAbstraction";
-import Platform from "./Platform";
-import DeviceManager from "./DeviceManager";
-import {Device} from "./Device";
-import Downloader from "./Downloader";
-import * as Log from './Logger';
-import StatusMessage from "./StatusMessage";
-import AppPackage from "./AppPackage";
-import {IBridge} from "./Bridge";
-import Hook from "./Hook";
-import FridaHelper from "./FridaHelper";
-import HookSession from "./HookSession";
-import Util from "./Utils";
-import ModelMethod from "./ModelMethod";
-import AndroidActivity from "./android/AndroidActivity";
-import AndroidReceiver from "./android/AndroidReceiver";
-import AndroidProvider from "./android/AndroidProvider";
-import AndroidService from "./android/AndroidService";
-import ModelField from "./ModelField";
-import HookSet from "./HookSet";
-import * as VM from "vm";
-import {FinderResult} from "./FinderResult";
-import {Intent, IntentCommandFactory} from "./IntentFactory";
-import Simplifier from "./Simplifier";
-import ModelPackage from "./ModelPackage";
-import ModelClass from "./ModelClass";
-import ModelFile from "./ModelFile";
-import {ModelFunction} from "./ModelFunction";
-import HookMessage from "./HookMessage";
-import {Workflow} from "./Workflow";
-import {HookSetList} from "./hook/HookManager";
-import {ValidationCapable, Validator} from "./Validator";
-import {Settings} from "./Settings";
-import {UserSession} from "./user/session/UserSession";
-import {UserService} from "./user/UserService";
-
-import {DEVICE_WEB_API} from "./webapi/device.web.api";
-import {AUTH_WEB_API} from "./webapi/auth.web.api";
-import {SETTINGS_WEB_API} from "./webapi/settings.web.api";
-import {PROBE_SERVER_WEB_API} from "./webapi/probe-server.web.api";
-import {APP_WEB_API} from "./webapi/app.web.api";
-import {PROJECT_MGT_WEB_API} from "./webapi/proj-mgt.web.api";
-import {PLATFORM_WEB_API} from "./webapi/platform.web.api";
-import {PROJECT_WEB_API} from "./webapi/project.web.api";
-import {CODE_WEB_API} from "./webapi/code.web.api";
-import {ANDROID_WEB_API} from "./webapi/android.web.api";
-import {NATIVE_WEB_API} from "./webapi/native.web.api";
-import {FS_WEB_API} from "./webapi/fs.web.api";
-import {USER_WEB_API} from "./webapi/user.web.api";
-import {HOOK_WEB_API} from "./webapi/hook.web.api";
-import {INSPECTOR_WEB_API} from "./webapi/inspectors.web.api";
-import {KEYPOINT_WEB_API} from "./webapi/keypoint.web.api";
-import {SCRIPT_WEB_API} from "./webapi/script.web.api";
-import {HOOK_FRAGS_WEB_API} from "./webapi/hook-fragment.web.api";
-import {TAG_MGT_WEB_API} from "./webapi/tag.web.api";
-import {WebApiWindowing} from "./webapi/internals/WebApiWindowing";
+import {DEVICE_WEB_API} from "./webapi/device.web.api.js";
+import {AUTH_WEB_API} from "./webapi/auth.web.api.js";
+import {SETTINGS_WEB_API} from "./webapi/settings.web.api.js";
+import {PROBE_SERVER_WEB_API} from "./webapi/probe-server.web.api.js";
+import {APP_WEB_API} from "./webapi/app.web.api.js";
+import {PROJECT_MGT_WEB_API} from "./webapi/proj-mgt.web.api.js";
+import {PLATFORM_WEB_API} from "./webapi/platform.web.api.js";
+import {PROJECT_WEB_API} from "./webapi/project.web.api.js";
+import {CODE_WEB_API} from "./webapi/code.web.api.js";
+import {ANDROID_WEB_API} from "./webapi/android.web.api.js";
+import {NATIVE_WEB_API} from "./webapi/native.web.api.js";
+import {FS_WEB_API} from "./webapi/fs.web.api.js";
+import {USER_WEB_API} from "./webapi/user.web.api.js";
+import {HOOK_WEB_API} from "./webapi/hook.web.api.js";
+import {INSPECTOR_WEB_API} from "./webapi/inspectors.web.api.js";
+import {KEYPOINT_WEB_API} from "./webapi/keypoint.web.api.js";
+import {SCRIPT_WEB_API} from "./webapi/script.web.api.js";
+import {HOOK_FRAGS_WEB_API} from "./webapi/hook-fragment.web.api.js";
+import {TAG_MGT_WEB_API} from "./webapi/tag.web.api.js";
+import {WebApiWindowing} from "./webapi/internals/WebApiWindowing.js";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -190,7 +168,7 @@ export default class WebServer
         this.project = null; //pProject;
 
         this.tplengine = new WebTemplateEngine();
-        this.app = Express();
+        this.app = express();
         this.port = 8000;
         this.root = pWebRoot;
 
@@ -265,7 +243,7 @@ export default class WebServer
      * @returns {Express.Application} Instance of Express Application
      * @method
      */
-    getApplication():Express.Application{
+    getApplication():ExpressApplication{
         return this.app;
     }
 
@@ -346,7 +324,7 @@ export default class WebServer
     newDispatcher( pHome:string):Function{
         let $:WebServer = this;
 
-        return function (req:Express.Request, res:Express.Response):void {
+        return function (req:ExpressRequest, res:ExpressResponse):void {
 
             let localPath:string = $.root + req.path, mime:string = null;
 
@@ -365,7 +343,7 @@ export default class WebServer
                     for (let i = 2; i < inspector.length; i++)
                         relPath = _path_.join(relPath, inspector[i]);
 
-                    localPath = _path_.join( __dirname, "..", "inspectors");
+                    localPath = _path_.join( Util.__dirname(import.meta.url), "..", "inspectors");
                     localPath = _path_.join(localPath, inspector[1], "web", relPath);
 
                     mime = MIME.lookup(_path_.basename(localPath));
@@ -1043,7 +1021,7 @@ export default class WebServer
          * Gather cookie
          */
 
-        this.app.use(_cookieParser_());
+        this.app.use(CookieParser());
 
         /**
          * Open session and attach to request

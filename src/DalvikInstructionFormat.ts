@@ -1,14 +1,12 @@
-import OpcodeSmaliParser from "./OpcodeSmaliParser";
-import {ModelMethodReference, ModelRegisterReference, CodeLabel} from "./ModelReference";
-import {CONST} from "./CoreConst";
-import ModelInstruction from "./ModelInstruction";
-import {ModelBasicType, ModelObjectType} from "./ModelType";
-import {PATTERN, RX} from "./CoreParser";
-import Util from "./Utils";
-import ModelConstantValue from "./ModelConstantValue";
+import OpcodeSmaliParser from "./OpcodeSmaliParser.js";
+import {ModelMethodReference, ModelRegisterReference, CodeLabel} from "./ModelReference.js";
+import ModelInstruction from "./ModelInstruction.js";
+import {ModelBasicType, ModelObjectType} from "./ModelType.js";
+import {PATTERN, RX} from "./CoreParser.js";
+import Util from "./Utils.js";
+import ModelConstantValue from "./ModelConstantValue.js";
 
-import * as Log from './Logger';
-import {Tag} from "./tags/Tag";
+import * as Log from './Logger.js';
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
 export default class DalvikInstructionFormat {

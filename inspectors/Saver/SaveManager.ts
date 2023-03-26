@@ -1,12 +1,11 @@
 import * as _fs_ from 'fs';
 import * as _path_ from 'path';
 
-import {ConnectorFactory} from "../../src/ConnectorFactory";
-import DexcaliburProject from "../../src/DexcaliburProject";
-import InMemoryConnector from "../../connectors/inmemory/adapter";
-import * as Log from "../../src/Logger";
-import {IDatabase} from "../../src/persist/orm/DbAbstraction";
-import KeyPointManager from "../../src/hook/KeyPointManager";
+import {ConnectorFactory} from "../../src/ConnectorFactory.js";
+import DexcaliburProject from "../../src/DexcaliburProject.js";
+import InMemoryConnector from "../../connectors/inmemory/adapter.js";
+import * as Log from "../../src/Logger.js";
+import {IDatabase} from "../../src/persist/orm/DbAbstraction.js";
 
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;

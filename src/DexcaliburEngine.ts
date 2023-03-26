@@ -1,52 +1,48 @@
-import DexcaliburRegistry from "./DexcaliburRegistry";
-import PlatformManager from "./PlatformManager";
+import DexcaliburRegistry from "./DexcaliburRegistry.js";
+import PlatformManager from "./PlatformManager.js";
 
 import * as  _fs_ from 'fs';
 import * as  _path_ from 'path';
 import * as  _os_ from "os";
-import DexcaliburWorkspace from "./DexcaliburWorkspace";
+import DexcaliburWorkspace from "./DexcaliburWorkspace.js";
 
-import * as Log from './Logger';
-import StatusMessage from "./StatusMessage";
-import DexcaliburProject from "./DexcaliburProject";
-import Util from "./Utils";
-import WebServer from "./WebServer";
-import DeviceManager from "./DeviceManager";
-import InspectorManager from "./InspectorManager";
-import Configuration from "./Configuration";
-import FridaHelper from "./FridaHelper";
-import {WebsocketServer} from "./WebsocketServer";
-import {TerminalServer} from "./TerminalServer";
-import {DexcaliburServerChildProcess, IpcMode} from "./DexcaliburServerChildProcess";
-import {ApkPackage} from "./android/ApkPackage";
-import {Workflow} from "./Workflow";
-import {ValidationCapable, ValidationRule} from "./Validator";
-import ApkHelper from "./ApkHelper";
-import JavaHelper from "./JavaHelper";
-import {BinwalkHelper} from "./BinwalkHelper";
-import DexHelper from "./DexHelper";
-import {External} from "./external/External";
-import {Settings} from "./Settings";
-import RadareHelper from "./R2Helper";
-import {UserService} from "./user/UserService";
-import AccessControl from "./user/acl/AccessControl";
-import {AccessZone} from "./user/acl/Zones";
-import {ProjectAccessControl} from "./user/acl/rbac/ProjectAccessContol";
-import {SettingsAccessControl} from "./user/acl/rbac/SettingsAccessContol";
-import {IDexcaliburEngine} from "./IDexcaliburEngine";
-import {ConnectionManager} from "./remote/ConnectionManager";
-import ShellHelper from "./ShellHelper";
-import {GlobalAccessControl} from "./user/acl/rbac/GlobalAccessContol";
-import {UserAccount} from "./user/UserAccount";
-import {NodeSchema} from "./NodeSchema";
-import {DexcaliburUpdater} from "./DexcaliburUpdater";
+import * as Log from './Logger.js';
+import StatusMessage from "./StatusMessage.js";
+import DexcaliburProject from "./DexcaliburProject.js";
+import WebServer from "./WebServer.js";
+import DeviceManager from "./DeviceManager.js";
+import InspectorManager from "./InspectorManager.js";
+import Configuration from "./Configuration.js";
+import FridaHelper from "./FridaHelper.js";
+import {WebsocketServer} from "./WebsocketServer.js";
+import {TerminalServer} from "./TerminalServer.js";
+import {DexcaliburServerChildProcess, IpcMode} from "./DexcaliburServerChildProcess.js";
+import {ApkPackage} from "./android/ApkPackage.js";
+import {Workflow} from "./Workflow.js";
+import {ValidationCapable, ValidationRule} from "./Validator.js";
+import ApkHelper from "./ApkHelper.js";
+import JavaHelper from "./JavaHelper.js";
+import {BinwalkHelper} from "./BinwalkHelper.js";
+import DexHelper from "./DexHelper.js";
+import {External} from "./external/External.js";
+import {Settings} from "./Settings.js";
+import RadareHelper from "./R2Helper.js";
+import {UserService} from "./user/UserService.js";
+import AccessControl from "./user/acl/AccessControl.js";
+import {AccessZone} from "./user/acl/Zones.js";
+import {ProjectAccessControl} from "./user/acl/rbac/ProjectAccessContol.js";
+import {SettingsAccessControl} from "./user/acl/rbac/SettingsAccessContol.js";
+import {IDexcaliburEngine} from "./IDexcaliburEngine.js";
+import {ConnectionManager} from "./remote/ConnectionManager.js";
+import ShellHelper from "./ShellHelper.js";
+import {GlobalAccessControl} from "./user/acl/rbac/GlobalAccessContol.js";
+import {UserAccount} from "./user/UserAccount.js";
+import {NodeSchema} from "./NodeSchema.js";
+import {DexcaliburUpdater} from "./DexcaliburUpdater.js";
 import Tool = External.Tool;
-import {DXC_LIFECYCLE_EVENT} from "./CoreConst";
+import {DXC_LIFECYCLE_EVENT} from "./CoreConst.js";
+import Util from "./Utils.js";
 
-
-if(_os_.platform()=="darwin"){
-    Util.updateEnvPATH();
-}
 
 /*
 const _fixPath_ = require("fix-path");
@@ -55,11 +51,18 @@ if(require('os').platform()=="darwin"){
     _fixPath_();
 }*/
 
+
+if(_os_.platform()=="darwin"){
+    Util.updateEnvPATH();
+}
+
+
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
 let gEngineInstance:DexcaliburEngine = null;
 // eslint-disable-next-line @typescript-eslint/no-var-requires
-const PACKAGE_JSON:any =  require(_path_.join(__dirname,"..",'info.json'));
+
+const PACKAGE_JSON:any = Util.readPackageJson();
 
 const LOG_FILE = (process.env.DXC_LOG_PATH? process.env.DXC_LOG_PATH : null);
 function __log( pMessage:string):void{
@@ -78,14 +81,14 @@ if(process.env.DXC_HOME!=null){
 const FRIDA_BIN = (process.env.DEXCALIBUR_FRIDA !== null)? process.env.DEXCALIBUR_FRIDA : "frida"
 
 
-const LOGO = "███████╗ ███████╗██╗  ██╗ ██████╗ █████╗ ██╗     ██╗██████╗ ██╗   ██╗██████╗\n" 
+const LOGO = "███████╗ ███████╗██╗  ██╗ ██████╗ █████╗ ██╗     ██╗██████╗ ██╗   ██╗██████╗\n"
             +"██╔═══██╗██╔════╝╚██╗██╔╝██╔════╝██╔══██╗██║     ██║██╔══██╗██║   ██║██╔══██╗\n"
             +"██║   ██║█████╗   ╚███╔╝ ██║     ███████║██║     ██║██████╔╝██║   ██║██████╔╝\n"
             +"██║   ██║██╔══╝   ██╔██╗ ██║     ██╔══██║██║     ██║██╔══██╗██║   ██║██╔══██╗\n"
             +"███████╔╝███████╗██╔╝ ██╗╚██████╗██║  ██║███████╗██║██████╔╝╚██████╔╝██║  ██║\n"
             +"╚══════╝ ╚══════╝╚═╝  ╚═╝ ╚═════╝╚═╝  ╚═╝╚══════╝╚═╝╚═════╝  ╚═════╝ ╚═╝  ╚═╝\n";
-/** 
- * List of remote location where each tool can be downloaded 
+/**
+ * List of remote location where each tool can be downloaded
  * @constant
  */
 const REMOTE_URLS:any = {
@@ -121,17 +124,17 @@ export interface DexcaliburProjectMap {
 }
 
 /**
- * 
- * 
+ *
+ *
  * Boot :
  *  - Read /home/ * /.dexcalibur/config.json
  *  - Else, Dexcalibur starts into "production mode"
- * 
- *  - Init DexcaliburWorkspace  
+ *
+ *  - Init DexcaliburWorkspace
  *  - Start Dexcalibur (web server and socket server)
- *  - When the user selects or creates a project from SplashScreen, corresponding 
+ *  - When the user selects or creates a project from SplashScreen, corresponding
  *  Project are loaded / created
- * 
+ *
  *  @class
  */
 export default class DexcaliburEngine extends ValidationCapable implements IDexcaliburEngine
@@ -329,7 +332,7 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
 
     /**
      * To instanciate DexcaliburEngine.
-     * 
+     *
      * @private
      * @constructor
      */
@@ -359,10 +362,10 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
 
         //AccessControl.startAudit();
     }
-    
+
     /**
      * To get an instance of the engine
-     * 
+     *
      * @returns {DexcaliburEngine} engine
      * @method
      * @static
@@ -421,8 +424,8 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
     }
 
     /**
-     * To get active registry 
-     * 
+     * To get active registry
+     *
      * @returns {DexcaliburRegistry} Current active registry
      * @method
      */
@@ -441,8 +444,8 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
 
     /**
      * To print Dexcalibur banner into CLI at starting
-     *  
-     * @param {Integer} pPort Port number 
+     *
+     * @param {Integer} pPort Port number
      * @static
      * @method
      */
@@ -459,12 +462,12 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
             +"║ Do you need some help ? Visit http://docs.dexcalibur.org                   ║\n"
             +"╚════════════════════════════════════════════════════════════════════════════╝\n"
             );
-        
+
     }
 
     /**
-     * 
-     * @param {*} pPort 
+     *
+     * @param {*} pPort
      */
     printWebBanner( pPort:number|string){
         Logger.info("\n\n"
@@ -584,7 +587,7 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
     getUserService(): UserService{
         return this.userSvc;
     }
-    
+
     /**
      *
      */
@@ -600,8 +603,6 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
         if(conns == null || conns.countConnections()===0){
             this.settings.createConnectionSettings();
             this.settings.save();
-        }else{
-            console.log(conns);
         }
 
         this.connManager = new ConnectionManager(this);
@@ -620,12 +621,12 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
      * To instenciate and initialize main components
      *
      * At this step
-     * Require `this.workspace` is loaded.  
-     * 
+     * Require `this.workspace` is loaded.
+     *
      * @returns {Boolean} TRUE if ready to start
      * @method
      */
-    boot( pRestore=false, pWebRoot:string = null){
+    async boot( pRestore=false, pWebRoot:string = null):Promise<any>{
         // eslint-disable-next-line @typescript-eslint/no-this-alias
         const self:DexcaliburEngine=this;
 
@@ -656,7 +657,7 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
 
         Logger.debug('PASSA');
         //  enumerate local and remote inspectors
-        this.inspectorMgr.enumerate();
+        await this.inspectorMgr.enumerate();
         Logger.debug('PASSB');
 
         this.updater.run( DXC_LIFECYCLE_EVENT.INSPECT_MGR_AFTER_INIT);
@@ -691,7 +692,7 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
 
     /**
      * To init the context shared by any project
-     * 
+     *
      * @method
      */
     init(pWebRoot:string = null){
@@ -699,7 +700,7 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
 
 
         if(pWebRoot === null){
-            pWebRoot = _path_.join(__dirname, 'webserver', 'public');
+            pWebRoot = _path_.join(Util.__dirname(import.meta.url), 'webserver', 'public');
         }
 
         // init external tool manager
@@ -742,12 +743,12 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
         // hook
         this.hook = new HookHelper.Manager(this, nofrida);
         this.hook.refreshScanner();
-*/ 
+*/
     }
 
     /**
      * To get configuration object
-     * @method 
+     * @method
      */
     getConfiguration():Configuration{
         return this.config;
@@ -774,7 +775,7 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
 
     /**
      * To get platform manager instance
-     * 
+     *
      * @method
      */
     getPlatformManager():PlatformManager{
@@ -783,7 +784,7 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
 
     /**
      * To get inspector manager instance
-     * 
+     *
      * @method
      */
     getInspectorManager():InspectorManager{
@@ -792,7 +793,7 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
 
     /**
      * To get device manager instance
-     * 
+     *
      * @method
      */
     getDeviceManager():DeviceManager{
@@ -885,7 +886,7 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
      */
     getProject(pProjectUID:string):DexcaliburProject{
         if(this.active[pProjectUID] instanceof DexcaliburProject){
-            return this.active[pProjectUID]; 
+            return this.active[pProjectUID];
         }
 
         return null;
@@ -989,7 +990,7 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
             // init
 
 //            project = new DexcaliburProject( this, pUID);
-            
+
             DexcaliburEngine.printBanner();
 
             wf.stepUp(0.1);

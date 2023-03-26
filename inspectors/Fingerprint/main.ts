@@ -3,12 +3,12 @@
 
 // ===== INIT =====
 
-import InspectorFactory from "../../src/InspectorFactory";
-import {INSPECTOR_TYPE} from "../../src/Inspector";
-import DexcaliburProject from "../../src/DexcaliburProject";
-import BusEvent from "../../src/BusEvent";
-import * as Log from "../../src/Logger";
-import ModelMethod from "../../src/ModelMethod";
+import InspectorFactory from "../../src/InspectorFactory.js";
+import {INSPECTOR_TYPE} from "../../src/Inspector.js";
+import DexcaliburProject from "../../src/DexcaliburProject.js";
+import BusEvent from "../../src/BusEvent.js";
+import * as Log from "../../src/Logger.js";
+import ModelMethod from "../../src/ModelMethod.js";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 

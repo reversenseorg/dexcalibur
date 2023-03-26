@@ -1,6 +1,6 @@
-import AndroidApplication from "./android/AndroidApplication";
-import {Device} from "./Device";
-import DexcaliburProject from "./DexcaliburProject";
+import AndroidApplication from "./android/AndroidApplication.js";
+import {Device} from "./Device.js";
+import DexcaliburProject from "./DexcaliburProject.js";
 
 export class ApplicationBinary
 {

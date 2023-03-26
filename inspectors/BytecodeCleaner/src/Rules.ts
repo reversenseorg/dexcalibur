@@ -1,9 +1,9 @@
-import {CONST} from "../../../src/CoreConst";
-import DexcaliburProject from "../../../src/DexcaliburProject";
-import ModelMethod from "../../../src/ModelMethod";
-import ModelInstruction from "../../../src/ModelInstruction";
-import AnalyzerDatabase from "../../../src/AnalyzerDatabase";
-import {Modifier} from "../../../src/AccessFlags";
+import {CONST} from "../../../src/CoreConst.js";
+import DexcaliburProject from "../../../src/DexcaliburProject.js";
+import ModelMethod from "../../../src/ModelMethod.js";
+import ModelInstruction from "../../../src/ModelInstruction.js";
+import AnalyzerDatabase from "../../../src/AnalyzerDatabase.js";
+import {Modifier} from "../../../src/AccessFlags.js";
 
 
 const DEBUG = false;

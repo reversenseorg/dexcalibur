@@ -1,9 +1,9 @@
 
 import * as _fs_ from "fs";
 
-import AdbWrapper from "./AdbWrapper";
-import {Device} from "./Device";
-import {IBridge, IBridgeFactory} from "./Bridge";
+import AdbWrapper from "./AdbWrapper.js";
+import {Device} from "./Device.js";
+import {IBridge, IBridgeFactory} from "./Bridge.js";
 
 let gInstance:AdbWrapperFactory = null;
 

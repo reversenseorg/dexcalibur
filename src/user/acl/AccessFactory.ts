@@ -3,7 +3,7 @@
  *
  * @class
  */
-import {AccessMap} from "./Access";
+import {AccessMap} from "./Access.js";
 
 export class AccessFactory {
 

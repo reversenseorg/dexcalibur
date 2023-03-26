@@ -1,12 +1,12 @@
-import GenericTrustProfile from "../../device/profile/GenericTrustProfile";
-import Certificate, {CertificateFormat} from "../../formats/common/Certificate";
-import {NosyProfile} from "../../device/profile/NosyProfile";
-import {DeviceProfilingOptions, IBridge} from "../../Bridge";
+import GenericTrustProfile from "../../device/profile/GenericTrustProfile.js";
+import Certificate, {CertificateFormat} from "../../formats/common/Certificate.js";
+import {NosyProfile} from "../../device/profile/NosyProfile.js";
+import {DeviceProfilingOptions, IBridge} from "../../Bridge.js";
 import * as _path_ from "path";
-import UT from "../../Utils";
-import CertificateHelper from "../../formats/helpers/CertificateHelper";
-import * as Log from "../../Logger";
-import {IProfile} from "../../device/profile/IProfile";
+import UT from "../../Utils.js";
+import CertificateHelper from "../../formats/helpers/CertificateHelper.js";
+import * as Log from "../../Logger.js";
+import {IProfile} from "../../device/profile/IProfile.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 

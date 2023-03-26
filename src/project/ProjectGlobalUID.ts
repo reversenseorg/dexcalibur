@@ -1,4 +1,4 @@
-import {DexcaliburConnectionParams} from "../remote/DexcaliburConnectionParams";
+import {DexcaliburConnectionParams} from "../remote/DexcaliburConnectionParams.js";
 
 const LOCAL_ID = "local";
 const SEPARATOR = '@'

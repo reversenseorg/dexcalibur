@@ -1,11 +1,11 @@
-import AndroidActivity from "./AndroidActivity";
-import AndroidProvider from "./AndroidProvider";
-import AndroidService from "./AndroidService";
-import AndroidReceiver from "./AndroidReceiver";
-import {AndroidAttributeSet} from "./AndroidAttribute";
-import {AndroidManifest} from "./AndroidManifest";
-import {ApplicationBinary} from "../Application";
-import DexcaliburProject from "../DexcaliburProject";
+import AndroidActivity from "./AndroidActivity.js";
+import AndroidProvider from "./AndroidProvider.js";
+import AndroidService from "./AndroidService.js";
+import AndroidReceiver from "./AndroidReceiver.js";
+import {AndroidAttributeSet} from "./AndroidAttribute.js";
+import {AndroidManifest} from "./AndroidManifest.js";
+import {ApplicationBinary} from "../Application.js";
+import DexcaliburProject from "../DexcaliburProject.js";
 
 
 

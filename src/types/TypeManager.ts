@@ -1,5 +1,5 @@
-import {DataType} from "./DataType";
-import * as Log from "../Logger";
+import {DataType} from "./DataType.js";
+import * as Log from "../Logger.js";
 
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;

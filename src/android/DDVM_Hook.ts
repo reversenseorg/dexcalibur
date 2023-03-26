@@ -5,7 +5,7 @@
  * @class
  * @classdesc Class describing a hook into the VM
  */
-import DDVM_ClassInstance from "./DDVM_ClassInstance";
+import DDVM_ClassInstance from "./DDVM_ClassInstance.js";
 
 /**
  * @class

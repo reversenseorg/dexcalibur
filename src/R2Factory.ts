@@ -3,11 +3,10 @@ import * as _stream_ from 'stream';
 import {promisify} from 'util';
 
 
-import * as Log from './Logger';
-import RadareHelper, {R2_TYPE} from "./R2Helper";
-import Bus from "./Bus";
-import DexcaliburProject from "./DexcaliburProject";
-import ModelFile from "./ModelFile";
+import * as Log from './Logger.js';
+import RadareHelper, {R2_TYPE} from "./R2Helper.js";
+import DexcaliburProject from "./DexcaliburProject.js";
+import ModelFile from "./ModelFile.js";
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
 const pipeline = promisify(_stream_.pipeline);

@@ -1,4 +1,4 @@
-import {Access, AccessType} from "./Access";
+import {Access, AccessType} from "./Access.js";
 
 
 export interface AccessAttributeMap {

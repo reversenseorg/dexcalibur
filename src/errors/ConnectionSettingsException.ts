@@ -1,4 +1,4 @@
-import {ErrorCode, MonitoredError} from "./MonitoredError";
+import {ErrorCode, MonitoredError} from "./MonitoredError.js";
 
 export class ConnectionSettingsException extends MonitoredError {
 

@@ -1,4 +1,4 @@
-import HookStrategy from "./HookStrategy";
+import HookStrategy from "./HookStrategy.js";
 
 
 export default class HookTemplate {

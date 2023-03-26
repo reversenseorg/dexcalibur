@@ -1,14 +1,16 @@
 import * as _path_ from "path";
 import * as _fs_ from "fs";
 import * as _url_ from "url";
-import got from "got";
+
+import * as Got from "got";
+const got = Got.default;
 import * as _stream_ from "stream";
 import {promisify} from "util";
 
 const pipeline = promisify(_stream_.pipeline);
 
-import DexcaliburWorkspace from './DexcaliburWorkspace';
-import Util from './Utils';
+import DexcaliburWorkspace from './DexcaliburWorkspace.js';
+import Util from './Utils.js';
 
 
 /**

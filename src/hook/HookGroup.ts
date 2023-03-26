@@ -1,13 +1,10 @@
-import HookPrologue from "../HookPrologue";
-import DexcaliburProject from "../DexcaliburProject";
-import Hook from "../Hook";
-import {HookManager} from "../hook/HookManager";
-import * as Log from '../Logger';
-import HookPrimitive from "../HookPrimitive";
-import HookStrategy from "../hook/HookStrategy";
-import {AbstractHook} from "../hook/AbstractHook";
-import {NodeType} from "../persist/orm/NodeType";
-import {NodeInternalType} from "../NodeInternalType";
+import HookPrologue from "../HookPrologue.js";
+import DexcaliburProject from "../DexcaliburProject.js";
+import * as Log from '../Logger.js';
+import HookStrategy from "../hook/HookStrategy.js";
+import {AbstractHook} from "../hook/AbstractHook.js";
+import {NodeType} from "../persist/orm/NodeType.js";
+import {NodeInternalType} from "../NodeInternalType.js";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 

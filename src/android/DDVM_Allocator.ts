@@ -5,7 +5,7 @@
  * @class
  * @classdesc Class performing allocation of some components
  */
-import DDVM_VirtualArray from "./DDVM_VirtualArray";
+import DDVM_VirtualArray from "./DDVM_VirtualArray.js";
 
 export default class DDVM_Allocator
 {

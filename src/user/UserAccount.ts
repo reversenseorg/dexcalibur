@@ -1,15 +1,14 @@
-import {Person} from "./Person";
+import {Person} from "./Person.js";
 import {createHash} from "crypto";
-import {AuthCode, AuthenticationException} from "./auth/AuthTypes";
-import {UserRole} from "./acl/rbac/UserRole";
-import AccessControl from "./acl/AccessControl";
-import {ProjectURI} from "../project/ProjectGlobalUID";
-import {IDexcaliburEngine} from "../IDexcaliburEngine";
-import {IPersistent} from "../persist/orm/IPersistent";
-import {NodeType} from "../persist/orm/NodeType";
-import {NodeInternalType} from "../NodeInternalType";
-import {NodeProperty, NodePropertyState} from "../persist/orm/NodeProperty";
-import {DbDataType, DbKeyType} from "../persist/orm/DbAbstraction";
+import {AuthCode, AuthenticationException} from "./auth/AuthTypes.js";
+import {UserRole} from "./acl/rbac/UserRole.js";
+import AccessControl from "./acl/AccessControl.js";
+import {ProjectURI} from "../project/ProjectGlobalUID.js";
+import {IDexcaliburEngine} from "../IDexcaliburEngine.js";
+import {IPersistent} from "../persist/orm/IPersistent.js";
+import {NodeType} from "../persist/orm/NodeType.js";
+import {NodeInternalType} from "../NodeInternalType.js";
+import Util from "../Utils.js";
 
 export class UserAccount implements IPersistent{
 
@@ -182,6 +181,32 @@ export class UserAccount implements IPersistent{
         if(hash.digest('hex')!==this.password){
             throw new AuthenticationException("Password are differents", AuthCode.INVALID_PASSWORD);
         }
+    }
+
+    newPassword( pPwd:string):void {
+
+        //
+        this.padding = Util.randString(16,Util.ALPHANUM);
+        this.salt = Util.randString(8,Util.ALPHANUM)+Util.randString(8,Util.ALPHANUM);
+
+        // add padding
+        let pwd:string = pPwd;
+        if(pwd.length < 16){
+            pwd = pwd+this.padding;
+        }
+
+        // scramble with random salt
+        let j =0 ;
+        for(let i=0; i<4; i++){
+            pwd = pwd.split('').map( c =>  String.fromCharCode(c.charCodeAt(0) ^ this.salt[(j++<<i)%this.salt.length].charCodeAt(0)) ).join('');
+            j++;
+        }
+
+        // hash
+        let hash = createHash('sha256');
+        hash.update(pwd);
+
+        this.password = hash.digest('hex')
     }
 
     addOwnedProject( pProjectURI:ProjectURI ):void {

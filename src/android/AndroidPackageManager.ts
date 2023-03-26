@@ -1,5 +1,5 @@
-import * as Log from "../Logger";
-import {Device} from "../Device";
+import * as Log from "../Logger.js";
+import {Device} from "../Device.js";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 

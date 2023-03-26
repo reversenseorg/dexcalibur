@@ -1,4 +1,4 @@
-import {SharedResource} from "./SharedResource";
+import {SharedResource} from "./SharedResource.js";
 
 
 export class SharingConfiguration {

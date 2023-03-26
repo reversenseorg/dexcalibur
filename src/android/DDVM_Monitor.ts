@@ -1,7 +1,7 @@
 /**
  * Monitor gather CFG states explored or not.
  */
-import {DDVM_State} from "./DDVM_State";
+import {DDVM_State} from "./DDVM_State.js";
 
 
 export default class DDVM_Monitor

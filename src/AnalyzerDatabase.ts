@@ -4,16 +4,10 @@
  * @class
  * @author Georges-B. MICHEL
  */
-import DexcaliburProject from "./DexcaliburProject";
-import {ConnectorFactory } from "./ConnectorFactory";
-import {IDatabaseAdapter, IDbCollection, IDbIndex} from "./persist/orm/DbAbstraction";
-import {NodeInternalType} from "./NodeInternalType";
-import ModelFile from "./ModelFile";
-import ModelPackage from "./ModelPackage";
-import ModelClass from "./ModelClass";
-import ModelMethod from "./ModelMethod";
-import ModelField from "./ModelField";
-import {ModelFunction} from "./ModelFunction";
+import DexcaliburProject from "./DexcaliburProject.js";
+import {ConnectorFactory } from "./ConnectorFactory.js";
+import {IDatabaseAdapter, IDbCollection, IDbIndex} from "./persist/orm/DbAbstraction.js";
+import {NodeInternalType} from "./NodeInternalType.js";
 
 
 export default class AnalyzerDatabase

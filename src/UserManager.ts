@@ -1,9 +1,9 @@
 import * as _fs_ from "fs";
 
-import {User} from "./User";
-import DexcaliburEngine from "./DexcaliburEngine";
+import {User} from "./User.js";
+import DexcaliburEngine from "./DexcaliburEngine.js";
 
-import * as Log from "./Logger";
+import * as Log from "./Logger.js";
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
 

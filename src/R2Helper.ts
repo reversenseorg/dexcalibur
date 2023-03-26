@@ -1,20 +1,21 @@
 //import * as r2 from 'r2pipe';
-import * as r2p from 'r2pipe'
+import * as _r2pipe from 'r2pipe'
 import {R2Pipe} from 'r2pipe-promise';
+const r2p = _r2pipe.default;
 
-import * as Log from './Logger';
-import ModelExecutableSection from "./ModelExecutableSection";
-import {ModelFunction} from "./ModelFunction";
-import ModelFile from "./ModelFile";
-import {ModelNativeRef} from "./ModelNativeRef";
-import ModelCpuInstruction from "./ModelCpuInstruction";
-import {ModelVariable, ModelVariableLocation} from "./ModelVariable";
-import {External} from "./external/External";
-import Util from "./Utils";
-import {NativeAnalyzerCommands} from "./analyzer/NativeAnalyzerCommands";
-import {DATATYPE_CATEGORY, TypeManager} from "./types/TypeManager";
-import {DataType} from "./types/DataType";
-import {TagManager} from "./tags/TagManager";
+import * as Log from './Logger.js';
+import ModelExecutableSection from "./ModelExecutableSection.js";
+import {ModelFunction} from "./ModelFunction.js";
+import ModelFile from "./ModelFile.js";
+import {ModelNativeRef} from "./ModelNativeRef.js";
+import ModelCpuInstruction from "./ModelCpuInstruction.js";
+import {ModelVariable, ModelVariableLocation} from "./ModelVariable.js";
+import {External} from "./external/External.js";
+import Util from "./Utils.js";
+import {NativeAnalyzerCommands} from "./analyzer/NativeAnalyzerCommands.js";
+import {DATATYPE_CATEGORY, TypeManager} from "./types/TypeManager.js";
+import {DataType} from "./types/DataType.js";
+import {TagManager} from "./tags/TagManager.js";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -379,9 +380,7 @@ export default class RadareHelper
 
         if(pTool.getPath()[0]!=='/') {
             Logger.info("[R2] $PATH env : ",process.env.PATH);
-
             r2p.r2bin = Util.whereIs(r2p.r2bin);
-
             Logger.info("[R2] Path of radare2 found into  : ",r2p.r2bin);
         }else{
             r2p.r2bin = pTool.getPath();

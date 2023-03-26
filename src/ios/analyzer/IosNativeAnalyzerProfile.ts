@@ -1,6 +1,6 @@
-import {NativeAnalyzerProfile} from "../../NativeAnalyzerProfile";
-import ModelFile from "../../ModelFile";
-import {ABI} from "../../binary/ABI";
+import {NativeAnalyzerProfile} from "../../NativeAnalyzerProfile.js";
+import ModelFile from "../../ModelFile.js";
+import {ABI} from "../../binary/ABI.js";
 
 
 export default class IosNativeAnalyzerProfile implements NativeAnalyzerProfile {

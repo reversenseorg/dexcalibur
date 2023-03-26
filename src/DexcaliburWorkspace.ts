@@ -1,8 +1,7 @@
 import * as _fs_ from 'fs';
 import * as _path_ from 'path';
-import Util from "./Utils";
-import {Settings} from "./Settings";
-import HookWorkspace from "./hook/HookWorkspace";
+import Util from "./Utils.js";
+import {Settings} from "./Settings.js";
 
 
 const FILENAME_CONFIG = 'config.json';

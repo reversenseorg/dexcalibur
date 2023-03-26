@@ -4,6 +4,7 @@ import AdbWrapperFactory from "../dist/src/AdbWrapperFactory";
 import AdbWrapper from "../dist/src/AdbWrapper";
 import {Device} from "../dist/src/Device";
 import {IBridge} from "../dist/src/Bridge";
+import Util from "../src/Utils.js";
 
 const expect = chai.expect;
 
@@ -11,9 +12,9 @@ const expect = chai.expect;
 // -- App specific --
 
 
-let VALID_ADB_PATH:string = _path_.join(__dirname, 'ws', '.dxc', 'bin', 'platform-tools', 'adb');
-let VALID_ADB_PATH2:string = _path_.join(__dirname, 'bin', 'adb_stub');
-let INVALID_ADB_PATH:string = _path_.join(__dirname, 'ws', '.dxc', 'bin', 'platform-tools', 'invalid_adb');
+let VALID_ADB_PATH:string = _path_.join(Util.__dirname(import.meta.url), 'ws', '.dxc', 'bin', 'platform-tools', 'adb');
+let VALID_ADB_PATH2:string = _path_.join(Util.__dirname(import.meta.url), 'bin', 'adb_stub');
+let INVALID_ADB_PATH:string = _path_.join(Util.__dirname(import.meta.url), 'ws', '.dxc', 'bin', 'platform-tools', 'invalid_adb');
 
 describe('AdbWrapperFactory', function() {
 
@@ -51,8 +52,8 @@ describe('AdbWrapperFactory', function() {
     describe('getInstance()', function() {
 
 
-        let adb_path:string = _path_.join(__dirname,'bin','adb_stub');
-        let adb_path2:string = _path_.join(__dirname,'bin','adb_stub2');
+        let adb_path:string = _path_.join(Util.__dirname(import.meta.url),'bin','adb_stub');
+        let adb_path2:string = _path_.join(Util.__dirname(import.meta.url),'bin','adb_stub2');
         
         it('fresh instance', function () {
             let awf:AdbWrapperFactory = AdbWrapperFactory.getInstance(VALID_ADB_PATH);

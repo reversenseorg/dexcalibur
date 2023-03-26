@@ -1,15 +1,15 @@
-import * as HOOK from '../../src/hook/HookManager';
+import * as HOOK from '../../src/hook/HookManager.js';
 
-import {IntentFilter} from "../../src/android/IntentFilter";
-import InspectorFactory from "../../src/InspectorFactory";
-import Inspector, {INSPECTOR_TYPE} from "../../src/Inspector";
-import DexcaliburProject from "../../src/DexcaliburProject";
-import ModelClass from "../../src/ModelClass";
-import BusEvent from "../../src/BusEvent";
-import AndroidActivity from "../../src/android/AndroidActivity";
-import * as Log from "../../src/Logger";
-import {AndroidManifest} from "../../src/android/AndroidManifest";
-import {AndroidCodeAnalyzer} from "../../src/android/analyzer/AndroidCodeAnalyzer";
+import {IntentFilter} from "../../src/android/IntentFilter.js";
+import InspectorFactory from "../../src/InspectorFactory.js";
+import Inspector, {INSPECTOR_TYPE} from "../../src/Inspector.js";
+import DexcaliburProject from "../../src/DexcaliburProject.js";
+import ModelClass from "../../src/ModelClass.js";
+import BusEvent from "../../src/BusEvent.js";
+import AndroidActivity from "../../src/android/AndroidActivity.js";
+import * as Log from "../../src/Logger.js";
+import {AndroidManifest} from "../../src/android/AndroidManifest.js";
+import {AndroidCodeAnalyzer} from "../../src/android/analyzer/AndroidCodeAnalyzer.js";
 
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;

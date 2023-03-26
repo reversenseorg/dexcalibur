@@ -1,11 +1,11 @@
-import ModelClass from "../ModelClass";
-import ModelMethod from "../ModelMethod";
-import {Modifier} from "../AccessFlags";
-import {OPCODE} from "../Opcode";
-import DDVM_ClassInstance from "./DDVM_ClassInstance";
-import {DDVM_TypeHelper, DTYPE, DTYPE_STRING} from "./DDVM_TypeHelper";
-import DDVM_VirtualArray from "./DDVM_VirtualArray";
-import DDVM_Exception from "./DDVM_Exception";
+import ModelClass from "../ModelClass.js";
+import ModelMethod from "../ModelMethod.js";
+import {Modifier} from "../AccessFlags.js";
+import {OPCODE} from "../Opcode.js";
+import DDVM_ClassInstance from "./DDVM_ClassInstance.js";
+import {DDVM_TypeHelper, DTYPE, DTYPE_STRING} from "./DDVM_TypeHelper.js";
+import DDVM_VirtualArray from "./DDVM_VirtualArray.js";
+import DDVM_Exception from "./DDVM_Exception.js";
 
 
 

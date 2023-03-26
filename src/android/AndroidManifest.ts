@@ -1,15 +1,15 @@
-import DexcaliburProject from "../DexcaliburProject";
-import {AndroidPermission, AndroidPermissionGroup, AndroidPermissionSdk23, AndroidPermissionTree} from "./Permissions";
-import AndroidApplication from "./AndroidApplication";
-import {AndroidAttributeSet} from "./AndroidAttribute";
+import DexcaliburProject from "../DexcaliburProject.js";
+import {AndroidPermission, AndroidPermissionGroup, AndroidPermissionSdk23, AndroidPermissionTree} from "./Permissions.js";
+import AndroidApplication from "./AndroidApplication.js";
+import {AndroidAttributeSet} from "./AndroidAttribute.js";
 import {
     AndroidConfiguration, AndroidFeature,
     AndroidGlTexture,
     AndroidInstrumentation,
     AndroidScreen,
     AndroidSupportedScreen
-} from "./DeviceComponent";
-import {AndroidRRO} from "./AndroidRRO";
+} from "./DeviceComponent.js";
+import {AndroidRRO} from "./AndroidRRO.js";
 
 export class AndroidManifest
 {

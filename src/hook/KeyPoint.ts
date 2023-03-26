@@ -1,10 +1,10 @@
-import {IPersistent} from "../persist/orm/IPersistent";
-import {NodeType} from "../persist/orm/NodeType";
-import {NodeInternalType} from "../NodeInternalType";
-import {INode, INodeMap} from "../INode";
-import Util from "../Utils";
-import {KeyPointException} from "../errors/KeyPointException";
-import * as Log from "../Logger";
+import {IPersistent} from "../persist/orm/IPersistent.js";
+import {NodeType} from "../persist/orm/NodeType.js";
+import {NodeInternalType} from "../NodeInternalType.js";
+import {INode, INodeMap} from "../INode.js";
+import Util from "../Utils.js";
+import {KeyPointException} from "../errors/KeyPointException.js";
+import * as Log from "../Logger.js";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 

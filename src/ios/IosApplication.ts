@@ -1,6 +1,6 @@
-import {Device} from "../Device";
-import {ApplicationBinary} from "../Application";
-import DexcaliburProject from "../DexcaliburProject";
+import {Device} from "../Device.js";
+import {ApplicationBinary} from "../Application.js";
+import DexcaliburProject from "../DexcaliburProject.js";
 
 export default class IosApplication extends ApplicationBinary
 {

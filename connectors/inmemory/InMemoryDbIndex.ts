@@ -1,6 +1,6 @@
 
-import SerializedObject from "./SerializedObject";
-import {IDbIndex} from "../../src/persist/orm/DbAbstraction";
+import SerializedObject from "./SerializedObject.js";
+import {IDbIndex} from "../../src/persist/orm/DbAbstraction.js";
 
 /**
  * Represents an array of element

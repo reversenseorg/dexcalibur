@@ -1,4 +1,4 @@
-import {AbiException} from "../errors/AbiException";
+import {AbiException} from "../errors/AbiException.js";
 
 export enum AddressSize {
     BITS_128=128,   // floating register

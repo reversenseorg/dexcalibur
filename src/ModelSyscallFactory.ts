@@ -1,9 +1,9 @@
-import {Architecture} from "./Architecture";
-import {OperatingSystem} from "./OperatingSystem";
-import ModelSyscall from "./ModelSyscall";
-import * as LinuxAarch64Syscalls from "@reversense/interruptor/src/syscalls/LinuxAarch64Syscalls";
-import * as LinuxAarch32Syscalls from "@reversense/interruptor/src/syscalls/LinuxAarch32Syscalls";
-import * as LinuxX64Syscalls from "@reversense/interruptor/src/syscalls/LinuxX64Syscalls";
+import {Architecture} from "./Architecture.js";
+import {OperatingSystem} from "./OperatingSystem.js";
+import ModelSyscall from "./ModelSyscall.js";
+import * as LinuxAarch64Syscalls from "@reversense/interruptor/src/syscalls/LinuxAarch64Syscalls.js";
+import * as LinuxAarch32Syscalls from "@reversense/interruptor/src/syscalls/LinuxAarch32Syscalls.js";
+import * as LinuxX64Syscalls from "@reversense/interruptor/src/syscalls/LinuxX64Syscalls.js";
 
 /**
  * @class

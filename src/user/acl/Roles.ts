@@ -1,9 +1,9 @@
-import {UserRole} from "./rbac/UserRole";
-import {AccessFactory} from "./AccessFactory";
-import {ProjectAccessControl} from "./rbac/ProjectAccessContol";
-import {AccessProperty, AccessType} from "./Access";
-import {SettingsAccessControl} from "./rbac/SettingsAccessContol";
-import {GlobalAccessControl} from "./rbac/GlobalAccessContol";
+import {UserRole} from "./rbac/UserRole.js";
+import {AccessFactory} from "./AccessFactory.js";
+import {ProjectAccessControl} from "./rbac/ProjectAccessContol.js";
+import {AccessProperty, AccessType} from "./Access.js";
+import {SettingsAccessControl} from "./rbac/SettingsAccessContol.js";
+import {GlobalAccessControl} from "./rbac/GlobalAccessContol.js";
 
 export const BUILT_IN_ROLES = [
     new UserRole(  'local_admin', 'Local Admin', AccessFactory.union(

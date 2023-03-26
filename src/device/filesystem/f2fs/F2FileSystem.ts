@@ -2,7 +2,7 @@
  * @class
  * @since 1.1.0
  */
-import {F2FileSystemMountOptions} from "./F2FileSystemMountOptions";
+import {F2FileSystemMountOptions} from "./F2FileSystemMountOptions.js";
 
 export class F2FileSystem {
 

@@ -2,21 +2,22 @@ import * as _path_ from 'path';
 import * as _fs_ from 'fs';
 
 import {expect} from 'chai';
-import {TestHelper} from "../dist/src/TestHelper";
-import {AuthType} from "../dist/src/user/auth/AuthTypes";
-import {AuthenticationSettings} from "../dist/src/user/auth/AuthenticationSettings";
-import {AuthenticationPolicy} from "../dist/src/user/auth/AuthenticationPolicy";
-import {AuthenticationService} from "../dist/src/user/auth/AuthenticationService";
+import {TestHelper} from "../dist/src/TestHelper.js";
+import {AuthType} from "../dist/src/user/auth/AuthTypes.js";
+import {AuthenticationSettings} from "../dist/src/user/auth/AuthenticationSettings.js";
+import {AuthenticationPolicy} from "../dist/src/user/auth/AuthenticationPolicy.js";
+import {AuthenticationService} from "../dist/src/user/auth/AuthenticationService.js";
 import {UserAccount} from "../dist/src/user/UserAccount";
-import {PasswordAuthenticator, AuthenticationResult} from "../dist/src/user/auth/Authenticator";
-import {Authenticator} from "../dist/src/user/auth/AuthTypes";
-import {AuthCode} from "../src/user/auth/AuthTypes";
+import {PasswordAuthenticator, AuthenticationResult} from "../dist/src/user/auth/Authenticator.js";
+import {Authenticator} from "../dist/src/user/auth/AuthTypes.js";
+import {AuthCode} from "../src/user/auth/AuthTypes.js";
+import Util from "../src/Utils.js";
 
-const USER_DB:string = _path_.join(__dirname,'config','userdb.json');
-const USER_DB_BKP:string = _path_.join(__dirname,'config','userdb.json.bkp');
+const USER_DB:string = _path_.join(Util.__dirname(import.meta.url),'config','userdb.json');
+const USER_DB_BKP:string = _path_.join(Util.__dirname(import.meta.url),'config','userdb.json.bkp');
 
 // username = dxc_user_1, password = dexcalibur
-const USER_DB_TMP:string = _path_.join(__dirname,'config','userdb.json.temp');
+const USER_DB_TMP:string = _path_.join(Util.__dirname(import.meta.url),'config','userdb.json.temp');
 
 
 if(_fs_.existsSync(USER_DB)) _fs_.unlinkSync(USER_DB);

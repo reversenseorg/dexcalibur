@@ -1,5 +1,5 @@
-import Util from "../Utils";
-import {AuthType} from "../user/auth/AuthTypes";
+import Util from "../Utils.js";
+import {AuthType} from "../user/auth/AuthTypes.js";
 
 
 export class ConnectionCredentials {

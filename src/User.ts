@@ -1,11 +1,11 @@
 /**
  * To represent a user
  */
-import DexcaliburProject from "./DexcaliburProject";
-import {TerminalSession} from "./TerminalSession";
-import HookSession from "./HookSession";
-import {WebsocketSession} from "./WebsocketSession";
-import UserRole from "./UserRole";
+import DexcaliburProject from "./DexcaliburProject.js";
+import {TerminalSession} from "./TerminalSession.js";
+import HookSession from "./HookSession.js";
+import {WebsocketSession} from "./WebsocketSession.js";
+import UserRole from "./UserRole.js";
 
 export class Team {
     name:string ='';

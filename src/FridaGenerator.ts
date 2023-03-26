@@ -1,5 +1,5 @@
 import *  as fs from "fs";
-import ModelClass from "./ModelClass";
+import ModelClass from "./ModelClass.js";
 
 
 function makeTree(tree:any, fqcn:string, fqcn_suffix:string){

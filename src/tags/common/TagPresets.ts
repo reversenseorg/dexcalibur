@@ -1,6 +1,6 @@
 
-import {Tag} from "../Tag";
-import {TagCategory} from "../TagCategory";
+import {Tag} from "../Tag.js";
+import {TagCategory} from "../TagCategory.js";
 
 const GLOBAL = new TagCategory({ name: "global" });
 const DATA_TYPE = new TagCategory({ name: "data.type" });

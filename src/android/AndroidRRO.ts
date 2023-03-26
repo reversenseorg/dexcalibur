@@ -1,7 +1,7 @@
-import {NodeType} from "../persist/orm/NodeType";
-import {NodeInternalType} from "../NodeInternalType";
-import {NodeProperty} from "../persist/orm/NodeProperty";
-import {DbDataType, DbKeyType, DbSerialize} from "../persist/orm/DbAbstraction";
+import {NodeType} from "../persist/orm/NodeType.js";
+import {NodeInternalType} from "../NodeInternalType.js";
+import {NodeProperty} from "../persist/orm/NodeProperty.js";
+import {DbDataType, DbKeyType, DbSerialize} from "../persist/orm/DbAbstraction.js";
 
 export class AndroidRRO {
 

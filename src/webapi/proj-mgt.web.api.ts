@@ -1,27 +1,27 @@
-import {DelegateWebApi} from "./DelegateWebApi";
-import {Device} from "../Device";
-import WebServer from "../WebServer";
-import DeviceManager from "../DeviceManager";
+import {DelegateWebApi} from "./DelegateWebApi.js";
+import {Device} from "../Device.js";
+import WebServer from "../WebServer.js";
+import DeviceManager from "../DeviceManager.js";
 import {Request, Response} from "express";
-import * as Log from "../Logger";
-import {UserSession} from "../user/session/UserSession";
-import DexcaliburProject from "../DexcaliburProject";
-import {UserAccount} from "../user/UserAccount";
-import Platform from "../Platform";
-import {Workflow} from "../Workflow";
-import StatusMessage from "../StatusMessage";
-import PlatformManager from "../PlatformManager";
-import Downloader from "../Downloader";
+import * as Log from "../Logger.js";
+import {UserSession} from "../user/session/UserSession.js";
+import DexcaliburProject from "../DexcaliburProject.js";
+import {UserAccount} from "../user/UserAccount.js";
+import Platform from "../Platform.js";
+import {Workflow} from "../Workflow.js";
+import StatusMessage from "../StatusMessage.js";
+import PlatformManager from "../PlatformManager.js";
+import Downloader from "../Downloader.js";
 import * as _fs_ from "fs";
-import {DexcaliburProjectException} from "../errors/DexcaliburProjectException";
-import {AuthenticationException} from "../errors/AuthenticationException";
-import AccessControl from "../user/acl/AccessControl";
-import {AccessZone} from "../user/acl/Zones";
-import {ProjectAccessControl} from "../user/acl/rbac/ProjectAccessContol";
-import {ConnectionHandler} from "../remote/ConnectionHandler";
-import {Settings} from "../Settings";
-import ConnectionSettings = Settings.ConnectionSettings;
-import {DexcaliburConnectionException} from "../errors/DexcaliburConnectionException";
+import {DexcaliburProjectException} from "../errors/DexcaliburProjectException.js";
+import {AuthenticationException} from "../errors/AuthenticationException.js";
+import AccessControl from "../user/acl/AccessControl.js";
+import {AccessZone} from "../user/acl/Zones.js";
+import {ProjectAccessControl} from "../user/acl/rbac/ProjectAccessContol.js";
+import {ConnectionHandler} from "../remote/ConnectionHandler.js";
+import {Settings} from "../Settings.js";
+import {DexcaliburConnectionException} from "../errors/DexcaliburConnectionException.js";
+
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 export const PROJECT_MGT_WEB_API: DelegateWebApi = new DelegateWebApi();
@@ -410,7 +410,7 @@ PROJECT_MGT_WEB_API.addAuthenticatedRoute(
             let availability:boolean = true;
 
             try {
-                if(req.query.conn != null && req.query.conn != ConnectionSettings.LOCAL){
+                if(req.query.conn != null && req.query.conn != Settings.ConnectionSettings.LOCAL){
                     throw DexcaliburConnectionException.REMOTE_OPERATION_NOT_SUPPORTED();
                 }
 

@@ -1,12 +1,12 @@
-import {Savable, STUB_TYPE} from "./ModelSavable";
-import {NodeInternalType} from "./NodeInternalType";
-import {NodeType} from "./persist/orm/NodeType";
-import {DataSourceHelper} from "./DataSourceHelper";
-import {INode} from "./INode";
-import {NodeProperty, NodePropertyState} from "./persist/orm/NodeProperty";
-import {DbDataType, DbKeyType, DbSerialize} from "./persist/orm/DbAbstraction";
+import {Savable, STUB_TYPE} from "./ModelSavable.js";
+import {NodeInternalType} from "./NodeInternalType.js";
+import {NodeType} from "./persist/orm/NodeType.js";
+import {DataSourceHelper} from "./DataSourceHelper.js";
+import {INode} from "./INode.js";
+import {NodeProperty, NodePropertyState} from "./persist/orm/NodeProperty.js";
+import {DbDataType, DbKeyType, DbSerialize} from "./persist/orm/DbAbstraction.js";
 import {createHash} from "crypto";
-import Util from "./Utils";
+import Util from "./Utils.js";
 
 export default class ModelStringValue extends Savable
 {

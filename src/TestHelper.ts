@@ -8,13 +8,14 @@ import * as _child_process_ from "child_process";
 import * as _http_ from "http";
 import * as _util_ from 'util';
 import * as _fs_ from 'fs';
-import DexcaliburEngine from "./DexcaliburEngine";
+import DexcaliburEngine from "./DexcaliburEngine.js";
 import {Application as ExpressApplication} from 'express';
-import Configuration from "./Configuration";
-import DexcaliburWorkspace from "./DexcaliburWorkspace";
-import DexcaliburProject from "./DexcaliburProject";
-import {Settings} from "./Settings";
+import Configuration from "./Configuration.js";
+import DexcaliburWorkspace from "./DexcaliburWorkspace.js";
+import DexcaliburProject from "./DexcaliburProject.js";
+import {Settings} from "./Settings.js";
 import GlobalSettings = Settings.GlobalSettings;
+import Util from "./Utils.js";
 
 let _exec_ = _util_.promisify(_child_process_.exec);
 
@@ -46,8 +47,10 @@ class TestHelperClass
     project_ready:DexcaliburProject = null;
 
     constructor(){
-        if(process.env.DEXCALIBUR_TEST)
-            this.testCfg = JSON.parse( _fs_.readFileSync(_path_.join( __dirname, "..",  "test", "config", "config.json")).toString() );
+        if(process.env.DEXCALIBUR_TEST){
+            const path = (new URL(import.meta.url).pathname);
+            this.testCfg = JSON.parse(_fs_.readFileSync(_path_.join(path.substring(0, path.lastIndexOf(_path_.sep)),"..","test", "config", "config.json")).toString());
+        }
 
         this.interceptors = {
             exec: []
@@ -84,9 +87,10 @@ class TestHelperClass
 
 
     newConfiguration():any{
+        const dirname = Util.__dirname(import.meta.url);
         this.config = new Configuration();
-        this.config.import(require(_path_.join( __dirname, this.testCfg.configuration)));
-        this.config.workspacePath = _path_.join( __dirname, '../test/workspace/');
+        this.config.import(require(_path_.join( dirname, this.testCfg.configuration)));
+        this.config.workspacePath = _path_.join( dirname, '../test/workspace/');
         return this.config;
     } 
 
@@ -96,7 +100,7 @@ class TestHelperClass
 
     getConfigurationPath():string{
         // return this.testCfg.configuration;
-        return _path_.join( __dirname, this.testCfg.configuration);
+        return _path_.join( Util.__dirname(import.meta.url), this.testCfg.configuration);
     }
 
     interceptExec( pInterceptor:any, pReturn:any){
@@ -198,7 +202,7 @@ class TestHelperClass
      */
     resetDexcaliburWorkspace( pPath:string=null){
         if(pPath===null){
-            pPath = _path_.join(__dirname,'..','test','ws');
+            pPath = _path_.join(Util.__dirname(import.meta.url),'..','test','ws');
         }
         let dxc = DexcaliburWorkspace.getInstance(
             pPath, true
@@ -217,7 +221,7 @@ class TestHelperClass
 
         let cfg:GlobalSettings = GlobalSettings.load(
             _path_.join( __dirname, '..', 'test', '.dexcalibur','config.json'),{
-                workspace: _path_.join( __dirname, '..', 'test', 'ws')
+                workspace: _path_.join( Util.__dirname(import.meta.url), '..', 'test', 'ws')
             });
 
         engine.loadConfiguration(cfg);

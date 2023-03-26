@@ -1,7 +1,7 @@
-import {UserAccount} from "../UserAccount";
-import {AuthCode, AuthenticationException, Authenticator} from "./AuthTypes";
-import {AuthenticationService} from "./AuthenticationService";
-import * as Log from "../../Logger";
+import {UserAccount} from "../UserAccount.js";
+import {AuthCode, AuthenticationException, Authenticator} from "./AuthTypes.js";
+import {AuthenticationService} from "./AuthenticationService.js";
+import * as Log from "../../Logger.js";
 
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;

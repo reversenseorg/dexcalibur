@@ -2,12 +2,11 @@
 
 // ===== INIT =====
 
-import InspectorFactory from "../../src/InspectorFactory";
-import {INSPECTOR_TYPE} from "../../src/Inspector";
-import {HOOK_TYPE} from "../../src/hook/HookManager";
-import DexcaliburProject from "../../src/DexcaliburProject";
-import BusEvent from "../../src/BusEvent";
-import ModelMethod from "../../src/ModelMethod";
+import InspectorFactory from "../../src/InspectorFactory.js";
+import {INSPECTOR_TYPE} from "../../src/Inspector.js";
+import DexcaliburProject from "../../src/DexcaliburProject.js";
+import BusEvent from "../../src/BusEvent.js";
+import ModelMethod from "../../src/ModelMethod.js";
 
 var FileDescriptorInspector:InspectorFactory = new InspectorFactory({
 

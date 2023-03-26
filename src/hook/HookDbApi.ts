@@ -1,16 +1,12 @@
-import {IDatabase, IDbCollection} from "../persist/orm/DbAbstraction";
-import HookSet from "../HookSet";
-import HookStrategy from "./HookStrategy";
-import {HookManagerException} from "../errors/HookManagerException";
-import JavaMethodHook from "./JavaMethodHook";
-import NativeFunctionHook from "./NativeFunctionHook";
-import HookTemplateFragment from "./HookTemplateFragment";
-import KeyPoint from "./KeyPoint";
-import {SqliteException} from "../../connectors/sqlite/SqliteException";
-import SqliteDbCollection from "../../connectors/sqlite/SqliteDbCollection";
-import {NodeInternalType} from "../NodeInternalType";
-import HookSession from "../HookSession";
-import {RuntimeEvent} from "./RuntimeEvent";
+import {IDatabase, IDbCollection} from "../persist/orm/DbAbstraction.js";
+import HookSet from "../HookSet.js";
+import HookStrategy from "./HookStrategy.js";
+import {HookManagerException} from "../errors/HookManagerException.js";
+import JavaMethodHook from "./JavaMethodHook.js";
+import NativeFunctionHook from "./NativeFunctionHook.js";
+import HookTemplateFragment from "./HookTemplateFragment.js";
+import HookSession from "../HookSession.js";
+import {RuntimeEvent} from "./RuntimeEvent.js";
 
 /**
  * Represents every datat set related to hook management

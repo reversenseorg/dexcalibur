@@ -5,9 +5,9 @@
  * @class
  */
 import * as Database from "better-sqlite3";
-import SqliteDbCollection from "./SqliteDbCollection";
-import SqliteDbIndex from "./SqliteDbIndex";
-import SqliteConnector from "./adapter";
+import SqliteDbCollection from "./SqliteDbCollection.js";
+import SqliteDbIndex from "./SqliteDbIndex.js";
+import SqliteConnector from "./adapter.js";
 import {
     DbDataType,
     DbKeyType,
@@ -16,13 +16,13 @@ import {
     DbSizesMap,
     IDatabase,
     IDbSet
-} from "../../src/persist/orm/DbAbstraction";
-import {PreparedStatementList, SqliteAPI} from "./SqliteAPI";
-import {NodeType} from "../../src/persist/orm/NodeType";
-import {NodeProperty} from "../../src/persist/orm/NodeProperty";
-import * as Log from "../../src/Logger";
-import {NodeInternalType} from "../../src/NodeInternalType";
-import DexcaliburProject from "../../src/DexcaliburProject";
+} from "../../src/persist/orm/DbAbstraction.js";
+import {PreparedStatementList, SqliteAPI} from "./SqliteAPI.js";
+import {NodeType} from "../../src/persist/orm/NodeType.js";
+import {NodeProperty} from "../../src/persist/orm/NodeProperty.js";
+import * as Log from "../../src/Logger.js";
+import {NodeInternalType} from "../../src/NodeInternalType.js";
+import DexcaliburProject from "../../src/DexcaliburProject.js";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -64,7 +64,7 @@ class SqliteDb implements IDatabase
         this.indexes = {};
         this.sizes = {};
 
-        let db = new Database(pPath, { verbose:Logger.raw });
+        let db = new (Database.default)(pPath, { /*verbose: Logger.raw*/ });
 
         this._s = new SqliteAPI( db );
         this._ps = this._s._generatePreparedStmt(METADATA_TABLE, SqliteDb.TYPE);
@@ -96,7 +96,6 @@ class SqliteDb implements IDatabase
      */
     private _refresh():any {
         this._tables = this._s._getTables();
-        Logger.info(JSON.stringify(this._tables));
     }
 
 
@@ -162,12 +161,12 @@ class SqliteDb implements IDatabase
                 if(!this.exists(ppt.getNodeType().getName())){
                     const c:SqliteDbCollection = this.newCollection(ppt.getNodeType().getName(), ppt.getNodeType());
                     (this.indexes[name] as SqliteDbCollection).link(c);
-                    Logger.raw("LINKING new extra coll "+c.name+" TO "+(this.indexes[name] as any).name);
+                    Logger.debug("LINKING new extra coll "+c.name+" TO "+(this.indexes[name] as any).name);
                 }else{
 
                     const b:SqliteDbCollection = this.getCollection(ppt.getNodeType().getName(), ppt.getNodeType());
                     (this.indexes[name] as SqliteDbCollection).link(b);
-                    Logger.raw("LINKING existing extra coll "+b.name+" TO "+(this.indexes[name] as any).name);
+                    Logger.debug("LINKING existing extra coll "+b.name+" TO "+(this.indexes[name] as any).name);
                 }
             });
         }

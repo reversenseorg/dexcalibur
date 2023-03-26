@@ -1,22 +1,22 @@
-import {UserAccount} from "../UserAccount";
-import {SessionCode, SessionException} from "./SessionException";
-import Util from "../../Utils";
-import {ConnectionHandler, ConnectionHandlerMap} from "../../remote/ConnectionHandler";
-import DexcaliburEngine, {DexcaliburProjectMap} from "../../DexcaliburEngine";
-import DexcaliburProject from "../../DexcaliburProject";
-import AccessControl from "../acl/AccessControl";
-import {AccessZone} from "../acl/Zones";
-import {ProjectAccessControl} from "../acl/rbac/ProjectAccessContol";
-import {IDexcaliburEngine} from "../../IDexcaliburEngine";
-import {NodeType} from "../../persist/orm/NodeType";
-import {NodeInternalType} from "../../NodeInternalType";
-import {NodeProperty, NodePropertyState} from "../../persist/orm/NodeProperty";
-import {DbDataType, DbKeyType, DbSerialize} from "../../persist/orm/DbAbstraction";
-import {IPersistent} from "../../persist/orm/IPersistent";
-import {User} from "../../User";
-import {AuthenticationService} from "../auth/AuthenticationService";
-import {UserService} from "../UserService";
-import {SessionData} from "./SessionData";
+import {UserAccount} from "../UserAccount.js";
+import {SessionCode, SessionException} from "./SessionException.js";
+import Util from "../../Utils.js";
+import {ConnectionHandler, ConnectionHandlerMap} from "../../remote/ConnectionHandler.js";
+import DexcaliburEngine, {DexcaliburProjectMap} from "../../DexcaliburEngine.js";
+import DexcaliburProject from "../../DexcaliburProject.js";
+import AccessControl from "../acl/AccessControl.js";
+import {AccessZone} from "../acl/Zones.js";
+import {ProjectAccessControl} from "../acl/rbac/ProjectAccessContol.js";
+import {IDexcaliburEngine} from "../../IDexcaliburEngine.js";
+import {NodeType} from "../../persist/orm/NodeType.js";
+import {NodeInternalType} from "../../NodeInternalType.js";
+import {NodeProperty, NodePropertyState} from "../../persist/orm/NodeProperty.js";
+import {DbDataType, DbKeyType, DbSerialize} from "../../persist/orm/DbAbstraction.js";
+import {IPersistent} from "../../persist/orm/IPersistent.js";
+import {User} from "../../User.js";
+import {AuthenticationService} from "../auth/AuthenticationService.js";
+import {UserService} from "../UserService.js";
+import {SessionData} from "./SessionData.js";
 
 export class UserSession implements IPersistent{
 

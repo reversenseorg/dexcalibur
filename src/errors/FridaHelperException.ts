@@ -1,6 +1,5 @@
-import {ErrorCode, MonitoredError} from "./MonitoredError";
-import {PassthroughValue, SanitizedValue, UnsafeValue} from "../security/SanitizedValue";
-import {HookErrCode} from "./HookManagerException";
+import {ErrorCode, MonitoredError} from "./MonitoredError.js";
+import {HookErrCode} from "./HookManagerException.js";
 
 
 const FRIDA_ERR_CODE = ErrorCode.HOOK_MANAGER + HookErrCode.FRIDA;

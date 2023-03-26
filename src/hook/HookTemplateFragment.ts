@@ -1,6 +1,6 @@
-import HookStrategy from "./HookStrategy";
-import {NodeType} from "../persist/orm/NodeType";
-import {NodeInternalType} from "../NodeInternalType";
+import HookStrategy from "./HookStrategy.js";
+import {NodeType} from "../persist/orm/NodeType.js";
+import {NodeInternalType} from "../NodeInternalType.js";
 
 
 

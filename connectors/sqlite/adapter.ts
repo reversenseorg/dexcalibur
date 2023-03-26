@@ -2,11 +2,10 @@
 
 import * as _path_ from "path";
 import * as _fs_ from "fs";
-import * as _sqlite_ from "better-sqlite3";
-import DexcaliburProject from "../../src/DexcaliburProject";
-import { SqliteDb, Index, Collection } from "./SqliteDb";
-import {IDatabase, IDatabaseAdapter} from "../../src/persist/orm/DbAbstraction";
-import * as Log from "../../src/Logger";
+import DexcaliburProject from "../../src/DexcaliburProject.js";
+import { SqliteDb, Index, Collection } from "./SqliteDb.js";
+import {IDatabase, IDatabaseAdapter} from "../../src/persist/orm/DbAbstraction.js";
+import * as Log from "../../src/Logger.js";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -97,11 +96,11 @@ export default class SqliteConnector implements IDatabaseAdapter
             return SqliteConnector.SHARED[pPath] as SqliteDb;
         }
 
-        Logger.raw("=============== START CONNECTING TO SQLITE ("+pPath+")....."+_fs_.existsSync(pPath))
+        Logger.debug("=============== START CONNECTING TO SQLITE ("+pPath+")....."+_fs_.existsSync(pPath))
         if(_fs_.existsSync(pPath)){
             this.db = new SqliteDb(pPath, this);
         }else{
-            Logger.info("Creating new db : "+pPath);
+            Logger.debug("Creating new db : "+pPath);
             this.create(pPath);
         }
 
@@ -113,7 +112,7 @@ export default class SqliteConnector implements IDatabaseAdapter
         // load indexes
         this.db.loadIndexes() ;
 
-        Logger.raw("=============== SQLITE IS READY  .....")
+        Logger.debug("=============== SQLITE IS READY  .....")
         return this.db;
     }
 

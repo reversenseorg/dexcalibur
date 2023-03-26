@@ -1,19 +1,19 @@
 import * as _path_ from 'path';
 import * as _md5_ from 'md5';
 import * as OS from 'os';
-import {EncodedDataType} from "./FileTypes";
-import ModelFileSection from "./ModelFileSection";
-import DataScope from "./DataScope";
-import ModelExecutableSection from "./ModelExecutableSection";
-import {ModelFunction, ModelFunctionList} from "./ModelFunction";
-import * as Log from './Logger';
-import {IPersistent} from "./persist/orm/IPersistent";
-import {DbDataType, DbKeyType, DbSerialize} from "./persist/orm/DbAbstraction";
-import {NodeType} from "./persist/orm/NodeType";
-import {NodeProperty} from "./persist/orm/NodeProperty";
-import {NodeInternalType} from "./NodeInternalType";
-import {ValidationRule} from "./Validator";
-import {INode} from "./INode";
+import {EncodedDataType} from "./FileTypes.js";
+import ModelFileSection from "./ModelFileSection.js";
+import DataScope from "./DataScope.js";
+import ModelExecutableSection from "./ModelExecutableSection.js";
+import {ModelFunction, ModelFunctionList} from "./ModelFunction.js";
+import * as Log from './Logger.js';
+import {IPersistent} from "./persist/orm/IPersistent.js";
+import {DbDataType, DbKeyType, DbSerialize} from "./persist/orm/DbAbstraction.js";
+import {NodeType} from "./persist/orm/NodeType.js";
+import {NodeProperty} from "./persist/orm/NodeProperty.js";
+import {NodeInternalType} from "./NodeInternalType.js";
+import {ValidationRule} from "./Validator.js";
+import {INode} from "./INode.js";
 
 
 let UIDS:string[]=[];

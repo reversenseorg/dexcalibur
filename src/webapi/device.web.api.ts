@@ -1,15 +1,15 @@
-import {DelegateWebApi} from "./DelegateWebApi";
-import {Device} from "../Device";
-import * as Log from "../Logger";
-import WebServer, {HTTP_CODE_ERROR, HTTP_CODE_SUCCESS} from "../WebServer";
-import DeviceManager from "../DeviceManager";
-import StatusMessage from "../StatusMessage";
-import AppPackage from "../AppPackage";
-import {DeviceManagerException} from "../errors/DeviceManagerException";
-import {BridgeInstallOptions, DeviceProfilingOptions, IBridge} from "../Bridge";
+import {DelegateWebApi} from "./DelegateWebApi.js";
+import {Device} from "../Device.js";
+import * as Log from "../Logger.js";
+import WebServer, {HTTP_CODE_ERROR, HTTP_CODE_SUCCESS} from "../WebServer.js";
+import DeviceManager from "../DeviceManager.js";
+import StatusMessage from "../StatusMessage.js";
+import AppPackage from "../AppPackage.js";
+import {DeviceManagerException} from "../errors/DeviceManagerException.js";
+import {BridgeInstallOptions, DeviceProfilingOptions, IBridge} from "../Bridge.js";
 import {Router, Request, Response} from "express";
-import DexcaliburProject from "../DexcaliburProject";
-import {MonitoredError} from "../errors/MonitoredError";
+import DexcaliburProject from "../DexcaliburProject.js";
+import {MonitoredError} from "../errors/MonitoredError.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 

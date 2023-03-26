@@ -9,24 +9,24 @@
  *
  * @param {*} manager
  */
-import HookMessage from "./HookMessage";
-import Util from "./Utils";
+import HookMessage from "./HookMessage.js";
+import Util from "./Utils.js";
 import * as Frida from 'frida';
-import {HookManager} from "./hook/HookManager";
-import {WebsocketSession} from "./WebsocketSession";
-import * as Log from "./Logger";
-import HookMessageV2 from "./hook/HookMessageV2";
-import {RuntimeEvent, RuntimeEventType} from "./hook/RuntimeEvent";
-import {HookMessageException} from "./errors/HookMessageException";
-import {TagHashMap, TagManager, TagMap, TagNameMap} from "./tags/TagManager";
-import {INode} from "./INode";
-import {NodeType} from "./persist/orm/NodeType";
-import {NodeInternalType} from "./NodeInternalType";
-import {NodeProperty, NodePropertyState} from "./persist/orm/NodeProperty";
-import {DbDataType, DbKeyType, DbSerialize} from "./persist/orm/DbAbstraction";
-import {ValidationRule} from "./Validator";
-import DataScope from "./DataScope";
-import ModelFileSection from "./ModelFileSection";
+import {HookManager} from "./hook/HookManager.js";
+import {WebsocketSession} from "./WebsocketSession.js";
+import * as Log from "./Logger.js";
+import HookMessageV2 from "./hook/HookMessageV2.js";
+import {RuntimeEvent, RuntimeEventType} from "./hook/RuntimeEvent.js";
+import {HookMessageException} from "./errors/HookMessageException.js";
+import {TagHashMap, TagManager, TagMap, TagNameMap} from "./tags/TagManager.js";
+import {INode} from "./INode.js";
+import {NodeType} from "./persist/orm/NodeType.js";
+import {NodeInternalType} from "./NodeInternalType.js";
+import {NodeProperty, NodePropertyState} from "./persist/orm/NodeProperty.js";
+import {DbDataType, DbKeyType, DbSerialize} from "./persist/orm/DbAbstraction.js";
+import {ValidationRule} from "./Validator.js";
+import DataScope from "./DataScope.js";
+import ModelFileSection from "./ModelFileSection.js";
 import * as _md5_ from "md5";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;

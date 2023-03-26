@@ -1,12 +1,11 @@
-import {INode} from "../INode";
-import HookMessageV2 from "./HookMessageV2";
-import HookMessage from "../HookMessage";
-import {Tag} from "../tags/Tag";
-import BusEvent from "../BusEvent";
-import {NodeType} from "../persist/orm/NodeType";
-import {NodeInternalType} from "../NodeInternalType";
-import {NodeProperty, NodePropertyState} from "../persist/orm/NodeProperty";
-import {DbDataType, DbKeyType, DbSerialize} from "../persist/orm/DbAbstraction";
+import {INode} from "../INode.js";
+import HookMessageV2 from "./HookMessageV2.js";
+import {Tag} from "../tags/Tag.js";
+import BusEvent from "../BusEvent.js";
+import {NodeType} from "../persist/orm/NodeType.js";
+import {NodeInternalType} from "../NodeInternalType.js";
+import {NodeProperty, NodePropertyState} from "../persist/orm/NodeProperty.js";
+import {DbDataType, DbKeyType} from "../persist/orm/DbAbstraction.js";
 
 export enum RuntimeEventType {
     HOOK= 'h',

@@ -1,7 +1,7 @@
-import {OperatingSystem} from "../OperatingSystem";
-import AndroidDeviceProfile from "../android/profiles/AndroidDeviceProfile";
-import DeviceProfile from "./DeviceProfile";
-import GenericDeviceProfile from "./GenericDeviceProfile";
+import {OperatingSystem} from "../OperatingSystem.js";
+import AndroidDeviceProfile from "../android/profiles/AndroidDeviceProfile.js";
+import DeviceProfile from "./DeviceProfile.js";
+import GenericDeviceProfile from "./GenericDeviceProfile.js";
 
 export default class DeviceProfileFactory {
 

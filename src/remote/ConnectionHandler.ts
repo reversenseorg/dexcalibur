@@ -1,7 +1,7 @@
 
-import {DexcaliburConnectionParams} from "./DexcaliburConnectionParams";
-import {ConnectionToken} from "./ConnectionToken";
-import {ConnectionCredentials} from "./ConnectionCredentials";
+import {DexcaliburConnectionParams} from "./DexcaliburConnectionParams.js";
+import {ConnectionToken} from "./ConnectionToken.js";
+import {ConnectionCredentials} from "./ConnectionCredentials.js";
 
 export interface ConnectionHandlerMap {
     [name:string] :ConnectionHandler

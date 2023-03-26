@@ -1,9 +1,9 @@
-import ModelMethod from "../ModelMethod";
-import DDVM_SymbolTable from "./DDVM_SymbolTable";
-import {DDVM_TypeHelper, DTYPE} from "./DDVM_TypeHelper";
-import DDVM_ClassInstance from "./DDVM_ClassInstance";
-import * as Log from "../Logger";
-import DDVM_Symbol from "./DDVM_Symbol";
+import ModelMethod from "../ModelMethod.js";
+import DDVM_SymbolTable from "./DDVM_SymbolTable.js";
+import {DDVM_TypeHelper, DTYPE} from "./DDVM_TypeHelper.js";
+import DDVM_ClassInstance from "./DDVM_ClassInstance.js";
+import * as Log from "../Logger.js";
+import DDVM_Symbol from "./DDVM_Symbol.js";
 
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;

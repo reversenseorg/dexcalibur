@@ -1,15 +1,10 @@
-import {IHook} from "./IHook";
-import ModelMethod from "../ModelMethod";
-import {ModelFunction} from "../ModelFunction";
-import KeyPoint from "./KeyPoint";
-import HookTemplate from "./HookTemplate";
-import {AbstractHook} from "./AbstractHook";
-import {NodeInternalType} from "../NodeInternalType";
-import {NodeType} from "../persist/orm/NodeType";
-import {DataSourceHelper} from "../DataSourceHelper";
-import {HookScriptBuilderException} from "../errors/HookScriptBuilderException";
-import ModelFile from "../ModelFile";
-import DexcaliburProject from "../DexcaliburProject";
+
+import {ModelFunction} from "../ModelFunction.js";
+import {AbstractHook} from "./AbstractHook.js";
+import {NodeInternalType} from "../NodeInternalType.js";
+import {NodeType} from "../persist/orm/NodeType.js";
+import {HookScriptBuilderException} from "../errors/HookScriptBuilderException.js";
+import ModelFile from "../ModelFile.js";
 
 export enum HookTargetType {
     STATIC_OFFSET,

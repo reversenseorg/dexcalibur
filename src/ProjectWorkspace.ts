@@ -3,12 +3,12 @@ import * as _path_ from 'path';
 import * as _fs_ from 'fs';
 
 
-import APK from "./APK";
+import APK from "./APK.js";
 
-import * as Log from './Logger';
-import {Stub, STUB_TYPE} from "./ModelSavable";
-import {RuntimeSecurityException} from "./errors/RuntimeSecurityException";
-import HookWorkspace from "./hook/HookWorkspace";
+import * as Log from './Logger.js';
+import {Stub, STUB_TYPE} from "./ModelSavable.js";
+import {RuntimeSecurityException} from "./errors/RuntimeSecurityException.js";
+import HookWorkspace from "./hook/HookWorkspace.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 

@@ -2,23 +2,23 @@ import * as _fs_ from 'fs';
 import * as _es_ from 'event-stream';
 
 
-import {CONST} from "./CoreConst";
-import DexcaliburProject from "./DexcaliburProject";
-import ModelMethod from "./ModelMethod";
-import ModelDataBlock from "./ModelDataBlock";
-import ModelBasicBlock from "./ModelBasicBlock";
-import ModelCatchStatement from "./ModelCatchStatement";
-import BusEvent from "./BusEvent";
-import Bus from "./Bus";
-import Util from "./Utils";
-import {Modifier, ModifierFormat} from "./AccessFlags";
-import ModelClass from "./ModelClass";
-import * as Log from './Logger';
-import {ModelBasicType, ModelObjectType} from "./ModelType";
-import ModelField from "./ModelField";
-import {ModelClassReference} from "./ModelReference";
-import OpcodeSmaliParser from "./OpcodeSmaliParser";
-import ModelInstruction from "./ModelInstruction";
+import {CONST} from "./CoreConst.js";
+import DexcaliburProject from "./DexcaliburProject.js";
+import ModelMethod from "./ModelMethod.js";
+import ModelDataBlock from "./ModelDataBlock.js";
+import ModelBasicBlock from "./ModelBasicBlock.js";
+import ModelCatchStatement from "./ModelCatchStatement.js";
+import BusEvent from "./BusEvent.js";
+import Bus from "./Bus.js";
+import Util from "./Utils.js";
+import {Modifier, ModifierFormat} from "./AccessFlags.js";
+import ModelClass from "./ModelClass.js";
+import * as Log from './Logger.js';
+import {ModelBasicType, ModelObjectType} from "./ModelType.js";
+import ModelField from "./ModelField.js";
+import {ModelClassReference} from "./ModelReference.js";
+import OpcodeSmaliParser from "./OpcodeSmaliParser.js";
+import ModelInstruction from "./ModelInstruction.js";
 
 
 const SML_MAIN=0;

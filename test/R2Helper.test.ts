@@ -1,16 +1,17 @@
 import {expect} from 'chai';
 // -- App specific --
 import *  as R2Helper from "../src/R2Helper";
-import RadareHelper, {R2_TYPE} from "../src/R2Helper";
+import RadareHelper, {R2_TYPE} from "../src/R2Helper.js";
 import * as _path_ from "path";
-import ModelFile from "../src/ModelFile";
-import DataScope, {DataScopePpts} from "../dist/src/DataScope";
-import {NativeAnalyzerProfile} from "../src/NativeAnalyzer";
+import ModelFile from "../src/ModelFile.js";
+import DataScope, {DataScopePpts} from "../dist/src/DataScope.js";
+import {NativeAnalyzerProfile} from "../src/NativeAnalyzer.js";
+import Util from "../src/Utils.js";
 //chai.use(sinonChai);*/
 
 const EOL = require('os').EOL;
 
-const TEST_WS:string = _path_.join(__dirname,'ws');
+const TEST_WS:string = _path_.join(Util.__dirname(import.meta.url),'ws');
 const TEST_APP = "eshard_test"
 
 describe('Radare2 Helper', function() {

@@ -1,5 +1,5 @@
-import {NodeType} from "./NodeType";
-import DexcaliburProject from "../../DexcaliburProject";
+import {NodeType} from "./NodeType.js";
+import DexcaliburProject from "../../DexcaliburProject.js";
 
 export enum DbDataType {
     // strings

@@ -8,10 +8,10 @@ import * as  _util_ from 'util';
 const _execFile_ = _util_.promisify(Process.execFile);
 
 
-import * as Log from './Logger';
-import DexcaliburProject from "./DexcaliburProject";
-import JavaHelper from "./JavaHelper";
-import {External} from "./external/External";
+import * as Log from './Logger.js';
+import DexcaliburProject from "./DexcaliburProject.js";
+import JavaHelper from "./JavaHelper.js";
+import {External} from "./external/External.js";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 

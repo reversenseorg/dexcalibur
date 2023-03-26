@@ -1,12 +1,12 @@
-import ModelMethod from "./ModelMethod";
-import {Savable, STUB_TYPE} from "./ModelSavable";
-import {NodeInternalType} from "./NodeInternalType";
-import {NodeType} from "./persist/orm/NodeType";
-import {NodeProperty} from "./persist/orm/NodeProperty";
-import {DbDataType, DbKeyType, DbSerialize} from "./persist/orm/DbAbstraction";
-import {ValidationRule} from "./Validator";
-import DataScope from "./DataScope";
-import ModelFileSection from "./ModelFileSection";
+import ModelMethod from "./ModelMethod.js";
+import {Savable, STUB_TYPE} from "./ModelSavable.js";
+import {NodeInternalType} from "./NodeInternalType.js";
+import {NodeType} from "./persist/orm/NodeType.js";
+import {NodeProperty} from "./persist/orm/NodeProperty.js";
+import {DbDataType, DbKeyType, DbSerialize} from "./persist/orm/DbAbstraction.js";
+import {ValidationRule} from "./Validator.js";
+import DataScope from "./DataScope.js";
+import ModelFileSection from "./ModelFileSection.js";
 
 
 export default class ModelDataBlock extends Savable

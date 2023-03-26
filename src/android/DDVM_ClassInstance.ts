@@ -7,8 +7,8 @@
  * @class
  * @classdesc Class managing the heap area
  */
-import ModelClass from "../ModelClass";
-import ModelField from "../ModelField";
+import ModelClass from "../ModelClass.js";
+import ModelField from "../ModelField.js";
 
 
 export default class DDVM_ClassInstance

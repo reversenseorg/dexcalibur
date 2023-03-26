@@ -1,9 +1,8 @@
-import ModelClass from "../ModelClass";
-import ModelMethod from "../ModelMethod";
-import ModelField from "../ModelField";
-import * as Log from "../Logger";
-import {DDVM_TypeHelper} from "./DDVM_TypeHelper";
-import {DexcaliburVM} from "../DexcaliburVM";
+import ModelClass from "../ModelClass.js";
+import ModelMethod from "../ModelMethod.js";
+import ModelField from "../ModelField.js";
+import * as Log from "../Logger.js";
+import {DDVM_TypeHelper} from "./DDVM_TypeHelper.js";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 

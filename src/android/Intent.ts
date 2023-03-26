@@ -1,4 +1,4 @@
-import {IntentFilter} from "./IntentFilter";
+import {IntentFilter} from "./IntentFilter.js";
 
 const ANDROID_PREFIX = "android:";
 const ANDROID_PREFIX_LEN = 8;

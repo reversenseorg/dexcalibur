@@ -7,10 +7,10 @@
  * @class
  * @classdesc Class managing the heap area
  */
-import DDVM_ClassLoader from "./DDVM_ClassLoader";
-import ModelClass from "../ModelClass";
-import DDVM_ClassInstance from "./DDVM_ClassInstance";
-import * as Log from "../Logger";
+import DDVM_ClassLoader from "./DDVM_ClassLoader.js";
+import ModelClass from "../ModelClass.js";
+import DDVM_ClassInstance from "./DDVM_ClassInstance.js";
+import * as Log from "../Logger.js";
 
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;

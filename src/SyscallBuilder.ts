@@ -2,7 +2,7 @@
 
 import * as _path_ from "path";
 import * as _fs_ from 'fs';
-import Util from "./Utils";
+import Util from "./Utils.js";
 
 const RX_SYSCALL = new RegExp("([^\\s]+)\\s+([^\\s\\(]+)\\s*\\(([^)]*)\\)\\s+(.*)");
 const RX_PARAM = new RegExp("([^\\s]+)\\s+([^\\s\\(]+)\\s*\\(([^)]*)\\)\\s+(.*)");

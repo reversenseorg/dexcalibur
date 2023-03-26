@@ -1,5 +1,5 @@
 import * as VM from 'vm';
-import {ScriptException} from "./errors/ScriptException";
+import {ScriptException} from "./errors/ScriptException.js";
 
 /**
  * Represent a Dexcalibur script

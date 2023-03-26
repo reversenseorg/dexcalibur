@@ -4,10 +4,11 @@ import * as _md5_ from 'md5';
 
 import ModelClass from "../dist/src/ModelClass";
 import {ModelObjectType} from "../dist/src/ModelType";
-import ModelFile from "../dist/src/ModelFile";
-import DataScope, {DataScopePpts} from "../dist/src/DataScope";
+import ModelFile from "../dist/src/ModelFile.js";
+import DataScope, {DataScopePpts} from "../dist/src/DataScope.js";
+import Util from "../src/Utils.js";
 
-const TEST_WS:string = _path_.join(__dirname,'ws');
+const TEST_WS:string = _path_.join(Util.__dirname(import.meta.url),'ws');
 const TEST_APP = "eshard_test"
 
 var BIN_SCOPE:DataScope = (new DataScope("bin")).setPpts(DataScopePpts.PATH, _path_.join(TEST_WS,TEST_APP,'apk'));

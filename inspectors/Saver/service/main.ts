@@ -1,13 +1,11 @@
 import * as _fs_ from 'fs';
 import * as _path_ from 'path';
 
-import Hook from "../../../src/Hook";
-import DexcaliburProject from "../../../src/DexcaliburProject";
-import {HookManager} from "../../../src/hook/HookManager";
-import ModelMethod from "../../../src/ModelMethod";
-import InspectorFrontController, {IFC_TYPE} from "../../../src/InspectorFrontController";
-import {AbstractHook} from "../../../src/hook/AbstractHook";
-import * as Log from "../../../src/Logger";
+import DexcaliburProject from "../../../src/DexcaliburProject.js";
+import ModelMethod from "../../../src/ModelMethod.js";
+import InspectorFrontController, {IFC_TYPE} from "../../../src/InspectorFrontController.js";
+import {AbstractHook} from "../../../src/hook/AbstractHook.js";
+import * as Log from "../../../src/Logger.js";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 

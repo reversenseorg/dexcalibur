@@ -4,9 +4,9 @@ import * as _ps_ from 'child_process';
 import * as _fs_ from 'fs';
 import * as _util_ from 'util';
 import {EOL} from 'os';
-import * as Log from './Logger';
-import JavaHelper from "./JavaHelper";
-import {External} from "./external/External";
+import * as Log from './Logger.js';
+import JavaHelper from "./JavaHelper.js";
+import {External} from "./external/External.js";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 

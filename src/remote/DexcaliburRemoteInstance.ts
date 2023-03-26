@@ -1,20 +1,20 @@
-import {IDexcaliburEngine, IDexcaliburProjectMap} from "../IDexcaliburEngine";
-import Configuration from "../Configuration";
-import DeviceManager from "../DeviceManager";
-import InspectorManager from "../InspectorManager";
-import PlatformManager from "../PlatformManager";
-import DexcaliburProject from "../DexcaliburProject";
-import DexcaliburRegistry from "../DexcaliburRegistry";
-import {Settings} from "../Settings";
-import {TerminalServer} from "../TerminalServer";
-import {External} from "../external/External";
-import {UserService} from "../user/UserService";
-import WebServer from "../WebServer";
-import {Workflow} from "../Workflow";
-import DexcaliburWorkspace from "../DexcaliburWorkspace";
-import {IpcMode} from "../DexcaliburServerChildProcess";
-import {UserAccount} from "../user/UserAccount";
-import {DexcaliburProjectMap} from "../DexcaliburEngine";
+import {IDexcaliburEngine, IDexcaliburProjectMap} from "../IDexcaliburEngine.js";
+import Configuration from "../Configuration.js";
+import DeviceManager from "../DeviceManager.js";
+import InspectorManager from "../InspectorManager.js";
+import PlatformManager from "../PlatformManager.js";
+import DexcaliburProject from "../DexcaliburProject.js";
+import DexcaliburRegistry from "../DexcaliburRegistry.js";
+import {Settings} from "../Settings.js";
+import {TerminalServer} from "../TerminalServer.js";
+import {External} from "../external/External.js";
+import {UserService} from "../user/UserService.js";
+import WebServer from "../WebServer.js";
+import {Workflow} from "../Workflow.js";
+import DexcaliburWorkspace from "../DexcaliburWorkspace.js";
+import {IpcMode} from "../DexcaliburServerChildProcess.js";
+import {UserAccount} from "../user/UserAccount.js";
+import {DexcaliburProjectMap} from "../DexcaliburEngine.js";
 
 export class DexcaliburRemoteInstance implements IDexcaliburEngine {
 

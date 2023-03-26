@@ -1,6 +1,6 @@
-import {AbstractHook} from "./AbstractHook";
-import HookTemplateFragment from "./HookTemplateFragment";
-import HookSession from "../HookSession";
+import {AbstractHook} from "./AbstractHook.js";
+import HookTemplateFragment from "./HookTemplateFragment.js";
+import HookSession from "../HookSession.js";
 
 
 export default class HookMessageV2

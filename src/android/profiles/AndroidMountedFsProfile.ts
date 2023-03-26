@@ -1,11 +1,11 @@
-import * as Log from "../../Logger";
-import {NosyProfile} from "../../device/profile/NosyProfile";
-import {IBridge} from "../../Bridge";
-import Util from "../../Utils";
-import GenericMountsProfile from "../../device/profile/GenericMountsProfile";
-import { FileSystemMountOptions } from "../../device/filesystem/FileSystemMountOptions";
-import FileSystemFactory from "../../device/filesystem/FileSystemFactory";
-import {IProfile} from "../../device/profile/IProfile";
+import * as Log from "../../Logger.js";
+import {NosyProfile} from "../../device/profile/NosyProfile.js";
+import {IBridge} from "../../Bridge.js";
+import Util from "../../Utils.js";
+import GenericMountsProfile from "../../device/profile/GenericMountsProfile.js";
+import { FileSystemMountOptions } from "../../device/filesystem/FileSystemMountOptions.js";
+import FileSystemFactory from "../../device/filesystem/FileSystemFactory.js";
+import {IProfile} from "../../device/profile/IProfile.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 

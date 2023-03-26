@@ -1,4 +1,4 @@
-import {Access, AccessMap} from "../Access";
+import {Access, AccessMap} from "../Access.js";
 
 export interface  UserRoleMap {
     [uid:string] :UserRole;

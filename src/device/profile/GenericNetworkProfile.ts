@@ -1,4 +1,4 @@
-import {Profile} from "./Profile";
+import {Profile} from "./Profile.js";
 
 export default class GenericNetworkProfile extends Profile {
 

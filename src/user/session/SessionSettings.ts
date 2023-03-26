@@ -1,7 +1,7 @@
 
-import {AuthenticationSettings} from "../auth/AuthenticationSettings";
-import Util from "../../Utils";
-import {SecurityZone} from "../../security/SecurityZone";
+import {AuthenticationSettings} from "../auth/AuthenticationSettings.js";
+import Util from "../../Utils.js";
+import {SecurityZone} from "../../security/SecurityZone.js";
 
 
 

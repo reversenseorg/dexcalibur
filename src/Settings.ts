@@ -1,14 +1,14 @@
-import DexcaliburRegistry from "./DexcaliburRegistry";
-import DexcaliburWorkspace from "./DexcaliburWorkspace";
+import DexcaliburRegistry from "./DexcaliburRegistry.js";
+import DexcaliburWorkspace from "./DexcaliburWorkspace.js";
 import * as _path_ from "path";
 import * as _fs_ from "fs";
 import * as _os_ from "os";
-import {AuthenticationSettings} from "./user/auth/AuthenticationSettings";
-import {DexcaliburConnectionParams, DexcaliburConnectionParamsList} from "./remote/DexcaliburConnectionParams";
-import {ConnectionSettingsException} from "./errors/ConnectionSettingsException";
-import {IncomingValue, SanitizedValue, UnsafeValue} from "./security/SanitizedValue";
-import {GlobalSettingsException} from "./errors/GlobalSettingsException";
-import {SecurityZone} from "./security/SecurityZone";
+import {AuthenticationSettings} from "./user/auth/AuthenticationSettings.js";
+import {DexcaliburConnectionParams, DexcaliburConnectionParamsList} from "./remote/DexcaliburConnectionParams.js";
+import {ConnectionSettingsException} from "./errors/ConnectionSettingsException.js";
+import {IncomingValue, SanitizedValue, UnsafeValue} from "./security/SanitizedValue.js";
+import {GlobalSettingsException} from "./errors/GlobalSettingsException.js";
+import {SecurityZone} from "./security/SecurityZone.js";
 
 
 const LOG_FILE = (process.env.DXC_LOG_PATH ? process.env.DXC_LOG_PATH : null);
@@ -85,7 +85,7 @@ export namespace Settings {
      * @class
      * @export
      */
-    export class ServerSettings extends AbstractSettings {
+    export class ServerSettings extends Settings.AbstractSettings {
 
 
         static SUPPORTED_ARCH = ["aarch64","aarch32","x64","x86"];
@@ -161,6 +161,10 @@ export namespace Settings {
             return this.registry;
         }
 
+        setRegistry(pRegistry:DexcaliburRegistry):void {
+            this.registry = pRegistry;
+        }
+
         getWorkspace():DexcaliburWorkspace {
             return this.space;
         }
@@ -169,6 +173,12 @@ export namespace Settings {
             return this.auth;
         }
 
+        setAuthenticationSettings(pSettings:AuthenticationSettings):void {
+            this.auth = pSettings;
+        }
+        setWorkspace(pPath:string, pOverride = false):void {
+            this.space = DexcaliburWorkspace.getInstance(pPath,pOverride);
+        }
 
         getHeapSize():number {
             return this.heapSize;
@@ -228,7 +238,7 @@ export namespace Settings {
                 workspace:  this.space.getLocation(),
                 registry: this.registry.url,
                 registryAPI: this.registry.api,
-                auth: this.auth.toObject(pZone),
+                auth: this.auth!=null ? this.auth.toObject(pZone) : null,
                 heapSize: this.heapSize,
                 defaultArch: this.defaultArch
             };
@@ -326,7 +336,7 @@ export namespace Settings {
         }
     }
 
-    export class ExternalSettings extends AbstractSettings {
+    export class ExternalSettings extends Settings.AbstractSettings {
 
         private _all: any;
 
@@ -474,7 +484,7 @@ export namespace Settings {
     }
 
 
-    export class    ConnectionSettings extends AbstractSettings {
+    export class    ConnectionSettings extends Settings.AbstractSettings {
 
         static LOCAL = 'local';
 
@@ -559,13 +569,13 @@ export namespace Settings {
      * @class
      * @export
      */
-    export class GlobalSettings extends AbstractSettings{
+    export class GlobalSettings extends Settings.AbstractSettings {
 
-        private _path:string = null;
+        private _path: string = null;
 
-        private bin: ExternalSettings;
-        private server: ServerSettings;
-        private web: WebServerSettings;
+        private bin: Settings.ExternalSettings;
+        private server: Settings.ServerSettings;
+        private web: Settings.WebServerSettings;
         private conn: ConnectionSettings = null;
 
         /**
@@ -573,19 +583,26 @@ export namespace Settings {
          * @param pConfig
          * @constructor
          */
-        constructor( pConfig:any=null) {
+        constructor(pConfig: any = null) {
             super(null);
 
-            this.server = new ServerSettings(this, pConfig.server); // server
-            this.bin = new ExternalSettings(this, pConfig.bin);
-            this.web = new WebServerSettings(this, pConfig.server.http, pConfig.server.ws); //(pConfig.http, pConfig.ws);
+            this.server = new Settings.ServerSettings(this, pConfig.server); // server
+            this.bin = new Settings.ExternalSettings(this, pConfig.bin);
+            this.web = new Settings.WebServerSettings(this, pConfig.server.http, pConfig.server.ws); //(pConfig.http, pConfig.ws);
 
-            if(pConfig.hasOwnProperty('conn')){
+            if (pConfig.hasOwnProperty('conn')) {
                 this.conn = new ConnectionSettings(this, pConfig.conn);
             }
         }
 
-        static getDefaultLocation():string {
+        /**
+         * To get the default location of the file where global stetings are stored
+         *
+         * Current path :   $HOME / .dexcalibur / dxc.json
+         *
+         * @static
+         */
+        static getDefaultLocation(): string {
             /*let p:string;
             switch(require('os').platform()){
                 case 'darwin':
@@ -593,8 +610,77 @@ export namespace Settings {
                     break;
             }*/
             // old path (v <= 0.7.x)
-            return _path_.join( require('os').homedir(), '.dexcalibur', GLOBAL_CFG_NAME);
+
+            //console.log("get default location at "+(_path_.join(_os_.homedir(), '.dexcalibur', Settings.GLOBAL_CFG_NAME)));
+
+            return _path_.join(_os_.homedir(), '.dexcalibur', Settings.GLOBAL_CFG_NAME);
         }
+
+        /**
+         * To create a basic configuration file at pPath
+         *
+         * @param {string} pPath The file path
+         * @static
+         */
+        static createDefaultConfig(pPath: string): void {
+
+            const home =_path_.dirname(pPath);
+            if(_fs_.existsSync(home)==false){
+                _fs_.mkdirSync(home, 0o666);
+            }
+
+            const config = {
+                server: {
+                    bin:{
+                        java:"java",
+                        python:"python3",
+                        frida:null, //"frida",
+                        radare2:null, //"r2",
+                        adb: null, //"/Users/salade/Documents/dxc3/.dxc/bin/platform-tools/adb",
+                        apktool: null, //"/Users/salade/Documents/dxc3/.dxc/bin/apktool.jar",
+                        baksmali: null, //"/Users/salade/Documents/dxc3/.dxc/bin/baksmali.jar",
+                        binwalk: null, //"binwalk"
+                    },
+                    auth:{
+                        db:{
+                            dbms:"sqlite",
+                            user:null,
+                            pwd:null,
+                            port:0,
+                            uri:_path_.join( home, 'users.db')
+                        },
+                        policy:{
+                            enforced:false
+                        },
+                        supported:["pwd"]
+                    },
+                    workspace: "",
+                    embedded: false,
+                    registry: "https://github.com/FrenchYeti/dexcalibur-registry/raw/master/",
+                    registryAPI: "https://github.com/FrenchYeti/dexcalibur-registry/contents/",
+                    env: {
+                        DXC_LOG_PATH: _path_.join(home, 'server.logs')
+                    },
+                    log: true,
+                    options: {
+                        port: 8000,
+                        ws: 8001,
+                        restore: false
+                    }
+                },
+                gui: {
+                    serve: false,
+                    devTools: true,
+                    log: true,
+                    env: {
+                        DXC_LOG_PATH: _path_.join(home, 'gui.logs')
+                    }
+                }
+            };
+
+            _fs_.writeFileSync(pPath, JSON.stringify(config));
+        }
+
         /**
          * To instanciate GlobalSettings instance by parsing configuration file
          * from specified location.
@@ -604,32 +690,37 @@ export namespace Settings {
          * - Default location : <HOMEDIR>/.dexcalibur/<GLOBAL_CFG_NAME>
          *
          */
-        static load( pConfigPath:string=undefined, pOverride:any=undefined): GlobalSettings {
-            let path:string = null;
-            let gs:GlobalSettings = null;
+        static load(pConfigPath: string = undefined, pOverride: any = undefined): GlobalSettings {
+            let path: string = null;
+            let gs: GlobalSettings = null;
 
-            if(process.env.DEXCALIBUR_HOME != null)
-                path = _path_.join( process.env.DEXCALIBUR_HOME, GLOBAL_CFG_NAME);
-            else if(pConfigPath !== undefined)
+            if (process.env.DEXCALIBUR_HOME != null) {
+                path = _path_.join(process.env.DEXCALIBUR_HOME, Settings.GLOBAL_CFG_NAME);
+            } else if (pConfigPath !== undefined) {
                 path = pConfigPath;
-            else
+            } else {
                 path = GlobalSettings.getDefaultLocation();
+            }
 
-
-            try{
-                const data:any = JSON.parse( _fs_.readFileSync(path).toString());
-
-                if(pOverride != null){
-                    for(const i in pOverride) data[i] = pOverride[i];
+            try {
+                if (!_fs_.existsSync(path)) {
+                    GlobalSettings.createDefaultConfig(path);
                 }
 
-                __log("[GLOBAL SETTINGS] load : success : "+JSON.stringify(data));
+                const data: any = JSON.parse(_fs_.readFileSync(path).toString());
+
+                if (pOverride != null) {
+                    for (const i in pOverride) data[i] = pOverride[i];
+                }
+
+                __log("[GLOBAL SETTINGS] load : success : " + JSON.stringify(data));
 
                 gs = new GlobalSettings(data);
                 gs.setPath(path);
-            }catch(err){
-                __log("[GLOBAL SETTINGS] load : error : "+err.message+" "+pConfigPath+"\n"+err.stack);
-            }finally {
+            } catch (err) {
+                console.log(err)
+                __log("[GLOBAL SETTINGS] load : error : " + err.message + " " + pConfigPath + "\n" + err.stack);
+            } finally {
                 return gs;
             }
         }
@@ -640,7 +731,7 @@ export namespace Settings {
         }
 
 
-        update( pValue:IncomingValue):void {
+        update(pValue: IncomingValue): void {
             throw GlobalSettingsException.SETTING_UNKNOW();
         }
 
@@ -649,30 +740,35 @@ export namespace Settings {
          *
          * @param pPath
          */
-        setPath(pPath:string):void {
+        setPath(pPath: string): void {
             this._path = pPath;
         }
+        
+        getPath():string {
+            return this._path;
+        }
+        
 
         /**
          * To save global settings
          *
          * @param pDestPath
          */
-        save( pDestPath:string = null){
+        save(pDestPath: string = null) {
             // if the path of the new file, is the same than current file,
             // then create a backup of current config
-            if(this._path != null && (pDestPath == null || pDestPath===this._path)){
-                _fs_.copyFileSync(this._path, this._path+'.bkp');
+            if (this._path != null && (pDestPath == null || pDestPath === this._path)) {
+                _fs_.copyFileSync(this._path, this._path + '.bkp');
             }
 
             _fs_.writeFileSync(
-                pDestPath!=null ? pDestPath : this._path,
+                pDestPath != null ? pDestPath : this._path,
                 JSON.stringify(
                     this.toObject()
                 ));
         }
 
-        getServerSettings():ServerSettings {
+        getServerSettings(): Settings.ServerSettings {
             return this.server;
         }
 
@@ -680,7 +776,7 @@ export namespace Settings {
             return this.bin;
         }
 
-        getWebserverSettings(): WebServerSettings {
+        getWebserverSettings(): Settings.WebServerSettings {
             return this.web;
         }
 
@@ -688,13 +784,13 @@ export namespace Settings {
             return this.conn;
         }
 
-        toObject(pZone:SecurityZone = SecurityZone.PUBLIC): any {
-            const o:any = {
+        toObject(pZone: SecurityZone = SecurityZone.PUBLIC): any {
+            const o: any = {
                 bin: this.bin.toObject(pZone),
                 server: this.server.toObject(pZone)
             };
 
-            if(this.conn != null){
+            if (this.conn != null) {
                 o.conn = this.conn.toObject(pZone);
             }
 
@@ -704,7 +800,7 @@ export namespace Settings {
             return o;
         }
 
-        toJson(pZone:SecurityZone = SecurityZone.PRIVATE):string {
+        toJson(pZone: SecurityZone = SecurityZone.PRIVATE): string {
             return JSON.stringify(this.toObject(pZone));
         }
 
@@ -713,3 +809,4 @@ export namespace Settings {
         }
     }
 }
+

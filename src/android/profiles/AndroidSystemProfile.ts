@@ -1,13 +1,13 @@
 
-import {ABI, AbiManager, InstructionSet} from "../../binary/ABI";
-import {AbiException} from "../../errors/AbiException";
-import {OperatingSystem} from "../../OperatingSystem";
-import {Architecture} from "../../Architecture";
-import { GenericSystemProfile } from "../../device/profile/GenericSystemProfile";
-import {NosyProfile} from "../../device/profile/NosyProfile";
-import {DeviceProfilingOptions, IBridge} from "../../Bridge";
-import * as Log from "../../Logger";
-import {IProfile} from "../../device/profile/IProfile";
+import {ABI, AbiManager, InstructionSet} from "../../binary/ABI.js";
+import {AbiException} from "../../errors/AbiException.js";
+import {OperatingSystem} from "../../OperatingSystem.js";
+import {Architecture} from "../../Architecture.js";
+import { GenericSystemProfile } from "../../device/profile/GenericSystemProfile.js";
+import {NosyProfile} from "../../device/profile/NosyProfile.js";
+import {DeviceProfilingOptions, IBridge} from "../../Bridge.js";
+import * as Log from "../../Logger.js";
+import {IProfile} from "../../device/profile/IProfile.js";
 
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;

@@ -1,10 +1,10 @@
 import * as _path_ from 'path';
 import * as _fs_ from 'fs';
 
-import Platform from "./Platform";
-import Util from "./Utils";
-import * as Log from './Logger';
-import DexcaliburWorkspace from "./DexcaliburWorkspace";
+import Platform from "./Platform.js";
+import Util from "./Utils.js";
+import * as Log from './Logger.js';
+import DexcaliburWorkspace from "./DexcaliburWorkspace.js";
 
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;

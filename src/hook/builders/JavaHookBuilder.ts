@@ -1,13 +1,12 @@
 import * as _md5_ from 'md5';
 
-import {ModelBasicType, ModelObjectType} from "../../ModelType";
-import {IDatabase, IDatabaseAdapter, IDbCollection} from "../../persist/orm/DbAbstraction";
-import {CONST} from "../../CoreConst";
-import ModelMethod from "../../ModelMethod";
-import Util from "../../Utils";
-import JavaMethodHook from "../JavaMethodHook";
-import HookTemplateFragment from "../HookTemplateFragment";
-import DexcaliburProject from "../../DexcaliburProject";
+import {ModelBasicType, ModelObjectType} from "../../ModelType.js";
+import {CONST} from "../../CoreConst.js";
+import ModelMethod from "../../ModelMethod.js";
+import Util from "../../Utils.js";
+import JavaMethodHook from "../JavaMethodHook.js";
+import HookTemplateFragment from "../HookTemplateFragment.js";
+import DexcaliburProject from "../../DexcaliburProject.js";
 
 
 function getLetterFromType(typename:string):string{

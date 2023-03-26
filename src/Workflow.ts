@@ -1,15 +1,15 @@
-import StatusMessage from "./StatusMessage";
-import {User} from "./User";
+import StatusMessage from "./StatusMessage.js";
+import {User} from "./User.js";
 
 
-import * as Log from "./Logger";
-import {IAuditableAccess} from "./user/acl/IAuditableAccess";
-import {AccessAttribute, AccessAttributeMap} from "./user/acl/AccessAttribute";
-import {GlobalAccessControl} from "./user/acl/rbac/GlobalAccessContol";
-import {UserAccount} from "./user/UserAccount";
-import AccessControl from "./user/acl/AccessControl";
-import {AccessZone} from "./user/acl/Zones";
-import {Auditable} from "./Auditable";
+import * as Log from "./Logger.js";
+import {IAuditableAccess} from "./user/acl/IAuditableAccess.js";
+import {AccessAttribute, AccessAttributeMap} from "./user/acl/AccessAttribute.js";
+import {GlobalAccessControl} from "./user/acl/rbac/GlobalAccessContol.js";
+import {UserAccount} from "./user/UserAccount.js";
+import AccessControl from "./user/acl/AccessControl.js";
+import {AccessZone} from "./user/acl/Zones.js";
+import {Auditable} from "./Auditable.js";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 

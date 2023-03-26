@@ -1,9 +1,9 @@
-import {DbDataType, DbKeyType, DbSerialize} from "./DbAbstraction";
-import {NodeType} from "./NodeType";
-import DexcaliburEngine from "../../DexcaliburEngine";
-import {ValidationRule} from "../../Validator";
-import {IncomingValue, SanitizedValue, UnsafeValue} from "../../security/SanitizedValue";
-import {DataSource} from "../../DataSource";
+import {DbDataType, DbKeyType, DbSerialize} from "./DbAbstraction.js";
+import {NodeType} from "./NodeType.js";
+import DexcaliburEngine from "../../DexcaliburEngine.js";
+import {ValidationRule} from "../../Validator.js";
+import {IncomingValue, SanitizedValue, UnsafeValue} from "../../security/SanitizedValue.js";
+import {DataSource} from "../../DataSource.js";
 
 
 export interface NodePropertyState {

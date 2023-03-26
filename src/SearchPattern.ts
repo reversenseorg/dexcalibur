@@ -1,4 +1,4 @@
-import {SearchToken} from "./SearchToken";
+import {SearchToken} from "./SearchToken.js";
 
 export default class SearchPattern
 {

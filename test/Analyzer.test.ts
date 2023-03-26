@@ -13,6 +13,7 @@ import AnalyzerDatabase from "../dist/src/AnalyzerDatabase";
 import ModelClass from "../dist/src/ModelClass";
 import {Modifier} from "../dist/src/AccessFlags";
 import ModelMethod from "../src/ModelMethod";
+import Util from "../src/Utils.js";
 
 
 describe('Analyzer', function() {
@@ -54,7 +55,7 @@ describe('Analyzer', function() {
             let analyzer:Analyzer = new Analyzer("ascii", PROJECT);
 
             analyzer.file(
-                _path_.join(__dirname,'ws','owasp.mstg.uncrackable1','apk','smali','sg','vantagepoint','a','b.smali'),
+                _path_.join(Util.__dirname(import.meta.url),'ws','owasp.mstg.uncrackable1','apk','smali','sg','vantagepoint','a','b.smali'),
                 'b.smali',
                 true
             );

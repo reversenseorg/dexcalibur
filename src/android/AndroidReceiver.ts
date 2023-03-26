@@ -1,7 +1,7 @@
-import {IntentFilter} from "./IntentFilter";
-import * as Log from '../Logger';
-import AndroidComponent from "./AndroidComponent";
-import {NodeInternalType} from "../NodeInternalType";
+import {IntentFilter} from "./IntentFilter.js";
+import * as Log from '../Logger.js';
+import AndroidComponent from "./AndroidComponent.js";
+import {NodeInternalType} from "../NodeInternalType.js";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 

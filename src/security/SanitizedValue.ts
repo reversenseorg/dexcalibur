@@ -1,4 +1,4 @@
-import {RuntimeSecurityException} from "../errors/RuntimeSecurityException";
+import {RuntimeSecurityException} from "../errors/RuntimeSecurityException.js";
 
 
 export abstract class IncomingValue {

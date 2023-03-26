@@ -1,10 +1,10 @@
-import { CONST } from "./CoreConst";
-import ModelBasicBlock from "./ModelBasicBlock";
-import ModelMethod from "./ModelMethod";
-import {Savable, STUB_TYPE} from "./ModelSavable";
-import {ModelRegisterReference} from "./ModelReference";
-import {NodeInternalType} from "./NodeInternalType";
-import {ModelFunction} from "./ModelFunction";
+import { CONST } from "./CoreConst.js";
+import ModelBasicBlock from "./ModelBasicBlock.js";
+import ModelMethod from "./ModelMethod.js";
+import {Savable, STUB_TYPE} from "./ModelSavable.js";
+import {ModelRegisterReference} from "./ModelReference.js";
+import {NodeInternalType} from "./NodeInternalType.js";
+import {ModelFunction} from "./ModelFunction.js";
 
 
 export enum ModelInstructionType {

@@ -1,15 +1,15 @@
-import {ModelFieldReference, ModelRegisterReference} from "./ModelReference";
-import {RX} from "./CoreParser";
-import {CONST} from "./CoreConst";
-import {ModelBasicType, ModelObjectType} from "./ModelType";
-import Util from "./Utils";
+import {ModelFieldReference, ModelRegisterReference} from "./ModelReference.js";
+import {RX} from "./CoreParser.js";
+import {CONST} from "./CoreConst.js";
+import {ModelBasicType, ModelObjectType} from "./ModelType.js";
+import Util from "./Utils.js";
 
 
-import * as Log from './Logger';
-import DalvikInstructionFormat from "./DalvikInstructionFormat";
-import {OPCODE} from "./Opcode";
-import ModelInstruction from "./ModelInstruction";
-import DexcaliburProject from "./DexcaliburProject";
+import * as Log from './Logger.js';
+import DalvikInstructionFormat from "./DalvikInstructionFormat.js";
+import {OPCODE} from "./Opcode.js";
+import ModelInstruction from "./ModelInstruction.js";
+import DexcaliburProject from "./DexcaliburProject.js";
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
 interface MethodInfo {

@@ -1,5 +1,5 @@
-import ModelBasicBlock from "../ModelBasicBlock";
-import DDVM_SymbolTable from "./DDVM_SymbolTable";
+import ModelBasicBlock from "../ModelBasicBlock.js";
+import DDVM_SymbolTable from "./DDVM_SymbolTable.js";
 
 /**
  * @class

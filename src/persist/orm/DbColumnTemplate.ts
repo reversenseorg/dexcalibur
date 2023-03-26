@@ -1,4 +1,4 @@
-import {DbDataType, DbKeyType, DbSerialize} from "./DbAbstraction";
+import {DbDataType, DbKeyType, DbSerialize} from "./DbAbstraction.js";
 
 export class DbPersistTemplate {
 

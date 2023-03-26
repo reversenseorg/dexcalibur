@@ -1,22 +1,22 @@
-import {CONST} from "./CoreConst";
-import ModelClass from "./ModelClass";
-import {Modifier, ModifierFormat} from "./AccessFlags";
-import ModelDataBlock from "./ModelDataBlock";
-import NodeCompare from "./NodeCompare";
-import {Savable, STUB_TYPE} from "./ModelSavable";
-import {ModelBasicType, ModelObjectType} from "./ModelType";
-import ModelBasicBlock from "./ModelBasicBlock";
-import ModelCall from "./ModelCall";
-import {ModelLocation} from "./ModelLocation";
-import {NodeType} from "./persist/orm/NodeType";
-import {NodeInternalType} from "./NodeInternalType";
-import {NodeProperty, NodePropertyState} from "./persist/orm/NodeProperty";
-import {DbDataType, DbKeyType} from "./persist/orm/DbAbstraction";
-import {IPersistent} from "./persist/orm/IPersistent";
-import JavaMethodHook from "./hook/JavaMethodHook";
-import {INode} from "./INode";
-import {DataSourceHelper} from "./DataSourceHelper";
-import {Tag} from "./tags/Tag";
+import {CONST} from "./CoreConst.js";
+import ModelClass from "./ModelClass.js";
+import {Modifier, ModifierFormat} from "./AccessFlags.js";
+import ModelDataBlock from "./ModelDataBlock.js";
+import NodeCompare from "./NodeCompare.js";
+import {Savable, STUB_TYPE} from "./ModelSavable.js";
+import {ModelBasicType, ModelObjectType} from "./ModelType.js";
+import ModelBasicBlock from "./ModelBasicBlock.js";
+import ModelCall from "./ModelCall.js";
+import {ModelLocation} from "./ModelLocation.js";
+import {NodeType} from "./persist/orm/NodeType.js";
+import {NodeInternalType} from "./NodeInternalType.js";
+import {NodeProperty, NodePropertyState} from "./persist/orm/NodeProperty.js";
+import {DbDataType, DbKeyType} from "./persist/orm/DbAbstraction.js";
+import {IPersistent} from "./persist/orm/IPersistent.js";
+import JavaMethodHook from "./hook/JavaMethodHook.js";
+import {INode} from "./INode.js";
+import {DataSourceHelper} from "./DataSourceHelper.js";
+import {Tag} from "./tags/Tag.js";
 
 
 /*interface LazyMethodReference {

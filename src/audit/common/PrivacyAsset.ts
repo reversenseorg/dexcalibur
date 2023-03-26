@@ -1,4 +1,4 @@
-import Asset from "./Asset";
+import Asset from "./Asset.js";
 
 
 export default class PrivacyAsset extends Asset {

@@ -1,18 +1,18 @@
-import {Savable, STUB_TYPE} from "./ModelSavable";
+import {Savable, STUB_TYPE} from "./ModelSavable.js";
 import {createHash} from "crypto";
-import {NodeType} from "./persist/orm/NodeType";
-import {NodeInternalType} from "./NodeInternalType";
-import {NodeProperty} from "./persist/orm/NodeProperty";
-import {DbDataType, DbKeyType} from "./persist/orm/DbAbstraction";
-import {DataSourceHelper} from "./DataSourceHelper";
-import {DataLocation, DataLocationType} from "./DataLocation";
-import ModelBasicBlock from "./ModelBasicBlock";
-import ModelMethod from "./ModelMethod";
-import ModelInstruction from "./ModelInstruction";
-import {AbstractHook} from "./hook/AbstractHook";
-import HookSession from "./HookSession";
-import HookTemplateFragment from "./hook/HookTemplateFragment";
-import ModelFile from "./ModelFile";
+import {NodeType} from "./persist/orm/NodeType.js";
+import {NodeInternalType} from "./NodeInternalType.js";
+import {NodeProperty} from "./persist/orm/NodeProperty.js";
+import {DbDataType, DbKeyType} from "./persist/orm/DbAbstraction.js";
+import {DataSourceHelper} from "./DataSourceHelper.js";
+import {DataLocation, DataLocationType} from "./DataLocation.js";
+import ModelBasicBlock from "./ModelBasicBlock.js";
+import ModelMethod from "./ModelMethod.js";
+import ModelInstruction from "./ModelInstruction.js";
+import {AbstractHook} from "./hook/AbstractHook.js";
+import HookSession from "./HookSession.js";
+import HookTemplateFragment from "./hook/HookTemplateFragment.js";
+import ModelFile from "./ModelFile.js";
 
 const UID_ALGO = 'sha1';
 

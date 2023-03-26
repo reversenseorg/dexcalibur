@@ -1,4 +1,4 @@
-import { FileSystemMountOptions } from "../FileSystemMountOptions";
+import { FileSystemMountOptions } from "../FileSystemMountOptions.js";
 
 export class F2FileSystemMountOptions extends FileSystemMountOptions{
 

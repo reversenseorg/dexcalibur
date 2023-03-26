@@ -1,39 +1,39 @@
 import * as co from 'co';
 import * as md5 from 'md5';
 
-import HookSession from "../HookSession";
-import DexcaliburProject from "../DexcaliburProject";
-import HookPrologue from "../HookPrologue";
-import HookSet from "../HookSet";
-import Hook from "../Hook";
-import {Device} from "../Device";
-import Util from "../Utils";
-import ModelMethod from "../ModelMethod";
-import * as Log from '../Logger';
-import FridaHelper from "../FridaHelper";
-import {User} from "../User";
-import {ModelFunction} from "../ModelFunction";
-import {HookManagerException} from "../errors/HookManagerException";
-import HookScriptBuilder from "./HookScriptBuilder";
-import KeyPointManager from "./KeyPointManager";
-import KeyPoint, {KeyPointRole} from "./KeyPoint";
-import JavaMethodHook from "./JavaMethodHook";
-import NativeFunctionHook from "./NativeFunctionHook";
-import {NodeInternalType} from "../NodeInternalType";
-import {AbstractHook} from "./AbstractHook";
-import {HookBuilder} from "./builders/HookBuider";
-import {HookDbApi} from "./HookDbApi";
-import HookStrategy from "./HookStrategy";
-import HookTemplateFragment from "./HookTemplateFragment";
-import HookWorkspace from "./HookWorkspace";
-import {DeviceManagerException} from "../errors/DeviceManagerException";
+import HookSession from "../HookSession.js";
+import DexcaliburProject from "../DexcaliburProject.js";
+import HookPrologue from "../HookPrologue.js";
+import HookSet from "../HookSet.js";
+import Hook from "../Hook.js";
+import {Device} from "../Device.js";
+import Util from "../Utils.js";
+import ModelMethod from "../ModelMethod.js";
+import * as Log from '../Logger.js';
+import FridaHelper from "../FridaHelper.js";
+import {User} from "../User.js";
+import {ModelFunction} from "../ModelFunction.js";
+import {HookManagerException} from "../errors/HookManagerException.js";
+import HookScriptBuilder from "./HookScriptBuilder.js";
+import KeyPointManager from "./KeyPointManager.js";
+import KeyPoint, {KeyPointRole} from "./KeyPoint.js";
+import JavaMethodHook from "./JavaMethodHook.js";
+import NativeFunctionHook from "./NativeFunctionHook.js";
+import {NodeInternalType} from "../NodeInternalType.js";
+import {AbstractHook} from "./AbstractHook.js";
+import {HookBuilder} from "./builders/HookBuider.js";
+import {HookDbApi} from "./HookDbApi.js";
+import HookStrategy from "./HookStrategy.js";
+import HookTemplateFragment from "./HookTemplateFragment.js";
+import HookWorkspace from "./HookWorkspace.js";
+import {DeviceManagerException} from "../errors/DeviceManagerException.js";
 import * as Frida from 'frida';
-import {RuntimeEvent} from "./RuntimeEvent";
-import HookMessageV2 from "./HookMessageV2";
-import HookFragmentPreset from "./HookFragmentPreset";
-import {TagHashMap, TagNameMap} from "../tags/TagManager";
-import SystemCallHook from "./SystemCallHook";
-import ModelSyscall from "../ModelSyscall";
+import {RuntimeEvent} from "./RuntimeEvent.js";
+import HookMessageV2 from "./HookMessageV2.js";
+import HookFragmentPreset from "./HookFragmentPreset.js";
+import {TagHashMap, TagNameMap} from "../tags/TagManager.js";
+import SystemCallHook from "./SystemCallHook.js";
+import ModelSyscall from "../ModelSyscall.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -377,7 +377,7 @@ export class HookManager
 
         let self = this;
         UT.forEachFileOf(
-            Path.join(__dirname, "..", "scanner"),
+            Path.join(Util.__dirname(import.meta.url), "..", "scanner"),
             function(path,file){
                 let s = file.substr(0,file.lastIndexOf("."));
                 if(self.scanners[s]==null){

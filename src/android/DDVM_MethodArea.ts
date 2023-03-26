@@ -1,10 +1,10 @@
-import {CONST} from "../CoreConst";
-import * as Log from "../Logger";
-import DDVM_SymbolTable from "./DDVM_SymbolTable";
-import ModelMethod from "../ModelMethod";
-import DDVM_Symbol from "./DDVM_Symbol";
-import ModelBasicBlock from "../ModelBasicBlock";
-import ModelInstruction from "../ModelInstruction";
+import {CONST} from "../CoreConst.js";
+import * as Log from "../Logger.js";
+import DDVM_SymbolTable from "./DDVM_SymbolTable.js";
+import ModelMethod from "../ModelMethod.js";
+import DDVM_Symbol from "./DDVM_Symbol.js";
+import ModelBasicBlock from "../ModelBasicBlock.js";
+import ModelInstruction from "../ModelInstruction.js";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 

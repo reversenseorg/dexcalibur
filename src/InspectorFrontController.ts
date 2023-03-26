@@ -1,7 +1,7 @@
 import * as Express from 'express';
 
-import DexcaliburProject from "./DexcaliburProject";
-import {DelegateWebApi} from "./webapi/DelegateWebApi";
+import DexcaliburProject from "./DexcaliburProject.js";
+import {DelegateWebApi} from "./webapi/DelegateWebApi.js";
 
 
 const HANDLER_TYPE = {

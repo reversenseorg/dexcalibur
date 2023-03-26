@@ -1,9 +1,6 @@
-import {NodeType} from "../persist/orm/NodeType";
-import {NodeInternalType} from "../NodeInternalType";
-import {NodeProperty} from "../persist/orm/NodeProperty";
-import {DbDataType, DbKeyType, DbSerialize} from "../persist/orm/DbAbstraction";
-import {AndroidAttributeSet} from "./AndroidAttribute";
-import AndroidComponent from "./AndroidComponent";
+
+import {AndroidAttributeSet} from "./AndroidAttribute.js";
+import AndroidComponent from "./AndroidComponent.js";
 
 export class AndroidBroadcast extends AndroidComponent {
 

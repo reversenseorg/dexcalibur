@@ -4,16 +4,15 @@
  * @author Georges-B. MICHEL
  * @class
  */
-import SerializedObject from "./SerializedObject";
-import {DbSetType, IDatabase, IDbCollection} from "../../src/persist/orm/DbAbstraction";
-import {NodeProperty} from "../../src/persist/orm/NodeProperty";
-import {PreparedStatementList, SqliteAPI} from "./SqliteAPI";
-import {SqliteException} from "./SqliteException";
-import {NodeType} from "../../src/persist/orm/NodeType";
-import * as Log from "../../src/Logger";
-import DexcaliburEngine from "../../src/DexcaliburEngine";
-import PersistenceCache from "../../src/persist/PersistenceCache";
-import {SqliteDb} from "./SqliteDb";
+import {DbSetType, IDatabase, IDbCollection} from "../../src/persist/orm/DbAbstraction.js";
+import {NodeProperty} from "../../src/persist/orm/NodeProperty.js";
+import {PreparedStatementList, SqliteAPI} from "./SqliteAPI.js";
+import {SqliteException} from "./SqliteException.js";
+import {NodeType} from "../../src/persist/orm/NodeType.js";
+import * as Log from "../../src/Logger.js";
+import DexcaliburEngine from "../../src/DexcaliburEngine.js";
+import PersistenceCache from "../../src/persist/PersistenceCache.js";
+import {SqliteDb} from "./SqliteDb.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -80,7 +79,7 @@ export default class SqliteDbCollection implements IDbCollection
             }
         });
 
-        Logger.info("[SQLITE] Creating cache for nodes '"+this._tpl.getName()+"' with indexes : "+idx.join(', '));
+        Logger.debug("[SQLITE] Creating cache for nodes '"+this._tpl.getName()+"' with indexes : "+idx.join(', '));
         this._cache = new PersistenceCache(idx);
         this._cache.create();
     }
@@ -183,11 +182,11 @@ export default class SqliteDbCollection implements IDbCollection
                     if(nt.getDataSource() != null){
                         if(vPpt.isMultiple()){
                             // in this case (multiple) a foreign key is stored into another table
-                            Logger.info("LINKING MULT EXT :! "+nt.getSourceAlias() );
+                            Logger.debug("LINKING MULT EXT :! "+nt.getSourceAlias() );
                             o[vPpt.getName()] = nt.getDataSource().findMult(nt, this._db.getProject(), v);
                         }else{
                             o[vPpt.getName()] = nt.getDataSource().find(nt, this._db.getProject(), v);
-                            Logger.info("LINKING SINGLE EXT "+vPpt.getName()+": "+nt.getSourceAlias()+": "+v );
+                            Logger.debug("LINKING SINGLE EXT "+vPpt.getName()+": "+nt.getSourceAlias()+": "+v );
                         }
                     }
 
@@ -236,7 +235,6 @@ export default class SqliteDbCollection implements IDbCollection
                 if(!pForce && pk != null && (obj = this._cache.getEntry( vEntry[pk], pk ))!=null){
                     all.push( obj);
                 }else{
-                    Logger.raw(JSON.stringify(vEntry))
                     obj = this._relink(vEntry);
                     this._cache.push(obj);
                     all.push( obj);

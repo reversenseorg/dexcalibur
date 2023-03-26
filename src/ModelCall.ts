@@ -1,9 +1,9 @@
 // TDB
-import {Savable, STUB_TYPE} from "./ModelSavable";
-import ModelInstruction from "./ModelInstruction";
-import ModelMethod from "./ModelMethod";
+import {Savable, STUB_TYPE} from "./ModelSavable.js";
+import ModelInstruction from "./ModelInstruction.js";
+import ModelMethod from "./ModelMethod.js";
 import {EOL} from "os";
-import ModelClass from "./ModelClass";
+import ModelClass from "./ModelClass.js";
 
 /**
  * Represents a call to a method, a field or a class

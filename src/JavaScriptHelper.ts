@@ -75,7 +75,7 @@ export class JSObject
             else if(entry.value===undefined){
                 out += "undefined";
             }
-            else if(entry.value===NaN){
+            else if(Number.isNaN(entry.value)){
                 out += "NaN";
             }
             else{

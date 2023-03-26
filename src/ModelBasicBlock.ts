@@ -1,8 +1,8 @@
-import { CONST } from "./CoreConst";
-import ModelCatchStatement from "./ModelCatchStatement";
-import { ModelSwitchCase, ModelPackedSwitchStatement, ModelSparseSwitchStatement } from "./ModelSwitch";
-import ModelInstruction from "./ModelInstruction";
-import ModelMethod from "./ModelMethod";
+import { CONST } from "./CoreConst.js";
+import ModelCatchStatement from "./ModelCatchStatement.js";
+import { ModelSwitchCase, ModelPackedSwitchStatement, ModelSparseSwitchStatement } from "./ModelSwitch.js";
+import ModelInstruction from "./ModelInstruction.js";
+import ModelMethod from "./ModelMethod.js";
 
 /**
  * Represents a basic block of dalvik instruction

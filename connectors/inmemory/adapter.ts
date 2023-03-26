@@ -1,9 +1,9 @@
 'use strict';
 
 
-import DexcaliburProject from "../../src/DexcaliburProject";
-import { InMemoryDb, Index, Collection } from "./InMemoryDb";
-import {IDatabase, IDatabaseAdapter} from "../../src/persist/orm/DbAbstraction";
+import DexcaliburProject from "../../src/DexcaliburProject.js";
+import { InMemoryDb, Index, Collection } from "./InMemoryDb.js";
+import {IDatabase, IDatabaseAdapter} from "../../src/persist/orm/DbAbstraction.js";
 
 const TYPE  = 'inmemory';
 const NAME = 'InMemory';

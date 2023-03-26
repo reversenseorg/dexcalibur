@@ -1,20 +1,20 @@
-import {Modifier} from "./AccessFlags";
-import {CONST} from "./CoreConst";
+import {Modifier} from "./AccessFlags.js";
+import {CONST} from "./CoreConst.js";
 import {EOL} from 'os';
-import ModelPackage from "./ModelPackage";
-import ModelMethod from "./ModelMethod";
-import ModelField from "./ModelField";
-import NodeCompare from "./NodeCompare";
-import {Savable, STUB_TYPE} from "./ModelSavable";
-import {ModelClassReference, ModelFieldReference, ModelMethodReference} from "./ModelReference";
-import {ModelLocation} from "./ModelLocation";
-import {IPersistent} from "./persist/orm/IPersistent";
-import {NodeType} from "./persist/orm/NodeType";
-import {NodeInternalType} from "./NodeInternalType";
-import {NodeProperty, NodePropertyState} from "./persist/orm/NodeProperty";
-import {DbDataType, DbKeyType} from "./persist/orm/DbAbstraction";
-import {DataSourceHelper} from "./DataSourceHelper";
-import {INode} from "./INode";
+import ModelPackage from "./ModelPackage.js";
+import ModelMethod from "./ModelMethod.js";
+import ModelField from "./ModelField.js";
+import NodeCompare from "./NodeCompare.js";
+import {Savable, STUB_TYPE} from "./ModelSavable.js";
+import {ModelClassReference, ModelFieldReference, ModelMethodReference} from "./ModelReference.js";
+import {ModelLocation} from "./ModelLocation.js";
+import {IPersistent} from "./persist/orm/IPersistent.js";
+import {NodeType} from "./persist/orm/NodeType.js";
+import {NodeInternalType} from "./NodeInternalType.js";
+import {NodeProperty, NodePropertyState} from "./persist/orm/NodeProperty.js";
+import {DbDataType, DbKeyType} from "./persist/orm/DbAbstraction.js";
+import {DataSourceHelper} from "./DataSourceHelper.js";
+import {INode} from "./INode.js";
 
 
 interface IClassSet {

@@ -2,9 +2,9 @@
 /**
  * Constant values describing a stub type.
  */
-import {Tag} from "./tags/Tag";
-import {INode} from "./INode";
-import {NodeInternalType} from "./NodeInternalType";
+import {Tag} from "./tags/Tag.js";
+import {INode} from "./INode.js";
+import {NodeInternalType} from "./NodeInternalType.js";
 
 export enum STUB_TYPE {
     METHOD= 0x1,

@@ -1,8 +1,5 @@
 
-import DexcaliburProject from "../DexcaliburProject";
-import HookTemplateFragment from "../hook/HookTemplateFragment";
-import {HookManager} from "../hook/HookManager";
-import {DXC_LIFECYCLE_EVENT} from "../CoreConst";
+import {DXC_LIFECYCLE_EVENT} from "../CoreConst.js";
 
 export const PATCHES = [
    {

@@ -1,10 +1,10 @@
-import {DelegateWebApi} from "./DelegateWebApi";
-import WebServer from "../WebServer";
+import {DelegateWebApi} from "./DelegateWebApi.js";
+import WebServer from "../WebServer.js";
 import {Router, Request, Response} from "express";
-import * as Log from "../Logger";
-import {GlobalSettingsException} from "../errors/GlobalSettingsException";
-import {SecurityZone} from "../security/SecurityZone";
-import {Settings} from "../Settings";
+import * as Log from "../Logger.js";
+import {GlobalSettingsException} from "../errors/GlobalSettingsException.js";
+import {SecurityZone} from "../security/SecurityZone.js";
+import {Settings} from "../Settings.js";
 import ExternalSettings = Settings.ExternalSettings;
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;

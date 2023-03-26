@@ -9,20 +9,21 @@ import * as _fs_ from 'fs';
 import * as _path_ from 'path';
 import * as Express from 'express';
 
-import HookSet from "./HookSet";
-import {ConnectorFactory} from "./ConnectorFactory";
-import DexcaliburProject from "./DexcaliburProject";
-import InspectorFrontController, {IFC_TYPE} from "./InspectorFrontController";
-import BusEvent from "./BusEvent";
-import * as Log from './Logger';
+import HookSet from "./HookSet.js";
+import {ConnectorFactory} from "./ConnectorFactory.js";
+import DexcaliburProject from "./DexcaliburProject.js";
+import InspectorFrontController, {IFC_TYPE} from "./InspectorFrontController.js";
+import BusEvent from "./BusEvent.js";
+import * as Log from './Logger.js';
 import {Stats} from "mocha";
-import {BusBroadcaster} from "./Bus";
-import {IDatabase, IDatabaseAdapter} from "./persist/orm/DbAbstraction";
-import {DelegateWebApi} from "./webapi/DelegateWebApi";
-import WebServer from "./WebServer";
-import {TagCategory} from "./tags/TagCategory";
-import {NodeType} from "./persist/orm/NodeType";
-import {NodeInternalType} from "./NodeInternalType";
+import {BusBroadcaster} from "./Bus.js";
+import {IDatabase, IDatabaseAdapter} from "./persist/orm/DbAbstraction.js";
+import {DelegateWebApi} from "./webapi/DelegateWebApi.js";
+import WebServer from "./WebServer.js";
+import {TagCategory} from "./tags/TagCategory.js";
+import {NodeType} from "./persist/orm/NodeType.js";
+import {NodeInternalType} from "./NodeInternalType.js";
+import Util from "./Utils.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -478,7 +479,7 @@ export default class Inspector implements BusBroadcaster
         }
 
         // register front controller
-        const path = _path_.join(__dirname,"..","inspectors",this.id,"service","main.js");
+        const path = _path_.join(Util.__dirname(import.meta.url),"..","inspectors",this.id,"service","main.js");
         if(_fs_.existsSync(path)){
             this.frontController = require(path).default.injectContext(ctx);
             Logger.info("[Inspector::injectContext][FrontController] "+this.id+" registered !");

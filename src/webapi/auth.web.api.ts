@@ -1,14 +1,13 @@
-import {DelegateWebApi} from "./DelegateWebApi";
-import {Device} from "../Device";
-import WebServer from "../WebServer";
+import {DelegateWebApi} from "./DelegateWebApi.js";
+import WebServer from "../WebServer.js";
 import {Request, Response } from "express";
-import * as Log from "../Logger";
-import {DexcaliburConnectionParams} from "../remote/DexcaliburConnectionParams";
-import {ConnectionHandler} from "../remote/ConnectionHandler";
-import {DexcaliburConnectionException} from "../errors/DexcaliburConnectionException";
-import {ConnectionCredentials} from "../remote/ConnectionCredentials";
-import {ConnectionManagerException} from "../errors/ConnectionManagerException";
-import {Settings} from "../Settings";
+import * as Log from "../Logger.js";
+import {DexcaliburConnectionParams} from "../remote/DexcaliburConnectionParams.js";
+import {ConnectionHandler} from "../remote/ConnectionHandler.js";
+import {DexcaliburConnectionException} from "../errors/DexcaliburConnectionException.js";
+import {ConnectionCredentials} from "../remote/ConnectionCredentials.js";
+import {ConnectionManagerException} from "../errors/ConnectionManagerException.js";
+import {Settings} from "../Settings.js";
 import ConnectionSettings = Settings.ConnectionSettings;
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;

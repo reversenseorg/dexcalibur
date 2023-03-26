@@ -1,17 +1,15 @@
-import {CONST} from "./CoreConst";
-import {Modifier, ModifierFormat} from "./AccessFlags";
-import ModelClass from "./ModelClass";
-import ModelMethod from "./ModelMethod";
-import NodeCompare from "./NodeCompare";
-import {Savable, STUB_TYPE} from "./ModelSavable";
-import * as Log from "./Logger";
-import {ModelLocation} from "./ModelLocation";
-import {NodeType} from "./persist/orm/NodeType";
-import {NodeInternalType} from "./NodeInternalType";
-import {NodeProperty, NodePropertyState} from "./persist/orm/NodeProperty";
-import {DbDataType, DbKeyType} from "./persist/orm/DbAbstraction";
-import {IPersistent} from "./persist/orm/IPersistent";
-import {DataSourceHelper} from "./DataSourceHelper";
+
+import {Modifier, ModifierFormat} from "./AccessFlags.js";
+import ModelClass from "./ModelClass.js";
+import ModelMethod from "./ModelMethod.js";
+import NodeCompare from "./NodeCompare.js";
+import {Savable, STUB_TYPE} from "./ModelSavable.js";
+import * as Log from "./Logger.js";
+import {ModelLocation} from "./ModelLocation.js";
+import {NodeType} from "./persist/orm/NodeType.js";
+import {NodeInternalType} from "./NodeInternalType.js";
+import {IPersistent} from "./persist/orm/IPersistent.js";
+import {DataSourceHelper} from "./DataSourceHelper.js";
 
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;

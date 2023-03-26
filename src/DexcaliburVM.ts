@@ -1,5 +1,5 @@
-import ModelMethod from "./ModelMethod";
-import DDVM_ClassInstance from "./android/DDVM_ClassInstance";
+import ModelMethod from "./ModelMethod.js";
+import DDVM_ClassInstance from "./android/DDVM_ClassInstance.js";
 
 
 /**

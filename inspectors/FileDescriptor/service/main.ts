@@ -1,5 +1,5 @@
-import InspectorFrontController, {IFC_TYPE} from "../../../src/InspectorFrontController";
-import DexcaliburProject from "../../../src/DexcaliburProject";
+import InspectorFrontController, {IFC_TYPE} from "../../../src/InspectorFrontController.js";
+import DexcaliburProject from "../../../src/DexcaliburProject.js";
 
 var Controller:InspectorFrontController =  new InspectorFrontController();
 

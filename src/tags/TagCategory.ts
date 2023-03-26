@@ -1,10 +1,7 @@
-import {NodeType} from "../persist/orm/NodeType";
-import {NodeInternalType} from "../NodeInternalType";
-import {Tag} from "./Tag";
-import {NodeProperty} from "../persist/orm/NodeProperty";
-import {DbDataType, DbKeyType, DbSerialize} from "../persist/orm/DbAbstraction";
-import {UserAccount} from "../user/UserAccount";
-import {INode} from "../INode";
+import {NodeType} from "../persist/orm/NodeType.js";
+import {NodeInternalType} from "../NodeInternalType.js";
+import {Tag} from "./Tag.js";
+import {INode} from "../INode.js";
 
 /**
  * Tag categories are conceptuals, and are only used to help to manage tags

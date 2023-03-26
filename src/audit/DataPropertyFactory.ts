@@ -1,8 +1,6 @@
-import SecurityThreatModel from "./common/SecurityThreatModel";
-import DataProperty from "./common/DataProperty";
-import {TagManager} from "../tags/TagManager";
-import DexcaliburEngine from "../DexcaliburEngine";
-import DexcaliburProject from "../DexcaliburProject";
+
+import DataProperty from "./common/DataProperty.js";
+import DexcaliburProject from "../DexcaliburProject.js";
 
 export enum MetaSecurityProperty {
     AUTHENTICITY="authenticity",

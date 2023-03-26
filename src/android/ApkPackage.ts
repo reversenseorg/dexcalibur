@@ -3,7 +3,7 @@
  *
  * @class
  */
-import {AppIcon} from "../AppIcon";
+import {AppIcon} from "../AppIcon.js";
 
 /**
  * @class

@@ -1,5 +1,5 @@
-import ModelFile from "./ModelFile";
-import {ABI} from "./binary/ABI";
+import ModelFile from "./ModelFile.js";
+import {ABI} from "./binary/ABI.js";
 
 export interface NativeAnalyzerProfile {
 

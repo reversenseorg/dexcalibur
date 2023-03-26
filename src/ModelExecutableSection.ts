@@ -1,4 +1,4 @@
-import {NodeInternalType} from "./NodeInternalType";
+import {NodeInternalType} from "./NodeInternalType.js";
 
 /**
  * Represents a section into an executable file

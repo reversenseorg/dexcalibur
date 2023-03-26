@@ -1,5 +1,5 @@
-import {NodeInternalType} from "./NodeInternalType";
-import {DataType} from "./types/DataType";
+import {NodeInternalType} from "./NodeInternalType.js";
+import {DataType} from "./types/DataType.js";
 
 
 export enum ModelVariableType {

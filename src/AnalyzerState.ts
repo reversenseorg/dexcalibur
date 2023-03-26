@@ -1,11 +1,11 @@
-import {NodeType} from "./persist/orm/NodeType";
-import {NodeInternalType} from "./NodeInternalType";
-import {NodeProperty, NodePropertyState} from "./persist/orm/NodeProperty";
-import {DbDataType, DbKeyType, DbSerialize, IDbCollection} from "./persist/orm/DbAbstraction";
-import {ValidationRule} from "./Validator";
-import DataScope from "./DataScope";
-import ModelFileSection from "./ModelFileSection";
-import DexcaliburProject from "./DexcaliburProject";
+import {NodeType} from "./persist/orm/NodeType.js";
+import {NodeInternalType} from "./NodeInternalType.js";
+import {NodeProperty, NodePropertyState} from "./persist/orm/NodeProperty.js";
+import {DbDataType, DbKeyType, DbSerialize, IDbCollection} from "./persist/orm/DbAbstraction.js";
+import {ValidationRule} from "./Validator.js";
+import DataScope from "./DataScope.js";
+import ModelFileSection from "./ModelFileSection.js";
+import DexcaliburProject from "./DexcaliburProject.js";
 
 /**
  * A class to save the state of an analyzer or analyzed entities

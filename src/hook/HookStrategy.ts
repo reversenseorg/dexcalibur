@@ -1,22 +1,20 @@
 
 import * as _md5_ from "md5";
-import DexcaliburProject from "../DexcaliburProject";
-import HookStrategySelector from "./HookStrategySelector";
+import DexcaliburProject from "../DexcaliburProject.js";
+import HookStrategySelector from "./HookStrategySelector.js";
 import * as VM from "vm";
-import {FinderResult} from "../FinderResult";
-import HookTemplate from "./HookTemplate";
-import {IHook} from "./IHook";
-import JavaMethodHook from "./JavaMethodHook";
-import KeyPoint from "./KeyPoint";
-import HookTemplateFragment from "./HookTemplateFragment";
-import {AbstractHook, HOOK_FRAGMENT_POS, UID_POS_MAPPING} from "./AbstractHook";
-import ModelMethod from "../ModelMethod";
-import {ModelFunction} from "../ModelFunction";
-import NativeFunctionHook from "./NativeFunctionHook";
-import {NodeType} from "../persist/orm/NodeType";
-import {NodeInternalType} from "../NodeInternalType";
-import {HookManager} from "./HookManager";
-import * as Log from "../Logger";
+import {FinderResult} from "../FinderResult.js";
+import JavaMethodHook from "./JavaMethodHook.js";
+import KeyPoint from "./KeyPoint.js";
+import HookTemplateFragment from "./HookTemplateFragment.js";
+import {AbstractHook, HOOK_FRAGMENT_POS, UID_POS_MAPPING} from "./AbstractHook.js";
+import ModelMethod from "../ModelMethod.js";
+import {ModelFunction} from "../ModelFunction.js";
+import NativeFunctionHook from "./NativeFunctionHook.js";
+import {NodeType} from "../persist/orm/NodeType.js";
+import {NodeInternalType} from "../NodeInternalType.js";
+import {HookManager} from "./HookManager.js";
+import * as Log from "../Logger.js";
 
 export const DEFAULT_PRIORITY = -1;
 

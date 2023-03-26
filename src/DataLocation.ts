@@ -1,12 +1,9 @@
-import ModelClass from "./ModelClass";
-import ModelMethod from "./ModelMethod";
-import ModelBasicBlock from "./ModelBasicBlock";
-import {AbstractHook} from "./hook/AbstractHook";
-import HookTemplateFragment from "./hook/HookTemplateFragment";
-import {NodeInternalType} from "./NodeInternalType";
-import {INode} from "./INode";
-import ModelFile from "./ModelFile";
-import {STUB_TYPE} from "./ModelSavable";
+
+import {AbstractHook} from "./hook/AbstractHook.js";
+import HookTemplateFragment from "./hook/HookTemplateFragment.js";
+import {NodeInternalType} from "./NodeInternalType.js";
+import {INode} from "./INode.js";
+import ModelFile from "./ModelFile.js";
 
 export enum DataLocationType {
     FILE,

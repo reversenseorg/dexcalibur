@@ -3,9 +3,9 @@
 import * as _path_ from "path";
 import * as _fs_ from 'fs';
 import * as _busboy_ from 'busboy';
-import Util from './Utils';
+import Util from './Utils.js';
 import * as Express from 'express';
-import DexcaliburWorkspace from "./DexcaliburWorkspace";
+import DexcaliburWorkspace from "./DexcaliburWorkspace.js";
 
 
 interface IUploadSession {

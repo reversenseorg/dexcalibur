@@ -1,14 +1,14 @@
 'use strict';
 
 
-import DexcaliburProject from "./DexcaliburProject";
-import {DexcaliburVM} from "./DexcaliburVM";
-import ModelMethod from "./ModelMethod";
-import ModelBasicBlock from "./ModelBasicBlock";
-import ModelInstruction from "./ModelInstruction";
-import {CONST} from "./CoreConst";
-import * as Log from './Logger';
-import DDVM_Symbol from "./android/DDVM_Symbol";
+import DexcaliburProject from "./DexcaliburProject.js";
+import {DexcaliburVM} from "./DexcaliburVM.js";
+import ModelMethod from "./ModelMethod.js";
+import ModelBasicBlock from "./ModelBasicBlock.js";
+import ModelInstruction from "./ModelInstruction.js";
+import {CONST} from "./CoreConst.js";
+import * as Log from './Logger.js';
+import DDVM_Symbol from "./android/DDVM_Symbol.js";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 

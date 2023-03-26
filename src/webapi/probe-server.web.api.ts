@@ -1,14 +1,14 @@
-import {DelegateWebApi} from "./DelegateWebApi";
-import {Device} from "../Device";
-import WebServer from "../WebServer";
-import DeviceManager from "../DeviceManager";
-import FridaHelper from "../FridaHelper";
+import {DelegateWebApi} from "./DelegateWebApi.js";
+import {Device} from "../Device.js";
+import WebServer from "../WebServer.js";
+import DeviceManager from "../DeviceManager.js";
+import FridaHelper from "../FridaHelper.js";
 import {Router, Request, Response} from "express";
-import * as Log from "../Logger";
-import {AuthenticationException} from "../errors/AuthenticationException";
-import {DexcaliburProjectException} from "../errors/DexcaliburProjectException";
-import DexcaliburProject from "../DexcaliburProject";
-import {FridaHelperException} from "../errors/FridaHelperException";
+import * as Log from "../Logger.js";
+import {AuthenticationException} from "../errors/AuthenticationException.js";
+import {DexcaliburProjectException} from "../errors/DexcaliburProjectException.js";
+import DexcaliburProject from "../DexcaliburProject.js";
+import {FridaHelperException} from "../errors/FridaHelperException.js";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 export const PROBE_SERVER_WEB_API: DelegateWebApi = new DelegateWebApi();

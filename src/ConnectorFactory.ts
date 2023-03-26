@@ -2,10 +2,14 @@
 import * as _fs_ from 'fs';
 import * as _path_ from 'path';
 
-import DexcaliburProject from "./DexcaliburProject";
-import InMemoryDbIndex from "../connectors/inmemory/InMemoryDbIndex";
-import InMemoryDbCollection from "../connectors/inmemory/InMemoryDbCollection";
-import SerializedObject from "../connectors/inmemory/SerializedObject";
+import DexcaliburProject from "./DexcaliburProject.js";
+
+import InMemoryDbIndex from "../connectors/inmemory/InMemoryDbIndex.js";
+import InMemoryDbCollection from "../connectors/inmemory/InMemoryDbCollection.js";
+import SerializedObject from "../connectors/inmemory/SerializedObject.js";
+import Util from "./Utils.js";
+import InMemoryConnector from "../connectors/inmemory/adapter.js";
+import SqliteConnector from '../connectors/sqlite/adapter.js';
 
 
 let gInstance:ConnectorFactory = null;
@@ -32,19 +36,10 @@ export class ConnectorFactory
      * @constructor
      */
     constructor() {
-        this.connectors = {};
-
-        let ws:string = _path_.join(__dirname, '..', 'connectors');
-        let files:string[] = _fs_.readdirSync(ws);
-        let p:string = null;
-
-        for(let i=0; i<files.length; i++){
-            p = _path_.join( ws, files[i], "adapter.js");
-            if(_fs_.existsSync(p)) {
-                this.connectors[files[i]] = require(p);
-                console.log(files[i],this.connectors[files[i]]);
-            }
-        }
+        this.connectors = {
+            inmemory: { default: InMemoryConnector },
+            sqlite: { default: SqliteConnector }
+        };
     }
 
     /**
@@ -75,7 +70,6 @@ export class ConnectorFactory
             throw new Error('[CONNECTOR] Unknown connector : '+pType);
         }
 
-        //console.log(this.connectors, this.connectors[pType]);
         return new this.connectors[pType].default(pProject, pOptions);
     }
 

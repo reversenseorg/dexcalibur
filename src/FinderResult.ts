@@ -1,20 +1,20 @@
-import ModelMethod from "./ModelMethod";
-import ModelClass from "./ModelClass";
-import ModelField from "./ModelField";
-import ModelCall from "./ModelCall";
-import ModelStringValue from "./ModelStringValue";
-import {XRef} from "./ModelReference";
-import {Finder} from "./Finder";
-import {IDbIndex} from "./persist/orm/DbAbstraction";
-import ModelConstantValue from "./ModelConstantValue";
-import {CONST} from "./CoreConst";
-import ModelFile from "./ModelFile";
-import Util from "./Utils";
-import {ModifierFormat} from "./AccessFlags";
-import ModelSyscall from "./ModelSyscall";
+import ModelMethod from "./ModelMethod.js";
+import ModelClass from "./ModelClass.js";
+import ModelField from "./ModelField.js";
+import ModelCall from "./ModelCall.js";
+import ModelStringValue from "./ModelStringValue.js";
+import {XRef} from "./ModelReference.js";
+import {Finder} from "./Finder.js";
+import {IDbIndex} from "./persist/orm/DbAbstraction.js";
+import ModelConstantValue from "./ModelConstantValue.js";
+import {CONST} from "./CoreConst.js";
+import ModelFile from "./ModelFile.js";
+import Util from "./Utils.js";
+import {ModifierFormat} from "./AccessFlags.js";
+import ModelSyscall from "./ModelSyscall.js";
 
 
-import * as Log from "./Logger";
+import * as Log from "./Logger.js";
 
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;

@@ -1,5 +1,5 @@
-import {ErrorCode, MonitoredError} from "./MonitoredError";
-import {PassthroughValue, SanitizedValue, UnsafeValue} from "../security/SanitizedValue";
+import {ErrorCode, MonitoredError} from "./MonitoredError.js";
+import {PassthroughValue, SanitizedValue, UnsafeValue} from "../security/SanitizedValue.js";
 
 export class RuntimeSecurityException extends MonitoredError {
 

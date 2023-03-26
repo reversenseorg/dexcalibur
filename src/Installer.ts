@@ -4,15 +4,17 @@ import * as _readline_ from 'readline';
 import * as _fs_       from 'fs';
 import * as _stream_   from 'stream';
 import * as _ps_   from 'child_process';
-import got   from "got";
+
+import * as Got from "got";
+const got = Got.default;
 
 import * as _https_    from 'https';
 
 import {URL} from "url";
-import * as Log from './Logger';
+import * as Log from './Logger.js';
 import {promisify} from 'util';
-import DexcaliburEngine from "./DexcaliburEngine";
-import StatusMessage from "./StatusMessage";
+import DexcaliburEngine from "./DexcaliburEngine.js";
+import StatusMessage from "./StatusMessage.js";
 
 //const _pipeline_ = promisify(_stream_.pipeline);
 

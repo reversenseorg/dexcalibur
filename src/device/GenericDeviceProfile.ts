@@ -1,9 +1,9 @@
 
-import {GenericSystemProfile} from "./profile/GenericSystemProfile";
-import GenericTrustProfile from "./profile/GenericTrustProfile";
-import GenericBuildProfile from "./profile/GenericBuildProfile";
-import GenericNetworkProfile from "./profile/GenericNetworkProfile";
-import DeviceProfile from "./DeviceProfile";
+import {GenericSystemProfile} from "./profile/GenericSystemProfile.js";
+import GenericTrustProfile from "./profile/GenericTrustProfile.js";
+import GenericBuildProfile from "./profile/GenericBuildProfile.js";
+import GenericNetworkProfile from "./profile/GenericNetworkProfile.js";
+import DeviceProfile from "./DeviceProfile.js";
 
 
 enum TYPE {

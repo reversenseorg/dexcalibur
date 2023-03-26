@@ -2,22 +2,23 @@ import * as _path_ from 'path';
 import * as _fs_ from 'fs';
 
 import {expect} from 'chai';
-import {TestHelper} from "../dist/src/TestHelper";
-import {AuthType} from "../dist/src/user/auth/AuthTypes";
-import {AuthenticationPolicy} from "../dist/src/user/auth/AuthenticationPolicy";
-import {AuthenticationService} from "../dist/src/user/auth/AuthenticationService";
-import {UserAccount} from "../dist/src/user/UserAccount";
-import {PasswordAuthenticator} from "../dist/src/user/auth/Authenticator";
-import {Authenticator} from "../dist/src/user/auth/AuthTypes";
-import {SessionSettings} from "../dist/src/user/session/SessionSettings";
-import {SessionService} from "../dist/src/user/session/SessionService";
-import {AuthenticationSettings} from "../dist/src/user/auth/AuthenticationSettings";
-import {Settings} from "../dist/src/Settings";
+import {TestHelper} from "../dist/src/TestHelper.js";
+import {AuthType} from "../dist/src/user/auth/AuthTypes.js";
+import {AuthenticationPolicy} from "../dist/src/user/auth/AuthenticationPolicy.js";
+import {AuthenticationService} from "../dist/src/user/auth/AuthenticationService.js;
+import {UserAccount} from "../dist/src/user/UserAccount.js";
+import {PasswordAuthenticator} from "../dist/src/user/auth/Authenticator.js";
+import {Authenticator} from "../dist/src/user/auth/AuthTypes.js";
+import {SessionSettings} from "../dist/src/user/session/SessionSettings.js";
+import {SessionService} from "../dist/src/user/session/SessionService.js";
+import {AuthenticationSettings} from "../dist/src/user/auth/AuthenticationSettings.js";
+import {Settings} from "../dist/src/Settings.js";
 import ServerSettings = Settings.ServerSettings;
-import {UserSession} from "../dist/src/user/session/UserSession";
-import {SessionCode} from "../dist/src/user/session/SessionException";
+import {UserSession} from "../dist/src/user/session/UserSession.js";
+import {SessionCode} from "../dist/src/user/session/SessionException.js";
+import Util from "../src/Utils.js";
 
-const USER_DB:string = _path_.join(__dirname,'config','userdb.ok.json');
+const USER_DB:string = _path_.join(Util.__dirname(import.meta.url),'config','userdb.ok.json');
 
 
 var auth_settings:AuthenticationSettings = null;

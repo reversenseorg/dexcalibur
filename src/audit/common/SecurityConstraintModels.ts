@@ -3,8 +3,8 @@
 // TAMPER
 
 
-import Constraint from "./Constraint";
-import SecurityConstraintModel from "./SecurityConstraintModel";
+import Constraint from "./Constraint.js";
+import SecurityConstraintModel from "./SecurityConstraintModel.js";
 
 export const CIA_SECURITY_CONSTRAINTS = new SecurityConstraintModel({
     name:"CIA",

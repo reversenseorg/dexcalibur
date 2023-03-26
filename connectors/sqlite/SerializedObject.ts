@@ -1,11 +1,11 @@
-import ModelPackage from "../../src/ModelPackage";
-import ModelClass from "../../src/ModelClass";
-import ModelField from "../../src/ModelField";
-import ModelMethod from "../../src/ModelMethod";
-import ModelDataBlock from "../../src/ModelDataBlock";
-import ModelBasicBlock from "../../src/ModelBasicBlock";
-import {ModelBasicType, ModelObjectType} from "../../src/ModelType";
-import ModelCall from "../../src/ModelCall";
+import ModelPackage from "../../src/ModelPackage.js";
+import ModelClass from "../../src/ModelClass.js";
+import ModelField from "../../src/ModelField.js";
+import ModelMethod from "../../src/ModelMethod.js";
+import ModelDataBlock from "../../src/ModelDataBlock.js";
+import ModelBasicBlock from "../../src/ModelBasicBlock.js";
+import {ModelBasicType, ModelObjectType} from "../../src/ModelType.js";
+import ModelCall from "../../src/ModelCall.js";
 import {
     ModelClassReference,
     ModelFieldReference,
@@ -13,17 +13,17 @@ import {
     ModelRegisterReference,
     CodeLabel,
     XRef
-} from "../../src/ModelReference";
-import ModelInstruction from "../../src/ModelInstruction";
-import ModelConstantValue from "../../src/ModelConstantValue";
-import ModelStringValue from "../../src/ModelStringValue";
-import {Stub} from "../../src/ModelSavable";
-import {ModelPackedSwitchStatement, ModelSwitchCase} from "../../src/ModelSwitch";
-import ModelCatchStatement from "../../src/ModelCatchStatement";
-import ModelFile from "../../src/ModelFile";
-import {UserAccount} from "../../src/user/UserAccount";
-import UserRole from "../../src/UserRole";
-import {Person} from "../../src/user/Person";
+} from "../../src/ModelReference.js";
+import ModelInstruction from "../../src/ModelInstruction.js";
+import ModelConstantValue from "../../src/ModelConstantValue.js";
+import ModelStringValue from "../../src/ModelStringValue.js";
+import {Stub} from "../../src/ModelSavable.js";
+import {ModelPackedSwitchStatement, ModelSwitchCase} from "../../src/ModelSwitch.js";
+import ModelCatchStatement from "../../src/ModelCatchStatement.js";
+import ModelFile from "../../src/ModelFile.js";
+import {UserAccount} from "../../src/user/UserAccount.js";
+import UserRole from "../../src/UserRole.js";
+import {Person} from "../../src/user/Person.js";
 
 
 

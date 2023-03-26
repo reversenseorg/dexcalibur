@@ -4,9 +4,8 @@
  * @author Georges-B. MICHEL
  * @class
  */
-import SerializedObject from "./SerializedObject";
-import {IDbCollection} from "../../src/persist/orm/DbAbstraction";
-import {NodeType} from "../../src/persist/orm/NodeType";
+import SerializedObject from "./SerializedObject.js";
+import {IDbCollection} from "../../src/persist/orm/DbAbstraction.js";
 
 
 export default class InMemoryDbCollection implements IDbCollection

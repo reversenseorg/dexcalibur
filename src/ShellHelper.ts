@@ -1,4 +1,4 @@
-import {External} from "./external/External";
+import {External} from "./external/External.js";
 import * as _os_ from "os";
 
 const WIN_CMD = "cmd.exe";

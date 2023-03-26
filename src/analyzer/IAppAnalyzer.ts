@@ -1,6 +1,5 @@
-import ModelFile from "../ModelFile";
-import DexcaliburProject from "../DexcaliburProject";
-import {AnalyzerState} from "../AnalyzerState";
+
+import {AnalyzerState} from "../AnalyzerState.js";
 
 export interface IAppAnalyzer {
     prepareFullScan():Promise<boolean>;

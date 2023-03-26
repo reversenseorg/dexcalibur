@@ -3,7 +3,7 @@
  *
  *
  */
-import {ResourceType} from "./ResourceType";
+import {ResourceType} from "./ResourceType.js";
 
 export class SharedResource {
    type:ResourceType;

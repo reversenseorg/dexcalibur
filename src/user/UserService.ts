@@ -3,24 +3,24 @@
  *
  * @class
  */
-import {AuthenticationService} from "./auth/AuthenticationService";
-import {SessionService} from "./session/SessionService";
-import {AuthenticationSettings} from "./auth/AuthenticationSettings";
-import {UserAccount} from "./UserAccount";
-import {UserSession} from "./session/UserSession";
-import {SessionCode, SessionException} from "./session/SessionException";
-import {AuthenticationResult} from "./auth/Authenticator";
-import {AuthenticationException} from "../errors/AuthenticationException";
-import * as Log from '../Logger';
-import {IDatabase, IDatabaseAdapter, IDbCollection, IDbIndex} from "../persist/orm/DbAbstraction";
-import {ConnectorFactory} from "../ConnectorFactory";
-import SqliteConnector from "../../connectors/sqlite/adapter";
-import {SqliteDb} from "../../connectors/sqlite/SqliteDb";
+import {AuthenticationService} from "./auth/AuthenticationService.js";
+import {SessionService} from "./session/SessionService.js";
+import {AuthenticationSettings} from "./auth/AuthenticationSettings.js";
+import {UserAccount} from "./UserAccount.js";
+import {UserSession} from "./session/UserSession.js";
+import {SessionCode, SessionException} from "./session/SessionException.js";
+import {AuthenticationResult} from "./auth/Authenticator.js";
+import {AuthenticationException} from "../errors/AuthenticationException.js";
+import * as Log from '../Logger.js';
+import {IDatabase, IDatabaseAdapter, IDbCollection, IDbIndex} from "../persist/orm/DbAbstraction.js";
+import {ConnectorFactory} from "../ConnectorFactory.js";
+import SqliteConnector from "../../connectors/sqlite/adapter.js";
+import {SqliteDb} from "../../connectors/sqlite/SqliteDb.js";
 import * as _fs_ from "fs";
-import {UserServiceException} from "../errors/UserServiceException";
-import {MonitoredError} from "../errors/MonitoredError";
-import DexcaliburEngine from "../DexcaliburEngine";
-import {SessionData} from "./session/SessionData";
+import {UserServiceException} from "../errors/UserServiceException.js";
+import {MonitoredError} from "../errors/MonitoredError.js";
+import DexcaliburEngine from "../DexcaliburEngine.js";
+import {SessionData} from "./session/SessionData.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -43,6 +43,10 @@ export class UserService {
     constructor(pSettings:AuthenticationSettings, pContext:DexcaliburEngine = null) {
         this._settings = pSettings;
         this._ctx = pContext;
+
+        if(pSettings==null){
+            throw UserServiceException.DB_IS_NOT_READY();
+        }
 
         UserAccount.TYPE.source(UserService.findUser);
         SessionData.TYPE.source(UserService.findAllSessionData);
@@ -111,23 +115,23 @@ export class UserService {
 
         try{
             // load currently configured db : inmemory or sqlite
-            Logger.raw('----------- BEFORE LOAD 1 ------------ ');
+            Logger.debug('----------- BEFORE LOAD 1 ------------ ');
             this.loadDB(this._settings.db);
-            Logger.raw('----------- AFTER LOAD 1 ------------ ');
+            Logger.debug('----------- AFTER LOAD 1 ------------ ');
 
             // verify state / version
             if(this.isUserDbReady()){
 
-                Logger.raw('----------- AFTER USER IS READY ------------ ');
+                Logger.debug('----------- AFTER USER IS READY ------------ ');
                 this.authSvc.importUsers(this._db.getCollection('user', UserAccount.TYPE));
 
-                Logger.raw('----------- RESTORING SESSIONS ------------ ');
+                Logger.debug('----------- RESTORING SESSIONS ------------ ');
                 this.sessSvc.importSessions(this._db.getCollection('session', UserSession.TYPE));
 
-                Logger.raw('----------- START USER SERVICE ------------ ');
-                if(this.authSvc._users.size()==0){
+                Logger.debug('----------- START USER SERVICE ------------ ');
+                /*if(this.authSvc._users.size()==0){
                     throw UserServiceException.EMPTY_USER_DB();
-                }
+                }*/
 
 
             }
@@ -160,9 +164,9 @@ export class UserService {
 
                     if(dburi!=null && _fs_.existsSync(dburi)){
 
-                        Logger.raw('----------- START TO MIGRATE 2 ('+dburi+')  ---------');
+                        Logger.debug('----------- START TO MIGRATE 2 ('+dburi+')  ---------');
                         this.migrateDB('inmemory', dburi);
-                        Logger.raw('----------- STOP TO MIGRATE 2  ---------');
+                        Logger.debug('----------- STOP TO MIGRATE 2  ---------');
                     }else{
                         throw UserServiceException.UNRECOVERABLE_USER_DB();
                     }
@@ -231,12 +235,12 @@ export class UserService {
             }
 
 
-            Logger.raw('----------- CREATE NEW USER COLLECTIOn INTO NEW DB  ---------');
+            Logger.debug('----------- CREATE NEW USER COLLECTIOn INTO NEW DB  ---------');
             const userDest:IDbCollection = this._db.getCollection('user', UserAccount.TYPE);
 
-            Logger.raw('----------- BROWSE DB TO IMPORT ('+this._settings.db.uri+') ---------',userSource.size()+"");
+            Logger.debug('----------- BROWSE DB TO IMPORT ('+this._settings.db.uri+') ---------',userSource.size()+"");
             userSource.map( (vOffset:number, vUser:any)=>{
-                Logger.raw(JSON.stringify(vUser));
+                Logger.debug(JSON.stringify(vUser));
                 vUser._locked = (vUser._locked? 1 : 0);
                 userDest.addEntry( vUser.uid, new UserAccount(vUser));
             });
@@ -292,6 +296,7 @@ export class UserService {
         dba.connect(pDbSettings.uri, true);
 
         this._db = dba.getDB(pDbSettings.uri);
+
         // import temporary DB after a fresh install
         /*
         if(_fs_.existsSync(this.settings.db.uri)==false){
@@ -349,7 +354,7 @@ export class UserService {
             } // TODO : add expiration check
         }catch(err){
             //console.log(err.message+err.stack);
-            Logger.info(err.message+"\n\t"+err.stack);
+            Logger.error(err.message+"\n\t"+err.stack);
             throw SessionException.INVALID_SESSION();
         }
     }
@@ -411,7 +416,14 @@ export class UserService {
      */
     createUser( pAccount:UserAccount):boolean{
         // verify username is unique
-        return false;
+        const users = this._db.getCollection('user',UserAccount.TYPE);
+        if(users.hasEntry(pAccount.getUID())){
+            throw UserServiceException.USERNAME_NOT_AVAILABLE()
+        }
+
+        users.addEntry(pAccount.getUID(), pAccount);
+
+        return true;
     }
 
 

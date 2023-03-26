@@ -4,29 +4,20 @@
 import * as _fs_ from 'fs';
 import * as _path_ from 'path';
 
-import InspectorFactory from "../../src/InspectorFactory";
-import {INSPECTOR_TYPE} from "../../src/Inspector";
-import DexcaliburProject from "../../src/DexcaliburProject";
-import BusEvent from "../../src/BusEvent";
-import {HookVariableArray} from "../../src/HookVariable";
-import Util from "../../src/Utils";
-import Hook from "../../src/Hook";
-import ModelMethod from "../../src/ModelMethod";
-import DexHelper from "../../src/DexHelper";
-import {TAG} from "../../src/AnalysisHelper";
-import * as Log from "../../src/Logger";
-import ModelCall from "../../src/ModelCall";
-import ModelFile from "../../src/ModelFile";
-import {ModelLocation} from "../../src/ModelLocation";
-import {DelegateWebApi} from "../../src/webapi/DelegateWebApi";
-import WebServer from "../../src/WebServer";
-import {AuthenticationException} from "../../src/errors/AuthenticationException";
-import {DexcaliburProjectException} from "../../src/errors/DexcaliburProjectException";
-import {Rules} from "../BytecodeCleaner/src/Rules";
-import {DYNAMICLOADER_WEB_API} from "./src/main.web.api";
-import {AbstractHook} from "../../src/hook/AbstractHook";
-import JavaMethodHook from "../../src/hook/JavaMethodHook";
-import HookStrategy from "../../src/hook/HookStrategy";
+import InspectorFactory from "../../src/InspectorFactory.js";
+import {INSPECTOR_TYPE} from "../../src/Inspector.js";
+import DexcaliburProject from "../../src/DexcaliburProject.js";
+import BusEvent from "../../src/BusEvent.js";
+import {HookVariableArray} from "../../src/HookVariable.js";
+import Util from "../../src/Utils.js";
+import ModelMethod from "../../src/ModelMethod.js";
+import DexHelper from "../../src/DexHelper.js";
+import * as Log from "../../src/Logger.js";
+import ModelCall from "../../src/ModelCall.js";
+import ModelFile from "../../src/ModelFile.js";
+import {ModelLocation} from "../../src/ModelLocation.js";
+import {DYNAMICLOADER_WEB_API} from "./src/main.web.api.js";
+import HookStrategy from "../../src/hook/HookStrategy.js";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 

@@ -1,5 +1,5 @@
-import ModelFile from "../ModelFile";
-import DexcaliburProject from "../DexcaliburProject";
+import ModelFile from "../ModelFile.js";
+import DexcaliburProject from "../DexcaliburProject.js";
 
 export interface IFileAnalyzer {
     analyze(pPath:string, pOptions:any):ModelFile;

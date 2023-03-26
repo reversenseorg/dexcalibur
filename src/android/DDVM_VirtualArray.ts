@@ -1,8 +1,8 @@
-import DDVM_ClassInstance from "./DDVM_ClassInstance";
-import DDVM_Exception from "./DDVM_Exception";
-import Util from "../Utils";
-import * as Log from '../Logger';
-import DDVM_Symbol from "./DDVM_Symbol";
+import DDVM_ClassInstance from "./DDVM_ClassInstance.js";
+import DDVM_Exception from "./DDVM_Exception.js";
+import Util from "../Utils.js";
+import * as Log from '../Logger.js';
+import DDVM_Symbol from "./DDVM_Symbol.js";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 

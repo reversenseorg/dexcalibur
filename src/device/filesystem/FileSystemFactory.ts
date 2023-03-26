@@ -1,5 +1,5 @@
-import { F2FileSystem } from "./f2fs/F2FileSystem";
-import { FileSystemMountOptions } from "./FileSystemMountOptions";
+import { F2FileSystem } from "./f2fs/F2FileSystem.js";
+import { FileSystemMountOptions } from "./FileSystemMountOptions.js";
 
 
 /**

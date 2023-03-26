@@ -1,5 +1,5 @@
-import {ValidationCapable, ValidationRulesMap} from "./Validator";
-import {AccessAttribute, AccessAttributeMap} from "./user/acl/AccessAttribute";
+import {ValidationCapable, ValidationRulesMap} from "./Validator.js";
+import {AccessAttribute, AccessAttributeMap} from "./user/acl/AccessAttribute.js";
 
 export abstract class Auditable extends ValidationCapable{
 

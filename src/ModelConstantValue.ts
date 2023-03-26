@@ -4,7 +4,7 @@
  * @param {*} tags some additional tags
  * @constructor
  */
-import {Savable, STUB_TYPE} from "./ModelSavable";
+import {Savable, STUB_TYPE} from "./ModelSavable.js";
 
 // ValueConst
 export default class ModelConstantValue extends Savable{

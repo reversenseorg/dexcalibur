@@ -1,10 +1,10 @@
 import * as _path_ from "path"
 import * as _fs_ from "fs"
-import * as Log from "../Logger";
-import Util from "../Utils";
-import ShellHelper from "../ShellHelper";
-import ProjectWorkspace from "../ProjectWorkspace";
-import DexcaliburEngine from "../DexcaliburEngine";
+import * as Log from "../Logger.js";
+import Util from "../Utils.js";
+import ShellHelper from "../ShellHelper.js";
+import ProjectWorkspace from "../ProjectWorkspace.js";
+import DexcaliburEngine from "../DexcaliburEngine.js";
 import {fork, spawnSync} from "child_process";
 import * as VM from "vm";
 import * as FridaCompile from "@reversense/dexcalibur-frida-compile";
@@ -77,7 +77,7 @@ export default class HookWorkspace {
                 Logger:Logger
             }
         };
-        const mod_url = _path_.join(__dirname, "..", "..", "node_modules", "frida-compile", "dist", "compiler.js");
+        const mod_url = _path_.join(Util.__dirname(import.meta.url), "..", "..", "node_modules", "frida-compile", "dist", "compiler.js");
 
         // ../../ext/frida-compile/dist/compiler.js
         VM.createContext(ctx);
@@ -124,7 +124,7 @@ export default class HookWorkspace {
                 Logger:Logger
             }
         };
-        const fridaCli = _path_.join(__dirname, "..", "..", "node_modules", "frida-compile", "dist", "cli.js");
+        const fridaCli = _path_.join(Util.__dirname(import.meta.url), "..", "..", "node_modules", "frida-compile", "dist", "cli.js");
         const interpreterPath = process.execPath;
         const env = process.env;
         let script = "";
@@ -243,7 +243,7 @@ export default class HookWorkspace {
     }
 
     private _copyHookFile(){
-        const agentSrc = _path_.join(__dirname, '..','..', 'agent');
+        const agentSrc = _path_.join(Util.__dirname(import.meta.url), '..','..', 'agent');
         const destBase = _path_.join(this._base, DIR_NAME.LIB);
 
         Logger.info("[HOOK WORKSPACE] Copy the content of Agent folder ["+agentSrc+"]  to  ["+destBase+"] ");

@@ -1,14 +1,15 @@
 import * as _path_ from 'path';
 import {expect} from 'chai';
 import {TestHelper} from "../dist/src/TestHelper";
-import {AuthType} from "../dist/src/user/auth/AuthTypes";
-import {AuthenticationSettings} from "../dist/src/user/auth/AuthenticationSettings";
+import {AuthType} from "../dist/src/user/auth/AuthTypes.js";
+import {AuthenticationSettings} from "../dist/src/user/auth/AuthenticationSettings.js";
+import Util from "../src/Utils.js";
 
 
 describe('AuthenticationSettings', function() {
 
-    let USER_DB:string = _path_.join(__dirname,'config','userdb.json');
-    let USER_DB_TMP:string = _path_.join(__dirname,'config','userdb.json.temp');
+    let USER_DB:string = _path_.join(Util.__dirname(import.meta.url),'config','userdb.json');
+    let USER_DB_TMP:string = _path_.join(Util.__dirname(import.meta.url),'config','userdb.json.temp');
 
     before(function(){
      //   PROJECT = TestHelper.getDexcaliburProject();

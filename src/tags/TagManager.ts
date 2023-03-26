@@ -1,9 +1,9 @@
 
-import DexcaliburProject from "../DexcaliburProject";
-import {Tag} from "./Tag";
-import {IDatabase, IDbCollection} from "../persist/orm/DbAbstraction";
-import {TAG_CATEGORY_PRESETS} from "./common/TagPresets";
-import {TagCategory} from "./TagCategory";
+import DexcaliburProject from "../DexcaliburProject.js";
+import {Tag} from "./Tag.js";
+import {IDatabase, IDbCollection} from "../persist/orm/DbAbstraction.js";
+import {TAG_CATEGORY_PRESETS} from "./common/TagPresets.js";
+import {TagCategory} from "./TagCategory.js";
 
 export interface TagMap {
     [num:number] :Tag

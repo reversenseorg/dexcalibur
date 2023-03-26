@@ -1,10 +1,7 @@
-import {IDatabase, IDbCollection} from "../../persist/orm/DbAbstraction";
-import {JavaHookBuilderException} from "../../errors/JavaHookBuilderException";
-import {SqliteDb} from "../../../connectors/sqlite/SqliteDb";
-import {HookBuilderRule} from "./HookBuilderRule";
-import {JavaHookBuilder} from "./JavaHookBuilder";
-import DexcaliburProject from "../../DexcaliburProject";
-import {NativeHookBuilder} from "./NativeHookBuilder";
+import {IDatabase, IDbCollection} from "../../persist/orm/DbAbstraction.js";
+import {JavaHookBuilder} from "./JavaHookBuilder.js";
+import DexcaliburProject from "../../DexcaliburProject.js";
+import {NativeHookBuilder} from "./NativeHookBuilder.js";
 
 
 export class HookBuilder {

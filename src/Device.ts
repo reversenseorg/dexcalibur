@@ -2,20 +2,20 @@ import * as _fs_ from 'fs';
 import * as _path_ from 'path';
 import {EOL} from 'os';
 
-import * as Log from './Logger';
-import DeviceProfile from './device/DeviceProfile';
-import Platform from './Platform';
-import PlatformManager from './PlatformManager';
-import DexcaliburWorkspace from './DexcaliburWorkspace';
-import Utils from "./Utils";
-import {BridgeInstallOptions, BridgeSuperFactory, DeviceProfilingOptions, IBridge} from "./Bridge";
-import ModelSyscall from "./ModelSyscall";
-import AppPackage from "./AppPackage";
-import {DeviceManagerException} from "./errors/DeviceManagerException";
-import {OperatingSystem} from "./OperatingSystem";
-import ModelSyscallFactory from "./ModelSyscallFactory";
-import {Architecture} from "./Architecture";
-import DeviceProfileFactory from './device/DeviceProfileFactory';
+import * as Log from './Logger.js';
+import DeviceProfile from './device/DeviceProfile.js';
+import Platform from './Platform.js';
+import PlatformManager from './PlatformManager.js';
+import DexcaliburWorkspace from './DexcaliburWorkspace.js';
+import Utils from "./Utils.js";
+import {BridgeInstallOptions, BridgeSuperFactory, DeviceProfilingOptions, IBridge} from "./Bridge.js";
+import ModelSyscall from "./ModelSyscall.js";
+import AppPackage from "./AppPackage.js";
+import {DeviceManagerException} from "./errors/DeviceManagerException.js";
+import {OperatingSystem} from "./OperatingSystem.js";
+import ModelSyscallFactory from "./ModelSyscallFactory.js";
+import {Architecture} from "./Architecture.js";
+import DeviceProfileFactory from './device/DeviceProfileFactory.js';
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 

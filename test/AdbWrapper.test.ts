@@ -4,12 +4,13 @@ import AdbWrapper from "../dist/src/AdbWrapper";
 import {Device} from "../dist/src/Device";
 import AppPackage from "../dist/src/AppPackage";
 import {AdbWrapperError} from "../dist/src/Errors";
+import Util from "../src/Utils.js";
 
 const expect = require('chai').expect;
 const EOL = require('os').EOL;
 
-let VALID_ADB_PATH:string = _path_.join(__dirname, 'ws', '.dxc', 'bin', 'platform-tools', 'adb');
-let INVALID_ADB_PATH:string = _path_.join(__dirname, 'ws', '.dxc', 'bin', 'platform-tools', 'invalid_adb');
+let VALID_ADB_PATH:string = _path_.join(Util.__dirname(import.meta.url), 'ws', '.dxc', 'bin', 'platform-tools', 'adb');
+let INVALID_ADB_PATH:string = _path_.join(Util.__dirname(import.meta.url), 'ws', '.dxc', 'bin', 'platform-tools', 'invalid_adb');
 
 
 describe('ADB Wrapper', function() {

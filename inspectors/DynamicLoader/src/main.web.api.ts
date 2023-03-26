@@ -4,22 +4,19 @@
 /*
 
 */
-import DexcaliburProject from "../../../src/DexcaliburProject";
-import {FinderResult} from "../../../src/FinderResult";
-import {TAG} from "../../../src/AnalysisHelper";
-import {IDbIndex} from "../../../src/persist/orm/DbAbstraction";
+import DexcaliburProject from "../../../src/DexcaliburProject.js";
+import {FinderResult} from "../../../src/FinderResult.js";
+import {IDbIndex} from "../../../src/persist/orm/DbAbstraction.js";
 import * as _fs_ from "fs";
-import BusEvent from "../../../src/BusEvent";
-import {IFC_TYPE} from "../../../src/InspectorFrontController";
-import Controller from "../service/main";
-import {DelegateWebApi} from "../../../src/webapi/DelegateWebApi";
-import WebServer from "../../../src/WebServer";
-import {AuthenticationException} from "../../../src/errors/AuthenticationException";
-import {DexcaliburProjectException} from "../../../src/errors/DexcaliburProjectException";
-import ModelMethod from "../../../src/ModelMethod";
-import Util from "../../../src/Utils";
+import BusEvent from "../../../src/BusEvent.js";
+import {DelegateWebApi} from "../../../src/webapi/DelegateWebApi.js";
+import WebServer from "../../../src/WebServer.js";
+import {AuthenticationException} from "../../../src/errors/AuthenticationException.js";
+import {DexcaliburProjectException} from "../../../src/errors/DexcaliburProjectException.js";
+import ModelMethod from "../../../src/ModelMethod.js";
+import Util from "../../../src/Utils.js";
 import {Request, Response} from "express";
-import * as Log from "../../../src/Logger";
+import * as Log from "../../../src/Logger.js";
 
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;

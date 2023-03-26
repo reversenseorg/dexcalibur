@@ -1,5 +1,5 @@
-import ModelField from "./ModelField";
-import ModelMethod from "./ModelMethod";
+import ModelField from "./ModelField.js";
+import ModelMethod from "./ModelMethod.js";
 
 /**
  * To diff two nodes from model by inspecting a list of properties

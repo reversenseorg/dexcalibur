@@ -1,18 +1,18 @@
 import {server as WebSocketServer} from 'websocket';
-import DexcaliburEngine from "./DexcaliburEngine";
+import DexcaliburEngine from "./DexcaliburEngine.js";
 import * as http from "http";
 import * as https from "https";
-import * as Log from "./Logger";
-import {User} from "./User";
-import {Workflow} from "./Workflow";
-import {Settings} from "./Settings";
-import {UserSession} from "./user/session/UserSession";
-import {UserService} from "./user/UserService";
-import DexcaliburProject from "./DexcaliburProject";
-import AccessControl from "./user/acl/AccessControl";
-import {AccessZone} from "./user/acl/Zones";
-import {GlobalAccessControl} from "./user/acl/rbac/GlobalAccessContol";
-import {ProjectAccessControl} from "./user/acl/rbac/ProjectAccessContol";
+import * as Log from "./Logger.js";
+import {User} from "./User.js";
+import {Workflow} from "./Workflow.js";
+import {Settings} from "./Settings.js";
+import {UserSession} from "./user/session/UserSession.js";
+import {UserService} from "./user/UserService.js";
+import DexcaliburProject from "./DexcaliburProject.js";
+import AccessControl from "./user/acl/AccessControl.js";
+import {AccessZone} from "./user/acl/Zones.js";
+import {GlobalAccessControl} from "./user/acl/rbac/GlobalAccessContol.js";
+import {ProjectAccessControl} from "./user/acl/rbac/ProjectAccessContol.js";
 
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;

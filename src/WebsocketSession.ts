@@ -1,6 +1,6 @@
-import {User} from "./User";
-import Util from "./Utils";
-import {RuntimeEvent} from "./hook/RuntimeEvent";
+import {User} from "./User.js";
+import Util from "./Utils.js";
+import {RuntimeEvent} from "./hook/RuntimeEvent.js";
 
 
 // list of HookSession UIDs

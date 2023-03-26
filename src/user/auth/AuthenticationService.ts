@@ -1,16 +1,16 @@
 import * as _fs_ from 'fs';
 
-import {AuthCode, AuthenticationException, Authenticator, AuthType} from "./AuthTypes";
-import {AuthenticationPolicy} from "./AuthenticationPolicy";
-import {PasswordAuthenticator} from "./Authenticator";
-import {ConnectorFactory} from "../../ConnectorFactory";
-import {UserAccount} from "../UserAccount";
-import {AuthenticationSettings} from "./AuthenticationSettings";
-import AccessControl from "../acl/AccessControl";
-import {IDatabase, IDatabaseAdapter, IDbCollection, IDbIndex} from "../../persist/orm/DbAbstraction";
-import * as Log from "../../Logger";
-import DexcaliburEngine from "../../DexcaliburEngine";
-import {NodeProperty} from "../../persist/orm/NodeProperty";
+import {AuthCode, AuthenticationException, Authenticator, AuthType} from "./AuthTypes.js";
+import {AuthenticationPolicy} from "./AuthenticationPolicy.js";
+import {PasswordAuthenticator} from "./Authenticator.js";
+import {ConnectorFactory} from "../../ConnectorFactory.js";
+import {UserAccount} from "../UserAccount.js";
+import {AuthenticationSettings} from "./AuthenticationSettings.js";
+import AccessControl from "../acl/AccessControl.js";
+import {IDatabase, IDatabaseAdapter, IDbCollection, IDbIndex} from "../../persist/orm/DbAbstraction.js";
+import * as Log from "../../Logger.js";
+import DexcaliburEngine from "../../DexcaliburEngine.js";
+import {NodeProperty} from "../../persist/orm/NodeProperty.js";
 
 interface UserCache {
     [username:string] :UserAccount;
@@ -37,7 +37,7 @@ export class AuthenticationService {
         this._ctx = pContext;
         this.policy = new AuthenticationPolicy(pSettings);
 
-        //this.initUserDB();
+        this.initUserDB();
     }
 
     /*
@@ -52,8 +52,11 @@ export class AuthenticationService {
      * If the user database not exists, it is created and filled with <uri> file content
      *
      */
-    /*
     initUserDB():void{
+
+        if(this.settings==null || this.settings.db ==null){
+            throw new AuthenticationException("Authentication is not configured", AuthCode.NOT_CONFIGURED)
+        }
 
         this._dba = ConnectorFactory.getInstance().newConnector(
             this.settings.db.dbms, // inmemory / sqlite / neo4j
@@ -65,24 +68,35 @@ export class AuthenticationService {
                 uri: this.settings.db.uri
             }
         ) as IDatabaseAdapter;
-        this._dba.connect({});
+
+        let db:IDatabase;
+        try{
+            this._dba.connect(this.settings.db.uri);
+            db = this._dba.getDB();
+        }catch(e){
+            console.log(e.message,e.stack);
+        }
+
+        console.log(db);
 
         // import temporary DB after a fresh install
         if(_fs_.existsSync(this.settings.db.uri)==false){
             if(_fs_.existsSync(this.settings.db.uri+".temp")==true){
-                this.createUserDB(
+               console.log(
                     JSON.parse(_fs_.readFileSync(this.settings.db.uri+".temp", {encoding:'utf8'}))
                 );
                 // during import, there is no backup of current user DB
                 this.save(false);
             }else{
-                throw new AuthenticationException("Authentication Service cannot be initilized : user DB is missing at "+this.settings.db.uri);
+                // create en empty DB
+                this._users = db.newCollection('users', UserAccount.TYPE);
+                this.save(false);
             }
         }else{
-            this.importUsers(this.settings.db.dbms);
+            this.importUsers(db.getCollection('user', UserAccount.TYPE));
         }
 
-    }*/
+    }
 
     /**
      * To load user account from the default User DB
@@ -100,16 +114,14 @@ export class AuthenticationService {
                 v.role = AccessControl.defaultRole;
 
                 // update
-                Logger.info('---- Update user role --- ');
+                Logger.debug('---- Update user role --- ');
                 this._users.setEntry(v.getUID(), v);
             }
 
             this._cache[v.getUID()] = v;
 
-            Logger.info('---- import next user --- ');
+            Logger.debug('---- import next user --- ');
 
-
-            Logger.info(JSON.stringify(v));
             /*
             if(this._dba.getType()=='inmemory'){
                 this._users.setEntry(o, new UserAccount(v));

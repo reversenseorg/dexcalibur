@@ -10,11 +10,11 @@
 // ====== CONFIG TASK ======
 
 
-import {AndroidPermission, AndroidPermissionGroup, AndroidProtectionLevel} from "../../src/android/Permissions";
-import InspectorFactory from "../../src/InspectorFactory";
-import {INSPECTOR_TYPE} from "../../src/Inspector";
-import BusEvent from "../../src/BusEvent";
-import DexcaliburProject from "../../src/DexcaliburProject";
+import {AndroidPermission, AndroidPermissionGroup, AndroidProtectionLevel} from "../../src/android/Permissions.js";
+import InspectorFactory from "../../src/InspectorFactory.js";
+import {INSPECTOR_TYPE} from "../../src/Inspector.js";
+import BusEvent from "../../src/BusEvent.js";
+import DexcaliburProject from "../../src/DexcaliburProject.js";
 
 const Permissions = {
     ACCEPT_HANDOVER: new AndroidPermission({

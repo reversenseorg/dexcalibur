@@ -1,5 +1,5 @@
-import ModelFile from "./ModelFile";
-import {NodeInternalType} from "./NodeInternalType";
+import ModelFile from "./ModelFile.js";
+import {NodeInternalType} from "./NodeInternalType.js";
 
 export enum LocationType {
     FILE,

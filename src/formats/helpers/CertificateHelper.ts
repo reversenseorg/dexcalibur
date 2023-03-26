@@ -1,4 +1,4 @@
-import Certificate, {CertificateFormat} from "../common/Certificate";
+import Certificate, {CertificateFormat} from "../common/Certificate.js";
 import * as _fs_ from "fs";
 import * as CRYPTO from "node-forge"
 

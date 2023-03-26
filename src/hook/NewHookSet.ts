@@ -1,7 +1,7 @@
-import DexcaliburProject from "../DexcaliburProject";
-import HookPrologue from "../HookPrologue";
-import HookStrategy from "./HookStrategy";
-import Hook from "../Hook";
+import DexcaliburProject from "../DexcaliburProject.js";
+import HookPrologue from "../HookPrologue.js";
+import HookStrategy from "./HookStrategy.js";
+import Hook from "../Hook.js";
 
 
 export default class NewHookSet {

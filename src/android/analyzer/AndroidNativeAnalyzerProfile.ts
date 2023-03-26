@@ -1,10 +1,10 @@
 import * as _path_ from 'path';
-import {NativeAnalyzerProfile} from "../../NativeAnalyzerProfile";
-import ModelFile from "../../ModelFile";
-import {ABI, AbiManager, AbiType} from "../../binary/ABI";
-import {AbiException} from "../../errors/AbiException";
+import {NativeAnalyzerProfile} from "../../NativeAnalyzerProfile.js";
+import ModelFile from "../../ModelFile.js";
+import {ABI, AbiManager, AbiType} from "../../binary/ABI.js";
+import {AbiException} from "../../errors/AbiException.js";
 
-import * as Log from '../../Logger';
+import * as Log from '../../Logger.js';
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
 export default class AndroidNativeAnalyzerProfile implements NativeAnalyzerProfile {

@@ -1,9 +1,9 @@
-import DexcaliburProject from "./DexcaliburProject";
-import ModelMethod from "./ModelMethod";
-import Hook from "./Hook";
-import {HookVariable, HookVariableArray, HookVariableObject} from "./HookVariable";
-import HookSet from "./HookSet";
-import * as Log from './Logger';
+import DexcaliburProject from "./DexcaliburProject.js";
+import ModelMethod from "./ModelMethod.js";
+import Hook from "./Hook.js";
+import {HookVariable, HookVariableArray, HookVariableObject} from "./HookVariable.js";
+import HookSet from "./HookSet.js";
+import * as Log from './Logger.js';
 import * as md5 from 'md5';
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;

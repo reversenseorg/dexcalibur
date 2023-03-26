@@ -3,10 +3,8 @@
  * @class
  * @author Georges-B MICHEL
  */
-import {Device} from "../../Device";
-import { Profile } from "./Profile";
-import {IProfile} from "./IProfile";
-import {DeviceProfilingOptions, IBridge} from "../../Bridge";
+import {IProfile} from "./IProfile.js";
+import {DeviceProfilingOptions, IBridge} from "../../Bridge.js";
 
 
 /**

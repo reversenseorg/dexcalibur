@@ -1,22 +1,22 @@
  import * as _path_ from 'path';
 import * as _fs_ from 'fs';
-import DexcaliburProject from "./DexcaliburProject";
-import ModelFile from "./ModelFile";
-import {ConnectorFactory} from "./ConnectorFactory";
+import DexcaliburProject from "./DexcaliburProject.js";
+import ModelFile from "./ModelFile.js";
+import {ConnectorFactory} from "./ConnectorFactory.js";
 
 
-import * as Log from './Logger';
-import {BinwalkHelper} from "./BinwalkHelper";
-import DataScope, {DataScopeMap, DataScopePpts} from "./DataScope";
-import BusEvent from "./BusEvent";
-import {FileAnalysisType} from "./AnalyzerConfiguration";
-import {MagicHelper} from "./MagicHelper";
-import {Workflow} from "./Workflow";
-import {IDatabase, IDatabaseAdapter, IDbCollection, IDbIndex} from "./persist/orm/DbAbstraction";
-import SqliteDbCollection from "../connectors/sqlite/SqliteDbCollection";
-import {IAnalyzerUnit} from "./analyzer/IAnalyzerUnit";
-import {UTIL_CONST} from "./util/UtilConstants";
- import {AnalyzerState} from "./AnalyzerState";
+import * as Log from './Logger.js';
+import {BinwalkHelper} from "./BinwalkHelper.js";
+import DataScope, {DataScopeMap, DataScopePpts} from "./DataScope.js";
+import BusEvent from "./BusEvent.js";
+import {FileAnalysisType} from "./AnalyzerConfiguration.js";
+import {MagicHelper} from "./MagicHelper.js";
+import {Workflow} from "./Workflow.js";
+import {IDatabase, IDatabaseAdapter, IDbCollection, IDbIndex} from "./persist/orm/DbAbstraction.js";
+import SqliteDbCollection from "../connectors/sqlite/SqliteDbCollection.js";
+import {IAnalyzerUnit} from "./analyzer/IAnalyzerUnit.js";
+import {UTIL_CONST} from "./util/UtilConstants.js";
+ import {AnalyzerState} from "./AnalyzerState.js";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 

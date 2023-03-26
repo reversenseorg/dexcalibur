@@ -1,4 +1,4 @@
-import GenericNetworkProfile from "../../device/profile/GenericNetworkProfile";
+import GenericNetworkProfile from "../../device/profile/GenericNetworkProfile.js";
 
 
 export default class AndroidNetworkProfile extends GenericNetworkProfile {

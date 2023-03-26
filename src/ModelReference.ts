@@ -1,10 +1,10 @@
-import {CONST} from "./CoreConst";
-import ModelClass from "./ModelClass";
-import ModelField from "./ModelField";
-import ModelMethod from "./ModelMethod";
+import {CONST} from "./CoreConst.js";
+import ModelClass from "./ModelClass.js";
+import ModelField from "./ModelField.js";
+import ModelMethod from "./ModelMethod.js";
 import construct = Reflect.construct;
-import {Savable, STUB_TYPE} from "./ModelSavable";
-import * as Log from './Logger';
+import {Savable, STUB_TYPE} from "./ModelSavable.js";
+import * as Log from './Logger.js';
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 

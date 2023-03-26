@@ -1,29 +1,29 @@
-import AnalyzerDatabase from "./AnalyzerDatabase";
-import {SearchAPI} from "./SearchAPI";
-import {FinderResult} from "./FinderResult";
-import SearchPattern from "./SearchPattern";
-import ModelMethod from "./ModelMethod";
-import AndroidActivity from "./android/AndroidActivity";
-import AndroidReceiver from "./android/AndroidReceiver";
-import AndroidProvider from "./android/AndroidProvider";
-import AndroidService from "./android/AndroidService";
-import {AndroidPermission} from "./android/Permissions";
-import ModelPackage  from './ModelPackage';
-import ModelClass from "./ModelClass";
-import ModelField from "./ModelField";
-import ModelCall from "./ModelCall";
-import {ModelBasicType, ModelObjectType} from "./ModelType";
-import ModelStringValue from "./ModelStringValue";
-import ModelConstantValue from "./ModelConstantValue";
-import ModelDataBlock from "./ModelDataBlock";
-import ModelFile from "./ModelFile";
+import AnalyzerDatabase from "./AnalyzerDatabase.js";
+import {SearchAPI} from "./SearchAPI.js";
+import {FinderResult} from "./FinderResult.js";
+import SearchPattern from "./SearchPattern.js";
+import ModelMethod from "./ModelMethod.js";
+import AndroidActivity from "./android/AndroidActivity.js";
+import AndroidReceiver from "./android/AndroidReceiver.js";
+import AndroidProvider from "./android/AndroidProvider.js";
+import AndroidService from "./android/AndroidService.js";
+import {AndroidPermission} from "./android/Permissions.js";
+import ModelPackage  from './ModelPackage.js';
+import ModelClass from "./ModelClass.js";
+import ModelField from "./ModelField.js";
+import ModelCall from "./ModelCall.js";
+import {ModelBasicType, ModelObjectType} from "./ModelType.js";
+import ModelStringValue from "./ModelStringValue.js";
+import ModelConstantValue from "./ModelConstantValue.js";
+import ModelDataBlock from "./ModelDataBlock.js";
+import ModelFile from "./ModelFile.js";
 
 
-import * as Log from './Logger';
-import {Modifier} from "./AccessFlags";
-import {SearchToken} from "./SearchToken";
-import {IDatabase, IDbCollection, IDbIndex} from "./persist/orm/DbAbstraction";
-import ModelSyscall from "./ModelSyscall";
+import * as Log from './Logger.js';
+import {Modifier} from "./AccessFlags.js";
+import {SearchToken} from "./SearchToken.js";
+import {IDatabase, IDbCollection, IDbIndex} from "./persist/orm/DbAbstraction.js";
+import ModelSyscall from "./ModelSyscall.js";
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 /*
 const DataModel = {
@@ -169,9 +169,10 @@ export class Finder
 
             return new SearchPattern({
                 pattern:pattern,
-                field: [new SearchToken({
+                /*field: [new SearchToken({
                     name:token,
-                })], //token,
+                })], *///token,
+                field:token,
                 isModifier:true,
                 fn: Finder.testHasModifier
             });

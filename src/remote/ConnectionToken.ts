@@ -1,5 +1,5 @@
-import Util from "../Utils";
-import {ConnectionTokenException} from "../errors/ConnectionTokenException";
+import Util from "../Utils.js";
+import {ConnectionTokenException} from "../errors/ConnectionTokenException.js";
 
 export class ConnectionToken {
 

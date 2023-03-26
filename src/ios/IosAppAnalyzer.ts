@@ -1,7 +1,7 @@
-import IosApplication from "./IosApplication";
-import DexcaliburProject from "../DexcaliburProject";
-import {AnalyzerState} from "../AnalyzerState";
-import {IAppAnalyzer} from "../analyzer/IAppAnalyzer";
+import IosApplication from "./IosApplication.js";
+import DexcaliburProject from "../DexcaliburProject.js";
+import {AnalyzerState} from "../AnalyzerState.js";
+import {IAppAnalyzer} from "../analyzer/IAppAnalyzer.js";
 
 
 export default class IosAppAnalyzer implements IAppAnalyzer

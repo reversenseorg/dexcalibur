@@ -1,12 +1,12 @@
-import DexcaliburDVM from "./DexcaliburDVM";
-import DDVM_ClassInstance from "./DDVM_ClassInstance";
-import ModelMethod from "../ModelMethod";
-import {DTYPE} from "./DDVM_TypeHelper";
-import {ModelRegisterReference} from "../ModelReference";
-import DDVM_Symbol from "./DDVM_Symbol";
-import DDVM_VirtualArray from "./DDVM_VirtualArray";
-import * as Log from "../Logger";
-import {DDVM_PseudoCodeConfiguration} from "./DDVM_PseudoCodeConfiguration";
+import DexcaliburDVM from "./DexcaliburDVM.js";
+import DDVM_ClassInstance from "./DDVM_ClassInstance.js";
+import ModelMethod from "../ModelMethod.js";
+import {DTYPE} from "./DDVM_TypeHelper.js";
+import {ModelRegisterReference} from "../ModelReference.js";
+import DDVM_Symbol from "./DDVM_Symbol.js";
+import DDVM_VirtualArray from "./DDVM_VirtualArray.js";
+import * as Log from "../Logger.js";
+import {DDVM_PseudoCodeConfiguration} from "./DDVM_PseudoCodeConfiguration.js";
 
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;

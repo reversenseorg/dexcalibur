@@ -1,22 +1,26 @@
 import * as _path_ from "path";
 import * as _fs_ from "fs";
-import got from "got";
 import * as stream from "stream";
 import {promisify} from "util";
 
 
-import Utils from "./Utils";
-import Platform from "./Platform";
-import DexcaliburRegistry from "./DexcaliburRegistry";
-import {ValidationCapable, ValidationRule} from "./Validator";
-import DexcaliburEngine from "./DexcaliburEngine";
-import DexHelper from "./DexHelper";
+import * as Got from "got";
+const got = Got.default;
 
 
-import * as Log from './Logger';
-import {PlatformManagerException} from "./errors/PlatformManagerException";
-import {Device} from "./Device";
-import AndroidApplication from "./android/AndroidApplication";
+import Utils from "./Utils.js";
+import Platform from "./Platform.js";
+import DexcaliburRegistry from "./DexcaliburRegistry.js";
+import {ValidationCapable, ValidationRule} from "./Validator.js";
+import DexcaliburEngine from "./DexcaliburEngine.js";
+import DexHelper from "./DexHelper.js";
+
+
+import * as Log from './Logger.js';
+import {PlatformManagerException} from "./errors/PlatformManagerException.js";
+import {Device} from "./Device.js";
+import AndroidApplication from "./android/AndroidApplication.js";
+
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
 let pipeline:any = promisify(stream.pipeline);
@@ -97,7 +101,7 @@ export default class PlatformManager extends ValidationCapable
 
         if(_fs_.existsSync(path) == true){
             success = await DexHelper.disassemble(path, pPlatform.getLocalPath());
-            //Utils.execSync(`java -jar ${_path_.join(__dirname,'..','bin','baksmali.jar')} d ${path} -o ${pPlatform.getLocalPath()}`, "ascii");
+            //Utils.execSync(`java -jar ${_path_.join(Util.__dirname(import.meta.url),'..','bin','baksmali.jar')} d ${path} -o ${pPlatform.getLocalPath()}`, "ascii");
             //_fs_.unlinkSync(path);
             if(success){
                 pPlatform.checkInstall();

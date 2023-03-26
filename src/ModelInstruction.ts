@@ -1,10 +1,9 @@
-import { CONST } from "./CoreConst";
-import ModelBasicBlock from "./ModelBasicBlock";
-import ModelMethod from "./ModelMethod";
-import {Savable, STUB_TYPE} from "./ModelSavable";
-import {ModelRegisterReference} from "./ModelReference";
-import {NodeType} from "./persist/orm/NodeType";
-import {NodeInternalType} from "./NodeInternalType";
+import { CONST } from "./CoreConst.js";
+import ModelBasicBlock from "./ModelBasicBlock.js";
+import ModelMethod from "./ModelMethod.js";
+import {Savable, STUB_TYPE} from "./ModelSavable.js";
+import {NodeType} from "./persist/orm/NodeType.js";
+import {NodeInternalType} from "./NodeInternalType.js";
 
 /**
  * Represents an instruction from the Application bytecode

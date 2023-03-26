@@ -1,14 +1,14 @@
 
-import AndroidBuildProfile from "./AndroidBuildProfile";
-import AndroidNetworkProfile from "./AndroidNetworkProfile";
-import AndroidSystemProfile from "./AndroidSystemProfile";
-import {AndroidTrustProfile} from "./AndroidTrustProfile";
-import {OperatingSystem} from "../../OperatingSystem";
-import DeviceProfile from "../../device/DeviceProfile";
-import AndroidUsbProfile from "./AndroidUsbProfile";
-import {DeviceProfilingOptions, IBridge} from "../../Bridge";
-import * as Log from "../../Logger";
-import AndroidMountedFsProfile from "./AndroidMountedFsProfile";
+import AndroidBuildProfile from "./AndroidBuildProfile.js";
+import AndroidNetworkProfile from "./AndroidNetworkProfile.js";
+import AndroidSystemProfile from "./AndroidSystemProfile.js";
+import {AndroidTrustProfile} from "./AndroidTrustProfile.js";
+import {OperatingSystem} from "../../OperatingSystem.js";
+import DeviceProfile from "../../device/DeviceProfile.js";
+import AndroidUsbProfile from "./AndroidUsbProfile.js";
+import {DeviceProfilingOptions, IBridge} from "../../Bridge.js";
+import * as Log from "../../Logger.js";
+import AndroidMountedFsProfile from "./AndroidMountedFsProfile.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 

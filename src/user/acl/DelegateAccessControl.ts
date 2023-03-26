@@ -1,6 +1,6 @@
-import {Access, AccessMap, AccessProperty, AccessType} from "./Access";
-import {AccessAttribute, AccessAttributeMap} from "./AccessAttribute";
-import {UserAccount} from "../UserAccount";
+import {Access, AccessMap, AccessProperty, AccessType} from "./Access.js";
+import {AccessAttribute, AccessAttributeMap} from "./AccessAttribute.js";
+import {UserAccount} from "../UserAccount.js";
 
 
 export abstract class DelegateAccessControl {

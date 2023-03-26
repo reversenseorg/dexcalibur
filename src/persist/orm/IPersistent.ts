@@ -1,4 +1,4 @@
-import {NodeInternalType} from "../../NodeInternalType";
+import {NodeInternalType} from "../../NodeInternalType.js";
 
 
 export interface IPersistent

@@ -1,11 +1,11 @@
-import {DelegateWebApi} from "./DelegateWebApi";
-import WebServer, {HTTP_CODE_ERROR, HTTP_CODE_SUCCESS} from "../WebServer";
+import {DelegateWebApi} from "./DelegateWebApi.js";
+import WebServer, {HTTP_CODE_ERROR, HTTP_CODE_SUCCESS} from "../WebServer.js";
 import {Request, Response} from "express";
-import * as Log from "../Logger";
-import DexcaliburProject from "../DexcaliburProject";
-import {AuthenticationException} from "../errors/AuthenticationException";
-import {DexcaliburProjectException} from "../errors/DexcaliburProjectException";
-import {Script} from "../Script";
+import * as Log from "../Logger.js";
+import DexcaliburProject from "../DexcaliburProject.js";
+import {AuthenticationException} from "../errors/AuthenticationException.js";
+import {DexcaliburProjectException} from "../errors/DexcaliburProjectException.js";
+import {Script} from "../Script.js";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 export const SCRIPT_WEB_API: DelegateWebApi = new DelegateWebApi();

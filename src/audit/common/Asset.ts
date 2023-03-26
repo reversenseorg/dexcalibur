@@ -1,4 +1,4 @@
-import AssuranceModel from "./AssuranceModel";
+import AssuranceModel from "./AssuranceModel.js";
 
 export default class Asset  {
 

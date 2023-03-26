@@ -1,10 +1,10 @@
 
-import {DbDataType, DbKeyType, DbSetType, IDbIndex} from "../../src/persist/orm/DbAbstraction";
-import {PreparedStatementList, SqliteAPI} from "./SqliteAPI";
-import {SqliteException} from "./SqliteException";
-import {NodeType} from "../../src/persist/orm/NodeType";
-import {NodeProperty} from "../../src/persist/orm/NodeProperty";
-import {SqliteDb} from "./SqliteDb";
+import {DbDataType, DbKeyType, DbSetType, IDbIndex} from "../../src/persist/orm/DbAbstraction.js";
+import {PreparedStatementList, SqliteAPI} from "./SqliteAPI.js";
+import {SqliteException} from "./SqliteException.js";
+import {NodeType} from "../../src/persist/orm/NodeType.js";
+import {NodeProperty} from "../../src/persist/orm/NodeProperty.js";
+import {SqliteDb} from "./SqliteDb.js";
 
 /**
  * Represents an array of element stored in a SQLite table

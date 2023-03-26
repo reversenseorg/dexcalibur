@@ -1,13 +1,13 @@
-import {DbColumnTemplate} from "./DbColumnTemplate";
-import {NodeProperty} from "./NodeProperty";
-import {NodeInternalType} from "../../NodeInternalType";
-import {DbKeyType} from "./DbAbstraction";
-import * as Log from "../../Logger";
-import {IncomingValue, SanitizedValue, UnsafeValue} from "../../security/SanitizedValue";
-import {GlobalSettingsException} from "../../errors/GlobalSettingsException";
-import {SqliteException} from "../../../connectors/sqlite/SqliteException";
-import {DataSource} from "../../DataSource";
-import {DataSourceHelper} from "../../DataSourceHelper";
+import {DbColumnTemplate} from "./DbColumnTemplate.js";
+import {NodeProperty} from "./NodeProperty.js";
+import {NodeInternalType} from "../../NodeInternalType.js";
+import {DbKeyType} from "./DbAbstraction.js";
+import * as Log from "../../Logger.js";
+import {IncomingValue, SanitizedValue, UnsafeValue} from "../../security/SanitizedValue.js";
+import {GlobalSettingsException} from "../../errors/GlobalSettingsException.js";
+import {SqliteException} from "../../../connectors/sqlite/SqliteException.js";
+import {DataSource} from "../../DataSource.js";
+import {DataSourceHelper} from "../../DataSourceHelper.js";
 
 
 export interface NodePropertyMap {
@@ -251,7 +251,7 @@ export class NodeType {
                     if(!vPpt.getNodeType().hasProperty(fk)){
                         // n:n => create join table
                         // temporary, store serialized obj
-                        Logger.raw(JSON.stringify(this.getPrimaryKey().clone({ _name:fk }).key(DbKeyType.COMPOSITE, 0)));
+                        //Logger.raw(JSON.stringify(this.getPrimaryKey().clone({ _name:fk }).key(DbKeyType.COMPOSITE, 0)));
 
                         if(this._pk != null){
                             // if a primary key is already defined, primary key from foreign table is defined as FOREIGN
@@ -279,7 +279,7 @@ export class NodeType {
 
         });
 
-        Logger.raw(this.getName()+' => '+Object.keys(this._ppts).join(','));
+        //Logger.raw(this.getName()+' => '+Object.keys(this._ppts).join(','));
 
         if(!pOpts.init){
             this.trigger('change', pCols);

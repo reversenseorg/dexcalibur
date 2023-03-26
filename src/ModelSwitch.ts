@@ -1,4 +1,4 @@
-import { CONST } from "./CoreConst";
+import { CONST } from "./CoreConst.js";
 
 interface PackedCaseList {
     [p: number]: ModelSwitchCase

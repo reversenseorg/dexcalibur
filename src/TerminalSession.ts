@@ -1,10 +1,10 @@
 import * as _fs_ from 'fs';
 import {EOL} from 'os';
-import Util from "./Utils";
-import {User} from "./User";
-import * as Log from "./Logger";
-import {Device} from "./Device";
-import AdbWrapper from "./AdbWrapper";
+import Util from "./Utils.js";
+import {User} from "./User.js";
+import * as Log from "./Logger.js";
+import {Device} from "./Device.js";
+import AdbWrapper from "./AdbWrapper.js";
 
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;

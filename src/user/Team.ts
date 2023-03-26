@@ -1,5 +1,5 @@
-import {Person} from "./Person";
-import {SharingConfiguration} from "./SharingConfiguration";
+import {Person} from "./Person.js";
+import {SharingConfiguration} from "./SharingConfiguration.js";
 
 /**
  * Represent a Team

@@ -1,8 +1,8 @@
-import {DataSource} from "./DataSource";
-import DexcaliburProject from "./DexcaliburProject";
-import {NodeType} from "./persist/orm/NodeType";
-import * as Log from "./Logger";
-import {NodeInternalType} from "./NodeInternalType";
+import {DataSource} from "./DataSource.js";
+import DexcaliburProject from "./DexcaliburProject.js";
+import {NodeType} from "./persist/orm/NodeType.js";
+import * as Log from "./Logger.js";
+import {NodeInternalType} from "./NodeInternalType.js";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 

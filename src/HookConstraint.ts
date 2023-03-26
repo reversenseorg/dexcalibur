@@ -1,4 +1,4 @@
-import ModelFile from "./ModelFile";
+import ModelFile from "./ModelFile.js";
 
 export class HookConstraint {
 

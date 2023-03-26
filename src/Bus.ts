@@ -1,6 +1,6 @@
-import DexcaliburProject from "./DexcaliburProject";
-import BusEvent from "./BusEvent";
-import * as Log from "./Logger";
+import DexcaliburProject from "./DexcaliburProject.js";
+import BusEvent from "./BusEvent.js";
+import * as Log from "./Logger.js";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 

@@ -1,7 +1,7 @@
 import * as VM from "vm";
-import DexcaliburEngine from "./DexcaliburEngine";
-import {PATCHES} from "./internals/patches";
-import {DXC_LIFECYCLE_EVENT} from "./CoreConst";
+import DexcaliburEngine from "./DexcaliburEngine.js";
+import {PATCHES} from "./internals/patches.js";
+import {DXC_LIFECYCLE_EVENT} from "./CoreConst.js";
 
 
 

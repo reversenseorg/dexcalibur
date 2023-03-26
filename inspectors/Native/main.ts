@@ -3,12 +3,9 @@
 
 // ===== INIT =====
 
-import {INSPECTOR_TYPE} from "../../src/Inspector";
-import InspectorFactory from "../../src/InspectorFactory";
-import {HOOK_TYPE} from "../../src/hook/HookManager";
-import BusEvent from "../../src/BusEvent";
-import DexcaliburProject from "../../src/DexcaliburProject";
-import ModelMethod from "../../src/ModelMethod";
+import {INSPECTOR_TYPE} from "../../src/Inspector.js";
+import InspectorFactory from "../../src/InspectorFactory.js";
+import ModelMethod from "../../src/ModelMethod.js";
 
 var NativeLibraryInspector:InspectorFactory = new InspectorFactory({
 

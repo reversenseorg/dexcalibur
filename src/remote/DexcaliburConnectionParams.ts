@@ -1,5 +1,5 @@
-import {DexcaliburConnectionException} from "../errors/DexcaliburConnectionException";
-import {AuthType} from "../user/auth/AuthTypes";
+import {DexcaliburConnectionException} from "../errors/DexcaliburConnectionException.js";
+import {AuthType} from "../user/auth/AuthTypes.js";
 
 export enum DexcaliburConnectionType {
     LOCAL="local",

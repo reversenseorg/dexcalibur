@@ -1,4 +1,4 @@
-import {IDbCollection} from "../persist/orm/DbAbstraction";
+import {IDbCollection} from "../persist/orm/DbAbstraction.js";
 
 
 export interface IAnalyzerUnit {

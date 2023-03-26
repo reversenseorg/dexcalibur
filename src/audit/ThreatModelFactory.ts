@@ -1,4 +1,4 @@
-import SecurityThreatModel from "./common/SecurityThreatModel";
+import SecurityThreatModel from "./common/SecurityThreatModel.js";
 
 export enum ThreatCategory {
     STRIDE="STRIDE",

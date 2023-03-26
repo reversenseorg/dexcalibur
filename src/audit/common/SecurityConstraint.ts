@@ -3,7 +3,7 @@
 // TAMPER
 
 
-import Constraint from "./Constraint";
+import Constraint from "./Constraint.js";
 
 export default class SecurityConstraint  {
 

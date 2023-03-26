@@ -3,7 +3,7 @@
  * @class
  * @author Georges-B MICHEL
  */
-import {IProfile} from "./IProfile";
+import {IProfile} from "./IProfile.js";
 
 
 /**

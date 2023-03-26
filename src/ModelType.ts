@@ -1,5 +1,5 @@
-import { CONST } from "./CoreConst";
-import {Savable, Stub, STUB_TYPE} from "./ModelSavable";
+import { CONST } from "./CoreConst.js";
+import {Savable, Stub, STUB_TYPE} from "./ModelSavable.js";
 
 
 

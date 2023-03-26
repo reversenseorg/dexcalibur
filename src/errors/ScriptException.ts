@@ -1,5 +1,5 @@
-import {ErrorCode, MonitoredError} from "./MonitoredError";
-import {AnalyzerErrCode} from "./AnalyzerException";
+import {ErrorCode, MonitoredError} from "./MonitoredError.js";
+import {AnalyzerErrCode} from "./AnalyzerException.js";
 
 export class ScriptException extends MonitoredError {
 

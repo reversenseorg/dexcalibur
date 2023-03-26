@@ -1,5 +1,5 @@
-import {ErrorCode, MonitoredError} from "./MonitoredError";
-import {HookErrCode} from "./HookManagerException";
+import {ErrorCode, MonitoredError} from "./MonitoredError.js";
+import {HookErrCode} from "./HookManagerException.js";
 
 
 export class HookMessageException extends MonitoredError {

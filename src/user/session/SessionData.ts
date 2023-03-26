@@ -1,12 +1,12 @@
-import {NodeType} from "../../persist/orm/NodeType";
-import {NodeInternalType} from "../../NodeInternalType";
-import {NodeProperty, NodePropertyState} from "../../persist/orm/NodeProperty";
-import {DbDataType, DbKeyType} from "../../persist/orm/DbAbstraction";
-import {UserAccount} from "../UserAccount";
-import {UserSession} from "./UserSession";
-import DexcaliburEngine from "../../DexcaliburEngine";
-import DexcaliburProject from "../../DexcaliburProject";
-import {IPersistent} from "../../persist/orm/IPersistent";
+import {NodeType} from "../../persist/orm/NodeType.js";
+import {NodeInternalType} from "../../NodeInternalType.js";
+import {NodeProperty, NodePropertyState} from "../../persist/orm/NodeProperty.js";
+import {DbDataType, DbKeyType} from "../../persist/orm/DbAbstraction.js";
+import {UserAccount} from "../UserAccount.js";
+import {UserSession} from "./UserSession.js";
+import DexcaliburEngine from "../../DexcaliburEngine.js";
+import DexcaliburProject from "../../DexcaliburProject.js";
+import {IPersistent} from "../../persist/orm/IPersistent.js";
 
 
 export class SessionData implements IPersistent{

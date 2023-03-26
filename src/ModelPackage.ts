@@ -1,10 +1,10 @@
-import ModelMetadata from "./ModelMetadata";
-import ModelClass from './ModelClass';
-import {NodeType} from "./persist/orm/NodeType";
-import {NodeInternalType} from "./NodeInternalType";
-import {IPersistent} from "./persist/orm/IPersistent";
-import {DataSourceHelper} from "./DataSourceHelper";
-import {Savable, STUB_TYPE} from "./ModelSavable";
+import ModelMetadata from "./ModelMetadata.js";
+import ModelClass from './ModelClass.js';
+import {NodeType} from "./persist/orm/NodeType.js";
+import {NodeInternalType} from "./NodeInternalType.js";
+import {IPersistent} from "./persist/orm/IPersistent.js";
+import {DataSourceHelper} from "./DataSourceHelper.js";
+import {Savable, STUB_TYPE} from "./ModelSavable.js";
 
 
 /**

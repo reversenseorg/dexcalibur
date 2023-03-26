@@ -1,8 +1,8 @@
 import * as _child_process_ from 'child_process';
-import DeviceProfile from "./device/DeviceProfile";
-import {Device} from "./Device";
-import AppPackage from "./AppPackage";
-import {AndroidPackageInstallOptions} from "./android/bridge/AndroidInstallOptions";
+import DeviceProfile from "./device/DeviceProfile.js";
+import {Device} from "./Device.js";
+import AppPackage from "./AppPackage.js";
+import {AndroidPackageInstallOptions} from "./android/bridge/AndroidInstallOptions.js";
 
 export interface DeviceProfilingOptions {
     tmp?: string;

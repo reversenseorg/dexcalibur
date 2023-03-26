@@ -1,4 +1,4 @@
-import {IBridge} from "./Bridge";
+import {IBridge} from "./Bridge.js";
 
 export enum PrivilegedExecutionType {
     BINARY='b',

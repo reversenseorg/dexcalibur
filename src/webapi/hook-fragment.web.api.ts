@@ -1,14 +1,11 @@
-import * as Log from "../Logger";
-import {DelegateWebApi} from "./DelegateWebApi";
-import WebServer from "../WebServer";
-import DexcaliburProject from "../DexcaliburProject";
-import HookSession from "../HookSession";
+import * as Log from "../Logger.js";
+import {DelegateWebApi} from "./DelegateWebApi.js";
+import WebServer from "../WebServer.js";
+import DexcaliburProject from "../DexcaliburProject.js";
 import {Request, Response} from "express";
-import {AbstractHook} from "../hook/AbstractHook";
-import {HookManagerException} from "../errors/HookManagerException";
-import HookTemplateFragment from "../hook/HookTemplateFragment";
-import Util from "../Utils";
-import {NodeInternalType} from "../NodeInternalType";
+import {AbstractHook} from "../hook/AbstractHook.js";
+import {HookManagerException} from "../errors/HookManagerException.js";
+import HookTemplateFragment from "../hook/HookTemplateFragment.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 export const HOOK_FRAGS_WEB_API: DelegateWebApi = new DelegateWebApi();

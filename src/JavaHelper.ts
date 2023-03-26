@@ -1,4 +1,4 @@
-import {External} from "./external/External";
+import {External} from "./external/External.js";
 
 export default class JavaHelper extends External.ExternalHelper {
 

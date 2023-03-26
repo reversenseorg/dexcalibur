@@ -1,17 +1,16 @@
-import Inspector, {INSPECTOR_TYPE} from "./Inspector";
-import DexcaliburProject from "./DexcaliburProject";
-import HookSet from "./HookSet";
-import Hook from "./Hook";
-import {DelegateWebApi} from "./webapi/DelegateWebApi";
-import WebServer from "./WebServer";
-import * as Log from "./Logger";
-import DexcaliburEngine from "./DexcaliburEngine";
-import HookStrategy from "./hook/HookStrategy";
-import {HookManager} from "./hook/HookManager";
-import {HookDbApi} from "./hook/HookDbApi";
-import {InspectorFactoryException} from "./errors/InspectorFactoryException";
-import {TagCategory} from "./tags/TagCategory";
-import {Tag} from "./tags/Tag";
+import Inspector, {INSPECTOR_TYPE} from "./Inspector.js";
+import DexcaliburProject from "./DexcaliburProject.js";
+import HookSet from "./HookSet.js";
+import {DelegateWebApi} from "./webapi/DelegateWebApi.js";
+import WebServer from "./WebServer.js";
+import * as Log from "./Logger.js";
+import DexcaliburEngine from "./DexcaliburEngine.js";
+import HookStrategy from "./hook/HookStrategy.js";
+import {HookManager} from "./hook/HookManager.js";
+import {HookDbApi} from "./hook/HookDbApi.js";
+import {InspectorFactoryException} from "./errors/InspectorFactoryException.js";
+import {TagCategory} from "./tags/TagCategory.js";
+import {Tag} from "./tags/Tag.js";
 
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;

@@ -1,21 +1,17 @@
-import AnalyzerDatabase from "../../../src/AnalyzerDatabase";
-import ModelMethod from "../../../src/ModelMethod";
-import DexcaliburProject from "../../../src/DexcaliburProject";
-import {ModelBasicType, ModelObjectType} from "../../../src/ModelType";
-import InspectorFrontController, {IFC_TYPE} from "../../../src/InspectorFrontController";
-import {CONST} from "../../../src/CoreConst";
-import ModelInstruction from "../../../src/ModelInstruction";
-import ModelBasicBlock from "../../../src/ModelBasicBlock";
-import Util from "../../../src/Utils";
-import {Modifier} from "../../../src/AccessFlags";
-import {DelegateWebApi} from "../../../src/webapi/DelegateWebApi";
-import WebServer from "../../../src/WebServer";
-import {AuthenticationException} from "../../../src/errors/AuthenticationException";
-import {DexcaliburProjectException} from "../../../src/errors/DexcaliburProjectException";
-import Inspector from "../../../src/Inspector";
-import InspectorManager from "../../../src/InspectorManager";
+import AnalyzerDatabase from "../../../src/AnalyzerDatabase.js";
+import ModelMethod from "../../../src/ModelMethod.js";
+import DexcaliburProject from "../../../src/DexcaliburProject.js";
+import InspectorFrontController, {IFC_TYPE} from "../../../src/InspectorFrontController.js";
+import {CONST} from "../../../src/CoreConst.js";
+import ModelInstruction from "../../../src/ModelInstruction.js";
+import Util from "../../../src/Utils.js";
+import {Modifier} from "../../../src/AccessFlags.js";
+import {DelegateWebApi} from "../../../src/webapi/DelegateWebApi.js";
+import WebServer from "../../../src/WebServer.js";
+import {AuthenticationException} from "../../../src/errors/AuthenticationException.js";
+import {DexcaliburProjectException} from "../../../src/errors/DexcaliburProjectException.js";
 import {Request, Response} from "express";
-import * as Log from "../../../src/Logger";
+import * as Log from "../../../src/Logger.js";
 
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;

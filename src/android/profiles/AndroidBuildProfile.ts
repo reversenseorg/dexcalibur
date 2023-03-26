@@ -1,4 +1,4 @@
-import GenericBuildProfile from "../../device/profile/GenericBuildProfile";
+import GenericBuildProfile from "../../device/profile/GenericBuildProfile.js";
 
 
 

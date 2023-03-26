@@ -3,29 +3,29 @@ import * as _path_ from 'path';
 import * as _fs_ from 'fs';
 import { EOL } from 'os';
 
-import UT from "./Utils";
-import { Device } from "./Device";
-import AppPackage from "./AppPackage";
-import DeviceProfile, {ProfileMap} from './device/DeviceProfile';
-import {AdbWrapperError} from "./Errors";
-import * as Log from './Logger';
-import DexcaliburWorkspace from "./DexcaliburWorkspace";
-import {DeviceProfilingOptions, IBridge} from "./Bridge";
-import {AdbBridgeException} from "./errors/AdbBridgeException";
+import UT from "./Utils.js";
+import { Device } from "./Device.js";
+import AppPackage from "./AppPackage.js";
+import DeviceProfile, {ProfileMap} from './device/DeviceProfile.js';
+import {AdbWrapperError} from "./Errors.js";
+import * as Log from './Logger.js';
+import DexcaliburWorkspace from "./DexcaliburWorkspace.js";
+import {DeviceProfilingOptions, IBridge} from "./Bridge.js";
+import {AdbBridgeException} from "./errors/AdbBridgeException.js";
 import {
     PrivilegedExecutionPhase,
     PrivilegedExecutionStrategy,
     PrivilegedExecutionStrategyMap, PrivilegedExecutionType
-} from "./PrivilegedExecutionStrategy";
-import Util from "./Utils";
-import {AndroidInstallOptionsEnum, AndroidPackageInstallOptions} from "./android/bridge/AndroidInstallOptions";
-import {OperatingSystem} from "./OperatingSystem";
+} from "./PrivilegedExecutionStrategy.js";
+import Util from "./Utils.js";
+import {AndroidInstallOptionsEnum, AndroidPackageInstallOptions} from "./android/bridge/AndroidInstallOptions.js";
+import {OperatingSystem} from "./OperatingSystem.js";
 
 const Logger:Log.ProdLogger = Log.newLogger() as Log.ProdLogger;
 
-import AndroidDeviceProfile from "./android/profiles/AndroidDeviceProfile";
-import {NosyProfile} from "./device/profile/NosyProfile";
-import {IProfile} from "./device/profile/IProfile";
+import AndroidDeviceProfile from "./android/profiles/AndroidDeviceProfile.js";
+import {NosyProfile} from "./device/profile/NosyProfile.js";
+import {IProfile} from "./device/profile/IProfile.js";
 
 enum ETransportType {
     USB     = 'U',

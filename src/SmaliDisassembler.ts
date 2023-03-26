@@ -1,10 +1,10 @@
 import Chalk from 'chalk';
-import ModelMethod from "./ModelMethod";
-import ModelBasicBlock from "./ModelBasicBlock";
-import {ModelPackedSwitchStatement, ModelSwitchCase} from "./ModelSwitch";
-import {CONST} from "./CoreConst";
-import ModelCatchStatement from "./ModelCatchStatement";
-import * as Log from "./Logger";
+import ModelMethod from "./ModelMethod.js";
+import ModelBasicBlock from "./ModelBasicBlock.js";
+import {ModelPackedSwitchStatement, ModelSwitchCase} from "./ModelSwitch.js";
+import {CONST} from "./CoreConst.js";
+import ModelCatchStatement from "./ModelCatchStatement.js";
+import * as Log from "./Logger.js";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 

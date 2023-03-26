@@ -1,9 +1,9 @@
-import {DelegateAccessControl} from "../DelegateAccessControl";
-import {Access, AccesErrCode, AccessException, AccessMap, AccessType} from "../Access";
-import {UserSession} from "../../session/UserSession";
-import {AccessAttribute, AccessAttributeMap} from "../AccessAttribute";
-import DexcaliburProject from "../../../DexcaliburProject";
-import {UserAccount} from "../../UserAccount";
+import {DelegateAccessControl} from "../DelegateAccessControl.js";
+import {Access, AccesErrCode, AccessException, AccessMap, AccessType} from "../Access.js";
+import {UserSession} from "../../session/UserSession.js";
+import {AccessAttribute, AccessAttributeMap} from "../AccessAttribute.js";
+import DexcaliburProject from "../../../DexcaliburProject.js";
+import {UserAccount} from "../../UserAccount.js";
 
 
 export class SettingsAccessControl extends DelegateAccessControl {

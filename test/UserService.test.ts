@@ -5,26 +5,23 @@ import {expect} from "chai";
 import * as _path_ from 'path';
 import * as _fs_ from 'fs';
 
-import {TestHelper} from "../dist/src/TestHelper";
-import {AuthType} from "../dist/src/user/auth/AuthTypes";
-import {AuthenticationSettings} from "../dist/src/user/auth/AuthenticationSettings";
-import {AuthenticationPolicy} from "../dist/src/user/auth/AuthenticationPolicy";
-import {AuthenticationService} from "../dist/src/user/auth/AuthenticationService";
+import {AuthType} from "../dist/src/user/auth/AuthTypes.js";
+import {AuthenticationSettings} from "../dist/src/user/auth/AuthenticationSettings.js";
+import {AuthenticationService} from "../dist/src/user/auth/AuthenticationService.js";
 import {UserAccount} from "../dist/src/user/UserAccount";
-import {PasswordAuthenticator} from "../dist/src/user/auth/Authenticator";
-import {Authenticator} from "../dist/src/user/auth/AuthTypes";
-import {UserSession} from "../dist/src/user/session/UserSession";
-import {UserService} from "../dist/src/user/UserService";
-import {Settings} from "../dist/src/Settings";
+import {UserSession} from "../dist/src/user/session/UserSession.js";
+import {UserService} from "../dist/src/user/UserService.js";
+import {Settings} from "../dist/src/Settings.js";
 import ServerSettings = Settings.ServerSettings;
-import {SessionCode, SessionException} from "../dist/src/user/session/SessionException";
-import {SessionService} from "../dist/src/user/session/SessionService";
+import {SessionCode, SessionException} from "../dist/src/user/session/SessionException.js";
+import {SessionService} from "../dist/src/user/session/SessionService.js";
+import Util from "../src/Utils.js";
 
-const USER_DB:string = _path_.join(__dirname,'config','userdb.json');
-const USER_DB_BKP:string = _path_.join(__dirname,'config','userdb.json.bkp');
+const USER_DB:string = _path_.join(Util.__dirname(import.meta.url),'config','userdb.json');
+const USER_DB_BKP:string = _path_.join(Util.__dirname(import.meta.url),'config','userdb.json.bkp');
 
 // username = dxc_user_1, password = dexcalibur
-const USER_DB_TMP:string = _path_.join(__dirname,'config','userdb.json.temp');
+const USER_DB_TMP:string = _path_.join(Util.__dirname(import.meta.url),'config','userdb.json.temp');
 
 
 if(_fs_.existsSync(USER_DB)) _fs_.unlinkSync(USER_DB);

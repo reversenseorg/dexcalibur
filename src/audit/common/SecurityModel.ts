@@ -1,5 +1,5 @@
-import AssuranceModel from "./AssuranceModel";
-import SecurityConstraintModel from "./SecurityConstraintModel";
+import AssuranceModel from "./AssuranceModel.js";
+import SecurityConstraintModel from "./SecurityConstraintModel.js";
 
 
 

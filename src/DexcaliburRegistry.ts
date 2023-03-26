@@ -1,9 +1,11 @@
 
 import { URL } from "url";
-import got from "got";
+
+import * as Got from "got";
+const got = Got.default;
 
 
-import * as Log from './Logger';
+import * as Log from './Logger.js';
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
 const PLATFORM_FOLDER = "platforms";
@@ -89,6 +91,16 @@ export default class DexcaliburRegistry
 
            return response;
         }
+    }
+
+    /**
+     *
+     */
+    static getOfficial():DexcaliburRegistry {
+        return new DexcaliburRegistry(
+            "",
+            ""
+        )
     }
     
 }

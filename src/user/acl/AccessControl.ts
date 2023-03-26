@@ -1,13 +1,13 @@
 /**
  * This class enclose any actions related to access control
  */
-import {AccessZone} from "./Zones";
-import {Access, AccesErrCode, AccessException} from "./Access";
-import {DelegateAccessControl} from "./DelegateAccessControl";
-import {UserRole, UserRoleMap} from "./rbac/UserRole";
-import {BUILT_IN_DEFAULT_ROLE, BUILT_IN_ROLES} from "./Roles";
-import {AccessAttribute} from "./AccessAttribute";
-import {UserAccount} from "../UserAccount";
+import {AccessZone} from "./Zones.js";
+import {Access, AccesErrCode, AccessException} from "./Access.js";
+import {DelegateAccessControl} from "./DelegateAccessControl.js";
+import {UserRole, UserRoleMap} from "./rbac/UserRole.js";
+import {BUILT_IN_DEFAULT_ROLE, BUILT_IN_ROLES} from "./Roles.js";
+import {AccessAttribute} from "./AccessAttribute.js";
+import {UserAccount} from "../UserAccount.js";
 
 
 export interface DelegateAccessControlMap {
@@ -47,6 +47,10 @@ export default class AccessControl {
             if(AccessControl.roles[vRole.uid]==null)
                 AccessControl.roles[vRole.uid] = vRole;
         })
+    }
+
+    static getRoles():UserRoleMap {
+        return AccessControl.roles;
     }
 
     /**

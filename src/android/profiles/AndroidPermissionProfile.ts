@@ -3,7 +3,7 @@
  * @class
  * @author Georges-B MICHEL
  */
-import {GenericPermissionProfile} from "../../device/profile/GenericPermissionProfile";
+import {GenericPermissionProfile} from "../../device/profile/GenericPermissionProfile.js";
 
 
 export class AndroidPermissionProfile extends GenericPermissionProfile

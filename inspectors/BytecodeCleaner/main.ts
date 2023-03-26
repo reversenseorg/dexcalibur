@@ -2,19 +2,19 @@
 
 // ===== INIT =====
 
-import InspectorFactory from "../../src/InspectorFactory";
-import {INSPECTOR_TYPE} from "../../src/Inspector";
-import {DelegateWebApi} from "../../src/webapi/DelegateWebApi";
-import WebServer from "../../src/WebServer";
-import DexcaliburProject from "../../src/DexcaliburProject";
-import {AuthenticationException} from "../../src/errors/AuthenticationException";
-import {DexcaliburProjectException} from "../../src/errors/DexcaliburProjectException";
-import ModelMethod from "../../src/ModelMethod";
-import Util from "../../src/Utils";
+import InspectorFactory from "../../src/InspectorFactory.js";
+import {INSPECTOR_TYPE} from "../../src/Inspector.js";
+import {DelegateWebApi} from "../../src/webapi/DelegateWebApi.js";
+import WebServer from "../../src/WebServer.js";
+import DexcaliburProject from "../../src/DexcaliburProject.js";
+import {AuthenticationException} from "../../src/errors/AuthenticationException.js";
+import {DexcaliburProjectException} from "../../src/errors/DexcaliburProjectException.js";
+import ModelMethod from "../../src/ModelMethod.js";
+import Util from "../../src/Utils.js";
 
 import {Request, Response} from "express";
-import {Rules} from "./src/Rules";
-import * as Log from "../../src/Logger";
+import {Rules} from "./src/Rules.js";
+import * as Log from "../../src/Logger.js";
 
 const PLUGIN_WEB_API: DelegateWebApi = new DelegateWebApi();
 

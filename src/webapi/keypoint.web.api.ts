@@ -1,15 +1,15 @@
-import {DelegateWebApi} from "./DelegateWebApi";
-import WebServer, {HTTP_CODE_ERROR, HTTP_CODE_SUCCESS} from "../WebServer";
+import {DelegateWebApi} from "./DelegateWebApi.js";
+import WebServer, {HTTP_CODE_ERROR, HTTP_CODE_SUCCESS} from "../WebServer.js";
 import {Request, Response} from "express";
-import * as Log from "../Logger";
-import KeyPointManager from "../hook/KeyPointManager";
-import KeyPoint, {KeyPointLifecycleEventType} from "../hook/KeyPoint";
-import {KeyPointManagerException} from "../errors/KeyPointManagerException";
-import {NodeInternalType, NodeInternalTypeName} from "../NodeInternalType";
-import {KeyPointOptions} from "../hook/KeyPointGenerator";
-import DexcaliburProject from "../DexcaliburProject";
-import {INode} from "../INode";
-import {AbstractHook} from "../hook/AbstractHook";
+import * as Log from "../Logger.js";
+import KeyPointManager from "../hook/KeyPointManager.js";
+import KeyPoint, {KeyPointLifecycleEventType} from "../hook/KeyPoint.js";
+import {KeyPointManagerException} from "../errors/KeyPointManagerException.js";
+import {NodeInternalType, NodeInternalTypeName} from "../NodeInternalType.js";
+import {KeyPointOptions} from "../hook/KeyPointGenerator.js";
+import DexcaliburProject from "../DexcaliburProject.js";
+import {INode} from "../INode.js";
+import {AbstractHook} from "../hook/AbstractHook.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 export const KEYPOINT_WEB_API: DelegateWebApi = new DelegateWebApi();
@@ -102,8 +102,8 @@ KEYPOINT_WEB_API.addAuthenticatedRoute(
                 const opts:KeyPointOptions = new KeyPointOptions(req.body['opts']);
                 const KPM:KeyPointManager = (req.dxc.project as DexcaliburProject).getKeyPointManager();
 
-                Logger.info(JSON.stringify(target));
-                Logger.info(JSON.stringify(opts));
+                Logger.debug(JSON.stringify(target));
+                Logger.debug(JSON.stringify(opts));
 
                 const node:any = req.dxc.project.getAnalyzer().searchNode( target.__, target.uid)
 
@@ -132,7 +132,7 @@ KEYPOINT_WEB_API.addAuthenticatedRoute(
 
                 KPM.addKeyPoint( kp);
 
-                Logger.info(JSON.stringify(kp.toJsonObject()))
+                Logger.debug(JSON.stringify(kp.toJsonObject()))
                 $.sendSuccess(res,  req.dxc.project.getKeyPointManager().getKeyPoint(kp.getName()).toJsonObject());
             }catch(err){
                 Logger.error("[API][KEY POINTS] Key Point cannot be created. Cause : " + err.message + "\n\t" + err.stack);

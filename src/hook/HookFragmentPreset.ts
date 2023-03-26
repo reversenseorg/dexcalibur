@@ -1,7 +1,7 @@
-import {AbstractHook, HOOK_FRAGMENT_POS, UID_POS_MAPPING} from "./AbstractHook";
-import HookTemplateFragment from "./HookTemplateFragment";
-import ModelMethod from "../ModelMethod";
-import HookStrategy from "./HookStrategy";
+import {AbstractHook, HOOK_FRAGMENT_POS, UID_POS_MAPPING} from "./AbstractHook.js";
+import HookTemplateFragment from "./HookTemplateFragment.js";
+import ModelMethod from "../ModelMethod.js";
+import HookStrategy from "./HookStrategy.js";
 
 import * as _md5_ from "md5";
 export enum HookFragmentPresetType {

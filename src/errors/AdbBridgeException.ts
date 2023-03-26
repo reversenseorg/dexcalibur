@@ -1,5 +1,5 @@
-import {ErrorCode } from "./MonitoredError";
-import {BridgeErrorCode, BridgeException} from "./BridgeException";
+import {ErrorCode } from "./MonitoredError.js";
+import {BridgeErrorCode, BridgeException} from "./BridgeException.js";
 
 export class AdbBridgeException extends BridgeException {
 

@@ -2,11 +2,11 @@
 import * as _fs_ from 'fs';
 import * as _path_ from 'path';
 
-import ApkHelper from "./ApkHelper";
-import AppPackage from "./AppPackage";
-import AdbWrapperFactory from "./AdbWrapperFactory";
-import * as Log from "./Logger";
-import {IBridge} from "./Bridge";
+import ApkHelper from "./ApkHelper.js";
+import AppPackage from "./AppPackage.js";
+import AdbWrapperFactory from "./AdbWrapperFactory.js";
+import * as Log from "./Logger.js";
+import {IBridge} from "./Bridge.js";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 

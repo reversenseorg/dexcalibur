@@ -1,12 +1,10 @@
-import KeyPoint from "./KeyPoint";
-import DexcaliburProject from "../DexcaliburProject";
-import {IDatabase, IDbCollection} from "../persist/orm/DbAbstraction";
-import DataScope, {DataScopePpts} from "../DataScope";
-import {UTIL_CONST} from "../util/UtilConstants";
-import {KeyPointManagerException} from "../errors/KeyPointManagerException";
-import SqliteDbCollection from "../../connectors/sqlite/SqliteDbCollection";
-import {SqliteDb} from "../../connectors/sqlite/SqliteDb";
-import {KeyPointGenerator, KeyPointOptions} from "./KeyPointGenerator";
+import KeyPoint from "./KeyPoint.js";
+import DexcaliburProject from "../DexcaliburProject.js";
+import {IDatabase, IDbCollection} from "../persist/orm/DbAbstraction.js";
+import {KeyPointManagerException} from "../errors/KeyPointManagerException.js";
+import SqliteDbCollection from "../../connectors/sqlite/SqliteDbCollection.js";
+import {SqliteDb} from "../../connectors/sqlite/SqliteDb.js";
+import {KeyPointGenerator, KeyPointOptions} from "./KeyPointGenerator.js";
 
 export enum DEOPT_TYPE {
     NONE,

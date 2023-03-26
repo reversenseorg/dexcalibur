@@ -1,10 +1,10 @@
-import {DelegateWebApi} from "./DelegateWebApi";
-import WebServer from "../WebServer";
+import {DelegateWebApi} from "./DelegateWebApi.js";
+import WebServer from "../WebServer.js";
 import {Request, Response} from "express";
-import * as Log from "../Logger";
-import DexcaliburProject from "../DexcaliburProject";
-import {TagCategory} from "../tags/TagCategory";
-import {Tag} from "../tags/Tag";
+import * as Log from "../Logger.js";
+import DexcaliburProject from "../DexcaliburProject.js";
+import {TagCategory} from "../tags/TagCategory.js";
+import {Tag} from "../tags/Tag.js";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 export const TAG_MGT_WEB_API: DelegateWebApi = new DelegateWebApi();

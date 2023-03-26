@@ -10,12 +10,13 @@ import {AuthenticationService} from "../dist/src/user/auth/AuthenticationService
 import {UserAccount} from "../dist/src/user/UserAccount";
 import {PasswordAuthenticator} from "../dist/src/user/auth/Authenticator";
 import {Authenticator} from "../dist/src/user/auth/AuthTypes";
+import Util from "../src/Utils.js";
 
-const USER_DB:string = _path_.join(__dirname,'config','userdb.json');
-const USER_DB_BKP:string = _path_.join(__dirname,'config','userdb.json.bkp');
+const USER_DB:string = _path_.join(Util.__dirname(import.meta.url),'config','userdb.json');
+const USER_DB_BKP:string = _path_.join(Util.__dirname(import.meta.url),'config','userdb.json.bkp');
 
 // username = dxc_user_1, password = dexcalibur
-const USER_DB_TMP:string = _path_.join(__dirname,'config','userdb.json.temp');
+const USER_DB_TMP:string = _path_.join(Util.__dirname(import.meta.url),'config','userdb.json.temp');
 
 
 if(_fs_.existsSync(USER_DB)) _fs_.unlinkSync(USER_DB);

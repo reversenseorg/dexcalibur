@@ -1,11 +1,13 @@
-import DexcaliburProject from "./DexcaliburProject";
-import ModelMethod from "./ModelMethod";
-import * as Log from "./Logger";
+import DexcaliburProject from "./DexcaliburProject.js";
+import ModelMethod from "./ModelMethod.js";
+import * as Log from "./Logger.js";
 
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
-
+/**
+ * @deprecated
+ * **/
 export default class GraphMaker
 {
     context:DexcaliburProject = null;

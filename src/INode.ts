@@ -1,5 +1,5 @@
-import {NodeInternalType} from "./NodeInternalType";
-import {IPersistent} from "./persist/orm/IPersistent";
+import {NodeInternalType} from "./NodeInternalType.js";
+import {IPersistent} from "./persist/orm/IPersistent.js";
 
 export interface INode extends IPersistent{
     __:NodeInternalType;

@@ -1,9 +1,9 @@
 
 
-import * as Log from '../Logger';
-import {IntentFilter} from "./IntentFilter";
-import AndroidComponent from "./AndroidComponent";
-import {NodeInternalType} from "../NodeInternalType";
+import * as Log from '../Logger.js';
+import {IntentFilter} from "./IntentFilter.js";
+import AndroidComponent from "./AndroidComponent.js";
+import {NodeInternalType} from "../NodeInternalType.js";
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
 export default class AndroidService extends AndroidComponent

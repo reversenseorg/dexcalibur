@@ -1,6 +1,7 @@
 
 import * as _path_ from "path";
 import * as _fs_ from 'fs';
+import Util from "./Utils.js";
 
 // Replace 'pattern' by 'replace" in 'source' buffer and 
 // return the new buffer
@@ -33,7 +34,7 @@ export default class WebTemplateEngine
 
     constructor() {
         this.tokens = {};
-        this.root = _path_.join( __dirname, "webserver", "public");
+        this.root = _path_.join( Util.__dirname(import.meta.url), "webserver", "public");
     }
 
     

@@ -1,8 +1,8 @@
-import {DelegateAccessControl} from "../DelegateAccessControl";
-import {Access, AccesErrCode, AccessException, AccessMap, AccessType} from "../Access";
-import {AccessAttribute, AccessAttributeMap} from "../AccessAttribute";
-import {Workflow} from "../../../Workflow";
-import {UserAccount} from "../../UserAccount";
+import {DelegateAccessControl} from "../DelegateAccessControl.js";
+import {Access, AccesErrCode, AccessException, AccessMap, AccessType} from "../Access.js";
+import {AccessAttribute, AccessAttributeMap} from "../AccessAttribute.js";
+import {Workflow} from "../../../Workflow.js";
+import {UserAccount} from "../../UserAccount.js";
 
 
 export class GlobalAccessControl extends DelegateAccessControl {

@@ -1,16 +1,10 @@
-import WebServer from "../WebServer";
+import WebServer from "../WebServer.js";
 import {Router, Request, Response} from "express";
-import {Device} from "../Device";
-import {Access} from "../user/acl/Access";
-import { UserSession } from "../user/session/UserSession";
-import AccessControl from "../user/acl/AccessControl";
-import {AccessZone} from "../user/acl/Zones";
-import {ProjectAccessControl} from "../user/acl/rbac/ProjectAccessContol";
 
-import * as Log from "../Logger";
-import DexcaliburProject from "../DexcaliburProject";
-import {AuthenticationException} from "../errors/AuthenticationException";
-import {DexcaliburProjectException} from "../errors/DexcaliburProjectException";
+import * as Log from "../Logger.js";
+import DexcaliburProject from "../DexcaliburProject.js";
+import {AuthenticationException} from "../errors/AuthenticationException.js";
+import {DexcaliburProjectException} from "../errors/DexcaliburProjectException.js";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 

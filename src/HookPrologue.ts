@@ -1,4 +1,4 @@
-import DexcaliburProject from "./DexcaliburProject";
+import DexcaliburProject from "./DexcaliburProject.js";
 
 import * as md5 from 'md5';
 

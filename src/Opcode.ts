@@ -1,7 +1,7 @@
 
-import {CONST} from "./CoreConst";
-import DalvikInstructionFormat from "./DalvikInstructionFormat";
-import * as Core from './CoreParser';
+import {CONST} from "./CoreConst.js";
+import DalvikInstructionFormat from "./DalvikInstructionFormat.js";
+import * as Core from './CoreParser.js';
 
 
 const LEX = Core.LEX;

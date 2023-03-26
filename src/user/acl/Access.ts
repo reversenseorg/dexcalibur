@@ -1,4 +1,4 @@
-import {AuthCode} from "../auth/AuthTypes";
+import {AuthCode} from "../auth/AuthTypes.js";
 
 export enum AccesErrCode {
     NONE,

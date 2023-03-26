@@ -1,19 +1,15 @@
 import * as _md5_ from 'md5';
 
-import {ModelBasicType, ModelObjectType} from "../../ModelType";
-import {IDatabase, IDatabaseAdapter, IDbCollection} from "../../persist/orm/DbAbstraction";
-import {CONST} from "../../CoreConst";
-import ModelMethod from "../../ModelMethod";
-import Util from "../../Utils";
-import JavaMethodHook from "../JavaMethodHook";
-import HookTemplateFragment from "../HookTemplateFragment";
-import NativeFunctionHook from "../NativeFunctionHook";
-import {ModelFunction} from "../../ModelFunction";
-import {ModelVariable} from "../../ModelVariable";
-import {DataType} from "../../types/DataType";
-import {NativeHookBuilderException} from "../../errors/NativeHookBuilderException";
-import ModelFile from "../../ModelFile";
-import DexcaliburProject from "../../DexcaliburProject";
+import {CONST} from "../../CoreConst.js";
+import Util from "../../Utils.js";
+import HookTemplateFragment from "../HookTemplateFragment.js";
+import NativeFunctionHook from "../NativeFunctionHook.js";
+import {ModelFunction} from "../../ModelFunction.js";
+import {ModelVariable} from "../../ModelVariable.js";
+import {DataType} from "../../types/DataType.js";
+import {NativeHookBuilderException} from "../../errors/NativeHookBuilderException.js";
+import ModelFile from "../../ModelFile.js";
+import DexcaliburProject from "../../DexcaliburProject.js";
 
 const FRIDA_READ_API = ['readU8','readS8','readU16','readS16','readU32','readS32','readU64','readS64'];
 

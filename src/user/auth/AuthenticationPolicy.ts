@@ -1,5 +1,5 @@
-import {AuthType} from "./AuthTypes";
-import {AuthenticationSettings} from "./AuthenticationSettings";
+import {AuthType} from "./AuthTypes.js";
+import {AuthenticationSettings} from "./AuthenticationSettings.js";
 
 
 function getValueFrom( pObject:any, pField:string, pDefaultValue:any):any {
@@ -49,5 +49,17 @@ export class AuthenticationPolicy {
 
     hasDelayOnFail():boolean {
         return this.delayOnFail===true;
+    }
+
+    explains():string {
+        return `{
+\t      enforced = ${this.enforced}  
+\t      delayOnFail = ${this.delayOnFail}
+\t      delay = ${this.delay}
+\t      resetAfter = ${this.resetAfter}
+\t      maxAttempts = ${this.maxAttempts}
+\t      supported = ${this.supported}
+\t      defaultType = ${this.defaultType}          
+\t    }`;
     }
 }

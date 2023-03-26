@@ -1,4 +1,4 @@
-import InspectorFrontController from "../../../src/InspectorFrontController";
+import InspectorFrontController from "../../../src/InspectorFrontController.js";
 
 export default new InspectorFrontController();
 

@@ -1,10 +1,9 @@
-import InspectorFrontController, {IFC_TYPE} from "../../../src/InspectorFrontController";
-import {TAG} from "../../../src/AnalysisHelper";
-import DexcaliburProject from "../../../src/DexcaliburProject";
+import InspectorFrontController, {IFC_TYPE} from "../../../src/InspectorFrontController.js";
+import DexcaliburProject from "../../../src/DexcaliburProject.js";
 import * as _fs_ from 'fs';
-import {IDbIndex} from "../../../src/persist/orm/DbAbstraction";
-import {FinderResult} from "../../../src/FinderResult";
-import BusEvent from "../../../src/BusEvent";
+import {IDbIndex} from "../../../src/persist/orm/DbAbstraction.js";
+import {FinderResult} from "../../../src/FinderResult.js";
+import BusEvent from "../../../src/BusEvent.js";
 
 var Controller:InspectorFrontController =  new InspectorFrontController();
 

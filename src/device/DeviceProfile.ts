@@ -1,14 +1,12 @@
-import {OperatingSystem} from "../OperatingSystem";
-import AndroidDeviceProfile from "../android/profiles/AndroidDeviceProfile";
-import {GenericSystemProfile} from "./profile/GenericSystemProfile";
-import GenericTrustProfile from "./profile/GenericTrustProfile";
-import GenericBuildProfile from "./profile/GenericBuildProfile";
-import GenericNetworkProfile from "./profile/GenericNetworkProfile";
-import {Profile} from "./profile/Profile";
-import {IProfile} from "./profile/IProfile";
-import {DeviceProfilingOptions, IBridge} from "../Bridge";
-import GenericMountsProfile from "./profile/GenericMountsProfile";
-import * as Log from "../Logger";
+import {OperatingSystem} from "../OperatingSystem.js";
+import {GenericSystemProfile} from "./profile/GenericSystemProfile.js";
+import GenericTrustProfile from "./profile/GenericTrustProfile.js";
+import GenericBuildProfile from "./profile/GenericBuildProfile.js";
+import GenericNetworkProfile from "./profile/GenericNetworkProfile.js";
+import {IProfile} from "./profile/IProfile.js";
+import {DeviceProfilingOptions, IBridge} from "../Bridge.js";
+import GenericMountsProfile from "./profile/GenericMountsProfile.js";
+import * as Log from "../Logger.js";
 
 
 enum TYPE {

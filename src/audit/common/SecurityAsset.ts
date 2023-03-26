@@ -1,6 +1,6 @@
-import Asset from "./Asset";
-import SecurityConstraintModel from "./SecurityConstraintModel";
-import Constraint from "./Constraint";
+import Asset from "./Asset.js";
+import SecurityConstraintModel from "./SecurityConstraintModel.js";
+import Constraint from "./Constraint.js";
 
 
 export default class SecurityAsset extends Asset {

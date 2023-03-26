@@ -1,5 +1,5 @@
-import {ErrorCode, MonitoredError} from "../MonitoredError";
-import {AndroidErrorCode} from "./AndroidApplicationException";
+import {ErrorCode, MonitoredError} from "../MonitoredError.js";
+import {AndroidErrorCode} from "./AndroidApplicationException.js";
 
 export class AndroidProviderException extends MonitoredError {
 

@@ -1,9 +1,8 @@
-import ModelMethod from "../ModelMethod";
-import {AbstractHook} from "./AbstractHook";
-import DexcaliburProject from "../DexcaliburProject";
-import {HookScriptBuilderException} from "../errors/HookScriptBuilderException";
-import {NodeInternalType} from "../NodeInternalType";
-import {NodeType} from "../persist/orm/NodeType";
+import ModelMethod from "../ModelMethod.js";
+import {AbstractHook} from "./AbstractHook.js";
+import {HookScriptBuilderException} from "../errors/HookScriptBuilderException.js";
+import {NodeInternalType} from "../NodeInternalType.js";
+import {NodeType} from "../persist/orm/NodeType.js";
 
 
 export default class JavaMethodHook extends AbstractHook {

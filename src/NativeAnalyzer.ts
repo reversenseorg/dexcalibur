@@ -1,28 +1,24 @@
-import SmaliParser from "./SmaliParser";
-import AnalyzerDatabase from "./AnalyzerDatabase";
-import DexcaliburProject from "./DexcaliburProject";
-import {SearchAPI} from "./SearchAPI";
-import R2Factory from "./R2Factory";
-
-
-import * as Log from './Logger';
+import SmaliParser from "./SmaliParser.js";
+import AnalyzerDatabase from "./AnalyzerDatabase.js";
+import DexcaliburProject from "./DexcaliburProject.js";
+import {SearchAPI} from "./SearchAPI.js";
+import * as Log from './Logger.js';
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
-import RadareFactory from "./R2Factory";
-import RadareHelper from "./R2Helper";
-import ModelFile from "./ModelFile";
-import Platform from "./Platform";
-import DataScope from "./DataScope";
-import {ModelFunction} from "./ModelFunction";
-import {ABI} from "./binary/ABI";
-import {Workflow} from "./Workflow";
-import {IDatabase, IDbCollection, IDbIndex} from "./persist/orm/DbAbstraction";
-import {NativeAnalyzerProfile} from "./NativeAnalyzerProfile";
-import AndroidNativeAnalyzerProfile from "./android/analyzer/AndroidNativeAnalyzerProfile";
-import IosNativeAnalyzerProfile from "./ios/analyzer/IosNativeAnalyzerProfile";
-import {NativeAnalyzerException} from "./errors/NativeAnalyzerException";
-import {AnalyzerState} from "./AnalyzerState";
-import {DataAnalyzer} from "./DataAnalyzer";
+import RadareFactory from "./R2Factory.js";
+import RadareHelper from "./R2Helper.js";
+import ModelFile from "./ModelFile.js";
+import Platform from "./Platform.js";
+import DataScope from "./DataScope.js";
+import {ModelFunction} from "./ModelFunction.js";
+import {ABI} from "./binary/ABI.js";
+import {Workflow} from "./Workflow.js";
+import {IDatabase, IDbCollection, IDbIndex} from "./persist/orm/DbAbstraction.js";
+import {NativeAnalyzerProfile} from "./NativeAnalyzerProfile.js";
+import AndroidNativeAnalyzerProfile from "./android/analyzer/AndroidNativeAnalyzerProfile.js";
+import IosNativeAnalyzerProfile from "./ios/analyzer/IosNativeAnalyzerProfile.js";
+import {NativeAnalyzerException} from "./errors/NativeAnalyzerException.js";
+import {AnalyzerState} from "./AnalyzerState.js";
 
 
 export const PROFILES = {

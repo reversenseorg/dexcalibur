@@ -8,13 +8,12 @@ export class SearchToken {
     /**
      * If the tokan is associated to an iterable field
      */
-    iter: boolean = false;
-    name:string = null;
+    iter: boolean;
+    name:string;
 
-    constructor(pConfig:any) {
-        for (let i in pConfig)
-            if (this.hasOwnProperty(i))
-                this[i] = pConfig[i];
+    constructor(pValue:string,pIterable = false) {
+        this.name = pValue;
+        this.iter = pIterable;
     }
 
 
@@ -23,14 +22,14 @@ export class SearchToken {
      * @param pToken
      */
     static parseTokens(pToken:string):SearchToken[] {
-        let toks:SearchToken[] = [];
+        const toks:SearchToken[] = [];
 
         pToken.split('.').map( (v:string, i:number) => {
             const p = v.indexOf('[]');
-            toks.push(new SearchToken({
-                iter: (p==v.length-2),
-                name: (p>-1? v.substr(0,p) : v )
-            }))
+            toks.push(new SearchToken(
+                (p>-1? v.substr(0,p) : v ),
+                (p==v.length-2)
+            ));
         });
 
         return toks;

@@ -1,5 +1,5 @@
-import ModelClass from "./ModelClass";
-import ModelBasicBlock from "./ModelBasicBlock";
+import ModelClass from "./ModelClass.js";
+import ModelBasicBlock from "./ModelBasicBlock.js";
 
 interface ITryCatchBoundary
 {

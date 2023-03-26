@@ -1,18 +1,18 @@
 import * as fs from "fs";
 import * as Process from "child_process";
-import chalk from "chalk";
-import * as Path from "path";
 import * as crypto from "crypto";
-
+import * as _path_ from "path";
+import * as _fs_ from "fs";
 import * as  _util_ from 'util';
 import * as _stream_  from 'stream';
-import got  from "got";
-
-import {TestHelper} from "./TestHelper";
 import * as _os_ from "os";
-import * as path from "path";
-import * as Log from "./Logger";
 
+import * as Got from "got";
+
+import {TestExecHelper} from "./tests/TestExecHelper.js";
+import * as Log from "./Logger.js";
+
+const got = Got.default;
 
 let Logger:Log.ProdLogger = Log.newLogger() as Log.ProdLogger;
 
@@ -54,6 +54,8 @@ PATTERNS[FLAG_CR | FLAG_WS] = new RegExp("^[\n\s]*$");
 PATTERNS[FLAG_CR | FLAG_TB] = new RegExp("^[\n\t]*$");
 PATTERNS[FLAG_WS | FLAG_TB] = new RegExp("^[\s\t]*$");
 PATTERNS[FLAG_WS | FLAG_CR | FLAG_TB] = new RegExp("^[\s\t\n]*$");
+
+
 
 export default class Util {
     static ALPHA:string = 'abcdefghijklmnopqrstuvwxyz';
@@ -164,7 +166,7 @@ export default class Util {
         if(isDir || stat.isDirectory()){
             dir=fs.readdirSync(path);
             for(let i in dir){
-                elemnt = Path.join(path,dir[i]);
+                elemnt = _path_.join(path,dir[i]);
                 if(fs.lstatSync(elemnt).isDirectory()){
                     this.forEachFileOf( elemnt, callback, true);
                 }else{
@@ -173,7 +175,7 @@ export default class Util {
                 }
             }     
         }else{
-            callback(path, Path.basename(path));
+            callback(path, _path_.basename(path));
         }
     }
 
@@ -270,7 +272,7 @@ export default class Util {
         let ret:string;
         
         if(process.env.DEXCALIBUR_TEST){
-            ret = TestHelper.execSync(command);
+            ret = TestExecHelper.execSync(command);
         }else{
             Logger.info("[UTIL] execSync : "+command);
 
@@ -289,7 +291,7 @@ export default class Util {
 
         if(process.env.DEXCALIBUR_TEST){
             Logger.info("[UTIL] execAsync <TEST>in : "+command);
-            ret = await TestHelper.execAsync(command);
+            ret = await TestExecHelper.execAsync(command);
             Logger.info("[UTIL] execAsync <TEST>out : "+ret);
         }else{
             Logger.info("[UTIL] execSync : "+command);
@@ -303,7 +305,7 @@ export default class Util {
         let ret:any;
 
         if(process.env.DEXCALIBUR_TEST){
-            ret = TestHelper.spawn(pCmd);
+            ret = TestExecHelper.spawn(pCmd);
         }else{
             Logger.info("[UTIL] spawn : "+pCmd);
             ret = Process.spawn(pCmd, pArgs, pOptions);
@@ -373,7 +375,7 @@ export default class Util {
     static recursiveRmDirSync(pPath:string){
         if (fs.existsSync(pPath)) {
           fs.readdirSync(pPath).forEach((file, index) => {
-            let curPath:string = Path.join(pPath, file);
+            let curPath:string = _path_.join(pPath, file);
             if (fs.lstatSync(curPath).isDirectory()) { 
               Util.recursiveRmDirSync(curPath);
             } else {
@@ -419,7 +421,7 @@ export default class Util {
             default:
                 const roots = process.env.PATH.split(':');
                 for(let i=0; i<roots.length ; i++){
-                    p = Path.join(roots[i], pExecName)
+                    p = _path_.join(roots[i], pExecName)
                     Logger.info("[UTILS] whereIs: "+p);
                     if(fs.existsSync(p)){
                         ret = p;
@@ -459,10 +461,10 @@ export default class Util {
         }
 
         try {
-            const getEnvSh = [ shell || Util.getDefaultShell(), '-ilc', 'env; exit'].join(" ");
+            const getEnvSh = [ shell || Util.getDefaultShell(), '-ilc', 'env'].join(" ");
             const stdout = Process.execSync( getEnvSh, {
                 shell: shell || Util.getDefaultShell(),
-                timeout: 200,
+                timeout: 400,
             }); //.stdout;
 
             const ret = [];
@@ -494,6 +496,17 @@ export default class Util {
             '/usr/local/bin',
             process.env.PATH
         ].join(':');
+    }
+
+
+    static readPackageJson(){
+        const path = (new URL(import.meta.url).pathname);
+        return JSON.parse(_fs_.readFileSync(_path_.join(path.substring(0, path.lastIndexOf(_path_.sep)),"..",'info.json')).toString());;
+    }
+
+    static __dirname(pImportMetaUrl:string){
+        const path = (new URL(pImportMetaUrl).pathname);
+        return path.substring(0, path.lastIndexOf(_path_.sep));
     }
 
 
