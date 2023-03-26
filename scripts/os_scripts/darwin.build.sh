@@ -31,7 +31,7 @@ else
 fi
 
 # verify dexcalibur-agent files exists
-if [ -f ./dist/agent/dxc-agent.android.min.js ] ; then
+if [ -f ./dist/agent/dxc-agent.android.arm64.min.js ] ; then
   echo "[*] dexcalibur-agent files have been copied"
 else
   echo "[!] dexcalibur-agent files have not been copied"
@@ -47,6 +47,7 @@ cp -r ./package-lock.json ./dist/package-lock.json
 cp -r ./dexcalibur ./dist/dexcalibur
 cp -r ./README.md ./dist/scripts
 cp -r ./src/requires ./dist/src/requires
+cp -r ./assets ./dist/assets
 
 for i in ./inspectors/*/web
 do

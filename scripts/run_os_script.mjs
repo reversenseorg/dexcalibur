@@ -19,12 +19,14 @@
  * Author: Georges-B. Michel
  */
 
-var _fs_ = require('fs');
-var _path_ = require('path');
-var _child_ = require('child_process');
+import * as _fs_ from 'fs';
+import * as _path_ from 'path';
+import * as _child_ from 'child_process';
+import * as _os_ from 'os';
 
 
-const OS = require('os').platform();
+const OS = _os_.platform();
+
 if(process.argv.length<=2){
     console.log(` 
     Usage :
@@ -42,8 +44,13 @@ var os_scripts = {
     win32: {}
 }
 
+
+const path = new URL(import.meta.url).pathname;
+//const cheminDossier = path.substring(0, path.lastIndexOf('/'));
+
+
 // scan scripts directory
-const base = _path_.join(__dirname, 'os_scripts');
+const base = _path_.join(path.substring(0, path.lastIndexOf('/')), 'os_scripts');
 _fs_.readdirSync(base, { encoding:'utf8'})
     .map( vFile => {
         const t = _path_.basename(vFile).split('.');
