@@ -11,15 +11,16 @@
     "url": "https://github.com/FrenchYeti/dexcalibur-ts.git"
   },
   "dependencies": {
+    "@dexcalibur/dexcalibur-installer": "^1.0.40",
     "@reversense/dexcalibur-frida-compile": "^10.2.5",
     "@reversense/interruptor": "^1.0.7",
     "@types/nedb": "^1.8.11",
     "adm-zip": "^0.4.14",
-    "better-sqlite3": "^7.4.3",
+    "better-sqlite3": "^8.0.1",
     "body-parser": "^1.18.3",
     "busboy": "^0.3.1",
     "chai": "^4.1.2",
-    "chalk": "^2.4.1",
+    "chalk": "^5.2.0",
     "co": "^4.6.0",
     "cookie-parser": "^1.4.5",
     "event-stream": "^4.0.1",
@@ -31,13 +32,12 @@
     "js-yaml": "^3.13.1",
     "md5": "^2.2.1",
     "mime-types": "^2.1.20",
-    "nedb": "^1.8.0",
-    "nedb-async": "^0.1.6",
     "node-forge": "^1.3.1",
     "properties": "^1.2.1",
     "r2pipe": "^2.8.0",
     "r2pipe-promise": "^1.6.0",
     "rxjs": "^7.1.0",
+    "typescript": "^5.0.2",
     "websocket": "^1.0.32",
     "xml2js": "^0.4.19",
     "xz": "^2.0.2"
@@ -56,21 +56,17 @@
     "nyc": "^15.1.0",
     "sinon": "^7.3.2",
     "sinon-chai": "^3.3.0",
-    "ts-node": "^8.10.2",
-    "typescript": "^3.9.5"
-  },
-  "optionalDependencies": {
-    "frida": "^15.0.19"
+    "ts-node": "^8.10.2"
   },
   "bin": {
     "dexcalibur": "dexcalibur.js"
   },
   "scripts": {
     "prepare": "npm run build",
-    "build": "node ./scripts/run_os_script.js build",
-    "build:prod": "DXC_PROD=1 node ./scripts/run_os_script.js build",
-    "build:node": "node ./scripts/run_os_script.js prebuild-node && node ./scripts/run_os_script.js build",
-    "build:electron": "node ./scripts/run_os_script.js prebuild-electron && node ./scripts/run_os_script.js build",
+    "build": "node ./scripts/run_os_script.mjs build",
+    "build:prod": "DXC_PROD=1 node ./scripts/run_os_script.mjs build",
+    "build:node": "node ./scripts/run_os_script.mjs prebuild-node && node ./scripts/run_os_script.mjs build",
+    "build:electron": "node ./scripts/run_os_script.mjs prebuild-electron && node ./scripts/run_os_script.mjs build",
     "watch": "tsc -w",
     "start": "node --max-old-space-size=4096 ./dist/dexcalibur.js",
     "test": "TS_NODE_COMPILER_OPTIONS='{\"module\":\"commonjs\"}' DEXCALIBUR_TEST=1 DEXCALIBUR_PORT=8081 DEXCALIBUR_HOST=127.0.0.1 mocha -r ts-node/register test/*.test.ts",
@@ -80,19 +76,20 @@
     "o_prebuilt:node:publish": "npmrc dxc-npm &&  cp .npmignore.prebuilt .npmignore && npm run build && npm publish --tag prebuilt && cp .npmignore.default .npmignore",
     "o_prebuilt:electron:publish": "npmrc dxc-npm && cp .npmignore.prebuilt .npmignore && npm run build && npm publish --tag prebuilt-electron && cp .npmignore.default .npmignore",
     "electron:rebuild": "",
-    "patch:node": "node ./scripts/run_os_script.js prebuild-node",
-    "patch:electron": "node ./scripts/run_os_script.js prebuild-electron",
-    "patch:electron:v85": "node ./scripts/run_os_script.js prebuild-electron v85",
-    "patch:electron:v107": "node ./scripts/run_os_script.js prebuild-electron v107",
-    "dist-patch:electron": "node ./scripts/run_os_script.js postbuild-electron",
-    "dist-patch:electron:v85": "node ./scripts/run_os_script.js postbuild-electron v85",
-    "dist-patch:electron:v107": "node ./scripts/run_os_script.js postbuild-electron v107",
+    "patch:node": "node ./scripts/run_os_script.mjs prebuild-node",
+    "patch:electron": "node ./scripts/run_os_script.mjs prebuild-electron",
+    "patch:electron:v85": "node ./scripts/run_os_script.mjs prebuild-electron v85",
+    "patch:electron:v107": "node ./scripts/run_os_script.mjs prebuild-electron v107",
+    "dist-patch:electron": "node ./scripts/run_os_script.mjs postbuild-electron",
+    "dist-patch:electron:v85": "node ./scripts/run_os_script.mjs postbuild-electron v85",
+    "dist-patch:electron:v107": "node ./scripts/run_os_script.mjs postbuild-electron v107",
     "o_prepublish": "npmrc dxc-npm",
     "publish": "npmrc dxc-npm && cp .npmignore.default .npmignore && npm publish"
   },
   "engines": {
     "node": ">=12.0"
   },
+  "type": "module",
   "author": {
     "name": "Georges-Bastien MICHEL",
     "email": "georges.michel@protonmail.com"
@@ -103,5 +100,8 @@
     "win32"
   ],
   "homepage": "https://github.com/FrenchYeti/dexcalibur",
-  "license": "Copyright Georges-B Michel , Reversense SAS"
+  "license": "Copyright Georges-B Michel , Reversense SAS",
+  "optionalDependencies": {
+    "frida": "^16.0.11"
+  }
 }

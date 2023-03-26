@@ -4,7 +4,7 @@ import * as Process from 'process';
 import ArgParser from './src/ArgUtils.js';
 
 
-import DexcaliburEngine from './src/DexcaliburEngine';
+import DexcaliburEngine from './src/DexcaliburEngine.js';
 
 import * as _fs_ from "fs";
 import * as _os_ from "os";
@@ -23,15 +23,23 @@ var projectArgs:any = {
     ipcMode: 'API'
 };
 
-var Parser:ArgParser = new ArgParser(projectArgs, [
+var Parser:ArgParser = new ArgParser(projectArgs, "dexcalibur", [
     { name:"--port", 
         help: "The web server port number",
         hasVal:true, 
         callback:(ctx,param)=>{ ctx.port = param.value; } },
+    { name:"--ws",
+        help: "Workspace path",
+        hasVal:true,
+        callback:(ctx,param)=>{ ctx.ws = param.value; } },
     { name:"--ui",
         help: "Change UI location",
         hasVal:true,
         callback:(ctx,param)=>{ ctx.uipath = param.value; } },
+    { name:"--save-cfg",
+        help: "Save config is teh config is updated",
+        hasVal:false,
+        callback:(ctx,param)=>{ ctx.saveCfg = true; } },
     { name:"--debug", 
         help: "Enable debug",
         hasVal: false, 
@@ -57,8 +65,9 @@ var Parser:ArgParser = new ArgParser(projectArgs, [
 Parser.parse(Process.argv);
 
 
-import * as Log from "./src/Logger";
-import {Settings} from "./src/Settings";
+import * as Log from "./src/Logger.js";
+import {Settings} from "./src/Settings.js";
+import Util from "./src/Utils.js";
 
 var Logger:Log.Logger = null;
 
@@ -90,7 +99,7 @@ var dxcInstance:DexcaliburEngine, ready:boolean=false;
 
 let dxcWebRoot:string = null;
 if(projectArgs.uipath!==undefined){
-    dxcWebRoot = (projectArgs.uipath[0]=='/'? projectArgs.uipath : _path_.join(__dirname, projectArgs.uipath));
+    dxcWebRoot = (projectArgs.uipath[0]=='/'? projectArgs.uipath : _path_.join(Util.__dirname(import.meta.url), projectArgs.uipath));
 }else{
     dxcWebRoot = null; //_path_.join(__dirname, 'src', 'webserver', 'src');
 }
@@ -129,19 +138,32 @@ if( !projectArgs.ipc
         );*/
     }
     else{
-        // load global settings
-        const cfg:Settings.GlobalSettings = Settings.GlobalSettings.load();
-        // init engine with settings
-        dxcInstance.loadConfiguration(cfg);
-        // boot engine
-        ready = dxcInstance.boot(
-            projectArgs.restore===true? true : false,
-            dxcWebRoot
-        );
 
-        if(ready){
-            dxcInstance.start((projectArgs.port!=null) ? projectArgs.port : null);
-        }
+        (async ()=>{
+            // load global settings
+            let cfg:Settings.GlobalSettings = Settings.GlobalSettings.load();
+            if(projectArgs.ws != null){
+                console.log("WS uopdated : "+cfg.getPath())
+                cfg.getServerSettings().setWorkspace(projectArgs.ws);
+                cfg.getServerSettings().save()
+            }
+            if(projectArgs.saveCfg){
+                cfg.save();
+                cfg = Settings.GlobalSettings.load(cfg.getPath());
+            }
+            // init engine with settings
+            dxcInstance.loadConfiguration(cfg);
+            // boot engine
+            ready = await dxcInstance.boot(
+                projectArgs.restore===true? true : false,
+                dxcWebRoot
+            );
+
+            if(ready){
+                dxcInstance.start((projectArgs.port!=null) ? projectArgs.port : null);
+            }
+        })();
+
 
     }
 

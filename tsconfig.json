@@ -2,12 +2,12 @@
   "compilerOptions": {
     "lib": ["es2017"],
     "target": "es2017",
-    "module": "commonjs",
+    "module": "es2020",
     "declaration": true,
     "outDir": "./dist",
-    "esModuleInterop": false,
+    "esModuleInterop": true,
     "allowSyntheticDefaultImports": false,
-    "moduleResolution": "node",
+    "moduleResolution": "node16",
     "allowJs": true,
     "typeRoots": [
       "node_modules/@types"
@@ -21,8 +21,12 @@
   "include": [
     "src/**/*.ts",
     "dexcalibur.ts",
+    "dexcalibur-adm.mts",
     "connectors/**/*.ts",
     "inspectors/**/*.ts"
   ],
-  "exclude": ["node_modules", "**/*.spec.ts"]
+  "exclude": [
+    "node_modules",
+    "**/*.spec.ts"
+  ]
 }
