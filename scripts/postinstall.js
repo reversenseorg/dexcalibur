@@ -1,8 +1,9 @@
 'use strict';
 
-const _FS_ = require('fs');
-const _PATH_ = require('path');
-const _OS_ = require('os');
+
+import * as _FS_ from 'node:fs';
+import * as _PATH_ from 'node:path';
+import * as _OS_ from 'node:os';
 
 // Linux : /home/*/.dexcalibur
 const dexcaliburPrefs = _PATH_.join( _OS_.homedir(), '.dexcalibur');
