@@ -158,9 +158,17 @@ var Parser:ArgParser = new ArgParser(projectArgs, "dexcalibur-adm", [
         ],
         callback:(ctx,param)=>{ ctx.mode = SUBMENU.START; } },
 
-    { name:"web",
-        help: "Web server settings",
+    { name:"gui",
+        help: "GUI settings",
         hasVal:false,
+        options: [
+            {
+                name:"--add-conn",
+                help: "To set a connection",
+                hasVal:false,
+                callback:(ctx,param)=>{ ctx.guiAddConn = param.value; }
+            }
+        ],
         callback:(ctx,param)=>{ ctx.mode = SUBMENU.WEB; } },
 
     { name:"user",
@@ -352,6 +360,13 @@ switch (projectArgs.mode){
             console.log(str);
         }
         break;
+    case SUBMENU.WEB:
+        if(projectArgs.guiAddConn){
+
+        }
+        break;
+
+
     case SUBMENU.START:
         let dxcWebRoot:string = null;
         if(projectArgs.sWUI){
@@ -411,18 +426,20 @@ switch (projectArgs.mode){
     case SUBMENU.GLOBAL:
         if(projectArgs.doList){
             const srv = cfg.getServerSettings();
+            const web = cfg.getWebserverSettings();
             let auth:AuthenticationSettings = srv.getAuthenticationSettings();
             let authStr = "";
+            let regStr="";
             let ws:any = srv.getWorkspace();
 
             if(auth==null){
                 authStr = chalk.bold.red("[NONE]       <- Create a new user by doing:  'dexcalibur-adm server --add-account=<USERNAME> --local' ");
             }else{
-                authStr = `{
-\t    db = ${auth.getDbString()}
-\t    policy = ${auth.getPolicyString()}
-\t    supported = ${auth.getSupportedString()}
-\t  }`;
+                authStr = `
+${"\t".repeat(2)}db = ${auth.getDbString(3)}
+${"\t".repeat(2)}policy = ${auth.getPolicyString(3)}
+${"\t".repeat(2)}supported = ${auth.getSupportedString()}
+`;
             }
             if(ws==null){
                 ws = chalk.bold.red("[NONE]       <- Create a new by doing:  'dexcalibur-adm server --create-ws=<PATH>' ");
@@ -431,16 +448,28 @@ switch (projectArgs.mode){
                 ws = srv.getWorkspace().getLocation();
             }
 
+            if(srv.getRegistry()==null){
+                regStr = chalk.bold.red("[NONE]       <- Specify registry:  'dexcalibur-adm server --add-registry=<PATH>' ");
+            }else{
+                regStr = `
+${"\t".repeat(2)}url= ${srv.getRegistry().url}
+${"\t".repeat(2)}api= ${srv.getRegistry().api}
+`;
+            }
+
+
+
             console.log(chalk.whiteBright("[-] Global / Server settings "));
             console.log(chalk.white(`
-\t Workspace = ${ws}
-\t Authentication = ${authStr}
-\t Registry = {
-\t   url= ${srv.getRegistry().url}
-\t   api= ${srv.getRegistry().api}
-\t }
-\t HeapSize = ${srv.getHeapSize()}
-\t Default Arch = ${srv.getDefaultArchitecture()}
+${"\t".repeat(1)}Workspace = ${ws}
+${"\t".repeat(1)}Authentication = ${authStr}
+${"\t".repeat(1)}WebServer = 
+${"\t".repeat(2)}HTTP Port = ${web.getHttpPort()}
+${"\t".repeat(2)}WebSocket Port = ${web.getWsPort()}
+${"\t".repeat(2)}SSL Enabled = FALSE
+${"\t".repeat(1)}Registry = ${regStr}
+${"\t".repeat(1)}HeapSize = ${srv.getHeapSize()}
+${"\t".repeat(1)}Default Arch = ${srv.getDefaultArchitecture()}
 `));
         }
 
