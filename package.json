@@ -11,12 +11,11 @@
     "url": "https://github.com/FrenchYeti/dexcalibur-ts.git"
   },
   "dependencies": {
+    "@dexcalibur/dexcalibur-frida-compile": "^10.2.5",
     "@dexcalibur/dexcalibur-installer": "^1.0.40",
-    "@reversense/dexcalibur-frida-compile": "^10.2.5",
-    "@reversense/interruptor": "^1.0.7",
+    "@reversense/interruptor": "^1.0.12",
     "@types/nedb": "^1.8.11",
     "adm-zip": "^0.4.14",
-    "better-sqlite3": "^8.0.1",
     "body-parser": "^1.18.3",
     "busboy": "^0.3.1",
     "chai": "^4.1.2",
@@ -27,6 +26,7 @@
     "express": "^4.16.3",
     "file-type": "^10.4.0",
     "fix-path": "^3.0.0",
+    "frida": "16.0.10",
     "glob": "^7.2.0",
     "got": "^10.7.0",
     "js-yaml": "^3.13.1",
@@ -100,8 +100,5 @@
     "win32"
   ],
   "homepage": "https://github.com/FrenchYeti/dexcalibur",
-  "license": "Copyright Georges-B Michel , Reversense SAS",
-  "optionalDependencies": {
-    "frida": "^16.0.11"
-  }
+  "license": "Copyright Georges-B Michel , Reversense SAS"
 }
