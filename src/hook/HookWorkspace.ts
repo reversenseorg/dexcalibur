@@ -7,7 +7,7 @@ import ProjectWorkspace from "../ProjectWorkspace.js";
 import DexcaliburEngine from "../DexcaliburEngine.js";
 import {fork, spawnSync} from "child_process";
 import * as VM from "vm";
-import * as FridaCompile from "@reversense/dexcalibur-frida-compile";
+import * as FridaCompile from "@dexcalibur/dexcalibur-frida-compile";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
