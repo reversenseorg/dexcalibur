@@ -10,19 +10,19 @@ tsc
 #cp ./package.json ./dist/dexcalibur-ts/package.json
 
 echo "[+] Copying agent libs"
-if [ $DXC_USE_ARTIFACTS = 0 ]; then
+if [[ $DXC_USE_ARTIFACTS = 0 ]]; then
   mkdir ./dist/agent
   cp ../dexcalibur-agent/dist/dxc-agent.*.min.js ./dist/agent/.
 else
   #curl --header "Authorization: Bearer $BUILD_HOST_API_TOKEN" -o ./dist/agent/. "$BUILD_HOST/repository/downloadAll/$BUILD_ID_DXCAGENT/.lastSuccessful/"
   mkdir ./dist/tmp
-  if [ "$DXC_CICD_API_AUTH" = "basic" ]; then
+  if [[ "$DXC_CICD_API_AUTH" = "basic" ]]; then
     curl -u "$DXC_CICD_API_USER:$DXC_CICD_API_PWD" -o ./dist/tmp/artifacts.zip "$DXC_CICD_HOST/httpAuth/repository/downloadAll/$BUILD_ID_DXCAGENT/.lastSuccessful/"
   else
     curl --header "Authorization: Bearer $DXC_CICD_API_TOKEN" -o ./dist/tmp/artifacts.zip "$DXC_CICD_HOST/repository/downloadAll/$BUILD_ID_DXCAGENT/.lastSuccessful/"
   fi
 
-  if [ -f ./dist/tmp/artifacts.zip ] ; then
+  if [[ -f ./dist/tmp/artifacts.zip ]] ; then
     echo "Artifacts download successfully, unzipping ..."
     unzip -d ./dist/agent ./dist/tmp/artifacts.zip
   else
@@ -31,7 +31,7 @@ else
 fi
 
 # verify dexcalibur-agent files exists
-if [ -f ./dist/agent/dxc-agent.android.arm64.min.js ] ; then
+if [[ -f ./dist/agent/dxc-agent.android.arm64.min.js ]] ; then
   echo "[*] dexcalibur-agent files have been copied"
 else
   echo "[!] dexcalibur-agent files have not been copied"
@@ -55,7 +55,7 @@ do
   cp -r $i ./dist/$i
 done
 
-if [ "$DXC_TEST" = "1" ]; then
+if [[ "$DXC_TEST" = "1" ]]; then
   echo "[+] Test mode detected. Copying ./test folder ..."
   cp -r ./test ./dist/test
 fi
