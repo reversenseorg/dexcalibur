@@ -51,15 +51,15 @@ export class AuthenticationPolicy {
         return this.delayOnFail===true;
     }
 
-    explains():string {
-        return `{
-\t      enforced = ${this.enforced}  
-\t      delayOnFail = ${this.delayOnFail}
-\t      delay = ${this.delay}
-\t      resetAfter = ${this.resetAfter}
-\t      maxAttempts = ${this.maxAttempts}
-\t      supported = ${this.supported}
-\t      defaultType = ${this.defaultType}          
-\t    }`;
+    explains(pIndent = 2):string {
+        return `
+${"\t".repeat(pIndent)}enforced = ${this.enforced}  
+${"\t".repeat(pIndent)}delayOnFail = ${this.delayOnFail}
+${"\t".repeat(pIndent)}delay = ${this.delay}
+${"\t".repeat(pIndent)}resetAfter = ${this.resetAfter}
+${"\t".repeat(pIndent)}maxAttempts = ${this.maxAttempts}
+${"\t".repeat(pIndent)}supported = ${this.supported}
+${"\t".repeat(pIndent)}defaultType = ${this.defaultType}          
+`;
     }
 }

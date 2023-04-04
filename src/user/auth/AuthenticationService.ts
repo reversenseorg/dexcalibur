@@ -77,7 +77,6 @@ export class AuthenticationService {
             console.log(e.message,e.stack);
         }
 
-        console.log(db);
 
         // import temporary DB after a fresh install
         if(_fs_.existsSync(this.settings.db.uri)==false){

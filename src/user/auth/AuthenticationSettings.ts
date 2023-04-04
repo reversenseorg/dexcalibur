@@ -93,32 +93,32 @@ export class AuthenticationSettings {
         this._parent.save(pDestFile);
     }
 
-    getDbString():string {
+    getDbString(pIndent = 2):string {
         if(this._db==null){
             return "null";
         }
 
-        return `{
-    \t dbms = ${this._db.dbms}
-    \t uri = ${this._db.uri}
-    \t port = ${this._db.port}
-    \t username = ${this._db.user}
-    \t passwd = ${this._db.pwd}
-}`;
+        return `
+${"\t".repeat(pIndent)}dbms = ${this._db.dbms}
+${"\t".repeat(pIndent)}uri = ${this._db.uri}
+${"\t".repeat(pIndent)}port = ${this._db.port}
+${"\t".repeat(pIndent)}username = ${this._db.user}
+${"\t".repeat(pIndent)}passwd = ${this._db.pwd}
+`;
     }
 
 
-    getPolicyString():string {
+    getPolicyString(pIndent = 2):string {
         if(this.policy==null){
-            return "null";
+            return "[null]";
         }
-        return this._policy.explains();
+        return this._policy.explains(pIndent);
     }
 
 
     getSupportedString():string {
         if(this._supported==null){
-            return "null";
+            return "[null]";
         }
 
         return "[ "+this._supported.join(",")+" ]";
