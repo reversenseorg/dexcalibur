@@ -274,15 +274,11 @@ export class WebsocketServer
      * @method
      * @since 1.0.0
      */
-    start( pPort:number) :void {
+    start() :void {
 
-        if (pPort == null) {
-            this.port = this.engine.getSettings().getWebserverSettings().getWsPort();
-        } else {
-            this.port = pPort;
-        }
-
+        this.port = this.engine.getSettings().getWebserverSettings().getWsPort();
         const wwwPort = this.port;
+
 
         if(this.httpServer != null){
             this.httpServer.listen(wwwPort, function () {

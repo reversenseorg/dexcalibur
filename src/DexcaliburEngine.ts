@@ -843,7 +843,7 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
         // if server run in production mode (instead of install mode)
         // then start web socket server
         if(this.mode == MODE.NORMAL) {
-            this.wsserver.start((typeof pWebPort === 'string') ? parseInt(pWebPort, 10) + 1 : pWebPort + 1)
+            this.wsserver.start(); //(typeof pWebPort === 'string') ? parseInt(pWebPort, 10) + 1 : pWebPort + 1)
         }
     }
 
