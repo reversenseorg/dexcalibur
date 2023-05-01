@@ -462,10 +462,12 @@ export default class Util {
 
         try {
             const getEnvSh = [ shell || Util.getDefaultShell(), '-ilc', 'env'].join(" ");
+
             const stdout = Process.execSync( getEnvSh, {
                 shell: shell || Util.getDefaultShell(),
                 timeout: 400,
             }); //.stdout;
+
 
             const ret = [];
 
@@ -485,12 +487,23 @@ export default class Util {
         }
     }
 
+
+    /**
+     * To update environment
+     */
     static updateEnvPATH(){
         if (process.platform !== 'darwin') {
             return;
         }
+        /*console.log(Util.getEnv('PATH'));
+        console.log([
+            './node_modules/.bin',
+            '/.nodebrew/current/bin',
+            '/usr/local/bin',
+            process.env.PATH
+        ].join(':'));*/
 
-        process.env.PATH = Util.getEnv('PATH') || [
+        process.env.PATH = /*Util.getEnv('PATH') || */ [
             './node_modules/.bin',
             '/.nodebrew/current/bin',
             '/usr/local/bin',
