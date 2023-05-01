@@ -71,7 +71,8 @@ export default class DexcaliburRegistry
 
         } catch (error) {
             Logger.error("[REGISTRY] enumeratePlatforms(): Unable to enumerate the remote registry : "+error.message);
-            throw new Error("[REGISTRY] enumeratePlatforms(): Unable to enumerate the remote registry");
+            //throw new Error("[REGISTRY] enumeratePlatforms(): Unable to enumerate the remote registry");
+            response = [];
         } finally {
            return response;
         }
