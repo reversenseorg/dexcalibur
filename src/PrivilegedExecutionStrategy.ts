@@ -1,10 +1,12 @@
 import {IBridge} from "./Bridge.js";
+import Utils from "./Utils.js";
 
 export enum PrivilegedExecutionType {
     BINARY='b',
     COMMAND='c',
     WRAPPER_MODE='w',
-    INTENT='i'
+    INTENT='i',
+    HOST_COMMAND='h'
 }
 
 
@@ -16,6 +18,17 @@ export class PrivilegedExecutionPhase {
     bridgeCmd = '';
     devBin = '';
     devBinArgs:string[] = [];
+    /**
+     * Host-side binary to execute
+     * @field
+     */
+    hostBin = '';
+    /**
+     * Arguments for host-side binary
+     * @field
+     */
+    hostBinArgs:string[] = [];
+
     priv:boolean;
 
     constructor(pConfig:any) {
@@ -32,6 +45,9 @@ export class PrivilegedExecutionPhase {
         return this.priv;
     }
 
+    isHostSide():boolean {
+        return (this.type===PrivilegedExecutionType.HOST_COMMAND);
+    }
 
     setBridgeCommand( pCommand:string):void {
         this.bridgeCmd = pCommand;
@@ -42,12 +58,18 @@ export class PrivilegedExecutionPhase {
         this.devBinArgs = pArgs;
     }
 
+    setHostBinary( pBinary:string, pArgs:string[] = []):void {
+        this.hostBin = pBinary;
+        this.hostBinArgs = pArgs;
+    }
+
+
     addBinaryArg( pArg:string):void {
         this.devBinArgs.push( pArg);
     }
 
     isCommand():boolean {
-        return (this.type===PrivilegedExecutionType.COMMAND);
+        return (this.type===PrivilegedExecutionType.COMMAND || this.type===PrivilegedExecutionType.HOST_COMMAND);
     }
 
     wrapCommandString( pCommand = ""):string {
@@ -67,6 +89,10 @@ export class PrivilegedExecutionPhase {
         return cmd.concat(pCommandParts);
     }
 
+    /**
+     *
+     * @param pBridge
+     */
     execNonCommand( pBridge:IBridge):void {
         switch (this.type){
             case PrivilegedExecutionType.BINARY:
@@ -75,9 +101,11 @@ export class PrivilegedExecutionPhase {
             case PrivilegedExecutionType.WRAPPER_MODE:
                 pBridge.execBridgeCommand(this.bridgeCmd);
                 break;
+            case PrivilegedExecutionType.HOST_COMMAND:
+                Utils.execSync( `${this.hostBin} ${this.hostBinArgs.join(' ')}`);
+                break;
         }
     }
-
 
     toJsonObject():any{
         let o:any  = {};
@@ -95,11 +123,49 @@ export interface PrivilegedExecutionStrategyMap {
     [name:string] :PrivilegedExecutionStrategy
 }
 
+
+export enum StrategyTrigger {
+    CMD_EXEC,
+    DEV_LIST
+}
+
+/**
+ * Represent a named set of command/action to perform to be able to execute
+ * command with root privilege on the target device
+ *
+ * @class
+ */
 export class PrivilegedExecutionStrategy {
 
+    /**
+     * Set name
+     * @type {string}
+     * @field
+     */
     name:string;
+
+    /**
+     * The bridge to use
+     * @type {IBridge}
+     * @field
+     */
     bridge:IBridge;
+
+    /**
+     * A list of steps to execute prior to be able run a command as root
+     * @type {PrivilegedExecutionPhase[]}
+     * @field
+     */
     phases:PrivilegedExecutionPhase[] = [];
+
+    /**
+     * @type {StrategyTrigger} Default value is `StrategyTrigger.CMD_EXEC`
+     * @field
+     * @private
+     */
+    private _trigger:StrategyTrigger = StrategyTrigger.CMD_EXEC;
+
+    private _executed:boolean = false;
 
     constructor(pConfig:any) {
         for(const i in pConfig){
@@ -109,6 +175,25 @@ export class PrivilegedExecutionStrategy {
 
     setBridge(pBridge:IBridge):void {
         this.bridge = pBridge;
+    }
+
+
+    /**
+     * To check if the strategy has been already executed
+     */
+    hasRun():boolean {
+        return this._executed;
+    }
+
+    /**
+     * To check if the currrent strategy must be executed for
+     * specified event
+     *
+     * @param {StrategyTrigger} pEvent
+     * @method
+     */
+    mustRun(pEvent:StrategyTrigger):boolean {
+        return (this._trigger===pEvent);
     }
 
     addPhase( pPhase:PrivilegedExecutionPhase):void {
@@ -123,41 +208,64 @@ export class PrivilegedExecutionStrategy {
     prepareString( pCommand:string, pBridge:IBridge = null ):string {
         const bridge = pBridge===null ? this.bridge : pBridge;
         const pph:PrivilegedExecutionPhase[] = [];
-        for(let i=0; i<this.phases.length; i++){
-            // replace isPriv by isFinal
-            if(!this.phases[i].isPrivileged()){
-                this.phases[i].execNonCommand(pBridge);
-            }else{
-                pph.push(this.phases[i]);
+
+        // execute only if the strategy must be executed prior to each command
+        // of if the strategy has been never executed
+        if(this._trigger==StrategyTrigger.CMD_EXEC || !this.hasRun()){
+            for(let i=0; i<this.phases.length; i++){
+                // replace isPriv by isFinal
+                if(!this.phases[i].isPrivileged()){
+                    this.phases[i].execNonCommand(bridge);
+                }
+
+                if(i==(this.phases.length-1)){
+                    pph.push(this.phases[i]);
+                }
+
             }
         }
 
-        /*
-        pph.map( (pPhase:PrivilegedExecutionPhase) => {
-            pPhase.run(pBridge);
-        });*/
 
-        return pph.pop().wrapCommandString(pCommand);
+        if(pph.length>0){
+            return pph.pop().wrapCommandString(pCommand);
+        }else{
+            return pCommand;
+        }
+
+
     }
 
+    /**
+     * To execute (if needed) some step prior to execute the command
+     *
+     * @param pCommand
+     * @param pBridge
+     */
     prepareArray( pCommand:string[], pBridge:IBridge = null  ):string[] {
         const bridge = pBridge===null ? this.bridge : pBridge;
         const pph:PrivilegedExecutionPhase[] = [];
-        for(let i=0; i<this.phases.length; i++){
-            // replace isPriv by isFinal
-            if(!this.phases[i].isPrivileged()){
-                this.phases[i].execNonCommand(pBridge);
-            }else{
-                pph.push(this.phases[i]);
+
+
+        // execute only if the strategy must be executed prior to each command
+        // of if the strategy has been never executed
+        if(this._trigger==StrategyTrigger.CMD_EXEC || !this.hasRun()){
+            for(let i=0; i<this.phases.length; i++){
+                // replace isPriv by isFinal
+                if(!this.phases[i].isPrivileged()){
+                    this.phases[i].execNonCommand(bridge);
+                }
+
+                if(i==(this.phases.length-1)){
+                    pph.push(this.phases[i]);
+                }
             }
         }
 
-        /*
-        pph.map( (pPhase:PrivilegedExecutionPhase) => {
-            pPhase.run(pBridge);
-        });*/
-
-        return pph.pop().wrapCommandArr(pCommand);
+        if(pph.length>0){
+            return pph.pop().wrapCommandArr(pCommand);
+        }else{
+            return pCommand;
+        }
     }
 
     toJsonObject():any{
