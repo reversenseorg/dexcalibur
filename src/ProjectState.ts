@@ -1,0 +1,19 @@
+export enum ProjectState {
+    IDLE,
+
+    OPEN,
+    CLOSED,
+    INIT,
+    BEFORE_WORKSPACE,
+    WORKSPACE_READY,
+    DB_READY,
+    INIT_START,
+    INIT_SAST,
+    INIT_FILE_ANALYZER,
+    INIT_APP_ANALYZER,
+    INIT_HOOK_MANAGER,
+    SYNC_PLATFORM,
+    FULLSCAN_START,
+    FULLSCAN_END,
+    READY
+}

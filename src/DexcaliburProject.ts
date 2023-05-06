@@ -61,6 +61,10 @@ import {InstructionSet} from "./binary/ABI.js";
 import {Architecture} from "./Architecture.js";
 import {OperatingSystem} from "./OperatingSystem.js";
 import ModelSyscallFactory from "./ModelSyscallFactory.js";
+import {ProjectState} from "./ProjectState.js";
+import {PrivacyScanner} from "./audit/privacy/PrivacyScanner.js";
+import {LicenceManager} from "./credit/LicenceManager.js";
+import {Product} from "./credit/Product.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -100,6 +104,7 @@ const DexcaliburProjectValidator = new Validator({
 export default class DexcaliburProject extends Auditable implements IAuditableAccess
 {
 
+    state:ProjectState = ProjectState.IDLE;
 
     /**
      * @type {DexcaliburEngine}
@@ -324,6 +329,16 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
     }
 
 
+    /**
+     * To get state of the project
+     *
+     * @return {ProjectState} Project state. See Project lifecycle doc
+     * @method
+     */
+    getState():ProjectState {
+        return this.state;
+    }
+
     getAnalyzerConfiguration():AnalyzerConfiguration {
         return this.analCfg;
     }
@@ -387,7 +402,12 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
         //return (this.owner != null && this.owner.is(pUser));
     }
 
-
+    /**
+     * To get
+     */
+    getBus():Bus {
+        return this.bus;
+    }
     setWorkflow( pWorkflow:Workflow):void {
         this._wf = pWorkflow;
         if(this.analyze!=null) this.analyze.setWorkflow(pWorkflow);
@@ -528,6 +548,8 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
     init():void{
         const im:InspectorManager = InspectorManager.getInstance();
 
+        this.state = ProjectState.INIT_START;
+
         // init config
         // TODO remove engine configuration
         /*if(this.config === null) {
@@ -554,6 +576,7 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
             );
 
             this.workspace.init();
+
         }
 
         // init connector
@@ -571,6 +594,10 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
 
         // set the Search API which allow the user to perform search
         this.find = new SearchAPI();
+
+
+        this.state = ProjectState.INIT_SAST;
+
 
         // set SC analyzer
         this.analyze = new Analyzer(wsSettings.getDefaultEncoding() as BufferEncoding, this);
@@ -598,6 +625,8 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
 
 
 
+        this.state = ProjectState.INIT_FILE_ANALYZER;
+
         // file analyzer 
         this.dataAnalyzer = new DataAnalyzer(this);
         this.dataAnalyzer.setWorkflow(wf)
@@ -608,6 +637,10 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
         this.bus = new Bus(this); //.setContext(this);
 
         let state:any;
+
+
+        this.state = ProjectState.INIT_APP_ANALYZER;
+
         // manifest / app analyzer
         // depend of application type
         if(this.platform != null){
@@ -650,6 +683,8 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
             this.appAnalyzer.restoreState(state);
         }
 
+
+        this.state = ProjectState.INIT_HOOK_MANAGER;
         this.hook = new HookManager(this, this.nofrida);
         // move HookManager loading to "after app analysis"
 
@@ -698,6 +733,8 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
 
     /**
      * To init project authorizations / ACLs
+     *
+     * TODO : add owners, ...
      *
      * @method
      */
@@ -846,6 +883,9 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
     async synchronizePlatform( pName:string):Promise<boolean>{
         const pm:PlatformManager = PlatformManager.getInstance();
         let res = false;
+
+
+        this.state = ProjectState.SYNC_PLATFORM;
 
         if(pm.isStub(pName)){
             this.platform = pm.getStubPlatform(this.device, this.application, pName);
@@ -1389,6 +1429,9 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
     async fullscan( pPath:string=null):Promise<DexcaliburProject>{
         let success  = false;
 
+
+        this.state = ProjectState.FULLSCAN_START;
+
         const sastTag = this.tagManager.getTag("discover.static");
         const dastTag = this.tagManager.getTag("discover.dynamic");
         const internTag = this.tagManager.getTag("discover.internal");
@@ -1644,6 +1687,9 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
         // deploy inspector's hooksets
         this.deployInspectors(INSPECTOR_TYPE.POST_APP_SCAN);
 
+
+        this.state = ProjectState.FULLSCAN_END;
+
         this.bus.send(new BusEvent({
             type: "dxc.fullscan.post_deploy"
         }));
@@ -1670,6 +1716,7 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
 
         this.ready = true;
 
+        this.state = ProjectState.READY;
         this.getWorkflow().pushStatus(new StatusMessage(25, "Saving project ..."));
 
         // update project config (icon, checksum, cert, ...)
@@ -1718,6 +1765,9 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
         this.appAnalyzer = null;
         this.application = null;
         this.device = null;
+
+
+        this.state = ProjectState.CLOSED;
 
         return true;
     }
@@ -1826,6 +1876,18 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
     saveAnalyzerState(pState:AnalyzerState):any {
         const coll = this.db.getCollection(AnalyzerState.TYPE.getName(), AnalyzerState.TYPE);
         return coll.updateEntry(pState);
+    }
+
+    getProduct(pProductCode):Product {
+        return LicenceManager.getProduct( this, pProductCode);
+    }
+
+    getLicenseNo():string {
+        return "--";
+    }
+
+    getLicenseKey():string {
+        return "--";
     }
 }
 

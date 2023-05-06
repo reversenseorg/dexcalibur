@@ -42,6 +42,8 @@ import {DexcaliburUpdater} from "./DexcaliburUpdater.js";
 import Tool = External.Tool;
 import {DXC_LIFECYCLE_EVENT} from "./CoreConst.js";
 import Util from "./Utils.js";
+import {PrivacyScanner} from "./audit/privacy/PrivacyScanner.js";
+import {LicenceManager} from "./credit/LicenceManager.js";
 
 
 /*
@@ -667,6 +669,8 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
         Logger.debug('PASS3');
 
         this.updater.run( DXC_LIFECYCLE_EVENT.DEV_MGR_AFTER_INIT);
+
+        LicenceManager.replenish();
 
         // restart child ADB server
         (async function(){
