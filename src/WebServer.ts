@@ -50,6 +50,7 @@ import {SCRIPT_WEB_API} from "./webapi/script.web.api.js";
 import {HOOK_FRAGS_WEB_API} from "./webapi/hook-fragment.web.api.js";
 import {TAG_MGT_WEB_API} from "./webapi/tag.web.api.js";
 import {WebApiWindowing} from "./webapi/internals/WebApiWindowing.js";
+import {PRIVACY_WEB_API} from "./webapi/privacy.web.api.js";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -1131,6 +1132,8 @@ export default class WebServer
         INSPECTOR_WEB_API.injectServer(this);
         KEYPOINT_WEB_API.injectServer(this);
         TAG_MGT_WEB_API.injectServer(this);
+        PRIVACY_WEB_API.injectServer(this);
+        SCRIPT_WEB_API.injectServer(this);
 
 
         this.app.use('/api/device', DEVICE_WEB_API.getRouter());
@@ -1152,6 +1155,10 @@ export default class WebServer
         this.app.use('/api/plugin', INSPECTOR_WEB_API.getRouter());
         this.app.use('/api/keypoint', KEYPOINT_WEB_API.getRouter());
         this.app.use('/api/tag', TAG_MGT_WEB_API.getRouter());
+        this.app.use('/api/privacy', PRIVACY_WEB_API.getRouter());
+
+
+
         /**
          * Redirect to /pages/splash.html if there is no project initialized
          */
