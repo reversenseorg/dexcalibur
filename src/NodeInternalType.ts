@@ -46,7 +46,10 @@ export enum NodeInternalType {
     INSPECTOR,
     HOOK_SESSION,
     RUNTIME_EVENT,
-    HOOK_SYSCALL
+    HOOK_SYSCALL,
+    TEST_CREDS,
+    LIB_FP,
+    DASHBOARD
 }
 
 export const NodeInternalTypeName = {
@@ -98,5 +101,8 @@ export const NodeInternalTypeName = {
     [NodeInternalType.INSPECTOR]: "INSPECTOR",
     [NodeInternalType.HOOK_SESSION]: "HOOK_SESSION",
     [NodeInternalType.RUNTIME_EVENT]: "RUNTIME_EVENT",
-    [NodeInternalType.HOOK_SYSCALL]: "HOOK_SYSCALL"
+    [NodeInternalType.HOOK_SYSCALL]: "HOOK_SYSCALL",
+    [NodeInternalType.LIB_FP]: "LIB_FP",
+    [NodeInternalType.TEST_CREDS]: "TEST_CREDS",
+    [NodeInternalType.DASHBOARD]: "DASHBOARD"
 }
