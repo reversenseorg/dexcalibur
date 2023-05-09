@@ -32,6 +32,7 @@ export default class AndroidSystemProfile extends GenericSystemProfile implement
             new RegExp('^ro\.hwui\.'),
             new RegExp('^ro\.build\.'),
             new RegExp('^ro\.error\.'),
+            new RegExp('^ro\.boot\.'),
             new RegExp('^.*\.dalvik\.'),
             //new RegExp('^ro\.product\.cpu\.abi.*'),
             new RegExp('^uname$'),
@@ -115,7 +116,12 @@ export default class AndroidSystemProfile extends GenericSystemProfile implement
      * To check from props if the device is an emulator r
      */
     isEmulator():boolean {
-        return this.prop['ro.build.product'].startsWith('emulat') || this.emulated;
+        return
+            (this.prop['ro.boot.serialno'].indexOf('EMULATOR')>-1) ||
+            (this.prop['ro.bootimage.build.fingerprint'].indexOf('emulator')>-1) ||
+            (this.prop['ro.build.product'].indexOf('emulator')>-1) ||
+            (this.prop['ro.product.vendor.device'].indexOf('emulator')>-1) ||
+            this.emulated;
     }
 
 

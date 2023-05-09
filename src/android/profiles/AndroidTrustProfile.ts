@@ -45,6 +45,7 @@ export class AndroidTrustProfile extends GenericTrustProfile implements NosyProf
             const cacert = _path_.join(pOptions.localTmp,pTmpName);
 
             await pBridge.privilegedShell(" cp -r "+pRemoteFolder+" "+pOptions.remoteTmp+"/"+pTmpName);
+
             await pBridge.privilegedShell(" chmod 777 "+pOptions.remoteTmp+"/"+pTmpName)
             pBridge.pull(pOptions.remoteTmp+"/"+pTmpName,cacert);
 
@@ -107,7 +108,7 @@ export class AndroidTrustProfile extends GenericTrustProfile implements NosyProf
         }catch(err){
             Logger.info(err.message);
             Logger.info(err.stack);
-            success = null;
+            success = this;
         }
 
         return success;

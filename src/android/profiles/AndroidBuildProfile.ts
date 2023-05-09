@@ -12,7 +12,6 @@ export default class AndroidBuildProfile extends GenericBuildProfile {
         const patterns = [
             new RegExp('^ro\.build\.'),
             new RegExp('^ro\.hwui\.'),
-            new RegExp('^ro\.build\.'),
             new RegExp('^ro\.error\.'),
             new RegExp('^.*\.dalvik\.'),
         ];
