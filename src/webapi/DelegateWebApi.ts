@@ -5,6 +5,7 @@ import * as Log from "../Logger.js";
 import DexcaliburProject from "../DexcaliburProject.js";
 import {AuthenticationException} from "../errors/AuthenticationException.js";
 import {DexcaliburProjectException} from "../errors/DexcaliburProjectException.js";
+import {UserSession} from "../user/session/UserSession.js";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -15,8 +16,20 @@ export enum HTTP_VERB {
     PUT="put"
 }
 
-interface RequestHandlers {
-    [type: string] :Function
+export interface DelegateRequest extends Request {
+    dxc: {
+        project?: DexcaliburProject,
+        $?: WebServer,
+        sess?:UserSession
+    }
+}
+
+export interface DelegateResponse extends Response {
+
+}
+
+export interface RequestHandlers {
+    [type: string] :((pReq:DelegateRequest,pRes:DelegateResponse)=>void)
 }
 
 /**
@@ -133,7 +146,7 @@ export class DelegateWebApi
         this.addAuthenticatedRoute( pRoute, pHandlers, pOptions);
     }
 
-    addAuthenticatedRoute( pRoute:string, pHandlers:any, pOptions:any = {async:false}  ):void {
+    addAuthenticatedRoute( pRoute:string, pHandlers:RequestHandlers, pOptions:any = {async:false}  ):void {
         const self = this;
         for(let httpVerb in pHandlers){
             if(pOptions.async){

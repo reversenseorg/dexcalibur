@@ -202,6 +202,10 @@ PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
                     const analCfg = project.getAnalyzerConfiguration(); // platform.getUID());
                     analCfg.setFileAnalysisMode(anal.fa_mode);
                     analCfg.setNativeAnalysisMode(anal.na_mode);
+
+                    /*if(anal.ssa_auto != null){
+                        analCfg.setAndroid(anal.na_mode);
+                    }*/
                 }
 
                 Logger.info('[PROJECT][STEP 4] Analyzing application ...');
