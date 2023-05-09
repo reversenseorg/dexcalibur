@@ -12,7 +12,7 @@
   },
   "dependencies": {
     "@dexcalibur/dexcalibur-frida-compile": "^10.2.5",
-    "@dexcalibur/dexcalibur-installer": "^1.0.40",
+    "@dexcalibur/dexcalibur-installer": "^1.0.43",
     "@reversense/interruptor": "^1.0.12",
     "@types/nedb": "^1.8.11",
     "adm-zip": "^0.4.14",
@@ -27,7 +27,7 @@
     "express": "^4.16.3",
     "file-type": "^10.4.0",
     "fix-path": "^3.0.0",
-    "frida": "^16.0.13",
+    "frida": "^16.0.19",
     "glob": "^7.2.0",
     "got": "^10.7.0",
     "js-yaml": "^3.13.1",
