@@ -1,5 +1,4 @@
 import * as co from 'co';
-import * as md5 from 'md5';
 
 import HookSession from "../HookSession.js";
 import DexcaliburProject from "../DexcaliburProject.js";
@@ -34,6 +33,7 @@ import HookFragmentPreset from "./HookFragmentPreset.js";
 import {TagHashMap, TagNameMap} from "../tags/TagManager.js";
 import SystemCallHook from "./SystemCallHook.js";
 import ModelSyscall from "../ModelSyscall.js";
+import {CryptoUtils} from "../CryptoUtils.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -139,7 +139,10 @@ export class HookManager
 
         this.context = pProject;
         if(pNofrida===false){
-            FRIDA = require("frida");
+            /*( async ()=>{
+                FRIDA = await import("frida");
+            })();*/
+            //FRIDA = require("frida");
             //FRIDA_LOAD = require("frida-load");
         }else{
             this.frida_disabled = true;
@@ -1281,7 +1284,7 @@ export class HookManager
         const tmgr = this.context.getTagManager();
         const hook:SystemCallHook = new SystemCallHook();
 
-        hook.setGUID( md5(this.nextHookGUIDFor(pSyscall)));
+        hook.setGUID( CryptoUtils.md5(this.nextHookGUIDFor(pSyscall)));
 
         if(pOpts.loadKP == null){
             hook.setLoadKeyPoint(this.getKeyPointManager().getKeyPoint("core.java.app"));
@@ -1360,7 +1363,7 @@ export class HookManager
         const tmgr = this.context.getTagManager();
         const hook:NativeFunctionHook = new NativeFunctionHook();
 
-        hook.setGUID( md5(this.nextHookGUIDFor(pFunc)));
+        hook.setGUID( CryptoUtils.md5(this.nextHookGUIDFor(pFunc)));
 
         if(pOpts.loadKP == null){
             hook.setLoadKeyPoint(this.getKeyPointManager().getKeyPoint("core.java.app"));
@@ -1424,7 +1427,7 @@ export class HookManager
         const tmgr = this.context.getTagManager();
         const hook:JavaMethodHook = new JavaMethodHook();
 
-        hook.setGUID( md5(this.nextHookGUIDFor(pMethod)));
+        hook.setGUID( CryptoUtils.md5(this.nextHookGUIDFor(pMethod)));
 
         if(pOptions.loadKP == null){
             hook.setLoadKeyPoint(this.getKeyPointManager().getKeyPoint("core.java.app"));

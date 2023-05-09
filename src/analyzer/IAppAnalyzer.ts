@@ -17,4 +17,6 @@ export interface IAppAnalyzer {
     getPackageName():string;
 
     restoreState(pState:AnalyzerState):boolean;
+
+    postScan():void;
 }

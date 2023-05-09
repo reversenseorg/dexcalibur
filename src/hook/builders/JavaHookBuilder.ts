@@ -1,4 +1,4 @@
-import * as _md5_ from 'md5';
+
 
 import {ModelBasicType, ModelObjectType} from "../../ModelType.js";
 import {CONST} from "../../CoreConst.js";
@@ -7,6 +7,7 @@ import Util from "../../Utils.js";
 import JavaMethodHook from "../JavaMethodHook.js";
 import HookTemplateFragment from "../HookTemplateFragment.js";
 import DexcaliburProject from "../../DexcaliburProject.js";
+import {CryptoUtils} from "../../CryptoUtils.js";
 
 
 function getLetterFromType(typename:string):string{
@@ -292,9 +293,9 @@ export class JavaHookBuilder{
 
         const target:ModelMethod = pJavaHook.getTarget();
         const tags:any = {
-            "@@__CLSDEF__@@": _md5_(target.enclosingClass.name),
+            "@@__CLSDEF__@@": CryptoUtils.md5(target.enclosingClass.name),
             "@@__FQCN__@@": target.enclosingClass.name,
-            "@@__METHDEF__@@": _md5_(target.getUID()),
+            "@@__METHDEF__@@": CryptoUtils.md5(target.getUID()),
             "@@__METHNAME__@@": (target.name=='<init>')? '$init' : target.name,
             "@@__METHSIGN__@@": target.getUID(),
             "@@__APP_NAME__@@": this.ctx.getPackageName(),
@@ -311,7 +312,7 @@ export class JavaHookBuilder{
             "@@__VAR__@@":""
         };
 
-        tags["@@__VAR__@@"] = "v"+_md5_(pJavaHook.getGUID())+"_VAR";
+        tags["@@__VAR__@@"] = "v"+CryptoUtils.md5(pJavaHook.getGUID())+"_VAR";
         pJavaHook.setVariableID(tags["@@__VAR__@@"]);
 
         //this.code.varID = tags["@@__VAR__@@"];
@@ -320,7 +321,7 @@ export class JavaHookBuilder{
         tags["@@__RET_DATA__@@"] = "{"+retHelper.data+"}";
 
         if(pJavaHook.parentID != null){
-            tags["@@__CTX__@@"] = "ctx_"+_md5_(pJavaHook.parentID);
+            tags["@@__CTX__@@"] = "ctx_"+CryptoUtils.md5(pJavaHook.parentID);
         }
 
         if(Object.keys(target.args).length > 0){

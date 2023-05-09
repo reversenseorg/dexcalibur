@@ -2,8 +2,8 @@ import {AbstractHook, HOOK_FRAGMENT_POS, UID_POS_MAPPING} from "./AbstractHook.j
 import HookTemplateFragment from "./HookTemplateFragment.js";
 import ModelMethod from "../ModelMethod.js";
 import HookStrategy from "./HookStrategy.js";
+import {CryptoUtils} from "../CryptoUtils.js";
 
-import * as _md5_ from "md5";
 export enum HookFragmentPresetType {
     TRACK='track',
     TRACK_PARAM='trackpar',
@@ -92,6 +92,6 @@ export default class HookFragmentPreset {
      * @static
      */
     static generateFragmentUID( pHook:AbstractHook, pPosition:HOOK_FRAGMENT_POS, pFrag:HookTemplateFragment, pStrategy:HookStrategy = null):string {
-        return _md5_( ':::'+pHook.getGUID()+':'+UID_POS_MAPPING[pPosition]+':'+pFrag.name );
+        return CryptoUtils.md5( ':::'+pHook.getGUID()+':'+UID_POS_MAPPING[pPosition]+':'+pFrag.name );
     }
 }

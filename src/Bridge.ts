@@ -3,6 +3,7 @@ import DeviceProfile from "./device/DeviceProfile.js";
 import {Device} from "./Device.js";
 import AppPackage from "./AppPackage.js";
 import {AndroidPackageInstallOptions} from "./android/bridge/AndroidInstallOptions.js";
+import {PrivilegedExecutionStrategy} from "./PrivilegedExecutionStrategy.js";
 
 export interface DeviceProfilingOptions {
     tmp?: string;
@@ -89,6 +90,28 @@ export interface IBridge
     installApp(pAppPath: string[], pOptions: BridgeInstallOptions): Promise<boolean>;
 
     prepareInstallOptions(pOptions:any):BridgeInstallOptions;
+
+    /**
+     * To perform basic detection of emulator mainly based on device ID
+     *
+     * @return {boolean|null} Return TRUE if the device is emulated else FALSE. If there is not device bound to this bridge it returns NULL
+     * @method
+     */
+    isEmulated():boolean|null;
+
+    /**
+     * To get a EoP strategy by its name
+     * @param pName
+     */
+    getStrategy(pName:string):PrivilegedExecutionStrategy;
+
+    /**
+     * To add a named strategy to gain root privileges
+     *
+     * @param pName
+     * @param pStrategy
+     */
+    addPrivilegedStrategy(pName:string, pStrategy:PrivilegedExecutionStrategy):void;
 }
 
 

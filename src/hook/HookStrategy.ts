@@ -1,5 +1,5 @@
 
-import * as _md5_ from "md5";
+
 import DexcaliburProject from "../DexcaliburProject.js";
 import HookStrategySelector from "./HookStrategySelector.js";
 import * as VM from "vm";
@@ -15,6 +15,7 @@ import {NodeType} from "../persist/orm/NodeType.js";
 import {NodeInternalType} from "../NodeInternalType.js";
 import {HookManager} from "./HookManager.js";
 import * as Log from "../Logger.js";
+import {CryptoUtils} from "../CryptoUtils.js";
 
 export const DEFAULT_PRIORITY = -1;
 
@@ -178,9 +179,9 @@ export default class HookStrategy {
      */
     static generateFragmentUID( pPosition:HOOK_FRAGMENT_POS, pFrag:HookTemplateFragment, pStrategy:HookStrategy = null):string {
         if(pStrategy != null){
-            return _md5_( pStrategy.getUID()+':'+UID_POS_MAPPING[pPosition]+':'+pFrag.name );
+            return CryptoUtils.md5( pStrategy.getUID()+':'+UID_POS_MAPPING[pPosition]+':'+pFrag.name, 'hex' );
         }else{
-            return _md5_( '::::'+UID_POS_MAPPING[pPosition]+':'+pFrag.name );
+            return CryptoUtils.md5( '::::'+UID_POS_MAPPING[pPosition]+':'+pFrag.name, 'hex' );
         }
 
     }

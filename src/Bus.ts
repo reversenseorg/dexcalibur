@@ -22,16 +22,16 @@ export interface BusBroadcaster {
 var gSubs_CTR:number = 1;
 
 export class BusSubscriber {
-    _f:Function;
+    _f:((pEvent:BusEvent)=>void);
     _uid:number;
     _p:boolean = false;
 
-    constructor( pUID:number, pFunc:Function) {
+    constructor( pUID:number, pFunc:((pEvent:BusEvent)=>void)) {
         this._uid = pUID;
         this._f = pFunc;
     }
 
-    static from(pFunc:Function):BusSubscriber {
+    static from(pFunc:((pEvent:BusEvent)=>void)):BusSubscriber {
         return new BusSubscriber( gSubs_CTR++, pFunc);
     }
 

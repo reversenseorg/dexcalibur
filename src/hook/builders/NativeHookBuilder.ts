@@ -1,5 +1,3 @@
-import * as _md5_ from 'md5';
-
 import {CONST} from "../../CoreConst.js";
 import Util from "../../Utils.js";
 import HookTemplateFragment from "../HookTemplateFragment.js";
@@ -10,6 +8,7 @@ import {DataType} from "../../types/DataType.js";
 import {NativeHookBuilderException} from "../../errors/NativeHookBuilderException.js";
 import ModelFile from "../../ModelFile.js";
 import DexcaliburProject from "../../DexcaliburProject.js";
+import {CryptoUtils} from "../../CryptoUtils.js";
 
 const FRIDA_READ_API = ['readU8','readS8','readU16','readS16','readU32','readS32','readU64','readS64'];
 
@@ -284,7 +283,7 @@ export class NativeHookBuilder{
 
         const tags:any = {
             "@@__LIB_FILE_NAME__@@": "",
-            "@@__FUNCDEF__@@": _md5_(target.getUID()),
+            "@@__FUNCDEF__@@": CryptoUtils.md5(target.getUID()),
             "@@__FUNCNAME__@@": (target.name=='<init>')? '$init' : target.name,
             "@@__FUNCSIGN__@@": target.getUID(),
             "@@__APP_NAME__@@": this.ctx.getPackageName(),
@@ -314,7 +313,7 @@ export class NativeHookBuilder{
             tags["@@__LIB_FILE_NAME__@@"] = (lib as ModelFile).getName();
         }
 
-        tags["@@__VAR__@@"] = "v"+_md5_(pNativeHook.getGUID())+"_VAR";
+        tags["@@__VAR__@@"] = "v"+CryptoUtils.md5(pNativeHook.getGUID())+"_VAR";
         pNativeHook.setVariableID(tags["@@__VAR__@@"]);
 
         //this.code.varID = tags["@@__VAR__@@"];
@@ -324,7 +323,7 @@ export class NativeHookBuilder{
 
         // TODO : replace by keypoint namespace
         if(pNativeHook.parentID != null){
-            tags["@@__CTX__@@"] = "ctx_"+_md5_(pNativeHook.parentID);
+            tags["@@__CTX__@@"] = "ctx_"+CryptoUtils.md5(pNativeHook.parentID);
         }
 
         if(Object.keys(target.args).length > 0){

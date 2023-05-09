@@ -47,4 +47,8 @@ export default class IosAppAnalyzer implements IAppAnalyzer
     getPackageName():string {
         return this.package;
     }
+
+    postScan() {
+
+    }
 }

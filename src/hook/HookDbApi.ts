@@ -243,7 +243,7 @@ export class HookDbApi {
     }
 
     save( pCreate = false){
-        this.jhooks.map( (vHook:JavaMethodHook)=>{
+        this.jhooks.map( (vOffset, vHook:JavaMethodHook)=>{
             if(this.jhooks.hasEntry(vHook.getGUID())){
                 this.updateJavaHook( vHook);
             }else{
@@ -251,7 +251,7 @@ export class HookDbApi {
             }
         });
 
-        this.nhooks.map( (vHook:NativeFunctionHook)=>{
+        this.nhooks.map( (vOffset, vHook:NativeFunctionHook)=>{
             if(this.nhooks.hasEntry(vHook.getGUID())){
                 this.updateNativeHook( vHook);
             }else{
@@ -260,7 +260,7 @@ export class HookDbApi {
         });
 
 
-        this.strategies.map( (vStra:HookStrategy)=>{
+        this.strategies.map( (vOffset, vStra:HookStrategy)=>{
             if(this.strategies.hasEntry(vStra.getUID())){
                 this.updateHookStrategy( vStra);
             }else{
@@ -269,7 +269,7 @@ export class HookDbApi {
         });
 
 
-        this.fragments.map( (vFrag:HookTemplateFragment)=>{
+        this.fragments.map( (vOffset, vFrag:HookTemplateFragment)=>{
             if(this.fragments.hasEntry(vFrag.getUID())){
                 this.updateFragment( vFrag);
             }else{
@@ -278,7 +278,7 @@ export class HookDbApi {
         });
 
 
-        this.sets.map( (vSet:HookSet)=>{
+        this.sets.map( (vOffset, vSet:HookSet)=>{
             if(this.sets.hasEntry(vSet.getID())){
                 this.updateHookSet( vSet);
             }else{
@@ -286,7 +286,7 @@ export class HookDbApi {
             }
         });
 
-        this.sessions.map( (vSess:HookSession)=>{
+        this.sessions.map( (vOffset, vSess:HookSession)=>{
             if(this.sessions.hasEntry(vSess.getUID())){
                 this.updateHookSession( vSess);
             }else{
@@ -294,7 +294,7 @@ export class HookDbApi {
             }
         });
 
-        this.events.map( (vEvent:RuntimeEvent<any>)=>{
+        this.events.map( (vOffset, vEvent:RuntimeEvent<any>)=>{
             if(this.events.hasEntry(vEvent.getUID())){
                 this.updateRuntimeEvent( vEvent);
             }else{
