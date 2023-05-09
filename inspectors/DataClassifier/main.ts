@@ -75,16 +75,18 @@ var DataClassifierInspector:InspectorFactory = new InspectorFactory({
             // tag static strings containing URI
             ctx.find.nocase().strings("value:^([^:/]*)://([^/]*)")
                 .foreach((pOffset:number,pData:ModelStringValue)=>{
-                    pData.addTag(tag_URI);
-                    //console.log(pData);
+                    if(!pData.hasTag(tag_URI)){
+                        pData.addTag(tag_URI);
+                    }
                 });
     
             // tag static byte array containing URI
             ctx.find.nocase().array('name:.*')
                 .foreach((pOffset:number,pData:ModelDataBlock)=>{
                     if(pattern.exec(pData.values.join(''))){
-                        pData.addTag(tag_URI);
-                        //console.log(pData.values.join(''));
+                        if(!pData.hasTag(tag_URI)){
+                            pData.addTag(tag_URI);
+                        }
                     }
                 });
         },
