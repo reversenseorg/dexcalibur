@@ -115,6 +115,10 @@ export default new InspectorFactory({
     },
 
     eventListeners: {
+        "dxc.fullscan.post":  function (ctx:DexcaliburProject, event:BusEvent):any {
+
+
+        },
         "app.activity.new": function (ctx:DexcaliburProject, event:BusEvent):any {
 
             // to retrieve class implementign this activity
@@ -157,15 +161,11 @@ export default new InspectorFactory({
                 return true;
             }
 
-
-
             // tag by intent filter
             tagByIntent(ctx, event);
 
             // tag by attributes
             tagByAttr(ctx, event.data.obj.getAttributes(), event);
-
-
     
             // search dependencies to platform method and class
             if (AndroidCodeAnalyzer.searchInternalDependencies(ctx, event.data.obj)!=null) {
