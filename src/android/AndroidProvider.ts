@@ -9,6 +9,11 @@ import {
     ATTR_TYPE
 } from "./AndroidAttribute.js";
 import {NodeInternalType} from "../NodeInternalType.js";
+import {NodeType} from "../persist/orm/NodeType.js";
+import {DataSourceHelper} from "../DataSourceHelper.js";
+import {NodeProperty} from "../persist/orm/NodeProperty.js";
+import {DbDataType, DbKeyType} from "../persist/orm/DbAbstraction.js";
+import ModelClass from "../ModelClass.js";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -16,6 +21,15 @@ let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
 export default class AndroidProvider extends AndroidComponent
 {
+    static TYPE:NodeType = (new NodeType( "androidProvider", NodeInternalType.ANDROID_PROVIDER, [
+        (new NodeProperty("name")).type(DbDataType.STRING).key(DbKeyType.PRIMARY),
+        (new NodeProperty("description")).type(DbDataType.STRING).def(""),
+        (new NodeProperty("label")).type(DbDataType.STRING).def(""),
+        (new NodeProperty("attr")).volatile().type(DbDataType.STRING),
+        (new NodeProperty("__impl")).volatile().single(ModelClass.TYPE),
+    ]))
+        .dataSource(DataSourceHelper.MEM, "androidProvider");
+
     __:NodeInternalType = NodeInternalType.ANDROID_PROVIDER;
 
     static MODEL:AndroidAttribute[] = [

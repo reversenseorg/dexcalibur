@@ -2,11 +2,11 @@
  * A superclass for activity/receiver/provider/service
  */
 
-import * as _md5_ from 'md5';
 import {AndroidIntentable} from "./Intent.js";
 import ModelClass from "../ModelClass.js";
 import {AndroidAttributeSet} from "./AndroidAttribute.js";
 import {NodeInternalType} from "../NodeInternalType.js";
+import {CryptoUtils} from "../CryptoUtils.js";
 
 
 const ANDROID_PREFIX = "android:";
@@ -36,7 +36,7 @@ export default class AndroidComponent extends AndroidIntentable
     generateUID(){
         if(this.name == null) throw new Error("[ANDROID COMPONENT] Unable to generate UID");
 
-        this.__id = _md5_(this.name);
+        this.__id = CryptoUtils.md5(this.name);
     }
 
     getUID():string{

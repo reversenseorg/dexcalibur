@@ -2,11 +2,26 @@ import {IntentFilter} from "./IntentFilter.js";
 import * as Log from '../Logger.js';
 import AndroidComponent from "./AndroidComponent.js";
 import {NodeInternalType} from "../NodeInternalType.js";
+import {NodeType} from "../persist/orm/NodeType.js";
+import {DataSourceHelper} from "../DataSourceHelper.js";
+import {NodeProperty} from "../persist/orm/NodeProperty.js";
+import {DbDataType, DbKeyType} from "../persist/orm/DbAbstraction.js";
+import ModelClass from "../ModelClass.js";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
 export default class AndroidReceiver extends AndroidComponent
 {
+    static TYPE:NodeType = (new NodeType( "androidReceiver", NodeInternalType.ANDROID_RECEIVER, [
+        (new NodeProperty("name")).type(DbDataType.STRING).key(DbKeyType.PRIMARY),
+        (new NodeProperty("description")).type(DbDataType.STRING).def(""),
+        (new NodeProperty("label")).type(DbDataType.STRING).def(""),
+        (new NodeProperty("attr")).volatile().type(DbDataType.STRING),
+        (new NodeProperty("__impl")).volatile().single(ModelClass.TYPE),
+
+    ]))
+        .dataSource(DataSourceHelper.MEM, "androidReceiver");
+
     __:NodeInternalType = NodeInternalType.ANDROID_RECEIVER;
 
     constructor(config:any=null){

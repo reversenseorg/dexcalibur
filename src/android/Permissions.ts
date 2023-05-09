@@ -1,6 +1,26 @@
+import {NodeType} from "../persist/orm/NodeType.js";
+import {NodeInternalType} from "../NodeInternalType.js";
+import {DataSourceHelper} from "../DataSourceHelper.js";
+import {NodeProperty} from "../persist/orm/NodeProperty.js";
+import {DbDataType, DbKeyType} from "../persist/orm/DbAbstraction.js";
+import {RuntimeEvent} from "../hook/RuntimeEvent.js";
 
 export class AndroidPermission
 {
+    static TYPE:NodeType = (new NodeType( "androidPermission", NodeInternalType.ANDROID_PERM, [
+        (new NodeProperty("name")).type(DbDataType.STRING).key(DbKeyType.PRIMARY),
+        (new NodeProperty("description")).type(DbDataType.STRING).def(""),
+        (new NodeProperty("label")).type(DbDataType.STRING).def(""),
+        (new NodeProperty("protectionLevel")).type(DbDataType.STRING).def(""),
+        (new NodeProperty("apiVersion")).type(DbDataType.INT).def(1),
+        (new NodeProperty("controls")).type(DbDataType.STRING).def(""),
+        (new NodeProperty("query")).type(DbDataType.STRING).def(""),
+        (new NodeProperty("__custom")).type(DbDataType.BOOLEAN).def(0),
+    ]))
+        .dataSource(DataSourceHelper.MEM, "androidPermission");
+
+    __:NodeInternalType = NodeInternalType.ANDROID_PERM;
+
     description:string = null;
     label:string = null;
     name:string = null;
@@ -217,6 +237,10 @@ export class AndroidProtectionLevel
                 this[i] = config[i];
             }
         }
+    }
+
+    equals(pStr:string){
+        return (this.name===pStr);
     }
 }
 

@@ -3,6 +3,11 @@ import {IntentFilter} from "./IntentFilter.js";
 import AndroidComponent from "./AndroidComponent.js";
 import {AndroidPermission} from "./Permissions.js";
 import {NodeInternalType} from "../NodeInternalType.js";
+import {NodeType} from "../persist/orm/NodeType.js";
+import {DataSourceHelper} from "../DataSourceHelper.js";
+import {NodeProperty} from "../persist/orm/NodeProperty.js";
+import {DbDataType, DbKeyType} from "../persist/orm/DbAbstraction.js";
+import ModelClass from "../ModelClass.js";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -60,6 +65,15 @@ class AndroidActivityAlias
  */
 export default class AndroidActivity extends AndroidComponent
 {
+    static TYPE:NodeType = (new NodeType( "androidActivity", NodeInternalType.ANDROID_ACTIVITY, [
+        (new NodeProperty("name")).type(DbDataType.STRING).key(DbKeyType.PRIMARY),
+        (new NodeProperty("description")).type(DbDataType.STRING).def(""),
+        (new NodeProperty("label")).type(DbDataType.STRING).def(""),
+        (new NodeProperty("attr")).volatile().type(DbDataType.STRING).def({}),
+        (new NodeProperty("__impl")).volatile().single(ModelClass.TYPE),
+        ]))
+        .dataSource(DataSourceHelper.MEM, "androidActivity");
+
     __:NodeInternalType = NodeInternalType.ANDROID_ACTIVITY;
 
     static MODEL = {

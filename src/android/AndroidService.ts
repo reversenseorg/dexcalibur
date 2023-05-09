@@ -4,10 +4,24 @@ import * as Log from '../Logger.js';
 import {IntentFilter} from "./IntentFilter.js";
 import AndroidComponent from "./AndroidComponent.js";
 import {NodeInternalType} from "../NodeInternalType.js";
+import {NodeType} from "../persist/orm/NodeType.js";
+import {DataSourceHelper} from "../DataSourceHelper.js";
+import {NodeProperty} from "../persist/orm/NodeProperty.js";
+import {DbDataType, DbKeyType} from "../persist/orm/DbAbstraction.js";
+import ModelClass from "../ModelClass.js";
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
 export default class AndroidService extends AndroidComponent
 {
+    static TYPE:NodeType = (new NodeType( "androidService", NodeInternalType.ANDROID_SERVICE, [
+        (new NodeProperty("name")).type(DbDataType.STRING).key(DbKeyType.PRIMARY),
+        (new NodeProperty("description")).type(DbDataType.STRING).def(""),
+        (new NodeProperty("label")).type(DbDataType.STRING).def(""),
+        (new NodeProperty("attr")).volatile().type(DbDataType.STRING),
+        (new NodeProperty("__impl")).volatile().single(ModelClass.TYPE),
+    ]))
+        .dataSource(DataSourceHelper.MEM, "androidService");
+
     __:NodeInternalType = NodeInternalType.ANDROID_SERVICE;
 
     constructor(config:any=null){
