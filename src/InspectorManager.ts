@@ -295,7 +295,7 @@ export default class InspectorManager
         }
 
         for(const i in this.locals){
-            factory = (this.locals[i] as any).default;
+            factory = (this.locals[i] as any);
             /*if(factory.hasWebApi() && !factory.isWebApiReady()){
                 factory.registerWebServer(ws);
             }*/

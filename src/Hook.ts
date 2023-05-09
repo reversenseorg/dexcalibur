@@ -1,4 +1,4 @@
-import * as _md5_ from 'md5';
+
 
 import ModelMethod from "./ModelMethod.js";
 import DexcaliburProject from "./DexcaliburProject.js";
@@ -7,6 +7,7 @@ import {ModelBasicType, ModelObjectType} from "./ModelType.js";
 import {CONST} from "./CoreConst.js";
 import {ModelFunction} from "./ModelFunction.js";
 import {ModelVariable} from "./ModelVariable.js";
+import {CryptoUtils} from "./CryptoUtils.js";
 
 
 
@@ -482,8 +483,8 @@ export default class Hook
             "@@__LIB_FILE_NAME__@@": (pOptions.file != null? pOptions.file : null),
             "@@__FN_SYM__@@": pFn.getSymbol(),
             "@@__FN_ADDR__@@": "0x"+pFn.getAddr().toString(16),
-            "@@__FN_UID__@@": _md5_(pFn.signature()),
-            "@@__VAR__@@": "v"+_md5_(this.id)+"_VAR",
+            "@@__FN_UID__@@": CryptoUtils.md5(pFn.signature()),
+            "@@__VAR__@@": "v"+CryptoUtils.md5(this.id)+"_VAR",
             "@@__HOOK_ID__@@": this.id,
             "@@__MSG__@@": "Native:"+pFn.getDeclaringFile()+':'+pFn.getSymbol(),
         };
@@ -491,7 +492,7 @@ export default class Hook
         this.code.varID = tags["@@__VAR__@@"];
 
         if(this.parentID != null){
-            tags["@@__CTX__@@"] = "ctx_"+_md5_(this.parentID);
+            tags["@@__CTX__@@"] = "ctx_"+CryptoUtils.md5(this.parentID);
         }
 
 
@@ -743,9 +744,9 @@ export default class Hook
         /* TODO : implement MissingReference probing */
 
         let tags:any = {
-            "@@__CLSDEF__@@": _md5_(method.enclosingClass.name),
+            "@@__CLSDEF__@@": CryptoUtils.md5(method.enclosingClass.name),
             "@@__FQCN__@@": method.enclosingClass.name,
-            "@@__METHDEF__@@": _md5_(method.__signature__),
+            "@@__METHDEF__@@": CryptoUtils.md5(method.__signature__),
             "@@__METHNAME__@@": (method.name=='<init>')? '$init' : method.name,
             "@@__METHSIGN__@@": method.__signature__,
             "@@__ARGS__@@": "",
@@ -760,14 +761,14 @@ export default class Hook
             "@@__VAR__@@":""
         };
 
-        tags["@@__VAR__@@"] = "v"+_md5_(this.id)+"_VAR";
+        tags["@@__VAR__@@"] = "v"+CryptoUtils.md5(this.id)+"_VAR";
         this.code.varID = tags["@@__VAR__@@"];
 
         let retHelp:any = this.makeRetHelper(method.ret);
         tags["@@__RET_DATA__@@"] = "{"+retHelp.data+"}";
 
         if(this.parentID != null){
-            tags["@@__CTX__@@"] = "ctx_"+_md5_(this.parentID);
+            tags["@@__CTX__@@"] = "ctx_"+CryptoUtils.md5(this.parentID);
         }
         // @ts-ignore
         if(Object.keys(method.args).length > 0){
@@ -874,9 +875,9 @@ export default class Hook
 
         let builtScript:string = this.code.custom;
         let tags:any = {
-            "@@__CLSDEF__@@": _md5_(method.enclosingClass.name),
+            "@@__CLSDEF__@@": CryptoUtils.md5(method.enclosingClass.name),
             "@@__FQCN__@@": method.enclosingClass.name,
-            "@@__METHDEF__@@": _md5_(method.__signature__),
+            "@@__METHDEF__@@": CryptoUtils.md5(method.__signature__),
             "@@__METHNAME__@@": (method.name=='<init>')? '$init' : method.name,
             "@@__METHSIGN__@@": method.__signature__,
             "@@__ARGS__@@": "",
@@ -899,7 +900,7 @@ export default class Hook
         tags["@@__RET_DATA__@@"] = "{"+retHelp.data+"}";
 
         if(this.parentID != null){
-            tags["@@__CTX__@@"] = "ctx_"+_md5_(this.parentID);
+            tags["@@__CTX__@@"] = "ctx_"+CryptoUtils.md5(this.parentID);
         }
         if(Object.keys(method.args).length > 0){
             let argHelp:any = this.makeArgsHelper(method.args);

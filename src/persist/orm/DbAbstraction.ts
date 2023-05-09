@@ -59,7 +59,7 @@ export enum DbSetType {
 }
 
 export interface IDbSet {
-    map(fn:any):void;
+    map(fn:((vIndex:any, vData:any)=>void)):void;
 
 
     getAsList():any[];
@@ -73,6 +73,8 @@ export interface IDbSet {
     size():number;
 
     toJsonObject():any;
+
+    search?( pRequest:any, pOptions?:any):any;
 }
 
 export interface IDbIndex extends IDbSet {

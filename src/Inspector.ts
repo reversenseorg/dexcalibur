@@ -481,8 +481,12 @@ export default class Inspector implements BusBroadcaster
         // register front controller
         const path = _path_.join(Util.__dirname(import.meta.url),"..","inspectors",this.id,"service","main.js");
         if(_fs_.existsSync(path)){
-            this.frontController = require(path).default.injectContext(ctx);
-            Logger.info("[Inspector::injectContext][FrontController] "+this.id+" registered !");
+            import(path).then((vModule)=>{
+                this.frontController = vModule.default.injectContext(ctx);
+                Logger.info("[Inspector::injectContext][FrontController] "+this.id+" registered !");
+            })
+            //this.frontController = require(path).default.injectContext(ctx);
+            //Logger.info("[Inspector::injectContext][FrontController] "+this.id+" registered !");
         }
         /*
         else if(Path.basename(ctx.config.getDexcaliburPath()) !== "src"){

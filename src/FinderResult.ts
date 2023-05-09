@@ -96,7 +96,7 @@ export class FinderResult
      * @param {Function} pFunc Callback function
      * @method
      */
-    foreach(pFunc:any){
+    foreach(pFunc:((vIndex:any,vData:any)=>void)){
         this.data.map(pFunc);
     }
 

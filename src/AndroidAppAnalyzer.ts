@@ -19,12 +19,15 @@ import ModelMethod from "./ModelMethod.js";
 import ModelClass from "./ModelClass.js";
 import {NodeInternalType} from "./NodeInternalType.js";
 import {AndroidApiClassXrefList, AndroidCodeAnalyzer} from "./android/analyzer/AndroidCodeAnalyzer.js";
+import BusEvent from "./BusEvent.js";
+import {BusSubscriber} from "./Bus.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
 
 
 _xml2js_.Parser.prototype.parseStringPromise = _util_.promisify(_xml2js_.parseString);
+
 
 
 
@@ -37,8 +40,46 @@ export default class AndroidAppAnalyzer implements IAppAnalyzer
 
 	state:AnalyzerState = null;
 
+	private _missingImpl:{ [implFqcn:string] :AndroidComponent } = {};
+
+	private _huntingImpl = false;
+
     constructor(context:DexcaliburProject){
         this.context = context;
+		this._registerListeners();
+	}
+
+	/**
+	 * Register to various events of global bus
+	 *
+	 * @private
+	 */
+	private _registerListeners(){
+		// make temporary list of missing components (implementing class not found)
+		this.context.getBus().subscribe("app.android.missing_impl", BusSubscriber.from((vEvent)=>{
+			const cmp = vEvent.getData() as AndroidComponent;
+			this._missingImpl[this.getComponentFullName(this.manifest,cmp.name)] = cmp;
+		}));
+
+		// after first fullscan, listen 'class.new' events to search each time if there are missing components.
+		this.context.getBus().subscribe("dxc.fullscan.post", BusSubscriber.from((vEvent)=>{
+
+			this.updateComponentImplementation();
+
+			if(!this._huntingImpl){
+				this.context.getBus().subscribe("class.new", BusSubscriber.from((vE)=> {
+					const cmpHunted = this._missingImpl[vE.getData()];
+					if(cmpHunted!=null){
+						cmpHunted.setImplementedBy(vE.getData());
+						this._missingImpl[vE.getData()] = null;
+						delete this._missingImpl[vE.getData()];
+						Logger.info(`[APP ANALYZER][ANDROID] Missing component implementation has been found for : ${cmpHunted.name}`)
+					}
+				}));
+				this._huntingImpl = true;
+			}
+		}));
+
 	}
 
 	/**
@@ -314,6 +355,7 @@ export default class AndroidAppAnalyzer implements IAppAnalyzer
 
 		// update internal DB
 		manifest.usesPermissions.map(x => {
+			console.log(x);
 			this.context.trigger({
 				type: "app.permission.new",
 				data: x
@@ -358,5 +400,39 @@ export default class AndroidAppAnalyzer implements IAppAnalyzer
 
 		return true;
     }
+
+	/**
+	 * For each component types,
+	 * search the associated class
+	 *
+	 * @method
+	 */
+	updateComponentImplementation(){
+		['activity','provider','receiver','service'].map((vCmpType)=>{
+			this.context.find[vCmpType]("name:.*").foreach((vIndex:number, vCmp:AndroidComponent)=>{
+				console.log(vIndex, vCmp);
+				console.log(vCmp.getImplementedBy);
+
+				if(vCmp.__impl==null){
+					const cls = this.context.find.get.class(this.getComponentFullName(this.manifest, vCmp.name));
+					if(cls!=null){
+						Logger.info(`[APP ANALYZER][ANDROID] Class implementing component (${vCmp.name}) has been found`);
+						vCmp.__impl = (cls);
+					}else{
+						Logger.error(`[APP ANALYZER][ANDROID] Class implementing component (${vCmp.name}) cannot be found`);
+						this.context.getBus().send(new BusEvent({
+							type: "app.android.missing_impl",
+							data: vCmp
+						}));
+					}
+				}
+
+			})
+		});
+	}
+
+	postScan(){
+		this.updateComponentImplementation();
+	}
 }
 

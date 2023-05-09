@@ -15,7 +15,7 @@ import {AdbBridgeException} from "./errors/AdbBridgeException.js";
 import {
     PrivilegedExecutionPhase,
     PrivilegedExecutionStrategy,
-    PrivilegedExecutionStrategyMap, PrivilegedExecutionType
+    PrivilegedExecutionStrategyMap, PrivilegedExecutionType, StrategyTrigger
 } from "./PrivilegedExecutionStrategy.js";
 import Util from "./Utils.js";
 import {AndroidInstallOptionsEnum, AndroidPackageInstallOptions} from "./android/bridge/AndroidInstallOptions.js";
@@ -54,6 +54,7 @@ export default class AdbWrapper implements IBridge
     static TCP_TRANSPORT = 'T';
 
     static DEFAULT_PRIV_STRATEGY = 'su';
+    static DEFAULT_EMU_STRATEGY = 'emu-default';
     strategies:PrivilegedExecutionStrategyMap = {};
 
     /**
@@ -605,14 +606,22 @@ export default class AdbWrapper implements IBridge
             device.type = OperatingSystem.ANDROID;
 
             // use Device Profile instead of isEmulated flag
-            device.isEmulated = data[0].match(emuRE);
-            // remove ?
-            if(device.isEmulated){
-                device.bridge.setTransport(AdbWrapper.TCP_TRANSPORT);
-            }
+            // device.isEmulated = data[0].match(emuRE);
+            Logger.info("DEVICE ID :: ",id);
+            Logger.info("DEVICE ID :: data ",data.join("#"));
 
             device.connected = true;
             device.getDefaultBridge().up = true;
+
+            // basic emulator detection based on device name (emulator-XXXX)
+            if(id.match(emuRE)){
+                device.setEmulatedFlag();
+                // emulated device use TCP transport instead of USB by default
+                //device.bridge.setTransport(AdbWrapper.TCP_TRANSPORT);
+                (device.bridge as AdbWrapper).addEmulatorStrategy();
+            }
+
+
 
             for(let i=0; i<data.length; i++){
                 Logger.debug(`[DEVICE MANAGER] Parsing device list : ${data[i]}`);
@@ -885,11 +894,11 @@ export default class AdbWrapper implements IBridge
      * @async
      * @method
      */
-    async privilegedShell(command:string, pOptions:any = {detached: false, strategy:'su'}):Promise<boolean|string|Buffer>{
+    async privilegedShell(command:string, pOptions:any = {detached: false}):Promise<boolean|string|Buffer>{
         Logger.info(`[ADB] Privileged exec <detached:${pOptions.detached?'true':'false'}> : ${command}`);
 
         if(!pOptions.hasOwnProperty('strategy') || pOptions.strategy==null){
-            pOptions.strategy = AdbWrapper.DEFAULT_PRIV_STRATEGY;
+            pOptions.strategy = this.isEmulated() ? AdbWrapper.DEFAULT_EMU_STRATEGY : AdbWrapper.DEFAULT_PRIV_STRATEGY;
         }
 
         const stt:PrivilegedExecutionStrategy = this.getStrategy(pOptions.strategy);
@@ -1267,6 +1276,41 @@ export default class AdbWrapper implements IBridge
        }
 
        return verifiedOpts;
+    }
+
+
+    /**
+     * To perform basic detection of emulator mainly based on device ID
+     *
+     * @return {boolean|null} Return TRUE if the device is emulated else FALSE. If there is not device bound to this bridge it returns NULL
+     * @method
+     */
+    isEmulated():boolean|null {
+        if(this.deviceID==null){
+            return null;
+        }
+
+        return (emuRE.test(this.deviceID));
+    }
+
+    addEmulatorStrategy(pName = 'emu-default'):void {
+        if(this.getStrategy(pName)==null){
+            this.addPrivilegedStrategy(pName, new PrivilegedExecutionStrategy({
+                name: pName,
+                phases: [new PrivilegedExecutionPhase({
+                    type: PrivilegedExecutionType.COMMAND,
+                    priv: false,
+                    bridgeCmd: "shell",
+                    hostBin: "adb",
+                    hostBinArgs: ['-s',this.deviceID,'root']
+                })]
+            }));
+        }
+
+        const strat = this.getStrategy(pName);
+        if(strat.mustRun(StrategyTrigger.DEV_LIST) && !strat.hasRun()){
+
+        }
     }
 }
 

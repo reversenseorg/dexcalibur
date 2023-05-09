@@ -132,7 +132,7 @@ export class MagicHelper extends  External.ExternalHelper implements IFileAnalyz
         const bin = MagicHelper.getToolPath();
 
         try{
-            const vFiles:any[] = _glob_.sync(pPath+(pPath[pPath.length-1]=="/"?"**/*":"/**/*"), {
+            const vFiles:any[] = _glob_.default.sync(pPath+(pPath[pPath.length-1]=="/"?"**/*":"/**/*"), {
                 dot:true,
                 nodir: true,
                 ignore: pSkipGlob,

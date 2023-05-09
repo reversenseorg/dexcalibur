@@ -4,6 +4,11 @@ import ModelInstruction from "./ModelInstruction.js";
 import ModelMethod from "./ModelMethod.js";
 import {EOL} from "os";
 import ModelClass from "./ModelClass.js";
+import {NodeInternalType} from "./NodeInternalType.js";
+import {NodeType} from "./persist/orm/NodeType.js";
+import {NodeProperty} from "./persist/orm/NodeProperty.js";
+import {DbDataType, DbKeyType} from "./persist/orm/DbAbstraction.js";
+import {DataSourceHelper} from "./DataSourceHelper.js";
 
 /**
  * Represents a call to a method, a field or a class
@@ -12,6 +17,16 @@ import ModelClass from "./ModelClass.js";
  */
 export default class ModelCall extends Savable
 {
+    static TYPE:NodeType = (new NodeType( "call", NodeInternalType.CALL, [
+        (new NodeProperty("instr")).volatile().single(ModelInstruction.TYPE),
+        (new NodeProperty("caller")).volatile().single(ModelMethod.TYPE),
+        (new NodeProperty("calleed")).volatile().single(ModelMethod.TYPE),
+        (new NodeProperty("line")).volatile().type(DbDataType.INTEGER).def(-1),
+        (new NodeProperty("object")).volatile().type(DbDataType.BLOB),
+        (new NodeProperty("subject")).volatile().type(DbDataType.BLOB),
+    ]))
+        .dataSource(DataSourceHelper.MEM, "call");
+    __:NodeInternalType = NodeInternalType.CALL;
 
     instr:ModelInstruction = null;
     caller:ModelMethod = null;

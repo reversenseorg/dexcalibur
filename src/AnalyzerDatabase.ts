@@ -8,12 +8,15 @@ import DexcaliburProject from "./DexcaliburProject.js";
 import {ConnectorFactory } from "./ConnectorFactory.js";
 import {IDatabaseAdapter, IDbCollection, IDbIndex} from "./persist/orm/DbAbstraction.js";
 import {NodeInternalType} from "./NodeInternalType.js";
+import { NodeType } from "./persist/orm/NodeType.js";
+import {IStringIndex} from "./core/IStringIndex.js";
 
 
 export default class AnalyzerDatabase
 {
     ctx:DexcaliburProject = null;
 
+    _tmpConn:IDatabaseAdapter;
 
     /**
      * DB connector
@@ -54,7 +57,7 @@ export default class AnalyzerDatabase
      * @param {String} pConnectorType [Optional] Default NULL. Connector type
      * @constructor
      */
-    constructor(pContext:DexcaliburProject, pConnectorType:string=null){
+    constructor(pContext:DexcaliburProject, pConnectorType:string=null, pDbFactory:ConnectorFactory|null = null){
         this.ctx = pContext;
 
         if(pConnectorType != null){
@@ -62,6 +65,12 @@ export default class AnalyzerDatabase
         }else {
             this.conn = pContext.connector;
         }
+
+
+        if(pDbFactory!=null){
+            this._tmpConn = pDbFactory.newConnector('inmemory',pContext);
+        }
+
 
         this.conn.connect({});
 
@@ -125,5 +134,24 @@ export default class AnalyzerDatabase
                 break;
         }
         return res;
+    }
+
+    /**
+     * To get a coolection from local connector instance or to allocate it
+     *
+     * @param pName
+     * @param pNodeType
+     */
+    getCollection(pName:string, pNodeType:NodeType):IDbCollection {
+        if((this as IStringIndex)[pName]==null){
+            return this.conn.getCollection(pName);
+        }else{
+            return ((this as IStringIndex)[pName] as IDbCollection);
+        }
+    }
+
+
+    getTempConnector():IDatabaseAdapter {
+        return this._tmpConn;
     }
 }

@@ -1035,11 +1035,11 @@ export default class WebServer
             try{
                 Logger.info("[SESSION] Query param : "+JSON.stringify(Object.keys(req.query))+" , "+usr_svc.getQueryParam());
                 if(req.cookies!=null && req.cookies[usr_svc.getCookieName()] != null){
-                    Logger.info("[SESSION] Opening session from cookie ...");
+                    Logger.debug("[SESSION] Opening session from cookie ...");
                     req.dxc = {
                         sess: usr_svc.openSession(req.cookies[usr_svc.getCookieName()])
                     };
-                    Logger.info("[SESSION] Opening session from cookie : Done");
+                    Logger.debug("[SESSION] Opening session from cookie : Done");
 
 
                     if(req.query._puid != null && req.dxc.sess != null){
@@ -1050,11 +1050,11 @@ export default class WebServer
                 }
                 else if(req.query[usr_svc.getQueryParam()]!=null){
 
-                    Logger.info("[SESSION] Opening session from query ...");
+                    Logger.debug("[SESSION] Opening session from query ...");
                     req.dxc = {
                         sess: usr_svc.openSession(req.query[usr_svc.getQueryParam()])
                     };
-                    Logger.info("[SESSION] Opening session from query : Done");
+                    Logger.debug("[SESSION] Opening session from query : Done");
 
                     if(req.query._puid != null && req.dxc.sess != null){
                         //if(self.context.)

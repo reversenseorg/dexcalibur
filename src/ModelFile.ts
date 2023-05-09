@@ -1,5 +1,4 @@
 import * as _path_ from 'path';
-import * as _md5_ from 'md5';
 import * as OS from 'os';
 import {EncodedDataType} from "./FileTypes.js";
 import ModelFileSection from "./ModelFileSection.js";
@@ -14,6 +13,7 @@ import {NodeProperty} from "./persist/orm/NodeProperty.js";
 import {NodeInternalType} from "./NodeInternalType.js";
 import {ValidationRule} from "./Validator.js";
 import {INode} from "./INode.js";
+import {CryptoUtils} from "./CryptoUtils.js";
 
 
 let UIDS:string[]=[];
@@ -270,10 +270,8 @@ export default class ModelFile implements INode,IPersistent {
     }
 
     generateUID(): void {
-        this._uid = this.scope.getInternalName()+':'+_md5_(this._r);
-
-        //this._uid = _md5_(this.path);
-
+        this._uid = this.scope.getInternalName()+':'+CryptoUtils.md5(this._r);
+        //this._uid = CryptoUtils.md5(this.path);
         //do{ this._uid=_md5( Util.randString(6, Util.ALPHANUM) }while( UIDS.indexOf(this._uid)>-1);
     }
 

@@ -94,28 +94,37 @@ export default class PlatformManager extends ValidationCapable
 
         let path:string = _path_.join( this.engine.workspace.getTempFolderLocation(), pPlatform.getUID()+".dex");
         let success;
-        await pipeline(
+
+        Logger.info("[Platform Manager] Downloading platform : "+pPlatform.getRemotePath());
+        const res = await pipeline(
             got.stream(pPlatform.getRemotePath()),
             _fs_.createWriteStream(path)
         );
 
+
         if(_fs_.existsSync(path) == true){
+
+            Logger.info("[Platform Manager] Platform downloaded ! ");
             success = await DexHelper.disassemble(path, pPlatform.getLocalPath());
             //Utils.execSync(`java -jar ${_path_.join(Util.__dirname(import.meta.url),'..','bin','baksmali.jar')} d ${path} -o ${pPlatform.getLocalPath()}`, "ascii");
             //_fs_.unlinkSync(path);
+            Logger.info("[Platform Manager] Platform analyzed  ! ");
             if(success){
                 pPlatform.checkInstall();
 
+                Logger.info("[Platform Manager] Platform installed succesfully ! ");
                 if(pCallback != null){
                     pCallback();
                 }
             }else{
+                Logger.info("[Platform Manager] Platform not analyzed ! ");
                 throw PlatformManagerException.PLATFORM_NOT_ANALYZED();
             }
 
 
             return true;
         }else{
+            Logger.info("[Platform Manager] Platform cannot be installed ! ");
             throw PlatformManagerException.PLATFORM_NOT_INSTALLED();
             return false;
         }

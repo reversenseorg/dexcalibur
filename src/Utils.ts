@@ -12,6 +12,14 @@ import * as Got from "got";
 import {TestExecHelper} from "./tests/TestExecHelper.js";
 import * as Log from "./Logger.js";
 
+
+
+
+export interface SearchValueMatch {
+    name: string;
+    value: string;
+}
+
 const got = Got.default;
 
 let Logger:Log.ProdLogger = Log.newLogger() as Log.ProdLogger;
@@ -263,8 +271,12 @@ export default class Util {
 
     static escapeRE(data:string):string{
         // regexp replace ici
-        while(data.indexOf(".")>-1) data.replace(".","<<>>");
-        while(data.indexOf("<<>>")>-1) data.replace("<<>>","\\.");
+        while(data.indexOf(".")>-1){
+            data = data.replace(".","<<>>");
+        }
+        while(data.indexOf("<<>>")>-1) {
+            data = data.replace("<<>>","\\.");
+        }
         return data;
     }
 
@@ -520,6 +532,145 @@ export default class Util {
     static __dirname(pImportMetaUrl:string){
         const path = (new URL(pImportMetaUrl).pathname);
         return path.substring(0, path.lastIndexOf(_path_.sep));
+    }
+
+
+
+    /**
+     * To append a relative URI at the end of an existing one.
+     *
+     * It removes additional slashes.
+     *
+     * @param {string} pBasePath The URI base
+     * @param {string} pRelPath The URI to append to existing
+     * @return {string} Resulting URI
+     * @method
+     * @static
+     */
+    static concatAsURI( pPathParts:string[]):string {
+        let path: string = "";
+        const size = pPathParts.length-1;
+
+        pPathParts.map( (vPath:string, vOffset:number)=>{
+            const start=((vOffset>0 && vPath[0] === '/') ? 1 : 0);
+            const last=vPath.length-1;
+
+            if(vOffset==size || vPath[last] === '/'){
+                path += vPath.substring(start)
+            }else{
+                path +=  vPath.substring(start)+"/";
+            }
+        });
+
+        return path;
+    }
+
+
+    /**
+     * To search a data by regexp inside an object at a configurable depth
+     *
+     * Return all matching values with access path as a string
+     *
+     * @param pObject
+     * @param pAccessPath
+     * @param pBlacklist
+     * @param tab
+     */
+    static searchValue(pRegexp:RegExp, pObject: any, pAccessPath: string,
+                       pBlacklist:string[], pMaxDepth:number, pMatches: SearchValueMatch[], pCurrDepth:number = 0):void {
+
+        let basePath:string;
+
+        if (typeof pObject === 'object'
+            && (pMaxDepth==-1 || pCurrDepth <= pMaxDepth)) {
+
+            basePath = ( pAccessPath != null ? pAccessPath+"." : "" );
+
+            Object.keys(pObject).forEach((vKey) => {
+                if (pBlacklist.indexOf(basePath + vKey) == -1)
+                    Util.searchValue(
+                        pRegexp,
+                        pObject[vKey],
+                        basePath + vKey,
+                        pBlacklist,
+                        pMaxDepth,
+                        pMatches,
+                        pCurrDepth+1);
+            });
+        }
+        else if (pRegexp.test(pObject)){
+            pMatches.push({ name: pAccessPath, value: pObject });
+        }
+    }
+
+
+
+    /**
+     * To search a data by regexp inside an object at a configurable depth
+     *
+     * Return all matching values with access path as a string
+     *
+     * @param pObject
+     * @param pAccessPath
+     * @param pBlacklist
+     * @param tab
+     */
+    static readValue(pObject: any, pAccessPath: string):any {
+
+
+        const levels = pAccessPath.split('.');
+        let node = pObject;
+
+        for(let i=0; i<levels.length; i++){
+            if((typeof (node) === 'object') && (node !== null) && (node !==undefined)){
+                if(node.hasOwnProperty(levels[i])){
+                    node = node[levels[i]];
+                }else{
+                    return null;
+                }
+            }else{
+                return null;
+            }
+        }
+
+        return node;
+    }
+
+
+    /**
+     * To search a data by regexp inside an object at a configurable depth
+     *
+     * Return all matching values with access path as a string
+     *
+     * @param pObject
+     * @param pAccessPath
+     * @param pBlacklist
+     * @param tab
+     */
+    static walkOver(pObject: any, pCallback:any, pAccessPath: string,
+                    pBlacklist:string[], pMaxDepth:number,  pCurrDepth:number = 0):any {
+
+        let basePath:string;
+
+        if (typeof pObject === 'object'
+            && (pMaxDepth==-1 || pCurrDepth <= pMaxDepth)) {
+
+            basePath = ( pAccessPath != null ? pAccessPath+"." : "" );
+
+            Object.keys(pObject).forEach((vKey) => {
+                if (pBlacklist.indexOf(basePath + vKey) == -1)
+                    Util.walkOver(
+                        pObject[vKey],
+                        pCallback,
+                        basePath + vKey,
+                        pBlacklist,
+                        pMaxDepth,
+                        pCurrDepth+1);
+            });
+        }
+        else{
+            pCallback.bind(pObject);
+        }
     }
 
 

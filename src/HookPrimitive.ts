@@ -4,7 +4,7 @@ import Hook from "./Hook.js";
 import {HookVariable, HookVariableArray, HookVariableObject} from "./HookVariable.js";
 import HookSet from "./HookSet.js";
 import * as Log from './Logger.js';
-import * as md5 from 'md5';
+import {CryptoUtils} from "./CryptoUtils.js";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -99,7 +99,7 @@ export default class HookPrimitive
             console.log(this);
         }
         //hook.setID( context.hook.nextHookIdFor(method));
-        hook.setID( md5(context.hook.nextHookIdFor(method)));
+        hook.setID( CryptoUtils.md5(context.hook.nextHookIdFor(method)));
 
         hook.setParentID(pHookGroup.id);//name);
         hook.makeHookFor(method);
@@ -129,7 +129,7 @@ export default class HookPrimitive
             //console.log(method, context.hook.nextHookIdFor(method));
         }
 
-        hook.setID( md5(context.hook.nextHookIdFor(method)));
+        hook.setID( CryptoUtils.md5(context.hook.nextHookIdFor(method)));
         hook.setParentID(set.id);//name);
         hook.isIntercept = true;
         hook.onMatch = this.onMatch;

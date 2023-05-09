@@ -204,6 +204,7 @@ export class SearchAPI
         this._db = pData;
         this._finder = new Finder(this._db);
         this.get = new SearchAPISelector(this._db);
+
         this.calls = new SearchAPICallSelector(this._db, this._finder);
     }
 

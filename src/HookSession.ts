@@ -24,10 +24,8 @@ import {NodeType} from "./persist/orm/NodeType.js";
 import {NodeInternalType} from "./NodeInternalType.js";
 import {NodeProperty, NodePropertyState} from "./persist/orm/NodeProperty.js";
 import {DbDataType, DbKeyType, DbSerialize} from "./persist/orm/DbAbstraction.js";
-import {ValidationRule} from "./Validator.js";
-import DataScope from "./DataScope.js";
-import ModelFileSection from "./ModelFileSection.js";
-import * as _md5_ from "md5";
+import {CryptoUtils} from "./CryptoUtils.js";
+
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -141,7 +139,7 @@ export default class HookSession extends WebsocketSession implements INode
         // should be bound to the device also
         const now =  Util.time();
 
-        this._uid = _md5_(now);
+        this._uid = CryptoUtils.md5(now+"");
 
         // hook
         this.message = [];

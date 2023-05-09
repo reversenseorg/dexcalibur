@@ -1,6 +1,6 @@
 import DexcaliburProject from "./DexcaliburProject.js";
+import {CryptoUtils} from "./CryptoUtils.js";
 
-import * as md5 from 'md5';
 
 export default class HookPrologue
 {
@@ -50,7 +50,7 @@ export default class HookPrologue
     buildScript():void{
         let script:string=this.script;
         let tags:any = {
-            "@@__CTX__@@": "ctx_"+md5(this.parentID)
+            "@@__CTX__@@": "ctx_"+CryptoUtils.md5(this.parentID)
         };
 
         for(let i in tags){
