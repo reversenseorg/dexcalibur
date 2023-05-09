@@ -5,7 +5,9 @@
  * @class
  */
 import SerializedObject from "./SerializedObject.js";
-import {IDbCollection} from "../../src/persist/orm/DbAbstraction.js";
+import {IDbCollection, IDbIndex} from "../../src/persist/orm/DbAbstraction.js";
+import {Comparison, MerlinSearchRequest, Operation, OperationType } from "../../src/search/MerlinSearchRequest.js";
+import {SearchRequestCondition} from "../../src/search/SearchRequestCondition.js";
 
 
 export default class InMemoryDbCollection implements IDbCollection
@@ -93,6 +95,143 @@ export default class InMemoryDbCollection implements IDbCollection
         }
 
         return o;
+    }
+
+
+    private _createComparisonFunction(pOperations: Operation[]): ((pData: any) => boolean) {
+
+
+        return (vData: any) => {
+
+            console.log(vData);
+
+            let i = 0;
+            let op: Operation;
+            let match = true;
+            const fields = vData.fields;
+            while (i < pOperations.length) {
+                op = pOperations[i];
+                switch (op.type) {
+                    case OperationType.FILTER:
+                    case OperationType.SEARCH:
+                        if (op.args.opts.strict) {
+                            match = match && (vData === op.args.pattern);
+                        } else {
+                            match = match && (op.args.pattern as SearchRequestCondition).test(vData);
+                        }
+                        break;
+                    case OperationType.TIME:
+
+
+                        switch (op.args.comparison) {
+                            case Comparison.LTE:
+                                match = match && ((new Date(fields[op.args.field])).getTime() <= op.args.date);
+                                break;
+                            case Comparison.GTE:
+                                match = match && ((new Date(fields[op.args.field])).getTime() >= op.args.date);
+                                break;
+                            case Comparison.LT:
+                                match = match && ((new Date(fields[op.args.field])).getTime() < op.args.date);
+                                break;
+                            case Comparison.GT:
+                                match = match && ((new Date(fields[op.args.field])).getTime() > op.args.date);
+                                break;
+                            case Comparison.EQ:
+                                match = match && ((new Date(fields[op.args.field])).getTime() == op.args.date);
+                                break;
+                        }
+                        break;
+                    default:
+                        // stop comparison : that means non-compressible operation has been reach (aggregation, filter, limit, ...)
+                        i = pOperations.length;
+                        break;
+                }
+            }
+            return match;
+        }
+    }
+
+    private _searchInCacheStore(pRequest: MerlinSearchRequest, pResult: IDbIndex): any {
+
+        const result: any = {
+            completed: true,
+            results: [],
+            newLimit: -1
+        };
+
+
+        const phases = pRequest.getPhases();
+        let matchFn: (v: any) => boolean;
+
+        // walk over cache
+        let phaseRes: any[] = [this.getAll()];
+
+        for (let i = 0; i < phases.length; i++) {
+
+            switch (phases[i][0].type) {
+                case OperationType.UNION:
+                    phaseRes[i] = this._searchInCacheStore(phases[i][0].args.request as MerlinSearchRequest, pResult);
+                    phaseRes[i] = phaseRes[i - 1].concat(phaseRes[i]);
+                    break;
+                case OperationType.INTERSECT:
+                    //throw CacheException.DENY_SEARCH_WITH_INTERSECT();
+                    phaseRes[i] = this._searchInCacheStore(phases[i][0].args.request as MerlinSearchRequest, pResult);
+
+                    break;
+                case OperationType.JOIN:
+                    //throw CacheException.DENY_SEARCH_WITH_JOIN();
+                    phaseRes[i] = this._searchInCacheStore(phases[i][0].args.request as MerlinSearchRequest, pResult);
+                    break;
+                case OperationType.AGGR:
+                    //throw CacheException.DENY_SEARCH_WITH_AGGREGATE();
+                    break;
+                case OperationType.SIZE:
+                    if (phaseRes[i-1].length <= phases[i][0].args.limit) {
+                        result.newLimit = phases[i][0].args.limit - phaseRes[i-1].length;
+                        phaseRes[i] = phaseRes[i-1];
+                    } else {
+                        result.newLimit = 0;
+                        phaseRes[i] = phaseRes[i-1].slice(0, phases[i][0].args.limit);
+                    }
+                    break;
+                default:
+                    matchFn = this._createComparisonFunction(phases[i]);
+                    console.log(i,phaseRes.length,phaseRes[i]);
+                    phaseRes[i] = phaseRes[i].map((vEntry: any) => {
+                        return (matchFn.bind(vEntry));
+                    });
+                    break;
+            }
+
+        }
+        result.results = phaseRes.pop();
+        result.completed = true;
+
+
+        return result;
+    }
+
+    search(pRequest: MerlinSearchRequest, pResult: IDbIndex): IDbIndex {
+
+        // search is line in cache satisfies the request
+        let result: any[] = [];
+        let continueSearch = true;
+
+        if (!pRequest.hasAggregate()) {
+            const res = this._searchInCacheStore(pRequest, pResult);
+            if (res.results.length > 0) {
+                result = res.results;
+            }
+        }
+
+
+        // update result index
+        result.map((x: any, o: number) => {
+            pResult.setEntry(o, x)
+        });
+
+
+        return  pResult;
     }
 
     // ======= serialize =======
