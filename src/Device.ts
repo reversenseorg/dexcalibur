@@ -87,10 +87,12 @@ export class Device
     selected = false;
 
     /**
+     * A field used as cache for `Device.isEmulator()` method
+     *
+     * @type {boolean|null} Default is NULL until `Device.isEmulator()` is called. TRUE is the device is emulated else FALSE.
      * @field
-     * @deprecated
      */
-    isEmulated = false;
+    isEmulated:boolean|null = null;
 
     /**
      * Device internal UID
@@ -216,7 +218,6 @@ export class Device
      * @constructor
      */
     constructor(config:any=null){
-
         if(config !== null)
             for(const i in config) this[i] = config[i];
     }
@@ -1065,5 +1066,52 @@ export class Device
 
         return this.bridge.prepareInstallOptions(pOptions);
 
+    }
+
+    /**
+     * To check if the device is emulated or not.
+     *
+     * The result is cached into `isEmulated` field
+     *
+     * @method
+     */
+    isEmulator(pForce=false):boolean {
+        if(!pForce && this.isEmulated!=null){
+            return this.isEmulated;
+        }
+
+        let emu:boolean = false;
+
+        // ask basic detection to bridge
+        const e = this.bridge.isEmulated();
+        if(e!=null) emu = e;
+
+        // ask deep detection to device profile
+        if(this.profile!=null){
+            emu = this.profile.isEmulated();
+        }
+
+        return emu;
+    }
+
+    /**
+     * To set the flag "isEmulated"
+     *
+     * @param {boolean} pFlag Default is TRUE
+     * @method
+     */
+    setEmulatedFlag(pFlag = true):void {
+        // update flag
+        this.isEmulated = pFlag;
+
+        // update device profile
+        if(this.profile!=null){
+            this.profile.getSystemProfile().emulated = true;
+        }
+
+        // update bridge config
+        if(this.bridge!=null){
+            //this.bridge.addE
+        }
     }
 }

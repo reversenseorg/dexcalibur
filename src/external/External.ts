@@ -52,9 +52,9 @@ export namespace External {
             this.tool = pTool;
         }
 
-        public static getExtPath():string {
+        public static getExtPath(pTool=""):string {
             if(this.tool==undefined){
-                throw new Error('Tool is not configured');
+                throw new Error('Tool is not configured :'+pTool);
             }
             return this.tool.getPath();
         }

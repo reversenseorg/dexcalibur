@@ -18,6 +18,12 @@ export class AnalyzerException extends MonitoredError {
         return new AnalyzerException("The ABI '"+pABI+"' is not supported. Please, fill an issue.",
             ErrorCode.ANALYZER_NATIV + 201) };
 
+    static ANDROID_SEARCH_SPLITTED_DEV_FAIL = ()=>{
+        return new AnalyzerException("Android Package Analyzer : Splitted APK cannot be search because device is offline or unknow",
+            ErrorCode.ANALYZER_NATIV + 202) };
+
+
+
     constructor( pMsg:string, pCode:number = null, pExtra:any = null) {
         super('GENERIC ANALYZER', pMsg, pCode, pExtra);
     }

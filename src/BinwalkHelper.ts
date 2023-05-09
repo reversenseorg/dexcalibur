@@ -5,8 +5,6 @@ import DexcaliburProject from "./DexcaliburProject.js";
 import {EOL} from "os";
 import BusEvent from "./BusEvent.js";
 import * as _glob_ from "glob";
-
-
 import * as Log from './Logger.js';
 import ModelFileSection from "./ModelFileSection.js";
 import {External} from "./external/External.js";
@@ -17,6 +15,7 @@ import {IFileAnalyzer} from "./analyzer/IFileAnalyzer.js";
 import StatusMessage from "./StatusMessage.js";
 import ShellHelper from "./ShellHelper.js";
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
+
 
 export class BinwalkHelper extends  External.ExternalHelper implements IFileAnalyzer{
 
@@ -241,7 +240,7 @@ export class BinwalkHelper extends  External.ExternalHelper implements IFileAnal
         // let errFile
 
         try{
-            const vFiles:any[] = _glob_.sync(pPath+"/**/*", {
+            const vFiles:any[] = _glob_.default.sync(pPath+"/**/*", {
                 dot:true,
                 nodir: true,
                 ignore: pSkipIf,

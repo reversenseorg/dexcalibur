@@ -97,9 +97,9 @@ export class CliFrontend {
         this.copyright = pCopyright;
 
         // override default logger to print into the terminal for debug purpose only
-        this.installer.__log = (pMsg:string)=>{
+        /*this.installer.__log = (pMsg:string)=>{
             console.log('\x1b[36m%s\x1b[0m', pMsg);
-        }
+        }*/
 
         this.configure();
     }
@@ -451,7 +451,6 @@ Required version: >= 16.x
                 },
                 update: (vStep:StepInfo, vRes:any)=>{
                     if(vRes.args.success){
-                        console.log(vRes);
                         vStep.tokens["##_STATUS_##"] = `Frida setup is OK [installed=${vRes.args.installedVersion}][required=${vRes.args.requiredVersion}]`;
                         vStep.controls = [
                             { label:"Abort", key:"q", action: (pStep:any)=>{ process.exit(1); } },
@@ -514,7 +513,6 @@ Alternatively, you can let Dexcalibur reinstall Radare2 from prebuilt binary
                 },
                 update: (vStep:StepInfo, vRes:any)=>{
                     if(vRes.args.success){
-                        console.log(vRes);
                         vStep.tokens["##_STATUS_##"] = `Radare2 setup is OK [installed=${vRes.args.installedVersion}][required=${vRes.args.requiredVersion}]`;
                         vStep.controls = [
                             { label:"Abort", key:"q", action: (pStep:any)=>{ process.exit(1); } },
@@ -576,7 +574,6 @@ So, if ADB already exists on your file system, but it is a new workspace, you MU
                 },
                 update: (vStep:StepInfo, vRes:any)=>{
                     if(vRes.args.success){
-                        console.log(vRes);
                         vStep.tokens["##_STATUS_##"] = `ADB setup is OK [installed=${vRes.args.installedVersion}][required=${vRes.args.requiredVersion}]`;
                         vStep.controls = [
                             { label:"Abort", key:"q", action: (pStep:any)=>{ process.exit(1); } },

@@ -17,5 +17,6 @@ export class PlatformManagerException extends MonitoredError {
         super('DEVICE MANAGER', pMsg);
         this.code = pCode;
         this.extra = pExtra;
+        console.log(pMsg);
     }
 }

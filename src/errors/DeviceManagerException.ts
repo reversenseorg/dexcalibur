@@ -12,6 +12,7 @@ export class DeviceManagerException extends MonitoredError {
     static DEVICE_NOT_CONNECTED = (pUID)=>{ return new DeviceManagerException("Device [uid="+pUID+"] is not connected", ErrorCode.DEVICE_MANAGER + 3) };
     static DEVICE_NOT_ENROLLED = (pUID)=>{ return new DeviceManagerException("Device [uid="+pUID+"] is not enrolled", ErrorCode.DEVICE_MANAGER + 4) };
     static DEVICE_PROFILING_FAILED = (pUID:string,pMessage:string)=>{ return new DeviceManagerException("The profiling of the device [uid="+pUID+"] failed : "+pMessage, ErrorCode.DEVICE_MANAGER + 5) };
+    static DEVICE_CANNOT_BE_REMOVED = (pUID="N/A")=>{ return new DeviceManagerException("Device cannot be removed [uid="+pUID+"]", ErrorCode.DEVICE_MANAGER + 6) };
 
 
 

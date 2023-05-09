@@ -1,5 +1,6 @@
 
-import * as CRYPTO from "node-forge"
+import * as _NodeForge_ from "node-forge";
+
 
 export interface CertificateValidity {
     notBefore:Date;
@@ -7,8 +8,16 @@ export interface CertificateValidity {
     exp:boolean;
 }
 
-export type CertificateField = CRYPTO.pki.CertificateField;
-export type PublicKey = CRYPTO.pki.PublicKey;
+
+
+
+// @ts-ignore
+const CRYPTO:any = _NodeForge_.default;
+
+// @ts-ignore
+export type CertificateField = _NodeForge_.default.pki.CertificateField;
+// @ts-ignore
+export type PublicKey = _NodeForge_.default.pki.PublicKey;
 
 export enum CertificateFormat {
     PEM="pem",
@@ -34,9 +43,11 @@ export default class Certificate {
     static fromX509( pCertBuffer:Buffer|string, pInputFormat:CertificateFormat = CertificateFormat.DER):any{
 
         const now:Date = new Date();
-        let obj:CRYPTO.asn1.Asn1;
+        // @ts-ignore
+        let obj:_NodeForge_.default.asn1.Asn1;
         let raw:any = null;
-        let cert:CRYPTO.pki.Certificate;
+        // @ts-ignore
+        let cert:_NodeForge_.default.pki.Certificate;
 
         if(typeof pCertBuffer==="string"){
             raw = pCertBuffer;
@@ -44,10 +55,13 @@ export default class Certificate {
             raw = pCertBuffer.toString();
         }
 
+
         if(pInputFormat==CertificateFormat.DER){
-            cert = CRYPTO.pki.certificateFromAsn1(CRYPTO.asn1.fromDer( raw))
+            // @ts-ignore
+            cert = _NodeForge_.default.pki.certificateFromAsn1(_NodeForge_.asn1.fromDer( raw))
         }else{
-            cert = CRYPTO.pki.certificateFromPem(raw)
+            // @ts-ignore
+            cert = _NodeForge_.default.pki.certificateFromPem(raw)
         }
 
         const c = new Certificate({
@@ -77,7 +91,8 @@ export default class Certificate {
     }
 
     private _raw:Buffer|string = null;
-    private _cert:CRYPTO.pki.Certificate = null;
+    // @ts-ignore
+    private _cert:_NodeForge_.default.pki.Certificate = null;
 
     //fingerprint:string;
     //infoAccess:string;
@@ -105,7 +120,8 @@ export default class Certificate {
         this.remote = pCertLocation;
     }
 
-    getX509Certificate():CRYPTO.pki.Certificate {
+    // @ts-ignore
+    getX509Certificate():_NodeForge_.default.pki.Certificate {
         return this._cert;
     }
 

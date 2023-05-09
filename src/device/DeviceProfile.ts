@@ -115,6 +115,16 @@ export default class DeviceProfile
     }
 
     /**
+     * To perform basic detection of emulator mainly based on device ID
+     *
+     * @return {boolean} Return TRUE if the device is emulated else FALSE.
+     * @method
+     */
+    isEmulated():boolean {
+        return this.getSystemProfile().isEmulator();
+    }
+
+    /**
      * 
      * @param {*} pName 
      * @param {*} pValue 
@@ -146,9 +156,7 @@ export default class DeviceProfile
         for(const ppt in this.sys_prop){
             for(const i in this.profiles){
 
-                Logger.info("[DEVICE][PROFILE] is() : "+i+" ");
-                Logger.info(this.profiles[i]);
-                Logger.info(this.profiles[i].is);
+                Logger.debug("[DEVICE][PROFILE] is() : "+i+" ");
                 if(this.profiles[i].is(ppt)){
                     this.profiles[i].setProperty(ppt, this.sys_prop[ppt]);
                 }

@@ -28,6 +28,7 @@ export function install(pHomePath:string, pConfig:GlobalSettings = null){
                 icon: "",
                 version: "1.0.0b",
                 buildNumber: "1.2.0",
+                thirdparts: _path_.join(Util.__dirname(import.meta.url),"..","..","thirdparty"),
                 home: pHomePath,
                 requirements: {
                     java: {
@@ -333,7 +334,7 @@ export function install(pHomePath:string, pConfig:GlobalSettings = null){
                     },
                     binwalk: {
                         name: "binwalk",
-                        version: {
+        /*                version: {
                             min: "2.0.0",
                             cmd: "binwalk -h",
                             io: [
@@ -341,7 +342,7 @@ export function install(pHomePath:string, pConfig:GlobalSettings = null){
                             ],
                             line: 1,
                             pattern: /^Binwalk v(?<version>[^ ]+)/
-                        },
+                        },*/
                         install: {
                             offline: {
                                 require: ["python"],
@@ -372,7 +373,9 @@ export function install(pHomePath:string, pConfig:GlobalSettings = null){
                         }
                     }
                 }
-            }, pConfig,licenseMgr
+            }, pConfig,licenseMgr, (pMsg:string)=>{
+                //console.log('\x1b[36m%s\x1b[0m', pMsg);
+            }
         );
 
         //console.log(licenseMgr);

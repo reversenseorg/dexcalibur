@@ -267,23 +267,30 @@ export default class DeviceManager extends ValidationCapable
      */
     clear(pDeviceID:string = null):boolean{
 
-        if(pDeviceID !== null){
-            throw new Error('[DEVICE MANAGER] Operation not supported');
+        if(pDeviceID != null && (this.devices[pDeviceID]!=null)){
+            delete this.devices[pDeviceID];
+            this.save();
+            //throw DeviceManagerException.DEVICE_CANNOT_BE_REMOVED(pDeviceID);
+            return true;
+        }else{
+            const success = _fs_.existsSync( this.devFile);
+
+            if(success == true){
+                _fs_.unlinkSync( this.devFile);
+                this.devices = {};
+                this.count = 0;
+                this.defaultDevice = null;
+            }
+
+            this.save();
+            return success;
+            
         }
-
-        const success = _fs_.existsSync( this.devFile);
-
-        if(success == true){
-            _fs_.unlinkSync( this.devFile);
-            this.devices = {};
-            this.count = 0;
-            this.defaultDevice = null;
-        }
-
-        this.save();
 
         
-        return success;
+
+        
+        
     }
 
 
@@ -687,6 +694,7 @@ export default class DeviceManager extends ValidationCapable
         }
 
     }
+
     /**
      * To enroll a new device or an updated device
      * 
@@ -746,6 +754,7 @@ export default class DeviceManager extends ValidationCapable
             targetPF = pm.getRemotePlatform(namePF);
 
             this.status = new StatusMessage(80, this.status.append("[Device Manager] Target platform is not installed. Downloading ..."));
+
             success = await pm.install(targetPF);
             if(success) {
                 Logger.info("[Device Manager] Target platform has been installed. ...");
