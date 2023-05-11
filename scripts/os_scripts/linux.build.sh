@@ -45,6 +45,8 @@ cp -r ./info.json ./dist/info.json
 cp -r ./dexcalibur ./dist/dexcalibur
 cp -r ./README.md ./dist/scripts
 cp -r ./src/requires ./dist/src/requires
+cp -r ./assets ./dist/assets
+cp -r ./thirdparty ./dist/thirdparty
 
 if [ -f "./package-lock.json" ]; then
   cp -r ./package-lock.json ./dist/package-lock.json
