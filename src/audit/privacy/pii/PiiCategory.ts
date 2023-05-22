@@ -1,6 +1,7 @@
 import {PiiType} from "./PiiType.js";
+import Asset, {AssetOptions} from "../../common/Asset.js";
 
-export interface PiiCategoryOptions {
+export interface PiiCategoryOptions extends AssetOptions {
     name?:string;
     description?:string;
     criticity?:PiiCriticity;
@@ -14,7 +15,7 @@ export enum PiiCriticity {
 }
 
 
-export class PiiCategory {
+export class PiiCategory extends Asset {
 
     name:string;
 
@@ -25,6 +26,8 @@ export class PiiCategory {
     types:PiiType[] = [];
 
     constructor(pOpts:PiiCategoryOptions) {
+        super(pOpts);
+
         for(const i in pOpts) this[i] = pOpts[i];
     }
 

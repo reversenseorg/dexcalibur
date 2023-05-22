@@ -18,6 +18,9 @@ import {PrivacyFinding, PrivacyFindingType} from "./PrivacyFinding.js";
 import {Product, ProductOptions} from "../../credit/Product.js";
 import {PiiClass} from "./pii/PiiClass.js";
 import {PII_Data} from "./assets/pii_schema.js";
+import { PrivacyModel } from "./PrivacyModel.js";
+import {AssuranceScanner, AssuranceScannerOptions} from "../common/AssuranceScanner.js";
+import AssuranceReport from "../common/AssuranceReport.js";
 
 
 export interface PrivacyScanOptions {
@@ -50,9 +53,11 @@ export interface PrivacyScannerOpts {
  *
  * @class
  */
-export class PrivacyScanner extends Product {
+export class PrivacyScanner extends AssuranceScanner {
 
     private _mainDB = 'global';
+
+    model:PrivacyModel;
 
     schema:{ [piiCls:string] :PiiClass} = PII_Data;
 
@@ -91,7 +96,6 @@ export class PrivacyScanner extends Product {
             __pVersion: '1.0',
             __pSerial: pConfig.project.getLicenseNo(),
             __pKey: pConfig.project.getLicenseKey()
-
         });
 
         for(const i in pConfig){
@@ -103,7 +107,7 @@ export class PrivacyScanner extends Product {
             domains: []
         };
 
-        this._loadSignature();
+        this._loadModel();
     }
 
     /**
@@ -111,7 +115,7 @@ export class PrivacyScanner extends Product {
      *
      * @private
      */
-    private _loadSignature():void {
+    private _loadModel():void {
 
         // import trackers list
         const rawData = JSON.parse(
@@ -150,6 +154,9 @@ export class PrivacyScanner extends Product {
                 });
             }
         });
+
+        this.model = new PrivacyModel();
+        this.model.loadTrackersSignatures();
     }
 
     /**
@@ -363,6 +370,12 @@ export class PrivacyScanner extends Product {
         //}
 
         //return this._reScan(pContext,pOptions);
+    }
+
+    runModel(pContext:DexcaliburProject):AssuranceReport{
+        this.run(pContext, {});
+
+        return this.report;
     }
 
     /**

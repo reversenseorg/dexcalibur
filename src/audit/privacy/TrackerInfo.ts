@@ -36,6 +36,12 @@ export class TrackerInfo {
         }
     }
 
+    /**
+     * To parse a raw object serialized using Exodus format
+     *
+     * @param {any} pRaw Poor js object
+     * @return {TrackerInfo} Tracker metadata and signatures
+     */
     static importFromExodus(pRaw:ExodusTrackerJson):TrackerInfo {
         const o = new TrackerInfo({});
 
