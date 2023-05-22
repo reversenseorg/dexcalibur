@@ -1,4 +1,3 @@
-
 import * as _fs_ from "fs";
 import * as _os_ from "os";
 import * as _path_ from 'path';
@@ -7,10 +6,24 @@ import chalk from "chalk";
 import ArgParser from './src/ArgUtils.js';
 
 
-
 import DexcaliburEngine from './src/DexcaliburEngine.js';
 import DexcaliburWorkspace from './src/DexcaliburWorkspace.js';
 import {ConnectorFactory} from "./src/ConnectorFactory.js";
+import * as Log from "./src/Logger.js";
+import * as S from "./src/Settings.js";
+import {AuthenticationSettings} from "./src/user/auth/AuthenticationSettings.js";
+import {UserAccount} from "./src/user/UserAccount.js";
+import Util from "./src/Utils.js";
+import AccessControl from "./src/user/acl/AccessControl.js";
+import {install} from "./src/install/Installer.js";
+import DexcaliburRegistry from "./src/DexcaliburRegistry.js";
+import {PrivacyModel} from "./src/audit/privacy/PrivacyModel.js";
+import {ConstraintType} from "./src/audit/common/Constraint.js";
+import CodeConstraint from "./src/audit/common/CodeConstraint.js";
+import {NodeInternalType, NodeInternalTypeName} from "./src/NodeInternalType.js";
+import {UserSession} from "./src/user/session/UserSession.js";
+import {PrivacyScanner} from "./src/audit/privacy/PrivacyScanner.js";
+import {LicenceManager} from "./src/credit/LicenceManager.js";
 
 
 ConnectorFactory.getInstance(true);
@@ -24,7 +37,8 @@ enum SUBMENU {
     TEST,
     INSTALL,
     TOOLS,
-    START
+    START,
+    MODEL
 }
 
 
@@ -209,6 +223,62 @@ var Parser:ArgParser = new ArgParser(projectArgs, "dexcalibur-adm", [
         ],
         callback:(ctx,param)=>{ ctx.mode = SUBMENU.USER; } },
 
+    { name:"model",
+        help: "Assurance model management",
+        hasVal:false,
+        options: [
+            { name:"--privacy",
+                help: "Print privacy model",
+                hasVal:false,
+                callback:(ctx,param)=>{
+                    ctx.mPrintPriv = true;
+                }
+            },{ name:"--scan",
+                help: "Perform scan using specified models",
+                hasVal:false,
+                callback:(ctx,param)=>{
+                    ctx.mScan = true;
+                }
+            },{ name:"--output",
+                help: "To write the report to an output file.",
+                hasVal:true,
+                callback:(ctx,param)=>{
+                    ctx.mOut = param.value;
+                }
+            },{ name:"--type",
+                help: "Assurance model. Separated by comma. Example : --type=privacy",
+                hasVal:true,
+                callback:(ctx,param)=>{
+                    ctx.mScanType = param.value;
+                }
+            },{ name:"--pkg",
+                help: "Project name as in workspace.",
+                hasVal:true,
+                callback:(ctx,param)=>{
+                    ctx.mPkg = param.value;
+                }
+            },{ name:"--user",
+                help: "User name",
+                hasVal:true,
+                callback:(ctx,param)=>{
+                    ctx.mUser = param.value;
+                }
+            },{ name:"--pwd",
+                help: "User password",
+                hasVal:true,
+                callback:(ctx,param)=>{
+                    ctx.mPwd = param.value;
+                }
+            },{ name:"--prepare-scan",
+                help: "Prepare a scan",
+                hasVal:false,
+                callback:(ctx,param)=>{
+                    ctx.mScan = true;
+                }
+            }
+        ],
+        callback:(ctx,param)=>{ ctx.mode = SUBMENU.MODEL; } },
+
     { name:"logs",
         help: "Log management",
         hasVal:false,
@@ -264,16 +334,6 @@ var Parser:ArgParser = new ArgParser(projectArgs, "dexcalibur-adm", [
 
 Parser.parse(Process.argv);
 
-
-
-import * as Log from "./src/Logger.js";
-import * as S from "./src/Settings.js";
-import {AuthenticationSettings} from "./src/user/auth/AuthenticationSettings.js";
-import {UserAccount} from "./src/user/UserAccount.js";
-import Util from "./src/Utils.js";
-import AccessControl from "./src/user/acl/AccessControl.js";
-import {install} from "./src/install/Installer.js";
-import DexcaliburRegistry from "./src/DexcaliburRegistry.js";
 
 var Logger:Log.Logger = null;
 
@@ -624,6 +684,118 @@ ${"\t".repeat(1)}Default Arch = ${srv.getDefaultArchitecture()}
         }
         break;
     case SUBMENU.LOGS:
+        break;
+    case SUBMENU.MODEL:
+        let www:string|null = null;
+
+
+        (async function(){
+
+            try{
+                // create an empty single (not yet initialiazed) instance of engine+
+                const dxcInstance = DexcaliburEngine.getInstance();
+
+                /*if(projectArgs.uipath!==undefined){
+                    dxcWebRoot = (projectArgs.uipath[0]=='/'? projectArgs.uipath : _path_.join(__dirname, projectArgs.uipath));
+                }else{
+                    dxcWebRoot = null; //_path_.join(__dirname, 'src', 'webserver', 'src');
+                }*/
+
+                // init engine with settings
+                dxcInstance.loadConfiguration(cfg);
+
+                // boot engine
+                const ready = await dxcInstance.boot(
+                    projectArgs.restore===true? true : false,
+                    www
+                );
+
+                if(ready){
+                    dxcInstance.start();
+
+                    if(projectArgs.mPkg){
+                        let usrSess:UserSession;
+                        if(projectArgs.mUser){
+                             usrSess = dxcInstance
+                                .getUserService()
+                                .do1StepPasswordAuthentication(
+                                    projectArgs.mUser,
+                                    projectArgs.mPwd
+                                );
+                        }else{
+                            throw new Error("Please provide user credentials");
+                        }
+
+                        // create a workflow in engine
+                        const wf = dxcInstance.newWorkflow(projectArgs.mPkg).changeOwner(usrSess.getUserAccount());
+
+                        const dxcProject = await dxcInstance.openProject( usrSess.getUserAccount(), projectArgs.mPkg);
+
+                        if(dxcProject.isReady()){
+                            if(projectArgs.mScan){
+
+                                switch(projectArgs.mScanType){
+                                    case "privacy":
+                                        console.log("Start Privacy scanning ...");;
+                                        const privScan:PrivacyScanner = LicenceManager
+                                            .getProduct(dxcProject,"PRI_CLD_SSCAN") as PrivacyScanner;
+
+                                        const report = privScan.runModel(dxcProject);
+                                        console.log(JSON.stringify(report.toJsonObject()));
+
+                                        if(projectArgs.mOut!=null){
+                                            console.log("Saving scanner report to : "+projectArgs.mOut);
+                                            report.save(projectArgs.mOut);
+                                        }
+
+                                        break;
+                                }
+                            }
+                        }
+
+                    }
+
+                    if(projectArgs.mPrintPriv){
+                        console.log(chalk.yellow("[-] Load Privacy model : "));
+                        const model:PrivacyModel = new PrivacyModel();
+                        model.load()
+                        console.log(chalk.yellow("[-] Privacy Assurance model : "));
+                        console.log(chalk.whiteBright("\t[-] Tracker / 3th-part / Supply-chain issue : "));
+                        model.globalThreats.map(x => {
+                            console.log(`\t  [${x.name}] size=${x.signature.length}`);
+                            x.signature.map( c => {
+                                switch (c.type){
+                                    case ConstraintType.CODE:
+                                        console.log(`\t\t  CODE [${NodeInternalTypeName[(c as CodeConstraint).node]}] ${(c as CodeConstraint).pattern}`);
+                                        break;
+                                    case ConstraintType.ANY:
+                                        console.log(`\t\t  ANY [${c.name}]`);
+                                        break;
+                                    case ConstraintType.PHYSICAL:
+                                        console.log(`\t\t  PHYSICAL[${c.name}]`);
+                                        break;
+                                    case ConstraintType.UI:
+                                        console.log(`\t\t  UI [${c.name}]`);
+                                        break;
+                                    case ConstraintType.FLOW:
+                                        console.log(`\t\t  FLOW [${c.name}]`);
+                                        break;
+                                    default:
+                                        console.log(c.toJsonObject());
+                                        break;
+                                }
+                            })
+                        })
+                        console.log(chalk.whiteBright("[-] Personal Data : "));
+
+
+                    }
+                }
+            }catch (err){
+                console.log(chalk.red(err.message));
+                console.log(chalk.red(err.stack));
+            }
+        })();
         break;
     case SUBMENU.TEST:
         if(projectArgs.testLoad!=null){
