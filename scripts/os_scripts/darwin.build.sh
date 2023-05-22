@@ -49,6 +49,7 @@ cp -r ./README.md ./dist/scripts
 cp -r ./src/requires ./dist/src/requires
 cp -r ./assets ./dist/assets
 cp -r ./thirdparty ./dist/thirdparty
+cp -r ./public ./dist/public
 
 for i in ./inspectors/*/web
 do
