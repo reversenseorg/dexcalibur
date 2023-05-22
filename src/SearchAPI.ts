@@ -208,6 +208,10 @@ export class SearchAPI
         this.calls = new SearchAPICallSelector(this._db, this._finder);
     }
 
+    getDatabase():AnalyzerDatabase {
+        return this._db;
+    }
+
     help(){
         Util.msgBox("HELP : Search API",[
             "class(<pattern>)\t\tSearch a class by any properties",
