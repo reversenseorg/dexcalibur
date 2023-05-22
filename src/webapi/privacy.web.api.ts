@@ -80,6 +80,36 @@ PRIVACY_WEB_API.addAuthenticatedRoute(
     }
 );
 
+PRIVACY_WEB_API.addAuthenticatedRoute(
+    '/scanModel',
+    {
+        'post': function (req:Request, res:Response):any {
+            const $: WebServer = req.dxc.$;
+
+            try{
+
+                // ========== LOGIC
+
+                const scanner:PrivacyScanner = LicenceManager.getProduct(req.dxc.project,"PRI_CLD_SSCAN") as PrivacyScanner;
+
+                //scanner.hasCredit()
+                const report = scanner.runModel(req.dxc.project);
+
+                // get hook instance by ID
+                const data = {
+                    report: report.toJsonObject()
+                };
+
+                $.sendSuccess(res,  data);
+            }catch(err){
+                Logger.error("[API][PRIVACY] Project cannot be scanned. Cause : " + err.message + "\n\t" + err.stack);
+                $.sendError(res, "Project cannot be scanned. Cause : " + err.message);
+            }
+        }
+    },{
+        readProject: true
+    }
+);
 
 PRIVACY_WEB_API.addAuthenticatedRoute(
     '/reports',
@@ -103,6 +133,30 @@ PRIVACY_WEB_API.addAuthenticatedRoute(
                 });
 
                 $.sendSuccess(res,  data);
+            }catch(err){
+                Logger.error("[API][PRIVACY] Report cannot be retrieved. Cause : " + err.message + "\n\t" + err.stack);
+                $.sendError(res, "Report cannot be retrieved. Cause : " + err.message);
+            }
+        }
+    },{
+        readProject: true
+    }
+);
+
+
+PRIVACY_WEB_API.addAuthenticatedRoute(
+    '/model',
+    {
+        'get': function (req:DelegateRequest, res:DelegateResponse):any {
+            const $: WebServer = req.dxc.$;
+
+            try{
+
+                // ========== LOGIC
+
+                const scanner:PrivacyScanner = LicenceManager.getProduct(req.dxc.project,"PRI_CLD_SSCAN") as PrivacyScanner;
+
+                $.sendSuccess(res,  scanner.model.toJsonObject());
             }catch(err){
                 Logger.error("[API][PRIVACY] Report cannot be retrieved. Cause : " + err.message + "\n\t" + err.stack);
                 $.sendError(res, "Report cannot be retrieved. Cause : " + err.message);
