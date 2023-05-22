@@ -1,8 +1,12 @@
-import AssuranceModel from "./AssuranceModel.js";
+
+
+export interface AssetOptions {
+
+}
 
 export default class Asset  {
 
-    constructor( pConfig:any = null) {
+    constructor( pConfig:AssetOptions = null) {
         if(pConfig!=null) for(const i in pConfig) this[i]=pConfig[i];
     }
 }

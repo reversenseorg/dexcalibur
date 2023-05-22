@@ -1,15 +1,15 @@
 import Asset from "./Asset.js";
 import SecurityConstraintModel from "./SecurityConstraintModel.js";
-import Constraint from "./Constraint.js";
+import Constraint, {ConstraintType} from "./Constraint.js";
 
 
 export default class SecurityAsset extends Asset {
 
     static CIA_MODEL:SecurityConstraintModel = new SecurityConstraintModel({
         constraints:[
-            new Constraint({ name:"confidentiality"}),
-            new Constraint({ name:"integrity"}),
-            new Constraint({ name:"confidentiality"}),
+            new Constraint(ConstraintType.ANY, { name:"confidentiality"}),
+            new Constraint(ConstraintType.ANY, { name:"integrity"}),
+            new Constraint(ConstraintType.ANY, { name:"confidentiality"}),
         ]
     })
     constraints:any[];
