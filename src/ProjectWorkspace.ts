@@ -16,6 +16,7 @@ const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 const DIR_NAME = {
     SAVE: "save",
     IN: "inputs",
+    AUDIT: "audit",
     RUNTIME: "runtime",
     RUNTIME_FILES: _path_.join("runtime","files"),
     RUNTIME_BC: _path_.join("runtime","bytecode"),
@@ -211,6 +212,9 @@ export default class ProjectWorkspace
         if(!_fs_.existsSync(_path_.join(this.path, DIR_NAME.HKWS))){
             this.mkWDir(DIR_NAME.HKWS);
         }
+        if(!_fs_.existsSync(_path_.join(this.path, DIR_NAME.AUDIT))){
+            this.mkWDir(DIR_NAME.AUDIT);
+        }
 
         this.hookWS = new HookWorkspace({
             _base:_path_.join(this.path, DIR_NAME.HKWS),
@@ -237,6 +241,16 @@ export default class ProjectWorkspace
 
     getAppdataDir():string{
         return _path_.join(this.path, DIR_NAME.APPDATA);
+    }
+
+    /**
+     * To get the path of audit folder where assurance model and audit report are stored
+     *
+     * @return {string} Audit directory path
+     * @method
+     */
+    getAuditDir():string{
+        return _path_.join(this.path, DIR_NAME.AUDIT);
     }
 
     getInputDir():string{
