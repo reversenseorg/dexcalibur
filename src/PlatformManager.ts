@@ -27,7 +27,7 @@ let pipeline:any = promisify(stream.pipeline);
 let gInstance:PlatformManager = null;
 
 
-interface IPlatformMap {
+export interface IPlatformMap {
     [key: string]: Platform;
 }
 
@@ -48,11 +48,34 @@ export enum PLATFORM_STUBS {
 export default class PlatformManager extends ValidationCapable
 {
 
+    /**
+     * Engine instance
+     * @type {DexcaliburEngine}
+     * @field
+     */
     engine:DexcaliburEngine;
+
+    /**
+     * List of platforms available remotely
+     * @type {any}
+     * @field
+     */
     remote:any;
+
+    /**
+     List of platforms available locally (installed)
+     @type {IPlatformMap}
+     @field
+     *
+     */
     local: IPlatformMap;
 
-    constructor( pEngine:any){
+    /**
+     *
+     * @param {DexcaliburEngine} pEngine
+     * @constructor
+     */
+    constructor( pEngine:DexcaliburEngine){
         super({
             'uid': [
                 ValidationRule.newRegexpAssert(new RegExp('^.*$')) // mock
@@ -86,11 +109,14 @@ export default class PlatformManager extends ValidationCapable
 
 
     /**
-     * 
-     * @param {*} pRegistry 
-     * @param {*} pName 
+     * To install a remote platform into local workspace
+     *
+     * @param {Platform} pPlatform Platform to install
+     * @param {()=>void} pOnSuccess Optional. Default NULL. A callback function called on install success
+     * @return {boolean} TRUE if success, else FALSE
+     * @method
      */
-    async install(pPlatform:Platform, pCallback:any=null):Promise<boolean>{
+    async install(pPlatform:Platform, pOnSuccess:(()=>void)=null):Promise<boolean>{
 
         let path:string = _path_.join( this.engine.workspace.getTempFolderLocation(), pPlatform.getUID()+".dex");
         let success;
@@ -113,8 +139,8 @@ export default class PlatformManager extends ValidationCapable
                 pPlatform.checkInstall();
 
                 Logger.info("[Platform Manager] Platform installed succesfully ! ");
-                if(pCallback != null){
-                    pCallback();
+                if(pOnSuccess != null){
+                    (pOnSuccess)();
                 }
             }else{
                 Logger.info("[Platform Manager] Platform not analyzed ! ");
@@ -130,9 +156,16 @@ export default class PlatformManager extends ValidationCapable
         }
     }
 
+    /**
+     * To check if the application is installed
+     *
+     * @param {string} pName Platform UID
+     * @method
+     */
     isInstalled( pName:string){
         return (this.local[pName] instanceof Platform)
     }
+
 
     getLocal():any{
         return this.local;
@@ -146,17 +179,16 @@ export default class PlatformManager extends ValidationCapable
     }
 
 
-    enumerate(){
-        Logger.raw("do enumerateLocal");
+    /**
+     * To enumerate local and remote platforms, and flag installed platforms
+     *
+     * @method
+     */
+    enumerate():void{
         this.local = this.enumerateLocal();
-        Logger.raw("OK");
-        Logger.raw(JSON.stringify(this.local));
         const registry:DexcaliburRegistry = this.engine.getSettings().getServerSettings().getRegistry();
 
-        Logger.raw(JSON.stringify(this.engine.getSettings().getServerSettings().getRegistry()) );
-        Logger.raw("PASS_OK");
         (async ()=>{
-            Logger.raw("do enumerateRemote");
             this.remote = await this.enumerateRemote(registry);
 
             for(const i in this.local){
@@ -178,7 +210,18 @@ export default class PlatformManager extends ValidationCapable
         return (this.local[pUID] != null && this.local[pUID].isStub());
     }
 
-    enumerateLocal():any{
+    /**
+     * To enumerate local platforms, and preference
+     *
+     * Additionnally to local platforms, enumeration contains preferred platforms :
+     *  - Platform for Target device
+     *  - Platform for min API version supported
+     *  - Platform for target API version
+     *
+     * @return {IPlatformMap} Platform enumeration
+     * @method
+     */
+    enumerateLocal():IPlatformMap{
         const res:IPlatformMap = {};
         let p:Platform = null;
 
@@ -191,18 +234,13 @@ export default class PlatformManager extends ValidationCapable
         const ws:string = this.engine.workspace.getPlatformFolderLocation();
         const files:string[] = _fs_.readdirSync(ws);
 
-        Logger.raw(`platform folder = ${ws}`);
-        Logger.raw(`platform folder content = ${files.join("\n\t")}`);
 
         for(let i=0; i<files.length; i++){
 
-            Logger.raw(`platform name = ${files[i]}`);
             p = Platform.fromLocalName(files[i]);
-            Logger.raw(`platform obj = ${p}`);
             if(p == null) continue;
 
             p.setLocalPath( _path_.join(ws, files[i]) );
-
             res[p.getUID()] = p;
         }
 
@@ -214,11 +252,11 @@ export default class PlatformManager extends ValidationCapable
     /**
      * To enumerate platforms of a remote registry
      *  
-     * @param {require('./DexcaliburRegistry')} pRegistry The remote registry
+     * @param {DexcaliburRegistry} pRegistry The remote registry
      * @returns {Platform[]} An array a platform 
      * @method
      */
-    async enumerateRemote( pRegistry:DexcaliburRegistry):Promise<any>{
+    async enumerateRemote( pRegistry:DexcaliburRegistry):Promise<IPlatformMap>{
 
         let platforms:any = {};
         let p:Platform = null;
@@ -226,6 +264,9 @@ export default class PlatformManager extends ValidationCapable
 
         if(pRegistry == null){
             pRegistry = this.engine.getSettings().getServerSettings().getRegistry();
+        }
+        if(pRegistry == null){
+            return res;
         }
 
         // retrieve remote platform
@@ -236,6 +277,7 @@ export default class PlatformManager extends ValidationCapable
             return res;
         }
 
+        Logger.info("Platforms in remote registry");
         for(let i=0; i<platforms.length; i++){
             p = Platform.fromRemoteName(platforms[i].name);
             if(p == null) continue;
@@ -245,7 +287,8 @@ export default class PlatformManager extends ValidationCapable
             p.setSize(platforms[i].size);
             p.setHash(platforms[i].sha);
 
-            Logger.info("Platforms : "+JSON.stringify(p.toJsonObject()));
+            //Logger.info("Platforms : "+JSON.stringify(p.toJsonObject()));
+            Logger.raw(" - "+p.getUID()+" ("+p.size+") "+p.hash);
 
             res[p.getUID()] = p;
         }
@@ -283,13 +326,15 @@ export default class PlatformManager extends ValidationCapable
         }
     }
 
+    /**
+     * To get a platform instance by its name
+     *
+     * @param {string} pName Platform name (UID)
+     * @return {Platform} The platform instance
+     * @method
+     */
     getPlatform(pName:string):Platform{
 
-        Logger.raw(pName);
-        Logger.raw(JSON.stringify(Object.keys(this.local)));
-        Logger.raw(JSON.stringify(this.local[pName]));
-
-        //if(this.local[pName] instanceof Platform){
         if(this.local[pName] != null){
             return this.local[pName];
         }else if( this.remote[pName] instanceof Platform){
@@ -301,19 +346,34 @@ export default class PlatformManager extends ValidationCapable
     }
     
      /**
-     * 
-     * @param {*} pApiVersion
+     * To get platform instance by API version number
+      *
+     * @param {string} pApiVersion Android API number as string
+     * @return {Platform}  Platform instance
      * @method
-     *  
      */
     getFromAndroidApiVersion( pApiVersion:string):Platform{
         return this.getPlatform('sdk_androidapi_'+pApiVersion+'_google');
     }
 
+    /**
+     * To get remotely available (not installed) platform  from its name
+     *
+     * @param {string} pApiVersion Platform name
+     * @return {Platform}  Platform instance
+     * @method
+     */
     getRemotePlatform( pName:string):Platform{
         return this.remote[pName];
     }
 
+    /**
+     * To get local available (installed) platform  from its name
+     *
+     * @param {string} pApiVersion Platform name
+     * @return {Platform}  Platform instance
+     * @method
+     */
     getLocalPlatform( pName:string):Platform{
         if(this.local[pName] instanceof Platform){
             return this.local[pName];

@@ -7,7 +7,9 @@ import {ThreatFactory} from "../common/ThreatFactory.js";
 import CodeConstraint from "../common/CodeConstraint.js";
 import {NodeInternalType} from "../../NodeInternalType.js";
 
-
+/**
+ * 
+ */
 export class PrivacyModel extends AssuranceModel {
 
 
@@ -19,6 +21,11 @@ export class PrivacyModel extends AssuranceModel {
     }
 
 
+    /**
+     * To load trackers signatures and put it to threat list of the model
+     *
+     * @method
+     */
     loadTrackersSignatures():void {
 
         const rawData = JSON.parse(
