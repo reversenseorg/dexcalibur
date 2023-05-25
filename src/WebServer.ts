@@ -322,16 +322,19 @@ export default class WebServer
      * @param {require('path')} pHome The path of the file containing home page
      * @method
      */
-    newDispatcher( pHome:string):Function{
+    newDispatcher( pHome:string):((request:ExpressRequest, response:ExpressResponse)=>void){
         let $:WebServer = this;
 
         return function (req:ExpressRequest, res:ExpressResponse):void {
+
+            // todo : detect path traversal in req.path
 
             let localPath:string = $.root + req.path, mime:string = null;
 
             if (req.path.endsWith("/"))
                 localPath = _path_.join($.root, pHome);
 
+            // redirect to inspector delegated controllers
             if (req.path.startsWith("/inspectors/")) {
 
                 //console.log(req.path.substr(1,req.path.length-1))
@@ -360,13 +363,14 @@ export default class WebServer
                 return;
             }
 
+            //  todo : verify if localPath is a child of allowed folder
             _fs_.readFile(localPath, (err:any, data:any) => {
 
                 // set good http headers into the response
                 res.set('Access-Control-Allow-Origin', '*');
                 if (err != null) {
-                    $.logs.access.push("[404]:" + mime + " " + req.path + " => " + localPath);
-                    res.status(404).send("An error occured :" + err.message);
+                    $.logs.access.push("[404]:" + mime + " " + req.path + " => " + localPath+" " +err.message);
+                    res.status(404).send("An error occured, file not found.");
                     return;
                 }
                 if (MimeHelper.isFontFile(mime)) {
