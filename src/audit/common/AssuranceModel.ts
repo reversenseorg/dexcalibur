@@ -10,7 +10,16 @@ export enum AssuranceModelType {
     QUALITY="qua",
 }
 
+
 export default class AssuranceModel {
+
+    /**
+     * The assurance model source helps to differenciate
+     * who create the models
+     *
+     * @type {AssuranceModelSource}
+     */
+    generic = true;
 
     primaryAssets:Asset[] = [];
     secondaryAssets:Asset[] = [];
@@ -58,6 +67,7 @@ export default class AssuranceModel {
     toJsonObject():any {
         const o:any = {};
 
+        o.generic = this.generic;
         o.globalThreats = [];
         this.globalThreats.map( x => {
             o.globalThreats.push(x.toJsonObject());
@@ -72,5 +82,9 @@ export default class AssuranceModel {
         });
 
         return o;
+    }
+
+    isGeneric():boolean {
+        return this.generic;
     }
 }
