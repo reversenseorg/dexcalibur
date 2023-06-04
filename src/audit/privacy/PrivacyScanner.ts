@@ -21,6 +21,7 @@ import {PII_Data} from "./assets/pii_schema.js";
 import { PrivacyModel } from "./PrivacyModel.js";
 import {AssuranceScanner, AssuranceScannerOptions} from "../common/AssuranceScanner.js";
 import AssuranceReport from "../common/AssuranceReport.js";
+import {AuditManager} from "../AuditManager.js";
 
 
 export interface PrivacyScanOptions {
@@ -29,6 +30,7 @@ export interface PrivacyScanOptions {
     perm:boolean,
     piiTypes:boolean,
     piiFlows:boolean,
+    save?:boolean
 }
 
 interface TrackerSignature<T> {
@@ -92,6 +94,7 @@ export class PrivacyScanner extends AssuranceScanner {
 
     constructor(pConfig:PrivacyScannerOpts) {
         super({
+            name: "scanner.privacy",
             __pCode:'PRI_CLD_SSCAN',
             __pVersion: '1.0',
             __pSerial: pConfig.project.getLicenseNo(),
@@ -254,6 +257,11 @@ export class PrivacyScanner extends AssuranceScanner {
 
         // 6. result
         this.reports.push(this.lastReport);
+
+        // 7. Save
+        //AuditManager.getInstance().saveReport(pContext, this.lastReport);
+
+
     }
 
     /**

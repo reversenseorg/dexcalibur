@@ -18,6 +18,8 @@ import ModelString from "../../ModelString.js";
 
 export interface AssuranceScannerOptions extends ProductOptions {
 
+    name?:string;
+
     model?: AssuranceModel;
 
     dashboards?:{[name:string] :DashBoard};
@@ -30,6 +32,10 @@ export interface AssuranceScannerOptions extends ProductOptions {
  */
 export class AssuranceScanner extends Product {
 
+    /**
+     * Unique ID for Scanners
+     */
+    name:string;
 
     model:AssuranceModel;
 
@@ -145,6 +151,14 @@ export class AssuranceScanner extends Product {
         })
     }
 
+    merlinScan(pContext:DexcaliburProject, pOptions:any):void {}
+
+    getReport():AssuranceReport {
+        return this.report;
+    }
+
+
+
 
     private _mergeCodeConstraints():void {
 
@@ -178,6 +192,10 @@ export class AssuranceScanner extends Product {
                 pMap[nType] = pMap[nType].concat(node[nType]);
             }*/
         });
+    }
+
+    validateOptions( pUnsafeOptions:any):any {
+        return {};
     }
 
 }

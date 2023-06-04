@@ -13,6 +13,18 @@ export enum AssuranceModelType {
 
 export default class AssuranceModel {
 
+
+    /**
+     * Unique identifier for the model
+     */
+    id:string;
+
+    /**
+     * ID of the scanner able to verify this model
+     *
+     */
+    scannerID:string;
+
     /**
      * The assurance model source helps to differenciate
      * who create the models
@@ -22,13 +34,28 @@ export default class AssuranceModel {
     generic = true;
 
     primaryAssets:Asset[] = [];
+
     secondaryAssets:Asset[] = [];
+
     globalThreats:Threat[] = [];
+
 
 
     constructor( pConfig:any = null) {
         if(pConfig!=null) for(const i in pConfig) this[i]=pConfig[i];
     }
+
+    /**
+     * @method
+     */
+    getID():string {
+        return this.id;
+    }
+
+    getScannerID():string {
+        return  this.scannerID;
+    }
+
     getThreats():Threat[] {
         return this.globalThreats;
     }
@@ -64,10 +91,31 @@ export default class AssuranceModel {
         return ;
     }
 
+    static fromJsonObject(pData:any):AssuranceModel {
+        const o = new AssuranceModel(pData);
+
+        pData.globalThreats.map( (x,i) => {
+           o.globalThreats[i] = new Threat(x);
+        });
+
+        pData.primaryAssets.map( (x,i) => {
+            o.primaryAssets[i] = new Asset(x);
+        });
+
+        pData.secondaryAssets.map( (x,i) => {
+            o.secondaryAssets[i] = new Asset(x);
+        });
+
+        return o;
+    }
+
     toJsonObject():any {
         const o:any = {};
 
+        o.id = this.id;
+        o.scannerID = this.scannerID;
         o.generic = this.generic;
+
         o.globalThreats = [];
         this.globalThreats.map( x => {
             o.globalThreats.push(x.toJsonObject());

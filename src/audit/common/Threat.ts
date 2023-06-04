@@ -1,6 +1,8 @@
 import DataProperty from "./DataProperty.js";
 import Constraint, {ConstraintType} from "./Constraint.js";
 import CodeConstraint from "./CodeConstraint.js";
+import AssuranceModel from "./AssuranceModel.js";
+import Asset from "./Asset.js";
 
 export interface ThreatOptions {
     id?:string;
@@ -14,7 +16,7 @@ export interface ThreatOptions {
 /**
  *
  */
-export default class Threat {
+export default class Threat extends Asset{
 
     id:string;
     uid:string ;
@@ -28,6 +30,8 @@ export default class Threat {
     _codeBased = false;
 
     constructor( pConfig:any = null) {
+        super(pConfig);
+        
         if(pConfig!=null) for(const i in pConfig) this[i]=pConfig[i];
     }
 
