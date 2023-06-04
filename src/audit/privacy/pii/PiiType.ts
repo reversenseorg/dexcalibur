@@ -3,11 +3,14 @@ import {MerlinRule} from "../../../search/MerlinRule.js";
 import DexcaliburProject from "../../../DexcaliburProject.js";
 import {MerlinSearchRequest} from "../../../search/MerlinSearchRequest.js";
 import Asset, {AssetOptions} from "../../common/Asset.js";
+import {PiiClass} from "./PiiClass.js";
+import Constraint from "../../common/Constraint.js";
 
 
+export interface PiiTypeMap {
+    [name:string] :PiiType
+}
 export interface PiiTypeOptions extends AssetOptions{
-    name?:string;
-    description?:any;
     children?:any;
 
     fields?:PiiField[];
@@ -17,15 +20,12 @@ export interface PiiTypeOptions extends AssetOptions{
 
 export class PiiType extends Asset {
 
-    name:string;
-
-    description:string;
-
     children:any = null;
 
     fields:PiiField[] = [];
 
     rules:MerlinSearchRequest[] = [];
+    signature:Constraint[] = []
 
     constructor(pOpts:PiiTypeOptions) {
         super(pOpts);

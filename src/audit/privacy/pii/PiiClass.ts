@@ -1,18 +1,16 @@
 import {PiiCategory} from "./PiiCategory.js";
 import Asset, {AssetOptions} from "../../common/Asset.js";
 
+export interface PiiClassMap {
+    [cls:string] :PiiClass
+}
+
 export interface PiiClassOptions extends AssetOptions{
-    name?:string;
-    description?:string;
     categories?:PiiCategory[];
 }
 
 
 export class PiiClass extends Asset {
-
-    name:string;
-
-    description:string;
 
     categories:PiiCategory[] = [];
 

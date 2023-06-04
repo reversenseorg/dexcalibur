@@ -3,14 +3,12 @@ import Constraint from "../../common/Constraint.js";
 
 
 export interface PiiFieldOptions extends AssetOptions {
-    name?:string;
     rules?:any[];
 }
 
 
 export class PiiField extends Asset {
 
-    name:string;
 
     rules:any[] = []
 
