@@ -5,12 +5,15 @@ import Constraint from "./Constraint.js";
 import { ConstraintMatch } from "./ConstraintMatch.js";
 import CodeConstraint from "./CodeConstraint.js";
 import DexcaliburProject from "../../DexcaliburProject.js";
+import AssuranceModel from "./AssuranceModel.js";
 
 export interface AssuranceReportOptions {
     time?:number;
 
     application?:any;
     device?:any;
+
+    model?:AssuranceModel;
 
     project?:DexcaliburProject;
 
@@ -28,6 +31,8 @@ export default class AssuranceReport {
     device:string;
 
     project:DexcaliburProject;
+
+    model:AssuranceModel;
 
     primaryAssets:ConstraintMatch<Asset>[] = [];
     secondaryAssets:ConstraintMatch<Asset>[] = [];
@@ -73,6 +78,15 @@ export default class AssuranceReport {
         }
     }
 
+    getModel():AssuranceModel {
+        return this.model;
+    }
+
+    /**
+     * To export the report to JSON file
+     *
+     * @param pPath
+     */
     save( pPath:string){
         if(_fs_.existsSync(pPath)){
             _fs_.unlinkSync(pPath);
@@ -130,5 +144,11 @@ export default class AssuranceReport {
         }
 
         return o;
+    }
+
+    static fromJsonObject(pData:any):AssuranceReport {
+        const a = new AssuranceReport(pData);
+
+        return a;
     }
 }
