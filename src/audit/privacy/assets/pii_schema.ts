@@ -1,12 +1,14 @@
-import {PiiClass} from "../pii/PiiClass.js";
+import {PiiClass, PiiClassMap} from "../pii/PiiClass.js";
 import {PiiCategory, PiiCriticity} from "../pii/PiiCategory.js";
-import {PiiType} from "../pii/PiiType.js";
+import {PiiType, PiiTypeMap} from "../pii/PiiType.js";
 import {PiiField} from "../pii/PiiField.js";
 import {Merlin} from "../../../search/Merlin.js";
-import {OperatingSystem} from "../../../OperatingSystem.js";
+import CodeConstraint from "../../common/CodeConstraint.js";
+import {NodeInternalType} from "../../../NodeInternalType.js";
+import ModelField from "../../../ModelField.js";
 
 
-export const PII_DataType = {
+export const PII_DataType:PiiTypeMap = {
     postalAddress: new PiiType({
         name:"postal address",
         fields: [,
@@ -17,10 +19,18 @@ export const PII_DataType = {
                 name: "number"
             }),
             new PiiField({
-                name: "street"
+                name: "street",
+                signature: [
+                    (new CodeConstraint(NodeInternalType.METHOD,{pattern:"android.location.Address;->getAddressLine"} )),
+                    (new CodeConstraint(NodeInternalType.METHOD,{pattern:"android.location.Address;->setAddressLine"} )),
+                    (new CodeConstraint(NodeInternalType.CLASS,{pattern:"android.location.Address"} )),
+                ]
             }),
             new PiiField({
                 name: "zip code",
+                signature: [
+                    (new CodeConstraint(NodeInternalType.METHOD,{pattern:"android.location.Address;->getPostalCode"} ))
+                ],
                 rules: [
                     Merlin.android().javaClass("name:^android\.location\.Geocoder$" ),
                     Merlin.android().javaCallToMethod("enclosingClass.name:^android\.location\.Geocoder$")
@@ -46,12 +56,14 @@ export const PII_DataType = {
         ]
     }),
     email: new PiiType({
-        name:"email"
+        name:"email",
+        signature: [
+        ]
     })
 }
 
 
-export const PII_Data:{[cls:string] :PiiClass } = {
+export const PII_Data:PiiClassMap = {
     identity: new PiiClass({
         name: "identity",
         categories: [
@@ -63,16 +75,28 @@ export const PII_Data:{[cls:string] :PiiClass } = {
                         name:"title"
                     }),
                     new PiiType({
-                        name:"lastname"
+                        name:"lastname",
+                        signature: [
+                            (new CodeConstraint(NodeInternalType.METHOD,{pattern:"->getFirstName"} )),
+                            (new CodeConstraint(NodeInternalType.METHOD,{pattern:"->getLastName"} )),
+                            (new CodeConstraint(NodeInternalType.CLASS,{pattern:"Person"} )),
+                            (new CodeConstraint(NodeInternalType.CLASS,{pattern:"User"} ))
+                        ]
                     }),
                     new PiiType({
-                        name:"firstname"
+                        name:"firstname",
+                        signature: [
+
+                        ]
                     }),
                     new PiiType({
                         name:"username"
                     }),
                     new PiiType({
-                        name:"age"
+                        name:"age",
+                        signature: [
+
+                        ]
                     }),
                     new PiiType({
                         name:"status"
@@ -344,8 +368,38 @@ export const PII_Data:{[cls:string] :PiiClass } = {
                 types: [
                     new PiiType({
                         name:"geolocation position",
+                        signature: [
+                            (new CodeConstraint(NodeInternalType.CLASS,{pattern:"android.webkit.GeolocationPermissions"} )),
+                            (new CodeConstraint(NodeInternalType.ANDROID_PERM,{pattern:"ACCESS_FINE_LOCATION"} )),
+                            (new CodeConstraint(NodeInternalType.ANDROID_PERM,{pattern:"ACCESS_COARSE_LOCATION"} )),
+                            (new CodeConstraint(NodeInternalType.METHOD,{pattern:"android.location.Address;->getLatitude"} )),
+                            (new CodeConstraint(NodeInternalType.METHOD,{pattern:"android.location.Address;->getLongitude"} )),
+                        ],
                         rules: [
-                            Merlin.android().javaCallToMethod("enclosingClass.name:^android\.location\.Geocoder$")
+                            Merlin.android().class("name:^android\.webkit\.GeolocationPermissions$"),
+                            Merlin.android().permission("name:^ACCESS_FINE_LOCATION$"),
+                            Merlin.android().permission("name:^ACCESS_COARSE_LOCATION"),
+                            Merlin.android().javaCallToMethod("__signature__:^android\.location\.Address;->getLatitude"),
+                            Merlin.android().javaCallToMethod("__signature__:^android\.location\.Address;->getLongitude"),
+                            Merlin.android().javaCallToMethod("enclosingClass.name:^android\.location\.Geocoder$"),
+                            Merlin.android().javaCallToMethod("enclosingClass.name:^android\.location\.LocationManager$"),
+                            Merlin.android().javaCallToMethod("__signature__:^android\.location\.LocationManager$"),
+                            Merlin.android().javaCallWithArgsAssert(
+                                "__signature__:^android\.content\.PackageManager;->hasSystemFeature\(",
+                                {
+                                    "1": Merlin.android()
+                                            .field("__signature__:android.content.pm.PackageManager;->FEATURE_LOCATION")
+                                            //.select(ModelField.TYPE.getProperty("value"))
+
+
+                                        //expect: Merlin.android().getDB().fields.getEntry("android.content.pm.PackageManager;->FEATURE_LOCATION")
+
+                                }),
+                            Merlin.android().sources(
+                                Merlin.android().method("__signature__:^android\.location\.Address;->getLatitude")
+                            ).sink(
+                                Merlin.android().method("tags:file")
+                            ).request
                         ]
                     })
                 ]
