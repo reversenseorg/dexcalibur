@@ -172,4 +172,12 @@ export default class AndroidApplication extends ApplicationBinary
 
         return o;
     }
+
+    getInfo():any {
+        return {
+            targetAPI: this.getTargetApiVersion(),
+            minAPI: this.getMinApiVersion(),
+            pkgName: this.manifest.getAttrPackage()
+        }
+    }
 }

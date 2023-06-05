@@ -171,6 +171,10 @@ export class NodeType {
     }
 
 
+    getProperty(pName:string) :NodeProperty {
+        return this._ppts[pName];
+    }
+
     /**
      * To add dynamically a property
      */

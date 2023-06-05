@@ -3,7 +3,7 @@
 import DexcaliburProject from "../DexcaliburProject.js";
 import HookStrategySelector from "./HookStrategySelector.js";
 import * as VM from "vm";
-import {FinderResult} from "../FinderResult.js";
+import {FinderResult} from "../search/FinderResult.js";
 import JavaMethodHook from "./JavaMethodHook.js";
 import KeyPoint from "./KeyPoint.js";
 import HookTemplateFragment from "./HookTemplateFragment.js";

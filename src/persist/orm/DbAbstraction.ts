@@ -135,6 +135,8 @@ export interface IDbCollection extends IDbSet
  */
 export interface IDatabaseAdapter
 {
+    ctx?:DexcaliburProject;
+
     exists():boolean;
     create():boolean;
     connect(pOptions:any):any;
@@ -150,6 +152,8 @@ export interface IDatabaseAdapter
 
 export interface IDatabase
 {
+    conn:IDatabaseAdapter;
+
     newCollection(name:string, pNodeType:NodeType):IDbCollection;
 
     newIndex(name:string, pNodeType:NodeType):IDbIndex;

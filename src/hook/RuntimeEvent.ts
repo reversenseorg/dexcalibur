@@ -24,7 +24,7 @@ export enum RuntimeEventType {
  *
  * @class
  */
-export class RuntimeEvent<P> extends BusEvent implements INode {
+export class RuntimeEvent<P> extends BusEvent<any> implements INode {
 
     static TYPE:NodeType = new NodeType( "runtime_evt", NodeInternalType.RUNTIME_EVENT,
         [

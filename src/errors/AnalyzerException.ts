@@ -1,4 +1,5 @@
 import {ErrorCode, MonitoredError} from "./MonitoredError.js";
+import {NodeInternalType} from "../NodeInternalType.js";
 
 export enum AnalyzerErrCode {
     GENERIC=1000,
@@ -21,6 +22,10 @@ export class AnalyzerException extends MonitoredError {
     static ANDROID_SEARCH_SPLITTED_DEV_FAIL = ()=>{
         return new AnalyzerException("Android Package Analyzer : Splitted APK cannot be search because device is offline or unknow",
             ErrorCode.ANALYZER_NATIV + 202) };
+
+    static MISSING_DATA_SET = (pNodeType:string|NodeInternalType)=>{
+        return new AnalyzerException("Data set missing for node type : "+pNodeType,
+            ErrorCode.ANALYZER_NATIV + 203) };
 
 
 
