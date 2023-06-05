@@ -1,6 +1,15 @@
 
 import SerializedObject from "./SerializedObject.js";
-import {IDbIndex} from "../../src/persist/orm/DbAbstraction.js";
+import {IDatabase, IDbIndex} from "../../src/persist/orm/DbAbstraction.js";
+import {
+    Comparison,InnerjoinOperationArgs,
+    MerlinSearchRequest,
+    NestedRequestOperationArgs,
+    Operation,
+    OperationType,
+    SearchOperationArgs, TimeOperationArgs, WindowingOperationArgs
+} from "../../src/search/MerlinSearchRequest.js";
+import {InMemoryMerlinBackend} from "./InMemoryMerlinBackend.js";
 
 /**
  * Represents an array of element
@@ -14,8 +23,9 @@ export default class InMemoryDbIndex implements IDbIndex
     static __type:string = "Index";
     name:string = null;
     refs:any = [];
-    _db:any;
+    _db:IDatabase;
 
+    merlinBackend:InMemoryMerlinBackend;
 
     /**
      * To create a new instance
@@ -26,6 +36,7 @@ export default class InMemoryDbIndex implements IDbIndex
     constructor(name:string = ""){
         this.name = name;
         this.refs = [];
+        this.merlinBackend = new InMemoryMerlinBackend(this);
     }
 
     /**
@@ -36,8 +47,9 @@ export default class InMemoryDbIndex implements IDbIndex
      * @method
      */
     insert(ref:any, force:boolean=false){
-        if(force || this.refs.indexOf(ref)===-1)
+        if(force || this.refs.indexOf(ref)===-1){
             this.refs.push(ref);
+        }
     }
 
     // just a wrapper
@@ -203,5 +215,12 @@ export default class InMemoryDbIndex implements IDbIndex
         }
 
         return o;
+    }
+
+
+    // =====
+
+    search(pRequest: MerlinSearchRequest, pResult: IDbIndex): IDbIndex {
+        return  this.merlinBackend.search(pRequest,pResult);
     }
 }
