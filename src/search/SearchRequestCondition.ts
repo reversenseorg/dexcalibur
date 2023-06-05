@@ -9,7 +9,9 @@ export interface ValidateOptions {
   range?: any[],
   interval?: any[],
   regexp?: RegExp,
-  exists?: boolean
+  exists?: boolean,
+
+  strict?: boolean
 }
 
 export class SearchRequestCondition implements IStringIndex{
@@ -41,6 +43,16 @@ export class SearchRequestCondition implements IStringIndex{
 
   hasPattern():boolean {
     return (this.pattern != null);
+  }
+
+  turnAsRegexp(pSkipClean = false):void{
+    this.regexp = true;
+    let p = this.pattern;
+    if(!pSkipClean){
+      if(p.startsWith("/")) p = p.substring(1);
+      if(p.endsWith("/")) p = p.substring(0,p.length-1);
+    }
+    this._re = new RegExp(p);
   }
 
   isQueryString():boolean {
@@ -80,35 +92,40 @@ export class SearchRequestCondition implements IStringIndex{
    * @param pObject
    */
   test(pObject:INode):boolean {
-    let match = true;
+    let match = false;
 
 
     if(this.pattern != null && this.field != null){
       const o = this.field.indexOf("*");
       if(o>-1){
+        let tmpMatch = false;
         Util.walkOver( pObject, (pValue:any)=>{
           if(this.regexp){
-            match = match && ((this._re as RegExp).test(pValue));
+            tmpMatch = tmpMatch || ((this._re as RegExp).test(pValue));
           }else{
-            match = match && ((pValue as string)  == this.pattern);
+            tmpMatch = tmpMatch || ((pValue as string)  == this.pattern);
           }
         }, (o>0 ? this.pattern.substr(0,o-1): ""), [], this.depth);
+        match = tmpMatch;
+
       }else{
         const val = Util.readValue(pObject, this.field);
+        //console.log(pObject.getUID(),this.field, ">>> ",val);
         if(this.regexp){
-          match = match && ((this._re as RegExp).test(val));
+          match = ((this._re as RegExp).test(val));
+          //console.log("regexp match > ",(this._re as RegExp),val,match);
         }
         else if(this.isRange()){
-          match = match && ((this.opts.range as string[]).indexOf(val)>-1);
-
+          match = ((this.opts.range as string[]).indexOf(val)>-1);
         }else{
-          match = match && (val  == this.pattern);
+          match = (val === this.pattern);
+          //console.log("strict match > ",this.pattern,val,match);
         }
       }
     }
 
     if(this.tag != null){
-      match = match && ((this.tag as Tag).match(pObject));
+      match = ((this.tag as Tag).match(pObject));
     }
 
 

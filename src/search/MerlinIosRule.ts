@@ -7,31 +7,25 @@ import {OperatingSystem} from "../OperatingSystem.js";
 import {MerlinRule, MerlinRuleOptions, MerlinRuleType, SearchOptions } from "./MerlinRule.js";
 import {AndroidPermission} from "../android/Permissions.js";
 
-export class MerlinAndroidRule extends MerlinRule {
-
-    targetOS = OperatingSystem.ANDROID;
+export class MerlinIosRule extends MerlinRule {
 
     constructor(pOpts:MerlinRuleOptions) {
         super(OperatingSystem.ANDROID, pOpts);
     }
 
 
-    javaClass( pRequest:any, pOptions:SearchOptions|null = null):MerlinSearchRequest {
+    objcClass( pRequest:any, pOptions:SearchOptions|null = null):MerlinSearchRequest {
         return this.class(pRequest,pOptions);
     }
 
-    javaCallToMethod( pRequest:any, pScope:any = null):MerlinSearchRequest {
+    objcCallToMethod( pRequest:any, pScope:any = null):MerlinSearchRequest {
         return this.method("called."+pRequest );
     }
 
 
-    javaCallWithArgsAssert( pRequest:any, pArgsRule:any = null):MerlinSearchRequest {
+    objcCallWithArgsAssert( pRequest:any, pArgsRule:any = null):MerlinSearchRequest {
         let r = this.method("called."+pRequest);
         // r.assertArgs(1, "value", this.get.field("name:^a"))
         return r;
-    }
-
-    uiInputText( pRequest:any, pScope:any = null):MerlinSearchRequest {
-        return this.method("called.enclosingClass.name:android\.widget\.EditText"+pRequest );
     }
 }

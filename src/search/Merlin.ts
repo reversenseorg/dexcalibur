@@ -1,6 +1,7 @@
 import {MerlinRule, MerlinRuleOptions} from "./MerlinRule.js";
 import {OperatingSystem} from "../OperatingSystem.js";
 import { MerlinAndroidRule } from "./MerlinAndroidRule.js";
+import {MerlinIosRule} from "./MerlinIosRule.js";
 
 export interface RuleOption {
     score?:number
@@ -24,6 +25,9 @@ export class Merlin {
             case OperatingSystem.ANDROID:
                 return new MerlinAndroidRule(pRuleOption);
                 break;
+            case OperatingSystem.IOS:
+                return new MerlinAndroidRule(pRuleOption);
+                break;
             default:
                 return new MerlinRule(undefined, pRuleOption);
                 break;
@@ -35,4 +39,16 @@ export class Merlin {
         return new MerlinAndroidRule(pRuleOption);
     }
 
+    static ios( pRuleOption:MerlinRuleOptions = {}):MerlinIosRule {
+        return new MerlinIosRule(pRuleOption);
+    }
+
+    /*
+    static tizen( pRuleOption:MerlinRuleOptions = {}):MerlinAndroidRule {
+        return new MerlinAndroidRule(pRuleOption);
+    }
+
+    static darwin( pRuleOption:MerlinRuleOptions = {}):MerlinAndroidRule {
+        return new MerlinAndroidRule(pRuleOption);
+    }*/
 }

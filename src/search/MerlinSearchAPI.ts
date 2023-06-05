@@ -21,6 +21,8 @@ import ModelString from "../ModelString.js";
 import {ModelFunction} from "../ModelFunction.js";
 import ModelSyscall from "../ModelSyscall.js";
 import {IAnalyzerUnit} from "../analyzer/IAnalyzerUnit.js";
+import {OperatingSystem} from "../OperatingSystem.js";
+import {NodeInternalType} from "../NodeInternalType.js";
 
 
 
@@ -36,6 +38,7 @@ export interface SearchOptions {
   copyTo?:any;
 
   strict?:boolean;
+  exists?:boolean;
 }
 
 
@@ -47,6 +50,8 @@ export interface SearchOptions {
  */
 export class MerlinSearchAPI
 {
+  targetOS:OperatingSystem|undefined;
+
   _queryCache:any = [];
   _caseSensitive:boolean = true;
   _finder:Finder;
@@ -161,7 +166,7 @@ export class MerlinSearchAPI
     return MerlinSearchRequest.fromCondition(this, ModelCall.TYPE, pattern, pOptions);
   }
 
-  strings(pattern:string="", pOptions:SearchOptions = { not:false }):MerlinSearchRequest{
+  strings(pattern:string|any="", pOptions:SearchOptions = { not:false }):MerlinSearchRequest{
     return MerlinSearchRequest.fromCondition(this, ModelString.TYPE, pattern, pOptions);
   }
 
@@ -172,6 +177,7 @@ export class MerlinSearchAPI
   syscall(pattern:string="", pOptions:SearchOptions = { not:false }):MerlinSearchRequest{
     return MerlinSearchRequest.fromCondition(this, ModelSyscall.TYPE, pattern, pOptions);
   }
+
 
   /**
    *
@@ -265,4 +271,27 @@ export class MerlinSearchAPI
     this._db = data;
     //this._finder.updateDB(data);
   }
+
+
+  static getMethodFromNodeType( pType:NodeInternalType):string {
+    switch (pType){
+      case NodeInternalType.METHOD: return "method";
+      case NodeInternalType.CLASS: return "class";
+      case NodeInternalType.FIELD: return "field";
+      case NodeInternalType.STRING: return "strings";
+      case NodeInternalType.PACKAGE: return "package";
+      case NodeInternalType.FUNC: return "func";
+      case NodeInternalType.FILE: return "file";
+      case NodeInternalType.DATA_BLOCK: return "array";
+      case NodeInternalType.ANDROID_ACTIVITY: return "activity";
+      case NodeInternalType.ANDROID_PROVIDER: return "provider";
+      case NodeInternalType.ANDROID_SERVICE: return "service";
+      case NodeInternalType.ANDROID_RECEIVER: return "receiver";
+      case NodeInternalType.ANDROID_PERM: return "permission";
+      case NodeInternalType.SYSCALL: return "syscall";
+      case NodeInternalType.CALL: return "call";
+      default: throw new Error("MerlinSearchAPI : unknow node type");
+    }
+  }
+
 }

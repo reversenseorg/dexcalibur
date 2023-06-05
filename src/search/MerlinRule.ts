@@ -4,7 +4,7 @@ import {Operation, OperationType, MerlinSearchRequest} from "./MerlinSearchReque
 import ModelClass from "../ModelClass.js";
 import ModelMethod from "../ModelMethod.js";
 import {OperatingSystem} from "../OperatingSystem.js";
-import { FinderResult } from "../FinderResult.js";
+import { FinderResult } from "./FinderResult.js";
 
 export enum MerlinRuleType {
     STATIC,
@@ -36,12 +36,12 @@ export interface MerlinRuleOptions {
     emulate?:boolean;
     request?:MerlinSearchRequest;
     _sinks?:MerlinRule[];
+    _sources?:MerlinRule[];
     _steps?:MerlinRule[];
 }
 
 export class MerlinRule extends MerlinSearchAPI {
 
-    targetOS:OperatingSystem|undefined;
 
     type:MerlinRuleType = MerlinRuleType.STATIC;
 
@@ -51,7 +51,8 @@ export class MerlinRule extends MerlinSearchAPI {
 
     oper:Operation[] = [];
 
-    protected _sinks:MerlinRule[] = [];
+    protected _sinks:MerlinSearchRequest[] = [];
+    protected _sources:MerlinSearchRequest[] = [];
     protected _steps:MerlinRule[] = [];
 
     protected _subs:MerlinRule[] = [];
@@ -66,7 +67,13 @@ export class MerlinRule extends MerlinSearchAPI {
     }
 
 
-    sink( pRules:MerlinRule):MerlinRule {
+    sources( pRules:MerlinSearchRequest):MerlinRule {
+        this.type = MerlinRuleType.TAINT;
+        this._sources.push(pRules);
+        return this;
+    }
+
+    sink( pRules:MerlinSearchRequest):MerlinRule {
         this.type = MerlinRuleType.TAINT;
         this._sinks.push(pRules);
         return this;
