@@ -1051,7 +1051,7 @@ var PermissionAnalyzer:InspectorFactory = new InspectorFactory({
     },
 
     eventListeners: {
-        "app.permission.new": function(ctx:DexcaliburProject, event:BusEvent):any{
+        "app.permission.new": function(ctx:DexcaliburProject, event:BusEvent<any>):any{
                 let i = event.data.name.lastIndexOf('.');
                 let p=false;
         

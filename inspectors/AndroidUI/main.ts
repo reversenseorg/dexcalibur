@@ -36,7 +36,7 @@ export default new InspectorFactory({
     },
 
     eventListeners: {
-        "class.new":  function (ctx:DexcaliburProject, event:BusEvent):any {
+        "class.new":  function (ctx:DexcaliburProject, event:BusEvent<ModelClass>):any {
 
         }
     }

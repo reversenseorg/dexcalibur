@@ -4,7 +4,7 @@
 
 import InspectorFactory from "../../src/InspectorFactory.js";
 import {INSPECTOR_TYPE} from "../../src/Inspector.js";
-import {DelegateWebApi} from "../../src/webapi/DelegateWebApi.js";
+import {DelegateRequest, DelegateResponse, DelegateWebApi} from "../../src/webapi/DelegateWebApi.js";
 import WebServer from "../../src/WebServer.js";
 import DexcaliburProject from "../../src/DexcaliburProject.js";
 import {AuthenticationException} from "../../src/errors/AuthenticationException.js";
@@ -26,7 +26,7 @@ const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 PLUGIN_WEB_API.addAuthenticatedRoute(
     '/:action',
     {
-        'get': function (req:Request, res:Response):any {
+        'get': function (req:DelegateRequest, res:DelegateResponse):any {
 
             const $: WebServer = req.dxc.$;
             let project:DexcaliburProject = null;
@@ -58,7 +58,7 @@ PLUGIN_WEB_API.addAuthenticatedRoute(
 
                 let meth:ModelMethod = null;
                 if(req.query.meth){
-                    const n = Util.decodeURI(Util.b64_decode(Util.decodeURI(req.query.meth)));
+                    const n = Util.decodeURI(Util.b64_decode(Util.decodeURI(req.query.meth as string)));
                     meth = project.find.get.method(n);
                 }
 

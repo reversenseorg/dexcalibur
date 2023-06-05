@@ -43,7 +43,7 @@ const TAGS_SIGNATURE = {
     }
 }
 
-function tagByIntent(context:DexcaliburProject, event:BusEvent):void {
+function tagByIntent(context:DexcaliburProject, event:BusEvent<any>):void {
     const intents:IntentFilter[] = event.data.obj.getIntentFilters();
     intents.map(i => {
         i.getActions().map(a => {
@@ -63,7 +63,7 @@ function tagByIntent(context:DexcaliburProject, event:BusEvent):void {
 }
 
 
-function tagByAttr(context:DexcaliburProject, pAttr:any, event:BusEvent):void {
+function tagByAttr(context:DexcaliburProject, pAttr:any, event:BusEvent<any>):void {
 
     let t:any;
     for (const i in pAttr) {
@@ -115,11 +115,11 @@ export default new InspectorFactory({
     },
 
     eventListeners: {
-        "dxc.fullscan.post":  function (ctx:DexcaliburProject, event:BusEvent):any {
+        "dxc.fullscan.post":  function (ctx:DexcaliburProject, event:BusEvent<any>):any {
 
 
         },
-        "app.activity.new": function (ctx:DexcaliburProject, event:BusEvent):any {
+        "app.activity.new": function (ctx:DexcaliburProject, event:BusEvent<any>):any {
 
             // to retrieve class implementign this activity
             let act:AndroidActivity = null;

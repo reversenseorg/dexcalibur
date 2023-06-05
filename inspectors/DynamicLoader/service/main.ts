@@ -2,7 +2,7 @@ import InspectorFrontController, {IFC_TYPE} from "../../../src/InspectorFrontCon
 import DexcaliburProject from "../../../src/DexcaliburProject.js";
 import * as _fs_ from 'fs';
 import {IDbIndex} from "../../../src/persist/orm/DbAbstraction.js";
-import {FinderResult} from "../../../src/FinderResult.js";
+import {FinderResult} from "../../../src/search/FinderResult.js";
 import BusEvent from "../../../src/BusEvent.js";
 
 var Controller:InspectorFrontController =  new InspectorFrontController();

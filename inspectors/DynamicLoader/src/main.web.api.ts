@@ -5,11 +5,11 @@
 
 */
 import DexcaliburProject from "../../../src/DexcaliburProject.js";
-import {FinderResult} from "../../../src/FinderResult.js";
+import {FinderResult} from "../../../src/search/FinderResult.js";
 import {IDbIndex} from "../../../src/persist/orm/DbAbstraction.js";
 import * as _fs_ from "fs";
 import BusEvent from "../../../src/BusEvent.js";
-import {DelegateWebApi} from "../../../src/webapi/DelegateWebApi.js";
+import {DelegateRequest, DelegateResponse, DelegateWebApi} from "../../../src/webapi/DelegateWebApi.js";
 import WebServer from "../../../src/WebServer.js";
 import {AuthenticationException} from "../../../src/errors/AuthenticationException.js";
 import {DexcaliburProjectException} from "../../../src/errors/DexcaliburProjectException.js";
@@ -71,7 +71,7 @@ export const DYNAMICLOADER_WEB_API: DelegateWebApi = new DelegateWebApi();
 DYNAMICLOADER_WEB_API.addPublicRoute(
     '/info',
     {
-        'get': function (req:Request, res:Response):any {
+        'get': function (req:DelegateRequest, res:DelegateResponse):any {
 
             const $: WebServer = req.dxc.$;
 
@@ -101,7 +101,7 @@ DYNAMICLOADER_WEB_API.addPublicRoute(
 DYNAMICLOADER_WEB_API.addAuthenticatedRoute(
     '/show/:action',
     {
-        'get': function (req:Request, res:Response):any {
+        'get': function (req:DelegateRequest, res:DelegateResponse):any {
 
             const $: WebServer = req.dxc.$;
             let project:DexcaliburProject = null;
@@ -130,7 +130,7 @@ DYNAMICLOADER_WEB_API.addAuthenticatedRoute(
 
                 let meth:ModelMethod = null;
                 if(req.query.meth){
-                    const n = Util.decodeURI(Util.b64_decode(Util.decodeURI(req.query.meth)));
+                    const n = Util.decodeURI(Util.b64_decode(Util.decodeURI(req.query.meth as string)));
                     meth = project.find.get.method(n);
                 }
 

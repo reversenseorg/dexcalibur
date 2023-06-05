@@ -6,7 +6,7 @@ import {CONST} from "../../../src/CoreConst.js";
 import ModelInstruction from "../../../src/ModelInstruction.js";
 import Util from "../../../src/Utils.js";
 import {Modifier} from "../../../src/AccessFlags.js";
-import {DelegateWebApi} from "../../../src/webapi/DelegateWebApi.js";
+import {DelegateRequest, DelegateResponse, DelegateWebApi} from "../../../src/webapi/DelegateWebApi.js";
 import WebServer from "../../../src/WebServer.js";
 import {AuthenticationException} from "../../../src/errors/AuthenticationException.js";
 import {DexcaliburProjectException} from "../../../src/errors/DexcaliburProjectException.js";
@@ -809,7 +809,7 @@ const PLUGIN_WEB_API: DelegateWebApi = new DelegateWebApi();
 PLUGIN_WEB_API.addAuthenticatedRoute(
     '/:action',
     {
-        'get': function (req:Request, res:Response):any {
+        'get': function (req:DelegateRequest, res:DelegateResponse):any {
 
             const $: WebServer = req.dxc.$;
             let project:DexcaliburProject = null;
@@ -841,7 +841,7 @@ PLUGIN_WEB_API.addAuthenticatedRoute(
 
                 let meth:ModelMethod = null;
                 if(req.query.meth){
-                    const n = Util.decodeURI(Util.b64_decode(Util.decodeURI(req.query.meth)));
+                    const n = Util.decodeURI(Util.b64_decode(Util.decodeURI(req.query.meth as string)));
                     meth = project.find.get.method(n);
                 }
 

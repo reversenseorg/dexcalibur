@@ -51,7 +51,7 @@ var DataClassifierInspector:InspectorFactory = new InspectorFactory({
     },
 
     eventListeners: {
-        "disass.datablock.new": function(ctx:DexcaliburProject, event:BusEvent):void{
+        "disass.datablock.new": function(ctx:DexcaliburProject, event:BusEvent<any>):void{
             if(event.data!=null){
                 const tmgr = ctx.getTagManager();
                 let l = event.data.count()*event.data.width;
@@ -67,7 +67,7 @@ var DataClassifierInspector:InspectorFactory = new InspectorFactory({
                 //console.log(l,event.data.tags);
             }
         },
-        "dxc.fullscan.post": function(ctx:DexcaliburProject,event:BusEvent):void{
+        "dxc.fullscan.post": function(ctx:DexcaliburProject,event:BusEvent<any>):void{
 
             const tag_URI = ctx.getTagManager().getTag("string.pattern.URI");
             let pattern:RegExp = new RegExp("([^:/]*)://([^/]*)");

@@ -86,7 +86,7 @@ var FingerprintInspector:InspectorFactory = new InspectorFactory({
     },
 
     eventListeners: {
-        "fingerprint.device.getId": function(ctx:DexcaliburProject,event:BusEvent):any{
+        "fingerprint.device.getId": function(ctx:DexcaliburProject,event:BusEvent<any>):any{
             Logger.info("[INSPECTOR][TASK] FingerprintInspector : getDeviceId ");
         }
     }

@@ -23,20 +23,20 @@ var Saver:InspectorFactory = new InspectorFactory({
     },
 
     eventListeners: {
-        "save.autosave.start": function(ctx:DexcaliburProject, event:BusEvent):any{
+        "save.autosave.start": function(ctx:DexcaliburProject, event:BusEvent<any>):any{
             ctx.saveManager.enable();
         },
-        "save.autosave.stop": function(ctx:DexcaliburProject, event:BusEvent):any{
+        "save.autosave.stop": function(ctx:DexcaliburProject, event:BusEvent<any>):any{
             ctx.saveManager.disable();
         },
-        "dxc.fullscan.post": function(ctx:DexcaliburProject, event:BusEvent):any{
+        "dxc.fullscan.post": function(ctx:DexcaliburProject, event:BusEvent<any>):any{
             ctx.setSaveManager( new SaveManager(ctx));
         },
-        "dxc.initialized": function(ctx:DexcaliburProject, event:BusEvent):any{
+        "dxc.initialized": function(ctx:DexcaliburProject, event:BusEvent<any>):any{
             ctx.saveManager._ready = true;
             //ctx.saveManager.restore();
         },
-        "function.alias.update": function(ctx:DexcaliburProject, event:BusEvent):any{
+        "function.alias.update": function(ctx:DexcaliburProject, event:BusEvent<any>):any{
             try{
                 if(ctx.saveManager.isReady() && ctx.saveManager.isEnabled()){
                     console.log(event,event.data);
@@ -51,7 +51,7 @@ var Saver:InspectorFactory = new InspectorFactory({
                 Logger.error("[INSPECTOR][SAVE] updateAlias() failed");
             }
         },
-        "method.alias.update": function(ctx:DexcaliburProject, event:BusEvent):any{
+        "method.alias.update": function(ctx:DexcaliburProject, event:BusEvent<any>):any{
             try{
                 if(ctx.saveManager.isReady() && ctx.saveManager.isEnabled()){
                     console.log(event,event.data);
@@ -66,7 +66,7 @@ var Saver:InspectorFactory = new InspectorFactory({
                 Logger.error("[INSPECTOR][SAVE] updateAlias() failed");
             }
         },
-        "field.alias.update": function(ctx:DexcaliburProject, event:BusEvent):any{
+        "field.alias.update": function(ctx:DexcaliburProject, event:BusEvent<any>):any{
             console.log(event);
             try{
                 if(ctx.saveManager.isReady() && ctx.saveManager.isEnabled()){
@@ -81,7 +81,7 @@ var Saver:InspectorFactory = new InspectorFactory({
                 Logger.error("[INSPECTOR][SAVE] updateAlias() failed");
             }
         },
-        "class.alias.update": function(ctx:DexcaliburProject, event:BusEvent):any{
+        "class.alias.update": function(ctx:DexcaliburProject, event:BusEvent<any>):any{
             try{
                 if(ctx.saveManager.isReady() && ctx.saveManager.isEnabled()){
                     ctx.saveManager.updateAlias("classes", (event as any).cls);
@@ -95,7 +95,7 @@ var Saver:InspectorFactory = new InspectorFactory({
                 Logger.error("[INSPECTOR][SAVE] updateAlias() failed");
             }
         },
-        "probe.new": function(ctx:DexcaliburProject, event:BusEvent):any{
+        "probe.new": function(ctx:DexcaliburProject, event:BusEvent<any>):any{
             try{
                 if(ctx.saveManager.isReady() && ctx.saveManager.isEnabled()){
                     ctx.saveManager.updateHook(event.data); 
@@ -109,7 +109,7 @@ var Saver:InspectorFactory = new InspectorFactory({
                 Logger.error("[INSPECTOR][SAVE] newHook() failed : ");
             }
         },
-        "probe.post_code_change": function(ctx:DexcaliburProject, event:BusEvent):any{
+        "probe.post_code_change": function(ctx:DexcaliburProject, event:BusEvent<any>):any{
             try{
                 if(ctx.saveManager.isReady() && ctx.saveManager.isEnabled()){
                     ctx.saveManager.updateHook(event.data); 
@@ -123,7 +123,7 @@ var Saver:InspectorFactory = new InspectorFactory({
                 Logger.error("[INSPECTOR][SAVE] updateHook() failed");
             }
         },
-        "probe.enable": function(ctx:DexcaliburProject, event:BusEvent):any{
+        "probe.enable": function(ctx:DexcaliburProject, event:BusEvent<any>):any{
             try{
                 if(ctx.saveManager.isReady() && ctx.saveManager.isEnabled()){
                     ctx.saveManager.updateHookStatus(event.data.hook, true); 
@@ -137,7 +137,7 @@ var Saver:InspectorFactory = new InspectorFactory({
                 Logger.error("[INSPECTOR][SAVE] hook.enable() failed : ");
             }
         },
-        "probe.disable": function(ctx:DexcaliburProject, event:BusEvent):any{
+        "probe.disable": function(ctx:DexcaliburProject, event:BusEvent<any>):any{
             try{
                 if(ctx.saveManager.isReady() && ctx.saveManager.isEnabled()){
                     ctx.saveManager.updateHookStatus(event.data.hook, false); 

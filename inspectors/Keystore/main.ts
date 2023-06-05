@@ -154,12 +154,12 @@ var KeystoreInspector:InspectorFactory = new InspectorFactory({
     },
 
     eventListeners: {
-        "hook.keystore.load": function(ctx:DexcaliburProject,event:BusEvent):any{
+        "hook.keystore.load": function(ctx:DexcaliburProject,event:BusEvent<any>):any{
             Logger.info("[INSPECTOR][TASK] KeystoreInspector keystore loaded ")
             //ctx.get.method("java.security.KeyStore.load(<java.io.InputStream><char>[])<void>")
             //        .addArgsValue(ctx.hook.lastSession(), event)
         },
-        "data.file.new.knownExt": function(ctx:DexcaliburProject,event:BusEvent):any{
+        "data.file.new.knownExt": function(ctx:DexcaliburProject,event:BusEvent<any>):any{
             if(!checkForBKSext(event.data)) return 1;
             
             Logger.info("[INSPECTOR][TASK] KeystoreInspector BKS detected : ",event.data.name);

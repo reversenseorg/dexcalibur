@@ -89,7 +89,7 @@ var FileDescriptorInspector:InspectorFactory = new InspectorFactory({
     },
 
     eventListeners: {
-        "hook.file.new": function(ctx:DexcaliburProject,event:BusEvent):void{
+        "hook.file.new": function(ctx:DexcaliburProject,event:BusEvent<any>):void{
                 // new meth
                 // get the Hook from the Hook backtrace message
                 //var hook = ctx.hook.getHookByID(event.hook);
