@@ -1,4 +1,4 @@
-import {DelegateWebApi} from "./DelegateWebApi.js";
+import {DelegateRequest, DelegateResponse, DelegateWebApi} from "./DelegateWebApi.js";
 import {Device} from "../Device.js";
 import * as Log from "../Logger.js";
 import WebServer, {HTTP_CODE_ERROR, HTTP_CODE_SUCCESS} from "../WebServer.js";
@@ -83,7 +83,7 @@ DEVICE_WEB_API.addAsyncPublicRoute(
 DEVICE_WEB_API.addAsyncPublicRoute(
     '/fs/content',
     {
-        'get': async function (req: Request, res: Response): Promise<any> {
+        'get': async function (req:DelegateRequest, res:DelegateResponse): Promise<any> {
             let baseDir = "";
             let privileged = false;
             let dev: Device = null;
@@ -91,7 +91,7 @@ DEVICE_WEB_API.addAsyncPublicRoute(
 
             try {
                 if (req.query.uid != null) {
-                    dev = $.context.getDeviceManager().getDevice(req.query.uid);
+                    dev = $.context.getDeviceManager().getDevice(req.query.uid as string);
                 } else {
                     if($.context.getUserService().verifySession(req.dxc.sess)){
                         req.dxc.project = DEVICE_WEB_API.doProjectSecurityChecks(req, $);
@@ -120,7 +120,7 @@ DEVICE_WEB_API.addAsyncPublicRoute(
 
 
                 if (req.query.app != null) {
-                    baseDir = dev.getDataPathOf(req.query.app) + "/";
+                    baseDir = dev.getDataPathOf(req.query.app as string) + "/";
                 }
 
 
@@ -153,13 +153,13 @@ DEVICE_WEB_API.addAsyncPublicRoute(
 DEVICE_WEB_API.addAsyncPublicRoute(
     '/profile/:type',
     {
-        'get': async (req:Request, res:Response):Promise<any> => {
+        'get': async (req:DelegateRequest, res:DelegateResponse):Promise<any> => {
             let dev:Device = null;
             const $:WebServer = req.dxc.$;
 
             try{
                 if (req.query.uid != null) {
-                    dev = $.context.getDeviceManager().getDevice(req.query.uid);
+                    dev = $.context.getDeviceManager().getDevice(req.query.uid as string);
                 } else if ($.project != null){
                     dev = $.project.getDevice();
                 } else{
@@ -191,7 +191,7 @@ DEVICE_WEB_API.addAsyncPublicRoute(
                 $.sendError( res, err.message);
             }
         },
-        'post': async (req:Request, res:Response):Promise<any> => {
+        'post': async (req:DelegateRequest, res:DelegateResponse):Promise<any> => {
             let dev:Device = null;
             const $:WebServer = req.dxc.$;
 
@@ -205,7 +205,8 @@ DEVICE_WEB_API.addAsyncPublicRoute(
                 }
 
                 const opts:DeviceProfilingOptions = (req.body.hasOwnProperty('opts')? req.body.opts : {} );
-                opts.type = req.params.type;
+                // @ts-ignore
+                opts.type = req.params.type as string;
                 opts.profile = dev.getProfile();
                 opts.refresh = true;
                 await dev.performProfiling(opts);
@@ -244,7 +245,7 @@ DEVICE_WEB_API.addAsyncPublicRoute(
 DEVICE_WEB_API.addAsyncPublicRoute(
     '/frida/settings',
     {
-        'post': (req:Request, res:Response):any => {
+        'post': (req:DelegateRequest, res:DelegateResponse):any => {
             let dev:Device = null;
             const $:WebServer = req.dxc.$;
 
@@ -276,7 +277,7 @@ DEVICE_WEB_API.addAsyncPublicRoute(
 DEVICE_WEB_API.addAsyncPublicRoute(
     '/processes',
     {
-        'get': async function (req: Request, res: Response): Promise<any> {
+        'get': async function (req:DelegateRequest, res:DelegateResponse): Promise<any> {
             let privileged = false;
             let dev: Device = null;
             const $: WebServer = req.dxc.$;
@@ -294,7 +295,7 @@ DEVICE_WEB_API.addAsyncPublicRoute(
                 }
 
                 if (req.query.uid != null) {
-                    dev = $.context.getDeviceManager().getDevice(req.query.uid);
+                    dev = $.context.getDeviceManager().getDevice(req.query.uid as string);
                 } if ($.project !== null) {
                     dev = $.project.getDevice();
                 }
@@ -328,7 +329,7 @@ DEVICE_WEB_API.addAsyncPublicRoute(
 DEVICE_WEB_API.addAsyncPublicRoute(
     '/connect',
     {
-        'post': async (req:Request, res:Response):Promise<any> => {
+        'post': async (req:DelegateRequest, res:DelegateResponse):Promise<any> => {
             const dm:DeviceManager = DeviceManager.getInstance();
             const ip:string = req.body['ip'];
             const port:string = req.body['port'];
@@ -384,7 +385,7 @@ DEVICE_WEB_API.addAsyncPublicRoute(
 DEVICE_WEB_API.addAsyncPublicRoute(
     '/clear/:deviceid',
     {
-        'post': (req:Request, res:Response):any => {
+        'post': (req:DelegateRequest, res:DelegateResponse):any => {
             const dm:DeviceManager = DeviceManager.getInstance();
             const deviceid:string = req.params['deviceid'];
             const $:WebServer = req.dxc.$;
@@ -411,7 +412,7 @@ DEVICE_WEB_API.addAsyncPublicRoute(
 DEVICE_WEB_API.addAsyncPublicRoute(
     '/clear',
     {
-        'post': (req:Request, res:Response):any => {
+        'post': (req:DelegateRequest, res:DelegateResponse):any => {
             const dm = DeviceManager.getInstance();
             const $:WebServer = req.dxc.$;
 
@@ -432,7 +433,7 @@ DEVICE_WEB_API.addAsyncPublicRoute(
 DEVICE_WEB_API.addAsyncPublicRoute(
     '/bridge/:name/kill',
     {
-        'post': async  (req:Request, res:Response):Promise<any> => {
+        'post': async  (req:DelegateRequest, res:DelegateResponse):Promise<any> => {
             const dm:DeviceManager = DeviceManager.getInstance();
             let dev:IBridge;
             const $:WebServer = req.dxc.$;
@@ -453,7 +454,7 @@ DEVICE_WEB_API.addAsyncPublicRoute(
 DEVICE_WEB_API.addAsyncPublicRoute(
     '/enroll',
     {
-        'post': async (req:Request, res:Response):Promise<any> => {
+        'post': async (req:DelegateRequest, res:DelegateResponse):Promise<any> => {
             const dm:DeviceManager = DeviceManager.getInstance();
             const $:WebServer = req.dxc.$;
 
@@ -473,7 +474,7 @@ DEVICE_WEB_API.addAsyncPublicRoute(
 DEVICE_WEB_API.addAsyncPublicRoute(
     '/enroll/status',
     {
-        'get':  (req:Request, res:Response):any => {
+        'get':  (req:DelegateRequest, res:DelegateResponse):any => {
             const dm:DeviceManager = DeviceManager.getInstance();
             //let uid:string = req.body['uid'];
             let status:StatusMessage;
@@ -508,7 +509,7 @@ DEVICE_WEB_API.addAsyncPublicRoute(
 DEVICE_WEB_API.addAsyncPublicRoute(
     '',
     {
-    'get': async (req:Request, res:Response):Promise<any> => {
+    'get': async (req:DelegateRequest, res:DelegateResponse):Promise<any> => {
         // scan connected devices
         let dm:DeviceManager;
         const $:WebServer = req.dxc.$;
@@ -541,7 +542,7 @@ DEVICE_WEB_API.addAsyncPublicRoute(
 DEVICE_WEB_API.addAsyncPublicRoute(
     '/syscalls',
     {
-        'get': async (req:Request, res:Response):Promise<any> => {
+        'get': async (req:DelegateRequest, res:DelegateResponse):Promise<any> => {
             // scan connected devices
             let dev:Device, dm:DeviceManager;
             const $:WebServer = req.dxc.$;
@@ -549,7 +550,7 @@ DEVICE_WEB_API.addAsyncPublicRoute(
             try{
 
                 dm = DeviceManager.getInstance();
-                dev = dm.getDevice( req.query.uid );
+                dev = dm.getDevice( req.query.uid  as string);
 
                 if(dev.isEnrolled() == false){
                     throw new Error('Device is not enrolled');
@@ -567,7 +568,7 @@ DEVICE_WEB_API.addAsyncPublicRoute(
 DEVICE_WEB_API.addAsyncPublicRoute(
     '/applications',
     {
-    'get': async (req:Request, res:Response):Promise<any> => {
+    'get': async (req:DelegateRequest, res:DelegateResponse):Promise<any> => {
         // scan connected devices
         let dev:Device, dm:DeviceManager, pkgs:AppPackage[], rep:any;
         const $:WebServer = req.dxc.$;
@@ -575,7 +576,7 @@ DEVICE_WEB_API.addAsyncPublicRoute(
         try{
 
             dm = DeviceManager.getInstance();
-            dev = dm.getDevice( req.query.uid );
+            dev = dm.getDevice( req.query.uid  as string);
 
             if(dev.isEnrolled() == false){
                 throw new Error('Device is not enrolled');
@@ -608,7 +609,7 @@ DEVICE_WEB_API.addAsyncPublicRoute(
 DEVICE_WEB_API.addPublicRoute(
     '/application/pull',
     {
-        'post': (req:Request, res:Response):any => {
+        'post': (req:DelegateRequest, res:DelegateResponse):any => {
             const dm = DeviceManager.getInstance();
             let dev:Device = null, success = false, app:AppPackage = null;
             const $:WebServer = req.dxc.$;
@@ -643,7 +644,7 @@ DEVICE_WEB_API.addPublicRoute(
 DEVICE_WEB_API.addAsyncAuthenticatedRoute(
     '/application/install/project',
     {
-        'post': async (req:Request, res:Response):Promise<any> => {
+        'post': async (req:DelegateRequest, res:DelegateResponse):Promise<any> => {
             let dev:Device;
             const $:WebServer = req.dxc.$;
             let project:DexcaliburProject;
@@ -694,7 +695,7 @@ DEVICE_WEB_API.addAsyncAuthenticatedRoute(
 DEVICE_WEB_API.addPublicRoute(
     '/api/device/setDefault',
     {
-        'post': (req:Request, res:Response):any => {
+        'post': (req:DelegateRequest, res:DelegateResponse):any => {
             // collect
             const uid:string = req.body["uid"];
             const dm:DeviceManager = DeviceManager.getInstance();
@@ -734,7 +735,7 @@ DEVICE_WEB_API.addPublicRoute(
 DEVICE_WEB_API.addAsyncPublicRoute(
     '/:uid/bridge',
     {
-        'put': async (req:Request, res:Response):Promise<any> => {
+        'put': async (req:DelegateRequest, res:DelegateResponse):Promise<any> => {
             // scan connected devices
             let dev:Device=null, bridge:IBridge=null, dm:DeviceManager=null;
             const $:WebServer = req.dxc.$;

@@ -1,4 +1,4 @@
-import {DelegateWebApi} from "./DelegateWebApi.js";
+import {DelegateRequest, DelegateResponse, DelegateWebApi} from "./DelegateWebApi.js";
 import WebServer from "../WebServer.js";
 import {Router, Request, Response} from "express";
 import * as Log from "../Logger.js";
@@ -13,7 +13,7 @@ export const SETTINGS_WEB_API: DelegateWebApi = new DelegateWebApi();
 SETTINGS_WEB_API.addPublicRoute(
     '/global',
     {
-        'get': (req:Request, res:Response)=>{
+        'get': (req:DelegateRequest, res:DelegateResponse)=>{
 
             const $:WebServer = req.dxc.$;
             let data:any;
@@ -43,7 +43,7 @@ SETTINGS_WEB_API.addPublicRoute(
                 $.sendError(res, err.message);
             }
         },
-        'post': (req:Request, res:Response)=>{
+        'post': (req:DelegateRequest, res:DelegateResponse)=>{
 
             const $:WebServer = req.dxc.$;
             let settings:any;
@@ -82,7 +82,7 @@ SETTINGS_WEB_API.addPublicRoute(
                 $.sendError(res, err.message);
             }
         },
-        'put': (req:Request, res:Response)=>{
+        'put': (req:DelegateRequest, res:DelegateResponse)=>{
 
             const $:WebServer = req.dxc.$;
             let data:any, settings:any;
@@ -127,7 +127,7 @@ SETTINGS_WEB_API.addPublicRoute(
 SETTINGS_WEB_API.addPublicRoute(
     '/import',
     {
-        'post': (req:Request, res:Response)=>{
+        'post': (req:DelegateRequest, res:DelegateResponse)=>{
 
             const $:WebServer = req.dxc.$;
             let data:any;

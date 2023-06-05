@@ -1,4 +1,4 @@
-import {DelegateWebApi} from "./DelegateWebApi.js";
+import {DelegateRequest, DelegateResponse, DelegateWebApi} from "./DelegateWebApi.js";
 import WebServer, {HTTP_CODE_ERROR, HTTP_CODE_SUCCESS} from "../WebServer.js";
 import {Request, Response} from "express";
 import * as Log from "../Logger.js";
@@ -19,7 +19,7 @@ export const APP_WEB_API: DelegateWebApi = new DelegateWebApi();
 APP_WEB_API.addAuthenticatedRoute(
     '/cmp',
     {
-        'get': function (req:Request, res:Response):any {
+        'get': function (req:DelegateRequest, res:DelegateResponse):any {
 
 
             try{
@@ -51,7 +51,7 @@ APP_WEB_API.addAuthenticatedRoute(
 APP_WEB_API.addAuthenticatedRoute(
     '/package/content',
     {
-        'get': function(req:Request, res:Response):any {
+        'get': function(req:DelegateRequest, res:DelegateResponse):any {
 
 
             const $:WebServer = req.dxc.$;
@@ -72,7 +72,7 @@ APP_WEB_API.addAuthenticatedRoute(
 
                 if(req.query.path!=null && req.query.path!="null"){
 
-                    unsafeNomalizedPath = _path_.normalize(req.query.path);
+                    unsafeNomalizedPath = _path_.normalize(req.query.path as string);
                     if(unsafeNomalizedPath !== req.query.path){
                         throw new Error('[SECURITY] Path traversal is not allowed. ');
                     }

@@ -1,4 +1,4 @@
-import {DelegateWebApi} from "./DelegateWebApi.js";
+import {DelegateRequest, DelegateResponse, DelegateWebApi} from "./DelegateWebApi.js";
 import {Device} from "../Device.js";
 import WebServer, {HTTP_CODE_ERROR, HTTP_CODE_SUCCESS} from "../WebServer.js";
 import DeviceManager from "../DeviceManager.js";
@@ -26,7 +26,7 @@ export const INSPECTOR_WEB_API: DelegateWebApi = new DelegateWebApi();
 INSPECTOR_WEB_API.addAuthenticatedRoute(
     '/inspectors/:inspectorID',
     {
-        'get': function (req:Request, res:Response):any {
+        'get': function (req:DelegateRequest, res:DelegateResponse):any {
 
             const $: WebServer = req.dxc.$;
             let project:DexcaliburProject = null;
@@ -53,7 +53,7 @@ INSPECTOR_WEB_API.addAuthenticatedRoute(
 
 
         },
-        'post': function (req:Request, res:Response):any {
+        'post': function (req:DelegateRequest, res:DelegateResponse):any {
 
             const $: WebServer = req.dxc.$;
             let project:DexcaliburProject = null;
@@ -88,7 +88,7 @@ INSPECTOR_WEB_API.addAuthenticatedRoute(
 INSPECTOR_WEB_API.addAuthenticatedRoute(
     '/inspector/list',
     {
-        'get': function (req:Request, res:Response):any {
+        'get': function (req:DelegateRequest, res:DelegateResponse):any {
 
             const $: WebServer = req.dxc.$;
             let project:DexcaliburProject = null;

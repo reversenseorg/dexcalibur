@@ -1,4 +1,4 @@
-import {DelegateWebApi} from "./DelegateWebApi.js";
+import {DelegateRequest, DelegateResponse, DelegateWebApi} from "./DelegateWebApi.js";
 import WebServer, {HTTP_CODE_ERROR, HTTP_CODE_SUCCESS} from "../WebServer.js";
 import {Request, Response} from "express";
 import * as Log from "../Logger.js";
@@ -18,7 +18,7 @@ export const KEYPOINT_WEB_API: DelegateWebApi = new DelegateWebApi();
 KEYPOINT_WEB_API.addAuthenticatedRoute(
     '/search',
     {
-        'get': function (req:Request, res:Response):any {
+        'get': function (req:DelegateRequest, res:DelegateResponse):any {
             const $: WebServer = req.dxc.$;
             let project:DexcaliburProject = null;
 
@@ -62,7 +62,7 @@ KEYPOINT_WEB_API.addAuthenticatedRoute(
 KEYPOINT_WEB_API.addAuthenticatedRoute(
     '/list',
     {
-        'get': function (req:Request, res:Response):any {
+        'get': function (req:DelegateRequest, res:DelegateResponse):any {
             const $: WebServer = req.dxc.$;
 
             try{
@@ -90,7 +90,7 @@ KEYPOINT_WEB_API.addAuthenticatedRoute(
 KEYPOINT_WEB_API.addAuthenticatedRoute(
     '/new',
     {
-        'post': function (req:Request, res:Response):any {
+        'post': function (req:DelegateRequest, res:DelegateResponse):any {
             const $: WebServer = req.dxc.$;
 
             try{
@@ -148,7 +148,7 @@ KEYPOINT_WEB_API.addAuthenticatedRoute(
 KEYPOINT_WEB_API.addAuthenticatedRoute(
     '/edit/:uid',
     {
-        'get': function (req:Request, res:Response):any {
+        'get': function (req:DelegateRequest, res:DelegateResponse):any {
             const $: WebServer = req.dxc.$;
 
             try{
@@ -165,7 +165,7 @@ KEYPOINT_WEB_API.addAuthenticatedRoute(
                 $.sendError(res, "Key Point cannot be retrieved. Cause : " + err.message);
             }
         },
-        'post': function (req:Request, res:Response):any {
+        'post': function (req:DelegateRequest, res:DelegateResponse):any {
             const $: WebServer = req.dxc.$;
 
             try{
@@ -216,7 +216,7 @@ KEYPOINT_WEB_API.addAuthenticatedRoute(
                 $.sendError(res, "Key Point cannot be updated. Cause : " + err.message);
             }
         },
-        'delete': function (req:Request, res:Response):any {
+        'delete': function (req:DelegateRequest, res:DelegateResponse):any {
             const $: WebServer = req.dxc.$;
 
             try{
@@ -248,7 +248,7 @@ KEYPOINT_WEB_API.addAuthenticatedRoute(
 KEYPOINT_WEB_API.addAuthenticatedRoute(
     '/remove/token',
     {
-        'post': function (req:Request, res:Response):any {
+        'post': function (req:DelegateRequest, res:DelegateResponse):any {
             const $: WebServer = req.dxc.$;
 
             try{
@@ -276,7 +276,7 @@ KEYPOINT_WEB_API.addAuthenticatedRoute(
 KEYPOINT_WEB_API.addAuthenticatedRoute(
     '/enable',
     {
-        'post': function (req:Request, res:Response):any {
+        'post': function (req:DelegateRequest, res:DelegateResponse):any {
             const $: WebServer = req.dxc.$;
 
             try{
@@ -308,7 +308,7 @@ KEYPOINT_WEB_API.addAuthenticatedRoute(
 KEYPOINT_WEB_API.addAuthenticatedRoute(
     '/attach/hook',
     {
-        'post': function (req:Request, res:Response):any {
+        'post': function (req:DelegateRequest, res:DelegateResponse):any {
             const $: WebServer = req.dxc.$;
 
             try{

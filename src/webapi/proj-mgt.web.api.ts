@@ -1,4 +1,4 @@
-import {DelegateWebApi} from "./DelegateWebApi.js";
+import {DelegateRequest, DelegateResponse, DelegateWebApi} from "./DelegateWebApi.js";
 import {Device} from "../Device.js";
 import WebServer from "../WebServer.js";
 import DeviceManager from "../DeviceManager.js";
@@ -29,7 +29,7 @@ export const PROJECT_MGT_WEB_API: DelegateWebApi = new DelegateWebApi();
 PROJECT_MGT_WEB_API.addAuthenticatedRoute(
     '/list',
     {
-        'get': async (req:Request, res:Response)=>{
+        'get': async (req:DelegateRequest, res:DelegateResponse)=>{
 
             let $:WebServer = req.dxc.$;
             let user:UserAccount;
@@ -54,7 +54,7 @@ PROJECT_MGT_WEB_API.addAuthenticatedRoute(
 PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
     '/new',
     {
-        'post': async (req:Request, res:Response)=>{
+        'post': async (req:DelegateRequest, res:DelegateResponse)=>{
 
 
             const PLATFORM_MODE = ['dev','min','max'];
@@ -248,7 +248,7 @@ PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
 PROJECT_MGT_WEB_API.addAuthenticatedRoute(
     '/upload',
     {
-        'post':  (req:Request, res:Response)=>{
+        'post':  (req:DelegateRequest, res:DelegateResponse)=>{
 
 
             let $:WebServer = req.dxc.$;
@@ -281,7 +281,7 @@ PROJECT_MGT_WEB_API.addAuthenticatedRoute(
 PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
     '/open',
     {
-        'get': async (req:Request, res:Response)=>{
+        'get': async (req:DelegateRequest, res:DelegateResponse)=>{
 
 
             let $:WebServer = req.dxc.$;
@@ -300,7 +300,7 @@ PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
                 await DeviceManager.getInstance().scan();
 
 
-                project = $.context.getProject( req.query.uid);
+                project = $.context.getProject( req.query.uid as string);
 
                 AccessControl.check(
                     AccessZone.PROJECT,
@@ -332,12 +332,12 @@ PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
 
 
                 // init workflow
-                wf = $.context.newWorkflow( req.query.uid ).changeOwner(user);
+                wf = $.context.newWorkflow( req.query.uid  as string ).changeOwner(user);
 
 
                 wf.pushStatus(new StatusMessage(5, "Opening project"));
 
-                project = await $.context.openProject( user, req.query.uid);
+                project = await $.context.openProject( user, req.query.uid as string);
 
                 if(project!=null && project.isReady()){
                     req.dxc.sess.setDefaultActiveProject(project);
@@ -360,7 +360,7 @@ PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
 PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
     '/delete',
     {
-        'post': async (req:Request, res:Response)=>{
+        'post': async (req:DelegateRequest, res:DelegateResponse)=>{
 
             let $:WebServer = req.dxc.$;
             let user:UserAccount;
@@ -408,7 +408,7 @@ PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
 PROJECT_MGT_WEB_API.addAuthenticatedRoute(
     '/availability',
     {
-        'get':  (req:Request, res:Response)=>{
+        'get':  (req:DelegateRequest, res:DelegateResponse)=>{
 
             let $:WebServer = req.dxc.$;
             let availability:boolean = true;

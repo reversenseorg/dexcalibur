@@ -1,5 +1,5 @@
 import WebServer from "../WebServer.js";
-import {Router, Request, Response} from "express";
+import {Request, Response, Router} from "express";
 
 import * as Log from "../Logger.js";
 import DexcaliburProject from "../DexcaliburProject.js";
@@ -20,7 +20,8 @@ export interface DelegateRequest extends Request {
     dxc: {
         project?: DexcaliburProject,
         $?: WebServer,
-        sess?:UserSession
+        sess?:UserSession,
+        filt?:any
     }
 }
 
@@ -59,6 +60,7 @@ export class DelegateWebApi
     private _l:any = null;
 
     constructor() {
+        // @ts-ignore
         this.router = new Router();
     }
 
@@ -72,7 +74,7 @@ export class DelegateWebApi
      * @method
      * @public
      */
-    doProjectSecurityChecks( pRequest:Request, pWebServer:WebServer):DexcaliburProject {
+    doProjectSecurityChecks( pRequest:DelegateRequest, pWebServer:WebServer):DexcaliburProject {
 
         if (pRequest.dxc == null || !pWebServer.context.getUserService().verifySession(pRequest.dxc.sess)) {
             throw AuthenticationException.AUTHENTICATION_FAILED();
@@ -120,12 +122,12 @@ export class DelegateWebApi
         for(let httpVerb in pHandlers){
 
             if(pOptions.async){
-                this.router[httpVerb](pRoute, async function(req:Request, res:Response):Promise<any> {
+                this.router[httpVerb](pRoute, async function(req:DelegateRequest, res:DelegateResponse):Promise<any> {
                     req.dxc.$ = self.srv;
                     return  await pHandlers[httpVerb](req, res);
                 });
             }else{
-                this.router[httpVerb](pRoute, function(req:Request, res:Response):any {
+                this.router[httpVerb](pRoute, function(req:DelegateRequest, res:DelegateResponse):any {
                     req.dxc.$ = self.srv;
                     return pHandlers[httpVerb](req, res);
                 });
@@ -150,7 +152,7 @@ export class DelegateWebApi
         const self = this;
         for(let httpVerb in pHandlers){
             if(pOptions.async){
-                this.router[httpVerb](pRoute, async function(req:Request, res:Response):Promise<any> {
+                this.router[httpVerb](pRoute, async function(req:DelegateRequest, res:DelegateResponse):Promise<any> {
                     req.dxc.$ = self.srv;
                     try{
                         if(self.srv.context.getUserService().verifySession(req.dxc.sess)){
@@ -166,7 +168,7 @@ export class DelegateWebApi
                     }
                 });
             }else{
-                this.router[httpVerb](pRoute, function(req:Request, res:Response):any {
+                this.router[httpVerb](pRoute, function(req:DelegateRequest, res:DelegateResponse):any {
                     req.dxc.$ = self.srv;
                     try{
                         if(self.srv.context.getUserService().verifySession(req.dxc.sess)){
@@ -187,7 +189,7 @@ export class DelegateWebApi
 /*
     addRestrictedRoute( pRoute:string, pAccess:Access[], pHandlers:any ):void {
         for(let httpVerb in pHandlers){
-            this.router[httpVerb](async function(req:Request, res:Response):Promise<any> {
+            this.router[httpVerb](async function(req:DelegateRequest, res:DelegateResponse):Promise<any> {
                 try{
                     if(this.srv.context.getUserService().verifySession(req.dxc.sess)){
                         AccessControl.check(

@@ -1,4 +1,4 @@
-import {DelegateWebApi} from "./DelegateWebApi.js";
+import {DelegateRequest, DelegateResponse, DelegateWebApi} from "./DelegateWebApi.js";
 import WebServer from "../WebServer.js";
 import {Request, Response } from "express";
 import * as Log from "../Logger.js";
@@ -17,7 +17,7 @@ export const AUTH_WEB_API: DelegateWebApi = new DelegateWebApi();
 AUTH_WEB_API.addPublicRoute(
     '/logout',
     {
-        'get': async (req:Request, res:Response):Promise<any> => {
+        'get': async (req:DelegateRequest, res:DelegateResponse):Promise<any> => {
 
             let $:WebServer = req.dxc.$;
 
@@ -42,7 +42,7 @@ AUTH_WEB_API.addPublicRoute(
 AUTH_WEB_API.addPublicRoute(
     '/connections',
     {
-        'get': async (req:Request, res:Response):Promise<any> => {
+        'get': async (req:DelegateRequest, res:DelegateResponse):Promise<any> => {
 
             let conn:any,  _DATA:any;
             let $:WebServer = req.dxc.$;
@@ -68,7 +68,7 @@ AUTH_WEB_API.addPublicRoute(
 AUTH_WEB_API.addPublicRoute(
     '/auth',
     {
-        'post': async  (req:Request, res:Response):Promise<any> => {
+        'post': async  (req:DelegateRequest, res:DelegateResponse):Promise<any> => {
 
             let conn:ConnectionSettings, param:DexcaliburConnectionParams, _DATA:any;
             let handler:ConnectionHandler;
@@ -97,7 +97,7 @@ AUTH_WEB_API.addPublicRoute(
                         res.cookie(
                             $.context.getUserService().getCookieName(),
                             req.dxc.sess.getSessUID(),
-                            { maxAge: 7*24*60, expires: 0  }
+                            { maxAge: 7*24*60 } //, expires: new Date().  }
                         );
                         _DATA= { token:req.dxc.sess.getSessUID() };
                     }else{

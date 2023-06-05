@@ -1,4 +1,4 @@
-import {DelegateWebApi} from "./DelegateWebApi.js";
+import {DelegateRequest, DelegateResponse, DelegateWebApi} from "./DelegateWebApi.js";
 import WebServer, {HTTP_CODE_ERROR, HTTP_CODE_SUCCESS} from "../WebServer.js";
 import {Request, Response} from "express";
 import * as Log from "../Logger.js";
@@ -7,7 +7,7 @@ import DexcaliburProject from "../DexcaliburProject.js";
 import {AuthenticationException} from "../errors/AuthenticationException.js";
 import {DexcaliburProjectException} from "../errors/DexcaliburProjectException.js";
 import {ModelFunction} from "../ModelFunction.js";
-import {FinderResult} from "../FinderResult.js";
+import {FinderResult} from "../search/FinderResult.js";
 import NativeAnalyzer from "../NativeAnalyzer.js";
 import {NativeAnalyzerException} from "../errors/NativeAnalyzerException.js";
 import {NativeAnalyzerCommands} from "../analyzer/NativeAnalyzerCommands.js";
@@ -23,7 +23,7 @@ export const NATIVE_WEB_API: DelegateWebApi = new DelegateWebApi();
 NATIVE_WEB_API.addAsyncAuthenticatedRoute(
     '/func',
     {
-        'get': async function (req:Request, res:Response):Promise<any> {
+        'get': async function (req:DelegateRequest, res:DelegateResponse):Promise<any> {
             const $: WebServer = req.dxc.$;
             let project:DexcaliburProject = null;
 
@@ -51,7 +51,7 @@ NATIVE_WEB_API.addAsyncAuthenticatedRoute(
                 }
 
                 const fn:ModelFunction = project.find.get.func(
-                    decodeURIComponent(req.query['uid'])
+                    decodeURIComponent(req.query['uid'] as string)
                 );
 
                 if(fn==null){
@@ -59,7 +59,7 @@ NATIVE_WEB_API.addAsyncAuthenticatedRoute(
                 }
 
                 if(req.query['cmd']!=null){
-                    const cmd = req.query['cmd'].split(':');
+                    const cmd = (req.query['cmd'] as string).split(':');
 
                     const file:FinderResult = project.find.file('_uid:'+fn.getDeclaringFile());
                     if(file.count()==0){
@@ -98,7 +98,7 @@ NATIVE_WEB_API.addAsyncAuthenticatedRoute(
 NATIVE_WEB_API.addAuthenticatedRoute(
     '/func/:b64_uid',
     {
-        'put': function (req:Request, res:Response):any {
+        'put': function (req:DelegateRequest, res:DelegateResponse):any {
             const $: WebServer = req.dxc.$;
             let project:DexcaliburProject = null;
 
@@ -169,7 +169,7 @@ NATIVE_WEB_API.addAuthenticatedRoute(
 NATIVE_WEB_API.addAuthenticatedRoute(
     '/analysis',
     {
-        'get':  function (req:Request, res:Response):any {
+        'get':  function (req:DelegateRequest, res:DelegateResponse):any {
             const $: WebServer = req.dxc.$;
             let project:DexcaliburProject = null;
 
@@ -203,7 +203,7 @@ NATIVE_WEB_API.addAuthenticatedRoute(
                     throw new Error("[NATIVE::ANALYSIS] #NAT_2 File not found");
                 }
 
-                const cmd = (req.query['cmd']!=null ?  req.query['cmd'].split(':') : ['*']);
+                const cmd = (req.query['cmd']!=null ?  (req.query['cmd'] as string).split(':') : ['*']);
 
                 if(project.analyze.getNativeAnalyzer().requireAnalysis( search.get(0), cmd, null)){
 
@@ -224,7 +224,7 @@ NATIVE_WEB_API.addAuthenticatedRoute(
 NATIVE_WEB_API.addAsyncAuthenticatedRoute(
     '/disass/func',
     {
-        'get':  async function (req:Request, res:Response):Promise<any> {
+        'get':  async function (req:DelegateRequest, res:DelegateResponse):Promise<any> {
             const $: WebServer = req.dxc.$;
             let project:DexcaliburProject = null;
 
@@ -251,7 +251,7 @@ NATIVE_WEB_API.addAsyncAuthenticatedRoute(
                     throw new Error("Function UID is missing");
                 }
 
-                const fn_uid = req.query['uid'];
+                const fn_uid = req.query['uid']  as string;
                 const fn:ModelFunction = project.find.get.func(fn_uid); // .func.get('_uid:'+req.query['uid']);
                 if(fn == null){
                     throw new Error("Function ("+fn_uid+") not found ");
@@ -273,7 +273,7 @@ NATIVE_WEB_API.addAsyncAuthenticatedRoute(
                 const natAnal:NativeAnalyzer = project.analyze.getNativeAnalyzer();
                 let commands:string[];
                 if(req.query['cmd']!=null){
-                    commands = NativeAnalyzerCommands.getFuncCmd(req.query['cmd']);
+                    commands = NativeAnalyzerCommands.getFuncCmd(req.query['cmd']  as string);
                 }else{
                     commands = [NativeAnalyzerCommands.FUNC_CMD.DISASS];
                 }
@@ -303,7 +303,7 @@ NATIVE_WEB_API.addAsyncAuthenticatedRoute(
 NATIVE_WEB_API.addAsyncAuthenticatedRoute(
     '/analyze/:type',
     {
-        'post': async function (req:Request, res:Response):Promise<any> {
+        'post': async function (req:DelegateRequest, res:DelegateResponse):Promise<any> {
             const $: WebServer = req.dxc.$;
             let project:DexcaliburProject = null;
 
@@ -369,7 +369,7 @@ NATIVE_WEB_API.addAsyncAuthenticatedRoute(
 NATIVE_WEB_API.addPublicRoute(
     '/public/settings/abi',
     {
-        'get':  async function (req:Request, res:Response):Promise<any> {
+        'get':  async function (req:DelegateRequest, res:DelegateResponse):Promise<any> {
             const $: WebServer = req.dxc.$;
 
             try{

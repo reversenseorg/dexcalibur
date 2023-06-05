@@ -1,4 +1,4 @@
-import {DelegateWebApi} from "./DelegateWebApi.js";
+import {DelegateRequest, DelegateResponse, DelegateWebApi} from "./DelegateWebApi.js";
 import {Device} from "../Device.js";
 import WebServer from "../WebServer.js";
 import DeviceManager from "../DeviceManager.js";
@@ -15,7 +15,7 @@ export const PLATFORM_WEB_API: DelegateWebApi = new DelegateWebApi();
 PLATFORM_WEB_API.addPublicRoute(
     '/list',
     {
-        'get': async (req:Request, res:Response)=>{
+        'get': async (req:DelegateRequest, res:DelegateResponse)=>{
 
             let $:WebServer = req.dxc.$;
 
@@ -35,7 +35,7 @@ PLATFORM_WEB_API.addPublicRoute(
 PLATFORM_WEB_API.addAsyncPublicRoute(
     '/install',
     {
-        'post': async (req:Request, res:Response)=>{
+        'post': async (req:DelegateRequest, res:DelegateResponse)=>{
 
             let $:WebServer = req.dxc.$;
 

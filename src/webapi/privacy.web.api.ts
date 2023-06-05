@@ -45,7 +45,7 @@ PRIVACY_WEB_API.addAuthenticatedRoute(
 PRIVACY_WEB_API.addAuthenticatedRoute(
     '/scan',
     {
-        'post': function (req:Request, res:Response):any {
+        'post': function (req:DelegateRequest, res:DelegateResponse):any {
             const $: WebServer = req.dxc.$;
 
             try{
@@ -83,7 +83,7 @@ PRIVACY_WEB_API.addAuthenticatedRoute(
 PRIVACY_WEB_API.addAuthenticatedRoute(
     '/scanModel',
     {
-        'post': function (req:Request, res:Response):any {
+        'post': function (req:DelegateRequest, res:DelegateResponse):any {
             const $: WebServer = req.dxc.$;
 
             try{
@@ -94,6 +94,9 @@ PRIVACY_WEB_API.addAuthenticatedRoute(
 
                 //scanner.hasCredit()
                 const report = scanner.runModel(req.dxc.project);
+
+                // save report
+                req.dxc.project
 
                 // get hook instance by ID
                 const data = {

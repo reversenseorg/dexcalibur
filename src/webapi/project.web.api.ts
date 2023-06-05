@@ -1,4 +1,4 @@
-import {DelegateWebApi} from "./DelegateWebApi.js";
+import {DelegateRequest, DelegateResponse, DelegateWebApi} from "./DelegateWebApi.js";
 import {Device} from "../Device.js";
 import WebServer, {HTTP_CODE_ERROR} from "../WebServer.js";
 import DeviceManager from "../DeviceManager.js";
@@ -29,7 +29,7 @@ export const PROJECT_WEB_API: DelegateWebApi = new DelegateWebApi();
 PROJECT_WEB_API.addAsyncAuthenticatedRoute(
     '/info/:project',
     {
-        'get': async (req:Request, res:Response)=>{
+        'get': async (req:DelegateRequest, res:DelegateResponse)=>{
 
             let device:Device = null;
             let $:WebServer = req.dxc.$;
@@ -73,7 +73,7 @@ PROJECT_WEB_API.addAsyncAuthenticatedRoute(
 PROJECT_WEB_API.addAuthenticatedRoute(
     '/active',
     {
-        'get':  (req:Request, res:Response)=>{
+        'get':  (req:DelegateRequest, res:DelegateResponse)=>{
 
             const $:WebServer = req.dxc.$;
 
@@ -93,7 +93,7 @@ PROJECT_WEB_API.addAuthenticatedRoute(
                 $.sendError(res, "List of actives projects cannot be retrieved. Cause : "+err.message);
             }
         },
-        'post': (req:Request, res:Response)=>{
+        'post': (req:DelegateRequest, res:DelegateResponse)=>{
 
             const $:WebServer = req.dxc.$;
 
@@ -141,7 +141,7 @@ PROJECT_WEB_API.addAuthenticatedRoute(
 PROJECT_WEB_API.addAuthenticatedRoute(
     '/close',
     {
-        'post':  (req:Request, res:Response)=>{
+        'post':  (req:DelegateRequest, res:DelegateResponse)=>{
 
             const $:WebServer = req.dxc.$;
 
@@ -185,7 +185,7 @@ PROJECT_WEB_API.addAuthenticatedRoute(
 PROJECT_WEB_API.addAuthenticatedRoute(
     '/info/:uid',
     {
-        'get': (req: Request, res: Response) => {
+        'get': (req:DelegateRequest, res:DelegateResponse) => {
 
             const $: WebServer = req.dxc.$;
 
@@ -208,7 +208,7 @@ PROJECT_WEB_API.addAuthenticatedRoute(
 PROJECT_WEB_API.addAuthenticatedRoute(
     '/device',
     {
-        'get': (req: Request, res: Response) => {
+        'get': (req:DelegateRequest, res:DelegateResponse) => {
 
             const $: WebServer = req.dxc.$;
 
@@ -235,7 +235,7 @@ PROJECT_WEB_API.addAuthenticatedRoute(
                 $.sendError(res, "Default target device cannot be retrieved. Cause : " + err.message);
             }
         },
-        'post': (req: Request, res: Response) => {
+        'post': (req:DelegateRequest, res:DelegateResponse) => {
 
             const $: WebServer = req.dxc.$;
 
@@ -267,7 +267,7 @@ PROJECT_WEB_API.addAuthenticatedRoute(
 PROJECT_WEB_API.addAuthenticatedRoute(
     '/settings',
     {
-        'post': (req: Request, res: Response) => {
+        'post': (req:DelegateRequest, res:DelegateResponse) => {
 
             const $: WebServer = req.dxc.$;
             let project:DexcaliburProject = null;
@@ -319,7 +319,7 @@ PROJECT_WEB_API.addAuthenticatedRoute(
 PROJECT_WEB_API.addAuthenticatedRoute(
     '/ws',
     {
-        'post': (req: Request, res: Response) => {
+        'post': (req:DelegateRequest, res:DelegateResponse) => {
 
             const $: WebServer = req.dxc.$;
             let project:DexcaliburProject = null;
@@ -391,7 +391,7 @@ PROJECT_WEB_API.addAuthenticatedRoute(
 PROJECT_WEB_API.addAuthenticatedRoute(
     '/tags',
     {
-        'get': (req: Request, res: Response) => {
+        'get': (req:DelegateRequest, res:DelegateResponse) => {
 
             const $: WebServer = req.dxc.$;
             let project:DexcaliburProject = null;
@@ -430,6 +430,39 @@ PROJECT_WEB_API.addAuthenticatedRoute(
     }
 );
 
+/**
+ * To get some statistics
+ */
+PROJECT_WEB_API.addAuthenticatedRoute(
+    '/stats',
+    {
+        'get': (req:DelegateRequest, res:DelegateResponse) => {
+
+            const $: WebServer = req.dxc.$;
+            let project:DexcaliburProject = null;
+
+            try {
+
+                // collect
+                const data:any = req.dxc.project.getStatistics();
+
+                const tmgr:TagManager = project.getTagManager();
+                const tagc:any = tmgr.getCategories();
+                for (let i = 0; i < tagc.length; i++) {
+                    data.push(tagc[i].toJsonObject());
+                }
+
+                $.sendSuccess( res, data);
+
+            } catch (err) {
+                Logger.error("[API][PROJECT] Tag categories cannot be retrieved. Cause : " + err.message + "\n\t" + err.stack);
+                $.sendError(res, "Tag categories cannot be retrieved. Cause : " + err.message);
+            }
+        },
+    },{
+        readProject: true
+    }
+);
 /*
             this.app.route('/api/projection')
                 .get(function (req:ExpressRequest, res:ExpressResponse):any {

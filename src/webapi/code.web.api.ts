@@ -1,4 +1,4 @@
-import {DelegateWebApi} from "./DelegateWebApi.js";
+import {DelegateRequest, DelegateResponse, DelegateWebApi} from "./DelegateWebApi.js";
 import WebServer, {HTTP_CODE_ERROR, HTTP_CODE_SUCCESS} from "../WebServer.js";
 import {Request, Response} from "express";
 import * as Log from "../Logger.js";
@@ -12,7 +12,7 @@ import ModelClass from "../ModelClass.js";
 import ModelField from "../ModelField.js";
 import ModelPackage from "../ModelPackage.js";
 import * as VM from "vm";
-import {FinderResult} from "../FinderResult.js";
+import {FinderResult} from "../search/FinderResult.js";
 import DataScope from "../DataScope.js";
 import ModelFile from "../ModelFile.js";
 import {NodeInternalType} from "../NodeInternalType.js";
@@ -30,17 +30,17 @@ export const CODE_WEB_API: DelegateWebApi = new DelegateWebApi();
 CODE_WEB_API.addAuthenticatedRoute(
     '/package',
     {
-        'get': function (req:Request, res:Response):any {
+        'get': function (req:DelegateRequest, res:DelegateResponse):any {
 
 
             let $: WebServer = req.dxc.$;
             let project:DexcaliburProject = null;
 
-            let format:any = req.query.hasOwnProperty('format')? req.query.format : 'list';
-            let query:string = req.query.hasOwnProperty('query')? req.query.query : '.*';
-            let filter:string = req.query.hasOwnProperty('filter')? req.query.filter : null;
-            let filter2:string = req.query.hasOwnProperty('filter2')? req.query.filter2 : null;
-            let fields:string[] = req.query.hasOwnProperty('fields')? req.query.fields.split(',') : ['name'];
+            let format:any = req.query.hasOwnProperty('format')? req.query.format as string : 'list';
+            let query:string = req.query.hasOwnProperty('query')? req.query.query as string : '.*';
+            let filter:string = req.query.hasOwnProperty('filter')? req.query.filter as string : null;
+            let filter2:string = req.query.hasOwnProperty('filter2')? req.query.filter2 as string : null;
+            let fields:string[] = req.query.hasOwnProperty('fields')? (req.query.fields as string).split(',') : ['name'];
             let data:FinderResult;
 
 
@@ -100,7 +100,7 @@ CODE_WEB_API.addAuthenticatedRoute(
 CODE_WEB_API.addAuthenticatedRoute(
     '/method/simplify/:id',
     {
-        'post': function (req:Request, res:Response):any {
+        'post': function (req:DelegateRequest, res:DelegateResponse):any {
 
 
             let $: WebServer = req.dxc.$;
@@ -156,7 +156,7 @@ CODE_WEB_API.addAuthenticatedRoute(
 CODE_WEB_API.addAuthenticatedRoute(
     '/method/disass/:id',
     {
-        'get': function (req:Request, res:Response):any {
+        'get': function (req:DelegateRequest, res:DelegateResponse):any {
 
 
             let $: WebServer = req.dxc.$;
@@ -207,7 +207,7 @@ Useless. Too much results
 CODE_WEB_API.addAuthenticatedRoute(
     '/method',
     {
-        'get': function (req:Request, res:Response):any {
+        'get': function (req:DelegateRequest, res:DelegateResponse):any {
 
 
             let $: WebServer = req.dxc.$;
@@ -244,7 +244,7 @@ CODE_WEB_API.addAuthenticatedRoute(
 CODE_WEB_API.addAuthenticatedRoute(
     '/android/xref/:type/:uid',
     {
-        'get': function (req:Request, res:Response):any {
+        'get': function (req:DelegateRequest, res:DelegateResponse):any {
 
             const $: WebServer = req.dxc.$;
             let project:DexcaliburProject = null;
@@ -257,13 +257,13 @@ CODE_WEB_API.addAuthenticatedRoute(
                 let data:AndroidApiClassXrefList = null;
 
                 if(req.query.depth != null){
-                    const unsafeDepth = parseInt( req.query.depth, 10 );
+                    const unsafeDepth = parseInt( req.query.depth as string, 10 );
                     depth = (unsafeDepth >= -1 && unsafeDepth < Infinity)? unsafeDepth : AndroidCodeAnalyzer.XREF_MAX_DEPTH;
                 }else{
                     depth = AndroidCodeAnalyzer.XREF_MAX_DEPTH;
                 }
 
-                switch (req.params.type){
+                switch (parseInt(req.params.type as string)){
                     case NodeInternalType.CLASS:
                         data = anal.scanClassXrefToAPI(project.find.get.class(unsafeUID), depth, false)
                         break;
@@ -295,7 +295,7 @@ CODE_WEB_API.addAuthenticatedRoute(
 CODE_WEB_API.addAuthenticatedRoute(
     '/method/xref/:id',
     {
-        'get': function (req:Request, res:Response):any {
+        'get': function (req:DelegateRequest, res:DelegateResponse):any {
 
 
             const $: WebServer = req.dxc.$;
@@ -306,7 +306,7 @@ CODE_WEB_API.addAuthenticatedRoute(
                 project = req.dxc.project;
 
                 // ========== LOGIC
-                const type:string = req.query.type;
+                const type:string = req.query.type as string;
                 const tmgr = project.getTagManager();
 
                 // collect
@@ -416,7 +416,7 @@ CODE_WEB_API.addAuthenticatedRoute(
 CODE_WEB_API.addAuthenticatedRoute(
     '/method/:id',
     {
-        'get': function (req:Request, res:Response):any {
+        'get': function (req:DelegateRequest, res:DelegateResponse):any {
 
 
             const $: WebServer = req.dxc.$;
@@ -456,7 +456,7 @@ CODE_WEB_API.addAuthenticatedRoute(
                 $.sendError(res, "Method cannot be retrieved. Cause : " + err.message);
             }
         },
-        'put': function (req:Request, res:Response):any {
+        'put': function (req:DelegateRequest, res:DelegateResponse):any {
 
 
             const $: WebServer = req.dxc.$;
@@ -523,7 +523,7 @@ CODE_WEB_API.addAuthenticatedRoute(
 CODE_WEB_API.addAuthenticatedRoute(
     '/field/:id',
     {
-        'get': function (req:Request, res:Response):any {
+        'get': function (req:DelegateRequest, res:DelegateResponse):any {
             let $: WebServer = req.dxc.$;
             let project:DexcaliburProject = null;
 
@@ -559,7 +559,7 @@ CODE_WEB_API.addAuthenticatedRoute(
             }
         },
 
-        'put': function (req:Request, res:Response):any {
+        'put': function (req:DelegateRequest, res:DelegateResponse):any {
             let $: WebServer = req.dxc.$;
             let project:DexcaliburProject = null;
 
@@ -633,7 +633,7 @@ CODE_WEB_API.addAuthenticatedRoute(
 CODE_WEB_API.addAuthenticatedRoute(
     '/field/xref/:id',
     {
-        'get': function (req:Request, res:Response):any {
+        'get': function (req:DelegateRequest, res:DelegateResponse):any {
             let $: WebServer = req.dxc.$;
             let project:DexcaliburProject = null;
 
@@ -699,7 +699,7 @@ CODE_WEB_API.addAuthenticatedRoute(
 CODE_WEB_API.addAuthenticatedRoute(
     '/class',
     {
-        'get': function (req:Request, res:Response):any {
+        'get': function (req:DelegateRequest, res:DelegateResponse):any {
             let $: WebServer = req.dxc.$;
             let project:DexcaliburProject = null;
 
@@ -751,7 +751,7 @@ CODE_WEB_API.addAuthenticatedRoute(
 CODE_WEB_API.addAuthenticatedRoute(
     '/class/:id',
     {
-        'get': function (req:Request, res:Response):any {
+        'get': function (req:DelegateRequest, res:DelegateResponse):any {
             let $: WebServer = req.dxc.$;
             let project:DexcaliburProject = null;
 
@@ -802,7 +802,7 @@ CODE_WEB_API.addAuthenticatedRoute(
                 $.sendError(res, "Class cannot be retrieved. Cause : " + err.message);
             }
         },
-        'put': function (req:Request, res:Response):any {
+        'put': function (req:DelegateRequest, res:DelegateResponse):any {
             let $: WebServer = req.dxc.$;
             let project:DexcaliburProject = null;
 
@@ -879,7 +879,7 @@ CODE_WEB_API.addAuthenticatedRoute(
 CODE_WEB_API.addAuthenticatedRoute(
     '/finder',
     {
-        'get': function (req:Request, res:Response):any {
+        'get': function (req:DelegateRequest, res:DelegateResponse):any {
             let $: WebServer = req.dxc.$;
             let project:DexcaliburProject = null;
 
@@ -902,7 +902,7 @@ CODE_WEB_API.addAuthenticatedRoute(
                 }
 
                 // ========== LOGIC
-                const search:string = req.query.search;
+                const search:string = req.query.search as string;
                 const dev:any = {};
 
                 if (search == null) {
@@ -926,7 +926,7 @@ CODE_WEB_API.addAuthenticatedRoute(
 
                 /*
                 if(req.query.hasOwnProperty('type')
-                    && req.query.type.length>0){
+                    && req.query.type as string .length>0){
                     dev.data = [];
                     switch(req.query.type){
                         case 'm':

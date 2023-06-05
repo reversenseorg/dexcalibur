@@ -1,4 +1,4 @@
-import {DelegateWebApi} from "./DelegateWebApi.js";
+import {DelegateRequest, DelegateResponse, DelegateWebApi} from "./DelegateWebApi.js";
 import WebServer, {HTTP_CODE_ERROR, HTTP_CODE_SUCCESS} from "../WebServer.js";
 import {Request, Response} from "express";
 import * as Log from "../Logger.js";
@@ -10,7 +10,7 @@ import {Script} from "../Script.js";
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 export const SCRIPT_WEB_API: DelegateWebApi = new DelegateWebApi();
 
-function doSecurityChecks( pRequest:Request, pWebServer:WebServer):DexcaliburProject {
+function doSecurityChecks( pRequest:DelegateRequest, pWebServer:WebServer):DexcaliburProject {
 
     if (pRequest.dxc == null || !pWebServer.context.getUserService().verifySession(pRequest.dxc.sess)) {
         throw AuthenticationException.AUTHENTICATION_FAILED();
@@ -37,7 +37,7 @@ function doSecurityChecks( pRequest:Request, pWebServer:WebServer):DexcaliburPro
 SCRIPT_WEB_API.addAuthenticatedRoute(
     '/list',
     {
-        'get': function (req:Request, res:Response):any {
+        'get': function (req:DelegateRequest, res:DelegateResponse):any {
             const $: WebServer = req.dxc.$;
             let project:DexcaliburProject = null;
 
@@ -74,7 +74,7 @@ SCRIPT_WEB_API.addAuthenticatedRoute(
 SCRIPT_WEB_API.addAuthenticatedRoute(
     '/edit/:sid',
     {
-        'get': function (req:Request, res:Response):any {
+        'get': function (req:DelegateRequest, res:DelegateResponse):any {
             const $: WebServer = req.dxc.$;
             let project:DexcaliburProject = null;
 
@@ -83,7 +83,7 @@ SCRIPT_WEB_API.addAuthenticatedRoute(
                 project = doSecurityChecks(req, $);
 
                 // ========== LOGIC
-                const script = project.scriptManager.getScript(req.param.sid);
+                const script = project.scriptManager.getScript(parseInt(req.params.sid as  string));
                 const data = {
                     sid: script.sid,
                     name: script.name,
@@ -95,13 +95,13 @@ SCRIPT_WEB_API.addAuthenticatedRoute(
                 req.dxc.$.sendError( res, err.message);
             }
         },
-        'post': function (req:Request, res:Response):any {
+        'post': function (req:DelegateRequest, res:DelegateResponse):any {
             const $: WebServer = req.dxc.$;
             let project:DexcaliburProject = null;
 
             try{
                 // ========== SECURITY CHECKS
-                project = doSecurityChecks(res, $);
+                project = doSecurityChecks(req, $);
 
                 // ========== LOGIC
 
@@ -122,7 +122,7 @@ SCRIPT_WEB_API.addAuthenticatedRoute(
 SCRIPT_WEB_API.addAuthenticatedRoute(
     '/delete',
     {
-        'delete': function (req:Request, res:Response):any {
+        'delete': function (req:DelegateRequest, res:DelegateResponse):any {
             try{
                 if(req.dxc.project == null){
                     throw new Error("Project UID is missing or you have not right privileges.")

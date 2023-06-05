@@ -1,4 +1,4 @@
-import {DelegateWebApi} from "./DelegateWebApi.js";
+import {DelegateRequest, DelegateResponse, DelegateWebApi} from "./DelegateWebApi.js";
 import WebServer, {HTTP_CODE_ERROR, HTTP_CODE_SUCCESS} from "../WebServer.js";
 import {Request, Response} from "express";
 import * as Log from "../Logger.js";
@@ -6,7 +6,7 @@ import ModelFile from "../ModelFile.js";
 import DexcaliburProject from "../DexcaliburProject.js";
 import {AuthenticationException} from "../errors/AuthenticationException.js";
 import {DexcaliburProjectException} from "../errors/DexcaliburProjectException.js";
-import {FinderResult} from "../FinderResult.js";
+import {FinderResult} from "../search/FinderResult.js";
 import * as _fs_ from "fs";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
@@ -17,7 +17,7 @@ export const FS_WEB_API: DelegateWebApi = new DelegateWebApi();
 FS_WEB_API.addAuthenticatedRoute(
     '/view',
     {
-        'get': function (req:Request, res:Response):any {
+        'get': function (req:DelegateRequest, res:DelegateResponse):any {
             const $: WebServer = req.dxc.$;
             let project:DexcaliburProject = null;
 
@@ -48,11 +48,11 @@ FS_WEB_API.addAuthenticatedRoute(
 
                 let file:ModelFile;
                 if(req.query['scope']!=null
-                    && Object.keys(project.dataAnalyzer.scopes).indexOf(req.query.scope)>-1){
+                    && Object.keys(project.dataAnalyzer.scopes).indexOf(req.query.scope as string)>-1){
 
-                    const scope = project.dataAnalyzer.getScope(req.query['scope']);
+                    const scope = project.dataAnalyzer.getScope(req.query['scope'] as string);
 
-                    file = project.dataAnalyzer.getIndex(scope).getEntry(req.query['path']);
+                    file = project.dataAnalyzer.getIndex(scope).getEntry(req.query['path']  as string);
                 }else{
                     const search:FinderResult = project.find.file('_uid:'+req.query['uid']);
 

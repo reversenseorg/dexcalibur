@@ -1,6 +1,5 @@
-import {DelegateWebApi} from "./DelegateWebApi.js";
+import {DelegateRequest, DelegateResponse, DelegateWebApi} from "./DelegateWebApi.js";
 import WebServer, {HTTP_CODE_ERROR, HTTP_CODE_SUCCESS} from "../WebServer.js";
-import {Request, Response} from "express";
 import * as Log from "../Logger.js";
 import DexcaliburProject from "../DexcaliburProject.js";
 import {AuthenticationException} from "../errors/AuthenticationException.js";
@@ -11,7 +10,7 @@ import AndroidReceiver from "../android/AndroidReceiver.js";
 import AndroidProvider from "../android/AndroidProvider.js";
 import AndroidService from "../android/AndroidService.js";
 import {AndroidPermission} from "../android/Permissions.js";
-import {FinderResult} from "../FinderResult.js";
+import {FinderResult} from "../search/FinderResult.js";
 import AndroidAppAnalyzer from "../AndroidAppAnalyzer.js";
 import {NodeInternalType} from "../NodeInternalType.js";
 import AndroidComponent from "../android/AndroidComponent.js";
@@ -26,7 +25,7 @@ export const ANDROID_WEB_API: DelegateWebApi = new DelegateWebApi();
 ANDROID_WEB_API.addAuthenticatedRoute(
     '/content',
     {
-        'get': function (req:Request, res:Response):any {
+        'get': function (req:DelegateRequest, res:DelegateResponse):any {
             let $: WebServer = req.dxc.$;
             let project:DexcaliburProject = null;
 
@@ -55,7 +54,7 @@ ANDROID_WEB_API.addAuthenticatedRoute(
                 $.sendError(res, "Search query failed. Cause : " + err.message);
             }
         },
-        'put': function (req:Request, res:Response):any {
+        'put': function (req:DelegateRequest, res:DelegateResponse):any {
             let $: WebServer = req.dxc.$;
             let project:DexcaliburProject = null;
 
@@ -95,7 +94,7 @@ ANDROID_WEB_API.addAuthenticatedRoute(
 ANDROID_WEB_API.addAuthenticatedRoute(
     '/activities',
     {
-        'get': function (req:Request, res:Response):any {
+        'get': function (req:DelegateRequest, res:DelegateResponse):any {
             let $: WebServer = req.dxc.$;
             let project:DexcaliburProject = null;
 
@@ -130,7 +129,7 @@ ANDROID_WEB_API.addAuthenticatedRoute(
 ANDROID_WEB_API.addAsyncAuthenticatedRoute(
     '/component/:uid',
     {
-        'post': async function (req:Request, res:Response):Promise<any> {
+        'post': async function (req:DelegateRequest, res:DelegateResponse):Promise<any> {
             const $: WebServer = req.dxc.$;
             let project:DexcaliburProject = null;
 
@@ -139,7 +138,7 @@ ANDROID_WEB_API.addAsyncAuthenticatedRoute(
 
                 let depth:number;
                 if(req.query.depth != null){
-                    const unsafeDepth = parseInt( req.query.depth, 10 );
+                    const unsafeDepth = parseInt( req.query.depth  as string, 10 );
                     depth = (unsafeDepth >= -1 && unsafeDepth < Infinity)? unsafeDepth : AndroidCodeAnalyzer.XREF_MAX_DEPTH;
                 }else{
                     depth = AndroidCodeAnalyzer.XREF_MAX_DEPTH;
@@ -186,7 +185,7 @@ ANDROID_WEB_API.addAsyncAuthenticatedRoute(
 ANDROID_WEB_API.addAuthenticatedRoute(
     '/receivers',
     {
-        'get': function (req:Request, res:Response):any {
+        'get': function (req:DelegateRequest, res:DelegateResponse):any {
             let $: WebServer = req.dxc.$;
             let project:DexcaliburProject = null;
 
@@ -221,7 +220,7 @@ ANDROID_WEB_API.addAuthenticatedRoute(
 ANDROID_WEB_API.addAuthenticatedRoute(
     '/providers',
     {
-        'get': function (req:Request, res:Response):any {
+        'get': function (req:DelegateRequest, res:DelegateResponse):any {
             let $: WebServer = req.dxc.$;
             let project:DexcaliburProject = null;
 
@@ -255,7 +254,7 @@ ANDROID_WEB_API.addAuthenticatedRoute(
 ANDROID_WEB_API.addAuthenticatedRoute(
     '/services',
     {
-        'get': function (req:Request, res:Response):any {
+        'get': function (req:DelegateRequest, res:DelegateResponse):any {
             let $: WebServer = req.dxc.$;
             let project:DexcaliburProject = null;
 
@@ -290,7 +289,7 @@ ANDROID_WEB_API.addAuthenticatedRoute(
 ANDROID_WEB_API.addAuthenticatedRoute(
     '/permissions',
     {
-        'get': function (req:Request, res:Response):any {
+        'get': function (req:DelegateRequest, res:DelegateResponse):any {
             let $: WebServer = req.dxc.$;
             let project:DexcaliburProject = null;
 
@@ -326,7 +325,7 @@ ANDROID_WEB_API.addAuthenticatedRoute(
 ANDROID_WEB_API.addAuthenticatedRoute(
     '/activity/:id',
     {
-        'get': function (req:Request, res:Response):any {
+        'get': function (req:DelegateRequest, res:DelegateResponse):any {
             let $: WebServer = req.dxc.$;
             let project:DexcaliburProject = null;
 
@@ -367,7 +366,7 @@ ANDROID_WEB_API.addAuthenticatedRoute(
 ANDROID_WEB_API.addAuthenticatedRoute(
     '/receiver/:id',
     {
-        'get': function (req:Request, res:Response):any {
+        'get': function (req:DelegateRequest, res:DelegateResponse):any {
             let $: WebServer = req.dxc.$;
             let project:DexcaliburProject = null;
 
@@ -409,7 +408,7 @@ ANDROID_WEB_API.addAuthenticatedRoute(
 ANDROID_WEB_API.addAuthenticatedRoute(
     '/provider/:id',
     {
-        'get': function (req:Request, res:Response):any {
+        'get': function (req:DelegateRequest, res:DelegateResponse):any {
             let $: WebServer = req.dxc.$;
             let project:DexcaliburProject = null;
 
@@ -451,7 +450,7 @@ ANDROID_WEB_API.addAuthenticatedRoute(
 ANDROID_WEB_API.addAuthenticatedRoute(
     '/service/:id',
     {
-        'get': function (req:Request, res:Response):any {
+        'get': function (req:DelegateRequest, res:DelegateResponse):any {
             let $: WebServer = req.dxc.$;
             let project:DexcaliburProject = null;
 
@@ -493,7 +492,7 @@ ANDROID_WEB_API.addAuthenticatedRoute(
 ANDROID_WEB_API.addAuthenticatedRoute(
     '/permission/:id',
     {
-        'get': function (req:Request, res:Response):any {
+        'get': function (req:DelegateRequest, res:DelegateResponse):any {
             let $: WebServer = req.dxc.$;
             let project:DexcaliburProject = null;
 

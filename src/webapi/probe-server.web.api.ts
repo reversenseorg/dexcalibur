@@ -1,4 +1,4 @@
-import {DelegateWebApi} from "./DelegateWebApi.js";
+import {DelegateRequest, DelegateResponse, DelegateWebApi} from "./DelegateWebApi.js";
 import {Device} from "../Device.js";
 import WebServer from "../WebServer.js";
 import DeviceManager from "../DeviceManager.js";
@@ -16,7 +16,7 @@ export const PROBE_SERVER_WEB_API: DelegateWebApi = new DelegateWebApi();
 PROBE_SERVER_WEB_API.addAsyncAuthenticatedRoute(
     '/start',
     {
-        'post': async (req:Request, res:Response)=>{
+        'post': async (req:DelegateRequest, res:DelegateResponse)=>{
 
             let device:Device = null;
             const $: WebServer = req.dxc.$;
@@ -74,7 +74,7 @@ PROBE_SERVER_WEB_API.addAsyncAuthenticatedRoute(
 PROBE_SERVER_WEB_API.addAsyncAuthenticatedRoute(
     '/stop',
     {
-        'post': async (req:Request, res:Response)=>{
+        'post': async (req:DelegateRequest, res:DelegateResponse)=>{
 
             let device:Device = null;
             let project:DexcaliburProject = null;
@@ -122,7 +122,7 @@ PROBE_SERVER_WEB_API.addAsyncAuthenticatedRoute(
 PROBE_SERVER_WEB_API.addAsyncAuthenticatedRoute(
     '/status',
     {
-        'get': async  (req:Request, res:Response):Promise<any> => {
+        'get': async  (req:DelegateRequest, res:DelegateResponse):Promise<any> => {
 
             let device: Device = null;
             let project:DexcaliburProject = null;
@@ -147,8 +147,8 @@ PROBE_SERVER_WEB_API.addAsyncAuthenticatedRoute(
 
                 // ==== lOGIC
 
-                if (req.param.dev) {
-                    device = DeviceManager.getInstance().getDevice(req.param.dev);
+                if (req.params.dev) {
+                    device = DeviceManager.getInstance().getDevice(req.params.dev  as string);
                 } else {
                     device = project.getDevice();
                 }

@@ -1,5 +1,5 @@
 import * as Log from "../Logger.js";
-import {DelegateWebApi} from "./DelegateWebApi.js";
+import {DelegateRequest, DelegateResponse, DelegateWebApi} from "./DelegateWebApi.js";
 import WebServer from "../WebServer.js";
 import DexcaliburProject from "../DexcaliburProject.js";
 import {Request, Response} from "express";
@@ -14,7 +14,7 @@ export const HOOK_FRAGS_WEB_API: DelegateWebApi = new DelegateWebApi();
 HOOK_FRAGS_WEB_API.addAuthenticatedRoute(
     '/hook_frag/:hookid',
     {
-        'get': function (req:Request, res:Response) {
+        'get': function (req:DelegateRequest, res:DelegateResponse) {
             const $: WebServer = req.dxc.$;
             let project:DexcaliburProject = null;
 
@@ -30,7 +30,7 @@ HOOK_FRAGS_WEB_API.addAuthenticatedRoute(
                     throw new Error("Invalid hook ID given : "+req.params.hookid);
                 }
 
-                const f:HookTemplateFragment = hook.getFragment(req.query.frag_uid);
+                const f:HookTemplateFragment = hook.getFragment(req.query.frag_uid  as string);
 
                 if(f == null){
                     throw HookManagerException.HOOK_FRAGMENT_NOT_FOUND();
@@ -43,7 +43,7 @@ HOOK_FRAGS_WEB_API.addAuthenticatedRoute(
                 $.sendError(res, "Hook cannot be retrieved. Cause : " + err.message);
             }
         },
-        'post': function (req:Request, res:Response) {
+        'post': function (req:DelegateRequest, res:DelegateResponse) {
             const $: WebServer = req.dxc.$;
             let project:DexcaliburProject = null;
 
@@ -80,7 +80,7 @@ HOOK_FRAGS_WEB_API.addAuthenticatedRoute(
                 $.sendError(res, "Hook fragment cannot be created . Cause : " + err.message);
             }
         },
-        'put': function (req:Request, res:Response) {
+        'put': function (req:DelegateRequest, res:DelegateResponse) {
             const $: WebServer = req.dxc.$;
             let project:DexcaliburProject = null;
 
@@ -129,7 +129,7 @@ HOOK_FRAGS_WEB_API.addAuthenticatedRoute(
 HOOK_FRAGS_WEB_API.addAuthenticatedRoute(
     '/hook_frag/:hookid/:fragid',
     {
-        'delete': async function (req:Request, res:Response):Promise<any> {
+        'delete': async function (req:DelegateRequest, res:DelegateResponse):Promise<any> {
             const $: WebServer = req.dxc.$;
             let project:DexcaliburProject = null;
 

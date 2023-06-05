@@ -5,6 +5,7 @@ import {Application as ExpressApplication, Request as ExpressRequest, Response a
 import * as MIME from 'mime-types';
 import * as _bodyparser_ from 'body-parser';
 import * as _cookieParser_ from 'cookie-parser';
+// @ts-ignore
 const BodyParser = _bodyparser_.default;
 const CookieParser = _cookieParser_.default;
 
@@ -51,6 +52,8 @@ import {HOOK_FRAGS_WEB_API} from "./webapi/hook-fragment.web.api.js";
 import {TAG_MGT_WEB_API} from "./webapi/tag.web.api.js";
 import {WebApiWindowing} from "./webapi/internals/WebApiWindowing.js";
 import {PRIVACY_WEB_API} from "./webapi/privacy.web.api.js";
+import {DelegateRequest, DelegateResponse} from "./webapi/DelegateWebApi.js";
+import {AUDIT_WEB_API} from "./webapi/audit.web.api.js";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -154,7 +157,7 @@ export default class WebServer
 
     uploader:Uploader = null;
 
-    controller:Function= null;
+    controller:((req:DelegateRequest,res:DelegateResponse)=>any)= null;
 
     validators:ValidationCapableCtrl = {};
 
@@ -325,7 +328,7 @@ export default class WebServer
     newDispatcher( pHome:string):((request:ExpressRequest, response:ExpressResponse)=>void){
         let $:WebServer = this;
 
-        return function (req:ExpressRequest, res:ExpressResponse):void {
+        return function (req:DelegateRequest, res:DelegateResponse):void {
 
             // todo : detect path traversal in req.path
 
@@ -448,7 +451,7 @@ export default class WebServer
 
         // Inspector frontController
         this.app.route('/api/inspectors/:inspectorID')
-            .get(function (req:ExpressRequest, res:ExpressResponse):any {
+            .get(function (req:DelegateRequest, res:DelegateResponse):any {
                 let insp:Inspector = InspectorManager.getInstance().getEnabledInspector( $.project, req.params.inspectorID);
 
 
@@ -459,7 +462,7 @@ export default class WebServer
 
                 insp.performGet(req, res);
             })
-            .post(function (req:ExpressRequest, res:ExpressResponse):any {
+            .post(function (req:DelegateRequest, res:DelegateResponse):any {
                 let insp:Inspector = InspectorManager.getInstance().getEnabledInspector( $.project, req.params.inspectorID);
 
                 if (insp == null) {
@@ -472,7 +475,7 @@ export default class WebServer
 
         // Connectors
         this.app.route('/api/connectors')
-            .get(function (req:ExpressRequest, res:ExpressResponse):any {
+            .get(function (req:DelegateRequest, res:DelegateResponse):any {
                 res.status(200).send(
                     JSON.stringify(
                         ConnectorFactory.getInstance().toJsonObject()
@@ -487,7 +490,7 @@ export default class WebServer
 
 
         this.app.route('/api/status')
-            .get(async function (req:ExpressRequest, res:ExpressResponse):Promise<any> {
+            .get(async function (req:DelegateRequest, res:DelegateResponse):Promise<any> {
                 //let uid:string = req.body['uid'];
                 let status:StatusMessage = null;
                 let wf:Workflow = null;
@@ -496,7 +499,7 @@ export default class WebServer
                     switch(req.query.op){
                         case 'project':
                             if(req.query.opts){
-                                wf = $.context.getWorkflow(req.query.opts);
+                                wf = $.context.getWorkflow(req.query.opts as string);
                                 status = wf.getLastStatus();
                             }
                             break;
@@ -530,7 +533,7 @@ export default class WebServer
 
 
         this.app.route('/api/validation')
-            .get(function (req:ExpressRequest, res:ExpressResponse):any {
+            .get(function (req:DelegateRequest, res:DelegateResponse):any {
 
                 try{
                     if(req.query.field==null){
@@ -540,7 +543,7 @@ export default class WebServer
                         throw new Error("Value to validate is missing");
                     }
 
-                    let unsafe_field = req.query.field;
+                    let unsafe_field = req.query.field  as string;
                     let unsafe_val = req.query.val;
                     let valid:boolean = true;
                     let err:any[] = [];
@@ -582,7 +585,7 @@ export default class WebServer
                     SEND_ERROR_RESPONSE(res, "Validation failed");
                 }
             })
-            .post(function (req:ExpressRequest, res:ExpressResponse):any {
+            .post(function (req:DelegateRequest, res:DelegateResponse):any {
 
                 try{
                     if(req.body['field']==null){
@@ -628,14 +631,14 @@ export default class WebServer
 
 
         this.app.route('/api/graph/:graph_type/:type/:id')
-            .get(function (req:ExpressRequest, res:ExpressResponse):any {
+            .get(function (req:DelegateRequest, res:DelegateResponse):any {
                 let data = {}, ret = null, from = null;
                 let graphType = {
                     cgfrom: "callgraph_from",
                     cgto: "callgraph_to"
                 };
                 let gtype = null;
-                let depth = (req.query.depth != null) ? parseInt(req.query.depth, 10) : null;
+                let depth = (req.query.depth != null) ? parseInt(req.query.depth as string, 10) : null;
 
                 for (let k in graphType)
                     if (req.params.graph_type === k) {
@@ -678,7 +681,7 @@ export default class WebServer
 
 
         this.app.route('/api/scanner')
-            .get(function (req:ExpressRequest, res:ExpressResponse):any {
+            .get(function (req:DelegateRequest, res:DelegateResponse):any {
                 let o:any = [];
                 //$.project.hook.refreshScanner();
                 /*for (let i in $.project.hook.scanners) {
@@ -687,7 +690,7 @@ export default class WebServer
 
                 res.status(200).send(JSON.stringify({ data: o }));
             })
-            .post(function (req:ExpressRequest, res:ExpressResponse):any {
+            .post(function (req:DelegateRequest, res:DelegateResponse):any {
                 /*let dev = {
                     data: $.dbm.getScannerDB().toJsonList()
                 };*/
@@ -696,8 +699,8 @@ export default class WebServer
             });
 
         this.app.route('/api/scanner/run')
-            .get(function (req:ExpressRequest, res:ExpressResponse):any {
-                let scannerId:string = req.query.id
+            .get(function (req:DelegateRequest, res:DelegateResponse):any {
+                let scannerId:string = req.query.id as string;
                 if (scannerId == null) {
                     res.status(404).send(JSON.stringify({ data: null, err: "Invalid Hookset ID" }));
                     return;
@@ -716,8 +719,8 @@ export default class WebServer
             });
 
         this.app.route('/api/scanner/load')
-            .get(function (req:ExpressRequest, res:ExpressResponse):any {
-                let scannerId:string = req.query.id
+            .get(function (req:DelegateRequest, res:DelegateResponse):any {
+                let scannerId:string = req.query.id as string;
                 if (scannerId == null) {
                     res.status(404).send(JSON.stringify({ data: null, err: "Invalid Hookset ID" }));
                     return;
@@ -737,7 +740,7 @@ export default class WebServer
 /*
 
         this.app.route('/api/format/analysis')
-            .get(function (req:ExpressRequest, res:ExpressResponse):any {
+            .get(function (req:DelegateRequest, res:DelegateResponse):any {
                 try{
                     if(req.query['uid']==null){
                         throw new Error("[FORMAT::ANALYSIS] #FMT_1 Invalid File UID");
@@ -756,7 +759,7 @@ export default class WebServer
 */
 
         this.app.route('/api/auth/:type')
-            .post(async function (req:ExpressRequest, res:ExpressResponse):Promise<any> {
+            .post(async function (req:DelegateRequest, res:DelegateResponse):Promise<any> {
                 try{
                     switch(req.params.type){
                         case 'pwd':
@@ -771,7 +774,7 @@ export default class WebServer
                             res.cookie(
                                 $.context.getUserService().getCookieName(),
                                 sess.getSessUID(),
-                                { maxAge: 7*24*60, expires: 0  }
+                                { maxAge: 7*24*60} //, expires: 0  }
                             );
                             SEND_SUCCESS_RESPONSE(res, { success:true, token:sess.getSessUID() });
                             break;
@@ -788,7 +791,7 @@ export default class WebServer
          * Send an intent to to the default device
          */
         this.app.route('/api/intent/send')
-            .post(async function (req:ExpressRequest, res:ExpressResponse):Promise<any> {
+            .post(async function (req:DelegateRequest, res:DelegateResponse):Promise<any> {
                 // collect
                 let uid = req.body["uid"];
                 let typeIntent:string = req.body["type"];
@@ -1005,7 +1008,7 @@ export default class WebServer
         /**
          * Redirect to /pages/splash.html if there is no project initialized
          */
-        this.app.use(function(req:ExpressRequest, res:ExpressResponse, next:any){
+        this.app.use(function(req:DelegateRequest, res:DelegateResponse, next:any){
 
             // TODO : make CORS parameter as env var
             res.set('Access-Control-Allow-Origin', '*');
@@ -1031,7 +1034,7 @@ export default class WebServer
         /**
          * Open session and attach to request
          */
-        this.app.use(function(req:ExpressRequest, res:ExpressResponse, next:any){
+        this.app.use(function(req:DelegateRequest, res:DelegateResponse, next:any){
             Logger.info("[API][SESSION] Processing request : "+req.originalUrl);
 
             if(!req.url.startsWith('/api/') && !req.url.startsWith('/inspectors/')){ next(); return; }
@@ -1049,21 +1052,21 @@ export default class WebServer
                     if(req.query._puid != null && req.dxc.sess != null){
                         //if(self.context.)
                         req.dxc.project = (req.dxc.sess as UserSession)
-                            .getActiveProjectByUID(self.context, req.query._puid);
+                            .getActiveProjectByUID(self.context, req.query._puid as string);
                     }
                 }
                 else if(req.query[usr_svc.getQueryParam()]!=null){
 
                     Logger.debug("[SESSION] Opening session from query ...");
                     req.dxc = {
-                        sess: usr_svc.openSession(req.query[usr_svc.getQueryParam()])
+                        sess: usr_svc.openSession(req.query[usr_svc.getQueryParam()] as string)
                     };
                     Logger.debug("[SESSION] Opening session from query : Done");
 
                     if(req.query._puid != null && req.dxc.sess != null){
                         //if(self.context.)
                         req.dxc.project = (req.dxc.sess as UserSession)
-                            .getActiveProjectByUID(self.context, req.query._puid);
+                            .getActiveProjectByUID(self.context, req.query._puid as string);
                     }
                 }
                 else{
@@ -1083,7 +1086,7 @@ export default class WebServer
         /**
          * Parse windowing options
          */
-        this.app.use(function(req:ExpressRequest, res:ExpressResponse, next:any){
+        this.app.use(function(req:DelegateRequest, res:DelegateResponse, next:any){
 
             if(!req.url.startsWith('/api/') && !req.url.startsWith('/inspectors/')){ next(); return; }
 
@@ -1093,12 +1096,13 @@ export default class WebServer
 
                 if(!req.dxc.hasOwnProperty('filt')){
                     if(req.query.hasOwnProperty('__f'))
-                        req.dxc = { filt: JSON.parse(req.query.__f) } ;
+                        req.dxc = { filt: JSON.parse(req.query.__f as string) } ;
                     else if(req.body.hasOwnProperty('__f'))
-                        req.dxc = { filt: JSON.parse(req.body.__f) } ;
+                        req.dxc = { filt: JSON.parse(req.body.__f as string) } ;
+
 
                     if(req.dxc.filt!=null){
-                        req.dxc.filt = WebApiWindowing.parse(req.dxc.filt);
+                        req.dxc.filt = WebApiWindowing.parse(req.dxc.filt as string);
                     }else{
                         req.dxc.filt = new WebApiWindowing();
                     }
@@ -1138,6 +1142,7 @@ export default class WebServer
         TAG_MGT_WEB_API.injectServer(this);
         PRIVACY_WEB_API.injectServer(this);
         SCRIPT_WEB_API.injectServer(this);
+        AUDIT_WEB_API.injectServer(this);
 
 
         this.app.use('/api/device', DEVICE_WEB_API.getRouter());
@@ -1160,6 +1165,7 @@ export default class WebServer
         this.app.use('/api/keypoint', KEYPOINT_WEB_API.getRouter());
         this.app.use('/api/tag', TAG_MGT_WEB_API.getRouter());
         this.app.use('/api/privacy', PRIVACY_WEB_API.getRouter());
+        this.app.use('/api/audit', AUDIT_WEB_API.getRouter());
 
 
 
@@ -1167,7 +1173,7 @@ export default class WebServer
          * Redirect to /pages/splash.html if there is no project initialized
          */
         /*
-        this.app.use(function(req:ExpressRequest, res:ExpressResponse, next:any){
+        this.app.use(function(req:DelegateRequest, res:DelegateResponse, next:any){
             let f = false;
 
 

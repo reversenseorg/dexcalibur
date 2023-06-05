@@ -1,4 +1,4 @@
-import {DelegateWebApi} from "./DelegateWebApi.js";
+import {DelegateRequest, DelegateResponse, DelegateWebApi} from "./DelegateWebApi.js";
 import WebServer from "../WebServer.js";
 import {Request, Response} from "express";
 import * as Log from "../Logger.js";
@@ -12,7 +12,7 @@ export const TAG_MGT_WEB_API: DelegateWebApi = new DelegateWebApi();
 TAG_MGT_WEB_API.addAuthenticatedRoute(
     '/categories',
     {
-        'get': async (req:Request, res:Response)=>{
+        'get': async (req:DelegateRequest, res:DelegateResponse)=>{
 
             const $: WebServer = req.dxc.$;
             let project:DexcaliburProject = null;
@@ -40,7 +40,7 @@ TAG_MGT_WEB_API.addAuthenticatedRoute(
 TAG_MGT_WEB_API.addAuthenticatedRoute(
     '/tags',
     {
-        'get': async (req:Request, res:Response)=>{
+        'get': async (req:DelegateRequest, res:DelegateResponse)=>{
 
             const $: WebServer = req.dxc.$;
             let project:DexcaliburProject = null;

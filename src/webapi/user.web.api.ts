@@ -1,4 +1,4 @@
-import {DelegateWebApi} from "./DelegateWebApi.js";
+import {DelegateRequest, DelegateResponse, DelegateWebApi} from "./DelegateWebApi.js";
 import {Device} from "../Device.js";
 import WebServer, {HTTP_CODE_ERROR, HTTP_CODE_SUCCESS} from "../WebServer.js";
 import DeviceManager from "../DeviceManager.js";
@@ -26,7 +26,7 @@ export const USER_WEB_API: DelegateWebApi = new DelegateWebApi();
 USER_WEB_API.addAuthenticatedRoute(
     '/account',
     {
-        'get': function (req:Request, res:Response):any {
+        'get': function (req:DelegateRequest, res:DelegateResponse):any {
             const $: WebServer = req.dxc.$;
 
             try{
@@ -69,7 +69,7 @@ USER_WEB_API.addAuthenticatedRoute(
 USER_WEB_API.addAuthenticatedRoute(
     '/account',
     {
-        'get': function (req:Request, res:Response):any {
+        'get': function (req:DelegateRequest, res:DelegateResponse):any {
             const $: WebServer = req.dxc.$;
 
             try{
@@ -112,7 +112,7 @@ USER_WEB_API.addAuthenticatedRoute(
 USER_WEB_API.addAuthenticatedRoute(
     '/account/passwd',
     {
-        'post': function (req:Request, res:Response):any {
+        'post': function (req:DelegateRequest, res:DelegateResponse):any {
             const $: WebServer = req.dxc.$;
 
             try{
