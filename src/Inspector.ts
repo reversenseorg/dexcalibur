@@ -406,7 +406,7 @@ export default class Inspector implements BusBroadcaster
      * @param {BusEvent} event  The event from main Bus
      * @method
      */
-    broadcastEvent(event:BusEvent){
+    broadcastEvent(event:BusEvent<any>){
         const event_type:string = event.type;
 
         //Logger.info( event_type, this.listener[event_type]);

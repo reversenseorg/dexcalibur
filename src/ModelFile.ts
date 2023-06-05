@@ -14,6 +14,7 @@ import {NodeInternalType} from "./NodeInternalType.js";
 import {ValidationRule} from "./Validator.js";
 import {INode} from "./INode.js";
 import {CryptoUtils} from "./CryptoUtils.js";
+import {Tag} from "./tags/Tag.js";
 
 
 let UIDS:string[]=[];
@@ -507,6 +508,12 @@ export default class ModelFile implements INode,IPersistent {
             for(let i in pData) o[i] = pData[i];
 
         return o;
+    }
+
+    addTag(vTag:Tag){
+        const uuid = vTag.getUUID();
+        if(this.tags.indexOf(uuid)==-1)
+            this.tags.push(uuid);
     }
 }
 

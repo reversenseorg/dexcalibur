@@ -5,11 +5,12 @@
  * @author Georges-B. MICHEL
  */
 import DexcaliburProject from "./DexcaliburProject.js";
-import {ConnectorFactory } from "./ConnectorFactory.js";
+import {ConnectorFactory} from "./ConnectorFactory.js";
 import {IDatabaseAdapter, IDbCollection, IDbIndex} from "./persist/orm/DbAbstraction.js";
-import {NodeInternalType} from "./NodeInternalType.js";
-import { NodeType } from "./persist/orm/NodeType.js";
+import {NodeInternalType, NodeInternalTypeName} from "./NodeInternalType.js";
+import {NodeType} from "./persist/orm/NodeType.js";
 import {IStringIndex} from "./core/IStringIndex.js";
+import {AnalyzerException} from "./errors/AnalyzerException.js";
 
 
 export default class AnalyzerDatabase
@@ -66,8 +67,9 @@ export default class AnalyzerDatabase
             this.conn = pContext.connector;
         }
 
-
-        if(pDbFactory!=null){
+        if(pDbFactory==null){
+            this._tmpConn = ConnectorFactory.getInstance().newConnector('inmemory',pContext);
+        }else{
             this._tmpConn = pDbFactory.newConnector('inmemory',pContext);
         }
 
@@ -153,5 +155,29 @@ export default class AnalyzerDatabase
 
     getTempConnector():IDatabaseAdapter {
         return this._tmpConn;
+    }
+
+    getDataSetFromNodeType(pNodeType:NodeInternalType):IDbCollection|IDbIndex {
+
+
+        switch(pNodeType){
+            case NodeInternalType.SYSCALL: return this.syscalls;
+            case NodeInternalType.METHOD: return this.methods;
+            case NodeInternalType.PACKAGE: return this.packages;
+            case NodeInternalType.CLASS: return this.classes;
+            case NodeInternalType.STRING: return this.strings;
+            case NodeInternalType.FIELD: return this.fields;
+            case NodeInternalType.FUNC: return this.funcs;
+            case NodeInternalType.DATA_BLOCK: return this.datablock;
+            case NodeInternalType.ANDROID_PERM: return this.permissions;
+            case NodeInternalType.ANDROID_RECEIVER: return this.receivers;
+            case NodeInternalType.ANDROID_SERVICE: return this.services;
+            case NodeInternalType.ANDROID_PROVIDER: return this.providers;
+            case NodeInternalType.ANDROID_ACTIVITY: return this.activities;
+            case NodeInternalType.FILE: return this.files;
+            case NodeInternalType.CALL: return this.call;
+            case NodeInternalType.TAG: return this.tagcategories;
+            default: throw AnalyzerException.MISSING_DATA_SET(pNodeType);
+        }
     }
 }

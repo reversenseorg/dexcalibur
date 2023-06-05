@@ -1,7 +1,7 @@
-export default class BusEvent
+export default class BusEvent<T>
 {
     type:string = null;
-    data:any = null;
+    data:T = null;
 
     constructor(pConfig:any=null) {
         if(pConfig!=null)
@@ -13,7 +13,7 @@ export default class BusEvent
         return this.type;
     }
 
-    getData():any{
+    getData():T{
         return this.data;
     }
 }

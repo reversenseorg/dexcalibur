@@ -44,6 +44,7 @@ import {DXC_LIFECYCLE_EVENT} from "./CoreConst.js";
 import Util from "./Utils.js";
 import {PrivacyScanner} from "./audit/privacy/PrivacyScanner.js";
 import {LicenceManager} from "./credit/LicenceManager.js";
+import {AuditManager} from "./audit/AuditManager.js";
 
 
 /*
@@ -331,6 +332,7 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
      * @type {UserService}
      */
     private userSvc: UserService;
+
 
     /**
      * To instanciate DexcaliburEngine.

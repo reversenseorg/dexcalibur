@@ -344,6 +344,7 @@ export default class Analyzer
      */
     constructor( pEncoding:BufferEncoding, pProject:DexcaliburProject ) {
 
+        // TODO : only for Android
         this.parser = new SmaliParser(pProject); //.setContext(ctx);
 
         // Internal DB
@@ -356,6 +357,7 @@ export default class Analyzer
         this.finder = pProject.find; //pSearchAPI; // pSearchAPI
         this.encoding = pEncoding;
         this.projectionEngines = {};
+        // TODO : only for Android
         this.resolver = new ResolverV2(pProject);
         this.tagCache = {
             Discover: {
@@ -726,11 +728,15 @@ export default class Analyzer
                 else if(instruct.isUsingString()){
 
                     // add USAGE: NEW/READ/WRITE
-
-                    data.strings.insert(new ModelStringValue({
+                    const s = new ModelStringValue({
                         src: pMethod,
                         instr: instruct,
-                        value: instruct.right._value }), false);
+                        value: instruct.right._value });
+
+                    data.strings.insert(s, false);
+                    this.getContext().getBus().send(new BusEvent<ModelStringValue>({
+                        data: s
+                    }));
                     success=true;
                 }
                 // Resolve Type reference
@@ -774,7 +780,14 @@ export default class Analyzer
 
 
     /**
-     make map by linking object :
+     * To create links between nodes in the graph
+     * each relation represents references to :
+     * - an instance
+     * - a type
+     * - ...
+     * into code by solving references.
+     *
+     * make map by linking object :
      -> resolve FQCN
      -> resolve method called
      -> create packages
@@ -1548,6 +1561,13 @@ export default class Analyzer
         });
 
         this.resolver.createMissingMethod( ref, clzz, this.db, Modifier.PUBLIC);
+    }
+
+    /**
+     *
+     */
+    getStatistics():any {
+        return STATS;
     }
 }
 

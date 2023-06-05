@@ -203,7 +203,7 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
     bus:Bus = null;
 
     /**
-     * @type {AndroidAppAnalyzer}
+     * @type {IAppAnalyzer}
      * @field Application topology analyzer unit (depend of application type : apk,bin, ...)
      */
     appAnalyzer:IAppAnalyzer = null;
@@ -600,6 +600,7 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
 
 
         // set SC analyzer
+        // Replace existing Analyzer by multiplatform analyzer
         this.analyze = new Analyzer(wsSettings.getDefaultEncoding() as BufferEncoding, this);
         this.analyze.restoreState(this.getAnalyzerState('xast'))
         this.analyze.setWorkflow(wf)
@@ -672,6 +673,7 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
 
 
         }else {
+            // default analyzer is Android analyzer
             this.kpmgr = KeyPointManager.newForAndroid(this);
             this.appAnalyzer = new AndroidAppAnalyzer(this);
 
@@ -700,7 +702,7 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
 
         // init listeners
         // data Analyzer
-        this.bus.subscribe("file.new.DYN_BYTECODE", BusSubscriber.from( (pEvent:BusEvent) => {
+        this.bus.subscribe("file.new.DYN_BYTECODE", BusSubscriber.from( (pEvent:BusEvent<any>) => {
             const d = pEvent.getData();
             Logger.info("[DXC-PROJECT] [SUBSCRIBER] <file.new.DYN_BYTECODE> scanning file : "+d.file.path);
             Logger.info(JSON.stringify(pEvent));
@@ -722,7 +724,7 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
         }));
 
         // update global file index with files indexed by dtaa analyzer
-        this.bus.subscribe( "data.file.index", BusSubscriber.from( (pEvent:BusEvent)=>{
+        this.bus.subscribe( "data.file.index", BusSubscriber.from( (pEvent:BusEvent<any>)=>{
 
             Logger.info("[DXC-PROJECT] [SUBSCRIBER] <data.file.index> Indexing file : "+pEvent.getData().path);
             this.analyze.insertIn( "files", [pEvent.getData()]);
@@ -1888,6 +1890,14 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
 
     getLicenseKey():string {
         return "--";
+    }
+
+    getStatistics():any {
+        return {
+            code: this.getAnalyzer().getStatistics(),
+            package: null,
+            app: this.application.getInfo()
+        };
     }
 }
 

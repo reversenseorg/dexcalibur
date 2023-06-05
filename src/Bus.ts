@@ -15,23 +15,23 @@ interface EventSubscribers {
 
 export interface BusBroadcaster {
     getUID():string;
-    broadcastEvent(pEvent:BusEvent):void
+    broadcastEvent(pEvent:BusEvent<any>):void
 }
 
 
 var gSubs_CTR:number = 1;
 
 export class BusSubscriber {
-    _f:((pEvent:BusEvent)=>void);
+    _f:((pEvent:BusEvent<any>)=>void);
     _uid:number;
     _p:boolean = false;
 
-    constructor( pUID:number, pFunc:((pEvent:BusEvent)=>void)) {
+    constructor( pUID:number, pFunc:((pEvent:BusEvent<any>)=>void)) {
         this._uid = pUID;
         this._f = pFunc;
     }
 
-    static from(pFunc:((pEvent:BusEvent)=>void)):BusSubscriber {
+    static from(pFunc:((pEvent:BusEvent<any>)=>void)):BusSubscriber {
         return new BusSubscriber( gSubs_CTR++, pFunc);
     }
 
@@ -43,7 +43,7 @@ export class BusSubscriber {
         this._p = false;
     }
 
-    exec(pEvent:BusEvent):void {
+    exec(pEvent:BusEvent<any>):void {
         if(!this._p) this._f(pEvent);
     }
 }
@@ -199,7 +199,7 @@ export default class Bus
      *
      * @param event
      */
-    send(event:BusEvent):boolean{
+    send(event:BusEvent<any>):boolean{
 
         if(this.prevented.hasOwnProperty(event.type) && this.prevented[event.type]===true){
             Logger.info("[BUS] <"+event.type+"> prevented ...");

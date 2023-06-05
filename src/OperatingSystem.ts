@@ -7,5 +7,6 @@ export enum OperatingSystem {
     IOS= 'ios',
     DARWIN= 'darwin',
     MACOS= 'macos',
-    WINNT= 'windows NET'
+    WINNT= 'windows NET',
+    NONE=''
 }
