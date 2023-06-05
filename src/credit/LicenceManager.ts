@@ -3,6 +3,7 @@ import {UserAccount} from "../user/UserAccount.js";
 import DexcaliburProject from "../DexcaliburProject.js";
 import {Product} from "./Product.js";
 import {PrivacyScanner} from "../audit/privacy/PrivacyScanner.js";
+import {GenericScanner} from "../audit/common/GenericScanner.js";
 
 interface ActivatedServices {
     [ productCode:string] :any
@@ -17,6 +18,11 @@ export class LicenceManager {
 
     static wallet: ServiceWallet = {};
 
+    /**
+     *
+     * @param pProject
+     * @param pProductCode
+     */
     static activateProduct( pProject:DexcaliburProject, pProductCode:string):Product {
 
         if(LicenceManager.wallet[pProject.getLicenseNo()]==null){
@@ -25,9 +31,13 @@ export class LicenceManager {
 
         const svc = LicenceManager.wallet[pProject.getLicenseNo()];
         switch (pProductCode){
-            case 'PRI_CLD_SSCAN':
+            case 'scanner.privacy':
                 // add serial/key check
-                svc[pProductCode] = new PrivacyScanner({ project:pProject });
+                svc['scanner.privacy'] = new PrivacyScanner({ project:pProject });
+                break;
+            case 'scanner.generic':
+                // add serial/key check
+                svc['scanner.generic'] = new GenericScanner({ project:pProject });
                 break;
             default:
                 throw new Error("Licence Server : Unknow product");
@@ -54,7 +64,8 @@ export class LicenceManager {
 
     static replenish(){
         LicenceManager.wallet["--"] = {
-            PRI_CLD_SSCAN: null
+            "scanner.privacy": null,
+            "scanner.generic": null
         };
     }
 
