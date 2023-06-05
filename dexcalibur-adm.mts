@@ -20,10 +20,17 @@ import DexcaliburRegistry from "./src/DexcaliburRegistry.js";
 import {PrivacyModel} from "./src/audit/privacy/PrivacyModel.js";
 import {ConstraintType} from "./src/audit/common/Constraint.js";
 import CodeConstraint from "./src/audit/common/CodeConstraint.js";
-import {NodeInternalType, NodeInternalTypeName} from "./src/NodeInternalType.js";
+import {NodeInternalTypeName} from "./src/NodeInternalType.js";
 import {UserSession} from "./src/user/session/UserSession.js";
-import {PrivacyScanner} from "./src/audit/privacy/PrivacyScanner.js";
 import {LicenceManager} from "./src/credit/LicenceManager.js";
+import {AuditManager} from "./src/audit/AuditManager.js";
+import {AssuranceScanner} from "./src/audit/common/AssuranceScanner.js";
+import DexcaliburProject from "./src/DexcaliburProject.js";
+import { Merlin } from "./src/search/Merlin.js";
+import * as VM from "vm";
+import {MerlinSearchRequest} from "./src/search/MerlinSearchRequest.js";
+import AssuranceModel from "./src/audit/common/AssuranceModel.js";
+import Control from "./src/audit/common/Control.js";
 
 
 ConnectorFactory.getInstance(true);
@@ -38,7 +45,8 @@ enum SUBMENU {
     INSTALL,
     TOOLS,
     START,
-    MODEL
+    MODEL,
+    MERLIN
 }
 
 
@@ -172,6 +180,22 @@ var Parser:ArgParser = new ArgParser(projectArgs, "dexcalibur-adm", [
         ],
         callback:(ctx,param)=>{ ctx.mode = SUBMENU.START; } },
 
+    { name:"merlin",
+        help: "Test/explain Merlin rules",
+        hasVal:false,
+        options: [
+            {
+                name:"--rule",
+                help: "Detection rule",
+                hasVal:true,
+                callback:(ctx,param)=>{
+                    ctx.mlRule = param.value;
+                }
+            }
+        ],
+        callback:(ctx,param)=>{ ctx.mode = SUBMENU.MERLIN; } },
+
+
     { name:"gui",
         help: "GUI settings",
         hasVal:false,
@@ -233,17 +257,29 @@ var Parser:ArgParser = new ArgParser(projectArgs, "dexcalibur-adm", [
                 callback:(ctx,param)=>{
                     ctx.mPrintPriv = true;
                 }
+            },{ name:"--info",
+                help: "List info about models",
+                hasVal:false,
+                callback:(ctx,param)=>{
+                    ctx.mInfo = true;
+                }
             },{ name:"--scan",
                 help: "Perform scan using specified models",
                 hasVal:false,
                 callback:(ctx,param)=>{
                     ctx.mScan = true;
                 }
-            },{ name:"--output",
-                help: "To write the report to an output file.",
-                hasVal:true,
+            },{ name:"--print",
+                help: "To print data",
+                hasVal:false,
                 callback:(ctx,param)=>{
-                    ctx.mOut = param.value;
+                    ctx.mPrint = true;
+                }
+            },{ name:"--save",
+                help: "To write the report to an output file.",
+                hasVal:false,
+                callback:(ctx,param)=>{
+                    ctx.mSave = true;
                 }
             },{ name:"--type",
                 help: "Assurance model. Separated by comma. Example : --type=privacy",
@@ -356,6 +392,26 @@ if(projectArgs.help != null){
 }
 
 let cfg:S.Settings.GlobalSettings|null = null;
+
+
+function printControls(pControl:Control, pDepth = 0):void {
+    console.log(`${"\t".repeat(pDepth)} ID: ${pControl.id}`);
+    console.log(`${"\t".repeat(pDepth)} Name: ${pControl.name}`);
+    console.log(`${"\t".repeat(pDepth)} Description: ${pControl.description}`);
+
+    if(pControl.hasChildren()){
+        console.log(`${"\t".repeat(pDepth)} Children: `);
+        pControl.children.map(x => printControls(x, pDepth+1));
+    }else{
+        console.log(`${"\t".repeat(pDepth)} Assessment Control: `);
+        pControl.assessments.map( x => {
+            console.log(`${"\t".repeat(pDepth+1)} Name: ${x.name}`);
+            console.log(`${"\t".repeat(pDepth+1)} Description: ${x.description}`);
+            console.log(`${"\t".repeat(pDepth+1)} Rules: `);
+            x.rules.map(y => console.log(`${"\t".repeat(pDepth+2)} ${y.toSearchString()}`));
+        });
+    }
+}
 
 /**
  * To load a configu
@@ -713,6 +769,77 @@ ${"\t".repeat(1)}Default Arch = ${srv.getDefaultArchitecture()}
                 if(ready){
                     dxcInstance.start();
 
+                    if(projectArgs.mInfo){
+
+                        const am = AuditManager.getInstance();
+                        const mock = new DexcaliburProject(dxcInstance,".");
+
+                        console.log(`[AUDIT] All Products available`);
+                        const prod = LicenceManager.wallet[mock.getLicenseNo()];
+                        for(let i in prod)
+                            console.log(` - ${i} `);
+
+                        console.log(`[AUDIT] All models available`);
+                        const models = am.listGenericModels();
+                        models.map(x => {
+                            console.log(` - ${x.id} Scanner=${x.scannerID}`);
+                            try{
+                                console.log(chalk.yellow(`\tName : ${x.name}`));
+                                console.log(chalk.yellow(`\tDescriptions : ${x.description}`));
+                                console.log(chalk.yellow(`\tControls : `));
+                                x.controls.map( ctrl => printControls(ctrl));
+
+                                /*
+                                console.log(chalk.yellow(`\tThreats[${x.globalThreats.length}] PrimaryAssets[${x.primaryAssets.length}] SecondaryAssets[${x.secondaryAssets.length}]`));
+
+                                console.log(chalk.yellowBright(`Threats : `));
+                                x.globalThreats.map( vThreat => {
+                                    let s = "";
+                                    let r = "";
+                                    vThreat.signature.map( vConstraint => {
+                                        s += "";
+                                        switch (vConstraint.type){
+                                            case ConstraintType.CODE:
+                                                s+=`\t\tCODE [${NodeInternalTypeName[(vConstraint as CodeConstraint).node]}] ${(vConstraint as CodeConstraint).pattern}\n`;
+                                                break;
+                                            case ConstraintType.ANY:
+                                                s+=`\t\t  ANY [${vConstraint.name}]\n`;
+                                                break;
+                                            case ConstraintType.PHYSICAL:
+                                                s+=`\t\t  PHYSICAL[${vConstraint.name}]\n`;
+                                                break;
+                                            case ConstraintType.UI:
+                                                s+=`\t\t  UI [${vConstraint.name}]\n`;
+                                                break;
+                                            case ConstraintType.FLOW:
+                                                s+=`\t\t  FLOW [${vConstraint.name}]\n`;
+                                                break;
+                                            default:
+                                                s+=vConstraint.toJsonObject();
+                                                break;
+                                        }
+                                    });
+
+                                    vThreat.refs.map( vRef => {
+                                        r += "\t\t"+vRef+"\n";
+                                    });
+                                    console.log(chalk.yellowBright(vThreat.name)+chalk.white(`\n\t[${vThreat.uid}]\n${r.length>0?"\tRefs :\n"+r+"\n":""}\tSignatures :\n${s}\n`));
+                                });
+                                console.log(chalk.yellowBright(`Primary Assets : `));*/
+                            }catch(err){
+                                console.log(chalk.red(`\tLoad failure`));
+                            }
+
+
+                            try {
+                                const scanner:AssuranceScanner = LicenceManager.getProduct(mock,x.getScannerID()) as AssuranceScanner;
+                                console.log(chalk.yellow(`\tScanner=${scanner !=null ? scanner.name : "null"} `));
+                            }catch(err){
+                                console.log(chalk.red(`\tScanner not found : ${err.message}`));
+                            }
+                        });
+                    }
+
                     if(projectArgs.mPkg){
                         let usrSess:UserSession;
                         if(projectArgs.mUser){
@@ -734,6 +861,31 @@ ${"\t".repeat(1)}Default Arch = ${srv.getDefaultArchitecture()}
                         if(dxcProject.isReady()){
                             if(projectArgs.mScan){
 
+                                const am = AuditManager.getInstance();
+
+                                projectArgs.mScanType.split(',').map( vModelName => {
+                                    console.log(`[AUDIT] Get model [${vModelName}] ...`);
+                                    const model = am.getModel(dxcProject, vModelName);
+
+                                    console.log(`[AUDIT] Search scanner for model [${vModelName}] ...`);
+                                    const scanner:AssuranceScanner = LicenceManager.getProduct(dxcProject,model.getScannerID()) as AssuranceScanner;
+
+                                    scanner.setModel(model);
+
+                                    console.log(`[AUDIT] Start scanner [scanner=${scanner.name}][model=${scanner.model.name}] ...`);
+                                    scanner.run(dxcProject, {});
+                                    console.log(`[AUDIT] Scan done. `);
+
+                                    const report = scanner.getReport();
+
+                                    if(projectArgs.mSave===true && report!=null){
+                                        console.log(`[AUDIT] Saving report in project workpspace ...`);
+                                        const reppath = am.saveReport(dxcProject, report);
+                                        console.log(`[AUDIT] Report saved in : ${reppath} `);
+                                    }
+                                })
+
+                                /*
                                 switch(projectArgs.mScanType){
                                     case "privacy":
                                         console.log("Start Privacy scanning ...");;
@@ -749,7 +901,7 @@ ${"\t".repeat(1)}Default Arch = ${srv.getDefaultArchitecture()}
                                         }
 
                                         break;
-                                }
+                                }*/
                             }
                         }
 
@@ -796,6 +948,43 @@ ${"\t".repeat(1)}Default Arch = ${srv.getDefaultArchitecture()}
                 console.log(chalk.red(err.stack));
             }
         })();
+        break;
+    case SUBMENU.MERLIN:
+        if(projectArgs.mlRule){
+            const ctx = {
+                Merlin: Merlin,
+                merlinAPI: null,
+                ops: [],
+                req: null
+            };
+
+            console.log(chalk.whiteBright("[-] Prepare rule : "+projectArgs.mlRule));
+            ctx.merlinAPI = Merlin.android();
+            VM.createContext(ctx);
+            VM.runInNewContext(`req = Merlin.${projectArgs.mlRule}; ops = req.getOperations();`,ctx);
+
+            console.log(MerlinSearchRequest.stringify(ctx.ops));
+            console.log((ctx.req as MerlinSearchRequest).toSearchString());
+
+            /*
+            (async function() {
+                const dxcInstance = DexcaliburEngine.getInstance();
+                dxcInstance.loadConfiguration(cfg);
+                const ready = await dxcInstance.boot(
+                    projectArgs.restore === true ? true : false,
+                    dxcWebRoot
+                );
+                if(ready){
+                    dxcInstance.start((projectArgs.port!=null) ? projectArgs.port : null);
+
+                    switch(projectArgs.mlType){
+                        case "android":
+                            Merlin.android()
+                            break;
+                    }
+                }
+            })()*/
+        }
         break;
     case SUBMENU.TEST:
         if(projectArgs.testLoad!=null){
