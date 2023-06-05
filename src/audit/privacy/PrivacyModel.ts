@@ -28,64 +28,6 @@ export class PrivacyModel extends AssuranceModel {
     }
 
 
-    /**
-     * To load trackers signatures and put it to threat list of the model
-     *
-     * @method
-     */
-    loadTrackersSignatures():void {
-
-        const rawData = JSON.parse(
-            _fs_.readFileSync(
-                _path_.join(
-                    Util.__dirname(import.meta.url),
-                    '..',
-                    '..',
-                    '..',
-                    'assets',
-                    'exodus.dump.json'
-                ), {encoding:'utf8'}
-            ).toString()
-        );
-
-        rawData.trackers.map((vRaw)=>{
-            // import
-            const sig = TrackerInfo.importFromExodus(vRaw);
-
-            const threat = ThreatFactory.newCodeThreatByTechnic("T1195.001",{
-                name: sig.name,
-                id: sig.uid,
-                refs: sig.refs
-            });
-
-
-            if(sig.networkSignature.length>0){
-                sig.networkSignature.map((x)=>{
-                    threat.appendSignature(new CodeConstraint(NodeInternalType.STRING,{
-                        pattern: x.pattern,
-                        el: threat
-                    }));
-                });
-            }
-
-            if(sig.codeSignature.length>0){
-                sig.codeSignature.map((x)=>{
-                    /*threat.appendSignature(new CodeConstraint(NodeInternalType.CLASS,{
-                        pattern: x.pattern,
-                        el: threat
-                    }));*/
-                    threat.appendSignature(new CodeConstraint(NodeInternalType.METHOD,{
-                        pattern: x.pattern,
-                        el: threat
-                    }));
-                });
-            }
-
-
-            this.globalThreats.push(threat);
-        });
-    }
-
     loadPII(){
         let  cls:PiiClass;
         for(let name in PII_Data){
@@ -109,10 +51,7 @@ export class PrivacyModel extends AssuranceModel {
     }
 
     load():void {
-        // load trackers as threats
-        this.loadTrackersSignatures();
         //
         this.loadPII();
     }
-
 }

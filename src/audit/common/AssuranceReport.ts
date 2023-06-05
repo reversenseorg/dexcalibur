@@ -39,9 +39,16 @@ export default class AssuranceReport {
     globalThreats:ConstraintMatch<Threat>[] = [];
 
 
+    assets:ConstraintMatch<Asset>[] = [];
+
     constructor( pConfig:AssuranceReportOptions = {}) {
         if(pConfig!=null) for(const i in pConfig) this[i]=pConfig[i];
     }
+
+    getAssets():ConstraintMatch<Asset>[] {
+        return this.assets;
+    }
+
     getThreats():ConstraintMatch<Threat>[] {
         return this.globalThreats;
     }
@@ -103,6 +110,7 @@ export default class AssuranceReport {
                 case "primaryAssets":
                 case "secondaryAssets":
                 case "globalThreats":
+                case "assets":
                     o[i] = [];
                     (this[i] as any).map(x => {
                         o[i].push((x as ConstraintMatch<any>).toJsonObject());

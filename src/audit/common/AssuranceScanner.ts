@@ -27,6 +27,9 @@ export interface AssuranceScannerOptions extends ProductOptions {
 
 }
 
+
+
+
 /**
  * Generic scanner for any assurance model instance
  */
@@ -37,9 +40,13 @@ export class AssuranceScanner extends Product {
      */
     name:string;
 
+    project:DexcaliburProject|null;
+
     model:AssuranceModel;
 
     report:AssuranceReport|null = null;
+
+    reports:AssuranceReport[] = [];
 
 
     dashboards:{[name:string] :DashBoard} = {};
@@ -63,6 +70,12 @@ export class AssuranceScanner extends Product {
         this._prepareFlag = false;
     }
 
+    /**
+     * Browse Assurance model
+     *
+     * @param pContext
+     * @param pOptions
+     */
     run( pContext:DexcaliburProject, pOptions:any){
         this.staticScan(pContext, pOptions);
     }
@@ -153,8 +166,12 @@ export class AssuranceScanner extends Product {
 
     merlinScan(pContext:DexcaliburProject, pOptions:any):void {}
 
-    getReport():AssuranceReport {
+    getReport():AssuranceReport|null {
         return this.report;
+    }
+
+    getReports():AssuranceReport[] {
+        return this.reports;
     }
 
 
@@ -182,17 +199,6 @@ export class AssuranceScanner extends Product {
         });
     }
 
-    private _preparePii( pMap:CodeConstraintMap, pAssets:Asset[]):void {
-        if(pAssets.length==0) return;
-
-        pAssets.map((vThreat)=>{
-            /*const node = vThreat.listPerNodeType();
-            for(let nType in node){
-                if(pMap[nType]==null) pMap[nType] = [];
-                pMap[nType] = pMap[nType].concat(node[nType]);
-            }*/
-        });
-    }
 
     validateOptions( pUnsafeOptions:any):any {
         return {};

@@ -12,6 +12,8 @@ export interface AssetOptions {
 
 export default class Asset  {
 
+    id = "";
+
     name:string;
 
     description:string;

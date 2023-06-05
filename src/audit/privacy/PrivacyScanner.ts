@@ -52,7 +52,7 @@ export interface PrivacyScannerOpts {
 
 /**
  * Main API to perform privacy scan
- *
+ * @deprecated
  * @class
  */
 export class PrivacyScanner extends AssuranceScanner {
@@ -88,7 +88,7 @@ export class PrivacyScanner extends AssuranceScanner {
      * @type {PrivacyReport[]}
      * @field
      */
-    reports:PrivacyReport[] = [];
+    reports:any[] = [];
 
     lastReport:PrivacyReport = null;
 
@@ -159,7 +159,7 @@ export class PrivacyScanner extends AssuranceScanner {
         });
 
         this.model = new PrivacyModel();
-        this.model.loadTrackersSignatures();
+        this.model.load();
     }
 
     /**

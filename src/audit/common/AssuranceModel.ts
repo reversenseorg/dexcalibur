@@ -2,6 +2,7 @@ import Asset from "./Asset.js";
 import Threat from "./Threat.js";
 import CodeThreat from "./CodeThreat.js";
 import CodeConstraint from "./CodeConstraint.js";
+import Control from "./Control.js";
 
 export enum AssuranceModelType {
     SECURITY="sec",
@@ -25,6 +26,12 @@ export default class AssuranceModel {
      */
     scannerID:string;
 
+    name:string;
+
+    description = "";
+
+    links: string[] = [];
+
     /**
      * The assurance model source helps to differenciate
      * who create the models
@@ -39,6 +46,10 @@ export default class AssuranceModel {
 
     globalThreats:Threat[] = [];
 
+
+    controls:Control[] = [];
+
+    protected _ready = false;
 
 
     constructor( pConfig:any = null) {
@@ -89,6 +100,16 @@ export default class AssuranceModel {
 
     load():void {
         return ;
+    }
+
+    /**
+     * To check if the model is ready to be consumed by the scanner
+     *
+     * @return {boolean}
+     * @method
+     */
+    isReady():boolean {
+        return this._ready;
     }
 
     static fromJsonObject(pData:any):AssuranceModel {

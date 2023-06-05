@@ -7,6 +7,9 @@ import AssuranceReport from "./common/AssuranceReport.js";
 import { PrivacyModel } from "./privacy/PrivacyModel.js";
 import Util from '../Utils.js';
 import {AuditManagerException} from "./errors/AuditManagerException.js";
+import {OwaspMasvsModel} from "./models/OwaspModel.js";
+import {PrivacyTrackersModel} from "./models/PrivacyTrackersModel.js";
+import {PrivacyPiiModel} from "./models/PrivacyPiiModel.js";
 
 const SUBDIRS = {
     REPORTS: "reports",
@@ -27,7 +30,10 @@ export class AuditManager {
 
     constructor() {
         [
-            new PrivacyModel()
+            //new PrivacyModel(),
+            OwaspMasvsModel,
+            PrivacyPiiModel,
+            PrivacyTrackersModel
             // new ArjelModel()
         ].map(x => {
             x.load();
