@@ -10,6 +10,10 @@ import {BridgeInstallOptions, DeviceProfilingOptions, IBridge} from "../Bridge.j
 import {Router, Request, Response} from "express";
 import DexcaliburProject from "../DexcaliburProject.js";
 import {MonitoredError} from "../errors/MonitoredError.js";
+import {OperatingSystem} from "../OperatingSystem";
+import { DeviceFactory } from "../device/DeviceFactory.js";
+import PlatformManager from "../PlatformManager";
+import AdbWrapperFactory from "../AdbWrapperFactory";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -726,6 +730,54 @@ DEVICE_WEB_API.addPublicRoute(
             }catch(err){
                 Logger.error("[API][DEVICE] Set default device for project: "+err.message+"\n"+err.stack);
                 //_DATA = { success:false, error:err.message, errcode:errcode };
+                $.sendError( res, err.message, { error:err.message, errcode:(err as MonitoredError).getCode() })
+            }
+        }
+    });
+
+/**
+ * Create device endpoints
+ *
+ */
+DEVICE_WEB_API.addPublicRoute(
+    '/create',
+    {
+        'post': (req:DelegateRequest, res:DelegateResponse):any => {
+            // collect
+            const uid:string = req.body["uid"];
+            const dm:DeviceManager = DeviceManager.getInstance();
+            const $:WebServer = req.dxc.$;
+            const pm = PlatformManager.getInstance();
+            try{
+                res.set('Content-Type', 'text/json');
+
+                let dev:Device = null;
+                switch(req.body["os"]){
+                    case OperatingSystem.ANDROID:
+                        dev = DeviceFactory.newAndroidDevice({
+                            arch: req.body["arch"],
+                            platform: pm.getPlatform(req.body["platform"]),
+                            device: req.body["name"],
+                            model: "VDev-1.0",
+                            product: "DxcVirtualDevice",
+                            offline: false,
+                            enrolled: false,
+                            bridge: AdbWrapperFactory.getInstance().newVirtualWrapper(),
+                            apps:[],
+                            syscalls:[]
+                        });
+                        break;
+                }
+                //Device.newAndroidDevice()
+                dm.addDevice(dev);
+                if(dev==null)
+                    throw DeviceManagerException.DEVICE_NOT_FOUND();
+
+                dm.save();
+
+                $.sendSuccess( res, { msg: "Device <b>"+uid+"</b> has been created." })
+            }catch(err){
+                Logger.error("[API][DEVICE] Cannot create device : "+err.message+"\n"+err.stack);
                 $.sendError( res, err.message, { error:err.message, errcode:(err as MonitoredError).getCode() })
             }
         }

@@ -118,7 +118,7 @@ export default class DeviceManager extends ValidationCapable
          * @field 
          */
         this.bridges = {
-            ADB: AdbWrapperFactory.getInstance(adbPath)
+            ADB: AdbWrapperFactory.getInstance(adbPath),
         };
         /*
                 _path_.join(

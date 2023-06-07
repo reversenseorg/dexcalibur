@@ -106,6 +106,14 @@ export default class AdbWrapper implements IBridge
     up = false;
 
     /**
+     * A flag to turn adb bridge to virtual bridge
+     * to mock Virtual Device
+     * @type {boolean}
+     * @field
+     */
+    private _virtual = false;
+
+    /**
      * 
      * @param {String} adbpath The ADB binary path 
      * @param {String} pDeviceID  (optional) The device ID to manage.
@@ -140,6 +148,14 @@ export default class AdbWrapper implements IBridge
            })]
         }));
 
+    }
+
+    isVirtual():boolean {
+        return this._virtual;
+    }
+
+    turnVirtualMode():void {
+        this._virtual = true;
     }
 
     /**

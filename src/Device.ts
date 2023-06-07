@@ -52,6 +52,32 @@ export interface FridaServerOptions {
     before:string
 }
 
+export interface DeviceOptions {
+    type?:OperatingSystem;
+    connected?:boolean;
+    bridge?:IBridge;
+    selected?:boolean;
+    isEmulated?:boolean|null;
+    uid?:string;
+    id?:string;
+    authorized?:boolean;
+    model?:string;
+    product?:string;
+    device?:string;
+    transportId?:string;
+    usbQualifier?:string;
+    profile?:DeviceProfile;
+    platform?:Platform;
+    frida?:FridaServerOptions;
+    bridges?:BridgeList;
+    enrolled?:boolean;
+    offline?:boolean;
+    syscalls?:ModelSyscall[];
+    apps?:AppPackage[];
+    os?:OperatingSystem;
+    arch?:Architecture;
+}
+
 /**
  * This class represents a device
  * 
@@ -217,9 +243,8 @@ export class Device
      * @param {*} config 
      * @constructor
      */
-    constructor(config:any=null){
-        if(config !== null)
-            for(const i in config) this[i] = config[i];
+    constructor(pConfig:DeviceOptions={}){
+        for(const i in pConfig) this[i] = pConfig[i];
     }
 
     /**

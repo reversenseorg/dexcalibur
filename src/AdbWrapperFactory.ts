@@ -16,6 +16,11 @@ let gInstance:AdbWrapperFactory = null;
  */
 export default class AdbWrapperFactory implements IBridgeFactory
 {
+    /**
+     * Path to "adb" executable
+     * @type {string}
+     * @field
+     */
     path:string = null;
 
     /**
@@ -74,6 +79,21 @@ export default class AdbWrapperFactory implements IBridgeFactory
         return new AdbWrapper( gInstance.path);
     }
 
+    /**
+     * To create a virtual AdbWrapper to bridge and mock
+     * communication with Virtual Dexcalibur Device (VDEv)
+     *
+     * @returns {AdbWrapper} AdbWrapper instance
+     * @public
+     * @method
+     */
+    newVirtualWrapper():IBridge{
+        const v = new AdbWrapper( gInstance.path);
+        v.turnVirtualMode();
+        v.shortname = "VADB";
+        return v;
+    }
+
      /**
      * To create a device-specific AdbWrapper
      * 
@@ -90,6 +110,13 @@ export default class AdbWrapperFactory implements IBridgeFactory
     }
 
 
+    /**
+     * To create AdbWrapper instance from serialized object
+     *
+     * @param {any} pObject Serialized object
+     * @return {AdbWrapper}
+     * @method
+     */
     fromJsonObject(pObject:any):any{
         return AdbWrapper.fromJsonObject(pObject);
     }
