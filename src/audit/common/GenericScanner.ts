@@ -7,6 +7,7 @@ import AssuranceReport from "../common/AssuranceReport.js";
 import {MerlinSearchRequest} from "../../search/MerlinSearchRequest.js";
 import Control from "./Control.js";
 import ControlAssessment from "./ControlAssessment.js";
+import {Merlin, MerlinPrimitive} from "../../search/Merlin.js";
 
 
 export interface PrivacyScanOptions {
@@ -20,7 +21,7 @@ export interface PrivacyScanOptions {
 
 interface BusBasedControl {
     ctrl: ControlAssessment,
-    rule: MerlinSearchRequest
+    rule: MerlinPrimitive
 }
 
 export interface GenericScanOptions {
@@ -84,13 +85,26 @@ export class GenericScanner extends AssuranceScanner {
                vAssess.rules.map( vRule => {
                    if(!vRule.hasBusSubscriber()){
                        (async ()=>{
-                           let res = await vRule.execute(this.project);
-                           if(res.count()>0){
-                               console.log("[SCAN][FOUND] : "+res.count()+"  "+vRule.toSearchString());
-                               res.getData().map(x => {
-                                   vAssess.addMatches(x);
-                               });
+                           let res:any;
+                           if(Merlin.isRule(vRule)){
+                               res = await vRule.executeSync(this.project);
+                               if(res.count()>0){
+                                   console.log("[SCAN][FOUND] : "+res.count()+"  "+vRule.toSearchString());
+                                   res.getData().map(x => {
+                                       vAssess.addMatches(x);
+                                   });
+                               }
+                           }else{
+
+                               res = await vRule.execute(this.project);
+                               if(res.count()>0){
+                                   console.log("[SCAN][FOUND] : "+res.count()+"  "+vRule.toSearchString());
+                                   res.getData().map(x => {
+                                       vAssess.addMatches(x);
+                                   });
+                               }
                            }
+
                        })();
                    }
                })

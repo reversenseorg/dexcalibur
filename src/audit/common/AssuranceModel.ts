@@ -134,9 +134,16 @@ export default class AssuranceModel {
         const o:any = {};
 
         o.id = this.id;
+        o.name = this.name;
+        o.description = this.description;
         o.scannerID = this.scannerID;
         o.generic = this.generic;
+        o.links = this.links;
 
+        o.controls = [];
+        this.controls.map( x => {
+            o.controls.push(x.toJsonObject());
+        })
         o.globalThreats = [];
         this.globalThreats.map( x => {
             o.globalThreats.push(x.toJsonObject());

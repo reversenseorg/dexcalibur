@@ -36,5 +36,32 @@ export default class Control {
         return (this.children.length > 0);
     }
 
+    hasAssessments():boolean {
+        return (this.assessments.length > 0);
+    }
 
+    toJsonObject():any {
+        let o:any = {
+            id: this.id,
+            name: this.name,
+            description: this.description,
+            links: this.links,
+            children: [],
+            assessments: []
+        };
+
+        if(this.hasChildren()){
+            this.children.map(x => {
+                o.children.push(x.toJsonObject())
+            });
+        }
+
+        if(this.hasAssessments()){
+            this.assessments.map(x => {
+                o.assessments.push(x.toJsonObject())
+            });
+        }
+
+        return o;
+    }
 }

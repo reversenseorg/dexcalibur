@@ -1,5 +1,7 @@
 import {AssetOptions} from "./Asset.js";
 import {MerlinSearchRequest} from "../../search/MerlinSearchRequest.js";
+import {MerlinRule} from "../../search/MerlinRule.js";
+import {MerlinPrimitive} from "../../search/Merlin.js";
 
 export enum TestType {
     VT, // check if implemented
@@ -25,7 +27,7 @@ export interface ControlAssessmentOpts {
 
     analType?:AnalysisType;
 
-    rules?:MerlinSearchRequest[];
+    rules?:(MerlinRule|MerlinSearchRequest)[];
 
 }
 
@@ -46,7 +48,7 @@ export default class ControlAssessment {
 
     analType:AnalysisType = AnalysisType.SAST;
 
-    rules:MerlinSearchRequest[] = [];
+    rules:MerlinPrimitive[] = [];
 
     matches:any[] = [];
 
@@ -54,7 +56,7 @@ export default class ControlAssessment {
         if(pConfig!=null) for(const i in pConfig) this[i]=pConfig[i];
     }
 
-    getRules():MerlinSearchRequest[] {
+    getRules():MerlinPrimitive[] {
         return this.rules;
     }
 
@@ -85,5 +87,12 @@ export default class ControlAssessment {
             }
         }
         return o;
+    }
+
+
+    static fromJsonObject(pOpts:any):ControlAssessment {
+        const a = new ControlAssessment(pOpts);
+
+        return a;
     }
 }
