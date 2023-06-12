@@ -2,6 +2,10 @@ import {MerlinRule, MerlinRuleOptions} from "./MerlinRule.js";
 import {OperatingSystem} from "../OperatingSystem.js";
 import { MerlinAndroidRule } from "./MerlinAndroidRule.js";
 import {MerlinIosRule} from "./MerlinIosRule.js";
+import DexcaliburProject from "../DexcaliburProject.js";
+import {FinderResult} from "./FinderResult.js";
+import ControlAssessment from "../audit/common/ControlAssessment.js";
+import {BusSubscriber} from "../Bus.js";
 
 export interface RuleOption {
     score?:number
@@ -10,6 +14,32 @@ export interface RuleOption {
 export enum MerlinScopes {
     FROM_OUTSIDE,
     TO_OUTSIDE
+}
+
+export enum MerlinType {
+    REQUEST,
+    RULE
+}
+
+/**
+ * @interface
+ */
+export interface MerlinPrimitive {
+    TYPE: MerlinType
+
+    execute?(pContext:any):Promise<FinderResult>;
+
+    executeSync?(pContext:any):FinderResult;
+
+    toJsonObject():any;
+
+    toSearchString():string;
+
+    hasBusSubscriber():boolean;
+
+    getSubscribeList():string[];
+
+    toBusSubscriber(pContext:any):BusSubscriber;
 }
 
 /**
@@ -33,6 +63,14 @@ export class Merlin {
                 break;
         }
 
+    }
+
+    static isRule(pRule:MerlinPrimitive):boolean {
+        return (pRule.TYPE==MerlinType.RULE);
+    }
+
+    static isSearchRequest(pRule:MerlinPrimitive):boolean {
+        return (pRule.TYPE==MerlinType.REQUEST);
     }
 
     static android( pRuleOption:MerlinRuleOptions = {}):MerlinAndroidRule {

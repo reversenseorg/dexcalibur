@@ -10,7 +10,8 @@ import {OperatingSystem} from "../OperatingSystem.js";
 import {BusSubscriber} from "../Bus.js";
 import ControlAssessment from "../audit/common/ControlAssessment.js";
 import DexcaliburProject from "../DexcaliburProject.js";
-import {NodeInternalType, NodeInternalTypeName} from "../NodeInternalType.js";
+import { NodeInternalTypeName} from "../NodeInternalType.js";
+import { MerlinPrimitive, MerlinType} from "./Merlin.js";
 
 
 export enum OperationType {
@@ -103,7 +104,9 @@ export interface ValidationResult {
 /**
  * @class
  */
-export class MerlinSearchRequest {
+export class MerlinSearchRequest implements MerlinPrimitive{
+
+  TYPE = MerlinType.REQUEST;
 
   private _live = false;
 
@@ -149,6 +152,10 @@ export class MerlinSearchRequest {
 
   countSearch():number {
     return this._search;
+  }
+
+  isRule():boolean {
+    return false;
   }
 
   /**
@@ -359,7 +366,7 @@ export class MerlinSearchRequest {
     return this._evt;
   }
 
-  toBusSubscriber(pAssess:ControlAssessment):BusSubscriber {
+  toBusSubscriber(pAssess:any):BusSubscriber {
     return BusSubscriber.from( ( pEvent)=>{
       if(this.executeLive(pEvent.getData())){
         //pAssess.addMatch();

@@ -1,5 +1,5 @@
 import {Device, DeviceOptions} from "../Device.js";
-import {OperatingSystem} from "../OperatingSystem";
+import {OperatingSystem} from "../OperatingSystem.js";
 
 export interface AndroidDeviceOptions extends DeviceOptions{
 
