@@ -1550,8 +1550,8 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
             }else{
                 this.analyze.getNativeAnalyzer().configure(
                     this.platform,
-                    this.engine.getSettings().getServerSettings().getDefaultArchitecture(), // project architecture
-                    this.device.getProfile().getSystemProfile().getABIlist()
+                    this.engine.getSettings().getServerSettings().getDefaultArchitecture(),
+                    []
                 );
             }
 

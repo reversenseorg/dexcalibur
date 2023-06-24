@@ -47,7 +47,13 @@ cp -r ./README.md ./dist/scripts
 cp -r ./src/requires ./dist/src/requires
 cp -r ./assets ./dist/assets
 cp -r ./thirdparty ./dist/thirdparty
-cp -r ./public ./dist/public
+
+if [ -f ./public ]; then
+  cp -r ./public ./dist/public
+fi
+
+# static pages hosted by dexcalibur server (no ssr)
+cp -r ./src/webserver ./dist/src/webserver
 
 if [ -f "./package-lock.json" ]; then
   cp -r ./package-lock.json ./dist/package-lock.json

@@ -53,7 +53,7 @@ export namespace External {
         }
 
         public static getExtPath(pTool=""):string {
-            if(this.tool==undefined){
+            if(this.tool==undefined||this.tool==null){
                 throw new Error('Tool is not configured :'+pTool);
             }
             return this.tool.getPath();

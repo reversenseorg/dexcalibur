@@ -442,7 +442,7 @@ export default class Analyzer
 
             if(pDb.packages.hasEntry(pkg)==false){
 
-                console.log(`creating>  ${pkg} (${pkg.length}) parent=${ppkg}`);
+                //console.log(`creating>  ${pkg} (${pkg.length}) parent=${ppkg}`);
 
                 fresh = ModelPackage.fromJavaFQCN(pkg);
                 pDb.packages.setEntry(pkg,  fresh);

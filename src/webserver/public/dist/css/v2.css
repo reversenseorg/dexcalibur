@@ -62,7 +62,12 @@ body.dxc-dark table.table-hover tbody tr:hover {
 
 table {
     font-size:95%;
-} 
+}
+
+nav.navbar-dark {
+    background: #000;
+    color: white;
+}
 
 .navbar-default {
     border-color:#FFF;
@@ -83,6 +88,10 @@ table {
     font-weight: 800;
 }
 
+
+.navbar-dark .navbar-nav .nav-item {
+    color:white;
+}
 
 .navbar-dark .navbar-nav .nav-item.active {
     background-color: rgb(238, 255, 2);
@@ -577,7 +586,7 @@ div.dxc-inline-ctn {
 
 
 .dxc-dark-row {
-    background-color: rgba(44, 44, 99, 0.705);
+  /*  background-color: rgba(44, 44, 99, 0.705);*/
 }
 
 .dxc-dark table,

@@ -7,6 +7,8 @@ import {EOL} from 'os';
 import * as Log from './Logger.js';
 import JavaHelper from "./JavaHelper.js";
 import {External} from "./external/External.js";
+import * as _path_ from "path";
+import DexcaliburEngine from "./DexcaliburEngine.js";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -28,6 +30,19 @@ interface IExternalCommand {
  */
 export default class ApkHelper extends External.ExternalHelper
 {
+    static BIN_NAME = "apktool.jar";
+
+    static getPath():string {
+
+        let path:string = null;
+        try{
+            path = ApkHelper.getExtPath("ApkExtract"); //Path.join(__dirname, '..', 'bin', "baksmali.jar");
+        }catch(err){
+            path = _path_.join(DexcaliburEngine.getInstance().getWorkspace().getBinaryFolderLocation(),ApkHelper.BIN_NAME);
+        }
+
+        return path;
+    }
 
     /**
      * To get begin of the command to start Apktool
@@ -36,7 +51,7 @@ export default class ApkHelper extends External.ExternalHelper
      * @static
      */
     static getApktoolCommand():IExternalCommand{
-        return {file:JavaHelper.getJRE(), args:['-jar',ApkHelper.getExtPath()]};
+        return {file:JavaHelper.getJRE(), args:['-jar',ApkHelper.getPath()]};
     }
 
     /**

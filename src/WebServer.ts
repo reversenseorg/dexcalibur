@@ -366,6 +366,9 @@ export default class WebServer
                 return;
             }
 
+
+            Logger.info("[INFO][WEBSERVER] Open : ",localPath);
+
             //  todo : verify if localPath is a child of allowed folder
             _fs_.readFile(localPath, (err:any, data:any) => {
 
@@ -385,7 +388,6 @@ export default class WebServer
                     res.set('X-XSS-Protection', '0; mode=block');
                     res.set('X-Frame-Options', 'SAMEORIGIN');
                     res.set('X-Content-Type-Options', 'nosniff');
-                    //res.set('Content-Security-Policy', 'nosniff');
                 }
                 $.logs.access.push("[200]:" + mime + " " + req.path + " => " + localPath);
 

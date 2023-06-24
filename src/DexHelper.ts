@@ -1,6 +1,6 @@
 'use strict';
 
-import * as  Path from "path";
+import * as  _path_ from "path";
 import * as  Process from "child_process";
 import * as  Fs from "fs";
 import * as  _util_ from 'util';
@@ -12,6 +12,7 @@ import * as Log from './Logger.js';
 import DexcaliburProject from "./DexcaliburProject.js";
 import JavaHelper from "./JavaHelper.js";
 import {External} from "./external/External.js";
+import DexcaliburEngine from "./DexcaliburEngine.js";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -22,6 +23,7 @@ let Logger:Log.Logger = Log.newLogger() as Log.Logger;
  */
 export default class DexHelper extends  External.ExternalHelper
 {
+    static BIN_NAME = "baksmali.jar";
     context = null;
     baskmaliCmd:string = null;
     baskmali:string = null;
@@ -31,7 +33,19 @@ export default class DexHelper extends  External.ExternalHelper
 
         this.context = ctx;
         this.baskmaliCmd = JavaHelper.getJRE()+" -jar ";
-        this.baskmali = DexHelper.getExtPath(); //Path.join(__dirname, '..', 'bin', "baksmali.jar");
+        this.baskmali = DexHelper.getPath();
+    }
+
+    static getPath():string {
+
+        let path:string = null;
+        try{
+            path = DexHelper.getExtPath("DexHelper"); //Path.join(__dirname, '..', 'bin', "baksmali.jar");
+        }catch(err){
+            path = _path_.join(DexcaliburEngine.getInstance().getWorkspace().getBinaryFolderLocation(),DexHelper.BIN_NAME);
+        }
+
+        return path;
     }
 
     /**
@@ -43,7 +57,7 @@ export default class DexHelper extends  External.ExternalHelper
     static getBaksmaliCommand():any {
         let cmd:string; //Path.join(__dirname, '..', 'bin', "baksmali.jar");
         try{
-            cmd = DexHelper.getExtPath("DexHelper");
+            cmd = DexHelper.getPath(); //getExtPath("DexHelper");
             Logger.info("[i] getBaksmaliCommand : "+cmd);
         }catch(err){
             Logger.info("[i] getBaksmaliCommand (e) : "+err.message)
@@ -96,7 +110,7 @@ export default class DexHelper extends  External.ExternalHelper
      *     
      */
     disassembleFile(dexfilePath:string, callback:any, override:boolean=false){
-        let destPath:string = Path.join(Path.dirname(dexfilePath),"smali");
+        let destPath:string = _path_.join(_path_.dirname(dexfilePath),"smali");
         let baksmali:any = DexHelper.getBaksmaliCommand();
 
         if(Fs.existsSync(destPath)){
