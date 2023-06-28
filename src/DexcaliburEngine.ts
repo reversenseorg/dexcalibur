@@ -877,7 +877,7 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
                 // only authorized user can read metadata
                 map[vUID] = DexcaliburProject.getInformationOf( this, vUID, pUser);
             }catch(err){
-                Logger.error(err.message+" "+err.stack);
+                Logger.error("[ENGINE][LIST PROJECT] "+err.message);
             }
         });
         return map;

@@ -23,7 +23,7 @@ export class DexcaliburProjectException extends MonitoredError {
     static NO_PROJECT_SPECIFIED = ()=>{ return new DexcaliburProjectException("There is not valid project specified.", ErrorCode.PROJECT + 111) };
     static NEED_PROJECT_UPGRADE = (pProjVer:string,pEngVer:string)=>{ return new DexcaliburProjectException("The project workspace has been built with an oldest version ("+pProjVer+") of Dexcalibur ("+pEngVer+") , the project will be updated.", ErrorCode.PROJECT + 112) };
     static NEED_ENGINE_UPGRADE = (pProjVer:string,pEngVer:string)=>{ return new DexcaliburProjectException("The project workspace has been built with a newest version ("+pProjVer+") of Dexcalibur ("+pEngVer+") , please upgrade the engine.", ErrorCode.PROJECT + 113) };
-
+    static MISSING_CONFIG_FILE = (pProj:string)=>{ return new DexcaliburProjectException("The project [uid="+pProj+"] has not configuration file.", ErrorCode.PROJECT + 114) };
 
 
     constructor( pMsg:string, pCode:number = null, pExtra:any = null) {

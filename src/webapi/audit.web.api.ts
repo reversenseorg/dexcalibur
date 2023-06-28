@@ -3,10 +3,11 @@ import WebServer, {HTTP_CODE_ERROR, HTTP_CODE_SUCCESS} from "../WebServer.js";
 import {Request, Response} from "express";
 import * as Log from "../Logger.js";
 import {PrivacyScanner} from "../audit/privacy/PrivacyScanner.js";
-import {LicenceManager} from "../credit/LicenceManager.js";
+import {LicenceManager, ProductInfo} from "../credit/LicenceManager.js";
 import {AuditManager} from "../audit/AuditManager.js";
 import {AssuranceScanner} from "../audit/common/AssuranceScanner.js";
 import AssuranceReport from "../audit/common/AssuranceReport.js";
+import AssuranceModel from "../audit/common/AssuranceModel.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 export const AUDIT_WEB_API: DelegateWebApi = new DelegateWebApi();
@@ -63,6 +64,8 @@ AUDIT_WEB_API.addAuthenticatedRoute(
                 const scanner:AssuranceScanner = LicenceManager.getProduct(req.dxc.project,model.scannerID) as AssuranceScanner;
 
                 const opts = scanner.validateOptions(req.body);
+
+                // check credit
                 //scanner.hasCredit()
                 scanner.run(req.dxc.project, opts);
 
@@ -77,6 +80,70 @@ AUDIT_WEB_API.addAuthenticatedRoute(
                 };
 
                 $.sendSuccess(res,  data);
+            }catch(err){
+                Logger.error("[API][AUDIT] Project cannot be scanned. Cause : " + err.message + "\n\t" + err.stack);
+                $.sendError(res, "Project cannot be scanned. Cause : " + err.message);
+            }
+        },
+        'get': function (req:DelegateRequest, res:DelegateResponse):any {
+            const $: WebServer = req.dxc.$;
+
+            try{
+
+                // ========== LOGIC
+
+                const am = AuditManager.getInstance();
+                const model = am.getModel(req.dxc.project, req.params.modelID as string);
+                const scanner:AssuranceScanner = LicenceManager.getProduct(req.dxc.project,model.scannerID) as AssuranceScanner;
+
+                // get hook instance by ID
+                const data = {
+                    scanner: scanner.toJsonObject()
+                };
+
+                $.sendSuccess(res,  data);
+            }catch(err){
+                Logger.error("[API][AUDIT] Project cannot be scanned. Cause : " + err.message + "\n\t" + err.stack);
+                $.sendError(res, "Project cannot be scanned. Cause : " + err.message);
+            }
+        }
+    },{
+        readProject: true
+    }
+);
+
+
+/**
+ * To scan info about a potential scan such credits required
+ */
+AUDIT_WEB_API.addAuthenticatedRoute(
+    '/scanInfo',
+    {
+        'post': function (req:DelegateRequest, res:DelegateResponse):any {
+            const $: WebServer = req.dxc.$;
+
+            try{
+
+                // ========== LOGIC
+
+                const am = AuditManager.getInstance();
+                const models:AssuranceModel[] = [];
+                const errs:string[] = [];
+                if(Array.isArray(req.body.refs)){
+                    req.body.refs.map((x:string) => {
+                        try{
+                            models.push(am.getModel(req.dxc.project, req.params.modelID as string));
+                        }catch(err){
+                            errs.push("Model not found ["+x+"]");
+                        }
+                    });
+                }
+
+                const scanners:ProductInfo[] = LicenceManager.getProductByModels(req.dxc.project,models) as any;
+
+                scanners.map(x => { x.product = x.product.toJsonObject(); })
+
+                $.sendSuccess(res,  scanners);
             }catch(err){
                 Logger.error("[API][AUDIT] Project cannot be scanned. Cause : " + err.message + "\n\t" + err.stack);
                 $.sendError(res, "Project cannot be scanned. Cause : " + err.message);
@@ -108,6 +175,28 @@ AUDIT_WEB_API.addAuthenticatedRoute(
     }
 );
 
+
+
+AUDIT_WEB_API.addAuthenticatedRoute(
+    '/reports',
+    {
+        'get': function (req:DelegateRequest, res:DelegateResponse):any {
+            const $: WebServer = req.dxc.$;
+
+            try{
+                // ========== LOGIC
+                const am = AuditManager.getInstance();
+                const reports = am.listReports(req.dxc.project);
+                $.sendSuccess(res, reports.map(x => x.toJsonObject()) );
+            }catch(err){
+                Logger.error("[API][AUDIT] Report cannot be retrieved. Cause : " + err.message + "\n\t" + err.stack);
+                $.sendError(res, "Report cannot be retrieved. Cause : " + err.message);
+            }
+        }
+    },{
+        readProject: true
+    }
+);
 
 AUDIT_WEB_API.addAuthenticatedRoute(
     '/report/:modelID',
@@ -173,7 +262,7 @@ AUDIT_WEB_API.addAuthenticatedRoute(
     }
 );
 
-AUDIT_WEB_API.addAuthenticatedRoute(
+AUDIT_WEB_API.addPublicRoute(
     '/models',
     {
         'get': function (req:DelegateRequest, res:DelegateResponse):any {
@@ -182,6 +271,7 @@ AUDIT_WEB_API.addAuthenticatedRoute(
             try{
                 // ========== LOGIC
                 const am = AuditManager.getInstance();
+
                 const models = am.listModels(req.dxc.project);
 
                 $.sendSuccess(res, models.map(x => x.toJsonObject()));
@@ -191,6 +281,6 @@ AUDIT_WEB_API.addAuthenticatedRoute(
             }
         }
     },{
-        readProject: true
+        readProject: false
     }
 );

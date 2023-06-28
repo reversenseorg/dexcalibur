@@ -985,6 +985,11 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
 
         project.workspace = new ProjectWorkspace(_path_.join( pEngine.workspace.getLocation(), pProjectUID));
 
+        // check if the folder contains configuration file
+        if(!Fs.existsSync(project.workspace.getProjectCfgPath())){
+            throw DexcaliburProjectException.MISSING_CONFIG_FILE(pProjectUID);
+        }
+
         const data = JSON.parse( Fs.readFileSync( project.workspace.getProjectCfgPath()).toString());
 
         if(!data.hasOwnProperty("engineVersion")){

@@ -26,4 +26,12 @@ export class Product {
             this[i]=pOpts[i];
         }
     }
+
+    toJsonObject():any {
+        return {
+            __pCode: this.__pCode,
+            __pVersion: this.__pVersion,
+            __pSerial: this.__pSerial,
+        }
+    }
 }

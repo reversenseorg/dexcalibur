@@ -198,7 +198,11 @@ export class MerlinRule extends MerlinSearchAPI implements MerlinPrimitive {
      * @method
      */
     toJsonObject():any {
+
+        let o = super.toJsonObject();
+
         return {
+            o,
             TYPE: this.TYPE,
             type: this.type,
             emulate: this.emulate,

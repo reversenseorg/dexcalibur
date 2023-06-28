@@ -31,9 +31,9 @@ export class AuditManager {
     constructor() {
         [
             //new PrivacyModel(),
-            OwaspMasvsModel,
+            //OwaspMasvsModel,
             PrivacyPiiModel,
-            PrivacyTrackersModel
+            //PrivacyTrackersModel
             // new ArjelModel()
         ].map(x => {
             x.load();
@@ -68,11 +68,13 @@ export class AuditManager {
      * @return {AssuranceModel[]}
      * @method
      */
-    listModels( pProject:DexcaliburProject):AssuranceModel[] {
+    listModels( pProject:DexcaliburProject = null):AssuranceModel[] {
         const models:AssuranceModel[] = [];
 
-        const customModels = _path_.join(pProject.getWorkspace().getAuditDir(),SUBDIRS.MODELS);
-        //_fs_.readdirSync()
+        if(pProject!=null){
+            //const customModels = _path_.join(pProject.getWorkspace().getAuditDir(),SUBDIRS.MODELS);
+        }
+
 
         return models.concat(this.genericModels);
     }

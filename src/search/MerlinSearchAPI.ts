@@ -294,4 +294,13 @@ export class MerlinSearchAPI
     }
   }
 
+  toJsonObject():any {
+    return {
+      targetOS: this.targetOS,
+      _queryCache: this._queryCache,
+      _caseSensitive: this._caseSensitive,
+      _byID: this._byID,
+      _analyzers: Object.keys(this._analyzers)
+    };
+  }
 }

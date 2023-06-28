@@ -66,6 +66,8 @@ for(let piiClassName in PII_Data){
 
                     ctrl3.assessments.push(assess);
                 });
+
+                ctrl2.children.push(ctrl3);
             }else{
                 assess = new ControlAssessment({
                     id: piiType.name,
@@ -83,7 +85,11 @@ for(let piiClassName in PII_Data){
                 ctrl2.assessments.push(assess);
             }
         })
+
+        ctrl.children.push(ctrl2);
     });
+
+    model.controls.push(ctrl);
 }
 
 export const PrivacyPiiModel = model;

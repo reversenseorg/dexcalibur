@@ -10,7 +10,7 @@ import {OperatingSystem} from "../OperatingSystem.js";
 import {BusSubscriber} from "../Bus.js";
 import ControlAssessment from "../audit/common/ControlAssessment.js";
 import DexcaliburProject from "../DexcaliburProject.js";
-import { NodeInternalTypeName} from "../NodeInternalType.js";
+import {NodeInternalType, NodeInternalTypeName} from "../NodeInternalType.js";
 import { MerlinPrimitive, MerlinType} from "./Merlin.js";
 
 
@@ -485,10 +485,21 @@ export class MerlinSearchRequest implements MerlinPrimitive{
    *
    * @param pOperations
    */
-  static stringify( pOperations:Operation[]):string{
+  static stringify( pOperations:Operation[], pNodeType:NodeInternalType|string=null):string{
     let s = "";
 
     if(pOperations==null || !Array.isArray(pOperations)) return "";
+
+    let nodeType = null;
+
+    if(pNodeType!=null){
+      if(typeof (pNodeType)==="string"){
+        nodeType = pNodeType;
+      }else{
+        nodeType = MerlinSearchAPI.getMethodFromNodeType(pNodeType);
+      }
+    }
+
 
 
     /*
@@ -501,32 +512,41 @@ export class MerlinSearchRequest implements MerlinPrimitive{
 
   copyTo?:any;
      */
-    pOperations.map((x:Operation)=>{
+    pOperations.map((x:Operation,i:number)=>{
       switch (x.type){
         case OperationType.SEARCH:
           let o = ", {";
           const sArgs:SearchOperationArgs = x.args as SearchOperationArgs;
-          if(sArgs.pattern.opts.query_string) o += ` query_string: ${JSON.stringify(sArgs.pattern.opts.query_string)},`;
-          if(sArgs.pattern.opts.not) o += ` not: ${JSON.stringify(sArgs.pattern.opts.not)},`;
-          if(sArgs.pattern.opts.regexp) o += ` regexp: "${sArgs.pattern.opts.regexp}",`;
-          if(sArgs.pattern.opts.range) o += ` range: [${JSON.stringify(sArgs.pattern.opts.range)}],`;
-          if(sArgs.pattern.opts.copyTo) o += ` copyTo: ${JSON.stringify(sArgs.pattern.opts.copyTo)},`;
-          if(sArgs.pattern.opts.strict) o += ` strict: ${JSON.stringify(sArgs.pattern.opts.strict)},`;
+          if(sArgs.pattern.opts!=null){
+            if(sArgs.pattern.opts.query_string) o += ` query_string: ${JSON.stringify(sArgs.pattern.opts.query_string)},`;
+            if(sArgs.pattern.opts.not) o += ` not: ${JSON.stringify(sArgs.pattern.opts.not)},`;
+            if(sArgs.pattern.opts.regexp) o += ` regexp: "${sArgs.pattern.opts.regexp}",`;
+            if(sArgs.pattern.opts.range) o += ` range: [${JSON.stringify(sArgs.pattern.opts.range)}],`;
+            if(sArgs.pattern.opts.copyTo) o += ` copyTo: ${JSON.stringify(sArgs.pattern.opts.copyTo)},`;
+            if(sArgs.pattern.opts.strict) o += ` strict: ${JSON.stringify(sArgs.pattern.opts.strict)},`;
+          }
+
           if(s.length>1) o =  o.substring(0,o.length-1);
           o += "}";
 
-          s += `.search("${sArgs.pattern.raw}"${o})`;
+          if(nodeType==null)
+            s += `.search("${sArgs.pattern.raw}"${o})`;
+          else
+            s += `.${nodeType}("${sArgs.pattern.raw}"${o})`;
 
           break;
         case OperationType.FILTER:
           let f = ", {";
           const fArgs:SearchOperationArgs = x.args as SearchOperationArgs;
-          if(fArgs.pattern.opts.query_string) f += ` query_string: ${JSON.stringify(fArgs.pattern.opts.query_string)},`;
-          if(fArgs.pattern.opts.not) f += ` not: ${JSON.stringify(fArgs.pattern.opts.not)},`;
-          if(fArgs.pattern.opts.regexp) f += ` regexp: "${fArgs.pattern.opts.regexp}",`;
-          if(fArgs.pattern.opts.range) f += ` range: [${JSON.stringify(fArgs.pattern.opts.range)}],`;
-          if(fArgs.pattern.opts.copyTo) f += ` copyTo: ${JSON.stringify(fArgs.pattern.opts.exists)},`;
-          if(fArgs.pattern.opts.strict) f += ` strict: ${JSON.stringify(fArgs.pattern.opts.strict)},`;
+          if(fArgs.pattern.opts!=null){
+            if(fArgs.pattern.opts.query_string) f += ` query_string: ${JSON.stringify(fArgs.pattern.opts.query_string)},`;
+            if(fArgs.pattern.opts.not) f += ` not: ${JSON.stringify(fArgs.pattern.opts.not)},`;
+            if(fArgs.pattern.opts.regexp) f += ` regexp: "${fArgs.pattern.opts.regexp}",`;
+            if(fArgs.pattern.opts.range) f += ` range: [${JSON.stringify(fArgs.pattern.opts.range)}],`;
+            if(fArgs.pattern.opts.copyTo) f += ` copyTo: ${JSON.stringify(fArgs.pattern.opts.exists)},`;
+            if(fArgs.pattern.opts.strict) f += ` strict: ${JSON.stringify(fArgs.pattern.opts.strict)},`;
+          }
+
           if(f.length>1) f =  f.substring(0,f.length-1);
           f += "}";
 
@@ -535,12 +555,15 @@ export class MerlinSearchRequest implements MerlinPrimitive{
         case OperationType.INNERJOIN:
           let nn = ", {";
           const nnArgs:InnerjoinOperationArgs = x.args as InnerjoinOperationArgs;
-          if(nnArgs.cond.opts.query_string) f += ` query_string: ${JSON.stringify(nnArgs.cond.opts.query_string)},`;
-          if(nnArgs.cond.opts.not) f += ` not: ${JSON.stringify(nnArgs.cond.opts.not)},`;
-          if(nnArgs.cond.opts.regexp) f += ` regexp: "${nnArgs.cond.opts.regexp}",`;
-          if(nnArgs.cond.opts.range) f += ` range: [${JSON.stringify(nnArgs.cond.opts.range)}],`;
-          if(nnArgs.cond.opts.copyTo) f += ` copyTo: ${JSON.stringify(nnArgs.cond.opts.exists)},`;
-          if(nnArgs.cond.opts.strict) f += ` strict: ${JSON.stringify(nnArgs.cond.opts.strict)},`;
+          if(nnArgs.cond.opts!=null){
+            if(nnArgs.cond.opts.query_string) f += ` query_string: ${JSON.stringify(nnArgs.cond.opts.query_string)},`;
+            if(nnArgs.cond.opts.not) f += ` not: ${JSON.stringify(nnArgs.cond.opts.not)},`;
+            if(nnArgs.cond.opts.regexp) f += ` regexp: "${nnArgs.cond.opts.regexp}",`;
+            if(nnArgs.cond.opts.range) f += ` range: [${JSON.stringify(nnArgs.cond.opts.range)}],`;
+            if(nnArgs.cond.opts.copyTo) f += ` copyTo: ${JSON.stringify(nnArgs.cond.opts.exists)},`;
+            if(nnArgs.cond.opts.strict) f += ` strict: ${JSON.stringify(nnArgs.cond.opts.strict)},`;
+          }
+
           if(f.length>1) f =  f.substring(0,f.length-1);
           nn += "}";
 
@@ -549,18 +572,21 @@ export class MerlinSearchRequest implements MerlinPrimitive{
         case OperationType.VALIDATE:
           let opts = ", {";
           const vArgs:ValidateOperationArgs = x.args as ValidateOperationArgs;
-          if(vArgs.opts.range) opts += ` range: ${JSON.stringify(vArgs.opts.range)},`;
-          if(vArgs.opts.interval) opts += ` interval: ${JSON.stringify(vArgs.opts.interval)},`;
-          if(vArgs.opts.regexp){
-            let pat:string = (vArgs.opts.regexp as RegExp).toString();
-            if(pat[0]=='/'&& pat[pat.length-1]=='/'){
-              pat = pat.substring(1, pat.length-1);
+          if(vArgs.opts!=null){
+            if(vArgs.opts.range) opts += ` range: ${JSON.stringify(vArgs.opts.range)},`;
+            if(vArgs.opts.interval) opts += ` interval: ${JSON.stringify(vArgs.opts.interval)},`;
+            if(vArgs.opts.regexp){
+              let pat:string = (vArgs.opts.regexp as RegExp).toString();
+              if(pat[0]=='/'&& pat[pat.length-1]=='/'){
+                pat = pat.substring(1, pat.length-1);
+              }
+
+
+              opts += ` regexp: "${pat}",`;
             }
-
-
-            opts += ` regexp: "${pat}",`;
+            if(vArgs.opts.exists) opts += ` exists: ${JSON.stringify(vArgs.opts.exists)},`;
           }
-          if(vArgs.opts.exists) opts += ` exists: ${JSON.stringify(vArgs.opts.exists)},`;
+
           if(opts.length>1) opts =  opts.substring(0,opts.length-1);
           opts += "}";
           s += `.validate("${vArgs.pattern}"${opts})`;
@@ -735,6 +761,20 @@ export class MerlinSearchRequest implements MerlinPrimitive{
    *
    */
   toJsonObject():any {
+      let o:any = {
+        TYPE: this.TYPE,
+        _live: this._live,
+        _type: (typeof (this._type)==="string")? NodeInternalTypeName[this._type] : (this._type as NodeType).getType(),
+        _search: this._search,
+        _aggs: this._aggs,
+        _options: this._options,
+        _evt: this._evt,
+        _oper: this.getOperations(),
+        __stringified: ""
+      };
 
+      o.__stringified = MerlinSearchRequest.stringify(this.getOperations(), o._type);
+
+      return o;
   }
 }

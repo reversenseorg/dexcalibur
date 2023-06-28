@@ -65,10 +65,12 @@ export const PII_DataType:PiiTypeMap = {
 
 export const PII_Data:PiiClassMap = {
     identity: new PiiClass({
-        name: "identity",
+        id: "identity",
+        name: "Identity",
         categories: [
             new PiiCategory({
-                name: "basic identity",
+                id: "basicIdentity",
+                name: "Basic identity",
                 criticity: PiiCriticity.LOW,
                 types: [
                     new PiiType({
@@ -76,21 +78,28 @@ export const PII_Data:PiiClassMap = {
                     }),
                     new PiiType({
                         name:"lastname",
-                        signature: [
-                            (new CodeConstraint(NodeInternalType.METHOD,{pattern:"->getFirstName"} )),
-                            (new CodeConstraint(NodeInternalType.METHOD,{pattern:"->getLastName"} )),
-                            (new CodeConstraint(NodeInternalType.CLASS,{pattern:"Person"} )),
-                            (new CodeConstraint(NodeInternalType.CLASS,{pattern:"User"} ))
+                        rules: [
+                            Merlin.android().method("name:^getLastName.*" ),
+                            Merlin.android().class("name:Person" ),
+                            Merlin.android().class("name:User" )
                         ]
                     }),
                     new PiiType({
                         name:"firstname",
-                        signature: [
-
+                        rules: [
+                            Merlin.android().method("name:^getFirstName.*" ),
+                            Merlin.android().class("name:Person" ),
+                            Merlin.android().class("name:User" )
                         ]
                     }),
                     new PiiType({
-                        name:"username"
+                        name:"username",
+                        rules: [
+                            Merlin.android().method("name:^UserName.*" ),
+                            Merlin.android().nocase().field("name:userame" ),
+                            Merlin.android().class("name:Person" ),
+                            Merlin.android().class("name:User" )
+                        ]
                     }),
                     new PiiType({
                         name:"age",
@@ -105,26 +114,43 @@ export const PII_Data:PiiClassMap = {
 
             }),
             new PiiCategory({
-                name: "advanced identity",
+                id: "advancedIdentity",
+                name: "Advanced identity",
                 criticity: PiiCriticity.LOW,
                 types: [
                     new PiiType({
-                        name:"nationality"
+                        id:"nationality",
+                        name:"nationality",
+                        rules: [
+                            Merlin.android().method("name:^getNationality.*" ),
+                            Merlin.android().nocase().field("name:nationality" ),
+                            Merlin.android().nocase().strings("value:nationality" )
+                        ]
                     }),
                     new PiiType({
-                        name:"birthdate"
+                        id:"birthdate",
+                        name:"birthdate",
+                        rules: [
+                            Merlin.android().method("name:^getBirthDate.*" ),
+                            Merlin.android().nocase().field("name:birthdate" ),
+                            Merlin.android().nocase().strings("value:birthdate" )
+                        ]
                     }),
                     new PiiType({
-                        name:"deadStatus"
+                        id:"deadStatus",
+                        name:"Dead Status"
                     }),
                     new PiiType({
-                        name:"coupleStatus"
+                        id:"coupleStatus",
+                        name:"Couple status"
                     }),
                     new PiiType({
-                        name:"dead"
+                        id:"dead",
+                        name:"Dead"
                     }),
                     new PiiType({
-                        name:"residence country"
+                        id:"residenceCountry",
+                        name:"Residence country"
                     }),
                 ]
             }),
@@ -289,10 +315,22 @@ export const PII_Data:PiiClassMap = {
                 criticity: PiiCriticity.LOW,
                 types: [
                     new PiiType({
-                        name:"Endpoints & User Agent"
+                        name:"Endpoints & User Agent",
+                        rules: [
+                            Merlin.android().method("name:^getUserAgent.*" ),
+                            Merlin.android().nocase().field("name:useragent" ),
+                            Merlin.android().nocase().strings("value:useragent" )
+                        ]
                     }),
                     new PiiType({
                         name:"IP address",
+                        rules: [
+                            Merlin.android().permission("name:^android\.permission\.INTERNET$"), // AND
+                            Merlin.android().permission("name:^android\.permission\.ACCESS_NETWORK_STATE"),
+                            Merlin.android().call("calleed.name:^getHardwareAddress$" ),
+                            Merlin.android().method("calleed.name:^getHostAddress$" ),
+                            Merlin.android().method("calleed.name:^getInetAddress" )
+                        ]
                     }),
                     new PiiType({
                         name:"Credentials",

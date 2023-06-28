@@ -143,18 +143,19 @@ export default class AssuranceModel {
         o.controls = [];
         this.controls.map( x => {
             o.controls.push(x.toJsonObject());
-        })
+        });
+
         o.globalThreats = [];
         this.globalThreats.map( x => {
             o.globalThreats.push(x.toJsonObject());
         });
         o.primaryAssets = [];
         this.primaryAssets.map( x => {
-            o.primaryAssets.push(x);//.toJsonObject());
+            //o.primaryAssets.push(x.toJsonObject());//.toJsonObject());
         });
         o.secondaryAssets = [];
         this.secondaryAssets.map( x => {
-            o.secondaryAssets.push(x);//.toJsonObject());
+            //o.secondaryAssets.push(x);//.toJsonObject());
         });
 
         return o;
