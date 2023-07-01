@@ -65,7 +65,6 @@ export const NodeInternalTypeName = {
     [NodeInternalType.PACKAGE]: "PACKAGE",
     [NodeInternalType.SWITCH_STMT]: "SWITCH_STMT",
     [NodeInternalType.SYSCALL]: "SYSCALL",
-    [NodeInternalType.TAG]: "TAG",
     [NodeInternalType.TAG_CATEGORY]: "TAG_CATEGORY",
     [NodeInternalType.CATCH_STMT]: "CATCH_STMT",
     [NodeInternalType.SWITCH_CASE]: "SWITCH_CASE",
