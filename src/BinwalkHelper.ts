@@ -14,6 +14,7 @@ import DexcaliburWorkspace from "./DexcaliburWorkspace.js";
 import {IFileAnalyzer} from "./analyzer/IFileAnalyzer.js";
 import StatusMessage from "./StatusMessage.js";
 import ShellHelper from "./ShellHelper.js";
+import DexcaliburEngine from "./DexcaliburEngine.js";
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
 
@@ -38,7 +39,7 @@ export class BinwalkHelper extends  External.ExternalHelper implements IFileAnal
         let res:any, l:string[];
 
         try{
-            out = Util.execSync(BinwalkHelper.getExtPath()+' '+ShellHelper.escape(_path_.normalize(pPath)));
+            out = Util.execSync(BinwalkHelper.getExtPath("binwalk")+' '+ShellHelper.escape(_path_.normalize(pPath)));
             if(out==null || out.split ==null){
                 throw new Error("Binwalk returns empty result");
             }
@@ -252,7 +253,7 @@ export class BinwalkHelper extends  External.ExternalHelper implements IFileAnal
 
             this._wf.computeStepUp(vFiles.length);
             vFiles.map( (vFile:string) => {
-                out = Util.execSync(BinwalkHelper.getExtPath()+' '+ShellHelper.escape(vFile), "utf8", opts);
+                out = Util.execSync(BinwalkHelper.getExtPath("binwalk")+' '+ShellHelper.escape(vFile), "utf8", opts);
 
                 const f:ModelFile = this._parseBinwalkBasicOutput(out);
                 f.name = _path_.basename(vFile);
