@@ -6,6 +6,7 @@ import {Merlin} from "../../../search/Merlin.js";
 import CodeConstraint from "../../common/CodeConstraint.js";
 import {NodeInternalType} from "../../../NodeInternalType.js";
 import ModelField from "../../../ModelField.js";
+import ModelClass from "../../../ModelClass.js";
 
 
 export const PII_DataType:PiiTypeMap = {
@@ -46,18 +47,25 @@ export const PII_DataType:PiiTypeMap = {
     }),
     phoneNumbers: new PiiType({
         name:"phone numbers",
-        fields: [,
+        fields: [
             new PiiField({
-                name: "phone"
+                name: "phone",
+                rules: [
+                    Merlin.android().class("name:RelationType" ),
+                ]
             }),
             new PiiField({
-                name: "fax"
+                name: "fax",
+                rules: [
+                    Merlin.android().class("name:RelationType" ),
+                ]
             })
         ]
     }),
     email: new PiiType({
         name:"email",
-        signature: [
+        rules: [
+            Merlin.android().class("name:RegExp"),
         ]
     })
 }
@@ -74,7 +82,10 @@ export const PII_Data:PiiClassMap = {
                 criticity: PiiCriticity.LOW,
                 types: [
                     new PiiType({
-                        name:"title"
+                        name:"title",
+                        rules: [
+                            Merlin.android().class("name:Civility" ),
+                        ]
                     }),
                     new PiiType({
                         name:"lastname",
@@ -103,12 +114,15 @@ export const PII_Data:PiiClassMap = {
                     }),
                     new PiiType({
                         name:"age",
-                        signature: [
-
+                        rules: [
+                            Merlin.android().class("name:Civility" ),
                         ]
                     }),
                     new PiiType({
-                        name:"status"
+                        name:"status",
+                        rules: [
+                            Merlin.android().class("name:RelationType" ),
+                        ]
                     }),
                 ]
 
@@ -124,6 +138,7 @@ export const PII_Data:PiiClassMap = {
                         rules: [
                             Merlin.android().method("name:^getNationality.*" ),
                             Merlin.android().nocase().field("name:nationality" ),
+                            Merlin.android().nocase().class("name:nationality" ).select(ModelClass.TYPE.getProperty("methods")),
                             Merlin.android().nocase().strings("value:nationality" )
                         ]
                     }),
@@ -142,7 +157,10 @@ export const PII_Data:PiiClassMap = {
                     }),
                     new PiiType({
                         id:"coupleStatus",
-                        name:"Couple status"
+                        name:"Couple status",
+                        rules: [
+                            Merlin.android().class("name:RelationType" ),
+                        ]
                     }),
                     new PiiType({
                         id:"dead",
@@ -159,7 +177,10 @@ export const PII_Data:PiiClassMap = {
                 criticity: PiiCriticity.LOW,
                 types: [
                     new PiiType({
-                        name:"matriomonial status"
+                        name:"matriomonial status",
+                        rules: [
+                            Merlin.android().class("name:RelationType" ),
+                        ]
                     }),
                     new PiiType({
                         name:"family relationship",
