@@ -8,6 +8,7 @@ import {MerlinSearchRequest} from "../../search/MerlinSearchRequest.js";
 import Control from "./Control.js";
 import ControlAssessment from "./ControlAssessment.js";
 import {Merlin, MerlinPrimitive} from "../../search/Merlin.js";
+import {MerlinSearchAPI} from "../../search/MerlinSearchAPI.js";
 
 
 export interface PrivacyScanOptions {
@@ -44,6 +45,9 @@ export interface PrivacyScannerOpts {
 export class GenericScanner extends AssuranceScanner {
 
     private _mainDB = 'global';
+
+
+    private _searchContext:MerlinSearchAPI|null = null;
 
     constructor(pConfig:PrivacyScannerOpts) {
         super({
@@ -95,7 +99,7 @@ export class GenericScanner extends AssuranceScanner {
                                    });
                                }
                            }else{
-
+                               (vRule as MerlinSearchRequest).setContext(this._searchContext);
                                res = await vRule.execute(this.project);
                                if(res.count()>0){
                                    console.log("[SCAN][FOUND] : "+res.count()+"  "+vRule.toSearchString());
@@ -168,6 +172,11 @@ export class GenericScanner extends AssuranceScanner {
         });
     }
 
+
+    private _prepareTestPlan(){
+
+    }
+
     /**
      * To perform full scan
      *
@@ -176,6 +185,9 @@ export class GenericScanner extends AssuranceScanner {
     private _firstScan(pContext:DexcaliburProject, pOptions:GenericScanOptions):void{
         // 0. Create dashboard
         this.createMainDashboard(pOptions.dashboard);
+
+
+        // TODO : prepare test plan by gathering, categorizing and prioritizing tests
 
         // 1. configure main Bus
         this._registerOnBusEvents(pOptions);
@@ -229,9 +241,15 @@ export class GenericScanner extends AssuranceScanner {
      */
     private _reScan(pContext:DexcaliburProject, pOptions:PrivacyScanOptions):void{
 
+        // TODO : prepare test plan by gathering, categorizing and prioritizing tests
     }
 
     run( pContext:DexcaliburProject, pOptions:any = {}){
+
+        if(this._searchContext==null){
+            this._searchContext = new MerlinSearchAPI(pContext.getSearchEngine().getDatabase());
+        }
+
         if(this.reports.length==0){
             this._firstScan( this.project, pOptions);
         }else{

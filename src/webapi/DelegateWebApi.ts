@@ -25,6 +25,13 @@ export interface DelegateRequest extends Request {
     }
 }
 
+
+export interface AuthenticatedRouteOptions {
+    async?:boolean;
+    readProject?:boolean;
+    readProjectStrict?:boolean;
+}
+
 export interface DelegateResponse extends Response {
 
 }
@@ -74,7 +81,7 @@ export class DelegateWebApi
      * @method
      * @public
      */
-    doProjectSecurityChecks( pRequest:DelegateRequest, pWebServer:WebServer):DexcaliburProject {
+    doProjectSecurityChecks( pRequest:DelegateRequest, pWebServer:WebServer, pOptions:AuthenticatedRouteOptions):DexcaliburProject {
 
         if (pRequest.dxc == null || !pWebServer.context.getUserService().verifySession(pRequest.dxc.sess)) {
             throw AuthenticationException.AUTHENTICATION_FAILED();
@@ -88,7 +95,7 @@ export class DelegateWebApi
             project = pRequest.dxc.project;
         }
 
-        if(project == null || !project.isReady()) {
+        if(pOptions.readProjectStrict && (project == null || !project.isReady()) ) {
             throw DexcaliburProjectException.NO_PROJECT_SPECIFIED();
         }
 
@@ -148,7 +155,14 @@ export class DelegateWebApi
         this.addAuthenticatedRoute( pRoute, pHandlers, pOptions);
     }
 
-    addAuthenticatedRoute( pRoute:string, pHandlers:RequestHandlers, pOptions:any = {async:false}  ):void {
+    addAuthenticatedRoute(
+        pRoute:string,
+        pHandlers:RequestHandlers,
+        pOptions:AuthenticatedRouteOptions = {
+            async:false,
+            readProjectStrict:true
+        }
+    ):void {
         const self = this;
         for(let httpVerb in pHandlers){
             if(pOptions.async){
@@ -157,7 +171,7 @@ export class DelegateWebApi
                     try{
                         if(self.srv.context.getUserService().verifySession(req.dxc.sess)){
                             if(pOptions.readProject){
-                                req.dxc.project = self.doProjectSecurityChecks(req, self.srv);
+                                req.dxc.project = self.doProjectSecurityChecks(req, self.srv, pOptions);
                             }
                             pHandlers[httpVerb](req, res);
                         }else{
@@ -173,7 +187,7 @@ export class DelegateWebApi
                     try{
                         if(self.srv.context.getUserService().verifySession(req.dxc.sess)){
                             if(pOptions.readProject){
-                                req.dxc.project = self.doProjectSecurityChecks(req, self.srv);
+                                req.dxc.project = self.doProjectSecurityChecks(req, self.srv, pOptions);
                             }
                             pHandlers[httpVerb](req, res);
                         }else{

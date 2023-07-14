@@ -38,7 +38,7 @@ rawData.trackers.map((vRaw)=>{
     const ctrl = new Control({
         id: sig.uid,
         name: sig.name,
-        links: sig.refs
+        links: sig.refs,
     });
 
 
@@ -57,7 +57,7 @@ rawData.trackers.map((vRaw)=>{
             testType: TestType.VT,
             analType: AnalysisType.SAST,
             rules: []
-        })
+        });
         sig.networkSignature.map((x)=>{
             assessCtrl.rules.push(
                 Merlin.android().strings(`value:/${x.pattern}/`)

@@ -139,6 +139,10 @@ export class MerlinSearchRequest implements MerlinPrimitive{
     this._oper = pOper;
   }
 
+  setContext(pSearchContext:MerlinSearchAPI):void {
+    this._ctx = pSearchContext;
+  }
+
   /**
    * Livre request operate exclusively in memory
    */
@@ -517,17 +521,22 @@ export class MerlinSearchRequest implements MerlinPrimitive{
         case OperationType.SEARCH:
           let o = ", {";
           const sArgs:SearchOperationArgs = x.args as SearchOperationArgs;
-          if(sArgs.pattern.opts!=null){
-            if(sArgs.pattern.opts.query_string) o += ` query_string: ${JSON.stringify(sArgs.pattern.opts.query_string)},`;
-            if(sArgs.pattern.opts.not) o += ` not: ${JSON.stringify(sArgs.pattern.opts.not)},`;
-            if(sArgs.pattern.opts.regexp) o += ` regexp: "${sArgs.pattern.opts.regexp}",`;
-            if(sArgs.pattern.opts.range) o += ` range: [${JSON.stringify(sArgs.pattern.opts.range)}],`;
-            if(sArgs.pattern.opts.copyTo) o += ` copyTo: ${JSON.stringify(sArgs.pattern.opts.copyTo)},`;
-            if(sArgs.pattern.opts.strict) o += ` strict: ${JSON.stringify(sArgs.pattern.opts.strict)},`;
-          }
 
-          if(s.length>1) o =  o.substring(0,o.length-1);
-          o += "}";
+          if(sArgs.pattern !=null){
+            if(sArgs.pattern.opts!=null){
+              if(sArgs.pattern.opts.query_string) o += ` query_string: ${JSON.stringify(sArgs.pattern.opts.query_string)},`;
+              if(sArgs.pattern.opts.not) o += ` not: ${JSON.stringify(sArgs.pattern.opts.not)},`;
+              if(sArgs.pattern.opts.regexp) o += ` regexp: "${sArgs.pattern.opts.regexp}",`;
+              if(sArgs.pattern.opts.range) o += ` range: [${JSON.stringify(sArgs.pattern.opts.range)}],`;
+              if(sArgs.pattern.opts.copyTo) o += ` copyTo: ${JSON.stringify(sArgs.pattern.opts.copyTo)},`;
+              if(sArgs.pattern.opts.strict) o += ` strict: ${JSON.stringify(sArgs.pattern.opts.strict)},`;
+            }
+
+            if(s.length>1) o =  o.substring(0,o.length-1);
+            o += "}";
+          }else{
+            o = "";
+          }
 
           if(nodeType==null)
             s += `.search("${sArgs.pattern.raw}"${o})`;
@@ -536,38 +545,55 @@ export class MerlinSearchRequest implements MerlinPrimitive{
 
           break;
         case OperationType.FILTER:
-          let f = ", {";
+          let f = "";
           const fArgs:SearchOperationArgs = x.args as SearchOperationArgs;
-          if(fArgs.pattern.opts!=null){
-            if(fArgs.pattern.opts.query_string) f += ` query_string: ${JSON.stringify(fArgs.pattern.opts.query_string)},`;
-            if(fArgs.pattern.opts.not) f += ` not: ${JSON.stringify(fArgs.pattern.opts.not)},`;
-            if(fArgs.pattern.opts.regexp) f += ` regexp: "${fArgs.pattern.opts.regexp}",`;
-            if(fArgs.pattern.opts.range) f += ` range: [${JSON.stringify(fArgs.pattern.opts.range)}],`;
-            if(fArgs.pattern.opts.copyTo) f += ` copyTo: ${JSON.stringify(fArgs.pattern.opts.exists)},`;
-            if(fArgs.pattern.opts.strict) f += ` strict: ${JSON.stringify(fArgs.pattern.opts.strict)},`;
+
+          if(fArgs.pattern!=null){
+            if(fArgs.pattern.opts!=null){
+              f = ", {";
+              if(fArgs.pattern.opts.query_string) f += ` query_string: ${JSON.stringify(fArgs.pattern.opts.query_string)},`;
+              if(fArgs.pattern.opts.not) f += ` not: ${JSON.stringify(fArgs.pattern.opts.not)},`;
+              if(fArgs.pattern.opts.regexp) f += ` regexp: "${fArgs.pattern.opts.regexp}",`;
+              if(fArgs.pattern.opts.range) f += ` range: [${JSON.stringify(fArgs.pattern.opts.range)}],`;
+              if(fArgs.pattern.opts.copyTo) f += ` copyTo: ${JSON.stringify(fArgs.pattern.opts.exists)},`;
+              if(fArgs.pattern.opts.strict) f += ` strict: ${JSON.stringify(fArgs.pattern.opts.strict)},`;
+              if(f.length>1) f =  f.substring(0,f.length-1);
+              f += "}";
+            }else{
+              f = "";
+            }
+
+            s += `.filter("${fArgs.pattern.raw}"${f})`;
           }
 
-          if(f.length>1) f =  f.substring(0,f.length-1);
-          f += "}";
 
-          s += `.filter("${fArgs.pattern.raw}"${f})`;
           break;
         case OperationType.INNERJOIN:
           let nn = ", {";
           const nnArgs:InnerjoinOperationArgs = x.args as InnerjoinOperationArgs;
-          if(nnArgs.cond.opts!=null){
-            if(nnArgs.cond.opts.query_string) f += ` query_string: ${JSON.stringify(nnArgs.cond.opts.query_string)},`;
-            if(nnArgs.cond.opts.not) f += ` not: ${JSON.stringify(nnArgs.cond.opts.not)},`;
-            if(nnArgs.cond.opts.regexp) f += ` regexp: "${nnArgs.cond.opts.regexp}",`;
-            if(nnArgs.cond.opts.range) f += ` range: [${JSON.stringify(nnArgs.cond.opts.range)}],`;
-            if(nnArgs.cond.opts.copyTo) f += ` copyTo: ${JSON.stringify(nnArgs.cond.opts.exists)},`;
-            if(nnArgs.cond.opts.strict) f += ` strict: ${JSON.stringify(nnArgs.cond.opts.strict)},`;
+
+
+          if(nnArgs.cond!=null){
+            if(nnArgs.cond.opts!=null){
+              if(nnArgs.cond.opts.query_string) f += ` query_string: ${JSON.stringify(nnArgs.cond.opts.query_string)},`;
+              if(nnArgs.cond.opts.not) f += ` not: ${JSON.stringify(nnArgs.cond.opts.not)},`;
+              if(nnArgs.cond.opts.regexp) f += ` regexp: "${nnArgs.cond.opts.regexp}",`;
+              if(nnArgs.cond.opts.range) f += ` range: [${JSON.stringify(nnArgs.cond.opts.range)}],`;
+              if(nnArgs.cond.opts.copyTo) f += ` copyTo: ${JSON.stringify(nnArgs.cond.opts.exists)},`;
+              if(nnArgs.cond.opts.strict) f += ` strict: ${JSON.stringify(nnArgs.cond.opts.strict)},`;
+            }
+
+            if(f.length>1) f =  f.substring(0,f.length-1);
+            nn += "}";
+
+          }else{
+            nn = "";
           }
 
-          if(f.length>1) f =  f.substring(0,f.length-1);
-          nn += "}";
+          if(nnArgs.on != null){
+            s += `.select("${nnArgs.on.getName()}"${nn})`;
+          }
 
-          s += `.select("${nnArgs.on.getName()}"${nn})`;
           break;
         case OperationType.VALIDATE:
           let opts = ", {";
@@ -610,7 +636,11 @@ export class MerlinSearchRequest implements MerlinPrimitive{
           break;
         case OperationType.AGGR:
           const aArgs:AggregationOperationArgs = x.args as AggregationOperationArgs;
-          s += `.aggregate("${aArgs.on}", { alias:${aArgs.opts.alias} ${aArgs.size? ",size:"+aArgs.size : "" })`;
+          if(aArgs.opts==null){
+            s += `.aggregate("${aArgs.on}", { ${aArgs.size? "size:"+aArgs.size : "" })`;
+          }else{
+            s += `.aggregate("${aArgs.on}", { alias:${aArgs.opts.alias} ${aArgs.size? ",size:"+aArgs.size : "" })`;
+          }
           break;
         case OperationType.UNION:
           const uArgs:NestedRequestOperationArgs = x.args as NestedRequestOperationArgs;
@@ -688,23 +718,23 @@ export class MerlinSearchRequest implements MerlinPrimitive{
       opeArgs = ope.args as ValidateOperationArgs;
       val = Util.readValue(pData, opeArgs.pattern);
 
-      if(opeArgs.opts.exists){
+      if(opeArgs.opts && opeArgs.opts.exists){
         expectedSuccess++;
         success += +(val != null);
       }
-      if(opeArgs.opts.range){
+      if(opeArgs.opts && opeArgs.opts.range){
         expectedSuccess++;
         success += +(opeArgs.opts.range.indexOf(val)>-1);
       }
-      if(opeArgs.opts.interval){
+      if(opeArgs.opts && opeArgs.opts.interval){
         expectedSuccess++;
         success += +((val >= opeArgs.opts.interval[0])&&(val <= opeArgs.opts.interval[1]));
       }
-      if(opeArgs.opts.regexp){
+      if(opeArgs.opts && opeArgs.opts.regexp){
         expectedSuccess++;
         success += +(opeArgs.opts.regexp.test(val));
       }
-      if(opeArgs.opts.strict){
+      if(opeArgs.opts && opeArgs.opts.strict){
         expectedSuccess++;
         success += +(pData === opeArgs.pattern);
       }
@@ -777,4 +807,16 @@ export class MerlinSearchRequest implements MerlinPrimitive{
 
       return o;
   }
+
+
+  static fromJsonObject(pObject:any):MerlinSearchRequest {
+    const r = new MerlinSearchRequest(null, NodeInternalTypeName[pObject._type], pObject._oper)
+    r._live = pObject._live;
+    r._aggs = pObject._aggs;
+    r._options = pObject._options;
+    r._evt = pObject._evt;
+    r._search = pObject._search;
+    return r;
+  }
+
 }

@@ -674,6 +674,9 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
 
         LicenceManager.replenish();
 
+        // create AuditManager singleton
+        AuditManager.getInstance(this);
+
         // restart child ADB server
         (async function(){
             self.deviceMgr.getBridgeFactory('adb').newGenericWrapper().kill();

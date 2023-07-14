@@ -10,6 +10,8 @@ import {AuditManagerException} from "./errors/AuditManagerException.js";
 import {OwaspMasvsModel} from "./models/OwaspModel.js";
 import {PrivacyTrackersModel} from "./models/PrivacyTrackersModel.js";
 import {PrivacyPiiModel} from "./models/PrivacyPiiModel.js";
+import DexcaliburEngine from "../DexcaliburEngine.js";
+import {Logger} from "@dexcalibur/dexcalibur-installer/src/utils/Logger.js";
 
 const SUBDIRS = {
     REPORTS: "reports",
@@ -17,6 +19,13 @@ const SUBDIRS = {
 };
 
 let gInstance:AuditManager|null = null;
+
+const GLOBAL_MODELS_FOLDER = "models";
+const PROJECT_MODELS_FOLDER = "models";
+
+interface AssuranceModelMap {
+    [id:string] : AssuranceModel;
+}
 
 /**
  * Class to load, store and manage assurance model
@@ -26,27 +35,27 @@ let gInstance:AuditManager|null = null;
  */
 export class AuditManager {
 
+    engine:DexcaliburEngine;
+
     genericModels:AssuranceModel[] = [];
 
-    constructor() {
-        [
-            //new PrivacyModel(),
-            //OwaspMasvsModel,
-            PrivacyPiiModel,
-            //PrivacyTrackersModel
-            // new ArjelModel()
-        ].map(x => {
-            x.load();
-            this.genericModels.push(x);
-        });
+    constructor(pEngine:DexcaliburEngine) {
+
+        this.engine = pEngine;
+
+
     }
 
     /**
      *
      */
-    static getInstance():AuditManager {
+    static getInstance(pEngine:DexcaliburEngine|null = null):AuditManager {
         if(gInstance==null){
-            gInstance = new AuditManager();
+            if(pEngine!=null){
+                gInstance = new AuditManager(pEngine);
+            }else{
+                throw AuditManagerException.CANNOT_INITIALIZE();
+            }
         }
 
         return gInstance;
@@ -68,16 +77,79 @@ export class AuditManager {
      * @return {AssuranceModel[]}
      * @method
      */
-    listModels( pProject:DexcaliburProject = null):AssuranceModel[] {
-        const models:AssuranceModel[] = [];
+    listModels( pProject:DexcaliburProject|null = null):AssuranceModel[] {
+        let allModels:AssuranceModelMap = {};
+        let globalModels:AssuranceModelMap = {};
 
-        if(pProject!=null){
-            //const customModels = _path_.join(pProject.getWorkspace().getAuditDir(),SUBDIRS.MODELS);
+        // if project is specified, add models from project workspace
+        if(pProject!=null) {
+            allModels = this._listModelsFromFolder(
+                _path_.join(
+                    pProject.getWorkspace().getAuditDir(),
+                    PROJECT_MODELS_FOLDER
+                )
+            );
+        }
+
+        // load from Dexcalibur workspace
+        globalModels =  this._listModelsFromFolder(
+            _path_.join(
+                this.engine.getWorkspace().getConfigFolderLocation(),
+                GLOBAL_MODELS_FOLDER
+            )
+        );
+
+        for(let k in globalModels){
+            if(allModels[k]==null){
+                allModels[k] = globalModels[k];
+            }
         }
 
 
-        return models.concat(this.genericModels);
+        // if some built-in models are not already stored in Dexcalibur or Project workspace,
+        // create it
+        [
+            //OwaspMasvsModel,
+            PrivacyPiiModel,
+            PrivacyTrackersModel
+        ].map(x => {
+            if(allModels[x.getID()]==null){
+                x.load();
+                this.saveModel(x, pProject);
+                allModels[x.getID()] = x;
+            }
+        });
+
+        return Object.values(allModels);
     }
+
+    /**
+     * To retrieve AssuranceModels from global workspace
+     *
+     * @return {AssuranceModel[]} List of models
+     * @private
+     */
+    private _listModelsFromFolder(pPath:string):AssuranceModelMap {
+        const models:AssuranceModelMap = {};
+        let model:AssuranceModel;
+        let data:string;
+
+        if(_fs_.existsSync(pPath)){
+            _fs_.readdirSync(pPath).map((vFile)=>{
+                if(vFile.endsWith(".json")){
+                    data = _fs_.readFileSync(_path_.join(pPath,vFile), {encoding:'utf-8'});
+                    model = AssuranceModel.fromJsonObject(JSON.parse(data));
+                    models[model.getID()] = model;
+                }
+            })
+        }else{
+            _fs_.mkdirSync(pPath);
+        }
+
+        return models;
+    }
+
+
 
     /**
      * To list assurance model of the project.
@@ -141,9 +213,49 @@ export class AuditManager {
     }
 
     /**
-     * To save a model
+     * To save an assurance model into global or project workspace
+     *
+     * Final location depends of context :
+     *  - If a projet is open and active, the model will be saved into project folder
+     *  - If there is not active project, the model ll be save into Dexcalibur configuration folder into the workspace
+     *
+     *  @param {AssuranceModel} pModel The assurance model to save
+     *  @param {DexcaliburProject|null} pProject Default NULL. The active project or null
+     *  @return {void}
+     *  @throws {AuditManagerException}
+     *  @method
      */
-    saveModel(){
+    saveModel(pModel:AssuranceModel, pProject:DexcaliburProject|null = null):void{
+        let folder:string;
+        try{
+            if(pProject!=null){
+                // save into Project  workspace
+                folder = _path_.join(
+                    pProject.getWorkspace().getAuditDir(),
+                    PROJECT_MODELS_FOLDER
+                );
+            }else{
+                // save into Dexcalibur global workspace
+                folder = _path_.join(
+                    this.engine.getWorkspace().getConfigFolderLocation(),
+                    GLOBAL_MODELS_FOLDER
+                );
+            }
+
+            // remove if exists
+            const path = _path_.join(folder,pModel.getID()+'.json');
+            if(_fs_.existsSync(path)){
+                _fs_.rmSync(path);
+            }
+
+            _fs_.writeFileSync(path, JSON.stringify(pModel.toJsonObject()));
+
+
+        }catch (err){
+            throw AuditManagerException.CANNOT_SAVE_MODEL(pModel.getID(),err.message);
+        }
+
+
 
     }
 

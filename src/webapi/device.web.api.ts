@@ -34,7 +34,7 @@ DEVICE_WEB_API.addAsyncPublicRoute(
                 }
                 else{
                     if($.context.getUserService().verifySession(req.dxc.sess)){
-                        req.dxc.project = DEVICE_WEB_API.doProjectSecurityChecks(req, $);
+                        req.dxc.project = DEVICE_WEB_API.doProjectSecurityChecks(req, $, {readProject:true, readProjectStrict:true });
                         dev = req.dxc.project.getDevice();
                     }
                 }
@@ -97,7 +97,7 @@ DEVICE_WEB_API.addAsyncPublicRoute(
                     dev = $.context.getDeviceManager().getDevice(req.query.uid as string);
                 } else {
                     if($.context.getUserService().verifySession(req.dxc.sess)){
-                        req.dxc.project = DEVICE_WEB_API.doProjectSecurityChecks(req, $);
+                        req.dxc.project = DEVICE_WEB_API.doProjectSecurityChecks(req, $, {readProject:true, readProjectStrict:true });
                         dev = req.dxc.project.getDevice();
                     }
                 }

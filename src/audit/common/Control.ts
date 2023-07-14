@@ -1,5 +1,6 @@
 import {AssetOptions} from "./Asset.js";
 import ControlAssessment from "./ControlAssessment.js";
+import {Metadata} from "./Metadata.js";
 
 export interface ControlOptions {
     id?:string;
@@ -8,19 +9,34 @@ export interface ControlOptions {
     links?:string[];
     children?:Control[];
     assessments?:ControlAssessment[];
+    metadata?:Metadata[];
 }
-
 /**
+ * Represent a set of control points / assessments
+ *
  * @class
  */
 export default class Control {
 
-
+    /**
+     * Unique control ID
+     * @type {string}
+     * @field
+     */
     id:string;
 
+    /**
+     * Control point name
+     * @type {string}
+     * @field
+     */
     name:string;
 
     description:string;
+
+    metadata:Metadata[] = [];
+
+    //changes:DataChange[] = []
 
     links:string;
 
@@ -40,6 +56,24 @@ export default class Control {
         return (this.assessments.length > 0);
     }
 
+    static fromJsonObject(pObject:any):Control {
+        const control = new Control(pObject);
+
+        if(control.hasChildren()){
+            control.children.map((vChild,index)=>{
+                control.children[index] = Control.fromJsonObject(vChild);
+            });
+        }
+
+        if(control.hasAssessments()){
+            control.assessments.map((vChild,index)=>{
+                control.assessments[index] = ControlAssessment.fromJsonObject(vChild);
+            });
+        }
+
+        return control;
+    }
+
     toJsonObject():any {
         let o:any = {
             id: this.id,
@@ -47,7 +81,8 @@ export default class Control {
             description: this.description,
             links: this.links,
             children: [],
-            assessments: []
+            assessments: [],
+            metadata: this.metadata
         };
 
         if(this.hasChildren()){

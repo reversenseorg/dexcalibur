@@ -256,9 +256,32 @@ AUDIT_WEB_API.addAuthenticatedRoute(
                 Logger.error("[API][AUDIT] Model cannot be retrieved. Cause : " + err.message + "\n\t" + err.stack);
                 $.sendError(res, "Model cannot be retrieved. Cause : " + err.message);
             }
+        },
+        'put': function (req:DelegateRequest, res:DelegateResponse):any {
+            const $: WebServer = req.dxc.$;
+
+            try{
+                // ========== LOGIC
+                const am = AuditManager.getInstance();
+                const models = am.getModel(req.dxc.project, req.params.modelID);
+
+                if(req.dxc.project==null){
+                    // TODO : global edit, check ACL
+
+                }else{
+                    // TODO : project edit, check ACL
+                }
+                //new AssuranceModel(req.body);
+
+                $.sendSuccess(res, models.toJsonObject());
+            }catch(err){
+                Logger.error("[API][AUDIT] Model cannot be retrieved. Cause : " + err.message + "\n\t" + err.stack);
+                $.sendError(res, "Model cannot be retrieved. Cause : " + err.message);
+            }
         }
     },{
-        readProject: true
+        readProject: true,
+        readProjectStrict: false
     }
 );
 

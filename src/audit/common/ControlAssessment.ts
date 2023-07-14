@@ -1,7 +1,6 @@
-import {AssetOptions} from "./Asset.js";
 import {MerlinSearchRequest} from "../../search/MerlinSearchRequest.js";
 import {MerlinRule} from "../../search/MerlinRule.js";
-import {MerlinPrimitive} from "../../search/Merlin.js";
+import {Merlin, MerlinPrimitive, MerlinType} from "../../search/Merlin.js";
 
 export enum TestType {
     VT, // check if implemented
@@ -97,6 +96,17 @@ export default class ControlAssessment {
 
     static fromJsonObject(pOpts:any):ControlAssessment {
         const a = new ControlAssessment(pOpts);
+
+        if(a.rules.length>0){
+            a.rules.map((vRule,vIndex)=>{
+                if(vRule.TYPE===MerlinType.REQUEST){
+                    a.rules[vIndex] = MerlinSearchRequest.fromJsonObject(vRule);
+                }else{
+                    a.rules[vIndex] = Merlin.fromJsonObject(vRule);
+                }
+
+            });
+        }
 
         return a;
     }

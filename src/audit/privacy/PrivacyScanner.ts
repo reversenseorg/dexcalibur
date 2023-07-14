@@ -239,6 +239,8 @@ export class PrivacyScanner extends AssuranceScanner {
         // 1. configure main Bus
         this._registerOnBusEvents(pContext, pOptions);
 
+        // TODO : prepare test plan by gathering, categorizing and prioritizing tests
+
         // 2. perform basis static scan
         this.lastReport = new PrivacyReport({ });
 

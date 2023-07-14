@@ -5,7 +5,7 @@ import ModelClass from "../ModelClass.js";
 import ModelMethod from "../ModelMethod.js";
 import {OperatingSystem} from "../OperatingSystem.js";
 import { FinderResult } from "./FinderResult.js";
-import {  MerlinPrimitive, MerlinType} from "./Merlin.js";
+import {Merlin, MerlinPrimitive, MerlinType} from "./Merlin.js";
 import ControlAssessment from "../audit/common/ControlAssessment.js";
 import {BusSubscriber} from "../Bus.js";
 
@@ -214,5 +214,23 @@ export class MerlinRule extends MerlinSearchAPI implements MerlinPrimitive {
             _subs: this._subs.map(x => x.toJsonObject()),
             _evt: this._evt
         };
+    }
+
+    static fromJsonObject(pObject:any):MerlinRule{
+        const o = new MerlinRule(pObject.targetOS, pObject);
+
+        o._sinks.map((vReq, vI)=>{
+            //o._sinks[vI] = MerlinSearchRequest.fromJsonObject();
+        });
+        o._sources.map((vReq, vI)=>{
+           // o._sources[vI] = MerlinSearchRequest.fromJsonObject();
+        });
+        o._steps.map((vReq, vI)=>{
+            o._steps[vI] = Merlin.fromJsonObject(vReq);
+        });
+        o._subs.map((vReq, vI)=>{
+            o._subs[vI] = Merlin.fromJsonObject(vReq);
+        });
+        return o;
     }
 }

@@ -56,7 +56,7 @@ export class Merlin {
                 return new MerlinAndroidRule(pRuleOption);
                 break;
             case OperatingSystem.IOS:
-                return new MerlinAndroidRule(pRuleOption);
+                return new MerlinIosRule(pRuleOption);
                 break;
             default:
                 return new MerlinRule(undefined, pRuleOption);
@@ -89,4 +89,18 @@ export class Merlin {
     static darwin( pRuleOption:MerlinRuleOptions = {}):MerlinAndroidRule {
         return new MerlinAndroidRule(pRuleOption);
     }*/
+
+    static fromJsonObject(pObject:any):MerlinAndroidRule|MerlinIosRule|MerlinRule {
+        switch (pObject.targetOS){
+            case OperatingSystem.ANDROID:
+                return MerlinAndroidRule.fromJsonObject(pObject);
+                break;
+            case OperatingSystem.IOS:
+                return MerlinIosRule.fromJsonObject(pObject);
+                break;
+            default:
+                return MerlinRule.fromJsonObject(pObject);
+                break;
+        }
+    }
 }

@@ -15,6 +15,7 @@ import CodeConstraint from "./CodeConstraint.js";
 import Threat from "./Threat.js";
 import { ConstraintMatch } from "./ConstraintMatch.js";
 import ModelString from "../../ModelString.js";
+import {MerlinSearchAPI} from "../../search/MerlinSearchAPI.js";
 
 export interface AssuranceScannerOptions extends ProductOptions {
 
@@ -54,6 +55,7 @@ export class AssuranceScanner extends Product {
     private _prepareFlag = false;
 
     private _codeConstr:CodeConstraintMap = {};
+
 
 
     constructor(pConfig:AssuranceScannerOptions) {
