@@ -220,6 +220,27 @@ export default class AssuranceModel extends Auditable implements IAuditableAcces
     }
 
     /**
+     * To update properties
+     *
+     * @param pObject
+     */
+    update(pObject:any, pUpdateChildren = false):void {
+        if(pObject.id!=null) this.id = pObject.id;
+        if(pObject.scannerID!=null) this.scannerID = pObject.scannerID;
+        if(pObject.name!=null) this.name = pObject.name;
+        if(pObject.description!=null) this.description = pObject.description;
+        if(pObject.links!=null) this.links = pObject.links;
+        if(pObject.generic!=null) this.generic = pObject.generic;
+
+        if(pUpdateChildren){
+            if(pObject.primaryAssets!=null) this.primaryAssets = pObject.primaryAssets;
+            if(pObject.secondaryAssets!=null) this.secondaryAssets = pObject.secondaryAssets;
+            if(pObject.globalThreats!=null) this.globalThreats = pObject.globalThreats;
+            if(pObject.controls!=null) this.controls = pObject.controls;
+        }
+    }
+
+    /**
      * To setup attributes involved into ACL such as 'owner'
      *
      * TODO : add attr containing all authors

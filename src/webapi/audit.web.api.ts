@@ -8,6 +8,7 @@ import {AuditManager} from "../audit/AuditManager.js";
 import {AssuranceScanner} from "../audit/common/AssuranceScanner.js";
 import AssuranceReport from "../audit/common/AssuranceReport.js";
 import AssuranceModel from "../audit/common/AssuranceModel.js";
+import Control from "../audit/common/Control.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 export const AUDIT_WEB_API: DelegateWebApi = new DelegateWebApi();
@@ -263,17 +264,24 @@ AUDIT_WEB_API.addAuthenticatedRoute(
             try{
                 // ========== LOGIC
                 const am = AuditManager.getInstance();
-                const models = am.getModel(req.dxc.project, req.params.modelID);
+                const model = am.getModel(req.dxc.project, req.params.modelID);
+
+                if(req.body.data.offset!=null && req.body.data.ctrl!=null){
+                    model.controls[req.body.data.offset].update(req.body.data.ctrl);
+                }else{
+                    model.update(req.body.data);
+                }
 
                 if(req.dxc.project==null){
                     // TODO : global edit, check ACL
-
+                    am.saveModel(model);
                 }else{
                     // TODO : project edit, check ACL
+                    am.saveModel(model,req.dxc.project);
                 }
                 //new AssuranceModel(req.body);
 
-                $.sendSuccess(res, models.toJsonObject());
+                $.sendSuccess(res, model.toJsonObject());
             }catch(err){
                 Logger.error("[API][AUDIT] Model cannot be retrieved. Cause : " + err.message + "\n\t" + err.stack);
                 $.sendError(res, "Model cannot be retrieved. Cause : " + err.message);

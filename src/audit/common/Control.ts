@@ -56,6 +56,19 @@ export default class Control {
         return (this.assessments.length > 0);
     }
 
+    update(pConfig:any, pUpdateChildren = false):void {
+        if(pConfig.id!=null) this.id = pConfig.id;
+        if(pConfig.name!=null) this.name = pConfig.name;
+        if(pConfig.description!=null) this.description = pConfig.description;
+        if(pConfig.links!=null) this.links = pConfig.links;
+        if(pConfig.metadata!=null) this.metadata = pConfig.metadata;
+
+        if(pUpdateChildren){
+            if(pConfig.children!=null) this.children = pConfig.children;
+            if(pConfig.assessments!=null) this.assessments = pConfig.assessments;
+        }
+    }
+
     static fromJsonObject(pObject:any):Control {
         const control = new Control(pObject);
 

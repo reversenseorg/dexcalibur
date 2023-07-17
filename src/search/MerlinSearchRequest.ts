@@ -791,10 +791,23 @@ export class MerlinSearchRequest implements MerlinPrimitive{
    *
    */
   toJsonObject():any {
+
+    let _type:any = "";
+    if(typeof (this._type)==="string"){
+      _type  = NodeInternalTypeName[this._type];
+    }
+    else if((typeof (this._type)==="object") && (this._type instanceof NodeType)){
+      _type = (this._type as NodeType).getType();
+    }
+    else{
+      console.log("MerlinSearchRequest.toJsonObject _type ! : "+this._type);
+      _type = this._type;
+    }
+
       let o:any = {
         TYPE: this.TYPE,
         _live: this._live,
-        _type: (typeof (this._type)==="string")? NodeInternalTypeName[this._type] : (this._type as NodeType).getType(),
+        _type: _type,
         _search: this._search,
         _aggs: this._aggs,
         _options: this._options,
@@ -810,7 +823,8 @@ export class MerlinSearchRequest implements MerlinPrimitive{
 
 
   static fromJsonObject(pObject:any):MerlinSearchRequest {
-    const r = new MerlinSearchRequest(null, NodeInternalTypeName[pObject._type], pObject._oper)
+    console.log("MerlinSearchRequest.fromJsonObject _type ! : "+pObject._type);
+    const r = new MerlinSearchRequest(null, NodeInternalTypeName[pObject._type+""], pObject._oper)
     r._live = pObject._live;
     r._aggs = pObject._aggs;
     r._options = pObject._options;
