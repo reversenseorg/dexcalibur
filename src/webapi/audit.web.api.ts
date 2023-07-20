@@ -9,6 +9,8 @@ import {AssuranceScanner} from "../audit/common/AssuranceScanner.js";
 import AssuranceReport from "../audit/common/AssuranceReport.js";
 import AssuranceModel from "../audit/common/AssuranceModel.js";
 import Control from "../audit/common/Control.js";
+import {ErrorCode} from "../errors/MonitoredError.js";
+import DexcaliburEngine from "../DexcaliburEngine.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 export const AUDIT_WEB_API: DelegateWebApi = new DelegateWebApi();
@@ -306,6 +308,85 @@ AUDIT_WEB_API.addPublicRoute(
                 const models = am.listModels(req.dxc.project);
 
                 $.sendSuccess(res, models.map(x => x.toJsonObject()));
+            }catch(err){
+                Logger.error("[API][AUDIT] Models cannot be retrieved. Cause : " + err.message + "\n\t" + err.stack);
+                $.sendError(res, "Models cannot be retrieved. Cause : " + err.message);
+            }
+        }
+    },{
+        readProject: false
+    }
+);
+
+
+AUDIT_WEB_API.addAsyncAuthenticatedRoute(
+    '/project/:projectID/scan/start',
+    {
+        'post': async function (req:DelegateRequest, res:DelegateResponse):Promise<any> {
+            const $: WebServer = req.dxc.$;
+
+            try{
+                //
+                let project = null;
+                try{
+                    project = AUDIT_WEB_API.doProjectSecurityChecks(req, $, {readProjectStrict:true});
+                }catch(err1){
+                    throw err1;
+                    /*
+                    if(err1.code === ErrorCode.PROJECT + 115){
+                        try{
+                            project = await DexcaliburEngine.getInstance().openProject(req.dxc.sess.getUserAccount(), req.body.project);
+                        }catch(err2){
+                            throw new Error("Project is not ready and cannot be opened. See logs");
+                        }
+                    }else{
+                        throw err1;
+                    }*/
+                }
+
+
+
+                // ========== LOGIC
+                const am = AuditManager.getInstance();
+                const allModels = am.listModels(project);
+                const targetUIDs: string[] = req.body.models;
+                const targetModels: AssuranceModel[] = [];
+                const scanners: AssuranceScanner[] = [];
+                const reports: { [model:string] :AssuranceReport[] } = {};
+                const data:any = {};
+
+                // retrieve the list of targeted models
+                allModels.map((vModel)=>{
+                    if(targetUIDs.indexOf(vModel.getID())>-1){
+                        const asc = LicenceManager.getProduct( project, vModel.getScannerID()) as AssuranceScanner;
+                        targetModels.push(vModel);
+                        asc.setModel(vModel);
+                        scanners.push(asc);
+                    }
+                });
+
+                // run scanner
+                for(let i=0; i<scanners.length; i++){
+                    console.log("Run scans ("+i+") : "+scanners[i].name);
+                    scanners[i].run(project, {});
+                    console.log("Save all reports  ("+i+") : "+scanners[i].name);
+                    data[scanners[i].name] = [];
+                    scanners[i].getReports().map(x => {
+                        console.log("Save single reports  ("+i+") : "+scanners[i].name);
+                        try{
+                            const path = am.saveReport(project, x);
+                            data[scanners[i].name].push(x.toJsonObject());
+                        }catch(err1){
+                            console.log(err1.message);
+                            console.log("Save single reports  FAILED ("+i+") : "+scanners[i].name+" "+err1.stack);
+                        }
+
+                    });
+                }
+
+                // return results
+
+                $.sendSuccess(res, data);
             }catch(err){
                 Logger.error("[API][AUDIT] Models cannot be retrieved. Cause : " + err.message + "\n\t" + err.stack);
                 $.sendError(res, "Models cannot be retrieved. Cause : " + err.message);

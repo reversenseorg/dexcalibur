@@ -172,6 +172,7 @@ export class AssuranceScanner extends Product {
         return this.report;
     }
 
+
     getReports():AssuranceReport[] {
         return this.reports;
     }

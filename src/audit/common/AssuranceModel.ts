@@ -8,6 +8,8 @@ import {Auditable} from "../../Auditable.js";
 import {IAuditableAccess} from "../../user/acl/IAuditableAccess.js";
 import {ProjectAccessControl} from "../../user/acl/rbac/ProjectAccessContol.js";
 import {AuditAccessControl} from "../../user/acl/rbac/AssuranceModelAccessControl.js";
+import ControlAssessment from "./ControlAssessment.js";
+import {IControl} from "./IControl.js";
 
 export enum AssuranceModelType {
     SECURITY="sec",
@@ -16,6 +18,18 @@ export enum AssuranceModelType {
     QUALITY="qua",
 }
 
+export const CANONICALIZED_ROOT = "*";
+export const CANONICAL_ID_SEPARATOR = ".";
+
+export interface  ControlNode {
+    parent?:ControlNode;
+    ctrl?: IControl; //Control | ControlAssessment;
+    canonicalID: string;
+    children?:ControlTree;
+}
+export interface ControlTree {
+    [canonicalUID:string]: ControlNode;
+}
 
 export default class AssuranceModel extends Auditable implements IAuditableAccess {
 
@@ -60,11 +74,12 @@ export default class AssuranceModel extends Auditable implements IAuditableAcces
 
     protected _ready = false;
 
+    protected _controlTree: ControlTree = {};
 
     constructor( pConfig:any = null) {
         super(null);
-
-        if(pConfig!=null) for(const i in pConfig) this[i]=pConfig[i];
+        // if(pConfig!=null) for(const i in pConfig) this[i]=pConfig[i];
+        this.update(pConfig);
     }
 
     /**
@@ -238,6 +253,64 @@ export default class AssuranceModel extends Auditable implements IAuditableAcces
             if(pObject.globalThreats!=null) this.globalThreats = pObject.globalThreats;
             if(pObject.controls!=null) this.controls = pObject.controls;
         }
+
+        this.updateControlTree(this.controls);
+    }
+
+    /**
+     * To update the internal control tree
+     *
+     * @param pControls
+     * @param pCurrNode
+     */
+    updateControlTree( pControls:Control[]|ControlAssessment[], pCurrNode:ControlNode|null = null):void {
+        const current:ControlNode = (pCurrNode==null ? { canonicalID:CANONICALIZED_ROOT, children:{} } : pCurrNode );
+
+        pControls.map((vCtrl:Control|ControlAssessment)=>{
+            const canonicalID = current.canonicalID+CANONICAL_ID_SEPARATOR+vCtrl.id;
+            const node:ControlNode = {
+                parent:current,
+                canonicalID:canonicalID,
+                ctrl: vCtrl,
+                children: {}
+            };
+
+            if(vCtrl.hasOwnProperty('children') && (vCtrl as Control)!=null && (vCtrl as Control).children.length>0){
+                this.updateControlTree((vCtrl as Control).children as Control[], node);
+            }
+
+            if(vCtrl.hasOwnProperty('assessments') && (vCtrl as Control)!=null && (vCtrl as Control).assessments.length>0){
+                this.updateControlTree((vCtrl as Control).assessments as ControlAssessment[], node);
+            }
+
+            this._controlTree[canonicalID] = node;
+        });
+    }
+
+    getControlNode(pCanonicalUID:string):ControlNode {
+        return this._controlTree[pCanonicalUID];
+    }
+
+    private _controlNodeHasChildren(pNode:ControlNode):boolean {
+        return (pNode.children!=null) || (Object.values(pNode.children).length>0);
+    }
+
+    private _isTerminalControl(pNode:ControlNode):boolean {
+        return (pNode.children==null) || (Object.values(pNode.children).length==0);
+    }
+
+    /**
+     *
+     * @param pCanonicalUID
+     */
+    getControlLeafsFrom(pCanonicalUID:string):ControlNode[] {
+        const nodes:ControlNode[] = [];
+        for(let canonUID in this._controlTree){
+            if(canonUID.startsWith(pCanonicalUID) && this._isTerminalControl(this._controlTree[canonUID])){
+                nodes.push(this._controlTree[canonUID]);
+            }
+        }
+        return nodes;
     }
 
     /**

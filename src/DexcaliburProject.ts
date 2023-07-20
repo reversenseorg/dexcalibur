@@ -275,6 +275,8 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
 
     tagManager:TagManager;
 
+    scanManager:any;
+
     /**
      * Application Icon
      *

@@ -95,8 +95,14 @@ export class DelegateWebApi
             project = pRequest.dxc.project;
         }
 
-        if(pOptions.readProjectStrict && (project == null || !project.isReady()) ) {
-            throw DexcaliburProjectException.NO_PROJECT_SPECIFIED();
+        if(pOptions.readProjectStrict ) {
+            if(project == null && (pRequest.body.project==null && pRequest.query._puid==null )){
+                throw DexcaliburProjectException.NO_PROJECT_SPECIFIED();
+            }
+            else if (project == null || !project.isReady()){
+                throw DexcaliburProjectException.PROJECT_NOT_READY(pRequest.body['project']);
+            }
+
         }
 
         return project;

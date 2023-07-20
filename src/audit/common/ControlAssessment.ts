@@ -1,11 +1,11 @@
 import {MerlinSearchRequest} from "../../search/MerlinSearchRequest.js";
 import {MerlinRule} from "../../search/MerlinRule.js";
 import {Merlin, MerlinPrimitive, MerlinType} from "../../search/Merlin.js";
+import {INode} from "../../INode.js";
+import Control from "./Control.js";
+import {IControl} from "./IControl.js";
+import {TestType} from "./TestPlan.js";
 
-export enum TestType {
-    VT, // check if implemented
-    PT // bypass
-}
 
 export enum AnalysisType {
     SAST, // support VT/PT
@@ -30,10 +30,16 @@ export interface ControlAssessmentOpts {
 
 }
 
+interface Match {
+    ctrl: Control;
+    assess: string;
+    rule: MerlinRule | MerlinSearchRequest;
+    match: INode | any;
+}
 /**
  * Represent a
  */
-export default class ControlAssessment {
+export default class ControlAssessment implements IControl {
 
     id:string;
 
@@ -49,7 +55,7 @@ export default class ControlAssessment {
 
     rules:MerlinPrimitive[] = [];
 
-    matches:any[] = [];
+    matches:Match[] = [];
 
     constructor( pConfig:ControlAssessmentOpts = null) {
         if(pConfig!=null) for(const i in pConfig) this[i]=pConfig[i];
@@ -73,7 +79,12 @@ export default class ControlAssessment {
                     this.matches.map( x => {
                        // o.matches.push( x.toJsonObject());
                         if(x!=null){
-                            o.matches.push( x.toJsonObject());
+                            o.matches.push( {
+                                ctrl: x.ctrl!=null ? x.ctrl.id : null,
+                                assess: x.assess!=null ?x.assess : null,
+                                rule: x.rule!=null ? x.rule.toSearchString() : null,
+                                match: x.match!=null ? x.match.toJsonObject() : null,
+                            });
                         }
                     });
                     break;
@@ -109,5 +120,13 @@ export default class ControlAssessment {
         }
 
         return a;
+    }
+
+    isControlAssessment(): boolean {
+        return true;
+    }
+
+    isControl(): boolean {
+        return false;
     }
 }

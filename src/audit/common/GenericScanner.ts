@@ -1,7 +1,6 @@
 import {Indicator} from "../common/Indicator.js";
 import {DashBoard} from "../common/DashBoard.js";
 import DexcaliburProject from "../../DexcaliburProject.js";
-import {ProjectState} from "../../ProjectState.js";
 import {AssuranceScanner} from "../common/AssuranceScanner.js";
 import AssuranceReport from "../common/AssuranceReport.js";
 import {MerlinSearchRequest} from "../../search/MerlinSearchRequest.js";
@@ -9,7 +8,11 @@ import Control from "./Control.js";
 import ControlAssessment from "./ControlAssessment.js";
 import {Merlin, MerlinPrimitive} from "../../search/Merlin.js";
 import {MerlinSearchAPI} from "../../search/MerlinSearchAPI.js";
+import {TestPlan, TestStep, TestType} from "./TestPlan.js";
+import {CANONICALIZED_ROOT, ControlNode} from "./AssuranceModel.js";
+import * as Log from "../../Logger.js";
 
+let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
 export interface PrivacyScanOptions {
     trackersLib:boolean,
@@ -77,6 +80,12 @@ export class GenericScanner extends AssuranceScanner {
     }
 
 
+    /**
+     *
+     * @param pReport
+     * @param pControl
+     * @private
+     */
     private executeRules(pReport:AssuranceReport, pControl:Control):void {
 
 
@@ -85,8 +94,8 @@ export class GenericScanner extends AssuranceScanner {
                 this.executeRules(pReport, vCtrl);
             })
         }else{
-            pControl.assessments.map( vAssess => {
-               vAssess.rules.map( vRule => {
+            pControl.assessments.map( (vAssess,vIndex) => {
+               vAssess.rules.map( (vRule,vRuleOffset) => {
                    if(!vRule.hasBusSubscriber()){
                        (async ()=>{
                            let res:any;
@@ -94,8 +103,20 @@ export class GenericScanner extends AssuranceScanner {
                                res = await vRule.executeSync(this.project);
                                if(res.count()>0){
                                    console.log("[SCAN][FOUND] : "+res.count()+"  "+vRule.toSearchString());
-                                   res.getData().map(x => {
-                                       vAssess.addMatches(x);
+                                   res.getData().map((x:any) => {
+                                       pReport.addMatch(
+                                           pControl.id,
+                                           vAssess,
+                                           vRuleOffset,
+                                           x
+                                       )
+                                       /*
+                                       vAssess.addMatches({
+                                           ctrl: pControl.id,
+                                           assess: vIndex,
+                                           rule: vRule,
+                                           match: x
+                                       });*/
                                    });
                                }
                            }else{
@@ -126,8 +147,13 @@ export class GenericScanner extends AssuranceScanner {
         return report;
     }
 
-
-
+    /**
+     * To build the list of control point listening on main Bus
+     *
+     * @param {Control} pControl
+     * @return {BusBasedControl[]}
+     * @private
+     */
     private _subscribeControls(pControl:Control):BusBasedControl[] {
 
         let reqs:BusBasedControl[] = [];
@@ -172,9 +198,51 @@ export class GenericScanner extends AssuranceScanner {
         });
     }
 
+    /**
+     * To prepare test plan :
+     *  - browse model to gather transversal action : bus subscriber, hooks, VT, ..
+     *  - Verification Testing
+     *  - Penetration testing
+     *  - Dynamic Analysis scheduling
+     *  - Taint analysis scheduling
+     *
+     * @private
+     */
+    private _prepareTestPlan():TestPlan{
+        // TODO : browse the assurance model quickly by using AssuranceModel.ControlTree
+        // TODO : add steps attached to app lifecycle step
+        const plan = new TestPlan();
+        const tests:any = {
+            [TestType.VT]: [],
+            [TestType.PT]: [],
+            [TestType.STATIC_SCAN]: [],
+            [TestType.DYN_SCAN]: [],
+            [TestType.IAST]: [],
+            [TestType.TAINT]: [],
+            [TestType.SYMEXEC]: []
+        };
 
-    private _prepareTestPlan(){
+        const leafs = this.model.getControlLeafsFrom(CANONICALIZED_ROOT);
+        leafs.map((vNode)=>{
+            if(vNode.ctrl.isControlAssessment()){
+                const assesst = (vNode.ctrl as ControlAssessment);
+                tests[assesst.testType].push(vNode);
+            }
+        });
 
+        if(tests[TestType.VT].length>0) plan.addStep(TestType.VT, tests[TestType.VT]);
+        if(tests[TestType.IAST].length>0) plan.addStep(TestType.IAST, tests[TestType.IAST]);
+        if(tests[TestType.STATIC_SCAN].length>0) plan.addStep(TestType.STATIC_SCAN, tests[TestType.STATIC_SCAN]);
+        // add coverage measurement + loop
+        if(tests[TestType.TAINT].length>0) plan.addStep(TestType.TAINT, tests[TestType.TAINT]);
+        if(tests[TestType.DYN_SCAN].length>0) plan.addStep(TestType.DYN_SCAN, tests[TestType.DYN_SCAN]);
+        // add coverage measurement + loop
+        if(tests[TestType.STATIC_SCAN].length>0) plan.addStep(TestType.STATIC_SCAN, tests[TestType.STATIC_SCAN]);
+        // add coverage measurement + loop
+        if(tests[TestType.SYMEXEC].length>0) plan.addStep(TestType.SYMEXEC, tests[TestType.SYMEXEC]);
+        if(tests[TestType.PT].length>0) plan.addStep(TestType.PT, tests[TestType.PT]);
+
+        return plan;
     }
 
     /**
@@ -189,18 +257,31 @@ export class GenericScanner extends AssuranceScanner {
 
         // TODO : prepare test plan by gathering, categorizing and prioritizing tests
 
+        // 0.b prepare test plan
+        const plan = this._prepareTestPlan();
+
         // 1. configure main Bus
         this._registerOnBusEvents(pOptions);
 
+        // TODO : execute TestPlan + attach matches to TestPlan step
+
         // 2. perform basis static scan
-        this.report = new AssuranceReport({ });
+        this.report = new AssuranceReport({
+            time:(new Date()).getTime(),
+            project: pContext,
+            model: this.model
+        });
 
-        if(this.project.getState()!=ProjectState.READY){
-            // analysis
-            this.project.fullscan();
-        }
-
-        this._staticScan(this.report, pOptions);
+        plan.execute((vStep:TestStep)=>{
+            Logger.info("[SCANNER]["+this.name+"] Execute Test Step : "+vStep.type)
+            let next = false;
+            switch (vStep.type){
+                case TestType.STATIC_SCAN:
+                    this._staticScan( this.report, vStep.controls, pOptions);
+                    break;
+            }
+            return next;
+        });
 
 
 
@@ -224,9 +305,9 @@ export class GenericScanner extends AssuranceScanner {
      *
      * @private
      */
-    private _staticScan( pReport:AssuranceReport, pOptions:GenericScanOptions) {
-        this.model.controls.map( vCtrl => {
-            this.executeRules(pReport, vCtrl);
+    private _staticScan( pReport:AssuranceReport, pControlNodes:ControlNode[], pOptions:GenericScanOptions) {
+        pControlNodes.map( vCtrl => {
+            this.executeRules(pReport, (vCtrl.ctrl as ControlAssessment).);
         });
     }
 
@@ -244,7 +325,7 @@ export class GenericScanner extends AssuranceScanner {
         // TODO : prepare test plan by gathering, categorizing and prioritizing tests
     }
 
-    run( pContext:DexcaliburProject, pOptions:any = {}){
+    override run( pContext:DexcaliburProject, pOptions:any = {}){
 
         if(this._searchContext==null){
             this._searchContext = new MerlinSearchAPI(pContext.getSearchEngine().getDatabase());
@@ -253,8 +334,16 @@ export class GenericScanner extends AssuranceScanner {
         if(this.reports.length==0){
             this._firstScan( this.project, pOptions);
         }else{
-            this.report = new AssuranceReport({ });
-            this._staticScan( this.report, pOptions);
+
+            this.report = new AssuranceReport({
+                time:(new Date()).getTime(),
+                project: pContext,
+                model: this.model
+            });
+
+            //this._reScan( this.report, pOptions);
+
+            //this.reports.push(this.report);
         }
     }
 

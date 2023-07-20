@@ -6,6 +6,20 @@ import { ConstraintMatch } from "./ConstraintMatch.js";
 import CodeConstraint from "./CodeConstraint.js";
 import DexcaliburProject from "../../DexcaliburProject.js";
 import AssuranceModel from "./AssuranceModel.js";
+import Control from "./Control.js";
+import ControlAssessment from "./ControlAssessment.js";
+
+
+export interface Match {
+    assessment: ControlAssessment;
+    ruleIdx: number;
+    rule: string;
+    match: any;
+}
+
+export interface MatchesMap {
+    [canonicalID:string]:Match;
+}
 
 export interface AssuranceReportOptions {
     time?:number;
@@ -20,7 +34,7 @@ export interface AssuranceReportOptions {
     primaryAssets?:ConstraintMatch<Asset>[];
     secondaryAssets?:ConstraintMatch<Asset>[];
     globalThreats?:ConstraintMatch<Threat>[];
-
+    matches?:MatchesMap;
 }
 export default class AssuranceReport {
 
@@ -40,6 +54,9 @@ export default class AssuranceReport {
 
 
     assets:ConstraintMatch<Asset>[] = [];
+    matches:MatchesMap = {};
+
+
 
     constructor( pConfig:AssuranceReportOptions = {}) {
         if(pConfig!=null) for(const i in pConfig) this[i]=pConfig[i];
@@ -89,6 +106,12 @@ export default class AssuranceReport {
         return this.model;
     }
 
+    private _canonicalize(pControl:Control, pAssess:ControlAssessment):string {
+
+    }
+    addMatch( pControl:Control, pAssess:ControlAssessment, pRuleOffset:number, pNode:any):void {
+        this.matches[]
+    }
     /**
      * To export the report to JSON file
      *
@@ -145,8 +168,15 @@ export default class AssuranceReport {
                         };
                     }
                     break;
-                default:
+
+
+                case "time":
+                case "application":
+                case "device":
                     o[i] = this[i];
+                    break;
+                case "model":
+                    o.model = this.model.toJsonObject();
                     break;
             }
         }

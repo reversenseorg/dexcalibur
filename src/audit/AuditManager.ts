@@ -12,6 +12,7 @@ import {PrivacyTrackersModel} from "./models/PrivacyTrackersModel.js";
 import {PrivacyPiiModel} from "./models/PrivacyPiiModel.js";
 import DexcaliburEngine from "../DexcaliburEngine.js";
 import {Logger} from "@dexcalibur/dexcalibur-installer/src/utils/Logger.js";
+import {Scan} from "./common/Scan.js";
 
 const SUBDIRS = {
     REPORTS: "reports",
@@ -115,7 +116,7 @@ export class AuditManager {
         ].map(x => {
             if(allModels[x.getID()]==null){
                 x.load();
-                this.saveModel(x, pProject);
+                //this.saveModel(x, pProject);
                 allModels[x.getID()] = x;
             }
         });

@@ -1,6 +1,7 @@
 import {AssetOptions} from "./Asset.js";
 import ControlAssessment from "./ControlAssessment.js";
 import {Metadata} from "./Metadata.js";
+import {IControl} from "./IControl.js";
 
 export interface ControlOptions {
     id?:string;
@@ -16,7 +17,7 @@ export interface ControlOptions {
  *
  * @class
  */
-export default class Control {
+export default class Control implements IControl {
 
     /**
      * Unique control ID
@@ -111,5 +112,15 @@ export default class Control {
         }
 
         return o;
+    }
+
+
+
+    isControlAssessment(): boolean {
+        return true;
+    }
+
+    isControl(): boolean {
+        return false;
     }
 }
