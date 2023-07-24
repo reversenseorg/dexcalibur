@@ -25,6 +25,7 @@ import {NodeInternalType} from "./NodeInternalType.js";
 import {NodeProperty, NodePropertyState} from "./persist/orm/NodeProperty.js";
 import {DbDataType, DbKeyType, DbSerialize} from "./persist/orm/DbAbstraction.js";
 import {CryptoUtils} from "./CryptoUtils.js";
+import {CoreDebug} from "./core/CoreDebug.js";
 
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
@@ -359,6 +360,8 @@ export default class HookSession extends WebsocketSession implements INode
         }
 
         o.size = o.message.length;
+
+        CoreDebug.checkJsonSerialize(o, "HookSession");
         return o;
     }
 

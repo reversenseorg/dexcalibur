@@ -24,6 +24,7 @@ import {TagCategory} from "./tags/TagCategory.js";
 import {NodeType} from "./persist/orm/NodeType.js";
 import {NodeInternalType} from "./NodeInternalType.js";
 import Util from "./Utils.js";
+import {CoreDebug} from "./core/CoreDebug.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -700,7 +701,8 @@ export default class Inspector implements BusBroadcaster
         o.listener = [];
         for(const i in this.listener)
             o.listener.push({ n:i });
-        
+
+        CoreDebug.checkJsonSerialize(o, "Inspector");
         return o;
     }
 }

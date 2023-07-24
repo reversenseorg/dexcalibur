@@ -1,11 +1,12 @@
 import AssuranceModel from "../common/AssuranceModel.js";
 import Control from "../common/Control.js";
 import {Merlin} from "../../search/Merlin.js";
-import ControlAssessment, {AnalysisType, TestType} from "../common/ControlAssessment.js";
+import ControlAssessment, {AnalysisType} from "../common/ControlAssessment.js";
 import * as _fs_ from "fs";
 import * as _path_ from "path";
 import Util from "../../Utils.js";
 import {TrackerInfo} from "../privacy/TrackerInfo.js";
+import {TestType} from "../common/TestPlan.js";
 
 
 const model = new AssuranceModel({
@@ -54,7 +55,7 @@ rawData.trackers.map((vRaw)=>{
         assessCtrl = new ControlAssessment({
             id: "network",
             name: "URI",
-            testType: TestType.VT,
+            testType: TestType.STATIC_SCAN,
             analType: AnalysisType.SAST,
             rules: []
         });
@@ -71,7 +72,7 @@ rawData.trackers.map((vRaw)=>{
         assessCtrl = new ControlAssessment({
             id: "code",
             name: "Package & class names",
-            testType: TestType.VT,
+            testType: TestType.STATIC_SCAN,
             analType: AnalysisType.SAST,
             rules: []
         })
@@ -86,5 +87,7 @@ rawData.trackers.map((vRaw)=>{
 
     model.controls.push(ctrl);
 });
+
+model.updateControlTree(model.controls);
 
 export const PrivacyTrackersModel = model;

@@ -6,6 +6,7 @@ import {DexcaliburVM} from "./DexcaliburVM.js";
 import * as Log from "./Logger.js";
 import {OperatingSystem} from "./OperatingSystem.js";
 import {Architecture} from "./Architecture.js";
+import {CoreDebug} from "./core/CoreDebug.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 const PLATFORM_RE = new RegExp('(?<source>[^_.]+)_(?<name>[^_.]+)_(?<version>[^_.]+)_(?<vendor>[^_.]+)\.(?<format>[^.]+)');
@@ -196,7 +197,7 @@ export default class Platform
             if(typeof this[i] == 'function') continue;
             o[i] = this[i];
         }
-
+        CoreDebug.checkJsonSerialize(o, "Platform");
         return o;
     }
 

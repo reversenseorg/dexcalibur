@@ -1,3 +1,4 @@
+import {CoreDebug} from "../core/CoreDebug.js";
 
 export interface ProductOptions {
     __pCode:string;
@@ -28,10 +29,12 @@ export class Product {
     }
 
     toJsonObject():any {
-        return {
+        const o = {
             __pCode: this.__pCode,
             __pVersion: this.__pVersion,
             __pSerial: this.__pSerial,
-        }
+        };
+        CoreDebug.checkJsonSerialize(o, "Product");
+        return o;
     }
 }

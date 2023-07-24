@@ -86,7 +86,7 @@ export class ModelClassReference
     }
 
     toJsonObject(){
-        Logger.debug("[MODEL:CLASS:REF] toJsonObject() is not implemented");
+        Logger.error("[MODEL:CLASS:REF] toJsonObject() is not implemented");
         return {};
     }
 }

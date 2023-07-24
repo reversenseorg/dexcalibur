@@ -16,6 +16,7 @@ import {OperatingSystem} from "./OperatingSystem.js";
 import ModelSyscallFactory from "./ModelSyscallFactory.js";
 import {Architecture} from "./Architecture.js";
 import DeviceProfileFactory from './device/DeviceProfileFactory.js';
+import {CoreDebug} from "./core/CoreDebug.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -934,6 +935,7 @@ export class Device
         for(const i in pOverride){
             json[i] = pOverride[i];
         }
+        CoreDebug.checkJsonSerialize(json, "Device");
         return json;
     }
 

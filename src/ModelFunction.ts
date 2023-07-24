@@ -20,6 +20,7 @@ import {INode} from "./INode.js";
 import {DataSourceHelper} from "./DataSourceHelper.js";
 import {AbstractHook} from "./hook/AbstractHook.js";
 import {Tag} from "./tags/Tag.js";
+import {CoreDebug} from "./core/CoreDebug.js";
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
 const TO_JSON:Function = function (vSrc:any, vTarget:any, vInArray:boolean=false):any{
@@ -430,6 +431,7 @@ export class ModelFunction implements INode, IPersistent {
             }
 
         }
+        CoreDebug.checkJsonSerialize(obj, "ModelFunction");
         return obj;
     }
 }

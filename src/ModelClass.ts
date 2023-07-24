@@ -15,6 +15,7 @@ import {NodeProperty, NodePropertyState} from "./persist/orm/NodeProperty.js";
 import {DbDataType, DbKeyType} from "./persist/orm/DbAbstraction.js";
 import {DataSourceHelper} from "./DataSourceHelper.js";
 import {INode} from "./INode.js";
+import {CoreDebug} from "./core/CoreDebug.js";
 
 
 interface IClassSet {
@@ -480,6 +481,7 @@ export default class ModelClass extends Savable implements INode, IPersistent
                 })*/
             }
         }
+        CoreDebug.checkJsonSerialize(obj, "ModelClass");
         return obj;
     }
 

@@ -1,13 +1,14 @@
 import {MerlinSearchAPI} from "./MerlinSearchAPI.js";
 import DexcaliburProject from "../DexcaliburProject.js";
-import {Operation, OperationType, MerlinSearchRequest} from "./MerlinSearchRequest.js";
-import ModelClass from "../ModelClass.js";
-import ModelMethod from "../ModelMethod.js";
+import {MerlinSearchRequest, Operation, OperationType, TaintOperationArgs} from "./MerlinSearchRequest.js";
 import {OperatingSystem} from "../OperatingSystem.js";
-import { FinderResult } from "./FinderResult.js";
+import {FinderResult} from "./FinderResult.js";
 import {Merlin, MerlinPrimitive, MerlinType} from "./Merlin.js";
-import ControlAssessment from "../audit/common/ControlAssessment.js";
 import {BusSubscriber} from "../Bus.js";
+import {Tag} from "../tags/Tag.js";
+import {NodeType} from "../persist/orm/NodeType.js";
+import {NodeInternalType, NodeInternalTypeName} from "../NodeInternalType.js";
+import {CoreDebug} from "../core/CoreDebug.js";
 
 export enum MerlinRuleType {
     STATIC,
@@ -57,6 +58,8 @@ export class MerlinRule extends MerlinSearchAPI implements MerlinPrimitive {
 
     oper:Operation[] = [];
 
+
+
     protected _sinks:MerlinSearchRequest[] = [];
     protected _sources:MerlinSearchRequest[] = [];
     protected _steps:MerlinRule[] = [];
@@ -78,10 +81,65 @@ export class MerlinRule extends MerlinSearchAPI implements MerlinPrimitive {
         throw new Error("Method not implemented.");
     }
 
+    /**
+     * To create a search string from a MerlinRule instance.
+     * MerlinRule class has override class for each target OS,
+     * So the implementation is subkject to change.
+     */
     toSearchString(): string {
-        throw new Error("Method not implemented.");
+        let s = "";
+        switch (this.targetOS){
+            case OperatingSystem.ANDROID:
+                s += "android()"+MerlinRule.stringify(this.getOperations(), "android()");
+                break;
+            case OperatingSystem.TIZEN:
+                s += "tizen()"+MerlinRule.stringify(this.getOperations(), "tizen()");
+                break;
+            case OperatingSystem.IOS:
+                s += "ios()"+MerlinRule.stringify(this.getOperations(), "ios()");
+                break;
+            case OperatingSystem.MACOS:
+                s += "macos()"+MerlinRule.stringify(this.getOperations(), "macos()");
+                break;
+        }
+
+        return s;
     }
 
+    static  stringify(pOperations:Operation[], pSuffix = ""):string {
+        let s = "";
+        let type:any;
+        pOperations.map((vOpe)=>{
+            switch (vOpe.type){
+                case OperationType.TAINT_SRC:
+                    type = (vOpe.args as TaintOperationArgs).request.getNode();
+                    if(typeof type!=="string"){
+                        type = MerlinSearchAPI.getMethodFromNodeType((type as NodeType).getType());
+                    }
+
+                    s += `.sources(${pSuffix+MerlinSearchRequest.stringify(
+                        (vOpe.args as TaintOperationArgs).request.getOperations(), type)})`;
+                    break;
+                case OperationType.TAINT_SINK:
+                    type = (vOpe.args as TaintOperationArgs).request.getNode();
+                    if(typeof type!=="string"){
+                        type = MerlinSearchAPI.getMethodFromNodeType((type as NodeType).getType());
+                    }
+
+                    s += `.sink(${pSuffix+MerlinSearchRequest.stringify(
+                        (vOpe.args as TaintOperationArgs).request.getOperations(), type )})`;
+                    break;
+                case OperationType.TAINT_STEP:
+                    s += `.step(${pSuffix+MerlinRule.stringify( (vOpe.args as TaintOperationArgs).request.getOperations() )})`;
+                    break;
+            }
+        });
+        return s;
+    }
+
+    getOperations():Operation[] {
+        return this.oper;
+    }
 
     /**
      * To perform request on data encapsulated into a bus event
@@ -122,6 +180,12 @@ export class MerlinRule extends MerlinSearchAPI implements MerlinPrimitive {
     sources( pRules:MerlinSearchRequest):MerlinRule {
         this.type = MerlinRuleType.TAINT;
         this._sources.push(pRules);
+        this.oper.push({
+            type: OperationType.TAINT_SRC,
+            args: {
+                request: pRules
+            }
+        });
         return this;
     }
 
@@ -132,6 +196,12 @@ export class MerlinRule extends MerlinSearchAPI implements MerlinPrimitive {
     sink( pRules:MerlinSearchRequest):MerlinRule {
         this.type = MerlinRuleType.TAINT;
         this._sinks.push(pRules);
+        this.oper.push({
+            type: OperationType.TAINT_SINK,
+            args: {
+                request: pRules
+            }
+        });
         return this;
     }
 
@@ -145,6 +215,7 @@ export class MerlinRule extends MerlinSearchAPI implements MerlinPrimitive {
 
     steps( pRules:MerlinRule):MerlinRule {
         this._steps.push(pRules);
+
         return this;
     }
 
@@ -197,23 +268,33 @@ export class MerlinRule extends MerlinSearchAPI implements MerlinPrimitive {
      * @return {any} Poor JS object
      * @method
      */
-    toJsonObject():any {
+    override toJsonObject():any {
 
         let o = super.toJsonObject();
 
-        return {
+
+        CoreDebug.checkJsonSerialize(o,"MerlinRule (super)");
+
+        const v = {
             o,
             TYPE: this.TYPE,
             type: this.type,
             emulate: this.emulate,
-            request: this.request.toJsonObject(),
-            oper: this.oper,
+            request: null,
+            //oper: this.oper,
             _sinks: this._sinks.map(x => x.toJsonObject()),
             _sources: this._sources.map(x => x.toJsonObject()),
             _steps: this._steps.map(x => x.toJsonObject()),
             _subs: this._subs.map(x => x.toJsonObject()),
             _evt: this._evt
         };
+
+        if(this.request!=null){
+            v.request = this.request.toJsonObject();
+        }
+
+        CoreDebug.checkJsonSerialize(v,"MerlinRule");
+        return v;
     }
 
     static fromJsonObject(pObject:any):MerlinRule{

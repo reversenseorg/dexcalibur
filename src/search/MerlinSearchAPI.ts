@@ -23,6 +23,7 @@ import ModelSyscall from "../ModelSyscall.js";
 import {IAnalyzerUnit} from "../analyzer/IAnalyzerUnit.js";
 import {OperatingSystem} from "../OperatingSystem.js";
 import {NodeInternalType} from "../NodeInternalType.js";
+import {CoreDebug} from "../core/CoreDebug.js";
 
 
 
@@ -295,12 +296,14 @@ export class MerlinSearchAPI
   }
 
   toJsonObject():any {
-    return {
+    const o = {
       targetOS: this.targetOS,
       _queryCache: this._queryCache,
       _caseSensitive: this._caseSensitive,
       _byID: this._byID,
       _analyzers: Object.keys(this._analyzers)
     };
+    CoreDebug.checkJsonSerialize(o, "MerlinSearchAPI");
+    return o;
   }
 }

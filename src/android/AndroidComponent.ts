@@ -7,6 +7,7 @@ import ModelClass from "../ModelClass.js";
 import {AndroidAttributeSet} from "./AndroidAttribute.js";
 import {NodeInternalType} from "../NodeInternalType.js";
 import {CryptoUtils} from "../CryptoUtils.js";
+import {CoreDebug} from "../core/CoreDebug.js";
 
 
 const ANDROID_PREFIX = "android:";
@@ -131,7 +132,7 @@ export default class AndroidComponent extends AndroidIntentable
         }
 
         o.__ppts = this.__ppts;
-
+        CoreDebug.checkJsonSerialize(o, "AndroidComponent");
         return o;
     }
 

@@ -9,6 +9,7 @@ import {NodeType} from "./persist/orm/NodeType.js";
 import {NodeProperty} from "./persist/orm/NodeProperty.js";
 import {DbDataType, DbKeyType} from "./persist/orm/DbAbstraction.js";
 import {DataSourceHelper} from "./DataSourceHelper.js";
+import {CoreDebug} from "./core/CoreDebug.js";
 
 /**
  * Represents a call to a method, a field or a class
@@ -92,6 +93,7 @@ export default class ModelCall extends Savable
                 obj.instr = this.instr.exportType(); //toJsonObject(["name"]);
             }
         }
+        CoreDebug.checkJsonSerialize(obj, "ModelCall");
         return obj;
     };
 }

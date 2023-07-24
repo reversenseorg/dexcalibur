@@ -3,6 +3,7 @@ import Threat, {ThreatOptions} from "./Threat.js";
 import CodeConstraint from "./CodeConstraint.js";
 import Constraint from "./Constraint.js";
 import {NodeInternalType} from "../../NodeInternalType.js";
+import {CoreDebug} from "../../core/CoreDebug.js";
 
 
 export interface CodeConstraintMap {
@@ -51,6 +52,7 @@ export default class CodeThreat extends Threat {
         this.signature.map(x => {
             o.signature.push(x.toJsonObject());
         });
+        CoreDebug.checkJsonSerialize(o, "CodeThreat");
         return o;
     }
 }

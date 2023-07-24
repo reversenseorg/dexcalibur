@@ -5,6 +5,7 @@ import {MerlinSearchRequest} from "../../../search/MerlinSearchRequest.js";
 import Asset, {AssetOptions} from "../../common/Asset.js";
 import {PiiClass} from "./PiiClass.js";
 import Constraint from "../../common/Constraint.js";
+import {MerlinPrimitive} from "../../../search/Merlin.js";
 
 
 export interface PiiTypeMap {
@@ -14,7 +15,7 @@ export interface PiiTypeOptions extends AssetOptions{
     children?:any;
 
     fields?:PiiField[];
-    rules?:MerlinSearchRequest[];
+    rules?:MerlinPrimitive[];
 }
 
 
@@ -26,6 +27,7 @@ export class PiiType extends Asset {
 
     rules:MerlinSearchRequest[] = [];
     signature:Constraint[] = []
+
 
     constructor(pOpts:PiiTypeOptions) {
         super(pOpts);

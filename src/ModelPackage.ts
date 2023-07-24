@@ -5,6 +5,7 @@ import {NodeInternalType} from "./NodeInternalType.js";
 import {IPersistent} from "./persist/orm/IPersistent.js";
 import {DataSourceHelper} from "./DataSourceHelper.js";
 import {Savable, STUB_TYPE} from "./ModelSavable.js";
+import {CoreDebug} from "./core/CoreDebug.js";
 
 
 /**
@@ -259,6 +260,7 @@ export default class ModelPackage extends Savable implements IPersistent
         }
         o.absolute_size = this.getAbsoluteSize();
         o.size = this.getSize();
+        CoreDebug.checkJsonSerialize(o, "ModelPackage");
         return o;
     }
 }

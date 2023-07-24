@@ -6,6 +6,7 @@ import {NodeProperty} from "./persist/orm/NodeProperty.js";
 import {DbDataType, DbKeyType, DbSerialize} from "./persist/orm/DbAbstraction.js";
 import {OperatingSystem} from "./OperatingSystem.js";
 import {Architecture} from "./Architecture.js";
+import {CoreDebug} from "./core/CoreDebug.js";
 
 
 /**
@@ -82,6 +83,7 @@ export default class ModelSyscall implements INode
         for(const i  in this) o[i] = this[i];
         // o.sysnum = this.sysnum.join(",");
         // o.args = this.args.join(",");
+        CoreDebug.checkJsonSerialize(o, "ModelSyscall");
         return o;
     }
 

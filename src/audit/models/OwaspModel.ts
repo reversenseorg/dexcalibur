@@ -1,7 +1,8 @@
 import AssuranceModel from "../common/AssuranceModel.js";
 import Control from "../common/Control.js";
 import {Merlin} from "../../search/Merlin.js";
-import ControlAssessment, {AnalysisType, TestType} from "../common/ControlAssessment.js";
+import ControlAssessment, {AnalysisType} from "../common/ControlAssessment.js";
+import {TestType} from "../common/TestPlan.js";
 
 
 export const OwaspMasvsModel = new AssuranceModel({
@@ -106,3 +107,6 @@ export const OwaspMasvsModel = new AssuranceModel({
         })
     ]
 })
+
+
+OwaspMasvsModel.updateControlTree(OwaspMasvsModel.controls);

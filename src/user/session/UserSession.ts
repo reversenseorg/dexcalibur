@@ -17,6 +17,7 @@ import {User} from "../../User.js";
 import {AuthenticationService} from "../auth/AuthenticationService.js";
 import {UserService} from "../UserService.js";
 import {SessionData} from "./SessionData.js";
+import {CoreDebug} from "../../core/CoreDebug.js";
 
 export class UserSession implements IPersistent{
 
@@ -255,6 +256,7 @@ export class UserSession implements IPersistent{
         o._acc = this._acc.getUID();
         //o._data = this._uid;
         o._conn = Object.keys(this._conn);
+        CoreDebug.checkJsonSerialize(o,"UserSession");
         return o;
     }
 }

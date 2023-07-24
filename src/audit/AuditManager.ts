@@ -62,10 +62,6 @@ export class AuditManager {
         return gInstance;
     }
 
-    listGenericModels():AssuranceModel[] {
-        return this.genericModels;
-    }
-
 
     /**
      * To list assurance model of the project.

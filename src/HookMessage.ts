@@ -1,3 +1,4 @@
+import {CoreDebug} from "./core/CoreDebug.js";
 
 
 export default class HookMessage
@@ -69,6 +70,8 @@ export default class HookMessage
     //        o.hook = this.hook.toJsonObject();
         o.after = this.isAfter();
         o.before = this.isBefore();
+
+        CoreDebug.checkJsonSerialize(o, "HookMessage");
         return o;
     }
 }

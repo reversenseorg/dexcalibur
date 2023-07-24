@@ -1,6 +1,7 @@
 import HookStrategy from "./HookStrategy.js";
 import {NodeType} from "../persist/orm/NodeType.js";
 import {NodeInternalType} from "../NodeInternalType.js";
+import {CoreDebug} from "../core/CoreDebug.js";
 
 
 
@@ -174,6 +175,7 @@ export default class HookTemplateFragment {
         o.tpl = this.template;
         o._cache = this._cache;
         o._preproc = this._preproc;
+        CoreDebug.checkJsonSerialize(o,"HookTemplateFragment");
         return o;
     }
 }

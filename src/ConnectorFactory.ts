@@ -10,6 +10,7 @@ import SerializedObject from "../connectors/inmemory/SerializedObject.js";
 import Util from "./Utils.js";
 import InMemoryConnector from "../connectors/inmemory/adapter.js";
 import SqliteConnector from '../connectors/sqlite/adapter.js';
+import {CoreDebug} from "./core/CoreDebug.js";
 
 
 let gInstance:ConnectorFactory = null;
@@ -84,6 +85,7 @@ export class ConnectorFactory
         for(let i in this.connectors){
             o.push(this.connectors[i].default.getProperties());
         }
+        CoreDebug.checkJsonSerialize(o, "ConnectorFactory");
         return o;
     }
 }

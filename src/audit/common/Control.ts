@@ -2,6 +2,11 @@ import {AssetOptions} from "./Asset.js";
 import ControlAssessment from "./ControlAssessment.js";
 import {Metadata} from "./Metadata.js";
 import {IControl} from "./IControl.js";
+import {CoreDebug} from "../../core/CoreDebug.js";
+
+export interface ControlMap {
+    [key:string] :Control|ControlAssessment;
+}
 
 export interface ControlOptions {
     id?:string;
@@ -89,11 +94,12 @@ export default class Control implements IControl {
     }
 
     toJsonObject():any {
+        console.log(this.id, this.name);
         let o:any = {
             id: this.id,
             name: this.name,
             description: this.description,
-            links: this.links,
+            //links: this.links,
             children: [],
             assessments: [],
             metadata: this.metadata
@@ -111,16 +117,18 @@ export default class Control implements IControl {
             });
         }
 
+        CoreDebug.checkJsonSerialize(o,"Control");
+
         return o;
     }
 
 
 
     isControlAssessment(): boolean {
-        return true;
+        return false;
     }
 
     isControl(): boolean {
-        return false;
+        return true;
     }
 }

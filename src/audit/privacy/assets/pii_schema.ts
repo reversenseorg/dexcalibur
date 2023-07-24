@@ -34,7 +34,8 @@ export const PII_DataType:PiiTypeMap = {
                 ],
                 rules: [
                     Merlin.android().javaClass("name:^android\.location\.Geocoder$" ),
-                    Merlin.android().javaCallToMethod("enclosingClass.name:^android\.location\.Geocoder$")
+                    Merlin.android().javaCallToMethod("enclosingClass.name:^android\.location\.Geocoder$"),
+                    Merlin.flutter().field("enclosingClass.name:AutofillHints").filter("name:^postalCode$")
                 ]
             }),
             new PiiField({
@@ -458,7 +459,7 @@ export const PII_Data:PiiClassMap = {
                                 Merlin.android().method("__signature__:^android\.location\.Address;->getLatitude")
                             ).sink(
                                 Merlin.android().method("tags:file")
-                            ).request
+                            )
                         ]
                     })
                 ]
@@ -469,6 +470,44 @@ export const PII_Data:PiiClassMap = {
                 types: [
                     new PiiType({
                         name:"DNA sample",
+                    })
+                ]
+            })
+        ]
+    }),
+    deviceData: new PiiClass({
+        name: "Device",
+        categories: [
+            new PiiCategory({
+                name: "Operator",
+                criticity: PiiCriticity.MEDIUM,
+                types: [
+                    new PiiType({
+                        name:"Acquisition channel",
+                    }),
+                    new PiiType({
+                        name:"Customer segments",
+                    }),
+                    new PiiType({
+                        name:"Cookies",
+                    }),
+                    new PiiType({
+                        name:"Social trends",
+                    })
+                ]
+            }),
+            new PiiCategory({
+                name: "Device Fingerprint",
+                criticity: PiiCriticity.MEDIUM,
+                types: [
+                    new PiiType({
+                        name:"IMEI Sourcing",
+                        rules: [
+                            Merlin.android().nocase().method("name:devicefingerprint" ),
+                            Merlin.android().nocase().field("name:userame" ),
+                            Merlin.android().class("name:Person" ),
+                            Merlin.android().class("name:User" )
+                        ]
                     })
                 ]
             })

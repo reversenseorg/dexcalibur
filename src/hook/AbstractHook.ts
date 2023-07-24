@@ -6,6 +6,7 @@ import {NodeInternalType} from "../NodeInternalType.js";
 import {HookManagerException} from "../errors/HookManagerException.js";
 import HookStrategy from "./HookStrategy.js";
 import DexcaliburProject from "../DexcaliburProject.js";
+import {CoreDebug} from "../core/CoreDebug.js";
 
 
 
@@ -478,6 +479,8 @@ export abstract class AbstractHook {
             after: [],
             replace: [],
         };*/
+
+        CoreDebug.checkJsonSerialize(o,"AbstractHook");
         return o;
     }
 

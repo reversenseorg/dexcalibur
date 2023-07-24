@@ -7,6 +7,7 @@ import {IProfile} from "./profile/IProfile.js";
 import {DeviceProfilingOptions, IBridge} from "../Bridge.js";
 import GenericMountsProfile from "./profile/GenericMountsProfile.js";
 import * as Log from "../Logger.js";
+import {CoreDebug} from "../core/CoreDebug.js";
 
 
 enum TYPE {
@@ -228,7 +229,7 @@ export default class DeviceProfile
             }else
                 o[i] = this[i];
         }
-
+        CoreDebug.checkJsonSerialize(o, "DeviceProfile");
         return o;
     }
 

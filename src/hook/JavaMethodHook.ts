@@ -3,6 +3,7 @@ import {AbstractHook} from "./AbstractHook.js";
 import {HookScriptBuilderException} from "../errors/HookScriptBuilderException.js";
 import {NodeInternalType} from "../NodeInternalType.js";
 import {NodeType} from "../persist/orm/NodeType.js";
+import {CoreDebug} from "../core/CoreDebug.js";
 
 
 export default class JavaMethodHook extends AbstractHook {
@@ -87,6 +88,7 @@ export default class JavaMethodHook extends AbstractHook {
         let o = super.toJsonObject();
 
         o.method = this.getTarget().getUID();
+        CoreDebug.checkJsonSerialize(o, "JavaMethodHook");
         return o;
     }
 

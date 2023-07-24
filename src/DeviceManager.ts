@@ -16,6 +16,7 @@ import {ValidationCapable, ValidationRule} from "./Validator.js";
 import DexcaliburEngine from "./DexcaliburEngine.js";
 import {External} from "./external/External.js";
 import {DeviceManagerException} from "./errors/DeviceManagerException.js";
+import {CoreDebug} from "./core/CoreDebug.js";
 
 const Logger:Log.ProdLogger = Log.newLogger() as Log.ProdLogger;
 
@@ -677,6 +678,7 @@ export default class DeviceManager extends ValidationCapable
         for(const i in this.devices){
             json.push(this.devices[i].toJsonObject(null, pExcludeList.device));
         }
+        CoreDebug.checkJsonSerialize(json, "DeviceManager");
         return json;
     }
 

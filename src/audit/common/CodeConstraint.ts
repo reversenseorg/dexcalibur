@@ -5,6 +5,7 @@
 
 import Constraint, {ConstraintOptions, ConstraintType} from "./Constraint.js";
 import {NodeInternalType} from "../../NodeInternalType.js";
+import {CoreDebug} from "../../core/CoreDebug.js";
 
 
 export interface CodeConstraintOptions extends ConstraintOptions {
@@ -54,6 +55,7 @@ export default class CodeConstraint extends Constraint {
                     break;
             }
         }
+        CoreDebug.checkJsonSerialize(o, "CodeConstraint");
         return o;
     }
 }

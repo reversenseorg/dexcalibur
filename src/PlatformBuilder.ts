@@ -5,6 +5,7 @@ import Platform from "./Platform.js";
 import Util from "./Utils.js";
 import * as Log from './Logger.js';
 import DexcaliburWorkspace from "./DexcaliburWorkspace.js";
+import {CoreDebug} from "./core/CoreDebug.js";
 
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
@@ -131,7 +132,7 @@ export default class AndroidPlatformBuilder
         let o:any = new Object();
 
         for (let i in this) o[i] = this[i];
-
+        CoreDebug.checkJsonSerialize(o, "PlatformBuilder");
         return o;
     }
 }

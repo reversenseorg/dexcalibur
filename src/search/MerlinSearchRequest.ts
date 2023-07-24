@@ -12,6 +12,7 @@ import ControlAssessment from "../audit/common/ControlAssessment.js";
 import DexcaliburProject from "../DexcaliburProject.js";
 import {NodeInternalType, NodeInternalTypeName} from "../NodeInternalType.js";
 import { MerlinPrimitive, MerlinType} from "./Merlin.js";
+import {CoreDebug} from "../core/CoreDebug.js";
 
 
 export enum OperationType {
@@ -24,7 +25,10 @@ export enum OperationType {
   UNION,
   INTERSECT,
   JOIN,
-  INNERJOIN
+  INNERJOIN,
+  TAINT_SRC,
+  TAINT_SINK,
+  TAINT_STEP
 }
 
 export enum Comparison {
@@ -67,6 +71,9 @@ export interface AggregationOperationArgs {
   size?:number
 }
 
+export interface TaintOperationArgs {
+  request: MerlinSearchRequest
+}
 
 export interface TimeOperationArgs {
   comparison: Comparison,
@@ -76,7 +83,7 @@ export interface TimeOperationArgs {
 
 export interface Operation {
   type: OperationType,
-  args: SearchOperationArgs | InnerjoinOperationArgs | TimeOperationArgs | ValidateOperationArgs | WindowingOperationArgs | NestedRequestOperationArgs | AggregationOperationArgs;
+  args: SearchOperationArgs | InnerjoinOperationArgs | TimeOperationArgs | ValidateOperationArgs | WindowingOperationArgs | NestedRequestOperationArgs | AggregationOperationArgs | TaintOperationArgs ;
 }
 
 interface SearchRequestOptions {
@@ -794,9 +801,10 @@ export class MerlinSearchRequest implements MerlinPrimitive{
 
     let _type:any = "";
     if(typeof (this._type)==="string"){
-      _type  = NodeInternalTypeName[this._type];
+      _type  = this._type; //NodeInternalTypeName[this._type];
     }
-    else if((typeof (this._type)==="object") && (this._type instanceof NodeType)){
+    else if(typeof (this._type)==="object"){
+
       _type = (this._type as NodeType).getType();
     }
     else{
@@ -816,8 +824,21 @@ export class MerlinSearchRequest implements MerlinPrimitive{
         __stringified: ""
       };
 
-      o.__stringified = MerlinSearchRequest.stringify(this.getOperations(), o._type);
+    this.getOperations().map((vOpe,vIdx) => {
+      switch (vOpe.type){
+       /* case OperationType.INNERJOIN:
+          break;
+        case OperationType.TAINT_SRC:
+        case OperationType.TAINT_SINK:
+          break;*/
+        default:
+          o._oper[vIdx] = vOpe;
+          break;
+      }
+    });
 
+      o.__stringified = MerlinSearchRequest.stringify(this.getOperations(), o._type);
+    CoreDebug.checkJsonSerialize(o, "MerlinSearchRequest");
       return o;
   }
 

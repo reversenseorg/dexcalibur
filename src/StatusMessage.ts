@@ -1,6 +1,7 @@
 
 
 import * as Log from './Logger.js';
+import {CoreDebug} from "./core/CoreDebug.js";
 let Logger:Log.Logger = Log.newLogger();
 
 export interface StatusSet {
@@ -132,6 +133,7 @@ export default class StatusMessage
         o.progress = this.progress;
         o.msg = this.msg;
         o.extra = this.extra;
+        CoreDebug.checkJsonSerialize(o, "StatusMessage");
         return o;
     }
 }

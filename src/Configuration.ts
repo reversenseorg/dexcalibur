@@ -5,6 +5,7 @@ import * as _os_ from 'os';
 
 import DexcaliburWorkspace from './DexcaliburWorkspace.js' ;
 import {ExternalTool, ExternalToolMap} from "./ExternalTool.js";
+import {CoreDebug} from "./core/CoreDebug.js";
 
 
 const NO_EXPORT = ["platform_available"];
@@ -343,7 +344,7 @@ export default class Configuration {
                     break;
             }
         }
-
+        CoreDebug.checkJsonSerialize(o, "Configuration");
         return o;
     }
 }

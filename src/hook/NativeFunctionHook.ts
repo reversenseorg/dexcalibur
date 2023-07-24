@@ -5,6 +5,7 @@ import {NodeInternalType} from "../NodeInternalType.js";
 import {NodeType} from "../persist/orm/NodeType.js";
 import {HookScriptBuilderException} from "../errors/HookScriptBuilderException.js";
 import ModelFile from "../ModelFile.js";
+import {CoreDebug} from "../core/CoreDebug.js";
 
 export enum HookTargetType {
     STATIC_OFFSET,
@@ -110,6 +111,7 @@ export default class NativeFunctionHook extends AbstractHook {
         else if(f!==null)
             o.file = (f as ModelFile).getName();
 
+        CoreDebug.checkJsonSerialize(o,"NativeFunctionHook");
         return o;
     }
 

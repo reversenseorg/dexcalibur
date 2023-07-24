@@ -2,6 +2,7 @@ import {NodeType} from "../persist/orm/NodeType.js";
 import {NodeInternalType} from "../NodeInternalType.js";
 import {Tag} from "./Tag.js";
 import {INode} from "../INode.js";
+import {CoreDebug} from "../core/CoreDebug.js";
 
 /**
  * Tag categories are conceptuals, and are only used to help to manage tags
@@ -74,7 +75,8 @@ export class TagCategory implements INode
         o._tags = [];
         this._tags.map( (vTag:Tag) => {
             o._tags.push(vTag.toJsonObject());
-        })
+        });
+        CoreDebug.checkJsonSerialize(o,"TagCategory");
         return o;
     }
 

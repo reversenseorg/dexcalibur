@@ -5,6 +5,7 @@ import {INode, INodeMap} from "../INode.js";
 import Util from "../Utils.js";
 import {KeyPointException} from "../errors/KeyPointException.js";
 import * as Log from "../Logger.js";
+import {CoreDebug} from "../core/CoreDebug.js";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -299,6 +300,7 @@ export default class KeyPoint implements IPersistent {
                     break;
             }
         }
+        CoreDebug.checkJsonSerialize(o, "KeyPoint");
         return o;
     }
 }

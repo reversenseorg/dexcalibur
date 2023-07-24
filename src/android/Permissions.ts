@@ -4,6 +4,7 @@ import {DataSourceHelper} from "../DataSourceHelper.js";
 import {NodeProperty} from "../persist/orm/NodeProperty.js";
 import {DbDataType, DbKeyType} from "../persist/orm/DbAbstraction.js";
 import {RuntimeEvent} from "../hook/RuntimeEvent.js";
+import {CoreDebug} from "../core/CoreDebug.js";
 
 export class AndroidPermission
 {
@@ -126,6 +127,7 @@ export class AndroidPermission
         }else
             o.protectionLevel = null;
 
+        CoreDebug.checkJsonSerialize(o, "Permission");
         return o;
     }
 }

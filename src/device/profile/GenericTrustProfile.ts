@@ -1,5 +1,6 @@
 import {Profile} from "./Profile.js";
 import Certificate from "../../formats/common/Certificate.js";
+import {CoreDebug} from "../../core/CoreDebug.js";
 
 export default abstract class GenericTrustProfile extends Profile {
 
@@ -34,6 +35,7 @@ export default abstract class GenericTrustProfile extends Profile {
                     break;
             }
         }
+        CoreDebug.checkJsonSerialize(o, "GenericTrustProfile");
         return o;
     }
 

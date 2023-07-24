@@ -2,6 +2,7 @@ import { DataFlowInfo } from "../common/DataFlowInfo.js";
 import {Finding} from "../common/Finding.js";
 import {PrivacyFinding} from "./PrivacyFinding.js";
 import {TrackerInfo} from "./TrackerInfo.js";
+import {CoreDebug} from "../../core/CoreDebug.js";
 
 export interface PrivacyReportOptions {
     time?:number;
@@ -72,7 +73,7 @@ export class PrivacyReport {
 
         this.pii.map(x => o.pii.push(x.toJsonObject()));
         this.threats.map(x => o.threats.push(x.toJsonObject()));
-
+        CoreDebug.checkJsonSerialize(o, "PrivacyReport");
         return o;
     }
 }

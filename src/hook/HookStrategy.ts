@@ -16,6 +16,7 @@ import {NodeInternalType} from "../NodeInternalType.js";
 import {HookManager} from "./HookManager.js";
 import * as Log from "../Logger.js";
 import {CryptoUtils} from "../CryptoUtils.js";
+import {CoreDebug} from "../core/CoreDebug.js";
 
 export const DEFAULT_PRIORITY = -1;
 
@@ -456,6 +457,7 @@ export default class HookStrategy {
                     break;
             }
         }
+        CoreDebug.checkJsonSerialize(o, "HookStrategy");
         return o;
     }
 }

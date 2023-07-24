@@ -2,6 +2,7 @@ import {NodeType} from "../persist/orm/NodeType.js";
 import {NodeInternalType} from "../NodeInternalType.js";
 import {NodeProperty} from "../persist/orm/NodeProperty.js";
 import {DbDataType, DbKeyType, DbSerialize} from "../persist/orm/DbAbstraction.js";
+import {CoreDebug} from "../core/CoreDebug.js";
 
 export class AndroidRRO {
 
@@ -66,6 +67,7 @@ export class AndroidRRO {
     }
 
     toJsonObject(){
+        CoreDebug.checkJsonSerialize(this, "AndroidRRO");
         return this;
     }
 }

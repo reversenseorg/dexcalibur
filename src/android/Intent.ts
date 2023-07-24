@@ -1,4 +1,5 @@
 import {IntentFilter} from "./IntentFilter.js";
+import {CoreDebug} from "../core/CoreDebug.js";
 
 const ANDROID_PREFIX = "android:";
 const ANDROID_PREFIX_LEN = 8;
@@ -29,6 +30,7 @@ class IntentCriteria
     toJsonObject():any{
         let o:any = new Object();
         o.name = this.__attr.name;
+        CoreDebug.checkJsonSerialize(o, "IntentCriteria");
         return o;
     }
 }
@@ -165,6 +167,7 @@ export class IntentDataCriteria
         o.pathPattern = this.pathPattern;
         o.pathPrefix = this.pathPrefix;
         o.mimeType = this.mimeType;
+        CoreDebug.checkJsonSerialize(o, "IntentDataCriteria");
         return o;
     }
 }

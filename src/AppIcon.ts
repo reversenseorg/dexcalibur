@@ -1,3 +1,4 @@
+import {CoreDebug} from "./core/CoreDebug.js";
 
 
 /**
@@ -32,7 +33,9 @@ export class AppIcon {
     toJsonObject(){
         //let o:any = new Object();
         //for(let i in this) o[i] = this[i];
-        return this;
+        const  o  =this;
+        CoreDebug.checkJsonSerialize(o, "AppIcon");
+        return o;
     }
 
 }

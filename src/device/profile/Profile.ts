@@ -4,6 +4,7 @@
  * @author Georges-B MICHEL
  */
 import {IProfile} from "./IProfile.js";
+import {CoreDebug} from "../../core/CoreDebug.js";
 
 
 /**
@@ -62,6 +63,7 @@ export class Profile implements IProfile
             if(pExclude.indexOf(i)>-1) continue;
             o[i] = this[i];
         }
+        CoreDebug.checkJsonSerialize(o, "Profile");
         return o;
     }
 

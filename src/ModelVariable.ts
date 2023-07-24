@@ -1,5 +1,6 @@
 import {NodeInternalType} from "./NodeInternalType.js";
 import {DataType} from "./types/DataType.js";
+import {CoreDebug} from "./core/CoreDebug.js";
 
 
 export enum ModelVariableType {
@@ -84,6 +85,7 @@ export class ModelVariable {
           break;
       }
     }
+    CoreDebug.checkJsonSerialize(o, "ModelVariable");
     return o;
   }
 

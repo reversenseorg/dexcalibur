@@ -83,7 +83,8 @@ KEYPOINT_WEB_API.addAuthenticatedRoute(
             }
         }
     },{
-        readProject: true
+        readProject: true,
+        readProjectStrict: true
     }
 );
 

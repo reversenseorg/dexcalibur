@@ -307,7 +307,9 @@ AUDIT_WEB_API.addPublicRoute(
 
                 const models = am.listModels(req.dxc.project);
 
-                $.sendSuccess(res, models.map(x => x.toJsonObject()));
+                const data = models.map(x => x.toJsonObject())
+
+                $.sendSuccess(res, data);
             }catch(err){
                 Logger.error("[API][AUDIT] Models cannot be retrieved. Cause : " + err.message + "\n\t" + err.stack);
                 $.sendError(res, "Models cannot be retrieved. Cause : " + err.message);
@@ -388,8 +390,8 @@ AUDIT_WEB_API.addAsyncAuthenticatedRoute(
 
                 $.sendSuccess(res, data);
             }catch(err){
-                Logger.error("[API][AUDIT] Models cannot be retrieved. Cause : " + err.message + "\n\t" + err.stack);
-                $.sendError(res, "Models cannot be retrieved. Cause : " + err.message);
+                Logger.error("[API][AUDIT] Scan cannot be started. Cause : " + err.message + "\n\t" + err.stack);
+                $.sendError(res, "Scan cannot be started. Cause : " + err.message);
             }
         }
     },{

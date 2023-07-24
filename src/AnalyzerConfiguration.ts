@@ -1,3 +1,5 @@
+import {CoreDebug} from "./core/CoreDebug.js";
+
 export enum FileAnalysisType {
     MAGIC='magic',
     DEEP='deep',
@@ -105,6 +107,7 @@ export class AnalyzerConfiguration {
     toJsonObject():any{
         let o={};
         for(let i in this.ppts) o[i] = this.ppts[i];
+        CoreDebug.checkJsonSerialize(o,"AnalyzerConfiguration");
         return o;
     }
 }

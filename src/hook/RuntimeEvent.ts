@@ -6,6 +6,7 @@ import {NodeType} from "../persist/orm/NodeType.js";
 import {NodeInternalType} from "../NodeInternalType.js";
 import {NodeProperty, NodePropertyState} from "../persist/orm/NodeProperty.js";
 import {DbDataType, DbKeyType} from "../persist/orm/DbAbstraction.js";
+import {CoreDebug} from "../core/CoreDebug.js";
 
 export enum RuntimeEventType {
     HOOK= 'h',
@@ -171,7 +172,7 @@ export class RuntimeEvent<P> extends BusEvent<any> implements INode {
 
         //if(this.tags != null && this.tags.length > 0)
         //    o.tags = this.tags;
-
+        CoreDebug.checkJsonSerialize(o, "RuntimeEvent");
         return o;
     }
 }

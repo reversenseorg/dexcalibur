@@ -10,6 +10,7 @@ import {ProjectAccessControl} from "../../user/acl/rbac/ProjectAccessContol.js";
 import {AuditAccessControl} from "../../user/acl/rbac/AssuranceModelAccessControl.js";
 import ControlAssessment from "./ControlAssessment.js";
 import {IControl} from "./IControl.js";
+import {CoreDebug} from "../../core/CoreDebug.js";
 
 export enum AssuranceModelType {
     SECURITY="sec",
@@ -79,7 +80,7 @@ export default class AssuranceModel extends Auditable implements IAuditableAcces
     constructor( pConfig:any = null) {
         super(null);
         // if(pConfig!=null) for(const i in pConfig) this[i]=pConfig[i];
-        this.update(pConfig);
+        this.update(pConfig, true);
     }
 
     /**
@@ -206,10 +207,12 @@ export default class AssuranceModel extends Auditable implements IAuditableAcces
         o.metadata = this.metadata;
 
         o.controls = [];
-        this.controls.map( x => {
+        this.controls.map( (x,i) => {
             o.controls.push(x.toJsonObject());
         });
 
+        CoreDebug.checkJsonSerialize(o, "AssuranceModel");
+        /*
         o.globalThreats = [];
         this.globalThreats.map( x => {
             o.globalThreats.push(x.toJsonObject());
@@ -221,7 +224,7 @@ export default class AssuranceModel extends Auditable implements IAuditableAcces
         o.secondaryAssets = [];
         this.secondaryAssets.map( x => {
             //o.secondaryAssets.push(x);//.toJsonObject());
-        });
+        });*/
 
         return o;
     }
@@ -283,8 +286,15 @@ export default class AssuranceModel extends Auditable implements IAuditableAcces
                 this.updateControlTree((vCtrl as Control).assessments as ControlAssessment[], node);
             }
 
+
+            current.children[canonicalID] = node;
+
             this._controlTree[canonicalID] = node;
         });
+
+        if(current.parent==null){
+            this._controlTree[current.canonicalID] = current;
+        }
     }
 
     getControlNode(pCanonicalUID:string):ControlNode {

@@ -7,6 +7,8 @@ export enum OperatingSystem {
     IOS= 'ios',
     DARWIN= 'darwin',
     MACOS= 'macos',
+    FLUTTER= 'flutter',
+    REACTNATIVE= 'reactnative',
     WINNT= 'windows NET',
     NONE=''
 }

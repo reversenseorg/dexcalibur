@@ -1,4 +1,5 @@
 import * as _path_ from 'path';
+import {CoreDebug} from "./core/CoreDebug.js";
 
 export default class APK
 {
@@ -53,6 +54,7 @@ export default class APK
     toJsonObject():any{
         let o:any = {};
         for(let i in this) o[i] = this[i];
+        CoreDebug.checkJsonSerialize(o,"APK");
         return o;
     }
 }

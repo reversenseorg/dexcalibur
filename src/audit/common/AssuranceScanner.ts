@@ -16,6 +16,7 @@ import Threat from "./Threat.js";
 import { ConstraintMatch } from "./ConstraintMatch.js";
 import ModelString from "../../ModelString.js";
 import {MerlinSearchAPI} from "../../search/MerlinSearchAPI.js";
+import {TestPlan} from "./TestPlan.js";
 
 export interface AssuranceScannerOptions extends ProductOptions {
 
@@ -207,4 +208,8 @@ export class AssuranceScanner extends Product {
         return {};
     }
 
+
+    public _prepareTestPlan():TestPlan {
+        return new TestPlan();
+    }
 }

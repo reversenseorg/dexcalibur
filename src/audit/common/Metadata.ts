@@ -1,3 +1,4 @@
+import {DataOperation, MetadataTopic} from "./ControlAssessment.js";
 
 export enum MetadataType {
     TEXT,
@@ -6,7 +7,7 @@ export enum MetadataType {
 }
 
 export interface Metadata {
-    key:string;
+    key:string|MetadataTopic;
     type:MetadataType;
-    value:any;
+    value:any|DataOperation;
 }

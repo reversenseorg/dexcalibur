@@ -6,6 +6,7 @@ import DexcaliburProject from "../DexcaliburProject.js";
 import {FinderResult} from "./FinderResult.js";
 import ControlAssessment from "../audit/common/ControlAssessment.js";
 import {BusSubscriber} from "../Bus.js";
+import {MerlinFlutterRule} from "./MerlinFlutterRule.js";
 
 export interface RuleOption {
     score?:number
@@ -81,14 +82,18 @@ export class Merlin {
         return new MerlinIosRule(pRuleOption);
     }
 
-    /*
-    static tizen( pRuleOption:MerlinRuleOptions = {}):MerlinAndroidRule {
-        return new MerlinAndroidRule(pRuleOption);
+
+    static tizen( pRuleOption:MerlinRuleOptions = {}):MerlinRule {
+        return new MerlinRule(OperatingSystem.TIZEN, pRuleOption);
     }
 
     static darwin( pRuleOption:MerlinRuleOptions = {}):MerlinAndroidRule {
         return new MerlinAndroidRule(pRuleOption);
-    }*/
+    }
+
+    static flutter( pRuleOption:MerlinRuleOptions = {}):MerlinFlutterRule {
+        return new MerlinFlutterRule(pRuleOption);
+    }
 
     static fromJsonObject(pObject:any):MerlinAndroidRule|MerlinIosRule|MerlinRule {
         switch (pObject.targetOS){

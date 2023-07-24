@@ -11,6 +11,8 @@ import {MerlinSearchAPI} from "../../search/MerlinSearchAPI.js";
 import {TestPlan, TestStep, TestType} from "./TestPlan.js";
 import {CANONICALIZED_ROOT, ControlNode} from "./AssuranceModel.js";
 import * as Log from "../../Logger.js";
+import {IControl} from "./IControl.js";
+import {CoreDebug} from "../../core/CoreDebug.js";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -104,7 +106,7 @@ export class GenericScanner extends AssuranceScanner {
                                if(res.count()>0){
                                    console.log("[SCAN][FOUND] : "+res.count()+"  "+vRule.toSearchString());
                                    res.getData().map((x:any) => {
-                                       pReport.addMatch(
+                                       /*pReport.addMatch(
                                            pControl.id,
                                            vAssess,
                                            vRuleOffset,
@@ -135,6 +137,58 @@ export class GenericScanner extends AssuranceScanner {
                })
             });
         }
+
+        return ;
+    }
+
+
+    /**
+     *
+     * @param pReport
+     * @param pCtrlNode
+     */
+    doAssessment(pReport:AssuranceReport, pCtrlNode:ControlNode):void {
+
+        if(!pCtrlNode.ctrl.isControlAssessment()){
+            Logger.info("[SCANNER][GENERIC][doAssessment] skip control node (cause= control node is not a set of rules) : "+pCtrlNode.canonicalID);
+            return;
+        }
+
+        (pCtrlNode.ctrl as ControlAssessment).rules.map( (vRule,vRuleOffset) => {
+            if(!vRule.hasBusSubscriber()){
+                (async ()=>{
+                    let res:any;
+                    if(Merlin.isRule(vRule)){
+                        res = await vRule.executeSync(this.project);
+                        if(res.count()>0){
+                            console.log("[SCAN][FOUND](rule) : "+res.count()+"  "+vRule.toSearchString());
+                            res.getData().map((x:any) => {
+                                pReport.addMatch(
+                                    pCtrlNode,
+                                    vRuleOffset,
+                                    x
+                                );
+                            });
+                        }
+                    }else{
+                        (vRule as MerlinSearchRequest).setContext(this._searchContext);
+                        res = await vRule.execute(this.project);
+                        if(res.count()>0){
+                            console.log("[SCAN][FOUND](request) : "+res.count()+"  "+vRule.toSearchString());
+                            res.getData().map(x => {
+                                pReport.addMatch(
+                                    pCtrlNode,
+                                    vRuleOffset,
+                                    x
+                                );
+                            });
+                        }
+                    }
+
+                })();
+            }
+        });
+
 
         return ;
     }
@@ -208,7 +262,7 @@ export class GenericScanner extends AssuranceScanner {
      *
      * @private
      */
-    private _prepareTestPlan():TestPlan{
+    public _prepareTestPlan():TestPlan{
         // TODO : browse the assurance model quickly by using AssuranceModel.ControlTree
         // TODO : add steps attached to app lifecycle step
         const plan = new TestPlan();
@@ -307,7 +361,7 @@ export class GenericScanner extends AssuranceScanner {
      */
     private _staticScan( pReport:AssuranceReport, pControlNodes:ControlNode[], pOptions:GenericScanOptions) {
         pControlNodes.map( vCtrl => {
-            this.executeRules(pReport, (vCtrl.ctrl as ControlAssessment).);
+            this.doAssessment(pReport, vCtrl);
         });
     }
 
@@ -387,6 +441,9 @@ export class GenericScanner extends AssuranceScanner {
         for(const name in this.dashboards){
             o.dashboards[name] = this.dashboards[name].toJsonObject();
         }
+
+        CoreDebug.checkJsonSerialize(o, "GenericScanner");
+
         return o;
     }
 }

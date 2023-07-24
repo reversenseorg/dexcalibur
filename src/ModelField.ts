@@ -10,6 +10,7 @@ import {NodeType} from "./persist/orm/NodeType.js";
 import {NodeInternalType} from "./NodeInternalType.js";
 import {IPersistent} from "./persist/orm/IPersistent.js";
 import {DataSourceHelper} from "./DataSourceHelper.js";
+import {CoreDebug} from "./core/CoreDebug.js";
 
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
@@ -296,6 +297,7 @@ export default  class ModelField extends Savable implements IPersistent
             }
         }
         //}
+        CoreDebug.checkJsonSerialize(obj, "ModelField");
         return obj;
     }
 

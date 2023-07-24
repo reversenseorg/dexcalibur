@@ -29,8 +29,10 @@ import DexcaliburProject from "./src/DexcaliburProject.js";
 import { Merlin } from "./src/search/Merlin.js";
 import * as VM from "vm";
 import {MerlinSearchRequest} from "./src/search/MerlinSearchRequest.js";
-import AssuranceModel from "./src/audit/common/AssuranceModel.js";
+import AssuranceModel, {ControlNode} from "./src/audit/common/AssuranceModel.js";
 import Control from "./src/audit/common/Control.js";
+import ControlAssessment from "./src/audit/common/ControlAssessment.js";
+import { Match } from "./src/audit/common/AssuranceReport.js";
 
 
 ConnectorFactory.getInstance(true);
@@ -305,6 +307,18 @@ var Parser:ArgParser = new ArgParser(projectArgs, "dexcalibur-adm", [
                 callback:(ctx,param)=>{
                     ctx.mPwd = param.value;
                 }
+            },{ name:"--tree",
+                help: "Show control point trees",
+                hasVal:false,
+                callback:(ctx)=>{
+                    ctx.mShowTree = true;
+                }
+            },{ name:"--plan",
+                help: "Show test plan",
+                hasVal:false,
+                callback:(ctx)=>{
+                    ctx.mShowPlan = true;
+                }
             },{ name:"--prepare-scan",
                 help: "Prepare a scan",
                 hasVal:false,
@@ -394,10 +408,10 @@ if(projectArgs.help != null){
 let cfg:S.Settings.GlobalSettings|null = null;
 
 
-function printControls(pControl:Control, pDepth = 0):void {
-    console.log(`${"\t".repeat(pDepth)} ID: ${pControl.id}`);
-    console.log(`${"\t".repeat(pDepth)} Name: ${pControl.name}`);
-    console.log(`${"\t".repeat(pDepth)} Description: ${pControl.description}`);
+function printControls(pControl:Control, pDepth = 1):void {
+    console.log(`${"\t".repeat(pDepth)} ${chalk.whiteBright("ID: ")} ${pControl.id}`);
+    console.log(`${"\t".repeat(pDepth)} ${chalk.whiteBright("Name: ")} ${pControl.name}`);
+    console.log(`${"\t".repeat(pDepth)} ${chalk.whiteBright("Description: ")} ${pControl.description}`);
 
     if(pControl.hasChildren()){
         console.log(`${"\t".repeat(pDepth)} Children: `);
@@ -780,13 +794,15 @@ ${"\t".repeat(1)}Default Arch = ${srv.getDefaultArchitecture()}
                             console.log(` - ${i} `);
 
                         console.log(`[AUDIT] All models available`);
-                        const models = am.listGenericModels();
+                        const models = am.listModels();
                         models.map(x => {
-                            console.log(` - ${x.id} Scanner=${x.scannerID}`);
+                            console.log(`=====================\n ${x.id} \n=====================\n`);
                             try{
-                                console.log(chalk.yellow(`\tName : ${x.name}`));
-                                console.log(chalk.yellow(`\tDescriptions : ${x.description}`));
-                                console.log(chalk.yellow(`\tControls : `));
+                                console.log(`| Name : ${x.name}`);
+                                console.log(`| Scanner : ${x.scannerID}`);
+                                console.log(`| Descriptions : ${x.description}`);
+                                console.log(`| Controls : `);
+                                console.log("+----------")
                                 x.controls.map( ctrl => printControls(ctrl));
 
                                 /*
@@ -827,15 +843,69 @@ ${"\t".repeat(1)}Default Arch = ${srv.getDefaultArchitecture()}
                                 });
                                 console.log(chalk.yellowBright(`Primary Assets : `));*/
                             }catch(err){
-                                console.log(chalk.red(`\tLoad failure`));
+                                console.log(chalk.red(`\tLoad failure`)+err.message+"\n"+err.stack);
                             }
 
 
                             try {
                                 const scanner:AssuranceScanner = LicenceManager.getProduct(mock,x.getScannerID()) as AssuranceScanner;
-                                console.log(chalk.yellow(`\tScanner=${scanner !=null ? scanner.name : "null"} `));
+                                console.log("________________________________________________");
+                                console.log(chalk.whiteBright(`Scanner=${scanner !=null ? scanner.name : "null"} `));
+                                console.log("________________________________________________");
+
+                                scanner.setModel(x);
+                                console.log(chalk.whiteBright("[*] Model : ")+chalk.yellowBright(x.getID()));
+
+                                function printNode(vNode:ControlNode, vDepth:number){
+                                    const i ="    ".repeat(vDepth);
+                                    console.log("\n"+i+chalk.yellowBright(vNode.canonicalID)+" "+(vNode.ctrl!=null ? vNode.ctrl.name : ""));
+
+                                    if((vNode.children!=null) && ((Object.keys(vNode.children).length>0))){
+                                        console.log(i+"|_ Children: ");
+                                        for(let k in vNode.children){
+                                            printNode( vNode.children[k], vDepth+1);
+                                        }
+                                    }else if ( vNode.ctrl!= null){
+
+                                        if(vNode.ctrl.isControlAssessment()){
+                                            const a = (vNode.ctrl as ControlAssessment);
+
+                                            if(a.testType==null){
+                                                console.log(a);
+                                            }
+                                            console.log(i+"    "+chalk.redBright(` [${a.testType}] `));
+                                            a.getRules().map((vRule)=>{
+                                                console.log(i+"        "+chalk.greenBright(vRule.toSearchString()));
+                                            });
+                                        }
+                                    }
+
+
+                                }
+
+                                if(projectArgs.mShowTree){
+                                    console.log(chalk.whiteBright("[*] Control Tree :"));
+                                    const rootNode = scanner.model.getControlNode("*");
+                                    console.log(rootNode);
+                                    printNode(rootNode, 0);
+                                }
+
+                                if(projectArgs.mShowPlan){
+                                    console.log(chalk.whiteBright("[*] Test plan :"));
+
+                                    const plan = scanner._prepareTestPlan();
+
+                                    plan.steps.map((vStep, vIndex)=>{
+                                        console.log(chalk.redBright(` [${vStep.type}] `)+chalk.white("Controls :"));
+                                        vStep.controls.map((vCtrl)=>{
+                                            printNode(vCtrl, 1);
+                                        })
+                                    })
+                                }
+
+                                console.log("________________________________________________");
                             }catch(err){
-                                console.log(chalk.red(`\tScanner not found : ${err.message}`));
+                                console.log(chalk.red(`\tScanner not found : ${err.message}`)+err.stack);
                             }
                         });
                     }
@@ -883,6 +953,32 @@ ${"\t".repeat(1)}Default Arch = ${srv.getDefaultArchitecture()}
                                         const reppath = am.saveReport(dxcProject, report);
                                         console.log(`[AUDIT] Report saved in : ${reppath} `);
                                     }
+                                    if(projectArgs.mPrint===true){
+
+                                        console.log(`[AUDIT] Results : `);
+                                        let match:Match, ctrlNode:ControlNode;
+                                        console.log(Object.values(report.matches).length);
+                                        for(let key in report.matches){
+                                            console.log(key);
+                                            match = report.matches[key];
+
+                                            ctrlNode = model.getControlNode(match.assessment.canonicalID);
+
+                                            console.log(chalk.bold.whiteBright(match.assessment.parent?.ctrl.name));
+                                            console.log("   "+chalk.bold.whiteBright(match.assessment.ctrl.name));
+                                            console.log("   "+chalk.yellowBright('Canonical ID')+" "+match.assessment.canonicalID);
+                                            console.log("   "+chalk.yellowBright('Matches ('+match.match.length+')'));
+
+                                            match.match.map((m) => {
+
+                                                if(ctrlNode.ctrl.isControlAssessment()){
+                                                    const rules = (ctrlNode.ctrl as ControlAssessment).getRules();
+                                                    console.log("   "+chalk.yellowBright( rules[m.ruleIdx].toSearchString()));
+                                                }
+                                                console.log("   "+chalk.greenBright(m.node.getUID())+" ");
+                                            });
+                                        }
+                                    }
                                 })
 
                                 /*
@@ -906,6 +1002,7 @@ ${"\t".repeat(1)}Default Arch = ${srv.getDefaultArchitecture()}
                         }
 
                     }
+
 
                     if(projectArgs.mPrintPriv){
                         console.log(chalk.yellow("[-] Load Privacy model : "));

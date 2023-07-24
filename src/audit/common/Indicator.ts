@@ -1,4 +1,5 @@
 import { Metric } from "./Metric.js";
+import {CoreDebug} from "../../core/CoreDebug.js";
 
 
 export interface IndicatorOptions {
@@ -44,6 +45,7 @@ export class Indicator {
         o.enable = this.enable;
         if(this.metric!=null) o.metric = this.metric.name;
 
+        CoreDebug.checkJsonSerialize(o, "Indicator");
         return o;
     }
 }

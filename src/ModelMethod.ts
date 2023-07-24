@@ -17,6 +17,7 @@ import JavaMethodHook from "./hook/JavaMethodHook.js";
 import {INode} from "./INode.js";
 import {DataSourceHelper} from "./DataSourceHelper.js";
 import {Tag} from "./tags/Tag.js";
+import {CoreDebug} from "./core/CoreDebug.js";
 
 
 /*interface LazyMethodReference {
@@ -485,6 +486,7 @@ export default class ModelMethod extends Savable implements INode,IPersistent
                 }
             }
         }
+       CoreDebug.checkJsonSerialize(obj, "ModelMethod");
         return obj;
     }
 

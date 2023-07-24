@@ -3,6 +3,7 @@ import {Finder} from "./Finder.js";
 
 import * as Log from "../Logger.js";
 import {IDbIndex} from "../persist/orm/DbAbstraction.js";
+import {CoreDebug} from "../core/CoreDebug.js";
 
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
@@ -238,6 +239,7 @@ export class FinderResult
                 data.push(v.toJsonObject(fields));
             }
         });
+        CoreDebug.checkJsonSerialize(data,"FinderResult");
         return data;
     }
 

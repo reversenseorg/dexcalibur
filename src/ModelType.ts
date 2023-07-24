@@ -1,5 +1,6 @@
 import { CONST } from "./CoreConst.js";
 import {Savable, Stub, STUB_TYPE} from "./ModelSavable.js";
+import {CoreDebug} from "./core/CoreDebug.js";
 
 
 
@@ -103,6 +104,7 @@ export class ModelBasicType extends Savable
         obj.name = this._name;
         obj.arr = this.arr;
         obj.primitive = true;
+        CoreDebug.checkJsonSerialize(obj, "ModelBasicType");
         return obj;
     }
 }
@@ -176,6 +178,7 @@ export class ModelObjectType extends Savable
         obj.name = this.name;
         obj.arr = this.arr;
         obj.primitive = false;
+        CoreDebug.checkJsonSerialize(obj, "ModelObjectType");
         return obj;
     }
 

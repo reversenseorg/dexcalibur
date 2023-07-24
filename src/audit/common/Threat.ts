@@ -3,6 +3,7 @@ import Constraint, {ConstraintType} from "./Constraint.js";
 import CodeConstraint from "./CodeConstraint.js";
 import AssuranceModel from "./AssuranceModel.js";
 import Asset from "./Asset.js";
+import {CoreDebug} from "../../core/CoreDebug.js";
 
 export interface ThreatOptions {
     id?:string;
@@ -69,6 +70,7 @@ export default class Threat extends Asset{
                     break;
             }
         }
+        CoreDebug.checkJsonSerialize(o, "Threat");
         return o;
     }
 }

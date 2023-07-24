@@ -1,5 +1,6 @@
 import {IBridge} from "./Bridge.js";
 import Utils from "./Utils.js";
+import {CoreDebug} from "./core/CoreDebug.js";
 
 export enum PrivilegedExecutionType {
     BINARY='b',
@@ -115,6 +116,7 @@ export class PrivilegedExecutionPhase {
         o.devBin = this.devBin;
         o.devBinArgs = this.devBinArgs;
         o.priv = this.priv;
+        CoreDebug.checkJsonSerialize(o, "PrivilegedExecutionPhase");
         return o;
     }
 }
@@ -275,6 +277,7 @@ export class PrivilegedExecutionStrategy {
         for(let i=0; i<this.phases.length; i++){
             o.phases[i] = this.phases[i].toJsonObject();
         }
+        CoreDebug.checkJsonSerialize(o, "PrivilegedExecutionStrategy");
         return o;
     }
 }

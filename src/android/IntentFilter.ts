@@ -1,5 +1,6 @@
 import {IntentActionCriteria, IntentCategoryCriteria, IntentDataCriteria} from "./Intent.js";
 import AndroidActivity from "./AndroidActivity.js";
+import {CoreDebug} from "../core/CoreDebug.js";
 
 
 const UID_SEPARATOR = "-";
@@ -117,6 +118,7 @@ export class IntentFilter
         o.category = [];
         this.category.map(x => o.category.push(x.toJsonObject()));
 
+        CoreDebug.checkJsonSerialize(o, "IntentFilter");
         return o;
     }
 }

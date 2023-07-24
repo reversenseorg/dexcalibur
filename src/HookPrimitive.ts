@@ -5,6 +5,7 @@ import {HookVariable, HookVariableArray, HookVariableObject} from "./HookVariabl
 import HookSet from "./HookSet.js";
 import * as Log from './Logger.js';
 import {CryptoUtils} from "./CryptoUtils.js";
+import {CoreDebug} from "./core/CoreDebug.js";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -173,6 +174,8 @@ export default class HookPrimitive
         o.interceptBefore = (this.interceptBefore!=null)?this.interceptBefore:null;
         o.interceptAfter = (this.interceptAfter!=null)?this.interceptAfter:null;
         o.interceptReplace = (this.interceptReplace!=null)?this.interceptReplace:null;
+
+        CoreDebug.checkJsonSerialize(o, "HookPrimitive");
         // o.onMatch
         return o;
     }

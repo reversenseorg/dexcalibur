@@ -15,6 +15,7 @@ import {ValidationRule} from "./Validator.js";
 import {INode} from "./INode.js";
 import {CryptoUtils} from "./CryptoUtils.js";
 import {Tag} from "./tags/Tag.js";
+import {CoreDebug} from "./core/CoreDebug.js";
 
 
 let UIDS:string[]=[];
@@ -419,7 +420,7 @@ export default class ModelFile implements INode,IPersistent {
                     break;
             }
         }
-
+        CoreDebug.checkJsonSerialize(o, "ModelFile");
 
         return o;
     }

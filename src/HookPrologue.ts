@@ -1,5 +1,6 @@
 import DexcaliburProject from "./DexcaliburProject.js";
 import {CryptoUtils} from "./CryptoUtils.js";
+import {CoreDebug} from "./core/CoreDebug.js";
 
 
 export default class HookPrologue
@@ -81,6 +82,7 @@ export default class HookPrologue
         let o:any = new Object();
         o.parentID = this.parentID;
         o.script = this.script;
+        CoreDebug.checkJsonSerialize(o, "HookPrologue");
         return o;
     }
 

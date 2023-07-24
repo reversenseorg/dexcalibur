@@ -2,6 +2,7 @@ import {NodeType} from "../persist/orm/NodeType.js";
 import {NodeInternalType} from "../NodeInternalType.js";
 import {INode} from "../INode.js";
 import {TagCategory} from "./TagCategory.js";
+import {CoreDebug} from "../core/CoreDebug.js";
 
 
 export interface TagMap {
@@ -107,7 +108,7 @@ export class Tag implements INode
         o.style = this.style;
         o.category = (this.category!=null ? this.category.getUID() : null);
 
-
+        CoreDebug.checkJsonSerialize(o,"Tag");
         return o;
     }
 

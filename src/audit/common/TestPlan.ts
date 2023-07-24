@@ -17,7 +17,7 @@ export interface TestStep {
 
 export class TestPlan {
 
-    steps: TestStep[]
+    steps: TestStep[] = [];
 
     currStep:number = -1;
 

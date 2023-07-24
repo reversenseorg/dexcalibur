@@ -7,6 +7,7 @@ import {NodeProperty, NodePropertyState} from "./persist/orm/NodeProperty.js";
 import {DbDataType, DbKeyType, DbSerialize} from "./persist/orm/DbAbstraction.js";
 import {createHash} from "crypto";
 import Util from "./Utils.js";
+import {CoreDebug} from "./core/CoreDebug.js";
 
 export default class ModelStringValue extends Savable
 {
@@ -66,6 +67,7 @@ export default class ModelStringValue extends Savable
         o.value = this.value;
         o.instr = this.instr.toJsonObject();
         o.tags = this.tags;
+        CoreDebug.checkJsonSerialize(o, "ModelStringValue");
         return o;
     }
 

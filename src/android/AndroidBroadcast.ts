@@ -1,6 +1,7 @@
 
 import {AndroidAttributeSet} from "./AndroidAttribute.js";
 import AndroidComponent from "./AndroidComponent.js";
+import {CoreDebug} from "../core/CoreDebug.js";
 
 export class AndroidBroadcast extends AndroidComponent {
 
@@ -50,6 +51,7 @@ export class AndroidBroadcast extends AndroidComponent {
     }
 
     toJsonObject(){
+        CoreDebug.checkJsonSerialize(this, "AndroidBroadcast");
         return this;
     }
 }

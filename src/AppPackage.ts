@@ -1,3 +1,4 @@
+import {CoreDebug} from "./core/CoreDebug.js";
 
 
 /**
@@ -45,6 +46,7 @@ export default class AppPackage {
         for(let i in this){
             json[i] = this[i];
         }
+        CoreDebug.checkJsonSerialize(json, "AppPackage");
         return json;
     }
 

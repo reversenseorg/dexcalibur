@@ -5,6 +5,7 @@ import {Savable, STUB_TYPE} from "./ModelSavable.js";
 import {ModelRegisterReference} from "./ModelReference.js";
 import {NodeInternalType} from "./NodeInternalType.js";
 import {ModelFunction} from "./ModelFunction.js";
+import {CoreDebug} from "./core/CoreDebug.js";
 
 
 export enum ModelInstructionType {
@@ -73,6 +74,7 @@ export default class ModelCpuInstruction
                 o[i] = this[i];
             }
         }
+        CoreDebug.checkJsonSerialize(o,"ModelCpuInstruction");
         return o;
     };
 }

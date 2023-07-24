@@ -8,6 +8,7 @@ import HookStrategy from "./hook/HookStrategy.js";
 import {AbstractHook} from "./hook/AbstractHook.js";
 import {NodeType} from "./persist/orm/NodeType.js";
 import {NodeInternalType} from "./NodeInternalType.js";
+import {CoreDebug} from "./core/CoreDebug.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -481,6 +482,7 @@ export default class HookSet
                     break;
             }
         }
+        CoreDebug.checkJsonSerialize(o, "HookSet");
         return o;
     }
 

@@ -5,15 +5,15 @@ import Constraint from "./Constraint.js";
 import { ConstraintMatch } from "./ConstraintMatch.js";
 import CodeConstraint from "./CodeConstraint.js";
 import DexcaliburProject from "../../DexcaliburProject.js";
-import AssuranceModel from "./AssuranceModel.js";
+import AssuranceModel, {ControlNode} from "./AssuranceModel.js";
 import Control from "./Control.js";
 import ControlAssessment from "./ControlAssessment.js";
+import {CoreDebug} from "../../core/CoreDebug.js";
 
 
 export interface Match {
-    assessment: ControlAssessment;
-    ruleIdx: number;
-    rule: string;
+    assessment: ControlNode;
+    ruleIdx?: number;
     match: any;
 }
 
@@ -36,6 +36,12 @@ export interface AssuranceReportOptions {
     globalThreats?:ConstraintMatch<Threat>[];
     matches?:MatchesMap;
 }
+
+/**
+ * Represent a scan report
+ *
+ * @class
+ */
 export default class AssuranceReport {
 
     time:number;
@@ -102,15 +108,40 @@ export default class AssuranceReport {
         }
     }
 
+    /**
+     * To get the Assurance Model
+     *
+     * @return {AssuranceModel} Assurance model used to produce this report
+     * @method
+     */
     getModel():AssuranceModel {
         return this.model;
     }
 
-    private _canonicalize(pControl:Control, pAssess:ControlAssessment):string {
+    /**
+     * To add a match to the report
+     *
+     * A match is a pair of assessed ControlNode and Node
+     *
+     *
+     * @param pControl
+     * @param pRuleOffset
+     * @param pNode
+     */
+    addMatch(  pControl:ControlNode, pRuleOffset:number, pNode:any):void {
 
-    }
-    addMatch( pControl:Control, pAssess:ControlAssessment, pRuleOffset:number, pNode:any):void {
-        this.matches[]
+        if(this.matches[pControl.canonicalID]==null){
+            this.matches[pControl.canonicalID] = {
+                assessment: pControl,
+                match: []
+            };
+
+            this.matches[pControl.canonicalID].match.push({
+                node: pNode,
+                ruleIdx: pRuleOffset
+            });
+        }
+
     }
     /**
      * To export the report to JSON file
@@ -125,8 +156,12 @@ export default class AssuranceReport {
         _fs_.writeFileSync(pPath, JSON.stringify(this.toJsonObject()));
     }
 
+    /**
+     *
+     */
     toJsonObject():any {
         const o:any = {};
+        let match:Match;
 
         for(let i in this){
             switch (i){
@@ -175,12 +210,31 @@ export default class AssuranceReport {
                 case "device":
                     o[i] = this[i];
                     break;
+                case "matches":
+                    o.matches = {};
+                    for(let k in this.matches){
+                        match = this.matches[k];
+                        o.matches[k] = {
+                            assess: match.assessment.canonicalID,
+                            match: [] //
+                        };
+
+                        this.matches[k].match.map((x)=>{
+                            o.matches[k].match.push({
+                                ruleIdx: x.ruleIdx,
+                                node: ( x.match!=null ? x.match.toJsonObject() : null)
+                            });
+                        })
+                    }
+
+                    break;
                 case "model":
                     o.model = this.model.toJsonObject();
                     break;
             }
         }
 
+        CoreDebug.checkJsonSerialize(o, "AssurandeReport");
         return o;
     }
 

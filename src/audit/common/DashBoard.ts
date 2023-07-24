@@ -1,6 +1,7 @@
 import {NodeInternalType} from "../../NodeInternalType.js";
 import {INode, Node} from "../../INode.js";
 import {Indicator} from "./Indicator.js";
+import {CoreDebug} from "../../core/CoreDebug.js";
 
 
 export interface IndicatorsMap {
@@ -47,6 +48,7 @@ export class DashBoard extends Node {
         for(const name in this.indicators){
             o.indicators[name] = this.indicators[name].toJsonObject();
         }
+        CoreDebug.checkJsonSerialize(o, "DashBoard");
         return o;
     }
 }

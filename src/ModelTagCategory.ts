@@ -1,3 +1,4 @@
+import {CoreDebug} from "./core/CoreDebug.js";
 
 export default class TagCategory
 {
@@ -22,6 +23,7 @@ export default class TagCategory
         let o:any = new Object();
         o.name = this.name;
         o.taglist = this.taglist;
+        CoreDebug.checkJsonSerialize(o, "ModelTagCategory");
         return o;
     }
 }

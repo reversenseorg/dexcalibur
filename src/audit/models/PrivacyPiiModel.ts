@@ -1,9 +1,10 @@
 import AssuranceModel from "../common/AssuranceModel.js";
 import Control from "../common/Control.js";
-import ControlAssessment, {AnalysisType, TestType} from "../common/ControlAssessment.js";
+import ControlAssessment, {AnalysisType} from "../common/ControlAssessment.js";
 import {PII_Data} from "../privacy/assets/pii_schema.js";
 import {PiiClass} from "../privacy/pii/PiiClass.js";
 import {MerlinSearchRequest} from "../../search/MerlinSearchRequest.js";
+import { TestType } from "../common/TestPlan.js";
 
 
 const model = new AssuranceModel({
@@ -55,7 +56,7 @@ for(let piiClassName in PII_Data){
                         id: piiField.name,
                         name: piiField.name,
                         description: piiField.description,
-                        testType: TestType.VT,
+                        testType: TestType.STATIC_SCAN,
                         analType: AnalysisType.SAST,
                         rules:[]
                     });
@@ -73,7 +74,7 @@ for(let piiClassName in PII_Data){
                     id: piiType.name,
                     name: piiType.name,
                     description: piiType.description,
-                    testType: TestType.VT,
+                    testType: TestType.STATIC_SCAN,
                     analType: AnalysisType.SAST,
                     rules:[]
                 });
@@ -91,5 +92,8 @@ for(let piiClassName in PII_Data){
 
     model.controls.push(ctrl);
 }
+
+
+model.updateControlTree(model.controls);
 
 export const PrivacyPiiModel = model;

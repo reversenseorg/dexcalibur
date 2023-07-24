@@ -4,6 +4,7 @@ import {NodeInternalType} from "../NodeInternalType.js";
 import {NodeType} from "../persist/orm/NodeType.js";
 import {HookScriptBuilderException} from "../errors/HookScriptBuilderException.js";
 import ModelSyscall from "../ModelSyscall.js";
+import {CoreDebug} from "../core/CoreDebug.js";
 
 export enum HookTargetType {
 
@@ -73,7 +74,7 @@ export default class SystemCallHook extends AbstractHook {
 
     toJsonObject(): any {
         const o = super.toJsonObject();
-
+        CoreDebug.checkJsonSerialize(o,"SystemCallHook");
         return o;
     }
 

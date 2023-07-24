@@ -1,3 +1,4 @@
+import {CoreDebug} from "../../core/CoreDebug.js";
 
 export interface FindingOptions {
     node?:any;
@@ -58,6 +59,7 @@ export class Finding  {
             }
         }
 
+        CoreDebug.checkJsonSerialize(o, "Finding");
         return o;
     }
 }

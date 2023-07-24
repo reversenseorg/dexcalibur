@@ -34,4 +34,8 @@ export class MerlinAndroidRule extends MerlinRule {
     uiInputText( pRequest:any, pScope:any = null):MerlinSearchRequest {
         return this.method("called.enclosingClass.name:android\.widget\.EditText"+pRequest );
     }
+
+    toJsonObject(): any {
+        return super.toJsonObject();
+    }
 }

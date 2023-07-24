@@ -1,6 +1,7 @@
 import {AbstractHook} from "./AbstractHook.js";
 import HookTemplateFragment from "./HookTemplateFragment.js";
 import HookSession from "../HookSession.js";
+import {CoreDebug} from "../core/CoreDebug.js";
 
 
 export default class HookMessageV2
@@ -86,7 +87,7 @@ export default class HookMessageV2
 
         //if(this.tags != null && this.tags.length > 0)
         //    o.tags = this.tags;
-
+        CoreDebug.checkJsonSerialize(o, "HookMessageV2");
         return o;
     }
 }

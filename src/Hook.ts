@@ -8,6 +8,7 @@ import {CONST} from "./CoreConst.js";
 import {ModelFunction} from "./ModelFunction.js";
 import {ModelVariable} from "./ModelVariable.js";
 import {CryptoUtils} from "./CryptoUtils.js";
+import {CoreDebug} from "./core/CoreDebug.js";
 
 
 
@@ -344,6 +345,7 @@ export default class Hook
             after: (this.code.after!=null)? Util.b64_encode(this.code.after) : null,
             replace: (this.code.replace!=null)? Util.b64_encode(this.code.replace) : null,
         };
+        CoreDebug.checkJsonSerialize(o, "Hook");
         return o;
     }
 

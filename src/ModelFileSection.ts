@@ -2,6 +2,7 @@ import {DbDataType} from "./persist/orm/DbAbstraction.js";
 import {NodeType} from "./persist/orm/NodeType.js";
 import {NodeInternalType} from "./NodeInternalType.js";
 import {NodeProperty} from "./persist/orm/NodeProperty.js";
+import {CoreDebug} from "./core/CoreDebug.js";
 
 /**
  * Represents a section into a file
@@ -37,7 +38,9 @@ export default class ModelFileSection {
     }
 
     toJsonObject(){
-        return this;
+        const o = this;
+        CoreDebug.checkJsonSerialize(o, "ModelFileSection");
+        return o;
     }
 }
 ModelFileSection.TYPE.builder(ModelFileSection);

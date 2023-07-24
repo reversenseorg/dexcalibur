@@ -1,4 +1,5 @@
 import Threat from "./Threat.js";
+import {CoreDebug} from "../../core/CoreDebug.js";
 
 export enum ConstraintType {
     CODE,
@@ -43,6 +44,7 @@ export default class Constraint  {
                     break;
             }
         }
+        CoreDebug.checkJsonSerialize(o, "Constraint");
         return o;
     }
 }

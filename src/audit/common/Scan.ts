@@ -3,6 +3,7 @@ import {Worker, isMainThread, parentPort, workerData } from  "worker_threads";
 import DexcaliburProject from "../../DexcaliburProject.js";
 import AssuranceReport from "./AssuranceReport.js";
 import {AssuranceScanner} from "./AssuranceScanner.js";
+import {CoreDebug} from "../../core/CoreDebug.js";
 
 
 export interface ScanOption {
@@ -94,7 +95,7 @@ export class Scan {
             dates: this.dates
         };
 
-
+        CoreDebug.checkJsonSerialize(o, "Scan");
         return o ;
     }
 }

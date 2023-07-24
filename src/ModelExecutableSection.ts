@@ -1,4 +1,5 @@
 import {NodeInternalType} from "./NodeInternalType.js";
+import {CoreDebug} from "./core/CoreDebug.js";
 
 /**
  * Represents a section into an executable file
@@ -44,6 +45,8 @@ export default class ModelExecutableSection {
     }
 
     toJsonObject():any{
-        return this;
+        const o = this;
+        CoreDebug.checkJsonSerialize(o, "ModelExecutableSection");
+        return o;
     }
 }

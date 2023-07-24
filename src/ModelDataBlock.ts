@@ -7,6 +7,7 @@ import {DbDataType, DbKeyType, DbSerialize} from "./persist/orm/DbAbstraction.js
 import {ValidationRule} from "./Validator.js";
 import DataScope from "./DataScope.js";
 import ModelFileSection from "./ModelFileSection.js";
+import {CoreDebug} from "./core/CoreDebug.js";
 
 
 export default class ModelDataBlock extends Savable
@@ -152,6 +153,7 @@ export default class ModelDataBlock extends Savable
                     break;
             }
         }
+        CoreDebug.checkJsonSerialize(o, "ModelDataBlock");
         return o;
     }
 }

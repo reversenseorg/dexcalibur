@@ -26,6 +26,7 @@ const Logger:Log.ProdLogger = Log.newLogger() as Log.ProdLogger;
 import AndroidDeviceProfile from "./android/profiles/AndroidDeviceProfile.js";
 import {NosyProfile} from "./device/profile/NosyProfile.js";
 import {IProfile} from "./device/profile/IProfile.js";
+import {CoreDebug} from "./core/CoreDebug.js";
 
 enum ETransportType {
     USB     = 'U',
@@ -1043,8 +1044,8 @@ export default class AdbWrapper implements IBridge
             if(pExcludeList[i] === false) continue;
             if(i=='strategies') continue;
             o[i] = this[i];
-        } 
-
+        }
+        CoreDebug.checkJsonSerialize(o, "AdbWrapper");
         return o;
     }
 

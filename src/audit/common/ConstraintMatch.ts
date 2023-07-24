@@ -1,4 +1,5 @@
 import Constraint, {ConstraintType} from "./Constraint.js";
+import {CoreDebug} from "../../core/CoreDebug.js";
 
 export class ConstraintMatch<T> {
 
@@ -27,7 +28,7 @@ export class ConstraintMatch<T> {
         o.match = this.match;
         o.subject = this.subject.uid;
         o.el = ((this.el as any).toJsonObject!=null)? (this.el as any).toJsonObject() : this.el;
-
+        CoreDebug.checkJsonSerialize(o, "ConstraintMatch");
         return o;
     }
 }

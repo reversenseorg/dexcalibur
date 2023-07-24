@@ -9,6 +9,7 @@
  */
 import {NodeType} from "../persist/orm/NodeType.js";
 import {NodeInternalType} from "../NodeInternalType.js";
+import {CoreDebug} from "../core/CoreDebug.js";
 
 export default class HookStrategySelector {
 
@@ -99,6 +100,8 @@ export default class HookStrategySelector {
         if(this.uid != null) o.uid = this.uid;
 
         o.type = this.type.getName();
+
+        CoreDebug.checkJsonSerialize(o, "HookStrategySelector");
         return o;
     }
 }

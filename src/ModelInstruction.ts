@@ -4,6 +4,7 @@ import ModelMethod from "./ModelMethod.js";
 import {Savable, STUB_TYPE} from "./ModelSavable.js";
 import {NodeType} from "./persist/orm/NodeType.js";
 import {NodeInternalType} from "./NodeInternalType.js";
+import {CoreDebug} from "./core/CoreDebug.js";
 
 /**
  * Represents an instruction from the Application bytecode
@@ -152,6 +153,7 @@ export default class ModelInstruction extends Savable
             }
         }
         //o.parent =  this.parent.toJsonObject();
+        CoreDebug.checkJsonSerialize(o,"ModelInstruction");
         return o;
     };
 

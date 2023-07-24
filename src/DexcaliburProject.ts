@@ -65,6 +65,7 @@ import {ProjectState} from "./ProjectState.js";
 import {PrivacyScanner} from "./audit/privacy/PrivacyScanner.js";
 import {LicenceManager} from "./credit/LicenceManager.js";
 import {Product} from "./credit/Product.js";
+import {CoreDebug} from "./core/CoreDebug.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -1229,6 +1230,8 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
         }else{
             o.apk = null;
         }
+
+        CoreDebug.checkJsonSerialize(o, "DexcaliburProject");
         
         return o;
     }

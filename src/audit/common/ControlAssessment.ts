@@ -5,6 +5,8 @@ import {INode} from "../../INode.js";
 import Control from "./Control.js";
 import {IControl} from "./IControl.js";
 import {TestType} from "./TestPlan.js";
+import {CoreDebug} from "../../core/CoreDebug.js";
+import {Metadata} from "./Metadata.js";
 
 
 export enum AnalysisType {
@@ -12,6 +14,9 @@ export enum AnalysisType {
     DAST, // support VT/PT
 }
 
+export interface ControlAssessmentMap {
+    [key:string] :ControlAssessment;
+}
 
 export interface ControlAssessmentOpts {
     id?:string;
@@ -21,6 +26,8 @@ export interface ControlAssessmentOpts {
     description?:string;
 
     links?:string;
+
+    metadata?:Metadata[];
 
     testType?:TestType;
 
@@ -36,6 +43,29 @@ interface Match {
     rule: MerlinRule | MerlinSearchRequest;
     match: INode | any;
 }
+
+export enum MetadataTopic {
+    DFLOW_STEP="step",
+    IMPACT="impact",
+    CRITICITY="criticity"
+}
+
+export enum DataOperation {
+    SOURCING,
+    PROCESSING,
+    STORING,
+    SHARING,
+    ENCRYPTING,
+    DECRYPTING,
+    HASHING
+}
+
+export enum DataOperationSource {
+    UI,
+    API
+}
+
+
 /**
  * Represent a
  */
@@ -48,6 +78,8 @@ export default class ControlAssessment implements IControl {
     description = "";
 
     links = "";
+
+    metadata:Metadata[] = [];
 
     testType:TestType = TestType.VT;
 
@@ -74,7 +106,7 @@ export default class ControlAssessment implements IControl {
 
         for(let i in this){
             switch (i){
-                case "matches":
+                /*case "matches":
                     o.matches = [];
                     this.matches.map( x => {
                        // o.matches.push( x.toJsonObject());
@@ -87,7 +119,7 @@ export default class ControlAssessment implements IControl {
                             });
                         }
                     });
-                    break;
+                    break;*/
                 case "rules":
                     o.rules = [];
                     this.rules.map( x => {
@@ -101,6 +133,9 @@ export default class ControlAssessment implements IControl {
                     break;
             }
         }
+
+        CoreDebug.checkJsonSerialize(o, "ControlAssessment");
+
         return o;
     }
 
