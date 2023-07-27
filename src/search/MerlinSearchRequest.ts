@@ -582,15 +582,15 @@ export class MerlinSearchRequest implements MerlinPrimitive{
 
           if(nnArgs.cond!=null){
             if(nnArgs.cond.opts!=null){
-              if(nnArgs.cond.opts.query_string) f += ` query_string: ${JSON.stringify(nnArgs.cond.opts.query_string)},`;
-              if(nnArgs.cond.opts.not) f += ` not: ${JSON.stringify(nnArgs.cond.opts.not)},`;
-              if(nnArgs.cond.opts.regexp) f += ` regexp: "${nnArgs.cond.opts.regexp}",`;
-              if(nnArgs.cond.opts.range) f += ` range: [${JSON.stringify(nnArgs.cond.opts.range)}],`;
-              if(nnArgs.cond.opts.copyTo) f += ` copyTo: ${JSON.stringify(nnArgs.cond.opts.exists)},`;
-              if(nnArgs.cond.opts.strict) f += ` strict: ${JSON.stringify(nnArgs.cond.opts.strict)},`;
+              if(nnArgs.cond.opts.query_string) nn += ` query_string: ${JSON.stringify(nnArgs.cond.opts.query_string)},`;
+              if(nnArgs.cond.opts.not) nn += ` not: ${JSON.stringify(nnArgs.cond.opts.not)},`;
+              if(nnArgs.cond.opts.regexp) nn += ` regexp: "${nnArgs.cond.opts.regexp}",`;
+              if(nnArgs.cond.opts.range) nn += ` range: [${JSON.stringify(nnArgs.cond.opts.range)}],`;
+              if(nnArgs.cond.opts.copyTo) nn += ` copyTo: ${JSON.stringify(nnArgs.cond.opts.exists)},`;
+              if(nnArgs.cond.opts.strict) nn += ` strict: ${JSON.stringify(nnArgs.cond.opts.strict)},`;
             }
 
-            if(f.length>1) f =  f.substring(0,f.length-1);
+            if(nn.length>1) nn =  nn.substring(0,nn.length-1);
             nn += "}";
 
           }else{

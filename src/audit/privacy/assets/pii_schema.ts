@@ -83,13 +83,15 @@ export const PII_Data:PiiClassMap = {
                 criticity: PiiCriticity.LOW,
                 types: [
                     new PiiType({
-                        name:"title",
+                        id:"title",
+                        name:"Title",
                         rules: [
                             Merlin.android().class("name:Civility" ),
                         ]
                     }),
                     new PiiType({
-                        name:"lastname",
+                        id:"lastname",
+                        name:"Lastname",
                         rules: [
                             Merlin.android().method("name:^getLastName.*" ),
                             Merlin.android().class("name:Person" ),
@@ -97,7 +99,8 @@ export const PII_Data:PiiClassMap = {
                         ]
                     }),
                     new PiiType({
-                        name:"firstname",
+                        id:"firstname",
+                        name:"Firstname",
                         rules: [
                             Merlin.android().method("name:^getFirstName.*" ),
                             Merlin.android().class("name:Person" ),
@@ -105,6 +108,7 @@ export const PII_Data:PiiClassMap = {
                         ]
                     }),
                     new PiiType({
+                        id:"username",
                         name:"username",
                         rules: [
                             Merlin.android().method("name:^UserName.*" ),
@@ -114,12 +118,14 @@ export const PII_Data:PiiClassMap = {
                         ]
                     }),
                     new PiiType({
+                        id:"age",
                         name:"age",
                         rules: [
                             Merlin.android().class("name:Civility" ),
                         ]
                     }),
                     new PiiType({
+                        id:"status",
                         name:"status",
                         rules: [
                             Merlin.android().class("name:RelationType" ),
@@ -164,7 +170,7 @@ export const PII_Data:PiiClassMap = {
                         ]
                     }),
                     new PiiType({
-                        id:"dead",
+                        id:"deadDate",
                         name:"Dead"
                     }),
                     new PiiType({
@@ -174,17 +180,20 @@ export const PII_Data:PiiClassMap = {
                 ]
             }),
             new PiiCategory({
-                name: "family",
+                id: "family",
+                name: "Family",
                 criticity: PiiCriticity.LOW,
                 types: [
                     new PiiType({
-                        name:"matriomonial status",
+                        id:"matriomonialStatus",
+                        name:"Matriomonial Status",
                         rules: [
                             Merlin.android().class("name:RelationType" ),
                         ]
                     }),
                     new PiiType({
-                        name:"family relationship",
+                        id:"familyRelationship",
+                        name:"Family Relationship",
                         children: {
                             class: "identify"
                         }
@@ -192,46 +201,58 @@ export const PII_Data:PiiClassMap = {
                 ]
             }),
             new PiiCategory({
-                name: "identity documents metadata",
+                id: "idDocMetadata",
+                name: "ID documents metadata",
                 criticity: PiiCriticity.LOW,
                 types: [
                     new PiiType({
+                        id:"idCardId",
                         name:"ID card ID"
                     }),
                     new PiiType({
+                        id:"idCardIssueDate",
                         name:"ID card issue date",
                     }),
                     new PiiType({
+                        id:"idCardIssueLocation",
                         name:"ID card issue location",
                     }),
                     new PiiType({
+                        id:"authorityId",
                         name:"Authority ID",
                     })
                 ]
             }),
             new PiiCategory({
-                name: "identity documents",
+                id:"idDoc",
+                name: "Identity documents",
                 criticity: PiiCriticity.MEDIUM,
                 types: [
                     new PiiType({
+                        id:"idCard",
                         name:"ID card"
                     }),
                     new PiiType({
+                        id:"passport",
                         name:"Passport",
                     }),
                     new PiiType({
+                        id:"driverLicence",
                         name:"Driver licence",
                     })
                 ]
             }),
             new PiiCategory({
-                name: "media",
+                id: "media",
+                name: "Media Resources",
                 criticity: PiiCriticity.LOW,
                 types: [
                     new PiiType({
+                        id: "picture",
                         name:"picture"
                     }),
                     new PiiType({
+                        id: "video",
                         name:"video",
                     })
                 ]
@@ -239,9 +260,11 @@ export const PII_Data:PiiClassMap = {
         ]
     }),
     contact: new PiiClass({
-        name: "contact",
+        id: "contact",
+        name: "Contact",
         categories: [
             new PiiCategory({
+                id: "personalContact",
                 name: "personal contact",
                 criticity: PiiCriticity.LOW,
                 types: [
@@ -251,6 +274,7 @@ export const PII_Data:PiiClassMap = {
                 ]
             }),
             new PiiCategory({
+                id: "professionalContact",
                 name: "professional contact",
                 criticity: PiiCriticity.LOW,
                 types: [
@@ -261,82 +285,103 @@ export const PII_Data:PiiClassMap = {
             })
         ]
     }),
-    bankingData: new PiiClass({
+    banking: new PiiClass({
+        id: "banking",
         name: "banking",
         categories: [
             new PiiCategory({
+                id: "bankingAddress",
                 name: "Banking address",
                 criticity: PiiCriticity.MEDIUM,
                 types: [
                     new PiiType({
+                        id: "customerID",
                         name:"Customer ID",
                     }),
                     new PiiType({
+                        id: "accountNumber",
                         name:"Account number",
                     }),
                     new PiiType({
+                        id: "iban",
                         name:"IBAN",
                     }),
                     new PiiType({
+                        id: "bic",
                         name:"BIC",
                     }),
                     new PiiType({
+                        id: "swift",
                         name:"SWIFT",
                     }),
                     PII_DataType.postalAddress,
                     new PiiType({
+                        id: "accountType",
                         name:"Account type", // ?
                     })
                 ]
             }),
             new PiiCategory({
+                id: "credits",
                 name: "Credits",
                 criticity: PiiCriticity.MEDIUM,
                 types: [
                     new PiiType({
+                        id: "details",
                         name:"Details",
                     }),
                     new PiiType({
+                        id: "historic",
                         name:"Historic",
                     })
                 ]
             })
         ]
     }),
-    insuranceData: new PiiClass({
+    insurance: new PiiClass({
+        id:"insurance",
         name: "insurance",
         categories: []
     }),
-    marketingData: new PiiClass({
+    marketing: new PiiClass({
+        id: "marketing",
         name: "marketing",
         categories: [
             new PiiCategory({
+                id: "customerProfile",
                 name: "customer profile",
                 criticity: PiiCriticity.MEDIUM,
                 types: [
                     new PiiType({
+                        id: "acqChan",
                         name:"Acquisition channel",
                     }),
                     new PiiType({
+                        id: "customChan",
                         name:"Customer segments",
                     }),
                     new PiiType({
+                        id: "cookies",
                         name:"Cookies",
                     }),
                     new PiiType({
+                        id: "socialTrends",
                         name:"Social trends",
                     })
                 ]
             })]
     }),
-    piData: new PiiClass({
-        name: "personal activity",
+    personal: new PiiClass({
+        id: "personal",
+        name: "Personal Pctivity",
         categories: [
             new PiiCategory({
+                id: "itTracing",
                 name: "IT tracing",
                 criticity: PiiCriticity.LOW,
                 types: [
                     new PiiType({
+                        id: "epua",
                         name:"Endpoints & User Agent",
                         rules: [
                             Merlin.android().method("name:^getUserAgent.*" ),
@@ -345,6 +390,7 @@ export const PII_Data:PiiClassMap = {
                         ]
                     }),
                     new PiiType({
+                        id: "ipAddr",
                         name:"IP address",
                         rules: [
                             Merlin.android().permission("name:^android\.permission\.INTERNET$"), // AND
@@ -355,78 +401,99 @@ export const PII_Data:PiiClassMap = {
                         ]
                     }),
                     new PiiType({
+                        id: "creds",
                         name:"Credentials",
                     }),
                     new PiiType({
+                        id: "logs",
                         name:"Logs",
                     }),
                     new PiiType({
+                        id: "times",
                         name:"Timestamp",
                     })
                 ]
             }),
             new PiiCategory({
+                id: "legal",
                 name: "Legal",
                 criticity: PiiCriticity.LOW,
                 types: [
                     new PiiType({
+                        id: "criminalRec",
                         name:"Criminal record"
                     })
                 ]
             }),
             new PiiCategory({
+                id: "itTracing",
                 name: "Sensitive",
                 criticity: PiiCriticity.SENSITIVE,
                 types: [
                     new PiiType({
+                        id: "ethnical",
                         name:"Ethnical origins"
                     }),
                     new PiiType({
+                        id: "politics",
                         name:"Political trends",
                     }),
                     new PiiType({
+                        id: "religion",
                         name:"Religion",
                     }),
                     new PiiType({
+                        id: "syndicated",
                         name:"Worker syndicated",
                     }),
                     new PiiType({
+                        id: "bio",
                         name:"Biometric data",
                     }),
                     new PiiType({
+                        id: "generic",
                         name:"Genetic data",
                     }),
                     new PiiType({
+                        id: "sexual",
                         name:"Sexual trends",
                     }),
                     new PiiType({
+                        id: "healthStatus",
                         name:"Health status",
                     }),
                     new PiiType({
+                        id: "healthStatusAdv",
                         name:"Health status (advanced)",
                     }),
                     new PiiType({
+                        id: "healthStatusHist",
                         name:"Health status historic",
                     }),
                     new PiiType({
+                        id: "disable",
                         name:"Disability",
                     })
                 ]
             }),
             new PiiCategory({
-                name: "identity",
+                id: "legalIdentity",
+                name: "Legal identity",
                 criticity: PiiCriticity.LOW,
                 types: [
                     new PiiType({
+                        id: "nic",
                         name:"NIC",
                     })
                 ]
             }),
             new PiiCategory({
+                id: "geolocation",
                 name: "geolocation",
                 criticity: PiiCriticity.SENSITIVE,
                 types: [
                     new PiiType({
+                        id: "position",
                         name:"geolocation position",
                         signature: [
                             (new CodeConstraint(NodeInternalType.CLASS,{pattern:"android.webkit.GeolocationPermissions"} )),
@@ -465,38 +532,32 @@ export const PII_Data:PiiClassMap = {
                 ]
             }),
             new PiiCategory({
+                id: "biologic",
                 name: "biologic",
                 criticity: PiiCriticity.SENSITIVE,
                 types: [
                     new PiiType({
+                        id: "dna",
                         name:"DNA sample",
                     })
                 ]
             })
         ]
     }),
-    deviceData: new PiiClass({
-        name: "Device",
+    device: new PiiClass({
+        id:"device",
+        name: "Device Data",
         categories: [
             new PiiCategory({
+                id:"operator",
                 name: "Operator",
                 criticity: PiiCriticity.MEDIUM,
                 types: [
-                    new PiiType({
-                        name:"Acquisition channel",
-                    }),
-                    new PiiType({
-                        name:"Customer segments",
-                    }),
-                    new PiiType({
-                        name:"Cookies",
-                    }),
-                    new PiiType({
-                        name:"Social trends",
-                    })
+
                 ]
             }),
             new PiiCategory({
+                id:"deviceFingerprint",
                 name: "Device Fingerprint",
                 criticity: PiiCriticity.MEDIUM,
                 types: [

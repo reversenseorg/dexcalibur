@@ -11,6 +11,7 @@ import AssuranceModel from "../audit/common/AssuranceModel.js";
 import Control from "../audit/common/Control.js";
 import {ErrorCode} from "../errors/MonitoredError.js";
 import DexcaliburEngine from "../DexcaliburEngine.js";
+import {ScanFlow} from "../audit/common/ScanFlow.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 export const AUDIT_WEB_API: DelegateWebApi = new DelegateWebApi();
@@ -355,14 +356,18 @@ AUDIT_WEB_API.addAsyncAuthenticatedRoute(
                 const targetModels: AssuranceModel[] = [];
                 const scanners: AssuranceScanner[] = [];
                 const reports: { [model:string] :AssuranceReport[] } = {};
-                const data:any = {};
+                const data:any = [];
+                const scheduler = project.getScanScheduler();
+                const flows:ScanFlow[] = [];
 
                 // retrieve the list of targeted models
                 allModels.map((vModel)=>{
                     if(targetUIDs.indexOf(vModel.getID())>-1){
+                        // create one scanner per model
                         const asc = LicenceManager.getProduct( project, vModel.getScannerID()) as AssuranceScanner;
-                        targetModels.push(vModel);
                         asc.setModel(vModel);
+
+                        targetModels.push(vModel);
                         scanners.push(asc);
                     }
                 });
@@ -370,6 +375,8 @@ AUDIT_WEB_API.addAsyncAuthenticatedRoute(
                 // run scanner
                 for(let i=0; i<scanners.length; i++){
                     console.log("Run scans ("+i+") : "+scanners[i].name);
+                    flows.push(scheduler.newScan(scanners[i]));
+                    /*
                     scanners[i].run(project, {});
                     console.log("Save all reports  ("+i+") : "+scanners[i].name);
                     data[scanners[i].name] = [];
@@ -383,11 +390,13 @@ AUDIT_WEB_API.addAsyncAuthenticatedRoute(
                             console.log("Save single reports  FAILED ("+i+") : "+scanners[i].name+" "+err1.stack);
                         }
 
-                    });
+                    });*/
                 }
 
                 // return results
-
+                flows.map(x => {
+                    data.push(x.toJsonObject())
+                })
                 $.sendSuccess(res, data);
             }catch(err){
                 Logger.error("[API][AUDIT] Scan cannot be started. Cause : " + err.message + "\n\t" + err.stack);

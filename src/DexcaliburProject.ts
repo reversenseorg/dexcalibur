@@ -66,6 +66,7 @@ import {PrivacyScanner} from "./audit/privacy/PrivacyScanner.js";
 import {LicenceManager} from "./credit/LicenceManager.js";
 import {Product} from "./credit/Product.js";
 import {CoreDebug} from "./core/CoreDebug.js";
+import {ScanScheduler} from "./audit/common/ScanScheduler.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -288,6 +289,8 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
 
     owner: UserAccount = null;
 
+    private _scanScheduler:ScanScheduler;
+
     private _wf:Workflow = null;
 
     private analCfg:AnalyzerConfiguration = new AnalyzerConfiguration();
@@ -320,6 +323,7 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
 
         this.engine = pEngine;
         this.uid = pUID;
+        this._scanScheduler = new ScanScheduler(this);
     }
 
     /**
@@ -329,6 +333,10 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
         for(const k in ProjectAccessControl.attr){
             this.setAccessAttribute(ProjectAccessControl.attr[k], ProjectAccessControl.attr[k].value);
         }
+    }
+
+    getScanScheduler():ScanScheduler {
+        return this._scanScheduler;
     }
 
 

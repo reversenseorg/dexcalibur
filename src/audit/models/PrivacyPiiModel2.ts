@@ -1,16 +1,27 @@
-import {PiiCriticity} from "../pii/PiiCategory.js";
-import {PiiType} from "../pii/PiiType.js";
-import {Merlin} from "../../../search/Merlin.js";
-import CodeConstraint from "../../common/CodeConstraint.js";
-import {NodeInternalType} from "../../../NodeInternalType.js";
-import ModelClass from "../../../ModelClass.js";
-import Control, {ControlMap} from "../../common/Control.js";
-import ControlAssessment, {DataOperation, MetadataTopic} from "../../common/ControlAssessment.js";
-import {MetadataType} from "../../common/Metadata.js";
-import ModelField from "../../../ModelField.js";
+import AssuranceModel from "../common/AssuranceModel.js";
+import Control from "../common/Control.js";
+import ControlAssessment, {DataOperation, MetadataTopic} from "../common/ControlAssessment.js";
+import {Merlin} from "../../search/Merlin.js";
+import {MetadataType} from "../common/Metadata.js";
+import ModelField from "../../ModelField.js";
+import {PiiCriticity} from "../privacy/pii/PiiCategory.js";
+import ModelClass from "../../ModelClass.js";
 
 
-export const PII_DataType:ControlMap = {
+const model = new AssuranceModel({
+    id: "privacy.pii2",
+    scannerID:"scanner.generic",
+    name: "Personal Identifiable Information 2",
+    description: "N/A",
+    links: [],
+    controls:[
+
+    ]
+});
+
+
+
+export const PII_DataType:any = {
     postalAddress: new Control({
         name:"postal_address",
         children: [
@@ -140,8 +151,8 @@ export const PII_DataType:ControlMap = {
 };
 
 
-export const PII_Data:ControlMap = {
-    identity: new Control({
+const PII_Data:Control[] = [
+    new Control({
         id: "identity",
         name: "Identity",
         children: [
@@ -366,7 +377,7 @@ export const PII_Data:ControlMap = {
             })
         ]
     }),
-    contact: new Control({
+    new Control({
         id: "contact",
         name: "Contact",
         children: [
@@ -396,7 +407,7 @@ export const PII_Data:ControlMap = {
             })
         ]
     }),
-    banking: new Control({
+    new Control({
         id: "banking",
         name: "banking",
         children: [
@@ -456,7 +467,7 @@ export const PII_Data:ControlMap = {
             })
         ]
     }),
-    insurance: new Control({
+    new Control({
         id:"insurance",
         name: "insurance",
         metadata: [
@@ -464,7 +475,7 @@ export const PII_Data:ControlMap = {
         ],
         children: []
     }),
-    marketing: new Control({
+    new Control({
         id: "marketing",
         name: "marketing",
         children: [
@@ -494,7 +505,7 @@ export const PII_Data:ControlMap = {
                 ]
             })]
     }),
-    personal: new Control({
+    new Control({
         id: "personal",
         name: "personal activity",
         children: [
@@ -640,11 +651,11 @@ export const PII_Data:ControlMap = {
                                 "__signature__:^android\.content\.PackageManager;->hasSystemFeature\(",
                                 {
                                     "1": Merlin.android()
-                                            .field("__signature__:android.content.pm.PackageManager;->FEATURE_LOCATION")
-                                            //.select(ModelField.TYPE.getProperty("value"))
+                                        .field("__signature__:android.content.pm.PackageManager;->FEATURE_LOCATION")
+                                    //.select(ModelField.TYPE.getProperty("value"))
 
 
-                                        //expect: Merlin.android().getDB().fields.getEntry("android.content.pm.PackageManager;->FEATURE_LOCATION")
+                                    //expect: Merlin.android().getDB().fields.getEntry("android.content.pm.PackageManager;->FEATURE_LOCATION")
 
                                 }),
                             Merlin.android().sources(
@@ -671,7 +682,7 @@ export const PII_Data:ControlMap = {
             })
         ]
     }),
-    device: new Control({
+    new Control({
         id:"device",
         name: "Device Data",
         children: [
@@ -723,4 +734,9 @@ export const PII_Data:ControlMap = {
             })
         ]
     }),
-};
+];
+
+model.controls = PII_Data;
+model.updateControlTree(model.controls);
+
+export const PrivacyPiiModel2 = model;
