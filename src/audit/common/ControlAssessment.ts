@@ -81,7 +81,7 @@ export default class ControlAssessment implements IControl {
 
     metadata:Metadata[] = [];
 
-    testType:TestType = TestType.VT;
+    testType:TestType = TestType.STATIC_SCAN;
 
     analType:AnalysisType = AnalysisType.SAST;
 

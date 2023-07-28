@@ -13,6 +13,7 @@ import {CANONICALIZED_ROOT, ControlNode} from "./AssuranceModel.js";
 import * as Log from "../../Logger.js";
 import {IControl} from "./IControl.js";
 import {CoreDebug} from "../../core/CoreDebug.js";
+import {AuditManager} from "../AuditManager.js";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -285,13 +286,17 @@ export class GenericScanner extends AssuranceScanner {
         });
 
         if(tests[TestType.VT].length>0) plan.addStep(TestType.VT, tests[TestType.VT]);
+
         if(tests[TestType.IAST].length>0) plan.addStep(TestType.IAST, tests[TestType.IAST]);
         if(tests[TestType.STATIC_SCAN].length>0) plan.addStep(TestType.STATIC_SCAN, tests[TestType.STATIC_SCAN]);
         // add coverage measurement + loop
         if(tests[TestType.TAINT].length>0) plan.addStep(TestType.TAINT, tests[TestType.TAINT]);
         if(tests[TestType.DYN_SCAN].length>0) plan.addStep(TestType.DYN_SCAN, tests[TestType.DYN_SCAN]);
         // add coverage measurement + loop
-        if(tests[TestType.STATIC_SCAN].length>0) plan.addStep(TestType.STATIC_SCAN, tests[TestType.STATIC_SCAN]);
+        if((tests[TestType.TAINT].length+tests[TestType.DYN_SCAN].length)>0){
+            if(tests[TestType.STATIC_SCAN].length>0) plan.addStep(TestType.STATIC_SCAN, tests[TestType.STATIC_SCAN]);
+        }
+
         // add coverage measurement + loop
         if(tests[TestType.SYMEXEC].length>0) plan.addStep(TestType.SYMEXEC, tests[TestType.SYMEXEC]);
         if(tests[TestType.PT].length>0) plan.addStep(TestType.PT, tests[TestType.PT]);
@@ -328,10 +333,16 @@ export class GenericScanner extends AssuranceScanner {
 
         plan.execute((vStep:TestStep)=>{
             Logger.info("[SCANNER]["+this.name+"] Execute Test Step : "+vStep.type)
-            let next = false;
+            let next = true;
             switch (vStep.type){
                 case TestType.STATIC_SCAN:
                     this._staticScan( this.report, vStep.controls, pOptions);
+                    break;
+                case TestType.IAST:
+                    this._iastScan( this.report, vStep.controls, pOptions);
+                    break;
+                default:
+                    Logger.info("[SCAN][NOT SUPPORTED][STEP="+vStep.type+"] model="+this.model.getID());
                     break;
             }
             return next;
@@ -349,7 +360,7 @@ export class GenericScanner extends AssuranceScanner {
         this.reports.push(this.report);
 
         // 7. Save
-        //AuditManager.getInstance().saveReport(pContext, this.lastReport);
+        AuditManager.getInstance().saveReport(pContext, this.report);
 
 
     }
@@ -360,6 +371,12 @@ export class GenericScanner extends AssuranceScanner {
      * @private
      */
     private _staticScan( pReport:AssuranceReport, pControlNodes:ControlNode[], pOptions:GenericScanOptions) {
+        pControlNodes.map( vCtrl => {
+            this.doAssessment(pReport, vCtrl);
+        });
+    }
+
+    private _iastScan( pReport:AssuranceReport, pControlNodes:ControlNode[], pOptions:GenericScanOptions) {
         pControlNodes.map( vCtrl => {
             this.doAssessment(pReport, vCtrl);
         });

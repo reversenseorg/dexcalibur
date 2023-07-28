@@ -20,6 +20,7 @@ export class SearchRequestCondition implements IStringIndex{
 
   depth = 3;
   tag: Tag|null = null;
+  tagKey: string|null = null;
   pattern: string|null = null;
   field: string|null = null;
   raw = "";

@@ -13,6 +13,7 @@ import DexcaliburProject from "../DexcaliburProject.js";
 import {NodeInternalType, NodeInternalTypeName} from "../NodeInternalType.js";
 import { MerlinPrimitive, MerlinType} from "./Merlin.js";
 import {CoreDebug} from "../core/CoreDebug.js";
+import {TagManager} from "../tags/TagManager.js";
 
 
 export enum OperationType {
@@ -220,30 +221,20 @@ export class MerlinSearchRequest implements MerlinPrimitive{
       tag: null,
       regexp: false,
       raw: pCond,
-      opts: pOptions
+      opts: pOptions,
+      tagKey: null
     });
 
     if(d>-1){
       cond.field = pCond.substr(0,d);
       cond.pattern = pCond.substr(d+1);
-      cond.tag = null;
     }else{
       cond.pattern = null;
       cond.field = (offsetTag>-1)? pCond.substr(0, offsetTag) : pCond;
-      if(offsetTag > -1){
-        tagUID = pCond.substr(offsetTag+1);
+      if((offsetTag > -1) && !pOptions.query_string ){
+        cond.tagKey = pCond.substr(offsetTag+1);
       }
-
     }
-
-    // TODO : get Tag instance is required
-    /*if(tagUID != null && !pOptions.query_string){
-      const tags = pSearchContext.byID().tag(tagUID);
-      if(tags.count()>0){
-        cond.tag = tags.get(0);
-      }
-    }*/
-
 
     if(cond.pattern != null){
       if(/^\/.+\/[ig]*/i.test(cond.pattern)){
@@ -757,6 +748,23 @@ export class MerlinSearchRequest implements MerlinPrimitive{
     }
   }
 
+  private _resolveTagNames(pProject:DexcaliburProject):void {
+    this.getOperations().map(x => {
+      let args:SearchOperationArgs;
+      switch (x.type){
+        case OperationType.SEARCH:
+          args = (x.args as SearchOperationArgs)
+          if(args.pattern.tagKey!=null){
+            try{
+              args.pattern.tag = pProject.getTagManager().getTag(args.pattern.tagKey);
+            }catch(err){
+              console.log("Tag ["+args.pattern.tagKey+"] cannot be resolved in request ["+this.toSearchString()+"]");
+            }
+          }
+          break;
+      }
+    })
+  }
 
   /**
    * To prepare, execute the request and return the result
@@ -775,6 +783,9 @@ export class MerlinSearchRequest implements MerlinPrimitive{
     }else{
       coll = db.getDataSetFromNodeType((this._type as NodeType).getType());
     }
+
+    // resolve Tags name
+    this._resolveTagNames(pProject);
 
     let res:any = null;
 

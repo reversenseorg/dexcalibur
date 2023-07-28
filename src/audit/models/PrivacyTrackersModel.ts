@@ -49,29 +49,41 @@ rawData.trackers.map((vRaw)=>{
         refs: sig.refs
     });*/
 
-    let assessCtrl:ControlAssessment;
+    let assessCtrl:ControlAssessment, assessCtrl2:ControlAssessment;
 
     if(sig.networkSignature.length>0){
         assessCtrl = new ControlAssessment({
-            id: "network",
-            name: "URI",
+            id: "network:uri",
+            name: "URI Occurences",
             testType: TestType.STATIC_SCAN,
             analType: AnalysisType.SAST,
             rules: []
         });
+        assessCtrl2 = new ControlAssessment({
+            id: "network:uri_usage",
+            name: "URI Usage",
+            testType: TestType.IAST,
+            analType: AnalysisType.SAST,
+            rules: []
+        });
         sig.networkSignature.map((x)=>{
-            assessCtrl.rules.push(
-                Merlin.android().strings(`value:/${x.pattern}/`)
+            //assessCtrl.rules.push(Merlin.android().strings(`value:/${x.pattern}/`));
+            assessCtrl.rules.push(Merlin.android().strings(`value:/${x.pattern}/`).filter(`@network.host.uri`));
+            assessCtrl.rules.push(Merlin.android().strings(`value:/https?:\/\/.*${x.pattern}/`));
+            assessCtrl2.rules.push(
+                Merlin.android().strings( `value:/https?:\/\/.*${x.pattern}/`).on("network.uri.new")
             );
         });
         ctrl.assessments.push(assessCtrl);
+        ctrl.assessments.push(assessCtrl2);
+        //ctrl.assessments.push(assessCtrl);
     }
 
     if(sig.codeSignature.length>0){
 
         assessCtrl = new ControlAssessment({
             id: "code",
-            name: "Package & class names",
+            name: "Object Occurencess",
             testType: TestType.STATIC_SCAN,
             analType: AnalysisType.SAST,
             rules: []

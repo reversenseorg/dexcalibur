@@ -175,7 +175,8 @@ AUDIT_WEB_API.addAuthenticatedRoute(
             }
         }
     },{
-        readProject: true
+        readProject: true,
+        readProjectStrict: true,
     }
 );
 
@@ -198,7 +199,8 @@ AUDIT_WEB_API.addAuthenticatedRoute(
             }
         }
     },{
-        readProject: true
+        readProject: true,
+        readProjectStrict: true,
     }
 );
 
@@ -393,14 +395,75 @@ AUDIT_WEB_API.addAsyncAuthenticatedRoute(
                     });*/
                 }
 
+                const started = scheduler.start(200);
+
                 // return results
-                flows.map(x => {
+                started.map(x => {
                     data.push(x.toJsonObject())
-                })
+                });
                 $.sendSuccess(res, data);
             }catch(err){
                 Logger.error("[API][AUDIT] Scan cannot be started. Cause : " + err.message + "\n\t" + err.stack);
                 $.sendError(res, "Scan cannot be started. Cause : " + err.message);
+            }
+        }
+    },{
+        readProject: false
+    }
+);
+
+
+AUDIT_WEB_API.addAsyncAuthenticatedRoute(
+    '/project/:projectID/scan/list',
+    {
+        'post': async function (req:DelegateRequest, res:DelegateResponse):Promise<any> {
+            const $: WebServer = req.dxc.$;
+
+            try{
+                //
+                let project = null;
+                try{
+                    project = AUDIT_WEB_API.doProjectSecurityChecks(req, $, {readProjectStrict:true});
+                }catch(err1){
+                    throw err1;
+                }
+
+                // ========== LOGIC
+                const scheduler = project.getScanScheduler();
+                $.sendSuccess(res, scheduler.toJsonObject());
+            }catch(err){
+                Logger.error("[API][AUDIT] Scans cannot be listed. Cause : " + err.message + "\n\t" + err.stack);
+                $.sendError(res, "Scans cannot be listed. Cause : " + err.message);
+            }
+        }
+    },{
+        readProject: false
+    }
+);
+
+AUDIT_WEB_API.addAsyncAuthenticatedRoute(
+    '/project/:projectID/scan/reports',
+    {
+        'post': async function (req:DelegateRequest, res:DelegateResponse):Promise<any> {
+            const $: WebServer = req.dxc.$;
+
+            try{
+                //
+                let project = null;
+                try{
+                    project = AUDIT_WEB_API.doProjectSecurityChecks(req, $, {readProjectStrict:true});
+                }catch(err1){
+                    throw err1;
+                }
+
+                // ========== LOGIC
+                const scheduler = project.getScanScheduler();
+                //scheduler.getPastScans()
+
+                $.sendSuccess(res, scheduler.toJsonObject());
+            }catch(err){
+                Logger.error("[API][AUDIT] Scans cannot be listed. Cause : " + err.message + "\n\t" + err.stack);
+                $.sendError(res, "Scans cannot be listed. Cause : " + err.message);
             }
         }
     },{

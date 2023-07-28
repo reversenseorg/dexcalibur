@@ -588,6 +588,7 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
 
             this.workspace.init();
 
+            this._scanScheduler.restore();
         }
 
         // init connector

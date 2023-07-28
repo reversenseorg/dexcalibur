@@ -16,6 +16,10 @@ const RUNTIME_MSG = new TagCategory({ name: "runtime.msg" });
 const DISCOVER = new TagCategory({ name: "discover" });
 //const AUDIT_THREAT = new TagCategory({ name: "audit.threat" });
 const AUDIT_TYPE = new TagCategory({ name: "audit.type" });
+//const AUDIT_THREAT = new TagCategory({ name: "audit.threat" });
+const NETWORK_DATA = new TagCategory({ name: "network.data" });
+const NETWORK_PROTOCOL = new TagCategory({ name: "network.protocol" });
+const NETWORK_HOST = new TagCategory({ name: "network.host" });
 
 const CODE_NATIVE_TAGS = [
     new Tag({ name:"export" }),
@@ -68,6 +72,37 @@ const DISCOVER_TAGS = [
     new Tag({ name:"dynamic" }), // dd
     new Tag({ name:"internal" }) // di
 ];
+
+
+
+const NETWORK_HOST_TAGS = [
+    new Tag({ name:"uri" }),
+    new Tag({ name:"port" }),
+    new Tag({ name:"schema" }),
+    new Tag({ name:"credential" })
+];
+
+const NETWORK_DATA_TAGS = [
+    new Tag({ name:"header" }),
+    new Tag({ name:"body" }),
+    new Tag({ name:"request" }),
+    new Tag({ name:"response" }),
+];
+
+const NETWORK_PROTOCOL_TAGS = [
+    new Tag({ name:"https" }),
+    new Tag({ name:"http" }),
+    new Tag({ name:"bluetooth" }),
+    new Tag({ name:"ble" }),
+    new Tag({ name:"websocket" }),
+    new Tag({ name:"nfc" }),
+    new Tag({ name:"gsm" }),
+    new Tag({ name:"lte" }),
+    new Tag({ name:"can" }),
+    new Tag({ name:"tcp" })
+];
+
+
 
 const DATA_CHARSET_TAGS = [
     new Tag({ name:"ascii" }),
@@ -122,6 +157,9 @@ GLOBAL_TAGS.map( x => { GLOBAL.addTag(x); });
 DISCOVER_TAGS.map( x => { DISCOVER.addTag(x); });
 RUNTIME_TAGS.map( x => { RUNTIME_MSG.addTag(x); });
 AUDIT_TYPE_TAGS.map( x => { AUDIT_TYPE.addTag(x); });
+NETWORK_DATA_TAGS.map( x => { NETWORK_DATA.addTag(x); });
+NETWORK_HOST_TAGS.map( x => { NETWORK_HOST.addTag(x); });
+NETWORK_PROTOCOL_TAGS.map( x => { NETWORK_PROTOCOL.addTag(x); });
 
 export const TAG_CATEGORY_PRESETS = [
     GLOBAL,
@@ -138,6 +176,10 @@ export const TAG_CATEGORY_PRESETS = [
     DATA_LEN,
 
     RUNTIME_MSG,
-    AUDIT_TYPE
+    AUDIT_TYPE,
+
+    NETWORK_DATA,
+    NETWORK_HOST,
+    NETWORK_PROTOCOL
 ];
 

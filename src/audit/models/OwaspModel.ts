@@ -28,7 +28,7 @@ export const OwaspMasvsModel = new AssuranceModel({
                             id:"android.perm",
                             name:"Android Permissions checks",
                             description: "Check AndroidManifest.xml for read/write external storage permissions",
-                            testType: TestType.VT,
+                            testType: TestType.STATIC_SCAN,
                             analType: AnalysisType.SAST,
                             rules: [
                                 Merlin.android().permission("name:^android\.permission\.WRITE_EXTERNAL_STORAGE$")
@@ -38,7 +38,7 @@ export const OwaspMasvsModel = new AssuranceModel({
                             id:"API_keywords",
                             name:"Occurences of API keyword",
                             description: "Check the binary code for keywords/static fields from API related to data storage",
-                            testType: TestType.VT,
+                            testType: TestType.STATIC_SCAN,
                             analType: AnalysisType.SAST,
                             rules: [
                                 Merlin.android()
@@ -53,7 +53,7 @@ export const OwaspMasvsModel = new AssuranceModel({
                             id:"API_calls",
                             name:"Occurences of call to Android API",
                             description: "Check the binary code for call to API's methods related to data storage",
-                            testType: TestType.VT,
+                            testType: TestType.STATIC_SCAN,
                             analType: AnalysisType.SAST,
                             rules: [
                                 Merlin.android().call("calleed.enclosingClass.simpleName:^SharedPreferences$"),
@@ -83,7 +83,7 @@ export const OwaspMasvsModel = new AssuranceModel({
                             id:"android.perm",
                             name:"Android Permissions checks",
                             description: "Check AndroidManifest.xml for read/write external storage permissions",
-                            testType: TestType.VT,
+                            testType: TestType.STATIC_SCAN,
                             analType: AnalysisType.SAST,
                             rules: [
                                 Merlin.android().strings("value:test-keys"),
@@ -94,7 +94,7 @@ export const OwaspMasvsModel = new AssuranceModel({
                             id:"android.perm",
                             name:"Android Permissions checks",
                             description: "Check AndroidManifest.xml for read/write external storage permissions",
-                            testType: TestType.PT,
+                            testType: TestType.IAST,
                             analType: AnalysisType.DAST,
                             rules: [
                                 Merlin.android().strings("value:google").on("data.uri.index")

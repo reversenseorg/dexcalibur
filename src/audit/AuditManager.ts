@@ -14,6 +14,7 @@ import DexcaliburEngine from "../DexcaliburEngine.js";
 import {Logger} from "@dexcalibur/dexcalibur-installer/src/utils/Logger.js";
 import {Scan} from "./common/Scan.js";
 import {PrivacyPiiModel2} from "./models/PrivacyPiiModel2.js";
+import {ReversenseNetworkSecurityModel} from "./models/NetworkUsageModel.js";
 
 const SUBDIRS = {
     REPORTS: "reports",
@@ -108,9 +109,10 @@ export class AuditManager {
         // create it
         [
             //OwaspMasvsModel,
-            PrivacyPiiModel,
+            //PrivacyPiiModel,
             PrivacyPiiModel2,
-            PrivacyTrackersModel
+            PrivacyTrackersModel,
+            ReversenseNetworkSecurityModel
         ].map(x => {
             if(allModels[x.getID()]==null){
                 x.load();

@@ -165,7 +165,7 @@ export default class AssuranceReport {
 
         for(let i in this){
             switch (i){
-                case "primaryAssets":
+                /*case "primaryAssets":
                 case "secondaryAssets":
                 case "globalThreats":
                 case "assets":
@@ -173,7 +173,7 @@ export default class AssuranceReport {
                     (this[i] as any).map(x => {
                         o[i].push((x as ConstraintMatch<any>).toJsonObject());
                     })
-                    break;
+                    break;*/
                 case "project":
                     o.project = {
                         uid: this.project.getUID(),
@@ -182,7 +182,7 @@ export default class AssuranceReport {
                         device: null
                     };
 
-                    if(this.project.platform!=null){
+                    if(this.project.getPlatform()!=null){
                         o.project.platform = {
                             api: this.project.getPlatform().getApiVersion(),
                             uid: this.project.getPlatform().getUID()
@@ -193,14 +193,26 @@ export default class AssuranceReport {
                         const dev = this.project.getDevice();
                         o.project.device = {
                             uid: dev.getUID(),
-                            os: dev.getProfile().getSystemProfile().getOperatingSystem(),
-                            arch: dev.getProfile().getSystemProfile().getArchitecture(),
-                            abi: dev.getProfile().getSystemProfile().getABI(),
-                            platform: {
+                            os: null,
+                            arch: null,
+                            abi: null,
+                            platform: null
+                        };
+
+                        if(dev.getProfile()!=null){
+                            if(dev.getProfile().getSystemProfile()){
+                                const prof = dev.getProfile().getSystemProfile();
+                                o.project.device.os = prof.getOperatingSystem();
+                                o.project.device.arch = prof.getArchitecture();
+                                o.project.device.abi = prof.getABI();
+                            }
+                        }
+                        if(dev.getPlatform()!=null){
+                            o.project.device.platform = {
                                 api: dev.getPlatform().getApiVersion(),
                                 uid: dev.getPlatform().getUID()
-                            },
-                        };
+                            };
+                        }
                     }
                     break;
 
@@ -220,21 +232,33 @@ export default class AssuranceReport {
                         };
 
                         this.matches[k].match.map((x)=>{
-                            o.matches[k].match.push({
-                                ruleIdx: x.ruleIdx,
-                                node: ( x.match!=null ? x.match.toJsonObject() : null)
-                            });
+
+                            if(x.match!=null){
+                                o.matches[k].match.push({
+                                    ruleIdx: x.ruleIdx,
+                                    node: null
+                                });
+                            }else{
+                                o.matches[k].match.push({
+                                    ruleIdx: x.ruleIdx,
+                                    node: {
+                                        __: x.match.__,
+                                        uid: x.match.getUID()
+                                    }
+                                });
+                            }
+
                         })
                     }
 
                     break;
                 case "model":
-                    o.model = this.model.toJsonObject();
+                    o.model = this.model.getID(); //toJsonObject();
                     break;
             }
         }
 
-        CoreDebug.checkJsonSerialize(o, "AssurandeReport");
+        CoreDebug.checkJsonSerialize(o, "AssuranceReport");
         return o;
     }
 
