@@ -15,20 +15,20 @@ if [ $DXC_USE_ARTIFACTS = 0 ]; then
   cp ../dexcalibur-agent/dxc-agent.*.min.js ./dist/agent/.
 else
 
-  if [[ -f ./dxc-agent.android.arm64.min.js ]] ; then
+  if [ -f ./dxc-agent.android.arm64.min.js ] ; then
     echo "[*] dexcalibur-agent artifacts has been set"
     mkdir ./dist/agent
     cp ./dxc-agent.* ./dist/agent/.
   else
     echo "[!] dexcalibur-agent files have not been copied"
     mkdir ./dist/tmp
-      if [[ "$DXC_CICD_API_AUTH" = "basic" ]]; then
+      if [ "$DXC_CICD_API_AUTH" = "basic" ]; then
         curl -u "$DXC_CICD_API_USER:$DXC_CICD_API_PWD" -o ./dist/tmp/artifacts.zip "$DXC_CICD_HOST/httpAuth/repository/downloadAll/$BUILD_ID_DXCAGENT/.lastSuccessful/"
       else
         curl --header "Authorization: Bearer $DXC_CICD_API_TOKEN" -o ./dist/tmp/artifacts.zip "$DXC_CICD_HOST/repository/downloadAll/$BUILD_ID_DXCAGENT/.lastSuccessful/"
       fi
 
-      if [[ -f ./dist/tmp/artifacts.zip ]] ; then
+      if [ -f ./dist/tmp/artifacts.zip ] ; then
         echo "Artifacts download successfully, unzipping ..."
         unzip -d ./dist/agent ./dist/tmp/artifacts.zip
       else
