@@ -160,7 +160,9 @@ RUN cd $TMP_FOLDER/binwalk/binwalk-master && sudo python3 ./setup.py install
 
 COPY dxc-server-linux.tar.gz "$ARTIFACTS_FOLDER/dxc-server.tar.gz"
 
-RUN mkdir "$ARTIFACTS_FOLDER/dist" && \
+RUN ls -la $ARTIFACTS_FOLDER && chmod $user_server:$user_server $ARTIFACTS_FOLDER
+
+RUN ls -la && mkdir "$ARTIFACTS_FOLDER/dist" && \
      tar xvf "$ARTIFACTS_FOLDER/dxc-server.tar.gz" -C "$ARTIFACTS_FOLDER/dist" && \
      ls "$ARTIFACTS_FOLDER/dist"
 
