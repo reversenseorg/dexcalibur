@@ -156,15 +156,15 @@ RUN curl -L -o "$TMP_FOLDER/binwalk.zip" "https://github.com/ReFirmLabs/binwalk/
 # Install dexcalibur server from artifacts
 # ===============================
 
-# COPY dxc-server-linux.tar.gz "$ARTIFACTS_FOLDER/dxc-server.tar.gz"
+COPY dxc-server-linux.tar.gz "$ARTIFACTS_FOLDER/dxc-server.tar.gz"
 
-# RUN mkdir "$ARTIFACTS_FOLDER/dist" && \
-#     tar xvf "$ARTIFACTS_FOLDER/dxc-server.tar.gz" -C "$ARTIFACTS_FOLDER/dist" && \
-#     ls "$ARTIFACTS_FOLDER/dist"
+RUN mkdir "$ARTIFACTS_FOLDER/dist" && \
+     tar xvf "$ARTIFACTS_FOLDER/dxc-server.tar.gz" -C "$ARTIFACTS_FOLDER/dist" && \
+     ls "$ARTIFACTS_FOLDER/dist"
 
-# RUN cd "$ARTIFACTS_FOLDER/dist" && \
-#     node ./dexcalibur-adm.mjs server -l && \
-#     node ./dexcalibur-adm.mjs tools -l
+RUN cd "$ARTIFACTS_FOLDER/dist" && \
+     node ./dexcalibur-adm.mjs server -l && \
+     node ./dexcalibur-adm.mjs tools -l
 
 
 
