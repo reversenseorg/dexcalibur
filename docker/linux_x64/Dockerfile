@@ -150,7 +150,9 @@ RUN curl -L -o "$TMP_FOLDER/baksmali.jar" "https://bitbucket.org/JesusFreke/smal
 
 RUN curl -L -o "$TMP_FOLDER/binwalk.zip" "https://github.com/ReFirmLabs/binwalk/archive/refs/heads/master.zip" && \
     cd  $TMP_FOLDER && unzip -d binwalk binwalk.zip && \
-    cd binwalk && python3 setup.py
+    cd binwalk
+
+RUN sudo python3 $TMP_FOLDER/binwalk/setup.py install
 
 # ===============================
 # Install dexcalibur server from artifacts
