@@ -164,11 +164,11 @@ RUN ls -la $ARTIFACTS_FOLDER && \
     sudo chown -R $user_server:$user_server $ARTIFACTS_FOLDER && \
     sudo chown $user_server:$user_server "$ARTIFACTS_FOLDER/dxc-server.tar.gz"
 
-RUN ls -la && mkdir "$ARTIFACTS_FOLDER/dist" && \
-     tar xvf "$ARTIFACTS_FOLDER/dxc-server.tar.gz" -C "$ARTIFACTS_FOLDER/dist" && \
-     ls "$ARTIFACTS_FOLDER/dist"
+RUN ls -la  && cd "$ARTIFACTS_FOLDER" && \
+     tar xvf "$ARTIFACTS_FOLDER/dxc-server.tar.gz"  && \
+     ls -la
 
-RUN cd "$ARTIFACTS_FOLDER/dist" && \
+RUN cd "$ARTIFACTS_FOLDER/dist/dist" && \
      node ./dexcalibur-adm.mjs server -l && \
      node ./dexcalibur-adm.mjs tools -l
 
