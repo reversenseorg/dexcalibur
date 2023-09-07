@@ -2,7 +2,13 @@
 echo "[*] Setup env"
 # nvm use
 echo "[*] Reinstall frida-node & better-sqlite3"
-npm uninstall frida && npm install frida && npm rebuild better-sqlite3@8.0.1
+if [[ ! -z "$DXC_CICD_FRIDA_VERSION" ]]; then
+  npm uninstall frida && npm install "frida@$DXC_CICD_FRIDA_VERSION"
+else
+  npm uninstall frida && npm install frida
+fi
+
+npm rebuild better-sqlite3@8.0.1
 
 echo "[*] Rebuild"
 
