@@ -176,8 +176,9 @@ RUN ls -la  && cd "$ARTIFACTS_FOLDER" && \
 
 COPY dxc-home-dist.tar.gz "$ARTIFACTS_FOLDER/dxc-home.tar.gz"
 
-RUN sudo chown $user_server:$user_server "$ARTIFACTS_FOLDER/dxc-server.tar.gz" && \
-    tar xvf "$ARTIFACTS_FOLDER/dxc-server.tar.gz" -C "$ARTIFACTS_FOLDER/dxc-home" && \
+RUN sudo chown $user_server:$user_server "$ARTIFACTS_FOLDER/dxc-home.tar.gz" && \
+    mkdir "$ARTIFACTS_FOLDER/dxc-home" && \
+    tar xvf "$ARTIFACTS_FOLDER/dxc-home.tar.gz" -C "$ARTIFACTS_FOLDER/dxc-home" && \
     ls
 
 RUN mv "$ARTIFACTS_FOLDER/dxc-home/dist" "$ARTIFACTS_FOLDER/dist/src/webserver/www/home"
@@ -187,7 +188,10 @@ RUN cd "$ARTIFACTS_FOLDER/dist" && \
      node ./dexcalibur-adm.mjs server -l && \
      node ./dexcalibur-adm.mjs tools -l
 
+# Dexcalibur HTTP
 EXPOSE 8080
+# Dexcalibur Web Socket
+EXPOSE 8002
 
 RUN cd "$ARTIFACTS_FOLDER/dist" && \
     node ./dexcalibur.js --gui=home
