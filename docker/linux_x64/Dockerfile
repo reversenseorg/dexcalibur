@@ -168,10 +168,30 @@ RUN ls -la  && cd "$ARTIFACTS_FOLDER" && \
      tar xvf "$ARTIFACTS_FOLDER/dxc-server.tar.gz"  && \
      ls -la
 
-RUN cd "$ARTIFACTS_FOLDER/dist/dist" && \
+
+
+# ===============================
+# Install Home UI
+# ===============================
+
+COPY dxc-home-dist.tar.gz "$ARTIFACTS_FOLDER/dxc-home.tar.gz"
+
+RUN sudo chown $user_server:$user_server "$ARTIFACTS_FOLDER/dxc-server.tar.gz" && \
+    tar xvf "$ARTIFACTS_FOLDER/dxc-server.tar.gz" -C "$ARTIFACTS_FOLDER/dxc-home" && \
+    ls
+
+RUN mv "$ARTIFACTS_FOLDER/dxc-home/dist" "$ARTIFACTS_FOLDER/dist/src/webserver/www/home"
+
+
+RUN cd "$ARTIFACTS_FOLDER/dist" && \
      node ./dexcalibur-adm.mjs server -l && \
      node ./dexcalibur-adm.mjs tools -l
 
+EXPOSE 8080
+
+RUN cd "$ARTIFACTS_FOLDER/dist" && \
+    node ./dexcalibur.js --gui=home
 
 
+# RUN curl -L -o "$TMP_FOLDER/home-ui.tar.gz" "$DXC_ARTIFACTS https://bitbucket.org/iBotPeaches/apktool/downloads/apktool_"$DXC_V_APKTOOL".jar"
 
