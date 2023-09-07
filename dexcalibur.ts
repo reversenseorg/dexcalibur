@@ -9,6 +9,8 @@ import DexcaliburEngine from './src/DexcaliburEngine.js';
 import * as _fs_ from "fs";
 import * as _os_ from "os";
 
+// Classic expert-oriented view
+const DEFAULT_GUI:string = "dxc-web";
 
 const LOG_FILE = (process.env.DXC_LOG_PATH ? process.env.DXC_LOG_PATH : null);
 function __log( pMessage:string):void{
@@ -33,7 +35,7 @@ var Parser:ArgParser = new ArgParser(projectArgs, "dexcalibur", [
         hasVal:true,
         callback:(ctx,param)=>{ ctx.ws = param.value; } },
     { name:"--ui",
-        help: "Change UI location",
+        help: "Change UI location (deprecated, see logs)",
         hasVal:true,
         callback:(ctx,param)=>{ ctx.uipath = param.value; } },
     { name:"--save-cfg",
@@ -59,7 +61,15 @@ var Parser:ArgParser = new ArgParser(projectArgs, "dexcalibur", [
     { name:"--reinstall", 
         help: "To clear Dexcalibur configuration",
         hasVal:false, 
-        callback:(ctx,param)=>{ ctx.reinstall = true; } }
+        callback:(ctx,param)=>{ ctx.reinstall = true; } },
+    { name:"--headless",
+        help: "To serve REST API only. No GUI will be available.",
+        hasVal:false,
+        callback:(ctx,param)=>{ ctx.reinstall = true; } },
+    { name:"--gui",
+        help: "To expose one or more GUI over specified ports. Please use following format :  <GUI_NAME>:<HTTP_PORT>[:<extra>][,<GUI_NAME>:<HTTP_PORT>[:<extra>]]. Example: --gui=home:4200:ssl,expert:8080",
+        hasVal:true,
+        callback:(ctx,param)=>{ ctx.guiCfg = param.value; } }
 ]);
 
 Parser.parse(Process.argv);
@@ -97,11 +107,23 @@ __log('[DXC_SRV][ARGS] '+JSON.stringify(projectArgs));
 
 var dxcInstance:DexcaliburEngine, ready:boolean=false;
 
+
+// web root
+/**
+ * @deprecated
+ */
 let dxcWebRoot:string = null;
+
+let guiConfigString:string = DEFAULT_GUI;
+
 if(projectArgs.uipath!==undefined){
     dxcWebRoot = (projectArgs.uipath[0]=='/'? projectArgs.uipath : _path_.join(Util.__dirname(import.meta.url), projectArgs.uipath));
 }else{
     dxcWebRoot = null; //_path_.join(__dirname, 'src', 'webserver', 'src');
+}
+
+if(projectArgs.guiCfg!=null){
+    guiConfigString = projectArgs.guiCfg
 }
 
 // create an empty single (not yet initialiazed) instance of engine
@@ -156,7 +178,7 @@ if( !projectArgs.ipc
             // boot engine
             ready = await dxcInstance.boot(
                 projectArgs.restore===true? true : false,
-                dxcWebRoot
+                guiConfigString
             );
 
             if(ready){

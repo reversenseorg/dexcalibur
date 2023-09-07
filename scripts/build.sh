@@ -1,4 +1,8 @@
 #!/bin/sh
+
+# DEPRECATED
+
+
 echo "[+] Removing ./dist folder"
 rm -r ./dist
 

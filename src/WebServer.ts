@@ -54,6 +54,9 @@ import {WebApiWindowing} from "./webapi/internals/WebApiWindowing.js";
 import {PRIVACY_WEB_API} from "./webapi/privacy.web.api.js";
 import {DelegateRequest, DelegateResponse} from "./webapi/DelegateWebApi.js";
 import {AUDIT_WEB_API} from "./webapi/audit.web.api.js";
+import {WebGuiConfiguration} from "./webserver/WebGuiConfiguration.js";
+import {URL} from "url";
+import {RuntimeSecurityException} from "./errors/RuntimeSecurityException.js";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -159,14 +162,21 @@ export default class WebServer
 
     controller:((req:DelegateRequest,res:DelegateResponse)=>any)= null;
 
+    /**
+     * A map of web controllers, one per GUI
+     */
+    serveFuncs: { [name:string] :((req:DelegateRequest,res:DelegateResponse)=>any) } = {};
+
     validators:ValidationCapableCtrl = {};
+
+    guiCfgs:WebGuiConfiguration[] = [];
 
     /**
      *
      * @param {Project} pProject
      * @constructor
      */
-    constructor( pWebRoot:string) {
+    constructor( pWebRoot:string, pGuiCfgs:WebGuiConfiguration[]) {
 
         this.context = null;
         this.project = null; //pProject;
@@ -174,6 +184,8 @@ export default class WebServer
         this.tplengine = new WebTemplateEngine();
         this.app = express();
         this.port = 8000;
+
+        this.guiCfgs = pGuiCfgs;
         this.root = pWebRoot;
 
         this.logs = {
@@ -321,11 +333,12 @@ export default class WebServer
     }
 
     /**
+     * To create a function - one for each GUI - that serve pages content
      *
      * @param {require('path')} pHome The path of the file containing home page
      * @method
      */
-    newDispatcher( pHome:string):((request:ExpressRequest, response:ExpressResponse)=>void){
+    newDispatcher( pHome:string, pDelegatedRoot = ""):((request:ExpressRequest, response:ExpressResponse)=>void){
         let $:WebServer = this;
 
         return function (req:DelegateRequest, res:DelegateResponse):void {
@@ -400,6 +413,115 @@ export default class WebServer
         }
     }
 
+    /**
+     * To create a function - one for each GUI - that serve pages content
+     *
+     * @param {string} pDelegatedRoot The path of the web root. This path is relative to global web root (src/webserver/www)
+     * @param {string} pHome Optional. The relative path of the file containing home page. This path is relative to delegated web root
+     * @method
+     */
+    newDelegatedDispatcher( pWebCfg:WebGuiConfiguration):((request:ExpressRequest, response:ExpressResponse)=>void){
+        let $:WebServer = this;
+
+
+        return function (vUnsafeReq:DelegateRequest, res:DelegateResponse):void {
+
+            // every data from "req" object is unsafe
+            // todo : detect path traversal in req.path
+
+            const delegatedRoot = _path_.normalize(_path_.join($.root, pWebCfg.getRootFolder()));
+            let localPath:string = $.root + vUnsafeReq.path, mime:string = null;
+
+
+            Logger.info("[INFO][WEBSERVER][DelegatedDispatcher] URI : ",vUnsafeReq.path);
+
+            //let unsafeURL = vUnsafeReq.path.split("/");
+
+            // replace URI base by delegated web root, and compute file location
+            let p:string[] = vUnsafeReq.path.split("/");
+            do{ p.shift(); }while(p[0]!=pWebCfg.name);
+            p.shift();
+            console.log(p);
+            p.unshift(delegatedRoot);
+            console.log(p);
+            let unsafePath = _path_.normalize(p.join(_path_.sep));
+
+            Logger.info("[INFO][WEBSERVER][DelegatedDispatcher] Unsafe URI : ",vUnsafeReq.path);
+            Logger.info("[INFO][WEBSERVER][DelegatedDispatcher] Unsafe Path : ",unsafePath);
+
+            // detect path traversal
+            if(unsafePath.indexOf(delegatedRoot)!=0){
+                throw RuntimeSecurityException.PATH_TRAVERSAL_IS_FORBIDDEN();
+            }
+
+            // re-route to delegated home page
+            if (vUnsafeReq.path == `/${pWebCfg.name}/`)
+                localPath = _path_.join($.root, pWebCfg.getRootFolder(), pWebCfg.getHome());
+            else{
+                localPath = unsafePath;
+            }
+
+            // redirect to inspector delegated controllers
+            // TODO : maybe deprecated => find a way to handle pkugins UI
+            /*
+            if (vUnsafeReq.path.startsWith("/inspectors/")) {
+
+                //console.log(req.path.substr(1,req.path.length-1))
+                let inspector:string[] = vUnsafeReq.path.substr(1, vUnsafeReq.path.length - 1).split("/");
+
+                let relPath:string = "";
+
+                if (inspector.length > 1) {
+
+                    for (let i = 2; i < inspector.length; i++)
+                        relPath = _path_.join(relPath, inspector[i]);
+
+                    localPath = _path_.join( Util.__dirname(import.meta.url), "..", "inspectors");
+                    localPath = _path_.join(localPath, inspector[1], "web", relPath);
+
+                    mime = MIME.lookup(_path_.basename(localPath));
+                } else {
+                    localPath = $.root + "/pages/inspectors?error=404";
+                    mime = MIME.lookup(_path_.join($.root , "pages", "inspectors.html"));
+                }
+            } else*/
+            mime = MIME.lookup(localPath.split("/").pop());
+
+            if (localPath.endsWith("bootstrap.min.css.map")) {
+                res.status(404).send("An error occured :");//+err.message);
+                return;
+            }
+
+
+            Logger.info("[INFO][WEBSERVER][DelegatedDispatcher] Open : ",localPath);
+
+            //  todo : verify if localPath is a child of allowed folder, add a  kind of WAF
+            _fs_.readFile(localPath, (err:any, data:any) => {
+
+                // set good http headers into the response
+                res.set('Access-Control-Allow-Origin', '*');
+                if (err != null) {
+                    $.logs.access.push("[404]:" + mime + " " + vUnsafeReq.path + " => " + localPath+" " +err.message);
+                    res.status(404).send("An error occured, file not found.");
+                    return;
+                }
+                if (MimeHelper.isFontFile(mime)) {
+                    res.set('accept-ranges', "bytes");
+                    res.set('vary', 'Accept-Encoding');
+                    res.set('Content-Type', mime);
+                } else {
+                    res.set('Content-Type', mime);
+                    res.set('X-XSS-Protection', '0; mode=block');
+                    res.set('X-Frame-Options', 'SAMEORIGIN');
+                    res.set('X-Content-Type-Options', 'nosniff');
+                }
+                $.logs.access.push("[200]:" + mime + " " + vUnsafeReq.path + " => " + localPath);
+
+                res.status(200).send(data);
+            });
+        }
+    }
+
 
     /**
      * To init routes to static content
@@ -408,8 +530,14 @@ export default class WebServer
      */
     initStaticRoutes(){
 
+        for( let base in this.serveFuncs){
+            console.log("map tha path : "+base+"   ",this.serveFuncs[base])
+            this.app.get("/"+base, this.serveFuncs[base]);
+            this.app.get("/"+base+"/*", this.serveFuncs[base]);
+        }
 
         // start server
+        /*
         this.app.get('/', this.controller);
         this.app.get('/pages/*', this.controller);
         this.app.get('/dist/*', this.controller);
@@ -417,6 +545,7 @@ export default class WebServer
         this.app.get('/js/*', this.controller);
         this.app.get('/less/*', this.controller);
         this.app.get('/vendor/*', this.controller);
+        */
     }
 
     /**
@@ -442,14 +571,24 @@ export default class WebServer
     initRoutes() {
         let $ = this;
 
-        this.controller = this.newDispatcher("index.html");
+        // TODO : depends of path and GUI config
+        if(this.guiCfgs.length>0){
+            this.guiCfgs.map( vWebGui => {
+                this.serveFuncs[vWebGui.name] = this.newDelegatedDispatcher(vWebGui);
+                vWebGui.started = true;
+            })
+        }
+
+        // deprecated
+        // this.controller = this.newDispatcher("index.html");
 
         // init routes serving static contents
         this.initStaticRoutes();
 
 
-        this.app.get('/index.html', this.controller);
-        this.app.get('/inspectors/*', this.controller);
+        // deprecated
+        // this.app.get('/index.html', this.controller);
+        // this.app.get('/inspectors/*', this.controller);
 
         // Inspector frontController
         this.app.route('/api/inspectors/:inspectorID')
@@ -969,35 +1108,13 @@ export default class WebServer
     }
 
     /**
-     * To use routes of production mode
+     * To use initialize routers and middleware
+     * for any HTTP endpoints
      *
      * @method
      */
     useProductionMode():void{
-        const projectDependentPath:string[] = [
-            '/api/hook',
-            '/api/hook_frag',
-            '/api/probe',
-            '/api/find',
-            '/api/intent',
-            '/api/scanner',
-            '/api/code',
-            '/api/field',
-            '/api/method',
-            '/api/class',
-            '/api/finder',
-            '/api/package',
-            '/api/tags',
-            '/api/remote',
-            '/pages/index',
-            '/pages/finder',
-            '/pages/inspectors',
-            '/pages/probelog',
-            '/pages/probe',
-            '/pages/scanner',
-            '/pages/devicemanager',
-            '/inspectors/'
-        ];
+
 
         let self:WebServer = this;
         let usr_svc:UserService = self.context.getUserService();
@@ -1008,7 +1125,7 @@ export default class WebServer
         this.app.use(BodyParser.json());
 
         /**
-         * Redirect to /pages/splash.html if there is no project initialized
+         * Setup CORS, context-specific headers and inject `dxc` context in DelegateResponse object
          */
         this.app.use(function(req:DelegateRequest, res:DelegateResponse, next:any){
 
@@ -1028,13 +1145,13 @@ export default class WebServer
 
 
         /**
-         * Gather cookie
+         * Gather cookies
          */
-
         this.app.use(CookieParser());
 
         /**
          * Open session and attach to request
+         * Only for /api/* routes
          */
         this.app.use(function(req:DelegateRequest, res:DelegateResponse, next:any){
             Logger.info("[API][SESSION] Processing request : "+req.originalUrl);
@@ -1122,7 +1239,7 @@ export default class WebServer
         });
 
 
-
+        // Define API routes, this is the minimal endpoints exposed over HTTP
 
         DEVICE_WEB_API.injectServer(this);
         AUTH_WEB_API.injectServer(this);
@@ -1169,47 +1286,7 @@ export default class WebServer
         this.app.use('/api/privacy', PRIVACY_WEB_API.getRouter());
         this.app.use('/api/audit', AUDIT_WEB_API.getRouter());
 
-
-
-        /**
-         * Redirect to /pages/splash.html if there is no project initialized
-         */
-        /*
-        this.app.use(function(req:DelegateRequest, res:DelegateResponse, next:any){
-            let f = false;
-
-
-            Logger.info("[API][REDIRECT] Processing request : "+req.originalUrl);
-
-            if(self.project != null){ next(); return; }
-            if(!req.url.startsWith('/pages/') && !req.url.startsWith('/api/') && !req.url.startsWith('/inspectors/')){ next(); return; }
-
-
-            for(let i=0; i<projectDependentPath.length; i++){
-
-                if(req.url.startsWith(projectDependentPath[i])) {
-                    f = true;
-                    break;
-                }
-            }
-
-            if(f==false){
-                next();
-            }else if(!self.context.isIpcWaitMode()) {
-                Logger.info("[API][REDIRECT] Processing request (not IPC wait mode): "+req.originalUrl);
-                res.redirect('/pages/splash.html');
-                res.send();
-                return ;
-            }else{
-                Logger.error("[API][REDIRECT] Processing request (not IPC wait mode): "+req.originalUrl);
-                //   next();
-            }
-        });
-
-         */
-
-
-
+        // init routers
 
         this.initRoutes();
 
@@ -1236,8 +1313,23 @@ export default class WebServer
         this.registerValidator('device', DeviceManager.getInstance());
         this.registerValidator('platform', PlatformManager.getInstance());
 
-        this.httpServer = this.app.listen(wwwPort, function () {
+        this.httpServer = this.app.listen(wwwPort,  ()=> {
             Logger.success('Server started on : ' + wwwPort);
+
+            if(this.guiCfgs.length>0){
+                Logger.info("[GUI] "+this.guiCfgs.length+" Graphical UIs are exposed :");
+                this.guiCfgs.map( vCfg => {
+                    if( vCfg.isStarted()){
+                        Logger.info("\t - "+vCfg.name+" "+vCfg.raw);
+                    }else{
+                        Logger.info("\t x NOT STARTED "+vCfg+" "+vCfg.raw);
+                    }
+                })
+            }else{
+                Logger.info("[GUI] Headless mode, only /api/ endpoints are exposed");
+            }
+
+
         });
     }
 }

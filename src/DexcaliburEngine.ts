@@ -45,6 +45,8 @@ import Util from "./Utils.js";
 import {PrivacyScanner} from "./audit/privacy/PrivacyScanner.js";
 import {LicenceManager} from "./credit/LicenceManager.js";
 import {AuditManager} from "./audit/AuditManager.js";
+import {WebGuiConfiguration} from "./webserver/WebGuiConfiguration.js";
+import {WebGuiHelper} from "./webserver/WebGuiHelper.js";
 
 
 /*
@@ -164,6 +166,13 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
      * @static
      */
     static DEFAULT_UID = "local:dxc";
+
+    /**
+     * @type {string}
+     * @field Default GUI
+     * @static
+     */
+    static DEFAULT_GUI:string = "dxc-web";
 
     /**
      * @type {string}
@@ -627,10 +636,12 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
      * At this step
      * Require `this.workspace` is loaded.
      *
+     * @param {boolean} pRestore Optional
+     * @param {string} pGuiCfgStr Serialized configuration of GUI
      * @returns {Boolean} TRUE if ready to start
      * @method
      */
-    async boot( pRestore=false, pWebRoot:string = null):Promise<any>{
+    async boot( pRestore=false, pGuiCfgStr:string = DexcaliburEngine.DEFAULT_GUI):Promise<any>{
         // eslint-disable-next-line @typescript-eslint/no-this-alias
         const self:DexcaliburEngine=this;
 
@@ -646,8 +657,11 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
         // read configuration file into target workspace
         // this.loadWorkspaceConfig( pRestore);
 
+        // parse web server GUI config
+        const guiCfgs = WebGuiHelper.parse(pGuiCfgStr);
+
         // init
-        this.init( pWebRoot);
+        this.init( guiCfgs);
 
         this.terminalSrv = new TerminalServer({
             _engine: this
@@ -704,13 +718,15 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
      *
      * @method
      */
-    init(pWebRoot:string = null){
+    init(pWebGuiCfg:WebGuiConfiguration[] = []){
 
 
 
-        if(pWebRoot === null){
+        /*if(pWebGuiCfg.length == 0){
             pWebRoot = _path_.join(Util.__dirname(import.meta.url), 'webserver', 'public');
-        }
+        }else{
+
+        }*/
 
         // init external tool manager
         this.extMgr = new External.ToolManager(this.settings.getExternalSettings());
@@ -729,14 +745,21 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
         DexHelper.init(this.extMgr.getTool('baksmali'));
         RadareHelper.init(this.extMgr.getTool('radare2'));
 
-        // setup web server
-        this.webserver = new WebServer(pWebRoot);
+        // setup web server serving API
+        this.webserver = new WebServer(
+            _path_.join(Util.__dirname(import.meta.url), 'webserver','www'),
+            pWebGuiCfg
+        );
+
+        // TODO : override webserver settings with GUI config
         this.webserver.configure(this.settings.getWebserverSettings());
         this.webserver.setContext(this);
         this.webserver.useProductionMode();
 
         // setup web socket server
         this.wsserver = new WebsocketServer(this);
+
+        // TODO : override webserver settings with GUI config
         // pass allowed origins to init
         this.wsserver.init(this.settings.getWebserverSettings());
 

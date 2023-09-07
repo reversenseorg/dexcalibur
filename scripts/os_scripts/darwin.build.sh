@@ -57,14 +57,24 @@ cp -r ./dexcalibur ./dist/dexcalibur
 cp -r ./README.md ./dist/scripts
 cp -r ./src/requires ./dist/src/requires
 cp -r ./assets ./dist/assets
-cp -r ./thirdparty ./dist/thirdparty
+
+if [ ! -f ./dist/src/webserver/www ]; then
+  mkdir ./dist/src/webserver/www
+fi
+
+
+
+if [ -f ./thirdparty ]; then
+  cp -r ./thirdparty ./dist/thirdparty
+fi
 
 if [ -f ./public ]; then
   cp -r ./public ./dist/public
 fi
 
 # static pages hosted by dexcalibur server (no ssr)
-cp -r ./src/webserver ./dist/src/webserver
+# cp -r ./src/webserver ./dist/src/webserver
+#ln -s /Users/melon/dxc/dexcalibur-home/dist/dexcalibur-home
 
 for i in ./inspectors/*/web
 do
