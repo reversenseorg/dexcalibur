@@ -116,11 +116,7 @@ RUN mkdir $TMP_FOLDER
 
 RUN curl -sSL https://bootstrap.pypa.io/get-pip.py -o $TMP_FOLDER"/get-pip.py" && python3 $TMP_FOLDER/"get-pip.py"
 
-# ===============================
-# Third-part : frida
-# ===============================
 
-RUN pip install frida
 
 # ===============================
 # Third-part : r2
@@ -155,9 +151,20 @@ RUN curl -L -o "$TMP_FOLDER/binwalk.zip" "https://github.com/ReFirmLabs/binwalk/
 RUN cd $TMP_FOLDER/binwalk/binwalk-master && sudo python3 ./setup.py install
 
 # ===============================
-# Install dexcalibur server from artifacts
+# Import frida version from server artifacts
 # ===============================
 
+COPY frida_version "$ARTIFACTS_FOLDER/frida_version"
+
+# ===============================
+# Third-part : frida
+# ===============================
+
+RUN IMPORTED_FRIDA_VER=`cat "$ARTIFACTS_FOLDER/frida_version"` && pip install frida==$IMPORTED_FRIDA_VER
+
+# ===============================
+# Install dexcalibur server from artifacts
+# ===============================
 COPY dxc-server-linux.tar.gz "$ARTIFACTS_FOLDER/dxc-server.tar.gz"
 
 RUN ls -la $ARTIFACTS_FOLDER && \
