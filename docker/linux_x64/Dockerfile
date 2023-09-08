@@ -35,6 +35,7 @@ ARG dxc_http_port=8080
 ARG dxc_ws_port=8001
 ARG dxc_admin="admin"
 ARG dxc_pwd="dxcserver"
+ARG marketplace_uri="official"
 
 ARG ANDROID_CMD_VERSION="commandlinetools-linux-10406996_latest.zip"
 
@@ -177,6 +178,7 @@ RUN ls -la  && cd "$ARTIFACTS_FOLDER" && \
 
 
 
+
 # ===============================
 # Install Home UI
 # ===============================
@@ -191,9 +193,52 @@ RUN sudo chown $user_server:$user_server "$ARTIFACTS_FOLDER/dxc-home.tar.gz" && 
 RUN mv "$ARTIFACTS_FOLDER/dxc-home/dist" "$ARTIFACTS_FOLDER/dist/src/webserver/www/home"
 
 
-RUN cd "$ARTIFACTS_FOLDER/dist" && \
-     node ./dexcalibur-adm.mjs server -l && \
-     node ./dexcalibur-adm.mjs tools -l
+# ===============================
+# Configure server
+# ===============================
+
+WORKDIR "$ARTIFACTS_FOLDER/dist"
+
+# create files
+RUN sudo mkdir $DXC_USER_HOME/.dexcalibur $DXC_USER_HOME/workspace && \
+     sudo chown $user_server:$user_server && \
+     sudo node ./dexcalibur-adm.mjs server \
+        --create-home=$DXC_USER_HOME/.dexcalibur \
+        --set-marketplace=$marketplace_uri \
+        --create-ws=$DXC_USER_HOME/workspace \
+        --heap-size=4096
+
+# configure external tools
+RUN node ./dexcalibur-adm.mjs tools --name=java --path=java && \
+    node ./dexcalibur-adm.mjs tools --name=python --path=python3 && \
+    node ./dexcalibur-adm.mjs tools --name=frida --path=java && \
+    node ./dexcalibur-adm.mjs tools --name=radare2 --path=r2 && \
+    node ./dexcalibur-adm.mjs tools --name=adb --path=adb && \
+    node ./dexcalibur-adm.mjs tools --name=binwalk --path=binwalk && \
+    node ./dexcalibur-adm.mjs tools --name=shell --path=/bin/sh
+
+RUN mv "$TMP_FOLDER/baksmali.jar" $DXC_USER_HOME/workspace/.dxc/bin/baksmali.jar && \
+    node ./dexcalibur-adm.mjs tools --name=baksmali --path=$DXC_USER_HOME/workspace/.dxc/bin/baksmali.jar
+
+RUN mv "$TMP_FOLDER/apktool.jar" $DXC_USER_HOME/workspace/.dxc/bin/apktool.jar && \
+    node ./dexcalibur-adm.mjs tools --name=apktool --path=$DXC_USER_HOME/workspace/.dxc/bin/apktool.jar
+
+# create users & authentication
+RUN node ./dexcalibur-adm.mjs user --add-account=admin && \
+    node ./dexcalibur-adm.mjs user -l
+
+RUN cat $DXC_USER_HOME/.dexcalibur/dxc.json
+
+# configure authentication
+
+
+
+# ===============================
+# Dump config
+# ===============================
+
+RUN  node ./dexcalibur-adm.mjs server -l && \
+     node ./dexcalibur-adm.mjs tools -l \
 
 # Dexcalibur HTTP
 EXPOSE 8080
