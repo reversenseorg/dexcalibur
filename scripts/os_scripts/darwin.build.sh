@@ -72,9 +72,6 @@ if [ -f ./public ]; then
   cp -r ./public ./dist/public
 fi
 
-# static pages hosted by dexcalibur server (no ssr)
-# cp -r ./src/webserver ./dist/src/webserver
-#ln -s /Users/melon/dxc/dexcalibur-home/dist/dexcalibur-home
 
 for i in ./inspectors/*/web
 do
