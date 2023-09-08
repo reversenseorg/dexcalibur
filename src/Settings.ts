@@ -346,6 +346,11 @@ export namespace Settings {
         constructor( pParent:GlobalSettings, pConfig:any) {
             super(pParent);
             this._all = pConfig;
+
+
+            if(this._all==null){
+                this._all = {};
+            }
         }
 
         getToolList():string[]  {
