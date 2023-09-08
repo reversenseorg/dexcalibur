@@ -208,6 +208,7 @@ RUN sudo mkdir $DXC_USER_HOME/.dexcalibur $DXC_USER_HOME/workspace && \
         --create-ws=$DXC_USER_HOME/workspace \
         --heap-size=4096
 
+
 # configure external tools
 RUN node ./dexcalibur-adm.mjs tools --name=java --path=java && \
     node ./dexcalibur-adm.mjs tools --name=python --path=python3 && \
@@ -216,6 +217,15 @@ RUN node ./dexcalibur-adm.mjs tools --name=java --path=java && \
     node ./dexcalibur-adm.mjs tools --name=adb --path=adb && \
     node ./dexcalibur-adm.mjs tools --name=binwalk --path=binwalk && \
     node ./dexcalibur-adm.mjs tools --name=shell --path=/bin/sh
+
+RUN ls -la $DXC_USER_HOME && \
+    ls -la $DXC_USER_HOME/workspace && \
+    ls -la $DXC_USER_HOME/workspace/.dxc && \
+    ls -la $DXC_USER_HOME/workspace/.dxc/bin
+
+
+RUN sudo chown -R $user_server:$user_server $DXC_USER_HOME/workspace/.dxc $DXC_USER_HOME/workspace $DXC_USER_HOME/workspace/.dxc/bin
+
 
 RUN mv "$TMP_FOLDER/baksmali.jar" $DXC_USER_HOME/workspace/.dxc/bin/baksmali.jar && \
     node ./dexcalibur-adm.mjs tools --name=baksmali --path=$DXC_USER_HOME/workspace/.dxc/bin/baksmali.jar
