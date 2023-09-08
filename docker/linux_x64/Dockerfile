@@ -201,7 +201,7 @@ WORKDIR "$ARTIFACTS_FOLDER/dist"
 
 # create files
 RUN sudo mkdir $DXC_USER_HOME/.dexcalibur $DXC_USER_HOME/workspace && \
-     sudo chown $user_server:$user_server && \
+     sudo chown $user_server:$user_server $DXC_USER_HOME/.dexcalibur&& \
      sudo node ./dexcalibur-adm.mjs server \
         --create-home=$DXC_USER_HOME/.dexcalibur \
         --set-marketplace=$marketplace_uri \
