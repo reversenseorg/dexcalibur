@@ -89,6 +89,11 @@ var Parser:ArgParser = new ArgParser(projectArgs, "dexcalibur-adm", [
                     ctx.srvMP = param.value
                 }
             },{
+                name:"--create-home",
+                help: "Create a new home. Use --create-home=<PATH>",
+                hasVal:true,
+                callback:(ctx,param)=>{ ctx.srvCreateHome = param.value; }
+            },{
                 name:"--create-ws",
                 help: "Create a new workspace. Use --create-ws=<PATH>",
                 hasVal:true,
@@ -108,6 +113,16 @@ var Parser:ArgParser = new ArgParser(projectArgs, "dexcalibur-adm", [
                 help: "Set URI of Auth DB. Use --auth-db-uri=<URI|STRING>",
                 hasVal:true,
                 callback:(ctx,param)=>{ ctx.srvAuthDbUri = param.value; }
+            },{
+                name:"--http-port",
+                help: "Set HTTP port where /api/ endpoints and GUIs are exposed",
+                hasVal:true,
+                callback:(ctx,param)=>{ ctx.srvHttpPort = param.value; }
+            },{
+                name:"--ws-port",
+                help: "Set Web Socket port used by GUIs",
+                hasVal:true,
+                callback:(ctx,param)=>{ ctx.srvWsPort = param.value; }
             }
         ],
         callback:(ctx,param)=>{ ctx.mode = SUBMENU.GLOBAL; }
@@ -198,7 +213,7 @@ var Parser:ArgParser = new ArgParser(projectArgs, "dexcalibur-adm", [
         callback:(ctx,param)=>{ ctx.mode = SUBMENU.MERLIN; } },
 
 
-    { name:"gui",
+    /*{ name:"gui",
         help: "GUI settings",
         hasVal:false,
         options: [
@@ -209,7 +224,7 @@ var Parser:ArgParser = new ArgParser(projectArgs, "dexcalibur-adm", [
                 callback:(ctx,param)=>{ ctx.guiAddConn = param.value; }
             }
         ],
-        callback:(ctx,param)=>{ ctx.mode = SUBMENU.WEB; } },
+        callback:(ctx,param)=>{ ctx.mode = SUBMENU.WEB; } },*/
 
     { name:"user",
         help: "User management",
@@ -468,14 +483,14 @@ if(cfg==null){
 
 // ======== Perform actions ========
 switch (projectArgs.mode){
-    case SUBMENU.WEB:
+    /*case SUBMENU.WEB:
         if(projectArgs.setPort!=null){
             console.log(chalk.whiteBright("[-] Set workspace path to : "+projectArgs.setWS));
             cfg.getServerSettings().setWorkspace(projectArgs.setWS);
             cfg.getServerSettings().save()
             console.log(chalk.green("[*] Workspace path has been updated."));
         }
-        break;
+        break;*/
     case SUBMENU.TOOLS:
         if(projectArgs.doList){
             const settings:S.Settings.ExternalSettings = cfg.getExternalSettings();
@@ -489,12 +504,16 @@ switch (projectArgs.mode){
             }
             console.log(str);
         }
+        if(projectArgs.tName!=null && projectArgs.tPath != null){
+            const settings:S.Settings.ExternalSettings = cfg.getExternalSettings();
+            settings.add( projectArgs.tName, projectArgs.tPath);
+        }
         break;
-    case SUBMENU.WEB:
+    /*case SUBMENU.WEB:
         if(projectArgs.guiAddConn){
 
         }
-        break;
+        break;*/
 
 
     case SUBMENU.START:
@@ -603,6 +622,21 @@ ${"\t".repeat(1)}Default Arch = ${srv.getDefaultArchitecture()}
 `));
         }
 
+        if(projectArgs.srvCreateHome!=null){
+            try{
+                console.log(chalk.whiteBright("[-] Create home : "+projectArgs.srvCreateHome));
+                if(!_fs_.existsSync(projectArgs.srvCreateHome)){
+                    console.log(chalk.whiteBright("[-] Creating folder "));
+                    _fs_.mkdirSync(projectArgs.srvCreateHome);
+                }
+                console.log(chalk.whiteBright("[-] Dexcalibur's home created. "));
+            }catch(e){
+                console.log(chalk.red("[ERROR] Failed to create home : "+e.message));
+                console.log(chalk.red(e.stack));
+                process.exit()
+            }
+        }
+
         if(projectArgs.srvSetWS!=null){
             console.log(chalk.whiteBright("[-] Set workspace path to : "+projectArgs.setWS));
             cfg.getServerSettings().setWorkspace(projectArgs.setWS);
@@ -643,6 +677,30 @@ ${"\t".repeat(1)}Default Arch = ${srv.getDefaultArchitecture()}
                 console.log(chalk.red(e.stack));
                 process.exit()
             }
+        }
+
+        if(projectArgs.srvHttpPort!=null){
+            console.log(chalk.whiteBright("[-] Set HTTP port to : "+projectArgs.srvHttpPort));
+            const webSettings = cfg.getWebserverSettings();
+
+            webSettings.sanitize("http", projectArgs.srvHttpPort);
+            webSettings.update(
+                webSettings.sanitize("http", projectArgs.srvHttpPort)
+            );
+            webSettings.save();
+            console.log(chalk.green("[*] HTTP port has been updated."));
+        }
+
+        if(projectArgs.srvWsPort!=null){
+            console.log(chalk.whiteBright("[-] Set WebSocket port to : "+projectArgs.srvWsPort));
+            const webSettings = cfg.getWebserverSettings();
+
+            webSettings.sanitize("ws", projectArgs.srvWsPort);
+            webSettings.update(
+                webSettings.sanitize("ws", projectArgs.srvWsPort)
+            );
+            webSettings.save();
+            console.log(chalk.green("[*] WebSocket port has been updated."));
         }
         break;
     case SUBMENU.USER:
