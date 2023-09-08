@@ -103,12 +103,19 @@ ENV PATH="$PATH:$DXC_USER_HOME/.local/bin:$ANDROID_SDK_ROOT/cmdline-tools/tools:
 
 
 # RUN yes Y | sdkmanager --licenses
-# RUN yes Y | sdkmanager --verbose --no_https "platform-tools"
+
+
 # RUN yes Y | sdkmanager --verbose --no_https ${ANDROID_BUILD_TOOLS}
 # RUN yes Y | sdkmanager --verbose --no_https ${ANDROID_PLATFORM_VERSION}
 
 
 RUN mkdir $TMP_FOLDER
+
+
+# ===============================
+# Install Android Debug Bridge
+# ===============================
+RUN yes Y | sdkmanager --verbose --no_https "platform-tools"
 
 
 # ===============================
@@ -150,6 +157,7 @@ RUN curl -L -o "$TMP_FOLDER/binwalk.zip" "https://github.com/ReFirmLabs/binwalk/
     cd binwalk/binwalk-master
 
 RUN cd $TMP_FOLDER/binwalk/binwalk-master && sudo python3 ./setup.py install
+
 
 # ===============================
 # Import frida version from server artifacts
@@ -206,22 +214,20 @@ RUN sudo mkdir $DXC_USER_HOME/.dexcalibur $DXC_USER_HOME/workspace && \
         --create-home=$DXC_USER_HOME/.dexcalibur \
         --set-marketplace=$marketplace_uri \
         --create-ws=$DXC_USER_HOME/workspace \
-        --heap-size=4096
+        --heap-size=4096 \
+        --http-port=8080 \
+        --ws-port=8002
 
 
 # configure external tools
 RUN node ./dexcalibur-adm.mjs tools --name=java --path=java && \
     node ./dexcalibur-adm.mjs tools --name=python --path=python3 && \
-    node ./dexcalibur-adm.mjs tools --name=frida --path=java && \
+    node ./dexcalibur-adm.mjs tools --name=frida --path=frida && \
     node ./dexcalibur-adm.mjs tools --name=radare2 --path=r2 && \
-    node ./dexcalibur-adm.mjs tools --name=adb --path=adb && \
+    node ./dexcalibur-adm.mjs tools --name=adb --path=$ANDROID_SDK_ROOT/platform-tools/adb && \
     node ./dexcalibur-adm.mjs tools --name=binwalk --path=binwalk && \
     node ./dexcalibur-adm.mjs tools --name=shell --path=/bin/sh
 
-RUN ls -la $DXC_USER_HOME && \
-    ls -la $DXC_USER_HOME/workspace && \
-    ls -la $DXC_USER_HOME/workspace/.dxc && \
-    ls -la $DXC_USER_HOME/workspace/.dxc/bin
 
 
 RUN sudo chown -R $user_server:$user_server $DXC_USER_HOME/workspace/.dxc $DXC_USER_HOME/workspace $DXC_USER_HOME/workspace/.dxc/bin
