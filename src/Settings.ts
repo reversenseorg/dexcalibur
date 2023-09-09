@@ -17,6 +17,12 @@ function __log( pMessage:string):void{
         _fs_.appendFileSync(LOG_FILE, pMessage+_os_.EOL);
 }
 
+export interface WebServerOptions {
+    http?:number;
+    ws?:number;
+    guis?:string[];
+    headless?:boolean;
+}
 
 /**
  * Declare class related to global configuration
@@ -176,6 +182,12 @@ export namespace Settings {
         setAuthenticationSettings(pSettings:AuthenticationSettings):void {
             this.auth = pSettings;
         }
+
+        /**
+         *
+         * @param pPath
+         * @param pOverride
+         */
         setWorkspace(pPath:string, pOverride = false):void {
             this.space = DexcaliburWorkspace.getInstance(pPath,pOverride);
         }
@@ -194,14 +206,12 @@ export namespace Settings {
                     }else{
                         return new UnsafeValue(pName, d);
                     }
-                    break;
                 case "defaultArch":
                     if(ServerSettings.SUPPORTED_ARCH.indexOf(pValue)>-1){
                         return new SanitizedValue(pName, pValue);
                     }else{
                         return new UnsafeValue(pName, pValue);
                     }
-                    break;
                 default:
                     throw GlobalSettingsException.SETTING_UNKNOW();
             }
@@ -273,18 +283,29 @@ export namespace Settings {
 
 
         /**
+         * List of GUIs installed and exposed at runtime
+         * Keep it empty to run in headless mode (only REST API endpoints are exposed)
+         * @field
+         * @type {string[]} List of GUIs names installed
+         * @private
+         */
+        private guis:string[] = [];
+
+        /**
          * Create an object which hold server settings from global settings files and env var
          *
-         * @param {number} pHttp HTTP port of web server. Can be override by DXC_HTTP_PORT env var
-         * @param {number} pWs Websocket port of web server. Can be override by DXC_WS_PORT env var
+         * param {number} pHttp HTTP port of web server. Can be override by DXC_HTTP_PORT env var
+         * param {number} pWs Websocket port of web server. Can be override by DXC_WS_PORT env var
+         * @param {GlobalSettings} pParent Parent settings
+         * @param {WebServerOptions} pConfig Options values
          * @constructor
          * @since 1.0.0
          */
-        constructor( pParent:GlobalSettings, pHttp:number, pWs:number) {
+        constructor( pParent:GlobalSettings, pConfig:WebServerOptions /*Http:number, pWs:number*/) {
             super(pParent);
 
-            this._http = (process.env.DXC_HTTP_PORT ? parseInt(process.env.DXC_HTTP_PORT,10) : pHttp);
-            this._ws = (process.env.DXC_WS_PORT ? parseInt(process.env.DXC_WS_PORT,10) : pWs);
+            this._http = (process.env.DXC_HTTP_PORT ? parseInt(process.env.DXC_HTTP_PORT,10) : pConfig.http);
+            this._ws = (process.env.DXC_WS_PORT ? parseInt(process.env.DXC_WS_PORT,10) : pConfig.ws);
         }
 
 
@@ -299,6 +320,14 @@ export namespace Settings {
             return this._ws;
         }
 
+        getGUIs():string[] {
+            return this.guis;
+        }
+
+        isHeadless():boolean {
+            return (this.guis.length==0);
+        }
+
 
         sanitize(pName: string, pValue: any): IncomingValue {
             // todo
@@ -311,7 +340,18 @@ export namespace Settings {
                     }else{
                         return new UnsafeValue(pName, d);
                     }
-                    break;
+                case "guis":
+                    if(Array.isArray(pValue)){
+                        const sanitized:string[] = [];
+                        pValue.map( x => {
+                            if(/^[a-zA-Z0-9_:=]+$/.test(x)){
+                                sanitized.push(x);
+                            }
+                        });
+                        return new SanitizedValue(pName, sanitized);
+                    }else{
+                        return new UnsafeValue(pName, pValue);
+                    }
                 default:
                     throw GlobalSettingsException.SETTING_UNKNOW();
             }
@@ -325,6 +365,9 @@ export namespace Settings {
                 case "ws":
                     this._ws = pValue.getValue();
                     break;
+                case "guis":
+                    this.guis = pValue.getValue();
+                    break;
                 default:
                     throw GlobalSettingsException.SETTING_UNKNOW();
             }
@@ -333,7 +376,8 @@ export namespace Settings {
         toObject(pZone:SecurityZone = SecurityZone.PUBLIC): any {
             return {
                 http: this._http,
-                ws: this._ws
+                ws: this._ws,
+                guis: this.guis
             }
         }
     }
@@ -429,12 +473,12 @@ export namespace Settings {
         }
 
 
-        sanitize(pName: string, pValue: any): IncomingValue {
+        sanitize(): IncomingValue {
             throw GlobalSettingsException.SETTING_UNKNOW();
         }
 
 
-        update( pValue:IncomingValue):void {
+        update():void {
             throw GlobalSettingsException.SETTING_UNKNOW();
         }
         /**
@@ -532,8 +576,12 @@ export namespace Settings {
         }
 
         /**
-         * To save a connection configurartion into settings
-         * @param pParam
+         * To save a connection configuration into settings
+         * @param {DexcaliburConnectionParams} pParam Parameters to perform authentication to a remote Dexcalibur server
+         * @param {string} pSaveFile Optional. Alternative path where connection settings will be saved
+         * @return {any}
+         * @throws {ConnectionSettingsException}
+         * @method
          */
         addConnectionParam( pParam:DexcaliburConnectionParams, pSaveFile:string = null) :any {
             if(this._all[pParam.getName()] !== null){
@@ -563,11 +611,10 @@ export namespace Settings {
         }
 
         toObject(pZone:SecurityZone = SecurityZone.PUBLIC):any {
-            const o:any =  {
+
+            return {
                 all: Object.values(this._all)
             };
-
-            return o;
         }
     }
 
@@ -595,7 +642,16 @@ export namespace Settings {
 
             this.server = new Settings.ServerSettings(this, pConfig.server); // server
             this.bin = new Settings.ExternalSettings(this, pConfig.bin);
-            this.web = new Settings.WebServerSettings(this, pConfig.server.http, pConfig.server.ws); //(pConfig.http, pConfig.ws);
+
+            if(pConfig.server.http != null && pConfig.server.ws != null){
+                this.web = new Settings.WebServerSettings(this, {
+                    http: pConfig.server.http,
+                    ws: pConfig.server.ws
+                }); //(pConfig.http, pConfig.ws);
+            }else{
+                this.web = new Settings.WebServerSettings(this, pConfig.web); //(pConfig.http, pConfig.ws);
+            }
+
 
             if (pConfig.hasOwnProperty('conn')) {
                 this.conn = new ConnectionSettings(this, pConfig.conn);
@@ -698,7 +754,7 @@ export namespace Settings {
          *
          */
         static load(pConfigPath: string = undefined, pOverride: any = undefined): GlobalSettings {
-            let path: string = null;
+            let path: string;
             let gs: GlobalSettings = null;
 
             if (process.env.DEXCALIBUR_HOME != null) {
@@ -727,9 +783,9 @@ export namespace Settings {
             } catch (err) {
                 console.log(err)
                 __log("[GLOBAL SETTINGS] load : error : " + err.message + " " + pConfigPath + "\n" + err.stack);
-            } finally {
-                return gs;
             }
+
+            return gs;
         }
 
 
@@ -794,14 +850,17 @@ export namespace Settings {
         toObject(pZone: SecurityZone = SecurityZone.PUBLIC): any {
             const o: any = {
                 bin: this.bin.toObject(pZone),
-                server: this.server.toObject(pZone)
+                server: this.server.toObject(pZone),
+                web: this.web.toObject(pZone)
             };
 
             if (this.conn != null) {
                 o.conn = this.conn.toObject(pZone);
             }
 
+            // deprecated
             o.server.http = this.web.getHttpPort();
+            // deprecated
             o.server.ws = this.web.getWsPort();
 
             return o;

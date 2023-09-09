@@ -7,7 +7,6 @@ import ArgParser from './src/ArgUtils.js';
 
 
 import DexcaliburEngine from './src/DexcaliburEngine.js';
-import DexcaliburWorkspace from './src/DexcaliburWorkspace.js';
 import {ConnectorFactory} from "./src/ConnectorFactory.js";
 import * as Log from "./src/Logger.js";
 import * as S from "./src/Settings.js";
@@ -29,7 +28,7 @@ import DexcaliburProject from "./src/DexcaliburProject.js";
 import { Merlin } from "./src/search/Merlin.js";
 import * as VM from "vm";
 import {MerlinSearchRequest} from "./src/search/MerlinSearchRequest.js";
-import AssuranceModel, {ControlNode} from "./src/audit/common/AssuranceModel.js";
+import {ControlNode} from "./src/audit/common/AssuranceModel.js";
 import Control from "./src/audit/common/Control.js";
 import ControlAssessment from "./src/audit/common/ControlAssessment.js";
 import { Match } from "./src/audit/common/AssuranceReport.js";
@@ -540,7 +539,7 @@ switch (projectArgs.mode){
 
                 // boot engine
                 const ready = await dxcInstance.boot(
-                    projectArgs.restore===true? true : false,
+                    projectArgs.restore===true,
                     dxcWebRoot
                 );
 
@@ -667,10 +666,13 @@ ${"\t".repeat(1)}Default Arch = ${srv.getDefaultArchitecture()}
                 if(!_fs_.existsSync(projectArgs.srvCreateWS)){
                     _fs_.mkdirSync(projectArgs.srvCreateWS);
                 }
-                const freshWS = new DexcaliburWorkspace(projectArgs.srvCreateWS);
-                freshWS.init();
+                //const freshWS = new DexcaliburWorkspace(projectArgs.srvCreateWS);
+                //freshWS.init();
+
+                // create a workspace object, if no one exist
                 cfg.getServerSettings().setWorkspace(projectArgs.srvCreateWS, true);
-                cfg.save();
+                cfg.getServerSettings().getWorkspace().init();
+                cfg.getServerSettings().save();
                 console.log(chalk.green("[*] Workspace path has been created and settings updated."));
             }catch(e){
                 console.log(chalk.red("[ERROR] Failed to create new workspace : "+e.message));
