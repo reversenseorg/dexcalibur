@@ -27,7 +27,7 @@
     "express": "^4.16.3",
     "file-type": "^10.4.0",
     "fix-path": "^3.0.0",
-    "frida": "^16.1.0",
+    "frida": "^16.1.4",
     "glob": "^7.2.0",
     "got": "^10.7.0",
     "js-yaml": "^3.13.1",
@@ -53,12 +53,11 @@
     "grunt-contrib-clean": "^2.0.0",
     "grunt-contrib-copy": "^1.0.0",
     "grunt-exec": "^3.0.0",
-    "mocha": "^5.2.0",
-    "mocha-sinon": "^2.1.0",
+    "mocha": "^10.2.0",
     "nyc": "^15.1.0",
     "sinon": "^7.3.2",
     "sinon-chai": "^3.3.0",
-    "ts-node": "^8.10.2"
+    "ts-node": "^10.9.1"
   },
   "bin": {
     "dexcalibur": "dexcalibur.js"
