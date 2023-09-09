@@ -1,8 +1,8 @@
 import {expect} from 'chai';
-import SmaliParser from "../dist/src/SmaliParser";
-import {TestHelper} from "../dist/src/TestHelper";
-import DexcaliburProject from "../dist/src/DexcaliburProject";
-import {Modifier} from "../src/AccessFlags";
+import SmaliParser from "../dist/src/SmaliParser.js";
+import {TestHelper} from "../dist/src/TestHelper.js";
+import DexcaliburProject from "../dist/src/DexcaliburProject.js";
+import {Modifier} from "../src/AccessFlags.js";
 
 describe('SmaliParser', function() {
 

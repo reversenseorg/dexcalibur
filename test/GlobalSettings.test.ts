@@ -1,53 +1,44 @@
 import {expect} from 'chai';
-
 // -- App specific --
 
-import {Settings} from "../src/Settings";
+import {Settings} from "../src/Settings.js";
+import GlobalSettings = Settings.GlobalSettings;
 
-
-const EOL = require('os').EOL;
-
-
-describe('Hook', function() {
+describe('GlobalSettings', function() {
 
     let gEngine:Settings.GlobalSettings = null;
 
-    /*before(async function(){
-        TestHelper.interceptExec( function(x){
-            return (x.indexOf("adb devices")>-1);
-        }, `List of devices attached${EOL}01020304050607       device usb:330102034X product:bullhead model:Nexus_5X device:bullhead transport_id:1`);
-
-
-        gEngine = TestHelper.getDexcaliburEngine(true);
-
-
-        gProject = await gEngine.getProject("owasp.mstg.uncrackable1");
-
-        if(gProject===null){
-            gProject = await gEngine.openProject("owasp.mstg.uncrackable1");
-        }
-    })*/
-
-    describe('load()', function() {
-
-        it('valid context', async function() {
-
-            // get hook instance by hook ID
-            // var hook = new Hook.Hook( await gProject);
-
-            //expect(hook.context).to.be.an.instanceOf(DexcaliburProject);
-        });
-    });
-
-
     describe('constructor', function() {
 
-        it('valid context', async function() {
+        it('valid settings', async function() {
 
-            // get hook instance by hook ID
-            //var hook = new Hook.Hook( await gProject);
+            const settings = new GlobalSettings({
+                bin: {
+                    java: "/bin/java"
+                },
+                server: {
+                    heapSize: 8192
+                },
+                web: {
+                    http: 8080,
+                    ws: 9999
+                }
+            });
 
-            //expect(hook.context).to.be.an.instanceOf(DexcaliburProject);
+            expect(settings.getServerSettings().getHeapSize()).to.equals(8192);
+            expect(settings.getWebserverSettings().getWsPort()).to.equals(9999);
+            expect(settings.getWebserverSettings().getHttpPort()).to.equals(8080);
+            expect(settings.getExternalSettings().getTool("java")).to.equals("/bin/java");
+        });
+
+        it('empty settings', async function() {
+
+            const settings = new GlobalSettings();
+
+            expect(settings.getServerSettings().getHeapSize()).to.be.null;
+            expect(settings.getWebserverSettings().getWsPort()).to.be.null;
+            expect(settings.getWebserverSettings().getHttpPort()).to.be.null;
+            expect(settings.getExternalSettings().getTool("java")).to.be.null;
         });
     });
 

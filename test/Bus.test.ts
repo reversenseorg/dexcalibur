@@ -1,11 +1,10 @@
 import {expect} from 'chai';
-import {TestHelper} from "../dist/src/TestHelper";
-import InspectorFactory from "../dist/src/InspectorFactory";
-import {INSPECTOR_TYPE} from "../dist/src/Inspector";
-import DexcaliburEngine from "../dist/src/DexcaliburEngine";
-import Bus from "../dist/src/Bus";
-import Event from "../dist/src/Event";
-import DexcaliburProject from "../dist/src/DexcaliburProject";
+import {TestHelper} from "../dist/src/TestHelper.js";
+import InspectorFactory from "../dist/src/InspectorFactory.js";
+import {INSPECTOR_TYPE} from "../dist/src/Inspector.js";
+import Bus from "../dist/src/Bus.js";
+import DexcaliburProject from "../dist/src/DexcaliburProject.js";
+import BusEvent from "../dist/src/BusEvent.js";
 
 describe('Bus', function() {
 
@@ -101,8 +100,8 @@ describe('Bus', function() {
 
             bus.prevent("testunit.POST_APP_SCAN");
 
-            bus.send(new Event({ type:"testunit.POST_APP_SCAN" }));
-            bus.send(new Event({ type:"testunit.BOOT" }));
+            bus.send(new BusEvent({ type:"testunit.POST_APP_SCAN" }));
+            bus.send(new BusEvent({ type:"testunit.BOOT" }));
 
             expect(TestInspectorFlag_1).to.equals(false);
             expect(TestInspectorFlag_3).to.equals(true);
@@ -121,8 +120,8 @@ describe('Bus', function() {
 
             bus.prevent("testunit.POST_APP_SCAN");
 
-            bus.send(new Event({ type:"testunit.POST_APP_SCAN" }));
-            bus.send(new Event({ type:"testunit.BOOT" }));
+            bus.send(new BusEvent({ type:"testunit.POST_APP_SCAN" }));
+            bus.send(new BusEvent({ type:"testunit.BOOT" }));
 
             expect(TestInspectorFlag_1).to.equals(false);
             expect(TestInspectorFlag_2).to.equals(false);
@@ -147,8 +146,8 @@ describe('Bus', function() {
 
             bus.prevent("testunit.POST_APP_SCAN");
 
-            bus.send(new Event({ type:"testunit.POST_APP_SCAN" }));
-            bus.send(new Event({ type:"testunit.BOOT" }));
+            bus.send(new BusEvent({ type:"testunit.POST_APP_SCAN" }));
+            bus.send(new BusEvent({ type:"testunit.BOOT" }));
 
             expect(TestInspectorFlag_1).to.equals(false);
             expect(TestInspectorFlag_2).to.equals(false);
@@ -156,8 +155,8 @@ describe('Bus', function() {
 
             bus.unprevent("testunit.POST_APP_SCAN");
 
-            bus.send(new Event({ type:"testunit.POST_APP_SCAN" }));
-            bus.send(new Event({ type:"testunit.BOOT" }));
+            bus.send(new BusEvent({ type:"testunit.POST_APP_SCAN" }));
+            bus.send(new BusEvent({ type:"testunit.BOOT" }));
 
             expect(TestInspectorFlag_1).to.equals(true);
             expect(TestInspectorFlag_2).to.equals(true);

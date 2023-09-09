@@ -1,7 +1,7 @@
 import {expect} from 'chai';
-import {TestHelper} from "../dist/src/TestHelper";
-import InspectorFactory from "../dist/src/InspectorFactory";
-import Inspector, {INSPECTOR_TYPE} from "../dist/src/Inspector";
+import {TestHelper} from "../dist/src/TestHelper.js";
+import InspectorFactory from "../dist/src/InspectorFactory.js";
+import Inspector, {INSPECTOR_TYPE} from "../dist/src/Inspector.js";
 
 describe('InspectorFactory', function() {
 

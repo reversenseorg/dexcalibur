@@ -1,12 +1,10 @@
 import * as _path_ from 'path';
 import {expect} from 'chai';
 
-import ModelClass from "../dist/src/ModelClass";
-import {ModelObjectType} from "../dist/src/ModelType";
 import ModelFile from "../dist/src/ModelFile.js";
 import DataScope, {DataScopePpts} from "../dist/src/DataScope.js";
 import Util from "../src/Utils.js";
-import {CryptoUtils} from "../src/CryptoUtils";
+import {CryptoUtils} from "../src/CryptoUtils.js";
 
 const TEST_WS:string = _path_.join(Util.__dirname(import.meta.url),'ws');
 const TEST_APP = "eshard_test"

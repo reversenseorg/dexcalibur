@@ -1,15 +1,14 @@
 import {expect} from 'chai';
 // -- App specific --
-import *  as R2Helper from "../src/R2Helper";
 import RadareHelper, {R2_TYPE} from "../src/R2Helper.js";
 import * as _path_ from "path";
 import ModelFile from "../src/ModelFile.js";
 import DataScope, {DataScopePpts} from "../dist/src/DataScope.js";
-import {NativeAnalyzerProfile} from "../src/NativeAnalyzer.js";
 import Util from "../src/Utils.js";
+import AndroidNativeAnalyzerProfile from "../dist/src/android/analyzer/AndroidNativeAnalyzerProfile.js";
 //chai.use(sinonChai);*/
 
-const EOL = require('os').EOL;
+//const EOL = require('os').EOL;
 
 const TEST_WS:string = _path_.join(Util.__dirname(import.meta.url),'ws');
 const TEST_APP = "eshard_test"
@@ -68,7 +67,7 @@ describe('Radare2 Helper', function() {
             analyzer = new RadareHelper( BIN_FILE, R2_TYPE.LOCAL);
 
             try{
-                res = analyzer.start(NativeAnalyzerProfile.ANDROID_LIB);
+                res = analyzer.start(new AndroidNativeAnalyzerProfile({})); //NativeAnalyzerProfile.ANDROID_LIB);
                 success = true;
             }catch (e) {
                 console.log(e.message);

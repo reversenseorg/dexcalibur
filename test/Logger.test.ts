@@ -1,9 +1,7 @@
 
-import chai = require("chai");
-import * as Log from '../src/Logger';
+import {expect} from 'chai';
+import * as Log from '../src/Logger.js';
 
-
-let expect:Chai.ExpectStatic = chai.expect;
 
 
 var Logger:Log.TestLogger = Log.newLogger({

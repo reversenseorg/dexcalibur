@@ -1,9 +1,7 @@
 
-import chai = require("chai");
-import { Modifier, ModifierFormat } from "../src/AccessFlags";
+import {expect} from 'chai';
+import { Modifier, ModifierFormat } from "../src/AccessFlags.js";
 
-
-let expect:Chai.ExpectStatic = chai.expect;
 
 
 

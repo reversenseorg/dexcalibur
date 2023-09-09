@@ -1,5 +1,5 @@
 import {expect} from 'chai';
-import {JSObject,JSWriter} from "../dist/src/JavaScriptHelper";
+import {JSObject,JSWriter} from "../dist/src/JavaScriptHelper.js";
 
 describe('JavaScriptHelper', function() {
     

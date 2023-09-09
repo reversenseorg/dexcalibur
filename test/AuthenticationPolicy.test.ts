@@ -1,9 +1,8 @@
 import * as _path_ from 'path';
 import {expect} from 'chai';
-import {TestHelper} from "../dist/src/TestHelper";
-import {AuthType} from "../dist/src/user/auth/AuthTypes";
-import {AuthenticationSettings} from "../dist/src/user/auth/AuthenticationSettings";
-import {AuthenticationPolicy} from "../dist/src/user/auth/AuthenticationPolicy";
+import {AuthType} from "../dist/src/user/auth/AuthTypes.js";
+import {AuthenticationSettings} from "../dist/src/user/auth/AuthenticationSettings.js";
+import {AuthenticationPolicy} from "../dist/src/user/auth/AuthenticationPolicy.js";
 import Util from "../src/Utils.js";
 
 const USER_DB:string = _path_.join(Util.__dirname(import.meta.url),'config','userdb.json');

@@ -1,7 +1,7 @@
 import {expect} from 'chai';
-import {TestHelper} from "../src/TestHelper";
-import InspectorFrontController, {IFC_TYPE} from "../src/InspectorFrontController";
-import DexcaliburProject from "../src/DexcaliburProject";
+import {TestHelper} from "../src/TestHelper.js";
+import InspectorFrontController, {IFC_TYPE} from "../src/InspectorFrontController.js";
+import DexcaliburProject from "../src/DexcaliburProject.js";
 
 describe('InspectorFrontController', function() {
 

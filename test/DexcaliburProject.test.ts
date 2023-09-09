@@ -9,13 +9,13 @@ const TEST_CONFIG2 = Path.join( Util.__dirname(import.meta.url), './res/config_t
 
 var CONFIG = null;
 
-import * as Log from '../dist/src/Logger';
-import {TestLogger} from "../dist/src/Logger";
-import DexcaliburEngine from "../dist/src/DexcaliburEngine";
-import DexcaliburProject from "../dist/src/DexcaliburProject";
-import {SearchAPI} from "../dist/src/SearchAPI";
-import Analyzer from "../dist/src/Analyzer";
-import {HookManager} from "../dist/src/HookManager.js";
+import * as Log from '../dist/src/Logger.js';
+import {TestLogger} from "../dist/src/Logger.js";
+import DexcaliburEngine from "../dist/src/DexcaliburEngine.js";
+import DexcaliburProject from "../dist/src/DexcaliburProject.js";
+import {SearchAPI} from "../dist/src/SearchAPI.js";
+import Analyzer from "../dist/src/Analyzer.js";
+import {HookManager} from "../dist/src/hook/HookManager.js";
 import {DataAnalyzer} from "../dist/src/DataAnalyzer.js";
 import AndroidAppAnalyzer from "../dist/src/AndroidAppAnalyzer.js";
 import Bus from "../dist/src/Bus.js";

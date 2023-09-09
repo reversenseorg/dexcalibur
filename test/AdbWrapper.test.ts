@@ -1,13 +1,13 @@
 import * as _path_ from 'path';
-import {TestHelper} from "../dist/src/TestHelper";
-import AdbWrapper from "../dist/src/AdbWrapper";
-import {Device} from "../dist/src/Device";
-import AppPackage from "../dist/src/AppPackage";
-import {AdbWrapperError} from "../dist/src/Errors";
+import {TestHelper} from "../dist/src/TestHelper.js";
+import AdbWrapper from "../dist/src/AdbWrapper.js";
+import {Device} from "../dist/src/Device.js";
+import AppPackage from "../dist/src/AppPackage.js";
+import {AdbWrapperError} from "../dist/src/Errors.js";
 import Util from "../src/Utils.js";
-
-const expect = require('chai').expect;
-const EOL = require('os').EOL;
+import * as _os_ from "os";
+import {expect} from 'chai';
+const EOL = _os_.EOL;
 
 let VALID_ADB_PATH:string = _path_.join(Util.__dirname(import.meta.url), 'ws', '.dxc', 'bin', 'platform-tools', 'adb');
 let INVALID_ADB_PATH:string = _path_.join(Util.__dirname(import.meta.url), 'ws', '.dxc', 'bin', 'platform-tools', 'invalid_adb');

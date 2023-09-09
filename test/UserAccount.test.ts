@@ -2,9 +2,9 @@ import * as _path_ from 'path';
 import * as _fs_ from 'fs';
 
 import {expect} from 'chai';
-import {UserAccount} from "../dist/src/user/UserAccount";
-import {AuthCode} from "../dist/src/user/auth/AuthTypes";
-import AccessControl from "../src/user/acl/AccessControl";
+import {UserAccount} from "../dist/src/user/UserAccount.js";
+import {AuthCode} from "../dist/src/user/auth/AuthTypes.js";
+import AccessControl from "../src/user/acl/AccessControl.js";
 
 let usr:UserAccount = null;
 

@@ -1,5 +1,5 @@
 import {expect} from 'chai';
-import Platform from "../dist/src/Platform";
+import Platform from "../dist/src/Platform.js";
 
 describe('Platform class', function() {
     

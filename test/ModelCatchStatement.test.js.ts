@@ -1,9 +1,9 @@
 
 import chai = require("chai");
 
-import ModelCatchStatement from "../src/ModelCatchStatement";
-import ModelBasicBlock from "../src/ModelBasicBlock";
-import ModelClass from "../src/ModelClass";
+import ModelCatchStatement from "../src/ModelCatchStatement.js";
+import ModelBasicBlock from "../src/ModelBasicBlock.js";
+import ModelClass from "../src/ModelClass.js";
 
 
 let expect:Chai.ExpectStatic = chai.expect;

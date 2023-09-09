@@ -1,7 +1,7 @@
 import {expect} from 'chai';
-import {TestHelper} from "../dist/src/TestHelper";
-import {HookManager} from "../dist/src/HookManager";
-import * as Log from "../dist/src/Logger";
+import {TestHelper} from "../dist/src/TestHelper.js";
+import {HookManager} from "../dist/src/hook/HookManager.js";
+import * as Log from "../dist/src/Logger.js";
 
 let Logger:Log.TestLogger;
 

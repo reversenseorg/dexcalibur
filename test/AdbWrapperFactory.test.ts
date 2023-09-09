@@ -1,9 +1,9 @@
 import * as chai from 'chai';
 import * as _path_ from 'path';
-import AdbWrapperFactory from "../dist/src/AdbWrapperFactory";
-import AdbWrapper from "../dist/src/AdbWrapper";
-import {Device} from "../dist/src/Device";
-import {IBridge} from "../dist/src/Bridge";
+import AdbWrapperFactory from "../dist/src/AdbWrapperFactory.js";
+import AdbWrapper from "../dist/src/AdbWrapper.js";
+import {Device} from "../dist/src/Device.js";
+import {IBridge} from "../dist/src/Bridge.js";
 import Util from "../src/Utils.js";
 
 const expect = chai.expect;

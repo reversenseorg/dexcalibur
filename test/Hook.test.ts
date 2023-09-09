@@ -1,11 +1,11 @@
 import {expect} from 'chai';
-import DexcaliburEngine from "../src/DexcaliburEngine";
-import DexcaliburProject from "../src/DexcaliburProject";
+import DexcaliburEngine from "../src/DexcaliburEngine.js";
+import DexcaliburProject from "../src/DexcaliburProject.js";
 //chai.use(sinonChai);*/
 
 // -- App specific --
 
-const EOL = require('os').EOL;
+//const EOL = require('os').EOL;
 
 
 describe('Hook', function() {

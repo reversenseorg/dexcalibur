@@ -245,7 +245,7 @@ describe('ProjectAccessControl', function() {
                 s = 1;
                 pac.check(
                     ProjectAccessControl.access.PROJ_SETTINGS_READ,
-                    sess
+                    usr_account
                 )
                 s = 2;
 
@@ -255,7 +255,7 @@ describe('ProjectAccessControl', function() {
 
                 pac.check(
                     ProjectAccessControl.access.PROJ_SETTINGS_EDIT,
-                    sess
+                    usr_account
                 );
 
                 s = 4;

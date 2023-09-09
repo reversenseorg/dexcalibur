@@ -2,14 +2,13 @@ import * as _path_ from 'path';
 import * as _fs_ from 'fs';
 
 import {expect} from 'chai';
-import {TestHelper} from "../dist/src/TestHelper";
-import {AuthType} from "../dist/src/user/auth/AuthTypes";
-import {AuthenticationSettings} from "../dist/src/user/auth/AuthenticationSettings";
-import {AuthenticationPolicy} from "../dist/src/user/auth/AuthenticationPolicy";
-import {AuthenticationService} from "../dist/src/user/auth/AuthenticationService";
-import {UserAccount} from "../dist/src/user/UserAccount";
-import {PasswordAuthenticator} from "../dist/src/user/auth/Authenticator";
-import {Authenticator} from "../dist/src/user/auth/AuthTypes";
+import {AuthType} from "../dist/src/user/auth/AuthTypes.js";
+import {AuthenticationSettings} from "../dist/src/user/auth/AuthenticationSettings.js";
+import {AuthenticationPolicy} from "../dist/src/user/auth/AuthenticationPolicy.js";
+import {AuthenticationService} from "../dist/src/user/auth/AuthenticationService.js";
+import {UserAccount} from "../dist/src/user/UserAccount.js";
+import {PasswordAuthenticator} from "../dist/src/user/auth/Authenticator.js";
+import {Authenticator} from "../dist/src/user/auth/AuthTypes.js";
 import Util from "../src/Utils.js";
 
 const USER_DB:string = _path_.join(Util.__dirname(import.meta.url),'config','userdb.json');
@@ -75,7 +74,7 @@ describe('AuthenticationService', function() {
             console.log(auth_svc);
 
             expect(auth_svc._users.size()).to.equal(1);
-            expect(auth_svc._users.getEntry(0).username).to.equal('dxc_user_1');
+            expect(auth_svc._users.getAsList()[0].username).to.equal('dxc_user_1');
         });
     });
 
@@ -172,7 +171,7 @@ describe('AuthenticationService', function() {
         it('Without backup copy', function () {
 
             // create user and save
-            auth_svc.getUserIndex().addEntry( new UserAccount({
+            auth_svc.getUserIndex().addEntry( "user2", new UserAccount({
                 username: 'user2',
                 password: 'xxx'
             }));
@@ -206,7 +205,7 @@ describe('AuthenticationService', function() {
         it('With backup copy', function () {
 
             // create user and save
-            auth_svc.getUserIndex().addEntry( new UserAccount({
+            auth_svc.getUserIndex().addEntry( 'user3', new UserAccount({
                 username: 'user3',
                 password: 'yyyy'
             }));

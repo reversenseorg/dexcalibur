@@ -8,7 +8,7 @@ import * as _fs_ from 'fs';
 import {AuthType} from "../dist/src/user/auth/AuthTypes.js";
 import {AuthenticationSettings} from "../dist/src/user/auth/AuthenticationSettings.js";
 import {AuthenticationService} from "../dist/src/user/auth/AuthenticationService.js";
-import {UserAccount} from "../dist/src/user/UserAccount";
+import {UserAccount} from "../dist/src/user/UserAccount.js";
 import {UserSession} from "../dist/src/user/session/UserSession.js";
 import {UserService} from "../dist/src/user/UserService.js";
 import {Settings} from "../dist/src/Settings.js";

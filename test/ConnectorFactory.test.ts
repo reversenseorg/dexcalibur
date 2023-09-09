@@ -1,9 +1,9 @@
 
 import {expect} from 'chai';
-import DexcaliburProject from "../dist/src/DexcaliburProject";
-import {ConnectorFactory} from "../dist/src/ConnectorFactory";
-import InMemoryConnector from "../dist/connectors/inmemory/adapter";
-import {TestHelper} from "../dist/src/TestHelper";
+import DexcaliburProject from "../dist/src/DexcaliburProject.js";
+import {ConnectorFactory} from "../dist/src/ConnectorFactory.js";
+import InMemoryConnector from "../dist/connectors/inmemory/adapter.js";
+import {TestHelper} from "../dist/src/TestHelper.js";
 
 
 describe('ConnectorFactory', function() {

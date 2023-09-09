@@ -2,10 +2,9 @@ import * as _path_ from 'path';
 import * as _fs_ from 'fs';
 
 import {expect} from 'chai';
-import {UserAccount} from "../dist/src/user/UserAccount";
-import {AuthCode} from "../dist/src/user/auth/AuthTypes";
-import {UserSession} from "../dist/src/user/session/UserSession";
-import {SessionCode} from "../src/user/session/SessionException";
+import {UserAccount} from "../dist/src/user/UserAccount.js";
+import {UserSession} from "../dist/src/user/session/UserSession.js";
+import {SessionCode} from "../src/user/session/SessionException.js";
 
 let ACCOUNT:UserAccount = null;
 let ACCOUNT_2:UserAccount = null;

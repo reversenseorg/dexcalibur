@@ -1,7 +1,7 @@
 import {expect} from 'chai';
-import {TestHelper} from "../dist/src/TestHelper";
-import InspectorManager from "../dist/src/InspectorManager";
-import DexcaliburEngine from "../dist/src/DexcaliburEngine";
+import {TestHelper} from "../dist/src/TestHelper.js";
+import InspectorManager from "../dist/src/InspectorManager.js";
+import DexcaliburEngine from "../dist/src/DexcaliburEngine.js";
 
 describe('Inspector Manager', function() {
 

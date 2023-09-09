@@ -1,7 +1,7 @@
 import {expect} from 'chai';
-import ModelClass from "../dist/src/ModelClass";
-import {ModelObjectType} from "../dist/src/ModelType";
-import ModelMethod from "../dist/src/ModelMethod";
+import ModelClass from "../dist/src/ModelClass.js";
+import {ModelObjectType} from "../dist/src/ModelType.js";
+import ModelMethod from "../dist/src/ModelMethod.js";
 
 
 describe('ModelMethod node', function() {

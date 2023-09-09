@@ -1,18 +1,16 @@
 import * as _path_ from 'path';
 
-import DexcaliburProject from "../dist/src/DexcaliburProject";
-
-const expect = require('chai').expect;
+import DexcaliburProject from "../dist/src/DexcaliburProject.js";
+import {expect} from 'chai';
 
 
 // -- App specific --
 
-import {TestHelper} from '../dist/src/TestHelper';
-import Analyzer from '../dist/src/Analyzer';
-import AnalyzerDatabase from "../dist/src/AnalyzerDatabase";
-import ModelClass from "../dist/src/ModelClass";
-import {Modifier} from "../dist/src/AccessFlags";
-import ModelMethod from "../src/ModelMethod";
+import {TestHelper} from '../dist/src/TestHelper.js';
+import Analyzer from '../dist/src/Analyzer.js';
+import AnalyzerDatabase from "../dist/src/AnalyzerDatabase.js";
+import ModelClass from "../dist/src/ModelClass.js";
+import {Modifier} from "../dist/src/AccessFlags.js";
 import Util from "../src/Utils.js";
 
 

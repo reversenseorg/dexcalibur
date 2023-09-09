@@ -1,9 +1,15 @@
 import {expect} from 'chai';
-import {Stub, STUB_TYPE} from "../dist/src/ModelSavable";
-import {ModelObjectType} from "../dist/src/ModelType";
+import {Stub, STUB_TYPE} from "../dist/src/ModelSavable.js";
+import {ModelObjectType} from "../dist/src/ModelType.js";
+import {Tag} from "../dist/src/tags/Tag.js";
+
+
 
 describe('ObjectType node', function() {
 
+    const RSA_TAG = new Tag({ name:"rsa" });
+    const KEY_TAG = new Tag({ name:"key" });
+    const XXX_TAG = new Tag({ name:"xxxxx" });
 
     beforeEach(function() {
 
@@ -68,43 +74,43 @@ describe('ObjectType node', function() {
 
         it('addTag()', function () {
             let ot = new ModelObjectType("java.lang.String");
-            ot.addTag('key');
-            ot.addTag('rsa');
+            ot.addTag(KEY_TAG);
+            ot.addTag(RSA_TAG);
 
             expect(ot.tags.length).to.equals(2);
-            expect(ot.tags.indexOf('key')).to.equals(0);
-            expect(ot.tags.indexOf('rsa')).to.equals(1);
-            expect(ot.tags.indexOf('xxxxx')).to.equals(-1);
+            expect(KEY_TAG.match(ot)).to.equals(true);
+            expect(RSA_TAG.match(ot)).to.equals(true);
+            expect(XXX_TAG.match(ot)).to.equals(false);
         });
 
         it('getTags()', function () {
             let ot = new ModelObjectType("java.lang.String");
-            ot.addTag('key');
-            ot.addTag('rsa');
+            ot.addTag(KEY_TAG);
+            ot.addTag(RSA_TAG);
 
             let tags = ot.getTags();
             expect(tags.length).to.equals(2);
-            expect(tags.indexOf('key')).to.equals(0);
-            expect(tags.indexOf('rsa')).to.equals(1);
-            expect(tags.indexOf('notExists')).to.equals(-1);
+            expect(tags.indexOf(KEY_TAG.getUUID())).to.equals(0);
+            expect(tags.indexOf(RSA_TAG.getUUID())).to.equals(1);
+            expect(tags.indexOf(XXX_TAG.getUUID())).to.equals(-1);
 
             ot = new ModelObjectType("java.lang.Object");
             tags = ot.getTags();
 
             expect(tags.length).to.equals(0);
-            expect(tags.indexOf('key')).to.equals(-1);
-            expect(tags.indexOf('rsa')).to.equals(-1);
+            expect(tags.indexOf(KEY_TAG.getUUID())).to.equals(-1);
+            expect(tags.indexOf(RSA_TAG.getUUID())).to.equals(-1);
         });
 
         it('hasTag()', function () {
             let ot = new ModelObjectType("java.lang.String");
-            ot.addTag('key');
-            ot.addTag('rsa');
+            ot.addTag(KEY_TAG);
+            ot.addTag(RSA_TAG);
 
 
-            expect(ot.hasTag('key')).to.equals(true);
-            expect(ot.hasTag('rsa')).to.equals(true);
-            expect(ot.hasTag('xxxx')).to.equals(false);
+            expect(ot.hasTag(KEY_TAG)).to.equals(true);
+            expect(ot.hasTag(RSA_TAG)).to.equals(true);
+            expect(ot.hasTag(XXX_TAG)).to.equals(false);
         });
     });
 

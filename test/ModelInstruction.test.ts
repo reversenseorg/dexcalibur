@@ -1,13 +1,12 @@
 
-import chai = require("chai");
+import {expect} from 'chai';
 
-import ModelInstruction from "../src/ModelInstruction";
-import ModelCatchStatement from "../src/ModelCatchStatement";
-import ModelClass from "../src/ModelClass";
-import ModelBasicBlock from "../src/ModelBasicBlock";
+import ModelInstruction from "../src/ModelInstruction.js";
+import ModelCatchStatement from "../src/ModelCatchStatement.js";
+import ModelClass from "../src/ModelClass.js";
+import ModelBasicBlock from "../src/ModelBasicBlock.js";
 
 
-let expect:Chai.ExpectStatic = chai.expect;
 
 
 

@@ -1,8 +1,8 @@
 import {expect} from 'chai';
-import {TestHelper} from "../dist/src/TestHelper";
-import DexcaliburWorkspace from "../dist/src/DexcaliburWorkspace";
+import {TestHelper} from "../dist/src/TestHelper.js";
+import DexcaliburWorkspace from "../dist/src/DexcaliburWorkspace.js";
 
-const EOL = require('os').EOL;
+// const EOL = require('os').EOL;
 
 // -- App specific --
 var CONFIG = null;

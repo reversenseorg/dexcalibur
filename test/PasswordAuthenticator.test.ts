@@ -2,12 +2,9 @@ import * as _path_ from 'path';
 import * as _fs_ from 'fs';
 
 import {expect} from 'chai';
-import {TestHelper} from "../dist/src/TestHelper.js";
 import {AuthType} from "../dist/src/user/auth/AuthTypes.js";
 import {AuthenticationSettings} from "../dist/src/user/auth/AuthenticationSettings.js";
-import {AuthenticationPolicy} from "../dist/src/user/auth/AuthenticationPolicy.js";
 import {AuthenticationService} from "../dist/src/user/auth/AuthenticationService.js";
-import {UserAccount} from "../dist/src/user/UserAccount";
 import {PasswordAuthenticator, AuthenticationResult} from "../dist/src/user/auth/Authenticator.js";
 import {Authenticator} from "../dist/src/user/auth/AuthTypes.js";
 import {AuthCode} from "../src/user/auth/AuthTypes.js";
@@ -111,7 +108,7 @@ describe('PasswordAuthenticator', function() {
             console.log(auth_svc);
 
             //expect(auth_svc._users.size()).to.equal(1);
-            expect(auth_svc._users.getEntry(0).username).to.equal('dxc_user_1');
+            expect(auth_svc._users.getAsList()[0].username).to.equal('dxc_user_1');
         });
     });
 

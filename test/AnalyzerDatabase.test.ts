@@ -1,9 +1,9 @@
 import {expect} from 'chai';
-import {TestHelper} from "../dist/src/TestHelper";
-import AnalyzerDatabase from "../dist/src/AnalyzerDatabase";
-import InMemoryConnector from "../dist/connectors/inmemory/adapter";
-import InMemoryDbCollection from "../dist/connectors/inmemory/InMemoryDbCollection";
-import InMemoryDbIndex from "../dist/connectors/inmemory/InMemoryDbIndex";
+import {TestHelper} from "../dist/src/TestHelper.js";
+import AnalyzerDatabase from "../dist/src/AnalyzerDatabase.js";
+import InMemoryConnector from "../dist/connectors/inmemory/adapter.js";
+import InMemoryDbCollection from "../dist/connectors/inmemory/InMemoryDbCollection.js";
+import InMemoryDbIndex from "../dist/connectors/inmemory/InMemoryDbIndex.js";
 
 
 

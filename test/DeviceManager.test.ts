@@ -1,8 +1,6 @@
 
 import {expect} from 'chai';
-import {TestHelper} from "../dist/src/TestHelper";
-import DeviceManager from "../dist/src/DeviceManager";
-import DexcaliburWorkspace from "../dist/src/DexcaliburWorkspace";
+import {TestHelper} from "../dist/src/TestHelper.js";
 
 //import * from 'process';
 
