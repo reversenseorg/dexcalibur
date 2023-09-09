@@ -155,6 +155,10 @@ export namespace Settings {
                 if(pConfig.hasOwnProperty('auth')){
                     this.auth = new AuthenticationSettings(this, pConfig.auth);
                 }
+
+                if(pConfig.hasOwnProperty('heapSize')){
+                    this.heapSize = pConfig.heapSize;
+                }
             }
 
         }
@@ -637,23 +641,20 @@ export namespace Settings {
          * @param pConfig
          * @constructor
          */
-        constructor(pConfig: any = null) {
+        constructor(pConfig: any = {}, pForceConfig = true) {
             super(null);
 
             this.server = new Settings.ServerSettings(this, pConfig.server); // server
             this.bin = new Settings.ExternalSettings(this, pConfig.bin);
+            this.web = new Settings.WebServerSettings(this, pConfig.web);
 
-            if(pConfig.server!=null) {
+            if(pConfig.server!=null && !pForceConfig) {
                 if(pConfig.server.hasOwnProperty('http') != null && pConfig.server.hasOwnProperty('ws') != null){
                     this.web = new Settings.WebServerSettings(this, {
                         http: pConfig.server.http,
                         ws: pConfig.server.ws
                     }); //(pConfig.http, pConfig.ws);
-                }else{
-                    this.web = new Settings.WebServerSettings(this, pConfig.web);
                 }
-            }else{
-                this.web = new Settings.WebServerSettings(this, pConfig.web); //(pConfig.http, pConfig.ws);
             }
 
 
