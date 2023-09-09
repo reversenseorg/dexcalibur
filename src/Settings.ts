@@ -643,11 +643,15 @@ export namespace Settings {
             this.server = new Settings.ServerSettings(this, pConfig.server); // server
             this.bin = new Settings.ExternalSettings(this, pConfig.bin);
 
-            if(pConfig.server!=null && pConfig.server.http != null && pConfig.server.ws != null){
-                this.web = new Settings.WebServerSettings(this, {
-                    http: pConfig.server.http,
-                    ws: pConfig.server.ws
-                }); //(pConfig.http, pConfig.ws);
+            if(pConfig.server!=null) {
+                if(pConfig.server.hasOwnProperty('http') != null && pConfig.server.hasOwnProperty('ws') != null){
+                    this.web = new Settings.WebServerSettings(this, {
+                        http: pConfig.server.http,
+                        ws: pConfig.server.ws
+                    }); //(pConfig.http, pConfig.ws);
+                }else{
+                    this.web = new Settings.WebServerSettings(this, pConfig.web);
+                }
             }else{
                 this.web = new Settings.WebServerSettings(this, pConfig.web); //(pConfig.http, pConfig.ws);
             }
