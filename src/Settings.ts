@@ -643,7 +643,7 @@ export namespace Settings {
             this.server = new Settings.ServerSettings(this, pConfig.server); // server
             this.bin = new Settings.ExternalSettings(this, pConfig.bin);
 
-            if(pConfig.server!==null && pConfig.server.http != null && pConfig.server.ws != null){
+            if(pConfig.server!=null && pConfig.server.http != null && pConfig.server.ws != null){
                 this.web = new Settings.WebServerSettings(this, {
                     http: pConfig.server.http,
                     ws: pConfig.server.ws
