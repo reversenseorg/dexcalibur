@@ -94,6 +94,8 @@ export namespace Settings {
     export class ServerSettings extends Settings.AbstractSettings {
 
 
+        static DEFAULT_HEAP_SIZE = 4096;
+
         static SUPPORTED_ARCH = ["aarch64","aarch32","x64","x86"];
 
         /**
@@ -129,7 +131,7 @@ export namespace Settings {
          * @type number
          * @private
          */
-        private heapSize = 4096;
+        private heapSize;
 
         /**
          * Default architecture
@@ -139,7 +141,7 @@ export namespace Settings {
          */
         private defaultArch = 'aarch64';
 
-        constructor( pParent:GlobalSettings, pConfig:any=null) {
+        constructor( pParent:GlobalSettings, pConfig:any={}) {
 
             super(pParent);
 
@@ -160,6 +162,11 @@ export namespace Settings {
                     this.heapSize = pConfig.heapSize;
                 }
             }
+
+            if(this.heapSize == null){
+                this.heapSize = ServerSettings.DEFAULT_HEAP_SIZE;
+            }
+
 
         }
 
@@ -275,7 +282,7 @@ export namespace Settings {
          * @type {string}
          * @private
          */
-        private _http:number = DEFAULT_HTTP_PORT;
+        private _http:number;
 
         /**
          * WebSocket port for internal web server
@@ -283,7 +290,7 @@ export namespace Settings {
          * @type {string}
          * @private
          */
-        private _ws:number = DEFAULT_WS_PORT;
+        private _ws:number;
 
 
         /**
@@ -305,11 +312,19 @@ export namespace Settings {
          * @constructor
          * @since 1.0.0
          */
-        constructor( pParent:GlobalSettings, pConfig:WebServerOptions /*Http:number, pWs:number*/) {
+        constructor( pParent:GlobalSettings, pConfig:WebServerOptions= {} /*Http:number, pWs:number*/) {
             super(pParent);
 
-            this._http = (process.env.DXC_HTTP_PORT ? parseInt(process.env.DXC_HTTP_PORT,10) : pConfig.http);
-            this._ws = (process.env.DXC_WS_PORT ? parseInt(process.env.DXC_WS_PORT,10) : pConfig.ws);
+            this._http = (process.env.DXC_HTTP_PORT ? parseInt(process.env.DXC_HTTP_PORT,10) : -1);
+            this._ws = (process.env.DXC_WS_PORT ? parseInt(process.env.DXC_WS_PORT,10) : -1);
+
+            if(this._http === -1){
+                this._http = pConfig.http != null ? pConfig.http : DEFAULT_HTTP_PORT;
+            }
+
+            if(this._ws === -1){
+                this._ws = pConfig.ws != null ? pConfig.ws : DEFAULT_WS_PORT;
+            }
         }
 
 
