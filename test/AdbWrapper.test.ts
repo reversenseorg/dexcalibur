@@ -1,9 +1,9 @@
 import * as _path_ from 'path';
-import {TestHelper} from "../dist/src/TestHelper.js";
-import AdbWrapper from "../dist/src/AdbWrapper.js";
-import {Device} from "../dist/src/Device.js";
-import AppPackage from "../dist/src/AppPackage.js";
-import {AdbWrapperError} from "../dist/src/Errors.js";
+import {TestHelper} from "../src/TestHelper.js";
+import AdbWrapper from "../src/AdbWrapper.js";
+import {Device} from "../src/Device.js";
+import AppPackage from "../src/AppPackage.js";
+import {AdbWrapperError} from "../src/Errors.js";
 import Util from "../src/Utils.js";
 import * as _os_ from "os";
 import {expect} from 'chai';
@@ -382,6 +382,7 @@ describe('ADB Wrapper', function() {
             try{
                 ret = adbw.listPackages();
             }catch(err){
+                console.log(err);
                 f++;
             }
 

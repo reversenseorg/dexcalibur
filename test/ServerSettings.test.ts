@@ -93,6 +93,33 @@ describe('ServerSettings', function() {
             expect(obj.registryAPI).to.equals("http://127.0.0.1:8001/");
             expect(obj.registry).to.equals("http://127.0.0.1:8000/");
             expect(obj.auth).to.be.undefined;
+
+
+        });
+    });
+
+    describe('toObject', function() {
+
+        it('basic', async function() {
+
+            const mock_settings = new GlobalSettings();
+            const settings = new ServerSettings(mock_settings, {
+                heapSize: 8192,
+                registry: "http://127.0.0.1:8000/",
+                registryAPI: "http://127.0.0.1:8001/",
+                workspace: WS_path,
+                auth: null
+            });
+
+            const obj = settings.toObject();
+
+            expect(obj.heapSize).to.equals(8192);
+            expect(obj.workspace).to.equals(WS_path);
+            expect(obj.registryAPI).to.equals("http://127.0.0.1:8001/");
+            expect(obj.registry).to.equals("http://127.0.0.1:8000/");
+            expect(obj.auth).to.be.undefined;
+
+
         });
     });
 });

@@ -1,7 +1,7 @@
 import * as _path_ from 'path';
 import {expect} from 'chai';
-import {AuthType} from "../dist/src/user/auth/AuthTypes.js";
-import {AuthenticationSettings} from "../dist/src/user/auth/AuthenticationSettings.js";
+import {AuthType} from "../src/user/auth/AuthTypes.js";
+import {AuthenticationSettings} from "../src/user/auth/AuthenticationSettings.js";
 import Util from "../src/Utils.js";
 
 
@@ -41,7 +41,7 @@ describe('AuthenticationSettings', function() {
                 db: {
                     dbms: 'inmemory',
                     user: 'db_user_1',
-                    password: 'db_password',
+                    pwd: 'db_password',
                     port: 27000,
                     uri: USER_DB
                 },
@@ -54,7 +54,7 @@ describe('AuthenticationSettings', function() {
 
             expect(settings.db.dbms).to.equals('inmemory');
             expect(settings.db.user).to.equals('db_user_1');
-            expect(settings.db.password).to.equals('db_password');
+            expect(settings.db.pwd).to.equals('db_password');
             expect(settings.db.port).to.equals(27000);
             expect(settings.db.uri).to.equals(USER_DB);
 
@@ -71,7 +71,7 @@ describe('AuthenticationSettings', function() {
             db: {
                 dbms: 'inmemory',
                 user: 'db_user_1',
-                password: 'db_password',
+                pwd: 'db_password',
                 port: 27000,
                 uri: USER_DB
             },
@@ -87,7 +87,7 @@ describe('AuthenticationSettings', function() {
         it('Has "db" field', function () {
             expect(pojo.db.dbms).to.equals('inmemory');
             expect(pojo.db.user).to.equals('db_user_1');
-            expect(pojo.db.password).to.equals('db_password');
+            expect(pojo.db.pwd).to.equals('db_password');
             expect(pojo.db.port).to.equals(27000);
             expect(pojo.db.uri).to.equals(USER_DB);
         });

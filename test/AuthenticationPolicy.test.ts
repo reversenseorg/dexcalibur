@@ -1,8 +1,8 @@
 import * as _path_ from 'path';
 import {expect} from 'chai';
-import {AuthType} from "../dist/src/user/auth/AuthTypes.js";
-import {AuthenticationSettings} from "../dist/src/user/auth/AuthenticationSettings.js";
-import {AuthenticationPolicy} from "../dist/src/user/auth/AuthenticationPolicy.js";
+import {AuthType} from "../src/user/auth/AuthTypes.js";
+import {AuthenticationSettings} from "../src/user/auth/AuthenticationSettings.js";
+import {AuthenticationPolicy} from "../src/user/auth/AuthenticationPolicy.js";
 import Util from "../src/Utils.js";
 
 const USER_DB:string = _path_.join(Util.__dirname(import.meta.url),'config','userdb.json');
@@ -19,7 +19,7 @@ describe('AuthenticationPolicy', function() {
             db: {
                 dbms: 'inmemory',
                 user: null,
-                password: null,
+                pwd: null,
                 port: 0,
                 uri: USER_DB
             },

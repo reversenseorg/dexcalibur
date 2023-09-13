@@ -1,20 +1,18 @@
 
 import {expect} from 'chai';
-import {UserAccount} from "../dist/src/user/UserAccount.js";
-import {AuthCode} from "../dist/src/user/auth/AuthTypes.js";
-import AccessControl from "../dist/src/user/acl/AccessControl.js";
-import {ProjectAccessControl} from "../dist/src/user/acl/rbac/ProjectAccessContol.js";
-import {DelegateAccessControl} from "../dist/src/user/acl/DelegateAccessControl.js";
-import {Access, AccessProperty, AccessType} from "../dist/src/user/acl/Access.js";
-import {UserRole} from "../dist/src/user/acl/rbac/UserRole.js";
-import {AccessFactory} from "../src/user/acl/AccessFactory.js";
-import {UserSession} from "../dist/src/user/session/UserSession.js";
-import {UserService} from "../dist/src/user/UserService.js";
-import {AuthenticationSettings} from "../dist/src/user/auth/AuthenticationSettings.js";
-import {Settings} from "../dist/src/Settings.js";
+import {UserAccount} from "../src/user/UserAccount.js";
+import AccessControl from "../src/user/acl/AccessControl.js";
+import {ProjectAccessControl} from "../src/user/acl/rbac/ProjectAccessContol.js";
+import {DelegateAccessControl} from "../src/user/acl/DelegateAccessControl.js";
+import {Access, AccessProperty, AccessType} from "../src/user/acl/Access.js";
+import {UserRole} from "../src/user/acl/rbac/UserRole.js";
+import {UserSession} from "../src/user/session/UserSession.js";
+import {UserService} from "../src/user/UserService.js";
+import {AuthenticationSettings} from "../src/user/auth/AuthenticationSettings.js";
+import {Settings} from "../src/Settings.js";
 import ServerSettings = Settings.ServerSettings;
 import * as _path_ from "path";
-import {AuthType} from "../dist/src/user/auth/AuthTypes.js";
+import {AuthType} from "../src/user/auth/AuthTypes.js";
 import Util from "../src/Utils.js";
 
 let usr:UserAccount = null;
@@ -51,7 +49,7 @@ describe('ProjectAccessControl', function() {
                 db: {
                     dbms: 'inmemory',
                     user: null,
-                    password: null,
+                    pwd: null,
                     port: 0,
                     uri: USER_DB
                 },

@@ -2,20 +2,16 @@ import * as _path_ from 'path';
 import * as _fs_ from 'fs';
 
 import {expect} from 'chai';
-import {TestHelper} from "../dist/src/TestHelper.js";
-import {AuthType} from "../dist/src/user/auth/AuthTypes.js";
-import {AuthenticationPolicy} from "../dist/src/user/auth/AuthenticationPolicy.js";
-import {AuthenticationService} from "../dist/src/user/auth/AuthenticationService.js";
-import {UserAccount} from "../dist/src/user/UserAccount.js";
-import {PasswordAuthenticator} from "../dist/src/user/auth/Authenticator.js";
-import {Authenticator} from "../dist/src/user/auth/AuthTypes.js";
-import {SessionSettings} from "../dist/src/user/session/SessionSettings.js";
-import {SessionService} from "../dist/src/user/session/SessionService.js";
-import {AuthenticationSettings} from "../dist/src/user/auth/AuthenticationSettings.js";
-import {Settings} from "../dist/src/Settings.js";
+import {AuthType} from "../src/user/auth/AuthTypes.js";
+import {AuthenticationService} from "../src/user/auth/AuthenticationService.js";
+import {UserAccount} from "../src/user/UserAccount.js";
+import {SessionSettings} from "../src/user/session/SessionSettings.js";
+import {SessionService} from "../src/user/session/SessionService.js";
+import {AuthenticationSettings} from "../src/user/auth/AuthenticationSettings.js";
+import {Settings} from "../src/Settings.js";
 import ServerSettings = Settings.ServerSettings;
-import {UserSession} from "../dist/src/user/session/UserSession.js";
-import {SessionCode} from "../dist/src/user/session/SessionException.js";
+import {UserSession} from "../src/user/session/UserSession.js";
+import {SessionCode} from "../src/user/session/SessionException.js";
 import Util from "../src/Utils.js";
 
 const USER_DB:string = _path_.join(Util.__dirname(import.meta.url),'config','userdb.ok.json');
@@ -58,7 +54,7 @@ describe('SessionService', function() {
             db: {
                 dbms: 'inmemory',
                 user: null,
-                password: null,
+                pwd: null,
                 port: 0,
                 uri: USER_DB
             },

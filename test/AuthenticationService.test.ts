@@ -2,13 +2,13 @@ import * as _path_ from 'path';
 import * as _fs_ from 'fs';
 
 import {expect} from 'chai';
-import {AuthType} from "../dist/src/user/auth/AuthTypes.js";
-import {AuthenticationSettings} from "../dist/src/user/auth/AuthenticationSettings.js";
-import {AuthenticationPolicy} from "../dist/src/user/auth/AuthenticationPolicy.js";
-import {AuthenticationService} from "../dist/src/user/auth/AuthenticationService.js";
-import {UserAccount} from "../dist/src/user/UserAccount.js";
-import {PasswordAuthenticator} from "../dist/src/user/auth/Authenticator.js";
-import {Authenticator} from "../dist/src/user/auth/AuthTypes.js";
+import {AuthType} from "../src/user/auth/AuthTypes.js";
+import {AuthenticationSettings} from "../src/user/auth/AuthenticationSettings.js";
+import {AuthenticationPolicy} from "../src/user/auth/AuthenticationPolicy.js";
+import {AuthenticationService} from "../src/user/auth/AuthenticationService.js";
+import {UserAccount} from "../src/user/UserAccount.js";
+import {PasswordAuthenticator} from "../src/user/auth/Authenticator.js";
+import {Authenticator} from "../src/user/auth/AuthTypes.js";
 import Util from "../src/Utils.js";
 
 const USER_DB:string = _path_.join(Util.__dirname(import.meta.url),'config','userdb.json');
@@ -34,7 +34,7 @@ describe('AuthenticationService', function() {
             db: {
                 dbms: 'inmemory',
                 user: null,
-                password: null,
+                pwd: null,
                 port: 0,
                 uri: USER_DB
             },
@@ -140,7 +140,7 @@ describe('AuthenticationService', function() {
                     db: {
                         dbms: 'inmemory',
                         user: null,
-                        password: null,
+                        pwd: null,
                         port: 0,
                         uri: USER_DB
                     },
@@ -183,7 +183,7 @@ describe('AuthenticationService', function() {
                 db: {
                     dbms: 'inmemory',
                     user: null,
-                    password: null,
+                    pwd: null,
                     port: 0,
                     uri: USER_DB
                 },
@@ -217,7 +217,7 @@ describe('AuthenticationService', function() {
                 db: {
                     dbms: 'inmemory',
                     user: null,
-                    password: null,
+                    pwd: null,
                     port: 0,
                     uri: USER_DB
                 },
@@ -236,7 +236,7 @@ describe('AuthenticationService', function() {
                 db: {
                     dbms: 'inmemory',
                     user: null,
-                    password: null,
+                    pwd: null,
                     port: 0,
                     uri: USER_DB_BKP
                 },

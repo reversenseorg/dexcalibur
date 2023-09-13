@@ -2,11 +2,11 @@ import * as _path_ from 'path';
 import * as _fs_ from 'fs';
 
 import {expect} from 'chai';
-import {AuthType} from "../dist/src/user/auth/AuthTypes.js";
-import {AuthenticationSettings} from "../dist/src/user/auth/AuthenticationSettings.js";
-import {AuthenticationService} from "../dist/src/user/auth/AuthenticationService.js";
-import {PasswordAuthenticator, AuthenticationResult} from "../dist/src/user/auth/Authenticator.js";
-import {Authenticator} from "../dist/src/user/auth/AuthTypes.js";
+import {AuthType} from "../src/user/auth/AuthTypes.js";
+import {AuthenticationSettings} from "../src/user/auth/AuthenticationSettings.js";
+import {AuthenticationService} from "../src/user/auth/AuthenticationService.js";
+import {PasswordAuthenticator, AuthenticationResult} from "../src/user/auth/Authenticator.js";
+import {Authenticator} from "../src/user/auth/AuthTypes.js";
 import {AuthCode} from "../src/user/auth/AuthTypes.js";
 import Util from "../src/Utils.js";
 
@@ -35,7 +35,7 @@ describe('PasswordAuthenticator', function() {
             db: {
                 dbms: 'inmemory',
                 user: null,
-                password: null,
+                pwd: null,
                 port: 0,
                 uri: USER_DB
             },
@@ -54,7 +54,7 @@ describe('PasswordAuthenticator', function() {
             db: {
                 dbms: 'inmemory',
                 user: null,
-                password: null,
+                pwd: null,
                 port: 0,
                 uri: USER_DB
             },
