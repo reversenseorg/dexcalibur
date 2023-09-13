@@ -92,6 +92,35 @@ export default class Util {
     }
 
     /**
+     * To retrieve the value of an arbitrary field from an arbitrary object
+     * and to return a default fixed value if the field not exists.
+     *
+     * Important : it work only is the requested field has not getter.
+     *
+     * @param {any} pRawObject The target object
+     * @param {string} pFieldName The field name
+     * @param {any} pDefault The default value is the field is empty
+     * @return {any} The value of the field or the default value
+     * @method
+     * @static
+     * @since 1.0
+     */
+    static getValueWithOverride( pRawObject:any, pFieldName:string, pDefault:any, pOverride:any):any {
+        if(pOverride !== undefined ){
+            return pOverride;
+        }else if(pRawObject != null ){
+            if(pRawObject.hasOwnProperty(pFieldName) && (pRawObject[pFieldName]!==undefined)){
+                return pRawObject[pFieldName];
+            }else{
+                return pDefault;
+            }
+        }
+        else{
+            return pDefault;
+        }
+    }
+
+    /**
      * To encode
      */
     static sha1_file(path:string){

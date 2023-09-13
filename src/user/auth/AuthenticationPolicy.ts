@@ -1,11 +1,19 @@
 import {AuthType} from "./AuthTypes.js";
-import {AuthenticationSettings} from "./AuthenticationSettings.js";
+import {AuthenticationOptions, AuthenticationSettings} from "./AuthenticationSettings.js";
 
 
 function getValueFrom( pObject:any, pField:string, pDefaultValue:any):any {
     return (pObject.hasOwnProperty(pField)? pObject[pField] : pDefaultValue);
 }
 
+export interface AuthenticationPolicyOptions {
+    enforced?:boolean;
+    delayOnFail?:boolean;
+    delay?:number;
+    resetAfter?:number;
+    maxAttempts?:number;
+    defaultType?:AuthType;
+}
 
 /**
  * Represent an authentication policy
@@ -20,11 +28,11 @@ export class AuthenticationPolicy {
     supported: AuthType[] = [];
     defaultType: AuthType = null;
 
-    constructor( pSettings:AuthenticationSettings) {
+    constructor( pSettings:AuthenticationOptions) {
         let p = pSettings.policy;
         this.enforced = getValueFrom(p, 'enforced', true);
         this.delayOnFail = getValueFrom(p, 'delayOnFail', true);
-        this.delay = getValueFrom(p, 'delay', true);
+        this.delay = getValueFrom(p, 'delay', 30);
         this.resetAfter = getValueFrom(p, 'resetAfter', 3600);
         this.maxAttempts = getValueFrom(p, 'maxAttempts', -1);
         this.supported = pSettings.supported;
@@ -61,5 +69,16 @@ ${"\t".repeat(pIndent)}maxAttempts = ${this.maxAttempts}
 ${"\t".repeat(pIndent)}supported = ${this.supported}
 ${"\t".repeat(pIndent)}defaultType = ${this.defaultType}          
 `;
+    }
+
+    toObject():AuthenticationPolicyOptions {
+        return {
+            enforced: this.enforced,
+            defaultType: this.defaultType,
+            resetAfter: this.resetAfter,
+            maxAttempts: this.maxAttempts,
+            delay: this.delay,
+            delayOnFail: this.delayOnFail,
+        };
     }
 }

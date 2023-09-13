@@ -819,7 +819,7 @@ export class MerlinSearchRequest implements MerlinPrimitive{
       _type = (this._type as NodeType).getType();
     }
     else{
-      console.log("MerlinSearchRequest.toJsonObject _type ! : "+this._type);
+      console.log("MerlinSearchRequest.toJsonObject _type ! : "+(typeof (this._type))+","+this._type);
       _type = this._type;
     }
 

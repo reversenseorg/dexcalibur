@@ -4,6 +4,17 @@ import Util from "../../Utils.js";
 import {SecurityZone} from "../../security/SecurityZone.js";
 
 
+export interface SessionSettingsOptions {
+    store?:string;
+    fsBased?:boolean;
+    expireFlush?:boolean;
+
+    /**
+     * Session lifetime
+     * @type {number}
+     */
+    expire?:number;
+}
 
 /**
  * Represent session management settings
@@ -11,6 +22,9 @@ import {SecurityZone} from "../../security/SecurityZone.js";
  * @class
  */
 export class SessionSettings{
+
+    static DEFAULT_FS_NAME = "dxc_sess";
+    static DEFAULT_SESS_DURATION = 3600;
 
     _tmpStorage:string;
     /**
@@ -20,18 +34,28 @@ export class SessionSettings{
      * @field
      * @type {number}
      */
-    _duration:number = 3600;
+    _duration:number;
     _fsBased:boolean = false;
     _flush:boolean = false;
 
     private _parent:AuthenticationSettings;
 
-    constructor( pParent:AuthenticationSettings,  pSettings:any) {
+    constructor( pParent:AuthenticationSettings,  pOverrideSettings:SessionSettingsOptions = {}) {
         this._parent = pParent;
-        this._tmpStorage = Util.getValue( pSettings, 'store', 'dxc_sess');
-        this._fsBased = Util.getValue( pSettings, 'fsBased', false);
-        this._duration = Util.getValue( pSettings, 'expire', 3600);
-        this._flush = Util.getValue( pSettings, 'expireFlush', false);
+
+        let parentSettings:any = pParent.getSessionSettings();
+
+        if(pOverrideSettings == null) pOverrideSettings = {};
+        if(parentSettings == null){
+            parentSettings = {};
+        }else{
+            parentSettings = parentSettings.toObject();
+        }
+
+        this._tmpStorage = Util.getValueWithOverride( parentSettings, 'store', SessionSettings.DEFAULT_FS_NAME, pOverrideSettings.store);
+        this._fsBased = Util.getValueWithOverride( parentSettings, 'fsBased', false, pOverrideSettings.fsBased);
+        this._duration = Util.getValueWithOverride( parentSettings, 'expire', SessionSettings.DEFAULT_SESS_DURATION, pOverrideSettings.expire);
+        this._flush = Util.getValueWithOverride( parentSettings, 'expireFlush', false, pOverrideSettings.expireFlush);
     }
 
     getMaxDuration():number {
@@ -65,10 +89,10 @@ export class SessionSettings{
 
     toObject( pZone:SecurityZone = SecurityZone.PUBLIC):any {
         return {
-            _tmpStorage: this._tmpStorage,
-            _fsBased: this._fsBased,
-            _duration: this._duration,
-            _flush: this._flush,
+            store: this._tmpStorage,
+            fsBased: this._fsBased,
+            expire: this._duration,
+            expireFlush: this._flush,
         };
     }
 }

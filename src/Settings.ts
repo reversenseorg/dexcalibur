@@ -3,7 +3,7 @@ import DexcaliburWorkspace from "./DexcaliburWorkspace.js";
 import * as _path_ from "path";
 import * as _fs_ from "fs";
 import * as _os_ from "os";
-import {AuthenticationSettings} from "./user/auth/AuthenticationSettings.js";
+import {AuthenticationOptions, AuthenticationSettings} from "./user/auth/AuthenticationSettings.js";
 import {DexcaliburConnectionParams, DexcaliburConnectionParamsList} from "./remote/DexcaliburConnectionParams.js";
 import {ConnectionSettingsException} from "./errors/ConnectionSettingsException.js";
 import {IncomingValue, SanitizedValue, UnsafeValue} from "./security/SanitizedValue.js";
@@ -22,6 +22,13 @@ export interface WebServerOptions {
     ws?:number;
     guis?:string[];
     headless?:boolean;
+}
+export interface ServerOptions {
+    auth?:AuthenticationOptions;
+    registry?:string;
+    registryAPI?:string;
+    workspace?:string;
+    heapSize?:number;
 }
 
 /**
@@ -141,26 +148,26 @@ export namespace Settings {
          */
         private defaultArch = 'aarch64';
 
-        constructor( pParent:GlobalSettings, pConfig:any={}) {
+        constructor( pParent:GlobalSettings, pConfig:ServerOptions={}) {
 
             super(pParent);
 
-            if(pConfig!=null){
-                if(pConfig.hasOwnProperty('workspace')){
-                    this.space = DexcaliburWorkspace.getInstance(pConfig.workspace);
-                }
+            if(pConfig.workspace!=null){
+                this.space = DexcaliburWorkspace.getInstance(pConfig.workspace);
+            }
 
-                if(pConfig.hasOwnProperty('registry')){
-                    this.registry = new DexcaliburRegistry(pConfig.registry, pConfig.registryAPI);
-                }
+            if(pConfig.registry!=null){
+                this.registry = new DexcaliburRegistry(pConfig.registry, pConfig.registryAPI);
+            }
 
-                if(pConfig.hasOwnProperty('auth')){
-                    this.auth = new AuthenticationSettings(this, pConfig.auth);
-                }
+            if(pConfig.auth != null){
+                this.auth = new AuthenticationSettings(this, pConfig.auth);
+            }else{
+                this.auth = new AuthenticationSettings(this);
+            }
 
-                if(pConfig.hasOwnProperty('heapSize')){
-                    this.heapSize = pConfig.heapSize;
-                }
+            if(pConfig.heapSize!=null){
+                this.heapSize = pConfig.heapSize;
             }
 
             if(this.heapSize == null){

@@ -34,14 +34,14 @@ export class SessionService {
 
     private _sess: UserSessionMap = {}; // cache
     private _s: IDbCollection = null;
-    private _storage:string;
+    private _store:string;
     private _sessDB: IDatabase = null;
     private _ctx:DexcaliburEngine = null;
 
     constructor( pSettings:SessionSettings, pContext:DexcaliburEngine=null, pSessStorage:string = null) {
         this._settings = pSettings;
         this._settings.save();
-        this._storage = pSessStorage!==null ? pSessStorage : this._settings.getStorage();
+        this._store = pSessStorage!==null ? pSessStorage : this._settings.getStorage();
         this.loadSessionDB();
     }
 

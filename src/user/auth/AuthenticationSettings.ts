@@ -5,8 +5,14 @@ import Util from "../../Utils.js";
 import {SecurityZone} from "../../security/SecurityZone.js";
 import ServerSettings = Settings.ServerSettings;
 import { DbmsConnSettings } from "../../core/db/DbmsConnSettings.js";
-import {AuthenticationPolicy} from "./AuthenticationPolicy.js";
+import {AuthenticationPolicy, AuthenticationPolicyOptions} from "./AuthenticationPolicy.js";
 
+export interface AuthenticationOptions {
+    policy?:AuthenticationPolicyOptions;
+    db?:DbmsConnSettings;
+    supported?:AuthType[];
+    sess?:any;
+}
 
 /**
  * Represent authentication configuration
@@ -21,32 +27,33 @@ export class AuthenticationSettings {
 
 
     private _supported:AuthType[] = [];
-    private _policy:any = null;
-    private _sess:any = null;
+    private _policy:AuthenticationPolicy = null;
+    private _sess:SessionSettings = null;
     private _db:DbmsConnSettings = null;
     private _parent:ServerSettings;
 
     /**
-     * Create an object which hold server settings from global settings files and env var
+     * Create an object which hold authentication settings.
+     * Authentication settings are a ârt of server settings
      *
-     * @param {number} pHttp HTTP port of web server. Can be override by DXC_HTTP_PORT env var
-     * @param {number} pWs Websocket port of web server. Can be override by DXC_WS_PORT env var
+     * @param {ServerSettings} pParent Parent settings
+     * @param {AuthOptions} pConfig Options to use to initialize Authentication settings
      * @constructor
      * @since 1.0.0
      */
-    constructor( pParent:ServerSettings, pConfig:any ) {
+    constructor( pParent:ServerSettings, pConfig:AuthenticationOptions={} ) {
         this._parent = pParent;
 
         if(pConfig==null) pConfig = {};
 
-        this._db = Util.getValue( pConfig, 'db', null);
-        if(! pConfig.hasOwnProperty('policy')){
+        this._db = Util.getValue( pConfig, 'db', {});
+        if(! pConfig.policy != null){
             pConfig.policy = {enforced:true};
         }
 
         this._policy = new AuthenticationPolicy(pConfig);
         this._supported = Util.getValue( pConfig, 'supported', [AuthType.PASSWORD]);
-        this._sess = new SessionSettings( this, Util.getValue( pConfig, 'sess', null))
+        this._sess = new SessionSettings( this, Util.getValue( pConfig, 'sess', {}))
     }
 
 
