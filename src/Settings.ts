@@ -23,6 +23,7 @@ export interface WebServerOptions {
     guis?:string[];
     headless?:boolean;
 }
+
 export interface ServerOptions {
     auth?:AuthenticationOptions;
     registry?:string;

@@ -1,13 +1,10 @@
-import {DbColumnTemplate} from "./DbColumnTemplate.js";
 import {NodeProperty} from "./NodeProperty.js";
 import {NodeInternalType} from "../../NodeInternalType.js";
 import {DbKeyType} from "./DbAbstraction.js";
 import * as Log from "../../Logger.js";
 import {IncomingValue, SanitizedValue, UnsafeValue} from "../../security/SanitizedValue.js";
-import {GlobalSettingsException} from "../../errors/GlobalSettingsException.js";
 import {SqliteException} from "../../../connectors/sqlite/SqliteException.js";
 import {DataSource} from "../../DataSource.js";
-import {DataSourceHelper} from "../../DataSourceHelper.js";
 
 
 export interface NodePropertyMap {
@@ -332,7 +329,7 @@ export class NodeType {
     /**
      * To get table columns template
      *
-     * @return {DbColumnTemplate[]} Columns template
+     * @return {NodeProperty[]} Columns template
      * @method
      */
     getProperties():NodeProperty[] {

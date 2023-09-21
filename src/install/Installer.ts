@@ -388,5 +388,5 @@ export function install(pHomePath:string, pConfig:GlobalSettings = null){
         console.log(err.message);
         console.log(err.stack);
     }
-
 }
+
