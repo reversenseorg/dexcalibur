@@ -5,9 +5,14 @@ import {Application as ExpressApplication, Request as ExpressRequest, Response a
 import * as MIME from 'mime-types';
 import * as _bodyparser_ from 'body-parser';
 import * as _cookieParser_ from 'cookie-parser';
+import passport from 'passport';
+import * as _openidconnect_ from 'passport-openidconnect';
+import expressSession from 'express-session';
+
 // @ts-ignore
 const BodyParser = _bodyparser_.default;
 const CookieParser = _cookieParser_.default;
+const PassportOIDC = _openidconnect_.default;
 
 
 import WebTemplateEngine from "./WebTemplateEngine.js";
@@ -52,17 +57,28 @@ import {HOOK_FRAGS_WEB_API} from "./webapi/hook-fragment.web.api.js";
 import {TAG_MGT_WEB_API} from "./webapi/tag.web.api.js";
 import {WebApiWindowing} from "./webapi/internals/WebApiWindowing.js";
 import {PRIVACY_WEB_API} from "./webapi/privacy.web.api.js";
-import {DelegateRequest, DelegateResponse} from "./webapi/DelegateWebApi.js";
+import {DelegateRequest, DelegateResponse, ExtraMiddlewareOptions} from "./webapi/DelegateWebApi.js";
 import {AUDIT_WEB_API} from "./webapi/audit.web.api.js";
 import {WebGuiConfiguration} from "./webserver/WebGuiConfiguration.js";
 import {URL} from "url";
 import {RuntimeSecurityException} from "./errors/RuntimeSecurityException.js";
+//import {Client, Issuer, Strategy} from "openid-client";
+
+import {AuthenticationSettings} from "./user/auth/AuthenticationSettings.js";
+import {Nullable} from "./core/IStringIndex.js";
+import {Client, Issuer} from "openid-client";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
 
 export const HTTP_CODE_SUCCESS = 200;
 export const HTTP_CODE_ERROR = 200;
+
+export interface GuiMiddlewareOptions {
+    after:any[],
+    before:any[],
+    auth?:any
+}
 
 
 /**
@@ -171,6 +187,12 @@ export default class WebServer
 
     guiCfgs:WebGuiConfiguration[] = [];
 
+    oidClient:Nullable<Client> = null;
+
+    private _sso_enabled = false;
+    private _checkAuthenticated: Nullable<(req, res, next) => any> = null;
+    private oidClientCfg: any = {}
+
     /**
      *
      * @param {Project} pProject
@@ -217,6 +239,44 @@ export default class WebServer
         SEND_ERROR_RESPONSE( pRes, pMessage, pOptions);
     }
 
+
+    /*
+     * To create a new OpenID client instance using settings
+     *
+     * @param pSettings
+     */
+    /*async configureAuth(pSettings:AuthenticationSettings):Promise<boolean> {
+        console.log("SSO : hasOidcSettings : ",pSettings.hasOidcSettings());
+
+        if(pSettings.hasOidcSettings()){
+            const issuer = await Issuer.discover(pSettings.getOidcDiscoverURI());
+            console.log("SSO : Discovered issuer %s %O", issuer.issuer, issuer.metadata);
+            const cfg:any = {
+                client_id: pSettings.getOidcClientID(),
+                redirect_uris: pSettings.getOidcRedirectUris(),
+                post_logout_redirect_uris: pSettings.getOidcLogoutUris(),
+                response_types: pSettings.getOidcResponseType()
+            };
+
+            if(pSettings.getOidcClientSecret()!= null){
+                cfg.client_secret = pSettings.getOidcClientSecret();
+            }
+            cfg.issuer = pSettings.getOidcDiscoverURI();
+            cfg.discoverUri = pSettings.getOidcDiscoverURI();
+
+            this.oidClient = new issuer.Client(cfg);
+            this.oidClientCfg = {
+                issuer: issuer,
+                settings: cfg
+            };
+
+            console.log("SSO : OID Client created");
+            return true; //(this.oidClient != null);
+        }
+
+        return true;
+    }*/
+
     /**
      * To set params value with settings from global settings
      *
@@ -251,6 +311,14 @@ export default class WebServer
         this.context = pContext;
         // register validators
         this.registerValidator('engine', pContext);
+
+        const authSvc = pContext.getUserService().getAuthenticationService();
+        if(authSvc.isSsoEnbaled()){
+            console.log("Deploy SSO over routes");
+            this._sso_enabled = true;
+            console.log(this.app);
+            authSvc.protectRoutesWithSSO(this.app);
+        }
     }
 
     /**
@@ -441,13 +509,11 @@ export default class WebServer
             let p:string[] = vUnsafeReq.path.split("/");
             do{ p.shift(); }while(p[0]!=pWebCfg.name);
             p.shift();
-            console.log(p);
             p.unshift(delegatedRoot);
-            console.log(p);
             let unsafePath = _path_.normalize(p.join(_path_.sep));
 
-            Logger.info("[INFO][WEBSERVER][DelegatedDispatcher] Unsafe URI : ",vUnsafeReq.path);
-            Logger.info("[INFO][WEBSERVER][DelegatedDispatcher] Unsafe Path : ",unsafePath);
+            Logger.debug("[INFO][WEBSERVER][DelegatedDispatcher] Unsafe URI : ",vUnsafeReq.path);
+            Logger.debug("[INFO][WEBSERVER][DelegatedDispatcher] Unsafe Path : ",unsafePath);
 
             // detect path traversal
             if(unsafePath.indexOf(delegatedRoot)!=0){
@@ -493,7 +559,7 @@ export default class WebServer
             }
 
 
-            Logger.info("[INFO][WEBSERVER][DelegatedDispatcher] Open : ",localPath);
+            Logger.debug("[INFO][WEBSERVER][DelegatedDispatcher] Open : ",localPath);
 
             //  todo : verify if localPath is a child of allowed folder, add a  kind of WAF
             _fs_.readFile(localPath, (err:any, data:any) => {
@@ -528,12 +594,26 @@ export default class WebServer
      *
      * @method
      */
-    initStaticRoutes(){
+    initStaticRoutes(pOptions:GuiMiddlewareOptions){
+
+        function ensureLoggedIn(req, res, next) {
+            console.log(req.originalUrl," > ",req.isAuthenticated());
+            console.log(req.session.passport.user);
+            if (req.isAuthenticated()) {
+                return next();
+            }
+
+            res.redirect('/login')
+        }
+
+        //this.app.get("/api/*", ensureLoggedIn);
+
+        const mw = pOptions.before.concat((pOptions.auth!=null ? pOptions.auth : [ensureLoggedIn]).concat(pOptions.after) );
 
         for( let base in this.serveFuncs){
             console.log("map tha path : "+base+"   ",this.serveFuncs[base])
-            this.app.get("/"+base, this.serveFuncs[base]);
-            this.app.get("/"+base+"/*", this.serveFuncs[base]);
+            //this.app.get("/"+base, passport.authenticate('openidconnect', {failureRedirect:'/login'}), this.serveFuncs[base]);
+            this.app.get("/"+base+"/*", mw, this.serveFuncs[base]);
         }
 
         // start server
@@ -568,7 +648,7 @@ export default class WebServer
      *
      * @method
      */
-    initRoutes() {
+    initRoutes(pOptionsMW:GuiMiddlewareOptions = {before:[],after:[]}) {
         let $ = this;
 
         // TODO : depends of path and GUI config
@@ -583,7 +663,7 @@ export default class WebServer
         // this.controller = this.newDispatcher("index.html");
 
         // init routes serving static contents
-        this.initStaticRoutes();
+        this.initStaticRoutes(pOptionsMW);
 
 
         // deprecated
@@ -1107,6 +1187,14 @@ export default class WebServer
        // this.initInstallRoutes();
     }
 
+    hasSsoAuthentication():boolean {
+        return this._sso_enabled;
+    }
+
+    getSsoCheckFunction():((req, res, next) => any){
+        return this._checkAuthenticated;
+    }
+
     /**
      * To use initialize routers and middleware
      * for any HTTP endpoints
@@ -1119,6 +1207,9 @@ export default class WebServer
         let self:WebServer = this;
         let usr_svc:UserService = self.context.getUserService();
 
+        // setup passport middleware)
+        //this._setupOpenIdStrategy();
+
 
         // define middleware
         this.app.use(BodyParser.urlencoded({ extended: false }));
@@ -1127,21 +1218,30 @@ export default class WebServer
         /**
          * Setup CORS, context-specific headers and inject `dxc` context in DelegateResponse object
          */
-        this.app.use(function(req:DelegateRequest, res:DelegateResponse, next:any){
+
+        const dxcCorsMiddleware = function(req:DelegateRequest, res:DelegateResponse, next:any){
 
             // TODO : make CORS parameter as env var
             res.set('Access-Control-Allow-Origin', '*');
             res.set('Access-Control-Allow-Methods', 'POST, GET, DELETE, OPTIONS, PUT');
-            res.set('Access-Control-Allow-Headers', 'Content-Type');
+            res.set('Access-Control-Allow-Headers', 'Content-Type, authorization');
 
             if(req.url.startsWith('/api/')){
                 res.set('Content-Type', 'text/json');
+
+                req.dxc = {
+                    $: self
+                };
+            }else{
+                req.dxc = {};
             }
 
-            req.dxc = {};
+
 
             next();
-        });
+        };
+
+        this.app.use(dxcCorsMiddleware);
 
 
         /**
@@ -1153,12 +1253,30 @@ export default class WebServer
          * Open session and attach to request
          * Only for /api/* routes
          */
-        this.app.use(function(req:DelegateRequest, res:DelegateResponse, next:any){
-            Logger.info("[API][SESSION] Processing request : "+req.originalUrl);
+        const dxcSessionMiddleware = function(req:DelegateRequest, res:DelegateResponse, next:any){
 
-            if(!req.url.startsWith('/api/') && !req.url.startsWith('/inspectors/')){ next(); return; }
+            //if(!req.url.startsWith('/api/') && !req.url.startsWith('/inspectors/')){ next(); return; }
+
+            Logger.debug("[API][SESSION] Processing request : "+req.originalUrl);
+            Logger.debug("[API][SESSION] user info : ",(req as any).sess);
 
             try{
+                if(req.session?.passport?.user?.dxcSessID==null){
+                    Logger.error("[SESSION] Session cannot be restored not found");
+                    return;
+                }
+
+                if(req.dxc == null) req.dxc = {};
+                // re-open session by using dxc internal session ID encapsulated into passport session
+                req.dxc.sess = usr_svc.openSession(req.session.passport.user.dxcSessID);
+
+                if(req.query._puid != null && req.dxc.sess != null){
+                    //if(self.context.)
+                    req.dxc.project = (req.dxc.sess as UserSession)
+                        .getActiveProjectByUID(self.context, req.query._puid as string);
+                }
+
+                /*
                 Logger.info("[SESSION] Query param : "+JSON.stringify(Object.keys(req.query))+" , "+usr_svc.getQueryParam());
                 if(req.cookies!=null && req.cookies[usr_svc.getCookieName()] != null){
                     Logger.debug("[SESSION] Opening session from cookie ...");
@@ -1192,20 +1310,19 @@ export default class WebServer
                     if(!req.hasOwnProperty('dxc')) req.dxc = {};
                     if(!req.dxc.hasOwnProperty('sess')) req.dxc.sess = null;
                     Logger.error("[SESSION] Cookie/token not found");
-                }
+                }*/
+                next();
             }catch(err){
-                Logger.error("[SESSION] Cookie/token value cannot be retrieved \n"+err.messgae+"\n"+err.stack)
+                Logger.error("[SESSION] Cookie/token value cannot be retrieved \n"+err.messgae+"\n"+err.stack);
+                self.sendError(res, "Access denied");
             }
 
-            next();
             return;
-        });
+        }
 
+        //this.app.use(dxcSessionMiddleware);
 
-        /**
-         * Parse windowing options
-         */
-        this.app.use(function(req:DelegateRequest, res:DelegateResponse, next:any){
+        const dxcWindowingMiddleware =function(req:DelegateRequest, res:DelegateResponse, next:any){
 
             if(!req.url.startsWith('/api/') && !req.url.startsWith('/inspectors/')){ next(); return; }
 
@@ -1236,11 +1353,43 @@ export default class WebServer
 
             next();
             return;
-        });
+        }
+        /**
+         * Parse windowing options
+         */
+        //this.app.use(dxcWindowingMiddleware);
+
+
 
 
         // Define API routes, this is the minimal endpoints exposed over HTTP
+        const authSvc = this.context.getUserService().getAuthenticationService();
+        if(authSvc.isSsoEnbaled()){
+            console.log("Deploy SSO over routes (2)");
+            /*authSvc.protectRoutesWithSSO(DEVICE_WEB_API.getRouter());
+            authSvc.protectRoutesWithSSO(AUTH_WEB_API.getRouter());
+            authSvc.protectRoutesWithSSO(SETTINGS_WEB_API.getRouter());
+            authSvc.protectRoutesWithSSO(PROBE_SERVER_WEB_API.getRouter());
+            authSvc.protectRoutesWithSSO(APP_WEB_API.getRouter());
+            authSvc.protectRoutesWithSSO(PROJECT_MGT_WEB_API.getRouter());
+            authSvc.protectRoutesWithSSO(PLATFORM_WEB_API.getRouter());
+            authSvc.protectRoutesWithSSO(PROJECT_WEB_API.getRouter());
+            authSvc.protectRoutesWithSSO(CODE_WEB_API.getRouter());
+            authSvc.protectRoutesWithSSO(ANDROID_WEB_API.getRouter());
+            authSvc.protectRoutesWithSSO(NATIVE_WEB_API.getRouter());
+            authSvc.protectRoutesWithSSO(FS_WEB_API.getRouter());
+            authSvc.protectRoutesWithSSO(USER_WEB_API.getRouter());
+            authSvc.protectRoutesWithSSO(HOOK_WEB_API.getRouter());
+            authSvc.protectRoutesWithSSO(HOOK_FRAGS_WEB_API.getRouter());
+            authSvc.protectRoutesWithSSO(INSPECTOR_WEB_API.getRouter());
+            authSvc.protectRoutesWithSSO(KEYPOINT_WEB_API.getRouter());
+            authSvc.protectRoutesWithSSO(TAG_MGT_WEB_API.getRouter());
+            authSvc.protectRoutesWithSSO(PRIVACY_WEB_API.getRouter());
+            authSvc.protectRoutesWithSSO(SCRIPT_WEB_API.getRouter());
+            authSvc.protectRoutesWithSSO(AUDIT_WEB_API.getRouter());*/
+        }
 
+        /*
         DEVICE_WEB_API.injectServer(this);
         AUTH_WEB_API.injectServer(this);
         SETTINGS_WEB_API.injectServer(this);
@@ -1262,33 +1411,86 @@ export default class WebServer
         PRIVACY_WEB_API.injectServer(this);
         SCRIPT_WEB_API.injectServer(this);
         AUDIT_WEB_API.injectServer(this);
+        */
+
+        function ensureApiLoggedIn(req, res, next) {
+            console.log("API "+req.originalUrl," > ",req.isAuthenticated());
+            if (req.isAuthenticated()) {
+                return next();
+            }
+
+            self.sendError(res, "Access denied");
+        }
+        function ensureGuiLoggedIn(req, res, next) {
+            console.log("GUI "+req.originalUrl," > ",req.isAuthenticated());
+            if (req.isAuthenticated()) {
+                return next();
+            }
+
+            res.redirect('/login');
+        }
 
 
-        this.app.use('/api/device', DEVICE_WEB_API.getRouter());
-        this.app.use('/api/remote', AUTH_WEB_API.getRouter());
-        this.app.use('/api/settings', SETTINGS_WEB_API.getRouter());
-        this.app.use('/api/hookserver', PROBE_SERVER_WEB_API.getRouter());
-        this.app.use('/api/application', APP_WEB_API.getRouter());
-        this.app.use('/api/workspace', PROJECT_MGT_WEB_API.getRouter());
-        this.app.use('/api/platform', PLATFORM_WEB_API.getRouter());
-        this.app.use('/api/project', PROJECT_WEB_API.getRouter());
-        this.app.use('/api/code', CODE_WEB_API.getRouter());
-        this.app.use('/api/android', ANDROID_WEB_API.getRouter());
-        this.app.use('/api/scripts', SCRIPT_WEB_API.getRouter());
-        this.app.use('/api/native', NATIVE_WEB_API.getRouter());
-        this.app.use('/api/file', FS_WEB_API.getRouter());
-        this.app.use('/api/user', USER_WEB_API.getRouter());
-        this.app.use('/api/hook', HOOK_WEB_API.getRouter());
-        this.app.use('/api/hook_frag', HOOK_FRAGS_WEB_API.getRouter());
-        this.app.use('/api/plugin', INSPECTOR_WEB_API.getRouter());
-        this.app.use('/api/keypoint', KEYPOINT_WEB_API.getRouter());
-        this.app.use('/api/tag', TAG_MGT_WEB_API.getRouter());
-        this.app.use('/api/privacy', PRIVACY_WEB_API.getRouter());
-        this.app.use('/api/audit', AUDIT_WEB_API.getRouter());
+        const securedRoutes:ExtraMiddlewareOptions = {
+            beforeAuth:[],
+            afterAuth:[dxcSessionMiddleware, dxcWindowingMiddleware],
+            public:[],
+            auth:ensureApiLoggedIn }
 
+        // , {beforeAuth:[], afterAuth:[], public:[], auth:ensureLoggedIn }
+        DEVICE_WEB_API.injectServer(this, "/api/device", securedRoutes);
+        AUTH_WEB_API.injectServer(this, "/api/remote", securedRoutes); // TODO : replace remote by auth ? , remote should be reserved to p2p auth
+        AUTH_WEB_API.injectServer(this, "/api/auth", securedRoutes);
+        SETTINGS_WEB_API.injectServer(this, "/api/settings", securedRoutes);
+        PROBE_SERVER_WEB_API.injectServer(this, "/api/hookserver", securedRoutes);
+        APP_WEB_API.injectServer(this, "/api/application", securedRoutes);
+        PROJECT_MGT_WEB_API.injectServer(this, "/api/workspace", securedRoutes);
+        PLATFORM_WEB_API.injectServer(this, "/api/platform", securedRoutes);
+        PROJECT_WEB_API.injectServer(this, "/api/project", securedRoutes);
+        CODE_WEB_API.injectServer(this, "/api/code", securedRoutes);
+        ANDROID_WEB_API.injectServer(this, "/api/android", securedRoutes);
+        SCRIPT_WEB_API.injectServer(this, "/api/scripts", securedRoutes);
+        NATIVE_WEB_API.injectServer(this, "/api/native", securedRoutes);
+        FS_WEB_API.injectServer(this, "/api/file", securedRoutes);
+        USER_WEB_API.injectServer(this, "/api/user", securedRoutes);
+        HOOK_WEB_API.injectServer(this, "/api/hook", securedRoutes);
+        HOOK_FRAGS_WEB_API.injectServer(this, "/api/hook_frag", securedRoutes);
+        INSPECTOR_WEB_API.injectServer(this, "/api/plugin", securedRoutes);
+        KEYPOINT_WEB_API.injectServer(this, "/api/keypoint", securedRoutes);
+        TAG_MGT_WEB_API.injectServer(this, "/api/tag", securedRoutes);
+        PRIVACY_WEB_API.injectServer(this, "/api/privacy", securedRoutes);
+        AUDIT_WEB_API.injectServer(this, "/api/audit", securedRoutes);
+
+        /*
+        this.app.use('/api/device',  DEVICE_WEB_API.getRouter());
+        this.app.use('/api/remote',  AUTH_WEB_API.getRouter());
+        this.app.use('/api/settings',  SETTINGS_WEB_API.getRouter());
+        this.app.use('/api/hookserver',  PROBE_SERVER_WEB_API.getRouter());
+        this.app.use('/api/application',  APP_WEB_API.getRouter());
+        this.app.use('/api/workspace',  PROJECT_MGT_WEB_API.getRouter());
+        this.app.use('/api/platform',  PLATFORM_WEB_API.getRouter());
+        this.app.use('/api/project',  PROJECT_WEB_API.getRouter());
+        this.app.use('/api/code',  CODE_WEB_API.getRouter());
+        this.app.use('/api/android',  ANDROID_WEB_API.getRouter());
+        this.app.use('/api/scripts',  SCRIPT_WEB_API.getRouter());
+        this.app.use('/api/native',  NATIVE_WEB_API.getRouter());
+        this.app.use('/api/file',  FS_WEB_API.getRouter());
+        this.app.use('/api/user',  USER_WEB_API.getRouter());
+        this.app.use('/api/hook',  HOOK_WEB_API.getRouter());
+        this.app.use('/api/hook_frag',  HOOK_FRAGS_WEB_API.getRouter());
+        this.app.use('/api/plugin',  INSPECTOR_WEB_API.getRouter());
+        this.app.use('/api/keypoint',  KEYPOINT_WEB_API.getRouter());
+        this.app.use('/api/tag',  TAG_MGT_WEB_API.getRouter());
+        this.app.use('/api/privacy',  PRIVACY_WEB_API.getRouter());
+        this.app.use('/api/audit',  AUDIT_WEB_API.getRouter());
+        */
         // init routers
 
-        this.initRoutes();
+        this.initRoutes({
+            auth: [ensureGuiLoggedIn],
+            after: [dxcSessionMiddleware],
+            before: []
+        });
 
         this.uploader = Uploader.getInstance();
     }

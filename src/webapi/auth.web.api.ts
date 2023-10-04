@@ -1,6 +1,6 @@
 import {DelegateRequest, DelegateResponse, DelegateWebApi} from "./DelegateWebApi.js";
 import WebServer from "../WebServer.js";
-import {Request, Response } from "express";
+import {Application, Request, Response} from "express";
 import * as Log from "../Logger.js";
 import {DexcaliburConnectionParams} from "../remote/DexcaliburConnectionParams.js";
 import {ConnectionHandler} from "../remote/ConnectionHandler.js";
@@ -9,12 +9,14 @@ import {ConnectionCredentials} from "../remote/ConnectionCredentials.js";
 import {ConnectionManagerException} from "../errors/ConnectionManagerException.js";
 import {Settings} from "../Settings.js";
 import ConnectionSettings = Settings.ConnectionSettings;
+import {Nullable} from "../core/IStringIndex.js";
+import {UserSession} from "../user/session/UserSession.js";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
 export const AUTH_WEB_API: DelegateWebApi = new DelegateWebApi();
 
-AUTH_WEB_API.addPublicRoute(
+AUTH_WEB_API.addAuthenticatedRoute(
     '/logout',
     {
         'get': async (req:DelegateRequest, res:DelegateResponse):Promise<any> => {
@@ -23,11 +25,46 @@ AUTH_WEB_API.addPublicRoute(
 
             try {
                 if ($.context.getUserService().verifySession(req.dxc.sess)) {
+
+
+                        console.log("SSO : logout requested")
+                        console.log((req as any).session);
+                        console.log((req as any).session?.passport?.user);
+
+                        // server-side revoke token (only if authorization is enabled)
+                        /*
+                        if((req as any).session?.passport?.user?.rToken){
+                            this.revokeToken(
+                                this._oidClientCfg.issuer.end_session_endpoint,
+                                this._oidClientCfg.settings.client_id,
+                                (req as any).session.passport.user.rToken
+                            ).then(()=>{
+                                console.log("Revoke success")
+                            }).catch((err)=>{
+
+                                console.log("Revoke error",err)
+                            })
+                        }*/
+
+                    // destroy dxc session
                     $.context.getUserService().closeSession(req.dxc.sess);
 
-                    $.sendSuccess(res, {msg:"Session destroyed"});
+                    // destroy passport (global) session
+                    if((req as any).session!=null){
+
+                        //destroy passport session and redirect
+                        (req as any).session.destroy(function (err) {
+                            console.log("Destroy err:  ",err);
+                            res.clearCookie('connect.sid');
+                            $.sendSuccess(res, {success:true});
+                        });
+                    }else{
+                        console.log("Passport session not destroyed because not found");
+                        $.sendSuccess(res, {success:true});
+                    }
                 }else{
-                    $.sendSuccess(res, "Session not found");
+                    console.log("Session not destroyed because not found");
+                    $.sendSuccess(res, {success:true});
                 }
             }catch(err){
                 Logger.error("[API][REMOTE CONNECTION LOGOUT] Session logout : "+err.message+"\n"+err.stack);

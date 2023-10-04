@@ -14,7 +14,7 @@ export class SearchPattern
   constructor(pConfig:any=null){
     if(pConfig!==undefined)
       for(let i in pConfig)
-        (this as IStringIndex)[i] = pConfig[i];
+        (this as IStringIndex<any>)[i] = pConfig[i];
   }
 
   serialize():any{

@@ -14,7 +14,7 @@ export interface ValidateOptions {
   strict?: boolean
 }
 
-export class SearchRequestCondition implements IStringIndex{
+export class SearchRequestCondition implements IStringIndex<any>{
 
   static WILDCARD = '*';
 
@@ -33,7 +33,7 @@ export class SearchRequestCondition implements IStringIndex{
   constructor(pConfig:any) {
     for(let i in pConfig){
       if(this.hasOwnProperty(i)){
-        (this as IStringIndex)[i] = pConfig[i];
+        (this as IStringIndex<any>)[i] = pConfig[i];
       }
     }
 

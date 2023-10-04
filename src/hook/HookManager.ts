@@ -493,7 +493,8 @@ export class HookManager
             this._initMessageTags();
         }
 
-        const last:HookSession = this.sessions[this.sessions.length-1];
+        const last:HookSession = this
+            .sessions[this.sessions.length-1];
         const sess:HookSession =new HookSession(this);
 
         // TODO : add configuration flush/keep previous

@@ -23,7 +23,7 @@ import ModelBasicBlock from "./ModelBasicBlock.js";
 import ModelInstruction from "./ModelInstruction.js";
 //import TagCategory from "./ModelTagCategory.js";
 import ModelDataBlock from "./ModelDataBlock.js";
-import {Method} from "got";
+//import {Method} from "got";
 import ModelFile from "./ModelFile.js";
 import ModelSyscall from "./ModelSyscall.js";
 import NativeAnalyzer from "./NativeAnalyzer.js";

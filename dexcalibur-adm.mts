@@ -587,6 +587,7 @@ switch (projectArgs.mode){
 ${"\t".repeat(2)}db = ${auth.getDbString(3)}
 ${"\t".repeat(2)}policy = ${auth.getPolicyString(3)}
 ${"\t".repeat(2)}supported = ${auth.getSupportedString()}
+${"\t".repeat(2)}oidc = ${auth.getOidcString(3)}
 `;
             }
             if(ws==null){

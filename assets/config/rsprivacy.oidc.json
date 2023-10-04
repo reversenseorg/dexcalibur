@@ -1,0 +1,10 @@
+{
+  "oidc": {
+    "discoverUri":"http://127.0.0.1:8088/realms/dxc-stagging",
+    "client_id":"rsprivacy_public_frontend",
+    "client_secret":"",
+    "redirectUris":["http://127.0.0.1:8080/home/*","http://127.0.0.1:8080/pro/*","http://127.0.0.1:8080/api/*"],
+    "postLogoutRedirectUris":["http://127.0.0.1:8080/api-logout"],
+    "responseType":["code"]
+  }
+}

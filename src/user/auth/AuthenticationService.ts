@@ -1,4 +1,6 @@
 import * as _fs_ from 'fs';
+import got, {Options} from "got";
+const GOT = got.default;
 
 import {AuthCode, AuthenticationException, Authenticator, AuthType} from "./AuthTypes.js";
 import {AuthenticationPolicy} from "./AuthenticationPolicy.js";
@@ -11,6 +13,20 @@ import {IDatabase, IDatabaseAdapter, IDbCollection, IDbIndex} from "../../persis
 import * as Log from "../../Logger.js";
 import DexcaliburEngine from "../../DexcaliburEngine.js";
 import {NodeProperty} from "../../persist/orm/NodeProperty.js";
+import passport from "passport";
+import * as _openidconnect_ from 'passport-openidconnect';
+
+
+import {Application, Router} from 'express';
+import {Issuer} from "openid-client";
+import expressSession from "express-session";
+import {Person} from "../Person.js";
+import {ConnectionHandler} from "../../remote/ConnectionHandler.js";
+import {DelegateRequest, DelegateResponse} from "../../webapi/DelegateWebApi.js";
+import {UserSession} from "../session/UserSession.js";
+import {Nullable} from "../../core/IStringIndex.js";
+
+const PassportOIDC = _openidconnect_.default;
 
 interface UserCache {
     [username:string] :UserAccount;
@@ -18,30 +34,64 @@ interface UserCache {
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
+
+
 export class AuthenticationService {
 
     settings:AuthenticationSettings;
-    policy:AuthenticationPolicy;
 
+    policy:AuthenticationPolicy;
 
     _users:IDbCollection;
     _cache:UserCache = {};
     _dba:IDatabaseAdapter = null;
 
+    // create use into local db automatically on authentication success
+    private _autoCreateOnSuccess = true;
+
     private _ctx:DexcaliburEngine = null;
-
-
+    private _sso_enabled = false;
+    private _oidClientCfg:any = {};
 
     constructor( pSettings:AuthenticationSettings, pContext:DexcaliburEngine = null) {
         this.settings = pSettings;
         this._ctx = pContext;
         this.policy = new AuthenticationPolicy(pSettings);
 
+        // make it dependent of settings : local user DB vs remote ID provide
         this.initUserDB();
+
     }
 
+    /**
+     * To init SSO
+     *
+     */
+    async init(){
+
+        if(this.settings.hasOidcSettings()){
+            const issuer = await Issuer.discover(this.settings.getOidcDiscoverURI());
+
+            console.log(issuer);
+            this._oidClientCfg = {
+                issuer: issuer,
+                settings: {
+                    discoverUri: this.settings.getOidcDiscoverURI(),
+                    client_id: this.settings.getOidcClientID(),
+                    client_secret: this.settings.getOidcClientSecret(),
+                    redirect_uris: this.settings.getOidcRedirectUris(),
+                    post_logout_redirect_uris: this.settings.getOidcLogoutUris(),
+                    response_types: this.settings.getOidcResponseType()
+                }
+            };
+
+            this._sso_enabled = true;
+        }
+
+
+    }
     /*
-     * To init user database
+     * To init (local sqlite-based) user database
      *
      * Only available connector can be used. It is the place
      * where connection to the database is performed.
@@ -98,7 +148,7 @@ export class AuthenticationService {
     }
 
     /**
-     * To load user account from the default User DB
+     * To load user account from the default local User DB
      *
      * @param pDBMS
      */
@@ -114,7 +164,7 @@ export class AuthenticationService {
 
                 // update
                 Logger.debug('---- Update user role --- ');
-                this._users.setEntry(v.getUID(), v);
+                this._users.updateEntry(v); //.getUID(), v);
             }
 
             this._cache[v.getUID()] = v;
@@ -211,4 +261,223 @@ export class AuthenticationService {
 
         return usr;
     }
+
+
+    findUserByUID( pUID:string):UserAccount {
+        let usr:UserAccount = null;
+
+        if(pUID==null || pUID.length==0){
+            throw new AuthenticationException("Username cannot be empty", AuthCode.EMPTY_USERNAME);
+        }
+
+        if(this._cache[pUID]!=null){
+            return this._cache[pUID];
+        }
+
+        //let d:string = "";
+        this._users.map(function(vO, vUsr){
+            //d += vUsr.username+", ";
+            if((vUsr as UserAccount).getUID() === pUID){
+                usr = vUsr;
+            }
+        });
+
+        if(usr == null){
+            throw new AuthenticationException("Username not found : "+pUID, AuthCode.INVALID_USERNAME);
+        }
+
+        return usr;
+    }
+
+    isSsoEnbaled():boolean {
+        return this._sso_enabled;
+    }
+
+    sso_need_config = true;
+
+
+    /**
+     * To ask to ID provider to revoke a token (prior to logout)
+     *
+     * @param {string} pRevokeURL
+     * @param {string}pClientID
+     * @param {string} pTokenID
+     * @method
+     */
+    async revokeToken(pRevokeURL:string, pClientID:string, pRefreshToken:string):Promise<any> {
+
+
+        const options:Options = {
+            method: 'POST',
+            headers: {
+               // Authorization: 'Bearer '+pAccessToken,
+                'Content-Type': 'application/x-www-form-urlencoded'
+            },
+            retry: {
+                limit: 0
+            },
+            body: `client_id=${encodeURIComponent(pClientID)}}&refresh_token=${encodeURIComponent(pRefreshToken)}`
+        };
+
+
+        return await GOT(pRevokeURL, options as any);
+    }
+    /**
+     * To deploy routes and middleware resuired to check sso token
+     *
+     * This method is called only whe an OIDC client is configured
+     *
+     * @param pApp
+     * @method
+     */
+    protectRoutesWithSSO( pApp:Application|Router):void {
+
+        pApp.use(
+            expressSession({
+                secret: 'another_long_secret',
+                resave: false,
+                saveUninitialized: true,
+                store: new expressSession.MemoryStore() // TODO : replace by remote store
+            })
+        );
+
+
+        pApp.use(passport.initialize());
+        pApp.use(passport.session());
+
+        // add authentication using serialized sessions
+        pApp.use(passport.authenticate('session'));
+
+        if(this.sso_need_config){
+            this.sso_need_config = false;
+
+            // this creates the strategy toi authenticate using oidc
+            passport.use(
+                new PassportOIDC(
+                    {
+                        issuer: this._oidClientCfg.settings.discoverUri,
+                        authorizationURL: this._oidClientCfg.issuer.authorization_endpoint,
+                        tokenURL: this._oidClientCfg.issuer.token_endpoint,
+                        userInfoURL: this._oidClientCfg.issuer.userinfo_endpoint,
+                        clientID: this._oidClientCfg.settings.client_id,
+                        clientSecret: this._oidClientCfg.settings.client_secret,
+                        callbackURL:  this._oidClientCfg.settings.redirect_uris[0],
+                        passReqToCallback: true
+                    },
+                    (req, v, userinfo, done) => {
+
+                        console.log(req, v, userinfo, done);
+
+                        // Important : Only executed on /api-auth/cb
+
+                        const userSvc = this._ctx.getUserService();
+                        let usr:UserAccount;
+                        try{
+                            console.log("Search logged user : "+userinfo.username);
+                            usr = this.findUser(userinfo.username);
+
+                            console.log("Found user : "+usr.getUID());
+
+                            if(userinfo.dxc == null) userinfo.dxc = {};
+                            const sess =  userSvc.createSession(usr);
+                            userinfo.dxcSessID = sess.getSessUID();
+                            //req.dxc.sess = userSvc.createSession(usr);
+
+                            // req.dxc.sess.addConnection( param.getName(), new ConnectionHandler(param) );
+
+                            /*res.cookie(
+                                $.context.getUserService().getCookieName(),
+                                req.dxc.sess.getSessUID(),
+                                { maxAge: 7*24*60 } //, expires: new Date().  }
+                            );*/
+
+                            /*if(req.c){
+                                // usr is already authenticated on another computer/browser
+                            }else{
+                                if(req.dxc==null) req.dxc = {};
+                                req.dxc.sess = userSvc.createSession(usr);
+                            }*/
+
+                            // TODO : update with local project
+                        }catch(err){
+                            console.log(err);
+                            if(this._autoCreateOnSuccess){
+
+                                console.log("Creating local account for logged user");
+                                const prs = new Person();
+                                prs.firstname = userinfo.name.givenName;
+                                prs.lastname = userinfo.name.familyName;
+
+                                usr = new UserAccount({
+                                    _uid: userinfo.id,
+                                    _username: userinfo.username,
+                                    _person: prs,
+                                    _password: "-",
+                                    _salt: "-",
+                                    _padding: "-"
+                                });
+
+                                this._users.setEntry(usr.getUID(), usr);
+                                this.save(false);
+
+                                // userSvc.createSession(usr);
+                                //if(req.dxc==null) req.dxc = {};
+                                //req.dxc.sess = userSvc.createSession(usr);
+
+                                if(userinfo.dxc == null) userinfo.dxc = {};
+                                const sess =  userSvc.createSession(usr);
+                                userinfo.dxcSessID = sess.getSessUID();
+
+                            }else{
+                                throw new Error("Authenticated user has not acccess to private instance. Private instance must locally authorize remote user");
+                            }
+                        }
+
+
+                        // Logique pour vérifier et traiter le token OIDC ici
+                        return done(null, userinfo);
+                    }
+                )
+            );
+
+            passport.serializeUser(function(user, done) {
+                done(null, user);
+            });
+
+            passport.deserializeUser(function(user, done) {
+                done(null, user);
+            });
+
+            const addCORS = function(req:DelegateRequest, res:DelegateResponse, next:any){
+
+                // TODO : make CORS parameter as env var
+                res.set('Access-Control-Allow-Origin', '*');
+                res.set('Access-Control-Allow-Methods', 'POST, GET, DELETE, OPTIONS, PUT');
+                res.set('Access-Control-Allow-Headers', 'Content-Type, authorization');
+
+                if(req.url.startsWith('/api/')){
+                    res.set('Content-Type', 'text/json');
+                }
+
+                req.dxc = {};
+
+                next();
+            };
+
+
+            (pApp as Application).get('/login', addCORS, passport.authenticate('openidconnect'));
+
+            (pApp as Application).get('/api-auth/cb',
+                passport.authenticate('openidconnect', { successMessage: true, failureMessage:true, failureRedirect: '/login'}),
+                (req, res, next) => {
+
+                    console.log("SSO : /api-auth/callback : auth callback");
+                    // depend of original request
+                    res.redirect('/home/');
+                });
+
+        }
+    }
+
+
 }

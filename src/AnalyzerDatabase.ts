@@ -145,10 +145,10 @@ export default class AnalyzerDatabase
      * @param pNodeType
      */
     getCollection(pName:string, pNodeType:NodeType):IDbCollection {
-        if((this as IStringIndex)[pName]==null){
+        if((this as IStringIndex<any>)[pName]==null){
             return this.conn.getCollection(pName);
         }else{
-            return ((this as IStringIndex)[pName] as IDbCollection);
+            return ((this as IStringIndex<any>)[pName] as IDbCollection);
         }
     }
 

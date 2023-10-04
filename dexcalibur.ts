@@ -66,6 +66,10 @@ var Parser:ArgParser = new ArgParser(projectArgs, "dexcalibur", [
         help: "To serve REST API only. No GUI will be available.",
         hasVal:false,
         callback:(ctx,param)=>{ ctx.reinstall = true; } },
+    { name:"--auth-settings",
+        help: "To extend/override authentication settings ",
+        hasVal:true,
+        callback:(ctx,param)=>{ ctx.overrideAuth = param.value; } },
     { name:"--gui",
         help: "To expose one or more GUI over specified ports. Please use following format :  <GUI_NAME>:<HTTP_PORT>[:<extra>][,<GUI_NAME>:<HTTP_PORT>[:<extra>]]. Example: --gui=home:4200:ssl,expert:8080",
         hasVal:true,
@@ -78,6 +82,7 @@ Parser.parse(Process.argv);
 import * as Log from "./src/Logger.js";
 import {Settings} from "./src/Settings.js";
 import Util from "./src/Utils.js";
+import {IStringIndex} from "./src/core/IStringIndex.js";
 
 var Logger:Log.Logger = null;
 
@@ -173,8 +178,21 @@ if( !projectArgs.ipc
                 cfg.save();
                 cfg = Settings.GlobalSettings.load(cfg.getPath());
             }
+
+
             // init engine with settings
             dxcInstance.loadConfiguration(cfg);
+
+            // override previously loaded config
+            if(projectArgs.overrideAuth!=null){
+                dxcInstance.getSettings().getServerSettings().getAuthenticationSettings().overrideWith(
+                    JSON.parse(Util.b64_decode(projectArgs.overrideAuth)) as IStringIndex<any>, true
+                );
+            }
+
+            // init service, sso, ...
+            await dxcInstance.getUserService().getAuthenticationService().init();
+
             // boot engine
             ready = await dxcInstance.boot(
                 projectArgs.restore===true? true : false,

@@ -1,4 +1,5 @@
 import * as Log from "../Logger.js";
+import {IStringIndex} from "../core/IStringIndex.js";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -166,6 +167,7 @@ export default class PersistenceCache {
         const o = this._i[pIndexName][pUid];
         return (o!=null ? this._d[o] : null);
     }
+
 
     /**
      * To get qn entry by the value of a specified property.

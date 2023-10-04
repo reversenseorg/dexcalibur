@@ -9,6 +9,21 @@ import {IPersistent} from "../persist/orm/IPersistent.js";
 import {NodeType} from "../persist/orm/NodeType.js";
 import {NodeInternalType} from "../NodeInternalType.js";
 import Util from "../Utils.js";
+import {IStringIndex} from "../core/IStringIndex.js";
+
+
+export interface UserAccountOptions extends IStringIndex<any> {
+     _uid?:string,
+     _person?: Person,
+     _role?:UserRole,
+     _username?:string,
+     _password?:string,
+     _salt?:string,
+     _padding?:string,
+     _time?:string,
+     _locked?:boolean,
+    _projects?:ProjectURI[]
+}
 
 export class UserAccount implements IPersistent{
 
@@ -47,7 +62,7 @@ export class UserAccount implements IPersistent{
     private _projects:ProjectURI[] = [];
 
 
-    constructor(pConfig:any = null) {
+    constructor(pConfig:UserAccountOptions = {}) {
         if(pConfig != null){
             for(let i in pConfig) this[i] = pConfig[i];
         }
@@ -146,8 +161,9 @@ export class UserAccount implements IPersistent{
         return (this._username === pUsername);
     }
 
+
     getUID():string {
-        return this.username;
+        return this._uid; //username;
     }
 
     /**

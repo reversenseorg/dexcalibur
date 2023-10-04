@@ -53,6 +53,8 @@ export class UserSession implements IPersistent{
 
     _conn:ConnectionHandlerMap = {};
 
+    _must_set_cookie = false;
+
     constructor( pConfig:any) {
 
         for(const i in pConfig){
@@ -74,6 +76,10 @@ export class UserSession implements IPersistent{
             _acc: pAccount,
             _created:  Date.now()
         });
+    }
+
+    isMustSetCookie():boolean {
+        return this._must_set_cookie;
     }
 
     /**

@@ -48,7 +48,7 @@ export class UserService {
             throw UserServiceException.DB_IS_NOT_READY();
         }
 
-        UserAccount.TYPE.source(UserService.findUser);
+        UserAccount.TYPE.source(UserService.findUserByUID);
         SessionData.TYPE.source(UserService.findAllSessionData);
         UserSession.TYPE.subscribe('save_data', UserService.saveSessionData);
 
@@ -64,6 +64,16 @@ export class UserService {
         }
 
         return svc.authSvc.findUser(pUsername);
+    }
+
+    static findUserByUID(pUserUID:string, pEngineUID:string = null):UserAccount {
+        const svc:UserService = gInstance[pEngineUID!=null ? pEngineUID : DexcaliburEngine.DEFAULT_UID];
+
+        if(svc==null){
+            throw UserServiceException.MISSING_CONTEXT();
+        }
+
+        return svc.authSvc.findUserByUID(pUserUID);
     }
 
 
@@ -345,8 +355,8 @@ export class UserService {
     verifySession( pSession:UserSession):boolean {
         try{
 
-            //Logger.info("Verify session is not null : "+JSON.stringify(pSession));
-            //Logger.info("All session : "+JSON.stringify( Object.keys(this.sessSvc.listAllSession())));
+            //Logger.debug("Verify session is not null : "+JSON.stringify(pSession));
+            //Logger.debug("All session : "+JSON.stringify( Object.keys(this.sessSvc.listAllSession())));
             if( pSession != null && pSession.isActive()){
                 return true;
             }else{
@@ -400,6 +410,25 @@ export class UserService {
         let sess:UserSession = null;
         const res:AuthenticationResult = this.authSvc.newPasswordAuthenticator()
                                                         .doAuthentication(pLogin,pPassword);
+
+        if(AuthenticationResult.isSuccess(res)){
+            sess = this.sessSvc.newSession(res.getAccount());
+        }else{
+            throw AuthenticationException.AUTHENTICATION_FAILED();
+        }
+
+        return sess;
+    }
+
+    /**
+     *
+     * @param pLogin
+     * @param pPassword
+     */
+    postSsoAutenticationSuccess( pLogin:string, pPassword:string): UserSession {
+        let sess:UserSession = null;
+        const res:AuthenticationResult = this.authSvc.newPasswordAuthenticator()
+            .doAuthentication(pLogin,pPassword);
 
         if(AuthenticationResult.isSuccess(res)){
             sess = this.sessSvc.newSession(res.getAccount());

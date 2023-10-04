@@ -94,7 +94,6 @@ export default class Control implements IControl {
     }
 
     toJsonObject():any {
-        console.log(this.id, this.name);
         let o:any = {
             id: this.id,
             name: this.name,

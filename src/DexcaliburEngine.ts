@@ -661,7 +661,7 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
         const guiCfgs = WebGuiHelper.parse(pGuiCfgStr);
 
         // init
-        this.init( guiCfgs);
+        await this.init( guiCfgs);
 
         this.terminalSrv = new TerminalServer({
             _engine: this
@@ -718,7 +718,7 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
      *
      * @method
      */
-    init(pWebGuiCfg:WebGuiConfiguration[] = []){
+    async init(pWebGuiCfg:WebGuiConfiguration[] = []):Promise<any>{
 
 
 
@@ -752,6 +752,7 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
         );
 
         // TODO : override webserver settings with GUI config
+        //await this.webserver.configureAuth(this.settings.getServerSettings().getAuthenticationSettings());
         this.webserver.configure(this.settings.getWebserverSettings());
         this.webserver.setContext(this);
         this.webserver.useProductionMode();
