@@ -4,10 +4,14 @@ import * as Process from 'process';
 import ArgParser from './src/ArgUtils.js';
 
 
-import DexcaliburEngine from './src/DexcaliburEngine.js';
+import DexcaliburEngine, {DexcaliburEngineMode, DexcaliburEngineOptions} from './src/DexcaliburEngine.js';
 
 import * as _fs_ from "fs";
 import * as _os_ from "os";
+import * as Log from "./src/Logger.js";
+import {Settings} from "./src/Settings.js";
+import Util from "./src/Utils.js";
+import {IStringIndex} from "./src/core/IStringIndex.js";
 
 // Classic expert-oriented view
 const DEFAULT_GUI:string = "dxc-web";
@@ -66,6 +70,18 @@ var Parser:ArgParser = new ArgParser(projectArgs, "dexcalibur", [
         help: "To serve REST API only. No GUI will be available.",
         hasVal:false,
         callback:(ctx,param)=>{ ctx.reinstall = true; } },
+    { name:"--slave-node",
+        help: "To start engine as a slave node",
+        hasVal:false,
+        callback:(ctx,param)=>{ ctx.slaveMode = true; } },
+    { name:"--node-uid",
+        help: "To set the UID of this node when the engine runs in SLAVE mode",
+        hasVal:true,
+        callback:(ctx,param)=>{ ctx.slaveNodeUID = param.value; } },
+    { name:"--node-pubk",
+        help: "To set the public key of the MASTER",
+        hasVal:true,
+        callback:(ctx,param)=>{ ctx.slaveNodeKey = param.value; } },
     { name:"--auth-settings",
         help: "To extend/override authentication settings ",
         hasVal:true,
@@ -78,11 +94,6 @@ var Parser:ArgParser = new ArgParser(projectArgs, "dexcalibur", [
 
 Parser.parse(Process.argv);
 
-
-import * as Log from "./src/Logger.js";
-import {Settings} from "./src/Settings.js";
-import Util from "./src/Utils.js";
-import {IStringIndex} from "./src/core/IStringIndex.js";
 
 var Logger:Log.Logger = null;
 
@@ -131,8 +142,17 @@ if(projectArgs.guiCfg!=null){
     guiConfigString = projectArgs.guiCfg
 }
 
+// prepare engine options
+const engineOpts:DexcaliburEngineOptions = {};
+
+if(projectArgs.slaveMode){
+    engineOpts.engine_mode = projectArgs.slaveMode? DexcaliburEngineMode.SLAVE : DexcaliburEngineMode.MASTER;
+    engineOpts.node_uid = projectArgs.slaveNodeUID? projectArgs.slaveNodeUID : null;
+    engineOpts.master_pub_key = projectArgs.slaveNodeKey? projectArgs.slaveNodeKey : null;
+}
+
 // create an empty single (not yet initialiazed) instance of engine
-dxcInstance = DexcaliburEngine.getInstance();
+dxcInstance = DexcaliburEngine.getInstance(engineOpts);
 
 if(projectArgs.ipc == true){
     __log('[DXC_SRV][IPC] Enabled');

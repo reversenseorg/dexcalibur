@@ -31,15 +31,10 @@ USER_WEB_API.addAuthenticatedRoute(
 
             try{
 
-                // ========== SECURITY CHECKS
 
-                if (req.dxc == null || !$.context.getUserService().verifySession(req.dxc.sess)) {
-                    throw AuthenticationException.AUTHENTICATION_FAILED();
-                }
 
                 // ========== LOGIC
 
-                if ($.context.getUserService().verifySession(req.dxc.sess)) {
 
                     const user:UserAccount = (req.dxc.sess as UserSession).getUserAccount();
 
@@ -53,9 +48,7 @@ USER_WEB_API.addAuthenticatedRoute(
                         };
 
                     $.sendSuccess(res, _DATA);
-                }else{
-                    $.sendError(res, "Authentication required");
-                }
+
 
             }catch(err){
                 Logger.error("[API][USER] User account cannot be retrieved. Cause : " + err.message + "\n\t" + err.stack);
@@ -74,15 +67,8 @@ USER_WEB_API.addAuthenticatedRoute(
 
             try{
 
-                // ========== SECURITY CHECKS
-
-                if (req.dxc == null || !$.context.getUserService().verifySession(req.dxc.sess)) {
-                    throw AuthenticationException.AUTHENTICATION_FAILED();
-                }
 
                 // ========== LOGIC
-
-                if ($.context.getUserService().verifySession(req.dxc.sess)) {
 
                     const user:UserAccount = (req.dxc.sess as UserSession).getUserAccount();
 
@@ -96,9 +82,7 @@ USER_WEB_API.addAuthenticatedRoute(
                     };
 
                     $.sendSuccess(res, _DATA);
-                }else{
-                    $.sendError(res, "Authentication required");
-                }
+
 
             }catch(err){
                 Logger.error("[API][USER] User account cannot be retrieved. Cause : " + err.message + "\n\t" + err.stack);
@@ -116,12 +100,6 @@ USER_WEB_API.addAuthenticatedRoute(
             const $: WebServer = req.dxc.$;
 
             try{
-
-                // ========== SECURITY CHECKS
-
-                if (req.dxc == null || !$.context.getUserService().verifySession(req.dxc.sess)) {
-                    throw AuthenticationException.AUTHENTICATION_FAILED();
-                }
 
                 // ========== LOGIC
 

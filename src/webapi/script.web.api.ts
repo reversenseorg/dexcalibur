@@ -12,9 +12,6 @@ export const SCRIPT_WEB_API: DelegateWebApi = new DelegateWebApi();
 
 function doSecurityChecks( pRequest:DelegateRequest, pWebServer:WebServer):DexcaliburProject {
 
-    if (pRequest.dxc == null || !pWebServer.context.getUserService().verifySession(pRequest.dxc.sess)) {
-        throw AuthenticationException.AUTHENTICATION_FAILED();
-    }
 
     let project = null;
 

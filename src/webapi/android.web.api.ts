@@ -30,24 +30,6 @@ ANDROID_WEB_API.addAuthenticatedRoute(
             let project:DexcaliburProject = null;
 
             try{
-
-                // ========== SECURITY CHECKS
-
-                if (req.dxc == null || !$.context.getUserService().verifySession(req.dxc.sess)) {
-                    throw AuthenticationException.AUTHENTICATION_FAILED();
-                }
-
-                if(req.body['project']!=null){
-                    project = $.context.getActiveProjects(req.dxc.sess.getUserAccount())[req.body['project']];
-                }else if(req.dxc.project != null){
-                    project = req.dxc.project;
-                }
-
-                if(project == null || !project.isReady()) {
-                    throw DexcaliburProjectException.NO_PROJECT_SPECIFIED();
-                }
-
-                // ========== LOGIC + RESPONSE
                 $.sendSuccess( res, (project.getAppAnalyzer() as AndroidAppAnalyzer).dumpManifest());
             }catch(err){
                 Logger.error("[API][CODE] Search query failed. Cause : " + err.message + "\n\t" + err.stack);
@@ -60,23 +42,6 @@ ANDROID_WEB_API.addAuthenticatedRoute(
 
             try{
 
-                // ========== SECURITY CHECKS
-
-                if (req.dxc == null || !$.context.getUserService().verifySession(req.dxc.sess)) {
-                    throw AuthenticationException.AUTHENTICATION_FAILED();
-                }
-
-                if(req.body['project']!=null){
-                    project = $.context.getActiveProjects(req.dxc.sess.getUserAccount())[req.body['project']];
-                }else if(req.dxc.project != null){
-                    project = req.dxc.project;
-                }
-
-                if(project == null || !project.isReady()) {
-                    throw DexcaliburProjectException.NO_PROJECT_SPECIFIED();
-                }
-
-                // ========== LOGIC + RESPONSE
                 const newCode:string = req.body['code[]'].join("\n");
                 //hook.script = newCode;
                 (project.getAppAnalyzer() as AndroidAppAnalyzer).updateManifest(newCode);
@@ -99,22 +64,7 @@ ANDROID_WEB_API.addAuthenticatedRoute(
             let project:DexcaliburProject = null;
 
             try{
-                // ========== SECURITY CHECKS
-                if (req.dxc == null || !$.context.getUserService().verifySession(req.dxc.sess)) {
-                    throw AuthenticationException.AUTHENTICATION_FAILED();
-                }
 
-                if(req.body['project']!=null){
-                    project = $.context.getActiveProjects(req.dxc.sess.getUserAccount())[req.body['project']];
-                }else if(req.dxc.project != null){
-                    project = req.dxc.project;
-                }
-
-                if(project == null || !project.isReady()) {
-                    throw DexcaliburProjectException.NO_PROJECT_SPECIFIED();
-                }
-
-                // ========== LOGIC + RESPONSE
                 $.sendSuccess( res, project.find.activity('name:.*').toJsonObject());
             }catch(err){
                 Logger.error("[API][ANDROID ANALYZER] Activities not found. Cause : " + err.message + "\n\t" + err.stack);
@@ -191,9 +141,7 @@ ANDROID_WEB_API.addAuthenticatedRoute(
 
             try{
                 // ========== SECURITY CHECKS
-                if (req.dxc == null || !$.context.getUserService().verifySession(req.dxc.sess)) {
-                    throw AuthenticationException.AUTHENTICATION_FAILED();
-                }
+
 
                 if(req.body['project']!=null){
                     project = $.context.getActiveProjects(req.dxc.sess.getUserAccount())[req.body['project']];
@@ -226,9 +174,7 @@ ANDROID_WEB_API.addAuthenticatedRoute(
 
             try{
                 // ========== SECURITY CHECKS
-                if (req.dxc == null || !$.context.getUserService().verifySession(req.dxc.sess)) {
-                    throw AuthenticationException.AUTHENTICATION_FAILED();
-                }
+
 
                 if(req.body['project']!=null){
                     project = $.context.getActiveProjects(req.dxc.sess.getUserAccount())[req.body['project']];
@@ -260,9 +206,7 @@ ANDROID_WEB_API.addAuthenticatedRoute(
 
             try{
                 // ========== SECURITY CHECKS
-                if (req.dxc == null || !$.context.getUserService().verifySession(req.dxc.sess)) {
-                    throw AuthenticationException.AUTHENTICATION_FAILED();
-                }
+
 
                 if(req.body['project']!=null){
                     project = $.context.getActiveProjects(req.dxc.sess.getUserAccount())[req.body['project']];
@@ -295,9 +239,7 @@ ANDROID_WEB_API.addAuthenticatedRoute(
 
             try{
                 // ========== SECURITY CHECKS
-                if (req.dxc == null || !$.context.getUserService().verifySession(req.dxc.sess)) {
-                    throw AuthenticationException.AUTHENTICATION_FAILED();
-                }
+
 
                 if(req.body['project']!=null){
                     project = $.context.getActiveProjects(req.dxc.sess.getUserAccount())[req.body['project']];
@@ -331,9 +273,7 @@ ANDROID_WEB_API.addAuthenticatedRoute(
 
             try{
                 // ========== SECURITY CHECKS
-                if (req.dxc == null || !$.context.getUserService().verifySession(req.dxc.sess)) {
-                    throw AuthenticationException.AUTHENTICATION_FAILED();
-                }
+
 
                 if(req.body['project']!=null){
                     project = $.context.getActiveProjects(req.dxc.sess.getUserAccount())[req.body['project']];
@@ -372,9 +312,7 @@ ANDROID_WEB_API.addAuthenticatedRoute(
 
             try{
                 // ========== SECURITY CHECKS
-                if (req.dxc == null || !$.context.getUserService().verifySession(req.dxc.sess)) {
-                    throw AuthenticationException.AUTHENTICATION_FAILED();
-                }
+
 
                 if(req.body['project']!=null){
                     project = $.context.getActiveProjects(req.dxc.sess.getUserAccount())[req.body['project']];
@@ -414,9 +352,7 @@ ANDROID_WEB_API.addAuthenticatedRoute(
 
             try{
                 // ========== SECURITY CHECKS
-                if (req.dxc == null || !$.context.getUserService().verifySession(req.dxc.sess)) {
-                    throw AuthenticationException.AUTHENTICATION_FAILED();
-                }
+
 
                 if(req.body['project']!=null){
                     project = $.context.getActiveProjects(req.dxc.sess.getUserAccount())[req.body['project']];
@@ -456,9 +392,6 @@ ANDROID_WEB_API.addAuthenticatedRoute(
 
             try{
                 // ========== SECURITY CHECKS
-                if (req.dxc == null || !$.context.getUserService().verifySession(req.dxc.sess)) {
-                    throw AuthenticationException.AUTHENTICATION_FAILED();
-                }
 
                 if(req.body['project']!=null){
                     project = $.context.getActiveProjects(req.dxc.sess.getUserAccount())[req.body['project']];
@@ -498,9 +431,7 @@ ANDROID_WEB_API.addAuthenticatedRoute(
 
             try{
                 // ========== SECURITY CHECKS
-                if (req.dxc == null || !$.context.getUserService().verifySession(req.dxc.sess)) {
-                    throw AuthenticationException.AUTHENTICATION_FAILED();
-                }
+
 
                 if(req.body['project']!=null){
                     project = $.context.getActiveProjects(req.dxc.sess.getUserAccount())[req.body['project']];

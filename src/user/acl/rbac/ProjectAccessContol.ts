@@ -5,6 +5,7 @@ import {AccessAttribute, AccessAttributeMap} from "../AccessAttribute.js";
 import DexcaliburProject from "../../../DexcaliburProject.js";
 import {UserAccount} from "../../UserAccount.js";
 import AccessControl from "../AccessControl.js";
+import {Nullable} from "../../../core/IStringIndex.js";
 
 
 export class ProjectAccessControl extends DelegateAccessControl {
@@ -28,7 +29,8 @@ export class ProjectAccessControl extends DelegateAccessControl {
     };
 
     static attr:AccessAttributeMap = {
-        OWNER: new AccessAttribute( 'owner')
+        OWNER: new AccessAttribute( 'owner'),
+        TESTER: new AccessAttribute( 'tester')
    //     GROUP: new AccessAttribute( 'group')
     };
 
@@ -80,16 +82,30 @@ export class ProjectAccessControl extends DelegateAccessControl {
     }
 
     /**
+     * To check if an attribute of a DexcaliburProject instance satisfies some constraints
      *
-     * @param pAccess
-     * @param pSession
+     * @param pAttr
+     * @param pAccount
+     * @param pProject
+     * @param pMessage
+     * @method
      */
-    checkAttr(pAttr: AccessAttribute, pAccount:UserAccount, pProject:DexcaliburProject = null, pMessage:string = "") {
+    checkAttr(pAttr: AccessAttribute, pAccount:UserAccount, pProject:Nullable<DexcaliburProject> = null, pMessage:string = "") {
+        if(pProject==null){
+            throw new AccessException("Access attribute of an undefined object cannot be verified : rejected ", AccesErrCode.MANDATORY_OBJECT_UNDEFINED)
+        }
+
         switch (pAttr.name) {
             case 'owner':
                 // verify project owner is the current user
                 if(pAccount.getUID() !== pProject.getAccessAttribute(pAttr)){
                     throw new AccessException("[PROJECT] "+pMessage+" The project is not owned by the user : rejected ", AccesErrCode.VIOLATION);
+                }
+                break;
+            case 'tester':
+                // verify project owner is the current user
+                if(pProject.getAccessAttribute(pAttr).indexOf(pAccount.getUID())==-1){
+                    throw new AccessException("[PROJECT] "+pMessage+" The project cannot be tested by the user : rejected ", AccesErrCode.VIOLATION);
                 }
                 break;
             default:

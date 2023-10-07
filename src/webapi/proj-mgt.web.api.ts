@@ -35,13 +35,13 @@ PROJECT_MGT_WEB_API.addAuthenticatedRoute(
             let user:UserAccount;
 
             try {
-                if (req.dxc!=null && $.context.getUserService().verifySession(req.dxc.sess)) {
+
                     user = (req.dxc.sess as UserSession).getUserAccount();
 
                     $.sendSuccess( res, {
                         projects: user.listProjects($.context)
                     });
-                }
+
             }catch(err){
                 Logger.error("[API][PROJECT MGT] Unable to list projects : "+err.message+"\n"+err.stack);
                 $.sendError( res, err.message);
@@ -73,9 +73,6 @@ PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
 
 
             try{
-                if(req.dxc==null || !$.context.getUserService().verifySession(req.dxc.sess)){
-                    throw  AuthenticationException.AUTHENTICATION_FAILED();
-                }
 
                 dm = DeviceManager.getInstance();
                 await dm.scan();
@@ -255,9 +252,6 @@ PROJECT_MGT_WEB_API.addAuthenticatedRoute(
             let user:UserAccount;
             try {
 
-                if(req.dxc==null || !$.context.getUserService().verifySession(req.dxc.sess)){
-                    throw  AuthenticationException.AUTHENTICATION_FAILED();
-                }
 
                 $.uploader.newUpload( req, res,function( vId:string):any {
                     // save upload UID into user session
@@ -290,9 +284,7 @@ PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
             let user:UserAccount;
 
             try {
-                if(req.dxc==null || !$.context.getUserService().verifySession(req.dxc.sess)) {
-                    throw AuthenticationException.AUTHENTICATION_FAILED();
-                }
+
 
                 user = req.dxc.sess.getUserAccount();
 
@@ -367,20 +359,16 @@ PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
             let unsafeProjectUID:string;
 
             try {
-                if (req.dxc == null || !$.context.getUserService().verifySession(req.dxc.sess)) {
-                    throw AuthenticationException.AUTHENTICATION_FAILED();
-                }
 
                 Logger.raw(">>> "+req.body['uid'] );
                 // close the project if it is opened
                 if(req.body['uid'] == null){
-                    if (req.dxc!=null && $.context.getUserService().verifySession(req.dxc.sess)) {
                         if(req.dxc.project == null){
                             throw DexcaliburProjectException.DELETE_PROJ_FAILURE_NOTFOUND();
                         }
 
                         unsafeProjectUID = (req.dxc.project as DexcaliburProject).getUID();
-                    }
+
                 }else{
                     unsafeProjectUID = req.body['uid'];
                 }

@@ -67,6 +67,7 @@ import {LicenceManager} from "./credit/LicenceManager.js";
 import {Product} from "./credit/Product.js";
 import {CoreDebug} from "./core/CoreDebug.js";
 import {ScanScheduler} from "./audit/common/ScanScheduler.js";
+import {SecurityZone} from "./security/SecurityZone.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -288,6 +289,7 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
     icon:AppIcon = null;
 
     owner: UserAccount = null;
+    tester: UserAccount[] = [];
 
     private _scanScheduler:ScanScheduler;
 
@@ -362,10 +364,22 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
        return this.owner;
     }
 
+    getAuditors():UserAccount[] {
+        return this.tester;
+    }
+
+
     getArchitectures():Architecture[] {
         return this.archs;
     }
 
+    /**
+     * A project can be deleted only by its owner
+     *
+     * @param pEngine
+     * @param pUID
+     * @param pAccount
+     */
     static deleteCloseProject( pEngine:DexcaliburEngine, pUID:string, pAccount:UserAccount){
         const project = new DexcaliburProject(pEngine, pUID);
 
@@ -383,6 +397,12 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
 
     }
 
+
+    /**
+     * To check if the specified user account is the owner of the project
+     *
+     * @param pAccount
+     */
     isOwnedBy( pAccount:UserAccount):boolean {
         let ret_owned = false;
 
@@ -411,6 +431,35 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
 
         return ret_owned;
         //return (this.owner != null && this.owner.is(pUser));
+    }
+
+    isAuthorizedToTest( pAccount:UserAccount):boolean {
+        let ret_owned = false;
+
+        try{
+            AccessControl.checkAttr(
+                AccessZone.PROJECT,
+                ProjectAccessControl.attr.TESTER,
+                this,
+                pAccount
+            );
+
+            ret_owned = true;
+
+        }catch(errACL){
+            if(errACL.hasOwnProperty('getCode') &&  ((errACL as AccessException).getCode() === AccesErrCode.VIOLATION)){
+                AccessControl.check(
+                    AccessZone.PROJECT,
+                    ProjectAccessControl.access.PROJ_CHOWN,
+                    this,
+                    pAccount
+                );
+
+                ret_owned = true;
+            }else{throw  errACL;}
+        }
+
+        return ret_owned;
     }
 
     /**
@@ -990,7 +1039,7 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
      * @static
      * @since 1.0.0
      */
-    static getInformationOf(pEngine:DexcaliburEngine, pProjectUID:string, pAccount:UserAccount = null):any {
+    static getInformationOf(pEngine:DexcaliburEngine, pProjectUID:string, pAccount:UserAccount = null, pZone:SecurityZone = SecurityZone.PUBLIC):any {
 
         // create a minimalist instance of project to check if the user own or not this project
         const project = new DexcaliburProject(pEngine, pProjectUID);
@@ -1004,12 +1053,21 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
 
         const data = JSON.parse( Fs.readFileSync( project.workspace.getProjectCfgPath()).toString());
 
+
         if(!data.hasOwnProperty("engineVersion")){
             data.engineVersion = DexcaliburEngine.VERSION_MIN;
             Fs.writeFileSync(
                 project.workspace.getProjectCfgPath(),
                 JSON.stringify(data)
             );
+        }
+
+        // remove sensitive data
+        if(pZone==SecurityZone.PUBLIC){
+            // ORM adapter data
+            delete data.connector;
+            // remove local FS path
+            data.apk.path="";
         }
 
         if(data._attr != null){
@@ -1073,7 +1131,10 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
     }
 
     /**
-     * 
+     * To load a project
+     *
+     * the user MUST be the owner
+     *
      * @param {*} pContext 
      * @param {*} pProjectUID 
      * @param {*} pConfigPath 
@@ -1123,6 +1184,12 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
             }
         }
 
+        if(data._attr !=null){
+            project.importAccessAttributes(data._attr);
+            project.isAuthorizedToTest(pAcc);
+        }else{
+            // danger
+        }
 
 
 
@@ -1139,9 +1206,6 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
                 case "package":
                 case "nofrida":
                     project[i] = data[i];
-                    break;
-                case "_attr":
-                    project.importAccessAttributes(data._attr);
                     break;
                 case "apk":
                     project.workspace.setApk( APK.fromJsonObject(data.apk));
@@ -1176,7 +1240,6 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
 
         project.engineVersion = data.engineVersion;
 
-        project.isOwnedBy(pAcc);
 
 
 

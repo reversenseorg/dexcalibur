@@ -46,10 +46,6 @@ CODE_WEB_API.addAuthenticatedRoute(
 
             try{
 
-                if (req.dxc == null || !$.context.getUserService().verifySession(req.dxc.sess)) {
-                    throw AuthenticationException.AUTHENTICATION_FAILED();
-                }
-
                 if(req.body['project']!=null){
                     project = $.context.getActiveProjects(req.dxc.sess.getUserAccount())[req.body['project']];
                 }else if(req.dxc.project != null){
@@ -110,9 +106,7 @@ CODE_WEB_API.addAuthenticatedRoute(
 
                 // ========== SECURITY CHECKS
 
-                if (req.dxc == null || !$.context.getUserService().verifySession(req.dxc.sess)) {
-                    throw AuthenticationException.AUTHENTICATION_FAILED();
-                }
+
 
                 if(req.body['project']!=null){
                     project = $.context.getActiveProjects(req.dxc.sess.getUserAccount())[req.body['project']];
@@ -166,9 +160,6 @@ CODE_WEB_API.addAuthenticatedRoute(
 
                 // ========== SECURITY CHECKS
 
-                if (req.dxc == null || !$.context.getUserService().verifySession(req.dxc.sess)) {
-                    throw AuthenticationException.AUTHENTICATION_FAILED();
-                }
 
                 if(req.body['project']!=null){
                     project = $.context.getActiveProjects(req.dxc.sess.getUserAccount())[req.body['project']];
@@ -217,9 +208,7 @@ CODE_WEB_API.addAuthenticatedRoute(
 
                 // ========== SECURITY CHECKS
 
-                if (req.dxc == null || !$.context.getUserService().verifySession(req.dxc.sess)) {
-                    throw AuthenticationException.AUTHENTICATION_FAILED();
-                }
+
 
                 if(req.body['project']!=null){
                     project = $.context.getActiveProjects(req.dxc.sess.getUserAccount())[req.body['project']];
@@ -530,9 +519,6 @@ CODE_WEB_API.addAuthenticatedRoute(
             try{
 
                 // ========== SECURITY CHECKS
-                if (req.dxc == null || !$.context.getUserService().verifySession(req.dxc.sess)) {
-                    throw AuthenticationException.AUTHENTICATION_FAILED();
-                }
 
                 if(req.body['project']!=null){
                     project = $.context.getActiveProjects(req.dxc.sess.getUserAccount())[req.body['project']];
@@ -566,9 +552,7 @@ CODE_WEB_API.addAuthenticatedRoute(
             try{
 
                 // ========== SECURITY CHECKS
-                if (req.dxc == null || !$.context.getUserService().verifySession(req.dxc.sess)) {
-                    throw AuthenticationException.AUTHENTICATION_FAILED();
-                }
+
 
                 if(req.body['project']!=null){
                     project = $.context.getActiveProjects(req.dxc.sess.getUserAccount())[req.body['project']];
@@ -641,9 +625,7 @@ CODE_WEB_API.addAuthenticatedRoute(
 
                 // ========== SECURITY CHECKS
 
-                if (req.dxc == null || !$.context.getUserService().verifySession(req.dxc.sess)) {
-                    throw AuthenticationException.AUTHENTICATION_FAILED();
-                }
+
 
                 if(req.body['project']!=null){
                     project = $.context.getActiveProjects(req.dxc.sess.getUserAccount())[req.body['project']];
@@ -707,10 +689,6 @@ CODE_WEB_API.addAuthenticatedRoute(
 
                 // ========== SECURITY CHECKS
 
-                if (req.dxc == null || !$.context.getUserService().verifySession(req.dxc.sess)) {
-                    throw AuthenticationException.AUTHENTICATION_FAILED();
-                }
-
                 if(req.body['project']!=null){
                     project = $.context.getActiveProjects(req.dxc.sess.getUserAccount())[req.body['project']];
                 }else if(req.dxc.project != null){
@@ -759,10 +737,6 @@ CODE_WEB_API.addAuthenticatedRoute(
 
                 // ========== SECURITY CHECKS
 
-                if (req.dxc == null || !$.context.getUserService().verifySession(req.dxc.sess)) {
-                    throw AuthenticationException.AUTHENTICATION_FAILED();
-                }
-
                 if(req.body['project']!=null){
                     project = $.context.getActiveProjects(req.dxc.sess.getUserAccount())[req.body['project']];
                 }else if(req.dxc.project != null){
@@ -810,9 +784,7 @@ CODE_WEB_API.addAuthenticatedRoute(
 
                 // ========== SECURITY CHECKS
 
-                if (req.dxc == null || !$.context.getUserService().verifySession(req.dxc.sess)) {
-                    throw AuthenticationException.AUTHENTICATION_FAILED();
-                }
+
 
                 if(req.body['project']!=null){
                     project = $.context.getActiveProjects(req.dxc.sess.getUserAccount())[req.body['project']];
@@ -887,9 +859,7 @@ CODE_WEB_API.addAuthenticatedRoute(
 
                 // ========== SECURITY CHECKS
 
-                if (req.dxc == null || !$.context.getUserService().verifySession(req.dxc.sess)) {
-                    throw AuthenticationException.AUTHENTICATION_FAILED();
-                }
+
 
                 if(req.body['project']!=null){
                     project = $.context.getActiveProjects(req.dxc.sess.getUserAccount())[req.body['project']];

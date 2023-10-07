@@ -31,9 +31,6 @@ NATIVE_WEB_API.addAsyncAuthenticatedRoute(
 
                 // ========== SECURITY CHECKS
 
-                if (req.dxc == null || !$.context.getUserService().verifySession(req.dxc.sess)) {
-                    throw AuthenticationException.AUTHENTICATION_FAILED();
-                }
 
                 if(req.body['project']!=null){
                     project = $.context.getActiveProjects(req.dxc.sess.getUserAccount())[req.body['project']];
@@ -106,9 +103,7 @@ NATIVE_WEB_API.addAuthenticatedRoute(
 
                 // ========== SECURITY CHECKS
 
-                if (req.dxc == null || !$.context.getUserService().verifySession(req.dxc.sess)) {
-                    throw AuthenticationException.AUTHENTICATION_FAILED();
-                }
+
 
                 if(req.body['project']!=null){
                     project = $.context.getActiveProjects(req.dxc.sess.getUserAccount())[req.body['project']];
@@ -177,9 +172,6 @@ NATIVE_WEB_API.addAuthenticatedRoute(
 
                 // ========== SECURITY CHECKS
 
-                if (req.dxc == null || !$.context.getUserService().verifySession(req.dxc.sess)) {
-                    throw AuthenticationException.AUTHENTICATION_FAILED();
-                }
 
                 if(req.body['project']!=null){
                     project = $.context.getActiveProjects(req.dxc.sess.getUserAccount())[req.body['project']];
@@ -232,9 +224,6 @@ NATIVE_WEB_API.addAsyncAuthenticatedRoute(
 
                 // ========== SECURITY CHECKS
 
-                if (req.dxc == null || !$.context.getUserService().verifySession(req.dxc.sess)) {
-                    throw AuthenticationException.AUTHENTICATION_FAILED();
-                }
 
                 if(req.body['project']!=null){
                     project = $.context.getActiveProjects(req.dxc.sess.getUserAccount())[req.body['project']];
@@ -311,9 +300,6 @@ NATIVE_WEB_API.addAsyncAuthenticatedRoute(
 
                 // ========== SECURITY CHECKS
 
-                if (req.dxc == null || !$.context.getUserService().verifySession(req.dxc.sess)) {
-                    throw AuthenticationException.AUTHENTICATION_FAILED();
-                }
 
                 if(req.body['project']!=null){
                     project = $.context.getActiveProjects(req.dxc.sess.getUserAccount())[req.body['project']];

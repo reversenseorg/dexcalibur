@@ -47,6 +47,9 @@ import {LicenceManager} from "./credit/LicenceManager.js";
 import {AuditManager} from "./audit/AuditManager.js";
 import {WebGuiConfiguration} from "./webserver/WebGuiConfiguration.js";
 import {WebGuiHelper} from "./webserver/WebGuiHelper.js";
+import {SignatureServerAPI} from "./audit/SignatureServerAPI.js";
+import {Nullable} from "./core/IStringIndex.js";
+import {EngineNodeManager} from "./core/EngineNodeManager.js";
 
 
 /*
@@ -56,6 +59,23 @@ if(require('os').platform()=="darwin"){
     _fixPath_();
 }*/
 
+/**
+ * Running mode of engine instance :
+ * - master : manage several slave engines, and expose GUIs
+ * - slave : headless engine used to distribute processing
+ *
+ *
+ */
+export enum DexcaliburEngineMode {
+    MASTER= "MASTER",
+    SLAVE= "SLAVE"
+}
+
+export interface DexcaliburEngineOptions {
+    engine_mode?: DexcaliburEngineMode;
+    node_uid?: Nullable<string>;
+    master_pub_key?:Nullable<string>;
+}
 
 if(_os_.platform()=="darwin"){
     Util.updateEnvPATH();
@@ -173,6 +193,9 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
      * @static
      */
     static DEFAULT_GUI:string = "dxc-web";
+
+
+    engine_type = DexcaliburEngineMode.MASTER;
 
     /**
      * @type {string}
@@ -343,13 +366,17 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
     private userSvc: UserService;
 
 
+    sigServerApi:SignatureServerAPI;
+    
+    nodeManager:EngineNodeManager;
+
     /**
      * To instanciate DexcaliburEngine.
      *
      * @private
      * @constructor
      */
-    constructor(){
+    constructor(pEngineOptions:Nullable<DexcaliburEngineOptions> = null){
         super({
             'engine:project.uid.new': [
                 ValidationRule.newCustomAssert( x => {
@@ -363,6 +390,13 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
 
         NodeSchema.init();
         this.initAccessControl();
+        this.sigServerApi = new SignatureServerAPI({
+            host: '127.0.0.1',
+            port: '8085',
+            ssl: false,
+            auth: null
+        });
+        this.nodeManager = new EngineNodeManager(this);
     }
 
     initAccessControl():void {
@@ -383,10 +417,10 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
      * @method
      * @static
      */
-    static getInstance():DexcaliburEngine{
+    static getInstance(pOptions:Nullable<DexcaliburEngineOptions>=null):DexcaliburEngine{
 
         if(gEngineInstance == null){
-            gEngineInstance = new DexcaliburEngine();
+            gEngineInstance = new DexcaliburEngine(pOptions);
 
 
         }
@@ -941,7 +975,7 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
         }else{
             const sub:DexcaliburProjectMap = {};
             for(const uid in this.active){
-                if(this.active[uid].isOwnedBy(pUser)){
+                if(this.active[uid].isOwnedBy(pUser) || this.active[uid].isAuthorizedToTest(pUser)){
                     sub[uid] = this.active[uid];
                 }
             }
@@ -1215,6 +1249,15 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
             this.wfCbs[name] = [];
         }
         this.wfCbs[name].push(pCallback);
+    }
+
+    /**
+     * to get signature server api client
+     *
+     * @method
+     */
+    getSignatureServer():SignatureServerAPI {
+        return this.sigServerApi;
     }
 }
 

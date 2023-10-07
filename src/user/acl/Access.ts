@@ -1,5 +1,8 @@
 import {AuthCode} from "../auth/AuthTypes.js";
 
+/**
+ * List of error code for ABAC
+ */
 export enum AccesErrCode {
     NONE,
     NO_ZONE,
@@ -7,7 +10,8 @@ export enum AccesErrCode {
     NO_DEFAULT_ROLE,
     ROLE_UNDEFINED,
     ATTR_UNKNOWN,
-    VIOLATION
+    VIOLATION,
+    MANDATORY_OBJECT_UNDEFINED
 };
 
 

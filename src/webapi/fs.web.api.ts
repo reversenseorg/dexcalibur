@@ -23,11 +23,6 @@ FS_WEB_API.addAuthenticatedRoute(
 
             try{
 
-                // ========== SECURITY CHECKS
-
-                if (req.dxc == null || !$.context.getUserService().verifySession(req.dxc.sess)) {
-                    throw AuthenticationException.AUTHENTICATION_FAILED();
-                }
 
                 if(req.body['project']!=null){
                     project = $.context.getActiveProjects(req.dxc.sess.getUserAccount())[req.body['project']];

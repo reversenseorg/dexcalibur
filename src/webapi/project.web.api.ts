@@ -25,49 +25,6 @@ import {TagManager} from "../tags/TagManager.js";
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 export const PROJECT_WEB_API: DelegateWebApi = new DelegateWebApi();
 
-/*
-PROJECT_WEB_API.addAsyncAuthenticatedRoute(
-    '/info/:project',
-    {
-        'get': async (req:DelegateRequest, res:DelegateResponse)=>{
-
-            let device:Device = null;
-            let $:WebServer = req.dxc.$;
-
-            try{
-                if(req.body['dev']){
-                    device = DeviceManager.getInstance().getDevice(req.body['dev']);
-                }else{
-                    device = $.project.getDevice();
-                }
-                if(await FridaHelper.startServer( device, {
-                    path: req.body['path'],
-                    privileged: (req.body['privileged']=="true"? true: false)
-                })){
-                    $.sendSuccess(res, {});
-                }else{
-                    $.sendError(res, "Hook server cannot start");
-                }
-            }catch(err){
-                Logger.error("[API][HOOK SERVER] Server cannot start : "+err.message+"\n\t"+err.stack);
-                $.sendError(res, "Hook server cannot start");
-            }
-        }
-    }
-)
-*/
-
-
-/*this.app.route('/api/project/:uid/app/info')
-    .get(function (req:ExpressRequest, res:ExpressResponse):any {
-        if(req.params.uid != "self"){
-            // not supported
-            res.status(404).send(JSON.stringify({ msg: 'Operation not supported (TODO)' }));
-        }else{
-            //$.project.getApplication();
-            res.status(404).send(JSON.stringify({ msg: 'Operation not supported (TODO)' }));
-        }
-    });*/
 
 
 PROJECT_WEB_API.addAuthenticatedRoute(
@@ -78,10 +35,6 @@ PROJECT_WEB_API.addAuthenticatedRoute(
             const $:WebServer = req.dxc.$;
 
             try{
-                if(req.dxc==null || !$.context.getUserService().verifySession(req.dxc.sess)) {
-                    throw AuthenticationException.AUTHENTICATION_FAILED();
-                }
-
                 const data:any[] = [];
                 const proj = $.context.getActiveProjects(req.dxc.sess.getUserAccount());
 
@@ -104,9 +57,6 @@ PROJECT_WEB_API.addAuthenticatedRoute(
             let success = false;
 
             try{
-                if(req.dxc==null || !$.context.getUserService().verifySession(req.dxc.sess)) {
-                    throw AuthenticationException.AUTHENTICATION_FAILED();
-                }
 
 
                 if(!req.body.hasOwnProperty('uid')
@@ -146,10 +96,6 @@ PROJECT_WEB_API.addAuthenticatedRoute(
             const $:WebServer = req.dxc.$;
 
             try{
-                if(req.dxc==null || !$.context.getUserService().verifySession(req.dxc.sess)) {
-                    throw AuthenticationException.AUTHENTICATION_FAILED();
-                }
-
 
                 if(req.body.hasOwnProperty('uid')){
                     const proj:DexcaliburProjectMap = $.context.getActiveProjects(req.dxc.sess.getUserAccount());
@@ -186,14 +132,8 @@ PROJECT_WEB_API.addAuthenticatedRoute(
     '/info/:uid',
     {
         'get': (req:DelegateRequest, res:DelegateResponse) => {
-
             const $: WebServer = req.dxc.$;
-
             try {
-                if (req.dxc == null || !$.context.getUserService().verifySession(req.dxc.sess)) {
-                    throw AuthenticationException.AUTHENTICATION_FAILED();
-                }
-
                 $.sendSuccess( res, DexcaliburProject.getInformationOf( $.context, req.params.uid, req.dxc.sess.getUserAccount()));
             } catch (err) {
                 Logger.error("[API][PROJECT] Project meta data cannot be retrieved. Cause : " + err.message + "\n\t" + err.stack);
@@ -213,9 +153,6 @@ PROJECT_WEB_API.addAuthenticatedRoute(
             const $: WebServer = req.dxc.$;
 
             try {
-                if (req.dxc == null || !$.context.getUserService().verifySession(req.dxc.sess)) {
-                    throw AuthenticationException.AUTHENTICATION_FAILED();
-                }
                 if (req.dxc.project == null || !req.dxc.project.isReady()) {
                     throw DexcaliburProjectException.NO_PROJECT_SPECIFIED();
                 }
@@ -240,9 +177,6 @@ PROJECT_WEB_API.addAuthenticatedRoute(
             const $: WebServer = req.dxc.$;
 
             try {
-                if (req.dxc == null || !$.context.getUserService().verifySession(req.dxc.sess)) {
-                    throw AuthenticationException.AUTHENTICATION_FAILED();
-                }
                 if (req.dxc.project == null || !req.dxc.project.isReady()) {
                     throw DexcaliburProjectException.NO_PROJECT_SPECIFIED();
                 }
@@ -329,10 +263,6 @@ PROJECT_WEB_API.addAuthenticatedRoute(
             let rpath = "";
 
             try {
-                if (req.dxc == null || !$.context.getUserService().verifySession(req.dxc.sess)) {
-                    throw AuthenticationException.AUTHENTICATION_FAILED();
-                }
-
                 if(req.body['project']!=null){
                     project = $.context.getActiveProjects(req.dxc.sess.getUserAccount())[req.body['project']];
                 }else if(req.dxc.project != null){
@@ -397,10 +327,6 @@ PROJECT_WEB_API.addAuthenticatedRoute(
             let project:DexcaliburProject = null;
 
             try {
-                if (req.dxc == null || !$.context.getUserService().verifySession(req.dxc.sess)) {
-                    throw AuthenticationException.AUTHENTICATION_FAILED();
-                }
-
                 if(req.body['project']!=null){
                     project = $.context.getActiveProjects(req.dxc.sess.getUserAccount())[req.body['project']];
                 }else if(req.dxc.project != null){

@@ -818,7 +818,7 @@ PLUGIN_WEB_API.addAuthenticatedRoute(
 
                 // ========== SECURITY CHECKS
 
-                if (req.dxc == null || !$.context.getUserService().verifySession(req.dxc.sess)) {
+                /*if (req.dxc == null || !$.context.getUserService().verifySession(req.dxc.sess)) {
                     throw AuthenticationException.AUTHENTICATION_FAILED();
                 }
 
@@ -830,7 +830,7 @@ PLUGIN_WEB_API.addAuthenticatedRoute(
 
                 if(project == null || !project.isReady()) {
                     throw DexcaliburProjectException.NO_PROJECT_SPECIFIED();
-                }
+                }*/
 
                 // ========== LOGIC
                 const action:string = req.params.action;
