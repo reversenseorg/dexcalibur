@@ -103,8 +103,12 @@ export class ProjectAccessControl extends DelegateAccessControl {
                 }
                 break;
             case 'tester':
+                let authorizedUIDs = pProject.getAccessAttribute(pAttr) as string;
+                if(authorizedUIDs==null){
+                    authorizedUIDs = pProject.getOwner().getUID();
+                }
                 // verify project owner is the current user
-                if(pProject.getAccessAttribute(pAttr).indexOf(pAccount.getUID())==-1){
+                if(authorizedUIDs.indexOf(pAccount.getUID())==-1){
                     throw new AccessException("[PROJECT] "+pMessage+" The project cannot be tested by the user : rejected ", AccesErrCode.VIOLATION);
                 }
                 break;
