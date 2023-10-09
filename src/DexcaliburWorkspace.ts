@@ -109,10 +109,11 @@ export default class DexcaliburWorkspace
             _fs_.mkdirSync( pPath);
     }
 
+
     /**
      * To intialize Dexcalibur workspace by creating .dxc/* directories
      */
-    init(){
+    async init():Promise<void>{
         this.dxcFolder = _path_.join( this.path, '.dxc'); 
         this.binFolder = _path_.join( this.dxcFolder, 'bin');
         this.apiFolder = _path_.join( this.dxcFolder, 'api');
@@ -136,7 +137,7 @@ export default class DexcaliburWorkspace
 
         this.settings = this.readSettings();
 
-
+        return;
     }
 
 

@@ -18,8 +18,8 @@ describe('Analyzer', function() {
 
     let PROJECT:DexcaliburProject = null;
 
-    before(function(){
-        PROJECT = TestHelper.getInitializedDexcaliburProject();
+    before(async function(){
+        PROJECT = await TestHelper.getInitializedDexcaliburProject();
     })
 
     describe('constructor', function() {

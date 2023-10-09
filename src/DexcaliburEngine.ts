@@ -583,10 +583,10 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
      * @param {Core.Configuration.GlobalSettings} pConfig
      * @version 1.0.0
      */
-    loadConfiguration( pConfig:Settings.GlobalSettings):void {
+    async loadConfiguration( pConfig:Settings.GlobalSettings):Promise<void> {
         this.settings = pConfig;
 
-        this.initServerSettings();
+        await this.initServerSettings();
         this.initExternalSettings();
         this.initConnectionsSettings();
     }
@@ -608,12 +608,12 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
      *  @method
      *  @since 1.0.0
      */
-    initServerSettings(): void{
+    async initServerSettings():Promise<void>{
         const ss=this.settings.getServerSettings();
 
         try{
             this.workspace = ss.getWorkspace();
-            this.workspace.init();
+            await this.workspace.init();
 
             this.userSvc = new UserService(
                 ss.getAuthenticationSettings(),
@@ -1123,7 +1123,7 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
         Logger.info('[ENGINE] Creating new project : ',pUID);
 
         wf.pushStatus(new StatusMessage( 6, "Initialize project"));
-        project.init();
+        await project.init();
 
 
         DexcaliburEngine.printBanner();

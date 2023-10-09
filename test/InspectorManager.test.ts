@@ -11,8 +11,8 @@ describe('Inspector Manager', function() {
     let ENGINE = null;
     let PROJECT = null;
 
-    before(function() {
-        ENGINE = TestHelper.getDexcaliburEngine()
+    before(async function() {
+        ENGINE = await TestHelper.getDexcaliburEngine()
         PROJECT = TestHelper.getDexcaliburProject();
     });
 

@@ -80,6 +80,8 @@ PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
 
                 user = (req.dxc.sess as UserSession).getUserAccount();
 
+                console.log("USER from sessions : ",user);
+
                 if(req.body['dev'] != null){
                     device = dm.getDevice( req.body['dev']);
                     if(device == null || !device.isEnrolled()){
@@ -137,7 +139,7 @@ PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
                         platform = PlatformManager.getInstance().getPlatform( req.body['platform']);
                         path = req.body['path'];
                         break;
-                    case 'fromfs':
+                    default:
                         throw new Error("Project type is invalid")
                         break;
                 }
@@ -251,8 +253,6 @@ PROJECT_MGT_WEB_API.addAuthenticatedRoute(
             let $:WebServer = req.dxc.$;
             let user:UserAccount;
             try {
-
-
                 $.uploader.newUpload( req, res,function( vId:string):any {
                     // save upload UID into user session
                     req.dxc.sess.addData('proj_upload_id', vId);

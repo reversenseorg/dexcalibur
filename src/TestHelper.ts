@@ -213,7 +213,7 @@ class TestHelperClass
     /**
      * @method
      */
-    newDexcaliburEngine():DexcaliburEngine{
+    async newDexcaliburEngine():Promise<DexcaliburEngine>{
         
         DexcaliburWorkspace.clearInstance();
 
@@ -224,7 +224,7 @@ class TestHelperClass
                 workspace: _path_.join( Util.__dirname(import.meta.url), '..', 'test', 'ws')
             });
 
-        engine.loadConfiguration(cfg);
+        await engine.loadConfiguration(cfg);
 
         engine.boot();
         
@@ -236,9 +236,9 @@ class TestHelperClass
      * @param {*} pForce 
      * @method
      */
-    getDexcaliburEngine(pForce:boolean = false):DexcaliburEngine{
+    async getDexcaliburEngine(pForce:boolean = false):Promise<DexcaliburEngine>{
         if(this.engine == null || pForce){
-            this.engine = this.newDexcaliburEngine();
+            this.engine = await this.newDexcaliburEngine();
         }
 
         return this.engine;
@@ -276,7 +276,7 @@ class TestHelperClass
      * @param pForce
      * @returns {DexcaliburProject}
      */
-    getInitializedDexcaliburProject(pForce:boolean = false):DexcaliburProject{
+    async getInitializedDexcaliburProject(pForce:boolean = false):Promise<DexcaliburProject>{
         if(this.project_ready == null || pForce){
 
             TestHelper.interceptExec( function(x){
@@ -285,7 +285,7 @@ class TestHelperClass
 
 
             this.project_ready = new DexcaliburProject(
-                this.newDexcaliburEngine(),
+                await this.newDexcaliburEngine(),
                 'owasp.mstg.uncrackable1'
             );
 

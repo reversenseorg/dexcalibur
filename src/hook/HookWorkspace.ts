@@ -212,7 +212,7 @@ export default class HookWorkspace {
      * @return {boolean}
      * @method
      */
-    init():boolean {
+    async init():Promise<boolean> {
 
         // create base folder
         if(!_fs_.existsSync(this._base)){
@@ -237,30 +237,37 @@ export default class HookWorkspace {
 
 
         // copy prebuilt-libs : interruptor, agent, ...
-        this.updateHookLibs();
+        await this.updateHookLibs();
 
         return true;
     }
 
-    private _copyHookFile(){
+    private async _copyHookFile():Promise<void>{
         const agentSrc = _path_.join(Util.__dirname(import.meta.url), '..','..', 'agent');
         const destBase = _path_.join(this._base, DIR_NAME.LIB);
 
         Logger.info("[HOOK WORKSPACE] Copy the content of Agent folder ["+agentSrc+"]  to  ["+destBase+"] ");
 
+        _fs_.cpSync(agentSrc, destBase, {
+            recursive: true,
+            verbatimSymlinks: false,
+            dereference: false
+        });
+        /*
         _fs_.readdirSync(agentSrc).map( (vFileName:string)=>{
             const src = _path_.join(agentSrc,vFileName);
             const dest = _path_.join(destBase,vFileName)
             Logger.info("[HOOK WORKSPACE] Copy Agent lib from '"+src+"'  to  '"+dest+"'");
             _fs_.copyFileSync(src,dest);
-        })
+
+        })*/
     }
 
     /**
      *
      * @param pForce
      */
-    updateHookLibs( pForce=false){
+    async updateHookLibs( pForce=false):Promise<void>{
         let doUpdate:boolean = pForce;
         if(!_fs_.existsSync(_path_.join(this._base, DIR_NAME.LIB))){
             // create folder
@@ -269,7 +276,7 @@ export default class HookWorkspace {
         }
 
         if(doUpdate){
-            this._copyHookFile();
+           await  this._copyHookFile();
         }
     }
 

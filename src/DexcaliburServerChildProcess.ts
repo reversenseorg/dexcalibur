@@ -185,7 +185,7 @@ export class DexcaliburServerChildProcess {
 
     let dxcWebRoot:string = null;
 
-    this.engine.loadConfiguration(cfg);
+    await this.engine.loadConfiguration(cfg);
 
     ready = await this.engine.boot(
       pOptions.restore===true? true : false,

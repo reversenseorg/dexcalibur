@@ -18,9 +18,9 @@ describe('Bus', function() {
 
     let PROJECT = null;
 
-    before(function(){
+    before(async function(){
         TestHelper.resetDexcaliburWorkspace();
-        PROJECT = TestHelper.getInitializedDexcaliburProject();
+        PROJECT = await TestHelper.getInitializedDexcaliburProject();
 
         TestInspector_1 = new InspectorFactory({
             id: 'UnitTestInspector',

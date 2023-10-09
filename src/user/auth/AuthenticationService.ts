@@ -366,17 +366,16 @@ export class AuthenticationService {
                     },
                     (req, v, userinfo, done) => {
 
-                        console.log(req, v, userinfo, done);
 
                         // Important : Only executed on /api-auth/cb
 
                         const userSvc = this._ctx.getUserService();
                         let usr:UserAccount;
                         try{
-                            console.log("Search logged user : "+userinfo.username);
+                            Logger.debug("Search logged user : "+userinfo.username);
                             usr = this.findUser(userinfo.username);
 
-                            console.log("Found user : "+usr.getUID());
+                            Logger.debug("Found user : "+usr.getUID());
 
                             if(userinfo.dxc == null) userinfo.dxc = {};
                             const sess =  userSvc.createSession(usr);
@@ -400,10 +399,10 @@ export class AuthenticationService {
 
                             // TODO : update with local project
                         }catch(err){
-                            console.log(err);
+                            Logger.error(err);
                             if(this._autoCreateOnSuccess){
 
-                                console.log("Creating local account for logged user");
+                                Logger.debug("Creating local account for logged user");
                                 const prs = new Person();
                                 prs.firstname = userinfo.name.givenName;
                                 prs.lastname = userinfo.name.familyName;
@@ -471,7 +470,7 @@ export class AuthenticationService {
                 passport.authenticate('openidconnect', { successMessage: true, failureMessage:true, failureRedirect: '/login'}),
                 (req, res, next) => {
 
-                    console.log("SSO : /api-auth/callback : auth callback");
+                    console.log("SSO : /api-auth/callback : auth callback",req, (req as any).session);
                     // depend of original request
                     res.redirect('/home/');
                 });

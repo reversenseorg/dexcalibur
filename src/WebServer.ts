@@ -1422,7 +1422,7 @@ export default class WebServer
             self.sendError(res, "Access denied");
         }
         function ensureGuiLoggedIn(req, res, next) {
-            console.log("GUI "+req.originalUrl," > ",req.isAuthenticated());
+            //console.log("GUI "+req.originalUrl," > ",req.isAuthenticated());
             if (req.isAuthenticated()) {
                 return next();
             }

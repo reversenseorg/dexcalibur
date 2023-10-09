@@ -89,6 +89,7 @@ export default class Util {
      */
     static getValue( pRawObject:any, pFieldName:string, pDefault:any):any {
         return (pRawObject!=null && pRawObject.hasOwnProperty(pFieldName)? pRawObject[pFieldName] : pDefault);
+        return (pRawObject!=null && pRawObject.hasOwnProperty(pFieldName)? pRawObject[pFieldName] : pDefault);
     }
 
     /**
@@ -426,6 +427,8 @@ export default class Util {
           fs.rmdirSync(pPath);
         }
       }
+
+
 
     static parseIPv4( pAddress:string, pHasPortNumber:boolean=false):any{
         const IPv4 = '(?<a>25[0–5]|2[0–4][0–9]|1[0-9]{2}|[0-9]{1,2})\.(?<b>25[0–5]|2[0–4][0–9]|1[0-9]{2}|[0-9]{1,2})\.(?<c>25[0–5]|2[0–4][0–9]|1[0-9]{2}|[0-9]{1,2})\.(?<d>25[0–5]|2[0–4][0–9]|1[0-9]{2}|[0-9]{1,2})';

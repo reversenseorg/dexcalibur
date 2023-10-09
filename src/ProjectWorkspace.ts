@@ -181,7 +181,7 @@ export default class ProjectWorkspace
      * If a folder already exists it will not be overwritten.
      * @method 
      */
-    init(){
+    async init():Promise<void>{
         if(!_fs_.existsSync(this.path)){
             _fs_.mkdirSync(this.path, {recursive: true});
         }    
@@ -220,7 +220,7 @@ export default class ProjectWorkspace
             _base:_path_.join(this.path, DIR_NAME.HKWS),
             _ws:this
         });
-        this.hookWS.init();
+        await this.hookWS.init();
 
         Logger.success("[*] Working directory : "+this.path);
     }

@@ -325,6 +325,7 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
 
         this.engine = pEngine;
         this.uid = pUID;
+        // scan scheduler should be attach to master engine
         this._scanScheduler = new ScanScheduler(this);
     }
 
@@ -360,12 +361,27 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
         return this.hook;
     }
 
-    getOwner():UserAccount {
-       return this.owner;
+    /**
+     * To get User UID of the owner
+     *
+     * @return {string} User UID
+     * @method
+     */
+    getOwner():string {
+       return this.getAccessAttribute(ProjectAccessControl.attr.OWNER).value;
     }
 
-    getAuditors():UserAccount[] {
-        return this.tester;
+    /**
+     * To get User UID of authorized tester
+     *
+     * @return {string} User UID
+     * @method
+     */
+    getAuditors():string[] {
+        let uids = this.getAccessAttribute(ProjectAccessControl.attr.TESTER).value;
+
+        uids = this.getOwner()+(uids!=null&&uids.length>0 ? ":":'')+uids;
+        return uids.split(':');
     }
 
 
@@ -605,7 +621,7 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
      *
      * @method
      */
-    init():void{
+    async init():Promise<void>{
         const im:InspectorManager = InspectorManager.getInstance();
 
         this.state = ProjectState.INIT_START;
@@ -635,7 +651,7 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
                 _path_.join( this.engine.workspace.getLocation(), this.uid )
             );
 
-            this.workspace.init();
+            await this.workspace.init();
 
             this._scanScheduler.restore();
         }
@@ -1293,7 +1309,11 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
         o.connector = this.connector.toJsonObject(); //constructor.getProperties();
         o._attr = {};
         for(const n in this._attr){
-            o._attr[n] = (this._attr[n].hasOwnProperty('toJsonObject')?this._attr[n].toJsonObject():this._attr[n]);
+            if(this._attr[n]!=null){
+                o._attr[n] = (this._attr[n].toJsonObject!=null)?this._attr[n].toJsonObject():this._attr[n];
+            }else{
+                o._attr[n] = null;
+            }
         }
 
 

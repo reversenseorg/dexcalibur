@@ -687,10 +687,10 @@ HOOK_WEB_API.addAsyncAuthenticatedRoute(
 
 
 
-HOOK_WEB_API.addAuthenticatedRoute(
+HOOK_WEB_API.addAsyncAuthenticatedRoute(
     '/libs/update',
     {
-        'get': function (req:DelegateRequest, res:DelegateResponse):any {
+        'get': async function (req:DelegateRequest, res:DelegateResponse):Promise<any> {
             const $: WebServer = req.dxc.$;
             let project:DexcaliburProject = null;
 

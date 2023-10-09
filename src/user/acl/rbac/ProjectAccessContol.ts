@@ -105,7 +105,7 @@ export class ProjectAccessControl extends DelegateAccessControl {
             case 'tester':
                 let authorizedUIDs = pProject.getAccessAttribute(pAttr) as string;
                 if(authorizedUIDs==null){
-                    authorizedUIDs = pProject.getOwner().getUID();
+                    authorizedUIDs = pProject.getAccessAttribute(ProjectAccessControl.attr.OWNER);
                 }
                 // verify project owner is the current user
                 if(authorizedUIDs.indexOf(pAccount.getUID())==-1){

@@ -201,7 +201,7 @@ if( !projectArgs.ipc
 
 
             // init engine with settings
-            dxcInstance.loadConfiguration(cfg);
+            await dxcInstance.loadConfiguration(cfg);
 
             // override previously loaded config
             if(projectArgs.overrideAuth!=null){

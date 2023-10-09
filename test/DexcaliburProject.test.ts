@@ -30,8 +30,8 @@ describe('DexcaliburProject', function() {
 
     let gEngine:DexcaliburEngine = null;
 
-    before(function(){
-        gEngine = TestHelper.getDexcaliburEngine();
+    before(async function(){
+        gEngine = await TestHelper.getDexcaliburEngine();
     })
 
     beforeEach(function() {
