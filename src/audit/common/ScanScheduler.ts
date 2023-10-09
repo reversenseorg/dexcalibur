@@ -7,7 +7,6 @@ import DexcaliburProject from "../../DexcaliburProject.js";
 import {ScanFlow} from "./ScanFlow.js";
 import {AssuranceScanner} from "./AssuranceScanner.js";
 import {CoreDebug} from "../../core/CoreDebug.js";
-import {isMainThread} from "worker_threads";
 
 
 export class ScanScheduler {
