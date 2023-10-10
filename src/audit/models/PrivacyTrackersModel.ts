@@ -10,9 +10,9 @@ import {TestType} from "../common/TestPlan.js";
 
 
 const model = new AssuranceModel({
-    id: "privacy.trackers2",
+    id: "privacy.trackers.old",
     scannerID:"scanner.generic",
-    name: "Privacy Trackers detection",
+    name: "[Legacy] Privacy Trackers detection",
     description: "N/A",
     links: [],
     controls:[]
@@ -102,4 +102,4 @@ rawData.trackers.map((vRaw)=>{
 
 model.updateControlTree(model.controls);
 
-export const PrivacyTrackersModel = model;
+export const OldPrivacyTrackersModel = model;

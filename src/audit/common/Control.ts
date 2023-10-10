@@ -106,13 +106,19 @@ export default class Control implements IControl {
 
         if(this.hasChildren()){
             this.children.map(x => {
-                o.children.push(x.toJsonObject())
+                if(x.toJsonObject!=null)
+                    o.children.push(x.toJsonObject())
+                else
+                    o.children.push(x)
             });
         }
 
         if(this.hasAssessments()){
             this.assessments.map(x => {
-                o.assessments.push(x.toJsonObject())
+                if(x.toJsonObject!=null)
+                    o.assessments.push(x.toJsonObject())
+                else
+                    o.assessments.push(x)
             });
         }
 

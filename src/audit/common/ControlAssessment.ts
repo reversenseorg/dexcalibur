@@ -7,6 +7,8 @@ import {IControl} from "./IControl.js";
 import {TestType} from "./TestPlan.js";
 import {CoreDebug} from "../../core/CoreDebug.js";
 import {Metadata} from "./Metadata.js";
+import {Nullable} from "../../core/IStringIndex.js";
+import {SerializedMerlinPrimitive} from "./SerializedMerlinPrimitive.js";
 
 
 export enum AnalysisType {
@@ -17,6 +19,8 @@ export enum AnalysisType {
 export interface ControlAssessmentMap {
     [key:string] :ControlAssessment;
 }
+
+
 
 export interface ControlAssessmentOpts {
     id?:string;
@@ -124,7 +128,12 @@ export default class ControlAssessment implements IControl {
                     o.rules = [];
                     this.rules.map( x => {
                         if(x!=null){
-                            o.rules.push( x.toJsonObject());
+
+                            if(x.toJsonObject!=null)
+                                o.rules.push(x.toJsonObject())
+                            else
+                                o.rules.push(x)
+
                         }
                     });
                     break;
@@ -145,7 +154,9 @@ export default class ControlAssessment implements IControl {
 
         if(a.rules.length>0){
             a.rules.map((vRule,vIndex)=>{
-                if(vRule.TYPE===MerlinType.REQUEST){
+                const type = vRule.TYPE!=null ? vRule.TYPE : (vRule as any)._type;
+
+                if(type===MerlinType.REQUEST){
                     a.rules[vIndex] = MerlinSearchRequest.fromJsonObject(vRule);
                 }else{
                     a.rules[vIndex] = Merlin.fromJsonObject(vRule);

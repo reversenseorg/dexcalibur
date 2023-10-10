@@ -14,6 +14,7 @@ import {NodeInternalType, NodeInternalTypeName} from "../NodeInternalType.js";
 import { MerlinPrimitive, MerlinType} from "./Merlin.js";
 import {CoreDebug} from "../core/CoreDebug.js";
 import {TagManager} from "../tags/TagManager.js";
+import {SerializedMerlinPrimitive} from "../audit/common/SerializedMerlinPrimitive.js";
 
 
 export enum OperationType {
@@ -855,7 +856,6 @@ export class MerlinSearchRequest implements MerlinPrimitive{
 
 
   static fromJsonObject(pObject:any):MerlinSearchRequest {
-    console.log("MerlinSearchRequest.fromJsonObject _type ! : "+pObject._type);
     const r = new MerlinSearchRequest(null, NodeInternalTypeName[pObject._type+""], pObject._oper)
     r._live = pObject._live;
     r._aggs = pObject._aggs;
@@ -865,4 +865,13 @@ export class MerlinSearchRequest implements MerlinPrimitive{
     return r;
   }
 
+  static fromSerializedMerlinPrimitive(pObject:SerializedMerlinPrimitive):any {
+    /*const r = new MerlinSearchRequest(null, NodeInternalTypeName[pObject.node.toUpperCase()], pObject._oper)
+    r._live = pObject._live;
+    r._aggs = pObject._aggs;
+    r._options = pObject._options;
+    r._evt = pObject._evt;
+    r._search = pObject._search;*/
+    return pObject;
+  }
 }

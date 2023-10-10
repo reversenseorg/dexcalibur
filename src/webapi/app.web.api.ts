@@ -73,13 +73,11 @@ APP_WEB_API.addAuthenticatedRoute(
                 if(req.query.path!=null && req.query.path!="null"){
 
                     unsafeNomalizedPath = _path_.normalize(req.query.path as string);
-                    if(unsafeNomalizedPath !== req.query.path){
+                    if((unsafeNomalizedPath!='.') && (unsafeNomalizedPath !== req.query.path)){
                         throw new Error('[SECURITY] Path traversal is not allowed. ');
                     }
 
-                    if(unsafeNomalizedPath.length==0){
-                        unsafeNomalizedPath = "."
-                    }else if(unsafeNomalizedPath[0]!=_path_.sep){
+                    if(unsafeNomalizedPath[0]!=_path_.sep){
                         unsafeNomalizedPath = _path_.sep+unsafeNomalizedPath;
                     }
 

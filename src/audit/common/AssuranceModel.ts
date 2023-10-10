@@ -11,6 +11,7 @@ import {AuditAccessControl} from "../../user/acl/rbac/AssuranceModelAccessContro
 import ControlAssessment from "./ControlAssessment.js";
 import {IControl} from "./IControl.js";
 import {CoreDebug} from "../../core/CoreDebug.js";
+import {Nullable} from "../../core/IStringIndex.js";
 
 export enum AssuranceModelType {
     SECURITY="sec",
@@ -64,6 +65,7 @@ export default class AssuranceModel extends Auditable implements IAuditableAcces
 
     secondaryAssets:Asset[] = [];
 
+    _beforeLoad:Nullable<(self:AssuranceModel)=>void> = null;
     /**
      * @deprecated
      */
@@ -141,7 +143,14 @@ export default class AssuranceModel extends Auditable implements IAuditableAcces
         return this.secondaryAssets;
     }
 
+    beforeLoad(pBeforeLoad:((model:AssuranceModel)=>void)):void{
+        this._beforeLoad = pBeforeLoad;
+    }
+
     load():void {
+        if(this._beforeLoad!=null){
+            this._beforeLoad.apply(null, [this]);
+        }
         return ;
     }
 

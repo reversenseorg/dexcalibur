@@ -33,7 +33,6 @@ DEVICE_WEB_API.addAsyncPublicRoute(
                     dev = $.context.getDeviceManager().getDevice(req.query.uid);
                 }
                 else{
-                    req.dxc.project = DEVICE_WEB_API.doProjectSecurityChecks(req, $, {readProject:true, readProjectStrict:true });
                     dev = req.dxc.project.getDevice();
                 }
 

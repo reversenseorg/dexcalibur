@@ -36,7 +36,7 @@ export class SignatureServerAPI {
 
         if(raw.success){
             raw.data.map( x => {
-                ctrls.push( new Control(x));
+                ctrls.push( Control.fromJsonObject(x));
             });
         }
 

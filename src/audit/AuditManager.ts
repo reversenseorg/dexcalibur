@@ -4,15 +4,9 @@ import * as _fs_ from 'fs';
 import DexcaliburProject from "../DexcaliburProject.js";
 import AssuranceModel from "./common/AssuranceModel.js";
 import AssuranceReport from "./common/AssuranceReport.js";
-import { PrivacyModel } from "./privacy/PrivacyModel.js";
-import Util from '../Utils.js';
 import {AuditManagerException} from "./errors/AuditManagerException.js";
-import {OwaspMasvsModel} from "./models/OwaspModel.js";
-import {PrivacyTrackersModel} from "./models/PrivacyTrackersModel.js";
-import {PrivacyPiiModel} from "./models/PrivacyPiiModel.js";
+import {PrivacyTrackersModel} from "./models/SharePrivacyTrackersModel.js";
 import DexcaliburEngine from "../DexcaliburEngine.js";
-import {Logger} from "@dexcalibur/dexcalibur-installer/src/utils/Logger.js";
-import {Scan} from "./common/Scan.js";
 import {PrivacyPiiModel2} from "./models/PrivacyPiiModel2.js";
 import {ReversenseNetworkSecurityModel} from "./models/NetworkUsageModel.js";
 
@@ -76,9 +70,12 @@ export class AuditManager {
      * @return {AssuranceModel[]}
      * @method
      */
-    listModels( pProject:DexcaliburProject|null = null):AssuranceModel[] {
+    async listModels( pProject:DexcaliburProject|null = null):Promise<AssuranceModel[]> {
         let allModels:AssuranceModelMap = {};
         let globalModels:AssuranceModelMap = {};
+
+        // if additionnal configuration is provided over Dexcalibur command arguments
+
 
         // if project is specified, add models from project workspace
         if(pProject!=null) {
@@ -107,6 +104,23 @@ export class AuditManager {
 
         // if some built-in models are not already stored in Dexcalibur or Project workspace,
         // create it
+
+        const presetModels = [
+            PrivacyPiiModel2,
+            PrivacyTrackersModel,
+            ReversenseNetworkSecurityModel
+        ];
+
+        let x:AssuranceModel;
+        for(let i=0; i<presetModels.length; i++){
+            x = presetModels[i];
+            if(allModels[x.getID()]==null){
+                await x.load();
+                allModels[x.getID()] = x;
+            }
+        }
+
+        /*
         [
             //OwaspMasvsModel,
             //PrivacyPiiModel,
@@ -119,7 +133,8 @@ export class AuditManager {
                 //this.saveModel(x, pProject);
                 allModels[x.getID()] = x;
             }
-        });
+        });*/
+
 
         return Object.values(allModels);
     }
@@ -187,8 +202,8 @@ export class AuditManager {
         return reports;
     }
 
-    getModel(pProject:DexcaliburProject, pModelID:string):AssuranceModel {
-        const models = this.listModels(pProject);
+    async getModel(pProject:DexcaliburProject, pModelID:string):Promise<AssuranceModel> {
+        const models = await this.listModels(pProject);
         let model:AssuranceModel = null;
         for(let i=0; i<models.length; i++){
             if(models[i].id===pModelID){

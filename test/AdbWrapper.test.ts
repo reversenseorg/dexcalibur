@@ -382,6 +382,7 @@ describe('ADB Wrapper', function() {
             try{
                 ret = adbw.listPackages();
             }catch(err){
+                console.log(process.env);
                 console.log(err);
                 f++;
             }

@@ -855,7 +855,8 @@ ${"\t".repeat(1)}Default Arch = ${srv.getDefaultArchitecture()}
                             console.log(` - ${i} `);
 
                         console.log(`[AUDIT] All models available`);
-                        const models = am.listModels();
+                        const models = await am.listModels();
+
                         models.map(x => {
                             console.log(`=====================\n ${x.id} \n=====================\n`);
                             try{
@@ -994,9 +995,9 @@ ${"\t".repeat(1)}Default Arch = ${srv.getDefaultArchitecture()}
 
                                 const am = AuditManager.getInstance();
 
-                                projectArgs.mScanType.split(',').map( vModelName => {
+                                projectArgs.mScanType.split(',').map( async (vModelName) => {
                                     console.log(`[AUDIT] Get model [${vModelName}] ...`);
-                                    const model = am.getModel(dxcProject, vModelName);
+                                    const model = await am.getModel(dxcProject, vModelName);
 
                                     console.log(`[AUDIT] Search scanner for model [${vModelName}] ...`);
                                     const scanner:AssuranceScanner = LicenceManager.getProduct(dxcProject,model.getScannerID()) as AssuranceScanner;
