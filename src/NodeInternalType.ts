@@ -1,3 +1,5 @@
+import {IStringIndex} from "./core/IStringIndex.js";
+
 export enum NodeInternalType {
     BASIC_BLOCK,
     CLASS,
@@ -109,3 +111,6 @@ export const NodeInternalTypeName = {
     [NodeInternalType.CALL]: "CALL",
     [NodeInternalType.NONE]: "NONE"
 }
+
+
+

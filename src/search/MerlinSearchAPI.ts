@@ -40,6 +40,7 @@ export interface SearchOptions {
 
   strict?:boolean;
   exists?:boolean;
+  nocase?:boolean;
 }
 
 

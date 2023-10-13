@@ -28,6 +28,7 @@ import {DataSource} from "./DataSource.js";
 import {TagCategory} from "./tags/TagCategory.js";
 import {Tag} from "./tags/Tag.js";
 import SystemCallHook from "./hook/SystemCallHook.js";
+import {IStringIndex} from "./core/IStringIndex.js";
 
 UserAccount.TYPE.updateProperties([
     (new NodeProperty('_uid')).type(DbDataType.STRING).key(DbKeyType.PRIMARY),
@@ -598,4 +599,67 @@ export class NodeSchema{
         // nothing to do
         // BUT KEEP IT TO FORCE INIT (important !)
     }
+
+    /*
+    static getNodeTypeByName(){
+
+        export const NodeInternalTypeMapping:IStringIndex<NodeInternalType> = {
+            basicBlocks: Model,
+            classes: NodeInternalType.CLASS,
+            methods: NodeInternalType.METHOD,
+            fields: NodeInternalType.FIELD,
+            files: NodeInternalType.FILE,
+            instr: NodeInternalType.INSTRUCTION,
+            metadata: NodeInternalType.METADATA,
+            packages: NodeInternalType.PACKAGE,
+            // SWITCH_STMT: NodeInternalType.SWITCH_STMT,
+            syscalls: NodeInternalType.SYSCALL,
+            tagcategories: NodeInternalType.TAG_CATEGORY,
+            //CATCH_STMT: NodeInternalType.CATCH_STMT,
+            //SWITCH_CASE: NodeInternalType.SWITCH_CASE,
+            funcs: NodeInternalType.FUNC,
+            //EXEC_SECTION: NodeInternalType.EXEC_SECTION,
+            //VAR: NodeInternalType.VAR,
+            //INSTR_CPU: NodeInternalType.INSTR_CPU,
+            //FILE_SECTION: NodeInternalType.FILE_SECTION,
+            //PLATFORM_PPT: NodeInternalType.PLATFORM_PPT,
+            //INTERNAL_DB: NodeInternalType.INTERNAL_DB,
+            //USER_ACCOUNT: NodeInternalType.USER_ACCOUNT,
+            //USER_SESSION: NodeInternalType.USER_SESSION,
+            //USER_SESSION_DATA: NodeInternalType.USER_SESSION_DATA,
+            //DATA_SCOPE: NodeInternalType.DATA_SCOPE,
+            //KEY_POINT: NodeInternalType.KEY_POINT,
+            //HOOK_BUILDER_RULE: NodeInternalType.HOOK_BUILDER_RULE,
+            //BOOKMARK_TYPE: NodeInternalType.BOOKMARK_TYPE,
+            bookmark: NodeInternalType.BOOKMARK,
+            //HOOK_JAVA: NodeInternalType.HOOK_JAVA,
+            //HOOK_NATIVE: NodeInternalType.HOOK_NATIVE,
+            //HOOK_FRAGMENT: NodeInternalType.HOOK_FRAGMENT,
+            //HOOK_STRATEGY: NodeInternalType.HOOK_STRATEGY,
+            //HOOK_GROUP: NodeInternalType.HOOK_GROUP,
+            //HOOK_SET: NodeInternalType.HOOK_SET,
+            //SCRIPT: NodeInternalType.SCRIPT,
+            //ANAL_STATE: NodeInternalType.ANAL_STATE,
+            //tags: NodeInternalType.TAG,
+            datablock: NodeInternalType.DATA_BLOCK,
+            strings: NodeInternalType.STRING,
+            activities: NodeInternalType.ANDROID_ACTIVITY,
+            receivers: NodeInternalType.ANDROID_RECEIVER,
+            providers: NodeInternalType.ANDROID_PROVIDER,
+            services: NodeInternalType.ANDROID_SERVICE,
+            permissions: NodeInternalType.ANDROID_PERM,
+            //INSPECTOR: NodeInternalType.INSPECTOR,
+            //HOOK_SESSION: NodeInternalType.HOOK_SESSION,
+            //RUNTIME_EVENT: NodeInternalType.RUNTIME_EVENT,
+            //HOOK_SYSCALL: NodeInternalType.HOOK_SYSCALL,
+            //LIB_FP: NodeInternalType.LIB_FP,
+            //TEST_CREDS: NodeInternalType.TEST_CREDS,
+            //DASHBOARD: NodeInternalType.DASHBOARD,
+            call: NodeInternalType.CALL,
+            //NONE: NodeInternalType.NONE
+        }
+
+
+
+    }*/
 }

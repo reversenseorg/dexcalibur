@@ -1,4 +1,5 @@
 import {Nullable} from "../../core/IStringIndex.js";
+import {Operation, OperationType} from "../../search/MerlinSearchRequest.js";
 
 
 export enum MerlinType {
@@ -25,7 +26,7 @@ export interface SerializedMerlinPrimitive {
     i18n_request?:any;
     os: string,
     on?: Nullable<string>
-    oper?: SerializedMerlinOperation[],
+    oper?: Nullable<Operation[]>, //SerializedMerlinOperation[],
     opts?: Nullable<string[]>,
     args?: Nullable<any[]>
 }

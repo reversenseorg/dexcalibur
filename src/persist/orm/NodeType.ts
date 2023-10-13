@@ -5,6 +5,7 @@ import * as Log from "../../Logger.js";
 import {IncomingValue, SanitizedValue, UnsafeValue} from "../../security/SanitizedValue.js";
 import {SqliteException} from "../../../connectors/sqlite/SqliteException.js";
 import {DataSource} from "../../DataSource.js";
+import {Nullable} from "../../core/IStringIndex.js";
 
 
 export interface NodePropertyMap {
@@ -428,5 +429,20 @@ export class NodeType {
         }
     }
 
+    /**
+     * To retrieve the Node type from its name
+     *
+     * @param {string} pName Node name, as declared in the constructor
+     * @return {NodeType} Instance of the NodeType associated to this name
+     * @method
+     * @static
+     */
+    static getTypeByName(pName:string):NodeType {
+        const type:Nullable<NodeType> = NodeType.ALL[pName];
+        if(type==null){
+            throw Error("NodeType not recognized");
+        }
+        return type;
+    }
 
 }

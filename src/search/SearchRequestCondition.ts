@@ -14,6 +14,11 @@ export interface ValidateOptions {
   strict?: boolean
 }
 
+/**
+ * Represent a condition from a search request
+ *
+ * @class
+ */
 export class SearchRequestCondition implements IStringIndex<any>{
 
   static WILDCARD = '*';

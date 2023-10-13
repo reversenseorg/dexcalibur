@@ -154,7 +154,10 @@ export default class ControlAssessment implements IControl {
 
         if(a.rules.length>0){
             a.rules.map((vRule,vIndex)=>{
-                const type = vRule.TYPE!=null ? vRule.TYPE : (vRule as any)._type;
+                let type = vRule.TYPE!=null ? vRule.TYPE : (vRule as any)._type;
+                if(type == null && (vRule as any).engine=="merlin"){
+                    type = MerlinType.RULE;
+                }
 
                 if(type===MerlinType.REQUEST){
                     a.rules[vIndex] = MerlinSearchRequest.fromJsonObject(vRule);

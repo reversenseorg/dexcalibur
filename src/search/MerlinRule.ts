@@ -3,12 +3,11 @@ import DexcaliburProject from "../DexcaliburProject.js";
 import {MerlinSearchRequest, Operation, OperationType, TaintOperationArgs} from "./MerlinSearchRequest.js";
 import {OperatingSystem} from "../OperatingSystem.js";
 import {FinderResult} from "./FinderResult.js";
-import {Merlin, MerlinPrimitive, MerlinType} from "./Merlin.js";
+import {MerlinPrimitive, MerlinType} from "./Merlin.js";
 import {BusSubscriber} from "../Bus.js";
-import {Tag} from "../tags/Tag.js";
 import {NodeType} from "../persist/orm/NodeType.js";
-import {NodeInternalType, NodeInternalTypeName} from "../NodeInternalType.js";
 import {CoreDebug} from "../core/CoreDebug.js";
+import {MerlinUnserializer} from "./MerlinUnserializer.js";
 
 export enum MerlinRuleType {
     STATIC,
@@ -34,17 +33,26 @@ export interface SearchOptions {
     copyTo?:any;
 
     strict?:boolean;
+    nocase?:boolean;
 }
 
 export interface MerlinRuleOptions {
     type?:MerlinRuleType;
     emulate?:boolean;
     request?:MerlinSearchRequest;
-    _sinks?:MerlinRule[];
-    _sources?:MerlinRule[];
-    _steps?:MerlinRule[];
+    _sinks?:MerlinSearchRequest[];
+    _sources?:MerlinSearchRequest[];
+    _steps?:MerlinSearchRequest[];
 }
 
+
+/**
+ * Represents a detection rule base on a single search request or on
+ * a combination  of several search requests linked by one or more analysis
+ * such as taint analysis
+ *
+ * @class
+ */
 export class MerlinRule extends MerlinSearchAPI implements MerlinPrimitive {
 
 
@@ -54,25 +62,46 @@ export class MerlinRule extends MerlinSearchAPI implements MerlinPrimitive {
 
     emulate = false;
 
+    /**
+     * The most basic rule contains a single search request, doing one
+     * or more operations to search / filter but NOT taint analysis
+     *
+     * If the rule perform taint analysis between results of search requests from SOURCES
+     * and results from SINK, this field is NULL
+     *
+     * @type {MerlinSearchRequest|null}
+     */
     request:MerlinSearchRequest|null;
 
-    oper:Operation[] = [];
+
+    private oper:Operation[] = [];
 
 
 
     protected _sinks:MerlinSearchRequest[] = [];
     protected _sources:MerlinSearchRequest[] = [];
-    protected _steps:MerlinRule[] = [];
+    protected _steps:MerlinSearchRequest[] = [];
 
-    protected _subs:MerlinRule[] = [];
+    // ???
+    protected _subs:MerlinSearchRequest[] = [];
 
+    /**
+     * Event type to listen
+     * @type {string[]}
+     */
     private _evt:string[] = []
 
 
     constructor(pTargetOS:OperatingSystem|undefined, pOpts:MerlinRuleOptions) {
         super();
 
-        for(const i in pOpts) this[i] = pOpts[i];
+        if(pOpts.type!=null) this.type = pOpts.type;
+        if(pOpts.emulate!=null) this.emulate = pOpts.emulate;
+        if(pOpts.request!=null) this.request = pOpts.request;
+        if(pOpts._sinks!=null) this._sinks = pOpts._sinks;
+        if(pOpts._sources!=null) this._sources = pOpts._sources;
+        if(pOpts._steps!=null) this._steps = pOpts._steps;
+
 
         this.targetOS = pTargetOS;
     }
@@ -109,36 +138,91 @@ export class MerlinRule extends MerlinSearchAPI implements MerlinPrimitive {
     static  stringify(pOperations:Operation[], pSuffix = ""):string {
         let s = "";
         let type:any;
+        let taintNodes = ""
         pOperations.map((vOpe)=>{
             switch (vOpe.type){
                 case OperationType.TAINT_SRC:
-                    type = (vOpe.args as TaintOperationArgs).request.getNode();
-                    if(typeof type!=="string"){
-                        type = MerlinSearchAPI.getMethodFromNodeType((type as NodeType).getType());
+
+                    taintNodes = "";
+                    (vOpe.args as TaintOperationArgs).request.map(x => {
+
+                        type = x.getNode();
+                        if(typeof type!=="string"){
+                            type = MerlinSearchAPI.getMethodFromNodeType((type as NodeType).getType());
+                        }
+
+                        taintNodes += `${pSuffix+MerlinSearchRequest.stringify(x.getOperations(), type)},`;
+                    })
+
+                    if(taintNodes.endsWith(',')){
+                        taintNodes = taintNodes.substring(0,taintNodes.length-1);
                     }
 
-                    s += `.sources(${pSuffix+MerlinSearchRequest.stringify(
-                        (vOpe.args as TaintOperationArgs).request.getOperations(), type)})`;
+                    s += `.sources([${taintNodes}])`;
                     break;
                 case OperationType.TAINT_SINK:
-                    type = (vOpe.args as TaintOperationArgs).request.getNode();
-                    if(typeof type!=="string"){
-                        type = MerlinSearchAPI.getMethodFromNodeType((type as NodeType).getType());
+
+
+                    taintNodes = "";
+                    (vOpe.args as TaintOperationArgs).request.map(x => {
+
+                        type = x.getNode();
+                        if(typeof type!=="string"){
+                            type = MerlinSearchAPI.getMethodFromNodeType((type as NodeType).getType());
+                        }
+
+                        taintNodes += `${pSuffix+MerlinSearchRequest.stringify(x.getOperations(), type)},`;
+                    })
+
+                    if(taintNodes.endsWith(',')){
+                        taintNodes = taintNodes.substring(0,taintNodes.length-1);
                     }
 
-                    s += `.sink(${pSuffix+MerlinSearchRequest.stringify(
-                        (vOpe.args as TaintOperationArgs).request.getOperations(), type )})`;
+                    s += `.sink([${taintNodes}])`;
                     break;
                 case OperationType.TAINT_STEP:
-                    s += `.step(${pSuffix+MerlinRule.stringify( (vOpe.args as TaintOperationArgs).request.getOperations() )})`;
+
+
+                    taintNodes = "";
+                    (vOpe.args as TaintOperationArgs).request.map(x => {
+
+                        type = x.getNode();
+                        if(typeof type!=="string"){
+                            type = MerlinSearchAPI.getMethodFromNodeType((type as NodeType).getType());
+                        }
+
+                        taintNodes += `${pSuffix+MerlinSearchRequest.stringify(x.getOperations(), type)},`;
+                    })
+
+                    if(taintNodes.endsWith(',')){
+                        taintNodes = taintNodes.substring(0,taintNodes.length-1);
+                    }
+
+                    s += `.step([${taintNodes}])`;
+
                     break;
             }
         });
         return s;
     }
 
+    /**
+     * To get "operation-based" representtation of the rule
+     *
+     * This representation is useful to stringify the request.
+     *
+     * @return {Operation[]}
+     * @method
+     */
     getOperations():Operation[] {
-        return this.oper;
+        if(this.request!=null){
+            return this.request.getOperations();
+        }
+
+        const ops:Operation[] = [];
+        if(this._sources.length>0){
+        }
+        return ops;
     }
 
     /**
@@ -177,6 +261,10 @@ export class MerlinRule extends MerlinSearchAPI implements MerlinPrimitive {
         });
     }
 
+    /**
+     *
+     * @param pRules
+     */
     sources( pRules:MerlinSearchRequest):MerlinRule {
         this.type = MerlinRuleType.TAINT;
         this._sources.push(pRules);
@@ -213,18 +301,18 @@ export class MerlinRule extends MerlinSearchAPI implements MerlinPrimitive {
         return this;
     }
 
-    steps( pRules:MerlinRule):MerlinRule {
+    steps( pRules:MerlinSearchRequest):MerlinRule {
         this._steps.push(pRules);
 
         return this;
     }
 
-    allowEmulator(pConfig:any):MerlinRule {
+    allowEmulator():MerlinRule {
         this.emulate = true;
         return this;
     }
 
-    hook( pRules:MerlinSearchRequest, pHookOpts:any ):MerlinRule {
+    hook():MerlinRule {
         this.type = MerlinRuleType.DYNAMIC;
         return this;
     }
@@ -252,11 +340,16 @@ export class MerlinRule extends MerlinSearchAPI implements MerlinPrimitive {
         let paths:any[] = [];
         let res:FinderResult;
 
+        // gather sources nodes
         for(let i=0; i<this._sources.length; i++){
             res = await this._sources[i].execute(pProject);
             src = src.concat(res.getData() as any);
         }
 
+        // gather sinks node
+
+        // do taint analysis
+        // TaintAnalysisEngine.start(pProject, sourcesNodes, sinkNodes, allowEmulator)
 
         return paths;
     }
@@ -275,12 +368,13 @@ export class MerlinRule extends MerlinSearchAPI implements MerlinPrimitive {
 
         CoreDebug.checkJsonSerialize(o,"MerlinRule (super)");
 
-        const v = {
+        const v:any = {
             o,
             TYPE: this.TYPE,
             type: this.type,
             emulate: this.emulate,
-            request: null,
+           // request: this.request.toJsonObject(),
+
             //oper: this.oper,
             _sinks: this._sinks.map(x => x.toJsonObject()),
             _sources: this._sources.map(x => x.toJsonObject()),
@@ -298,20 +392,27 @@ export class MerlinRule extends MerlinSearchAPI implements MerlinPrimitive {
     }
 
     static fromJsonObject(pObject:any):MerlinRule{
-        const o = new MerlinRule(pObject.targetOS, pObject);
 
-        o._sinks.map((vReq, vI)=>{
-            //o._sinks[vI] = MerlinSearchRequest.fromJsonObject();
-        });
-        o._sources.map((vReq, vI)=>{
-           // o._sources[vI] = MerlinSearchRequest.fromJsonObject();
-        });
-        o._steps.map((vReq, vI)=>{
-            o._steps[vI] = Merlin.fromJsonObject(vReq);
-        });
-        o._subs.map((vReq, vI)=>{
-            o._subs[vI] = Merlin.fromJsonObject(vReq);
-        });
+        let o:MerlinRule;
+        if(pObject.engine!=null){
+            o = MerlinUnserializer.fromSerializedMerlinPrimitive(pObject);
+        }else{
+             o = new MerlinRule(pObject.targetOS, pObject);
+
+            o._sinks.map((vReq, vI)=>{
+                o._sinks[vI] = MerlinSearchRequest.fromJsonObject(vReq);
+            });
+            o._sources.map((vReq, vI)=>{
+                o._sources[vI] = MerlinSearchRequest.fromJsonObject(vReq);
+            });
+            o._steps.map((vReq, vI)=>{
+                o._steps[vI] = MerlinSearchRequest.fromJsonObject(vReq);
+            });
+            o._subs.map((vReq, vI)=>{
+                o._subs[vI] = MerlinSearchRequest.fromJsonObject(vReq);// Merlin.fromJsonObject(vReq);
+            });
+        }
+
         return o;
     }
 }

@@ -9,7 +9,8 @@ export enum AnalyzerErrCode {
     SCRIPT=5000,
     ANDROID_APP=6000,
     IOS_APP=7000,
-    BIN_APP=8000
+    BIN_APP=8000,
+    SEARCH=9000
 }
 
 export class AnalyzerException extends MonitoredError {

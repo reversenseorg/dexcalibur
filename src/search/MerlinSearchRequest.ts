@@ -8,13 +8,10 @@ import Util from "../Utils.js";
 import {NodeProperty} from "../persist/orm/NodeProperty.js";
 import {OperatingSystem} from "../OperatingSystem.js";
 import {BusSubscriber} from "../Bus.js";
-import ControlAssessment from "../audit/common/ControlAssessment.js";
 import DexcaliburProject from "../DexcaliburProject.js";
 import {NodeInternalType, NodeInternalTypeName} from "../NodeInternalType.js";
 import { MerlinPrimitive, MerlinType} from "./Merlin.js";
 import {CoreDebug} from "../core/CoreDebug.js";
-import {TagManager} from "../tags/TagManager.js";
-import {SerializedMerlinPrimitive} from "../audit/common/SerializedMerlinPrimitive.js";
 
 
 export enum OperationType {
@@ -32,6 +29,7 @@ export enum OperationType {
   TAINT_SINK,
   TAINT_STEP
 }
+
 
 export enum Comparison {
   LTE,
@@ -74,7 +72,7 @@ export interface AggregationOperationArgs {
 }
 
 export interface TaintOperationArgs {
-  request: MerlinSearchRequest
+  request: MerlinSearchRequest[]
 }
 
 export interface TimeOperationArgs {
@@ -210,9 +208,12 @@ export class MerlinSearchRequest implements MerlinPrimitive{
    *  "@tag"
    *
    * { pattern:"data.event_log.id:$1", elem:[1] }
-   * @param pCond
+   * @param {MerlinSearchAPI} pSearchContext Context
+   * @param {string} pCond Condition string
+   * @param {SearchOptions} pOptions Search options
+   *
    */
-  static parseCondition(pSearchContext:MerlinSearchAPI, pCond:string, pOptions:SearchOptions):SearchRequestCondition {
+  static parseCondition(pCond:string, pOptions:SearchOptions):SearchRequestCondition {
     const d = pCond.indexOf(':');
     const offsetTag = pCond.indexOf('@');
     let tagUID = null;
@@ -254,7 +255,7 @@ export class MerlinSearchRequest implements MerlinPrimitive{
       if(pCondition.length>0){
         req.addOperation({
           type:OperationType.SEARCH, args:{
-            pattern: MerlinSearchRequest.parseCondition(pSearchContext, pCondition, pOptions)
+            pattern: MerlinSearchRequest.parseCondition(pCondition, pOptions)
           }
         });
       }
@@ -262,7 +263,7 @@ export class MerlinSearchRequest implements MerlinPrimitive{
       // TODO : add object-based pattern instead of string
       req.addOperation({
         type:OperationType.SEARCH, args:{
-          pattern: MerlinSearchRequest.parseCondition(pSearchContext, pCondition, pOptions)
+          pattern: MerlinSearchRequest.parseCondition(pCondition, pOptions)
         }
       });
     }
@@ -313,7 +314,7 @@ export class MerlinSearchRequest implements MerlinPrimitive{
   }
 
   search( pRequest:string, pOptions:SearchOptions = { not:false }):MerlinSearchRequest {
-    this._oper.push({ type: OperationType.SEARCH, args:{ pattern: MerlinSearchRequest.parseCondition(this._ctx, pRequest,pOptions) } });
+    this._oper.push({ type: OperationType.SEARCH, args:{ pattern: MerlinSearchRequest.parseCondition(pRequest,pOptions) } });
     this._search++;
     return this;
   }
@@ -321,7 +322,7 @@ export class MerlinSearchRequest implements MerlinPrimitive{
   not( pRequest:string, pOptions:SearchOptions = { not:true }):MerlinSearchRequest {
      // force
     pOptions.not = true;
-    this._oper.push({ type: OperationType.SEARCH, args:{ pattern: MerlinSearchRequest.parseCondition(this._ctx, pRequest,pOptions) } });
+    this._oper.push({ type: OperationType.SEARCH, args:{ pattern: MerlinSearchRequest.parseCondition(pRequest,pOptions) } });
     this._search++;
     return this;
   }
@@ -342,7 +343,7 @@ export class MerlinSearchRequest implements MerlinPrimitive{
   filter( pRequest:string, pOptions:SearchOptions = { not:false }):MerlinSearchRequest{
     // force NOT to be false
     pOptions.not = false;
-    this._oper.push({ type: OperationType.FILTER, args:{ pattern: MerlinSearchRequest.parseCondition(this._ctx, pRequest,pOptions) } });
+    this._oper.push({ type: OperationType.FILTER, args:{ pattern: MerlinSearchRequest.parseCondition(pRequest,pOptions) } });
     return this;
   }
 
@@ -865,13 +866,4 @@ export class MerlinSearchRequest implements MerlinPrimitive{
     return r;
   }
 
-  static fromSerializedMerlinPrimitive(pObject:SerializedMerlinPrimitive):any {
-    /*const r = new MerlinSearchRequest(null, NodeInternalTypeName[pObject.node.toUpperCase()], pObject._oper)
-    r._live = pObject._live;
-    r._aggs = pObject._aggs;
-    r._options = pObject._options;
-    r._evt = pObject._evt;
-    r._search = pObject._search;*/
-    return pObject;
-  }
 }
