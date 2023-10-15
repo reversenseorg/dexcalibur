@@ -1,61 +1,30 @@
 import * as _path_ from "path";
 import * as _fs_ from "fs";
 
+
+
+import DexcaliburProject from "../../DexcaliburProject.js";
 import {ScanFlow} from "./ScanFlow.js";
-import DexcaliburEngine from "../../DexcaliburEngine.js";
-import {ScanOrder} from "./ScanOrder.js";
-import {Subject} from "rxjs";
-
-/**
- * Present a scan scheduler
- *
- * An engine instance has only one scan scheduler.
- * It works closely with NodeManager to spawn slave instance of dexcalibur
- * and run scan
- *
- * @class
- */
-export class ScanScheduler {
+import {AssuranceScanner} from "./AssuranceScanner.js";
+import {CoreDebug} from "../../core/CoreDebug.js";
 
 
-    /**
-     *
-     * @private
-     */
-    private _ctx:DexcaliburEngine;
+export class ScanSchedulerProject {
 
+
+
+    private _ctx:DexcaliburProject;
 
 
     private _lock = false;
 
-    private _new$:Subject<ScanOrder> = new Subject<ScanOrder>();
 
-    private _queued$:Subject<ScanOrder> = new Subject<ScanOrder>();
-
-
+    private _queued:ScanFlow[] = [];
     private _active:ScanFlow[] = [];
     private _past:ScanFlow[] = [];
 
-    constructor( pEngine:DexcaliburEngine) {
-        this._ctx = pEngine;
-
-        this._new$.subscribe((vOrder:ScanOrder)=>{
-            this.verifyBalance(vOrder);
-        });
-
-        this._queued$.subscribe((vOrder:ScanOrder)=>{
-            this.newScan(vOrder);
-        });
-    }
-
-    /**
-     * To verify if the project owner account has enough credits to order
-     * the scan
-     * @param vOrder
-     */
-    verifyBalance(vOrder:ScanOrder){
-        // TODO : verify balance and sign result
-        this._queued$.next(vOrder);
+    constructor( pProject:DexcaliburProject) {
+        this._ctx = pProject;
     }
 
     private _checkLock():void {
@@ -66,26 +35,11 @@ export class ScanScheduler {
     }
 
 
-    newOrder(pOrder:ScanOrder):void {
-        this._new$.next(pOrder);
+    getProject():DexcaliburProject {
+        return this._ctx;
     }
 
-
-    /**
-     * To start a new scan
-     *
-     * @param pOrder
-     */
-    newScan(pOrder:ScanOrder):void {
-
-        if(this._ctx.nodeManager.isStarted(pOrder.getProjectUID())){
-            // start using existing node
-            return null;
-        }else{
-
-        }
-
-        /*
+    newScan(pScanner:AssuranceScanner):ScanFlow {
         const flow = new ScanFlow(this);
         flow.setScanner(pScanner);
 
@@ -94,10 +48,9 @@ export class ScanScheduler {
 
         this.save();
 
-        return flow;*/
+        return flow;
     }
 
-    /*
     start(pDelay = 0):ScanFlow[] {
         const moved:ScanFlow[] = [];
         // prevent race condition
@@ -132,7 +85,6 @@ export class ScanScheduler {
         const folder = this._ctx.getWorkspace().getAuditDir();
         return _path_.join(folder, "scheduler.json");
     }
-
     save():void {
         const path = this._getSaveFilePath();
 
@@ -184,5 +136,5 @@ export class ScanScheduler {
 
         CoreDebug.checkJsonSerialize(o, "ScanScheduler");
         return o;
-    }*/
+    }
 }

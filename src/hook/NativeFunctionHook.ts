@@ -20,7 +20,7 @@ export enum HookTargetType {
 export default class NativeFunctionHook extends AbstractHook {
 
 
-    static TYPE:NodeType = (new NodeType( "hook_native", NodeInternalType.HOOK_NATIVE, []));
+    static TYPE:NodeType = (new NodeType( "hookNative", NodeInternalType.HOOK_NATIVE, []));
 
     __:NodeInternalType = NodeInternalType.HOOK_NATIVE;
 

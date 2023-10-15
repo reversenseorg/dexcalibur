@@ -16,7 +16,7 @@ import {CoreDebug} from "./core/CoreDebug.js";
 export default class ModelPackage extends Savable implements IPersistent
 {
 
-    static TYPE:NodeType = (new NodeType( "code_package", NodeInternalType.PACKAGE, [])).dataSource(DataSourceHelper.MEM, "package");
+    static TYPE:NodeType = (new NodeType( "package", NodeInternalType.PACKAGE, [])).dataSource(DataSourceHelper.MEM, "package");
 
     __:NodeInternalType = NodeInternalType.PACKAGE;
 

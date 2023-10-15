@@ -123,7 +123,17 @@ export class InMemoryMerlinBackend {
                 case OperationType.INNERJOIN:
                     phaseRes[i] = [];
                     phaseRes[i-1].map(x => {
-                        const children = x[(phases[i][0].args as InnerjoinOperationArgs).on.getName()];
+                        let ppt:string;
+
+                        if(typeof (phases[i][0].args as any).on=="string" ){
+                            ppt = (phases[i][0].args as any).on;
+                        }else{
+                            ppt = (phases[i][0].args as any).on.getName();
+                        }
+
+
+
+                        const children = x[ppt];
                         if(children!=null){
                             if(Array.isArray(children)){
                                 phaseRes[i] = phaseRes[i].concat(children);

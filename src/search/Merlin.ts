@@ -2,46 +2,8 @@ import {MerlinRule, MerlinRuleOptions} from "./MerlinRule.js";
 import {OperatingSystem} from "../OperatingSystem.js";
 import { MerlinAndroidRule } from "./MerlinAndroidRule.js";
 import {MerlinIosRule} from "./MerlinIosRule.js";
-import DexcaliburProject from "../DexcaliburProject.js";
-import {FinderResult} from "./FinderResult.js";
-import ControlAssessment from "../audit/common/ControlAssessment.js";
-import {BusSubscriber} from "../Bus.js";
 import {MerlinFlutterRule} from "./MerlinFlutterRule.js";
-
-export interface RuleOption {
-    score?:number
-}
-
-export enum MerlinScopes {
-    FROM_OUTSIDE,
-    TO_OUTSIDE
-}
-
-export enum MerlinType {
-    REQUEST,
-    RULE
-}
-
-/**
- * @interface
- */
-export interface MerlinPrimitive {
-    TYPE: MerlinType
-
-    execute?(pContext:any):Promise<FinderResult>;
-
-    executeSync?(pContext:any):FinderResult;
-
-    toJsonObject():any;
-
-    toSearchString():string;
-
-    hasBusSubscriber():boolean;
-
-    getSubscribeList():string[];
-
-    toBusSubscriber(pContext:any):BusSubscriber;
-}
+import {MerlinPrimitive, MerlinType} from "./MerlinPrimitive.js";
 
 /**
  * Decontextualized API to write detection/verifying rules
@@ -95,7 +57,10 @@ export class Merlin {
         return new MerlinFlutterRule(pRuleOption);
     }
 
+    /*
     static fromJsonObject(pObject:any):MerlinAndroidRule|MerlinIosRule|MerlinRule {
+
+
         switch (pObject.targetOS){
             case OperatingSystem.ANDROID:
                 return MerlinAndroidRule.fromJsonObject(pObject);
@@ -107,5 +72,5 @@ export class Merlin {
                 return MerlinRule.fromJsonObject(pObject);
                 break;
         }
-    }
+    }*/
 }

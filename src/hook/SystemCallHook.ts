@@ -12,7 +12,7 @@ export enum HookTargetType {
 
 export default class SystemCallHook extends AbstractHook {
 
-    static TYPE:NodeType = (new NodeType( "hook_syscall", NodeInternalType.HOOK_SYSCALL, []));
+    static TYPE:NodeType = (new NodeType( "hookSyscall", NodeInternalType.HOOK_SYSCALL, []));
 
     __:NodeInternalType = NodeInternalType.HOOK_SYSCALL;
 

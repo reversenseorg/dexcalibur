@@ -16,7 +16,6 @@ import Util from "./src/Utils.js";
 import AccessControl from "./src/user/acl/AccessControl.js";
 import {install} from "./src/install/Installer.js";
 import DexcaliburRegistry from "./src/DexcaliburRegistry.js";
-import {PrivacyModel} from "./src/audit/privacy/PrivacyModel.js";
 import {ConstraintType} from "./src/audit/common/Constraint.js";
 import CodeConstraint from "./src/audit/common/CodeConstraint.js";
 import {NodeInternalTypeName} from "./src/NodeInternalType.js";
@@ -1066,7 +1065,7 @@ ${"\t".repeat(1)}Default Arch = ${srv.getDefaultArchitecture()}
                     }
 
 
-                    if(projectArgs.mPrintPriv){
+                    /*if(projectArgs.mPrintPriv){
                         console.log(chalk.yellow("[-] Load Privacy model : "));
                         const model:PrivacyModel = new PrivacyModel();
                         model.load()
@@ -1100,7 +1099,7 @@ ${"\t".repeat(1)}Default Arch = ${srv.getDefaultArchitecture()}
                         console.log(chalk.whiteBright("[-] Personal Data : "));
 
 
-                    }
+                    }*/
                 }
             }catch (err){
                 console.log(chalk.red(err.message));

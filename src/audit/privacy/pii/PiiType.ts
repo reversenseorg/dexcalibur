@@ -1,11 +1,9 @@
 import { PiiField } from "./PiiField.js";
-import {MerlinRule} from "../../../search/MerlinRule.js";
 import DexcaliburProject from "../../../DexcaliburProject.js";
 import {MerlinSearchRequest} from "../../../search/MerlinSearchRequest.js";
 import Asset, {AssetOptions} from "../../common/Asset.js";
-import {PiiClass} from "./PiiClass.js";
 import Constraint from "../../common/Constraint.js";
-import {MerlinPrimitive} from "../../../search/Merlin.js";
+import {MerlinPrimitive} from "../../../search/MerlinPrimitive.js";
 
 
 export interface PiiTypeMap {

@@ -42,7 +42,6 @@ import {DexcaliburUpdater} from "./DexcaliburUpdater.js";
 import Tool = External.Tool;
 import {DXC_LIFECYCLE_EVENT} from "./CoreConst.js";
 import Util from "./Utils.js";
-import {PrivacyScanner} from "./audit/privacy/PrivacyScanner.js";
 import {LicenceManager} from "./credit/LicenceManager.js";
 import {AuditManager} from "./audit/AuditManager.js";
 import {WebGuiConfiguration} from "./webserver/WebGuiConfiguration.js";
@@ -50,6 +49,7 @@ import {WebGuiHelper} from "./webserver/WebGuiHelper.js";
 import {SignatureServerAPI} from "./audit/SignatureServerAPI.js";
 import {Nullable} from "./core/IStringIndex.js";
 import {EngineNodeManager} from "./core/EngineNodeManager.js";
+import {ScanScheduler} from "./audit/common/ScanScheduler.js";
 
 
 /*
@@ -370,6 +370,8 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
     
     nodeManager:EngineNodeManager;
 
+    scanScheduler:ScanScheduler;
+
     /**
      * To instanciate DexcaliburEngine.
      *
@@ -397,6 +399,7 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
             auth: null
         });
         this.nodeManager = new EngineNodeManager(this);
+        this.scanScheduler = new ScanScheduler(this);
     }
 
     initAccessControl():void {
@@ -426,6 +429,10 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
         }
 
         return gEngineInstance;
+    }
+
+    getScanScheduler():ScanScheduler {
+        return this.scanScheduler;
     }
 
     /**

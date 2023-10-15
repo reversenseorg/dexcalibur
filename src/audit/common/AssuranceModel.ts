@@ -177,22 +177,30 @@ export default class AssuranceModel extends Auditable implements IAuditableAcces
     static fromJsonObject(pData:any):AssuranceModel {
         const o = new AssuranceModel(pData);
 
-        pData.globalThreats.map( (x,i) => {
-           o.globalThreats[i] = new Threat(x);
-        });
+        if(pData.globalThreats!=null){
+            pData.globalThreats.map( (x:any,i:number) => {
+                o.globalThreats[i] = new Threat(x);
+            });
+        }
 
-        pData.primaryAssets.map( (x,i) => {
-            o.primaryAssets[i] = new Asset(x);
-        });
+        if(pData.primaryAssets!=null){
+            pData.primaryAssets.map( (x:any,i:number) => {
+                o.primaryAssets[i] = new Asset(x);
+            });
+        }
 
-        pData.secondaryAssets.map( (x,i) => {
-            o.secondaryAssets[i] = new Asset(x);
-        });
+        if(pData.secondaryAssets!=null){
+            pData.secondaryAssets.map( (x:any,i:number) => {
+                o.secondaryAssets[i] = new Asset(x);
+            });
+        }
 
-        pData.controls.map( (x,i) => {
+
+
+
+        pData.controls.map( (x:any,i:number) => {
             o.controls[i] = Control.fromJsonObject(x);
         });
-
 
 
         return o;

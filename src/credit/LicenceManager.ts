@@ -2,7 +2,6 @@
 import {UserAccount} from "../user/UserAccount.js";
 import DexcaliburProject from "../DexcaliburProject.js";
 import {Product} from "./Product.js";
-import {PrivacyScanner} from "../audit/privacy/PrivacyScanner.js";
 import {GenericScanner} from "../audit/common/GenericScanner.js";
 import AssuranceModel from "../audit/common/AssuranceModel.js";
 
@@ -44,10 +43,10 @@ export class LicenceManager {
 
         const svc = LicenceManager.wallet[pProject.getLicenseNo()];
         switch (pProductCode){
-            case 'scanner.privacy':
+            /*case 'scanner.privacy':
                 // add serial/key check
                 svc['scanner.privacy'] = new PrivacyScanner({ project:pProject });
-                break;
+                break;*/
             case 'scanner.generic':
                 // add serial/key check
                 svc['scanner.generic'] = new GenericScanner({ project:pProject });

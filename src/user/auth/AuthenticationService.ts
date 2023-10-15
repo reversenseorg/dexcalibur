@@ -470,7 +470,7 @@ export class AuthenticationService {
                 passport.authenticate('openidconnect', { successMessage: true, failureMessage:true, failureRedirect: '/login'}),
                 (req, res, next) => {
 
-                    console.log("SSO : /api-auth/callback : auth callback",req, (req as any).session);
+                    Logger.debugRAW("SSO : /api-auth/callback : auth callback",req, (req as any).session);
                     // depend of original request
                     res.redirect('/home/');
                 });

@@ -3,11 +3,13 @@ import DexcaliburProject from "../DexcaliburProject.js";
 import {MerlinSearchRequest, Operation, OperationType, TaintOperationArgs} from "./MerlinSearchRequest.js";
 import {OperatingSystem} from "../OperatingSystem.js";
 import {FinderResult} from "./FinderResult.js";
-import {MerlinPrimitive, MerlinType} from "./Merlin.js";
 import {BusSubscriber} from "../Bus.js";
 import {NodeType} from "../persist/orm/NodeType.js";
 import {CoreDebug} from "../core/CoreDebug.js";
-import {MerlinUnserializer} from "./MerlinUnserializer.js";
+import {Nullable} from "../core/IStringIndex.js";
+import {MerlinPrimitive, MerlinType} from "./MerlinPrimitive.js";
+import {DevException} from "../errors/DevException.js";
+import {SerializedSearchRequest} from "../audit/common/SerializedMerlinPrimitive.js";
 
 export enum MerlinRuleType {
     STATIC,
@@ -40,9 +42,9 @@ export interface MerlinRuleOptions {
     type?:MerlinRuleType;
     emulate?:boolean;
     request?:MerlinSearchRequest;
-    _sinks?:MerlinSearchRequest[];
-    _sources?:MerlinSearchRequest[];
-    _steps?:MerlinSearchRequest[];
+    _sinks?:MerlinRule[];
+    _sources?:MerlinRule[];
+    _steps?:MerlinRule[];
 }
 
 
@@ -78,9 +80,9 @@ export class MerlinRule extends MerlinSearchAPI implements MerlinPrimitive {
 
 
 
-    protected _sinks:MerlinSearchRequest[] = [];
-    protected _sources:MerlinSearchRequest[] = [];
-    protected _steps:MerlinSearchRequest[] = [];
+    protected _sinks:MerlinRule[] = [];
+    protected _sources:MerlinRule[] = [];
+    protected _steps:MerlinRule[] = [];
 
     // ???
     protected _subs:MerlinSearchRequest[] = [];
@@ -104,6 +106,10 @@ export class MerlinRule extends MerlinSearchAPI implements MerlinPrimitive {
 
 
         this.targetOS = pTargetOS;
+    }
+
+    getRequestByNode(pRequestOpts:SerializedSearchRequest,pOpts:SearchOptions|null):Nullable<MerlinSearchRequest>{
+        return null;
     }
 
     execute?(pContext: any): Promise<FinderResult> {
@@ -265,13 +271,13 @@ export class MerlinRule extends MerlinSearchAPI implements MerlinPrimitive {
      *
      * @param pRules
      */
-    sources( pRules:MerlinSearchRequest):MerlinRule {
+    sources( pRules:MerlinRule):MerlinRule {
         this.type = MerlinRuleType.TAINT;
         this._sources.push(pRules);
         this.oper.push({
             type: OperationType.TAINT_SRC,
             args: {
-                request: pRules
+                request: pRules.getRequest()
             }
         });
         return this;
@@ -281,13 +287,14 @@ export class MerlinRule extends MerlinSearchAPI implements MerlinPrimitive {
      * Top/Down taint analysis
      * @param pRules
      */
-    sink( pRules:MerlinSearchRequest):MerlinRule {
+    sink( pRules:MerlinRule):MerlinRule {
         this.type = MerlinRuleType.TAINT;
         this._sinks.push(pRules);
         this.oper.push({
             type: OperationType.TAINT_SINK,
             args: {
-                request: pRules
+                request: pRules.getRequest()
+
             }
         });
         return this;
@@ -301,8 +308,15 @@ export class MerlinRule extends MerlinSearchAPI implements MerlinPrimitive {
         return this;
     }
 
-    steps( pRules:MerlinSearchRequest):MerlinRule {
+    steps( pRules:MerlinRule):MerlinRule {
         this._steps.push(pRules);
+        this.oper.push({
+            type: OperationType.TAINT_SINK,
+            args: {
+                request: pRules.getRequest()
+
+            }
+        });
 
         return this;
     }
@@ -317,6 +331,9 @@ export class MerlinRule extends MerlinSearchAPI implements MerlinPrimitive {
         return this;
     }
 
+    getRequest():Nullable<MerlinSearchRequest> {
+        return this.request;
+    }
 
     executeSync(pProject:DexcaliburProject):FinderResult {
         // update DB
@@ -392,27 +409,27 @@ export class MerlinRule extends MerlinSearchAPI implements MerlinPrimitive {
     }
 
     static fromJsonObject(pObject:any):MerlinRule{
-
+        throw DevException.DEPRECATED("Rule must be unserialized using MerlinUnserializer instead of MerlinRule.fromJsonObject()");
+        /*
         let o:MerlinRule;
         if(pObject.engine!=null){
             o = MerlinUnserializer.fromSerializedMerlinPrimitive(pObject);
+
+            throw DevException.DEPRECATED("Rule must be unserialized using MerlinUnserializer instead of MerlinRule.fromJsonObject()");
         }else{
              o = new MerlinRule(pObject.targetOS, pObject);
 
-            o._sinks.map((vReq, vI)=>{
-                o._sinks[vI] = MerlinSearchRequest.fromJsonObject(vReq);
+            o._sinks.map((vReq:any, vI)=>{
+                o._sinks[vI] = MerlinUnserializer.fromSerializedMerlinPrimitive(vReq);
             });
-            o._sources.map((vReq, vI)=>{
-                o._sources[vI] = MerlinSearchRequest.fromJsonObject(vReq);
+            o._sources.map((vReq:any, vI)=>{
+                o._sources[vI] = MerlinUnserializer.fromSerializedMerlinPrimitive(vReq);
             });
-            o._steps.map((vReq, vI)=>{
-                o._steps[vI] = MerlinSearchRequest.fromJsonObject(vReq);
+            o._steps.map((vReq:any, vI)=>{
+                o._steps[vI] = MerlinUnserializer.fromSerializedMerlinPrimitive(vReq);
             });
-            o._subs.map((vReq, vI)=>{
-                o._subs[vI] = MerlinSearchRequest.fromJsonObject(vReq);// Merlin.fromJsonObject(vReq);
-            });
-        }
-
-        return o;
+        }*/
     }
 }
+
+const none = new MerlinRule(OperatingSystem.TIZEN, {});

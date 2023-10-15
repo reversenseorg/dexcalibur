@@ -2,8 +2,8 @@ import {DelegateRequest, DelegateResponse, DelegateWebApi} from "./DelegateWebAp
 import WebServer, {HTTP_CODE_ERROR, HTTP_CODE_SUCCESS} from "../WebServer.js";
 import {Request, Response} from "express";
 import * as Log from "../Logger.js";
-import {PrivacyScanner} from "../audit/privacy/PrivacyScanner.js";
 import {LicenceManager} from "../credit/LicenceManager.js";
+import {GenericScanner} from "../audit/common/GenericScanner.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 export const PRIVACY_WEB_API: DelegateWebApi = new DelegateWebApi();
@@ -19,7 +19,7 @@ PRIVACY_WEB_API.addAuthenticatedRoute(
 
                 // ========== LOGIC
 
-                const scanner:PrivacyScanner = LicenceManager.getProduct(req.dxc.project,"PRI_CLD_SSCAN") as PrivacyScanner;
+                const scanner:GenericScanner = LicenceManager.getProduct(req.dxc.project,"PRI_CLD_SSCAN") as GenericScanner;
 
                 const data = {
                     db_names: [],
@@ -52,21 +52,23 @@ PRIVACY_WEB_API.addAuthenticatedRoute(
 
                 // ========== LOGIC
 
-                const scanner:PrivacyScanner = LicenceManager.getProduct(req.dxc.project,"PRI_CLD_SSCAN") as PrivacyScanner;
+                const scanner:GenericScanner = LicenceManager.getProduct(req.dxc.project,"PRI_CLD_SSCAN") as GenericScanner;
 
                 //scanner.hasCredit()
-                scanner.scan({
+                /*scanner.scan({
                     trackersNet: true,
                     trackersLib: true,
 
                     perm: false,
                     piiTypes: false,
                     piiFlows: false
-                });
+                });*/
+
+                //scanner.scan()
 
                 // get hook instance by ID
                 const data = {
-                    report: scanner.lastReport.toJsonObject()
+                    report: scanner.getReport().toJsonObject()
                 };
 
                 $.sendSuccess(res,  data);
@@ -90,7 +92,7 @@ PRIVACY_WEB_API.addAuthenticatedRoute(
 
                 // ========== LOGIC
 
-                const scanner:PrivacyScanner = LicenceManager.getProduct(req.dxc.project,"PRI_CLD_SSCAN") as PrivacyScanner;
+                const scanner:GenericScanner = LicenceManager.getProduct(req.dxc.project,"PRI_CLD_SSCAN") as GenericScanner;
 
                 //scanner.hasCredit()
                 const report = scanner.runModel(req.dxc.project);
@@ -124,7 +126,7 @@ PRIVACY_WEB_API.addAuthenticatedRoute(
 
                 // ========== LOGIC
 
-                const scanner:PrivacyScanner = LicenceManager.getProduct(req.dxc.project,"PRI_CLD_SSCAN") as PrivacyScanner;
+                const scanner:GenericScanner = LicenceManager.getProduct(req.dxc.project,"PRI_CLD_SSCAN") as GenericScanner;
 
                 // get hook instance by ID
                 const data = {
@@ -157,7 +159,7 @@ PRIVACY_WEB_API.addAuthenticatedRoute(
 
                 // ========== LOGIC
 
-                const scanner:PrivacyScanner = LicenceManager.getProduct(req.dxc.project,"PRI_CLD_SSCAN") as PrivacyScanner;
+                const scanner:GenericScanner = LicenceManager.getProduct(req.dxc.project,"PRI_CLD_SSCAN") as GenericScanner;
 
                 $.sendSuccess(res,  scanner.model.toJsonObject());
             }catch(err){

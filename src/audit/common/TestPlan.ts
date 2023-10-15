@@ -1,7 +1,7 @@
 import { ControlNode } from "./AssuranceModel.js";
 
 export enum TestType {
-    PT="VT",
+    PT="PT",
     VT="VT",
     STATIC_SCAN="sast",
     DYN_SCAN="dast",

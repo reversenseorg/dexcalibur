@@ -251,7 +251,6 @@ export class DelegateWebApi
     }
 
     ensureLoggedIn = (req, res, next) => {
-        console.log(req.originalUrl," > ",req.isAuthenticated());
             if (req.isAuthenticated()) {
             return next();
         }
@@ -260,7 +259,6 @@ export class DelegateWebApi
     };
 
     _ensureAuthenticated(req, res, next){
-        console.log(req.originalUrl," > ",req.isAuthenticated());
         if (req.isAuthenticated()) {
             return next();
         }
@@ -308,8 +306,7 @@ export class DelegateWebApi
                         //req.dxc.$ = self.srv;
                         try {
                             //if(self.srv.hasSsoAuthentication()){
-                            console.log(req.originalUrl+" : is Autenticated ? "+(req as any).isAuthenticated())
-                            console.log(req.dxc);
+                            //console.log(req.originalUrl+" : is Autenticated ? "+(req as any).isAuthenticated())
 
                             /*if(req.session!=null && req.session.user!=null && req.session.user.dxc != null){
                                 req.dxc = (req.session as any).user.dxc;

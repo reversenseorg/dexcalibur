@@ -38,7 +38,7 @@ import {CoreDebug} from "./core/CoreDebug.js";
  */
 export default class ModelMethod extends Savable implements INode,IPersistent
 {
-    static TYPE:NodeType = (new NodeType( "code_method", NodeInternalType.METHOD, [])).dataSource(DataSourceHelper.MEM, "method");
+    static TYPE:NodeType = (new NodeType( "method", NodeInternalType.METHOD, [])).dataSource(DataSourceHelper.MEM, "method");
 
     __:NodeInternalType = NodeInternalType.METHOD;
     alias:string = null;

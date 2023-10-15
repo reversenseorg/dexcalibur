@@ -1,6 +1,7 @@
 import got, {Options} from "got";
 import {IStringIndex} from "../core/IStringIndex.js";
 import Control from "./common/Control.js";
+import AssuranceModel from "./common/AssuranceModel.js";
 const GOT = got.default;
 
 
@@ -72,5 +73,23 @@ export class SignatureServerAPI {
         const raw = JSON.parse(response.body);
         console.log("[SIGNATURE SERVER API] deleteTracker > ",raw);
         return raw;
+    }
+
+
+    async getModels():Promise<AssuranceModel[]> {
+
+        const response = await GOT(this.baseURL+"api/models");
+        const raw = JSON.parse(response.body);
+        const models:AssuranceModel[] = [];
+
+
+        console.log(raw);
+        if(raw.success){
+            raw.data.map( x => {
+                models.push( AssuranceModel.fromJsonObject(x));
+            });
+        }
+
+        return models;
     }
 }

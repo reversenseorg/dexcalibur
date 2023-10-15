@@ -1,14 +1,13 @@
 import {MerlinSearchRequest} from "../../search/MerlinSearchRequest.js";
 import {MerlinRule} from "../../search/MerlinRule.js";
-import {Merlin, MerlinPrimitive, MerlinType} from "../../search/Merlin.js";
 import {INode} from "../../INode.js";
 import Control from "./Control.js";
 import {IControl} from "./IControl.js";
 import {TestType} from "./TestPlan.js";
 import {CoreDebug} from "../../core/CoreDebug.js";
 import {Metadata} from "./Metadata.js";
-import {Nullable} from "../../core/IStringIndex.js";
-import {SerializedMerlinPrimitive} from "./SerializedMerlinPrimitive.js";
+import {MerlinPrimitive, MerlinType} from "../../search/MerlinPrimitive.js";
+import {MerlinUnserializer} from "../../search/MerlinUnserializer.js";
 
 
 export enum AnalysisType {
@@ -162,7 +161,7 @@ export default class ControlAssessment implements IControl {
                 if(type===MerlinType.REQUEST){
                     a.rules[vIndex] = MerlinSearchRequest.fromJsonObject(vRule);
                 }else{
-                    a.rules[vIndex] = Merlin.fromJsonObject(vRule);
+                    a.rules[vIndex] = MerlinUnserializer.fromSerializedMerlinPrimitive(vRule as any);
                 }
 
             });

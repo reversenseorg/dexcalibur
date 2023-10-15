@@ -12,7 +12,7 @@ import {CoreDebug} from "./core/CoreDebug.js";
 export default class ModelStringValue extends Savable
 {
     static HASH_ALGO = createHash('sha1');
-    static TYPE:NodeType = (new NodeType( "strings", NodeInternalType.STRING, [
+    static TYPE:NodeType = (new NodeType( "stringsValue", NodeInternalType.STRING, [
         (new NodeProperty("_uid")).type(DbDataType.STRING).key(DbKeyType.PRIMARY), // path relative to scope root
         //(new NodeProperty("_uid")).type(DbDataType.STRING), //.key(DbKeyType.PRIMARY),
         (new NodeProperty("src")).volatile().type(DbDataType.STRING).def(null),

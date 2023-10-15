@@ -26,6 +26,7 @@ export enum ErrorCode {
     SECURITY = 90000,
     SECURITY_RUNTIME = 91000,
     SETTINGS = 95000,
+    DEV_MODE = 99000,
 }
 
 

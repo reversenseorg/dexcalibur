@@ -6,7 +6,7 @@ import AssuranceReport from "../common/AssuranceReport.js";
 import {MerlinSearchRequest} from "../../search/MerlinSearchRequest.js";
 import Control from "./Control.js";
 import ControlAssessment from "./ControlAssessment.js";
-import {Merlin, MerlinPrimitive} from "../../search/Merlin.js";
+import {Merlin} from "../../search/Merlin.js";
 import {MerlinSearchAPI} from "../../search/MerlinSearchAPI.js";
 import {TestPlan, TestStep, TestType} from "./TestPlan.js";
 import {CANONICALIZED_ROOT, ControlNode} from "./AssuranceModel.js";
@@ -14,6 +14,7 @@ import * as Log from "../../Logger.js";
 import {IControl} from "./IControl.js";
 import {CoreDebug} from "../../core/CoreDebug.js";
 import {AuditManager} from "../AuditManager.js";
+import {MerlinPrimitive} from "../../search/MerlinPrimitive.js";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 

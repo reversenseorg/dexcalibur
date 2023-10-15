@@ -10,8 +10,8 @@ import {OperatingSystem} from "../OperatingSystem.js";
 import {BusSubscriber} from "../Bus.js";
 import DexcaliburProject from "../DexcaliburProject.js";
 import {NodeInternalType, NodeInternalTypeName} from "../NodeInternalType.js";
-import { MerlinPrimitive, MerlinType} from "./Merlin.js";
 import {CoreDebug} from "../core/CoreDebug.js";
+import {MerlinPrimitive, MerlinType} from "./MerlinPrimitive.js";
 
 
 export enum OperationType {
@@ -60,7 +60,7 @@ export interface NestedRequestOperationArgs {
 }
 
 export interface InnerjoinOperationArgs {
-  on: NodeProperty,
+  on: NodeProperty|string,
   cond?: SearchRequestCondition
 }
 
@@ -572,27 +572,39 @@ export class MerlinSearchRequest implements MerlinPrimitive{
           let nn = ", {";
           const nnArgs:InnerjoinOperationArgs = x.args as InnerjoinOperationArgs;
 
+          if(x.args!=null){
+            if(nnArgs.cond!=null){
+              if(nnArgs.cond.opts!=null){
+                if(nnArgs.cond.opts.query_string) nn += ` query_string: ${JSON.stringify(nnArgs.cond.opts.query_string)},`;
+                if(nnArgs.cond.opts.not) nn += ` not: ${JSON.stringify(nnArgs.cond.opts.not)},`;
+                if(nnArgs.cond.opts.regexp) nn += ` regexp: "${nnArgs.cond.opts.regexp}",`;
+                if(nnArgs.cond.opts.range) nn += ` range: [${JSON.stringify(nnArgs.cond.opts.range)}],`;
+                if(nnArgs.cond.opts.copyTo) nn += ` copyTo: ${JSON.stringify(nnArgs.cond.opts.exists)},`;
+                if(nnArgs.cond.opts.strict) nn += ` strict: ${JSON.stringify(nnArgs.cond.opts.strict)},`;
+              }
 
-          if(nnArgs.cond!=null){
-            if(nnArgs.cond.opts!=null){
-              if(nnArgs.cond.opts.query_string) nn += ` query_string: ${JSON.stringify(nnArgs.cond.opts.query_string)},`;
-              if(nnArgs.cond.opts.not) nn += ` not: ${JSON.stringify(nnArgs.cond.opts.not)},`;
-              if(nnArgs.cond.opts.regexp) nn += ` regexp: "${nnArgs.cond.opts.regexp}",`;
-              if(nnArgs.cond.opts.range) nn += ` range: [${JSON.stringify(nnArgs.cond.opts.range)}],`;
-              if(nnArgs.cond.opts.copyTo) nn += ` copyTo: ${JSON.stringify(nnArgs.cond.opts.exists)},`;
-              if(nnArgs.cond.opts.strict) nn += ` strict: ${JSON.stringify(nnArgs.cond.opts.strict)},`;
+              if(nn.length>1) nn =  nn.substring(0,nn.length-1);
+              nn += "}";
+
+            }else{
+              nn = "";
             }
 
-            if(nn.length>1) nn =  nn.substring(0,nn.length-1);
-            nn += "}";
+            if(nnArgs.on != null){
+              if(typeof nnArgs.on=="string"){
+                s += `.select("${nnArgs.on}"${nn})`;
+              }else{
+                s += `.select("${nnArgs.on.getName()}"${nn})`;
+              }
 
+            }
           }else{
-            nn = "";
+            console.error(x,this);
           }
 
-          if(nnArgs.on != null){
-            s += `.select("${nnArgs.on.getName()}"${nn})`;
-          }
+
+
+
 
           break;
         case OperationType.VALIDATE:
@@ -648,12 +660,24 @@ export class MerlinSearchRequest implements MerlinPrimitive{
           break;
         case OperationType.INTERSECT:
           const iArgs:NestedRequestOperationArgs = x.args as NestedRequestOperationArgs;
-          s += `.union(${iArgs.request.toSearchString()})`;
+          if(iArgs!= null && iArgs.request!=null){
+            s += `.intersect(${iArgs.request.toSearchString()})`;
+          }else{
+            console.error(this,iArgs);
+            s += ".intersect(UNDEFINED)";
+          }
+
           // s += `.intersect("${iArgs.on}", { alias:${x.args.opts.alias} ${x.args.size? ",size:"+x.args.size : "" })`;
           break;
         case OperationType.JOIN:
           const jArgs:NestedRequestOperationArgs = x.args as NestedRequestOperationArgs;
-          s += `.join(${jArgs.request.toSearchString()}, ${JSON.stringify(jArgs.cond)})`;
+          if(jArgs!=null && jArgs.request!=null){
+            s += `.join(${jArgs.request.toSearchString()}, ${JSON.stringify(jArgs.cond)})`;
+          }else{
+            console.error(this,jArgs);
+            s += ".join(UNDEFINED)";
+          }
+
           //s += `.join( "${x.args.on}", { alias:${x.args.opts.alias} ${x.args.size? ",size:"+x.args.size : "" })`;
           break;
       }

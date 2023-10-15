@@ -16,7 +16,7 @@ import {CoreDebug} from "./core/CoreDebug.js";
  */
 export default class ModelSyscall implements INode
 {
-    static TYPE:NodeType = (new NodeType( "code_syscall", NodeInternalType.SYSCALL, [
+    static TYPE:NodeType = (new NodeType( "syscall", NodeInternalType.SYSCALL, [
         (new NodeProperty("_uid")).type(DbDataType.STRING).key(DbKeyType.PRIMARY),
         (new NodeProperty("os")).type(DbDataType.STRING).def(null),
         (new NodeProperty("arch")).type(DbDataType.STRING).def(null),

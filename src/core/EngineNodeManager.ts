@@ -1,16 +1,26 @@
 import DexcaliburEngine from "../DexcaliburEngine.js";
 import {IDexcaliburEngine} from "../IDexcaliburEngine.js";
+import DexcaliburProject from "../DexcaliburProject.js";
+import {IStringIndex} from "./IStringIndex.js";
 
 
 export interface RemoteEngineMapping {
-    [uid:string] :IDexcaliburEngine
+    [nodeUID:string] :IDexcaliburEngine
 }
 
 
 export interface ProjectNodeMapping {
-    [uid:string] :IDexcaliburEngine
+    [projectUID:string] :IDexcaliburEngine
 }
 
+export interface SlaveStates {
+    [engineUID:string] :NodeState
+}
+
+export interface SlaveCallback {
+    uri: string;
+    engine: IDexcaliburEngine;
+}
 
 /**
  * A map where every active project are mapped to
@@ -19,6 +29,17 @@ export interface ProjectNodeMapping {
  */
 export interface SessionProjectMapping {
     [projectUID:string] :string[];
+}
+
+
+
+export enum NodeState {
+    UNKNOW,
+    READY,
+    IDDLE,
+    BUSY,
+    STOPPED,
+    STARTING
 }
 
 /**
@@ -45,9 +66,38 @@ export class EngineNodeManager {
 
     sessionMapping:SessionProjectMapping = {}
 
+    states:SlaveStates = {};
 
 
     constructor(pMasterEngine:DexcaliburEngine) {
+
+    }
+
+    /**
+     *
+     * @param pProject
+     */
+    hasReadySlave(pProjectUID:string):boolean{
+        const engine = this.projectMapping[pProjectUID];
+        if(engine == null){
+            return false;
+        }
+
+
+    }
+
+    isStarted(pProjectUID:string):boolean {
+        return
+    }
+
+    generateSlaveWebhook(pSlave:IDexcaliburEngine):void {
+        /*
+        const crypto = require('crypto');
+        console.log(crypto.randomUUID());
+         */
+    }
+
+    spawn(pProject:DexcaliburProject, pSettings:any):void {
 
     }
 }

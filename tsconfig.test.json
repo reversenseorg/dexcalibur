@@ -1,0 +1,32 @@
+{
+  "compilerOptions": {
+    "lib": ["es2017"],
+    "target": "es2017",
+    "module": "es2020",
+    "declaration": true,
+    "outDir": "./dist",
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": false,
+    "moduleResolution": "nodenext",
+    "allowJs": true,
+    "typeRoots": [
+      "node_modules/@types"
+    ],
+    "types": [
+      "node",
+      "mocha",
+      "chai"
+    ]
+  },
+  "include": [
+    "src/**/*.ts",
+    "dexcalibur.ts",
+    "dexcalibur-adm.mts",
+    "connectors/**/*.ts",
+    "inspectors/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "**/*.spec.ts"
+  ]
+}

@@ -2,7 +2,6 @@ import {DelegateRequest, DelegateResponse, DelegateWebApi} from "./DelegateWebAp
 import WebServer, {HTTP_CODE_ERROR, HTTP_CODE_SUCCESS} from "../WebServer.js";
 import {Request, Response} from "express";
 import * as Log from "../Logger.js";
-import {PrivacyScanner} from "../audit/privacy/PrivacyScanner.js";
 import {LicenceManager, ProductInfo} from "../credit/LicenceManager.js";
 import {AuditManager} from "../audit/AuditManager.js";
 import {AssuranceScanner} from "../audit/common/AssuranceScanner.js";
@@ -12,6 +11,9 @@ import Control from "../audit/common/Control.js";
 import {ErrorCode} from "../errors/MonitoredError.js";
 import DexcaliburEngine from "../DexcaliburEngine.js";
 import {ScanFlow} from "../audit/common/ScanFlow.js";
+import DexcaliburProject from "../DexcaliburProject.js";
+import {Nullable} from "../core/IStringIndex.js";
+import {ScanOrder} from "../audit/common/ScanOrder.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 export const AUDIT_WEB_API: DelegateWebApi = new DelegateWebApi();
@@ -522,6 +524,45 @@ AUDIT_WEB_API.addAsyncAuthenticatedRoute(
 
                 // ========== LOGIC
                 const scheduler = project.getScanScheduler();
+                //scheduler.getPastScans()
+
+                $.sendSuccess(res, scheduler.toJsonObject());
+            }catch(err){
+                Logger.error("[API][AUDIT] Scans cannot be listed. Cause : " + err.message + "\n\t" + err.stack);
+                $.sendError(res, "Scans cannot be listed. Cause : " + err.message);
+            }
+        }
+    },{
+        readProject: false
+    }
+);
+
+
+
+
+
+AUDIT_WEB_API.addAsyncAuthenticatedRoute(
+    '/order/scan',
+    {
+        'post': async function (req:DelegateRequest, res:DelegateResponse):Promise<any> {
+            const $: WebServer = req.dxc.$;
+
+            try{
+                //let targetProject:Nullable<DexcaliburProject> = null;
+                if(req.body.config.models == null){
+
+                }
+
+                // ========== LOGIC
+                const scheduler = req.dxc.$.context.getScanScheduler();
+                const order = new ScanOrder({
+                    modelUID: req.body.config.models,
+                    targetDevice: req.body.config.targetDevice,
+                    targetOS: req.body.config.targetOS,
+                    projectUID: req.dxc.project.getUID(),
+                });
+
+                scheduler.newOrder(order);
                 //scheduler.getPastScans()
 
                 $.sendSuccess(res, scheduler.toJsonObject());

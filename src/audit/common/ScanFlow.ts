@@ -1,6 +1,6 @@
 import * as _vm_ from "vm"
 
-import {ScanScheduler} from "./ScanScheduler.js";
+import {ScanSchedulerProject} from "./ScanSchedulerProject.js";
 import AssuranceModel from "./AssuranceModel.js";
 import {UserAccount} from "../../user/UserAccount.js";
 import {AssuranceScanner} from "./AssuranceScanner.js";
@@ -21,7 +21,7 @@ export interface ScanFlowState {
 
 export class ScanFlow {
 
-    scheduler:ScanScheduler;
+    scheduler:ScanSchedulerProject;
 
     state:ScanFlowState = {
         startDate: -1,
@@ -34,7 +34,7 @@ export class ScanFlow {
 
     scanner:AssuranceScanner|null = null;
 
-    constructor(pScheduler:ScanScheduler|null) {
+    constructor(pScheduler:ScanSchedulerProject|null) {
         this.scheduler = pScheduler;
     }
 

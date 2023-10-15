@@ -6,6 +6,8 @@ import ModelMethod from "../ModelMethod.js";
 import {OperatingSystem} from "../OperatingSystem.js";
 import {MerlinRule, MerlinRuleOptions, MerlinRuleType, SearchOptions } from "./MerlinRule.js";
 import {AndroidPermission} from "../android/Permissions.js";
+import {SerializedSearchRequest} from "../audit/common/SerializedMerlinPrimitive.js";
+import {Nullable} from "../core/IStringIndex.js";
 
 export class MerlinAndroidRule extends MerlinRule {
 
@@ -15,6 +17,15 @@ export class MerlinAndroidRule extends MerlinRule {
         super(OperatingSystem.ANDROID, pOpts);
     }
 
+    override getRequestByNode(pRequestOpts:SerializedSearchRequest,pOpts:SearchOptions|any|null):Nullable<MerlinSearchRequest> {
+        switch (pRequestOpts.node){
+            case "javaClass": return this.javaClass(pRequestOpts.pattern, pOpts);
+            case "javaCallToMethod": return this.javaCallToMethod(pRequestOpts.pattern, pOpts);
+            case "javaCallWithArgsAssert": return this.javaCallWithArgsAssert(pRequestOpts.pattern, pOpts);
+            case "uiInputText": return this.uiInputText(pRequestOpts.pattern, pOpts);
+            default: return null;
+        }
+    }
 
     javaClass( pRequest:any, pOptions:SearchOptions|null = null):MerlinSearchRequest {
         return this.class(pRequest,pOptions);

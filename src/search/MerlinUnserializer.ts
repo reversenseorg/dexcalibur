@@ -1,5 +1,10 @@
-import {SerializedMerlinOperation, SerializedMerlinPrimitive} from "../audit/common/SerializedMerlinPrimitive.js";
-import {MerlinSearchRequest, Operation, OperationType} from "./MerlinSearchRequest.js";
+import {
+    SerializedInnerjoinOperationArgs,
+    SerializedMerlinOperation,
+    SerializedMerlinPrimitive,
+    SerializedSearchOperationArgs, SerializedSearchRequest
+} from "../audit/common/SerializedMerlinPrimitive.js";
+import {InnerjoinOperationArgs, MerlinSearchRequest, Operation, OperationType} from "./MerlinSearchRequest.js";
 import {IStringIndex, Nullable} from "../core/IStringIndex.js";
 import {NodeType} from "../persist/orm/NodeType.js";
 import {MerlinAndroidRule} from "./MerlinAndroidRule.js";
@@ -13,22 +18,6 @@ import {MerlinSearchRequestException} from "./error/MerlinSearchRequestException
 
 export class MerlinUnserializer {
 
-
-/*
-    static fromSerializedOperation(pObject:SerializedMerlinOperation):Operation {
-
-        switch (pObject.op){
-            case
-        }
-        let ope:Operation = {
-            type:
-        };
-
-        return ope;
-    }
-
-
- */
     static operationTypeMapping:IStringIndex<OperationType> = {
         search: OperationType.SEARCH,
         aggregate: OperationType.AGGR,
@@ -47,6 +36,86 @@ export class MerlinUnserializer {
         steps: OperationType.TAINT_STEP
     };
 
+
+    /**
+     * To unserialize operations
+     *
+     * Most of operations are poor object and are not subject to serializing,
+     * however some operations take Merlin rules or request as parameters.
+     * Such operations MUST be unserialized.
+     *
+     * @param {SerializedMerlinOperation} pObject Serialized operation
+     * @return {Operation} Unserialized operation
+     * @method
+     * @static
+     */
+    static fromSerializedMerlinOperation(pObject:SerializedMerlinOperation):Operation {
+        let ope:Nullable<Operation> = null;
+        let opts:any = {};
+        switch(pObject.type){
+            case OperationType.SEARCH:
+                ope = {
+                    type: OperationType.SEARCH,
+                    args: {
+                        pattern: MerlinSearchRequest.parseCondition((pObject.args as SerializedSearchOperationArgs).pattern, {not:false})
+                    }
+                };
+                break;
+            case OperationType.INNERJOIN:
+                ope = {
+                    type: OperationType.INNERJOIN,
+                    args: {
+                        on: (pObject.args as any).on
+                    }
+                };
+                if((pObject.args as InnerjoinOperationArgs).cond != null){
+                    (ope.args as InnerjoinOperationArgs).cond = MerlinSearchRequest.parseCondition((pObject.args as SerializedInnerjoinOperationArgs).cond, {not:false})
+                }
+                break;
+            case OperationType.VALIDATE:
+                ope = {
+                    type: OperationType.VALIDATE,
+                    args: {}
+                };
+                for(let i in pObject.args){
+                    if(i!="regexp"){
+                        (ope.args as any)[i] = pObject.args[i];
+                    }else{
+                        (ope.args as any).regexp = new RegExp((pObject.args as any).regexp)
+                    }
+                }
+                break;
+            case OperationType.UNION:
+            case OperationType.INTERSECT:
+            case OperationType.JOIN:
+                ope = {
+                    type: OperationType.VALIDATE,
+                    args: {
+                        request: MerlinUnserializer.fromSerializedSearchRequest((pObject.args as any).request) //request
+                    }
+                };
+
+                break;
+            case OperationType.AGGR:
+            case OperationType.TIME:
+            case OperationType.SIZE:
+            case OperationType.FILTER:
+                ope = {
+                    type: pObject.type,
+                    args: (pObject.args as any)
+                };
+                break;
+            default:
+                break;
+        }
+
+        if(ope==null){
+            throw MerlinUnserializerException.MISSING_OPERATION_TYPE(pObject.type+"");
+        }
+
+
+        return ope;
+    }
 
     static fromSerializedOptions(pObject:string[]):SearchOptions {
         let opt:SearchOptions = { not:false };
@@ -79,6 +148,47 @@ export class MerlinUnserializer {
         return opt;
     }
 
+
+    static fromSerializedSearchRequest(pRequest:SerializedSearchRequest):MerlinSearchRequest {
+        let reqOpts:any = {};
+        let reqOpers:Operation[] = [];
+        let nodeType:NodeType;
+
+        // unserialize req options (base node)
+        if(pRequest.opts!=null){
+            reqOpts = MerlinUnserializer.fromSerializedOptions(pRequest.opts);
+        }else{
+            reqOpts = { not:false };
+        }
+
+        // search node
+        nodeType = NodeType.getTypeByName(pRequest.node);
+
+        // unserialize single request
+        if(pRequest.pattern!=null){
+
+            // most basic operation for a single request is a search
+            reqOpers.push({
+                type: OperationType.SEARCH,
+                args: {
+                    pattern: MerlinSearchRequest.parseCondition(pRequest.pattern, reqOpts)
+                }
+            });
+
+
+        }
+
+        if(pRequest.oper != null){
+            if(Array.isArray(pRequest.oper)){
+                // if more operations are specified, append it :
+                pRequest.oper.map(x => {
+                    reqOpers.push( x as Operation);//MerlinUnserializer.fromSerializedMerlinOperation(x));
+                })
+            }
+        }
+
+        return new MerlinSearchRequest(null, nodeType, reqOpers);
+    }
     /**
      * To unserialize a merlin search request from a SerializedMerlinPrimitive
      *
@@ -92,69 +202,115 @@ export class MerlinUnserializer {
         let options:MerlinRuleOptions =  {}
         let reqOpts:SearchOptions;
         try{
-            // unserialize req options (base node)
-            if(pObject.opts!=null){
-                reqOpts = MerlinUnserializer.fromSerializedOptions(pObject.opts);
-            }else{
-                reqOpts = { not:false };
-            }
 
-            // search node
-            nodeType = NodeType.getTypeByName(pObject.node);
+            // if a single request is specified
+            if(pObject.request!=null) {
 
-            // unserialize single request
-            if(pObject.request!=null){
+                // unserialize req options (base node)
+                if (pObject.request.opts != null) {
+                    reqOpts = MerlinUnserializer.fromSerializedOptions(pObject.request.opts);
+                } else {
+                    reqOpts = {not: false};
+                }
 
-                // most basic operation for a single request is a search
-                reqOpers.push({
-                    type: OperationType.SEARCH,
-                    args: {
-                        pattern: MerlinSearchRequest.parseCondition(pObject.request, reqOpts)
+
+                // unserialize single request
+                if (pObject.request.pattern != null) {
+
+                    // most basic operation for a single request is a search
+                    reqOpers.push({
+                        type: OperationType.SEARCH,
+                        args: {
+                            pattern: MerlinSearchRequest.parseCondition(pObject.request.pattern, reqOpts)
+                        }
+                    });
+                }
+
+
+                if (pObject.request.oper != null) {
+                    if (Array.isArray(pObject.request.oper)) {
+                        // if more operations are specified, append it :
+                        pObject.request.oper.map(x => {
+                            reqOpers.push(x as Operation);
+                        })
                     }
-                });
-
-                // if more operations are specified, append it :
-                pObject.oper.map(x => {
-                    reqOpers.push( x as Operation);//MerlinUnserializer.fromSerializedMerlinOperation(x));
-                })
-
-                options.request = new MerlinSearchRequest(null, nodeType, reqOpers);
+                }
             }
-
-            // unserialize rule options (including taint-related requests)
-
-
-
 
             // unserialize
             switch (pObject.os){
                 case "android":
-                    req = new MerlinAndroidRule({
-
-                    })
+                    req = new MerlinAndroidRule(options)
                     break;
                 case "flutter":
-                    req = new MerlinFlutterRule({
-
-                    })
+                    req = new MerlinFlutterRule(options)
                     break;
                 case "ios":
-                    req = new MerlinIosRule({
-
-                    })
+                    req = new MerlinIosRule(options)
                     break;
                 default:
                     req = new MerlinRule(
                         pObject.os==null ? OperatingSystem.NONE : pObject.os as OperatingSystem,
-                        pObject
+                        options
                     )
                     break;
             }
 
-        }catch(err:any){
-            if(nodeType==null){
-                throw MerlinSearchRequestException.MISSING_NODE_TYPE(pObject.node)
+
+            if(pObject.request!=null){
+                try{
+                    // search node
+                    nodeType = NodeType.getTypeByName(pObject.request.node);
+                    req.request = new MerlinSearchRequest(null, nodeType, reqOpers);
+
+                }catch(errNodeType:any){
+                    switch (pObject.os){
+                        case "android":
+                        case "flutter":
+                        case "ios":
+                            req.request = req.getRequestByNode(pObject.request, reqOpts);
+                            break;
+                    }
+
+
+                    if(req.request==null){
+                        console.log(pObject.request.node, pObject.os, NodeType.ALL[pObject.request.node]);
+                        throw MerlinSearchRequestException.MISSING_NODE_TYPE(pObject.request.node);
+                    }
+                }
             }
+
+            // unserialize rule options (including taint-related requests)
+            if(pObject.sinks!=null){
+                pObject.sinks.map( x => {
+                    req.sink(MerlinUnserializer.fromSerializedMerlinPrimitive(x));
+                })
+            }
+            if(pObject.sources!=null){
+                pObject.sources.map( x => {
+                    req.sources(MerlinUnserializer.fromSerializedMerlinPrimitive(x));
+                })
+            }
+            if(pObject.steps!=null){
+                pObject.steps.map( x => {
+                    req.steps(MerlinUnserializer.fromSerializedMerlinPrimitive(x));
+                })
+            }
+
+            // to trigger rule on some specific bus events
+            if(pObject.on!=null){
+                if(typeof pObject.on==="string"){
+                    req.on(pObject.on);
+                }else{
+                    pObject.on.map( x => {
+                        req.on(x);
+                    })
+                }
+            }
+
+        }catch(err:any){
+
+            console.log(err.message,err.stack);
         }
 
 

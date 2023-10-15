@@ -7,7 +7,6 @@ import AssuranceReport from "./common/AssuranceReport.js";
 import {AuditManagerException} from "./errors/AuditManagerException.js";
 import {PrivacyTrackersModel} from "./models/SharePrivacyTrackersModel.js";
 import DexcaliburEngine from "../DexcaliburEngine.js";
-import {PrivacyPiiModel2} from "./models/PrivacyPiiModel2.js";
 import {ReversenseNetworkSecurityModel} from "./models/NetworkUsageModel.js";
 
 const SUBDIRS = {
@@ -76,6 +75,12 @@ export class AuditManager {
 
         // if additionnal configuration is provided over Dexcalibur command arguments
 
+        // load from remote signature server
+        const remoteSharedModels = await this.engine.getSignatureServer().getModels();
+        console.log("Remote models : "+remoteSharedModels.length, remoteSharedModels);
+        remoteSharedModels.map(x=> {
+            allModels[x.getID()] = x;
+        });
 
         // if project is specified, add models from project workspace
         if(pProject!=null) {
@@ -88,6 +93,7 @@ export class AuditManager {
         }
 
         // load from Dexcalibur workspace
+        /*
         globalModels =  this._listModelsFromFolder(
             _path_.join(
                 this.engine.getWorkspace().getConfigFolderLocation(),
@@ -105,8 +111,8 @@ export class AuditManager {
         // if some built-in models are not already stored in Dexcalibur or Project workspace,
         // create it
 
+        /*
         const presetModels = [
-            PrivacyPiiModel2,
             PrivacyTrackersModel,
             ReversenseNetworkSecurityModel
         ];
@@ -118,7 +124,7 @@ export class AuditManager {
                 await x.load();
                 allModels[x.getID()] = x;
             }
-        }
+        }*/
 
         /*
         [

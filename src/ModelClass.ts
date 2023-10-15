@@ -41,7 +41,7 @@ interface IFieldSet {
  */
 export default class ModelClass extends Savable implements INode, IPersistent
 {
-    static TYPE:NodeType = (new NodeType( "code_class", NodeInternalType.CLASS, [])).dataSource(DataSourceHelper.MEM, "class");
+    static TYPE:NodeType = (new NodeType( "class", NodeInternalType.CLASS, [])).dataSource(DataSourceHelper.MEM, "class");
 
     __:NodeInternalType = NodeInternalType.CLASS;
 

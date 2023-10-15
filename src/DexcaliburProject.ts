@@ -62,11 +62,10 @@ import {Architecture} from "./Architecture.js";
 import {OperatingSystem} from "./OperatingSystem.js";
 import ModelSyscallFactory from "./ModelSyscallFactory.js";
 import {ProjectState} from "./ProjectState.js";
-import {PrivacyScanner} from "./audit/privacy/PrivacyScanner.js";
 import {LicenceManager} from "./credit/LicenceManager.js";
 import {Product} from "./credit/Product.js";
 import {CoreDebug} from "./core/CoreDebug.js";
-import {ScanScheduler} from "./audit/common/ScanScheduler.js";
+import {ScanSchedulerProject} from "./audit/common/ScanSchedulerProject.js";
 import {SecurityZone} from "./security/SecurityZone.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
@@ -291,7 +290,7 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
     owner: UserAccount = null;
     tester: UserAccount[] = [];
 
-    private _scanScheduler:ScanScheduler;
+    private _scanScheduler:ScanSchedulerProject;
 
     private _wf:Workflow = null;
 
@@ -326,7 +325,7 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
         this.engine = pEngine;
         this.uid = pUID;
         // scan scheduler should be attach to master engine
-        this._scanScheduler = new ScanScheduler(this);
+        this._scanScheduler = new ScanSchedulerProject(this);
     }
 
     /**
@@ -338,7 +337,7 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
         }
     }
 
-    getScanScheduler():ScanScheduler {
+    getScanScheduler():ScanSchedulerProject {
         return this._scanScheduler;
     }
 

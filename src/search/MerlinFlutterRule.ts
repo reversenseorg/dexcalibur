@@ -4,6 +4,8 @@ import {Operation, OperationType, MerlinSearchRequest} from "./MerlinSearchReque
 import {OperatingSystem} from "../OperatingSystem.js";
 import {MerlinRule, MerlinRuleOptions, MerlinRuleType, SearchOptions } from "./MerlinRule.js";
 import {AndroidPermission} from "../android/Permissions.js";
+import {SerializedSearchRequest} from "../audit/common/SerializedMerlinPrimitive.js";
+import {Nullable} from "../core/IStringIndex.js";
 
 export class MerlinFlutterRule extends MerlinRule {
 
@@ -13,6 +15,13 @@ export class MerlinFlutterRule extends MerlinRule {
         super(OperatingSystem.FLUTTER, pOpts);
     }
 
+    override getRequestByNode(pRequestOpts:SerializedSearchRequest,pOpts:SearchOptions|any|null):Nullable<MerlinSearchRequest> {
+        switch (pRequestOpts.node){
+            case "constant": return this.constant(pRequestOpts.pattern, pOpts);
+            //case "assets": return this.constant(pRequestOpts.pattern, pOpts);
+            default: return null;
+        }
+    }
 
     constant( pRequest:any, pOptions:SearchOptions|null = null):MerlinSearchRequest {
         return this.field(pRequest,pOptions);

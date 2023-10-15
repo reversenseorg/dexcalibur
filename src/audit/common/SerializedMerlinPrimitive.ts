@@ -1,5 +1,12 @@
 import {Nullable} from "../../core/IStringIndex.js";
-import {Operation, OperationType} from "../../search/MerlinSearchRequest.js";
+import {
+    AggregationOperationArgs,
+    InnerjoinOperationArgs, NestedRequestOperationArgs,
+    Operation,
+    OperationType,
+    SearchOperationArgs, TaintOperationArgs, TimeOperationArgs, ValidateOperationArgs, WindowingOperationArgs
+} from "../../search/MerlinSearchRequest.js";
+import {SearchRequestCondition} from "../../search/SearchRequestCondition.js";
 
 
 export enum MerlinType {
@@ -12,12 +19,40 @@ export declare const SupportedEngine: Readonly<{
     readonly BUS: "BUS";
 }>;
 
-export interface SerializedMerlinOperation {
-    op: string,
-    req?: string
-    args?: any[]
+export interface SerializedSearchOperationArgs {
+    pattern: string
 }
 
+export interface SerializedInnerjoinOperationArgs {
+    on: string,
+    cond?: string
+}
+
+
+export interface SerializedNestedRequestOperationArgs{
+    request: SerializedSearchRequest,
+    cond?: string
+}
+
+export interface SerializedTaintOperationArgs{
+    request: SerializedSearchRequest[]
+}
+
+export interface SerializedMerlinOperation {
+    type: OperationType,
+    args:
+        SerializedSearchOperationArgs |
+        SerializedInnerjoinOperationArgs |
+        TimeOperationArgs |
+        ValidateOperationArgs |
+        WindowingOperationArgs |
+        SerializedNestedRequestOperationArgs |
+        AggregationOperationArgs |
+        SerializedTaintOperationArgs ;
+}
+
+
+/*
 export interface SerializedMerlinPrimitive {
     _type?: MerlinType,
     engine: string,
@@ -28,5 +63,25 @@ export interface SerializedMerlinPrimitive {
     on?: Nullable<string>
     oper?: Nullable<Operation[]>, //SerializedMerlinOperation[],
     opts?: Nullable<string[]>,
+    args?: Nullable<any[]>,
+}*/
+
+export interface SerializedSearchRequest {
+    node: string;
+    pattern: string;
+    oper?: SerializedMerlinOperation[],
+    opts?: Nullable<string[]>,
+}
+
+export interface SerializedMerlinPrimitive {
+    _type?: MerlinType,
+    engine: string,
+    request?: SerializedSearchRequest,
+    i18n_request?:any;
+    os: string,
+    on?: Nullable<string|string[]>
     args?: Nullable<any[]>
+    sources?:Nullable<SerializedMerlinPrimitive[]>,
+    sinks?:Nullable<SerializedMerlinPrimitive[]>,
+    steps?:Nullable<SerializedMerlinPrimitive[]>
 }

@@ -19,7 +19,7 @@ let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 export default  class ModelField extends Savable implements IPersistent
 {
 
-    static TYPE:NodeType = (new NodeType( "code_field", NodeInternalType.FIELD, [])).dataSource(DataSourceHelper.MEM, "field");
+    static TYPE:NodeType = (new NodeType( "field", NodeInternalType.FIELD, [])).dataSource(DataSourceHelper.MEM, "field");
 
     __:NodeInternalType = NodeInternalType.FIELD;
 
