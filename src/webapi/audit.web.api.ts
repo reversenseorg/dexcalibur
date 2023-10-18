@@ -562,10 +562,15 @@ AUDIT_WEB_API.addAsyncAuthenticatedRoute(
                     projectUID: req.dxc.project.getUID(),
                 });
 
+                // file upload
+                if(req.body.fileUploadID!=null){
+                    order.setTargetFile($.uploader.getPathOf(req.body.fileUploadID));
+                }
+
                 scheduler.newOrder(order);
                 //scheduler.getPastScans()
 
-                $.sendSuccess(res, scheduler.toJsonObject());
+                $.sendSuccess(res,{ });
             }catch(err){
                 Logger.error("[API][AUDIT] Scans cannot be listed. Cause : " + err.message + "\n\t" + err.stack);
                 $.sendError(res, "Scans cannot be listed. Cause : " + err.message);

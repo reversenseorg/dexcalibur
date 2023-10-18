@@ -21,6 +21,7 @@ import {ProjectAccessControl} from "../user/acl/rbac/ProjectAccessContol.js";
 import {ConnectionHandler} from "../remote/ConnectionHandler.js";
 import {Settings} from "../Settings.js";
 import {DexcaliburConnectionException} from "../errors/DexcaliburConnectionException.js";
+import {DexcaliburEngineMode} from "../DexcaliburEngine.js";
 
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
@@ -292,7 +293,20 @@ PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
                 await DeviceManager.getInstance().scan();
 
 
+                // get project info
                 project = $.context.getProject( req.query.uid as string);
+
+                if($.context.engine_type==DexcaliburEngineMode.MASTER){
+                    // create node
+                    const node = $.context.nodeManager.createNode(project.getUID(), project.getDevice().getProfile().os);
+                    await node.spawn();
+                    $.sendSuccess( res, { node: node.UUID });
+                    return;
+                }else if($.context.engine_type==DexcaliburEngineMode.SLAVE){
+                    // else slave mode (sess / auth)
+                }
+
+                // standalone mode
 
                 AccessControl.check(
                     AccessZone.PROJECT,

@@ -67,6 +67,7 @@ import {RuntimeSecurityException} from "./errors/RuntimeSecurityException.js";
 import {AuthenticationSettings} from "./user/auth/AuthenticationSettings.js";
 import {Nullable} from "./core/IStringIndex.js";
 import {Client, Issuer} from "openid-client";
+import {NODE_MGR_WEB_API} from "./webapi/node.web.api.js";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -1438,6 +1439,7 @@ export default class WebServer
             auth:ensureApiLoggedIn }
 
         // , {beforeAuth:[], afterAuth:[], public:[], auth:ensureLoggedIn }
+        NODE_MGR_WEB_API.injectServer(this, "/api/node", securedRoutes);
         DEVICE_WEB_API.injectServer(this, "/api/device", securedRoutes);
         AUTH_WEB_API.injectServer(this, "/api/remote", securedRoutes); // TODO : replace remote by auth ? , remote should be reserved to p2p auth
         AUTH_WEB_API.injectServer(this, "/api/auth", securedRoutes);

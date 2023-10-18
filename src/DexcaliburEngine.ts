@@ -48,7 +48,7 @@ import {WebGuiConfiguration} from "./webserver/WebGuiConfiguration.js";
 import {WebGuiHelper} from "./webserver/WebGuiHelper.js";
 import {SignatureServerAPI} from "./audit/SignatureServerAPI.js";
 import {Nullable} from "./core/IStringIndex.js";
-import {EngineNodeManager} from "./core/EngineNodeManager.js";
+import {EngineNodeManager, NodeState} from "./core/EngineNodeManager.js";
 import {ScanScheduler} from "./audit/common/ScanScheduler.js";
 
 
@@ -68,7 +68,8 @@ if(require('os').platform()=="darwin"){
  */
 export enum DexcaliburEngineMode {
     MASTER= "MASTER",
-    SLAVE= "SLAVE"
+    SLAVE= "SLAVE",
+    STANDALONE="STANDALONE"
 }
 
 export interface DexcaliburEngineOptions {
@@ -195,7 +196,8 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
     static DEFAULT_GUI:string = "dxc-web";
 
 
-    engine_type = DexcaliburEngineMode.MASTER;
+    engine_type = DexcaliburEngineMode.STANDALONE;
+
 
     /**
      * @type {string}
@@ -390,6 +392,8 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
             ]
         });
 
+        this.engine_type = pEngineOptions.engine_mode;
+
         NodeSchema.init();
         this.initAccessControl();
         this.sigServerApi = new SignatureServerAPI({
@@ -398,7 +402,7 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
             ssl: false,
             auth: null
         });
-        this.nodeManager = new EngineNodeManager(this);
+        this.nodeManager = new EngineNodeManager(this, pEngineOptions.node_uid!=null ? pEngineOptions.node_uid : this.UID);
         this.scanScheduler = new ScanScheduler(this);
     }
 
@@ -434,6 +438,7 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
     getScanScheduler():ScanScheduler {
         return this.scanScheduler;
     }
+
 
     /**
      * To enable Inter-Process Communication (IPC)

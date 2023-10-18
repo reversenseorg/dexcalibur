@@ -5,6 +5,7 @@ import {ScanFlow} from "./ScanFlow.js";
 import DexcaliburEngine from "../../DexcaliburEngine.js";
 import {ScanOrder} from "./ScanOrder.js";
 import {Subject} from "rxjs";
+import {EngineNode} from "../../core/EngineNode.js";
 
 /**
  * Present a scan scheduler
@@ -76,25 +77,22 @@ export class ScanScheduler {
      *
      * @param pOrder
      */
-    newScan(pOrder:ScanOrder):void {
+    async newScan(pOrder:ScanOrder):Promise<any> {
+
+        let node:EngineNode;
 
         if(this._ctx.nodeManager.isStarted(pOrder.getProjectUID())){
-            // start using existing node
-            return null;
+            node = this._ctx.nodeManager.getNodeByProject(pOrder.getProjectUID());
         }else{
-
+            // start a new node
+            node = this._ctx.nodeManager.createNode(pOrder.settings.projectUID, pOrder.settings.targetOS);
+            node.start();
         }
 
-        /*
-        const flow = new ScanFlow(this);
-        flow.setScanner(pScanner);
-
-        this._checkLock();
-        this._queued.push(flow);
-
-        this.save();
-
-        return flow;*/
+        if(!await node.isBusy()){
+            // send a request to order a scan to the node
+            node.startScan(pOrder.getModelUID());
+        }
     }
 
     /*

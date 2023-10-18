@@ -1,10 +1,11 @@
 import {Nullable} from "../../core/IStringIndex.js";
 
 export interface ScanOrderOptions {
-    modelUID: string[];
+    modelUID: string;
     targetDevice: string;
     targetOS: string;
     projectUID: string;
+    fileUploadID?:string;
 }
 
 /**
@@ -40,6 +41,8 @@ export class ScanOrder {
 
     signatures:Nullable<string> = null;
 
+    appPath:Nullable<string>;
+
     constructor(pSettings:ScanOrderOptions) {
         this.settings = pSettings;
     }
@@ -54,6 +57,23 @@ export class ScanOrder {
 
     getProjectUID():string {
         return this.settings.projectUID;
+    }
+
+    /**
+     * To set the path to the file to analyze
+     *
+     * @param {string} pPath
+     */
+    setTargetFile(pPath:string){
+        this.appPath = pPath;
+    }
+
+    getTargetFile():Nullable<string> {
+        return this.appPath;
+    }
+
+    getModelUID():string {
+        return this.settings.modelUID;
     }
 
     toJsonObject():any {
