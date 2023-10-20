@@ -722,14 +722,17 @@ ${"\t".repeat(1)}Default Arch = ${srv.getDefaultArchitecture()}
                     }
 
                     // init engine with settings
-                    dxcInstance.loadConfiguration(cfg);
-                    // list user
-                    const usrList = dxcInstance.getUserService().getAuthenticationService().getUserIndex();
+                    dxcInstance.loadConfiguration(cfg).then(()=>{
 
-                    console.log(chalk.whiteBright("UserName | Locked | Role "));
-                    usrList.map((vIndex:any, vUser:UserAccount)=>{
-                        console.log(`  ${chalk.whiteBright(vUser.getUID())}  ${vUser.isLocked()? chalk.redBright("LOCKED"):chalk.redBright("VALID") }  ${chalk.yellow(vUser.getUserRole())} `);
-                    });
+                        // list user
+                        const usrList = dxcInstance.getUserService().getAuthenticationService().getUserIndex();
+
+                        console.log(chalk.whiteBright("UserName | Locked | Role "));
+                        usrList.map((vIndex:any, vUser:UserAccount)=>{
+                            console.log(`  ${chalk.whiteBright(vUser.getUID())}  ${vUser.isLocked()? chalk.redBright("LOCKED"):chalk.redBright("VALID") }  ${chalk.yellow(vUser.getUserRole())} `);
+                        });
+
+                    })
 
 
                 }

@@ -392,7 +392,10 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
             ]
         });
 
-        this.engine_type = pEngineOptions.engine_mode;
+        if(pEngineOptions!=null){
+            this.engine_type = pEngineOptions.engine_mode;
+        }
+
 
         NodeSchema.init();
         this.initAccessControl();
@@ -402,7 +405,9 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
             ssl: false,
             auth: null
         });
-        this.nodeManager = new EngineNodeManager(this, pEngineOptions.node_uid!=null ? pEngineOptions.node_uid : this.UID);
+
+        this.nodeManager = new EngineNodeManager(this,
+            (pEngineOptions!=null && pEngineOptions.node_uid!=null) ? pEngineOptions.node_uid : this.UID);
         this.scanScheduler = new ScanScheduler(this);
     }
 

@@ -1090,13 +1090,13 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
         }
 
 
-
         AccessControl.check(
             AccessZone.PROJECT,
             ProjectAccessControl.access.PROJ_OPEN_OWN,
             project,
             pAccount
         );
+
 
         return data;
     }

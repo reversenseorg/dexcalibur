@@ -132,8 +132,11 @@ PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
                         platform = PlatformManager.getInstance().getPlatform( req.body['platform']);
                         wf.pushStatus(new StatusMessage(10, "Select previously uploaded application"));
 //                        path = $.uploader.getPathOf(req.body['uploadid']);
-                        path = $.uploader.getPathOf((req.dxc.sess as UserSession).getData('proj_upload_id'));
-
+                        if(req.body['file']!=null){
+                            path = $.uploader.getPathOf(req.body['file']);
+                        }else{
+                            path = $.uploader.getPathOf((req.dxc.sess as UserSession).getData('proj_upload_id'));
+                        }
                         break;
                     case 'fromfs':
                         wf.pushStatus(new StatusMessage(5, "Set target platform"));
@@ -150,6 +153,17 @@ PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
                     throw DexcaliburProjectException.APP_FILE_OT_FOUND();
                 }
 
+                if(device==null && req.body['targetOS']!=null){
+                    // try to find compatible device already enrolled
+                    device = dm.searchCompatibleDevice(req.body['targetOS']);
+                    if(device!=null && platform==null){
+                        platform = device.getPlatform();
+                        console.log("Compatible device found :",device.uid);
+                    }else{
+
+                        console.log("Compatiblme device NOT found ");
+                    }
+                }
 
 /*
                 if(['min','max','dev'].indexOf(req.body['platform'])>-1){

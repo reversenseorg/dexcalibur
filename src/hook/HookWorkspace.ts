@@ -202,6 +202,41 @@ export default class HookWorkspace {
         return ready;
     }
 
+    getTsConfig():any {
+        return {
+            "compilerOptions": {
+                "lib": ["es2017"],
+                "target": "es2017", // es2017
+                "module": "ES2020", // "commonjs",
+                "declaration": true,
+                "outDir": ".",
+                "removeComments": true,
+                "sourceMap": false,
+                "strictNullChecks": false,
+                "typeRoots": [
+                    "node_modules/@types"
+                ],
+                "esModuleInterop": true,
+                "types": [
+                    "node",
+                    "frida-gum",
+                    "chai",
+                    "mocha"
+                ]
+            },
+            "include": [
+                "src/**/*.ts",
+                "*.ts"
+            ],
+            "exclude": [
+                "node_modules",
+                "**/*.spec.ts",
+                "./test/",
+                "./dist/"
+            ]
+        }
+
+    }
     /**
      * To initialize the frida workspace
      *
@@ -234,6 +269,11 @@ export default class HookWorkspace {
             this._compileBin = Util.whereIs(FRIDA_COMPILE);
         }
 
+        // create tsconfig file
+        _fs_.writeFileSync(
+            _path_.join(this._base, 'tsconfig.json'),
+             JSON.stringify(this.getTsConfig())
+        );
 
 
         // copy prebuilt-libs : interruptor, agent, ...

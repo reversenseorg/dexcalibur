@@ -121,8 +121,17 @@ export class EngineNodeManager {
 
     }
 
+    /**
+     * To check if there is an existing node for this project
+     * @param pProjectUID
+     */
     isStarted(pProjectUID:string):boolean {
-        return this.projectMapping[pProjectUID].isStarted();
+        const proj = this.projectMapping[pProjectUID];
+        if(proj!=null){
+            return proj.isStarted();
+        }else{
+            return false;
+        }
     }
 
     generateSlaveWebhook(pSlave:IDexcaliburEngine):void {

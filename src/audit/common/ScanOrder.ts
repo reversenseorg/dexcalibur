@@ -2,8 +2,8 @@ import {Nullable} from "../../core/IStringIndex.js";
 
 export interface ScanOrderOptions {
     modelUID: string;
-    targetDevice: string;
-    targetOS: string;
+    targetDevice?: string;
+    targetOS?: string;
     projectUID: string;
     fileUploadID?:string;
 }
@@ -42,6 +42,8 @@ export class ScanOrder {
     signatures:Nullable<string> = null;
 
     appPath:Nullable<string>;
+
+    options:any = {};
 
     constructor(pSettings:ScanOrderOptions) {
         this.settings = pSettings;

@@ -9,11 +9,12 @@ import AssuranceReport from "../audit/common/AssuranceReport.js";
 import AssuranceModel from "../audit/common/AssuranceModel.js";
 import Control from "../audit/common/Control.js";
 import {ErrorCode} from "../errors/MonitoredError.js";
-import DexcaliburEngine from "../DexcaliburEngine.js";
+import DexcaliburEngine, {DexcaliburEngineMode} from "../DexcaliburEngine.js";
 import {ScanFlow} from "../audit/common/ScanFlow.js";
 import DexcaliburProject from "../DexcaliburProject.js";
 import {Nullable} from "../core/IStringIndex.js";
 import {ScanOrder} from "../audit/common/ScanOrder.js";
+import {scheduled} from "rxjs";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 export const AUDIT_WEB_API: DelegateWebApi = new DelegateWebApi();
@@ -549,31 +550,59 @@ AUDIT_WEB_API.addAsyncAuthenticatedRoute(
 
             try{
                 //let targetProject:Nullable<DexcaliburProject> = null;
-                if(req.body.config.models == null){
 
+                if(req.body.projectUID==null){
+                    throw new Error("Project UID is mandatory. Please create a project first.")
                 }
+
+                if(req.body.modelUID==null || req.body.modelUID.length==0){
+                    throw new Error("Assurance Model UID is mandatory. ")
+                }
+
 
                 // ========== LOGIC
-                const scheduler = req.dxc.$.context.getScanScheduler();
-                const order = new ScanOrder({
-                    modelUID: req.body.config.models,
-                    targetDevice: req.body.config.targetDevice,
-                    targetOS: req.body.config.targetOS,
-                    projectUID: req.dxc.project.getUID(),
-                });
 
-                // file upload
-                if(req.body.fileUploadID!=null){
-                    order.setTargetFile($.uploader.getPathOf(req.body.fileUploadID));
+                const scheduler = $.context.getScanScheduler();
+
+                if($.context.engine_type===DexcaliburEngineMode.STANDALONE){
+
+
+                    const report = await scheduler.newStandaloneScan(req.dxc.project, new ScanOrder({
+                        modelUID: req.body.modelUID[0],
+                        projectUID: req.body.projectUID,
+                    }));
+
+                    $.sendSuccess(res,report.toJsonObject());
+                    return;
                 }
 
-                scheduler.newOrder(order);
+                /*
+                let targetOS = req.body.targetOS;
+                if(targetOS==null){
+                    targetOS =
+                }*/
+
+                req.body.modelUID.map( vModelUID => {
+                    const order = new ScanOrder({
+                        modelUID: vModelUID,
+                        projectUID: req.body.projectUID,
+                    });
+
+                    // file upload
+                    if(req.body.fileUploadID!=null){
+                        order.setTargetFile($.uploader.getPathOf(req.body.fileUploadID));
+                    }
+
+                    scheduler.newScan(order);
+                })
+
+                ;
                 //scheduler.getPastScans()
 
                 $.sendSuccess(res,{ });
             }catch(err){
-                Logger.error("[API][AUDIT] Scans cannot be listed. Cause : " + err.message + "\n\t" + err.stack);
-                $.sendError(res, "Scans cannot be listed. Cause : " + err.message);
+                Logger.error("[API][AUDIT] Scans cannot be ordered. Cause : " + err.message + "\n\t" + err.stack);
+                $.sendError(res, "Scans cannot be ordered. Cause : " + err.message);
             }
         }
     },{

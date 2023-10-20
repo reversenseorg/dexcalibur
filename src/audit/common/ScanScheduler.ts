@@ -1,11 +1,14 @@
-import * as _path_ from "path";
-import * as _fs_ from "fs";
-
 import {ScanFlow} from "./ScanFlow.js";
-import DexcaliburEngine from "../../DexcaliburEngine.js";
+import DexcaliburEngine, {DexcaliburEngineMode} from "../../DexcaliburEngine.js";
 import {ScanOrder} from "./ScanOrder.js";
 import {Subject} from "rxjs";
 import {EngineNode} from "../../core/EngineNode.js";
+import {AuditManager} from "../AuditManager.js";
+import DexcaliburProject from "../../DexcaliburProject.js";
+import AssuranceModel from "./AssuranceModel.js";
+import {AssuranceScanner} from "./AssuranceScanner.js";
+import {LicenceManager} from "../../credit/LicenceManager.js";
+import AssuranceReport from "./AssuranceReport.js";
 
 /**
  * Present a scan scheduler
@@ -71,6 +74,31 @@ export class ScanScheduler {
         this._new$.next(pOrder);
     }
 
+    /**
+     *
+     * @param pProject
+     * @param pOrder
+     */
+    async newStandaloneScan(pProject:DexcaliburProject, pOrder:ScanOrder):Promise<AssuranceReport> {
+        const am = AuditManager.getInstance();
+        const model = await am.getModel(pProject, pOrder.getModelUID());
+        const scanner:AssuranceScanner = LicenceManager.getProduct(pProject,model.scannerID) as AssuranceScanner;
+
+        const opts = scanner.validateOptions(pOrder.options);
+
+        // check credit
+        //scanner.hasCredit()
+        scanner.run(pProject, opts);
+
+        // get report
+        const report = scanner.getReport();
+
+        // save report
+        am.saveReport(pProject, report);
+
+        // get hook instance by ID
+        return report;
+    }
 
     /**
      * To start a new scan
@@ -80,6 +108,7 @@ export class ScanScheduler {
     async newScan(pOrder:ScanOrder):Promise<any> {
 
         let node:EngineNode;
+
 
         if(this._ctx.nodeManager.isStarted(pOrder.getProjectUID())){
             node = this._ctx.nodeManager.getNodeByProject(pOrder.getProjectUID());

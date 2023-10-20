@@ -1,4 +1,3 @@
-
 import * as _path_ from "path";
 import * as _fs_ from 'fs';
 
@@ -17,6 +16,8 @@ import DexcaliburEngine from "./DexcaliburEngine.js";
 import {External} from "./external/External.js";
 import {DeviceManagerException} from "./errors/DeviceManagerException.js";
 import {CoreDebug} from "./core/CoreDebug.js";
+import {OperatingSystem} from "./OperatingSystem.js";
+import {Nullable} from "./core/IStringIndex.js";
 
 const Logger:Log.ProdLogger = Log.newLogger() as Log.ProdLogger;
 
@@ -134,6 +135,26 @@ export default class DeviceManager extends ValidationCapable
             });
 
     
+    }
+
+    searchCompatibleDevice(pTargetOS:string, pSpec:Nullable<any> = null){
+        const all = this.getAll();
+        switch (pTargetOS){
+            case 'android':
+
+                for(let uid in all){
+                    if(all[uid].os == OperatingSystem.ANDROID){
+                        if(pSpec==null){
+                            return all[uid];
+                        }else{
+                            // todo
+                        }
+                    }
+                }
+                break;
+            default:
+                throw new Error("No compatible device found");
+        }
     }
 
     /**
