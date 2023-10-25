@@ -82,10 +82,10 @@ PRIVACY_WEB_API.addAuthenticatedRoute(
     }
 );
 
-PRIVACY_WEB_API.addAuthenticatedRoute(
+PRIVACY_WEB_API.addAsyncAuthenticatedRoute(
     '/scanModel',
     {
-        'post': function (req:DelegateRequest, res:DelegateResponse):any {
+        'post': async function (req:DelegateRequest, res:DelegateResponse):Promise<any> {
             const $: WebServer = req.dxc.$;
 
             try{
@@ -95,7 +95,7 @@ PRIVACY_WEB_API.addAuthenticatedRoute(
                 const scanner:GenericScanner = LicenceManager.getProduct(req.dxc.project,"PRI_CLD_SSCAN") as GenericScanner;
 
                 //scanner.hasCredit()
-                const report = scanner.runModel(req.dxc.project);
+                const report = await scanner.runModel(req.dxc.project);
 
                 // save report
                 req.dxc.project

@@ -112,10 +112,6 @@ export class MerlinRule extends MerlinSearchAPI implements MerlinPrimitive {
         return null;
     }
 
-    execute?(pContext: any): Promise<FinderResult> {
-        throw new Error("Method not implemented.");
-    }
-
     /**
      * To create a search string from a MerlinRule instance.
      * MerlinRule class has override class for each target OS,
@@ -338,18 +334,58 @@ export class MerlinRule extends MerlinSearchAPI implements MerlinPrimitive {
     executeSync(pProject:DexcaliburProject):FinderResult {
         // update DB
         this.setDatabase(pProject.getAnalyzer().getData());
+
+        let result:FinderResult;
+
         // execute
         switch(this.type){
             case MerlinRuleType.TAINT:
-                this._executeTaint(pProject);
+                result = new FinderResult(this._finder.newResultSet(), this._finder);
+                //const s= this._executeTaint(pProject);
                 break;
             case MerlinRuleType.DYNAMIC:
                 // hook & start
                 break;
+            case MerlinRuleType.STATIC:
+                // hook & start
+                break;
         }
-        return
+
+        return result;
     }
 
+    /**
+     * Add executed requests to results
+     *
+     * @param pProject
+     */
+    async execute(pProject:DexcaliburProject):Promise<FinderResult> {
+        // update DB
+        this.setDatabase(pProject.getAnalyzer().getData());
+
+        let result:FinderResult;
+
+
+        // execute
+        switch(this.type){
+            case MerlinRuleType.TAINT:
+                result = new FinderResult(this._finder.newResultSet(), this._finder);
+                //const s= this._executeTaint(pProject);
+                break;
+            case MerlinRuleType.DYNAMIC:
+                // hook & start
+                break;
+            case MerlinRuleType.STATIC:
+                // hook & start
+                this.getRequest().setContext(this);
+                result = await this.getRequest().execute(pProject);
+                break;
+        }
+
+        return result;
+    }
+
+    // res = await vRule.execute(this.project);
     // private
 
     private async _executeTaint(pProject:DexcaliburProject):Promise<any[]> {
@@ -368,7 +404,7 @@ export class MerlinRule extends MerlinSearchAPI implements MerlinPrimitive {
         // do taint analysis
         // TaintAnalysisEngine.start(pProject, sourcesNodes, sinkNodes, allowEmulator)
 
-        return paths;
+        return src;
     }
 
 

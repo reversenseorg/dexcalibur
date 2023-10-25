@@ -705,6 +705,19 @@ export default class Util {
         }
     }
 
-
+    /**
+     * To check if a file should be ignored according to its name
+     * (and optionnally the host OS)
+     *
+     * @param {string} pFilename File name to check
+     * @return {boolean}
+     * @method
+     * @static
+     */
+    static shouldIgnoreFile(pFilename: string) {
+        return ([
+            ".DS_Store"
+        ].indexOf(pFilename)>-1);
+    }
 }
 

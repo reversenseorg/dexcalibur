@@ -3,6 +3,7 @@ import ControlAssessment from "./ControlAssessment.js";
 import {Metadata} from "./Metadata.js";
 import {IControl} from "./IControl.js";
 import {CoreDebug} from "../../core/CoreDebug.js";
+import {Nullable} from "../../core/IStringIndex.js";
 
 export interface ControlMap {
     [key:string] :Control|ControlAssessment;
@@ -17,6 +18,14 @@ export interface ControlOptions {
     assessments?:ControlAssessment[];
     metadata?:Metadata[];
 }
+
+
+export interface Country {
+    name: string;
+    code: string;
+}
+
+
 /**
  * Represent a set of control points / assessments
  *
@@ -42,6 +51,9 @@ export default class Control implements IControl {
 
     metadata:Metadata[] = [];
 
+    category:string[] = [];
+
+    country:Nullable<Country> = null;
     //changes:DataChange[] = []
 
     links:string;
@@ -68,6 +80,8 @@ export default class Control implements IControl {
         if(pConfig.description!=null) this.description = pConfig.description;
         if(pConfig.links!=null) this.links = pConfig.links;
         if(pConfig.metadata!=null) this.metadata = pConfig.metadata;
+        if(pConfig.country!=null) this.country = pConfig.country;
+        if(pConfig.category!=null) this.category = pConfig.category;
 
         if(pUpdateChildren){
             if(pConfig.children!=null) this.children = pConfig.children;
@@ -98,10 +112,12 @@ export default class Control implements IControl {
             id: this.id,
             name: this.name,
             description: this.description,
-            //links: this.links,
+            links: this.links,
             children: [],
             assessments: [],
-            metadata: this.metadata
+            metadata: this.metadata,
+            category: this.category,
+            country: this.country
         };
 
         if(this.hasChildren()){

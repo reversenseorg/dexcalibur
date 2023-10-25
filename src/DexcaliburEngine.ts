@@ -48,7 +48,7 @@ import {WebGuiConfiguration} from "./webserver/WebGuiConfiguration.js";
 import {WebGuiHelper} from "./webserver/WebGuiHelper.js";
 import {SignatureServerAPI} from "./audit/SignatureServerAPI.js";
 import {Nullable} from "./core/IStringIndex.js";
-import {EngineNodeManager, NodeState} from "./core/EngineNodeManager.js";
+import {EngineNodeManager, MasterNodeOptions, NodeState} from "./core/EngineNodeManager.js";
 import {ScanScheduler} from "./audit/common/ScanScheduler.js";
 
 
@@ -72,10 +72,20 @@ export enum DexcaliburEngineMode {
     STANDALONE="STANDALONE"
 }
 
+
+export interface SignatureServerOptions {
+    host: string;
+    port: number;
+    ssl?: boolean;
+    auth?: Nullable<any>;
+}
+
 export interface DexcaliburEngineOptions {
     engine_mode?: DexcaliburEngineMode;
     node_uid?: Nullable<string>;
     master_pub_key?:Nullable<string>;
+    master_opts?:MasterNodeOptions;
+    signature_server?: SignatureServerOptions;
 }
 
 if(_os_.platform()=="darwin"){
@@ -393,7 +403,7 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
         });
 
         if(pEngineOptions!=null){
-            this.engine_type = pEngineOptions.engine_mode;
+            this.setEngineMode(pEngineOptions.engine_mode);
         }
 
 
@@ -408,7 +418,37 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
 
         this.nodeManager = new EngineNodeManager(this,
             (pEngineOptions!=null && pEngineOptions.node_uid!=null) ? pEngineOptions.node_uid : this.UID);
+
+        if(pEngineOptions.master_opts!=null){
+            this.nodeManager.setMasterURI(pEngineOptions.master_opts.uri, pEngineOptions.master_opts);
+        }
+
         this.scanScheduler = new ScanScheduler(this);
+    }
+
+    setEngineMode(pType:DexcaliburEngineMode):void {
+        if([
+            DexcaliburEngineMode.STANDALONE,
+            DexcaliburEngineMode.MASTER,
+            DexcaliburEngineMode.SLAVE
+        ].indexOf(pType)>-1){
+            this.engine_type = pType;
+        }else{
+            this.engine_type = DexcaliburEngineMode.STANDALONE;
+        }
+    }
+
+
+    getEngineMode():DexcaliburEngineMode {
+        return this.engine_type;
+    }
+
+    isSlaveNode():boolean {
+        return (this.getEngineMode()===DexcaliburEngineMode.SLAVE);
+    }
+
+    isStandaloneMode():boolean {
+        return (this.getEngineMode()===DexcaliburEngineMode.STANDALONE);
     }
 
     initAccessControl():void {
@@ -929,7 +969,13 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
         if(this.mode == MODE.NORMAL) {
             this.wsserver.start(); //(typeof pWebPort === 'string') ? parseInt(pWebPort, 10) + 1 : pWebPort + 1)
         }
+
+        // if the engine is a SLAVE instance, notify the MASTER the instance is started
+        if(this.getEngineMode()==DexcaliburEngineMode.SLAVE){
+            this.nodeManager.notifyMaster(NodeState.IDDLE);
+        }
     }
+
 
     /**
      * To retrieve project list

@@ -299,8 +299,8 @@ export default class DexcaliburWorkspace
         let dirs:string[] =  _fs_.readdirSync(this.path);
 
         dirs.map(function(x:string){
-            if(x !== '.dxc')
-                projects.push(x);
+            if(Util.shouldIgnoreFile(x)) return;
+            if(x !== '.dxc')  projects.push(x);
         });
 
         return projects;

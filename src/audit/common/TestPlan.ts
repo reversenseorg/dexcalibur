@@ -51,6 +51,16 @@ export class TestPlan {
         return ;
     }
 
+    async executeAsync(pCallback:((vStep:TestStep)=>Promise<boolean>)):Promise<void> {
+        let step:TestStep;
+        while((step = this.nextStep())!=null) {
+            if (await pCallback.call(null, step) == false) {
+                break;
+            }
+        }
+        return ;
+    }
+
     reset():void {
         this.currStep = -1;
     }

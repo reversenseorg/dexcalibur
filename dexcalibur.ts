@@ -34,6 +34,10 @@ var Parser:ArgParser = new ArgParser(projectArgs, "dexcalibur", [
         help: "The web server port number",
         hasVal:true, 
         callback:(ctx,param)=>{ ctx.port = param.value; } },
+    { name:"--port-ws",
+        help: "The web socket port number",
+        hasVal:true,
+        callback:(ctx,param)=>{ ctx.wsPort = param.value; } },
     { name:"--ws",
         help: "Workspace path",
         hasVal:true,
@@ -69,11 +73,23 @@ var Parser:ArgParser = new ArgParser(projectArgs, "dexcalibur", [
     { name:"--headless",
         help: "To serve REST API only. No GUI will be available.",
         hasVal:false,
-        callback:(ctx,param)=>{ ctx.reinstall = true; } },
+        callback:(ctx,param)=>{ ctx.guiCfg = ""; } },
+    { name:"--master-node",
+        help: "To start engine as a MASTER node",
+        hasVal:false,
+        callback:(ctx,param)=>{ ctx.masterMode = true; } },
     { name:"--slave-node",
         help: "To start engine as a slave node",
         hasVal:false,
         callback:(ctx,param)=>{ ctx.slaveMode = true; } },
+    { name:"--master-uri",
+        help: "To set the URI of the MASTER node",
+        hasVal:true,
+        callback:(ctx,param)=>{ ctx.masterURI = param.value; } },
+    { name:"--master-ssl",
+        help: "To enable SSL for SLAVE/MASTER communication channels",
+        hasVal:true,
+        callback:(ctx,param)=>{ ctx.masterSSL = (param.value==='true'?true:false); } },
     { name:"--node-uid",
         help: "To set the UID of this node when the engine runs in SLAVE mode",
         hasVal:true,
@@ -146,10 +162,31 @@ if(projectArgs.guiCfg!=null){
 const engineOpts:DexcaliburEngineOptions = {};
 
 if(projectArgs.slaveMode){
-    engineOpts.engine_mode = projectArgs.slaveMode? DexcaliburEngineMode.SLAVE : DexcaliburEngineMode.MASTER;
+    console.log("------- MODE : SLAVE --------");
+    engineOpts.engine_mode = DexcaliburEngineMode.SLAVE;
     engineOpts.node_uid = projectArgs.slaveNodeUID? projectArgs.slaveNodeUID : null;
     engineOpts.master_pub_key = projectArgs.slaveNodeKey? projectArgs.slaveNodeKey : null;
+
+    if(projectArgs.masterURI!=null){
+        engineOpts.master_opts = {
+            uri: projectArgs.masterURI ? projectArgs.masterURI : null,
+            ssl: projectArgs.masterSSL ? projectArgs.masterSSL : false
+        };
+    }else{
+        engineOpts.master_opts = {
+            uri: null,
+            ssl: projectArgs.masterSSL ? projectArgs.masterSSL : false
+        };
+    }
+}else if(projectArgs.masterMode){
+    console.log("------- MODE : MASTER --------");
+    engineOpts.engine_mode = DexcaliburEngineMode.MASTER;
+}else{
+
+    console.log("------- MODE : STANDALONE --------");
 }
+
+
 
 // create an empty single (not yet initialiazed) instance of engine
 dxcInstance = DexcaliburEngine.getInstance(engineOpts);
@@ -220,6 +257,10 @@ if( !projectArgs.ipc
             );
 
             if(ready){
+                if(projectArgs.wsPort!=null){
+                    dxcInstance.wsserver.setPort(projectArgs.wsPort);
+                }
+
                 dxcInstance.start((projectArgs.port!=null) ? projectArgs.port : null);
             }
         })();

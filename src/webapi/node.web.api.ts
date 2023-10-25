@@ -1,44 +1,54 @@
 import {DelegateRequest, DelegateResponse, DelegateWebApi} from "./DelegateWebApi.js";
-import WebServer, {HTTP_CODE_ERROR, HTTP_CODE_SUCCESS} from "../WebServer.js";
+import WebServer from "../WebServer.js";
 import {Request, Response} from "express";
 import * as Log from "../Logger.js";
-import {LicenceManager, ProductInfo} from "../credit/LicenceManager.js";
-import {AuditManager} from "../audit/AuditManager.js";
-import {AssuranceScanner} from "../audit/common/AssuranceScanner.js";
-import AssuranceReport from "../audit/common/AssuranceReport.js";
-import AssuranceModel from "../audit/common/AssuranceModel.js";
-import Control from "../audit/common/Control.js";
-import {ErrorCode} from "../errors/MonitoredError.js";
-import DexcaliburEngine from "../DexcaliburEngine.js";
-import {ScanFlow} from "../audit/common/ScanFlow.js";
-import DexcaliburProject from "../DexcaliburProject.js";
-import {Nullable} from "../core/IStringIndex.js";
-import {ScanOrder} from "../audit/common/ScanOrder.js";
-import {IncomingValue} from "../security/SanitizedValue.js";
-import {NodeState} from "../core/EngineNodeManager.js";
+import {EngineNodeManager, NodeState} from "../core/EngineNodeManager.js";
+import {EngineNodeException} from "../errors/EngineNodeException.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 export const NODE_MGR_WEB_API: DelegateWebApi = new DelegateWebApi();
 
 
-NODE_MGR_WEB_API.addPublicRoute(
-    '/state/:node_uuid/:state',
+NODE_MGR_WEB_API.addAsyncAuthenticatedRoute(
+    '/scheduler/info',
     {
         'get': async function (req:DelegateRequest, res:DelegateResponse):Promise<any> {
             const $: WebServer = req.dxc.$;
 
             try{
-                let safeState:NodeState
-                if([NodeState.IDDLE,NodeState.BUSY,NodeState.STOPPED].indexOf(req.params['state'] as NodeState)==-1){
-                    throw new Error("Status not supported");
-                }else{
-                    safeState = req.params['state'] as NodeState;
+                const o = $.context.nodeManager.toJsonObject();
+                console.log(o);
+                $.sendSuccess(res, o);
+            }catch(err){
+                Logger.error("[API][NODE] Cannot retrieve scheduler info. Cause : " + err.message + "\n\t" + err.stack);
+                $.sendError(res, "Cannot retrieve scheduler info");
+            }
+        }
+    }
+);
+
+NODE_MGR_WEB_API.addAsyncPublicRoute(
+    '/webhook/state/:state',
+    {
+        'get': async function (req:DelegateRequest, res:DelegateResponse):Promise<any> {
+            const $: WebServer = req.dxc.$;
+
+            try{
+                const unsafeUuidHeader = req.headers[EngineNodeManager.HEADER_NODE_UUID];
+                console.log(unsafeUuidHeader)
+                if((unsafeUuidHeader==null) || (typeof unsafeUuidHeader!=='string')){
+                    throw EngineNodeException.MISSING_UUID_HEADER();
                 }
 
-                $.context.nodeManager.updateState(req.params['node_uuid'],safeState);
+                if(!EngineNodeManager.isValidState(req.params.state)){
+                    throw EngineNodeException.INVALID_STATE();
+                }
+
+                $.context.nodeManager.updateState(unsafeUuidHeader, req.params.state as NodeState);
                 $.sendSuccess(res, {});
             }catch(err){
-                Logger.error("[API][NODE] Node state cannot updated. Cause : " + err.message + "\n\t" + err.stack);
+                Logger.error("[API][NODE] Node state cannot updated. Cause : UUID Header is missing : ",err.stack,err.message);
+                console.log(req.headers);
                 $.sendError(res, "");
             }
         }

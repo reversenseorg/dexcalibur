@@ -13,6 +13,7 @@ import {AbstractHook} from "./hook/AbstractHook.js";
 import HookSession from "./HookSession.js";
 import HookTemplateFragment from "./hook/HookTemplateFragment.js";
 import ModelFile from "./ModelFile.js";
+import {INode} from "./INode.js";
 
 const UID_ALGO = 'sha1';
 
@@ -25,7 +26,7 @@ const UID_ALGO = 'sha1';
  *
  * @class
  */
-export default class ModelString extends Savable
+export default class ModelString extends Savable implements INode
 {
     static TYPE:NodeType = (new NodeType( "strings", NodeInternalType.STRING, [
         (new NodeProperty("_uid")).type(DbDataType.STRING).key(DbKeyType.PRIMARY), // path relative to scope root
@@ -97,5 +98,9 @@ export default class ModelString extends Savable
             }),
             value: pValue
         });
+    }
+
+    getUID(): string {
+        return this._uid;
     }
 }

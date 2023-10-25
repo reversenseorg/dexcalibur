@@ -334,5 +334,9 @@ export default class ProjectWorkspace
         return unsafe;
     }
 
+    static getAuditDirFromPUID(pGloablWorkspace:string, pPUID:string):string {
+        return _path_.join(pGloablWorkspace, pPUID, DIR_NAME.AUDIT);
+    }
+
 }
 

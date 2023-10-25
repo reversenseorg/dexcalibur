@@ -98,14 +98,14 @@ export class ScanFlow {
             parentPort.once('message', (value)=>{
                 value.managedPort.postMessage('test');
 
-                this.scanner.run(this.scheduler.getProject(), {});
+                (async ()=>{ await this.scanner.run(this.scheduler.getProject(), {}); });
                 value.managedPort.close();
             });
         }
     }
 
-    startScan():void {
-        return this.scanner.run(this.scheduler.getProject(), {});
+    async startScan():Promise<void> {
+        return await this.scanner.run(this.scheduler.getProject(), {});
     }
 
     toJsonObject():any {

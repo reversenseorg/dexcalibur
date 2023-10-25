@@ -266,6 +266,10 @@ export class WebsocketServer
     }
 
 
+    setPort(pNumber:number):void {
+        this.port = pNumber;
+    }
+
     /**
      * To start the web socket server.
      * By default the port number, is the port number of dexcalibur server + 1
@@ -276,7 +280,10 @@ export class WebsocketServer
      */
     start() :void {
 
-        this.port = this.engine.getSettings().getWebserverSettings().getWsPort();
+        if(this.port==null){
+            this.port = this.engine.getSettings().getWebserverSettings().getWsPort();
+        }
+
         const wwwPort = this.port;
 
 

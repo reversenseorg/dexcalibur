@@ -8,6 +8,10 @@ import {AuditManagerException} from "./errors/AuditManagerException.js";
 import {PrivacyTrackersModel} from "./models/SharePrivacyTrackersModel.js";
 import DexcaliburEngine from "../DexcaliburEngine.js";
 import {ReversenseNetworkSecurityModel} from "./models/NetworkUsageModel.js";
+import ProjectWorkspace from "../ProjectWorkspace.js";
+import Util from "../Utils.js";
+import * as Log from "../Logger.js";
+const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
 const SUBDIRS = {
     REPORTS: "reports",
@@ -71,20 +75,21 @@ export class AuditManager {
      */
     async listModels( pProject:DexcaliburProject|null = null):Promise<AssuranceModel[]> {
         let allModels:AssuranceModelMap = {};
+        let projectModels:AssuranceModelMap = {};
         let globalModels:AssuranceModelMap = {};
 
         // if additionnal configuration is provided over Dexcalibur command arguments
 
         // load from remote signature server
         const remoteSharedModels = await this.engine.getSignatureServer().getModels();
-        console.log("Remote models : "+remoteSharedModels.length, remoteSharedModels);
         remoteSharedModels.map(x=> {
+            x.updateControlTree(x.controls);
             allModels[x.getID()] = x;
         });
 
         // if project is specified, add models from project workspace
         if(pProject!=null) {
-            allModels = this._listModelsFromFolder(
+            projectModels = this._listModelsFromFolder(
                 _path_.join(
                     pProject.getWorkspace().getAuditDir(),
                     PROJECT_MODELS_FOLDER
@@ -105,11 +110,17 @@ export class AuditManager {
             if(allModels[k]==null){
                 allModels[k] = globalModels[k];
             }
-        }
+        }*/
 
 
         // if some built-in models are not already stored in Dexcalibur or Project workspace,
         // create it
+        for(let uid in projectModels){
+            if(allModels[uid]==null){
+                projectModels[uid].updateControlTree(projectModels[uid].controls);
+                allModels[uid] = projectModels[uid];
+            }
+        }
 
         /*
         const presetModels = [
@@ -172,39 +183,72 @@ export class AuditManager {
     }
 
 
+    static getReportsFolderFromPUID( pEngineWs:string, pProjectUID:string):string {
+        return _path_.join(ProjectWorkspace.getAuditDirFromPUID(pEngineWs,pProjectUID), SUBDIRS.REPORTS);
+    }
+
 
     /**
-     * To list assurance model of the project.
+     * To list assurance report of the project.
      *
-     * It includes :
-     * - available models
-     * - custom models
+     * @param {DexcaliburProject} pProject
+     * @return {AssuranceModel[]}
+     * @method
+     */
+    async listReports( pProject:DexcaliburProject):Promise<AssuranceReport[]> {
+        let x:AssuranceReport, model:AssuranceModel;
+
+        const reports = this.listReportsFromPath(_path_.join(pProject.getWorkspace().getAuditDir(),SUBDIRS.REPORTS));
+
+        for(let i=0;i<reports.length; i++){
+            x = reports[i];
+            model = await this.getModel(pProject, x.model as any);
+
+            x.setProject(pProject);
+            if(model != null){
+                x.setModel(model);
+                x.cleanReferences()
+            }else{
+                Logger.error("[AUDIT MANAGER] listReports > model cannot be restored ",x.model as any);
+            }
+        }
+
+        return reports;
+    }
+
+
+    /**
+     * To list assurance reports of the project even if the project is closed
+     *
      *
      *
      * @return {AssuranceModel[]}
      * @method
      */
-    listReports( pProject:DexcaliburProject):AssuranceReport[] {
+    listReportsFromPath( pDirPath:string):AssuranceReport[] {
         const reports:AssuranceReport[] = [];
 
-        const customReports = _path_.join(pProject.getWorkspace().getAuditDir(),SUBDIRS.REPORTS);
         // check user permissions
-        if(_fs_.existsSync(customReports)){
-            _fs_.readdirSync(customReports).map( vPath => {
-                try{
-                    reports.push(
-                        AssuranceReport.fromJsonObject(
-                            JSON.parse(
-                                _fs_.readFileSync(vPath, {encoding:'utf8'})
-                            )
-                        )
-                    );
-                }catch (err){
+        if(_fs_.existsSync(pDirPath)){
+            _fs_.readdirSync(pDirPath).map( vPath => {
+                console.log(vPath);
 
+                // ignore system files
+                if(Util.shouldIgnoreFile(vPath)) return;
+
+                let report;
+                try{
+
+                    report = AssuranceReport.fromJsonObject(JSON.parse(_fs_.readFileSync(_path_.join(pDirPath,vPath), {encoding:'utf8'}) ));
+
+
+                    reports.push(report);
+                }catch (err){
+                    console.log(err);
                 }
             });
         }
-
+        console.log(reports);
         return reports;
     }
 

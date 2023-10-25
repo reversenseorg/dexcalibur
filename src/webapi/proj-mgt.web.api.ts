@@ -306,22 +306,13 @@ PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
                 // refresh connected device
                 await DeviceManager.getInstance().scan();
 
-
                 // get project info
                 project = $.context.getProject( req.query.uid as string);
 
-                if($.context.engine_type==DexcaliburEngineMode.MASTER){
-                    // create node
-                    const node = $.context.nodeManager.createNode(project.getUID(), project.getDevice().getProfile().os);
-                    await node.spawn();
-                    $.sendSuccess( res, { node: node.UUID });
-                    return;
-                }else if($.context.engine_type==DexcaliburEngineMode.SLAVE){
-                    // else slave mode (sess / auth)
-                }
+
 
                 // standalone mode
-
+                /*
                 AccessControl.check(
                     AccessZone.PROJECT,
                     ProjectAccessControl.access.PROJ_OPEN_OWN,
@@ -329,7 +320,16 @@ PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
                     req.dxc.sess.getUserAccount()
                 );
 
+                 */
+
                 if(project != null){
+
+                    AccessControl.check(
+                        AccessZone.PROJECT,
+                        ProjectAccessControl.access.PROJ_OPEN_OWN,
+                        project,
+                        req.dxc.sess.getUserAccount()
+                    );
 
                     // if the project is already opened, it is set as active (foregrounf) project
                     (req.dxc.sess as UserSession).setDefaultActiveProject(project);
@@ -348,6 +348,15 @@ PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
                         $.sendError( res, "Project is open but not ready");
                     }
                     return ;
+                }
+
+                if($.context.engine_type==DexcaliburEngineMode.MASTER){
+                    // create node
+                    const node = $.context.nodeManager.createNode(req.query.uid as string);//, project.getDevice().getProfile().os);
+                    await node.spawn();
+
+                    $.sendSuccess( res, { node: node.UUID });
+                    return;
                 }
 
 

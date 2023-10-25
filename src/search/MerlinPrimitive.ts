@@ -21,7 +21,7 @@ export enum MerlinType {
 export interface MerlinPrimitive {
     TYPE: MerlinType
 
-    execute?(pContext:any):Promise<FinderResult>;
+    execute(pContext:any):Promise<FinderResult>;
 
     executeSync?(pContext:any):FinderResult;
 

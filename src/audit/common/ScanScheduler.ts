@@ -2,10 +2,9 @@ import {ScanFlow} from "./ScanFlow.js";
 import DexcaliburEngine, {DexcaliburEngineMode} from "../../DexcaliburEngine.js";
 import {ScanOrder} from "./ScanOrder.js";
 import {Subject} from "rxjs";
-import {EngineNode} from "../../core/EngineNode.js";
+import {EngineNode, NodePurpose} from "../../core/EngineNode.js";
 import {AuditManager} from "../AuditManager.js";
 import DexcaliburProject from "../../DexcaliburProject.js";
-import AssuranceModel from "./AssuranceModel.js";
 import {AssuranceScanner} from "./AssuranceScanner.js";
 import {LicenceManager} from "../../credit/LicenceManager.js";
 import AssuranceReport from "./AssuranceReport.js";
@@ -48,7 +47,7 @@ export class ScanScheduler {
         });
 
         this._queued$.subscribe((vOrder:ScanOrder)=>{
-            this.newScan(vOrder);
+                this.newScan(vOrder);
         });
     }
 
@@ -86,9 +85,10 @@ export class ScanScheduler {
 
         const opts = scanner.validateOptions(pOrder.options);
 
+        scanner.setModel(model);
         // check credit
         //scanner.hasCredit()
-        scanner.run(pProject, opts);
+        await scanner.run(pProject, opts);
 
         // get report
         const report = scanner.getReport();
@@ -107,20 +107,25 @@ export class ScanScheduler {
      */
     async newScan(pOrder:ScanOrder):Promise<any> {
 
-        let node:EngineNode;
+        let existingNodes:EngineNode[];
+        let node:EngineNode = this._ctx.nodeManager.getReadySlave(
+            pOrder.getProjectUID(),
+            NodePurpose.SCAN
+        );
 
-
-        if(this._ctx.nodeManager.isStarted(pOrder.getProjectUID())){
-            node = this._ctx.nodeManager.getNodeByProject(pOrder.getProjectUID());
-        }else{
+        // check ressources quotas
+        if(node == null){
             // start a new node
-            node = this._ctx.nodeManager.createNode(pOrder.settings.projectUID, pOrder.settings.targetOS);
+            node = this._ctx.nodeManager.createNode(pOrder.settings.projectUID); //, pOrder.settings.targetOS);
             node.start();
         }
 
         if(!await node.isBusy()){
             // send a request to order a scan to the node
             node.startScan(pOrder.getModelUID());
+        }else{
+            // add scan to queue
+            node.appendToQueue(pOrder.getModelUID());
         }
     }
 

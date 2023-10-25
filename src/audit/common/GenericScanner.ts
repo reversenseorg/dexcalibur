@@ -15,6 +15,8 @@ import {IControl} from "./IControl.js";
 import {CoreDebug} from "../../core/CoreDebug.js";
 import {AuditManager} from "../AuditManager.js";
 import {MerlinPrimitive} from "../../search/MerlinPrimitive.js";
+import {MerlinRule} from "../../search/MerlinRule.js";
+import {FinderResult} from "../../search/FinderResult.js";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -87,83 +89,61 @@ export class GenericScanner extends AssuranceScanner {
     /**
      *
      * @param pReport
-     * @param pControl
-     * @private
-     */
-    private executeRules(pReport:AssuranceReport, pControl:Control):void {
-
-
-        if(pControl.hasChildren()){
-            pControl.children.map( vCtrl => {
-                this.executeRules(pReport, vCtrl);
-            })
-        }else{
-            pControl.assessments.map( (vAssess,vIndex) => {
-               vAssess.rules.map( (vRule,vRuleOffset) => {
-                   if(!vRule.hasBusSubscriber()){
-                       (async ()=>{
-                           let res:any;
-                           if(Merlin.isRule(vRule)){
-                               res = await vRule.executeSync(this.project);
-                               if(res.count()>0){
-                                   console.log("[SCAN][FOUND] : "+res.count()+"  "+vRule.toSearchString());
-                                   res.getData().map((x:any) => {
-                                       /*pReport.addMatch(
-                                           pControl.id,
-                                           vAssess,
-                                           vRuleOffset,
-                                           x
-                                       )
-                                       /*
-                                       vAssess.addMatches({
-                                           ctrl: pControl.id,
-                                           assess: vIndex,
-                                           rule: vRule,
-                                           match: x
-                                       });*/
-                                   });
-                               }
-                           }else{
-                               (vRule as MerlinSearchRequest).setContext(this._searchContext);
-                               res = await vRule.execute(this.project);
-                               if(res.count()>0){
-                                   console.log("[SCAN][FOUND] : "+res.count()+"  "+vRule.toSearchString());
-                                   res.getData().map(x => {
-                                       vAssess.addMatches(x);
-                                   });
-                               }
-                           }
-
-                       })();
-                   }
-               })
-            });
-        }
-
-        return ;
-    }
-
-
-    /**
-     *
-     * @param pReport
      * @param pCtrlNode
      */
-    doAssessment(pReport:AssuranceReport, pCtrlNode:ControlNode):void {
+    async doAssessment(pReport:AssuranceReport, pCtrlNode:ControlNode):Promise<void> {
 
         if(!pCtrlNode.ctrl.isControlAssessment()){
             Logger.info("[SCANNER][GENERIC][doAssessment] skip control node (cause= control node is not a set of rules) : "+pCtrlNode.canonicalID);
             return;
         }
 
-        (pCtrlNode.ctrl as ControlAssessment).rules.map( (vRule,vRuleOffset) => {
+        const rules:MerlinPrimitive[] = (pCtrlNode.ctrl as ControlAssessment).rules;
+        let vRule:MerlinPrimitive;
+        let vRuleOffset:number;
+        let res:FinderResult;
+
+        for(let vRuleOffset=0; vRuleOffset<rules.length; vRuleOffset++){
+            vRule = rules[vRuleOffset];
+            if(!vRule.hasBusSubscriber()){
+                if(Merlin.isRule(vRule)){
+                    res = await vRule.execute(this.project);
+                    if(res.count()>0){
+                        console.log("[SCAN][FOUND](rule) : "+res.count()+"  "+(vRule as MerlinRule).getRequest().toSearchString());
+                        res.foreach((offset:number,x:any) => {
+                            // console.log('^ addMatch',  vRuleOffset, offset, x );
+                            pReport.addMatch(
+                                pCtrlNode,
+                                vRuleOffset,
+                                x
+                            );
+                        });
+                    }
+                }else{
+                    (vRule as MerlinSearchRequest).setContext(this._searchContext);
+                    res = await vRule.execute(this.project);
+                    if(res.count()>0){
+                        console.log("[SCAN][FOUND](request) : "+res.count()+"  "+vRule.toSearchString());
+                        res.foreach((offset:number,x) => {
+                            pReport.addMatch(
+                                pCtrlNode,
+                                vRuleOffset,
+                                x
+                            );
+                        });
+                    }
+                }
+            }
+        }
+
+      /*  (pCtrlNode.ctrl as ControlAssessment).rules.map( (vRule,vRuleOffset) => {
             if(!vRule.hasBusSubscriber()){
                 (async ()=>{
                     let res:any;
                     if(Merlin.isRule(vRule)){
-                        res = await vRule.executeSync(this.project);
+                        res = await vRule.execute(this.project);
                         if(res.count()>0){
-                            console.log("[SCAN][FOUND](rule) : "+res.count()+"  "+vRule.toSearchString());
+                            console.log("[SCAN][FOUND](rule) : "+res.count()+"  "+(vRule as MerlinRule).getRequest().toSearchString());
                             res.getData().map((x:any) => {
                                 pReport.addMatch(
                                     pCtrlNode,
@@ -189,7 +169,7 @@ export class GenericScanner extends AssuranceScanner {
 
                 })();
             }
-        });
+        });*/
 
 
         return ;
@@ -310,7 +290,7 @@ export class GenericScanner extends AssuranceScanner {
      *
      * @private
      */
-    private _firstScan(pContext:DexcaliburProject, pOptions:GenericScanOptions):void{
+    private async _firstScan(pContext:DexcaliburProject, pOptions:GenericScanOptions):Promise<void>{
         // 0. Create dashboard
         this.createMainDashboard(pOptions.dashboard);
 
@@ -332,15 +312,15 @@ export class GenericScanner extends AssuranceScanner {
             model: this.model
         });
 
-        plan.execute((vStep:TestStep)=>{
+        await plan.executeAsync(async (vStep:TestStep)=>{
             Logger.info("[SCANNER]["+this.name+"] Execute Test Step : "+vStep.type)
             let next = true;
             switch (vStep.type){
                 case TestType.STATIC_SCAN:
-                    this._staticScan( this.report, vStep.controls, pOptions);
+                    await this._staticScan( this.report, vStep.controls, pOptions);
                     break;
                 case TestType.IAST:
-                    this._iastScan( this.report, vStep.controls, pOptions);
+                    await this._iastScan( this.report, vStep.controls, pOptions);
                     break;
                 default:
                     Logger.info("[SCAN][NOT SUPPORTED][STEP="+vStep.type+"] model="+this.model.getID());
@@ -357,6 +337,8 @@ export class GenericScanner extends AssuranceScanner {
 
         // 5. taint analysis
 
+        console.log(this.report);
+
         // 6. result
         this.reports.push(this.report);
 
@@ -371,16 +353,24 @@ export class GenericScanner extends AssuranceScanner {
      *
      * @private
      */
-    private _staticScan( pReport:AssuranceReport, pControlNodes:ControlNode[], pOptions:GenericScanOptions) {
-        pControlNodes.map( vCtrl => {
+    private async _staticScan( pReport:AssuranceReport, pControlNodes:ControlNode[], pOptions:GenericScanOptions):Promise<void[]> {
+        /*pControlNodes.map( vCtrl => {
             this.doAssessment(pReport, vCtrl);
-        });
+        });*/
+
+        return await Promise.all(pControlNodes.map(async (vCtrl) => {
+            await this.doAssessment(pReport, vCtrl);
+        }));
     }
 
-    private _iastScan( pReport:AssuranceReport, pControlNodes:ControlNode[], pOptions:GenericScanOptions) {
-        pControlNodes.map( vCtrl => {
+    private async _iastScan( pReport:AssuranceReport, pControlNodes:ControlNode[], pOptions:GenericScanOptions):Promise<void[]> {
+        /*pControlNodes.map( vCtrl => {
             this.doAssessment(pReport, vCtrl);
-        });
+        });*/
+
+        return await Promise.all(pControlNodes.map(async (vCtrl) => {
+            await this.doAssessment(pReport, vCtrl);
+        }));
     }
 
     /**
@@ -397,14 +387,14 @@ export class GenericScanner extends AssuranceScanner {
         // TODO : prepare test plan by gathering, categorizing and prioritizing tests
     }
 
-    override run( pContext:DexcaliburProject, pOptions:any = {}){
+    override async run( pContext:DexcaliburProject, pOptions:any = {}):Promise<void>{
 
         if(this._searchContext==null){
             this._searchContext = new MerlinSearchAPI(pContext.getSearchEngine().getDatabase());
         }
 
         if(this.reports.length==0){
-            this._firstScan( this.project, pOptions);
+            await this._firstScan( this.project, pOptions);
         }else{
 
             this.report = new AssuranceReport({
@@ -419,8 +409,8 @@ export class GenericScanner extends AssuranceScanner {
         }
     }
 
-    runModel(pContext:DexcaliburProject):AssuranceReport{
-        this.run(pContext, {});
+    async runModel(pContext:DexcaliburProject):Promise<AssuranceReport>{
+        await this.run(pContext, {});
 
         return this.report;
     }

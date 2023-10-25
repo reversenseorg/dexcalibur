@@ -1,23 +1,17 @@
 import * as _path_ from 'path';
 import * as _fs_ from 'fs';
-import express from 'express';
-import {Application as ExpressApplication, Request as ExpressRequest, Response as ExpressResponse} from 'express';
+import express, {
+    Application as ExpressApplication,
+    Request as ExpressRequest,
+    Response as ExpressResponse
+} from 'express';
 import * as MIME from 'mime-types';
 import * as _bodyparser_ from 'body-parser';
 import * as _cookieParser_ from 'cookie-parser';
-import passport from 'passport';
 import * as _openidconnect_ from 'passport-openidconnect';
-import expressSession from 'express-session';
-
-// @ts-ignore
-const BodyParser = _bodyparser_.default;
-const CookieParser = _cookieParser_.default;
-const PassportOIDC = _openidconnect_.default;
-
-
 import WebTemplateEngine from "./WebTemplateEngine.js";
 import DexcaliburProject from "./DexcaliburProject.js";
-import DexcaliburEngine, {DexcaliburProjectMap} from "./DexcaliburEngine.js";
+import DexcaliburEngine, {DexcaliburEngineMode} from "./DexcaliburEngine.js";
 import Uploader from "./Uploader.js";
 import PlatformManager from "./PlatformManager.js";
 import InspectorManager from "./InspectorManager.js";
@@ -31,7 +25,7 @@ import Util from "./Utils.js";
 import HookSet from "./HookSet.js";
 import {Intent, IntentCommandFactory} from "./IntentFactory.js";
 import {Workflow} from "./Workflow.js";
-import {ValidationCapable, Validator} from "./Validator.js";
+import {ValidationCapable} from "./Validator.js";
 import {Settings} from "./Settings.js";
 import {UserSession} from "./user/session/UserSession.js";
 import {UserService} from "./user/UserService.js";
@@ -60,14 +54,17 @@ import {PRIVACY_WEB_API} from "./webapi/privacy.web.api.js";
 import {DelegateRequest, DelegateResponse, ExtraMiddlewareOptions} from "./webapi/DelegateWebApi.js";
 import {AUDIT_WEB_API} from "./webapi/audit.web.api.js";
 import {WebGuiConfiguration} from "./webserver/WebGuiConfiguration.js";
-import {URL} from "url";
 import {RuntimeSecurityException} from "./errors/RuntimeSecurityException.js";
 //import {Client, Issuer, Strategy} from "openid-client";
-
-import {AuthenticationSettings} from "./user/auth/AuthenticationSettings.js";
 import {Nullable} from "./core/IStringIndex.js";
-import {Client, Issuer} from "openid-client";
+import {Client} from "openid-client";
 import {NODE_MGR_WEB_API} from "./webapi/node.web.api.js";
+
+// @ts-ignore
+const BodyParser = _bodyparser_.default;
+const CookieParser = _cookieParser_.default;
+const PassportOIDC = _openidconnect_.default;
+
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -1414,7 +1411,12 @@ export default class WebServer
         AUDIT_WEB_API.injectServer(this);
         */
 
+        // TODO : remove bypass
+        const isSlave = this.context.isSlaveNode();
+
         function ensureApiLoggedIn(req, res, next) {
+            if(isSlave) next();
+
             console.log("API "+req.originalUrl," > ",req.isAuthenticated());
             if (req.isAuthenticated()) {
                 return next();
@@ -1422,6 +1424,7 @@ export default class WebServer
 
             self.sendError(res, "Access denied");
         }
+
         function ensureGuiLoggedIn(req, res, next) {
             //console.log("GUI "+req.originalUrl," > ",req.isAuthenticated());
             if (req.isAuthenticated()) {

@@ -9,6 +9,10 @@ import AssuranceModel, {ControlNode} from "./AssuranceModel.js";
 import Control from "./Control.js";
 import ControlAssessment from "./ControlAssessment.js";
 import {CoreDebug} from "../../core/CoreDebug.js";
+import {MerlinSearchAPI} from "../../search/MerlinSearchAPI.js";
+import {NodeInternalType} from "../../NodeInternalType.js";
+import {Logger} from "@dexcalibur/dexcalibur-installer/src/utils/Logger.js";
+import {FinderResult} from "../../search/FinderResult.js";
 
 
 export interface Match {
@@ -52,6 +56,8 @@ export default class AssuranceReport {
 
     project:DexcaliburProject;
 
+    _dirty = false;
+
     model:AssuranceModel;
 
     primaryAssets:ConstraintMatch<Asset>[] = [];
@@ -80,6 +86,11 @@ export default class AssuranceReport {
     }
     getSecondaryAssets():ConstraintMatch<Asset>[] {
         return this.secondaryAssets;
+    }
+
+    setProject(pProject:DexcaliburProject):void {
+        this.project = pProject;
+
     }
 
     addCodeMatch( pConstraint:CodeConstraint, pSubject:any):void {
@@ -129,19 +140,19 @@ export default class AssuranceReport {
      * @param pNode
      */
     addMatch(  pControl:ControlNode, pRuleOffset:number, pNode:any):void {
+        //console.log('> addMatch : ',pControl.canonicalID, pRuleOffset, pNode);
+        if(this.matches[pControl.canonicalID]==null) {
 
-        if(this.matches[pControl.canonicalID]==null){
             this.matches[pControl.canonicalID] = {
                 assessment: pControl,
                 match: []
             };
-
-            this.matches[pControl.canonicalID].match.push({
-                node: pNode,
-                ruleIdx: pRuleOffset
-            });
         }
 
+        this.matches[pControl.canonicalID].match.push({
+            node: pNode,
+            ruleIdx: pRuleOffset
+        });
     }
     /**
      * To export the report to JSON file
@@ -157,11 +168,62 @@ export default class AssuranceReport {
     }
 
     /**
+     * To serialize project properties
+     *
+     * @private
+     */
+    private _projectToJsonObject():any {
+
+        const project:any = {
+            uid: this.project.getUID(),
+            app: this.project.pkg,
+            platform: null,
+            device: null
+        };
+
+        if(this.project.getPlatform()!=null){
+            project.platform = {
+                api: this.project.getPlatform().getApiVersion(),
+                uid: this.project.getPlatform().getUID()
+            };
+        }
+
+        if(this.project.getDevice()!=null){
+            const dev = this.project.getDevice();
+            project.device = {
+                uid: dev.getUID(),
+                os: null,
+                arch: null,
+                abi: null,
+                platform: null
+            };
+
+            if(dev.getProfile()!=null){
+                if(dev.getProfile().getSystemProfile()){
+                    const prof = dev.getProfile().getSystemProfile();
+                    project.device.os = prof.getOperatingSystem();
+                    project.device.arch = prof.getArchitecture();
+                    project.device.abi = prof.getABI();
+                }
+            }
+            if(dev.getPlatform()!=null){
+                project.device.platform = {
+                    api: dev.getPlatform().getApiVersion(),
+                    uid: dev.getPlatform().getUID()
+                };
+            }
+        }
+
+        return project;
+    }
+    /**
      *
      */
     toJsonObject():any {
         const o:any = {};
         let match:Match;
+        
+        console.log(this);
 
         for(let i in this){
             switch (i){
@@ -175,45 +237,14 @@ export default class AssuranceReport {
                     })
                     break;*/
                 case "project":
-                    o.project = {
-                        uid: this.project.getUID(),
-                        app: this.project.pkg,
-                        platform: null,
-                        device: null
-                    };
 
-                    if(this.project.getPlatform()!=null){
-                        o.project.platform = {
-                            api: this.project.getPlatform().getApiVersion(),
-                            uid: this.project.getPlatform().getUID()
-                        };
+                    if(this.project.toJsonObject==null){
+                        o.project = (this.project as any)
+                    }else{
+                        o.project = this._projectToJsonObject();
                     }
 
-                    if(this.project.getDevice()!=null){
-                        const dev = this.project.getDevice();
-                        o.project.device = {
-                            uid: dev.getUID(),
-                            os: null,
-                            arch: null,
-                            abi: null,
-                            platform: null
-                        };
 
-                        if(dev.getProfile()!=null){
-                            if(dev.getProfile().getSystemProfile()){
-                                const prof = dev.getProfile().getSystemProfile();
-                                o.project.device.os = prof.getOperatingSystem();
-                                o.project.device.arch = prof.getArchitecture();
-                                o.project.device.abi = prof.getABI();
-                            }
-                        }
-                        if(dev.getPlatform()!=null){
-                            o.project.device.platform = {
-                                api: dev.getPlatform().getApiVersion(),
-                                uid: dev.getPlatform().getUID()
-                            };
-                        }
-                    }
                     break;
 
 
@@ -224,27 +255,60 @@ export default class AssuranceReport {
                     break;
                 case "matches":
                     o.matches = {};
-                    for(let k in this.matches){
-                        match = this.matches[k];
-                        o.matches[k] = {
-                            assess: match.assessment.canonicalID,
-                            match: [] //
-                        };
+                    for(let canonicalUID in this.matches){
+                        match = this.matches[canonicalUID];
 
-                        this.matches[k].match.map((x)=>{
+                        if(match==null){
+                            o.matches[canonicalUID] = {
+                                assessment: null,
+                                match: [] //
+                            };
+                        }else{
+                            o.matches[canonicalUID] = {
+                                assessment: (typeof match.assessment==='string')? match.assessment : match.assessment.canonicalID,
+                                match: [] //
+                            };
+                        }
 
-                            if(x.match!=null){
-                                o.matches[k].match.push({
+                        this.matches[canonicalUID].match.map((x)=>{
+
+                            if(x.node==null){
+                                o.matches[canonicalUID].match.push({
                                     ruleIdx: x.ruleIdx,
                                     node: null
                                 });
                             }else{
-                                o.matches[k].match.push({
-                                    ruleIdx: x.ruleIdx,
-                                    node: {
-                                        __: x.match.__,
-                                        uid: x.match.getUID()
+
+                                let node:any;
+
+                                try{
+                                    node = {
+                                        __: x.node.__,
+                                        uid: (x.node.getUID!=null)? x.node.getUID() : x.node.uid
+                                    };
+                                    if(node.uid==null){
+                                        throw new Error();
                                     }
+                                }catch(err){
+                                    switch(x.node.__){
+                                        case NodeInternalType.STRING:
+                                            console.log(x.node);
+                                            node = {
+                                                __: x.node.__,
+                                                uid: (typeof x.node==='string')? x.node : x.node._uid
+                                            };
+                                            break;
+                                        default:
+                                            console.error("[ASSURANCE REPORT] toJsonObject > node UID error",x.node);
+                                            break;
+                                    }
+                                }
+                                
+
+
+                                o.matches[canonicalUID].match.push({
+                                    ruleIdx: x.ruleIdx,
+                                    node: node
                                 });
                             }
 
@@ -253,7 +317,11 @@ export default class AssuranceReport {
 
                     break;
                 case "model":
-                    o.model = this.model.getID(); //toJsonObject();
+                    if(typeof this.model!=='string'){
+                        o.model = this.model.getID(); //toJsonObject();
+                    }else{
+                        o.model = this.model;
+                    }
                     break;
             }
         }
@@ -262,8 +330,59 @@ export default class AssuranceReport {
         return o;
     }
 
+    dirty():void {
+        this._dirty = true;
+    }
+
+    isDirty():boolean {
+        return this._dirty;
+    }
+
+    setModel(pModel:AssuranceModel){
+        this.model = pModel;
+        if(this._dirty){
+            // restore matches
+            for(let canonicalUID in this.matches){
+                if(typeof this.matches[canonicalUID].assessment==='string'){
+                    this.matches[canonicalUID].assessment = this.model.getControlNode(this.matches[canonicalUID].assessment as any);
+                }
+            }
+        }
+    }
+
+    /**
+     *
+     */
+    cleanReferences():void{
+        if(!this._dirty) return;
+
+        //let merlin = new MerlinSearchAPI(this.project.getSearchEngine().getDatabase());
+        let meth:string;
+        let result:FinderResult;
+        for(let canonicalUID in this.matches){
+            this.matches[canonicalUID].match.map(vMatch => {
+                if(vMatch.node != null && vMatch.node.uid != null){
+
+                    try{
+                        meth = MerlinSearchAPI.getMethodFromNodeType(vMatch.node.__);
+                        result = this.project.getSearchEngine().byID()[meth].apply(this.project.getSearchEngine(),[vMatch.node.uid]);
+                        if(result.count()>0){
+                            vMatch.node = result.get(0);
+                        }
+
+                    }catch(err){
+
+                    }
+
+                }
+            });
+        }
+        this._dirty = false;
+    }
+
     static fromJsonObject(pData:any):AssuranceReport {
         const a = new AssuranceReport(pData);
+        a.dirty();
 
         return a;
     }

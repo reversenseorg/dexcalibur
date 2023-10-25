@@ -8,13 +8,10 @@ import {AssuranceScanner} from "../audit/common/AssuranceScanner.js";
 import AssuranceReport from "../audit/common/AssuranceReport.js";
 import AssuranceModel from "../audit/common/AssuranceModel.js";
 import Control from "../audit/common/Control.js";
-import {ErrorCode} from "../errors/MonitoredError.js";
-import DexcaliburEngine, {DexcaliburEngineMode} from "../DexcaliburEngine.js";
 import {ScanFlow} from "../audit/common/ScanFlow.js";
 import DexcaliburProject from "../DexcaliburProject.js";
-import {Nullable} from "../core/IStringIndex.js";
 import {ScanOrder} from "../audit/common/ScanOrder.js";
-import {scheduled} from "rxjs";
+import {Nullable} from "../core/IStringIndex.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 export const AUDIT_WEB_API: DelegateWebApi = new DelegateWebApi();
@@ -27,7 +24,14 @@ AUDIT_WEB_API.addAsyncAuthenticatedRoute(
             const $: WebServer = req.dxc.$;
 
             try{
-                $.sendSuccess(res, await $.context.getSignatureServer().getTrackers());
+                const trackers = await $.context.getSignatureServer().getTrackers();
+                const all = [];
+
+                trackers.map(x => {
+                    all.push(x.toJsonObject());
+                })
+
+                $.sendSuccess(res, all);
             }catch(err){
                 Logger.error("[API][AUDIT] Trackers cannot be listed. Cause : " + err.message + "\n\t" + err.stack);
                 $.sendError(res, " Trackers cannot be listed. Cause : " + err.message);
@@ -138,7 +142,7 @@ AUDIT_WEB_API.addAsyncAuthenticatedRoute(
 
                 // check credit
                 //scanner.hasCredit()
-                scanner.run(req.dxc.project, opts);
+                await scanner.run(req.dxc.project, opts);
 
                 const report = scanner.getReport();
 
@@ -225,56 +229,50 @@ AUDIT_WEB_API.addAsyncAuthenticatedRoute(
     }
 );
 
-AUDIT_WEB_API.addAuthenticatedRoute(
+AUDIT_WEB_API.addAsyncAuthenticatedRoute(
     '/reports',
     {
-        'get': function (req:DelegateRequest, res:DelegateResponse):any {
+        'get': async function (req:DelegateRequest, res:DelegateResponse):Promise<any> {
             const $: WebServer = req.dxc.$;
 
             try{
                 // ========== LOGIC
                 const am = AuditManager.getInstance();
-                const reports = am.listReports(req.dxc.project);
+                let project:string;
+                let projectAlive:Nullable<DexcaliburProject> = null;
+                let reports:AssuranceReport[] = [];
+
+                if(req.dxc.project == null){
+                   project = req.query.puid as string;
+                }else{
+                   project = req.dxc.project.getUID();
+                }
+
+                projectAlive = $.context.getProject(project);
+                if(projectAlive != null){
+                    reports = await am.listReports(projectAlive);
+                }else{
+                    reports = am.listReportsFromPath(
+                        AuditManager.getReportsFolderFromPUID($.context.workspace.getLocation(), project)
+                    );
+                }
+
+
                 $.sendSuccess(res, reports.map(x => x.toJsonObject()) );
             }catch(err){
                 Logger.error("[API][AUDIT] Report cannot be retrieved. Cause : " + err.message + "\n\t" + err.stack);
                 $.sendError(res, "Report cannot be retrieved. Cause : " + err.message);
             }
         }
-    },{
-        readProject: true,
-        readProjectStrict: true,
     }
 );
 
 
 
-AUDIT_WEB_API.addAuthenticatedRoute(
-    '/reports',
-    {
-        'get': function (req:DelegateRequest, res:DelegateResponse):any {
-            const $: WebServer = req.dxc.$;
-
-            try{
-                // ========== LOGIC
-                const am = AuditManager.getInstance();
-                const reports = am.listReports(req.dxc.project);
-                $.sendSuccess(res, reports.map(x => x.toJsonObject()) );
-            }catch(err){
-                Logger.error("[API][AUDIT] Report cannot be retrieved. Cause : " + err.message + "\n\t" + err.stack);
-                $.sendError(res, "Report cannot be retrieved. Cause : " + err.message);
-            }
-        }
-    },{
-        readProject: true,
-        readProjectStrict: true,
-    }
-);
-
-AUDIT_WEB_API.addAuthenticatedRoute(
+AUDIT_WEB_API.addAsyncAuthenticatedRoute(
     '/report/:modelID',
     {
-        'get': function (req:DelegateRequest, res:DelegateResponse):any {
+        'get': async function (req:DelegateRequest, res:DelegateResponse):Promise<any> {
             const $: WebServer = req.dxc.$;
 
             try{
@@ -292,14 +290,16 @@ AUDIT_WEB_API.addAuthenticatedRoute(
                 }*/
 
                 const am = AuditManager.getInstance();
-                const reports = am.listReports(req.dxc.project);
+                const reports = await am.listReports(req.dxc.project);
                 const rep:AssuranceReport[] = [];
+                let report:AssuranceReport;
 
-                reports.map(( vReport, vIndex)=>{
-                    if(models.indexOf(vReport.getModel().getID())>-1){
-                        rep.push(vReport.toJsonObject());
+                for(let i=0; i<reports.length;i++) {
+                    report = reports[i];
+                    if(models.indexOf(report.getModel().getID())>-1){
+                        rep.push(report.toJsonObject());
                     }
-                });
+                }
 
                 $.sendSuccess(res, rep);
             }catch(err){
@@ -563,15 +563,21 @@ AUDIT_WEB_API.addAsyncAuthenticatedRoute(
                 // ========== LOGIC
 
                 const scheduler = $.context.getScanScheduler();
+                let project:DexcaliburProject = req.dxc.project;
 
-                if($.context.engine_type===DexcaliburEngineMode.STANDALONE){
+                if($.context.isStandaloneMode()){
 
+                    if(req.dxc.project==null){
+                        // from multi-project GUI
+                        project = req.dxc.sess._project[req.body.projectUID];
+                    }
 
-                    const report = await scheduler.newStandaloneScan(req.dxc.project, new ScanOrder({
+                    const report = await scheduler.newStandaloneScan(project, new ScanOrder({
                         modelUID: req.body.modelUID[0],
                         projectUID: req.body.projectUID,
                     }));
 
+                    console.log("SERIALIZE REPORT TO SEND TO WEB");
                     $.sendSuccess(res,report.toJsonObject());
                     return;
                 }
@@ -594,10 +600,8 @@ AUDIT_WEB_API.addAsyncAuthenticatedRoute(
                     }
 
                     scheduler.newScan(order);
-                })
+                });
 
-                ;
-                //scheduler.getPastScans()
 
                 $.sendSuccess(res,{ });
             }catch(err){

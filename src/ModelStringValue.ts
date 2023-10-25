@@ -9,7 +9,7 @@ import {createHash} from "crypto";
 import Util from "./Utils.js";
 import {CoreDebug} from "./core/CoreDebug.js";
 
-export default class ModelStringValue extends Savable
+export default class ModelStringValue extends Savable implements INode
 {
     static HASH_ALGO = createHash('sha1');
     static TYPE:NodeType = (new NodeType( "stringsValue", NodeInternalType.STRING, [
@@ -36,6 +36,8 @@ export default class ModelStringValue extends Savable
         if(pConfig !== null)
             for(let i in pConfig)
                 this[i] = pConfig[i];
+
+
     }
 
     isDifferent(pValue:string, pUUID:string):boolean {
@@ -71,5 +73,12 @@ export default class ModelStringValue extends Savable
         return o;
     }
 
+    getUID():string {
+        if(this._uid==null){
+            this._uid = Util.sha1_buffer(this.value);
+        }
+        return this._uid;
+    }
 }
+
 ModelStringValue.TYPE.builder(ModelStringValue);

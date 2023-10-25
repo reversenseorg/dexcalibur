@@ -1,12 +1,16 @@
 import {randomUUID} from "crypto";
 
+
 import DexcaliburEngine from "../DexcaliburEngine.js";
 import {IDexcaliburEngine} from "../IDexcaliburEngine.js";
 import DexcaliburProject from "../DexcaliburProject.js";
-import {IStringIndex} from "./IStringIndex.js";
-import {EngineNode} from "./EngineNode.js";
+import {IStringIndex, Nullable} from "./IStringIndex.js";
+import {EngineNode, NodePurpose} from "./EngineNode.js";
 import {EngineNodeException} from "../errors/EngineNodeException.js";
+import Control from "../audit/common/Control.js";
+import got from "got";
 
+const GOT = got.default;
 
 export interface RemoteEngineMapping {
     [nodeUID:string] :EngineNode
@@ -14,7 +18,7 @@ export interface RemoteEngineMapping {
 
 
 export interface ProjectNodeMapping {
-    [projectUID:string] :EngineNode
+    [projectUID:string] :EngineNode[]
 }
 
 export interface SlaveStates {
@@ -25,6 +29,13 @@ export interface SlaveCallback {
     uri: string;
     engine: IDexcaliburEngine;
 }
+
+
+export interface MasterNodeOptions {
+    uri: string;
+    ssl?: boolean;
+}
+
 
 /**
  * A map where every active project are mapped to
@@ -65,6 +76,7 @@ export enum NodeState {
  */
 export class EngineNodeManager {
 
+    static readonly HEADER_NODE_UUID = 'x-dxc-nodeuid';
     /**
      * UUID of this instance into reversense pod
      *
@@ -72,7 +84,7 @@ export class EngineNodeManager {
      */
     uuid:string;
 
-    portRange: number[] = [10200,10300];
+    portRange: number[];
 
     portCounter: number = -1;
 
@@ -86,10 +98,40 @@ export class EngineNodeManager {
 
     states:SlaveStates = {};
 
+    /**
+     * Base URI of the master node, used to build API URI
+     * @type {Nullable<string>}
+     * @field
+     */
+    masterURI:Nullable<string> = null;
+
 
     constructor(pMasterEngine:DexcaliburEngine, pCurrentUID:string) {
         this.uuid = pCurrentUID;
+        this.engine = pMasterEngine;
+        this.setPortRange(10200,10300);
     }
+
+
+    getLocalURI():string {
+        const settings = this.engine.getSettings().getWebserverSettings();
+        return '127.0.0.1:'+settings.getHttpPort();
+    }
+
+    /**
+     * To set the mandatory Master URI for SLAVE nodes
+     *
+     * @param pMasterURI
+     * @param pOptions
+     */
+    setMasterURI(pMasterURI:string, pOptions:MasterNodeOptions):void {
+        if(pOptions.ssl===true){
+            this.masterURI = 'https://'+pMasterURI;
+        }else{
+            this.masterURI = 'http://'+pMasterURI;
+        }
+    }
+
 
     setPortRange(pMinPort:number, pMaxPort:number){
         this.portRange = [pMinPort,pMaxPort];
@@ -112,13 +154,41 @@ export class EngineNodeManager {
      *
      * @param pProject
      */
-    hasReadySlave(pProjectUID:string):boolean{
-        const engine = this.projectMapping[pProjectUID];
-        if(engine == null){
+    hasReadySlave(pProjectUID:string, pPurpose:NodePurpose):boolean{
+        const engines = this.projectMapping[pProjectUID];
+        if(engines.length==0){
             return false;
         }
 
+        let ready = false;
+        engines.map(x => {
+            if(x.isReady() && (x.purpose===pPurpose)){
+                ready = true;
+            }
+        })
 
+        return ready;
+    }
+
+
+    /**
+     *
+     * @param pProject
+     */
+    getReadySlave(pProjectUID:string, pPurpose:NodePurpose):Nullable<EngineNode>{
+        const engines = this.projectMapping[pProjectUID];
+        if(engines==null || engines.length==0){
+            return null;
+        }
+
+        let readyNode:Nullable<EngineNode> = null;
+        engines.map(x => {
+            if(x.isReady() && (x.purpose===pPurpose)){
+                readyNode = x;
+            }
+        })
+
+        return readyNode;
     }
 
     /**
@@ -127,11 +197,13 @@ export class EngineNodeManager {
      */
     isStarted(pProjectUID:string):boolean {
         const proj = this.projectMapping[pProjectUID];
-        if(proj!=null){
-            return proj.isStarted();
-        }else{
-            return false;
-        }
+        let exists = false;
+
+        proj.map(x => {
+            exists = exists || x.isStarted();
+        });
+
+        return exists;
     }
 
     generateSlaveWebhook(pSlave:IDexcaliburEngine):void {
@@ -141,14 +213,29 @@ export class EngineNodeManager {
          */
     }
 
+    /*
     spawn(pProject:DexcaliburProject, pSettings:any):void {
 
-    }
+    }*/
 
 
-    updateState(pNodeUID:string, pState:NodeState):void {
+    /**
+     *
+     * @param pNodeUID
+     * @param pState
+     */
+    async updateState(pNodeUID:string, pState:NodeState):Promise<void> {
         const node = this.getNodeByUUID(pNodeUID);
-        node.setState(pState);
+
+        switch (pState){
+            case NodeState.IDDLE:
+                // update state & start queued scans
+                await node.afterStart({});
+                break;
+            default:
+                node.setState(pState);
+                break;
+        }
     }
 
     /**
@@ -157,15 +244,21 @@ export class EngineNodeManager {
      * @param pProjectUID
      * @param pTargetOs
      */
-    createNode(pProjectUID:string, pTargetOs:string):EngineNode {
+    createNode(pProjectUID:string):EngineNode {
         const uuid = randomUUID();
         const node = new EngineNode(uuid, pProjectUID);
 
+        node.setMasterUri(this.getLocalURI());
         node.setState(NodeState.NEW)
         node.setHttpPort(this.getNextPort());
         node.setHttpsPort(this.getNextPort());
 
-        this.projectMapping[pProjectUID] = this.slaves[uuid] = node;
+        if(this.projectMapping[pProjectUID]==null){
+            this.projectMapping[pProjectUID] = [];
+        }
+
+        this.slaves[uuid] = node;
+        this.projectMapping[pProjectUID].push(node);
 
 
         return this.slaves[uuid];
@@ -179,11 +272,12 @@ export class EngineNodeManager {
         return this.slaves[pNodeUUID];
     }
 
+
     /**
      *
      * @param pProjectUID
      */
-    getNodeByProject(pProjectUID:string):EngineNode {
+    getNodeByProject(pProjectUID:string):EngineNode[] {
         return this.projectMapping[pProjectUID];
     }
 
@@ -193,5 +287,77 @@ export class EngineNodeManager {
      */
     hasNode(pProjectUID):boolean {
         return (this.projectMapping[pProjectUID]!=null);
+    }
+
+    /**
+     * SLAVE MODE
+     *
+     * To notify the master, the slave node has successfully started
+     *
+     * @param {NodeState} pState New state of the node
+     */
+    async notifyMaster(pState:NodeState):Promise<void> {
+
+        if(this.masterURI==null){
+            throw EngineNodeException.INVALID_MASTER_URI('notify');
+        }
+
+        const response = await GOT(this.masterURI+"/api/node/webhook/state/"+pState, {
+            headers: {
+                // this one is mandatory to be processed by master middleware of /api/node/** routes
+                [EngineNodeManager.HEADER_NODE_UUID]: this.uuid
+                // add auth, signature, signed UUID to authenticated the request using one time public key from master ...
+            }
+        });
+
+        const raw = JSON.parse(response.body);
+        console.log(raw);
+        return raw;
+    }
+
+    /**
+     * To check is a state is valid or not
+     *
+     * @param {string|NodeState} pState
+     * @return {boolean} TRUE is the state is valid (exists)  or FALSE
+     * @method
+     * @static
+     */
+    static isValidState(pState: string|NodeState) {
+        return ([
+            NodeState.NEW,
+            NodeState.STARTING,
+            NodeState.STOPPED,
+            NodeState.IDDLE,
+            NodeState.BUSY,
+            NodeState.UNKNOW,
+        ].indexOf(pState as NodeState)>-1);
+    }
+
+    getSlaves():EngineNode[] {
+        return Object.values(this.slaves);
+    }
+
+    toJsonObject(pProjectUID:Nullable<string> = null):any {
+        const o = {
+            uuid: this.uuid,
+            master: this.masterURI,
+            portRange: this.portRange,
+            portCounter: this.portCounter,
+            slaves: []
+        };
+
+        if(pProjectUID!=null){
+            this.getNodeByProject(pProjectUID).map(x => {
+                o.slaves.push(x.toJsonObject());
+            });
+        }else{
+            Object.values(this.slaves).map(x => {
+                o.slaves.push(x.toJsonObject());
+            });
+        }
+
+
+        return o;
     }
 }
