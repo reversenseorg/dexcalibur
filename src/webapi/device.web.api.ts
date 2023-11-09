@@ -13,6 +13,7 @@ import {OperatingSystem} from "../OperatingSystem.js";
 import { DeviceFactory } from "../device/DeviceFactory.js";
 import PlatformManager from "../PlatformManager.js";
 import AdbWrapperFactory from "../AdbWrapperFactory.js";
+import {AUDIT_WEB_API} from "./audit.web.api.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -824,3 +825,77 @@ DEVICE_WEB_API.addAsyncPublicRoute(
             }
         }
     });
+
+
+DEVICE_WEB_API.addAsyncPublicRoute(
+    '/models/search',
+    {
+        'get': async function (req:DelegateRequest, res:DelegateResponse):Promise<any> {
+            const $: WebServer = req.dxc.$;
+
+            try{
+                const models = await $.context.getSignatureServer().searchDeviceModels(
+                    decodeURIComponent(req.query.ppt as string),
+                    decodeURIComponent(req.query.pattern as string),
+                    req.query.contains=="1"? true : false
+                );
+                const all = [];
+
+                models.map(x => {
+                    all.push(x.toJsonObject());
+                })
+
+                $.sendSuccess(res, all);
+            }catch(err){
+                Logger.error("[API][DEVICE] Device models cannot be listed. Cause : " + err.message + "\n\t" + err.stack);
+                $.sendError(res, " Device models cannot be listed. Cause : " + err.message);
+            }
+        }
+    }
+);
+
+DEVICE_WEB_API.addAsyncPublicRoute(
+    '/models/list',
+    {
+        'get': async function (req:DelegateRequest, res:DelegateResponse):Promise<any> {
+            const $: WebServer = req.dxc.$;
+
+            try{
+                const models = await $.context.getSignatureServer().getDeviceModels();
+                const all = [];
+
+                models.map(x => {
+                    all.push(x.toJsonObject());
+                })
+
+                $.sendSuccess(res, all);
+            }catch(err){
+                Logger.error("[API][DEVICE] Device models cannot be listed. Cause : " + err.message + "\n\t" + err.stack);
+                $.sendError(res, " Device models cannot be listed. Cause : " + err.message);
+            }
+        }
+    }
+);
+
+DEVICE_WEB_API.addAsyncPublicRoute(
+    '/brands/list',
+    {
+        'get': async function (req:DelegateRequest, res:DelegateResponse):Promise<any> {
+            const $: WebServer = req.dxc.$;
+
+            try{
+                const brands = await $.context.getSignatureServer().getBrands();
+                const all = [];
+
+                brands.map(x => {
+                    all.push(x.toJsonObject());
+                })
+
+                $.sendSuccess(res, all);
+            }catch(err){
+                Logger.error("[API][DEVICE] Brands cannot be listed. Cause : " + err.message + "\n\t" + err.stack);
+                $.sendError(res, " Brands cannot be listed. Cause : " + err.message);
+            }
+        }
+    }
+);

@@ -29,6 +29,8 @@ import {TagCategory} from "./tags/TagCategory.js";
 import {Tag} from "./tags/Tag.js";
 import SystemCallHook from "./hook/SystemCallHook.js";
 import {IStringIndex} from "./core/IStringIndex.js";
+import {Brand} from "./Brand.js";
+import {DeviceModel} from "./DeviceModel.js";
 
 UserAccount.TYPE.updateProperties([
     (new NodeProperty('_uid')).type(DbDataType.STRING).key(DbKeyType.PRIMARY),
@@ -593,6 +595,17 @@ Tag.TYPE.updateProperties([
     (new NodeProperty("style")).type(DbDataType.STRING).serialize(DbSerialize.JSON).def("{}"),
 ]).dataSource(DataSourceHelper.FILE).builder(Tag);
 
+
+Brand.TYPE.updateProperties([
+    (new NodeProperty("_uid")).type(DbDataType.STRING).key(DbKeyType.PRIMARY),
+    (new NodeProperty("name")).type(DbDataType.STRING).key(DbKeyType.PRIMARY),
+    (new NodeProperty("id")).type(DbDataType.INTEGER),
+    (new NodeProperty("logo")).type(DbDataType.STRING).def(""),
+    (new NodeProperty("models")).volatile().multiple(DeviceModel.TYPE).def([]),
+    (new NodeProperty("deleted_at")).type(DbDataType.INTEGER).def(-1),
+    (new NodeProperty("created_at")).type(DbDataType.INTEGER).def(-1),
+    (new NodeProperty("updated_at")).type(DbDataType.INTEGER).def(-1),
+]);
 export class NodeSchema{
 
     static init(){

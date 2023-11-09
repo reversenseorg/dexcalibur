@@ -53,7 +53,12 @@ export enum NodeInternalType {
     LIB_FP,
     DASHBOARD,
     CALL,
-    NONE
+    NONE,
+    ASSURANCE_MODEL,
+    CONTROL,
+    CASE,
+    BRAND,
+    DEVICE_MODEL
 }
 
 export const NodeInternalTypeName = {
@@ -109,7 +114,12 @@ export const NodeInternalTypeName = {
     [NodeInternalType.TEST_CREDS]: "TEST_CREDS",
     [NodeInternalType.DASHBOARD]: "DASHBOARD",
     [NodeInternalType.CALL]: "CALL",
-    [NodeInternalType.NONE]: "NONE"
+    [NodeInternalType.NONE]: "NONE",
+    [NodeInternalType.ASSURANCE_MODEL]: "ASSURANCE_MODEL",
+    [NodeInternalType.CONTROL]: "CONTROL",
+    [NodeInternalType.CASE]: "CASE",
+    [NodeInternalType.BRAND]: "BRAND",
+    [NodeInternalType.DEVICE_MODEL]: "DEVICE_MODEL",
 }
 
 
