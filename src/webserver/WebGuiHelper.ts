@@ -28,6 +28,8 @@ export class WebGuiHelper {
     static parse( pStrCfg:string):WebGuiConfiguration[] {
         const configs:WebGuiConfiguration[] = [];
 
+        if(pStrCfg==null) return [];
+
         const guis = pStrCfg.split(",");
         guis.map(x => {
             const params = x.split(':');

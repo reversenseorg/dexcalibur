@@ -13,6 +13,8 @@
   "dependencies": {
     "@dexcalibur/dexcalibur-frida-compile": "^10.2.5",
     "@dexcalibur/dexcalibur-installer": "^1.0.43",
+    "@dexcalibur/dexcalibur-orm": "^1.0.5",
+    "@dexcalibur/dexcalibur-orm-mongodb": "^1.0.4",
     "@reversense/interruptor": "^1.0.12",
     "@types/nedb": "^1.8.11",
     "adm-zip": "^0.4.14",

@@ -72,7 +72,7 @@ export class AuthenticationService {
         if(this.settings.hasOidcSettings()){
             const issuer = await Issuer.discover(this.settings.getOidcDiscoverURI());
 
-            console.log(issuer);
+            Logger.debugRAW(issuer);
             this._oidClientCfg = {
                 issuer: issuer,
                 settings: {
@@ -290,6 +290,7 @@ export class AuthenticationService {
     }
 
     isSsoEnbaled():boolean {
+        console.log("isSsoEnbaled > ", this._sso_enabled)
         return this._sso_enabled;
     }
 

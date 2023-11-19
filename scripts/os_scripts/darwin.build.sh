@@ -58,6 +58,12 @@ cp -r ./README.md ./dist/scripts
 cp -r ./src/requires ./dist/src/requires
 cp -r ./assets ./dist/assets
 
+if [ ! -f ../dexcalibur-agent/dist ]; then
+  cp -r ../dexcalibur-agent/dist ./dist/agent
+fi
+
+
+
 if [ ! -f ./dist/src/webserver/www ]; then
   mkdir ./dist/src/webserver/www
 fi

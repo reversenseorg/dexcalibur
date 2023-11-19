@@ -19,6 +19,11 @@ interface BridgeFactoryList {
     [name: string] :any
 }
 
+interface PackageListOptions {
+    path:boolean;
+    rawOpts?:string;
+}
+
 export type BridgeInstallOptions = AndroidPackageInstallOptions;
 
 export interface IBridge

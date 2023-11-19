@@ -52,7 +52,7 @@ export class UserService {
         SessionData.TYPE.source(UserService.findAllSessionData);
         UserSession.TYPE.subscribe('save_data', UserService.saveSessionData);
 
-        this.initService(pContext);
+        //this.initService(pContext);
     }
 
 
@@ -115,15 +115,21 @@ export class UserService {
     /**
      *
      */
-    initService(pContext:DexcaliburEngine):void {
+    async initService(pContext:DexcaliburEngine):Promise<void> {
 
         gInstance[pContext.UID] = this;
 
         this.authSvc = new AuthenticationService(this._settings, pContext);
+        await this.authSvc.init();
+
         this.sessSvc = new SessionService( this._settings.getSessionSettings(),pContext);
 
 
+
         try{
+
+
+
             // load currently configured db : inmemory or sqlite
             Logger.debug('----------- BEFORE LOAD 1 ------------ ');
             this.loadDB(this._settings.db);
@@ -131,6 +137,7 @@ export class UserService {
 
             // verify state / version
             if(this.isUserDbReady()){
+
 
                 Logger.debug('----------- AFTER USER IS READY ------------ ');
                 this.authSvc.importUsers(this._db.getCollection('user', UserAccount.TYPE));

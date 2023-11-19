@@ -9,6 +9,7 @@ import {ConnectionSettingsException} from "./errors/ConnectionSettingsException.
 import {IncomingValue, SanitizedValue, UnsafeValue} from "./security/SanitizedValue.js";
 import {GlobalSettingsException} from "./errors/GlobalSettingsException.js";
 import {SecurityZone} from "./security/SecurityZone.js";
+import {Nullable} from "./core/IStringIndex.js";
 
 
 const LOG_FILE = (process.env.DXC_LOG_PATH ? process.env.DXC_LOG_PATH : null);
@@ -26,10 +27,17 @@ export interface WebServerOptions {
 
 export interface ServerOptions {
     auth?:AuthenticationOptions;
+    db?:DatabaseOptions;
     registry?:string;
     registryAPI?:string;
     workspace?:string;
     heapSize?:number;
+}
+
+export interface DatabaseOptions {
+    conn?:string;
+    host?:string;
+    port?:number;
 }
 
 /**
@@ -134,6 +142,15 @@ export namespace Settings {
 
 
         /**
+         * Path of Dexcalibur workspace
+         * @field
+         * @type {string}
+         * @private
+         */
+        private db:DatabaseSettings;
+
+
+        /**
          * Max heap size allowed for engine
          * @field
          * @type number
@@ -165,6 +182,12 @@ export namespace Settings {
                 this.auth = new AuthenticationSettings(this, pConfig.auth);
             }else{
                 this.auth = new AuthenticationSettings(this);
+            }
+
+            if(pConfig.db != null){
+                this.db = new DatabaseSettings(this, pConfig.db);
+            }else{
+                this.db = new DatabaseSettings(this);
             }
 
             if(pConfig.heapSize!=null){
@@ -276,8 +299,106 @@ export namespace Settings {
         }
     }
 
-
     /**
+     * Represent database settings of the instance 
+     * (contains data from all projects from the same instance)
+     * 
+     * @class
+     * @export
+     */
+    export class DatabaseSettings extends AbstractSettings {
+
+        /**
+         * DB Connection string
+         * 
+         * @field
+         * @type {string}
+         * @private
+         */
+        private _conn: Nullable<string> = null;
+
+        private _host:  Nullable<string> = null;
+        private _port:  number = -1;
+
+        /**
+         * Create an object which hold db conn settings
+         *
+         * @param {GlobalSettings} pParent Parent settings
+         * @param {DatabaseOptions} pConfig Options values
+         * @constructor
+         * @since 1.0.0
+         */
+        constructor(pParent: ServerSettings, pConfig: DatabaseOptions = {}) {
+            super(pParent);
+
+            if(pConfig.conn){
+                this._conn = pConfig.conn;
+            }
+            if(pConfig.host){
+                this._host = pConfig.host;
+            }
+            if(pConfig.port){
+                this._port = pConfig.port;
+            }
+        }
+
+
+        getHost():Nullable<string> {
+            return this._host;
+        }
+
+
+        getPort():number {
+            return this._port;
+        }
+
+
+        getConnectionString():string {
+            return this._conn;
+        }
+
+        hasConnectionString():boolean {
+            return (this._conn!=null);
+        }
+
+
+
+        sanitize(pName: string, pValue: any): IncomingValue {
+            // todo
+            switch(pName){
+                case "conn":
+                    if(typeof pValue==="string"){
+
+                        // todo
+                        return new SanitizedValue(pName, pValue);
+                    }else{
+                        return new UnsafeValue(pName, pValue);
+                    }
+                    break;
+                default:
+                    throw GlobalSettingsException.SETTING_UNKNOW();
+            }
+        }
+
+        update( pValue:IncomingValue):void {
+            switch (pValue.getName()) {
+                case "conn":
+                    this._conn = pValue.getValue();
+                    break;
+                default:
+                    throw GlobalSettingsException.SETTING_UNKNOW();
+            }
+        }
+
+        toObject(pZone:SecurityZone = SecurityZone.PUBLIC): any {
+            return {
+                conn: this._conn,
+            }
+        }
+
+    }
+
+        /**
      * Represent web server configuration
      * @class
      * @export

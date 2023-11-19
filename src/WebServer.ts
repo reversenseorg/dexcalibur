@@ -307,6 +307,7 @@ export default class WebServer
      */
     setContext( pContext:DexcaliburEngine){
         this.context = pContext;
+
         // register validators
         this.registerValidator('engine', pContext);
 
@@ -1352,64 +1353,6 @@ export default class WebServer
             next();
             return;
         }
-        /**
-         * Parse windowing options
-         */
-        //this.app.use(dxcWindowingMiddleware);
-
-
-
-
-        // Define API routes, this is the minimal endpoints exposed over HTTP
-        const authSvc = this.context.getUserService().getAuthenticationService();
-        if(authSvc.isSsoEnbaled()){
-            console.log("Deploy SSO over routes (2)");
-            /*authSvc.protectRoutesWithSSO(DEVICE_WEB_API.getRouter());
-            authSvc.protectRoutesWithSSO(AUTH_WEB_API.getRouter());
-            authSvc.protectRoutesWithSSO(SETTINGS_WEB_API.getRouter());
-            authSvc.protectRoutesWithSSO(PROBE_SERVER_WEB_API.getRouter());
-            authSvc.protectRoutesWithSSO(APP_WEB_API.getRouter());
-            authSvc.protectRoutesWithSSO(PROJECT_MGT_WEB_API.getRouter());
-            authSvc.protectRoutesWithSSO(PLATFORM_WEB_API.getRouter());
-            authSvc.protectRoutesWithSSO(PROJECT_WEB_API.getRouter());
-            authSvc.protectRoutesWithSSO(CODE_WEB_API.getRouter());
-            authSvc.protectRoutesWithSSO(ANDROID_WEB_API.getRouter());
-            authSvc.protectRoutesWithSSO(NATIVE_WEB_API.getRouter());
-            authSvc.protectRoutesWithSSO(FS_WEB_API.getRouter());
-            authSvc.protectRoutesWithSSO(USER_WEB_API.getRouter());
-            authSvc.protectRoutesWithSSO(HOOK_WEB_API.getRouter());
-            authSvc.protectRoutesWithSSO(HOOK_FRAGS_WEB_API.getRouter());
-            authSvc.protectRoutesWithSSO(INSPECTOR_WEB_API.getRouter());
-            authSvc.protectRoutesWithSSO(KEYPOINT_WEB_API.getRouter());
-            authSvc.protectRoutesWithSSO(TAG_MGT_WEB_API.getRouter());
-            authSvc.protectRoutesWithSSO(PRIVACY_WEB_API.getRouter());
-            authSvc.protectRoutesWithSSO(SCRIPT_WEB_API.getRouter());
-            authSvc.protectRoutesWithSSO(AUDIT_WEB_API.getRouter());*/
-        }
-
-        /*
-        DEVICE_WEB_API.injectServer(this);
-        AUTH_WEB_API.injectServer(this);
-        SETTINGS_WEB_API.injectServer(this);
-        PROBE_SERVER_WEB_API.injectServer(this);
-        APP_WEB_API.injectServer(this);
-        PROJECT_MGT_WEB_API.injectServer(this);
-        PLATFORM_WEB_API.injectServer(this);
-        PROJECT_WEB_API.injectServer(this);
-        CODE_WEB_API.injectServer(this);
-        ANDROID_WEB_API.injectServer(this);
-        NATIVE_WEB_API.injectServer(this);
-        FS_WEB_API.injectServer(this);
-        USER_WEB_API.injectServer(this);
-        HOOK_WEB_API.injectServer(this);
-        HOOK_FRAGS_WEB_API.injectServer(this);
-        INSPECTOR_WEB_API.injectServer(this);
-        KEYPOINT_WEB_API.injectServer(this);
-        TAG_MGT_WEB_API.injectServer(this);
-        PRIVACY_WEB_API.injectServer(this);
-        SCRIPT_WEB_API.injectServer(this);
-        AUDIT_WEB_API.injectServer(this);
-        */
 
         // TODO : remove bypass
         const isSlave = this.context.isSlaveNode();
@@ -1426,7 +1369,7 @@ export default class WebServer
         }
 
         function ensureGuiLoggedIn(req, res, next) {
-            //console.log("GUI "+req.originalUrl," > ",req.isAuthenticated());
+            console.log("GUI "+req," > ");//req.isAuthenticated);
             if (req.isAuthenticated()) {
                 return next();
             }
@@ -1492,7 +1435,7 @@ export default class WebServer
         // init routers
 
         this.initRoutes({
-            auth: [ensureGuiLoggedIn],
+            auth: [ensureGuiLoggedIn], //ensureGuiLoggedIn],
             after: [dxcSessionMiddleware],
             before: []
         });

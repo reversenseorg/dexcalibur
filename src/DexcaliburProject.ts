@@ -891,6 +891,9 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
             const ssp = pDevice.getProfile().getSystemProfile();
             this.archs = [ssp.getArchitecture()];
             this.os = ssp.getOperatingSystem();
+            if(this.platform == null){
+                this.platform = pDevice.getPlatform();
+            }
 
             this.updateSyscalls()
         }

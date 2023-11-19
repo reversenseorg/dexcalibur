@@ -458,14 +458,27 @@ export default class AdbWrapper implements IBridge
      * @returns {AppPackage[]} An array of AppPackage objects
      * @method
      */
-    listPackages( pOtions=""):AppPackage[] {
+    listPackages( pOptions=""):AppPackage[] {
         //let ret:string;
 
         //ret = UT.execSync(this.setup() + " shell pm list packages "+pOtions); // toString("ascii")
 
         return this.parsePackageList(
-            UT.execSync(this.setup() + " shell pm list packages "+pOtions)
-        , pOtions);
+            UT.execSync(this.setup() + " shell pm list packages "+pOptions)
+        , pOptions);
+    }
+
+    /**
+     * To pull an app package into a folder
+     * @param pAppPackage
+     * @param pFolder
+     */
+    pullApplication( pAppPackage:AppPackage, pFolder:string):void {
+        if(!_fs_.existsSync(pFolder)){
+            _fs_.mkdirSync(pFolder);
+        }
+
+        this.pull( pAppPackage.packagePath, _path_.join(pFolder,pAppPackage.packageIdentifier+".apk"));
     }
 
 
@@ -726,6 +739,8 @@ export default class AdbWrapper implements IBridge
     pull(remote_path:string, local_path:string):string|Buffer{
         return UT.execSync(this.setup()+' pull '+remote_path+' '+local_path);
     }
+
+
 
     /**
      * Pull a remote resource into the project workspace with Application Privileges

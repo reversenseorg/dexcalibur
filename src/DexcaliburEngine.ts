@@ -50,7 +50,7 @@ import {SignatureServerAPI} from "./audit/SignatureServerAPI.js";
 import {Nullable} from "./core/IStringIndex.js";
 import {EngineNodeManager, MasterNodeOptions, NodeState} from "./core/EngineNodeManager.js";
 import {ScanScheduler} from "./audit/common/ScanScheduler.js";
-
+import {AppContextType, IAppContext} from "@dexcalibur/dexcalibur-orm"
 
 /*
 const _fixPath_ = require("fix-path");
@@ -173,8 +173,10 @@ export interface DexcaliburProjectMap {
  *
  *  @class
  */
-export default class DexcaliburEngine extends ValidationCapable implements IDexcaliburEngine
+export default class DexcaliburEngine extends ValidationCapable implements IDexcaliburEngine, IAppContext
 {
+    _type = AppContextType.WEB_SERVER;
+
     /**
      * @type {string}
      * @field Minimal version of the engine
@@ -419,7 +421,7 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
         this.nodeManager = new EngineNodeManager(this,
             (pEngineOptions!=null && pEngineOptions.node_uid!=null) ? pEngineOptions.node_uid : this.UID);
 
-        if(pEngineOptions.master_opts!=null){
+        if(pEngineOptions!=null && pEngineOptions.master_opts!=null){
             this.nodeManager.setMasterURI(pEngineOptions.master_opts.uri, pEngineOptions.master_opts);
         }
 
@@ -676,6 +678,9 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
                 ss.getAuthenticationSettings(),
                 this
             );
+            await this.userSvc.initService(this);
+
+            console.log(this.userSvc);
 
             this.registry = ss.getRegistry();
             Logger.info("[ENGINE] server settings init : Done");
@@ -743,7 +748,7 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
         this.updater.run( DXC_LIFECYCLE_EVENT.ENG_BEFORE_WS_INIT);
 
         // init workspace
-        this.workspace.init();
+        await this.workspace.init();
 
         // read configuration file into target workspace
         // this.loadWorkspaceConfig( pRestore);

@@ -65,6 +65,18 @@ ANDROID_WEB_API.addAuthenticatedRoute(
 
             try{
 
+
+                if(req.body['project']!=null){
+                    project = $.context.getActiveProjects(req.dxc.sess.getUserAccount())[req.body['project']];
+                }else if(req.dxc.project != null){
+                    project = req.dxc.project;
+                }
+
+                if(project == null || !project.isReady()) {
+                    throw DexcaliburProjectException.NO_PROJECT_SPECIFIED();
+                }
+
+                // ========== LOGIC + RESPONSE
                 $.sendSuccess( res, project.find.activity('name:.*').toJsonObject());
             }catch(err){
                 Logger.error("[API][ANDROID ANALYZER] Activities not found. Cause : " + err.message + "\n\t" + err.stack);

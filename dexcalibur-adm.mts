@@ -31,9 +31,25 @@ import {ControlNode} from "./src/audit/common/AssuranceModel.js";
 import Control from "./src/audit/common/Control.js";
 import ControlAssessment from "./src/audit/common/ControlAssessment.js";
 import { Match } from "./src/audit/common/AssuranceReport.js";
+import AdbWrapperFactory from "./src/AdbWrapperFactory.js";
+import AppPackage from "./src/AppPackage.js";
+import Platform from "./src/Platform.js";
+import { Device } from "./src/Device.js";
+import  DeviceManager  from "./src/DeviceManager.js";
+import {IStringIndex, Nullable} from "./src/core/IStringIndex.js";
+import {DexcaliburProjectException} from "./src/errors/DexcaliburProjectException.js";
+import {UserManager} from "./src/UserManager.js";
+import {UserService} from "./src/user/UserService.js";
+import PlatformManager from "./src/PlatformManager.js";
+import {Workflow} from "./src/Workflow.js";
 
 
 ConnectorFactory.getInstance(true);
+
+enum PROJ_ACTION {
+    READ,
+    NEW
+}
 
 enum SUBMENU {
     NONE,
@@ -46,7 +62,9 @@ enum SUBMENU {
     TOOLS,
     START,
     MODEL,
-    MERLIN
+    MERLIN,
+    DEVICE,
+    PROJECT
 }
 
 
@@ -194,6 +212,107 @@ var Parser:ArgParser = new ArgParser(projectArgs, "dexcalibur-adm", [
             }
         ],
         callback:(ctx,param)=>{ ctx.mode = SUBMENU.START; } },
+
+    { name:"devices",
+        help: "perform actions on a connected devices",
+        hasVal:false,
+        options: [
+            {
+                name:"--bridge",
+                help: "Bridge name : adb, sdb, ...",
+                hasVal:true,
+                callback:(ctx,param)=>{ ctx.devBridge = param.value; }
+            },
+            {
+                name:"--pull",
+                help: "Pull a single or all apps",
+                hasVal:true,
+                callback:(ctx,param)=>{ ctx.devPull = param.value; }
+            },
+            {
+                name:"--out",
+                help: "Output folder",
+                hasVal:true,
+                callback:(ctx,param)=>{ ctx.devOut = param.value; }
+            },{
+                name:"-ls-app",
+                help: "List apps",
+                hasVal:false,
+                callback:(ctx,param)=>{ ctx.devLsApp = true; }
+            }
+        ],
+        callback:(ctx,param)=>{ ctx.mode = SUBMENU.DEVICE; } },
+
+    { name:"project",
+        help: "Start Dexcalibur server",
+        hasVal:false,
+        options: [
+            {
+                name:"--new",
+                help: "To create a new project ",
+                hasVal:false,
+                callback:(ctx,param)=>{ ctx.projAction = PROJ_ACTION.NEW; }
+            },
+            {
+                name:"--uid",
+                help: "Project name. --uid=<NAME>",
+                hasVal:true,
+                callback:(ctx,param)=>{ ctx.projUID = param.value; }
+            },
+            {
+                name:"--os",
+                help: "Target OS. Supported: android, ios, macos, tizen, fireos, webos",
+                hasVal:true,
+                callback:(ctx,param)=>{ ctx.projOS = param.value; }
+            },
+            {
+                name:"--dev",
+                help: "Device UID (see : device -ls)",
+                hasVal:true,
+                callback:(ctx,param)=>{ ctx.projDevice = param.value; }
+            },
+            {
+                name:"--platform",
+                help: "Platform UID (see : platform -ls)",
+                hasVal:true,
+                callback:(ctx,param)=>{ ctx.projPlatform = param.value; }
+            },
+            {
+                name:"--arch",
+                help: "Target Architecture. Supported: aarch64, aarch32, x64, x86, mips",
+                hasVal:true,
+                callback:(ctx,param)=>{ ctx.projArch = param.value; }
+            },
+            {
+                name:"--app",
+                help: "Path to targeted app. See documentation",
+                hasVal:true,
+                callback:(ctx,param)=>{ ctx.projApp = param.value; }
+            },
+            {
+                name:"--user",
+                help: "Path to targeted app. See documentation",
+                hasVal:true,
+                callback:(ctx,param)=>{ ctx.projUser = param.value; }
+            },
+            {
+                name:"--gui",
+                help: "GUI exposed. By default it run in headless mode.",
+                hasVal:true,
+                callback:(ctx,param)=>{ ctx.projGui = param.value; }
+            },
+            { name:"--auth-settings",
+                help: "To extend/override authentication settings ",
+                hasVal:true,
+                callback:(ctx,param)=>{ ctx.overrideAuth = param.value; } },
+            {
+                name:"--opts",
+                help: "Options serialized as JSON object and encoded in base64. --opts=<ENCODED_OPTS>",
+                hasVal:true,
+                callback:(ctx,param)=>{ ctx.projOpts = param.value; }
+            }
+        ],
+        callback:(ctx,param)=>{ ctx.mode = SUBMENU.PROJECT; } },
 
     { name:"merlin",
         help: "Test/explain Merlin rules",
@@ -513,7 +632,54 @@ switch (projectArgs.mode){
         }
         break;*/
 
+    case SUBMENU.DEVICE:
+        let bridge:any;
+        const settings:S.Settings.ExternalSettings = cfg.getExternalSettings();
 
+        switch (projectArgs.devBridge){
+            case "adb":
+                bridge = AdbWrapperFactory.getInstance(settings.getTool("adb")).newGenericWrapper();
+                if(projectArgs.devPull){
+                    let apps:AppPackage[] = []
+                    const out = (projectArgs.devOut ? projectArgs.devOut : process.cwd());
+                    apps = bridge.listPackages('-f');
+
+                    if(projectArgs.devPull=="*"){
+                        apps.map( x => {
+                            try{
+                                bridge.pullApplication(x, out);
+                            }catch(e){
+                                console.error("Package '"+x.packageIdentifier+"' cannot be pull [path="+x.packagePath+"]");
+                            }
+
+                        });
+                    }else{
+                        const appids = projectArgs.devPull.split(',');
+                        apps.map( x => {
+                            if(appids.indexOf(x.packageIdentifier)>-1){
+                                try{
+                                    bridge.pullApplication(x, out);
+                                }catch(e){
+                                    console.error("Package '"+x.packageIdentifier+"' cannot be pull [path="+x.packagePath+"]");
+                                }
+                            }
+                        });
+                    }
+                }
+                if(projectArgs.devLsApp){
+                    let apps:AppPackage[] = []
+                    apps = bridge.listPackages('-f');
+
+                    console.log('             Package Identifier               |             Path');
+                    console.log('----------------------------------------------------------------');
+
+                    apps.map( x => {
+                        console.log(x.packageIdentifier+'   |   '+x.packagePath);
+                    });
+                }
+                break;
+        }
+        break;
     case SUBMENU.START:
         let dxcWebRoot:string = null;
         if(projectArgs.sWUI){
@@ -1176,6 +1342,89 @@ ${"\t".repeat(1)}Default Arch = ${srv.getDefaultArchitecture()}
             })();
 
         }
+        break;
+    case SUBMENU.PROJECT:
+
+
+            // create an empty single (not yet initialiazed) instance of engine+
+            (async function(){
+                const dxcInstance = DexcaliburEngine.getInstance();
+
+                // init engine with settings
+                await dxcInstance.loadConfiguration(cfg);
+
+                // override previously loaded config
+                if(projectArgs.overrideAuth!=null){
+                    dxcInstance.getSettings().getServerSettings().getAuthenticationSettings().overrideWith(
+                        JSON.parse(Util.b64_decode(projectArgs.overrideAuth)) as IStringIndex<any>, true
+                    );
+                }
+
+                // boot engine
+                const ready = await dxcInstance.boot(
+                    projectArgs.restore===true? true : false,
+                    (projectArgs.projGui ? projectArgs.projGui : "")
+                );
+
+                if(ready){
+
+                    dxcInstance.start((projectArgs.port!=null) ? projectArgs.port : null);
+
+                    let project:DexcaliburProject, device:Nullable<Device>=null, platform:Nullable<Platform>=null;
+                    let acc:Nullable<UserAccount> = null;
+                    let wf:Workflow = null;
+
+                    switch (projectArgs.projAction){
+                        case PROJ_ACTION.NEW:
+
+                            console.log("START NEW PROJECT");
+                            if(projectArgs.projDevice){
+                                device = DeviceManager.getInstance().getDevice( projectArgs.projDevice);
+                                if(device == null || !device.isEnrolled()){
+                                    throw DexcaliburProjectException.TARGET_DEVICE_NOT_ENROLLED();
+                                }
+                            }
+
+                            if(projectArgs.projPlatform){
+                                platform = PlatformManager.getInstance().getPlatform( projectArgs.projPlatform);
+                            }
+
+                            if(device==null && projectArgs.projOS!=null){
+                                // try to find compatible device already enrolled
+                                device = DeviceManager.getInstance().searchCompatibleDevice(projectArgs.projOS);
+                                if(device!=null && platform==null){
+                                    platform = device.getPlatform();
+                                    console.log("Compatible device found :",device.uid);
+                                }else{
+
+                                    console.log("Compatiblme device NOT found ");
+                                }
+                            }
+
+                            if(projectArgs.projUser){
+                                acc = UserService.findUser(projectArgs.projUser);
+                                console.log(acc);
+                            }
+
+                            wf = dxcInstance.newWorkflow(projectArgs.projUID).changeOwner(acc);
+
+                            project = await dxcInstance.newProject(
+                                projectArgs.projUID,
+                                projectArgs.projApp,
+                                device,
+                                acc
+                            );
+
+                            project.setWorkflow(wf);
+                            await project.fullscan();
+
+                            break;
+                    }
+                }else{
+                    console.error("SERVER NOT READY");
+                }
+            })();
+
         break;
     default:
         // DexcaliburEngine.requireInstall()

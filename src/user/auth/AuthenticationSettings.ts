@@ -192,6 +192,7 @@ ${"\t".repeat(pIndent)}response Type = ${this._oidc.responseType}
      * @method
      */
     hasOidcSettings():boolean {
+        console.log("hasOidcSettings > ",(this._oidc!=null) );
         return (this._oidc!=null);
     }
 
