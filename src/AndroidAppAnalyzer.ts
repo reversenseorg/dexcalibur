@@ -21,6 +21,7 @@ import {NodeInternalType} from "./NodeInternalType.js";
 import {AndroidApiClassXrefList, AndroidCodeAnalyzer} from "./android/analyzer/AndroidCodeAnalyzer.js";
 import BusEvent from "./BusEvent.js";
 import {BusSubscriber} from "./Bus.js";
+import ApkHelper from "./ApkHelper.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -209,6 +210,10 @@ export default class AndroidAppAnalyzer implements IAppAnalyzer
 		return null;
 	}
 
+	private _getResourcesFolder():string {
+		return _path_.join(this.context.getWorkspace().getApkDir(),ApkHelper.getResFolder());
+	}
+
 	/**
 	 * To perform some action at very first step of a full scan
 	 *
@@ -216,6 +221,8 @@ export default class AndroidAppAnalyzer implements IAppAnalyzer
 	async prepareFullScan():Promise<boolean>{
 
 		const success:boolean = await this.importManifest(_path_.join(this.context.getWorkspace().getApkDir(),"AndroidManifest.xml"));
+
+		this._getResourcesFolder();
 
 		return success;
 	}
@@ -318,35 +325,35 @@ export default class AndroidAppAnalyzer implements IAppAnalyzer
 		return this.importManifest(path);
 	}
 
+	/**
+	 *
+	 * @param pPath
+	 * @private
+	 */
+	private async _parseXmlFile(pPath:string):Promise<any> {
+		if(!_fs_.existsSync(pPath)) return null;
+		const data = _fs_.readFileSync(pPath);
+
+		if(data == null || data.toString('ascii',0,5)!=="<?xml"){
+			// it happens if resources have not been extracted
+			Logger.error("File '"+pPath+"' cannot be analyzed because it seems not decompressed/decoded.");
+			Logger.debugRAW(data);
+			return false;
+		}
+
+		return await (new _xml2js_.Parser()).parseStringPromise(data);
+	}
+
     /**
      * To import an Android manifest from he given path
      * @param {String} path Path to the manifest
      */
     async importManifest(path:string):Promise<boolean>{
-        const codeAnal:Analyzer = this.context.getAnalyzer();
-		//let self:AndroidAppAnalyzer = this;
-		let data = null;
-
 
 		Logger.debug("[Manifest] Start parsing");
-		if(!_fs_.existsSync(path)) return null;
 
-		data = _fs_.readFileSync(path);
-	
-		if(data == null || data.toString('ascii',0,5)!=="<?xml"){
-			// it happens if resources have not been extracted
-			console.log(data);
-			Logger.error("Android Manifest cannot be analyzed because it seems not decompressed/decoded. It happens sometime when APKTool failed to extract APK content.");
-			// throws excep here
-			return false;
-		}
-
-		//let amp = new AndroidManifestXmlParser(self);
-
-		const parser:_xml2js_.Parser = new _xml2js_.Parser();
-
-		const result:any = await parser.parseStringPromise(data);
-
+        const codeAnal:Analyzer = this.context.getAnalyzer();
+		const result:any = await this._parseXmlFile(path);
 		const manifest:AndroidManifest = AndroidManifest.fromXml(result.manifest, this.context);
 		
 
@@ -400,6 +407,14 @@ export default class AndroidAppAnalyzer implements IAppAnalyzer
 
 		return true;
     }
+
+
+	async importXmlRessourceFile(pPath:string){
+
+		const codeAnal:Analyzer = this.context.getAnalyzer();
+		const result:any = await this._parseXmlFile(pPath);
+		const manifest:AndroidManifest = AndroidManifest.fromXml(result.manifest, this.context);
+	}
 
 	/**
 	 * For each component types,

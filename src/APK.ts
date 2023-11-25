@@ -1,19 +1,15 @@
 import * as _path_ from 'path';
 import {CoreDebug} from "./core/CoreDebug.js";
+import {Nullable} from "./core/IStringIndex.js";
+import TargetApp, {AppFormatType} from "./common/TargetApp.js";
 
-export default class APK
+
+export default class APK extends TargetApp
 {
-    path:string = null;
-    md5:string = null;
-    sha1:string = null;
-    sha256:string = null;
-
-    resources:any = null;
-    assets:any = null;
-    libs:any = null;
+    override format:AppFormatType = AppFormatType.PACKAGE;
 
     constructor( pPath:string = null){
-        this.path = pPath!=null ? _path_.normalize(pPath) : pPath;
+        super( pPath, 'apk');
     }
 
     getLibPath(){

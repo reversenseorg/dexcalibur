@@ -67,6 +67,7 @@ import {Product} from "./credit/Product.js";
 import {CoreDebug} from "./core/CoreDebug.js";
 import {ScanSchedulerProject} from "./audit/common/ScanSchedulerProject.js";
 import {SecurityZone} from "./security/SecurityZone.js";
+import TargetApp from "./common/TargetApp.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -721,7 +722,13 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
         // manifest / app analyzer
         // depend of application type
         if(this.platform != null){
+
+            this.kpmgr = this.platform.newKeyPointManager(this);
+            this.appAnalyzer = this.platform.newAppAnalyzer(this);
+
+            /*
             if(this.platform.isAndroid()){
+
                 this.kpmgr = KeyPointManager.newForAndroid(this);
                 this.appAnalyzer = new AndroidAppAnalyzer(this);
 
@@ -741,7 +748,7 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
                     state = new AnalyzerState({ _uid:'ios-app',  state:{}, modified: -1});
                 }
                 this.appAnalyzer.restoreState(state);
-            }
+            }*/
             /*else if(this.platform.isELF())
                 this.appAnalyzer = new BinaryAppAnalyzer(this);
             else
@@ -749,6 +756,7 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
 
 
         }else {
+            console.log("PLATFORM IS UNKNOWN");
             // default analyzer is Android analyzer
             this.kpmgr = KeyPointManager.newForAndroid(this);
             this.appAnalyzer = new AndroidAppAnalyzer(this);
@@ -952,6 +960,35 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
         }
 
         return apkFile;
+    }
+
+
+    /**
+     * To set the app for the project
+     *
+     * @param {string} pPath Application binary file path
+     * @async
+     * @method
+     */
+    async useApp( pPath:string, pExtractOptions:any = {}):Promise<TargetApp>{
+
+
+        // copy the APK into project workspace
+        const targetApp = this.workspace.changeMainAppBinary(pPath);
+
+        // load it : decompress file, disass dex files
+        this.getWorkflow().pushStatus(new StatusMessage(2, "Start to extract application data"));
+
+        // get right app helper
+        const success = await this.platform.extractApp(
+            targetApp, this.workspace.getApkDir(), pExtractOptions);
+
+        // start analysis ?
+        if(success){
+            this.getWorkflow().pushStatus(new StatusMessage(5, "app extracted."));
+        }
+
+        return targetApp;
     }
 
     /**
@@ -1542,7 +1579,7 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
         const dastTag = this.tagManager.getTag("discover.dynamic");
         const internTag = this.tagManager.getTag("discover.internal");
 
-        // application topology analysis
+        // application topology analysis and ressources analysis
         success = await this.appAnalyzer.prepareFullScan();
 
         // scan OS/Platform

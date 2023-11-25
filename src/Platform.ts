@@ -7,6 +7,15 @@ import * as Log from "./Logger.js";
 import {OperatingSystem} from "./OperatingSystem.js";
 import {Architecture} from "./Architecture.js";
 import {CoreDebug} from "./core/CoreDebug.js";
+import {IAppAnalyzer} from "./analyzer/IAppAnalyzer.js";
+import AndroidAppAnalyzer from "./AndroidAppAnalyzer.js";
+import {AnalyzerState} from "./AnalyzerState.js";
+import IosAppAnalyzer from "./ios/IosAppAnalyzer.js";
+import {AnalyzerException} from "./errors/AnalyzerException.js";
+import {Nullable} from "./core/IStringIndex.js";
+import KeyPointManager from "./hook/KeyPointManager.js";
+import TargetApp from "./common/TargetApp.js";
+import ApkHelper from "./ApkHelper.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 const PLATFORM_RE = new RegExp('(?<source>[^_.]+)_(?<name>[^_.]+)_(?<version>[^_.]+)_(?<vendor>[^_.]+)\.(?<format>[^.]+)');
@@ -129,6 +138,7 @@ export default class Platform
     }
 
     isAndroid():boolean{
+        console.log("isAndroid",this);
         return this.name.indexOf("android")>-1;
     }
 
@@ -201,4 +211,78 @@ export default class Platform
         return o;
     }
 
+    /**
+     * To instanciate  a new app analyzer adapted to platform OS
+     * or app type.
+     *
+     * It restores also known states.
+     *
+     * @param {DexcaliburProject} pProject Project context
+     * @return {IAppAnalyzer} Instance of application analyzer
+     * @method
+     */
+    newAppAnalyzer(pProject:DexcaliburProject):IAppAnalyzer {
+
+        let appAnalyzer:IAppAnalyzer;
+        let stateName:string;
+        let state:Nullable<AnalyzerState> = null;
+
+        switch(this.os){
+            case OperatingSystem.ANDROID:
+                appAnalyzer = new AndroidAppAnalyzer(pProject);
+                stateName = 'android-app';
+                break;
+            case OperatingSystem.IOS:
+                appAnalyzer = new IosAppAnalyzer(pProject);
+                stateName = 'ios-app';
+                break;
+            default:
+                throw AnalyzerException.PLATFORM_NOT_SUPPORTED(this.os);
+        }
+
+        state = pProject.getAnalyzerState(stateName);
+        if(state == null){
+            state = new AnalyzerState({ _uid:stateName,  state:{}, modified: -1});
+        }
+        appAnalyzer.restoreState(state);
+
+        return appAnalyzer;
+    }
+
+    newKeyPointManager(pProject:DexcaliburProject):KeyPointManager {
+
+        if(this.os==OperatingSystem.ANDROID||this.isAndroid()){
+            return KeyPointManager.newForAndroid(pProject);
+        }
+        else if(this.os==OperatingSystem.IOS||this.isIOS()){
+            return  KeyPointManager.newForIOS(pProject);
+        }
+        else {
+            throw AnalyzerException.PLATFORM_NOT_SUPPORTED(this.os);
+        }
+    }
+
+    /**
+     * To extract application data from binary file
+     *
+     * It can be useless with some file format
+     *
+     * @param pTargetApp
+     * @param pOutDir
+     * @param pOptions
+     */
+    async extractApp(pTargetApp: TargetApp, pOutDir: string, pOptions:any) {
+        if(this.os==OperatingSystem.ANDROID||this.isAndroid()){
+            return await ApkHelper.extract(pTargetApp.getPath(), pOutDir, {
+                force: true,
+                match: true,
+                ...pOptions
+            });
+        }
+        else {
+            return true;
+            //throw AnalyzerException.EXTRACT_NOT_SUPPORTED(pTargetApp.type,this.os);
+        }
+
+    }
 }

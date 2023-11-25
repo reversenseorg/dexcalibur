@@ -9,6 +9,8 @@ import * as Log from './Logger.js';
 import {Stub, STUB_TYPE} from "./ModelSavable.js";
 import {RuntimeSecurityException} from "./errors/RuntimeSecurityException.js";
 import HookWorkspace from "./hook/HookWorkspace.js";
+import {Nullable} from "./core/IStringIndex.js";
+import TargetApp from "./common/TargetApp.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -25,6 +27,7 @@ const DIR_NAME = {
     TMP: "tmp",
     DEXES: "dexes",
     DEX: "apk", //"dex"
+    APP_OUT: "app_ctn",
     HKWS: "hooks"
 };
 
@@ -43,7 +46,11 @@ const DIR_NAME = {
 export default class ProjectWorkspace
 {
     path:string = null;
-    mainAPK:APK = null;
+
+    mainAPK:Nullable<APK> = null;
+
+    mainApp:Nullable<TargetApp> = null;
+
     hookWS:HookWorkspace = null;
 
     /**
@@ -65,6 +72,11 @@ export default class ProjectWorkspace
          */
         this.mainAPK = new APK(
             _path_.join(this.path, 'app.apk')
+        );
+
+        this.mainApp = new TargetApp(
+            'bin',
+            _path_.join(this.path, 'app.bin')
         );
     }
     
@@ -209,6 +221,9 @@ export default class ProjectWorkspace
         if(!_fs_.existsSync(_path_.join(this.path, DIR_NAME.DEX))){
             this.mkWDir(DIR_NAME.DEX);
         }
+        if(!_fs_.existsSync(_path_.join(this.path, DIR_NAME.APP_OUT))){
+            this.mkWDir(DIR_NAME.APP_OUT);
+        }
         if(!_fs_.existsSync(_path_.join(this.path, DIR_NAME.HKWS))){
             this.mkWDir(DIR_NAME.HKWS);
         }
@@ -282,12 +297,15 @@ export default class ProjectWorkspace
     }
     
     getApkDir():string{
-
         return _path_.join(this.path, DIR_NAME.DEX);
     }
 
     getApkPath():string{
         return this.mainAPK.getPath();
+    }
+
+    getAppPath():string {
+        return this.mainApp.getPath();
     }
 
     getApk():APK{
@@ -299,9 +317,26 @@ export default class ProjectWorkspace
     }
 
 
+    /**
+     *
+     * @param pPath
+     * @deprecated
+     */
     changeMainAPK( pPath:string){
         _fs_.copyFileSync( pPath, this.getApkPath());
         this.mainAPK = new APK( this.getApkPath());
+    }
+
+    /**
+     * To change default targeted binary into project workspace
+     *
+     * @param pPath
+     * @param pType
+     */
+    changeMainAppBinary( pPath:string, pType:Nullable<string> = 'bin'){
+        _fs_.copyFileSync( pPath, this.getAppPath());
+        this.mainApp = new TargetApp( this.getAppPath(), pType);
+        return this.mainApp;
     }
 
     getHookWorkspace():HookWorkspace {

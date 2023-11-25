@@ -28,6 +28,14 @@ export class AnalyzerException extends MonitoredError {
         return new AnalyzerException("Data set missing for node type : "+pNodeType,
             ErrorCode.ANALYZER_NATIV + 203) };
 
+    static PLATFORM_NOT_SUPPORTED = (pOS:string)=>{
+        return new AnalyzerException("The platform is not supported, app cannot be analyzed : "+pOS,
+            ErrorCode.ANALYZER_NATIV + 204) };
+    static EXTRACT_NOT_SUPPORTED = (pType:string, pOS:string)=>{
+        return new AnalyzerException("The targeted app has not extractor [type="+pType+"][os="+pOS+"]",
+            ErrorCode.ANALYZER_NATIV + 205) };
+
+
 
 
     constructor( pMsg:string, pCode:number = null, pExtra:any = null) {

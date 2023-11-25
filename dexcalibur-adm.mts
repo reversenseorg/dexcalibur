@@ -679,6 +679,7 @@ switch (projectArgs.mode){
                 }
                 break;
         }
+
         break;
     case SUBMENU.START:
         let dxcWebRoot:string = null;

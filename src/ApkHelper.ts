@@ -44,6 +44,10 @@ export default class ApkHelper extends External.ExternalHelper
         return path;
     }
 
+    static getResFolder():string {
+        return "res";
+    }
+
     /**
      * To get begin of the command to start Apktool
      *

@@ -1160,7 +1160,7 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
      * @async
      * @method
      */
-    async newProject( pUID:string, pApkPath:string, pDevice:any=null, pUserAccount:UserAccount = null):Promise<DexcaliburProject>{
+    async newProject( pUID:string, pAppPath:string, pDevice:any=null, pUserAccount:UserAccount = null):Promise<DexcaliburProject>{
 
         let project:DexcaliburProject = null;
         let apkFile:ApkPackage = null;
@@ -1203,9 +1203,12 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
 
         // open APK, analyze manifest
 
-        wf.pushStatus(new StatusMessage( 8, "Analyze APK"));
+        wf.pushStatus(new StatusMessage( 8, "Analyze App file"));
         wf.stepUp(10);
-        apkFile = await project.useAPK(pApkPath);
+
+        // set targeted binary file, optionnaly parse it according to device type
+        apkFile = await project.useAPK(pAppPath);
+        // useApp
 
         // create project.json file
         if(apkFile != null){
@@ -1219,7 +1222,7 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
 
             return project;
         }else{
-            Logger.error('[ENGINE] Error : APK extraction failed.')
+            Logger.error('[ENGINE] Error : application extraction failed.')
             return null;
         }
     }
