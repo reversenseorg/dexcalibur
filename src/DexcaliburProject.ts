@@ -28,7 +28,6 @@ import {DexcaliburVM} from "./DexcaliburVM.js";
 import Simplifier from "./Simplifier.js";
 import SmaliDisassembler from "./SmaliDisassembler.js";
 import GraphMaker from "./Graph.js";
-import IosAppAnalyzer from "./ios/IosAppAnalyzer.js";
 import {AppIcon} from "./AppIcon.js";
 import {ApkPackage} from "./android/ApkPackage.js";
 import {Workflow} from "./Workflow.js";
@@ -68,6 +67,7 @@ import {CoreDebug} from "./core/CoreDebug.js";
 import {ScanSchedulerProject} from "./audit/common/ScanSchedulerProject.js";
 import {SecurityZone} from "./security/SecurityZone.js";
 import TargetApp from "./common/TargetApp.js";
+import {Metadata, MetadataType} from "./audit/common/Metadata.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -84,7 +84,9 @@ function ApplicationInstance(pid){
     this.pid = null;
 }
 
-
+interface MetadataMap  {
+    [name:string] :Metadata
+}
 
 interface DigestSet {
     [type:string] :string
@@ -298,6 +300,12 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
     private analCfg:AnalyzerConfiguration = new AnalyzerConfiguration();
 
     private _archReady:Architecture[] = [];
+
+    meta:any = {
+        creationDate: null,
+        lastOpenDate: null,
+        lastExecDate: null
+    };
 
     /*
      * A set of package checksum
@@ -1081,6 +1089,7 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
     async open(){
         //throw new Error('[DEXCALIBUR PROJECT] open() : Not implemented');
         // re-scan
+        this.meta.lastOpenDate = (new Date()).getTime();
         return this.fullscan();
     }
 
@@ -1127,6 +1136,10 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
 
         if(data._attr != null){
             project.importAccessAttributes(data._attr);
+        }
+
+        if(data.meta != null){
+            project.meta = data.meta;
         }
 
 
@@ -1347,6 +1360,7 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
         o.anal = this.analCfg.toJsonObject();
         o.connector = this.connector.toJsonObject(); //constructor.getProperties();
         o._attr = {};
+        o.meta = this.meta;
         for(const n in this._attr){
             if(this._attr[n]!=null){
                 o._attr[n] = (this._attr[n].toJsonObject!=null)?this._attr[n].toJsonObject():this._attr[n];

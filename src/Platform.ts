@@ -57,22 +57,35 @@ export default class Platform
         return this;
     }
 
+
+    private _detectOS(){
+        switch(this.name){
+            case "androidapi":
+                this.os = OperatingSystem.ANDROID;
+                break;
+        }
+    }
+
     static fromRemoteName( pName:string):Platform{
         const matches:any = PLATFORM_RE.exec(pName);
 
         if(matches[0] === pName){
-            return new Platform({
+            const platform =  new Platform({
                 source: matches.groups.source,
                 name: matches.groups.name,
                 version: matches.groups.version,
                 vendor: matches.groups.vendor,
                 format: matches.groups.format
             });
+            platform._detectOS();
+            return platform;
         }else{
             return null;
         }
 
     }
+
+
 
     /**
      * To create a platform from a name
@@ -84,12 +97,14 @@ export default class Platform
         const matches:any = LOCAL_PLATFORM_RE.exec(pName);
 
         if(matches != null && matches[0] === pName){
-            return new Platform({
+            const platform = new Platform({
                 source: matches.groups.source,
                 name: matches.groups.name,
                 version: matches.groups.version,
                 vendor: matches.groups.vendor
             });
+            platform._detectOS();
+            return platform;
         }else{
             Logger.raw(`invalid platform name = ${pName}`);
             return null;

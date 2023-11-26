@@ -54,8 +54,8 @@ var NativeLibraryInspector:InspectorFactory = new InspectorFactory({
                     
         
             try { 
-                const loaded = DXC.java.class.java.lang.Runtime.getRuntime().loadLibrary0(
-                    DXC.java.class.dalvik.system.VMStack.getCallingClassLoader(), arg0); 
+                const loaded = DXC.java().class.java.lang.Runtime.getRuntime().loadLibrary0(
+                    DXC.java().class.dalvik.system.VMStack.getCallingClassLoader(), arg0); 
 
                 if(arg0 === 'MY_LIB') { 
                 

@@ -111,8 +111,12 @@ export default class AndroidApplication extends ApplicationBinary
                     }
                     break;
                 case 'provider':
+                    let provider:AndroidProvider
                     for(let i=0; i<xmlobj.provider.length; i++){
-                        app.providers.push(AndroidProvider.fromXml(xmlobj.provider[i]));
+                        console.log(xmlobj.provider[i]);
+                        provider = AndroidProvider.fromXml(xmlobj.provider[i]);
+                        console.log(provider);
+                        app.providers.push(provider);
                     }
                     break;
                 case 'meta-data':
