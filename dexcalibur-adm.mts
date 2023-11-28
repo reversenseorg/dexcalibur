@@ -42,6 +42,8 @@ import {UserManager} from "./src/UserManager.js";
 import {UserService} from "./src/user/UserService.js";
 import PlatformManager from "./src/PlatformManager.js";
 import {Workflow} from "./src/Workflow.js";
+import AndroidAppAnalyzer from "./src/AndroidAppAnalyzer.js";
+import {AndroidResourceType} from "./src/android/AndroidResource.js";
 
 
 ConnectorFactory.getInstance(true);
@@ -470,7 +472,44 @@ var Parser:ArgParser = new ArgParser(projectArgs, "dexcalibur-adm", [
     { name:"test",
         help: "Perform some functional tests",
         hasVal:false,
-        options:[],
+        options:[
+            {
+                name:"--app",
+                help: "App or file to test ",
+                hasVal:true,
+                callback:(ctx,param)=>{
+                    ctx.testApp = param.value;
+                }
+            },{
+                name:"--action",
+                help: "Actions as comma-separated string. Example: --action=res,manifest,bin ",
+                hasVal:true,
+                callback:(ctx,param)=>{
+                    ctx.testAction = param.value;
+                }
+            },{
+                name:"--type",
+                help: "Application type to test. Supported : apk, ipa, bin",
+                hasVal:true,
+                callback:(ctx,param)=>{
+                    ctx.testAppType = param.value;
+                }
+            },{
+                name:"--skip",
+                help: "Skip a first node with name",
+                hasVal:true,
+                callback:(ctx,param)=>{
+                    ctx.testSkip = param.value;
+                }
+            },{
+                name:"--filter",
+                help: "Filter printed data using a condition over one of resource attribute or value. --filter=<ATTR_NAME>=<REGEXP>",
+                hasVal:true,
+                callback:(ctx,param)=>{
+                    ctx.testFilter = param.value;
+                }
+            }
+        ],
         callback:(ctx,param)=>{ ctx.mode = SUBMENU.TEST; } },
 
 
@@ -506,6 +545,14 @@ var Parser:ArgParser = new ArgParser(projectArgs, "dexcalibur-adm", [
             ctx.debug = true;
         } },
 
+
+    { name:"--json",
+        help: "Encode output as JSON",
+        hasVal:false,
+        callback:(ctx)=>{
+            ctx.outJson = true;
+        } },
+
     { name:"--config",
         help: "Optional. Path of configuration file. By default, the configuration file is searched at some predefined location",
         hasVal:true,
@@ -536,6 +583,21 @@ if(projectArgs.help != null){
     console.log(Parser.getHelp());
     Process.exit();
 }
+
+
+/**
+ * To print data according to global command options
+ * @param {any} pAny data
+ * @return {void}
+ */
+function printOutput(pAny:any):void {
+    if(projectArgs.outJson){
+        console.log(JSON.stringify(pAny));
+    }else{
+        console.log(pAny);
+    }
+}
+
 
 let cfg:S.Settings.GlobalSettings|null = null;
 
@@ -1315,6 +1377,42 @@ ${"\t".repeat(1)}Default Arch = ${srv.getDefaultArchitecture()}
         }
         break;
     case SUBMENU.TEST:
+        if(projectArgs.testApp!=null){
+            switch (projectArgs.testAppType){
+                case "apk":
+                    if(projectArgs.testAction!=null && projectArgs.testAction.indexOf('res')>-1){
+                        (async function(){
+                            const name = _path_.basename(projectArgs.testApp).split('.')[0];
+                            const res = new AndroidResourceType({ _type:name });
+                            const a = await AndroidAppAnalyzer.parseResourceFile(
+                                projectArgs.testApp,
+                                res,
+                                projectArgs.testSkip
+                            );
+                            if(projectArgs.testFilter!=null){
+                                const tokens = projectArgs.testFilter.split('=');
+                                const regexp = new RegExp(tokens[1]);
+                                if(tokens.length<2){
+                                    console.error('Invalid --filter syntax. See help.');
+                                    process.exit(0);
+                                }
+                                const matches:any[] = [];
+                                res._entries.map(x => {
+                                    if(x._attr[tokens[0]]!=null){
+                                        if(regexp.test(x._attr[tokens[0]])){
+                                           matches.push(x);
+                                        }
+                                    }
+                                });
+                                printOutput(matches);
+                            }else{
+                                printOutput(res);
+                            }
+                        })();
+                    }
+                    break;
+            }
+        }
         if(projectArgs.testLoad!=null){
 
             // create an empty single (not yet initialiazed) instance of engine+

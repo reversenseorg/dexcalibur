@@ -198,6 +198,12 @@ export default class Util {
         }
     }
 
+    /**
+     *
+     * @param path
+     * @param callback
+     * @param isDir
+     */
     static forEachFileOf(path:string ,callback:any ,isDir:boolean=false){
         let dir:string[]=null, elemnt:string=null, stat:fs.Stats=fs.lstatSync(path);
 

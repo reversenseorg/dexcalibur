@@ -22,6 +22,9 @@ import {AndroidApiClassXrefList, AndroidCodeAnalyzer} from "./android/analyzer/A
 import BusEvent from "./BusEvent.js";
 import {BusSubscriber} from "./Bus.js";
 import ApkHelper from "./ApkHelper.js";
+import Util from "./Utils.js";
+import {AndroidResource, AndroidResourceType} from "./android/AndroidResource.js";
+import {Nullable} from "./core/IStringIndex.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -29,6 +32,15 @@ const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
 _xml2js_.Parser.prototype.parseStringPromise = _util_.promisify(_xml2js_.parseString);
 
+
+export interface ResourcesMap {
+	/*ids: AndroidResourceType,
+	string: AndroidResourceType,
+	styles: AndroidResourceType,
+	raw: AndroidResourceType,
+	xml: AndroidResourceType,*/
+	[name:string]: AndroidResourceType
+}
 
 
 
@@ -39,6 +51,9 @@ export default class AndroidAppAnalyzer implements IAppAnalyzer
 	manifestPath:string = null;
 	manifestCode:string = null;
 
+	resources:ResourcesMap;
+	layouts:ResourcesMap;
+
 	state:AnalyzerState = null;
 
 	private _missingImpl:{ [implFqcn:string] :AndroidComponent } = {};
@@ -48,6 +63,18 @@ export default class AndroidAppAnalyzer implements IAppAnalyzer
     constructor(context:DexcaliburProject){
         this.context = context;
 		this._registerListeners();
+		this._initRes();
+	}
+
+	private _initRes(){
+		this.resources = {
+			/*ids: new AndroidResourceType("ids"),
+			string:  new AndroidResourceType("string"),
+			styles:  new AndroidResourceType("styles"),
+			raw:  new AndroidResourceType("raw"),
+			xml:  new AndroidResourceType("xml"),
+			attr:  new AndroidResourceType("attr"),*/
+		}
 	}
 
 	/**
@@ -214,6 +241,18 @@ export default class AndroidAppAnalyzer implements IAppAnalyzer
 		return _path_.join(this.context.getWorkspace().getApkDir(),ApkHelper.getResFolder());
 	}
 
+	static async parseResourceFile(pFilePath:string, pResType:AndroidResourceType, pSkip:Nullable<string>=null){
+		const xml = await AndroidAppAnalyzer._parseXmlFile(pFilePath);
+		if(pSkip != null){
+			for(let i in xml[pSkip]){
+				AndroidResource.fromXml(xml[pSkip], pResType, i);
+			}
+		}else{
+			AndroidResource.fromXml(xml, pResType);
+		}
+		return pResType;
+	}
+
 	/**
 	 * To perform some action at very first step of a full scan
 	 *
@@ -222,7 +261,29 @@ export default class AndroidAppAnalyzer implements IAppAnalyzer
 
 		const success:boolean = await this.importManifest(_path_.join(this.context.getWorkspace().getApkDir(),"AndroidManifest.xml"));
 
-		this._getResourcesFolder();
+
+
+		// parse values
+		Util.forEachFileOf(
+			_path_.join(this._getResourcesFolder(),"values"),
+			async (vFilePath:string,vDir:string)=>{
+				const type = _path_.basename(vFilePath).split('.')[0]
+				if(this.resources[type]==null){
+					this.resources[type] = new AndroidResourceType({ _type:type });
+				}
+				await AndroidAppAnalyzer.parseResourceFile(vFilePath,this.resources[type],"resources");
+			},true);
+
+		// parse layout
+		Util.forEachFileOf(
+			_path_.join(this._getResourcesFolder(),"layout"),
+			async (vFilePath:string,vDir:string)=>{
+				const idl = _path_.basename(vFilePath).split('.')[0]
+				if(this.layouts[idl]==null){
+					this.layouts[idl] = new AndroidResourceType({ _type:idl });
+				}
+				await AndroidAppAnalyzer.parseResourceFile(vFilePath,this.layouts[idl],null);
+			},true);
 
 		return success;
 	}
@@ -330,7 +391,7 @@ export default class AndroidAppAnalyzer implements IAppAnalyzer
 	 * @param pPath
 	 * @private
 	 */
-	private async _parseXmlFile(pPath:string):Promise<any> {
+	static async _parseXmlFile(pPath:string):Promise<any> {
 		if(!_fs_.existsSync(pPath)) return null;
 		const data = _fs_.readFileSync(pPath);
 
@@ -353,7 +414,7 @@ export default class AndroidAppAnalyzer implements IAppAnalyzer
 		Logger.debug("[Manifest] Start parsing");
 
         const codeAnal:Analyzer = this.context.getAnalyzer();
-		const result:any = await this._parseXmlFile(path);
+		const result:any = await AndroidAppAnalyzer._parseXmlFile(path);
 		const manifest:AndroidManifest = AndroidManifest.fromXml(result.manifest, this.context);
 		
 
@@ -409,12 +470,6 @@ export default class AndroidAppAnalyzer implements IAppAnalyzer
     }
 
 
-	async importXmlRessourceFile(pPath:string){
-
-		const codeAnal:Analyzer = this.context.getAnalyzer();
-		const result:any = await this._parseXmlFile(pPath);
-		const manifest:AndroidManifest = AndroidManifest.fromXml(result.manifest, this.context);
-	}
 
 	/**
 	 * For each component types,
