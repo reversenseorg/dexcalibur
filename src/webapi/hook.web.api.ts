@@ -1,7 +1,6 @@
 import {DelegateRequest, DelegateResponse, DelegateWebApi} from "./DelegateWebApi.js";
 import {Device} from "../Device.js";
 import WebServer from "../WebServer.js";
-import {Request, Response} from "express";
 import * as Log from "../Logger.js";
 import DexcaliburProject from "../DexcaliburProject.js";
 import HookSession from "../HookSession.js";
@@ -17,11 +16,10 @@ import {NodeInternalType} from "../NodeInternalType.js";
 import KeyPoint from "../hook/KeyPoint.js";
 import HookStrategy from "../hook/HookStrategy.js";
 import {RuntimeEventType} from "../hook/RuntimeEvent.js";
-import {INode} from "../INode.js";
 import {InspectorFactoryException} from "../errors/InspectorFactoryException.js";
 import {HookManagerException} from "../errors/HookManagerException.js";
 import {WebApiWindowing} from "./internals/WebApiWindowing.js";
-import * as vm from "vm";
+import {TargetLanguage} from "../hook/common.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 export const HOOK_WEB_API: DelegateWebApi = new DelegateWebApi();
@@ -108,6 +106,8 @@ HOOK_WEB_API.addAsyncAuthenticatedRoute(
             try{
                 project = req.dxc.project;
                 let newCode:string;
+
+
 
                 if(req.body['code[]'] != null){
                     newCode = req.body['code[]'].join("\n");
@@ -880,6 +880,47 @@ HOOK_WEB_API.addAuthenticatedRoute(
 
 
 HOOK_WEB_API.addAuthenticatedRoute(
+    '/flush/:type',
+    {
+        'get': function (req:DelegateRequest, res:DelegateResponse):any {
+            const $: WebServer = req.dxc.$;
+            let project:DexcaliburProject = null;
+
+            try{
+                project = req.dxc.project;
+
+
+                if(req.params.type!="all"
+                    && project.getHookManager().getSupportedHookTypes().indexOf(req.params.type)==-1){
+                    $.sendSuccess(res, "Invalid hook type. Supported : all, "+
+                        project.getHookManager().getSupportedHookTypes().concat(", "));
+                    return;
+                }
+
+                switch (req.params.type){
+                    case "all":
+                        project.getHookManager().flushGeneratedCode();
+                        break;
+                    default:
+                        project.getHookManager().flushGeneratedCode(req.params.type);
+                        break;
+                }
+
+
+                $.sendSuccess(res, {});
+
+            }catch(err){
+                Logger.error("[API][HOOK] Hook messages cannot be flushed. Cause : " + err.message + "\n\t" + err.stack);
+                $.sendError(res, " Hook messages cannot be flushed. Cause : " + err.message);
+            }
+        }
+    },{
+        readProject: true
+    }
+);
+
+
+HOOK_WEB_API.addAuthenticatedRoute(
     '/new/:method',
     {
         'post': function (req:DelegateRequest, res:DelegateResponse):any {
@@ -976,7 +1017,16 @@ HOOK_WEB_API.addAuthenticatedRoute(
                     newHook = true;
 
                     // generate hook code body
-                    probe.build();
+                    if(req.body['lang']!=null
+                        && [
+                            TargetLanguage.JS,
+                            TargetLanguage.TS
+                        ].indexOf(req.body['lang'])>-1){
+
+                        probe.build(req.body['lang']);
+                    }else{
+                        probe.build(TargetLanguage.TS);
+                    }
                 }
 
                 // if a behavior is defined, update hook to add relevant fragments
@@ -1004,9 +1054,20 @@ HOOK_WEB_API.addAuthenticatedRoute(
                             project.hook.presets.generateFragment(probe, opts.behavior, 'replace'), false
                         );
                     }
-                    
-                    // update global script
-                    probe.build();
+
+
+
+                    // generate hook code body
+                    if(req.body['lang']!=null
+                        && [
+                            TargetLanguage.JS,
+                            TargetLanguage.TS
+                        ].indexOf(req.body['lang'])>-1){
+
+                        probe.build(req.body['lang']);
+                    }else{
+                        probe.build(TargetLanguage.TS);
+                    }
                 }
 
                 // save and create

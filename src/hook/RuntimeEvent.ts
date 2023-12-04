@@ -12,7 +12,9 @@ export enum RuntimeEventType {
     HOOK= 'h',
     MEMORY='m',
     NETWORK='n',
-    FILESYSTEM='f'
+    FILESYSTEM='f',
+    HOOK_ERROR='he',
+    FRAG_ERROR='fe'
 }
 
 
@@ -174,5 +176,9 @@ export class RuntimeEvent<P> extends BusEvent<any> implements INode {
         //    o.tags = this.tags;
         CoreDebug.checkJsonSerialize(o, "RuntimeEvent");
         return o;
+    }
+
+    isNotError():boolean {
+        return (this.type!=RuntimeEventType.HOOK_ERROR);
     }
 }

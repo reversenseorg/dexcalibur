@@ -10,13 +10,19 @@ import {AbstractHook} from "./AbstractHook.js";
 import * as Log from "../Logger.js";
 import {KeyPointOptions} from "./KeyPointGenerator.js";
 import Util from "../Utils.js";
+import {ScriptBuilderOptions, ScriptWriterOptions, TargetLanguage} from "./common.js";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
 interface KeyPointTagMap {
     [tag:string] :KeyPoint;
 }
+
 export default class HookScriptBuilder {
+
+    private version = "1.0.0";
+
+    private target: TargetLanguage = TargetLanguage.TS;
 
     private requires:string[] = [];
 
@@ -24,6 +30,18 @@ export default class HookScriptBuilder {
 
     constructor( pHookManager:HookManager) {
         this._hm = pHookManager;
+    }
+
+    changeTargetLanguage(pTarget:TargetLanguage):void {
+        this.target = pTarget;
+    }
+
+    getLanguage():TargetLanguage {
+        return this.target;
+    }
+
+    isTS(){
+        return (this.target===TargetLanguage.TS);
     }
 
     private _isDynamicLoadingRequired( pHooks:NativeFunctionHook[]){
@@ -100,7 +118,7 @@ export default class HookScriptBuilder {
         let c = 0, m = pFuncs.length-1;
         pFuncs.map( (pHook:NativeFunctionHook)=>{
             code += `
-        "${pHook.getTarget().getSymbol()}":function (vMod){
+        "${pHook.getTarget().getSymbol()}":function (vMod${this.isTS()?':any':''}){
             ${this._writeNativeHook("vMod", pHook)}
         }${c<m ? ',':''}            
 `;
@@ -185,7 +203,7 @@ DXC.HOOK["${pLibraryName}"] = {
      *
      * @param pKeyPoints
      */
-    buildNestedScript( pKeyPoints:KeyPoint[] ){
+    buildNestedScript( pKeyPoints:KeyPoint[], pOptions:ScriptWriterOptions ){
 
         const maps = {};
 
@@ -208,9 +226,9 @@ DXC.HOOK["${pLibraryName}"] = {
                 if(!vHook.isEnable()) return;
 
                 let gc:string = vHook.getGeneratedCode();
-                if(gc == null || gc.length==0){
+                if(gc == null || pOptions.flushGeneratedCode || gc.length==0){
                     vHook.setContext(this._hm.context);
-                    vHook.build();
+                    vHook.build(pOptions.targetLanguage);
                     gc = vHook.getGeneratedCode();
                 }
 
@@ -240,7 +258,7 @@ DXC.HOOK["${pLibraryName}"] = {
 
 
             if(vKP.hasChildrenKeyPoints()){
-                const m = this.buildNestedScript(vKP.getChildrenKeyPoints());
+                const m = this.buildNestedScript(vKP.getChildrenKeyPoints(),pOptions);
                 for(const token in m)  maps[token] = m[token];
             }
 
@@ -257,31 +275,63 @@ DXC.HOOK["${pLibraryName}"] = {
      * @private
      */
     private _appendInternals( pScript:string, pOptions:any = null):string {
-        pScript += "\nvar DXC = require('./lib/dxc-agent.android.arm64.min.js').newDxcAgent(\n";
-        if(pOptions != null) pScript += JSON.stringify(pOptions);
-        pScript += ");\n";
+        if(this.isTS()){
+            pScript += "\nimport * as _dxc_ from './lib/index.android.arm64.js'; const DXC = _dxc_.newDxcAgent(";
+            if(pOptions != null) pScript += "\n"+JSON.stringify(pOptions);
+            pScript += ");\n";
+        }else{
+            pScript += "\nvar DXC = require('./lib/dxc-agent.android.arm64.min.js').newDxcAgent(";
+            if(pOptions != null) pScript += "\n"+JSON.stringify(pOptions);
+            pScript += ");\n";
+        }
+
 
         return pScript;
     }
 
 
     private _appendRequirements( pScript:string,  pRequires:string[]):string {
+        if(this.isTS()){
+            pScript += "let DXC_LIB:any = {};\n";
+        }else{
+            pScript += "var DXC_LIB = {};\n";
+        }
+
         pRequires.map( (vReq:string)=>{
            const p = vReq.split("/");
            switch(p[0]){
                case "interruptor":
                    if(p[1] != null){
-                       pScript += `
+                       if(this.isTS()){
+                           pScript += `
+import * as _${p[0]}_ from "${p[0]}";
+DXC_LIB['${p[0].toUpperCase()}'] = (_${p[0]}_ as any).${p[1]}.apply(${p[2]!=null ? p[2]:''});`
+                       }else{
+                           pScript += `
 const DXC_LIB.${p[0].toUpperCase()} = require("${p[0]}").${p[1]}( ${p[2]!=null ? p[2]:''});`
+                       }
+
                    }else{
-                       pScript += `
+                       if(this.isTS()){
+                           pScript += `
+import * as _${p[0]}_ from "${p[0]}";
+DXC_LIB['${p[0].toUpperCase()}'] = (_${p[0]}_ as any);`
+                       }else{
+                           pScript += `
 const DXC_LIB.${p[0].toUpperCase()} = require("${p[0]}");`
+                       }
                    }
                    break;
                // JNI, frida-systruc, frida-fs, ...
                default:
-                   pScript += `
+                   if(this.isTS()){
+                       pScript += `
+import * as _${p[0]}_ from "${p[0]}";
+DXC_LIB['${p[0].toUpperCase()}'] = (_${p[0]}_ as any);`
+                   }else{
+                       pScript += `
 const DXC_LIB.${p[0].toUpperCase()} = require("${p[0]}");`
+                   }
                    break;
            }
         });
@@ -312,8 +362,12 @@ Java.deoptimizeBoot();`
 
     /**
      * To build Frida's agent script
+     *
+     * It is the top-level function of hook script generation unit.
+     *
+     * @method
      */
-    build(){
+    build(pOptions:ScriptBuilderOptions = {}){
         let script = "";
 
         //Logger.info("[HOOK SCRIPT BUILDER] Build : start ... \n");
@@ -339,8 +393,10 @@ Java.deoptimizeBoot();`
             //Logger.info("[HOOK SCRIPT BUILDER] Build : _appendDeoptimize: \n"+script);
         }
 
+        pOptions.targetLanguage = this.target;
+
         // process top-level key point
-        const tokens = this.buildNestedScript(topl_kps);
+        const tokens = this.buildNestedScript(topl_kps, pOptions as ScriptWriterOptions);
 
         topl_kps.map( (vKP:KeyPoint) => {
             if(vKP.getCodeCache() != null && vKP.enabled){

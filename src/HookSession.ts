@@ -1,4 +1,3 @@
-
 /**
  * Represents a session of hooking.
  *
@@ -18,7 +17,7 @@ import * as Log from "./Logger.js";
 import HookMessageV2 from "./hook/HookMessageV2.js";
 import {RuntimeEvent, RuntimeEventType} from "./hook/RuntimeEvent.js";
 import {HookMessageException} from "./errors/HookMessageException.js";
-import {TagHashMap, TagManager, TagMap, TagNameMap} from "./tags/TagManager.js";
+import {TagHashMap} from "./tags/TagManager.js";
 import {INode} from "./INode.js";
 import {NodeType} from "./persist/orm/NodeType.js";
 import {NodeInternalType} from "./NodeInternalType.js";
@@ -222,21 +221,38 @@ export default class HookSession extends WebsocketSession implements INode
 
         // console.log(msg);
         if(pRawMsg.hid == null) throw HookMessageException.MISSING_HOOK_ID();
-        if(pRawMsg.fid == null) throw HookMessageException.MISSING_FRAG_ID();
+
 
         // update hook message
         hm.setSession(this);
         hm.uid = this.offset;
         hm.hook = this.hookManager.getHookByID(pRawMsg.hid);
 
-        if(hm.hook)
-        hm.frag = hm.hook.getFragment(pRawMsg.fid);
+        // error message
+        if(pRawMsg.fid == null){
+            if(pRawMsg.err!=null){
+                switch (pRawMsg){
+                    case -1:
+                        ev.type = RuntimeEventType.HOOK_ERROR;
+                        ev.addTag(this.evTags.FRAG_ERR);
+                        break;
+                    case 1:
+                    default:
+                        ev.type = RuntimeEventType.HOOK_ERROR;
+                        ev.addTag(this.evTags.HOOK_ERR);
+                        break;
+                }
+            }
+        }else if(hm.hook){
+            hm.frag = hm.hook.getFragment(pRawMsg.fid);
+            ev.addTag(this.evTags.HOOK);
+        }
+
         hm.data = pRawMsg.data;
 
         // fill runtiume event
         ev.addNode(hm.hook.getTarget() as INode);
         ev.raw = hm;
-        ev.addTag(this.evTags.HOOK);
 
         this.offset++;
 
@@ -257,8 +273,6 @@ export default class HookSession extends WebsocketSession implements INode
 
         // TODO : send raw hook message only if specified
 
-
-
         if(!this.opts.rawOutput){
             // process hook message as RuntimeEvent
             const jsonNode = [];
@@ -269,11 +283,13 @@ export default class HookSession extends WebsocketSession implements INode
                     id: hm.uid,
                     data: hm.data,
                     hook:  hm.hook.toJsonObject(),
-                    frag:  hm.frag.toJsonObject()
+                    frag:  (hm.frag!=null) ? hm.frag.toJsonObject() : null
                 },
                 node: jsonNode,
-                tags: ev.tags
+                tags: ev.tags,
             });
+
+            // TODO : ev to websocket msg
             this.hookManager.newRuntimeEvent(ev);
         }else{
             this.send({
@@ -287,7 +303,7 @@ export default class HookSession extends WebsocketSession implements INode
                     __: hm.hook.__,
                     uid: hm.hook.getGUID(),
                 },
-                frag:  hm.frag.getUID()
+                frag:  (hm.frag!=null) ? hm.frag.getUID() : null
             });
         }
 

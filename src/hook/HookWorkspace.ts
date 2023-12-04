@@ -5,9 +5,11 @@ import Util from "../Utils.js";
 import ShellHelper from "../ShellHelper.js";
 import ProjectWorkspace from "../ProjectWorkspace.js";
 import DexcaliburEngine from "../DexcaliburEngine.js";
-import {fork, spawnSync} from "child_process";
+import {spawnSync} from "child_process";
 import * as VM from "vm";
 import * as FridaCompile from "@dexcalibur/dexcalibur-frida-compile";
+import {TargetLanguage} from "./common.js";
+import {Nullable} from "../core/IStringIndex.js";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -40,11 +42,12 @@ export default class HookWorkspace {
      */
     private _base:string = null;
     private _compileBin = 'frida-compile';
-    private _defaultName = 'index.js';
+    private _defaultName = 'index.';
     private _defaultOutName = 'index.min.js';
     private _ws:ProjectWorkspace = null;
-
     private _compiler:any = null;
+
+    lang:TargetLanguage = TargetLanguage.TS;
 
 
     /**
@@ -220,8 +223,8 @@ export default class HookWorkspace {
                 "types": [
                     "node",
                     "frida-gum",
-                    "chai",
-                    "mocha"
+                   // "chai",
+                   // "mocha"
                 ]
             },
             "include": [
@@ -236,6 +239,34 @@ export default class HookWorkspace {
             ]
         }
 
+    }
+
+    async createPackageJson(pFolder:string):Promise<void> {
+
+        const pkgFile = _path_.join(pFolder,'package.json');
+
+        if(_fs_.existsSync(pkgFile)){
+            _fs_.unlinkSync(pkgFile);
+        }
+        _fs_.writeFileSync(
+            pkgFile,
+            JSON.stringify({
+                "name": "hooks",
+                "version": "1.0.0",
+                "description": "",
+                "main": "index.js",
+                "directories": {
+                    "lib": "lib"
+                },
+                "scripts": {
+
+                },
+                "type":"module",
+                "author": "Dexcalibur Engine",
+                "license": "ISC"
+            })
+        );
+        return;
     }
     /**
      * To initialize the frida workspace
@@ -263,11 +294,15 @@ export default class HookWorkspace {
         // if frida-compile is configured as external tool, use it, else use built-in compiler
         const globalSettings = DexcaliburEngine.getInstance().getSettings()
         const fridaCompile = globalSettings.getExternalSettings().getTool('frida-compile');
+
         if(fridaCompile != null){
             this._compileBin = fridaCompile;
         }else{
             this._compileBin = Util.whereIs(FRIDA_COMPILE);
         }
+
+        // create package.json
+        await this.createPackageJson(this._base);
 
         // create tsconfig file
         _fs_.writeFileSync(
@@ -275,6 +310,9 @@ export default class HookWorkspace {
              JSON.stringify(this.getTsConfig())
         );
 
+        // install requirements
+        await this.installInterruptor();
+        await this.installFridaCompile();
 
         // copy prebuilt-libs : interruptor, agent, ...
         await this.updateHookLibs();
@@ -303,11 +341,25 @@ export default class HookWorkspace {
         })*/
     }
 
+    async installInterruptor():Promise<void> {
+        await Util.execSync("cd "+this._base+" && npm install @reversense/interruptor");
+        return;
+    }
+
+    async installFridaCompile():Promise<void> {
+        await Util.execSync("cd "+this._base+" && npm install frida-compile");
+        return;
+    }
+
+
+
     /**
      *
      * @param pForce
      */
     async updateHookLibs( pForce=false):Promise<void>{
+
+
         let doUpdate:boolean = pForce;
         if(!_fs_.existsSync(_path_.join(this._base, DIR_NAME.LIB))){
             // create folder
@@ -336,14 +388,44 @@ export default class HookWorkspace {
     /**
      * To write the script into the default file : index.js
      */
-    writeDefaultScript( pScript:string){
+    writeDefaultScript( pScript:string, pLang:TargetLanguage){
+        this.lang = pLang;
         _fs_.writeFileSync(
-            _path_.join(this._base, this._defaultName),
+            _path_.join(this._base, this._defaultName+(pLang==TargetLanguage.TS? 'ts':'js')),
             pScript,
             {
 
             }
         );
+    }
+
+    /**
+     *
+     * @param {string} pInputFile Path relative to hook workspace
+     * @param {string} pOutputFile Path relative to hook workspace
+     */
+
+
+    /**
+     *
+     * @param {Nullable<string>} pInputFile Default NULL. Path relative to hook workspace
+     * @param {Nullable<string>} pOutputFile  Default NULL. Path relative to hook workspace
+     * @return {Nullable<string>}
+     */
+    async compileTsScript(pInputFile:Nullable<string>=null,pOutputFile:Nullable<string>=null):Promise<Nullable<string>> {
+
+        let script:Nullable<string> = null;
+        const input = (pInputFile!=null ? pInputFile : this._defaultName+"ts");
+        const output = (pOutputFile!=null ? pOutputFile : this._defaultName+"js");
+
+        try{
+            await Util.execSync("cd "+this._base+" && ./node_modules/.bin/frida-compile "+input+" -o "+output);
+            script = _fs_.readFileSync(_path_.join(this._base,output),{encoding:'utf-8'});
+        }catch(e){
+            console.log(e);
+        }
+
+        return script
     }
 
     /**
@@ -354,7 +436,7 @@ export default class HookWorkspace {
         const out = _path_.join(this._base, (pOutputPath!=null? pOutputPath : this._defaultOutName));
 
         //return this.execFridaCompiler(_path_.join(this._base, this._defaultName), out);
-        return this.compileScriptWith10_2_5(_path_.join(this._base, this._defaultName), out);
+        return this.compileScriptWith10_2_5(_path_.join(this._base, this._defaultName+'js'), out);
     }
 
     async compileScriptWith10_2_5( pInputPath:string, pOutputPath:string):Promise<string> {
@@ -372,117 +454,5 @@ export default class HookWorkspace {
             const s =  _fs_.readFileSync(pOutputPath, { encoding:'utf8' });
             return s;
         });
-    }
-
-    /**
-     * To compile the file at pInputPath using frida-compile, and write output in pOutputPath
-     * @param pOutputPath
-     */
-    async compileScript( pInputPath:string, pOutputPath:string):Promise<void> {
-        //let child = null;
-        let done:any;
-
-        // .then(this.execFridaCompiler)
-        //let mod = this._asyncEval(`return import("frida-compile/dist/compiler.js")`)
-
-        // "../../ext/frida-compile/dist/compiler.mjs"
-        /*done = .then( async vMod => {
-
-            Logger.raw(`[FRIDA COMPILE] in=${pInputPath} out=${pOutputPath}`);
-            await vMod.build({
-                projectRoot: _path_.dirname(_path_.normalize(pInputPath)),
-                inputPath: pInputPath,
-                outputPath: pOutputPath,
-                sourceMaps:  "included", //opts.sourceMaps ? "included" : "omitted",
-                compression: "none" //opts.compress ? "terser" : "none",
-            });
-
-            return true;
-        })*/
-
-        /*
-        await (await import("../../ext/frida-compile/dist/compiler.mjs")).build({
-            projectRoot: _path_.dirname(_path_.normalize(pInputPath)),
-            inputPath: pInputPath,
-            outputPath: pOutputPath,
-            sourceMaps:  "included", //opts.sourceMaps ? "included" : "omitted",
-            compression: "none" //opts.compress ? "terser" : "none",
-        });*/
-
-        /*return await (HookWorkspace.importFridaCompiler().build({
-            projectRoot: _path_.dirname(_path_.normalize(pInputPath)),
-            inputPath: pInputPath,
-            outputPath: pOutputPath,
-            sourceMaps:  "included",
-            compression: "none"
-        }) as Promise<void>).then( x=>{
-            Logger.raw(`[HOOK WORKSPACE] frida-compile done`);
-            return new Promise(()=>{
-                Logger.raw(`[HOOK WORKSPACE] frida-compile :  dump `);
-                return _fs_.readFileSync(pOutputPath, { encoding:'utf8' });
-            })
-        });
-/*
-        if(done){
-            Logger.raw(`[HOOK WORKSPACE] frida-compile done`);
-            return  _fs_.readFileSync(pOutputPath, { encoding:'utf8' });
-        }else{
-            Logger.raw(`[HOOK WORKSPACE] frida-compile aborted/skipped`);
-            return null;
-        }
-
-
-
-        //try {
-
-            //try{
-                //ferr = _fs_.openSync( _path_.join(app.getPath('logs'), 'fork_err.log'),'w+');
-                //fout = _fs_.openSync( _path_.join(app.getPath('logs'), 'fork_out.log'),'w+');
-/*
-                const env = process.env;
-                env.ELECTRON_RUN_AS_NODE = "1";
-                env.PATH = process.env.PATH;
-
-                Logger.info('[execPath='+process.execPath+']');
-
-
-                child = spawnSync(this._compileBin,
-                    [
-                        ShellHelper.escape(_path_.normalize(pInputPath)),
-                        ' -o ',
-                        ShellHelper.escape(_path_.normalize(pOutputPath))
-                    ],{
-                        env: env,
-                        execPath: process.execPath
-                    });
-                child.on('error', (err) => {
-                    Logger.error(JSON.stringify(err))
-                    // This will be called with err being an AbortError if the controller aborts
-                });
-                child.on('close', (err) => {
-                    script = _fs_.readFileSync(pOutputPath, { encoding:'utf8' });
-                    Logger.error(script)
-                    // This will be called with err being an AbortError if the controller aborts
-                });
-
-           // }catch(err){
-               // Logger.error("[HOOK WS] Compile error: ("+err.message+")");
-            //}finally {
-                //_fs_.closeSync(ferr);
-                //_fs_.closeSync(fout);
-            //}
-/*
-
-            out = Util.execSync(this._compileBin + ' ' +
-                ShellHelper.escape(_path_.normalize(pInputPath))+' -o '+
-                ShellHelper.escape(_path_.normalize(pOutputPath)));
-            Logger.info("[HOOK WS] Compile script ("+out.length+") : \n"+out);*/
-
-            //script = _fs_.readFileSync(pOutputPath, { encoding:'utf8' });
-        /*}catch(e){
-            Logger.error("[HOOK WS] Compile script ("+e.message.length+") : \n"+e.message);
-        }*/
-
-        //return script;
     }
 }

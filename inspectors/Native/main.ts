@@ -111,20 +111,6 @@ var NativeLibraryInspector:InspectorFactory = new InspectorFactory({
                         }
                         
                     );
-                    /*
-                    send({ 
-                        id:"@@__HOOK_ID__@@", 
-                        match: true, 
-                        data: {path:arg0},
-                        after: false, 
-                        msg: "Native inspector (@@__METHSIGN__@@)", 
-                        tags: [{
-                            style:"success",
-                            text: "native"
-                        }], 
-                        action:"None" 
-                    });
-                    */
                 `
             }
 

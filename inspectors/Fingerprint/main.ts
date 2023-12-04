@@ -55,7 +55,7 @@ var FingerprintInspector:InspectorFactory = new InspectorFactory({
                 emitEvent: "fingerprint.device.getId",
                 replace: `  
             
-                        ret = "fakeID";
+                        let ret = "fakeID";
                         DXC.send(
                             "@@__HOOK_ID__@@",
                             "@@__FRAG_ID__@@",

@@ -17,10 +17,13 @@ import {HookManager} from "./HookManager.js";
 import * as Log from "../Logger.js";
 import {CryptoUtils} from "../CryptoUtils.js";
 import {CoreDebug} from "../core/CoreDebug.js";
+import {HookVariableMap, TargetLanguage} from "./common.js";
+import {HookVariable} from "../HookVariable.js";
 
 export const DEFAULT_PRIORITY = -1;
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
+
 
 
 /**
@@ -95,7 +98,10 @@ export default class HookStrategy {
 
     key_point:KeyPoint = null;
 
+    lang:TargetLanguage = TargetLanguage.TS;
+
     passed = 0;
+    variables: HookVariableMap = {};
 
 
     /**
@@ -269,10 +275,15 @@ export default class HookStrategy {
 
         if(this.search.isMethod()){
             results.foreach( (vI, pRes)=>{
-                if(!pRes.hasOwnProperty('__') || (pRes.__!=NodeInternalType.METHOD)){
+                if(pRes==null || !pRes.hasOwnProperty('__') || (pRes.__!=NodeInternalType.METHOD)){
 
-                    Logger.error("[HOOK STRATEGY] _runOnSEResults (project.find." + this.search.getRequest() + "): Not a method : "+JSON.stringify(Object.keys(pRes)));
-                    return;
+                    if(pRes!=null){
+                        Logger.error("[HOOK STRATEGY] _runOnSEResults (project.find." + this.search.getRequest() + "): Not a method : "+JSON.stringify(Object.keys(pRes)));
+                    }else{
+                        Logger.error("[HOOK STRATEGY] _runOnSEResults (project.find." + this.search.getRequest() + "): NULL ");
+                    }
+
+                    return false;
                 }
 
                 let h:JavaMethodHook = pContext.hook.getJavaMethodHook( pRes);
@@ -289,7 +300,7 @@ export default class HookStrategy {
                 if(this.after != null) h.appendAfter(this.after);
                 if(this.replace != null) h.appendReplace(this.replace);
 
-                h.build();
+                h.build(this.lang);
 
                 hm.save(h,create);
 
@@ -301,8 +312,8 @@ export default class HookStrategy {
         }
         else if(this.search.isNativeFunc()){
             results.foreach( (pRes)=>{
-                if(!pRes.hasOwnProperty('__') || (pRes.__!=NodeInternalType.FUNC)){
-                    return;
+                if(pRes==null || !pRes.hasOwnProperty('__') || (pRes.__!=NodeInternalType.FUNC)){
+                    return false;
                 }
 
             })
@@ -365,12 +376,13 @@ export default class HookStrategy {
                         create = true;
                     }
 
+                    if(Object.keys(this.variables).length>0) jhook.initVariables(this.variables);
                     if(this.before != null) jhook.appendBefore(this.before);
                     if(this.after != null) jhook.appendAfter(this.after);
                     if(this.replace != null) jhook.appendReplace(this.replace);
 
                     // update hook script
-                    jhook.build();
+                    jhook.build(this.lang);
 
                     hm.save(jhook, create);
 
@@ -398,11 +410,12 @@ export default class HookStrategy {
                     }
 
 
+                    if(Object.keys(this.variables).length>0) nhook.initVariables(this.variables);
                     if(this.before != null) nhook.appendBefore(this.before);
                     if(this.after != null) nhook.appendAfter(this.after);
                     if(this.replace != null) nhook.appendReplace(this.replace);
 
-                    nhook.build();
+                    nhook.build(this.lang);
                     hm.save(nhook,create);
 
 

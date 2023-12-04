@@ -64,7 +64,7 @@ export default new InspectorFactory({
                 emitEvent: "hook.reflect.method.get",
                 after: `  
                         // var ret = meth_@@__METHDEF__@@.call(this, arg0, arg1);
-                        var cls = Java.cast( ret.getDeclaringClass(), DXC.java().class.java.lang.Class);
+                        let cls = Java.cast( ret.getDeclaringClass(), DXC.java().class.java.lang.Class);
                         
                         DXC.send(
                             "@@__HOOK_ID__@@",
@@ -74,22 +74,6 @@ export default new InspectorFactory({
                                 __trace__: DXC.java().getStackTrace()
                             }
                         );
-                        
-                        /*send({ 
-                            id:"@@__HOOK_ID__@@", 
-                            match: true, 
-                            data: {
-                                __meth__: DXC.java().getMethodSignature(ret,arg1),
-                                __hidden__trace: DXC.java().getStackTrace()
-                            },
-                            after: true, 
-                            msg: "Class.getMethod()", 
-                            tags: [{
-                                style:"purple",
-                                text: "invoke"
-                            }], 
-                            action: "Update" 
-                        });*/
                 `
             }, {
                 name: "Reflection_Class.forName",
@@ -107,7 +91,7 @@ export default new InspectorFactory({
                             "@@__HOOK_ID__@@",
                             "@@__FRAG_ID__@@",
                             {
-                                class: { __:DXC.NODE.CLASS, fqcn: arg0.toString() }
+                                class: { __:DXC.NODE.CLASS, fqcn: (arg0 as any).toString() }
                             }
                         );
                         
@@ -129,13 +113,13 @@ export default new InspectorFactory({
                     ctx.getInspector("DynamicLoader").emits("hook.dex.find.class", event.data);
                 },*/
                 after: `   
-                        var cls = Java.cast(ret, DXC.java().lang.Class);
+                        let cls = Java.cast(ret, DXC.java().class.lang.Class);
             
                         DXC.send(
                             "@@__HOOK_ID__@@",
                             "@@__FRAG_ID__@@",
                             {
-                                class: { __:DXC.NODE.CLASS, fqcn: cls.getName() }
+                                class: { __:DXC.NODE.CLASS, fqcn: (cls as any).getName() }
                             }
                         );
                 `
@@ -210,7 +194,7 @@ export default new InspectorFactory({
                 },
                 before: `
                 
-                        var doCondition = true;
+                        let doCondition = true;
             
             
                         if(@@__VAR__@@.names.indexOf(arguments[0])>-1) 
@@ -307,6 +291,7 @@ export default new InspectorFactory({
                 autoEmit: true,
                 emitEvent: "hook.dex.new",
                 before: `     
+                        let path:string;
                         if(DXC.util.isInstanceOf(arg0,"java.io.File"))
                             path = arg0.getAbsolutePath();
                         else
@@ -349,8 +334,8 @@ export default new InspectorFactory({
                         const d = '/data/data/@@__APP_NAME__@@';
                         let p = 'inmemory_'+end+'_'+Date.now()+'.dex';
                 
-                        let f = DXC.java().class.java.io.File.$new(d, p);
-                        let fos = DXC.java().class.java.io.FileOuputStream.$new(f);
+                        let f:any = DXC.java().class.java.io.File.$new(d, p);
+                        let fos:any = DXC.java().class.java.io.FileOuputStream.$new(f);
                         fos.write(arg0);
                         fos.close();
                 
@@ -710,8 +695,8 @@ export default new InspectorFactory({
                     autoEmit: true,
                     emitEvent: "hook.classloader.new",
                     before: `
-var data ={}; 
-var path="", path2="";
+let data:any ={}; 
+let path="", path2="";
 
 for(var i=0; i<arguments.length; i++){
     if(DXC.util.isInstanceOf(arguments[i],"java.io.File")){

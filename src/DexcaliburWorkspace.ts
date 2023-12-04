@@ -11,9 +11,17 @@ const FILENAME_TESTCONFIG = 'config.test.json';
 let gWorkspaceInstance:DexcaliburWorkspace = null;
 
 /**
- * 
+ * Database schemas :
+ * - dxc_engine
+ *      + settings
+ *      + projects
+ * [- dxc_project_<projectName> ]
+ *
+ * Default dexcalibur home :
  * ~/.dexcalibur/
- * 
+ *    + MongoDB Files
+ *
+ * Workspace skeleton :
  * <DexcaliburWorkspace>/
  *      .dxc/
  *          cfg/

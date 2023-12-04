@@ -119,6 +119,8 @@ const CODE_LOAD_TAGS = [
 
 const RUNTIME_TAGS = [
     new Tag({ name:"hook" }),
+    new Tag({ name:"hk_err" }),
+    new Tag({ name:"fr_err" }),
     new Tag({ name:"fs" }),
     new Tag({ name:"nfc" }),
     new Tag({ name:"bluetooth" }),

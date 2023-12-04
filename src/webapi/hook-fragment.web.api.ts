@@ -2,10 +2,10 @@ import * as Log from "../Logger.js";
 import {DelegateRequest, DelegateResponse, DelegateWebApi} from "./DelegateWebApi.js";
 import WebServer from "../WebServer.js";
 import DexcaliburProject from "../DexcaliburProject.js";
-import {Request, Response} from "express";
 import {AbstractHook} from "../hook/AbstractHook.js";
 import {HookManagerException} from "../errors/HookManagerException.js";
 import HookTemplateFragment from "../hook/HookTemplateFragment.js";
+import {TargetLanguage} from "../hook/common.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 export const HOOK_FRAGS_WEB_API: DelegateWebApi = new DelegateWebApi();
@@ -106,7 +106,7 @@ HOOK_FRAGS_WEB_API.addAuthenticatedRoute(
                 if(req.body.code){
                     frag.setCodeTemplate( req.body.code);
                     project.getHookManager().save(frag);
-                    hook.build();
+                    hook.build(TargetLanguage.TS);
                 }else{
                     project.getHookManager().save(frag);
                 }

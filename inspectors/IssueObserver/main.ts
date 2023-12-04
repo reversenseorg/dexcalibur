@@ -26,25 +26,17 @@ var IssueInspector:InspectorFactory = new InspectorFactory({
             search: {
                 type: ModelMethod.TYPE,
                 uid: [
-                    "java.lang.SecurityException.<init>()<void>",
                     "java.lang.SecurityException.<init>(<java.lang.String>)<void>",
                     "java.lang.SecurityException.<init>(<java.lang.String><java.lang.Throwable>)<void>",
                     "java.lang.SecurityException.<init>(<java.lang.Throwable>)<void>"
                 ]
-            },/*
-            onMatch: function(ctx:DexcaliburProject,event:Event):any{
-                ctx.getInspector("IssueObserver").emits("hook.except.security.new",event);
             },
-            preprocessor: ` 
-                pCtx.getInspector("IssueObserver").emits("hook.except.security.new", pEvent.data);
-            `,*/
-
             autoEmit: true,
             emitEvent: "hook.except.security.new",
             before: ` 
         
-                    var msg="";    
-                    if(isInstanceOf(arg0,"java.lang.String"))
+                    let msg="";    
+                    if(DXC.util.isInstanceOf(arg0,"java.lang.String"))
                         msg = arg0;
                     else
                         msg = "<unknow>";
@@ -57,23 +49,29 @@ var IssueInspector:InspectorFactory = new InspectorFactory({
                             msg: msg
                         }
                     );
-                    /*
-                    send({ 
-                        id:"@@__HOOK_ID__@@", 
-                        match: true, 
-                        data: {
-                            msg: msg
-                        },
-                        after: false, 
-                        msg: "SecurityException", 
-                        tags: [{
-                            style:"black",
-                            text: "error"
-                        }],
-                        action: "" 
-                    });*/
             `
-        }]
+        },{
+
+            name: "SecurityException_new_single",
+            descr: "To detect new security exception without args",
+            search: {
+            type: ModelMethod.TYPE,
+                    uid: [
+                    "java.lang.SecurityException.<init>()<void>"
+                ]
+            },
+            autoEmit: true,
+                emitEvent: "hook.except.security.new",
+                before: ` 
+                        DXC.send(
+                            "@@__HOOK_ID__@@",
+                            "@@__FRAG_ID__@@",
+                            {
+                                msg: null
+                            }
+                        );
+                `
+            }]
     },
     
     eventListeners: {

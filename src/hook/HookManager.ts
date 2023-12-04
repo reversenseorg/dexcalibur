@@ -30,10 +30,11 @@ import * as Frida from 'frida';
 import {RuntimeEvent} from "./RuntimeEvent.js";
 import HookMessageV2 from "./HookMessageV2.js";
 import HookFragmentPreset from "./HookFragmentPreset.js";
-import {TagHashMap, TagNameMap} from "../tags/TagManager.js";
+import {TagHashMap} from "../tags/TagManager.js";
 import SystemCallHook from "./SystemCallHook.js";
 import ModelSyscall from "../ModelSyscall.js";
 import {CryptoUtils} from "../CryptoUtils.js";
+import {ScriptBuilderOptions, TargetLanguage} from "./common.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -89,6 +90,8 @@ export const CUSTOM_HOOKSET_OBJC = "customObjc";
  */
 export class HookManager
 {
+
+    static SUPPORTED:string[] = ["java", "native", "instr", "syscall", /* "objc", "react", "js", "flutter",*/];
 
     db:HookDbApi = null;
 
@@ -246,6 +249,12 @@ export class HookManager
         }
     }
 
+
+    getSupportedHookTypes():string[] {
+        return HookManager.SUPPORTED;
+    }
+
+
     hasActiveInstructionHook():boolean {
         // TODO: implement instruction hooking
         return false;
@@ -350,6 +359,30 @@ export class HookManager
         });
     }
 
+    /**
+     * To flush generated code from existing hooks
+     *
+     * It is mandataory to update hook script when HookScriptBuilder
+     * is updated
+     *
+     * @param pType
+     */
+    flushGeneratedCode(pType = "all"):void {
+        if(pType==="all"){
+            this.getHooks().map(x => {
+                x.setGeneratedCode(null);
+            });
+            return;
+        }
+
+        switch (pType){
+            case "java": this.jhooks.map(x => x.setGeneratedCode(null)); break;
+            case "native": this.nhooks.map(x => x.setGeneratedCode(null)); break;
+            case "syscall": this.shooks.map(x => x.setGeneratedCode(null)); break;
+            //case "java": this.jhooks.map(x => x.setGeneratedCode(null)); break;
+        }
+
+    }
 
     /**
      * To get frida_disabled status.
@@ -439,16 +472,26 @@ export class HookManager
      * @return {string}
      * @method
      */
-    async buildAgentScript():Promise<string> {
+    async buildAgentScript(pOptions:ScriptBuilderOptions = {}):Promise<string> {
         let script:string = null;
         const ws:HookWorkspace = this.context.getWorkspace().getHookWorkspace();
 
         //try{
-            script = this.builder.build();
+            script = this.builder.build(pOptions);
             Logger.info("[HOOK MANAGER] Hook script template built")
-            ws.writeDefaultScript(script);
-            script = await  ws.compileDefaultScript();
-            Logger.info("[HOOK MANAGER] Hook script built and compiled successfully.")
+            ws.writeDefaultScript(script, this.builder.getLanguage());
+            if(this.builder.getLanguage()==TargetLanguage.JS){
+                script = await  ws.compileDefaultScript();
+                Logger.info("[HOOK MANAGER] Hook script built and compiled successfully.")
+            }else{
+                script = await ws.compileTsScript();
+                Logger.info("[HOOK MANAGER] TS target : frida compile done.")
+
+                if(script==null){
+                    console.error("[HOOK MANAGER] TS target : an error occured.")
+                }
+            }
+
         //}catch(e){
         //    Logger.error("[HOOK MANAGER] Hook script cannot be built or compiled : "+e.message)
         //}
@@ -468,6 +511,8 @@ export class HookManager
         const mgr = this.context.getTagManager();
         this._sessTags =  {
             HOOK: mgr.getTag('runtime.msg.hook'),
+            HOOK_ERR: mgr.getTag('runtime.msg.hk_err'),
+            FRAG_ERR: mgr.getTag('runtime.msg.fr_err'),
             FS: mgr.getTag('runtime.msg.fs'),
             MEM: mgr.getTag('runtime.msg.mem'),
             TEE: mgr.getTag('runtime.msg.tee'),
@@ -773,7 +818,10 @@ export class HookManager
                     return;
             }
 
-            const script = yield session.createScript(hook_script);
+            const script = yield session.createScript(
+                hook_script, {
+
+                });
 
              // For frida-node > 11.0.2
              script.message.connect((message:string) => {
@@ -816,7 +864,7 @@ export class HookManager
      *
      * @method
      */
-    async asyncStart(pSession:HookSession, hook_script:string, pType:FRIDA_MODE=null, pExtra:any=null, pDevice:Device=null):Promise<HookSession>{
+    async asyncStart(pSession:HookSession, hook_script:string, pType:FRIDA_MODE=null, pExtra:any=null, pDevice:Device=null, pScriptOpts:any ={}):Promise<HookSession>{
 
         let target:Device = null;
         let fridaDevice:Frida.Device = null;
@@ -826,7 +874,7 @@ export class HookManager
         const PROBE_SESSION:HookSession = pSession; //this.newSession();
 
         if(script == null){
-            script = await this.buildAgentScript();
+            script = await this.buildAgentScript(pScriptOpts);
             // Logger.debug("[HOOK MANAGER] Prepared script : \n"+script);
         }
 
@@ -1142,7 +1190,7 @@ export class HookManager
      * @returns {Hook[]} An array containing all hooks
      */
     getHooks():AbstractHook[]{
-        return (this.jhooks as AbstractHook[]).concat(this.nhooks); // this.hooks;
+        return (this.jhooks as AbstractHook[]).concat(this.nhooks).concat(this.shooks); // this.hooks;
     }
 
     /**
@@ -1302,7 +1350,6 @@ export class HookManager
         hook.setManager(this);
 
         //hook.makeProbeFor(method);
-        //this.builder.
         //hook.makeHookFor(method, pOptions);
 
         //hook.setMethod(method);
@@ -1987,12 +2034,14 @@ export class HookManager
         const msg:HookMessageV2 = pEvent.getMessage();
         const frag = msg.getFragment();
 
-        if(frag.isPreProcessed() && frag.getStrategy()!=null){
-            if(frag.getStrategy().onMatch != null){
-                frag.getStrategy().onMatch.apply(this.context, pEvent);
+        if(pEvent.isNotError() && frag!=null){
+            if(frag.isPreProcessed() && frag.getStrategy()!=null){
+                if(frag.getStrategy().onMatch != null){
+                    frag.getStrategy().onMatch.apply(this.context, pEvent);
+                }
             }
-
         }
+
 
         this.context.bus.send(pEvent);
     }

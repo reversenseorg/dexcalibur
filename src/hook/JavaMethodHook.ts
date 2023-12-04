@@ -4,6 +4,7 @@ import {HookScriptBuilderException} from "../errors/HookScriptBuilderException.j
 import {NodeInternalType} from "../NodeInternalType.js";
 import {NodeType} from "../persist/orm/NodeType.js";
 import {CoreDebug} from "../core/CoreDebug.js";
+import {TargetLanguage} from "./common.js";
 
 
 export default class JavaMethodHook extends AbstractHook {
@@ -72,13 +73,21 @@ export default class JavaMethodHook extends AbstractHook {
      * @method
      * @since 1.0.0
      */
-    build():boolean{
+    build(pLang:TargetLanguage):boolean{
 
         if(this._target == null){
             throw HookScriptBuilderException.UNTARGETABLE_JAVA_HOOK();
         }
 
-        this.setGeneratedCode( this._mgr.hk_builder.java.build(this));
+        switch (pLang) {
+            case TargetLanguage.TS:
+                this.setGeneratedCode( this._mgr.hk_builder.java.buildTS(this));
+                break;
+            case TargetLanguage.JS:
+                this.setGeneratedCode( this._mgr.hk_builder.java.build(this));
+                break;
+        }
+
         this.enable();
 
         return true;

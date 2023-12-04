@@ -1,3 +1,4 @@
+import * as _url_ from 'url';
 import InspectorFactory from "../../src/InspectorFactory.js";
 import {INSPECTOR_TYPE} from "../../src/Inspector.js";
 import DexcaliburProject from "../../src/DexcaliburProject.js";
@@ -90,10 +91,19 @@ var DataClassifierInspector:InspectorFactory = new InspectorFactory({
                     }
                 });
         },
-        /*"hook.cmp.array": function(ctx,event){
-            console.log("New data intercepted", event);
-        }*/
+        "string.instance.new": function(ctx:DexcaliburProject,event:BusEvent<ModelStringValue>){
+            if(event.data!=null){
+                if((URL as any).canParse(event.data.value)){
+                    event.data.addTag(ctx.getTagManager().getTag("string.pattern.URI"));
+                    console.info("URI Detected : ",event.data.value)
+                    ctx.bus.send(new BusEvent<any>({
+                        type: "network.uri.string",
+                        data: event.data
+                    }));
+                }
+            }
+        }
     }
 });
 
-export default  DataClassifierInspector;
+export default DataClassifierInspector;

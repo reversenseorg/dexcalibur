@@ -5,6 +5,7 @@ import {NodeType} from "../persist/orm/NodeType.js";
 import {HookScriptBuilderException} from "../errors/HookScriptBuilderException.js";
 import ModelSyscall from "../ModelSyscall.js";
 import {CoreDebug} from "../core/CoreDebug.js";
+import {TargetLanguage} from "./common.js";
 
 export enum HookTargetType {
 
@@ -78,7 +79,7 @@ export default class SystemCallHook extends AbstractHook {
         return o;
     }
 
-    build():any{
+    build(pLang:TargetLanguage):any{
 
         if(this._target == null){
             throw HookScriptBuilderException.UNTARGETABLE_SYSCALL_HOOK();

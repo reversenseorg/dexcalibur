@@ -32,9 +32,7 @@ var FileDescriptorInspector:InspectorFactory = new InspectorFactory({
                     type: ModelMethod.TYPE,
                     uid: [
                         "java.io.File.<init>(<java.io.File><java.lang.String>)<void>",
-                        "java.io.File.<init>(<java.lang.String>)<void>",
                         "java.io.File.<init>(<java.lang.String><java.lang.String>)<void>",
-                        "java.io.File.<init>(<java.net.URI>)<void>"
                     ]
                 },
 
@@ -48,11 +46,11 @@ var FileDescriptorInspector:InspectorFactory = new InspectorFactory({
                 emitEvent: "hook.file.new",
                 before: `
                 
-                    var msg={ arg0:"<null>", arg1:"<null>" }; 
+                    let msg:any ={ arg0:"<null>", arg1:"<null>" }; 
             
                     if(arg0!=null){ 
                         if(DXC.util.isInstanceOf(arg0, "java.io.File")){
-                            msg.arg0 = arg0.getAbsolutePath();
+                            msg.arg0 = (arg0 as any).getAbsolutePath();
                         }
                         else if(DXC.util.isInstanceOf(arg0, "java.net.URI"))
                             msg.arg0 = arg0.toString();
@@ -60,7 +58,7 @@ var FileDescriptorInspector:InspectorFactory = new InspectorFactory({
                             msg.arg0 = arg0;
             
                     }
-                    if(arguments.length==2 && arg1!=null){
+                    if(arg1!=null){
                         msg.arg1 = arg1;
                     }
             
@@ -69,20 +67,36 @@ var FileDescriptorInspector:InspectorFactory = new InspectorFactory({
                          "@@__FRAG_ID__@@",
                           msg
                       );
-                    
-                    /*
-                    send({ 
-                        id:"@@__HOOK_ID__@@", 
-                        match: true, 
-                        data: msg,
-                        after: false, 
-                        msg: "File()", 
-                        tags: [{
-                            style:"pink",
-                            text: "fs"
-                        }],
-                        action:"None" 
-                    });*/
+                `
+            },{
+                name: "File_new",
+                descr: "To detect new File instance",
+                search: {
+                    type: ModelMethod.TYPE,
+                    uid: [
+                        "java.io.File.<init>(<java.lang.String>)<void>",
+                        "java.io.File.<init>(<java.net.URI>)<void>"
+                    ]
+                },
+                autoEmit: true,
+                emitEvent: "hook.file.new",
+                before: `
+                
+                    let msg:any ={ arg0:"<null>", arg1:"" }; 
+            
+                    if(arg0!=null){ 
+                        if(DXC.util.isInstanceOf(arg0, "java.net.URI"))
+                            msg.arg0 = arg0.toString();
+                        else
+                            msg.arg0 = arg0;
+            
+                    }
+            
+                     DXC.send(
+                         "@@__HOOK_ID__@@",
+                         "@@__FRAG_ID__@@",
+                          msg
+                      );
                 `
             }
         ]

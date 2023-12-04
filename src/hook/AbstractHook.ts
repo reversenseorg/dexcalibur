@@ -7,6 +7,7 @@ import {HookManagerException} from "../errors/HookManagerException.js";
 import HookStrategy from "./HookStrategy.js";
 import DexcaliburProject from "../DexcaliburProject.js";
 import {CoreDebug} from "../core/CoreDebug.js";
+import {HookVariableMap, TargetLanguage} from "./common.js";
 
 
 
@@ -80,6 +81,8 @@ export abstract class AbstractHook {
 
     protected  _vars:string = null;
 
+    protected _varMap:HookVariableMap = {};
+
     public customName:string = null;
 
     public color:string = null;
@@ -120,9 +123,12 @@ export abstract class AbstractHook {
         return this._uid;
     }
 
+    hasVariables():boolean {
+        return (Object.keys(this._varMap).length>0);
+    }
 
     getVariable(pID:string){
-        return this._vars[pID];
+        return this._varMap[pID];
     }
 
     setVariableID(pID:string){
@@ -346,19 +352,23 @@ export abstract class AbstractHook {
         }
     }
 
-    appendBefore(pFrag: HookTemplateFragment, pSync = true){
+    initVariables(pVars:HookVariableMap):void {
+        this._varMap = pVars;
+    }
+
+    appendBefore(pFrag: HookTemplateFragment, pSync = true, pLang = TargetLanguage.TS){
         this._appendFragment( this._before, pFrag);
-        if(pSync) this.build();
+        if(pSync) this.build(pLang);
     }
 
-    appendAfter(pFrag: HookTemplateFragment, pSync = true){
+    appendAfter(pFrag: HookTemplateFragment, pSync = true, pLang = TargetLanguage.TS){
         this._appendFragment( this._after, pFrag);
-        if(pSync) this.build();
+        if(pSync) this.build(pLang);
     }
 
-    appendReplace(pFrag: HookTemplateFragment, pSync = true){
+    appendReplace(pFrag: HookTemplateFragment, pSync = true, pLang = TargetLanguage.TS){
         this._appendFragment( this._replace, pFrag);
-        if(pSync) this.build();
+        if(pSync) this.build(pLang);
     }
 
     private _hasFragments( pArr:HookTemplateFragment[]){
@@ -421,7 +431,7 @@ export abstract class AbstractHook {
 
     abstract  isTarget(pNode: any): boolean;
     abstract  getTarget(): any;
-    abstract  build(): any;
+    abstract  build(pTargetLanguage:TargetLanguage): any;
     abstract  destroy(): any;
 
 

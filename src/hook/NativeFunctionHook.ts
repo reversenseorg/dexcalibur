@@ -6,6 +6,7 @@ import {NodeType} from "../persist/orm/NodeType.js";
 import {HookScriptBuilderException} from "../errors/HookScriptBuilderException.js";
 import ModelFile from "../ModelFile.js";
 import {CoreDebug} from "../core/CoreDebug.js";
+import {TargetLanguage} from "./common.js";
 
 export enum HookTargetType {
     STATIC_OFFSET,
@@ -115,7 +116,7 @@ export default class NativeFunctionHook extends AbstractHook {
         return o;
     }
 
-    build():any{
+    build(pLang:TargetLanguage):any{
         if(this._target == null){
             throw HookScriptBuilderException.UNTARGETABLE_NATIVE_HOOK();
         }

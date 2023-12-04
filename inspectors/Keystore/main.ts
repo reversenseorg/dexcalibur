@@ -65,22 +65,6 @@ var KeystoreInspector:InspectorFactory = new InspectorFactory({
                             name: arg0
                         }
                     );
-            
-            /*
-                        send({ 
-                            id:"@@__HOOK_ID__@@", 
-                            match: true, 
-                            data: {
-                                name: arguments[0],
-                            },
-                            after: true, 
-                            msg: "KeyStore.getInstance(string)", 
-                            tags: [{
-                                style:"danger",
-                                text: "keystore"
-                            }], 
-                            action:"Log" 
-                        });*/
                 `
             },{
                 name: "load",
@@ -119,35 +103,18 @@ var KeystoreInspector:InspectorFactory = new InspectorFactory({
                 },*/
                 before: `
                     
-                    var pwd = Java.array('char',arguments[1]);
+                    let pwd = Java.array('char',arguments[1]);
                     
                     DXC.send(
                     "@@__HOOK_ID__@@",
                     "@@__FRAG_ID__@@",
                         {
                             stream: "<stream>",
-                            pwd: "<pwd>",
+                            pwd: pwd,
                             type: this.type,
                             __msg__:"@@__METHSIGN__@@"
                         }
                     );
-                    /*
-                    send({ 
-                        id:"@@__HOOK_ID__@@", 
-                        match: true, 
-                        data: {
-                            stream: "<stream>",
-                            pwd: "<pwd>",
-                            type: this.type
-                        },
-                        after: true, 
-                        msg: "Keystore.load()", 
-                        tags: [{
-                            style:"danger",
-                            text: "keystore"
-                        }], 
-                        action:"Logging keystore load" 
-                    });*/
                 `
             }
         ]
