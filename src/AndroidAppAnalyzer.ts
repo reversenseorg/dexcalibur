@@ -74,7 +74,8 @@ export default class AndroidAppAnalyzer implements IAppAnalyzer
 			raw:  new AndroidResourceType("raw"),
 			xml:  new AndroidResourceType("xml"),
 			attr:  new AndroidResourceType("attr"),*/
-		}
+		};
+		this.layouts = {};
 	}
 
 	/**
@@ -261,8 +262,6 @@ export default class AndroidAppAnalyzer implements IAppAnalyzer
 
 		const success:boolean = await this.importManifest(_path_.join(this.context.getWorkspace().getApkDir(),"AndroidManifest.xml"));
 
-
-
 		// parse values
 		Util.forEachFileOf(
 			_path_.join(this._getResourcesFolder(),"values"),
@@ -272,6 +271,7 @@ export default class AndroidAppAnalyzer implements IAppAnalyzer
 					this.resources[type] = new AndroidResourceType({ _type:type });
 				}
 				await AndroidAppAnalyzer.parseResourceFile(vFilePath,this.resources[type],"resources");
+				console.log(this.resources[type]._entries.length+" resources parsed");
 			},true);
 
 		// parse layout
@@ -283,6 +283,7 @@ export default class AndroidAppAnalyzer implements IAppAnalyzer
 					this.layouts[idl] = new AndroidResourceType({ _type:idl });
 				}
 				await AndroidAppAnalyzer.parseResourceFile(vFilePath,this.layouts[idl],null);
+				console.log(Object.values(this.layouts[idl]).length+" layouts parsed");
 			},true);
 
 		return success;

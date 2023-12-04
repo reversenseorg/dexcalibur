@@ -109,26 +109,39 @@ export class AndroidResource implements TreeNode<AndroidResource> {
 
             // create res instance with attr
             let res = new AndroidResource(opts);
-            for(let k in pData){
-                // skip attr
-                if(k === '$') continue;
-                // gather value (between begin and end tags)
-                if(k === '_'){
-                    opts._value = pData._;
-                    continue;
-                }
+            let dataType = (typeof pData);
 
-                if(Array.isArray(pData[k])){
-                    pData[k].map(x => {
-                        const r = createRes(x);
-                        r._type = k;
-                        opts._entries.push(r);
-                    });
-                }else{
-                    console.log(k,pData[k]);
-                    //opts._value = pData[k]; //AndroidResource.fromXml(pData[k], null, k)
-                }
+            switch (dataType){
+                case "object":
+                    if(pData==null){
+                        opts._value = pData;
+                    }else{
+                        for(let k in pData){
+                            // skip attr
+                            if(k === '$') continue;
+                            // gather value (between begin and end tags)
+                            if(k === '_'){
+                                opts._value = pData._;
+                                continue;
+                            }
+
+                            if(Array.isArray(pData[k])){
+                                pData[k].map(x => {
+                                    const r = createRes(x);
+                                    r._type = k;
+                                    opts._entries.push(r);
+                                });
+                            }else{
+                                console.log(k,pData[k]);
+                            }
+                        }
+                    }
+                    break;
+                default:
+                    opts._value = pData; //AndroidResource.fromXml(pData[k], null, k)
+                    break;
             }
+
             // update attr
             res.update(opts);
 

@@ -113,9 +113,7 @@ export default class AndroidApplication extends ApplicationBinary
                 case 'provider':
                     let provider:AndroidProvider
                     for(let i=0; i<xmlobj.provider.length; i++){
-                        console.log(xmlobj.provider[i]);
                         provider = AndroidProvider.fromXml(xmlobj.provider[i]);
-                        console.log(provider);
                         app.providers.push(provider);
                     }
                     break;
