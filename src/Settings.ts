@@ -436,6 +436,7 @@ export namespace Settings {
          *
          * param {number} pHttp HTTP port of web server. Can be override by DXC_HTTP_PORT env var
          * param {number} pWs Websocket port of web server. Can be override by DXC_WS_PORT env var
+         *
          * @param {GlobalSettings} pParent Parent settings
          * @param {WebServerOptions} pConfig Options values
          * @constructor

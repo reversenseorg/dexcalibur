@@ -8,6 +8,7 @@ import {DbDataType, DbKeyType, DbSerialize} from "./persist/orm/DbAbstraction.js
 import {createHash} from "crypto";
 import Util from "./Utils.js";
 import {CoreDebug} from "./core/CoreDebug.js";
+import {ModelInstance} from "./ModelInstance.js";
 
 export default class ModelStringValue extends Savable implements INode
 {
@@ -17,7 +18,8 @@ export default class ModelStringValue extends Savable implements INode
         //(new NodeProperty("_uid")).type(DbDataType.STRING), //.key(DbKeyType.PRIMARY),
         (new NodeProperty("src")).volatile().type(DbDataType.STRING).def(null),
         (new NodeProperty("instr")).volatile().type(DbDataType.STRING).def(null),
-        (new NodeProperty("value")).volatile().type(DbDataType.STRING).def(null)
+        (new NodeProperty("value")).volatile().type(DbDataType.STRING).def(null),
+        (new NodeProperty("instance")).volatile().type(DbDataType.STRING).def([])
     ])).dataSource(DataSourceHelper.MEM, "strings");
 
     __:NodeInternalType = NodeInternalType.STRING;
@@ -28,6 +30,7 @@ export default class ModelStringValue extends Savable implements INode
     src:any = null;
     instr:any = null;
     value:string = null;
+    instance:ModelInstance[] = [];
     tags:number[] = [];
 
     constructor(pConfig:any=null) {

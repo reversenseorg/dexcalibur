@@ -23,7 +23,7 @@ export interface EngineDatabaseCredential {
 }
 
 /**
- * Represent the serevr DB where project data are stored or cloned
+ * Represent the server DB where project data are stored or cloned
  *
  * @class
  */
@@ -82,5 +82,25 @@ export class EngineDatabase {
         this._db = await this._connector.asyncConnect(null,"dxcserver");
 
         Logger.debug("Connection successful");
+    }
+
+    /**
+     * To get instance of a project DB
+     *
+     * @param pProject
+     */
+    getProjectDb(pProject:string):any {
+
+    }
+
+    /**
+     * To get instance of a internal db.
+     *
+     * The purpose of internal DB is to
+     *
+     * @param pProject
+     */
+    getInternalDb(pProject:string):any {
+
     }
 }

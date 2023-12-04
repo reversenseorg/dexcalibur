@@ -1235,8 +1235,6 @@ export default class WebServer
                 req.dxc = {};
             }
 
-
-
             next();
         };
 
@@ -1318,8 +1316,6 @@ export default class WebServer
 
             return;
         }
-
-        //this.app.use(dxcSessionMiddleware);
 
         const dxcWindowingMiddleware =function(req:DelegateRequest, res:DelegateResponse, next:any){
 

@@ -231,7 +231,6 @@ export class AuditManager {
         // check user permissions
         if(_fs_.existsSync(pDirPath)){
             _fs_.readdirSync(pDirPath).map( vPath => {
-                console.log(vPath);
 
                 // ignore system files
                 if(Util.shouldIgnoreFile(vPath)) return;
@@ -248,7 +247,6 @@ export class AuditManager {
                 }
             });
         }
-        console.log(reports);
         return reports;
     }
 
