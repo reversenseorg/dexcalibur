@@ -6,6 +6,7 @@ import BusEvent from "../../src/BusEvent.js";
 import ModelStringValue from "../../src/ModelStringValue.js";
 import ModelDataBlock from "../../src/ModelDataBlock.js";
 
+const URI_REGEXP = new RegExp("([^:/]*)://([^/]*)");
 
 const TAGS = {
     hash: {
@@ -68,18 +69,28 @@ var DataClassifierInspector:InspectorFactory = new InspectorFactory({
                 //console.log(l,event.data.tags);
             }
         },
+        "string.new": function(ctx:DexcaliburProject,event:BusEvent<ModelStringValue>):void{
+            const tag_URI = ctx.getTagManager().getTag("string.pattern.URI");
+            const pattern:RegExp = new RegExp("([^:/]*)://([^/]*)");
+
+            if(event.data!=null && pattern.exec(event.data.value)){
+                if(!event.data.hasTag(tag_URI)){
+                    event.data.addTag(tag_URI);
+                }
+            }
+        },
         "dxc.fullscan.post": function(ctx:DexcaliburProject,event:BusEvent<any>):void{
 
             const tag_URI = ctx.getTagManager().getTag("string.pattern.URI");
             let pattern:RegExp = new RegExp("([^:/]*)://([^/]*)");
     
             // tag static strings containing URI
-            ctx.find.nocase().strings("value:^([^:/]*)://([^/]*)")
+            /*ctx.find.nocase().strings("value:^([^:/]*)://([^/]*)")
                 .foreach((pOffset:number,pData:ModelStringValue)=>{
                     if(!pData.hasTag(tag_URI)){
                         pData.addTag(tag_URI);
                     }
-                });
+                });*/
     
             // tag static byte array containing URI
             ctx.find.nocase().array('name:.*')
@@ -93,10 +104,9 @@ var DataClassifierInspector:InspectorFactory = new InspectorFactory({
         },
         "string.instance.new": function(ctx:DexcaliburProject,event:BusEvent<ModelStringValue>){
             if(event.data!=null){
-                if((URL as any).canParse(event.data.value)){
+                if(URI_REGEXP.test(event.data.value)){
                     event.data.addTag(ctx.getTagManager().getTag("string.pattern.URI"));
-                    console.info("URI Detected : ",event.data.value)
-                    ctx.bus.send(new BusEvent<any>({
+                    ctx.bus.send(new BusEvent<ModelStringValue>({
                         type: "network.uri.string",
                         data: event.data
                     }));

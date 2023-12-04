@@ -489,6 +489,9 @@ CODE_WEB_API.addAuthenticatedRoute(
                     method.setAlias(alias);
                     project.trigger({
                         type: "method.alias.update",
+                        data: {
+                          meth: method
+                        },
                         meth: method
                     });
                 }
@@ -600,6 +603,9 @@ CODE_WEB_API.addAuthenticatedRoute(
                     obj.setAlias(alias);
                     project.trigger({
                         type: "field.alias.update",
+                        data: {
+                            field: obj
+                        },
                         field: obj
                     });
                 }
@@ -829,6 +835,9 @@ CODE_WEB_API.addAuthenticatedRoute(
                     obj.setAlias(alias);
                     project.trigger({
                         type: "class.alias.update",
+                        data: {
+                            cls:obj
+                        },
                         cls: obj
                     });
 

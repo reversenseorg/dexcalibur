@@ -25,6 +25,7 @@ import {NodeProperty, NodePropertyState} from "./persist/orm/NodeProperty.js";
 import {DbDataType, DbKeyType, DbSerialize} from "./persist/orm/DbAbstraction.js";
 import {CryptoUtils} from "./CryptoUtils.js";
 import {CoreDebug} from "./core/CoreDebug.js";
+import {Nullable} from "./core/IStringIndex.js";
 
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
@@ -211,8 +212,10 @@ export default class HookSession extends WebsocketSession implements INode
 
         const hm:HookMessageV2 = new HookMessageV2();
         const ev:RuntimeEvent<any> = new RuntimeEvent<any>({
-            type: RuntimeEventType.HOOK,
-            id: this.getUID()+':'+this.message.length
+            type: "*",
+            rt_type: RuntimeEventType.HOOK,
+            id: this.getUID()+':'+this.message.length,
+            interceptors: []
         });
 
         //if(pRawMsg.type == "error") return null;
@@ -228,31 +231,37 @@ export default class HookSession extends WebsocketSession implements INode
         hm.uid = this.offset;
         hm.hook = this.hookManager.getHookByID(pRawMsg.hid);
 
-        // error message
-        if(pRawMsg.fid == null){
-            if(pRawMsg.err!=null){
-                switch (pRawMsg){
-                    case -1:
-                        ev.type = RuntimeEventType.HOOK_ERROR;
-                        ev.addTag(this.evTags.FRAG_ERR);
-                        break;
-                    case 1:
-                    default:
-                        ev.type = RuntimeEventType.HOOK_ERROR;
-                        ev.addTag(this.evTags.HOOK_ERR);
-                        break;
-                }
-            }
-        }else if(hm.hook){
+        // by default, not tagged hook message are not broadcasted
+        let brodcast = false;
+
+        if(hm.hook && pRawMsg.fid!=null){
             hm.frag = hm.hook.getFragment(pRawMsg.fid);
             ev.addTag(this.evTags.HOOK);
+
+            // now, event type and auto emit can be retrieved for each fragments
+            brodcast = hm.frag.autoEmit;
+            ev.setType(hm.frag.emitEvent);
+        }
+
+        if(pRawMsg.err!=null){
+            switch (pRawMsg.err){
+                case -1:
+                    ev.setRuntimeType(RuntimeEventType.HOOK_ERROR);
+                    ev.addTag(this.evTags.FRAG_ERR);
+                    break;
+                case 1:
+                default:
+                    ev.setRuntimeType(RuntimeEventType.HOOK_ERROR);
+                    ev.addTag(this.evTags.HOOK_ERR);
+                    break;
+            }
         }
 
         hm.data = pRawMsg.data;
 
         // fill runtiume event
         ev.addNode(hm.hook.getTarget() as INode);
-        ev.raw = hm;
+        ev.data = hm;
 
         this.offset++;
 
@@ -278,6 +287,13 @@ export default class HookSession extends WebsocketSession implements INode
             const jsonNode = [];
             ev.node.map( x => jsonNode.push( x.__!=null ? (x as any).toJsonObject() : x));
 
+
+            // TODO : ev to websocket msg
+            // only valid message are broadcasted
+            if(ev.isNotError()){
+                this.hookManager.newRuntimeEvent(ev, brodcast);
+            }
+
             this.send({
                 data:{
                     id: hm.uid,
@@ -287,14 +303,17 @@ export default class HookSession extends WebsocketSession implements INode
                 },
                 node: jsonNode,
                 tags: ev.tags,
+                rt_type: ev.getRuntimeType(),
+                type: ev.getType(),
+                __i: ev.interceptors
             });
 
-            // TODO : ev to websocket msg
-            this.hookManager.newRuntimeEvent(ev);
         }else{
             this.send({
                 id: hm.uid,
                 data: pRawMsg.data,
+                rt_type: ev.getRuntimeType(),
+                type: ev.getType(),
                 node: {
                     __: hm.hook.getTarget()!=null ?  hm.hook.getTarget().__ : null,
                     uid: hm.hook.getTarget()!=null ?  hm.hook.getTarget().getUID() : null

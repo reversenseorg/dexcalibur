@@ -61,7 +61,9 @@ export default class HookStrategy {
     autoEmit:boolean = false;
 
     /**
-     * The name of the event emitted
+     * The name of the event emitted.
+     *
+     * It is added by the engine after fragment lookup from the hook message
      *
      * @type {string}
      * @field
@@ -146,18 +148,25 @@ export default class HookStrategy {
             o.before = new HookTemplateFragment();
             o.before.setStrategy(o);
             o.before.template = pConfig.before;
+            if(pConfig.emitEvent) o.before.setEventType(pConfig.emitEvent);
+            if(pConfig.autoEmit) o.before.setAutoEmit(pConfig.autoEmit);
+
         }
 
         if(pConfig.after != null){
             o.after = new HookTemplateFragment();
             o.after.setStrategy(o);
             o.after.template = pConfig.after;
+            if(pConfig.emitEvent) o.after.setEventType(pConfig.emitEvent);
+            if(pConfig.autoEmit) o.after.setAutoEmit(pConfig.autoEmit);
         }
 
         if(pConfig.replace != null){
             o.replace = new HookTemplateFragment();
             o.replace.setStrategy(o);
             o.replace.template = pConfig.replace;
+            if(pConfig.emitEvent) o.replace.setEventType(pConfig.emitEvent);
+            if(pConfig.autoEmit) o.replace.setAutoEmit(pConfig.autoEmit);
         }
 
         return o;

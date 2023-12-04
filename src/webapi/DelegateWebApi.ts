@@ -342,8 +342,8 @@ export class DelegateWebApi
 
                         try{
                             //if(self.srv.hasSsoAuthentication()){
-                            console.log(req.originalUrl+" : is Autenticated ? "+(req as any).isAuthenticated())
-                            console.log(req.dxc);
+                            //console.log(req.originalUrl+" : is Autenticated ? "+(req as any).isAuthenticated())
+                            //console.log(req.dxc);
 
                             /*
                             if(req.session?.passport?.user?.dxc != null){

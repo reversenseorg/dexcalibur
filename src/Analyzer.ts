@@ -733,10 +733,14 @@ export default class Analyzer
                         instr: instruct,
                         value: instruct.right._value });
 
-                    data.strings.insert(s, false);
-                    this.getContext().getBus().send(new BusEvent<ModelStringValue>({
-                        data: s
-                    }));
+                    if(s.value != 'Stub!'){
+                        data.strings.insert(s, false);
+                        this.getContext().getBus().send(new BusEvent<ModelStringValue>({
+                            type: "string.new",
+                            data: s
+                        }));
+                    }
+
                     success=true;
                 }
                 // Resolve Type reference
@@ -1181,7 +1185,7 @@ export default class Analyzer
         this.tempDB = tempDb;
 
         this.context.bus.send(new BusEvent({
-            name: "analyze.file.before",
+            type: "analyze.file.before",
             data: {
                 path: pPath,
                 analyzer: self
@@ -1220,7 +1224,7 @@ export default class Analyzer
 
 
         this.context.bus.send(new BusEvent({
-            name: "analyze.file.after",
+            type: "analyze.file.after",
             data: {
                 path: pPath,
                 analyzer: this,

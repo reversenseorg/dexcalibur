@@ -410,12 +410,12 @@ export default class Inspector implements BusBroadcaster
     broadcastEvent(event:BusEvent<any>){
         const event_type:string = event.type;
 
-        //Logger.info( event_type, this.listener[event_type]);
         //console.log(this.listener);
         if(this.listener[event_type] != null){
+            console.log("Listener for ["+event_type+"] found in inspector ["+this.name+"]  ");
             for(let i=0; i<this.listener[event_type].length; i++){
                 // TODO : async / co
-                // console.log(this.listener[event_type][i]);
+                //console.log(this.listener[event_type][i]);
                 this.listener[event_type][i].exec(this.context, event);
             }
         }
@@ -441,7 +441,7 @@ export default class Inspector implements BusBroadcaster
             this.listener[event_type].push(task);
         else
             this.listener[event_type].push(new StaticTask(task));
-            
+
         return this;
     }
 

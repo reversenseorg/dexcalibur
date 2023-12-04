@@ -22,7 +22,7 @@ export enum RuntimeEventType {
  * This class represents any events happening at runtime of target applications and
  * captured by Dexcalibur
  *
- * Most specifialized message - such as hook messages - are lifted to RuntimeEvent
+ * Most specialized message - such as hook messages - are encapsulated to RuntimeEvent
  *
  *
  * @class
@@ -33,8 +33,10 @@ export class RuntimeEvent<P> extends BusEvent<any> implements INode {
         [
             (new NodeProperty("id")).type(DbDataType.STRING).key(DbKeyType.PRIMARY),
             (new NodeProperty("type")).type(DbDataType.STRING).def(null),
+            (new NodeProperty("rt_type")).type(DbDataType.STRING).def(null),
+            (new NodeProperty("interceptors")).type(DbDataType.STRING).def([]),
             (new NodeProperty("_s")).type(DbDataType.BOOLEAN).def(true),
-            (new NodeProperty("raw"))
+            (new NodeProperty("data"))
                 .type(DbDataType.STRING)
                 .sleep( (x:NodePropertyState)=>{
                     if(x.p != null){
@@ -77,11 +79,9 @@ export class RuntimeEvent<P> extends BusEvent<any> implements INode {
         ]);
     __:NodeInternalType = NodeInternalType.RUNTIME_EVENT;
 
-    type:RuntimeEventType = null;
+    rt_type:RuntimeEventType = null;
 
     id:any = null;
-
-    raw: P = null;
 
     node:INode[] = [];
 
@@ -108,12 +108,20 @@ export class RuntimeEvent<P> extends BusEvent<any> implements INode {
         return this._s;
     }
 
+    setRuntimeType(pType:RuntimeEventType):void {
+        this.rt_type = pType;
+    }
+
+    getRuntimeType():RuntimeEventType {
+        return this.rt_type;
+    }
+
     getUID():any {
         return this.id;
     }
 
     getMessage():P {
-        return this.raw;
+        return this.data;
     }
 
 
@@ -167,10 +175,20 @@ export class RuntimeEvent<P> extends BusEvent<any> implements INode {
     toJsonObject():any{
         const o:any = new Object();
 
-        o.type = this.type
+        o.type = this.type;
+        if(this.data!=null){
+            if(this.data.toJsonObject != null){
+                o.data = (this.data as any).toJsonObject();
+            }else{
+                o.data = this.data;
+            }
+        }else{
+            o.data = null;
+        }
+        o.rt_type = this.rt_type;
         o.node = this.node;
         o.tags = this.tags;
-        o.raw = (this.raw != null ? (this.raw as any).toJsonObject() : null);
+        o.interceptors = this.interceptors;
 
         //if(this.tags != null && this.tags.length > 0)
         //    o.tags = this.tags;
@@ -179,6 +197,6 @@ export class RuntimeEvent<P> extends BusEvent<any> implements INode {
     }
 
     isNotError():boolean {
-        return (this.type!=RuntimeEventType.HOOK_ERROR);
+        return (this.rt_type!=RuntimeEventType.HOOK_ERROR);
     }
 }

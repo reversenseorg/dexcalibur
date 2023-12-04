@@ -27,9 +27,9 @@ AUTH_WEB_API.addAuthenticatedRoute(
                 if ($.context.getUserService().verifySession(req.dxc.sess)) {
 
 
-                        console.log("SSO : logout requested")
-                        console.log((req as any).session);
-                        console.log((req as any).session?.passport?.user);
+                        //console.log("SSO : logout requested")
+                        //console.log((req as any).session);
+                        //console.log((req as any).session?.passport?.user);
 
                         // server-side revoke token (only if authorization is enabled)
                         /*

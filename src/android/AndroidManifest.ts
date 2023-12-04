@@ -130,7 +130,7 @@ export class AndroidManifest
                     }else{
                         self.application = AndroidApplication.fromXml(context, config[i][0]);
                         context.trigger({
-                            name: "app.application.new",
+                            type: "app.application.new",
                             data: self.application
                         })
 

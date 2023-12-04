@@ -87,6 +87,7 @@ var AndroidStringObserverInspector:InspectorFactory = new InspectorFactory({
                     ]
                 });
 
+
                 ctx.getAnalyzer().getData().strings.addEntry(str);
                 ctx.bus.send( new BusEvent<ModelStringValue>({
                     type: "string.instance.new",

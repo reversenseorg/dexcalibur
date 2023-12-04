@@ -143,6 +143,9 @@ NATIVE_WEB_API.addAuthenticatedRoute(
                     fn.setAlias(alias);
                     project.trigger({
                         type: "function.alias.update",
+                        data: {
+                            func:fn
+                        },
                         func: fn
                     });
                 }

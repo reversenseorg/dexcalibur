@@ -2,6 +2,7 @@ import HookStrategy from "./HookStrategy.js";
 import {NodeType} from "../persist/orm/NodeType.js";
 import {NodeInternalType} from "../NodeInternalType.js";
 import {CoreDebug} from "../core/CoreDebug.js";
+import {Nullable} from "../core/IStringIndex.js";
 
 
 
@@ -35,6 +36,9 @@ export default class HookTemplateFragment {
 
     private _keypoint:string = null;
 
+    public autoEmit = false;
+
+    public emitEvent:Nullable<string> = null;
 
     /**
      * Group of hook
@@ -101,6 +105,24 @@ export default class HookTemplateFragment {
         this._strategy = pStrategy;
     }
 
+    /**
+     * To change the event type of the RuntimeEvent issued from HookMessage
+     *
+     * @param pType
+     */
+    setEventType(pType:string):void {
+        this.emitEvent = pType;
+    }
+
+    /**
+     * To switch between emit everytime or disable automatic emit of RuntimeEvent
+     *
+     * @param pAutoEmit
+     */
+    setAutoEmit(pAutoEmit:boolean):void {
+        this.autoEmit = pAutoEmit;
+    }
+
     setUID(pUID:string){
         this._uid = pUID;
     }
@@ -162,6 +184,8 @@ export default class HookTemplateFragment {
         o.template = pObject.tpl;
         o._cache = pObject._cache;
         o._preproc = pObject._preproc;
+        o.emitEvent = pObject.emitEvent;
+        o.autoEmit = pObject.autoEmit;
 
         return o;
     }
@@ -170,6 +194,8 @@ export default class HookTemplateFragment {
         const o:any = {};
         o._uid = this._uid;
         o.name = this.name;
+        o.autoEmit = this.autoEmit;
+        o.emitEvent = this.emitEvent;
         o.descr = this.description;
         o.weight = this._w;
         o.tpl = this.template;

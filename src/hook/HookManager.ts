@@ -2027,8 +2027,9 @@ export class HookManager
      * The hook manager will complete object according to fragment / hook / strategies
      *
      * @param  {RuntimeEvent} pEvent
+     * @param  {boolean} pEmit TRUE to emit runtime event on main bus, FALSE to prevent.
      */
-    newRuntimeEvent(pEvent: RuntimeEvent<HookMessageV2>) {
+    newRuntimeEvent(pEvent: RuntimeEvent<HookMessageV2>, pEmit:boolean) {
 
         // multi-thread it ?
         const msg:HookMessageV2 = pEvent.getMessage();
@@ -2042,7 +2043,8 @@ export class HookManager
             }
         }
 
-
-        this.context.bus.send(pEvent);
+        if(pEmit){
+            this.context.bus.send(pEvent);
+        }
     }
 }

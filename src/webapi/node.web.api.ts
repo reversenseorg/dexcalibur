@@ -17,7 +17,7 @@ NODE_MGR_WEB_API.addAsyncAuthenticatedRoute(
 
             try{
                 const o = $.context.nodeManager.toJsonObject();
-                console.log(o);
+                //console.log(o);
                 $.sendSuccess(res, o);
             }catch(err){
                 Logger.error("[API][NODE] Cannot retrieve scheduler info. Cause : " + err.message + "\n\t" + err.stack);
@@ -35,7 +35,7 @@ NODE_MGR_WEB_API.addAsyncPublicRoute(
 
             try{
                 const unsafeUuidHeader = req.headers[EngineNodeManager.HEADER_NODE_UUID];
-                console.log(unsafeUuidHeader)
+                //console.log(unsafeUuidHeader)
                 if((unsafeUuidHeader==null) || (typeof unsafeUuidHeader!=='string')){
                     throw EngineNodeException.MISSING_UUID_HEADER();
                 }
@@ -48,7 +48,7 @@ NODE_MGR_WEB_API.addAsyncPublicRoute(
                 $.sendSuccess(res, {});
             }catch(err){
                 Logger.error("[API][NODE] Node state cannot updated. Cause : UUID Header is missing : ",err.stack,err.message);
-                console.log(req.headers);
+                //console.log(req.headers);
                 $.sendError(res, "");
             }
         }
