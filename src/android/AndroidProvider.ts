@@ -83,19 +83,7 @@ export default class AndroidProvider extends AndroidComponent
         for(let j in xmlobj){
             switch(j){
                 case '$':
-
-                    for(let i in xmlobj.$){
-                        name = (i.indexOf('android:')==0)? i.slice(8) : i;
-                        if(AndroidAttributeModel[name]!=null){
-                            act.setAttributes(
-                                AndroidAttributeModel[name].with(xmlobj.$[i])
-                            );
-                        }else{
-                            throw new Error("Unsupported attribute detected on provider : "+name)
-                        }
-                    }
-
-                    //act.setAttributes(xmlobj.$);
+                    act.setAttributes(xmlobj.$);
                     act.label = act.attr.label;
                     act.name = act.attr.name;
 
