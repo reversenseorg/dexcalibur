@@ -370,7 +370,6 @@ export default class ModelMethod extends Savable implements INode,IPersistent
         this.modifiers =  obj.modifiers;
 
         // restore return type
-        console.log(obj);
         if(Object.values(CONST.WORDS).indexOf(obj.ret.name)>-1){
             this.ret = (new ModelBasicType()).import(obj.ret);
         }else{

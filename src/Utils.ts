@@ -205,22 +205,29 @@ export default class Util {
      * @param isDir
      */
     static forEachFileOf(path:string ,callback:any ,isDir:boolean=false){
-        let dir:string[]=null, elemnt:string=null, stat:fs.Stats=fs.lstatSync(path);
+        let dir:string[]=null, elemnt:string=null, stat:fs.Stats;
 
-        if(isDir || stat.isDirectory()){
-            dir=fs.readdirSync(path);
-            for(let i in dir){
-                elemnt = _path_.join(path,dir[i]);
-                if(fs.lstatSync(elemnt).isDirectory()){
-                    this.forEachFileOf( elemnt, callback, true);
-                }else{
-                    // TODO : add additional test on file extension 
-                    callback(elemnt, dir[i]);
+        try{
+            stat=fs.lstatSync(path);
+
+            if(isDir || stat.isDirectory()){
+                dir=fs.readdirSync(path);
+                for(let i in dir){
+                    elemnt = _path_.join(path,dir[i]);
+                    if(fs.lstatSync(elemnt).isDirectory()){
+                        this.forEachFileOf( elemnt, callback, true);
+                    }else{
+                        // TODO : add additional test on file extension
+                        callback(elemnt, dir[i]);
+                    }
                 }
-            }     
-        }else{
-            callback(path, _path_.basename(path));
+            }else{
+                callback(path, _path_.basename(path));
+            }
+        }catch(err){
+            Logger.error(err)
         }
+
     }
 
     static count(list:any):number{

@@ -424,7 +424,6 @@ export default class AndroidAppAnalyzer implements IAppAnalyzer
 
 		// update internal DB
 		manifest.usesPermissions.map(x => {
-			console.log(x);
 			this.context.trigger({
 				type: "app.permission.new",
 				data: x

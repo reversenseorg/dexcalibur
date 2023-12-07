@@ -117,6 +117,9 @@ export default class InspectorManager
         })();*/
     }
 
+    /**
+     * TODO : add DB as backend
+     */
     async enumerateLocal():Promise<InspectorFactorySet>{
         let p:string =null;
         const ws:string = _path_.join(Util.__dirname(import.meta.url), '..', 'inspectors'); // this.engine.workspace.getPluginsFolderLocation();

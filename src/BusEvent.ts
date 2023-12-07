@@ -1,7 +1,16 @@
+import ModelField from "./ModelField.js";
+import ModelClass from "./ModelClass.js";
+import ModelMethod from "./ModelMethod.js";
+import {ModelFunction} from "./ModelFunction.js";
+
 export interface BusEventOptions<T> {
     type?:string;
     data?:T;
     interceptors?:string[];
+    meth?:ModelMethod;
+    cls?:ModelClass;
+    field?:ModelField;
+    func?:ModelFunction;
 }
 
 

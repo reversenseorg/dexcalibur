@@ -13,7 +13,7 @@ import AndroidApplication from "./android/AndroidApplication.js";
 import PlatformManager from "./PlatformManager.js";
 import {SearchAPI} from "./SearchAPI.js";
 import DeviceManager from "./DeviceManager.js";
-import BusEvent from "./BusEvent.js";
+import BusEvent, {BusEventOptions} from "./BusEvent.js";
 import {DataAnalyzer} from "./DataAnalyzer.js";
 import Analyzer from "./Analyzer.js";
 import ApkHelper from "./ApkHelper.js";
@@ -281,6 +281,8 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
     tagManager:TagManager;
 
     scanManager:any;
+
+    sharedStorage:any = {};
 
     /**
      * Application Icon
@@ -1937,8 +1939,8 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
      * @param {Object} eventData The description of the event to use with the Event constructor.
      * @function
      */
-    trigger(eventData:any):void{
-        this.bus.send(new BusEvent(eventData));
+    trigger(pOptions:BusEventOptions<any>):void{
+        this.bus.send(new BusEvent(pOptions));
     }
 
     // Make a backup of the project 

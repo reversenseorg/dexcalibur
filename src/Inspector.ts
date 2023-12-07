@@ -412,7 +412,7 @@ export default class Inspector implements BusBroadcaster
 
         //console.log(this.listener);
         if(this.listener[event_type] != null){
-            console.log("Listener for ["+event_type+"] found in inspector ["+this.name+"]  ");
+            Logger.debug("Listener for ["+event_type+"] found in inspector ["+this.name+"]  ");
             for(let i=0; i<this.listener[event_type].length; i++){
                 // TODO : async / co
                 //console.log(this.listener[event_type][i]);

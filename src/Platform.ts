@@ -153,7 +153,6 @@ export default class Platform
     }
 
     isAndroid():boolean{
-        console.log("isAndroid",this);
         return this.name.indexOf("android")>-1;
     }
 

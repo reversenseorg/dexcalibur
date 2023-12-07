@@ -49,7 +49,6 @@ export default class AndroidPlatformBuilder
 
         let self:AndroidPlatformBuilder = this;
         Util.forEachFileOf(_path_.join(this.android_sdk, "build-tools"), function (file:string) {
-            console.log(file);
             self.dxPath = file;
         }, false);
 
@@ -91,7 +90,6 @@ export default class AndroidPlatformBuilder
 
         Logger.info("Copying platform file ...")
         ret = Util.execSync("cp " + apiPath + " " + dstPath + ".jar");
-        console.log(ret);
 
         _fs_.mkdirSync(dstPath.substr(0, dstPath.length - 4) + "/", {recursive: true})
 

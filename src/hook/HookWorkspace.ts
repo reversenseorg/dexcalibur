@@ -10,9 +10,14 @@ import * as VM from "vm";
 import * as FridaCompile from "@dexcalibur/dexcalibur-frida-compile";
 import {TargetLanguage} from "./common.js";
 import {Nullable} from "../core/IStringIndex.js";
+import {Requirement} from "@dexcalibur/dexcalibur-installer/src/Requirement.js";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
+interface HookRequirements {
+    interruptor:boolean;
+    fridaCompile:boolean;
+}
 
 const DIR_NAME = {
     LIB: "lib",
@@ -310,14 +315,41 @@ export default class HookWorkspace {
              JSON.stringify(this.getTsConfig())
         );
 
+        const isInstalled = await this._checkRequirements();
+
         // install requirements
-        await this.installInterruptor();
-        await this.installFridaCompile();
+        if(isInstalled.interruptor) await this.installInterruptor();
+        if(isInstalled.fridaCompile) await this.installFridaCompile();
 
         // copy prebuilt-libs : interruptor, agent, ...
         await this.updateHookLibs();
 
         return true;
+    }
+
+    private async _checkRequirements():Promise<HookRequirements>{
+        const reqs:HookRequirements = {
+            interruptor: false,
+            fridaCompile: false
+        };
+        const pkgFile = _path_.join(this._base,'package.json');
+        if(!_fs_.existsSync(pkgFile)){
+            return reqs;
+        }
+
+        try{
+            const ctn = JSON.parse(_fs_.readFileSync(pkgFile,{encoding:'utf-8'}).toString());
+            if(ctn!=null && ctn.packages !=null){
+                reqs.interruptor = (ctn.packages['node_modules/@reversense/interruptor']!=null);
+                reqs.interruptor = (ctn.packages['node_modules/frida-compile']!=null);
+            }
+
+        }catch(err){
+            reqs.interruptor = false;
+            reqs.fridaCompile = false;
+        }
+
+        return reqs;
     }
 
     private async _copyHookFile():Promise<void>{
