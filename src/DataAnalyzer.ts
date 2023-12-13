@@ -1,8 +1,7 @@
- import * as _path_ from 'path';
+import * as _path_ from 'path';
 import * as _fs_ from 'fs';
 import DexcaliburProject from "./DexcaliburProject.js";
 import ModelFile from "./ModelFile.js";
-import {ConnectorFactory} from "./ConnectorFactory.js";
 
 
 import * as Log from './Logger.js';
@@ -12,14 +11,21 @@ import BusEvent from "./BusEvent.js";
 import {FileAnalysisType} from "./AnalyzerConfiguration.js";
 import {MagicHelper} from "./MagicHelper.js";
 import {Workflow} from "./Workflow.js";
-import {IDatabase, IDatabaseAdapter, IDbCollection, IDbIndex} from "./persist/orm/DbAbstraction.js";
 import SqliteDbCollection from "../connectors/sqlite/SqliteDbCollection.js";
 import {IAnalyzerUnit} from "./analyzer/IAnalyzerUnit.js";
 import {UTIL_CONST} from "./util/UtilConstants.js";
- import {AnalyzerState} from "./AnalyzerState.js";
+import {AnalyzerState} from "./AnalyzerState.js";
+import {OperatingSystem} from "./OperatingSystem.js";
+import {IDatabase, IDbCollection} from "@dexcalibur/dexcalibur-orm";
+import {Nullable} from "./core/IStringIndex.js";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
+
+export interface FileScanResult {
+    file: ModelFile;
+    src: string;
+}
 
 function checkIfSmali(root, filepath){
     if(filepath.indexOf(_path_.join(root,"smali"))==0
@@ -297,7 +303,7 @@ export class DataAnalyzer implements IAnalyzerUnit
         const o =this.parseUID(pUID);
         let f:ModelFile;
 
-        (this.getIndex(o.scope) as SqliteDbCollection).map( (vO:number, vFile:ModelFile)=>{
+        (this.getIndex(o.scope) as IDbCollection).map( (vO:number, vFile:ModelFile)=>{
             if(vFile.getUID() === pUID){
                 f = vFile;
             }
@@ -346,7 +352,11 @@ export class DataAnalyzer implements IAnalyzerUnit
                     if(vPath.indexOf('smali')!=0 && vPath!='original' && _fs_.lstatSync(p).isDirectory()){
                         this.scan(p, pScope, vPath);
                     }
-                })
+                    if(vPath=='original'){
+
+                    }
+
+                });
             }else{
                 dir.map( (vPath:string)=>{
                     const p = _path_.join(pScope.getBasePath(),vPath);
@@ -385,6 +395,46 @@ export class DataAnalyzer implements IAnalyzerUnit
         return this.db.exists(pScope.getIndexName());
     }
 
+
+    /**
+     * To detect the format of a file
+     *
+     * @param {string} pPath
+     * @param {string} pSkipGlob
+     * @param {Nullable<FileAnalysisType>} pAnalysisType Default is NULL, and is retrieved from context settings.
+     * @return {ModelFile[]} Instance of ModelFile for each analyzed file
+     * @private
+     * @method
+     */
+    private _detectFileFormatFolder(pPath:string, pSkipGlob:string, pAnalysisType:Nullable<FileAnalysisType>=null){
+
+        let files:ModelFile[]
+        let type:FileAnalysisType = pAnalysisType;
+        if(type==null){
+            type = this.context.getAnalyzerConfiguration().fileAnalysisMode;
+        }
+
+        switch (type){
+            case FileAnalysisType.DEEP:
+                // deep mode use only binwalk + internals
+                files = this.binwalk.analyzeFolder(pPath, this.context, pSkipGlob);
+                break;
+            case FileAnalysisType.MAGIC:
+                // magic mode use only magic number (file cmd)
+                //files = this.magic.analyzeFolder(path, this.context, checkIfSmali);
+                files = this.magic.analyzeFolder(pPath, this.context, pSkipGlob);
+                break;
+            case FileAnalysisType.SMART:
+                // smart mode mixes magic and deep.
+                // scan lib/ folder
+                // scan unknow + assets
+                files = this.smartScan(pPath, this.context, pSkipGlob);
+                break;
+        }
+
+        return files;
+    }
+
     /**
      * To scan the 'path' as APK content
      *
@@ -411,29 +461,21 @@ export class DataAnalyzer implements IAnalyzerUnit
 
         if(_fs_.readdirSync(path).length==0) return;
 
+        let skipGlob:string;
 
-        let files:ModelFile[]
-        // if target app is Android App
-        switch (this.context.getAnalyzerConfiguration().fileAnalysisMode){
-            case FileAnalysisType.DEEP:
-                // deep mode use only binwalk + internals
-                files = this.binwalk.analyzeFolder(path, this.context, "**/*.smali");
+        switch(this.context.os){
+            case OperatingSystem.ANDROID:
+                skipGlob = "**/*.smali";
                 break;
-            case FileAnalysisType.MAGIC:
-                // magic mode use only magic number (file cmd)
-                //files = this.magic.analyzeFolder(path, this.context, checkIfSmali);
-                files = this.magic.analyzeFolder(path, this.context, "**/*.smali");
-                break;
-            case FileAnalysisType.SMART:
-                // smart mode mixes magic and deep.
-                // Huge files, executable or raw files are scanned with binwalk
-                //files = this.binwalk.analyzeFolder(path, this.context, checkIfSmali);
+            default:
+                skipGlob = "";
                 break;
         }
 
+        // scan file formats
+        let files = this._detectFileFormatFolder(path, skipGlob);
 
-
-
+        // consolidate and save files
         files.map( (f) => {
             f.setScope(pScope);
             //db.addEntry(f);
@@ -542,5 +584,36 @@ export class DataAnalyzer implements IAnalyzerUnit
             type: 'data.file.index',
             data: pFile
         }))
+    }
+
+    /**
+     * To combine data carving-based and magic-number based detection
+     *
+     * Useful to perform a first scan with good results
+     *
+     *
+     */
+    smartScan(pPath:string, pProject:DexcaliburProject, pSkipGlob:string):ModelFile[] {
+
+        let results:ModelFile[] = [];
+        // Huge files, executable or raw files are scanned with binwalk
+        const baseFiles = this.magic.analyzeFolder(pPath, pProject, pSkipGlob);
+
+        results = baseFiles;
+
+        /*switch (pProject.os){
+            case OperatingSystem.ANDROID:
+                // search inside /libs/
+
+                // check any unknown file or executable (.so, ELF, ...)
+
+                break;
+            case OperatingSystem.ANDROID:
+                break;
+            case OperatingSystem.ANDROID:
+                break;
+        }*/
+
+        return results;
     }
 }

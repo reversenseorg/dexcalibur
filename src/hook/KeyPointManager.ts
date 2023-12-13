@@ -1,10 +1,10 @@
 import KeyPoint from "./KeyPoint.js";
 import DexcaliburProject from "../DexcaliburProject.js";
-import {IDatabase, IDbCollection} from "../persist/orm/DbAbstraction.js";
 import {KeyPointManagerException} from "../errors/KeyPointManagerException.js";
 import SqliteDbCollection from "../../connectors/sqlite/SqliteDbCollection.js";
 import {SqliteDb} from "../../connectors/sqlite/SqliteDb.js";
 import {KeyPointGenerator, KeyPointOptions} from "./KeyPointGenerator.js";
+import {IDatabase, IDbCollection} from "@dexcalibur/dexcalibur-orm";
 
 export enum DEOPT_TYPE {
     NONE,
@@ -36,7 +36,7 @@ export default class KeyPointManager {
      *
      * @private
      */
-    private _db:SqliteDbCollection;
+    private _db:IDbCollection;
 
     private _project:DexcaliburProject = null;
     private _os:number = OS.ANDROID;
@@ -228,7 +228,7 @@ Java.deoptimizeEverything();
         if(pDB == null) throw KeyPointManagerException.INVALID_DB();
 
         this._db = (pDB as SqliteDb).getCollection( KeyPoint.TYPE.getName(), KeyPoint.TYPE) ;
-        this._db.getAll(false, true);
+        (this._db as SqliteDbCollection).getAll(false, true);
 
 
         if(this._db.size() == 0){
@@ -260,7 +260,7 @@ Java.deoptimizeEverything();
      * @method
      */
     removeByToken(pToken:string):boolean {
-        const e:KeyPoint[] = this._db.getAll(true, true);
+        const e:KeyPoint[] = (this._db as SqliteDbCollection).getAll(true, true);
         let rem = 0;
         e.map( (vKP:KeyPoint) => {
             if(vKP.getToken()===pToken){
@@ -281,7 +281,7 @@ Java.deoptimizeEverything();
      * To remove all key points
      */
     removeAll():void {
-        const e:KeyPoint[] = this._db.getAll(true, true);
+        const e:KeyPoint[] = (this._db as SqliteDbCollection).getAll(true, true);
         e.map( x => this.remove(x) );
     }
 

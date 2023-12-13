@@ -15,12 +15,17 @@ import {IFileAnalyzer} from "./analyzer/IFileAnalyzer.js";
 import StatusMessage from "./StatusMessage.js";
 import ShellHelper from "./ShellHelper.js";
 import DexcaliburEngine from "./DexcaliburEngine.js";
+import {FileScanResult} from "./DataAnalyzer.js";
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
 
 export class BinwalkHelper extends  External.ExternalHelper implements IFileAnalyzer{
 
 
+    /**
+     *
+     */
+    duration:number = -1;
 
     constructor() {
         super()
@@ -70,12 +75,12 @@ export class BinwalkHelper extends  External.ExternalHelper implements IFileAnal
                         // t = type
                         file.appendSection(new ModelFileSection(res[1], res[3]));
                     }else{
-                        Logger.info("Format not detected in : "+l[i]);
+                        Logger.debug("Format not detected in : "+l[i]);
                     }
                 }
             }
         }catch(err){
-            Logger.error("[FILE FORMAT DETECTION] Binwalk failed to scan path : "+pPath);
+            Logger.error("[FILE FORMAT DETECTION] Deep  failed to scan path : "+pPath);
 
             return null;
         }
@@ -223,11 +228,11 @@ export class BinwalkHelper extends  External.ExternalHelper implements IFileAnal
     }
 
     /**
-     * To scan APK content with binwalk
+     * To scan a folder content with binwalk
      *
      * @param {string} pPath Folder to scan
      * @param {DexcaliburProject} pContext Active project
-     * @param {Function} pSkipIf Function to detect is the file must be skipped
+     * @param {Function} pSkipIf Glob pattern to skip
      * @return {ModelFile[]} An array of ModelFile
      */
     analyzeFolder(pPath:string, pContext:DexcaliburProject, pSkipIf:any):ModelFile[] {
@@ -249,7 +254,7 @@ export class BinwalkHelper extends  External.ExternalHelper implements IFileAnal
             });
 
             let counter:number = 0;
-            const m = '/'+vFiles.length+' Files analyzed (binwalk)';
+            const m = '/'+vFiles.length+' Files analyzed by data carving';
 
             this._wf.computeStepUp(vFiles.length);
             vFiles.map( (vFile:string) => {
@@ -270,9 +275,12 @@ export class BinwalkHelper extends  External.ExternalHelper implements IFileAnal
                 files.push(f);
 
                 if(pContext!=null){
-                    pContext.bus.send(new BusEvent({
+                    pContext.bus.send(new BusEvent<FileScanResult>({
                         type: "data.file.new.knownFmt",
-                        data: f
+                        data: {
+                            src: "binwalk",
+                            file: f
+                        }
                     }))
                 }
             });
@@ -324,8 +332,9 @@ export class BinwalkHelper extends  External.ExternalHelper implements IFileAnal
             Logger.error("[BINWALK HELPER] Binwalk failed to scan path (1) : "+pPath+"\n"+err.message+"\n"+err.stack);
         }
 
+        this.duration = (Util.time()-b)
 
-        Logger.info("Time (after binwalk check): "+(Util.time()-b));
+        Logger.info("Time file format scan : "+this.duration);
 
         return files;
     }

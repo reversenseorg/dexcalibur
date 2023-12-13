@@ -5,7 +5,6 @@ import ModelCall from "./ModelCall.js";
 import ModelStringValue from "./ModelStringValue.js";
 import {XRef} from "./ModelReference.js";
 import {Finder} from "./Finder.js";
-import {IDbIndex} from "./persist/orm/DbAbstraction.js";
 import ModelConstantValue from "./ModelConstantValue.js";
 import {CONST} from "./CoreConst.js";
 import ModelFile from "./ModelFile.js";
@@ -16,6 +15,7 @@ import ModelSyscall from "./ModelSyscall.js";
 
 import * as Log from "./Logger.js";
 import {CoreDebug} from "./core/CoreDebug.js";
+import {IDbIndex} from "@dexcalibur/dexcalibur-orm";
 
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
@@ -325,7 +325,7 @@ export class FinderResult
                 data.push(v);
             }else{
                 // TODO : ensure toJsonObject format is write for all entries type
-                data.push(v.toJsonObject(fields));
+                data.push(v.toJsonObject({ include:fields }));
             }
         });
         CoreDebug.checkJsonSerialize(data,"src/FinderResult");

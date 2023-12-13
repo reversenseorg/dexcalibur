@@ -1,4 +1,4 @@
-import {NodeType} from "./persist/orm/NodeType.js";
+import {NodeType} from "@dexcalibur/dexcalibur-orm";
 import {DataSourceException} from "./errors/DataSourceException.js";
 import DexcaliburProject from "./DexcaliburProject.js";
 import * as Log from "./Logger.js";

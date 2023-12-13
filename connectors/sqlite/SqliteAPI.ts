@@ -1,7 +1,5 @@
 import {Database} from "better-sqlite3";
-import {DbDataType, DbSerialize} from "../../src/persist/orm/DbAbstraction.js";
-import {NodeProperty} from "../../src/persist/orm/NodeProperty.js";
-import {NodeType} from "../../src/persist/orm/NodeType.js";
+import {NodeType, NodeProperty, DbDataType, DbSerialize} from "@dexcalibur/dexcalibur-orm";
 import {SqliteException} from "./SqliteException.js";
 import * as Log from "../../src/Logger.js";
 
@@ -50,7 +48,12 @@ export class SqliteAPI {
                         }
                     }
                 }else{
-                    res =pObject[name].hasOwnProperty('toJsonObject')? pObject[name].toJsonObject() : pObject[name];
+                    if(pObject[name]!=null){
+                        res = pObject[name].hasOwnProperty('toJsonObject')? pObject[name].toJsonObject() : pObject[name];
+                    }else{
+                        res = null;
+                    }
+
                 }
 
                 res = JSON.stringify(res);

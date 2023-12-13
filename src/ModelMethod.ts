@@ -8,16 +8,13 @@ import {ModelBasicType, ModelObjectType} from "./ModelType.js";
 import ModelBasicBlock from "./ModelBasicBlock.js";
 import ModelCall from "./ModelCall.js";
 import {ModelLocation} from "./ModelLocation.js";
-import {NodeType} from "./persist/orm/NodeType.js";
+import {NodeType, INode, DataSourceHelper, SerializeOptions} from "@dexcalibur/dexcalibur-orm";
 import {NodeInternalType} from "./NodeInternalType.js";
-import {NodeProperty, NodePropertyState} from "./persist/orm/NodeProperty.js";
-import {DbDataType, DbKeyType} from "./persist/orm/DbAbstraction.js";
 import {IPersistent} from "./persist/orm/IPersistent.js";
 import JavaMethodHook from "./hook/JavaMethodHook.js";
-import {INode} from "./INode.js";
-import {DataSourceHelper} from "./DataSourceHelper.js";
-import {Tag} from "./tags/Tag.js";
+
 import {CoreDebug} from "./core/CoreDebug.js";
+import {IStringIndex} from "./core/IStringIndex.js";
 
 
 /*interface LazyMethodReference {
@@ -38,7 +35,7 @@ import {CoreDebug} from "./core/CoreDebug.js";
  */
 export default class ModelMethod extends Savable implements INode,IPersistent
 {
-    static TYPE:NodeType = (new NodeType( "method", NodeInternalType.METHOD, [])).dataSource(DataSourceHelper.MEM, "method");
+    static TYPE:NodeType = (new NodeType( "method", NodeInternalType.METHOD, [])).dataSource("MEM", "method");
 
     __:NodeInternalType = NodeInternalType.METHOD;
     alias:string = null;
@@ -386,7 +383,11 @@ export default class ModelMethod extends Savable implements INode,IPersistent
     }
 
 
-   toJsonObject(fields:string[]=[],exclude:string[]=[]){
+//   toJsonObject(fields:string[]=[],exclude:string[]=[]){
+   toJsonObject(pOptions:SerializeOptions = {include:[],exclude:{} }){
+        let fields:any[] = pOptions.include;
+        let exclude:IStringIndex<any> = pOptions.exclude;
+
         let obj:any = {};
         if(fields != null && fields.length>0){
             for(let i:number=0; i<fields.length; i++){
@@ -399,7 +400,7 @@ export default class ModelMethod extends Savable implements INode,IPersistent
         }else{
             for(let i in this){
 
-                if(exclude.indexOf(i)>-1) continue;
+                if(exclude!=null && exclude[i]>-1) continue;
                 // if(fields != null && fields.indexOf(i)==-1) continue;
 
                 switch(i){

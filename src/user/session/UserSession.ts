@@ -8,16 +8,11 @@ import AccessControl from "../acl/AccessControl.js";
 import {AccessZone} from "../acl/Zones.js";
 import {ProjectAccessControl} from "../acl/rbac/ProjectAccessContol.js";
 import {IDexcaliburEngine} from "../../IDexcaliburEngine.js";
-import {NodeType} from "../../persist/orm/NodeType.js";
 import {NodeInternalType} from "../../NodeInternalType.js";
-import {NodeProperty, NodePropertyState} from "../../persist/orm/NodeProperty.js";
-import {DbDataType, DbKeyType, DbSerialize} from "../../persist/orm/DbAbstraction.js";
 import {IPersistent} from "../../persist/orm/IPersistent.js";
-import {User} from "../../User.js";
-import {AuthenticationService} from "../auth/AuthenticationService.js";
-import {UserService} from "../UserService.js";
 import {SessionData} from "./SessionData.js";
 import {CoreDebug} from "../../core/CoreDebug.js";
+import {NodeType} from "@dexcalibur/dexcalibur-orm";
 
 export class UserSession implements IPersistent{
 
@@ -26,7 +21,7 @@ export class UserSession implements IPersistent{
         NodeInternalType.USER_SESSION,
         [
         ]
-    );
+    ).dataSource("FILE");
 
     __:NodeInternalType = NodeInternalType.USER_SESSION;
 

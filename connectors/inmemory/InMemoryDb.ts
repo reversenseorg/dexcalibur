@@ -8,8 +8,7 @@ import DexcaliburProject from "../../src/DexcaliburProject.js";
 import InMemoryDbCollection from "./InMemoryDbCollection.js";
 import InMemoryDbIndex from "./InMemoryDbIndex.js";
 import InMemoryConnector from "./adapter.js";
-import {IDatabase} from "../../src/persist/orm/DbAbstraction.js";
-import {NodeType} from "../../src/persist/orm/NodeType.js";
+import {IDatabase, IDbCollection, IDbIndex, NodeType} from "@dexcalibur/dexcalibur-orm";
 
 /**
  * Represent a "in memory" database
@@ -42,6 +41,10 @@ class InMemoryDb implements IDatabase
         return this.indexes;
     }
 
+    supportsEvent(): boolean {
+        return false;
+    }
+
     /**
      * To check if a node set (index or collection) exists or not
      *
@@ -59,7 +62,7 @@ class InMemoryDb implements IDatabase
      * @param {String} name Name of the collection
      * @method
      */
-    newCollection(name:string, pNodeType:NodeType = null):InMemoryDbCollection{
+    newCollection(name:string, pNodeType:NodeType = null):IDbCollection{
         if(this.indexes[name]!=null) throw new Error("A collection is already set for the given name");
 
         this.indexes[name] = new InMemoryDbCollection(name);
@@ -73,7 +76,7 @@ class InMemoryDb implements IDatabase
      * @param {String} name Name of the index
      * @method
      */
-    newIndex(name:string, pNodeType:NodeType = null):InMemoryDbIndex{
+    newIndex(name:string, pNodeType:NodeType = null):IDbIndex{
         if(this.indexes[name] != undefined) throw new Error("An index already exists for the given name");
 
         this.indexes[name] = new InMemoryDbIndex(name);
@@ -88,7 +91,7 @@ class InMemoryDb implements IDatabase
      * @returns {InMemoryDBIndex} Index with the given name
      * @method
      */
-    getIndex(name:string, pNodeType:NodeType = null):InMemoryDbIndex{
+    getIndex(name:string, pNodeType:NodeType = null):IDbIndex{
         if(this.indexes.hasOwnProperty(name)===false){
             this.newIndex(name, pNodeType);
         }
@@ -103,7 +106,7 @@ class InMemoryDb implements IDatabase
      * @method
      * @since 1.0.0
      */
-    getIndexOf(pTemplate:NodeType):InMemoryDbIndex{
+    getIndexOf(pTemplate:NodeType):IDbIndex{
         return this.getIndex(pTemplate.getName(), pTemplate);
     }
 
@@ -114,7 +117,7 @@ class InMemoryDb implements IDatabase
      * @returns {InMemoryDBIndex} Index with the given name
      * @method
      */
-    getCollection(name:string, pNodeType:NodeType = null):InMemoryDbCollection{
+    getCollection(name:string, pNodeType:NodeType = null):IDbCollection{
         if(this.indexes.hasOwnProperty(name)===false){
             this.newCollection(name, pNodeType);
         }
@@ -129,7 +132,7 @@ class InMemoryDb implements IDatabase
      * @method
      * @since 1.0.0
      */
-    getCollectionOf(pTemplate:NodeType):InMemoryDbCollection{
+    getCollectionOf(pTemplate:NodeType):IDbCollection{
         return this.getCollection(pTemplate.getName(), pTemplate);
     }
 

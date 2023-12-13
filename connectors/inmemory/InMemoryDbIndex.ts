@@ -1,6 +1,5 @@
 
 import SerializedObject from "./SerializedObject.js";
-import {IDatabase, IDbIndex} from "../../src/persist/orm/DbAbstraction.js";
 import {
     Comparison,InnerjoinOperationArgs,
     MerlinSearchRequest,
@@ -10,6 +9,8 @@ import {
     SearchOperationArgs, TimeOperationArgs, WindowingOperationArgs
 } from "../../src/search/MerlinSearchRequest.js";
 import {InMemoryMerlinBackend} from "./InMemoryMerlinBackend.js";
+import {IDatabase, IDbIndex} from "@dexcalibur/dexcalibur-orm";
+import {InMemoryException} from "./error/InMemoryException.js";
 
 /**
  * Represents an array of element
@@ -38,6 +39,16 @@ export default class InMemoryDbIndex implements IDbIndex
         this.refs = [];
         this.merlinBackend = new InMemoryMerlinBackend(this);
     }
+
+
+    hasProxy():boolean {
+        return false;
+    }
+
+    getProxy():any {
+        throw  InMemoryException.NO_PROXY_AVAILABLE("getProxy", this.name);
+    }
+
 
     /**
      * To add an entry
@@ -220,7 +231,7 @@ export default class InMemoryDbIndex implements IDbIndex
 
     // =====
 
-    search(pRequest: MerlinSearchRequest, pResult: IDbIndex): IDbIndex {
-        return  this.merlinBackend.search(pRequest,pResult);
+    search(pRequest: MerlinSearchRequest, pResult: IDbIndex): Promise<IDbIndex> {
+        return  Promise.resolve(this.merlinBackend.search(pRequest,pResult));
     }
 }

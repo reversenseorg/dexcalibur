@@ -51,6 +51,10 @@ import {Nullable} from "./core/IStringIndex.js";
 import {EngineNodeManager, MasterNodeOptions, NodeState} from "./core/EngineNodeManager.js";
 import {ScanScheduler} from "./audit/common/ScanScheduler.js";
 import {AppContextType, IAppContext} from "@dexcalibur/dexcalibur-orm"
+import {EngineDatabase} from "./database/EngineDatabase.js";
+import {EngineNodeException} from "./errors/EngineNodeException.js";
+import TargetApp from "./common/TargetApp.js";
+import Platform from "./Platform.js";
 
 /*
 const _fixPath_ = require("fix-path");
@@ -386,6 +390,7 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
 
     scanScheduler:ScanScheduler;
 
+    db:Nullable<EngineDatabase> = null;
     /**
      * To instanciate DexcaliburEngine.
      *
@@ -428,6 +433,30 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
         this.scanScheduler = new ScanScheduler(this);
     }
 
+    /**
+     * To get Engine DB instance.
+     *
+     * @return {EngineDatabase} Instance of engine DB
+     * @method
+     */
+    getEngineDB():EngineDatabase {
+        if(this.db==null){
+            throw EngineNodeException.ENGINE_DB_NOT_READY(this.nodeManager.uuid);
+        }
+
+        return this.db;
+    }
+
+    /**
+     * To set engine mode :
+     *  - standalone mode : scan runs in the same process than web server
+     *  - master mode : only the webserver and some cmp are running. It spawns slave nodes and distributes scans.
+     *  - slave mode : runs scans and are connected to devices. It reports to master.
+     *
+     *
+     * @param {DexcaliburEngineMode} pType One os upported mode
+     * @method
+     */
     setEngineMode(pType:DexcaliburEngineMode):void {
         if([
             DexcaliburEngineMode.STANDALONE,
@@ -683,6 +712,10 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
             console.log(this.userSvc);
 
             this.registry = ss.getRegistry();
+
+            this.db = new EngineDatabase(this, ss.getDatabaseSettings());
+            await this.db.connect();
+
             Logger.info("[ENGINE] server settings init : Done");
         }catch(err){
             Logger.error("[ENGINE] server settings init : "+err.message+"\n"+err.stack);
@@ -1119,7 +1152,7 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
 
 
             wf.pushStatus(new StatusMessage(7, "Loading project data"));
-            project = DexcaliburProject.load(this, pUID, pUserAccount);
+            project = DexcaliburProject.load(this, pUID, pUserAccount, null);
 
 
             // init
@@ -1127,6 +1160,8 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
 //            project = new DexcaliburProject( this, pUID);
 
             DexcaliburEngine.printBanner();
+
+            console.log("ENGINE > before project open",project);
 
             wf.stepUp(0.1);
             success = await project.open();
@@ -1160,14 +1195,20 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
      * @async
      * @method
      */
-    async newProject( pUID:string, pAppPath:string, pDevice:any=null, pUserAccount:UserAccount = null):Promise<DexcaliburProject>{
+    async newProject( pUID:string, pAppPath:string, pFileType:string,
+                      pDevice:any=null, pUserAccount:UserAccount = null,
+                      pPlatform:Nullable<Platform> = null):Promise<DexcaliburProject>{
 
         let project:DexcaliburProject = null;
+        /**
+         * @deprecated
+         */
         let apkFile:ApkPackage = null;
+        let appFile:Nullable<TargetApp> = null;
 
         const wf:Workflow = this.getWorkflow( pUID);
         if(wf===null){
-            throw new Error("Project is not associated to a workflow.");
+            throw EngineNodeException.PROJECT_HAS_NOT_WORKFLOW(pUID);
         }
 
         wf.pushStatus(new StatusMessage( 2, "Scanning connected devices"));
@@ -1201,17 +1242,25 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
             project.setDevice(pDevice);
         }
 
+        if(pPlatform!=null){
+            project.synchronizePlatform(pPlatform.getUID());
+        }
+
         // open APK, analyze manifest
 
         wf.pushStatus(new StatusMessage( 8, "Analyze App file"));
         wf.stepUp(10);
 
+
         // set targeted binary file, optionnaly parse it according to device type
-        apkFile = await project.useAPK(pAppPath);
+        appFile = await project.useApp(pAppPath, { type:pFileType });
+
+        //apkFile = await project.useAPK(pAppPath);
+
         // useApp
 
         // create project.json file
-        if(apkFile != null){
+        if(apkFile != null || appFile!=null){
             project.save();
 
             this.active[pUID] = project;

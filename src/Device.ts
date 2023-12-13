@@ -8,7 +8,7 @@ import Platform from './Platform.js';
 import PlatformManager from './PlatformManager.js';
 import DexcaliburWorkspace from './DexcaliburWorkspace.js';
 import Utils from "./Utils.js";
-import {BridgeInstallOptions, BridgeSuperFactory, DeviceProfilingOptions, IBridge} from "./Bridge.js";
+import {BridgeInstallOptions, BridgeSuperFactory, DeviceProfilingOptions, IBridge, IBridgeFactory} from "./Bridge.js";
 import ModelSyscall from "./ModelSyscall.js";
 import AppPackage from "./AppPackage.js";
 import {DeviceManagerException} from "./errors/DeviceManagerException.js";
@@ -17,6 +17,19 @@ import ModelSyscallFactory from "./ModelSyscallFactory.js";
 import {Architecture} from "./Architecture.js";
 import DeviceProfileFactory from './device/DeviceProfileFactory.js';
 import {CoreDebug} from "./core/CoreDebug.js";
+import {
+    NodeType,
+    TagUUID,
+    INode,
+    NodePropertyState,
+    NodeProperty,
+    DbDataType,
+    DbKeyType,
+    SerializeOptions
+} from "@dexcalibur/dexcalibur-orm";
+
+import {NodeInternalType} from "./NodeInternalType.js";
+import DeviceManager from "./DeviceManager.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -85,8 +98,88 @@ export interface DeviceOptions {
  * @class
  * @author Georges-B MICHEL
  */
-export class Device
+export class Device implements INode
 {
+    static TYPE:NodeType = new NodeType(
+        'device',
+        NodeInternalType.DEVICE,
+        [
+            (new NodeProperty("uid")).type(DbDataType.STRING).key(DbKeyType.PRIMARY),
+            (new NodeProperty("id")).type(DbDataType.STRING),
+            (new NodeProperty("type")).type(DbDataType.STRING).def(OperatingSystem.NONE),
+            (new NodeProperty("model")).type(DbDataType.STRING).def(""),
+            (new NodeProperty("product")).type(DbDataType.STRING).def(""),
+            (new NodeProperty("platform")).type(DbDataType.BLOB).def(null),
+            (new NodeProperty("profile")).type(DbDataType.BLOB).def(null),
+            (new NodeProperty("transportId")).type(DbDataType.STRING).def(null),
+            (new NodeProperty("usbQualifier")).type(DbDataType.STRING).def(null),
+            (new NodeProperty("enrolled")).type(DbDataType.BOOLEAN).def(false),
+            (new NodeProperty("frida")).type(DbDataType.BLOB),
+            (new NodeProperty("syscalls")).type(DbDataType.BLOB)
+                .sleep( (x:NodePropertyState)=>{
+                    const syscalls:any[] = [];
+                    x.p.map( (sc:ModelSyscall) => {
+                        syscalls.push(sc.toJsonObject());
+                    });
+                    return syscalls;
+                })
+                .wakeUp( (x:NodePropertyState)=>{
+                    const apps:AppPackage[] = [];
+                    x.p.map( app => {
+                        apps.push(new AppPackage(app));
+                    });
+                    return apps;
+                }),
+            (new NodeProperty("enrolled")).type(DbDataType.BOOLEAN).def(false),
+            (new NodeProperty("os")).type(DbDataType.STRING).def(OperatingSystem.NONE),
+            (new NodeProperty("arch")).type(DbDataType.STRING).def(Architecture.AARCH64),
+            (new NodeProperty("apps")).type(DbDataType.BLOB)
+                .sleep( (x:NodePropertyState)=>{
+                    const apps:any[] = [];
+                    x.p.map( app => {
+                        apps.push(app.toJsonObject());
+                    });
+                    return apps;
+                })
+                .wakeUp( (x:NodePropertyState)=>{
+                    const apps:AppPackage[] = [];
+                    x.p.map( app => {
+                        apps.push(new AppPackage(app));
+                    });
+                    return apps;
+                }),
+            (new NodeProperty("bridges"))
+                .type(DbDataType.BLOB)
+                .sleep( (x:NodePropertyState)=>{
+                    const bridges:any = {};
+                    for(let k in x.p){
+                        bridges[k] = x.p[k].toJsonObject();
+                    }
+                    return bridges;
+                })
+                .wakeUp( (x:NodePropertyState)=>{
+                    const bridges:any = {};
+                    let fact:IBridgeFactory;
+                    for(let k in x.p){
+                        fact = DeviceManager.getInstance().getBridgeFactory(x.p[k].name);
+                        if(fact!=null){
+                            bridges[k] = fact.fromJsonObject(x.p[k]);
+                        }
+                    }
+                    return bridges;
+                }),
+
+            // volatile states
+            (new NodeProperty("authorized")).volatile().type(DbDataType.BOOLEAN).def(false),
+            (new NodeProperty("connected")).volatile().type(DbDataType.BOOLEAN).def(false),
+            (new NodeProperty("bridge")).volatile().type(DbDataType.STRING).def(null),
+            (new NodeProperty("selected")).volatile().type(DbDataType.STRING).def(null),
+            (new NodeProperty("isEmulated")).volatile().type(DbDataType.BOOLEAN).def(false),
+            (new NodeProperty("offline")).volatile().type(DbDataType.BOOLEAN).def(true)
+        ]
+    );
+    __:NodeInternalType = NodeInternalType.DEVICE;
+
     /**
      * @field
      */
@@ -237,7 +330,7 @@ export class Device
 
     arch:Architecture;
 
-
+    tags:TagUUID[] = [];
 
     /**
      * 
@@ -247,6 +340,7 @@ export class Device
     constructor(pConfig:DeviceOptions={}){
         for(const i in pConfig) this[i] = pConfig[i];
     }
+
 
     /**
      * To add a bridge to the device
@@ -890,7 +984,10 @@ export class Device
      * @returns {JsonObject} JSON-serialized object
      * @method 
      */
-    toJsonObject( pOverride:any = {}, pExcludeList:any={}){
+    toJsonObject( pOptions:SerializeOptions){
+        const pOverride = (pOptions.override!=null? pOptions.override : {});
+        const pExcludeList = (pOptions.exclude!=null ? pOptions.exclude : {});
+
         const json:any = new Object();
         for(const i in this){
             if(pExcludeList[i] === false) continue;
@@ -910,12 +1007,12 @@ export class Device
                     json.bridges = {};
                         // json.bridgeData = this.bridge.toJsonObject();
                     for(const k in this.bridges){
-                        json.bridges[k] = this.bridges[k].toJsonObject( pExcludeList.bridge);     
+                        json.bridges[k] = this.bridges[k].toJsonObject( { exclude:pExcludeList.bridge });
                     }
                     break;
 
                 case 'profile':
-                    json[i] = ((this[i] instanceof DeviceProfile)? this.profile.toJsonObject( pExcludeList.profile) : null);
+                    json[i] = ((this[i] instanceof DeviceProfile)? this.profile.toJsonObject( { exclude:pExcludeList.profile }) : null);
                     break;
 
                 case 'platform':

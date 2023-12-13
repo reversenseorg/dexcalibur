@@ -2,16 +2,14 @@ import {MerlinSearchAPI, SearchOptions} from "./MerlinSearchAPI.js";
 import {FinderResult} from "./FinderResult.js";
 import {Finder} from "./Finder.js";
 import {SearchRequestCondition, ValidateOptions} from "./SearchRequestCondition.js";
-import {NodeType} from "../persist/orm/NodeType.js";
-import {IDbCollection, IDbIndex} from "../persist/orm/DbAbstraction.js";
 import Util from "../Utils.js";
-import {NodeProperty} from "../persist/orm/NodeProperty.js";
 import {OperatingSystem} from "../OperatingSystem.js";
 import {BusSubscriber} from "../Bus.js";
 import DexcaliburProject from "../DexcaliburProject.js";
 import {NodeInternalType, NodeInternalTypeName} from "../NodeInternalType.js";
 import {CoreDebug} from "../core/CoreDebug.js";
 import {MerlinPrimitive, MerlinType} from "./MerlinPrimitive.js";
+import {NodeType, NodeProperty, IDbCollection, IDbIndex} from "@dexcalibur/dexcalibur-orm";
 
 
 export enum OperationType {

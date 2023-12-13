@@ -6,10 +6,9 @@ import NodeCompare from "./NodeCompare.js";
 import {Savable, STUB_TYPE} from "./ModelSavable.js";
 import * as Log from "./Logger.js";
 import {ModelLocation} from "./ModelLocation.js";
-import {NodeType} from "./persist/orm/NodeType.js";
+import {NodeType, DataSourceHelper, SerializeOptions} from "@dexcalibur/dexcalibur-orm";
 import {NodeInternalType} from "./NodeInternalType.js";
 import {IPersistent} from "./persist/orm/IPersistent.js";
-import {DataSourceHelper} from "./DataSourceHelper.js";
 import {CoreDebug} from "./core/CoreDebug.js";
 
 
@@ -19,7 +18,7 @@ let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 export default  class ModelField extends Savable implements IPersistent
 {
 
-    static TYPE:NodeType = (new NodeType( "field", NodeInternalType.FIELD, [])).dataSource(DataSourceHelper.MEM, "field");
+    static TYPE:NodeType = (new NodeType( "field", NodeInternalType.FIELD, [])).dataSource("MEM", "field");
 
     __:NodeInternalType = NodeInternalType.FIELD;
 
@@ -225,7 +224,7 @@ export default  class ModelField extends Savable implements IPersistent
         return this.enclosingClass;
     }
 
-    toJsonObject(fields:any=null,exclude:any=null):any{
+    toJsonObject(pOptions:SerializeOptions):any{
         let obj:any = new Object();
         /*if(fields.length>0){
             for(let i in fields){
@@ -238,7 +237,8 @@ export default  class ModelField extends Savable implements IPersistent
         }else{*/
         for(let i in this){
 
-            if((fields instanceof Array) && fields.indexOf(i)==-1) continue;
+            if(pOptions.exclude!=null  && pOptions.exclude[i]===true) continue;
+            if(pOptions.include!=null  && pOptions.include.indexOf(i)==-1) continue;
             //if((exclude instanceof Array) && exclude.indexOf(i)>-1) continue;
 
             switch(i){

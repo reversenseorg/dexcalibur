@@ -1,7 +1,7 @@
 import {BookmarkType} from "./BookmarkType.js";
 import {Bookmark} from "./Bookmark.js";
 import DexcaliburProject from "../DexcaliburProject.js";
-import {IDatabase} from "../persist/orm/DbAbstraction.js";
+import {IDatabase} from "@dexcalibur/dexcalibur-orm";
 
 
 interface BookmarkMap {

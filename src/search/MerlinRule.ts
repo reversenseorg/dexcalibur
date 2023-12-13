@@ -4,7 +4,7 @@ import {MerlinSearchRequest, Operation, OperationType, TaintOperationArgs} from 
 import {OperatingSystem} from "../OperatingSystem.js";
 import {FinderResult} from "./FinderResult.js";
 import {BusSubscriber} from "../Bus.js";
-import {NodeType} from "../persist/orm/NodeType.js";
+import {NodeType} from "@dexcalibur/dexcalibur-orm";
 import {CoreDebug} from "../core/CoreDebug.js";
 import {Nullable} from "../core/IStringIndex.js";
 import {MerlinPrimitive, MerlinType} from "./MerlinPrimitive.js";

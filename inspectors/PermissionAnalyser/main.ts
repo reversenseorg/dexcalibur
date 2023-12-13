@@ -1047,7 +1047,8 @@ var PermissionAnalyzer:InspectorFactory = new InspectorFactory({
     hookSet: {
         id: "PermissionAnalyzer",
         name: "Permission analyzer",
-        description: "[Internal] Built-in android permission analyzer"
+        description: "[Internal] Built-in android permission analyzer",
+        strategies:[]
     },
 
     eventListeners: {

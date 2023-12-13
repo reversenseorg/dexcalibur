@@ -1,10 +1,6 @@
 import {Savable, STUB_TYPE} from "./ModelSavable.js";
 import {NodeInternalType} from "./NodeInternalType.js";
-import {NodeType} from "./persist/orm/NodeType.js";
-import {DataSourceHelper} from "./DataSourceHelper.js";
-import {INode} from "./INode.js";
-import {NodeProperty, NodePropertyState} from "./persist/orm/NodeProperty.js";
-import {DbDataType, DbKeyType, DbSerialize} from "./persist/orm/DbAbstraction.js";
+import {NodeType, DataSourceHelper, NodeProperty, DbDataType, DbKeyType, INode} from "@dexcalibur/dexcalibur-orm";
 import {createHash} from "crypto";
 import Util from "./Utils.js";
 import {CoreDebug} from "./core/CoreDebug.js";
@@ -20,7 +16,7 @@ export default class ModelStringValue extends Savable implements INode
         (new NodeProperty("instr")).volatile().type(DbDataType.STRING).def(null),
         (new NodeProperty("value")).volatile().type(DbDataType.STRING).def(null),
         (new NodeProperty("instance")).volatile().type(DbDataType.STRING).def([])
-    ])).dataSource(DataSourceHelper.MEM, "strings");
+    ])).dataSource("MEM", "strings");
 
     __:NodeInternalType = NodeInternalType.STRING;
 

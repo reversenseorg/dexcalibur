@@ -217,6 +217,10 @@ export namespace Settings {
             return this.space;
         }
 
+        getDatabaseSettings():DatabaseSettings {
+            return this.db;
+        }
+
         getAuthenticationSettings():AuthenticationSettings {
             return this.auth;
         }
@@ -291,6 +295,7 @@ export namespace Settings {
                 registry: (this.registry!=null)? this.registry.url : null,
                 registryAPI: (this.registry!=null)? this.registry.api : null,
                 auth: this.auth!=null ? this.auth.toObject(pZone) : null,
+                db: this.db!=null ? this.db.toObject(pZone) : null,
                 heapSize: this.heapSize,
                 defaultArch: this.defaultArch
             };
@@ -366,33 +371,62 @@ export namespace Settings {
         sanitize(pName: string, pValue: any): IncomingValue {
             // todo
             switch(pName){
-                case "conn":
+                case "host":
+                    // check ipv4 ou ipv6
                     if(typeof pValue==="string"){
-
-                        // todo
                         return new SanitizedValue(pName, pValue);
-                    }else{
-                        return new UnsafeValue(pName, pValue);
+                    }
+                    break;
+                case "conn":
+                    // check <>:<>:<>:<>[:]
+                    if(typeof pValue==="string"){
+                        return new SanitizedValue(pName, pValue);
+                    }
+                    break;
+                case "port":
+                    if(typeof pValue==="number"){
+                        if(pValue>1 && pValue < 65535){
+                            return new SanitizedValue(pName, pValue);
+                        }
                     }
                     break;
                 default:
                     throw GlobalSettingsException.SETTING_UNKNOW();
             }
+
+            return new UnsafeValue(pName, pValue);
         }
 
         update( pValue:IncomingValue):void {
+            console.log(pValue);
             switch (pValue.getName()) {
                 case "conn":
                     this._conn = pValue.getValue();
+                    break;
+                case "host":
+                    this._host = pValue.getValue();
+                    break;
+                case "port":
+                    this._port = pValue.getValue();
                     break;
                 default:
                     throw GlobalSettingsException.SETTING_UNKNOW();
             }
         }
 
+        /**
+         * To expert setting according to security-level of target zone
+         * @param pZone
+         */
         toObject(pZone:SecurityZone = SecurityZone.PUBLIC): any {
-            return {
-                conn: this._conn,
+            if(pZone==SecurityZone.PRIVATE){
+                return {
+                    conn: this._conn,
+                    host: this._host,
+                    port: this._port
+                };
+            }else{
+                return {};
             }
         }
 
@@ -874,6 +908,11 @@ export namespace Settings {
                     env: {
                         DXC_LOG_PATH: _path_.join(home, 'server.logs')
                     },
+                    db: {
+                      host: "127.0.0.1",
+                      conn: "master:master123:admin:DEFAULT:",
+                      port: 27017
+                    },
                     log: true,
                     options: {
                         port: 8000,
@@ -977,7 +1016,7 @@ export namespace Settings {
             _fs_.writeFileSync(
                 pDestPath != null ? pDestPath : this._path,
                 JSON.stringify(
-                    this.toObject()
+                    this.toObject(SecurityZone.PRIVATE)
                 ));
         }
 

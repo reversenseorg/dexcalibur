@@ -21,19 +21,17 @@ import ModelStringValue from "./ModelStringValue.js";
 import {ModelBasicType, ModelObjectType} from "./ModelType.js";
 import ModelBasicBlock from "./ModelBasicBlock.js";
 import ModelInstruction from "./ModelInstruction.js";
-//import TagCategory from "./ModelTagCategory.js";
 import ModelDataBlock from "./ModelDataBlock.js";
-//import {Method} from "got";
 import ModelFile from "./ModelFile.js";
 import ModelSyscall from "./ModelSyscall.js";
 import NativeAnalyzer from "./NativeAnalyzer.js";
 import DataScope from "./DataScope.js";
 import {ModelLocation} from "./ModelLocation.js";
 import {Workflow} from "./Workflow.js";
-import {IDatabase, IDbIndex, IDbSet} from "./persist/orm/DbAbstraction.js";
 import {NodeInternalType} from "./NodeInternalType.js";
 import {AnalyzerState} from "./AnalyzerState.js";
-import {Tag} from "./tags/Tag.js";
+
+import {INode, IDatabase, IDbIndex, IDbSet, Tag} from "@dexcalibur/dexcalibur-orm";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -385,7 +383,7 @@ export default class Analyzer
      * @param pUID {string}
      * @method
      */
-    searchNode( pNodeType:NodeInternalType, pUID:string):any {
+    searchNode( pNodeType:NodeInternalType, pUID:string):INode {
         switch(pNodeType){
             case NodeInternalType.FILE:
                 return this.finder.byID().file(pUID).get(0);

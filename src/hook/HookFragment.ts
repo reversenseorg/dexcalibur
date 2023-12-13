@@ -1,5 +1,5 @@
 import HookTemplateFragment from "./HookTemplateFragment.js";
-import {NodeType} from "../persist/orm/NodeType.js";
+import {NodeType} from "@dexcalibur/dexcalibur-orm";
 import {NodeInternalType} from "../NodeInternalType.js";
 import HookStrategy from "./HookStrategy.js";
 

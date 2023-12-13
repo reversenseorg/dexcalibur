@@ -1,5 +1,5 @@
 import HookStrategy from "./HookStrategy.js";
-import {NodeType} from "../persist/orm/NodeType.js";
+import {NodeType} from "@dexcalibur/dexcalibur-orm";
 import {NodeInternalType} from "../NodeInternalType.js";
 import {CoreDebug} from "../core/CoreDebug.js";
 import {Nullable} from "../core/IStringIndex.js";

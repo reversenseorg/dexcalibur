@@ -111,7 +111,8 @@ export default new InspectorFactory({
     hookSet: {
         id: "ApplicationTopography",
         name: "Application Topography",
-        description: "[INTERNAL] Manifest parser and application explorer"
+        description: "[INTERNAL] Manifest parser and application explorer",
+        strategies:[]
     },
 
     eventListeners: {

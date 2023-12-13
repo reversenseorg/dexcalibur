@@ -1,12 +1,8 @@
-import {NodeType} from "../../persist/orm/NodeType.js";
+
 import {NodeInternalType} from "../../NodeInternalType.js";
-import {NodeProperty, NodePropertyState} from "../../persist/orm/NodeProperty.js";
-import {DbDataType, DbKeyType} from "../../persist/orm/DbAbstraction.js";
-import {UserAccount} from "../UserAccount.js";
 import {UserSession} from "./UserSession.js";
-import DexcaliburEngine from "../../DexcaliburEngine.js";
-import DexcaliburProject from "../../DexcaliburProject.js";
 import {IPersistent} from "../../persist/orm/IPersistent.js";
+import {NodeType} from "@dexcalibur/dexcalibur-orm";
 
 
 export class SessionData implements IPersistent{
@@ -14,8 +10,7 @@ export class SessionData implements IPersistent{
     static TYPE:NodeType = new NodeType(
         'session_data',
         NodeInternalType.USER_SESSION_DATA,
-        [
-        ]
+        [ ]
     );
     __:NodeInternalType = NodeInternalType.USER_SESSION_DATA;
 

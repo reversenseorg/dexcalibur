@@ -8,6 +8,7 @@ import {AndroidAttributeSet} from "./AndroidAttribute.js";
 import {NodeInternalType} from "../NodeInternalType.js";
 import {CryptoUtils} from "../CryptoUtils.js";
 import {CoreDebug} from "../core/CoreDebug.js";
+import {SerializeOptions} from "@dexcalibur/dexcalibur-orm";
 
 
 const ANDROID_PREFIX = "android:";
@@ -111,7 +112,7 @@ export default class AndroidComponent extends AndroidIntentable
      * @returns {String} The activity data seriualized
      * @function
      */
-    toJsonObject():any{
+    toJsonObject(pOptions:SerializeOptions = {}):any{
         let o:any = new Object();
 
         o.__ = this.__;

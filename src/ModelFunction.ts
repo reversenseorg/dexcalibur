@@ -11,15 +11,20 @@ export interface ModelFunctionList {
 import * as Log from './Logger.js';
 import {ModelVariable} from "./ModelVariable.js";
 import {ModelNativeRef} from "./ModelNativeRef.js";
-import {NodeType} from "./persist/orm/NodeType.js";
-import {NodeProperty, NodePropertyState} from "./persist/orm/NodeProperty.js";
-import {DbDataType, DbKeyType, DbSerialize} from "./persist/orm/DbAbstraction.js";
+import {
+    NodeType,
+    DataSourceHelper,
+    NodePropertyState,
+    NodeProperty,
+    DbDataType,
+    DbKeyType,
+    INode, DbSerialize, SerializeOptions, IStringIndex, Tag
+} from "@dexcalibur/dexcalibur-orm";
+
 import {IPersistent} from "./persist/orm/IPersistent.js";
 import {NativeAnalyzerCommands} from "./analyzer/NativeAnalyzerCommands.js";
-import {INode} from "./INode.js";
-import {DataSourceHelper} from "./DataSourceHelper.js";
 import {AbstractHook} from "./hook/AbstractHook.js";
-import {Tag} from "./tags/Tag.js";
+
 import {CoreDebug} from "./core/CoreDebug.js";
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -125,7 +130,7 @@ export class ModelFunction implements INode, IPersistent {
 
 
             (new NodeProperty("ctype")).type(DbDataType.STRING)
-        ])).dataSource(DataSourceHelper.MEM, "func");
+        ])).dataSource("MEM", "func");
 
     __:NodeInternalType = NodeInternalType.FUNC;
 
@@ -335,8 +340,9 @@ export class ModelFunction implements INode, IPersistent {
     }
 
     toJsonObjectWithCmd(pCommand:string[],fields:string[]=[],exclude:string[]=[]){
-        let obj:any = this.toJsonObject(fields,exclude);
-        //let filt:string[] = [];
+        const excl:IStringIndex<boolean> = {};
+        exclude.map(x => excl[x]=true );
+        let obj:any = this.toJsonObject({ include:fields, exclude:excl });
 
         obj.__ = this.__;
         for(let i=0; i<pCommand.length; i++){
@@ -359,7 +365,9 @@ export class ModelFunction implements INode, IPersistent {
         return obj;
     }
 
-    toJsonObject(fields:string[]=[],exclude:string[]=[]){
+    toJsonObject(pOptions?:SerializeOptions){
+        let fields = pOptions.include;
+        let exclude = pOptions.exclude;
         let obj:any = {};
         if(fields != null && fields.length>0){
             for(let i:number=0; i<fields.length; i++){
@@ -417,7 +425,7 @@ export class ModelFunction implements INode, IPersistent {
                     case "instr":
                         if(this.instr!=null && Array.isArray(this.instr)){ // @ts-ignore
                             obj.instr = [];
-                            this.instr.map( vInstr => { obj.instr.push(vInstr.toJsonObject(['func'])) });
+                            this.instr.map( vInstr => { obj.instr.push(vInstr.toJsonObject({ exclude:{func:true}})) });
                         }
                         break;
                     case 'hooks':

@@ -9,12 +9,77 @@ import HookStrategy from "./hook/HookStrategy.js";
 import {HookManager} from "./hook/HookManager.js";
 import {HookDbApi} from "./hook/HookDbApi.js";
 import {InspectorFactoryException} from "./errors/InspectorFactoryException.js";
-import {TagCategory} from "./tags/TagCategory.js";
-import {Tag} from "./tags/Tag.js";
+
+
+import {
+    DbDataType,
+    DbKeyType,
+    INode,
+    NodeProperty, NodePropertyState,
+    NodeType,
+    SerializeOptions, Tag, TagCategory,
+    TagUUID
+} from "@dexcalibur/dexcalibur-orm";
+import {NodeInternalType} from "./NodeInternalType.js";
+import {IStringIndex, Nullable} from "./core/IStringIndex.js";
+import BusEvent from "./BusEvent.js";
+import {CustomCode, CustomCodeOptions} from "./actionnable/CustomCode.js";
 
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
+export interface EventListeners {
+    [p:string]: ((vContext:DexcaliburProject, vEvent:BusEvent<any>)=>void)
+}
+
+export interface EventListenersSource {
+    [p:string]: CustomCodeOptions
+}
+
+export interface EventListenersCode {
+    [p:string]: CustomCode
+}
+
+
+export interface TagDefinitions {
+    [catName:string]: string[]
+}
+
+export interface  HookStrategyOptions {
+
+}
+
+export interface HookSetOptions {
+    id?:Nullable<string>;
+    name?:Nullable<string>;
+    description?:Nullable<string>;
+    require?:string[];
+    hookShare?:IStringIndex<any>;
+    strategies: HookStrategyOptions[]
+}
+
+
+export interface InspectorDbmsOptions {
+    dbms:string;
+    type:string;
+    name: string;
+}
+
+export interface InspectorFactoryOptions {
+    id?:string;
+    name?:string;
+    description?:Nullable<string>;
+    webapi?:Nullable<DelegateWebApi>;
+    useGUI?:Nullable<boolean>;
+    startStep: INSPECTOR_TYPE;
+    db?:Nullable<InspectorDbmsOptions>;
+    tags?:Nullable<TagDefinitions>;
+    color?:Nullable<string>;
+    eventListeners?:EventListeners;
+    eventListenerSources?:EventListenersSource;
+    hookSet?:HookSetOptions;
+    require?:string[];
+}
 /**
  * There is one InspectorFactory for each type prototype of Inspector.
  *
@@ -23,15 +88,82 @@ const Logger:Log.Logger = Log.newLogger() as Log.Logger;
  *
  * @class
  */
-export default class InspectorFactory
+export default class InspectorFactory implements INode
 {
-    _config:any = null;
+    static TYPE:NodeType = new NodeType('inspector_plugin', NodeInternalType.INSPECTOR_PLUGIN, [
+        (new NodeProperty("id")).type(DbDataType.STRING).key(DbKeyType.PRIMARY),
+        (new NodeProperty("name")).type(DbDataType.STRING).key(DbKeyType.PRIMARY),
+        (new NodeProperty("description")).type(DbDataType.STRING).def("[]"),
+        (new NodeProperty("webapi")).volatile().type(DbDataType.BLOB),
+        (new NodeProperty("useGUI")).volatile().type(DbDataType.BOOLEAN),
+        (new NodeProperty("startStep")).type(DbDataType.STRING).def(INSPECTOR_TYPE.ON_DEMAND),
+        (new NodeProperty("db")).type(DbDataType.STRING).def(null),
+        (new NodeProperty("tags")).type(DbDataType.STRING).def([]),
+        (new NodeProperty("color")).type(DbDataType.STRING).def(null),
+        (new NodeProperty("hookSet")).type(DbDataType.STRING)
+            .sleep( (x:NodePropertyState)=>{
+                return x.p.toJsonObject();
+            })
+            .wakeUp( (x:NodePropertyState)=>{
+                return x.p;
+            }),
+        (new NodeProperty("eventListeners")).volatile().type(DbDataType.STRING).def({}),
+        (new NodeProperty("eventListenersCode")).type(DbDataType.STRING).def({})
+            .sleep( (x:NodePropertyState)=>{
+                const codes:any = {};
+                for(let i in x.p){
+                    codes[i] = x.p[i].toJsonObject();
+                }
+                return codes;
+            })
+            .wakeUp( (x:NodePropertyState)=>{
+                const codes:EventListenersCode = {};
+                for(let i in x.p){
+                    codes[i] = (new CustomCode(x.p[i]));
+                }
+                return codes;
+            }),
+        (new NodeProperty("require")).type(DbDataType.STRING).def([]),
+        /*
+        id?:string;
+        name?:string;
+        description?:Nullable<string>;
+        webapi?:Nullable<DelegateWebApi>;
+        useGUI?:Nullable<boolean>;
+        startStep: INSPECTOR_TYPE;
+        db?:Nullable<InspectorDbmsOptions>;
+        tags?:Nullable<TagDefinitions>;
+        color?:Nullable<string>;
+        eventListeners?:EventListeners;
+        hookSet?:HookSetOptions;
+        require?:string[];
+         */
+    ]);
+
+    __ = NodeInternalType.INSPECTOR_PLUGIN;
+    _config:Nullable<InspectorFactoryOptions> = null;
+
+
+
+
+    id:string;
+    name:string = "";
+    description:string = "";
+    color:any = null;
+    startStep:INSPECTOR_TYPE = null;
+    hookSet:any = {};
+    webapi: Nullable<DelegateWebApi> = null;
+    db:Nullable<any> = null;
+    eventListeners:EventListeners = {};
+    eventListenersCode:EventListenersCode = {};
+
 
     /**
      * The step when the inspector must be deployed
      */
     step:INSPECTOR_TYPE = null;
-    webapi: DelegateWebApi = null;
+
+    tags:TagUUID[] = [];
 
     /**
      * Flag. True if webapi is ready
@@ -39,11 +171,15 @@ export default class InspectorFactory
      */
     private _r:boolean  = false;
 
-    constructor( pModel:any ){
+    constructor( pModel:InspectorFactoryOptions ){
         this._config = pModel;
         this.step = pModel.startStep;
         if(pModel.hasOwnProperty('webapi'))
             this.webapi = pModel.webapi
+    }
+
+    getUID(): string  {
+        return this.id;
     }
 
     hasWebApi():boolean {
@@ -130,7 +266,7 @@ export default class InspectorFactory
 
             hsuid = (this._config.id!=null ? this._config.id : this._config.hookSet.id);
 
-            Logger.raw("IS STRATEGY EXISTS ?? : "+hsuid+"  "+hapi.isHookSetExists(hsuid));
+            Logger.debugRAW("IS STRATEGY EXISTS ?? : "+hsuid+"  "+hapi.isHookSetExists(hsuid));
 
             // the first step is to verify if there is not yet a hook set for this project
             // It happens mainly because the project has been created during a previous run
@@ -144,7 +280,7 @@ export default class InspectorFactory
                     name: (this._config.hookSet.name!=null ? this._config.hookSet.name : this._config.name),
                     description: (this._config.hookSet.description!=null ? this._config.hookSet.description : this._config.description),
                     //require: (this._config.require!=null ? this._config.require : this._config.hookSet.require),
-                    hookshare: (this._config.hookSet.hookshare!=null ? this._config.hookSet.hookshare : null),
+                    share: (this._config.hookSet.hookShare!=null ? this._config.hookSet.hookShare : null),
                     color: this._config.color,
                     builtin: true
                 });
@@ -252,6 +388,21 @@ export default class InspectorFactory
             ins.useGUI();
         }
 
+
+        // If the inspector extend analyzers with own event listener, register it into new Inspector
+        if(this._config.eventListenerSources != null){
+            let elSrc:CustomCode;
+            for(const i in this._config.eventListenerSources){
+                elSrc = new CustomCode(this._config.eventListenerSources[i]);
+                this.eventListenersCode[i] = new CustomCode(elSrc);
+
+                ins.on(i, {
+                    task: elSrc.createFunction(['pCtx','pEvent'])
+                });
+            }
+        }
+
+
         // If the inspector extend analyzers with own event listener, register it into new Inspector
         if(this._config.eventListeners != null){
             for(const i in this._config.eventListeners){
@@ -266,4 +417,8 @@ export default class InspectorFactory
 
         return ins;
     }
+
+    toJsonObject(pOption?: SerializeOptions): any {
+    }
 }
+InspectorFactory.TYPE.builder(InspectorFactory);

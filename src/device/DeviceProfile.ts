@@ -8,6 +8,7 @@ import {DeviceProfilingOptions, IBridge} from "../Bridge.js";
 import GenericMountsProfile from "./profile/GenericMountsProfile.js";
 import * as Log from "../Logger.js";
 import {CoreDebug} from "../core/CoreDebug.js";
+import {SerializeOptions} from "@dexcalibur/dexcalibur-orm";
 
 
 enum TYPE {
@@ -215,11 +216,12 @@ export default class DeviceProfile
     /**
      * @method
      */
-    toJsonObject( pExcludeList:any={}):any{
+    toJsonObject( pOptions:SerializeOptions = {}):any{
+        const exclude = pOptions.exclude!=null ? pOptions.exclude : null;
         const o:any = {};
 
         for(const i in this){
-            if(pExcludeList[i] === true) continue;
+            if(exclude!=null && exclude[i]===true) continue;
             
             if(i == "profiles"){
                 o.profiles = {};

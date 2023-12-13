@@ -1,10 +1,14 @@
 import DexcaliburEngine from "../DexcaliburEngine.js";
 import {Settings} from "../Settings.js";
 import DatabaseSettings = Settings.DatabaseSettings;
-import {MongodbAdapter, MongodbDb} from "@dexcalibur/dexcalibur-orm-mongodb";
+import {MongodbAdapter, MongodbDb, MongodbDbCollection} from "@dexcalibur/dexcalibur-orm-mongodb";
 import {Nullable} from "../core/IStringIndex.js";
 import {MongoCredentialsOptions, AuthMechanism} from "mongodb";
 import * as Log from "../Logger.js";
+import DexcaliburProject from "../DexcaliburProject.js";
+import {UserAccount} from "../user/UserAccount.js";
+import {Device} from "../Device.js";
+import InspectorFactory from "../InspectorFactory.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -22,6 +26,13 @@ export interface EngineDatabaseCredential {
     mechanismProperties: any;
 }
 
+const PROJECT_COL = "projects";
+const DEVICES_COL = "devices";
+const TOOLS_COL = "tools";
+const INSP_COL = "inspectors";
+
+const INTERNAL_DB = "dxcserver";
+const PROJECT_DB_PREFIX = "dxc_";
 /**
  * Represent the server DB where project data are stored or cloned
  *
@@ -29,11 +40,27 @@ export interface EngineDatabaseCredential {
  */
 export class EngineDatabase {
 
+    static DEFAULT_CONN_STR = "master:master123:admin:DEFAULT:";
+    static DEFAULT_HOST = "127.0.0.1";
+    static DEFAULT_PORT = 27017;
+
     private _ctx:DexcaliburEngine;
     private _opts:DatabaseSettings;
     private _connector: MongodbAdapter;
     private _ready = false;
+
     private _db:Nullable<MongodbDb> = null;
+
+    // engine scope
+    private projects:Nullable<MongodbDbCollection>;
+    private inspectors:Nullable<MongodbDbCollection>;
+    private devices:Nullable<MongodbDbCollection>;
+    private tools:Nullable<MongodbDbCollection>;
+
+    // project scope
+    private runtime_events:Nullable<MongodbDbCollection>; // with session
+    private hooks:Nullable<MongodbDbCollection>;
+    private app_files:Nullable<MongodbDbCollection>;
 
     constructor(pContext:DexcaliburEngine, pOptions:DatabaseSettings) {
         this._ctx = pContext;
@@ -44,15 +71,52 @@ export class EngineDatabase {
         }
     }
 
+    /**
+     *
+     * @param pOptions
+     * @private
+     */
     private _init(pOptions:DatabaseSettings):void {
         let creds:Nullable<MongoCredentialsOptions> = null;
+        let host:Nullable<string>;
+        let port = -1;
+        let update = false;
 
-        if(pOptions.hasConnectionString()!=null){
+        if(pOptions.getConnectionString()!=null){
             creds = this.parseCredentialString(pOptions.getConnectionString());
+        }else{
+            creds = this.parseCredentialString(EngineDatabase.DEFAULT_CONN_STR);
+            update = true;
+        }
+
+        if(this._opts.getHost()){
+            host = this._opts.getHost();
+        }else{
+            host = EngineDatabase.DEFAULT_HOST;
+            update = true;
+        }
+
+        if(this._opts.getPort()){
+            port = this._opts.getPort();
+            if(port == -1){
+                port = EngineDatabase.DEFAULT_PORT;
+                update = true;
+            }
+        }else{
+            port = EngineDatabase.DEFAULT_PORT;
+            update = true;
+        }
+
+        if(update){
+
+            pOptions.update(pOptions.sanitize("conn", EngineDatabase.DEFAULT_CONN_STR));
+            pOptions.update(pOptions.sanitize("host", host));
+            pOptions.update(pOptions.sanitize("port", port));
+            pOptions.save()
         }
 
         this._connector = new MongodbAdapter(this._ctx, {
-            clusterUrl: this._opts.getHost(),
+            clusterUrl: this._opts.getHost() ,
             port:  this._opts.getPort(),
             credentials: creds
         });
@@ -80,8 +144,18 @@ export class EngineDatabase {
 
     async connect():Promise<void> {
         this._db = await this._connector.asyncConnect(null,"dxcserver");
+        const existings:string[] = [];
+        const colls = await this._db.getDbCollections();
+        colls.map(x => {
+            existings.push(x.collectionName)
+        })
 
-        Logger.debug("Connection successful");
+        if(existings.indexOf(PROJECT_COL)==-1){ this._db.createCollectionOf(DexcaliburProject.TYPE, PROJECT_COL); }
+        if(existings.indexOf(DEVICES_COL)==-1){ this._db.createCollectionOf(Device.TYPE, DEVICES_COL); }
+        if(existings.indexOf(INSP_COL)==-1){ this._db.createCollectionOf(InspectorFactory.TYPE, INSP_COL); }
+
+        console.log(this._db);
+        Logger.info("Connection successful");
     }
 
     /**
@@ -100,7 +174,32 @@ export class EngineDatabase {
      *
      * @param pProject
      */
-    getInternalDb(pProject:string):any {
+    getInternalDb():any {
 
+    }
+
+    /**
+     * To list project from db
+     */
+    async listProjects(pUserAccount:UserAccount):Promise<DexcaliburProject[]> {
+        const coll = this._db.getCollection(PROJECT_COL);
+        const projs:any[] = await coll.getAsList();
+        const res:DexcaliburProject[] = [];
+
+        projs.map( x => {
+            res.push( DexcaliburProject.load( this._ctx, x.uid, pUserAccount, x));
+        });
+
+        return res;
+    }
+
+    async createProject(pProject:DexcaliburProject):Promise<any> {
+        const coll = this._db.getCollection(PROJECT_COL);
+        return coll.asyncAddEntry( pProject.getUID(), pProject.toJsonObject());
+    }
+
+    async saveProject(pProject:DexcaliburProject):Promise<boolean> {
+        const coll = this._db.getCollection(PROJECT_COL);
+        return coll.asyncUpdateEntry( pProject);
     }
 }

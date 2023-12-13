@@ -32,7 +32,8 @@ export default new InspectorFactory({
     hookSet: {
         id: "AndroidUI",
         name: "Android UI analyzer",
-        description: "Find, tag and hook UI components"
+        description: "Find, tag and hook UI components",
+        strategies:[]
     },
 
     eventListeners: {

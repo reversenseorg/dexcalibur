@@ -2,7 +2,7 @@ import ModelMethod from "../ModelMethod.js";
 import {AbstractHook} from "./AbstractHook.js";
 import {HookScriptBuilderException} from "../errors/HookScriptBuilderException.js";
 import {NodeInternalType} from "../NodeInternalType.js";
-import {NodeType} from "../persist/orm/NodeType.js";
+import {NodeType} from "@dexcalibur/dexcalibur-orm";
 import {CoreDebug} from "../core/CoreDebug.js";
 import {TargetLanguage} from "./common.js";
 

@@ -1,7 +1,6 @@
-import {DbDataType} from "./persist/orm/DbAbstraction.js";
-import {NodeType} from "./persist/orm/NodeType.js";
+
 import {NodeInternalType} from "./NodeInternalType.js";
-import {NodeProperty} from "./persist/orm/NodeProperty.js";
+import {NodeType,  NodeProperty, DbDataType} from "@dexcalibur/dexcalibur-orm";
 import {CoreDebug} from "./core/CoreDebug.js";
 
 /**

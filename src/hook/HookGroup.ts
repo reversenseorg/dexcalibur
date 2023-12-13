@@ -3,7 +3,7 @@ import DexcaliburProject from "../DexcaliburProject.js";
 import * as Log from '../Logger.js';
 import HookStrategy from "../hook/HookStrategy.js";
 import {AbstractHook} from "../hook/AbstractHook.js";
-import {NodeType} from "../persist/orm/NodeType.js";
+import {NodeType} from "@dexcalibur/dexcalibur-orm";
 import {NodeInternalType} from "../NodeInternalType.js";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;

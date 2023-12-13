@@ -128,6 +128,7 @@ export default class ApkHelper extends External.ExternalHelper
             cmd.args // concat(['-o '+pDestination, pApkPath])
         );*/
 
+        Logger.info("[APK HELPER] APK extractor exec : "+(cmd.file+' '+cmd.args.join(' ')))
         let { stdout, stderr } = await _exec_(
             cmd.file+' '+cmd.args.join(' ')
         );

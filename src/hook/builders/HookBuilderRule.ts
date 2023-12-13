@@ -1,6 +1,6 @@
 import {IPersistent} from "../../persist/orm/IPersistent.js";
-import {NodeType} from "../../persist/orm/NodeType.js";
 import {NodeInternalType} from "../../NodeInternalType.js";
+import {NodeType} from "@dexcalibur/dexcalibur-orm";
 
 
 

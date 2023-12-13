@@ -5,9 +5,9 @@ import {
     SearchOperationArgs,
     TimeOperationArgs, WindowingOperationArgs
 } from "../../src/search/MerlinSearchRequest.js";
-import {IDbIndex} from "../../src/persist/orm/DbAbstraction.js";
 import InMemoryDbCollection from "./InMemoryDbCollection.js";
 import InMemoryDbIndex from "./InMemoryDbIndex.js";
+import {IDbIndex} from "@dexcalibur/dexcalibur-orm";
 
 
 /**

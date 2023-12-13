@@ -4,8 +4,8 @@ import * as _path_ from "path";
 import * as _fs_ from "fs";
 import DexcaliburProject from "../../src/DexcaliburProject.js";
 import { SqliteDb, Index, Collection } from "./SqliteDb.js";
-import {IDatabase, IDatabaseAdapter} from "../../src/persist/orm/DbAbstraction.js";
 import * as Log from "../../src/Logger.js";
+import {IDatabase, IDatabaseAdapter, IDbCollection, IDbIndex} from "@dexcalibur/dexcalibur-orm";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -50,6 +50,10 @@ export default class SqliteConnector implements IDatabaseAdapter
         this.options = pOptions;
     }
 
+    getSubConnector(pName:string):IDatabaseAdapter|null{
+        // not supported
+        return null;
+    }
 
     getType(): string {
         return this.type;
@@ -127,12 +131,12 @@ export default class SqliteConnector implements IDatabaseAdapter
         return true;
     }
 
-    getIndex( pName:string):Index{
+    getIndex( pName:string):IDbIndex{
         return this.db.getIndex(pName);
     }
 
 
-    getCollection( pName:string):Collection{
+    getCollection( pName:string):IDbCollection{
         return this.db.getCollection(pName, null);
     }
 

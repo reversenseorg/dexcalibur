@@ -8,8 +8,8 @@ import {KeyPointManagerException} from "../errors/KeyPointManagerException.js";
 import {NodeInternalType, NodeInternalTypeName} from "../NodeInternalType.js";
 import {KeyPointOptions} from "../hook/KeyPointGenerator.js";
 import DexcaliburProject from "../DexcaliburProject.js";
-import {INode} from "../INode.js";
 import {AbstractHook} from "../hook/AbstractHook.js";
+import {INode} from "@dexcalibur/dexcalibur-orm";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 export const KEYPOINT_WEB_API: DelegateWebApi = new DelegateWebApi();

@@ -9,12 +9,12 @@ import {Savable, STUB_TYPE} from "./ModelSavable.js";
 import {ModelClassReference, ModelFieldReference, ModelMethodReference} from "./ModelReference.js";
 import {ModelLocation} from "./ModelLocation.js";
 import {IPersistent} from "./persist/orm/IPersistent.js";
-import {NodeType} from "./persist/orm/NodeType.js";
 import {NodeInternalType} from "./NodeInternalType.js";
-import {NodeProperty, NodePropertyState} from "./persist/orm/NodeProperty.js";
-import {DbDataType, DbKeyType} from "./persist/orm/DbAbstraction.js";
-import {DataSourceHelper} from "./DataSourceHelper.js";
-import {INode} from "./INode.js";
+import {
+    NodeType,
+    DataSourceHelper,
+    INode, SerializeOptions
+} from "@dexcalibur/dexcalibur-orm";
 import {CoreDebug} from "./core/CoreDebug.js";
 
 
@@ -41,7 +41,7 @@ interface IFieldSet {
  */
 export default class ModelClass extends Savable implements INode, IPersistent
 {
-    static TYPE:NodeType = (new NodeType( "class", NodeInternalType.CLASS, [])).dataSource(DataSourceHelper.MEM, "class");
+    static TYPE:NodeType = (new NodeType( "class", NodeInternalType.CLASS, [])).dataSource("MEM", "class");
 
     __:NodeInternalType = NodeInternalType.CLASS;
 
@@ -394,7 +394,7 @@ export default class ModelClass extends Savable implements INode, IPersistent
     }
 
 
-    toJsonObject():any{
+    toJsonObject(pOptions?:SerializeOptions):any{
         const obj:any = {};
         let m:any = null;
         for(const i in this){
@@ -421,7 +421,9 @@ export default class ModelClass extends Savable implements INode, IPersistent
             else if(i == "methods"){
                 obj.methods = [];
                 for(const k in this.methods){
-                    m = this.methods[k].toJsonObject(["__signature__","__aliasedCallSignature__","__callSignature__","probing","modifiers","alias","name","tags"]);
+                    m = this.methods[k].toJsonObject({
+                        include: ["__signature__","__aliasedCallSignature__","__callSignature__","probing","modifiers","alias","name","tags"]
+                    });
                     if(this.inherit[k] != null) m.__inherit = true;
                     obj.methods.push(m); // call signature
                 }
@@ -429,14 +431,16 @@ export default class ModelClass extends Savable implements INode, IPersistent
             else if(i == "fields"){
                 obj.fields = [];
                 for(const k in this.fields){
-                    m = this.fields[k].toJsonObject(["__signature__","__aliasedSignature__","alias","name","tags","type","modifiers"]);
+                    m = this.fields[k].toJsonObject(
+                        {include:["__signature__","__aliasedSignature__","alias","name","tags","type","modifiers"]}
+                    );
                     if(this.inherit[k] != null) m.__inherit = true;
                     obj.fields.push(m);
                 }
             }
             else if(i == "package"){
                 if(this.package instanceof  ModelPackage)
-                    obj.package = this.package.toJsonObject(["name"]);
+                    obj.package = this.package.toJsonObject({ include:["name"] });
                 else
                     obj.package = {name:this.package};
             }
@@ -449,12 +453,20 @@ export default class ModelClass extends Savable implements INode, IPersistent
                 //obj.extends = (this.extends!=null? { name: this.extends.name, alias:this.extends.alias } : null);
             }
             else if(i == "implements"){
+                if(this.implements!=null){
+                    console.log(this.implements);
+                }
+
                 if(this.implements.length > 0){
                     obj.implements = [];
 
                     for(let x=0; x<this.implements.length; x++){
-                        if( this.implements[x] instanceof  ModelClass)
-                           obj.implements.push( (this.implements[x] as ModelClass).name);
+                        if( typeof this.implements[x] === 'string'){
+                            obj.implements.push(this.implements[x]);
+                        }
+                        else if( this.implements[x] != null){
+                            obj.implements.push( (this.implements[x] as ModelClass).name);
+                        }
                     }
                 }
             }

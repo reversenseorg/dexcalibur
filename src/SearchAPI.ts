@@ -20,11 +20,11 @@ import AndroidService from "./android/AndroidService.js";
 import {AndroidPermission} from "./android/Permissions.js";
 import {CONST} from "./CoreConst.js";
 import {ModelFunction} from "./ModelFunction.js";
-import {IDbCollection, IDbIndex} from "./persist/orm/DbAbstraction.js";
 import DataScope, {DataScopeMap} from "./DataScope.js";
 import {IAnalyzerUnit} from "./analyzer/IAnalyzerUnit.js";
 import {SearchEngineException} from "./errors/SearchEngineException.js";
 import {DataAnalyzer} from "./DataAnalyzer.js";
+import {IDbCollection, IDbIndex} from "@dexcalibur/dexcalibur-orm";
 
 
 

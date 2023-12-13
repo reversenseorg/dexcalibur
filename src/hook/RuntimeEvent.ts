@@ -1,11 +1,9 @@
 import {INode} from "../INode.js";
 import HookMessageV2 from "./HookMessageV2.js";
-import {Tag} from "../tags/Tag.js";
+
 import BusEvent from "../BusEvent.js";
-import {NodeType} from "../persist/orm/NodeType.js";
 import {NodeInternalType} from "../NodeInternalType.js";
-import {NodeProperty, NodePropertyState} from "../persist/orm/NodeProperty.js";
-import {DbDataType, DbKeyType} from "../persist/orm/DbAbstraction.js";
+import {NodeType, NodeProperty, DbDataType, DbKeyType, NodePropertyState, Tag} from "@dexcalibur/dexcalibur-orm";
 import {CoreDebug} from "../core/CoreDebug.js";
 
 export enum RuntimeEventType {

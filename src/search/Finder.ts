@@ -4,10 +4,9 @@ import {SearchPattern} from "./SearchPattern.js";
 
 import * as Log from '../Logger.js';
 import {SearchToken} from "./SearchToken.js";
-import { NodeType } from "../persist/orm/NodeType.js";
 import AnalyzerDatabase from "../AnalyzerDatabase.js";
-import { IDatabase, IDbCollection, IDbIndex } from "../persist/orm/DbAbstraction.js";
 import { NodeInternalType } from "../NodeInternalType.js";
+import {IDatabase, IDbCollection, IDbIndex, NodeType} from "@dexcalibur/dexcalibur-orm";
 
 const Logger: Log.Logger = Log.newLogger() as Log.Logger;
 

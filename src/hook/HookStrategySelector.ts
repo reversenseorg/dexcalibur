@@ -7,9 +7,17 @@
  *
  * @class
  */
-import {NodeType} from "../persist/orm/NodeType.js";
+import {NodeType} from "@dexcalibur/dexcalibur-orm";
 import {NodeInternalType} from "../NodeInternalType.js";
 import {CoreDebug} from "../core/CoreDebug.js";
+import {Nullable} from "../core/IStringIndex.js";
+
+
+export interface HookStrategySelectorOptions {
+    type: NodeType;
+    uid?:Nullable<any>;
+    req?:Nullable<string>;
+}
 
 export default class HookStrategySelector {
 
@@ -27,9 +35,9 @@ export default class HookStrategySelector {
     /**
      * Group of hook
      *
-     * @param {*} config
+     * @param {HookStrategySelectorOptions} config
      */
-    constructor(pConfig:any=null){
+    constructor(pConfig:Nullable<HookStrategySelectorOptions>=null){
 
         // this.requiresNode = [];
         if(pConfig!=null)
@@ -38,7 +46,7 @@ export default class HookStrategySelector {
 
     }
 
-    static from(pData:any):HookStrategySelector {
+    static from(pData:HookStrategySelectorOptions):HookStrategySelector {
         return new HookStrategySelector(pData);
     }
 

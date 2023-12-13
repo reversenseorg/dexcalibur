@@ -1,6 +1,4 @@
 import ModelMethod from "./ModelMethod.js";
-import {NodeProperty, NodePropertyState} from "./persist/orm/NodeProperty.js";
-import {DbDataType, DbKeyType, DbSerialize} from "./persist/orm/DbAbstraction.js";
 import ModelField from "./ModelField.js";
 import ModelPackage from "./ModelPackage.js";
 import ModelClass from "./ModelClass.js";
@@ -20,17 +18,80 @@ import DexcaliburEngine from "./DexcaliburEngine.js";
 import DexcaliburProject from "./DexcaliburProject.js";
 import HookStrategySelector from "./hook/HookStrategySelector.js";
 import {ModelFunction} from "./ModelFunction.js";
-import {DataSourceHelper} from "./DataSourceHelper.js";
-import {INodeMap} from "./INode.js";
-import {NodeInternalType} from "./NodeInternalType.js";
-import {NodeType} from "./persist/orm/NodeType.js";
-import {DataSource} from "./DataSource.js";
-import {TagCategory} from "./tags/TagCategory.js";
-import {Tag} from "./tags/Tag.js";
+
+
 import SystemCallHook from "./hook/SystemCallHook.js";
 import {IStringIndex} from "./core/IStringIndex.js";
 import {Brand} from "./Brand.js";
 import {DeviceModel} from "./DeviceModel.js";
+import {
+    DataSourceHelper,
+    NodePropertyState,
+    NodeProperty,
+    DbDataType,
+    DbKeyType,
+    DbSerialize, DataSource, NodeType, TagCategory, Tag
+} from "@dexcalibur/dexcalibur-orm";
+import InMemoryConnector from "../connectors/inmemory/adapter.js";
+
+
+
+
+/*
+static MEM:DataSource = (new DataSource(InMemoryConnector.UUID,{
+  single: function(pContext:any, pNodeType:NodeType, pUID:any):any{
+    Logger.debug("DATA SOURCE [MEM]> GET > "+pNodeType.getSourceAlias()+" : "+pUID+" ...");
+    const o = pContext.getSearchEngine().get[pNodeType.getSourceAlias()](pUID);
+    Logger.debug("DATA SOURCE [MEM]> GET > "+pNodeType.getSourceAlias()+" : "+pUID+" : "+(o!=null ? o.getUID() : 'NULL'));
+    return o;
+  }
+}));
+
+/*
+static REDIS:DataSource = new DataSource("redis",{
+  single: function(pContext:any, pNodeType:NodeType, pUID:any):any{
+    Logger.debug("DATA SOURCE [REDIS]> GET > "+pNodeType.getSourceAlias()+" : "+pUID+" ...");
+    const o = pContext.getDB().getCollection(pNodeType.getSourceAlias(),pNodeType).getEntry(pUID);
+    Logger.debug("DATA SOURCE [REDIS]> GET > "+pNodeType.getSourceAlias()+" : "+pUID+" : "+(o!=null ? o.getUID() : 'NULL'));
+    return o;
+  }
+});
+
+static ELASTIC:DataSource = new DataSource(ElasticConnector.UUID,{
+  single: function(pContext:any, pNodeType:NodeType, pUID:any):any{
+    Logger.debug("DATA SOURCE [ELASTIC]> GET > "+pNodeType.getSourceAlias()+" : "+pUID+" ...");
+    const o = pContext.getDB().getCollection(pNodeType.getSourceAlias(),pNodeType).getEntry(pUID);
+    Logger.debug("DATA SOURCE [ELASTIC]> GET > "+pNodeType.getSourceAlias()+" : "+pUID+" : "+(o!=null ? o.getUID() : 'NULL'));
+    return o;
+  }
+});
+*/
+DataSourceHelper.addSource("MEM", (new DataSource(InMemoryConnector.UUID,{
+    single: function(pContext:any, pNodeType:NodeType, pUID:any):any{
+        //console.log("DATA SOURCE [MEM]> GET > "+pNodeType.getSourceAlias()+" : "+pUID+" ...");
+        const o = pContext.getSearchEngine().get[pNodeType.getSourceAlias()](pUID);
+        //console.log("DATA SOURCE [MEM]> GET > "+pNodeType.getSourceAlias()+" : "+pUID+" : "+(o!=null ? o.getUID() : 'NULL'));
+        return o;
+    }
+})));
+DataSourceHelper.addSource("FILE", new DataSource("fs",{
+    single: function(pContext:any, pNodeType:NodeType, pUID:any):any{
+        //console.log("DATA SOURCE [FS]> GET > "+pNodeType.getSourceAlias()+" : "+pUID+" ...");
+        const o = pContext.getDB().getCollection(pNodeType.getSourceAlias(),pNodeType).getEntry(pUID);
+        //console.log("DATA SOURCE [FS]> GET > "+pNodeType.getSourceAlias()+" : "+pUID+" : "+(o!=null ? o.getUID() : 'NULL'));
+        return o;
+    }
+}));
+
+/*
+static FILE:DataSource = new DataSource("fs",{
+  single: function(pContext:any, pNodeType:NodeType, pUID:any):any{
+    Logger.debug("DATA SOURCE [FS]> GET > "+pNodeType.getSourceAlias()+" : "+pUID+" ...");
+    const o = pContext.getDB().getCollection(pNodeType.getSourceAlias(),pNodeType).getEntry(pUID);
+    Logger.debug("DATA SOURCE [FS]> GET > "+pNodeType.getSourceAlias()+" : "+pUID+" : "+(o!=null ? o.getUID() : 'NULL'));
+    return o;
+  }
+});*/
 
 UserAccount.TYPE.updateProperties([
     (new NodeProperty('_uid')).type(DbDataType.STRING).key(DbKeyType.PRIMARY),
@@ -44,7 +105,7 @@ UserAccount.TYPE.updateProperties([
     (new NodeProperty('_role')).type(DbDataType.STRING)
         .sleep( (x:NodePropertyState) => { return (x.p !=null ? x.p.uid : null) ; } )
         .wakeUp( (x:NodePropertyState) => { return (x.p!=null ? AccessControl.getRole(x.p) : null) }),
-]).dataSource(DataSourceHelper.FILE).builder(UserAccount);
+]).dataSource("FILE").builder(UserAccount);
 
 UserSession.TYPE.updateProperties([
     // (new NodeProperty('_uid')).type(DbDataType.STRING).key(DbKeyType.PRIMARY),
@@ -61,11 +122,11 @@ UserSession.TYPE.updateProperties([
     (new NodeProperty('_conn')).type(DbDataType.STRING)
         .sleep( (x:NodePropertyState)=>{ return null; })
         .wakeUp( (x:NodePropertyState) =>  { return x.p })
-]).dataSource(DataSourceHelper.FILE).builder(UserSession);
+]).dataSource("FILE").builder(UserSession);
 
 SessionData.TYPE.updateProperties([
-    UserSession.TYPE.asForeignKey(DbKeyType.COMPOSITE, 0),
-    (new NodeProperty('_name')).type(DbDataType.STRING).key(DbKeyType.COMPOSITE, 1),
+    UserSession.TYPE.asForeignKey(DbKeyType.PRIMARY, 0),
+    (new NodeProperty('_name')).type(DbDataType.STRING).key(DbKeyType.PRIMARY, 1),
     (new NodeProperty('_value'))
         .type(DbDataType.STRING)
         .sleep( (x:NodePropertyState) => {
@@ -87,7 +148,7 @@ SessionData.TYPE.updateProperties([
             }
             return c;
         })
-]).dataSource(DataSourceHelper.FILE).builder(SessionData);
+]).dataSource("FILE").builder(SessionData);
 
 UserSession.TYPE.updateProperties([
     (new NodeProperty('_data')).multiple(SessionData.TYPE)
@@ -119,7 +180,7 @@ ModelMethod.TYPE.updateProperties([
         (new NodeProperty("enclosingClass")).single(ModelClass.TYPE),
         (new NodeProperty("declaringClass")).single(ModelClass.TYPE),
         (new NodeProperty("tags")).type(DbDataType.STRING).serialize(DbSerialize.JSON).def("[]"),
-    ]).builder(ModelMethod);
+    ]).dataSource("MEM").builder(ModelMethod);
 
 
 ModelField.TYPE.updateProperties([
@@ -141,7 +202,7 @@ ModelField.TYPE.updateProperties([
             .type(DbDataType.STRING)
             .sleep( (x:NodePropertyState) => { return (x.p != null ? JSON.stringify(x.p) : null )})
             .wakeUp( (x:NodePropertyState) => { return (x.p != null ? JSON.parse(x.p) : null )}),
-    ]).builder(ModelField);
+    ]).dataSource("MEM").builder(ModelField);
 
 
 ModelPackage.TYPE.updateProperties([
@@ -150,7 +211,7 @@ ModelPackage.TYPE.updateProperties([
             (new NodeProperty("children")).volatile(),
             (new NodeProperty("tags")).type(DbDataType.STRING),
             (new NodeProperty("alias")).type(DbDataType.STRING),
-    ]).builder(ModelPackage);
+    ]).dataSource("MEM").builder(ModelPackage);
 
 
 ModelClass.TYPE.updateProperties([
@@ -161,7 +222,7 @@ ModelClass.TYPE.updateProperties([
             (new NodeProperty("modifiers")).type(DbDataType.STRING),
 
             (new NodeProperty("package")).single(ModelPackage.TYPE),
-            (new NodeProperty("implements")).single(ModelClass.TYPE),
+            (new NodeProperty("implements")).multiple(ModelClass.TYPE),
             (new NodeProperty("extends")).single(ModelClass.TYPE),
             (new NodeProperty("supers")).multiple(ModelClass.TYPE),
 
@@ -189,7 +250,7 @@ ModelClass.TYPE.updateProperties([
                 .sleep( (x:NodePropertyState) => { return (x.p != null ? JSON.stringify(x.p) : null )})
                 .wakeUp( (x:NodePropertyState) => { return (x.p != null ? JSON.parse(x.p) : null )})
 
-    ]).builder(ModelClass);
+    ]).dataSource("MEM").builder(ModelClass);
 
 
 KeyPoint.TYPE.updateProperties([
@@ -232,7 +293,7 @@ KeyPoint.TYPE.updateProperties([
                 });
                 return o;
             })
-        ]).dataSource(DataSourceHelper.FILE).builder(KeyPoint);
+        ]).dataSource("FILE").builder(KeyPoint);
 
 
 
@@ -245,14 +306,14 @@ BookmarkType.TYPE.updateProperties([
             .type(DbDataType.STRING)
             .sleep( (x:NodePropertyState) => { return (x.p != null ? JSON.stringify(x.p) : null )})
             .wakeUp( (x:NodePropertyState) => { return (x.p != null ? JSON.parse(x.p) : null )})
-    ]).dataSource(DataSourceHelper.FILE).builder(BookmarkType);
+    ]).dataSource("FILE").builder(BookmarkType);
 
 Bookmark.TYPE.updateProperties([
     (new NodeProperty("name")).type(DbDataType.STRING).key(DbKeyType.PRIMARY),
     (new NodeProperty("descr")).type(DbDataType.STRING).def(null),
     (new NodeProperty("category")).type(DbDataType.STRING).def(null),
     (new NodeProperty("type")).single(BookmarkType.TYPE)
-]).dataSource(DataSourceHelper.FILE).builder(Bookmark);
+]).dataSource("FILE").builder(Bookmark);
 
 
 HookSet.TYPE.updateProperties([
@@ -273,7 +334,7 @@ HookSet.TYPE.updateProperties([
         .type(DbDataType.STRING)
         .sleep( (x:NodePropertyState) => { return (x.p != null ? JSON.stringify(x.p) : null )})
         .wakeUp( (x:NodePropertyState) => { return (x.p != null ? JSON.parse(x.p) : null )})
-]).dataSource(DataSourceHelper.FILE).builder(HookSet);
+]).dataSource("FILE").builder(HookSet);
 
 HookStrategy.TYPE.updateProperties([
     (new NodeProperty("_uid")).type(DbDataType.STRING).key(DbKeyType.PRIMARY),
@@ -310,7 +371,7 @@ HookStrategy.TYPE.updateProperties([
         .sleep( (x:NodePropertyState) => { return (x.p != null ? JSON.stringify(x.p.toJsonObject()) : null )})
         .wakeUp( (x:NodePropertyState) => { return (x.p != null ? HookStrategySelector.fromJsonObject(JSON.parse(x.p)) : null )}),
     (new NodeProperty("passed")).type(DbDataType.NUMERIC).def(null),
-]).dataSource(DataSourceHelper.FILE).builder(HookStrategy);
+]).dataSource("FILE").builder(HookStrategy);
 
 HookSet.TYPE.updateProperties([(new NodeProperty("strats")).multiple(HookStrategy.TYPE,"hookset")]);
 
@@ -324,7 +385,7 @@ HookTemplateFragment.TYPE.updateProperties([
     (new NodeProperty("_preproc")).type(DbDataType.BOOLEAN).def(null),
     (new NodeProperty("_strategy")).single(HookStrategy.TYPE).def(null),
     (new NodeProperty("_keypoint")).type(DbDataType.STRING).def(null),
-]).dataSource(DataSourceHelper.FILE).builder(JavaMethodHook);
+]).dataSource("FILE").builder(JavaMethodHook);
 
 JavaMethodHook.TYPE.updateProperties([
     (new NodeProperty("_uid")).type(DbDataType.STRING).key(DbKeyType.PRIMARY),
@@ -407,7 +468,7 @@ JavaMethodHook.TYPE.updateProperties([
                 return null;
             }
         })
-]).dataSource(DataSourceHelper.FILE).builder(JavaMethodHook);
+]).dataSource("FILE").builder(JavaMethodHook);
 
 
 
@@ -491,7 +552,7 @@ SystemCallHook.TYPE.updateProperties([
                 return null;
             }
         })
-]).dataSource(DataSourceHelper.FILE).builder(SystemCallHook);
+]).dataSource("FILE").builder(SystemCallHook);
 
 NativeFunctionHook.TYPE.updateProperties([
     (new NodeProperty("_uid")).type(DbDataType.STRING).key(DbKeyType.PRIMARY),
@@ -575,25 +636,11 @@ NativeFunctionHook.TYPE.updateProperties([
                 return null;
             }
         })
-]).dataSource(DataSourceHelper.FILE).builder(NativeFunctionHook);
+]).dataSource("FILE").builder(NativeFunctionHook);
 
-TagCategory.TYPE.updateProperties([
-    (new NodeProperty('name')).type(DbDataType.STRING).key(DbKeyType.PRIMARY).notnull(),
-    (new NodeProperty('descr')).type(DbDataType.STRING),
-    (new NodeProperty('_tags')).volatile().multiple(Tag.TYPE),
-    (new NodeProperty("tags")).type(DbDataType.STRING).serialize(DbSerialize.JSON).def("[]"),
-]).dataSource(DataSourceHelper.FILE).builder(TagCategory);
+TagCategory.TYPE.dataSource("FILE");
 
-Tag.TYPE.updateProperties([
-    (new NodeProperty('_uid')).type(DbDataType.STRING).key(DbKeyType.PRIMARY),
-    (new NodeProperty('_')).type(DbDataType.NUMERIC),
-    (new NodeProperty('label')).type(DbDataType.STRING),
-    (new NodeProperty('name')).type(DbDataType.STRING),
-    (new NodeProperty('descr')).type(DbDataType.STRING),
-    (new NodeProperty('category')).single(TagCategory.TYPE),
-    (new NodeProperty("tags")).type(DbDataType.STRING).serialize(DbSerialize.JSON).def("[]"),
-    (new NodeProperty("style")).type(DbDataType.STRING).serialize(DbSerialize.JSON).def("{}"),
-]).dataSource(DataSourceHelper.FILE).builder(Tag);
+Tag.TYPE.dataSource("FILE");
 
 
 Brand.TYPE.updateProperties([
@@ -605,7 +652,8 @@ Brand.TYPE.updateProperties([
     (new NodeProperty("deleted_at")).type(DbDataType.INTEGER).def(-1),
     (new NodeProperty("created_at")).type(DbDataType.INTEGER).def(-1),
     (new NodeProperty("updated_at")).type(DbDataType.INTEGER).def(-1),
-]);
+]).dataSource("MEM");
+
 export class NodeSchema{
 
     static init(){

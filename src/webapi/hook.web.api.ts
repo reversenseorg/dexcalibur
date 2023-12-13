@@ -798,7 +798,7 @@ HOOK_WEB_API.addAuthenticatedRoute(
 
                 }else{
                     sess.map( x => {
-                        data.sess.push(x.toJsonObject(0,0));
+                        data.sess.push(x.toJsonObject({ offset:0, size:0 }));
                     })
                 }
 

@@ -227,38 +227,6 @@ export default class DeviceManager extends ValidationCapable
      */
     save(){
 
-        /*(async function(pDevList:any){
-            let c:number = -1;
-            let err:any ;
-            Logger.info("Saving DB");
-            for(let uid in pDevList) {
-                Logger.info("Saving DB > "+uid);
-                c = await this._db.asyncCount({uid: uid});
-                Logger.info("Counting device ["+uid+"]", c);
-                if(c==0){
-                    Logger.info("Inserting device ["+uid+"]", c);
-                    err = await this._db.asyncInsert( this.devices[uid].toJsonObject( {}, {
-                        connected: false,
-                        offline: false,
-                        bridge: {
-                            up: false
-                        }
-                    }));
-                    Logger.info("Inserting device ["+uid+"] > out >", err);
-                }else{
-                    Logger.info("Updating device ["+uid+"]", c);
-                    await this._db.asyncUpdate( {uid:uid }, this.devices[uid].toJsonObject( {}, {
-                        connected: false,
-                        offline: false,
-                        bridge: {
-                            up: false
-                        }
-                    }));
-                    Logger.info("Updating device ["+uid+"] > out >", err);
-                }
-            }
-        })(this.devices);*/
-
         if(_fs_.existsSync(this.devFile)){
             _fs_.unlinkSync(this.devFile);
         }
@@ -697,7 +665,7 @@ export default class DeviceManager extends ValidationCapable
     toJsonObject( pExcludeList:any={}){
         const json:any = [];
         for(const i in this.devices){
-            json.push(this.devices[i].toJsonObject(null, pExcludeList.device));
+            json.push(this.devices[i].toJsonObject({ exclude: pExcludeList.device }));
         }
         CoreDebug.checkJsonSerialize(json, "DeviceManager");
         return json;

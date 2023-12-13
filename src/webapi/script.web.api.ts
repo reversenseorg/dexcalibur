@@ -124,7 +124,7 @@ SCRIPT_WEB_API.addAuthenticatedRoute(
                 if(req.dxc.project == null){
                     throw new Error("Project UID is missing or you have not right privileges.")
                 }
-                req.dxc.$.sendSuccess( res, req.dxc.project.find.provider('name:.*').toJsonObject());
+                req.dxc.$.sendSuccess( res, req.dxc.project.find.provider('name:.*').toJsonObject({}));
             }catch(err){
                 req.dxc.$.sendError( res, err.message);
             }

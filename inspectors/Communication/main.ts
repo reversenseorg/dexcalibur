@@ -30,7 +30,8 @@ var CommunicationInspector:InspectorFactory = new InspectorFactory({
     hookSet: {
         id: "DataClassifier",
         name: "Data classifier",
-        description: "Process heuristic analysis and perform data tagging (byte array, strings, ...)"
+        description: "Process heuristic analysis and perform data tagging (byte array, strings, ...)",
+        strategies:[]
     },
 
     eventListeners: {

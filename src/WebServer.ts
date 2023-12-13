@@ -1356,7 +1356,6 @@ export default class WebServer
         function ensureApiLoggedIn(req, res, next) {
             if(isSlave) next();
 
-            console.log("API "+req.originalUrl," > ",req.isAuthenticated());
             if (req.isAuthenticated()) {
                 return next();
             }
@@ -1365,7 +1364,6 @@ export default class WebServer
         }
 
         function ensureGuiLoggedIn(req, res, next) {
-            console.log("GUI "+req," > ");//req.isAuthenticated);
             if (req.isAuthenticated()) {
                 return next();
             }

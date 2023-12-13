@@ -5,10 +5,8 @@ import ModelMethod from "./ModelMethod.js";
 import {EOL} from "os";
 import ModelClass from "./ModelClass.js";
 import {NodeInternalType} from "./NodeInternalType.js";
-import {NodeType} from "./persist/orm/NodeType.js";
-import {NodeProperty} from "./persist/orm/NodeProperty.js";
-import {DbDataType, DbKeyType} from "./persist/orm/DbAbstraction.js";
-import {DataSourceHelper} from "./DataSourceHelper.js";
+import {NodeType, DataSourceHelper,  NodeProperty, DbDataType} from "@dexcalibur/dexcalibur-orm";
+
 import {CoreDebug} from "./core/CoreDebug.js";
 
 /**
@@ -25,8 +23,8 @@ export default class ModelCall extends Savable
         (new NodeProperty("line")).volatile().type(DbDataType.INTEGER).def(-1),
         (new NodeProperty("object")).volatile().type(DbDataType.BLOB),
         (new NodeProperty("subject")).volatile().type(DbDataType.BLOB),
-    ]))
-        .dataSource(DataSourceHelper.MEM, "call");
+    ])).dataSource("MEM", "call");
+
     __:NodeInternalType = NodeInternalType.CALL;
 
     instr:ModelInstruction = null;

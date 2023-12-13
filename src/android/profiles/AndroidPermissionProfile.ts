@@ -41,18 +41,4 @@ export class AndroidPermissionProfile extends GenericPermissionProfile
         return super.fromJsonObject(pJson);
     }
 
-    /**
-     * @method
-     */
-    toJsonObject(pExclude:string[]=[]):any{
-        const o:any = {};
-        for(const i in this){
-            switch (i){
-                default:
-                    o[i] = this[i];
-                    break;
-            }
-        }
-        return o;
-    }
 }

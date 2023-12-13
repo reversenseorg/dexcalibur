@@ -18,6 +18,7 @@ import {Settings} from "./Settings.js";
 import ExternalSettings = Settings.ExternalSettings;
 import ShellHelper from "./ShellHelper.js";
 import {IFileAnalyzer} from "./analyzer/IFileAnalyzer.js";
+import {FileScanResult} from "./DataAnalyzer.js";
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
 /**
@@ -162,9 +163,12 @@ export class MagicHelper extends  External.ExternalHelper implements IFileAnalyz
                 files.push(f);
 
                 if(pContext!=null){
-                    pContext.bus.send(new BusEvent({
+                    pContext.bus.send(new BusEvent<FileScanResult>({
                         type: "data.file.new.knownFmt",
-                        data: f
+                        data: {
+                            src: "magic",
+                            file: f
+                        }
                     }))
                 }
             });

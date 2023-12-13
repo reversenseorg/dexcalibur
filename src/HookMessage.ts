@@ -66,8 +66,6 @@ export default class HookMessage
         if(this.tags != null && this.tags.length > 0)
             o.tags = this.tags;
 
-    //    if(this.hook!=null)
-    //        o.hook = this.hook.toJsonObject();
         o.after = this.isAfter();
         o.before = this.isBefore();
 

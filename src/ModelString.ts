@@ -1,10 +1,7 @@
 import {Savable, STUB_TYPE} from "./ModelSavable.js";
 import {createHash} from "crypto";
-import {NodeType} from "./persist/orm/NodeType.js";
 import {NodeInternalType} from "./NodeInternalType.js";
-import {NodeProperty} from "./persist/orm/NodeProperty.js";
-import {DbDataType, DbKeyType} from "./persist/orm/DbAbstraction.js";
-import {DataSourceHelper} from "./DataSourceHelper.js";
+import {NodeType, DataSourceHelper,  NodeProperty, DbDataType, DbKeyType, INode} from "@dexcalibur/dexcalibur-orm";
 import {DataLocation, DataLocationType} from "./DataLocation.js";
 import ModelBasicBlock from "./ModelBasicBlock.js";
 import ModelMethod from "./ModelMethod.js";
@@ -13,7 +10,6 @@ import {AbstractHook} from "./hook/AbstractHook.js";
 import HookSession from "./HookSession.js";
 import HookTemplateFragment from "./hook/HookTemplateFragment.js";
 import ModelFile from "./ModelFile.js";
-import {INode} from "./INode.js";
 
 const UID_ALGO = 'sha1';
 
@@ -26,7 +22,7 @@ const UID_ALGO = 'sha1';
  *
  * @class
  */
-export default class ModelString extends Savable implements INode
+export default class ModelString extends Savable
 {
     static TYPE:NodeType = (new NodeType( "strings", NodeInternalType.STRING, [
         (new NodeProperty("_uid")).type(DbDataType.STRING).key(DbKeyType.PRIMARY), // path relative to scope root
@@ -34,7 +30,7 @@ export default class ModelString extends Savable implements INode
         (new NodeProperty("location")).volatile().type(DbDataType.STRING).def(null),
         (new NodeProperty("value")).volatile().type(DbDataType.STRING).def(null),
         (new NodeProperty("tags")).volatile().type(DbDataType.STRING).def(null)
-    ])).dataSource(DataSourceHelper.MEM, "strings");
+    ])).dataSource("MEM", "strings");
 
     __:NodeInternalType = NodeInternalType.STRING;
 

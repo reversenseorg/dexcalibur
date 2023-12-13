@@ -206,7 +206,7 @@ NATIVE_WEB_API.addAuthenticatedRoute(
                     project.analyze.getNativeAnalyzer().scan(search.get(0) as ModelFile, cmd);
                 }
 
-                $.sendSuccess( res, (search.get(0) as ModelFile).toJsonObject({ cmd:cmd }));
+                $.sendSuccess( res, (search.get(0) as ModelFile).toJsonObject({extra:{ cmd:cmd }}));
             }catch(err){
                 Logger.error("[API][NATIVE] Perform native analysis of function failed. Cause : " + err.message + "\n\t" + err.stack);
                 $.sendError(res, " Perform native analysis of function failed. Cause : " + err.message);
@@ -282,7 +282,6 @@ NATIVE_WEB_API.addAsyncAuthenticatedRoute(
                     $.sendSuccess( res,fn.toJsonObjectWithCmd(commands));
                 else
                     $.sendError(res, " Disassembly of function failed without errors :( Please file an issue, if this error occurs.");
-                    // (search.get(0) as ModelFile).toJsonObject({ cmd:cmd }));
             }catch(err){
                 Logger.error("[API][NATIVE] Disassembly of function failed. Cause : " + err.message + "\n\t" + err.stack);
                 $.sendError(res, " Disassembly of function failed. Cause : " + err.message);
@@ -336,7 +335,7 @@ NATIVE_WEB_API.addAsyncAuthenticatedRoute(
                         if(project.analyze.getNativeAnalyzer().requireAnalysis( file, cmd, null) || (req.body['force']===true)){
                             const n = await project.analyze.getNativeAnalyzer().scan( file, cmd);
                             if(n>-1){
-                                $.sendSuccess( res, file.toJsonObject({ cmd:cmd.join(':') }));
+                                $.sendSuccess( res, file.toJsonObject({ extra:{ cmd:cmd.join(':') }}));
                             }else{
                                 throw new Error('Analysis failed');
                             }

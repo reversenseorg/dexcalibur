@@ -1,8 +1,7 @@
-import {NodeType} from "./persist/orm/NodeType.js";
+
 import {NodeInternalType} from "./NodeInternalType.js";
-import {NodeProperty, NodePropertyState} from "./persist/orm/NodeProperty.js";
-import {DbDataType, DbKeyType, DbSerialize} from "./persist/orm/DbAbstraction.js";
 import {IPersistent} from "./persist/orm/IPersistent.js";
+import {NodeType,  NodePropertyState, NodeProperty, DbDataType, DbKeyType} from "@dexcalibur/dexcalibur-orm";
 import * as _path_ from 'path';
 
 export interface DataScopeMap {
@@ -30,7 +29,7 @@ export default class DataScope implements IPersistent{
                 .type(DbDataType.STRING)
                 .sleep( (x:NodePropertyState)=>{ return (x.p!=null ? JSON.stringify(x.p) : null)})
                 .wakeUp( (x:NodePropertyState)=>{ return (x.p!=null ? JSON.parse(x.p) : null)})
-        ]);
+        ]).dataSource("FILE");
 
     __:NodeInternalType = NodeInternalType.DATA_SCOPE;
 

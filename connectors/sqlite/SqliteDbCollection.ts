@@ -4,15 +4,13 @@
  * @author Georges-B. MICHEL
  * @class
  */
-import {DbSetType, IDatabase, IDbCollection} from "../../src/persist/orm/DbAbstraction.js";
-import {NodeProperty} from "../../src/persist/orm/NodeProperty.js";
 import {PreparedStatementList, SqliteAPI} from "./SqliteAPI.js";
 import {SqliteException} from "./SqliteException.js";
-import {NodeType} from "../../src/persist/orm/NodeType.js";
 import * as Log from "../../src/Logger.js";
 import DexcaliburEngine from "../../src/DexcaliburEngine.js";
 import PersistenceCache from "../../src/persist/PersistenceCache.js";
 import {SqliteDb} from "./SqliteDb.js";
+import {NodeType, NodeProperty, DbSetType, IDatabase, IDbCollection} from "@dexcalibur/dexcalibur-orm";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -295,7 +293,14 @@ export default class SqliteDbCollection implements IDbCollection
         }
     }
 
+    asyncHasEntry(key: string, pOptions?: any): Promise<boolean> {
+        return Promise.resolve(this.hasEntry(key));
+    }
 
+
+    asyncGetEntry(key: string, pOptions?: any): Promise<any> {
+        return Promise.resolve(this.getEntry(key));
+    }
 
     getEntry(key:any):any{
         if(typeof key === 'object'){
@@ -409,4 +414,14 @@ export default class SqliteDbCollection implements IDbCollection
     serialize():any{
         throw  new SqliteException("SqliteDbCollection  are not serializable");
     }
+
+
+    hasProxy():boolean {
+        return false;
+    }
+
+    getProxy(): any {
+        return null;
+    }
+
 }

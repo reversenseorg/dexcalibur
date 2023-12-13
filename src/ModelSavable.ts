@@ -2,9 +2,9 @@
 /**
  * Constant values describing a stub type.
  */
-import {Tag} from "./tags/Tag.js";
-import {INode} from "./INode.js";
+
 import {NodeInternalType} from "./NodeInternalType.js";
+import {INode, SerializeOptions, Tag} from "@dexcalibur/dexcalibur-orm";
 
 export enum STUB_TYPE {
     METHOD= 0x1,
@@ -95,5 +95,9 @@ export class Savable implements INode
 
     getUID(): string {
         return this._uid;
+    }
+
+    toJsonObject(pOption?: SerializeOptions): any {
+        return this;
     }
 }

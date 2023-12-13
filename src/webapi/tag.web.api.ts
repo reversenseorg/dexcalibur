@@ -3,8 +3,9 @@ import WebServer from "../WebServer.js";
 import {Request, Response} from "express";
 import * as Log from "../Logger.js";
 import DexcaliburProject from "../DexcaliburProject.js";
-import {TagCategory} from "../tags/TagCategory.js";
-import {Tag} from "../tags/Tag.js";
+import {Tag, TagCategory} from "@dexcalibur/dexcalibur-orm";
+
+
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 export const TAG_MGT_WEB_API: DelegateWebApi = new DelegateWebApi();

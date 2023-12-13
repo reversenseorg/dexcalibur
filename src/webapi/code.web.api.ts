@@ -82,7 +82,7 @@ CODE_WEB_API.addAuthenticatedRoute(
                 }
 
                 fields.push('__');
-                $.sendSuccess( res, data.toJsonObject(fields));
+                $.sendSuccess( res, data.toJsonObject({ include:fields }));
             }catch(err){
                 Logger.error("[API][CODE] Content of package cannot be listed. Cause : " + err.message + "\n\t" + err.stack);
                 $.sendError(res, "Content of package cannot be listed. Cause : " + err.message);
@@ -221,7 +221,7 @@ CODE_WEB_API.addAuthenticatedRoute(
                 }
 
                 // ========== LOGIC +  RESPONSE
-                $.sendSuccess( res, project.find.method('name:.*').toJsonObject());
+                $.sendSuccess( res, project.find.method('name:.*').toJsonObject({}));
             }catch(err){
                 Logger.error("[API][CODE] Method cannot be retrieved. Cause : " + err.message + "\n\t" + err.stack);
                 $.sendError(res, "Method cannot be retrieved. Cause : " + err.message);
@@ -429,7 +429,7 @@ CODE_WEB_API.addAuthenticatedRoute(
                         method.setProbing(project.hook.isProbing(method));
                     }
 
-                    dev = method.toJsonObject();
+                    dev = method.toJsonObject({});
                     dev.hooked = (project.hook.getProbe(method)!=null);
                     dev.disass = method.disass({ raw: true }, project.getDisassembler());
                 } else {
@@ -541,7 +541,7 @@ CODE_WEB_API.addAuthenticatedRoute(
                     throw new Error("Field not found : "+sign);
                 }
 
-                $.sendSuccess( res, field.toJsonObject());
+                $.sendSuccess( res, field.toJsonObject({include:[]}));
             }catch(err){
                 Logger.error("[API][CODE] Field cannot be retrieved. Cause : " + err.message + "\n\t" + err.stack);
                 $.sendError(res, "Field cannot be retrieved. Cause : " + err.message);
@@ -707,7 +707,7 @@ CODE_WEB_API.addAuthenticatedRoute(
 
                 // ========== LOGIC
                 // collect
-                const data:any = project.find.class('name:.*').toJsonObject();
+                const data:any = project.find.class('name:.*').toJsonObject({include:[]});
 
                 for (const i in data) {
                     for (const k in data[i].methods) {
@@ -759,16 +759,16 @@ CODE_WEB_API.addAuthenticatedRoute(
                 let data:any = null;
 
                 if (cls != null) {
-                    data = cls.toJsonObject();
+                    data = cls.toJsonObject({exclude:{}});
 
                     data.methods = [];
                     for(const k in cls.methods){
-                        data.methods.push( cls.methods[k].toJsonObject());
+                        data.methods.push( cls.methods[k].toJsonObject({exclude:{}}));
                     }
 
                     data.fields = [];
                     for(const k in cls.fields){
-                        data.fields.push( cls.fields[k].toJsonObject());
+                        data.fields.push( cls.fields[k].toJsonObject({exclude:{}}));
                     }
                 }else{
                     throw new Error("Class not found : "+classRef);
@@ -938,7 +938,7 @@ CODE_WEB_API.addAuthenticatedRoute(
 
 
                 // ========== RESPONSE
-                $.sendSuccess( res, results.toJsonObject());
+                $.sendSuccess( res, results.toJsonObject({}));
             }catch(err){
                 Logger.error("[API][CODE] Search query failed. Cause : " + err.message + "\n\t" + err.stack);
                 $.sendError(res, "Search query failed. Cause : " + err.message);

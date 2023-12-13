@@ -1,6 +1,6 @@
 import {DataSource} from "./DataSource.js";
 import DexcaliburProject from "./DexcaliburProject.js";
-import {NodeType} from "./persist/orm/NodeType.js";
+import {NodeType} from "@dexcalibur/dexcalibur-orm";
 import * as Log from "./Logger.js";
 import {NodeInternalType} from "./NodeInternalType.js";
 

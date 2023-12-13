@@ -262,6 +262,13 @@ var Parser:ArgParser = new ArgParser(projectArgs, "dexcalibur-adm", [
                 callback:(ctx,param)=>{ ctx.projUID = param.value; }
             },
             {
+                name:"--type",
+                help: "File type",
+                hasVal:true,
+                callback:(ctx,param)=>{ ctx.projFType = param.value; }
+            },
+
+            {
                 name:"--os",
                 help: "Target OS. Supported: android, ios, macos, tizen, fireos, webos",
                 hasVal:true,
@@ -1507,9 +1514,21 @@ ${"\t".repeat(1)}Default Arch = ${srv.getDefaultArchitecture()}
 
                             wf = dxcInstance.newWorkflow(projectArgs.projUID).changeOwner(acc);
 
+                            let filetype = "apk";
+                            if(projectArgs.projFType){
+                                filetype = projectArgs.projFType;
+                            }else if(projectArgs.projApp.lastIndexOf('.')>projectArgs.projApp.lastIndexOf('/')){
+                                filetype = projectArgs.projApp.substring(
+                                    projectArgs.projApp.lastIndexOf('.'),
+                                    projectArgs.projApp.length);
+                            }else if(platform!=null){
+                                filetype = platform.getDefaultFileType();
+                            }
+
                             project = await dxcInstance.newProject(
                                 projectArgs.projUID,
                                 projectArgs.projApp,
+                                filetype,
                                 device,
                                 acc
                             );

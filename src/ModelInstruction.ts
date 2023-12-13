@@ -2,7 +2,7 @@ import { CONST } from "./CoreConst.js";
 import ModelBasicBlock from "./ModelBasicBlock.js";
 import ModelMethod from "./ModelMethod.js";
 import {Savable, STUB_TYPE} from "./ModelSavable.js";
-import {NodeType} from "./persist/orm/NodeType.js";
+import {NodeType} from "@dexcalibur/dexcalibur-orm";
 import {NodeInternalType} from "./NodeInternalType.js";
 import {CoreDebug} from "./core/CoreDebug.js";
 

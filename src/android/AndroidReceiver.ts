@@ -2,10 +2,7 @@ import {IntentFilter} from "./IntentFilter.js";
 import * as Log from '../Logger.js';
 import AndroidComponent from "./AndroidComponent.js";
 import {NodeInternalType} from "../NodeInternalType.js";
-import {NodeType} from "../persist/orm/NodeType.js";
-import {DataSourceHelper} from "../DataSourceHelper.js";
-import {NodeProperty} from "../persist/orm/NodeProperty.js";
-import {DbDataType, DbKeyType} from "../persist/orm/DbAbstraction.js";
+import {NodeType, DataSourceHelper, NodeProperty, DbDataType, DbKeyType} from "@dexcalibur/dexcalibur-orm";
 import ModelClass from "../ModelClass.js";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
@@ -20,7 +17,7 @@ export default class AndroidReceiver extends AndroidComponent
         (new NodeProperty("__impl")).volatile().single(ModelClass.TYPE),
 
     ]))
-        .dataSource(DataSourceHelper.MEM, "androidReceiver");
+        .dataSource("MEM", "androidReceiver");
 
     __:NodeInternalType = NodeInternalType.ANDROID_RECEIVER;
 

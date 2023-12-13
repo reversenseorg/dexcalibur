@@ -22,6 +22,8 @@ import {ConnectionHandler} from "../remote/ConnectionHandler.js";
 import {Settings} from "../Settings.js";
 import {DexcaliburConnectionException} from "../errors/DexcaliburConnectionException.js";
 import {DexcaliburEngineMode} from "../DexcaliburEngine.js";
+import {parentPort} from "worker_threads";
+import {MagicHelper} from "../MagicHelper.js";
 
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
@@ -71,12 +73,13 @@ PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
             let success:boolean = true;
             let wf:Workflow = null;
             let anal:any = null;
-
+            let filetype:string;
 
             try{
 
                 dm = DeviceManager.getInstance();
                 await dm.scan();
+
 
 
                 user = (req.dxc.sess as UserSession).getUserAccount();
@@ -93,6 +96,8 @@ PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
                 if(req.body['name'] == null){
                     throw DexcaliburProjectException.INVALID_NAME();
                 }
+
+
 
 
                 if(req.body['cfg'] != null){
@@ -161,7 +166,7 @@ PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
                         console.log("Compatible device found :",device.uid);
                     }else{
 
-                        console.log("Compatiblme device NOT found ");
+                        console.log("Compatible device NOT found ");
                     }
                 }
 
@@ -182,7 +187,18 @@ PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
 
                 wf.stepUp(15);
 
-                project = await $.context.newProject(req.body['name'], path, device, user);
+
+                let filetype:string = "apk";
+                if(req.body['filetype'] == null){
+                    if(platform!=null){
+                        filetype = platform.getDefaultFileType();
+                    }
+                }else if( Platform.SUPPORTED_FILE_FMT.indexOf(req.body['filetype'])>-1){
+                    filetype = req.body['filetype'];
+                }
+
+                Logger.info('[PROJECT][STEP 2] Filetype : '+filetype+', File : '+path);
+                project = await $.context.newProject(req.body['name'], path, filetype, device,  user, platform);
 
                 if(project == null){
                     throw DexcaliburProjectException.STEP2_FAILURE();

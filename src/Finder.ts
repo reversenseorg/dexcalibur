@@ -1,50 +1,15 @@
 import AnalyzerDatabase from "./AnalyzerDatabase.js";
-import {SearchAPI} from "./SearchAPI.js";
 import {FinderResult} from "./FinderResult.js";
 import SearchPattern from "./SearchPattern.js";
 import ModelMethod from "./ModelMethod.js";
-import AndroidActivity from "./android/AndroidActivity.js";
-import AndroidReceiver from "./android/AndroidReceiver.js";
-import AndroidProvider from "./android/AndroidProvider.js";
-import AndroidService from "./android/AndroidService.js";
-import {AndroidPermission} from "./android/Permissions.js";
-import ModelPackage  from './ModelPackage.js';
-import ModelClass from "./ModelClass.js";
-import ModelField from "./ModelField.js";
-import ModelCall from "./ModelCall.js";
 import {ModelBasicType, ModelObjectType} from "./ModelType.js";
-import ModelStringValue from "./ModelStringValue.js";
-import ModelConstantValue from "./ModelConstantValue.js";
-import ModelDataBlock from "./ModelDataBlock.js";
-import ModelFile from "./ModelFile.js";
 
 
 import * as Log from './Logger.js';
-import {Modifier} from "./AccessFlags.js";
 import {SearchToken} from "./SearchToken.js";
-import {IDatabase, IDbCollection, IDbIndex} from "./persist/orm/DbAbstraction.js";
-import ModelSyscall from "./ModelSyscall.js";
+import {IDatabase, IDbCollection, IDbIndex} from "@dexcalibur/dexcalibur-orm";
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
-/*
-const DataModel = {
-    package: new ModelPackage("stub"),
-    class: new ModelClass(),
-    field: new ModelField(),
-    method: new ModelMethod(),
-    call: new ModelCall(),
-    objectType: new ModelObjectType(),
-    basicType: new ModelBasicType(),
-    value: new ModelConstantValue(),
-    string: new ModelStringValue(),
-    syscall: new ModelSyscall(),
-    file: new ModelFile(),
-    datablock: new ModelDataBlock(),
-    activity: new AndroidActivity(),
-    receiver: new AndroidReceiver(),
-    provider: new AndroidProvider(),
-    service: new AndroidService(),
-    permission: new AndroidPermission(),
-};*/
+
 
 
 /**

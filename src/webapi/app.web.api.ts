@@ -4,10 +4,11 @@ import {Request, Response} from "express";
 import * as Log from "../Logger.js";
 import DataScope from "../DataScope.js";
 import * as _path_ from "path";
-import {IDbCollection, IDbIndex} from "../persist/orm/DbAbstraction.js";
 import ModelFile from "../ModelFile.js";
 import DexcaliburProject from "../DexcaliburProject.js";
 import * as path from "path";
+import {IDbCollection} from "@dexcalibur/dexcalibur-orm";
+import Util from "../Utils.js";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 export const APP_WEB_API: DelegateWebApi = new DelegateWebApi();
@@ -72,12 +73,15 @@ APP_WEB_API.addAuthenticatedRoute(
 
                 if(req.query.path!=null && req.query.path!="null"){
 
-                    unsafeNomalizedPath = _path_.normalize(req.query.path as string);
+                    unsafeNomalizedPath = Util.trim(_path_.normalize(req.query.path as string));
                     if((unsafeNomalizedPath!='.') && (unsafeNomalizedPath !== req.query.path)){
                         throw new Error('[SECURITY] Path traversal is not allowed. ');
                     }
 
-                    if(unsafeNomalizedPath[0]!=_path_.sep){
+                    if(/^\.+$/.test(unsafeNomalizedPath)){
+                        unsafeNomalizedPath = _path_.sep;
+                    }
+                    else if (unsafeNomalizedPath[0]!=_path_.sep){
                         unsafeNomalizedPath = _path_.sep+unsafeNomalizedPath;
                     }
 
@@ -90,7 +94,7 @@ APP_WEB_API.addAuthenticatedRoute(
                 const files:IDbCollection = proj.dataAnalyzer.getIndex('PKG');
 
                 files.map( (vOffset:number, vFile:ModelFile)=>{
-                    // Logger.info(vFile.getRelativePath()+" =?= "+target+" > "+vFile.hasRelDir(target));
+                    //Logger.info(vFile.getRelativePath()+" =?= "+target+" > "+vFile.hasRelDir(target));
                     if(vFile.hasRelDir(target)){
                         data.push({ _uid: vFile.getUID(), n:vFile.getName(), _r:vFile.getRelativePath(),  _t: vFile._d, t:vFile.getType() });
                     }

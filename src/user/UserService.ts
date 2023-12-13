@@ -12,15 +12,13 @@ import {SessionCode, SessionException} from "./session/SessionException.js";
 import {AuthenticationResult} from "./auth/Authenticator.js";
 import {AuthenticationException} from "../errors/AuthenticationException.js";
 import * as Log from '../Logger.js';
-import {IDatabase, IDatabaseAdapter, IDbCollection, IDbIndex} from "../persist/orm/DbAbstraction.js";
 import {ConnectorFactory} from "../ConnectorFactory.js";
-import SqliteConnector from "../../connectors/sqlite/adapter.js";
-import {SqliteDb} from "../../connectors/sqlite/SqliteDb.js";
 import * as _fs_ from "fs";
 import {UserServiceException} from "../errors/UserServiceException.js";
 import {MonitoredError} from "../errors/MonitoredError.js";
 import DexcaliburEngine from "../DexcaliburEngine.js";
 import {SessionData} from "./session/SessionData.js";
+import {IDatabase, IDatabaseAdapter, IDbCollection} from "@dexcalibur/dexcalibur-orm";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 

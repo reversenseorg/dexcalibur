@@ -20,11 +20,11 @@ import {BusBroadcaster} from "./Bus.js";
 import {IDatabase, IDatabaseAdapter} from "./persist/orm/DbAbstraction.js";
 import {DelegateWebApi} from "./webapi/DelegateWebApi.js";
 import WebServer from "./WebServer.js";
-import {TagCategory} from "./tags/TagCategory.js";
-import {NodeType} from "./persist/orm/NodeType.js";
+
 import {NodeInternalType} from "./NodeInternalType.js";
 import Util from "./Utils.js";
 import {CoreDebug} from "./core/CoreDebug.js";
+import {NodeType, TagCategory} from "@dexcalibur/dexcalibur-orm";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -502,7 +502,8 @@ export default class Inspector implements BusBroadcaster
         // declare TagCategory
         const tmgr = ctx.getTagManager();
         for(let i=0; i<this.preRegisteredTags.length; i++){
-            tmgr.addCategory(this.preRegisteredTags[i]);
+            console.log(this.preRegisteredTags[i].name+" Regsitered");
+            tmgr.importCategory(this.preRegisteredTags[i]);
         }
 
         /*if(this.db instanceof InMemoryDb){

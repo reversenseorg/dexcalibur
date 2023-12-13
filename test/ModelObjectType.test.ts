@@ -1,7 +1,7 @@
 import {expect} from 'chai';
 import {Stub, STUB_TYPE} from "../dist/src/ModelSavable.js";
 import {ModelObjectType} from "../dist/src/ModelType.js";
-import {Tag} from "../dist/src/tags/Tag.js";
+
 
 
 

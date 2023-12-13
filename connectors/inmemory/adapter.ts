@@ -3,7 +3,7 @@
 
 import DexcaliburProject from "../../src/DexcaliburProject.js";
 import { InMemoryDb, Index, Collection } from "./InMemoryDb.js";
-import {IDatabase, IDatabaseAdapter} from "../../src/persist/orm/DbAbstraction.js";
+import {IDatabase, IDatabaseAdapter, IDbCollection, IDbIndex} from "@dexcalibur/dexcalibur-orm";
 
 const TYPE  = 'inmemory';
 const NAME = 'InMemory';
@@ -21,6 +21,8 @@ interface DatabaseInstanceList {
  */
 export default class InMemoryConnector implements IDatabaseAdapter
 {
+    static UUID = TYPE;
+
     ctx:DexcaliburProject = null;
     options:any = null;
     type:string = TYPE;
@@ -37,6 +39,11 @@ export default class InMemoryConnector implements IDatabaseAdapter
     constructor(pContext:DexcaliburProject=null, pOptions:any = null){
         this.ctx = pContext;
         this.options = pOptions;
+    }
+
+    getSubConnector(pName:string):IDatabaseAdapter|null{
+        // not supported
+        return null;
     }
 
     /**
@@ -79,12 +86,12 @@ export default class InMemoryConnector implements IDatabaseAdapter
         return true;
     }
 
-    getIndex( pName:string):Index{
+    getIndex( pName:string):IDbIndex{
         return this.db.getIndex(pName);
     }
 
 
-    getCollection( pName:string):Collection{
+    getCollection( pName:string):IDbCollection{
         return this.db.getCollection(pName, null);
     }
 

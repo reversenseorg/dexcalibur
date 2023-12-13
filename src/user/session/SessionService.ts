@@ -3,13 +3,11 @@ import {UserAccount} from "../UserAccount.js";
 import {UserSession} from "./UserSession.js";
 import Util from "../../Utils.js";
 import {SessionCode, SessionException} from "./SessionException.js";
-import {IDatabase, IDbCollection} from "../../persist/orm/DbAbstraction.js";
-import {ConnectorFactory} from "../../ConnectorFactory.js";
-import SqliteConnector from "../../../connectors/sqlite/adapter.js";
 import * as Log from "../../Logger.js";
 import DexcaliburEngine from "../../DexcaliburEngine.js";
 import {SessionData} from "./SessionData.js";
 import SqliteDbCollection from "../../../connectors/sqlite/SqliteDbCollection.js";
+import {IDatabase, IDbCollection} from "@dexcalibur/dexcalibur-orm";
 
 /**
  * Represents the map session ID / session object
@@ -106,9 +104,11 @@ export class SessionService {
     }
 
     updateSessionData( pSessionData:SessionData):boolean {
-        (this._s as SqliteDbCollection)
-            .getExtra(SessionData.TYPE.getName())
-            .updateEntry(pSessionData);
+        if(pSessionData!=null){
+            (this._s as SqliteDbCollection)
+                .getExtra(SessionData.TYPE.getName())
+                .updateEntry(pSessionData);
+        }
 
 
         return true;

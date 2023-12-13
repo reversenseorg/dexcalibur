@@ -2,8 +2,9 @@
 import {Finder} from "./Finder.js";
 
 import * as Log from "../Logger.js";
-import {IDbIndex} from "../persist/orm/DbAbstraction.js";
 import {CoreDebug} from "../core/CoreDebug.js";
+import {IDbIndex, SerializeOptions} from "@dexcalibur/dexcalibur-orm";
+import passport from "passport";
 
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
@@ -227,7 +228,7 @@ export class FinderResult
         console.log(this.toString());
     }
 
-    toJsonObject(fields:any = null):any{
+    toJsonObject(pOptions:SerializeOptions = {}):any{
         let data:any=[];
 
         this.data.map((k:string|number, v:any)=>{
@@ -236,7 +237,7 @@ export class FinderResult
                 data.push(v);
             }else{
                 // TODO : ensure toJsonObject format is write for all entries type
-                data.push(v.toJsonObject(fields));
+                data.push(v.toJsonObject(pOptions));
             }
         });
         CoreDebug.checkJsonSerialize(data,"FinderResult");

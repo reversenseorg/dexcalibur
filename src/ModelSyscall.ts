@@ -1,12 +1,17 @@
-import {NodeType} from "./persist/orm/NodeType.js";
+
 import {NodeInternalType} from "./NodeInternalType.js";
-import {DataSourceHelper} from "./DataSourceHelper.js";
-import {INode} from "./INode.js";
-import {NodeProperty} from "./persist/orm/NodeProperty.js";
-import {DbDataType, DbKeyType, DbSerialize} from "./persist/orm/DbAbstraction.js";
 import {OperatingSystem} from "./OperatingSystem.js";
 import {Architecture} from "./Architecture.js";
 import {CoreDebug} from "./core/CoreDebug.js";
+import {
+    NodeType,
+    DataSourceHelper,
+    NodeProperty,
+    DbDataType,
+    DbKeyType,
+    INode,
+    DbSerialize
+} from "@dexcalibur/dexcalibur-orm";
 
 
 /**
@@ -26,7 +31,7 @@ export default class ModelSyscall implements INode
         (new NodeProperty("retType")).type(DbDataType.STRING).def(null),
         (new NodeProperty("errCodes")).type(DbDataType.STRING).def(null),
         (new NodeProperty("tags")).type(DbDataType.STRING).serialize(DbSerialize.JSON).def("[]")
-    ])).dataSource(DataSourceHelper.MEM, "syscalls");
+    ])).dataSource("MEM", "syscalls");
 
     __:NodeInternalType = NodeInternalType.SYSCALL;
 

@@ -1,9 +1,7 @@
 import ModelMethod from "./ModelMethod.js";
 import {Savable, STUB_TYPE} from "./ModelSavable.js";
 import {NodeInternalType} from "./NodeInternalType.js";
-import {NodeType} from "./persist/orm/NodeType.js";
-import {NodeProperty} from "./persist/orm/NodeProperty.js";
-import {DbDataType, DbKeyType, DbSerialize} from "./persist/orm/DbAbstraction.js";
+import {NodeType, NodeProperty, DbDataType, DbKeyType, DbSerialize} from "@dexcalibur/dexcalibur-orm";
 import {ValidationRule} from "./Validator.js";
 import DataScope from "./DataScope.js";
 import ModelFileSection from "./ModelFileSection.js";

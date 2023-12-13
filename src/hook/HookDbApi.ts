@@ -1,4 +1,4 @@
-import {IDatabase, IDbCollection} from "../persist/orm/DbAbstraction.js";
+
 import HookSet from "../HookSet.js";
 import HookStrategy from "./HookStrategy.js";
 import {HookManagerException} from "../errors/HookManagerException.js";
@@ -7,6 +7,7 @@ import NativeFunctionHook from "./NativeFunctionHook.js";
 import HookTemplateFragment from "./HookTemplateFragment.js";
 import HookSession from "../HookSession.js";
 import {RuntimeEvent} from "./RuntimeEvent.js";
+import {IDatabase, IDbCollection} from "@dexcalibur/dexcalibur-orm";
 
 /**
  * Represents every datat set related to hook management

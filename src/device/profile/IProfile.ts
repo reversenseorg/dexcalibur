@@ -1,3 +1,4 @@
+import {SerializeOptions} from "@dexcalibur/dexcalibur-orm";
 
 
 export interface IProfile {
@@ -7,6 +8,6 @@ export interface IProfile {
     isNosy():boolean;
     is(pOpt:any):boolean;
     setProperty(pName:string, pValue:any);
-    toJsonObject(pExclude?:any):any;
+    toJsonObject(pOptions?:SerializeOptions):any;
     toSave(pOptions?:any);
 }

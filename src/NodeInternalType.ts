@@ -58,7 +58,11 @@ export enum NodeInternalType {
     CONTROL,
     CASE,
     BRAND,
-    DEVICE_MODEL
+    DEVICE_MODEL,
+    DEVICE,
+    PROJECT,
+    TOOL,
+    INSPECTOR_PLUGIN
 }
 
 export const NodeInternalTypeName = {
@@ -120,6 +124,11 @@ export const NodeInternalTypeName = {
     [NodeInternalType.CASE]: "CASE",
     [NodeInternalType.BRAND]: "BRAND",
     [NodeInternalType.DEVICE_MODEL]: "DEVICE_MODEL",
+    [NodeInternalType.DEVICE]: "DEVICE",
+    [NodeInternalType.PROJECT]: "PROJECT",
+    [NodeInternalType.TOOL]: "TOOL",
+    [NodeInternalType.INSPECTOR_PLUGIN]: "INSPECTOR_PLUGIN",
+
 }
 
 

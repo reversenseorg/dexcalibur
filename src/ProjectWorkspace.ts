@@ -300,6 +300,9 @@ export default class ProjectWorkspace
         return _path_.join(this.path, DIR_NAME.DEX);
     }
 
+    /**
+     * @deprecated
+     */
     getApkPath():string{
         return this.mainAPK.getPath();
     }
@@ -308,10 +311,17 @@ export default class ProjectWorkspace
         return this.mainApp.getPath();
     }
 
+    /**
+     * @deprecated
+     */
     getApk():APK{
         return this.mainAPK;
     }
 
+    /**
+     * @deprecated
+     * @param pApk
+     */
     setApk( pApk:APK){
         this.mainAPK = pApk; //APK.fromJsonObject( Workspace.getMainApkPath(), pData); 
     }
@@ -323,10 +333,19 @@ export default class ProjectWorkspace
      * @deprecated
      */
     changeMainAPK( pPath:string){
+
         _fs_.copyFileSync( pPath, this.getApkPath());
         this.mainAPK = new APK( this.getApkPath());
     }
 
+    /**
+     * To get path to target app
+     *
+     * @param pType
+     */
+    getTargetAppPath(pType:Nullable<string> = 'bin'):string{
+        return _path_.join(this.path,'app.'+(pType!=null ? pType : 'bin'));
+    }
     /**
      * To change default targeted binary into project workspace
      *
@@ -334,8 +353,11 @@ export default class ProjectWorkspace
      * @param pType
      */
     changeMainAppBinary( pPath:string, pType:Nullable<string> = 'bin'){
-        _fs_.copyFileSync( pPath, this.getAppPath());
-        this.mainApp = new TargetApp( this.getAppPath(), pType);
+        console.log('[PROJECT WORKSPACE][changeMainAppBinary] Input Path = '+pPath+' (type='+pType+')');
+        const targetPath = this.getTargetAppPath(pType);
+        _fs_.copyFileSync( pPath, targetPath);
+        console.log('[PROJECT WORKSPACE][changeMainAppBinary] Output Path = '+this.getAppPath());
+        this.mainApp = new TargetApp( pType, targetPath);
         return this.mainApp;
     }
 

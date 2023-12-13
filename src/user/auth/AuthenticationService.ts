@@ -9,10 +9,10 @@ import {ConnectorFactory} from "../../ConnectorFactory.js";
 import {UserAccount} from "../UserAccount.js";
 import {AuthenticationSettings} from "./AuthenticationSettings.js";
 import AccessControl from "../acl/AccessControl.js";
-import {IDatabase, IDatabaseAdapter, IDbCollection, IDbIndex} from "../../persist/orm/DbAbstraction.js";
 import * as Log from "../../Logger.js";
 import DexcaliburEngine from "../../DexcaliburEngine.js";
-import {NodeProperty} from "../../persist/orm/NodeProperty.js";
+import {NodeProperty, IDatabase, IDatabaseAdapter, IDbCollection} from "@dexcalibur/dexcalibur-orm";
+
 import passport from "passport";
 import * as _openidconnect_ from 'passport-openidconnect';
 

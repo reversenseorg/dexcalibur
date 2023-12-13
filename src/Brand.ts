@@ -1,6 +1,5 @@
-import {NodeType} from "./persist/orm/NodeType.js";
+import {NodeType, INode} from "@dexcalibur/dexcalibur-orm";
 import {NodeInternalType} from "./NodeInternalType.js";
-import {INode} from "./INode.js";
 import {DeviceModel} from "./DeviceModel.js";
 import {IStringIndex} from "./core/IStringIndex.js";
 

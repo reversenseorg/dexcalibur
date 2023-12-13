@@ -5,6 +5,8 @@
  */
 import {IProfile} from "./IProfile.js";
 import {CoreDebug} from "../../core/CoreDebug.js";
+import {IStringIndex, SerializeOptions} from "@dexcalibur/dexcalibur-orm";
+import {Nullable} from "../../core/IStringIndex.js";
 
 
 /**
@@ -57,17 +59,18 @@ export class Profile implements IProfile
     /**
      * @method
      */
-    toJsonObject(pExclude = []):any{
+    toJsonObject(pOptions:SerializeOptions = {exclude:{}}):any{
+        const exclude:Nullable<IStringIndex<boolean>> = (pOptions!=null ? pOptions.exclude : {})
         const o:any = {};
         for(const i in this){
-            if(pExclude.indexOf(i)>-1) continue;
+            if(exclude!=null && exclude[i]===true) continue;
             o[i] = this[i];
         }
         CoreDebug.checkJsonSerialize(o, "Profile");
         return o;
     }
 
-    toSave(pOptions?:any):any{
+    toSave(pOptions?:SerializeOptions):any{
         return this.toJsonObject(pOptions);
     }
 }

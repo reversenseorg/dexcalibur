@@ -27,6 +27,7 @@ import AndroidDeviceProfile from "./android/profiles/AndroidDeviceProfile.js";
 import {NosyProfile} from "./device/profile/NosyProfile.js";
 import {IProfile} from "./device/profile/IProfile.js";
 import {CoreDebug} from "./core/CoreDebug.js";
+import {SerializeOptions} from "@dexcalibur/dexcalibur-orm";
 
 enum ETransportType {
     USB     = 'U',
@@ -56,6 +57,9 @@ export default class AdbWrapper implements IBridge
 
     static DEFAULT_PRIV_STRATEGY = 'su';
     static DEFAULT_EMU_STRATEGY = 'emu-default';
+
+    name = "adb";
+
     strategies:PrivilegedExecutionStrategyMap = {};
 
     /**
@@ -1052,11 +1056,12 @@ export default class AdbWrapper implements IBridge
      * @returns {Object} A simple object ready to be JSON serialized
      * @method
      */
-    toJsonObject( pExcludeList:any={}):any{
+    toJsonObject( pOptions:SerializeOptions = {}):any{
+        const exclude = pOptions.exclude!=null ? pOptions.exclude : null;
         const o:any = {};
 
         for(const i in this){
-            if(pExcludeList[i] === false) continue;
+            if(exclude!=null && exclude[i]===true) continue;
             if(i=='strategies') continue;
             o[i] = this[i];
         }

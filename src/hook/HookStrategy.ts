@@ -1,7 +1,7 @@
 
 
 import DexcaliburProject from "../DexcaliburProject.js";
-import HookStrategySelector from "./HookStrategySelector.js";
+import HookStrategySelector, {HookStrategySelectorOptions} from "./HookStrategySelector.js";
 import * as VM from "vm";
 import {FinderResult} from "../search/FinderResult.js";
 import JavaMethodHook from "./JavaMethodHook.js";
@@ -11,7 +11,7 @@ import {AbstractHook, HOOK_FRAGMENT_POS, UID_POS_MAPPING} from "./AbstractHook.j
 import ModelMethod from "../ModelMethod.js";
 import {ModelFunction} from "../ModelFunction.js";
 import NativeFunctionHook from "./NativeFunctionHook.js";
-import {NodeType} from "../persist/orm/NodeType.js";
+import {NodeType} from "@dexcalibur/dexcalibur-orm";
 import {NodeInternalType} from "../NodeInternalType.js";
 import {HookManager} from "./HookManager.js";
 import * as Log from "../Logger.js";
@@ -19,12 +19,33 @@ import {CryptoUtils} from "../CryptoUtils.js";
 import {CoreDebug} from "../core/CoreDebug.js";
 import {HookVariableMap, TargetLanguage} from "./common.js";
 import {HookVariable} from "../HookVariable.js";
+import {Nullable} from "../core/IStringIndex.js";
 
 export const DEFAULT_PRIORITY = -1;
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
-
+export interface HookStrategyOptions {
+    name:string;
+    search:HookStrategySelectorOptions;
+    autoEmit?:boolean;
+    emitEvent?:Nullable<string>;
+    descr?:Nullable<string>;
+    before?:Nullable<string>;
+    after?:Nullable<string>;
+    replace?:Nullable<string>;
+    loadOn?:Nullable<string>;
+    unloadOn?:Nullable<string>;
+    /**
+     * @deprecated
+     */
+    preprocessor?:Nullable<string>;
+    /**
+     * @deprecated
+     */
+    onMatch?:Nullable<any>;
+    [key:string] :any;
+}
 
 /**
  * Represents the object which search a pattern into the application graphs and generate
@@ -70,6 +91,9 @@ export default class HookStrategy {
      */
     emitEvent:string = null;
 
+    /**
+     * @deprecated
+     */
     preprocessor: string = null;
     /**
      * Search Engine request
@@ -90,6 +114,9 @@ export default class HookStrategy {
 
     on:string = null;
 
+    /**
+     * @deprecated
+     */
     onMatch:any = null;
 
     loadOn:string = null;
@@ -113,7 +140,7 @@ export default class HookStrategy {
      * @constructor
      *
      */
-    constructor(pConfig:any=null){
+    constructor(pConfig:Nullable<HookStrategyOptions>=null){
 
         this.passed = 0;
 
@@ -263,11 +290,19 @@ export default class HookStrategy {
         this.on = pEventName;
     }
 
+    /**
+     * @deprecated
+     * @param pSource
+     */
     updatePreprocessorSrc( pSource:string):void {
         this.preprocessor = pSource;
         this.onMatch = new Function('pCtx', 'pEvent', this.preprocessor);
     }
 
+    /**
+     * @deprecated
+     * @param pFunc
+     */
     setPreprocessorFn( pFunc:any):void {
         this.preprocessor = null;
         this.onMatch = pFunc;
@@ -313,6 +348,7 @@ export default class HookStrategy {
 
                 hm.save(h,create);
 
+                // deprecated
                 if(this.onMatch != null){
                     pContext.getHookManager().addMatchListener(h.getGUID(), this.onMatch);
                 }
@@ -446,6 +482,7 @@ export default class HookStrategy {
     /**
      * NOT USED
      *
+     * @deprecated
      * @param pSource
      */
     static newPreprocessorFn( pSource: string):any {

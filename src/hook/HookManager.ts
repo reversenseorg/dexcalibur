@@ -292,7 +292,7 @@ export class HookManager
         let hs:HookSet = this.getHookSet(pId);
         //Logger.raw(hs);
         if(hs==null){
-            Logger.raw("NEW "+pId+" "+((pOptions.hasOwnProperty('name')? pOptions.name : pId))+" => "+JSON.stringify(pOptions));
+            Logger.debug("NEW "+pId+" "+((pOptions.hasOwnProperty('name')? pOptions.name : pId))+" => "+JSON.stringify(pOptions));
             hs = new HookSet({
                 id: pId,
                 name: (pOptions.hasOwnProperty('name')? pOptions.name : pId),

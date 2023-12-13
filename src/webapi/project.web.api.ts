@@ -159,11 +159,11 @@ PROJECT_WEB_API.addAuthenticatedRoute(
 
                 const dev:Device = req.dxc.project.getDevice();
                 if(dev!=null){
-                    $.sendSuccess(res, dev.toJsonObject({}, {
+                    $.sendSuccess(res, dev.toJsonObject({extra:{
                         bridge: {
                             path: false
                         }
-                    }));
+                    }}));
                 }else{
                     $.sendSuccess(res, null);
                 }

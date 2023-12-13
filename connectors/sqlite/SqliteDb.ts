@@ -8,21 +8,19 @@ import * as Database from "better-sqlite3";
 import SqliteDbCollection from "./SqliteDbCollection.js";
 import SqliteDbIndex from "./SqliteDbIndex.js";
 import SqliteConnector from "./adapter.js";
-import {
-    DbDataType,
-    DbKeyType,
-    DbSetMap,
-    DbSetType,
-    DbSizesMap,
-    IDatabase,
-    IDbSet
-} from "../../src/persist/orm/DbAbstraction.js";
 import {PreparedStatementList, SqliteAPI} from "./SqliteAPI.js";
-import {NodeType} from "../../src/persist/orm/NodeType.js";
-import {NodeProperty} from "../../src/persist/orm/NodeProperty.js";
 import * as Log from "../../src/Logger.js";
 import {NodeInternalType} from "../../src/NodeInternalType.js";
 import DexcaliburProject from "../../src/DexcaliburProject.js";
+import {
+    DbDataType,
+    DbKeyType,
+    DbSetMap, DbSetType,
+    DbSizesMap,
+    IDatabase, IDbCollection,
+    NodeProperty,
+    NodeType
+} from "@dexcalibur/dexcalibur-orm";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -69,6 +67,10 @@ class SqliteDb implements IDatabase
         this._s = new SqliteAPI( db );
         this._ps = this._s._generatePreparedStmt(METADATA_TABLE, SqliteDb.TYPE);
         this._refresh();
+    }
+
+    supportsEvent(): boolean {
+        return true;
     }
 
     /**
@@ -164,7 +166,7 @@ class SqliteDb implements IDatabase
                     Logger.debug("LINKING new extra coll "+c.name+" TO "+(this.indexes[name] as any).name);
                 }else{
 
-                    const b:SqliteDbCollection = this.getCollection(ppt.getNodeType().getName(), ppt.getNodeType());
+                    const b:SqliteDbCollection = this.getCollection(ppt.getNodeType().getName(), ppt.getNodeType()) as SqliteDbCollection;
                     (this.indexes[name] as SqliteDbCollection).link(b);
                     Logger.debug("LINKING existing extra coll "+b.name+" TO "+(this.indexes[name] as any).name);
                 }
@@ -255,7 +257,7 @@ class SqliteDb implements IDatabase
      * @returns {SqliteDbCollection} Index with the given name
      * @method
      */
-    getCollection(name:string, pTemplate:NodeType = null):SqliteDbCollection{
+    getCollection(name:string, pTemplate:NodeType = null):IDbCollection{
         if(this.indexes.hasOwnProperty(name)===false){
             this.newCollection(name, pTemplate);
         }
@@ -270,7 +272,7 @@ class SqliteDb implements IDatabase
      * @method
      * @since 1.0.0
      */
-    getCollectionOf(pTemplate:NodeType):SqliteDbCollection{
+    getCollectionOf(pTemplate:NodeType):IDbCollection{
         return this.getCollection(pTemplate.getName(), pTemplate);
     }
 

@@ -28,6 +28,12 @@ export class EngineNodeException extends MonitoredError {
     static INVALID_STATE = ()=>{
         return new EngineNodeException("Invalid node state",
             ErrorCode.REMOTE_DEXCALIBUR + 408) };
+    static PROJECT_HAS_NOT_WORKFLOW = (pProjectUID:string)=>{
+        return new EngineNodeException("Project [uid="+pProjectUID+"] is not associated to a workflow.",
+            ErrorCode.REMOTE_DEXCALIBUR + 409) };
+    static ENGINE_DB_NOT_READY = (pUuid:string)=>{
+        return new EngineNodeException("Engine DB is not ready [node="+pUuid+"]",
+            ErrorCode.REMOTE_DEXCALIBUR + 410) };
 
 
 

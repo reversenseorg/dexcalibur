@@ -1,8 +1,8 @@
-import { INode } from "../INode.js";
+
 import {IStringIndex} from "../core/IStringIndex.js";
-import { Tag } from "../tags/Tag.js";
 import Util from "../Utils.js";
 import {SearchOptions} from "./MerlinSearchAPI.js";
+import {INode, Tag} from "@dexcalibur/dexcalibur-orm";
 
 
 export interface ValidateOptions {

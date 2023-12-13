@@ -6,6 +6,8 @@ import {ModelRegisterReference} from "./ModelReference.js";
 import {NodeInternalType} from "./NodeInternalType.js";
 import {ModelFunction} from "./ModelFunction.js";
 import {CoreDebug} from "./core/CoreDebug.js";
+import {IStringIndex, SerializeOptions} from "@dexcalibur/dexcalibur-orm";
+import {Nullable} from "./core/IStringIndex.js";
 
 
 export enum ModelInstructionType {
@@ -59,10 +61,11 @@ export default class ModelCpuInstruction
     }
 
 
-    toJsonObject(pExclude:string[]=[]):any{
+    toJsonObject(pOptions:SerializeOptions):any{
+        const exclude:Nullable<IStringIndex<boolean>> = (pOptions.exclude!=null ? pOptions.exclude : null);
         let o:any = {};
         for(let i in this){
-            if(pExclude.indexOf(i)>-1) continue;
+            if(exclude!=null && exclude[i]==true) continue;
             if(typeof this[i]==='object'){
                 // it can be an array or an object or NULL
                 if((this[i]!==null) && (this[i].hasOwnProperty('toJsonObject'))){

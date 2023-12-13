@@ -7,14 +7,19 @@ import ModelExecutableSection from "./ModelExecutableSection.js";
 import {ModelFunction, ModelFunctionList} from "./ModelFunction.js";
 import * as Log from './Logger.js';
 import {IPersistent} from "./persist/orm/IPersistent.js";
-import {DbDataType, DbKeyType, DbSerialize} from "./persist/orm/DbAbstraction.js";
-import {NodeType} from "./persist/orm/NodeType.js";
-import {NodeProperty} from "./persist/orm/NodeProperty.js";
+import {
+    NodeType,
+    NodeProperty,
+    DbDataType,
+    DbKeyType,
+    DbSerialize,
+    ValidationRule,
+    INode,
+    SerializeOptions, Tag
+} from "@dexcalibur/dexcalibur-orm";
 import {NodeInternalType} from "./NodeInternalType.js";
-import {ValidationRule} from "./Validator.js";
-import {INode} from "./INode.js";
 import {CryptoUtils} from "./CryptoUtils.js";
-import {Tag} from "./tags/Tag.js";
+
 import {CoreDebug} from "./core/CoreDebug.js";
 
 
@@ -259,16 +264,39 @@ export default class ModelFile implements INode,IPersistent {
     getScope():DataScope {
         return this.scope;
     }
+
+    /**
+     * Alias to {ModelFile.hasDir()} with pChRootDataScope = TRUE
+     *
+     * To check if the file represented by this instance has pPath
+     * as parent directory. The data scope is the new root folder.
+     *
+     *
+     *
+     * @param {string} pPath Path of parent directory to check
+     */
     hasRelDir(pPath:string):boolean {
         return this.hasDir(pPath,true);
     }
 
-    hasDir( pPath:string, pRelative:boolean = false):boolean {
-        if(pRelative){
-            return _path_.dirname(this._r)==pPath;
-        }else{
-            return _path_.dirname(this.path)==pPath;
+    /**
+     * To check if the file respresented by this instance has pPath
+     * as parent directory
+     *
+     * @param {string} pPath Path of parent directory to check
+     * @param {boolean} pChRootDataScope Default FALSE. TRUE to change root folder to DataScope root
+     * @return {boolean} TRUE if the cuurent file has pPath as parent directory
+     * @method
+     */
+    hasDir( pPath:string, pChRootDataScope:boolean = false):boolean {
+        let dirname = this.path;
+        if(pChRootDataScope){
+            dirname = _path_.dirname(this._r);
         }
+
+        if(dirname==='.') dirname = _path_.sep;
+
+        return (dirname==pPath);
     }
 
     generateUID(): void {
@@ -343,15 +371,20 @@ export default class ModelFile implements INode,IPersistent {
         return (['ELF'].indexOf(this.type) > -1);
     }
 
-    toJsonObject(pOpts: any = {}) {
+    /**
+     *
+     * @param pOpts
+     */
+    toJsonObject(pOpts: SerializeOptions = {extra:{}}) {
         let o: any = new Object();
 
 
-        if(pOpts!=null && pOpts.hasOwnProperty('cmd')) {
+        if(pOpts!=null && pOpts.extra!=null && pOpts.extra.hasOwnProperty('cmd')) {
+
             o.__p = {};
 
             //TO_JSON( this.__p, o.__p)
-            pOpts.cmd.split(':').map(
+            pOpts.extra.cmd.split(':').map(
                 (vCmd:string)=>{
                   switch(vCmd){
                       case "sections":

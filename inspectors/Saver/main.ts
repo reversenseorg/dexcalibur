@@ -19,7 +19,8 @@ var Saver:InspectorFactory = new InspectorFactory({
     hookSet: {
         id: "Saver",
         name: "Saver",
-        description: "It offers a way to backup alias/hook and restore it as any save/open feature."
+        description: "It offers a way to backup alias/hook and restore it as any save/open feature.",
+        strategies:[]
     },
 
     eventListeners: {

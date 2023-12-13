@@ -1,9 +1,8 @@
 import ModelMetadata from "./ModelMetadata.js";
 import ModelClass from './ModelClass.js';
-import {NodeType} from "./persist/orm/NodeType.js";
+import {NodeType, DataSourceHelper, SerializeOptions, INode} from "@dexcalibur/dexcalibur-orm";
 import {NodeInternalType} from "./NodeInternalType.js";
 import {IPersistent} from "./persist/orm/IPersistent.js";
-import {DataSourceHelper} from "./DataSourceHelper.js";
 import {Savable, STUB_TYPE} from "./ModelSavable.js";
 import {CoreDebug} from "./core/CoreDebug.js";
 
@@ -13,10 +12,10 @@ import {CoreDebug} from "./core/CoreDebug.js";
  * 
  * @class
  */
-export default class ModelPackage extends Savable implements IPersistent
+export default class ModelPackage extends Savable implements INode, IPersistent
 {
 
-    static TYPE:NodeType = (new NodeType( "package", NodeInternalType.PACKAGE, [])).dataSource(DataSourceHelper.MEM, "package");
+    static TYPE:NodeType = (new NodeType( "package", NodeInternalType.PACKAGE, [])).dataSource("MEM", "package");
 
     __:NodeInternalType = NodeInternalType.PACKAGE;
 
@@ -183,7 +182,8 @@ export default class ModelPackage extends Savable implements IPersistent
      * @returns {Object} Simple object containing package content
      * @function 
      */
-    toJsonObject( pFields:any):any{
+    toJsonObject( pOptions:SerializeOptions):any{
+        let pFields = pOptions.include;
         let o:any= {}, k:number, m:any, field:string=null;
         o.children = [];
         o._t = 'p'; // TODO : Stub
@@ -254,7 +254,7 @@ export default class ModelPackage extends Savable implements IPersistent
             o.sname = this.sname;
             o.children = [];
             for(let i in this.children){
-                o.children.push(this.children[i].toJsonObject(null)); // TODO args
+                o.children.push(this.children[i].toJsonObject({})); // TODO args
             }
             o.tags = this.tags;
         }

@@ -13,8 +13,9 @@
   "dependencies": {
     "@dexcalibur/dexcalibur-frida-compile": "^10.2.5",
     "@dexcalibur/dexcalibur-installer": "^1.0.43",
-    "@dexcalibur/dexcalibur-orm": "^1.0.5",
+    "@dexcalibur/dexcalibur-orm": "^1.0.14",
     "@dexcalibur/dexcalibur-orm-mongodb": "^1.0.4",
+    "@dexcalibur/dexcalibur-orm-sqlite": "^1.0.1",
     "@reversense/interruptor": "^1.0.12",
     "@types/nedb": "^1.8.11",
     "adm-zip": "^0.4.14",
@@ -71,6 +72,7 @@
   "scripts": {
     "prepare": "npm run build",
     "build": "node ./scripts/run_os_script.mjs build",
+    "build:dxprivacy:dev": "node ./scripts/run_os_script.mjs build && cp -r $PWD/../dexcalibur-agent/dist $PWD/dist/agent && ln -s $HOME/dxc/dexcalibur-home/dist/dexcalibur-home $PWD/dist/src/webserver/www/home && ln -s $PWD/../../dxc-ui-reverse/dist/dxc-ui-reverse $PWD/dist/src/webserver/www/pro",
     "build:dev": "./build.sh && cp -r $PWD/../dexcalibur-agent/dist $PWD/dist/agent && ln -s $HOME/WebstormProjects/dexcalibur-home/dist/dexcalibur-home $PWD/dist/src/webserver/www/home && ln -s $PWD/../../dxc-ui-reverse/dist/dxc-ui-reverse $PWD/dist/src/webserver/www/pro  ",
     "build:prod": "DXC_PROD=1 node ./scripts/run_os_script.mjs build",
     "build:node": "node ./scripts/run_os_script.mjs prebuild-node && node ./scripts/run_os_script.mjs build",

@@ -9,10 +9,7 @@ import {
     ATTR_TYPE
 } from "./AndroidAttribute.js";
 import {NodeInternalType} from "../NodeInternalType.js";
-import {NodeType} from "../persist/orm/NodeType.js";
-import {DataSourceHelper} from "../DataSourceHelper.js";
-import {NodeProperty} from "../persist/orm/NodeProperty.js";
-import {DbDataType, DbKeyType} from "../persist/orm/DbAbstraction.js";
+import {NodeType, DataSourceHelper, NodeProperty, DbDataType, DbKeyType} from "@dexcalibur/dexcalibur-orm";
 import ModelClass from "../ModelClass.js";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
@@ -28,7 +25,7 @@ export default class AndroidProvider extends AndroidComponent
         (new NodeProperty("attr")).volatile().type(DbDataType.STRING),
         (new NodeProperty("__impl")).volatile().single(ModelClass.TYPE),
     ]))
-        .dataSource(DataSourceHelper.MEM, "androidProvider");
+        .dataSource("MEM", "androidProvider");
 
     __:NodeInternalType = NodeInternalType.ANDROID_PROVIDER;
 

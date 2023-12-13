@@ -13,12 +13,12 @@ import DataScope from "./DataScope.js";
 import {ModelFunction} from "./ModelFunction.js";
 import {ABI} from "./binary/ABI.js";
 import {Workflow} from "./Workflow.js";
-import {IDatabase, IDbCollection, IDbIndex} from "./persist/orm/DbAbstraction.js";
 import {NativeAnalyzerProfile} from "./NativeAnalyzerProfile.js";
 import AndroidNativeAnalyzerProfile from "./android/analyzer/AndroidNativeAnalyzerProfile.js";
 import IosNativeAnalyzerProfile from "./ios/analyzer/IosNativeAnalyzerProfile.js";
 import {NativeAnalyzerException} from "./errors/NativeAnalyzerException.js";
 import {AnalyzerState} from "./AnalyzerState.js";
+import {IDatabase, IDbCollection} from "@dexcalibur/dexcalibur-orm";
 
 
 export const PROFILES = {

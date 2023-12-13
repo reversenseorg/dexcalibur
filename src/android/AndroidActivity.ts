@@ -3,10 +3,7 @@ import {IntentFilter} from "./IntentFilter.js";
 import AndroidComponent from "./AndroidComponent.js";
 import {AndroidPermission} from "./Permissions.js";
 import {NodeInternalType} from "../NodeInternalType.js";
-import {NodeType} from "../persist/orm/NodeType.js";
-import {DataSourceHelper} from "../DataSourceHelper.js";
-import {NodeProperty} from "../persist/orm/NodeProperty.js";
-import {DbDataType, DbKeyType} from "../persist/orm/DbAbstraction.js";
+import {NodeType, DataSourceHelper, NodeProperty, DbDataType, DbKeyType} from "@dexcalibur/dexcalibur-orm";
 import ModelClass from "../ModelClass.js";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
@@ -72,7 +69,7 @@ export default class AndroidActivity extends AndroidComponent
         (new NodeProperty("attr")).volatile().type(DbDataType.STRING).def({}),
         (new NodeProperty("__impl")).volatile().single(ModelClass.TYPE),
         ]))
-        .dataSource(DataSourceHelper.MEM, "androidActivity");
+        .dataSource("MEM", "androidActivity");
 
     __:NodeInternalType = NodeInternalType.ANDROID_ACTIVITY;
 

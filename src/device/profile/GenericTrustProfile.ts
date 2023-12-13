@@ -1,6 +1,7 @@
 import {Profile} from "./Profile.js";
 import Certificate from "../../formats/common/Certificate.js";
 import {CoreDebug} from "../../core/CoreDebug.js";
+import {SerializeOptions} from "@dexcalibur/dexcalibur-orm";
 
 export default abstract class GenericTrustProfile extends Profile {
 
@@ -18,17 +19,17 @@ export default abstract class GenericTrustProfile extends Profile {
      * @method
      * @override
      */
-    toJsonObject(pExclude:string[]=['_raw']):any{
+    toJsonObject(pOptions:SerializeOptions = {exclude:{_raw:true}}):any{
         const o:any = {};
         for(const i in this){
             switch (i){
                 case 'customCAs':
                     o.customCAs = [];
-                    this.customCAs.map( (vCert)=>{ if(vCert!=null) o.customCAs.push(vCert.toJsonObject(pExclude)) });
+                    this.customCAs.map( (vCert)=>{ if(vCert!=null) o.customCAs.push(vCert.toJsonObject(pOptions)) });
                     break;
                 case 'systemCAs':
                     o.systemCAs = [];
-                    this.systemCAs.map( (vCert)=>{ if(vCert!=null) o.systemCAs.push(vCert.toJsonObject(pExclude)) });
+                    this.systemCAs.map( (vCert)=>{ if(vCert!=null) o.systemCAs.push(vCert.toJsonObject(pOptions)) });
                     break;
                 default:
                     o[i] = this[i];

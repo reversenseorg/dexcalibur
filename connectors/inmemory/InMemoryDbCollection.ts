@@ -5,7 +5,6 @@
  * @class
  */
 import SerializedObject from "./SerializedObject.js";
-import {IDbCollection, IDbIndex} from "../../src/persist/orm/DbAbstraction.js";
 import {
     Comparison, InnerjoinOperationArgs,
     MerlinSearchRequest, NestedRequestOperationArgs,
@@ -15,6 +14,8 @@ import {
 } from "../../src/search/MerlinSearchRequest.js";
 import {SearchRequestCondition} from "../../src/search/SearchRequestCondition.js";
 import {InMemoryMerlinBackend} from "./InMemoryMerlinBackend.js";
+import {IDbCollection, IDbIndex} from "@dexcalibur/dexcalibur-orm";
+import {InMemoryException} from "./error/InMemoryException.js";
 
 
 export default class InMemoryDbCollection implements IDbCollection
@@ -32,6 +33,34 @@ export default class InMemoryDbCollection implements IDbCollection
         this.name = name;
         this.ctr = 0;
         this.merlinBackend = new InMemoryMerlinBackend(this);
+    }
+
+    hasProxy():boolean {
+        return false;
+    }
+
+    getProxy():any {
+        throw  InMemoryException.NO_PROXY_AVAILABLE("getProxy", this.name);
+    }
+
+    async asyncAddEntry?(pKey:any, pValue:any): Promise<void> {
+        return Promise.resolve(this.addEntry(pKey, pValue));
+    }
+
+    async asyncUpdateEntry(pValue:any): Promise<any> {
+        return Promise.resolve(this.updateEntry( pValue));
+    }
+
+    async asyncGetEntry(pKey:any): Promise<any> {
+        return Promise.resolve(this.getEntry( pKey));
+    }
+
+    async asyncHasEntry(pKey:any): Promise<any> {
+        return Promise.resolve(this.hasEntry( pKey));
+    }
+
+    async asyncRemoveEntry(pKey:any): Promise<boolean> {
+        return Promise.resolve(this.removeEntry( pKey));
     }
 
     setEntry(key:string,value:any){
@@ -110,8 +139,8 @@ export default class InMemoryDbCollection implements IDbCollection
     // ======
 
 
-    search(pRequest: MerlinSearchRequest, pResult: IDbIndex): IDbIndex {
-        return  this.merlinBackend.search(pRequest,pResult);
+    search(pRequest: MerlinSearchRequest, pResult: IDbIndex): Promise<IDbIndex> {
+        return Promise.resolve(this.merlinBackend.search(pRequest,pResult));
     }
 
     // ======= serialize =======

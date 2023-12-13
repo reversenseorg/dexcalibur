@@ -28,6 +28,8 @@ const LOCAL_PLATFORM_RE = new RegExp('(?<source>[^_.]+)_(?<name>[^_.]+)_(?<versi
  */
 export default class Platform
 {
+    static SUPPORTED_FILE_FMT = ["apk","ipa","so","bin","dmg"];
+
     uid:string = null;
     name:string = null;
     version:string = null;
@@ -241,6 +243,8 @@ export default class Platform
         let stateName:string;
         let state:Nullable<AnalyzerState> = null;
 
+        Logger.info("PLATFORM > newAppAnalyzer > ",this.os);
+        console.log(this);
         switch(this.os){
             case OperatingSystem.ANDROID:
                 appAnalyzer = new AndroidAppAnalyzer(pProject);
@@ -297,6 +301,15 @@ export default class Platform
             return true;
             //throw AnalyzerException.EXTRACT_NOT_SUPPORTED(pTargetApp.type,this.os);
         }
+        // ipa helper, tizen helper, dmg helper,  bin helper, ...
+    }
 
+    getDefaultFileType() {
+        if(this.os==OperatingSystem.ANDROID||this.isAndroid()){
+            return "apk"
+        }
+        else {
+            return "bin";
+        }
     }
 }

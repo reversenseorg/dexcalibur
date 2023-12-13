@@ -68,7 +68,7 @@ FS_WEB_API.addAuthenticatedRoute(
 
                     Logger.raw(file.__p.f_list)
                     if(file.isExecutable()){
-                        d = file.toJsonObject({ cmd:'sections:f_list'});
+                        d = file.toJsonObject({extra:{ cmd:'sections:f_list'}});
                     }else{
                         d = file.toJsonObject();
                         d.ctn = _fs_.readFileSync( file.getPath(), {encoding: "utf-8"});

@@ -1,9 +1,15 @@
 
-import {DbDataType, DbKeyType, DbSetType, IDbIndex} from "../../src/persist/orm/DbAbstraction.js";
 import {PreparedStatementList, SqliteAPI} from "./SqliteAPI.js";
 import {SqliteException} from "./SqliteException.js";
-import {NodeType} from "../../src/persist/orm/NodeType.js";
-import {NodeProperty} from "../../src/persist/orm/NodeProperty.js";
+import {
+    NodeType,
+    DbSetType,
+    NodeProperty,
+    DbDataType,
+    IDbIndex,
+    DbKeyType,
+    IDatabase
+} from "@dexcalibur/dexcalibur-orm";
 import {SqliteDb} from "./SqliteDb.js";
 
 /**
@@ -22,7 +28,7 @@ export default class SqliteDbIndex implements IDbIndex
     _tpl: NodeType = null;
     _pk: NodeProperty = null; //primary key
 
-    _db:SqliteDb = null;
+    _db:IDatabase = null;
 
     /**
      * @type {SqliteAPI}
@@ -95,6 +101,7 @@ export default class SqliteDbIndex implements IDbIndex
     }
 
     /**
+     * to check exist + insert OR update
      *
      * @param offset
      * @param ref
@@ -222,5 +229,13 @@ export default class SqliteDbIndex implements IDbIndex
 
     serialize(){
         throw new SqliteException("SqliteDbIndex are not serializable");
+    }
+
+    hasProxy():boolean {
+        return false;
+    }
+
+    getProxy(): any {
+        return null;
     }
 }

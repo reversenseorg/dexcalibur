@@ -1,7 +1,8 @@
-import {IDatabase, IDbCollection} from "../../persist/orm/DbAbstraction.js";
+
 import {JavaHookBuilder} from "./JavaHookBuilder.js";
 import DexcaliburProject from "../../DexcaliburProject.js";
 import {NativeHookBuilder} from "./NativeHookBuilder.js";
+import {IDatabase, IDbCollection} from "@dexcalibur/dexcalibur-orm";
 
 
 export class HookBuilder {

@@ -6,7 +6,7 @@ import {
 } from "../audit/common/SerializedMerlinPrimitive.js";
 import {InnerjoinOperationArgs, MerlinSearchRequest, Operation, OperationType} from "./MerlinSearchRequest.js";
 import {IStringIndex, Nullable} from "../core/IStringIndex.js";
-import {NodeType} from "../persist/orm/NodeType.js";
+import {NodeType} from "@dexcalibur/dexcalibur-orm";
 import {MerlinAndroidRule} from "./MerlinAndroidRule.js";
 import {MerlinFlutterRule} from "./MerlinFlutterRule.js";
 import {MerlinIosRule} from "./MerlinIosRule.js";

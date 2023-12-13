@@ -18,11 +18,18 @@ import HookMessageV2 from "./hook/HookMessageV2.js";
 import {RuntimeEvent, RuntimeEventType} from "./hook/RuntimeEvent.js";
 import {HookMessageException} from "./errors/HookMessageException.js";
 import {TagHashMap} from "./tags/TagManager.js";
-import {INode} from "./INode.js";
-import {NodeType} from "./persist/orm/NodeType.js";
 import {NodeInternalType} from "./NodeInternalType.js";
-import {NodeProperty, NodePropertyState} from "./persist/orm/NodeProperty.js";
-import {DbDataType, DbKeyType, DbSerialize} from "./persist/orm/DbAbstraction.js";
+
+import {
+    NodeType,
+    DbSerialize,
+    NodePropertyState,
+    NodeProperty,
+    DbDataType,
+    DbKeyType,
+    INode,
+    SerializeOptions
+} from "@dexcalibur/dexcalibur-orm";
 import {CryptoUtils} from "./CryptoUtils.js";
 import {CoreDebug} from "./core/CoreDebug.js";
 import {Nullable} from "./core/IStringIndex.js";
@@ -370,9 +377,10 @@ export default class HookSession extends WebsocketSession implements INode
     /**
      * @method
      */
-    toJsonObject( pOffset=0, pSize=-1):any{
+    //toJsonObject( pOffset=0, pSize=-1):any {
+    toJsonObject(pOptions?: SerializeOptions):any  {
         const o:any = new Object();
-        let limit:number=pSize;
+        let limit:number=pOptions.size;
         o._uid = this._uid;
         o.message = [];
         o.active = this.active;
@@ -388,8 +396,8 @@ export default class HookSession extends WebsocketSession implements INode
         if(limit==-1)
             limit = this.message.length;
 
-        limit += pOffset;
-        for(let i=pOffset; i<limit; i++){
+        limit += pOptions.offset;
+        for(let i=pOptions.offset; i<limit; i++){
             if(this.message[i] != null)
                 o.message.push(this.message[i].toJsonObject());
         }

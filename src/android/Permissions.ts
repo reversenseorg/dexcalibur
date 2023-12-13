@@ -1,8 +1,5 @@
-import {NodeType} from "../persist/orm/NodeType.js";
+import {NodeType,DataSourceHelper,NodeProperty, DbDataType, DbKeyType} from "@dexcalibur/dexcalibur-orm";
 import {NodeInternalType} from "../NodeInternalType.js";
-import {DataSourceHelper} from "../DataSourceHelper.js";
-import {NodeProperty} from "../persist/orm/NodeProperty.js";
-import {DbDataType, DbKeyType} from "../persist/orm/DbAbstraction.js";
 import {RuntimeEvent} from "../hook/RuntimeEvent.js";
 import {CoreDebug} from "../core/CoreDebug.js";
 
@@ -18,7 +15,7 @@ export class AndroidPermission
         (new NodeProperty("query")).type(DbDataType.STRING).def(""),
         (new NodeProperty("__custom")).type(DbDataType.BOOLEAN).def(0),
     ]))
-        .dataSource(DataSourceHelper.MEM, "androidPermission");
+        .dataSource("MEM", "androidPermission");
 
     __:NodeInternalType = NodeInternalType.ANDROID_PERM;
 

@@ -1,8 +1,6 @@
-import {INode} from "./INode.js";
-import {NodeType} from "./persist/orm/NodeType.js";
+
 import {NodeInternalType} from "./NodeInternalType.js";
-import {NodeProperty} from "./persist/orm/NodeProperty.js";
-import {DbDataType, DbKeyType} from "./persist/orm/DbAbstraction.js";
+import {NodeType, INode, NodeProperty, DbDataType, DbKeyType} from "@dexcalibur/dexcalibur-orm";
 import {IStringIndex} from "./core/IStringIndex.js";
 
 

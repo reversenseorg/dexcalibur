@@ -6,9 +6,8 @@
  */
 import DexcaliburProject from "./DexcaliburProject.js";
 import {ConnectorFactory} from "./ConnectorFactory.js";
-import {IDatabaseAdapter, IDbCollection, IDbIndex} from "./persist/orm/DbAbstraction.js";
 import {NodeInternalType, NodeInternalTypeName} from "./NodeInternalType.js";
-import {NodeType} from "./persist/orm/NodeType.js";
+import {NodeType, IDatabaseAdapter, IDbCollection, IDbIndex} from "@dexcalibur/dexcalibur-orm";
 import {IStringIndex} from "./core/IStringIndex.js";
 import {AnalyzerException} from "./errors/AnalyzerException.js";
 

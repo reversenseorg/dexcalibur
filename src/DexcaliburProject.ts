@@ -40,7 +40,6 @@ import {UserAccount} from "./user/UserAccount.js";
 import {IAuditableAccess} from "./user/acl/IAuditableAccess.js";
 import {ProjectAccessControl} from "./user/acl/rbac/ProjectAccessContol.js";
 import {AnalyzerConfiguration, FileAnalysisType} from "./AnalyzerConfiguration.js";
-import {IDatabase, IDatabaseAdapter} from "./persist/orm/DbAbstraction.js";
 import SqliteConnector from "../connectors/sqlite/adapter.js";
 import AccessControl from "./user/acl/AccessControl.js";
 import {AccessZone} from "./user/acl/Zones.js";
@@ -68,6 +67,19 @@ import {ScanSchedulerProject} from "./audit/common/ScanSchedulerProject.js";
 import {SecurityZone} from "./security/SecurityZone.js";
 import TargetApp from "./common/TargetApp.js";
 import {Metadata, MetadataType} from "./audit/common/Metadata.js";
+import {Nullable} from "./core/IStringIndex.js";
+import {EngineNodeException} from "./errors/EngineNodeException.js";
+import {
+    DbDataType,
+    DbKeyType, IDatabase, IDatabaseAdapter,
+    INode,
+    NodeProperty,
+    NodePropertyState,
+    NodeType,
+    TagUUID
+} from "@dexcalibur/dexcalibur-orm";
+import {NodeInternalType} from "./NodeInternalType.js";
+import {UserService} from "./user/UserService.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -92,6 +104,10 @@ interface DigestSet {
     [type:string] :string
 }
 
+export interface AppExtractOptions {
+    type:string;
+}
+
 /*
 const DexcaliburProjectValidator = new Validator({
     'uid': [
@@ -106,8 +122,57 @@ const DexcaliburProjectValidator = new Validator({
  * @class
  * @author Georges-B. MICHEL
  */
-export default class DexcaliburProject extends Auditable implements IAuditableAccess
+export default class DexcaliburProject extends Auditable implements IAuditableAccess, INode
 {
+    static TYPE:NodeType = new NodeType('project', NodeInternalType.PROJECT, [
+        (new NodeProperty("uid")).type(DbDataType.STRING).key(DbKeyType.PRIMARY),
+        (new NodeProperty("pkg")).type(DbDataType.STRING),
+        (new NodeProperty("name")).type(DbDataType.STRING),
+        (new NodeProperty("engineVersion")).type(DbDataType.STRING),
+        (new NodeProperty("state")).type(DbDataType.NUMERIC),
+        (new NodeProperty("os")).type(DbDataType.STRING),
+        (new NodeProperty("arch")).type(DbDataType.STRING),
+        (new NodeProperty("name")).type(DbDataType.STRING),
+        (new NodeProperty("meta")).type(DbDataType.BLOB),
+        (new NodeProperty("owner")).type(DbDataType.BLOB)
+            .sleep( (x:NodePropertyState)=>{
+                if(x.p!=null){
+                    return (x.p as UserAccount).getUID();
+                }else{
+                    return null;
+                }
+            })
+            .wakeUp( (x:NodePropertyState)=>{
+                if(x.p!=null){
+                    return UserService.findUserByUID(x.p, DexcaliburEngine.getInstance().UID);
+                }else{
+                    return [];
+                }
+            }),
+        (new NodeProperty("testers")).type(DbDataType.BLOB)
+            .sleep( (x:NodePropertyState)=>{
+                if(x.p!=null){
+                    const uuids:string[] = [];
+                    x.p.map( usr => uuids.push((usr as UserAccount).getUID()));
+                    return uuids;
+                }else{
+                    return [];
+                }
+            })
+            .wakeUp( (x:NodePropertyState)=>{
+                if(x.p!=null){
+                    const users:UserAccount[] = [];
+                    x.p.map( uuid => {
+                        users.push(UserService.findUserByUID(uuid, DexcaliburEngine.getInstance().UID))
+                    });
+                    return users;
+                }else{
+                    return [];
+                }
+            })
+    ]);
+
+    __:NodeInternalType = NodeInternalType.PROJECT;
 
     state:ProjectState = ProjectState.IDLE;
 
@@ -294,6 +359,8 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
 
     owner: UserAccount = null;
     tester: UserAccount[] = [];
+
+    tags:TagUUID[] = [];
 
     private _scanScheduler:ScanSchedulerProject;
 
@@ -634,6 +701,7 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
     async init():Promise<void>{
         const im:InspectorManager = InspectorManager.getInstance();
 
+        Logger.info("PROJECT > init");
         this.state = ProjectState.INIT_START;
 
         // init config
@@ -676,8 +744,11 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
         sqliteConn.connect(this.workspace.getDbPath());
         this.db = sqliteConn.getDB();
 
+
         // once Project DB is ready, init tag manager and load presets
         this.tagManager.init(this);
+
+        Logger.info("PROJECT > init > tagManager ready");
 
         // set the Search API which allow the user to perform search
         this.find = new SearchAPI();
@@ -732,7 +803,7 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
         // manifest / app analyzer
         // depend of application type
         if(this.platform != null){
-
+            console.log("PLATFORM RETRIEVED");
             this.kpmgr = this.platform.newKeyPointManager(this);
             this.appAnalyzer = this.platform.newAppAnalyzer(this);
 
@@ -943,6 +1014,7 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
      *
      * @param {string} pPath APK file path
      * @async
+     * @deprecated
      * @method
      */
     async useAPK( pPath:string):Promise<ApkPackage>{
@@ -980,15 +1052,20 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
      * @async
      * @method
      */
-    async useApp( pPath:string, pExtractOptions:any = {}):Promise<TargetApp>{
+    async useApp( pPath:string, pExtractOptions:AppExtractOptions):Promise<TargetApp>{
 
 
         // copy the APK into project workspace
-        const targetApp = this.workspace.changeMainAppBinary(pPath);
+        const targetApp = this.workspace.changeMainAppBinary(
+            pPath,
+            pExtractOptions.type
+        );
 
         // load it : decompress file, disass dex files
         this.getWorkflow().pushStatus(new StatusMessage(2, "Start to extract application data"));
 
+        Logger.info("[PROJECT][TARGET APP] Path : "+targetApp.getPath())
+        console.log(targetApp);
         // get right app helper
         const success = await this.platform.extractApp(
             targetApp, this.workspace.getApkDir(), pExtractOptions);
@@ -1209,7 +1286,7 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
      * @param {*} pProjectUID 
      * @param {*} pConfigPath 
      */
-    static load( pEngine:DexcaliburEngine, pProjectUID:string, pAcc:UserAccount, pConfigPath:string = null):DexcaliburProject{
+    static load( pEngine:DexcaliburEngine, pProjectUID:string, pAcc:UserAccount, pConfig:Nullable<any> = null):DexcaliburProject{
         
         const project:DexcaliburProject = new DexcaliburProject( pEngine, pProjectUID);
         let data:any = null;
@@ -1226,12 +1303,17 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
         project.workspace.init();
 
 
-        if(pConfigPath == null){
-            pConfigPath = project.workspace.getProjectCfgPath();
+        if(pConfig == null){
+            try{
+                const cfgPath = project.workspace.getProjectCfgPath();
+                data = JSON.parse(Fs.readFileSync( cfgPath).toString());
+            }catch(e){
+                throw DexcaliburProjectException.MISSING_CONFIG_FILE(pProjectUID);
+            }
+        }else{
+            data = pConfig;
         }
 
-        data = Fs.readFileSync( pConfigPath);
-        data = JSON.parse(data);
 
 
         if(!data.hasOwnProperty('engineVersion')){
@@ -2024,6 +2106,7 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
 
         if(!state.isReady()) state.setContext(this);
 
+        console.log(pAnal, state);
         return state;
     }
 
@@ -2057,4 +2140,5 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
         };
     }
 }
+DexcaliburProject.TYPE.builder(DexcaliburProject);
 

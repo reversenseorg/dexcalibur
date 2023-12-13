@@ -6,7 +6,7 @@ import * as Log from './Logger.js';
 import HookPrimitive from "./HookPrimitive.js";
 import HookStrategy from "./hook/HookStrategy.js";
 import {AbstractHook} from "./hook/AbstractHook.js";
-import {NodeType} from "./persist/orm/NodeType.js";
+import {NodeType} from "@dexcalibur/dexcalibur-orm";
 import {NodeInternalType} from "./NodeInternalType.js";
 import {CoreDebug} from "./core/CoreDebug.js";
 

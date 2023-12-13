@@ -99,7 +99,8 @@ export default new InspectorFactory({
     hookSet: {
         id: "BytecodeCleaner",
         name: "Bytecode cleaner",
-        description: "It offers several cleanup solution : remove NOP, replace goto, detect wrapper, detect duplicate function ..."
+        description: "It offers several cleanup solution : remove NOP, replace goto, detect wrapper, detect duplicate function ...",
+        strategies:[]
     },
 
     webapi: PLUGIN_WEB_API

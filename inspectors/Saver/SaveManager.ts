@@ -5,7 +5,7 @@ import {ConnectorFactory} from "../../src/ConnectorFactory.js";
 import DexcaliburProject from "../../src/DexcaliburProject.js";
 import InMemoryConnector from "../../connectors/inmemory/adapter.js";
 import * as Log from "../../src/Logger.js";
-import {IDatabase} from "../../src/persist/orm/DbAbstraction.js";
+import {IDatabase} from "@dexcalibur/dexcalibur-orm";
 
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
