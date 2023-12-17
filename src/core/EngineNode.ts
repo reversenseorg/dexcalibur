@@ -9,6 +9,7 @@ import * as _path_ from "path";
 import * as _fs_ from "fs";
 import {EngineNodeException} from "../errors/EngineNodeException.js";
 import {NodeState} from "./EngineNodeManager.js";
+import {ScanOrder} from "../audit/common/ScanOrder.js";
 
 const GOT = got.default;
 
@@ -25,21 +26,19 @@ export enum NodePurpose {
 
 export enum ScanState {
     RUNNING="running",
+    WAITING="waiting",
+    IDLE="idle",
     TERMINATED="terminated",
+    GENERATE_REPORT="genreport",
     ABORTED="aborted",
-    CRASHED="crashed"
+    CRASHED="crashed",
+    /**
+     * That means Scan has been never started
+     */
+    NONE="none"
 }
 
-export interface ScanSession {
-    modelUID:string;
-    scanReport: any;
-    state: ScanState
-}
 
-export interface OrderedScan {
-    model: string,
-    time: number
-}
 
 export interface PostScanEvent {
     model: string;
@@ -72,11 +71,21 @@ export class EngineNode {
     errPipe:Nullable<string>;
     outPipe:Nullable<string>;
 
-    activeScanSession:Nullable<ScanSession> = null;
+    activeScanSession:Nullable<ScanOrder> = null;
 
-    history:ScanSession[] = [];
+    history:ScanOrder[] = [];
 
-    waitingQueue: OrderedScan[] = [];
+    waitingQueue: ScanOrder[] = [];
+
+    /**
+     * An event flow to track update of SanOrder state.
+     *
+     *
+     * @type {Subject<ScanOrder>}
+     * @field
+     */
+    scanStateUpdate$:Subject<ScanOrder> = new Subject<ScanOrder>();
+
 
     constructor(pUUID:string, pProjectUID:string) {
         this.UUID = pUUID;
@@ -109,32 +118,30 @@ export class EngineNode {
         return false;
     }
 
-    async startScan(pModelUID:string):Promise<any> {
+    async startScan(pOrder:ScanOrder):Promise<any> {
 
         // check if server is iddle
         if(this.isReady()){
+
             // archive previous scan
             if(this.activeScanSession !=null){
-                this.activeScanSession.state = ScanState.TERMINATED;
+                this.activeScanSession.setState(ScanState.TERMINATED);
                 this.history.push(this.activeScanSession);
             }
 
             // create new scan session
-            this.activeScanSession = {
-                modelUID: pModelUID,
-                state: ScanState.RUNNING,
-                scanReport: null
-            };
+            this.activeScanSession = pOrder;
+            this.activeScanSession.setState(ScanState.RUNNING);
 
         }else{
             // check if server is starting and queue is empty
             // else check if node is busy
             switch (this.state){
                 case NodeState.STARTING:
-                    this.waitingQueue.push({
-                        model: pModelUID,
-                        time: (new Date()).getTime()
-                    });
+                    pOrder.dates.start = (new Date()).getTime();
+                    this.activeScanSession.setState(ScanState.WAITING);
+                    this.waitingQueue.push(pOrder);
+                    this.scanStateUpdate$.next(pOrder);
                     break;
                 case NodeState.NEW:
                     throw EngineNodeException.BUSY_NODE(this.UUID,"startScan");
@@ -146,17 +153,18 @@ export class EngineNode {
                     throw EngineNodeException.DOWN_NODE(this.UUID,"startScan");
                     break;
             }
-
-
-
         }
+
+        // save order, to make it accessible from slave Node
+        this._engine.getEngineDB().save(pOrder);
 
         //GOT()
         GOT(
             this.getHost()+"/api/audit/project/"+this._projectUID+"/scan/start",{
                 body: JSON.stringify({
+                    order: this.activeScanSession.getUID(),
                     project: this._projectUID,
-                    models: [this.activeScanSession.modelUID]
+                    models: [this.activeScanSession.getModelUID()]
                 })
             }
         ).then(()=>{
@@ -261,11 +269,18 @@ export class EngineNode {
     }
 
 
-    appendToQueue(pModelUID:string):void {
-        this.waitingQueue.push({
-            model: pModelUID,
-            time: (new Date()).getTime()
-        })
+    /**
+     * To queue a scan order
+     *
+     * It add time
+     *
+     * @param {ScanOrder} pOrder Scan order
+     * @method
+     */
+    appendToQueue(pOrder:ScanOrder):void {
+        pOrder.dates.waiting = (new Date()).getTime();
+        this.waitingQueue.push(pOrder);
+        this.scanStateUpdate$.next(pOrder);
     }
 
     /**
@@ -283,7 +298,7 @@ export class EngineNode {
         // checks if there is queued scan
         if(this.waitingQueue.length>0){
             let order = this.waitingQueue.shift()
-            await this.startScan(order.model);
+            await this.startScan(order);
         }
     }
 
@@ -305,7 +320,7 @@ export class EngineNode {
         // checks if there is queued scan, if TRUE, consume it
         if(this.waitingQueue.length>0){
             let order = this.waitingQueue.shift()
-            await this.startScan(order.model);
+            await this.startScan(order);
         }
     }
 

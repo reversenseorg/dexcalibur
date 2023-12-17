@@ -14,6 +14,7 @@ import {TerminalServer} from "./TerminalServer.js";
 import DexcaliburRegistry from "./DexcaliburRegistry.js";
 import {External} from "./external/External.js";
 import {UserAccount} from "./user/UserAccount.js";
+import {EngineDatabase} from "./database/EngineDatabase.js";
 
 
 export interface IDexcaliburProjectMap {
@@ -36,6 +37,7 @@ export interface IDexcaliburEngine {
     getPlatformManager():PlatformManager;
     getTerminalServer():TerminalServer;
     getToolManager():External.ToolManager;
+    getEngineDB():EngineDatabase;
     getRegistry():DexcaliburRegistry;
     createWorkspace( pPath:string):void;
     getProjects():string[];
@@ -47,4 +49,5 @@ export interface IDexcaliburEngine {
     getWorkflow(pUID:string, pExternal:boolean):Workflow;
     onNewWorkflow( pUID:string, pCallback:any, pExternal:boolean):void;
     listProjectsOf( pUser:UserAccount):DexcaliburProjectMap;
+
 }

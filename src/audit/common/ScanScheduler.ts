@@ -2,12 +2,13 @@ import {ScanFlow} from "./ScanFlow.js";
 import DexcaliburEngine, {DexcaliburEngineMode} from "../../DexcaliburEngine.js";
 import {ScanOrder} from "./ScanOrder.js";
 import {Subject} from "rxjs";
-import {EngineNode, NodePurpose} from "../../core/EngineNode.js";
+import {EngineNode, NodePurpose, ScanState} from "../../core/EngineNode.js";
 import {AuditManager} from "../AuditManager.js";
 import DexcaliburProject from "../../DexcaliburProject.js";
 import {AssuranceScanner} from "./AssuranceScanner.js";
 import {LicenceManager} from "../../credit/LicenceManager.js";
 import AssuranceReport from "./AssuranceReport.js";
+import {ACTION_DATE} from "../../common/ActionDates.js";
 
 /**
  * Present a scan scheduler
@@ -47,7 +48,7 @@ export class ScanScheduler {
         });
 
         this._queued$.subscribe((vOrder:ScanOrder)=>{
-                this.newScan(vOrder);
+            this.newScan(vOrder);
         });
     }
 
@@ -57,7 +58,7 @@ export class ScanScheduler {
      * @param vOrder
      */
     verifyBalance(vOrder:ScanOrder){
-        // TODO : verify balance and sign result
+        // TODO : verify balance width License Server and sign result
         this._queued$.next(vOrder);
     }
 
@@ -79,23 +80,37 @@ export class ScanScheduler {
      * @param pOrder
      */
     async newStandaloneScan(pProject:DexcaliburProject, pOrder:ScanOrder):Promise<AssuranceReport> {
+        const edb = this._ctx.getEngineDB();
         const am = AuditManager.getInstance();
+
+        edb.save(pOrder);
+
         const model = await am.getModel(pProject, pOrder.getModelUID());
         const scanner:AssuranceScanner = LicenceManager.getProduct(pProject,model.scannerID) as AssuranceScanner;
 
         const opts = scanner.validateOptions(pOrder.options);
 
         scanner.setModel(model);
+
+        pOrder.setState(ScanState.RUNNING);
+        pOrder.setDate( ACTION_DATE.START );
+
+        edb.save(pOrder);
+
         // check credit
         //scanner.hasCredit()
         await scanner.run(pProject, opts);
+        pOrder.setDate( ACTION_DATE.STOP );
+        pOrder.setState(ScanState.GENERATE_REPORT);
 
+        edb.save(pOrder);
         // get report
         const report = scanner.getReport();
-
         // save report
         am.saveReport(pProject, report);
-
+        //pOrder.report = report;
+        pOrder.setState(ScanState.TERMINATED);
+        edb.save(pOrder);
         // get hook instance by ID
         return report;
     }
@@ -122,10 +137,10 @@ export class ScanScheduler {
 
         if(!await node.isBusy()){
             // send a request to order a scan to the node
-            node.startScan(pOrder.getModelUID());
+            node.startScan(pOrder);
         }else{
             // add scan to queue
-            node.appendToQueue(pOrder.getModelUID());
+            node.appendToQueue(pOrder);
         }
     }
 

@@ -62,7 +62,8 @@ export enum NodeInternalType {
     DEVICE,
     PROJECT,
     TOOL,
-    INSPECTOR_PLUGIN
+    INSPECTOR_PLUGIN,
+    SCAN_ORDER
 }
 
 export const NodeInternalTypeName = {
@@ -128,7 +129,7 @@ export const NodeInternalTypeName = {
     [NodeInternalType.PROJECT]: "PROJECT",
     [NodeInternalType.TOOL]: "TOOL",
     [NodeInternalType.INSPECTOR_PLUGIN]: "INSPECTOR_PLUGIN",
-
+    [NodeInternalType.SCAN_ORDER]: "SCAN_ORDER",
 }
 
 

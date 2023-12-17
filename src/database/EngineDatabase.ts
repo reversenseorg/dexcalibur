@@ -9,6 +9,9 @@ import DexcaliburProject from "../DexcaliburProject.js";
 import {UserAccount} from "../user/UserAccount.js";
 import {Device} from "../Device.js";
 import InspectorFactory from "../InspectorFactory.js";
+import {ScanOrder} from "../audit/common/ScanOrder.js";
+import {INode, NodeType} from "@dexcalibur/dexcalibur-orm";
+import {NodeInternalType} from "../NodeInternalType.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -30,6 +33,7 @@ const PROJECT_COL = "projects";
 const DEVICES_COL = "devices";
 const TOOLS_COL = "tools";
 const INSP_COL = "inspectors";
+const SCAN_COL = "scans";
 
 const INTERNAL_DB = "dxcserver";
 const PROJECT_DB_PREFIX = "dxc_";
@@ -56,6 +60,7 @@ export class EngineDatabase {
     private inspectors:Nullable<MongodbDbCollection>;
     private devices:Nullable<MongodbDbCollection>;
     private tools:Nullable<MongodbDbCollection>;
+    private scans:Nullable<MongodbDbCollection>;
 
     // project scope
     private runtime_events:Nullable<MongodbDbCollection>; // with session
@@ -122,6 +127,7 @@ export class EngineDatabase {
         });
     }
 
+
     /**
      * Format
      *
@@ -143,16 +149,19 @@ export class EngineDatabase {
 
 
     async connect():Promise<void> {
-        this._db = await this._connector.asyncConnect(null,"dxcserver");
+        this._db = await this._connector.asyncConnect(null,INTERNAL_DB);
+        this._db.open(INTERNAL_DB);
+
         const existings:string[] = [];
         const colls = await this._db.getDbCollections();
         colls.map(x => {
             existings.push(x.collectionName)
-        })
+        });
 
         if(existings.indexOf(PROJECT_COL)==-1){ this._db.createCollectionOf(DexcaliburProject.TYPE, PROJECT_COL); }
         if(existings.indexOf(DEVICES_COL)==-1){ this._db.createCollectionOf(Device.TYPE, DEVICES_COL); }
         if(existings.indexOf(INSP_COL)==-1){ this._db.createCollectionOf(InspectorFactory.TYPE, INSP_COL); }
+        if(existings.indexOf(SCAN_COL)==-1){ this._db.createCollectionOf(ScanOrder.TYPE, SCAN_COL); }
 
         console.log(this._db);
         Logger.info("Connection successful");
@@ -201,5 +210,56 @@ export class EngineDatabase {
     async saveProject(pProject:DexcaliburProject):Promise<boolean> {
         const coll = this._db.getCollection(PROJECT_COL);
         return coll.asyncUpdateEntry( pProject);
+    }
+
+
+    /**
+     * To save an object to corresponding collection
+     *
+     * Only some object type can be stored into shared DB :
+     * scan order, projects metadata, devices, inspectors info
+     *
+     * @param {INode} pObject
+     * @async
+     * @method
+     */
+    async save(pObject:INode):Promise<boolean> {
+        let collName:Nullable<string> = null;
+        let collType:Nullable<NodeType> = null;
+        switch (pObject.__){
+            case NodeInternalType.SCAN_ORDER:
+                collName = SCAN_COL;
+                collType = ScanOrder.TYPE;
+                break;
+            case NodeInternalType.PROJECT:
+                collName = PROJECT_COL;
+                collType = DexcaliburProject.TYPE;
+                break;
+            case NodeInternalType.DEVICE:
+                collName = DEVICES_COL;
+                collType = Device.TYPE;
+                break;
+            case NodeInternalType.INSPECTOR:
+                collName = INSP_COL;
+                collType = InspectorFactory.TYPE;
+                break;
+        }
+
+        if(collName!==null && collType!==null){
+            if(Object.keys((this._db as any)._colls).length==0){
+                this._db.open(INTERNAL_DB);
+                console.log((this._db as any)._colls);
+            }
+            const coll = this._db.getCollection(collName, collType);
+            if(coll.asyncHasEntry(pObject)){
+                return coll.asyncUpdateEntry( pObject);
+            }else{
+                coll.asyncAddEntry( pObject.getUID(), pObject);
+                return true;
+            }
+        }else{
+            return false;
+        }
+
     }
 }

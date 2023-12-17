@@ -716,6 +716,8 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
             this.db = new EngineDatabase(this, ss.getDatabaseSettings());
             await this.db.connect();
 
+            //this.db.registerScheduler();
+
             Logger.info("[ENGINE] server settings init : Done");
         }catch(err){
             Logger.error("[ENGINE] server settings init : "+err.message+"\n"+err.stack);

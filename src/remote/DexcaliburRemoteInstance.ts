@@ -15,6 +15,7 @@ import DexcaliburWorkspace from "../DexcaliburWorkspace.js";
 import {IpcMode} from "../DexcaliburServerChildProcess.js";
 import {UserAccount} from "../user/UserAccount.js";
 import {DexcaliburProjectMap} from "../DexcaliburEngine.js";
+import {EngineDatabase} from "../database/EngineDatabase.js";
 
 export class DexcaliburRemoteInstance implements IDexcaliburEngine {
 
@@ -69,6 +70,10 @@ export class DexcaliburRemoteInstance implements IDexcaliburEngine {
     }
 
     getRegistry(): DexcaliburRegistry {
+        return undefined;
+    }
+
+    getEngineDB(): EngineDatabase {
         return undefined;
     }
 

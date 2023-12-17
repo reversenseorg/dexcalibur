@@ -572,7 +572,7 @@ AUDIT_WEB_API.addAsyncAuthenticatedRoute(
                         project = req.dxc.sess._project[req.body.projectUID];
                     }
 
-                    const report = await scheduler.newStandaloneScan(project, new ScanOrder({
+                    const report = await scheduler.newStandaloneScan(project, ScanOrder.fromScanOptions({
                         modelUID: req.body.modelUID[0],
                         projectUID: req.body.projectUID,
                     }));
@@ -589,7 +589,7 @@ AUDIT_WEB_API.addAsyncAuthenticatedRoute(
                 }*/
 
                 req.body.modelUID.map( vModelUID => {
-                    const order = new ScanOrder({
+                    const order = ScanOrder.fromScanOptions({
                         modelUID: vModelUID,
                         projectUID: req.body.projectUID,
                     });
