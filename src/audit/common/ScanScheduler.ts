@@ -83,7 +83,8 @@ export class ScanScheduler {
         const edb = this._ctx.getEngineDB();
         const am = AuditManager.getInstance();
 
-        edb.save(pOrder);
+        console.log("order save 1> ",await edb.save(pOrder));
+        //await edb.save(pOrder);
 
         const model = await am.getModel(pProject, pOrder.getModelUID());
         const scanner:AssuranceScanner = LicenceManager.getProduct(pProject,model.scannerID) as AssuranceScanner;
@@ -95,7 +96,9 @@ export class ScanScheduler {
         pOrder.setState(ScanState.RUNNING);
         pOrder.setDate( ACTION_DATE.START );
 
-        edb.save(pOrder);
+
+        console.log("order save 2> ",await edb.save(pOrder));
+        //await edb.save(pOrder);
 
         // check credit
         //scanner.hasCredit()
@@ -103,14 +106,17 @@ export class ScanScheduler {
         pOrder.setDate( ACTION_DATE.STOP );
         pOrder.setState(ScanState.GENERATE_REPORT);
 
-        edb.save(pOrder);
+        console.log("order save 3> ",await edb.save(pOrder));
+        //await edb.save(pOrder);
+
         // get report
         const report = scanner.getReport();
         // save report
         am.saveReport(pProject, report);
         //pOrder.report = report;
         pOrder.setState(ScanState.TERMINATED);
-        edb.save(pOrder);
+        console.log("order save 4> ",await edb.save(pOrder));
+        //await edb.save(pOrder);
         // get hook instance by ID
         return report;
     }
@@ -142,6 +148,32 @@ export class ScanScheduler {
             // add scan to queue
             node.appendToQueue(pOrder);
         }
+    }
+
+    /**
+     * To list orders from a project
+     *
+     * @param pProject
+     */
+    async listOrdersOf( pProject:DexcaliburProject|string):Promise<ScanOrder[]> {
+        let projectUID:string;
+        if(typeof pProject==="string"){
+            projectUID = pProject;
+        }else{
+            projectUID = pProject.uid;
+        }
+
+        return await (this._ctx.getEngineDB().search({settings: { projectUID: projectUID }}, new ScanOrder()) as Promise<ScanOrder[]>);
+    }
+
+
+    /**
+     * To list orders from a project
+     *
+     * @param pProject
+     */
+    async listAllOrders():Promise<ScanOrder[]> {
+        return await (this._ctx.getEngineDB().getCollectionOf(new ScanOrder()).getAsList());
     }
 
     /*

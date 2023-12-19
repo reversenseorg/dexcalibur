@@ -18,10 +18,10 @@ import {AbstractHook} from "../../hook/AbstractHook.js";
 import {CoreDebug} from "../../core/CoreDebug.js";
 
 export interface ScanOrderSettings {
-    modelUID: string;
+    modelUID?: string;
     targetDevice?: string;
     targetOS?: string;
-    projectUID: string;
+    projectUID?: string;
     fileUploadID?:string;
 }
 
@@ -30,7 +30,7 @@ export interface ScanOrderSettings {
 
 export interface ScanOrderOptions {
     _id?:string;
-    uid?:string;
+    uuid?:string;
     slaveUID?:Nullable<string>;
     webhook?:Nullable<string>;
     settings?:ScanOrderSettings;
@@ -74,7 +74,7 @@ export class ScanOrder implements INode {
         NodeInternalType.ANAL_STATE,
         [
             (new NodeProperty("_id")).type(DbDataType.STRING).key(DbKeyType.PRIMARY),
-            (new NodeProperty("uid")).type(DbDataType.STRING).key(DbKeyType.PRIMARY),
+            (new NodeProperty("uuid")).type(DbDataType.STRING).key(DbKeyType.PRIMARY),
             (new NodeProperty("slaveUID")).type(DbDataType.STRING),
             (new NodeProperty("webhook")).type(DbDataType.STRING),
             (new NodeProperty("settings")).type(DbDataType.STRING),
@@ -101,7 +101,7 @@ export class ScanOrder implements INode {
      * Scan order UUID (per Infra Node)
      * @field
      */
-    uid:string = null;
+    uuid:string = null;
 
     /**
      * UUID of the instance of DexcaliburEngine running the scan
@@ -143,8 +143,8 @@ export class ScanOrder implements INode {
             for(let i in pOptions) this[i] = pOptions[i];
         }
 
-        if(this.uid==null){
-            this.uid = randomUUID();
+        if(this.uuid==null){
+            this.uuid = randomUUID();
         }
         if(this.dates[ACTION_DATE.START]==-1){
             this.setDate( ACTION_DATE.ORDER);
@@ -165,7 +165,11 @@ export class ScanOrder implements INode {
 
 
     getUID(): string {
-        return this.uid;
+        return this._id;
+    }
+
+    getUUID():string {
+        return this.uuid;
     }
 
     setSlaveNode(pUID:string):void {
@@ -216,8 +220,8 @@ export class ScanOrder implements INode {
 
     toJsonObject(pOptions?:SerializeOptions):any {
         const obj:any = {};
-        const fields = pOptions.include;
-        const exclude = pOptions.exclude;
+        const fields = (pOptions!=null ? pOptions.include : null);
+        const exclude = (pOptions!=null && Array.isArray(pOptions.exclude))? pOptions.exclude : [];
 
         if(fields != null && fields.length>0){
             for(let i:number=0; i<fields.length; i++){

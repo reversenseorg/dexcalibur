@@ -222,8 +222,6 @@ export default class AssuranceReport {
     toJsonObject():any {
         const o:any = {};
         let match:Match;
-        
-        console.log(this);
 
         for(let i in this){
             switch (i){

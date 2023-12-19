@@ -487,17 +487,22 @@ AUDIT_WEB_API.addAsyncAuthenticatedRoute(
             const $: WebServer = req.dxc.$;
 
             try{
-                //
+                /*
                 let project = null;
                 try{
                     project = AUDIT_WEB_API.doProjectSecurityChecks(req, $, {readProjectStrict:true});
                 }catch(err1){
                     throw err1;
-                }
+                }*/
 
                 // ========== LOGIC
-                const scheduler = project.getScanScheduler();
-                $.sendSuccess(res, scheduler.toJsonObject());
+                const orders = await  $.context.getScanScheduler().listOrdersOf(req.params.projectID);
+                const data = [];
+                orders.map(x => data.push(x.toJsonObject()));
+
+                //const scheduler = project.getScanScheduler();
+
+                $.sendSuccess(res, data);
             }catch(err){
                 Logger.error("[API][AUDIT] Scans cannot be listed. Cause : " + err.message + "\n\t" + err.stack);
                 $.sendError(res, "Scans cannot be listed. Cause : " + err.message);
@@ -541,6 +546,32 @@ AUDIT_WEB_API.addAsyncAuthenticatedRoute(
 
 
 
+
+
+AUDIT_WEB_API.addAsyncAuthenticatedRoute(
+    '/order/list',
+    {
+        'get': async function (req:DelegateRequest, res:DelegateResponse):Promise<any> {
+            const $: WebServer = req.dxc.$;
+
+            try{
+                const scheduler = $.context.getScanScheduler();
+                const data:any[] = [];
+
+                (await scheduler.listAllOrders()).map( x => {
+                  data.push(x.toJsonObject())  ;
+                })
+
+                $.sendSuccess(res,data);
+            }catch(err){
+                Logger.error("[API][AUDIT] All Scans cannot be listed. Cause : " + err.message + "\n\t" + err.stack);
+                $.sendError(res, "All Scans cannot be listed. Cause : " + err.message);
+            }
+        }
+    },{
+        readProject: false
+    }
+);
 
 AUDIT_WEB_API.addAsyncAuthenticatedRoute(
     '/order/scan',

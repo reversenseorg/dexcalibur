@@ -264,7 +264,7 @@ export function newLogger(config:any =null, override:boolean =false):TestLogger|
         if(config===null){
             config={
                 testMode: false,
-                debugMode: false
+                debugMode: (process.env.DXC_DEBUG=="1"? true : false)
             };
         }
 

@@ -10,8 +10,9 @@ import {UserAccount} from "../user/UserAccount.js";
 import {Device} from "../Device.js";
 import InspectorFactory from "../InspectorFactory.js";
 import {ScanOrder} from "../audit/common/ScanOrder.js";
-import {INode, NodeType} from "@dexcalibur/dexcalibur-orm";
-import {NodeInternalType} from "../NodeInternalType.js";
+import {IDbCollection, INode, NodeType} from "@dexcalibur/dexcalibur-orm";
+import {NodeInternalType, NodeInternalTypeName} from "../NodeInternalType.js";
+import {EngineDatabaseException} from "../errors/EngineDatabaseException.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -37,6 +38,12 @@ const SCAN_COL = "scans";
 
 const INTERNAL_DB = "dxcserver";
 const PROJECT_DB_PREFIX = "dxc_";
+
+
+interface CollectionInfo {
+    name:string;
+    type:number;
+}
 /**
  * Represent the server DB where project data are stored or cloned
  *
@@ -214,6 +221,69 @@ export class EngineDatabase {
 
 
     /**
+     * To get an instance of the collection specified node are stored in
+     * engine db
+     *
+     * @param {INode} pNode
+     * @return {IDbCollection} Matching collection
+     * @method
+     */
+    getCollectionOf(pNode:INode):IDbCollection {
+        let collName:Nullable<string> = null;
+        let collType:Nullable<NodeType> = null;
+        switch (pNode.__){
+            case NodeInternalType.SCAN_ORDER:
+                collName = SCAN_COL;
+                collType = ScanOrder.TYPE;
+                break;
+            case NodeInternalType.PROJECT:
+                collName = PROJECT_COL;
+                collType = DexcaliburProject.TYPE;
+                break;
+            case NodeInternalType.DEVICE:
+                collName = DEVICES_COL;
+                collType = Device.TYPE;
+                break;
+            case NodeInternalType.INSPECTOR:
+                collName = INSP_COL;
+                collType = InspectorFactory.TYPE;
+                break;
+        }
+
+        if(collName!==null && collType!==null){
+            if(Object.keys((this._db as any)._colls).length==0){
+                this._db.open(INTERNAL_DB);
+            }
+            return this._db.getCollection(collName, collType);
+        }else{
+            throw EngineDatabaseException.UNKNOWN_COLLECTION(NodeInternalTypeName[pNode.__]);
+        }
+    }
+
+    /**
+     *
+     * @param pObject
+     */
+    async search(pFilter:any, pObject:INode, pOptions?:any):Promise<any[]> {
+
+        let res:INode[] = [];
+        let coll:IDbCollection;
+
+        try{
+            coll = this.getCollectionOf(pObject);
+            res = await coll.search( pFilter, pOptions);
+        }catch(err){
+            Logger.error(err);
+            res = [];
+        }
+
+        return res;
+    }
+
+
+
+
+    /**
      * To save an object to corresponding collection
      *
      * Only some object type can be stored into shared DB :
@@ -251,10 +321,12 @@ export class EngineDatabase {
                 console.log((this._db as any)._colls);
             }
             const coll = this._db.getCollection(collName, collType);
-            if(coll.asyncHasEntry(pObject)){
-                return coll.asyncUpdateEntry( pObject);
+            if(pObject._id!=null){
+                console.log("MONGO > asyncUpdateEntry > ",pObject);
+                return await coll.asyncUpdateEntry( pObject);
             }else{
-                coll.asyncAddEntry( pObject.getUID(), pObject);
+                console.log("MONGO > asyncAddEntry > ",pObject);
+                await coll.asyncAddEntry( pObject.getUID(), pObject);
                 return true;
             }
         }else{
