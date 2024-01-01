@@ -198,24 +198,50 @@ export class EngineDatabase {
      * To list project from db
      */
     async listProjects(pUserAccount:UserAccount):Promise<DexcaliburProject[]> {
-        const coll = this._db.getCollection(PROJECT_COL);
+        const coll = this.getCollectionOf(DexcaliburProject.TYPE.getType());
         const projs:any[] = await coll.getAsList();
         const res:DexcaliburProject[] = [];
 
-        projs.map( x => {
-            res.push( DexcaliburProject.load( this._ctx, x.uid, pUserAccount, x));
-        });
+        for(let i=0; i<projs.length; i++){
+            res.push( await DexcaliburProject.load( this._ctx, projs[i].uid, pUserAccount, projs[i]));
+        }
 
         return res;
     }
 
+
+    /**
+     * To read a project from engine DB usign username
+     *
+     * @param {string} pUID Project UID
+     * @param {Nullable<UserAccount>} pUserAccount User account
+     * @return {Promise<DexcaliburProject[]>}
+     * @method
+     * @async
+     */
+    async getProject(pUID:string, pUserAccount?:Nullable<UserAccount>):Promise<DexcaliburProject> {
+        const coll:MongodbDbCollection = this.getCollectionOf(DexcaliburProject.TYPE.getType()) as MongodbDbCollection;
+        const project:Nullable<DexcaliburProject[]> = await coll.search({ uid: pUID});
+
+        if(project==null || project.length==0){
+            throw EngineDatabaseException.UNKNOWN_PROJECT(pUID);
+        }
+
+        if(pUserAccount!=null){
+            project[0].isOwnedBy(pUserAccount);
+        }
+
+
+        return project[0];
+    }
+
     async createProject(pProject:DexcaliburProject):Promise<any> {
-        const coll = this._db.getCollection(PROJECT_COL);
-        return coll.asyncAddEntry( pProject.getUID(), pProject.toJsonObject());
+        const coll = this.getCollectionOf(pProject);
+        return coll.asyncAddEntry( pProject.getUID(), pProject );
     }
 
     async saveProject(pProject:DexcaliburProject):Promise<boolean> {
-        const coll = this._db.getCollection(PROJECT_COL);
+        const coll = this.getCollectionOf(pProject);
         return coll.asyncUpdateEntry( pProject);
     }
 
@@ -224,14 +250,15 @@ export class EngineDatabase {
      * To get an instance of the collection specified node are stored in
      * engine db
      *
-     * @param {INode} pNode
+     * @param {INode|NodeInternalType} pNode An instance of a node, or a node type (a number)
      * @return {IDbCollection} Matching collection
      * @method
      */
-    getCollectionOf(pNode:INode):IDbCollection {
+    getCollectionOf(pNode:INode|NodeInternalType):IDbCollection {
         let collName:Nullable<string> = null;
         let collType:Nullable<NodeType> = null;
-        switch (pNode.__){
+        const nodeType = (typeof pNode==='number')?pNode:pNode.__;
+        switch ( nodeType){
             case NodeInternalType.SCAN_ORDER:
                 collName = SCAN_COL;
                 collType = ScanOrder.TYPE;
@@ -256,7 +283,7 @@ export class EngineDatabase {
             }
             return this._db.getCollection(collName, collType);
         }else{
-            throw EngineDatabaseException.UNKNOWN_COLLECTION(NodeInternalTypeName[pNode.__]);
+            throw EngineDatabaseException.UNKNOWN_COLLECTION(NodeInternalTypeName[nodeType]);
         }
     }
 

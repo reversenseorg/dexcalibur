@@ -1154,7 +1154,7 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
 
 
             wf.pushStatus(new StatusMessage(7, "Loading project data"));
-            project = DexcaliburProject.load(this, pUID, pUserAccount, null);
+            project = await DexcaliburProject.load(this, pUID, pUserAccount, null);
 
 
             // init
@@ -1174,6 +1174,9 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
 
 
             this.updater.run( DXC_LIFECYCLE_EVENT.OPEN_PROJECT, project);
+
+            // update db
+            this.getEngineDB().saveProject(project);
 
             //this.webserver.setProject(project);
         }catch(err){
