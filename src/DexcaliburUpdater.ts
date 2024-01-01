@@ -4,10 +4,21 @@ import {PATCHES} from "./internals/patches.js";
 import {DXC_LIFECYCLE_EVENT} from "./CoreConst.js";
 
 
-
+/**
+ * A DexcaliburPatch is a way to patch project instance or other at
+ * runtime without restarting server
+ *
+ * @class
+ */
 export class DexcaliburPatch {
 
+  /**
+   * A function or a piece of JS code to evaluate in context
+   * @type
+   * @private
+   */
   private _code:any;
+
   version:string;
   time:string;
   desr:string;
@@ -60,6 +71,12 @@ const gUpdaters:DexcaliburUpdaterMap = {};
 
 /**
  * An updater is unique per Dexcalibur engine
+ *
+ * It provides some hooks inside DexcaliburEngine lifecycle
+ * to dynamically modify behavior.
+ *
+ * TODO : replace by Event streams
+ * Oriented-Aspect Programming
  *
  * @class
  */

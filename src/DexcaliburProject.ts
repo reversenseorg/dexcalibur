@@ -80,7 +80,6 @@ import {
 } from "@dexcalibur/dexcalibur-orm";
 import {NodeInternalType} from "./NodeInternalType.js";
 import {UserService} from "./user/UserService.js";
-import {EngineDatabaseException} from "./errors/EngineDatabaseException.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -126,7 +125,6 @@ const DexcaliburProjectValidator = new Validator({
 export default class DexcaliburProject extends Auditable implements IAuditableAccess, INode
 {
     static TYPE:NodeType = new NodeType('project', NodeInternalType.PROJECT, [
-        (new NodeProperty("_id")).type(DbDataType.STRING).key(DbKeyType.PRIMARY),
         (new NodeProperty("uid")).type(DbDataType.STRING).key(DbKeyType.PRIMARY),
         (new NodeProperty("pkg")).type(DbDataType.STRING),
         (new NodeProperty("name")).type(DbDataType.STRING),
@@ -176,6 +174,12 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
 
     __:NodeInternalType = NodeInternalType.PROJECT;
 
+    /**
+     * State of the project (see `ProjectState`)
+     *
+     * @type {ProjectState}
+     * @field
+     */
     state:ProjectState = ProjectState.IDLE;
 
     /**
@@ -363,7 +367,6 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
     tester: UserAccount[] = [];
 
     tags:TagUUID[] = [];
-
 
     private _scanScheduler:ScanSchedulerProject;
 
@@ -1283,32 +1286,15 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
     /**
      * To load a project
      *
-     * -> Try to load from Engine DB
-     * -> If missing -> migration case -> create project in DB
-     *
      * the user MUST be the owner
      *
      * @param {*} pContext 
      * @param {*} pProjectUID 
      * @param {*} pConfigPath 
      */
-    static async load( pEngine:DexcaliburEngine, pProjectUID:string, pAcc:UserAccount, pConfig:Nullable<any> = null):Promise<DexcaliburProject>{
+    static load( pEngine:DexcaliburEngine, pProjectUID:string, pAcc:UserAccount, pConfig:Nullable<any> = null):DexcaliburProject{
 
-        let project:Nullable<DexcaliburProject>;
-        let notPersisted = true;
-
-        try{
-           project = await pEngine.getEngineDB().getProject(pProjectUID);
-            notPersisted = false;
-        }catch (err){
-            if(err.code==EngineDatabaseException.CODE.UNKNOWN_PROJECT){
-                // project is missing inside DB
-                project = new DexcaliburProject( pEngine, pProjectUID);
-            }else{
-                throw err;
-            }
-        }
-
+        const project:DexcaliburProject = new DexcaliburProject( pEngine, pProjectUID);
         let data:any = null;
 
 
@@ -1344,13 +1330,11 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
         try{
             project.isCompatibleWithEngine(pEngine);
         }catch(err){
-            switch (err.code){
+            switch (err.getCode()){
                 case DexcaliburProjectException.ALL.NEED_PROJECT_UPGRADE:
-                    console.error("DexcaliburProjectException.ALL.NEED_PROJECT_UPGRADE");
                     // todo
                     break;
                 case DexcaliburProjectException.ALL.NEED_ENGINE_UPGRADE:
-                    console.error("DexcaliburProjectException.ALL.NEED_ENGINE_UPGRADE");
                     // todo
                     break;
                 default:
@@ -1411,7 +1395,11 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
             }
         }
 
+
         project.engineVersion = data.engineVersion;
+
+
+
 
         if(data.platform != null){
             project.platform = PlatformManager.getInstance().getPlatform(data.platform);
@@ -1422,12 +1410,6 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
 
         // init other properties
         project.init();
-
-        // if not exists in DB, create it
-        if(notPersisted){
-            console.log(project);
-            project = await pEngine.getEngineDB().createProject(project);
-        }
 
 
         return project;

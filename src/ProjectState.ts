@@ -1,19 +1,22 @@
+/**
+ * @enum
+ */
 export enum ProjectState {
-    IDLE,
+    IDLE='idle',
 
-    OPEN,
-    CLOSED,
-    INIT,
-    BEFORE_WORKSPACE,
-    WORKSPACE_READY,
-    DB_READY,
-    INIT_START,
-    INIT_SAST,
-    INIT_FILE_ANALYZER,
-    INIT_APP_ANALYZER,
-    INIT_HOOK_MANAGER,
-    SYNC_PLATFORM,
-    FULLSCAN_START,
-    FULLSCAN_END,
-    READY
+    OPEN='open',
+    CLOSED='closed',
+    INIT='init',
+    BEFORE_WORKSPACE='ws:before',
+    WORKSPACE_READY='ws:ready',
+    DB_READY='db:ready',
+    INIT_START='start:init',
+    INIT_SAST='sast:init',
+    INIT_FILE_ANALYZER='fanal:init',
+    INIT_APP_ANALYZER='aanal:init',
+    INIT_HOOK_MANAGER='hookm:init',
+    SYNC_PLATFORM='platform:sync',
+    FULLSCAN_START='fullscan:start',
+    FULLSCAN_END='fullscan:end',
+    READY='ready'
 }

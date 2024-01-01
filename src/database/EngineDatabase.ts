@@ -320,7 +320,8 @@ export class EngineDatabase {
      * @async
      * @method
      */
-    async save(pObject:INode):Promise<boolean> {
+    async save(pObject:INode):Promise<INode> {
+        let obj:INode;
         let collName:Nullable<string> = null;
         let collType:Nullable<NodeType> = null;
         switch (pObject.__){
@@ -350,15 +351,20 @@ export class EngineDatabase {
             const coll = this._db.getCollection(collName, collType);
             if(pObject._id!=null){
                 console.log("MONGO > asyncUpdateEntry > ",pObject);
-                return await coll.asyncUpdateEntry( pObject);
+
+                if((await coll.asyncUpdateEntry( pObject))===false){
+                    throw EngineDatabaseException.UPDATE_FAILED_FOR(NodeInternalTypeName[pObject.__], pObject._id );
+                }else{
+                    obj = pObject;
+                }
             }else{
                 console.log("MONGO > asyncAddEntry > ",pObject);
-                await coll.asyncAddEntry( pObject.getUID(), pObject);
-                return true;
+                obj = await coll.asyncAddEntry( pObject.getUID(), pObject);
             }
         }else{
-            return false;
+            throw EngineDatabaseException.SAVE_OPE_NOT_SUPPORTED(NodeInternalTypeName[pObject.__]);
         }
 
+        return obj;
     }
 }

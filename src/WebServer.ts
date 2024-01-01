@@ -1261,6 +1261,7 @@ export default class WebServer
         const isSlave = this.context.isSlaveNode();
 
         function ensureApiLoggedIn(req, res, next) {
+            // TODO : remove bypass
             if(isSlave) next();
 
             if (req.isAuthenticated()) {
@@ -1310,38 +1311,11 @@ export default class WebServer
         PRIVACY_WEB_API.injectServer(this, "/api/privacy", securedRoutes);
         AUDIT_WEB_API.injectServer(this, "/api/audit", securedRoutes);
 
-        /*
-        this.app.use('/api/device',  DEVICE_WEB_API.getRouter());
-        this.app.use('/api/remote',  AUTH_WEB_API.getRouter());
-        this.app.use('/api/settings',  SETTINGS_WEB_API.getRouter());
-        this.app.use('/api/hookserver',  PROBE_SERVER_WEB_API.getRouter());
-        this.app.use('/api/application',  APP_WEB_API.getRouter());
-        this.app.use('/api/workspace',  PROJECT_MGT_WEB_API.getRouter());
-        this.app.use('/api/platform',  PLATFORM_WEB_API.getRouter());
-        this.app.use('/api/project',  PROJECT_WEB_API.getRouter());
-        this.app.use('/api/code',  CODE_WEB_API.getRouter());
-        this.app.use('/api/android',  ANDROID_WEB_API.getRouter());
-        this.app.use('/api/scripts',  SCRIPT_WEB_API.getRouter());
-        this.app.use('/api/native',  NATIVE_WEB_API.getRouter());
-        this.app.use('/api/file',  FS_WEB_API.getRouter());
-        this.app.use('/api/user',  USER_WEB_API.getRouter());
-        this.app.use('/api/hook',  HOOK_WEB_API.getRouter());
-        this.app.use('/api/hook_frag',  HOOK_FRAGS_WEB_API.getRouter());
-        this.app.use('/api/plugin',  INSPECTOR_WEB_API.getRouter());
-        this.app.use('/api/keypoint',  KEYPOINT_WEB_API.getRouter());
-        this.app.use('/api/tag',  TAG_MGT_WEB_API.getRouter());
-        this.app.use('/api/privacy',  PRIVACY_WEB_API.getRouter());
-        this.app.use('/api/audit',  AUDIT_WEB_API.getRouter());
-        */
-        // init routers
-
         this.initRoutes({
             auth: [ensureGuiLoggedIn], //ensureGuiLoggedIn],
             after: [dxcSessionMiddleware],
             before: []
         });
-
-
 
         this.uploader = Uploader.getInstance();
     }

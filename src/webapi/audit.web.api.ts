@@ -404,16 +404,6 @@ AUDIT_WEB_API.addAsyncAuthenticatedRoute(
                     project = AUDIT_WEB_API.doProjectSecurityChecks(req, $, {readProjectStrict:true});
                 }catch(err1){
                     throw err1;
-                    /*
-                    if(err1.code === ErrorCode.PROJECT + 115){
-                        try{
-                            project = await DexcaliburEngine.getInstance().openProject(req.dxc.sess.getUserAccount(), req.body.project);
-                        }catch(err2){
-                            throw new Error("Project is not ready and cannot be opened. See logs");
-                        }
-                    }else{
-                        throw err1;
-                    }*/
                 }
 
 
@@ -559,7 +549,7 @@ AUDIT_WEB_API.addAsyncAuthenticatedRoute(
                 const data:any[] = [];
 
                 (await scheduler.listAllOrders()).map( x => {
-                  data.push(x.toJsonObject())  ;
+                  data.push(x.toJsonObject());
                 })
 
                 $.sendSuccess(res,data);

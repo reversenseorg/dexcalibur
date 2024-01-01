@@ -1157,6 +1157,9 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
             project = await DexcaliburProject.load(this, pUID, pUserAccount, null);
 
 
+            // update or create
+            project = await this.getEngineDB().save(project) as DexcaliburProject;
+
             // init
 
 //            project = new DexcaliburProject( this, pUID);
@@ -1168,6 +1171,9 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
             wf.stepUp(0.1);
             success = await project.open();
 
+
+            // update project metadata
+            project = await this.getEngineDB().save(project)  as DexcaliburProject;
 
             wf.pushStatus(StatusMessage.newSuccess("Project is ready."));
             this.active[pUID] = project;
