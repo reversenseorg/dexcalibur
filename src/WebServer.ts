@@ -146,7 +146,10 @@ interface ValidationCapableCtrl {
     [name:string] :ValidationCapable
 }
 /**
- * Class representing Dexcalibur's web server
+ * Class representing Dexcalibur's web server.
+ *
+ * This is the place where request are authenticated and processed at top level.
+ * Middleware for Express should be configured here.
  *
  * @class
  */
@@ -180,6 +183,8 @@ export default class WebServer
      * A map of web controllers, one per GUI
      */
     serveFuncs: { [name:string] :((req:DelegateRequest,res:DelegateResponse)=>any) } = {};
+
+    private _defaultHandler:((req:DelegateRequest,res:DelegateResponse)=>any) = ((vReq,vRes)=>{});
 
     validators:ValidationCapableCtrl = {};
 
@@ -410,6 +415,7 @@ export default class WebServer
 
         return function (req:DelegateRequest, res:DelegateResponse):void {
 
+            console.log("ReqPath :"+req.path);
             // todo : detect path traversal in req.path
 
             let localPath:string = $.root + req.path, mime:string = null;
@@ -605,8 +611,6 @@ export default class WebServer
             res.redirect('/login')
         }
 
-        //this.app.get("/api/*", ensureLoggedIn);
-
         const mw = pOptions.before.concat((pOptions.auth!=null ? pOptions.auth : [ensureLoggedIn]).concat(pOptions.after) );
 
         for( let base in this.serveFuncs){
@@ -614,32 +618,10 @@ export default class WebServer
             //this.app.get("/"+base, passport.authenticate('openidconnect', {failureRedirect:'/login'}), this.serveFuncs[base]);
             this.app.get("/"+base+"/*", mw, this.serveFuncs[base]);
         }
-
-        // start server
-        /*
-        this.app.get('/', this.controller);
-        this.app.get('/pages/*', this.controller);
-        this.app.get('/dist/*', this.controller);
-        this.app.get('/data/*', this.controller);
-        this.app.get('/js/*', this.controller);
-        this.app.get('/less/*', this.controller);
-        this.app.get('/vendor/*', this.controller);
-        */
     }
 
-    /**
-     * To init routes when Dexcalibur runs install mode
-     *
-     * @method
-     */
-    initInstallRoutes(){
+    private _initSharedAPIs(){
 
-        //this.controller = this.newDispatcher( _path_.join("pages","install.html"));
-
-        // init routes serving static contents
-        //this.initStaticRoutes();
-
-        //this.app.use('/api/settings', require("./routes/InstallRoutes"));
     }
 
     /**
@@ -663,11 +645,6 @@ export default class WebServer
 
         // init routes serving static contents
         this.initStaticRoutes(pOptionsMW);
-
-
-        // deprecated
-        // this.app.get('/index.html', this.controller);
-        // this.app.get('/inspectors/*', this.controller);
 
         // Inspector frontController
         this.app.route('/api/inspectors/:inspectorID')
@@ -693,22 +670,8 @@ export default class WebServer
                 insp.performPost(req, res);
             })
 
-        // Connectors
-        this.app.route('/api/connectors')
-            .get(function (req:DelegateRequest, res:DelegateResponse):any {
-                res.status(200).send(
-                    JSON.stringify(
-                        ConnectorFactory.getInstance().toJsonObject()
-                    )
-                );
-            });
 
         // API routes
-
-
-
-
-
         this.app.route('/api/status')
             .get(async function (req:DelegateRequest, res:DelegateResponse):Promise<any> {
                 //let uid:string = req.body['uid'];
@@ -899,85 +862,6 @@ export default class WebServer
 
 
 
-
-        this.app.route('/api/scanner')
-            .get(function (req:DelegateRequest, res:DelegateResponse):any {
-                let o:any = [];
-                //$.project.hook.refreshScanner();
-                /*for (let i in $.project.hook.scanners) {
-                    o.push($.project.hook.scanners[i].toJsonObject());
-                }*/
-
-                res.status(200).send(JSON.stringify({ data: o }));
-            })
-            .post(function (req:DelegateRequest, res:DelegateResponse):any {
-                /*let dev = {
-                    data: $.dbm.getScannerDB().toJsonList()
-                };*/
-
-                res.status(404).send({ error: "Service unavailable" });
-            });
-
-        this.app.route('/api/scanner/run')
-            .get(function (req:DelegateRequest, res:DelegateResponse):any {
-                let scannerId:string = req.query.id as string;
-                if (scannerId == null) {
-                    res.status(404).send(JSON.stringify({ data: null, err: "Invalid Hookset ID" }));
-                    return;
-                }
-
-
-                let hookset:HookSet = $.project.hook.getHookSet(Util.decodeURI(Util.b64_decode(scannerId)));
-                if (hookset == null) {
-                    res.status(404).send(JSON.stringify({ data: null, err: "Hookset not found" }));
-                    return;
-                }
-
-                hookset.deploy();
-                //hookset.run();
-                res.status(200).send(JSON.stringify({ data: { running: true }, err: null }));
-            });
-
-        this.app.route('/api/scanner/load')
-            .get(function (req:DelegateRequest, res:DelegateResponse):any {
-                let scannerId:string = req.query.id as string;
-                if (scannerId == null) {
-                    res.status(404).send(JSON.stringify({ data: null, err: "Invalid Hookset ID" }));
-                    return;
-                }
-
-
-                let hookset:HookSet = $.project.hook.getHookSet(Util.decodeURI(Util.b64_decode(scannerId)));
-                if (hookset == null) {
-                    res.status(404).send(JSON.stringify({ data: null, err: "Hookset not found" }));
-                    return;
-                }
-
-                hookset.deploy();
-                res.status(200).send(JSON.stringify({ data: { running: true }, err: null }));
-            })
-
-/*
-
-        this.app.route('/api/format/analysis')
-            .get(function (req:DelegateRequest, res:DelegateResponse):any {
-                try{
-                    if(req.query['uid']==null){
-                        throw new Error("[FORMAT::ANALYSIS] #FMT_1 Invalid File UID");
-                    }
-
-                    let search:FinderResult = $.project.find.file('_uid:'+req.query['uid']);
-                    if(search==null || search.count()==0){
-                        throw new Error("[FORMAT::ANALYSIS] #FMT_2 File not found");
-                    }else{
-                        res.status(200).send({ success:true, data:search.toJsonObject()});
-                    }
-                }catch(err){
-                    res.status(HTTP_CODE_ERROR).send({ success:false, msg: err.message });
-                }
-            });
-*/
-
         this.app.route('/api/auth/:type')
             .post(async function (req:DelegateRequest, res:DelegateResponse):Promise<any> {
                 try{
@@ -1156,8 +1040,31 @@ export default class WebServer
                 }*/
             });
 
+        // to init handler for default route
+        this._initDefaultRoute();
+    }
 
+    /**
+     * If GUIs are configured, the default route will be always the base of the first GUI
+     * in the list.
+     *
+     * @method
+     * @private
+     */
+    private _initDefaultRoute(){
+        if(this.guiCfgs.length>0){
+            this.resetDefaultRoute((vReq:any, vRes:any):any=> {
+                vRes.set('Access-Control-Allow-Origin', '*');
+                vRes.status(200).redirect("/"+this.guiCfgs[0].name+"/");
+            })
+        }else{
+            this.resetDefaultRoute((vReq:any, vRes:any):any=> {
+                Logger.error("[WEBSERVER] Not match a route : ",vReq.originalUrl);
 
+                vRes.set('Access-Control-Allow-Origin', '*');
+                vRes.status(200).send('-');
+            })
+        }
     }
 
     /**
@@ -1434,8 +1341,16 @@ export default class WebServer
             before: []
         });
 
+
+
         this.uploader = Uploader.getInstance();
     }
+
+    resetDefaultRoute(pHandlers:(vReq:any,vRes:any)=>any){
+        this._defaultHandler = pHandlers;
+        this.app.get("*", pHandlers);
+    }
+
 
     /**
      * To start the web server

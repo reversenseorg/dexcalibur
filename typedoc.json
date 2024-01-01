@@ -1,0 +1,4 @@
+{
+  "entryPoints": ["./dexcalibur.ts","./src/DexcaliburEngine.ts"],
+  "out": "docs"
+}
