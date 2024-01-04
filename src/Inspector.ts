@@ -17,14 +17,16 @@ import BusEvent from "./BusEvent.js";
 import * as Log from './Logger.js';
 import {Stats} from "mocha";
 import {BusBroadcaster} from "./Bus.js";
-import {IDatabase, IDatabaseAdapter} from "./persist/orm/DbAbstraction.js";
+//import {IDatabase, IDatabaseAdapter} from "./persist/orm/DbAbstraction.js";
 import {DelegateWebApi} from "./webapi/DelegateWebApi.js";
 import WebServer from "./WebServer.js";
 
 import {NodeInternalType} from "./NodeInternalType.js";
 import Util from "./Utils.js";
 import {CoreDebug} from "./core/CoreDebug.js";
-import {NodeType, TagCategory} from "@dexcalibur/dexcalibur-orm";
+import {IDatabase, IDatabaseAdapter, NodeType, TagCategory} from "@dexcalibur/dexcalibur-orm";
+import {Nullable} from "./core/IStringIndex.js";
+import InspectorFactory from "./InspectorFactory.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -152,6 +154,8 @@ export default class Inspector implements BusBroadcaster
     static TYPE:NodeType = new NodeType( "inspectors", NodeInternalType.INSPECTOR, []);
 
     __:NodeInternalType = NodeInternalType.INSPECTOR;
+
+    private _dirty = false;
 
     /**
      * The inspector ID is a string and it must be unique for entire engine
@@ -294,6 +298,15 @@ export default class Inspector implements BusBroadcaster
      * @public
      */
     step:INSPECTOR_TYPE = INSPECTOR_TYPE.BOOT;
+
+    /**
+     * Optionally, the instance of the factory who built this
+     * Inspector instance.
+     *
+     * @field
+     */
+    factory:Nullable<InspectorFactory> = null;
+
 
     /**
      *
@@ -510,6 +523,8 @@ export default class Inspector implements BusBroadcaster
             //this.db.setContext(this.context);
         }*/
 
+        this._dirty = false;
+
         return this;
     }
 
@@ -687,7 +702,10 @@ export default class Inspector implements BusBroadcaster
 
         o.db = null;
         if(this.db != null){
-            o.db = this.db.toJsonObject();
+            o.db = {
+                schema:  (this.factory!=null? this.factory._config.db : null),
+                data: this.db.toJsonObject()
+            }
         }
 
         o.hooks = this.hookSet.toJsonObject();
@@ -705,5 +723,46 @@ export default class Inspector implements BusBroadcaster
 
         CoreDebug.checkJsonSerialize(o, "Inspector");
         return o;
+    }
+
+    static fromJsonObject(pConfig:any):Inspector {
+        const insp = new Inspector(pConfig);
+
+        // dirty inspector are not running, they must be re-deployed first
+        insp.running = false;
+        insp.dirty();
+
+        // restore DB info
+        if(insp.db != null){
+
+        }
+
+        // don't restore hook set here, mark it as dirty
+        if(insp.hookSet != null){
+            insp.hookSet = new HookSet(insp.hookSet);
+            insp.hookSet.dirty();
+        }
+
+        // restore tag categories
+        if(pConfig.preRegisteredTags != null){
+            const preRegisteredTags:TagCategory[] = [];
+
+            pConfig.preRegisteredTags.map(x  => {
+                preRegisteredTags.push(new TagCategory(x));
+            });
+
+            insp.preRegisteredTags = preRegisteredTags;
+        }
+
+
+        return insp;
+    }
+
+    dirty(){
+        this._dirty = true;
+    }
+
+    isDirty():boolean {
+        return this._dirty;
     }
 }

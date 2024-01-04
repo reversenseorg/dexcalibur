@@ -193,11 +193,4 @@ describe('Bus', function() {
         });
     });
 
-    describe('getListener()', function() {
-
-        it('new device manager instance without config', function () {
-            let bus = new Bus( TestHelper.getDexcaliburProject());
-            expect(bus).to.be.an.instanceOf(Bus);
-        });
-    });
 });

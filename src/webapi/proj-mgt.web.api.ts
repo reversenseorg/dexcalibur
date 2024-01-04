@@ -433,7 +433,7 @@ PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
 
 
                 $.sendSuccess( res, {
-                    remove: $.context.deleteProject( req.dxc.sess.getUserAccount(),  unsafeProjectUID)
+                    remove: await $.context.deleteProject( req.dxc.sess.getUserAccount(),  unsafeProjectUID)
                 });
 
 

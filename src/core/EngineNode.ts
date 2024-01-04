@@ -47,14 +47,34 @@ export interface PostScanEvent {
 }
 
 /**
- * Represent a running node
+ * Represent a running instance of DexcaliburEngine.
+ *
+ * It is mainly used to hold metadata about remote instances
+ * when engine mode is turned to MASTER/SLAVE, and treatments are distributed
+ * over several instances.
+ *
  *
  * @class
  */
 export class EngineNode {
 
+    /**
+     * The UUID of the Engine instance.
+     *
+     * It is unique for master and all slave
+     *
+     * @readonly
+     * @field
+     */
     readonly UUID:string;
+
+    /**
+     * Instance of the engine
+     *
+     * @private
+     */
     private _engine:Nullable<IDexcaliburEngine> = null;
+
 
     private _projectUID:string;
 
@@ -65,7 +85,9 @@ export class EngineNode {
     masterURI:Nullable<string> = null;
 
     httpPort:number = -1;
+
     httpsPort:number = -1;
+
     running:boolean = false;
 
     errPipe:Nullable<string>;

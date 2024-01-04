@@ -118,8 +118,6 @@ export class ScanSchedulerProject {
             });
 
             console.log("[SCAN SCHEDULER] Data restored.")
-        }else{
-            console.log("[SCAN SCHEDULER] Data cannot be restored : file is missing.")
         }
     }
 

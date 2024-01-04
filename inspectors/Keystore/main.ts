@@ -120,6 +120,31 @@ var KeystoreInspector:InspectorFactory = new InspectorFactory({
         ]
     },
 
+    eventListenerSources: {
+        "hook.keystore.load": {
+            source: `function(ctx:DexcaliburProject,event:BusEvent<any>):any{
+                Logger.info("[INSPECTOR][TASK] KeystoreInspector keystore loaded ")
+                //ctx.get.method("java.security.KeyStore.load(<java.io.InputStream><char>[])<void>")
+                //        .addArgsValue(ctx.hook.lastSession(), event)
+            }`,
+            lang: "ts"
+        },
+        "data.file.new.knownExt": {
+            source: `function(ctx:DexcaliburProject,event:BusEvent<any>):any{
+                if(!checkForBKSext(event.data)) return 1;
+          
+                Logger.info("[INSPECTOR][TASK] KeystoreInspector BKS detected : ",event.data.name);
+                var resStaticStr:any = ctx.find.strings("value:"+event.data.name);
+                // si pas d'occurence
+                if(resStaticStr.count()==0){
+                    resStaticStr.show();
+                }else{
+                    console.log("Not found : ","value:"+event.data.name);
+                }
+            }`,
+            lang: "ts"
+        },
+    },
     eventListeners: {
         "hook.keystore.load": function(ctx:DexcaliburProject,event:BusEvent<any>):any{
             Logger.info("[INSPECTOR][TASK] KeystoreInspector keystore loaded ")

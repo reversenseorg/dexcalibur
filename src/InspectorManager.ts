@@ -309,6 +309,36 @@ export default class InspectorManager
         return true;
     }
 
+
+    /**
+     * To restore inspector instances from a dirty project
+     *
+     * @param {DexcaliburProject} pProject
+     * @return {boolean}
+     */
+    restoreInspectorsFor( pProject:DexcaliburProject):boolean{
+        const uid:string = pProject.getUID();
+        let factory:InspectorFactory;
+
+        if(this.projects[uid] == null){
+            this.projects[uid] = {};
+        }
+
+        const inspNames = Object.keys(pProject.inspectors);
+
+        Object.keys(pProject.inspectors).map((vInspName:string)=>{
+            factory = (this.locals[vInspName] as any);
+            if(factory != null){
+                this.projects[uid][vInspName] = factory.restore(pProject);
+                pProject.bus.register(this.projects[uid][vInspName]);
+            }
+        });
+
+        pProject.restore();
+
+        return true;
+    }
+
     /**
      * To get an inspector by its UID
      * 

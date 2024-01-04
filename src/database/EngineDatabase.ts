@@ -10,9 +10,13 @@ import {UserAccount} from "../user/UserAccount.js";
 import {Device} from "../Device.js";
 import InspectorFactory from "../InspectorFactory.js";
 import {ScanOrder} from "../audit/common/ScanOrder.js";
-import {IDbCollection, INode, NodeType} from "@dexcalibur/dexcalibur-orm";
+import {IDatabase, IDatabaseAdapter, IDbCollection, INode, NodeType} from "@dexcalibur/dexcalibur-orm";
 import {NodeInternalType, NodeInternalTypeName} from "../NodeInternalType.js";
 import {EngineDatabaseException} from "../errors/EngineDatabaseException.js";
+import {parentPort} from "worker_threads";
+import {BusSubscriber} from "../Bus.js";
+import BusEvent from "../BusEvent.js";
+import {ProjectDatabase} from "./ProjectDatabase.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -44,6 +48,12 @@ interface CollectionInfo {
     name:string;
     type:number;
 }
+
+interface AttachedProject {
+    project: DexcaliburProject;
+    subscriber: Nullable<BusSubscriber>;
+}
+
 /**
  * Represent the server DB where project data are stored or cloned
  *
@@ -54,6 +64,13 @@ export class EngineDatabase {
     static DEFAULT_CONN_STR = "master:master123:admin:DEFAULT:";
     static DEFAULT_HOST = "127.0.0.1";
     static DEFAULT_PORT = 27017;
+
+    /**
+     * An hashmap of  attached project instances
+     *
+     * @private
+     */
+    private _attached: {[projectUID:string] :AttachedProject} = {};
 
     private _ctx:DexcaliburEngine;
     private _opts:DatabaseSettings;
@@ -74,21 +91,24 @@ export class EngineDatabase {
     private hooks:Nullable<MongodbDbCollection>;
     private app_files:Nullable<MongodbDbCollection>;
 
+    private _projectsDB:{ [projectUID:string] :ProjectDatabase } = {};
+
     constructor(pContext:DexcaliburEngine, pOptions:DatabaseSettings) {
         this._ctx = pContext;
         this._opts = pOptions;
 
         if(pOptions!=null){
-            this._init(pOptions);
+            this._connector = this._init(pOptions);
         }
     }
+
 
     /**
      *
      * @param pOptions
      * @private
      */
-    private _init(pOptions:DatabaseSettings):void {
+    private _init(pOptions:DatabaseSettings):MongodbAdapter {
         let creds:Nullable<MongoCredentialsOptions> = null;
         let host:Nullable<string>;
         let port = -1;
@@ -127,11 +147,17 @@ export class EngineDatabase {
             pOptions.save()
         }
 
-        this._connector = new MongodbAdapter(this._ctx, {
+        return new MongodbAdapter(this._ctx, {
             clusterUrl: this._opts.getHost() ,
             port:  this._opts.getPort(),
             credentials: creds
         });
+
+        // enumerate others DB
+    }
+
+    private async _enumerateDBs(){
+        await this._connector.asyncConnect(null);
     }
 
 
@@ -170,8 +196,7 @@ export class EngineDatabase {
         if(existings.indexOf(INSP_COL)==-1){ this._db.createCollectionOf(InspectorFactory.TYPE, INSP_COL); }
         if(existings.indexOf(SCAN_COL)==-1){ this._db.createCollectionOf(ScanOrder.TYPE, SCAN_COL); }
 
-        console.log(this._db);
-        Logger.info("Connection successful");
+        Logger.info("[INFO] [ENGINE] [DB] Connection successful");
     }
 
     /**
@@ -227,6 +252,9 @@ export class EngineDatabase {
             throw EngineDatabaseException.UNKNOWN_PROJECT(pUID);
         }
 
+        // inject context
+        project[0].setEngine(this._ctx);
+
         if(pUserAccount!=null){
             project[0].isOwnedBy(pUserAccount);
         }
@@ -243,6 +271,70 @@ export class EngineDatabase {
     async saveProject(pProject:DexcaliburProject):Promise<boolean> {
         const coll = this.getCollectionOf(pProject);
         return coll.asyncUpdateEntry( pProject);
+    }
+
+    /**
+     * To attach the Event Bus of the specified project to Engine DB
+     * in order to trigger a DB update when a some properties of the project
+     * change
+     *
+     * When following events are emitted, an update operation is trigged :
+     * - project:owner:change
+     * - project:state:change
+     *
+     *
+     * @param pProject
+     */
+    attachProject(pProject:DexcaliburProject):void {
+
+        // ignore is already attached
+        if(this._attached[pProject.getUID()]!=null){
+            if(this._attached[pProject.getUID()].subscriber.isPrevented()){
+                this._attached[pProject.getUID()].subscriber.unprevent()
+            }
+        }
+
+        const subcriber = BusSubscriber.from((vEvent:BusEvent<any>)=>{
+            Logger.info("[DB] Project update caught : update ");
+            (async ()=>{ await this.save(vEvent.getData().project); })();
+        });
+
+        this._attached[pProject.getUID()] = {
+            project: pProject,
+            subscriber: subcriber
+        };
+
+        pProject.getBus().subscribe(
+            [
+                DexcaliburProject.EV_TYPE.STATE_CHANGE,
+                DexcaliburProject.EV_TYPE.PKGNAME_CHANGE,
+                DexcaliburProject.EV_TYPE.OWNER_CHANGE
+            ],
+            subcriber
+        );
+    }
+
+    /**
+     * To attach the Event Bus of the specified project to Engine DB
+     * in order to trigger a DB update when a some properties of the project
+     * change
+     *
+     * When following events are emitted, an update operation is trigged :
+     * - project:owner:change
+     * - project:state:change
+     *
+     *
+     * @param pProject
+     */
+    detachProject(pProject:DexcaliburProject):void {
+        // ignore is already attached
+        if(this._attached[pProject.getUID()]==null) return;
+
+        const subs = this._attached[pProject.getUID()].subscriber;
+
+        if(subs!=null){
+            subs.prevent();
+        }
     }
 
 
@@ -352,7 +444,7 @@ export class EngineDatabase {
             if(pObject._id!=null){
                 console.log("MONGO > asyncUpdateEntry > ",pObject);
 
-                if((await coll.asyncUpdateEntry( pObject))===false){
+                if((await coll.asyncUpdateEntry( pObject, {filter: {_id:pObject._id} }))===false){
                     throw EngineDatabaseException.UPDATE_FAILED_FOR(NodeInternalTypeName[pObject.__], pObject._id );
                 }else{
                     obj = pObject;
@@ -362,9 +454,71 @@ export class EngineDatabase {
                 obj = await coll.asyncAddEntry( pObject.getUID(), pObject);
             }
         }else{
-            throw EngineDatabaseException.SAVE_OPE_NOT_SUPPORTED(NodeInternalTypeName[pObject.__]);
+            //throw EngineDatabaseException.SAVE_OPE_NOT_SUPPORTED(NodeInternalTypeName[pObject.__]);
+            throw EngineDatabaseException.UNKNOWN_COLLECTION(NodeInternalTypeName[pObject.__]);
         }
 
         return obj;
+    }
+
+    /**
+     * To remove a project from DB by its UID
+     *
+     * @param {string} pUID Project UID
+     * @return {boolean} TRUE if deleting successful else FALSE
+     * @method
+     */
+    async deleteProjectByUID(pUID: string):Promise<boolean> {
+        let res = true;
+        let coll:IDbCollection;
+
+        try{
+            coll = this._db.getCollection(PROJECT_COL, DexcaliburProject.TYPE);
+            res = await coll.asyncRemoveEntry( new DexcaliburProject({ uid:pUID }));
+        }catch(err){
+            Logger.error(err);
+            res = false;
+        }
+
+        return res;
+    }
+
+    async getProjectDB(pProjectUID:string):Promise<ProjectDatabase> {
+
+        Logger.info("[INFO] [ENGINE DB] getProjectDB = "+pProjectUID)
+        const dbName = PROJECT_DB_PREFIX+pProjectUID;
+        let projectAdapter:MongodbAdapter;
+        let db:MongodbDb;
+        let projDB:ProjectDatabase;
+
+        Logger.debugRAW(this._projectsDB[pProjectUID])
+
+        if(this._projectsDB[pProjectUID]!=null){
+            return this._projectsDB[pProjectUID];
+        }
+
+        // create ProjectDatabase
+        projectAdapter = this._init(this._opts);
+        db = await projectAdapter.asyncConnect(null, dbName);
+        db.open(dbName);
+        Logger.info("[INFO] [PROJECT DB] Fresh ");
+        console.log(db);
+
+        projDB = new ProjectDatabase(this._ctx,  db);
+        await projDB.init();
+
+        this._projectsDB[pProjectUID] = projDB;
+        Logger.info("[INFO] [PROJECT DB] Connection successful fro "+pProjectUID);
+
+        return this._projectsDB[pProjectUID];
+    }
+
+    /**
+     *
+     * @param pProjectUID
+     */
+    hasProjectDB(pProjectUID:string):boolean{
+
+        return (this._projectsDB[pProjectUID]!=null);
     }
 }

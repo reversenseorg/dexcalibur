@@ -5,6 +5,7 @@ export enum ProjectState {
     IDLE='idle',
 
     OPEN='open',
+    OPEN_START='open:start',
     CLOSED='closed',
     INIT='init',
     BEFORE_WORKSPACE='ws:before',

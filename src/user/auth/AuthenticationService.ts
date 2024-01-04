@@ -156,7 +156,6 @@ export class AuthenticationService {
         this._users = pColl;
         this._users.map( (o,v:UserAccount) => {
 
-            Logger.info('---- Wakeup user --- ');
             this.wakeUpUser(v)
 
             if(v.role == null){

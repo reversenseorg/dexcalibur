@@ -83,8 +83,11 @@ export interface HookOptions {
 export const CUSTOM_HOOKSET_JAVA = "customJava";
 export const CUSTOM_HOOKSET_NATIVE = "customNative";
 export const CUSTOM_HOOKSET_OBJC = "customObjc";
+
+
 /**
  * 
+ *
  * @param {DexcaliburProject} ctx The project instance
  * @param {Boolean} nofrida If equals to 1 then the Frida script will not be loaded and Frida library not include  
  */

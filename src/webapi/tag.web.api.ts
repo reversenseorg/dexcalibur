@@ -23,7 +23,10 @@ TAG_MGT_WEB_API.addAuthenticatedRoute(
                 project = req.dxc.project;
 
                 // ==== LOGIC
-                project.getTagManager().getCategories().map( (vCat:TagCategory)=>{
+
+                const cats = await project.getTagManager().getCategories();
+
+                cats.map( (vCat:TagCategory)=>{
                     data.push(vCat.toJsonObject());
                 })
 
@@ -51,7 +54,8 @@ TAG_MGT_WEB_API.addAuthenticatedRoute(
                 project = req.dxc.project;
 
                 // ==== LOGIC
-                project.getTagManager().getTags().map( (vTag:Tag)=>{
+                const tags = await project.getTagManager().getTags();
+                tags.map( (vTag:Tag)=>{
                     data.push(vTag.toJsonObject());
                 })
 

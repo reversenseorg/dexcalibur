@@ -54,7 +54,8 @@ describe('DexcaliburProject', function() {
             //c = new Configuration();
             //c.import(require("../../"));
 
-            p = new DexcaliburProject(gEngine, "owasp.mstg.uncrackable1");
+            p = new DexcaliburProject({ uid:"owasp.mstg.uncrackable1" });
+            p.setEngine(gEngine);
            
             // the flag should be 1
             expect(p.engine).to.be.an.instanceOf(DexcaliburEngine);
@@ -69,7 +70,7 @@ describe('DexcaliburProject', function() {
         let p = null; // new Project("owasp.mstg.uncrackable1", TEST_CONFIG, 1);
 
         it('init project', function () {
-            p = new DexcaliburProject(gEngine, "owasp.mstg.uncrackable1");
+            p = new DexcaliburProject({ engine:gEngine, uid:"owasp.mstg.uncrackable1" });
             p.init();
 
 

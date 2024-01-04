@@ -1085,7 +1085,10 @@ ${"\t".repeat(1)}Default Arch = ${srv.getDefaultArchitecture()}
                     if(projectArgs.mInfo){
 
                         const am = AuditManager.getInstance();
-                        const mock = new DexcaliburProject(dxcInstance,".");
+                        const mock = new DexcaliburProject({
+                            engine: dxcInstance,
+                            uid:"."
+                        });
 
                         console.log(`[AUDIT] All Products available`);
                         const prod = LicenceManager.wallet[mock.getLicenseNo()];

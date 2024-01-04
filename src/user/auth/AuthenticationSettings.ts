@@ -8,6 +8,11 @@ import { DbmsConnSettings } from "../../core/db/DbmsConnSettings.js";
 import {AuthenticationPolicy, AuthenticationPolicyOptions} from "./AuthenticationPolicy.js";
 import {IStringIndex, Nullable} from "../../core/IStringIndex.js";
 import {RuntimeSecurityException} from "../../errors/RuntimeSecurityException.js";
+import * as Log from "../../Logger.js";
+
+
+
+let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
 export interface AuthenticationOptions {
     policy?:AuthenticationPolicyOptions;
@@ -192,7 +197,7 @@ ${"\t".repeat(pIndent)}response Type = ${this._oidc.responseType}
      * @method
      */
     hasOidcSettings():boolean {
-        console.log("hasOidcSettings > ",(this._oidc!=null) );
+        Logger.info("[INFO] [AUTHENTICATION] OIDC Settings : "+(this._oidc!=null) );
         return (this._oidc!=null);
     }
 

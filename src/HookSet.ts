@@ -109,6 +109,8 @@ export default class HookSet
      */
     strats:HookStrategy[] = [];
 
+    private _dirty = false;
+
     /**
      * Group of hook
      *
@@ -121,6 +123,23 @@ export default class HookSet
         if(pConfig!=null)
             for(const i in pConfig)
                 this[i] = pConfig[i];
+    }
+
+    /**
+     * To mark instance as dirty (need restore)
+     * @method
+     */
+    dirty(){
+        this._dirty = true;
+    }
+
+    /**
+     * To check if the instance is dirty (need restore)
+     * @return {boolean}
+     * @method
+     */
+    isDirty():boolean {
+        return this._dirty;
     }
 
     /**
@@ -485,5 +504,6 @@ export default class HookSet
         CoreDebug.checkJsonSerialize(o, "HookSet");
         return o;
     }
+
 
 }

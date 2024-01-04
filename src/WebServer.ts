@@ -318,9 +318,8 @@ export default class WebServer
 
         const authSvc = pContext.getUserService().getAuthenticationService();
         if(authSvc.isSsoEnbaled()){
-            console.log("Deploy SSO over routes");
+            Logger.info("[INFO][WEBSERVER] Deploy SSO over routes");
             this._sso_enabled = true;
-            console.log(this.app);
             authSvc.protectRoutesWithSSO(this.app);
         }
     }
@@ -614,7 +613,6 @@ export default class WebServer
         const mw = pOptions.before.concat((pOptions.auth!=null ? pOptions.auth : [ensureLoggedIn]).concat(pOptions.after) );
 
         for( let base in this.serveFuncs){
-            console.log("map tha path : "+base+"   ",this.serveFuncs[base])
             //this.app.get("/"+base, passport.authenticate('openidconnect', {failureRedirect:'/login'}), this.serveFuncs[base]);
             this.app.get("/"+base+"/*", mw, this.serveFuncs[base]);
         }

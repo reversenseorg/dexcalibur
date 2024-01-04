@@ -6,6 +6,7 @@ import {newTagPresets, TAG_CATEGORY_PRESETS} from "./common/TagPresets.js";
 import {IDatabase, IDbCollection, IStringIndex, Tag, TagCategory} from "@dexcalibur/dexcalibur-orm";
 import {Nullable} from "../core/IStringIndex.js";
 import {newLogger} from "../Logger.js";
+import {ProjectDatabase} from "../database/ProjectDatabase.js";
 
 export interface TagMap {
     [num:number] :Tag
@@ -27,7 +28,7 @@ const Logger = newLogger();
 
 export class TagManager {
 
-    _db:IDatabase;
+    _db:ProjectDatabase;
 
     _uuidMap:TagMap = {};
     _nameMap:TagNameMap = {};
@@ -71,22 +72,27 @@ export class TagManager {
      *
      * @private
      */
-    private _loadPresets(){
+    private async _loadPresets():Promise<void>{
 
-        newTagPresets().map( (vTagCategory:TagCategory)=>{
+        const presets = newTagPresets();
+        let vTagCategory:TagCategory;
+        let cached:string[] = [];
+        let tags:Tag[] = [];
 
-            let cached:string[] = [];
+        for(let i=0; i<presets.length; i++){
+            vTagCategory = presets[i] ;
 
             // if empty, category has not been loaded
             if(this.cache[vTagCategory.getUID()]==null){
                 // save category
-                this.addCategory(vTagCategory);
+                await this.addCategory(vTagCategory);
                 this.cache[vTagCategory.getUID()] = vTagCategory;
 
                 // save children tags
-                vTagCategory.getTags().map( vTag => {
-                    this._tags.addEntry(vTag.getUID(), vTag);
-                });
+                tags = vTagCategory.getTags();
+                for(let k=0;k<tags.length;k++){
+                    this._tags.asyncAddEntry(tags[k].getUID(), tags[k]);
+                }
             }else{
                 this.cache[vTagCategory.getUID()].getTags().map( x => {
                     cached.push(x.getUID());
@@ -94,21 +100,16 @@ export class TagManager {
             }
 
             // append to cache only tags not existing in DB
-            const tags = vTagCategory.getTags();
+            tags = vTagCategory.getTags();
             let update = false;
             for(let i=0; i<tags.length; i++){
                 if(cached.indexOf(tags[i].getUID())==-1){
-
                     this.importTag(tags[i]);
-                    // pick UUID
-                    //tags[i].setUUID(this.generateUUID());
-
-                    // save tag
                     this.cache[vTagCategory.getUID()].addTag(tags[i]);
-                    //this._tags.addEntry(tags[i].getUID(), tags[i]);
                 }
             }
-        });
+        }
+
     }
 
     /**
@@ -127,7 +128,7 @@ export class TagManager {
         if(uuid==null){
             pTag.setUUID(this.generateUUID());
             uuid = pTag.getUUID();
-            this._tags.updateEntry(pTag);
+            this._tags.asyncUpdateEntry(pTag);
         }
 
         this._uuidMap[uuid] = pTag;
@@ -151,39 +152,38 @@ export class TagManager {
     /**
      *
      */
-    init(pContext:DexcaliburProject){
-        this._db = pContext.getDB();
-        this._categories = this._db.getCollectionOf(TagCategory.TYPE);
-        this._tags = this._db.getCollectionOf(Tag.TYPE);
+    async init(pContext:DexcaliburProject):Promise<void>{
+        this._db = pContext.getProjectDB();
+
+        this._categories = this._db.getCollectionOf(TagCategory.TYPE.getType());
+        this._tags = this._db.getCollectionOf(Tag.TYPE.getType());
 
         // retrieve from DB
         const cats:IStringIndex<TagCategory> = {};
-        this._categories.map( (vOffset:number, vTagCat:TagCategory)=>{
+        const categories = await this._categories.getAsList();
+        const tags = await this._tags.getAsList();
+
+        categories.map( (vTagCat:TagCategory)=>{
             cats[vTagCat.getUID()] = vTagCat;
         });
 
-        this._tags.map( (vOffset:number, vTag:Tag)=>{
+        tags.map( (vTag:Tag)=>{
 
             this.importTag(vTag);
 
             if(vTag.category != null){
-
+                console.log(vTag);
                 if(cats[vTag.category.getUID()]!=null){
                     cats[vTag.category.getUID()].addTag(vTag);
                 }
-
-                //vTag.category.addTag(vTag);
-               //  this.cache[vTag.category.getUID()] = cats[vTag.category.getUID()]; //vTag.category;
             }
-
-            //if(uuid > this._offset) this._offset = uuid+1;
         });
 
 
         this.cache = cats;
 
         // load presets
-        this._loadPresets();
+        await this._loadPresets();
 
         console.log(this.cache);
     }
@@ -208,22 +208,25 @@ export class TagManager {
     }
 
 
-    getTags():Tag[] {
+    async getTags():Promise<Tag[]> {
         return this._tags.getAsList();
     }
 
 
-    getCategory( pUID:string ):Tag {
-        return this._categories.getEntry(pUID);
+    async getCategory( pUID:string ):Promise<Tag> {
+        return this._categories.asyncGetEntry(pUID);
     }
 
-    getCategories():TagCategory[] {
+    async getCategories():Promise<TagCategory[]> {
         return this._categories.getAsList();
     }
 
-    searchCategoryByName( pName:string ):TagCategory[] {
+    async searchCategoryByName( pName:string ):Promise<TagCategory[]> {
         const cats:TagCategory[] = [];
-        this._categories.map( (vCat:TagCategory)=>{
+        const all:TagCategory[] = await this._categories.getAsList();
+
+        // todo replace by native seach
+        all.map( (vCat:TagCategory)=>{
             if(vCat.name==pName){
                 cats.push(vCat);
             }
@@ -231,8 +234,8 @@ export class TagManager {
         return cats;
     }
 
-    getCategoryByName( pUID:string ):Tag {
-        return this._categories.getEntry(pUID);
+    async getCategoryByName( pUID:string ):Promise<Tag> {
+        return await this._categories.search({ name:pUID });
     }
 
 
@@ -241,47 +244,37 @@ export class TagManager {
      *
      * @param pTagCategory
      */
-    addCategory( pTagCategory:TagCategory){
+    async addCategory( pTagCategory:TagCategory):Promise<void>{
 
-        if(!this._categories.hasEntry(pTagCategory.getUID())){
-            this._categories.addEntry(pTagCategory.getUID(), pTagCategory);
-        }else{
-            this._categories.updateEntry(pTagCategory);
-        }
-
+        const res = await this._categories.asyncUpdateEntry(pTagCategory, {upsert:true});
+        console.log("TAG MANAGER > addCategory ", res);
         this.cache[pTagCategory.getUID()] = pTagCategory;
     }
 
 
-    updateCategory( pTagCategory:TagCategory){
+    async updateCategory( pTagCategory:TagCategory):Promise<void>{
 
-       if(!this._categories.hasEntry(pTagCategory.getUID())){
-           this._categories.addEntry(pTagCategory.getUID(), pTagCategory);
-           this.cache[pTagCategory.getUID()] = pTagCategory;
-       }else{
-           this._categories.updateEntry(pTagCategory);
-       }
+        const res = await this._categories.asyncUpdateEntry(pTagCategory, {upsert:true});
+        console.log("TAG MANAGER > updateCategory ", res);
 
-
-       pTagCategory.getTags().map( (vTag:Tag) => {
-            if(!this._tags.hasEntry(vTag.getUID())){
-                this._tags.addEntry(vTag.getUID(), vTag);
-            }else{
-                this._tags.updateEntry(vTag);
-            }
-       });
+        const tags = pTagCategory.getTags();
+        for(let i=0; i<tags.length; i++){
+            await this._tags.asyncUpdateEntry(tags[i], {upsert:true});
+        }
     }
 
     /**
      * To save changes
      */
-    save(){
+    save():void {
+        console.log("TAG MANAGER > save ");
+        /*
         this._categories.map( (vCat:TagCategory)=>{
             this._categories.updateEntry(vCat);
         });
 
         this._tags.map( (vTag:Tag)=>{
             this._tags.updateEntry(vTag);
-        });
+        });*/
     }
 }

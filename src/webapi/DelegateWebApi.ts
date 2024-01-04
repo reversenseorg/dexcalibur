@@ -157,28 +157,12 @@ export class DelegateWebApi
             for(let verb in this._routerProto){
                 this._routerProto[verb].map((vProto)=>{
 
-                    console.log("Register "+(vProto.authenticated? 'authenticated':'public')+" route : "+pBaseRoute+vProto.route+"     :"+verb);
+                    Logger.debug("Register "+(vProto.authenticated? 'authenticated':'public')+" route : "+pBaseRoute+vProto.route+"     :"+verb);
                     if(vProto.authenticated){
                         this.srv.app[verb].apply(this.srv.app, [pBaseRoute+vProto.route].concat(authMiddleW).concat([vProto.callback] as any));
                     }else{
                         this.srv.app[verb].apply(this.srv.app,  [pBaseRoute+vProto.route].concat(publicMiddleW).concat([vProto.callback] as any));
                     }
-
-                    /*
-                    if(vProto.async){
-                        this.srv.app[verb].call(this.srv.app, [
-                            vProto.route,
-                            this._ensureAuthenticated,
-                            vProto.callback
-                        ]);
-                    }else{
-
-                        this.srv.app[verb].call(this.srv.app, [
-                            vProto.route,
-                            this._ensureAuthenticated,
-                            vProto.callback
-                        ]);
-                    }*/
 
                 })
 
@@ -371,135 +355,4 @@ export class DelegateWebApi
             }
         }
     }
-
-    /*
-
-    addAuthenticatedRoute(
-        pRoute:string,
-        pHandlers:RequestHandlers,
-        pOptions:AuthenticatedRouteOptions = {
-            async:false,
-            readProjectStrict:true
-        }
-    ):void {
-
-
-        const self = this;
-        for(let httpVerb in pHandlers){
-            if(pOptions.async){
-                this.router[httpVerb](
-                    pRoute,
-                    self._ensureAuthenticated,
-                    function(req:DelegateRequest, res:DelegateResponse):Promise<any> {
-
-                        req.dxc.$ = self.srv;
-                        try{
-                            console.log("SSO is Enabled: ",self.srv.hasSsoAuthentication());
-                            if(self.srv.hasSsoAuthentication()){
-
-                                if(req.dxc.sess._must_set_cookie){
-                                    res.cookie(
-                                        self.srv.context.getUserService().getCookieName(),
-                                        req.dxc.sess.getSessUID(),
-                                        { maxAge: 7*24*60} //, expires: 0  }
-                                    );
-                                    req.dxc.sess._must_set_cookie = false;
-                                }
-
-                                if(!(req as any).isAuthenticated()){
-                                    console.log("SSO : Request is authenticated. Owner = ",req.dxc.sess);
-                                }else{
-                                    console.log("SSO : Request is NOT authenticated. Exit");
-                                    throw new Error("SSO Error");
-                                }
-                            }
-                            if(!req.dxc.sess._must_set_cookie && self.srv.context.getUserService().verifySession(req.dxc.sess)){
-                                if(pOptions.readProject){
-                                    req.dxc.project = self.doProjectSecurityChecks(req, self.srv, pOptions);
-                                }
-                                pHandlers[httpVerb](req, res);
-                            }else{
-                                self.srv.sendError( res, "Authentication is required. Incident has been saved.");
-                            }
-                        }catch(err){
-                            self.srv.sendError( res, "Authentication failed : "+err.message);
-                        }
-
-                        return;
-                    });
-            }else{
-                this.router[httpVerb](
-                    pRoute,
-                    self._ensureAuthenticated,
-                    function(req:DelegateRequest, res:DelegateResponse, next:any):any {
-
-                        req.dxc.$ = self.srv;
-                        try{
-
-                            console.log("SSO is Enabled: ",self.srv.hasSsoAuthentication());
-                           if(self.srv.hasSsoAuthentication()){
-
-                               console.log(req.originalUrl+" : is Autenticated ? "+(req as any).isAuthenticated())
-                               console.log((req as any).session,req);
-
-                                //passport.authenticate('openidconnect', { failureRedirect:'/login' })(req,res);
-
-                                if(req.dxc?.sess?._must_set_cookie){
-                                    res.cookie(
-                                        self.srv.context.getUserService().getCookieName(),
-                                        req.dxc.sess.getSessUID(),
-                                        { maxAge: 7*24*60} //, expires: 0  }
-                                    );
-                                    req.dxc.sess._must_set_cookie = false;
-                                }
-
-                                if(!(req as any).isAuthenticated()){
-                                    console.log((req as any).dxc.sess);
-                                    console.log((req as any).session);
-                                    console.log("SSO : Request is authenticated. Owner = ");
-                                }else{
-                                    console.log("SSO : Request is NOT authenticated. Exit");
-                                    throw new Error("SSO Error");
-                                }
-                            }
-                            if(!req.dxc.sess._must_set_cookie && self.srv.context.getUserService().verifySession(req.dxc.sess)){
-                                if(pOptions.readProject){
-                                    req.dxc.project = self.doProjectSecurityChecks(req, self.srv, pOptions);
-                                }
-                                pHandlers[httpVerb](req, res);
-                            }else{
-                                self.srv.sendError( res, "Authentication is required. Incident has been saved.");
-                            }
-                        }catch(err){
-                            self.srv.sendError( res, "Authentication failed : "+err.message);
-                        }
-                    });
-            }
-        }
-    }
-/*
-    addRestrictedRoute( pRoute:string, pAccess:Access[], pHandlers:any ):void {
-        for(let httpVerb in pHandlers){
-            this.router[httpVerb](async function(req:DelegateRequest, res:DelegateResponse):Promise<any> {
-                try{
-                    if(this.srv.context.getUserService().verifySession(req.dxc.sess)){
-                        AccessControl.check(
-                            AccessZone.PROJECT,
-                            ProjectAccessControl.access.SETTINGS_EDIT,
-                            unsafe_UID,
-                            req.dxc.sess
-                        );
-
-                        pHandlers[httpVerb](this, req, res);
-                    }else{
-                        this.srv.sendError( res, "Authentication is required. Incident has been saved.");
-                    }
-                }catch(err){
-                    this.srv.sendError( res, "Authentication failed : "+err.message);
-                }
-            });
-        }
-    }
-*/
-
 }

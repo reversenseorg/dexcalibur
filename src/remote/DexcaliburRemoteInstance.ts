@@ -27,8 +27,9 @@ export class DexcaliburRemoteInstance implements IDexcaliburEngine {
     createWorkspace(pPath: string): void {
     }
 
-    deleteProject(pUserAccount:UserAccount, pUID: string): boolean {
-        return false;
+    deleteProject(pUserAccount:UserAccount, pUID: string): Promise<boolean> {
+        return Promise.resolve(false);
+
     }
 
     disableIPC(): void {

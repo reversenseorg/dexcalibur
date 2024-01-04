@@ -68,7 +68,6 @@ import {SecurityZone} from "./security/SecurityZone.js";
 import TargetApp from "./common/TargetApp.js";
 import {Metadata, MetadataType} from "./audit/common/Metadata.js";
 import {Nullable} from "./core/IStringIndex.js";
-import {EngineNodeException} from "./errors/EngineNodeException.js";
 import {
     DbDataType,
     DbKeyType, IDatabase, IDatabaseAdapter,
@@ -80,6 +79,8 @@ import {
 } from "@dexcalibur/dexcalibur-orm";
 import {NodeInternalType} from "./NodeInternalType.js";
 import {UserService} from "./user/UserService.js";
+import {EngineDatabaseException} from "./errors/EngineDatabaseException.js";
+import {ProjectDatabase} from "./database/ProjectDatabase.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -104,6 +105,13 @@ interface DigestSet {
     [type:string] :string
 }
 
+
+export interface IProjectStateChange {
+    old: ProjectState,
+    new: ProjectState,
+    project: DexcaliburProject
+}
+
 export interface AppExtractOptions {
     type:string;
 }
@@ -124,16 +132,82 @@ const DexcaliburProjectValidator = new Validator({
  */
 export default class DexcaliburProject extends Auditable implements IAuditableAccess, INode
 {
+
+    static readonly EV_TYPE = {
+        ARCH_UPDATE: 'project:arch:update',
+        OWNER_CHANGE: 'project:owner:change',
+        PKGNAME_CHANGE: 'project:pkgName:change',
+        SAVE: 'project:save',
+        STATE_CHANGE: 'project.state.change'
+    };
+
     static TYPE:NodeType = new NodeType('project', NodeInternalType.PROJECT, [
+        (new NodeProperty("_id")).type(DbDataType.STRING).key(DbKeyType.PRIMARY),
         (new NodeProperty("uid")).type(DbDataType.STRING).key(DbKeyType.PRIMARY),
         (new NodeProperty("pkg")).type(DbDataType.STRING),
         (new NodeProperty("name")).type(DbDataType.STRING),
         (new NodeProperty("engineVersion")).type(DbDataType.STRING),
         (new NodeProperty("state")).type(DbDataType.NUMERIC),
         (new NodeProperty("os")).type(DbDataType.STRING),
-        (new NodeProperty("arch")).type(DbDataType.STRING),
+        (new NodeProperty("archs")).type(DbDataType.STRING),
         (new NodeProperty("name")).type(DbDataType.STRING),
+
+        //(new NodeProperty("db")).type(DbDataType.STRING),
+        //(new NodeProperty("device")).type(DbDataType.STRING),
         (new NodeProperty("meta")).type(DbDataType.BLOB),
+        (new NodeProperty("bus")).volatile().type(DbDataType.BLOB),
+        (new NodeProperty("hook")).volatile().type(DbDataType.BLOB),
+        (new NodeProperty("analCfg")).type(DbDataType.BLOB)
+            .sleep( (x:NodePropertyState)=>{
+                if(x.p!=null){
+                    return x.p;
+                }else{
+                    return null;
+                }
+            })
+            .wakeUp( (x:NodePropertyState)=>{
+                if(x.p!=null){
+                    return AnalyzerConfiguration.from(x.p);
+                }else{
+                    return new AnalyzerConfiguration();
+                }
+            }),
+        /*(new NodeProperty("inspectors")).volatile().type(DbDataType.BLOB)
+            .sleep( (x:NodePropertyState)=>{
+                if(x.p!=null){
+                    const insp:any = {};
+                    for(let i in x.p){
+                        insp[i] = (x.p[i] as Inspector).toJsonObject();
+                    }
+
+                    return insp;
+                }else{
+                    return [];
+                }
+            })
+            .wakeUp( (x:NodePropertyState)=>{
+                if(x.p!=null){
+                    const insp:InspectorMap = {};
+                    for(let i in x.p){
+                        insp[i] = Inspector.fromJsonObject(x.p[i]);
+                        // insp[i].injectContext(x.ctx);
+                    }
+                    return insp; //UserService.findUserByUID(x.p, DexcaliburEngine.getInstance().UID);
+                }else{
+                    return [];
+                }
+            }),*/
+
+        (new NodeProperty("_attr")).type(DbDataType.BLOB),
+        (new NodeProperty("workspace")).volatile().type(DbDataType.BLOB),
+        (new NodeProperty("platform")).type(DbDataType.BLOB)
+            .wakeUp( (x:NodePropertyState)=>{
+                if(x.p!=null){
+                    return new Platform(x.p);
+                }else{
+                    return null;
+                }
+            }),
         (new NodeProperty("owner")).type(DbDataType.BLOB)
             .sleep( (x:NodePropertyState)=>{
                 if(x.p!=null){
@@ -174,13 +248,11 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
 
     __:NodeInternalType = NodeInternalType.PROJECT;
 
-    /**
-     * State of the project (see `ProjectState`)
-     *
-     * @type {ProjectState}
-     * @field
-     */
-    state:ProjectState = ProjectState.IDLE;
+    private _dirty = false;
+
+    //state:ProjectState = ProjectState.IDLE;
+
+    private _state:ProjectState = ProjectState.IDLE;
 
     /**
      * @type {DexcaliburEngine}
@@ -194,6 +266,8 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
      * @since 1.1.0
      */
     engineVersion:string = DexcaliburEngine.VERSION_MIN;
+
+    _id:string = null;
 
     /**
      * @type {String}
@@ -276,7 +350,7 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
      * @type {Bus}
      * @field The event bus
      */
-    bus:Bus = null;
+    bus:Nullable<Bus> = null;
 
     /**
      * @type {IAppAnalyzer}
@@ -340,6 +414,8 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
      */
     db:IDatabase = null;
 
+    pdb:Nullable<ProjectDatabase> = null;
+
     /**
      * @field
      */
@@ -396,7 +472,7 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
      * @param {String} pUID The UID of the project, an unique name for this project
      * @constructor
      */
-    constructor( pEngine:DexcaliburEngine, pUID:string){
+    constructor(pConfig:any){
         super({
             'project:uid': [
                 ValidationRule.newRegexpAssert(new RegExp('^[a-zA-Z_-\s]+$')),
@@ -406,10 +482,30 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
             ]
         });
 
-        this.engine = pEngine;
-        this.uid = pUID;
+        for(let i in pConfig){
+            this[i] = pConfig[i];
+        }
+
+        //this.engine = pEngine;
+        //this.uid = pUID;
         // scan scheduler should be attach to master engine
         this._scanScheduler = new ScanSchedulerProject(this);
+    }
+
+    private _emit(pEvent:string, pData:any = {}):void {
+        if(this.getBus() != null){
+            this.getBus().send(new BusEvent<any>({
+                type: pEvent,
+                data: {
+                    project: this,
+                    ...pData
+                }
+            }));
+        }
+    }
+
+    setEngine(pEngine:DexcaliburEngine):void {
+        this.engine = pEngine;
     }
 
     /**
@@ -425,6 +521,25 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
         return this._scanScheduler;
     }
 
+    /**
+     * Setter for `DexcaliburProject.state`
+     *
+     * It triggers change event
+     * @param pState
+     */
+    set state(pState:ProjectState) {
+        const oldState = this._state;
+        this._state = pState;
+
+        this._emit(
+            DexcaliburProject.EV_TYPE.STATE_CHANGE,
+            {
+                old: oldState,
+                new: pState
+            }
+        );
+    }
+
 
     /**
      * To get state of the project
@@ -432,8 +547,8 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
      * @return {ProjectState} Project state. See Project lifecycle doc
      * @method
      */
-    getState():ProjectState {
-        return this.state;
+    get state():ProjectState {
+        return this._state;
     }
 
     getAnalyzerConfiguration():AnalyzerConfiguration {
@@ -480,7 +595,7 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
      * @param pAccount
      */
     static deleteCloseProject( pEngine:DexcaliburEngine, pUID:string, pAccount:UserAccount){
-        const project = new DexcaliburProject(pEngine, pUID);
+        const project = new DexcaliburProject({ uid:pUID, engine:pEngine });
 
         const data = JSON.parse( Fs.readFileSync( project.workspace.getProjectCfgPath()).toString());
 
@@ -680,6 +795,15 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
         return status;
     }
 
+    /**
+     *
+     */
+    getProjectDB():ProjectDatabase {
+        if(this.pdb==null){
+            throw DexcaliburProjectException.PROJECT_DB_NOT_READY(this.getUID());
+        }
+        return this.pdb;
+    }
 
     getDB():IDatabase {
         return this.db;
@@ -699,6 +823,16 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
     getTagManager():TagManager {
         return this.tagManager;
     }
+
+    /**
+     * Execute a single time per project, while creating project
+     *
+     * @method
+     */
+    async create():Promise<void> {
+        this.meta.creationDate = (new Date()).getTime();
+    }
+
     /**
      * To init the project
      *
@@ -740,6 +874,12 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
             this._scanScheduler.restore();
         }
 
+        // get exiting DB of create it
+        this.pdb = await this.engine.getEngineDB().getProjectDB(this.getUID());
+        this.pdb.setProject(this);
+
+        console.log(this.pdb);
+
         // init connector
         if(this.connector === null){
             this.connector = ConnectorFactory.getInstance().newConnector(wsSettings.getDefaultConnector() , this);
@@ -751,8 +891,9 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
         this.db = sqliteConn.getDB();
 
 
+
         // once Project DB is ready, init tag manager and load presets
-        this.tagManager.init(this);
+        await this.tagManager.init(this);
 
         Logger.info("PROJECT > init > tagManager ready");
 
@@ -865,9 +1006,18 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
         this.scriptManager = new ScriptManager(this);
 
         // plugins
-        im.createInspectorsFor(this);
-        im.deployInspectors(this, INSPECTOR_TYPE.BOOT);
-        this.inspectors = im.getInspectorsOf(this);
+        if(this.isDirty()){
+            // project restored from DB are dirty
+            im.restoreInspectorsFor(this);
+        }else{
+            // fresh project are not dirty
+            im.createInspectorsFor(this);
+            im.deployInspectors(this, INSPECTOR_TYPE.BOOT);
+            this.inspectors = im.getInspectorsOf(this);
+        }
+
+
+
         
         this.graph = new GraphMaker(this);
 
@@ -1081,6 +1231,8 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
             this.getWorkflow().pushStatus(new StatusMessage(5, "app extracted."));
         }
 
+
+
         return targetApp;
     }
 
@@ -1191,7 +1343,7 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
     static getInformationOf(pEngine:DexcaliburEngine, pProjectUID:string, pAccount:UserAccount = null, pZone:SecurityZone = SecurityZone.PUBLIC):any {
 
         // create a minimalist instance of project to check if the user own or not this project
-        const project = new DexcaliburProject(pEngine, pProjectUID);
+        const project = new DexcaliburProject({ engine:pEngine, uid:pProjectUID });
 
         project.workspace = new ProjectWorkspace(_path_.join( pEngine.workspace.getLocation(), pProjectUID));
 
@@ -1274,6 +1426,7 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
                 this._archReady.push(arch);
             }
         }
+
         this.archs.map( (vArch)=>{
             if(this._archReady.indexOf(vArch)==-1){
                 this.analyze.useSyscalls(
@@ -1281,6 +1434,9 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
                 );
             }
         });
+
+
+        this._emit( DexcaliburProject.EV_TYPE.ARCH_UPDATE);
     }
 
     /**
@@ -1292,9 +1448,33 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
      * @param {*} pProjectUID 
      * @param {*} pConfigPath 
      */
-    static load( pEngine:DexcaliburEngine, pProjectUID:string, pAcc:UserAccount, pConfig:Nullable<any> = null):DexcaliburProject{
+    static async load( pEngine:DexcaliburEngine, pProjectUID:string, pAcc:UserAccount, pConfig:Nullable<any> = null):Promise<DexcaliburProject>{
 
-        const project:DexcaliburProject = new DexcaliburProject( pEngine, pProjectUID);
+        let project:Nullable<DexcaliburProject>;
+        let notPersisted = true;
+
+        try{
+            console.log("SEARCH PROJECT > ",pProjectUID);
+           project = await pEngine.getEngineDB().getProject(pProjectUID);
+           project.engineVersion = pEngine.version;
+           project.dirty();
+           notPersisted = false;
+            console.log("PROJECT FOUND > ",(project as any)._id);
+            console.log("PROJECT VERSION > ",project.engineVersion);
+        }catch (err){
+            if(err.code==EngineDatabaseException.CODE.UNKNOWN_PROJECT){
+                // project is missing inside DB
+                console.log("EngineDatabaseException.CODE.UNKNOWN_PROJECT");
+                project = new DexcaliburProject({
+                    engine:pEngine,
+                    uid:pProjectUID,
+                    engineVersion: pEngine.version
+                });
+            }else{
+                throw err;
+            }
+        }
+
         let data:any = null;
 
 
@@ -1322,7 +1502,7 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
 
 
 
-        if(!data.hasOwnProperty('engineVersion')){
+        if(!project.engineVersion){
             data.engineVersion = project.engineVersion = DexcaliburEngine.VERSION_MIN;
         }
 
@@ -1330,11 +1510,13 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
         try{
             project.isCompatibleWithEngine(pEngine);
         }catch(err){
-            switch (err.getCode()){
+            switch (err.code){
                 case DexcaliburProjectException.ALL.NEED_PROJECT_UPGRADE:
+                    console.error("DexcaliburProjectException.ALL.NEED_PROJECT_UPGRADE");
                     // todo
                     break;
                 case DexcaliburProjectException.ALL.NEED_ENGINE_UPGRADE:
+                    console.error("DexcaliburProjectException.ALL.NEED_ENGINE_UPGRADE");
                     // todo
                     break;
                 default:
@@ -1395,10 +1577,9 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
             }
         }
 
-
-        project.engineVersion = data.engineVersion;
-
-
+        if(project.engineVersion==null){
+            project.engineVersion = data.engineVersion;
+        }
 
 
         if(data.platform != null){
@@ -1410,6 +1591,12 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
 
         // init other properties
         project.init();
+
+        // if not exists in DB, create it
+        /*if(notPersisted){
+            console.log(project);
+            project = await pEngine.getEngineDB().createProject(project);
+        }*/
 
 
         return project;
@@ -1435,6 +1622,9 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
         );
 
         this.hook.saveAll();
+
+
+        this._emit(DexcaliburProject.EV_TYPE.SAVE);
     }
 
     toJsonObject():any{
@@ -1607,6 +1797,8 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
      */
     changeOwner( pAuthorSess:UserSession, pNewOwner:UserAccount):DexcaliburProject {
 
+        const oldOwner = this.owner;
+
         if(this.getAccessAttribute(ProjectAccessControl.attr.OWNER)===null){
             this.setAccessAttribute(ProjectAccessControl.attr.OWNER, pNewOwner.getUID());
             //this._attr.OWNER.value = pNewOwner.getUID();
@@ -1636,6 +1828,15 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
                 }
             }
         }
+
+
+        this._emit(
+            DexcaliburProject.EV_TYPE.OWNER_CHANGE,
+            {
+                oldValue: oldOwner,
+                currentValue: pNewOwner
+            }
+        );
 
 
         return this;
@@ -1925,9 +2126,7 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
 
 
 
-        this.bus.send(new BusEvent({
-            type: "dxc.fullscan.post" 
-        }));
+        this._emit("dxc.fullscan.post" );
 
 
         this.getWorkflow().pushStatus(new StatusMessage(24, "Deploying inspectors [POST_APP_SCAN]"));
@@ -1938,29 +2137,22 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
 
         this.state = ProjectState.FULLSCAN_END;
 
-        this.bus.send(new BusEvent({
-            type: "dxc.fullscan.post_deploy"
-        }));
+        this._emit("dxc.fullscan.post_deploy" );
         
         // trigger event
-        this.bus.send(new BusEvent({
-            type: "dxc.appview.new" 
-        }));
+        this._emit("dxc.appview.new" );
 
         //this.analyze.updateFiles( this.dataAnalyzer.getDB());
 
         /*this.analyze.insertIn( "files",
             this.dataAnalyzer.getDB().getIndex(
                 this.dataAnalyzer.getScope('PKG').getName()));*/
-        
-        this.bus.send(new BusEvent({
-            type: "filescan.new" 
-        }));
 
 
-        this.bus.send(new BusEvent({
-            type: "dxc.initialized" 
-        }));
+        this._emit("filescan.new" );
+
+
+        this._emit("dxc.initialized" );
 
         this.ready = true;
 
@@ -2029,7 +2221,9 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
      * @function
      */
     trigger(pOptions:BusEventOptions<any>):void{
-        this.bus.send(new BusEvent(pOptions));
+        if(this.getBus()!=null){
+            this.getBus().send(new BusEvent(pOptions));
+        }
     }
 
     // Make a backup of the project 
@@ -2083,7 +2277,17 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
     }
 
     setPackageName( pPackageName:string):void{
+        const oldValue = this.pkg;
         this.pkg = pPackageName;
+
+        this._emit(
+            DexcaliburProject.EV_TYPE.PKGNAME_CHANGE,
+            {
+                property: 'pkg',
+                oldValue: oldValue,
+                currentValue: pPackageName
+            }
+        );
     }
 
     /**
@@ -2145,6 +2349,32 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
             package: null,
             app: this.application.getInfo()
         };
+    }
+
+    /**
+     * To flag the project as Dirty
+     * A dirty project cannot be explored nor executed
+     *
+     * @method
+     */
+    dirty(){
+        this._dirty = true;
+    }
+
+    /**
+     * To check if the project is drity
+     * @method
+     */
+    isDirty():boolean {
+        return this._dirty;
+    }
+
+    /**
+     * Remove dirty bit
+     * @method
+     */
+    restore(){
+        this._dirty = false;
     }
 }
 DexcaliburProject.TYPE.builder(DexcaliburProject);

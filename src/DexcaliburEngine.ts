@@ -39,7 +39,6 @@ import {GlobalAccessControl} from "./user/acl/rbac/GlobalAccessContol.js";
 import {UserAccount} from "./user/UserAccount.js";
 import {NodeSchema} from "./NodeSchema.js";
 import {DexcaliburUpdater} from "./DexcaliburUpdater.js";
-import Tool = External.Tool;
 import {DXC_LIFECYCLE_EVENT} from "./CoreConst.js";
 import Util from "./Utils.js";
 import {LicenceManager} from "./credit/LicenceManager.js";
@@ -55,6 +54,8 @@ import {EngineDatabase} from "./database/EngineDatabase.js";
 import {EngineNodeException} from "./errors/EngineNodeException.js";
 import TargetApp from "./common/TargetApp.js";
 import Platform from "./Platform.js";
+import {ProjectState} from "./ProjectState.js";
+import Tool = External.Tool;
 
 /*
 const _fixPath_ = require("fix-path");
@@ -709,8 +710,6 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
             );
             await this.userSvc.initService(this);
 
-            console.log(this.userSvc);
-
             this.registry = ss.getRegistry();
 
             this.db = new EngineDatabase(this, ss.getDatabaseSettings());
@@ -1090,11 +1089,13 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
     /**
      * To remove a project from the workspace. It erases files.
      *
+     * TODO : disable project (move to backup folder) instead of perform hard delete
+     *
      * @param {string} pUID Project UID
      * @return {boolean} Rteurn TRUE if operation is successfull, else FALSE
      * @method
      */
-    deleteProject( pAccount:UserAccount, pUID:string):boolean{
+    async deleteProject( pAccount:UserAccount, pUID:string):Promise<boolean>{
         let success = false;
         try{
             // if the project is already loaded, instance can be retrieved
@@ -1126,9 +1127,11 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
                 success = true;
             }
 
+            if(success){
+                success = await this.getEngineDB().deleteProjectByUID(pUID);
+            }
         }catch(err){
-            console.log(err);
-            Logger.error("[ENGINE] "," deleteProject() failed");
+            Logger.error("[ENGINE] "," deleteProject() failed",err.message, err.stack);
         }
 
         return success;
@@ -1156,33 +1159,29 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
             wf.pushStatus(new StatusMessage(7, "Loading project data"));
             project = await DexcaliburProject.load(this, pUID, pUserAccount, null);
 
+            // enable auto-update of project in DB when some specifics events
+            // of the project happen
+            this.getEngineDB().attachProject(project);
 
             // update or create
-            project = await this.getEngineDB().save(project) as DexcaliburProject;
+            project.state = ProjectState.OPEN_START;
 
-            // init
-
-//            project = new DexcaliburProject( this, pUID);
-
+            // project = await this.getEngineDB().save(project) as DexcaliburProject;
             DexcaliburEngine.printBanner();
 
-            console.log("ENGINE > before project open",project);
+            Logger.debug("[DEBUG][ENGINE] Before project open :");
+            Logger.debugRAW(project)
 
             wf.stepUp(0.1);
             success = await project.open();
 
-
-            // update project metadata
-            project = await this.getEngineDB().save(project)  as DexcaliburProject;
-
             wf.pushStatus(StatusMessage.newSuccess("Project is ready."));
             this.active[pUID] = project;
-
-
             this.updater.run( DXC_LIFECYCLE_EVENT.OPEN_PROJECT, project);
 
+            project.state = ProjectState.OPEN;
             // update db
-            this.getEngineDB().saveProject(project);
+            //this.getEngineDB().saveProject(project);
 
             //this.webserver.setProject(project);
         }catch(err){
@@ -1232,7 +1231,12 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
             pUID = DexcaliburProject.suggests(pUID);
         }
 
-        project = new DexcaliburProject( this, pUID);
+        project = new DexcaliburProject({
+            engine: this,
+            uid: pUID
+        });
+
+        await project.create();
 
         if(pUserAccount != null){
             project.changeOwner( null, pUserAccount);
@@ -1245,7 +1249,6 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
         wf.pushStatus(new StatusMessage( 6, "Initialize project"));
         await project.init();
 
-
         DexcaliburEngine.printBanner();
 
         if(pDevice != null){
@@ -1255,6 +1258,7 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
 
         if(pPlatform!=null){
             project.synchronizePlatform(pPlatform.getUID());
+
         }
 
         // open APK, analyze manifest
@@ -1272,6 +1276,7 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
 
         // create project.json file
         if(apkFile != null || appFile!=null){
+            project.state = ProjectState.OPEN;
             project.save();
 
             this.active[pUID] = project;

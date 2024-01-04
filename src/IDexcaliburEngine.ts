@@ -23,7 +23,7 @@ export interface IDexcaliburProjectMap {
 
 export interface IDexcaliburEngine {
     closeProject( pUser:UserAccount, pProject:DexcaliburProject):boolean;
-    deleteProject( pUser:UserAccount, pUID:string):boolean;
+    deleteProject( pUser:UserAccount, pUID:string):Promise<boolean>;
     disableIPC():void;
     enableIPC(pMode:IpcMode):void;
     getActiveProjects(pUser:UserAccount):IDexcaliburProjectMap;

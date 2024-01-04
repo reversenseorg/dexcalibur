@@ -249,10 +249,10 @@ class TestHelperClass
      * @returns {DexcaliburProject}
      */
     newDexcaliburProject():DexcaliburProject{
-        this.project = new DexcaliburProject(
-            DexcaliburEngine.getInstance(),
-            'owasp.mstg.uncrackable1'
-        );
+        this.project = new DexcaliburProject({
+            engine: DexcaliburEngine.getInstance(),
+            uid: 'owasp.mstg.uncrackable1'
+        });
 
         return this.project;
     }
@@ -284,10 +284,10 @@ class TestHelperClass
             }, `true`);
 
 
-            this.project_ready = new DexcaliburProject(
-                await this.newDexcaliburEngine(),
-                'owasp.mstg.uncrackable1'
-            );
+            this.project_ready = new DexcaliburProject({
+                engine: await this.newDexcaliburEngine(),
+                uid: 'owasp.mstg.uncrackable1'
+            });
 
             this.project_ready.init();
         }
