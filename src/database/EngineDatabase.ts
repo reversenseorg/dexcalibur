@@ -249,6 +249,7 @@ export class EngineDatabase {
         const project:Nullable<DexcaliburProject[]> = await coll.search({ uid: pUID});
 
         if(project==null || project.length==0){
+            console.log(await coll.getAsList());
             throw EngineDatabaseException.UNKNOWN_PROJECT(pUID);
         }
 
@@ -438,11 +439,11 @@ export class EngineDatabase {
         if(collName!==null && collType!==null){
             if(Object.keys((this._db as any)._colls).length==0){
                 this._db.open(INTERNAL_DB);
-                console.log((this._db as any)._colls);
             }
+
             const coll = this._db.getCollection(collName, collType);
             if(pObject._id!=null){
-                console.log("MONGO > asyncUpdateEntry > ",pObject);
+                //console.log("MONGO > asyncUpdateEntry > ",pObject);
 
                 if((await coll.asyncUpdateEntry( pObject, {filter: {_id:pObject._id} }))===false){
                     throw EngineDatabaseException.UPDATE_FAILED_FOR(NodeInternalTypeName[pObject.__], pObject._id );
@@ -450,7 +451,7 @@ export class EngineDatabase {
                     obj = pObject;
                 }
             }else{
-                console.log("MONGO > asyncAddEntry > ",pObject);
+                //console.log("MONGO > asyncAddEntry > ",pObject);
                 obj = await coll.asyncAddEntry( pObject.getUID(), pObject);
             }
         }else{

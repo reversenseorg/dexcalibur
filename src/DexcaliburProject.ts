@@ -528,6 +528,7 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
      * @param pState
      */
     set state(pState:ProjectState) {
+        Logger.debug("PROJECT STATE CHANGE : "+pState);
         const oldState = this._state;
         this._state = pState;
 
@@ -682,6 +683,7 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
     getBus():Bus {
         return this.bus;
     }
+
     setWorkflow( pWorkflow:Workflow):void {
         this._wf = pWorkflow;
         if(this.analyze!=null) this.analyze.setWorkflow(pWorkflow);
@@ -824,6 +826,10 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
         return this.tagManager;
     }
 
+    createBus():void{
+        Logger.debug("[PROJECT] [BUS] Creating ...");
+        this.bus = new Bus(this);
+    }
     /**
      * Execute a single time per project, while creating project
      *
@@ -831,6 +837,7 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
      */
     async create():Promise<void> {
         this.meta.creationDate = (new Date()).getTime();
+        this.createBus();
     }
 
     /**
@@ -841,7 +848,8 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
     async init():Promise<void>{
         const im:InspectorManager = InspectorManager.getInstance();
 
-        Logger.info("PROJECT > init");
+
+        Logger.debug("[PROJECT] Start initializing ... ");
         this.state = ProjectState.INIT_START;
 
         // init config
@@ -878,7 +886,9 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
         this.pdb = await this.engine.getEngineDB().getProjectDB(this.getUID());
         this.pdb.setProject(this);
 
-        console.log(this.pdb);
+
+        // once Project DB is ready, init tag manager and load presets
+        await this.tagManager.init(this.pdb);
 
         // init connector
         if(this.connector === null){
@@ -892,8 +902,6 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
 
 
 
-        // once Project DB is ready, init tag manager and load presets
-        await this.tagManager.init(this);
 
         Logger.info("PROJECT > init > tagManager ready");
 
@@ -939,8 +947,6 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
         this.dataAnalyzer.restoreState(this.getAnalyzerState('data'));
         this.find.addAnalyzerUnit( 'data', this.dataAnalyzer);
 
-        // create main event bus of this project 
-        this.bus = new Bus(this); //.setContext(this);
 
         let state:any;
 
@@ -950,7 +956,7 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
         // manifest / app analyzer
         // depend of application type
         if(this.platform != null){
-            console.log("PLATFORM RETRIEVED");
+            Logger.debug("[PROJECT] [INIT] PLATFORM RETRIEVED");
             this.kpmgr = this.platform.newKeyPointManager(this);
             this.appAnalyzer = this.platform.newAppAnalyzer(this);
 
@@ -984,7 +990,7 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
 
 
         }else {
-            console.log("PLATFORM IS UNKNOWN");
+            Logger.debug("[PROJECT] [INIT] PLATFORM IS UNKNOWN");
             // default analyzer is Android analyzer
             this.kpmgr = KeyPointManager.newForAndroid(this);
             this.appAnalyzer = new AndroidAppAnalyzer(this);
@@ -1006,7 +1012,7 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
         this.scriptManager = new ScriptManager(this);
 
         // plugins
-        if(this.isDirty()){
+        if(this.isDirty() && this.inspectors){
             // project restored from DB are dirty
             im.restoreInspectorsFor(this);
         }else{
@@ -1052,6 +1058,9 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
         }));
 
         this.initAuthorizations();
+
+
+        Logger.debug("[PROJECT] Initializing done ");
     }
 
     /**
@@ -1324,6 +1333,8 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
      * @method
      */
     async open(){
+
+        Logger.success("[PROJECT] [OPEN] Opening ...");
         //throw new Error('[DEXCALIBUR PROJECT] open() : Not implemented');
         // re-scan
         this.meta.lastOpenDate = (new Date()).getTime();
@@ -1453,23 +1464,26 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
         let project:Nullable<DexcaliburProject>;
         let notPersisted = true;
 
+
+        Logger.debug("[PROJECT] Start loading : "+pProjectUID);
+
         try{
-            console.log("SEARCH PROJECT > ",pProjectUID);
            project = await pEngine.getEngineDB().getProject(pProjectUID);
            project.engineVersion = pEngine.version;
            project.dirty();
-           notPersisted = false;
-            console.log("PROJECT FOUND > ",(project as any)._id);
-            console.log("PROJECT VERSION > ",project.engineVersion);
+            Logger.debug("[PROJECT] [LOADING] Project read from DB : "+(project as any)._id);
+            //console.log("PROJECT FOUND > ",(project as any)._id);
+            //console.log("PROJECT VERSION > ",project.engineVersion);
         }catch (err){
             if(err.code==EngineDatabaseException.CODE.UNKNOWN_PROJECT){
                 // project is missing inside DB
-                console.log("EngineDatabaseException.CODE.UNKNOWN_PROJECT");
                 project = new DexcaliburProject({
                     engine:pEngine,
                     uid:pProjectUID,
                     engineVersion: pEngine.version
                 });
+
+                Logger.debug("[PROJECT] [LOADING] Project not exists in DB. Creating a new instance.");
             }else{
                 throw err;
             }
@@ -1477,7 +1491,8 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
 
         let data:any = null;
 
-
+        // create main event bus of this project
+        project.createBus();
 
         // Load project from workspace
         //project.config = pEngine.getConfiguration();
@@ -1503,8 +1518,14 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
 
 
         if(!project.engineVersion){
-            data.engineVersion = project.engineVersion = DexcaliburEngine.VERSION_MIN;
+            if(data.engineVersion!=null){
+                project.engineVersion = data.engineVersion;
+            }else{
+                data.engineVersion = project.engineVersion = DexcaliburEngine.VERSION_MIN;
+            }
+
         }
+
 
 
         try{
@@ -1566,6 +1587,7 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
             }
         }
 
+        Logger.debug("[PROJECT] [LOADING] Retrieving platform ...");
 
         if(project.getDevice()!=null){
             const ssp = project.getDevice().getProfile().getSystemProfile();
@@ -1577,9 +1599,6 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
             }
         }
 
-        if(project.engineVersion==null){
-            project.engineVersion = data.engineVersion;
-        }
 
 
         if(data.platform != null){
@@ -1588,9 +1607,10 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
         else if(project.device != null){
             project.platform = project.device.getPlatform();
         }
+        Logger.debug("[PROJECT] [LOADING] Platform retrieved : "+(project.platform!=null));
 
         // init other properties
-        project.init();
+        await project.init();
 
         // if not exists in DB, create it
         /*if(notPersisted){
@@ -1598,6 +1618,7 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
             project = await pEngine.getEngineDB().createProject(project);
         }*/
 
+        Logger.debug("[PROJECT] Project loaded : "+pProjectUID);
 
         return project;
     }

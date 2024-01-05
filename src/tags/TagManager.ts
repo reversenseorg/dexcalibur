@@ -7,6 +7,7 @@ import {IDatabase, IDbCollection, IStringIndex, Tag, TagCategory} from "@dexcali
 import {Nullable} from "../core/IStringIndex.js";
 import {newLogger} from "../Logger.js";
 import {ProjectDatabase} from "../database/ProjectDatabase.js";
+import type = Mocha.utils.type;
 
 export interface TagMap {
     [num:number] :Tag
@@ -37,6 +38,7 @@ export class TagManager {
     _tags:IDbCollection = null;
 
     cache:TagCategoryMap = {};
+    private _tagsCache:Tag[] = [];
 
     constructor() {
     }
@@ -74,6 +76,7 @@ export class TagManager {
      */
     private async _loadPresets():Promise<void>{
 
+        Logger.debug("[TAG MANAGER] Loading presets ...");
         const presets = newTagPresets();
         let vTagCategory:TagCategory;
         let cached:string[] = [];
@@ -110,6 +113,7 @@ export class TagManager {
             }
         }
 
+        Logger.debug("[TAG MANAGER] Preset tags loaded");
     }
 
     /**
@@ -152,11 +156,7 @@ export class TagManager {
     /**
      *
      */
-    async init(pContext:DexcaliburProject):Promise<void>{
-        this._db = pContext.getProjectDB();
-
-        this._categories = this._db.getCollectionOf(TagCategory.TYPE.getType());
-        this._tags = this._db.getCollectionOf(Tag.TYPE.getType());
+    async refreshCache():Promise<void>{
 
         // retrieve from DB
         const cats:IStringIndex<TagCategory> = {};
@@ -167,16 +167,22 @@ export class TagManager {
             cats[vTagCat.getUID()] = vTagCat;
         });
 
+
         tags.map( (vTag:Tag)=>{
 
-            this.importTag(vTag);
-
             if(vTag.category != null){
-                console.log(vTag);
+
+                // fixing broken relationship
+                if((typeof vTag.category)==='string'){
+                    vTag.category = cats[vTag.category as any];
+                }
+
                 if(cats[vTag.category.getUID()]!=null){
                     cats[vTag.category.getUID()].addTag(vTag);
                 }
             }
+
+            this.importTag(vTag);
         });
 
 
@@ -185,7 +191,29 @@ export class TagManager {
         // load presets
         await this._loadPresets();
 
-        console.log(this.cache);
+        // reset tag list
+        this._tagsCache = [];
+        for(let k in this.cache){
+            this._tagsCache = this._tagsCache.concat(this.cache[k].getTags());
+        }
+
+        Logger.info(`[TAG MANAGER] Cache Initialized/Refreshed : ${Object.keys(cats).length} categories, ${tags.length} tags `)
+    }
+
+    /**
+     *
+     */
+    async init(pDb:ProjectDatabase):Promise<void>{
+        Logger.debug("[TAG MANAGER] Initializing ...")
+        this._db = pDb;
+
+        this._categories = this._db.getCollectionOf(TagCategory.TYPE.getType());
+        this._tags = this._db.getCollectionOf(Tag.TYPE.getType());
+
+        await this.refreshCache();
+
+
+        Logger.debug("[TAG MANAGER] Initialized");
     }
 
     hasCategory(pCategoryUID:string){
@@ -208,8 +236,12 @@ export class TagManager {
     }
 
 
-    async getTags():Promise<Tag[]> {
-        return this._tags.getAsList();
+    async getTags(pRefresh = false):Promise<Tag[]> {
+        if(pRefresh){
+            await this.refreshCache();
+        }
+
+        return this._tagsCache;
     }
 
 

@@ -55,6 +55,7 @@ TAG_MGT_WEB_API.addAuthenticatedRoute(
 
                 // ==== LOGIC
                 const tags = await project.getTagManager().getTags();
+
                 tags.map( (vTag:Tag)=>{
                     data.push(vTag.toJsonObject());
                 })

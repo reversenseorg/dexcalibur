@@ -1156,9 +1156,12 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
             await DeviceManager.getInstance().scan();
 
 
+            Logger.success("[ENGINE] [OPEN PROJECT] Device manager refreshed");
+
             wf.pushStatus(new StatusMessage(7, "Loading project data"));
             project = await DexcaliburProject.load(this, pUID, pUserAccount, null);
 
+            Logger.success("[ENGINE] [OPEN PROJECT] Project loaded");
             // enable auto-update of project in DB when some specifics events
             // of the project happen
             this.getEngineDB().attachProject(project);
@@ -1169,11 +1172,15 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
             // project = await this.getEngineDB().save(project) as DexcaliburProject;
             DexcaliburEngine.printBanner();
 
-            Logger.debug("[DEBUG][ENGINE] Before project open :");
-            Logger.debugRAW(project)
+            Logger.debug("[ENGINE] Before project open :");
 
             wf.stepUp(0.1);
+
+            Logger.success("[ENGINE] [OPEN PROJECT] Project attached to global DB");
             success = await project.open();
+
+
+            Logger.success("[ENGINE] [OPEN PROJECT] Project opened");
 
             wf.pushStatus(StatusMessage.newSuccess("Project is ready."));
             this.active[pUID] = project;
