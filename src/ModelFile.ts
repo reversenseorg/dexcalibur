@@ -101,8 +101,8 @@ export default class ModelFile implements INode,IPersistent {
         "files",
         NodeInternalType.FILE,
         [
-            (new NodeProperty("_r")).type(DbDataType.STRING).key(DbKeyType.PRIMARY), // path relative to scope root
-            (new NodeProperty("_uid")).type(DbDataType.STRING).addValidationRule(ValidationRule.newRegexpAssert(/^[a-zA-Z0-9_]+:[a-f0-9]{32}$/)), //.key(DbKeyType.PRIMARY),
+            (new NodeProperty("_r")).type(DbDataType.STRING).key(DbKeyType.COMPOSITE,1), // path relative to scope root
+            (new NodeProperty("_uid")).type(DbDataType.STRING).key(DbKeyType.PRIMARY).addValidationRule(ValidationRule.newRegexpAssert(/^[a-zA-Z0-9_]+:[a-f0-9]{32}$/)), //.key(DbKeyType.PRIMARY),
             (new NodeProperty("name")).type(DbDataType.STRING).def(null),
             (new NodeProperty("type")).type(DbDataType.STRING).def(null),
             (new NodeProperty("size")).type(DbDataType.INTEGER).def(-1),
@@ -111,7 +111,7 @@ export default class ModelFile implements INode,IPersistent {
             (new NodeProperty("tags")).type(DbDataType.STRING).serialize(DbSerialize.JSON),
             (new NodeProperty("_d")).type(DbDataType.STRING).def('f'),
 
-            (new NodeProperty("scope")).single(DataScope.TYPE),
+            (new NodeProperty("scope")).single(DataScope.TYPE).key(DbKeyType.COMPOSITE,0).def("PKG"),
                 /*
                 .type(DbDataType.STRING)
                 .def(null)

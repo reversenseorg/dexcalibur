@@ -56,6 +56,7 @@ import TargetApp from "./common/TargetApp.js";
 import Platform from "./Platform.js";
 import {ProjectState} from "./ProjectState.js";
 import Tool = External.Tool;
+import {Subject} from "rxjs";
 
 /*
 const _fixPath_ = require("fix-path");
@@ -164,6 +165,11 @@ export interface DexcaliburProjectMap {
     [uid:string] :DexcaliburProject
 }
 
+
+export interface CleanupEvent {
+    type: string;
+    data: any;
+}
 /**
  *
  *
@@ -392,8 +398,23 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
     scanScheduler:ScanScheduler;
 
     db:Nullable<EngineDatabase> = null;
+
+    // cleanup
+    cleanup$:Subject<CleanupEvent> = new Subject<CleanupEvent>();
+
+    /**
+     * Flag to prevent any cleanup events
+     *
+     * Cleanup is mainly used to trigger cleanup routine at startup
+     * or on particular steps (such as logout)
+     *
+     * @private
+     */
+    private _cleanup = true;
+
     /**
      * To instanciate DexcaliburEngine.
+     *
      *
      * @private
      * @constructor
@@ -432,6 +453,13 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
         }
 
         this.scanScheduler = new ScanScheduler(this);
+
+        this.cleanup$.subscribe(async (vEvent:CleanupEvent)=>{
+            // to automatically remove inconsistent project from workspace
+            if(vEvent.type==='project'){
+                await this.deleteProject(null, vEvent.data, true);
+            }
+        })
     }
 
     /**
@@ -1095,7 +1123,7 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
      * @return {boolean} Rteurn TRUE if operation is successfull, else FALSE
      * @method
      */
-    async deleteProject( pAccount:UserAccount, pUID:string):Promise<boolean>{
+    async deleteProject( pAccount:UserAccount, pUID:string, pForce = false):Promise<boolean>{
         let success = false;
         try{
             // if the project is already loaded, instance can be retrieved
@@ -1103,7 +1131,7 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
             // else project must be loaded first
             if(this.active[pUID] != null){
                 // verifiy the project is owned byt he issuer
-                if(this.active[pUID].isOwnedBy(pAccount)){
+                if(pForce || this.active[pUID].isOwnedBy(pAccount)){
                     // if the project is local remmove it
 
                     this.updater.run( DXC_LIFECYCLE_EVENT.CLOSE_PROJECT, this.active[pUID]);
@@ -1134,6 +1162,12 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
             Logger.error("[ENGINE] "," deleteProject() failed",err.message, err.stack);
         }
 
+        if(success){
+            Logger.success("[ENGINE] ",`Project "${pUID}" has been deleted successfully [requester=${pAccount!=null?pAccount.getUID():'ENGINE (cleanup)'}]`);
+        }else{
+            Logger.error("[ENGINE] ",`Project "${pUID}" cannot be deleted. See logs  [requester=${pAccount!=null?pAccount.getUID():'ENGINE (cleanup)'}]`);
+
+        }
         return success;
     }
 
@@ -1164,7 +1198,7 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
             Logger.success("[ENGINE] [OPEN PROJECT] Project loaded");
             // enable auto-update of project in DB when some specifics events
             // of the project happen
-            this.getEngineDB().attachProject(project);
+            await this.getEngineDB().attachProject(project);
 
             // update or create
             project.state = ProjectState.OPEN_START;
@@ -1245,6 +1279,9 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
 
         await project.create();
 
+
+        await this.getEngineDB().attachProject(project);
+
         if(pUserAccount != null){
             project.changeOwner( null, pUserAccount);
         }
@@ -1255,6 +1292,9 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
 
         wf.pushStatus(new StatusMessage( 6, "Initialize project"));
         await project.init();
+
+
+        //await this.getEngineDB().attachProject(project);
 
         DexcaliburEngine.printBanner();
 
@@ -1401,6 +1441,21 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
      */
     getSignatureServer():SignatureServerAPI {
         return this.sigServerApi;
+    }
+
+    clean(pEvent:CleanupEvent){
+        if(this._cleanup){
+            this.cleanup$.next(pEvent);
+        }
+    }
+
+    /**
+     * To prevent any cleanup events
+     *
+     * @method
+     */
+    noCleanup():void {
+        this._cleanup = false;
     }
 }
 

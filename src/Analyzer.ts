@@ -386,7 +386,9 @@ export default class Analyzer
     searchNode( pNodeType:NodeInternalType, pUID:string):INode {
         switch(pNodeType){
             case NodeInternalType.FILE:
-                return this.finder.byID().file(pUID).get(0);
+                console.log("[SEARCH] Dev : skip file search by ID");
+                return null;
+                //return this.finder.byID().file(pUID).get(0);
                 break;
             case NodeInternalType.METHOD:
                 return this.finder.byID().method(pUID).get(0);
@@ -532,18 +534,13 @@ export default class Analyzer
      * @method
      * @since 1.0.0
      */
-    restoreNativeAnalyzer(){
+    async restoreNativeAnalyzer():Promise<void>{
 
         // try to restore native anal
-        let nativState:AnalyzerState = this.context.getAnalyzerState('native');
-        if(nativState == null){
-            // create a new object to hold the state
-            nativState = new AnalyzerState({ _uid:'native', state:{}, modified:-1 });
-        }
+        let nativState:AnalyzerState = await this.context.getProjectDB().getAnalyzerState('native');
 
         // restore the state, and set the object holding the state
         this.a_native.restoreState(nativState);
-
     }
 
 
@@ -552,11 +549,11 @@ export default class Analyzer
     }
 
 
-    doNativeAnalysis(pScope:DataScope = null, pProfile:any={}, pOptions=null){
+    async doNativeAnalysis(pScope:DataScope = null, pProfile:any={}, pOptions=null):Promise<void>{
         if(pScope==null)
             this.a_native.scanAllFiles(pProfile);
         else
-            this.a_native.scanFileByScope(pScope, pProfile, pOptions)
+            await this.a_native.scanFileByScope(pScope, pProfile, pOptions)
     }
 
     async doNativeAnalysisAsync(pScope:DataScope = null, pProfile:any={}, pOptions=null):Promise<boolean>{
@@ -1130,9 +1127,18 @@ export default class Analyzer
         // update place where field are called
         //return data;
     }
+
     /**
-     * To create a new temporary database
-     * @return {AnalyzerDatabase}
+     * To create a new temporary Analyzer Database.
+     *
+     * This new DB has basically same collections than any other instances of Analyzer DB
+     * The purpose of such DB is to perform incremental scan :
+     * - 1 / data are scanned, and stored into this new DB instance
+     * - 2 / Optionnally, freshly indexed data are processed or backed up
+     * - 3 / fresh DB and global DB are merged
+     *
+     *
+     * @return {AnalyzerDatabase} New Analyzer DB inside same project
      * @method
      */
     newTempDb():AnalyzerDatabase{

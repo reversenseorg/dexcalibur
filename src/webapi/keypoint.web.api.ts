@@ -62,7 +62,7 @@ KEYPOINT_WEB_API.addAuthenticatedRoute(
 KEYPOINT_WEB_API.addAuthenticatedRoute(
     '/list',
     {
-        'get': function (req:DelegateRequest, res:DelegateResponse):any {
+        'get': async function (req:DelegateRequest, res:DelegateResponse):Promise<any> {
             const $: WebServer = req.dxc.$;
 
             try{
@@ -73,7 +73,7 @@ KEYPOINT_WEB_API.addAuthenticatedRoute(
                 const kpm:KeyPointManager = req.dxc.project.getKeyPointManager();
                 const o:KeyPoint[] = [];
 
-                kpm.getKeyPoints().map( (x:KeyPoint)=>{
+                (await kpm.getKeyPoints()).map( (x:KeyPoint)=>{
                     o.push(x.toJsonObject());
                 })
                 $.sendSuccess(res,  o);
@@ -91,14 +91,14 @@ KEYPOINT_WEB_API.addAuthenticatedRoute(
 KEYPOINT_WEB_API.addAuthenticatedRoute(
     '/new',
     {
-        'post': function (req:DelegateRequest, res:DelegateResponse):any {
+        'post': async function (req:DelegateRequest, res:DelegateResponse):Promise<any> {
             const $: WebServer = req.dxc.$;
 
             try{
                 // ========== LOGIC
                 // get hook instance by ID
                 // const uid =  KeyPoint.TYPE.getPrimaryKey().sanitize(req.params['uid']); //KeyPoint.TYPE.
-                const kp:KeyPoint = new KeyPoint();
+                let kp:KeyPoint = new KeyPoint();
                 const target:any = req.body['target'];
                 const opts:KeyPointOptions = new KeyPointOptions(req.body['opts']);
                 const KPM:KeyPointManager = (req.dxc.project as DexcaliburProject).getKeyPointManager();
@@ -131,10 +131,12 @@ KEYPOINT_WEB_API.addAuthenticatedRoute(
                     kp.setToken( KPM.generateToken( kp, opts));
                 }
 
-                KPM.addKeyPoint( kp);
+                kp = await KPM.update(kp); //addKeyPoint( kp);
 
-                Logger.debug(JSON.stringify(kp.toJsonObject()))
-                $.sendSuccess(res,  req.dxc.project.getKeyPointManager().getKeyPoint(kp.getName()).toJsonObject());
+                console.log(kp);
+                Logger.debug(JSON.stringify(kp.toJsonObject()));
+
+                $.sendSuccess(res,  kp.toJsonObject());
             }catch(err){
                 Logger.error("[API][KEY POINTS] Key Point cannot be created. Cause : " + err.message + "\n\t" + err.stack);
                 $.sendError(res, "Key Point cannot be created. Cause : " + err.message);
@@ -149,24 +151,17 @@ KEYPOINT_WEB_API.addAuthenticatedRoute(
 KEYPOINT_WEB_API.addAuthenticatedRoute(
     '/edit/:uid',
     {
-        'get': function (req:DelegateRequest, res:DelegateResponse):any {
+        'get': async function (req:DelegateRequest, res:DelegateResponse):Promise<any> {
             const $: WebServer = req.dxc.$;
 
             try{
-
-                // ========== LOGIC
-
-                // get hook instance by ID
-
-                //const uid =  KeyPoint.TYPE.getPrimaryKey().sanitize(req.params['uid']); //KeyPoint.TYPE.
-
-                $.sendSuccess(res,  req.dxc.project.getKeyPointManager().getKeyPoint(req.params['uid']).toJsonObject());
+                $.sendSuccess(res, (await req.dxc.project.getKeyPointManager().getKeyPointByAttr({name:req.params['uid']})).toJsonObject());
             }catch(err){
                 Logger.error("[API][KEY POINTS] Key Point cannot be retrieved. Cause : " + err.message + "\n\t" + err.stack);
                 $.sendError(res, "Key Point cannot be retrieved. Cause : " + err.message);
             }
         },
-        'post': function (req:DelegateRequest, res:DelegateResponse):any {
+        'post': async function (req:DelegateRequest, res:DelegateResponse):Promise<any> {
             const $: WebServer = req.dxc.$;
 
             try{
@@ -174,7 +169,7 @@ KEYPOINT_WEB_API.addAuthenticatedRoute(
                 // ========== LOGIC
                 // get hook instance by ID
                // const uid =  KeyPoint.TYPE.getPrimaryKey().sanitize(req.param['uid']); //KeyPoint.TYPE.
-                const kp:KeyPoint = req.dxc.project.getKeyPointManager().getKeyPoint(req.body.uid);
+                const kp:KeyPoint = await req.dxc.project.getKeyPointManager().getKeyPointByAttr({name:req.body.uid});
                 const unsafeData = req.body.opts
 
                 for(const unsafePPT in unsafeData){
@@ -209,7 +204,7 @@ KEYPOINT_WEB_API.addAuthenticatedRoute(
                 }
 
 
-                req.dxc.project.getKeyPointManager().update(kp);
+                await req.dxc.project.getKeyPointManager().update(kp);
 
                 $.sendSuccess(res,  {});
             }catch(err){
@@ -217,7 +212,7 @@ KEYPOINT_WEB_API.addAuthenticatedRoute(
                 $.sendError(res, "Key Point cannot be updated. Cause : " + err.message);
             }
         },
-        'delete': function (req:DelegateRequest, res:DelegateResponse):any {
+        'delete': async function (req:DelegateRequest, res:DelegateResponse):Promise<any> {
             const $: WebServer = req.dxc.$;
 
             try{
@@ -225,16 +220,20 @@ KEYPOINT_WEB_API.addAuthenticatedRoute(
                 // ========== LOGIC
                 // get hook instance by ID
                 const kpm:KeyPointManager = req.dxc.project.getKeyPointManager();
+                let removedCtr:number;
 
-                const kp:KeyPoint = kpm.getKeyPoint(req.params['uid']);
+                const kp:KeyPoint = await kpm.getKeyPointByAttr({name:req.params['uid']});
                 if( kp != null){
-                    kpm.remove(kp);
-                    $.sendSuccess(res,  null);
+                    await kpm.remove(kp);
+                    removedCtr = 1;
                 }else{
-                    if(!kpm.removeByToken(kp.getToken())){
+                    removedCtr = await kpm.removeByToken(kp.getToken());
+                    if(removedCtr==0){
                         throw KeyPointManagerException.UNKNOW_KEYPOINT(req.params['uid']);
                     }
                 }
+
+                $.sendSuccess(res,  { removed: removedCtr });
             }catch(err){
                 Logger.error("[API][KEY POINTS] Key Point cannot be removed. Cause : " + err.message + "\n\t" + err.stack);
                 $.sendError(res, "Key Point cannot be removed. Cause : " + err.message);
@@ -249,7 +248,7 @@ KEYPOINT_WEB_API.addAuthenticatedRoute(
 KEYPOINT_WEB_API.addAuthenticatedRoute(
     '/remove/token',
     {
-        'post': function (req:DelegateRequest, res:DelegateResponse):any {
+        'post': async function (req:DelegateRequest, res:DelegateResponse):Promise<any> {
             const $: WebServer = req.dxc.$;
 
             try{
@@ -257,8 +256,9 @@ KEYPOINT_WEB_API.addAuthenticatedRoute(
                 const kpm:KeyPointManager = req.dxc.project.getKeyPointManager();
                 const unsafeToken = req.body['token'];
 
-                if(kpm.removeByToken(unsafeToken)){
-                    $.sendSuccess(res,  null);
+                const nb = await kpm.removeByToken(unsafeToken);
+                if(nb>0){
+                    $.sendSuccess(res,  { removed:nb });
                 }else{
                     throw KeyPointManagerException.UNKNOW_TOKEN(unsafeToken);
                 }
@@ -277,7 +277,7 @@ KEYPOINT_WEB_API.addAuthenticatedRoute(
 KEYPOINT_WEB_API.addAuthenticatedRoute(
     '/enable',
     {
-        'post': function (req:DelegateRequest, res:DelegateResponse):any {
+        'post': async function (req:DelegateRequest, res:DelegateResponse):Promise<any> {
             const $: WebServer = req.dxc.$;
 
             try{
@@ -290,9 +290,9 @@ KEYPOINT_WEB_API.addAuthenticatedRoute(
                     throw new KeyPointManagerException("Key point status not supported. Value : 1 or 0");
                 }
 
-                const kp:KeyPoint = project.getKeyPointManager().getKeyPoint(unsafeKeypointID);
+                const kp:KeyPoint = await  project.getKeyPointManager().getKeyPointByAttr({name:unsafeKeypointID});
                 kp.active( unsafeEnable===1? true : false);
-                project.getKeyPointManager().update(kp);
+                await project.getKeyPointManager().update(kp);
 
                 $.sendSuccess(res,  kp.toJsonObject());
             }catch(err){
@@ -309,7 +309,7 @@ KEYPOINT_WEB_API.addAuthenticatedRoute(
 KEYPOINT_WEB_API.addAuthenticatedRoute(
     '/attach/hook',
     {
-        'post': function (req:DelegateRequest, res:DelegateResponse):any {
+        'post': async function (req:DelegateRequest, res:DelegateResponse):Promise<any> {
             const $: WebServer = req.dxc.$;
 
             try{
@@ -325,7 +325,7 @@ KEYPOINT_WEB_API.addAuthenticatedRoute(
                 }
 
                 const hk:AbstractHook = project.getHookManager().getHookByID(unsafeHookID);
-                const kp:KeyPoint = project.getKeyPointManager().getKeyPoint(unsafeKeypointID);
+                const kp:KeyPoint = await project.getKeyPointManager().getKeyPointByAttr({name:unsafeKeypointID});
 
                 if(hk.hasKeyPointFor(unsafeHookAction)){
                     hk.detachKeyPoint(unsafeHookAction);
@@ -334,7 +334,7 @@ KEYPOINT_WEB_API.addAuthenticatedRoute(
                     hk.attachKeyPoint(unsafeHookAction, kp);
                 }
 
-                project.getHookManager().save(hk);
+                await project.getHookManager().save(hk);
 
                 $.sendSuccess(res,  null);
             }catch(err){

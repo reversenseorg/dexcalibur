@@ -43,7 +43,7 @@ HOOK_FRAGS_WEB_API.addAuthenticatedRoute(
                 $.sendError(res, "Hook cannot be retrieved. Cause : " + err.message);
             }
         },
-        'post': function (req:DelegateRequest, res:DelegateResponse) {
+        'post': async function (req:DelegateRequest, res:DelegateResponse):Promise<void> {
             const $: WebServer = req.dxc.$;
             let project:DexcaliburProject = null;
 
@@ -71,7 +71,7 @@ HOOK_FRAGS_WEB_API.addAuthenticatedRoute(
                     frag.setCodeTemplate( req.body.code);
                 }
 
-                hook.addExtraFragment( req.body.pos, frag);
+                await hook.addExtraFragment( req.body.pos, frag);
 
                 $.sendSuccess(res, frag.toJsonObject());
 
@@ -80,7 +80,7 @@ HOOK_FRAGS_WEB_API.addAuthenticatedRoute(
                 $.sendError(res, "Hook fragment cannot be created . Cause : " + err.message);
             }
         },
-        'put': function (req:DelegateRequest, res:DelegateResponse) {
+        'put': async function (req:DelegateRequest, res:DelegateResponse):Promise<any> {
             const $: WebServer = req.dxc.$;
             let project:DexcaliburProject = null;
 
@@ -105,13 +105,13 @@ HOOK_FRAGS_WEB_API.addAuthenticatedRoute(
                 if(req.body.descr) frag.description = req.body.descr;
                 if(req.body.code){
                     frag.setCodeTemplate( req.body.code);
-                    project.getHookManager().save(frag);
+                    await project.getHookManager().save(frag);
                     hook.build(TargetLanguage.TS);
                 }else{
-                    project.getHookManager().save(frag);
+                    await project.getHookManager().save(frag);
                 }
 
-                project.getHookManager().save(hook);
+                await project.getHookManager().save(hook);
 
                 $.sendSuccess(res, frag.toJsonObject());
 
@@ -150,7 +150,7 @@ HOOK_FRAGS_WEB_API.addAuthenticatedRoute(
                 }
 
                 // find, remove, update
-                const frag:HookTemplateFragment = hook.removeFragment(req.params.fragid);
+                const frag:HookTemplateFragment = await hook.removeFragment(req.params.fragid);
 
                 $.sendSuccess(res, { hook: hook.toJsonObject(), frag:frag });
 

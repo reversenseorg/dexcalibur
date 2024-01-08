@@ -772,6 +772,12 @@ export class MerlinSearchRequest implements MerlinPrimitive{
     }
   }
 
+  /**
+   * To walk over every operations and replace tag name by Tag instance
+   *
+   * @param pProject
+   * @private
+   */
   private _resolveTagNames(pProject:DexcaliburProject):void {
     this.getOperations().map(x => {
       let args:SearchOperationArgs;

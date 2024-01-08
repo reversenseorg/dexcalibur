@@ -237,7 +237,7 @@ export default class Platform
      * @return {IAppAnalyzer} Instance of application analyzer
      * @method
      */
-    newAppAnalyzer(pProject:DexcaliburProject):IAppAnalyzer {
+    async newAppAnalyzer(pProject:DexcaliburProject):Promise<IAppAnalyzer> {
 
         let appAnalyzer:IAppAnalyzer;
         let stateName:string;
@@ -258,22 +258,18 @@ export default class Platform
                 throw AnalyzerException.PLATFORM_NOT_SUPPORTED(this.os);
         }
 
-        state = pProject.getAnalyzerState(stateName);
-        if(state == null){
-            state = new AnalyzerState({ _uid:stateName,  state:{}, modified: -1});
-        }
-        appAnalyzer.restoreState(state);
+        appAnalyzer.restoreState(await pProject.getProjectDB().getAnalyzerState(stateName));
 
         return appAnalyzer;
     }
 
-    newKeyPointManager(pProject:DexcaliburProject):KeyPointManager {
+    async newKeyPointManager(pProject:DexcaliburProject):Promise<KeyPointManager> {
 
         if(this.os==OperatingSystem.ANDROID||this.isAndroid()){
-            return KeyPointManager.newForAndroid(pProject);
+            return await KeyPointManager.newForAndroid(pProject);
         }
         else if(this.os==OperatingSystem.IOS||this.isIOS()){
-            return  KeyPointManager.newForIOS(pProject);
+            return  await KeyPointManager.newForIOS(pProject);
         }
         else {
             throw AnalyzerException.PLATFORM_NOT_SUPPORTED(this.os);

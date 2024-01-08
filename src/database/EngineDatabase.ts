@@ -10,13 +10,25 @@ import {UserAccount} from "../user/UserAccount.js";
 import {Device} from "../Device.js";
 import InspectorFactory from "../InspectorFactory.js";
 import {ScanOrder} from "../audit/common/ScanOrder.js";
-import {IDatabase, IDatabaseAdapter, IDbCollection, INode, NodeType} from "@dexcalibur/dexcalibur-orm";
+import {
+    IDatabase,
+    IDatabaseAdapter,
+    IDbCollection,
+    INode,
+    NodeType,
+    Tag,
+    TagCategory
+} from "@dexcalibur/dexcalibur-orm";
 import {NodeInternalType, NodeInternalTypeName} from "../NodeInternalType.js";
 import {EngineDatabaseException} from "../errors/EngineDatabaseException.js";
 import {parentPort} from "worker_threads";
 import {BusSubscriber} from "../Bus.js";
 import BusEvent from "../BusEvent.js";
 import {ProjectDatabase} from "./ProjectDatabase.js";
+import {AnalyzerState} from "../AnalyzerState.js";
+import HookSession from "../HookSession.js";
+import ModelFile from "../ModelFile.js";
+import DataScope from "../DataScope.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -92,6 +104,19 @@ export class EngineDatabase {
     private app_files:Nullable<MongodbDbCollection>;
 
     private _projectsDB:{ [projectUID:string] :ProjectDatabase } = {};
+
+
+
+    private _supportedType:NodeType[] = [
+        Tag.TYPE,
+        TagCategory.TYPE,
+        AnalyzerState.TYPE,
+        HookSession.TYPE,
+        ModelFile.TYPE,
+        DataScope.TYPE
+    ];
+    private _supportedTypeInfos:{ [type:number] :CollectionInfo } = {};
+
 
     constructor(pContext:DexcaliburEngine, pOptions:DatabaseSettings) {
         this._ctx = pContext;
@@ -235,6 +260,7 @@ export class EngineDatabase {
     }
 
 
+
     /**
      * To read a project from engine DB usign username
      *
@@ -269,10 +295,6 @@ export class EngineDatabase {
         return coll.asyncAddEntry( pProject.getUID(), pProject );
     }
 
-    async saveProject(pProject:DexcaliburProject):Promise<boolean> {
-        const coll = this.getCollectionOf(pProject);
-        return coll.asyncUpdateEntry( pProject);
-    }
 
     /**
      * To attach the Event Bus of the specified project to Engine DB
@@ -286,7 +308,7 @@ export class EngineDatabase {
      *
      * @param pProject
      */
-    attachProject(pProject:DexcaliburProject):void {
+    async attachProject(pProject:DexcaliburProject):Promise<void> {
 
         // ignore is already attached
         if(this._attached[pProject.getUID()]!=null){
@@ -295,9 +317,20 @@ export class EngineDatabase {
             }
         }
 
+        await this.saveProject(pProject);
+
         const subcriber = BusSubscriber.from((vEvent:BusEvent<any>)=>{
             Logger.info("[DB] Project update caught : update ");
-            (async ()=>{ await this.save(vEvent.getData().project); })();
+            if(vEvent.getData().project != null){
+                (async ()=>{
+                    console.log(vEvent.getData().project);
+                    await this.saveProject(vEvent.getData().project);
+                })();
+            }else{
+                console.error("Invalid events : ");
+                console.log(vEvent);
+            }
+
         });
 
         this._attached[pProject.getUID()] = {
@@ -401,7 +434,10 @@ export class EngineDatabase {
     }
 
 
-
+    async saveProject(pProject:DexcaliburProject):Promise<DexcaliburProject> {
+        const db = this.getCollectionOf(DexcaliburProject.TYPE.getType());
+        return await db.asyncUpdateEntry(pProject, {upsert:true});
+    }
 
     /**
      * To save an object to corresponding collection
@@ -445,7 +481,7 @@ export class EngineDatabase {
             if(pObject._id!=null){
                 //console.log("MONGO > asyncUpdateEntry > ",pObject);
 
-                if((await coll.asyncUpdateEntry( pObject, {filter: {_id:pObject._id} }))===false){
+                if((await coll.asyncUpdateEntry( pObject, {upsert:true, filter: {_id:pObject._id} }))===false){
                     throw EngineDatabaseException.UPDATE_FAILED_FOR(NodeInternalTypeName[pObject.__], pObject._id );
                 }else{
                     obj = pObject;
@@ -461,7 +497,6 @@ export class EngineDatabase {
 
         return obj;
     }
-
     /**
      * To remove a project from DB by its UID
      *
@@ -474,8 +509,12 @@ export class EngineDatabase {
         let coll:IDbCollection;
 
         try{
+            // delete project metadata
             coll = this._db.getCollection(PROJECT_COL, DexcaliburProject.TYPE);
             res = await coll.asyncRemoveEntry( new DexcaliburProject({ uid:pUID }));
+
+            // delete project DB
+
         }catch(err){
             Logger.error(err);
             res = false;
@@ -503,9 +542,9 @@ export class EngineDatabase {
         db = await projectAdapter.asyncConnect(null, dbName);
         db.open(dbName);
         Logger.info("[INFO] [PROJECT DB] Fresh ");
-        console.log(db);
 
         projDB = new ProjectDatabase(this._ctx,  db);
+        projDB.name = dbName;
         await projDB.init();
 
         this._projectsDB[pProjectUID] = projDB;

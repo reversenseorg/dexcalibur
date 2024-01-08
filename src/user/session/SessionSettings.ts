@@ -27,14 +27,18 @@ export class SessionSettings{
     static DEFAULT_SESS_DURATION = 3600;
 
     _tmpStorage:string;
+
     /**
      * Max session duration (seconds)
-     * The duration is verified for each request.
+     *
+     * The duration is verified for each request
      *
      * @field
      * @type {number}
      */
     _duration:number;
+
+
     _fsBased:boolean = false;
     _flush:boolean = false;
 

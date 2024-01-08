@@ -81,6 +81,7 @@ import {NodeInternalType} from "./NodeInternalType.js";
 import {UserService} from "./user/UserService.js";
 import {EngineDatabaseException} from "./errors/EngineDatabaseException.js";
 import {ProjectDatabase} from "./database/ProjectDatabase.js";
+import {MerlinSearchAPI} from "./search/MerlinSearchAPI.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -142,7 +143,7 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
     };
 
     static TYPE:NodeType = new NodeType('project', NodeInternalType.PROJECT, [
-        (new NodeProperty("_id")).type(DbDataType.STRING).key(DbKeyType.PRIMARY),
+        //(new NodeProperty("_id")).type(DbDataType.STRING).key(DbKeyType.PRIMARY),
         (new NodeProperty("uid")).type(DbDataType.STRING).key(DbKeyType.PRIMARY),
         (new NodeProperty("pkg")).type(DbDataType.STRING),
         (new NodeProperty("name")).type(DbDataType.STRING),
@@ -150,6 +151,7 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
         (new NodeProperty("state")).type(DbDataType.NUMERIC),
         (new NodeProperty("os")).type(DbDataType.STRING),
         (new NodeProperty("archs")).type(DbDataType.STRING),
+        (new NodeProperty("dbName")).type(DbDataType.STRING),
         (new NodeProperty("name")).type(DbDataType.STRING),
 
         //(new NodeProperty("db")).type(DbDataType.STRING),
@@ -260,6 +262,8 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
      */
     engine:DexcaliburEngine = null;
 
+    dbName:string = "";
+
     /**
      * @type {string}
      * @field Version of the Engine which modified the project
@@ -303,6 +307,8 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
      * @field the finder API configured for this project
      */
     find:SearchAPI = null;
+
+    merlin:MerlinSearchAPI = null;
 
     // set SC analyzer
     /**
@@ -907,6 +913,7 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
 
         // set the Search API which allow the user to perform search
         this.find = new SearchAPI();
+        this.merlin = new MerlinSearchAPI();
 
 
         this.state = ProjectState.INIT_SAST;
@@ -915,9 +922,12 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
         // set SC analyzer
         // Replace existing Analyzer by multiplatform analyzer
         this.analyze = new Analyzer(wsSettings.getDefaultEncoding() as BufferEncoding, this);
-        this.analyze.restoreState(this.getAnalyzerState('xast'))
+        this.analyze.restoreState(await this.getProjectDB().getAnalyzerState('xast'))
         this.analyze.setWorkflow(wf)
+
         this.find.setDatabase(this.analyze.getData());
+        this.merlin.setDatabase(this.analyze.getData());
+
 
         // TODO : moved to TagManager presets
         /*
@@ -943,8 +953,10 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
 
         // file analyzer 
         this.dataAnalyzer = new DataAnalyzer(this);
+        await this.dataAnalyzer.init();
+
         this.dataAnalyzer.setWorkflow(wf)
-        this.dataAnalyzer.restoreState(this.getAnalyzerState('data'));
+        this.dataAnalyzer.restoreState(await this.getProjectDB().getAnalyzerState('data'));
         this.find.addAnalyzerUnit( 'data', this.dataAnalyzer);
 
 
@@ -957,8 +969,8 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
         // depend of application type
         if(this.platform != null){
             Logger.debug("[PROJECT] [INIT] PLATFORM RETRIEVED");
-            this.kpmgr = this.platform.newKeyPointManager(this);
-            this.appAnalyzer = this.platform.newAppAnalyzer(this);
+            this.kpmgr = await this.platform.newKeyPointManager(this);
+            this.appAnalyzer = await this.platform.newAppAnalyzer(this);
 
             /*
             if(this.platform.isAndroid()){
@@ -992,20 +1004,17 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
         }else {
             Logger.debug("[PROJECT] [INIT] PLATFORM IS UNKNOWN");
             // default analyzer is Android analyzer
-            this.kpmgr = KeyPointManager.newForAndroid(this);
+            this.kpmgr = await KeyPointManager.newForAndroid(this);
             this.appAnalyzer = new AndroidAppAnalyzer(this);
 
 
-            state = this.getAnalyzerState('android-app');
-            if(state == null){
-                state = new AnalyzerState({ _uid:'android-app',  state:{}, modified: -1});
-            }
-            this.appAnalyzer.restoreState(state);
+            this.appAnalyzer.restoreState(await this.getProjectDB().getAnalyzerState('android-app'));
         }
 
 
         this.state = ProjectState.INIT_HOOK_MANAGER;
         this.hook = new HookManager(this, this.nofrida);
+        await  this.hook.initBuiltInHookSets();
         // move HookManager loading to "after app analysis"
 
         // load hook DB
@@ -1013,12 +1022,12 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
 
         // plugins
         if(this.isDirty() && this.inspectors){
-            // project restored from DB are dirty
-            im.restoreInspectorsFor(this);
+             // project restored from DB are dirty
+            await im.restoreInspectorsFor(this);
         }else{
             // fresh project are not dirty
-            im.createInspectorsFor(this);
-            im.deployInspectors(this, INSPECTOR_TYPE.BOOT);
+            await im.createInspectorsFor(this);
+            await  im.deployInspectors(this, INSPECTOR_TYPE.BOOT);
             this.inspectors = im.getInspectorsOf(this);
         }
 
@@ -1360,6 +1369,10 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
 
         // check if the folder contains configuration file
         if(!Fs.existsSync(project.workspace.getProjectCfgPath())){
+            pEngine.clean({
+                type: 'project',
+                data: pProjectUID
+            });
             throw DexcaliburProjectException.MISSING_CONFIG_FILE(pProjectUID);
         }
 
@@ -1765,12 +1778,13 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
      * @deprecated ?
      * @method
      */
-    scan( pPath:string){
+    async scan( pPath:string):Promise<void>{
         // make IR 
         if(pPath !== undefined){   
             this.analyze.path( pPath);
         }else{
             const apkctnPath:string = this.appAnalyzer.getDefaultTargetPath(); //.workspace.getApkDir();
+
             Fs.mkdirSync(apkctnPath, {recursive: true});
             Logger.info("Scanning default path : "+apkctnPath);
 
@@ -1785,11 +1799,12 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
             // file analysis : icon detection, strings, etc ...
             // TODO : multi threading : each file can be treated separately
 
-            if(this.dataAnalyzer.isScopeIndexed(pkgScope)==false){
-                this.dataAnalyzer.indexFilesIn(pkgScope);
-            }
+            //if(this.dataAnalyzer.isScopeIndexed(pkgScope)==false){
+            // data analysis
+            await this.dataAnalyzer.indexFilesIn(pkgScope);
+            //}
 
-            // update internal DB with file analyzer DB
+            // update internal in-memory DB with file analyzer DB
             this.analyze.insertIn( "files", this.dataAnalyzer.getDB().getCollection('files', ModelFile.TYPE).getAll());
         }
     }
@@ -1972,7 +1987,7 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
             this.analyze.path( targetPath, CodeLocation.APP);
 
             // load hooks
-            this.hook.load();
+            await this.hook.load();
 
             this.getWorkflow().setStep('App resources', 60);
             this.getWorkflow().pushStatus(new StatusMessage(41, "Indexing and analysis of flat files from package"));
@@ -1981,7 +1996,7 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
             // TODO : multi threading : each file can be treated separately
             const pkgScope:DataScope = this.dataAnalyzer.getScope('PKG');
             if(!this.dataAnalyzer.hasIndexed(pkgScope)) {
-                this.dataAnalyzer.indexFilesIn(pkgScope);
+                await this.dataAnalyzer.indexFilesIn(pkgScope);
             }else{
                 this.dataAnalyzer.loadIndex(pkgScope );
             }
@@ -1993,7 +2008,7 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
 
             // update internal DB with file from package only (at this step)
             this.analyze.updateFileIndex(
-                this.dataAnalyzer.getIndex('PKG'), true
+                await this.dataAnalyzer.getIndex('PKG'), true
             );
 
             //this.dataAnalyzer.scanAsApkContent( apkPath, DATA_SCOPE.PKG); //["smali"]); // scan
@@ -2035,7 +2050,7 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
                 { skipAuto: this.analCfg.isAutoNativeAnalysis() })){
 
                 // native hook are loaded only if depending files have been loaded
-                this.hook.loadNativeHook();
+                await this.hook.loadNativeHook();
             }
 
             // loadSyscall / Instr hook
@@ -2073,18 +2088,18 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
 
         this.getWorkflow().pushStatus(new StatusMessage(97, "Scanning data previously extracted by hooking"));
 
-        this.dataAnalyzer.scan(this.workspace.getRuntimeFilesDir(), this.dataAnalyzer.getScope('DYN_BUFFER')); //["smali"]);
+        await this.dataAnalyzer.scan(this.workspace.getRuntimeFilesDir(), this.dataAnalyzer.getScope('DYN_BUFFER')); //["smali"]);
         this.analyze.updateFileIndex(
-            this.dataAnalyzer.getIndex('DYN_BUFFER'), true
+            await this.dataAnalyzer.getIndex('DYN_BUFFER'), true
         );
 
-        this.dataAnalyzer.scan(this.workspace.getRuntimeBcDir(), this.dataAnalyzer.getScope('DYN_BYTECODE')); //["smali"]);
+        await this.dataAnalyzer.scan(this.workspace.getRuntimeBcDir(), this.dataAnalyzer.getScope('DYN_BYTECODE')); //["smali"]);
         this.analyze.updateFileIndex(
-            this.dataAnalyzer.getIndex('DYN_BYTECODE'), true
+            await this.dataAnalyzer.getIndex('DYN_BYTECODE'), true
         );
 
         // scan smali files for each dex files discovered dynamically
-        this.dataAnalyzer.getIndex('DYN_BYTECODE').map( (vOffset:number, vFile:ModelFile)=>{
+        (await this.dataAnalyzer.getIndex('DYN_BYTECODE')).map( (vOffset:number, vFile:ModelFile)=>{
 
             const bc = _path_.join( _path_.dirname(vFile.getPath()),"smali");
             const loc = ModelLocation.fromFile(vFile);
@@ -2328,6 +2343,7 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
      * @private
      */
     getAnalyzerState(pAnal:string):AnalyzerState {
+
         const coll = this.db.getCollection(AnalyzerState.TYPE.getName(), AnalyzerState.TYPE);
 
         let state:AnalyzerState = coll.getEntry(pAnal);

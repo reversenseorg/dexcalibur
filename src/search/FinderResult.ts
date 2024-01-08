@@ -97,6 +97,10 @@ export class FinderResult
     }
 
 
+    list():any[] {
+        return this.data.getAsList();
+    }
+
     /**
      * To get all data from results as an array
      *

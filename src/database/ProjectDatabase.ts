@@ -17,6 +17,16 @@ import {AnalyzerState} from "../AnalyzerState.js";
 import ModelFile from "../ModelFile.js";
 import HookSet from "../HookSet.js";
 import HookSession from "../HookSession.js";
+import DataScope from "../DataScope.js";
+import KeyPoint from "../hook/KeyPoint.js";
+import HookStrategy from "../hook/HookStrategy.js";
+import HookTemplateFragment from "../hook/HookTemplateFragment.js";
+import JavaMethodHook from "../hook/JavaMethodHook.js";
+import NativeFunctionHook from "../hook/NativeFunctionHook.js";
+import {RuntimeEvent} from "../hook/RuntimeEvent.js";
+import Inspector from "../Inspector.js";
+import {BookmarkType} from "../bookmark/BookmarkType.js";
+import {Bookmark} from "../bookmark/Bookmark.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -52,6 +62,8 @@ export class ProjectDatabase {
     static DEFAULT_HOST = "127.0.0.1";
     static DEFAULT_PORT = 27017;
 
+    name:string = "";
+
     private _ctx:DexcaliburEngine;
     private _opts:DatabaseSettings;
     private _connector: MongodbAdapter;
@@ -59,54 +71,64 @@ export class ProjectDatabase {
 
     private _db:Nullable<MongodbDb> = null;
 
-    // engine scope
-    private metadata:Nullable<MongodbDbCollection>;
-    private inspectors:Nullable<MongodbDbCollection>;
-    private hooks:Nullable<MongodbDbCollection>;
-    private files:Nullable<MongodbDbCollection>;
-
-    // project scope
-    private runtime_events:Nullable<MongodbDbCollection>; // with session
-    private app_files:Nullable<MongodbDbCollection>;
-
     private _project:Nullable<DexcaliburProject> = null;
+
+    private _supportedType:NodeType[] = [
+        Tag.TYPE,
+        TagCategory.TYPE,
+        AnalyzerState.TYPE,
+        HookSession.TYPE,
+        ModelFile.TYPE,
+        DataScope.TYPE,
+        KeyPoint.TYPE,
+        HookStrategy.TYPE,
+        HookSet.TYPE,
+        HookTemplateFragment.TYPE,
+        JavaMethodHook.TYPE,
+        NativeFunctionHook.TYPE,
+        RuntimeEvent.TYPE,
+        InspectorFactory.TYPE,
+        Inspector.TYPE,
+        BookmarkType.TYPE,
+        Bookmark.TYPE
+    ];
+
+    private _supportedTypeInfos:{ [type:number] :CollectionInfo } = {};
+
 
     constructor(pContext:DexcaliburEngine, pDb:MongodbDb) {
         this._ctx = pContext;
         this._db = pDb;
+
     }
 
     setProject(pProject:DexcaliburProject):void {
         this._project = pProject;
+        if(pProject.dbName!=""){
+            pProject.dbName = this.name;
+        }
     }
 
-
+    /**
+     *
+     */
     async connect():Promise<void> {
 
-        /*this._db = await this._connector.asyncConnect(null,INTERNAL_DB);
-        this._db.open(INTERNAL_DB);
-
-        const existings:string[] = [];
-        const colls = await this._db.getDbCollections();
-        colls.map(x => {
-            existings.push(x.collectionName)
-        });
-
-        if(existings.indexOf(TAG_COL)==-1){ this._db.createCollectionOf(Tag.TYPE, TAG_COL); }
-        if(existings.indexOf(TAG_CATEGORY_COL)==-1){ this._db.createCollectionOf(TagCategory.TYPE, HOOK_COL); }
-        if(existings.indexOf(INSP_COL)==-1){ this._db.createCollectionOf(InspectorFactory.TYPE, INSP_COL); }
-        if(existings.indexOf(FILES_COL)==-1){ this._db.createCollectionOf(ScanOrder.TYPE, FILES_COL); }
-
-        Logger.info("Connection successful");*/
     }
 
-    private async _createCollectionOf(pNode:NodeType, pExitingCols:string[]):Promise<void> {
+    /**
+     * To create a collection into DB
+     *
+     * @param pNode
+     * @param pExitingCols
+     * @private
+     */
+    private async _createCollectionOf(pNode:NodeType, pExitingCols:string[]):Promise<any> {
         if(pExitingCols.indexOf(pNode.getName())==-1){
             await this._db.createCollectionOf(pNode, pNode.getName());
-            console.log("PROJECT DB > createCollectionOf > ",pNode.getName())
+            console.log("PROJECT DB > createCollectionOf > ",pNode.getName());
         }
 
-        console.log(pExitingCols, pNode.getName());
     }
 
     /**
@@ -125,59 +147,33 @@ export class ProjectDatabase {
             existings.push(x.collectionName)
         });
 
-
-        console.log("PROJECT DB > exists : ",existings);
-
-        await this._createCollectionOf(Tag.TYPE, existings);
-        await this._createCollectionOf(TagCategory.TYPE, existings);
-        await this._createCollectionOf(AnalyzerState.TYPE, existings);
-        await this._createCollectionOf(HookSession.TYPE, existings);
-        await this._createCollectionOf(ModelFile.TYPE, existings);
+        // to ease db dev, collection are created accordingly to supported node types
+        let nodeType:NodeType;
+        for(let i=0; i<this._supportedType.length; i++){
+            nodeType = this._supportedType[i];
+            await this._createCollectionOf(nodeType, existings);
+            this._supportedTypeInfos[nodeType.getType()] = {
+                collName: nodeType.getName(),
+                collType: nodeType
+            };
+        }
     }
 
 
-
+    /**
+     *
+     * @param pNode
+     * @private
+     */
     private _getCollectionInfo(pNode:INode|NodeInternalType):CollectionInfo {
-        const info:CollectionInfo = {
-            collName: null,
-            collType: null
-        };
-
 
         const nodeType = (typeof pNode==='number')?pNode:pNode.__;
 
-        switch ( nodeType){
-            case ENodeInternalTypes.TAG:
-                info.collName = Tag.TYPE.getName();
-                info.collType = Tag.TYPE;
-                break;
-            case ENodeInternalTypes.TAG_CATEGORY:
-                info.collName = TagCategory.TYPE.getName();
-                info.collType = TagCategory.TYPE;
-                break;
-            case NodeInternalType.FILE:
-                info.collName = ModelFile.TYPE.getName();
-                info.collType = ModelFile.TYPE;
-                break;
-            case NodeInternalType.INSPECTOR:
-                info.collName = InspectorFactory.TYPE.getName();
-                info.collType = InspectorFactory.TYPE;
-                break;
-            case NodeInternalType.HOOK_SESSION:
-                info.collName = HookSession.TYPE.getName();
-                info.collType = HookSession.TYPE;
-                break;
-            case NodeInternalType.ANAL_STATE:
-                info.collName = AnalyzerState.TYPE.getName();
-                info.collType = AnalyzerState.TYPE;
-                break;
-        }
-
-        if(info.collName=="" || info.collType==null){
+        if(this._supportedTypeInfos[nodeType]!=null){
+            return this._supportedTypeInfos[nodeType];
+        }else{
             throw EngineDatabaseException.UNKNOWN_COLLECTION(NodeInternalTypeName[nodeType]);
         }
-
-        return info;
     }
 
     /**
@@ -235,12 +231,6 @@ export class ProjectDatabase {
     async save(pObject:INode):Promise<INode> {
         let obj:INode;
         const info = this._getCollectionInfo(pObject);
-
-        /*if(Object.keys((this._db as any)._colls).length==0){
-            this._db.open(INTERNAL_DB);
-            //console.log((this._db as any)._colls);
-        }*/
-
         const coll = this._db.getCollection(info.collName, info.collType);
 
 
@@ -270,11 +260,11 @@ export class ProjectDatabase {
     async getAnalyzerState(pAnal:string):Promise<AnalyzerState> {
         const coll = this.getCollectionOf(AnalyzerState.TYPE.getType());
 
-        let state:AnalyzerState = await coll.asyncGetEntry(pAnal);
+        let state:AnalyzerState = await (coll as MongodbDbCollection).asyncGetEntry({ _uid: pAnal });
 
         if(state == null){
             state = new AnalyzerState({ _uid:pAnal, state:{}, modified:-1 });
-            await coll.asyncAddEntry(pAnal, state);
+            state = await coll.asyncAddEntry(pAnal, state);
         }
 
         if(this._project!=null){
@@ -284,4 +274,10 @@ export class ProjectDatabase {
         return state;
     }
 
+    async saveState(pState:AnalyzerState):Promise<any> {
+        return this.getCollectionOf(AnalyzerState.TYPE.getType()).asyncUpdateEntry(
+            pState,
+            { upsert: true, filter: { _uid:pState._uid } }
+        );
+    }
 }

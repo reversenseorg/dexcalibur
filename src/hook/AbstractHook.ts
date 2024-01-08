@@ -107,6 +107,7 @@ export abstract class AbstractHook {
     }
 
     loadOn(pKeyPoint:KeyPoint):AbstractHook {
+        console.log("Abstract Hook > loadOn > ",pKeyPoint);
         this._loadkp = pKeyPoint;
         return this;
     }
@@ -149,6 +150,8 @@ export abstract class AbstractHook {
 
 
     setLoadKeyPoint(pKP:KeyPoint) {
+
+        console.log("Abstract Hook > setLoadKeyPoint > ",pKP);
         this._loadkp = pKP;
     }
 
@@ -194,6 +197,8 @@ export abstract class AbstractHook {
      * @param pKP
      */
     attachKeyPoint(pType:any,  pKP:KeyPoint){
+
+        console.log("Abstract Hook > attachKeyPoint > "+pType,pKP);
         if(pType == "load"){
             this._loadkp = pKP;
         }else{
@@ -224,14 +229,14 @@ export abstract class AbstractHook {
      * @param pPosition
      * @param pFragment
      */
-    addExtraFragment( pPosition:HOOK_FRAGMENT_POS, pFragment:HookTemplateFragment):void {
+    async addExtraFragment( pPosition:HOOK_FRAGMENT_POS, pFragment:HookTemplateFragment):Promise<void> {
 
         // update fragment UID and save it (out of hook strategy)
         pFragment.setUID(
             HookStrategy.generateFragmentUID(pPosition, pFragment, null)
         );
 
-        this._mgr.save(pFragment);
+        await this._mgr.save(pFragment);
 
         //Logger.raw("XXXX> "+pPosition+" >>>> "+(pPosition === HOOK_FRAGMENT_POS.BEFORE ))
         // attach the fragment to the hook
@@ -249,7 +254,7 @@ export abstract class AbstractHook {
         }
 
         // save the hook
-        this._mgr.save(this);
+        await this._mgr.save(this);
     }
 
     /**
@@ -287,7 +292,7 @@ export abstract class AbstractHook {
      * @param {(string|HookTemplateFragment)} pFragment
      *
      */
-    removeFragment( pFragment:string|HookTemplateFragment ):HookTemplateFragment {
+    async removeFragment( pFragment:string|HookTemplateFragment ):Promise<HookTemplateFragment> {
         let frag:HookTemplateFragment = null;
         const uid = (typeof pFragment !== "string")? pFragment.getUID() : pFragment;
         const pos = ["_before","_after","_replace"];
@@ -307,7 +312,7 @@ export abstract class AbstractHook {
             )
         }
 
-        this._mgr.save(this);
+        await this._mgr.save(this);
 
         return frag;
     }
@@ -515,6 +520,8 @@ export abstract class AbstractHook {
         }
 
         if(object._loadkp != null){
+
+            console.log("Abstract Hook > updateWith > ",object._loadkp);
             this._loadkp = object._loadkp;
         }
 

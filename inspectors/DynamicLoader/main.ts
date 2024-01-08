@@ -722,7 +722,9 @@ DXC.send(
 
                 selfHS.addStrategy(strat);
 
-                strat.run(ctx, false, true);
+                (async ()=>{
+                    await strat.run(ctx, false, true);
+                })
             }
 
         }

@@ -52,7 +52,7 @@ APP_WEB_API.addAuthenticatedRoute(
 APP_WEB_API.addAuthenticatedRoute(
     '/package/content',
     {
-        'get': function(req:DelegateRequest, res:DelegateResponse):any {
+        'get': async function(req:DelegateRequest, res:DelegateResponse):Promise<any> {
 
 
             const $:WebServer = req.dxc.$;
@@ -91,7 +91,7 @@ APP_WEB_API.addAuthenticatedRoute(
                     target = ".";//_path_.sep;//SCOPE.getBasePath();
                 }
 
-                const files:IDbCollection = proj.dataAnalyzer.getIndex('PKG');
+                const files:IDbCollection = await proj.dataAnalyzer.getIndex('PKG');
 
                 files.map( (vOffset:number, vFile:ModelFile)=>{
                     //Logger.info(vFile.getRelativePath()+" =?= "+target+" > "+vFile.hasRelDir(target));

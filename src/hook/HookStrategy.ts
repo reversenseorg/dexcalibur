@@ -312,13 +312,17 @@ export default class HookStrategy {
      * @param pContext
      * @private
      */
-    private _runOnSEResults(pContext:DexcaliburProject):boolean{
+    private async _runOnSEResults(pContext:DexcaliburProject):Promise<boolean>{
 
         const hm:HookManager = pContext.getHookManager();
         const results:FinderResult = (VM.runInNewContext('project.find.' + this.search.getRequest() + ';', { project: pContext }) as FinderResult);
+        const res=results.list();
+        let pRes:any;
+        let success = false;
 
         if(this.search.isMethod()){
-            results.foreach( (vI, pRes)=>{
+            for(let i=0; i<res.length;i++){
+                pRes = res[i];
                 if(pRes==null || !pRes.hasOwnProperty('__') || (pRes.__!=NodeInternalType.METHOD)){
 
                     if(pRes!=null){
@@ -327,14 +331,14 @@ export default class HookStrategy {
                         Logger.error("[HOOK STRATEGY] _runOnSEResults (project.find." + this.search.getRequest() + "): NULL ");
                     }
 
-                    return false;
+                    continue;
                 }
 
                 let h:JavaMethodHook = pContext.hook.getJavaMethodHook( pRes);
                 let create = false;
 
                 if(h == null){
-                    h = pContext.hook.createJavaMethodHook( pRes, { loadKP: this.load_kp });
+                    h = await pContext.hook.createJavaMethodHook( pRes, { loadKP: this.load_kp });
                     h.setContext(pContext);
                     h.unloadOn(this.unload_kp);
                     create = true;
@@ -346,22 +350,24 @@ export default class HookStrategy {
 
                 h.build(this.lang);
 
-                hm.save(h,create);
+                await hm.save(h,create);
 
                 // deprecated
                 if(this.onMatch != null){
                     pContext.getHookManager().addMatchListener(h.getGUID(), this.onMatch);
                 }
 
-            })
+                success = success || true;
+            }
         }
         else if(this.search.isNativeFunc()){
-            results.foreach( (pRes)=>{
+
+            for(let i=0; i<res.length;i++){
+                pRes = res[i];
                 if(pRes==null || !pRes.hasOwnProperty('__') || (pRes.__!=NodeInternalType.FUNC)){
                     return false;
                 }
-
-            })
+            }
         }
         else if(this.search.isSystemCall()){
 
@@ -374,6 +380,79 @@ export default class HookStrategy {
         return true;
     }
 
+
+    private async _searchAndCreateMethodHook( pUID:string, pContext:DexcaliburProject):Promise<void>{
+        let jhook:JavaMethodHook = null;
+        let create = false;
+        const hm = pContext.getHookManager();
+
+        const m:ModelMethod = pContext.find.get.method(pUID)
+
+        // if method is missing, create it
+        if(m == null){
+            pContext.getAnalyzer().createMissingMethod(pUID);
+
+        }
+
+        if(m != null){
+            jhook = hm.getJavaMethodHook(m);
+
+            if(jhook == null){
+                jhook = await hm.createJavaMethodHook(m, {loadKP:  this.load_kp })
+                jhook.unloadOn(this.unload_kp);
+                create = true;
+            }
+
+            if(Object.keys(this.variables).length>0) jhook.initVariables(this.variables);
+            if(this.before != null) jhook.appendBefore(this.before);
+            if(this.after != null) jhook.appendAfter(this.after);
+            if(this.replace != null) jhook.appendReplace(this.replace);
+
+            // update hook script
+            jhook.build(this.lang);
+
+            await hm.save(jhook, create);
+
+
+            if(this.preprocessor != null){
+                hm.addMatchListener(jhook.getGUID(), this.preprocessor);
+            }
+        }
+    }
+
+
+    private async _searchAndCreateNativeFnHook( pUID:string, pContext:DexcaliburProject):Promise<void>{
+        let nhook:NativeFunctionHook = null;
+        const m:ModelFunction = pContext.find.get.func(pUID);
+        const hm = pContext.getHookManager();
+        let create = true;
+
+        if(m != null){
+            nhook = hm.getNativeFunctionHook(m)
+
+            if(nhook == null){
+                nhook = await hm.createNativeFunctionHook(m, {loadKP:  this.load_kp });
+                nhook.unloadOn(this.unload_kp);
+                create = true;
+            }
+
+
+            if(Object.keys(this.variables).length>0) nhook.initVariables(this.variables);
+            if(this.before != null) nhook.appendBefore(this.before);
+            if(this.after != null) nhook.appendAfter(this.after);
+            if(this.replace != null) nhook.appendReplace(this.replace);
+
+            nhook.build(this.lang);
+            await hm.save(nhook,create);
+
+
+            if(this.preprocessor != null){
+                hm.addMatchListener(nhook.getGUID(), this.preprocessor);
+            }
+        }
+    }
+
+
     /**
      * To run the strategy :  it research things to hook and create hook
      *
@@ -382,7 +461,7 @@ export default class HookStrategy {
      * @return {number} Return `passed` flag
      * @method
      */
-    run(pContext:DexcaliburProject, pForce = false, pDbCreate = false):number{
+    async run(pContext:DexcaliburProject, pForce = false, pDbCreate = false):Promise<number>{
 
         // skip if already executed previously
         if((this.passed == 1) && !pForce){
@@ -391,16 +470,23 @@ export default class HookStrategy {
 
         // if there is a search request
         if(this.search.getRequest() != null){
-            this.passed = this._runOnSEResults(pContext) ? 1 : 0;
+            this.passed = await this._runOnSEResults(pContext) ? 1 : 0;
 
-            pContext.hook.save(this,pDbCreate);
+            await pContext.hook.save(this,pDbCreate);
             return this.passed;
         }
 
         const hm:HookManager = pContext.getHookManager();
-
+        let uids:string[] = [];
         // else
         if(this.search.isMethod()){
+            uids = this.search.getUids();
+
+            for(let i=0; i<uids.length; i++){
+                let x = uids[i];
+                await this._searchAndCreateMethodHook(uids[i], pContext);
+            }
+            /*
             this.search.getUids().map( (x:string) => {
                 let jhook:JavaMethodHook = null;
                 let create = false;
@@ -416,7 +502,7 @@ export default class HookStrategy {
                     jhook = hm.getJavaMethodHook(m);
 
                     if(jhook == null){
-                        jhook = hm.createJavaMethodHook(m, {loadKP:  this.load_kp })
+                        jhook = await hm.createJavaMethodHook(m, {loadKP:  this.load_kp })
                         jhook.unloadOn(this.unload_kp);
                         create = true;
                     }
@@ -436,9 +522,17 @@ export default class HookStrategy {
                         hm.addMatchListener(jhook.getGUID(), this.preprocessor);
                     }
                 }
-            });
+            });*/
         }
         else if(this.search.isNativeFunc()){
+
+
+            for(let i=0; i<uids.length; i++){
+                let x = uids[i];
+                await this._searchAndCreateNativeFnHook(uids[i], pContext);
+            }
+
+            /*
             this.search.getUids().map( (x:string) =>
             {
                 let nhook:NativeFunctionHook = null;
@@ -449,7 +543,7 @@ export default class HookStrategy {
                     nhook = hm.getNativeFunctionHook(m)
 
                     if(nhook == null){
-                        nhook = hm.createNativeFunctionHook(m, {loadKP:  this.load_kp });
+                        nhook = await hm.createNativeFunctionHook(m, {loadKP:  this.load_kp });
                         nhook.unloadOn(this.unload_kp);
                         create = true;
                     }
@@ -468,14 +562,14 @@ export default class HookStrategy {
                         hm.addMatchListener(nhook.getGUID(), this.preprocessor);
                     }
                 }
-            });
+            });*/
         }
         else if(this.search.isSystemCall()){
 
         }
         // mark as passed
         this.passed = 1;
-        pContext.hook.save(this, pDbCreate);
+        await pContext.hook.save(this, pDbCreate);
         return this.passed;
     }
 

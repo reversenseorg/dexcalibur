@@ -72,7 +72,7 @@ export class AuthenticationService {
         if(this.settings.hasOidcSettings()){
             const issuer = await Issuer.discover(this.settings.getOidcDiscoverURI());
 
-            Logger.debugRAW(issuer);
+            //Logger.debugRAW(issuer);
             this._oidClientCfg = {
                 issuer: issuer,
                 settings: {

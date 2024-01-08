@@ -32,11 +32,11 @@ export default class HookPrologue
      * @return {Boolean} Returns TRUE if enabled, else FALSE
      * @function
      */
-    isEnable():boolean{
+    async isEnable():Promise<boolean>{
         for(let i in this.context.hook.hooksets)
             console.log(i,this.parentID);
 
-        return this.context.hook.getHookSet(this.parentID).isEnable();
+        return (await this.context.hook.getHookSet(this.parentID)).isEnable();
     }
 
     /**

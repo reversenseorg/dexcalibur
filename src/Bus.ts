@@ -263,7 +263,10 @@ export default class Bus
         // exec local subscribers
         const evName = event.getType();
         if(this.subs.hasOwnProperty(evName)){
-            this.subs[evName].map( pSubs => pSubs.exec(event));
+            console.log('[BUS] Triger events : '+evName, event.getData());
+            for(let  i=0; i<this.subs[evName].length; i++){
+                this.subs[evName][i].exec(event);
+            }
         }
 
         // broadcast events

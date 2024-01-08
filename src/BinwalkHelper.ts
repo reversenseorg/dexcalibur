@@ -52,6 +52,7 @@ export class BinwalkHelper extends  External.ExternalHelper implements IFileAnal
 
             while(l[0]=="") l.shift();
 
+            console.log(out, l);
             l[1] = _path_.normalize(l[1].substr(l[1].indexOf(':')));
 
             file.name = _path_.basename( l[1]);
@@ -64,6 +65,8 @@ export class BinwalkHelper extends  External.ExternalHelper implements IFileAnal
                 if(l[i]!=null){
                     res = RE.exec(l[i]) ;
 
+
+                    console.log("binwalk parsing > ",res);
                     if(res != null && res[3]!=null){
                         if(i==7){
                             file.type = res[3].split(' ')[0];
@@ -121,6 +124,8 @@ export class BinwalkHelper extends  External.ExternalHelper implements IFileAnal
 
             f = new ModelFile();
             l = pOut.split(EOL);
+
+
 
             l.shift(); // skip EOL
             l.shift(); // rm header
@@ -258,7 +263,7 @@ export class BinwalkHelper extends  External.ExternalHelper implements IFileAnal
 
             this._wf.computeStepUp(vFiles.length);
             vFiles.map( (vFile:string) => {
-                out = Util.execSync(BinwalkHelper.getExtPath("binwalk")+' '+ShellHelper.escape(vFile), "utf8", opts);
+                out = Util.execSync(BinwalkHelper.getExtPath("binwalk")+' '+ShellHelper.escape(vFile)); //, "utf8", opts);
 
                 const f:ModelFile = this._parseBinwalkBasicOutput(out);
                 f.name = _path_.basename(vFile);

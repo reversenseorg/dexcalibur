@@ -6,7 +6,7 @@ import * as Log from './Logger.js';
 import HookPrimitive from "./HookPrimitive.js";
 import HookStrategy from "./hook/HookStrategy.js";
 import {AbstractHook} from "./hook/AbstractHook.js";
-import {NodeType} from "@dexcalibur/dexcalibur-orm";
+import {INode, NodeType} from "@dexcalibur/dexcalibur-orm";
 import {NodeInternalType} from "./NodeInternalType.js";
 import {CoreDebug} from "./core/CoreDebug.js";
 
@@ -27,7 +27,7 @@ const Logger:Log.Logger = Log.newLogger() as Log.Logger;
  *
  * @class
  */
-export default class HookSet
+export default class HookSet implements INode
 {
     static TYPE:NodeType = new NodeType( "hook_set", NodeInternalType.HOOK_SET, []);
 
@@ -109,6 +109,8 @@ export default class HookSet
      */
     strats:HookStrategy[] = [];
 
+    tags:number[] = [];
+
     private _dirty = false;
 
     /**
@@ -123,6 +125,10 @@ export default class HookSet
         if(pConfig!=null)
             for(const i in pConfig)
                 this[i] = pConfig[i];
+    }
+
+    getUID():string {
+        return this.id;
     }
 
     /**
@@ -414,7 +420,7 @@ export default class HookSet
     /**
      * To deploy this hook set
      */
-    deploy(){
+    async deploy():Promise<void>{
         const hookManager:HookManager = this.context.hook;
 
         // if the hookset is already deployed only not deployed hooks are generated
@@ -435,10 +441,9 @@ export default class HookSet
             );
                 */
 
-        this.strats.map( (vStrat)=>{
-            // generate hook templates
-            vStrat.run(this.context);
-        });
+        for(let i=0; i<this.strats.length; i++){
+            await this.strats[i].run(this.context);
+        }
 
 
         this.enable = true;

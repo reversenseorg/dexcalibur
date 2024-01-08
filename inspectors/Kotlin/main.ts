@@ -81,31 +81,36 @@ var KotlinInspector:InspectorFactory = new InspectorFactory({
                 debug: tm.getTag("kotlin.debug"),
             };
 
-            ctx.getSearchEngine().file("name:kotlin").foreach((vI, vFile)=>{
-                const file = vFile as ModelFile;
+            (async ()=>{
+                const files = await ctx.getSearchEngine().file("name:kotlin");
+                files.foreach((vI, vFile)=>{
+                    const file = vFile as ModelFile;
 
-                try{
-                    if(file.name.endsWith(".json")){
-                        file.addTag(ktTags.config);
-                        if(_fs_.existsSync(file.getPath())){
-                            _fs_.readFile(file.getPath(),(vErr, vData)=>{
-                                if(!vErr){
-                                    //ctx.add
-                                    // JSON.parse(vData.toString())
-                                }
-                            })
+                    try{
+                        if(file.name.endsWith(".json")){
+                            file.addTag(ktTags.config);
+                            if(_fs_.existsSync(file.getPath())){
+                                _fs_.readFile(file.getPath(),(vErr, vData)=>{
+                                    if(!vErr){
+                                        //ctx.add
+                                        // JSON.parse(vData.toString())
+                                    }
+                                })
+                            }
+
+                            //ctx.getAnalyzer().addDependency()
                         }
+                        else if(file.name==="DebugProbesKt.bin"){
+                            file.addTag(ktTags.debug);
 
-                        //ctx.getAnalyzer().addDependency()
+                        }
+                    }catch(err){
+
                     }
-                    else if(file.name==="DebugProbesKt.bin"){
-                        file.addTag(ktTags.debug);
+                });
+            })();
 
-                    }
-                }catch(err){
 
-                }
-            });
         }
     }
 });

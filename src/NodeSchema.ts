@@ -33,6 +33,10 @@ import {
     DbSerialize, DataSource, NodeType, TagCategory, Tag
 } from "@dexcalibur/dexcalibur-orm";
 import InMemoryConnector from "../connectors/inmemory/adapter.js";
+import {MongodbDbCollection} from "@dexcalibur/dexcalibur-orm-mongodb";
+import {CustomCode} from "./actionnable/CustomCode.js";
+import {NodeInternalType} from "./NodeInternalType.js";
+import Inspector, {INSPECTOR_TYPE} from "./Inspector.js";
 
 
 
@@ -80,6 +84,14 @@ DataSourceHelper.addSource("FILE", new DataSource("fs",{
         const o = pContext.getDB().getCollection(pNodeType.getSourceAlias(),pNodeType).getEntry(pUID);
         //console.log("DATA SOURCE [FS]> GET > "+pNodeType.getSourceAlias()+" : "+pUID+" : "+(o!=null ? o.getUID() : 'NULL'));
         return o;
+    }
+}));
+DataSourceHelper.addAsyncSource("PROJECT_DB", new DataSource("fs",{
+    single: async function(pContext:any, pNodeType:NodeType, pUID:any):Promise<any>{
+        return await ((pContext as DexcaliburProject)
+                .getProjectDB()
+                .getCollectionOf(pNodeType.getType()) as MongodbDbCollection)
+                .asyncGetEntry({ _uid: pUID});
     }
 }));
 
@@ -260,16 +272,29 @@ KeyPoint.TYPE.updateProperties([
         (new NodeProperty("code")).type(DbDataType.STRING).def(null),
         (new NodeProperty("generator"))
             .type(DbDataType.STRING)
-            .sleep(x => { return (x!=null ? x.toString() : null) })
+            .sleep((x:NodePropertyState) => { return (x.p!=null ? x.p.toString() : null) })
             .wakeUp( x => { return null  }) // (x != null ? Function(x) : null)
+            .def(null),
+        (new NodeProperty("generatorCode"))
+            .type(DbDataType.BLOB)
+            .sleep(x => {
+                if(x.p==null) return null;
+                if(x.p.toJsonObject==null) return x.p;
+
+                return x.p.toJsonObject();
+            })
+            .wakeUp( x => {
+                if(x==null)  return null;
+                return new CustomCode(x.p);
+            }) // (x != null ? Function(x) : null)
             .def(null),
         (new NodeProperty("type")).type(DbDataType.NUMERIC),
         (new NodeProperty("weight")).type(DbDataType.NUMERIC),
         (new NodeProperty("enabled")).type(DbDataType.BOOLEAN),
         (new NodeProperty("deps"))
-            .type(DbDataType.STRING)
-            .sleep( (x:NodePropertyState) => { return (x.p != null ? JSON.stringify(x.p) : null )})
-            .wakeUp( (x:NodePropertyState) => { return (x.p != null ? JSON.parse(x.p) : null )}),
+            .type(DbDataType.STRING),
+            //.sleep( (x:NodePropertyState) => { return (x.p != null ? JSON.stringify(x.p) : null )})
+            //.wakeUp( (x:NodePropertyState) => { return (x.p != null ? JSON.parse(x.p) : null )}),
         (new NodeProperty("condition")).type(DbDataType.STRING),
         (new NodeProperty("parent")).volatile().single(KeyPoint.TYPE).def(null),
         (new NodeProperty("children")).volatile().multiple(KeyPoint.TYPE),
@@ -284,16 +309,16 @@ KeyPoint.TYPE.updateProperties([
                         uid: (x.p[uid].getUID != null ? x.p[uid].getUID() : x.p[uid].uid)
                     });
                 }
-                return JSON.stringify(o);
+                return o; //JSON.stringify(o);
             })
             .wakeUp( (x:NodePropertyState) => {
                 const o = {};
-                JSON.parse(x.p).map( v => {
+                x.p.map( v => {
                     o[v.uid] = v;
                 });
                 return o;
             })
-        ]).dataSource("FILE").builder(KeyPoint);
+        ]).builder(KeyPoint).dataSource("PROJECT_DB");
 
 
 
@@ -303,17 +328,17 @@ BookmarkType.TYPE.updateProperties([
         (new NodeProperty("descr")).type(DbDataType.STRING).def(null),
         (new NodeProperty("priority")).type(DbDataType.NUMERIC).def(null),
         (new NodeProperty("theme"))
-            .type(DbDataType.STRING)
-            .sleep( (x:NodePropertyState) => { return (x.p != null ? JSON.stringify(x.p) : null )})
-            .wakeUp( (x:NodePropertyState) => { return (x.p != null ? JSON.parse(x.p) : null )})
-    ]).dataSource("FILE").builder(BookmarkType);
+            .type(DbDataType.BLOB),
+            //.sleep( (x:NodePropertyState) => { return (x.p != null ? x.p : null )})
+            //.wakeUp( (x:NodePropertyState) => { return (x.p != null ? JSON.parse(x.p) : null )})
+    ]).dataSource("PROJECT_DB").builder(BookmarkType);
 
 Bookmark.TYPE.updateProperties([
     (new NodeProperty("name")).type(DbDataType.STRING).key(DbKeyType.PRIMARY),
     (new NodeProperty("descr")).type(DbDataType.STRING).def(null),
     (new NodeProperty("category")).type(DbDataType.STRING).def(null),
     (new NodeProperty("type")).single(BookmarkType.TYPE)
-]).dataSource("FILE").builder(Bookmark);
+]).dataSource("PROJECT_DB").builder(Bookmark);
 
 
 HookSet.TYPE.updateProperties([
@@ -323,18 +348,18 @@ HookSet.TYPE.updateProperties([
     (new NodeProperty("category")).type(DbDataType.STRING).def(null),
     (new NodeProperty("prologue")).volatile(),
     (new NodeProperty("color")).def(null)
-        .type(DbDataType.STRING)
-        .sleep( (x:NodePropertyState) => { return (x.p != null ? JSON.stringify(x.p) : null )})
-        .wakeUp( (x:NodePropertyState) => { return (x.p != null ? JSON.parse(x.p) : null )}),
-    (new NodeProperty("share")).def(null)
-        .type(DbDataType.STRING)
-        .sleep( (x:NodePropertyState) => { return (x.p != null ? JSON.stringify(x.p) : null )})
-        .wakeUp( (x:NodePropertyState) => { return (x.p != null ? JSON.parse(x.p) : null )}),
+        .type(DbDataType.BLOB),
+        //.sleep( (x:NodePropertyState) => { return (x.p != null ? x.p : null )})
+        //.wakeUp( (x:NodePropertyState) => { return (x.p != null ? x.p : null )}),
+    (new NodeProperty("share")).def({})
+        .type(DbDataType.BLOB),
+        //.sleep( (x:NodePropertyState) => { return (x.p != null ? x.p : null )})
+        //.wakeUp( (x:NodePropertyState) => { return (x.p != null ? x.p: null )}),
     (new NodeProperty("requires")).def(null)
-        .type(DbDataType.STRING)
-        .sleep( (x:NodePropertyState) => { return (x.p != null ? JSON.stringify(x.p) : null )})
-        .wakeUp( (x:NodePropertyState) => { return (x.p != null ? JSON.parse(x.p) : null )})
-]).dataSource("FILE").builder(HookSet);
+        .type(DbDataType.BLOB),
+        //.sleep( (x:NodePropertyState) => { return (x.p != null ? x.p : null )})
+        //.wakeUp( (x:NodePropertyState) => { return (x.p != null ? x.p : null )})
+]).dataSource("PROJECT_DB").builder(HookSet);
 
 HookStrategy.TYPE.updateProperties([
     (new NodeProperty("_uid")).type(DbDataType.STRING).key(DbKeyType.PRIMARY),
@@ -355,25 +380,29 @@ HookStrategy.TYPE.updateProperties([
     //(HookSet.TYPE.asForeignKey(DbKeyType.FOREIGN, 0, "hookset_id")),
     (new NodeProperty("before"))//.single(HookTemplateFragment.TYPE)
         .type(DbDataType.STRING)
-        .sleep( (x:NodePropertyState) => { return (x.p != null ? JSON.stringify(x.p.toJsonObject()) : null )})
-        .wakeUp( (x:NodePropertyState) => { return (x.p != null ? HookTemplateFragment.fromJsonObject(JSON.parse(x.p)) : null )}),
+        .sleep( (x:NodePropertyState) => { return (x.p != null ? x.p.toJsonObject() : null )})
+        .wakeUp( (x:NodePropertyState) => { return (x.p != null ? HookTemplateFragment.fromJsonObject(x.p) : null )}),
     (new NodeProperty("replace"))//.single(HookTemplateFragment.TYPE)
         .type(DbDataType.STRING)
-        .sleep( (x:NodePropertyState) => { return (x.p != null ? JSON.stringify(x.p.toJsonObject()) : null )})
-        .wakeUp( (x:NodePropertyState) => { return (x.p != null ? HookTemplateFragment.fromJsonObject(JSON.parse(x.p)) : null )}),
+        .sleep( (x:NodePropertyState) => { return (x.p != null ? x.p.toJsonObject() : null )})
+        .wakeUp( (x:NodePropertyState) => { return (x.p != null ? HookTemplateFragment.fromJsonObject(x.p) : null )}),
     (new NodeProperty("after"))//.single(HookTemplateFragment.TYPE)
         .type(DbDataType.STRING)
-        .sleep( (x:NodePropertyState) => { return (x.p != null ? JSON.stringify(x.p.toJsonObject()) : null )})
-        .wakeUp( (x:NodePropertyState) => { return (x.p != null ? HookTemplateFragment.fromJsonObject(JSON.parse(x.p)) : null )}),
+        .sleep( (x:NodePropertyState) => { return (x.p != null ? x.p.toJsonObject() : null )})
+        .wakeUp( (x:NodePropertyState) => { return (x.p != null ? HookTemplateFragment.fromJsonObject(x.p) : null )}),
     (new NodeProperty("hooks")).volatile(),
     (new NodeProperty("search"))
         .type(DbDataType.STRING)
-        .sleep( (x:NodePropertyState) => { return (x.p != null ? JSON.stringify(x.p.toJsonObject()) : null )})
-        .wakeUp( (x:NodePropertyState) => { return (x.p != null ? HookStrategySelector.fromJsonObject(JSON.parse(x.p)) : null )}),
+        .sleep( (x:NodePropertyState) => { return (x.p != null ? x.p.toJsonObject() : null )})
+        .wakeUp( (x:NodePropertyState) => { return (x.p != null ? HookStrategySelector.fromJsonObject(x.p) : null )}),
     (new NodeProperty("passed")).type(DbDataType.NUMERIC).def(null),
-]).dataSource("FILE").builder(HookStrategy);
+]).dataSource("PROJECT_DB").builder(HookStrategy);
 
-HookSet.TYPE.updateProperties([(new NodeProperty("strats")).multiple(HookStrategy.TYPE,"hookset")]);
+HookSet.TYPE.updateProperties([
+        (new NodeProperty("strats")).multiple(HookStrategy.TYPE,"hookset")
+    ])
+    .dataSource("PROJECT_DB")
+    .builder(HookSet);
 
 HookTemplateFragment.TYPE.updateProperties([
     (new NodeProperty("_uid")).type(DbDataType.STRING).key(DbKeyType.PRIMARY),
@@ -385,7 +414,7 @@ HookTemplateFragment.TYPE.updateProperties([
     (new NodeProperty("_preproc")).type(DbDataType.BOOLEAN).def(null),
     (new NodeProperty("_strategy")).single(HookStrategy.TYPE).def(null),
     (new NodeProperty("_keypoint")).type(DbDataType.STRING).def(null),
-]).dataSource("FILE").builder(JavaMethodHook);
+]).dataSource("PROJECT_DB").builder(HookTemplateFragment);
 
 JavaMethodHook.TYPE.updateProperties([
     (new NodeProperty("_uid")).type(DbDataType.STRING).key(DbKeyType.PRIMARY),
@@ -404,7 +433,7 @@ JavaMethodHook.TYPE.updateProperties([
             if(x.self!=null){
                 const o = [];
                 (x.self as JavaMethodHook).getAfter().map( (t:HookTemplateFragment) => { o.push(t.toJsonObject()) } );
-                return JSON.stringify(o);
+                return o;
             }else{
                 return null;
             }
@@ -412,7 +441,7 @@ JavaMethodHook.TYPE.updateProperties([
         .wakeUp( (x:NodePropertyState) => {
             if(x.p!=null && x.p.length>0){
                 const o = [];
-                JSON.parse(x.p).map( (data) => {
+                x.p.map( (data) => {
                     o.push( HookTemplateFragment.fromJsonObject(data));
                 } );
                 return o;
@@ -427,7 +456,7 @@ JavaMethodHook.TYPE.updateProperties([
             if(x.self!=null){
                 const o = [];
                 (x.self as JavaMethodHook).getBefore().map( (t:HookTemplateFragment) => { o.push(t.toJsonObject()) } );
-                return JSON.stringify(o);
+                return o;
             }else{
                 return null;
             }
@@ -436,7 +465,7 @@ JavaMethodHook.TYPE.updateProperties([
 
             if(x.p!=null && x.p.length>0){
                 const o = [];
-                JSON.parse(x.p).map( (data) => {
+                x.p.map( (data) => {
                     o.push( HookTemplateFragment.fromJsonObject(data));
                 } );
                 return o;
@@ -451,7 +480,7 @@ JavaMethodHook.TYPE.updateProperties([
             if(x.self!=null){
                 const o = [];
                 (x.self as JavaMethodHook).getReplace().map( (t:HookTemplateFragment) => { o.push(t.toJsonObject()) } );
-                return JSON.stringify(o);
+                return o;
             }else{
                 return null;
             }
@@ -460,7 +489,7 @@ JavaMethodHook.TYPE.updateProperties([
 
             if(x.p!=null && x.p.length>0){
                 const o = [];
-                JSON.parse(x.p).map( (data) => {
+                x.p.map( (data) => {
                     o.push( HookTemplateFragment.fromJsonObject(data));
                 } );
                 return o;
@@ -468,7 +497,7 @@ JavaMethodHook.TYPE.updateProperties([
                 return null;
             }
         })
-]).dataSource("FILE").builder(JavaMethodHook);
+]).dataSource("PROJECT_DB").builder(JavaMethodHook);
 
 
 
@@ -488,7 +517,7 @@ SystemCallHook.TYPE.updateProperties([
             if(x.self!=null){
                 const o = [];
                 (x.self as SystemCallHook).getAfter().map( (t:HookTemplateFragment) => { o.push(t.toJsonObject()) } );
-                return JSON.stringify(o);
+                return o;
             }else{
                 return null;
             }
@@ -496,7 +525,7 @@ SystemCallHook.TYPE.updateProperties([
         .wakeUp( (x:NodePropertyState) => {
             if(x.p!=null && x.p.length>0){
                 const o = [];
-                JSON.parse(x.p).map( (data) => {
+                x.p.map( (data) => {
                     o.push( HookTemplateFragment.fromJsonObject(data));
                 } );
                 return o;
@@ -511,7 +540,7 @@ SystemCallHook.TYPE.updateProperties([
             if(x.self!=null){
                 const o = [];
                 (x.self as SystemCallHook).getBefore().map( (t:HookTemplateFragment) => { o.push(t.toJsonObject()) } );
-                return JSON.stringify(o);
+                return o;
             }else{
                 return null;
             }
@@ -520,7 +549,7 @@ SystemCallHook.TYPE.updateProperties([
 
             if(x.p!=null && x.p.length>0){
                 const o = [];
-                JSON.parse(x.p).map( (data) => {
+                x.p.map( (data) => {
                     o.push( HookTemplateFragment.fromJsonObject(data));
                 } );
                 return o;
@@ -535,7 +564,7 @@ SystemCallHook.TYPE.updateProperties([
             if(x.self!=null){
                 const o = [];
                 (x.self as SystemCallHook).getReplace().map( (t:HookTemplateFragment) => { o.push(t.toJsonObject()) } );
-                return JSON.stringify(o);
+                return o;
             }else{
                 return null;
             }
@@ -544,7 +573,7 @@ SystemCallHook.TYPE.updateProperties([
 
             if(x.p!=null && x.p.length>0){
                 const o = [];
-                JSON.parse(x.p).map( (data) => {
+                x.p.map( (data) => {
                     o.push( HookTemplateFragment.fromJsonObject(data));
                 } );
                 return o;
@@ -552,7 +581,7 @@ SystemCallHook.TYPE.updateProperties([
                 return null;
             }
         })
-]).dataSource("FILE").builder(SystemCallHook);
+]).dataSource("PROJECT_DB").builder(SystemCallHook);
 
 NativeFunctionHook.TYPE.updateProperties([
     (new NodeProperty("_uid")).type(DbDataType.STRING).key(DbKeyType.PRIMARY),
@@ -571,7 +600,7 @@ NativeFunctionHook.TYPE.updateProperties([
             if(x.self!=null){
                 const o = [];
                 (x.self as JavaMethodHook).getAfter().map( (t:HookTemplateFragment) => { o.push(t.toJsonObject()) } );
-                return JSON.stringify(o);
+                return o;
             }else{
                 return null;
             }
@@ -580,7 +609,7 @@ NativeFunctionHook.TYPE.updateProperties([
 
             if(x.p!=null){
                 const o = [];
-                JSON.parse(x.p).map( (data) => {
+                x.p.map( (data) => {
                     o.push( HookTemplateFragment.fromJsonObject(data));
                 } );
                 return o;
@@ -595,7 +624,7 @@ NativeFunctionHook.TYPE.updateProperties([
             if(x.self!=null){
                 const o = [];
                 (x.self as JavaMethodHook).getBefore().map( (t:HookTemplateFragment) => { o.push(t.toJsonObject()) } );
-                return JSON.stringify(o);
+                return o;
             }else{
                 return null;
             }
@@ -604,7 +633,7 @@ NativeFunctionHook.TYPE.updateProperties([
 
             if(x.p!=null){
                 const o = [];
-                JSON.parse(x.p).map( (data) => {
+                x.p.map( (data) => {
                     o.push( HookTemplateFragment.fromJsonObject(data));
                 } );
                 return o;
@@ -619,7 +648,7 @@ NativeFunctionHook.TYPE.updateProperties([
             if(x.self!=null){
                 const o = [];
                 (x.self as JavaMethodHook).getReplace().map( (t:HookTemplateFragment) => { o.push(t.toJsonObject()) } );
-                return JSON.stringify(o);
+                return o;
             }else{
                 return null;
             }
@@ -628,7 +657,7 @@ NativeFunctionHook.TYPE.updateProperties([
 
             if(x.p!=null){
                 const o = [];
-                JSON.parse(x.p).map( (data) => {
+                x.p.map( (data) => {
                     o.push( HookTemplateFragment.fromJsonObject(data));
                 } );
                 return o;
@@ -636,7 +665,23 @@ NativeFunctionHook.TYPE.updateProperties([
                 return null;
             }
         })
-]).dataSource("FILE").builder(NativeFunctionHook);
+]).dataSource("PROJECT_DB").builder(NativeFunctionHook);
+
+Inspector.TYPE.updateProperties([
+    (new NodeProperty("id")).type(DbDataType.STRING).key(DbKeyType.PRIMARY),
+    (new NodeProperty("name")).type(DbDataType.STRING).def(null),
+    (new NodeProperty("description")).type(DbDataType.STRING).def(null),
+    (new NodeProperty("context")).volatile().def(null),
+    (new NodeProperty("hookSet")).single(HookSet.TYPE).def(null),
+    (new NodeProperty("staticTasks")).type(DbDataType.BLOB).def([]),
+    (new NodeProperty("running")).type(DbDataType.BOOLEAN).def(false),
+    (new NodeProperty("listeners")).type(DbDataType.STRING).def(null),
+    (new NodeProperty("gui_available")).type(DbDataType.BOOLEAN).def(false),
+    (new NodeProperty("preRegisteredTags")).multiple(TagCategory.TYPE).def([]),
+    (new NodeProperty("color")).type(DbDataType.STRING).def(null),
+    (new NodeProperty("installed")).type(DbDataType.BOOLEAN).def(null),
+    (new NodeProperty("step")).type(DbDataType.STRING).def(INSPECTOR_TYPE.BOOT),
+]).dataSource("PROJECT_DB");
 
 TagCategory.TYPE.dataSource("FILE");
 

@@ -140,7 +140,7 @@ export class UserService {
                 Logger.debug('----------- AFTER USER IS READY ------------ ');
                 this.authSvc.importUsers(this._db.getCollection('user', UserAccount.TYPE));
 
-                Logger.debug('----------- RESTORING SESSIONS ------------ ');
+                Logger.debug('----------- RESTORING ACTIVE SESSIONS ------------ ');
                 this.sessSvc.importSessions(this._db.getCollection('session', UserSession.TYPE));
 
                 Logger.debug('----------- START USER SERVICE ------------ ');

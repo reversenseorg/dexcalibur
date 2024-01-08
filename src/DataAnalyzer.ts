@@ -16,8 +16,12 @@ import {IAnalyzerUnit} from "./analyzer/IAnalyzerUnit.js";
 import {UTIL_CONST} from "./util/UtilConstants.js";
 import {AnalyzerState} from "./AnalyzerState.js";
 import {OperatingSystem} from "./OperatingSystem.js";
-import {IDatabase, IDbCollection} from "@dexcalibur/dexcalibur-orm";
+import {IDatabase, IDatabaseAdapter, IDbCollection} from "@dexcalibur/dexcalibur-orm";
 import {Nullable} from "./core/IStringIndex.js";
+import {ProjectDatabase} from "./database/ProjectDatabase.js";
+import {MongodbDbCollection} from "@dexcalibur/dexcalibur-orm-mongodb";
+import AnalyzerDatabase from "./AnalyzerDatabase.js";
+import {randomUUID} from "crypto";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -205,6 +209,10 @@ export var DATA_SCOPE:DataScopeMap = {
 export class DataAnalyzer implements IAnalyzerUnit
 {
     context:DexcaliburProject = null;
+
+    private _tmpDB:IDatabase;
+    private _pdb:ProjectDatabase;
+
     db:IDatabase = null;
     //detector:FileTypeDetector = null;
     binwalk:BinwalkHelper = null;
@@ -223,29 +231,25 @@ export class DataAnalyzer implements IAnalyzerUnit
      */
     constructor(pCtx:DexcaliburProject){
         this.context = pCtx;
+
         this.binwalk = new BinwalkHelper();
         this.magic = new MagicHelper();
 
-
-        //STATIC_BUFFER: (new DataScope("sbf")).setPpts(DataScopePpts.PATH, ws.get()),
-        const ws = pCtx.getWorkspace();
-        this.scopes = {
-           /* PKG: (new DataScope("bin", 'PKG')).setPpts(DataScopePpts.PATH, ws.getApkDir()),
-            APPDATA: (new DataScope("app",'APPDATA')).setPpts(DataScopePpts.PATH, ws.getAppdataDir()),
-            DEVICE: (new DataScope("dev",'DEVICE')).setPpts(DataScopePpts.PATH, ws.getAppdataDir()),
-            DYN_BUFFER: (new DataScope("dbf",'DYN_BUFFER')).setPpts(DataScopePpts.PATH, ws.getRuntimeFilesDir()),
-            DYN_BYTECODE: (new DataScope("bcf",'DYN_BYTECODE')).setPpts(DataScopePpts.PATH, ws.getRuntimeBcDir())*/
-        };
+        this.setProjectDB(this.context.getProjectDB());
 
         this.db = pCtx.getDB();
+        this._tmpDB = this.context.getAnalyzer().getData().getTempConnector().newTemporaryDb('data');
 
-        if(!this.db.exists(DataScope.TYPE.getName())){
-            this.createDataScopes();
-        }
-
-        this.initDataScope();
-        // this.newDB();
     }
+
+    /**
+     *
+     * @param pProjectDB
+     */
+    setProjectDB(pProjectDB:ProjectDatabase){
+        this._pdb = pProjectDB;
+    }
+
 
     /**
      * To restore the analyzer state
@@ -262,29 +266,59 @@ export class DataAnalyzer implements IAnalyzerUnit
         return false;
     }
 
-    createDataScopes(){
-        const ws = this.context.getWorkspace();
-        const coll = this.db.newCollection( DataScope.TYPE.getName(), DataScope.TYPE);
-        coll.setEntry('PKG', (DataScope.create("bin", 'PKG'))
-            .setPpts(DataScopePpts.PATH, ws.getApkDir())
-            .setPpts(DataScopePpts.PATH_SEP, UTIL_CONST.PATH_SEPARATOR.POSIX)
-        );
-        coll.setEntry('APPDATA', (DataScope.create("app", 'APPDATA')).setPpts(DataScopePpts.PATH, ws.getAppdataDir()));
-        coll.setEntry('DEVICE', (DataScope.create("dev", 'DEVICE')).setPpts(DataScopePpts.PATH, ws.getAppdataDir()));
-        coll.setEntry('DYN_BUFFER', (DataScope.create("dbf", 'DYN_BUFFER')).setPpts(DataScopePpts.PATH, ws.getRuntimeFilesDir()));
-        coll.setEntry('DYN_BYTECODE', (DataScope.create("bcf", 'DYN_BYTECODE')).setPpts(DataScopePpts.PATH, ws.getRuntimeBcDir()));
+
+    /**
+     *
+     * @param pName
+     */
+    async getDataScope(pName:string):Promise<DataScope> {
+        return await (this._pdb.getCollectionOf(DataScope.TYPE.getType()) as MongodbDbCollection)
+            .asyncGetEntry({ __i:pName });
     }
 
-    initDataScope(){
-        const scopes = this.db.getCollection( DataScope.TYPE.getName(), DataScope.TYPE);
+    /**
+     *
+     */
+    async init():Promise<void> {
+        await this.updatePresetsDataScopes();
+
+        const scopes = this._pdb.getCollectionOf(DataScope.TYPE.getType());
+        const all = await scopes.getAll();
+
+        console.log("Scope.getAll from DB  > ",all);
+
+        // init scopes
         this.scopes = {
-            PKG: scopes.getEntry('PKG'),
-            APPDATA: scopes.getEntry('APPDATA'),
-            DEVICE: scopes.getEntry('DEVICE'),
-            DYN_BUFFER: scopes.getEntry('DYN_BUFFER'),
-            DYN_BYTECODE: scopes.getEntry('DYN_BYTECODE'),
+            PKG: await this.getDataScope('PKG'),
+            APPDATA: await this.getDataScope('APPDATA'),
+            DEVICE: await this.getDataScope('DEVICE'),
+            DYN_BUFFER: await this.getDataScope('DYN_BUFFER'),
+            DYN_BYTECODE: await this.getDataScope('DYN_BYTECODE'),
         }
+
+        // restore
+        this.restoreState(await this._pdb.getAnalyzerState('data'));
     }
+
+    /**
+     * to update data scope from Project DB
+     *
+     * @method
+     */
+    async updatePresetsDataScopes():Promise<void>{
+        const ws = this.context.getWorkspace();
+        const coll = this._pdb.getCollectionOf(DataScope.TYPE.getType());
+
+        await coll.asyncUpdateEntry( (DataScope.create("bin", 'PKG'))
+            .setPpts(DataScopePpts.PATH, ws.getApkDir())
+            .setPpts(DataScopePpts.PATH_SEP, UTIL_CONST.PATH_SEPARATOR.POSIX)
+            , {upsert:true});
+        await coll.asyncUpdateEntry((DataScope.create("app", 'APPDATA')).setPpts(DataScopePpts.PATH, ws.getAppdataDir()), {upsert:true});
+        await coll.asyncUpdateEntry((DataScope.create("dev", 'DEVICE')).setPpts(DataScopePpts.PATH, ws.getAppdataDir()), {upsert:true});
+        await coll.asyncUpdateEntry((DataScope.create("dbf", 'DYN_BUFFER')).setPpts(DataScopePpts.PATH, ws.getRuntimeFilesDir()), {upsert:true});
+        await coll.asyncUpdateEntry((DataScope.create("bcf", 'DYN_BYTECODE')).setPpts(DataScopePpts.PATH, ws.getRuntimeBcDir()), {upsert:true});
+    }
+
 
 
 
@@ -299,11 +333,11 @@ export class DataAnalyzer implements IAnalyzerUnit
         }
     }
 
-    findFile(pUID:string):ModelFile{
+    async findFile(pUID:string):Promise<ModelFile>{
         const o =this.parseUID(pUID);
         let f:ModelFile;
 
-        (this.getIndex(o.scope) as IDbCollection).map( (vO:number, vFile:ModelFile)=>{
+        (await this.getIndex(o.scope)).map( (vO:number, vFile:ModelFile)=>{
             if(vFile.getUID() === pUID){
                 f = vFile;
             }
@@ -328,51 +362,79 @@ export class DataAnalyzer implements IAnalyzerUnit
         this.db = idb.newTemporaryDb(pName);
     }*/
 
+    /*
     isScopeIndexed(pScope:DataScope|string):boolean {
+
         if(typeof pScope === 'string'){
             return this.db.exists(this.getScope(pScope).getIndexName());
         }else{
             return this.db.exists(pScope.getIndexName());
         }
-    }
+    }*/
 
-    loadIndex(pScope:DataScope): void {
-        const coll:IDbCollection = this.db.getCollection(pScope.getIndexName(), ModelFile.TYPE);
+    /**
+     * To load in memory, files from ProjectDB for the specified Index
+     *
+     * @param {DataScope} pScope
+     * @method
+     */
+    async loadIndex(pScope:DataScope): Promise<void> {
+        const coll:IDbCollection = this.context.getAnalyzer().getData().getCollection(pScope.getIndexName(), ModelFile.TYPE);
         //coll.getAll();
+
+        const files = await this._pdb.getCollectionOf(ModelFile.TYPE.getType())
+                                .search({ scope: pScope.getInternalName() });
+
+        files.map((x:ModelFile) => {
+            coll.addEntry(x.getRelativePath(), x);
+        });
     }
 
-    indexFilesIn(pScope:DataScope):void {
+    /**
+     * To scan and index all files contained into the location
+     * targeted by DataScope
+     *
+     * TODO : replace by bus-based processing or multithread or microservice
+     *
+     * @param pScope
+     */
+    async indexFilesIn(pScope:DataScope):Promise<void> {
+
         const dir = _fs_.readdirSync(pScope.getBasePath());
+        let vPath:string;
 
         if(this.context.platform.isAndroid()){
             // skip APKtool contents and files
             if(pScope.getName()=='bin'){
-                dir.map( (vPath:string)=>{
+
+                for(let i=0; i<dir.length; i++){
+                    vPath = dir[i];
                     const p = _path_.join(pScope.getBasePath(),vPath);
                     if(vPath.indexOf('smali')!=0 && vPath!='original' && _fs_.lstatSync(p).isDirectory()){
-                        this.scan(p, pScope, vPath);
+                        await this.scan(p, pScope, vPath);
                     }
                     if(vPath=='original'){
 
                     }
-
-                });
+                }
             }else{
-                dir.map( (vPath:string)=>{
-                    const p = _path_.join(pScope.getBasePath(),vPath);
-                    if(_fs_.lstatSync(p).isDirectory()){
-                        this.scan(p, pScope, vPath);
+                for(let i=0; i<dir.length; i++){
+                    vPath = _path_.join(pScope.getBasePath(),dir[i]);
+                    if(_fs_.lstatSync(vPath).isDirectory()){
+                        await this.scan(vPath, pScope, dir[i]);
                     }
-                })
+                }
             }
         }else{
-            dir.map( (vPath:string)=>{
-                const p = _path_.join(pScope.getBasePath(),vPath);
-                if(_fs_.lstatSync(p).isDirectory()){
-                    this.scan(p, pScope, vPath);
+            for(let i=0; i<dir.length; i++){
+                vPath = _path_.join(pScope.getBasePath(),dir[i]);
+                if(_fs_.lstatSync(vPath).isDirectory()){
+                    await this.scan(vPath, pScope, dir[i]);
                 }
-            })
+            }
         }
+
+        this.state.append('indexedScopes', pScope.getUID(), {unique:true} ).save();
     }
 
 
@@ -391,8 +453,13 @@ export class DataAnalyzer implements IAnalyzerUnit
         });
     }
 
+    /**
+     *
+     * @param pScope
+     */
     hasIndexed(pScope:DataScope):boolean {
-        return this.db.exists(pScope.getIndexName());
+        const indexed = this.state.getProperty('indexedScopes');
+        return (indexed!=null && indexed.indexOf(pScope.getName())>-1);
     }
 
 
@@ -441,23 +508,22 @@ export class DataAnalyzer implements IAnalyzerUnit
      * @param path
      * @param pType
      */
-    scan(path:string, pScope:DataScope, pRelPath:string = null){
+    async scan(path:string, pScope:DataScope, pRelPath:string = null):Promise<void>{
 
-        // let db:IDbIndex = this.db.getIndex(pScope.getIndexName(), ModelFile.TYPE);
-        let db:IDbCollection = this.db.getCollection(pScope.getIndexName(), ModelFile.TYPE);
+        let db:IDbCollection = this._pdb.getCollectionOf(ModelFile.TYPE.getType()); //.getCollection(pScope.getIndexName(), ModelFile.TYPE);
     
         if(path[path.length-1]=='/')
            path = path.substr(0,path.length-1);
 
 
-        //db.addEntry(new ModelFile({
-        db.setEntry(pRelPath==null ? '/' : pRelPath, new ModelFile({
+        // upsert
+        let file = await db.asyncUpdateEntry(new ModelFile({
             name: _path_.basename(path),
             path: path,
             scope: pScope,
             _r: pRelPath==null ? '/' : pRelPath,
             _d: 'd'
-        }));
+        }),{upsert:true});
 
         if(_fs_.readdirSync(path).length==0) return;
 
@@ -476,26 +542,30 @@ export class DataAnalyzer implements IAnalyzerUnit
         let files = this._detectFileFormatFolder(path, skipGlob);
 
         // consolidate and save files
-        files.map( (f) => {
-            f.setScope(pScope);
-            //db.addEntry(f);
-            db.setEntry(f.getRelativePath(), f);
-        });
+        for(let i=0;i<files.length; i++){
+            files[i].setScope(pScope);
+            files[i] = await db.asyncAddEntry({
+                _r:files[i].getRelativePath(),
+                scope:files[i].getScope().getUID()
+            }, files[i]);
+        }
 
         // complete Binwalk results with folders
         let folders:ModelFile[] = [];
         this._indexFolders(path, folders);
 
-        folders.map( (f) => {
-            f.setScope(pScope);
-            //db.addEntry(f);
-            db.setEntry(f.getRelativePath(), f);
-        });
+        for(let i=0;i<folders.length; i++){
+            folders[i].setScope(pScope);
+            folders[i] = await db.asyncAddEntry({
+                _r:folders[i].getRelativePath(),
+                scope:folders[i].getScope().getUID()
+            }, folders[i]);
+        }
 
 
         // files.length
         Logger.info("[*] "+files.length+" files analyzed");
-        return this;
+        return ;
     }
 
     "file.post_scan.DYN_BYTECODE"
@@ -544,6 +614,25 @@ export class DataAnalyzer implements IAnalyzerUnit
         return this.db;
     }
 
+
+    /**
+     *
+     * @param pPath
+     * @param pScope
+     */
+    async getFile( pPath:string, pScope:DataScope|string):Promise<ModelFile> {
+        const res = await this._pdb.getCollectionOf(ModelFile.TYPE.getType()).search({
+            _r: pPath,
+            scope: (typeof pScope!=='string'? pScope.getUID() : pScope)
+        });
+
+        if(res.length>0){
+            return res[0];
+        }else{
+            return null;
+        }
+    }
+
     /**
      * To get the index holding file of a specific scope
      *
@@ -554,16 +643,46 @@ export class DataAnalyzer implements IAnalyzerUnit
      * @method
      * @since 1.0.0
      */
-    getIndex(pScope:DataScope|string):IDbCollection{
+    async getIndex(pScope:DataScope|string):Promise<IDbCollection>{
+
+
+        const files = await this.getFilesFromScope(pScope);
+        const data = this._tmpDB.newCollection('data:0:'+randomUUID(),ModelFile.TYPE);
+
+        files.map(x => data.addEntry(x.getRelativePath(), x));
+        return data;
+
+        /*
         if(typeof pScope==='string') {
             // return this.db.getIndex(this.scopes[pScope].getIndexName(), ModelFile.TYPE);
             return this.db.getCollection(this.scopes[pScope].getIndexName(), ModelFile.TYPE);
         }else{
             //return this.db.getIndex(pScope.getIndexName(), ModelFile.TYPE);
             return this.db.getCollection(pScope.getIndexName(), ModelFile.TYPE);
-        }
+        }*/
 
     }
+
+    /**
+     * To free a temporary collection
+     *
+     * @param pColl
+     */
+    free(pColl:IDbCollection){
+        //TODO
+    }
+    /**
+     *
+     * @param pScope
+     */
+    async getFilesFromScope(pScope:DataScope|string):Promise<ModelFile[]>{
+
+        const coll = this._pdb.getCollectionOf(ModelFile.TYPE.getType());
+
+        return await coll.search({ scope:(typeof pScope==='string'? pScope : pScope.getUID()) });
+    }
+
+
 
     /**
      * To index a file already analyzed
@@ -571,19 +690,26 @@ export class DataAnalyzer implements IAnalyzerUnit
      * @param pFile
      * @param pScope
      */
-    indexFile(pFile: ModelFile, pScope:DataScope=null):void {
+    async indexFile(pFile: ModelFile, pScope:DataScope=null):Promise<ModelFile> {
 
-        //const index:IDbIndex = this.db.getIndex( pScope!=null ? pScope.getIndexName() : pFile.scope.getIndexName(), ModelFile.TYPE );
-        const index:IDbCollection = this.db.getCollection( pScope!=null ? pScope.getIndexName() : pFile.scope.getIndexName(), ModelFile.TYPE );
 
-//        index.addEntry(pFile);
-        index.setEntry(pFile.getRelativePath(), pFile);
+
+        if(pScope != null){
+            pFile.scope = pScope;
+        }
+
+        pFile = await this._pdb.getCollectionOf(pFile).asyncUpdateEntry(pFile,{upsert:true, filter:{ _r: pFile.getRelativePath(), scope:pFile.getScope().getUID() }});
+//        index.setEntry(pFile.getRelativePath(), pFile);
 
 
         this.context.bus.send( new BusEvent({
             type: 'data.file.index',
             data: pFile
         }))
+
+        console.log((pFile as any)._id);
+
+        return pFile;
     }
 
     /**

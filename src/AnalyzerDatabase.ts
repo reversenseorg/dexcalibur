@@ -16,6 +16,13 @@ export default class AnalyzerDatabase
 {
     ctx:DexcaliburProject = null;
 
+    /**
+     * Temporary in-memory DB
+     *
+     * Useful to create and use just-in-time DB
+     *
+     * @field
+     */
     _tmpConn:IDatabaseAdapter;
 
     /**
@@ -155,6 +162,7 @@ export default class AnalyzerDatabase
     getTempConnector():IDatabaseAdapter {
         return this._tmpConn;
     }
+
 
     getDataSetFromNodeType(pNodeType:NodeInternalType):IDbCollection|IDbIndex {
 

@@ -5,6 +5,8 @@ import Util from "../Utils.js";
 import {KeyPointException} from "../errors/KeyPointException.js";
 import * as Log from "../Logger.js";
 import {CoreDebug} from "../core/CoreDebug.js";
+import {CustomCode} from "../actionnable/CustomCode.js";
+import {Nullable} from "../core/IStringIndex.js";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -35,7 +37,7 @@ export enum KeyPointRole {
  *
  * @class
  */
-export default class KeyPoint implements IPersistent {
+export default class KeyPoint implements INode, IPersistent {
 
     static TYPE:NodeType = new NodeType("key_point", NodeInternalType.KEY_POINT, []);
     __:NodeInternalType = NodeInternalType.KEY_POINT;
@@ -61,11 +63,14 @@ export default class KeyPoint implements IPersistent {
     code = "";
     //genCode: string = null;
     generator: any = null;
+    generatorCode: Nullable<CustomCode> = null;
     weight:number;
     type: KeyPointType = KeyPointType.HOOK;
     node:INodeMap = {};
     enabled:boolean;
     _c:string;
+
+    tags:number[] = [];
 
     constructor(pConfig:any={}){
         this.weight = -1;

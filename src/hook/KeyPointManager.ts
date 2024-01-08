@@ -5,6 +5,9 @@ import SqliteDbCollection from "../../connectors/sqlite/SqliteDbCollection.js";
 import {SqliteDb} from "../../connectors/sqlite/SqliteDb.js";
 import {KeyPointGenerator, KeyPointOptions} from "./KeyPointGenerator.js";
 import {IDatabase, IDbCollection} from "@dexcalibur/dexcalibur-orm";
+import {MongodbDbCollection} from "@dexcalibur/dexcalibur-orm-mongodb";
+import {OperatingSystem} from "../OperatingSystem.js";
+import {Nullable} from "../core/IStringIndex.js";
 
 export enum DEOPT_TYPE {
     NONE,
@@ -16,12 +19,11 @@ export interface KeyPointMap {
     [name:string] :KeyPoint
 }
 
-enum OS  {
-    ANDROID,
-    IOS,
-    WIN,
-    LINUX
-}
+
+
+/**
+ * @class
+ */
 export default class KeyPointManager {
 
 
@@ -39,7 +41,7 @@ export default class KeyPointManager {
     private _db:IDbCollection;
 
     private _project:DexcaliburProject = null;
-    private _os:number = OS.ANDROID;
+    private _os:OperatingSystem = OperatingSystem.ANDROID;
     private targetPlatform:any = null;
 
 
@@ -61,24 +63,24 @@ export default class KeyPointManager {
     }
 
     static newForAndroid(pProject:DexcaliburProject, pConfig:any={}){
-        pConfig._os = OS.ANDROID;
-        return (new KeyPointManager(pConfig)).setProject(pProject).init(pProject.getDB());
+        pConfig._os = OperatingSystem.ANDROID;
+        return (new KeyPointManager(pConfig)).setProject(pProject).init();
     }
 
 
     static newForIOS(pProject:DexcaliburProject, pConfig:any={}){
-        pConfig._os = OS.IOS;
-        return (new KeyPointManager(pConfig)).setProject(pProject).init(pProject.getDB());
+        pConfig._os = OperatingSystem.IOS;
+        return (new KeyPointManager(pConfig)).setProject(pProject).init();
     }
 
     static newForLinux(pProject:DexcaliburProject, pConfig:any={}){
-        pConfig._os = OS.LINUX;
-        return (new KeyPointManager(pConfig)).setProject(pProject).init(pProject.getDB());
+        pConfig._os = OperatingSystem.LINUX;
+        return (new KeyPointManager(pConfig)).setProject(pProject).init();
     }
 
     static newForWindows(pProject:DexcaliburProject, pConfig:any={}){
-        pConfig._os = OS.WIN;
-        return (new KeyPointManager(pConfig)).setProject(pProject).init(pProject.getDB());
+        pConfig._os = OperatingSystem.WINNT;
+        return (new KeyPointManager(pConfig)).setProject(pProject).init();
     }
 
     setProject(pProject:DexcaliburProject):KeyPointManager {
@@ -94,7 +96,7 @@ export default class KeyPointManager {
         return this.generator.generateToken(null, pKeyPoint, pOptions.getConditionName());
     }
 
-    private _createBinLoadKeyPoint(){
+    private async _createBinLoadKeyPoint():Promise<void>{
         const kp:KeyPoint = new KeyPoint({
             name: KeyPointManager.INTERNAL_SUFFIX+"bin.load",
             description: "At this point, classes.dex file is loaded and every Android API is available.",
@@ -112,10 +114,12 @@ export default class KeyPointManager {
             }*/
         });
 
-        this.addInternalKeyPoint(kp);
+        await this.addInternalKeyPoint(kp);
     }
 
-    private _createJavaAppKeyPoint(){
+    /**
+     */
+    private async _createJavaAppKeyPoint():Promise<void>{
         const kp:KeyPoint = new KeyPoint({
             name: KeyPointManager.INTERNAL_SUFFIX+"java.app",
             description: "At this point, classes.dex file is loaded and every Android API is available.",
@@ -124,7 +128,8 @@ export default class KeyPointManager {
 Java.perform(()=>{ 
     /*@@__CONTENT__@@*/
 });
-            `
+            `,
+            generatorCode: null
             /*generator: function(vCode:string):string{
 
                 function(vCode){
@@ -133,10 +138,13 @@ Java.perform(()=>{
             }*/
         });
 
-        this.addInternalKeyPoint(kp);
+        await this.addInternalKeyPoint(kp);
     }
 
-    private _createBootReadyKeyPoint(){
+    /**
+     *
+     */
+    private async _createBootReadyKeyPoint():Promise<void>{
         const kp:KeyPoint = new KeyPoint({
             name: KeyPointManager.INTERNAL_SUFFIX+"java.boot",
             description: "At this point, Dalvik packages and classes.dex files are not loaded, only most basic classes are avilable.",
@@ -145,14 +153,15 @@ Java.perform(()=>{
 Java.deoptimizeEverything();
    
 /*@@__CONTENT__@@*/
-            `
+            `,
+            generatorCode: null
             /*
             generator: function(vCode:string):string{
                 return "Java.deoptimizeEverything(); \n\n"+vCode;
             }*/
         });
 
-        this.addInternalKeyPoint(kp);
+        await this.addInternalKeyPoint(kp);
     }
 
     /**
@@ -161,9 +170,11 @@ Java.deoptimizeEverything();
      * @return {string[]}
      * @method
      */
-    public getGlobalRequirements():string[] {
+    async getGlobalRequirements():Promise<string[]> {
         const reqs:string[] = [];
-        this.getKeyPoints().map( (kp:KeyPoint) => {
+        const all = await this.getKeyPoints();
+
+        all.map( (kp:KeyPoint) => {
             if(kp.hasDependencies()){
                 kp.getDependencies().map( d => {
                     if(reqs.indexOf(d) == -1){
@@ -179,19 +190,28 @@ Java.deoptimizeEverything();
     /**
      * To detect if deoptimize is required
      */
-    public needDeoptimize():DEOPT_TYPE {
+    async needDeoptimize():Promise<DEOPT_TYPE> {
         let mode:DEOPT_TYPE = DEOPT_TYPE.NONE;
-        let kp:KeyPoint = this.getKeyPoint('core.java.boot.before');
+        let kp:KeyPoint = await this.getKeyPointByAttr({name:'core.java.boot.before'});
         if(kp != null && kp.hasNodes()){
             return DEOPT_TYPE.BOOT;
         }
 
-        kp = this.getKeyPoint('core.java.boot');
+        kp = await this.getKeyPointByAttr({name:'core.java.boot'});
         if(kp != null && kp.hasNodes()){
             return DEOPT_TYPE.ALL;
         }
     }
 
+    /**
+     * To check if some instruction-level are deployed
+     *
+     * In such case, more action can be done and hooks are more accurate,
+     * but application can become instable
+     *
+     * @return {boolean}
+     * @method
+     */
     public hasActiveInstructionHook():boolean {
         return this._project.getHookManager().hasActiveInstructionHook();
     }
@@ -202,8 +222,8 @@ Java.deoptimizeEverything();
      * @param pKP
      * @param pModel
      */
-    public generate( pKP:KeyPoint, pOptions:KeyPointOptions):KeyPoint{
-        return this.generator.generate(pKP, pOptions);
+    public async generate( pKP:KeyPoint, pOptions:KeyPointOptions):Promise<KeyPoint>{
+        return await this.generator.generate(pKP, pOptions);
     }
     /*
     private _createDalvikReadyKeyPoint(){
@@ -224,19 +244,17 @@ Java.deoptimizeEverything();
     /**
      * To init KP manager according to target OS
      */
-    init( pDB:IDatabase):KeyPointManager{
-        if(pDB == null) throw KeyPointManagerException.INVALID_DB();
+    async init():Promise<KeyPointManager>{
 
-        this._db = (pDB as SqliteDb).getCollection( KeyPoint.TYPE.getName(), KeyPoint.TYPE) ;
-        (this._db as SqliteDbCollection).getAll(false, true);
+        this._db = this._project.getProjectDB().getCollectionOf(KeyPoint.TYPE.getType());
 
-
-        if(this._db.size() == 0){
+        const all = await this._db.getAsList();
+        if(all.length == 0){
             switch (this._os){
-                case OS.ANDROID:
-                    this._createBootReadyKeyPoint();
+                case OperatingSystem.ANDROID:
+                    await this._createBootReadyKeyPoint();
                     // this._createDalvikReadyKeyPoint();
-                    this._createJavaAppKeyPoint();
+                    await this._createJavaAppKeyPoint();
                     break;
             }
         }
@@ -257,50 +275,92 @@ Java.deoptimizeEverything();
      * token are unique.
      *
      * @param pToken {string} KeyPoint replacement token
+     * @return {number} Count of key points removed
      * @method
      */
-    removeByToken(pToken:string):boolean {
-        const e:KeyPoint[] = (this._db as SqliteDbCollection).getAll(true, true);
-        let rem = 0;
-        e.map( (vKP:KeyPoint) => {
-            if(vKP.getToken()===pToken){
-                this.remove(vKP);
-                rem++;
-            }
-        } )
+    async removeByToken(pToken:string):Promise<number> {
 
-        return (rem > 0);
+        const removed = await this.removeFilter((vKP:KeyPoint)=> {
+            return (vKP.getToken()===pToken);
+        });
+
+        return removed.length;
     }
 
-    update(pKeyPoint:KeyPoint):void {
-        this._db.updateEntry(pKeyPoint);
+    /**
+     * To save a key point in db (insert or update)
+     *
+     * @param pKeyPoint
+     */
+    async update(pKeyPoint:KeyPoint):Promise<KeyPoint> {
+        await this._db.asyncUpdateEntry(pKeyPoint, {upsert:true});
         pKeyPoint.updated();
+        return pKeyPoint;
+    }
+
+    /**
+     *
+     *
+     * @param pCondition
+     * @return {Promise<KeyPoint[]> } Removed keypoints
+     * @method
+     */
+    async removeFilter( pCondition:((vKP:KeyPoint)=>boolean)):Promise<KeyPoint[]> {
+
+        const removed:KeyPoint[] = [];
+        const e:KeyPoint[] = await this._db.getAsList();
+
+        for(let i=0; i<e.length; i++){
+            if(pCondition.apply(null,[e[i]])){
+                await this.remove(e[i]);
+                removed.push(e[i]);
+            }
+        }
+
+        return removed;
     }
 
     /**
      * To remove all key points
+     *
+     * @method
      */
-    removeAll():void {
-        const e:KeyPoint[] = (this._db as SqliteDbCollection).getAll(true, true);
-        e.map( x => this.remove(x) );
+    async removeAll():Promise<number> {
+        const removed = await this.removeFilter((vKP:KeyPoint)=>true);
+        return removed.length;
     }
 
-    addInternalKeyPoint( pKeyPoint:KeyPoint ){
+    /**
+     *
+     * @param pKeyPoint
+     */
+    async addInternalKeyPoint( pKeyPoint:KeyPoint ):Promise<void>{
         if(pKeyPoint.getName().indexOf(KeyPointManager.INTERNAL_SUFFIX)!=0){
             pKeyPoint.setName(KeyPointManager.INTERNAL_SUFFIX+pKeyPoint.getName())
         }
 
-        this.addKeyPoint(pKeyPoint);
+        await this.addKeyPoint(pKeyPoint);
     }
 
-    addKeyPoint(pKeyPoint:KeyPoint ){
-        this._db.addEntry(pKeyPoint.getName(), pKeyPoint);
+    async addKeyPoint(pKeyPoint:KeyPoint ):Promise<void>{
+        await (this._db as MongodbDbCollection).asyncAddEntry(pKeyPoint.getName(), pKeyPoint);
     }
 
-    getKeyPoint(pName:string):KeyPoint {
-        return this._db.getEntry(pName);
+    /**
+     * To get a key point from DB
+     * @param pName
+     */
+    async getKeyPoint(pName:string):Promise<KeyPoint> {
+        return await (this._db as MongodbDbCollection).asyncGetEntry(pName);
     }
 
+    /**
+     * To get a key point from DB
+     * @param pName
+     */
+    async getKeyPointByAttr(pAttr:any):Promise<KeyPoint> {
+        return await (this._db as MongodbDbCollection).asyncGetEntry(pAttr);
+    }
     /**
      * To get all key points
      *
@@ -308,8 +368,8 @@ Java.deoptimizeEverything();
      * @return {KeyPoint[]} List of KPs
      * @method
      */
-    getKeyPoints():KeyPoint[] {
-        return this._db.getAll(true);
+    async getKeyPoints():Promise<KeyPoint[]> {
+        return await (this._db as MongodbDbCollection).getAsList();
     }
 
     /**
@@ -326,11 +386,12 @@ Java.deoptimizeEverything();
      * @return {KeyPoint[]} List of top level KP
      * @method
      */
-    getTopLevelKeyPoints():KeyPoint[] {
+    async getTopLevelKeyPoints():Promise<KeyPoint[]> {
         const kps:KeyPoint[] = [];
 
+        const all:KeyPoint[] = await (this._db as MongodbDbCollection).getAsList();
         // gather KP node without ancestor
-        this._db.map( (i:number, kp:KeyPoint)=>{
+        all.map( (kp:KeyPoint)=>{
             if(!kp.hasAncestor()) kps.push(kp);
         });
 
@@ -348,10 +409,12 @@ Java.deoptimizeEverything();
      * @return {KeyPoint[]} List of terminal KP
      * @method
      */
-    getLeafKeyPoints():KeyPoint[] {
+    async getLeafKeyPoints():Promise<KeyPoint[]> {
         const kps:KeyPoint[] = [];
 
-        this._db.map( (i:number, kp:KeyPoint)=>{
+        const all:KeyPoint[] = await (this._db as MongodbDbCollection).getAsList();
+
+        all.map( (kp:KeyPoint)=>{
             if(!kp.hasChildrenKeyPoints()) kps.push(kp);
         });
 

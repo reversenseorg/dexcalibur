@@ -11,6 +11,7 @@ import * as Log from "../Logger.js";
 import {KeyPointOptions} from "./KeyPointGenerator.js";
 import Util from "../Utils.js";
 import {ScriptBuilderOptions, ScriptWriterOptions, TargetLanguage} from "./common.js";
+import {IStringIndex} from "@dexcalibur/dexcalibur-orm";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -44,13 +45,13 @@ export default class HookScriptBuilder {
         return (this.target===TargetLanguage.TS);
     }
 
-    private _isDynamicLoadingRequired( pHooks:NativeFunctionHook[]){
+    private async _isDynamicLoadingRequired( pHooks:NativeFunctionHook[]):Promise<boolean>{
         let f = false;
-        pHooks.map( (pNatHook)=>{
-            if(this._hm.hasKeyPointAncestor(pNatHook.getKeyPoint(), "core.native.dl.load")){
+        for(let i=0; i<pHooks.length ; i++){
+            if(this._hm.hasKeyPointAncestor(await pHooks[i].getKeyPoint(), "core.native.dl.load")){
                 f = true;
             }
-        });
+        }
         return f;
     }
 
@@ -128,7 +129,7 @@ export default class HookScriptBuilder {
     }
 
     // InstructionHook
-     _writeNativeLib( pLibraryName:string, pFuncs:NativeFunctionHook[], pInstrs:any[] = null):string {
+     async _writeNativeLib( pLibraryName:string, pFuncs:NativeFunctionHook[], pInstrs:any[] = null):Promise<string> {
 
         if( pInstrs != null){
             return `
@@ -140,7 +141,7 @@ Interruptor.newAgent({
             return `
 DXC.HOOK["${pLibraryName}"] = {
     __mod: null,
-    __dynamic__:${this._isDynamicLoadingRequired(pFuncs)},
+    __dynamic__:${ await this._isDynamicLoadingRequired(pFuncs)},
     __hook: {
         @@__FUNC_HOOKS__@@
     }
@@ -203,12 +204,15 @@ DXC.HOOK["${pLibraryName}"] = {
      *
      * @param pKeyPoints
      */
-    buildNestedScript( pKeyPoints:KeyPoint[], pOptions:ScriptWriterOptions ){
+    async buildNestedScript( pKeyPoints:KeyPoint[], pOptions:ScriptWriterOptions ):Promise<IStringIndex<string>>{
 
-        const maps = {};
+        const maps:IStringIndex<string> = {};
+        let vKP:KeyPoint;
 
-        // for each keypoints
-        pKeyPoints.map( (vKP:KeyPoint)=>{
+
+        for(let i=0; i<pKeyPoints.length; i++){
+
+            vKP = pKeyPoints[i];
 
             // get hook loaded by this KP
             const hk = this._hm.getHookByLoadKeyPoint(vKP); // this._hm.getHookByKeyPoint( vKP);
@@ -240,30 +244,31 @@ DXC.HOOK["${pLibraryName}"] = {
             //Logger.debug("[HOOK SCRIPT BUILDER] buildNestedScript: \n"+s)
 
             //try{
-                // if the keypoint template has been never generated, create it :
-                if(!vKP.isTemplateReady()){
-                    this._hm.getKeyPointManager().generate(vKP, new KeyPointOptions({
-                        condition: vKP.getCondition()
-                    }));
-                    // TODO : backup/save
-                }
-
-                // merge code loading hooks with key point template
-               const gen = vKP.generateCode(s);
-           /* }catch(e){
-                this._hm.getKeyPointManager().generate(vKP, new KeyPointOptions({
+            // if the keypoint template has been never generated, create it :
+            if(!vKP.isTemplateReady()){
+                await this._hm.getKeyPointManager().generate(vKP, new KeyPointOptions({
                     condition: vKP.getCondition()
                 }));
-            }*/
+                // TODO : backup/save
+            }
+
+            // merge code loading hooks with key point template
+            const gen = vKP.generateCode(s);
+            /* }catch(e){
+                 this._hm.getKeyPointManager().generate(vKP, new KeyPointOptions({
+                     condition: vKP.getCondition()
+                 }));
+             }*/
 
 
             if(vKP.hasChildrenKeyPoints()){
-                const m = this.buildNestedScript(vKP.getChildrenKeyPoints(),pOptions);
+                const m = await  this.buildNestedScript(vKP.getChildrenKeyPoints(),pOptions);
                 for(const token in m)  maps[token] = m[token];
             }
 
             maps[vKP.getToken()] = gen;
-        });
+        }
+
 
         return maps;
     }
@@ -367,15 +372,15 @@ Java.deoptimizeBoot();`
      *
      * @method
      */
-    build(pOptions:ScriptBuilderOptions = {}){
+    async build(pOptions:ScriptBuilderOptions = {}):Promise<string>{
         let script = "";
 
         //Logger.info("[HOOK SCRIPT BUILDER] Build : start ... \n");
         const kpm:KeyPointManager  =  this._hm.getKeyPointManager();
-        const topl_kps:KeyPoint[] = kpm.getTopLevelKeyPoints();
-        const leaf_kps:KeyPoint[] = kpm.getLeafKeyPoints();
-        const req:any = kpm.getGlobalRequirements();
-        const deopt:DEOPT_TYPE = kpm.needDeoptimize();
+        const topl_kps:KeyPoint[] = await kpm.getTopLevelKeyPoints();
+        const leaf_kps:KeyPoint[] = await kpm.getLeafKeyPoints();
+        const req:any = await kpm.getGlobalRequirements();
+        const deopt:DEOPT_TYPE = await  kpm.needDeoptimize();
         //Logger.info("[HOOK SCRIPT BUILDER] Build : before _appendInternals: \n");
 
         script = this._appendInternals( script);
@@ -388,7 +393,7 @@ Java.deoptimizeBoot();`
         }
 
         // detect if deoptimizing is required
-        if(kpm.getKeyPoint('core.java.boot').hasNodes()){
+        if((await kpm.getKeyPointByAttr({ name:'core.java.boot' })).hasNodes()){
             script = this._appendDeoptimize( script, deopt);
             //Logger.info("[HOOK SCRIPT BUILDER] Build : _appendDeoptimize: \n"+script);
         }
@@ -396,7 +401,7 @@ Java.deoptimizeBoot();`
         pOptions.targetLanguage = this.target;
 
         // process top-level key point
-        const tokens = this.buildNestedScript(topl_kps, pOptions as ScriptWriterOptions);
+        const tokens = await this.buildNestedScript(topl_kps, pOptions as ScriptWriterOptions);
 
         topl_kps.map( (vKP:KeyPoint) => {
             if(vKP.getCodeCache() != null && vKP.enabled){

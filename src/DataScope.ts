@@ -1,7 +1,15 @@
 
 import {NodeInternalType} from "./NodeInternalType.js";
 import {IPersistent} from "./persist/orm/IPersistent.js";
-import {NodeType,  NodePropertyState, NodeProperty, DbDataType, DbKeyType} from "@dexcalibur/dexcalibur-orm";
+import {
+    NodeType,
+    NodePropertyState,
+    NodeProperty,
+    DbDataType,
+    DbKeyType,
+    INode,
+    SerializeOptions
+} from "@dexcalibur/dexcalibur-orm";
 import * as _path_ from 'path';
 
 export interface DataScopeMap {
@@ -16,7 +24,7 @@ export enum DataScopePpts {
 
 const DEFAULT_PREFIX = "files_";
 
-export default class DataScope implements IPersistent{
+export default class DataScope implements INode,IPersistent{
 
     static TYPE:NodeType = new NodeType(
         "data_scope",
@@ -27,16 +35,23 @@ export default class DataScope implements IPersistent{
             (new NodeProperty("_n")).type(DbDataType.STRING).unique(),
             (new NodeProperty("_p"))
                 .type(DbDataType.STRING)
-                .sleep( (x:NodePropertyState)=>{ return (x.p!=null ? JSON.stringify(x.p) : null)})
-                .wakeUp( (x:NodePropertyState)=>{ return (x.p!=null ? JSON.parse(x.p) : null)})
-        ]).dataSource("FILE");
+                //.sleep( (x:NodePropertyState)=>{ return (x.p!=null ? JSON.stringify(x.p) : null)})
+                //.wakeUp( (x:NodePropertyState)=>{ return (x.p!=null ? JSON.parse(x.p) : null)})
+        ]); //.dataSource("FILE");
 
     __:NodeInternalType = NodeInternalType.DATA_SCOPE;
+
+    /**
+     * DB UID
+     */
+    _id:string;
 
     __i:string;
     _i:string = DEFAULT_PREFIX;
     _n:string = null;
     _p:any = {};
+
+    tags:number[] = [];
 
     constructor( pConfig:any = {}){
         this.setPpts( DataScopePpts.PATH_SEP, _path_.sep);
@@ -88,6 +103,10 @@ export default class DataScope implements IPersistent{
         if(pScope==null) return false;
 
         return (pScope.getName()===this.getName());
+    }
+
+    toJsonObject(pOption?: SerializeOptions): any {
+        return this;
     }
 }
 DataScope.TYPE.builder(DataScope);

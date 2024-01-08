@@ -35,6 +35,7 @@ import SystemCallHook from "./SystemCallHook.js";
 import ModelSyscall from "../ModelSyscall.js";
 import {CryptoUtils} from "../CryptoUtils.js";
 import {ScriptBuilderOptions, TargetLanguage} from "./common.js";
+import ModelFile from "../ModelFile.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -125,7 +126,7 @@ export class HookManager
     };
 
 
-    kp_mgr:KeyPointManager = null;
+    kp_mgr:KeyPointManager;
     hk_builder:HookBuilder = null;
     builder:HookScriptBuilder = null;
 
@@ -157,10 +158,10 @@ export class HookManager
         this.kp_mgr = pProject.getKeyPointManager();
         this.hk_builder = new HookBuilder( this.context );
         this.builder = new HookScriptBuilder( this );
-        this.db = new HookDbApi(pProject.getDB());
+        this.db = new HookDbApi(pProject.getProjectDB());
         this.presets = new HookFragmentPreset();
 
-        this.initBuiltInHookSets();
+
     }
 
     /**
@@ -193,15 +194,16 @@ export class HookManager
      * @method
      * @since 1.0.0
      */
-    load(){
+    async load():Promise<void>{
 
-        this.jhooks = this.db.jhooks.getAsList();
+        this.jhooks = await this.db.getAllJavaHook();
         this.jhooks.map( h => {
             //Logger.info(h.getTarget().getUID())
             h.setManager(this)
         });
 
-        this.hooksets = this.db.sets.getAll();
+        this.hooksets = await this.db.sets.getAll() ; //.sets.getAll();
+        console.log(this.hooksets);
         //this.jhooks = this.db.jhooks.getAsList();
         Logger.info(`[HOOK MANAGER] Load complete { java=${this.jhooks.length}, native=${this.nhooks.length}, sets=${Object.keys(this.hooksets).length}   }`);
     }
@@ -214,24 +216,27 @@ export class HookManager
      * @method
      * @since 1.0.0
      */
-    loadNativeHook(){
+    async loadNativeHook():Promise<void>{
 
         // get previously parsed lib
 
         // load native hooks
-        this.nhooks = this.db.nhooks.getAsList();
+        this.nhooks = await this.db.getAllNativeHook(); //nhooks.getAsList();
         this.nhooks.map( h => {
             h.setManager(this);
         });
     }
 
-    private initBuiltInHookSets(){
+    /**
+     *
+     */
+    async initBuiltInHookSets():Promise<void>{
 
         // do if platform supports ( java / native / obj / kotlin ) ... add Hookset ...
 
-        if(!this.db.isHookSetExists(CUSTOM_HOOKSET_JAVA)){
+        if(!await  this.db.isHookSetExists(CUSTOM_HOOKSET_JAVA)){
             //if(this.context.platform.isAndroid()){
-            this._addHookSet(new HookSet({
+            await this._addHookSet(new HookSet({
                 id: CUSTOM_HOOKSET_JAVA,
                 name: "Custom Java hooks",
                 context: this.context,
@@ -241,8 +246,8 @@ export class HookManager
         }
 
 
-        if(!this.db.isHookSetExists(CUSTOM_HOOKSET_NATIVE)){
-            this._addHookSet(new HookSet({
+        if(!await this.db.isHookSetExists(CUSTOM_HOOKSET_NATIVE)){
+            await this._addHookSet(new HookSet({
                 id: CUSTOM_HOOKSET_NATIVE,
                 name: "Custome native hooks",
                 context: this.context,
@@ -291,12 +296,13 @@ export class HookManager
      * @param pId
      * @param pOptions
      */
-    createHookSet(pId:string, pOptions:any={}):HookSet {
-        let hs:HookSet = this.getHookSet(pId);
+    async createHookSet(pId:string, pOptions:any={}):Promise<HookSet> {
+        //let hs:HookSet = await this.getHookSet(pId);
         //Logger.raw(hs);
-        if(hs==null){
+        //if(hs==null){
             Logger.debug("NEW "+pId+" "+((pOptions.hasOwnProperty('name')? pOptions.name : pId))+" => "+JSON.stringify(pOptions));
-            hs = new HookSet({
+        console.log("NEW "+pId+" "+((pOptions.hasOwnProperty('name')? pOptions.name : pId))+" => "+JSON.stringify(pOptions));
+            const hs = new HookSet({
                 id: pId,
                 name: (pOptions.hasOwnProperty('name')? pOptions.name : pId),
                 context: this.context,
@@ -308,12 +314,13 @@ export class HookManager
             });
             for(const k in pOptions) hs[k] = pOptions[k];
 
-            this._addHookSet(hs);
+            console.log(await this._addHookSet(hs));
+            console.log(hs);
             return hs;
-        }else{
-            Logger.raw(pId+" "+hs.name+" => "+hs.toJsonObject());
-            return hs;
-        }
+        //}else{
+         //   Logger.raw(pId+" "+hs.name+" => "+hs.toJsonObject());
+         //   return hs;
+        //}
     }
 
     registerHookSet(pHookSet:HookSet):void {
@@ -324,16 +331,16 @@ export class HookManager
      * To get a stragtegy by its uid
      * @param pUID
      */
-    getHookStrategy(pUID:string):HookStrategy {
-        return this.db.strategies.getEntry(pUID);
+    async getHookStrategy(pUID:string):Promise<HookStrategy> {
+        return this.db.getStrategy(pUID) ;
     }
 
     /**
      * To get all hook strategies
      * @param pUID
      */
-    getHookStrategies():HookStrategy[] {
-        return this.db.strategies.getAll();
+    async getHookStrategies():Promise<HookStrategy[]> {
+        return this.db.strategies.getAsList();
     }
 
     /*createHookStrategy( pStrategy:HookStrategy):boolean {
@@ -343,23 +350,26 @@ export class HookManager
     /**
      * To create hookset for each DEX file or binary file analyzed
      */
-    updateBuiltinHookset():void {
+    async updateBuiltinHookset():Promise<void> {
         // create a hook set per DEX file, it mus be
         // this.context.analyze.getDexFiles();
 
         // create a hook set per native file into the project
         const natives = this.context.analyze.getNativeAnalyzer().getTargetFiles();
-        natives.map( file => {
-           const hs = this.getHookSet(file.getName());
-           if(hs==null){
-               this._addHookSet(new HookSet({
-                   id: file.getName(),
-                   name: file.getName(),
-                   context: this.context,
-                   enable: true
-               }))
-           }
-        });
+        let file:ModelFile;
+        for(let i=0; i<natives.length; i++){
+            file = natives[i];
+            const hs = await this.getHookSet(file.getName());
+            if(hs==null){
+                await this._addHookSet(new HookSet({
+                    id: file.getName(),
+                    name: file.getName(),
+                    context: this.context,
+                    enable: true
+                }))
+            }
+        }
+
     }
 
     /**
@@ -438,7 +448,7 @@ export class HookManager
      * @method
      * @deprecated
      */
-    prepareHookScript():string{
+    async prepareHookScript():Promise<string>{
         let script = `Java.perform(function() {
             
         `;
@@ -450,7 +460,7 @@ export class HookManager
         //script += this.prepareRequires();
         
         for(const i in this.prologues){
-            if(this.prologues[i].isEnable()){
+            if(await this.prologues[i].isEnable()){
                 script += this.prologues[i].builtScript;
             }
         }
@@ -480,7 +490,7 @@ export class HookManager
         const ws:HookWorkspace = this.context.getWorkspace().getHookWorkspace();
 
         //try{
-            script = this.builder.build(pOptions);
+            script = await this.builder.build(pOptions);
             Logger.info("[HOOK MANAGER] Hook script template built")
             ws.writeDefaultScript(script, this.builder.getLanguage());
             if(this.builder.getLanguage()==TargetLanguage.JS){
@@ -536,7 +546,7 @@ export class HookManager
      * @returns {HookSession} Current - freshly created - hooking session
      * @method
      */
-    newSession():HookSession{
+    async newSession():Promise<HookSession>{
         if(this._sessTags == null){
             this._initMessageTags();
         }
@@ -553,14 +563,14 @@ export class HookManager
         }else{
             // backup session and messages
             if(last != null){
-                this.db.updateHookSession(this.sessions[this.sessions.length-1]);
+                await this.db.updateHookSession(this.sessions[this.sessions.length-1]);
             }
         }
 
 
         sess.active = true;
         this.sessions.push(sess);
-        this.db.createHookSession(sess);
+        await this.db.createHookSession(sess);
         return sess;
     }
 
@@ -573,8 +583,8 @@ export class HookManager
      * @param {String} pAppName Application UID
      * @method
      */
-    startBySpawn(pAppName:string, pSession:HookSession, pHookScript:string= null):HookSession{
-        return this.start(pSession, pHookScript, FRIDA_MODE.SPAWN, pAppName);
+    async startBySpawn(pAppName:string, pSession:HookSession, pHookScript:string= null):Promise<HookSession>{
+        return await this.start(pSession, pHookScript, FRIDA_MODE.SPAWN, pAppName);
     }
 
     /**
@@ -582,8 +592,8 @@ export class HookManager
      * @param {*} pAppName 
      * @param {*} pHookScript 
      */
-    startByAttachToGadget(pSession:HookSession, pHookScript:string= null):HookSession{
-        return this.start(pSession, pHookScript, FRIDA_MODE.ATTACH_GADGET, "Gadget");
+    async startByAttachToGadget(pSession:HookSession, pHookScript:string= null):Promise<HookSession>{
+        return await this.start(pSession, pHookScript, FRIDA_MODE.ATTACH_GADGET, "Gadget");
     }
 
     /**
@@ -591,8 +601,8 @@ export class HookManager
      * @param {*} pPID 
      * @param {*} pHookScript 
      */
-    startByAttachTo(pPID:string=null, pSession:HookSession, pHookScript:string= null):HookSession{
-        return this.start(pSession, pHookScript, FRIDA_MODE.ATTACH_PID, pPID);
+    async startByAttachTo(pPID:string=null, pSession:HookSession, pHookScript:string= null):Promise<HookSession>{
+        return await this.start(pSession, pHookScript, FRIDA_MODE.ATTACH_PID, pPID);
     }
 
     /**
@@ -600,8 +610,8 @@ export class HookManager
      * @param {*} pAppName 
      * @param {*} pHookScript 
      */
-    startByAttachToApp(pAppName:string, pSession:HookSession, pHookScript:string= null):HookSession{
-        return this.start(pSession, pHookScript, FRIDA_MODE.ATTACH_APP, pAppName);
+    async startByAttachToApp(pAppName:string, pSession:HookSession, pHookScript:string= null):Promise<HookSession>{
+        return await this.start(pSession, pHookScript, FRIDA_MODE.ATTACH_APP, pAppName);
     }
 
 
@@ -652,42 +662,42 @@ export class HookManager
      *
      * @param pObject
      */
-    save( pObject:AbstractHook|JavaMethodHook|NativeFunctionHook|HookStrategy|HookSet|HookTemplateFragment, pCreate = false ){
+    async save( pObject:AbstractHook|JavaMethodHook|NativeFunctionHook|HookStrategy|HookSet|HookTemplateFragment, pCreate = false ):Promise<void>{
 
         switch (pObject.__) {
             case NodeInternalType.HOOK_JAVA:
                 if(!pCreate){
-                    this.db.updateJavaHook(pObject as JavaMethodHook);
+                    await this.db.updateJavaHook(pObject as JavaMethodHook);
                 }else{
-                    this.db.createJavaHook(pObject as JavaMethodHook);
+                    await this.db.createJavaHook(pObject as JavaMethodHook);
                 }
                 break;
             case NodeInternalType.HOOK_NATIVE:
                 if(!pCreate){
-                    this.db.updateNativeHook(pObject as NativeFunctionHook);
+                    await this.db.updateNativeHook(pObject as NativeFunctionHook);
                 }else{
-                    this.db.createNativeHook(pObject as NativeFunctionHook);
+                    await this.db.createNativeHook(pObject as NativeFunctionHook);
                 }
                 break;
             case NodeInternalType.HOOK_STRATEGY:
                 if(!pCreate){
-                    this.db.updateHookStrategy(pObject as HookStrategy);
+                    await this.db.updateHookStrategy(pObject as HookStrategy);
                 }else{
-                    this.db.createHookStrategy(pObject as HookStrategy);
+                    await this.db.createHookStrategy(pObject as HookStrategy);
                 }
                 break;
             case NodeInternalType.HOOK_SET:
                 if(!pCreate){
-                    this.db.updateHookSet(pObject as HookSet);
+                    await this.db.updateHookSet(pObject as HookSet);
                 }else{
-                    this.db.createHookSet(pObject as HookSet);
+                    await this.db.createHookSet(pObject as HookSet);
                 }
                 break;
             case NodeInternalType.HOOK_FRAGMENT:
                 if(!pCreate){
-                    this.db.updateFragment(pObject as HookTemplateFragment);
+                    await this.db.updateFragment(pObject as HookTemplateFragment);
                 }else{
-                    this.db.createFragment(pObject as HookTemplateFragment);
+                    await this.db.createFragment(pObject as HookTemplateFragment);
                 }
                 break;
             default:
@@ -710,13 +720,13 @@ export class HookManager
       * 
       * @method
       */
-     start(pSession:HookSession, hook_script:string, pType:FRIDA_MODE=null, pExtra:any=null, pDevice:Device=null):HookSession{
+     async start(pSession:HookSession, hook_script:string, pType:FRIDA_MODE=null, pExtra:any=null, pDevice:Device=null):Promise<HookSession>{
         
         let target:Device = null;
         const PROBE_SESSION:HookSession = pSession; //this.newSession();
         
         if(hook_script == null){
-            hook_script = this.prepareHookScript();
+            hook_script = await this.prepareHookScript();
             Logger.debug("[HOOK MANAGER] Prepared script : \n"+hook_script);
         }
 
@@ -1009,13 +1019,13 @@ export class HookManager
             pHookSession.push(pMessage.payload);
     }
 
-    private _addHookSet(pHookSet: HookSet):boolean{
+    private async _addHookSet(pHookSet: HookSet):Promise<boolean>{
 
-         if(this.db.isHookSetExists(pHookSet.getID())){
+         /*if(await this.db.isHookSetExists(pHookSet.getID())){
              throw HookManagerException.EXISTING_HOOK_SET();
-         }
+         }*/
 
-         this.db.sets.addEntry( pHookSet.getID(), pHookSet);
+         await this.db.createHookSet(pHookSet);
 
          //this.hooksets[pHookSet.getID()] = pHookSet;
 
@@ -1023,8 +1033,8 @@ export class HookManager
          return true;
     }
 
-    getHookSets():HookSetList{
-        return this.db.sets.getAll();
+    async getHookSets():Promise<HookSetList>{
+        return await this.db.sets.getAll();
     }
 
     /**
@@ -1032,15 +1042,15 @@ export class HookManager
      *
      * @param pNative
      */
-    getDefaultHookSet(pNative=false):HookSet{
+    async getDefaultHookSet(pNative=false):Promise<HookSet>{
          if(pNative)
-            return this.db.sets.getEntry(CUSTOM_HOOKSET_NATIVE);
+            return await this.db.getHookSet(CUSTOM_HOOKSET_NATIVE);
          else
-             return this.db.sets.getEntry(CUSTOM_HOOKSET_JAVA);
+             return await this.db.getHookSet(CUSTOM_HOOKSET_JAVA);
     }
 
-    getHookSet(id:string):HookSet{
-        return this.db.sets.getEntry(id);
+    async getHookSet(id:string):Promise<HookSet>{
+        return await this.db.getHookSet(id);
     }
 
     /**
@@ -1332,15 +1342,16 @@ export class HookManager
      * @param pOpts
      * @param pKeyPoint
      */
-    createSyscallHook( pSyscall:ModelSyscall, pOpts:any, pKeyPoint:KeyPoint = null):SystemCallHook {
+    async createSyscallHook( pSyscall:ModelSyscall, pOpts:any, pKeyPoint:KeyPoint = null):Promise<SystemCallHook> {
         const tmgr = this.context.getTagManager();
         const hook:SystemCallHook = new SystemCallHook();
 
         hook.setGUID( CryptoUtils.md5(this.nextHookGUIDFor(pSyscall)));
 
         if(pOpts.loadKP == null){
-            hook.setLoadKeyPoint(this.getKeyPointManager().getKeyPoint("core.java.app"));
+            hook.setLoadKeyPoint(await this.getKeyPointManager().getKeyPointByAttr({ name:"core.java.app" }));
         }else{
+
             hook.setLoadKeyPoint(pOpts.loadKP);
         }
 
@@ -1361,17 +1372,19 @@ export class HookManager
         pSyscall.hooks.push( hook);
 
 
+        const defaultHS = await this.getDefaultHookSet();
         if(tmgr.getTag("discover.static").match(pSyscall)
             || tmgr.getTag("discover.internal").match(pSyscall)){
-            this.getDefaultHookSet().addHook(hook);
+            await defaultHS.addHook(hook);
         }else{
             //this.getHookSetFor(method.getDeclaringFile());
-            this.getDefaultHookSet().addHook(hook);
+            // TODO ?
+            await defaultHS.addHook(hook);
         }
 
         Logger.info("[HOOK MANAGER][NATIVE HOOK] Created successfully : ",hook.getTarget().getUID())
         this.shooks.push(hook);
-        this.save(hook, true);
+        await this.save(hook, true);
 
         // trigger new probe workflow
         this.context.trigger({
@@ -1410,14 +1423,14 @@ export class HookManager
      * @method
      * @since 1.0.0
      */
-    createNativeFunctionHook( pFunc:ModelFunction, pOpts:HookOptions, pKeyPoint:KeyPoint = null):NativeFunctionHook {
+    async createNativeFunctionHook( pFunc:ModelFunction, pOpts:HookOptions, pKeyPoint:KeyPoint = null):Promise<NativeFunctionHook> {
         const tmgr = this.context.getTagManager();
         const hook:NativeFunctionHook = new NativeFunctionHook();
 
         hook.setGUID( CryptoUtils.md5(this.nextHookGUIDFor(pFunc)));
 
         if(pOpts.loadKP == null){
-            hook.setLoadKeyPoint(this.getKeyPointManager().getKeyPoint("core.java.app"));
+            hook.setLoadKeyPoint(await this.getKeyPointManager().getKeyPointByAttr({name:"core.java.app"}));
         }else{
             hook.setLoadKeyPoint(pOpts.loadKP);
         }
@@ -1440,17 +1453,19 @@ export class HookManager
         pFunc.hooks.push( hook);
 
 
+        const defaultHS = await this.getDefaultHookSet();
         if(tmgr.getTag("discover.static").match(pFunc)
             || tmgr.getTag("discover.internal").match(pFunc)){
-            this.getDefaultHookSet().addHook(hook);
+             defaultHS.addHook(hook);
         }else{
             //this.getHookSetFor(method.getDeclaringFile());
-            this.getDefaultHookSet().addHook(hook);
+            // TODO attach to another set+keypoint
+            defaultHS.addHook(hook);
         }
 
         Logger.info("[HOOK MANAGER][NATIVE HOOK] Created successfully : ",hook.getTarget().getUID())
         this.nhooks.push(hook);
-        this.save(hook, true);
+        await this.save(hook, true);
 
         // trigger new probe workflow
         this.context.trigger({
@@ -1474,14 +1489,14 @@ export class HookManager
      * @method
      * @since 1.0.0
      */
-    createJavaMethodHook( pMethod:ModelMethod, pOptions:HookOptions = {}):JavaMethodHook {
+    async createJavaMethodHook( pMethod:ModelMethod, pOptions:HookOptions = {}):Promise<JavaMethodHook> {
         const tmgr = this.context.getTagManager();
         const hook:JavaMethodHook = new JavaMethodHook();
 
         hook.setGUID( CryptoUtils.md5(this.nextHookGUIDFor(pMethod)));
 
         if(pOptions.loadKP == null){
-            hook.setLoadKeyPoint(this.getKeyPointManager().getKeyPoint("core.java.app"));
+            hook.setLoadKeyPoint(await this.getKeyPointManager().getKeyPointByAttr({ name: "core.java.app" }));
         }else{
             hook.setLoadKeyPoint(pOptions.loadKP);
         }
@@ -1504,18 +1519,19 @@ export class HookManager
         pMethod.hooks.push( hook);
 
 
+        const defaultHS = await this.getDefaultHookSet();
         if( tmgr.getTag("discover.static").match(pMethod)
             || tmgr.getTag("discover.internal").match(pMethod)){
-            this.getDefaultHookSet().addHook(hook);
+            defaultHS.addHook(hook);
         }else{
             Logger.info("hook java",JSON.stringify(pMethod));
             //this.getHookSetFor(method.getDeclaringFile());
-            this.getDefaultHookSet().addHook(hook);
+            defaultHS.addHook(hook);
         }
 
         Logger.info("[HOOK MANAGER][JAVA HOOK] Created successfully : ",hook.getTarget().getName())
         this.jhooks.push(hook);
-        this.save(hook, true);
+        await this.save(hook, true);
 
         // trigger new probe workflow
         this.context.trigger({
@@ -1565,7 +1581,7 @@ export class HookManager
      * @param {AbstractHook} pHook
      * @return {boolean} TRUE if successfully removed, else FALSE
      */
-    removeHook(pHook:AbstractHook):boolean{
+    async removeHook(pHook:AbstractHook):Promise<boolean>{
 
         const uid = pHook.getGUID();
         let offset = -1;
@@ -1586,7 +1602,25 @@ export class HookManager
             throw HookManagerException.HOOK_NOT_FOUND(pHook.getGUID());
         }
 
-        coll.map( (vHook:AbstractHook, i)=>{
+
+        let vHook:AbstractHook;
+        for(let i=0; i<coll.length; i++){
+            vHook = coll[i];
+            if(vHook.getGUID() == uid){
+                vHook.destroy();
+                if(type == NodeInternalType.HOOK_NATIVE){//pHook.isTargetNodeType(NodeInternalType.FUNC)){,
+                    coll = this.nhooks;
+                    await this.db.removeNativeHook(vHook as NativeFunctionHook);
+                }
+                else if(type == NodeInternalType.HOOK_JAVA){//pHook.isTargetNodeType(NodeInternalType.METHOD)){
+                    coll = this.jhooks;
+                    await this.db.removeJavaHook(vHook as JavaMethodHook);
+                }
+                offset = i;
+            }
+        }
+
+        /*coll.map( (vHook:AbstractHook, i)=>{
             if(vHook.getGUID() == uid){
                 vHook.destroy();
                 if(type == NodeInternalType.HOOK_NATIVE){//pHook.isTargetNodeType(NodeInternalType.FUNC)){,
@@ -1599,7 +1633,7 @@ export class HookManager
                 }
                 offset = i;
             }
-        });
+        });*/
 
         if(offset > -1){
             coll.splice(offset, 1);
@@ -1607,16 +1641,6 @@ export class HookManager
         }else{
             return false;
         }
-
-        /*let res:Hook[]=[], pop:Hook=null;
-        for(let i in this.hooks){
-            if(this.hooks[i].id != hook.getID()){
-                res.push(this.hooks[i]);
-            }else{
-                pop = this.hooks[i];
-            }
-        }
-        this.hooks = res;*/
     }
 
     /**
@@ -1733,13 +1757,15 @@ export class HookManager
      * To retrieve all sessions (warning : it can be heavy)
      *
      */
-    getSessions():HookSession[] {
+    async getSessions():Promise<HookSession[]>{
 
+        return await this.db.sessions.getAsList();
+        /*
         if(this.db.sessions.size()>this.sessions.length){
             return this.db.sessions.getAsList();
         }else{
             return this.sessions;
-        }
+        }*/
     }
 
     /**
@@ -1747,7 +1773,7 @@ export class HookManager
      *
      * @param {string} pUID
      */
-    getSession( pUID:string):HookSession  {
+    async getSession( pUID:string):Promise<HookSession>  {
         let cached:HookSession = null;
         for(let i=0; i<this.sessions.length; i++){
             if(this.sessions[i].getSessionID()===pUID){
@@ -1757,7 +1783,7 @@ export class HookManager
         }
 
         if(cached == null){
-            cached = this.db.getSession(pUID);
+            cached = await this.db.getSession(pUID);
             this.sessions.push(cached);
         }
 
@@ -1786,7 +1812,7 @@ export class HookManager
                 // if a valid session ID is provided, the user is added to
                 // owners of this session. TODO : add auditors group
                 if(message.data.sessid != null){
-                    sess = this.getSession(message.data.sessid);
+                    sess = await this.getSession(message.data.sessid);
 
                     if(sess != null && sess.isActive()){
                         // check permissions inside
@@ -1854,7 +1880,7 @@ export class HookManager
                 Logger.info(`[HOOK MANAGER][WEBSOCKET][cmd=start]`);
                 try{
 
-                    sess = this.newSession();
+                    sess = await this.newSession();
                     sess.addOwner( pUser, message.data.localid, pSocket);
 
                     if((message.data.script != null) && (message.data.script.length>0)){
@@ -1961,10 +1987,10 @@ export class HookManager
 
         let fn:any;
         switch (pRole) {
-            case 'load':
+            case KeyPointRole.LOAD:
                 fn = "getLoadKeyPoint";
                 break;
-            case 'unload':
+            case KeyPointRole.UNLOAD:
                 fn = "getUnloadKeyPoint";
                 break;
             default:
@@ -1973,18 +1999,28 @@ export class HookManager
         }
         const hk:AbstractHook[] = [];
         const uid = pKeyPoint.getUID();
+        let hook:AbstractHook;
+        let kp:KeyPoint;
 
-        this.jhooks.map( (vHook:JavaMethodHook)=>{
-            const kp = vHook[fn]()
-            if(kp!=null && kp.getUID() == uid)
-                hk.push(vHook);
-        });
+        for(let i=0; i<this.jhooks.length; i++){
+            hook = this.jhooks[i];
 
-        this.nhooks.map( (vHook:NativeFunctionHook)=>{
-            const kp = vHook[fn]()
+            kp = hook[fn].apply(hook, []);
+            console.log("jhooks > kp > fn", kp);
+            console.log(hook.getLoadKeyPoint());
             if(kp!=null && kp.getUID() == uid)
-                hk.push(vHook);
-        });
+                hk.push(hook);
+        }
+
+
+        for(let i=0; i<this.nhooks.length; i++){
+            hook = this.nhooks[i];
+            kp = hook[fn].apply(hook, []);
+            console.log("nhooks > kp > ", kp);
+            if(kp!=null && kp.getUID() == uid)
+                hk.push(hook);
+        }
+
 
         return hk;
     }

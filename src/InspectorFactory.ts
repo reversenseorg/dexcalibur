@@ -234,7 +234,7 @@ export default class InspectorFactory implements INode
      * @return {Inspector} The freshly created Inspector
      * @method
      */
-    createInstance( pProject:DexcaliburProject):Inspector{
+    async createInstance( pProject:DexcaliburProject):Promise<Inspector>{
         const ins:Inspector = new Inspector();
         const hmgr:HookManager = pProject.getHookManager();
         const hapi:HookDbApi = hmgr.getDbAPI();
@@ -271,17 +271,18 @@ export default class InspectorFactory implements INode
 
             hsuid = (this._config.id!=null ? this._config.id : this._config.hookSet.id);
 
-            Logger.debugRAW("IS STRATEGY EXISTS ?? : "+hsuid+"  "+hapi.isHookSetExists(hsuid));
+            Logger.info("IS STRATEGY EXISTS ?? : "+hsuid+"  "+await hapi.isHookSetExists(hsuid));
 
+            console.log(  await hapi.sets.asyncHasEntry({ id:hsuid }))
+            console.log(  await hapi.sets.asyncGetEntry({ id:hsuid }))
             // the first step is to verify if there is not yet a hook set for this project
             // It happens mainly because the project has been created during a previous run
             // so, data have been partially restored by the hook manager from the SQLIte db of the project earlier
-            if(hapi.isHookSetExists(hsuid)){
-                // if the hook set is already instantiated, we get the instance
-                hs = hapi.getHookSet(hsuid);
-            }else{
+
+            hs = await hapi.getHookSet(hsuid);
+            if(hs == null){
                 // else, wen create a new HookSet instance with data from Inspector prototype
-                hs = hmgr.createHookSet(hsuid, {
+                hs = await hmgr.createHookSet(hsuid, {
                     name: (this._config.hookSet.name!=null ? this._config.hookSet.name : this._config.name),
                     description: (this._config.hookSet.description!=null ? this._config.hookSet.description : this._config.description),
                     //require: (this._config.require!=null ? this._config.require : this._config.hookSet.require),
@@ -289,6 +290,8 @@ export default class InspectorFactory implements INode
                     color: this._config.color,
                     builtin: true
                 });
+
+                console.log(hs);
 
                 // to configure object shared by several hooks
                 if(this._config.hookSet.hookShare != null){
@@ -318,43 +321,43 @@ export default class InspectorFactory implements INode
             strategies = this._config.hookSet.strategies;
 
             if(strategies != null){
-                strategies.map((vStratCfg)=>{
-                    if(vStratCfg.name == null){
+                for(let k=0; k<strategies.length; k++){
+                    if(strategies[k].name == null){
                         throw InspectorFactoryException.STRATEGY_NAME_IS_MANDATORY(ins.getUID());
                     }
 
-                    const stratUID = hsuid+":"+vStratCfg.name;
+                    const stratUID = hsuid+":"+strategies[k].name;
                     let strat:HookStrategy = null;
 
-                    if(!hapi.isStrategyExists(stratUID)){
-                        strat = HookStrategy.from(vStratCfg);
+                    if(!await hapi.isStrategyExists(stratUID)){
+                        strat = HookStrategy.from(strategies[k]);
 
                         strat.setUID(stratUID);
 
                         if(strat.hasLoadKeyPoint()){
                             strat.setLoadKeyPoint(
-                                pProject.getKeyPointManager().getKeyPoint(strat.loadOn)
+                                await pProject.getKeyPointManager().getKeyPointByAttr({ name: strat.loadOn})
                             );
                         }
 
                         if(strat.hasUnloadKeyPoint()){
                             strat.setUnloadKeyPoint(
-                                pProject.getKeyPointManager().getKeyPoint(strat.unloadOn)
+                                await pProject.getKeyPointManager().getKeyPointByAttr({ name:strat.unloadOn })
                             );
                         }
 
-                        hapi.createHookStrategy(strat);
+                        await hapi.createHookStrategy(strat);
 
                     }else{
-                        strat = hmgr.getHookStrategy(stratUID);
+                        strat = await hmgr.getHookStrategy(stratUID);
                     }
                     hs.addStrategy(strat);
-                    hapi.updateHookStrategy(strat);
-                });
+                    await hapi.updateHookStrategy(strat);
+                }
             }
 
             ins.setHookSet(hs);
-            hapi.updateHookSet(hs);
+            await hapi.updateHookSet(hs);
         }
 
         // If the inspector use local InMemory DB : create/open it, and create indexes
@@ -431,7 +434,7 @@ export default class InspectorFactory implements INode
      * @return {Inspector} The freshly created Inspector
      * @method
      */
-    restore( pProject:DexcaliburProject):Inspector{
+    async restore( pProject:DexcaliburProject):Promise<Inspector>{
         const ins:Inspector = pProject.getInspector(this.getUID());
         const hmgr:HookManager = pProject.getHookManager();
         const hapi:HookDbApi = hmgr.getDbAPI();
@@ -455,17 +458,17 @@ export default class InspectorFactory implements INode
 
             hsuid = (this._config.id!=null ? this._config.id : this._config.hookSet.id);
 
-            Logger.debugRAW("IS STRATEGY EXISTS ?? : "+hsuid+"  "+hapi.isHookSetExists(hsuid));
+            Logger.debugRAW("IS STRATEGY EXISTS ?? : "+hsuid+"  "+ await hapi.isHookSetExists(hsuid));
 
             // the first step is to verify if there is not yet a hook set for this project
             // It happens mainly because the project has been created during a previous run
             // so, data have been partially restored by the hook manager from the SQLIte db of the project earlier
-            if(hapi.isHookSetExists(hsuid)){
+            if(await hapi.isHookSetExists(hsuid)){
                 // if the hook set is already instantiated, we get the instance
-                hs = hapi.getHookSet(hsuid);
+                hs = await hapi.getHookSet(hsuid);
             }else{
                 // else, wen create a new HookSet instance with data from Inspector prototype
-                hs = hmgr.createHookSet(hsuid, {
+                hs = await hmgr.createHookSet(hsuid, {
                     name: (this._config.hookSet.name!=null ? this._config.hookSet.name : this._config.name),
                     description: (this._config.hookSet.description!=null ? this._config.hookSet.description : this._config.description),
                     //require: (this._config.require!=null ? this._config.require : this._config.hookSet.require),
@@ -503,44 +506,45 @@ export default class InspectorFactory implements INode
             strategies = this._config.hookSet.strategies;
 
             if(strategies != null){
-                strategies.map((vStratCfg)=>{
-                    if(vStratCfg.name == null){
+
+                for(let k=0; k<strategies.length; k++){
+                    if(strategies[k].name == null){
                         throw InspectorFactoryException.STRATEGY_NAME_IS_MANDATORY(ins.getUID());
                     }
 
-                    const stratUID = hsuid+":"+vStratCfg.name;
+                    const stratUID = hsuid+":"+strategies[k].name;
                     let strat:HookStrategy = null;
 
-                    if(!hapi.isStrategyExists(stratUID)){
-                        strat = HookStrategy.from(vStratCfg);
+                    if(!await hapi.isStrategyExists(stratUID)){
+                        strat = HookStrategy.from(strategies[k]);
 
                         strat.setUID(stratUID);
 
                         if(strat.hasLoadKeyPoint()){
                             strat.setLoadKeyPoint(
-                                pProject.getKeyPointManager().getKeyPoint(strat.loadOn)
+                                await pProject.getKeyPointManager().getKeyPointByAttr({name:strat.loadOn})
                             );
                         }
 
                         if(strat.hasUnloadKeyPoint()){
                             strat.setUnloadKeyPoint(
-                                pProject.getKeyPointManager().getKeyPoint(strat.unloadOn)
+                                await pProject.getKeyPointManager().getKeyPointByAttr({name:strat.unloadOn})
                             );
                         }
 
-                        hapi.createHookStrategy(strat);
+                        await hapi.createHookStrategy(strat);
 
                     }else{
-                        strat = hmgr.getHookStrategy(stratUID);
+                        strat = await hmgr.getHookStrategy(stratUID);
                     }
                     hs.addStrategy(strat);
-                    hapi.updateHookStrategy(strat);
-                });
+                    await hapi.updateHookStrategy(strat);
+                }
             }
 
 
             ins.setHookSet(hs);
-            hapi.updateHookSet(hs);
+            await hapi.updateHookSet(hs);
         }
 
         // If the inspector use local InMemory DB : create/open it, and create indexes

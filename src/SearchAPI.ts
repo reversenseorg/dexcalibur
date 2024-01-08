@@ -164,6 +164,9 @@ interface AnalyzerUnitList {
 /**
  * The SearchAPI. Allow the user to perform search into the object
  * database.
+ *
+ * Shoudl be replaced by MerlinSearchAPI
+ *
  * @param {Object} data The database of objects
  * @constructor
  */
@@ -228,6 +231,7 @@ export class SearchAPI
         ]);
     };
 
+
     _oneOrMore( pIndex:IDbIndex|IDbCollection, pModel:any, pIdHolder:string, pPattern:string):FinderResult{
         if(this._byID){
             this._byID = false;
@@ -279,7 +283,9 @@ export class SearchAPI
         }*/
     }
 
-    file(pattern:string, pScope:DataScope = null):FinderResult{
+    async file(pattern:string, pScope:DataScope = null):Promise<FinderResult>{
+
+
         let fileDB:IDbCollection;
 
         if(!this._analyzers.hasOwnProperty('data'))
@@ -287,7 +293,7 @@ export class SearchAPI
 
         const dataAnal:DataAnalyzer = this._analyzers.data as DataAnalyzer;
         if(pScope != null){
-            fileDB = dataAnal.getIndex(pScope);
+            fileDB = (await dataAnal.getIndex(pScope));
             return this._oneOrMore(fileDB, DataModel.file, '_uid', pattern);
         }else{
             const scopes:DataScopeMap = dataAnal.scopes;
@@ -296,9 +302,9 @@ export class SearchAPI
 
             for(let i in scopes){
                 if(k == 0){
-                    res = this._oneOrMore(dataAnal.getIndex(scopes[i]), DataModel.file, '_uid', pattern);
+                    res = this._oneOrMore(await dataAnal.getIndex(scopes[i]), DataModel.file, '_uid', pattern);
                 }else{
-                    res = res.union( this._oneOrMore(dataAnal.getIndex(scopes[i]), DataModel.file, '_uid', pattern));
+                    res = res.union( this._oneOrMore( await dataAnal.getIndex(scopes[i]), DataModel.file, '_uid', pattern));
                 }
                 k++;
             }

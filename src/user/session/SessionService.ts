@@ -60,10 +60,25 @@ export class SessionService {
         // }
     }
 
+
+
+    /**
+     * To import sessions from DB to the list of active sessions
+     *
+     * At this step, every expired sessions are deleted
+     *
+     * @param pCollection
+     */
     importSessions( pCollection:IDbCollection){
         this._s = pCollection;
         this._s.map( (o:number, v:UserSession) => {
-            this._sess[v.getSessUID()] = v;
+            //if(v.isExpired)
+            if(this.isSessionExpired(v)){
+                Logger.info("[SESSION SVC] Archiving expired sessions. ");
+                this.destroySession(v);
+            }else if(v.isActive()){
+                this._sess[v.getSessUID()] = v;
+            }
         });
     }
 
@@ -143,6 +158,19 @@ export class SessionService {
             return this._sess;
         else
             return this._s.getAll();
+    }
+
+    /**
+     * To check if a session is expired
+     *
+     * A sessions is expired if ((current date - creation date) > duration)
+     *
+     * @param {UserSession} pSession Session to test
+     * @return {boolean} TRUE if expired, else FALSE
+     * @method
+     */
+    isSessionExpired(pSession:UserSession):boolean {
+        return (((new Date()).getTime())-pSession._created) > this.getSettings().getMaxDuration();
     }
 
 

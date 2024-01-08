@@ -24,9 +24,18 @@ import WebServer from "./WebServer.js";
 import {NodeInternalType} from "./NodeInternalType.js";
 import Util from "./Utils.js";
 import {CoreDebug} from "./core/CoreDebug.js";
-import {IDatabase, IDatabaseAdapter, NodeType, TagCategory} from "@dexcalibur/dexcalibur-orm";
+import {
+    DbDataType,
+    DbKeyType,
+    IDatabase,
+    IDatabaseAdapter,
+    NodeProperty,
+    NodeType,
+    TagCategory, ValidationRule
+} from "@dexcalibur/dexcalibur-orm";
 import {Nullable} from "./core/IStringIndex.js";
 import InspectorFactory from "./InspectorFactory.js";
+import {HookManager} from "./hook/HookManager.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -570,11 +579,11 @@ export default class Inspector implements BusBroadcaster
      *
      * @method
      */
-    deploy():void{
+    async deploy():Promise<void>{
         this.running = true;
 
         // add a check to force to redeploy or not
-        this.hookSet.deploy();
+        await this.hookSet.deploy();
     }
 
     // Inspector life-cycle
@@ -766,3 +775,4 @@ export default class Inspector implements BusBroadcaster
         return this._dirty;
     }
 }
+Inspector.TYPE.builder(Inspector);

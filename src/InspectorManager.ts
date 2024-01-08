@@ -288,10 +288,10 @@ export default class InspectorManager
      * @param {DexcaliburProject} pProject
      * @return {boolean}
      */
-    createInspectorsFor( pProject:DexcaliburProject):boolean{
+    async createInspectorsFor( pProject:DexcaliburProject):Promise<boolean>{
         const uid:string = pProject.getUID();
         let factory:InspectorFactory;
-        const ws:WebServer = DexcaliburEngine.getInstance().getWebserver();
+        //const ws:WebServer = DexcaliburEngine.getInstance().getWebserver();
 
         if(this.projects[uid] == null){
             this.projects[uid] = {};
@@ -302,7 +302,7 @@ export default class InspectorManager
             /*if(factory.hasWebApi() && !factory.isWebApiReady()){
                 factory.registerWebServer(ws);
             }*/
-            this.projects[uid][i] = factory.createInstance(pProject);
+            this.projects[uid][i] = await factory.createInstance(pProject);
             pProject.bus.register(this.projects[uid][i]);
         }
 
@@ -316,7 +316,7 @@ export default class InspectorManager
      * @param {DexcaliburProject} pProject
      * @return {boolean}
      */
-    restoreInspectorsFor( pProject:DexcaliburProject):boolean{
+    async restoreInspectorsFor( pProject:DexcaliburProject):Promise<boolean>{
         const uid:string = pProject.getUID();
         let factory:InspectorFactory;
 
@@ -326,13 +326,14 @@ export default class InspectorManager
 
         const inspNames = Object.keys(pProject.inspectors);
 
-        Object.keys(pProject.inspectors).map((vInspName:string)=>{
-            factory = (this.locals[vInspName] as any);
+        for(let i=0; i<inspNames.length; i++){
+            factory = (this.locals[inspNames[i]] as any);
             if(factory != null){
-                this.projects[uid][vInspName] = factory.restore(pProject);
-                pProject.bus.register(this.projects[uid][vInspName]);
+                this.projects[uid][inspNames[i]] = await factory.restore(pProject);
+                pProject.bus.register(this.projects[uid][inspNames[i]]);
             }
-        });
+        }
+
 
         pProject.restore();
 
@@ -371,7 +372,7 @@ export default class InspectorManager
      * @param {*} pProject 
      * @param {*} pStep 
      */
-    deployInspectors( pProject:DexcaliburProject, pStep:INSPECTOR_TYPE):boolean{
+    async deployInspectors( pProject:DexcaliburProject, pStep:INSPECTOR_TYPE):Promise<boolean>{
         const uid:string = pProject.getUID();
         let insp = "";
 
@@ -382,7 +383,7 @@ export default class InspectorManager
 
         for(let i in this.projects[uid]){
             if(this.projects[uid][i].isStartAt(pStep)){
-                this.projects[uid][i].deploy();
+                await this.projects[uid][i].deploy();
                 insp += i+' ';
             }
         }
@@ -408,9 +409,9 @@ export default class InspectorManager
     /**
      * @method
      */
-    deployAll():void{
+    async deployAll():Promise<void>{
         for(const k in this.inspectors)
-            this.inspectors[k].deploy();
+            await this.inspectors[k].deploy();
     }
 
     /**
@@ -419,10 +420,10 @@ export default class InspectorManager
      * @returns {Boolean} 
      * @method
      */
-    deploy(name:string):boolean{
+    async deploy(name:string):Promise<boolean>{
         const insp:Inspector = this.get(name);
         if(insp instanceof Inspector){
-            insp.deploy();
+            await insp.deploy();
             return true;
         }
         return false;

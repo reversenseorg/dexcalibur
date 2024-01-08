@@ -94,7 +94,7 @@ export class TagManager {
                 // save children tags
                 tags = vTagCategory.getTags();
                 for(let k=0;k<tags.length;k++){
-                    this._tags.asyncAddEntry(tags[k].getUID(), tags[k]);
+                    this._tags.asyncUpdateEntry(tags[k],{upsert:true});
                 }
             }else{
                 this.cache[vTagCategory.getUID()].getTags().map( x => {
@@ -132,7 +132,7 @@ export class TagManager {
         if(uuid==null){
             pTag.setUUID(this.generateUUID());
             uuid = pTag.getUUID();
-            this._tags.asyncUpdateEntry(pTag);
+            this._tags.asyncUpdateEntry(pTag, {upsert:true });
         }
 
         this._uuidMap[uuid] = pTag;
@@ -279,7 +279,7 @@ export class TagManager {
     async addCategory( pTagCategory:TagCategory):Promise<void>{
 
         const res = await this._categories.asyncUpdateEntry(pTagCategory, {upsert:true});
-        console.log("TAG MANAGER > addCategory ", res);
+        console.log("TAG MANAGER > addCategory > "+pTagCategory.getUID(), res);
         this.cache[pTagCategory.getUID()] = pTagCategory;
     }
 

@@ -95,6 +95,12 @@ export class UserSession implements IPersistent{
     }
 
 
+    /**
+     * To check if a session have been destroyed or not
+     *
+     * @return {boolean} TRUE if destroyed, else FALSE
+     * @method
+     */
     isActive():boolean {
         return (this._destroyed <= 0);
     }

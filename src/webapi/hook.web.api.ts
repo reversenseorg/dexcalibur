@@ -189,7 +189,7 @@ HOOK_WEB_API.addAsyncAuthenticatedRoute(
             const $: WebServer = req.dxc.$;
 
             try{
-                const strats = (req.dxc.project as DexcaliburProject).getHookManager().getHookStrategies();
+                const strats = await (req.dxc.project as DexcaliburProject).getHookManager().getHookStrategies();
                 const data = [];
                 strats.map( (vS:HookStrategy)=> {
                     data.push( vS.toJsonObject());
@@ -296,7 +296,7 @@ HOOK_WEB_API.addAuthenticatedRoute(
                 $.sendError(res, "Hook cannot be edited. Cause : " + err.message);
             }
         },
-        'delete': function (req:DelegateRequest, res:DelegateResponse):any {
+        'delete': async function (req:DelegateRequest, res:DelegateResponse):Promise<any> {
             const $: WebServer = req.dxc.$;
             let project:DexcaliburProject = null;
 
@@ -313,7 +313,7 @@ HOOK_WEB_API.addAuthenticatedRoute(
                     throw new Error("No probe ID given" );
                 }
 
-                const success:boolean = project.hook.removeHook(hook);
+                const success:boolean = await project.hook.removeHook(hook);
 
                 if(!success){
                     throw new Error("Hook cannot be removed");
@@ -499,7 +499,7 @@ HOOK_WEB_API.addAuthenticatedRoute(
 HOOK_WEB_API.addAuthenticatedRoute(
     '/list',
     {
-        'get': function (req:DelegateRequest, res:DelegateResponse):any {
+        'get': async function (req:DelegateRequest, res:DelegateResponse):Promise<any> {
             const $: WebServer = req.dxc.$;
             let project:DexcaliburProject = null;
 
@@ -545,14 +545,14 @@ HOOK_WEB_API.addAuthenticatedRoute(
                             // group hook by process (main, isolated, fork from ..., fork #1, spawn, ...)
                             break;
                         case 'inspector':
-                            const hooksets:HookSetList = project.hook.getHookSets();
+                            const hooksets:HookSetList = await project.hook.getHookSets();
                             for(const i in hooksets){
                                 data.push(hooksets[i].toJsonObject());
                             }
                             break;
                         case '*':
                         default:
-                            const hk:AbstractHook[] = project.hook.getHooks();
+                            const hk:AbstractHook[] = await project.hook.getHooks();
                             hk.map( (h:AbstractHook) => {
                                 data.push(h.toJsonObject())
                             });
@@ -560,7 +560,7 @@ HOOK_WEB_API.addAuthenticatedRoute(
                     }
                 }else{
 
-                    const hooksets:HookSetList = project.hook.getHookSets();
+                    const hooksets:HookSetList = await project.hook.getHookSets();
 
                     for(const i in hooksets){
                         data.push(hooksets[i].toJsonObject());
@@ -584,7 +584,7 @@ HOOK_WEB_API.addAuthenticatedRoute(
 HOOK_WEB_API.addAuthenticatedRoute(
     '/list/kp/:id',
     {
-        'get': function (req:DelegateRequest, res:DelegateResponse):any {
+        'get': async function (req:DelegateRequest, res:DelegateResponse):Promise<any> {
             const $: WebServer = req.dxc.$;
             let project:DexcaliburProject = null;
 
@@ -596,22 +596,25 @@ HOOK_WEB_API.addAuthenticatedRoute(
                     throw new Error("KeyPoint UID must be specified");
                 }
 
-                const kp:KeyPoint = project.getKeyPointManager().getKeyPoint(req.params.id);
+                const kp:KeyPoint = await project.getKeyPointManager().getKeyPointByAttr({ name: req.params.id });
 
-                if(kp == null){
+                console.log(kp, kp.getUID());
+                if(await kp == null){
                     throw new Error("KeyPoint not found");
                 }
 
+                console.log(kp, kp.getUID());
                 const data = {
                     load: [],
                     unload: [] //project.hook.getHookByUnloadKeyPoint(kp)
                 };
 
-                let hooks:AbstractHook[] = project.hook.getHookByLoadKeyPoint(kp);
+                let hooks:AbstractHook[] = project.hook.getHookByLoadKeyPoint( await kp);
                 hooks.map( (hx:AbstractHook)=>{
                     data.load.push( hx.toJsonObject())
                 });
-                hooks = project.hook.getHookByUnloadKeyPoint(kp);
+
+                hooks = project.hook.getHookByUnloadKeyPoint(await kp);
                 hooks.map( (hx:AbstractHook)=>{
                     data.unload.push( hx.toJsonObject())
                 });
@@ -640,7 +643,7 @@ HOOK_WEB_API.addAsyncAuthenticatedRoute(
 
                 project = req.dxc.project;
 
-                let sess:HookSession = this.newSession();
+                let sess:HookSession = await this.newSession();
 
                 switch(req.body.type){
                     case "spawn-self":
@@ -747,7 +750,7 @@ HOOK_WEB_API.addAsyncAuthenticatedRoute(
 HOOK_WEB_API.addAuthenticatedRoute(
     '/sessions',
     {
-        'get': function (req:DelegateRequest, res:DelegateResponse):any {
+        'get': async function (req:DelegateRequest, res:DelegateResponse):Promise<any> {
             const $: WebServer = req.dxc.$;
             let project:DexcaliburProject = null;
 
@@ -760,9 +763,9 @@ HOOK_WEB_API.addAuthenticatedRoute(
 
 
                 if(req.query.sess!=null){
-                    sess = [ project.hook.getSession( req.query.sess  as string)];
+                    sess = [ await project.hook.getSession( req.query.sess  as string)];
                 }else{
-                    sess = project.hook.getSessions();
+                    sess = await project.hook.getSessions();
                 }
 
 
@@ -820,7 +823,7 @@ HOOK_WEB_API.addAuthenticatedRoute(
 HOOK_WEB_API.addAuthenticatedRoute(
     '/msg',
     {
-        'get': function (req:DelegateRequest, res:DelegateResponse):any {
+        'get': async function (req:DelegateRequest, res:DelegateResponse):Promise<any> {
             const $: WebServer = req.dxc.$;
             let project:DexcaliburProject = null;
 
@@ -838,10 +841,10 @@ HOOK_WEB_API.addAuthenticatedRoute(
                     if(req.query.sess == 'last'){
                         sessions = [project.hook.lastSession()];
                     }else{
-                        sessions = [project.hook.getSession(req.query.sess  as string)];
+                        sessions = [await project.hook.getSession(req.query.sess  as string)];
                     }
                 }else{
-                    sessions = project.hook.getSessions();
+                    sessions = await project.hook.getSessions();
                 }
 
                 if (sessions==null || sessions.length==0) {
@@ -923,7 +926,7 @@ HOOK_WEB_API.addAuthenticatedRoute(
 HOOK_WEB_API.addAuthenticatedRoute(
     '/new/:method',
     {
-        'post': function (req:DelegateRequest, res:DelegateResponse):any {
+        'post': async function (req:DelegateRequest, res:DelegateResponse):Promise<any> {
             const $: WebServer = req.dxc.$;
             let project:DexcaliburProject = null;
 
@@ -995,8 +998,8 @@ HOOK_WEB_API.addAuthenticatedRoute(
                 }
 
                 // get instance for key points
-                opts.loadKP = (req.body['loadkp']!=null ? project.getKeyPointManager().getKeyPoint(req.body['loadkp']) : null);
-                opts.unloadKP = (req.body['unloadkp']!=null ? project.getKeyPointManager().getKeyPoint(req.body['unloadkp']) : null);
+                opts.loadKP = (req.body['loadkp']!=null ? await project.getKeyPointManager().getKeyPointByAttr({name:req.body['loadkp']}) : null);
+                opts.unloadKP = (req.body['unloadkp']!=null ? await project.getKeyPointManager().getKeyPointByAttr({name:req.body['unloadkp']}) : null);
 
                 // prepare others options
                 opts.location = req.body['loc'];
@@ -1010,9 +1013,9 @@ HOOK_WEB_API.addAuthenticatedRoute(
                 if (probe == null) {
                     // create hook
                     if(meth.__ === NodeInternalType.METHOD){
-                        probe = project.hook.createJavaMethodHook(meth as ModelMethod, opts);
+                        probe = await project.hook.createJavaMethodHook(meth as ModelMethod, opts);
                     }else{
-                        probe = project.hook.createNativeFunctionHook(meth as ModelFunction, opts);
+                        probe = await project.hook.createNativeFunctionHook(meth as ModelFunction, opts);
                     }
                     newHook = true;
 
@@ -1071,7 +1074,7 @@ HOOK_WEB_API.addAuthenticatedRoute(
                 }
 
                 // save and create
-                project.hook.save(probe, newHook);
+                await project.hook.save(probe, newHook);
 
                 $.sendSuccess( res, { hook: probe.toJsonObject(), hookid: probe.getGUID(), enable: probe.isEnable() });
 

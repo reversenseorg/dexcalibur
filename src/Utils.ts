@@ -331,11 +331,13 @@ export default class Util {
         }else{
             Logger.info("[UTIL] execSync : "+command);
 
-            if(opts!=null)
+            if(opts!=null) {
                 ret = Process.execSync(command, opts).toString();
-            else
+            }else {
                 ret = Process.execSync(command).toString(charset);
 
+
+            }
         }
 
         return ret;

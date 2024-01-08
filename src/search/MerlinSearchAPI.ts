@@ -47,6 +47,7 @@ export interface SearchOptions {
 /**
  * The SearchAPI. Allow the user to perform search into the object
  * database.
+ *
  * @param {Object} data The database of objects
  * @constructor
  */

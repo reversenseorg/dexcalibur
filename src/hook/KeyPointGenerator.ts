@@ -195,7 +195,7 @@ export class KeyPointGenerator {
         return pKeyPoint;
     }
 
-    private generateForMethod( pMeth:ModelMethod, pKeyPoint:KeyPoint, pOptions:KeyPointOptions, pHookOpts:any):KeyPoint {
+    private async generateForMethod( pMeth:ModelMethod, pKeyPoint:KeyPoint, pOptions:KeyPointOptions, pHookOpts:any):Promise<KeyPoint> {
         let code:string = "";
         let project:DexcaliburProject = this.mgr.getProject();
         let hm:HookManager = project.getHookManager();
@@ -224,12 +224,12 @@ export class KeyPointGenerator {
                 // detect is the method is already hooked
                 hook = hm.getProbe(pMeth);
                 if(hook == null){
-                    hook = hm.createJavaMethodHook(pMeth);
+                    hook = await hm.createJavaMethodHook(pMeth);
                 }
 
                 // before method call
                 //pKeyPoint.
-                hook.addExtraFragment( HOOK_FRAGMENT_POS.BEFORE, new HookTemplateFragment({
+                await hook.addExtraFragment( HOOK_FRAGMENT_POS.BEFORE, new HookTemplateFragment({
                     _keypoint: pKeyPoint.getUID(),
                     name: pKeyPoint.getName()+"_frag",
                     _descr: "Special fragment to load/unload hooks associated to the KeyPoint '"+pKeyPoint.getName()+"'",
@@ -242,12 +242,12 @@ export class KeyPointGenerator {
                 // detect is the method is already hooked
                 hook = hm.getProbe(pMeth);
                 if(hook == null){
-                    hook = hm.createJavaMethodHook(pMeth);
+                    hook = await hm.createJavaMethodHook(pMeth);
                 }
 
                 // before method call
                 //pKeyPoint.
-                hook.addExtraFragment( HOOK_FRAGMENT_POS.AFTER, new HookTemplateFragment({
+                await hook.addExtraFragment( HOOK_FRAGMENT_POS.AFTER, new HookTemplateFragment({
                     _keypoint: pKeyPoint.getUID(),
                     name: pKeyPoint.getName()+"_frag",
                     _descr: "Special fragment to load/unload hooks associated to the KeyPoint '"+pKeyPoint.getName()+"'",
@@ -482,7 +482,7 @@ DXC.onDlSymOf( "${pFunc.getSymbol()}", (vMod)=>{
      * @param pKeyPoint
      * @param pOptions
      */
-    generate( pKeyPoint:KeyPoint, pOptions:KeyPointOptions):KeyPoint{
+    async generate( pKeyPoint:KeyPoint, pOptions:KeyPointOptions):Promise<KeyPoint>{
 
         // get node associated to the key point
         const target:any = this.getTargetNode(pKeyPoint);
@@ -498,7 +498,6 @@ DXC.onDlSymOf( "${pFunc.getSymbol()}", (vMod)=>{
         if(obj==null){
             Logger.error("[KEY POINT GENERATOR] Node associated to the target cannot be found (type="+target.__+", uid="+targetUID+")");
             throw KeyPointManagerException.GENERATOR_ERROR_NODE_NOT_FOUND(target.__,targetUID);
-            return pKeyPoint;
         }
 
         switch (target.__) {
@@ -512,7 +511,7 @@ DXC.onDlSymOf( "${pFunc.getSymbol()}", (vMod)=>{
                 this.generateForClass( obj as ModelClass, pKeyPoint, pOptions, hmopts);
                 break;
             case NodeInternalType.METHOD:
-                this.generateForMethod( obj as ModelMethod,pKeyPoint, pOptions, hmopts);
+                await this.generateForMethod( obj as ModelMethod,pKeyPoint, pOptions, hmopts);
                 break;
             case NodeInternalType.FIELD:
                 this.generateForField( obj as ModelField,pKeyPoint, pOptions, hmopts);

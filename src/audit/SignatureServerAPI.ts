@@ -4,9 +4,11 @@ import Control from "./common/Control.js";
 import AssuranceModel from "./common/AssuranceModel.js";
 import {DeviceModel} from "../DeviceModel.js";
 import {Brand} from "../Brand.js";
+import * as Log from "../Logger.js";
 const GOT = got.default;
 
 
+const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
 export interface SignatureServerOptions extends IStringIndex<any> {
     host: string;
@@ -16,7 +18,11 @@ export interface SignatureServerOptions extends IStringIndex<any> {
 }
 
 /**
+ * The Client API of a remote SignatureServer
  *
+ * TODO : add SSL pining
+ *
+ * @class
  */
 export class SignatureServerAPI {
 
@@ -53,7 +59,8 @@ export class SignatureServerAPI {
             body: JSON.stringify(pControl.toJsonObject())
         });
         const raw = JSON.parse(response.body);
-        console.log("[SIGNATURE SERVER API] uppdateTracker > ",raw);
+        Logger.info("[SIGNATURE SERVER API] uppdateTracker > ");
+        Logger.debugRAW(raw);
         return raw;
     }
 
@@ -64,7 +71,8 @@ export class SignatureServerAPI {
             body: JSON.stringify(pControl.toJsonObject())
         });
         const raw = JSON.parse(response.body);
-        console.log("[SIGNATURE SERVER API] addTracker > ",raw);
+        Logger.info("[SIGNATURE SERVER API] addTracker > ");
+        Logger.debugRAW(raw);
         return raw;
     }
 
@@ -73,7 +81,8 @@ export class SignatureServerAPI {
             method: 'POST'
         });
         const raw = JSON.parse(response.body);
-        console.log("[SIGNATURE SERVER API] deleteTracker > ",raw);
+        Logger.info("[SIGNATURE SERVER API] deleteTracker > ");
+        Logger.debugRAW(raw);
         return raw;
     }
 
@@ -84,8 +93,6 @@ export class SignatureServerAPI {
         const raw = JSON.parse(response.body);
         const models:AssuranceModel[] = [];
 
-
-        console.log(raw);
         if(raw.success){
             raw.data.map( x => {
                 models.push( AssuranceModel.fromJsonObject(x));
@@ -101,8 +108,6 @@ export class SignatureServerAPI {
         const raw = JSON.parse(response.body);
         const models:DeviceModel[] = [];
 
-
-        console.log(raw);
         if(raw.success){
             raw.data.map( x => {
                 models.push( new DeviceModel(x));
@@ -118,8 +123,6 @@ export class SignatureServerAPI {
         const raw = JSON.parse(response.body);
         const models:Brand[] = [];
 
-
-        console.log(raw);
         if(raw.success){
             raw.data.map( x => {
                 models.push( new Brand(x));
@@ -138,8 +141,6 @@ export class SignatureServerAPI {
         const raw = JSON.parse(response.body);
         const models:DeviceModel[] = [];
 
-
-        console.log(raw);
         if(raw.success){
             raw.data.map( x => {
                 models.push( new DeviceModel(x));

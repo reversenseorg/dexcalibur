@@ -8,38 +8,41 @@ import HookTemplateFragment from "./HookTemplateFragment.js";
 import HookSession from "../HookSession.js";
 import {RuntimeEvent} from "./RuntimeEvent.js";
 import {IDatabase, IDbCollection} from "@dexcalibur/dexcalibur-orm";
+import {ProjectDatabase} from "../database/ProjectDatabase.js";
+import {MongodbDbCollection} from "@dexcalibur/dexcalibur-orm-mongodb";
 
 /**
  * Represents every datat set related to hook management
  */
 export class HookDbApi {
 
-    private _db:IDatabase = null;
-    public strategies:IDbCollection = null;
-    public fragments:IDbCollection = null;
-    public sets:IDbCollection = null;
-    public jhooks:IDbCollection = null;
-    public nhooks:IDbCollection = null;
-    public sessions:IDbCollection = null;
-    public events:IDbCollection = null;
+    private _db:ProjectDatabase;
 
-    constructor( pDatabase:IDatabase) {
+    public strategies:MongodbDbCollection;
+    public fragments:MongodbDbCollection;
+    public sets:MongodbDbCollection;
+    public jhooks:MongodbDbCollection;
+    public nhooks:MongodbDbCollection;
+    public sessions:MongodbDbCollection;
+    public events:MongodbDbCollection;
+
+    constructor( pDatabase:ProjectDatabase) {
         this._db = pDatabase;
         this._init();
     }
 
-    private _init(){
+     private _init(){
         if(this._db == null){
             throw HookManagerException.DB_NOT_INITIALIZED();
         }
 
-        this.strategies = this._db.getCollection(HookStrategy.TYPE.getName(), HookStrategy.TYPE);
-        this.sets = this._db.getCollection(HookSet.TYPE.getName(), HookSet.TYPE);
-        this.fragments = this._db.getCollection(HookTemplateFragment.TYPE.getName(), HookTemplateFragment.TYPE);
-        this.jhooks = this._db.getCollection(JavaMethodHook.TYPE.getName(), JavaMethodHook.TYPE);
-        this.nhooks = this._db.getCollection(NativeFunctionHook.TYPE.getName(), NativeFunctionHook.TYPE);
-        this.sessions = this._db.getCollection(HookSession.TYPE.getName(), HookSession.TYPE);
-        this.events = this._db.getCollection(RuntimeEvent.TYPE.getName(), RuntimeEvent.TYPE);
+        this.strategies = this._db.getCollectionOf(HookStrategy.TYPE.getType()) as MongodbDbCollection;
+        this.sets = this._db.getCollectionOf(HookSet.TYPE.getType()) as MongodbDbCollection;
+        this.fragments = this._db.getCollectionOf(HookTemplateFragment.TYPE.getType()) as MongodbDbCollection;
+        this.jhooks = this._db.getCollectionOf(JavaMethodHook.TYPE.getType()) as MongodbDbCollection;
+        this.nhooks = this._db.getCollectionOf(NativeFunctionHook.TYPE.getType()) as MongodbDbCollection;
+        this.sessions = this._db.getCollectionOf(HookSession.TYPE.getType()) as MongodbDbCollection;
+        this.events = this._db.getCollectionOf(RuntimeEvent.TYPE.getType()) as MongodbDbCollection;
     }
 
     /**
@@ -48,88 +51,92 @@ export class HookDbApi {
      *
      * @param pUID
      */
-    isHookSetExists(pUID:string){
-        return this.sets.hasEntry(pUID);
+    async isHookSetExists(pUID:string):Promise<boolean>{
+        return await this.sets.asyncHasEntry({ id: pUID });
     }
 
-    isStrategyExists(pUID:string){
-        return this.strategies.hasEntry(pUID);
+    async isStrategyExists(pUID:string):Promise<boolean>{
+        return await this.strategies.asyncHasEntry({ _uid: pUID });
     }
 
-    isJavaHookExists(pUID:string){
-        return this.jhooks.hasEntry(pUID);
+    async isJavaHookExists(pUID:string):Promise<boolean>{
+        return await this.jhooks.asyncHasEntry({ _uid: pUID });
     }
 
-    isNativeHookExists(pUID:string){
-        return this.nhooks.hasEntry(pUID);
+    async isNativeHookExists(pUID:string):Promise<boolean>{
+        return await this.nhooks.asyncHasEntry({ _uid: pUID });
     }
 
-    isHookSessionExists(pUID:string){
-        return this.sessions.hasEntry(pUID);
+    async isHookSessionExists(pUID:string):Promise<boolean>{
+        return await this.sessions.asyncHasEntry({ _uid: pUID });
     }
 
-    isRuntimeEventExists(pUID:string){
-        return this.events.hasEntry(pUID);
+    async isRuntimeEventExists(pUID:string):Promise<boolean>{
+        return await this.events.asyncHasEntry({ _uid: pUID });
     }
 
-    getStrategy( pUID:string) :HookStrategy{
-        return this.strategies.getEntry(pUID);
+    async getStrategy( pUID:string) :Promise<HookStrategy>{
+        return await this.strategies.asyncGetEntry({ _uid:pUID });
     }
 
-    getHookSet( pUID:string) :HookSet{
-        return this.sets.getEntry(pUID);
+    async getHookSet( pUID:string) :Promise<HookSet>{
+        return await this.sets.asyncGetEntry({ id:pUID });
     }
 
-    getFragments( pUID:string) :HookTemplateFragment{
-        return this.fragments.getEntry(pUID);
+    async getFragments( pUID:string) :Promise<HookTemplateFragment>{
+        return await this.fragments.asyncGetEntry({ _uid:pUID });
     }
 
-    getAllJavaHook( pUID:string) :JavaMethodHook[]{
-        return this.jhooks.getAll();
+    async getAllJavaHook( ) :Promise<JavaMethodHook[]>{
+        return await this.jhooks.getAsList();
     }
 
-    getAllNativeHook( pUID:string) :JavaMethodHook[]{
-        return this.nhooks.getAll();
+    async getAllHookSet( ) :Promise<HookSet[]>{
+        return await this.sets.getAsList();
     }
 
-    getSession( pUID:string) :HookSession{
-        return this.sessions.getEntry(pUID);
+    async getAllNativeHook( ) :Promise<NativeFunctionHook[]>{
+        return await this.nhooks.getAsList();
     }
 
-    getRuntimeEvent( pUID:string) :RuntimeEvent<any>{
-        return this.events.getEntry(pUID);
+    async getSession( pUID:string) :Promise<HookSession>{
+        return await this.sessions.asyncGetEntry({ _uid:pUID });
+    }
+
+    async getRuntimeEvent( pUID:string) :Promise<RuntimeEvent<any>>{
+        return await this.events.asyncGetEntry({ id:pUID });
     }
 
 
-    createHookStrategy( pStrategy:HookStrategy):void {
-        const r = this.strategies.addEntry( pStrategy.getUID(), pStrategy);
+    async createHookStrategy( pStrategy:HookStrategy):Promise<any> {
+        const r = await this.strategies.asyncAddEntry( pStrategy.getUID(), pStrategy);
 
         if(pStrategy.before != null){
-            this.fragments.updateEntry(pStrategy.before);
+            await this.fragments.asyncUpdateEntry(pStrategy.before);
         }
         if(pStrategy.after != null){
-            this.fragments.updateEntry(pStrategy.after);
+            await this.fragments.asyncUpdateEntry(pStrategy.after);
         }
         if(pStrategy.replace != null){
-            this.fragments.updateEntry(pStrategy.replace);
+            await this.fragments.asyncUpdateEntry(pStrategy.replace);
         }
 
         return r;
     }
 
-    updateHookStrategy( pStrategy:HookStrategy):void {
+    async updateHookStrategy( pStrategy:HookStrategy):Promise<any> {
 
         if(pStrategy.before != null){
-            this.fragments.updateEntry(pStrategy.before);
+            await this.fragments.asyncUpdateEntry(pStrategy.before);
         }
         if(pStrategy.after != null){
-            this.fragments.updateEntry(pStrategy.after);
+            await this.fragments.asyncUpdateEntry(pStrategy.after);
         }
         if(pStrategy.replace != null){
-            this.fragments.updateEntry(pStrategy.replace);
+            await this.fragments.asyncUpdateEntry(pStrategy.replace);
         }
 
-        return this.strategies.updateEntry(pStrategy);
+        return await this.strategies.asyncUpdateEntry(pStrategy);
     }
 
     /**
@@ -137,26 +144,26 @@ export class HookDbApi {
      *
      * @param pStrategy
      */
-    removeHookStrategy( pStrategy:HookStrategy):boolean {
+    async removeHookStrategy( pStrategy:HookStrategy):Promise<boolean> {
         if(pStrategy.before != null){
-            this.fragments.removeEntry(pStrategy.before.getUID());
+            await this.fragments.asyncRemoveEntry(pStrategy.before);
         }
         if(pStrategy.after != null){
-            this.fragments.removeEntry(pStrategy.after.getUID());
+            await this.fragments.asyncRemoveEntry(pStrategy.after);
         }
         if(pStrategy.replace != null){
-            this.fragments.removeEntry(pStrategy.replace.getUID());
+            await this.fragments.asyncRemoveEntry(pStrategy.replace);
         }
 
-        return this.strategies.removeEntry(pStrategy.getUID());
+        return await this.strategies.asyncRemoveEntry(pStrategy);
     }
 
-    createHookSet( pSet:HookSet):void {
-        return this.sets.addEntry( pSet.getID(), pSet);
+    async createHookSet( pSet:HookSet):Promise<any> {
+        return await this.sets.asyncAddEntry( pSet.getID(), pSet);
     }
 
-    updateHookSet( pSet:HookSet):void {
-        return this.sets.updateEntry(pSet);
+    async updateHookSet( pSet:HookSet):Promise<any> {
+        return await this.sets.asyncUpdateEntry(pSet);
     }
 
     /**
@@ -164,86 +171,95 @@ export class HookDbApi {
      *
      * @param pSet
      */
-    removeHookSet( pSet:HookSet):boolean {
-        return this.sets.removeEntry(pSet.getID());
+    async removeHookSet( pSet:HookSet):Promise<boolean> {
+        return await this.sets.asyncRemoveEntry(pSet);
     }
 
-    createHookSession( pSess:HookSession):void {
-        this.sessions.addEntry( pSess.getUID(), pSess);
+    async createHookSession( pSess:HookSession):Promise<any> {
+        //await this.sessions.asyncAddEntry( pSess.getUID(), pSess);
 
         if(pSess.message.length > 0){
-            pSess.message.map( (vEvent:RuntimeEvent<any>)=>{
-                this.events.addEntry( vEvent.getUID(),  vEvent);
-            })
+            for(let i=0; i<pSess.message.length; i++){
+                await this.events.asyncAddEntry( pSess.message[i].getUID(),  pSess.message[i]);
+            }
         }
 
-        return this.sessions.addEntry( pSess.getUID(), pSess);
+        return await this.sessions.asyncAddEntry( pSess.getUID(), pSess);
     }
 
-    createRuntimeEvent( pEvent:RuntimeEvent<any>):void {
-        return this.events.addEntry( pEvent.getUID(), pEvent);
+    async createRuntimeEvent( pEvent:RuntimeEvent<any>):Promise<any> {
+        return await this.events.asyncAddEntry( pEvent.getUID(), pEvent);
     }
 
-    createJavaHook( pHook:JavaMethodHook):void {
-        return this.jhooks.addEntry( pHook.getGUID(), pHook);
+    async createJavaHook( pHook:JavaMethodHook):Promise<any> {
+        return await this.jhooks.asyncAddEntry( pHook.getGUID(), pHook);
     }
 
-    updateJavaHook( pHook:JavaMethodHook):void {
-        return this.jhooks.updateEntry( pHook);
+    async updateJavaHook( pHook:JavaMethodHook):Promise<boolean> {
+        return await this.jhooks.asyncUpdateEntry( pHook);
     }
 
-    updateHookSession( pSession:HookSession):void {
-        const res = this.sessions.updateEntry( pSession);
-        pSession.messages().map((vEvent)=>{
-            if(!vEvent.saved){
-                this.events.addEntry( vEvent.getUID(), vEvent);
-                vEvent.saved = true;
-            }
-        });
+    async updateHookSession( pSession:HookSession):Promise<any> {
+
+        const res = await this.sessions.asyncUpdateEntry( pSession, {upsert:true});
+        const msg = pSession.messages();
+        for(let i=0; i<msg.length; i++){
+            await this.events.asyncUpdateEntry( msg[i], {upsert:true});
+            msg[i].saved = true;
+        }
+
+        return res;
     }
 
-    updateRuntimeEvent( pEvent:RuntimeEvent<any>):void {
-        return this.events.updateEntry( pEvent);
+    async updateRuntimeEvent( pEvent:RuntimeEvent<any>):Promise<any> {
+        return await this.events.asyncUpdateEntry( pEvent);
     }
 
-    removeHookSession( pSession:HookSession):boolean {
-        return this.sessions.removeEntry( pSession.getUID());
+    async removeHookSession( pSession:HookSession):Promise<boolean> {
+        return await this.sessions.asyncRemoveEntry( pSession);
     }
 
-    removeRuntimeEvent( pEvent:RuntimeEvent<any>):boolean {
-        return this.events.removeEntry( pEvent.getUID());
+    async removeRuntimeEvent( pEvent:RuntimeEvent<any>):Promise<boolean> {
+        return await this.events.asyncRemoveEntry( pEvent);
     }
 
-    removeJavaHook( pHook:JavaMethodHook):boolean {
-        return this.jhooks.removeEntry( pHook.getGUID());
+    async removeJavaHook( pHook:JavaMethodHook):Promise<boolean> {
+        return await this.jhooks.asyncRemoveEntry( pHook);
     }
 
 
-    createNativeHook( pHook:NativeFunctionHook):void {
-        return this.nhooks.addEntry( pHook.getGUID(), pHook);
+    async createNativeHook( pHook:NativeFunctionHook):Promise<any> {
+        return await this.nhooks.asyncAddEntry( pHook.getGUID(), pHook);
     }
 
-    updateNativeHook( pHook:NativeFunctionHook):void {
-        return this.nhooks.updateEntry( pHook);
+    async updateNativeHook( pHook:NativeFunctionHook):Promise<any> {
+        return await this.nhooks.asyncUpdateEntry( pHook);
     }
 
-    removeNativeHook( pHook:NativeFunctionHook):boolean {
-        return this.nhooks.removeEntry( pHook.getGUID());
+    async removeNativeHook( pHook:NativeFunctionHook):Promise<boolean> {
+        return await this.nhooks.asyncRemoveEntry( pHook);
     }
 
-    createFragment( pFrag:HookTemplateFragment):void {
-        return this.fragments.addEntry( pFrag.getUID(), pFrag);
+    async createFragment( pFrag:HookTemplateFragment):Promise<any> {
+        return await this.fragments.asyncAddEntry( pFrag.getUID(), pFrag);
     }
 
-    updateFragment( pFrag:HookTemplateFragment):void {
-        return this.fragments.updateEntry( pFrag);
+    async updateFragment( pFrag:HookTemplateFragment):Promise<any> {
+        return await this.fragments.asyncUpdateEntry( pFrag);
     }
 
-    removeFragment( pFrag:HookTemplateFragment):boolean {
-        return this.fragments.removeEntry( pFrag.getUID());
+    async removeFragment( pFrag:HookTemplateFragment):Promise<boolean> {
+        return await this.fragments.asyncRemoveEntry( pFrag);
     }
 
-    save( pCreate = false){
+    /**
+     *
+     * @param pCreate
+     */
+    save(){
+
+        console.error("[HOOK DB API] useless save called")
+        /*
         this.jhooks.map( (vOffset, vHook:JavaMethodHook)=>{
             if(this.jhooks.hasEntry(vHook.getGUID())){
                 this.updateJavaHook( vHook);
@@ -296,11 +312,11 @@ export class HookDbApi {
         });
 
         this.events.map( (vOffset, vEvent:RuntimeEvent<any>)=>{
-            if(this.events.hasEntry(vEvent.getUID())){
+            if(this.events.asyncHasEntry(vEvent.getUID())){
                 this.updateRuntimeEvent( vEvent);
             }else{
                 this.createRuntimeEvent( vEvent);
             }
-        });
+        });*/
     }
 }

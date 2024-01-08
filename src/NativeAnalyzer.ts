@@ -19,6 +19,8 @@ import IosNativeAnalyzerProfile from "./ios/analyzer/IosNativeAnalyzerProfile.js
 import {NativeAnalyzerException} from "./errors/NativeAnalyzerException.js";
 import {AnalyzerState} from "./AnalyzerState.js";
 import {IDatabase, IDbCollection} from "@dexcalibur/dexcalibur-orm";
+import {ProjectDatabase} from "./database/ProjectDatabase.js";
+import {Nullable} from "./core/IStringIndex.js";
 
 
 export const PROFILES = {
@@ -36,9 +38,12 @@ export default class NativeAnalyzer {
      * @field
      */
     parser:SmaliParser = null;
+
     db:AnalyzerDatabase = null;
     tempDB:AnalyzerDatabase = null;
-    fileDB:IDatabase = null;
+
+
+    private _pdb:ProjectDatabase;
 
     state:AnalyzerState = null;
 
@@ -89,19 +94,20 @@ export default class NativeAnalyzer {
      * @param {DexcaliburProject} pProject
      * @constructor
      */
-    constructor( pProject:DexcaliburProject = null, pDB:AnalyzerDatabase, pFileDB:IDatabase) {
+    constructor( pProject:DexcaliburProject = null, pDB:AnalyzerDatabase, pFileDB:Nullable<IDatabase> = null) {
 
         this.r2factory = new RadareFactory(pProject);
 
         // Internal DB
         this.db = pDB;
-        this.fileDB = pFileDB;
 
         // temporary, in memory, database
         this.tempDB = new AnalyzerDatabase(pProject, 'inmemory');
 
         this.context = pProject;
         this.finder = pProject.find; //pSearchAPI; // pSearchAPI
+
+        this._pdb = pProject.getProjectDB();
     }
 
     /**
@@ -141,37 +147,6 @@ export default class NativeAnalyzer {
 
     setWorkflow(pWF:Workflow){
         this._wf = pWF;
-    }
-    /**
-     * To find files which can be analyzed into internal DB
-     *
-     * @param pPlatform
-     * @param pArch
-     */
-    defineScopeFor( pPlatform:string,  pArch:string, pScopeType:string):ModelFile[] {
-
-        let fmt:string[];
-        let f:ModelFile[] = [];
-
-        if(pPlatform=='android'){
-            this.fmt = ['ELF'];
-        }else{
-            return;
-        }
-
-        //const basePath = this.context.getWorkspace()
-
-        this.fileDB.getIndex(pScopeType, ModelFile.TYPE).map( (pOffset:number, pFile:ModelFile) => {
-
-            if(fmt.indexOf(pFile.type)>-1){
-                f.push(pFile);
-            }
-        })
-
-        this.scope = f;
-
-
-        return f;
     }
 
     /**
@@ -283,8 +258,8 @@ export default class NativeAnalyzer {
         if(!this.targetable.hasOwnProperty(pScope.getName()))
             this.targetable[pScope.getName()] = [];
 
-//        let idx:IDbIndex = this.fileDB.getColl(pScope.getName(), ModelFile.TYPE);
-        let idx:IDbCollection = this.fileDB.getCollection(pScope.getIndexName(), ModelFile.TYPE);
+        let idx:IDbCollection =  await this.context.getDataAnalyzer().getIndex(pScope);
+
 
         const profile = pProfile!=null ? pProfile : this.profile;
 
@@ -382,8 +357,9 @@ export default class NativeAnalyzer {
      * @param pScope
      * @param pOptions
      */
-    scanFileByScope(pScope:DataScope, pProfile:NativeAnalyzerProfile=null, pOptions:any = {}):void {
+    async scanFileByScope(pScope:DataScope, pProfile:NativeAnalyzerProfile=null, pOptions:any = {}):Promise<void> {
 
+        const da = this.context.getDataAnalyzer();
 
         Logger.info("[NATIVE ANALYSIS] Scanning scope : ",pScope.getIndexName()," ",pScope.getBasePath());
 
@@ -393,8 +369,7 @@ export default class NativeAnalyzer {
         if(!this.targetable.hasOwnProperty(pScope.getName()))
             this.targetable[pScope.getName()] = [];
 
-//        let idx:IDbIndex = this.fileDB.getColl(pScope.getName(), ModelFile.TYPE);
-        let idx:IDbCollection = this.fileDB.getCollection(pScope.getIndexName(), ModelFile.TYPE);
+        let idx:IDbCollection = await da.getIndex(pScope);
 
         const profile = pProfile!=null ? pProfile : this.profile;
 
@@ -508,6 +483,12 @@ export default class NativeAnalyzer {
         });
     }
 
+    /**
+     * To perform analysis of native file accordingly to a specified
+     * analyzer profile (mainly one per architecture/technologies/target)
+     *
+     * @param pProfile
+     */
     async scanAllFilesAsync(pProfile:NativeAnalyzerProfile = null):Promise<boolean>{
 
         if(!this.targets.hasOwnProperty('all'))
@@ -610,7 +591,7 @@ export default class NativeAnalyzer {
                     Logger.info("[DB::FUNC]File flagged analyzed : ", pFile.getUID());
                     if(this.state.state.openedLib.indexOf(pFile.getUID())==-1){
                         this.state.state.openedLib.push(pFile.getUID());
-                        this.state.save();
+                        await this.state.save();
                     }
                 }
 
@@ -624,6 +605,11 @@ export default class NativeAnalyzer {
         return helper;
     }
 
+    /**
+     *
+     * @param pFile
+     * @param pProfile
+     */
     async analyzeFileAsync(pFile:ModelFile, pProfile:NativeAnalyzerProfile):Promise<RadareHelper>{
         let helper:RadareHelper;
         try{
@@ -646,7 +632,7 @@ export default class NativeAnalyzer {
                 pFile.tagAs('$r');
                 if(this.state.state.openedLib.indexOf(pFile.getUID())==-1){
                     this.state.state.openedLib.push(pFile.getUID());
-                    this.state.save();
+                    await this.state.save();
                 }
                 return helper
             }else{
@@ -661,11 +647,11 @@ export default class NativeAnalyzer {
         }
     }
 
-    getHelperForFunc(pFunc:ModelFunction):RadareHelper {
+    async getHelperForFunc(pFunc:ModelFunction):Promise<RadareHelper> {
 
         let file = pFunc.getDeclaringFile();
         if(typeof file === 'string'){
-            file = this.context.dataAnalyzer.findFile(file)
+            file = await this.context.dataAnalyzer.findFile(file)
 
             if(file != null){
                 pFunc.setDeclaringFile(file);
@@ -690,7 +676,7 @@ export default class NativeAnalyzer {
         let helper:RadareHelper;
         try{
 
-            helper = this.getHelperForFunc(pFunc); //this.r2factory.getHelperFor(pFunc.getDeclaringFile() as ModelFile);
+            helper = await this.getHelperForFunc(pFunc); //this.r2factory.getHelperFor(pFunc.getDeclaringFile() as ModelFile);
 
             if(helper==null){
                 Logger.error("[NATIVE ANALYZER] Helper for function '"+pFunc.getSignature()+"' is not found ");
