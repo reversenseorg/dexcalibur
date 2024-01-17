@@ -285,18 +285,11 @@ export class DataAnalyzer implements IAnalyzerUnit
         const scopes = this._pdb.getCollectionOf(DataScope.TYPE.getType());
         const all = await scopes.getAll();
 
-        console.log("Scope.getAll from DB  > ",all);
+        this.scopes = {};
+        all.map( vScope => {
+            this.scopes[vScope.getInternalName()] = vScope;
+        })
 
-        // init scopes
-        this.scopes = {
-            PKG: await this.getDataScope('PKG'),
-            APPDATA: await this.getDataScope('APPDATA'),
-            DEVICE: await this.getDataScope('DEVICE'),
-            DYN_BUFFER: await this.getDataScope('DYN_BUFFER'),
-            DYN_BYTECODE: await this.getDataScope('DYN_BYTECODE'),
-        }
-
-        // restore
         this.restoreState(await this._pdb.getAnalyzerState('data'));
     }
 
@@ -510,6 +503,7 @@ export class DataAnalyzer implements IAnalyzerUnit
      */
     async scan(path:string, pScope:DataScope, pRelPath:string = null):Promise<void>{
 
+        //console.log("DATA ANALYZER SCOPE > ",path,pScope)
         let db:IDbCollection = this._pdb.getCollectionOf(ModelFile.TYPE.getType()); //.getCollection(pScope.getIndexName(), ModelFile.TYPE);
     
         if(path[path.length-1]=='/')
@@ -517,13 +511,20 @@ export class DataAnalyzer implements IAnalyzerUnit
 
 
         // upsert
-        let file = await db.asyncUpdateEntry(new ModelFile({
+        let f = new ModelFile({
             name: _path_.basename(path),
             path: path,
             scope: pScope,
             _r: pRelPath==null ? '/' : pRelPath,
             _d: 'd'
-        }),{upsert:true});
+        });
+        try{
+            let file = await db.asyncUpdateEntry(f,{upsert:true, filter:{ _uid:f.getUID() }});
+        }catch(err){
+            Logger.error(err.message,err.stack);
+            console.log(f);
+        }
+
 
         if(_fs_.readdirSync(path).length==0) return;
 

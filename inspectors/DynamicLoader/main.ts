@@ -57,7 +57,7 @@ export default new InspectorFactory({
                 name: "Reflection_getMethod",
                 descr: "To retrieve affected node when a method is retrieved from ReflectionAPI",
                 search: {
-                    type: ModelMethod.TYPE,
+                    type: ModelMethod.TYPE.getName(),
                     uid: "java.lang.Class.getMethod(<java.lang.String><java.lang.Class>[])<java.lang.reflect.Method>"
                 },
                 autoEmit: true,
@@ -79,7 +79,7 @@ export default new InspectorFactory({
                 name: "Reflection_Class.forName",
                 descr: "To retrieve affected class when a class is retrieved from ReflectionAPI",
                 search: {
-                    type: ModelMethod.TYPE,
+                    type: ModelMethod.TYPE.getName(),
                     uid: "java.lang.Class.forName(<java.lang.String><boolean><java.lang.ClassLoader>)<java.lang.Class>"
                 },
                 autoEmit: true,
@@ -100,7 +100,7 @@ export default new InspectorFactory({
                 name: "DexCL_findClass",
                 descr: "To detect class found explicitely",
                 search: {
-                    type: ModelMethod.TYPE,
+                    type: ModelMethod.TYPE.getName(),
                     uid: "dalvik.system.BaseDexClassLoader.findClass(<java.lang.String>)<java.lang.Class>",
                     // success: { obfuscation: +2 }
                 },
@@ -127,7 +127,7 @@ export default new InspectorFactory({
                 name: "DexCL_new",
                 descr: "To detect new Dex class loader",
                 search: {
-                  type: ModelMethod.TYPE,
+                  type: ModelMethod.TYPE.getName(),
                   uid: "dalvik.system.DexClassLoader.<init>(<java.lang.String><java.lang.String><java.lang.String><java.lang.ClassLoader>)<void>"
                 },
                 autoEmit: true,
@@ -176,7 +176,7 @@ export default new InspectorFactory({
                 name: "Dex_loadExternal",
                 descr: "To detect loading of external dex file",
                 search: {
-                    type: ModelMethod.TYPE,
+                    type: ModelMethod.TYPE.getName(),
                     uid: "dalvik.system.DexFile.loadDex(<java.lang.String><java.lang.String><int>)<dalvik.system.DexFile>"
                 },
                 /*
@@ -276,7 +276,7 @@ export default new InspectorFactory({
                 name: "Dex_new",
                 descr: "To detect new Dex file created explicitely",
                 search: {
-                    type: ModelMethod.TYPE,
+                    type: ModelMethod.TYPE.getName(),
                     uid: [
                         "dalvik.system.DexFile.<init>(<java.io.File>)<void>",
                         "dalvik.system.DexFile.<init>(<java.lang.String>)<void>",
@@ -310,7 +310,7 @@ export default new InspectorFactory({
                 name: "DexFile_createCookie",
                 descr: "To gather Dex buffer/file loaded dynamically",
                 search: {
-                    type: ModelMethod.TYPE,
+                    type: ModelMethod.TYPE.getName(),
                     uid: "dalvik.system.DexFile.createCookieWithArray(<byte[]><int><int>)<void>"
                 },
                 autoEmit: true,
@@ -383,6 +383,58 @@ export default new InspectorFactory({
         ]
     },
 
+    eventListenerSources: {
+        "dxc.fullscan.post_deploy": {
+            source: `
+                //Logger.info("[INSPECTOR][TASK] Trying to restore previous data of DynLoaderInspector ... ");
+                console.log('Search class loader');
+                const hm = ctx.getHookManager();
+                const startName = "Custom_ClassLoaders";
+                const selfHS = ctx.getInspector("DynamicLoader").getHookSet();
+                let strat:HookStrategy = selfHS.getStrategyByName(startName);
+
+                if(strat == null){
+                    strat = HookStrategy.from({
+                        name: startName,
+                        description: "",
+                        search: {
+                            type: ModelMethod.TYPE.getName(),
+                            req: 'method("enclosingClass.extends.name:ClassLoader").filter("name:<init>")'
+                        },
+                        autoEmit: true,
+                        emitEvent: "hook.classloader.new",
+                        before: 
+                        'let data:any ={}; '+
+                        'let path="", path2="";'+
+                        'for(var i=0; i<arguments.length; i++){'+
+                        '    if(DXC.util.isInstanceOf(arguments[i],"java.io.File")){'+
+                        '        data['arg'+i] = { __:DXC.NODE.FILE, path:arguments[i].getAbsolutePath() };'+
+                        '    }'+
+                        '    else if(DXC.util.isInstanceOf(arguments[i],"java.net.URL")){'+
+                        '       data['arg'+i] = { __:DXC.NODE.FILE, url:arguments[i].toString() };'+
+                        '    }'+
+                        '    else{'+
+                        '        data['arg'+i] = { __:DXC.NODE.STRING, path:arguments[i] };'+
+                        '    }'+
+                        '}'+
+                        ' '+
+                        'DXC.send('+
+                        '    "@@__HOOK_ID__@@",'+
+                        '    "@@__FRAG_ID__@@",'+
+                        '    data'+
+                        ');'
+                    });
+
+
+                    selfHS.addStrategy(strat);
+
+                    (async ()=>{
+                        await strat.run(ctx, false, true);
+                    })
+                }`,
+            lang: "ts"
+        }
+    },
     eventListeners: {
 
         "hook.dex.load": function (ctx:DexcaliburProject, event:BusEvent<any>):void {
@@ -689,7 +741,7 @@ export default new InspectorFactory({
                     name: startName,
                     description: "",
                     search: {
-                        type: ModelMethod.TYPE,
+                        type: ModelMethod.TYPE.getName(),
                         req: `method("enclosingClass.extends.name:ClassLoader").filter("name:<init>")`
                     },
                     autoEmit: true,
@@ -722,9 +774,9 @@ DXC.send(
 
                 selfHS.addStrategy(strat);
 
-                (async ()=>{
-                    await strat.run(ctx, false, true);
-                })
+                (async (vCtx)=>{
+                    await strat.run(vCtx, false, true);
+                })(ctx);
             }
 
         }

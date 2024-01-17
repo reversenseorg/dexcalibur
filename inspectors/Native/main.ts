@@ -25,7 +25,7 @@ var NativeLibraryInspector:InspectorFactory = new InspectorFactory({
             name: "load",
             descr: "To detect loading of native library",
             search: {
-                type: ModelMethod.TYPE,
+                type: ModelMethod.TYPE.getName(),
                 uid: [
                     "java.lang.System.load(<java.lang.String>)<void>",
                     "java.lang.System.loadLibrary(<java.lang.String>)<void>",
@@ -86,7 +86,7 @@ var NativeLibraryInspector:InspectorFactory = new InspectorFactory({
                 name: "load2",
                 descr: "To detect loading of native library",
                 search: {
-                    type: ModelMethod.TYPE,
+                    type: ModelMethod.TYPE.getName(),
                     uid: [
                         "java.lang.Runtime.load(<java.lang.String>)<void>",
                         "java.lang.Runtime.loadLibrary(<java.lang.String>)<void>"

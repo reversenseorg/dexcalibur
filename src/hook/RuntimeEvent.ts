@@ -38,7 +38,7 @@ export class RuntimeEvent<P> extends BusEvent<any> implements INode {
                 .type(DbDataType.STRING)
                 .sleep( (x:NodePropertyState)=>{
                     if(x.p != null){
-                        return JSON.stringify(x.p.toJsonObject());
+                        return x.p.toJsonObject();
                     }else{
                         return null;
                     }
@@ -47,10 +47,10 @@ export class RuntimeEvent<P> extends BusEvent<any> implements INode {
                     switch (x.self.type){
                         case RuntimeEventType.HOOK:
                         default:
-                            return new HookMessageV2(JSON.parse(x.p));
+                            return new HookMessageV2(x.p);
                             break;
                     }
-                    return (x.p!=null ? JSON.parse(x.p) : null)
+                    return (x.p!=null ? x.p: null)
                 })
                 .def(null),
             (new NodeProperty("node"))
@@ -60,20 +60,20 @@ export class RuntimeEvent<P> extends BusEvent<any> implements INode {
                     const t = [];
                     // transform a list of INode to a list of Node UID+type
                     x.p.map( n => t.push({ __:n.__, uid:n.getUID() }));
-                    return JSON.stringify(t);
+                    return t;
                 })
                 .wakeUp( (x:NodePropertyState)=>{
-                    return (x.p!=null ? JSON.parse(x.p) : null)
+                    return (x.p!=null ? x.p: null)
                 })
                 .def("[]"),
             (new NodeProperty("tags"))
                 .type(DbDataType.STRING)
-                .sleep( (x:NodePropertyState)=>{
+                /*.sleep( (x:NodePropertyState)=>{
                     //const t = Object.keys(x.p);
-                    return JSON.stringify(Object.keys(x.p));
+                    return Object.keys(x.p);
                 })
-                .wakeUp( (x:NodePropertyState)=>{ return (x.p!=null ? JSON.parse(x.p) : null)})
-                .def("[]")
+                .wakeUp( (x:NodePropertyState)=>{ return (x.p!=null ? x.p : null)})*/
+                .def([])
         ]);
     __:NodeInternalType = NodeInternalType.RUNTIME_EVENT;
 

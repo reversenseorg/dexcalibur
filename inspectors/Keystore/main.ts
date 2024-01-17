@@ -20,7 +20,12 @@ function checkForBKSext(file){
 var KeystoreInspector:InspectorFactory = new InspectorFactory({
 
     startStep: INSPECTOR_TYPE.POST_APP_SCAN,
-    
+
+    tags: {
+        "keystore.type": ["aks","bks","keychain","tpm"],
+        "keystore.service": ["aks"],
+    },
+
     useGUI: true,
     
     color: 'warning',
@@ -39,7 +44,7 @@ var KeystoreInspector:InspectorFactory = new InspectorFactory({
                 name: "instance",
                 descr: "To detect new keystore instance",
                 search: {
-                    type: ModelMethod.TYPE,
+                    type: ModelMethod.TYPE.getName(),
                     uid:  [
                         "java.security.KeyStore.getInstance(<java.lang.String>)<java.security.KeyStore>",
                         "java.security.KeyStore.getInstance(<java.lang.String><java.lang.String>)<java.security.KeyStore>",
@@ -70,7 +75,7 @@ var KeystoreInspector:InspectorFactory = new InspectorFactory({
                 name: "load",
                 descr: "To detect load of keystore",
                 search: {
-                    type: ModelMethod.TYPE,
+                    type: ModelMethod.TYPE.getName(),
                     uid:  [
                         "java.security.KeyStore.load(<java.io.InputStream><char>[])<void>"
                     ]
@@ -122,26 +127,20 @@ var KeystoreInspector:InspectorFactory = new InspectorFactory({
 
     eventListenerSources: {
         "hook.keystore.load": {
-            source: `function(ctx:DexcaliburProject,event:BusEvent<any>):any{
+            source: `
                 Logger.info("[INSPECTOR][TASK] KeystoreInspector keystore loaded ")
-                //ctx.get.method("java.security.KeyStore.load(<java.io.InputStream><char>[])<void>")
+                //pContext.get.method("java.security.KeyStore.load(<java.io.InputStream><char>[])<void>")
                 //        .addArgsValue(ctx.hook.lastSession(), event)
-            }`,
+            `,
             lang: "ts"
         },
         "data.file.new.knownExt": {
-            source: `function(ctx:DexcaliburProject,event:BusEvent<any>):any{
-                if(!checkForBKSext(event.data)) return 1;
-          
-                Logger.info("[INSPECTOR][TASK] KeystoreInspector BKS detected : ",event.data.name);
-                var resStaticStr:any = ctx.find.strings("value:"+event.data.name);
-                // si pas d'occurence
-                if(resStaticStr.count()==0){
-                    resStaticStr.show();
-                }else{
-                    console.log("Not found : ","value:"+event.data.name);
-                }
-            }`,
+            source: `
+                // <ts>
+                if(!pEvent.data.name.endsWith(".bks")) return 1;
+                Logger.info("[INSPECTOR][TASK] KeystoreInspector BKS detected : ",pEvent.data.name);
+                (pEvent.data as ModelFile).tags.push(pCtx.getTagManager().getTag("keystore.type.bks").getUUID());
+            `,
             lang: "ts"
         },
     },

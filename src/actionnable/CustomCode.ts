@@ -1,5 +1,6 @@
 import {Nullable} from "../core/IStringIndex.js";
 import {F} from "@reversense/interruptor/src/common/Types.js";
+import {TypescriptHelper} from "../core/lang/TypescriptHelper.js";
 
 export type CodeLang = "js" | "ts";
 
@@ -9,6 +10,7 @@ export interface CustomCodeOptions {
     compiled?:string;
     source?:string;
     lang?:CodeLang;
+    errors?:string;
 }
 
 /**
@@ -24,12 +26,14 @@ export class CustomCode {
     compiled:Nullable<string>  = null;
     source:Nullable<string>  = null;
     lang:CodeLang = "js";
+    errors:Nullable<string>  = null;
 
     constructor(pOptions:CustomCodeOptions) {
         if(pOptions.fn!=null) this.fn = pOptions.fn;
         if(pOptions.compiled!=null) this.compiled = pOptions.compiled;
         if(pOptions.source!=null) this.source = pOptions.source;
         if(pOptions.lang!=null) this.lang = pOptions.lang;
+        if(pOptions.errors!=null) this.errors = pOptions.errors;
     }
 
     getSource():Nullable<string> {
@@ -43,6 +47,15 @@ export class CustomCode {
     getCompiled():Nullable<string> {
         return this.compiled;
     }
+
+    /**
+     * Chainable
+     */
+    wakeUp():CustomCode {
+        this.createFunction(['pCtx','pEvent']);
+        return this;
+    }
+
     /**
      * To create a function from source code
      *
@@ -55,6 +68,8 @@ export class CustomCode {
         switch (this.lang){
             case "ts":
                 // todo : invoke tsc
+                this.compiled = TypescriptHelper.transpile(this.source);
+                console.log(this);
                 break;
             case "js":
             default:
@@ -76,7 +91,8 @@ export class CustomCode {
             fn: null,
             compiled: this.compiled,
             source: this.source,
-            lang: this.lang
-        }
+            lang: this.lang,
+            errors: this.errors
+        };
     }
 }

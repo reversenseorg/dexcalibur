@@ -26,10 +26,10 @@ var FileDescriptorInspector:InspectorFactory = new InspectorFactory({
         require: ["Reflect","Common"],
         strategies: [
             {
-                name: "File_new",
-                descr: "To detect new File instance",
+                name: "File_new_2",
+                descr: "To detect new File instance (2)",
                 search: {
-                    type: ModelMethod.TYPE,
+                    type: ModelMethod.TYPE.getName(),
                     uid: [
                         "java.io.File.<init>(<java.io.File><java.lang.String>)<void>",
                         "java.io.File.<init>(<java.lang.String><java.lang.String>)<void>",
@@ -69,10 +69,10 @@ var FileDescriptorInspector:InspectorFactory = new InspectorFactory({
                       );
                 `
             },{
-                name: "File_new",
-                descr: "To detect new File instance",
+                name: "File_new_1",
+                descr: "To detect new File instance (1)",
                 search: {
-                    type: ModelMethod.TYPE,
+                    type: ModelMethod.TYPE.getName(),
                     uid: [
                         "java.io.File.<init>(<java.lang.String>)<void>",
                         "java.io.File.<init>(<java.net.URI>)<void>"

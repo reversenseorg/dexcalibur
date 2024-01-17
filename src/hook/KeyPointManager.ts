@@ -47,6 +47,9 @@ export default class KeyPointManager {
 
     private generator:KeyPointGenerator = null;
 
+    private defaultLoadKP: Nullable<KeyPoint> = null;
+    private defaultUnloadKP: Nullable<KeyPoint> = null;
+
     /**
      * To hold key points by name
      * @field
@@ -119,9 +122,9 @@ export default class KeyPointManager {
 
     /**
      */
-    private async _createJavaAppKeyPoint():Promise<void>{
+    private async _createJavaAppKeyPoint(pName:string):Promise<void>{
         const kp:KeyPoint = new KeyPoint({
-            name: KeyPointManager.INTERNAL_SUFFIX+"java.app",
+            name: pName,
             description: "At this point, classes.dex file is loaded and every Android API is available.",
             token: "@@__KP::JAVA_APP_LOADED__@@",
             code: `
@@ -144,9 +147,9 @@ Java.perform(()=>{
     /**
      *
      */
-    private async _createBootReadyKeyPoint():Promise<void>{
+    private async _createBootReadyKeyPoint(pName:string):Promise<void>{
         const kp:KeyPoint = new KeyPoint({
-            name: KeyPointManager.INTERNAL_SUFFIX+"java.boot",
+            name: pName,
             description: "At this point, Dalvik packages and classes.dex files are not loaded, only most basic classes are avilable.",
             token: "@@__KP::BOOT_LOADED__@@",
             code: `
@@ -252,15 +255,26 @@ Java.deoptimizeEverything();
         if(all.length == 0){
             switch (this._os){
                 case OperatingSystem.ANDROID:
-                    await this._createBootReadyKeyPoint();
-                    // this._createDalvikReadyKeyPoint();
-                    await this._createJavaAppKeyPoint();
+                    await this._createBootReadyKeyPoint(KeyPointManager.INTERNAL_SUFFIX+"java.boot");
+                    await this._createJavaAppKeyPoint(KeyPointManager.INTERNAL_SUFFIX+"java.app");
+
+                    // add Tags
+                    this.defaultLoadKP = this._kps[KeyPointManager.INTERNAL_SUFFIX+"java.app"];
+                    this.defaultUnloadKP = null;
                     break;
             }
         }
 
 
         return this;
+    }
+
+    getDefaulLoadKP():Nullable<KeyPoint> {
+        return this.defaultLoadKP;
+    }
+
+    getDefaulUnloadKP():Nullable<KeyPoint> {
+        return this.defaultUnloadKP;
     }
 
     remove(pKeyPoint:KeyPoint):void {

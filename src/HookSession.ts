@@ -65,15 +65,15 @@ export default class HookSession extends WebsocketSession implements INode
                 .sleep( (x:NodePropertyState)=>{
                     if(x.p==null) return {};
 
-                    return JSON.stringify({
+                    return {
                         pid: x.p.pid,
                         session: null,
                         device: null,
                         script: null
-                    });
+                    };
                 })
                 .wakeUp( (x:NodePropertyState)=>{
-                    return (x.p!=null ? JSON.parse(x.p) : null);
+                    return (x.p!=null ? x.p: null);
                 })
                 .def(0),
             (new NodeProperty("active")).type(DbDataType.BOOLEAN).def(false),
@@ -83,9 +83,9 @@ export default class HookSession extends WebsocketSession implements INode
                 .type(DbDataType.STRING)
                 .sleep( (x:NodePropertyState)=>{
                     //const t = Object.keys(x.p);
-                    return JSON.stringify(Object.keys(x.p));
+                    return Object.keys(x.p);
                 })
-                .wakeUp( (x:NodePropertyState)=>{ return (x.p!=null ? JSON.parse(x.p) : null)})
+                .wakeUp( (x:NodePropertyState)=>{ return (x.p!=null ? x.p : null)})
                 .def(0)
         ]);
     __:NodeInternalType = NodeInternalType.HOOK_SESSION;

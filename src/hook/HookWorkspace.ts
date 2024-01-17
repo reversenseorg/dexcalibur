@@ -318,8 +318,8 @@ export default class HookWorkspace {
         const isInstalled = await this._checkRequirements();
 
         // install requirements
-        if(isInstalled.interruptor) await this.installInterruptor();
-        if(isInstalled.fridaCompile) await this.installFridaCompile();
+        if(!isInstalled.interruptor) await this.installInterruptor();
+        if(!isInstalled.fridaCompile) await this.installFridaCompile();
 
         // copy prebuilt-libs : interruptor, agent, ...
         await this.updateHookLibs();
@@ -341,7 +341,7 @@ export default class HookWorkspace {
             const ctn = JSON.parse(_fs_.readFileSync(pkgFile,{encoding:'utf-8'}).toString());
             if(ctn!=null && ctn.packages !=null){
                 reqs.interruptor = (ctn.packages['node_modules/@reversense/interruptor']!=null);
-                reqs.interruptor = (ctn.packages['node_modules/frida-compile']!=null);
+                reqs.fridaCompile = (ctn.packages['node_modules/frida-compile']!=null);
             }
 
         }catch(err){

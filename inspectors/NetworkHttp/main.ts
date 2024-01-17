@@ -37,7 +37,7 @@ var NetworkHttpInspector:InspectorFactory = new InspectorFactory({
                 name: "OkHttp_Request_prepare",
                 descr: "A new HTTP(s) request is building using OkHttp client, and will probably executed later.",
                 search: {
-                    type: ModelMethod.TYPE,
+                    type: ModelMethod.TYPE.getName(),
                     req: `method("name:^url$").filter("enclosingClass.name:okhttp")`
                 },
                 autoEmit: true,
@@ -67,7 +67,7 @@ var NetworkHttpInspector:InspectorFactory = new InspectorFactory({
                 name: "OkHttp_Request_execute",
                 descr: "A new HTTP(s) request is building using OkHttp client, and will probably executed later.",
                 search: {
-                    type: ModelMethod.TYPE,
+                    type: ModelMethod.TYPE.getName(),
                     req: `method("name:^execute$").filter("enclosingClass.name:okhttp")`
                 },
                 autoEmit: true,

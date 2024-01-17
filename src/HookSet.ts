@@ -421,6 +421,10 @@ export default class HookSet implements INode
      * To deploy this hook set
      */
     async deploy():Promise<void>{
+
+        Logger.debug("[HOOKSET] Deploying hookset ["+this.id+"]");
+        Logger.debugRAW(this);
+
         const hookManager:HookManager = this.context.hook;
 
         // if the hookset is already deployed only not deployed hooks are generated

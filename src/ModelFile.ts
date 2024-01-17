@@ -15,7 +15,7 @@ import {
     DbSerialize,
     ValidationRule,
     INode,
-    SerializeOptions, Tag
+    SerializeOptions, Tag, NodePropertyState
 } from "@dexcalibur/dexcalibur-orm";
 import {NodeInternalType} from "./NodeInternalType.js";
 import {CryptoUtils} from "./CryptoUtils.js";
@@ -108,7 +108,7 @@ export default class ModelFile implements INode,IPersistent {
             (new NodeProperty("size")).type(DbDataType.INTEGER).def(-1),
             (new NodeProperty("path")).type(DbDataType.STRING).def(null),
             (new NodeProperty("location")).type(DbDataType.STRING).def(null),
-            (new NodeProperty("tags")).type(DbDataType.STRING).serialize(DbSerialize.JSON),
+            (new NodeProperty("tags")).type(DbDataType.STRING).def([]),
             (new NodeProperty("_d")).type(DbDataType.STRING).def('f'),
 
             (new NodeProperty("scope")).single(DataScope.TYPE).key(DbKeyType.COMPOSITE,0).def("PKG"),
@@ -119,11 +119,34 @@ export default class ModelFile implements INode,IPersistent {
                 .wakeUp( (x:NodePropertyState)=>{ return (x.p!=null ?  x.p : null )}),*/
             // (x.ctx as DexcaliburProject).getDataAnalyzer().getScope(x.p)
 
-            (new NodeProperty("sections")).volatile().multiple(ModelFileSection.TYPE).type(DbDataType.STRING).serialize(DbSerialize.JSON),
+            (new NodeProperty("sections"))
+                .type(DbDataType.STRING)
+                .sleep( (x:NodePropertyState)=>{
+                    if(x.p==null) return null;
 
-            (new NodeProperty("__p")).volatile().type(DbDataType.STRING).serialize(DbSerialize.JSON),
-            (new NodeProperty("__t")).volatile().type(DbDataType.STRING).serialize(DbSerialize.JSON),
-            (new NodeProperty("f_list")).volatile()
+                    const sect:any[] = [];
+                    for(let i=0; i<x.p.length; i++){
+                        sect.push(x.p[i].toJsonObject());
+                    }
+                    return sect;
+                })
+                .wakeUp( (x:NodePropertyState)=>{
+                    if(x.p==null) return [];
+
+                    const sect:ModelFileSection[] = [];
+                    let s:ModelFileSection;
+                    for(let i=0; i<x.p.length; i++){
+                        s = new ModelFileSection(x.p[i].o,x.p[i].t)
+                        s.l = x.p[i].l;
+                        sect.push(s);
+                    }
+                    return sect;
+
+                 }),//.multiple(ModelFileSection.TYPE).type(DbDataType.STRING),
+
+            (new NodeProperty("__p")).type(DbDataType.STRING).def(null), //.serialize(DbSerialize.JSON),
+            (new NodeProperty("__t")).type(DbDataType.STRING).def(null), //.serialize(DbSerialize.JSON),
+            (new NodeProperty("f_list")).type(DbDataType.STRING).def(null)
     ]);
 
 

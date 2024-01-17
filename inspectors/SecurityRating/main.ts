@@ -52,7 +52,6 @@ var SecurityRatingInspector:InspectorFactory = new InspectorFactory({
                     }
                 };
             }
-
         },
         "security.root_detection.java.detectApk": function(ctx:DexcaliburProject,event:BusEvent<HookMessageV2>){
             ctx.sharedStorage.security.rootDetection += 1;

@@ -37,7 +37,7 @@ export default class DataScope implements INode,IPersistent{
                 .type(DbDataType.STRING)
                 //.sleep( (x:NodePropertyState)=>{ return (x.p!=null ? JSON.stringify(x.p) : null)})
                 //.wakeUp( (x:NodePropertyState)=>{ return (x.p!=null ? JSON.parse(x.p) : null)})
-        ]); //.dataSource("FILE");
+        ]).dataSource("PROJECT_DB");
 
     __:NodeInternalType = NodeInternalType.DATA_SCOPE;
 

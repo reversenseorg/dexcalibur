@@ -301,7 +301,7 @@ export class HookManager
         //Logger.raw(hs);
         //if(hs==null){
             Logger.debug("NEW "+pId+" "+((pOptions.hasOwnProperty('name')? pOptions.name : pId))+" => "+JSON.stringify(pOptions));
-        console.log("NEW "+pId+" "+((pOptions.hasOwnProperty('name')? pOptions.name : pId))+" => "+JSON.stringify(pOptions));
+
             const hs = new HookSet({
                 id: pId,
                 name: (pOptions.hasOwnProperty('name')? pOptions.name : pId),
@@ -314,13 +314,9 @@ export class HookManager
             });
             for(const k in pOptions) hs[k] = pOptions[k];
 
-            console.log(await this._addHookSet(hs));
-            console.log(hs);
+            // console.log(await this._addHookSet(hs));
+            // console.log(hs);
             return hs;
-        //}else{
-         //   Logger.raw(pId+" "+hs.name+" => "+hs.toJsonObject());
-         //   return hs;
-        //}
     }
 
     registerHookSet(pHookSet:HookSet):void {
@@ -666,39 +662,19 @@ export class HookManager
 
         switch (pObject.__) {
             case NodeInternalType.HOOK_JAVA:
-                if(!pCreate){
-                    await this.db.updateJavaHook(pObject as JavaMethodHook);
-                }else{
-                    await this.db.createJavaHook(pObject as JavaMethodHook);
-                }
+                await this.db.updateJavaHook(pObject as JavaMethodHook);
                 break;
             case NodeInternalType.HOOK_NATIVE:
-                if(!pCreate){
-                    await this.db.updateNativeHook(pObject as NativeFunctionHook);
-                }else{
-                    await this.db.createNativeHook(pObject as NativeFunctionHook);
-                }
+                await this.db.updateNativeHook(pObject as NativeFunctionHook);
                 break;
             case NodeInternalType.HOOK_STRATEGY:
-                if(!pCreate){
-                    await this.db.updateHookStrategy(pObject as HookStrategy);
-                }else{
-                    await this.db.createHookStrategy(pObject as HookStrategy);
-                }
+                await this.db.updateHookStrategy(pObject as HookStrategy);
                 break;
             case NodeInternalType.HOOK_SET:
-                if(!pCreate){
-                    await this.db.updateHookSet(pObject as HookSet);
-                }else{
-                    await this.db.createHookSet(pObject as HookSet);
-                }
+                await this.db.updateHookSet(pObject as HookSet);
                 break;
             case NodeInternalType.HOOK_FRAGMENT:
-                if(!pCreate){
-                    await this.db.updateFragment(pObject as HookTemplateFragment);
-                }else{
-                    await this.db.createFragment(pObject as HookTemplateFragment);
-                }
+                await this.db.updateFragment(pObject as HookTemplateFragment);
                 break;
             default:
                 throw HookManagerException.CANNOT_SAVE_UNRECOGNIZED_OBJ();
@@ -2002,21 +1978,21 @@ export class HookManager
         let hook:AbstractHook;
         let kp:KeyPoint;
 
-        for(let i=0; i<this.jhooks.length; i++){
+        for(let i=0; i<this.jhooks.length; i++) {
             hook = this.jhooks[i];
 
             kp = hook[fn].apply(hook, []);
-            console.log("jhooks > kp > fn", kp);
-            console.log(hook.getLoadKeyPoint());
-            if(kp!=null && kp.getUID() == uid)
+            console.log("jhooks > kp > " + fn, kp);
+            if (kp != null && kp.getUID() == uid)
                 hk.push(hook);
+
         }
 
 
         for(let i=0; i<this.nhooks.length; i++){
             hook = this.nhooks[i];
             kp = hook[fn].apply(hook, []);
-            console.log("nhooks > kp > ", kp);
+            console.log("nhooks > kp > "+fn, kp);
             if(kp!=null && kp.getUID() == uid)
                 hk.push(hook);
         }

@@ -24,7 +24,7 @@ var IssueInspector:InspectorFactory = new InspectorFactory({
             name: "SecurityException_new",
             descr: "To detect new security exception",
             search: {
-                type: ModelMethod.TYPE,
+                type: ModelMethod.TYPE.getName(),
                 uid: [
                     "java.lang.SecurityException.<init>(<java.lang.String>)<void>",
                     "java.lang.SecurityException.<init>(<java.lang.String><java.lang.Throwable>)<void>",
@@ -55,7 +55,7 @@ var IssueInspector:InspectorFactory = new InspectorFactory({
             name: "SecurityException_new_single",
             descr: "To detect new security exception without args",
             search: {
-            type: ModelMethod.TYPE,
+            type: ModelMethod.TYPE.getName(),
                     uid: [
                     "java.lang.SecurityException.<init>()<void>"
                 ]

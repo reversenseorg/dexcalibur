@@ -263,7 +263,8 @@ export default class Bus
         // exec local subscribers
         const evName = event.getType();
         if(this.subs.hasOwnProperty(evName)){
-            console.log('[BUS] Triger events : '+evName, event.getData());
+            Logger.debug('[BUS] Trigger events : '+evName);
+            Logger.debugRAW(event.getData());
             for(let  i=0; i<this.subs[evName].length; i++){
                 this.subs[evName][i].exec(event);
             }
@@ -271,6 +272,7 @@ export default class Bus
 
         // broadcast events
         for(let uid in this.broadcast){
+            Logger.debug('[BUS] Broadcast events : '+evName);
             this.broadcast[uid].broadcastEvent(event);
         }
 
@@ -284,6 +286,7 @@ export default class Bus
      * @method
      */
     register(pBroadcaster:BusBroadcaster):void {
+        Logger.debug('[BUS] Register broadcaster : '+pBroadcaster.getUID());
         this.broadcast[pBroadcaster.getUID()] = pBroadcaster;
     }
 }

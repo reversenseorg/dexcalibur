@@ -69,8 +69,9 @@ import TargetApp from "./common/TargetApp.js";
 import {Metadata, MetadataType} from "./audit/common/Metadata.js";
 import {Nullable} from "./core/IStringIndex.js";
 import {
+    AppContextType,
     DbDataType,
-    DbKeyType, IDatabase, IDatabaseAdapter,
+    DbKeyType, IAppContext, IDatabase, IDatabaseAdapter,
     INode,
     NodeProperty,
     NodePropertyState,
@@ -82,6 +83,7 @@ import {UserService} from "./user/UserService.js";
 import {EngineDatabaseException} from "./errors/EngineDatabaseException.js";
 import {ProjectDatabase} from "./database/ProjectDatabase.js";
 import {MerlinSearchAPI} from "./search/MerlinSearchAPI.js";
+import InspectorFactory from "./InspectorFactory.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -131,8 +133,9 @@ const DexcaliburProjectValidator = new Validator({
  * @class
  * @author Georges-B. MICHEL
  */
-export default class DexcaliburProject extends Auditable implements IAuditableAccess, INode
+export default class DexcaliburProject extends Auditable implements IAuditableAccess, INode, IAppContext
 {
+    _type = AppContextType.WEB_SERVER;
 
     static readonly EV_TYPE = {
         ARCH_UPDATE: 'project:arch:update',
@@ -154,11 +157,12 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
         (new NodeProperty("dbName")).type(DbDataType.STRING),
         (new NodeProperty("name")).type(DbDataType.STRING),
 
-        //(new NodeProperty("db")).type(DbDataType.STRING),
+        //(new NodeProperty("db")).type(DbDataType.STRING),é
         //(new NodeProperty("device")).type(DbDataType.STRING),
         (new NodeProperty("meta")).type(DbDataType.BLOB),
         (new NodeProperty("bus")).volatile().type(DbDataType.BLOB),
         (new NodeProperty("hook")).volatile().type(DbDataType.BLOB),
+        (new NodeProperty("inspectors")).volatile().type(DbDataType.BLOB).def({}),
         (new NodeProperty("analCfg")).type(DbDataType.BLOB)
             .sleep( (x:NodePropertyState)=>{
                 if(x.p!=null){
@@ -203,6 +207,11 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
         (new NodeProperty("_attr")).type(DbDataType.BLOB),
         (new NodeProperty("workspace")).volatile().type(DbDataType.BLOB),
         (new NodeProperty("platform")).type(DbDataType.BLOB)
+            .sleep( (x:NodePropertyState)=>{
+                if(x.p==null) return null;
+
+                return (x.p as Platform).toJsonObject()
+            })
             .wakeUp( (x:NodePropertyState)=>{
                 if(x.p!=null){
                     return new Platform(x.p);
@@ -210,7 +219,7 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
                     return null;
                 }
             }),
-        (new NodeProperty("owner")).type(DbDataType.BLOB)
+        /*(new NodeProperty("owner")).type(DbDataType.BLOB)
             .sleep( (x:NodePropertyState)=>{
                 if(x.p!=null){
                     return (x.p as UserAccount).getUID();
@@ -245,7 +254,7 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
                 }else{
                     return [];
                 }
-            })
+            })*/
     ]);
 
     __:NodeInternalType = NodeInternalType.PROJECT;
@@ -368,7 +377,7 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
      * @type {Inspector[]}
      * @field All inspectors
      */
-    inspectors:InspectorMap = null;
+    inspectors:InspectorMap = {};
 
     // FridaBuilder make Frida script chunk from cls
     fridaBuilder:any = null;
@@ -426,8 +435,6 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
      * @field
      */
     simplifier:Simplifier = null;
-
-    saveManager:any = null;
 
     typeManager:TypeManager;
 
@@ -665,6 +672,7 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
                 pAccount
             );
 
+
             ret_owned = true;
 
         }catch(errACL){
@@ -708,18 +716,26 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
         return this._wf;
     }
 
-
-
-    setSaveManager(pManager:any){
-        this.saveManager = pManager;
-    }
-
-    getSaveManger():any{
-        return this.saveManager;
-    }
-
     getKeyPointManager():KeyPointManager{
         return this.kpmgr;
+    }
+
+
+    /**
+     * To attach an inspector to project instance
+     * @param pInspector
+     */
+    async attachInspector(pInspector:Inspector):Promise<void> {
+        try{
+            await pInspector.injectContext(this);
+            await pInspector.save();
+            this.inspectors[pInspector.getUID()] = pInspector;
+            this.bus.register(pInspector);
+        }catch(err){
+            Logger.error(`[PROJECT] Inspector cannot be attached to the project due to an error : ${err.message}`);
+            Logger.error(err.stack);
+        }
+
     }
 
     /**
@@ -1021,16 +1037,17 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
         this.scriptManager = new ScriptManager(this);
 
         // plugins
-        if(this.isDirty() && this.inspectors){
-             // project restored from DB are dirty
+        // before this step this.inspectors should be empty
+        if(this.isDirty()){
             await im.restoreInspectorsFor(this);
         }else{
             // fresh project are not dirty
             await im.createInspectorsFor(this);
+            // immeditaly trigger BOOT inspectors
             await  im.deployInspectors(this, INSPECTOR_TYPE.BOOT);
-            this.inspectors = im.getInspectorsOf(this);
         }
 
+        //this.inspectors = im.getInspectorsOf(this);
 
 
         
@@ -1096,12 +1113,27 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
      * @param {String} pStep Inspector step
      * @method
      */
-    deployInspectors(pStep){
-        const im:InspectorManager = InspectorManager.getInstance();
+    async deployInspectors(pStep):Promise<boolean>{
+        const uid:string = this.getUID();
+        let insp = "";
 
-        im.deployInspectors(this, pStep);
-        this.inspectors = im.getInspectorsOf(this);
+        Logger.info("[PROJECT] ["+uid+"], Step["+pStep+"] Starting to deploy inspectors.");
+
+        const projInsps = this.getInspectors();
+
+        for(let i in this.inspectors){
+            if(this.inspectors[i].isStartAt(pStep)){
+                await this.inspectors[i].deploy();
+                insp += i+' ';
+            }
+        }
+
+        Logger.info("[PROJECT] ["+uid+"], Step["+pStep+"] deploying inspectors : "+(insp.length==0? '<none>':insp));
+
+        return true;
     }
+
+
 
     /**
      * To get the project UID
@@ -1120,11 +1152,7 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
      * @returns {Inspector} Inspector instance
      * @method
      */
-    getInspector( pName):Inspector{
-
-        if(this.inspectors==null){
-            this.inspectors = InspectorManager.getInstance().getInspectorsOf(this);
-        }
+    getInspector( pName):Nullable<Inspector>{
         return this.inspectors[pName];
     }
 
@@ -1136,7 +1164,6 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
      * @method
      */
     getInspectors():InspectorMap{
-
         return this.inspectors;
     }
 
@@ -1239,7 +1266,7 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
         this.getWorkflow().pushStatus(new StatusMessage(2, "Start to extract application data"));
 
         Logger.info("[PROJECT][TARGET APP] Path : "+targetApp.getPath())
-        console.log(targetApp);
+        //console.log(targetApp);
         // get right app helper
         const success = await this.platform.extractApp(
             targetApp, this.workspace.getApkDir(), pExtractOptions);
@@ -1360,11 +1387,18 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
      * @static
      * @since 1.0.0
      */
-    static getInformationOf(pEngine:DexcaliburEngine, pProjectUID:string, pAccount:UserAccount = null, pZone:SecurityZone = SecurityZone.PUBLIC):any {
+    static async  getInformationOf(pEngine:DexcaliburEngine,
+                                   pProjectUID:string,
+                                   pAccount:UserAccount = null,
+                                   pZone:SecurityZone = SecurityZone.PUBLIC):Promise<any> {
 
         // create a minimalist instance of project to check if the user own or not this project
-        const project = new DexcaliburProject({ engine:pEngine, uid:pProjectUID });
 
+        const project = await pEngine.getEngineDB().getProject(pProjectUID,pAccount);
+
+        //const project = new DexcaliburProject({ engine:pEngine, uid:pProjectUID });
+
+        /*
         project.workspace = new ProjectWorkspace(_path_.join( pEngine.workspace.getLocation(), pProjectUID));
 
         // check if the folder contains configuration file
@@ -1385,24 +1419,24 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
                 project.workspace.getProjectCfgPath(),
                 JSON.stringify(data)
             );
-        }
+        }*/
 
         // remove sensitive data
         if(pZone==SecurityZone.PUBLIC){
             // ORM adapter data
-            delete data.connector;
+            delete project.connector;
             // remove local FS path
-            data.apk.path="";
+            //project.apk.path="";
         }
 
-        if(data._attr != null){
+       /* if(data._attr != null){
             project.importAccessAttributes(data._attr);
         }
 
         if(data.meta != null){
             project.meta = data.meta;
         }
-
+        */
 
         AccessControl.check(
             AccessZone.PROJECT,
@@ -1412,7 +1446,7 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
         );
 
 
-        return data;
+        return project.toJsonObject();
     }
 
     /**
@@ -1476,7 +1510,7 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
 
         let project:Nullable<DexcaliburProject>;
         let notPersisted = true;
-
+        let data:any;
 
         Logger.debug("[PROJECT] Start loading : "+pProjectUID);
 
@@ -1484,6 +1518,7 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
            project = await pEngine.getEngineDB().getProject(pProjectUID);
            project.engineVersion = pEngine.version;
            project.dirty();
+           console.log(project);
             Logger.debug("[PROJECT] [LOADING] Project read from DB : "+(project as any)._id);
             //console.log("PROJECT FOUND > ",(project as any)._id);
             //console.log("PROJECT VERSION > ",project.engineVersion);
@@ -1502,7 +1537,6 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
             }
         }
 
-        let data:any = null;
 
         // create main event bus of this project
         project.createBus();
@@ -1517,6 +1551,12 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
         project.workspace.init();
 
 
+        if(pConfig!=null){
+            data = pConfig;
+        }else{
+            data = project;
+        }
+        /*
         if(pConfig == null){
             try{
                 const cfgPath = project.workspace.getProjectCfgPath();
@@ -1526,7 +1566,7 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
             }
         }else{
             data = pConfig;
-        }
+        }*/
 
 
 
@@ -1558,12 +1598,11 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
             }
         }
 
-        if(data._attr !=null){
+        if(data!=null && data._attr !=null){
             project.importAccessAttributes(data._attr);
-            project.isAuthorizedToTest(pAcc);
-        }else{
-            // danger
         }
+
+        project.isAuthorizedToTest(pAcc);
 
 
 
@@ -1585,7 +1624,7 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
                     project.workspace.setApk( APK.fromJsonObject(data.apk));
                     break;
                 case "connector":
-                    if(data[i].hasOwnProperty('type')){
+                    if(data.connector!=null && data.connector.hasOwnProperty('type')){
                         project.connector = ConnectorFactory.getInstance().newConnector(data[i].type, project, data[i]);
                     }else{
                         project.connector = ConnectorFactory.getInstance().newConnector('inmemory', project);
@@ -1604,22 +1643,26 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
 
         if(project.getDevice()!=null){
             const ssp = project.getDevice().getProfile().getSystemProfile();
-            if(!data.hasOwnProperty('archs') ){
+            if(data!=null && !data.hasOwnProperty('archs') ){
                 project.archs = [ssp.getArchitecture(true)];
             }
-            if(!data.hasOwnProperty('os')){
+            if(data!=null && !data.hasOwnProperty('os')){
                 project.os = ssp.getOperatingSystem(true);
             }
         }
 
 
+        console.log(data);
+
 
         if(data.platform != null){
-            project.platform = PlatformManager.getInstance().getPlatform(data.platform);
+            project.platform = new Platform(data.platform); // PlatformManager.getInstance().getPlatform(data.platform);
         }
         else if(project.device != null){
             project.platform = project.device.getPlatform();
         }
+
+        console.log(project.platform!=null);
         Logger.debug("[PROJECT] [LOADING] Platform retrieved : "+(project.platform!=null));
 
         // init other properties
@@ -1642,18 +1685,19 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
      * @param {*} pExportPath 
      */
     save( pExportPath:string = null):void{
+        /*
         if(pExportPath == null){
             pExportPath = this.workspace.getProjectCfgPath();
         }
-
+    */
         if(this.engineVersion==null){
             this.engineVersion = this.engine.version;
         }
-
+/*
         Fs.writeFileSync(
             pExportPath, 
             JSON.stringify(this.toJsonObject())
-        );
+        );*/
 
         this.hook.saveAll();
 
@@ -1661,19 +1705,94 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
         this._emit(DexcaliburProject.EV_TYPE.SAVE);
     }
 
-    toJsonObject():any{
+    toJsonObject(pOptions:any = {excludeNull:true}):any{
         const o:any = new Object();
 
+        for(let i in this){
+            switch (i){
+                case "platform":
+                case "analCfg":
+                    if(this[i] !=null){
+                        o[i] = (this[i] as any).getUID!=null?  (this[i] as any).getUID() : this[i];
+                    }else{
+                        o[i] = null;
+                    }
+                    break;
+                case "_attr":
+                    o._attr = {};
+                    for(const n in this._attr){
+                        if(this._attr[n]!=null){
+                            o._attr[n] = (this._attr[n].toJsonObject!=null)?this._attr[n].toJsonObject():this._attr[n];
+                        }else{
+                            o._attr[n] = null;
+                        }
+                    }
+                    break;
+                case "_scanScheduler":
+                    o._scanScheduler = this._scanScheduler.toJsonObject();
+                    break;
+                case "engine":
+                case "webserver":
+                case "find":
+                case "merlin":
+                case "analyze":
+                case "dexHelper":
+                case "hook":
+                case "scriptManager":
+                case "kpmgr":
+                case "dataAnalyzer":
+                case "bus":
+                case "workspace":
+                case "appAnalyzer":
+                case "inspectors":
+                case "fridaBuilder":
+                case "graph":
+                case "device":
+                case "application":
+                case "connector":
+                case "device":
+                case "db":
+                case "pdb":
+                case "simplifier":
+                case "tagManager":
+                case "typeManager":
+                case "owner":
+                case "tester":
+                    break;
+                default:
+                    if(!pOptions.excludeNull || this[i]!=null){
+                        o[i] = this[i];
+                    }
+                    break;
+            }
+        }
+
         // add last modified, user, etc ...
+        /*
         o.uid = this.uid;
         o.package = this.pkg;
         // o.archs = this.archs;
         // o.os = this.os;
         o.device = this.device!=null? this.device.getUID() : null;
-        o.platform = this.platform!=null? this.platform.getUID() : null;
+        if(this.platform !=null){
+
+            o.platform = this.platform.getUID!=null? this.platform.getUID() : this.platform;
+        }else{
+            o.platform = null;
+        }
         o.nofrida = this.nofrida;
-        o.anal = this.analCfg.toJsonObject();
-        o.connector = this.connector.toJsonObject(); //constructor.getProperties();
+        if(this.analCfg!=null){
+            o.analCfg = this.analCfg.toJsonObject!=null ? this.analCfg.toJsonObject() : this.analCfg;
+        }else{
+            o.analCfg = null;
+        }
+        //o.anal = this.analCfg.toJsonObject();
+        if(this.connector!=null){
+            o.connector = this.connector.toJsonObject!=null ? this.connector.toJsonObject() : this.connector;
+        }else{
+            o.connector = null;
+        }
+
         o._attr = {};
         o.meta = this.meta;
         for(const n in this._attr){
@@ -1685,14 +1804,15 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
         }
 
 
-        if(this.workspace.getApk() !== null){
+
+        if(this.workspace.getApk() != null){
             o.apk = this.workspace.getApk().toJsonObject();
         }else{
             o.apk = null;
         }
 
+        */
         CoreDebug.checkJsonSerialize(o, "DexcaliburProject");
-        
         return o;
     }
     /**
@@ -1947,7 +2067,7 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
 
         this.getWorkflow().pushStatus(new StatusMessage(14, "Deploying inspectors for [POST_PLATFORM_SCAN]"));
 
-        this.deployInspectors(INSPECTOR_TYPE.POST_PLATFORM_SCAN);
+        await this.deployInspectors(INSPECTOR_TYPE.POST_PLATFORM_SCAN);
 
 
         // init delayed tagging for app class injected into 'android' classes/packages
@@ -2093,7 +2213,12 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
             await this.dataAnalyzer.getIndex('DYN_BUFFER'), true
         );
 
-        await this.dataAnalyzer.scan(this.workspace.getRuntimeBcDir(), this.dataAnalyzer.getScope('DYN_BYTECODE')); //["smali"]);
+        const dynBcScope = this.dataAnalyzer.getScope('DYN_BYTECODE');
+        console.log("DYN_BYTECODE> ", dynBcScope);
+
+
+        await this.dataAnalyzer.scan(this.workspace.getRuntimeBcDir(),dynBcScope); //["smali"]);
+
         this.analyze.updateFileIndex(
             await this.dataAnalyzer.getIndex('DYN_BYTECODE'), true
         );
@@ -2168,7 +2293,7 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
         this.getWorkflow().pushStatus(new StatusMessage(24, "Deploying inspectors [POST_APP_SCAN]"));
 
         // deploy inspector's hooksets
-        this.deployInspectors(INSPECTOR_TYPE.POST_APP_SCAN);
+        await this.deployInspectors(INSPECTOR_TYPE.POST_APP_SCAN);
 
 
         this.state = ProjectState.FULLSCAN_END;
@@ -2176,7 +2301,7 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
         this._emit("dxc.fullscan.post_deploy" );
         
         // trigger event
-        this._emit("dxc.appview.new" );
+       // this._emit("dxc.appview.new" );
 
         //this.analyze.updateFiles( this.dataAnalyzer.getDB());
 
@@ -2185,10 +2310,10 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
                 this.dataAnalyzer.getScope('PKG').getName()));*/
 
 
-        this._emit("filescan.new" );
+        //this._emit("filescan.new" );
 
 
-        this._emit("dxc.initialized" );
+        //this._emit("dxc.initialized" );
 
         this.ready = true;
 
@@ -2236,7 +2361,7 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
         // free
         this.analyze = null;
         this.bus = null;
-        this.inspectors = null;
+        this.inspectors = {};
         this.dataAnalyzer = null;
         this.appAnalyzer = null;
         this.application = null;
@@ -2261,44 +2386,6 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
             this.getBus().send(new BusEvent(pOptions));
         }
     }
-
-    // Make a backup of the project 
-    /*
-    Project.prototype.saveDB = function(file){
-        if(file===undefined){
-            return Backup.save(this.analyze.db,this.workspace.getNewSavefilePath());
-        }else{
-            return Backup.save(this.analyze.db,file);
-        }
-    }
-
-    // Load a backup
-    /*
-    Project.prototype.loadDB = function(savePath){
-        //this.analyze.db = Backup.restore(savePath);
-        return Backup.restore(savePath);
-    }*/
-
-    /*
-     * To start the application from a specific Activity.
-     * Use the default device. It can used in order to force application crawl. 
-     * @param {String} activity The activity to start
-     * @returns {ApplicationInstance}  A reference to the process running the Application
-     * @function
-     * @deprecated
-     *//*
-    start(activity){
-        let adb=this.config.adbPath, ret="", path="", i=0;
-        
-        if(this.config.useEmulator) adb+=" -e";
-        if(this.device instanceof Device) adb+=" -s "+this.device.getUID();
-        
-        // to do change
-        ret = Process.execSync(adb+" shell am start "+this.pkg+"/"+activity).toString("ascii");
-
-        
-        return new ApplicationInstance(0);
-    };*/
 
 
 
@@ -2354,7 +2441,6 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
 
         if(!state.isReady()) state.setContext(this);
 
-        console.log(pAnal, state);
         return state;
     }
 
@@ -2410,7 +2496,7 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
      * Remove dirty bit
      * @method
      */
-    restore(){
+    restored(){
         this._dirty = false;
     }
 }

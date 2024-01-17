@@ -94,7 +94,7 @@ export class TagManager {
                 // save children tags
                 tags = vTagCategory.getTags();
                 for(let k=0;k<tags.length;k++){
-                    this._tags.asyncUpdateEntry(tags[k],{upsert:true});
+                    await this._tags.asyncUpdateEntry(tags[k],{upsert:true});
                 }
             }else{
                 this.cache[vTagCategory.getUID()].getTags().map( x => {
@@ -107,7 +107,7 @@ export class TagManager {
             let update = false;
             for(let i=0; i<tags.length; i++){
                 if(cached.indexOf(tags[i].getUID())==-1){
-                    this.importTag(tags[i]);
+                    await this.importTag(tags[i]);
                     this.cache[vTagCategory.getUID()].addTag(tags[i]);
                 }
             }
@@ -126,13 +126,13 @@ export class TagManager {
      * @param {Tag} pTag Tag instance
      * @method
      */
-    importTag(pTag:Tag):void {
+    async importTag(pTag:Tag):Promise<void> {
         let uuid = pTag.getUUID();
 
         if(uuid==null){
             pTag.setUUID(this.generateUUID());
             uuid = pTag.getUUID();
-            this._tags.asyncUpdateEntry(pTag, {upsert:true });
+            await this._tags.asyncUpdateEntry(pTag, {upsert:true });
         }
 
         this._uuidMap[uuid] = pTag;
@@ -145,12 +145,13 @@ export class TagManager {
      * @param {TagCategory} pTagCat The tag category to import
      * @method
      */
-    importCategory(pTagCat:TagCategory):void {
-        this.addCategory(pTagCat)
+    async importCategory(pTagCat:TagCategory):Promise<void> {
+        await this.addCategory(pTagCat)
 
-        pTagCat.getTags().map(x => {
-            this.importTag(x);
-        })
+        const tags = pTagCat.getTags();
+        for(let i=0; i<tags.length; i++){
+            await  this.importTag(tags[i]);
+        }
     }
 
     /**
@@ -168,22 +169,23 @@ export class TagManager {
         });
 
 
-        tags.map( (vTag:Tag)=>{
-
+        let vTag:Tag;
+        for(let i=0; i<tags.length; i++){
+            vTag = tags[i];
+            console.log(vTag)
             if(vTag.category != null){
 
                 // fixing broken relationship
                 if((typeof vTag.category)==='string'){
                     vTag.category = cats[vTag.category as any];
                 }
-
                 if(cats[vTag.category.getUID()]!=null){
                     cats[vTag.category.getUID()].addTag(vTag);
                 }
             }
 
-            this.importTag(vTag);
-        });
+            await this.importTag(vTag);
+        }
 
 
         this.cache = cats;
@@ -197,7 +199,7 @@ export class TagManager {
             this._tagsCache = this._tagsCache.concat(this.cache[k].getTags());
         }
 
-        Logger.info(`[TAG MANAGER] Cache Initialized/Refreshed : ${Object.keys(cats).length} categories, ${tags.length} tags `)
+        Logger.info(`[TAG MANAGER] Cache Initialized/Refreshed : ${Object.keys(this.cache).length} categories, ${this._tagsCache.length} tags `)
     }
 
     /**

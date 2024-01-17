@@ -104,6 +104,7 @@ export class ProjectDatabase {
 
     setProject(pProject:DexcaliburProject):void {
         this._project = pProject;
+        this._db.conn.ctx = pProject;
         if(pProject.dbName!=""){
             pProject.dbName = this.name;
         }
@@ -251,6 +252,26 @@ export class ProjectDatabase {
     }
 
 
+    /**
+     * Retrieve Inspector state from DB by InspectorFactory UID
+     *
+     * @param pInspectorUID
+     */
+    async getInspectorState( pInspectorUID:string):Promise<Inspector> {
+        return await (this.getCollectionOf(Inspector.TYPE.getType()) as MongodbDbCollection)
+                        .asyncGetEntry({ id:pInspectorUID });
+    }
+
+    /**
+     * Retrieve Inspector state from DB by InspectorFactory UID
+     *
+     * @param pInspectorUID
+     */
+    async getHookStrategy( pStrategyUID:string):Promise<HookStrategy> {
+        return await (this.getCollectionOf(HookStrategy.TYPE.getType()) as MongodbDbCollection)
+            .asyncGetEntry({ _uid:pStrategyUID });
+    }
+
 
     /**
      *
@@ -274,10 +295,25 @@ export class ProjectDatabase {
         return state;
     }
 
+    /**
+     *
+     * @param pState
+     */
     async saveState(pState:AnalyzerState):Promise<any> {
         return this.getCollectionOf(AnalyzerState.TYPE.getType()).asyncUpdateEntry(
             pState,
             { upsert: true, filter: { _uid:pState._uid } }
+        );
+    }
+
+    /**
+     *
+     * @param pInspector
+     */
+    async saveInspectorState(pInspector:Inspector):Promise<any> {
+        return await this.getCollectionOf(Inspector.TYPE.getType()).asyncUpdateEntry(
+            pInspector,
+            { upsert: true, filter: { id:pInspector.getUID() } }
         );
     }
 }

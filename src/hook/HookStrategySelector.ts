@@ -14,7 +14,7 @@ import {Nullable} from "../core/IStringIndex.js";
 
 
 export interface HookStrategySelectorOptions {
-    type: NodeType;
+    type: string;
     uid?:Nullable<any>;
     req?:Nullable<string>;
 }
@@ -25,7 +25,7 @@ export default class HookStrategySelector {
      * Search Engine request
      * @private
      */
-    type:NodeType = null;
+    type:string = "";
 
     uid?:any = null;
 
@@ -43,6 +43,7 @@ export default class HookStrategySelector {
         if(pConfig!=null)
             for(let i in pConfig)
                 this[i] = pConfig[i];
+
 
     }
 
@@ -79,26 +80,26 @@ export default class HookStrategySelector {
     }
 
     isMethod(){
-        return (this.type.getType() === NodeInternalType.METHOD);
+        return (NodeType.ALL[this.type].getType() === NodeInternalType.METHOD);
     }
 
     isNativeFunc(){
-        return (this.type.getType() === NodeInternalType.FUNC);
+        return (NodeType.ALL[this.type].getType() === NodeInternalType.FUNC);
     }
 
     isSystemCall(){
-        return (this.type.getType() === NodeInternalType.SYSCALL);
+        return (NodeType.ALL[this.type].getType() === NodeInternalType.SYSCALL);
     }
 
     isRaw(){
-        return (this.type.getType() === null);
+        return (NodeType.ALL[this.type].getType() === null);
     }
 
     static fromJsonObject(pObj:any):HookStrategySelector {
         const o = new HookStrategySelector();
         if(pObj.req != null) o.req = pObj.req;
         if(pObj.uid != null) o.uid = pObj.uid;
-        if(pObj.type != null) o.type = NodeType.lookup(pObj.type);
+        if(pObj.type != null) o.type = pObj.type;
         return o;
     }
 
@@ -107,7 +108,7 @@ export default class HookStrategySelector {
         if(this.req != null) o.req = this.req;
         if(this.uid != null) o.uid = this.uid;
 
-        o.type = this.type.getName();
+        o.type = this.type;
 
         CoreDebug.checkJsonSerialize(o, "HookStrategySelector");
         return o;

@@ -21,6 +21,7 @@ import * as _fs_ from "fs";
 import {AuthenticationException} from "../errors/AuthenticationException.js";
 import {DexcaliburProjectException} from "../errors/DexcaliburProjectException.js";
 import {TagManager} from "../tags/TagManager.js";
+import {MongodbDbCollection} from "@dexcalibur/dexcalibur-orm-mongodb";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 export const PROJECT_WEB_API: DelegateWebApi = new DelegateWebApi();
@@ -89,6 +90,33 @@ PROJECT_WEB_API.addAuthenticatedRoute(
 
 
 PROJECT_WEB_API.addAuthenticatedRoute(
+    '/list',
+    {
+        'get':  async (req:DelegateRequest, res:DelegateResponse):Promise<void>=>{
+
+            const $:WebServer = req.dxc.$;
+
+            try{
+                const data:any[] = [];
+                const projColl = ($.context.getEngineDB().getCollectionOf(DexcaliburProject.TYPE.getType()));
+                const proj = await (projColl as MongodbDbCollection).getAsList();
+
+                proj.map(x =>{
+                    console.log(x);
+                    data.push( x.toJsonObject());
+                });
+                $.sendSuccess( res, data);
+
+            }catch(err){
+                Logger.error("[API][PROJECT] List of projects cannot be retrieved. Cause : "+err.message+"\n\t"+err.stack);
+                $.sendError(res, "List of projects cannot be retrieved. Cause : "+err.message);
+            }
+        }
+    }
+)
+
+
+PROJECT_WEB_API.addAuthenticatedRoute(
     '/close',
     {
         'post':  (req:DelegateRequest, res:DelegateResponse)=>{
@@ -131,10 +159,10 @@ PROJECT_WEB_API.addAuthenticatedRoute(
 PROJECT_WEB_API.addAuthenticatedRoute(
     '/info/:uid',
     {
-        'get': (req:DelegateRequest, res:DelegateResponse) => {
+        'get': async (req:DelegateRequest, res:DelegateResponse):Promise<void> => {
             const $: WebServer = req.dxc.$;
             try {
-                $.sendSuccess( res, DexcaliburProject.getInformationOf( $.context, req.params.uid, req.dxc.sess.getUserAccount()));
+                $.sendSuccess( res, await DexcaliburProject.getInformationOf( $.context, req.params.uid, req.dxc.sess.getUserAccount()));
             } catch (err) {
                 Logger.error("[API][PROJECT] Project meta data cannot be retrieved. Cause : " + err.message + "\n\t" + err.stack);
                 $.sendError(res, "Project meta data cannot be retrieved. Cause : " + err.message);

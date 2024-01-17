@@ -24,6 +24,8 @@ import {DexcaliburConnectionException} from "../errors/DexcaliburConnectionExcep
 import {DexcaliburEngineMode} from "../DexcaliburEngine.js";
 import {parentPort} from "worker_threads";
 import {MagicHelper} from "../MagicHelper.js";
+import {LogMessage} from "../log/Log.js";
+import {NodeUtils} from "../core/NodeUtils.js";
 
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
@@ -43,7 +45,7 @@ PROJECT_MGT_WEB_API.addAuthenticatedRoute(
 
 
                     $.sendSuccess( res, {
-                        projects: user.listProjects($.context)
+                        projects: await user.listProjects($.context)
                     });
 
             }catch(err){
@@ -261,6 +263,7 @@ PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
                     wf.pushStatus(StatusMessage.newError(err.message))
                 }
 
+                //$.context.clean()
                 Logger.error("[API][PROJECT MGT] "+err.message+"\n\t"+err.stack);
                 $.sendError(res, err.message);
             }
@@ -481,5 +484,28 @@ PROJECT_MGT_WEB_API.addAuthenticatedRoute(
     }
 );
 
+
+PROJECT_MGT_WEB_API.addAuthenticatedRoute(
+    '/logs',
+    {
+        'get':  async (req:DelegateRequest, res:DelegateResponse)=>{
+
+            let $:WebServer = req.dxc.$;
+
+            try {
+                let size=1000;
+                if(req.query.size!=null){
+                    size = parseInt(req.query.size as string, 10);
+                }
+                $.sendSuccess(res, NodeUtils.toJsonObject(
+                    await $.context.getEngineDB().getGlobalLogs((!Number.isNaN(size)) ? size : 1000)
+                ));
+            }catch(err){
+                Logger.error("[API][PROJECT MGT] Unable to verify availability of the value: "+err.message+"\n"+err.stack);
+                $.sendError( res, err.message);
+            }
+        }
+    }
+);
 
 

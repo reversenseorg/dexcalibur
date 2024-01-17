@@ -14,7 +14,7 @@ import {
     IDatabase,
     IDatabaseAdapter,
     IDbCollection,
-    INode,
+    INode, IStringIndex,
     NodeType,
     Tag,
     TagCategory
@@ -29,6 +29,7 @@ import {AnalyzerState} from "../AnalyzerState.js";
 import HookSession from "../HookSession.js";
 import ModelFile from "../ModelFile.js";
 import DataScope from "../DataScope.js";
+import {LogMessage} from "../log/Log.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -56,9 +57,10 @@ const INTERNAL_DB = "dxcserver";
 const PROJECT_DB_PREFIX = "dxc_";
 
 
+
 interface CollectionInfo {
-    name:string;
-    type:number;
+    collType:Nullable<NodeType>;
+    collName:Nullable<string>;
 }
 
 interface AttachedProject {
@@ -108,13 +110,9 @@ export class EngineDatabase {
 
 
     private _supportedType:NodeType[] = [
-        Tag.TYPE,
-        TagCategory.TYPE,
-        AnalyzerState.TYPE,
-        HookSession.TYPE,
-        ModelFile.TYPE,
-        DataScope.TYPE
+        LogMessage.TYPE
     ];
+
     private _supportedTypeInfos:{ [type:number] :CollectionInfo } = {};
 
 
@@ -172,13 +170,37 @@ export class EngineDatabase {
             pOptions.save()
         }
 
+
+
+
         return new MongodbAdapter(this._ctx, {
             clusterUrl: this._opts.getHost() ,
             port:  this._opts.getPort(),
             credentials: creds
         });
 
+
+
         // enumerate others DB
+    }
+
+    /**
+     * To create a collection into DB
+     *
+     * @param pNode
+     * @param pExitingCols
+     * @private
+     */
+    private async _createCollectionOf(pNode:NodeType, pExitingCols:string[]):Promise<any> {
+        if(pExitingCols.indexOf(pNode.getName())==-1){
+            await this._db.createCollectionOf(pNode, pNode.getName());
+            Logger.info("ENGINE DB > createCollectionOf > ",pNode.getName());
+        }
+
+    }
+
+    getRawDB():MongodbDb {
+        return this._db;
     }
 
     private async _enumerateDBs(){
@@ -216,21 +238,38 @@ export class EngineDatabase {
             existings.push(x.collectionName)
         });
 
+
         if(existings.indexOf(PROJECT_COL)==-1){ this._db.createCollectionOf(DexcaliburProject.TYPE, PROJECT_COL); }
         if(existings.indexOf(DEVICES_COL)==-1){ this._db.createCollectionOf(Device.TYPE, DEVICES_COL); }
         if(existings.indexOf(INSP_COL)==-1){ this._db.createCollectionOf(InspectorFactory.TYPE, INSP_COL); }
         if(existings.indexOf(SCAN_COL)==-1){ this._db.createCollectionOf(ScanOrder.TYPE, SCAN_COL); }
 
-        Logger.info("[INFO] [ENGINE] [DB] Connection successful");
-    }
 
-    /**
-     * To get instance of a project DB
-     *
-     * @param pProject
-     */
-    getProjectDb(pProject:string):any {
 
+        // to ease db dev, collection are created accordingly to supported node types
+        let nodeType:NodeType;
+        const skip = [
+            DexcaliburProject.TYPE.getType(),
+            Device.TYPE.getType(),
+            InspectorFactory.TYPE.getType(),
+            ScanOrder.TYPE.getType()
+        ];
+
+        for(let i=0; i<this._supportedType.length; i++){
+            nodeType = this._supportedType[i];
+
+            // TODO : Remove "static" creating. skip already created colls
+            if(skip.indexOf(nodeType.getType())>-1) continue;
+
+            await this._createCollectionOf(nodeType, existings);
+            this._supportedTypeInfos[nodeType.getType()] = {
+                collName: nodeType.getName(),
+                collType: nodeType
+            };
+        }
+
+
+        Logger.info("[ENGINE] [DB] Connection successful");
     }
 
     /**
@@ -243,6 +282,16 @@ export class EngineDatabase {
     getInternalDb():any {
 
     }
+
+    /**
+     * To retrieve global logs
+     * @param pSize
+     * @param pStartDate
+     */
+    async getGlobalLogs(pSize:number, pStartDate:number = -1):Promise<LogMessage[]> {
+        return await (this.getCollectionOf(LogMessage.TYPE.getType())).getAsList(pSize);
+    }
+
 
     /**
      * To list project from db
@@ -275,7 +324,6 @@ export class EngineDatabase {
         const project:Nullable<DexcaliburProject[]> = await coll.search({ uid: pUID});
 
         if(project==null || project.length==0){
-            console.log(await coll.getAsList());
             throw EngineDatabaseException.UNKNOWN_PROJECT(pUID);
         }
 
@@ -323,12 +371,10 @@ export class EngineDatabase {
             Logger.info("[DB] Project update caught : update ");
             if(vEvent.getData().project != null){
                 (async ()=>{
-                    console.log(vEvent.getData().project);
                     await this.saveProject(vEvent.getData().project);
                 })();
             }else{
-                console.error("Invalid events : ");
-                console.log(vEvent);
+                console.error("Invalid events : "+vEvent.getType());
             }
 
         });
@@ -401,6 +447,12 @@ export class EngineDatabase {
                 collName = INSP_COL;
                 collType = InspectorFactory.TYPE;
                 break;
+            default:
+                if(this._isSupported(nodeType)){
+                    collName = this._supportedTypeInfos[nodeType].collName;
+                    collType = this._supportedTypeInfos[nodeType].collType;
+                }
+                break;
         }
 
         if(collName!==null && collType!==null){
@@ -439,6 +491,15 @@ export class EngineDatabase {
         return await db.asyncUpdateEntry(pProject, {upsert:true});
     }
 
+    private _isSupported(pType:NodeInternalType):boolean {
+        for(let i=0; i<this._supportedType.length; i++){
+            if(this._supportedType[i].getType()===pType){
+                return true;
+            }
+        }
+        return false;
+    }
+
     /**
      * To save an object to corresponding collection
      *
@@ -469,6 +530,12 @@ export class EngineDatabase {
             case NodeInternalType.INSPECTOR:
                 collName = INSP_COL;
                 collType = InspectorFactory.TYPE;
+                break;
+            default:
+                if(this._isSupported(pObject.__)){
+                    collName = this._supportedTypeInfos[pObject.__].collName;
+                    collType = this._supportedTypeInfos[pObject.__].collType;
+                }
                 break;
         }
 

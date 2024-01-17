@@ -322,20 +322,20 @@ export default class Inspector implements BusBroadcaster
      * @param config
      * @constructor
      */
-    constructor(config=null){
+    constructor(pConfig:any=null){
 
-        if(config==null){
-            for(const i in config){
-                this[i] = config[i];
-                if(i==="hookSet"){
-                    this.id = config[i].id;
-                    this.name = config[i].name;
-                    this.description = config[i].description;
-                }
+        if(pConfig!=null){
+            for(const i in pConfig){
+                this[i] = pConfig[i];
+            }
+            if(pConfig.hookSet != null){
+                if(this.name==null) this.name = pConfig.hookSet.name;
+                if(this.description==null) this.description = pConfig.hookSet.description;
+                if(this.id==null) this.id = pConfig.hookSet.id;
             }
         }
 
-        return this;
+
     }
 
     /**
@@ -432,13 +432,20 @@ export default class Inspector implements BusBroadcaster
     broadcastEvent(event:BusEvent<any>){
         const event_type:string = event.type;
 
-        //console.log(this.listener);
+        Logger.debug(`[INSPECTOR][name=${this.name}] broadcastEvent [type=${event_type}] > listeners for : ${Object.keys(this.listener).join(" , ")}`);
         if(this.listener[event_type] != null){
             Logger.debug("Listener for ["+event_type+"] found in inspector ["+this.name+"]  ");
             for(let i=0; i<this.listener[event_type].length; i++){
                 // TODO : async / co
-                //console.log(this.listener[event_type][i]);
-                this.listener[event_type][i].exec(this.context, event);
+                //Logger.debug("Listener for ["+event_type+"] exec  ");
+                try{
+                    this.listener[event_type][i].exec(this.context, event);
+                }catch(err){
+                    Logger.error(`[INSPECTOR] [name=${this.name}] [event_type=${event_type}] listener execution failed : 
+                    ${err.messsage}
+                    ${err.stack}`);
+                }
+
             }
         }
         return true;
@@ -458,7 +465,8 @@ export default class Inspector implements BusBroadcaster
     on(event_type:string, task:StaticTask|any):Inspector{
         if(this.listener[event_type] == null)
             this.listener[event_type] = [];
-        
+
+        Logger.debug(`[INSPECTOR][name=${this.name}] set listener [o=${event_type}] }`);
         if(task instanceof StaticTask)
             this.listener[event_type].push(task);
         else
@@ -491,7 +499,7 @@ export default class Inspector implements BusBroadcaster
      * @return {Inspector} The current inspector instance
      * @method
      */
-    injectContext(ctx:DexcaliburProject):Inspector{
+    async injectContext(ctx:DexcaliburProject):Promise<Inspector>{
         this.context = ctx;
 
         if(this.hookSet != null){
@@ -525,7 +533,7 @@ export default class Inspector implements BusBroadcaster
         const tmgr = ctx.getTagManager();
         for(let i=0; i<this.preRegisteredTags.length; i++){
             console.log(this.preRegisteredTags[i].name+" Regsitered");
-            tmgr.importCategory(this.preRegisteredTags[i]);
+            await tmgr.importCategory(this.preRegisteredTags[i]);
         }
 
         /*if(this.db instanceof InMemoryDb){
@@ -586,20 +594,6 @@ export default class Inspector implements BusBroadcaster
         await this.hookSet.deploy();
     }
 
-    // Inspector life-cycle
-    /*
-    turnOn(){
-        this.running = true;
-        if(this.hookSet!=null)
-            this.hookSet.enable();
-    }
-
-    turnOff(){
-        return this.staticTasks[name];
-        if(this.hookSet!=null)
-            this.hookSet.disable();
-    }*/
-
     /**
      * To emit a new event on the main event bus
      *
@@ -633,7 +627,9 @@ export default class Inspector implements BusBroadcaster
      * @method
      */
     restore(callback=null):void{
+        console.log("RESTORE INSPECTOR STATE : "+this.getUID());
         //let self:Inspector = this;
+        /*
         const savePath:string = _path_.join(this.context.workspace.getSaveDir(), this.id+".json");
         _fs_.lstat(savePath, (vErr:any, vStat:any)=>{
             if(vErr == null) {
@@ -648,7 +644,7 @@ export default class Inspector implements BusBroadcaster
                         callback(this);
                 })
             }
-        });
+        });*/
     }
 
     /**
@@ -656,9 +652,10 @@ export default class Inspector implements BusBroadcaster
      *
      * @method
      */
-    save(){
-        if(this.db == null) return null;
+    async save():Promise<void>{
+        await this.context.getProjectDB().saveInspectorState(this);
 
+        /*
         const self:Inspector = this;
         const savePath:string = _path_.join(this.context.workspace.getSaveDir(), this.id+".json");
         _fs_.exists(savePath, function(exist){
@@ -687,7 +684,7 @@ export default class Inspector implements BusBroadcaster
                     });
                 });
             })
-        })
+        })*/
     }
 
     /**

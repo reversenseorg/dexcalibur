@@ -57,6 +57,7 @@ import Platform from "./Platform.js";
 import {ProjectState} from "./ProjectState.js";
 import Tool = External.Tool;
 import {Subject} from "rxjs";
+import {LogMessage, LogMessageOptions} from "./log/Log.js";
 
 /*
 const _fixPath_ = require("fix-path");
@@ -1060,17 +1061,18 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
      *
      * @param pUser
      */
-    listProjectsOf( pUser:UserAccount):DexcaliburProjectMap {
+    async listProjectsOf( pUser:UserAccount):Promise<DexcaliburProjectMap> {
         const PUIDS = this.workspace.listProjects();
         const map:DexcaliburProjectMap = {};
-        PUIDS.map( (vUID:string)=>{
+
+        for(let i=0; i<PUIDS.length; i++){
             try{
                 // only authorized user can read metadata
-                map[vUID] = DexcaliburProject.getInformationOf( this, vUID, pUser);
+                map[PUIDS[i]] = await DexcaliburProject.getInformationOf( this, PUIDS[i], pUser);
             }catch(err){
                 Logger.error("[ENGINE][LIST PROJECT] "+err.message);
             }
-        });
+        }
         return map;
     }
 
@@ -1160,9 +1162,13 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
             }
         }catch(err){
             Logger.error("[ENGINE] "," deleteProject() failed",err.message, err.stack);
+
+            this.log("Project ["+pUID+"] cannot be deleted. See error message.", null, err.code);
         }
 
         if(success){
+
+            this.log("Project ["+pUID+"] deleted. ", null);
             Logger.success("[ENGINE] ",`Project "${pUID}" has been deleted successfully [requester=${pAccount!=null?pAccount.getUID():'ENGINE (cleanup)'}]`);
         }else{
             Logger.error("[ENGINE] ",`Project "${pUID}" cannot be deleted. See logs  [requester=${pAccount!=null?pAccount.getUID():'ENGINE (cleanup)'}]`);
@@ -1221,12 +1227,15 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
             this.updater.run( DXC_LIFECYCLE_EVENT.OPEN_PROJECT, project);
 
             project.state = ProjectState.OPEN;
+            this.log("Project loaded", project);
+
             // update db
             //this.getEngineDB().saveProject(project);
 
             //this.webserver.setProject(project);
         }catch(err){
             Logger.error("ENGINE"," openProject() failed : "+err.message+"\n"+err.stack);
+            this.log("Project cannot be opened. See error message.", project, err.code);
             wf.pushStatus(StatusMessage.newError("Project cannot be loaded. See logs for more details : "+err.message));
             project = null;
             throw err;
@@ -1456,6 +1465,27 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
      */
     noCleanup():void {
         this._cleanup = false;
+    }
+
+    /**
+     * To log a message
+     *
+     * @param pMessage
+     * @param pProject
+     * @param pErr
+     */
+    log(pMessage:string, pProject:Nullable<DexcaliburProject>=null, pErr:number=-1):void {
+        const msg = new LogMessage({
+            node: this.nodeManager.uuid,
+            time: (new Date()).getTime(),
+            msg: pMessage,
+            project: (pProject!=null ? pProject.getUID() : null),
+            error: pErr
+        });
+
+        ( async ()=>{
+            this.getEngineDB().getCollectionOf(LogMessage.TYPE.getType()).asyncAddEntry(msg.getUID(),msg);
+        })();
     }
 }
 

@@ -96,37 +96,25 @@ export class ModelFunction implements INode, IPersistent {
             (new NodeProperty("src")).single(ModelFile.TYPE),
             (new NodeProperty("stack")).type(DbDataType.INTEGER).def(-1),
             (new NodeProperty("sz")).type(DbDataType.INTEGER).def(-1),
-            (new NodeProperty("tags")).type(DbDataType.STRING).serialize(DbSerialize.JSON).def("[]"),
+            (new NodeProperty("tags")).type(DbDataType.STRING).def([]),
 
             (new NodeProperty("regvars"))
-                .type(DbDataType.STRING)
-                .sleep( (x:NodePropertyState)=>{ return (x.p!=null ? JSON.stringify(x.p) : null)})
-                .wakeUp( (x:NodePropertyState)=>{ return (x.p!=null ? JSON.parse(x.p) : null)}),
+                .type(DbDataType.BLOB),
 
             (new NodeProperty("spvars"))
-                .type(DbDataType.STRING)
-                .sleep( (x:NodePropertyState)=>{ return (x.p!=null ? JSON.stringify(x.p) : null)})
-                .wakeUp( (x:NodePropertyState)=>{ return (x.p!=null ? JSON.parse(x.p) : null)}),
+                .type(DbDataType.BLOB),
 
             (new NodeProperty("cref"))
-                .type(DbDataType.STRING)
-                .sleep( (x:NodePropertyState)=>{ return (x.p!=null ? JSON.stringify(x.p) : null)})
-                .wakeUp( (x:NodePropertyState)=>{ return (x.p!=null ? JSON.parse(x.p) : null)}),
+                .type(DbDataType.STRING),
 
             (new NodeProperty("dref"))
-                .type(DbDataType.STRING)
-                .sleep( (x:NodePropertyState)=>{ return (x.p!=null ? JSON.stringify(x.p) : null)})
-                .wakeUp( (x:NodePropertyState)=>{ return (x.p!=null ? JSON.parse(x.p) : null)}),
+                .type(DbDataType.BLOB),
 
             (new NodeProperty("xcref"))
-                .type(DbDataType.STRING)
-                .sleep( (x:NodePropertyState)=>{ return (x.p!=null ? JSON.stringify(x.p) : null)})
-                .wakeUp( (x:NodePropertyState)=>{ return (x.p!=null ? JSON.parse(x.p) : null)}),
+                .type(DbDataType.BLOB),
 
             (new NodeProperty("xdref"))
-                .type(DbDataType.STRING)
-                .sleep( (x:NodePropertyState)=>{ return (x.p!=null ? JSON.stringify(x.p) : null)})
-                .wakeUp( (x:NodePropertyState)=>{ return (x.p!=null ? JSON.parse(x.p) : null)}),
+                .type(DbDataType.BLOB),
 
 
             (new NodeProperty("ctype")).type(DbDataType.STRING)

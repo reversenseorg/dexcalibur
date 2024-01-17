@@ -1,5 +1,5 @@
 import HookStrategy from "./HookStrategy.js";
-import {NodeType} from "@dexcalibur/dexcalibur-orm";
+import {INode, NodeType, TagUUID} from "@dexcalibur/dexcalibur-orm";
 import {NodeInternalType} from "../NodeInternalType.js";
 import {CoreDebug} from "../core/CoreDebug.js";
 import {Nullable} from "../core/IStringIndex.js";
@@ -10,7 +10,7 @@ import {Nullable} from "../core/IStringIndex.js";
  * A HookTemplateFragment is a piece of the hook template associated to a location (before/after/replace a call)
  *
  */
-export default class HookTemplateFragment {
+export default class HookTemplateFragment implements INode {
 
 
     static TYPE:NodeType = new NodeType( "hook_fragment", NodeInternalType.HOOK_FRAGMENT, []);
@@ -39,6 +39,8 @@ export default class HookTemplateFragment {
     public autoEmit = false;
 
     public emitEvent:Nullable<string> = null;
+
+    tags:TagUUID[] = [];
 
     /**
      * Group of hook

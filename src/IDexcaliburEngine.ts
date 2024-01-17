@@ -48,6 +48,6 @@ export interface IDexcaliburEngine {
     newWorkflow(pName:string):Workflow;
     getWorkflow(pUID:string, pExternal:boolean):Workflow;
     onNewWorkflow( pUID:string, pCallback:any, pExternal:boolean):void;
-    listProjectsOf( pUser:UserAccount):DexcaliburProjectMap;
+    listProjectsOf( pUser:UserAccount):Promise<DexcaliburProjectMap>;
 
 }

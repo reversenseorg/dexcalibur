@@ -54,9 +54,9 @@ export default class Platform
 
     constructor(pPlatformConfig:any ){
 
-        for(const i in pPlatformConfig) this[i] = pPlatformConfig[i];
+        for(const i in pPlatformConfig)
+            this[i] = pPlatformConfig[i];
 
-        return this;
     }
 
 
@@ -244,7 +244,6 @@ export default class Platform
         let state:Nullable<AnalyzerState> = null;
 
         Logger.info("PLATFORM > newAppAnalyzer > ",this.os);
-        console.log(this);
         switch(this.os){
             case OperatingSystem.ANDROID:
                 appAnalyzer = new AndroidAppAnalyzer(pProject);

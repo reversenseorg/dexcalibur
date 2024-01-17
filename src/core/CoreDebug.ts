@@ -32,7 +32,11 @@ export class CoreDebug {
                 Object.keys(pObject).map(k => {
                     const t = (typeof pObject[k]);
                     if(t==="string"||t==="number"){
-                        s += `${k}=${pObject[k]} , `;
+                        s += `${k}= "${pObject[k]}" , `;
+                    }else if(pObject[k]==null){
+                        s += `${k}= null , `;
+                    }else{
+                        s += `${k}= [Object] , `;
                     }
                 });
 

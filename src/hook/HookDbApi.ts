@@ -112,13 +112,13 @@ export class HookDbApi {
         const r = await this.strategies.asyncAddEntry( pStrategy.getUID(), pStrategy);
 
         if(pStrategy.before != null){
-            await this.fragments.asyncUpdateEntry(pStrategy.before);
+            await this.fragments.asyncUpdateEntry(pStrategy.before, {upsert:true});
         }
         if(pStrategy.after != null){
-            await this.fragments.asyncUpdateEntry(pStrategy.after);
+            await this.fragments.asyncUpdateEntry(pStrategy.after,{upsert:true});
         }
         if(pStrategy.replace != null){
-            await this.fragments.asyncUpdateEntry(pStrategy.replace);
+            await this.fragments.asyncUpdateEntry(pStrategy.replace,{upsert:true});
         }
 
         return r;
@@ -127,16 +127,16 @@ export class HookDbApi {
     async updateHookStrategy( pStrategy:HookStrategy):Promise<any> {
 
         if(pStrategy.before != null){
-            await this.fragments.asyncUpdateEntry(pStrategy.before);
+            await this.fragments.asyncUpdateEntry(pStrategy.before, {upsert:true});
         }
         if(pStrategy.after != null){
-            await this.fragments.asyncUpdateEntry(pStrategy.after);
+            await this.fragments.asyncUpdateEntry(pStrategy.after, {upsert:true});
         }
         if(pStrategy.replace != null){
-            await this.fragments.asyncUpdateEntry(pStrategy.replace);
+            await this.fragments.asyncUpdateEntry(pStrategy.replace, {upsert:true});
         }
 
-        return await this.strategies.asyncUpdateEntry(pStrategy);
+        return await this.strategies.asyncUpdateEntry(pStrategy, {upsert:true});
     }
 
     /**
@@ -163,7 +163,7 @@ export class HookDbApi {
     }
 
     async updateHookSet( pSet:HookSet):Promise<any> {
-        return await this.sets.asyncUpdateEntry(pSet);
+        return await this.sets.asyncUpdateEntry(pSet, {upsert:true});
     }
 
     /**
@@ -196,7 +196,7 @@ export class HookDbApi {
     }
 
     async updateJavaHook( pHook:JavaMethodHook):Promise<boolean> {
-        return await this.jhooks.asyncUpdateEntry( pHook);
+        return await this.jhooks.asyncUpdateEntry( pHook, {upsert:true});
     }
 
     async updateHookSession( pSession:HookSession):Promise<any> {
@@ -212,7 +212,7 @@ export class HookDbApi {
     }
 
     async updateRuntimeEvent( pEvent:RuntimeEvent<any>):Promise<any> {
-        return await this.events.asyncUpdateEntry( pEvent);
+        return await this.events.asyncUpdateEntry( pEvent, {upsert:true});
     }
 
     async removeHookSession( pSession:HookSession):Promise<boolean> {
@@ -233,7 +233,7 @@ export class HookDbApi {
     }
 
     async updateNativeHook( pHook:NativeFunctionHook):Promise<any> {
-        return await this.nhooks.asyncUpdateEntry( pHook);
+        return await this.nhooks.asyncUpdateEntry( pHook, {upsert:true});
     }
 
     async removeNativeHook( pHook:NativeFunctionHook):Promise<boolean> {

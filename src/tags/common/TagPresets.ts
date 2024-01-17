@@ -19,6 +19,14 @@ export function newTagPresets(){
     const NETWORK_DATA = new TagCategory({ name: "network.data" });
     const NETWORK_PROTOCOL = new TagCategory({ name: "network.protocol" });
     const NETWORK_HOST = new TagCategory({ name: "network.host" });
+    const KEYPOINT_DEF = new TagCategory({ name: "keypoint.defaults" });
+
+    const KEYPOINT_DEF_TAGS = [
+        new Tag({ name:"loadOn" }),
+        new Tag({ name:"unloadOn" }),
+        new Tag({ name:"linking" }),
+        new Tag({ name:"mapping" })
+    ];
 
     const CODE_NATIVE_TAGS = [
         new Tag({ name:"export" }),
@@ -158,6 +166,7 @@ export function newTagPresets(){
     NETWORK_DATA_TAGS.map( x => { NETWORK_DATA.addTag(x); });
     NETWORK_HOST_TAGS.map( x => { NETWORK_HOST.addTag(x); });
     NETWORK_PROTOCOL_TAGS.map( x => { NETWORK_PROTOCOL.addTag(x); });
+    KEYPOINT_DEF_TAGS.map(x => {KEYPOINT_DEF.addTag(x)});
 
     return [
         GLOBAL,
@@ -178,7 +187,9 @@ export function newTagPresets(){
 
         NETWORK_DATA,
         NETWORK_HOST,
-        NETWORK_PROTOCOL
+        NETWORK_PROTOCOL,
+
+        KEYPOINT_DEF
     ];
 }
 export const TAG_CATEGORY_PRESETS = newTagPresets();

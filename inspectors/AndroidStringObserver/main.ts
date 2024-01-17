@@ -35,7 +35,7 @@ var AndroidStringObserverInspector:InspectorFactory = new InspectorFactory({
                 name: "StringBuilder_toString",
                 descr: "A new HTTP(s) request is building using OkHttp client, and will probably executed later.",
                 search: {
-                    type: ModelMethod.TYPE,
+                    type: ModelMethod.TYPE.getName(),
                     uid:  [
                         "java.lang.StringBuilder.toString()<java.lang.String>"
                     ]
@@ -61,8 +61,46 @@ var AndroidStringObserverInspector:InspectorFactory = new InspectorFactory({
 
 
 
-    eventListeners: {
-        "string.instance.raw": function(ctx:DexcaliburProject, event:BusEvent<HookMessageV2>):void{
+    eventListenerSources: {
+        "string.instance.raw": {
+            lang: "js",
+            source: `
+                // <js>
+                if(pEvent.data.data !=null){
+                    // todo : retrieve session ID, be careful with concurrent session
+                    let loc = null;
+                    let node = null;
+                    if(pEvent.node.length > 0){
+                        node = pEvent.node[0];
+                        loc = {
+                            __: node.__,
+                            uid: node.getUID()
+                        };
+                    }
+    
+                    console.log("STRING INSTANCE : ",pEvent.data.data.str)
+    
+                    const str = new ModelStringValue({
+                        value: pEvent.data.data.str,
+                        instance: [
+                            new ModelInstance({
+                                session: "", //ctx.getHookManager().get
+                                ctx: loc
+                            })
+                        ]
+                    });
+    
+    
+                    ctx.getAnalyzer().getData().strings.addEntry(str);
+                    ctx.bus.send( new BusEvent({
+                        type: "string.instance.new",
+                        data: str
+                    }));
+                }
+            `
+    }
+
+            /*function(ctx:DexcaliburProject, event:BusEvent<HookMessageV2>):void{
             if(event.data.data !=null){
                 // todo : retrieve session ID, be careful with concurrent session
                 let loc:Nullable<ContextLocation> = null;
@@ -95,7 +133,7 @@ var AndroidStringObserverInspector:InspectorFactory = new InspectorFactory({
                 }));
             }
 
-        }
+        }*/
     }
 });
 

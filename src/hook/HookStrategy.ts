@@ -11,7 +11,7 @@ import {AbstractHook, HOOK_FRAGMENT_POS, UID_POS_MAPPING} from "./AbstractHook.j
 import ModelMethod from "../ModelMethod.js";
 import {ModelFunction} from "../ModelFunction.js";
 import NativeFunctionHook from "./NativeFunctionHook.js";
-import {NodeType} from "@dexcalibur/dexcalibur-orm";
+import {INode, NodeType, TagUUID} from "@dexcalibur/dexcalibur-orm";
 import {NodeInternalType} from "../NodeInternalType.js";
 import {HookManager} from "./HookManager.js";
 import * as Log from "../Logger.js";
@@ -62,7 +62,7 @@ export interface HookStrategyOptions {
  *
  * @class
  */
-export default class HookStrategy {
+export default class HookStrategy implements INode{
 
 
     static TYPE:NodeType = new NodeType( "hook_strategy", NodeInternalType.HOOK_STRATEGY, []);
@@ -132,6 +132,8 @@ export default class HookStrategy {
     passed = 0;
     variables: HookVariableMap = {};
 
+    tags:TagUUID[] = [];
+
 
     /**
      * Group of hook
@@ -145,10 +147,10 @@ export default class HookStrategy {
         this.passed = 0;
 
         // this.requiresNode = [];
-        if(pConfig!=null)
-            for(const i in pConfig)
+        if(pConfig!=null) {
+            for (const i in pConfig)
                 this[i] = pConfig[i];
-
+        }
 
     }
 
@@ -271,11 +273,15 @@ export default class HookStrategy {
     }
 
     setUnloadKeyPoint( pKeyPoint:KeyPoint):void {
+        if(pKeyPoint==null) return;
         this.unload_kp = pKeyPoint;
+        this.unloadOn = pKeyPoint.getUID();
     }
 
     setLoadKeyPoint( pKeyPoint:KeyPoint):void {
+        if(pKeyPoint==null) return;
         this.load_kp = pKeyPoint;
+        this.loadOn = pKeyPoint.getUID();
     }
 
     setSearchEngineRequest(pRequest:string) {
@@ -316,9 +322,12 @@ export default class HookStrategy {
 
         const hm:HookManager = pContext.getHookManager();
         const results:FinderResult = (VM.runInNewContext('project.find.' + this.search.getRequest() + ';', { project: pContext }) as FinderResult);
+
         const res=results.list();
         let pRes:any;
         let success = false;
+
+        Logger.info(`[HOOK STRATEGY] [uid=${this.getUID()}] _runOnSEResults : ${res.length}`);
 
         if(this.search.isMethod()){
             for(let i=0; i<res.length;i++){
@@ -467,6 +476,8 @@ export default class HookStrategy {
         if((this.passed == 1) && !pForce){
             return 1;
         }
+
+        Logger.info(`[HOOK STRATEGY] [uid=${this.getUID()}] Run `);
 
         // if there is a search request
         if(this.search.getRequest() != null){

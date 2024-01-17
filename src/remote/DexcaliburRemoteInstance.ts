@@ -122,7 +122,7 @@ export class DexcaliburRemoteInstance implements IDexcaliburEngine {
      *
      * @param pUser
      */
-    listProjectsOf( pUser:UserAccount):DexcaliburProjectMap {
+    async listProjectsOf( pUser:UserAccount):Promise<DexcaliburProjectMap> {
         /*const PUIDS = this.workspace.listProjects();
         let map:DexcaliburProjectMap = {};
         PUIDS.map( (vUID:string)=>{

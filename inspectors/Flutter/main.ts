@@ -41,7 +41,7 @@ var FlutterInspector:InspectorFactory = new InspectorFactory({
                 name: "read_DeviceID",
                 descr: "To detect read of device ID",
                 search: {
-                    type: ModelMethod.TYPE,
+                    type: ModelMethod.TYPE.getName(),
                     uid: "android.telephony.TelephonyManager.getDeviceId()<java.lang.String>"
                 },
                 autoEmit: true,

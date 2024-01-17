@@ -30,10 +30,10 @@ import {
     NodeProperty,
     DbDataType,
     DbKeyType,
-    DbSerialize, DataSource, NodeType, TagCategory, Tag
+    DbSerialize, DataSource, NodeType, TagCategory, Tag, AppContextType
 } from "@dexcalibur/dexcalibur-orm";
 import InMemoryConnector from "../connectors/inmemory/adapter.js";
-import {MongodbDbCollection} from "@dexcalibur/dexcalibur-orm-mongodb";
+import {MongodbAdapter, MongodbDbCollection} from "@dexcalibur/dexcalibur-orm-mongodb";
 import {CustomCode} from "./actionnable/CustomCode.js";
 import {NodeInternalType} from "./NodeInternalType.js";
 import Inspector, {INSPECTOR_TYPE} from "./Inspector.js";
@@ -86,14 +86,33 @@ DataSourceHelper.addSource("FILE", new DataSource("fs",{
         return o;
     }
 }));
-DataSourceHelper.addAsyncSource("PROJECT_DB", new DataSource("fs",{
+DataSourceHelper.addAsyncSource("PROJECT_DB", new DataSource("PROJECT_DB", {
     single: async function(pContext:any, pNodeType:NodeType, pUID:any):Promise<any>{
+
         return await ((pContext as DexcaliburProject)
                 .getProjectDB()
                 .getCollectionOf(pNodeType.getType()) as MongodbDbCollection)
                 .asyncGetEntry({ _uid: pUID});
     }
 }));
+DataSourceHelper.addAsyncSource("ENGINE_DB", new DataSource("ENGINE_DB",{
+    single: async function(pContext:any, pNodeType:NodeType, pUID:any):Promise<any>{
+
+        if(pContext._type===AppContextType.WEB_SERVER){
+            return await ((pContext as DexcaliburEngine)
+                .getEngineDB()
+                .getCollectionOf(pNodeType.getType()) as MongodbDbCollection)
+                .asyncGetEntry({ _uid: pUID});
+        }else{
+            return await ((pContext as DexcaliburProject)
+                .getContext()
+                .getEngineDB()
+                .getCollectionOf(pNodeType.getType()) as MongodbDbCollection)
+                .asyncGetEntry({ _uid: pUID});
+        }
+    }
+}));
+
 
 /*
 static FILE:DataSource = new DataSource("fs",{
@@ -174,9 +193,7 @@ ModelMethod.TYPE.updateProperties([
         (new NodeProperty("name")).type(DbDataType.STRING), //.key(DbKeyType.PRIMARY),
         (new NodeProperty("modifier")).volatile(),
         (new NodeProperty("tags"))
-            .type(DbDataType.STRING)
-            .sleep( (x:NodePropertyState) => { return (x.p != null ? JSON.stringify(x.p) : null )})
-            .wakeUp( (x:NodePropertyState) => { return (x.p != null ? JSON.parse(x.p) : null )}),
+            .type(DbDataType.BLOB),
         (new NodeProperty("alias")).type(DbDataType.STRING),
         (new NodeProperty("args")).volatile(),
         (new NodeProperty("ret")).volatile(),
@@ -212,8 +229,6 @@ ModelField.TYPE.updateProperties([
         (new NodeProperty("_setters")).multiple(ModelMethod.TYPE),
         (new NodeProperty("tags"))
             .type(DbDataType.STRING)
-            .sleep( (x:NodePropertyState) => { return (x.p != null ? JSON.stringify(x.p) : null )})
-            .wakeUp( (x:NodePropertyState) => { return (x.p != null ? JSON.parse(x.p) : null )}),
     ]).dataSource("MEM").builder(ModelField);
 
 
@@ -248,9 +263,7 @@ ModelClass.TYPE.updateProperties([
             (new NodeProperty("_methCount")).type(DbDataType.INTEGER),
             (new NodeProperty("_fieldCount")).type(DbDataType.INTEGER),
             (new NodeProperty("tags"))
-                .type(DbDataType.STRING)
-                .sleep( (x:NodePropertyState) => { return (x.p != null ? JSON.stringify(x.p) : null )})
-                .wakeUp( (x:NodePropertyState) => { return (x.p != null ? JSON.parse(x.p) : null )}),
+                .type(DbDataType.STRING),
 
             (new NodeProperty("_callers")).volatile().multiple(ModelMethod.TYPE),
             (new NodeProperty("_hashcode")).type(DbDataType.STRING),
@@ -259,8 +272,6 @@ ModelClass.TYPE.updateProperties([
             (new NodeProperty("__aliasedCallSignature__")).type(DbDataType.STRING),
             (new NodeProperty("__p"))
                 .type(DbDataType.STRING)
-                .sleep( (x:NodePropertyState) => { return (x.p != null ? JSON.stringify(x.p) : null )})
-                .wakeUp( (x:NodePropertyState) => { return (x.p != null ? JSON.parse(x.p) : null )})
 
     ]).dataSource("MEM").builder(ModelClass);
 
@@ -285,6 +296,8 @@ KeyPoint.TYPE.updateProperties([
             })
             .wakeUp( x => {
                 if(x==null)  return null;
+                if(x.p==null)  return null;
+
                 return new CustomCode(x.p);
             }) // (x != null ? Function(x) : null)
             .def(null),
@@ -347,6 +360,10 @@ HookSet.TYPE.updateProperties([
     (new NodeProperty("description")).type(DbDataType.STRING).def(null),
     (new NodeProperty("category")).type(DbDataType.STRING).def(null),
     (new NodeProperty("prologue")).volatile(),
+    (new NodeProperty("context")).volatile(),
+    (new NodeProperty("intercepts")).volatile(),
+    (new NodeProperty("probe")).volatile(),
+    (new NodeProperty("hooks")).volatile(),
     (new NodeProperty("color")).def(null)
         .type(DbDataType.BLOB),
         //.sleep( (x:NodePropertyState) => { return (x.p != null ? x.p : null )})
@@ -372,10 +389,13 @@ HookStrategy.TYPE.updateProperties([
         .def(null)
         .sleep( (x:NodePropertyState) => { return null; })
         .wakeUp( (x:NodePropertyState) => { return (x.self.preprocessor != null ? HookStrategy.newPreprocessorFn(x.self.preprocessor) : null )}),
+
     (new NodeProperty("loadOn")).type(DbDataType.STRING).def(null),
     (new NodeProperty("unloadOn")).type(DbDataType.STRING).def(null),
+
     (new NodeProperty("load_kp")).volatile().single(KeyPoint.TYPE).def(null),
     (new NodeProperty("unload_kp")).volatile().single(KeyPoint.TYPE).def(null),
+
     (new NodeProperty("hookset")).single(HookSet.TYPE).def(null),
     //(HookSet.TYPE.asForeignKey(DbKeyType.FOREIGN, 0, "hookset_id")),
     (new NodeProperty("before"))//.single(HookTemplateFragment.TYPE)
@@ -393,13 +413,21 @@ HookStrategy.TYPE.updateProperties([
     (new NodeProperty("hooks")).volatile(),
     (new NodeProperty("search"))
         .type(DbDataType.STRING)
-        .sleep( (x:NodePropertyState) => { return (x.p != null ? x.p.toJsonObject() : null )})
-        .wakeUp( (x:NodePropertyState) => { return (x.p != null ? HookStrategySelector.fromJsonObject(x.p) : null )}),
+        .sleep( (x:NodePropertyState) => {
+            return (x.p != null ? x.p.toJsonObject() : null )
+        })
+        .wakeUp( (x:NodePropertyState) => {
+            return (x.p != null ? HookStrategySelector.fromJsonObject(x.p) : null )
+        }),
     (new NodeProperty("passed")).type(DbDataType.NUMERIC).def(null),
 ]).dataSource("PROJECT_DB").builder(HookStrategy);
 
 HookSet.TYPE.updateProperties([
-        (new NodeProperty("strats")).multiple(HookStrategy.TYPE,"hookset")
+        (new NodeProperty("strats"))
+            .multiple(HookStrategy.TYPE)
+            //.sleep( (x:NodePropertyState) => { return (x.p != null ? x.p.toJsonObject() : null )})
+            //.wakeUp( (x:NodePropertyState) => { return (x.p != null ? HookStrategySelector.fromJsonObject(x.p) : null )}),
+            //.multiple(HookStrategy.TYPE,"hookset")
     ])
     .dataSource("PROJECT_DB")
     .builder(HookSet);
@@ -683,9 +711,9 @@ Inspector.TYPE.updateProperties([
     (new NodeProperty("step")).type(DbDataType.STRING).def(INSPECTOR_TYPE.BOOT),
 ]).dataSource("PROJECT_DB");
 
-TagCategory.TYPE.dataSource("FILE");
+TagCategory.TYPE.dataSource("PROJECT_DB");
 
-Tag.TYPE.dataSource("FILE");
+Tag.TYPE.dataSource("PROJECT_DB");
 
 
 Brand.TYPE.updateProperties([

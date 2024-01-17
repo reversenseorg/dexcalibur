@@ -480,8 +480,8 @@ export default class AndroidAppAnalyzer implements IAppAnalyzer
 	updateComponentImplementation(){
 		['activity','provider','receiver','service'].map((vCmpType)=>{
 			this.context.find[vCmpType]("name:.*").foreach((vIndex:number, vCmp:AndroidComponent)=>{
-				console.log(vIndex, vCmp);
-				console.log(vCmp.getImplementedBy);
+				//console.log(vIndex, vCmp);
+				//console.log(vCmp.getImplementedBy);
 
 				if(vCmp.__impl==null){
 					const cls = this.context.find.get.class(this.getComponentFullName(this.manifest, vCmp.name));

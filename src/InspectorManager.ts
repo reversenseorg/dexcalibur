@@ -11,6 +11,7 @@ import Util from "./Utils.js";
 import DexcaliburRegistry from "./DexcaliburRegistry.js";
 import * as Log from './Logger.js';
 import WebServer from "./WebServer.js";
+import {MongodbDbCollection} from "@dexcalibur/dexcalibur-orm-mongodb";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -32,6 +33,9 @@ export interface ProjectInspectorMap {
 }
 
 /**
+ * Manager to load/save/restore inspectors of projects
+ * running on this engine instance
+ *
  * @class
  */
 export default class InspectorManager
@@ -283,27 +287,46 @@ export default class InspectorManager
 
 
     /**
-     * To create inspector instance per actives projects
+     * To create inspector instance for new projects
      *
      * @param {DexcaliburProject} pProject
      * @return {boolean}
      */
     async createInspectorsFor( pProject:DexcaliburProject):Promise<boolean>{
         const uid:string = pProject.getUID();
+        let ins:Inspector;
         let factory:InspectorFactory;
-        //const ws:WebServer = DexcaliburEngine.getInstance().getWebserver();
-
+        
         if(this.projects[uid] == null){
             this.projects[uid] = {};
         }
 
+        let test:any;
         for(const i in this.locals){
+            // local inspector
             factory = (this.locals[i] as any);
-            /*if(factory.hasWebApi() && !factory.isWebApiReady()){
-                factory.registerWebServer(ws);
-            }*/
-            this.projects[uid][i] = await factory.createInstance(pProject);
-            pProject.bus.register(this.projects[uid][i]);
+            factory.compileListeners();
+
+            test = pProject.engine.getEngineDB().getRawDB()._s.prepareForPersist(factory, InspectorFactory.TYPE);
+            // save inspector data/version
+            await pProject.getProjectDB().getCollectionOf(InspectorFactory.TYPE.getType()).asyncAddEntry(factory.getUID(), factory);
+
+
+            try{
+                ins = await factory.createInstance(pProject);
+                this.projects[uid][i] = ins;
+                await pProject.attachInspector(ins);
+            }catch (err){
+                // if an error happens, remove InspectorFactory from DB and log it.
+                this.engine.log("Inspector instance cannot be created : "+err.message, pProject, err.code);
+                Logger.error(err.message);
+                try{
+                    await pProject.getProjectDB().getCollectionOf(InspectorFactory.TYPE.getType()).asyncRemoveEntry(factory);
+                }catch(err2){
+                    this.engine.log("InspectorFactory cannot be removed after instance creating failed : "+err2.message, pProject, err2.code);
+                    Logger.error(err2.message);
+                }
+            }
         }
 
         return true;
@@ -319,23 +342,36 @@ export default class InspectorManager
     async restoreInspectorsFor( pProject:DexcaliburProject):Promise<boolean>{
         const uid:string = pProject.getUID();
         let factory:InspectorFactory;
+        let factories:InspectorFactory[];
 
-        if(this.projects[uid] == null){
-            this.projects[uid] = {};
-        }
+        console.log("RESTORE INSPECTORS ?...");
+
+        if(this.projects[uid] == null) this.projects[uid] = {};
 
         const inspNames = Object.keys(pProject.inspectors);
 
-        for(let i=0; i<inspNames.length; i++){
-            factory = (this.locals[inspNames[i]] as any);
-            if(factory != null){
-                this.projects[uid][inspNames[i]] = await factory.restore(pProject);
-                pProject.bus.register(this.projects[uid][inspNames[i]]);
+        // read InspectorPlugin of the project
+        factories = await pProject.getProjectDB()
+                                    .getCollectionOf(InspectorFactory.TYPE.getType()).getAsList();
+
+        // foreach retrieve Inspector state and restore it.
+        for(let i=0; i<factories.length; i++){
+
+            try{
+                if(factories[i] != null){
+                    // retrieve Inspector state from DB for each, and restore Inspector instance
+                    this.projects[uid][inspNames[i]] = await factories[i].restore(pProject);
+                    // trigger event when Inspector is restored.
+                    pProject.bus.register(this.projects[uid][inspNames[i]]);
+                }
+            }catch(err){
+                this.engine.log("State of inspector ["+factories[i].getUID()+"] cannot be restored. ", pProject, err.code);
+                console.log(err.message,err.stack);
             }
+
         }
 
-
-        pProject.restore();
+        pProject.restored();
 
         return true;
     }
@@ -380,10 +416,16 @@ export default class InspectorManager
             // cannot deployed not initiliazed inspectors
             return false;
         }
+        Logger.info("[INSPECTOR MANAGER] Project["+uid+"], Step["+pStep+"] Starting to deploy inspectors.");
 
-        for(let i in this.projects[uid]){
-            if(this.projects[uid][i].isStartAt(pStep)){
-                await this.projects[uid][i].deploy();
+        const projInsps = pProject.getInspectors();
+
+        for(let i in projInsps){
+            if(projInsps[i].isStartAt(pStep)){
+
+                pProject.getInspectors()
+
+                await projInsps[i].deploy();
                 insp += i+' ';
             }
         }

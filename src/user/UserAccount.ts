@@ -244,8 +244,8 @@ export class UserAccount implements IPersistent{
      *
      * @param pEngine
      */
-    listProjects( pEngine:IDexcaliburEngine):string[] {
-        const l = pEngine.listProjectsOf(this);
+    async listProjects( pEngine:IDexcaliburEngine):Promise<string[]> {
+        const l = await pEngine.listProjectsOf(this);
         let out:string[] = [];
         for(const i in l){
             out.push(i);

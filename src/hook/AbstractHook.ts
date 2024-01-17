@@ -8,8 +8,9 @@ import HookStrategy from "./HookStrategy.js";
 import DexcaliburProject from "../DexcaliburProject.js";
 import {CoreDebug} from "../core/CoreDebug.js";
 import {HookVariableMap, TargetLanguage} from "./common.js";
+import * as Log from "../Logger.js";
 
-
+const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
 export enum HOOK_FRAGMENT_POS {
     BEFORE = 'before',
@@ -151,7 +152,8 @@ export abstract class AbstractHook {
 
     setLoadKeyPoint(pKP:KeyPoint) {
 
-        console.log("Abstract Hook > setLoadKeyPoint > ",pKP);
+        Logger.debug("Abstract Hook > setLoadKeyPoint > ");
+        Logger.debugRAW(pKP)
         this._loadkp = pKP;
     }
 
