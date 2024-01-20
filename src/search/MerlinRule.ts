@@ -78,8 +78,6 @@ export class MerlinRule extends MerlinSearchAPI implements MerlinPrimitive {
 
     private oper:Operation[] = [];
 
-
-
     protected _sinks:MerlinRule[] = [];
     protected _sources:MerlinRule[] = [];
     protected _steps:MerlinRule[] = [];

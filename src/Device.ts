@@ -716,16 +716,18 @@ export class Device implements INode
      * @param {String} pRemotePath 
      * @method
      */
-    pullTemp(pRemotePath:string):string{
+    pullTemp(pRemotePath:string, pOptions:any = {}):string{
         if(this.bridge == null){
             throw new Error("[DEVICE] Bridge is not ready");
         }
+
         const path:string = _path_.join(
             DexcaliburWorkspace.getInstance().getTempFolderLocation(),
             Utils.randString( 16, Utils.ALPHANUM)+'.remote.apk'
         );
 
         this.bridge.pull( pRemotePath, path);
+
 
         return path;
     }

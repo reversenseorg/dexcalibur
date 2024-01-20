@@ -393,6 +393,9 @@ export class GenericScanner extends AssuranceScanner {
             this._searchContext = new MerlinSearchAPI(pContext.getSearchEngine().getDatabase());
         }
 
+        if(this.project == null){
+            this.project = pContext
+        }
         if(this.reports.length==0){
             await this._firstScan( this.project, pOptions);
         }else{

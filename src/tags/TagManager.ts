@@ -172,7 +172,6 @@ export class TagManager {
         let vTag:Tag;
         for(let i=0; i<tags.length; i++){
             vTag = tags[i];
-            console.log(vTag)
             if(vTag.category != null){
 
                 // fixing broken relationship

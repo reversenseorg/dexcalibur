@@ -788,5 +788,9 @@ export default class DeviceManager extends ValidationCapable
     getEnrollStatus():StatusMessage{
         return this.status;
     }
+
+    acquire(pDevice:Device, pOptions:any){
+        pDevice.getInstalledApp()
+    }
 }
 

@@ -25,6 +25,7 @@ import ApkHelper from "./ApkHelper.js";
 import Util from "./Utils.js";
 import {AndroidResource, AndroidResourceType} from "./android/AndroidResource.js";
 import {Nullable} from "./core/IStringIndex.js";
+import {AndroidPackageAnalyzer} from "./android/analyzer/AndroidPackageAnalyzer.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -56,14 +57,24 @@ export default class AndroidAppAnalyzer implements IAppAnalyzer
 
 	state:AnalyzerState = null;
 
+	/**
+	 * Configuration for this analyzer and its nested analyzers
+	 *
+	 * @private
+	 */
+	private _cfg:any  = {};
+
+	private _pkgAnalyzer:Nullable<AndroidPackageAnalyzer> = null;
+
 	private _missingImpl:{ [implFqcn:string] :AndroidComponent } = {};
 
 	private _huntingImpl = false;
 
-    constructor(context:DexcaliburProject){
+    constructor(context:DexcaliburProject, pOptions:any = {} ){
         this.context = context;
 		this._registerListeners();
 		this._initRes();
+		this._cfg = pOptions;
 	}
 
 	private _initRes(){
@@ -259,6 +270,8 @@ export default class AndroidAppAnalyzer implements IAppAnalyzer
 	 *
 	 */
 	async prepareFullScan():Promise<boolean>{
+
+
 
 		const success:boolean = await this.importManifest(_path_.join(this.context.getWorkspace().getApkDir(),"AndroidManifest.xml"));
 

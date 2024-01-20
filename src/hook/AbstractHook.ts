@@ -460,19 +460,19 @@ export abstract class AbstractHook {
         o.edited = this.edited;
 
         o._after = []
-        if(this._after.length > 0){
+        if(this._after!=null && this._after.length > 0){
             this._after.map( (x:HookTemplateFragment) => {
                 o._after.push( x.toJsonObject());
             })
         }
         o._before = []
-        if(this._before.length > 0){
+        if(this._before!=null && this._before.length > 0){
             this._before.map( (x:HookTemplateFragment) => {
                 o._before.push( x.toJsonObject());
             })
         }
         o._replace = []
-        if(this._replace.length > 0){
+        if(this._replace!=null && this._replace.length > 0){
             this._replace.map( (x:HookTemplateFragment) => {
                 o._replace.push( x.toJsonObject());
             })

@@ -730,6 +730,56 @@ DEVICE_WEB_API.addPublicRoute(
         }
     });
 
+
+
+DEVICE_WEB_API.addPublicRoute(
+    '/acquire',
+    {
+        'post': (req:DelegateRequest, res:DelegateResponse):any => {
+            const dm = DeviceManager.getInstance();
+            let dev:Device = null, success = false, app:AppPackage = null;
+            const $:WebServer = req.dxc.$;
+
+
+            try{
+                dev =dm.getDevice(req.body['uid']);
+                dev.updateInstalledApp();
+
+                if(dev == null) throw new Error("Unknown device");
+                if(!dev.isConnected()) throw new Error("Target device is offline");
+                if(req.body['opts'] == null) throw new Error("Acquisition options are not specified");
+
+
+                if(req.body['opts'].type=="single"){
+                    dm.acquire(dev, {
+                        type: "single"
+                    });
+                }else{
+                    dm.acquire(dev, {
+                        type: "all"
+                    });
+                }
+
+
+                if(req.body['path']!=null) {
+                    success = dev.pullPackage(req.body['package'], req.body['path']);
+                    if(success)
+                        $.sendSuccess( res, { });
+                    else
+                        $.sendError( res, 'Package not found or invalid destination path');
+                }else{
+                    app = dev.getApplicationByID(req.body['package']);
+                    if(app==null) throw new Error("Package not found");
+                    $.sendSuccess( res, { tmp: dev.pullTemp(app.packagePath) });
+                }
+
+            }catch(err){
+                Logger.error("[API][DEVICE] Pull app from device : "+err.message+"\n"+err.stack);
+                $.sendError( res, err.message);
+            }
+        }
+    });
+
 /**
  * Create device endpoints
  *

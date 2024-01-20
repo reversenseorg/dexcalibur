@@ -645,7 +645,7 @@ export default class WebServer
         this.initStaticRoutes(pOptionsMW);
 
         // Inspector frontController
-        this.app.route('/api/inspectors/:inspectorID')
+        /*this.app.route('/api/inspectors/:inspectorID')
             .get(function (req:DelegateRequest, res:DelegateResponse):any {
                 let insp:Inspector = InspectorManager.getInstance().getEnabledInspector( $.project, req.params.inspectorID);
 
@@ -666,7 +666,7 @@ export default class WebServer
                 }
 
                 insp.performPost(req, res);
-            })
+            })*/
 
 
         // API routes

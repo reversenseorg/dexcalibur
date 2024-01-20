@@ -237,7 +237,7 @@ export default class Platform
      * @return {IAppAnalyzer} Instance of application analyzer
      * @method
      */
-    async newAppAnalyzer(pProject:DexcaliburProject):Promise<IAppAnalyzer> {
+    async newAppAnalyzer(pProject:DexcaliburProject, pOptions:any = {}):Promise<IAppAnalyzer> {
 
         let appAnalyzer:IAppAnalyzer;
         let stateName:string;
@@ -246,11 +246,11 @@ export default class Platform
         Logger.info("PLATFORM > newAppAnalyzer > ",this.os);
         switch(this.os){
             case OperatingSystem.ANDROID:
-                appAnalyzer = new AndroidAppAnalyzer(pProject);
+                appAnalyzer = new AndroidAppAnalyzer(pProject,pOptions);
                 stateName = 'android-app';
                 break;
             case OperatingSystem.IOS:
-                appAnalyzer = new IosAppAnalyzer(pProject);
+                appAnalyzer = new IosAppAnalyzer(pProject,pOptions);
                 stateName = 'ios-app';
                 break;
             default:

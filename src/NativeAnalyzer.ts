@@ -18,7 +18,7 @@ import AndroidNativeAnalyzerProfile from "./android/analyzer/AndroidNativeAnalyz
 import IosNativeAnalyzerProfile from "./ios/analyzer/IosNativeAnalyzerProfile.js";
 import {NativeAnalyzerException} from "./errors/NativeAnalyzerException.js";
 import {AnalyzerState} from "./AnalyzerState.js";
-import {IDatabase, IDbCollection} from "@dexcalibur/dexcalibur-orm";
+import {IDatabase, IDbCollection, Tag} from "@dexcalibur/dexcalibur-orm";
 import {ProjectDatabase} from "./database/ProjectDatabase.js";
 import {Nullable} from "./core/IStringIndex.js";
 
@@ -87,6 +87,7 @@ export default class NativeAnalyzer {
     _wf:Workflow;
 
     waitQueue:ModelFile[] = [];
+    private fmt_tags: { [fmt:string]: Tag } = {};
     /**
      *
      * @param {string} pEncoding
@@ -190,11 +191,17 @@ export default class NativeAnalyzer {
 
         if(pPlatform.isAndroid() || pPlatform.is(['linux','tizen'])){
             this.fmt = ['ELF'];
+            this.fmt_tags = {
+                ELF: this.context.getTagManager().getTag("data.type.ELF")
+            };
             this.profile = PROFILES.ANDROID_LIB;
             this.abi = pABI;
         }
         else if(pPlatform.isIOS()){
             this.fmt = ['Mach-O'];
+            this.fmt_tags = {
+                'Mach-O': this.context.getTagManager().getTag("data.type.Mach-O")
+            };
             this.profile = PROFILES.IOS_LIB;
             this.abi = pABI;
         }
@@ -261,23 +268,28 @@ export default class NativeAnalyzer {
         let idx:IDbCollection =  await this.context.getDataAnalyzer().getIndex(pScope);
 
 
+        const supported_fmt = Object.keys(this.fmt_tags);
+        const targetable_tag = this.context.getTagManager().getTag("analyzer.native.targetable");
         const profile = pProfile!=null ? pProfile : this.profile;
 
         const targetable:any = {};
 
+
+
+        Logger.info(`[NATIVE ANALYSIS] Supported files : ${supported_fmt}`)
         // gather targetable file
         idx.map( (pOffset:number, pFile:ModelFile) => {
 
-            Logger.debug(`[NATIVE ANALYSIS] Scanning file from (scope:${pScope.getName()}) : ${pFile.getRelativePath()}`);
+            Logger.info(`[NATIVE ANALYSIS] Scanning file from (scope:${pScope.getName()})[type=${pFile.type}] : ${pFile.getRelativePath()}`);
 
-            if(this.fmt.indexOf(pFile.type)>-1){
+            if(supported_fmt.indexOf(pFile.type)>-1){
 
                 const fn:string = pFile.getName();
 
+                //pFile.addTag()
                 // ABI detected into file
                 // File is receivable if ABI is determined by file path if the scope is APK
-                //
-                if(this.profile.name == PROFILES.ANDROID_LIB.name){
+                //if(this.profile.name == PROFILES.ANDROID_LIB.name){
                     if(pScope.getInternalName()== "PKG"){
                         Logger.info("[NATIVE] ",pFile.getRelativePath()," ",JSON.stringify(this.abi)," ",this.profile.isAbiCompliant( pFile, this.abi)+"");
                         const o:number = (this.profile as AndroidNativeAnalyzerProfile).isAbiCompliant( pFile, this.abi);
@@ -287,6 +299,8 @@ export default class NativeAnalyzer {
                                 targetable[fn] = [];
                             }
                             targetable[fn].push({ pref:o, file:pFile})
+
+                            pFile.addTag(this.fmt_tags[pFile.type]);
                         }
                     }else{
                         // by default, if ABI compliance check cannot be
@@ -301,6 +315,7 @@ export default class NativeAnalyzer {
 
                         targetable[fn].push({ pref:targetable[fn].length, file:pFile});
 
+                        pFile.addTag(this.fmt_tags[pFile.type]);
 
 
                         /* if(pOptions==null || !pOptions.skipAuto){
@@ -309,9 +324,11 @@ export default class NativeAnalyzer {
                             Logger.info("[ANALYZER] Native analysis of "+pFile.getRelativePath()+" has been skipped by configuration (#1)");
                         }*/
                     }
-                }
+                //}
             }
         });
+
+        console.log("TARGETABLE > ",targetable);
 
 
         // analyze gathered files
@@ -321,8 +338,11 @@ export default class NativeAnalyzer {
             if(prefered != null){
 
                 const file:ModelFile = prefered.file;
-
+                file.addTag(targetable_tag);
                 this.targetable[pScope.getName()].push(file)
+
+                // save file
+                await this.context.getProjectDB().save(file);
 
                 if(pOptions==null || !pOptions.skipAuto){
                     // default analysis
@@ -347,6 +367,7 @@ export default class NativeAnalyzer {
             }
 
         }
+
 
         return true;
     }

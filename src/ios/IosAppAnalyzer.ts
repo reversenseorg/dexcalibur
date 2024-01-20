@@ -10,7 +10,7 @@ export default class IosAppAnalyzer implements IAppAnalyzer
     state:AnalyzerState = null;
     package:string;
 
-    constructor(pContext:DexcaliburProject) {
+    constructor(pContext:DexcaliburProject, pOptions:any = {}) {
         this.ctx = pContext;
     }
 

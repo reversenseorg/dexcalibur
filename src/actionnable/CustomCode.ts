@@ -52,7 +52,12 @@ export class CustomCode {
      * Chainable
      */
     wakeUp():CustomCode {
-        this.createFunction(['pCtx','pEvent']);
+        try{
+            this.createFunction(['pCtx','pEvent']);
+        }catch(err){
+            console.log("Function cannot be restored");
+        }
+
         return this;
     }
 

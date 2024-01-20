@@ -1,6 +1,8 @@
 
 import {AnalyzerState} from "../AnalyzerState.js";
 
+
+
 export interface IAppAnalyzer {
     prepareFullScan():Promise<boolean>;
 

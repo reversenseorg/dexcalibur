@@ -89,10 +89,19 @@ DataSourceHelper.addSource("FILE", new DataSource("fs",{
 DataSourceHelper.addAsyncSource("PROJECT_DB", new DataSource("PROJECT_DB", {
     single: async function(pContext:any, pNodeType:NodeType, pUID:any):Promise<any>{
 
+        const filter:any = {};
+        const pk  = pNodeType.getPrimaryKey();
+
+        if(pk.getName()!="_uid"){
+            filter[pk.getName()] = pUID;
+        }else{
+            filter._uid = pUID;
+        }
+
         return await ((pContext as DexcaliburProject)
                 .getProjectDB()
                 .getCollectionOf(pNodeType.getType()) as MongodbDbCollection)
-                .asyncGetEntry({ _uid: pUID});
+                .asyncGetEntry(filter);
     }
 }));
 DataSourceHelper.addAsyncSource("ENGINE_DB", new DataSource("ENGINE_DB",{
@@ -452,8 +461,10 @@ JavaMethodHook.TYPE.updateProperties([
    // (new NodeProperty("_hookset")).single(BookmarkType.TYPE),
     (new NodeProperty("_code")).type(DbDataType.STRING).def(null),
     (new NodeProperty("_time")).type(DbDataType.STRING).def(null),
+
     (new NodeProperty("_loadkp")).single(KeyPoint.TYPE),
     (new NodeProperty("_unloadkp")).single(KeyPoint.TYPE),
+
     (new NodeProperty("_after"))
        // .multiple(HookTemplateFragment.TYPE)
         .type(DbDataType.STRING)

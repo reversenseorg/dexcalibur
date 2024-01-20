@@ -1,4 +1,5 @@
 import {CoreDebug} from "./core/CoreDebug.js";
+import {AndroidPackageAnalyzerConfig} from "./android/analyzer/AndroidPackageAnalyzerConfig.js";
 
 export enum FileAnalysisType {
     MAGIC='magic',
@@ -11,6 +12,7 @@ export enum NativeAnalysisMode {
     MANUAL='manual'
 }
 
+export type PackageAnalyzerOptions = AndroidPackageAnalyzerConfig | any;
 /**
  *
  */
@@ -26,7 +28,8 @@ export class AnalyzerConfiguration {
         abi: null,
         arch: 'arm',
         faMode: FileAnalysisType.DEEP,
-        naMode: NativeAnalysisMode.AUTO
+        naMode: NativeAnalysisMode.AUTO,
+        pkg: {}
     };
 
     constructor(pConfig:any = null) {
@@ -37,6 +40,13 @@ export class AnalyzerConfiguration {
         }
     }
 
+    setPkgAnalyzerConfig(pConfig:any):any {
+        this.ppts.pkg = pConfig;
+    }
+
+    getPkgAnalyzerConfig():any {
+        return this.ppts.pkg;
+    }
     /**
      * To check if ABI to analyze must be the same than target device
      * TODO : rename
@@ -83,6 +93,7 @@ export class AnalyzerConfiguration {
         }
     }
 
+
     isAutoNativeAnalysis(){
         return (this.ppts.naMode == NativeAnalysisMode.AUTO);
     }
@@ -109,5 +120,9 @@ export class AnalyzerConfiguration {
         for(let i in this.ppts) o[i] = this.ppts[i];
         CoreDebug.checkJsonSerialize(o,"AnalyzerConfiguration");
         return o;
+    }
+
+    addPkgAnalyzerOptions(pOptions: PackageAnalyzerOptions) {
+        this.ppts.pkg = pOptions;
     }
 }

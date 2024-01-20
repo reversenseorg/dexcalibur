@@ -332,8 +332,9 @@ export default class HookWorkspace {
             interruptor: false,
             fridaCompile: false
         };
-        const pkgFile = _path_.join(this._base,'package.json');
-        if(!_fs_.existsSync(pkgFile)){
+        const pkgFile = _path_.join(this._base,'package-lock.json');
+
+        if(!_fs_.existsSync(pkgFile)) {
             return reqs;
         }
 

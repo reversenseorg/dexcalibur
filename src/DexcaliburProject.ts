@@ -39,7 +39,7 @@ import {Settings} from "./Settings.js";
 import {UserAccount} from "./user/UserAccount.js";
 import {IAuditableAccess} from "./user/acl/IAuditableAccess.js";
 import {ProjectAccessControl} from "./user/acl/rbac/ProjectAccessContol.js";
-import {AnalyzerConfiguration, FileAnalysisType} from "./AnalyzerConfiguration.js";
+import {AnalyzerConfiguration, FileAnalysisType, PackageAnalyzerOptions} from "./AnalyzerConfiguration.js";
 import SqliteConnector from "../connectors/sqlite/adapter.js";
 import AccessControl from "./user/acl/AccessControl.js";
 import {AccessZone} from "./user/acl/Zones.js";
@@ -87,6 +87,11 @@ import InspectorFactory from "./InspectorFactory.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
+
+
+export interface DexcaliburProjectOptions {
+    pkgAnalyzer?: PackageAnalyzerOptions
+}
 
 /**
  * To represent an instance of a running application.
@@ -857,9 +862,10 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
      *
      * @method
      */
-    async create():Promise<void> {
+    async create( pOptions:DexcaliburProjectOptions = {}):Promise<void> {
         this.meta.creationDate = (new Date()).getTime();
         this.createBus();
+        this.analCfg.addPkgAnalyzerOptions(pOptions.pkgAnalyzer);
     }
 
     /**
@@ -988,6 +994,7 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
             this.kpmgr = await this.platform.newKeyPointManager(this);
             this.appAnalyzer = await this.platform.newAppAnalyzer(this);
 
+
             /*
             if(this.platform.isAndroid()){
 
@@ -1022,8 +1029,6 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
             // default analyzer is Android analyzer
             this.kpmgr = await KeyPointManager.newForAndroid(this);
             this.appAnalyzer = new AndroidAppAnalyzer(this);
-
-
             this.appAnalyzer.restoreState(await this.getProjectDB().getAnalyzerState('android-app'));
         }
 
@@ -1516,6 +1521,8 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
 
         try{
            project = await pEngine.getEngineDB().getProject(pProjectUID);
+
+           console.log(project);
            project.engineVersion = pEngine.version;
            project.dirty();
            console.log(project);
@@ -1523,6 +1530,7 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
             //console.log("PROJECT FOUND > ",(project as any)._id);
             //console.log("PROJECT VERSION > ",project.engineVersion);
         }catch (err){
+            console.log(err);
             if(err.code==EngineDatabaseException.CODE.UNKNOWN_PROJECT){
                 // project is missing inside DB
                 project = new DexcaliburProject({
@@ -2160,7 +2168,7 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
 
             this.analyze.restoreNativeAnalyzer();
 
-            Logger.info("[ANALYZER] Scan every native library and executable contained into package");
+            Logger.info("[ANALYZER] Scan every native library and executable contained into package. [scope="+pkgScope.getInternalName()+"][autoAnalysis="+this.analCfg.isAutoNativeAnalysis()+"]");
             //this.analyze.doNativeAnalysis(pkgScope, null, { skipAuto: this.analCfg.isAutoNativeAnalysis() });
 
 
@@ -2169,6 +2177,8 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
                 null,
                 { skipAuto: this.analCfg.isAutoNativeAnalysis() })){
 
+
+                Logger.info("[ANALYZER] Load native hook");
                 // native hook are loaded only if depending files have been loaded
                 await this.hook.loadNativeHook();
             }
@@ -2498,6 +2508,10 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
      */
     restored(){
         this._dirty = false;
+    }
+
+    static sanitizeUID(pUnsafe:string):string {
+        return pUnsafe.replaceAll(".","_");
     }
 }
 DexcaliburProject.TYPE.builder(DexcaliburProject);

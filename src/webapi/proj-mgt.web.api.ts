@@ -96,8 +96,11 @@ PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
                     }
                 }
 
+                let projectUID:string;
                 if(req.body['name'] == null){
                     throw DexcaliburProjectException.INVALID_NAME();
+                }else{
+                    projectUID = DexcaliburProject.sanitizeUID(req.body['name']);
                 }
 
 
@@ -110,7 +113,7 @@ PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
                 }
 
                 // init workflow
-                wf = $.context.newWorkflow(req.body['name']).changeOwner(user);
+                wf = $.context.newWorkflow(projectUID).changeOwner(user);
 
                 // TODO : retrieve platform from special value of req.body['platform'] : target, from target device, target API version from manifest , ...
 
@@ -125,7 +128,19 @@ PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
                         wf.pushStatus(new StatusMessage(5, "Get target platform"));
                         platform = device.getPlatform();
                         wf.pushStatus(new StatusMessage(10, "Pull application from device"));
-                        path = device.pullTemp( req.body['path'] );
+                        // Merge Splitted APK (MSA)
+                        if(req.body['cfg'].msa_auto===true){
+                            if(device.isAndroid()){
+                                path = device.pullTemp( req.body['path'], { merge:true });
+                                // extraData = device.pullExtraData(req.body['path'], { merge:true });
+                            }else {
+                                Logger.error("[PROJECT] Merge Splitted APK is only supported for Android-based devices.'")
+                                path = device.pullTemp( req.body['path']  );
+                            }
+                        }else{
+                            path = device.pullTemp( req.body['path'] );
+                        }
+
                         break;
                     case 'download':
                         if(PLATFORM_MODE.indexOf(req.body['platform'])==-1){
@@ -201,13 +216,18 @@ PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
                 }
 
                 Logger.info('[PROJECT][STEP 2] Filetype : '+filetype+', File : '+path);
-                project = await $.context.newProject(req.body['name'], path, filetype, device,  user, platform);
+                project = await $.context.newProject(projectUID, path, filetype, device,  user, platform);
 
                 if(project == null){
                     throw DexcaliburProjectException.STEP2_FAILURE();
                 }
 
                 project.setWorkflow(wf);
+
+                //if(req.body['msa_auto']){
+
+                //}
+                    // Detect, pull and merge splitted APK
 
                 // to set connector
                 Logger.info('[PROJECT][STEP 3] Setting connectors ...');

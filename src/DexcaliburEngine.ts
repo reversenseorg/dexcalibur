@@ -1257,7 +1257,7 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
      */
     async newProject( pUID:string, pAppPath:string, pFileType:string,
                       pDevice:any=null, pUserAccount:UserAccount = null,
-                      pPlatform:Nullable<Platform> = null):Promise<DexcaliburProject>{
+                      pPlatform:Nullable<Platform> = null, pAnalyzersOpts:any = {}):Promise<DexcaliburProject>{
 
         let project:DexcaliburProject = null;
         /**

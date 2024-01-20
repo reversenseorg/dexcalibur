@@ -388,9 +388,9 @@ export default new InspectorFactory({
             source: `
                 //Logger.info("[INSPECTOR][TASK] Trying to restore previous data of DynLoaderInspector ... ");
                 console.log('Search class loader');
-                const hm = ctx.getHookManager();
+                const hm = pCtx.getHookManager();
                 const startName = "Custom_ClassLoaders";
-                const selfHS = ctx.getInspector("DynamicLoader").getHookSet();
+                const selfHS = pCtx.getInspector("DynamicLoader").getHookSet();
                 let strat:HookStrategy = selfHS.getStrategyByName(startName);
 
                 if(strat == null){
@@ -429,7 +429,7 @@ export default new InspectorFactory({
                     selfHS.addStrategy(strat);
 
                     (async ()=>{
-                        await strat.run(ctx, false, true);
+                        await strat.run(pCtx, false, true);
                     })
                 }`,
             lang: "ts"

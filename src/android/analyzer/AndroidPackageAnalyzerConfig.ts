@@ -1,3 +1,9 @@
+
+export interface AndroidPackageAnalyzerOptions {
+    ssa_auto?:boolean;
+    msa_auto?:boolean;
+}
+
 /**
  * Represent configuration Android package analyzer
  *
@@ -15,7 +21,7 @@ export class AndroidPackageAnalyzerConfig {
      */
     msa_auto = false;
 
-    constructor(pSettings:any) {
+    constructor(pSettings:AndroidPackageAnalyzerOptions) {
         for(const i in pSettings) this[i] = pSettings[i];
     }
 

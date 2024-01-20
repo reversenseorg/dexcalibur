@@ -151,7 +151,8 @@ export default class InspectorFactory implements INode
                     }else
                         codes[i] = null;
                 }
-                console.log("CustomCode::eventListenerSources::WAKE_UP ", codes);
+                Logger.debug("CustomCode::eventListenerSources::WAKE_UP ");
+                Logger.debugRAW( codes);
                 return codes;
             })
             .def({}),
@@ -172,7 +173,8 @@ export default class InspectorFactory implements INode
                         codes[i] = null;
                 }
 
-                console.log("CustomCode::eventListenersCode::WAKE_UP ", codes);
+                Logger.debug("CustomCode::eventListenersCode::WAKE_UP ");
+                Logger.debugRAW( codes);
                 return codes;
             }),
         (new NodeProperty("require")).type(DbDataType.STRING).def([])

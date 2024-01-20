@@ -673,14 +673,18 @@ export class DataAnalyzer implements IAnalyzerUnit
         //TODO
     }
     /**
+     * To get a list of all files into the specified DataScope
      *
-     * @param pScope
+     * @param {DataScope|string} pScope DataScope instance or internal name of the scope
+     * @return {Promise<ModelFile[]>} Promise. A list of file
+     * @async
+     * @method
      */
     async getFilesFromScope(pScope:DataScope|string):Promise<ModelFile[]>{
 
         const coll = this._pdb.getCollectionOf(ModelFile.TYPE.getType());
 
-        return await coll.search({ scope:(typeof pScope==='string'? pScope : pScope.getUID()) });
+        return await coll.search({ scope:(typeof pScope==='string'? pScope : pScope.getInternalName()) });
     }
 
 

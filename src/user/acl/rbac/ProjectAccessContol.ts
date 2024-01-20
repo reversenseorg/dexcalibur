@@ -98,12 +98,15 @@ export class ProjectAccessControl extends DelegateAccessControl {
         switch (pAttr.name) {
             case 'owner':
                 // verify project owner is the current user
+
+                console.log("owner",pAccount.getUID(),pProject);
                 if(pAccount.getUID() !== pProject.getAccessAttribute(pAttr)){
                     throw new AccessException("[PROJECT] "+pMessage+" The project is not owned by the user : rejected ", AccesErrCode.VIOLATION);
                 }
                 break;
             case 'tester':
                 let authorizedUIDs = pProject.getAccessAttribute(pAttr) as string;
+                console.log("tester",pAttr,pAccount.getUID(),pProject.getAccessAttribute(pAttr))
                 if(authorizedUIDs==null){
                     authorizedUIDs = pProject.getAccessAttribute(ProjectAccessControl.attr.OWNER);
                 }

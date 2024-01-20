@@ -1982,7 +1982,6 @@ export class HookManager
             hook = this.jhooks[i];
 
             kp = hook[fn].apply(hook, []);
-            console.log("jhooks > kp > " + fn, kp);
             if (kp != null && kp.getUID() == uid)
                 hk.push(hook);
 
@@ -1992,7 +1991,6 @@ export class HookManager
         for(let i=0; i<this.nhooks.length; i++){
             hook = this.nhooks[i];
             kp = hook[fn].apply(hook, []);
-            console.log("nhooks > kp > "+fn, kp);
             if(kp!=null && kp.getUID() == uid)
                 hk.push(hook);
         }

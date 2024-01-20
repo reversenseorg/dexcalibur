@@ -567,7 +567,16 @@ export default class ModelFile implements INode,IPersistent {
         return o;
     }
 
+    /**
+     * To tag a file
+     *
+     * Quietly ignore missing/null tag
+     *
+     * @param vTag
+     */
     addTag(vTag:Tag){
+        if(vTag==null) return;
+
         const uuid = vTag.getUUID();
         if(this.tags.indexOf(uuid)==-1)
             this.tags.push(uuid);

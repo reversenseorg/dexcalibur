@@ -6,6 +6,7 @@ export function newTagPresets(){
     const DATA_HASH = new TagCategory({ name: "data.hash" });
     const DATA_LEN = new TagCategory({ name: "data.len" });
     const DATA_CHARSET = new TagCategory({ name: "data.charset" });
+    const DATA_FMT_EXEC = new TagCategory({ name: "data.fmt.exec" });
     const CODE_NATIVE = new TagCategory({ name: "code.native" });
     const CODE_GLOBAL = new TagCategory({ name: "code.global" });
     const CODE_DALVIK = new TagCategory({ name: "code.dalvik" });
@@ -20,6 +21,11 @@ export function newTagPresets(){
     const NETWORK_PROTOCOL = new TagCategory({ name: "network.protocol" });
     const NETWORK_HOST = new TagCategory({ name: "network.host" });
     const KEYPOINT_DEF = new TagCategory({ name: "keypoint.defaults" });
+    const ANAL_NATIVE = new TagCategory({ name: "analyzer.native" });
+
+    const ANAL_NATIVE_TAGS = [
+        new Tag({ name:"targetable" })
+    ];
 
     const KEYPOINT_DEF_TAGS = [
         new Tag({ name:"loadOn" }),
@@ -41,6 +47,8 @@ export function newTagPresets(){
 
     const DATA_TYPE_TAGS = [
         new Tag({ name:"string" }),
+        new Tag({ name:"ELF" }),
+        new Tag({ name:"Mach-O" }),
     ];
 
     const CODE_GLOBAL_TAGS = [
@@ -167,7 +175,7 @@ export function newTagPresets(){
     NETWORK_HOST_TAGS.map( x => { NETWORK_HOST.addTag(x); });
     NETWORK_PROTOCOL_TAGS.map( x => { NETWORK_PROTOCOL.addTag(x); });
     KEYPOINT_DEF_TAGS.map(x => {KEYPOINT_DEF.addTag(x)});
-
+    ANAL_NATIVE_TAGS.map(x => {ANAL_NATIVE.addTag(x)});
     return [
         GLOBAL,
         DISCOVER,
@@ -189,7 +197,9 @@ export function newTagPresets(){
         NETWORK_HOST,
         NETWORK_PROTOCOL,
 
-        KEYPOINT_DEF
+        KEYPOINT_DEF,
+
+        ANAL_NATIVE
     ];
 }
 export const TAG_CATEGORY_PRESETS = newTagPresets();
