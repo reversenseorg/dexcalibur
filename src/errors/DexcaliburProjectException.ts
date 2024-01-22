@@ -26,6 +26,7 @@ export class DexcaliburProjectException extends MonitoredError {
     static MISSING_CONFIG_FILE = (pProj:string)=>{ return new DexcaliburProjectException("The project [uid="+pProj+"] has not configuration file.", ErrorCode.PROJECT + 114) };
     static PROJECT_NOT_READY = (pProj:string)=>{ return new DexcaliburProjectException("The project [uid="+pProj+"] is not ready. Open it first.", ErrorCode.PROJECT + 115) };
     static PROJECT_DB_NOT_READY = (pProj:string)=>{ return new DexcaliburProjectException("The database from project [uid="+pProj+"] is not ready.", ErrorCode.PROJECT + 116) };
+    static INSPECTOR_NOT_FOUND = (pProj:string, pInsp:string)=>{ return new DexcaliburProjectException("Inspector [uid="+pInsp+"] not found in project [uid="+pProj+"] is not ready.", ErrorCode.PROJECT + 117) };
 
 
 

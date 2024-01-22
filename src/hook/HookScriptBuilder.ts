@@ -217,9 +217,10 @@ DXC.HOOK["${pLibraryName}"] = {
             // get hook loaded by this KP
             const hk = this._hm.getHookByLoadKeyPoint(vKP); // this._hm.getHookByKeyPoint( vKP);
 
+            console.log("getHookByLoadKeyPoint("+vKP.getUID()+")", hk);
             // skip keypoints without child
             if(hk.length == 0){
-                return ;
+                continue;
             }
 
             // generate code for each hook to load from this key point and concatenate it
@@ -375,38 +376,45 @@ Java.deoptimizeBoot();`
     async build(pOptions:ScriptBuilderOptions = {}):Promise<string>{
         let script = "";
 
-        //Logger.info("[HOOK SCRIPT BUILDER] Build : start ... \n");
+        Logger.info("[HOOK SCRIPT BUILDER] Build : start ... \n");
         const kpm:KeyPointManager  =  this._hm.getKeyPointManager();
         const topl_kps:KeyPoint[] = await kpm.getTopLevelKeyPoints();
+
+        console.log("Top KPs : ",topl_kps);
+
         const leaf_kps:KeyPoint[] = await kpm.getLeafKeyPoints();
         const req:any = await kpm.getGlobalRequirements();
         const deopt:DEOPT_TYPE = await  kpm.needDeoptimize();
-        //Logger.info("[HOOK SCRIPT BUILDER] Build : before _appendInternals: \n");
+        Logger.info("[HOOK SCRIPT BUILDER] Build : before _appendInternals: \n");
 
         script = this._appendInternals( script);
 
-        //Logger.info("[HOOK SCRIPT BUILDER] Build : _appendInternals: \n"+script);
+        Logger.info("[HOOK SCRIPT BUILDER] Build : _appendInternals: \n"+script);
+
         // append top level requirements
         if(req.length > 0){
             script = this._appendRequirements( script, req)+"\n";
-            //Logger.info("[HOOK SCRIPT BUILDER] Build : _appendRequirements: \n"+script);
+            Logger.info("[HOOK SCRIPT BUILDER] Build : _appendRequirements: \n"+script);
         }
 
         // detect if deoptimizing is required
         if((await kpm.getKeyPointByAttr({ name:'core.java.boot' })).hasNodes()){
             script = this._appendDeoptimize( script, deopt);
-            //Logger.info("[HOOK SCRIPT BUILDER] Build : _appendDeoptimize: \n"+script);
+            Logger.info("[HOOK SCRIPT BUILDER] Build : _appendDeoptimize: \n"+script);
         }
 
         pOptions.targetLanguage = this.target;
 
         // process top-level key point
         const tokens = await this.buildNestedScript(topl_kps, pOptions as ScriptWriterOptions);
+        console.log(tokens);
 
         topl_kps.map( (vKP:KeyPoint) => {
+
+            console.log(" KP >> ",vKP.enabled,vKP.getCodeCache(),vKP);
             if(vKP.getCodeCache() != null && vKP.enabled){
                 script += `\n// =======================\n// KeyPoint : ${vKP.getName()} \n// ======================= \n ${vKP.getCodeCache()}\n`;
-                //Logger.info("[HOOK SCRIPT BUILDER] Build : top KP : \n"+script);
+                Logger.info("[HOOK SCRIPT BUILDER] Build : top KP : \n"+script);
             }
         });
 

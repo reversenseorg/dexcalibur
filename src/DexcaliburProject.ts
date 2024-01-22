@@ -1157,7 +1157,11 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
      * @returns {Inspector} Inspector instance
      * @method
      */
-    getInspector( pName):Nullable<Inspector>{
+    getInspector( pName:string):Nullable<Inspector>{
+
+        if(this.inspectors[pName]==null){
+            throw DexcaliburProjectException.INSPECTOR_NOT_FOUND(this.getUID(), pName);
+        }
         return this.inspectors[pName];
     }
 

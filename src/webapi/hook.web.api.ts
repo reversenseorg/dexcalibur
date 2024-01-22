@@ -339,42 +339,9 @@ HOOK_WEB_API.addAuthenticatedRoute(
             let project:DexcaliburProject = null;
 
             try{
-                project = req.dxc.project;
-
-                // gather the list of fragment UID from the inspector
-                const insp = project.getInspector(req.query.uid);
-                if(insp==null) throw InspectorFactoryException.INSPECTOR_NOT_FOUND(req.query.uid);
-
-                const frags = [];
-                let matches:any = [];
-                insp.getHookSet().strats.map( (x:HookStrategy) => {
-                    if(x.before != null) frags.push(x.before.getUID());
-                    if(x.after != null) frags.push(x.after.getUID());
-                    if(x.replace != null) frags.push(x.replace.getUID());
-                })
-
-                // filter hooks by fragment UID
-                project.hook.getHooks().map( (h:AbstractHook)=>{
-                    const hf = [h.getBefore(),h.getAfter(),h.getReplace()];
-                    for(let j=0; j<3; j++){
-                        for(let i=0; i<hf[j].length; i++){
-                            if( frags.indexOf(hf[j][i].getUID())>-1){
-                                matches.push(h);
-                                return ;
-                            }
-                        }
-                    }
-                });
-
-                // deduplicate
-                const h = [];
-                matches = matches.filter( (vHook:AbstractHook)=>{
-                    if(h.indexOf(vHook.getGUID())==-1){
-                        h.push(vHook.getGUID());
-                        return true;
-                    }else
-                        return false;
-                })
+                let matches:AbstractHook[] = req.dxc.project.getHookManager().getHooksByInspector(
+                    req.dxc.project.getInspector(req.query.uid as string)
+                );
 
                 // serialize
                 const data = [];
@@ -395,8 +362,8 @@ HOOK_WEB_API.addAuthenticatedRoute(
                 $.sendSuccess( res, data);
 
             }catch(err){
-                Logger.error("[API][HOOK] Hook cannot be retrieved. Cause : " + err.message + "\n\t" + err.stack);
-                $.sendError(res, "Hook cannot be retrieved. Cause : " + err.message);
+                Logger.error("[API][HOOK] Hook cannot be retrieved by inspector. Cause : " + err.message + "\n\t" + err.stack);
+                $.sendError(res, "Hook cannot be retrieved by inspector. Cause : " + err.message);
             }
         }
     },{

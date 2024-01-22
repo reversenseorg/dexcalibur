@@ -474,7 +474,7 @@ JavaMethodHook.TYPE.updateProperties([
                 (x.self as JavaMethodHook).getAfter().map( (t:HookTemplateFragment) => { o.push(t.toJsonObject()) } );
                 return o;
             }else{
-                return null;
+                return [];
             }
         })
         .wakeUp( (x:NodePropertyState) => {
@@ -485,7 +485,7 @@ JavaMethodHook.TYPE.updateProperties([
                 } );
                 return o;
             }else{
-                return null;
+                return [];
             }
         }),
     (new NodeProperty("_before"))
@@ -497,7 +497,7 @@ JavaMethodHook.TYPE.updateProperties([
                 (x.self as JavaMethodHook).getBefore().map( (t:HookTemplateFragment) => { o.push(t.toJsonObject()) } );
                 return o;
             }else{
-                return null;
+                return [];
             }
         })
         .wakeUp( (x:NodePropertyState) => {
@@ -509,7 +509,7 @@ JavaMethodHook.TYPE.updateProperties([
                 } );
                 return o;
             }else{
-                return null;
+                return [];
             }
         }),
     (new NodeProperty("_replace"))
@@ -521,7 +521,7 @@ JavaMethodHook.TYPE.updateProperties([
                 (x.self as JavaMethodHook).getReplace().map( (t:HookTemplateFragment) => { o.push(t.toJsonObject()) } );
                 return o;
             }else{
-                return null;
+                return [];
             }
         })
         .wakeUp( (x:NodePropertyState) => {
@@ -533,7 +533,7 @@ JavaMethodHook.TYPE.updateProperties([
                 } );
                 return o;
             }else{
-                return null;
+                return [];
             }
         })
 ]).dataSource("PROJECT_DB").builder(JavaMethodHook);
@@ -558,7 +558,7 @@ SystemCallHook.TYPE.updateProperties([
                 (x.self as SystemCallHook).getAfter().map( (t:HookTemplateFragment) => { o.push(t.toJsonObject()) } );
                 return o;
             }else{
-                return null;
+                return [];
             }
         })
         .wakeUp( (x:NodePropertyState) => {
@@ -569,7 +569,7 @@ SystemCallHook.TYPE.updateProperties([
                 } );
                 return o;
             }else{
-                return null;
+                return [];
             }
         }),
     (new NodeProperty("_before"))
@@ -581,7 +581,7 @@ SystemCallHook.TYPE.updateProperties([
                 (x.self as SystemCallHook).getBefore().map( (t:HookTemplateFragment) => { o.push(t.toJsonObject()) } );
                 return o;
             }else{
-                return null;
+                return [];
             }
         })
         .wakeUp( (x:NodePropertyState) => {
@@ -593,7 +593,7 @@ SystemCallHook.TYPE.updateProperties([
                 } );
                 return o;
             }else{
-                return null;
+                return [];
             }
         }),
     (new NodeProperty("_replace"))
@@ -605,7 +605,7 @@ SystemCallHook.TYPE.updateProperties([
                 (x.self as SystemCallHook).getReplace().map( (t:HookTemplateFragment) => { o.push(t.toJsonObject()) } );
                 return o;
             }else{
-                return null;
+                return [];
             }
         })
         .wakeUp( (x:NodePropertyState) => {
@@ -617,7 +617,7 @@ SystemCallHook.TYPE.updateProperties([
                 } );
                 return o;
             }else{
-                return null;
+                return [];
             }
         })
 ]).dataSource("PROJECT_DB").builder(SystemCallHook);
@@ -641,7 +641,7 @@ NativeFunctionHook.TYPE.updateProperties([
                 (x.self as JavaMethodHook).getAfter().map( (t:HookTemplateFragment) => { o.push(t.toJsonObject()) } );
                 return o;
             }else{
-                return null;
+                return [];
             }
         })
         .wakeUp( (x:NodePropertyState) => {
@@ -653,7 +653,7 @@ NativeFunctionHook.TYPE.updateProperties([
                 } );
                 return o;
             }else{
-                return null;
+                return [];
             }
         }),
     (new NodeProperty("_before"))
@@ -665,7 +665,7 @@ NativeFunctionHook.TYPE.updateProperties([
                 (x.self as JavaMethodHook).getBefore().map( (t:HookTemplateFragment) => { o.push(t.toJsonObject()) } );
                 return o;
             }else{
-                return null;
+                return [];
             }
         })
         .wakeUp( (x:NodePropertyState) => {
@@ -677,7 +677,7 @@ NativeFunctionHook.TYPE.updateProperties([
                 } );
                 return o;
             }else{
-                return null;
+                return [];
             }
         }),
     (new NodeProperty("_replace"))
@@ -689,7 +689,7 @@ NativeFunctionHook.TYPE.updateProperties([
                 (x.self as JavaMethodHook).getReplace().map( (t:HookTemplateFragment) => { o.push(t.toJsonObject()) } );
                 return o;
             }else{
-                return null;
+                return [];
             }
         })
         .wakeUp( (x:NodePropertyState) => {
@@ -701,7 +701,7 @@ NativeFunctionHook.TYPE.updateProperties([
                 } );
                 return o;
             }else{
-                return null;
+                return [];
             }
         })
 ]).dataSource("PROJECT_DB").builder(NativeFunctionHook);

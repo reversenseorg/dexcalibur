@@ -93,6 +93,7 @@ export interface DexcaliburEngineOptions {
     master_pub_key?:Nullable<string>;
     master_opts?:MasterNodeOptions;
     signature_server?: SignatureServerOptions;
+    offline?:boolean;
 }
 
 if(_os_.platform()=="darwin"){
@@ -403,6 +404,8 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
     // cleanup
     cleanup$:Subject<CleanupEvent> = new Subject<CleanupEvent>();
 
+    offline = false;
+
     /**
      * Flag to prevent any cleanup events
      *
@@ -434,8 +437,8 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
 
         if(pEngineOptions!=null){
             this.setEngineMode(pEngineOptions.engine_mode);
+            this.offline = (pEngineOptions.offline===true);
         }
-
 
         NodeSchema.init();
         this.initAccessControl();
@@ -1470,9 +1473,10 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
     /**
      * To log a message
      *
-     * @param pMessage
-     * @param pProject
-     * @param pErr
+     * @param {string} pMessage Message of the log
+     * @param {Nullable<DexcaliburProject>} pProject Optional. Project related to log message
+     * @param {number} pErr Optional. If the message is an error message, then this parameter should contains the error code.
+     * @method
      */
     log(pMessage:string, pProject:Nullable<DexcaliburProject>=null, pErr:number=-1):void {
         const msg = new LogMessage({
@@ -1486,6 +1490,16 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
         ( async ()=>{
             this.getEngineDB().getCollectionOf(LogMessage.TYPE.getType()).asyncAddEntry(msg.getUID(),msg);
         })();
+    }
+
+    /**
+     * To check is the engine run in offline mode
+     *
+     * @return {boolean} TRUE if offline, else FALSE
+     * @method
+     */
+    isOffline():boolean {
+        return this.offline;
     }
 }
 

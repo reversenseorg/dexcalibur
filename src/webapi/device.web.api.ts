@@ -676,7 +676,7 @@ DEVICE_WEB_API.addAsyncAuthenticatedRoute(
                 if(req.body.hasOwnProperty('opts'))
                     installOpts = dev.prepareInstallOptions(req.body.opts);
 
-                const success =  await dev.installApp([project.getWorkspace().getApkPath()], installOpts);
+                const success =  await dev.installApp([project.getWorkspace().getAppPath()], installOpts);
 
                 if(success)
                     $.sendSuccess(res, {});

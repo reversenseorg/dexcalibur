@@ -102,6 +102,10 @@ var Parser:ArgParser = new ArgParser(projectArgs, "dexcalibur", [
         help: "To extend/override authentication settings ",
         hasVal:true,
         callback:(ctx,param)=>{ ctx.overrideAuth = param.value; } },
+    { name:"--offline",
+        help: "Run in offline mode",
+        hasVal:false,
+        callback:(ctx,param)=>{ ctx.offline = true; } },
     { name:"--gui",
         help: "To expose one or more GUI over specified ports. Please use following format :  <GUI_NAME>:<HTTP_PORT>[:<extra>][,<GUI_NAME>:<HTTP_PORT>[:<extra>]]. Example: --gui=home:4200:ssl,expert:8080",
         hasVal:true,
@@ -161,6 +165,10 @@ if(projectArgs.guiCfg!=null){
 // prepare engine options
 const engineOpts:DexcaliburEngineOptions = {};
 
+// generic options
+engineOpts.offline = (projectArgs.offline===true);
+
+// mode-related options
 if(projectArgs.slaveMode){
     console.log("------- MODE : SLAVE --------");
     engineOpts.engine_mode = DexcaliburEngineMode.SLAVE;
@@ -180,9 +188,8 @@ if(projectArgs.slaveMode){
     }
 }else if(projectArgs.masterMode){
     console.log("------- MODE : MASTER --------");
-    engineOpts.engine_mode = DexcaliburEngineMode.MASTER;
+    engineOpts.offline = (projectArgs.offline===true);
 }else{
-
     console.log("------- MODE : STANDALONE --------");
 }
 

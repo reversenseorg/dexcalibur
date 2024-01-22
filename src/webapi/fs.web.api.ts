@@ -1,14 +1,13 @@
 import {DelegateRequest, DelegateResponse, DelegateWebApi} from "./DelegateWebApi.js";
-import WebServer, {HTTP_CODE_ERROR, HTTP_CODE_SUCCESS} from "../WebServer.js";
-import {Request, Response} from "express";
+import WebServer from "../WebServer.js";
 import * as Log from "../Logger.js";
 import ModelFile from "../ModelFile.js";
 import DexcaliburProject from "../DexcaliburProject.js";
-import {AuthenticationException} from "../errors/AuthenticationException.js";
 import {DexcaliburProjectException} from "../errors/DexcaliburProjectException.js";
-import {FinderResult} from "../search/FinderResult.js";
 import * as _fs_ from "fs";
 import {MerlinSearchRequest} from "../search/MerlinSearchRequest.js";
+import {SecurityCheck, SecurityZone} from "../security/SecurityZone.js";
+import {SafetyCheck} from "../security/SafetyCheck.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 export const FS_WEB_API: DelegateWebApi = new DelegateWebApi();
@@ -144,38 +143,63 @@ FS_WEB_API.addAuthenticatedRoute(
                 // TODO : validate $.project.dataAnalyzer.isValidScope(req.query['scope']);
 
                 let files:ModelFile[];
-                if(req.query['scope']!=null
-                    && Object.keys(project.dataAnalyzer.scopes).indexOf(req.query.scope as string)>-1){
 
-                    const scope = project.dataAnalyzer.getScope(req.query['scope'] as string);
+                // check scope
+                const scope = project.dataAnalyzer.getScope(req.query['scope'] as string);
 
-                    const filter:any = {
-                        scope: req.query['scope']
-                    };
+                SafetyCheck.assertNotNull(scope);
+                SecurityCheck.allowedInPublicZone(scope);
 
-                    const mreq = new MerlinSearchRequest(
-                        null,
-                        ModelFile.TYPE,
-                        []
-                    );
-                    mreq.search('type:'+req.query['type']);
-                    mreq.filter( 'scope:'+req.query['scope']);
+                // check file type
+                const unsafeType = req.query['type'];
 
-                    if(req.query['type']!=null){
-                        filter.type = req.query['type'];
-                    }
+                SafetyCheck.assertNotNull(unsafeType);
+                SafetyCheck.assertIsString(unsafeType);
 
-                    files = (await mreq.execute(project)).getData();
-                    console.log(files);
+                // perform search
+                files = await project.getDataAnalyzer().getFilesFromScope(scope, { type:unsafeType})
 
-                    //files = await (await project.dataAnalyzer.getIndex(scope)).search( filter);
+
+                /*
+                const mreq = new MerlinSearchRequest(
+                    null,
+                    ModelFile.TYPE,
+                    []
+                );
+                mreq.search('type:'+req.query['type']);
+                mreq.filter( 'scope:'+req.query['scope']);
+
+                if(req.query['type']!=null){
+                    filter.type = req.query['type'];
                 }
+
+                files = (await mreq.execute(project)).getData();*/
+
+
+                console.log(files);
+
+                //files = await (await project.dataAnalyzer.getIndex(scope)).search( filter);
+
 
 
 
                 let d:any[] = [];
+
                 // replace path by local path (for remote file)
                 files.map(f => {
+
+                    if(f.isExecutable()){
+                        d.push(f.toJsonObject({extra:{ cmd:'sections:f_list'}}, SecurityZone.PUBLIC));
+                    }else{
+                        const ff =  f.toJsonObject({extra:{}}, SecurityZone.PUBLIC);
+                        //ff.ctn = _fs_.readFileSync( f.getPath(), {encoding: "utf-8"});
+
+                        d.push(ff);
+                    }
+
+
+                    /*
+                    d.push(f.toJsonObject(+))
                     if(_fs_.existsSync(f.getPath())){
 
                         Logger.raw(f.__p.f_list)
@@ -195,9 +219,11 @@ FS_WEB_API.addAuthenticatedRoute(
                             _uid: file.getUID(),
                             t: file.getType(),
                             ctn: _fs_.readFileSync( target, {encoding: "utf-8"})
-                        }];*/
-                    }
-                })
+                        }];
+                    }*/
+                });
+
+                console.log(d);
 
 
 

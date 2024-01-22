@@ -36,6 +36,8 @@ import ModelSyscall from "../ModelSyscall.js";
 import {CryptoUtils} from "../CryptoUtils.js";
 import {ScriptBuilderOptions, TargetLanguage} from "./common.js";
 import ModelFile from "../ModelFile.js";
+import {InspectorFactoryException} from "../errors/InspectorFactoryException.js";
+import Inspector from "../Inspector.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -486,7 +488,9 @@ export class HookManager
         const ws:HookWorkspace = this.context.getWorkspace().getHookWorkspace();
 
         //try{
+            console.log("buildAgentScript > options : ",pOptions);
             script = await this.builder.build(pOptions);
+            console.log(script);
             Logger.info("[HOOK MANAGER] Hook script template built")
             ws.writeDefaultScript(script, this.builder.getLanguage());
             if(this.builder.getLanguage()==TargetLanguage.JS){
@@ -2059,5 +2063,50 @@ export class HookManager
         if(pEmit){
             this.context.bus.send(pEvent);
         }
+    }
+
+
+    /**
+     * To get the list of hooks filtered by specified inspector
+     *
+     * @param {Inspector} pInspector Parent of fragments included into hooks to search
+     * @return {AbstractHook[]} The list of matching hooks
+     * @method
+     */
+    getHooksByInspector( pInspector:Inspector):AbstractHook[] {
+
+        const frags = [];
+        let matches:AbstractHook[] = [];
+
+        pInspector.getHookSet().strats.map( (x:HookStrategy) => {
+            if(x.before != null) frags.push(x.before.getUID());
+            if(x.after != null) frags.push(x.after.getUID());
+            if(x.replace != null) frags.push(x.replace.getUID());
+        })
+
+        // filter hooks by fragment UID
+        this.getHooks().map( (h:AbstractHook)=>{
+            const hf = [h.getBefore(),h.getAfter(),h.getReplace()];
+            for(let j=0; j<3; j++){
+                for(let i=0; i<hf[j].length; i++){
+                    if( frags.indexOf(hf[j][i].getUID())>-1){
+                        matches.push(h);
+                        return ;
+                    }
+                }
+            }
+        });
+
+        // deduplicate
+        const h = [];
+        matches = matches.filter( (vHook:AbstractHook)=>{
+            if(h.indexOf(vHook.getGUID())==-1){
+                h.push(vHook.getGUID());
+                return true;
+            }else
+                return false;
+        })
+
+        return matches;
     }
 }

@@ -1,16 +1,8 @@
-
 import {NodeInternalType} from "./NodeInternalType.js";
 import {IPersistent} from "./persist/orm/IPersistent.js";
-import {
-    NodeType,
-    NodePropertyState,
-    NodeProperty,
-    DbDataType,
-    DbKeyType,
-    INode,
-    SerializeOptions
-} from "@dexcalibur/dexcalibur-orm";
+import {DbDataType, DbKeyType, INode, NodeProperty, NodeType, SerializeOptions} from "@dexcalibur/dexcalibur-orm";
 import * as _path_ from 'path';
+import {IZoned, SecurityZone} from "./security/SecurityZone.js";
 
 export interface DataScopeMap {
     [name:string] :DataScope
@@ -24,7 +16,9 @@ export enum DataScopePpts {
 
 const DEFAULT_PREFIX = "files_";
 
-export default class DataScope implements INode,IPersistent{
+
+
+export default class DataScope implements INode,IPersistent,IZoned{
 
     static TYPE:NodeType = new NodeType(
         "data_scope",
@@ -33,6 +27,7 @@ export default class DataScope implements INode,IPersistent{
             (new NodeProperty("__i")).type(DbDataType.STRING).key(DbKeyType.PRIMARY),
             (new NodeProperty("_i")).type(DbDataType.STRING).def(DEFAULT_PREFIX), // path relative to scope root
             (new NodeProperty("_n")).type(DbDataType.STRING).unique(),
+            (new NodeProperty("zone")).type(DbDataType.STRING),
             (new NodeProperty("_p"))
                 .type(DbDataType.STRING)
                 //.sleep( (x:NodePropertyState)=>{ return (x.p!=null ? JSON.stringify(x.p) : null)})
@@ -50,6 +45,8 @@ export default class DataScope implements INode,IPersistent{
     _i:string = DEFAULT_PREFIX;
     _n:string = null;
     _p:any = {};
+
+    zone:SecurityZone = SecurityZone.PRIVATE;
 
     tags:number[] = [];
 
@@ -92,6 +89,18 @@ export default class DataScope implements INode,IPersistent{
     setPpts( pType:DataScopePpts, pValue:any):DataScope {
         this._p[pType] = pValue;
 
+        return this;
+    }
+
+    /**
+     *
+     *
+     * Chainable
+     *
+     * @param pZone
+     */
+    setZone( pZone:SecurityZone):DataScope {
+        this.zone = pZone;
         return this;
     }
 

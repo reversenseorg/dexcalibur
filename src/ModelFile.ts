@@ -1,5 +1,4 @@
 import * as _path_ from 'path';
-import * as OS from 'os';
 import {EncodedDataType} from "./FileTypes.js";
 import ModelFileSection from "./ModelFileSection.js";
 import DataScope from "./DataScope.js";
@@ -8,19 +7,21 @@ import {ModelFunction, ModelFunctionList} from "./ModelFunction.js";
 import * as Log from './Logger.js';
 import {IPersistent} from "./persist/orm/IPersistent.js";
 import {
-    NodeType,
-    NodeProperty,
     DbDataType,
     DbKeyType,
-    DbSerialize,
-    ValidationRule,
     INode,
-    SerializeOptions, Tag, NodePropertyState
+    NodeProperty,
+    NodePropertyState,
+    NodeType,
+    SerializeOptions,
+    Tag,
+    ValidationRule
 } from "@dexcalibur/dexcalibur-orm";
 import {NodeInternalType} from "./NodeInternalType.js";
 import {CryptoUtils} from "./CryptoUtils.js";
 
 import {CoreDebug} from "./core/CoreDebug.js";
+import {SecurityZone} from "./security/SecurityZone.js";
 
 
 let UIDS:string[]=[];
@@ -398,7 +399,7 @@ export default class ModelFile implements INode,IPersistent {
      *
      * @param pOpts
      */
-    toJsonObject(pOpts: SerializeOptions = {extra:{}}) {
+    toJsonObject(pOpts: SerializeOptions = {extra:{ }}, pSecurityZone = SecurityZone.PRIVATE) {
         let o: any = new Object();
 
 
@@ -430,6 +431,11 @@ export default class ModelFile implements INode,IPersistent {
         if(o.__p==null) o.__p = {};
         for (let i in this) {
             switch (i) {
+                case "path":
+                    if(pSecurityZone==SecurityZone.PRIVATE){
+                        o.path = this.path;
+                    }
+                    break;
                 case "sections":
                     o.sections = [];
                     if(this.sections!=null)

@@ -11,17 +11,16 @@ import BusEvent from "./BusEvent.js";
 import {FileAnalysisType} from "./AnalyzerConfiguration.js";
 import {MagicHelper} from "./MagicHelper.js";
 import {Workflow} from "./Workflow.js";
-import SqliteDbCollection from "../connectors/sqlite/SqliteDbCollection.js";
 import {IAnalyzerUnit} from "./analyzer/IAnalyzerUnit.js";
 import {UTIL_CONST} from "./util/UtilConstants.js";
 import {AnalyzerState} from "./AnalyzerState.js";
 import {OperatingSystem} from "./OperatingSystem.js";
-import {IDatabase, IDatabaseAdapter, IDbCollection} from "@dexcalibur/dexcalibur-orm";
+import {IDatabase, IDbCollection, IStringIndex} from "@dexcalibur/dexcalibur-orm";
 import {Nullable} from "./core/IStringIndex.js";
 import {ProjectDatabase} from "./database/ProjectDatabase.js";
 import {MongodbDbCollection} from "@dexcalibur/dexcalibur-orm-mongodb";
-import AnalyzerDatabase from "./AnalyzerDatabase.js";
 import {randomUUID} from "crypto";
+import {SecurityZone} from "./security/SecurityZone.js";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -305,11 +304,24 @@ export class DataAnalyzer implements IAnalyzerUnit
         await coll.asyncUpdateEntry( (DataScope.create("bin", 'PKG'))
             .setPpts(DataScopePpts.PATH, ws.getApkDir())
             .setPpts(DataScopePpts.PATH_SEP, UTIL_CONST.PATH_SEPARATOR.POSIX)
+            .setZone(SecurityZone.PUBLIC)
             , {upsert:true});
-        await coll.asyncUpdateEntry((DataScope.create("app", 'APPDATA')).setPpts(DataScopePpts.PATH, ws.getAppdataDir()), {upsert:true});
-        await coll.asyncUpdateEntry((DataScope.create("dev", 'DEVICE')).setPpts(DataScopePpts.PATH, ws.getAppdataDir()), {upsert:true});
-        await coll.asyncUpdateEntry((DataScope.create("dbf", 'DYN_BUFFER')).setPpts(DataScopePpts.PATH, ws.getRuntimeFilesDir()), {upsert:true});
-        await coll.asyncUpdateEntry((DataScope.create("bcf", 'DYN_BYTECODE')).setPpts(DataScopePpts.PATH, ws.getRuntimeBcDir()), {upsert:true});
+        await coll.asyncUpdateEntry((DataScope.create("app", 'APPDATA'))
+            .setPpts(DataScopePpts.PATH, ws.getAppdataDir())
+            .setZone(SecurityZone.PUBLIC)
+            , {upsert:true});
+        await coll.asyncUpdateEntry((DataScope.create("dev", 'DEVICE'))
+            .setPpts(DataScopePpts.PATH, ws.getAppdataDir())
+            .setZone(SecurityZone.PUBLIC)
+            , {upsert:true});
+        await coll.asyncUpdateEntry((DataScope.create("dbf", 'DYN_BUFFER'))
+            .setPpts(DataScopePpts.PATH, ws.getRuntimeFilesDir())
+            .setZone(SecurityZone.PUBLIC)
+            , {upsert:true});
+        await coll.asyncUpdateEntry((DataScope.create("bcf", 'DYN_BYTECODE'))
+            .setPpts(DataScopePpts.PATH, ws.getRuntimeBcDir())
+            .setZone(SecurityZone.PUBLIC)
+            , {upsert:true});
     }
 
 
@@ -345,7 +357,7 @@ export class DataAnalyzer implements IAnalyzerUnit
         this.magic.setWorkflow(this._wf);
     }
 
-    getScope(pName:string){
+    getScope(pName:string):Nullable<DataScope>{
         return this.scopes[pName];
     }
 
@@ -672,19 +684,26 @@ export class DataAnalyzer implements IAnalyzerUnit
     free(pColl:IDbCollection){
         //TODO
     }
+
+
     /**
      * To get a list of all files into the specified DataScope
      *
      * @param {DataScope|string} pScope DataScope instance or internal name of the scope
+     * @param {IStringIndex<any>} pScope Optional. Additional filters can be put here
      * @return {Promise<ModelFile[]>} Promise. A list of file
      * @async
      * @method
      */
-    async getFilesFromScope(pScope:DataScope|string):Promise<ModelFile[]>{
+    async getFilesFromScope(pScope:DataScope|string, pExtraFilters:IStringIndex<any> = {}):Promise<ModelFile[]>{
 
         const coll = this._pdb.getCollectionOf(ModelFile.TYPE.getType());
+        const filter = {
+            scope:(typeof pScope==='string'? pScope : pScope.getInternalName()),
+            ... pExtraFilters
+        };
 
-        return await coll.search({ scope:(typeof pScope==='string'? pScope : pScope.getInternalName()) });
+        return await coll.search(filter);
     }
 
 

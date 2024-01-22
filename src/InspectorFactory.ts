@@ -581,6 +581,11 @@ export default class InspectorFactory implements INode
 
                     if(typeof hs.strats[k] === 'string'){
                         strat = hs.strats[k] = await pProject.getProjectDB().getHookStrategy(hs.strats[k] as any) ;
+                    }else if(hs.strats[k]!=null){
+                        strat = hs.strats[k];
+                    }else{
+                        Logger.info("[INSPECTOR FACTORY]["+this.id+"]["+k+"] No strategy defined, skipped. ")
+                        continue;
                     }
 
                     if(strat.hasLoadKeyPoint()){

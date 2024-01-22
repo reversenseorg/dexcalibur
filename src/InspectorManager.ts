@@ -362,7 +362,7 @@ export default class InspectorManager
                     // retrieve Inspector state from DB for each, and restore Inspector instance
                     this.projects[uid][inspNames[i]] = await factories[i].restore(pProject);
                     // trigger event when Inspector is restored.
-                    pProject.bus.register(this.projects[uid][inspNames[i]]);
+                    await pProject.attachInspector(this.projects[uid][inspNames[i]]);
                 }
             }catch(err){
                 this.engine.log("State of inspector ["+factories[i].getUID()+"] cannot be restored. ", pProject, err.code);

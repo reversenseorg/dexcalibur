@@ -20,9 +20,7 @@ let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 export const INSPECTOR_WEB_API: DelegateWebApi = new DelegateWebApi();
 
 
-/**
- * /api/application/cmp?type=[dex|ks|libs|strings] ...
- */
+/*
 INSPECTOR_WEB_API.addAuthenticatedRoute(
     '/inspectors/:inspectorID',
     {
@@ -81,10 +79,12 @@ INSPECTOR_WEB_API.addAuthenticatedRoute(
     },{
         readProject: true
     }
-);
+);*/
 
 
-
+/**
+ *  Middleware to route requests to Inspector's web API
+ */
 INSPECTOR_WEB_API.addAuthenticatedRoute(
     '/inspector-api/:inspectorID',
     {
@@ -145,9 +145,12 @@ INSPECTOR_WEB_API.addAuthenticatedRoute(
     }
 );
 
-
+/**
+ * To list all inspectors
+ *
+ */
 INSPECTOR_WEB_API.addAuthenticatedRoute(
-    '/inspector/list',
+    '/inspectors/list',
     {
         'get': function (req:DelegateRequest, res:DelegateResponse):any {
 
@@ -165,14 +168,11 @@ INSPECTOR_WEB_API.addAuthenticatedRoute(
                     data.push( insp[uid].toJsonObject());
                 }
 
-
                 $.sendSuccess(res, data);
             }catch(err){
-                Logger.error("[API][PLUGINS] Request cannot be forwarded to inspector. Cause : " + err.message + "\n\t" + err.stack);
-                $.sendError(res, "Request cannot be forwarded to inspector. Cause : " + err.message);
+                Logger.error("[API][PLUGINS] List of inspectors cannot be retrieved. Cause : " + err.message + "\n\t" + err.stack);
+                $.sendError(res, "List of inspectors cannot be retrieved. Cause : " + err.message);
             }
-
-
         }
     },{
         readProject: true
@@ -197,16 +197,17 @@ INSPECTOR_WEB_API.addAuthenticatedRoute(
                 if(typeof req.query['insp']!=='string'){
                     throw new Error("Invalid inspector UID");
                 }
+
+                const insp = project.getInspector(req.query['insp'] as string);
+                /*
                 const insp = $.context
                                             .getInspectorManager()
                                             .getEnabledInspector(project, req.query['insp'] as string);
-
+                   */
                 // ========== LOGIC
-
-
                 $.sendSuccess(res, {
                     state: insp.toJsonObject(),
-                    plugin: insp.factory.toJsonObject()
+                    plugin: (insp.factory!=null ? insp.factory.toJsonObject() : null)
                 });
             }catch(err){
                 Logger.error("[API][PLUGINS] Request cannot be forwarded to inspector. Cause : " + err.message + "\n\t" + err.stack);

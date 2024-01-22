@@ -374,11 +374,27 @@ export default class HookWorkspace {
         })*/
     }
 
+    /**
+     * To install Interruptor package inside hook workspace
+     *
+     * TODO : add offline install
+     *
+     * @async
+     * @method
+     */
     async installInterruptor():Promise<void> {
         await Util.execSync("cd "+this._base+" && npm install @reversense/interruptor");
         return;
     }
 
+    /**
+     * To install Interruptor package inside hook workspace
+     *
+     * TODO : add offline install
+     *
+     * @async
+     * @method
+     */
     async installFridaCompile():Promise<void> {
         await Util.execSync("cd "+this._base+" && npm install frida-compile");
         return;
