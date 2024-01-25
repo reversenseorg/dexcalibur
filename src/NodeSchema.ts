@@ -37,6 +37,8 @@ import {MongodbAdapter, MongodbDbCollection} from "@dexcalibur/dexcalibur-orm-mo
 import {CustomCode} from "./actionnable/CustomCode.js";
 import {NodeInternalType} from "./NodeInternalType.js";
 import Inspector, {INSPECTOR_TYPE} from "./Inspector.js";
+import AssuranceReport from "./audit/common/AssuranceReport.js";
+import AssuranceModel from "./audit/common/AssuranceModel.js";
 
 
 
@@ -121,6 +123,29 @@ DataSourceHelper.addAsyncSource("ENGINE_DB", new DataSource("ENGINE_DB",{
         }
     }
 }));
+DataSourceHelper.addAsyncSource("SIGNATURE_DB", new DataSource("SIGNATURE_DB",{
+    single: async function(pContext:any, pNodeType:NodeType, pUID:any):Promise<any>{
+
+        const filter:any = {};
+        const pk  = pNodeType.getPrimaryKey();
+
+        if(pk.getName()!="_uid"){
+            filter[pk.getName()] = pUID;
+        }else{
+            filter._uid = pUID;
+        }
+
+        if(pContext._type===AppContextType.WEB_SERVER){
+            throw new Error("Operation not supported");
+        }else{
+            return await ((pContext as DexcaliburProject)
+                .getContext()
+                .getSignatureServer()
+                .find(pNodeType.getType(),  filter));
+        }
+    }
+}));
+
 
 
 /*
@@ -737,6 +762,25 @@ Brand.TYPE.updateProperties([
     (new NodeProperty("created_at")).type(DbDataType.INTEGER).def(-1),
     (new NodeProperty("updated_at")).type(DbDataType.INTEGER).def(-1),
 ]).dataSource("MEM");
+
+
+AssuranceReport.TYPE.updateProperties([
+    (new NodeProperty("uid")).type(DbDataType.STRING).key(DbKeyType.PRIMARY), // path relative to scope root
+    (new NodeProperty("line")).type(DbDataType.NUMERIC).def(null),
+    (new NodeProperty("application")).type(DbDataType.STRING).def(null),
+    (new NodeProperty("device")).type(DbDataType.STRING).def(null),
+    (new NodeProperty("values")).type(DbDataType.BLOB).def(null),
+    (new NodeProperty("time")).type(DbDataType.NUMERIC).def(null),
+    (new NodeProperty("primaryAssets")).type(DbDataType.NUMERIC).def(null),
+    (new NodeProperty("secondaryAssets")).type(DbDataType.NUMERIC).def(null),
+    (new NodeProperty("globalThreats")).type(DbDataType.NUMERIC).def(null),
+    (new NodeProperty("primaryAssets")).type(DbDataType.NUMERIC).def(null),
+    (new NodeProperty("tags")).type(DbDataType.STRING),
+    (new NodeProperty("project")).volatile().type(DbDataType.STRING).def(null),
+    (new NodeProperty("model")).single(AssuranceModel.TYPE),
+]);
+
+AssuranceModel.TYPE.dataSource("SIGNATURE_DB");
 
 export class NodeSchema{
 

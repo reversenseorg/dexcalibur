@@ -5,6 +5,8 @@ import AssuranceModel from "./common/AssuranceModel.js";
 import {DeviceModel} from "../DeviceModel.js";
 import {Brand} from "../Brand.js";
 import * as Log from "../Logger.js";
+import {INode, NodeType} from "@dexcalibur/dexcalibur-orm";
+import {NodeInternalType} from "../NodeInternalType.js";
 const GOT = got.default;
 
 
@@ -102,6 +104,25 @@ export class SignatureServerAPI {
         return models;
     }
 
+    /**
+     *
+     * @param pModelUID
+     */
+    async getAssuranceModel(pModelUID:string):Promise<AssuranceModel> {
+
+        // prevent SSRF
+        const safeModelUID = AssuranceModel.TYPE.getProperty('_uid').sanitize(pModelUID);
+
+        const response = await GOT(this.baseURL+"api/signatures/model/"+safeModelUID.getValue());
+        const raw = JSON.parse(response.body);
+
+        if(raw.success){
+            return AssuranceModel.fromJsonObject(raw.data);
+        }else{
+            return null;
+        }
+    }
+
     async getDeviceModels():Promise<DeviceModel[]> {
 
         const response = await GOT(this.baseURL+"api/devices/models/list");
@@ -148,5 +169,17 @@ export class SignatureServerAPI {
         }
 
         return models;
+    }
+
+    async find( pNodeType:number, pFilter:any):Promise<INode> {
+
+        switch (pNodeType){
+            case NodeInternalType.ASSURANCE_MODEL:
+                return this.getAssuranceModel(pFilter._uid);
+                break;
+            default:
+                Logger.error("Node type is not supported by SignatureServer API.");
+                return null;
+        }
     }
 }

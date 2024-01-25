@@ -1,18 +1,28 @@
 import * as _fs_ from 'fs';
 import Asset from "./Asset.js";
 import Threat from "./Threat.js";
-import Constraint from "./Constraint.js";
-import { ConstraintMatch } from "./ConstraintMatch.js";
+import {ConstraintMatch} from "./ConstraintMatch.js";
 import CodeConstraint from "./CodeConstraint.js";
 import DexcaliburProject from "../../DexcaliburProject.js";
 import AssuranceModel, {ControlNode} from "./AssuranceModel.js";
-import Control from "./Control.js";
-import ControlAssessment from "./ControlAssessment.js";
 import {CoreDebug} from "../../core/CoreDebug.js";
 import {MerlinSearchAPI} from "../../search/MerlinSearchAPI.js";
 import {NodeInternalType} from "../../NodeInternalType.js";
-import {Logger} from "@dexcalibur/dexcalibur-installer/src/utils/Logger.js";
 import {FinderResult} from "../../search/FinderResult.js";
+import {
+    DbDataType,
+    DbKeyType,
+    DbSerialize,
+    INode,
+    NodeProperty,
+    NodeType,
+    SerializeOptions,
+    TagUUID
+} from "@dexcalibur/dexcalibur-orm";
+import ModelMethod from "../../ModelMethod.js";
+import {Nullable} from "../../core/IStringIndex.js";
+import {AuditManagerException} from "../errors/AuditManagerException.js";
+import {CryptoUtils} from "../../CryptoUtils.js";
 
 
 export interface Match {
@@ -46,7 +56,12 @@ export interface AssuranceReportOptions {
  *
  * @class
  */
-export default class AssuranceReport {
+export default class AssuranceReport implements INode {
+
+    static TYPE:NodeType = new NodeType("reports", NodeInternalType.ASSURANCE_REPORT,[]);
+    __:NodeInternalType = NodeInternalType.ASSURANCE_REPORT;
+
+    uid:Nullable<string> = null;
 
     time:number;
 
@@ -68,10 +83,33 @@ export default class AssuranceReport {
     assets:ConstraintMatch<Asset>[] = [];
     matches:MatchesMap = {};
 
+    tags:TagUUID[] = [];
 
 
     constructor( pConfig:AssuranceReportOptions = {}) {
         if(pConfig!=null) for(const i in pConfig) this[i]=pConfig[i];
+    }
+
+    /**
+     * To get
+     */
+    getUID(): string | null {
+        return this.uid;
+    }
+
+    /**
+     * To generate report UID
+     *
+     * @method
+     */
+    generateUID(){
+        if(this.project==null){
+            throw AuditManagerException.REPORT_UID_CANNOT_BE_GENERATED("project is missing");
+        }
+        if(this.model==null){
+            throw AuditManagerException.REPORT_UID_CANNOT_BE_GENERATED("assurance model is missing");
+        }
+        this.uid = CryptoUtils.sha256(this.project.getUID()+":"+this.model.getUID()+":"+this.time);
     }
 
     getAssets():ConstraintMatch<Asset>[] {
@@ -219,7 +257,7 @@ export default class AssuranceReport {
     /**
      *
      */
-    toJsonObject():any {
+    toJsonObject(pOptions?:SerializeOptions):any {
         const o:any = {};
         let match:Match;
 
@@ -385,3 +423,4 @@ export default class AssuranceReport {
         return a;
     }
 }
+AssuranceReport.TYPE.builder(AssuranceReport);

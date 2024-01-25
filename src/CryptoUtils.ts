@@ -9,6 +9,7 @@ export type TypedArray = Int8Array | Uint8Array | Uint8ClampedArray | Int16Array
 export class CryptoUtils {
 
     static alg_Md5:_crypto_.Hash = _crypto_.createHash('md5');
+    static alg_Sha256:_crypto_.Hash = _crypto_.createHash('sha256');
 
     static md5(pIn:_crypto_.BinaryLike, pOutputEncoding:BinaryToTextEncoding='hex', pReset = false):string {
         if(pReset){
@@ -17,5 +18,14 @@ export class CryptoUtils {
 
         CryptoUtils.alg_Md5.update(pIn);
         return CryptoUtils.alg_Md5.copy().digest(pOutputEncoding);
+    }
+
+    static sha256(pIn:_crypto_.BinaryLike, pOutputEncoding:BinaryToTextEncoding='hex', pReset = false):string {
+        if(pReset){
+            CryptoUtils.alg_Sha256 = _crypto_.createHash('sha256');
+        }
+
+        CryptoUtils.alg_Sha256.update(pIn);
+        return CryptoUtils.alg_Sha256.copy().digest(pOutputEncoding);
     }
 }

@@ -12,6 +12,8 @@ import ControlAssessment from "./ControlAssessment.js";
 import {IControl} from "./IControl.js";
 import {CoreDebug} from "../../core/CoreDebug.js";
 import {Nullable} from "../../core/IStringIndex.js";
+import {NodeInternalType} from "../../NodeInternalType.js";
+import {DbDataType, DbKeyType, INode, NodeProperty, NodeType, ValidationRule} from "@dexcalibur/dexcalibur-orm";
 
 export enum AssuranceModelType {
     SECURITY="sec",
@@ -33,7 +35,30 @@ export interface ControlTree {
     [canonicalUID:string]: ControlNode;
 }
 
-export default class AssuranceModel extends Auditable implements IAuditableAccess {
+
+
+
+export default class AssuranceModel extends Auditable implements IAuditableAccess, INode {
+
+    __ = NodeInternalType.ASSURANCE_MODEL;
+
+    static TYPE:NodeType = (new NodeType( "assurance_model", NodeInternalType.ASSURANCE_MODEL, [
+        (new NodeProperty("_uid")).type(DbDataType.STRING)
+            .key(DbKeyType.PRIMARY)
+            .addValidationRule(ValidationRule.newRegexpAssert(/^[a-zA-Z0-9_]+$/)),
+        (new NodeProperty("id")).type(DbDataType.STRING).key(DbKeyType.PRIMARY),
+        //(new NodeProperty("_uid")).type(DbDataType.STRING), //.key(DbKeyType.PRIMARY),
+        (new NodeProperty("scannerID")).type(DbDataType.STRING).def(""),
+        (new NodeProperty("name")).type(DbDataType.STRING).def(""),
+        (new NodeProperty("description")).type(DbDataType.STRING).def(""),
+        (new NodeProperty("links")).type(DbDataType.STRING).def([]),
+        (new NodeProperty("generic")).type(DbDataType.BOOLEAN).def(true),
+        (new NodeProperty("primaryAssets")).type(DbDataType.STRING).def([]),
+        (new NodeProperty("secondaryAssets")).type(DbDataType.STRING).def([]),
+        (new NodeProperty("globalThreats")).type(DbDataType.STRING).def([]),
+        (new NodeProperty("controls")).type(DbDataType.STRING).def([]),
+        (new NodeProperty("metadata")).type(DbDataType.STRING).def([])
+    ]));
 
 
     /**
@@ -65,7 +90,6 @@ export default class AssuranceModel extends Auditable implements IAuditableAcces
 
     secondaryAssets:Asset[] = [];
 
-    _beforeLoad:Nullable<(self:AssuranceModel)=>void> = null;
     /**
      * @deprecated
      */
@@ -75,14 +99,22 @@ export default class AssuranceModel extends Auditable implements IAuditableAcces
 
     metadata:Metadata[] = [];
 
+    _beforeLoad:Nullable<(server:any, self:AssuranceModel)=>void> = null;
+
+
     protected _ready = false;
 
     protected _controlTree: ControlTree = {};
 
+    tags:number[];
+
     constructor( pConfig:any = null) {
         super(null);
-        // if(pConfig!=null) for(const i in pConfig) this[i]=pConfig[i];
         this.update(pConfig, true);
+    }
+
+    getUID(): string {
+        return this.id;
     }
 
     /**
@@ -91,6 +123,12 @@ export default class AssuranceModel extends Auditable implements IAuditableAcces
     getID():string {
         return this.id;
     }
+
+
+    beforeLoad(pBeforeLoad:((server:any, model:AssuranceModel)=>void)):void{
+        this._beforeLoad = pBeforeLoad;
+    }
+
 
     getScannerID():string {
         return  this.scannerID;
@@ -143,13 +181,9 @@ export default class AssuranceModel extends Auditable implements IAuditableAcces
         return this.secondaryAssets;
     }
 
-    beforeLoad(pBeforeLoad:((model:AssuranceModel)=>void)):void{
-        this._beforeLoad = pBeforeLoad;
-    }
-
-    load():void {
+    load(pServer:Nullable<any>  = null):void {
         if(this._beforeLoad!=null){
-            this._beforeLoad.apply(null, [this]);
+            this._beforeLoad.apply(null, [pServer,this]);
         }
         return ;
     }
@@ -178,29 +212,38 @@ export default class AssuranceModel extends Auditable implements IAuditableAcces
         const o = new AssuranceModel(pData);
 
         if(pData.globalThreats!=null){
-            pData.globalThreats.map( (x:any,i:number) => {
+            pData.globalThreats.map( (x,i) => {
                 o.globalThreats[i] = new Threat(x);
             });
-        }
-
-        if(pData.primaryAssets!=null){
-            pData.primaryAssets.map( (x:any,i:number) => {
-                o.primaryAssets[i] = new Asset(x);
-            });
+        }else{
+            o.globalThreats = [];
         }
 
         if(pData.secondaryAssets!=null){
-            pData.secondaryAssets.map( (x:any,i:number) => {
+            pData.secondaryAssets.map( (x,i) => {
                 o.secondaryAssets[i] = new Asset(x);
             });
+        }else{
+            o.secondaryAssets = [];
+        }
+
+        if(pData.primaryAssets!=null){
+            pData.primaryAssets.map( (x,i) => {
+                o.primaryAssets[i] = new Asset(x);
+            });
+        }else{
+            o.primaryAssets = [];
+        }
+
+        if(pData.controls!=null){
+            pData.controls.map( (x,i) => {
+                o.controls[i] = Control.fromJsonObject(x);
+            });
+        }else{
+            o.controls = [];
         }
 
 
-
-
-        pData.controls.map( (x:any,i:number) => {
-            o.controls[i] = Control.fromJsonObject(x);
-        });
 
 
         return o;
@@ -225,7 +268,12 @@ export default class AssuranceModel extends Auditable implements IAuditableAcces
 
         o.controls = [];
         this.controls.map( (x,i) => {
-            o.controls.push(x.toJsonObject());
+            if(x.toJsonObject!=null){
+                o.controls.push(x.toJsonObject());
+            }else{
+                o.controls.push(x);
+            }
+
         });
 
         CoreDebug.checkJsonSerialize(o, "AssuranceModel");
@@ -266,6 +314,7 @@ export default class AssuranceModel extends Auditable implements IAuditableAcces
         if(pObject.description!=null) this.description = pObject.description;
         if(pObject.links!=null) this.links = pObject.links;
         if(pObject.generic!=null) this.generic = pObject.generic;
+        if(pObject.metadata!=null) this.metadata = pObject.metadata;
 
         if(pUpdateChildren){
             if(pObject.primaryAssets!=null) this.primaryAssets = pObject.primaryAssets;
@@ -318,6 +367,32 @@ export default class AssuranceModel extends Auditable implements IAuditableAcces
         return this._controlTree[pCanonicalUID];
     }
 
+    /**
+     * To retrieve the version from metadata
+     *
+     * @return {number} Version
+     * @method
+     */
+    getVersion():number {
+        let version = 0;
+        this.metadata.map(x => {
+            if(x.key=="version"){
+                version = parseInt(x.value);
+            }
+        });
+        return version;
+    }
+
+    /**
+     * To check if the model has been edited
+     * after the date or version passed as arguments
+     *
+     * @param pVersion
+     */
+    isVersionGreaterThan(pVersion:number):boolean {
+        return (pVersion < this.getVersion());
+    }
+
     private _controlNodeHasChildren(pNode:ControlNode):boolean {
         return (pNode.children!=null) || (Object.values(pNode.children).length>0);
     }
@@ -340,7 +415,7 @@ export default class AssuranceModel extends Auditable implements IAuditableAcces
         return nodes;
     }
 
-    /**
+    /*
      * To setup attributes involved into ACL such as 'owner'
      *
      * TODO : add attr containing all authors
@@ -353,3 +428,4 @@ export default class AssuranceModel extends Auditable implements IAuditableAcces
         }
     }
 }
+AssuranceModel.TYPE.builder(AssuranceModel);

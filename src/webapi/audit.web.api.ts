@@ -313,6 +313,9 @@ AUDIT_WEB_API.addAsyncAuthenticatedRoute(
 );
 
 
+
+
+
 AUDIT_WEB_API.addAsyncAuthenticatedRoute(
     '/model/:modelID',
     {
@@ -365,6 +368,9 @@ AUDIT_WEB_API.addAsyncAuthenticatedRoute(
     }
 );
 
+/**
+ * To get a list of available models
+ */
 AUDIT_WEB_API.addAsyncPublicRoute(
     '/models',
     {
@@ -377,12 +383,53 @@ AUDIT_WEB_API.addAsyncPublicRoute(
 
                 const models = await am.listModels(req.dxc.project);
 
-                const data = models.map(x => x.toJsonObject())
+
+                const data = models.map(x => {
+                    const m= new AssuranceModel({
+                        id: x.getID(),
+                        name: x.name,
+                        description: x.description,
+                        links: x.links,
+                        metadata: x.metadata,
+                        generic: x.generic
+                    });
+                    return m.toJsonObject();
+                });
 
                 $.sendSuccess(res, data);
             }catch(err){
                 Logger.error("[API][AUDIT] Models cannot be retrieved. Cause : " + err.message + "\n\t" + err.stack);
-                $.sendError(res, "Models cannot be retrieved. Cause : " + err.message);
+                $.sendError(res, "Models cannot be retrieved. See logs for details. ");
+            }
+        }
+    },{
+        readProject: false
+    }
+);
+
+
+/**
+ * To get a list of available models
+ */
+AUDIT_WEB_API.addAsyncPublicRoute(
+    '/models/all',
+    {
+        'get': async function (req:DelegateRequest, res:DelegateResponse):Promise<any> {
+            const $: WebServer = req.dxc.$;
+
+            try{
+                // ========== LOGIC
+                const am = AuditManager.getInstance();
+
+                const models = await am.listModels(req.dxc.project);
+
+
+                const data = models.map(x => x.toJsonObject());
+
+                $.sendSuccess(res, data);
+            }catch(err){
+                Logger.error("[API][AUDIT] List of all models cannot be retrieved. Cause : " + err.message + "\n\t" + err.stack);
+                $.sendError(res, "List of all models cannot be retrieved. See logs for details. ");
             }
         }
     },{

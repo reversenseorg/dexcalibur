@@ -198,11 +198,14 @@ export class AuditManager {
     async listReports( pProject:DexcaliburProject):Promise<AssuranceReport[]> {
         let x:AssuranceReport, model:AssuranceModel;
 
+        const modelsMap: Record<string, AssuranceModel> = {};
+        (await this.listModels(pProject)).map(x => modelsMap[x.getUID()]=x);
+
         const reports = this.listReportsFromPath(_path_.join(pProject.getWorkspace().getAuditDir(),SUBDIRS.REPORTS));
 
         for(let i=0;i<reports.length; i++){
             x = reports[i];
-            model = await this.getModel(pProject, x.model as any);
+            model = modelsMap[(typeof x.model==="string"?x.model as string : x.model.getUID())];
 
             x.setProject(pProject);
             if(model != null){
