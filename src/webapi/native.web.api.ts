@@ -58,7 +58,7 @@ NATIVE_WEB_API.addAsyncAuthenticatedRoute(
                 if(req.query['cmd']!=null){
                     const cmd = (req.query['cmd'] as string).split(':');
 
-                    const file:FinderResult = await project.find.file('_uid:'+fn.getDeclaringFile());
+                    const file:FinderResult = await project.find.file('_uid:/'+fn.getDeclaringFile()+'/');
                     if(file.count()==0){
                         throw new Error("[NATIVE::FUNC] #NAT_45 Declaring file not found");
                     }
@@ -193,7 +193,7 @@ NATIVE_WEB_API.addAuthenticatedRoute(
 
 
 
-                const search:FinderResult = await project.find.file('_uid:'+req.query['uid']);
+                const search:FinderResult = await project.find.file('_uid:/'+req.query['uid']+'/');
                 if(search==null || search.count()==0){
                     throw new Error("[NATIVE::ANALYSIS] #NAT_2 File not found");
                 }

@@ -94,7 +94,7 @@ var DataClassifierInspector:InspectorFactory = new InspectorFactory({
                 });*/
     
             // tag static byte array containing URI
-            ctx.find.nocase().array('name:.*')
+            ctx.find.nocase().array('name:/.*/')
                 .foreach((pOffset:number,pData:ModelDataBlock)=>{
                     if(pattern.exec(pData.values.join(''))){
                         if(!pData.hasTag(tag_URI)){

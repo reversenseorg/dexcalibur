@@ -59,11 +59,11 @@ CODE_WEB_API.addAuthenticatedRoute(
 
                 if(format=='tree'){
                     if(query=='.*')
-                        data = project.find.package('name:^[^\\.]*$');
+                        data = project.find.package('name:/^[^\\.]*$/');
                     else
-                        data = project.find.package('name:'+query);
+                        data = project.find.package('name:/'+query+'/');
                 }else{
-                    data = project.find.package('name:.*');
+                    data = project.find.package('name:/.*/');
                 }
 
                 if(filter != null){
@@ -223,7 +223,7 @@ CODE_WEB_API.addAuthenticatedRoute(
                 }
 
                 // ========== LOGIC +  RESPONSE
-                $.sendSuccess( res, project.find.method('name:.*').toJsonObject({}));
+                $.sendSuccess( res, project.find.method('name:/.*/').toJsonObject({}));
             }catch(err){
                 Logger.error("[API][CODE] Method cannot be retrieved. Cause : " + err.message + "\n\t" + err.stack);
                 $.sendError(res, "Method cannot be retrieved. Cause : " + err.message);
@@ -709,7 +709,7 @@ CODE_WEB_API.addAuthenticatedRoute(
 
                 // ========== LOGIC
                 // collect
-                const data:any = project.find.class('name:.*').toJsonObject({include:[]});
+                const data:any = project.find.class('name:/.*/').toJsonObject({include:[]});
 
                 for (const i in data) {
                     for (const k in data[i].methods) {
@@ -862,7 +862,7 @@ CODE_WEB_API.addAuthenticatedRoute(
 CODE_WEB_API.addAuthenticatedRoute(
     '/finder',
     {
-        'get': function (req:DelegateRequest, res:DelegateResponse):any {
+        'get': async function (req:DelegateRequest, res:DelegateResponse):Promise<any> {
             let $: WebServer = req.dxc.$;
             let project:DexcaliburProject = null;
 
@@ -892,18 +892,27 @@ CODE_WEB_API.addAuthenticatedRoute(
 
                 // decode the query
                 const u:string = Util.decodeURI(search);
-                Logger.info("[FINDER]: ", u);
                 const u1:string = Util.b64_decode(u);
-                Logger.info("[FINDER]: ", u1);
                 const u2:string = Util.decodeURI(u1);
-                Logger.info("[FINDER]: ", 'project.find.' + u2 + ';');
+                Logger.info("[API][CODE][FINDER]: ", 'project.find.' + u2 + ';');
 
                 //search = Util.decodeURI(Util.b64_decode(search));
-                Logger.info("[REST] /api/finder : ", u2);
+                //Logger.info("[REST] /api/finder : ", u2);
                 //Logger.info("[REST] /api/finder : ",search);
 
                 // perform the requests (TODO: ajouter les erreur dans FinderResult)
-                const results:any = VM.runInNewContext('project.find.' + u2 + ';', { project: project });
+                //const results:any = VM.runInNewContext('project.find.' + u2 + ';', { project: project });
+
+                let results:any;
+
+                try{
+                    results = VM.runInNewContext('project.find.' + u2 + ';', { project: project });
+                    //results = await VM.runInNewContext('(project.merlin.' + u2 + ').execute(project);', { project: project });
+
+                }catch(err){
+                    Logger.error('[API][CODE][FINDER] '+err.message+"\n"+err.stack);
+                    throw new Error("No results");
+                }
 
                 /*
                 if(req.query.hasOwnProperty('type')

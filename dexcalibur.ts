@@ -189,6 +189,7 @@ if(projectArgs.slaveMode){
 }else if(projectArgs.masterMode){
     console.log("------- MODE : MASTER --------");
     engineOpts.offline = (projectArgs.offline===true);
+    engineOpts.engine_mode = DexcaliburEngineMode.MASTER;
 }else{
     console.log("------- MODE : STANDALONE --------");
 }

@@ -107,7 +107,8 @@ export class Finder
      * @param String pattern 
      * @param Boolean caseSensitive 
      * @param Boolean lazy If FALSE, verify if the field exists 
-     * @returns {SearchPattern} The parsed search pattern, ready to be used  
+     * @returns {SearchPattern} The parsed search pattern, ready to be used
+     * @deprecated
      */
     _getTestFn(dataModel:any, pattern:string, caseSensitive:boolean, lazy:boolean=false):SearchPattern{
         

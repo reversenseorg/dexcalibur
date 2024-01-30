@@ -77,7 +77,7 @@ ANDROID_WEB_API.addAuthenticatedRoute(
                 }
 
                 // ========== LOGIC + RESPONSE
-                $.sendSuccess( res, project.find.activity('name:.*').toJsonObject({}));
+                $.sendSuccess( res, project.find.activity('name:/.*/').toJsonObject({}));
             }catch(err){
                 Logger.error("[API][ANDROID ANALYZER] Activities not found. Cause : " + err.message + "\n\t" + err.stack);
                 $.sendError(res, "Activities not found. Cause : " + err.message);
@@ -166,7 +166,7 @@ ANDROID_WEB_API.addAuthenticatedRoute(
                 }
 
                 // ========== LOGIC + RESPONSE
-                $.sendSuccess( res, project.find.receiver('name:.*').toJsonObject({}));
+                $.sendSuccess( res, project.find.receiver('name:/.*/').toJsonObject({}));
             }catch(err){
                 Logger.error("[API][ANDROID ANALYZER] Receivers not found. Cause : " + err.message + "\n\t" + err.stack);
                 $.sendError(res, "Receivers not found. Cause : " + err.message);
@@ -199,7 +199,7 @@ ANDROID_WEB_API.addAuthenticatedRoute(
                 }
 
                 // ========== LOGIC + RESPONSE
-                $.sendSuccess( res, project.find.provider('name:.*').toJsonObject({}));
+                $.sendSuccess( res, project.find.provider('name:/.*/').toJsonObject({}));
             }catch(err){
                 Logger.error("[API][ANDROID ANALYZER] Providers not found. Cause : " + err.message + "\n\t" + err.stack);
                 $.sendError(res, "Providers not found. Cause : " + err.message);
@@ -231,7 +231,7 @@ ANDROID_WEB_API.addAuthenticatedRoute(
                 }
 
                 // ========== LOGIC + RESPONSE
-                $.sendSuccess( res, project.find.service('name:.*').toJsonObject({}));
+                $.sendSuccess( res, project.find.service('name:/.*/').toJsonObject({}));
             }catch(err){
                 Logger.error("[API][ANDROID ANALYZER] Services not found. Cause : " + err.message + "\n\t" + err.stack);
                 $.sendError(res, "Services not found. Cause : " + err.message);
@@ -264,7 +264,7 @@ ANDROID_WEB_API.addAuthenticatedRoute(
                 }
 
                 // ========== LOGIC + RESPONSE
-                $.sendSuccess( res, project.find.permission('name:.*').toJsonObject({}));
+                $.sendSuccess( res, project.find.permission('name:/.*/').toJsonObject({}));
             }catch(err){
                 Logger.error("[API][ANDROID ANALYZER] Permissions not found. Cause : " + err.message + "\n\t" + err.stack);
                 $.sendError(res, "Permissions not found. Cause : " + err.message);
@@ -457,7 +457,7 @@ ANDROID_WEB_API.addAuthenticatedRoute(
 
                 // ========== LOGIC + RESPONSE
                 const id:string = Util.b64_decode(req.params.id);
-                const perm:FinderResult = project.find.permission("name:" + Util.RegExpEscape(id));
+                const perm:FinderResult = project.find.permission("name:/" + Util.RegExpEscape(id)+"/");
 
                 if(perm==null){
                     throw new Error("Invalid permission ID : "+id);

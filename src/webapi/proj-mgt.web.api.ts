@@ -437,7 +437,6 @@ PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
 
             try {
 
-                Logger.raw(">>> "+req.body['uid'] );
                 // close the active project if it is opened
                 if(req.body['uid'] == null){
                         if(req.dxc.project == null){

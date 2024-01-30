@@ -476,6 +476,8 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
         lastExecDate: null
     };
 
+    _createMode = false;
+
     /*
      * A set of package checksum
      *
@@ -866,6 +868,7 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
         this.meta.creationDate = (new Date()).getTime();
         this.createBus();
         this.analCfg.addPkgAnalyzerOptions(pOptions.pkgAnalyzer);
+        this._createMode=true;
     }
 
     /**
@@ -916,7 +919,7 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
 
 
         // once Project DB is ready, init tag manager and load presets
-        await this.tagManager.init(this.pdb);
+        await this.tagManager.init(this.pdb, this._createMode);
 
         // init connector
         if(this.connector === null){
@@ -1526,15 +1529,13 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
         try{
            project = await pEngine.getEngineDB().getProject(pProjectUID);
 
-           console.log(project);
            project.engineVersion = pEngine.version;
            project.dirty();
-           console.log(project);
             Logger.debug("[PROJECT] [LOADING] Project read from DB : "+(project as any)._id);
             //console.log("PROJECT FOUND > ",(project as any)._id);
             //console.log("PROJECT VERSION > ",project.engineVersion);
         }catch (err){
-            console.log(err);
+            console.error(err);
             if(err.code==EngineDatabaseException.CODE.UNKNOWN_PROJECT){
                 // project is missing inside DB
                 project = new DexcaliburProject({
@@ -1664,9 +1665,6 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
         }
 
 
-        console.log(data);
-
-
         if(data.platform != null){
             project.platform = new Platform(data.platform); // PlatformManager.getInstance().getPlatform(data.platform);
         }
@@ -1674,8 +1672,7 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
             project.platform = project.device.getPlatform();
         }
 
-        console.log(project.platform!=null);
-        Logger.debug("[PROJECT] [LOADING] Platform retrieved : "+(project.platform!=null));
+        Logger.info("[PROJECT] [LOADING] Platform retrieved : "+(project.platform!=null));
 
         // init other properties
         await project.init();

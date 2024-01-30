@@ -13,7 +13,7 @@ var Controller:InspectorFrontController =  new InspectorFrontController();
 
 */
 function getInvokedMethod(context:DexcaliburProject):any{
-    let meth:FinderResult = context.find.method("has."+context.getTagManager().getTag("code.call.dynamic"));
+    let meth:FinderResult = context.find.method("@code.call.dynamic");
     return meth.toJsonObject({});
 }
 
@@ -24,7 +24,7 @@ function getExternalDex(context:DexcaliburProject):any{
 }
 
 function getElementsDiscovered(context:DexcaliburProject):any{
-    let cls:FinderResult = context.find.class("tags:^"+context.getTagManager().getTag("code.call.dynamic")+"$");
+    let cls:FinderResult = context.find.class("@code.call.dynamic");
     return cls.toJsonObject({});
 }
 

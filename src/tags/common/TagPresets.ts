@@ -22,6 +22,28 @@ export function newTagPresets(){
     const NETWORK_HOST = new TagCategory({ name: "network.host" });
     const KEYPOINT_DEF = new TagCategory({ name: "keypoint.defaults" });
     const ANAL_NATIVE = new TagCategory({ name: "analyzer.native" });
+    const SBOM_PURPOSE = new TagCategory({ name: "sbom.purpose" });
+    const SBOM_TYPE = new TagCategory({ name: "sbom.type" });
+
+    const SBOM_PURPOSE_TAGS = [
+        new Tag({ name:"advertisement", label:"Ads" }),
+        new Tag({ name:"marketing", label:"Marketing" }),
+        new Tag({ name:"abtesting", label:"A/B Testing" }),
+        new Tag({ name:"security", label:"Security" }),
+        new Tag({ name:"health", label:"Healthcheck" }),
+        new Tag({ name:"location", label:"Geolocation" }),
+        new Tag({ name:"profiling", label:"Profiling" }),
+        new Tag({ name:"analytics", label:"Analytics" }),
+        new Tag({ name:"identity", label:"ID" }),
+        new Tag({ name:"auth", label:"Authentication" }),
+        new Tag({ name:"db", label:"DBMS" })
+    ];
+
+
+    const SBOM_TYPE_TAGS = [
+        new Tag({ name:"db", label:"DBMS" }),
+        new Tag({ name:"db", label:"DBMS" })
+    ];
 
     const ANAL_NATIVE_TAGS = [
         new Tag({ name:"targetable" })

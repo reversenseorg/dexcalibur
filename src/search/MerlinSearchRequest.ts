@@ -809,8 +809,10 @@ export class MerlinSearchRequest implements MerlinPrimitive{
 
     const db = pProject.getAnalyzer().getInternalDB();
     if((typeof this._type)==="string"){
+      console.log("MERLIN SEARCH REQUEST > EXECUTE > getDataSetFromNodeType ",this._type);
       coll = db.getDataSetFromNodeType(NodeInternalTypeName[(this._type as string)]);
     }else{
+      console.log("MERLIN SEARCH REQUEST > EXECUTE > getDataSetFromNodeType ",(this._type as NodeType).getType());
       coll = db.getDataSetFromNodeType((this._type as NodeType).getType());
     }
 
@@ -823,8 +825,11 @@ export class MerlinSearchRequest implements MerlinPrimitive{
     const resultIndex = tmpDb.newIndex('root', Finder.NODE_ANY);
 
     if(coll.search == null){
+      console.log("MERLIN SEARCH REQUEST > EXECUTE > SEARCH NOT IMPLEMENTED ");
       throw new Error("Search not implemented");
     }else{
+      console.log("MERLIN SEARCH REQUEST > EXECUTE > SEARCH ");
+      console.log(this);
       res = await coll.search(this, resultIndex);
     }
 

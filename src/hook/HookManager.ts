@@ -300,7 +300,7 @@ export class HookManager
      */
     async createHookSet(pId:string, pOptions:any={}):Promise<HookSet> {
         //let hs:HookSet = await this.getHookSet(pId);
-        //Logger.raw(hs);
+
         //if(hs==null){
             Logger.debug("NEW "+pId+" "+((pOptions.hasOwnProperty('name')? pOptions.name : pId))+" => "+JSON.stringify(pOptions));
 

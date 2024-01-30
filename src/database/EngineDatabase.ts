@@ -628,4 +628,27 @@ export class EngineDatabase {
 
         return (this._projectsDB[pProjectUID]!=null);
     }
+
+    /**
+     * To create a new scan order
+     *
+     * @param {ScanOrder} pOrder Fresh scan order
+     *
+     */
+    async createScanOrder(pOrder:ScanOrder):Promise<ScanOrder> {
+        return await (this.getCollectionOf(ScanOrder.TYPE.getType()) as MongodbDbCollection)
+                    .asyncAddEntry({ uuid:pOrder.getUUID() },pOrder);
+    }
+
+    /**
+     * To create a new scan order
+     *
+     * @param {ScanOrder} pOrder Fresh scan order
+     *
+     */
+    async updateScanOrder(pOrder:ScanOrder):Promise<boolean> {
+        console.log("updateScanOrder > ",pOrder.getUID());
+        return await (this.getCollectionOf(ScanOrder.TYPE.getType()) as MongodbDbCollection)
+            .asyncUpdateEntry(pOrder);
+    }
 }

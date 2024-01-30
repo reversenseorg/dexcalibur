@@ -83,7 +83,8 @@ export class ScanScheduler {
         const edb = this._ctx.getEngineDB();
         const am = AuditManager.getInstance();
 
-        console.log("order save 1> ",await edb.save(pOrder));
+
+        console.log("order save 1> ",await edb.createScanOrder(pOrder));
         //await edb.save(pOrder);
 
         const model = await am.getModel(pProject, pOrder.getModelUID());
@@ -97,7 +98,7 @@ export class ScanScheduler {
         pOrder.setDate( ACTION_DATE.START );
 
 
-        console.log("order save 2> ",await edb.save(pOrder));
+        console.log("order save 2> ",await edb.updateScanOrder(pOrder));
         //await edb.save(pOrder);
 
         // check credit
@@ -106,7 +107,7 @@ export class ScanScheduler {
         pOrder.setDate( ACTION_DATE.STOP );
         pOrder.setState(ScanState.GENERATE_REPORT);
 
-        console.log("order save 3> ",await edb.save(pOrder));
+        console.log("order save 3> ",await edb.updateScanOrder(pOrder));
         //await edb.save(pOrder);
 
         // get report
@@ -115,7 +116,7 @@ export class ScanScheduler {
         am.saveReport(pProject, report);
         //pOrder.report = report;
         pOrder.setState(ScanState.TERMINATED);
-        console.log("order save 4> ",await edb.save(pOrder));
+        console.log("order save 4> ",await edb.updateScanOrder(pOrder));
         //await edb.save(pOrder);
         // get hook instance by ID
         return report;

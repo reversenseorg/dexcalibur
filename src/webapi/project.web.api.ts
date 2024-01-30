@@ -102,7 +102,6 @@ PROJECT_WEB_API.addAuthenticatedRoute(
                 const proj = await (projColl as MongodbDbCollection).getAsList();
 
                 proj.map(x =>{
-                    console.log(x);
                     data.push( x.toJsonObject());
                 });
                 $.sendSuccess( res, data);
@@ -428,8 +427,6 @@ PROJECT_WEB_API.addAuthenticatedRoute(
                     let cmpType = req.params.cmp;
                     let cmpID = req.params.id;
                     let cmpProjType = req.params.proj;
-
-                    console.log(req.params);
 
                     if(cmpID==null || cmpProjType==null || cmpType==null){
                         res.status(404);

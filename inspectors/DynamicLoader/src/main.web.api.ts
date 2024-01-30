@@ -23,7 +23,7 @@ const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
 class Rules {
     static getInvokedMethod(context:DexcaliburProject):any{
-        const meth:FinderResult = context.find.method("has."+context.getTagManager().getTag("code.call.dynamic"));
+        const meth:FinderResult = context.find.method("@code.call.dynamic");
         return meth.toJsonObject({});
     }
 
@@ -34,7 +34,7 @@ class Rules {
     }
 
     static getElementsDiscovered(context:DexcaliburProject):any{
-        const cls:FinderResult = context.find.class("tags:^"+context.getTagManager().getTag("code.call.dynamic")+"$");
+        const cls:FinderResult = context.find.class("@code.call.dynamic");
         return cls.toJsonObject({});
     }
 

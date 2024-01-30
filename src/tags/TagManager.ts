@@ -8,6 +8,7 @@ import {Nullable} from "../core/IStringIndex.js";
 import {newLogger} from "../Logger.js";
 import {ProjectDatabase} from "../database/ProjectDatabase.js";
 import type = Mocha.utils.type;
+import {Observable} from "rxjs";
 
 export interface TagMap {
     [num:number] :Tag
@@ -22,6 +23,9 @@ export interface TagHashMap {
     [name:string] :Tag
 }
 
+export interface SearchOptions {
+    regexp: boolean;
+}
 
 const Logger = newLogger();
 
@@ -40,10 +44,13 @@ export class TagManager {
     cache:TagCategoryMap = {};
     private _tagsCache:Tag[] = [];
 
+    ready = false;
+
     constructor() {
     }
 
     generateUUID():number {
+        Logger.error("TagManager.generateUUID() called");
         let uuid=-1;
         do{
             uuid = Math.round(Math.random()*10000);
@@ -70,7 +77,9 @@ export class TagManager {
 
 
     /**
-     * Load preset categories of tags
+     * Load preset categories of tags.
+     *
+     * Must be called one time per project
      *
      * @private
      */
@@ -127,7 +136,7 @@ export class TagManager {
      * @method
      */
     async importTag(pTag:Tag):Promise<void> {
-        let uuid = pTag.getUUID();
+        let uuid = pTag._;
 
         if(uuid==null){
             pTag.setUUID(this.generateUUID());
@@ -182,29 +191,36 @@ export class TagManager {
                     cats[vTag.category.getUID()].addTag(vTag);
                 }
             }
-
             await this.importTag(vTag);
         }
 
-
         this.cache = cats;
 
-        // load presets
-        await this._loadPresets();
-
         // reset tag list
-        this._tagsCache = [];
-        for(let k in this.cache){
-            this._tagsCache = this._tagsCache.concat(this.cache[k].getTags());
-        }
+        this._resetTagList();
 
         Logger.info(`[TAG MANAGER] Cache Initialized/Refreshed : ${Object.keys(this.cache).length} categories, ${this._tagsCache.length} tags `)
     }
 
     /**
+     * To recreate cache of all tags
      *
+     * @private
      */
-    async init(pDb:ProjectDatabase):Promise<void>{
+    private _resetTagList(){
+        this._tagsCache = [];
+        for(let k in this.cache){
+            this._tagsCache = this._tagsCache.concat(this.cache[k].getTags());
+        }
+    }
+
+    /**
+     * To init tag manager by importing tag + cataegory into cache
+     * And optionnally create presets tags
+     *
+     * @method
+     */
+    async init(pDb:ProjectDatabase, pNewProject = false):Promise<void>{
         Logger.debug("[TAG MANAGER] Initializing ...")
         this._db = pDb;
 
@@ -213,6 +229,16 @@ export class TagManager {
 
         await this.refreshCache();
 
+        // if it is the first time the project initializes its tag manager
+        // then load presets tags & category, and update cache
+        if(pNewProject){
+            // load presets
+            await this._loadPresets();
+            // reset cache with fresh tags
+            this._resetTagList();
+            // print info
+            Logger.info(`[TAG MANAGER] Cache created : ${Object.keys(this.cache).length} categories, ${this._tagsCache.length} tags `)
+        }
 
         Logger.debug("[TAG MANAGER] Initialized");
     }
@@ -246,12 +272,71 @@ export class TagManager {
     }
 
 
-    async getCategory( pUID:string ):Promise<Tag> {
+    async getCategory( pUID:string ):Promise<TagCategory> {
         return this._categories.asyncGetEntry(pUID);
     }
 
     async getCategories():Promise<TagCategory[]> {
         return this._categories.getAsList();
+    }
+
+    /**
+     *
+     * @param pFilter
+     * @param pOptions
+     */
+    async searchTagsFromCache(pFilter:any, pOptions:SearchOptions = {regexp:false}):Promise<Tag[]> {
+
+        let filtered:Tag[] = [];
+        let criterias = Object.keys(pFilter);
+        let i=0;
+        let re:RegExp;
+        let ctags:Tag[] = [];
+        let cats:TagCategory[] = [];
+
+        while(i<criterias.length){
+            switch (criterias[i]){
+                case "category":
+                    if(pOptions.regexp) re = new RegExp(pFilter.category);
+                    if(i==0){
+                        // walk over cache
+                        for(let k in this.cache){
+                            if((pOptions.regexp && k.match(re)) || (k===pFilter.category)){
+                                filtered = filtered.concat(this.cache[k].getTags());
+                            }
+                        }
+                    }else{
+                        filtered = filtered.filter(x => {
+                            return (x.category!=null && ((pOptions.regexp && x.category.getUID().match(re))
+                                || (x.category.getUID()===pFilter.category)));
+                        });
+                    }
+                    if(filtered.length==0) return [];
+                    break;
+                default:
+                    for(let k in this.cache){
+                        ctags = (i==0 ? this.cache[k].getTags() : filtered);
+                        if(pOptions.regexp){
+                            re = new RegExp(pFilter[criterias[i]]);
+                            ctags.map(x => {
+                                if(x[criterias[i]]!=null && x[criterias[i]].match(re)){
+                                    filtered.push(x);
+                                }
+                            });
+                        }else{
+                            ctags.map(x => {
+                                if(x[criterias[i]]===pFilter[criterias[i]]){
+                                    filtered.push(x);
+                                }
+                            });
+                        }
+                    }
+                    break;
+            }
+            i++;
+        }
+
+        return filtered;
     }
 
     async searchCategoryByName( pName:string ):Promise<TagCategory[]> {
@@ -267,7 +352,12 @@ export class TagManager {
         return cats;
     }
 
-    async getCategoryByName( pUID:string ):Promise<Tag> {
+    /**
+     * To search a category by its unique name
+     *
+     * @param pUID
+     */
+    async getCategoryByName( pUID:string ):Promise<TagCategory> {
         return await this._categories.search({ name:pUID });
     }
 
@@ -294,6 +384,10 @@ export class TagManager {
         for(let i=0; i<tags.length; i++){
             await this._tags.asyncUpdateEntry(tags[i], {upsert:true});
         }
+    }
+
+    async updateTag( pTag:Tag):Promise<void>{
+        await this._tags.asyncUpdateEntry(pTag, {upsert:true});
     }
 
     /**

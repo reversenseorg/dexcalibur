@@ -28,7 +28,7 @@ APP_WEB_API.addAuthenticatedRoute(
                     throw new Error("Project UID is missing or you have not right privileges.")
                 }
 
-                req.dxc.$.sendSuccess( res, req.dxc.project.find.provider('name:.*').toJsonObject());
+                req.dxc.$.sendSuccess( res, req.dxc.project.find.provider('name:/.*/').toJsonObject());
                 /*
                 res.status(HTTP_CODE_SUCCESS).send(JSON.stringify({
                     success: true,

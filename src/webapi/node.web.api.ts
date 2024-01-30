@@ -27,6 +27,11 @@ NODE_MGR_WEB_API.addAsyncAuthenticatedRoute(
     }
 );
 
+
+/**
+ * A webhook used by slave nodes to send state/health checks to master node
+ *
+ */
 NODE_MGR_WEB_API.addAsyncPublicRoute(
     '/webhook/state/:state',
     {

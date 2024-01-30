@@ -7,6 +7,7 @@ import {SearchToken} from "./SearchToken.js";
 import AnalyzerDatabase from "../AnalyzerDatabase.js";
 import { NodeInternalType } from "../NodeInternalType.js";
 import {IDatabase, IDbCollection, IDbIndex, NodeType} from "@dexcalibur/dexcalibur-orm";
+import {Nullable} from "../core/IStringIndex.js";
 
 const Logger: Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -31,6 +32,10 @@ const DataModel = {
     permission: new AndroidPermission(),
 };*/
 
+const TAG_TOKEN = '@';
+const SEP_TOKEN = ':';
+const REL_TOKEN = '.';
+const REGEXP_DELIMITER_TOKEN = '/';
 
 /**
  *
@@ -103,11 +108,22 @@ export class Finder {
     return pData.tags.indexOf(pRequest.pattern) > -1;
   }
 
+  /**
+   * To test if "pData" is tagged with the given pattern
+   *
+   * @param pRequest
+   * @param pData
+   */
+  static testHasTag2(pRequest: SearchPattern, pData: any): boolean {
+    if (pData.tags === undefined)  return false;
+    if (pRequest.tag == null) return false;
+
+    return pRequest.tag.match(pData); // pData.tags.indexOf(pRequest.tag.getUUID()) > -1;
+  }
+
   static testNothing(): void {
     // just a mock
   }
-
-
 
   /**
    * To create a fresh - empty - result set
@@ -128,6 +144,23 @@ export class Finder {
 
   /**
    * To parse a pattern like [native:]*ssl*.
+   *
+   * Legacy pattern :
+   * ----------
+   * is.<modifier>
+   * has.<tag>
+   * <property_path>:<pattern>
+   *
+   * Legacy behavior :
+   * -----------
+   * Every patterns are processed are case-sensitive RegExp
+   *
+   * New operations :
+   * ----------------
+   * [<property_path>]@<tag_uid>
+   * <property_path>:/<regexp>/
+   * <property_path>:<non-regexp>
+   *
    - wildcard : replace any char
    - case sensitive
    - add unicode
@@ -147,57 +180,66 @@ export class Finder {
     }
 
     let token: string | string[] = "name", lex: number = -1, isDeepSearch: boolean = false;
+    let tag:Nullable<string> = null;
     let  fn: any = null, flags: string = "";
     // test si le motif s'applique sur un champs particulier
 
-    // parse pattern
-    if (pattern.substr(0, 3) == "is.") {
-      if ((lex = pattern.indexOf(":")) > -1) {
-        token = pattern.substr(3, lex - 3);
-        pattern = pattern.substr(lex + 1, pattern.length - lex - 1);
-      } else {
-        token = pattern.substr(3, pattern.length - 3);
-        pattern = "";
-      }
+    const tagPosition = pattern.indexOf(TAG_TOKEN);
+    const sepPosition = pattern.indexOf(SEP_TOKEN);
 
-      return new SearchPattern({
-        pattern: pattern,
-        field: [new SearchToken(token)],
-        isModifier: true,
-        fn: Finder.testHasModifier
-      });
-
-      //console.debug("Modifier search ... "+token+"."+pattern+" == true");
-      /*if(lazy === false){
-          if(Modifier[token] !== undefined)
-              return new SearchPattern({
-                      pattern:pattern,
-                      field: token,
-                      isModifier:true,
-                      fn: Finder.testHasModifier
-                  });
-          else{
-              console.log("[!] The modifier '"+token+"' not exists for these objects");
-              return null;
-          }
+    if(tagPosition>-1){
+      if(sepPosition > -1 && tagPosition > sepPosition){
+        // '@' character is not a token but a part of pattern
+        // case :    <property_path>:any_val_with_@_char
       }else{
-          //console.debug("LAZY filtering ...");
+        // '@' is the token of a tag
+        tag = pattern.substring(tagPosition+1);
+        if(tagPosition>0)
+          token = pattern.substring(0,tagPosition);
+        else
+          token = "";
+      }
+    }
+
+    if(tag==null){
+      // parse pattern
+      if(pattern.substr(0, 3) == "is.") {
+          if ((lex = pattern.indexOf(SEP_TOKEN)) > -1) {
+            token = pattern.substr(3, lex - 3);
+            pattern = pattern.substr(lex + 1, pattern.length - lex - 1);
+          } else {
+            token = pattern.substr(3, pattern.length - 3);
+            pattern = "";
+          }
+
           return new SearchPattern({
-              pattern:pattern,
-              field:token,
-              isModifier:true,
-              fn: Finder.testHasModifier
+            pattern: pattern,
+            field: [new SearchToken(token)],
+            isModifier: true,
+            fn: Finder.testHasModifier
           });
-      }*/
-    } else if (pattern.substr(0, 4) == "has.") {
-      //console.debug("Tag-based request detected");
+
+        } else if (pattern.substr(0, 4) == "has.") {
+          //console.debug("Tag-based request detected");
+          return new SearchPattern({
+            pattern: pattern.substr(4),
+            isModifier: false,
+            hasTag: true,
+            fn: Finder.testHasTag
+          });
+        }
+
+    }else{
       return new SearchPattern({
-        pattern: pattern.substr(4),
+        field: SearchToken.parseTokens(token),
+        tag: this.__DB.ctx.getTagManager().getTag(tag),
         isModifier: false,
+        isDeepSearch: (token.indexOf(REL_TOKEN) > -1),
         hasTag: true,
-        fn: Finder.testHasTag
+        fn: Finder.testHasTag2
       });
     }
+
     /*
     // exact match is not a RegExp-based search
     else if(pattern.substr(0,7)=="#exact#"){
@@ -211,18 +253,43 @@ export class Finder {
     }*/
 
 
-    if ((lex = pattern.indexOf(":")) > -1) {
-      token = pattern.substr(0, lex);
-      pattern = pattern.substr(lex + 1);
+    //console.debug("Modifier search ... "+token+"."+pattern+" == true");
+    /*if(lazy === false){
+        if(Modifier[token] !== undefined)
+            return new SearchPattern({
+                    pattern:pattern,
+                    field: token,
+                    isModifier:true,
+                    fn: Finder.testHasModifier
+                });
+        else{
+            console.log("[!] The modifier '"+token+"' not exists for these objects");
+            return null;
+        }
+    }else{
+        //console.debug("LAZY filtering ...");
+        return new SearchPattern({
+            pattern:pattern,
+            field:token,
+            isModifier:true,
+            fn: Finder.testHasModifier
+        });
+    }*/
+
+    if ((lex = pattern.indexOf(SEP_TOKEN)) > -1) {
+      token = pattern.substring(0, lex);
+      pattern = pattern.substring(lex + 1);
     } else {
       // DEFAULT field must be parameterized, it depends of root node
       token = "name";
-      pattern = pattern; //"";
+      //pattern = pattern; //"";
     }
 
 
+
+
     // check if it is a deep search
-    if (token.indexOf(".") > -1) {
+    if (token.indexOf(REL_TOKEN) > -1) {
       //token = token.split(".");
       isDeepSearch = true;
       //console.debug("Deep search detected !");
@@ -235,7 +302,33 @@ export class Finder {
       return null;
     }*/
 
+    if(pattern.length>-1
+        && pattern[0]==REGEXP_DELIMITER_TOKEN
+        && pattern[pattern.length-1]==REGEXP_DELIMITER_TOKEN){
+
+      flags += (caseSensitive ? "" : "i");
+      const rx = new RegExp(pattern.substring(1,pattern.length-1), flags);
+
+      console.log("Regexp equal",rx);
+      fn = function (x:string) {
+        console.log("Regexp equal > ",x);
+        return rx.test(x)
+      };
+    }else if(pattern.length > 0){
+      Logger.raw("Strict equal > ",pattern);
+      fn = function (x:string) {
+        console.log("Strict equal > ",pattern,x);
+        return (pattern.localeCompare(x,"en", {sensitivity: caseSensitive?'case':'base'})===0);
+      };
+    }else{
+      Logger.raw("Nothing to test");
+      fn = Finder.testNothing
+    }
+
+
+
     // make corresponding regexp
+    /*
     flags += (caseSensitive ? "" : "i");
     const rx = new RegExp(pattern, flags);
 
@@ -246,9 +339,8 @@ export class Finder {
     } else {
       Logger.raw("Nothing to test");
       fn = Finder.testNothing
-    }
+    }*/
 
-    let struct = false;
 
     // TODO : remove -non-lazy mode
     // if (lazy === false && isDeepSearch === false)
@@ -257,9 +349,9 @@ export class Finder {
     return new SearchPattern({
       pattern: pattern,
       field: SearchToken.parseTokens(token),
-      isStructField: struct,
+      isStructField: false,
       isDeepSearch: isDeepSearch,
-      fn: fn,
+      fn: fn
     });
   }
 
@@ -375,7 +467,11 @@ export class Finder {
 
 
     if (ref != null) {
-      return search.fn(ref);
+      if(search.hasTag){
+        return search.tag.match(ref);
+      }else{
+        return search.fn(ref);
+      }
     } else
       return false;
 
@@ -510,17 +606,19 @@ export class Finder {
     if (spatt != null) {
       if (spatt.isModifier)
         return new FinderResult(this._findObjectByModifier(index, spatt), this);
-      if (spatt.hasTag)
-        return new FinderResult(this._findObjectByTag(index, spatt), this);
-      else if (spatt.isDeepSearch) {
+
+      if (spatt.isDeepSearch) {
         //return new FinderResult(this._findDeepObject(index, spatt), this);
         /*if(typeof spatt.field === 'string'){
             spatt.field = spatt.field.split('.');
         }*/
-
         return new FinderResult(this._findDeepObject(index, spatt), this);
-      } else
-        return new FinderResult(this._findObject(index, spatt, includeMissing), this);
+      }
+
+      if (spatt.hasTag)
+        return new FinderResult(this._findObjectByTag(index, spatt), this);
+
+      return new FinderResult(this._findObject(index, spatt, includeMissing), this);
     } else {
       return new FinderResult(
         this.newResultSet(),
