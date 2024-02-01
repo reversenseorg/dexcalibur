@@ -309,15 +309,14 @@ export class Finder {
       flags += (caseSensitive ? "" : "i");
       const rx = new RegExp(pattern.substring(1,pattern.length-1), flags);
 
-      console.log("Regexp equal",rx);
+      //console.log("Regexp equal",rx);
       fn = function (x:string) {
-        console.log("Regexp equal > ",x);
+       // console.log("Regexp equal > ",x);
         return rx.test(x)
       };
     }else if(pattern.length > 0){
-      Logger.raw("Strict equal > ",pattern);
+      // Logger.raw("Strict equal > ",pattern);
       fn = function (x:string) {
-        console.log("Strict equal > ",pattern,x);
         return (pattern.localeCompare(x,"en", {sensitivity: caseSensitive?'case':'base'})===0);
       };
     }else{

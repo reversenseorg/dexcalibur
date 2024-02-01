@@ -60,7 +60,8 @@ export default class Control implements IControl {
 
     children:Control[] = [];
 
-    assessments:ControlAssessment[] = []
+    assessments:ControlAssessment[] = [];
+
 
     constructor( pConfig:ControlOptions = null) {
         if(pConfig!=null) for(const i in pConfig) this[i]=pConfig[i];

@@ -49,14 +49,14 @@ import {SignatureServerAPI} from "./audit/SignatureServerAPI.js";
 import {Nullable} from "./core/IStringIndex.js";
 import {EngineNodeManager, MasterNodeOptions, NodeState} from "./core/EngineNodeManager.js";
 import {ScanScheduler} from "./audit/common/ScanScheduler.js";
-import {AppContextType, IAppContext} from "@dexcalibur/dexcalibur-orm"
+import {AppContextType, IAppContext, TagCategory} from "@dexcalibur/dexcalibur-orm"
 import {EngineDatabase} from "./database/EngineDatabase.js";
 import {EngineNodeException} from "./errors/EngineNodeException.js";
 import TargetApp from "./common/TargetApp.js";
 import Platform from "./Platform.js";
 import {ProjectState} from "./ProjectState.js";
 import Tool = External.Tool;
-import {Subject} from "rxjs";
+import {Observable, Subject} from "rxjs";
 import {LogMessage, LogMessageOptions} from "./log/Log.js";
 
 /*

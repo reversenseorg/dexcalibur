@@ -5,7 +5,7 @@ import AssuranceModel from "./common/AssuranceModel.js";
 import {DeviceModel} from "../DeviceModel.js";
 import {Brand} from "../Brand.js";
 import * as Log from "../Logger.js";
-import {INode, NodeType} from "@dexcalibur/dexcalibur-orm";
+import {INode, NodeType, TagCategory} from "@dexcalibur/dexcalibur-orm";
 import {NodeInternalType} from "../NodeInternalType.js";
 const GOT = got.default;
 
@@ -181,5 +181,13 @@ export class SignatureServerAPI {
                 Logger.error("Node type is not supported by SignatureServer API.");
                 return null;
         }
+    }
+
+
+    /**
+     *
+     */
+    async listTrackerPurpose():Promise<TagCategory[]> {
+        return [];
     }
 }

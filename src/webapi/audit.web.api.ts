@@ -12,6 +12,7 @@ import {ScanFlow} from "../audit/common/ScanFlow.js";
 import DexcaliburProject from "../DexcaliburProject.js";
 import {ScanOrder} from "../audit/common/ScanOrder.js";
 import {Nullable} from "../core/IStringIndex.js";
+import {TagCategory} from "@dexcalibur/dexcalibur-orm";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 export const AUDIT_WEB_API: DelegateWebApi = new DelegateWebApi();
@@ -47,6 +48,9 @@ AUDIT_WEB_API.addAsyncAuthenticatedRoute(
 
             try{
                 const ctrl = new Control(req.body);
+                ctrl.id = req.params.id;
+                Logger.info('[API][AUDIT] Update tracker '+req.params.id)
+                console.log(ctrl);
                 $.sendSuccess(res, await $.context.getSignatureServer().uppdateTracker(ctrl));
             }catch(err){
                 Logger.error("[API][AUDIT] Tracker cannot be updated. Cause : " + err.message + "\n\t" + err.stack);
@@ -71,6 +75,7 @@ AUDIT_WEB_API.addAsyncAuthenticatedRoute(
         }
     }
 );
+
 AUDIT_WEB_API.addAsyncAuthenticatedRoute(
     '/trackers/:id',
     {
@@ -83,6 +88,25 @@ AUDIT_WEB_API.addAsyncAuthenticatedRoute(
             }catch(err){
                 Logger.error("[API][AUDIT] Tracker cannot be deleted . Cause : " + err.message + "\n\t" + err.stack);
                 $.sendError(res, "Tracker cannot be deleted . Cause : " + err.message);
+            }
+        }
+    }
+);
+
+/**
+ *
+ */
+AUDIT_WEB_API.addAsyncAuthenticatedRoute(
+    '/tracker/purpose/list',
+    {
+        'get': async function (req:DelegateRequest, res:DelegateResponse):Promise<any> {
+            const $: WebServer = req.dxc.$;
+
+            try{
+                $.sendSuccess(res, await $.context.getSignatureServer().listTrackerPurpose());
+            }catch(err){
+                Logger.error("[API][AUDIT] Tracker purposes cannot be listed . Cause : " + err.message + "\n\t" + err.stack);
+                $.sendError(res, "Tracker purposes cannot be listed . Cause : " + err.message);
             }
         }
     }

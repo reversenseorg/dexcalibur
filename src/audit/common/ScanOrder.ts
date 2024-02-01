@@ -71,7 +71,7 @@ export class ScanOrder implements INode {
 
     static TYPE:NodeType = new NodeType(
         "scans",
-        NodeInternalType.ANAL_STATE,
+        NodeInternalType.SCAN_ORDER,
         [
             (new NodeProperty("_id")).type(DbDataType.STRING).key(DbKeyType.PRIMARY),
             (new NodeProperty("uuid")).type(DbDataType.STRING).key(DbKeyType.PRIMARY),
