@@ -12,7 +12,7 @@ export default class AndroidPackageManager
      * @param {Device} pDevice 
      * @param {String} pAppName 
      */
-    static getApkPathOf(pDevice:Device, pAppName:string):string{
+    static getPathOf(pDevice:Device, pAppName:string):string{
         
         let buff:string = null;
         
