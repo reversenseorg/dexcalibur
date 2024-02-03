@@ -22,10 +22,10 @@ export function newTagPresets(){
     const NETWORK_HOST = new TagCategory({ name: "network.host" });
     const KEYPOINT_DEF = new TagCategory({ name: "keypoint.defaults" });
     const ANAL_NATIVE = new TagCategory({ name: "analyzer.native" });
-    const SBOM_PURPOSE = new TagCategory({ name: "sbom.purpose" });
-    const SBOM_TYPE = new TagCategory({ name: "sbom.type" });
+    const PURPOSE = new TagCategory({ name: "purpose" });
+    //const SBOM_TYPE = new TagCategory({ name: "sbom.type" });
 
-    const SBOM_PURPOSE_TAGS = [
+    const PURPOSE_TAGS = [
         new Tag({ name:"advertisement", label:"Ads" }),
         new Tag({ name:"marketing", label:"Marketing" }),
         new Tag({ name:"abtesting", label:"A/B Testing" }),
@@ -36,12 +36,6 @@ export function newTagPresets(){
         new Tag({ name:"analytics", label:"Analytics" }),
         new Tag({ name:"identity", label:"ID" }),
         new Tag({ name:"auth", label:"Authentication" }),
-        new Tag({ name:"db", label:"DBMS" })
-    ];
-
-
-    const SBOM_TYPE_TAGS = [
-        new Tag({ name:"db", label:"DBMS" }),
         new Tag({ name:"db", label:"DBMS" })
     ];
 
@@ -198,6 +192,8 @@ export function newTagPresets(){
     NETWORK_PROTOCOL_TAGS.map( x => { NETWORK_PROTOCOL.addTag(x); });
     KEYPOINT_DEF_TAGS.map(x => {KEYPOINT_DEF.addTag(x)});
     ANAL_NATIVE_TAGS.map(x => {ANAL_NATIVE.addTag(x)});
+    PURPOSE_TAGS.map(x => {PURPOSE.addTag(x)});
+
     return [
         GLOBAL,
         DISCOVER,
@@ -221,7 +217,8 @@ export function newTagPresets(){
 
         KEYPOINT_DEF,
 
-        ANAL_NATIVE
+        ANAL_NATIVE,
+        PURPOSE
     ];
 }
 export const TAG_CATEGORY_PRESETS = newTagPresets();
