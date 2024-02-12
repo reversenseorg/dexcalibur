@@ -21,10 +21,25 @@ var KeystoreInspector:InspectorFactory = new InspectorFactory({
 
     startStep: INSPECTOR_TYPE.POST_APP_SCAN,
 
-    tags: {
-        "keystore.type": ["aks","bks","keychain","tpm"],
-        "keystore.service": ["aks"],
-    },
+    tags: [
+        {
+            name:"keystore.type",
+            _tagsOptions:[
+                { name:"aks", label:"KeyStorage:AndroidKeyStore"},
+                { name:"bks", label:"KeyStorage:BouncyCastle"},
+                { name:"keychain", label:"KeyStorage:KeyChain"},
+                { name:"tpm", label:"KeyStorage:TPM"},
+                { name:"ese", label:"KeyStorage:SecureElement"},
+                { name:"db", label:"KeyStorage:DBMS"},
+            ]
+        },{
+            name:"keystore.service",
+            _tagsOptions:[
+                { name:"aks", label:"KeyService:AndroidKeyStore"}
+            ]
+        }
+    ],
+
 
     useGUI: true,
     

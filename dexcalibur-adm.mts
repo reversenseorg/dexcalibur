@@ -42,7 +42,7 @@ import {UserManager} from "./src/UserManager.js";
 import {UserService} from "./src/user/UserService.js";
 import PlatformManager from "./src/PlatformManager.js";
 import {Workflow} from "./src/Workflow.js";
-import AndroidAppAnalyzer from "./src/AndroidAppAnalyzer.js";
+import AndroidAppAnalyzer from "./src/android/AndroidAppAnalyzer.js";
 import {AndroidResourceType} from "./src/android/AndroidResource.js";
 
 

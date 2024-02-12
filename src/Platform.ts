@@ -8,7 +8,7 @@ import {OperatingSystem} from "./OperatingSystem.js";
 import {Architecture} from "./Architecture.js";
 import {CoreDebug} from "./core/CoreDebug.js";
 import {IAppAnalyzer} from "./analyzer/IAppAnalyzer.js";
-import AndroidAppAnalyzer from "./AndroidAppAnalyzer.js";
+import AndroidAppAnalyzer from "./android/AndroidAppAnalyzer.js";
 import {AnalyzerState} from "./AnalyzerState.js";
 import IosAppAnalyzer from "./ios/IosAppAnalyzer.js";
 import {AnalyzerException} from "./errors/AnalyzerException.js";

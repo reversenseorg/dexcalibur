@@ -40,11 +40,17 @@ function isASCII(buffer){
 
 var DataClassifierInspector:InspectorFactory = new InspectorFactory({
 
-    startStep: INSPECTOR_TYPE.POST_APP_SCAN,
+    startStep: INSPECTOR_TYPE.POST_DEV_SCAN,
 
-    tags: {
-        "string.pattern": ["URI", "IP"]
-    },
+    tags: [
+        {
+            name:"string.pattern",
+            _tagsOptions:[
+                { name:"uri"},
+                { name:"ip"}
+            ]
+        }
+    ],
 
     hookSet: {
         id: "DataClassifier",
@@ -71,7 +77,7 @@ var DataClassifierInspector:InspectorFactory = new InspectorFactory({
             }
         },
         "string.new": function(ctx:DexcaliburProject,event:BusEvent<ModelStringValue>):void{
-            const tag_URI = ctx.getTagManager().getTag("string.pattern.URI");
+            const tag_URI = ctx.getTagManager().getTag("string.pattern.uri");
             const pattern:RegExp = new RegExp("([^:/]*)://([^/]*)");
 
             if(event.data!=null && pattern.exec(event.data.value)){
@@ -82,7 +88,7 @@ var DataClassifierInspector:InspectorFactory = new InspectorFactory({
         },
         "dxc.fullscan.post": function(ctx:DexcaliburProject,event:BusEvent<any>):void{
 
-            const tag_URI = ctx.getTagManager().getTag("string.pattern.URI");
+            const tag_URI = ctx.getTagManager().getTag("string.pattern.uri");
             let pattern:RegExp = new RegExp("([^:/]*)://([^/]*)");
     
             // tag static strings containing URI
@@ -106,7 +112,7 @@ var DataClassifierInspector:InspectorFactory = new InspectorFactory({
         "string.instance.new": function(ctx:DexcaliburProject,event:BusEvent<ModelStringValue>){
             if(event.data!=null){
                 if(URI_REGEXP.test(event.data.value)){
-                    event.data.addTag(ctx.getTagManager().getTag("string.pattern.URI"));
+                    event.data.addTag(ctx.getTagManager().getTag("string.pattern.uri"));
                     ctx.bus.send(new BusEvent<ModelStringValue>({
                         type: "network.uri.string",
                         data: event.data

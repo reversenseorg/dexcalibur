@@ -39,9 +39,15 @@ export default new InspectorFactory({
         name: 'dex'
     },
 
-    tags: {
-        "dynamic_loading": ["invoked", "loaded"]
-    },
+    tags: [
+        {
+            name:"dynamic_loading",
+            _tagsOptions:[
+                { name:"invoked"},
+                { name:"loaded"},
+            ]
+        }
+    ],
 
     color: 'purple',
 

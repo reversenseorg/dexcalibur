@@ -25,9 +25,18 @@ export default new InspectorFactory({
 
     useGUI: true,
 
-    tags : {
-        "input": ["text", "date", "email"],
-    },
+    tags : [
+        {
+            name:"ui.input",
+            _tagsOptions:[
+                { name:"text"},
+                { name:"pan"},
+                { name:"pincode"},
+                { name:"date"},
+                { name:"email"},
+            ]
+        }
+    ],
 
     hookSet: {
         id: "AndroidUI",

@@ -14,9 +14,7 @@ var CommunicationInspector:InspectorFactory = new InspectorFactory({
 
     startStep: INSPECTOR_TYPE.POST_APP_SCAN,
 
-    tags: {
-        "string.pattern": ["URI", "IP"]
-    },
+    tags: [],
 
     hookSet: {
         id: "CommunicationMonitor",

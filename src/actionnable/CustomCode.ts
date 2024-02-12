@@ -11,6 +11,7 @@ export interface CustomCodeOptions {
     source?:string;
     lang?:CodeLang;
     errors?:string;
+    description?:string;
 }
 
 /**
@@ -27,6 +28,7 @@ export class CustomCode {
     source:Nullable<string>  = null;
     lang:CodeLang = "js";
     errors:Nullable<string>  = null;
+    description:string = "";
 
     constructor(pOptions:CustomCodeOptions) {
         if(pOptions.fn!=null) this.fn = pOptions.fn;
@@ -34,6 +36,7 @@ export class CustomCode {
         if(pOptions.source!=null) this.source = pOptions.source;
         if(pOptions.lang!=null) this.lang = pOptions.lang;
         if(pOptions.errors!=null) this.errors = pOptions.errors;
+        if(pOptions.description!=null) this.description = pOptions.description;
     }
 
     getSource():Nullable<string> {
@@ -97,7 +100,8 @@ export class CustomCode {
             compiled: this.compiled,
             source: this.source,
             lang: this.lang,
-            errors: this.errors
+            errors: this.errors,
+            description: this.description
         };
     }
 }

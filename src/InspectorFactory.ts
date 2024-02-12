@@ -27,9 +27,8 @@ import {NodeInternalType} from "./NodeInternalType.js";
 import {IStringIndex, Nullable} from "./core/IStringIndex.js";
 import BusEvent from "./BusEvent.js";
 import {CustomCode, CustomCodeOptions} from "./actionnable/CustomCode.js";
-import HookTemplateFragment from "./hook/HookTemplateFragment.js";
-import HookStrategySelector from "./hook/HookStrategySelector.js";
 import {MongodbDbCollection} from "@dexcalibur/dexcalibur-orm-mongodb";
+import {TagCategoryOptions,TagOptions} from "@dexcalibur/dexcalibur-orm";
 
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
@@ -48,10 +47,16 @@ export interface EventListenersCode {
     [p:string]: CustomCode
 }
 
-
-export interface TagDefinitions {
-    [catName:string]: string[]
+/**
+ * Represent options to create a TagCategory with every children Tag
+ * as a single object, to create tag category in a one shot
+ *
+ * @interface
+ */
+export interface FlattenTagCategoryOptions extends TagCategoryOptions {
+    _tagsOptions:TagOptions[]
 }
+
 
 export interface  HookStrategyOptions {
 
@@ -82,7 +87,8 @@ export interface InspectorFactoryOptions {
     useGUI?:Nullable<boolean>;
     startStep: INSPECTOR_TYPE;
     db?:Nullable<InspectorDbmsOptions>;
-    tags?:Nullable<TagDefinitions>;
+    //tags?:Nullable<TagDefinitions>;
+    tags?:Nullable<FlattenTagCategoryOptions[]>;
     color?:Nullable<string>;
     eventListeners?:EventListeners;
     eventListenerSources?:EventListenersSource;
@@ -200,7 +206,7 @@ export default class InspectorFactory implements INode
     eventListenerSources:EventListenersSource = {};
     useGUI = false;
     require:string[] = [];
-    itags:Nullable<TagDefinitions> = null;
+    itags:FlattenTagCategoryOptions[] = [];
 
     /**
      * The step when the inspector must be deployed
@@ -236,7 +242,12 @@ export default class InspectorFactory implements INode
         }
         if(pModel.require != null) this.require = pModel.require;
         if(pModel.db != null) this.db = pModel.db;
-        if(pModel.tags != null) this.itags = pModel.tags;
+
+        if(pModel.tags != null)
+            this.itags = pModel.tags;
+        else
+            this.itags = [];
+
         if(pModel.useGUI != null) this.useGUI = pModel.useGUI;
         if(pModel.eventListeners != null) this.eventListeners = pModel.eventListeners;
         if(pModel.eventListenerSources != null) this.eventListenerSources = pModel.eventListenerSources;
@@ -456,17 +467,33 @@ export default class InspectorFactory implements INode
         }
 
         // If the inspector adds own tag categories, add them
-        let tagcat:TagCategory;
+
         if(this.itags != null){
+            this.itags.map((vCat:FlattenTagCategoryOptions)=>{
+                const tagcat:TagCategory = new TagCategory(vCat);
+
+                vCat._tagsOptions.map((vTag:TagOptions)=>{
+                    tagcat.addTag( new Tag(vTag));
+                });
+
+                // remove useless data
+                delete vCat._tagsOptions;
+
+                ins.registerTagCategory(tagcat);
+            });
+
+            /*
             for(const i in this.itags){
-                tagcat = new TagCategory({ name: i });
+                tagcat = new TagCategory({
+                    name: i
+                });
 
                 this.itags[i].map( (vName:string)=>{
                     tagcat.addTag(new Tag({ name:vName }))
                 });
 
                 ins.registerTagCategory(tagcat);
-            }
+            }*/
         }
 
         // If the inspector use GUI, set the flag

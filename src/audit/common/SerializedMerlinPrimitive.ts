@@ -7,6 +7,7 @@ import {
     SearchOperationArgs, TaintOperationArgs, TimeOperationArgs, ValidateOperationArgs, WindowingOperationArgs
 } from "../../search/MerlinSearchRequest.js";
 import {SearchRequestCondition} from "../../search/SearchRequestCondition.js";
+import {SearchOptions} from "../../search/MerlinSearchAPI.js";
 
 
 export enum MerlinType {
@@ -20,7 +21,8 @@ export declare const SupportedEngine: Readonly<{
 }>;
 
 export interface SerializedSearchOperationArgs {
-    pattern: string
+    pattern: string,
+    options?:SearchOptions
 }
 
 export interface SerializedInnerjoinOperationArgs {

@@ -22,9 +22,15 @@ var KotlinInspector:InspectorFactory = new InspectorFactory({
         name: 'kotlin'
     },
 
-    tags: {
-        "kotlin": ["config"]
-    },
+    tags: [
+        {
+            name:"kotlin",
+            _tagsOptions:[
+                { name:"config" },
+                { name:"debugInfo" }
+            ]
+        }
+    ],
 
     hookSet: {
         id: "Kotlin",

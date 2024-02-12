@@ -4,6 +4,7 @@ import Util from "../Utils.js";
 import {SearchOptions} from "./MerlinSearchAPI.js";
 import {INode, Tag} from "@dexcalibur/dexcalibur-orm";
 
+const REGEXP_DELIMITER_TOKEN = '/';
 
 export interface ValidateOptions {
   range?: any[],
@@ -55,9 +56,18 @@ export class SearchRequestCondition implements IStringIndex<any>{
     this.regexp = true;
     let p = this.pattern;
     if(!pSkipClean){
-      if(p.startsWith("/")) p = p.substring(1);
-      if(p.endsWith("/")) p = p.substring(0,p.length-1);
+
+      const lastDeliminiter = p.lastIndexOf(REGEXP_DELIMITER_TOKEN);
+      if(p.length>-1
+          && p[0]==REGEXP_DELIMITER_TOKEN
+          && (lastDeliminiter > 0)){
+
+        const reFlags = p.substring(lastDeliminiter+1);
+        this._re = new RegExp(p.substring(1,lastDeliminiter), reFlags);
+        return;
+      }
     }
+
     this._re = new RegExp(p);
   }
 

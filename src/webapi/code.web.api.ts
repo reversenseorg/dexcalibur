@@ -16,7 +16,7 @@ import {FinderResult} from "../search/FinderResult.js";
 import DataScope from "../DataScope.js";
 import ModelFile from "../ModelFile.js";
 import {NodeInternalType} from "../NodeInternalType.js";
-import AndroidAppAnalyzer from "../AndroidAppAnalyzer.js";
+import AndroidAppAnalyzer from "../android/AndroidAppAnalyzer.js";
 import {AndroidApiClassXrefList, AndroidCodeAnalyzer} from "../android/analyzer/AndroidCodeAnalyzer.js";
 import {AndroidAnalyzerException} from "../errors/android/AndroidAnalyzerException.js";
 

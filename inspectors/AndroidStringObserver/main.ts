@@ -21,9 +21,7 @@ var AndroidStringObserverInspector:InspectorFactory = new InspectorFactory({
 
     startStep: INSPECTOR_TYPE.POST_APP_SCAN,
 
-    tags: {
-
-    },
+    tags: [],
 
     hookSet: {
         id: "AndroidStringObserver",

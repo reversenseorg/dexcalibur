@@ -10,7 +10,18 @@ import {NodeInternalType, NodeInternalTypeName} from "../NodeInternalType.js";
 import {CoreDebug} from "../core/CoreDebug.js";
 import {MerlinPrimitive, MerlinType} from "./MerlinPrimitive.js";
 import {NodeType, NodeProperty, IDbCollection, IDbIndex} from "@dexcalibur/dexcalibur-orm";
+import * as Log from "../Logger.js";
+import {Nullable} from "../core/IStringIndex.js";
+import {SearchPattern} from "./SearchPattern.js";
+import {SearchToken} from "./SearchToken.js";
 
+const TAG_TOKEN = '@';
+const SEP_TOKEN = ':';
+const REL_TOKEN = '.';
+const REGEXP_DELIMITER_TOKEN = '/';
+
+
+let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
 export enum OperationType {
   SEARCH,
@@ -25,7 +36,8 @@ export enum OperationType {
   INNERJOIN,
   TAINT_SRC,
   TAINT_SINK,
-  TAINT_STEP
+  TAINT_STEP,
+  SELECT
 }
 
 
@@ -246,6 +258,150 @@ export class MerlinSearchRequest implements MerlinPrimitive{
   }
 
 
+
+
+  /**
+   * To parse a pattern like [native:]*ssl*.
+   *
+   * Legacy pattern :
+   * ----------
+   * is.<modifier>
+   * has.<tag>
+   * <property_path>:<pattern>
+   *
+   * Legacy behavior :
+   * -----------
+   * Every patterns are processed are case-sensitive RegExp
+   *
+   * New operations :
+   * ----------------
+   * [<property_path>]@<tag_uid>
+   * <property_path>:/<regexp>/
+   * <property_path>:<non-regexp>
+   *
+   - wildcard : replace any char
+   - case sensitive
+   - add unicode
+   * @param {*} dataModel
+   * @param String pattern
+   * @param Boolean caseSensitive
+   * @param Boolean lazy If FALSE, verify if the field exists
+   * @returns {SearchPattern} The parsed search pattern, ready to be used
+   */
+  static parseCondition2(pCond: string, pOptions:SearchOptions):SearchRequestCondition {
+
+
+    if (pCond == undefined || pCond.length == 0) {
+      Logger.info("[!] find : Pattern cannot be null");
+      return null;
+    }
+
+    let pattern = pCond;
+    let token: string | string[] = "name", lex: number = -1, isDeepSearch: boolean = false;
+    let tag:Nullable<string> = null;
+    let  fn: any = null, flags: string = "";
+
+    const cond:SearchRequestCondition = new SearchRequestCondition({
+      field: null,
+      pattern: null,
+      tag: null,
+      regexp: false,
+      raw: pCond,
+      opts: pOptions,
+      tagKey: null
+    });
+
+
+    const tagPosition = pattern.indexOf(TAG_TOKEN);
+    const sepPosition = pattern.indexOf(SEP_TOKEN);
+
+    if(tagPosition>-1){
+      if(sepPosition > -1 && tagPosition > sepPosition){
+        // '@' character is not a token but a part of pattern
+        // case :    <property_path>:any_val_with_@_char
+      }else{
+        // '@' is the token of a tag
+        tag = pattern.substring(tagPosition+1);
+        if(tagPosition>0)
+          token = pattern.substring(0,tagPosition);
+        else
+          token = "";
+      }
+    }
+
+    if(tag==null){
+      // parse pattern
+      if(pattern.substr(0, 3) == "is.") {
+        if ((lex = pattern.indexOf(SEP_TOKEN)) > -1) {
+          token = pattern.substr(3, lex - 3);
+          pattern = pattern.substr(lex + 1, pattern.length - lex - 1);
+        } else {
+          token = pattern.substr(3, pattern.length - 3);
+          pattern = "";
+        }
+
+        cond.pattern = pattern;
+        cond.field = token;
+
+      } else if (pattern.substr(0, 4) == "has.") {
+        //console.debug("Tag-based request detected");
+
+        cond.pattern = null;
+        cond.tagKey = pattern.substr(4);
+      }
+
+    }else{
+      cond.field = token;
+      cond.tagKey = tag;
+    }
+
+    if ((lex = pattern.indexOf(SEP_TOKEN)) > -1) {
+      token = pattern.substring(0, lex);
+      pattern = pattern.substring(lex + 1);
+    } else {
+      // DEFAULT field must be parameterized, it depends of root node
+      token = "name";
+      //pattern = pattern; //"";
+    }
+
+    // check if it is a deep search
+    if (token.indexOf(REL_TOKEN) > -1) {
+      //token = token.split(".");
+      isDeepSearch = true;
+      //console.debug("Deep search detected !");
+    }
+
+
+    // TODO : remove -non-lazy mode
+    /*if (lazy === false && isDeepSearch === false && dataModel[token] === undefined) {
+      Logger.info("[!] The property '" + token + "' not exists for these objects");
+      return null;
+    }*/
+
+    const lastDeliminiter = pattern.lastIndexOf(REGEXP_DELIMITER_TOKEN);
+    if(pattern.length>-1
+        && pattern[0]==REGEXP_DELIMITER_TOKEN
+        && (lastDeliminiter > 0)){
+
+      const reFlags = pattern.substring(lastDeliminiter+1);
+
+      const rx = new RegExp(pattern.substring(1,lastDeliminiter), reFlags);
+
+      cond.regexp = true;
+      //cond.pattern = rx;
+
+    }else if(pattern.length > 0){
+      // Logger.raw("Strict equal > ",pattern);
+      fn = function (x:string) {
+        return (pattern.localeCompare(x,"en", {sensitivity: 'case'})===0);
+      };
+      cond.pattern = pattern;
+    }
+
+    return cond;
+  }
+
+
   static fromCondition(pSearchContext:MerlinSearchAPI, pNodeType:NodeType, pCondition:string|any, pOptions:SearchOptions):MerlinSearchRequest {
     const req = new MerlinSearchRequest(pSearchContext, pNodeType, [] );
 
@@ -253,7 +409,7 @@ export class MerlinSearchRequest implements MerlinPrimitive{
       if(pCondition.length>0){
         req.addOperation({
           type:OperationType.SEARCH, args:{
-            pattern: MerlinSearchRequest.parseCondition(pCondition, pOptions)
+            pattern: MerlinSearchRequest.parseCondition2(pCondition, pOptions)
           }
         });
       }
@@ -261,7 +417,7 @@ export class MerlinSearchRequest implements MerlinPrimitive{
       // TODO : add object-based pattern instead of string
       req.addOperation({
         type:OperationType.SEARCH, args:{
-          pattern: MerlinSearchRequest.parseCondition(pCondition, pOptions)
+          pattern: MerlinSearchRequest.parseCondition2(pCondition, pOptions)
         }
       });
     }
@@ -312,7 +468,7 @@ export class MerlinSearchRequest implements MerlinPrimitive{
   }
 
   search( pRequest:string, pOptions:SearchOptions = { not:false }):MerlinSearchRequest {
-    this._oper.push({ type: OperationType.SEARCH, args:{ pattern: MerlinSearchRequest.parseCondition(pRequest,pOptions) } });
+    this._oper.push({ type: OperationType.SEARCH, args:{ pattern: MerlinSearchRequest.parseCondition2(pRequest,pOptions) } });
     this._search++;
     return this;
   }
@@ -320,7 +476,7 @@ export class MerlinSearchRequest implements MerlinPrimitive{
   not( pRequest:string, pOptions:SearchOptions = { not:true }):MerlinSearchRequest {
      // force
     pOptions.not = true;
-    this._oper.push({ type: OperationType.SEARCH, args:{ pattern: MerlinSearchRequest.parseCondition(pRequest,pOptions) } });
+    this._oper.push({ type: OperationType.SEARCH, args:{ pattern: MerlinSearchRequest.parseCondition2(pRequest,pOptions) } });
     this._search++;
     return this;
   }
@@ -341,7 +497,7 @@ export class MerlinSearchRequest implements MerlinPrimitive{
   filter( pRequest:string, pOptions:SearchOptions = { not:false }):MerlinSearchRequest{
     // force NOT to be false
     pOptions.not = false;
-    this._oper.push({ type: OperationType.FILTER, args:{ pattern: MerlinSearchRequest.parseCondition(pRequest,pOptions) } });
+    this._oper.push({ type: OperationType.FILTER, args:{ pattern: MerlinSearchRequest.parseCondition2(pRequest,pOptions) } });
     return this;
   }
 
@@ -555,7 +711,7 @@ export class MerlinSearchRequest implements MerlinPrimitive{
               if(fArgs.pattern.opts.range) f += ` range: [${JSON.stringify(fArgs.pattern.opts.range)}],`;
               if(fArgs.pattern.opts.copyTo) f += ` copyTo: ${JSON.stringify(fArgs.pattern.opts.exists)},`;
               if(fArgs.pattern.opts.strict) f += ` strict: ${JSON.stringify(fArgs.pattern.opts.strict)},`;
-              if(f.length>1) f =  f.substring(0,f.length-1);
+              if(f.length>3) f =  f.substring(0,f.length-1);
               f += "}";
             }else{
               f = "";

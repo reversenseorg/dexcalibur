@@ -5,6 +5,7 @@ export function newTagPresets(){
     const DATA_TYPE = new TagCategory({ name: "data.type" });
     const DATA_HASH = new TagCategory({ name: "data.hash" });
     const DATA_LEN = new TagCategory({ name: "data.len" });
+    const DATA_ACTION = new TagCategory({ name: "data.action" });
     const DATA_CHARSET = new TagCategory({ name: "data.charset" });
     const DATA_FMT_EXEC = new TagCategory({ name: "data.fmt.exec" });
     const CODE_NATIVE = new TagCategory({ name: "code.native" });
@@ -23,6 +24,7 @@ export function newTagPresets(){
     const KEYPOINT_DEF = new TagCategory({ name: "keypoint.defaults" });
     const ANAL_NATIVE = new TagCategory({ name: "analyzer.native" });
     const PURPOSE = new TagCategory({ name: "purpose" });
+    const FS_FILE = new TagCategory({ name: "fs.file" });
     //const SBOM_TYPE = new TagCategory({ name: "sbom.type" });
 
     const PURPOSE_TAGS = [
@@ -37,6 +39,17 @@ export function newTagPresets(){
         new Tag({ name:"identity", label:"ID" }),
         new Tag({ name:"auth", label:"Authentication" }),
         new Tag({ name:"db", label:"DBMS" })
+    ];
+
+
+    const FS_FILE_TAGS = [
+        new Tag({ name:"write" }),
+        new Tag({ name:"read" }),
+    ];
+
+    const DATA_ACTION_TAGS = [
+        new Tag({ name:"read" }),
+        new Tag({ name:"wrote" }),
     ];
 
     const ANAL_NATIVE_TAGS = [
@@ -182,6 +195,7 @@ export function newTagPresets(){
     DATA_TYPE_TAGS.map( x => { DATA_TYPE.addTag(x); });
     DATA_HASH_TAGS.map( x => { DATA_HASH.addTag(x); });
     DATA_LEN_TAGS.map( x => { DATA_LEN.addTag(x); });
+    DATA_ACTION_TAGS.map( x => { DATA_ACTION.addTag(x); });
     DATA_CHARSET_TAGS.map( x => { DATA_CHARSET.addTag(x); });
     GLOBAL_TAGS.map( x => { GLOBAL.addTag(x); });
     DISCOVER_TAGS.map( x => { DISCOVER.addTag(x); });
@@ -193,6 +207,9 @@ export function newTagPresets(){
     KEYPOINT_DEF_TAGS.map(x => {KEYPOINT_DEF.addTag(x)});
     ANAL_NATIVE_TAGS.map(x => {ANAL_NATIVE.addTag(x)});
     PURPOSE_TAGS.map(x => {PURPOSE.addTag(x)});
+    FS_FILE_TAGS.map( x => { FS_FILE.addTag(x); });
+
+
 
     return [
         GLOBAL,
@@ -207,6 +224,7 @@ export function newTagPresets(){
         DATA_CHARSET,
         DATA_HASH,
         DATA_LEN,
+        DATA_ACTION,
 
         RUNTIME_MSG,
         AUDIT_TYPE,
@@ -218,7 +236,8 @@ export function newTagPresets(){
         KEYPOINT_DEF,
 
         ANAL_NATIVE,
-        PURPOSE
+        PURPOSE,
+        FS_FILE
     ];
 }
 export const TAG_CATEGORY_PRESETS = newTagPresets();

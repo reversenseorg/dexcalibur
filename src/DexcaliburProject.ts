@@ -17,7 +17,7 @@ import BusEvent, {BusEventOptions} from "./BusEvent.js";
 import {DataAnalyzer} from "./DataAnalyzer.js";
 import Analyzer from "./Analyzer.js";
 import ApkHelper from "./ApkHelper.js";
-import AndroidAppAnalyzer from "./AndroidAppAnalyzer.js";
+import AndroidAppAnalyzer from "./android/AndroidAppAnalyzer.js";
 import DexcaliburEngine from "./DexcaliburEngine.js";
 import ProjectWorkspace from "./ProjectWorkspace.js";
 import * as Log from './Logger.js';

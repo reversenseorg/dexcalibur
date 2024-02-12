@@ -103,10 +103,24 @@ export default new InspectorFactory({
 
     useGUI: true,
 
-    tags : {
-        "intent.action": ["browsable", "exported"],
-        "topo.android":["ACTIVITY","RECEIVER","PROVIDER","SERVICE","PERM"]
-    },
+    tags: [
+        {
+            name:"intent.action",
+            _tagsOptions:[
+                { name:"browsable"},
+                { name:"exported"}
+            ]
+        },{
+            name:"topo.android",
+            _tagsOptions:[
+                { name:"ACTIVITY"},
+                { name:"RECEIVER"},
+                { name:"PROVIDER"},
+                { name:"SERVICE"},
+                { name:"PERM"},
+            ]
+        }
+    ],
 
     hookSet: {
         id: "ApplicationTopography",

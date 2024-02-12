@@ -483,6 +483,7 @@ export default class Inspector implements BusBroadcaster
      * @param vCategory
      */
     registerTagCategory( vCategory:TagCategory ){
+        console.log("registerTagCategory >",vCategory);
         this.preRegisteredTags.push(vCategory);
     }
 

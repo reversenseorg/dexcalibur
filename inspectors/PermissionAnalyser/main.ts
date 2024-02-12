@@ -1040,9 +1040,17 @@ var PermissionAnalyzer:InspectorFactory = new InspectorFactory({
 
     startStep: INSPECTOR_TYPE.POST_APP_SCAN,
 
-    tags: {
-        "protectionLevel": ["normal","signature","dangerous","special"]
-    },
+    tags: [
+        {
+            name:"protectionLevel",
+            _tagsOptions:[
+                { name:"normal"},
+                { name:"signature"},
+                { name:"dangerous"},
+                { name:"special"}
+            ]
+        }
+    ],
     
     hookSet: {
         id: "PermissionAnalyzer",

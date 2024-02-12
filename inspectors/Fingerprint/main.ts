@@ -16,9 +16,16 @@ var FingerprintInspector:InspectorFactory = new InspectorFactory({
 
     startStep: INSPECTOR_TYPE.POST_APP_SCAN,
 
-    tags: {
-        "fingerprint": ["fp-os","fp-sim","fp-device"]
-    },
+    tags: [
+        {
+            name:"fingerprint",
+            _tagsOptions:[
+                { name:"fp-os"},
+                { name:"fp-sim"},
+                { name:"fp-device"},
+            ]
+        }
+    ],
 
     hookSet: {
         id: "Fingerprint",

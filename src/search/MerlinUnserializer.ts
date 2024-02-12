@@ -2,7 +2,8 @@ import {
     SerializedInnerjoinOperationArgs,
     SerializedMerlinOperation,
     SerializedMerlinPrimitive,
-    SerializedSearchOperationArgs, SerializedSearchRequest
+    SerializedSearchOperationArgs,
+    SerializedSearchRequest
 } from "../audit/common/SerializedMerlinPrimitive.js";
 import {InnerjoinOperationArgs, MerlinSearchRequest, Operation, OperationType} from "./MerlinSearchRequest.js";
 import {IStringIndex, Nullable} from "../core/IStringIndex.js";
@@ -57,7 +58,7 @@ export class MerlinUnserializer {
                 ope = {
                     type: OperationType.SEARCH,
                     args: {
-                        pattern: MerlinSearchRequest.parseCondition((pObject.args as SerializedSearchOperationArgs).pattern, {not:false})
+                        pattern: MerlinSearchRequest.parseCondition2((pObject.args as SerializedSearchOperationArgs).pattern, {not:false})
                     }
                 };
                 break;
@@ -69,7 +70,7 @@ export class MerlinUnserializer {
                     }
                 };
                 if((pObject.args as InnerjoinOperationArgs).cond != null){
-                    (ope.args as InnerjoinOperationArgs).cond = MerlinSearchRequest.parseCondition((pObject.args as SerializedInnerjoinOperationArgs).cond, {not:false})
+                    (ope.args as InnerjoinOperationArgs).cond = MerlinSearchRequest.parseCondition2((pObject.args as SerializedInnerjoinOperationArgs).cond, {not:false})
                 }
                 break;
             case OperationType.VALIDATE:
@@ -171,7 +172,7 @@ export class MerlinUnserializer {
             reqOpers.push({
                 type: OperationType.SEARCH,
                 args: {
-                    pattern: MerlinSearchRequest.parseCondition(pRequest.pattern, reqOpts)
+                    pattern: MerlinSearchRequest.parseCondition2(pRequest.pattern, reqOpts)
                 }
             });
 
@@ -221,7 +222,7 @@ export class MerlinUnserializer {
                     reqOpers.push({
                         type: OperationType.SEARCH,
                         args: {
-                            pattern: MerlinSearchRequest.parseCondition(pObject.request.pattern, reqOpts)
+                            pattern: MerlinSearchRequest.parseCondition2(pObject.request.pattern, reqOpts)
                         }
                     });
                 }
@@ -230,8 +231,32 @@ export class MerlinUnserializer {
                 if (pObject.request.oper != null) {
                     if (Array.isArray(pObject.request.oper)) {
                         // if more operations are specified, append it :
-                        pObject.request.oper.map(x => {
-                            reqOpers.push(x as Operation);
+                        pObject.request.oper.map((x:SerializedMerlinOperation) => {
+                            switch(x.type){
+                                case OperationType.FILTER:
+                                    if((x.args as any).pattern != null){
+
+                                        console.info('OperationType.FILTER  processed ',x);
+                                        reqOpers.push({
+                                            type: OperationType.FILTER,
+                                            args: {
+                                                pattern: MerlinSearchRequest.parseCondition2((x.args as any).pattern,
+                                                    ((x.args as any).options!=null?
+                                                        (x.args as any).options:null))
+                                            }
+                                        });
+                                    }else{
+                                        console.log('OperationType.FILTER not processed ',x);
+                                    }
+
+                                    break;
+                                case OperationType.JOIN:
+                                case OperationType.INTERSECT:
+                                case OperationType.UNION:
+                                default:
+                                    reqOpers.push(x as Operation);
+                                    break;
+                            }
                         })
                     }
                 }
@@ -275,6 +300,7 @@ export class MerlinUnserializer {
 
                     if(req.request==null){
                         console.log(pObject.request.node, pObject.os, NodeType.ALL[pObject.request.node]);
+                        console.log(pObject);
                         throw MerlinSearchRequestException.MISSING_NODE_TYPE(pObject.request.node);
                     }
                 }

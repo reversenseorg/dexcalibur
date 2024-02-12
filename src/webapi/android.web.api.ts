@@ -11,7 +11,7 @@ import AndroidProvider from "../android/AndroidProvider.js";
 import AndroidService from "../android/AndroidService.js";
 import {AndroidPermission} from "../android/Permissions.js";
 import {FinderResult} from "../search/FinderResult.js";
-import AndroidAppAnalyzer from "../AndroidAppAnalyzer.js";
+import AndroidAppAnalyzer from "../android/AndroidAppAnalyzer.js";
 import {NodeInternalType} from "../NodeInternalType.js";
 import AndroidComponent from "../android/AndroidComponent.js";
 import {AndroidCodeAnalyzer} from "../android/analyzer/AndroidCodeAnalyzer.js";
