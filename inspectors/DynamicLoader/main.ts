@@ -27,6 +27,7 @@ export default new InspectorFactory({
     name: "Dynamic class loader inspector",
     description: "Update the application representation with Custom classloader and reflection data",
 
+    version: "1.0.0",
     startStep: INSPECTOR_TYPE.POST_APP_SCAN,
 
     webapi: DYNAMICLOADER_WEB_API,

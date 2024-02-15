@@ -6,14 +6,19 @@ import {BinaryToTextEncoding} from "crypto";
 export type TypedArray = Int8Array | Uint8Array | Uint8ClampedArray | Int16Array | Int32Array |
     Uint32Array | Float32Array | Float64Array | BigInt64Array | BigUint64Array;
 
+export type HashAlgo = "md5"|"sha256";
+
 export class CryptoUtils {
 
-    static alg_Md5:_crypto_.Hash = _crypto_.createHash('md5');
-    static alg_Sha256:_crypto_.Hash = _crypto_.createHash('sha256');
+    static ALG_MD5:HashAlgo = "md5";
+    static ALG_SHA256:HashAlgo = "sha256";
+
+    static alg_Md5:_crypto_.Hash = _crypto_.createHash(CryptoUtils.ALG_MD5);
+    static alg_Sha256:_crypto_.Hash = _crypto_.createHash(CryptoUtils.ALG_SHA256);
 
     static md5(pIn:_crypto_.BinaryLike, pOutputEncoding:BinaryToTextEncoding='hex', pReset = false):string {
         if(pReset){
-            CryptoUtils.alg_Md5 = _crypto_.createHash('md5');
+            CryptoUtils.alg_Md5 = _crypto_.createHash(CryptoUtils.ALG_MD5);
         }
 
         CryptoUtils.alg_Md5.update(pIn);
@@ -22,10 +27,22 @@ export class CryptoUtils {
 
     static sha256(pIn:_crypto_.BinaryLike, pOutputEncoding:BinaryToTextEncoding='hex', pReset = false):string {
         if(pReset){
-            CryptoUtils.alg_Sha256 = _crypto_.createHash('sha256');
+            CryptoUtils.alg_Sha256 = _crypto_.createHash(CryptoUtils.ALG_SHA256);
         }
 
         CryptoUtils.alg_Sha256.update(pIn);
         return CryptoUtils.alg_Sha256.copy().digest(pOutputEncoding);
+    }
+
+    static stringEqual( pStringA:string, pStringB:string, pAlgo:HashAlgo = CryptoUtils.ALG_SHA256):boolean {
+        switch (pAlgo){
+            case CryptoUtils.ALG_SHA256:
+                return (CryptoUtils.sha256(pStringA)===CryptoUtils.sha256(pStringB));
+            case CryptoUtils.ALG_MD5:
+                // TODO : add security exception to prevent collision
+                return (CryptoUtils.md5(pStringA)===CryptoUtils.md5(pStringB));
+            default:
+                return false;
+        }
     }
 }

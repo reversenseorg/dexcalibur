@@ -19,6 +19,7 @@ var SecurityRatingInspector:InspectorFactory = new InspectorFactory({
 
     startStep: INSPECTOR_TYPE.POST_APP_SCAN,
 
+    version: "1.0.0",
     hookSet: {
         id: "SecurityRating",
         name: "Security rating",

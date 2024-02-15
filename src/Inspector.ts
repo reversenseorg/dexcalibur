@@ -122,9 +122,9 @@ class StaticTask
      */
     exec(ctx:any, event:any){
         if(this.condition != null && this.condition(ctx))
-            this.task(ctx, event);
+            this.task(ctx, event, Logger);
         else
-            this.task(ctx, event);
+            this.task(ctx, event, Logger);
     }
 }
 
@@ -483,7 +483,6 @@ export default class Inspector implements BusBroadcaster
      * @param vCategory
      */
     registerTagCategory( vCategory:TagCategory ){
-        console.log("registerTagCategory >",vCategory);
         this.preRegisteredTags.push(vCategory);
     }
 
@@ -533,7 +532,6 @@ export default class Inspector implements BusBroadcaster
         // declare TagCategory
         const tmgr = ctx.getTagManager();
         for(let i=0; i<this.preRegisteredTags.length; i++){
-            console.log(this.preRegisteredTags[i].name+" Regsitered");
             await tmgr.importCategory(this.preRegisteredTags[i]);
         }
 

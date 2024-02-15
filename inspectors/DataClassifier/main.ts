@@ -42,6 +42,7 @@ var DataClassifierInspector:InspectorFactory = new InspectorFactory({
 
     startStep: INSPECTOR_TYPE.POST_DEV_SCAN,
 
+    version: "1.0.0",
     tags: [
         {
             name:"string.pattern",

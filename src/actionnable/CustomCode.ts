@@ -1,6 +1,7 @@
 import {Nullable} from "../core/IStringIndex.js";
 import {F} from "@reversense/interruptor/src/common/Types.js";
 import {TypescriptHelper} from "../core/lang/TypescriptHelper.js";
+import {CryptoUtils} from "../CryptoUtils.js";
 
 export type CodeLang = "js" | "ts";
 
@@ -56,7 +57,7 @@ export class CustomCode {
      */
     wakeUp():CustomCode {
         try{
-            this.createFunction(['pCtx','pEvent']);
+            this.createFunction(['pCtx','pEvent','pLogger']);
         }catch(err){
             console.log("Function cannot be restored");
         }
@@ -77,7 +78,6 @@ export class CustomCode {
             case "ts":
                 // todo : invoke tsc
                 this.compiled = TypescriptHelper.transpile(this.source);
-                console.log(this);
                 break;
             case "js":
             default:
@@ -90,6 +90,39 @@ export class CustomCode {
 
         return this.fn;
     }
+
+    /**
+     * To compore to custome code instance
+     *
+     * @param {CustomCode} pCode
+     */
+    equal(pCode:CustomCode):boolean {
+        let eq = true;
+        eq = eq && (this.lang==pCode.lang);
+        eq = eq && (this.description==pCode.description);
+        eq = eq && CryptoUtils.stringEqual(this.source,pCode.source);
+
+        if(this.compiled!=null && pCode.compiled!=null){
+            eq = eq && CryptoUtils.stringEqual(this.compiled,pCode.compiled);
+        }
+
+        return eq;
+    }
+
+    /**
+     * To compare this custom code instance with upcoming options
+     *
+     * @param {CustomCodeOptions} pCode
+     */
+    equalOptions(pOptions:CustomCodeOptions):boolean {
+        let eq = true;
+        eq = eq && (this.lang==pOptions.lang);
+        eq = eq && (this.description==pOptions.description);
+        eq = eq && CryptoUtils.stringEqual(this.source,pOptions.source);
+
+        return eq;
+    }
+
 
     /**
      *

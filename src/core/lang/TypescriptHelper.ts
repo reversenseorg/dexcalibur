@@ -16,7 +16,7 @@ export class TypescriptHelper {
             }
         });
 
-        console.log(s);
+        //Logger.debugRAW(s);
         return s.outputText;
     }
 }

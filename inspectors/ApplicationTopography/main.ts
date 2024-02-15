@@ -103,6 +103,7 @@ export default new InspectorFactory({
 
     useGUI: true,
 
+    version: "1.0.3",
     tags: [
         {
             name:"intent.action",
@@ -217,9 +218,13 @@ export default new InspectorFactory({
     eventListenerSources: {
 
         "app.activity.new": {
-            lang: 'js',
+            lang: 'ts',
             source:`
             // <ts>
+
+            function isRelativeName(pName){
+                return pName[0]=='.';
+            }
 
             function getClassByManifestUid( pContext:DexcaliburProject, pManifest:AndroidManifest, pClassName:string):ModelClass{
                 let clsUID:string;
@@ -232,7 +237,7 @@ export default new InspectorFactory({
             
                 const cls:ModelClass = pContext.find.get.class(clsUID);
                 if( cls == null){
-                    Logger.error("[AppTopo] Class '"+clsUID+"' not found");
+                    pLogger.error("[AppTopo] Class '"+clsUID+"' not found");
                 }
                 return cls;
             }
@@ -245,7 +250,8 @@ export default new InspectorFactory({
                 pEvent.data.obj.setImplementedBy(cls);
                 cls.addTag( pCtx.getTagManager().getTag("topo.android.ACTIVITY"));
             }else{
-                Logger.error("[AppTopo][activity] Fail to map internal dependencies mapped for ["+ pEvent.data.obj.name+"] : class not found");
+                pLogger.error("[AppTopo][activity] Fail to map internal dependencies mapped for ["+ pEvent.data.obj.name+"] : class not found");
+                pLogger.error("[AppTopo][activity] Fail to map internal dependencies mapped for ["+ pEvent.data.obj.name+"] : class not found");
                 return true;
             }
 
@@ -260,9 +266,9 @@ export default new InspectorFactory({
 
             // search dependencies to platform method and class
             if (AndroidCodeAnalyzer.searchInternalDependencies(pCtx, pEvent.data.obj)!=null) {
-                Logger.info("[AppTopo][activity] Internal dependencies mapped for : ", pEvent.data.obj.name);
+                pLogger.info("[AppTopo][activity] Internal dependencies mapped for : ", pEvent.data.obj.name);
             } else {
-                Logger.error("[AppTopo][activity] Fail to map internal dependencies mapped for : ", pEvent.data.obj.name);
+                pLogger.error("[AppTopo][activity] Fail to map internal dependencies mapped for : ", pEvent.data.obj.name);
             }
             `
         }

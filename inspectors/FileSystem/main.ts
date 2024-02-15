@@ -12,6 +12,7 @@ var FileSystemInspector:InspectorFactory = new InspectorFactory({
 
     useGUI: true,
 
+    version: "1.0.0",
     hookSet: {
         id: "FileSystem",
         name: "File system inspector",

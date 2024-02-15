@@ -29,6 +29,7 @@ import BusEvent from "./BusEvent.js";
 import {CustomCode, CustomCodeOptions} from "./actionnable/CustomCode.js";
 import {MongodbDbCollection} from "@dexcalibur/dexcalibur-orm-mongodb";
 import {TagCategoryOptions,TagOptions} from "@dexcalibur/dexcalibur-orm";
+import {SemVerHelper} from "./util/semver/SemverHelper.js";
 
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
@@ -60,6 +61,12 @@ export interface FlattenTagCategoryOptions extends TagCategoryOptions {
 
 export interface  HookStrategyOptions {
 
+}
+
+export enum UpgradeLevel {
+    PATCH,
+    MINOR,
+    MAJOR
 }
 
 export interface HookSetOptions {
@@ -195,7 +202,7 @@ export default class InspectorFactory implements INode
     id:string;
     name:Nullable<string> = null;
     description:Nullable<string> = null;
-    version:string = "1.0";
+    version:string = "1.0.0";
     color:any = null;
     startStep:INSPECTOR_TYPE = INSPECTOR_TYPE.ON_DEMAND;
     hookSet:Nullable<HookSetOptions> = null;
@@ -264,6 +271,87 @@ export default class InspectorFactory implements INode
 
     isWebApiReady():boolean {
         return this._r;
+    }
+
+    /**
+     * To compare two instance of the same inspector,
+     * and  check if the one from project need an upgrade
+     *
+     * @param {InspectorFactory} pProjectFactory Instance of InspectorFactory (to check) from the project
+     * @param {InspectorFactory} pServerFactory Instance of InspectorFactory from the server (tecnicall the newest)
+     * @return {boolean} Return TRUE is `pProjectFactory` require an upgrade
+     * @method
+     * @static
+     */
+    static needUpgrade(pProjectFactory:InspectorFactory,pServerFactory:InspectorFactory):boolean {
+
+        // version number are subject to prone
+        const projVer = SemVerHelper.normalize(pProjectFactory.version);
+        const servVer = SemVerHelper.normalize(pServerFactory.version);
+
+        // TODO : if normalized version differs from sourced version, the inspector factory should be updated
+
+        // compare
+        const cmp = SemVerHelper.compare(projVer,servVer);
+
+        Logger.info(`[INSPECTOR FACTORY][${pProjectFactory.id}:${projVer}] ${ (cmp.newest.raw!=projVer)? "need upgrade to "+cmp.newest.raw: 'is up-to-date' }`);
+        return (cmp.newest.raw!=projVer);
+    }
+
+    /**
+     * To check if an inspector can be upgraded
+     *
+     * If "patch" level differs : change inspector instance
+     * If "minor" level differs : recreate inspector
+     * if "major" level differs : recreate project
+     *
+     * @param {InspectorFactory} pProjectFactory Instance of InspectorFactory (to check) from the project
+     * @param {InspectorFactory} pServerFactory Instance of InspectorFactory from the server (tecnicall the newest)
+     * @return {boolean} Return TRUE is `pProjectFactory` require an upgrade
+     * @method
+     * @static
+     */
+    static getUpgradeLevel(pProjectFactory:InspectorFactory,pDefaultFactory:InspectorFactory):UpgradeLevel {
+        // version number are subject to prone
+        const projVer = SemVerHelper.parse(SemVerHelper.normalize(pProjectFactory.version));
+        const servVer = SemVerHelper.parse(SemVerHelper.normalize(pDefaultFactory.version));
+
+        if(projVer.major!=servVer.major){
+            return UpgradeLevel.MAJOR;
+        }else if(projVer.major!=servVer.major){
+            return UpgradeLevel.MINOR;
+        }else {
+            return UpgradeLevel.PATCH;
+        }
+    }
+
+
+    /**
+     * To add or upgrade a listener
+     *
+     * @param {string} pEventType
+     * @param {CustomCodeOptions} pListener
+     * @method
+     */
+    upgradeListener( pEventType:string, pListener:CustomCodeOptions):void {
+        this.eventListenerSources[pEventType] = pListener;
+        this.eventListenersCode[pEventType] = new CustomCode(pListener);
+    }
+
+    /**
+     * To upgrade tags+category registered by the
+     * specified inspector.
+     *
+     * Warning : Tag and catagories cannot be removed
+     *
+     * @param pOutdatedInspector
+     */
+    upgradeTags(pOutdatedInspector:Inspector):Inspector {
+
+        // detect missing tags category
+
+        //
+        return pOutdatedInspector;
     }
 
     /**
@@ -508,11 +596,9 @@ export default class InspectorFactory implements INode
 
         // If the inspector extend analyzers with own event listener, register it into new Inspector
 
-        console.log(this.id,this.eventListeners)
         if(this.eventListeners != null){
             Logger.debug(`[INSPECTOR FACTORY] eventListeners > ${Object.keys(this.eventListeners).length } listeners `);
             for(const i in this.eventListeners){
-                console.log(i);
                 ins.on(i, {
                     task: this.eventListeners[i]
                 });
@@ -529,7 +615,7 @@ export default class InspectorFactory implements INode
 
                 try{
                     ins.on(i, {
-                        task: elSrc.createFunction(['pCtx','pEvent'])
+                        task: elSrc.createFunction(['pCtx','pEvent','pLogger'])
                     });
                 }catch(err){
                     Logger.error(`[INSPECTOR FACTORY][uid=${this.id}][ERR:${err.code}] createInstance : event listener cannot create from source code. 
@@ -549,6 +635,24 @@ export default class InspectorFactory implements INode
 
 
     /**
+     *
+     * @param pFlattenConfig
+     */
+    static createTagCategory(pFlattenConfig:FlattenTagCategoryOptions):TagCategory {
+        const tagcat:TagCategory = new TagCategory(pFlattenConfig);
+
+        pFlattenConfig._tagsOptions.map((vTag:TagOptions)=>{
+            tagcat.addTag( new Tag(vTag));
+        });
+
+        // remove useless data
+        delete pFlattenConfig._tagsOptions;
+
+        return tagcat;
+    }
+
+
+    /**
      * To restore an instance of an Inspector
      *
      * Tags / TagCatories are not restored, because they have been already importe in global scope.
@@ -562,8 +666,6 @@ export default class InspectorFactory implements INode
         const hmgr:HookManager = pProject.getHookManager();
         const hapi:HookDbApi = hmgr.getDbAPI();
 
-        console.log("RESTORE ",this.getUID());
-
         // retrieve state
         const state = await (pProject.getProjectDB()).getInspectorState(this.getUID());
         const stratDB:MongodbDbCollection = pProject.getProjectDB().getCollectionOf(HookStrategy.TYPE.getType()) as MongodbDbCollection;
@@ -572,8 +674,6 @@ export default class InspectorFactory implements INode
         let strategies:any;
         let hsuid:string = null;
         let strat:HookStrategy;
-
-        console.log("RESTORE ",this.getUID(), state);
 
         // keep a reference to the factory who restore the Inspector instance
         state.factory = this;
@@ -662,7 +762,6 @@ export default class InspectorFactory implements INode
 
         // If the inspector use local InMemory DB : create/open it, and create indexes
         if(state.db != null){
-
             console.log("RESTORE INSPECTOR > state.db > ",state.db);
             /*
             const cfgDB = state.db as any;
@@ -690,61 +789,59 @@ export default class InspectorFactory implements INode
             }*/
         }
 
-        // If the inspector adds own tag categories, add them
-        // Tags are already imported
-        /*let tagcat:TagCategory;
-        if(state.preRegisteredTags != null){
-            state.preRegisteredTags.map(x => {
-
-            })
-            for(const i in this._config.tags){
-                tagcat = new TagCategory({ name: i });
-
-                this._config.tags[i].map( (vName:string)=>{
-                    tagcat.addTag(new Tag({ name:vName }))
-                });
-            }
-        }*/
-
-
-        // If the inspector extend analyzers with own event listener, register it into new Inspector
-        /*if(this.eventListenersCode != null){
-            for(const eventName in this.eventListenersCode){
-                if(this.eventListenersCode[eventName].fn!=null){
-                    state.on(eventName, {
-                        task: this.eventListenersCode[eventName].fn
-                    });
-                }
-            }
-        }*/
-
-
+        /*
         if(this._config.eventListenerSources != null){
-            let elSrc:CustomCode;
-            for(const i in this._config.eventListenerSources){
-                elSrc = new CustomCode(this._config.eventListenerSources[i]);
-                this.eventListenersCode[i] = new CustomCode(elSrc);
-
-                state.on(i, {
-                    task: elSrc.createFunction(['pCtx','pEvent'])
-                });
-            }
+            this._restoreEventListenersFromCode(state);
         }
-
 
         // If the inspector extend analyzers with own event listener, register it into new Inspector
         if(this._config.eventListeners != null){
-            for(const i in this._config.eventListeners){
-                state.on(i, {
-                    task: this._config.eventListeners[i]
-                });
-            }
-        }
+            this._restoreEventListenersFromFunc(state);
+        }*/
 
         // Finally, when the Inspector is created from the prototype, inject the current project (context)
-        state.injectContext(pProject);
+        // state.injectContext(pProject);
 
         return state;
+    }
+
+    /**
+     *
+     * @param pInspector
+     */
+     _restoreEventListenersFromCode(pInspector:Inspector):void {
+         if(this._config.eventListenerSources==null) return ;
+
+        let elSrc:CustomCode;
+        for(const i in this._config.eventListenerSources){
+            try{
+                elSrc = new CustomCode(this._config.eventListenerSources[i]);
+
+                pInspector.on(i, {
+                    task: elSrc.createFunction(['pCtx','pEvent','pLogger'])
+                });
+
+                this.eventListenersCode[i] = elSrc; //new CustomCode(elSrc);
+            }catch(err){
+                Logger.error(`[INSPECTOR FACTORY] [${this.id}:${this.version}] <listener:${i}> ${err.message}`);
+                Logger.error(err.stack);
+            }
+        }
+    }
+
+    /**
+     *
+     * @param pInspector
+     * @param pListeners
+     */
+    _restoreEventListenersFromFunc(pInspector:Inspector):void {
+        if(this._config.eventListeners==null) return ;
+
+        for(const i in this._config.eventListeners){
+            pInspector.on(i, {
+                task: this._config.eventListeners[i]
+            });
+        }
     }
 
     /**

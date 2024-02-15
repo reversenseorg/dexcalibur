@@ -25,6 +25,7 @@ export default new InspectorFactory({
 
     useGUI: true,
 
+    version: "1.0.0",
     tags : [
         {
             name:"ui.input",

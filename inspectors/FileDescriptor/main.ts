@@ -14,6 +14,7 @@ var FileDescriptorInspector:InspectorFactory = new InspectorFactory({
 
     useGUI: true,
 
+    version: "1.0.0",
     hookSet: {
         id: "FileDescriptor",
         name: "file descriptor inspector",

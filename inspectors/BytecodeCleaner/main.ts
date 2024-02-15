@@ -90,6 +90,8 @@ PLUGIN_WEB_API.addAuthenticatedRoute(
 export default new InspectorFactory({
     id: "BytecodeCleaner",
     name: "Bytecode cleaner",
+
+    version: "1.0.0",
     description: "It offers several cleanup solution : remove NOP, replace goto, detect wrapper, detect duplicate function ...",
 
     startStep: INSPECTOR_TYPE.BOOT,
