@@ -310,6 +310,39 @@ export default class InspectorManager
     }
 
 
+    async createInspector( pInspectorFactory:InspectorFactory, pProject:DexcaliburProject):Promise<boolean> {
+
+        let ins:Inspector;
+
+        pInspectorFactory.compileListeners();
+
+        //test = pProject.engine.getEngineDB().getRawDB()._s.prepareForPersist(pInspectorFactory, InspectorFactory.TYPE);
+
+        // save inspector data/version
+        await pProject.getProjectDB().getCollectionOf(InspectorFactory.TYPE.getType()).asyncAddEntry(pInspectorFactory.getUID(), pInspectorFactory);
+
+
+        try{
+            ins = await pInspectorFactory.createInstance(pProject);
+            this.projects[pProject.getUID()][pInspectorFactory.id] = ins;
+            await pProject.attachInspector(ins);
+            return  true;
+        }catch (err){
+            // if an error happens, remove InspectorFactory from DB and log it.
+            this.engine.log("Inspector instance cannot be created : "+err.message, pProject, err.code);
+            Logger.error(err.message);
+            try{
+                await pProject.getProjectDB().getCollectionOf(InspectorFactory.TYPE.getType()).asyncRemoveEntry(pInspectorFactory);
+            }catch(err2){
+                this.engine.log("InspectorFactory cannot be removed after instance creating failed : "+err2.message, pProject, err2.code);
+                Logger.error(err2.message);
+            }finally {
+                return false;
+            }
+        }
+
+    }
+
     /**
      * To create inspector instance for new projects
      *
@@ -329,6 +362,9 @@ export default class InspectorManager
         for(const i in this.locals){
             // local inspector
             factory = (this.locals[i] as any);
+
+            await this.createInspector(this.locals[i], pProject);
+            /*
             factory.compileListeners();
 
             test = pProject.engine.getEngineDB().getRawDB()._s.prepareForPersist(factory, InspectorFactory.TYPE);
@@ -350,7 +386,7 @@ export default class InspectorManager
                     this.engine.log("InspectorFactory cannot be removed after instance creating failed : "+err2.message, pProject, err2.code);
                     Logger.error(err2.message);
                 }
-            }
+            }*/
         }
 
         return true;
@@ -376,6 +412,7 @@ export default class InspectorManager
         let inspID:string;
         let needUpgrade = false;
         let changes:Nullable<UpgradeChanges> = null;
+        let restored:string[] = [];
 
         // read InspectorPlugin of the project
         factories = await pProject.getProjectDB()
@@ -434,7 +471,7 @@ export default class InspectorManager
                         factories[i]._restoreEventListenersFromFunc(this.projects[uid][factories[i].id]);
                     }
 
-
+                    restored.push(factories[i].id);
 
                     // trigger event when Inspector is restored.
                     await pProject.attachInspector(this.projects[uid][factories[i].id]);
@@ -444,6 +481,13 @@ export default class InspectorManager
                 console.log(err.message,err.stack);
             }
 
+        }
+
+        // detect if there is missing inspector
+        for(let k in this.locals){
+            if(restored.indexOf(k)==-1){
+                await this.createInspector(this.locals[k], pProject);
+            }
         }
 
         pProject.restored();

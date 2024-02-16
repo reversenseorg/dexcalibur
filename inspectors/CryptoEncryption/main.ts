@@ -1,0 +1,112 @@
+import InspectorFactory from "../../src/InspectorFactory.js";
+import {INSPECTOR_TYPE} from "../../src/Inspector.js";
+import DexcaliburProject from "../../src/DexcaliburProject.js";
+import BusEvent from "../../src/BusEvent.js";
+import ModelStringValue from "../../src/ModelStringValue.js";
+import ModelDataBlock from "../../src/ModelDataBlock.js";
+
+var PATTERNS = [
+    "AES",
+    "DES",
+    "DESede",
+    "HmacSHA1",
+    "HmacSHA224",
+    "HmacSHA256",
+    "HmacSHA384",
+    "HmacSHA512",
+    "PBEwithHmacSHA1",
+    "PBEwithHmacSHA1AndAES_128",
+    "PBEwithHmacSHA1AndAES_256",
+    "PBEwithHmacSHA224AndAES_128",
+    "PBEwithHmacSHA224AndAES_256",
+    "PBEwithHmacSHA256AndAES_128",
+    "PBEwithHmacSHA256AndAES_256",
+    "PBEwithHmacSHA384AndAES_128",
+    "PBEwithHmacSHA384AndAES_256",
+    "PBEwithHmacSHA512AndAES_128",
+    "PBEwithHmacSHA512AndAES_256",
+    "PBEwithMD5AND128BITAES-CBC-OPENSSL",
+    "PBEwithMD5AND192BITAES-CBC-OPENSSL",
+    "PBEwithMD5AND256BITAES-CBC-OPENSSL",
+    "PBEwithMD5ANDDES",
+    "PBEwithMD5ANDRC2",
+    "PBEwithSHA1ANDDES",
+    "PBEwithSHA1ANDRC2",
+    "PBEwithSHA256AND128BITAES-CBC-BC",
+    "PBEwithSHA256AND192BITAES-CBC-BC",
+    "PBEwithSHA256AND256BITAES-CBC-BC",
+    "PBEwithSHAAND128BITAES-CBC-BC",
+    "PBEwithSHAAND128BITRC2-CBC",
+    "PBEwithSHAAND128BITRC4",
+    "PBEwithSHAAND192BITAES-CBC-BC",
+    "PBEwithSHAAND2-KEYTRIPLEDES-CBC",
+    "PBEwithSHAAND256BITAES-CBC-BC",
+    "PBEwithSHAAND3-KEYTRIPLEDES-CBC",
+    "PBEwithSHAAND40BITRC2-CBC",
+    "PBEwithSHAAND40BITRC4",
+    "PBEwithSHAANDTWOFISH-CBC",
+    "PBKDF2WithHmacSHA1",
+    "PBKDF2withHmacSHA1And8BIT",
+    "PBKDF2withHmacSHA224",
+    "PBKDF2withHmacSHA256",
+    "PBKDF2withHmacSHA384",
+    "PBKDF2withHmacSHA512",
+]
+
+
+// ===== INIT =====
+
+var CryptoEncryption:InspectorFactory = new InspectorFactory({
+
+    startStep: INSPECTOR_TYPE.POST_APP_SCAN,
+
+    version: "1.0.0",
+    tags: [
+        {
+            name: "crypto.encryption.factory",
+            _tagsOptions: [
+                { name:"secret_key_alg", label:"Tagged value is an algorithm commonly used to generate secret key" },
+                { name:"read_key", label:"Tagged function call a method that read a key" }
+            ]
+        },
+        {
+            name: "crypto.encryption.type",
+            _tagsOptions: [
+                { name:"aes", label:"Tagged value are involved into AES encryption" }
+            ]
+        }
+    ],
+
+    hookSet: {
+        id: "CryptoEncryption",
+        name: "Cryptography : Encryption",
+        description: "Tag function and data related to data encryption and key management",
+        strategies:[]
+    },
+
+    eventListenerSources: {
+        "string.new": {
+            lang: "js",
+            source: `
+            // PBKDF2WithHmacSHA1
+            var patterns = [${PATTERNS.map(x => '"'+x+'"').concat(',')}];
+            
+            if(patterns.indexOf(pEvent.data.value)>-1){
+                var tag = pCtx.getTagManager().getTag("crypto.encryption.factory.secret_key_alg"); 
+                pEvent.data.addTag(tag);
+            }
+            `
+        },
+        "dxc.fullscan.post_deploy": {
+            source: ` 
+            var calls = pCtx.find.call("calleed.name:/^getKeySpec$/").getAsList();
+            var tag = pCtx.getTagManager().getTag("crypto.encryption.factory.read_key"); 
+            calls.map(x => {
+                x.caller.addTag(tag);
+            });
+            `
+        }
+    }
+});
+
+export default  CryptoEncryption;

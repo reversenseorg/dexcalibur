@@ -6,6 +6,7 @@ import BusEvent from "../../src/BusEvent.js";
 import ModelMethod from "../../src/ModelMethod.js";
 
 
+
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
 // ====== CONFIG TASK ====== 
