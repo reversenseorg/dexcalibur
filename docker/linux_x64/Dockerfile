@@ -7,6 +7,13 @@ FROM openjdk:18-jdk-slim
 LABEL maintainer="georges.michel@reversense.com"
 
 # ===============================
+# Runtime args
+# ===============================
+
+# Comma seperated value. Supported values (subject to change, not exhaustive) : home , pro, oracle, ...
+ENV DXC_PRODUCTS="home,pro"
+
+# ===============================
 # Config
 # ===============================
 ENV DXC_USER_SRV="dexcalibur-bin"
@@ -200,6 +207,9 @@ RUN sudo chown $user_server:$user_server "$ARTIFACTS_FOLDER/dxc-home.tar.gz" && 
 
 RUN mv "$ARTIFACTS_FOLDER/dxc-home/dist" "$ARTIFACTS_FOLDER/dist/src/webserver/www/home"
 
+VOLUME [ "/www_uis" ]
+
+RUN
 
 # ===============================
 # Configure server
@@ -261,9 +271,4 @@ EXPOSE 8080
 # Dexcalibur Web Socket
 EXPOSE 8002
 
-RUN cd "$ARTIFACTS_FOLDER/dist" && \
-    node ./dexcalibur.js --gui=home
-
-
-# RUN curl -L -o "$TMP_FOLDER/home-ui.tar.gz" "$DXC_ARTIFACTS https://bitbucket.org/iBotPeaches/apktool/downloads/apktool_"$DXC_V_APKTOOL".jar"
-
+CMD [ "node", "./dist/dexcalibur.js", "--gui=$DXC_PRODUCTS" ]
