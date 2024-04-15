@@ -268,6 +268,16 @@ export default class ProjectWorkspace
         return _path_.join(this.path, DIR_NAME.AUDIT);
     }
 
+
+    /**
+     * To get the path of the folder where binary of target application
+     * are stored. Content of this folder depends of app type.
+     *
+     * It could contain splitted APKs
+     *
+     * @return {string}  Directory path
+     * @method
+     */
     getInputDir():string{
         return _path_.join(this.path, DIR_NAME.IN);
     }

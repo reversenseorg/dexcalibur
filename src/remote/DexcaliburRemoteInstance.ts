@@ -16,6 +16,7 @@ import {IpcMode} from "../DexcaliburServerChildProcess.js";
 import {UserAccount} from "../user/UserAccount.js";
 import {DexcaliburProjectMap} from "../DexcaliburEngine.js";
 import {EngineDatabase} from "../database/EngineDatabase.js";
+import {ProjectInput} from "../analyzer/ProjectInput.js";
 
 export class DexcaliburRemoteInstance implements IDexcaliburEngine {
 
@@ -103,7 +104,7 @@ export class DexcaliburRemoteInstance implements IDexcaliburEngine {
         return undefined;
     }
 
-    newProject(pUID: string, pApkPath: string, pDevice: any): Promise<DexcaliburProject> {
+    newProject(pUID: string, pInputs:ProjectInput[], pDevice: any): Promise<DexcaliburProject> {
         return Promise.resolve(undefined);
     }
 

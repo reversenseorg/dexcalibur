@@ -35,6 +35,7 @@ interface DeviceList {
 export interface DeviceEnrollmentOptions {
     frida?:any;
     profiling?:DeviceProfilingOptions;
+    rooted?:boolean;
 }
 
 /**
@@ -671,12 +672,12 @@ export default class DeviceManager extends ValidationCapable
         return json;
     }
 
-    /**
+    /*
      * @param pDevice
      * @param pOptions
      * @async
      */
-    async performDeviceProfiling( pDevice:Device, pOptions:DeviceProfilingOptions){
+    /*async performDeviceProfiling( pDevice:Device, pOptions:DeviceProfilingOptions){
         try{
             await pDevice.performProfiling(pOptions);
             this.save();
@@ -684,7 +685,7 @@ export default class DeviceManager extends ValidationCapable
             throw DeviceManagerException.DEVICE_PROFILING_FAILED(pDevice.getUID(),err.message);
         }
 
-    }
+    }*/
 
     /**
      * To enroll a new device or an updated device
@@ -724,17 +725,22 @@ export default class DeviceManager extends ValidationCapable
             await device.retrieveUIDfromDevice();
         }
 
-        // Install frida 
-        success = await FridaHelper.installServer(device, (pOtions.frida != null? pOtions.frida: {})) ;
+        // Install frida
+        if(pOtions.rooted){
+            success = await FridaHelper.installServer(device, (pOtions.frida != null? pOtions.frida: {})) ;
 
-        if(success){
-            Logger.info("[Device Manager] Frida server installed.\n[Device Manager] Start platform install ...");
-            this.status = new StatusMessage(70, this.status.append("[Device Manager] Frida server installed.\n[Device Manager] Start platform install ..."));
+            if(success){
+                Logger.info("[Device Manager] Frida server installed.\n[Device Manager] Start platform install ...");
+                this.status = new StatusMessage(70, this.status.append("[Device Manager] Frida server installed.\n[Device Manager] Start platform install ..."));
+            }else{
+
+                Logger.info("[Device Manager] Fail");
+                this.status = StatusMessage.newError( this.status.append("[Device Manager] Fail"));
+            }
         }else{
-
-            Logger.info("[Device Manager] Fail");
-            this.status = StatusMessage.newError( this.status.append("[Device Manager] Fail"));
+            Logger.info("[Device Manager] Frida not installed : device is not rooted.");
         }
+
 
         // Download platform 
         namePF = 'sdk_androidapi_'+device.getProfile().getSystemProfile().getSdkVersion()+'_google';
@@ -775,6 +781,7 @@ export default class DeviceManager extends ValidationCapable
 
         return success;
     }
+
 
     setEnrollStatus( pStatus:StatusMessage){
         pStatus.progress =  (this.status==null? 0 : this.status.progress);

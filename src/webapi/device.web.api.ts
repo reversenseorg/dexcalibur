@@ -208,6 +208,7 @@ DEVICE_WEB_API.addAsyncPublicRoute(
                 opts.type = req.params.type as string;
                 opts.profile = dev.getProfile();
                 opts.refresh = true;
+                opts.unprivileged = !dev.isEnrolled();
                 await dev.performProfiling(opts);
 
                 if(dev != null){
@@ -551,9 +552,6 @@ DEVICE_WEB_API.addAsyncPublicRoute(
                 dm = DeviceManager.getInstance();
                 dev = dm.getDevice( req.query.uid  as string);
 
-                if(dev.isEnrolled() == false){
-                    throw new Error('Device is not enrolled');
-                }
 
                 $.sendSuccess( res, dev.getSyscallList());
             }catch(err){
@@ -577,9 +575,10 @@ DEVICE_WEB_API.addAsyncPublicRoute(
             dm = DeviceManager.getInstance();
             dev = dm.getDevice( req.query.uid  as string);
 
-            if(dev.isEnrolled() == false){
+            /*if(dev.isEnrolled() == false){
+                console.log(dev);
                 throw new Error('Device is not enrolled');
-            }
+            }*/
 
             dev.updateInstalledApp();
             //pkgs = dev.getDefaultBridge().listPackages('-f');

@@ -412,6 +412,10 @@ export default class Util {
         return f;
     }
 
+    static now():number {
+        return (new Date()).getTime();
+    }
+
     static download(pRemoteURL:string, pLocalPath:string, pCallbacks:any, pMode:number=0o777, pEncoding:BufferEncoding='binary'){
         
         _stream_.pipeline(

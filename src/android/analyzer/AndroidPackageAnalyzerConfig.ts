@@ -22,8 +22,14 @@ export class AndroidPackageAnalyzerConfig {
     msa_auto = false;
 
     constructor(pSettings:AndroidPackageAnalyzerOptions) {
-        for(const i in pSettings) this[i] = pSettings[i];
+
+        console.log("new AndroidPackageAnalyzerConfig",pSettings);
+        for(const i in pSettings){
+            this[i] = pSettings[i];
+        }
+
     }
+
 
     mustSearchSplittedAPK():boolean {
         return this.ssa_auto;

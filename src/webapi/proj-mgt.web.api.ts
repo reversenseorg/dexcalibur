@@ -2,7 +2,6 @@ import {DelegateRequest, DelegateResponse, DelegateWebApi} from "./DelegateWebAp
 import {Device} from "../Device.js";
 import WebServer from "../WebServer.js";
 import DeviceManager from "../DeviceManager.js";
-import {Request, Response} from "express";
 import * as Log from "../Logger.js";
 import {UserSession} from "../user/session/UserSession.js";
 import DexcaliburProject from "../DexcaliburProject.js";
@@ -14,18 +13,14 @@ import PlatformManager from "../PlatformManager.js";
 import Downloader from "../Downloader.js";
 import * as _fs_ from "fs";
 import {DexcaliburProjectException} from "../errors/DexcaliburProjectException.js";
-import {AuthenticationException} from "../errors/AuthenticationException.js";
 import AccessControl from "../user/acl/AccessControl.js";
 import {AccessZone} from "../user/acl/Zones.js";
 import {ProjectAccessControl} from "../user/acl/rbac/ProjectAccessContol.js";
-import {ConnectionHandler} from "../remote/ConnectionHandler.js";
 import {Settings} from "../Settings.js";
 import {DexcaliburConnectionException} from "../errors/DexcaliburConnectionException.js";
 import {DexcaliburEngineMode} from "../DexcaliburEngine.js";
-import {parentPort} from "worker_threads";
-import {MagicHelper} from "../MagicHelper.js";
-import {LogMessage} from "../log/Log.js";
 import {NodeUtils} from "../core/NodeUtils.js";
+import {ProjectInput, ProjectInputLocation, ProjectInputPurpose, ProjectInputType} from "../analyzer/ProjectInput.js";
 
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
@@ -77,6 +72,7 @@ PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
             let wf:Workflow = null;
             let anal:any = null;
             let filetype:string;
+            let projInputs:ProjectInput[] = [];
 
             try{
 
@@ -91,9 +87,9 @@ PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
 
                 if(req.body['dev'] != null){
                     device = dm.getDevice( req.body['dev']);
-                    if(device == null || !device.isEnrolled()){
+                    /*if(device == null || !device.isEnrolled()){
                         throw DexcaliburProjectException.TARGET_DEVICE_NOT_ENROLLED();
-                    }
+                    }*/
                 }
 
                 let projectUID:string;
@@ -103,12 +99,7 @@ PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
                     projectUID = DexcaliburProject.sanitizeUID(req.body['name']);
                 }
 
-
-
-
                 if(req.body['cfg'] != null){
-               //     throw DexcaliburProjectException.INVALID_NAME();
-               // }else{
                     anal = req.body['cfg'];
                 }
 
@@ -127,9 +118,21 @@ PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
                         }
                         wf.pushStatus(new StatusMessage(5, "Get target platform"));
                         platform = device.getPlatform();
+
                         wf.pushStatus(new StatusMessage(10, "Pull application from device"));
+
+                        projInputs.push({
+                            data: req.body['path'],
+                            location: ProjectInputLocation.DEVICE,
+                            type: ProjectInputType.REGULAR_FILE,
+                            extractOpts: {type:'bin'},
+                            purpose: ProjectInputPurpose.MAIN
+                        });
+
                         // Merge Splitted APK (MSA)
+                        /*
                         if(req.body['cfg'].msa_auto===true){
+
                             if(device.isAndroid()){
                                 path = device.pullTemp( req.body['path'], { merge:true });
                                 // extraData = device.pullExtraData(req.body['path'], { merge:true });
@@ -139,7 +142,7 @@ PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
                             }
                         }else{
                             path = device.pullTemp( req.body['path'] );
-                        }
+                        }*/
 
                         break;
                     case 'download':
@@ -149,6 +152,14 @@ PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
                         }
                         wf.pushStatus(new StatusMessage(10, "Download target application from remote location"));
                         path = await Downloader.downloadTemp(req.body['url'], { mode:0o666, encoding:'binary', force:true });
+
+                        projInputs.push({
+                            data: path,
+                            location: ProjectInputLocation.LOCAL,
+                            type: ProjectInputType.REGULAR_FILE,
+                            extractOpts: {type:'bin'},
+                            purpose: ProjectInputPurpose.MAIN
+                        });
                         break;
                     case 'upload':
                         wf.pushStatus(new StatusMessage(5, "Set target platform"));
@@ -160,11 +171,27 @@ PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
                         }else{
                             path = $.uploader.getPathOf((req.dxc.sess as UserSession).getData('proj_upload_id'));
                         }
+
+                        projInputs.push({
+                            data: path,
+                            location: ProjectInputLocation.LOCAL,
+                            type: ProjectInputType.REGULAR_FILE,
+                            extractOpts: {type:'bin'},
+                            purpose: ProjectInputPurpose.MAIN
+                        });
                         break;
                     case 'fromfs':
                         wf.pushStatus(new StatusMessage(5, "Set target platform"));
                         platform = PlatformManager.getInstance().getPlatform( req.body['platform']);
                         path = req.body['path'];
+
+                        projInputs.push({
+                            data: path,
+                            location: ProjectInputLocation.LOCAL,
+                            type: ProjectInputType.REGULAR_FILE,
+                            extractOpts: {type:'bin'},
+                            purpose: ProjectInputPurpose.MAIN
+                        });
                         break;
                     default:
                         throw new Error("Project type is invalid")
@@ -172,9 +199,9 @@ PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
                 }
 
                 // chcek if file exists an it is not empty
-                if( (!_fs_.existsSync(path)) || (false)){
+                /*if( (!_fs_.existsSync(path)) || (false)){
                     throw DexcaliburProjectException.APP_FILE_OT_FOUND();
-                }
+                }*/
 
                 if(device==null && req.body['targetOS']!=null){
                     // try to find compatible device already enrolled
@@ -205,7 +232,7 @@ PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
 
                 wf.stepUp(15);
 
-
+                /*
                 let filetype:string = "apk";
                 if(req.body['filetype'] == null){
                     if(platform!=null){
@@ -215,8 +242,22 @@ PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
                     filetype = req.body['filetype'];
                 }
 
-                Logger.info('[PROJECT][STEP 2] Filetype : '+filetype+', File : '+path);
-                project = await $.context.newProject(projectUID, path, filetype, device,  user, platform);
+                Logger.info('[PROJECT][STEP 2] Filetype : '+filetype+', File : '+path);*/
+                Logger.info('[PROJECT][STEP 2] Input file : '+(projInputs[0].data as string));
+
+                /*if(anal != null){
+
+                    Logger.info('[PROJECT][STEP 3.2] Configuring Analyzers ...');
+                    // wf.pushStatus(new StatusMessage(11, "Configuring Analyzers"));
+                    const analCfg = project.getAnalyzerConfiguration(); // platform.getUID());
+                    analCfg.setFileAnalysisMode(anal.fa_mode);
+                    analCfg.setNativeAnalysisMode(anal.na_mode);
+
+                }*/
+
+                console.log(projInputs);
+
+                project = await $.context.newProject(projectUID, projInputs, device,  user, platform, anal);
 
                 if(project == null){
                     throw DexcaliburProjectException.STEP2_FAILURE();
@@ -248,18 +289,7 @@ PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
                     success = await project.synchronizePlatform( platform.getUID());
                 }
 
-                if(anal != null){
 
-                    Logger.info('[PROJECT][STEP 3.2] Configuring Analyzers ...');
-                    // wf.pushStatus(new StatusMessage(11, "Configuring Analyzers"));
-                    const analCfg = project.getAnalyzerConfiguration(); // platform.getUID());
-                    analCfg.setFileAnalysisMode(anal.fa_mode);
-                    analCfg.setNativeAnalysisMode(anal.na_mode);
-
-                    /*if(anal.ssa_auto != null){
-                        analCfg.setAndroid(anal.na_mode);
-                    }*/
-                }
 
                 Logger.info('[PROJECT][STEP 4] Analyzing application ...');
                 if(success){

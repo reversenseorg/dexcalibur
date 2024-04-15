@@ -84,6 +84,11 @@ import {EngineDatabaseException} from "./errors/EngineDatabaseException.js";
 import {ProjectDatabase} from "./database/ProjectDatabase.js";
 import {MerlinSearchAPI} from "./search/MerlinSearchAPI.js";
 import InspectorFactory from "./InspectorFactory.js";
+import {IPackageAnalyzer} from "./analyzer/IPackageAnalyzer.js";
+import {AndroidPackageAnalyzer} from "./android/analyzer/AndroidPackageAnalyzer.js";
+import {AndroidPackageAnalyzerConfig} from "./android/analyzer/AndroidPackageAnalyzerConfig.js";
+import {GenericPackageAnalyzer} from "./analyzer/GenericPackageAnalyzer.js";
+import {ProjectInput} from "./analyzer/ProjectInput.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -120,9 +125,7 @@ export interface IProjectStateChange {
     project: DexcaliburProject
 }
 
-export interface AppExtractOptions {
-    type:string;
-}
+
 
 /*
 const DexcaliburProjectValidator = new Validator({
@@ -331,6 +334,7 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
      */
     analyze:Analyzer = null;
 
+
     // dex helper
     dexHelper:DexHelper = null;
 
@@ -377,6 +381,12 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
      * @field Application topology analyzer unit (depend of application type : apk,bin, ...)
      */
     appAnalyzer:IAppAnalyzer = null;
+
+    /**
+     * @type {Nullable<IPackageAnalyzer>}
+     * @field Package analyzer unit, is responsible of extracting as well as merging
+     */
+    packageAnalyzer:Nullable<IPackageAnalyzer> = null;
 
     /**
      * @type {Inspector[]}
@@ -862,12 +872,18 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
     /**
      * Execute a single time per project, while creating project
      *
+     * -----(1)----*
+     *   create()
+     *
      * @method
      */
     async create( pOptions:DexcaliburProjectOptions = {}):Promise<void> {
         this.meta.creationDate = (new Date()).getTime();
+        // create main bus
         this.createBus();
-        this.analCfg.addPkgAnalyzerOptions(pOptions.pkgAnalyzer);
+        // init package analyzer config with options
+        // this.analCfg.addPkgAnalyzerOptions(pOptions.pkgAnalyzer);
+        // enable create mode (1st scan)
         this._createMode=true;
     }
 
@@ -950,6 +966,11 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
         this.analyze.restoreState(await this.getProjectDB().getAnalyzerState('xast'))
         this.analyze.setWorkflow(wf)
 
+        // setup syscall list from device kernel version
+        if(this.device!=null){
+            this.updateSyscalls();
+        }
+
         this.find.setDatabase(this.analyze.getData());
         this.merlin.setDatabase(this.analyze.getData());
 
@@ -990,26 +1011,39 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
 
         this.state = ProjectState.INIT_APP_ANALYZER;
 
-        // manifest / app analyzer
-        // depend of application type
+        // init comp dependent of target platform
+        await this.initPlatformDependentComp();
+
+        // update global file index with files indexed by dtaa analyzer
+        this.bus.subscribe( "data.file.index", BusSubscriber.from( (pEvent:BusEvent<any>)=>{
+
+            Logger.info("[DXC-PROJECT] [SUBSCRIBER] <data.file.index> Indexing file : "+pEvent.getData().path);
+            this.analyze.insertIn( "files", [pEvent.getData()]);
+        }));
+
+        this.initAuthorizations();
+
+
+        Logger.debug("[PROJECT] Initializing done ");
+    }
+
+
+    /**
+     * Init components dependent of the target platform
+     */
+    async initPlatformDependentComp():Promise<void> {
+
+        const im:InspectorManager = InspectorManager.getInstance();
+
         if(this.platform != null){
-            Logger.debug("[PROJECT] [INIT] PLATFORM RETRIEVED");
+
+            Logger.info("[PROJECT] [INIT] PLATFORM RETRIEVED");
             this.kpmgr = await this.platform.newKeyPointManager(this);
             this.appAnalyzer = await this.platform.newAppAnalyzer(this);
-
+            this.packageAnalyzer = await this.platform.newPackageAnalyzer(this);
 
             /*
-            if(this.platform.isAndroid()){
 
-                this.kpmgr = KeyPointManager.newForAndroid(this);
-                this.appAnalyzer = new AndroidAppAnalyzer(this);
-
-                state = this.getAnalyzerState('android-app');
-                if(state == null){
-                    state = new AnalyzerState({ _uid:'android-app',  state:{}, modified: -1});
-                }
-                this.appAnalyzer.restoreState(state);
-            }
             else if(this.platform.isIOS()){
                 this.kpmgr = KeyPointManager.newForIOS(this);
                 this.appAnalyzer = new IosAppAnalyzer(this);
@@ -1028,15 +1062,20 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
 
 
         }else {
-            Logger.debug("[PROJECT] [INIT] PLATFORM IS UNKNOWN");
+            Logger.info("[PROJECT] [INIT] PLATFORM IS UNKNOWN. IT CREATES ANDROID ENV");
             // default analyzer is Android analyzer
             this.kpmgr = await KeyPointManager.newForAndroid(this);
+
+            this.packageAnalyzer = new AndroidPackageAnalyzer(
+                new AndroidPackageAnalyzerConfig({ ssa_auto:false, msa_auto:false })
+            );
             this.appAnalyzer = new AndroidAppAnalyzer(this);
             this.appAnalyzer.restoreState(await this.getProjectDB().getAnalyzerState('android-app'));
         }
 
-
         this.state = ProjectState.INIT_HOOK_MANAGER;
+
+        // create hooks manager & co
         this.hook = new HookManager(this, this.nofrida);
         await  this.hook.initBuiltInHookSets();
         // move HookManager loading to "after app analysis"
@@ -1058,7 +1097,7 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
         //this.inspectors = im.getInspectorsOf(this);
 
 
-        
+
         this.graph = new GraphMaker(this);
 
         // init listeners
@@ -1084,18 +1123,9 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
             }));
         }));
 
-        // update global file index with files indexed by dtaa analyzer
-        this.bus.subscribe( "data.file.index", BusSubscriber.from( (pEvent:BusEvent<any>)=>{
-
-            Logger.info("[DXC-PROJECT] [SUBSCRIBER] <data.file.index> Indexing file : "+pEvent.getData().path);
-            this.analyze.insertIn( "files", [pEvent.getData()]);
-        }));
-
-        this.initAuthorizations();
-
-
-        Logger.debug("[PROJECT] Initializing done ");
     }
+
+
 
     /**
      * To init project authorizations / ACLs
@@ -1188,11 +1218,19 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
         this.updateTargetInfo(this.device);
     }
 
+    /**
+     * To update target device
+     *
+     * Add a check : target device MUST be compatible with current project (sane SYSTEM API version, same ARCH, same ABI, same OS)
+     *
+     * @param pDevice
+     */
     updateTargetInfo(pDevice:Device):void {
         if(pDevice!=null){
             const ssp = pDevice.getProfile().getSystemProfile();
             this.archs = [ssp.getArchitecture()];
             this.os = ssp.getOperatingSystem();
+
             if(this.platform == null){
                 this.platform = pDevice.getPlatform();
             }
@@ -1257,6 +1295,14 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
         return apkFile;
     }
 
+    async attachInput(pInput:ProjectInput):Promise<void> {
+        if(this.packageAnalyzer == null){
+            this.packageAnalyzer = new GenericPackageAnalyzer({ });
+            this.packageAnalyzer.setProject(this);
+        }
+
+        await this.packageAnalyzer.attachInput(pInput);
+    }
 
     /**
      * To set the app for the project
@@ -1265,36 +1311,26 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
      * @async
      * @method
      */
-    async useApp( pPath:string, pExtractOptions:AppExtractOptions):Promise<TargetApp>{
+    async useApp( pInputs:ProjectInput[]):Promise<TargetApp>{
 
-
-        // copy the APK into project workspace
-        const targetApp = this.workspace.changeMainAppBinary(
-            pPath,
-            pExtractOptions.type
-        );
-
-        // load it : decompress file, disass dex files
-        this.getWorkflow().pushStatus(new StatusMessage(2, "Start to extract application data"));
-
-        Logger.info("[PROJECT][TARGET APP] Path : "+targetApp.getPath())
-        //console.log(targetApp);
-        // get right app helper
-        const success = await this.platform.extractApp(
-            targetApp, this.workspace.getApkDir(), pExtractOptions);
-
-        // start analysis ?
-        if(success){
-            this.getWorkflow().pushStatus(new StatusMessage(5, "app extracted."));
+        // attach inputs
+        for(let i=0; i<pInputs.length; i++){
+            await this.attachInput(pInputs[i]);
         }
 
+        // prepare whole app
+        const targetApp =  await this.packageAnalyzer.prepareTargetPackage();
 
+        this.packageAnalyzer.free();
 
         return targetApp;
     }
 
+
     /**
-     * To synchronize project platform used during analysis with device and APK
+     * To synchronize project platform used during analysis with device and APK.
+     *
+     * If platform changed, pkg & app analyzers must be recreated
      *
      * @param {*} pName 
      * @method
@@ -1302,17 +1338,27 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
      */
     async synchronizePlatform( pName:string):Promise<boolean>{
         const pm:PlatformManager = PlatformManager.getInstance();
+        let newPlatform:Platform;
         let res = false;
 
 
         this.state = ProjectState.SYNC_PLATFORM;
 
         if(pm.isStub(pName)){
-            this.platform = pm.getStubPlatform(this.device, this.application, pName);
+            newPlatform = pm.getStubPlatform(this.device, this.application, pName);
         }else{
-            this.platform = pm.getPlatform(pName);
+            newPlatform = pm.getPlatform(pName);
         }
 
+        // if a platform exists and differs, update analyzers
+        if((this.platform!=null) && (newPlatform!=null) && (!this.platform.equal(newPlatform))){
+            // TODO : use event stream instead ( onPlatformChange$:Subject<any> )
+            this.kpmgr = await this.platform.newKeyPointManager(this);
+            this.appAnalyzer = await this.platform.newAppAnalyzer(this);
+            this.packageAnalyzer = await this.platform.newPackageAnalyzer(this);
+        }
+
+        this.platform = newPlatform;
         // select platform
         /*
         switch(pName){
@@ -1489,19 +1535,29 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
      * @since 1.1.0
      */
     updateSyscalls( pDevice:Device = null):void {
+        // skip if analyzerDB is not ready (at startup)
+        if(this.analyze!=null){
+            return;
+        }
+
         if(pDevice != null){
             const arch = pDevice.getProfile().getSystemProfile().getArchitecture();
             if(this._archReady.indexOf(arch)==-1){
-                this.analyze.useSyscalls(pDevice.getSyscallList());
+                if(this.analyze!=null){
+                    this.analyze.useSyscalls(pDevice.getSyscallList());
+                }
                 this._archReady.push(arch);
             }
         }
 
         this.archs.map( (vArch)=>{
             if(this._archReady.indexOf(vArch)==-1){
-                this.analyze.useSyscalls(
-                    ModelSyscallFactory.getSyscallListFrom(vArch, this.os)
-                );
+
+                if(this.analyze!=null){
+                    this.analyze.useSyscalls(
+                        ModelSyscallFactory.getSyscallListFrom(vArch, this.os)
+                    );
+                }
             }
         });
 
@@ -1708,7 +1764,9 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
             JSON.stringify(this.toJsonObject())
         );*/
 
-        this.hook.saveAll();
+        if(this.hook!=null){
+            this.hook.saveAll();
+        }
 
 
         this._emit(DexcaliburProject.EV_TYPE.SAVE);

@@ -15,6 +15,7 @@ import DexcaliburRegistry from "./DexcaliburRegistry.js";
 import {External} from "./external/External.js";
 import {UserAccount} from "./user/UserAccount.js";
 import {EngineDatabase} from "./database/EngineDatabase.js";
+import {ProjectInput} from "./analyzer/ProjectInput.js";
 
 
 export interface IDexcaliburProjectMap {
@@ -43,7 +44,7 @@ export interface IDexcaliburEngine {
     getProjects():string[];
     getProject(pProjectUID:string):DexcaliburProject;
     openProject( pUser:UserAccount, pUID:string):Promise<DexcaliburProject>;
-    newProject( pUID:string, pApkPath:string, pDevice:any):Promise<DexcaliburProject>;
+    newProject( pUID:string, pInputs:ProjectInput[], pDevice:any):Promise<DexcaliburProject>;
     getLocalFridaVersion():string;
     newWorkflow(pName:string):Workflow;
     getWorkflow(pUID:string, pExternal:boolean):Workflow;

@@ -175,6 +175,7 @@ export class Device implements INode
             (new NodeProperty("bridge")).volatile().type(DbDataType.STRING).def(null),
             (new NodeProperty("selected")).volatile().type(DbDataType.STRING).def(null),
             (new NodeProperty("isEmulated")).volatile().type(DbDataType.BOOLEAN).def(false),
+            (new NodeProperty("rooted")).type(DbDataType.BOOLEAN).def(false),
             (new NodeProperty("offline")).volatile().type(DbDataType.BOOLEAN).def(true)
         ]
     );
@@ -191,6 +192,14 @@ export class Device implements INode
      * @field
      */
     connected = false;
+
+
+    /**
+     * Flag. TRUE if currently connected, else FALSE
+     *
+     * @field
+     */
+    rooted = false;
 
     /**
      * Default bridge for this devices
@@ -341,6 +350,9 @@ export class Device implements INode
         for(const i in pConfig) this[i] = pConfig[i];
     }
 
+    isRooted():boolean {
+        return this.rooted;
+    }
 
     /**
      * To add a bridge to the device

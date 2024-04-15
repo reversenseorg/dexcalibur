@@ -40,13 +40,16 @@ export class AnalyzerConfiguration {
         }
     }
 
-    setPkgAnalyzerConfig(pConfig:any):any {
-        this.ppts.pkg = pConfig;
-    }
-
-    getPkgAnalyzerConfig():any {
+    /**
+     * to get package analyzer configuration
+     *
+     * @returns {PackageAnalyzerOptions}
+     * @method
+     */
+    getPkgAnalyzerConfig():PackageAnalyzerOptions {
         return this.ppts.pkg;
     }
+
     /**
      * To check if ABI to analyze must be the same than target device
      * TODO : rename
@@ -122,7 +125,13 @@ export class AnalyzerConfiguration {
         return o;
     }
 
+    /**
+     * To set package analyszer options
+     *
+     * @param {PackageAnalyzerOptions} pOptions
+     */
     addPkgAnalyzerOptions(pOptions: PackageAnalyzerOptions) {
         this.ppts.pkg = pOptions;
     }
+
 }

@@ -16,7 +16,7 @@ export class Profile implements IProfile
 {
     uid:string;
 
-    requireRoot:boolean;
+    requireRoot:boolean = false;
 
     nosy = false;
 

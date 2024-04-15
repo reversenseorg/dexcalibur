@@ -16,34 +16,31 @@ import Util from "./src/Utils.js";
 import AccessControl from "./src/user/acl/AccessControl.js";
 import {install} from "./src/install/Installer.js";
 import DexcaliburRegistry from "./src/DexcaliburRegistry.js";
-import {ConstraintType} from "./src/audit/common/Constraint.js";
-import CodeConstraint from "./src/audit/common/CodeConstraint.js";
-import {NodeInternalTypeName} from "./src/NodeInternalType.js";
 import {UserSession} from "./src/user/session/UserSession.js";
 import {LicenceManager} from "./src/credit/LicenceManager.js";
 import {AuditManager} from "./src/audit/AuditManager.js";
 import {AssuranceScanner} from "./src/audit/common/AssuranceScanner.js";
 import DexcaliburProject from "./src/DexcaliburProject.js";
-import { Merlin } from "./src/search/Merlin.js";
+import {Merlin} from "./src/search/Merlin.js";
 import * as VM from "vm";
 import {MerlinSearchRequest} from "./src/search/MerlinSearchRequest.js";
 import {ControlNode} from "./src/audit/common/AssuranceModel.js";
 import Control from "./src/audit/common/Control.js";
 import ControlAssessment from "./src/audit/common/ControlAssessment.js";
-import { Match } from "./src/audit/common/AssuranceReport.js";
+import {Match} from "./src/audit/common/AssuranceReport.js";
 import AdbWrapperFactory from "./src/AdbWrapperFactory.js";
 import AppPackage from "./src/AppPackage.js";
 import Platform from "./src/Platform.js";
-import { Device } from "./src/Device.js";
-import  DeviceManager  from "./src/DeviceManager.js";
+import {Device} from "./src/Device.js";
+import DeviceManager from "./src/DeviceManager.js";
 import {IStringIndex, Nullable} from "./src/core/IStringIndex.js";
 import {DexcaliburProjectException} from "./src/errors/DexcaliburProjectException.js";
-import {UserManager} from "./src/UserManager.js";
 import {UserService} from "./src/user/UserService.js";
 import PlatformManager from "./src/PlatformManager.js";
 import {Workflow} from "./src/Workflow.js";
 import AndroidAppAnalyzer from "./src/android/AndroidAppAnalyzer.js";
 import {AndroidResourceType} from "./src/android/AndroidResource.js";
+import {ProjectInputLocation, ProjectInputPurpose, ProjectInputType} from "./src/analyzer/ProjectInput.js";
 
 
 ConnectorFactory.getInstance(true);
@@ -1528,10 +1525,16 @@ ${"\t".repeat(1)}Default Arch = ${srv.getDefaultArchitecture()}
                                 filetype = platform.getDefaultFileType();
                             }
 
+
                             project = await dxcInstance.newProject(
                                 projectArgs.projUID,
-                                projectArgs.projApp,
-                                filetype,
+                                [{
+                                    extractOpts: { type: 'bin'},
+                                    purpose: ProjectInputPurpose.MAIN,
+                                    type: ProjectInputType.REGULAR_FILE,
+                                    location: ProjectInputLocation.LOCAL,
+                                    data: projectArgs.projApp
+                                }],
                                 device,
                                 acc
                             );

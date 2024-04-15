@@ -56,8 +56,9 @@ import TargetApp from "./common/TargetApp.js";
 import Platform from "./Platform.js";
 import {ProjectState} from "./ProjectState.js";
 import Tool = External.Tool;
-import {Observable, Subject} from "rxjs";
-import {LogMessage, LogMessageOptions} from "./log/Log.js";
+import { Subject} from "rxjs";
+import {LogMessage} from "./log/Log.js";
+import {ProjectInput} from "./analyzer/ProjectInput.js";
 
 /*
 const _fixPath_ = require("fix-path");
@@ -1253,14 +1254,20 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
      *
      * @param {string} pUID Project UID, it must unique into target workspace
      * @param {string} pApkPath Local path of the APK to analayze
+     * @param {string} pFileType Local path of the APK to analayze
      * @param {Device} pDevice Optional. Default NULL. The default target device for the project.
+     * @param {UserAccount} pUserAccount Optional. Default NULL. The default target device for the project.
+     * @param {Platform} pPlatform Optional.
+     * @param {any} pAnalyzersOpts Optional.
      * @return {Promise<DexcaliburProject>} The project instance
      * @async
      * @method
      */
-    async newProject( pUID:string, pAppPath:string, pFileType:string,
+    async newProject( pUID:string,  pInputs:ProjectInput[], /*pAppPath:string, pFileType:string,*/
                       pDevice:any=null, pUserAccount:UserAccount = null,
                       pPlatform:Nullable<Platform> = null, pAnalyzersOpts:any = {}):Promise<DexcaliburProject>{
+
+        // pAppPath:string, pFileType:string,
 
         let project:DexcaliburProject = null;
         /**
@@ -1289,8 +1296,24 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
             uid: pUID
         });
 
+        // init analyzers configure
+        // keep it before any actions
+        Logger.info('[ENGINE] Configuring generic analyzers ...');
+        wf.pushStatus(new StatusMessage( 5, " Configuring generic analyzers ..."));
+
+
+        /**
+         * One time per project :
+         * - create project workspace
+         *
+         */
         await project.create();
 
+        // complete
+        const analCfg = project.getAnalyzerConfiguration(); // platform.getUID());
+        analCfg.setFileAnalysisMode(pAnalyzersOpts.fa_mode);
+        analCfg.setNativeAnalysisMode(pAnalyzersOpts.na_mode);
+        analCfg.addPkgAnalyzerOptions(pAnalyzersOpts);
 
         await this.getEngineDB().attachProject(project);
 
@@ -1303,12 +1326,6 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
         Logger.info('[ENGINE] Creating new project : ',pUID);
 
         wf.pushStatus(new StatusMessage( 6, "Initialize project"));
-        await project.init();
-
-
-        //await this.getEngineDB().attachProject(project);
-
-        DexcaliburEngine.printBanner();
 
         if(pDevice != null){
             wf.pushStatus(new StatusMessage( 8, "Set project default device"));
@@ -1317,8 +1334,27 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
 
         if(pPlatform!=null){
             project.synchronizePlatform(pPlatform.getUID());
-
         }
+
+        /**
+         * For every projects :
+         * - create analyzers instances according to target platform.
+         * - create main event bus
+         * - ..
+         *
+         * If project already exists :
+         * - restore analyzers states
+         *
+         */
+        await project.init();
+
+        DexcaliburEngine.printBanner();
+
+
+
+        /*if(pPlatform!=null){
+            project.synchronizePlatform(pPlatform.getUID());
+        }*/
 
         // open APK, analyze manifest
 
@@ -1327,8 +1363,12 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
 
 
         // set targeted binary file, optionnaly parse it according to device type
-        appFile = await project.useApp(pAppPath, { type:pFileType });
+        // this steps triggers package analysis such as linked resources (not the package content)
 
+        // inputs must be attached sequentially
+        appFile = await project.useApp(pInputs);
+
+        console.log(appFile);
         //apkFile = await project.useAPK(pAppPath);
 
         // useApp

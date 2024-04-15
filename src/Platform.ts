@@ -16,6 +16,10 @@ import {Nullable} from "./core/IStringIndex.js";
 import KeyPointManager from "./hook/KeyPointManager.js";
 import TargetApp from "./common/TargetApp.js";
 import ApkHelper from "./ApkHelper.js";
+import {IPackageAnalyzer} from "./analyzer/IPackageAnalyzer.js";
+import {AndroidPackageAnalyzer} from "./android/analyzer/AndroidPackageAnalyzer.js";
+import {PackageAnalyzerOptions} from "./AnalyzerConfiguration.js";
+import {AndroidPackageAnalyzerConfig} from "./android/analyzer/AndroidPackageAnalyzerConfig.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 const PLATFORM_RE = new RegExp('(?<source>[^_.]+)_(?<name>[^_.]+)_(?<version>[^_.]+)_(?<vendor>[^_.]+)\.(?<format>[^.]+)');
@@ -169,6 +173,17 @@ export default class Platform
             return this.name.indexOf(pType)>-1;
     }
 
+    /**
+     * To check if two platforms are the same
+     *
+     * @param {Platform} pPlatform Platform to compare to
+     * @returns {boolean}
+     * @method
+     */
+    equal(pPlatform:Platform):boolean {
+        return (pPlatform!=null)&&(this.uid===pPlatform.uid);
+    }
+
     isStub():boolean {
         return this.stub;
     }
@@ -262,6 +277,43 @@ export default class Platform
         return appAnalyzer;
     }
 
+    /**
+     * To instanciate  a new package analyzer adapted to platform OS
+     * or app type.
+     *
+     * It restores also known states.
+     *
+     * @param {DexcaliburProject} pProject Project context
+     * @param {Nullable<PackageAnalyzerOptions>} pOptions Options
+     * @return {IAppAnalyzer} Instance of application analyzer
+     * @method
+     */
+    async newPackageAnalyzer(pProject:DexcaliburProject, pOptions:Nullable<PackageAnalyzerOptions> = null):Promise<IPackageAnalyzer> {
+
+        let pkgAnalyzer:IPackageAnalyzer;
+        let stateName:string;
+        let state:Nullable<AnalyzerState> = null;
+
+        const opts = (pOptions==null)? pProject.getAnalyzerConfiguration().getPkgAnalyzerConfig() :pOptions;
+
+        console.log(opts);
+        Logger.info("PLATFORM > newPackageAnalyzer > ",this.os);
+        switch(this.os){
+            case OperatingSystem.ANDROID:
+                pkgAnalyzer = new AndroidPackageAnalyzer(new AndroidPackageAnalyzerConfig(opts));
+                stateName = 'android-pkg';
+                break;
+            case OperatingSystem.IOS:
+            default:
+                throw AnalyzerException.PLATFORM_NOT_SUPPORTED(this.os);
+        }
+
+        pkgAnalyzer.restoreState(await pProject.getProjectDB().getAnalyzerState(stateName));
+        pkgAnalyzer.setProject(pProject);
+
+        return pkgAnalyzer;
+    }
+
     async newKeyPointManager(pProject:DexcaliburProject):Promise<KeyPointManager> {
 
         if(this.os==OperatingSystem.ANDROID||this.isAndroid()){
@@ -276,7 +328,8 @@ export default class Platform
     }
 
     /**
-     * To extract application data from binary file
+     * To extract application data from binary file by delegating it to PackageAnalyzer for each platform
+     *
      *
      * It can be useless with some file format
      *
@@ -286,7 +339,7 @@ export default class Platform
      */
     async extractApp(pTargetApp: TargetApp, pOutDir: string, pOptions:any) {
         if(this.os==OperatingSystem.ANDROID||this.isAndroid()){
-            return await ApkHelper.extract(pTargetApp.getPath(), pOutDir, {
+            return await AndroidPackageAnalyzer.extractApp(pTargetApp, pOutDir, {
                 force: true,
                 match: true,
                 ...pOptions

@@ -28,6 +28,7 @@ import {NosyProfile} from "./device/profile/NosyProfile.js";
 import {IProfile} from "./device/profile/IProfile.js";
 import {CoreDebug} from "./core/CoreDebug.js";
 import {SerializeOptions} from "@dexcalibur/dexcalibur-orm";
+import {Profile} from "./device/profile/Profile.js";
 
 enum ETransportType {
     USB     = 'U',
@@ -1008,10 +1009,18 @@ export default class AdbWrapper implements IBridge
         let freshProf:IProfile;
         for(const name in profs){
             Logger.info("[ADB][type="+pOptions.type+"] profile '"+name+"' [isNosy="+(profs[name].isNosy()?'true':'false')+"][uid="+(profs[name].uid)+"] ")
+
             if(pOptions.type !== "all" && pOptions.type!==name) continue;
 
+            if(((profs[name] as any).requireRoot===true) && (pOptions.unprivileged===true)){
+                // skip profiler that require privilege
+                continue;
+            }
+
             if(profs[name].isNosy()){
+
                 freshProf = await (profs[name] as NosyProfile).performProfiling(this, pOptions);
+
                 if(freshProf != null){
                     Logger.info("[ADB][type="+pOptions.type+"] profile '"+name+"' : success ")
                     pOptions.profile.updateSubProfile(name, freshProf);
@@ -1079,21 +1088,19 @@ export default class AdbWrapper implements IBridge
      * @param pPath
      * @param pOptions
      */
-    async listFiles(pPath: string, pOptions?: any): Promise<any[]> {
+    async listFiles(pPath: string, pOptions:any = {}): Promise<any[]> {
         let out:any, cmd='ls -al ';
         const files:any[]=[];
         const rest:any = [];
 
-        if(pOptions.hasOwnProperty('cmd')){
+        if(pOptions!=null && pOptions.hasOwnProperty('cmd')){
             cmd = pOptions.cmd;
         }
 
 
-
-
         try{
             Logger.info(JSON.stringify(pOptions));
-            if(pOptions.privileged){
+            if(pOptions!=null && pOptions.privileged){
                 out = await this.privilegedShell(cmd+pPath);
             }else{
                 out = Process.execSync( this.setup() + " shell  "+cmd+pPath);

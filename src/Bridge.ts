@@ -13,6 +13,7 @@ export interface DeviceProfilingOptions {
     type?: "network" | "build" | "system" | "trust" | "acl" | "all";
     uids?:string[];
     refresh?:boolean;
+    unprivileged?:boolean
 }
 
 interface BridgeFactoryList {

@@ -34,6 +34,9 @@ export class AnalyzerException extends MonitoredError {
     static EXTRACT_NOT_SUPPORTED = (pType:string, pOS:string)=>{
         return new AnalyzerException("The targeted app has not extractor [type="+pType+"][os="+pOS+"]",
             ErrorCode.ANALYZER_NATIV + 205) };
+    static CANNOT_PREPARE_PKG = (pMsg:string)=>{
+        return new AnalyzerException("Cannot prepare the target package. "+pMsg,
+            ErrorCode.ANALYZER_NATIV + 206) };
 
 
 
