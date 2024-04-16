@@ -1,5 +1,18 @@
 import {NodeInternalType} from "./NodeInternalType.js";
 import {CoreDebug} from "./core/CoreDebug.js";
+import {Nullable} from "./core/IStringIndex.js";
+
+
+export interface ModelExecutableSectionOptions {
+    _t?:NodeInternalType;
+    paddr?:number;
+    vaddr?:number;
+    sz?:number;
+    memsz?:number;
+    perm?:string;
+    name?:string;
+    data?:any;
+}
 
 /**
  * Represents a section into an executable file
@@ -18,7 +31,7 @@ export default class ModelExecutableSection {
 
     data:any= null;
 
-    constructor(pConfig:any = null){
+    constructor(pConfig:Nullable<ModelExecutableSectionOptions> = null){
 
         if(pConfig!==undefined)
             for(let i in pConfig)

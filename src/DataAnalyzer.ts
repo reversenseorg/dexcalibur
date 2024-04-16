@@ -21,6 +21,8 @@ import {ProjectDatabase} from "./database/ProjectDatabase.js";
 import {MongodbDbCollection} from "@dexcalibur/dexcalibur-orm-mongodb";
 import {randomUUID} from "crypto";
 import {SecurityZone} from "./security/SecurityZone.js";
+import {FileFormatDetector} from "./formats/identifier/FileFormatDetector.js";
+import {delay, from, map, merge, mergeAll, mergeMap, Observable, ReplaySubject, Subject} from "rxjs";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -215,8 +217,10 @@ export class DataAnalyzer implements IAnalyzerUnit
     db:IDatabase = null;
     //detector:FileTypeDetector = null;
     binwalk:BinwalkHelper = null;
+
     magic:MagicHelper = null;
 
+    fmtDetector:FileFormatDetector;
 
     state:AnalyzerState = null;
 
@@ -230,6 +234,8 @@ export class DataAnalyzer implements IAnalyzerUnit
      */
     constructor(pCtx:DexcaliburProject){
         this.context = pCtx;
+
+        this.fmtDetector = new FileFormatDetector(1);
 
         this.binwalk = new BinwalkHelper();
         this.magic = new MagicHelper();
@@ -403,10 +409,11 @@ export class DataAnalyzer implements IAnalyzerUnit
      *
      * @param pScope
      */
-    async indexFilesIn(pScope:DataScope):Promise<void> {
+    async indexFilesIn(pScope:DataScope):Promise<Observable<ModelFile[]>> {
 
+        let obs:Subject<ModelFile[]> = new ReplaySubject<ModelFile[]>(10);
         const dir = _fs_.readdirSync(pScope.getBasePath());
-        let vPath:string;
+        let vPath:string,a:any;
 
         if(this.context.platform.isAndroid()){
             // skip APKtool contents and files
@@ -416,9 +423,9 @@ export class DataAnalyzer implements IAnalyzerUnit
                     vPath = dir[i];
                     const p = _path_.join(pScope.getBasePath(),vPath);
                     if(vPath.indexOf('smali')!=0 && vPath!='original' && _fs_.lstatSync(p).isDirectory()){
-                        await this.scan(p, pScope, vPath);
-                    }
-                    if(vPath=='original'){
+                        (await this.scan(p, pScope, vPath)).subscribe((vFiles:ModelFile[])=>{
+                            obs.next(vFiles);
+                        });
 
                     }
                 }
@@ -426,7 +433,10 @@ export class DataAnalyzer implements IAnalyzerUnit
                 for(let i=0; i<dir.length; i++){
                     vPath = _path_.join(pScope.getBasePath(),dir[i]);
                     if(_fs_.lstatSync(vPath).isDirectory()){
-                        await this.scan(vPath, pScope, dir[i]);
+                        //a = (await this.scan(vPath, pScope, dir[i]));
+                        (await this.scan(vPath, pScope, dir[i])).subscribe((vFiles:ModelFile[])=>{
+                            obs.next(vFiles);
+                        });
                     }
                 }
             }
@@ -434,12 +444,17 @@ export class DataAnalyzer implements IAnalyzerUnit
             for(let i=0; i<dir.length; i++){
                 vPath = _path_.join(pScope.getBasePath(),dir[i]);
                 if(_fs_.lstatSync(vPath).isDirectory()){
-                    await this.scan(vPath, pScope, dir[i]);
+                    //await this.scan(vPath, pScope, dir[i]);
+                    (await this.scan(vPath, pScope, dir[i])).subscribe((vFiles:ModelFile[])=>{
+                        obs.next(vFiles);
+                    });
                 }
             }
         }
 
         this.state.append('indexedScopes', pScope.getUID(), {unique:true} ).save();
+
+        return obs;
     }
 
 
@@ -478,33 +493,48 @@ export class DataAnalyzer implements IAnalyzerUnit
      * @private
      * @method
      */
-    private _detectFileFormatFolder(pPath:string, pSkipGlob:string, pAnalysisType:Nullable<FileAnalysisType>=null){
+    private _detectFileFormatFolder(pPath:string, pSkipGlob:string, pAnalysisType:Nullable<FileAnalysisType>=null):Subject<ModelFile[]>{
 
+        let obsFiles = new ReplaySubject<ModelFile[]>(3);
         let files:ModelFile[]
         let type:FileAnalysisType = pAnalysisType;
         if(type==null){
             type = this.context.getAnalyzerConfiguration().fileAnalysisMode;
         }
 
+
         switch (type){
             case FileAnalysisType.DEEP:
                 // deep mode use only binwalk + internals
-                files = this.binwalk.analyzeFolder(pPath, this.context, pSkipGlob);
+                this.fmtDetector.setBackend(this.binwalk);
+                this.fmtDetector.analyzeFolder(pPath, this.context, pSkipGlob).then((vList:Subject<ModelFile[]>)=>{
+                    vList.pipe(
+                        map((vF)=>{
+                            obsFiles.next(vF);
+                            return vF;
+                        })
+                    ).subscribe((vFiles)=>{
+                        console.log("Debug vFiles > "+vFiles.length);
+                    })
+                })
+                //files = this.binwalk.analyzeFolder(pPath, this.context, pSkipGlob);
                 break;
             case FileAnalysisType.MAGIC:
                 // magic mode use only magic number (file cmd)
                 //files = this.magic.analyzeFolder(path, this.context, checkIfSmali);
                 files = this.magic.analyzeFolder(pPath, this.context, pSkipGlob);
+                obsFiles.next(files);
                 break;
             case FileAnalysisType.SMART:
                 // smart mode mixes magic and deep.
                 // scan lib/ folder
                 // scan unknow + assets
                 files = this.smartScan(pPath, this.context, pSkipGlob);
+                obsFiles.next(files);
                 break;
         }
 
-        return files;
+        return obsFiles;
     }
 
     /**
@@ -513,7 +543,7 @@ export class DataAnalyzer implements IAnalyzerUnit
      * @param path
      * @param pType
      */
-    async scan(path:string, pScope:DataScope, pRelPath:string = null):Promise<void>{
+    async scan(path:string, pScope:DataScope, pRelPath:string = null):Promise<Observable<ModelFile[]>>{
 
         //console.log("DATA ANALYZER SCOPE > ",path,pScope)
         let db:IDbCollection = this._pdb.getCollectionOf(ModelFile.TYPE.getType()); //.getCollection(pScope.getIndexName(), ModelFile.TYPE);
@@ -531,14 +561,17 @@ export class DataAnalyzer implements IAnalyzerUnit
             _d: 'd'
         });
         try{
-            let file = await db.asyncUpdateEntry(f,{upsert:true, filter:{ _uid:f.getUID() }});
+            // _uid:f.getUID(),
+            let file = await db.asyncUpdateEntry(f,{replace:true, upsert:true, filter:{ _r:f._r, __i:pScope.__i  }});
         }catch(err){
             Logger.error(err.message,err.stack);
             console.log(f);
         }
 
 
-        if(_fs_.readdirSync(path).length==0) return;
+        if(_fs_.readdirSync(path).length==0){
+            return from([]);
+        }
 
         let skipGlob:string;
 
@@ -552,36 +585,40 @@ export class DataAnalyzer implements IAnalyzerUnit
         }
 
         // scan file formats
-        let files = this._detectFileFormatFolder(path, skipGlob);
+        return this._detectFileFormatFolder(path, skipGlob)
+            .pipe(
+                mergeMap( async(vFiles:ModelFile[])=>{
 
-        // consolidate and save files
-        for(let i=0;i<files.length; i++){
-            files[i].setScope(pScope);
-            files[i] = await db.asyncAddEntry({
-                _r:files[i].getRelativePath(),
-                scope:files[i].getScope().getUID()
-            }, files[i]);
-        }
+                    // consolidate and save files
+                    for(let i=0;i<vFiles.length; i++){
+                        vFiles[i].setScope(pScope);
+                        vFiles[i] = await db.asyncAddEntry({
+                            _r:vFiles[i].getRelativePath(),
+                            scope:vFiles[i].getScope().getUID()
+                        }, vFiles[i]);
+                    }
 
-        // complete Binwalk results with folders
-        let folders:ModelFile[] = [];
-        this._indexFolders(path, folders);
+                    // complete Binwalk results with folders
+                    let folders:ModelFile[] = [];
+                    this._indexFolders(path, folders);
 
-        for(let i=0;i<folders.length; i++){
-            folders[i].setScope(pScope);
-            folders[i] = await db.asyncAddEntry({
-                _r:folders[i].getRelativePath(),
-                scope:folders[i].getScope().getUID()
-            }, folders[i]);
-        }
+                    for(let i=0;i<folders.length; i++){
+                        folders[i].setScope(pScope);
+                        folders[i] = await db.asyncAddEntry({
+                            _r:folders[i].getRelativePath(),
+                            scope:folders[i].getScope().getUID()
+                        }, folders[i]);
+                    }
 
 
-        // files.length
-        Logger.info("[*] "+files.length+" files analyzed");
-        return ;
+                    // files.length
+                    Logger.info("[*] "+vFiles.length+" files analyzed");
+
+                    return vFiles;
+                })
+            );
     }
 
-    "file.post_scan.DYN_BYTECODE"
 
     /**
      * To scan the 'path' as APK content
@@ -589,7 +626,7 @@ export class DataAnalyzer implements IAnalyzerUnit
      * @param path
      * @param pType
      */
-    scanFile(pFile:ModelFile, pScope:DataScope){
+    scanFile(pFile:ModelFile, pScope:DataScope):DataAnalyzer{
 
 
         //let idx:IDbIndex = this.db.getIndex(pScope.getIndexName(), ModelFile.TYPE);
@@ -602,17 +639,23 @@ export class DataAnalyzer implements IAnalyzerUnit
         idx.setEntry(pFile.getRelativePath(), pFile);
 
         // if target app is Android App
-        let file:ModelFile = this.binwalk.analyze(pFile.getPath(), this.context);
+        let file:ModelFile;
+        try{
+            file = this.binwalk.analyze(pFile.getPath(), this.context);
 
-        for(let p in file){
-            if(pFile[p]==null)
-                pFile[p] = file[p];
+            for(let p in file){
+                if(pFile[p]==null)
+                    pFile[p] = file[p];
+            }
+
+            this.context.bus.send(new BusEvent({
+                type: "file.post_scan."+pScope.getName(),
+                data: pFile
+            }));
+        }catch (err){
+            Logger.error("[DataAnalyzer][scanFile] Error :"+err.message);
         }
 
-        this.context.bus.send(new BusEvent({
-            type: "file.post_scan."+pScope.getName(),
-            data: pFile
-        }));
         return this;
     }
 

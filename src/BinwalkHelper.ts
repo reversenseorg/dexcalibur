@@ -5,7 +5,6 @@ import DexcaliburProject from "./DexcaliburProject.js";
 import {EOL} from "os";
 import BusEvent from "./BusEvent.js";
 import * as _glob_ from "glob";
-import * as Log from './Logger.js';
 import ModelFileSection from "./ModelFileSection.js";
 import {External} from "./external/External.js";
 import * as _fs_ from "fs";
@@ -16,11 +15,13 @@ import StatusMessage from "./StatusMessage.js";
 import ShellHelper from "./ShellHelper.js";
 import DexcaliburEngine from "./DexcaliburEngine.js";
 import {FileScanResult} from "./DataAnalyzer.js";
+import * as Log from './Logger.js';
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
 
 export class BinwalkHelper extends  External.ExternalHelper implements IFileAnalyzer{
 
+    name = "binwalk";
 
     /**
      *

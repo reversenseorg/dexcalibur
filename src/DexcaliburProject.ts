@@ -83,7 +83,6 @@ import {UserService} from "./user/UserService.js";
 import {EngineDatabaseException} from "./errors/EngineDatabaseException.js";
 import {ProjectDatabase} from "./database/ProjectDatabase.js";
 import {MerlinSearchAPI} from "./search/MerlinSearchAPI.js";
-import InspectorFactory from "./InspectorFactory.js";
 import {IPackageAnalyzer} from "./analyzer/IPackageAnalyzer.js";
 import {AndroidPackageAnalyzer} from "./android/analyzer/AndroidPackageAnalyzer.js";
 import {AndroidPackageAnalyzerConfig} from "./android/analyzer/AndroidPackageAnalyzerConfig.js";
@@ -1988,11 +1987,13 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
 
             //if(this.dataAnalyzer.isScopeIndexed(pkgScope)==false){
             // data analysis
-            await this.dataAnalyzer.indexFilesIn(pkgScope);
+            (await this.dataAnalyzer.indexFilesIn(pkgScope)).subscribe((vFiles:ModelFile[])=>{
+                // update internal in-memory DB with file analyzer DB
+                this.analyze.insertIn( "files", this.dataAnalyzer.getDB().getCollection('files', ModelFile.TYPE).getAll());
+            });
             //}
 
-            // update internal in-memory DB with file analyzer DB
-            this.analyze.insertIn( "files", this.dataAnalyzer.getDB().getCollection('files', ModelFile.TYPE).getAll());
+
         }
     }
 
@@ -2180,10 +2181,11 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
             this.getWorkflow().pushStatus(new StatusMessage(41, "Indexing and analysis of flat files from package"));
 
             // file analysis : icon detection, strings, etc ...
-            // TODO : multi threading : each file can be treated separately
             const pkgScope:DataScope = this.dataAnalyzer.getScope('PKG');
             if(!this.dataAnalyzer.hasIndexed(pkgScope)) {
-                await this.dataAnalyzer.indexFilesIn(pkgScope);
+                (await this.dataAnalyzer.indexFilesIn(pkgScope)).subscribe((vFiles:ModelFile[])=>{
+                    Logger.info(`[package files analyzed=${vFiles.length}]`);
+                });
             }else{
                 this.dataAnalyzer.loadIndex(pkgScope );
             }
@@ -2277,15 +2279,59 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
 
         this.getWorkflow().pushStatus(new StatusMessage(97, "Scanning data previously extracted by hooking"));
 
-        await this.dataAnalyzer.scan(this.workspace.getRuntimeFilesDir(), this.dataAnalyzer.getScope('DYN_BUFFER')); //["smali"]);
-        this.analyze.updateFileIndex(
+        (await this.dataAnalyzer.scan(
+            this.workspace.getRuntimeFilesDir(),
+            this.dataAnalyzer.getScope('DYN_BUFFER')
+        )).subscribe(async (vFiles:ModelFile[])=>{
+            this.analyze.updateFileIndex(
+                await this.dataAnalyzer.getIndex('DYN_BUFFER'), true
+            );
+        });
+
+        //["smali"]);
+        /*this.analyze.updateFileIndex(
             await this.dataAnalyzer.getIndex('DYN_BUFFER'), true
-        );
+        );*/
 
         const dynBcScope = this.dataAnalyzer.getScope('DYN_BYTECODE');
         console.log("DYN_BYTECODE> ", dynBcScope);
 
 
+        (await this.dataAnalyzer.scan(
+            this.workspace.getRuntimeBcDir(),
+            dynBcScope
+        )).subscribe(async (vFiles:ModelFile[])=>{
+            this.analyze.updateFileIndex(
+                await this.dataAnalyzer.getIndex('DYN_BYTECODE'), true
+            );
+
+            // scan smali files for each dex files discovered dynamically
+            (await this.dataAnalyzer.getIndex('DYN_BYTECODE')).map( (vOffset:number, vFile:ModelFile)=>{
+
+                const bc = _path_.join( _path_.dirname(vFile.getPath()),"smali");
+                const loc = ModelLocation.fromFile(vFile);
+
+                Logger.info('Scanning dir : ', bc);
+                if(Fs.existsSync(bc)){
+
+                    if( Fs.lstatSync(bc).isDirectory()) {
+                        Logger.info("Scanning previously discovered dex chunk : " + bc);
+                        this.analyze.path(bc, loc);
+                    }/*else{
+                    // dex files
+                    this.dataAnalyzer.indexFilesIn(
+                        this.dataAnalyzer.getScope('DYN_BYTECODE')
+                    );
+                    this.analyze.updateFileIndex(
+                        this.dataAnalyzer.getIndex('DYN_BYTECODE'), true
+                    );
+                }*/
+                }
+
+            });
+        });
+
+        /*
         await this.dataAnalyzer.scan(this.workspace.getRuntimeBcDir(),dynBcScope); //["smali"]);
 
         this.analyze.updateFileIndex(
@@ -2304,18 +2350,10 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
                 if( Fs.lstatSync(bc).isDirectory()) {
                     Logger.info("Scanning previously discovered dex chunk : " + bc);
                     this.analyze.path(bc, loc);
-                }/*else{
-                    // dex files
-                    this.dataAnalyzer.indexFilesIn(
-                        this.dataAnalyzer.getScope('DYN_BYTECODE')
-                    );
-                    this.analyze.updateFileIndex(
-                        this.dataAnalyzer.getIndex('DYN_BYTECODE'), true
-                    );
-                }*/
+                }
             }
 
-        });
+        });*/
 
         /*
         let dir:string[]=Fs.readdirSync(this.workspace.getRuntimeBcDir());

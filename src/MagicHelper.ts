@@ -26,6 +26,8 @@ let Logger:Log.Logger = Log.newLogger() as Log.Logger;
  */
 export class MagicHelper extends  External.ExternalHelper implements IFileAnalyzer{
 
+    name = "magic";
+
     private __sh:string;
 
     constructor() {

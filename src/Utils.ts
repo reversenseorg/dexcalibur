@@ -323,13 +323,13 @@ export default class Util {
         return data;
     }
 
-    static execSync(command:string, charset:any="utf8", opts:any=null):string{
+    static execSync(command:string, charset:any="utf8", opts:any=null, pThreadPrefix=""):string{
         let ret:string;
         
         if(process.env.DEXCALIBUR_TEST){
             ret = TestExecHelper.execSync(command);
         }else{
-            Logger.info("[UTIL] execSync : "+command);
+            Logger.info(pThreadPrefix+"[UTIL] execSync : "+command);
 
             if(opts!=null) {
                 ret = Process.execSync(command, opts).toString();

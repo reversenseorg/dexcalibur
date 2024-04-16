@@ -2,7 +2,7 @@ import * as _path_ from 'path';
 import {EncodedDataType} from "./FileTypes.js";
 import ModelFileSection from "./ModelFileSection.js";
 import DataScope from "./DataScope.js";
-import ModelExecutableSection from "./ModelExecutableSection.js";
+import ModelExecutableSection, {ModelExecutableSectionOptions} from "./ModelExecutableSection.js";
 import {ModelFunction, ModelFunctionList} from "./ModelFunction.js";
 import * as Log from './Logger.js';
 import {IPersistent} from "./persist/orm/IPersistent.js";
@@ -22,9 +22,9 @@ import {CryptoUtils} from "./CryptoUtils.js";
 
 import {CoreDebug} from "./core/CoreDebug.js";
 import {SecurityZone} from "./security/SecurityZone.js";
+import {Nullable} from "./core/IStringIndex.js";
 
 
-let UIDS:string[]=[];
 
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
@@ -88,6 +88,23 @@ export enum ModelFileType {
     FOLDER = 'd'
 }
 
+export interface ModelFileOptions {
+    _r?:string;
+    _uid?:string;
+    name?:string;
+    type?:string;
+    size?:number;
+    path?:string;
+    location?:string;
+    tags?:number[];
+    _d?:string;
+    scope?:DataScope;
+    sections?:ModelExecutableSection[];
+    sectionsOpts?:ModelExecutableSectionOptions[];
+    __p?:any;
+    __t?:any[];
+    f_list?:ModelFunctionList;
+}
 
 
 /**
@@ -102,7 +119,7 @@ export default class ModelFile implements INode,IPersistent {
         "files",
         NodeInternalType.FILE,
         [
-            (new NodeProperty("_r")).type(DbDataType.STRING).key(DbKeyType.COMPOSITE,1), // path relative to scope root
+            (new NodeProperty("_r")).type(DbDataType.STRING), //.key(DbKeyType.COMPOSITE,1), // path relative to scope root
             (new NodeProperty("_uid")).type(DbDataType.STRING).key(DbKeyType.PRIMARY).addValidationRule(ValidationRule.newRegexpAssert(/^[a-zA-Z0-9_]+:[a-f0-9]{32}$/)), //.key(DbKeyType.PRIMARY),
             (new NodeProperty("name")).type(DbDataType.STRING).def(null),
             (new NodeProperty("type")).type(DbDataType.STRING).def(null),
@@ -112,7 +129,7 @@ export default class ModelFile implements INode,IPersistent {
             (new NodeProperty("tags")).type(DbDataType.STRING).def([]),
             (new NodeProperty("_d")).type(DbDataType.STRING).def('f'),
 
-            (new NodeProperty("scope")).single(DataScope.TYPE).key(DbKeyType.COMPOSITE,0).def("PKG"),
+            (new NodeProperty("scope")).single(DataScope.TYPE)/*.key(DbKeyType.COMPOSITE,0)*/.def("PKG"),
                 /*
                 .type(DbDataType.STRING)
                 .def(null)
@@ -169,7 +186,7 @@ export default class ModelFile implements INode,IPersistent {
      * @field
      * @private
      */
-    private _r:string = null;
+    _r:string = null;
 
     name: string = null;
     type: string = null;
@@ -207,7 +224,7 @@ export default class ModelFile implements INode,IPersistent {
      * @param {Object} pConfig
      * @constructor
      */
-    constructor(pConfig: any = null) {
+    constructor(pConfig:Nullable<ModelFileOptions> = null) {
 
         //this.trueFile = false;
 
@@ -325,8 +342,6 @@ export default class ModelFile implements INode,IPersistent {
 
     generateUID(): void {
         this._uid = this.scope.getInternalName()+':'+CryptoUtils.md5(this._r);
-        //this._uid = CryptoUtils.md5(this.path);
-        //do{ this._uid=_md5( Util.randString(6, Util.ALPHANUM) }while( UIDS.indexOf(this._uid)>-1);
     }
 
     getSize(): number {
