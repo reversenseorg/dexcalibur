@@ -98,7 +98,7 @@ export default class AndroidAppAnalyzer implements IAppAnalyzer
 		// make temporary list of missing components (implementing class not found)
 		this.context.getBus().subscribe("app.android.missing_impl", BusSubscriber.from((vEvent)=>{
 			const cmp = vEvent.getData() as AndroidComponent;
-			this._missingImpl[this.getComponentFullName(this.manifest,cmp.name)] = cmp;
+			this._missingImpl[AndroidAppAnalyzer.getComponentFullName(this.manifest,cmp.name)] = cmp;
 		}));
 
 		// after first fullscan, listen 'class.new' events to search each time if there are missing components.
@@ -123,14 +123,54 @@ export default class AndroidAppAnalyzer implements IAppAnalyzer
 	}
 
 	/**
-	 * To check if a name is relative to the package name
-	 * @param pName
+	 * To check if a name or a pseudo-FQCN is relative to the package name
+	 *
+	 * @param {string} pName class name or pseudo-FQCN
+	 * @returns {boolean} Return TRUE if relative to the FQCN of app package, else FALSE in case of real FQCN.
+	 * @static
+	 * @method
 	 */
 	static isRelativeName(pName:string):boolean {
 		return (pName[0]=='.');
 	}
 
-	getComponentFullName( pManifest:AndroidManifest, pClassName:string):string {
+
+	/**
+	 * To lookup the Class node corresponding to a class UID from manifest.
+	 *
+	 * **Important : keep it static. This function is called from inspector jobs**
+	 *
+	 *
+	 * @param {DexcaliburProject} pContext Active project
+	 * @param {AndroidManifest} pManifest Android manifest where class UID appears
+	 * @param {string} pClassName The class UID to search. It can be incomplete or relative to another package
+	 * @returns {ModelClass} Node instance representing the class
+	 * @static
+	 * @method
+	 */
+	static getClassByManifestUid( pContext:DexcaliburProject, pManifest:AndroidManifest, pClassName:string):ModelClass{
+		let clsUID:string;
+		if(AndroidAppAnalyzer.isRelativeName(pClassName)){
+			clsUID = pManifest.attributes.package+pClassName;
+		}else{
+			clsUID = pClassName;
+		}
+
+
+		const cls:ModelClass = pContext.find.get.class(clsUID);
+		if( cls == null){
+			Logger.error("[AppTopo] Class '"+clsUID+"' not found");
+		}
+		return cls;
+	}
+
+	/**
+	 * To get the real FQCN from a class name in the context of the specfied manifest
+	 *
+	 * @param {AndroidManifest} pManifest Context from where class name must be retrieved
+	 * @param {string} pClassName
+	 */
+	static getComponentFullName( pManifest:AndroidManifest, pClassName:string):string {
 		if(AndroidAppAnalyzer.isRelativeName(pClassName)){
 			return pManifest.attributes.package+pClassName;
 		}else{
@@ -196,7 +236,7 @@ export default class AndroidAppAnalyzer implements IAppAnalyzer
 	scanComponentXrefToAPI( pComponent:AndroidComponent, pDeth, pUpdate = true ):AndroidApiClassXrefList {
 
 		// to retrieve class implementign the componenet
-		const fqcn = this.getComponentFullName( this.manifest, pComponent.getName());
+		const fqcn = AndroidAppAnalyzer.getComponentFullName( this.manifest, pComponent.getName());
 
 		const cls:ModelClass = this.context.find.get.class(fqcn);
 
@@ -492,26 +532,44 @@ export default class AndroidAppAnalyzer implements IAppAnalyzer
 	 */
 	updateComponentImplementation(){
 		['activity','provider','receiver','service'].map((vCmpType)=>{
-			this.context.find[vCmpType]("name:.*").foreach((vIndex:number, vCmp:AndroidComponent)=>{
-				//console.log(vIndex, vCmp);
-				//console.log(vCmp.getImplementedBy);
-
-				if(vCmp.__impl==null){
-					const cls = this.context.find.get.class(this.getComponentFullName(this.manifest, vCmp.name));
-					if(cls!=null){
-						Logger.info(`[APP ANALYZER][ANDROID] Class implementing component (${vCmp.name}) has been found`);
-						vCmp.__impl = (cls);
-					}else{
-						Logger.error(`[APP ANALYZER][ANDROID] Class implementing component (${vCmp.name}) cannot be found`);
-						this.context.getBus().send(new BusEvent({
-							type: "app.android.missing_impl",
-							data: vCmp
-						}));
-					}
-				}
-
-			})
+			AndroidAppAnalyzer.updateComponentImplementationOf(this.context, this.manifest, vCmpType);
 		});
+	}
+
+
+	/**
+	 *
+	 * @param {DexcaliburProject} pProject Project instance
+	 * @param {AndroidManifest} pManifest Android manifest
+	 * @method
+	 * @static
+	 */
+	static updateComponentImplementationOf( pProject:DexcaliburProject, pManifest:AndroidManifest, pCmpType:string):void{
+
+		if(pProject.find[pCmpType]==null){
+			Logger.error("Implementation of component ["+pCmpType+"] cannot be update : component type is not supported");
+			return ;
+		}
+
+		pProject.find[pCmpType]("name:.*").foreach((vIndex:number, vCmp:AndroidComponent)=>{
+			//console.log(vIndex, vCmp);
+			//console.log(vCmp.getImplementedBy);
+
+			if(vCmp.__impl==null){
+				const cls = pProject.find.get.class(AndroidAppAnalyzer.getComponentFullName(pManifest, vCmp.name));
+				if(cls!=null){
+					Logger.info(`[APP ANALYZER][ANDROID] Class implementing component (${vCmp.name}) has been found`);
+					vCmp.__impl = (cls);
+				}else{
+					Logger.error(`[APP ANALYZER][ANDROID] Class implementing component (${vCmp.name}) cannot be found`);
+					pProject.getBus().send(new BusEvent({
+						type: "app.android.missing_impl",
+						data: vCmp
+					}));
+				}
+			}
+
+		})
 	}
 
 	postScan(){

@@ -8,7 +8,7 @@ import {
 import InMemoryDbCollection from "./InMemoryDbCollection.js";
 import InMemoryDbIndex from "./InMemoryDbIndex.js";
 import {IDbIndex} from "@dexcalibur/dexcalibur-orm";
-
+import Util from "../../src/Utils.js";
 
 /**
  * Represent an unique backend to process Merlin request in index and collection
@@ -48,7 +48,9 @@ export class InMemoryMerlinBackend {
                     case OperationType.SEARCH:
                         searchArgs = op.args as SearchOperationArgs;
                         if (searchArgs.pattern.opts.strict) {
-                            match = match && (vData === searchArgs.pattern.pattern);
+                            match = match
+                                && (Util.readValue(vData, searchArgs.pattern.field)
+                                    === searchArgs.pattern.pattern);
                         } else {
                             match = match && searchArgs.pattern.test(vData);
                         }

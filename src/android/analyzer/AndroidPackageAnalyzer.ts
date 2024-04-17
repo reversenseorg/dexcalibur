@@ -1,10 +1,12 @@
+// noinspection BadExpressionStatementJS
+
 import * as _fs_ from "fs";
 import * as _path_ from "path";
 
 import {Device} from "../../Device.js";
 import {AndroidPackageAnalyzerConfig} from "./AndroidPackageAnalyzerConfig.js";
 import {AnalyzerException} from "../../errors/AnalyzerException.js";
-import {IPackageAnalyzer, PrepareOptions} from "../../analyzer/IPackageAnalyzer.js";
+import {IPackageAnalyzer} from "../../analyzer/IPackageAnalyzer.js";
 import {AnalyzerState} from "../../AnalyzerState.js";
 import DexcaliburProject from "../../DexcaliburProject.js";
 import {Nullable} from "../../core/IStringIndex.js";
@@ -16,7 +18,8 @@ import {
     ProjectInput,
     ProjectInputLocation,
     ProjectInputPurpose,
-    ProjectInputType
+    ProjectInputType,
+    ProjectInputViewer
 } from "../../analyzer/ProjectInput.js";
 import {DexcaliburProjectException} from "../../errors/DexcaliburProjectException.js";
 import Util from "../../Utils.js";
@@ -28,9 +31,10 @@ const Logger:Log.Logger = Log.newLogger() as Log.Logger;
  */
 export class AndroidPackageAnalyzer implements IPackageAnalyzer {
 
+
     private _cfg:AndroidPackageAnalyzerConfig;
 
-    state:AnalyzerState = new AnalyzerState();
+    state:AnalyzerState = new AnalyzerState({ _uid:'android-pkg'});
 
     private _dev:Device|null = null;
 
@@ -48,6 +52,11 @@ export class AndroidPackageAnalyzer implements IPackageAnalyzer {
         for(let i in pConfig){
             this.state.setProperty(i, pConfig[i]);
         }
+
+        if(this.state.getProperty("base_apks")==null){
+            this.state.setProperty("base_apks", ['base.apk']);
+        }
+
     }
 
     setProject(pProject:DexcaliburProject):void {
@@ -59,6 +68,22 @@ export class AndroidPackageAnalyzer implements IPackageAnalyzer {
     }
 
 
+    /**
+     * To pull a project input, it depends on input type and location.
+     *
+     * Following case are supported :
+     *
+     * | Location | Behavior |
+     * | -------- | -------- |
+     * | ProjectInputLocation.LOCAL | Return absolute path to a local file |
+     * | ProjectInputLocation.DEVICE | Pull the input from the remote device using absolute path, and return absolute path to tmp local file |
+     * | ProjectInputLocation.REMOTE | Not implemented. TODO : Pull a remote file over HTTPS+Proxy |
+     *
+     * @param {ProjectInput} pProjectInput Input to pull
+     * @returns {Promise<string>} Promise of an absolute path to a file where the input is locally stored
+     * @method
+     * @async
+     */
     async pullInput(pProjectInput:ProjectInput):Promise<string> {
 
         let path:string;
@@ -72,10 +97,8 @@ export class AndroidPackageAnalyzer implements IPackageAnalyzer {
                 break;
             case ProjectInputLocation.REMOTE:
                 throw new Error("Input location not implemented");
-                break;
             default:
                 throw new Error("Input location not supported");
-                break;
         }
 
         if(!_fs_.existsSync(path)){
@@ -109,10 +132,15 @@ export class AndroidPackageAnalyzer implements IPackageAnalyzer {
 
 
     /**
-     * The purpose of this function is to search splitted APK,
+     * The purpose of this function is to search split APK,
      * and merge all into a single workspace.
      *
-     * @param {any} pOptions
+     * Steps :
+     * - Pull main APK from device
+     *
+     * @return {Promise<TargetApp>} Target app
+     * @async
+     * @method
      */
     async prepareTargetPackage():Promise<TargetApp> {
 
@@ -138,94 +166,74 @@ export class AndroidPackageAnalyzer implements IPackageAnalyzer {
             basePath = await this.writeBuffer(this._base_apk);
         }
 
-        console.log(this._cfg);
+        // clone  Project input
+        let baseInput:ProjectInput = JSON.parse(JSON.stringify(this._base_apk));
+        baseInput.data = basePath;
 
+        // if enabled, search split apk on target device
         if(this._cfg.mustSearchSplittedAPK()){
 
             if(device == null){
                 throw AnalyzerException.ANDROID_SEARCH_SPLITTED_DEV_FAIL();
             }
 
-            if(this._base_apk.location!=ProjectInputLocation.DEVICE){
+            if(baseInput.location!=ProjectInputLocation.DEVICE){
                 throw new Error("Cannot search splitted APK : project inputs is not binded to a device");
             }
-            if(this._base_apk.type!=ProjectInputType.REGULAR_FILE){
+            if(baseInput.type!=ProjectInputType.REGULAR_FILE){
                 throw new Error("Cannot search splitted APK : main project input must be a path to a regular file");
             }
 
             // search app pkg folder
-            const appBin = _path_.posix.dirname(this._base_apk.data as string);
+            const appBin = _path_.posix.dirname(baseInput.data as string);
             const tmpBin = this._project.getWorkspace().getInputDir();
 
             // list folder content
             const files = await device.getDefaultBridge().listFiles(appBin);
-            let dfiles:any[];
-            let dist:string, ddist:string, tmpdist:string;
+            let dist:string;
+            let splittedRes:ProjectInput;
 
             // pull every file
             for(let i=0;i<files.length;i++){
 
-                // pull 1st level dir
-                /*if(files[i]._t!="d"){
+                dist = _path_.join(tmpBin, files[i].n);
+                try{
+                    device.pull(files[i].p, dist);
 
-                    dfiles = await device.getDefaultBridge().listFiles(files[i].p);
-                    tmpdist = _path_.join(tmpBin, files[i].n)
 
-                    _fs_.mkdirSync(tmpdist, 0o666);
+                    splittedRes = {
+                        data: dist,
+                        location: ProjectInputLocation.LOCAL,
+                        purpose: ProjectInputPurpose.EXTRA,
+                        type: ProjectInputType.REGULAR_FILE,
+                        extractOpts: {type:'bin'}
+                    };
 
-                    for(let k=0;i<dfiles.length;k++){
-                        ddist = _path_.join(tmpBin, dfiles[k].n);
-                        try{
-                            device.pull( dfiles[k].p, ddist);
-                            splittedInput.push({
-                                data: ddist,
-                                location: ProjectInputLocation.LOCAL,
-                                purpose: ProjectInputPurpose.EXTRA,
-                                type: ProjectInputType.REGULAR_FILE,
-                                extractOpts: {type:'bin'}
-                            });
-                        }catch(err){
-                            console.log(err)
-                        }
+
+                    if(_fs_.lstatSync(dist).isDirectory()){
+                        splittedRes.type = ProjectInputType.FOLDER;
                     }
 
-                }else{*/
-                    dist = _path_.join(tmpBin, files[i].n);
-                    try{
-                        device.pull(files[i].p, dist);
-                        splittedInput.push({
-                            data: dist,
-                            location: ProjectInputLocation.LOCAL,
-                            purpose: ProjectInputPurpose.EXTRA,
-                            type: ProjectInputType.REGULAR_FILE,
-                            extractOpts: {type:'bin'}
-                        });
-                    }catch(err){
-                        console.log(err)
+                    if(this.state.getProperty("base_apks").indexOf(files[i].n)>-1){
+                        splittedRes.purpose = ProjectInputPurpose.MAIN;
+                        baseInput = splittedRes;
                     }
-                //}
+
+                    splittedInput.push(splittedRes);
+                    Logger.info(ProjectInputViewer.print(splittedRes));
+                }catch(err){
+                    Logger.error(err.message);
+                }
             }
-
-            console.log(splittedInput);
         }
 
-        /*
-        if(this._cfg.mustMergeSplittedAPK()){
-            // override options with options corresponding to freshly crafted package
-            const o = await this.mergeSplittedApks();
-            opts.path = o.path;
-            opts.extractOpts = o.extractOpts;
-        }
-         */
-
-
+        // extract Base APK
         targetApp = this._project.getWorkspace().changeMainAppBinary(
-            basePath,
+            baseInput.data as string,
             'bin'
         );
 
 
-        // load it : decompress file, disass dex files
         this._project.getWorkflow().pushStatus(new StatusMessage(2, "Start to extract application data"));
 
         Logger.info("[PROJECT][TARGET APP] Path : "+targetApp.getPath())
@@ -234,6 +242,21 @@ export class AndroidPackageAnalyzer implements IPackageAnalyzer {
         const success = await  this._project.platform.extractApp(
             targetApp,  this._project.workspace.getApkDir(),
             {type:'bin'});
+
+
+        // if enabled, merge package from splittedInput, this._base_apk  and  this._extra
+        // into a single folder.
+        if(this._cfg.mustMergeSplittedAPK()){
+            // override options with options corresponding to freshly crafted package
+            await this.mergeSplitApks(
+                baseInput,
+                this._extra,
+                splittedInput
+            );
+            //opts.path = o.path;
+        }
+
+
 
         // start analysis ?
         if(success){
@@ -244,13 +267,46 @@ export class AndroidPackageAnalyzer implements IPackageAnalyzer {
     }
 
     /**
+     * To extract and merge several project inputs in order to build a folder
+     * containing whole package as it was not split.
      *
+     * Final folder MUST be repackageable
+     *
+     * @param {ProjectInput} pBaseApk Base APK
+     * @param {Record<string, ProjectInput[]>} pExtra   Extra project inputs
+     * @param {ProjectInput[]} pSplitApks Splitted APK and extra inputs from SSA (Search Split APKs) step
+     * returns {Promise<ProjectInput>} Promise of consolidated project input. It points to a folder
+     * @async
+     * @method
      */
-    async mergeSplittedApks():Promise<PrepareOptions> {
-        return {
-            path: "",
-            extractOpts: { type: 'bin' }
-        }
+    async mergeSplitApks(pBaseApk:ProjectInput, pExtra:Record<string, ProjectInput[]>, pSplitApks:ProjectInput[] = [] ){
+
+        /*
+        let extraBundle:ProjectInput, tmpApp:TargetApp, extractDest:string;
+
+        // pBaseApk has been already extracted to apk dir into project workspace
+        for(let i=0; i<pSplitApks.length; i++){
+
+            extraBundle = pSplitApks[i];
+
+            if((extraBundle.data as string).endsWith(".apk")){
+                // extract APK into tmp folder, and merge content with apk folder
+                tmpApp = new TargetApp("bin", extraBundle.data as string);
+
+                extractDest = _path_.join(
+                    this._project.workspace.getTmpDir(),
+                    _path_.basename(extraBundle.data as string)
+                );
+
+                await this._project.platform.extractApp(
+                    tmpApp,  this._project.workspace.getApkDir(),
+                    {type:'bin'});
+            }
+
+            if(extraBundle.type==ProjectInputType.FOLDER){
+                // copy directory
+            }
+        }*/
     }
 
     /**

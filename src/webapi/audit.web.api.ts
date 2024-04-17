@@ -582,7 +582,7 @@ AUDIT_WEB_API.addAsyncAuthenticatedRoute(
 
             try{
                 //
-                let project = null;
+                let project:Nullable<DexcaliburProject> = null;
                 try{
                     project = AUDIT_WEB_API.doProjectSecurityChecks(req, $, {readProjectStrict:true});
                 }catch(err1){

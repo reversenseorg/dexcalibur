@@ -331,9 +331,10 @@ export class MerlinSearchRequest implements MerlinPrimitive{
 
     if(tag==null){
       // parse pattern
-      if(pattern.substr(0, 3) == "is.") {
+      // "is"
+      if(pattern.substring(0, 3) == "is.") {
         if ((lex = pattern.indexOf(SEP_TOKEN)) > -1) {
-          token = pattern.substr(3, lex - 3);
+          token = pattern.substring(3, lex - 3);
           pattern = pattern.substr(lex + 1, pattern.length - lex - 1);
         } else {
           token = pattern.substr(3, pattern.length - 3);
@@ -343,11 +344,20 @@ export class MerlinSearchRequest implements MerlinPrimitive{
         cond.pattern = pattern;
         cond.field = token;
 
-      } else if (pattern.substr(0, 4) == "has.") {
+      } /*else if (pattern.substring(0, 4) == "has.") {
         //console.debug("Tag-based request detected");
 
         cond.pattern = null;
-        cond.tagKey = pattern.substr(4);
+        cond.tagKey = pattern.substring(4);
+      } */else {
+            if ((lex = pattern.indexOf(SEP_TOKEN)) > -1) {
+              cond.field = token = pattern.substring(0, lex);
+              cond.pattern = pattern = pattern.substring(lex + 1);
+            } else {
+              // DEFAULT field must be parameterized, it depends of root node
+              cond.field = token = "name";
+              //pattern = pattern; //"";
+            }
       }
 
     }else{
@@ -355,14 +365,13 @@ export class MerlinSearchRequest implements MerlinPrimitive{
       cond.tagKey = tag;
     }
 
+    /*
     if ((lex = pattern.indexOf(SEP_TOKEN)) > -1) {
       token = pattern.substring(0, lex);
       pattern = pattern.substring(lex + 1);
     } else {
-      // DEFAULT field must be parameterized, it depends of root node
       token = "name";
-      //pattern = pattern; //"";
-    }
+    }*/
 
     // check if it is a deep search
     if (token.indexOf(REL_TOKEN) > -1) {
@@ -965,12 +974,13 @@ export class MerlinSearchRequest implements MerlinPrimitive{
 
     const db = pProject.getAnalyzer().getInternalDB();
     if((typeof this._type)==="string"){
-      console.log("MERLIN SEARCH REQUEST > EXECUTE > getDataSetFromNodeType ",this._type);
+      Logger.debug("MERLIN SEARCH REQUEST > EXECUTE > getDataSetFromNodeType "+this._type);
       coll = db.getDataSetFromNodeType(NodeInternalTypeName[(this._type as string)]);
     }else{
-      console.log("MERLIN SEARCH REQUEST > EXECUTE > getDataSetFromNodeType ",(this._type as NodeType).getType());
+      Logger.debug("MERLIN SEARCH REQUEST > EXECUTE > getDataSetFromNodeType "+(this._type as NodeType).getType());
       coll = db.getDataSetFromNodeType((this._type as NodeType).getType());
     }
+
 
     // resolve Tags name
     this._resolveTagNames(pProject);
@@ -981,16 +991,15 @@ export class MerlinSearchRequest implements MerlinPrimitive{
     const resultIndex = tmpDb.newIndex('root', Finder.NODE_ANY);
 
     if(coll.search == null){
-      console.log("MERLIN SEARCH REQUEST > EXECUTE > SEARCH NOT IMPLEMENTED ");
+      Logger.debug("MERLIN SEARCH REQUEST > EXECUTE > SEARCH NOT IMPLEMENTED ");
       throw new Error("Search not implemented");
     }else{
-      console.log("MERLIN SEARCH REQUEST > EXECUTE > SEARCH ");
-      console.log(this);
+      Logger.debug("MERLIN SEARCH REQUEST > EXECUTE > SEARCH ");
       res = await coll.search(this, resultIndex);
     }
 
     if(await res == null){
-      console.log("ERROR in execute()");
+      Logger.debug("ERROR in execute()");
     }
 
     return new FinderResult( await resultIndex, pProject.getSearchEngine()._finder); // this._ctx._finder);

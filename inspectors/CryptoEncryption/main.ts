@@ -93,17 +93,23 @@ var CryptoEncryption:InspectorFactory = new InspectorFactory({
             
             if(patterns.indexOf(pEvent.data.value)>-1){
                 var tag = pCtx.getTagManager().getTag("crypto.encryption.factory.secret_key_alg"); 
-                pEvent.data.addTag(tag);
+                if(tag!==null){
+                    pEvent.data.addTag(tag);
+                }
             }
             `
         },
         "dxc.fullscan.post_deploy": {
+            lang: "js",
             source: ` 
-            var calls = pCtx.find.call("calleed.name:/^getKeySpec$/").getAsList();
-            var tag = pCtx.getTagManager().getTag("crypto.encryption.factory.read_key"); 
-            calls.map(x => {
-                x.caller.addTag(tag);
-            });
+                var calls = pCtx.find.call("calleed.name:/^getKeySpec$/");
+                var tag = pCtx.getTagManager().getTag("crypto.encryption.factory.read_key"); 
+                
+                if(calls==null || tag===null) return;
+                
+                calls.getAsList().map(x => {
+                    x.caller.addTag(tag);
+                });
             `
         }
     }

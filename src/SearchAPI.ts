@@ -283,6 +283,13 @@ export class SearchAPI
         }*/
     }
 
+
+    /**
+     * To search files stored into DataAnalyzer DB
+     *
+     * @param pattern
+     * @param pScope
+     */
     async file(pattern:string, pScope:DataScope = null):Promise<FinderResult>{
 
 

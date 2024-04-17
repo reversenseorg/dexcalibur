@@ -58,9 +58,11 @@ FS_WEB_API.addAuthenticatedRoute(
                         ModelFile.TYPE,
                         []
                     );
-                    mreq.search('_uid:'+req.query['uid']);
+
+                    mreq.search('_uid:'+req.query['uid'], { strict:true, not:false });
 
                     const files = (await mreq.execute(project)).getData();
+
                     if(files.length>0){
                         file = files[0];
                     }else{

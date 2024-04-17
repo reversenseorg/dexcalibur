@@ -3,6 +3,7 @@
 export enum ProjectInputType {
     REGULAR_FILE='regular_file',
     BUFFER='buffer',
+    FOLDER='folder'
 }
 
 export enum ProjectInputLocation {
@@ -28,4 +29,10 @@ export interface ProjectInput {
     type: ProjectInputType,
     extractOpts?: InputExtractOptions,
     purpose: ProjectInputPurpose
+}
+
+export class ProjectInputViewer {
+    static print(pProjectInput:ProjectInput){
+        return `| ${pProjectInput.purpose} | ${pProjectInput.location} | ${pProjectInput.type} | ${JSON.stringify(pProjectInput.extractOpts)} | ${pProjectInput.data} `;
+    }
 }

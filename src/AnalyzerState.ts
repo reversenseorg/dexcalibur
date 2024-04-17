@@ -14,6 +14,13 @@ import DexcaliburProject from "./DexcaliburProject.js";
 import {ProjectDatabase} from "./database/ProjectDatabase.js";
 import {Nullable} from "./core/IStringIndex.js";
 
+
+export interface AnalyzerStateOptions {
+    _uid:string;
+    state?:any;
+    modified?:boolean;
+    tags?:number[];
+}
 /**
  * A class to save the state of an analyzer or analyzed entities
  *
@@ -51,8 +58,12 @@ export class AnalyzerState implements INode{
 
     private _pdb:Nullable<ProjectDatabase> = null;
 
-    constructor(pConfig:any = {}) {
-      for(const i in pConfig) this[i] = pConfig[i];
+    /**
+     *
+     * @param pOptions
+     */
+    constructor(pOptions:AnalyzerStateOptions) {
+      for(const i in pOptions) this[i] = pOptions[i];
 
     }
 

@@ -98,10 +98,15 @@ var FileSystemInspector:InspectorFactory = new InspectorFactory({
             description: "Search any method/class/field from app code performing action with FS and tag it",
             lang: "ts",
             source: `
-                const hm = ctx.getHookManager();
+                const hm = pCtx.getHookManager();
                 const startName = "Custom_ClassLoaders";
-                const selfHS = ctx.getInspector("DynamicLoader").getHookSet();
-                let strat:HookStrategy = selfHS.getStrategyByName(startName);
+                const dlInsp = pCtx.getInspector("DynamicLoader");
+                let strat:HookStrategy;
+                
+                if(dlInsp!=null && dlInsp.getHookSet()!=null){
+                    strat = dlInsp.getHookSet().getStrategyByName(startName);
+                }
+                
             `
         }
     }
