@@ -15,6 +15,7 @@ import JavaMethodHook from "./hook/JavaMethodHook.js";
 
 import {CoreDebug} from "./core/CoreDebug.js";
 import {IStringIndex} from "./core/IStringIndex.js";
+import ModelInstruction from "./ModelInstruction.js";
 
 
 /*interface LazyMethodReference {
@@ -540,10 +541,18 @@ export default class ModelMethod extends Savable implements INode,IPersistent
         return null;
     }
 
-   getInstrNearTo(offsetBB:number,offsetInstr:number,windowSize:number=3):ModelBasicBlock[]{
+    /**
+     * To gather instructions before and after the instruction at offset `offsetInstr` in basic block `offsetBB`
+     * of the current method
+     *
+     * @param offsetBB
+     * @param offsetInstr
+     * @param windowSize
+     */
+   getInstrNearTo(offsetBB:number,offsetInstr:number,windowSize:number=3):ModelInstruction[]{
         let min:number = offsetInstr-windowSize;
         let max:number = offsetInstr+windowSize;
-        let instr:ModelBasicBlock[] = [];
+        let instr:ModelInstruction[] = [];
 
         for(let i:number=0; i<this.instr.length; i++){
             if(i == offsetBB){

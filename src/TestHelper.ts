@@ -220,7 +220,7 @@ class TestHelperClass
         let engine:DexcaliburEngine = DexcaliburEngine.getInstance();
 
         let cfg:GlobalSettings = GlobalSettings.load(
-            _path_.join( __dirname, '..', 'test', '.dexcalibur','config.json'),{
+                _path_.join( Util.__dirname(import.meta.url), '..', 'test', '.dexcalibur','config.json'),{
                 workspace: _path_.join( Util.__dirname(import.meta.url), '..', 'test', 'ws')
             });
 

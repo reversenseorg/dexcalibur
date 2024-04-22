@@ -106,6 +106,17 @@ var Parser:ArgParser = new ArgParser(projectArgs, "dexcalibur", [
         help: "Run in offline mode",
         hasVal:false,
         callback:(ctx,param)=>{ ctx.offline = true; } },
+
+    { name:"--repair-ws",
+        help: "To repair WS. When this option is set, any project missing in Engine DB are removed. To move projects to '<BACKUP>' folder, set it as follow --repair-ws[=<BACKUP>] ",
+        hasVal:true,
+        callback:(ctx, vPath)=>{
+            ctx.repairWS = {
+                backup:  (vPath!=null) ? vPath.value : null,
+                rmMissingProjects: true
+            };
+        } },
+
     { name:"--gui",
         help: "To expose one or more GUI over specified ports. Please use following format :  <GUI_NAME>:<HTTP_PORT>[:<extra>][,<GUI_NAME>:<HTTP_PORT>[:<extra>]]. Example: --gui=home:4200:ssl,expert:8080",
         hasVal:true,
@@ -247,6 +258,12 @@ if( !projectArgs.ipc
 
             // init engine with settings
             await dxcInstance.loadConfiguration(cfg);
+
+            if(projectArgs.repairWS != null){
+                dxcInstance.repairMode({
+                    ws: projectArgs.repairWS
+                });
+            }
 
             // override previously loaded config
             if(projectArgs.overrideAuth!=null){

@@ -3,18 +3,25 @@ import ModelCatchStatement from "./ModelCatchStatement.js";
 import { ModelSwitchCase, ModelPackedSwitchStatement, ModelSparseSwitchStatement } from "./ModelSwitch.js";
 import ModelInstruction from "./ModelInstruction.js";
 import ModelMethod from "./ModelMethod.js";
+import {NodeType} from "@dexcalibur/dexcalibur-orm";
+import {NodeInternalType} from "./NodeInternalType.js";
+import {Savable} from "./ModelSavable.js";
+import {CoreDebug} from "./core/CoreDebug.js";
 
 /**
  * Represents a basic block of dalvik instruction
+ * @class
  */
 export default class ModelBasicBlock
 {
+    static TYPE:NodeType = new NodeType( "code_basicblock", NodeInternalType.BASIC_BLOCK, []);
+    __:NodeInternalType = NodeInternalType.BASIC_BLOCK;
 
     // $ = STUB_TYPE.BASIC_BLOCK;
 
     line:number = -1;
     prologue:boolean = false;
-    stack:any = []; // TODO  add Instruction[] type
+    stack:ModelInstruction[] = []; // TODO  add Instruction[] type
 
     offset:number = -1;
     _parent:ModelMethod = null;
@@ -272,4 +279,42 @@ export default class ModelBasicBlock
     getInstructions():ModelInstruction[]{
         return this.stack;
     }
+
+    toJsonObject():any {
+        const o:any = {};
+        Object.keys(this).map((vPpt) => {
+            switch (vPpt){
+                case "stack":
+                    o[vPpt] =[];
+                    this.stack.map(x => {
+                        o.stack.push(x.toJsonObject());
+                    })
+                    break;
+                case "_parent":
+                    o[vPpt] = (this._parent!=null ? this._parent.__signature__ : null);
+                    break;
+                case "linked_try_block":
+                case "linked_catch_block":
+                    o[vPpt] = (this[vPpt]!=null ? this[vPpt].offset : -1);
+                    break;
+                case "succ":
+                case "pred":
+                    o[vPpt] = this[vPpt].map(x => x.offset );
+                    // ignore
+                    break;
+                case "catch":
+                    o.catch = [];
+                    this.catch.map(x => {
+                        o.catch.push(x.toJsonObject());
+                    });
+                    break;
+                default:
+                    o[vPpt] = this[vPpt];
+                    break;
+            }
+        });
+        CoreDebug.checkJsonSerialize(o, "ModelBasicBlock");
+        return o;
+    }
 }
+ModelBasicBlock.TYPE.builder(ModelBasicBlock);

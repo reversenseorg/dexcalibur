@@ -17,6 +17,7 @@ export default class AndroidNativeAnalyzerProfile implements NativeAnalyzerProfi
         [AbiType.arm64_v8a]  : ['arm64','arm64-v8a'],
         [AbiType.armeabi_v7a]  : ['arm','armeabi-v7a'],
         [AbiType.arm_v5]  : ['armv5','armeabi'],
+        [AbiType.armeabi]  : ['armeabi'],
         [AbiType.x86]  : ['x86','i386','ia-32'],
         [AbiType.x86_64]  : ['x86_64','x64'],
         [AbiType.mips]  : ['mips'],
@@ -67,6 +68,7 @@ export default class AndroidNativeAnalyzerProfile implements NativeAnalyzerProfi
             const top = pAbiList.length-1;
             for(let i=0; i<=top; i++){
                 alt = AndroidNativeAnalyzerProfile.abiFolders[pAbiList[i].name];
+                if(alt==null) continue;
                 for(let j=0; j<alt.length; j++){
                     if(alt[j] === s[2]){
                         offset = top-i;

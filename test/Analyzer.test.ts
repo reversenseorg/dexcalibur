@@ -50,6 +50,7 @@ describe('Analyzer', function() {
 
         it('simple class', function () {
 
+            console.log(PROJECT)
             let analyzer:Analyzer = new Analyzer("ascii", PROJECT);
 
             analyzer.file(

@@ -23,6 +23,11 @@ export default class ModelFileSection {
     l:number = -1;
     t:string = "";
 
+    /**
+     *
+     * @param {number} pOffset
+     * @param  {string} pType
+     */
     constructor(pOffset:number, pType:string) {
         this.o = pOffset;
         this.t = pType;

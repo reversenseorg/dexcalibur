@@ -30,11 +30,13 @@ import {CustomCode, CustomCodeOptions} from "./actionnable/CustomCode.js";
 import {MongodbDbCollection} from "@dexcalibur/dexcalibur-orm-mongodb";
 import {TagCategoryOptions,TagOptions} from "@dexcalibur/dexcalibur-orm";
 import {SemVerHelper} from "./util/semver/SemverHelper.js";
+import {BusEventHandler} from "./Bus.js";
 
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
-export type RuntimeEventHandler = ((vContext:DexcaliburProject, vEvent:BusEvent<any>)=>void);
+//export type RuntimeEventHandler = ((vContext:DexcaliburProject, vEvent:BusEvent<any>)=>void);
+export type RuntimeEventHandler = (( vEvent:BusEvent<any>)=>void);
 
 export interface EventListeners {
     [p:string]: RuntimeEventHandler;
@@ -599,9 +601,7 @@ export default class InspectorFactory implements INode
         if(this.eventListeners != null){
             Logger.debug(`[INSPECTOR FACTORY] eventListeners > ${Object.keys(this.eventListeners).length } listeners `);
             for(const i in this.eventListeners){
-                ins.on(i, {
-                    task: this.eventListeners[i]
-                });
+                ins.on(i,  this.eventListeners[i]);
             }
         }
 
@@ -614,9 +614,7 @@ export default class InspectorFactory implements INode
                 this.eventListenerSources[i] = new CustomCode(elSrc);
 
                 try{
-                    ins.on(i, {
-                        task: elSrc.createFunction(['pCtx','pEvent','pLogger'])
-                    });
+                    ins.on(i, elSrc.createFunction(['pEvent','pLogger']) as BusEventHandler);
                 }catch(err){
                     Logger.error(`[INSPECTOR FACTORY][uid=${this.id}][ERR:${err.code}] createInstance : event listener cannot create from source code. 
                     ${err.msg}
@@ -817,9 +815,7 @@ export default class InspectorFactory implements INode
             try{
                 elSrc = new CustomCode(this._config.eventListenerSources[i]);
 
-                pInspector.on(i, {
-                    task: elSrc.createFunction(['pCtx','pEvent','pLogger'])
-                });
+                pInspector.on(i, elSrc.createFunction(['pEvent','pLogger']) as BusEventHandler);
 
                 this.eventListenersCode[i] = elSrc; //new CustomCode(elSrc);
             }catch(err){
@@ -838,9 +834,8 @@ export default class InspectorFactory implements INode
         if(this._config.eventListeners==null) return ;
 
         for(const i in this._config.eventListeners){
-            pInspector.on(i, {
-                task: this._config.eventListeners[i]
-            });
+
+            pInspector.on(i, this._config.eventListeners[i]);
         }
     }
 
@@ -864,7 +859,18 @@ export default class InspectorFactory implements INode
     }
 
     toJsonObject(pOption?: SerializeOptions): any {
-        return this;
+        const o:any = {};
+        for(let k in this){
+            switch(k){
+                case "context":
+                    // skip
+                    break;
+                default:
+                    o[k] = this[k];
+                    break;
+            }
+        }
+        return o;
     }
 }
 InspectorFactory.TYPE.builder(InspectorFactory);

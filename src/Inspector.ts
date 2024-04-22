@@ -16,7 +16,7 @@ import InspectorFrontController, {IFC_TYPE} from "./InspectorFrontController.js"
 import BusEvent from "./BusEvent.js";
 import * as Log from './Logger.js';
 import {Stats} from "mocha";
-import {BusBroadcaster} from "./Bus.js";
+import {BusBroadcaster, BusEventHandler, BusSubscriber} from "./Bus.js";
 //import {IDatabase, IDatabaseAdapter} from "./persist/orm/DbAbstraction.js";
 import {DelegateWebApi} from "./webapi/DelegateWebApi.js";
 import WebServer from "./WebServer.js";
@@ -59,7 +59,7 @@ export enum INSPECTOR_TYPE {
 }
 
 interface ListenerList {
-    [eventType :string] :StaticTask[]
+    [eventType :string] :BusEventHandler[]
 }
 
 /**
@@ -68,6 +68,7 @@ interface ListenerList {
  * If an analysis is not invoked explicitely by the user, but automatically when a specific event happened, then
  * context or incoming data are processed by listeners (StaticTask).
  *
+ * @deprecated
  * @class
  */
 class StaticTask
@@ -78,6 +79,11 @@ class StaticTask
     onNoResult:any = null;
     onSuccess:any = null;
 
+    /**
+     *
+     * @deprecated
+     * @param pConfig
+     */
     constructor(pConfig:any=null){
         if(pConfig!==null)
             for(const i in pConfig)
@@ -90,6 +96,8 @@ class StaticTask
      * The function MUST return a boolean
      *
      * @param fn {Function} Condition function
+     *
+     * @deprecated
      * @return
      */
     setCondition(fn:any){
@@ -106,6 +114,7 @@ class StaticTask
      *
      *
      * @param fn {Function} Condition function
+     * @deprecated
      * @return
      */
     setTask(fn:any){
@@ -118,6 +127,7 @@ class StaticTask
      * @param ctx
      * @param event
      * @return {void}
+     * @deprecated
      * @method
      */
     exec(ctx:any, event:any){
@@ -427,16 +437,22 @@ export default class Inspector implements BusBroadcaster
      * TODO: improve performance => multi-thread ?
      *
      * @param {BusEvent} event  The event from main Bus
+     * @deprecated
      * @method
      */
     broadcastEvent(event:BusEvent<any>){
-        const event_type:string = event.type;
+        /*const event_type:string = event.type;
 
         Logger.debug(`[INSPECTOR][name=${this.name}] broadcastEvent [type=${event_type}] > listeners for : ${Object.keys(this.listener).join(" , ")}`);
         if(this.listener[event_type] != null){
+
+
+
             Logger.debug("Listener for ["+event_type+"] found in inspector ["+this.name+"]  ");
             for(let i=0; i<this.listener[event_type].length; i++){
+
                 // TODO : async / co
+
                 //Logger.debug("Listener for ["+event_type+"] exec  ");
                 try{
                     this.listener[event_type][i].exec(this.context, event);
@@ -447,7 +463,7 @@ export default class Inspector implements BusBroadcaster
                 }
 
             }
-        }
+        }*/
         return true;
     }
 
@@ -462,15 +478,16 @@ export default class Inspector implements BusBroadcaster
      * @return {Inspector} This inspector instance
      * @method
      */
-    on(event_type:string, task:StaticTask|any):Inspector{
-        if(this.listener[event_type] == null)
-            this.listener[event_type] = [];
+    on(event_type:string, pHandler: BusEventHandler):Inspector{
+
+        //const task:StaticTask = (pTask instanceof StaticTask)? pTask : new StaticTask(pTask);
+
+        if(this.listener[event_type] == null) this.listener[event_type] = [];
 
         Logger.debug(`[INSPECTOR][name=${this.name}] set listener [o=${event_type}] }`);
-        if(task instanceof StaticTask)
-            this.listener[event_type].push(task);
-        else
-            this.listener[event_type].push(new StaticTask(task));
+
+        this.listener[event_type].push(pHandler);
+
 
         return this;
     }
@@ -534,6 +551,18 @@ export default class Inspector implements BusBroadcaster
         for(let i=0; i<this.preRegisteredTags.length; i++){
             await tmgr.importCategory(this.preRegisteredTags[i]);
         }
+
+
+        // register listeners
+
+        // subscribe
+        for(let evtName in this.listener){
+            this.listener[evtName].map(( vEvtHandler:BusEventHandler)=>{
+                this.context.getBus().singleSubscribe<any>(evtName, BusSubscriber.from(vEvtHandler));
+            });
+        }
+
+
 
         /*if(this.db instanceof InMemoryDb){
             //this.db.setContext(this.context);

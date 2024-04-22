@@ -109,8 +109,8 @@ var NetworkHttpInspector:InspectorFactory = new InspectorFactory({
     },
 
     eventListeners: {
-        "network.http.request.build": function(ctx:DexcaliburProject,event:BusEvent<HookMessageV2>){
-            if(event.data!=null){
+        "network.http.request.build": function(pEvent:BusEvent<HookMessageV2>){
+            if(pEvent.data!=null){
 
                 // TODO : process SBOM
 
@@ -118,9 +118,10 @@ var NetworkHttpInspector:InspectorFactory = new InspectorFactory({
                 // todo : retrieve session ID, be careful with concurrent session
                 let loc:Nullable<ContextLocation> = null;
                 let node:Nullable<INode> = null;
+                let ctx = pEvent.getContext();
 
-                if((event as RuntimeEvent<any>).node.length > 0){
-                    node = (event as RuntimeEvent<any>).node[0] as INode;
+                if((pEvent as RuntimeEvent<any>).node.length > 0){
+                    node = (pEvent as RuntimeEvent<any>).node[0] as INode;
                     loc = {
                         __: node.__,
                         uid: node.getUID()
@@ -128,10 +129,10 @@ var NetworkHttpInspector:InspectorFactory = new InspectorFactory({
                     };
                 }
 
-                const str = new ModelStringValue({
-                    value: event.data.data.url,
+                const str = pEvent.getContext().modelAPI.newStringValue({
+                    value: pEvent.data.data.url,
                     instance: [
-                        new ModelInstance({
+                        pEvent.getContext().modelAPI.newInstance({
                             session: "", //ctx.getHookManager().get
                             ctx: loc
                         })

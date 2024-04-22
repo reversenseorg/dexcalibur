@@ -1,5 +1,7 @@
 import ModelClass from "./ModelClass.js";
 import ModelBasicBlock from "./ModelBasicBlock.js";
+import {NodeInternalType} from "./NodeInternalType.js";
+import {CoreDebug} from "./core/CoreDebug.js";
 
 interface ITryCatchBoundary
 {
@@ -9,9 +11,20 @@ interface ITryCatchBoundary
     3: string|ModelBasicBlock,
 };
 
-
+/**
+ * ```
+ * try {
+ *  [block]
+ * }catch( [ cond ] ){
+ *  [block]
+ * }
+ *
+ * ```
+ */
 export default class ModelCatchStatement
 {
+    __ = NodeInternalType.CATCH_STMT;
+
     d:ITryCatchBoundary = null;
 
     constructor(){
@@ -48,5 +61,19 @@ export default class ModelCatchStatement
 
     getTarget():string|ModelBasicBlock{
         return this.d[3];
+    }
+
+    toJsonObject():any {
+        const o = {
+            d: null
+        };
+        if(this.d != null){
+            o.d = [];
+            Object.keys(this.d).map((x)=>{
+                o.d[x] = (typeof this.d[x]==='string')? this.d[x] : (this.d[x] as ModelBasicBlock).offset;
+            })
+        }
+        CoreDebug.checkJsonSerialize(o, "ModelCatchStatement");
+        return o;
     }
 }

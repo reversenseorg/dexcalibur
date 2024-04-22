@@ -1,4 +1,4 @@
-import KeyPoint from "./KeyPoint.js";
+import KeyPoint, {KeyPointType} from "./KeyPoint.js";
 import KeyPointManager from "./KeyPointManager.js";
 import ModelFile from "../ModelFile.js";
 import {NodeInternalType} from "../NodeInternalType.js";
@@ -30,12 +30,33 @@ export const KeyPointFileEvent = {
 };
 
 /**
+ * Options to create key point instance
+ * @interface
+ */
+export interface KeyPointOptionsOptions {
+    parent?:string;
+    token?:string;
+    weight?:number;
+    descr?:string;
+    condition?:string;
+    name?:string;
+    cname?:string;
+    keypointType?:KeyPointType;
+}
+
+/**
  * Represent options required to generate code of a key point
  *
  * @class
  */
 export class KeyPointOptions {
     parent:string;
+
+    /**
+     * The token to use inside hook template
+     * Sommething like that : `@@_KP_XXX_@@`
+     * @string
+     */
     token:string;
     weight:number;
     descr:string;
@@ -46,6 +67,15 @@ export class KeyPointOptions {
      * @type {string}
      */
     condition = "";
+
+    /**
+     * Type of resources/event where key point is listening
+     * By defaylt a key point if trigged by hooks
+     *
+     * @default `KeyPointType.HOOK`
+     * @type {KeyPointType}
+     */
+    keypointType:KeyPointType = KeyPointType.HOOK;
 
     /**
      * Condition Name
@@ -67,10 +97,8 @@ export class KeyPointOptions {
      * @param pConfig {any} Optional. Poor object containing config
      * @constructor
      */
-    constructor(pConfig:any = null) {
-        if(pConfig != null){
-            for(const i in pConfig) this[i] = pConfig[i];
-        }
+    constructor(pConfig:KeyPointOptionsOptions = {}) {
+        for(const i in pConfig) this[i] = pConfig[i];
     }
 
     /**

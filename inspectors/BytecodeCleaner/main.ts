@@ -105,7 +105,7 @@ export default new InspectorFactory({
         strategies:[]
     },
 
-    webapi: PLUGIN_WEB_API
+    //webapi: PLUGIN_WEB_API
 });
 
 

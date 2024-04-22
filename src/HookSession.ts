@@ -32,7 +32,6 @@ import {
 } from "@dexcalibur/dexcalibur-orm";
 import {CryptoUtils} from "./CryptoUtils.js";
 import {CoreDebug} from "./core/CoreDebug.js";
-import {Nullable} from "./core/IStringIndex.js";
 
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
@@ -87,7 +86,7 @@ export default class HookSession extends WebsocketSession implements INode
                 })
                 .wakeUp( (x:NodePropertyState)=>{ return (x.p!=null ? x.p : null)})
                 .def(0)
-        ]);
+        ]).dataSource("PROJECT_DB");
     __:NodeInternalType = NodeInternalType.HOOK_SESSION;
 
     public _uid:string = null;
@@ -211,7 +210,7 @@ export default class HookSession extends WebsocketSession implements INode
 
     /**
      * To push a new message from a hook into the session.
-     * Each message are an instance of HookMessage
+     * Each message is an instance of HookMessage
      *
      * @method
      */
@@ -239,14 +238,14 @@ export default class HookSession extends WebsocketSession implements INode
         hm.hook = this.hookManager.getHookByID(pRawMsg.hid);
 
         // by default, not tagged hook message are not broadcasted
-        let brodcast = false;
+        let broadcast = false;
 
         if(hm.hook && pRawMsg.fid!=null){
             hm.frag = hm.hook.getFragment(pRawMsg.fid);
             ev.addTag(this.evTags.HOOK);
 
             // now, event type and auto emit can be retrieved for each fragments
-            brodcast = hm.frag.autoEmit;
+            broadcast = hm.frag.autoEmit;
             ev.setType(hm.frag.emitEvent);
         }
 
@@ -298,7 +297,7 @@ export default class HookSession extends WebsocketSession implements INode
             // TODO : ev to websocket msg
             // only valid message are broadcasted
             if(ev.isNotError()){
-                this.hookManager.newRuntimeEvent(ev, brodcast);
+                this.hookManager.newRuntimeEvent(ev, broadcast);
             }
 
             this.send({
@@ -379,7 +378,7 @@ export default class HookSession extends WebsocketSession implements INode
      */
     //toJsonObject( pOffset=0, pSize=-1):any {
     toJsonObject(pOptions?: SerializeOptions):any  {
-        const o:any = new Object();
+        const o:any = {};
         let limit:number=pOptions.size;
         o._uid = this._uid;
         o.message = [];
@@ -422,4 +421,4 @@ export default class HookSession extends WebsocketSession implements INode
 
 
 }
-
+HookSession.TYPE.builder(HookSession);

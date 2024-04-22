@@ -32,8 +32,8 @@ export class AnalyzerConfiguration {
         pkg: {}
     };
 
-    constructor(pConfig:any = null) {
-        if(pConfig!==null){
+    constructor(pConfig:any = {}) {
+        if(pConfig!=null){
             for(const k in pConfig){
                 this[k] = pConfig[k];
             }
@@ -115,14 +115,15 @@ export class AnalyzerConfiguration {
     }
 
     static from(pObj:any):AnalyzerConfiguration {
-        return new AnalyzerConfiguration({ ppts:pObj });
+        return new AnalyzerConfiguration(pObj);
     }
 
     toJsonObject():any{
-        let o={};
-        for(let i in this.ppts) o[i] = this.ppts[i];
-        CoreDebug.checkJsonSerialize(o,"AnalyzerConfiguration");
-        return o;
+        //let o={};
+        //o.ppts = this.ppts;
+        //for(let i in this.ppts) o[i] = this.ppts[i];
+        CoreDebug.checkJsonSerialize(this,"AnalyzerConfiguration");
+        return this;
     }
 
     /**

@@ -61,34 +61,37 @@ var DataClassifierInspector:InspectorFactory = new InspectorFactory({
     },
 
     eventListeners: {
-        "disass.datablock.new": function(ctx:DexcaliburProject, event:BusEvent<any>):void{
-            if(event.data!=null){
+        "disass.datablock.new": function( pEvent:BusEvent<any>):void{
+            if(pEvent.data!=null){
+                const ctx = pEvent.getContext();
                 const tmgr = ctx.getTagManager();
-                let l = event.data.count()*event.data.width;
+                let l = pEvent.data.count()*pEvent.data.width;
                 let tagUIDs = [];
                 if(TAGS.hash[l] != null) tagUIDs=tagUIDs.concat(TAGS.hash[l]);
                 if(TAGS.asym_key[l] != null) tagUIDs=tagUIDs.concat(TAGS.asym_key[l]);
                 if(TAGS.sym_key[l] != null) tagUIDs=tagUIDs.concat(TAGS.sym_key[l]);
-                if(isASCII(event.data)) tagUIDs.push("data.charset.ascii");
+                if(isASCII(pEvent.data)) tagUIDs.push("data.charset.ascii");
 
                 tagUIDs.map( x => {
-                    event.data.addTag( tmgr.getTag(x));
+                    pEvent.data.addTag( tmgr.getTag(x));
                 })
                 //console.log(l,event.data.tags);
             }
         },
-        "string.new": function(ctx:DexcaliburProject,event:BusEvent<ModelStringValue>):void{
+        "string.new": function(pEvent:BusEvent<ModelStringValue>):void{
+            const ctx = pEvent.getContext();
             const tag_URI = ctx.getTagManager().getTag("string.pattern.uri");
             const pattern:RegExp = new RegExp("([^:/]*)://([^/]*)");
 
-            if(event.data!=null && pattern.exec(event.data.value)){
-                if(!event.data.hasTag(tag_URI)){
-                    event.data.addTag(tag_URI);
+            if(pEvent.data!=null && pattern.exec(pEvent.data.value)){
+                if(!pEvent.data.hasTag(tag_URI)){
+                    pEvent.data.addTag(tag_URI);
                 }
             }
         },
-        "dxc.fullscan.post": function(ctx:DexcaliburProject,event:BusEvent<any>):void{
+        "dxc.fullscan.post": function(pEvent:BusEvent<any>):void{
 
+            const ctx = pEvent.getContext();
             const tag_URI = ctx.getTagManager().getTag("string.pattern.uri");
             let pattern:RegExp = new RegExp("([^:/]*)://([^/]*)");
     
@@ -110,13 +113,14 @@ var DataClassifierInspector:InspectorFactory = new InspectorFactory({
                     }
                 });
         },
-        "string.instance.new": function(ctx:DexcaliburProject,event:BusEvent<ModelStringValue>){
-            if(event.data!=null){
-                if(URI_REGEXP.test(event.data.value)){
-                    event.data.addTag(ctx.getTagManager().getTag("string.pattern.uri"));
+        "string.instance.new": function(pEvent:BusEvent<ModelStringValue>){
+            const ctx = pEvent.getContext();
+            if(pEvent.data!=null){
+                if(URI_REGEXP.test(pEvent.data.value)){
+                    pEvent.data.addTag(ctx.getTagManager().getTag("string.pattern.uri"));
                     ctx.bus.send(new BusEvent<ModelStringValue>({
                         type: "network.uri.string",
-                        data: event.data
+                        data: pEvent.data
                     }));
                 }
             }

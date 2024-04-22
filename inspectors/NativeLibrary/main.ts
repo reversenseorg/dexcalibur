@@ -119,9 +119,9 @@ var NativeLibraryInspector:InspectorFactory = new InspectorFactory({
     },
 
     eventListeners: {
-        "hook.nativelib.load": function(ctx:any,event:any):any{
+        /*"hook.nativelib.load": function(ctx:any,event:any):any{
             //todo
-        }
+        }*/
     }
 });
 

@@ -18,7 +18,7 @@ import {Nullable} from "./core/IStringIndex.js";
 export interface AnalyzerStateOptions {
     _uid:string;
     state?:any;
-    modified?:boolean;
+    modified?:number;
     tags?:number[];
 }
 /**

@@ -30,7 +30,7 @@ export default new InspectorFactory({
     version: "1.0.0",
     startStep: INSPECTOR_TYPE.POST_APP_SCAN,
 
-    webapi: DYNAMICLOADER_WEB_API,
+    //webapi: DYNAMICLOADER_WEB_API,
 
     useGUI: true,
 
@@ -395,6 +395,7 @@ export default new InspectorFactory({
             source: `
                 //Logger.info("[INSPECTOR][TASK] Trying to restore previous data of DynLoaderInspector ... ");
                 console.log('Search class loader');
+                const pCtx = pEvent.getContext();
                 const hm = pCtx.getHookManager();
                 const startName = "Custom_ClassLoaders";
                 const selfHS = pCtx.getInspector("DynamicLoader").getHookSet();
@@ -444,44 +445,45 @@ export default new InspectorFactory({
     },
     eventListeners: {
 
-        "hook.dex.load": function (ctx:DexcaliburProject, event:BusEvent<any>):void {
+        "hook.dex.load": function (pEvent:BusEvent<any>):void {
             Logger.info("hook.dex.load : ");
-            Logger.info(JSON.stringify(event));
+            Logger.info(JSON.stringify(pEvent));
 
-            if (event.data.isNew == false) return null;
+            const ctx = pEvent.getContext();
+            if (pEvent.data.isNew == false) return null;
 
-            let hook = ctx.hook.getHookByID(Util.b64_decode(event.data.hook));
+            let hook = ctx.hook.getHookByID(Util.b64_decode(pEvent.data.hook));
 
-            Logger.info("[INSPECTOR][TASK] DynLoaderInspector new Dex file loaded :\tDex: ", event.data.dex);
+            Logger.info("[INSPECTOR][TASK] DynLoaderInspector new Dex file loaded :\tDex: ", pEvent.data.dex);
 
             // update variable for next time
-            hook.getVariable('names').getData().push(event.data.dex);
+            hook.getVariable('names').getData().push(pEvent.data.dex);
         },
 
-        "hook.dex.new": function (ctx:DexcaliburProject, event:BusEvent<any>):void {
-            Logger.info("[INSPECTOR][TASK] DynLoaderInspector new Dex file", event.data.path);
+        "hook.dex.new": function (pEvent:BusEvent<any>):void {
+            Logger.info("[INSPECTOR][TASK] DynLoaderInspector new Dex file", pEvent.data.path);
         },
 
-        "hook.reflect.class.get": function (ctx:DexcaliburProject, event:BusEvent<any>):void {
+        "hook.reflect.class.get": function (pEvent:BusEvent<any>):void {
             // get CFG
             //let db = ctx.analyze.db;
 
             // search if the method exists
 
-            Logger.info("[INSPECTOR][TASK] DynLoaderInspector search Class ", event.data.signature);
+            Logger.info("[INSPECTOR][TASK] DynLoaderInspector search Class ", pEvent.data.signature);
             //Logger.info(JSON.stringify(event));
 
         },
 
-        "hook.reflect.method.get": function (ctx:DexcaliburProject, event:BusEvent<any>):boolean {
+        "hook.reflect.method.get": function (pEvent:BusEvent<any>):boolean {
             Logger.info("[INSPECTOR][TASK] DynLoaderInspector search Method ");
             //Logger.info(JSON.stringify(event));
 
             //console.log(event);
-            if (event == null || event.data == null) return false;
-
+            if (pEvent == null || pEvent.data == null) return false;
+            const ctx = pEvent.getContext();
             const tmgr = ctx.getTagManager();
-            let data:any = event.data, caller:ModelMethod = null, callers:any = null;
+            let data:any = pEvent.data, caller:ModelMethod = null, callers:any = null;
             let meth:ModelMethod;
 
             //console.log(data);
@@ -529,7 +531,7 @@ export default new InspectorFactory({
 
             // , { tag: TAG.Called.Dynamically }
             // update method used by the method performing the invoke
-            let call:ModelCall = new ModelCall({
+            let call:ModelCall = pEvent.getContext().modelAPI.newCall({
                 caller: caller,
                 calleed: meth,
                 instr: null,
@@ -541,12 +543,13 @@ export default new InspectorFactory({
 
         },
 
-        "hook.dex.find.class": function (ctx:DexcaliburProject, event:BusEvent<any>):boolean {
+        "hook.dex.find.class": function ( pEvent:BusEvent<any>):boolean {
             Logger.info("[INSPECTOR][TASK] DynLoaderInspector external class loaded dynamically ");
             //Logger.info(JSON.stringify(event));
-            if (event == null || event.data == null) return false;
+            if (pEvent == null || pEvent.data == null) return false;
 
-            let data = event.data;
+            let ctx = pEvent.getContext();
+            let data = pEvent.data;
             let cls = ctx.find.get.class(data.__class__);
             //console.log(cls, data);
 
@@ -560,7 +563,7 @@ export default new InspectorFactory({
             cls.addTag(DYN_CALL_TAG);
         },
 
-        "hook.dex.classloader.new": function (ctx:DexcaliburProject, event:BusEvent<any>):void {
+        "hook.dex.classloader.new": function (pEvent:BusEvent<any>):void {
             // 1. save gathered bytecode to a file
             // 2. disassemble this file 
             // 3. Analyze & update graph
@@ -568,20 +571,21 @@ export default new InspectorFactory({
 
 
 
-            if(event.data==null) return;
+            if(pEvent.data==null) return;
 
+            const ctx = pEvent.getContext();
             const platform_tag = ctx.getTagManager().getTag("discover.internal");
             const sast_tag = ctx.getTagManager().getTag("discover.static");
             const dast_tag = ctx.getTagManager().getTag("discover.dynamic");
 
             const rtWorkingDir = ctx.workspace.getRuntimeBcDir();
-            const dexFileName = _path_.basename(event.data.arg0);
+            const dexFileName = _path_.basename(pEvent.data.arg0);
             const localDexFile = _path_.join(rtWorkingDir, dexFileName, dexFileName);
             let stat = null;
             let ignore = false;
             const inspector = ctx.getInspector("DynamicLoader");
 
-            Logger.info('Analyzing "'+dexFileName+'" at : '+localDexFile+'(fsize:'+event.data.__hidden__data.length+')');
+            Logger.info('Analyzing "'+dexFileName+'" at : '+localDexFile+'(fsize:'+pEvent.data.__hidden__data.length+')');
             //Logger.info(JSON.stringify(event.data));
 
 
@@ -590,7 +594,7 @@ export default new InspectorFactory({
             if (_fs_.existsSync(localDexFile)) {
                 stat = _fs_.lstatSync(localDexFile);
 
-                if (stat.size === event.data.__hidden__data.length) {
+                if (stat.size === pEvent.data.__hidden__data.length) {
                     // TODO : then if it is identic do checksum
                     return;
                 }
@@ -604,7 +608,7 @@ export default new InspectorFactory({
             Logger.info("Ignore dex file : "+(ignore? "TRUE":"FALSE"));
             //if (ignore) return null;
 
-            let data = Buffer.from(event.data.__hidden__data);
+            let data = Buffer.from(pEvent.data.__hidden__data);
 
             _fs_.open(localDexFile, 'w+', 0o666, function (err:any, fd:number) {
                 if (err) {
@@ -633,7 +637,7 @@ export default new InspectorFactory({
 
                             try{
                                 Logger.info("[DYNAMIC LOADER] Indexing DEX file");
-                                f = new ModelFile({
+                                f = pEvent.getContext().modelAPI.newFile({
                                     name: dexFileName,
                                     path: localDexFile,
                                     scope: ctx.dataAnalyzer.scopes.DYN_BYTECODE
@@ -642,7 +646,7 @@ export default new InspectorFactory({
                                     type: "file.new.DYN_BYTECODE",
                                     data: {
                                         file: f,
-                                        rpath: event.data.arg0
+                                        rpath: pEvent.data.arg0
                                     }
                                 }));
 
@@ -707,13 +711,13 @@ export default new InspectorFactory({
 
         },
 
-        "hook.reflect.method.call": function (ctx:DexcaliburProject, event:BusEvent<any>):boolean {
+        "hook.reflect.method.call": function (pEvent:BusEvent<any>):boolean {
             Logger.info("[INSPECTOR][TASK] DynLoaderInspector method invoked dynamically ");
-            Logger.info(JSON.stringify(event));
+            Logger.info(JSON.stringify(pEvent));
 
             //console.log(event);
-            if (event == null || event.data == null) return false;
-            let data = event.data;
+            if (pEvent == null || pEvent.data == null) return false;
+            let data = pEvent.data;
 
             //console.log(data);
             // let meth = ctx.find.get.method(data.s);
@@ -735,9 +739,10 @@ export default new InspectorFactory({
 
         
 
-        "dxc.fullscan.post_deploy": function (ctx:DexcaliburProject, event:BusEvent<any>):void {
+        "dxc.fullscan.post_deploy": function ( pEvent:BusEvent<any>):void {
             Logger.info("[INSPECTOR][TASK] Trying to restore previous data of DynLoaderInspector ... ");
 
+            const ctx = pEvent.getContext();
             const hm = ctx.getHookManager();
             const startName = "Custom_ClassLoaders";
             const selfHS = ctx.getInspector("DynamicLoader").getHookSet();

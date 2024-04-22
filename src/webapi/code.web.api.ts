@@ -80,7 +80,7 @@ CODE_WEB_API.addAuthenticatedRoute(
                     console.log("before union of results : ",analyzed)
                     //FinderResult
                     data = data.unionWithList(analyzed);
-                    console.log("after union of results : ",data);
+                    //console.log("after union of results : ",data);
                 }
 
                 fields.push('__');

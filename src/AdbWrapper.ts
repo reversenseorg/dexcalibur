@@ -40,7 +40,13 @@ enum ETransportType {
 const emuRE = /^emulator-/;
 const PROP_RE = /^\[(?<name>.*)\]\s*:\s*\[(?<value>.*)\]$/;
 
-
+export interface AdbDetachedShellOptions {
+    out?:string;
+    err?:string;
+    detached?:boolean,
+    unref?:boolean,
+    delay?:number
+}
 /**
  * ADB wrapper
  * 
@@ -845,19 +851,26 @@ export default class AdbWrapper implements IBridge
      * @async
      * //  pArgs = "",
      */
-    async detachedShell( pCommand:string|string[], pOptions:any = { detached:true, unref:true, delay:0 } ):Promise<any>{
+    async detachedShell( pCommand:string|string[], pArgs:string, pOptions:AdbDetachedShellOptions = {} ):Promise<any>{
 
         let child:Process.ChildProcess=null;
+        const opts = {
+            detached:true,
+            unref:true,
+            delay:0,
+            ...pOptions
+        }
+
         try{
             let args:string[] = this.setup(null,false) as string[];
             const ws:DexcaliburWorkspace =  DexcaliburWorkspace.getInstance();
             const time = UT.time();
 
-            pOptions.err = _path_.join( ws.getTempFolderLocation(), (time+'_err.log'));
-            pOptions.out = _path_.join( ws.getTempFolderLocation(), (time+'_out.log'));
+            opts.err = _path_.join( ws.getTempFolderLocation(), (time+'_err.log'));
+            opts.out = _path_.join( ws.getTempFolderLocation(), (time+'_out.log'));
 
-            const out:number = _fs_.openSync( pOptions.out, 'w+', 0o666);
-            const err:number = _fs_.openSync( pOptions.err, 'w+', 0o666);
+            const out:number = _fs_.openSync( opts.out, 'w+', 0o666);
+            const err:number = _fs_.openSync( opts.err, 'w+', 0o666);
 
 
 
@@ -868,8 +881,8 @@ export default class AdbWrapper implements IBridge
 
 
             args = args.concat(pCommand);
-            child = Process.spawn(this.path, args, { detached: pOptions.detached, stdio: [ 'ignore', out, err ] });
-            if(pOptions.unref) child.unref();
+            child = Process.spawn(this.path, args, { detached: opts.detached, stdio: [ 'ignore', out, err ] });
+            if(opts.unref) child.unref();
             Logger.info( `[ADB WRAPPER] detachedShell spawned: ${this.path} ,  ${args}  (opts)`);
 
         }catch(err){

@@ -1,3 +1,5 @@
+import * as _fs_ from "node:fs";
+
 import DexcaliburEngine from "../DexcaliburEngine.js";
 import {Settings} from "../Settings.js";
 import DatabaseSettings = Settings.DatabaseSettings;
@@ -128,10 +130,11 @@ export class EngineDatabase {
 
     /**
      *
-     * @param pOptions
+     * @param {DatabaseSettings} pOptions
+     * @param {any} pMongoOpts Additional custom MongoDB options
      * @private
      */
-    private _init(pOptions:DatabaseSettings):MongodbAdapter {
+    private _init(pOptions:DatabaseSettings, pMongoOpts:any = {}):MongodbAdapter {
         let creds:Nullable<MongoCredentialsOptions> = null;
         let host:Nullable<string>;
         let port = -1;
@@ -176,7 +179,8 @@ export class EngineDatabase {
         return new MongodbAdapter(this._ctx, {
             clusterUrl: this._opts.getHost() ,
             port:  this._opts.getPort(),
-            credentials: creds
+            credentials: creds,
+            clientOpts: pMongoOpts
         });
 
 
@@ -590,6 +594,12 @@ export class EngineDatabase {
         return res;
     }
 
+    /**
+     *
+     * TODO : rename : connectProjectDB()
+     *
+     * @param pProjectUID
+     */
     async getProjectDB(pProjectUID:string):Promise<ProjectDatabase> {
 
         Logger.info("[INFO] [ENGINE DB] getProjectDB = "+pProjectUID)
@@ -605,13 +615,22 @@ export class EngineDatabase {
         }
 
         // create ProjectDatabase
-        projectAdapter = this._init(this._opts);
+        projectAdapter = this._init(
+            this._opts,
+            {
+                minPoolSize: 2,
+                maxPoolSize: 200,
+                maxConnecting: 10
+            }
+        );
         db = await projectAdapter.asyncConnect(null, dbName);
         db.open(dbName);
         Logger.info("[INFO] [PROJECT DB] Fresh ");
 
-        projDB = new ProjectDatabase(this._ctx,  db);
+        projDB = new ProjectDatabase(db);
         projDB.name = dbName;
+        projDB.setEngine(this._ctx);
+
         await projDB.init();
 
         this._projectsDB[pProjectUID] = projDB;

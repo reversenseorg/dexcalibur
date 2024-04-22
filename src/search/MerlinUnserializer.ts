@@ -236,7 +236,7 @@ export class MerlinUnserializer {
                                 case OperationType.FILTER:
                                     if((x.args as any).pattern != null){
 
-                                        console.info('OperationType.FILTER  processed ',x);
+                                        //console.info('OperationType.FILTER  processed ',x);
                                         reqOpers.push({
                                             type: OperationType.FILTER,
                                             args: {
@@ -246,7 +246,7 @@ export class MerlinUnserializer {
                                             }
                                         });
                                     }else{
-                                        console.log('OperationType.FILTER not processed ',x);
+                                        //console.log('OperationType.FILTER not processed ',x);
                                     }
 
                                     break;

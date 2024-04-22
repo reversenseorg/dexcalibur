@@ -3,11 +3,10 @@ import {Settings} from "../Settings.js";
 import DatabaseSettings = Settings.DatabaseSettings;
 import {MongodbAdapter, MongodbDb, MongodbDbCollection} from "@dexcalibur/dexcalibur-orm-mongodb";
 import {Nullable} from "../core/IStringIndex.js";
-import {MongoCredentialsOptions, AuthMechanism} from "mongodb";
 import * as Log from "../Logger.js";
 import DexcaliburProject from "../DexcaliburProject.js";
 import InspectorFactory from "../InspectorFactory.js";
-import {ENodeInternalTypes, IDbCollection, INode, NodeType, Tag, TagCategory} from "@dexcalibur/dexcalibur-orm";
+import { IDbCollection, INode, NodeType, Tag, TagCategory} from "@dexcalibur/dexcalibur-orm";
 import {NodeInternalType, NodeInternalTypeName} from "../NodeInternalType.js";
 import {EngineDatabaseException} from "../errors/EngineDatabaseException.js";
 import {AnalyzerState} from "../AnalyzerState.js";
@@ -24,6 +23,21 @@ import {RuntimeEvent} from "../hook/RuntimeEvent.js";
 import Inspector from "../Inspector.js";
 import {BookmarkType} from "../bookmark/BookmarkType.js";
 import {Bookmark} from "../bookmark/Bookmark.js";
+import AndroidActivity from "../android/AndroidActivity.js";
+import ModelClass from "../ModelClass.js";
+import ModelPackage from "../ModelPackage.js";
+import ModelMethod from "../ModelMethod.js";
+import ModelField from "../ModelField.js";
+import AndroidService from "../android/AndroidService.js";
+import AndroidReceiver from "../android/AndroidReceiver.js";
+import AndroidProvider from "../android/AndroidProvider.js";
+//import {SaveScheduler} from "./SaveScheduler.js";
+import {isMainThread} from "worker_threads";
+import {WorkerInfo} from "../core/Job.js";
+import {JobWorkerMessage} from "../formats/identifier/Job.js";
+import {SaveScheduler} from "./SaveScheduler.js";
+import AnalyzerDatabase from "../AnalyzerDatabase.js";
+import Util from "../Utils.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -70,6 +84,14 @@ export class ProjectDatabase {
 
     private _project:Nullable<DexcaliburProject> = null;
 
+    /**
+     * Worker to schedule child worker to save data
+     *
+     * @type {Nullable<WorkerInfo>}
+     * @private
+     */
+    //private _scheduler:Nullable<WorkerInfo> = null;
+
     private _supportedType:NodeType[] = [
         Tag.TYPE,
         TagCategory.TYPE,
@@ -87,31 +109,96 @@ export class ProjectDatabase {
         InspectorFactory.TYPE,
         Inspector.TYPE,
         BookmarkType.TYPE,
-        Bookmark.TYPE
+        Bookmark.TYPE,
+
+        AndroidActivity.TYPE,
+        AndroidService.TYPE,
+        AndroidReceiver.TYPE,
+        AndroidProvider.TYPE,
+
+        ModelClass.TYPE,
+        ModelPackage.TYPE,
+        ModelMethod.TYPE,
+        ModelField.TYPE
     ];
 
     private _supportedTypeInfos:{ [type:number] :CollectionInfo } = {};
 
 
-    constructor(pContext:DexcaliburEngine, pDb:MongodbDb) {
-        this._ctx = pContext;
+    constructor(pDb:MongodbDb) {
         this._db = pDb;
+    }
 
+    setEngine(pContext:DexcaliburEngine){
+        this._ctx = pContext;
     }
 
     setProject(pProject:DexcaliburProject):void {
         this._project = pProject;
         this._db.conn.ctx = pProject;
-        if(pProject.dbName!=""){
+        if(pProject.dbName==""){
             pProject.dbName = this.name;
         }
+
+    }
+
+    getDb():MongodbDb {
+        return this._db;
+    }
+
+    private async _createScheduler():Promise<WorkerInfo>{
+        return await  SaveScheduler.queueScheduler(
+            20,
+            this._project,
+            (jMsg:JobWorkerMessage)=>{
+
+                if(jMsg.cmd=="log"){
+                    if(!jMsg.success || jMsg.err!=null ){
+                        Logger.error("[SaveSchedulerWorker][queueScheduler]["+jMsg.threadID+" ] : "+(jMsg.err!=null? jMsg.err : jMsg.data));
+                    }else{
+                        Logger.info("[SaveSchedulerWorker][queueScheduler]["+jMsg.threadID+" ] : "+jMsg.data);
+                    }
+                    return;
+                }
+
+                if(jMsg.cmd=="save") {
+
+                    if (!jMsg.success) {
+                        Logger.error("[SaveSchedulerWorker][queueScheduler][" + jMsg.threadID + "] Error : " + jMsg.err);
+                        return;
+                    }
+
+                    /*
+                    const f:ModelFile = new ModelFile({
+                        type: jMsg.data.fmt!=null ? jMsg.data.fmt.type : null,
+                        __p: jMsg.data.fmt!=null ? jMsg.data.fmt.__p : null,
+                        name: _path_.basename(jMsg.data.file),
+                        path: jMsg.data.file,
+                    });
+
+                    // append to the list
+                    files.push(f);
+
+                    if(pContext!=null){
+                        pContext.bus.send(new BusEvent<FileScanResult>({
+                            type: "data.file.new.knownFmt",
+                            data: {
+                                src: jMsg.data.backend,
+                                file: f
+                            }
+                        }))
+                    }*/
+                }
+                return;
+            },
+            50
+        );
     }
 
     /**
      *
      */
     async connect():Promise<void> {
-
     }
 
     /**
@@ -124,7 +211,7 @@ export class ProjectDatabase {
     private async _createCollectionOf(pNode:NodeType, pExitingCols:string[]):Promise<any> {
         if(pExitingCols.indexOf(pNode.getName())==-1){
             await this._db.createCollectionOf(pNode, pNode.getName());
-            console.log("PROJECT DB > createCollectionOf > ",pNode.getName());
+            Logger.debug("PROJECT DB > createCollectionOf > ",pNode.getName());
         }
 
     }
@@ -134,7 +221,6 @@ export class ProjectDatabase {
      */
     async init():Promise<void>{
 
-        console.log("INIT PROJECT DB");
         // refresh
         //this._db.open(this._db.name);
 
@@ -214,7 +300,34 @@ export class ProjectDatabase {
     }
 
 
+    saveAsync(pObject:INode):void{
 
+        let obj:INode;
+        const info = this._getCollectionInfo(pObject);
+        const coll = this._db.getCollection(info.collName, info.collType);
+
+        const flatObj = coll._db._s.prepareForPersist(pObject, NodeType.getByID(pObject.__));
+
+        //coll.prepareObject()
+        /*this._scheduler.worker.postMessage({
+            cmd: "save",
+            data: flatObj
+        });*/
+    }
+
+    initScheduler(){
+        /*if(this._scheduler==null && isMainThread){
+            (async ()=>{
+                this._scheduler = await this._createScheduler();
+
+                // if scheduler crash, re-spawn it
+                this._scheduler.worker.on('exit', ()=>{
+                    // this._scheduler = await this._createScheduler();
+                    console.error("Save scheduler exited.")
+                })
+            })();
+        }*/
+    }
 
     /**
      * To save an object to corresponding collection
@@ -227,13 +340,15 @@ export class ProjectDatabase {
      * @method
      */
     async save(pObject:INode):Promise<INode> {
+
+
+
         let obj:INode;
         const info = this._getCollectionInfo(pObject);
         const coll = this._db.getCollection(info.collName, info.collType);
 
-
         if(pObject._id!=null){
-            Logger.info("PROJECT DB > save > ",pObject._id);
+            //Logger.info("PROJECT DB > save > ",pObject._id);
 
             if((await coll.asyncUpdateEntry( pObject, { upsert:true, filter: {_id:pObject._id} }))===false){
                 throw EngineDatabaseException.UPDATE_FAILED_FOR(NodeInternalTypeName[pObject.__], pObject._id );
@@ -241,12 +356,66 @@ export class ProjectDatabase {
                 obj = pObject;
             }
         }else{
-            Logger.info("PROJECT DB > save > ",pObject.getUID());
-            obj = await coll.asyncAddEntry( pObject.getUID(), pObject);
+            //Logger.info("PROJECT DB > save > ",pObject.getUID());
+            try{
+                obj = await coll.asyncAddEntry( pObject.getUID(), pObject);
+            }catch(e){
+                const filterId:any = {};
+                NodeType.INTERN[pObject.__].setPrimaryKeyValueOf( filterId as any, pObject.getUID());
+                await coll.asyncUpdateEntry( pObject, { upsert:true, filter: filterId });
+            }
+
         }
 
         return obj;
     }
+
+
+    /*
+     * To save an object to corresponding collection
+     *
+     * Only some object type can be stored into shared DB :
+     * scan order, projects metadata, devices, inspectors info
+     *
+     * @param {INode} pObject
+     * @async
+     * @method
+     */
+    /*
+    async saveOOB(pFlatObject:INode):Promise<INode> {
+
+
+
+        let obj:INode;
+        const info = this._getCollectionInfo(pFlatObject.__);
+        const coll = this._db.getCollection(info.collName, info.collType);
+
+
+        if(pFlatObject._id!=null){
+            //Logger.info("PROJECT DB > save > ",pObject._id);
+
+            if((await coll.asyncUpdateEntry( pFlatObject, { upsert:true, filter: {_id:pFlatObject._id} }))===false){
+                throw EngineDatabaseException.UPDATE_FAILED_FOR(NodeInternalTypeName[pFlatObject.__], pFlatObject._id );
+            }else{
+                obj = pFlatObject;
+            }
+        }else{
+            const  uidPK = NodeType.getByID(pFlatObject.__).getPrimaryKey()._name;
+            const  uid = pFlatObject[uidPK];
+            Logger.info("PROJECT DB > save OOB > "+uid);
+            try{
+                obj = await coll.asyncAddEntry( uid, pFlatObject);
+                pFlatObject._id = obj._id;
+            }catch(e){
+                const filterId:any = {};
+                NodeType.INTERN[pFlatObject.__].setPrimaryKeyValueOf( filterId as any, uid);
+                await coll.asyncUpdateEntry( pFlatObject, { upsert:true, filter: filterId });
+            }
+
+        }
+
+        return obj;
+    }*/
 
 
     /**
@@ -312,5 +481,36 @@ export class ProjectDatabase {
             pInspector,
             { upsert: true, filter: { id:pInspector.getUID() } }
         );
+    }
+
+    /**
+     * To persist the DB
+     * @param {AnalyzerDatabase} pDB
+     */
+    async saveAnalyzerDB(pDB: AnalyzerDatabase):Promise<void>  {
+
+        Logger.info("[PROJECT DB] Start to save Analyzer DB");
+        const startTime = Util.now();
+
+        const types = [
+            NodeInternalType.CLASS,
+            NodeInternalType.METHOD,
+            NodeInternalType.FIELD,
+            NodeInternalType.PACKAGE
+        ];
+
+        let vals;
+        for(let i=0; i<types.length; i++){
+            vals = pDB.getDataSetFromNodeType(types[i]).getAsList();
+            await Util.mapInGroups<INode>(vals, async (vObj) => {
+                try{
+                    await this.save(vObj);
+                }catch(err){
+                    Logger.error(err.message);
+                }
+            }, 20);
+        }
+
+        Logger.success("[PROJECT DB] Analyzer DB saved [duration="+((Util.now()-startTime)/1000)+"s]");
     }
 }

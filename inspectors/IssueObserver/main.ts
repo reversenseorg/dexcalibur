@@ -76,8 +76,8 @@ var IssueInspector:InspectorFactory = new InspectorFactory({
     },
     
     eventListeners: {
-        "hook.except.security.new": function(ctx:DexcaliburProject,event:BusEvent<any>):any{
-            Logger.info("[INSPECTOR][TASK] IssueObserver new Security Exception ",event.data.msg);
+        "hook.except.security.new": function(pEvent:BusEvent<any>):any{
+            Logger.info("[INSPECTOR][TASK] IssueObserver new Security Exception ",pEvent.data.msg);
         }
     }
 });

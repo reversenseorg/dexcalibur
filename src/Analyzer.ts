@@ -32,6 +32,7 @@ import {NodeInternalType} from "./NodeInternalType.js";
 import {AnalyzerState} from "./AnalyzerState.js";
 
 import {INode, IDatabase, IDbIndex, IDbSet, Tag} from "@dexcalibur/dexcalibur-orm";
+import {BusSubscriber} from "./Bus.js";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -125,6 +126,13 @@ class ResolverV2
         pAnalyzerDB.classes.setEntry(pFqcn, missingCls);
         pAnalyzerDB.missing.insert(missingCls, false);
 
+        this._ctx.trigger({
+            type: "model.class.new.missing",
+            data: {
+                node: missingCls
+            }
+        });
+
         // update package
         pkg = missingCls.getPackage();
         if(pkg !== null && (typeof pkg === 'string')){
@@ -159,7 +167,12 @@ class ResolverV2
         // TODO : remove from 'missing' index ?
         internalDB.missing.insert(missingField, false);
 
-
+        this._ctx.trigger({
+            type: "model.field.new.missing",
+            data: {
+                node: missingField
+            }
+        });
         return missingField;
     }
 
@@ -180,6 +193,13 @@ class ResolverV2
         // TODO : remove from 'missing' index ?
         internalDB.missing.insert(missingMeth, false);
 
+
+        this._ctx.trigger({
+            type: "model.method.new.missing",
+            data: {
+                node: missingMeth
+            }
+        });
 
         return missingMeth;
     }
@@ -247,6 +267,12 @@ class ResolverV2
                 cls.addInheritedField(pFieldRef, field);
                 pAnalyzerDB.fields.setEntry(pFieldRef.getName(), field);
 
+                this._ctx.trigger({
+                    type: "model.field.new",
+                    data: {
+                        node: field
+                    }
+                });
                 return field;
             }
         }
@@ -287,6 +313,14 @@ class ResolverV2
                 if(meth instanceof ModelMethod){
                     cls.addInheritedMethod(pMethRef, meth);
                     pDB.methods.setEntry(pMethRef.getName(), meth);
+
+                    this._ctx.trigger({
+                        type: "model.method.new",
+                        data: {
+                            node: meth,
+                            tmp: true
+                        }
+                    });
 
                     return meth;
                 }
@@ -362,6 +396,8 @@ export default class Analyzer
                 Internal: pProject.getTagManager().getTag("discover.internal")
             }
         }
+
+        this.registerListeners();
     }
 
 
@@ -446,6 +482,12 @@ export default class Analyzer
 
                 fresh = ModelPackage.fromJavaFQCN(pkg);
                 pDb.packages.setEntry(pkg,  fresh);
+                this.context.trigger({
+                    type: "model.package.new",
+                    data: {
+                        node: fresh
+                    }
+                });
                 if(i>0){
                     (ppkgo = pDb.packages.getEntry( ppkg)).childAppend(fresh);
 
@@ -453,9 +495,18 @@ export default class Analyzer
                     if(internalTag.match(ppkgo) && (this._diffTagDef.getUUID()==sastTag.getUUID())){
                         //this.addForDelayedTagging(ppkg);
                         ppkgo.addTag(sastTag);
+                        this.context.trigger({
+                            type: "model.package.update",
+                            data: {
+                                node: ppkgo
+                            }
+                        });
                     }
 
                 }
+
+
+
             }
         }
         //pDb.packages.setEntry(pName,  ModelPackage.fromJavaFQCN(pName));
@@ -513,11 +564,10 @@ export default class Analyzer
      * @method
      * @since 1.0.0
      */
-    initNativeAnalyzer( pFileDB:IDatabase):NativeAnalyzer{
+    initNativeAnalyzer():NativeAnalyzer{
         this.a_native = new NativeAnalyzer(
             this.context,
-            this.db,
-            pFileDB
+            this.db
         );
 
 
@@ -816,6 +866,8 @@ export default class Analyzer
         // STEP 1
         // merge Absolute DB and Temp DB
         // if a class has been already analyzed its data will be updated
+        //      if a class not exists, it ll be saved
+        //      if a class is overidden, it ll be updated
         data.classes.map((k:string, v:ModelClass)=>{
 
             if(pLocation!=null) v.addLocation(pLocation);
@@ -823,6 +875,12 @@ export default class Analyzer
             // add class to the absoluteDb if missing
             if(absoluteDB.classes.hasEntry(k) == false){
                 absoluteDB.classes.setEntry(k, v);
+                this.context.trigger({
+                    type: "model.class.new",
+                    data: {
+                        node: v
+                    }
+                });
             }else{
                 Logger.debug("[SAST] DB merge > class overrided [ ",k," ]");
                 overrided.push(k);
@@ -867,8 +925,11 @@ export default class Analyzer
                     if(ext != null && cls.hasSuperClass()){
                         if((cls.getSuperClass() instanceof ModelClass)
                             && (ext.getName() != cls.getSuperClass().getName())){
+
                             cls.updateSuper(this.resolver.type(absoluteDB, ext));
                             requireRemap = true;
+
+
                         }
 
                     }
@@ -915,8 +976,8 @@ export default class Analyzer
                 for(let j in v.fields){
                     o=v.fields[j];
 
-                    if(pLocation!=null)
-                        o.addLocation(pLocation);
+                    if(pLocation!=null) o.addLocation(pLocation);
+
                     o.fqcn = v.getName();
                     // add relation  Field -- parent --> Class
                     o.enclosingClass = v;
@@ -925,6 +986,13 @@ export default class Analyzer
                     if(cls.hasField(o)){
                         // TODO : Not force override
                         cls.updateField(o, true);
+
+                        this.context.trigger({
+                            type: "model.field.update",
+                            data: {
+                                node: o
+                            }
+                        });
 
                         // update db if signature differs (if type differs)
 
@@ -937,7 +1005,15 @@ export default class Analyzer
                         cls.addField(o);
                         // if all its ok, there is not conflict
                         absoluteDB.fields.setEntry(o.signature(), o);
+
+                        this.context.trigger({
+                            type: "model.field.new",
+                            data: {
+                                node: o
+                            }
+                        });
                     }
+
 
                     STATS.idxField++;
                 }
@@ -957,6 +1033,13 @@ export default class Analyzer
 
                     // data.fields[o.hashCode()] = o;
                     absoluteDB.fields.setEntry(o.signature(), o); //hashCode()
+
+                    this.context.trigger({
+                        type: "model.field.new",
+                        data: {
+                            node: o
+                        }
+                    });
 
                     STATS.idxField++;
                 }
@@ -984,6 +1067,13 @@ export default class Analyzer
                         // TODO : Not force override
                         cls.updateMethod(o, true);
 
+                        this.context.trigger({
+                            type: "model.method.update",
+                            data: {
+                                node: o
+                            }
+                        });
+
                         // update db if signature differs (if type differs)
 
                         //absoluteDB.fields.setEntry(o.signature(), o); //hashCode()
@@ -994,6 +1084,13 @@ export default class Analyzer
                         cls.addMethod(o);
                         // if all its ok, there is not conflict
                         absoluteDB.methods.setEntry(o.signature(), o);
+
+                        this.context.trigger({
+                            type: "model.method.new",
+                            data: {
+                                node: o
+                            }
+                        });
                     }
 
                     STATS.idxMethod++;
@@ -1011,10 +1108,24 @@ export default class Analyzer
                     //absoluteDB.methods[o.signature()] = o;
                     absoluteDB.methods.setEntry(o.signature(), o);
 
+                    this.context.trigger({
+                        type: "model.method.new",
+                        data: {
+                            node: o
+                        }
+                    });
 
                     STATS.idxMethod++;
                 }
             }
+
+            // update class in DB
+            this.context.trigger({
+                type: "model.class.update",
+                data: {
+                    node: cls
+                }
+            });
 
             g++;
             if(g%100==0){
@@ -1036,6 +1147,7 @@ export default class Analyzer
             }
             // Append the current class to its Package instance
             absoluteDB.packages.getEntry(pkgName).childAppend(v);
+
             // Replace the package name by the reference to the package instance into the class instance
             v.package = absoluteDB.packages.getEntry(pkgName);
 
@@ -1067,6 +1179,13 @@ export default class Analyzer
             }
 
 
+            this.context.trigger({
+                type: "model.class.update",
+                data: {
+                    node: v
+                }
+            });
+
             g++;
             if(g%100==0){
                 this._wf.pushDirectStatus('[3/4] creating package nodes  :'+g+'/'+step);
@@ -1096,6 +1215,13 @@ export default class Analyzer
                         t1 = (new Date()).getTime();
                         if(t1-t>150)
                             Logger.debug((t1-t)+" : "+v.methods[j].signature());
+
+                        this.context.trigger({
+                            type: "model.method.update",
+                            data: {
+                                node: v.methods[j]
+                            }
+                        });
                     }
                 }
 
@@ -1178,23 +1304,54 @@ export default class Analyzer
             src=_fs_.readFileSync(pFilePath).toString(this.encoding);
             cls= this.parser.parse(src);
             self.tempDB.classes.addEntry( cls.name, cls); // cls.fqcn
+
+            this.context.trigger({
+                type: "model.class.new",
+                data: {
+                    node: cls,
+                    tmp: true
+                }
+            });
         }
     }
 
+    /**
+     * To read all binary or bytecode files inside a directory, parse the content
+     * and create AST.
+     *
+     * TODO: make it more "multi-platform"
+     *
+     * Some of preset locations are listed here :
+     * ```
+     * CodeLocation.APP
+     * CodeLocation.PLATFORM
+     * CodeLocation.MEM
+     * ```
+     *
+     * @param {string} pPath Path of file or folder to scan
+     * @param {ModelLocation} pLocation Type of location of this code at runtime
+     * @returns {void}
+     * @method
+     */
     path(pPath:string, pLocation:ModelLocation=null):void{
 
         let self:Analyzer = this;
-        let tempDb:AnalyzerDatabase = this.newTempDb();
 
+        // create a new temporary DB where all data discovered
+        // will be stored, in order to offer a separate control of
+        // how DBs (two or more graphs) are merged
+        let tempDb:AnalyzerDatabase = this.newTempDb();
         this.tempDB = tempDb;
 
-        this.context.bus.send(new BusEvent({
+        // trigger event on bus  to call some actions before to
+        // start a new analysis
+        this.context.trigger({
             type: "analyze.file.before",
             data: {
                 path: pPath,
                 analyzer: self
             }
-        }));
+        });
 
         // check if the folder exists
         if(_fs_.existsSync(pPath)===false)
@@ -1204,10 +1361,12 @@ export default class Analyzer
         //ut.forEachFileOf(path,this.file);
         let c:number = 0;
         Util.forEachFileOf(pPath,(vPath:string, vFile:string)=>{
+            // parse a file and update AST
             self.file( vPath, vFile,false);
+            // increment counter of files or classes analyzed
             c++;
             if(c%100==0){
-                self._wf.pushDirectStatus( c+' classes parsed');
+                self._wf.pushDirectStatus( c+' files or classes parsed');
             }
         });
 
@@ -1216,17 +1375,23 @@ export default class Analyzer
 
         STATS.idxClass = this.db.classes.size();
 
-        Logger.raw("[*] Smali analyzing done.\n---------------------------------------")
-        Logger.raw("[*] "+tempDb.classes.size()+" classes analyzed. ");
+        Logger.raw("[*] Static code analysis done.\n---------------------------------------")
+        Logger.raw("[*] "+tempDb.classes.size()+" files or classes analyzed. ");
 
-        // start object mapping
-        // MakeMap(this.db);
+
+        // start object mapping (replace reference by relationship),
+        // merge temporary DB with exesiting DB, ...
         if(pLocation!=null)
             this.buildModel(tempDb, this.db, pLocation);
         else
             this.buildModel(tempDb, this.db);
 
 
+        // save model
+
+
+        // trigger event on bus  to call some actions AFTER to
+        // start a new analysis
         this.context.bus.send(new BusEvent({
             type: "analyze.file.after",
             data: {
@@ -1576,6 +1741,53 @@ export default class Analyzer
      */
     getStatistics():any {
         return STATS;
+    }
+
+    registerListeners(){
+
+        [
+            "model.package.new",
+            "model.class.new",
+            "model.field.new",
+            "model.method.new"
+        ].map((vEvtType:string)=>{
+            /*this.context.getBus().subscribe(vEvtType, BusSubscriber.from( (pEvent)=>{
+                (async ()=>{
+                    try{
+                        await this.context.getProjectDB().save(pEvent.getData().node);
+                    }catch(err){
+                        Logger.error("[event="+vEvtType+"][save error][node="+pEvent.getData().node.__+"][uid="+pEvent.getData().node.getUID()+"] "+err.message,err.stack);
+                    }
+                })();
+            }));*/
+        });
+
+
+        [
+            "model.package.update",
+            "model.class.update",
+            "model.field.update",
+            "model.method.update",
+        ].map((vEvtType:string)=>{
+           // this.context.getBus().subscribe(vEvtType, BusSubscriber.from( (pEvent)=>{
+                //console.log("Saving ... > ",pEvent.getData().node.getUID());
+            //    this.context.getProjectDB().save(pEvent.getData().node);
+                /*
+                (this.context.getProjectDB().save(pEvent.getData().node)).then(()=>{
+                    console.log(pEvent.getData().node.getUID());
+                }).catch((err)=>{
+                    Logger.error("[event="+vEvtType+"][save error][node="+pEvent.getData().node.__+"][uid="+pEvent.getData().node.getUID()+"] "+err.message,err.stack);
+                });*/
+                /*
+                (async ()=>{
+                    try{
+                        await this.context.getProjectDB().save(pEvent.getData().node);
+                    }catch(err){
+                        Logger.error("[event="+vEvtType+"][save error][node="+pEvent.getData().node.__+"][uid="+pEvent.getData().node.getUID()+"] "+err.message,err.stack);
+                    }
+                })();*/
+            //}));
+        });
     }
 }
 

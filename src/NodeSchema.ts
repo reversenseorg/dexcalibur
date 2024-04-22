@@ -39,6 +39,9 @@ import {NodeInternalType} from "./NodeInternalType.js";
 import Inspector, {INSPECTOR_TYPE} from "./Inspector.js";
 import AssuranceReport from "./audit/common/AssuranceReport.js";
 import AssuranceModel from "./audit/common/AssuranceModel.js";
+import {ModelBasicType, ModelObjectType} from "./ModelType.js";
+import ModelBasicBlock from "./ModelBasicBlock.js";
+import ModelInstruction from "./ModelInstruction.js";
 
 
 
@@ -219,7 +222,51 @@ UserSession.TYPE.updateProperties([
     (new NodeProperty('_data')).multiple(SessionData.TYPE)
 ]);
 
+ModelInstruction.TYPE.updateProperties([
+    (new NodeProperty("offset")).type(DbDataType.NUMERIC).key(DbKeyType.PRIMARY), // path relative to scope root
+  //  (new NodeProperty("_parent")).volatile(), //.single(ModelMethod.TYPE),
+    (new NodeProperty("iline")).type(DbDataType.NUMERIC).def(-1),
+    (new NodeProperty("_raw")).type(DbDataType.STRING),
+    (new NodeProperty("_call")).volatile().type(DbDataType.STRING),
+    (new NodeProperty("left")).volatile().def(false),
+    (new NodeProperty("right")).volatile().def(null),
+    (new NodeProperty("opcode")).type(DbDataType.BLOB).def([]),
+    (new NodeProperty("tags")).type(DbDataType.BLOB).def([]),
+    (new NodeProperty("value")).type(DbDataType.BLOB).def(null),
+]);
 
+
+ModelBasicBlock.TYPE.updateProperties([
+
+    (new NodeProperty("offset")).type(DbDataType.STRING).key(DbKeyType.PRIMARY), // path relative to scope root
+    (new NodeProperty("_parent")).volatile().single(ModelMethod.TYPE),
+    (new NodeProperty("line")).type(DbDataType.NUMERIC).def(-1),
+    (new NodeProperty("prologue")).type(DbDataType.BOOLEAN).def(false),
+    (new NodeProperty("stack")).volatile().multiple(ModelInstruction.TYPE).embed(),
+    (new NodeProperty("tags")).type(DbDataType.BLOB).def([]),
+
+    (new NodeProperty("cond_name")).type(DbDataType.STRING).def(null),
+    (new NodeProperty("goto_name")).type(DbDataType.STRING).def(null),
+    (new NodeProperty("catch_name")).type(DbDataType.STRING).def(null),
+    (new NodeProperty("try_name")).type(DbDataType.STRING).def(null),
+    (new NodeProperty("try_end_name")).type(DbDataType.STRING).def(null),
+
+    (new NodeProperty("switch_case")).volatile().type(DbDataType.BLOB),
+    (new NodeProperty("switch_statement")).volatile().type(DbDataType.BLOB),
+
+    (new NodeProperty("linked_try_block")).volatile().type(DbDataType.STRING),
+    (new NodeProperty("linked_catch_block")).volatile().type(DbDataType.STRING),
+
+    (new NodeProperty("duplicate")).volatile().type(DbDataType.BLOB).def(null),
+    (new NodeProperty("switch")).volatile().type(DbDataType.BLOB).def(null),
+    (new NodeProperty("array_data_name")).type(DbDataType.BLOB),
+    (new NodeProperty("array_data")).type(DbDataType.BLOB),
+    (new NodeProperty("succ")).volatile().multiple(ModelBasicBlock.TYPE).def([]),
+    (new NodeProperty("pred")).volatile().multiple(ModelBasicBlock.TYPE).def([]),
+    (new NodeProperty("catch")).volatile().type(DbDataType.BLOB).def(null),
+    (new NodeProperty("visited")).type(DbDataType.BOOLEAN).def(false)
+
+]).dataSource("MEM");
 
 
 ModelMethod.TYPE.updateProperties([
@@ -229,9 +276,54 @@ ModelMethod.TYPE.updateProperties([
         (new NodeProperty("tags"))
             .type(DbDataType.BLOB),
         (new NodeProperty("alias")).type(DbDataType.STRING),
-        (new NodeProperty("args")).volatile(),
-        (new NodeProperty("ret")).volatile(),
-        (new NodeProperty("instr")).volatile(), //.multiple(ModelBasicBlock.TYPE),
+        (new NodeProperty("args"))
+            .type(DbDataType.STRING)
+            .sleep((x:NodePropertyState) => {
+
+                if(x.p==null) return [];
+                const types:any[]=[];
+
+                x.p.map((vArgType:ModelBasicType|ModelObjectType) => {
+                    types.push(vArgType.toJsonObject());
+                });
+
+                return types;
+            })
+            .wakeUp( x => {
+                if(x==null)  return [];
+
+                const types:any[]=[];
+                x.p.map((vArgType:ModelBasicType|ModelObjectType) => {
+                    if(vArgType.__==NodeInternalType.OBJECT_TYPE){
+                        types.push(new ModelObjectType(vArgType.name, vArgType.arr));
+                    }else{
+                        types.push(new ModelBasicType(vArgType._hashcode, vArgType.arr));
+                    }
+                });
+
+                return types;
+            })
+            .def([]),
+    ,
+        (new NodeProperty("ret"))
+            .type(DbDataType.STRING)
+            .sleep((x:NodePropertyState) => {
+                if(x.p==null) return null;
+                return x.p.toJsonObject();
+            })
+            .wakeUp( (x:NodePropertyState) => {
+                if(x.p==null)  return null;
+
+                if(x.p.__==NodeInternalType.OBJECT_TYPE){
+                    return new ModelObjectType(x.p.name, x.p.arr);
+                }else{
+                    return new ModelBasicType(x.p._hashcode, x.p.arr);
+                }
+            })
+            .def(null),
+        (new NodeProperty("instr"))
+            .multiple(ModelBasicBlock.TYPE)
+            .embed(), //.volatile(), //.multiple(ModelBasicBlock.TYPE),
         (new NodeProperty("datas")).volatile(),
         (new NodeProperty("switches")).volatile(),
         (new NodeProperty("probing")).type(DbDataType.BOOLEAN).def(false),
@@ -242,13 +334,14 @@ ModelMethod.TYPE.updateProperties([
 
         (new NodeProperty("enclosingClass")).single(ModelClass.TYPE),
         (new NodeProperty("declaringClass")).single(ModelClass.TYPE),
-        (new NodeProperty("tags")).type(DbDataType.STRING).serialize(DbSerialize.JSON).def("[]"),
+        (new NodeProperty("tags"))
+            .type(DbDataType.STRING).serialize(DbSerialize.JSON).def([]),
     ]).dataSource("MEM").builder(ModelMethod);
 
 
 ModelField.TYPE.updateProperties([
         (new NodeProperty("__signature__")).type(DbDataType.STRING).key(DbKeyType.PRIMARY), // path relative to scope root
-        (new NodeProperty("fqcn")).type(DbDataType.STRING).unique(), //.key(DbKeyType.PRIMARY),
+        (new NodeProperty("fqcn")).type(DbDataType.STRING),
         (new NodeProperty("name")).type(DbDataType.STRING),
         (new NodeProperty("alias")).type(DbDataType.STRING),
         (new NodeProperty("modifiers")).type(DbDataType.STRING),
@@ -282,7 +375,7 @@ ModelClass.TYPE.updateProperties([
             (new NodeProperty("source")).type(DbDataType.STRING),
             (new NodeProperty("modifiers")).type(DbDataType.STRING),
 
-            (new NodeProperty("package")).single(ModelPackage.TYPE),
+            (new NodeProperty("package")).volatile().single(ModelPackage.TYPE),
             (new NodeProperty("implements")).multiple(ModelClass.TYPE),
             (new NodeProperty("extends")).single(ModelClass.TYPE),
             (new NodeProperty("supers")).multiple(ModelClass.TYPE),

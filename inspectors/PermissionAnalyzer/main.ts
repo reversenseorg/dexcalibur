@@ -1061,21 +1061,21 @@ var PermissionAnalyzer:InspectorFactory = new InspectorFactory({
     },
 
     eventListeners: {
-        "app.permission.new": function(ctx:DexcaliburProject, event:BusEvent<any>):any{
-                let i = event.data.name.lastIndexOf('.');
+        "app.permission.new": function(pEvent:BusEvent<any>):any{
+                let i = pEvent.data.name.lastIndexOf('.');
                 let p=false;
         
                 // scan android built-in permissions
                 for(let i in Permissions){
         
-                    if(Permissions[i].name===event.data.name){
-                        event.data.update(Permissions[i]);
+                    if(Permissions[i].name===pEvent.data.name){
+                        pEvent.data.update(Permissions[i]);
                         return;
                     }
                 }
         
                 if(p===false){
-                    event.data.setCustom(true);
+                    pEvent.data.setCustom(true);
                 }
             }
     }

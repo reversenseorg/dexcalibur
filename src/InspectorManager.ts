@@ -280,36 +280,10 @@ export default class InspectorManager
     }
 
     /**
-     * Import inspector contained into the folders inspectors/*
-     * 
-     * @method
-     * @deprecated
+     *
+     * @param pInspectorFactory
+     * @param pProject
      */
-    autoRegister( pProject:DexcaliburProject){
-        const self:InspectorManager=this;
-
-        Util.forEachFileOf(
-            _path_.join(__dirname,"..","inspectors"), function(path:string){
-                let insp:any = null;
-                
-                if(path.endsWith("/inspector.js")){
-                    insp = require(path);
-
-                    if(insp instanceof InspectorFactory){
-                        // todo
-                        console.log('USELESS ?');
-                    }else{
-                        insp.injectContext(pProject);
-                    }
-                    // subscribe to events bus
-                    pProject.bus.register(insp);
-                    
-                    self.add(insp);
-                }
-        },true);
-    }
-
-
     async createInspector( pInspectorFactory:InspectorFactory, pProject:DexcaliburProject):Promise<boolean> {
 
         let ins:Inspector;

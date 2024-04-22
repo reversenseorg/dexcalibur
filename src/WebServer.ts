@@ -505,7 +505,7 @@ export default class WebServer
             let localPath:string = $.root + vUnsafeReq.path, mime:string = null;
 
 
-            Logger.info("[INFO][WEBSERVER][DelegatedDispatcher] URI : ",vUnsafeReq.path);
+            Logger.debug("[INFO][WEBSERVER][DelegatedDispatcher] URI : ",vUnsafeReq.path);
 
             //let unsafeURL = vUnsafeReq.path.split("/");
 

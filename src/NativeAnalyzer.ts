@@ -95,7 +95,7 @@ export default class NativeAnalyzer {
      * @param {DexcaliburProject} pProject
      * @constructor
      */
-    constructor( pProject:DexcaliburProject = null, pDB:AnalyzerDatabase, pFileDB:Nullable<IDatabase> = null) {
+    constructor( pProject:DexcaliburProject = null, pDB:AnalyzerDatabase) {
 
         this.r2factory = new RadareFactory(pProject);
 
@@ -257,7 +257,7 @@ export default class NativeAnalyzer {
     async asyncScanFileByScope(pScope:DataScope, pProfile:NativeAnalyzerProfile=null, pOptions:any = {}):Promise<boolean> {
 
 
-        Logger.info("[NATIVE ANALYSIS] Scanning scope : ",pScope.getIndexName()," ",pScope.getBasePath());
+        Logger.info("[NATIVE ANALYSIS][asyncScanFileByScope] Scanning scope : ",pScope.getIndexName()," ",pScope.getBasePath());
 
         if(!this.targets.hasOwnProperty(pScope.getName()))
             this.targets[pScope.getName()] = [];
@@ -276,11 +276,11 @@ export default class NativeAnalyzer {
 
 
 
-        Logger.info(`[NATIVE ANALYSIS] Supported files : ${supported_fmt}`)
+        Logger.info(`[NATIVE ANALYSIS][asyncScanFileByScope]  Supported files : ${supported_fmt}`)
         // gather targetable file
         idx.map( (pOffset:number, pFile:ModelFile) => {
 
-            Logger.info(`[NATIVE ANALYSIS] Scanning file from (scope:${pScope.getName()})[type=${pFile.type}] : ${pFile.getRelativePath()}`);
+            Logger.debug(`[NATIVE ANALYSIS][asyncScanFileByScope] Scanning file from (scope:${pScope.getName()})[type=${pFile.type}] : ${pFile.getRelativePath()}`);
 
             if(supported_fmt.indexOf(pFile.type)>-1){
 
@@ -291,7 +291,7 @@ export default class NativeAnalyzer {
                 // File is receivable if ABI is determined by file path if the scope is APK
                 //if(this.profile.name == PROFILES.ANDROID_LIB.name){
                     if(pScope.getInternalName()== "PKG"){
-                        Logger.info("[NATIVE] ",pFile.getRelativePath()," ",JSON.stringify(this.abi)," ",this.profile.isAbiCompliant( pFile, this.abi)+"");
+                        Logger.debug("[NATIVE] ",pFile.getRelativePath()," ",JSON.stringify(this.abi)," ",this.profile.isAbiCompliant( pFile, this.abi)+"");
                         const o:number = (this.profile as AndroidNativeAnalyzerProfile).isAbiCompliant( pFile, this.abi);
 
                         if(o>-1){

@@ -1,3 +1,4 @@
+import {Nullable} from "../core/IStringIndex.js";
 
 
 export enum ProjectInputType {
@@ -31,8 +32,42 @@ export interface ProjectInput {
     purpose: ProjectInputPurpose
 }
 
+export interface ProjectInputOptions {
+    data?: ProjectInputData,
+    location?: ProjectInputLocation,
+    type?: ProjectInputType,
+    extractOpts?: InputExtractOptions,
+    purpose?: ProjectInputPurpose
+}
+
 export class ProjectInputViewer {
     static print(pProjectInput:ProjectInput){
         return `| ${pProjectInput.purpose} | ${pProjectInput.location} | ${pProjectInput.type} | ${JSON.stringify(pProjectInput.extractOpts)} | ${pProjectInput.data} `;
+    }
+
+    static printList(pProjectInput:ProjectInput[]){
+        let s = "";
+        pProjectInput.map(x => s+"\n"+ProjectInputViewer.print(x));
+        return s;
+    }
+}
+
+export class ProjectInput2 {
+
+
+    data: ProjectInputData;
+    location: ProjectInputLocation;
+    type: ProjectInputType;
+    extractOpts: Nullable<InputExtractOptions> = null;
+    purpose: ProjectInputPurpose;
+
+    constructor(pOptions:ProjectInputOptions = {}) {
+        if(pOptions!=null){
+            for(let i in pOptions) this[i] = pOptions[i];
+        }
+    }
+
+    static from(pOptions:ProjectInputOptions):ProjectInput2 {
+        return new ProjectInput2(pOptions);
     }
 }

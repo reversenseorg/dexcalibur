@@ -77,6 +77,50 @@ export default class AndroidAppAnalyzer implements IAppAnalyzer
 		this._cfg = pOptions;
 	}
 
+	/**
+	 * The aim of this method is to set listener on main bus to catch
+	 * event related to the update of node representing Android components
+	 * and trigger a save
+	 *
+	 * @private
+	 */
+	private _initSaveRoutines(){
+
+		[
+			"app.activity.new",
+			"app.activity.update",
+			"app.provider.new",
+			"app.provider.update",
+			"app.receiver.new",
+			"app.receiver.update",
+			"app.service.new",
+			"app.service.update"
+		].map((vEvtType:string)=>{
+			this.context.getBus().subscribe(vEvtType, BusSubscriber.from((pEvent:BusEvent<any>)=>{
+				(async ()=>{
+					try{
+						await this.context.getProjectDB().save(pEvent.getData().obj);
+					}catch(err){
+						Logger.error(err.message,err.stack);
+					}
+				})();
+			}));
+		});
+
+
+		/*
+		this.context.getBus().subscribe("app.application.new", BusSubscriber.from((pEvent:BusEvent<any>)=>{
+			try{
+				(async ()=>{
+					await this.context.getProjectDB().save(pEvent.getData());
+				})();
+			}catch(err){
+				Logger.error(err.message,err.stack);
+			}
+
+		}));*/
+	}
+
 	private _initRes(){
 		this.resources = {
 			/*ids: new AndroidResourceType("ids"),
@@ -95,6 +139,7 @@ export default class AndroidAppAnalyzer implements IAppAnalyzer
 	 * @private
 	 */
 	private _registerListeners(){
+
 		// make temporary list of missing components (implementing class not found)
 		this.context.getBus().subscribe("app.android.missing_impl", BusSubscriber.from((vEvent)=>{
 			const cmp = vEvent.getData() as AndroidComponent;
@@ -120,6 +165,7 @@ export default class AndroidAppAnalyzer implements IAppAnalyzer
 			}
 		}));
 
+		this._initSaveRoutines();
 	}
 
 	/**
@@ -482,7 +528,7 @@ export default class AndroidAppAnalyzer implements IAppAnalyzer
 				data: x
 			});
 			codeAnal.db.permissions.insert(x, false);
-			Logger.debug("[Manifest] Permission found : ",x.name);
+			//Logger.debug("[Manifest] Permission found : ",x.name);
 		});
 
 		if(manifest.application != null){

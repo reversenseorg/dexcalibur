@@ -130,9 +130,10 @@ var KeystoreInspector2:InspectorFactory = new InspectorFactory({
         },
         "data.file.new.knownExt": {
             source: `
-                if(!checkForBKSext(event.data)) return 1;
+                if(!checkForBKSext(pEvent.data)) return 1;
           
-                Logger.info("[INSPECTOR][TASK] KeystoreInspector BKS detected : ",event.data.name);
+                var ctx = pEvent.getContext();
+                Logger.info("[INSPECTOR][TASK] KeystoreInspector BKS detected : ",pEvent.data.name);
                 var resStaticStr:any = ctx.find.strings("value:/"+event.data.name+"/");
                 // si pas d'occurence
                 if(resStaticStr.count()==0){

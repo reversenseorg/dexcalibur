@@ -1,6 +1,7 @@
 // noinspection BadExpressionStatementJS
 
 import * as _fs_ from "fs";
+import * as _fsPromise_ from "node:fs/promises"
 import * as _path_ from "path";
 
 import {Device} from "../../Device.js";
@@ -56,6 +57,21 @@ export class AndroidPackageAnalyzer implements IPackageAnalyzer {
         if(this.state.getProperty("base_apks")==null){
             this.state.setProperty("base_apks", ['base.apk']);
         }
+
+        if(this.state.getProperty("ignore_split_files")==null){
+            this.state.setProperty(
+                "ignore_split_files",
+                [
+                    'AndroidManifest.xml',
+                    'META-INF',
+                    'apktool.yml',
+                    'unknown',
+                    'stamp-cert-sha256',
+                    'original',
+                ]
+            );
+        }
+        [""]
 
     }
 
@@ -185,11 +201,12 @@ export class AndroidPackageAnalyzer implements IPackageAnalyzer {
             }
 
             // search app pkg folder
-            const appBin = _path_.posix.dirname(baseInput.data as string);
+            const appBin = _path_.posix.dirname(this._base_apk.data as string);
             const tmpBin = this._project.getWorkspace().getInputDir();
 
             // list folder content
             const files = await device.getDefaultBridge().listFiles(appBin);
+
             let dist:string;
             let splittedRes:ProjectInput;
 
@@ -220,11 +237,13 @@ export class AndroidPackageAnalyzer implements IPackageAnalyzer {
                     }
 
                     splittedInput.push(splittedRes);
-                    Logger.info(ProjectInputViewer.print(splittedRes));
                 }catch(err){
                     Logger.error(err.message);
                 }
             }
+
+
+            Logger.info(ProjectInputViewer.printList(splittedInput));
         }
 
         // extract Base APK
@@ -279,10 +298,11 @@ export class AndroidPackageAnalyzer implements IPackageAnalyzer {
      * @async
      * @method
      */
-    async mergeSplitApks(pBaseApk:ProjectInput, pExtra:Record<string, ProjectInput[]>, pSplitApks:ProjectInput[] = [] ){
+    async mergeSplitApks(pBaseApk:ProjectInput, pExtra:Record<string, ProjectInput[]>, pSplitApks:ProjectInput[]){
 
-        /*
-        let extraBundle:ProjectInput, tmpApp:TargetApp, extractDest:string;
+        let extraBundle:ProjectInput, tmpApp:TargetApp, extractDest:string, extra:string, splitCtn:string[];
+        const ignore = this.state.getProperty("ignore_split_files");
+        const dest = this._project.workspace.getApkDir();
 
         // pBaseApk has been already extracted to apk dir into project workspace
         for(let i=0; i<pSplitApks.length; i++){
@@ -290,23 +310,62 @@ export class AndroidPackageAnalyzer implements IPackageAnalyzer {
             extraBundle = pSplitApks[i];
 
             if((extraBundle.data as string).endsWith(".apk")){
-                // extract APK into tmp folder, and merge content with apk folder
-                tmpApp = new TargetApp("bin", extraBundle.data as string);
 
-                extractDest = _path_.join(
-                    this._project.workspace.getTmpDir(),
-                    _path_.basename(extraBundle.data as string)
-                );
+                try{
+                    // extract APK into tmp folder, and merge content with apk folder
+                    tmpApp = new TargetApp("bin", extraBundle.data as string);
 
-                await this._project.platform.extractApp(
-                    tmpApp,  this._project.workspace.getApkDir(),
-                    {type:'bin'});
-            }
+                    extractDest = _path_.join(
+                        this._project.workspace.getTmpDir(),
+                        Util.now()+"_"+_path_.basename(extraBundle.data as string)
+                    );
 
-            if(extraBundle.type==ProjectInputType.FOLDER){
+                    // extract apk
+                    await AndroidPackageAnalyzer.extractApk(tmpApp.getPath(), extractDest, {
+                        force: true,
+                        match: true,
+                        type: 'bin'
+                    });
+
+                    // search data to copy
+
+                    splitCtn = _fs_.readdirSync(extractDest);
+                    for(let k=0; k<splitCtn.length; k++){
+                        if(ignore.indexOf(splitCtn[k])==-1){
+                            await _fsPromise_.cp(
+                                _path_.join(extractDest,splitCtn[k])+_path_.sep,
+                                _path_.join(dest,splitCtn[k])+_path_.sep,
+                                {
+                                    recursive:true,
+                                    force: true
+                                }
+                            )
+                        }
+                    }
+
+
+                }catch(err){
+                    Logger.error(err.message, err.stack);
+                }
+
+            }else if(extraBundle.type==ProjectInputType.FOLDER){
+
+                extra = _path_.basename(extraBundle.data as string);
                 // copy directory
+                if(ignore.indexOf(extra)==-1){
+
+                    await _fsPromise_.cp(
+                        extraBundle.data as string +_path_.sep,
+                        _path_.join(dest,extra)+_path_.sep,
+                        {
+                            recursive:true,
+                            force: true
+                        }
+                    )
+
+                }
             }
-        }*/
+        }
     }
 
     /**
@@ -342,6 +401,21 @@ export class AndroidPackageAnalyzer implements IPackageAnalyzer {
         });
     }
 
+    /**
+     * To extract an APK to the output dir
+     *
+     * @param pTargetApp
+     * @param pOutDir
+     * @param pOptions
+     */
+    static async extractApk(pApkPath:string, pOutDir: string, pOptions:any):Promise<boolean> {
+        return await ApkHelper.extract(pApkPath, pOutDir, {
+            force: true,
+            match: true,
+            ...pOptions
+        });
+    }
+
 
     /**
      * Clean tempory files
@@ -369,4 +443,5 @@ export class AndroidPackageAnalyzer implements IPackageAnalyzer {
         }
 
     }
+
 }

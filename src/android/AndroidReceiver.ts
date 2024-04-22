@@ -16,8 +16,8 @@ export default class AndroidReceiver extends AndroidComponent
         (new NodeProperty("attr")).volatile().type(DbDataType.STRING),
         (new NodeProperty("__impl")).volatile().single(ModelClass.TYPE),
 
-    ]))
-        .dataSource("MEM", "androidReceiver");
+    ])).dataSource("PROJECT_DB");
+       // .dataSource("MEM", "androidReceiver");
 
     __:NodeInternalType = NodeInternalType.ANDROID_RECEIVER;
 

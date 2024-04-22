@@ -16,8 +16,8 @@ export default class AndroidService extends AndroidComponent
         (new NodeProperty("label")).type(DbDataType.STRING).def(""),
         (new NodeProperty("attr")).volatile().type(DbDataType.STRING),
         (new NodeProperty("__impl")).volatile().single(ModelClass.TYPE),
-    ]))
-        .dataSource("MEM", "androidService");
+    ])).dataSource("PROJECT_DB");
+       // .dataSource("MEM", "androidService");
 
     __:NodeInternalType = NodeInternalType.ANDROID_SERVICE;
 

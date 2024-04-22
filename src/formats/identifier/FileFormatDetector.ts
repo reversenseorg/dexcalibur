@@ -126,10 +126,10 @@ export class FileFormatDetector {
             scheduler.on("exit", (exitCode)=>{
 
                 if(exitCode==0){
-                    Logger.info("[FileFormatDetectorWorker][queueScheduler][file="+files.length+"][duration="+(Util.time()-b)+"] Completed ");
+                    Logger.success("[FileFormatDetectorWorker][queueScheduler][file="+files.length+"][duration="+(Util.time()-b)+"] Completed ");
                     observable.next(files);
                 }else{
-                    Logger.info("[FileFormatDetectorWorker][queueScheduler][file="+files.length+"][duration="+(Util.time()-b)+"] Exited on code : "+exitCode);
+                    Logger.error("[FileFormatDetectorWorker][queueScheduler][file="+files.length+"][duration="+(Util.time()-b)+"] Exited on code : "+exitCode);
                 }
 
             });

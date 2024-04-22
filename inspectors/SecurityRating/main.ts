@@ -37,11 +37,11 @@ var SecurityRatingInspector:InspectorFactory = new InspectorFactory({
     },
 
     eventListeners: {
-        "dxc.fullscan.post": function(ctx:DexcaliburProject,event:BusEvent<any>){
+        "dxc.fullscan.post": function(pEvent:BusEvent<any>){
             // TODO : retieve stored score
             // TODO : else init it
-            if(ctx.sharedStorage.ratings == null){
-                ctx.sharedStorage.ratings = {
+            if(pEvent.getContext().sharedStorage.ratings == null){
+                pEvent.getContext().sharedStorage.ratings = {
                     security: {
                         overall: 0,
                         rootDetection: 0,
@@ -54,8 +54,8 @@ var SecurityRatingInspector:InspectorFactory = new InspectorFactory({
                 };
             }
         },
-        "security.root_detection.java.detectApk": function(ctx:DexcaliburProject,event:BusEvent<HookMessageV2>){
-            ctx.sharedStorage.security.rootDetection += 1;
+        "security.root_detection.java.detectApk": function(pEvent:BusEvent<HookMessageV2>){
+            pEvent.getContext().sharedStorage.ratings.security.rootDetection += 1;
         }
     }
 });

@@ -1,6 +1,7 @@
 import { CONST } from "./CoreConst.js";
 import {Savable, Stub, STUB_TYPE} from "./ModelSavable.js";
 import {CoreDebug} from "./core/CoreDebug.js";
+import {NodeInternalType} from "./NodeInternalType.js";
 
 
 
@@ -11,6 +12,7 @@ import {CoreDebug} from "./core/CoreDebug.js";
  */
 export class ModelBasicType extends Savable
 {
+    __ = NodeInternalType.PRIMITIVE_TYPE;
     name:string = null;
     arr:boolean = false;
     _name:string = null;
@@ -101,9 +103,11 @@ export class ModelBasicType extends Savable
      */
     toJsonObject():any{
         let obj:any = {};
+        obj.__ = this.__;
         obj.name = this._name;
         obj.arr = this.arr;
         obj.primitive = true;
+        obj._hashcode = this._hashcode;
         CoreDebug.checkJsonSerialize(obj, "ModelBasicType");
         return obj;
     }
@@ -113,6 +117,7 @@ export class ModelBasicType extends Savable
 
 export class ModelObjectType extends Savable
 {
+    __ = NodeInternalType.OBJECT_TYPE;
     name:string = null;
     arr:boolean = false;
     _name:string = null;
@@ -155,7 +160,7 @@ export class ModelObjectType extends Savable
     isString():boolean{
         return this.name == "java.lang.String";
     }
-Ò
+
     /**
      * To make the signature of the current type instance
      * It has one of these forms :
@@ -171,10 +176,12 @@ export class ModelObjectType extends Savable
     /**
      * To make an instance of Object which not contain circular reference
      * and which are ready to be serialized.
-     * @returns {Object} - Returns an Object instance representing the type
+     * @returns {any} - Returns an Object instance representing the type
+     * @method
      */
-    toJsonObject(){
+    toJsonObject():any{
         let obj:any = {};
+        obj.__ = this.__;
         obj.name = this.name;
         obj.arr = this.arr;
         obj.primitive = false;

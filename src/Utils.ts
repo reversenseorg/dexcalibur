@@ -329,7 +329,7 @@ export default class Util {
         if(process.env.DEXCALIBUR_TEST){
             ret = TestExecHelper.execSync(command);
         }else{
-            Logger.info(pThreadPrefix+"[UTIL] execSync : "+command);
+            Logger.debug(pThreadPrefix+"[UTIL] execSync : "+command);
 
             if(opts!=null) {
                 ret = Process.execSync(command, opts).toString();
@@ -738,5 +738,35 @@ export default class Util {
             ".DS_Store"
         ].indexOf(pFilename)>-1);
     }
+
+
+    static mapInGroups<T>( pArray:T[], pIterative:((v:T)=>Promise<any>), pGroupSize:number):any{
+
+        const groups:Record<number, T[]> = {};
+
+        pArray.map((vEntry:T, vOffset:number)=>{
+            const g = Math.floor(vOffset / pGroupSize);
+            if(groups[g]==null)
+                groups[g]=[vEntry];
+            else
+                groups[g].push(vEntry);
+        });
+
+        /*
+        [
+                ...(await vPrev),
+                ...(await Promise.all(vCurr.map(pIterative)))
+            ]
+         */
+        return Object.values(groups)
+            // @ts-ignore
+            .reduce(async (vPromise:T[], vCurrProm:T[]):Promise<any> => {
+                return [
+                    ...(await vPromise),
+                    ...(await Promise.all(vCurrProm.map(pIterative)))
+                ]
+            }, []);
+    };
+
 }
 

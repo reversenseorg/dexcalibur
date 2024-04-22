@@ -154,7 +154,10 @@ export class FinderResult
      * @param pObject
      */
     unionWithList( pObject:any[]):FinderResult {
-        //createFinderResultFromList
+
+        if(pObject==null || !Array.isArray(pObject)){
+            return this;
+        }
 
         pObject.map((k:any)=>{
             if(!this.contains(k))

@@ -85,6 +85,8 @@ export class RuntimeEvent<P> extends BusEvent<any> implements INode {
 
     tags:number[] = [];
 
+    data:any = null;
+
     /**
      * Save flag. FALSE = not saved
      */

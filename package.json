@@ -1,6 +1,6 @@
 {
   "name": "@reversense/dexcalibur-ts",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Android reverse engineering platform focused on dynamic binary instrumentation automation. tPowered by Frida. Offers a GUI and a Node.JS API",
   "main": "./dist/dexcalibur.js",
   "directories": {
@@ -13,8 +13,8 @@
   "dependencies": {
     "@dexcalibur/dexcalibur-frida-compile": "^10.2.5",
     "@dexcalibur/dexcalibur-installer": "^1.0.43",
-    "@dexcalibur/dexcalibur-orm": "^1.0.23",
-    "@dexcalibur/dexcalibur-orm-mongodb": "^1.0.10",
+    "@dexcalibur/dexcalibur-orm": "^1.0.25",
+    "@dexcalibur/dexcalibur-orm-mongodb": "^1.1.1",
     "@dexcalibur/dexcalibur-orm-sqlite": "^1.0.1",
     "@reversense/interruptor": "^1.0.12",
     "adm-zip": "^0.4.14",

@@ -1,11 +1,13 @@
 import DexcaliburProject from "./DexcaliburProject.js";
 import BusEvent from "./BusEvent.js";
 import * as Log from "./Logger.js";
+import {Subject, Subscriber, Subscription} from "rxjs";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
 
 export type BusEventHandler = ((pEvent:BusEvent<any>)=>void);
+
 
 interface BusPreventList {
     [eventID :string] :boolean
@@ -49,6 +51,7 @@ export class BusSubscriber {
         return new BusSubscriber( gSubs_CTR++, pFunc);
     }
 
+
     /**
      * A switch to disable the listener
      *
@@ -85,8 +88,31 @@ export class BusSubscriber {
      * @param {BusEvent<any>} pEvent The event to pass to the listener
      */
     exec(pEvent:BusEvent<any>):void {
-        if(!this._p) this._f(pEvent);
+        if(!this._p){
+            this._f.apply(null, [null, pEvent]);
+        }
     }
+
+    getListener():BusEventHandler {
+        return this._f;
+    }
+
+    toRxSubscriber(pCtx:DexcaliburProject):((vEvent:BusEvent<any>)=>void) {
+        return ((pEvent:any)=>{
+            this._f.apply(null, [pCtx, pEvent]);
+        });
+    }
+}
+
+export interface  BusSubscription {
+    subscription?: Subscription;
+    subscriber: BusSubscriber;
+    weight? :number;
+}
+
+export interface BusState<T> {
+    bus: Subject<BusEvent<T>>;
+    subscriptions: BusSubscription[];
 }
 
 
@@ -111,6 +137,9 @@ export default class Bus
     provider:any = [];
     broadcast:any = {};
     prevented:BusPreventList = null;
+
+    private _buses:Record<string, BusState<any>> = {};
+
 
     /**
      * @param pContext
@@ -187,6 +216,9 @@ export default class Bus
         return this.broadcast;
     }
 
+    /*getEventSubscribers(pEventName:string):Subscriber<any>[]{
+        return this._buses
+    }*/
     /**
      * To attach a listener to one or more event types
      *
@@ -201,7 +233,8 @@ export default class Bus
      * @return {Bus} Instance of the current bus
      * @method
      */
-    subscribe(pEventName:string|string[], pSubscriber:BusSubscriber|BusEventHandler):Bus{
+    subscribe<T>(pEventName:string|string[], pSubscriber:BusSubscriber):Bus{
+
 
         let subscriber:BusSubscriber;
         if(pSubscriber instanceof BusSubscriber){
@@ -211,18 +244,58 @@ export default class Bus
         }
 
         if((typeof pEventName)==='string'){
+
+            this.singleSubscribe<T>(pEventName as string, subscriber);
+
+            /*
             //this.listener.push(listener);
             if(!this.subs.hasOwnProperty(pEventName as string)){
                 this.subs[pEventName as string] = [];
             }
 
             // TODO : add weight-based priority
-            this.subs[pEventName as string].push(subscriber);
+            this.subs[pEventName as string].push(subscriber);*/
 
             return this;
         }else{
-            (pEventName as string[]).map(x => this.subscribe(x, pSubscriber));
+            (pEventName as string[]).map((x) => {
+               // this.subscribe<T>(x, pSubscriber)
+                this.singleSubscribe<T>(x, subscriber);
+            });
         }
+    }
+
+    /**
+     *
+     * @param pEventName
+     * @param pSubscriber
+     * @param pWeight
+     */
+    singleSubscribe<T>(pEventName:string, pSubscriber:BusSubscriber, pWeight:number = 0):void {
+
+        if(this._buses[pEventName]==null){
+            this._buses[pEventName] = {
+                bus: new Subject<BusEvent<T>>(),
+                subscriptions: []
+            }
+        }
+
+        let subscr:BusSubscription = {
+            subscription: this._buses[pEventName].bus.subscribe(pSubscriber.getListener()),
+            subscriber: pSubscriber,
+            weight: pWeight
+        };
+
+        this._buses[pEventName].subscriptions.push(subscr);
+
+
+        // TODO : remove, legacy code, old style / deprecated
+        if(!this.subs.hasOwnProperty(pEventName as string)){
+            this.subs[pEventName as string] = [];
+        }
+
+        // TODO : add weight-based priority
+        this.subs[pEventName as string].push(pSubscriber);
     }
 
     /**
@@ -257,24 +330,34 @@ export default class Bus
             return false;
         }
 
+        //inject context if missing
+        if(event.context==null){
+            event.context = this.context;
+        }
+
 
         // TODO : async / co
 
         // exec local subscribers
         const evName = event.getType();
+
+        if(this._buses[evName]!=null){
+            this._buses[evName].bus.next(event);
+        }
+        /*
         if(this.subs.hasOwnProperty(evName)){
             Logger.debug('[BUS] Trigger events : '+evName);
             Logger.debugRAW(event.getData());
             for(let  i=0; i<this.subs[evName].length; i++){
                 this.subs[evName][i].exec(event);
             }
-        }
+        }*/
 
         // broadcast events
-        for(let uid in this.broadcast){
+       /* for(let uid in this.broadcast){
             Logger.debug('[BUS] Broadcast events : '+evName);
             this.broadcast[uid].broadcastEvent(event);
-        }
+        }*/
 
         return true;
     }
@@ -288,6 +371,23 @@ export default class Bus
     register(pBroadcaster:BusBroadcaster):void {
         Logger.debug('[BUS] Register broadcaster : '+pBroadcaster.getUID());
         this.broadcast[pBroadcaster.getUID()] = pBroadcaster;
+    }
+
+
+    /**
+     * To check if there is subscription to a specific event type
+     *
+     * This method helps to optimize heap by avoiding to create useless event.
+     * i.e. Help to trigger only catchable event
+     *
+     *
+     * @param {string} pType Event type
+     * @returns {boolean} TRUE is there is subscriptions, else FALSE
+     * @method
+     */
+    hasSubscriptionsTo(pType:string):boolean {
+        const state = this._buses[pType];
+        return (state!=null && state.subscriptions.length>0);
     }
 }
 

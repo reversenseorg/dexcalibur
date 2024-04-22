@@ -10,6 +10,8 @@ import DexcaliburProject from "../../src/DexcaliburProject.js";
 import BusEvent from "../../src/BusEvent.js";
 import ModelFile from "../../src/ModelFile.js";
 
+import Util from "../../src/Utils.js";
+import ModelClass from "../../src/ModelClass.js";
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
 var KotlinInspector:InspectorFactory = new InspectorFactory({
@@ -28,7 +30,8 @@ var KotlinInspector:InspectorFactory = new InspectorFactory({
             name:"kotlin",
             _tagsOptions:[
                 { name:"config" },
-                { name:"debugInfo" }
+                { name:"debug" },
+                { name:"class" }
             ]
         }
     ],
@@ -79,13 +82,15 @@ var KotlinInspector:InspectorFactory = new InspectorFactory({
     },
 
     eventListeners: {
-        "dxc.fullscan.post": function(ctx:DexcaliburProject,event:BusEvent<any>):any{
+        "dxc.fullscan.post": function(pEvent:BusEvent<any>):any{
             Logger.info("[INSPECTOR][TASK] Kotlin : search config files ");
 
+            const ctx = pEvent.getContext();
             const tm = ctx.getTagManager();
             const ktTags = {
                 config: tm.getTag("kotlin.config"),
                 debug: tm.getTag("kotlin.debug"),
+                cls: tm.getTag("kotlin.class"),
             };
 
             (async ()=>{
@@ -117,7 +122,92 @@ var KotlinInspector:InspectorFactory = new InspectorFactory({
                 });
             })();
 
+            (async ()=>{
 
+                const clzzReq = await ctx.merlin.class("source:/\.kt$/");
+                const result = await clzzReq.execute(ctx);
+                if(result.count()>0){
+
+                    const tag = ctx.getTagManager().getTag("sca.lang.kotlin");
+
+                    // tag class
+                    Util.mapInGroups(
+                        result.list(),
+                        async (vClz:ModelClass)=>{
+
+                            // add tag
+                            vClz.addTag(tag);
+
+                            // save
+                            ctx.trigger({
+                                type:"model.class.update",
+                                data: {
+                                    node: vClz
+                                }
+                            });
+
+                        }, 10);
+
+                    // emit event to notify others insoectors
+                    ctx.trigger({
+                        type: "lang.kotlin",
+                        data: {
+                            matches: result.count(),
+                            pattern: clzzReq,
+                        }
+                    })
+                }
+            })();
+
+        }
+    },
+
+    eventListenerSources: {
+        "dxc.fullscan.post": {
+            lang: "js",
+            source: `
+                const ctx = pEvent.getContext();
+                const tm = ctx.getTagManager();
+                const ktTags = {
+                    config: tm.getTag("kotlin.config"),
+                    debug: tm.getTag("kotlin.debug"),
+                    cls: tm.getTag("kotlin.class"),
+                };
+                
+                const clzzReq = await ctx.merlin.class("source:/\\.kt$/");
+                const result = await clzzReq.execute(ctx);
+                if(result.count()>0){
+
+                    const tag = tm.getTag("sca.lang.kotlin");
+
+                    // tag class
+                    Util.mapInGroups(
+                        result.list(),
+                        async (vClz:ModelClass)=>{
+
+                            // add tag
+                            vClz.addTag(tag);
+
+                            // save
+                            ctx.trigger({
+                                type:"model.class.update",
+                                data: {
+                                    node: vClz
+                                }
+                            });
+
+                        }, 10);
+
+                    // emit event to notify others insoectors
+                    ctx.trigger({
+                        type: "lang.kotlin",
+                        data: {
+                            matches: result.count(),
+                            pattern: clzzReq,
+                        }
+                    })
+                }
+            `
         }
     }
 });

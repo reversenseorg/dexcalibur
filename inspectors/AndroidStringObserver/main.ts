@@ -80,10 +80,10 @@ var AndroidStringObserverInspector:InspectorFactory = new InspectorFactory({
     
                     console.log("STRING INSTANCE : ",pEvent.data.data.str)
     
-                    const str = new ModelStringValue({
+                    const str = pEvent.getContext().modelAPI.newStringValue({
                         value: pEvent.data.data.str,
                         instance: [
-                            new ModelInstance({
+                           pEvent.getContext().modelAPI.newInstance({
                                 session: "", //ctx.getHookManager().get
                                 ctx: loc
                             })
@@ -91,8 +91,8 @@ var AndroidStringObserverInspector:InspectorFactory = new InspectorFactory({
                     });
     
     
-                    ctx.getAnalyzer().getData().strings.addEntry(str);
-                    ctx.bus.send( new BusEvent({
+                    pEvent.getProject().getAnalyzer().getData().strings.addEntry(str);
+                    pEvent.getProject().bus.send( new BusEvent({
                         type: "string.instance.new",
                         data: str
                     }));

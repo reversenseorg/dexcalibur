@@ -98,7 +98,8 @@ var FileSystemInspector:InspectorFactory = new InspectorFactory({
             description: "Search any method/class/field from app code performing action with FS and tag it",
             lang: "ts",
             source: `
-                const hm = pCtx.getHookManager();
+                const pCtx = pEvent.getContext();
+                const hm = pEvent.getContext().getHookManager();
                 const startName = "Custom_ClassLoaders";
                 const dlInsp = pCtx.getInspector("DynamicLoader");
                 let strat:HookStrategy;

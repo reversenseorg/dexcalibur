@@ -392,11 +392,12 @@ export class MerlinSearchRequest implements MerlinPrimitive{
         && pattern[0]==REGEXP_DELIMITER_TOKEN
         && (lastDeliminiter > 0)){
 
-      const reFlags = pattern.substring(lastDeliminiter+1);
+      //const reFlags = pattern.substring(lastDeliminiter+1);
 
-      const rx = new RegExp(pattern.substring(1,lastDeliminiter), reFlags);
+      //const rx = new RegExp(pattern.substring(1,lastDeliminiter), reFlags);
 
       cond.regexp = true;
+      cond.turnAsRegexp();
       //cond.pattern = rx;
 
     }else if(pattern.length > 0){

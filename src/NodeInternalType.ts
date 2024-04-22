@@ -65,7 +65,10 @@ export enum NodeInternalType {
     INSPECTOR_PLUGIN,
     SCAN_ORDER,
     LOG,
-    ASSURANCE_REPORT
+    ASSURANCE_REPORT,
+    PROJECT_INPUT,
+    PRIMITIVE_TYPE,
+    OBJECT_TYPE
 }
 
 export const NodeInternalTypeName = {
@@ -133,7 +136,8 @@ export const NodeInternalTypeName = {
     [NodeInternalType.INSPECTOR_PLUGIN]: "INSPECTOR_PLUGIN",
     [NodeInternalType.SCAN_ORDER]: "SCAN_ORDER",
     [NodeInternalType.LOG]: "LOG",
-    [NodeInternalType.ASSURANCE_REPORT]: "ASSURANCE_REPORT"
+    [NodeInternalType.ASSURANCE_REPORT]: "ASSURANCE_REPORT",
+    [NodeInternalType.PROJECT_INPUT]: "PROJECT_INPUT"
 }
 
 

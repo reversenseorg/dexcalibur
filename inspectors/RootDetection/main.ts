@@ -180,7 +180,7 @@ var RootDetectionInspector:InspectorFactory = new InspectorFactory({
             
             if(pEvent.data==null) return;
             var tag=null;
-            
+            var pCtx = pEvent.getContext();
             var isKnownRootAppsPackagesFrag = /(noshufou|smedialink|oneclick|zhiqupk|alephzain|chainfire|supersu|superuser|koushikdutta|thirdparty|yellowes|topjohnwu|magisk|kingroot|kingo)/i;
             var confirmKnowRoot = /(\\\.root|\\\.su|superu|supersu)/i;
            
@@ -253,7 +253,13 @@ var RootDetectionInspector:InspectorFactory = new InspectorFactory({
             source: `
             
             `
-        }
+        },
+        "hook.file.new":{
+            lang:"js",
+            source: `
+                // /system/app/Superuser.apk
+            `
+        },
     }
 });
 

@@ -113,87 +113,90 @@ export default new InspectorFactory({
     },
 
     eventListeners: {
-        "dxc.fullscan.post":  function (pCtx:DexcaliburProject, pEvent:BusEvent<any>):any {
+        "dxc.fullscan.post":  function ( pEvent:BusEvent<any>):any {
 
 
         },
-        "app.receiver.new": function (pCtx, event) {
+        "app.receiver.new": function (pEvent:BusEvent<any>) {
 
-            const cls = AndroidAppAnalyzer.getClassByManifestUid(pCtx, event.data.manifest, event.data.obj.name);
+            const pCtx = pEvent.getContext();
+            const cls = AndroidAppAnalyzer.getClassByManifestUid(pCtx, pEvent.data.manifest, pEvent.data.obj.name);
 
             if ((cls != null) && (cls instanceof ModelClass)) {
-                event.data.obj.setImplementedBy(cls);
+                pEvent.data.obj.setImplementedBy(cls);
                 cls.addTag(pCtx.getTagManager().getTag("topo.android.RECEIVER"));
             }else{
-                Logger.error("[AppTopo][receiver] Fail to map internal dependencies mapped for ["+ event.data.obj.name+"] : class not found");
+                Logger.error("[AppTopo][receiver] Fail to map internal dependencies mapped for ["+ pEvent.data.obj.name+"] : class not found");
                 return true;
             }
 
             // tag by intent filter
-            tagByIntent(pCtx, event);
+            tagByIntent(pCtx, pEvent);
 
             // tag by attributes
-            tagByAttr(pCtx, event.data.obj.getAttributes(), event);
+            tagByAttr(pCtx, pEvent.data.obj.getAttributes(), pEvent);
     
             // search dependencies to platform method and class
-            if (AndroidCodeAnalyzer.searchInternalDependencies(pCtx, event.data.obj)!=null) {
-                Logger.info("[AppTopo][receiver] Internal dependencies mapped for : ", event.data.obj.name);
+            if (AndroidCodeAnalyzer.searchInternalDependencies(pCtx, pEvent.data.obj)!=null) {
+                Logger.info("[AppTopo][receiver] Internal dependencies mapped for : ", pEvent.data.obj.name);
             } else {
-                Logger.error("[AppTopo][receiver] Fail to map internal dependencies mapped for : ", event.data.obj.name);
+                Logger.error("[AppTopo][receiver] Fail to map internal dependencies mapped for : ", pEvent.data.obj.name);
             }
         },
-        "app.provider.new": function (pCtx, event) {
+        "app.provider.new": function (pEvent:BusEvent<any>) {
 
+            const pCtx = pEvent.getContext();
 
-            const cls = AndroidAppAnalyzer.getClassByManifestUid(pCtx, event.data.manifest, event.data.obj.name);
+            const cls = AndroidAppAnalyzer.getClassByManifestUid(pCtx, pEvent.data.manifest, pEvent.data.obj.name);
 
             if ((cls != null) && (cls instanceof ModelClass)) {
-                event.data.obj.setImplementedBy(cls);
+                pEvent.data.obj.setImplementedBy(cls);
                 cls.addTag(pCtx.getTagManager().getTag("topo.android.PROVIDER") );
             }else{
-                Logger.error("[AppTopo][provider] Fail to map internal dependencies mapped for ["+ event.data.obj.name+"] : class not found");
+                Logger.error("[AppTopo][provider] Fail to map internal dependencies mapped for ["+ pEvent.data.obj.name+"] : class not found");
                 return true;
             }
 
 
             // tag by intent filter  
-            tagByIntent(pCtx, event);
+            tagByIntent(pCtx, pEvent);
 
             // tag by attributes
-            tagByAttr(pCtx, event.data.obj.getAttributes(), event);
+            tagByAttr(pCtx, pEvent.data.obj.getAttributes(), pEvent);
     
             // search dependencies to platform method and class
-            if (AndroidCodeAnalyzer.searchInternalDependencies(pCtx, event.data.obj)!=null) {
-                Logger.info("[AppTopo][provider] Internal dependencies mapped for : ", event.data.obj.name);
+            if (AndroidCodeAnalyzer.searchInternalDependencies(pCtx, pEvent.data.obj)!=null) {
+                Logger.info("[AppTopo][provider] Internal dependencies mapped for : ", pEvent.data.obj.name);
             } else {
-                Logger.error("[AppTopo][provider] Fail to map internal dependencies mapped for : ", event.data.obj.name);
+                Logger.error("[AppTopo][provider] Fail to map internal dependencies mapped for : ", pEvent.data.obj.name);
             }
         },
-        "app.service.new": function (pCtx, event) {
+        "app.service.new": function (pEvent) {
 
 
-            const cls = AndroidAppAnalyzer.getClassByManifestUid(pCtx, event.data.manifest, event.data.obj.name);
+            const pCtx = pEvent.getContext();
+            const cls = AndroidAppAnalyzer.getClassByManifestUid(pCtx, pEvent.data.manifest, pEvent.data.obj.name);
 
             if ((cls != null) && (cls instanceof ModelClass)) {
-                event.data.obj.setImplementedBy(cls);
+                pEvent.data.obj.setImplementedBy(cls);
                 cls.addTag(pCtx.getTagManager().getTag("topo.android.SERVICE") );
             }else{
-                Logger.error("[AppTopo][service] Fail to map internal dependencies mapped for ["+ event.data.obj.name+"] : class not found");
+                Logger.error("[AppTopo][service] Fail to map internal dependencies mapped for ["+ pEvent.data.obj.name+"] : class not found");
                 return true;
             }
 
 
             // tag by intent filter
-            tagByIntent(pCtx, event);
+            tagByIntent(pCtx, pEvent);
 
             // tag by attributes
-            tagByAttr(pCtx, event.data.obj.getAttributes(), event);
+            tagByAttr(pCtx, pEvent.data.obj.getAttributes(), pEvent);
 
             // search dependencies to platform method and class
-            if (AndroidCodeAnalyzer.searchInternalDependencies(pCtx, event.data.obj)!=null) {
-                Logger.info("[AppTopo][service] Internal dependencies mapped for : ", event.data.obj.name);
+            if (AndroidCodeAnalyzer.searchInternalDependencies(pCtx, pEvent.data.obj)!=null) {
+                Logger.info("[AppTopo][service] Internal dependencies mapped for : ", pEvent.data.obj.name);
             } else {
-                Logger.error("[AppTopo][service] Fail to map internal dependencies mapped for : ", event.data.obj.name);
+                Logger.error("[AppTopo][service] Fail to map internal dependencies mapped for : ", pEvent.data.obj.name);
             }
         }
     },
@@ -203,6 +206,8 @@ export default new InspectorFactory({
             lang: 'ts',
             source:`
             // <ts>
+
+            const pCtx:any = pEvent.getContext();
 
             function isRelativeName(pName){
                 return pName[0]=='.';
@@ -219,7 +224,7 @@ export default new InspectorFactory({
             
                 const cls:ModelClass = pContext.find.get.class(clsUID);
                 if( cls == null){
-                    pLogger.error("[AppTopo] Class '"+clsUID+"' not found");
+                    pCtx.LOG.error("[AppTopo] Class '"+clsUID+"' not found");;
                 }
                 return cls;
             }
@@ -227,13 +232,12 @@ export default new InspectorFactory({
             // to retrieve class implementign this activity
             let act = null;
             const cls = getClassByManifestUid(pCtx, pEvent.data.manifest, pEvent.data.obj.name);
-
+            pCtx.LOG.raw(cls);
             if ((cls != null) && (cls instanceof ModelClass)) {
                 pEvent.data.obj.setImplementedBy(cls);
                 cls.addTag( pCtx.getTagManager().getTag("topo.android.ACTIVITY"));
             }else{
-                pLogger.error("[AppTopo][activity] Fail to map internal dependencies mapped for ["+ pEvent.data.obj.name+"] : class not found");
-                pLogger.error("[AppTopo][activity] Fail to map internal dependencies mapped for ["+ pEvent.data.obj.name+"] : class not found");
+                pCtx.LOG.error("[AppTopo][activity] Fail to map internal dependencies mapped for ["+ pEvent.data.obj.name+"] : class not found");
                 return true;
             }
 
@@ -248,9 +252,9 @@ export default new InspectorFactory({
 
             // search dependencies to platform method and class
             if (AndroidCodeAnalyzer.searchInternalDependencies(pCtx, pEvent.data.obj)!=null) {
-                pLogger.info("[AppTopo][activity] Internal dependencies mapped for : ", pEvent.data.obj.name);
+                pCtx.LOG.log("[AppTopo][activity] Internal dependencies mapped for : ", pEvent.data.obj.name);
             } else {
-                pLogger.error("[AppTopo][activity] Fail to map internal dependencies mapped for : ", pEvent.data.obj.name);
+                pCtx.LOG.error("[AppTopo][activity] Fail to map internal dependencies mapped for : ", pEvent.data.obj.name);
             }
             `
         }

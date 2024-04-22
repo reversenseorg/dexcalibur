@@ -272,7 +272,7 @@ export default class FridaHelper extends External.ExternalHelper
         // get configured path of frida-server for the target device
         //let frida:string = options.server;
         let command = options.server;
-        let res:any = null;
+        //let res:any = null;
 
         // if the device is connected over the network through ADB
         if(pDevice.getDefaultBridge().isNetworkTransport() || (options.transport === FridaServerTransport.NETWORK)){
@@ -325,16 +325,21 @@ export default class FridaHelper extends External.ExternalHelper
                 //Logger.info( `[FRIDA HELPER] frida spawned (privileged:true) : \n err=${ _fs_.readFileSync(spawnOpts.err).toString() } `);
                 // Logger.info( `[FRIDA HELPER] frida spawned (privileged:true) : \n out=${ _fs_.readFileSync(spawnOpts.out).toString() } `);
                 Logger.info( `[FRIDA HELPER] post frida spawned (privileged:true) : \n spawnOpts=${ JSON.stringify(spawnOpts) } `);
-                Logger.info( `[FRIDA HELPER] post frida spawned (privileged:true) : \n err=${ spawnOpts.err } `);
-                const error = _fs_.readFileSync(spawnOpts.err).toString();
-                if(error.indexOf("unknown command")>-1){
-                    throw FridaHelperException.SPAWN_FAILED(error);
-                }else{
-                    Logger.info( `[FRIDA HELPER] frida spawned (privileged:true) : \n out=${ _fs_.readFileSync(spawnOpts.out).toString() } `);
+                if(spawnOpts.err!=null){
+
+                    // "err" ppt exists only for privileged shell on real device
+                    Logger.info( `[FRIDA HELPER] post frida spawned (privileged:true) : \n err=${ spawnOpts.err } `);
+                    const error = _fs_.readFileSync(spawnOpts.err).toString();
+                    if(error.indexOf("unknown command")>-1){
+                        throw FridaHelperException.SPAWN_FAILED(error);
+                    }else{
+                        Logger.info( `[FRIDA HELPER] frida spawned (privileged:true) : \n out=${ _fs_.readFileSync(spawnOpts.out).toString() } `);
+                    }
                 }
+
             }else{
                 // out/err are returned as a Buffer
-                Logger.info( `[FRIDA HELPER] frida spawned (privileged:false) : \n out=${ res.toString() } `);
+                Logger.info( `[FRIDA HELPER] frida spawned (privileged:false) `);
             }
 
             return true;

@@ -3,11 +3,12 @@ import DexcaliburProject from "../DexcaliburProject.js";
 import {KeyPointManagerException} from "../errors/KeyPointManagerException.js";
 import SqliteDbCollection from "../../connectors/sqlite/SqliteDbCollection.js";
 import {SqliteDb} from "../../connectors/sqlite/SqliteDb.js";
-import {KeyPointGenerator, KeyPointOptions} from "./KeyPointGenerator.js";
-import {IDatabase, IDbCollection} from "@dexcalibur/dexcalibur-orm";
+import {KeyPointGenerator, KeyPointOptions, KeyPointOptionsOptions} from "./KeyPointGenerator.js";
+import {IDatabase, IDbCollection, INode} from "@dexcalibur/dexcalibur-orm";
 import {MongodbDbCollection} from "@dexcalibur/dexcalibur-orm-mongodb";
 import {OperatingSystem} from "../OperatingSystem.js";
 import {Nullable} from "../core/IStringIndex.js";
+import {NodeInternalType, NodeInternalTypeName} from "../NodeInternalType.js";
 
 export enum DEOPT_TYPE {
     NONE,
@@ -19,7 +20,19 @@ export interface KeyPointMap {
     [name:string] :KeyPoint
 }
 
+export interface KeyPointTarget {
+    __:NodeInternalType;
+    uid:string;
+}
 
+export interface KeyPointCreateOptions {
+    condition?:string,
+    weight?:number,
+    name?:string,
+    token?:string,
+    parent?:any,
+    code?:string
+}
 
 /**
  * @class
@@ -433,5 +446,58 @@ Java.deoptimizeEverything();
         });
 
         return kps;
+    }
+
+    /**
+     * To create a new key point
+     *
+     * @param pKpTarget
+     * @param pKpCreateOptions
+     */
+    async createKeyPoint(pKpTarget:INode, pKpCreateOptions:KeyPointOptionsOptions):Promise<KeyPoint> {
+
+        let kp:KeyPoint = new KeyPoint();
+        let node:INode[];
+        const opts:KeyPointOptions = new KeyPointOptions(pKpCreateOptions);
+
+        try{
+            // search node
+            // node = this._project.getAnalyzer().searchNode( pKpTarget.__, pKpTarget.uid);
+
+            node = await this._project.getProjectDB().search({ _uid: pKpTarget.getUID() }, pKpTarget);
+
+            if(node == null || node.length==0 ){
+                throw KeyPointManagerException.INVALID_TARGET_NODE(pKpTarget);
+            }else if(node.length>1 ){
+                throw KeyPointManagerException.MULTIPLE_TARGET_NOT_SUPPORTED();
+            } else{
+                kp.addNode(node[0] as INode);
+            }
+
+            if(opts.hasOwnProperty('condition')) kp.setCondition(opts.condition);
+
+            if(pKpCreateOptions.hasOwnProperty('name')){
+                kp.setName(pKpCreateOptions.name);
+            }else{
+                // x.name = "core."+x.condition+(x.node.lengt>0 ? "."+x.node[0].uid : "");
+                kp.setName("user."+NodeInternalTypeName[node[0].__]+"."+opts.getConditionName()+"."+node[0].getUID());
+            }
+
+            if(pKpCreateOptions.hasOwnProperty('token')) kp.setToken(pKpCreateOptions.token);
+            if(pKpCreateOptions.hasOwnProperty('descr')) kp.setDescription(pKpCreateOptions.descr);
+            if(pKpCreateOptions.hasOwnProperty('weight')) kp.setWeight(pKpCreateOptions.weight );
+            if(pKpCreateOptions.hasOwnProperty('type')) kp.setKeypointType(pKpCreateOptions.keypointType);
+
+            if(kp.getToken()==null){
+                kp.setToken( this.generateToken( kp, opts));
+            }
+
+            kp = await this.update(kp);
+
+        }catch(err){
+
+        }
+
+        return kp;
     }
 }

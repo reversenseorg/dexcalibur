@@ -58,7 +58,7 @@ export default class ModelInstruction extends Savable
         //vm.restore(this.operands);
         //this.opcode.eval(vm,this.operands);
     }
-Ò
+
     setCalledObj(obj:any){
         this._call = obj;
     }
@@ -161,3 +161,4 @@ export default class ModelInstruction extends Savable
         return this._raw;
     }
 }
+ModelInstruction.TYPE.builder(ModelInstruction);

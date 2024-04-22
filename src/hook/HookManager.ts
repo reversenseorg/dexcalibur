@@ -200,12 +200,11 @@ export class HookManager
 
         this.jhooks = await this.db.getAllJavaHook();
         this.jhooks.map( h => {
-            //Logger.info(h.getTarget().getUID())
             h.setManager(this)
         });
 
-        this.hooksets = await this.db.sets.getAll() ; //.sets.getAll();
-        console.log(this.hooksets);
+        this.hooksets = await this.db.sets.getAll() ;
+
         //this.jhooks = this.db.jhooks.getAsList();
         Logger.info(`[HOOK MANAGER] Load complete { java=${this.jhooks.length}, native=${this.nhooks.length}, sets=${Object.keys(this.hooksets).length}   }`);
     }

@@ -2,6 +2,7 @@ import ModelField from "./ModelField.js";
 import ModelClass from "./ModelClass.js";
 import ModelMethod from "./ModelMethod.js";
 import {ModelFunction} from "./ModelFunction.js";
+import DexcaliburProject from "./DexcaliburProject.js";
 
 export interface BusEventOptions<T> {
     type?:string;
@@ -13,9 +14,12 @@ export interface BusEventOptions<T> {
     func?:ModelFunction;
 }
 
-
+/**
+ *
+ */
 export default class BusEvent<T>
 {
+    context?:DexcaliburProject;
     type:string = null;
     data:T = null;
     interceptors:string[] = [];
@@ -37,5 +41,9 @@ export default class BusEvent<T>
 
     getData():T{
         return this.data;
+    }
+
+    getContext():DexcaliburProject{
+        return this.context;
     }
 }

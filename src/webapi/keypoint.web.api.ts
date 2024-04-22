@@ -9,7 +9,8 @@ import {NodeInternalType, NodeInternalTypeName} from "../NodeInternalType.js";
 import {KeyPointOptions} from "../hook/KeyPointGenerator.js";
 import DexcaliburProject from "../DexcaliburProject.js";
 import {AbstractHook} from "../hook/AbstractHook.js";
-import {INode} from "@dexcalibur/dexcalibur-orm";
+import {INode, NodeType} from "@dexcalibur/dexcalibur-orm";
+import { Node } from "../INode.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 export const KEYPOINT_WEB_API: DelegateWebApi = new DelegateWebApi();
@@ -94,47 +95,24 @@ KEYPOINT_WEB_API.addAuthenticatedRoute(
         'post': async function (req:DelegateRequest, res:DelegateResponse):Promise<any> {
             const $: WebServer = req.dxc.$;
 
+            let kp:KeyPoint;
+
             try{
                 // ========== LOGIC
                 // get hook instance by ID
                 // const uid =  KeyPoint.TYPE.getPrimaryKey().sanitize(req.params['uid']); //KeyPoint.TYPE.
-                let kp:KeyPoint = new KeyPoint();
-                const target:any = req.body['target'];
-                const opts:KeyPointOptions = new KeyPointOptions(req.body['opts']);
-                const KPM:KeyPointManager = (req.dxc.project as DexcaliburProject).getKeyPointManager();
+                const targetNodeType = NodeType.getByID(req.body['target'].__);
+                const node = new (targetNodeType.getBuilder())({});
+                targetNodeType.setPrimaryKeyValueOf(node, req.body['target']._uid)
 
-                Logger.debug(JSON.stringify(target));
-                Logger.debug(JSON.stringify(opts));
-
-                const node:any = req.dxc.project.getAnalyzer().searchNode( target.__, target.uid)
-
-                if(node == null){
-                    throw KeyPointManagerException.INVALID_TARGET_NODE(target.__, target.uid);
-                }else{
-                    kp.addNode(node as INode);
-                }
-
-                if(opts.hasOwnProperty('condition')) kp.setCondition(opts.condition);
-
-                if(target.hasOwnProperty('name')){
-                    kp.setName(target.name);
-                }else{
-                    // x.name = "core."+x.condition+(x.node.lengt>0 ? "."+x.node[0].uid : "");
-                    kp.setName("user."+NodeInternalTypeName[node.__]+"."+opts.getConditionName()+"."+node.getUID());
-                }
-                if(target.hasOwnProperty('token')) kp.setToken(target.token);
-                if(target.hasOwnProperty('descr')) kp.setDescription(target.descr);
-                if(target.hasOwnProperty('weight')) kp.setWeight(parseInt(target.weight,10) );
-                if(target.hasOwnProperty('type')) kp.setKeypointType(target.type);
-
-                if(kp.getToken()==null){
-                    kp.setToken( KPM.generateToken( kp, opts));
-                }
-
-                kp = await KPM.update(kp); //addKeyPoint( kp);
+                kp = await ((req.dxc.project as DexcaliburProject)
+                    .getKeyPointManager()
+                    .createKeyPoint(
+                        node,
+                        req.body['opts']
+                    ));
 
                 console.log(kp);
-                Logger.debug(JSON.stringify(kp.toJsonObject()));
 
                 $.sendSuccess(res,  kp.toJsonObject());
             }catch(err){

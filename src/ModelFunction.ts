@@ -354,8 +354,8 @@ export class ModelFunction implements INode, IPersistent {
     }
 
     toJsonObject(pOptions?:SerializeOptions){
-        let fields = pOptions.include;
-        let exclude = pOptions.exclude;
+        let fields = (pOptions!=null) ? pOptions.include : null;
+        let exclude = (pOptions!=null) ? Object.keys(pOptions.exclude) : null;
         let obj:any = {};
         if(fields != null && fields.length>0){
             for(let i:number=0; i<fields.length; i++){
@@ -371,7 +371,7 @@ export class ModelFunction implements INode, IPersistent {
 
             for(let i in this){
 
-                if(exclude.indexOf(i)>-1) continue;
+                if(exclude!=null  && exclude.indexOf(i)>-1) continue;
                 // if(fields != null && fields.indexOf(i)==-1) continue;
 
                 switch(i){

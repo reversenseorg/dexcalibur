@@ -92,7 +92,7 @@ var CryptoEncryption:InspectorFactory = new InspectorFactory({
             var patterns = [${PATTERNS.map(x => '"'+x+'"').concat(',')}];
             
             if(patterns.indexOf(pEvent.data.value)>-1){
-                var tag = pCtx.getTagManager().getTag("crypto.encryption.factory.secret_key_alg"); 
+                var tag = pEvent.getContext().getTagManager().getTag("crypto.encryption.factory.secret_key_alg"); 
                 if(tag!==null){
                     pEvent.data.addTag(tag);
                 }
@@ -102,12 +102,13 @@ var CryptoEncryption:InspectorFactory = new InspectorFactory({
         "dxc.fullscan.post_deploy": {
             lang: "js",
             source: ` 
+                var pCtx = pEvent.getContext();
                 var calls = pCtx.find.call("calleed.name:/^getKeySpec$/");
                 var tag = pCtx.getTagManager().getTag("crypto.encryption.factory.read_key"); 
                 
                 if(calls==null || tag===null) return;
                 
-                calls.getAsList().map(x => {
+                calls.list().map(x => {
                     x.caller.addTag(tag);
                 });
             `

@@ -162,20 +162,23 @@ var KeystoreInspector:InspectorFactory = new InspectorFactory({
         },
     },
     eventListeners: {
-        "hook.keystore.load": function(ctx:DexcaliburProject,event:BusEvent<any>):any{
+        "hook.keystore.load": function(pEvent:BusEvent<any>):any{
             Logger.info("[INSPECTOR][TASK] KeystoreInspector keystore loaded ")
             //ctx.get.method("java.security.KeyStore.load(<java.io.InputStream><char>[])<void>")
             //        .addArgsValue(ctx.hook.lastSession(), event)
         },
-        "data.file.new.knownExt": function(ctx:DexcaliburProject,event:BusEvent<any>):any{
-            if(!checkForBKSext(event.data)) return 1;
+        "data.file.new.knownExt": function(pEvent:BusEvent<any>):any{
+            if(!checkForBKSext(pEvent.data)) return 1;
+
+
+            const ctx = pEvent.getContext();
             
-            Logger.info("[INSPECTOR][TASK] KeystoreInspector BKS detected : ",event.data.name);
+            Logger.info("[INSPECTOR][TASK] KeystoreInspector BKS detected : ",pEvent.data.name);
             //console.log("Note found : ","value:"+event.data.name));
         
             
             // search strings occurences into the grah
-            var resStaticStr:any = ctx.find.strings("value:/"+event.data.name+"/");
+            var resStaticStr:any = ctx.find.strings("value:/"+pEvent.data.name+"/");
             
             //var resDynStr = ctx.find.method("name:java.security.Keystore.load(<>,<>)");
             
@@ -188,7 +191,7 @@ var KeystoreInspector:InspectorFactory = new InspectorFactory({
                 if(resStaticStr.count()==0){
                     resStaticStr.show();
                 } */  
-                console.log("Not found : ","value:"+event.data.name);
+                console.log("Not found : ","value:"+pEvent.data.name);
             }
         }
     }

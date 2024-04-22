@@ -24,8 +24,7 @@ export default class AndroidProvider extends AndroidComponent
         (new NodeProperty("label")).type(DbDataType.STRING).def(""),
         (new NodeProperty("attr")).volatile().type(DbDataType.STRING),
         (new NodeProperty("__impl")).volatile().single(ModelClass.TYPE),
-    ]))
-        .dataSource("MEM", "androidProvider");
+    ])).dataSource("PROJECT_DB"); //, "androidProvider");
 
     __:NodeInternalType = NodeInternalType.ANDROID_PROVIDER;
 

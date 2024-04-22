@@ -57,7 +57,7 @@ export class CustomCode {
      */
     wakeUp():CustomCode {
         try{
-            this.createFunction(['pCtx','pEvent','pLogger']);
+            this.createFunction(['pEvent','pLogger']);
         }catch(err){
             console.log("Function cannot be restored");
         }

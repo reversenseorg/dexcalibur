@@ -6,16 +6,16 @@ import * as _os_ from 'os';
 import DexcaliburWorkspace from './DexcaliburWorkspace.js' ;
 import {ExternalTool, ExternalToolMap} from "./ExternalTool.js";
 import {CoreDebug} from "./core/CoreDebug.js";
+import {Nullable} from "./core/IStringIndex.js";
 
 
 const NO_EXPORT = ["platform_available"];
 const ENCODING = ["utf8","utf16","latin1"];
 
 
-
-
-
-
+/**
+ * Deprecated ?
+ */
 export default class Configuration {
 
     static DXCWS:number = 0b10;

@@ -81,6 +81,15 @@ export enum DexcaliburEngineMode {
 }
 
 
+export interface RepairWsOptions {
+    rmMissingProjects:boolean;
+    backup:Nullable<string>;
+}
+
+export interface RepairOptions {
+    ws?:RepairWsOptions;
+}
+
 export interface SignatureServerOptions {
     host: string;
     port: number;
@@ -416,6 +425,12 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
      * @private
      */
     private _cleanup = true;
+
+    /**
+     *
+     * @private
+     */
+    private _repairOpts: Nullable<RepairOptions> = null;
 
     /**
      * To instanciate DexcaliburEngine.
@@ -1068,13 +1083,18 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
     async listProjectsOf( pUser:UserAccount):Promise<DexcaliburProjectMap> {
         const PUIDS = this.workspace.listProjects();
         const map:DexcaliburProjectMap = {};
+        let project:DexcaliburProject;
 
         for(let i=0; i<PUIDS.length; i++){
             try{
                 // only authorized user can read metadata
-                map[PUIDS[i]] = await DexcaliburProject.getInformationOf( this, PUIDS[i], pUser);
+                project =  await DexcaliburProject.getInformationOf( this, PUIDS[i], pUser);
+                if(project!=null){
+                    map[PUIDS[i]] = project;
+                }
             }catch(err){
                 Logger.error("[ENGINE][LIST PROJECT] "+err.message);
+                Logger.error(err.stack);
             }
         }
         return map;
@@ -1540,6 +1560,14 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
      */
     isOffline():boolean {
         return this.offline;
+    }
+
+    repairMode( pRepairOptions:RepairOptions){
+        this._repairOpts = pRepairOptions;
+    }
+
+    getRepairOptions():Nullable<RepairOptions> {
+        return this._repairOpts;
     }
 }
 

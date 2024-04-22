@@ -19,7 +19,7 @@ export class SearchPattern
         (this as IStringIndex<any>)[i] = pConfig[i];
 
 
-    console.log("SEARCH PATTERN : ",this);
+    //console.log("SEARCH PATTERN : ",this);
   }
 
   serialize():any{
