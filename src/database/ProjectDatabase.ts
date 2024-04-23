@@ -489,6 +489,11 @@ export class ProjectDatabase {
      */
     async saveAnalyzerDB(pDB: AnalyzerDatabase):Promise<void>  {
 
+        if(this._ctx.dryRun){
+            Logger.success("[PROJECT DB] Analyzer DB didnt  save : dry run mode");
+            return;
+        }
+
         Logger.info("[PROJECT DB] Start to save Analyzer DB");
         const startTime = Util.now();
 

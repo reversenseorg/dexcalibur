@@ -106,6 +106,10 @@ var Parser:ArgParser = new ArgParser(projectArgs, "dexcalibur", [
         help: "Run in offline mode",
         hasVal:false,
         callback:(ctx,param)=>{ ctx.offline = true; } },
+    { name:"--dry",
+        help: "Dry run mode (skip Project DB persistence)",
+        hasVal:false,
+        callback:(ctx)=>{ ctx.dryRun = true; } },
 
     { name:"--repair-ws",
         help: "To repair WS. When this option is set, any project missing in Engine DB are removed. To move projects to '<BACKUP>' folder, set it as follow --repair-ws[=<BACKUP>] ",
@@ -209,6 +213,10 @@ if(projectArgs.slaveMode){
 
 // create an empty single (not yet initialiazed) instance of engine
 dxcInstance = DexcaliburEngine.getInstance(engineOpts);
+
+if(projectArgs.dryRun){
+    dxcInstance.dryRun = true;
+}
 
 if(projectArgs.ipc == true){
     __log('[DXC_SRV][IPC] Enabled');

@@ -85,7 +85,7 @@ var CryptoEncryption:InspectorFactory = new InspectorFactory({
     },
 
     eventListenerSources: {
-        "string.new": {
+        "model.string.new": {
             lang: "js",
             source: `
             // PBKDF2WithHmacSHA1

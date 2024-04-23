@@ -417,6 +417,11 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
     offline = false;
 
     /**
+     * To disable project persistence (DB only)
+     */
+    dryRun = false;
+
+    /**
      * Flag to prevent any cleanup events
      *
      * Cleanup is mainly used to trigger cleanup routine at startup

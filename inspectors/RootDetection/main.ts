@@ -175,7 +175,7 @@ var RootDetectionInspector:InspectorFactory = new InspectorFactory({
     },
 
     eventListenerSources: {
-        "string.new": {
+        "model.string.new": {
             source: `
             
             if(pEvent.data==null) return;

@@ -77,7 +77,13 @@ export class CustomCode {
         switch (this.lang){
             case "ts":
                 // todo : invoke tsc
-                this.compiled = TypescriptHelper.transpile(this.source);
+                this.compiled = TypescriptHelper.transpile(
+                    `
+                    try {
+                        ${this.source}
+                    }catch(_error){
+                        pEvent.getContext().LOG.error(_error.message);
+                    }`);
                 break;
             case "js":
             default:

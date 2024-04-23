@@ -776,12 +776,13 @@ export default class Analyzer
                     const s = new ModelStringValue({
                         src: pMethod,
                         instr: instruct,
-                        value: instruct.right._value });
+                        value: instruct.right._value
+                    });
 
                     if(s.value != 'Stub!'){
                         data.strings.insert(s, false);
                         this.getContext().getBus().send(new BusEvent<ModelStringValue>({
-                            type: "string.new",
+                            type: "model.string.new",
                             data: s
                         }));
                     }

@@ -339,7 +339,7 @@ export default class AndroidAppAnalyzer implements IAppAnalyzer
 		return _path_.join(this.context.getWorkspace().getApkDir(),ApkHelper.getResFolder());
 	}
 
-	static async parseResourceFile(pFilePath:string, pResType:AndroidResourceType, pSkip:Nullable<string>=null){
+	static async parseResourceFile(pFilePath:string, pResType:AndroidResourceType, pContext:DexcaliburProject, pSkip:Nullable<string>=null){
 		const xml = await AndroidAppAnalyzer._parseXmlFile(pFilePath);
 		if(pSkip != null){
 			for(let i in xml[pSkip]){
@@ -369,7 +369,7 @@ export default class AndroidAppAnalyzer implements IAppAnalyzer
 				if(this.resources[type]==null){
 					this.resources[type] = new AndroidResourceType({ _type:type });
 				}
-				await AndroidAppAnalyzer.parseResourceFile(vFilePath,this.resources[type],"resources");
+				await AndroidAppAnalyzer.parseResourceFile(vFilePath,this.resources[type], this.context, "resources");
 				console.log(this.resources[type]._entries.length+" resources parsed");
 			},true);
 
@@ -381,7 +381,7 @@ export default class AndroidAppAnalyzer implements IAppAnalyzer
 				if(this.layouts[idl]==null){
 					this.layouts[idl] = new AndroidResourceType({ _type:idl });
 				}
-				await AndroidAppAnalyzer.parseResourceFile(vFilePath,this.layouts[idl],null);
+				await AndroidAppAnalyzer.parseResourceFile(vFilePath,this.layouts[idl], this.context, null);
 				console.log(Object.values(this.layouts[idl]).length+" layouts parsed");
 			},true);
 

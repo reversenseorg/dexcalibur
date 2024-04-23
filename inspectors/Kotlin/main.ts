@@ -18,7 +18,7 @@ var KotlinInspector:InspectorFactory = new InspectorFactory({
 
     startStep: INSPECTOR_TYPE.POST_APP_SCAN,
 
-    version: "1.0.0",
+    version: "1.0.1",
     db: {
         dbms: 'inmemory',
         type: 'collection',
@@ -166,47 +166,51 @@ var KotlinInspector:InspectorFactory = new InspectorFactory({
         "dxc.fullscan.post": {
             lang: "js",
             source: `
-                const ctx = pEvent.getContext();
-                const tm = ctx.getTagManager();
-                const ktTags = {
-                    config: tm.getTag("kotlin.config"),
-                    debug: tm.getTag("kotlin.debug"),
-                    cls: tm.getTag("kotlin.class"),
-                };
+            
+                (async ()=>{
+                    const ctx = pEvent.getContext();
+                    const tm = ctx.getTagManager();
+                    const ktTags = {
+                        config: tm.getTag("kotlin.config"),
+                        debug: tm.getTag("kotlin.debug"),
+                        cls: tm.getTag("kotlin.class"),
+                    };
+                    
+                    const clzzReq = await ctx.merlin.class("source:/\\.kt$/");
+                    const result = await clzzReq.execute(ctx);
+                    if(result.count()>0){
+    
+                        const tag = tm.getTag("sca.lang.kotlin");
+    
+                        // tag class
+                        Util.mapInGroups(
+                            result.list(),
+                            async (vClz:ModelClass)=>{
+    
+                                // add tag
+                                vClz.addTag(tag);
+    
+                                // save
+                                ctx.trigger({
+                                    type:"model.class.update",
+                                    data: {
+                                        node: vClz
+                                    }
+                                });
+    
+                            }, 10);
+    
+                        // emit event to notify others insoectors
+                        ctx.trigger({
+                            type: "lang.kotlin",
+                            data: {
+                                matches: result.count(),
+                                pattern: clzzReq,
+                            }
+                        })
+                    }
+                })();
                 
-                const clzzReq = await ctx.merlin.class("source:/\\.kt$/");
-                const result = await clzzReq.execute(ctx);
-                if(result.count()>0){
-
-                    const tag = tm.getTag("sca.lang.kotlin");
-
-                    // tag class
-                    Util.mapInGroups(
-                        result.list(),
-                        async (vClz:ModelClass)=>{
-
-                            // add tag
-                            vClz.addTag(tag);
-
-                            // save
-                            ctx.trigger({
-                                type:"model.class.update",
-                                data: {
-                                    node: vClz
-                                }
-                            });
-
-                        }, 10);
-
-                    // emit event to notify others insoectors
-                    ctx.trigger({
-                        type: "lang.kotlin",
-                        data: {
-                            matches: result.count(),
-                            pattern: clzzReq,
-                        }
-                    })
-                }
             `
         }
     }

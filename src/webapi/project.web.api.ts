@@ -163,14 +163,14 @@ PROJECT_WEB_API.addAuthenticatedRoute(
             const $: WebServer = req.dxc.$;
             try {
                 // skip '-' project, it is a placeholder to load DxSecurity
-                if(req.params.uid.localeCompare(IGNORE_UIDS)){
+                if(req.params.uid.localeCompare(IGNORE_UIDS)==0){
                     $.sendSuccess( res, { });
                     return;
                 }
 
                 $.sendSuccess( res, await DexcaliburProject.getInformationOf( $.context, req.params.uid, req.dxc.sess.getUserAccount()));
             } catch (err) {
-                Logger.error("[API][PROJECT] Project meta data cannot be retrieved. Cause : " + err.message + "\n\t" + err.stack);
+                Logger.error("[API][PROJECT][project="+req.params.uid+"] Project meta data cannot be retrieved. Cause : " + err.message + "\n\t" + err.stack);
                 $.sendError(res, "Project meta data cannot be retrieved. Cause : " + err.message);
             }
         }

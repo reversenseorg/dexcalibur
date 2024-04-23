@@ -1595,8 +1595,12 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
             pAccount
         );
 
-
-        return project.toJsonObject();
+        if(project != null){
+            return project.toJsonObject();
+        }else{
+            Logger.error("[PROJECT] Cannot retrieve information about project : ",pProjectUID);
+            throw EngineDatabaseException.UNKNOWN_PROJECT(pProjectUID);
+        }
     }
 
     /**
@@ -2213,6 +2217,10 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
          ====== [SCAN CODE OF TARGET PLATFORM / USERLAND] ======
          */
 
+        // restore from DB if dirty
+        if(this.isDirty()){
+
+        }
         // application topology analysis and ressources analysis
         let success = await this.appAnalyzer.prepareFullScan();
 
@@ -2227,6 +2235,8 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
          */
         this.getWorkflow().setStep('Platform analysis', 10);
         this.getWorkflow().pushStatus(new StatusMessage(5, "Analyzing bytecode of target platform"));
+
+        // TODO : if dirty, restore data
 
         this.analyze.path(this.platform.getLocalPath(), CodeLocation.PLATFORM);
 

@@ -50,6 +50,15 @@ var DataClassifierInspector:InspectorFactory = new InspectorFactory({
                 { name:"uri"},
                 { name:"ip"}
             ]
+        },
+        {
+            name:"data.uri",
+            _tagsOptions:[
+                { name:"path"},
+                { name:"host"},
+                { name:"scheme"},
+                { name:"query"}
+            ]
         }
     ],
 
@@ -78,7 +87,7 @@ var DataClassifierInspector:InspectorFactory = new InspectorFactory({
                 //console.log(l,event.data.tags);
             }
         },
-        "string.new": function(pEvent:BusEvent<ModelStringValue>):void{
+        "model.string.new": function(pEvent:BusEvent<ModelStringValue>):void{
             const ctx = pEvent.getContext();
             const tag_URI = ctx.getTagManager().getTag("string.pattern.uri");
             const pattern:RegExp = new RegExp("([^:/]*)://([^/]*)");
