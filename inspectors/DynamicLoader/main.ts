@@ -407,7 +407,7 @@ export default new InspectorFactory({
                         description: "",
                         search: {
                             type: ModelMethod.TYPE.getName(),
-                            req: 'method("enclosingClass.extends.name:ClassLoader").filter("name:<init>")'
+                            req: 'method("enclosingClass.extends.name:/ClassLoader/").filter("name:<init>")'
                         },
                         autoEmit: true,
                         emitEvent: "hook.classloader.new",
@@ -754,7 +754,7 @@ export default new InspectorFactory({
                     description: "",
                     search: {
                         type: ModelMethod.TYPE.getName(),
-                        req: `method("enclosingClass.extends.name:ClassLoader").filter("name:<init>")`
+                        req: `method("enclosingClass.extends.name:/ClassLoader/").filter("name:<init>")`
                     },
                     autoEmit: true,
                     emitEvent: "hook.classloader.new",
