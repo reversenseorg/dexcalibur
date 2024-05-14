@@ -4,54 +4,136 @@ import {Workflow} from "../Workflow.js";
 
 export namespace External {
 
+    /**
+     * Represent an external tool which can be executed
+     * by Dexcalibur
+     *
+     * `Tool` instances are persisted.
+     *
+     * @class
+     */
     export class Tool {
 
         _uid: string;
+
         /**
-         * Hold tool version
+         * Tool version
+         *
+         * @type {string}
+         * @private
          */
         private _v:string;
 
+        /**
+         * Executable path
+         *
+         * An executable can a JAR file as well as an ELF
+         *
+         * @type {string}
+         * @private
+         */
         private _p: string;
 
 
         /**
          *
-         * @param pUID
-         * @param pConfig
+         * @param {string} pUID Tool UID
+         * @param {Settings.ExternalToolParams} pConfig Setting
          */
         constructor( pUID:string, pConfig:Settings.ExternalToolParams) {
             this._uid = pUID
             this._p = pConfig.path;
         }
 
+        /**
+         * To get path of the tool
+         *
+         * @return {string} Path
+         * @method
+         */
         getPath():string {
             return this._p;
         }
 
+        /**
+         * To get path of the tool
+         *
+         * TODO : ensure it is semver format
+         *
+         * @return {string} Version
+         * @method
+         */
         getVersion():string {
             return this._v;
         }
 
+        /**
+         * To get the UID
+         *
+         * It allows to uniquely identify external tools
+         *
+         * @return {string} UID
+         * @method
+         */
         getUID():string {
             return this._uid;
         }
     }
 
-    export interface ToolSet  {
-        [uid :string] :Tool;
-    }
 
+    /**
+     * A parent class to help to implement Helper classes that provide
+     * API to executable or CLI tools.
+     *
+     * It helps to separate logic required to configure path to external tool, from
+     * API itself.
+     *
+     * @class
+     */
     export class ExternalHelper {
 
+        /**
+         * The external tool to invoke
+         *
+         * @protected
+         */
         protected static tool:Tool;
 
+        /**
+         * A workflow object to provide monitoring of progression
+         *
+         * @type {Workflow};
+         */
         _wf:Workflow;
 
-        public static init( pTool:Tool){
+        /**
+         * To populate the tool to use for each ExternalHelper child class
+         *
+         * Examples :
+         * ```
+         * JavaHelper.init(this.extMgr.getTool('java'));
+         * FridaHelper.init(this.extMgr.getTool('frida'));
+         * ```
+         *
+         * Else any instance of JavaHelper will use same tool, but different Workflows
+         *
+         * @param {Tool} pTool Tool instance
+         * @return {void}
+         * @static
+         * @method
+         */
+        public static init( pTool:Tool):void{
             this.tool = pTool;
         }
 
+        /**
+         * To retrieve the path to Tool binary
+         *
+         * @param {string} pTool Optional. Default is empty string. A tool name to display if the tool is not configured
+         * @return {string} The tool path
+         * @static
+         * @method
+         */
         public static getExtPath(pTool=""):string {
             if(this.tool==undefined||this.tool==null){
                 try{
@@ -63,24 +145,52 @@ export namespace External {
             return this.tool.getPath();
         }
 
+        /**
+         * To set the workflow to use
+         *
+         * @param {Workflow} pWF Workflow instance
+         * @method
+         */
         setWorkflow( pWF:Workflow):void {
             this._wf = pWF;
         }
 
-
+        /**
+         * To get the workflow instance
+         *
+         * @return {Workflow} Worflow of the helper instance
+         * @method
+         */
         getWorkflow():Workflow {
             return this._wf;
         }
     }
 
+    /**
+     * Represents the ToolManager.
+     *
+     * Each DexcaliburEngine instance has own ToolManager instance
+     *
+     * @class
+     */
     export class ToolManager {
 
-        private tools: ToolSet;
+        /**
+         * A hashmap with configured or configurable tool
+         *
+         * @private
+         */
+        private tools: Record<string, Tool> = {};
+
         private _s:Settings.ExternalSettings;
 
+        /**
+         *
+         * @param {Settings.ExternalSettings} pConfig
+         * @constructor
+         */
         constructor( pConfig:Settings.ExternalSettings) {
             this._s = pConfig;
-            this.tools = {};
 
             pConfig.getToolList().map( vName => {
                 const t = pConfig.getTool(vName);
@@ -94,6 +204,13 @@ export namespace External {
         }
 
 
+        /**
+         * To get a tool instance by its UID
+         *
+         * @param {string} pUID Tool UID
+         * @return {Tool} The tool instance or NULL if there is not tool with this UID
+         * @method
+         */
         getTool( pUID:string) :Tool {
             return this.tools[pUID];
         }
