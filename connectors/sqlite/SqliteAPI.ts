@@ -252,16 +252,6 @@ export class SqliteAPI {
         const t = this._getTypes( vExtTPL==null ? vTPL.getType() : vExtTPL.getType());
         const def = vExtTPL==null ? vTPL.getDefaultValue() : vExtTPL.getDefaultValue();
 
-        if(vTPL.isKey()){
-            if(vTPL.isPrimaryKey()){
-                s += "PRIMARY KEY ";
-            }/*
-            // not supported by sqlite
-            else if(vTPL.isForeignKey()) {
-                s += "FOREIGN KEY ";
-            }*/
-        }
-
         if(vTPL.isUnique()){
             s += "UNIQUE "
         }
