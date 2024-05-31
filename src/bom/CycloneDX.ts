@@ -1,6 +1,6 @@
 import {Nullable} from "../core/IStringIndex.js";
 
-namespace CycloneDX {
+export namespace CycloneDX {
 
 
     export type Timestamp = number;
@@ -11,7 +11,7 @@ namespace CycloneDX {
     }
 
     // Specifies attributes of the text
-    interface AttachedText {
+    export interface AttachedText {
         // Specifies the content type of the text. Defaults to text/plain if not specified.
         content_type?: Nullable<string>;
         // Specifies the optional encoding the text is represented in
@@ -20,7 +20,7 @@ namespace CycloneDX {
         value: string;
     }
 
-    interface Bom {
+    export interface Bom {
         // The version of the CycloneDX specification a BOM is written to (starting at version 1.3)
         spec_version: string;
         // The version allows component publishers/authors to make changes to existing BOMs to update various aspects of the document such as description or licenses. When a system is presented with multiple BOMs for the same component, the system should use the most recent version of the BOM. The default version is '1' and should be incremented for each version of the BOM that is published. Each version of a component should have a unique BOM and if no changes are made to the BOMs, then each BOM will have a version of '1'.
@@ -49,7 +49,7 @@ namespace CycloneDX {
         formulation: Formula[];
     }
 
-    enum Classification {
+    export enum Classification {
         CLASSIFICATION_NULL,
         // A software application. Refer to https://en.wikipedia.org/wiki/Application_software for information about applications.
         CLASSIFICATION_APPLICATION,
@@ -77,7 +77,7 @@ namespace CycloneDX {
         CLASSIFICATION_DATA
     }
 
-    interface Commit {
+    export interface Commit {
         // A unique identifier of the commit. This may be version control specific. For example, Subversion uses revision numbers whereas git uses commit hashes.
         uid?: Nullable<string>;
         // The URL to the commit. This URL will typically point to a commit in a version control system.
@@ -90,7 +90,7 @@ namespace CycloneDX {
         message?: Nullable<string>;
     }
 
-    interface Component {
+    export interface Component {
         // Specifies the type of component. For software components, classify as application if no more specific appropriate classification is available or cannot be determined for the component.
         type?: Classification;
         // The optional mime-type of the component. When used on file components, the mime-type can provide additional context about the kind of file being represented such as an image, font, or executable. Some library or framework components may also have an associated mime-type.
@@ -144,7 +144,7 @@ namespace CycloneDX {
     }
 
     // Specifies the data flow.
-    interface DataFlow {
+    export interface DataFlow {
         // Specifies the flow direction of the data.
         flow?: DataFlowDirection;
         // Data classification tags data according to its type, sensitivity, and value if altered, stolen, or destroyed.
@@ -162,7 +162,7 @@ namespace CycloneDX {
     }
 
     // Specifies the flow direction of the data. Valid values are: inbound, outbound, bi-directional, and unknown. Direction is relative to the service. Inbound flow states that data enters the service. Outbound flow states that data leaves the service. Bi-directional states that data flows both ways, and unknown states that the direction is not known.
-    enum DataFlowDirection {
+    export enum DataFlowDirection {
         DATA_FLOW_NULL,
         DATA_FLOW_INBOUND,
         DATA_FLOW_OUTBOUND,
@@ -170,20 +170,20 @@ namespace CycloneDX {
         DATA_FLOW_UNKNOWN
     }
 
-    interface Dependency {
+    export interface Dependency {
         // References a component or service by the its bom-ref attribute
         ref: string;
         dependencies: Dependency[];
     }
 
-    interface Diff {
+    export interface Diff {
         // Specifies the optional text of the diff
         text?: Nullable<AttachedText>;
         // Specifies the URL to the diff
         url?: Nullable<string>;
     }
 
-    interface ExternalReference {
+    export interface ExternalReference {
         // Specifies the type of external reference. There are built-in types to describe common references. If a type does not exist for the reference being referred to, use the "other" type.
         type?: ExternalReferenceType;
         // The URL to the external reference
@@ -194,7 +194,7 @@ namespace CycloneDX {
         hashes: Hash[];
     }
 
-    enum ExternalReferenceType {
+    export enum ExternalReferenceType {
         // Use this if no other types accurately describe the purpose of the external reference
         EXTERNAL_REFERENCE_TYPE_OTHER,
         // Version Control System
@@ -273,7 +273,7 @@ namespace CycloneDX {
         EXTERNAL_REFERENCE_TYPE_FORMULATION
     }
 
-    enum HashAlg {
+    export enum HashAlg {
         HASH_ALG_NULL,
         HASH_ALG_MD_5,
         HASH_ALG_SHA_1,
@@ -290,14 +290,14 @@ namespace CycloneDX {
     }
 
     // Specifies the file hash of the component
-    interface Hash {
+    export interface Hash {
         // Specifies the algorithm used to create the hash
         alg?: HashAlg;
         // SimpleContent value of element
         value: string;
     }
 
-    interface IdentifiableAction {
+    export interface IdentifiableAction {
         // The timestamp in which the action occurred
         timestamp: Nullable<Timestamp>;
         // The name of the individual who performed the action
@@ -306,7 +306,7 @@ namespace CycloneDX {
         email?: Nullable<string>;
     }
 
-    enum IssueClassification {
+    export enum IssueClassification {
         ISSUE_CLASSIFICATION_NULL,
         // A fault, flaw, or bug in software
         ISSUE_CLASSIFICATION_DEFECT,
@@ -316,7 +316,7 @@ namespace CycloneDX {
         ISSUE_CLASSIFICATION_SECURITY,
     }
 
-    interface Issue {
+    export interface Issue {
         // Specifies the type of issue
         type?: IssueClassification;
         // The identifier of the issue assigned by the source of the issue
@@ -330,20 +330,20 @@ namespace CycloneDX {
     }
 
     // The source of the issue where it is documented.
-    interface Source {
+    export interface Source {
         // The name of the source. For example "National Vulnerability Database", "NVD", and "Apache"
         name?: Nullable<string>;
         // The url of the issue documentation as provided by the source
         url?: Nullable<string>;
     }
 
-    interface LicenseChoice {
+    export interface LicenseChoice {
         license?: License;
         expression?: string;
     }
 
 
-    interface License {
+    export interface License {
         // A valid SPDX license ID
         id?: string;
         // If SPDX does not define the license used, this field may be used to provide the license name
@@ -360,7 +360,7 @@ namespace CycloneDX {
         properties: Property[];
     }
 
-    interface Licensing {
+    export interface Licensing {
         // License identifiers that may be used to manage licenses and their lifecycle
         altIds: string[];
         // The individual or organization that grants a license to another individual or organization
@@ -379,12 +379,12 @@ namespace CycloneDX {
         expiration: Nullable<Timestamp>;
     }
 
-    interface OrganizationalEntityOrContact {
+    export interface OrganizationalEntityOrContact {
         organization?: OrganizationalEntity;
         individual?: OrganizationalContact;
     }
 
-    enum LicensingTypeEnum {
+    export enum LicensingTypeEnum {
         LICENSING_TYPE_NULL,
         // A license that grants use of software solely for the purpose of education or research.
         LICENSING_TYPE_ACADEMIC,
@@ -420,7 +420,7 @@ namespace CycloneDX {
         LICENSING_TYPE_OTHER,
     }
 
-    interface Metadata {
+    export interface Metadata {
         // The date and time (timestamp) when the document was created.
         timestamp: Nullable<Timestamp>;
         // The tool(s) used in the creation of the BOM.
@@ -441,7 +441,7 @@ namespace CycloneDX {
         lifecycles: Lifecycles[];
     }
 
-    interface Lifecycles {
+    export interface Lifecycles {
         // A pre-defined phase in the product lifecycle.
         phase?: LifecyclePhase;
         // The name of the lifecycle phase
@@ -450,7 +450,7 @@ namespace CycloneDX {
         description: Nullable<string>;
     }
 
-    enum LifecyclePhase {
+    export enum LifecyclePhase {
         // BOM produced early in the development lifecycle containing inventory of components and services that are proposed or planned to be used. The inventory may need to be procured, retrieved, or resourced prior to use.
         LIFECYCLE_PHASE_DESIGN,
         // BOM consisting of information obtained prior to a build process and may contain source files and development artifacts and manifests. The inventory may need to be resolved and retrieved prior to use.
@@ -467,7 +467,7 @@ namespace CycloneDX {
         LIFECYCLE_PHASE_DECOMMISSION,
     }
 
-    interface OrganizationalContact {
+    export interface OrganizationalContact {
         // The name of the contact
         name?: Nullable<string>;
         // The email address of the contact.
@@ -478,7 +478,7 @@ namespace CycloneDX {
         bom_ref?: Nullable<string>;
     }
 
-    interface OrganizationalEntity {
+    export interface OrganizationalEntity {
         // The name of the organization
         name?: Nullable<string>;
         // The URL of the organization. Multiple URLs are allowed.
@@ -489,7 +489,7 @@ namespace CycloneDX {
         bom_ref?: Nullable<string>;
     }
 
-    enum PatchClassification {
+    export enum PatchClassification {
         PATCH_CLASSIFICATION_NULL,
         // A patch which is not developed by the creators or maintainers of the software being patched. Refer to https://en.wikipedia.org/wiki/Unofficial_patch
         PATCH_CLASSIFICATION_UNOFFICIAL,
@@ -501,7 +501,7 @@ namespace CycloneDX {
         PATCH_CLASSIFICATION_CHERRY_PICK,
     }
 
-    interface Patch {
+    export interface Patch {
         // Specifies the purpose for the patch including the resolution of defects, security issues, or new behavior or functionality
         type: PatchClassification;
         // The patch file (or diff) that show changes. Refer to https://en.wikipedia.org/wiki/Diff
@@ -510,7 +510,7 @@ namespace CycloneDX {
     }
 
     // Component pedigree is a way to document complex supply chain scenarios where components are created, distributed, modified, redistributed, combined with other components, etc. Pedigree supports viewing this complex chain from the beginning, the end, or anywhere in the middle. It also provides a way to document variants where the exact relation may not be known.
-    interface Pedigree {
+    export interface Pedigree {
         // Describes zero or more components in which a component is derived from. This is commonly used to describe forks from existing projects where the forked version contains a ancestor node containing the original component it was forked from. For example, Component A is the original component. Component B is the component being used and documented in the BOM. However, Component B contains a pedigree node with a single ancestor documenting Component A - the original component from which Component B is derived from.
         ancestors: Component[];
         // Descendants are the exact opposite of ancestors. This provides a way to document all forks (and their forks) of an original or root component.
@@ -525,7 +525,7 @@ namespace CycloneDX {
         notes?: Nullable<string>;
     }
 
-    enum Scope {
+    export enum Scope {
         // Default
         SCOPE_UNSPECIFIED,
         // The component is required for runtime
@@ -536,7 +536,7 @@ namespace CycloneDX {
         SCOPE_EXCLUDED,
     }
 
-    interface Service {
+    export interface Service {
         // An optional identifier which can be used to reference the service elsewhere in the BOM. Uniqueness is enforced within all elements and children of the root-level bom element.
         bom_ref?: Nullable<string>;
         // The organization that provides the service.
@@ -569,7 +569,7 @@ namespace CycloneDX {
         trustZone?: Nullable<string>;
     }
 
-    interface Swid {
+    export interface Swid {
         // Maps to the tagId of a SoftwareIdentity.
         tag_id: string;
         // Maps to the name of a SoftwareIdentity.
@@ -587,7 +587,7 @@ namespace CycloneDX {
     }
 
     // Specifies a tool (manual or automated).
-    interface Tool {
+    export interface Tool {
         // A list of software and hardware components used as tools
         components: Component[];
         // A list of services used as tools. This may include microservices, function-as-a-service, and other types of network or intra-process services.
@@ -595,12 +595,12 @@ namespace CycloneDX {
     }
 
     // Specifies a property
-    interface Property {
+    export interface Property {
         name: string;
         value?: Nullable<string>;
     }
 
-    enum Aggregate {
+    export enum Aggregate {
         // The relationship completeness is not specified.
         AGGREGATE_NOT_SPECIFIED,
         // The relationship is complete. No further relationships including constituent components, services, or dependencies are known to exist.
@@ -623,7 +623,7 @@ namespace CycloneDX {
         AGGREGATE_INCOMPLETE_THIRD_PARTY_OPENSOURCE_ONLY,
     }
 
-    interface Composition {
+    export interface Composition {
         // Indicates the aggregate completeness
         aggregate: Aggregate;
         // The assemblies the aggregate completeness applies to
@@ -636,12 +636,12 @@ namespace CycloneDX {
         bom_ref?: Nullable<string>;
     }
 
-    interface EvidenceCopyright {
+    export interface EvidenceCopyright {
         // Copyright text
         text: string;
     }
 
-    interface Evidence {
+    export interface Evidence {
         licenses: LicenseChoice[];
         copyright: EvidenceCopyright[];
         identity: EvidenceIdentity[];
@@ -649,7 +649,7 @@ namespace CycloneDX {
         callstack?: Nullable<Callstack>;
     }
 
-    interface Frames {
+    export interface Frames {
         // A package organizes modules into namespaces, providing a unique namespace for each type it contains.
         package?: Nullable<string>;
         // A module or class that encloses functions/methods and other code.
@@ -667,11 +667,11 @@ namespace CycloneDX {
     }
 
     // Evidence of the components use through the callstack.
-    interface Callstack {
+    export interface Callstack {
         frames: Frames[];
     }
 
-    interface EvidenceIdentity {
+    export interface EvidenceIdentity {
         // The identity field of the component which the evidence describes.
         field: EvidenceFieldType;
         // The overall confidence of the evidence from 0 - 1, where 1 is 100% confidence.
@@ -682,7 +682,7 @@ namespace CycloneDX {
         tools: string[];
     }
 
-    interface EvidenceMethods {
+    export interface EvidenceMethods {
         // The technique used in this method of analysis.
         technique: EvidenceTechnique;
         // The confidence of the evidence from 0 - 1, where 1 is 100% confidence. Confidence is specific to the technique used. Each technique of analysis can have independent confidence.
@@ -691,14 +691,14 @@ namespace CycloneDX {
         value?: Nullable<string>;
     }
 
-    interface EvidenceOccurrences {
+    export interface EvidenceOccurrences {
         // An optional identifier which can be used to reference the occurrence elsewhere in the BOM. Every bom-ref MUST be unique within the BOM.
         bom_ref?: Nullable<string>;
         // The location or path to where the component was found.
         location: string;
     }
 
-    enum EvidenceFieldType {
+    export enum EvidenceFieldType {
         EVIDENCE_FIELD_NULL,
         EVIDENCE_FIELD_GROUP,
         EVIDENCE_FIELD_NAME,
@@ -709,7 +709,7 @@ namespace CycloneDX {
         EVIDENCE_FIELD_HASH,
     }
 
-    enum EvidenceTechnique {
+    export enum EvidenceTechnique {
         EVIDENCE_TECHNIQUE_SOURCE_CODE_ANALYSIS,
         EVIDENCE_TECHNIQUE_BINARY_ANALYSIS,
         EVIDENCE_TECHNIQUE_MANIFEST_ANALYSIS,
@@ -722,14 +722,14 @@ namespace CycloneDX {
         EVIDENCE_TECHNIQUE_OTHER,
     }
 
-    interface Note {
+    export interface Note {
         // The ISO-639 (or higher) language code and optional ISO-3166 (or higher) country code. Examples include: "en", "en-US", "fr" and "fr-CA".
         locale?: Nullable<string>;
         // Specifies the full content of the release note.
         text?: Nullable<AttachedText>;
     }
 
-    interface ReleaseNotes {
+    export interface ReleaseNotes {
         // The software versioning type. It is RECOMMENDED that the release type use one of 'major', 'minor', 'patch', 'pre-release', or 'internal'. Representing all possible software release types is not practical, so standardizing on the recommended values, whenever possible, is strongly encouraged.
         type: string;
         // The title of the release.
@@ -754,7 +754,7 @@ namespace CycloneDX {
         properties: Property[];
     }
 
-    interface Vulnerability {
+    export interface Vulnerability {
         // An optional identifier which can be used to reference the vulnerability elsewhere in the BOM. Uniqueness is enforced within all elements and children of the root-level bom element.
         bom_ref?: Nullable<string>;
         // The identifier that uniquely identifies the vulnerability.
@@ -799,7 +799,7 @@ namespace CycloneDX {
         workaround?: Nullable<string>;
     }
 
-    interface ProofOfConcept {
+    export interface ProofOfConcept {
         // Precise steps to reproduce the vulnerability.
         reproductionSteps?: Nullable<string>;
         // A description of the environment in which reproduction was possible.
@@ -808,14 +808,14 @@ namespace CycloneDX {
         supportingMaterial: AttachedText[];
     }
 
-    interface VulnerabilityReference {
+    export interface VulnerabilityReference {
         // An identifier that uniquely identifies the vulnerability.
         id: string;
         // The source that published the vulnerability.
         source?: Source;
     }
 
-    interface VulnerabilityRating {
+    export interface VulnerabilityRating {
         // The source that calculated the severity or risk rating of the vulnerability.
         source?: Nullable<Source>;
         // The numerical score of the rating.
@@ -830,7 +830,7 @@ namespace CycloneDX {
         justification?: Nullable<string>;
     }
 
-    enum Severity {
+    export enum Severity {
         SEVERITY_UNKNOWN,
         SEVERITY_CRITICAL,
         SEVERITY_HIGH,
@@ -840,7 +840,7 @@ namespace CycloneDX {
         SEVERITY_NONE,
     }
 
-    enum ScoreMethod {
+    export enum ScoreMethod {
         // An undefined score method
         SCORE_METHOD_NULL,
         // Common Vulnerability Scoring System v2 - https://www.first.org/cvss/v2/
@@ -859,21 +859,21 @@ namespace CycloneDX {
         SCORE_METHOD_SSVC,
     }
 
-    interface Advisory {
+    export interface Advisory {
         // An optional name of the advisory.
         title?: Nullable<string>;
         // Location where the advisory can be obtained.
         url: string;
     }
 
-    interface VulnerabilityCredits {
+    export interface VulnerabilityCredits {
         // The organizations credited with vulnerability discovery.
         organizations: OrganizationalEntity[];
         // The individuals, not associated with organizations, that are credited with vulnerability discovery.
         individuals: OrganizationalContact[];
     }
 
-    interface VulnerabilityAnalysis {
+    export interface VulnerabilityAnalysis {
         // Declares the current state of an occurrence of a vulnerability, after automated or manual analysis.
         state?: Nullable<ImpactAnalysisState>;
         // The rationale of why the impact analysis state was asserted.
@@ -888,7 +888,7 @@ namespace CycloneDX {
         lastUpdated: Nullable<Timestamp>;
     }
 
-    enum ImpactAnalysisState {
+    export enum ImpactAnalysisState {
         // An undefined impact analysis state
         IMPACT_ANALYSIS_STATE_NULL,
         // The vulnerability has been remediated.
@@ -905,7 +905,7 @@ namespace CycloneDX {
         IMPACT_ANALYSIS_STATE_NOT_AFFECTED,
     }
 
-    enum ImpactAnalysisJustification {
+    export enum ImpactAnalysisJustification {
         // An undefined impact analysis justification
         IMPACT_ANALYSIS_JUSTIFICATION_NULL,
         // The code has been removed or tree-shaked.
@@ -928,7 +928,7 @@ namespace CycloneDX {
         IMPACT_ANALYSIS_JUSTIFICATION_PROTECTED_BY_MITIGATING_CONTROL,
     }
 
-    enum VulnerabilityResponse {
+    export enum VulnerabilityResponse {
         VULNERABILITY_RESPONSE_NULL,
         VULNERABILITY_RESPONSE_CAN_NOT_FIX,
         VULNERABILITY_RESPONSE_WILL_NOT_FIX,
@@ -937,14 +937,14 @@ namespace CycloneDX {
         VULNERABILITY_RESPONSE_WORKAROUND_AVAILABLE,
     }
 
-    interface VulnerabilityAffects {
+    export interface VulnerabilityAffects {
         // References a component or service by the objects bom-ref
         ref: string;
         // Zero or more individual versions or range of versions.
         versions: VulnerabilityAffectedVersions[];
     }
 
-    interface VulnerabilityAffectedVersions {
+    export interface VulnerabilityAffectedVersions {
         // A single version of a component or service.
         version?: string;
         // A version range specified in Package URL Version Range syntax (vers) which is defined at https://github.com/package-url/purl-spec/VERSION-RANGE-SPEC.rst
@@ -953,14 +953,14 @@ namespace CycloneDX {
         status?: Nullable<VulnerabilityAffectedStatus>;
     }
 
-    enum VulnerabilityAffectedStatus {
+    export enum VulnerabilityAffectedStatus {
         // The vulnerability status of a given version or range of versions of a product. The statuses 'affected' and 'unaffected' indicate that the version is affected or unaffected by the vulnerability. The status 'unknown' indicates that it is unknown or unspecified whether the given version is affected. There can be many reasons for an 'unknown' status, including that an investigation has not been undertaken or that a vendor has not disclosed the status.
         VULNERABILITY_AFFECTED_STATUS_UNKNOWN,
         VULNERABILITY_AFFECTED_STATUS_AFFECTED,
         VULNERABILITY_AFFECTED_STATUS_NOT_AFFECTED
     }
 
-    interface AnnotatorChoice {
+    export interface AnnotatorChoice {
         // The organization that created the annotation
         organization?: OrganizationalEntity;
         // The person that created the annotation
@@ -971,7 +971,7 @@ namespace CycloneDX {
         service?: Service;
     }
 
-    interface Annotation {
+    export interface Annotation {
         // An optional identifier which can be used to reference the annotation elsewhere in the BOM. Every bom-ref MUST be unique within the BOM.
         bom_ref?: Nullable<string>;
         // The object in the BOM identified by its bom-ref. This is often a component or service, but may be any object type supporting bom-refs.
@@ -984,22 +984,22 @@ namespace CycloneDX {
         text: string;
     }
 
-    interface Approach {
+    export interface Approach {
         type?: Nullable<ModelParameterApproachType>;
     }
 
-    interface Datasets {
+    export interface Datasets {
         dataset?: ComponentData;
         // References a data component by the components bom-ref attribute
         ref: string;
     }
 
-    interface MachineLearningInputOutputParameters {
+    export interface MachineLearningInputOutputParameters {
         // The data format for input/output to the model. Example formats include string, image, time-series
         format?: Nullable<string>;
     }
 
-    interface ModelParameters {
+    export interface ModelParameters {
         // The overall approach to learning used by the model for problem solving.
         approach?: Nullable<Approach>;
         // Directly influences the input and/or output. Examples include classification, regression, clustering, etc.
@@ -1016,14 +1016,14 @@ namespace CycloneDX {
         outputs: MachineLearningInputOutputParameters[];
     }
 
-    interface ConfidenceInterval {
+    export interface ConfidenceInterval {
         // The lower bound of the confidence interval.
         lowerBound?: Nullable<string>;
         // The upper bound of the confidence interval.
         upperBound?: Nullable<string>;
     }
 
-    interface PerformanceMetrics {
+    export interface PerformanceMetrics {
         // The type of performance metric.
         type?: Nullable<string>;
         // The value of the performance metric.
@@ -1034,13 +1034,13 @@ namespace CycloneDX {
         confidenceInterval?: Nullable<ConfidenceInterval>;
     }
 
-    interface QuantitativeAnalysis {
+    export interface QuantitativeAnalysis {
         // The model performance metrics being reported. Examples may include accuracy, F1 score, precision, top-3 error rates, MSC, etc.
         performanceMetrics: PerformanceMetrics[];
         graphics?: Nullable<GraphicsCollection>;
     }
 
-    interface ModelCardConsiderations {
+    export interface ModelCardConsiderations {
         // Who are the intended users of the model?
         users: string[];
         // What are the intended use cases of the model?
@@ -1055,14 +1055,14 @@ namespace CycloneDX {
         fairnessAssessments: FairnessAssessments[];
     }
 
-    interface EthicalConsiderations {
+    export interface EthicalConsiderations {
         // The name of the risk.
         name?: Nullable<string>;
         // Strategy used to address this risk.
         mitigationStrategy?: Nullable<string>;
     }
 
-    interface FairnessAssessments {
+    export interface FairnessAssessments {
         // The groups or individuals at risk of being systematically disadvantaged by the model.
         groupAtRisk?: Nullable<string>;
         // Expected benefits to the identified groups.
@@ -1073,7 +1073,7 @@ namespace CycloneDX {
         mitigationStrategy?: Nullable<string>;
     }
 
-    interface ModelCard {
+    export interface ModelCard {
         // An optional identifier which can be used to reference the model card elsewhere in the BOM. Every bom-ref MUST be unique within the BOM.
         bom_ref?: Nullable<string>;
         // Hyper-parameters for construction of the model.
@@ -1086,7 +1086,7 @@ namespace CycloneDX {
 
     }
 
-    enum ModelParameterApproachType {
+    export enum ModelParameterApproachType {
         MODEL_PARAMETER_APPROACH_TYPE_SUPERVISED,
         MODEL_PARAMETER_APPROACH_TYPE_UNSUPERVISED,
         MODEL_PARAMETER_APPROACH_TYPE_REINFORCED_LEARNING,
@@ -1094,7 +1094,7 @@ namespace CycloneDX {
         MODEL_PARAMETER_APPROACH_TYPE_SELF_SUPERVISED,
     }
 
-    interface ComponentDataContents {
+    export interface ComponentDataContents {
         // An optional way to include textual or encoded data.
         attachment?: Nullable<AttachedText>;
         // The URL to where the data can be retrieved.
@@ -1103,7 +1103,7 @@ namespace CycloneDX {
         properties: Property[];
     }
 
-    interface ComponentData {
+    export interface ComponentData {
         // An optional identifier which can be used to reference the dataset elsewhere in the BOM. Every bom-ref MUST be unique within the BOM.
         bom_ref?: Nullable<string>;
         // The general theme or subject matter of the data being specified.
@@ -1124,12 +1124,12 @@ namespace CycloneDX {
         governance?: Nullable<DataGovernance>;
     }
 
-    interface DataGovernanceResponsibleParty {
+    export interface DataGovernanceResponsibleParty {
         organization?: OrganizationalEntity;
         contact?: OrganizationalContact;
     }
 
-    interface DataGovernance {
+    export interface DataGovernance {
         // Data custodians are responsible for the safe custody, transport, and storage of data.
         custodians: DataGovernanceResponsibleParty[];
         // Data stewards are responsible for data content, context, and associated business rules.
@@ -1138,7 +1138,7 @@ namespace CycloneDX {
         owners: DataGovernanceResponsibleParty[];
     }
 
-    enum ComponentDataType {
+    export enum ComponentDataType {
         // Any type of code, code snippet, or data-as-code
         COMPONENT_DATA_TYPE_SOURCE_CODE,
         // Parameters or settings that may be used by other components.
@@ -1151,14 +1151,14 @@ namespace CycloneDX {
         COMPONENT_DATA_TYPE_OTHER,
     }
 
-    interface Graphic {
+    export interface Graphic {
         // The name of the graphic.
         name?: Nullable<string>;
         // The graphic (vector or raster). Base64 encoding MUST be specified for binary images.
         image?: Nullable<AttachedText>;
     }
 
-    interface GraphicsCollection {
+    export interface GraphicsCollection {
         // A description of this collection of graphics.
         description?: Nullable<string>;
         // A collection of graphics.
@@ -1166,7 +1166,7 @@ namespace CycloneDX {
     }
 
     // Describes workflows and resources that captures rules and other aspects of how the associated BOM component or service was formed.
-    interface Formula {
+    export interface Formula {
         // BOM unique reference to the resource.
         bom_ref?: Nullable<string>;
         // Transient components that are used in tasks that constitute one or more of this formula's workflows
@@ -1180,7 +1180,7 @@ namespace CycloneDX {
     }
 
     // A specialized orchestration task.
-    interface Workflow {
+    export interface Workflow {
         // BOM unique reference to the resource.
         bom_ref: string;
         // The unique identifier for the resource instance within its deployment context.
@@ -1218,7 +1218,7 @@ namespace CycloneDX {
     }
 
     // Describes the inputs, sequence of steps and resources used to accomplish a task and its output.
-    interface Task {
+    export interface Task {
         // BOM unique reference to the resource.
         bom_ref: string;
         // The unique identifier for the resource instance within its deployment context.
@@ -1252,7 +1252,7 @@ namespace CycloneDX {
     }
 
     // Executes specific commands or tools in order to accomplish its owning task as part of a sequence.
-    interface Step {
+    export interface Step {
         // A name for the step.
         name?: Nullable<string>;
         // A description of the step.
@@ -1263,14 +1263,14 @@ namespace CycloneDX {
         properties: Property[];
     }
 
-    interface Command {
+    export interface Command {
         // A text representation of the executed command.
         executed?: Nullable<string>;
         // Domain-specific command properties.
         properties: Property[];
     }
 
-    enum AccessMode {
+    export enum AccessMode {
         ACCESS_MODE_READ_ONLY,
         ACCESS_MODE_READ_WRITE,
         ACCESS_MODE_READ_WRITE_ONCE,
@@ -1279,7 +1279,7 @@ namespace CycloneDX {
     }
 
     // A named filesystem or data resource shareable by workflow tasks.
-    interface Workspace {
+    export interface Workspace {
         // BOM unique reference to the resource.
         bom_ref: string;
         // The unique identifier for the resource instance within its deployment context.
@@ -1308,13 +1308,13 @@ namespace CycloneDX {
 
     }
 
-    enum VolumeMode {
+    export enum VolumeMode {
         VOLUME_MODE_FILESYSTEM,
         VOLUME_MODE_BLOCK,
     }
 
     // An identifiable, logical unit of data storage tied to a physical device.
-    interface Volume {
+    export interface Volume {
         // The unique identifier for the volume instance within its deployment context.
         uid?: Nullable<string>;
         // The name of the volume instance
@@ -1335,7 +1335,7 @@ namespace CycloneDX {
 
     }
 
-    enum TriggerType {
+    export enum TriggerType {
         TRIGGER_TYPE_MANUAL,
         TRIGGER_TYPE_API,
         TRIGGER_TYPE_WEBHOOK,
@@ -1343,7 +1343,7 @@ namespace CycloneDX {
     }
 
     // Represents a resource that can conditionally activate (or fire) tasks based upon associated events and their data.
-    interface Trigger {
+    export interface Trigger {
         // BOM unique reference to the resource.
         bom_ref: string;
         // The unique identifier for the resource instance within its deployment context.
@@ -1373,7 +1373,7 @@ namespace CycloneDX {
     }
 
     // Represents something that happened that may trigger a response.
-    interface Event {
+    export interface Event {
         // The unique identifier of the event.
         uid?: Nullable<string>;
         // A description of the event.
@@ -1391,7 +1391,7 @@ namespace CycloneDX {
     }
 
     // Type that represents various input data types and formats.
-    interface InputType {
+    export interface InputType {
         // A references to the component or service that provided the input to the task (e.g., reference to a service with data flow value of `inbound`)
         source?: Nullable<ResourceReferenceChoice>;
         // A reference to the component or service that received or stored the input if not the task itself (e.g., a local, named storage workspace)
@@ -1408,7 +1408,7 @@ namespace CycloneDX {
         properties: Property[];
     }
 
-    enum OutputTypeType {
+    export enum OutputTypeType {
         OUTPUT_TYPE_ARTIFACT,
         OUTPUT_TYPE_ATTESTATION,
         OUTPUT_TYPE_LOG,
@@ -1417,7 +1417,7 @@ namespace CycloneDX {
         OUTPUT_TYPE_OTHER,
     }
 
-    interface OutputType {
+    export interface OutputType {
         // Describes the type of data output.
         type?: Nullable<OutputTypeType>;
         // Component or service that generated or provided the output from the task (e.g., a build tool)
@@ -1436,13 +1436,13 @@ namespace CycloneDX {
 
     }
 
-    interface ResourceReferenceChoice {
+    export interface ResourceReferenceChoice {
         ref?: Nullable<string>;
         externalReference?: Nullable<ExternalReference>;
     }
 
     // A condition that was used to determine a trigger should be activated.
-    interface Condition {
+    export interface Condition {
         // Describes the set of conditions which cause the trigger to activate.
         description?: Nullable<string>;
         // The logical expression that was evaluated that determined the trigger should be fired.
@@ -1451,7 +1451,7 @@ namespace CycloneDX {
         properties: Property[];
     }
 
-    enum TaskType {
+    export enum TaskType {
         TASK_TYPE_COPY,
         TASK_TYPE_CLONE,
         TASK_TYPE_LINT,
@@ -1467,7 +1467,7 @@ namespace CycloneDX {
     }
 
     // A representation of a functional parameter.
-    interface Parameter {
+    export interface Parameter {
         // The name of the parameter.
         name?: Nullable<string>;
         // The value of the parameter.
@@ -1476,7 +1476,7 @@ namespace CycloneDX {
         dataType?: Nullable<string>;
     }
 
-    interface EnvironmentVars {
+    export interface EnvironmentVars {
         property?: Nullable<Property>;
         value?: Nullable<string>;
     }
