@@ -84,7 +84,7 @@ export class SearchRequestCondition implements IStringIndex<any>{
   }
 
   isRange():boolean {
-    return (this.opts.range!=null) && (this.opts.range.length>0);
+    return  (this.opts.range!=null) && (this.opts.range.length>0);
   }
 
   isNotMatch():boolean {

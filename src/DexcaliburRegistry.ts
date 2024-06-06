@@ -11,9 +11,14 @@ let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 const PLATFORM_FOLDER = "platforms";
 const DEVICE_FOLDER = "devices";
 
+export enum RegistryType {
+    REMOTE="remote",
+    LOCAL="local"
+}
 
 export default class DexcaliburRegistry
 {
+    type:RegistryType = RegistryType.REMOTE;
     url:string;
     api:string;
 
@@ -94,14 +99,14 @@ export default class DexcaliburRegistry
         }
     }
 
+
     /**
      *
+     * @param {string} pPath
      */
-    static getOfficial():DexcaliburRegistry {
-        return new DexcaliburRegistry(
-            "",
-            ""
-        )
+    static newLocal(pPath:string):DexcaliburRegistry{
+        const reg = new DexcaliburRegistry("","");
+        reg.type = RegistryType.LOCAL;
+        return reg;
     }
-    
 }

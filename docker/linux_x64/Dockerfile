@@ -13,6 +13,32 @@ LABEL maintainer="georges.michel@reversense.com"
 # Comma seperated value. Supported values (subject to change, not exhaustive) : home , pro, oracle, ...
 ENV DXC_PRODUCTS="home,pro"
 
+
+# ===============================
+# Args
+# ===============================
+
+ARG user_server=$DXC_USER_SRV
+
+ARG dxc_http_port=8080
+ARG dxc_ws_port=8001
+
+# Obsolete. Standlone auth have been replaced by SSO
+# ARG dxc_admin="admin"
+# ARG dxc_pwd="dxcserver"
+
+# URI of Reversense marketplace
+ARG marketplace_uri="official"
+
+ARG ANDROID_CMD_VERSION="commandlinetools-linux-10406996_latest.zip"
+
+ARG OFFLINE_IMG
+ARG NODE_HEAP_SIZE
+
+ARG DB_HOST
+ARG DB_PORT
+ARG DB_URI
+
 # ===============================
 # Config
 # ===============================
@@ -33,23 +59,24 @@ ENV NODE_MAJOR="18"
 
 ENV DXC_TMP=/tmp
 
+ENV DXC_USER_HOME="/home/$user_server"
+ENV TMP_FOLDER="$DXC_USER_HOME/tmp"
+ENV ARTIFACTS_FOLDER="$DXC_USER_HOME/artifacts"
+ENV DXC_BIN_FOLDER="$DXC_USER_HOME/tmp"
+ENV ANDROID_SDK_ROOT="$DXC_USER_HOME/android"
+
+ENV OFFLINE_IMG=${OFFLINE_IMG:0}
+
+
+
 # ===============================
-# Args
+# Install basic utils
 # ===============================
 
-ARG user_server=$DXC_USER_SRV
+# 'Workspace' volumes hold projects data and some engine configuration and binary
+# 'uis' volumes contains UI interfaces, it is the www root folder where each UI are stored into separate folder
+VOLUME [ "/workspace", "/uis" ]
 
-ARG dxc_http_port=8080
-ARG dxc_ws_port=8001
-
-# Obsolete. Standlone auth have been replaced by SSO
-# ARG dxc_admin="admin"
-# ARG dxc_pwd="dxcserver"
-
-# URI of Reversense marketplace
-ARG marketplace_uri="official"
-
-ARG ANDROID_CMD_VERSION="commandlinetools-linux-10406996_latest.zip"
 
 # ===============================
 # Install basic utils
@@ -60,7 +87,6 @@ RUN apt-get update && apt install -y curl ca-certificates gnupg wget unzip  \
     bzip2 libdrm-dev libxkbcommon-dev libgbm-dev libasound-dev libnss3  \
     libxcursor1 libpulse-dev libxshmfence-dev xauth xvfb git x11vnc fluxbox  \
     wmctrl libdbus-glib-1-2 sudo make gcc
-
 
 
 # ===============================
@@ -84,15 +110,9 @@ USER $user_server
 WORKDIR /home/$user_server
 
 RUN sudo apt-get update && \
-    sudo apt-get -qqy install nodejs python3
+    sudo apt-get -qqy install nodejs python3 && \
+    sudo npm install -g npm@10.0.0
 
-RUN sudo npm install -g npm@10.0.0
-
-ENV DXC_USER_HOME="/home/$user_server"
-ENV TMP_FOLDER="$DXC_USER_HOME/tmp"
-ENV ARTIFACTS_FOLDER="$DXC_USER_HOME/artifacts"
-ENV DXC_BIN_FOLDER="$DXC_USER_HOME/tmp"
-ENV ANDROID_SDK_ROOT="$DXC_USER_HOME/android"
 
 # ===============================
 # Install Android SDKManager, and pip
@@ -115,19 +135,12 @@ ENV PATH="$PATH:$DXC_USER_HOME/.local/bin:$ANDROID_SDK_ROOT/cmdline-tools/tools:
 # RUN yes Y | sdkmanager --verbose --no_https ${ANDROID_PLATFORM_VERSION}
 
 # ===============================
-# Install Android Debug Bridge
+# Install :
+#  - Android Debug Bridge
+#  - Radare 2
 # ===============================
-RUN yes Y | sdkmanager --verbose --no_https "platform-tools"
-
-
-
-
-
-# ===============================
-# Third-part : r2
-# ===============================
-
-RUN cd $TMP_FOLDER && git clone https://github.com/radareorg/radare2 && \
+RUN yes Y | sdkmanager --verbose --no_https "platform-tools" && \
+    cd $TMP_FOLDER && git clone https://github.com/radareorg/radare2 && \
     chmod a+x ./radare2/sys/install.sh && ./radare2/sys/install.sh
 
 # ===============================
@@ -170,7 +183,6 @@ RUN ls -la $ARTIFACTS_FOLDER && \
 # Install UIs
 # ===============================
 
-VOLUME [ "/workspace", "/uis" ]
 RUN rm -r $ARTIFACTS_FOLDER/dist/src/webserver/www/ && ln -s /www_uis  $ARTIFACTS_FOLDER/dist/src/webserver/www
 
 # ===============================

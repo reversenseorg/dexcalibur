@@ -19,6 +19,7 @@ ENV NODE_MAJOR="18"
 
 ENV ANDROID_SDK_ROOT=/opt/android
 ARG ANDROID_CMD_VERSION="commandlinetools-linux-10406996_latest.zip"
+ENV PATH="$PATH:$ANDROID_SDK_ROOT/cmdline-tools/tools:$ANDROID_SDK_ROOT/cmdline-tools/tools/bin:$ANDROID_SDK_ROOT/emulator:$ANDROID_SDK_ROOT/tools/bin:$ANDROID_SDK_ROOT/platform-tools:$ANDROID_SDK_ROOT/build-tools/${ANDROID_BUILD_TOOLS_VERSION}"
 
 # ===============================
 # Install basic utils
@@ -51,12 +52,10 @@ RUN wget https://dl.google.com/android/repository/${ANDROID_CMD_VERSION} -P /tmp
     cd $ANDROID_SDK_ROOT/cmdline-tools/tools
 
 
-ENV PATH="$PATH:$ANDROID_SDK_ROOT/cmdline-tools/tools:$ANDROID_SDK_ROOT/cmdline-tools/tools/bin:$ANDROID_SDK_ROOT/emulator:$ANDROID_SDK_ROOT/tools/bin:$ANDROID_SDK_ROOT/platform-tools:$ANDROID_SDK_ROOT/build-tools/${ANDROID_BUILD_TOOLS_VERSION}"
-
-RUN yes Y | sdkmanager --licenses
-RUN yes Y | sdkmanager --verbose --no_https "platform-tools"
-RUN yes Y | sdkmanager --verbose --no_https ${ANDROID_BUILD_TOOLS}
-RUN yes Y | sdkmanager --verbose --no_https ${ANDROID_PLATFORM_VERSION}
+RUN yes Y | sdkmanager --licenses && \
+     yes Y | sdkmanager --verbose --no_https "platform-tools" && \
+     yes Y | sdkmanager --verbose --no_https ${ANDROID_BUILD_TOOLS} && \
+     yes Y | sdkmanager --verbose --no_https ${ANDROID_PLATFORM_VERSION}
 
 # ===============================
 # Check Python version

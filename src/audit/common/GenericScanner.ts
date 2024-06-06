@@ -107,31 +107,50 @@ export class GenericScanner extends AssuranceScanner {
             vRule = rules[vRuleOffset];
             if(!vRule.hasBusSubscriber()){
                 if(Merlin.isRule(vRule)){
-                    res = await vRule.execute(this.project);
-                    if(res.count()>0){
-                        console.log("[SCAN][FOUND](rule) : "+res.count()+"  "+(vRule as MerlinRule).getRequest().toSearchString());
-                        res.foreach((offset:number,x:any) => {
-                            // console.log('^ addMatch',  vRuleOffset, offset, x );
-                            pReport.addMatch(
-                                pCtrlNode,
-                                vRuleOffset,
-                                x
-                            );
-                        });
+
+                    try{
+                        res = await vRule.execute(this.project);
+                        if(res.count()>0){
+                            console.log("[SCAN][FOUND](rule) : "+res.count()+"  "+(vRule as MerlinRule).getRequest().toSearchString());
+                            res.foreach((offset:number,x:any) => {
+                                // console.log('^ addMatch',  vRuleOffset, offset, x );
+                                pReport.addMatch(
+                                    pCtrlNode,
+                                    vRuleOffset,
+                                    x
+                                );
+                            });
+                        }
+                    }catch(err){
+                        Logger.error("[GENERIC SCANNER][doAssessment] Rule : ",err.stack);
+                        // add error
+                        /*pReport.addError(
+                            pCtrlNode,
+                            vRuleOffset,
+                            x
+                        );*/
                     }
+
                 }else{
-                    (vRule as MerlinSearchRequest).setContext(this._searchContext);
-                    res = await vRule.execute(this.project);
-                    if(res.count()>0){
-                        console.log("[SCAN][FOUND](request) : "+res.count()+"  "+vRule.toSearchString());
-                        res.foreach((offset:number,x) => {
-                            pReport.addMatch(
-                                pCtrlNode,
-                                vRuleOffset,
-                                x
-                            );
-                        });
+
+                    try{
+                        (vRule as MerlinSearchRequest).setContext(this._searchContext);
+                        res = await vRule.execute(this.project);
+                        if(res.count()>0){
+                            console.log("[SCAN][FOUND](request) : "+res.count()+"  "+vRule.toSearchString());
+                            res.foreach((offset:number,x) => {
+                                pReport.addMatch(
+                                    pCtrlNode,
+                                    vRuleOffset,
+                                    x
+                                );
+                            });
+                        }
+                    }catch(err){
+                        Logger.error("[GENERIC SCANNER][doAssessment] Search Request : ",err.stack);
+
                     }
+
                 }
             }
         }
@@ -248,9 +267,15 @@ export class GenericScanner extends AssuranceScanner {
         // TODO : browse the assurance model quickly by using AssuranceModel.ControlTree
         // TODO : add steps attached to app lifecycle step
         const plan = new TestPlan();
+
         const tests:any = {
+            // VT : Verification Test => goal is to detect mechanisms
             [TestType.VT]: [],
+            // PT : Penetration Test => goal is to bypass/attack mechanisms
+            // Some evaluations can have only VT, such as privacy, and so ...
             [TestType.PT]: [],
+
+            // TODO : test type below are deprecated, and moved to "analysis type" (analType)
             [TestType.STATIC_SCAN]: [],
             [TestType.DYN_SCAN]: [],
             [TestType.IAST]: [],
@@ -258,7 +283,10 @@ export class GenericScanner extends AssuranceScanner {
             [TestType.SYMEXEC]: []
         };
 
+        // get atomic assessments
         const leafs = this.model.getControlLeafsFrom(CANONICALIZED_ROOT);
+
+        // build
         leafs.map((vNode)=>{
             if(vNode.ctrl.isControlAssessment()){
                 const assesst = (vNode.ctrl as ControlAssessment);
@@ -317,9 +345,11 @@ export class GenericScanner extends AssuranceScanner {
             let next = true;
             switch (vStep.type){
                 case TestType.STATIC_SCAN:
+                    console.log("SAST",vStep.controls);
                     await this._staticScan( this.report, vStep.controls, pOptions);
                     break;
                 case TestType.IAST:
+                    console.log("IAST",vStep.controls);
                     await this._iastScan( this.report, vStep.controls, pOptions);
                     break;
                 default:

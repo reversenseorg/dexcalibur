@@ -70,7 +70,7 @@ PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
             let platform:Platform = null;
             let success:boolean = true;
             let wf:Workflow = null;
-            let anal:any = null;
+            let anal:any = {};
             let filetype:string;
             let projInputs:ProjectInput[] = [];
 
@@ -78,8 +78,6 @@ PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
 
                 dm = DeviceManager.getInstance();
                 await dm.scan();
-
-
 
                 user = (req.dxc.sess as UserSession).getUserAccount();
 
@@ -101,6 +99,10 @@ PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
 
                 if(req.body['cfg'] != null){
                     anal = req.body['cfg'];
+                }
+
+                if(anal==null){
+                    anal = {};
                 }
 
                 // init workflow

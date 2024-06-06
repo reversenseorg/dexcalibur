@@ -44,10 +44,10 @@ class Rules {
         files.map(function(k,v){
             try{
                 _fs_.unlinkSync(v.getPath());
-                context.bus.send(new BusEvent({
+                context.trigger({
                     type: "file.del",
                     data: v.getUID()
-                }));
+                });
                 v = null;
             }catch(err){}
         });

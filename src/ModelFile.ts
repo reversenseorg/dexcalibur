@@ -104,6 +104,7 @@ export interface ModelFileOptions {
     __p?:any;
     __t?:any[];
     f_list?:ModelFunctionList;
+    entropy?:number
 }
 
 
@@ -124,11 +125,12 @@ export default class ModelFile implements INode,IPersistent {
             (new NodeProperty("name")).type(DbDataType.STRING).def(null),
             (new NodeProperty("type")).type(DbDataType.STRING).def(null),
             (new NodeProperty("size")).type(DbDataType.INTEGER).def(-1),
+            (new NodeProperty("entropy")).type(DbDataType.INTEGER).def(-1),
             (new NodeProperty("path")).type(DbDataType.STRING).def(null),
             (new NodeProperty("location")).type(DbDataType.STRING).def(null),
             (new NodeProperty("tags")).type(DbDataType.STRING).def([]),
             (new NodeProperty("_d")).type(DbDataType.STRING).def('f'),
-
+            (new NodeProperty("data")).type(DbDataType.STRING).def({}),
             (new NodeProperty("scope")).single(DataScope.TYPE)/*.key(DbKeyType.COMPOSITE,0)*/.def("PKG"),
                 /*
                 .type(DbDataType.STRING)
@@ -217,7 +219,9 @@ export default class ModelFile implements INode,IPersistent {
     __p: any = {};
     __t: any[] = [];
 
+    entropy:number = -1;
 
+    data:any = null;
 
     /**
      *
@@ -352,6 +356,12 @@ export default class ModelFile implements INode,IPersistent {
         return this.path;
     }
 
+    /**
+     * To get the path of the file inside Dexcalibur workspace
+     *
+     * @return {string} Absolute path
+     * @method
+     */
     getRealPath():string {
         return this.path;
     }
@@ -601,6 +611,10 @@ export default class ModelFile implements INode,IPersistent {
         const uuid = vTag.getUUID();
         if(this.tags.indexOf(uuid)==-1)
             this.tags.push(uuid);
+    }
+
+    getEntropy():number {
+        return this.entropy;
     }
 }
 

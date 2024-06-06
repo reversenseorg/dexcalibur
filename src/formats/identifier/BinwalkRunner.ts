@@ -117,9 +117,15 @@ export class BinwalkRunner {
                         // __p = properties,  m = map, o = offset, t = type
                         file.__p.m.push(new ModelFileSection(parseInt(res[1],10), res[3]));
                     }else if(l[i].length>0){
+                        // todo : type should be "data" + measure entropy (global & 32bytes)
                         this.log("Format not detected in : "+l[i]);
                     }
                 }
+            }
+
+            if(file.type==null){
+                // todo : type should be "data" + measure entropy (global & 32bytes)
+
             }
 
         }catch(err){

@@ -38,6 +38,9 @@ import {JobWorkerMessage} from "../formats/identifier/Job.js";
 import {SaveScheduler} from "./SaveScheduler.js";
 import AnalyzerDatabase from "../AnalyzerDatabase.js";
 import Util from "../Utils.js";
+import {BusSubscriber} from "../Bus.js";
+import BusEvent from "../BusEvent.js";
+import ModelBom from "../ModelBom.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -119,7 +122,8 @@ export class ProjectDatabase {
         ModelClass.TYPE,
         ModelPackage.TYPE,
         ModelMethod.TYPE,
-        ModelField.TYPE
+        ModelField.TYPE,
+        ModelBom.TYPE
     ];
 
     private _supportedTypeInfos:{ [type:number] :CollectionInfo } = {};
@@ -139,6 +143,8 @@ export class ProjectDatabase {
         if(pProject.dbName==""){
             pProject.dbName = this.name;
         }
+
+        this._initSubscriptions();
 
     }
 
@@ -195,6 +201,20 @@ export class ProjectDatabase {
         );
     }
 
+
+    /**
+     *
+     * @private
+     */
+    private _initSubscriptions():void {
+        this._project.getBus().subscribe("data.file.parsed",  BusSubscriber.from( (pEvent:BusEvent<any>)=>{
+            Logger.info("[DXC-PROJECT] [SUBSCRIBER] <data.file.parsed> Save parsed data [fmt="
+                +pEvent.getData().format+"] : "+pEvent.getData().file.getPath());
+
+            this.save(pEvent.getData().file).then((v)=>{},()=>{})
+        }) )
+    }
+
     /**
      *
      */
@@ -202,7 +222,7 @@ export class ProjectDatabase {
     }
 
     /**
-     * To create a collection into DB
+     * To create a collection of nodes with a specific NodeType into DB
      *
      * @param pNode
      * @param pExitingCols

@@ -6,7 +6,7 @@ export interface NetworkInterfaceOptions {
     ip:string;
     version:IpVersion;
     port?:number;
-    domain?:URL;
+    domain?:any;
 }
 
 /**
@@ -21,7 +21,7 @@ export class NetworkInterface {
      * The domain mapped to this interface
      * @type {URL}
      */
-    domain:URL;
+    domain:any;
 
 
     constructor(pOptions:NetworkInterfaceOptions) {

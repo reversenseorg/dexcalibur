@@ -53,7 +53,7 @@ class Param
         let i:number=0;
 
         if(this.hasVal && (i=arg.indexOf("="))>-1){
-            this.value = arg.substr(arg.indexOf("=")+1);
+            this.value = arg.substr(i+1);
         }
 
         if(this.callback != null){

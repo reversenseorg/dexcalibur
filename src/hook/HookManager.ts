@@ -24,7 +24,7 @@ import {HookBuilder} from "./builders/HookBuider.js";
 import {HookDbApi} from "./HookDbApi.js";
 import HookStrategy from "./HookStrategy.js";
 import HookTemplateFragment from "./HookTemplateFragment.js";
-import HookWorkspace from "./HookWorkspace.js";
+import HookWorkspace, {HookWorkspaceState} from "./HookWorkspace.js";
 import {DeviceManagerException} from "../errors/DeviceManagerException.js";
 import * as Frida from 'frida';
 import {RuntimeEvent} from "./RuntimeEvent.js";
@@ -2107,5 +2107,14 @@ export class HookManager
         })
 
         return matches;
+    }
+
+    /**
+     * To get workspace state
+     */
+    getWorkspaceState():HookWorkspaceState {
+        return {
+            commit: this.context.getWorkspace().getHookWorkspace().getLastcommit()
+        };
     }
 }

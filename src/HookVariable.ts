@@ -3,6 +3,15 @@ import * as Log from './Logger.js';
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
+/**
+ * This abstract class represents a hook variable.
+ *
+ * The purpose of hook variables is to enable stateful hook over several
+ * execution. When the template of a hook fragment contains reference to the hook variable.
+ *
+ *
+ * @class
+ */
 export abstract class HookVariable
 {
     data:any = null;
@@ -19,6 +28,11 @@ export abstract class HookVariable
 }
 
 
+/**
+ * This class represents an array of value held by a hook variable
+ *
+ * @class
+ */
 export class HookVariableArray extends  HookVariable
 {
 

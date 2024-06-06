@@ -23,6 +23,7 @@ import {randomUUID} from "crypto";
 import {SecurityZone} from "./security/SecurityZone.js";
 import {FileFormatDetector} from "./formats/identifier/FileFormatDetector.js";
 import {delay, from, map, merge, mergeAll, mergeMap, Observable, ReplaySubject, Subject} from "rxjs";
+import {DataFormatManager} from "./formats/DataFormatManager.js";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -415,6 +416,7 @@ export class DataAnalyzer implements IAnalyzerUnit
         const dir = _fs_.readdirSync(pScope.getBasePath());
         let vPath:string,a:any;
 
+        // TODO : call delegate data analyzer ?
         if(this.context.platform.isAndroid()){
             // skip APKtool contents and files
             if(pScope.getName()=='bin'){
@@ -808,5 +810,51 @@ export class DataAnalyzer implements IAnalyzerUnit
         }*/
 
         return results;
+    }
+
+    /**
+     * To parse a list of files
+     *
+     * @param {ModelFile[]} pFiles List of files to parse
+     */
+    async analyze(pFiles:ModelFile[]):Promise<void>{
+        pFiles.map((vFile:ModelFile)=>{
+            if(vFile.getType()==null){
+
+                let parserConstructors:any[];
+                let results:any, fmt:string;
+
+                try{
+                    // todo : replace file extension by
+                    fmt = _path_.extname(vFile.getPath());
+                    parserConstructors = DataFormatManager.getInstance().getParserByFormat(fmt);
+
+                    if(parserConstructors.length > 0){
+                        results = (parserConstructors[0]).fromBuffer(
+                            _fs_.readFileSync(vFile.getRealPath())
+                        );
+
+                        vFile.data = results;
+
+                        this.context.trigger({
+                            type: "data.file.parsed",
+                            data: {
+                                file: vFile,
+                                parser: (parserConstructors[0]).UID,
+                                format: fmt
+                            }
+                        });
+                    }
+                }catch(err){
+                    Logger.error(err.message,err.stack);
+                    // push to workflow / task manager / etc ...
+                }
+
+            }
+        })
+    }
+
+    async analyzeFile(vFile:ModelFile):Promise<void>{
+
     }
 }

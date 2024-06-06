@@ -28,7 +28,11 @@ import Util from "../../Utils.js";
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
 /**
+ * Android APK analyzer
  *
+ * The purpose of this class is to perform high-level analysis of package content
+ *
+ * @class
  */
 export class AndroidPackageAnalyzer implements IPackageAnalyzer {
 
@@ -443,5 +447,7 @@ export class AndroidPackageAnalyzer implements IPackageAnalyzer {
         }
 
     }
+
+
 
 }

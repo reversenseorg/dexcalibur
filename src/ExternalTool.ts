@@ -8,6 +8,10 @@ export interface ExternalToolMap {
 /**
  * Represent configuration for an external tool
  *
+ * TODO : replaced by External.Tool, external tool instances should
+ *
+ * @deprecated
+ *
  * @class
  * @since 1.0.0
  */
@@ -19,6 +23,7 @@ export class ExternalTool {
      * @field
      */
     _p:string  = null;
+
 
     private _uid:string = null;
 

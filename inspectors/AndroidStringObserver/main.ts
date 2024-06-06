@@ -66,7 +66,7 @@ var AndroidStringObserverInspector:InspectorFactory = new InspectorFactory({
             lang: "js",
             source: `
                 // <js>
-                if(pEvent.data.data !=null){
+                if(pEvent.getData().data !=null){
                     // todo : retrieve session ID, be careful with concurrent session
                     let loc = null;
                     let node = null;
@@ -91,11 +91,12 @@ var AndroidStringObserverInspector:InspectorFactory = new InspectorFactory({
                     });
     
     
-                    pEvent.getProject().getAnalyzer().getData().strings.addEntry(str);
-                    pEvent.getProject().bus.send( new BusEvent({
+                    pEvent.getContext().getAnalyzer().getData().strings.addEntry(str);
+                    
+                    pEvent.getContext().trigger( {
                         type: "string.instance.new",
                         data: str
-                    }));
+                    });
                 }
             `
     }

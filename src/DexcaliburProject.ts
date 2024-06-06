@@ -1493,7 +1493,9 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
         try{
             project = await pEngine.getEngineDB().getProject(pProjectUID,pAccount);
         }catch(err){
-            if(err.code==EngineDatabaseException.UNKNOWN_PROJECT("").getCode()){
+            if(err.code==EngineDatabaseException.CODE.UNKNOWN_PROJECT){
+
+                console.log("REPAIR OPTS:", pEngine.getRepairOptions());
                 const repairOpts = pEngine.getRepairOptions();
                 if(repairOpts!=null && repairOpts.ws!=null){
 
@@ -1538,6 +1540,7 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
                     }
 
                 }else{
+
                     throw err;
                 }
             }
@@ -1599,7 +1602,7 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
             return project.toJsonObject();
         }else{
             Logger.error("[PROJECT] Cannot retrieve information about project : ",pProjectUID);
-            throw EngineDatabaseException.UNKNOWN_PROJECT(pProjectUID);
+            throw EngineDatabaseException.UNKNOWN_PROJECT(pProjectUID,"DexcaliburProject.getInformationOf");
         }
     }
 
@@ -2192,6 +2195,13 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
         return this;*/
     }
 
+    async initDataAnalysis(){
+        this.bus.subscribe( "data.file.index", BusSubscriber.from( (pEvent:BusEvent<any>)=>{
+
+            Logger.info("[DXC-PROJECT] [SUBSCRIBER] <data.file.index> Indexing file : "+pEvent.getData().path);
+            this.analyze.insertIn( "files", [pEvent.getData()]);
+        }));
+    }
     /**
      * To perform a fullsacn of the application. It  performs :
      *      - Android API bytecode scan (for the specified API version - by default it's API 25)
@@ -2347,6 +2357,10 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
                     this.analyze.updateFileIndex(
                         await this.dataAnalyzer.getIndex('PKG'), true
                     );
+
+                    // parsing and indexing
+                    this.dataAnalyzer.analyze(vFiles);
+
 
                     // trigger next steps
                     this._analysis$.next({
@@ -2630,7 +2644,7 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
 
     /**
      * To create an event and push it to the queue.
-     * The argulent should be given by using the format expected by the Event constructor.
+     * The argument should be given by using the format expected by the Event constructor.
      * 
      * @param {Object} eventData The description of the event to use with the Event constructor.
      * @param {boolean} pSave to save the data

@@ -32,6 +32,8 @@ import {
 } from "@dexcalibur/dexcalibur-orm";
 import {CryptoUtils} from "./CryptoUtils.js";
 import {CoreDebug} from "./core/CoreDebug.js";
+import {HookWorkspaceState} from "./hook/HookWorkspace.js";
+import {Nullable} from "./core/IStringIndex.js";
 
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
@@ -135,6 +137,11 @@ export default class HookSession extends WebsocketSession implements INode
     offset = 0;
 
     /**
+     * Hook Workspace state
+     */
+    wsState:Nullable<HookWorkspaceState> = null;
+
+    /**
      *
      * @param {HookManager} manager
      * @constructor
@@ -163,6 +170,7 @@ export default class HookSession extends WebsocketSession implements INode
             rawOutput: false
         }
         this.evTags = this.hookManager.getMessageTags();
+        this.wsState = this.hookManager.getWorkspaceState();
     }
 
     getUID():string {

@@ -664,6 +664,7 @@ AUDIT_WEB_API.addAsyncAuthenticatedRoute(
                         project = req.dxc.sess._project[req.body.projectUID];
                     }
 
+                    console.log(project);
                     const report = await scheduler.newStandaloneScan(project, ScanOrder.fromScanOptions({
                         modelUID: req.body.modelUID[0],
                         projectUID: req.body.projectUID,
@@ -702,6 +703,6 @@ AUDIT_WEB_API.addAsyncAuthenticatedRoute(
             }
         }
     },{
-        readProject: false
+        readProject: true
     }
 );

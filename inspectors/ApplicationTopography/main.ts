@@ -1,4 +1,5 @@
-import * as HOOK from '../../src/hook/HookManager.js';
+import * as _path_ from "path";
+
 
 import {IntentFilter} from "../../src/android/IntentFilter.js";
 import InspectorFactory from "../../src/InspectorFactory.js";
@@ -6,9 +7,7 @@ import Inspector, {INSPECTOR_TYPE} from "../../src/Inspector.js";
 import DexcaliburProject from "../../src/DexcaliburProject.js";
 import ModelClass from "../../src/ModelClass.js";
 import BusEvent from "../../src/BusEvent.js";
-import AndroidActivity from "../../src/android/AndroidActivity.js";
 import * as Log from "../../src/Logger.js";
-import {AndroidManifest} from "../../src/android/AndroidManifest.js";
 import {AndroidCodeAnalyzer} from "../../src/android/analyzer/AndroidCodeAnalyzer.js";
 import AndroidAppAnalyzer from "../../src/android/AndroidAppAnalyzer.js";
 
@@ -198,6 +197,46 @@ export default new InspectorFactory({
             } else {
                 Logger.error("[AppTopo][service] Fail to map internal dependencies mapped for : ", pEvent.data.obj.name);
             }
+        },
+        "data.file.parsed": function(pEvent:BusEvent<any>):any{
+            (async ()=>{
+                const ctx = pEvent.getContext();
+                const tm = ctx.getTagManager();
+
+                // skip if target platform is not android
+                if(!ctx.getPlatform().isAndroid())  return;
+
+                const parserEvent = pEvent.getData();
+                const file = pEvent.getData().file;
+                const dir = _path_.dirname(parserEvent.file.getRealPath());
+
+
+                if(dir.split(_path_.sep).pop()!='unknown') return;
+
+                if((parserEvent.format==".properties")
+                    ||(parserEvent.parser!=null && parserEvent.FORMAT_NAMES.indexOf("properties")>-1)){
+
+                    if(file.data != null && file.data.ok!=null){
+
+                        if(file.data.ok["client"]!=null && file.data.ok["version"]!=null){
+                            // save
+                            ctx.trigger({
+                                type:"sca.detect.java.library",
+                                data: {
+                                    libraryName: file.data.ok["client"].value,
+                                    libraryVersion: file.data.ok["version"].value,
+                                    proof: {
+                                        file: file.getUID(),
+                                        path: file.getRelativePath(),
+                                        type: "properties files"
+                                    }
+                                }
+                            });
+                        }
+                    }
+                }
+            })();
+
         }
     },
     eventListenerSources: {

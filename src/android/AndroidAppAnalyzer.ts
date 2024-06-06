@@ -26,6 +26,7 @@ import ApkHelper from "../ApkHelper.js";
 import Util from "../Utils.js";
 import {AndroidResource, AndroidResourceType} from "./AndroidResource.js";
 import {AndroidPackageAnalyzer} from "./analyzer/AndroidPackageAnalyzer.js";
+import {DataParserException} from "../errors/DataParserException.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -493,16 +494,28 @@ export default class AndroidAppAnalyzer implements IAppAnalyzer
 	 */
 	static async _parseXmlFile(pPath:string):Promise<any> {
 		if(!_fs_.existsSync(pPath)) return null;
-		const data = _fs_.readFileSync(pPath);
 
-		if(data == null || data.toString('ascii',0,5)!=="<?xml"){
-			// it happens if resources have not been extracted
-			Logger.error("File '"+pPath+"' cannot be analyzed because it seems not decompressed/decoded.");
-			Logger.debugRAW(data);
-			return false;
+		let res:any;
+		try{
+			const data = _fs_.readFileSync(pPath);
+
+			if(data == null || data.toString('ascii',0,5)!=="<?xml"){
+				// it happens if resources have not been extracted
+				throw DataParserException.XML_PARSING_FAILURE(
+					pPath,
+					'it seems not decompressed/decoded'
+				);
+			}
+
+			res = await (new _xml2js_.Parser()).parseStringPromise(data);
+		}catch (err){
+			Logger.error("File '"+pPath+"' cannot be analyzed because it seems not decompressed/decoded : "+err.stack);
+			console.log(err);
+			res = null;
 		}
 
-		return await (new _xml2js_.Parser()).parseStringPromise(data);
+
+		return res;
 	}
 
     /**

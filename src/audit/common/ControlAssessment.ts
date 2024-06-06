@@ -9,11 +9,48 @@ import {Metadata} from "./Metadata.js";
 import {MerlinPrimitive, MerlinType} from "../../search/MerlinPrimitive.js";
 import {MerlinUnserializer} from "../../search/MerlinUnserializer.js";
 
-
+/**
+ * TODO : move into separate package shared with signature-server
+ *
+ * @enum
+ */
 export enum AnalysisType {
+    /**
+     * Rules perform search on graph
+     *
+     *
+     * Evidence is composed of :
+     * - Search Request / Rule and its matching results
+     * - Commit ID of Hook Workspace
+     */
     SAST, // support VT/PT
+
+    /**
+     * Rules create hook, if the hook is trigged, the rule is satisfied
+     *
+     *
+     * Evidence is composed of :
+     * - Search Request / Rule and its matching results
+     * - Hooks
+     * - Hook traces
+     * - Commit ID of Hook Workspace
+     */
     DAST, // support VT/PT
+
+    /**
+     * Rules create hook and optionnally action, if the hook and/or action is trigged, and if resulting
+     * RuntimeEvent is trigged, the rule is satisfied.
+     *
+     * Evidence is composed of :
+     * - Runtime Events, including hook message
+     * - Search Request / Rule and its results used to generate hooks
+     * - Hooks
+     * - Hook traces
+     * - Commit ID of Hook Workspace
+     */
+    IAST
 }
+
 
 export interface ControlAssessmentMap {
     [key:string] :ControlAssessment;

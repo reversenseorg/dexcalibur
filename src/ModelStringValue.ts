@@ -66,7 +66,12 @@ export default class ModelStringValue extends Savable implements INode
         let o:any = {};
         o.__ = this.__;
         o.value = this.value;
-        o.instr = this.instr.toJsonObject();
+
+        // "instr" can be empty is the string has been gathered at runtime
+        if(this.instr !=null){
+            o.instr = this.instr.toJsonObject();
+        }
+
         o.tags = this.tags;
         CoreDebug.checkJsonSerialize(o, "ModelStringValue");
         return o;

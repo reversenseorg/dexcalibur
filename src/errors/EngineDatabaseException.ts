@@ -17,8 +17,8 @@ export class EngineDatabaseException extends MonitoredError {
             ErrorCode.GENERIC + 20) };
 
 
-    static UNKNOWN_PROJECT = (pName:string)=>{
-        return new EngineDatabaseException("Following project is missing in Engine DB :"+pName,
+    static UNKNOWN_PROJECT = (pName:string,pSource:string)=>{
+        return new EngineDatabaseException(`Following project is missing in Engine DB [from=${pSource}][uid=${pName}]`,
             ErrorCode.GENERIC + 24) };
 
     static SAVE_OPE_NOT_SUPPORTED = (pName:string)=>{

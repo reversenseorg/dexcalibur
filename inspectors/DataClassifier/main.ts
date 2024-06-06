@@ -127,10 +127,10 @@ var DataClassifierInspector:InspectorFactory = new InspectorFactory({
             if(pEvent.data!=null){
                 if(URI_REGEXP.test(pEvent.data.value)){
                     pEvent.data.addTag(ctx.getTagManager().getTag("string.pattern.uri"));
-                    ctx.bus.send(new BusEvent<ModelStringValue>({
+                    ctx.trigger({
                         type: "network.uri.string",
                         data: pEvent.data
-                    }));
+                    });
                 }
             }
         }

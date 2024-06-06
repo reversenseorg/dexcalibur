@@ -328,7 +328,7 @@ export class EngineDatabase {
         const project:Nullable<DexcaliburProject[]> = await coll.search({ uid: pUID});
 
         if(project==null || project.length==0){
-            throw EngineDatabaseException.UNKNOWN_PROJECT(pUID);
+            throw EngineDatabaseException.UNKNOWN_PROJECT(pUID,"EngineDB.getProject");
         }
 
         // inject context

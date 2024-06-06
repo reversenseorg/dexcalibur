@@ -11,6 +11,7 @@ export function newTagPresets(){
     const CODE_NATIVE = new TagCategory({ name: "code.native" });
     const CODE_GLOBAL = new TagCategory({ name: "code.global" });
     const CODE_DALVIK = new TagCategory({ name: "code.dalvik" });
+    const CODE_BINDING = new TagCategory({ name: "code.binding" });
     const CODE_CALL = new TagCategory({ name: "code.call" });
     const CODE_LOAD = new TagCategory({ name: "data.len" });
     const RUNTIME_MSG = new TagCategory({ name: "runtime.msg" });
@@ -67,6 +68,12 @@ export function newTagPresets(){
         new Tag({ name:"export" }),
         new Tag({ name:"import" }),
         new Tag({ name:"not_stripped" })
+    ];
+
+
+    const CODE_BINDING_TAGS = [
+        new Tag({ name:"native" }),
+        new Tag({ name:"rust" })
     ];
 
     const AUDIT_TYPE_TAGS = [
@@ -192,6 +199,7 @@ export function newTagPresets(){
     CODE_GLOBAL_TAGS.map( x => { CODE_GLOBAL.addTag(x); });
     CODE_CALL_TAGS.map( x => { CODE_CALL.addTag(x); });
     CODE_LOAD_TAGS.map( x => { CODE_LOAD.addTag(x); });
+    CODE_BINDING_TAGS.map( x => { CODE_BINDING.addTag(x) })
     DATA_TYPE_TAGS.map( x => { DATA_TYPE.addTag(x); });
     DATA_HASH_TAGS.map( x => { DATA_HASH.addTag(x); });
     DATA_LEN_TAGS.map( x => { DATA_LEN.addTag(x); });
@@ -219,6 +227,7 @@ export function newTagPresets(){
         CODE_CALL,
         CODE_NATIVE,
         CODE_LOAD,
+        CODE_BINDING,
 
         DATA_TYPE,
         DATA_CHARSET,

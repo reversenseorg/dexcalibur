@@ -81,22 +81,25 @@ export class AndroidCodeAnalyzer {
             if (API_TAG.match(vMeth.method)) {
                 const clsUID = vMeth.method.enclosingClass.name;
 
-                if (pApiList[clsUID] == null)
+                if (pApiList[clsUID] == null) {
                     pApiList[clsUID] = {
                         __: NodeInternalType.CLASS,
                         uid: clsUID,
                         methods: {}
                     };
+                }
 
                 const cs = vMeth.method.callSignature();
-                if (pApiList[clsUID].methods[cs] == null)
+                if (pApiList[clsUID].methods[cs] == null){
                     pApiList[clsUID].methods[cs] = {
                         __: NodeInternalType.METHOD,
                         uid: vMeth.method.signature(),
                         short: cs,
                         xrefs: []
                     };
+                }
 
+                // TODO prevent duplicate
                 // gather call location
                 pApiList[clsUID].methods[cs].xrefs.push({
                     parent: (vMeth.from as ModelMethod).signature(),

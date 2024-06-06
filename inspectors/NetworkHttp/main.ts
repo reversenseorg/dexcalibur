@@ -140,10 +140,10 @@ var NetworkHttpInspector:InspectorFactory = new InspectorFactory({
                 });
 
                 ctx.getAnalyzer().getData().strings.addEntry(str);
-                ctx.bus.send( new BusEvent<ModelStringValue>({
+                ctx.trigger({
                     type: "network.uri.string",
                     data: str
-                }));
+                });
 
                 // TODO : push okhttp request object instance (to track sessions)
                 /*ctx.bus.send( new BusEvent<any>({

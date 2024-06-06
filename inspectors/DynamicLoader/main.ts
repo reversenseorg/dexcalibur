@@ -24,7 +24,9 @@ let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 export default new InspectorFactory({
 
     id: "DynamicLoader",
+
     name: "Dynamic class loader inspector",
+
     description: "Update the application representation with Custom classloader and reflection data",
 
     version: "1.0.0",
@@ -642,13 +644,13 @@ export default new InspectorFactory({
                                     path: localDexFile,
                                     scope: ctx.dataAnalyzer.scopes.DYN_BYTECODE
                                 });
-                                ctx.bus.send(new BusEvent({
+                                ctx.trigger({
                                     type: "file.new.DYN_BYTECODE",
                                     data: {
                                         file: f,
                                         rpath: pEvent.data.arg0
                                     }
-                                }));
+                                });
 
                                 inspector.getDB().getIndex('dex',null).addEntry(f);
                                 inspector.save();

@@ -28,6 +28,10 @@ const DIR_NAME = {
 
 const FRIDA_COMPILE = 'frida-compile';
 
+
+export interface HookWorkspaceState {
+    commit:string
+}
 /**
  * A class used to interact with folder from project workspace
  * where the hook script is built
@@ -503,5 +507,10 @@ export default class HookWorkspace {
             const s =  _fs_.readFileSync(pOutputPath, { encoding:'utf8' });
             return s;
         });
+    }
+
+    getLastcommit():string {
+        // TODO
+        return "";
     }
 }

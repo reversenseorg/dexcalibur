@@ -47,7 +47,7 @@ export class InMemoryMerlinBackend {
                     case OperationType.FILTER:
                     case OperationType.SEARCH:
                         searchArgs = op.args as SearchOperationArgs;
-                        if (searchArgs.pattern.opts.strict) {
+                        if (searchArgs.pattern.opts?.strict) {
                             match = match
                                 && (Util.readValue(vData, searchArgs.pattern.field)
                                     === searchArgs.pattern.pattern);
@@ -160,11 +160,15 @@ export class InMemoryMerlinBackend {
                 default:
                     matchFn = this._createComparisonFunction(phases[i]);
                     tmpRes = [];
-                    phaseRes[i].map((vEntry: any) => {
-                        if(matchFn.call(null,vEntry)){
-                            tmpRes.push(vEntry);
-                        }
-                    });
+
+                    if(phaseRes[i]!=null){
+                        phaseRes[i].map((vEntry: any) => {
+                            if(matchFn.call(null,vEntry)){
+                                tmpRes.push(vEntry);
+                            }
+                        });
+                    }
+
                     phaseRes[i] = tmpRes;
                     break;
             }
