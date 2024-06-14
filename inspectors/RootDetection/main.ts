@@ -157,7 +157,7 @@ var RootDetectionInspector:InspectorFactory = new InspectorFactory({
                 descr: "Method doing something related to root detection",
                 search: {
                     type: ModelMethod.TYPE.getName(),
-                    req: `strings("value:(uperuser|bin/su)").select("src")`
+                    req: `strings("value:/(uperuser|bin/su)/").select("src")`
                 },
                 autoEmit: true,
                 emitEvent: "rootdetection.apk.search",
