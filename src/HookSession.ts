@@ -167,6 +167,7 @@ export default class HookSession extends WebsocketSession implements INode
             pid: null
         };
         this.opts = {
+            // FALSE = not publish events on bus
             rawOutput: false
         }
         this.evTags = this.hookManager.getMessageTags();

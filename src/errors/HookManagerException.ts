@@ -17,6 +17,8 @@ export class HookManagerException extends MonitoredError {
         HOOK_NOT_FOUND: ErrorCode.HOOK_MANAGER + HookErrCode.GENERIC + 6,
         FRIDA_DEVICE_NOT_FOUND: ErrorCode.HOOK_MANAGER + HookErrCode.GENERIC + 7,
         HOOK_SESSION_NOT_FOUND: ErrorCode.HOOK_MANAGER + HookErrCode.GENERIC + 8,
+        HOOK_FRAGMENT_CANNOT_BE_REMOVED: ErrorCode.HOOK_MANAGER + HookErrCode.GENERIC + 9,
+        FRAGMENT_UID_IS_MANDATORY: ErrorCode.HOOK_MANAGER + HookErrCode.GENERIC + 10,
     };
 
     static EXISTING_HOOK_SET = ()=>{ return new HookManagerException(" An hook set already exists for this ID",HookManagerException.ERR.EXISTING_HOOK_SET) };
@@ -27,6 +29,10 @@ export class HookManagerException extends MonitoredError {
     static HOOK_NOT_FOUND = (vUID:string)=>{ return new HookManagerException(" Fatal error: Hook not found : "+vUID,HookManagerException.ERR.HOOK_NOT_FOUND) };
     static FRIDA_DEVICE_NOT_FOUND = (vUID:string)=>{ return new HookManagerException(" Fatal error: device not found by frida : "+vUID,HookManagerException.ERR.FRIDA_DEVICE_NOT_FOUND) };
     static HOOK_SESSION_NOT_FOUND = ()=>{ return new HookManagerException(" Fatal error: hook session not found",HookManagerException.ERR.HOOK_SESSION_NOT_FOUND) };
+    static HOOK_FRAGMENT_CANNOT_BE_REMOVED= (vUID = "", vExtra:string="")=>{ return new HookManagerException(" The fragment [uid="+vUID+"] cannot be removed : "+vExtra,HookManagerException.ERR.HOOK_FRAGMENT_CANNOT_BE_REMOVED) };
+
+    static FRAGMENT_UID_IS_MANDATORY = (pContext:string="")=>{ return new HookManagerException(" The fragment UID is mandatory [context="+pContext+"]",HookManagerException.ERR.FRAGMENT_UID_IS_MANDATORY) };
+
 
     constructor( pMsg:string, pCode:number = null, pExtra:any = null) {
         super('HOOK MANAGER', pMsg, pCode, pExtra);

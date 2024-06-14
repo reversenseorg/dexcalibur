@@ -9,6 +9,7 @@ import DexcaliburProject from "../DexcaliburProject.js";
 import {CoreDebug} from "../core/CoreDebug.js";
 import {HookVariableMap, TargetLanguage} from "./common.js";
 import * as Log from "../Logger.js";
+import * as _assert_ from "node:assert";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -267,6 +268,10 @@ export abstract class AbstractHook {
      * @method
      */
     getFragment( pFragmentUID:string ):HookTemplateFragment {
+        if(pFragmentUID==null){
+            throw HookManagerException.FRAGMENT_UID_IS_MANDATORY("AbstractHook.getFragment, param");
+        }
+
         let frag:HookTemplateFragment = null;
         const pos = ["_before","_after","_replace"];
         let fl:number;
@@ -288,7 +293,8 @@ export abstract class AbstractHook {
     /**
      * To remove a fragment from the hook.
      *
-     * It not remove the fragment from the DB.
+     * If the hook manager is accessible it trigger save else
+     * It not removes the fragment from the DB.
      *
      *
      * @param {(string|HookTemplateFragment)} pFragment
@@ -298,7 +304,11 @@ export abstract class AbstractHook {
         let frag:HookTemplateFragment = null;
         const uid = (typeof pFragment !== "string")? pFragment.getUID() : pFragment;
         const pos = ["_before","_after","_replace"];
-        let fl:number;
+        let success = false;
+
+        if(uid==null){
+            throw HookManagerException.FRAGMENT_UID_IS_MANDATORY("AbstractHook.getFragment, param");
+        }
 
         for(let k=0; k<pos.length; k++){
 
@@ -306,15 +316,26 @@ export abstract class AbstractHook {
                 (x:HookTemplateFragment) => {
                     if(x.getUID()!==uid){
                         frag = x;
-                        return false;
-                    }else{
                         return true;
+                    }else{
+                        success = true;
+                        return false;
                     }
                 }
             )
         }
 
-        await this._mgr.save(this);
+        if(!success){
+            throw HookManagerException.HOOK_FRAGMENT_CANNOT_BE_REMOVED(uid,"Fragment not found");
+        }
+
+        // if hook is actively attached to a manager, save changes
+        if(this._mgr != null){
+            await this._mgr.save(this);
+        }else{
+            Logger.warn(`[HOOK] Fragment [uid=${uid}] has been removed, but changes have not been saved because the hook is not attached to a HookManager`)
+        }
+
 
         return frag;
     }
@@ -395,14 +416,23 @@ export abstract class AbstractHook {
     }
 
     getBefore():HookTemplateFragment[] {
+        this._before.sort((vFragA, vFragB)=>{
+            return (vFragA.weight > vFragB.weight ? -1 : 1);
+        });
         return this._before;
     }
 
     getAfter():HookTemplateFragment[] {
+        this._after.sort((vFragA, vFragB)=>{
+            return (vFragA.weight > vFragB.weight ? -1 : 1);
+        });
         return this._after;
     }
 
     getReplace():HookTemplateFragment[] {
+        this._replace.sort((vFragA, vFragB)=>{
+            return (vFragA.weight > vFragB.weight ? -1 : 1);
+        });
         return this._replace;
     }
 
@@ -415,13 +445,13 @@ export abstract class AbstractHook {
      */
     getFragmentsByLocation( pLocation:string):HookTemplateFragment[] {
         if(pLocation === "before"){
-            return this._before;
+            return this.getBefore();
         }
         else if(pLocation === "after"){
-            return this._after;
+            return this.getAfter();
         }
         else if(pLocation === "replace"){
-            return this._replace;
+            return this.getReplace();
         }
         else{
             throw HookManagerException.UNKNOW_HOOK_FRAGMENT_POS();
@@ -461,19 +491,19 @@ export abstract class AbstractHook {
 
         o._after = []
         if(this._after!=null && this._after.length > 0){
-            this._after.map( (x:HookTemplateFragment) => {
+            this.getAfter().map( (x:HookTemplateFragment) => {
                 o._after.push( x.toJsonObject());
             })
         }
         o._before = []
         if(this._before!=null && this._before.length > 0){
-            this._before.map( (x:HookTemplateFragment) => {
+            this.getBefore().map( (x:HookTemplateFragment) => {
                 o._before.push( x.toJsonObject());
             })
         }
         o._replace = []
         if(this._replace!=null && this._replace.length > 0){
-            this._replace.map( (x:HookTemplateFragment) => {
+            this.getReplace().map( (x:HookTemplateFragment) => {
                 o._replace.push( x.toJsonObject());
             })
         }

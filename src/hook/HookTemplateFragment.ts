@@ -18,6 +18,10 @@ export default class HookTemplateFragment implements INode {
     __:NodeInternalType = NodeInternalType.HOOK_FRAGMENT;
 
 
+    /**
+     * mandatpry
+     * @private
+     */
     private _uid:string = null;
 
     public name:string = null;
