@@ -22,10 +22,6 @@ let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
 var gInstance:InspectorManager = null;
 
-export interface InspectorFactorySet {
-    [id :string] :InspectorFactory;
-}
-
 
 export interface InspectorMap {
     [inspectorID :string] :Inspector;
@@ -73,8 +69,8 @@ export default class InspectorManager
 
     enabled:any = {};
 
-    locals:InspectorFactorySet = {};
-    remote:InspectorFactorySet = {};
+    locals:Record<string, InspectorFactory> = {};
+    remote:Record<string, InspectorFactory> = {};
     /**
      * 
      * @param {DexcaliburProject} pProject Project instance
@@ -121,11 +117,11 @@ export default class InspectorManager
         return (this.locals[pName] instanceof Inspector)
     }
 
-    getLocal():InspectorFactorySet{
+    getLocal():Record<string, InspectorFactory>{
         return this.locals;
     }
 
-    getRemote():InspectorFactorySet{
+    getRemote():Record<string, InspectorFactory>{
         return this.remote;
     }
 
@@ -148,7 +144,7 @@ export default class InspectorManager
     /**
      * TODO : add DB as backend
      */
-    async enumerateLocal():Promise<InspectorFactorySet>{
+    async enumerateLocal():Promise<Record<string, InspectorFactory>>{
         let p:string =null;
         const ws:string = _path_.join(Util.__dirname(import.meta.url), '..', 'inspectors'); // this.engine.workspace.getPluginsFolderLocation();
         const files:string[] = _fs_.readdirSync(ws);
@@ -181,7 +177,7 @@ export default class InspectorManager
      * @returns {Platform[]} An array a platform 
      * @method
      */
-    async enumerateRemote( pRegistry:DexcaliburRegistry):Promise<InspectorFactorySet>{
+    async enumerateRemote( pRegistry:DexcaliburRegistry):Promise<Record<string, InspectorFactory>>{
 
         // todo
         /*
@@ -284,7 +280,7 @@ export default class InspectorManager
      * @param pInspectorFactory
      * @param pProject
      */
-    async createInspector( pInspectorFactory:InspectorFactory, pProject:DexcaliburProject):Promise<boolean> {
+    async createInspector( pInspectorFactory:InspectorFactory, pProject:DexcaliburProject):Promise<Inspector> {
 
         let ins:Inspector;
 
@@ -300,7 +296,6 @@ export default class InspectorManager
             ins = await pInspectorFactory.createInstance(pProject);
             this.projects[pProject.getUID()][pInspectorFactory.id] = ins;
             await pProject.attachInspector(ins);
-            return  true;
         }catch (err){
             // if an error happens, remove InspectorFactory from DB and log it.
             this.engine.log("Inspector instance cannot be created : "+err.message, pProject, err.code);
@@ -311,10 +306,11 @@ export default class InspectorManager
                 this.engine.log("InspectorFactory cannot be removed after instance creating failed : "+err2.message, pProject, err2.code);
                 Logger.error(err2.message);
             }finally {
-                return false;
+                ins = null;
             }
         }
 
+        return ins;
     }
 
     /**
@@ -458,10 +454,17 @@ export default class InspectorManager
         }
 
         // detect if there is missing inspector
+        const newInspectors:Record<string, Inspector> = {};
         for(let k in this.locals){
             if(restored.indexOf(k)==-1){
-                await this.createInspector(this.locals[k], pProject);
+                newInspectors[k] = await this.createInspector(this.locals[k], pProject);
+                console.log("Create inspector : "+ newInspectors[k].getUID()+" "+ newInspectors[k].getID())
             }
+        }
+
+        // if new inspector have been created, start to deploy it
+        if(Object.keys(newInspectors).length>0){
+            await  this.deployInspectors(pProject, INSPECTOR_TYPE.BOOT, newInspectors);
         }
 
         pProject.restored();
@@ -469,6 +472,52 @@ export default class InspectorManager
         return true;
     }
 
+    /**
+     * To detect inspectors not installed for active project,
+     * and to deploy it
+     *
+     * @param {DexcaliburProject} pProject
+     */
+    async upgradeInspectorsFor( pProject:DexcaliburProject):Promise<void>{
+        const available = Object.keys(this.locals);
+        const toInstall:string[] = [];
+
+        let factories:InspectorFactory[];
+        let existing:string[] = [];
+
+        if(this.projects[pProject.getUID()] == null) this.projects[pProject.getUID()] = {};
+
+
+        // read InspectorPlugin of the project
+        factories = await pProject.getProjectDB()
+            .getCollectionOf(InspectorFactory.TYPE.getType()).getAsList();
+
+        // make a list of inspector UIDs
+        factories.map(x => existing.push(x.getUID()));
+
+        // search new factories
+        for(let i=0; i<available.length; i++){
+            if(existing.indexOf(available[i])==-1){
+                toInstall.push(available[i]);
+            }
+        }
+
+        const newInspectors:InspectorMap = {};
+        let insp:Inspector;
+
+        // create inspectors for new InspectorFactory to install
+        for(let i=0; i<toInstall.length; i++){
+            // create inspector
+            insp = await this.createInspector(this.locals[toInstall[i]], pProject);
+            newInspectors[toInstall[i]] = insp ;
+        }
+
+        if(Object.keys(newInspectors).length>0){
+            await  this.deployInspectors(pProject, INSPECTOR_TYPE.BOOT, newInspectors);
+        }
+
+        return ;
+    }
 
     /**
      * To get an inspector by its UID
@@ -502,7 +551,7 @@ export default class InspectorManager
      * @param {*} pProject 
      * @param {*} pStep 
      */
-    async deployInspectors( pProject:DexcaliburProject, pStep:INSPECTOR_TYPE):Promise<boolean>{
+    async deployInspectors( pProject:DexcaliburProject, pStep:INSPECTOR_TYPE, pInspectors:InspectorMap = {}):Promise<boolean>{
         const uid:string = pProject.getUID();
         let insp = "";
 
@@ -512,7 +561,7 @@ export default class InspectorManager
         }
         Logger.info("[INSPECTOR MANAGER] Project["+uid+"], Step["+pStep+"] Starting to deploy inspectors.");
 
-        const projInsps = pProject.getInspectors();
+        const projInsps = (Object.keys(pInspectors).length==0 ? pProject.getInspectors() : pInspectors);
 
         for(let i in projInsps){
             if(projInsps[i].isStartAt(pStep)){

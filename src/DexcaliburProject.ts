@@ -782,8 +782,20 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
         }catch(err){
             Logger.error(`[PROJECT] Inspector cannot be attached to the project due to an error : ${err.message}`);
             Logger.error(err.stack);
+            console.log(`[PROJECT] Inspector cannot be attached to the project due to an error : ${err.message}`);
         }
 
+    }
+
+    /**
+     * To check if an inspector with the specified UID is already attached
+     *
+     * @param {string} pInspectorUID
+     * @returns {boolean} TRUE if attached, else FALSE
+     * @method
+     */
+    isInspectorAttached(pInspectorUID:string):boolean {
+        return (this.inspectors[pInspectorUID]!=null);
     }
 
     /**
@@ -1117,7 +1129,11 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
         // plugins
         // before this step this.inspectors should be empty
         if(this.isDirty()){
+            // restore previously deployed inspector, upgrade inspectors with new version and deploy new inspectors
+            // finally, remove "dirty" flag
             await im.restoreInspectorsFor(this);
+            // deploy new inspectors
+            // await im.upgradeInspectorsFor(this);
         }else{
             // fresh project are not dirty
             await im.createInspectorsFor(this);

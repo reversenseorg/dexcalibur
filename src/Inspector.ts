@@ -15,35 +15,21 @@ import DexcaliburProject from "./DexcaliburProject.js";
 import InspectorFrontController, {IFC_TYPE} from "./InspectorFrontController.js";
 import BusEvent from "./BusEvent.js";
 import * as Log from './Logger.js';
-import {Stats} from "mocha";
-import {BusBroadcaster, BusEventHandler, BusSubscriber} from "./Bus.js";
-//import {IDatabase, IDatabaseAdapter} from "./persist/orm/DbAbstraction.js";
-import {DelegateWebApi} from "./webapi/DelegateWebApi.js";
-import WebServer from "./WebServer.js";
-
+import {BusEventHandler, BusSubscriber} from "./Bus.js";
 import {NodeInternalType} from "./NodeInternalType.js";
 import Util from "./Utils.js";
 import {CoreDebug} from "./core/CoreDebug.js";
 import {
-    DbDataType,
-    DbKeyType,
     IDatabase,
     IDatabaseAdapter,
-    NodeProperty,
     NodeType,
-    TagCategory, ValidationRule
+    TagCategory
 } from "@dexcalibur/dexcalibur-orm";
 import {Nullable} from "./core/IStringIndex.js";
 import InspectorFactory from "./InspectorFactory.js";
-import {HookManager} from "./hook/HookManager.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
-const TASK_CODE = {
-    NO_RESULT: 0,
-    SUCCESS: 1,
-    DATA_UPDATE: 2
-};
 
 /**
  * List of steps from where an inpector can be deployed.
@@ -62,89 +48,13 @@ interface ListenerList {
     [eventType :string] :BusEventHandler[]
 }
 
-/**
- * A StaticTask is the component processing incoming data or executing task when an event is caught from the Bus
- *
- * If an analysis is not invoked explicitely by the user, but automatically when a specific event happened, then
- * context or incoming data are processed by listeners (StaticTask).
- *
- * @deprecated
- * @class
- */
-class StaticTask
-{
-    task:any = null;
-    condition:any = null;
-    onDataUpdate:any = null;
-    onNoResult:any = null;
-    onSuccess:any = null;
-
-    /**
-     *
-     * @deprecated
-     * @param pConfig
-     */
-    constructor(pConfig:any=null){
-        if(pConfig!==null)
-            for(const i in pConfig)
-                this[i] = pConfig[i];
-    }
-
-    /**
-     * To set a function evaluated as a condition
-     *
-     * The function MUST return a boolean
-     *
-     * @param fn {Function} Condition function
-     *
-     * @deprecated
-     * @return
-     */
-    setCondition(fn:any){
-        this.condition = fn;
-    }
-
-
-    /**
-     * To set a function processing the context or data
-     *
-     * The function takes two arguments:
-     * - Context : the DexcaliburProject instance
-     * - Event : the event object which triggered the function, this object contains incoming data
-     *
-     *
-     * @param fn {Function} Condition function
-     * @deprecated
-     * @return
-     */
-    setTask(fn:any){
-        this.task = fn;
-    }
-
-    /**
-     * Execute the task if there is not condition or if the condition is true
-     *
-     * @param ctx
-     * @param event
-     * @return {void}
-     * @deprecated
-     * @method
-     */
-    exec(ctx:any, event:any){
-        if(this.condition != null && this.condition(ctx))
-            this.task(ctx, event, Logger);
-        else
-            this.task(ctx, event, Logger);
-    }
-}
-
 
 /**
  * An inspector is a plugin able to add (and/or):
  * - One or more data analyzer and classifier to main Bus
  * - One hook set containing One or more heuristics (HookStrategy) able to generate instrumentation
  * - Additional REST endpoint to extend Dexcalibur server APIs
- * - Addition GUI components
+ * - Additional GUI components
  *
  * Every analysis and builtin hooks available inside Dexcalibur are provided through Inspectors.
  * Using Inspectors is the main way to extend Dexcalibur analyzer, features and UI
@@ -168,7 +78,7 @@ class StaticTask
  * @implements {BusBroadcaster}
  * @class
  */
-export default class Inspector implements BusBroadcaster
+export default class Inspector
 {
     static TYPE:NodeType = new NodeType( "inspectors", NodeInternalType.INSPECTOR, []);
 
@@ -228,14 +138,6 @@ export default class Inspector implements BusBroadcaster
      * @public
      */
     hookSet:HookSet = null;
-
-    /**
-     * @field
-     * @type {StaticTask[]}
-     * @public
-     * @deprecated
-     */
-    staticTasks:StaticTask[] = null;
 
     /**
      * A flag to know if the inspector has been deployed (everything executed or ready) or not.
@@ -428,65 +330,23 @@ export default class Inspector implements BusBroadcaster
         }
     }
 
-    /**
-     * To broadcast an event from the main Bus to relevent StaticTask.
-     *
-     * This function is called every time a new data is pushed on the main Bus
-     *
-     * TODO: add asynchronous task
-     * TODO: improve performance => multi-thread ?
-     *
-     * @param {BusEvent} event  The event from main Bus
-     * @deprecated
-     * @method
-     */
-    broadcastEvent(event:BusEvent<any>){
-        /*const event_type:string = event.type;
-
-        Logger.debug(`[INSPECTOR][name=${this.name}] broadcastEvent [type=${event_type}] > listeners for : ${Object.keys(this.listener).join(" , ")}`);
-        if(this.listener[event_type] != null){
-
-
-
-            Logger.debug("Listener for ["+event_type+"] found in inspector ["+this.name+"]  ");
-            for(let i=0; i<this.listener[event_type].length; i++){
-
-                // TODO : async / co
-
-                //Logger.debug("Listener for ["+event_type+"] exec  ");
-                try{
-                    this.listener[event_type][i].exec(this.context, event);
-                }catch(err){
-                    Logger.error(`[INSPECTOR] [name=${this.name}] [event_type=${event_type}] listener execution failed : 
-                    ${err.messsage}
-                    ${err.stack}`);
-                }
-
-            }
-        }*/
-        return true;
-    }
 
     /**
-     * To declare new event handler. If the param `task`is  a function, a new StaticTask is create implicitly.
+     * To declare new event handler.
      *
-     * If a function is passed as is, the resulting StaticTask will not have additional condition.
-     *
-     *
-     * @param {string} event_type  The name of the event
-     * @param {StaticTask|any} task A  StaticTask instance or the listener function.
+     * @param {string} pEventType  The name of the event
+     * @param {BusEventHandler} pHandler Handler waiting for event with type `pEventType`
      * @return {Inspector} This inspector instance
      * @method
      */
-    on(event_type:string, pHandler: BusEventHandler):Inspector{
+    on(pEventType:string, pHandler: BusEventHandler):Inspector{
 
-        //const task:StaticTask = (pTask instanceof StaticTask)? pTask : new StaticTask(pTask);
 
-        if(this.listener[event_type] == null) this.listener[event_type] = [];
+        if(this.listener[pEventType] == null) this.listener[pEventType] = [];
 
-        Logger.debug(`[INSPECTOR][name=${this.name}] set listener [o=${event_type}] }`);
+        Logger.debug(`[INSPECTOR][name=${this.name}] set listener [o=${pEventType}] }`);
 
-        this.listener[event_type].push(pHandler);
+        this.listener[pEventType].push(pHandler);
 
 
         return this;
