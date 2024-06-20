@@ -2,7 +2,9 @@ import DexcaliburProject from "./DexcaliburProject.js";
 import {CryptoUtils} from "./CryptoUtils.js";
 import {CoreDebug} from "./core/CoreDebug.js";
 
-
+/**
+ * @class
+ */
 export default class HookPrologue
 {
     parentID:string = null;
@@ -61,6 +63,7 @@ export default class HookPrologue
         }
 
         this.builtScript = script;
+        console.log("Build script of prologue > ",this);
     }
 
     /**

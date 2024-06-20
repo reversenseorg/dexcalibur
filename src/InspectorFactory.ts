@@ -77,6 +77,7 @@ export interface HookSetOptions {
     description?:Nullable<string>;
     require?:string[];
     hookShare?:IStringIndex<any>;
+    prologue?:string;
     strategies: HookStrategyOptions[]
 }
 
@@ -394,11 +395,15 @@ export default class InspectorFactory implements INode
     /**
      * To create an instance of Inspector using the inspector prototype
      *
+     * If `pVolatile` is TRUE, the Inspector instance is totally "disconnected" from context
+     *
+     *
      * @param {DexcaliburProject} pProject - The project instance
+     * @param {boolean} pVolatile If volatile, the inspector is not
      * @return {Inspector} The freshly created Inspector
      * @method
      */
-    async createInstance( pProject:DexcaliburProject):Promise<Inspector>{
+    async createInstance( pProject:DexcaliburProject, pVolatile = false):Promise<Inspector>{
         const ins:Inspector = new Inspector();
         const hmgr:HookManager = pProject.getHookManager();
         const hapi:HookDbApi = hmgr.getDbAPI();
@@ -411,8 +416,10 @@ export default class InspectorFactory implements INode
         ins.factory = this;
 
         // register a new endpoint inside the web api
-        if(this.hasWebApi() && !this.isWebApiReady()){
-            this.registerWebServer(DexcaliburEngine.getInstance().getWebserver());
+        if(!pVolatile){
+            if(this.hasWebApi() && !this.isWebApiReady()){
+                this.registerWebServer(DexcaliburEngine.getInstance().getWebserver());
+            }
         }
 
         // copy config from prototype to fresh Inspector instance
@@ -441,7 +448,12 @@ export default class InspectorFactory implements INode
             // It happens mainly because the project has been created during a previous run
             // so, data have been partially restored by the hook manager from the SQLIte db of the project earlier
 
-            hs = await hapi.getHookSet(hsuid);
+            if(!pVolatile){
+                hs = await hapi.getHookSet(hsuid);
+            }else{
+                hs = null;
+            }
+
             if(hs == null){
                 // else, wen create a new HookSet instance with data from Inspector prototype
                 hs = await hmgr.createHookSet(hsuid, {
@@ -456,6 +468,12 @@ export default class InspectorFactory implements INode
                 // to configure object shared by several hooks
                 if(this.hookSet.hookShare != null){
                     hs.addHookShare(this.hookSet.hookShare);
+                }
+
+                console.log(this.hookSet.prologue);
+                // to configure object shared by several hooks
+                if(this.hookSet.prologue != null){
+                    hs.setPrologue(this.hookSet.prologue);
                 }
 
                 // to declare hookset dependencies
@@ -494,7 +512,12 @@ export default class InspectorFactory implements INode
                     const stratUID = hsuid+":"+strategies[k].name;
                     let strat:HookStrategy = null;
 
-                    f = await hapi.isStrategyExists(stratUID);
+                    if(!pVolatile){
+                        f = await hapi.isStrategyExists(stratUID);
+                    }else{
+                        f = false;
+                    }
+
 
 
                     if(!f){
@@ -521,7 +544,11 @@ export default class InspectorFactory implements INode
                         }
 
                         Logger.debug("createHookStrategy > "+stratUID);
-                        await hapi.createHookStrategy(strat);
+
+                        if(!pVolatile){
+                            // insert the hook strategy and generated fragments into DB
+                            await hapi.createHookStrategy(strat);
+                        }
 
                         hs.addStrategy(strat);
                         //await hapi.updateHookStrategy(strat);
@@ -530,8 +557,6 @@ export default class InspectorFactory implements INode
                         Logger.debug(`createHookStrategy > ${stratUID} exists > ${hsuid} :: ${k}`);
                         throw InspectorFactoryException.DUPLICATED_HOOK_STRATEGY(stratUID);
                     }
-                    //hs.addStrategy(strat);
-                    //await hapi.updateHookStrategy(strat);
                 }
             }
 

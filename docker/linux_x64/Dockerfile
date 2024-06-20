@@ -203,6 +203,7 @@ RUN sudo mkdir $DXC_USER_HOME/.dexcalibur $DXC_USER_HOME/workspace && \
         --ws-port=${dxc_ws_port}
 
 
+
 # configure external tools
 RUN node ./dexcalibur-adm.mjs tools --name=java --path=java && \
     node ./dexcalibur-adm.mjs tools --name=python --path=python3 && \

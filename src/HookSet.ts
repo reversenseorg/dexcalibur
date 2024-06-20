@@ -1,6 +1,5 @@
 import HookPrologue from "./HookPrologue.js";
 import DexcaliburProject from "./DexcaliburProject.js";
-import Hook from "./Hook.js";
 import {HookManager} from "./hook/HookManager.js";
 import * as Log from './Logger.js';
 import HookPrimitive from "./HookPrimitive.js";
@@ -9,6 +8,10 @@ import {AbstractHook} from "./hook/AbstractHook.js";
 import {INode, NodeType} from "@dexcalibur/dexcalibur-orm";
 import {NodeInternalType} from "./NodeInternalType.js";
 import {CoreDebug} from "./core/CoreDebug.js";
+import {HookSetOptions} from "./InspectorFactory.js";
+import {HookRevision, HookRevisionSubject, RevisionOperation} from "./HookRevision.js";
+import {CryptoUtils} from "./CryptoUtils.js";
+import Util from "./Utils.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -37,7 +40,9 @@ export default class HookSet implements INode
     name:string = null;
     description:string = null;
     category:string = null;
+
     prologue:HookPrologue = null;
+
     native = false;
 
     /**
@@ -110,6 +115,8 @@ export default class HookSet implements INode
     strats:HookStrategy[] = [];
 
     tags:number[] = [];
+
+    revisions:HookRevision[] = [];
 
     private _dirty = false;
 
@@ -198,10 +205,10 @@ export default class HookSet implements INode
     }
 
     /**
-     *
-     * @param code
+     * To add a prologue to the hook set
+     * @param {string} code
      */
-    addPrologue(code:string):HookSet{
+    setPrologue(code:string):HookSet{
         //this.prologue = code;
         this.prologue = new HookPrologue({
             parentID: this.id,
@@ -396,8 +403,10 @@ export default class HookSet implements INode
     disable(){
         const hookManager:HookManager = this.context.hook;
 
-        if(this.prologue != null)
+        /*if(this.prologue != null){
             hookManager.removePrologueOf(this);
+        }*/
+
 
         hookManager.removeHooksOf(this);
         this.enable = false;
@@ -432,10 +441,9 @@ export default class HookSet implements INode
             hookManager.builder.addRequires(this.requires);
             //hookManager.addRequiresNode(this.requiresNode);
 
-            if(this.prologue != null)
-                hookManager.prologues.push(
-                    this.prologue.injectContext(this.context)
-                );
+            if(this.prologue != null){
+                hookManager.addPrologue(this.prologue)
+            }
         }
 
         /*
@@ -452,6 +460,44 @@ export default class HookSet implements INode
 
         this.enable = true;
     }
+
+    /**
+     * To upgrade generic details
+     *
+     * @param {HookSetOptions} pOptions
+     */
+    upgradeInfo(pOptions:HookSet):void {
+        this.name = pOptions.name;
+        this.description = pOptions.description
+
+        // store prologue revision
+        if(this.prologue!=null){
+            if(pOptions.prologue!=null){
+              if(CryptoUtils.stringEqual(pOptions.prologue.script,this.prologue.script)){
+                  this.revisions.push({
+                      time: Util.now(),
+                      subject: HookRevisionSubject.PROLOGUE,
+                      operation: RevisionOperation.EDIT,
+                      data: this.prologue.script
+                  });
+
+                  this.prologue = pOptions.prologue;
+              }
+            }else{
+                this.revisions.push({
+                    time: Util.now(),
+                    subject: HookRevisionSubject.PROLOGUE,
+                    operation: RevisionOperation.REMOVED,
+                    data: this.prologue.script
+                });
+
+                this.prologue = pOptions.prologue;
+            }
+
+        }
+
+    }
+
 
     /**
      * To attach an existing hook to the hook set
@@ -481,8 +527,13 @@ export default class HookSet implements INode
                     o[i] = this[i];
                     break;
                 case "prologue":
-                    if(this[i]!=null)
-                        o[i] = this.prologue.toJsonObject();
+                    if(this.prologue!=null){
+                        if(this.prologue.hasOwnProperty("toJsonObject")){
+                            o.prologue = this.prologue.toJsonObject();
+                        }else{
+                            o.prologue = this.prologue;
+                        }
+                    }
                     else
                         o[i] = "";
                     break;

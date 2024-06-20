@@ -16,6 +16,8 @@ import * as Log from './Logger.js';
 import {Tag, TagOptions} from "@dexcalibur/dexcalibur-orm";
 import {InspectorManagerException} from "./errors/InspectorManagerException.js";
 import {Nullable} from "./core/IStringIndex.js";
+import HookStrategy from "./hook/HookStrategy.js";
+import HookSet from "./HookSet.js";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -36,11 +38,18 @@ interface Changes {
     _changes:string[];
 }
 
+interface HookStrategyChanges {
+    added: HookStrategy[],
+    removed: HookStrategy[],
+    modified: HookStrategy[]
+}
+
 interface FactoryChanges extends Changes {
     tags: FlattenTagCategoryOptions[],
     eventListeners: EventListeners,
     eventListenerSources: EventListenersSource,
     eventListenersCode: EventListenersCode
+    hookStrategies: HookStrategyChanges
 }
 
 interface InspectorChanges extends Changes {
@@ -401,6 +410,7 @@ export default class InspectorManager
 
                     // upgrade inspector with new factory
                     if(InspectorFactory.needUpgrade(factories[i], this.locals[factories[i].id])){
+
                         switch (InspectorFactory.getUpgradeLevel(factories[i], this.locals[factories[i].id])){
                             case UpgradeLevel.MAJOR:
                                 // warning :
@@ -415,6 +425,9 @@ export default class InspectorManager
                             case UpgradeLevel.PATCH:
                                 changes = this.upgradeFactory(factories[i], this.locals[factories[i].id]);
                                 this.upgradeInspector(this.projects[uid][factories[i].id], this.locals[factories[i].id]);
+
+                                console.log("Post upgradeInspector ",this.projects[uid][factories[i].id]);
+                                this.upgradeInspectorHooks(pProject, this.projects[uid][factories[i].id], this.locals[factories[i].id])
                                 break;
                         }
 
@@ -632,6 +645,11 @@ export default class InspectorManager
                 eventListeners: {},
                 eventListenerSources: {},
                 eventListenersCode: {},
+                hookStrategies: {
+                    added:[],
+                    modified:[],
+                    removed:[],
+                },
                 _changes: []
             },
             inspector:{
@@ -678,6 +696,10 @@ export default class InspectorManager
             changes.factory.eventListenersCode[evtName] = pNewFactory.eventListenersCode[evtName];
         }
 
+
+        // detect changes in hook sets
+
+        //
         // TODO : upgrade of eventListener is not supported
 
         return changes;
@@ -723,6 +745,63 @@ export default class InspectorManager
                 // cannot be deleted
 
             }
-        })
+        });
+
+    }
+
+    /**
+     *
+     * @param pOutdatedInspector
+     * @param pNewFactory
+     */
+    async upgradeInspectorHooks(pProject:DexcaliburProject, pOutdatedInspector: Inspector, pNewFactory: InspectorFactory, pRemove = false):Promise<void> {
+
+        // update hook set data
+        const hs:HookSet = pOutdatedInspector.getHookSet();
+        // to create a standalone inspector from the new factory
+        const newInspector = await pNewFactory.createInstance(pProject, true);
+
+        let existingStrats:string[] = [];
+        let conflictingStrats:HookStrategy[] = [];
+        let newStrats:HookStrategy[] = [];
+
+        if(hs!=null){
+            // update data
+            hs.upgradeInfo(newInspector.getHookSet());
+            await pOutdatedInspector.save();
+
+            // inject new hook strategy
+            existingStrats = hs.strats.map(x => x.getUID() );
+            newStrats = newInspector.getHookSet().strats.filter(x => {
+                if(existingStrats.indexOf(x.getUID())==-1){
+                    return true;
+                }else{
+                    conflictingStrats.push(x);
+                    return false;
+                }
+            });
+
+            newStrats.map( s => hs.addStrategy(s) );
+
+            await pOutdatedInspector.save();
+
+            // update strategy
+            // conflictingStrats.map(x => { });
+
+            // disable hook strategy
+            if(pRemove){
+
+            }
+
+            // remove
+
+
+        }else{
+            pOutdatedInspector.setHookSet(newInspector.getHookSet());
+        }
+
+        // update hook strategy
+
+        // mark existing hook strategy and related hooks as "deprecated" or "modified"
     }
 }

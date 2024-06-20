@@ -14,11 +14,16 @@ var FirebaseInspector:InspectorFactory = new InspectorFactory({
 
     startStep: INSPECTOR_TYPE.POST_APP_SCAN,
 
-    version: "1.0.0",
+    version: "1.0.2",
     hookSet: {
         id: "Firebase",
         name: "Firebase",
         description: "Firebase API : auth, ...",
+        prologue: `
+            function printTest(){
+                console.log("@@__CTX__@@");
+            }
+        `,
         strategies: [{
 
             name: "FirebaseAuth_getInstance",

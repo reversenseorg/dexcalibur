@@ -12,6 +12,7 @@ import {KeyPointOptions} from "./KeyPointGenerator.js";
 import Util from "../Utils.js";
 import {ScriptBuilderOptions, ScriptWriterOptions, TargetLanguage} from "./common.js";
 import {IStringIndex} from "@dexcalibur/dexcalibur-orm";
+import HookPrologue from "../HookPrologue.js";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -295,6 +296,22 @@ DXC.HOOK["${pLibraryName}"] = {
         return pScript;
     }
 
+    /**
+     * To append all prologues from enabled inspectors
+     * to the current script
+     *
+     * @param {string} pScript The Frida script
+     * @param {HookPrologue[]} pPrologues Prologues to append
+     * @returns {string} Updated frida script
+     * @private
+     */
+    private _appendPrologues( pScript:string, pPrologues:HookPrologue[]):string {
+        pPrologues.map((vP)=>{
+            pScript += vP.buildScript()+"\n";
+        });
+
+        return pScript;
+    }
 
     private _appendRequirements( pScript:string,  pRequires:string[]):string {
         if(this.isTS()){
@@ -395,6 +412,13 @@ Java.deoptimizeBoot();`
         if(req.length > 0){
             script = this._appendRequirements( script, req)+"\n";
             Logger.info("[HOOK SCRIPT BUILDER] Build : _appendRequirements: \n"+script);
+        }
+
+        // append prologues
+        const prologues = await this._hm.getPrologues();
+        if(prologues.length>0){
+            script = this._appendPrologues( script, prologues)+"\n";
+            Logger.info("[HOOK SCRIPT BUILDER] Build : _appendPrologues: \n"+script);
         }
 
         // detect if deoptimizing is required

@@ -486,7 +486,7 @@ HookSet.TYPE.updateProperties([
     (new NodeProperty("name")).type(DbDataType.STRING).unique(),
     (new NodeProperty("description")).type(DbDataType.STRING).def(null),
     (new NodeProperty("category")).type(DbDataType.STRING).def(null),
-    (new NodeProperty("prologue")).volatile(),
+    (new NodeProperty("prologue")).type(DbDataType.BLOB).def([]),
     (new NodeProperty("context")).volatile(),
     (new NodeProperty("intercepts")).volatile(),
     (new NodeProperty("probe")).volatile(),
@@ -500,6 +500,8 @@ HookSet.TYPE.updateProperties([
         //.sleep( (x:NodePropertyState) => { return (x.p != null ? x.p : null )})
         //.wakeUp( (x:NodePropertyState) => { return (x.p != null ? x.p: null )}),
     (new NodeProperty("requires")).def(null)
+        .type(DbDataType.BLOB),
+    (new NodeProperty("revisions")).def([])
         .type(DbDataType.BLOB),
         //.sleep( (x:NodePropertyState) => { return (x.p != null ? x.p : null )})
         //.wakeUp( (x:NodePropertyState) => { return (x.p != null ? x.p : null )})
