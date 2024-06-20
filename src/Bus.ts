@@ -353,12 +353,6 @@ export default class Bus
             }
         }*/
 
-        // broadcast events
-       /* for(let uid in this.broadcast){
-            Logger.debug('[BUS] Broadcast events : '+evName);
-            this.broadcast[uid].broadcastEvent(event);
-        }*/
-
         return true;
     }
 
