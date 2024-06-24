@@ -40,7 +40,7 @@ export class BusSubscriber {
             try{
                 pFunc.apply(null, pEvent);
             }catch (err){
-                Logger.error("[BUS][EVENT_HANDLER][uid="+pUID+"] Execution crash : "+err.message);
+                Logger.error("[BUS][EVENT_HANDLER][uid="+pEvent.type+"] Execution crash : "+err.message);
             }
         }
     }
