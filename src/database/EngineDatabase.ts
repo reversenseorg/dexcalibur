@@ -580,11 +580,14 @@ export class EngineDatabase {
         let coll:IDbCollection;
 
         try{
+
+            // delete project DB
+            await ((await this.getProjectDB(pUID)).drop());
+
             // delete project metadata
             coll = this._db.getCollection(PROJECT_COL, DexcaliburProject.TYPE);
             res = await coll.asyncRemoveEntry( new DexcaliburProject({ uid:pUID }));
 
-            // delete project DB
 
         }catch(err){
             Logger.error(err);
