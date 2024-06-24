@@ -81,6 +81,7 @@ export class AndroidPackageAnalyzer implements IPackageAnalyzer {
 
     setProject(pProject:DexcaliburProject):void {
         this._project = pProject;
+        this.state.setContext(pProject);
     }
 
     setDevice(pDevice:Device){
@@ -238,6 +239,8 @@ export class AndroidPackageAnalyzer implements IPackageAnalyzer {
                     if(this.state.getProperty("base_apks").indexOf(files[i].n)>-1){
                         splittedRes.purpose = ProjectInputPurpose.MAIN;
                         baseInput = splittedRes;
+                    }else{
+
                     }
 
                     splittedInput.push(splittedRes);
@@ -267,6 +270,7 @@ export class AndroidPackageAnalyzer implements IPackageAnalyzer {
             {type:'bin'});
 
 
+
         // if enabled, merge package from splittedInput, this._base_apk  and  this._extra
         // into a single folder.
         if(this._cfg.mustMergeSplittedAPK()){
@@ -283,6 +287,12 @@ export class AndroidPackageAnalyzer implements IPackageAnalyzer {
 
         // start analysis ?
         if(success){
+
+            this.state.setProperty("_base_apk", targetApp.toJsonObject());
+            this.state.setProperty("_extra_apk", splittedInput);
+            this.state.save();
+
+            //
             this._project.getWorkflow().pushStatus(new StatusMessage(5, "app extracted."));
         }
 
@@ -448,6 +458,51 @@ export class AndroidPackageAnalyzer implements IPackageAnalyzer {
 
     }
 
+    /**
+     * To get the list APK to install in order to execute the app
+     *
+     * @return
+     */
+    getInputFilesToInstall():{ role:string, path:string, tmp:boolean}[]  {
+
+        const o:{ role:string, path:string, tmp:boolean}[] = [];
+
+        if(typeof this._base_apk.data=='string'){
+            o.push({ role:"base", path:this._base_apk.data, tmp:false });
+        }else if(this._base_apk.data != null){
+            // write buffer into temporary location
+            const basePath = this._project.getWorkspace().createTmpPath(".apk");
+            try{
+                _fs_.writeFileSync(basePath,this._base_apk.data);
+                o.push({ role:"base", path:basePath, tmp:true });
+            }catch(err){
+                throw new Error("[PACKAGE ANALYZER] Base package cannot be prepared from buffer");
+            }
+
+        }else{
+            throw new Error("[PACKAGE ANALYZER] Base package cannot be retrieved");
+        }
+
+        if(this._extra!=null && this._extra.external !=null){
+            if(Array.isArray(this._extra.external)){
+                this._extra.external.map(x => {
+                    if(typeof x.data=='string'){
+                        o.push({ role:"extra", path:x.data, tmp:false });
+                    }else if(x.data != null){
+                        // write buffer into temporary location
+                        const extraPath = this._project.getWorkspace().createTmpPath(".apk","config.");
+                        try{
+                            _fs_.writeFileSync(extraPath,x.data);
+                            o.push({ role:"extra", path:extraPath, tmp:true });
+                        }catch(err){
+                            throw new Error("[PACKAGE ANALYZER] Extra packages cannot be prepared from buffer");
+                        }
+                    }
+                })
+            }
+        }
 
 
+        return o;
+    }
 }
