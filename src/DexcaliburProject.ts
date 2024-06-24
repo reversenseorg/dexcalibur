@@ -195,7 +195,7 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
             }),
         (new NodeProperty("meta")).type(DbDataType.BLOB),
         (new NodeProperty("bus")).volatile().type(DbDataType.BLOB),
-        (new NodeProperty("bus")).volatile().type(DbDataType.BLOB),
+        (new NodeProperty("inputs")).type(DbDataType.BLOB).def([]),
         (new NodeProperty("hook")).volatile().type(DbDataType.BLOB),
         (new NodeProperty("inspectors")).volatile().type(DbDataType.BLOB).def({}),
         (new NodeProperty("analCfg")).type(DbDataType.BLOB)
@@ -485,6 +485,8 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
     scanManager:any;
 
     sharedStorage:any = {};
+
+    inputs:ProjectInput[] = [];
 
     /**
      * Application Icon
@@ -931,7 +933,15 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
     }
 
     /**
-     * To init the project
+     * To init the project, after initial load()
+     *
+     * It :
+     * - Turn project in state `ProjectState.INIT_START`
+     * - Start "open project" workflow
+     * - Create `TagManager`
+     * - Create `TypeManager`
+     * - Open Project Workspace
+     * - Restore Scan Scheduler
      *
      * @method
      */
@@ -972,7 +982,7 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
             this._scanScheduler.restore();
         }
 
-        // get exiting DB of create it
+        // get existing DB of create it
         this.pdb = await this.engine.getEngineDB().getProjectDB(this.getUID());
         this.pdb.setProject(this);
 
@@ -1072,7 +1082,15 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
 
 
     /**
-     * Init components dependent of the target platform
+     * Init components dependent of the target platform, including
+     *
+     * - Key Point manager
+     * - App analyzer
+     * - Package analyzer
+     * - Hook Manager
+     * - Script Manager
+     *
+     *
      */
     async initPlatformDependentComp():Promise<void> {
 

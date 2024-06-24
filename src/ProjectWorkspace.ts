@@ -1,6 +1,7 @@
 
 import * as _path_ from 'path';
 import * as _fs_ from 'fs';
+import {randomUUID} from "crypto";
 
 
 import APK from "./APK.js";
@@ -298,6 +299,22 @@ export default class ProjectWorkspace
         return _path_.join(this.path, DIR_NAME.TMP);
     }
 
+    /**
+     * To create a valid path to a temporary fil in tmp folder of the workspace
+     *
+     * @param {string} pSuffix Optional. Default is empty string.
+     * @param {string} pPrefixOptional. Default is empty string.
+     * @method
+     */
+    createTmpPath(pSuffix:string="",pPrefix:string = ""):string {
+
+        let fpath:string;
+        do{
+            fpath = _path_.join(this.getTmpDir(),pPrefix+"_"+randomUUID()+pSuffix);
+        }while(_fs_.existsSync(fpath));
+
+        return fpath;
+    }
 
     /**
      * @method

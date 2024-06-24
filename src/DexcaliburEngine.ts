@@ -1167,6 +1167,7 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
 
                     this.updater.run( DXC_LIFECYCLE_EVENT.CLOSE_PROJECT, this.active[pUID]);
 
+                    // remove files
                     Util.recursiveRmDirSync(
                         _path_.join( this.workspace.getLocation(), pUID )
                     );
@@ -1176,8 +1177,6 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
                 }
             }else{
                 // TODO : add ACL
-
-
                 this.updater.run( DXC_LIFECYCLE_EVENT.CLOSE_PROJECT, pUID);
 
                 Util.recursiveRmDirSync(

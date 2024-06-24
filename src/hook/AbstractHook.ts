@@ -356,6 +356,9 @@ export abstract class AbstractHook {
     /**
      * To append fragement according to its priority
      *
+     * If the hook contains already a fragment at the same position with
+     * the same UID, the new fragment is not added.
+     *
      * @param pArr
      * @param pFrag
      * @protected
@@ -384,6 +387,15 @@ export abstract class AbstractHook {
         this._varMap = pVars;
     }
 
+    /**
+     * To append a "before" fragment to existing ones
+     *
+     * If there is already a fragment with the same ID , it is skipped
+     *
+     * @param pFrag
+     * @param pSync
+     * @param pLang
+     */
     appendBefore(pFrag: HookTemplateFragment, pSync = true, pLang = TargetLanguage.TS){
         this._appendFragment( this._before, pFrag);
         if(pSync) this.build(pLang);
