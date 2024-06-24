@@ -538,4 +538,16 @@ export class ProjectDatabase {
 
         Logger.success("[PROJECT DB] Analyzer DB saved [duration="+((Util.now()-startTime)/1000)+"s]");
     }
+
+
+    /**
+     * To drop this database
+     *
+     * Important : cannot be undone
+     *
+     * @method
+     */
+    async drop():Promise<void>{
+        await this._db.db.dropDatabase();
+    }
 }
