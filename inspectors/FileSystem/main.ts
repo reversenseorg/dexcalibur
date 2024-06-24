@@ -93,7 +93,7 @@ var FileSystemInspector:InspectorFactory = new InspectorFactory({
         ]
     },
 
-    eventListenerSources: {
+        eventListenerSources: {
         "dxc.fullscan.post_deploy": {
             description: "Search any method/class/field from app code performing action with FS and tag it",
             lang: "ts",

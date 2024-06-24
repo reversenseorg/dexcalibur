@@ -1,5 +1,3 @@
-
-
 import DexcaliburProject from "../DexcaliburProject.js";
 import HookStrategySelector, {HookStrategySelectorOptions} from "./HookStrategySelector.js";
 import * as VM from "vm";
@@ -7,7 +5,7 @@ import {FinderResult} from "../search/FinderResult.js";
 import JavaMethodHook from "./JavaMethodHook.js";
 import KeyPoint from "./KeyPoint.js";
 import HookTemplateFragment from "./HookTemplateFragment.js";
-import {AbstractHook, HOOK_FRAGMENT_POS, UID_POS_MAPPING} from "./AbstractHook.js";
+import {HOOK_FRAGMENT_POS, UID_POS_MAPPING} from "./AbstractHook.js";
 import ModelMethod from "../ModelMethod.js";
 import {ModelFunction} from "../ModelFunction.js";
 import NativeFunctionHook from "./NativeFunctionHook.js";
@@ -18,8 +16,10 @@ import * as Log from "../Logger.js";
 import {CryptoUtils} from "../CryptoUtils.js";
 import {CoreDebug} from "../core/CoreDebug.js";
 import {HookVariableMap, TargetLanguage} from "./common.js";
-import {HookVariable} from "../HookVariable.js";
 import {Nullable} from "../core/IStringIndex.js";
+import {HookRevision, HookRevisionSubject, RevisionOperation} from "../HookRevision.js";
+import {UPGRADE_MODE} from "../inspector/common.js";
+import Util from "../Utils.js";
 
 export const DEFAULT_PRIORITY = -1;
 
@@ -623,5 +623,63 @@ export default class HookStrategy implements INode{
         }
         CoreDebug.checkJsonSerialize(o, "HookStrategy");
         return o;
+    }
+
+    static upgradeStrategyOptions(pOldOptions:HookStrategyOptions,
+                                  pNewOptions:HookStrategyOptions,
+                                  pMode:UPGRADE_MODE):any {
+
+
+        const change:HookRevision = {
+            operation: RevisionOperation.EDIT,
+            subject: HookRevisionSubject.STRATEGY,
+            description: "Strategy update",
+            time: Util.time(),
+            data: {}
+        };
+
+
+        for(let k in pNewOptions){
+            switch (k){
+                case "autoEmit":
+                case "descr":
+                case "emitEvent":
+                case "name":
+                case "loadOn":
+                case "unloadOn":
+                case "after":
+                case "before":
+                case "replace":
+                case "search":
+                    if(pOldOptions[k]!=pNewOptions[k]){
+                        if(pOldOptions[k] != null){
+                            (pOldOptions as any)[k] = pNewOptions[k];
+                        }
+                        change.data[k] = {
+                            value:pOldOptions[k],
+                            operation: RevisionOperation.EDIT
+                        };
+                    }
+                    break;
+                default:
+                    (pOldOptions as any)[k] = pNewOptions[k];
+                    break;
+            }
+        }
+
+
+        for(let k in pOldOptions){
+            if(pNewOptions[k]==null){
+                change.data[k] = { value:pOldOptions[k] };
+                if(pMode==UPGRADE_MODE.REPLACE){
+                    delete pOldOptions[k];
+                    change.data[k].operation = RevisionOperation.REMOVED;
+                }else{
+                    change.data[k].operation = RevisionOperation.EDIT;
+                }
+            }
+        }
+
+        return change;
     }
 }

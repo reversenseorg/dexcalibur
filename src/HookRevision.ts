@@ -3,9 +3,11 @@
 export enum HookRevisionSubject {
     PROLOGUE="prologue",
     STRATEGY="strategy",
+    HOOKSET="hookset"
 }
 
 export enum RevisionOperation {
+    ADDED="added",
     EDIT="edit",
     REMOVED="removed"
 }

@@ -3,7 +3,7 @@ import DexcaliburProject from "./DexcaliburProject.js";
 import {HookManager} from "./hook/HookManager.js";
 import * as Log from './Logger.js';
 import HookPrimitive from "./HookPrimitive.js";
-import HookStrategy from "./hook/HookStrategy.js";
+import HookStrategy, {HookStrategyOptions} from "./hook/HookStrategy.js";
 import {AbstractHook} from "./hook/AbstractHook.js";
 import {INode, NodeType} from "@dexcalibur/dexcalibur-orm";
 import {NodeInternalType} from "./NodeInternalType.js";
@@ -12,6 +12,9 @@ import {HookSetOptions} from "./InspectorFactory.js";
 import {HookRevision, HookRevisionSubject, RevisionOperation} from "./HookRevision.js";
 import {CryptoUtils} from "./CryptoUtils.js";
 import Util from "./Utils.js";
+import {Nullable} from "./core/IStringIndex.js";
+import {UPGRADE_MODE} from "./inspector/common.js";
+import {InspectorManagerException} from "./errors/InspectorManagerException.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -218,6 +221,7 @@ export default class HookSet implements INode
         return this;
     }
 
+
     /**
      * Add internal/external dependencies
      *
@@ -258,6 +262,24 @@ export default class HookSet implements INode
         return null;
     }
 
+    /**
+     *
+     * @param pModule
+     */
+    addRequire( pModule:string){
+        if(this.requires.indexOf(pModule)==-1){
+            this.requires.push(pModule);
+        }
+    }
+
+    /**
+     * To update entire require list
+     *
+     * @param {string[]} pModules
+     */
+    updateRequires( pModules:string[]){
+         this.requires = pModules;
+    }
 
     /**
      * Get the shared object from this hookset
@@ -441,7 +463,11 @@ export default class HookSet implements INode
             hookManager.builder.addRequires(this.requires);
             //hookManager.addRequiresNode(this.requiresNode);
 
+            // if the hookset has a prologue
             if(this.prologue != null){
+                // append the prologue to hook manager, then the hook manager
+                // "deploy" the prologque by injecting DexcaliburProject instance
+                // and building the code of the prologue
                 hookManager.addPrologue(this.prologue)
             }
         }
@@ -473,6 +499,7 @@ export default class HookSet implements INode
         // store prologue revision
         if(this.prologue!=null){
             if(pOptions.prologue!=null){
+
               if(CryptoUtils.stringEqual(pOptions.prologue.script,this.prologue.script)){
                   this.revisions.push({
                       time: Util.now(),
@@ -524,18 +551,17 @@ export default class HookSet implements INode
                 case "requires":
                 case "share":
                 case "category":
+                case "revision":
                     o[i] = this[i];
                     break;
                 case "prologue":
                     if(this.prologue!=null){
-                        if(this.prologue.hasOwnProperty("toJsonObject")){
-                            o.prologue = this.prologue.toJsonObject();
-                        }else{
-                            o.prologue = this.prologue;
-                        }
+                        o.prologue = this.prologue.toJsonObject();
                     }
-                    else
-                        o[i] = "";
+                    else{
+                        o.prologue = "";
+                    }
+
                     break;
                 case "probes":
                     o[i] = [];
@@ -565,5 +591,195 @@ export default class HookSet implements INode
         return o;
     }
 
+    /**
+     * To upgrade HookSetOptions from pOld with pNew
+     *
+     * @param {Nullable<HookSetOptions>} pOld
+     * @param {Nullable<HookSetOptions>} pNew
+     */
+    static upgradeOptions( pOld:Nullable<HookSetOptions>, pNew:Nullable<HookSetOptions>, pUpgradeMode:UPGRADE_MODE):HookRevision|null {
 
+
+        const changes:HookRevision = {
+            time: Util.time(),
+            operation: RevisionOperation.EDIT,
+            subject: HookRevisionSubject.HOOKSET,
+            data: {}
+        };
+
+        if(pNew.name!=pOld.name){
+            changes.data.name = { value:pOld.name };
+            pOld.name = pNew.name;
+        }
+
+        if(pNew.description!=pOld.description){
+            changes.data.description = { value:pOld.description };
+            pOld.description = pNew.description;
+        }
+
+        //hookShare
+        if((pOld.hookShare!=null)||(pNew.hookShare!=null)){
+            if((pOld.hookShare!=null)&&(pNew.hookShare!=null)){
+                const hsChanges = {
+                    added: [],
+                    removed: [],
+                    modified: []
+                };
+                const oldHShare = Object.keys(pOld.hookShare);
+                const newHShare = pNew.hookShare==null? {} : pNew.hookShare;
+
+                for(let k in pOld.hookShare){
+                    if(pNew.hookShare[k]==null){
+                        hsChanges.removed.push({ key:k, value:pOld.hookShare[k] });
+                    }else if(JSON.stringify(pNew.hookShare[k])!=JSON.stringify(pOld.hookShare[k])){
+                        hsChanges.modified.push({ key:k, value:pOld.hookShare[k] });
+                    }
+                }
+
+                for(let k in pNew.hookShare){
+                    if(pOld.hookShare[k]==null){
+                        hsChanges.added.push({ key:k, value:pNew.hookShare[k] });
+                    }
+                }
+
+                changes.data.hookShare =  {
+                    value:pOld.hookShare,
+                    changes: hsChanges
+                };
+            }else if(pOld.hookShare!=null){
+                changes.data.hookShare =  { value:pOld.hookShare };
+            }else{
+                changes.data.hookShare =  { value:null };
+            }
+            pOld.hookShare = pNew.hookShare ;
+        }
+
+        // require
+        const oldRequire = pOld.require==null? [] : pOld.require;
+        const newRequire = pNew.require==null? [] : pNew.require;
+
+        if(newRequire.join(",")!=oldRequire.join(",")){
+            const reqChange = {
+                removed: [],
+                added: [],
+                changes: 0
+            }
+            oldRequire.map(x => {
+                if(newRequire.indexOf(x)==-1){
+                    reqChange.removed.push(x);
+                    reqChange.changes++;
+                }
+            });
+            newRequire.map(x => {
+                if(oldRequire.indexOf(x)==-1){
+                    reqChange.added.push(x);
+                    reqChange.changes++;
+                }
+            });
+
+            if(reqChange.changes > 0){
+                changes.data.require = {
+                    value: pOld.require,
+                    changes: reqChange
+                };
+                pOld.require = pNew.require;
+            }
+        }
+
+        // prologue
+        if(pNew.prologue!=null && pOld.prologue){
+            if(!CryptoUtils.stringEqual(pNew.prologue,pOld.prologue)){
+                changes.data.prologue = pOld.prologue;
+                pOld.prologue = pNew.prologue;
+            }
+        }
+
+
+        // update strategies
+        changes.data.strategies = {
+            value: JSON.parse(JSON.stringify(pOld.strategies)), // deep copy
+            changes: {
+                added: [],
+                modified: [],
+                removed: []
+            }
+        }
+
+        // add new strategies, modify existing one
+
+        // if UPGRADE MODE is PRESERVATIVE
+        //  -> remove only strategies that not produced hooks or hooks messages in active project
+        //  -> at Inspector level, re-apply only modified strategies
+        // if UPGRADE MODE is REPLACE
+        //  -> remove all old strategies
+        //  -> at Inspector level, re-apply all strategies
+
+        const newStrategies:HookStrategyOptions[] = [];
+        pOld.strategies.map((vStrat:HookStrategyOptions)=> {
+
+            // detect existing strategy
+            const strats = pNew.strategies.find((v, i, o) => {
+                return (v.name == vStrat.name);
+            });
+
+            if(strats==undefined){
+                // only TRUE if the strategy not still exist in new version
+                if(pUpgradeMode==UPGRADE_MODE.REPLACE){
+                    changes.data.strategies.changes.removed.push(vStrat)
+                    // don't keep strategy
+                    return;
+                }
+                // else detect existing message or hook
+                throw InspectorManagerException.PRESERVATIVE_UPGRADE_NOT_SUPPORTED("HookSet");
+                //changes.data.strategies.changes.removed.push(vStrat);
+            }
+        });
+
+
+        pNew.strategies.map((vStrat:HookStrategyOptions)=>{
+
+            // detect existing strategy
+            const strats = pOld.strategies.find((v,i,o)=>{
+                return (v.name==vStrat.name);
+            });
+
+            if(strats!=undefined){
+                // if UPGRADE_MODE is PRESERVATIVE, old and new options from the same strategy are merged
+                if(pUpgradeMode==UPGRADE_MODE.PRESERVATIVE){
+                    const ch = HookStrategy.upgradeStrategyOptions( strats, vStrat, pUpgradeMode);
+                    if(ch != null){
+                        changes.data.strategies.changes.modified.push(strats);
+                        newStrategies.push(strats);
+                    }
+                }else{
+                    // REPLACE mode
+                    // mark old as removed
+                    changes.data.strategies.changes.removed.push(strats);
+                    // add new
+                    newStrategies.push(vStrat);
+                }
+                //changes.data.strategies.changes.modified.push(strats);
+            }else{
+                // add new
+                changes.data.strategies.changes.added.push(vStrat);
+            }
+            newStrategies.push(vStrat);
+        });
+
+        pOld.strategies = newStrategies;
+
+
+            // return changes
+        if(Object.keys(changes.data).length>0){
+            return changes;
+        }else{
+            return null;
+        }
+    }
+
+    updateHookShare(pHookShareOpts: Record<string, any>) {
+        for(let i in pHookShareOpts){
+            this.share[i] = pHookShareOpts[i];
+        }
+    }
 }

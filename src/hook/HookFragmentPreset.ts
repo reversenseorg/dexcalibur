@@ -20,6 +20,11 @@ export interface HookFragmentPresetOptions{
     tplOpts:any
 }
 
+/**
+ * A class to generate some snippet of HookFragment
+ *
+ * @class
+ */
 export default class HookFragmentPreset {
 
     private _createMethodTrack(pHook:AbstractHook, pOptions:HookFragmentPresetOptions, pBefore:boolean):string{

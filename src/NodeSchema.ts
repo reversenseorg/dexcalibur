@@ -42,6 +42,7 @@ import AssuranceModel from "./audit/common/AssuranceModel.js";
 import {ModelBasicType, ModelObjectType} from "./ModelType.js";
 import ModelBasicBlock from "./ModelBasicBlock.js";
 import ModelInstruction from "./ModelInstruction.js";
+import HookPrologue from "./HookPrologue.js";
 
 
 
@@ -486,7 +487,23 @@ HookSet.TYPE.updateProperties([
     (new NodeProperty("name")).type(DbDataType.STRING).unique(),
     (new NodeProperty("description")).type(DbDataType.STRING).def(null),
     (new NodeProperty("category")).type(DbDataType.STRING).def(null),
-    (new NodeProperty("prologue")).type(DbDataType.BLOB).def([]),
+    (new NodeProperty("prologue"))
+        .type(DbDataType.BLOB)
+        .sleep( (x:NodePropertyState) => {
+            if(x.p!=null){
+                return x.p.toJsonObject();
+            }else{
+                return null;
+            }
+        })
+        .wakeUp( (x:NodePropertyState) => {
+            if(x.p!=null){
+                return new HookPrologue(x.p);
+            }else{
+                return null;
+            }
+        })
+        .def(null),
     (new NodeProperty("context")).volatile(),
     (new NodeProperty("intercepts")).volatile(),
     (new NodeProperty("probe")).volatile(),

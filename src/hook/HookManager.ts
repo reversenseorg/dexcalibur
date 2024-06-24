@@ -1691,7 +1691,7 @@ export class HookManager
      */
     addPrologue(prologue:HookPrologue):void{
         console.log(prologue);
-        this.prologues.push( prologue.injectContext(this.context));
+        this.prologues.push(prologue.injectContext(this.context));
     }
 
     removePrologueOf(pHookSet:HookSet):void{
@@ -2133,6 +2133,7 @@ export class HookManager
      */
     async getPrologues(pAll = false):Promise<HookPrologue[]> {
 
+        /*
         if(!pAll){
             const pro:HookPrologue[] = [];
 
@@ -2145,6 +2146,15 @@ export class HookManager
             return pro;
         }else{
             return this.prologues;
+        }*/
+
+        for(let i=0; i<this.prologues.length; i++){
+            try{
+                console.log(this.prologues[i].parentID, (await this.getHookSet(this.prologues[i].parentID)).enable);
+            }catch (e){}
+
         }
+
+        return this.prologues;
     }
 }

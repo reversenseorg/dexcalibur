@@ -90,7 +90,6 @@ var CryptoEncryption:InspectorFactory = new InspectorFactory({
             source: `
             // PBKDF2WithHmacSHA1
             var patterns = [${PATTERNS.map(x => '"'+x+'"').concat(',')}];
-            
             if(patterns.indexOf(pEvent.data.value)>-1){
                 var tag = pEvent.getContext().getTagManager().getTag("crypto.encryption.factory.secret_key_alg"); 
                 if(tag!==null){

@@ -5,7 +5,8 @@ import DexcaliburEngine from "./DexcaliburEngine.js";
 import Inspector, {INSPECTOR_TYPE} from "./Inspector.js";
 import DexcaliburProject from "./DexcaliburProject.js";
 import InspectorFactory, {
-    EventListeners, EventListenersCode,
+    EventListeners,
+    EventListenersCode,
     EventListenersSource,
     FlattenTagCategoryOptions,
     UpgradeLevel
@@ -16,8 +17,12 @@ import * as Log from './Logger.js';
 import {Tag, TagOptions} from "@dexcalibur/dexcalibur-orm";
 import {InspectorManagerException} from "./errors/InspectorManagerException.js";
 import {Nullable} from "./core/IStringIndex.js";
-import HookStrategy from "./hook/HookStrategy.js";
+import HookStrategy, {HookStrategyOptions} from "./hook/HookStrategy.js";
 import HookSet from "./HookSet.js";
+import {UPGRADE_MODE} from "./inspector/common.js";
+import {HookRevision, HookRevisionSubject, RevisionOperation} from "./HookRevision.js";
+import {CustomCode} from "./actionnable/CustomCode.js";
+import {BusEventHandler} from "./Bus.js";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -39,9 +44,9 @@ interface Changes {
 }
 
 interface HookStrategyChanges {
-    added: HookStrategy[],
-    removed: HookStrategy[],
-    modified: HookStrategy[]
+    added: HookStrategyOptions[],
+    removed: HookStrategyOptions[],
+    modified: HookStrategyOptions[]
 }
 
 interface FactoryChanges extends Changes {
@@ -49,6 +54,7 @@ interface FactoryChanges extends Changes {
     eventListeners: EventListeners,
     eventListenerSources: EventListenersSource,
     eventListenersCode: EventListenersCode
+    hookSet: HookRevision,
     hookStrategies: HookStrategyChanges
 }
 
@@ -80,6 +86,8 @@ export default class InspectorManager
 
     locals:Record<string, InspectorFactory> = {};
     remote:Record<string, InspectorFactory> = {};
+
+    upgradeMode = UPGRADE_MODE.REPLACE;
     /**
      * 
      * @param {DexcaliburProject} pProject Project instance
@@ -135,23 +143,30 @@ export default class InspectorManager
     }
 
 
+    /**
+     * To enumerate all inspectors factory available
+     *  - locally : from DB or source code
+     *  - remotely : from marketplace server
+     *
+     *  @method
+     *  @async
+     */
     async enumerate(){
 
+        // refresh list of local inspectors
         this.locals = await this.enumerateLocal();
 
-        /*(async ()=>{
-            this.remote = await this.enumerateRemote();
-
-            for(let i in this.local){
-                if(this.remote[i] instanceof Inspector){
-                    this.local[i] = this.remote[i];
-                }
-            }
-        })();*/
+        // this.remote = await this.enumerateRemote();
     }
 
     /**
+     * To enumerate local factory :
+     * - Built-in InspectorFactory (from inspectors/ folder in source code)
+     * - TODO : InspectorFactory from Engine DB (should replace inspectors form source later)
+     *
      * TODO : add DB as backend
+     *
+     *
      */
     async enumerateLocal():Promise<Record<string, InspectorFactory>>{
         let p:string =null;
@@ -215,6 +230,10 @@ export default class InspectorManager
     }
 
 
+    /**
+     *
+     * @param pProject
+     */
     getInspectorsOf(pProject:DexcaliburProject):InspectorMap{
         //Logger.info("getInspectorsOf:" + pProject.getUID()+" ( "+(pProject==null?'<null>':'<project>')+")");
         return this.projects[pProject.getUID()];
@@ -375,6 +394,14 @@ export default class InspectorManager
     /**
      * To restore inspector instances from a dirty project
      *
+     * 1/ Import InspectorFactory from Project DB
+     * 2/ Detect for each if the factory need to be upgraded
+     * 2bis/ If TRUE, upgrade the factory instance and save changes
+     * 3/Restore Inspectors
+     * 3bis/ If 2bis was TRUE, upgrade Inspectors (create new one, remove olds) and save changes
+     *
+     *
+     *
      * @param {DexcaliburProject} pProject
      * @return {boolean}
      */
@@ -423,11 +450,17 @@ export default class InspectorManager
                                     factories[i].id, factories[i].version, this.locals[factories[i].id].version);
                                 break;
                             case UpgradeLevel.PATCH:
+                                // update factory and save changes
                                 changes = this.upgradeFactory(factories[i], this.locals[factories[i].id]);
-                                this.upgradeInspector(this.projects[uid][factories[i].id], this.locals[factories[i].id]);
+
+                                this.projects[uid][factories[i].id].context = pProject;
+
+                                // apply changes to inspectors
+                                await this.upgradeInspector(this.projects[uid][factories[i].id], this.locals[factories[i].id], changes);
 
                                 console.log("Post upgradeInspector ",this.projects[uid][factories[i].id]);
-                                this.upgradeInspectorHooks(pProject, this.projects[uid][factories[i].id], this.locals[factories[i].id])
+                                // upgrade hooks
+                                //this.upgradeInspectorHooks(pProject, this.projects[uid][factories[i].id], this.locals[factories[i].id])
                                 break;
                         }
 
@@ -443,7 +476,7 @@ export default class InspectorManager
                                 await pProject.getProjectDB()
                                     .getCollectionOf(InspectorFactory.TYPE.getType()).asyncUpdateEntry(factories[i]);
 
-                                // save change
+                                // save Inspector change
                                 await pProject.getProjectDB()
                                     .getCollectionOf(Inspector.TYPE.getType()).asyncUpdateEntry(this.projects[uid][factories[i].id]);
                             }
@@ -630,6 +663,7 @@ export default class InspectorManager
     /**
      * To upgrade a factory instance with date from newest version
      *
+     *
      * Only following data are upgraded :
      * - event listeners
      * -
@@ -637,6 +671,7 @@ export default class InspectorManager
      *
      * @param pOutdatedFactory
      * @param pNewFactory
+     * @return {UpgradeChanges} Changes to the outdated fatcory
      */
     upgradeFactory(pOutdatedFactory: InspectorFactory, pNewFactory: InspectorFactory):UpgradeChanges {
         const changes:UpgradeChanges = {
@@ -645,6 +680,7 @@ export default class InspectorManager
                 eventListeners: {},
                 eventListenerSources: {},
                 eventListenersCode: {},
+                hookSet: null,
                 hookStrategies: {
                     added:[],
                     modified:[],
@@ -656,6 +692,27 @@ export default class InspectorManager
                 _changes: []
             }
         };
+
+        // top level properties
+        if(pNewFactory.startStep!=pOutdatedFactory.startStep){
+            pOutdatedFactory.startStep = pNewFactory.startStep;
+            changes.factory._changes.push("startStep");
+        }
+
+        if(pNewFactory.name!=pOutdatedFactory.name){
+            pOutdatedFactory.name = pNewFactory.name;
+            changes.factory._changes.push("name");
+        }
+
+        if(pNewFactory.color!=pOutdatedFactory.color){
+            pOutdatedFactory.color = pNewFactory.color;
+            changes.factory._changes.push("color");
+        }
+
+        if(pNewFactory.db!=pOutdatedFactory.db){
+            pOutdatedFactory.db = pNewFactory.db;
+            changes.factory._changes.push("db");
+        }
 
         // upgrade tags
         pNewFactory.itags.map((vCat:FlattenTagCategoryOptions)=> {
@@ -685,7 +742,7 @@ export default class InspectorManager
             }
 
             // add or update
-            pOutdatedFactory.upgradeListener(evtName, pNewFactory.eventListenerSources[evtName]);
+            pOutdatedFactory.updateListener(evtName, pNewFactory.eventListenerSources[evtName]);
 
             if(Object.keys(changes.factory.eventListenerSources).length==0){
                 changes.factory._changes.push("eventListenerSources");
@@ -697,7 +754,30 @@ export default class InspectorManager
         }
 
 
-        // detect changes in hook sets
+        // detect changes in hook sets and update existing factory
+        if(pNewFactory.hookSet!=null){
+            if(pOutdatedFactory.hookSet==null){
+                changes.factory.hookSet = {
+                    time:Util.time(),
+                    operation: RevisionOperation.ADDED,
+                    subject: HookRevisionSubject.HOOKSET,
+                    data: pNewFactory.hookSet
+                };
+                pOutdatedFactory.hookSet = pNewFactory.hookSet;
+                changes.factory.hookStrategies.added = pNewFactory.hookSet.strategies;
+                changes.factory._changes.push("hookSet");
+            }else{
+                // update hookset properties
+                changes.factory.hookSet = HookSet.upgradeOptions(pOutdatedFactory.hookSet, pNewFactory.hookSet, this.upgradeMode);
+
+                if(Object.keys(changes.factory.hookSet.data).length>0){
+                    changes.factory._changes.push("hookSet");
+                }
+                // update strategies
+            }
+
+        }
+
 
         //
         // TODO : upgrade of eventListener is not supported
@@ -711,7 +791,8 @@ export default class InspectorManager
      * @param pOutdatedInspector
      * @param pNewFactory
      */
-    upgradeInspector(pOutdatedInspector: Inspector, pNewFactory: InspectorFactory) {
+    async upgradeInspector(pOutdatedInspector: Inspector, pNewFactory: InspectorFactory, pChanges:UpgradeChanges):Promise<void> {
+
 
         // first, check if new factory has new tag category
         pNewFactory.itags.map((vCat:FlattenTagCategoryOptions)=>{
@@ -747,6 +828,68 @@ export default class InspectorManager
             }
         });
 
+
+        let vType:string;
+        for(let i in pChanges.factory._changes){
+            vType = pChanges.factory._changes[i];
+            switch (vType){
+                case "name":
+                case "description":
+                case "color":
+                    pOutdatedInspector[vType] = pNewFactory[vType];
+                    break;
+                case "db":
+                    if(pNewFactory.db.dbms==='inmemory'){
+
+                        pOutdatedInspector.useMemoryDB(pOutdatedInspector.context);
+
+                        switch(pNewFactory.db.type){
+                            case 'index':
+                                pOutdatedInspector.getDB().newIndex(pNewFactory.db.name, null);
+                                break;
+                            case 'collection':
+                                pOutdatedInspector.getDB().newCollection(pNewFactory.db.name,null);
+                                break;
+                        }
+                    }
+                    break;
+                case "eventListenerSources":
+                    let elSrc:CustomCode;
+                    for(const i in pNewFactory.eventListenerSources) {
+                        // update all
+                        elSrc = new CustomCode(pNewFactory.eventListenerSources[i]);
+                        pNewFactory.eventListenersCode[i] = new CustomCode(elSrc);
+                        pNewFactory.eventListenerSources[i] = new CustomCode(elSrc);
+
+                        try {
+                            pOutdatedInspector.on(i, elSrc.createFunction(['pEvent', 'pLogger']) as BusEventHandler);
+                        } catch (err) {
+                            Logger.error(`[INSPECTOR FACTORY][uid=${pNewFactory.id}][ERR:${err.code}] createInstance : event listener cannot create from source code. 
+                ${err.msg}
+                ${err.message}`);
+                        }
+                    }
+                    break;
+                case "eventListeners":
+                    for(const i in pNewFactory.eventListeners){
+                        // Warning : always upgraded
+                        pOutdatedInspector.on(i,  pNewFactory.eventListeners[i]);
+                    }
+                    break;
+                case "hookSet":
+                    if(pChanges.factory.hookSet.operation==RevisionOperation.EDIT){
+
+                        // TODO : create a copy of Inspector and InspectorFactory in DB before to apply changes
+                        await pOutdatedInspector.updateHookSet(pOutdatedInspector.context, pNewFactory.hookSet);
+                    }else{
+                        await pNewFactory.createHookSetTo(pOutdatedInspector.context, pOutdatedInspector, false);
+                    }
+                    break;
+                case "tags":
+                    // already performed
+                    break;
+            }
+        }
     }
 
     /**

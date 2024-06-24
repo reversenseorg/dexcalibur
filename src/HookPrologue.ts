@@ -7,10 +7,15 @@ import {CoreDebug} from "./core/CoreDebug.js";
  */
 export default class HookPrologue
 {
+    // parent HookSet
     parentID:string = null;
+
     script:string = null;
+
     builtScript:string = null;
+
     context:DexcaliburProject = null;
+
 
     /**
      * To configure and manage a static part of the hook code
@@ -50,7 +55,7 @@ export default class HookPrologue
      *
      * @function
      */
-    buildScript():void{
+    buildScript():string{
         let script:string=this.script;
         let tags:any = {
             "@@__CTX__@@": "ctx_"+CryptoUtils.md5(this.parentID)
@@ -62,8 +67,8 @@ export default class HookPrologue
             }while(script.indexOf(i)>-1);
         }
 
-        this.builtScript = script;
-        console.log("Build script of prologue > ",this);
+        //console.log("Build script of prologue > ",this);
+        return this.builtScript = script;
     }
 
     /**
@@ -85,6 +90,7 @@ export default class HookPrologue
         let o:any = new Object();
         o.parentID = this.parentID;
         o.script = this.script;
+        o.builtScript = this.builtScript;
         CoreDebug.checkJsonSerialize(o, "HookPrologue");
         return o;
     }

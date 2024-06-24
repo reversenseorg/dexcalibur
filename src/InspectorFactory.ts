@@ -5,7 +5,7 @@ import {DelegateWebApi} from "./webapi/DelegateWebApi.js";
 import WebServer from "./WebServer.js";
 import * as Log from "./Logger.js";
 import DexcaliburEngine from "./DexcaliburEngine.js";
-import HookStrategy from "./hook/HookStrategy.js";
+import HookStrategy, {HookStrategyOptions} from "./hook/HookStrategy.js";
 import {HookManager} from "./hook/HookManager.js";
 import {HookDbApi} from "./hook/HookDbApi.js";
 import {InspectorFactoryException} from "./errors/InspectorFactoryException.js";
@@ -21,6 +21,8 @@ import {
     SerializeOptions,
     Tag,
     TagCategory,
+    TagCategoryOptions,
+    TagOptions,
     TagUUID
 } from "@dexcalibur/dexcalibur-orm";
 import {NodeInternalType} from "./NodeInternalType.js";
@@ -28,9 +30,11 @@ import {IStringIndex, Nullable} from "./core/IStringIndex.js";
 import BusEvent from "./BusEvent.js";
 import {CustomCode, CustomCodeOptions} from "./actionnable/CustomCode.js";
 import {MongodbDbCollection} from "@dexcalibur/dexcalibur-orm-mongodb";
-import {TagCategoryOptions,TagOptions} from "@dexcalibur/dexcalibur-orm";
 import {SemVerHelper} from "./util/semver/SemverHelper.js";
 import {BusEventHandler} from "./Bus.js";
+import {HookRevision, HookRevisionSubject, RevisionOperation} from "./HookRevision.js";
+import Util from "./Utils.js";
+import {CryptoUtils} from "./CryptoUtils.js";
 
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
@@ -61,9 +65,6 @@ export interface FlattenTagCategoryOptions extends TagCategoryOptions {
 }
 
 
-export interface  HookStrategyOptions {
-
-}
 
 export enum UpgradeLevel {
     PATCH,
@@ -104,13 +105,16 @@ export interface InspectorFactoryOptions {
     eventListenerSources?:EventListenersSource;
     eventListenersCode?:EventListenersSource|EventListenersCode;
     hookSet?:HookSetOptions;
+    revisions?:HookRevision[];
     require?:string[];
 }
 /**
  * There is one InspectorFactory for each type prototype of Inspector.
  *
  * This instance is shared by every project and it is a member of DexcaliburEngine objects.
- * Its purpose if to create Inspector instance per project
+ * Its purpose if to create Inspector instance per project.
+ *
+ *
  *
  * @class
  */
@@ -148,6 +152,7 @@ export default class InspectorFactory implements INode
         (new NodeProperty("require")).type(DbDataType.STRING).def([]),
         (new NodeProperty("itags")).type(DbDataType.NUMERIC).def(null),
         (new NodeProperty("tags")).type(DbDataType.NUMERIC).def([]),
+        (new NodeProperty("revisions")).type(DbDataType.BLOB).def([]),
         (new NodeProperty("eventListeners")).volatile().type(DbDataType.STRING).def({}),
         (new NodeProperty("eventListenerSources")).type(DbDataType.STRING)
             .sleep( (x:NodePropertyState)=>{
@@ -216,6 +221,7 @@ export default class InspectorFactory implements INode
     eventListenerSources:EventListenersSource = {};
     useGUI = false;
     require:string[] = [];
+    revisions:HookRevision[] = [];
     itags:FlattenTagCategoryOptions[] = [];
 
     /**
@@ -260,6 +266,7 @@ export default class InspectorFactory implements INode
 
         if(pModel.useGUI != null) this.useGUI = pModel.useGUI;
         if(pModel.eventListeners != null) this.eventListeners = pModel.eventListeners;
+        if(pModel.revisions != null) this.revisions = pModel.revisions;
         if(pModel.eventListenerSources != null) this.eventListenerSources = pModel.eventListenerSources;
         if(pModel.hasOwnProperty('webapi'))  this.webapi = pModel.webapi
     }
@@ -336,7 +343,7 @@ export default class InspectorFactory implements INode
      * @param {CustomCodeOptions} pListener
      * @method
      */
-    upgradeListener( pEventType:string, pListener:CustomCodeOptions):void {
+    updateListener( pEventType:string, pListener:CustomCodeOptions):void {
         this.eventListenerSources[pEventType] = pListener;
         this.eventListenersCode[pEventType] = new CustomCode(pListener);
     }
@@ -390,6 +397,150 @@ export default class InspectorFactory implements INode
     isStartAt(pStep:INSPECTOR_TYPE):boolean{
         return this.step === pStep;
     }
+
+    /**
+     * To create the hookset from this factory into specified Inspector
+     * @param pProject
+     * @param pInspector
+     * @param pVolatile
+     */
+    async createHookSetTo( pProject:DexcaliburProject, pInspector:Inspector, pVolatile:boolean):Promise<Inspector> {
+
+        let hs:HookSet;
+        let hsuid: string;
+        let strategies:any;
+
+        const hmgr:HookManager = pProject.getHookManager();
+        const hapi:HookDbApi = hmgr.getDbAPI();
+
+        hsuid = (this.id!=null ? this.id : this.hookSet.id);
+
+        //Logger.debug("IS STRATEGY EXISTS ?? : "+hsuid+"  "+await hapi.isHookSetExists(hsuid));
+
+        // the first step is to verify if there is not yet a hook set for this project
+        // It happens mainly because the project has been created during a previous run
+        // so, data have been partially restored by the hook manager from the SQLIte db of the project earlier
+
+        // Volatile inspector are created only to prepare the upgrades of InspectorFactory and Inspector
+        // we need to force hook set to be recreated from factory data instead of to be pull from
+        // DB
+        if(!pVolatile){
+            hs = await hapi.getHookSet(hsuid);
+        }else{
+            hs = null;
+        }
+
+        if(hs == null){
+            // else, wen create a new HookSet instance with data from Inspector prototype
+            hs = await hmgr.createHookSet(hsuid, {
+                name: (this.hookSet.name!=null ? this.hookSet.name : this.name),
+                description: (this.hookSet.description!=null ? this.hookSet.description : this.description),
+                //require: (this._config.require!=null ? this._config.require : this._config.hookSet.require),
+                share: (this.hookSet.hookShare!=null ? this.hookSet.hookShare : null),
+                color: this.color,
+                builtin: true
+            });
+
+            // to configure object shared by several hooks
+            if(this.hookSet.hookShare != null){
+                hs.addHookShare(this.hookSet.hookShare);
+            }
+
+            // to configure object shared by several hooks
+            if(this.hookSet.prologue != null){
+                hs.setPrologue(this.hookSet.prologue);
+            }
+
+            // to declare hookset dependencies
+            if(this.hookSet.require != null){
+                this.hookSet.require.map((k,v)=>{
+                    hs.require(k);
+                });
+            }
+            // to declare inspector dependencies inherited by hook set
+            if(this.require != null){
+                this.require.map((k,v)=>{
+                    hs.require(k);
+                });
+            }
+        }
+
+        // If the hook set is not initiliazed, throw a exception
+        if(hs == null){
+            throw InspectorFactoryException.HOOKSET_CANNOT_BE_CREATED(this.name!=null ? this.name : this.hookSet.name);
+        }
+
+        // browse hook strategy
+        strategies = this.hookSet.strategies;
+
+        if(strategies != null){
+            // else{
+            //                 throw InspectorFactoryException.DUPLICATED_HOOK_STRATEGY(hsuid);
+            //             }
+            let f:boolean;
+            for(let k=0; k<strategies.length; k++){
+                if(strategies[k].name == null){
+                    throw InspectorFactoryException.STRATEGY_NAME_IS_MANDATORY(pInspector.getUID());
+                }
+
+
+                const stratUID = hsuid+":"+strategies[k].name;
+                let strat:HookStrategy = null;
+
+                if(!pVolatile){
+                    f = await hapi.isStrategyExists(stratUID);
+                }else{
+                    f = false;
+                }
+
+                if(!f){
+                    strat = HookStrategy.from(strategies[k]);
+
+                    strat.setUID(stratUID);
+
+                    if(strat.hasLoadKeyPoint()){
+                        strat.setLoadKeyPoint(
+                            await pProject.getKeyPointManager().getKeyPointByAttr({ name: strat.loadOn})
+                        );
+                    }else{
+                        //no loadkp = never load
+                        strat.setLoadKeyPoint(pProject.getKeyPointManager().getDefaulLoadKP());
+                    }
+
+                    if(strat.hasUnloadKeyPoint()){
+                        // no unload = never unload
+                        strat.setUnloadKeyPoint(
+                            await pProject.getKeyPointManager().getKeyPointByAttr({ name:strat.unloadOn })
+                        );
+                    }else{
+                        //strat.setUnloadKeyPoint(pProject.getKeyPointManager().getDefaulUnloadKP());
+                    }
+
+                    Logger.debug("createHookStrategy > "+stratUID);
+
+                    if(!pVolatile){
+                        // insert the hook strategy and generated fragments into DB
+                        await hapi.createHookStrategy(strat);
+                    }
+
+                    hs.addStrategy(strat);
+                    //await hapi.updateHookStrategy(strat);
+                }else{
+                    //strat = await hmgr.getHookStrategy(stratUID);
+                    Logger.debug(`createHookStrategy > ${stratUID} exists > ${hsuid} :: ${k}`);
+                    throw InspectorFactoryException.DUPLICATED_HOOK_STRATEGY(stratUID);
+                }
+            }
+        }
+
+        pInspector.setHookSet(hs);
+        if(!pVolatile){
+            await hapi.updateHookSet(hs);
+        }
+
+        return pInspector;
+    }
+
 
 
     /**
@@ -448,6 +599,9 @@ export default class InspectorFactory implements INode
             // It happens mainly because the project has been created during a previous run
             // so, data have been partially restored by the hook manager from the SQLIte db of the project earlier
 
+            // Volatile inspector are created only to prepare the upgrades of InspectorFactory and Inspector
+            // we need to force hook set to be recreated from factory data instead of to be pull from
+            // DB
             if(!pVolatile){
                 hs = await hapi.getHookSet(hsuid);
             }else{
@@ -470,7 +624,6 @@ export default class InspectorFactory implements INode
                     hs.addHookShare(this.hookSet.hookShare);
                 }
 
-                console.log(this.hookSet.prologue);
                 // to configure object shared by several hooks
                 if(this.hookSet.prologue != null){
                     hs.setPrologue(this.hookSet.prologue);
@@ -561,7 +714,9 @@ export default class InspectorFactory implements INode
             }
 
             ins.setHookSet(hs);
-            await hapi.updateHookSet(hs);
+            if(!pVolatile){
+                await hapi.updateHookSet(hs);
+            }
         }
 
         // If the inspector use local InMemory DB : create/open it, and create indexes
@@ -678,6 +833,8 @@ export default class InspectorFactory implements INode
     /**
      * To restore an instance of an Inspector
      *
+     * It starts be retrieving Inspector's state from Project DB
+     *
      * Tags / TagCatories are not restored, because they have been already importe in global scope.
      *
      * @param {DexcaliburProject} pProject - The project instance
@@ -689,7 +846,7 @@ export default class InspectorFactory implements INode
         const hmgr:HookManager = pProject.getHookManager();
         const hapi:HookDbApi = hmgr.getDbAPI();
 
-        // retrieve state
+        // retrieve inspector and strategy states
         const state = await (pProject.getProjectDB()).getInspectorState(this.getUID());
         const stratDB:MongodbDbCollection = pProject.getProjectDB().getCollectionOf(HookStrategy.TYPE.getType()) as MongodbDbCollection;
 
@@ -897,5 +1054,6 @@ export default class InspectorFactory implements INode
         }
         return o;
     }
+
 }
 InspectorFactory.TYPE.builder(InspectorFactory);

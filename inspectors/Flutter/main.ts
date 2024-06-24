@@ -6,6 +6,7 @@
 import InspectorFactory from "../../src/InspectorFactory.js";
 import {INSPECTOR_TYPE} from "../../src/Inspector.js";
 import * as Log from "../../src/Logger.js";
+import ModelMethod from "../../src/ModelMethod.js";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -13,7 +14,7 @@ var FlutterInspector:InspectorFactory = new InspectorFactory({
 
     startStep: INSPECTOR_TYPE.POST_APP_SCAN,
 
-    version: "1.0.0",
+    version: "1.0.1",
     tags: [],
 
     hookSet: {
@@ -23,48 +24,36 @@ var FlutterInspector:InspectorFactory = new InspectorFactory({
 
         // must be updated at runtime
         hookShare: {
-            /*
-            fake: {
-                imei: "222222222222222222222",
-                operator: "xxxxx",
-                deviceId: "a73839ef1O"
-            }*/
+
         },
 
 
-        require: [],
-
         strategies: [
-            /*
             {
-                name: "read_DeviceID",
-                descr: "To detect read of device ID",
+                name: "Keyboard_visibility_detect_change",
+                descr: "React to keyboard visiblity change (https://pub.dev/packages/flutter_keyboard_visibility)",
                 search: {
                     type: ModelMethod.TYPE.getName(),
-                    uid: "android.telephony.TelephonyManager.getDeviceId()<java.lang.String>"
+                    req: `method("enclosingClass.source:/FlutterKeyboard/").filter("name:/onAttach/")`
                 },
                 autoEmit: true,
-                emitEvent: "fingerprint.device.getId",
+                emitEvent: "hook.flutter.keyboard.visibility",
                 replace: `  
-            
-                        ret = "fakeID";
+         
                         DXC.send(
                             "@@__HOOK_ID__@@",
                             "@@__FRAG_ID__@@",
                             {
-                                name: "fakeID"
+                                name: "@@__METHNAME__@@"
                             }
                         );
                 `
             }
-            */
         ]
     },
 
-    eventListeners: {
-        /*"fingerprint.device.getId": function(ctx:DexcaliburProject,event:BusEvent<any>):any{
-            Logger.info("[INSPECTOR][TASK] FingerprintInspector : getDeviceId ");
-        }*/
+    eventListenerSources: {
+
     }
 });
 

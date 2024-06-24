@@ -14,13 +14,15 @@ var FirebaseInspector:InspectorFactory = new InspectorFactory({
 
     startStep: INSPECTOR_TYPE.POST_APP_SCAN,
 
-    version: "1.0.2",
+    description: "Anything related to Firebase",
+    version: "1.0.6",
     hookSet: {
         id: "Firebase",
         name: "Firebase",
-        description: "Firebase API : auth, ...",
+        description: "Firebase API : authentication, ...",
         prologue: `
             function printTest(){
+                // test
                 console.log("@@__CTX__@@");
             }
         `,
@@ -49,6 +51,58 @@ var FirebaseInspector:InspectorFactory = new InspectorFactory({
                             msg: msg
                         }
                     );
+            `
+        },{
+            name: "Firestore Get instance",
+            descr: "Observe Cloud DB Firestore instances",
+            search: {
+                type: ModelMethod.TYPE.getName(),
+                req: `method("enclosingClass.name:com.google.firebase.firestore.FirebaseFirestore").filter("name:getInstance")`
+            },
+            autoEmit: true,
+            emitEvent: "hook.firebase.cloud_db.get",
+            before: `
+                let o:any = {};
+                arguments.map((x:any,i:number) => {
+                    o['arg'+i] = x; 
+                });
+                
+                DXC.send("@@__HOOK_ID__@@","@@__FRAG_ID__@@",o);    
+            `
+        },{
+            name: "Firestore",
+            descr: "Observe Firestore references",
+            search: {
+                type: ModelMethod.TYPE.getName(),
+                req: `method("enclosingClass.name:com.google.firebase.firestore.CollectionReference").filter("name:document")`
+            },
+            autoEmit: true,
+            emitEvent: "hook.firebase.db.ref",
+            before: `
+                   
+                let o:any = {};
+                arguments.map((x:any,i:number) => {
+                    o['arg'+i] = x; 
+                });
+                
+                DXC.send("@@__HOOK_ID__@@","@@__FRAG_ID__@@",o);    
+                   
+            `
+        },{
+            name: "Firestore Add document",
+            descr: "Observe add of a document to Firebase's Firestore DB",
+            search: {
+                type: ModelMethod.TYPE.getName(),
+                req: `method("enclosingClass.name:com.google.firebase.firestore.CollectionReference").filter("name:add")`
+            },
+            autoEmit: true,
+            emitEvent: "hook.firebase.db.insert",
+            before: `
+                DXC.send("@@__HOOK_ID__@@","@@__FRAG_ID__@@",
+                    {
+                        msg: msg
+                    }
+                );
             `
         }]
     },
