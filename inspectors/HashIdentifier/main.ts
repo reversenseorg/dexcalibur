@@ -1,14 +1,17 @@
 import InspectorFactory, {FlattenTagCategoryOptions} from "../../src/InspectorFactory.js";
 import {INSPECTOR_TYPE} from "../../src/Inspector.js";
 
-// Regex match from Psypanda, HashId https://github.com/psypanda/hashID/blob/master/hashid.py
+// Regex match hash to hash function
+// Source from Psypanda - HashId https://github.com/psypanda/hashID/blob/master/hashid.py
 
-var hashIndentifierTags: FlattenTagCategoryOptions[] = [
+const HASH_TAG_CATEGORY_NAME = "crypto.hash";
+
+var hashIdentifierTags: FlattenTagCategoryOptions[] = [
     {
-        name: "crypto.hash",
+        name: HASH_TAG_CATEGORY_NAME,
         _tagsOptions: [
-            { name:"CRC-16", label:"CRC-16", extra: {hashcat:undefined, john:undefined, extended:false}},
-            { name:"CRC-16-CCITT", label:"CRC-16-CCITT", extra: {hashcat:undefined, john:undefined, extended:false}},
+            {name:"CRC-16", label:"CRC-16", extra: {hashcat:undefined, john:undefined, extended:false}},
+            {name:"CRC-16-CCITT", label:"CRC-16-CCITT", extra: {hashcat:undefined, john:undefined, extended:false}},
             {name:"Adler-32", label:"Adler-32", extra: {hashcat: undefined, john: undefined, extended: false}},
             {name:"CRC-32B", label:"CRC-32B", extra: {hashcat: undefined, john: undefined, extended: false}},
             {name:"FCS-32", label:"FCS-32", extra: {hashcat: undefined, john: undefined, extended: false}},
@@ -282,195 +285,196 @@ var hashIndentifierTags: FlattenTagCategoryOptions[] = [
     }
 ];
 
-var regexToHash: Record<string, any>[] = [
-    {regex: /^[a-f0-9]{4}$/, modes: ['CRC-16', 'CRC-16-CCITT', 'FCS-16']},
-    {regex: /^[a-f0-9]{8}$/, modes: ['Adler-32', 'CRC-32B', 'FCS-32', 'GHash-32-3', 'GHash-32-5', 'FNV-132', 'Fletcher-32', 'Joaat', 'ELF-32', 'XOR-32']},
-    {regex: /^[a-f0-9]{6}$/, modes: ['CRC-24']},
-    {regex: /^(\$crc32\$[a-f0-9]{8}.)?[a-f0-9]{8}$/, modes: ['CRC-32']},
-    {regex: /^\+[a-z0-9\/.]{12}$/, modes: ['Eggdrop IRC Bot']},
-    {regex: /^[a-z0-9\/.]{13}$/, modes: ['DES(Unix)', 'Traditional DES', 'DEScrypt']},
-    {regex: /^[a-f0-9]{16}$/, modes: ['MySQL323', 'DES(Oracle)', 'Half MD5', 'Oracle 7-10g', 'FNV-164', 'CRC-64']},
-    {regex: /^[a-z0-9\/.]{16}$/, modes: ['Cisco-PIX(MD5)']},
-    {regex: /^\([a-z0-9\/+]{20}\)$/, modes: ['Lotus Notes/Domino 6']},
-    {regex: /^_[a-z0-9\/.]{19}$/, modes: ['BSDi Crypt']},
-    {regex: /^[a-f0-9]{24}$/, modes: ['CRC-96(ZIP)']},
-    {regex: /^[a-z0-9\/.]{24}$/, modes: ['Crypt16']},
-    {regex: /^(\$md2\$)?[a-f0-9]{32}$/, modes: ['MD2']},
-    {regex: /^[a-f0-9]{32}(:.+)?$/, modes: ['MD5', 'MD4', 'Double MD5', 'LM', 'RIPEMD-128', 'Haval-128', 'Tiger-128', 'Skein-256(128)', 'Skein-512(128)', 'Lotus Notes/Domino 5', 'Skype', 'ZipMonster', 'PrestaShop', 'md5(md5(md5($pass)))', 'md5(strtoupper(md5($pass)))', 'md5(sha1($pass))', 'md5($pass_$salt)', 'md5($salt_$pass)', 'md5(unicode($pass)_$salt)', 'md5($salt_unicode($pass))', 'HMAC-MD5 (key = $pass)', 'HMAC-MD5 (key = $salt)', 'md5(md5($salt)_$pass)', 'md5($salt_md5($pass))', 'md5($pass_md5($salt))', 'md5($salt_$pass_$salt)', 'md5(md5($pass)_md5($salt))', 'md5($salt_md5($salt_$pass))', 'md5($salt_md5($pass_$salt))', 'md5($username_0_$pass)']},
-    {regex: /^(\$snefru\$)?[a-f0-9]{32}$/, modes: ['Snefru-128']},
-    {regex: /^(\$NT\$)?[a-f0-9]{32}$/, modes: ['NTLM']},
-    {regex: /^([^\\\/:*?"<>|]{1,20}:)?[a-f0-9]{32}(:[^\\\/:*?"<>|]{1,20})?$/, modes: ['Domain Cached Credentials']},
-    {regex: /^([^\\\/:*?"<>|]{1,20}:)?(\$DCC2\$10240#[^\\\/:*?"<>|]{1,20}#)?[a-f0-9]{32}$/, modes: ['Domain Cached Credentials 2']},
-    {regex: /^{SHA}[a-z0-9\/+]{27}=$/, modes: ['SHA-1(Base64)', 'Netscape LDAP SHA']},
-    {regex: /^\$1\$[a-z0-9\/.]{0,8}\$[a-z0-9\/.]{22}(:.*)?$/, modes: ['MD5 Crypt', 'Cisco-IOS(MD5)', 'FreeBSD MD5']},
-    {regex: /^0x[a-f0-9]{32}$/, modes: ['Lineage II C4']},
-    {regex: /^\$H\$[a-z0-9\/.]{31}$/, modes: ['phpBB v3.x', 'Wordpress v2.6.0/2.6.1', "PHPass' Portable Hash"]},
-    {regex: /^\$P\$[a-z0-9\/.]{31}$/, modes: ['Wordpress >=v2.6.2', 'Joomla >=v2.5.18', "PHPass' Portable Hash"]},
-    {regex: /^[a-f0-9]{32}:[a-z0-9]{2}$/, modes: ['osCommerce', 'xt:Commerce']},
-    {regex: /^\$apr1\$[a-z0-9\/.]{0,8}\$[a-z0-9\/.]{22}$/, modes: ['MD5(APR)', 'Apache MD5', 'md5apr1']},
-    {regex: /^{smd5}[a-z0-9$\/.]{31}$/, modes: ['AIX(smd5)']},
-    {regex: /^[a-f0-9]{32}:[a-f0-9]{32}$/, modes: ['WebEdition CMS']},
-    {regex: /^[a-f0-9]{32}:.{5}$/, modes: ['IP_Board >=v2+']},
-    {regex: /^[a-f0-9]{32}:.{8}$/, modes: ['MyBB >=v1_2+']},
-    {regex: /^[a-z0-9]{34}$/, modes: ['CryptoCurrency(Adress)']},
-    {regex: /^[a-f0-9]{40}(:.+)?$/, modes: ['SHA-1', 'Double SHA-1', 'RIPEMD-160', 'Haval-160', 'Tiger-160', 'HAS-160', 'LinkedIn', 'Skein-256(160)', 'Skein-512(160)', 'MangosWeb Enhanced CMS', 'sha1(sha1(sha1($pass)))', 'sha1(md5($pass))', 'sha1($pass_$salt)', 'sha1($salt_$pass)', 'sha1(unicode($pass)_$salt)', 'sha1($salt_unicode($pass))', 'HMAC-SHA1 (key = $pass)', 'HMAC-SHA1 (key = $salt)', 'sha1($salt_$pass_$salt)']},
-    {regex: /^\*[a-f0-9]{40}$/, modes: ['MySQL5_x', 'MySQL4_1']},
-    {regex: /^[a-z0-9]{43}$/, modes: ['Cisco-IOS(SHA-256)']},
-    {regex: /^{SSHA}[a-z0-9\/+]{38}==$/, modes: ['SSHA-1(Base64)', 'Netscape LDAP SSHA', 'nsldaps']},
-    {regex: /^[a-z0-9=]{47}$/, modes: ['Fortigate(FortiOS)']},
-    {regex: /^[a-f0-9]{48}$/, modes: ['Haval-192', 'Tiger-192', 'SHA-1(Oracle)', 'OSX v10_4', 'OSX v10_5', 'OSX v10_6']},
-    {regex: /^[a-f0-9]{51}$/, modes: ['Palshop CMS']},
-    {regex: /^[a-z0-9]{51}$/, modes: ['CryptoCurrency(PrivateKey)']},
-    {regex: /^{ssha1}[0-9]{2}\$[a-z0-9$\/.]{44}$/, modes: ['AIX(ssha1)']},
-    {regex: /^0x0100[a-f0-9]{48}$/, modes: ['MSSQL(2005)', 'MSSQL(2008)']},
-    {regex: /^(\$md5,rounds=[0-9]+\$|\$md5\$rounds=[0-9]+\$|\$md5\$)[a-z0-9\/.]{0,16}(\$|\$\$)[a-z0-9\/.]{22}$/, modes: ['Sun MD5 Crypt']},
-    {regex: /^[a-f0-9]{56}$/, modes: ['SHA-224', 'Haval-224', 'SHA3-224', 'Skein-256(224)', 'Skein-512(224)']},
-    {regex: /^(\$2[axy]|\$2)\$[0-9]{2}\$[a-z0-9\/.]{53}$/, modes: ['Blowfish(OpenBSD)', 'Woltlab Burning Board 4_x', 'bcrypt']},
-    {regex: /^[a-f0-9]{40}:[a-f0-9]{16}$/, modes: ['Android PIN']},
-    {regex: /^(S:)?[a-f0-9]{40}(:)?[a-f0-9]{20}$/, modes: ['Oracle 11g/12c']},
-    {regex: /^\$bcrypt-sha256\$(2[axy]|2)\,[0-9]+\$[a-z0-9\/.]{22}\$[a-z0-9\/.]{31}$/, modes: ['bcrypt(SHA-256)']},
-    {regex: /^[a-f0-9]{32}:.{3}$/, modes: ['vBulletin < v3_8_5']},
-    {regex: /^[a-f0-9]{32}:.{30}$/, modes: ['vBulletin >=v3_8_5']},
-    {regex: /^(\$snefru\$)?[a-f0-9]{64}$/, modes: ['Snefru-256']},
-    {regex: /^[a-f0-9]{64}(:.+)?$/, modes: ['SHA-256', 'RIPEMD-256', 'Haval-256', 'GOST R 34_11-94', 'GOST CryptoPro S-Box', 'SHA3-256', 'Skein-256', 'Skein-512(256)', 'Ventrilo', 'sha256($pass_$salt)', 'sha256($salt_$pass)', 'sha256(unicode($pass)_$salt)', 'sha256($salt_unicode($pass))', 'HMAC-SHA256 (key = $pass)', 'HMAC-SHA256 (key = $salt)']},
-    {regex: /^[a-f0-9]{32}:[a-z0-9]{32}$/, modes: ['Joomla < v2_5_18']},
-    {regex: /^[a-f-0-9]{32}:[a-f-0-9]{32}$/, modes: ['SAM(LM_Hash:NT_Hash)']},
-    {regex: /^(\$chap\$0\*)?[a-f0-9]{32}[\*:][a-f0-9]{32}(:[0-9]{2})?$/, modes: ['MD5(Chap)', 'iSCSI CHAP Authentication']},
-    {regex: /^\$episerver\$\*0\*[a-z0-9\/=+]+\*[a-z0-9\/=+]{27,28}$/, modes: ['EPiServer 6_x < v4']},
-    {regex: /^{ssha256}[0-9]{2}\$[a-z0-9$\/.]{60}$/, modes: ['AIX(ssha256)']},
-    {regex: /^[a-f0-9]{80}$/, modes: ['RIPEMD-320']},
-    {regex: /^\$episerver\$\*1\*[a-z0-9\/=+]+\*[a-z0-9\/=+]{42,43}$/, modes: ['EPiServer 6_x >=v4']},
-    {regex: /^0x0100[a-f0-9]{88}$/, modes: ['MSSQL(2000)']},
-    {regex: /^[a-f0-9]{96}$/, modes: ['SHA-384', 'SHA3-384', 'Skein-512(384)', 'Skein-1024(384)']},
-    {regex: /^{SSHA512}[a-z0-9\/+]{96}$/, modes: ['SSHA-512(Base64)', 'LDAP(SSHA-512)']},
-    {regex: /^{ssha512}[0-9]{2}\$[a-z0-9\/.]{16,48}\$[a-z0-9\/.]{86}$/, modes: ['AIX(ssha512)']},
-    {regex: /^[a-f0-9]{128}(:.+)?$/, modes: ['SHA-512', 'Whirlpool', 'Salsa10', 'Salsa20', 'SHA3-512', 'Skein-512', 'Skein-1024(512)', 'sha512($pass_$salt)', 'sha512($salt_$pass)', 'sha512(unicode($pass)_$salt)', 'sha512($salt_unicode($pass))', 'HMAC-SHA512 (key = $pass)', 'HMAC-SHA512 (key = $salt)']},
-    {regex: /^[a-f0-9]{136}$/, modes: ['OSX v10_7']},
-    {regex: /^0x0200[a-f0-9]{136}$/, modes: ['MSSQL(2012)', 'MSSQL(2014)']},
-    {regex: /^\$ml\$[0-9]+\$[a-f0-9]{64}\$[a-f0-9]{128}$/, modes: ['OSX v10_8', 'OSX v10_9']},
-    {regex: /^[a-f0-9]{256}$/, modes: ['Skein-1024']},
-    {regex: /^grub\.pbkdf2\.sha512\.[0-9]+\.([a-f0-9]{128,2048}\.|[0-9]+\.)?[a-f0-9]{128}$/, modes: ['GRUB 2']},
-    {regex: /^sha1\$[a-z0-9]+\$[a-f0-9]{40}$/, modes: ['Django(SHA-1)']},
-    {regex: /^[a-f0-9]{49}$/, modes: ['Citrix Netscaler']},
-    {regex: /^\$S\$[a-z0-9\/.]{52}$/, modes: ['Drupal > v7_x']},
-    {regex: /^\$5\$(rounds=[0-9]+\$)?[a-z0-9\/.]{0,16}\$[a-z0-9\/.]{43}$/, modes: ['SHA-256 Crypt']},
-    {regex: /^0x[a-f0-9]{4}[a-f0-9]{16}[a-f0-9]{64}$/, modes: ['Sybase ASE']},
-    {regex: /^\$6\$(rounds=[0-9]+\$)?[a-z0-9\/.]{0,16}\$[a-z0-9\/.]{86}$/, modes: ['SHA-512 Crypt']},
-    {regex: /^\$sha\$[a-z0-9]{1,16}\$([a-f0-9]{32}|[a-f0-9]{40}|[a-f0-9]{64}|[a-f0-9]{128}|[a-f0-9]{140})$/, modes: ['Minecraft(AuthMe Reloaded)']},
-    {regex: /^sha256\$[a-z0-9]+\$[a-f0-9]{64}$/, modes: ['Django(SHA-256)']},
-    {regex: /^sha384\$[a-z0-9]+\$[a-f0-9]{96}$/, modes: ['Django(SHA-384)']},
-    {regex: /^crypt1:[a-z0-9+=]{12}:[a-z0-9+=]{12}$/, modes: ['Clavister Secure Gateway']},
-    {regex: /^[a-f0-9]{112}$/, modes: ['Cisco VPN Client(PCF-File)']},
-    {regex: /^[a-f0-9]{1329}$/, modes: ['Microsoft MSTSC(RDP-File)']},
-    {regex: /^[^\\\/:*?"<>|]{1,20}[:]{2,3}([^\\\/:*?"<>|]{1,20})?:[a-f0-9]{48}:[a-f0-9]{48}:[a-f0-9]{16}$/, modes: ['NetNTLMv1-VANILLA / NetNTLMv1+ESS']},
-    {regex: /^([^\\\/:*?"<>|]{1,20}\\)?[^\\\/:*?"<>|]{1,20}[:]{2,3}([^\\\/:*?"<>|]{1,20}:)?[^\\\/:*?"<>|]{1,20}:[a-f0-9]{32}:[a-f0-9]+$/, modes: ['NetNTLMv2']},
-    {regex: /^\$(krb5pa|mskrb5)\$([0-9]{2})?\$.+\$[a-f0-9]{1,}$/, modes: ['Kerberos 5 AS-REQ Pre-Auth']},
-    {regex: /^\$scram\$[0-9]+\$[a-z0-9\/.]{16}\$sha-1=[a-z0-9\/.]{27},sha-256=[a-z0-9\/.]{43},sha-512=[a-z0-9\/.]{86}$/, modes: ['SCRAM Hash']},
-    {regex: /^[a-f0-9]{40}:[a-f0-9]{0,32}$/, modes: ['Redmine Project Management Web App']},
-    {regex: /^(.+)?\$[a-f0-9]{16}$/, modes: ['SAP CODVN B (BCODE)']},
-    {regex: /^(.+)?\$[a-f0-9]{40}$/, modes: ['SAP CODVN F/G (PASSCODE)']},
-    {regex: /^(.+\$)?[a-z0-9\/.+]{30}(:.+)?$/, modes: ['Juniper Netscreen/SSG(ScreenOS)']},
-    {regex: /^0x[a-f0-9]{60}\s0x[a-f0-9]{40}$/, modes: ['EPi']},
-    {regex: /^[a-f0-9]{40}:[^*]{1,25}$/, modes: ['SMF >=v1_1']},
-    {regex: /^(\$wbb3\$\*1\*)?[a-f0-9]{40}[:*][a-f0-9]{40}$/, modes: ['Woltlab Burning Board 3_x']},
-    {regex: /^[a-f0-9]{130}(:[a-f0-9]{40})?$/, modes: ['IPMI2 RAKP HMAC-SHA1']},
-    {regex: /^[a-f0-9]{32}:[0-9]+:[a-z0-9_.+-]+@[a-z0-9-]+\.[a-z0-9-.]+$/, modes: ['Lastpass']},
-    {regex: /^[a-z0-9\/.]{16}([:$].{1,})?$/, modes: ['Cisco-ASA(MD5)']},
-    {regex: /^\$vnc\$\*[a-f0-9]{32}\*[a-f0-9]{32}$/, modes: ['VNC']},
-    {regex: /^[a-z0-9]{32}(:([a-z0-9-]+\.)?[a-z0-9-.]+\.[a-z]{2,7}:.+:[0-9]+)?$/, modes: ['DNSSEC(NSEC3)']},
-    {regex: /^(user-.+:)?\$racf\$\*.+\*[a-f0-9]{16}$/, modes: ['RACF']},
-    {regex: /^\$3\$\$[a-f0-9]{32}$/, modes: ['NTHash(FreeBSD Variant)']},
-    {regex: /^\$sha1\$[0-9]+\$[a-z0-9\/.]{0,64}\$[a-z0-9\/.]{28}$/, modes: ['SHA-1 Crypt']},
-    {regex: /^[a-f0-9]{70}$/, modes: ['hMailServer']},
-    {regex: /^[:\$][AB][:\$]([a-f0-9]{1,8}[:\$])?[a-f0-9]{32}$/, modes: ['MediaWiki']},
-    {regex: /^[a-f0-9]{140}$/, modes: ['Minecraft(xAuth)']},
-    {regex: /^\$pbkdf2(-sha1)?\$[0-9]+\$[a-z0-9\/.]+\$[a-z0-9\/.]{27}$/, modes: ['PBKDF2-SHA1(Generic)']},
-    {regex: /^\$pbkdf2-sha256\$[0-9]+\$[a-z0-9\/.]+\$[a-z0-9\/.]{43}$/, modes: ['PBKDF2-SHA256(Generic)']},
-    {regex: /^\$pbkdf2-sha512\$[0-9]+\$[a-z0-9\/.]+\$[a-z0-9\/.]{86}$/, modes: ['PBKDF2-SHA512(Generic)']},
-    {regex: /^\$p5k2\$[0-9]+\$[a-z0-9\/+=-]+\$[a-z0-9\/+-]{27}=$/, modes: ['PBKDF2(Cryptacular)']},
-    {regex: /^\$p5k2\$[0-9]+\$[a-z0-9\/.]+\$[a-z0-9\/.]{32}$/, modes: ['PBKDF2(Dwayne Litzenberger)']},
-    {regex: /^{FSHP[0123]\|[0-9]+\|[0-9]+}[a-z0-9\/+=]+$/, modes: ['Fairly Secure Hashed Password']},
-    {regex: /^\$PHPS\$.+\$[a-f0-9]{32}$/, modes: ['PHPS']},
-    {regex: /^[0-9]{4}:[a-f0-9]{16}:[a-f0-9]{2080}$/, modes: ['1Password(Agile Keychain)']},
-    {regex: /^[a-f0-9]{64}:[a-f0-9]{32}:[0-9]{5}:[a-f0-9]{608}$/, modes: ['1Password(Cloud Keychain)']},
-    {regex: /^[a-f0-9]{256}:[a-f0-9]{256}:[a-f0-9]{16}:[a-f0-9]{16}:[a-f0-9]{320}:[a-f0-9]{16}:[a-f0-9]{40}:[a-f0-9]{40}:[a-f0-9]{32}$/, modes: ['IKE-PSK MD5']},
-    {regex: /^[a-f0-9]{256}:[a-f0-9]{256}:[a-f0-9]{16}:[a-f0-9]{16}:[a-f0-9]{320}:[a-f0-9]{16}:[a-f0-9]{40}:[a-f0-9]{40}:[a-f0-9]{40}$/, modes: ['IKE-PSK SHA1']},
-    {regex: /^[a-z0-9\/+]{27}=$/, modes: ['PeopleSoft']},
-    {regex: /^crypt\$[a-f0-9]{5}\$[a-z0-9\/.]{13}$/, modes: ['Django(DES Crypt Wrapper)']},
-    {regex: /^(\$django\$\*1\*)?pbkdf2_sha256\$[0-9]+\$[a-z0-9]+\$[a-z0-9\/+=]{44}$/, modes: ['Django(PBKDF2-HMAC-SHA256)']},
-    {regex: /^pbkdf2_sha1\$[0-9]+\$[a-z0-9]+\$[a-z0-9\/+=]{28}$/, modes: ['Django(PBKDF2-HMAC-SHA1)']},
-    {regex: /^bcrypt(\$2[axy]|\$2)\$[0-9]{2}\$[a-z0-9\/.]{53}$/, modes: ['Django(bcrypt)']},
-    {regex: /^md5\$[a-f0-9]+\$[a-f0-9]{32}$/, modes: ['Django(MD5)']},
-    {regex: /^\{PKCS5S2\}[a-z0-9\/+]{64}$/, modes: ['PBKDF2(Atlassian)']},
-    {regex: /^md5[a-f0-9]{32}$/, modes: ['PostgreSQL MD5']},
-    {regex: /^\([a-z0-9\/+]{49}\)$/, modes: ['Lotus Notes/Domino 8']},
-    {regex: /^SCRYPT:[0-9]{1,}:[0-9]{1}:[0-9]{1}:[a-z0-9:\/+=]{1,}$/, modes: ['scrypt']},
-    {regex: /^\$8\$[a-z0-9\/.]{14}\$[a-z0-9\/.]{43}$/, modes: ['Cisco Type 8']},
-    {regex: /^\$9\$[a-z0-9\/.]{14}\$[a-z0-9\/.]{43}$/, modes: ['Cisco Type 9']},
-    {regex: /^\$office\$\*2007\*[0-9]{2}\*[0-9]{3}\*[0-9]{2}\*[a-z0-9]{32}\*[a-z0-9]{32}\*[a-z0-9]{40}$/, modes: ['Microsoft Office 2007']},
-    {regex: /^\$office\$\*2010\*[0-9]{6}\*[0-9]{3}\*[0-9]{2}\*[a-z0-9]{32}\*[a-z0-9]{32}\*[a-z0-9]{64}$/, modes: ['Microsoft Office 2010']},
-    {regex: /^\$office\$\*2013\*[0-9]{6}\*[0-9]{3}\*[0-9]{2}\*[a-z0-9]{32}\*[a-z0-9]{32}\*[a-z0-9]{64}$/, modes: ['Microsoft Office 2013']},
-    {regex: /^\$fde\$[0-9]{2}\$[a-f0-9]{32}\$[0-9]{2}\$[a-f0-9]{32}\$[a-f0-9]{3072}$/, modes: ['Android FDE <= 4_3']},
-    {regex: /^\$oldoffice\$[01]\*[a-f0-9]{32}\*[a-f0-9]{32}\*[a-f0-9]{32}$/, modes: ['Microsoft Office <= 2003 (MD5+RC4)', 'Microsoft Office <= 2003 (MD5+RC4) collider-mode #1', 'Microsoft Office <= 2003 (MD5+RC4) collider-mode #2']},
-    {regex: /^\$oldoffice\$[34]\*[a-f0-9]{32}\*[a-f0-9]{32}\*[a-f0-9]{40}$/, modes: ['Microsoft Office <= 2003 (SHA1+RC4)', 'Microsoft Office <= 2003 (SHA1+RC4) collider-mode #1', 'Microsoft Office <= 2003 (SHA1+RC4) collider-mode #2']},
-    {regex: /^(\$radmin2\$)?[a-f0-9]{32}$/, modes: ['RAdmin v2_x']},
-    {regex: /^{x-issha,\s[0-9]{4}}[a-z0-9\/+=]+$/, modes: ['SAP CODVN H (PWDSALTEDHASH) iSSHA-1']},
-    {regex: /^\$cram_md5\$[a-z0-9\/+=-]+\$[a-z0-9\/+=-]{52}$/, modes: ['CRAM-MD5']},
-    {regex: /^[a-f0-9]{16}:2:4:[a-f0-9]{32}$/, modes: ['SipHash']},
-    {regex: /^[a-f0-9]{4,}$/, modes: ['Cisco Type 7']},
-    {regex: /^[a-z0-9\/.]{13,}$/, modes: ['BigCrypt']},
-    {regex: /^(\$cisco4\$)?[a-z0-9\/.]{43}$/, modes: ['Cisco Type 4']},
-    {regex: /^bcrypt_sha256\$\$(2[axy]|2)\$[0-9]+\$[a-z0-9\/.]{53}$/, modes: ['Django(bcrypt-SHA256)']},
-    {regex: /^\$postgres\$.[^\*]+[*:][a-f0-9]{1,32}[*:][a-f0-9]{32}$/, modes: ['PostgreSQL Challenge-Response Authentication (MD5)']},
-    {regex: /^\$siemens-s7\$[0-9]{1}\$[a-f0-9]{40}\$[a-f0-9]{40}$/, modes: ['Siemens-S7']},
-    {regex: /^(\$pst\$)?[a-f0-9]{8}$/, modes: ['Microsoft Outlook PST']},
-    {regex: /^sha256[:$][0-9]+[:$][a-z0-9\/+]+[:$][a-z0-9\/+]{32,128}$/, modes: ['PBKDF2-HMAC-SHA256(PHP)']},
-    {regex: /^(\$dahua\$)?[a-z0-9]{8}$/, modes: ['Dahua']},
-    {regex: /^\$mysqlna\$[a-f0-9]{40}[:*][a-f0-9]{40}$/, modes: ['MySQL Challenge-Response Authentication (SHA1)']},
-    {regex: /^\$pdf\$[24]\*[34]\*128\*[0-9-]{1,5}\*1\*(16|32)\*[a-f0-9]{32,64}\*32\*[a-f0-9]{64}\*(8|16|32)\*[a-f0-9]{16,64}$/, modes: ['PDF 1.4 - 1.6 (Acrobat 5 - 8)']}
+
+// Add '.source' at each regex in order to stringify regexToHash.
+var regexToHash = [
+    {regex: /^[a-f0-9]{4}$/.source, modes: ['CRC-16', 'CRC-16-CCITT', 'FCS-16']},
+    {regex: /^[a-f0-9]{8}$/.source, modes: ['Adler-32', 'CRC-32B', 'FCS-32', 'GHash-32-3', 'GHash-32-5', 'FNV-132', 'Fletcher-32', 'Joaat', 'ELF-32', 'XOR-32']},
+    {regex: /^[a-f0-9]{6}$/.source, modes: ['CRC-24']},
+    {regex: /^(\$crc32\$[a-f0-9]{8}.)?[a-f0-9]{8}$/.source, modes: ['CRC-32']},
+    {regex: /^\+[a-zA-Z0-9\/.]{12}$/.source, modes: ['Eggdrop IRC Bot']},
+    {regex: /^[a-zA-Z0-9\/.]{13}$/.source, modes: ['DES(Unix)', 'Traditional DES', 'DEScrypt']},
+    {regex: /^[a-f0-9]{16}$/.source, modes: ['MySQL323', 'DES(Oracle)', 'Half MD5', 'Oracle 7-10g', 'FNV-164', 'CRC-64']},
+    {regex: /^[a-zA-Z0-9\/.]{16}$/.source, modes: ['Cisco-PIX(MD5)']},
+    {regex: /^\([a-zA-Z0-9\/+]{20}\)$/.source, modes: ['Lotus Notes/Domino 6']},
+    {regex: /^_[a-zA-Z0-9\/.]{19}$/.source, modes: ['BSDi Crypt']},
+    {regex: /^[a-f0-9]{24}$/.source, modes: ['CRC-96(ZIP)']},
+    {regex: /^[a-zA-Z0-9\/.]{24}$/.source, modes: ['Crypt16']},
+    {regex: /^(\$md2\$)?[a-f0-9]{32}$/.source, modes: ['MD2']},
+    {regex: /^[a-f0-9]{32}(:.+)?$/.source, modes: ['MD5', 'MD4', 'Double MD5', 'LM', 'RIPEMD-128', 'Haval-128', 'Tiger-128', 'Skein-256(128)', 'Skein-512(128)', 'Lotus Notes/Domino 5', 'Skype', 'ZipMonster', 'PrestaShop', 'md5(md5(md5($pass)))', 'md5(strtoupper(md5($pass)))', 'md5(sha1($pass))', 'md5($pass_$salt)', 'md5($salt_$pass)', 'md5(unicode($pass)_$salt)', 'md5($salt_unicode($pass))', 'HMAC-MD5 (key = $pass)', 'HMAC-MD5 (key = $salt)', 'md5(md5($salt)_$pass)', 'md5($salt_md5($pass))', 'md5($pass_md5($salt))', 'md5($salt_$pass_$salt)', 'md5(md5($pass)_md5($salt))', 'md5($salt_md5($salt_$pass))', 'md5($salt_md5($pass_$salt))', 'md5($username_0_$pass)']},
+    {regex: /^(\$snefru\$)?[a-f0-9]{32}$/.source, modes: ['Snefru-128']},
+    {regex: /^(\$NT\$)?[a-f0-9]{32}$/.source, modes: ['NTLM']},
+    {regex: /^([^\\\/:*?"<>|]{1,20}:)?[a-f0-9]{32}(:[^\\\/:*?"<>|]{1,20})?$/.source, modes: ['Domain Cached Credentials']},
+    {regex: /^([^\\\/:*?"<>|]{1,20}:)?(\$DCC2\$10240#[^\\\/:*?"<>|]{1,20}#)?[a-f0-9]{32}$/.source, modes: ['Domain Cached Credentials 2']},
+    {regex: /^{SHA}[a-zA-Z0-9\/+]{27}=$/.source, modes: ['SHA-1(Base64)', 'Netscape LDAP SHA']},
+    {regex: /^\$1\$[a-zA-Z0-9\/.]{0,8}\$[a-zA-Z0-9\/.]{22}(:.*)?$/.source, modes: ['MD5 Crypt', 'Cisco-IOS(MD5)', 'FreeBSD MD5']},
+    {regex: /^0x[a-f0-9]{32}$/.source, modes: ['Lineage II C4']},
+    {regex: /^\$H\$[a-zA-Z0-9\/.]{31}$/.source, modes: ['phpBB v3.x', 'Wordpress v2.6.0/2.6.1', "PHPass' Portable Hash"]},
+    {regex: /^\$P\$[a-zA-Z0-9\/.]{31}$/.source, modes: ['Wordpress >= v2.6.2', 'Joomla >= v2.5.18', "PHPass' Portable Hash"]},
+    {regex: /^[a-f0-9]{32}:[a-zA-Z0-9]{2}$/.source, modes: ['osCommerce', 'xt:Commerce']},
+    {regex: /^\$apr1\$[a-zA-Z0-9\/.]{0,8}\$[a-zA-Z0-9\/.]{22}$/.source, modes: ['MD5(APR)', 'Apache MD5', 'md5apr1']},
+    {regex: /^{smd5}[a-zA-Z0-9$\/.]{31}$/.source, modes: ['AIX(smd5)']},
+    {regex: /^[a-f0-9]{32}:[a-f0-9]{32}$/.source, modes: ['WebEdition CMS']},
+    {regex: /^[a-f0-9]{32}:.{5}$/.source, modes: ['IP_Board >= v2+']},
+    {regex: /^[a-f0-9]{32}:.{8}$/.source, modes: ['MyBB >= v1_2+']},
+    {regex: /^[a-zA-Z0-9]{34}$/.source, modes: ['CryptoCurrency(Adress)']},
+    {regex: /^[a-f0-9]{40}(:.+)?$/.source, modes: ['SHA-1', 'Double SHA-1', 'RIPEMD-160', 'Haval-160', 'Tiger-160', 'HAS-160', 'LinkedIn', 'Skein-256(160)', 'Skein-512(160)', 'MangosWeb Enhanced CMS', 'sha1(sha1(sha1($pass)))', 'sha1(md5($pass))', 'sha1($pass_$salt)', 'sha1($salt_$pass)', 'sha1(unicode($pass)_$salt)', 'sha1($salt_unicode($pass))', 'HMAC-SHA1 (key = $pass)', 'HMAC-SHA1 (key = $salt)', 'sha1($salt_$pass_$salt)']},
+    {regex: /^\*[a-f0-9]{40}$/.source, modes: ['MySQL5_x', 'MySQL4_1']},
+    {regex: /^[a-zA-Z0-9]{43}$/.source, modes: ['Cisco-IOS(SHA-256)']},
+    {regex: /^{SSHA}[a-zA-Z0-9\/+]{38}==$/.source, modes: ['SSHA-1(Base64)', 'Netscape LDAP SSHA', 'nsldaps']},
+    {regex: /^[a-zA-Z0-9=]{47}$/.source, modes: ['Fortigate(FortiOS)']},
+    {regex: /^[a-f0-9]{48}$/.source, modes: ['Haval-192', 'Tiger-192', 'SHA-1(Oracle)', 'OSX v10_4', 'OSX v10_5', 'OSX v10_6']},
+    {regex: /^[a-f0-9]{51}$/.source, modes: ['Palshop CMS']},
+    {regex: /^[a-zA-Z0-9]{51}$/.source, modes: ['CryptoCurrency(PrivateKey)']},
+    {regex: /^{ssha1}[0-9]{2}\$[a-zA-Z0-9$\/.]{44}$/.source, modes: ['AIX(ssha1)']},
+    {regex: /^0x0100[a-f0-9]{48}$/.source, modes: ['MSSQL(2005)', 'MSSQL(2008)']},
+    {regex: /^(\$md5,rounds=[0-9]+\$|\$md5\$rounds=[0-9]+\$|\$md5\$)[a-zA-Z0-9\/.]{0,16}(\$|\$\$)[a-zA-Z0-9\/.]{22}$/.source, modes: ['Sun MD5 Crypt']},
+    {regex: /^[a-f0-9]{56}$/.source, modes: ['SHA-224', 'Haval-224', 'SHA3-224', 'Skein-256(224)', 'Skein-512(224)']},
+    {regex: /^(\$2[axy]|\$2)\$[0-9]{2}\$[a-zA-Z0-9\/.]{53}$/.source, modes: ['Blowfish(OpenBSD)', 'Woltlab Burning Board 4_x', 'bcrypt']},
+    {regex: /^[a-f0-9]{40}:[a-f0-9]{16}$/.source, modes: ['Android PIN']},
+    {regex: /^(S:)?[a-f0-9]{40}(:)?[a-f0-9]{20}$/.source, modes: ['Oracle 11g/12c']},
+    {regex: /^\$bcrypt-sha256\$(2[axy]|2),[0-9]+\$[a-zA-Z0-9\/.]{22}\$[a-zA-Z0-9\/.]{31}$/.source, modes: ['bcrypt(SHA-256)']},
+    {regex: /^[a-f0-9]{32}:.{3}$/.source, modes: ['vBulletin < v3_8_5']},
+    {regex: /^[a-f0-9]{32}:.{30}$/.source, modes: ['vBulletin >= v3_8_5']},
+    {regex: /^(\$snefru\$)?[a-f0-9]{64}$/.source, modes: ['Snefru-256']},
+    {regex: /^[a-f0-9]{64}(:.+)?$/.source, modes: ['SHA-256', 'RIPEMD-256', 'Haval-256', 'GOST R 34_11-94', 'GOST CryptoPro S-Box', 'SHA3-256', 'Skein-256', 'Skein-512(256)', 'Ventrilo', 'sha256($pass_$salt)', 'sha256($salt_$pass)', 'sha256(unicode($pass)_$salt)', 'sha256($salt_unicode($pass))', 'HMAC-SHA256 (key = $pass)', 'HMAC-SHA256 (key = $salt)']},
+    {regex: /^[a-f0-9]{32}:[a-zA-Z0-9]{32}$/.source, modes: ['Joomla < v2_5_18']},
+    {regex: /^[a-f-0-9]{32}:[a-f-0-9]{32}$/.source, modes: ['SAM(LM_Hash:NT_Hash)']},
+    {regex: /^(\$chap\$0\*)?[a-f0-9]{32}[*:][a-f0-9]{32}(:[0-9]{2})?$/.source, modes: ['MD5(Chap)', 'iSCSI CHAP Authentication']},
+    {regex: /^\$episerver\$\*0\*[a-zA-Z0-9\/=+]+\*[a-zA-Z0-9\/=+]{27,28}$/.source, modes: ['EPiServer 6_x < v4']},
+    {regex: /^{ssha256}[0-9]{2}\$[a-zA-Z0-9$\/.]{60}$/.source, modes: ['AIX(ssha256)']},
+    {regex: /^[a-f0-9]{80}$/.source, modes: ['RIPEMD-320']},
+    {regex: /^\$episerver\$\*1\*[a-zA-Z0-9\/=+]+\*[a-zA-Z0-9\/=+]{42,43}$/.source, modes: ['EPiServer 6_x >= v4']},
+    {regex: /^0x0100[a-f0-9]{88}$/.source, modes: ['MSSQL(2000)']},
+    {regex: /^[a-f0-9]{96}$/.source, modes: ['SHA-384', 'SHA3-384', 'Skein-512(384)', 'Skein-1024(384)']},
+    {regex: /^{SSHA512}[a-zA-Z0-9\/+]{96}$/.source, modes: ['SSHA-512(Base64)', 'LDAP(SSHA-512)']},
+    {regex: /^{ssha512}[0-9]{2}\$[a-zA-Z0-9\/.]{16,48}\$[a-zA-Z0-9\/.]{86}$/.source, modes: ['AIX(ssha512)']},
+    {regex: /^[a-f0-9]{128}(:.+)?$/.source, modes: ['SHA-512', 'Whirlpool', 'Salsa10', 'Salsa20', 'SHA3-512', 'Skein-512', 'Skein-1024(512)', 'sha512($pass_$salt)', 'sha512($salt_$pass)', 'sha512(unicode($pass)_$salt)', 'sha512($salt_unicode($pass))', 'HMAC-SHA512 (key = $pass)', 'HMAC-SHA512 (key = $salt)']},
+    {regex: /^[a-f0-9]{136}$/.source, modes: ['OSX v10_7']},
+    {regex: /^0x0200[a-f0-9]{136}$/.source, modes: ['MSSQL(2012)', 'MSSQL(2014)']},
+    {regex: /^\$ml\$[0-9]+\$[a-f0-9]{64}\$[a-f0-9]{128}$/.source, modes: ['OSX v10_8', 'OSX v10_9']},
+    {regex: /^[a-f0-9]{256}$/.source, modes: ['Skein-1024']},
+    {regex: /^grub\.pbkdf2\.sha512\.[0-9]+\.([a-f0-9]{128,2048}\.|[0-9]+\.)?[a-f0-9]{128}$/.source, modes: ['GRUB 2']},
+    {regex: /^sha1\$[a-zA-Z0-9]+\$[a-f0-9]{40}$/.source, modes: ['Django(SHA-1)']},
+    {regex: /^[a-f0-9]{49}$/.source, modes: ['Citrix Netscaler']},
+    {regex: /^\$S\$[a-zA-Z0-9\/.]{52}$/.source, modes: ['Drupal > v7_x']},
+    {regex: /^\$5\$(rounds=[0-9]+\$)?[a-zA-Z0-9\/.]{0,16}\$[a-zA-Z0-9\/.]{43}$/.source, modes: ['SHA-256 Crypt']},
+    {regex: /^0x[a-f0-9]{4}[a-f0-9]{16}[a-f0-9]{64}$/.source, modes: ['Sybase ASE']},
+    {regex: /^\$6\$(rounds=[0-9]+\$)?[a-zA-Z0-9\/.]{0,16}\$[a-zA-Z0-9\/.]{86}$/.source, modes: ['SHA-512 Crypt']},
+    {regex: /^\$sha\$[a-zA-Z0-9]{1,16}\$([a-f0-9]{32}|[a-f0-9]{40}|[a-f0-9]{64}|[a-f0-9]{128}|[a-f0-9]{140})$/.source, modes: ['Minecraft(AuthMe Reloaded)']},
+    {regex: /^sha256\$[a-zA-Z0-9]+\$[a-f0-9]{64}$/.source, modes: ['Django(SHA-256)']},
+    {regex: /^sha384\$[a-zA-Z0-9]+\$[a-f0-9]{96}$/.source, modes: ['Django(SHA-384)']},
+    {regex: /^crypt1:[a-zA-Z0-9+=]{12}:[a-zA-Z0-9+=]{12}$/.source, modes: ['Clavister Secure Gateway']},
+    {regex: /^[a-f0-9]{112}$/.source, modes: ['Cisco VPN Client(PCF-File)']},
+    {regex: /^[a-f0-9]{1329}$/.source, modes: ['Microsoft MSTSC(RDP-File)']},
+    {regex: /^[^\\\/:*?"<>|]{1,20}[:]{2,3}([^\\\/:*?"<>|]{1,20})?:[a-f0-9]{48}:[a-f0-9]{48}:[a-f0-9]{16}$/.source, modes: ['NetNTLMv1-VANILLA / NetNTLMv1+ESS']},
+    {regex: /^([^\\\/:*?"<>|]{1,20}\\)?[^\\\/:*?"<>|]{1,20}[:]{2,3}([^\\\/:*?"<>|]{1,20}:)?[^\\\/:*?"<>|]{1,20}:[a-f0-9]{32}:[a-f0-9]+$/.source, modes: ['NetNTLMv2']},
+    {regex: /^\$(krb5pa|mskrb5)\$([0-9]{2})?\$.+\$[a-f0-9]{1,}$/.source, modes: ['Kerberos 5 AS-REQ Pre-Auth']},
+    {regex: /^\$scram\$[0-9]+\$[a-zA-Z0-9\/.]{16}\$sha-1=[a-zA-Z0-9\/.]{27},sha-256=[a-zA-Z0-9\/.]{43},sha-512=[a-zA-Z0-9\/.]{86}$/.source, modes: ['SCRAM Hash']},
+    {regex: /^[a-f0-9]{40}:[a-f0-9]{0,32}$/.source, modes: ['Redmine Project Management Web App']},
+    {regex: /^(.+)?\$[a-f0-9]{16}$/.source, modes: ['SAP CODVN B (BCODE)']},
+    {regex: /^(.+)?\$[a-f0-9]{40}$/.source, modes: ['SAP CODVN F/G (PASSCODE)']},
+    {regex: /^(.+\$)?[a-zA-Z0-9\/.+]{30}(:.+)?$/.source, modes: ['Juniper Netscreen/SSG(ScreenOS)']},
+    {regex: /^0x[a-f0-9]{60}\s0x[a-f0-9]{40}$/.source, modes: ['EPi']},
+    {regex: /^[a-f0-9]{40}:[^*]{1,25}$/.source, modes: ['SMF >= v1_1']},
+    {regex: /^(\$wbb3\$\*1\*)?[a-f0-9]{40}[:*][a-f0-9]{40}$/.source, modes: ['Woltlab Burning Board 3_x']},
+    {regex: /^[a-f0-9]{130}(:[a-f0-9]{40})?$/.source, modes: ['IPMI2 RAKP HMAC-SHA1']},
+    {regex: /^[a-f0-9]{32}:[0-9]+:[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$/.source, modes: ['Lastpass']},
+    {regex: /^[a-zA-Z0-9\/.]{16}([:$].{1,})?$/.source, modes: ['Cisco-ASA(MD5)']},
+    {regex: /^\$vnc\$\*[a-f0-9]{32}\*[a-f0-9]{32}$/.source, modes: ['VNC']},
+    {regex: /^[a-zA-Z0-9]{32}(:([a-zA-Z0-9-]+\.)?[a-zA-Z0-9-.]+\.[a-z]{2,7}:.+:[0-9]+)?$/.source, modes: ['DNSSEC(NSEC3)']},
+    {regex: /^[a-vA-V0-9]{32}(\.[a-zA-Z0-9-.]*)?$/.source, modes: ['DNSSEC(NSEC3)']}, // https://www.ietf.org/rfc/rfc5155.txt Base 32 Encoding with Extended Hex Alphabet for hash owner name
+    {regex: /^(user-.+:)?\$racf\$\*.+\*[a-f0-9]{16}$/.source, modes: ['RACF']},
+    {regex: /^\$3\$\$[a-f0-9]{32}$/.source, modes: ['NTHash(FreeBSD Variant)']},
+    {regex: /^\$sha1\$[0-9]+\$[a-zA-Z0-9\/.]{0,64}\$[a-zA-Z0-9\/.]{28}$/.source, modes: ['SHA-1 Crypt']},
+    {regex: /^[a-f0-9]{70}$/.source, modes: ['hMailServer']},
+    {regex: /^[:$][AB][:$]([a-f0-9]{1,8}[:$])?[a-f0-9]{32}$/.source, modes: ['MediaWiki']},
+    {regex: /^[a-f0-9]{140}$/.source, modes: ['Minecraft(xAuth)']},
+    {regex: /^\$pbkdf2(-sha1)?\$[0-9]+\$[a-zA-Z0-9\/.]+\$[a-zA-Z0-9\/.]{27}$/.source, modes: ['PBKDF2-SHA1(Generic)']},
+    {regex: /^\$pbkdf2-sha256\$[0-9]+\$[a-zA-Z0-9\/.]+\$[a-zA-Z0-9\/.]{43}$/.source, modes: ['PBKDF2-SHA256(Generic)']},
+    {regex: /^\$pbkdf2-sha512\$[0-9]+\$[a-zA-Z0-9\/.]+\$[a-zA-Z0-9\/.]{86}$/.source, modes: ['PBKDF2-SHA512(Generic)']},
+    {regex: /^\$p5k2\$[0-9]+\$[a-zA-Z0-9\/+=-]+\$[a-zA-Z0-9\/+-]{27}=$/.source, modes: ['PBKDF2(Cryptacular)']},
+    {regex: /^\$p5k2\$[0-9]+\$[a-zA-Z0-9\/.]+\$[a-zA-Z0-9\/.]{32}$/.source, modes: ['PBKDF2(Dwayne Litzenberger)']},
+    {regex: /^{FSHP[0123]\|[0-9]+\|[0-9]+}[a-zA-Z0-9\/+=]+$/.source, modes: ['Fairly Secure Hashed Password']},
+    {regex: /^\$PHPS\$.+\$[a-f0-9]{32}$/.source, modes: ['PHPS']},
+    {regex: /^[0-9]{4}:[a-f0-9]{16}:[a-f0-9]{2080}$/.source, modes: ['1Password(Agile Keychain)']},
+    {regex: /^[a-f0-9]{64}:[a-f0-9]{32}:[0-9]{5}:[a-f0-9]{608}$/.source, modes: ['1Password(Cloud Keychain)']},
+    {regex: /^[a-f0-9]{256}:[a-f0-9]{256}:[a-f0-9]{16}:[a-f0-9]{16}:[a-f0-9]{320}:[a-f0-9]{16}:[a-f0-9]{40}:[a-f0-9]{40}:[a-f0-9]{32}$/.source, modes: ['IKE-PSK MD5']},
+    {regex: /^[a-f0-9]{256}:[a-f0-9]{256}:[a-f0-9]{16}:[a-f0-9]{16}:[a-f0-9]{320}:[a-f0-9]{16}:[a-f0-9]{40}:[a-f0-9]{40}:[a-f0-9]{40}$/.source, modes: ['IKE-PSK SHA1']},
+    {regex: /^[a-zA-Z0-9\/+]{27}=$/.source, modes: ['PeopleSoft']},
+    {regex: /^crypt\$[a-f0-9]{5}\$[a-zA-Z0-9\/.]{13}$/.source, modes: ['Django(DES Crypt Wrapper)']},
+    {regex: /^(\$django\$\*1\*)?pbkdf2_sha256\$[0-9]+\$[a-zA-Z0-9]+\$[a-zA-Z0-9\/+=]{44}$/.source, modes: ['Django(PBKDF2-HMAC-SHA256)']},
+    {regex: /^pbkdf2_sha1\$[0-9]+\$[a-zA-Z0-9]+\$[a-zA-Z0-9\/+=]{28}$/.source, modes: ['Django(PBKDF2-HMAC-SHA1)']},
+    {regex: /^bcrypt(\$2[axy]|\$2)\$[0-9]{2}\$[a-zA-Z0-9\/.]{53}$/.source, modes: ['Django(bcrypt)']},
+    {regex: /^md5\$[a-f0-9]+\$[a-f0-9]{32}$/.source, modes: ['Django(MD5)']},
+    {regex: /^\{PKCS5S2\}[a-zA-Z0-9\/+]{64}$/.source, modes: ['PBKDF2(Atlassian)']},
+    {regex: /^md5[a-f0-9]{32}$/.source, modes: ['PostgreSQL MD5']},
+    {regex: /^\([a-zA-Z0-9\/+]{49}\)$/.source, modes: ['Lotus Notes/Domino 8']},
+    {regex: /^SCRYPT:[0-9]{1,}:[0-9]{1}:[0-9]{1}:[a-zA-Z0-9:\/+=]{1,}$/.source, modes: ['scrypt']},
+    {regex: /^\$8\$[a-zA-Z0-9\/.]{14}\$[a-zA-Z0-9\/.]{43}$/.source, modes: ['Cisco Type 8']},
+    {regex: /^\$9\$[a-zA-Z0-9\/.]{14}\$[a-zA-Z0-9\/.]{43}$/.source, modes: ['Cisco Type 9']},
+    {regex: /^\$office\$\*2007\*[0-9]{2}\*[0-9]{3}\*[0-9]{2}\*[a-zA-Z0-9]{32}\*[a-zA-Z0-9]{32}\*[a-zA-Z0-9]{40}$/.source, modes: ['Microsoft Office 2007']},
+    {regex: /^\$office\$\*2010\*[0-9]{6}\*[0-9]{3}\*[0-9]{2}\*[a-zA-Z0-9]{32}\*[a-zA-Z0-9]{32}\*[a-zA-Z0-9]{64}$/.source, modes: ['Microsoft Office 2010']},
+    {regex: /^\$office\$\*2013\*[0-9]{6}\*[0-9]{3}\*[0-9]{2}\*[a-zA-Z0-9]{32}\*[a-zA-Z0-9]{32}\*[a-zA-Z0-9]{64}$/.source, modes: ['Microsoft Office 2013']},
+    {regex: /^\$fde\$[0-9]{2}\$[a-f0-9]{32}\$[0-9]{2}\$[a-f0-9]{32}\$[a-f0-9]{3072}$/.source, modes: ['Android FDE <= 4_3']},
+    {regex: /^\$oldoffice\$[01]\*[a-f0-9]{32}\*[a-f0-9]{32}\*[a-f0-9]{32}$/.source, modes: ['Microsoft Office <= 2003 (MD5+RC4)', 'Microsoft Office <= 2003 (MD5+RC4) collider-mode #1', 'Microsoft Office <= 2003 (MD5+RC4) collider-mode #2']},
+    {regex: /^\$oldoffice\$[34]\*[a-f0-9]{32}\*[a-f0-9]{32}\*[a-f0-9]{40}$/.source, modes: ['Microsoft Office <= 2003 (SHA1+RC4)', 'Microsoft Office <= 2003 (SHA1+RC4) collider-mode #1', 'Microsoft Office <= 2003 (SHA1+RC4) collider-mode #2']},
+    {regex: /^(\$radmin2\$)?[a-f0-9]{32}$/.source, modes: ['RAdmin v2_x']},
+    {regex: /^{x-issha,\s[0-9]{4}}[a-zA-Z0-9\/+=]+$/.source, modes: ['SAP CODVN H (PWDSALTEDHASH) iSSHA-1']},
+    {regex: /^\$cram_md5\$[a-zA-Z0-9\/+=-]+\$[a-zA-Z0-9\/+=-]{52}$/.source, modes: ['CRAM-MD5']},
+    {regex: /^[a-f0-9]{16}:2:4:[a-f0-9]{32}$/.source, modes: ['SipHash']},
+    {regex: /^[a-f0-9]{4,}$/.source, modes: ['Cisco Type 7']},
+    {regex: /^[a-zA-Z0-9\/+]{2}([a-zA-Z0-9\/+.]{11})+$/.source, modes: ['BigCrypt']},
+    {regex: /^(\$cisco4\$)?[a-zA-Z0-9\/.]{43}$/.source, modes: ['Cisco Type 4']},
+    {regex: /^bcrypt_sha256\$\$(2[axy]|2)\$[0-9]+\$[a-zA-Z0-9\/.]{53}$/.source, modes: ['Django(bcrypt-SHA256)']},
+    {regex: /^\$postgres\$.[^\*]+[*:][a-f0-9]{1,32}[*:][a-f0-9]{32}$/.source, modes: ['PostgreSQL Challenge-Response Authentication (MD5)']},
+    {regex: /^\$siemens-s7\$[0-9]{1}\$[a-f0-9]{40}\$[a-f0-9]{40}$/.source, modes: ['Siemens-S7']},
+    {regex: /^(\$pst\$)?[a-f0-9]{8}$/.source, modes: ['Microsoft Outlook PST']},
+    {regex: /^sha256[:$][0-9]+[:$][a-zA-Z0-9\/+]+[:$][a-zA-Z0-9\/+]{32,128}$/.source, modes: ['PBKDF2-HMAC-SHA256(PHP)']},
+    {regex: /^(\$dahua\$)?[a-zA-Z0-9]{8}$/.source, modes: ['Dahua']},
+    {regex: /^\$mysqlna\$[a-f0-9]{40}[:*][a-f0-9]{40}$/.source, modes: ['MySQL Challenge-Response Authentication (SHA1)']},
+    {regex: /^\$pdf\$[24]\*[34]\*128\*[0-9-]{1,5}\*1\*(16|32)\*[a-f0-9]{32,64}\*32\*[a-f0-9]{64}\*(8|16|32)\*[a-f0-9]{16,64}$/.source, modes: ['PDF 1.4 - 1.6 (Acrobat 5 - 8)']}
 ];
 
 // ===== INIT =====
 
 var HashIdentifierInspector:InspectorFactory = new InspectorFactory({
     startStep: INSPECTOR_TYPE.POST_DEV_SCAN,
-    version: "1.0.0",
-    tags: hashIndentifierTags,
+    version: "1.0.29",
+    tags: hashIdentifierTags,
     hookSet: {
         id: "HashIdentifier",
         name: "Hash Identifier",
         description: "Identify some hash function from a hash value",
         strategies:[]
     },
-
+    color: JSON.stringify(regexToHash),
     eventListenerSources: {
-        "string.instance.raw": {
+        "string.instance.new": {
             lang: "ts",
             source: `
-                // <ts>        
-                const ctx = pEvent.getContext();
-                if(pEvent.data!=null){
-                    for (let hash_regex in regexToHash) {
-                        if(hash_regex['regex'].test(pEvent.data.value)){
-                            for (let tagName in hash_regex['modes']) {
-                                pEvent.data.addTag(ctx.getTagManager().getTag(tagName));
+                //<ts>={
+                let ctx: Record<string,any> = pEvent.getContext();
+                const hashId: string = "HashIdentifier";
+                let matchedHashes = new Set<string>();
+                if ((pEvent.getData() != null) && (pEvent.getData().value != null)) {
+                    //TODO: Can be not safe to retrieve the HASH_TAG_CATEGORY_NAME through this path:
+                    //const hashTagCategoryName = ctx.getInspectors()[hashId].factory.itags[0]['name'];
+                    const hashTagCategoryName = "crypto.hash";
+                    var regexToHash = JSON.parse(ctx.getInspectors()[hashId].factory.color);
+                    regexToHash.forEach( (regex_hash_dict) => {
+                        if (new RegExp(regex_hash_dict['regex']).test(pEvent.getData().value)) {
+                            regex_hash_dict['modes'].forEach( (hash) => {
+                                var hashTagId = hashTagCategoryName + '.' + hash.toString();
+                                matchedHashes.add(hashTagId);
                             }
                         }
                     }
-                }
-            `
-        },
-        "model.string.new": {
-            lang: "ts",
-            source: `
-                // <ts>        
-                const ctx = pEvent.getContext();
-                if(pEvent.data!=null){
-                    for (let hash_regex in regexToHash) {
-                        if(hash_regex['regex'].test(pEvent.data.value)){
-                            for (let tagName in hash_regex['modes']) {
-                                pEvent.data.addTag(ctx.getTagManager().getTag(tagName));
-                            }
+                    if (matchedHashes.size >= 1) {
+                        // console.log('-HashDetected- ADD tags to data :', pEvent.getData().value);
+                        matchedHashes.forEach( (hashTagId) => {
+                            // console.log('Tag:', hashTagId);
+                            pEvent.getData().addTag(ctx.getTagManager().getTag(hashTagId));
                         }
                     }
                 }

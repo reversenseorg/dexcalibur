@@ -71,6 +71,7 @@
   "scripts": {
     "prepare": "npm run build",
     "build": "node ./scripts/run_os_script.mjs build",
+    "build:dxsecurity:dev": "node ./scripts/run_os_script.mjs build && cp -r $PWD/../dexcalibur-agent/dist $PWD/dist/agent && ln -s $HOME/WebstormProjects/dxc-ui-reverse/dist/dxc-ui-reverse $PWD/dist/src/webserver/www/pro",
     "build:dxprivacy:dev": "node ./scripts/run_os_script.mjs build && cp -r $PWD/../dexcalibur-agent/dist $PWD/dist/agent && ln -s $HOME/dxc/dexcalibur-home/dist/dexcalibur-home $PWD/dist/src/webserver/www/home && ln -s $HOME/dxc/dxc-ui-reverse/dist/dxc-ui-reverse $PWD/dist/src/webserver/www/pro",
     "build:oracle:dev": "node ./scripts/run_os_script.mjs build && cp -r $PWD/../dexcalibur-agent/dist $PWD/dist/agent && ln -s $HOME/dxc/dexcalibur-home/dist/dexcalibur-home $PWD/dist/src/webserver/www/home && ln -s $HOME/dxc/dxc-ui-oracle/dist/dxc-ui-oracle $PWD/dist/src/webserver/www/oracle && ln -s $HOME/dxc/dxc-ui-reverse/dist/dxc-ui-reverse $PWD/dist/src/webserver/www/pro",
     "build:dev": "./build.sh && cp -r $PWD/../dexcalibur-agent/dist $PWD/dist/agent && ln -s $HOME/WebstormProjects/dexcalibur-home/dist/dexcalibur-home $PWD/dist/src/webserver/www/home && ln -s $PWD/../../dxc-ui-reverse/dist/dxc-ui-reverse $PWD/dist/src/webserver/www/pro  ",

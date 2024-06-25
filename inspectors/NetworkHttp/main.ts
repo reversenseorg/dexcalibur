@@ -104,6 +104,60 @@ var NetworkHttpInspector:InspectorFactory = new InspectorFactory({
                             }
                         );
                 `
+            },
+            {
+                name: "Retrofit_Response",
+                descr: "A Retrofit Response is forged from the Okhttp3 Response.",
+                search: {
+                    type: ModelMethod.TYPE.getName(),
+                    req: `method("enclosingClass.name:/^com.squareup.retrofit2.Response$/").filter("name:<init>")`
+                },
+                autoEmit: true,
+                emitEvent: "network.http.response.receive",
+                after: `
+                    //<ts>={
+                    if(ret != null){
+                        var eventData : Record<string, any> = {};
+                        eventData["code"] = ret.code();
+                        eventData["message"] = ret.message();
+                        eventData["headers"] = ret.headers().toString() ;
+                        eventData["isSuccessful"] = ret.isSuccessful();
+                        eventData["body"] = (ret.body() || '').toString();
+                        eventData["errorBody"] = (ret.errorBody() || '').toString();
+                        // eventData["rawResponse"] = ret.toString();
+                        
+                        DXC.send(
+                            "@@__HOOK_ID__@@",
+                            "@@__FRAG_ID__@@",
+                            eventData
+                        );
+                    }
+                `
+            },
+            {
+                name: "Retrofit_Invocation",
+                descr: "A single invocation of a Retrofit service interface method. This class captures both the method\n" +
+                    " that was called and the arguments to the method",
+                search: {
+                    type: ModelMethod.TYPE.getName(),
+                    req: `method("enclosingClass.name:/^com.squareup.retrofit2.Invocation$/").filter("name:<init>")`
+                },
+                autoEmit: true,
+                emitEvent: "network.retrofit.invocation.init",
+                before: `
+                    //<ts>={
+                    var eventData : Record<string, any> = {};
+                    data['arg0_service'] = arguments[0].toString();
+                    data['arg1_instance'] = (arguments[1] || '').toString();
+                    data['arg2_method'] = arguments[2].toString();
+                    data['arg3_arguments'] = arguments[3];
+                    
+                    DXC.send(
+                        "@@__HOOK_ID__@@",
+                        "@@__FRAG_ID__@@",
+                        eventData
+                    );
+                `
             }
         ]
     },

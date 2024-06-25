@@ -1,12 +1,6 @@
 import {INSPECTOR_TYPE} from "../../src/Inspector.js";
 import InspectorFactory from "../../src/InspectorFactory.js";
-import DexcaliburProject from "../../src/DexcaliburProject.js";
-import BusEvent from "../../src/BusEvent.js";
-import * as Log from "../../src/Logger.js";
 import ModelMethod from "../../src/ModelMethod.js";
-
-
-let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
 // ===== INIT =====
 
@@ -15,7 +9,7 @@ var FirebaseInspector:InspectorFactory = new InspectorFactory({
     startStep: INSPECTOR_TYPE.POST_APP_SCAN,
 
     description: "Anything related to Firebase",
-    version: "1.0.6",
+    version: "1.0.8",
     hookSet: {
         id: "Firebase",
         name: "Firebase",
@@ -42,7 +36,7 @@ var FirebaseInspector:InspectorFactory = new InspectorFactory({
                         msg = arg0;
                     else
                         msg = "<unknow>";
-        
+                    printTest();
         
                     DXC.send(
                         "@@__HOOK_ID__@@",
@@ -66,6 +60,7 @@ var FirebaseInspector:InspectorFactory = new InspectorFactory({
                 arguments.map((x:any,i:number) => {
                     o['arg'+i] = x; 
                 });
+                printTest();
                 
                 DXC.send("@@__HOOK_ID__@@","@@__FRAG_ID__@@",o);    
             `

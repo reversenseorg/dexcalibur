@@ -4,6 +4,7 @@ export function newTagPresets(){
     const GLOBAL = new TagCategory({ name: "global" });
     const DATA_TYPE = new TagCategory({ name: "data.type" });
     const DATA_HASH = new TagCategory({ name: "data.hash" });
+    const CRYPTO_HASH = new TagCategory({ name: "crypto.hash" });
     const DATA_LEN = new TagCategory({ name: "data.len" });
     const DATA_ACTION = new TagCategory({ name: "data.action" });
     const DATA_CHARSET = new TagCategory({ name: "data.charset" });
