@@ -22,7 +22,7 @@ import ProjectWorkspace from "./ProjectWorkspace.js";
 import * as Log from './Logger.js';
 import {HookManager} from "./hook/HookManager.js";
 import Inspector, {INSPECTOR_TYPE} from "./Inspector.js";
-import InspectorManager, {InspectorMap} from "./InspectorManager.js";
+import InspectorManager, {InspectorMap, InspectorUninstallOptions} from "./InspectorManager.js";
 import {DexcaliburVM} from "./DexcaliburVM.js";
 import Simplifier from "./Simplifier.js";
 import SmaliDisassembler from "./SmaliDisassembler.js";
@@ -88,6 +88,7 @@ import {ProjectInput} from "./analyzer/ProjectInput.js";
 import {Subject} from "rxjs";
 import * as _fs_ from "node:fs";
 import {ModelAPI} from "./ModelAPI.js";
+import InspectorFactory from "./InspectorFactory.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -2819,6 +2820,19 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
         return pUnsafe.replaceAll(".","_");
     }
 
+    /**
+     * To uninstall everything related to an inspector
+     *
+     * @param pInspectorFactory
+     */
+    async uninstallInspector(pInspectorFactory: InspectorFactory, pRemoveOptions:InspectorUninstallOptions):Promise<void> {
+
+        // remove inspector hooks, hookset, fragment
+
+        // r
+        //this.getProjectDB().removeInspector(pInspectorFactory.getUID());
+        //this.getProjectDB().removeInspectorPlugin(pInspectorFactory.getUID());
+    }
 }
 DexcaliburProject.TYPE.builder(DexcaliburProject);
 

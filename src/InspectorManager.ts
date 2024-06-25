@@ -29,6 +29,9 @@ let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
 var gInstance:InspectorManager = null;
 
+export interface InspectorUninstallOptions {
+    keepTags:boolean;
+}
 
 export interface InspectorMap {
     [inspectorID :string] :Inspector;
@@ -495,6 +498,16 @@ export default class InspectorManager
             }catch(err){
                 this.engine.log("State of inspector ["+factories[i].getUID()+"] cannot be restored. ", pProject, err.code);
                 console.log(err.message,err.stack);
+
+                if(factories[i].id){
+                    // is a factory cannot be restored, it must be removed
+                    try {
+                        this.uninstallInspector(pProject, factories[i]);
+                    }catch(e){
+                        console.log(e.message,e.stack);
+                    }
+
+                }
             }
 
         }
@@ -946,5 +959,15 @@ export default class InspectorManager
         // update hook strategy
 
         // mark existing hook strategy and related hooks as "deprecated" or "modified"
+    }
+
+    async uninstallInspector(pProject: DexcaliburProject, inspectorFactory: InspectorFactory):Promise<void> {
+        if(this.projects[pProject.getUID()]==null || this.projects[pProject.getUID()][inspectorFactory.id]==null){
+            return ;
+        }
+
+        // remove inspector from project
+        await pProject.uninstallInspector(inspectorFactory, {keepTags:true});
+
     }
 }

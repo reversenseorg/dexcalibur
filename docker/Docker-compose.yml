@@ -1,0 +1,83 @@
+version: "3"
+services:
+  # Launch marketplace server
+  marketplace_svc:
+    image: dxc_marketplace_server
+    build:
+      context: ../
+      dockerfile: ./docker/Dockerfile-linux-arm64
+      args:
+        dxc_db_name: marketdb
+        dxc_db_port: 27017
+        dxc_db_host: mongodb
+        dxc_web_ssl_enforce: false
+       # dxc_web_ssl_cert: dxc_onprem.crt
+       # dxc_web_ssl_key: dxc_onprem.key
+        dxc_web_http_port: 8090
+        dxc_web_https_port: 0
+        user_server: market
+        uid: 1338
+        gid: 1338
+        gname: "market_user"
+    ports:
+      - "0.0.0.0:8090:8090"
+    depends_on:
+      - mongodb
+    volumes:
+      - /Users/melon/dxc_infra/marketplace/tmp:/uploads
+      - /Users/melon/dxc_infra/marketplace/storage:/storage
+      - /Users/melon/dxc_infra/marketplace/certs:/certs
+      - ./credentials:/credentials
+    networks:
+      - db_network
+
+
+  # launch signature server
+  signatures_svc:
+    image: dxc_marketplace_server
+    build:
+      context: ../
+      dockerfile: ./docker/Dockerfile-linux-arm64
+      args:
+        dxc_db_name: marketdb
+        dxc_db_port: 27017
+        dxc_db_host: mongodb
+        dxc_web_ssl_enforce: false
+        # dxc_web_ssl_cert: dxc_onprem.crt
+        # dxc_web_ssl_key: dxc_onprem.key
+        dxc_web_http_port: 8090
+        dxc_web_https_port: 0
+        user_server: market
+        uid: 1338
+        gid: 1338
+        gname: "market_user"
+    ports:
+      - "0.0.0.0:8090:8090"
+    depends_on:
+      - mongodb
+    volumes:
+      - /Users/melon/dxc_infra/marketplace/tmp:/uploads
+      - /Users/melon/dxc_infra/marketplace/storage:/storage
+      - /Users/melon/dxc_infra/marketplace/certs:/certs
+      - ./credentials:/credentials
+    networks:
+      - db_network
+
+  # Launch MongoDB
+  mongodb:
+    image: mongodb/mongodb-community-server:6.0.9-ubi8
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: master
+      MONGO_INITDB_ROOT_PASSWORD: master123
+    expose:
+      - 27017
+    networks:
+      - db_network
+    volumes:
+      - /Users/melon/dxc_infra/marketplace/db:/data/db
+      # - ./docker/init-mongo.js:/docker-entrypoint-initdb.d/init-mongo.js
+
+networks:
+  db_network:
+    driver: bridge
+    name: mongo-network
