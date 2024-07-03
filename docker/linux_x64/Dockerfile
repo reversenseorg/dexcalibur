@@ -22,6 +22,7 @@ ARG user_server=$DXC_USER_SRV
 
 ARG dxc_http_port=8080
 ARG dxc_ws_port=8001
+ARG dxc_heap_size=4096
 
 # Obsolete. Standlone auth have been replaced by SSO
 # ARG dxc_admin="admin"
@@ -32,7 +33,6 @@ ARG marketplace_uri="official"
 
 ARG ANDROID_CMD_VERSION="commandlinetools-linux-10406996_latest.zip"
 
-ARG OFFLINE_IMG
 ARG NODE_HEAP_SIZE
 
 ARG DB_HOST
@@ -45,13 +45,17 @@ ARG DB_URI
 ENV DXC_USER_SRV="dexcalibur-bin"
 ENV DXC_USER_DATA="dexcalibur-data"
 
+ENV DXC_HTTP_PORT=${dxc_http_port}
+ENV DXC_WS_PORT=${dxc_ws_port}
+ENV DXC_HEAP_SZ=${dxc_heap_size}
+
 ENV DEBIAN_FRONTEND=noninteractive
 ENV DXC_V_APKTOOL="2.7.0"
 ENV DXC_V_BAKSMALI="2.5.2"
 
-ENV DXC_V_R2="2.5.2"
-ENV DXC_V_FRIDA="2.5.2"
-ENV DXC_V_BINWALK="2.5.2"
+# ENV DXC_V_R2="2.5.2"
+# ENV DXC_V_FRIDA="2.5.2"
+# ENV DXC_V_BINWALK="2.5.2"
 
 ENV DXC_BASE_PATH=""
 ENV DXC_BUILD_TARGET=""
@@ -65,7 +69,6 @@ ENV ARTIFACTS_FOLDER="$DXC_USER_HOME/artifacts"
 ENV DXC_BIN_FOLDER="$DXC_USER_HOME/tmp"
 ENV ANDROID_SDK_ROOT="$DXC_USER_HOME/android"
 
-ENV OFFLINE_IMG=${OFFLINE_IMG:0}
 
 
 
@@ -180,10 +183,10 @@ RUN ls -la $ARTIFACTS_FOLDER && \
     ls -la
 
 # ===============================
-# Install UIs
+# [REMOVED] Install UIs
 # ===============================
 
-RUN rm -r $ARTIFACTS_FOLDER/dist/src/webserver/www/ && ln -s /www_uis  $ARTIFACTS_FOLDER/dist/src/webserver/www
+# RUN rm -r $ARTIFACTS_FOLDER/dist/src/webserver/www/ && ln -s /www_uis  $ARTIFACTS_FOLDER/dist/src/webserver/www
 
 # ===============================
 # Configure server
@@ -198,9 +201,9 @@ RUN sudo mkdir $DXC_USER_HOME/.dexcalibur $DXC_USER_HOME/workspace && \
         --create-home=$DXC_USER_HOME/.dexcalibur \
         --set-marketplace=$marketplace_uri \
         --create-ws=/workspace \
-        --heap-size=4096 \
-        --http-port=${dxc_http_port} \
-        --ws-port=${dxc_ws_port}
+        --heap-size=$DXC_HEAP_SZ \
+        --http-port=$DXC_HTTP_PORT \
+        --ws-port=$DXC_WS_PORT
 
 
 
