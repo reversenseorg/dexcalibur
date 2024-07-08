@@ -376,7 +376,7 @@ HOOK_WEB_API.addAuthenticatedRoute(
 HOOK_WEB_API.addAuthenticatedRoute(
     '/enable/:hookid',
     {
-        'put': function (req:DelegateRequest, res:DelegateResponse):any {
+        'put': async function (req:DelegateRequest, res:DelegateResponse):Promise<any> {
             const $: WebServer = req.dxc.$;
             let project:DexcaliburProject = null;
             try{
@@ -386,9 +386,10 @@ HOOK_WEB_API.addAuthenticatedRoute(
 
                 if(req.params.hookid=="all"){
 
-                    const hooks:Hook[] = project.hook.list();
+                    const hooks = project.hook.list();
                     for(const i in hooks){
-                        hooks[i].enable();
+                        hooks[i].enable(true);
+                        await project.getHookManager().save(hooks[i]);
                         dev[i] = {enable: hooks[i].isEnable() };
                     }
 
@@ -398,7 +399,8 @@ HOOK_WEB_API.addAuthenticatedRoute(
                         req.params.hookid
                     );
 
-                    hook.enable();
+                    hook.enable(true);
+                    await project.getHookManager().save(hook);
 
                     $.sendSuccess(res, {
                         enable: hook.isEnable()
@@ -420,7 +422,7 @@ HOOK_WEB_API.addAuthenticatedRoute(
 HOOK_WEB_API.addAuthenticatedRoute(
     '/disable/:hookid',
     {
-        'put': function (req:DelegateRequest, res:DelegateResponse):any {
+        'put': async function (req:DelegateRequest, res:DelegateResponse):Promise<any> {
             const $: WebServer = req.dxc.$;
             let project:DexcaliburProject = null;
 
@@ -429,11 +431,14 @@ HOOK_WEB_API.addAuthenticatedRoute(
                 const dev:any={};
 
                 if(req.params.hookid=="all"){
-                    const hooks:Hook[] = project.hook.list();
+                    const hooks = project.hook.list();
                     for(const i in hooks){
-                        hooks[i].disable();
+                        hooks[i].enable(false);
+                        await project.hook.save(hooks[i]);
                         dev[i] = {enable: hooks[i].isEnable() };
                     }
+
+
                     $.sendSuccess(res, dev);
                 }else{
                     const hook:AbstractHook = project.hook.getHookByID(
@@ -441,6 +446,9 @@ HOOK_WEB_API.addAuthenticatedRoute(
                     );
 
                     hook.enable(false);
+
+                    await project.hook.save(hook);
+
                     // collect
                     $.sendSuccess(res, {
                         enable: hook.isEnable()

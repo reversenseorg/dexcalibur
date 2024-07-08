@@ -530,6 +530,7 @@ HookStrategy.TYPE.updateProperties([
     (new NodeProperty("descr")).type(DbDataType.STRING).def(null),
     (new NodeProperty("preprocessor")).type(DbDataType.STRING).def(null),
     (new NodeProperty("on")).type(DbDataType.STRING).def(null),
+    (new NodeProperty("enabled")).type(DbDataType.BOOLEAN).def(true),
     (new NodeProperty("onMatch"))
         .type(DbDataType.STRING)
         .def(null)
@@ -598,6 +599,7 @@ JavaMethodHook.TYPE.updateProperties([
    // (new NodeProperty("_hookset")).single(BookmarkType.TYPE),
     (new NodeProperty("_code")).type(DbDataType.STRING).def(null),
     (new NodeProperty("_time")).type(DbDataType.STRING).def(null),
+    (new NodeProperty("_enabled")).type(DbDataType.BOOLEAN).def(true),
 
     (new NodeProperty("_loadkp")).single(KeyPoint.TYPE),
     (new NodeProperty("_unloadkp")).single(KeyPoint.TYPE),
@@ -686,6 +688,7 @@ SystemCallHook.TYPE.updateProperties([
     (new NodeProperty("_time")).type(DbDataType.STRING).def(null),
     (new NodeProperty("_loadkp")).single(KeyPoint.TYPE),
     (new NodeProperty("_unloadkp")).single(KeyPoint.TYPE),
+    (new NodeProperty("_enabled")).type(DbDataType.BOOLEAN).def(true),
     (new NodeProperty("_after"))
         // .multiple(HookTemplateFragment.TYPE)
         .type(DbDataType.STRING)
@@ -769,6 +772,7 @@ NativeFunctionHook.TYPE.updateProperties([
    // (new NodeProperty("_hookset")).single(BookmarkType.TYPE),
     (new NodeProperty("_loadkp")).single(KeyPoint.TYPE),
     (new NodeProperty("_unloadkp")).single(KeyPoint.TYPE),
+    (new NodeProperty("_enabled")).type(DbDataType.BOOLEAN).def(true),
     (new NodeProperty("_after"))
         // .multiple(HookTemplateFragment.TYPE)
         .type(DbDataType.STRING)
@@ -857,6 +861,7 @@ Inspector.TYPE.updateProperties([
     (new NodeProperty("color")).type(DbDataType.STRING).def(null),
     (new NodeProperty("installed")).type(DbDataType.BOOLEAN).def(null),
     (new NodeProperty("step")).type(DbDataType.STRING).def(INSPECTOR_TYPE.BOOT),
+    (new NodeProperty("enabled")).type(DbDataType.BOOLEAN).def(true),
 ]).dataSource("PROJECT_DB");
 
 TagCategory.TYPE.dataSource("PROJECT_DB");

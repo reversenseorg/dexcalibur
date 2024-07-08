@@ -110,6 +110,10 @@ export class HookManager
     nhooks:NativeFunctionHook[] = [];
     shooks:SystemCallHook[] = [];
 
+
+    /**
+     * @deprecated
+     */
     hooks:Hook[] = [];
 
     hooksets:HookSetList = {};
@@ -1720,8 +1724,15 @@ export class HookManager
      * 
      * @method
      */
-    list():Hook[]{
-        return this.hooks;
+    list():(JavaMethodHook|NativeFunctionHook)[]{
+
+        let hooks:any = this.getJavaHooks();
+
+        hooks = hooks.concat(this.getNativeHooks());
+        //hooks = hooks.concat(this.getObjcHooks());
+        //hooks = hooks.concat(this.getSyscallHooks());
+
+        return hooks;
     }
 
     /**
