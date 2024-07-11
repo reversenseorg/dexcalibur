@@ -29,7 +29,7 @@ export default new InspectorFactory({
 
     description: "Update the application representation with Custom classloader and reflection data",
 
-    version: "1.0.0",
+    version: "1.0.1",
     startStep: INSPECTOR_TYPE.POST_APP_SCAN,
 
     //webapi: DYNAMICLOADER_WEB_API,
@@ -472,7 +472,7 @@ export default new InspectorFactory({
 
             // search if the method exists
 
-            Logger.info("[INSPECTOR][TASK] DynLoaderInspector search Class ", pEvent.data.signature);
+            Logger.info("[INSPECTOR][TASK] DynLoaderInspector search Class ", pEvent.data.fqcn);
             //Logger.info(JSON.stringify(event));
 
         },
