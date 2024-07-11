@@ -543,7 +543,7 @@ var regexToHash = [
 
 var HashIdentifierInspector:InspectorFactory = new InspectorFactory({
     startStep: INSPECTOR_TYPE.POST_DEV_SCAN,
-    version: "1.0.29",
+    version: "1.0.31",
     tags: hashIdentifierTags,
     hookSet: {
         id: "HashIdentifier",
@@ -573,8 +573,8 @@ var HashIdentifierInspector:InspectorFactory = new InspectorFactory({
                         }
                     }
                     if (matchedHashes.size >= 1) {
-                        Logger.info("[INSPECTOR][HASHIDENTIFIER] Hash pattern detected in:", strToTest);
-                        Logger.info("List of possible hashes:", matchedHashes.toString());
+                        console.log("[INSPECTOR][HASHIDENTIFIER] Hash pattern detected in:", strToTest);
+                        console.log("List of possible hashes:", matchedHashes.toString());
                         matchedHashes.forEach( (hashTagId) => {
                             pEvent.getData().addTag(ctx.getTagManager().getTag(hashTagId));
                         }

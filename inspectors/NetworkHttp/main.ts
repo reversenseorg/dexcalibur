@@ -1,6 +1,6 @@
 
 // ===== INIT =====
-import InspectorFactory from "../../src/InspectorFactory.js";
+import InspectorFactory, {FlattenTagCategoryOptions} from "../../src/InspectorFactory.js";
 import {INSPECTOR_TYPE} from "../../src/Inspector.js";
 import * as Log from "../../src/Logger.js";
 import ModelMethod from "../../src/ModelMethod.js";
@@ -19,7 +19,12 @@ var NetworkHttpInspector:InspectorFactory = new InspectorFactory({
 
     startStep: INSPECTOR_TYPE.POST_APP_SCAN,
 
-    version: "1.0.0",
+    version: "1.0.17",
+    tags: [{
+        name: "network.data",
+        _tagsOptions: [
+            {name:"pathName", label:"pathName from Retrofit detection"}]
+    }],
     hookSet: {
         id: "NetworkHttp",
         name: "Network communications (HTTP)",
@@ -135,78 +140,126 @@ var NetworkHttpInspector:InspectorFactory = new InspectorFactory({
                 `
             },
             {
-                name: "Retrofit_Invocation",
-                descr: "A single invocation of a Retrofit service interface method. This class captures both the method\n" +
-                    " that was called and the arguments to the method",
+                name: "Retrofit_requireNonNull_rawResponse",
+                descr: "Hook java.utils.Object requireNonNull to check the message argument",
                 search: {
                     type: ModelMethod.TYPE.getName(),
-                    req: `method("enclosingClass.name:/^com.squareup.retrofit2.Invocation$/").filter("name:<init>")`
+                    req: `method("enclosingClass.name:/^java.utils.Object$/").filter("name:requireNonNull")`
                 },
                 autoEmit: true,
-                emitEvent: "network.retrofit.invocation.init",
+                emitEvent: "hook.retrofit.requireNonNull.rawResponse",
                 before: `
                     //<ts>={
-                    var eventData : Record<string, any> = {};
-                    data['arg0_service'] = arguments[0].toString();
-                    data['arg1_instance'] = (arguments[1] || '').toString();
-                    data['arg2_method'] = arguments[2].toString();
-                    data['arg3_arguments'] = arguments[3];
-                    
-                    DXC.send(
-                        "@@__HOOK_ID__@@",
-                        "@@__FRAG_ID__@@",
-                        eventData
-                    );
+                    if ((arguments.length === 2) && (arguments[1] === "rawResponse == null")) {
+                        var eventData : Record<string, any> = {};
+                        eventData['message'] = 'This requireNonNull may come from RetroFit Response';
+                        // TODO cast rawResponse into okhttp.Response
+                        DXC.send(
+                            "@@__HOOK_ID__@@",
+                            "@@__FRAG_ID__@@",
+                            eventData
+                        );
+                    }
                 `
             }
         ]
     },
 
-    eventListeners: {
-        "network.http.request.build": function(pEvent:BusEvent<HookMessageV2>){
-            if(pEvent.data!=null){
-
-                // TODO : process SBOM
-
-                // process URI
-                // todo : retrieve session ID, be careful with concurrent session
-                let loc:Nullable<ContextLocation> = null;
-                let node:Nullable<INode> = null;
-                let ctx = pEvent.getContext();
-
-                if((pEvent as RuntimeEvent<any>).node.length > 0){
-                    node = (pEvent as RuntimeEvent<any>).node[0] as INode;
-                    loc = {
-                        __: node.__,
-                        uid: node.getUID()
-                        // add arguments position
-                    };
+    // eventListeners: {
+    //     "network.http.request.build": function(pEvent:BusEvent<HookMessageV2>){
+    //         if(pEvent.data!=null){
+    //
+    //             // TODO : process SBOM
+    //
+    //             // process URI
+    //             // todo : retrieve session ID, be careful with concurrent session
+    //             let loc:Nullable<ContextLocation> = null;
+    //             let node:Nullable<INode> = null;
+    //             let ctx = pEvent.getContext();
+    //
+    //             if((pEvent as RuntimeEvent<any>).node.length > 0){
+    //                 node = (pEvent as RuntimeEvent<any>).node[0] as INode;
+    //                 loc = {
+    //                     __: node.__,
+    //                     uid: node.getUID()
+    //                     // add arguments position
+    //                 };
+    //             }
+    //
+    //             const str = pEvent.getContext().modelAPI.newStringValue({
+    //                 value: pEvent.data.data.url,
+    //                 instance: [
+    //                     pEvent.getContext().modelAPI.newInstance({
+    //                         session: "", //ctx.getHookManager().get
+    //                         ctx: loc
+    //                     })
+    //                 ]
+    //             });
+    //
+    //             ctx.getAnalyzer().getData().strings.addEntry(str);
+    //             ctx.trigger({
+    //                 type: "network.uri.string",
+    //                 data: str
+    //             });
+    //
+    //             // TODO : push okhttp request object instance (to track sessions)
+    //             /*ctx.bus.send( new BusEvent<any>({
+    //                 type: "network.uri.string",
+    //                 data: str
+    //             }));*/
+    //         }
+    //     }
+    // },
+    eventListenerSources: {
+        "hook.javaRegexMatcher.matches": {
+            lang: "ts",
+            source: `
+            //<ts>={
+            const PARAM_URL_REGEX = "[a-zA-Z][a-zA-Z0-9_-]*";
+            let ctx: Record<string,any> = pEvent.getContext();
+            if ((pEvent.getData().data?.regex != null) && (pEvent.getData().data.regex === PARAM_URL_REGEX)) {
+                console.log("[INSPECTOR][NETWORKHTTP] Regex match the one use in Retrofit.requestFactory.validatePathName");
+                let eventData: Record<string, any> = {};
+                eventData['regex'] = pEvent.getData().data.regex;
+                eventData['pathName'] = pEvent.getData().data.text.toString();
+                console.log("PathName:", eventData['pathName']);
+                var networkPathTag = ctx.getTagManager().getTag('network.data.pathName');
+                
+                finderResult = ctx.find.strings("value:" + eventData['pathName']);
+                if (finderResult.count() > 1) {
+                    finderResult.foreach(
+                    (pOffset:number,pData:ModelStringValue) => {
+                        if(!pData.hasTag(networkPathTag)){
+                            pData.addTag(networkPathTag);
+                        }
+                    });
+                } else {
+                    let newStringValue = eventData['pathName'];
+                    let newStringLoc = null;
+                    const str = pEvent.getContext().modelAPI.newStringValue({
+                        value: newStringValue,
+                        instance: [
+                           pEvent.getContext().modelAPI.newInstance({
+                                session: "", //ctx.getHookManager().get
+                                ctx: newStringLoc
+                            })
+                        ]
+                    });
+                    str.addTag(networkPathTag);
+                    pEvent.getContext().getAnalyzer().getData().strings.addEntry(str);
+                    pEvent.getContext().trigger( {
+                        type: "string.instance.new",
+                        data: str
+                    });
                 }
-
-                const str = pEvent.getContext().modelAPI.newStringValue({
-                    value: pEvent.data.data.url,
-                    instance: [
-                        pEvent.getContext().modelAPI.newInstance({
-                            session: "", //ctx.getHookManager().get
-                            ctx: loc
-                        })
-                    ]
+                
+                pEvent.getContext().trigger( {
+                    type: "hypothesis.retrofit.requestFactory.validatePathName",
+                    data: eventData
                 });
-
-                ctx.getAnalyzer().getData().strings.addEntry(str);
-                ctx.trigger({
-                    type: "network.uri.string",
-                    data: str
-                });
-
-                // TODO : push okhttp request object instance (to track sessions)
-                /*ctx.bus.send( new BusEvent<any>({
-                    type: "network.uri.string",
-                    data: str
-                }));*/
             }
+            `
         }
-
     }
 });
 
