@@ -221,11 +221,12 @@ var NetworkHttpInspector:InspectorFactory = new InspectorFactory({
                 console.log("[INSPECTOR][NETWORKHTTP] Regex match the one use in Retrofit.requestFactory.validatePathName");
                 let eventData: Record<string, any> = {};
                 eventData['regex'] = pEvent.getData().data.regex;
-                eventData['pathName'] = pEvent.getData().data.text.toString();
-                console.log("PathName:", eventData['pathName']);
+                eventData['stringTested'] = pEvent.getData().data.text.toString();
+                eventData['possibleStringLabel'] = "pathName";
+                console.log(eventData['possibleStringLabel'] + ':', eventData['stringTested']);
                 var networkPathTag = ctx.getTagManager().getTag('network.data.pathName');
                 
-                finderResult = ctx.find.strings("value:" + eventData['pathName']);
+                finderResult = ctx.find.strings("value:" + eventData['stringTested']);
                 if (finderResult.count() > 1) {
                     finderResult.foreach(
                     (pOffset:number,pData:ModelStringValue) => {
@@ -234,7 +235,7 @@ var NetworkHttpInspector:InspectorFactory = new InspectorFactory({
                         }
                     });
                 } else {
-                    let newStringValue = eventData['pathName'];
+                    let newStringValue = eventData['stringTested']
                     let newStringLoc = null;
                     const str = pEvent.getContext().modelAPI.newStringValue({
                         value: newStringValue,
@@ -255,6 +256,62 @@ var NetworkHttpInspector:InspectorFactory = new InspectorFactory({
                 
                 pEvent.getContext().trigger( {
                     type: "hypothesis.retrofit.requestFactory.validatePathName",
+                    data: eventData
+                });
+            }
+                
+                pEvent.getContext().trigger( {
+                    type: "hypothesis.retrofit.requestFactory.validatePathName",
+                    data: eventData
+                });
+            }
+            `
+        },
+        "hook.javaRegexMatcher.find": {
+            lang: "ts",
+            source: `
+            //<ts>={
+            const PARAM_URL_REGEX = "\\{([a-zA-Z][a-zA-Z0-9_-]*)\\}";
+            let ctx: Record<string,any> = pEvent.getContext();
+            if ((pEvent.getData().data?.regex != null) && (pEvent.getData().data.regex === PARAM_URL_REGEX)) {
+                console.log("[INSPECTOR][NETWORKHTTP] Regex match the one use in Retrofit.requestFactory.parsePathParameters(path) or parseHttpMethodAndPath (queryParams)");
+                let eventData: Record<string, any> = {};
+                eventData['regex'] = pEvent.getData().data.regex;
+                eventData['stringTested'] = pEvent.getData().data.text.toString();
+                eventData['possibleStringLabel'] = "path, queryParams";
+                console.log(eventData['possibleStringLabel'] + ':', eventData['stringTested']);
+                var networkPathTag = ctx.getTagManager().getTag('network.data.pathName');
+                
+                finderResult = ctx.find.strings("value:" + eventData['stringTested']);
+                if (finderResult.count() > 1) {
+                    finderResult.foreach(
+                    (pOffset:number,pData:ModelStringValue) => {
+                        if(!pData.hasTag(networkPathTag)){
+                            pData.addTag(networkPathTag);
+                        }
+                    });
+                } else {
+                    let newStringValue = eventData['stringTested']
+                    let newStringLoc = null;
+                    const str = pEvent.getContext().modelAPI.newStringValue({
+                        value: newStringValue,
+                        instance: [
+                           pEvent.getContext().modelAPI.newInstance({
+                                session: "", //ctx.getHookManager().get
+                                ctx: newStringLoc
+                            })
+                        ]
+                    });
+                    str.addTag(networkPathTag);
+                    pEvent.getContext().getAnalyzer().getData().strings.addEntry(str);
+                    pEvent.getContext().trigger( {
+                        type: "string.instance.new",
+                        data: str
+                    });
+                }
+                
+                pEvent.getContext().trigger( {
+                    type: "hypothesis.retrofit.requestFactory.parsePathParameters",
                     data: eventData
                 });
             }
