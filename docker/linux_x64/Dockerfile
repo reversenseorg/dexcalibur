@@ -177,12 +177,8 @@ COPY dxc-server-linux.tar.gz "$ARTIFACTS_FOLDER/dxc-server.tar.gz"
 RUN ls -la $ARTIFACTS_FOLDER && \
     sudo chown -R $DXC_USER_SRV:$DXC_USER_SRV $ARTIFACTS_FOLDER && \
     sudo chown $DXC_USER_SRV:$DXC_USER_SRV "$ARTIFACTS_FOLDER/dxc-server.tar.gz" && \
-    ls -la  && cd "$ARTIFACTS_FOLDER" && \
-    tar xvf "$ARTIFACTS_FOLDER/dxc-server.tar.gz"  && \
-    ls -la && \
-    sudo chown -R $DXC_USER_SRV:$DXC_USER_SRV $DXC_USER_HOME/.dexcalibur/.dxc /workspace $DXC_USER_HOME/.dexcalibur/.dxc/bin && \
-    mv "$TMP_FOLDER/baksmali.jar" $DXC_USER_HOME/workspace/.dxc/bin/baksmali.jar && \
-    mv "$TMP_FOLDER/apktool.jar" $DXC_USER_HOME/workspace/.dxc/bin/apktool.jar
+    cd "$ARTIFACTS_FOLDER" && \
+    tar xvf "$ARTIFACTS_FOLDER/dxc-server.tar.gz"
 
 
 # ===============================
@@ -192,9 +188,9 @@ RUN ls -la $ARTIFACTS_FOLDER && \
 WORKDIR "$ARTIFACTS_FOLDER/dist"
 
 # create files
-RUN sudo mkdir $DXC_USER_HOME/.dexcalibur $DXC_USER_HOME/workspace && \
+RUN sudo mkdir $DXC_USER_HOME/.dexcalibur && \
     ln -s /uis  $ARTIFACTS_FOLDER/dist/src/webserver/www && \
-     sudo chown $DXC_USER_SRV:$DXC_USER_SRV $DXC_USER_HOME/.dexcalibur&& \
+     sudo chown -R $DXC_USER_SRV:$DXC_USER_SRV $DXC_USER_HOME/.dexcalibur&& \
      sudo node ./dexcalibur-adm.mjs server \
         --create-home=$DXC_USER_HOME/.dexcalibur \
         --set-marketplace=$marketplace_uri \
@@ -205,7 +201,9 @@ RUN sudo mkdir $DXC_USER_HOME/.dexcalibur $DXC_USER_HOME/workspace && \
         --ws-port=$DXC_WS_PORT
 
 # configure external tools
-RUN node ./dexcalibur-adm.mjs tools --name=java --path=java && \
+RUN mv "$TMP_FOLDER/baksmali.jar" $DXC_USER_HOME/.dexcalibur/.dxc/bin/baksmali.jar && \
+    mv "$TMP_FOLDER/apktool.jar" $DXC_USER_HOME/.dexcalibur/.dxc/bin/apktool.jar && \
+    node ./dexcalibur-adm.mjs tools --name=java --path=java && \
     node ./dexcalibur-adm.mjs tools --name=python --path=python3 && \
     node ./dexcalibur-adm.mjs tools --name=frida --path=frida && \
     node ./dexcalibur-adm.mjs tools --name=radare2 --path=r2 && \
