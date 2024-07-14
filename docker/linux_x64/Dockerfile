@@ -201,7 +201,10 @@ RUN sudo mkdir $DXC_USER_HOME/.dexcalibur && \
         --ws-port=$DXC_WS_PORT
 
 # configure external tools
-RUN chmod 777 -R $DXC_USER_HOME/.dexcalibur/.dxc && \
+RUN ls -la $DXC_USER_HOME/.dexcalibur && \
+    ls -la $DXC_USER_HOME/.dexcalibur/.dxc && \
+    eho $USER && \
+    sudo chmod 777 -R $DXC_USER_HOME/.dexcalibur/.dxc && \
     mv "$TMP_FOLDER/baksmali.jar" $DXC_USER_HOME/.dexcalibur/.dxc/bin/baksmali.jar && \
     mv "$TMP_FOLDER/apktool.jar" $DXC_USER_HOME/.dexcalibur/.dxc/bin/apktool.jar && \
     node ./dexcalibur-adm.mjs tools --name=java --path=java && \
