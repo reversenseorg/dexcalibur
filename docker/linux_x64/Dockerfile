@@ -77,7 +77,7 @@ ENV ANDROID_SDK_ROOT="$DXC_USER_HOME/android"
 
 # 'Workspace' volumes hold projects data and some engine configuration and binary
 # 'uis' volumes contains UI interfaces, it is the www root folder where each UI are stored into separate folder
-VOLUME [ "/workspace", "/uis" ]
+VOLUME [ "$DXC_USER_HOME/workspace", "/uis" ]
 
 
 # ===============================
@@ -195,7 +195,7 @@ RUN mkdir $DXC_USER_HOME/.dexcalibur && \
         --create-home=$DXC_USER_HOME/.dexcalibur \
         --set-marketplace=$marketplace_uri \
         --set-wsi=$DXC_USER_HOME/.dexcalibur/.dxc \
-        --create-ws=/workspace \
+        --create-ws=$DXC_USER_HOME/workspace \
         --heap-size=$DXC_HEAP_SZ \
         --http-port=$DXC_HTTP_PORT \
         --ws-port=$DXC_WS_PORT
