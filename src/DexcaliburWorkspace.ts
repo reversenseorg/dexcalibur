@@ -48,6 +48,8 @@ let gWorkspaceInstance:DexcaliburWorkspace = null;
  */
 export default class DexcaliburWorkspace
 {
+    static DXC_FOLDER = ".dxc";
+
     path:string;
     dxcFolder:string = null;
     binFolder:string = null;
@@ -55,7 +57,6 @@ export default class DexcaliburWorkspace
     cfgFolder:string = null;
     devFolder:string = null;
     tmpFolder:string = null;
-    pluginsFolder:string = null;
 
     configPath:string = null;
     oldconfigPath:string = null;
@@ -72,7 +73,6 @@ export default class DexcaliburWorkspace
         this.cfgFolder = null;
         this.devFolder = null;
         this.tmpFolder = null;
-        this.pluginsFolder = null;
 
         this.configPath = null;
         this.oldconfigPath = null;
@@ -122,12 +122,11 @@ export default class DexcaliburWorkspace
      * To intialize Dexcalibur workspace by creating .dxc/* directories
      */
     async init():Promise<void>{
-        this.dxcFolder = _path_.join( this.path, '.dxc'); 
+        this.dxcFolder = _path_.join( this.path, DexcaliburWorkspace.DXC_FOLDER);
         this.binFolder = _path_.join( this.dxcFolder, 'bin');
         this.apiFolder = _path_.join( this.dxcFolder, 'api');
         this.cfgFolder = _path_.join( this.dxcFolder, 'cfg');
         this.devFolder = _path_.join( this.dxcFolder, 'dev');
-        this.pluginsFolder = _path_.join( this.dxcFolder, 'plugins');
         this.tmpFolder = _path_.join( this.dxcFolder, 'tmp');
 
         // config
@@ -141,7 +140,6 @@ export default class DexcaliburWorkspace
         DexcaliburWorkspace.mkdirIfNotExists(this.cfgFolder);
         DexcaliburWorkspace.mkdirIfNotExists(this.devFolder);
         DexcaliburWorkspace.mkdirIfNotExists(this.tmpFolder);
-        DexcaliburWorkspace.mkdirIfNotExists(this.pluginsFolder);
 
         this.settings = this.readSettings();
 
@@ -210,13 +208,6 @@ export default class DexcaliburWorkspace
         return _path_.join( this.cfgFolder, FILENAME_CONFIG);
     }
 
-
-    /**
-     * 
-     */
-    getPluginsFolderLocation():string{
-        return this.pluginsFolder;
-    }
 
 
     /**
@@ -308,7 +299,7 @@ export default class DexcaliburWorkspace
 
         dirs.map(function(x:string){
             if(Util.shouldIgnoreFile(x)) return;
-            if(x !== '.dxc')  projects.push(x);
+            if(x !== DexcaliburWorkspace.DXC_FOLDER)  projects.push(x);
         });
 
         return projects;
