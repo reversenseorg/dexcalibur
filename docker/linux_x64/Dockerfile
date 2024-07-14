@@ -18,7 +18,7 @@ ENV DXC_PRODUCTS="home,pro"
 # Args
 # ===============================
 
-ARG user_server=$DXC_USER_SRV
+ARG user_server="dexcalibur-bin"
 
 ARG dxc_http_port=8080
 ARG dxc_ws_port=8001
@@ -42,8 +42,7 @@ ARG DB_URI
 # ===============================
 # Config
 # ===============================
-ENV DXC_USER_SRV="dexcalibur-bin"
-ENV DXC_USER_DATA="dexcalibur-data"
+ENV DXC_USER_SRV=${user_server}
 
 ENV DXC_HTTP_PORT=${dxc_http_port}
 ENV DXC_WS_PORT=${dxc_ws_port}
@@ -63,7 +62,7 @@ ENV NODE_MAJOR="18"
 
 ENV DXC_TMP=/tmp
 
-ENV DXC_USER_HOME="/home/$user_server"
+ENV DXC_USER_HOME="/home/$DXC_USER_SRV"
 ENV TMP_FOLDER="$DXC_USER_HOME/tmp"
 ENV ARTIFACTS_FOLDER="$DXC_USER_HOME/artifacts"
 ENV DXC_BIN_FOLDER="$DXC_USER_HOME/tmp"
@@ -105,12 +104,12 @@ RUN echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesourc
 # Setup user
 # ===============================
 
-RUN useradd "$user_server" --create-home --shell /bin/bash && passwd -d "$user_server"
+RUN useradd "$DXC_USER_SRV" --create-home --shell /bin/bash && passwd -d "$DXC_USER_SRV"
 
-RUN echo "%$user_server ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
+RUN echo "%$DXC_USER_SRV ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
 
-USER $user_server
-WORKDIR /home/$user_server
+USER $DXC_USER_SRV
+WORKDIR /home/$DXC_USER_SRV
 
 RUN sudo apt-get update && \
     sudo apt-get -qqy install nodejs python3 && \
@@ -176,12 +175,12 @@ RUN IMPORTED_FRIDA_VER=`cat "$ARTIFACTS_FOLDER/frida_version"` && pip install fr
 COPY dxc-server-linux.tar.gz "$ARTIFACTS_FOLDER/dxc-server.tar.gz"
 
 RUN ls -la $ARTIFACTS_FOLDER && \
-    sudo chown -R $user_server:$user_server $ARTIFACTS_FOLDER && \
-    sudo chown $user_server:$user_server "$ARTIFACTS_FOLDER/dxc-server.tar.gz" && \
+    sudo chown -R $DXC_USER_SRV:$DXC_USER_SRV $ARTIFACTS_FOLDER && \
+    sudo chown $DXC_USER_SRV:$DXC_USER_SRV "$ARTIFACTS_FOLDER/dxc-server.tar.gz" && \
     ls -la  && cd "$ARTIFACTS_FOLDER" && \
     tar xvf "$ARTIFACTS_FOLDER/dxc-server.tar.gz"  && \
     ls -la && \
-    sudo chown -R $user_server:$user_server $DXC_USER_HOME/.dexcalibur/.dxc /workspace $DXC_USER_HOME/.dexcalibur/.dxc/bin && \
+    sudo chown -R $DXC_USER_SRV:$DXC_USER_SRV $DXC_USER_HOME/.dexcalibur/.dxc /workspace $DXC_USER_HOME/.dexcalibur/.dxc/bin && \
     mv "$TMP_FOLDER/baksmali.jar" $DXC_USER_HOME/workspace/.dxc/bin/baksmali.jar && \
     mv "$TMP_FOLDER/apktool.jar" $DXC_USER_HOME/workspace/.dxc/bin/apktool.jar
 
@@ -195,7 +194,7 @@ WORKDIR "$ARTIFACTS_FOLDER/dist"
 # create files
 RUN sudo mkdir $DXC_USER_HOME/.dexcalibur $DXC_USER_HOME/workspace && \
     ln -s /uis  $ARTIFACTS_FOLDER/dist/src/webserver/www && \
-     sudo chown $user_server:$user_server $DXC_USER_HOME/.dexcalibur&& \
+     sudo chown $DXC_USER_SRV:$DXC_USER_SRV $DXC_USER_HOME/.dexcalibur&& \
      sudo node ./dexcalibur-adm.mjs server \
         --create-home=$DXC_USER_HOME/.dexcalibur \
         --set-marketplace=$marketplace_uri \
