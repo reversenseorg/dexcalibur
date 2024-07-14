@@ -203,7 +203,7 @@ RUN mkdir $DXC_USER_HOME/.dexcalibur && \
 # configure external tools
 RUN ls -la $DXC_USER_HOME/.dexcalibur && \
     ls -la $DXC_USER_HOME/.dexcalibur/.dxc && \
-    eho $USER && \
+    echo $USER && \
     chmod 777 -R $DXC_USER_HOME/.dexcalibur/.dxc && \
     mv "$TMP_FOLDER/baksmali.jar" $DXC_USER_HOME/.dexcalibur/.dxc/bin/baksmali.jar && \
     mv "$TMP_FOLDER/apktool.jar" $DXC_USER_HOME/.dexcalibur/.dxc/bin/apktool.jar && \
