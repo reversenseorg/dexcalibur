@@ -94,7 +94,16 @@ var Parser:ArgParser = new ArgParser(projectArgs, "dexcalibur-adm", [
                 name:"--set-ws",
                 help: "Set workspace path (not create a new one)",
                 hasVal:true,
-                callback:(ctx,param)=>{ ctx.srvSetWS = param.value; }
+                callback:(ctx,param)=>{
+                    ctx.srvSetWS = param.value;
+                }
+            },{
+                name:"--set-wsi",
+                help: "Set workspace internal path (not create a new one)",
+                hasVal:true,
+                callback:(ctx,param)=>{
+                    ctx.srvSetWSi = param.value;
+                }
             },{
                 name:"--set-marketplace",
                 help: "Set marketplace remote location (URI & API). To use official marketplace: --set-marketplace=official",
@@ -871,7 +880,10 @@ ${"\t".repeat(1)}Default Arch = ${srv.getDefaultArchitecture()}
 
         if(projectArgs.srvSetWS!=null){
             console.log(chalk.whiteBright("[-] Set workspace path to : "+projectArgs.setWS));
-            cfg.getServerSettings().setWorkspace(projectArgs.setWS);
+            cfg.getServerSettings().setWorkspace(
+                projectArgs.setWS,
+                (projectArgs.srvSetWSi!=null?projectArgs.srvSetWSi:null)
+            );
             cfg.getServerSettings().save()
             console.log(chalk.green("[*] Workspace path has been updated."));
         }
@@ -903,7 +915,11 @@ ${"\t".repeat(1)}Default Arch = ${srv.getDefaultArchitecture()}
                 //freshWS.init();
 
                 // create a workspace object, if no one exist
-                cfg.getServerSettings().setWorkspace(projectArgs.srvCreateWS, true);
+                cfg.getServerSettings().setWorkspace(
+                    projectArgs.srvCreateWS,
+                    (projectArgs.srvSetWSi!=null?projectArgs.srvSetWSi:null),
+                    true
+                );
                 cfg.getServerSettings().getWorkspace().init();
                 cfg.getServerSettings().save();
                 console.log(chalk.green("[*] Workspace path has been created and settings updated."));

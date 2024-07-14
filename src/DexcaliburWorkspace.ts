@@ -51,6 +51,7 @@ export default class DexcaliburWorkspace
     static DXC_FOLDER = ".dxc";
 
     path:string;
+
     dxcFolder:string = null;
     binFolder:string = null;
     apiFolder:string = null;
@@ -122,7 +123,10 @@ export default class DexcaliburWorkspace
      * To intialize Dexcalibur workspace by creating .dxc/* directories
      */
     async init():Promise<void>{
-        this.dxcFolder = _path_.join( this.path, DexcaliburWorkspace.DXC_FOLDER);
+        if(this.dxcFolder==null){
+            this.dxcFolder = _path_.join( this.path, DexcaliburWorkspace.DXC_FOLDER);
+        }
+
         this.binFolder = _path_.join( this.dxcFolder, 'bin');
         this.apiFolder = _path_.join( this.dxcFolder, 'api');
         this.cfgFolder = _path_.join( this.dxcFolder, 'cfg');
@@ -307,5 +311,26 @@ export default class DexcaliburWorkspace
 
     getSettings():Settings.WorkspaceSettings {
         return this.settings;
+    }
+
+    /**
+     * To set the path to the folder where these metadata and external tools are stored :
+     *
+     * This usage is mainly deprecated since the app start to move from stateful to stateless, and
+     * data stored into DB
+     *
+     * - /dev/ : (deprecated) device list
+     * - /api/ : platform images or APIs image
+     * - /bin/ : external tools
+     * - /tmp/ : temporary file
+     * - /cfg/ : (deprecated) extra config files
+     *
+     * @param pPath
+     */
+    setDxcFolder(pPath:string):void {
+        if(!_fs_.existsSync(pPath)){
+            _fs_.mkdirSync(pPath, 0o777);
+        }
+        this.dxcFolder = pPath;
     }
 }

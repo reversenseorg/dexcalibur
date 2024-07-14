@@ -31,6 +31,7 @@ export interface ServerOptions {
     registry?:string;
     registryAPI?:string;
     workspace?:string;
+    workspace_internal?:string;
     heapSize?:number;
 }
 
@@ -132,6 +133,7 @@ export namespace Settings {
          */
         private space:DexcaliburWorkspace;
 
+
         /**
          * Path of Dexcalibur workspace
          * @field
@@ -171,7 +173,11 @@ export namespace Settings {
             super(pParent);
 
             if(pConfig.workspace!=null){
-                this.space = DexcaliburWorkspace.getInstance(pConfig.workspace);
+                this.setWorkspace(pConfig.workspace,pConfig.workspace_internal);
+                /*this.space = DexcaliburWorkspace.getInstance(pConfig.workspace);
+                if(pConfig.workspace_internal!=null){
+                    this.space.setDxcFolder(pConfig.workspace_internal);
+                }*/
             }
 
             if(pConfig.registry!=null){
@@ -231,11 +237,16 @@ export namespace Settings {
 
         /**
          *
-         * @param pPath
-         * @param pOverride
+         * @param {string} pPath Path of root folder of Dexcalibur's workspace
+         * @param {Nullable<string>} pDxcFolder Optional. NULL by default. Path to internal (.dxc) folder, if not in workspace root folder
+         * @param {boolean} pOverride Optional. FALSE by default. To override existing instance of the workspace.
+         * @method
          */
-        setWorkspace(pPath:string, pOverride = false):void {
+        setWorkspace(pPath:string, pDxcFolder:Nullable<string> = null, pOverride = false):void {
             this.space = DexcaliburWorkspace.getInstance(pPath,pOverride);
+            if(pDxcFolder!=null){
+                this.space.setDxcFolder(pDxcFolder);
+            }
         }
 
         getHeapSize():number {
@@ -902,6 +913,7 @@ export namespace Settings {
                         supported:["pwd"]
                     },
                     workspace: "",
+                    workspace_internal: null,
                     embedded: false,
                     registry: "https://github.com/FrenchYeti/dexcalibur-registry/raw/master/",
                     registryAPI: "https://github.com/FrenchYeti/dexcalibur-registry/contents/",

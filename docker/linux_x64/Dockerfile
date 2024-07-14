@@ -180,13 +180,11 @@ RUN ls -la $ARTIFACTS_FOLDER && \
     sudo chown $user_server:$user_server "$ARTIFACTS_FOLDER/dxc-server.tar.gz" && \
     ls -la  && cd "$ARTIFACTS_FOLDER" && \
     tar xvf "$ARTIFACTS_FOLDER/dxc-server.tar.gz"  && \
-    ls -la
+    ls -la && \
+    sudo chown -R $user_server:$user_server $DXC_USER_HOME/.dexcalibur/.dxc /workspace $DXC_USER_HOME/.dexcalibur/.dxc/bin && \
+    mv "$TMP_FOLDER/baksmali.jar" $DXC_USER_HOME/workspace/.dxc/bin/baksmali.jar && \
+    mv "$TMP_FOLDER/apktool.jar" $DXC_USER_HOME/workspace/.dxc/bin/apktool.jar
 
-# ===============================
-# [REMOVED] Install UIs
-# ===============================
-
-# RUN rm -r $ARTIFACTS_FOLDER/dist/src/webserver/www/ && ln -s /www_uis  $ARTIFACTS_FOLDER/dist/src/webserver/www
 
 # ===============================
 # Configure server
@@ -196,16 +194,16 @@ WORKDIR "$ARTIFACTS_FOLDER/dist"
 
 # create files
 RUN sudo mkdir $DXC_USER_HOME/.dexcalibur $DXC_USER_HOME/workspace && \
+    ln -s /uis  $ARTIFACTS_FOLDER/dist/src/webserver/www && \
      sudo chown $user_server:$user_server $DXC_USER_HOME/.dexcalibur&& \
      sudo node ./dexcalibur-adm.mjs server \
         --create-home=$DXC_USER_HOME/.dexcalibur \
         --set-marketplace=$marketplace_uri \
+        --set-wsi=$DXC_USER_HOME/.dexcalibur/.dxc \
         --create-ws=/workspace \
         --heap-size=$DXC_HEAP_SZ \
         --http-port=$DXC_HTTP_PORT \
         --ws-port=$DXC_WS_PORT
-
-
 
 # configure external tools
 RUN node ./dexcalibur-adm.mjs tools --name=java --path=java && \
@@ -214,40 +212,22 @@ RUN node ./dexcalibur-adm.mjs tools --name=java --path=java && \
     node ./dexcalibur-adm.mjs tools --name=radare2 --path=r2 && \
     node ./dexcalibur-adm.mjs tools --name=adb --path=$ANDROID_SDK_ROOT/platform-tools/adb && \
     node ./dexcalibur-adm.mjs tools --name=binwalk --path=binwalk && \
-    node ./dexcalibur-adm.mjs tools --name=shell --path=/bin/sh
+    node ./dexcalibur-adm.mjs tools --name=shell --path=/bin/sh && \
+    node ./dexcalibur-adm.mjs tools --name=baksmali --path=$DXC_USER_HOME/.dexcalibur/.dxc/bin/baksmali.jar && \
+    node ./dexcalibur-adm.mjs tools --name=apktool --path=$DXC_USER_HOME/.dexcalibur/.dxc/bin/apktool.jar && \
+    node ./dexcalibur-adm.mjs user --add-account=admin && \
+    node ./dexcalibur-adm.mjs user -l && \
+    node ./dexcalibur-adm.mjs server -l && \
+    node ./dexcalibur-adm.mjs tools -l
 
-
-
-RUN sudo chown -R $user_server:$user_server $DXC_USER_HOME/workspace/.dxc $DXC_USER_HOME/workspace $DXC_USER_HOME/workspace/.dxc/bin && \
-    mv "$TMP_FOLDER/baksmali.jar" $DXC_USER_HOME/workspace/.dxc/bin/baksmali.jar && \
-    node ./dexcalibur-adm.mjs tools --name=baksmali --path=$DXC_USER_HOME/workspace/.dxc/bin/baksmali.jar && \
-    mv "$TMP_FOLDER/apktool.jar" $DXC_USER_HOME/workspace/.dxc/bin/apktool.jar && \
-    node ./dexcalibur-adm.mjs tools --name=apktool --path=$DXC_USER_HOME/workspace/.dxc/bin/apktool.jar
-
-# create users & authentication
-RUN node ./dexcalibur-adm.mjs user --add-account=admin && \
-    node ./dexcalibur-adm.mjs user -l
-
-RUN cat $DXC_USER_HOME/.dexcalibur/dxc.json
 
 # configure authentication
+RUN cat $DXC_USER_HOME/.dexcalibur/dxc.json
 
-
-
-# ===============================
-# Dump config
-# ===============================
-
-RUN  node ./dexcalibur-adm.mjs server -l && \
-     node ./dexcalibur-adm.mjs tools -l \
-
-# Dexcalibur HTTP
-EXPOSE 8080
+# Dexcalibur HTTP & WebSocket
+EXPOSE ${DXC_HTTP_PORT} ${DXC_WS_PORT}
 
 # Dexcalibur HTTPS
 EXPOSE 8443
-
-# Dexcalibur Web Socket
-EXPOSE 8002
 
 CMD [ "node", "./dist/dexcalibur.js", "--gui=$DXC_PRODUCTS" ]

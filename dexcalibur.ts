@@ -42,6 +42,10 @@ var Parser:ArgParser = new ArgParser(projectArgs, "dexcalibur", [
         help: "Workspace path",
         hasVal:true,
         callback:(ctx,param)=>{ ctx.ws = param.value; } },
+    { name:"--wsi",
+        help: "Path of internal workspace. By default, the folder .dxc/ is located under the root path of workspace.",
+        hasVal:true,
+        callback:(ctx,param)=>{ ctx.wsi = param.value; } },
     { name:"--ui",
         help: "Change UI location (deprecated, see logs)",
         hasVal:true,
@@ -255,7 +259,7 @@ if( !projectArgs.ipc
             let cfg:Settings.GlobalSettings = Settings.GlobalSettings.load();
             if(projectArgs.ws != null){
                 console.log("WS uopdated : "+cfg.getPath())
-                cfg.getServerSettings().setWorkspace(projectArgs.ws);
+                cfg.getServerSettings().setWorkspace(projectArgs.ws, projectArgs.wsi);
                 cfg.getServerSettings().save()
             }
             if(projectArgs.saveCfg){
