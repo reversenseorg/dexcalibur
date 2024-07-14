@@ -188,10 +188,10 @@ RUN ls -la $ARTIFACTS_FOLDER && \
 WORKDIR "$ARTIFACTS_FOLDER/dist"
 
 # create files
-RUN sudo mkdir $DXC_USER_HOME/.dexcalibur && \
+RUN mkdir $DXC_USER_HOME/.dexcalibur && \
     ln -s /uis  $ARTIFACTS_FOLDER/dist/src/webserver/www && \
-     sudo chown -R $DXC_USER_SRV:$DXC_USER_SRV $DXC_USER_HOME/.dexcalibur&& \
-     sudo node ./dexcalibur-adm.mjs server \
+     chown -R $DXC_USER_SRV:$DXC_USER_SRV $DXC_USER_HOME/.dexcalibur&& \
+     node ./dexcalibur-adm.mjs server \
         --create-home=$DXC_USER_HOME/.dexcalibur \
         --set-marketplace=$marketplace_uri \
         --set-wsi=$DXC_USER_HOME/.dexcalibur/.dxc \
@@ -204,7 +204,7 @@ RUN sudo mkdir $DXC_USER_HOME/.dexcalibur && \
 RUN ls -la $DXC_USER_HOME/.dexcalibur && \
     ls -la $DXC_USER_HOME/.dexcalibur/.dxc && \
     eho $USER && \
-    sudo chmod 777 -R $DXC_USER_HOME/.dexcalibur/.dxc && \
+    chmod 777 -R $DXC_USER_HOME/.dexcalibur/.dxc && \
     mv "$TMP_FOLDER/baksmali.jar" $DXC_USER_HOME/.dexcalibur/.dxc/bin/baksmali.jar && \
     mv "$TMP_FOLDER/apktool.jar" $DXC_USER_HOME/.dexcalibur/.dxc/bin/apktool.jar && \
     node ./dexcalibur-adm.mjs tools --name=java --path=java && \
