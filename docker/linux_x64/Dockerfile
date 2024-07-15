@@ -24,6 +24,29 @@ ARG dxc_http_port=8080
 ARG dxc_ws_port=8001
 ARG dxc_heap_size=4096
 
+
+"discoverUri": "http://127.0.0.1:8088/realms/dxc-stagging",
+"client_id": "dxcengine_api",
+"client_secret": "tPX4Z2xkkZItvI6tIv6hWczpIsrTZOwq",
+"redirectUris": [
+  "http://127.0.0.1:8080/api-auth/cb"
+],
+"postLogoutRedirectUris": [
+  "http://127.0.0.1:8080/api-logout"
+],
+"responseType": [
+  "code"
+]
+
+# Open ID Connect arguments
+ARG dxc_oidc_server="http://127.0.0.1:8088"
+ARG dxc_oidc_client_id="dxcengine_api"
+ARG dxc_oidc_client_secret=""
+ARG dxc_oidc_redirect_uris=["${dxc_oidc_server}/api-auth/cb"]
+ARG dxc_oidc_post_logout_redirect_uris=["${dxc_oidc_server}/api-logout"]
+ARG dxc_oidc_discover_uri="${dxc_oidc_server}/realms/dxc-stagging"
+ARG dxc_oidc_response_type=["code"]
+
 # Obsolete. Standlone auth have been replaced by SSO
 # ARG dxc_admin="admin"
 # ARG dxc_pwd="dxcserver"
@@ -221,9 +244,8 @@ RUN ls -la $DXC_USER_HOME/.dexcalibur && \
     node ./dexcalibur-adm.mjs server -l && \
     node ./dexcalibur-adm.mjs tools -l
 
-
-# configure authentication
-RUN cat $DXC_USER_HOME/.dexcalibur/dxc.json
+# check install
+RUN node ./dexcalibur-adm.mjs tools --check | grep  -i External
 
 # Dexcalibur HTTP & WebSocket
 EXPOSE ${DXC_HTTP_PORT} ${DXC_WS_PORT}

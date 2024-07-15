@@ -75,7 +75,8 @@ enum SUBMENU {
     MODEL,
     MERLIN,
     DEVICE,
-    PROJECT
+    PROJECT,
+    AUTH
 }
 
 
@@ -193,6 +194,56 @@ var Parser:ArgParser = new ArgParser(projectArgs, "dexcalibur-adm", [
             }
         ],
         callback:(ctx,param)=>{ ctx.mode = SUBMENU.TOOLS; } },
+
+
+    {  name:"auth",
+        help: "Authentication configuration",
+        hasVal:false,
+        options: [
+            {
+                name:"-l",
+                help: "List configuration",
+                hasVal:false,
+                callback:(ctx,param)=>{ ctx.authList = true; }
+            },{
+                name:"--oidc-uri-disco",
+                help: "Discover URI",
+                hasVal:true,
+                callback:(ctx,param)=>{ ctx.authOidcDisc = param.value; }
+            },{
+                name:"--oidc-uri-postlogout",
+                help: "Supported Post Logout URIs",
+                hasVal:true,
+                callback:(ctx,param)=>{ ctx.authOidcPostLogout = param.value; }
+            },{
+                name:"--oidc-uri-redirect",
+                help: "Supported Redirect URIs",
+                hasVal:true,
+                callback:(ctx,param)=>{ ctx.authOidcRedirect = param.value; }
+            },{
+                name:"--oidc-client-id",
+                help: "Client ID",
+                hasVal:true,
+                callback:(ctx,param)=>{ ctx.authOidcClientId = param.value; }
+            },{
+                name:"--oidc-client-secret",
+                help: "Client Secret",
+                hasVal:true,
+                callback:(ctx,param)=>{ ctx.authOidcSecret= param.value; }
+            },{
+                name:"--oidc-resp",
+                help: "Response type",
+                hasVal:true,
+                callback:(ctx,param)=>{ ctx.authOidcRespType= param.value; }
+            },{
+                name:["--append","-a"],
+                help: "To append instead to replace value (can be applied only to arrays)",
+                hasVal:false,
+                callback:(ctx,param)=>{ ctx.authAppend = true; }
+            }
+
+        ],
+        callback:(ctx,param)=>{ ctx.mode = SUBMENU.AUTH; } },
 
     { name:"install",
         help: "Install operations",
@@ -856,6 +907,55 @@ switch (projectArgs.mode){
         }
 
         break;
+
+    case SUBMENU.AUTH:
+        const srv = cfg.getServerSettings();
+        let auth:AuthenticationSettings = srv.getAuthenticationSettings();
+
+        if(!projectArgs.authList){
+            let oidcCfg = auth.toObject().oidc;
+
+            if(projectArgs.authOidcDisc!=null){
+                oidcCfg.discoverUri = projectArgs.authOidcDisc
+            }
+            if(projectArgs.authOidcRedirect!=null){
+                if(projectArgs.authAppend){
+                    oidcCfg.redirectUris.push(projectArgs.authOidcRedirect);
+                }else{
+                    oidcCfg.redirectUris = [
+                        projectArgs.authOidcRedirect
+                    ]
+                }
+            }
+            if(projectArgs.authOidcPostLogout!=null){
+                if(projectArgs.authAppend){
+                    oidcCfg.postLogoutRedirectUris.push(projectArgs.authOidcPostLogout);
+                }else{
+                    oidcCfg.postLogoutRedirectUris = [
+                        projectArgs.authOidcPostLogout
+                    ]
+                }
+            }
+            if(projectArgs.authOidcRespType!=null){
+                if(projectArgs.authAppend){
+                    oidcCfg.responseType.push(projectArgs.authOidcRespType);
+                }else{
+                    oidcCfg.responseType = projectArgs.authOidcRespType;
+                }
+
+            }
+            if(projectArgs.authOidcClientId!=null){
+                oidcCfg.client_id = projectArgs.authOidcClientId
+            }
+            if(projectArgs.authOidcSecretFile!=null){
+                oidcCfg.client_secret = _fs_.readFileSync(projectArgs.authOidcSecretFile).toString();
+            }
+
+            auth.overrideWith(oidcCfg);
+            auth.save();
+        }
+        break;
+
     case SUBMENU.START:
         let dxcWebRoot:string = null;
         if(projectArgs.sWUI){
