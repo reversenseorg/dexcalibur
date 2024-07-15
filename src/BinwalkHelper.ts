@@ -1,3 +1,9 @@
+
+import * as  _util_ from 'util';
+import * as  _ps_ from 'child_process';
+
+const _exec_ = _util_.promisify(_ps_.exec);
+
 import ModelFile from "./ModelFile.js";
 import Util from "./Utils.js";
 import * as _path_ from "path";
@@ -7,13 +13,8 @@ import BusEvent from "./BusEvent.js";
 import * as _glob_ from "glob";
 import ModelFileSection from "./ModelFileSection.js";
 import {External} from "./external/External.js";
-import * as _fs_ from "fs";
-import * as  _ps_ from "child_process";
-import DexcaliburWorkspace from "./DexcaliburWorkspace.js";
 import {IFileAnalyzer} from "./analyzer/IFileAnalyzer.js";
-import StatusMessage from "./StatusMessage.js";
 import ShellHelper from "./ShellHelper.js";
-import DexcaliburEngine from "./DexcaliburEngine.js";
 import {FileScanResult} from "./DataAnalyzer.js";
 import * as Log from './Logger.js';
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
@@ -30,6 +31,23 @@ export class BinwalkHelper extends  External.ExternalHelper implements IFileAnal
 
     constructor() {
         super()
+    }
+
+    /**
+     * To check if Binwalk is installed and can be used
+     *
+     * @return {Promise<boolean>}  TRUE if ready, else FALSE
+     * @async
+     * @static
+     * @method
+     */
+    static async check():Promise<boolean> {
+        const cmd = BinwalkHelper.getExtPath("binwalk");
+        const out = await _exec_(cmd+' -h');
+
+        return (out.stdout!=null)
+            && (/Binwalk v[0-9]\.[0-9]\.[0-9]/.test(out.stdout))
+            && (/Usage: binwalk/.test(out.stdout)) ;
     }
 
     /**

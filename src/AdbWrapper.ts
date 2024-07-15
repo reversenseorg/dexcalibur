@@ -252,6 +252,12 @@ export default class AdbWrapper implements IBridge
         return this.strategies[pName];
     }
 
+    async check():Promise<boolean> {
+        const res = await UT.execAsync(this.setup() + " version");
+
+        return (res.stdout!=null) && (/^Android Debug Bridge version/.test(res.stdout));
+    }
+
     /**
      * To execute a bridge command such as "adb root"
      * where the command is "root"

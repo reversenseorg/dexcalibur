@@ -155,6 +155,7 @@ export default class RadareHelper
     }
 
 
+
     /**
      * To instanciante object representing function from r2 json output
      *

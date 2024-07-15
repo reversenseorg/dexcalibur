@@ -44,6 +44,25 @@ export default class ApkHelper extends External.ExternalHelper
         return path;
     }
 
+    /**
+     * To check if ApkTool is installed and can be used
+     *
+     * @return {Promise<boolean>}  TRUE if ready, else FALSE
+     * @async
+     * @static
+     * @method
+     */
+    static async check():Promise<boolean> {
+        const cmd = ApkHelper.getApktoolCommand();
+        const out = await _exec_(
+            cmd.file+' '+cmd.args.join(' ')+' h'
+        );
+
+        return (out.stdout!=null)
+            && (/Apktool v/.test(out.stdout))
+            && (/usage: apktool/.test(out.stdout)) ;
+    }
+
     static getResFolder():string {
         return "res";
     }

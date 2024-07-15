@@ -1,11 +1,12 @@
 'use strict';
 
 import * as  _path_ from "path";
-import * as  Process from "child_process";
 import * as  Fs from "fs";
 import * as  _util_ from 'util';
+import * as  _ps_ from 'child_process';
 
-const _execFile_ = _util_.promisify(Process.execFile);
+const _execFile_ = _util_.promisify(_ps_.execFile);
+const _exec_ = _util_.promisify(_ps_.exec);
 
 
 import * as Log from './Logger.js';
@@ -34,6 +35,25 @@ export default class DexHelper extends  External.ExternalHelper
         this.context = ctx;
         this.baskmaliCmd = JavaHelper.getJRE()+" -jar ";
         this.baskmali = DexHelper.getPath();
+    }
+
+    /**
+     * To check if Baksmali is installed and can be used
+     *
+     * @return {Promise<boolean>}  TRUE if ready, else FALSE
+     * @async
+     * @static
+     * @method
+     */
+    static async check():Promise<boolean> {
+        const cmd = DexHelper.getBaksmaliCommand();
+        const out = await _exec_(
+            cmd.file+' '+cmd.args.join(' ')+' -h'
+        );
+
+        return (out.stdout!=null)
+            && (/usage: baksmali \[-/.test(out.stdout))
+            && (/--help,-h/.test(out.stdout)) ;
     }
 
     static getPath():string {
@@ -117,7 +137,7 @@ export default class DexHelper extends  External.ExternalHelper
             if(!override) return;
         }
 
-        Process.execFile(
+        _ps_.execFile(
             baksmali.file,
             baksmali.args.concat(["disassemble",dexfilePath,"-o",destPath]),
             function(err:any, stdout:string, stderr:string){

@@ -1,9 +1,13 @@
 import * as _fs_ from "fs";
 import * as _os_ from "os";
 import * as _path_ from 'path';
+import * as _util_ from 'util';
+import * as _ps_ from 'child_process';
 import * as Process from 'process';
 import chalk from "chalk";
 import ArgParser from './src/ArgUtils.js';
+
+const _exec_ = _util_.promisify(_ps_.exec);
 
 
 import DexcaliburEngine from './src/DexcaliburEngine.js';
@@ -41,6 +45,14 @@ import {Workflow} from "./src/Workflow.js";
 import AndroidAppAnalyzer from "./src/android/AndroidAppAnalyzer.js";
 import {AndroidResourceType} from "./src/android/AndroidResource.js";
 import {ProjectInputLocation, ProjectInputPurpose, ProjectInputType} from "./src/analyzer/ProjectInput.js";
+import JavaHelper from "./src/JavaHelper.js";
+import FridaHelper from "./src/FridaHelper.js";
+import ApkHelper from "./src/ApkHelper.js";
+import {BinwalkHelper} from "./src/BinwalkHelper.js";
+import DexHelper from "./src/DexHelper.js";
+import RadareHelper from "./src/R2Helper.js";
+import ShellHelper from "./src/ShellHelper.js";
+import AdbWrapper from "./src/AdbWrapper.js";
 
 
 ConnectorFactory.getInstance(true);
@@ -175,7 +187,9 @@ var Parser:ArgParser = new ArgParser(projectArgs, "dexcalibur-adm", [
                 name:"--check",
                 help: "To check each",
                 hasVal:false,
-                callback:(ctx,param)=>{ ctx.tCheck = true; }
+                callback:(ctx,param)=>{
+                    ctx.tCheck = (param.value!=null)? param.value : true;
+                }
             }
         ],
         callback:(ctx,param)=>{ ctx.mode = SUBMENU.TOOLS; } },
@@ -699,6 +713,92 @@ switch (projectArgs.mode){
         if(projectArgs.tName!=null && projectArgs.tPath != null){
             const settings:S.Settings.ExternalSettings = cfg.getExternalSettings();
             settings.add( projectArgs.tName, projectArgs.tPath);
+        }else if(projectArgs.tCheck!=null){
+
+            (async function(){
+
+                try{
+                    // create an empty single (not yet initialiazed) instance of engine+
+                    const dxcInstance = DexcaliburEngine.getInstance();
+
+                    // init engine with settings
+                    dxcInstance.loadConfiguration(cfg);
+
+                    // boot engine
+                    const ready = await dxcInstance.boot(projectArgs.restore===true,"");
+
+                    if(ready){
+
+                        let checklist:string[];
+
+                        if(projectArgs.tCheck===true){
+                            // check all configured tool
+                            checklist = ["java",'frida','apktool','binwalk','baksmali','radare2','adb','shell'];
+                        }
+                        else if(typeof  projectArgs.tCheck==='string'){
+                            // check a specific tool
+                            checklist = [projectArgs.tCheck]
+                        }
+
+                        let res=false;
+                        for(let i=0; i<checklist.length; i++){
+                            switch (checklist[i]){
+                                case 'java':
+                                    res = await JavaHelper.check();
+                                    break;
+                                case 'baksmali':
+                                    res = await DexHelper.check();
+                                    break;
+                                case 'apktool':
+                                    res = await ApkHelper.check();
+                                    break;
+                                case 'frida':
+                                    res = await FridaHelper.check();
+                                    break;
+                                case 'binwalk':
+                                    res = await BinwalkHelper.check();
+                                    break;
+                                case 'radare2':
+                                    res = true;
+                                    // todo: check r2pipe
+                                    break;
+                                case 'adb':
+                                    res = await (dxcInstance
+                                        .getDeviceManager()
+                                        .getBridgeFactory("adb")
+                                        .newGenericWrapper() as AdbWrapper).check()
+                                    //res = await And.check();
+                                    break;
+                                case 'shell':
+                                    res = await ShellHelper.check();
+                                    break;
+                                default:
+                                    res = false;
+                                    break
+                            }
+
+                            if(res==true){
+                                console.log(`[*] External tool '${checklist[i]}' checked successfully.`);
+                            }else{
+                                console.log(`[!] External tool '${checklist[i]}' check failure.`);
+
+                            }
+                        }
+
+                        process.exit(0);
+                        /*
+                        FridaHelper.init(this.extMgr.getTool('frida'));
+                        ApkHelper.init(this.extMgr.getTool('apktool'));
+                        BinwalkHelper.init(this.extMgr.getTool('binwalk'));
+                        DexHelper.init(this.extMgr.getTool('baksmali'));
+                        RadareHelper.init(this.extMgr.getTool('radare2'));*/
+                    }
+                }catch (err){
+                    console.log(chalk.red(err.message));
+                    console.log(chalk.red(err.stack));
+                    process.exit(0);
+                }
+            })();
         }
         break;
     /*case SUBMENU.WEB:

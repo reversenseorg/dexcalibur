@@ -189,6 +189,21 @@ export default class FridaHelper extends External.ExternalHelper
     }
 
     /**
+     * To check if Frida is installed and can be used
+     *
+     * @return {Promise<boolean>}  TRUE if ready, else FALSE
+     * @async
+     * @static
+     * @method
+     */
+    static async check():Promise<boolean> {
+        const out:string = _ps_.execSync(FridaHelper.getExtPath()+' --version').toString();
+
+        return (out!=null)
+            && (/^[0-9]+\.[0-9]+\.*[0-9]*\n$/.test(out));
+    }
+
+    /**
      * To download a remote file into temporary folder
      * 
      * TODO : move to utils
