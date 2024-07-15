@@ -19,7 +19,7 @@ var NetworkHttpInspector:InspectorFactory = new InspectorFactory({
 
     startStep: INSPECTOR_TYPE.POST_APP_SCAN,
 
-    version: "1.0.17",
+    version: "1.0.18",
     tags: [{
         name: "network.data",
         _tagsOptions: [
@@ -273,8 +273,9 @@ var NetworkHttpInspector:InspectorFactory = new InspectorFactory({
             //<ts>={
             const PARAM_URL_REGEX = "\\{([a-zA-Z][a-zA-Z0-9_-]*)\\}";
             let ctx: Record<string,any> = pEvent.getContext();
-            if ((pEvent.getData().data?.regex != null) && (pEvent.getData().data.regex === PARAM_URL_REGEX)) {
-                console.log("[INSPECTOR][NETWORKHTTP] Regex match the one use in Retrofit.requestFactory.parsePathParameters(path) or parseHttpMethodAndPath (queryParams)");
+            if (pEvent.getData().data?.regex === PARAM_URL_REGEX) {
+                console.log("[INSPECTOR][NETWORKHTTP] Regex match the one use in Retrofit." +
+                 "requestFactory.parsePathParameters(path) or parseHttpMethodAndPath (queryParams)");
                 let eventData: Record<string, any> = {};
                 eventData['regex'] = pEvent.getData().data.regex;
                 eventData['stringTested'] = pEvent.getData().data.text.toString();
@@ -316,7 +317,36 @@ var NetworkHttpInspector:InspectorFactory = new InspectorFactory({
                 });
             }
             `
-        }
+        },
+        "hook.javaUtilsObject.requireNonNull": {
+            lang: "ts",
+            source: `
+                //<ts>={
+                //Objects.requireNonNull(rawResponse, "rawResponse == null"); 
+                let ctx: Record<string,any> = pEvent.getContext();
+                if (pEvent.getData().data?.arg1_message != null) {
+                    const MESSAGE_RAW_RESPONSE = "rawResponse == null";
+                    const MESSAGE_BASE_URL = "baseUrl == null";
+                    if (pEvent.getData().data?.arg1_message === MESSAGE_RAW_RESPONSE) {
+                        console.log("[INSPECTOR][NETWORKHTTP] JavaUtilsObject requireNonNull message " +
+                         + MESSAGE_RAW_RESPONSE + "similar to those used in Retrofit.Response");
+                        let eventData: Record<string, any> = {};
+                        eventData['requireNonNullMessage'] = pEvent.getData().data.arg1_message;
+                        eventData['rawResponse'] = pEvent.getData().data.arg0_obj.toString() ; //okhttp3.Response
+                        console.log("[INSPECTOR][NETWORKHTTP] rawResponse :", eventData['rawResponse']);
+                    }
+                    if (pEvent.getData().data?.arg1_message === MESSAGE_BASE_URL) {
+                        console.log("[INSPECTOR][NETWORKHTTP] JavaUtilsObject requireNonNull message " +
+                            MESSAGE_BASE_URL + "similar to those used in Retrofit.Response");
+                        let eventData: Record<string, any> = {};
+                        eventData['requireNonNullMessage'] = pEvent.getData().data.arg1_message;
+                        eventData['baseUrl'] = baseUrl.toString() ; //java.net.URL or String or  okhttp3.HttpUrl
+                        console.log("[INSPECTOR][NETWORKHTTP] baseUrl :", eventData['baseUrl']);
+                    }
+                }
+                
+                `
+            }
     }
 });
 
