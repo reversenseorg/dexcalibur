@@ -176,7 +176,7 @@ COPY frida_version "$ARTIFACTS_FOLDER/frida_version"
 # Third-part : frida
 # ===============================
 
-RUN IMPORTED_FRIDA_VER=`cat "$ARTIFACTS_FOLDER/frida_version"` && pip install frida==$IMPORTED_FRIDA_VER
+RUN IMPORTED_FRIDA_VER=`cat "$ARTIFACTS_FOLDER/frida_version"` && pip install frida==$IMPORTED_FRIDA_VER frida-tools
 
 # ===============================
 # Install dexcalibur server from artifacts
@@ -212,7 +212,7 @@ RUN mkdir $DXC_USER_HOME/.dexcalibur && \
 # configure external tools
 RUN ls -la $DXC_USER_HOME/.dexcalibur && \
     ls -la $DXC_USER_HOME/.dexcalibur/.dxc && \
-    echo $USER && \
+    echo $PATH && \
     chmod 777 -R $DXC_USER_HOME/.dexcalibur/.dxc && \
     mv "$TMP_FOLDER/baksmali.jar" $DXC_USER_HOME/.dexcalibur/.dxc/bin/baksmali.jar && \
     mv "$TMP_FOLDER/apktool.jar" $DXC_USER_HOME/.dexcalibur/.dxc/bin/apktool.jar && \
@@ -225,8 +225,6 @@ RUN ls -la $DXC_USER_HOME/.dexcalibur && \
     node ./dexcalibur-adm.mjs tools --name=shell --path=/bin/sh && \
     node ./dexcalibur-adm.mjs tools --name=baksmali --path=$DXC_USER_HOME/.dexcalibur/.dxc/bin/baksmali.jar && \
     node ./dexcalibur-adm.mjs tools --name=apktool --path=$DXC_USER_HOME/.dexcalibur/.dxc/bin/apktool.jar && \
-    node ./dexcalibur-adm.mjs user --add-account=admin && \
-    node ./dexcalibur-adm.mjs user -l && \
     node ./dexcalibur-adm.mjs server -l && \
     node ./dexcalibur-adm.mjs tools -l
 
