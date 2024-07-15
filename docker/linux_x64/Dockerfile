@@ -24,20 +24,6 @@ ARG dxc_http_port=8080
 ARG dxc_ws_port=8001
 ARG dxc_heap_size=4096
 
-
-"discoverUri": "http://127.0.0.1:8088/realms/dxc-stagging",
-"client_id": "dxcengine_api",
-"client_secret": "tPX4Z2xkkZItvI6tIv6hWczpIsrTZOwq",
-"redirectUris": [
-  "http://127.0.0.1:8080/api-auth/cb"
-],
-"postLogoutRedirectUris": [
-  "http://127.0.0.1:8080/api-logout"
-],
-"responseType": [
-  "code"
-]
-
 # Open ID Connect arguments
 ARG dxc_oidc_server="http://127.0.0.1:8088"
 ARG dxc_oidc_client_id="dxcengine_api"
