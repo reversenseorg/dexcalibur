@@ -9,7 +9,7 @@ var FirebaseInspector:InspectorFactory = new InspectorFactory({
     startStep: INSPECTOR_TYPE.POST_APP_SCAN,
 
     description: "Anything related to Firebase",
-    version: "1.0.8",
+    version: "1.0.9",
     hookSet: {
         id: "Firebase",
         name: "Firebase",
@@ -31,13 +31,14 @@ var FirebaseInspector:InspectorFactory = new InspectorFactory({
             autoEmit: true,
             emitEvent: "hook.firebase.auth.get",
             before: `
-                    let msg="";    
-                    if(DXC.util.isInstanceOf(arg0,"com.google.firebase.FirebaseApp"))
-                        msg = arg0;
-                    else
-                        msg = "<unknow>";
-                    printTest();
-        
+                    // <ts>={
+                    let msg="";
+                    if (arguments.length >= 1) {
+                        if(DXC.util.isInstanceOf(arg0,"com.google.firebase.FirebaseApp"))
+                            msg = arg0;
+                        else
+                            msg = "<unknow>";
+                    }
                     DXC.send(
                         "@@__HOOK_ID__@@",
                         "@@__FRAG_ID__@@",
