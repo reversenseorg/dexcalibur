@@ -160,6 +160,26 @@ var Parser:ArgParser = new ArgParser(projectArgs, "dexcalibur-adm", [
                 help: "Set Web Socket port used by GUIs",
                 hasVal:true,
                 callback:(ctx,param)=>{ ctx.srvWsPort = param.value; }
+            },{
+                name:"--db-port",
+                help: "Set port number of database server",
+                hasVal:true,
+                callback:(ctx,param)=>{ ctx.srvDbPort = param.value; }
+            },{
+                name:"--db-host",
+                help: "Set hostname of database server",
+                hasVal:true,
+                callback:(ctx,param)=>{ ctx.srvDbHost = param.value; }
+            },{
+                name:"--db-credential",
+                help: "Set the path to a file containing the authentication string",
+                hasVal:true,
+                callback:(ctx,param)=>{ ctx.srvDbCreds = param.value; }
+            },{
+                name:"--db-conn",
+                help: "Set the authentication string (insecure because the password will be in bash history)",
+                hasVal:true,
+                callback:(ctx,param)=>{ ctx.srvDbConn = param.value; }
             }
         ],
         callback:(ctx,param)=>{ ctx.mode = SUBMENU.GLOBAL; }
@@ -1152,6 +1172,53 @@ ${"\t".repeat(1)}Default Arch = ${srv.getDefaultArchitecture()}
             );
             webSettings.save();
             console.log(chalk.green("[*] WebSocket port has been updated."));
+        }
+        const dbSettings = cfg.getServerSettings().getDatabaseSettings();
+
+        if(projectArgs.srvDbHost!=null){
+            try{
+                dbSettings.update(dbSettings.sanitize("host", projectArgs.srvDbHost));
+                dbSettings.save();
+                console.log(chalk.green("[*] DB Settings > host has been updated."));
+            }catch (e){
+                console.log(chalk.red("[!] DB Settings > host cannot be updated : "+e.message));
+            }
+        }
+        if(projectArgs.srvDbPort!=null){
+            try{
+                dbSettings.update(dbSettings.sanitize("port", projectArgs.srvDbPort));
+                dbSettings.save();
+                console.log(chalk.green("[*] DB Settings > port number has been updated."));
+            }catch (e){
+                console.log(chalk.red("[!] DB Settings > port number cannot be updated : "+e.message));
+            }
+        }
+        if(projectArgs.srvDbConn!=null){
+            try{
+                dbSettings.update(dbSettings.sanitize("conn", projectArgs.srvDbConn));
+                dbSettings.save();
+                console.log(chalk.green("[*] DB Settings > connection string has been updated."));
+            }catch (e){
+                console.log(chalk.red("[!] DB Settings > connection string cannot be updated : "+e.message));
+            }
+        }
+        if(projectArgs.srvDbCreds!=null){
+            try{
+                if(_fs_.existsSync(projectArgs.srvDbCreds)){
+                    const dbCreds = _fs_.readFileSync(projectArgs.srvDbCreds).toString();
+                    if(dbCreds.length>0){
+                        dbSettings.update(dbSettings.sanitize("conn", dbCreds));
+                        dbSettings.save();
+                        console.log(chalk.green("[*] DB Settings > connection string has been updated."));
+                    }else{
+                        console.log(chalk.red("[!] DB Settings > connection string cannot be updated : Credential file is empty"));
+                    }
+                }else{
+                    console.log(chalk.red("[!] DB Settings > connection string cannot be updated : Credential file not found"));
+                }
+            }catch (e){
+                console.log(chalk.red("[!] DB Settings > connection string cannot be updated : "+e.message));
+            }
         }
         break;
     case SUBMENU.USER:
