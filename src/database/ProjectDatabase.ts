@@ -7,7 +7,8 @@ import * as Log from "../Logger.js";
 import DexcaliburProject from "../DexcaliburProject.js";
 import InspectorFactory from "../InspectorFactory.js";
 import { IDbCollection, INode, NodeType, Tag, TagCategory} from "@dexcalibur/dexcalibur-orm";
-import {NodeInternalType, NodeInternalTypeName} from "../NodeInternalType.js";
+import {NodeInternalType, NodeInternalTypeName}
+from "@dexcalibur/dxc-core-api";;
 import {EngineDatabaseException} from "../errors/EngineDatabaseException.js";
 import {AnalyzerState} from "../AnalyzerState.js";
 import ModelFile from "../ModelFile.js";

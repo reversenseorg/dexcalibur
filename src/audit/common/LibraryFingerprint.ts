@@ -1,4 +1,5 @@
-import {NodeInternalType} from "../../NodeInternalType.js";
+import {NodeInternalType}
+from "@dexcalibur/dxc-core-api";;
 
 
 export enum FingerprintSource {

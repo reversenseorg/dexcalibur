@@ -8,7 +8,8 @@ import {
     TagUUID
 } from "@dexcalibur/dexcalibur-orm";
 import {Nullable} from "../core/IStringIndex.js";
-import {NodeInternalType} from "../NodeInternalType.js";
+import {NodeInternalType}
+from "@dexcalibur/dxc-core-api";;
 import {UserAccount} from "../user/UserAccount.js";
 import {randomUUID} from "crypto";
 

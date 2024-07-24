@@ -1,6 +1,7 @@
 import ModelMethod from "./ModelMethod.js";
 import {Savable, STUB_TYPE} from "./ModelSavable.js";
-import {NodeInternalType} from "./NodeInternalType.js";
+
+import {NodeInternalType} from "@dexcalibur/dxc-core-api";
 import {NodeType, NodeProperty, DbDataType, DbKeyType, DbSerialize} from "@dexcalibur/dexcalibur-orm";
 import {ValidationRule} from "./Validator.js";
 import DataScope from "./DataScope.js";

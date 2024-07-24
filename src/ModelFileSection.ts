@@ -1,5 +1,6 @@
 
-import {NodeInternalType} from "./NodeInternalType.js";
+
+import {NodeInternalType} from "@dexcalibur/dxc-core-api";
 import {NodeType,  NodeProperty, DbDataType} from "@dexcalibur/dexcalibur-orm";
 import {CoreDebug} from "./core/CoreDebug.js";
 

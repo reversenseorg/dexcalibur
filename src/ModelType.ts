@@ -1,7 +1,8 @@
 import { CONST } from "./CoreConst.js";
 import {Savable, Stub, STUB_TYPE} from "./ModelSavable.js";
 import {CoreDebug} from "./core/CoreDebug.js";
-import {NodeInternalType} from "./NodeInternalType.js";
+
+import {NodeInternalType} from "@dexcalibur/dxc-core-api";
 
 
 

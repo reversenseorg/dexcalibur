@@ -4,7 +4,8 @@ import { ModelSwitchCase, ModelPackedSwitchStatement, ModelSparseSwitchStatement
 import ModelInstruction from "./ModelInstruction.js";
 import ModelMethod from "./ModelMethod.js";
 import {NodeType} from "@dexcalibur/dexcalibur-orm";
-import {NodeInternalType} from "./NodeInternalType.js";
+
+import {NodeInternalType} from "@dexcalibur/dxc-core-api";
 import {Savable} from "./ModelSavable.js";
 import {CoreDebug} from "./core/CoreDebug.js";
 

@@ -35,7 +35,8 @@ import {
 import InMemoryConnector from "../connectors/inmemory/adapter.js";
 import {MongodbAdapter, MongodbDbCollection} from "@dexcalibur/dexcalibur-orm-mongodb";
 import {CustomCode} from "./actionnable/CustomCode.js";
-import {NodeInternalType} from "./NodeInternalType.js";
+
+import {NodeInternalType} from "@dexcalibur/dxc-core-api";
 import Inspector, {INSPECTOR_TYPE} from "./Inspector.js";
 import AssuranceReport from "./audit/common/AssuranceReport.js";
 import AssuranceModel from "./audit/common/AssuranceModel.js";

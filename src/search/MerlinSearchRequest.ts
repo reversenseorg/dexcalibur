@@ -6,7 +6,8 @@ import Util from "../Utils.js";
 import {OperatingSystem} from "../OperatingSystem.js";
 import {BusSubscriber} from "../Bus.js";
 import DexcaliburProject from "../DexcaliburProject.js";
-import {NodeInternalType, NodeInternalTypeName} from "../NodeInternalType.js";
+import {NodeInternalType, NodeInternalTypeName}
+from "@dexcalibur/dxc-core-api";;
 import {CoreDebug} from "../core/CoreDebug.js";
 import {MerlinPrimitive, MerlinType} from "./MerlinPrimitive.js";
 import {NodeType, NodeProperty, IDbCollection, IDbIndex} from "@dexcalibur/dexcalibur-orm";

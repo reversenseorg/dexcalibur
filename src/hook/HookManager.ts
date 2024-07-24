@@ -18,7 +18,8 @@ import KeyPointManager from "./KeyPointManager.js";
 import KeyPoint, {KeyPointRole} from "./KeyPoint.js";
 import JavaMethodHook from "./JavaMethodHook.js";
 import NativeFunctionHook from "./NativeFunctionHook.js";
-import {NodeInternalType} from "../NodeInternalType.js";
+import {NodeInternalType}
+from "@dexcalibur/dxc-core-api";;
 import {AbstractHook} from "./AbstractHook.js";
 import {HookBuilder} from "./builders/HookBuider.js";
 import {HookDbApi} from "./HookDbApi.js";
@@ -186,8 +187,14 @@ export class HookManager
             case 'cache_policy':
                 this.setCachePolicy(parseInt(pOpt));
                 break;
+            case 'followThread':
+                this.options.followThread = (pOpt==true);
+                break;
+            case 'followFork':
+                this.options.followFork = (pOpt==true);
+                break;
             default:
-                this.options[pName] = pOpt;
+                throw HookManagerException.OPTION_NOT_SUPPORTED(pName);
                 break;
         }
     }
@@ -541,7 +548,11 @@ export class HookManager
         }
     }
 
+    /**
+     * To get the lis
+     */
     getMessageTags():TagHashMap {
+
         return this._sessTags;
     }
 

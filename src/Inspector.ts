@@ -16,7 +16,8 @@ import InspectorFrontController, {IFC_TYPE} from "./InspectorFrontController.js"
 import BusEvent from "./BusEvent.js";
 import * as Log from './Logger.js';
 import {BusEventHandler, BusSubscriber} from "./Bus.js";
-import {NodeInternalType} from "./NodeInternalType.js";
+
+import {NodeInternalType} from "@dexcalibur/dxc-core-api";
 import Util from "./Utils.js";
 import {CoreDebug} from "./core/CoreDebug.js";
 import {IDatabase, IDatabaseAdapter, NodeType, TagCategory} from "@dexcalibur/dexcalibur-orm";

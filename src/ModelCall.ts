@@ -4,7 +4,8 @@ import ModelInstruction from "./ModelInstruction.js";
 import ModelMethod from "./ModelMethod.js";
 import {EOL} from "os";
 import ModelClass from "./ModelClass.js";
-import {NodeInternalType} from "./NodeInternalType.js";
+
+import {NodeInternalType} from "@dexcalibur/dxc-core-api";
 import {NodeType, DataSourceHelper,  NodeProperty, DbDataType} from "@dexcalibur/dexcalibur-orm";
 
 import {CoreDebug} from "./core/CoreDebug.js";

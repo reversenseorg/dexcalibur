@@ -7,7 +7,8 @@ import {ProjectURI} from "../project/ProjectGlobalUID.js";
 import {IDexcaliburEngine} from "../IDexcaliburEngine.js";
 import {IPersistent} from "../persist/orm/IPersistent.js";
 import {NodeType} from "@dexcalibur/dexcalibur-orm";
-import {NodeInternalType} from "../NodeInternalType.js";
+import {NodeInternalType}
+from "@dexcalibur/dxc-core-api";;
 import Util from "../Utils.js";
 import {IStringIndex} from "../core/IStringIndex.js";
 

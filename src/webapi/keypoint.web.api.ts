@@ -5,7 +5,8 @@ import * as Log from "../Logger.js";
 import KeyPointManager from "../hook/KeyPointManager.js";
 import KeyPoint, {KeyPointLifecycleEventType} from "../hook/KeyPoint.js";
 import {KeyPointManagerException} from "../errors/KeyPointManagerException.js";
-import {NodeInternalType, NodeInternalTypeName} from "../NodeInternalType.js";
+import {NodeInternalType, NodeInternalTypeName}
+from "@dexcalibur/dxc-core-api";;
 import {KeyPointOptions} from "../hook/KeyPointGenerator.js";
 import DexcaliburProject from "../DexcaliburProject.js";
 import {AbstractHook} from "../hook/AbstractHook.js";

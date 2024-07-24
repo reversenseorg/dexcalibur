@@ -18,7 +18,8 @@ import HookMessageV2 from "./hook/HookMessageV2.js";
 import {RuntimeEvent, RuntimeEventType} from "./hook/RuntimeEvent.js";
 import {HookMessageException} from "./errors/HookMessageException.js";
 import {TagHashMap} from "./tags/TagManager.js";
-import {NodeInternalType} from "./NodeInternalType.js";
+
+import {NodeInternalType} from "@dexcalibur/dxc-core-api";
 
 import {
     NodeType,
@@ -130,6 +131,13 @@ export default class HookSession extends WebsocketSession implements INode
 
     opts:HookSessionOptions;
 
+    /**
+     * A cache of tags to avoid to research tag from tag uuid foreach hook message
+     *
+     * Volatile
+     *
+     * @field
+     */
     evTags:TagHashMap = {};
 
     tags = [];
@@ -370,7 +378,7 @@ export default class HookSession extends WebsocketSession implements INode
      * @param {number} pSize Number of message to return
      * @method
      */
-    getMessages( pOffset:number, pSize:number ):HookMessage[]{
+    getMessages( pOffset:number, pSize:number ):RuntimeEvent<HookMessageV2>[]{
         const arr = [];
         for(let i=pOffset; i<pOffset+pSize; i++){
             // not null and not undefined
@@ -391,6 +399,7 @@ export default class HookSession extends WebsocketSession implements INode
         let limit:number=pOptions.size;
         o._uid = this._uid;
         o.message = [];
+        o.msgLength = this.message.length;
         o.active = this.active;
         o.time = this.time;
         o.offset = this.offset;
@@ -427,7 +436,5 @@ export default class HookSession extends WebsocketSession implements INode
     onExit():void {
         //
     }
-
-
 }
 HookSession.TYPE.builder(HookSession);

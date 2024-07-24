@@ -10,7 +10,8 @@ import ModelMethod from "../ModelMethod.js";
 import {ModelFunction} from "../ModelFunction.js";
 import NativeFunctionHook from "./NativeFunctionHook.js";
 import {INode, NodeType, TagUUID} from "@dexcalibur/dexcalibur-orm";
-import {NodeInternalType} from "../NodeInternalType.js";
+import {NodeInternalType}
+from "@dexcalibur/dxc-core-api";;
 import {HookManager} from "./HookManager.js";
 import * as Log from "../Logger.js";
 import {CryptoUtils} from "../CryptoUtils.js";

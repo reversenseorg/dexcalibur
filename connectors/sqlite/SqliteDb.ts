@@ -10,7 +10,7 @@ import SqliteDbIndex from "./SqliteDbIndex.js";
 import SqliteConnector from "./adapter.js";
 import {PreparedStatementList, SqliteAPI} from "./SqliteAPI.js";
 import * as Log from "../../src/Logger.js";
-import {NodeInternalType} from "../../src/NodeInternalType.js";
+import {NodeInternalType} from "@dexcalibur/dxc-core-api";
 import DexcaliburProject from "../../src/DexcaliburProject.js";
 import {
     DbDataType,

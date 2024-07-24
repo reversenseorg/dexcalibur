@@ -1,6 +1,7 @@
 import HookTemplateFragment from "./HookTemplateFragment.js";
 import {NodeType} from "@dexcalibur/dexcalibur-orm";
-import {NodeInternalType} from "../NodeInternalType.js";
+import {NodeInternalType}
+from "@dexcalibur/dxc-core-api";;
 import HookStrategy from "./HookStrategy.js";
 
 

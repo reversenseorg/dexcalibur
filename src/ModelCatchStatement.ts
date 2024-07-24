@@ -1,6 +1,7 @@
 import ModelClass from "./ModelClass.js";
 import ModelBasicBlock from "./ModelBasicBlock.js";
-import {NodeInternalType} from "./NodeInternalType.js";
+
+import {NodeInternalType} from "@dexcalibur/dxc-core-api";
 import {CoreDebug} from "./core/CoreDebug.js";
 
 interface ITryCatchBoundary

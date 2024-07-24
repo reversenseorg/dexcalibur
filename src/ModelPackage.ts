@@ -1,7 +1,8 @@
 import ModelMetadata from "./ModelMetadata.js";
 import ModelClass from './ModelClass.js';
 import {NodeType, DataSourceHelper, SerializeOptions, INode} from "@dexcalibur/dexcalibur-orm";
-import {NodeInternalType} from "./NodeInternalType.js";
+
+import {NodeInternalType} from "@dexcalibur/dxc-core-api";
 import {IPersistent} from "./persist/orm/IPersistent.js";
 import {Savable, STUB_TYPE} from "./ModelSavable.js";
 import {CoreDebug} from "./core/CoreDebug.js";

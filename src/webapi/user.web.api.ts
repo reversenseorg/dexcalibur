@@ -1,20 +1,6 @@
 import {DelegateRequest, DelegateResponse, DelegateWebApi} from "./DelegateWebApi.js";
-import {Device} from "../Device.js";
-import WebServer, {HTTP_CODE_ERROR, HTTP_CODE_SUCCESS} from "../WebServer.js";
-import DeviceManager from "../DeviceManager.js";
-import {Request, Response} from "express";
+import WebServer from "../WebServer.js";
 import * as Log from "../Logger.js";
-import DataScope from "../DataScope.js";
-import * as _path_ from "path";
-import {IDbCollection, IDbIndex} from "../persist/orm/DbAbstraction.js";
-import ModelFile from "../ModelFile.js";
-import DexcaliburProject from "../DexcaliburProject.js";
-import * as path from "path";
-import {AuthenticationException} from "../errors/AuthenticationException.js";
-import {DexcaliburProjectException} from "../errors/DexcaliburProjectException.js";
-import Util from "../Utils.js";
-import {CODE_WEB_API} from "./code.web.api.js";
-import {FinderResult} from "../FinderResult.js";
 import {UserSession} from "../user/session/UserSession.js";
 import {UserAccount} from "../user/UserAccount.js";
 

@@ -25,7 +25,8 @@ import {
     TagOptions,
     TagUUID
 } from "@dexcalibur/dexcalibur-orm";
-import {NodeInternalType} from "./NodeInternalType.js";
+
+import {NodeInternalType} from "@dexcalibur/dxc-core-api";
 import {IStringIndex, Nullable} from "./core/IStringIndex.js";
 import BusEvent from "./BusEvent.js";
 import {CustomCode, CustomCodeOptions} from "./actionnable/CustomCode.js";

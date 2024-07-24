@@ -1,5 +1,6 @@
 
-import {NodeInternalType} from "../../NodeInternalType.js";
+import {NodeInternalType}
+from "@dexcalibur/dxc-core-api";;
 import {UserSession} from "./UserSession.js";
 import {IPersistent} from "../../persist/orm/IPersistent.js";
 import {NodeType} from "@dexcalibur/dexcalibur-orm";

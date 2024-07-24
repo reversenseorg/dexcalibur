@@ -3,7 +3,8 @@ import ModelBasicBlock from "./ModelBasicBlock.js";
 import ModelMethod from "./ModelMethod.js";
 import {Savable, STUB_TYPE} from "./ModelSavable.js";
 import {ModelRegisterReference} from "./ModelReference.js";
-import {NodeInternalType} from "./NodeInternalType.js";
+
+import {NodeInternalType} from "@dexcalibur/dxc-core-api";
 import {ModelFunction} from "./ModelFunction.js";
 import {CoreDebug} from "./core/CoreDebug.js";
 import {IStringIndex, SerializeOptions} from "@dexcalibur/dexcalibur-orm";

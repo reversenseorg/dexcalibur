@@ -1,5 +1,6 @@
 import ModelFile from "./ModelFile.js";
-import {NodeInternalType} from "./NodeInternalType.js";
+
+import {NodeInternalType} from "@dexcalibur/dxc-core-api";
 import {CodeLocation, LocationType, ModelLocation} from "./ModelLocation.js";
 import {Nullable} from "./core/IStringIndex.js";
 

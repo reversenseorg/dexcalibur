@@ -8,7 +8,8 @@ import AccessControl from "../acl/AccessControl.js";
 import {AccessZone} from "../acl/Zones.js";
 import {ProjectAccessControl} from "../acl/rbac/ProjectAccessContol.js";
 import {IDexcaliburEngine} from "../../IDexcaliburEngine.js";
-import {NodeInternalType} from "../../NodeInternalType.js";
+import {NodeInternalType}
+from "@dexcalibur/dxc-core-api";;
 import {IPersistent} from "../../persist/orm/IPersistent.js";
 import {SessionData} from "./SessionData.js";
 import {CoreDebug} from "../../core/CoreDebug.js";

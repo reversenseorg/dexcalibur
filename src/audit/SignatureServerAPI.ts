@@ -6,7 +6,8 @@ import {DeviceModel} from "../DeviceModel.js";
 import {Brand} from "../Brand.js";
 import * as Log from "../Logger.js";
 import {INode, NodeType, TagCategory} from "@dexcalibur/dexcalibur-orm";
-import {NodeInternalType} from "../NodeInternalType.js";
+
+import {NodeInternalType} from "@dexcalibur/dxc-core-api";
 const GOT = got.default;
 
 

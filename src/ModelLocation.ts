@@ -1,5 +1,6 @@
 import ModelFile from "./ModelFile.js";
-import {NodeInternalType} from "./NodeInternalType.js";
+
+import {NodeInternalType} from "@dexcalibur/dxc-core-api";
 
 export enum LocationType {
     FILE,

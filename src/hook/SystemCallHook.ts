@@ -1,6 +1,7 @@
 
 import {AbstractHook} from "./AbstractHook.js";
-import {NodeInternalType} from "../NodeInternalType.js";
+import {NodeInternalType}
+from "@dexcalibur/dxc-core-api";;
 import {NodeType} from "@dexcalibur/dexcalibur-orm";
 import {HookScriptBuilderException} from "../errors/HookScriptBuilderException.js";
 import ModelSyscall from "../ModelSyscall.js";

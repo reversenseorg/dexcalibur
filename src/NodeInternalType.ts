@@ -1,4 +1,3 @@
-import {IStringIndex} from "./core/IStringIndex.js";
 
 export enum NodeInternalType {
     BASIC_BLOCK,

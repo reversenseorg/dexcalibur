@@ -1,6 +1,7 @@
 import HookStrategy from "./HookStrategy.js";
 import {INode, NodeType, TagUUID} from "@dexcalibur/dexcalibur-orm";
-import {NodeInternalType} from "../NodeInternalType.js";
+import {NodeInternalType}
+from "@dexcalibur/dxc-core-api";;
 import {CoreDebug} from "../core/CoreDebug.js";
 import {Nullable} from "../core/IStringIndex.js";
 

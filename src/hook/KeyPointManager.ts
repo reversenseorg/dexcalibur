@@ -8,7 +8,8 @@ import {IDatabase, IDbCollection, INode} from "@dexcalibur/dexcalibur-orm";
 import {MongodbDbCollection} from "@dexcalibur/dexcalibur-orm-mongodb";
 import {OperatingSystem} from "../OperatingSystem.js";
 import {Nullable} from "../core/IStringIndex.js";
-import {NodeInternalType, NodeInternalTypeName} from "../NodeInternalType.js";
+import {NodeInternalType, NodeInternalTypeName}
+from "@dexcalibur/dxc-core-api";;
 
 export enum DEOPT_TYPE {
     NONE,

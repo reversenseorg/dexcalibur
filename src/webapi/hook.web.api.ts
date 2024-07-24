@@ -12,7 +12,8 @@ import ModelMethod from "../ModelMethod.js";
 import {ModelFunction} from "../ModelFunction.js";
 import ModelFile from "../ModelFile.js";
 import {AbstractHook} from "../hook/AbstractHook.js";
-import {NodeInternalType} from "../NodeInternalType.js";
+import {NodeInternalType}
+from "@dexcalibur/dxc-core-api";;
 import KeyPoint from "../hook/KeyPoint.js";
 import HookStrategy from "../hook/HookStrategy.js";
 import {RuntimeEventType} from "../hook/RuntimeEvent.js";

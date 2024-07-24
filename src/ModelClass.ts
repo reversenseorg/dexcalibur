@@ -9,7 +9,8 @@ import {Savable, STUB_TYPE} from "./ModelSavable.js";
 import {ModelClassReference, ModelFieldReference, ModelMethodReference} from "./ModelReference.js";
 import {ModelLocation} from "./ModelLocation.js";
 import {IPersistent} from "./persist/orm/IPersistent.js";
-import {NodeInternalType} from "./NodeInternalType.js";
+
+import {NodeInternalType} from "@dexcalibur/dxc-core-api";
 import {
     NodeType,
     DataSourceHelper,

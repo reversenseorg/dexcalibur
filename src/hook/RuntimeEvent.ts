@@ -2,7 +2,8 @@ import {INode} from "../INode.js";
 import HookMessageV2 from "./HookMessageV2.js";
 
 import BusEvent from "../BusEvent.js";
-import {NodeInternalType} from "../NodeInternalType.js";
+import {NodeInternalType}
+from "@dexcalibur/dxc-core-api";;
 import {NodeType, NodeProperty, DbDataType, DbKeyType, NodePropertyState, Tag} from "@dexcalibur/dexcalibur-orm";
 import {CoreDebug} from "../core/CoreDebug.js";
 
@@ -74,7 +75,8 @@ export class RuntimeEvent<P> extends BusEvent<any> implements INode {
                 })
                 .wakeUp( (x:NodePropertyState)=>{ return (x.p!=null ? x.p : null)})*/
                 .def([])
-        ]);
+        ]).dataSource("PROJECT_DB");
+
     __:NodeInternalType = NodeInternalType.RUNTIME_EVENT;
 
     rt_type:RuntimeEventType = null;
@@ -200,3 +202,4 @@ export class RuntimeEvent<P> extends BusEvent<any> implements INode {
         return (this.rt_type!=RuntimeEventType.HOOK_ERROR);
     }
 }
+RuntimeEvent.TYPE.builder(RuntimeEvent);

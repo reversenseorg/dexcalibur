@@ -1,5 +1,6 @@
 import {NodeType,DataSourceHelper,NodeProperty, DbDataType, DbKeyType} from "@dexcalibur/dexcalibur-orm";
-import {NodeInternalType} from "../NodeInternalType.js";
+
+import {NodeInternalType} from "@dexcalibur/dxc-core-api";
 import {RuntimeEvent} from "../hook/RuntimeEvent.js";
 import {CoreDebug} from "../core/CoreDebug.js";
 

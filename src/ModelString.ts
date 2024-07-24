@@ -1,6 +1,7 @@
 import {Savable, STUB_TYPE} from "./ModelSavable.js";
 import {createHash} from "crypto";
-import {NodeInternalType} from "./NodeInternalType.js";
+
+import {NodeInternalType} from "@dexcalibur/dxc-core-api";
 import {NodeType, DataSourceHelper,  NodeProperty, DbDataType, DbKeyType, INode} from "@dexcalibur/dexcalibur-orm";
 import {DataLocation, DataLocationType} from "./DataLocation.js";
 import ModelBasicBlock from "./ModelBasicBlock.js";

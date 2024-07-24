@@ -1,6 +1,7 @@
 import {IPersistent} from "../persist/orm/IPersistent.js";
 import {NodeType, INode, INodeMap} from "@dexcalibur/dexcalibur-orm";
-import {NodeInternalType} from "../NodeInternalType.js";
+import {NodeInternalType}
+from "@dexcalibur/dxc-core-api";;
 import Util from "../Utils.js";
 import {KeyPointException} from "../errors/KeyPointException.js";
 import * as Log from "../Logger.js";

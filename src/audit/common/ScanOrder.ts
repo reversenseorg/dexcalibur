@@ -10,7 +10,8 @@ import {
     SerializeOptions,
     TagUUID
 } from "@dexcalibur/dexcalibur-orm";
-import {NodeInternalType} from "../../NodeInternalType.js";
+import {NodeInternalType}
+from "@dexcalibur/dxc-core-api";;
 import {randomUUID} from "crypto";
 import {ModelVariable} from "../../ModelVariable.js";
 import {ModelNativeRef} from "../../ModelNativeRef.js";

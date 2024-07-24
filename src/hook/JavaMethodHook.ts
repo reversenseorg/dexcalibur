@@ -1,7 +1,8 @@
 import ModelMethod from "../ModelMethod.js";
 import {AbstractHook} from "./AbstractHook.js";
 import {HookScriptBuilderException} from "../errors/HookScriptBuilderException.js";
-import {NodeInternalType} from "../NodeInternalType.js";
+import {NodeInternalType}
+from "@dexcalibur/dxc-core-api";;
 import {NodeType} from "@dexcalibur/dexcalibur-orm";
 import {CoreDebug} from "../core/CoreDebug.js";
 import {TargetLanguage} from "./common.js";

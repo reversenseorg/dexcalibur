@@ -7,7 +7,8 @@ import {Savable, STUB_TYPE} from "./ModelSavable.js";
 import * as Log from "./Logger.js";
 import {ModelLocation} from "./ModelLocation.js";
 import {NodeType, DataSourceHelper, SerializeOptions} from "@dexcalibur/dexcalibur-orm";
-import {NodeInternalType} from "./NodeInternalType.js";
+
+import {NodeInternalType} from "@dexcalibur/dxc-core-api";
 import {IPersistent} from "./persist/orm/IPersistent.js";
 import {CoreDebug} from "./core/CoreDebug.js";
 

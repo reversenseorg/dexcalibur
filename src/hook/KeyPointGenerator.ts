@@ -1,7 +1,8 @@
 import KeyPoint, {KeyPointType} from "./KeyPoint.js";
 import KeyPointManager from "./KeyPointManager.js";
 import ModelFile from "../ModelFile.js";
-import {NodeInternalType} from "../NodeInternalType.js";
+import {NodeInternalType}
+from "@dexcalibur/dxc-core-api";;
 import {INode} from "../INode.js";
 import {Device} from "../Device.js";
 import ModelClass from "../ModelClass.js";

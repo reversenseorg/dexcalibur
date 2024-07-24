@@ -9,7 +9,8 @@ import ModelBasicBlock from "./ModelBasicBlock.js";
 import ModelCall from "./ModelCall.js";
 import {ModelLocation} from "./ModelLocation.js";
 import {NodeType, INode, DataSourceHelper, SerializeOptions} from "@dexcalibur/dexcalibur-orm";
-import {NodeInternalType} from "./NodeInternalType.js";
+
+import {NodeInternalType} from "@dexcalibur/dxc-core-api";
 import {IPersistent} from "./persist/orm/IPersistent.js";
 import JavaMethodHook from "./hook/JavaMethodHook.js";
 

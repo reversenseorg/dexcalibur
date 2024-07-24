@@ -1,5 +1,6 @@
 import {ErrorCode, MonitoredError} from "./MonitoredError.js";
-import {NodeInternalTypeName} from "../NodeInternalType.js";
+import {NodeInternalTypeName}
+from "@dexcalibur/dxc-core-api";;
 import {INode} from "../INode.js";
 
 

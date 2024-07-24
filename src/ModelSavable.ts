@@ -3,7 +3,8 @@
  * Constant values describing a stub type.
  */
 
-import {NodeInternalType} from "./NodeInternalType.js";
+
+import {NodeInternalType} from "@dexcalibur/dxc-core-api";
 import {INode, SerializeOptions, Tag} from "@dexcalibur/dexcalibur-orm";
 
 export enum STUB_TYPE {
