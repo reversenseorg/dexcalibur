@@ -2,7 +2,8 @@ import * as Log from '../Logger.js';
 import {IntentFilter} from "./IntentFilter.js";
 import AndroidComponent from "./AndroidComponent.js";
 import {AndroidPermission} from "./Permissions.js";
-import {NodeInternalType} from "../NodeInternalType.js";
+
+import {NodeInternalType} from "@dexcalibur/dxc-core-api";
 import {
     NodeType,
     DataSourceHelper,

@@ -18,7 +18,8 @@ import {IAppAnalyzer} from "../analyzer/IAppAnalyzer.js";
 import * as _path_ from "path";
 import ModelMethod from "../ModelMethod.js";
 import ModelClass from "../ModelClass.js";
-import {NodeInternalType} from "../NodeInternalType.js";
+
+import {NodeInternalType} from "@dexcalibur/dxc-core-api";
 import {AndroidApiClassXrefList, AndroidCodeAnalyzer} from "./analyzer/AndroidCodeAnalyzer.js";
 import BusEvent from "../BusEvent.js";
 import {BusSubscriber} from "../Bus.js";

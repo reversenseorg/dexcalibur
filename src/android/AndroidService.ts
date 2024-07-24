@@ -3,7 +3,8 @@
 import * as Log from '../Logger.js';
 import {IntentFilter} from "./IntentFilter.js";
 import AndroidComponent from "./AndroidComponent.js";
-import {NodeInternalType} from "../NodeInternalType.js";
+
+import {NodeInternalType} from "@dexcalibur/dxc-core-api";
 import {NodeType, DataSourceHelper, NodeProperty, DbDataType, DbKeyType} from "@dexcalibur/dexcalibur-orm";
 import ModelClass from "../ModelClass.js";
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;

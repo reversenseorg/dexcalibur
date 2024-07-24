@@ -28,7 +28,8 @@ import NativeAnalyzer from "./NativeAnalyzer.js";
 import DataScope from "./DataScope.js";
 import {ModelLocation} from "./ModelLocation.js";
 import {Workflow} from "./Workflow.js";
-import {NodeInternalType} from "./NodeInternalType.js";
+
+import {NodeInternalType} from "@dexcalibur/dxc-core-api";
 import {AnalyzerState} from "./AnalyzerState.js";
 
 import {INode, IDatabase, IDbIndex, IDbSet, Tag} from "@dexcalibur/dexcalibur-orm";

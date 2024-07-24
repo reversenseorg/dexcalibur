@@ -5,7 +5,8 @@
 import {AndroidIntentable} from "./Intent.js";
 import ModelClass from "../ModelClass.js";
 import {AndroidAttributeSet} from "./AndroidAttribute.js";
-import {NodeInternalType} from "../NodeInternalType.js";
+
+import {NodeInternalType} from "@dexcalibur/dxc-core-api";
 import {CryptoUtils} from "../CryptoUtils.js";
 import {CoreDebug} from "../core/CoreDebug.js";
 import {SerializeOptions} from "@dexcalibur/dexcalibur-orm";

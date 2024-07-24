@@ -4,7 +4,8 @@ import {DashBoard} from "./DashBoard.js";
 import AssuranceReport from "./AssuranceReport.js";
 import Asset from "./Asset.js";
 import CodeThreat, {CodeConstraintMap} from "./CodeThreat.js";
-import {NodeInternalType, NodeInternalTypeName} from "../../NodeInternalType.js";
+import {NodeInternalType, NodeInternalTypeName}
+from "@dexcalibur/dxc-core-api";;
 import DexcaliburProject from "../../DexcaliburProject.js";
 import Util from "../../Utils.js";
 import {PrivacyFinding, PrivacyFindingType} from "../privacy/PrivacyFinding.js";

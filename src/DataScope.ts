@@ -1,4 +1,5 @@
-import {NodeInternalType} from "./NodeInternalType.js";
+
+import {NodeInternalType} from "@dexcalibur/dxc-core-api";
 import {IPersistent} from "./persist/orm/IPersistent.js";
 import {DbDataType, DbKeyType, INode, NodeProperty, NodeType, SerializeOptions} from "@dexcalibur/dexcalibur-orm";
 import * as _path_ from 'path';

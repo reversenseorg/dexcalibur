@@ -2,7 +2,7 @@
 import Threat, {ThreatOptions} from "./Threat.js";
 import CodeConstraint from "./CodeConstraint.js";
 import Constraint from "./Constraint.js";
-import {NodeInternalType} from "../../NodeInternalType.js";
+import {NodeInternalType} from "@dexcalibur/dxc-core-api";;
 import {CoreDebug} from "../../core/CoreDebug.js";
 
 

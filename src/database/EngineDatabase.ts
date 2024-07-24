@@ -21,7 +21,8 @@ import {
     Tag,
     TagCategory
 } from "@dexcalibur/dexcalibur-orm";
-import {NodeInternalType, NodeInternalTypeName} from "../NodeInternalType.js";
+import {NodeInternalType, NodeInternalTypeName}
+from "@dexcalibur/dxc-core-api";;
 import {EngineDatabaseException} from "../errors/EngineDatabaseException.js";
 import {parentPort} from "worker_threads";
 import {BusSubscriber} from "../Bus.js";

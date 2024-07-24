@@ -1,4 +1,4 @@
-import {NodeInternalTypeName} from "../NodeInternalType.js";
+import {NodeInternalTypeName} from "@dexcalibur/dxc-core-api";;
 
 /**
  * Helper to debug core feature

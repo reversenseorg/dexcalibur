@@ -1,5 +1,6 @@
 import {ErrorCode, MonitoredError} from "./MonitoredError.js";
-import {NodeInternalType} from "../NodeInternalType.js";
+import {NodeInternalType}
+from "@dexcalibur/dxc-core-api";;
 
 export enum AnalyzerErrCode {
     GENERIC=1000,

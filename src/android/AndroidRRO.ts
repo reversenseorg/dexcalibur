@@ -1,5 +1,6 @@
 import {NodeType, NodeProperty, DbDataType, DbSerialize} from "@dexcalibur/dexcalibur-orm";
-import {NodeInternalType} from "../NodeInternalType.js";
+
+import {NodeInternalType} from "@dexcalibur/dxc-core-api";
 import {CoreDebug} from "../core/CoreDebug.js";
 
 export class AndroidRRO {

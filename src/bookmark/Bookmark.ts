@@ -1,6 +1,7 @@
 import {BookmarkType} from "./BookmarkType.js";
 import {NodeType} from "@dexcalibur/dexcalibur-orm";
-import {NodeInternalType} from "../NodeInternalType.js";
+import {NodeInternalType}
+from "@dexcalibur/dxc-core-api";;
 
 
 export class Bookmark {

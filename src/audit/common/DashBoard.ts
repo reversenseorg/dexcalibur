@@ -1,4 +1,4 @@
-import {NodeInternalType} from "../../NodeInternalType.js";
+import {NodeInternalType} from "@dexcalibur/dxc-core-api";;
 import {INode, Node} from "../../INode.js";
 import {Indicator} from "./Indicator.js";
 import {CoreDebug} from "../../core/CoreDebug.js";

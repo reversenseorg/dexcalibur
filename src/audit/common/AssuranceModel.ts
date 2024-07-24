@@ -12,7 +12,8 @@ import ControlAssessment from "./ControlAssessment.js";
 import {IControl} from "./IControl.js";
 import {CoreDebug} from "../../core/CoreDebug.js";
 import {Nullable} from "../../core/IStringIndex.js";
-import {NodeInternalType} from "../../NodeInternalType.js";
+
+import {NodeInternalType} from "@dexcalibur/dxc-core-api";
 import {DbDataType, DbKeyType, INode, NodeProperty, NodeType, ValidationRule} from "@dexcalibur/dexcalibur-orm";
 
 export enum AssuranceModelType {

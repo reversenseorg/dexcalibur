@@ -5,7 +5,8 @@ import {SearchPattern} from "./SearchPattern.js";
 import * as Log from '../Logger.js';
 import {SearchToken} from "./SearchToken.js";
 import AnalyzerDatabase from "../AnalyzerDatabase.js";
-import { NodeInternalType } from "../NodeInternalType.js";
+import { NodeInternalType }
+from "@dexcalibur/dxc-core-api";;
 import {IDatabase, IDbCollection, IDbIndex, NodeType} from "@dexcalibur/dexcalibur-orm";
 import {Nullable} from "../core/IStringIndex.js";
 

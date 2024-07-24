@@ -1,7 +1,8 @@
 
 import {AbstractHook} from "./hook/AbstractHook.js";
 import HookTemplateFragment from "./hook/HookTemplateFragment.js";
-import {NodeInternalType} from "./NodeInternalType.js";
+
+import {NodeInternalType} from "@dexcalibur/dxc-core-api";
 import {INode} from "./INode.js";
 import ModelFile from "./ModelFile.js";
 

@@ -8,7 +8,8 @@ import {
     IDbCollection,
     INode, SerializeOptions
 } from "@dexcalibur/dexcalibur-orm";
-import {NodeInternalType} from "./NodeInternalType.js";
+
+import {NodeInternalType} from "@dexcalibur/dxc-core-api";
 
 import DexcaliburProject from "./DexcaliburProject.js";
 import {ProjectDatabase} from "./database/ProjectDatabase.js";

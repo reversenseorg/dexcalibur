@@ -1,5 +1,6 @@
 import {NodeType} from "@dexcalibur/dexcalibur-orm";
-import {NodeInternalType} from "../NodeInternalType.js";
+import {NodeInternalType}
+from "@dexcalibur/dxc-core-api";;
 
 /**
  * Represents a bookmark type

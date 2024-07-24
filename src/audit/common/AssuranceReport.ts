@@ -7,7 +7,8 @@ import DexcaliburProject from "../../DexcaliburProject.js";
 import AssuranceModel, {ControlNode} from "./AssuranceModel.js";
 import {CoreDebug} from "../../core/CoreDebug.js";
 import {MerlinSearchAPI} from "../../search/MerlinSearchAPI.js";
-import {NodeInternalType} from "../../NodeInternalType.js";
+
+import {NodeInternalType} from "@dexcalibur/dxc-core-api";
 import {FinderResult} from "../../search/FinderResult.js";
 import {
     DbDataType,

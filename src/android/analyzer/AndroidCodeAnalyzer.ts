@@ -1,7 +1,8 @@
 import DexcaliburProject from "../../DexcaliburProject.js";
 import ModelMethod from "../../ModelMethod.js";
 import ModelClass from "../../ModelClass.js";
-import {NodeInternalType} from "../../NodeInternalType.js";
+
+import {NodeInternalType} from "@dexcalibur/dxc-core-api";
 import AndroidComponent from "../AndroidComponent.js";
 
 

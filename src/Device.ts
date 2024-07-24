@@ -28,7 +28,8 @@ import {
     SerializeOptions
 } from "@dexcalibur/dexcalibur-orm";
 
-import {NodeInternalType} from "./NodeInternalType.js";
+
+import {NodeInternalType} from "@dexcalibur/dxc-core-api";
 import DeviceManager from "./DeviceManager.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
@@ -153,7 +154,7 @@ export class Device implements INode
                 .sleep( (x:NodePropertyState)=>{
                     const bridges:any = {};
                     for(let k in x.p){
-                        bridges[k] = x.p[k].toJsonObject();
+                        bridges[k] = (x.p[k] as IBridge).toJsonObject({});
                     }
                     return bridges;
                 })
@@ -307,7 +308,7 @@ export class Device implements INode
      * @type {AdbWrapper[]}
      * @field
      */
-    bridges:BridgeList = {};
+    bridges:Record<string, IBridge> = {};
 
     /**
      * Flag. TRUE is the device is enrolled, else FALSE
@@ -1135,7 +1136,10 @@ export class Device implements INode
         this.apps = bridge.listPackages(pOtions);
     }
 
-    getInstalledApp():AppPackage[] {
+    getInstalledApp( pUpdate = false):AppPackage[] {
+        if(pUpdate){
+            this.updateInstalledApp();
+        }
         return this.apps;
     }
 
@@ -1252,4 +1256,5 @@ export class Device implements INode
             //this.bridge.addE
         }
     }
+
 }

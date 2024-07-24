@@ -15,7 +15,7 @@ import * as VM from "vm";
 import {FinderResult} from "../search/FinderResult.js";
 import DataScope from "../DataScope.js";
 import ModelFile from "../ModelFile.js";
-import {NodeInternalType} from "../NodeInternalType.js";
+import {NodeInternalType} from "@dexcalibur/dxc-core-api";;
 import AndroidAppAnalyzer from "../android/AndroidAppAnalyzer.js";
 import {AndroidApiClassXrefList, AndroidCodeAnalyzer} from "../android/analyzer/AndroidCodeAnalyzer.js";
 import {AndroidAnalyzerException} from "../errors/android/AndroidAnalyzerException.js";

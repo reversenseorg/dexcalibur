@@ -12,7 +12,8 @@ import AndroidService from "../android/AndroidService.js";
 import {AndroidPermission} from "../android/Permissions.js";
 import {FinderResult} from "../search/FinderResult.js";
 import AndroidAppAnalyzer from "../android/AndroidAppAnalyzer.js";
-import {NodeInternalType} from "../NodeInternalType.js";
+import {NodeInternalType}
+from "@dexcalibur/dxc-core-api";;
 import AndroidComponent from "../android/AndroidComponent.js";
 import {AndroidCodeAnalyzer} from "../android/analyzer/AndroidCodeAnalyzer.js";
 import {AndroidAnalyzerException} from "../errors/android/AndroidAnalyzerException.js";
