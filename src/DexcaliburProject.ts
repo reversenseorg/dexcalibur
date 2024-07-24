@@ -76,7 +76,8 @@ import {
     NodeType,
     TagUUID
 } from "@dexcalibur/dexcalibur-orm";
-import {NodeInternalType} from "./NodeInternalType.js";
+
+import {NodeInternalType} from "@dexcalibur/dxc-core-api";
 import {EngineDatabaseException} from "./errors/EngineDatabaseException.js";
 import {ProjectDatabase} from "./database/ProjectDatabase.js";
 import {MerlinSearchAPI} from "./search/MerlinSearchAPI.js";

@@ -58,6 +58,7 @@ export default class DexcaliburWorkspace
     cfgFolder:string = null;
     devFolder:string = null;
     tmpFolder:string = null;
+    fridaFolder:string = null;
 
     configPath:string = null;
     oldconfigPath:string = null;
@@ -74,6 +75,7 @@ export default class DexcaliburWorkspace
         this.cfgFolder = null;
         this.devFolder = null;
         this.tmpFolder = null;
+        this.fridaFolder = null;
 
         this.configPath = null;
         this.oldconfigPath = null;
@@ -212,12 +214,20 @@ export default class DexcaliburWorkspace
         return _path_.join( this.cfgFolder, FILENAME_CONFIG);
     }
 
-
+    /**
+     * To get the path of the folder containing external copy of frida-servers
+     *
+     * @returns {string} Path of the folder
+     * @method
+     */
+    getFridaFolderLocation():string{
+        return this.fridaFolder;
+    }
 
     /**
      * To get the path of the folder containing external tools/binaries
      *
-     * @returns {String} Path of the folder
+     * @returns {string} Path of the folder
      * @method
      */
     getConfigFolderLocation():string{
@@ -227,7 +237,7 @@ export default class DexcaliburWorkspace
     /**
      * To get the path of the device manager folder into the workspace
      * 
-     * @returns {String} Path of the folder
+     * @returns {string} Path of the folder
      * @method 
      */
     getDeviceFolderLocation():string{
@@ -237,7 +247,7 @@ export default class DexcaliburWorkspace
     /**
      * To get the path of the folder containing external tools/binaries
      * 
-     * @returns {String} Path of the folder
+     * @returns {string} Path of the folder
      * @method 
      */
     getBinaryFolderLocation():string{
@@ -247,7 +257,7 @@ export default class DexcaliburWorkspace
     /**
      * To get the path of the folder containing platform details
      * 
-     * @returns {String} Path of the folder
+     * @returns {string} Path of the folder
      * @method 
      */
     getPlatformFolderLocation():string{
@@ -257,7 +267,7 @@ export default class DexcaliburWorkspace
     /**
      * To get the path of the temporary folder containing
      * 
-     * @returns {String} Path of the folder
+     * @returns {string} Path of the folder
      * @method 
      */
     getTempFolderLocation():string{
@@ -294,7 +304,7 @@ export default class DexcaliburWorkspace
     /**
      * To get a list of existing project into the workspace
      * 
-     * @returns {String[]} Array of project names
+     * @returns {string[]} Array of project names
      * @method
      */
     listProjects():string[]{
@@ -323,9 +333,10 @@ export default class DexcaliburWorkspace
      * - /api/ : platform images or APIs image
      * - /bin/ : external tools
      * - /tmp/ : temporary file
+     * - /frida/ : frida-server files
      * - /cfg/ : (deprecated) extra config files
      *
-     * @param pPath
+     * @param {string} pPath
      */
     setDxcFolder(pPath:string):void {
         if(!_fs_.existsSync(pPath)){

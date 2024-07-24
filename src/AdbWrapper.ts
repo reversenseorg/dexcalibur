@@ -15,7 +15,7 @@ import {AdbBridgeException} from "./errors/AdbBridgeException.js";
 import {
     PrivilegedExecutionPhase,
     PrivilegedExecutionStrategy,
-    PrivilegedExecutionStrategyMap, PrivilegedExecutionType, StrategyTrigger
+    PrivilegedExecutionType, StrategyTrigger
 } from "./PrivilegedExecutionStrategy.js";
 import Util from "./Utils.js";
 import {AndroidInstallOptionsEnum, AndroidPackageInstallOptions} from "./android/bridge/AndroidInstallOptions.js";
@@ -29,6 +29,7 @@ import {IProfile} from "./device/profile/IProfile.js";
 import {CoreDebug} from "./core/CoreDebug.js";
 import {SerializeOptions} from "@dexcalibur/dexcalibur-orm";
 import {Profile} from "./device/profile/Profile.js";
+import {Nullable} from "./core/IStringIndex.js";
 
 enum ETransportType {
     USB     = 'U',
@@ -67,7 +68,16 @@ export default class AdbWrapper implements IBridge
 
     name = "adb";
 
-    strategies:PrivilegedExecutionStrategyMap = {};
+    /**
+     * Map of strategies
+     * @field
+     */
+    strategies:Record<string, PrivilegedExecutionStrategy> = {};
+
+    /**
+     *
+     */
+    defaultStrat:string = AdbWrapper.DEFAULT_PRIV_STRATEGY;
 
     /**
      * @field
@@ -149,16 +159,35 @@ export default class AdbWrapper implements IBridge
          */
         this.deviceID = pDeviceID;
 
-        this.addPrivilegedStrategy('su', new PrivilegedExecutionStrategy({
-           name: 'su',
+        this.addPrivilegedStrategy( new PrivilegedExecutionStrategy({
+           name: AdbWrapper.DEFAULT_PRIV_STRATEGY,
+            _trigger: StrategyTrigger.CMD_EXEC,
            phases: [new PrivilegedExecutionPhase({
-               type: PrivilegedExecutionType.COMMAND,
-               priv: true,
+               type: PrivilegedExecutionType.BRIDGE_COMMAND,
+               final: true, // priv:true
                bridgeCmd: "shell",
                devBin: "su",
                devBinArgs: ['-c']
            })]
         }));
+
+        this.addPrivilegedStrategy( new PrivilegedExecutionStrategy({
+            name: AdbWrapper.DEFAULT_EMU_STRATEGY,
+            _trigger: StrategyTrigger.DEV_BOOT,
+            phases: [new PrivilegedExecutionPhase({
+                type: PrivilegedExecutionType.BRIDGE_COMMAND,
+                bridgeCmd: "root"
+            })]
+        }));
+
+    }
+
+    getDefaultEopStrategy():PrivilegedExecutionStrategy {
+        if(this.defaultStrat!=null && this.defaultStrat.length>0){
+            return this.strategies[this.defaultStrat];
+        }else{
+            throw AdbBridgeException.DEFAULT_EOP_STRATEGY_UNDEFINED();
+        }
 
     }
 
@@ -239,14 +268,16 @@ export default class AdbWrapper implements IBridge
      * @param pName
      * @param pOptions
      */
-    addPrivilegedStrategy( pName:string, pStrategy:PrivilegedExecutionStrategy):void {
-        this.strategies[pName] = pStrategy;
+    addPrivilegedStrategy(pStrategy:PrivilegedExecutionStrategy):void {
+        this.strategies[pStrategy.name] = pStrategy;
         pStrategy.setBridge(this);
     }
 
     /**
+     * To get a strategy by its name
      *
-     * @param string pName Strategy name
+     * @param {string} pName Strategy name
+     * @method
      */
     getStrategy(pName:string):PrivilegedExecutionStrategy {
         return this.strategies[pName];
@@ -263,10 +294,10 @@ export default class AdbWrapper implements IBridge
      * where the command is "root"
      * @param pCommand
      */
-    async execBridgeCommand( pCommand:string):Promise<boolean> {
+    async execBridgeCommand( pCommand:string, pBin:string="", pBinArgs:string[] = []):Promise<boolean> {
         let ret:Promise<string> = null;
 
-        ret = await UT.execAsync(this.setup() + " "+pCommand).catch((err:string)=>{
+        ret = await UT.execAsync(this.setup() + " "+pCommand+" "+pBin+" "+pBinArgs.join(' ')).catch((err:string)=>{
             throw AdbBridgeException.BRIDGE_COMMAND_FAILURE(err);
         });
 
@@ -959,19 +990,34 @@ export default class AdbWrapper implements IBridge
 
         const stt:PrivilegedExecutionStrategy = this.getStrategy(pOptions.strategy);
 
+        if(stt==null){
+            throw AdbBridgeException.EOP_STRATEGY_NOT_FOUND(pOptions.strategy);
+        }
 
-        if(pOptions.detached)
-            return await this.detachedShell(stt.prepareArray( [command], this), pOptions); //["shell","su","-c",command]);
-        else{
+
+        if(pOptions.detached) {
+            if (stt.requirePrepare()) {
+                return await this.detachedShell("shell "+command, pOptions);
+            } else {
+                return await this.detachedShell(stt.prepareArray([command], this), pOptions);
+            }
+        }else{
+
+            let payload:string;
+            if (stt.requirePrepare()) {
+                payload = stt.prepareString(command, this)
+            } else {
+                payload = "shell "+command;
+            }
 
             try{
-                Logger.info(this.setup()+' '+stt.prepareString(command, this));
+                Logger.info(this.setup()+' '+payload);
             }catch(e){
                 Logger.info(e.message);
                 Logger.info(e.stack);
             }
 
-            return UT.execSync(this.setup()+' '+stt.prepareString(command, this)) ; //' shell su -c "'+command+'"');
+            return UT.execSync(this.setup()+' '+payload) ; //' shell su -c "'+command+'"');
         }
 
     }
@@ -1074,6 +1120,12 @@ export default class AdbWrapper implements IBridge
     static fromJsonObject( pData:any):AdbWrapper{
         const o:any = new AdbWrapper();
         for(const i in pData) o[i] = pData[i];
+
+        if(Object.keys(o.strategies).length>0){
+            for(let sname in o.strategies){
+                o.strategies[sname] = PrivilegedExecutionStrategy.fromJsonObject(o.strategies[sname]);
+            }
+        }
         return o as AdbWrapper;
     }
 
@@ -1090,8 +1142,14 @@ export default class AdbWrapper implements IBridge
 
         for(const i in this){
             if(exclude!=null && exclude[i]===true) continue;
-            if(i=='strategies') continue;
-            o[i] = this[i];
+            if(i=='strategies'){
+                o.strategies = {};
+                for(let k in this.strategies){
+                    o.strategies[k] = this.strategies[k].toJsonObject();
+                }
+            }else{
+                o[i] = this[i];
+            }
         }
         CoreDebug.checkJsonSerialize(o, "AdbWrapper");
         return o;
@@ -1358,7 +1416,7 @@ export default class AdbWrapper implements IBridge
 
     addEmulatorStrategy(pName = 'emu-default'):void {
         if(this.getStrategy(pName)==null){
-            this.addPrivilegedStrategy(pName, new PrivilegedExecutionStrategy({
+            this.addPrivilegedStrategy( new PrivilegedExecutionStrategy({
                 name: pName,
                 phases: [new PrivilegedExecutionPhase({
                     type: PrivilegedExecutionType.COMMAND,
@@ -1374,6 +1432,35 @@ export default class AdbWrapper implements IBridge
         if(strat.mustRun(StrategyTrigger.DEV_LIST) && !strat.hasRun()){
 
         }
+    }
+
+    useEmulatorEoPStrategy(pName?: Nullable<string>) {
+        if(pName!=null){
+            this.defaultStrat = pName;
+        }else{
+            this.defaultStrat = AdbWrapper.DEFAULT_EMU_STRATEGY;
+        }
+    }
+
+    useStandardEoPStrategy(pName?: Nullable<string>) {
+        if(pName!=null){
+            this.defaultStrat = pName;
+        }else{
+            this.defaultStrat = AdbWrapper.DEFAULT_PRIV_STRATEGY;
+        }
+    }
+
+    /**
+     * To define the default strategy
+     *
+     * @param {string} pName
+     */
+    setDefaultEoPStrategy(pName:string):void {
+        if(this.strategies[pName]==null){
+            throw AdbBridgeException.EOP_STRATEGY_NOT_FOUND(pName);
+        }
+
+        this.defaultStrat = pName;
     }
 }
 

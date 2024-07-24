@@ -32,10 +32,13 @@ interface DeviceList {
 }
 
 
+
 export interface DeviceEnrollmentOptions {
+    eopStrategy?: string;
     frida?:any;
     profiling?:DeviceProfilingOptions;
     rooted?:boolean;
+    bridge?:string;
 }
 
 /**
@@ -628,6 +631,8 @@ export default class DeviceManager extends ValidationCapable
             deviceId.selected = true;
             this.defaultDevice = deviceId;
         }
+
+
     }
     
     /**
@@ -690,8 +695,11 @@ export default class DeviceManager extends ValidationCapable
     /**
      * To enroll a new device or an updated device
      * 
-     * @param {*} pDevice 
-     * @param {*} pOtions 
+     * @param {Device|string} pDevice
+     * @param {DeviceEnrollmentOptions} pOtions
+     * @return {Promise<boolean>}
+     * @async
+     * @method
      */
     async enroll( pDevice:Device|string, pOtions:DeviceEnrollmentOptions = {}):Promise<boolean>{
 
@@ -709,6 +717,7 @@ export default class DeviceManager extends ValidationCapable
         if(device == null){
             throw new Error("[DEVICE MANAGER] Unknow device : "+pDevice);
         }
+
         this.status = new StatusMessage(10, "[Device Manager] Start device profiling");
 
         // Gather data 
@@ -719,6 +728,19 @@ export default class DeviceManager extends ValidationCapable
         }else{
             this.status = StatusMessage.newError( this.status.append("[Device Manager] Fail to profile the device"));
         }
+
+        // set default EoP strategy
+        const bridge = (pOtions.bridge!=null)? device.getBridge(pOtions.bridge) : device.getDefaultBridge();
+        if(pOtions.eopStrategy != null){
+            bridge.setDefaultEoPStrategy(pOtions.eopStrategy);
+        }else{
+            if(device.getProfile().getSystemProfile().isEmulator()){
+                bridge.useEmulatorEoPStrategy();
+            }else{
+                bridge.useStandardEoPStrategy();
+            }
+        }
+
 
         // update device ID if it is unknown 
         if(device.id == null){

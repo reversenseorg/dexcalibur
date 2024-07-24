@@ -73,6 +73,7 @@ DEVICE_WEB_API.addAsyncPublicRoute(
                     privileged: privileged
                 }));
             }catch(err){
+                console.log(err,err.stack);
                 //res.status(HTTP_CODE_ERROR).send(JSON.stringify({ success:false, msg: err.message }));
                 $.sendError(res, err.message);
             }
@@ -560,12 +561,32 @@ DEVICE_WEB_API.addAsyncPublicRoute(
             }
         }
     });
+DEVICE_WEB_API.addAsyncPublicRoute(
+    '/syscalls',
+    {
+        'get': async (req:DelegateRequest, res:DelegateResponse):Promise<any> => {
+            // scan connected devices
+            let dev:Device, dm:DeviceManager;
+            const $:WebServer = req.dxc.$;
 
+            try{
+
+                dm = DeviceManager.getInstance();
+                dev = dm.getDevice( req.query.uid  as string);
+
+
+                $.sendSuccess( res, dev.getSyscallList());
+            }catch(err){
+                Logger.error("[API][DEVICE] List of system calls cannot be retrieved for the specified device : "+err.message+"\n"+err.stack);
+                $.sendError( res, "[API][DEVICE] List of system calls cannot be retrieved for the specified device : "+err.message);
+            }
+        }
+    });
 
 DEVICE_WEB_API.addAsyncPublicRoute(
-    '/applications',
+    '/eop/change',
     {
-    'get': async (req:DelegateRequest, res:DelegateResponse):Promise<any> => {
+    'post': async (req:DelegateRequest, res:DelegateResponse):Promise<any> => {
         // scan connected devices
         let dev:Device, dm:DeviceManager, pkgs:AppPackage[], rep:any;
         const $:WebServer = req.dxc.$;
@@ -573,31 +594,22 @@ DEVICE_WEB_API.addAsyncPublicRoute(
         try{
 
             dm = DeviceManager.getInstance();
-            dev = dm.getDevice( req.query.uid  as string);
+            dev = dm.getDevice( req.body['uid']  as string);
 
-            /*if(dev.isEnrolled() == false){
-                console.log(dev);
-                throw new Error('Device is not enrolled');
-            }*/
+            const expectedRootState = req.body['rooted'];
+            if(dev==null){
+                throw new Error("Device not found");
+            }
 
-            dev.updateInstalledApp();
-            //pkgs = dev.getDefaultBridge().listPackages('-f');
-            pkgs = dev.getInstalledApp();
-            dm.save();
-            //dev.updateCache('package',pkgs);
+            const devBridge = dev.getDefaultBridge();
+            if(dev.getDefaultBridge().defaultStrat){
 
-            rep = {
-                device: req.query.uid,
-                apps:[]
-            };
+            }else{
 
-            pkgs.map( (x:AppPackage)=>{
-                rep.apps.push(x.toJsonObject())
-            });
-
+            }
             $.sendSuccess( res, rep);
         }catch(err){
-            Logger.error("[API][DEVICE] List apps from device : "+err.message+"\n"+err.stack);
+            Logger.error("[API][DEVICE] Privileges shell user cannot be changed : "+err.message+"\n"+err.stack);
             $.sendError( res, err.message)
         }
     }
@@ -664,7 +676,7 @@ DEVICE_WEB_API.addAsyncAuthenticatedRoute(
 
 
                 if(!req.body.hasOwnProperty('opts')){
-                    throw new Error("Invalid frida options.")
+                    throw new Error("Invalid install options.")
                 }
 
                 let installOpts:BridgeInstallOptions = {
@@ -672,8 +684,15 @@ DEVICE_WEB_API.addAsyncAuthenticatedRoute(
                     opts: []
                 };
 
-                if(req.body.hasOwnProperty('opts'))
+                if(project.packageAnalyzer!=null){
+                    //project.packageAnalyzer.get
+                }else{
+
+                }
+                if(req.body.hasOwnProperty('opts')){
                     installOpts = dev.prepareInstallOptions(req.body.opts);
+                }
+
 
                 const success =  await dev.installApp([project.getWorkspace().getAppPath()], installOpts);
 
@@ -691,7 +710,7 @@ DEVICE_WEB_API.addAsyncAuthenticatedRoute(
     });
 
 DEVICE_WEB_API.addPublicRoute(
-    '/api/device/setDefault',
+    '/setDefault',
     {
         'post': (req:DelegateRequest, res:DelegateResponse):any => {
             // collect
@@ -944,6 +963,42 @@ DEVICE_WEB_API.addAsyncPublicRoute(
             }catch(err){
                 Logger.error("[API][DEVICE] Brands cannot be listed. Cause : " + err.message + "\n\t" + err.stack);
                 $.sendError(res, " Brands cannot be listed. Cause : " + err.message);
+            }
+        }
+    }
+);
+
+
+DEVICE_WEB_API.addAsyncPublicRoute(
+    '/applications/:uid',
+    {
+        'get': async function (req:DelegateRequest, res:DelegateResponse):Promise<any> {
+            const dm = DeviceManager.getInstance();
+            let dev:Device = null, success = false, app:AppPackage = null;
+            const $:WebServer = req.dxc.$;
+
+
+            try{
+                dev =dm.getDevice(req.params.uid);
+
+                if(dev == null) throw new Error("Unknown device");
+                if(!dev.isConnected()) throw new Error("Target device is offline");
+
+                let apps = dev.getInstalledApp();
+                if(apps.length==0){
+                    apps = dev.getInstalledApp(true);
+                }
+
+                const data  = [];
+                apps.map(x => {
+                    data.push(x.toJsonObject());
+                })
+
+                $.sendSuccess( res, data);
+
+            }catch(err){
+                Logger.error("[API][DEVICE] Installed package cannot be listed : "+err.message+"\n"+err.stack);
+                $.sendError( res, err.message);
             }
         }
     }

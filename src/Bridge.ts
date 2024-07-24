@@ -4,6 +4,7 @@ import {Device} from "./Device.js";
 import AppPackage from "./AppPackage.js";
 import {AndroidPackageInstallOptions} from "./android/bridge/AndroidInstallOptions.js";
 import {PrivilegedExecutionStrategy} from "./PrivilegedExecutionStrategy.js";
+import {Nullable} from "./core/IStringIndex.js";
 
 export interface DeviceProfilingOptions {
     tmp?: string;
@@ -36,6 +37,18 @@ export interface IBridge
     ip:string;
 
     port:number;
+
+
+    /**
+     * Map of strategies
+     * @field
+     */
+    strategies:Record<string, PrivilegedExecutionStrategy>;
+
+    /**
+     *
+     */
+    defaultStrat:string;
 
     clone():IBridge;
 
@@ -83,9 +96,11 @@ export interface IBridge
 
     readFile( pPath:string, pOptions:any):any;
 
-    addPrivilegedStrategy( pName:string, pOptions:any):void;
+    addPrivilegedStrategy( pStrategy:PrivilegedExecutionStrategy):void;
 
-    execBridgeCommand( pCommand:string):void;
+    getStrategy( pName:string):PrivilegedExecutionStrategy;
+
+    execBridgeCommand( pCommand:string, pBin:string, pBinArg:string[]):void;
 
     spawnShell( pOptions:any ):any;
 
@@ -117,7 +132,16 @@ export interface IBridge
      * @param pName
      * @param pStrategy
      */
-    addPrivilegedStrategy(pName:string, pStrategy:PrivilegedExecutionStrategy):void;
+    addPrivilegedStrategy(pStrategy:PrivilegedExecutionStrategy):void;
+
+    /**
+     * To set the default bridge to "emulator EoP"
+     */
+    useEmulatorEoPStrategy(pName?:Nullable<string>):void;
+
+    useStandardEoPStrategy(pName?:Nullable<string>):void;
+
+    setDefaultEoPStrategy(pName:string): void;
 }
 
 

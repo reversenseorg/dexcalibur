@@ -7,10 +7,13 @@ export enum PrivilegedExecutionType {
     COMMAND='c',
     WRAPPER_MODE='w',
     INTENT='i',
-    HOST_COMMAND='h'
+    HOST_COMMAND='h',
+    BRIDGE_COMMAND="bc"
 }
 
-
+/**
+ *
+ */
 export class PrivilegedExecutionPhase {
 
     name:string;
@@ -30,7 +33,7 @@ export class PrivilegedExecutionPhase {
      */
     hostBinArgs:string[] = [];
 
-    priv:boolean;
+    final:boolean;
 
     constructor(pConfig:any) {
         for(const i in pConfig){
@@ -38,12 +41,9 @@ export class PrivilegedExecutionPhase {
         }
     }
 
-    setPrivileged(pBool:boolean):void {
-        this.priv =  pBool;
-    }
 
-    isPrivileged():boolean {
-        return this.priv;
+    isFinal():boolean {
+        return this.final;
     }
 
     isHostSide():boolean {
@@ -73,10 +73,35 @@ export class PrivilegedExecutionPhase {
         return (this.type===PrivilegedExecutionType.COMMAND || this.type===PrivilegedExecutionType.HOST_COMMAND);
     }
 
+    /**
+     * To wrap the specified command to execute with privileges inside
+     * a more complete command from the phase
+     *
+     * This method supports the token `@@__COMMAND__@@`
+     *
+     *
+     * @param {string} pCommand Optional. Default value is an empty string.
+     * @return {string} Prepared command to execute in order to perform a privileged action
+     * @method
+     */
     wrapCommandString( pCommand = ""):string {
-        return `${this.bridgeCmd} ${this.devBin} ${this.devBinArgs.join(' ')} ${pCommand}`;
+        let base = `${this.bridgeCmd} ${this.devBin} ${this.devBinArgs.join(' ')}`;
+        if(base.indexOf("@@__COMMAND__@@")>-1){
+            base = base.replaceAll("@@__COMMAND__@@", pCommand);
+        }else{
+            base  += " "+pCommand;
+        }
+        return base;
     }
 
+    /**
+     * To wrap the specified command to execute with privileges inside
+     * a more complete command from the phase redacted as an array of params
+     *
+     * @param {string[]} pCommand Optional. Default value is an empty string.
+     * @return {string[]} Prepared command to execute in order to perform a privileged action
+     * @method
+     */
     wrapCommandArr( pCommandParts:string[] = []):string[] {
         let cmd:string[]=[];
 
@@ -99,11 +124,19 @@ export class PrivilegedExecutionPhase {
             case PrivilegedExecutionType.BINARY:
                 pBridge.shellWithEHsync( `${this.devBin} ${this.devBinArgs.join(' ')}`);
                 break;
+
             case PrivilegedExecutionType.WRAPPER_MODE:
-                pBridge.execBridgeCommand(this.bridgeCmd);
+                // this mode is not supported when the phase is not a final phase
                 break;
             case PrivilegedExecutionType.HOST_COMMAND:
                 Utils.execSync( `${this.hostBin} ${this.hostBinArgs.join(' ')}`);
+                break;
+            case PrivilegedExecutionType.BRIDGE_COMMAND:
+                pBridge.execBridgeCommand(
+                    this.bridgeCmd,
+                    (this.devBin!=null)? this.devBin : "",
+                    (this.devBinArgs!=null)? this.devBinArgs : [],
+                );
                 break;
         }
     }
@@ -115,21 +148,29 @@ export class PrivilegedExecutionPhase {
         o.bridgeCmd = this.bridgeCmd;
         o.devBin = this.devBin;
         o.devBinArgs = this.devBinArgs;
-        o.priv = this.priv;
+        o.final = this.final;
         CoreDebug.checkJsonSerialize(o, "PrivilegedExecutionPhase");
         return o;
     }
 }
 
-export interface PrivilegedExecutionStrategyMap {
-    [name:string] :PrivilegedExecutionStrategy
-}
-
 
 export enum StrategyTrigger {
-    CMD_EXEC,
-    DEV_LIST
+    CMD_EXEC = 'cmd_exec',
+    DEV_BOOT = 'dev_boot',
+    DEV_LIST = 'dev_list',
+    PROJ_START = 'proj_start'
 }
+
+
+export interface PrivilegedExecutionStrategyOpts {
+    name?:string;
+    description?:string;
+    bridge?:IBridge;
+    phases?:PrivilegedExecutionPhase[];
+    _trigger?:StrategyTrigger;
+}
+
 
 /**
  * Represent a named set of command/action to perform to be able to execute
@@ -145,6 +186,14 @@ export class PrivilegedExecutionStrategy {
      * @field
      */
     name:string;
+
+    /**
+     * Description of the strategy
+     *
+     * @type {string}
+     * @field
+     */
+    description:string = "";
 
     /**
      * The bridge to use
@@ -165,14 +214,22 @@ export class PrivilegedExecutionStrategy {
      * @field
      * @private
      */
-    private _trigger:StrategyTrigger = StrategyTrigger.CMD_EXEC;
+    _trigger:StrategyTrigger = StrategyTrigger.CMD_EXEC;
 
     private _executed:boolean = false;
 
-    constructor(pConfig:any) {
+    constructor(pConfig:PrivilegedExecutionStrategyOpts) {
         for(const i in pConfig){
             this[i] = pConfig[i];
         }
+    }
+
+    /**
+     * To set when the EoP must be executed
+     * @param {StrategyTrigger} pTrigger
+     */
+    setTrigger(pTrigger:StrategyTrigger):void {
+        this._trigger = pTrigger;
     }
 
     setBridge(pBridge:IBridge):void {
@@ -203,6 +260,36 @@ export class PrivilegedExecutionStrategy {
     }
 
     /**
+     * To run a strategy independent of command that require EoP
+     * @method
+     */
+    run(){
+        for(let i=0; i<this.phases.length; i++){
+            // replace isPriv by isFinal
+            this.phases[i].execNonCommand(this.bridge);
+        }
+
+        this._executed = true;
+    }
+
+    /**
+     * To check if the command must be prepared
+     */
+    requirePrepare(){
+        if(this._trigger==StrategyTrigger.CMD_EXEC){
+            return true
+        }else if(!this.hasRun() &&
+            ((this._trigger==StrategyTrigger.DEV_BOOT)
+                ||(this._trigger==StrategyTrigger.DEV_LIST)
+                ||(this._trigger==StrategyTrigger.PROJ_START))){
+
+            this.run();
+            return false;
+        }
+
+        return false;
+    }
+    /**
      * To execute all phases required to exec a privileged command
      *
      * @param pBridge
@@ -213,10 +300,10 @@ export class PrivilegedExecutionStrategy {
 
         // execute only if the strategy must be executed prior to each command
         // of if the strategy has been never executed
-        if(this._trigger==StrategyTrigger.CMD_EXEC || !this.hasRun()){
+        if(this._trigger==StrategyTrigger.CMD_EXEC){
             for(let i=0; i<this.phases.length; i++){
                 // replace isPriv by isFinal
-                if(!this.phases[i].isPrivileged()){
+                if(!this.phases[i].isFinal()){
                     this.phases[i].execNonCommand(bridge);
                 }
 
@@ -225,8 +312,13 @@ export class PrivilegedExecutionStrategy {
                 }
 
             }
-        }
+        }else if(!this.hasRun() &&
+            ((this._trigger==StrategyTrigger.DEV_BOOT)
+                ||(this._trigger==StrategyTrigger.DEV_LIST)
+                ||(this._trigger==StrategyTrigger.PROJ_START))){
 
+            this.run();
+        }
 
         if(pph.length>0){
             return pph.pop().wrapCommandString(pCommand);
@@ -249,11 +341,11 @@ export class PrivilegedExecutionStrategy {
 
 
         // execute only if the strategy must be executed prior to each command
-        // of if the strategy has been never executed
-        if(this._trigger==StrategyTrigger.CMD_EXEC || !this.hasRun()){
+        // or if the strategy has been never executed
+        if(this._trigger==StrategyTrigger.CMD_EXEC){
             for(let i=0; i<this.phases.length; i++){
                 // replace isPriv by isFinal
-                if(!this.phases[i].isPrivileged()){
+                if(!this.phases[i].isFinal()){
                     this.phases[i].execNonCommand(bridge);
                 }
 
@@ -274,10 +366,25 @@ export class PrivilegedExecutionStrategy {
         let o:any  = {};
         o.name = this.name;
         o.phases = [];
+        o.description = this.description;
+        o._trigger = this._trigger;
+        // skip _executed =>  it must not be saved
         for(let i=0; i<this.phases.length; i++){
             o.phases[i] = this.phases[i].toJsonObject();
         }
+
         CoreDebug.checkJsonSerialize(o, "PrivilegedExecutionStrategy");
+        return o;
+    }
+
+    static fromJsonObject(pStrategy: any):PrivilegedExecutionStrategy {
+        const o = new PrivilegedExecutionStrategy(pStrategy);
+
+        if(o.phases.length>0){
+            o.phases.map((vPhase:PrivilegedExecutionPhase, vIndex:number)=>{
+                o.phases[vIndex] = new PrivilegedExecutionPhase(vPhase);
+            })
+        }
         return o;
     }
 }

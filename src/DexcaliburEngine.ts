@@ -1422,7 +1422,7 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
      * @deprecated in v1.0.0
      */
     getLocalFridaVersion():string{
-        return FridaHelper.getLocalFridaVersion(FRIDA_BIN);
+        return FridaHelper.getLocalFridaVersion(FRIDA_BIN).version;
     }
 
     /**

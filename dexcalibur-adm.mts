@@ -311,6 +311,11 @@ var Parser:ArgParser = new ArgParser(projectArgs, "dexcalibur-adm", [
         hasVal:false,
         options: [
             {
+                name:"--list",
+                help: "List devices : known and connected",
+                callback:(ctx,param)=>{ ctx.devLsDev = true; }
+            },
+            {
                 name:"--bridge",
                 help: "Bridge name : adb, sdb, ...",
                 hasVal:true,
@@ -651,6 +656,21 @@ var Parser:ArgParser = new ArgParser(projectArgs, "dexcalibur-adm", [
             ctx.outJson = true;
         } },
 
+
+    { name:"--http",
+        help: "Http port",
+        hasVal:true,
+        callback:(ctx,param)=>{
+            ctx.httpPort = param.value;
+        } },
+
+    { name:"--ws",
+        help: "WebSocket port",
+        hasVal:true,
+        callback:(ctx,param)=>{
+            ctx.wsPort = param.value;
+        } },
+
     { name:"--config",
         help: "Optional. Path of configuration file. By default, the configuration file is searched at some predefined location",
         hasVal:true,
@@ -924,6 +944,45 @@ switch (projectArgs.mode){
                     });
                 }
                 break;
+        }
+
+        if(projectArgs.devLsDev){
+            // DeviceManager.getInstance()
+
+            (async function(){
+
+                try{
+                    // create an empty single (not yet initialiazed) instance of engine+
+                    const dxcInstance = DexcaliburEngine.getInstance();
+
+                    // init engine with settings
+                    dxcInstance.loadConfiguration(cfg);
+
+                    // update settings
+                    if(projectArgs.wsPort!=null){
+                        const safeWsP = dxcInstance.getSettings().getWebserverSettings().sanitize("ws", projectArgs.wsPort);
+                        dxcInstance.getSettings().getWebserverSettings().update(safeWsP);
+                    }
+
+                    if(projectArgs.httpPort!=null){
+                        const safeWsH = dxcInstance.getSettings().getWebserverSettings().sanitize("http", projectArgs.httpPort);
+                        dxcInstance.getSettings().getWebserverSettings().update(safeWsH);
+                    }
+
+                    // boot engine
+                    const ready = await dxcInstance.boot(
+                        projectArgs.restore===true);
+
+                    if(ready){
+                        dxcInstance.start()
+                        const lsdev = await DeviceManager.getInstance(dxcInstance).scan();
+                        console.log(lsdev);
+                    }
+                }catch (err){
+                    console.log(chalk.red(err.message));
+                    console.log(chalk.red(err.stack));
+                }
+            })();
         }
 
         break;

@@ -19,6 +19,7 @@ export class HookManagerException extends MonitoredError {
         HOOK_SESSION_NOT_FOUND: ErrorCode.HOOK_MANAGER + HookErrCode.GENERIC + 8,
         HOOK_FRAGMENT_CANNOT_BE_REMOVED: ErrorCode.HOOK_MANAGER + HookErrCode.GENERIC + 9,
         FRAGMENT_UID_IS_MANDATORY: ErrorCode.HOOK_MANAGER + HookErrCode.GENERIC + 10,
+        OPTION_NOT_SUPPORTED: ErrorCode.HOOK_MANAGER + HookErrCode.GENERIC + 11
     };
 
     static EXISTING_HOOK_SET = ()=>{ return new HookManagerException(" An hook set already exists for this ID",HookManagerException.ERR.EXISTING_HOOK_SET) };
@@ -32,6 +33,8 @@ export class HookManagerException extends MonitoredError {
     static HOOK_FRAGMENT_CANNOT_BE_REMOVED= (vUID = "", vExtra:string="")=>{ return new HookManagerException(" The fragment [uid="+vUID+"] cannot be removed : "+vExtra,HookManagerException.ERR.HOOK_FRAGMENT_CANNOT_BE_REMOVED) };
 
     static FRAGMENT_UID_IS_MANDATORY = (pContext:string="")=>{ return new HookManagerException(" The fragment UID is mandatory [context="+pContext+"]",HookManagerException.ERR.FRAGMENT_UID_IS_MANDATORY) };
+    static OPTION_NOT_SUPPORTED = (pName:string)=>{ return new HookManagerException(" The global hook option [name="+pName+"] is not supported",HookManagerException.ERR.OPTION_NOT_SUPPORTED) };
+
 
 
     constructor( pMsg:string, pCode:number = null, pExtra:any = null) {

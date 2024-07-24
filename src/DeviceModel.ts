@@ -1,7 +1,8 @@
 
-import {NodeInternalType} from "./NodeInternalType.js";
+
 import {NodeType, INode, NodeProperty, DbDataType, DbKeyType} from "@dexcalibur/dexcalibur-orm";
 import {IStringIndex} from "./core/IStringIndex.js";
+import {NodeInternalType} from "@dexcalibur/dxc-core-api";
 
 
 export class DeviceModel implements INode {

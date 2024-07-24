@@ -20,6 +20,8 @@ import {Process} from "frida/dist";
 import * as _os_ from "os";
 import {FridaHelperException} from "./errors/FridaHelperException.js";
 import {Architecture} from "./Architecture.js";
+import {Nullable} from "./core/IStringIndex.js";
+import {SemVerData, SemVerHelper} from "./util/semver/SemverHelper.js";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -37,16 +39,65 @@ const SPAWN = 0x1;
 const ATTACH_BY_NAME = 0x2;
 const ATTACH_BY_PID = 0x3;
 
+interface SemanticVersion {
+    version: string
+    major: Nullable<string>,
+    minor: Nullable<string>,
+    patch: Nullable<string>
+}
 
 interface FridaInstance {
     device: Device;
     opts?:FridaServerOptions;
     path?: string;
     privileged?:boolean;
+
 }
 
 interface FridaInstanceMap {
     [deviceID:string] :FridaInstance;
+}
+
+/**
+ * Options of install process of Frida server
+ */
+export interface FridaInstallOptions {
+    /**
+     * To override the URL where frida-server is downloaded
+     * @type {string}
+     */
+    downloadURL?:string;
+    /**
+     * Host-side location of frida (aka frida-tools)
+     * @type {string}
+     */
+    hostPath?:string;
+    /**
+     * Device-side location where the binary of frida server seats
+     * @field
+     */
+    devicePath?:string;
+    /**
+     * A flag to copy frida-server binary from local filesystem instead of to download it
+     * @type {boolean} Default is FALSE
+     */
+    offline?:boolean;
+    /**
+     * To use a random name instead of 'frida-server'.
+     * Can affect anti-hook feature
+     *
+     * @type {boolean}
+     */
+    randomName?:boolean;
+}
+
+
+interface FridaBin {
+    type?:string;
+    version?:SemVerData;
+    os?:string;
+    arch?:string;
+    name:string;
 }
 
 /**
@@ -74,6 +125,8 @@ export default class FridaHelper extends External.ExternalHelper
     static ATTACH_BY_PID = 0x3;
 
     static instances:FridaInstanceMap = {};
+
+    static binaryCache:FridaBin[] = [];
 
     constructor() {
         super()
@@ -166,6 +219,34 @@ export default class FridaHelper extends External.ExternalHelper
 
 
     /**
+     *
+     */
+    static getBinaryCache():FridaBin[] {
+        if(FridaHelper.binaryCache.length==0){
+            const cache:FridaBin[] =  [];
+            const files = _fs_.readdirSync(DexcaliburWorkspace.getInstance().getFridaFolderLocation());
+
+            //Logger.info('====Frida binary cache ======================:')
+            files.map(x => {
+                const parts = x.split('-');
+                cache.push({
+                    name: x,
+                    type: parts[1],
+                    version: SemVerHelper.parse(parts[2]),
+                    os: parts[3],
+                    arch: parts[4]+(parts[5]!=null?'-'+parts[5]:'')
+                });
+
+            });
+
+            console.log(cache);
+            FridaHelper.binaryCache = cache;
+        }
+
+        return  FridaHelper.binaryCache;
+    }
+
+    /**
      * 
      * Return an object formatted like that :
      * {
@@ -176,7 +257,7 @@ export default class FridaHelper extends External.ExternalHelper
      * }
      * @param {*} pFridaPath 
      */
-    static getLocalFridaVersion(pFridaPath:string):any{
+    static getLocalFridaVersion(pFridaPath:string):SemanticVersion{
         const out:string = _ps_.execSync(FridaHelper.getExtPath()+' --version').toString(); //pFridaPath + ' --version').toString();
         const ver:string = out.slice(0 , out.lastIndexOf( _os_.EOL )).toString();
         const v:string[] = ver.split('.');
@@ -201,6 +282,52 @@ export default class FridaHelper extends External.ExternalHelper
 
         return (out!=null)
             && (/^[0-9]+\.[0-9]+\.*[0-9]*\n$/.test(out));
+    }
+
+
+    /**
+     *
+     * @param pVersion
+     * @param pArch
+     * @param pOS
+     * @param pType
+     */
+    static async pullLocalFridaBin( pVersion:SemanticVersion, pArch:string, pOS:string, pType:string='server'):Promise<string> {
+
+        const cache = FridaHelper.getBinaryCache();
+        let match:any = null;
+        for(let i=0;i<cache.length; i++){
+            if(parseInt(pVersion.major)==cache[i].version.major){
+                if(pOS==cache[i].os && pArch==cache[i].arch){
+                    match = cache[i];
+                    break;
+                }
+            }
+        }
+        const binName = `frida-${pType}-${pVersion.major}-${pOS}-${pArch}.xz`;
+
+        let tmp:string = _path_.join(
+            DexcaliburWorkspace.getInstance().getTempFolderLocation(),
+            binName
+        );
+
+        const fridasrc = _path_.join(
+            DexcaliburWorkspace.getInstance().getFridaFolderLocation(),
+            binName
+        );
+
+        try{
+            if(_fs_.existsSync(fridasrc)){
+                throw FridaHelperException.LOCAL_BIN_NOT_FOUND(binName);
+            }
+
+            _fs_.cpSync(fridasrc,tmp);
+            if(_fs_.existsSync(tmp)){
+                return tmp;
+            }
+        }catch (e){
+            return null;
+        }
     }
 
     /**
@@ -454,7 +581,7 @@ export default class FridaHelper extends External.ExternalHelper
      * @method
      * @static
      */
-    static async installServer( pDevice:Device, pOptions:any = {}):Promise<boolean>{
+    static async installServer( pDevice:Device, pOptions:FridaInstallOptions = {offline:false}):Promise<boolean>{
         let ver:any, xzpath:string, path:string, arch:string, tmp:any;
 
 
@@ -465,10 +592,11 @@ export default class FridaHelper extends External.ExternalHelper
         // get device a architecture
         arch = pDevice.getProfile().getSystemProfile().getArchitecture();
 
+        let a:string = arch;
         if(pOptions.downloadURL != null){
             tmp =  pOptions.downloadURL;
+            a = null;
         }else{
-            let a:string = arch;
             switch (arch){
                 case Architecture.AARCH32:
                     a = "arm";
@@ -487,8 +615,15 @@ export default class FridaHelper extends External.ExternalHelper
         }
 
         // download sever
-        xzpath = await FridaHelper.download( tmp, 'frida_server.xz');
-        Logger.info('[FRIDA HELPER] Server download. Path: ',xzpath);
+        if(!pOptions.offline || pOptions.downloadURL!=null){
+            xzpath = await FridaHelper.download( tmp, 'frida_server.xz');
+            Logger.info('[FRIDA HELPER] Server download. Path: ',xzpath);
+        }else{
+            xzpath = await FridaHelper.pullLocalFridaBin( ver, a, 'android', 'server');
+            Logger.info('[FRIDA HELPER] Server download. Path: ',xzpath);
+
+        }
+
         path = xzpath.substr(0,xzpath.length-3);
 
         Logger.info('[FRIDA HELPER] Extracting server from archive ...');

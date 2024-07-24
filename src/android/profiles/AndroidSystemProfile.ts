@@ -33,6 +33,7 @@ export default class AndroidSystemProfile extends GenericSystemProfile implement
             new RegExp('^ro\.build\.'),
             new RegExp('^ro\.error\.'),
             new RegExp('^ro\.boot\.'),
+            new RegExp('^ro\.kernel\.'),
             new RegExp('^.*\.dalvik\.'),
             //new RegExp('^ro\.product\.cpu\.abi.*'),
             new RegExp('^uname$'),
@@ -113,7 +114,9 @@ export default class AndroidSystemProfile extends GenericSystemProfile implement
     }
 
     /**
-     * To check from props if the device is an emulator r
+     * To check from props if the device is an emulator
+     *
+     * @return {boolean} TRUE if emulated else FALSE
      */
     isEmulator():boolean {
         return
@@ -121,6 +124,8 @@ export default class AndroidSystemProfile extends GenericSystemProfile implement
             (this.prop['ro.bootimage.build.fingerprint'].indexOf('emulator')>-1) ||
             (this.prop['ro.build.product'].indexOf('emulator')>-1) ||
             (this.prop['ro.product.vendor.device'].indexOf('emulator')>-1) ||
+            (this.prop['ro.kernel.qemu']=='1') ||
+            (Object.keys(this.prop).filter((x)=>(x.indexOf('ro.kernel.qemu.')==0))) ||
             this.emulated;
     }
 
