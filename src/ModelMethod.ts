@@ -248,8 +248,8 @@ export default class ModelMethod extends Savable implements INode,IPersistent
         t += "\n\t.modifiers:<AccessFlags>\tGet the modifiers";
         t += "\n\t.args:<*Type>[]\tGet the argument types";
         t += "\n\t.ret:<*Type>\tGet the type of return value";
-        t += "\n\t.locals:<int>\tGet the number de locals";
-        t += "\n\t.regiters:\tGet the number de registers";
+        t += "\n\t.locals:<int>\tGet the number of locals";
+        t += "\n\t.regiters:\tGet the number of registers";
         t += "\n";
 
         console.log(t)
