@@ -8,142 +8,77 @@ var OkhttpInspector:InspectorFactory = new InspectorFactory({
 
     startStep: INSPECTOR_TYPE.POST_APP_SCAN,
 
-    version: "1.0.0",
+    version: "1.0.10",
     hookSet: {
         id: "Okhttp",
         name: "Okhttp",
         description: "OkHttp is an HTTP client",
         strategies: [{
-            name: "canonicalize_okhttp_3_3",
-            descr: "Hook canonicalize based on its signature, in okhttp3.HttpUrl from okhttp_3.x version (Java)",
             search: {
                 type: ModelMethod.TYPE.getName(),
-                req: 'method("__signature__:/<java.lang.String><int><int><java.lang.String>' +
-                    '<boolean><boolean><boolean><boolean><java.nio.charset.Charset>.<java.lang.String>$/")'
-                // method("__signature__:/<java.lang.String><int><int><java.lang.String><boolean><boolean><boolean><boolean><java.nio.charset.Charset>.<java.lang.String>$/")'
-                //okhttp3 v3.9.x v3.14.x  source https://github.com/square/okhttp/blob/c0739a419949a24d0c34cf38a25953c60871268b/okhttp/src/main/java/okhttp3/HttpUrl.java#L1682
-                //'method("__signature__:/\(<int><int><java.lang.String><java.lang.Boolean><java.lang.Boolean>' +
-                    //'<java.lang.Boolean><java.lang.Boolean><java.nio.charset.Charset>\)<java.lang.String>$/")'
-                // method("__signature__:/\(<int><int><java.lang.String><java.lang.Boolean><java.lang.Boolean><java.lang.Boolean><java.lang.Boolean><java.nio.charset.Charset>\)<java.lang.String>$/")
-                // method("__signature__:/<java.nio.charset.Charset>.<java.lang.String>$/")
-                // method("__signature__:/<java.lang.String><int><int><java.lang.String><java.lang.Boolean><java.lang.Boolean><java.lang.Boolean><java.lang.Boolean><java.nio.charset.Charset>/")
+                req: 'method("__signature__:/\\((<[\\w.]*>)?<java.lang.String><int><int><java.lang.String>' +
+                    '<boolean><boolean><boolean><boolean>(<[\\w.]*>)?\\)/")'
+
+                //method("__signature__:/\\((<[\\w.]*>)?<java.lang.String><int><int><java.lang.String><boolean><boolean><boolean><boolean>(<[\\w.]*>)?\\)/")'
+                // okhttp3 v3.9.x v3.14.x  source https://github.com/square/okhttp/blob/c0739a419949a24d0c34cf38a25953c60871268b/okhttp/src/main/java/okhttp3/HttpUrl.java#L1682
+                // 'method("__signature__:/\\(<java.lang.String><int><int><java.lang.String><boolean><boolean><boolean><boolean><java.nio.charset.Charset>\\)<java.lang.String>$/")'
+                // okhttp3 v4.0 - v4.10  source https://github.com/square/okhttp/blob/okhttp_4.10.x/okhttp/src/main/kotlin/okhttp3/HttpUrl.kt
+                //Signature found match last release 4 kotlin
+                // Strange signatures with companion
+                //  canonicalize$okhttp method("__signature__:/\\(<java.lang.String><int><int><java.lang.String><boolean><boolean><boolean><boolean><java.nio.charset.Charset>\\)<java.lang.String>$/")
+                // writeCanon(okio buff, string, int int
+                // canonicalize$okhttp$default httpurl companion, string, int int, string, bool, bool , bool , bool, charset, int, object) string.
+
             },
+            name: "canonicalize_okhttp",
+            descr: "Hook canonicalize based on its signature, in okhttp3.HttpUrl okhttp.-Url",
             autoEmit: true,
-            emitEvent: "hook.okhhtp.canonicalizeWithCharset",
+            emitEvent: "hook.okhttp.canonicalize",
             before: ` 
                 //<ts>={
-             // canonicalize(String input, int pos, int limit, String encodeSet,
-                //       boolean alreadyEncoded, boolean strict, boolean plusIsSpace, boolean asciiOnly,
-                //       @Nullable Charset charset)
-                if (arguments.length === 9) {
-                    var encodeSetDict = [
-                        {name:"USERNAME_ENCODE_SET", value:" \\"':;<=>@[]^\`{}|/\\\\?#"},
-                        {name:"PASSWORD_ENCODE_SET", value:" \\"':;<=>@[]^\`{}|/\\\\?#"},
-                        {name:"PATH_SEGMENT_ENCODE_SET", value:" \\"<>^\`{}|/\\\\?#"},
-                        {name:"PATH_SEGMENT_ENCODE_SET_URI", value:"[]"},
-                        {name:"QUERY_ENCODE_SET", value:" \\"'<>#"},
-                        {name:"QUERY_COMPONENT_REENCODE_SET", value:" \\"'<>#&="},
-                        {name:"QUERY_COMPONENT_ENCODE_SET", value:" !\\"#$&'(),/:;<=>?@[]\\\\^\`{|}~"},
-                        {name:"QUERY_COMPONENT_ENCODE_SET_URI", value:"\\\\^\`{|}"},
-                        //    {name:"FORM_ENCODE_SET", value:" !\\"#$&'()+,/:;<=>?@[\\\\]^\`{|}~"}, new 4+
-                        {name:"FORM_ENCODE_SET", value:" \\"':;<=>@[]^\`{}|/\\\\?#&!$(),~"},  // old okhttp 3.x
-                        {name:"FRAGMENT_ENCODE_SET", value:""},
-                        {name:"FRAGMENT_ENCODE_SET_URI", value:" \\"#<>\\\\^\`{|}"}
-                    ];
-                    let eventData : Record<string, any> = {};
-                    eventData['arg0_input'] = arguments[0];
-                    eventData['arg1_pos'] = arguments[1];
-                    eventData['arg2_limit'] = arguments[2];
-                    eventData['arg3_encodeSet'] = arguments[3];
-                    eventData['arg4_alreadyEncoded'] = arguments[4];
-                    eventData['arg5_strict'] = arguments[5];
-                    eventData['arg6_plusIsSpace'] = arguments[plusIsSpace];
-                    eventData['arg7_asciiOnly'] = arguments[asciiOnly];
-                    eventData['arg8_Charset'] = arguments[Charset].toString();
-                    encodeSetDict.forEach((encodeSet) => {
-                        if (encodeSet.value === arguments[3])
-                            eventData['encodeSet_label'] = encodeSet.name;
-                    });
-                    
-                    DXC.send(
-                        "@@__HOOK_ID__@@",
-                        "@@__FRAG_ID__@@",
-                        eventData
-                    );
+                 console.log("[INSPECTOR][OKHTTP] Canonicalize");
+                var encodeSetDict = [
+                    {name:"USERNAME_ENCODE_SET", value:" \\"':;<=>@[]^\`{}|/\\\\?#"},
+                    {name:"PASSWORD_ENCODE_SET", value:" \\"':;<=>@[]^\`{}|/\\\\?#"},
+                    {name:"PATH_SEGMENT_ENCODE_SET", value:" \\"<>^\`{}|/\\\\?#"},
+                    {name:"PATH_SEGMENT_ENCODE_SET_URI", value:"[]"},
+                    {name:"QUERY_ENCODE_SET", value:" \\"'<>#"},
+                    {name:"QUERY_COMPONENT_REENCODE_SET", value:" \\"'<>#&="},
+                    {name:"QUERY_COMPONENT_ENCODE_SET", value:" !\\"#$&'(),/:;<=>?@[]\\\\^\`{|}~"},
+                    {name:"QUERY_COMPONENT_ENCODE_SET_URI", value:"\\\\^\`{|}"},
+                    {name:"FORM_ENCODE_SET", value:" \\"':;<=>@[]^\`{}|/\\\\?#&!$(),~"},  // from okhttp 3.x
+                    {name:"FORM_ENCODE_SET_2", value:" !\\"#$&'()+,/:;<=>?@[\\\\]^\`{|}~"}, // from okhttp > 4+
+                    {name:"FRAGMENT_ENCODE_SET", value:""},
+                    {name:"FRAGMENT_ENCODE_SET_URI", value:" \\"#<>\\\\^\`{|}"}
+                ];
+                var argOffset: number = 0;
+                if (DXC.util.isInstanceOf(arguments[1], 'java.lang.String')) {
+                    argOffset++
                 }
+                let eventData : Record<string, any> = {};
+                eventData['arg0_input'] = arguments[argOffset];
+                eventData['arg1_pos'] = arguments[argOffset + 1];
+                eventData['arg2_limit'] = arguments[argOffset + 2];
+                eventData['arg3_encodeSet'] = arguments[argOffset + 3].toString();
+                eventData['arg4_alreadyEncoded'] = arguments[argOffset + 4];
+                eventData['arg5_strict'] = arguments[argOffset + 5];
+                eventData['arg6_plusIsSpace'] = arguments[argOffset + 6];
+                eventData['arg7_asciiOnly'] = arguments[argOffset + 7];
+                eventData['arg8_Charset'] = arguments[argOffset + 8].toString();
+                encodeSetDict.forEach((encodeSet) => {
+                    if (encodeSet.value === eventData['arg3_encodeSet'])
+                        eventData['encodeSet_label'] = encodeSet.name;
+                });
+                console.log("[INSPECTOR][OKHTTP] Canonicalize:", eventData['arg0_input'].toString());
+                console.log("[INSPECTOR][OKHTTP] Canonicalize encodeSet_label:", eventData['arg3_encodeSet'].toString());
+                
+                DXC.send(
+                    "@@__HOOK_ID__@@",
+                    "@@__FRAG_ID__@@",
+                    eventData
+                );
             `
-         }
-    //     {
-    //         name: "canonicalize_okhttp_5_0",
-    //         descr: "Hook canonicalize based on its signature, in okhttp3.HttpUrl from okhttp_5.0 version (Kotlin)",
-    //         search: {
-    //             type: ModelMethod.TYPE.getName(),
-    //             req: 'method("__signature__:/<java.lang.String><int><int><java.lang.String>' +
-    //                 '<boolean><boolean><boolean><boolean><java.nio.charset.Charset>.<java.lang.String>$/")'
-    //             // method("__signature__:/<java.lang.String><int><int><java.lang.String><boolean><boolean><boolean><boolean><java.nio.charset.Charset>.<java.lang.String>$/")'
-    //             //okhttp3 v3.9.x v3.14.x  source https://github.com/square/okhttp/blob/c0739a419949a24d0c34cf38a25953c60871268b/okhttp/src/main/java/okhttp3/HttpUrl.java#L1682
-    //             //'method("__signature__:/\(<int><int><java.lang.String><java.lang.Boolean><java.lang.Boolean>' +
-    //             //'<java.lang.Boolean><java.lang.Boolean><java.nio.charset.Charset>\)<java.lang.String>$/")'
-    //             // method("__signature__:/\(<int><int><java.lang.String><java.lang.Boolean><java.lang.Boolean><java.lang.Boolean><java.lang.Boolean><java.nio.charset.Charset>\)<java.lang.String>$/")
-    //             // method("__signature__:/<java.nio.charset.Charset>.<java.lang.String>$/")
-    //             // method("__signature__:/<java.lang.String><int><int><java.lang.String><java.lang.Boolean><java.lang.Boolean><java.lang.Boolean><java.lang.Boolean><java.nio.charset.Charset>/")
-    //         },
-    //         autoEmit: true,
-    //         emitEvent: "hook.okhhtp.canonicalizeWithCharset",
-    //         before: `
-    //         //<ts>={
-    //         /* okhttp httpUrl 4,10
-    // internal fun String.canonicalize(
-    //   pos: Int = 0,
-    //   limit: Int = length,
-    //   encodeSet: String,
-    //   alreadyEncoded: Boolean = false,
-    //   strict: Boolean = false,
-    //   plusIsSpace: Boolean = false,
-    //   unicodeAllowed: Boolean = false,
-    //   charset: Charset? = null
-    // ): String
-    // method("__signature__:/<int><int><java.lang.String><boolean><boolean><boolean><boolean><java.nio.charset.Charset>.<java.lang.String>$/")'
-    // //TODO check if in kotlin Int is mapped to int and Boolean to boolean.
-    //          */
-    //         if (arguments.length === 9) {
-    //             var encodeSetDict = [
-    //                 {name:"USERNAME_ENCODE_SET", value:" \\"':;<=>@[]^\`{}|/\\\\?#"},
-    //                 {name:"PASSWORD_ENCODE_SET", value:" \\"':;<=>@[]^\`{}|/\\\\?#"},
-    //                 {name:"PATH_SEGMENT_ENCODE_SET", value:" \\"<>^\`{}|/\\\\?#"},
-    //                 {name:"PATH_SEGMENT_ENCODE_SET_URI", value:"[]"},
-    //                 {name:"QUERY_ENCODE_SET", value:" \\"'<>#"},
-    //                 {name:"QUERY_COMPONENT_REENCODE_SET", value:" \\"'<>#&="},
-    //                 {name:"QUERY_COMPONENT_ENCODE_SET", value:" !\\"#$&'(),/:;<=>?@[]\\\\^\`{|}~"},
-    //                 {name:"QUERY_COMPONENT_ENCODE_SET_URI", value:"\\\\^\`{|}"},
-    //                 //    {name:"FORM_ENCODE_SET", value:" !\\"#$&'()+,/:;<=>?@[\\\\]^\`{|}~"}, new 4+
-    //                 {name:"FORM_ENCODE_SET", value:" \\"':;<=>@[]^\`{}|/\\\\?#&!$(),~"},  // old okhttp 3.x
-    //                 {name:"FRAGMENT_ENCODE_SET", value:""},
-    //                 {name:"FRAGMENT_ENCODE_SET_URI", value:" \\"#<>\\\\^\`{|}"}
-    //             ];
-    //             let eventData : Record<string, any> = {};
-    //             eventData['arg0_input'] = arguments[0];
-    //             eventData['arg1_pos'] = arguments[1];
-    //             eventData['arg2_limit'] = arguments[2];
-    //             eventData['arg3_encodeSet'] = arguments[3];
-    //             eventData['arg4_alreadyEncoded'] = arguments[4];
-    //             eventData['arg5_strict'] = arguments[5];
-    //             eventData['arg6_plusIsSpace'] = arguments[plusIsSpace];
-    //             eventData['arg7_asciiOnly'] = arguments[asciiOnly];
-    //             eventData['arg8_Charset'] = arguments[Charset].toString();
-    //             encodeSetDict.forEach((encodeSet) => {
-    //                 if (encodeSet.value === arguments[3])
-    //                     eventData['encodeSet_label'] = encodeSet.name;
-    //             });
-    //
-    //             DXC.send(
-    //                 "@@__HOOK_ID__@@",
-    //                 "@@__FRAG_ID__@@",
-    //                 eventData
-    //             );
-    //         }
-    //     `
-    //     }
+        }
         ]
     },
     eventListeners: {
