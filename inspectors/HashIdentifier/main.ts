@@ -4,8 +4,9 @@ import * as Log from "../../src/Logger.js";
 
 
 // Regex match hash to hash function
-// Source from Psypanda - HashId https://github.com/psypanda/hashID/blob/master/hashid.py
+// Source from Psypanda - HashId https://github.com/psypanda/hashID/blob/master/hashid.py (2013-2015)
 // Source Hashcat hashes database example: https://hashcat.net/wiki/doku.php?id=example_hashes
+// Source https://github.com/HashPals/Name-That-Hash/blob/main/name_that_hash/hashes.py (2021-2023)
 const HASH_TAG_CATEGORY_NAME = "crypto.hash";
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -301,26 +302,27 @@ var regexToHash = [
    // {regex: /^[A-F0-9]{8}$/.source, modes: ['Adler-32', 'CRC-32B', 'FCS-32', 'GHash-32-3', 'GHash-32-5', 'FNV-132', 'Fletcher-32', 'Joaat', 'ELF-32', 'XOR-32']},
    // {regex: /^[a-f0-9]{6}$/.source, modes: ['CRC-24']},
    // {regex: /^[A-F0-9]{6}$/.source, modes: ['CRC-24']},
-    {regex: /^(\$crc32\$[a-f0-9]{8}.)?[a-f0-9]{8}$/.source, modes: ['CRC-32']},
-    {regex: /^(\$crc32\$[A-F0-9]{8}.)?[A-F0-9]{8}$/.source, modes: ['CRC-32']},
+   // {regex: /^(\$crc32\$)?([a-f0-9]{8}.)?[a-f0-9]{8}$/.source, modes: ['CRC-32']},
+   // {regex: /^(\$crc32\$)?([A-F0-9]{8}.)?[a-f0-9]{8}$/.source, modes: ['CRC-32']},
    // {regex: /^[a-f0-9]{4,}$/.source, modes: ['Cisco Type 7']},
    // {regex: /^[A-F0-9]{4,}$/.source, modes: ['Cisco Type 7']},
-   // {regex: /^\+[a-zA-Z0-9\/.]{12}$/.source, modes: ['Eggdrop IRC Bot']},
+   // {regex: /^\+[a-z0-9\/.]{12}$/.source, modes: ['Eggdrop IRC Bot']},
+   // {regex: /^\+[A-Z0-9\/.]{12}$/.source, modes: ['Eggdrop IRC Bot']},
     {regex: /^(\$pst\$)?[a-f0-9]{8}$/.source, modes: ['Microsoft Outlook PST']},
     {regex: /^(\$pst\$)?[A-F0-9]{8}$/.source, modes: ['Microsoft Outlook PST']},
-    {regex: /^(\$dahua\$)?[a-zA-Z0-9]{8}$/.source, modes: ['Dahua']},
-    {regex: /^[a-zA-Z0-9\/+]{2}([a-zA-Z0-9\/+.]{11})+$/.source, modes: ['BigCrypt']},
-    {regex: /^(\$cisco4\$)?[a-zA-Z0-9\/.]{43}$/.source, modes: ['Cisco Type 4']},
+    // {regex: /^(\$dahua\$)?[a-zA-Z0-9]{8}$/.source, modes: ['Dahua']},
+    // {regex: /^[a-zA-Z0-9\/+]{2}([a-zA-Z0-9\/+.]{11})+$/.source, modes: ['BigCrypt']},
+    // {regex: /^(\$cisco4\$)?[a-zA-Z0-9\/.]{43}$/.source, modes: ['Cisco Type 4']},
     {regex: /^(.+\$)?[a-zA-Z0-9\/.+]{30}(:.+)?$/.source, modes: ['Juniper Netscreen/SSG(ScreenOS)']},
     {regex: /^[a-zA-Z0-9\/.]{13}$/.source, modes: ['DES(Unix)', 'Traditional DES', 'DEScrypt']},
     {regex: /^[a-f0-9]{16}$/.source, modes: ['MySQL323', 'DES(Oracle)', 'Half MD5', 'Oracle 7-10g', 'FNV-164', 'CRC-64']},
     {regex: /^[A-F0-9]{16}$/.source, modes: ['MySQL323', 'DES(Oracle)', 'Half MD5', 'Oracle 7-10g', 'FNV-164', 'CRC-64']},
-    {regex: /^[a-zA-Z0-9\/.]{16}$/.source, modes: ['Cisco-PIX(MD5)']},
+    // {regex: /^[a-zA-Z0-9\/.]{16}$/.source, modes: ['Cisco-PIX(MD5)']},
     {regex: /^\([a-zA-Z0-9\/+]{20}\)$/.source, modes: ['Lotus Notes/Domino 6']},
     {regex: /^_[a-zA-Z0-9\/.]{19}$/.source, modes: ['BSDi Crypt']},
     {regex: /^[a-f0-9]{24}$/.source, modes: ['CRC-96(ZIP)']},
     {regex: /^[A-F0-9]{24}$/.source, modes: ['CRC-96(ZIP)']},
-    {regex: /^[a-zA-Z0-9\/.]{24}$/.source, modes: ['Crypt16']},
+    // {regex: /^[a-zA-Z0-9\/.]{24}$/.source, modes: ['Crypt16']},
     {regex: /^(\$md2\$)?[a-f0-9]{32}$/.source, modes: ['MD2']},
     {regex: /^(\$md2\$)?[A-F0-9]{32}$/.source, modes: ['MD2']},
     {regex: /^[a-f0-9]{32}(:.+)?$/.source, modes: ['MD5', 'MD4', 'Double MD5', 'LM', 'RIPEMD-128', 'Haval-128', 'Tiger-128', 'Skein-256(128)', 'Skein-512(128)', 'Lotus Notes/Domino 5', 'Skype', 'ZipMonster', 'PrestaShop', 'md5(md5(md5($pass)))', 'md5(strtoupper(md5($pass)))', 'md5(sha1($pass))', 'md5($pass_$salt)', 'md5($salt_$pass)', 'md5(unicode($pass)_$salt)', 'md5($salt_unicode($pass))', 'HMAC-MD5 (key = $pass)', 'HMAC-MD5 (key = $salt)', 'md5(md5($salt)_$pass)', 'md5($salt_md5($pass))', 'md5($pass_md5($salt))', 'md5($salt_$pass_$salt)', 'md5(md5($pass)_md5($salt))', 'md5($salt_md5($salt_$pass))', 'md5($salt_md5($pass_$salt))', 'md5($username_0_$pass)']},
@@ -454,7 +456,7 @@ var regexToHash = [
     {regex: /^[A-F0-9]{130}(:[A-F0-9]{40})?$/.source, modes: ['IPMI2 RAKP HMAC-SHA1']},
     {regex: /^[a-f0-9]{32}:[0-9]+:[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$/.source, modes: ['Lastpass']},
     {regex: /^[A-F0-9]{32}:[0-9]+:[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$/.source, modes: ['Lastpass']},
-    {regex: /^[a-zA-Z0-9\/.]{16}([:$].{1,})?$/.source, modes: ['Cisco-ASA(MD5)']},
+    //{regex: /^[a-zA-Z0-9\/.]{16}([:$].{1,})?$/.source, modes: ['Cisco-ASA(MD5)']},
     {regex: /^\$vnc\$\*[a-f0-9]{32}\*[a-f0-9]{32}$/.source, modes: ['VNC']},
     {regex: /^\$vnc\$\*[A-F0-9]{32}\*[A-F0-9]{32}$/.source, modes: ['VNC']},
     {regex: /^[a-vA-V0-9]{32}(:([a-zA-Z0-9-]+\.)?[a-zA-Z0-9-.]+\.[a-z]{2,7}:.+:[0-9]+)?$/.source, modes: ['DNSSEC(NSEC3)']},
@@ -543,7 +545,7 @@ var regexToHash = [
 
 var HashIdentifierInspector:InspectorFactory = new InspectorFactory({
     startStep: INSPECTOR_TYPE.POST_DEV_SCAN,
-    version: "1.0.31",
+    version: "1.0.34",
     tags: hashIdentifierTags,
     hookSet: {
         id: "HashIdentifier",
@@ -574,7 +576,7 @@ var HashIdentifierInspector:InspectorFactory = new InspectorFactory({
                     }
                     if (matchedHashes.size >= 1) {
                         console.log("[INSPECTOR][HASHIDENTIFIER] Hash pattern detected in:", strToTest);
-                        console.log("List of possible hashes:", matchedHashes.toString());
+                        console.log("List of possible hashes:", Array.from(matchedHashes));
                         matchedHashes.forEach( (hashTagId) => {
                             pEvent.getData().addTag(ctx.getTagManager().getTag(hashTagId));
                         }

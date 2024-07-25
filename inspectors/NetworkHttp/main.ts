@@ -4,14 +4,6 @@ import InspectorFactory, {FlattenTagCategoryOptions} from "../../src/InspectorFa
 import {INSPECTOR_TYPE} from "../../src/Inspector.js";
 import * as Log from "../../src/Logger.js";
 import ModelMethod from "../../src/ModelMethod.js";
-import DexcaliburProject from "../../src/DexcaliburProject.js";
-import BusEvent from "../../src/BusEvent.js";
-import ModelStringValue from "../../src/ModelStringValue.js";
-import HookMessageV2 from "../../src/hook/HookMessageV2.js";
-import {ContextLocation, ModelInstance} from "../../src/ModelInstance.js";
-import {Nullable} from "../../src/core/IStringIndex.js";
-import {INode} from "@dexcalibur/dexcalibur-orm";
-import {RuntimeEvent} from "../../src/hook/RuntimeEvent.js";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -19,7 +11,7 @@ var NetworkHttpInspector:InspectorFactory = new InspectorFactory({
 
     startStep: INSPECTOR_TYPE.POST_APP_SCAN,
 
-    version: "1.0.19",
+    version: "1.0.23",
     tags: [{
         name: "network.data",
         _tagsOptions: [
@@ -327,20 +319,34 @@ var NetworkHttpInspector:InspectorFactory = new InspectorFactory({
                 if (pEvent.getData().data?.arg1_message != null) {
                     const MESSAGE_RAW_RESPONSE = "rawResponse == null";
                     const MESSAGE_BASE_URL = "baseUrl == null";
+                    // [INSPECTOR][NETWORKHTTP] baseUrl : <instance: java.lang.Object, $className: java.lang.String>
+                    // [INSPECTOR][NETWORKHTTP] rawResponse : <instance: java.lang.Object, $className: okhttp3.Response>    
                     if (pEvent.getData().data?.arg1_message === MESSAGE_RAW_RESPONSE) {
-                        console.log("[INSPECTOR][NETWORKHTTP] JavaUtilsObject requireNonNull message " +
-                         + MESSAGE_RAW_RESPONSE + "similar to those used in Retrofit.Response");
+                        console.log("[INSPECTOR][NETWORKHTTP] JavaUtilsObject requireNonNull on " +
+                         + "rawResponse" + ", similar to those used in Retrofit.Response");
                         let eventData: Record<string, any> = {};
                         eventData['requireNonNullMessage'] = pEvent.getData().data.arg1_message;
                         eventData['rawResponse'] = pEvent.getData().data.arg0_obj.toString() ; //okhttp3.Response
-                        console.log("[INSPECTOR][NETWORKHTTP] rawResponse :", eventData['rawResponse']);
+                        console.log("[INSPECTOR][NETWORKHTTP] rawResponse :", eventData['rawResponse'].toString());
                     }
                     if (pEvent.getData().data?.arg1_message === MESSAGE_BASE_URL) {
-                        console.log("[INSPECTOR][NETWORKHTTP] JavaUtilsObject requireNonNull message " +
-                            MESSAGE_BASE_URL + "similar to those used in Retrofit.Response");
+                        console.log("[INSPECTOR][NETWORKHTTP] JavaUtilsObject requireNonNull on " +
+                            "baseUrl" + ", similar to those used in Retrofit.Response");
                         let eventData: Record<string, any> = {};
+                        let arg0_obj = pEvent.getData().data.arg0_obj;
+                        if (typeof (arg0_obj, 'string')) {
+                            eventData['baseUrl'] = arg0_obj.value ? arg0_obj.value : arg0_obj.toString();
+                        }
+                        else if (DXC.util.isInstanceOf(arg0_obj, 'java.net.URL')) {
+                            eventData['baseUrl'] = arg0_obj.value ? arg0_obj.value.toString() : arg0_obj.toString();
+                        }
+                        else { // Okhttp3.HttpUrl
+                            eventData['baseUrl'] = arg0_obj.value ? arg0_obj.value.toString() : arg0_obj.toString();
+                            console.log("[INSPECTOR][NETWORKHTTP] Probably Okhttp3.HttpUrl", arg0_obj.toString());
+                            console.log("[INSPECTOR][NETWORKHTTP] value ", arg0_obj.value?.toString());
+
+                        }
                         eventData['requireNonNullMessage'] = pEvent.getData().data.arg1_message;
-                        eventData['baseUrl'] = pEvent.getData().data.arg0_obj.toString() ; //java.net.URL or String or  okhttp3.HttpUrl
                         console.log("[INSPECTOR][NETWORKHTTP] baseUrl :", eventData['baseUrl']);
                     }
                 }

@@ -395,6 +395,7 @@ export default new InspectorFactory({
     eventListenerSources: {
         "dxc.fullscan.post_deploy": {
             source: `
+                //<ts>={
                 //Logger.info("[INSPECTOR][TASK] Trying to restore previous data of DynLoaderInspector ... ");
                 console.log('Search class loader');
                 const pCtx = pEvent.getContext();

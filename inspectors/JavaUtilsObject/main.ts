@@ -8,7 +8,7 @@ var JavaRegexMatcherInspector:InspectorFactory = new InspectorFactory({
 
     startStep: INSPECTOR_TYPE.POST_APP_SCAN,
 
-    version: "1.0.3",
+    version: "1.0.4",
     hookSet: {
         id: "JavaUtilsObject",
         name: "Java Utils Object",
@@ -19,19 +19,18 @@ var JavaRegexMatcherInspector:InspectorFactory = new InspectorFactory({
                 descr: "Hook the method that attempts to match the entire region against the pattern.",
                 search: {
                     type: ModelMethod.TYPE.getName(),
-                    req: 'method("enclosingClass.name:/^java.util.Objects/").filter("name:requireNonNull")'
+                    req: 'method("enclosingClass.name:/^java.util.Objects/").filter("name:requireNonNull")' +
+                        '.filter("__signature__:/\\(<java.lang.Object><java.lang.String>\\)/")'
                 },
                 autoEmit: true,
                 emitEvent: "hook.javaUtilsObject.requireNonNull",
                 after: ` 
                     let eventData : Record<string, any> = {};
-                    eventData['arg0_obj'] = arguments[0];  
-                    if (arguments.length === 2) {
-                        if (DXC.util.isInstanceOf(arguments[1], "java.lang.String")) 
-                            eventData['arg1_message'] = arguments[1]; // String or Supplier<String> 
-                        else
-                            eventData['arg1_supplier'] = arguments[1]; // String or Supplier<String> 
-                    }   
+                    // TODO: Add an object serialisation 
+                    eventData['arg0_obj'] = arguments[0].toString();  
+                    eventData['arg0_obj_class'] = arguments[0].getClass().;  
+                    eventData['arg1_message'] = arguments[1]; // String or Supplier<String> 
+                    
                     DXC.send(
                         "@@__HOOK_ID__@@",
                         "@@__FRAG_ID__@@",
