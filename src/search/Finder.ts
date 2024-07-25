@@ -9,6 +9,7 @@ import { NodeInternalType }
 from "@dexcalibur/dxc-core-api";;
 import {IDatabase, IDbCollection, IDbIndex, NodeType} from "@dexcalibur/dexcalibur-orm";
 import {Nullable} from "../core/IStringIndex.js";
+import {ModelObjectType} from "../ModelType.js";
 
 const Logger: Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -168,9 +169,9 @@ export class Finder {
    - case sensitive
    - add unicode
    * @param {*} dataModel
-   * @param String pattern
-   * @param Boolean caseSensitive
-   * @param Boolean lazy If FALSE, verify if the field exists
+   * @param {String} pattern
+   * @param {Boolean} caseSensitive
+   * @param {Boolean} lazy If FALSE, verify if the field exists
    * @returns {SearchPattern} The parsed search pattern, ready to be used
    */
   _getTestFn(dataModel: any, pattern: string, caseSensitive: boolean, lazy: boolean = false, pExclude = false): SearchPattern|null {
@@ -537,7 +538,7 @@ export class Finder {
       }
 
     } catch (err) {
-      // index is empty or an error occured during comparison
+      // index is empty or an error occurred during comparison
       Logger.error("[Finder::_findDeepObject] " + err.message);
     }
 
