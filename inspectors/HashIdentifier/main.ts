@@ -544,8 +544,9 @@ var regexToHash = [
 // ===== INIT =====
 
 var HashIdentifierInspector:InspectorFactory = new InspectorFactory({
+    id: "HashIdentifier",
     startStep: INSPECTOR_TYPE.POST_DEV_SCAN,
-    version: "1.0.34",
+    version: "1.0.35",
     tags: hashIdentifierTags,
     hookSet: {
         id: "HashIdentifier",
