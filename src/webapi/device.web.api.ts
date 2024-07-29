@@ -387,7 +387,7 @@ DEVICE_WEB_API.addAsyncPublicRoute(
 DEVICE_WEB_API.addAsyncPublicRoute(
     '/clear/:deviceid',
     {
-        'post': (req:DelegateRequest, res:DelegateResponse):any => {
+        'post': async (req:DelegateRequest, res:DelegateResponse):Promise<any> => {
             const dm:DeviceManager = DeviceManager.getInstance();
             const deviceid:string = req.params['deviceid'];
             const $:WebServer = req.dxc.$;
@@ -395,7 +395,8 @@ DEVICE_WEB_API.addAsyncPublicRoute(
             try{
                 //dev = { success:  };
                 //res.status(200);
-                if(dm.clear(deviceid))
+                const suc = await dm.clear(deviceid);
+                if(suc)
                     $.sendSuccess( res, {} );
                 else
                     $.sendError( res, 'Device cannot be removed');
@@ -414,12 +415,12 @@ DEVICE_WEB_API.addAsyncPublicRoute(
 DEVICE_WEB_API.addAsyncPublicRoute(
     '/clear',
     {
-        'post': (req:DelegateRequest, res:DelegateResponse):any => {
+        'post': async (req:DelegateRequest, res:DelegateResponse):Promise<any> => {
             const dm = DeviceManager.getInstance();
             const $:WebServer = req.dxc.$;
 
             try{
-                if(dm.clear( null))
+                if(await dm.clear( null))
                     $.sendSuccess(res, {});
                 else
                     $.sendError( res, 'Cannot remove all devices');

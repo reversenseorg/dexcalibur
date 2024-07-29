@@ -14,10 +14,11 @@ import FridaHelper from "./FridaHelper.js";
 import {ValidationCapable, ValidationRule} from "./Validator.js";
 import DexcaliburEngine from "./DexcaliburEngine.js";
 import {External} from "./external/External.js";
-import {DeviceManagerException} from "./errors/DeviceManagerException.js";
 import {CoreDebug} from "./core/CoreDebug.js";
 import {OperatingSystem} from "./OperatingSystem.js";
 import {Nullable} from "./core/IStringIndex.js";
+import {NodeInternalType} from "@dexcalibur/dxc-core-api";
+import {DeviceManagerException} from "./errors/DeviceManagerException.js";
 
 const Logger:Log.ProdLogger = Log.newLogger() as Log.ProdLogger;
 
@@ -206,6 +207,7 @@ export default class DeviceManager extends ValidationCapable
             devs.map( x => {
                 x.getSyscallList();
                 this.devices[ x.getUID() ] = x;
+                console.log(x);
             });
 
 
@@ -270,32 +272,45 @@ export default class DeviceManager extends ValidationCapable
      * 
      * @method
      */
-    clear(pDeviceID:string = null):boolean{
+    async clear(pDeviceID:string = null):Promise<boolean>{
 
-        if(pDeviceID != null && (this.devices[pDeviceID]!=null)){
-            delete this.devices[pDeviceID];
-            this.save();
-            //throw DeviceManagerException.DEVICE_CANNOT_BE_REMOVED(pDeviceID);
-            return true;
-        }else{
-            const success = _fs_.existsSync( this.devFile);
+        if(pDeviceID != null){
+            let dev:Device;
 
-            if(success == true){
-                _fs_.unlinkSync( this.devFile);
-                this.devices = {};
-                this.count = 0;
-                this.defaultDevice = null;
+            if(this.devices[pDeviceID]==null){
+                dev = await this._ctx.getEngineDB()
+                    .getCollectionOf(NodeInternalType.DEVICE)
+                    .asyncGetEntry(pDeviceID);
+            }else{
+                dev = this.devices[pDeviceID];
             }
 
-            this.save();
-            return success;
-            
+
+            // delete reference
+            delete this.devices[pDeviceID];
+
+            if(dev !=null){
+                // delete from DB
+                await this._ctx.getEngineDB()
+                    .getCollectionOf(NodeInternalType.DEVICE)
+                    .asyncRemoveEntry(dev);
+
+            }else{
+                throw  DeviceManagerException.DEVICE_NOT_FOUND(pDeviceID);
+            }
+
+        }else{
+            for(let devUID in this.devices){
+                // delete from DB
+                await this._ctx.getEngineDB()
+                    .getCollectionOf(NodeInternalType.DEVICE)
+                    .asyncRemoveEntry(this.devices[devUID]);
+            }
+
+            this.devices = {};
         }
 
-        
-
-        
-        
+        return true;
     }
 
 
@@ -801,7 +816,7 @@ export default class DeviceManager extends ValidationCapable
         }
 
         // Install frida
-        if(pOtions.rooted){
+        if(Object.keys(bridge.strategies).length>0){//pOtions.rooted){
             success = await FridaHelper.installServer(device, (pOtions.frida != null? pOtions.frida: {})) ;
 
             if(success){

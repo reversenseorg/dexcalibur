@@ -120,7 +120,11 @@ export class Device implements INode
                     }
                 })
                 .wakeUp( (x:NodePropertyState)=>{
-                    return x.p;
+                    if(x.p != null){
+                        return DeviceProfileFactory.fromJsonObject(x.p);
+                    }else{
+                        return null;
+                    }
                 })
                 .type(DbDataType.BLOB).def(null),
             (new NodeProperty("transportId")).type(DbDataType.STRING).def(null),
