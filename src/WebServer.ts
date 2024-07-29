@@ -1327,18 +1327,17 @@ export default class WebServer
     /**
      * To start the web server
      *
-     * @param {Integer} port Port number
+     * @param {number} port Optional. Port number
+     * @return {number}  Port number where webserver is listening
      * @method
      */
-    start(port:number = null) {
+    start(port:number = null):number {
 
         if (port !== null) {
             this.port = port;
         }
 
         const wwwPort = this.port;
-
-        this.context.printWebBanner(wwwPort);
 
 
         this.registerValidator('device', DeviceManager.getInstance());
@@ -1362,6 +1361,8 @@ export default class WebServer
 
 
         });
+
+        return wwwPort;
     }
 }
 

@@ -36,4 +36,23 @@ export class MemoryLayout {
             }
         })
     }
+
+    toJsonObject() {
+        let o = {blocks:{}};
+
+        for(let ref in this.blocks){
+            if(this.blocks[ref]!=null) {
+                o.blocks[ref] = this.blocks[ref].toJsonObject();
+            }
+        }
+        return o;
+    }
+
+    static fromJsonObject(pLayout: any):MemoryLayout {
+        const o = new MemoryLayout();
+        pLayout.blocks.map(x => {
+            o.addBlock(MemoryBlock.fromJsonObject(x));
+        });
+        return undefined;
+    }
 }

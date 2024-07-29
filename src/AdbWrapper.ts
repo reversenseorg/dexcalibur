@@ -646,6 +646,7 @@ export default class AdbWrapper implements IBridge
 
             device = new Device();
 
+            // create a bridge instance contextualized with Device serial number
             id = UT.parseIPv4(data[1], true);
             if(id.valid == false){
                 // USB device, Device ID is returned by ADB 
@@ -670,6 +671,7 @@ export default class AdbWrapper implements IBridge
                 Logger.debug('[DEVICE MANAGER][ADB] device ADB ID over TCP : ',data[1]);
             }
 
+            bridge.up = true;
             device.addBridge(bridge);
             device.setDefaultBridge(bridge.shortname);
 

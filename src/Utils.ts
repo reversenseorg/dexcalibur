@@ -577,7 +577,7 @@ export default class Util {
 
     static readPackageJson(){
         const path = (new URL(import.meta.url).pathname);
-        return JSON.parse(_fs_.readFileSync(_path_.join(path.substring(0, path.lastIndexOf(_path_.sep)),"..",'info.json')).toString());;
+        return JSON.parse(_fs_.readFileSync(_path_.join(path.substring(0, path.lastIndexOf(_path_.sep)),"..",'package.json')).toString());;
     }
 
     static __dirname(pImportMetaUrl:string){

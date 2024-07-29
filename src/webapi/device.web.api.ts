@@ -14,6 +14,7 @@ import { DeviceFactory } from "../device/DeviceFactory.js";
 import PlatformManager from "../PlatformManager.js";
 import AdbWrapperFactory from "../AdbWrapperFactory.js";
 import {AUDIT_WEB_API} from "./audit.web.api.js";
+import {PrivilegedExecutionStrategy} from "../PrivilegedExecutionStrategy.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -588,25 +589,22 @@ DEVICE_WEB_API.addAsyncPublicRoute(
     {
     'post': async (req:DelegateRequest, res:DelegateResponse):Promise<any> => {
         // scan connected devices
-        let dev:Device, dm:DeviceManager, pkgs:AppPackage[], rep:any;
+        let dev:Device, bridge:IBridge, dm:DeviceManager, pkgs:AppPackage[], rep:any;
         const $:WebServer = req.dxc.$;
 
         try{
 
             dm = DeviceManager.getInstance();
             dev = dm.getDevice( req.body['uid']  as string);
+            bridge = dev.getBridge( req.body['bridge']  as string);
 
-            const expectedRootState = req.body['rooted'];
-            if(dev==null){
-                throw new Error("Device not found");
-            }
+            const unsafeStrat = req.body['strategy'];
+            const strats = PrivilegedExecutionStrategy.fromJsonObject(unsafeStrat)
 
-            const devBridge = dev.getDefaultBridge();
-            if(dev.getDefaultBridge().defaultStrat){
+            bridge.addPrivilegedStrategy(strats);
 
-            }else{
+            dm.save();
 
-            }
             $.sendSuccess( res, rep);
         }catch(err){
             Logger.error("[API][DEVICE] Privileges shell user cannot be changed : "+err.message+"\n"+err.stack);
@@ -733,9 +731,13 @@ DEVICE_WEB_API.addPublicRoute(
                 if($.project != null){
                     $.project.setDevice(dm.getDevice(uid));
                     $.project.save();
+                    $.sendSuccess( res, { msg: "Device <b>"+uid+"</b> is the new default device." })
+                }else{
+                    throw new Error("[API][DEVICE][DEPRECATED] A device cannot be defined globally as default device.");
+                    // TODO : change > defaultDevice => project
+                    // dm.setDefault(uid);
                 }
-                // TODO : change > defaultDevice => project
-                dm.setDefault(uid);
+
 
 
                 $.sendSuccess( res, { msg: "Device <b>"+uid+"</b> is the new default device." })

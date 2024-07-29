@@ -74,7 +74,7 @@ export default class DeviceManager extends ValidationCapable
      * List of connected devices
      * @field
      */
-    devices:DeviceList;
+    devices:Record<string, Device>;
 
     /**
      * @field
@@ -82,6 +82,8 @@ export default class DeviceManager extends ValidationCapable
     status:any;
 
     bridges:any;
+
+    private _ctx:DexcaliburEngine;
 
     /**
      *
@@ -102,8 +104,10 @@ export default class DeviceManager extends ValidationCapable
             ]
         });
 
+        this._ctx = pEngine;
         this.dxcWorkspace = DexcaliburWorkspace.getInstance();
 
+        // deprecated ??
         this.devFile = _path_.join(
             this.dxcWorkspace.getDeviceFolderLocation(), 
             DEVICE_FILE
@@ -191,30 +195,30 @@ export default class DeviceManager extends ValidationCapable
      * 
      * @method
      */
-    load():boolean{
-        if(_fs_.existsSync( this.devFile) == false)
-            return true;
+    async load():Promise<boolean>{
+        //if(_fs_.existsSync( this.devFile) == false)
+        //    return true;
 
-        let data:any = null;
+        //let data:any = null;
         try{
+            // load from DB
+            const devs = await this._ctx.getEngineDB().listDevices();
+            devs.map( x => {
+                x.getSyscallList();
+                this.devices[ x.getUID() ] = x;
+            });
+
+
+            // load from file
+            /*
             data = JSON.parse( _fs_.readFileSync( this.devFile).toString());
             for(let i=0; i<data.length; i++){
                 if( data[i].uid != null){
                     this.devices[ data[i].uid ] = Device.fromJsonObject(this.bridgeFactory, data[i]);
                     this.devices[ data[i].uid ].getSyscallList()
-                    /*
-                    if(this.devices[ data[i].uid ].syscalls.length == 0){
-                        // update syscall backup
-                        if(this.devices[ data[i].uid ].getSyscallList() != null){
-
-                            Logger.info("[DEVICE MANAGER] System calls : "+JSON.stringify(this.devices[ data[i].uid ].getSyscallList()));
-                           // this.save();
-                        }
-                    }*/
                 }
-
             }
-
+            */
             Logger.info("[DEVICE MANAGER] Known Devices : "+Object.keys(this.devices));
         } catch(err){
             Logger.error("[DEVICE MANAGER] Unable to load devices");
@@ -231,6 +235,13 @@ export default class DeviceManager extends ValidationCapable
      */
     save(){
 
+        for(let k in this.devices){
+            if(this.devices[k].isEnrolled()){
+                this._ctx.getEngineDB().save(this.devices[k]);
+            }
+        }
+
+        /*
         if(_fs_.existsSync(this.devFile)){
             _fs_.unlinkSync(this.devFile);
         }
@@ -241,8 +252,8 @@ export default class DeviceManager extends ValidationCapable
                 connected: false,
                 offline: false,
                 bridge: {
-                    up: false,
-                    strategies: false
+                    up: false
+                   // strategies: true
                 }
             }));
         }
@@ -251,7 +262,7 @@ export default class DeviceManager extends ValidationCapable
         _fs_.writeFileSync(
             this.devFile,
             JSON.stringify(data)
-        );
+        );*/
     }
 
     /**
@@ -373,11 +384,11 @@ export default class DeviceManager extends ValidationCapable
     /**
      * To merge a given device list with cuurent list
      * 
-     * @param {*} pDeviceList 
+     * @param {Device[]} pDeviceList
      */
     updateDeviceList( pCandidateList:Device[]){
         let active = 0, b:IBridge=null, d=null, id:string=null, dev:Device=null;
-        let devs:DeviceList= {};
+        let devs:Record<string, Device> = {};
 
 
         for(let i=0; i<pCandidateList.length; i++){
@@ -504,41 +515,80 @@ export default class DeviceManager extends ValidationCapable
     }
 
     /**
+     * To remove devices from the device list if the `pProperty` field has the `pValue` value
+     *
+     * @param {string} pProperty
+     * @param {any} pValue
+     * @private
+     */
+    private async _removeIf( pProperty:string, pValue:any):Promise<void> {
+        const clean:Record<string, Device> = {};
+        let pptVal:any;
+
+        for(let k in this.devices){
+            if(this.devices[k]==null) /* remove */ continue;
+            if(this.devices[k][pProperty]!==pValue){
+                clean[k] = this.devices[k];
+            }else{
+                await this.devices[k].free();
+            }
+        }
+
+        this.devices = clean;
+
+        return ;
+    }
+
+    /**
      * To detect connected devices from each bridges and update
      * device list
-     * 
-     * @function
+     *
+     * @async
+     * @method
      */
     async scan(){
         let dev:Device[]=[], devID:string[], wrapper:IBridge=null, activeDev = 0, latestDefault:Device=null;
         const out:string[]=[];
         latestDefault = this.getDefault();
 
+        // mark all devices as disconnected, only detected devices will have "connected" state == true
         this.disconnectAll();
 
+        // remove not enrolled devices
+        await this._removeIf('enrolled',false);
 
+        // refresh
         for(const type in this.bridges){
 
-//            console.log(type, this.bridges[type]);
             if(this.bridges[type].isReady()){
     
                 // scan for connected devices
-                wrapper  = this.bridges[type].newGenericWrapper();
-                dev = await wrapper.listDevices();
+                try{
+                    // get a generic instance of the bridge
+                    wrapper  = this.bridges[type].newGenericWrapper();
+                    // list connected devices
+                    dev = await wrapper.listDevices();
+                    // merge with devices grabbed by others bridge
+                    activeDev += this.updateDeviceList(dev);
 
-//                listDevices();
+                    for(const i in this.devices){
+                        out.push(`[${i}] ID:${this.devices[i].id}`);
+                    }
 
+                    Util.msgBox("Enumerated devices [bridge="+type+"]", out);
+                }catch(err){
+                    Logger.error("Scan of connected device of [type="+type+"] bridge failed.");
+                    console.log(err.stack);
+                }
 
-                activeDev += this.updateDeviceList(dev);
-               
-
-                for(const i in this.devices) out.push(`[${i}] ID:${this.devices[i].id}`);
-                Util.msgBox("Enumerated devices [bridge="+type+"]", out);
             }
         }
 
         // now
 
+        // TODO : Warning : Only project should have default devices.
+        // Deprecated
+        /*
         if(activeDev==1){
     
             // 1 device -> no problem
@@ -590,7 +640,7 @@ export default class DeviceManager extends ValidationCapable
 
             // check frida at default server location according to configuration
             // TODO
-        }
+        //}
 
         return null;
     }
@@ -607,6 +657,9 @@ export default class DeviceManager extends ValidationCapable
 
     /**
      * To select a default device
+     *
+     * @deprecated
+     *
      * @param {String} deviceId 
      * @method
      */
@@ -659,7 +712,7 @@ export default class DeviceManager extends ValidationCapable
      * @returns {Object} To get an hashmap associtating to each device ID the device instance
      * @method 
      */
-    getAll():DeviceList{
+    getAll():Record<string, Device>{
         return this.devices;
     }
     

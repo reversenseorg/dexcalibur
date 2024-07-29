@@ -658,14 +658,32 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
      *
      * @param {*} pPort
      */
-    printWebBanner( pPort:number|string){
+    printWebBanner( pWebPort:number|string, pWsPort:number|string){
+
+        let etype:string = "";
+        switch (this.engine_type){
+            case DexcaliburEngineMode.STANDALONE:
+                etype = "STANDALONE";
+                break;
+            case DexcaliburEngineMode.MASTER:
+                etype = "MASTER";
+                break;
+            case DexcaliburEngineMode.SLAVE:
+                etype = "SLAVE";
+                break;
+        }
+
+        etype += ` [node=${this.nodeManager.uuid}]`;
+
         Logger.info("\n\n"
         + LOGO
         + PACKAGE_JSON.version
         + (" ".repeat(78-14-PACKAGE_JSON.version.length))
         +"by @FrenchYeti \n"
         +"╔════════════════════════════════════════════════════════════════════════════╗\n"
-        +"║ Visit http://127.0.0.1:"+pPort+(" ".repeat(78-26-(""+pPort).length))+"║\n"
+        +"║ WebServer running on : http://127.0.0.1:"+pWebPort+(" ".repeat(78-43-(""+pWebPort).length))+"║\n"
+        +"║ WebSocket : http://127.0.0.1:"+pWsPort+(" ".repeat(78-32-(""+pWsPort).length))+"║\n"
+        +"║ Mode : "+etype+(" ".repeat(78-10-etype.length))+"║\n"
         +"╚════════════════════════════════════════════════════════════════════════════╝\n"
         );
     }
@@ -864,7 +882,7 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
         this.updater.run( DXC_LIFECYCLE_EVENT.INSPECT_MGR_AFTER_INIT);
 
         // load device manager db
-        this.deviceMgr.load();
+        await this.deviceMgr.load();
         Logger.debug('PASS3');
 
         this.updater.run( DXC_LIFECYCLE_EVENT.DEV_MGR_AFTER_INIT);
@@ -990,6 +1008,15 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
     }
 
     /**
+     * To get WebServer instance
+     * @returns {WebServer} Web server instance
+     * @method
+     */
+    getWebsocketServer():WebsocketServer{
+        return this.wsserver;
+    }
+
+    /**
      * To get platform manager instance
      *
      * @method
@@ -1047,25 +1074,27 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
     start( pWebPort:string|number=null, pUI:string=null){
 
         const s =this.getSettings().getWebserverSettings();
-
+        let ports = {web:-1, ws:-1};
 
         // Start the web server serving Installer UI
         if(pWebPort==null){
-            this.webserver.start();
+            ports.web = this.webserver.start();
         }else{
-            this.webserver.start((typeof pWebPort==='string')?parseInt(pWebPort,10):pWebPort);
+            ports.web = this.webserver.start((typeof pWebPort==='string')?parseInt(pWebPort,10):pWebPort);
         }
 
         // if server run in production mode (instead of install mode)
         // then start web socket server
         if(this.mode == MODE.NORMAL) {
-            this.wsserver.start(); //(typeof pWebPort === 'string') ? parseInt(pWebPort, 10) + 1 : pWebPort + 1)
+            ports.ws = this.wsserver.start(); //(typeof pWebPort === 'string') ? parseInt(pWebPort, 10) + 1 : pWebPort + 1)
         }
 
         // if the engine is a SLAVE instance, notify the MASTER the instance is started
         if(this.getEngineMode()==DexcaliburEngineMode.SLAVE){
             this.nodeManager.notifyMaster(NodeState.IDDLE);
         }
+
+        this.printWebBanner(ports.web, ports.ws);
     }
 
 

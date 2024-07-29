@@ -28,6 +28,9 @@ SETTINGS_WEB_API.addPublicRoute(
                         break;
                     case 'web':
                         data = $.context.getSettings().getWebserverSettings().toObject(SecurityZone.PUBLIC);
+                        // override with current settings
+                        data.http = $.context.getWebserver().port;
+                        data.ws = $.context.getWebsocketServer().port;
                         break;
                     case 'conn':
                         data = $.context.getSettings().getConnectionSettings().toObject(SecurityZone.PUBLIC);
@@ -35,6 +38,8 @@ SETTINGS_WEB_API.addPublicRoute(
                     default:
                         throw GlobalSettingsException.CATEGORY_UNKNOW();
                 }
+
+
 
 
                 $.sendSuccess(res, data);

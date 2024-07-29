@@ -302,7 +302,7 @@ export namespace Settings {
 
         toObject(pZone:SecurityZone = SecurityZone.PUBLIC):any {
             return {
-                workspace:  this.space.getLocation(),
+                workspace:  (pZone==SecurityZone.PUBLIC ? "****" : this.space.getLocation()),
                 registry: (this.registry!=null)? this.registry.url : null,
                 registryAPI: (this.registry!=null)? this.registry.api : null,
                 auth: this.auth!=null ? this.auth.toObject(pZone) : null,

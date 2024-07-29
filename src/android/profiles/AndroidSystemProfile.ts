@@ -54,6 +54,10 @@ export default class AndroidSystemProfile extends GenericSystemProfile implement
         try{
             const uname:string = pBridge.shellWithEHsync("uname -a").toString();
             pOptions.profile.addProperty('uname', uname);
+
+
+            //const iomem:string = pBridge.privilegedShell("cat /proc/iomem").toString();
+
             success = this;
         }catch(err){
             Logger.error(err.message);

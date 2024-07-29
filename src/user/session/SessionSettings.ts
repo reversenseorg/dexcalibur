@@ -92,11 +92,16 @@ export class SessionSettings{
     }
 
     toObject( pZone:SecurityZone = SecurityZone.PUBLIC):any {
-        return {
-            store: this._tmpStorage,
-            fsBased: this._fsBased,
-            expire: this._duration,
-            expireFlush: this._flush,
-        };
+        if(pZone==SecurityZone.PRIVATE){
+            return {
+                store: this._tmpStorage,
+                fsBased: this._fsBased,
+                expire: this._duration,
+                expireFlush: this._flush,
+            };
+        }else{
+            return {};
+        }
+
     }
 }

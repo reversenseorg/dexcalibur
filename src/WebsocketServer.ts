@@ -274,11 +274,11 @@ export class WebsocketServer
      * To start the web socket server.
      * By default the port number, is the port number of dexcalibur server + 1
      *
-     * @param pPort {number} Port number
+     * @return {number} Port number
      * @method
      * @since 1.0.0
      */
-    start() :void {
+    start() :number {
 
         if(this.port==null){
             this.port = this.engine.getSettings().getWebserverSettings().getWsPort();
@@ -294,5 +294,7 @@ export class WebsocketServer
         }else{
             Logger.error('Web socket server cannot start on : ' + wwwPort);
         }
+
+        return wwwPort;
     }
 }

@@ -10,9 +10,26 @@ import {
     AndroidSupportedScreen
 } from "./DeviceComponent.js";
 import {AndroidRRO} from "./AndroidRRO.js";
+import {DbDataType, DbKeyType, NodeProperty, NodePropertyState, NodeType} from "@dexcalibur/dexcalibur-orm";
+import {IntentFilter} from "./IntentFilter.js";
+import ModelClass from "../ModelClass.js";
+import {NodeInternalType} from "@dexcalibur/dxc-core-api";
 
 export class AndroidManifest
 {
+
+    static TYPE:NodeType = (new NodeType( "androidManifest", NodeInternalType.ANDROID_MANIFEST, [
+        (new NodeProperty("name")).type(DbDataType.STRING).key(DbKeyType.PRIMARY),
+        (new NodeProperty("description")).type(DbDataType.STRING).def(""),
+        (new NodeProperty("label")).type(DbDataType.STRING).def(""),
+        (new NodeProperty("attr")).type(DbDataType.STRING).def({}),
+        (new NodeProperty("metadata")).type(DbDataType.STRING).def({}),
+        (new NodeProperty("__impl")).single(ModelClass.TYPE),
+    ]))
+        .dataSource("PROJECT_DB"); //, "androidActivity");
+
+    __:NodeInternalType = NodeInternalType.ANDROID_ACTIVITY;
+
     attributes:AndroidAttributeSet = {};
 
     usesPermissions:AndroidPermission[] = [];

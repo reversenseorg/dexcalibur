@@ -6,19 +6,14 @@ FROM openjdk:18-jdk-slim
 
 LABEL maintainer="georges.michel@reversense.com"
 
-# ===============================
-# Runtime args
-# ===============================
 
-# Comma seperated value. Supported values (subject to change, not exhaustive) : home , pro, oracle, ...
-ENV DXC_PRODUCTS="home,pro"
 
 
 # ===============================
 # Args
 # ===============================
 
-ARG user_server="dexcalibur-bin"
+ARG user_server=$DXC_USER_SRV
 
 ARG dxc_http_port=8080
 ARG dxc_ws_port=8001
@@ -48,6 +43,13 @@ ARG DB_HOST
 ARG DB_PORT
 ARG DB_URI
 
+# Comma seperated value. Supported values (subject to change, not exhaustive) : home , pro, oracle, ...
+ARG dxc_uis="home,pro"
+
+ARG dxc_http_port=8080
+ARG dxc_ws_port=8081
+ARG dxc_https_port=8443
+
 # ===============================
 # Config
 # ===============================
@@ -72,6 +74,10 @@ ENV NODE_MAJOR="18"
 ENV DXC_TMP=/tmp
 
 ENV DXC_USER_HOME="/home/$DXC_USER_SRV"
+ENV DXC_HTTPS_PORT=${dxc_https_port}
+
+
+ENV DXC_USER_HOME="/home/$user_server"
 ENV TMP_FOLDER="$DXC_USER_HOME/tmp"
 ENV ARTIFACTS_FOLDER="$DXC_USER_HOME/artifacts"
 ENV DXC_BIN_FOLDER="$DXC_USER_HOME/tmp"
@@ -189,6 +195,11 @@ RUN ls -la $ARTIFACTS_FOLDER && \
     cd "$ARTIFACTS_FOLDER" && \
     tar xvf "$ARTIFACTS_FOLDER/dxc-server.tar.gz"
 
+# ===============================
+# [REMOVED] Install UIs
+# ===============================
+
+# RUN rm -r $ARTIFACTS_FOLDER/dist/src/webserver/www/ && ln -s /www_uis  $ARTIFACTS_FOLDER/dist/src/webserver/www
 
 # ===============================
 # Configure server
@@ -208,6 +219,8 @@ RUN mkdir $DXC_USER_HOME/.dexcalibur && \
         --heap-size=$DXC_HEAP_SZ \
         --http-port=$DXC_HTTP_PORT \
         --ws-port=$DXC_WS_PORT
+
+
 
 # configure external tools
 RUN ls -la $DXC_USER_HOME/.dexcalibur && \

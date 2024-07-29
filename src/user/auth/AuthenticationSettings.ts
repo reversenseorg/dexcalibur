@@ -3,13 +3,12 @@ import {Settings} from "../../Settings.js";
 import {SessionSettings} from "../session/SessionSettings.js";
 import Util from "../../Utils.js";
 import {SecurityZone} from "../../security/SecurityZone.js";
-import ServerSettings = Settings.ServerSettings;
-import { DbmsConnSettings } from "../../core/db/DbmsConnSettings.js";
+import {DbmsConnSettings} from "../../core/db/DbmsConnSettings.js";
 import {AuthenticationPolicy, AuthenticationPolicyOptions} from "./AuthenticationPolicy.js";
 import {IStringIndex, Nullable} from "../../core/IStringIndex.js";
 import {RuntimeSecurityException} from "../../errors/RuntimeSecurityException.js";
 import * as Log from "../../Logger.js";
-
+import ServerSettings = Settings.ServerSettings;
 
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
@@ -254,12 +253,17 @@ ${"\t".repeat(pIndent)}response Type = ${this._oidc.responseType}
 
     toObject(pZone:SecurityZone = SecurityZone.PUBLIC):any {
 
-        return {
-            db: this._db,
-            policy: this._policy,
-            supported: this._supported,
-            sess: this._sess.toObject(pZone),
-            oidc: this._oidc
-        };
+        if(pZone==SecurityZone.PRIVATE){
+            return {
+                db: this._db,
+                policy: this._policy,
+                supported: this._supported,
+                sess: this._sess.toObject(pZone),
+                oidc: this._oidc
+            };
+        }else{
+            return {};
+        }
+
     }
 }

@@ -295,7 +295,7 @@ if( !projectArgs.ipc
 
             if(ready){
                 if(projectArgs.wsPort!=null){
-                    dxcInstance.wsserver.setPort(projectArgs.wsPort);
+                    dxcInstance.wsserver.setPort(parseInt(projectArgs.wsPort,10));
                 }
 
                 dxcInstance.start((projectArgs.port!=null) ? projectArgs.port : null);

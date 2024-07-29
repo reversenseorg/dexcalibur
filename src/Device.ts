@@ -111,7 +111,18 @@ export class Device implements INode
             (new NodeProperty("model")).type(DbDataType.STRING).def(""),
             (new NodeProperty("product")).type(DbDataType.STRING).def(""),
             (new NodeProperty("platform")).type(DbDataType.BLOB).def(null),
-            (new NodeProperty("profile")).type(DbDataType.BLOB).def(null),
+            (new NodeProperty("profile"))
+                .sleep( (x:NodePropertyState)=>{
+                    if(x.p != null && x.p.toJsonObject!=null){
+                        return (x.p as DeviceProfile).toJsonObject();
+                    }else{
+                        return null;
+                    }
+                })
+                .wakeUp( (x:NodePropertyState)=>{
+                    return x.p;
+                })
+                .type(DbDataType.BLOB).def(null),
             (new NodeProperty("transportId")).type(DbDataType.STRING).def(null),
             (new NodeProperty("usbQualifier")).type(DbDataType.STRING).def(null),
             (new NodeProperty("enrolled")).type(DbDataType.BOOLEAN).def(false),
@@ -119,16 +130,22 @@ export class Device implements INode
             (new NodeProperty("syscalls")).type(DbDataType.BLOB)
                 .sleep( (x:NodePropertyState)=>{
                     const syscalls:any[] = [];
-                    x.p.map( (sc:ModelSyscall) => {
-                        syscalls.push(sc.toJsonObject());
-                    });
+                    if(x.p!=null && Array.isArray(x.p)){
+                        x.p.map( (sc:ModelSyscall) => {
+                            syscalls.push(sc.toJsonObject());
+                        });
+                    }
+
                     return syscalls;
                 })
                 .wakeUp( (x:NodePropertyState)=>{
                     const apps:AppPackage[] = [];
-                    x.p.map( app => {
-                        apps.push(new AppPackage(app));
-                    });
+                    if(x.p!=null && Array.isArray(x.p)){
+                        x.p.map( app => {
+                            apps.push(new AppPackage(app));
+                        });
+                    }
+
                     return apps;
                 }),
             (new NodeProperty("enrolled")).type(DbDataType.BOOLEAN).def(false),
@@ -137,36 +154,48 @@ export class Device implements INode
             (new NodeProperty("apps")).type(DbDataType.BLOB)
                 .sleep( (x:NodePropertyState)=>{
                     const apps:any[] = [];
-                    x.p.map( app => {
-                        apps.push(app.toJsonObject());
-                    });
+                    if(x.p!=null){
+                        x.p.map( app => {
+                            apps.push(app.toJsonObject());
+                        });
+                    }
+
                     return apps;
                 })
                 .wakeUp( (x:NodePropertyState)=>{
                     const apps:AppPackage[] = [];
-                    x.p.map( app => {
-                        apps.push(new AppPackage(app));
-                    });
+                    if(x.p!=null){
+                        x.p.map( app => {
+                            apps.push(new AppPackage(app));
+                        });
+                    }
+
                     return apps;
                 }),
             (new NodeProperty("bridges"))
                 .type(DbDataType.BLOB)
                 .sleep( (x:NodePropertyState)=>{
                     const bridges:any = {};
-                    for(let k in x.p){
-                        bridges[k] = (x.p[k] as IBridge).toJsonObject({});
+                    if(x.p!=null){
+                        for(let k in x.p){
+                            bridges[k] = (x.p[k] as IBridge).toJsonObject({});
+                        }
                     }
+
                     return bridges;
                 })
                 .wakeUp( (x:NodePropertyState)=>{
                     const bridges:any = {};
                     let fact:IBridgeFactory;
-                    for(let k in x.p){
-                        fact = DeviceManager.getInstance().getBridgeFactory(x.p[k].name);
-                        if(fact!=null){
-                            bridges[k] = fact.fromJsonObject(x.p[k]);
+                    if(x.p!=null){
+                        for(let k in x.p){
+                            fact = DeviceManager.getInstance().getBridgeFactory(x.p[k].name);
+                            if(fact!=null){
+                                bridges[k] = fact.fromJsonObject(x.p[k]);
+                            }
                         }
                     }
+
                     return bridges;
                 }),
 
@@ -179,7 +208,7 @@ export class Device implements INode
             (new NodeProperty("rooted")).type(DbDataType.BOOLEAN).def(false),
             (new NodeProperty("offline")).volatile().type(DbDataType.BOOLEAN).def(true)
         ]
-    );
+    ).dataSource("ENGINE_DB");
     __:NodeInternalType = NodeInternalType.DEVICE;
 
     /**
@@ -452,7 +481,14 @@ export class Device implements INode
      * @method
      */
     disconnect(){
+
+        // set flag to false
         this.connected = false;
+
+        // mark device-bound bridge as down
+        for(let name in this.bridges){
+            this.bridges[name].up =false;
+        }
     }
 
     /**
@@ -523,17 +559,22 @@ export class Device implements INode
         return this.uid;
     }
 
-    update( pDevice:Device){
+    /**
+     *
+     * @param pDevice
+     */
+    update( pFreshDevice:Device){
         let b:IBridge=null;
 
         if(this.id==null){
-            this.id = pDevice.id;
+            this.id = pFreshDevice.id;
         }
 
-        this.bridge = pDevice.bridge;
+        this.bridge = pFreshDevice.bridge;
 
-        for(const i in pDevice.bridges){
-            b = pDevice.bridges[i];
+        for(const i in pFreshDevice.bridges){
+            b = pFreshDevice.bridges[i];
+            // replace bridge instance by new instance one
             this.bridges[i] = b;
 
             /*if(this.bridges[i] != null){
@@ -543,17 +584,21 @@ export class Device implements INode
             }*/
         }
 
-        this.model = pDevice.model;
-        this.device = pDevice.device;
-        this.product = pDevice.product;
-        this.transportId = pDevice.transportId;
+        this.model = pFreshDevice.model;
+        this.device = pFreshDevice.device;
+        this.product = pFreshDevice.product;
+        this.transportId = pFreshDevice.transportId;
         // deprecated
-        this.connected = pDevice.connected;
-        this.authorized = pDevice.authorized;
+        this.connected = pFreshDevice.connected;
+        this.authorized = pFreshDevice.authorized;
         // deprecated
-        this.usbQualifier = pDevice.usbQualifier;
+        this.usbQualifier = pFreshDevice.usbQualifier;
     }
 
+    /**
+     * To merge two Device instance referencing the same device
+     * @param pDevice
+     */
     merge( pDevice:Device){
         for(const i in pDevice){
             switch(i){
@@ -1257,4 +1302,14 @@ export class Device implements INode
         }
     }
 
+    /**
+     * A method called when a Device instance is detroy to ensure related
+     * resources will be cleaned
+     *
+     * @method
+     */
+    async free():Promise<void> {
+        return;
+    }
 }
+Device.TYPE.builder(Device);

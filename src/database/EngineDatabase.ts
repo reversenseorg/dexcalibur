@@ -298,21 +298,6 @@ export class EngineDatabase {
     }
 
 
-    /**
-     * To list project from db
-     */
-    async listProjects(pUserAccount:UserAccount):Promise<DexcaliburProject[]> {
-        const coll = this.getCollectionOf(DexcaliburProject.TYPE.getType());
-        const projs:any[] = await coll.getAsList();
-        const res:DexcaliburProject[] = [];
-
-        for(let i=0; i<projs.length; i++){
-            res.push( await DexcaliburProject.load( this._ctx, projs[i].uid, pUserAccount, projs[i]));
-        }
-
-        return res;
-    }
-
 
 
     /**
@@ -488,6 +473,16 @@ export class EngineDatabase {
         }
 
         return res;
+    }
+
+
+
+    /**
+     * To list project from db
+     */
+    async listDevices():Promise<Device[]> {
+        const coll = this.getCollectionOf(Device.TYPE.getType());
+        return await coll.getAsList();
     }
 
 

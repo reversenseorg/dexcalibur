@@ -71,4 +71,49 @@ export class MemoryBlock {
     }
 
 
+    toJsonObject():any {
+        let o:any = {
+            name: this.name,
+            description: this.description,
+            perm: this.perm,
+            tags: this.tags,
+            children: [],
+            start: null,
+            end: null
+        };
+
+        if(this.start!=null){
+            o.start = this.start.toHex(8);
+        }
+
+        if(this.end!=null){
+            o.end = this.end.toHex(8);
+        }
+
+
+
+        if(this.children!=null){
+            this.children.map(x => {
+                if(x!=null)  o.children.push(x.toJsonObject());
+            })
+        }
+
+        return o;
+    }
+
+    static fromJsonObject(pObject:any):MemoryBlock {
+        const o = new MemoryBlock();
+        o.name = pObject.name;
+        o.description = pObject.description;
+        o.perm = pObject.perm;
+        o.start = (pObject.start!=null ? new MemoryAddress(pObject.start) : null);
+        o.end = (pObject.end!=null ? new MemoryAddress(pObject.end) : null);
+        o.children = [];
+        pObject.children.map(x => {
+            o.children.push(MemoryBlock.fromJsonObject(x));
+        })
+        o.tags = pObject.tags;
+
+        return undefined;
+    }
 }

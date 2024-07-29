@@ -9,6 +9,7 @@ import GenericMountsProfile from "./profile/GenericMountsProfile.js";
 import * as Log from "../Logger.js";
 import {CoreDebug} from "../core/CoreDebug.js";
 import {SerializeOptions} from "@dexcalibur/dexcalibur-orm";
+import {GenericMemoryProfile} from "./profile/GenericMemoryProfile.js";
 
 
 enum TYPE {
@@ -177,6 +178,14 @@ export default class DeviceProfile
             return this.profiles;
         }
     }
+
+    /**
+     * @method
+     */
+    getMemoryProfile():GenericMemoryProfile{
+        return this.profiles.mem as GenericMemoryProfile;
+    }
+
 
     /**
      * @method

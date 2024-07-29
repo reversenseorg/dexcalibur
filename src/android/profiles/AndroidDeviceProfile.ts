@@ -9,6 +9,7 @@ import AndroidUsbProfile from "./AndroidUsbProfile.js";
 import {DeviceProfilingOptions, IBridge} from "../../Bridge.js";
 import * as Log from "../../Logger.js";
 import AndroidMountedFsProfile from "./AndroidMountedFsProfile.js";
+import AndroidMemoryProfile from "./AndroidMemoryProfile.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -33,6 +34,7 @@ export default class AndroidDeviceProfile extends DeviceProfile {
             //dalvik: null,
             //tee: null,
             //crypto: null,
+            mem: new AndroidMemoryProfile(),
             system: new AndroidSystemProfile(),
             network: new AndroidNetworkProfile(),
             trust: new AndroidTrustProfile(),
@@ -92,6 +94,9 @@ export default class AndroidDeviceProfile extends DeviceProfile {
                             break;
                         case 'usb':
                             o.profiles.usb = AndroidUsbProfile.fromJsonObject(pJson.profiles.usb);
+                            break;
+                        case 'mem':
+                            o.profiles.mem = AndroidMemoryProfile.fromJsonObject(pJson.profiles.mem);
                             break;
                     }
                 }
