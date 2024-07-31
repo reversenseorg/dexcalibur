@@ -478,7 +478,9 @@ export default class Inspector
         this.running = true;
 
         // add a check to force to redeploy or not
-        await this.hookSet.deploy();
+        if(this.hookSet!=null){
+            await this.hookSet.deploy();
+        }
     }
 
     /**
