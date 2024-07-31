@@ -1,16 +1,18 @@
-import InspectorFactory, {FlattenTagCategoryOptions} from "../../src/InspectorFactory.js";
 import {INSPECTOR_TYPE} from "../../src/Inspector.js";
-import * as Log from "../../src/Logger.js";
-import ModelPackage from "../../src/ModelPackage.js";
-
-let Logger:Log.Logger = Log.newLogger() as Log.Logger;
+import InspectorFactory from "../../src/InspectorFactory.js";
 
 // ===== INIT =====
 
 var AliasToSourceInspector:InspectorFactory = new InspectorFactory({
     id: "AliasToSource",
     startStep: INSPECTOR_TYPE.POST_APP_SCAN,
-    version: "1.0.10",
+    version: "1.0.11",
+    hookSet: {
+        id: "AliasToSource",
+        name: "Alias to Source",
+        description: "Set default alias for classes that contains a valid source attribute",
+        strategies:[]
+    },
     eventListenerSources: {
         "action.deobfuscate.aliasToSource": {
             lang: "ts",
@@ -18,22 +20,29 @@ var AliasToSourceInspector:InspectorFactory = new InspectorFactory({
                 //<ts>={
                 console.log("[INSPECTOR][ALIASTOSOURCE] Try to set default alias for classes with source");
                 let ctx = pEvent.getContext();
-                let classFinderResult = ctx.getSearchEngine().class("source:/^(?!null$)(?!SourceFile$).*/")
-                                                             .filter("alias:/null/");
+                let classFinderResult = ctx.getSearchEngine().class("innerClass:false")
+                                                             // Is not internal
+                                                             .filter("@discover.static")
+                                                             // Source do not contain null or SourceFile 
+                                                             .filter("source:/^(?!null$)(?!SourceFile$).*/")
+                                                             .filter("alias:/null/")
+                // class("innerClass:false").filter("@discover.static").filter("source:/^(?!null$)(?!SourceFile$).*/").filter("alias:/null/") 
                 classFinderResult.foreach((pOffset, pClass) => {
-                    let alias = pClass.source;
-                    if (alias !== pClass.simpleName) {
+                    let classSource = pClass.source;
+                    //Remove file extension 
+                    classSource = classSource.substring(0, classSource.lastIndexOf('.'));
+                    if (classSource !== pClass.simpleName) {
                         let pkg = pClass.getPackage();
                         if (pkg != null && pkg.hasAliasedClass(alias)) {
                             let prefix = 0;
-                            let aliasPrefixed = alias + prefix;
+                            let aliasPrefixed = classSource + '_' + prefix;
                             while (pkg.hasAliasedClass(aliasPrefixed)) {
                                 prefix ++;
-                                aliasPrefixed = alias + prefix;
+                                aliasPrefixed = classSource + '_' + prefix;
                             }
-                            alias = aliasPrefixed;
+                            classSource = aliasPrefixed;
                         }
-                        pClass.setAlias(alias);
+                        pClass.setAlias(classSource);
                     }
                 })
                 console.log("[INSPECTOR][ALIASTOSOURCE] About " + Number(classFinderResult.count()) + " class aliases " +
