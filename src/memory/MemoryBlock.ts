@@ -114,6 +114,6 @@ export class MemoryBlock {
         })
         o.tags = pObject.tags;
 
-        return undefined;
+        return o;
     }
 }

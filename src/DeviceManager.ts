@@ -192,7 +192,9 @@ export default class DeviceManager extends ValidationCapable
 
 
     /**
-     * To load Devices properties from `.dxc/dev/devices.json` file
+     * To load Devices properties from DB
+     *
+     * Previously loaded from `<DXCWS>/.dxc/dev/devices.json` file
      * 
      * @method
      */
@@ -204,10 +206,11 @@ export default class DeviceManager extends ValidationCapable
         try{
             // load from DB
             const devs = await this._ctx.getEngineDB().listDevices();
-            devs.map( x => {
-                x.getSyscallList();
-                this.devices[ x.getUID() ] = x;
-                console.log(x);
+            devs.map( (x,i) => {
+                if(this.devices[ x.getUID() ]==null){
+                    x.getSyscallList();
+                    this.devices[ x.getUID() ] = x;
+                }
             });
 
 
@@ -224,6 +227,7 @@ export default class DeviceManager extends ValidationCapable
             Logger.info("[DEVICE MANAGER] Known Devices : "+Object.keys(this.devices));
         } catch(err){
             Logger.error("[DEVICE MANAGER] Unable to load devices");
+            console.log(err.stack);
         }
 
 
@@ -565,6 +569,9 @@ export default class DeviceManager extends ValidationCapable
         let dev:Device[]=[], devID:string[], wrapper:IBridge=null, activeDev = 0, latestDefault:Device=null;
         const out:string[]=[];
         latestDefault = this.getDefault();
+
+        // update list from DB
+        await this.load();
 
         // mark all devices as disconnected, only detected devices will have "connected" state == true
         this.disconnectAll();
