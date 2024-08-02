@@ -410,6 +410,10 @@ export class JavaHookBuilder{
         tags["@@__VAR__@@"] = "v"+CryptoUtils.md5(pJavaHook.getGUID())+"_VAR";
         pJavaHook.setVariableID(tags["@@__VAR__@@"]);
 
+        let varDecl = '';
+        if(pJavaHook.hasVariables()){
+            varDecl = 'let @@__VAR__@@ = {};';
+        }
         //this.code.varID = tags["@@__VAR__@@"];
 
         const retHelper:any = this.makeRetHelper(target.ret);
@@ -448,10 +452,9 @@ export class JavaHookBuilder{
 
         let script = `
     
+            ${varDecl}
             var cls_@@__CLSDEF__@@ = null;
             var meth_@@__METHDEF__@@ = null;
-            
-            ${pJavaHook.hasVariables()? 'var @@__VAR__@@ = {};':''}
             
             try{
                 cls_@@__CLSDEF__@@ = Java.use('@@__FQCN__@@');

@@ -78,8 +78,6 @@ export default class ModelMethod extends Savable implements INode,IPersistent
     // store arguments values catch at runtime
     dyn:any = []; // TODO
 
-    _useClass:any = {};
-    _useClassCtr = 0;
     _useMethod:any = {};
     _useMethodCtr = 0;
     _useField:any = {};
@@ -192,12 +190,8 @@ export default class ModelMethod extends Savable implements INode,IPersistent
 
         for(let i in this.args) xargs+=""+this.args[i].signature()+"";
 
-        //if(this.fqcn !== undefined)
-        //    hash = this.fqcn+"."+this.name+"("+xargs+")"+this.ret.signature();
-        //else{
-            //console.log(this.ret);
             hash = this.enclosingClass.name+"."+this.name+"("+xargs+")"+this.ret.signature();
-        //}
+
 
         this.__signature__  = hash;
         this.callSignature();
@@ -227,12 +221,8 @@ export default class ModelMethod extends Savable implements INode,IPersistent
 
         for(let i in this.args) xargs+=""+this.args[i].signature()+""; // signatureFactory(ppt, seed)
 
-        //if(this.fqcn !== undefined)
-        //    hash = this.fqcn+"."+this[seed]+"("+xargs+")"+this.ret.signatureFactory(ppt, seed);
-        //else{
-            //console.log(this.ret);
             hash = this.enclosingClass[seed]+"."+this[seed]+"("+xargs+")"+this.ret.signature(); //signatureFactory(ppt, seed);
-        //}
+
         this[ppt]  = hash;
         return hash;
     }
@@ -274,10 +264,6 @@ export default class ModelMethod extends Savable implements INode,IPersistent
         return this._useMethodCtr;
     }
 
-    countUsedClasses():number{
-        return this._useClassCtr;
-    }
-
     countUsedFields():number{
         return this._useFieldCtr;
     }
@@ -291,7 +277,6 @@ export default class ModelMethod extends Savable implements INode,IPersistent
 
         for(let i in this){
             switch(i){
-                case "_useClass":
                 case "_useMethod":
                 case "_useField":
                 case "_callers":
@@ -406,13 +391,6 @@ export default class ModelMethod extends Savable implements INode,IPersistent
                 // if(fields != null && fields.indexOf(i)==-1) continue;
 
                 switch(i){
-                    case "_useClass":
-                        obj._useClass = [];
-                        for(let j in this._useClass){
-                            if(this._useClass[i] != undefined)
-                                obj._useClass.push(this._useClass[i].name);
-                        }
-                        break;
                     case "_useMethod":
                         obj._useMethod = [];
                         for(let j in this._useMethod){
@@ -657,9 +635,6 @@ export default class ModelMethod extends Savable implements INode,IPersistent
 
         this._useMethod[method.signature()].push(call);
     }
-    getClassUsed():any{
-        return this._useClass;
-    }
 
     getFieldUsed():any{
         return this._useField;
@@ -763,6 +738,10 @@ export default class ModelMethod extends Savable implements INode,IPersistent
 
     isStatic():boolean{
         return (this.modifiers & Modifier.STATIC)==Modifier.STATIC;
+    }
+
+    hasModifier(pMod:number):boolean {
+        return (this.modifiers & pMod)==pMod;
     }
 }
 ModelMethod.TYPE.builder(ModelMethod);

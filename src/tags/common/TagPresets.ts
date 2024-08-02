@@ -26,6 +26,8 @@ export function newTagPresets(){
     const KEYPOINT_DEF = new TagCategory({ name: "keypoint.defaults" });
     const ANAL_NATIVE = new TagCategory({ name: "analyzer.native" });
     const PURPOSE = new TagCategory({ name: "purpose" });
+
+
     const FS_FILE = new TagCategory({ name: "fs.file" });
     //const SBOM_TYPE = new TagCategory({ name: "sbom.type" });
 
@@ -217,6 +219,9 @@ export function newTagPresets(){
     ANAL_NATIVE_TAGS.map(x => {ANAL_NATIVE.addTag(x)});
     PURPOSE_TAGS.map(x => {PURPOSE.addTag(x)});
     FS_FILE_TAGS.map( x => { FS_FILE.addTag(x); });
+
+
+
 
 
 

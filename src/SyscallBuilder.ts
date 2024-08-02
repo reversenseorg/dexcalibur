@@ -34,7 +34,7 @@ export default class SyscallBuilder
     })
     `;
 
-            if(match == null) console.log(sysc[i]);
+            //if(match == null) Logger.error(sysc[i]);
 
             // return type
             tpl = tpl.replace("@@_ret_@@",match[1]);

@@ -29,12 +29,14 @@ import {
     DbDataType,
     DbKeyType,
     INode,
-    SerializeOptions
+    SerializeOptions, Tag
 } from "@dexcalibur/dexcalibur-orm";
 import {CryptoUtils} from "./CryptoUtils.js";
 import {CoreDebug} from "./core/CoreDebug.js";
 import {HookWorkspaceState} from "./hook/HookWorkspace.js";
 import {Nullable} from "./core/IStringIndex.js";
+import {UserAccount, UserAccountUUID} from "./user/UserAccount.js";
+import {Device} from "./Device.js";
 
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
@@ -51,6 +53,32 @@ export interface HookSessionOptions {
 }
 
 /**
+ * Options to create a new instance
+ */
+export interface HookSessionOpts {
+    _uid?:string;
+    message?:RuntimeEvent<any>[];
+    owner?:RuntimeEvent<any>[];
+    hookManager?:HookManager;
+    sets_matches?:any;
+    time?:number;
+    frida?:any;
+    active?:boolean;
+    opts?:HookSessionOpts;
+    offset?:number;
+    evTags?:Record<string, Tag>;
+    wsState?:Nullable<HookWorkspaceState>;
+}
+
+
+export interface RuntimeEventFilter {
+    fragUID?:string;
+    hookUID?:string;
+    tagUUIDs?:number[];
+    tagNames?:string[];
+}
+
+/**
  * @class
  */
 export default class HookSession extends WebsocketSession implements INode
@@ -59,6 +87,7 @@ export default class HookSession extends WebsocketSession implements INode
         [
             (new NodeProperty("_uid")).type(DbDataType.STRING).key(DbKeyType.PRIMARY),
             (new NodeProperty("message")).multiple(RuntimeEvent.TYPE).def("[]"),
+            (new NodeProperty("owner")).type(DbDataType.STRING).def(null), // owner UUID
             (new NodeProperty("hookManager")).volatile(),
             (new NodeProperty("sets_matches")).volatile().def(null),
             (new NodeProperty("time")).type(DbDataType.NUMERIC).def(-1),
@@ -78,9 +107,11 @@ export default class HookSession extends WebsocketSession implements INode
                     return (x.p!=null ? x.p: null);
                 })
                 .def(0),
-            (new NodeProperty("active")).type(DbDataType.BOOLEAN).def(false),
-            (new NodeProperty("opts")).type(DbDataType.STRING).serialize(DbSerialize.JSON).def(null),
+            (new NodeProperty("active")).volatile().type(DbDataType.BOOLEAN).def(false),
+            (new NodeProperty("opts")).type(DbDataType.BLOB).serialize(DbSerialize.JSON).def(null),
+            (new NodeProperty("wsState")).type(DbDataType.BLOB).serialize(DbSerialize.JSON).def(null),
             (new NodeProperty("offset")).type(DbDataType.NUMERIC).def(0),
+            (new NodeProperty("devUID")).type(DbDataType.STRING).def(null),
             (new NodeProperty("evTags"))
                 .type(DbDataType.STRING)
                 .sleep( (x:NodePropertyState)=>{
@@ -93,6 +124,11 @@ export default class HookSession extends WebsocketSession implements INode
     __:NodeInternalType = NodeInternalType.HOOK_SESSION;
 
     public _uid:string = null;
+
+    /**
+     * The owner of this session
+     */
+    owner:Nullable<UserAccountUUID> = null;
 
     /**
      * The stack containing the received message
@@ -138,7 +174,7 @@ export default class HookSession extends WebsocketSession implements INode
      *
      * @field
      */
-    evTags:TagHashMap = {};
+    evTags:Record<string, Tag> = {};
 
     tags = [];
 
@@ -150,37 +186,53 @@ export default class HookSession extends WebsocketSession implements INode
     wsState:Nullable<HookWorkspaceState> = null;
 
     /**
+     * Device UID
+     */
+    devUID:string = null;
+
+    /**
      *
-     * @param {HookManager} manager
+     * @param {Nullable<HookSessionOpts>} pOptions Default NULL
      * @constructor
      */
-    constructor(manager: HookManager) {
+    constructor(pOptions: Nullable<HookSessionOpts> = null) {
         super();
 
-        // not enough unique for collaborative mode
-        // should be bound to the device also
-        const now =  Util.time();
+        if(pOptions!=null){
+            for (let i in pOptions){
+                this[i] = pOptions[i];
+            }
+        }else{
+            // not enough unique for collaborative mode
+            // should be bound to the device also
+            const now =  Util.time();
 
-        this._uid = CryptoUtils.md5(now+"");
+            this._uid = CryptoUtils.md5(now+"");
 
-        // hook
-        this.message = [];
-        this.hookManager = manager;
-        this.sets_matches = {};
-        this.time = now;
-        this.frida = {
-            session: null,
-            device: null,
-            script: null,
-            pid: null
-        };
-        this.opts = {
-            // FALSE = not publish events on bus
-            rawOutput: false
+            // hook
+            this.message = [];
+            this.sets_matches = {};
+            this.time = now;
+            this.frida = {
+                session: null,
+                device: null,
+                script: null,
+                pid: null
+            };
+            this.opts = {
+                // FALSE = not publish events on bus
+                rawOutput: false
+            }
         }
+    }
+
+    setHookManager(pHM:HookManager){
+        this.hookManager = pHM;
         this.evTags = this.hookManager.getMessageTags();
         this.wsState = this.hookManager.getWorkspaceState();
     }
+
+
 
     getUID():string {
         return this._uid;
@@ -398,12 +450,15 @@ export default class HookSession extends WebsocketSession implements INode
         const o:any = {};
         let limit:number=pOptions.size;
         o._uid = this._uid;
+        o.owner = this.owner;
         o.message = [];
         o.msgLength = this.message.length;
         o.active = this.active;
         o.time = this.time;
         o.offset = this.offset;
         o.evTags = [];
+        o.wsState = this.wsState;
+        o.devUID = this.devUID;
 
         for(const k in this.evTags) o.evTags.push(this.evTags[k].getUUID())
 
@@ -435,6 +490,67 @@ export default class HookSession extends WebsocketSession implements INode
 
     onExit():void {
         //
+    }
+
+    /**
+     * To set the device where the session runs
+     * @param {Device} pDevice The device
+     * @method
+     */
+    setDevice(pDevice:Device):void {
+        this.devUID = pDevice.getUID();
+    }
+
+    /**
+     * to get the UID of the device that triggered the session
+     *
+     * @returns {string} The device UID or null
+     * @method
+     */
+    getDeviceUID():string {
+        return this.devUID;
+    }
+
+
+    /**
+     * To get filtered runtime events from this session
+     *
+     * @param {RuntimeEventFilter} pFilter
+     */
+    getRuntimeEvents(pFilter:RuntimeEventFilter):RuntimeEvent<any>[]{
+
+        let tags:Tag[] = [];
+        if(pFilter.tagNames!=null){
+            pFilter.tagNames.map(x => {
+                tags.push(this.hookManager.context.getTagManager().getTag(x));
+            });
+        }
+        if(pFilter.tagUUIDs!=null){
+            pFilter.tagUUIDs.map(x => {
+                tags.push(this.hookManager.context.getTagManager().getTagByUUID(x));
+            });
+        }
+
+
+        return this.message.filter(x => {
+            let pass = true;
+            let msg = (x as RuntimeEvent<HookMessageV2>).getMessage();
+            if(pFilter.fragUID!=null){
+                pass = pass && (msg.fid==pFilter.fragUID);
+            }
+            if(pFilter.hookUID!=null){
+                pass = pass && (msg.hid==pFilter.fragUID);
+            }
+
+            if(tags.length>0){
+                for(let i =0; i<tags.length; i++){
+                    if(tags[i].match(x)){
+                        pass = pass && true;
+                        break;
+                    }
+                }
+            }
+        });
     }
 }
 HookSession.TYPE.builder(HookSession);

@@ -107,7 +107,6 @@ export class AnalyzerState implements INode{
      */
     append(pName:string, pValue:string, pOptions = {unique:false} ) :AnalyzerState{
 
-        console.log(this.state);
         if(this.state[pName]==null){
             this.state[pName] = [pValue];
         }else if(!pOptions.unique || this.state[pName].indexOf(pValue)==-1){

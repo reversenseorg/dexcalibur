@@ -31,6 +31,7 @@ import {
 
 import {NodeInternalType} from "@dexcalibur/dxc-core-api";
 import DeviceManager from "./DeviceManager.js";
+import {ProjectInput} from "./analyzer/ProjectInput.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -1252,6 +1253,24 @@ export class Device implements INode
 
         return this.bridge.installApp(pAppPath, pOptions);
     }
+
+    /**
+     * To install an application on the device
+     *
+     * @param pAppPath
+     * @param pOptions
+     */
+    async installProject( pInputs:ProjectInput[], pOptions:any):Promise<boolean> {
+        if(!this.isConnected()) {
+            throw DeviceManagerException.DEVICE_NOT_CONNECTED(this.uid);
+        }
+        if(!this.isEnrolled()) {
+            throw DeviceManagerException.DEVICE_NOT_ENROLLED(this.uid);
+        }
+
+        return this.bridge.installProject(pInputs, pOptions);
+    }
+
 
     prepareInstallOptions(pOptions:any):BridgeInstallOptions {
 

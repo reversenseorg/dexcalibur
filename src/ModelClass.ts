@@ -454,9 +454,6 @@ export default class ModelClass extends Savable implements INode, IPersistent
                 //obj.extends = (this.extends!=null? { name: this.extends.name, alias:this.extends.alias } : null);
             }
             else if(i == "implements"){
-                if(this.implements!=null){
-                    console.log(this.implements);
-                }
 
                 if(this.implements.length > 0){
                     obj.implements = [];

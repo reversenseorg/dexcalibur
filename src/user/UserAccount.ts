@@ -13,8 +13,10 @@ import Util from "../Utils.js";
 import {IStringIndex} from "../core/IStringIndex.js";
 
 
+export type UserAccountUUID = string;
+
 export interface UserAccountOptions extends IStringIndex<any> {
-     _uid?:string,
+     _uid?:UserAccountUUID,
      _person?: Person,
      _role?:UserRole,
      _username?:string,
@@ -47,7 +49,7 @@ export class UserAccount implements IPersistent{
     );
     __:NodeInternalType = NodeInternalType.USER_ACCOUNT;
 
-    private _uid:string;
+    private _uid:UserAccountUUID;
     private _person: Person;
     private _role:UserRole;
     private _username:string;
@@ -163,7 +165,7 @@ export class UserAccount implements IPersistent{
     }
 
 
-    getUID():string {
+    getUID():UserAccountUUID {
         return this._uid; //username;
     }
 

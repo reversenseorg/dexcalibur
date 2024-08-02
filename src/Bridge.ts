@@ -5,6 +5,7 @@ import AppPackage from "./AppPackage.js";
 import {AndroidPackageInstallOptions} from "./android/bridge/AndroidInstallOptions.js";
 import {PrivilegedExecutionStrategy} from "./PrivilegedExecutionStrategy.js";
 import {Nullable} from "./core/IStringIndex.js";
+import {ProjectInput} from "./analyzer/ProjectInput.js";
 
 export interface DeviceProfilingOptions {
     tmp?: string;
@@ -109,6 +110,8 @@ export interface IBridge
     toJsonObject(pExcludeList:any):any;
 
     installApp(pAppPath: string[], pOptions: BridgeInstallOptions): Promise<boolean>;
+
+    installProject(pInputs: ProjectInput[], pOptions: BridgeInstallOptions): Promise<boolean>;
 
     prepareInstallOptions(pOptions:any):BridgeInstallOptions;
 

@@ -30,6 +30,7 @@ import {CoreDebug} from "./core/CoreDebug.js";
 import {SerializeOptions} from "@dexcalibur/dexcalibur-orm";
 import {Profile} from "./device/profile/Profile.js";
 import {Nullable} from "./core/IStringIndex.js";
+import {ProjectInput} from "./analyzer/ProjectInput.js";
 
 enum ETransportType {
     USB     = 'U',
@@ -1365,6 +1366,62 @@ export default class AdbWrapper implements IBridge
         //try{
            const out = await Util.execAsync(this.setup(null,true)+" "+cmd);
             //success = true;
+        /*}catch(err){
+            Logger.error("[ADB WRAPPER] installApp : ["+err.code+"] "+err.message)
+            Logger.error("[ADB WRAPPER] installApp (??): ["+err.stdout.toString())
+            out = err.stdout.toString();
+            success = false;
+        }*/
+
+        Logger.raw("\n"+out);
+        return true;
+    }
+
+
+
+    /**
+     *
+     * @param {string[]} pPath Paths of package to install
+     * @param {AndroidPackageInstallOptions} pOptions Install options
+     * @return
+     * @async
+     * @since 1.0.0
+     */
+    async installProject( pPath:ProjectInput[], pOptions:AndroidPackageInstallOptions):Promise<boolean> {
+        let cmd:string, success:boolean;
+
+        if(pPath.length==0){
+            AdbBridgeException.APK_PATH_IS_NULL();
+        }
+
+        // pick the right install command
+        if(pPath.length == 1){
+            cmd = "install";
+        }else{
+            cmd = "install-multiple";
+        }
+
+        // add options
+        if(pOptions.hasOwnProperty('opts')){
+            cmd += pOptions.opts.join(" ");
+        }
+
+        let inputs = pPath.map(x => x.location)
+            .filter(x => x.endsWith('apk'));
+        inputs = inputs.sort((a,b)=>{
+            if(a.endsWith("base.apk")){
+                return 1;
+            }else{
+                return -1;
+            }
+        });
+
+        // append apk path(s)
+        cmd += " "+inputs.join(" ");
+
+        //try{
+        const out = await Util.execAsync(this.setup(null,true)+" "+cmd);
+        //success = true;
         /*}catch(err){
             Logger.error("[ADB WRAPPER] installApp : ["+err.code+"] "+err.message)
             Logger.error("[ADB WRAPPER] installApp (??): ["+err.stdout.toString())

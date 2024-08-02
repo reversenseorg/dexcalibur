@@ -44,7 +44,12 @@ import PlatformManager from "./src/PlatformManager.js";
 import {Workflow} from "./src/Workflow.js";
 import AndroidAppAnalyzer from "./src/android/AndroidAppAnalyzer.js";
 import {AndroidResourceType} from "./src/android/AndroidResource.js";
-import {ProjectInputLocation, ProjectInputPurpose, ProjectInputType} from "./src/analyzer/ProjectInput.js";
+import {
+    ProjectInput,
+    ProjectInputLocation,
+    ProjectInputPurpose,
+    ProjectInputType
+} from "./src/analyzer/ProjectInput.js";
 import JavaHelper from "./src/JavaHelper.js";
 import FridaHelper from "./src/FridaHelper.js";
 import ApkHelper from "./src/ApkHelper.js";
@@ -1870,13 +1875,13 @@ ${"\t".repeat(1)}Default Arch = ${srv.getDefaultArchitecture()}
 
                             project = await dxcInstance.newProject(
                                 projectArgs.projUID,
-                                [{
+                                [new ProjectInput({
                                     extractOpts: { type: 'bin'},
                                     purpose: ProjectInputPurpose.MAIN,
                                     type: ProjectInputType.REGULAR_FILE,
                                     location: ProjectInputLocation.LOCAL,
                                     data: projectArgs.projApp
-                                }],
+                                })],
                                 device,
                                 acc
                             );

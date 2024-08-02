@@ -123,13 +123,13 @@ PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
 
                         wf.pushStatus(new StatusMessage(10, "Pull application from device"));
 
-                        projInputs.push({
+                        projInputs.push(new ProjectInput({
                             data: req.body['path'],
                             location: ProjectInputLocation.DEVICE,
                             type: ProjectInputType.REGULAR_FILE,
                             extractOpts: {type:'bin'},
                             purpose: ProjectInputPurpose.MAIN
-                        });
+                        }));
 
                         // Merge Splitted APK (MSA)
                         /*
@@ -155,13 +155,13 @@ PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
                         wf.pushStatus(new StatusMessage(10, "Download target application from remote location"));
                         path = await Downloader.downloadTemp(req.body['url'], { mode:0o666, encoding:'binary', force:true });
 
-                        projInputs.push({
+                        projInputs.push(new ProjectInput({
                             data: path,
                             location: ProjectInputLocation.LOCAL,
                             type: ProjectInputType.REGULAR_FILE,
                             extractOpts: {type:'bin'},
                             purpose: ProjectInputPurpose.MAIN
-                        });
+                        }));
                         break;
                     case 'upload':
                         wf.pushStatus(new StatusMessage(5, "Set target platform"));
@@ -174,26 +174,26 @@ PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
                             path = $.uploader.getPathOf((req.dxc.sess as UserSession).getData('proj_upload_id'));
                         }
 
-                        projInputs.push({
+                        projInputs.push(new ProjectInput({
                             data: path,
                             location: ProjectInputLocation.LOCAL,
                             type: ProjectInputType.REGULAR_FILE,
                             extractOpts: {type:'bin'},
                             purpose: ProjectInputPurpose.MAIN
-                        });
+                        }));
                         break;
                     case 'fromfs':
                         wf.pushStatus(new StatusMessage(5, "Set target platform"));
                         platform = PlatformManager.getInstance().getPlatform( req.body['platform']);
                         path = req.body['path'];
 
-                        projInputs.push({
+                        projInputs.push(new ProjectInput({
                             data: path,
                             location: ProjectInputLocation.LOCAL,
                             type: ProjectInputType.REGULAR_FILE,
                             extractOpts: {type:'bin'},
                             purpose: ProjectInputPurpose.MAIN
-                        });
+                        }));
                         break;
                     default:
                         throw new Error("Project type is invalid")

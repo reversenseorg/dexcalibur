@@ -65,8 +65,6 @@ export class TerminalServer {
                         sessid: pSession.getSessionID()
                     }
                 }));
-            }else{
-                console.log(pData);
             }
         })
     }

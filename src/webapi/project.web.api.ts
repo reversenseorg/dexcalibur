@@ -390,6 +390,41 @@ PROJECT_WEB_API.addAuthenticatedRoute(
     }
 );
 
+
+
+
+
+/**
+ * To get some statistics
+ */
+PROJECT_WEB_API.addAuthenticatedRoute(
+    '/runtime/events',
+    {
+        'get': (req:DelegateRequest, res:DelegateResponse) => {
+
+            const $: WebServer = req.dxc.$;
+            let project:DexcaliburProject = null;
+
+            try {
+                if(req.dxc.project==null){
+                    throw new Error("Project is missing");
+                }
+
+                // gather message
+                let data:any[] = [];
+
+                $.sendSuccess( res, data);
+
+            } catch (err) {
+                Logger.error("[API][PROJECT] Tag categories cannot be retrieved. Cause : " + err.message + "\n\t" + err.stack);
+                $.sendError(res, "Tag categories cannot be retrieved. Cause : " + err.message);
+            }
+        },
+    },{
+        readProject: true
+    }
+);
+
 /**
  * To get some statistics
  */

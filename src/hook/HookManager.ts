@@ -129,7 +129,7 @@ export class HookManager
     options:any = {
         followThread: false,
         followFork: false,
-        cache_policy: HOOKSESSION_CACHE_POLICY.FLUSH_SESSIONS
+        cache_policy: HOOKSESSION_CACHE_POLICY.STORE_SESSIONS
     };
 
 
@@ -569,7 +569,8 @@ export class HookManager
 
         const last:HookSession = this
             .sessions[this.sessions.length-1];
-        const sess:HookSession =new HookSession(this);
+        const sess:HookSession =new HookSession();
+        sess.setHookManager(this);
 
         // TODO : add configuration flush/keep previous
         if(last != null) last.active = false;
@@ -901,6 +902,9 @@ export class HookManager
         else{
             target = pDevice;
         }
+
+        // link the device to the session
+        pSession.setDevice(target);
 
         if(target == null){
             Logger.error("[HOOK MANAGER] Device not found. Reconnect your device or select a target device to continue.");
@@ -1765,13 +1769,20 @@ export class HookManager
      */
     async getSessions():Promise<HookSession[]>{
 
-        return await this.db.sessions.getAsList();
-        /*
-        if(this.db.sessions.size()>this.sessions.length){
-            return this.db.sessions.getAsList();
-        }else{
-            return this.sessions;
-        }*/
+        const sess:HookSession[] = await this.db.sessions.getAsList();
+
+        sess.map(x => {
+            x.setHookManager(this)
+        });
+
+        const lastSess = this.lastSession();
+        if(lastSess!=null){
+            if((sess.length==0) || ((sess[sess.length]!=null) && (lastSess.getSessionID()!=sess[sess.length].getSessionID()))){
+                sess.push(lastSess);
+            }
+        }
+
+        return sess;
     }
 
     /**

@@ -8,6 +8,11 @@ export interface PrepareOptions {
     extractOpts?:any;
 }
 
+export enum InputSetPurpose {
+    NONE,
+    INSTALL
+}
+
 export interface IPackageAnalyzer {
 
     /**
@@ -26,4 +31,5 @@ export interface IPackageAnalyzer {
 
     attachInput(pInput:ProjectInput):any;
 
+    getInputsFor(pPurpose:InputSetPurpose): ProjectInput[];
 }

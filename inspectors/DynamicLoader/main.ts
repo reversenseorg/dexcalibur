@@ -660,7 +660,7 @@ export default new InspectorFactory({
 
                                 if (success != null) {
                                     // do incremental static analysis  of destfolder
-                                    ctx.analyze.path(destFolder, ModelLocation.fromFile(f));
+                                    await ctx.analyze.path(destFolder, ModelLocation.fromFile(f));
 
                                     // attach dex file to discovered class as src file
                                     ctx.analyze.tagAllIf(

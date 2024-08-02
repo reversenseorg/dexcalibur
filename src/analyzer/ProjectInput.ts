@@ -24,7 +24,7 @@ export interface InputExtractOptions {
     type:string;
 }
 
-export interface ProjectInput {
+export interface IProjectInput {
     data: ProjectInputData,
     location: ProjectInputLocation,
     type: ProjectInputType,
@@ -37,22 +37,23 @@ export interface ProjectInputOptions {
     location?: ProjectInputLocation,
     type?: ProjectInputType,
     extractOpts?: InputExtractOptions,
-    purpose?: ProjectInputPurpose
+    purpose?: ProjectInputPurpose,
+    originalName?: string
 }
 
 export class ProjectInputViewer {
-    static print(pProjectInput:ProjectInput){
+    static print(pProjectInput:IProjectInput){
         return `| ${pProjectInput.purpose} | ${pProjectInput.location} | ${pProjectInput.type} | ${JSON.stringify(pProjectInput.extractOpts)} | ${pProjectInput.data} `;
     }
 
-    static printList(pProjectInput:ProjectInput[]){
+    static printList(pProjectInput:IProjectInput[]){
         let s = "";
         pProjectInput.map(x => s+"\n"+ProjectInputViewer.print(x));
         return s;
     }
 }
 
-export class ProjectInput2 {
+export class ProjectInput implements IProjectInput{
 
 
     data: ProjectInputData;
@@ -60,6 +61,7 @@ export class ProjectInput2 {
     type: ProjectInputType;
     extractOpts: Nullable<InputExtractOptions> = null;
     purpose: ProjectInputPurpose;
+    originalName: Nullable<string> = null;
 
     constructor(pOptions:ProjectInputOptions = {}) {
         if(pOptions!=null){
@@ -67,7 +69,15 @@ export class ProjectInput2 {
         }
     }
 
-    static from(pOptions:ProjectInputOptions):ProjectInput2 {
-        return new ProjectInput2(pOptions);
+    static from(pOptions:ProjectInputOptions):ProjectInput {
+        return new ProjectInput(pOptions);
+    }
+
+    getOriginalName():Nullable<string> {
+        return this.originalName;
+    }
+
+    toJsonObject():any {
+        return this;
     }
 }

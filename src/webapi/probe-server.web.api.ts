@@ -23,7 +23,6 @@ PROBE_SERVER_WEB_API.addAsyncAuthenticatedRoute(
             let project:DexcaliburProject = null;
 
             try{
-                project = req.dxc.project;
                 // ========== SECURITY CHECKS
 
                 /*if (req.dxc == null || !$.context.getUserService().verifySession(req.dxc.sess)) {
@@ -44,7 +43,12 @@ PROBE_SERVER_WEB_API.addAsyncAuthenticatedRoute(
                 if(req.body['dev']){
                     device = DeviceManager.getInstance().getDevice(req.body['dev']);
                 }else{
-                    device = project.getDevice();
+                    project = req.dxc.project;
+                    if(project!=null){
+                        device = project.getDevice();
+                    }else{
+                        throw  DexcaliburProjectException.INVALID_NAME();
+                    }
                 }
 
                 // req.body['path']

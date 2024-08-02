@@ -90,6 +90,8 @@ import {Subject} from "rxjs";
 import * as _fs_ from "node:fs";
 import {ModelAPI} from "./ModelAPI.js";
 import InspectorFactory from "./InspectorFactory.js";
+import ts from "typescript/lib/tsserverlibrary.js";
+import Project = ts.server.Project;
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -197,7 +199,32 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
             }),
         (new NodeProperty("meta")).type(DbDataType.BLOB),
         (new NodeProperty("bus")).volatile().type(DbDataType.BLOB),
-        (new NodeProperty("inputs")).type(DbDataType.BLOB).def([]),
+        (new NodeProperty("inputs"))
+            .type(DbDataType.BLOB)
+            .def([])
+            .sleep( (x:NodePropertyState)=>{
+                if(x.p!=null){
+                    const inputs:any[]=[];
+                    (x.p as ProjectInput[]).map(vInput => {
+                        inputs.push(vInput.toJsonObject());
+                    });
+                    return inputs;
+                }else{
+                    return [];
+                }
+            })
+            .wakeUp((x:NodePropertyState)=>{
+
+                if(x.p!=null && Array.isArray(x.p)){
+                    const inputs:ProjectInput[]=[];
+                    x.p.map(vInput => {
+                        inputs.push(ProjectInput.from(vInput));
+                    });
+                    return inputs;
+                }else{
+                    return [];
+                }
+            }),
         (new NodeProperty("hook")).volatile().type(DbDataType.BLOB),
         (new NodeProperty("inspectors")).volatile().type(DbDataType.BLOB).def({}),
         (new NodeProperty("analCfg")).type(DbDataType.BLOB)
@@ -1082,6 +1109,9 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
         Logger.debug("[PROJECT] Initializing done ");
     }
 
+    getPackageAnalyzer():IPackageAnalyzer {
+        return this.packageAnalyzer;
+    }
 
     /**
      * Init components dependent of the target platform, including
@@ -1367,6 +1397,8 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
             this.packageAnalyzer = new GenericPackageAnalyzer({ });
             this.packageAnalyzer.setProject(this);
         }
+
+        this.inputs.push(pInput);
 
         await this.packageAnalyzer.attachInput(pInput);
     }
@@ -2108,7 +2140,7 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
     async scan( pPath:string):Promise<void>{
         // make IR 
         if(pPath !== undefined){   
-            this.analyze.path( pPath);
+            await this.analyze.path( pPath);
         }else{
             const apkctnPath:string = this.appAnalyzer.getDefaultTargetPath(); //.workspace.getApkDir();
 
@@ -2116,7 +2148,7 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
             Logger.info("Scanning default path : "+apkctnPath);
 
             // bytecode analysis (from smali file)
-            this.analyze.path( apkctnPath);
+            await this.analyze.path( apkctnPath);
 
             const pkgScope = this.dataAnalyzer.getScope('PKG');
 
@@ -2284,7 +2316,7 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
 
         // TODO : if dirty, restore data
 
-        this.analyze.path(this.platform.getLocalPath(), CodeLocation.PLATFORM);
+        await this.analyze.path(this.platform.getLocalPath(), CodeLocation.PLATFORM);
 
         this.getWorkflow().pushStatus(new StatusMessage(11, "Analyzing byte arrays from target platform"))
 
@@ -2345,7 +2377,7 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
 
             // If android or iOS bytecode code analysis
             // TODO : multi threading
-            this.analyze.path( targetPath, CodeLocation.APP);
+            await this.analyze.path( targetPath, CodeLocation.APP);
 
             // save model
             await this.pdb.saveAnalyzerDB(this.analyze.getData());
@@ -2492,8 +2524,12 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
                 await this.dataAnalyzer.getIndex('DYN_BYTECODE'), true
             );
 
-            // scan smali files for each dex files discovered dynamically
-            (await this.dataAnalyzer.getIndex('DYN_BYTECODE')).map( (vOffset:number, vFile:ModelFile)=>{
+
+            const bytecodes = (await this.dataAnalyzer.getIndex('DYN_BYTECODE')).getAsList();
+            let vFile:any;
+            for(let vOffset=0; vOffset<bytecodes.length; vOffset++){
+
+                vFile = bytecodes[vOffset]
 
                 const bc = _path_.join( _path_.dirname(vFile.getPath()),"smali");
                 const loc = ModelLocation.fromFile(vFile);
@@ -2503,7 +2539,7 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
 
                     if( _fs_.lstatSync(bc).isDirectory()) {
                         Logger.info("Scanning previously discovered dex chunk : " + bc);
-                        this.analyze.path(bc, loc);
+                        await this.analyze.path(bc, loc);
                     }/*else{
                     // dex files
                     this.dataAnalyzer.indexFilesIn(
@@ -2520,7 +2556,7 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
                         return (!internTag.match(x)) && (!sastTag.match(x));
                     },
                     dastTag);
-            });
+            }
         });
 
         this.getWorkflow().pushStatus(new StatusMessage(23, "Tagging data previously extracted by hooking"));
@@ -2822,6 +2858,7 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
     }
 
     /**
+     * TODO
      * To uninstall everything related to an inspector
      *
      * @param pInspectorFactory
@@ -2833,6 +2870,16 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
         // r
         //this.getProjectDB().removeInspector(pInspectorFactory.getUID());
         //this.getProjectDB().removeInspectorPlugin(pInspectorFactory.getUID());
+    }
+
+    /**
+     * To check if the project has multiple inputs
+     *
+     * @returns {boolean} TRUE if multiple, else FALSE
+     * @method
+     */
+    hasMultipleInputs() {
+        return (this.inputs!=null && this.inputs.length>0);
     }
 }
 DexcaliburProject.TYPE.builder(DexcaliburProject);

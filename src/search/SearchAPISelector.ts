@@ -72,4 +72,12 @@ export class SearchAPISelector
   files(id:string):ModelFile{
     return this._db.files.getEntry(id);
   }
+
+  session(id:string):ModelFile{
+    return this._db.files.getEntry(id);
+  }
+
+  event(id:string):ModelFile{
+    return this._db.files.getEntry(id);
+  }
 }

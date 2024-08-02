@@ -10,11 +10,11 @@ import {BridgeInstallOptions, DeviceProfilingOptions, IBridge} from "../Bridge.j
 import DexcaliburProject from "../DexcaliburProject.js";
 import {MonitoredError} from "../errors/MonitoredError.js";
 import {OperatingSystem} from "../OperatingSystem.js";
-import { DeviceFactory } from "../device/DeviceFactory.js";
+import {DeviceFactory} from "../device/DeviceFactory.js";
 import PlatformManager from "../PlatformManager.js";
 import AdbWrapperFactory from "../AdbWrapperFactory.js";
-import {AUDIT_WEB_API} from "./audit.web.api.js";
 import {PrivilegedExecutionStrategy} from "../PrivilegedExecutionStrategy.js";
+import {InputSetPurpose} from "../analyzer/IPackageAnalyzer.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -683,17 +683,28 @@ DEVICE_WEB_API.addAsyncAuthenticatedRoute(
                     opts: []
                 };
 
-                if(project.packageAnalyzer!=null){
-                    //project.packageAnalyzer.get
-                }else{
 
-                }
                 if(req.body.hasOwnProperty('opts')){
                     installOpts = dev.prepareInstallOptions(req.body.opts);
                 }
 
+                let success:boolean;
+                if(project.packageAnalyzer!=null){
+                    //project.getPac
+                    success =  await dev.installApp([project.getWorkspace().getAppPath()], installOpts);
+                    success =  await dev.installProject(
+                        project.getPackageAnalyzer()
+                            .getInputsFor(InputSetPurpose.INSTALL),
+                    installOpts);
+                }else{
+                    if(project.hasMultipleInputs()){
+                        success =  await dev.installProject(project.inputs, installOpts);
+                    }else{
+                        success =  await dev.installApp([project.getWorkspace().getAppPath()], installOpts);
+                    }
 
-                const success =  await dev.installApp([project.getWorkspace().getAppPath()], installOpts);
+                }
+
 
                 if(success)
                     $.sendSuccess(res, {});

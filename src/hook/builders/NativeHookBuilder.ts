@@ -313,8 +313,13 @@ export class NativeHookBuilder{
             tags["@@__LIB_FILE_NAME__@@"] = (lib as ModelFile).getName();
         }
 
-        tags["@@__VAR__@@"] = "v"+CryptoUtils.md5(pNativeHook.getGUID())+"_VAR";
+        tags["@@__VAR__@@"] = "v_"+CryptoUtils.md5(pNativeHook.getGUID())+"_VAR";
         pNativeHook.setVariableID(tags["@@__VAR__@@"]);
+
+        let varDecl = '';
+        if(pNativeHook.hasVariables()){
+            varDecl = 'let @@__VAR__@@ = {};';
+        }
 
         //this.code.varID = tags["@@__VAR__@@"];
 
@@ -362,6 +367,7 @@ export class NativeHookBuilder{
 
             if(before === null && after === null){
                 script = `    
+                    ${varDecl}
                     Interceptor.replace(
                         ${fnAddr},
                         new NativeCallback(function(@@__HOOK_ARGS__@@){
@@ -371,6 +377,7 @@ export class NativeHookBuilder{
                 `;
             }else{
                 script = `    
+                    ${varDecl}
                     Interceptor.replace(
                         ${fnAddr},
                         new NativeCallback(function(@@__HOOK_ARGS__@@){
@@ -386,6 +393,7 @@ export class NativeHookBuilder{
             }
         }else{
             script = `    
+                ${varDecl}
                 Interceptor.attach(
                     ${fnAddr},
                     {

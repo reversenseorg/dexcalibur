@@ -283,28 +283,11 @@ export class FinderResult
         console.log(t)
     }
 
-    /*
-    using(pattern:string, caseSensitive:boolean=true):FinderResult{
-
-        if(pattern == null) return this;
-
-        const data =  this._finder._find(this.data, null, "_useClass."+pattern, caseSensitive, true);
-        data.union(this._finder._find(this.data, null, "_useMethod."+pattern, caseSensitive, true));
-        data.union(this._finder._find(this.data, null, "_useField."+pattern, caseSensitive, true));
-
-        return data;
-    }*/
-
-
-    exclude(pattern:string):FinderResult{
+    exclude(pattern:string, caseSensitive:boolean=true):FinderResult{
         // TODO : implement FinderResult.exclude
-        throw  new Error('FinderResult.exclude is not yet implemented');
-        /*
-        let arg = this._finder.cache[this._finder.cache.length-1];
+        let data:IDbIndex = this._finder.newResultSet();
 
-        let result:FinderResult = this._finder._find(arg.index, arg.model, pattern, arg.case, arg.lazy);
-
-        return new FinderJoin(this.data,result,this._finder);*/
+        return this._finder._find(this.data, null, pattern, caseSensitive, true, false, true);
     }
 
     intersect(property:string, pattern:any):FinderResult{

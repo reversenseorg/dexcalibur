@@ -3,7 +3,7 @@ import {Device} from "../Device.js";
 import WebServer from "../WebServer.js";
 import * as Log from "../Logger.js";
 import DexcaliburProject from "../DexcaliburProject.js";
-import HookSession from "../HookSession.js";
+import HookSession, {RuntimeEventFilter} from "../HookSession.js";
 import FridaHelper from "../FridaHelper.js";
 import Hook from "../Hook.js";
 import Util from "../Utils.js";
@@ -16,7 +16,7 @@ import {NodeInternalType}
 from "@dexcalibur/dxc-core-api";;
 import KeyPoint from "../hook/KeyPoint.js";
 import HookStrategy from "../hook/HookStrategy.js";
-import {RuntimeEventType} from "../hook/RuntimeEvent.js";
+import {RuntimeEvent, RuntimeEventType} from "../hook/RuntimeEvent.js";
 import {InspectorFactoryException} from "../errors/InspectorFactoryException.js";
 import {HookManagerException} from "../errors/HookManagerException.js";
 import {WebApiWindowing} from "./internals/WebApiWindowing.js";
@@ -827,6 +827,21 @@ HOOK_WEB_API.addAuthenticatedRoute(
                     throw HookManagerException.HOOK_SESSION_NOT_FOUND();
                 }
 
+                // filter
+                /*interface RuntimeEventFilter {
+                    fragUID?:string;
+                    hookUID?:string;
+                    tagUUIDs?:number[];
+                    tagNames?:string[];
+                }*/
+
+                const filters:any = {}
+                if(req.query.fragUID) filters.fragUID = req.query.fragUID;
+                if(req.query.hookUID) filters.hookUID = req.query.hookUID;
+                if(req.query.tagUUIDs) filters.tagUUIDs = JSON.parse(Util.b64_decode(req.query.tagUUIDs as string));
+                if(req.query.tagNames) filters.tagNames = JSON.parse(Util.b64_decode(req.query.tagNames as string));
+
+
                 // gather messages  with windowing
                 let startAt, size;
                 if(req.dxc.filt != null){
@@ -837,13 +852,30 @@ HOOK_WEB_API.addAuthenticatedRoute(
                     size = parseInt(req.query.size as string);
                 }
 
-                const data = {};
-                sessions.map( (vSess:HookSession)=>{
-                    data[vSess.getSessionID()] = []
-                    vSess.getMessages(startAt,size).map((vMsg)=>{
-                        data[vSess.getSessionID()].push(vMsg.toJsonObject());
-                    })
-                });
+                const data:Record<string, any[]> = {};
+                const hasFilter = (Object.keys(filters).length>0);
+                let vSess:HookSession, vEvt:RuntimeEvent<any>[] ;
+                for(let i=0; i<sessions.length; i++){
+                    vSess = sessions[i];
+
+                    //vSess.getMessages(startAt,size)
+                    if(hasFilter){
+                        vEvt = (await vSess.getRuntimeEvents(filters));
+
+                    }else{
+                        vEvt = vSess.getMessages(startAt,size)
+                    }
+
+                    if(vEvt.length>0){
+                        data[vSess.getSessionID()] = [];
+                        vEvt.map((vMsg)=>{
+                            if(vMsg)
+                                data[vSess.getSessionID()].push(vMsg.toJsonObject());
+                        });
+                    }
+
+                }
+                
 
                 $.sendSuccess(res, data);
 

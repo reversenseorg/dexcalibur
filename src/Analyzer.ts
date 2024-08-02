@@ -32,8 +32,10 @@ import {Workflow} from "./Workflow.js";
 import {NodeInternalType} from "@dexcalibur/dxc-core-api";
 import {AnalyzerState} from "./AnalyzerState.js";
 
-import {INode, IDatabase, IDbIndex, IDbSet, Tag} from "@dexcalibur/dexcalibur-orm";
+import {INode, IDatabase, IDbIndex, IDbSet, Tag, TagCategory} from "@dexcalibur/dexcalibur-orm";
 import {BusSubscriber} from "./Bus.js";
+import {Nullable} from "./core/IStringIndex.js";
+import {newTagPresets} from "./tags/common/TagPresets.js";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -56,6 +58,9 @@ class ResolverV2
     private _ctx:DexcaliburProject;
 
     private _missingTag:Tag;
+    private _abstractTag:Tag;
+    private _nativeTag:Tag;
+
 
 
     constructor(pContext:DexcaliburProject) {
@@ -339,6 +344,9 @@ class ResolverV2
 
 export default class Analyzer
 {
+    private _abstractTag: Nullable<Tag>;
+    private _nativeTag: Nullable<Tag>;
+
     /**
      * @type {SmaliParser}
      * @field
@@ -362,10 +370,13 @@ export default class Analyzer
     _wf:Workflow;
 
 
+
+
     private _diffTag:any = {
         'discover.internal': []
     }
     private _diffTagDef: Tag = null;
+
 
 
     /**
@@ -398,7 +409,31 @@ export default class Analyzer
             }
         }
 
+
+        this._abstractTag = pProject.getTagManager().getTag("obj.access.abstract");
+        this._nativeTag = pProject.getTagManager().getTag("obj.access.native");
+
         this.registerListeners();
+    }
+
+    private async _initVisibilityTags():Promise<void> {
+        const VISIBILITY = new TagCategory({ name: "obj.access" });
+        const OBJ_VIS_TAGS = [
+            new Tag({ name:"abstract", label:"abstract", styles:{
+                bgColor: "#bdbb56",
+                color: "#000"
+            } }),
+            new Tag({ name:"native", label:"native", styles:{
+                bgColor: "#017ed6",
+                color: "#d8d8d8"
+            }  }),
+        ];
+        OBJ_VIS_TAGS.map( x => { VISIBILITY.addTag(x); });
+        await this.context.getTagManager().importCategory(VISIBILITY);
+
+
+        this._abstractTag = this.context.getTagManager().getTag("obj.access.abstract");
+        this._nativeTag = this.context.getTagManager().getTag("obj.access.native");
     }
 
 
@@ -629,6 +664,11 @@ export default class Analyzer
         let bb:ModelBasicBlock = null, instruct:ModelInstruction = null, obj = null;
         let success:boolean=false, stmt=null, tmp:any=null, t:ModelBasicBlock=null;
 
+        // add visibility tags
+        if(pMethod.hasModifier(Modifier.ABSTRACT) && (this._abstractTag!=null)){
+            pMethod.addTag(this._abstractTag);
+        }
+
         if((pMethod instanceof ModelMethod)===false){
             Logger.error("[!] mapping failed : method provided is not an instance of Method.");
             throw new Error("[ANALYZER] mapping failed : method provided is not an instance of Method.")
@@ -698,17 +738,12 @@ export default class Analyzer
                     stats.methodCalls++;
 
 
-                    if(pMethod._useClass[instruct.right.fqcn] == undefined){
-                        pMethod._useClass[instruct.right.fqcn] = [];
-                        pMethod._useClassCtr++;
-                    }
                     if(pMethod._useMethod[instruct.right.signature()] == undefined){
                         pMethod._useMethod[instruct.right.signature()] = [];
                         pMethod._useMethodCtr++;
                     }
 
 
-                    pMethod._useClass[instruct.right.fqcn].push(instruct.right.enclosingClass);
                     //method._useMethod[instruct.right.signature()].push(instruct.right);
                     pMethod._useMethod[instruct.right.signature()].push({
                         bb: i,
@@ -755,17 +790,11 @@ export default class Analyzer
 
                     stats.fieldCalls++;
 
-                    if(pMethod._useClass[instruct.right.fqcn] == undefined){
-                        pMethod._useClass[instruct.right.fqcn] = [];
-                        pMethod._useClassCtr++;
-                    }
                     if(pMethod._useField[instruct.right.signature()] == undefined){
                         pMethod._useField[instruct.right.signature()] = [];
                         pMethod._useFieldCtr++;
                     }
 
-
-                    pMethod._useClass[instruct.right.fqcn].push(instruct.right.enclosingClass);
                     pMethod._useField[instruct.right.signature()].push(instruct.right);
 
 
@@ -809,11 +838,6 @@ export default class Analyzer
                             calleed:obj,
                             instr:instruct}), false);
 
-                        if(pMethod._useClass[obj.name] == undefined)
-                            pMethod._useClass[obj.name] = [];
-
-                        //method._useClass[obj._hashcode] = obj;
-                        pMethod._useClass[obj.name].push(instruct);
 
                     }
                     success = true;
@@ -847,7 +871,7 @@ export default class Analyzer
      ->  ...
      -> Optional. Linking element to a parent file or other (file declaring element)
      */
-    buildModel(data:AnalyzerDatabase, absoluteDB:AnalyzerDatabase, pLocation:ModelLocation=null){
+    async buildModel(data:AnalyzerDatabase, absoluteDB:AnalyzerDatabase, pLocation:ModelLocation=null):Promise<void>{
 
         Logger.raw("\n[*] Start object mapping ...\n------------------------------------------");
 
@@ -856,6 +880,10 @@ export default class Analyzer
         let overrided:any = [], o:any;
         //let updateLogs = [];
 
+
+        if(this._abstractTag==null){
+            await this._initVisibilityTags();
+        }
 
 
         this._wf.computeStepUp(data.classes.size()*4);
@@ -1335,7 +1363,7 @@ export default class Analyzer
      * @returns {void}
      * @method
      */
-    path(pPath:string, pLocation:ModelLocation=null):void{
+    async path(pPath:string, pLocation:ModelLocation=null):Promise<void>{
 
         let self:Analyzer = this;
 
@@ -1384,9 +1412,9 @@ export default class Analyzer
         // start object mapping (replace reference by relationship),
         // merge temporary DB with exesiting DB, ...
         if(pLocation!=null)
-            this.buildModel(tempDb, this.db, pLocation);
+            await this.buildModel(tempDb, this.db, pLocation);
         else
-            this.buildModel(tempDb, this.db);
+            await this.buildModel(tempDb, this.db);
 
 
         // save model

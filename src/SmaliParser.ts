@@ -454,7 +454,6 @@ export default class SmaliParser
 
         // parse modifiers
         f.modifiers = SmaliParser.modifier(src_arr, match);
-        //console.log(f.modifiers);
 
         // clean src with identified modifier
         for(let i=0; i<match.c; i++) src_arr.shift();
@@ -465,8 +464,6 @@ export default class SmaliParser
 
         type=this.type(tmp[1]);
         if(type.length>0) f.type=type[0];
-
-        //console.log(type.type[0]._hashcode);
 
         f.enclosingClass = this.obj;
         //f._hashcode = f.hashCode();//Checker.makeFieldHashcode(f.modifiers,this.obj,f.name,f.type);
@@ -708,7 +705,6 @@ export default class SmaliParser
 
                     if(this.__tmp_block instanceof  ModelBasicBlock){
                         if(this.__tmp_block.isSwitchStatement()){
-                            //   console.log(sml);
                             this.__tmp_block.switch.appendCase(sml[0],sml[2]);
                         }
                     }
@@ -861,8 +857,7 @@ export default class SmaliParser
 
     parse(pSource:string):ModelClass{
         let lines:string[]=pSource.split("\n"), line:string=null, sml:string[]=null, obj:any=null;
-    
-        //console.log(ls);
+
         for(let l:number=0; l<lines.length; l++){
             line=Util.trim(lines[l]);
             if(line.length==0){

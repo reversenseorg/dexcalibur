@@ -10,6 +10,7 @@ export class SearchPattern
   isModifier:boolean = false;
   isStructField:boolean = false;
   isDeepSearch:boolean = false;
+  exclude = false;
   hasTag:boolean = false;
   tag:Nullable<Tag> = null;
 

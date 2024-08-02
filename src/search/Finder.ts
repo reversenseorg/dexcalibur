@@ -119,7 +119,9 @@ export class Finder {
     if (pData.tags === undefined)  return false;
     if (pRequest.tag == null) return false;
 
-    return pRequest.tag.match(pData); // pData.tags.indexOf(pRequest.tag.getUUID()) > -1;
+    let res = pRequest.tag.match(pData);
+    console.log("HAS TAG > ",pRequest.tag._uid,pRequest.tag._,pData.tags, res);
+    return res; // pData.tags.indexOf(pRequest.tag.getUUID()) > -1;
   }
 
   static testNothing(): void {
@@ -171,7 +173,7 @@ export class Finder {
    * @param Boolean lazy If FALSE, verify if the field exists
    * @returns {SearchPattern} The parsed search pattern, ready to be used
    */
-  _getTestFn(dataModel: any, pattern: string, caseSensitive: boolean, lazy: boolean = false): SearchPattern|null {
+  _getTestFn(dataModel: any, pattern: string, caseSensitive: boolean, lazy: boolean = false, pExclude = false): SearchPattern|null {
 
     //if(lazy===true) console.debug("LAZY mode detected !");
 
@@ -217,6 +219,7 @@ export class Finder {
             pattern: pattern,
             field: [new SearchToken(token)],
             isModifier: true,
+            exclude: pExclude,
             fn: Finder.testHasModifier
           });
 
@@ -226,6 +229,7 @@ export class Finder {
             pattern: pattern.substr(4),
             isModifier: false,
             hasTag: true,
+            exclude: pExclude,
             fn: Finder.testHasTag
           });
         }
@@ -237,6 +241,7 @@ export class Finder {
         isModifier: false,
         isDeepSearch: (token.indexOf(REL_TOKEN) > -1),
         hasTag: true,
+        exclude: pExclude,
         fn: Finder.testHasTag2
       });
     }
@@ -351,6 +356,7 @@ export class Finder {
       field: SearchToken.parseTokens(token),
       isStructField: false,
       isDeepSearch: isDeepSearch,
+      exclude: pExclude,
       fn: fn
     });
   }
@@ -380,9 +386,16 @@ export class Finder {
       /*if(d1<10){
           Logger.raw("Test : "+field+" == "+search_pattern.pattern);
       }*/
-      if (field !== undefined && search_pattern.fn(field)) {
-        matches.insert(v, false);
+      if(search_pattern.exclude){
+        if (field == undefined || !search_pattern.fn(field)) {
+          matches.insert(v, false);
+        }
+      }else{
+        if (field !== undefined && search_pattern.fn(field)) {
+          matches.insert(v, false);
+        }
       }
+
     });
 
     //Logger.raw("Result size : "+matches.size());
@@ -509,12 +522,20 @@ export class Finder {
     let matches: IDbIndex = this.newResultSet();
 
     try {
-      index.map((k:string, v:any) => {
+      if(search_pattern.exclude){
+        index.map((k:string, v:any) => {
+          if (!this.__checkDeepField(v, search_pattern)) {
+            matches.insert(v, false);
+          }
+        });
+      }else{
+        index.map((k:string, v:any) => {
+          if (this.__checkDeepField(v, search_pattern)) {
+            matches.insert(v, false);
+          }
+        });
+      }
 
-        if (this.__checkDeepField(v, search_pattern)) {
-          matches.insert(v, false);
-        }
-      });
     } catch (err) {
       // index is empty or an error occured during comparison
       Logger.error("[Finder::_findDeepObject] " + err.message);
@@ -528,10 +549,18 @@ export class Finder {
   _findObjectByTag(index: IDbIndex | IDbCollection, search_pattern: SearchPattern): IDbIndex {
     let matches: IDbIndex = this.newResultSet();
 
-    index.map((k:string, v:any) => {
-      if (search_pattern.fn(search_pattern, v))
-        matches.insert(v, false);
-    });
+    if(search_pattern.exclude){
+      index.map((k:string, v:any) => {
+        if (!search_pattern.fn(search_pattern, v))
+          matches.insert(v, false);
+      });
+    }else{
+      index.map((k:string, v:any) => {
+        if (search_pattern.fn(search_pattern, v))
+          matches.insert(v, false);
+      });
+    }
+
     /*
     for(let i in index){
         if(search_pattern.fn(search_pattern,index[i]))
@@ -544,13 +573,24 @@ export class Finder {
   _findObjectByModifier(index: IDbIndex | IDbCollection, search_pattern: SearchPattern): IDbIndex {
     let matches: IDbIndex = this.newResultSet();
 
-    index.map((k:string, v:any) => {
-      if (v.modifiers === undefined || v.modifiers === null)
-        return;
+    if(search_pattern.exclude){
+      index.map((k:string, v:any) => {
+        if (v.modifiers === undefined || v.modifiers === null)
+          return;
 
-      if (search_pattern.fn(search_pattern, v))
-        matches.insert(v, false);
-    });
+        if (!search_pattern.fn(search_pattern, v))
+          matches.insert(v, false);
+      });
+    }else{
+      index.map((k:string, v:any) => {
+        if (v.modifiers === undefined || v.modifiers === null)
+          return;
+
+        if (search_pattern.fn(search_pattern, v))
+          matches.insert(v, false);
+      });
+    }
+
     return matches;
   };
 
@@ -565,6 +605,7 @@ export class Finder {
 
     let matches: IDbIndex = tmpDb.newIndex('root', Finder.NODE_ANY);
 
+
     if(index.isCollection()){
       matches.insert( (index as IDbCollection).getEntry(pattern) , false);
     }else{
@@ -576,19 +617,11 @@ export class Finder {
     }
 
 
-    /*
-    index.map((k: any, v: any) => {
-      if (v[idHolder] === pattern) {
-        matches.insert(v, false);
-        //Logger.info("[FINDER] _findByID :", JSON.stringify(v.toJsonObject()))
-      }
-    });*/
-
     return new FinderResult(matches, this);
   }
 
   _find(index: IDbIndex | IDbCollection, model: any, pattern: string,
-        caseSensitive: boolean, lazy: boolean = false, includeMissing: boolean = false): FinderResult {
+        caseSensitive: boolean, lazy: boolean = false, includeMissing: boolean = false, exclude = false): FinderResult {
 
     if (pattern === null || pattern === undefined) {
       if (index.isIndex())
@@ -601,7 +634,7 @@ export class Finder {
 
     //this.cache.push({ index:index, model:model, case:caseSensitive, lazy:lazy });
 
-    const spatt = this._getTestFn(model, pattern, caseSensitive, lazy);
+    const spatt = this._getTestFn(model, pattern, caseSensitive, lazy, exclude);
 
     if (spatt != null) {
       if (spatt.isModifier)
@@ -615,8 +648,14 @@ export class Finder {
         return new FinderResult(this._findDeepObject(index, spatt), this);
       }
 
-      if (spatt.hasTag)
-        return new FinderResult(this._findObjectByTag(index, spatt), this);
+      if (spatt.hasTag){
+        if(spatt.field.length>0){
+          return new FinderResult(this._findDeepObject(index, spatt), this);
+        }else{
+          return new FinderResult(this._findObjectByTag(index, spatt), this);
+        }
+      }
+
 
       return new FinderResult(this._findObject(index, spatt, includeMissing), this);
     } else {

@@ -50,13 +50,11 @@ export default class WebTemplateEngine
         let m:RegExpExecArray = null, tpl:string = null, match:boolean = false;
         do {
             m = TPL_TOKEN.exec((data instanceof Buffer)?data.toString('utf8'):data);
-            //console.log(m);
 
             if (m == null || m.length < 2) {
                 break;
             }
             tpl = _fs_.readFileSync(_path_.join(this.root, m[1]), 'binary');
-            // console.log(this.root+m[1],tpl);
 
             // data = data.replace(m[0], fs.readFileSync(this.root+m[1]));
             data = BufferReplace((typeof data ==='string'?Buffer.from(data):data), m[0], tpl);

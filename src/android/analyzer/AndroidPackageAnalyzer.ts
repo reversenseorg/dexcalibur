@@ -7,7 +7,7 @@ import * as _path_ from "path";
 import {Device} from "../../Device.js";
 import {AndroidPackageAnalyzerConfig} from "./AndroidPackageAnalyzerConfig.js";
 import {AnalyzerException} from "../../errors/AnalyzerException.js";
-import {IPackageAnalyzer} from "../../analyzer/IPackageAnalyzer.js";
+import {InputSetPurpose, IPackageAnalyzer} from "../../analyzer/IPackageAnalyzer.js";
 import {AnalyzerState} from "../../AnalyzerState.js";
 import DexcaliburProject from "../../DexcaliburProject.js";
 import {Nullable} from "../../core/IStringIndex.js";
@@ -24,6 +24,7 @@ import {
 } from "../../analyzer/ProjectInput.js";
 import {DexcaliburProjectException} from "../../errors/DexcaliburProjectException.js";
 import Util from "../../Utils.js";
+import {PackageAnalyzerException} from "../../errors/PackageAnalyzerException.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -75,7 +76,6 @@ export class AndroidPackageAnalyzer implements IPackageAnalyzer {
                 ]
             );
         }
-        [""]
 
     }
 
@@ -223,13 +223,14 @@ export class AndroidPackageAnalyzer implements IPackageAnalyzer {
                     device.pull(files[i].p, dist);
 
 
-                    splittedRes = {
+                    splittedRes = ProjectInput.from({
                         data: dist,
                         location: ProjectInputLocation.LOCAL,
                         purpose: ProjectInputPurpose.EXTRA,
                         type: ProjectInputType.REGULAR_FILE,
-                        extractOpts: {type:'bin'}
-                    };
+                        extractOpts: {type:'bin'},
+                        originalName: files[i].n
+                    });
 
 
                     if(_fs_.lstatSync(dist).isDirectory()){
@@ -504,5 +505,33 @@ export class AndroidPackageAnalyzer implements IPackageAnalyzer {
 
 
         return o;
+    }
+
+    /**
+     * To prepare a set of ProjectInput for a specifc purpose
+     *
+     * @param {InputSetPurpose} pPurpose The purpose of the set
+     * @returns {ProjectInput[]} A set of project inputs
+     * @throws {PackageAnalyzerException}
+     * @method
+     */
+    getInputsFor(pPurpose: InputSetPurpose): ProjectInput[] {
+        let inputs:ProjectInput[] = [];
+
+        switch (pPurpose){
+            case InputSetPurpose.INSTALL:
+                if(this._base_apk==null){
+                    throw PackageAnalyzerException.MAIN_INPUT_NOT_FOUND();
+                }
+                inputs.push(this._base_apk);
+
+                if(this._extra.external==null){
+                    throw PackageAnalyzerException.EXTRA_INPUTS_NOT_FOUND();
+                }
+                inputs = inputs.concat(this._extra.external);
+                break;
+        }
+
+        return  inputs;
     }
 }

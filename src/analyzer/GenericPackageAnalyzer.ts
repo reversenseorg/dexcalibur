@@ -1,4 +1,4 @@
-import {IPackageAnalyzer, PrepareOptions} from "./IPackageAnalyzer.js";
+import {InputSetPurpose, IPackageAnalyzer, PrepareOptions} from "./IPackageAnalyzer.js";
 import {PackageAnalyzerOptions} from "../AnalyzerConfiguration.js";
 import {AnalyzerState} from "../AnalyzerState.js";
 import {Device} from "../Device.js";
@@ -97,5 +97,9 @@ export class GenericPackageAnalyzer implements IPackageAnalyzer {
         }
 
         return false;
+    }
+
+    getInputsFor(pPurpose: InputSetPurpose): ProjectInput[] {
+        return [];
     }
 }
