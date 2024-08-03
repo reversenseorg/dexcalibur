@@ -335,6 +335,7 @@ export default class PlatformManager extends ValidationCapable
      */
     getPlatform(pName:string):Platform{
 
+
         if(this.local[pName] != null){
             return this.local[pName];
         }else if( this.remote[pName] instanceof Platform){
@@ -375,6 +376,7 @@ export default class PlatformManager extends ValidationCapable
      * @method
      */
     getLocalPlatform( pName:string):Platform{
+
         if(this.local[pName] instanceof Platform){
             return this.local[pName];
         }

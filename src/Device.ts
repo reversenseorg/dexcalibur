@@ -111,7 +111,23 @@ export class Device implements INode
             (new NodeProperty("type")).type(DbDataType.STRING).def(OperatingSystem.NONE),
             (new NodeProperty("model")).type(DbDataType.STRING).def(""),
             (new NodeProperty("product")).type(DbDataType.STRING).def(""),
-            (new NodeProperty("platform")).type(DbDataType.BLOB).def(null),
+            (new NodeProperty("platform"))
+                .type(DbDataType.BLOB)
+                .sleep( (x:NodePropertyState)=>{
+                    if(x.p != null && x.p.toJsonObject!=null){
+                        return (x.p as Platform).toJsonObject();
+                    }else{
+                        return null;
+                    }
+                })
+                .wakeUp( (x:NodePropertyState)=>{
+                    if(x.p != null){
+                        return new Platform(x.p);
+                    }else{
+                        return null;
+                    }
+                })
+                .def(null),
             (new NodeProperty("profile"))
                 .sleep( (x:NodePropertyState)=>{
                     if(x.p != null && x.p.toJsonObject!=null){

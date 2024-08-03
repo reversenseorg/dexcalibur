@@ -691,7 +691,7 @@ DEVICE_WEB_API.addAsyncAuthenticatedRoute(
                 let success:boolean;
                 if(project.packageAnalyzer!=null){
                     //project.getPac
-                    success =  await dev.installApp([project.getWorkspace().getAppPath()], installOpts);
+                    //success =  await dev.installApp([project.getWorkspace().getAppPath()], installOpts);
                     success =  await dev.installProject(
                         project.getPackageAnalyzer()
                             .getInputsFor(InputSetPurpose.INSTALL),

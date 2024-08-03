@@ -305,11 +305,13 @@ export default class HookSession extends WebsocketSession implements INode
         hm.setSession(this);
         hm.uid = this.offset;
         hm.hook = this.hookManager.getHookByID(pRawMsg.hid);
+        hm.hid = pRawMsg.hid;
 
         // by default, not tagged hook message are not broadcasted
         let broadcast = false;
 
         if(hm.hook && pRawMsg.fid!=null){
+            hm.fid = pRawMsg.fid;
             hm.frag = hm.hook.getFragment(pRawMsg.fid);
             ev.addTag(this.evTags.HOOK);
 

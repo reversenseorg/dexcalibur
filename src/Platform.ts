@@ -296,7 +296,6 @@ export default class Platform
 
         const opts = (pOptions==null)? pProject.getAnalyzerConfiguration().getPkgAnalyzerConfig() :pOptions;
 
-        console.log(opts);
         Logger.info("PLATFORM > newPackageAnalyzer > ",this.os);
         switch(this.os){
             case OperatingSystem.ANDROID:
