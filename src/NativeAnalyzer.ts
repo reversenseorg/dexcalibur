@@ -332,12 +332,22 @@ export default class NativeAnalyzer {
 
 
         // analyze gathered files
+        let exists:boolean;
         for(const fname in targetable){
             // keep the file with the prefered ABI
             const prefered = targetable[fname].sort( (a,b)=> (a.pref < b.pref)).pop();
             if(prefered != null){
 
                 const file:ModelFile = prefered.file;
+                exists = false;
+                this.targetable[pScope.getName()].map(x => {
+                    if(x.getUID()==file.getUID()){
+                        exists = true;
+                    }
+                });
+
+                if(exists) break;
+
                 file.addTag(targetable_tag);
                 this.targetable[pScope.getName()].push(file)
 
@@ -368,6 +378,8 @@ export default class NativeAnalyzer {
 
         }
 
+
+        //console.log("TRUE TARGETABLE (filtered by ABI) > ",this.targetable);
 
         return true;
     }

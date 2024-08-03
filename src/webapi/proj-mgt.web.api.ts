@@ -258,7 +258,6 @@ PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
                 }*/
 
                 console.log(projInputs);
-                console.log(platform);
 
                 project = await $.context.newProject(projectUID, projInputs, device,  user, platform, anal);
 
