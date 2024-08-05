@@ -1,12 +1,8 @@
-import * as Log from "../../src/Logger.js";
 import InspectorFactory from "../../src/InspectorFactory.js";
 import {INSPECTOR_TYPE} from "../../src/Inspector.js";
-import DexcaliburProject from "../../src/DexcaliburProject.js";
-import BusEvent from "../../src/BusEvent.js";
 import ModelMethod from "../../src/ModelMethod.js";
 
 
-let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
 // ====== CONFIG TASK ====== 
 
@@ -22,7 +18,7 @@ var KeystoreInspector2:InspectorFactory = new InspectorFactory({
     startStep: INSPECTOR_TYPE.POST_APP_SCAN,
     
     useGUI: true,
-    version: "1.0.2",
+    version: "1.0.3",
     color: 'warning',
 
     hookSet: {
@@ -122,7 +118,8 @@ var KeystoreInspector2:InspectorFactory = new InspectorFactory({
     eventListenerSources: {
         "hook.keystore.load": {
             source: `
-                Logger.info("[INSPECTOR][TASK] KeystoreInspector keystore loaded ")
+                let ctx = pEvent.getContext();
+                ctx.LOG.info("[INSPECTOR][TASK] KeystoreInspector keystore loaded ")
                 //ctx.get.method("java.security.KeyStore.load(<java.io.InputStream><char>[])<void>")
                 //        .addArgsValue(ctx.hook.lastSession(), event)
             `,
@@ -133,7 +130,7 @@ var KeystoreInspector2:InspectorFactory = new InspectorFactory({
                 if(!checkForBKSext(pEvent.data)) return 1;
           
                 var ctx = pEvent.getContext();
-                Logger.info("[INSPECTOR][TASK] KeystoreInspector BKS detected : ",pEvent.data.name);
+                ctx.LOG.info("[INSPECTOR][TASK] KeystoreInspector BKS detected : ",pEvent.data.name);
                 var resStaticStr:any = ctx.find.strings("value:/"+event.data.name+"/");
                 // si pas d'occurence
                 if(resStaticStr.count()==0){

@@ -8,7 +8,7 @@ var JavaRegexMatcherInspector:InspectorFactory = new InspectorFactory({
 
     startStep: INSPECTOR_TYPE.POST_APP_SCAN,
 
-    version: "1.0.4",
+    version: "1.0.5",
     hookSet: {
         id: "JavaUtilsObject",
         name: "Java Utils Object",
@@ -28,7 +28,7 @@ var JavaRegexMatcherInspector:InspectorFactory = new InspectorFactory({
                     let eventData : Record<string, any> = {};
                     // TODO: Add an object serialisation 
                     eventData['arg0_obj'] = arguments[0].toString();  
-                    eventData['arg0_obj_class'] = arguments[0].getClass().;  
+                    eventData['arg0_obj_class'] = arguments[0].getClass().toString();  
                     eventData['arg1_message'] = arguments[1]; // String or Supplier<String> 
                     
                     DXC.send(

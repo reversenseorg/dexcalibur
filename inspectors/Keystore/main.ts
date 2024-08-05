@@ -1,13 +1,8 @@
-import * as Log from "../../src/Logger.js";
 import InspectorFactory from "../../src/InspectorFactory.js";
 import {INSPECTOR_TYPE} from "../../src/Inspector.js";
-import DexcaliburProject from "../../src/DexcaliburProject.js";
 import BusEvent from "../../src/BusEvent.js";
 import ModelMethod from "../../src/ModelMethod.js";
 
-
-
-let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
 // ====== CONFIG TASK ====== 
 
@@ -22,7 +17,7 @@ var KeystoreInspector:InspectorFactory = new InspectorFactory({
 
     startStep: INSPECTOR_TYPE.POST_APP_SCAN,
 
-    version: "1.0.0",
+    version: "1.0.1",
     tags: [
         {
             name:"keystore.type",
@@ -145,7 +140,8 @@ var KeystoreInspector:InspectorFactory = new InspectorFactory({
     eventListenerSources: {
         "hook.keystore.load": {
             source: `
-                Logger.info("[INSPECTOR][TASK] KeystoreInspector keystore loaded ")
+                let ctx = pEvent.getContext();
+                ctx.LOG.info("[INSPECTOR][TASK] KeystoreInspector keystore loaded ")
                 //pContext.get.method("java.security.KeyStore.load(<java.io.InputStream><char>[])<void>")
                 //        .addArgsValue(ctx.hook.lastSession(), event)
             `,
@@ -155,7 +151,8 @@ var KeystoreInspector:InspectorFactory = new InspectorFactory({
             source: `
                 // <ts>
                 if(!pEvent.data.name.endsWith(".bks")) return 1;
-                Logger.info("[INSPECTOR][TASK] KeystoreInspector BKS detected : ",pEvent.data.name);
+                let ctx = pEvent.getContext();
+                ctx.LOG..info("[INSPECTOR][TASK] KeystoreInspector BKS detected : ",pEvent.data.name);
                 (pEvent.data as ModelFile).tags.push(pCtx.getTagManager().getTag("keystore.type.bks").getUUID());
             `,
             lang: "ts"
@@ -163,7 +160,8 @@ var KeystoreInspector:InspectorFactory = new InspectorFactory({
     },
     eventListeners: {
         "hook.keystore.load": function(pEvent:BusEvent<any>):any{
-            Logger.info("[INSPECTOR][TASK] KeystoreInspector keystore loaded ")
+            let ctx = pEvent.getContext();
+            ctx.LOG.info("[INSPECTOR][TASK] KeystoreInspector keystore loaded ")
             //ctx.get.method("java.security.KeyStore.load(<java.io.InputStream><char>[])<void>")
             //        .addArgsValue(ctx.hook.lastSession(), event)
         },
@@ -172,8 +170,8 @@ var KeystoreInspector:InspectorFactory = new InspectorFactory({
 
 
             const ctx = pEvent.getContext();
-            
-            Logger.info("[INSPECTOR][TASK] KeystoreInspector BKS detected : ",pEvent.data.name);
+
+            ctx.LOG.info("[INSPECTOR][TASK] KeystoreInspector BKS detected : ",pEvent.data.name);
             //console.log("Note found : ","value:"+event.data.name));
         
             
