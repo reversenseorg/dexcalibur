@@ -83,7 +83,7 @@ export default  class ModelField extends Savable implements IPersistent
         this._.v = val;
     }
 
-    getValue(val:any){
+    getValue(){
         return this._.v;
     }
 
