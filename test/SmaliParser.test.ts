@@ -3,6 +3,7 @@ import SmaliParser from "../dist/src/SmaliParser.js";
 import {TestHelper} from "../dist/src/TestHelper.js";
 import DexcaliburProject from "../dist/src/DexcaliburProject.js";
 import {Modifier} from "../src/AccessFlags.js";
+import {CONST} from "../src/CoreConst.js";
 
 describe('SmaliParser', function() {
 
@@ -277,5 +278,160 @@ describe('SmaliParser', function() {
             let parser = new SmaliParser( TestHelper.getDexcaliburProject());
             expect(parser.ctx).to.be.an.instanceOf(DexcaliburProject)
         });
+    });
+
+
+    // Source https://calebfenton.github.io/2016/07/31/understanding_dalvik_static_fields_1_of_2/
+    describe('field ', function() {
+
+        it('valid 1', function () {
+            let parser = new SmaliParser();
+            let src_line = 0;
+            let test_line = ["private", "static", "TEST_FIELD_NAME:I", "=", "0x24"];
+            let f1 = parser.field(test_line, src_line);
+            expect(f1.name).to.be.equals('TEST_FIELD_NAME');
+            expect(f1.type.name).to.be.equals(CONST.TYPES.I);
+            expect(f1.getValue()).to.be.equals(0x24);
+        });
+
+        describe('test Field values and types', function() {
+
+            it('valid Int', function () {
+                let parser = new SmaliParser();
+                let src_line = 0;
+                let test_line = ["static", "myInt:I", "=", "-4"];
+                let f1 = parser.field(test_line, src_line);
+                expect(f1.type.name).to.be.equals(CONST.TYPES.I);
+                expect(f1.getValue()).to.be.equals(-4);
+            });
+
+            it('valid Short', function () {
+                let parser = new SmaliParser();
+                let src_line = 0;
+                let test_line = ["static", "myShort:S", "=", "0xDEADS"];
+                let f1 = parser.field(test_line, src_line);
+                expect(f1.type.name).to.be.equals(CONST.TYPES.S);
+                expect(f1.getValue()).to.be.equals(0xDEAD);
+            });
+
+            it('valid Boolean', function () {
+                let parser = new SmaliParser();
+                let src_line = 0;
+                let test_line = ["static", "myBoolean:Z", "=", "false"];
+                let f1 = parser.field(test_line, src_line);
+                expect(f1.type.name).to.be.equals(CONST.TYPES.Z);
+                expect(f1.getValue()).to.be.equals(false);
+            });
+
+            it('valid Char', function () {
+                let parser = new SmaliParser();
+                let src_line = 0;
+                let test_line = ["static", "myChar:C", "=", "\n"];
+                let f1 = parser.field(test_line, src_line);
+                expect(f1.type.name).to.be.equals(CONST.TYPES.C);
+                expect(f1.getValue()).to.be.equals('\n');
+            });
+
+            it('valid Long', function () {
+                let parser = new SmaliParser();
+                let src_line = 0;
+                let test_line = ["static", "myLong:J", "=", "1000000000l"];
+                let f1 = parser.field(test_line, src_line);
+                expect(f1.type.name).to.be.equals(CONST.TYPES.J);
+                expect(f1.getValue()).to.be.equals(1000000000);
+            });
+
+            it('valid Long 2', function () {
+                let parser = new SmaliParser();
+                let src_line = 0;
+                let test_line = ["static", "myOtherLong:J", "=", "0x42424242L"];
+                let f1 = parser.field(test_line, src_line);
+                expect(f1.type.name).to.be.equals(CONST.TYPES.J);
+                expect(f1.getValue()).to.be.equals(0x42424242);
+            });
+
+            it('valid Float', function () {
+                let parser = new SmaliParser();
+                let src_line = 0;
+                let test_line = ["static", "myFloat:F", "=", "NaN"];
+                let f1 = parser.field(test_line, src_line);
+                expect(f1.type.name).to.be.equals(CONST.TYPES.F);
+                expect(f1.getValue()).to.be.NaN;
+            });
+
+            it('valid Float 2', function () {
+                let parser = new SmaliParser();
+                let src_line = 0;
+                let test_line = ["static", "mySecondFloat:F", "=", "NaNf"];
+                let f1 = parser.field(test_line, src_line);
+                expect(f1.type.name).to.be.equals(CONST.TYPES.F);
+                expect(f1.getValue()).to.be.NaN;
+            });
+
+            it('valid Float 3', function () {
+                let parser = new SmaliParser();
+                let src_line = 0;
+                let test_line = ["static", "myThirdFloat:F", "=", "3.14159265357"];
+                let f1 = parser.field(test_line, src_line);
+                expect(f1.type.name).to.be.equals(CONST.TYPES.F);
+                expect(f1.getValue()).to.be.equals(3.14159265357);
+            });
+
+            it('valid Float 4', function () {
+                let parser = new SmaliParser();
+                let src_line = 0;
+                let test_line = ["static", "myFourthFloat:F", "=", "3.14159265357f"];
+                let f1 = parser.field(test_line, src_line);
+                expect(f1.type.name).to.be.equals(CONST.TYPES.F);
+                expect(f1.getValue()).to.be.equals(3.14159265357);
+            });
+
+            it('valid Double', function () {
+                let parser = new SmaliParser();
+                let src_line = 0;
+                let test_line = ["static", "myDouble:D", "=", "10000000.9d"];
+                let f1 = parser.field(test_line, src_line);
+                expect(f1.type.name).to.be.equals(CONST.TYPES.D);
+                expect(f1.getValue()).to.be.equals(10000000.9);
+            });
+
+            it('valid Object null', function () {
+                let parser = new SmaliParser();
+                let src_line = 0;
+                let test_line = ["static", "myObject:Ljava/lang/Object;", "=", "null"];
+                let f1 = parser.field(test_line, src_line);
+                expect(f1.type.name).to.be.equals('java.lang.Object');
+                expect(f1.getValue()).to.be.equals(null);
+            });
+
+            it('valid String', function () {
+                let parser = new SmaliParser();
+                let src_line = 0;
+                let test_line = ["static", "myObject:Ljava/lang/String;", "=", "\"Neuro from the nerves, the \\\"silver\\\" paths.\""];
+                let f1 = parser.field(test_line, src_line);
+                expect(f1.type.name).to.be.equals('java.lang.String');
+                expect(f1.getValue()).to.be.equals("Neuro from the nerves, the \"silver\" paths.");
+            });
+
+            it('valid String 2', function () {
+                let parser = new SmaliParser();
+                let src_line = 0;
+                let test_line = ["static", "myObject:Ljava/lang/String;", "=", "\"2222\""];
+                let f1 = parser.field(test_line, src_line);
+                expect(f1.type.name).to.be.equals('java.lang.String');
+                expect(f1.getValue()).to.be.equals("222");
+            });
+
+
+            it('valid Byte', function () {
+                let parser = new SmaliParser();
+                let src_line = 0;
+                let test_line = ["static", "myByte:B", "=", "0x5t"];
+                let f1 = parser.field(test_line, src_line);
+                expect(f1.type.name).to.be.equals(CONST.TYPES.B);
+                expect(f1.getValue()).to.be.equals(0x5);
+            });
+        });
+
     });
 });

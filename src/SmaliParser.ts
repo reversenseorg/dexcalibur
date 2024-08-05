@@ -478,9 +478,51 @@ export default class SmaliParser
         // parse value if available
         if(src_arr.length>0){
             // TODO : parse value
-            f.setValue(src_arr.pop());
+            let fValue = this.parseValue(src_arr.pop(), f.type.name);
+            f.setValue(fValue);
         }
         return f;
+    }
+
+    parseValue(value, type) {
+        // Source: https://github.com/JesusFreke/smali/blob/master/smali/src/main/jflex/smaliLexer.jflex#L203
+        switch(type) {
+            case CONST.TYPES.I:
+            case CONST.TYPES.B:
+            case CONST.TYPES.F:
+            case CONST.TYPES.D:
+            case CONST.TYPES.S:
+            case CONST.TYPES.J:
+                let numberFromValue = Number(value);
+                if (isNaN(numberFromValue) && value.length > 0) {
+                    numberFromValue = Number(value.substring(0, value.length - 1));
+                    if (isNaN(numberFromValue)) {
+                        if ((value === 'NaN') || (value.substring(0, value.length - 1) === 'NaN')) {
+                            console.log('yop')
+                            return NaN;
+                        }
+                        else {
+                            return value;
+                        }
+                    }
+                }
+                return numberFromValue;
+            case CONST.TYPES.Z:
+                if (value === "true") {
+                    return true;
+                }
+                if (value === "false") {
+                    return false;
+                }
+                else {
+                    return value
+                }
+            default:
+                if (value === "null") {
+                    return null;
+                }
+                return value;
+        }
     }
 
     getBehaviorFor(pElement:string):any{
