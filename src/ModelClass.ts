@@ -243,6 +243,10 @@ export default class ModelClass extends Savable implements INode, IPersistent
         return this.name;
     }
 
+    getSimpleName():string{
+        return this.simpleName;
+    }
+
     signature():string{
         return this.name;
     }
@@ -295,12 +299,20 @@ export default class ModelClass extends Savable implements INode, IPersistent
         return this[seed];
     }
 
+    getSource():string{
+        return this.source;
+    }
+
     getAlias():string{
         return this.alias;
     }
 
     setAlias(name:string){
         this.alias = name;
+    }
+
+    hasAlias():boolean{
+        return !(this.alias == null || this.alias === '');
     }
 
     hasAliasedMethod( pAlias:string):boolean{
@@ -631,6 +643,16 @@ export default class ModelClass extends Savable implements INode, IPersistent
             // TODO : create NodeChange
             this.extends = cls;
         }
+    }
+
+    isAnonymous() {
+        if (!this.simpleName.includes('$'))
+            return false;
+        return !isNaN(parseInt(this.simpleName.substring(this.simpleName.lastIndexOf('$') + 1)));
+    }
+
+    isInnerClass(): boolean {
+        return this.innerClass;
     }
 }
 

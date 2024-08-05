@@ -347,7 +347,7 @@ export default class ModelMethod extends Savable implements INode,IPersistent
 
     import(obj:any){
 
-        // raw impport
+        // raw import
         super.import(obj);
 
         // modifiers
@@ -394,16 +394,16 @@ export default class ModelMethod extends Savable implements INode,IPersistent
                     case "_useMethod":
                         obj._useMethod = [];
                         for(let j in this._useMethod){
-                            if(this._useMethod[i] != undefined){
-                                obj._useMethod.push(i); //this._useMethod[i].__signature__);
+                            if(this._useMethod[j] != undefined){
+                                obj._useMethod.push(j); //this._useMethod[i].__signature__);
                             }
                         }
                         break;
                     case "_useField":
                         obj._useField = [];
                         for(let j in this._useField){
-                            if(this._useField[i] != undefined)
-                                obj._useField.push(this._useField[i].__signature__);
+                            if(this._useField[j] != undefined)
+                                obj._useField.push(this._useField[j].__signature__);
                         }
                         break;
                     case "_callers":
@@ -483,40 +483,31 @@ export default class ModelMethod extends Savable implements INode,IPersistent
     }
 
 
-
-   getTaggedBlock(tag:string){
+    getTaggedBlock(tag:string){
         for(let i in this.instr){
             if(this.instr[i].tag==tag) return this.instr[i];
         }
         return null;
     }
 
-
-   getBasicBlocks():ModelBasicBlock[]{
+    getBasicBlocks():ModelBasicBlock[]{
         return this.instr;
     }
 
-   getBlock(offset:number):ModelBasicBlock{
-        for(let i:number=0; i<this.instr.length; i++){
-            if(i==offset) return this.instr[i];
-        }
+    getBlock(offset:number):ModelBasicBlock{
+       if (offset >= 0 && offset < this.instr.length)
+           return this.instr[offset];
         return null;
-   }
+    }
 
-   getModifier():Modifier{
+    getModifier():Modifier{
         return this.modifiers;
     }
 
-   getInstr(offsetBB:number,offsetInstr:number){
-        for(let i:number=0; i<this.instr.length; i++){
-            if(i == offsetBB){
-                for(let j:number=0; j<this.instr[i].stack.length; j++){
-                    if(j == offsetInstr){
-                        return this.instr[i].stack[j];
-                    }
-                }
-            }
-        }
+    getInstr(offsetBB:number, offsetInstr:number){
+        let block = this.getBlock(offsetBB);
+        if (block != null)
+            return block.getInstruction(offsetInstr);
         return null;
     }
 
@@ -528,7 +519,7 @@ export default class ModelMethod extends Savable implements INode,IPersistent
      * @param offsetInstr
      * @param windowSize
      */
-   getInstrNearTo(offsetBB:number,offsetInstr:number,windowSize:number=3):ModelInstruction[]{
+    getInstrNearTo(offsetBB:number,offsetInstr:number,windowSize:number=3):ModelInstruction[]{
         let min:number = offsetInstr-windowSize;
         let max:number = offsetInstr+windowSize;
         let instr:ModelInstruction[] = [];
@@ -545,8 +536,7 @@ export default class ModelMethod extends Savable implements INode,IPersistent
         return instr;
     }
 
-
-   newImplementationBy(cls:ModelClass):ModelMethod{
+    newImplementationBy(cls:ModelClass):ModelMethod{
         let meth:any = new ModelMethod();
 
         // partial deep copy :
@@ -563,52 +553,52 @@ export default class ModelMethod extends Savable implements INode,IPersistent
         return meth as ModelMethod;
     }
 
-   setProbing(flag:boolean){
+    setProbing(flag:boolean){
         this.probing = flag;
     }
 
-   addCallValue(dyn:any){
+    addCallValue(dyn:any){
         this.dyn.push(dyn);
         return this;
     }
 
-   getCallValues(dyn:any){
+    getCallValues(dyn:any){
         return this.dyn;
     }
 
-   getAlias():string{
+    getAlias():string{
         return this.alias;
     }
-   setAlias(name:string){
+    setAlias(name:string){
         this.alias = name;
         this.__aliasedCallSignature__ = this.aliasedCallSignature();
     }
-   setEnclosingClass(cls:ModelClass){
+    setEnclosingClass(cls:ModelClass){
         this.enclosingClass = cls;
     }
-   getEnclosingClass():ModelClass{
+    getEnclosingClass():ModelClass{
         return this.enclosingClass;
     }
-   setReturnType(rettype:ModelObjectType|ModelBasicType){
+    setReturnType(rettype:ModelObjectType|ModelBasicType){
         this.ret = rettype;
     }
-   getReturnType():ModelObjectType|ModelBasicType{
+    getReturnType():ModelObjectType|ModelBasicType{
         return this.ret;
     }
-   setArgsType(argsType:any){
+    setArgsType(argsType:any){
         this.args = argsType;
     }
-   getArgsType():(ModelObjectType|ModelBasicType)[]{
+    getArgsType():(ModelObjectType|ModelBasicType)[]{
         return this.args;
     }
-   hasArgs():boolean{
+    hasArgs():boolean{
         return this.args.length > 0;
     }
 
-   getCallers():string[]|ModelMethod[]{
+    getCallers():string[]|ModelMethod[]{
         return this._callers;
     }
-   addCaller(meth:ModelMethod){
+    addCaller(meth:ModelMethod){
         let f:boolean = false;
         const m = meth.signature();
 
@@ -626,21 +616,18 @@ export default class ModelMethod extends Savable implements INode,IPersistent
     //if(this._callers.indexOf(meth.signature() as any) == -1)
     //    this._callers.push(meth.signature() as any);
     }
-   getMethodUsed():any{
-    return this._useMethod;
-}
-   addMethodUsed(method:ModelMethod, call:ModelCall){
+    getMethodUsed():any{
+       return this._useMethod;
+    }
+    addMethodUsed(method:ModelMethod, call:ModelCall){
         if(this._useMethod[method.signature()] == null)
             this._useMethod[method.signature()] = [];
-
         this._useMethod[method.signature()].push(call);
     }
-
     getFieldUsed():any{
         return this._useField;
     }
-
-   getTryStartBlock(pLabel:string):ModelBasicBlock{
+    getTryStartBlock(pLabel:string):ModelBasicBlock{
         const bb:ModelBasicBlock[] = this.getBasicBlocks();
         for(let i=0; i<bb.length; i++){
             if(bb[i].getTryStartLabel()==pLabel){
@@ -650,7 +637,7 @@ export default class ModelMethod extends Savable implements INode,IPersistent
         return null;
     }
 
-   getTryEndBlock(pLabel:string):ModelBasicBlock{
+    getTryEndBlock(pLabel:string):ModelBasicBlock{
        const bb:ModelBasicBlock[] = this.getBasicBlocks();
         for(let i=0; i<bb.length; i++){
             if(bb[i].getTryEndLabel()==pLabel){
@@ -660,8 +647,7 @@ export default class ModelMethod extends Savable implements INode,IPersistent
         return null;
     }
 
-
-   getCatchBlock(pLabel:string):ModelBasicBlock{
+    getCatchBlock(pLabel:string):ModelBasicBlock{
         const bb:ModelBasicBlock[] = this.getBasicBlocks();
         for(let i=0; i<bb.length; i++){
             if(bb[i].getCatchLabel()==pLabel){
@@ -692,7 +678,6 @@ export default class ModelMethod extends Savable implements INode,IPersistent
 
         return null;
     }
-
     appendDataBlock(pBlock:ModelDataBlock, callback:any=null){
         pBlock.setParent(this, this.datas.length);
         this.datas.push(pBlock);

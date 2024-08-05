@@ -281,6 +281,12 @@ export default class ModelBasicBlock
         return this.stack;
     }
 
+    getInstruction(offset: number):ModelInstruction {
+        if (offset >= 0 && offset < this.stack.length)
+            return this.stack[offset];
+        return null;
+    }
+
     toJsonObject():any {
         const o:any = {};
         Object.keys(this).map((vPpt) => {
