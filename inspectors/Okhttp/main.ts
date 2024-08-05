@@ -19,13 +19,9 @@ var OkhttpInspector:InspectorFactory = new InspectorFactory({
                 req: 'method("__signature__:/\\((<[\\w.]*>)?<java.lang.String><int><int><java.lang.String>' +
                     '<boolean><boolean><boolean><boolean>(<[\\w.]*>)?\\)/")'
 
-                //method("__signature__:/\\((<[\\w.]*>)?<java.lang.String><int><int><java.lang.String><boolean><boolean><boolean><boolean>(<[\\w.]*>)?\\)/")'
-                // okhttp3 v3.9.x v3.14.x  source https://github.com/square/okhttp/blob/c0739a419949a24d0c34cf38a25953c60871268b/okhttp/src/main/java/okhttp3/HttpUrl.java#L1682
-                // 'method("__signature__:/\\(<java.lang.String><int><int><java.lang.String><boolean><boolean><boolean><boolean><java.nio.charset.Charset>\\)<java.lang.String>$/")'
-                // okhttp3 v4.0 - v4.10  source https://github.com/square/okhttp/blob/okhttp_4.10.x/okhttp/src/main/kotlin/okhttp3/HttpUrl.kt
-                //Signature found match last release 4 kotlin
+                //  method("__signature__:/\\((<[\\w.]*>)?<java.lang.String><int><int><java.lang.String><boolean><boolean><boolean><boolean>(<[\\w.]*>)?\\)/")
                 // Strange signatures with companion
-                //  canonicalize$okhttp method("__signature__:/\\(<java.lang.String><int><int><java.lang.String><boolean><boolean><boolean><boolean><java.nio.charset.Charset>\\)<java.lang.String>$/")
+                // canonicalize$okhttp method("__signature__:/\\(<java.lang.String><int><int><java.lang.String><boolean><boolean><boolean><boolean><java.nio.charset.Charset>\\)<java.lang.String>$/")
                 // writeCanon(okio buff, string, int int
                 // canonicalize$okhttp$default httpurl companion, string, int int, string, bool, bool , bool , bool, charset, int, object) string.
 

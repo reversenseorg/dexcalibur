@@ -1,6 +1,5 @@
 import InspectorFactory, {FlattenTagCategoryOptions} from "../../src/InspectorFactory.js";
 import {INSPECTOR_TYPE} from "../../src/Inspector.js";
-import * as Log from "../../src/Logger.js";
 
 
 // Regex match hash to hash function
@@ -8,7 +7,6 @@ import * as Log from "../../src/Logger.js";
 // Source Hashcat hashes database example: https://hashcat.net/wiki/doku.php?id=example_hashes
 // Source https://github.com/HashPals/Name-That-Hash/blob/main/name_that_hash/hashes.py (2021-2023)
 const HASH_TAG_CATEGORY_NAME = "crypto.hash";
-let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
 var hashIdentifierTags: FlattenTagCategoryOptions[] = [
     {
