@@ -498,7 +498,6 @@ export default class SmaliParser
                     numberFromValue = Number(value.substring(0, value.length - 1));
                     if (isNaN(numberFromValue)) {
                         if ((value === 'NaN') || (value.substring(0, value.length - 1) === 'NaN')) {
-                            console.log('yop')
                             return NaN;
                         }
                         else {
