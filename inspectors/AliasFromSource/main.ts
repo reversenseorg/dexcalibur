@@ -6,7 +6,7 @@ import InspectorFactory from "../../src/InspectorFactory.js";
 var AliasFromSourceInspector:InspectorFactory = new InspectorFactory({
     id: "AliasFromSource",
     startStep: INSPECTOR_TYPE.POST_APP_SCAN,
-    version: "1.0.23",
+    version: "1.0.24",
     hookSet: {
         id: "AliasFromSource",
         name: "Alias From Source",
@@ -21,10 +21,12 @@ var AliasFromSourceInspector:InspectorFactory = new InspectorFactory({
                 console.log("[INSPECTOR][ALIAS_FROM_SOURCE] Try to set default alias for classes with source");
                 let ctx = pEvent.getContext();
                 let classFinderResult = ctx.getSearchEngine().class("source:/^(?!null$)(?!SourceFile$).+/")
-                                                             .filter("@discover.static")
+                                                             .exclude("@discover.internal") 
                                                              .filter("alias:/^(null)?$/");
                                                              // Source do not contain null or SourceFile and is not empty
-                // class("@discover.static").filter("source:/^(?!null$)(?!SourceFile$).+/").filter("alias:/null/") 
+                // class("source:/^(?!null$)(?!SourceFile$).+/").filter("@discover.static").filter("alias:/^(null)?$/");
+                // class("@discover.static").filter("source:/^(?!null$)(?!SourceFile$).+/").filter("alias:/null/")
+                console.log("[INSPECTOR][ALIAS_FROM_SOURCE] Classes found by request: ", classFinderResult.count())
                 let aliasCounter: number = 0;
                 classFinderResult.foreach((pOffset, pClass) => {
                     let classSource = pClass.getSource();
@@ -44,7 +46,6 @@ var AliasFromSourceInspector:InspectorFactory = new InspectorFactory({
                     }
                     if (classSource !== simpleNameToReplace) {
                         let newAlias = classSource + simpleNameToKeep
-                        console.log("newAlias:", newAlias);
                         let pkg = pClass.getPackage();
                         if (pkg != null && pkg.hasAliasedClass(newAlias))
                             newAlias += '_' + simpleNameToReplace
