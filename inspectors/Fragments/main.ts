@@ -121,7 +121,7 @@ var FragmentInspector:InspectorFactory = new InspectorFactory({
                 data['arg1_options'] = arguments[1];
             }
             var intent = arguments[0];
-            dumpIntent(intent, data, true);
+            // dumpIntent(intent, data, true);
             DXC.send(
                 "@@__HOOK_ID__@@",
                 "@@__FRAG_ID__@@",
@@ -147,7 +147,7 @@ var FragmentInspector:InspectorFactory = new InspectorFactory({
                 data['arg2_options'] = arguments[2];
             }
             var intent = arguments[0];
-            dumpIntent(intent, data, true);
+            // dumpIntent(intent, data, true);
             DXC.send(
                 "@@__HOOK_ID__@@",
                 "@@__FRAG_ID__@@",
