@@ -312,7 +312,7 @@ export class JavaHookBuilder{
                     ${this._replaceFragID(code,pFragment[0].getUID()) }   
                 }catch(fe){
                     DXC.sendFragmentError(-1, "@@__HOOK_ID__@@", "${pFragment[0].getUID()}", fe);
-                }    
+                }
             `;
 
             // replace token
@@ -411,8 +411,8 @@ export class JavaHookBuilder{
         pJavaHook.setVariableID(tags["@@__VAR__@@"]);
 
         let varDecl = '';
-        if(pJavaHook.hasVariables()){
-            varDecl = 'let @@__VAR__@@ = {};';
+        if (pJavaHook.hasVariables()) {
+            varDecl = pJavaHook.setupVariables();
         }
         //this.code.varID = tags["@@__VAR__@@"];
 
@@ -579,14 +579,12 @@ export class JavaHookBuilder{
           Define vars per key point namespace
          */
 
-
-
         let script = `
     
             let cls_@@__CLSDEF__@@:any = null;
             let meth_@@__METHDEF__@@:any = null;
             
-            ${pJavaHook.hasVariables()? 'let @@__VAR__@@:any = {};':''}
+            ${pJavaHook.hasVariables()? pJavaHook.setupVariables():''}
             
             try{
                 cls_@@__CLSDEF__@@ = Java.use('@@__FQCN__@@');

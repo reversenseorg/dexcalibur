@@ -135,12 +135,27 @@ export abstract class AbstractHook {
         return this._varMap[pID];
     }
 
+    getVarMap(){
+        return this._varMap;
+    }
+
     setVariableID(pID:string){
         this._varID = pID;
     }
 
     getVariableID():string {
         return this._varID;
+    }
+
+    setupVariables():string{
+        let code= "\t\tlet " + this.getVariableID() + `: Record<string, any> = {
+            `;
+        for(let i in this.getVarMap()){
+            code += "\t\t"+i+":";
+            code += this.getVariable(i).write();
+        }
+        return code+`
+            };`;
     }
 
     getLoadKeyPoint():KeyPoint {
@@ -521,17 +536,16 @@ export abstract class AbstractHook {
             })
         }
 
-
-        /*if(this._varID != null){
+        if (this.hasVariables()) {
             o.variables = {
-                id: this._varID,
+                id: this.getVariableID(),
                 data: {}
             };
             //console.log(this.variables);
-            for(let i in this._vars){
-                o.variables.data[i] = this.variables[i].write();
+            for(let i in this.getVarMap()){
+                o.variables.data[i] = this.getVariable(i).write();
             }
-        }*/
+        }
 
         /*o.code = {
             //variable: (this.code.variable!=null)? UT.b64_decode(this.code.dynamic) : null,

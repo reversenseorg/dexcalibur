@@ -59,6 +59,10 @@ export class HookVariableArray extends  HookVariable
         return str.substr(0,str.length-1)+`
             ],`;
     }
+
+    indexOf(value: any) {
+        return this.data.indexOf(value)
+    }
 }
 
 /*

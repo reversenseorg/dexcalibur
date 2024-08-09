@@ -317,8 +317,8 @@ export class NativeHookBuilder{
         pNativeHook.setVariableID(tags["@@__VAR__@@"]);
 
         let varDecl = '';
-        if(pNativeHook.hasVariables()){
-            varDecl = 'let @@__VAR__@@ = {};';
+        if (pNativeHook.hasVariables()) {
+            varDecl = pNativeHook.setupVariables();
         }
 
         //this.code.varID = tags["@@__VAR__@@"];
