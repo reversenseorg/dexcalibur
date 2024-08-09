@@ -29,7 +29,7 @@ export default new InspectorFactory({
 
     description: "Update the application representation with Custom classloader and reflection data",
 
-    version: "1.0.1",
+    version: "1.0.3",
     startStep: INSPECTOR_TYPE.POST_APP_SCAN,
 
     //webapi: DYNAMICLOADER_WEB_API,
@@ -116,7 +116,7 @@ export default new InspectorFactory({
                 autoEmit: true,
                 emitEvent: "hook.dex.find.class",
                 /*preprocessor: `
-                    pCtx.getInspector("DynamicLoader").emits("hook.dex.find.class", pEvent.data);
+                    pCtx.getInspector("DynamicLoader").emits("hook.dex.find.class", pEvent.getData().data);
                 `,
                /* onMatch: function (ctx:DexcaliburProject, event:Event):void {
                     ctx.getInspector("DynamicLoader").emits("hook.dex.find.class", event.data);
@@ -149,9 +149,10 @@ export default new InspectorFactory({
 
                 // the event data contains the bytecode of the Dex file
                 /*preprocessor: `
-                    pCtx.getInspector("DynamicLoader").emits("hook.dex.classloader.new", pEvent.data);
+                    pCtx.getInspector("DynamicLoader").emits("hook.dex.classloader.new", pEvent.getData().data);
                 `,*/
                 before: ` 
+                        //<ts>={
                         DXC.send(
                             "@@__HOOK_ID__@@",
                             "@@__FRAG_ID__@@",
@@ -159,7 +160,8 @@ export default new InspectorFactory({
                                 arg0: arguments[0],
                                 arg1: arguments[1],
                                 arg2: arguments[2],
-                                __hidden__data: DXC.java().readFile(arguments[0])
+                                //__hidden__data: DXC.java().readFile(arguments[0])
+                                __hidden__data: [100,102,103,104,105] //DUMMY DATA
                             }
                         );
                         /*
@@ -170,7 +172,8 @@ export default new InspectorFactory({
                                 arg0: arguments[0],
                                 arg1: arguments[1],
                                 arg2: arguments[2],
-                                __hidden__data: DXC.java().readFile(arguments[0])
+                                // __hidden__data: DXC.java().readFile(arguments[0])
+                                __hidden__data: [100,102,103,104,105] //DUMMY DATA
                             },
                             after: true, 
                             msg: "DexClassLoader.<init>()", 
@@ -193,26 +196,22 @@ export default new InspectorFactory({
                     ctx.getInspector("DynamicLoader").emits("hook.dex.load", event.data);
                 },
                 preprocessor: ` 
-                    pCtx.getInspector("DynamicLoader").emits("hook.dex.load", pEvent.data);
+                    pCtx.getInspector("DynamicLoader").emits("hook.dex.load", pEvent.getData().data);
                 `,*/
 
                 autoEmit: true,
                 emitEvent: "hook.dex.load",
                 variables: {
-                    names: new HookVariableArray([])
+                    names: new HookVariableArray(['HelloWorld'])
                 },
                 before: `
-                
+                        //<ts>={
                         let doCondition = true;
-            
-            
-                        if(@@__VAR__@@.names.indexOf(arguments[0])>-1) 
+                        console.log('VAR.name : ', @@__VAR__@@.names);
+                        if (@@__VAR__@@.names?.indexOf(arguments[0]) > -1) {
                             doCondition = false;
-                        
-            
-            
+                        }
                         if(doCondition){
-                        
                             DXC.send(
                                 "@@__HOOK_ID__@@",
                                 "@@__FRAG_ID__@@",
@@ -221,10 +220,11 @@ export default new InspectorFactory({
                                     odex: arguments[1],
                                     arg2: arguments[2],
                                     isNew: true,
-                                    __hidden__data: DXC.java().readFile(arguments[0])
+                                    //__hidden__data: DXC.java().readFile(arguments[0])                    
+                                    __hidden__data: [100,102,103,104,105] //DUMMY DATA
+
                                 }
                             );
-                            
                             /*
                             send({ 
                                 id:"@@__HOOK_ID__@@", 
@@ -234,7 +234,8 @@ export default new InspectorFactory({
                                     odex: arguments[1],
                                     arg2: arguments[2],
                                     isNew: true,
-                                    __hidden__data: DXC.java().readFile(arguments[0])
+                                    // __hidden__data: DXC.java().readFile(arguments[0])
+                                    __hidden__data: [100,102,103,104,105] //DUMMY DATA
                                 },
                                 after: false, 
                                 msg: "DexFile.loadDex()", 
@@ -295,7 +296,7 @@ export default new InspectorFactory({
                     ctx.getInspector("DynamicLoader").emits("hook.dex.new", event.data);
                 },
                 preprocessor: ` 
-                    pCtx.getInspector("DynamicLoader").emits("hook.dex.new", pEvent.data);
+                    pCtx.getInspector("DynamicLoader").emits("hook.dex.new", pEvent.getData().data);
                 `,*/
                 autoEmit: true,
                 emitEvent: "hook.dex.new",
@@ -332,9 +333,9 @@ export default new InspectorFactory({
 
                 // the event data contains the bytecode of the Dex file
                 /*preprocessor: `
-                    pCtx.getDevice().pull(pEvent.data.)
+                    pCtx.getDevice().pull(pEvent.getData().data)
 
-                    pCtx.getInspector("DynamicLoader").emits("hook.dex.classloader.new", pEvent.data);
+                    pCtx.getInspector("DynamicLoader").emits("hook.dex.classloader.new", pEvent.getData().data);
                 `,*/
                 before: ` 
                         // to prevent out of memory issue, byte array is wrote into application folder
@@ -358,7 +359,8 @@ export default new InspectorFactory({
                                 __: DXC.NODE.FILE,
                                 path: d+"/"+p,
                                 arg2: arguments[2],
-                                __hidden__data: DXC.java().readFile(arguments[0])
+                                //__hidden__data: DXC.java().readFile(arguments[0])
+                                __hidden__data: [100,102,103,104,105] //DUMMY DATA
                             }
                         );
                 `
@@ -450,21 +452,21 @@ export default new InspectorFactory({
 
         "hook.dex.load": function (pEvent:BusEvent<any>):void {
             Logger.info("hook.dex.load : ");
-            Logger.info(JSON.stringify(pEvent));
+            // JSON stringify can cause an execution crash (Converting circular structure to JSON, timeout)
+            // Logger.info(JSON.stringify(pEvent));
 
             const ctx = pEvent.getContext();
-            if (pEvent.data.isNew == false) return null;
-
-            let hook = ctx.hook.getHookByID(Util.b64_decode(pEvent.data.hook));
-
-            Logger.info("[INSPECTOR][TASK] DynLoaderInspector new Dex file loaded :\tDex: ", pEvent.data.dex);
+            if (pEvent.getData().data.isNew == false) return null;
+            let hook = ctx.hook.getHookByID(pEvent.getData().hook.getGUID());
+            Logger.info("[INSPECTOR][TASK] DynLoaderInspector new Dex file loaded :\tDex: ", pEvent.getData().data.dex);
 
             // update variable for next time
-            hook.getVariable('names').getData().push(pEvent.data.dex);
+            console.log('Just before get data: ',  hook.getVariable('names').getData());
+            hook.getVariable('names').getData().push(pEvent.getData().data.dex);
         },
 
         "hook.dex.new": function (pEvent:BusEvent<any>):void {
-            Logger.info("[INSPECTOR][TASK] DynLoaderInspector new Dex file", pEvent.data.path);
+            Logger.info("[INSPECTOR][TASK] DynLoaderInspector new Dex file", pEvent.getData().data.path);
         },
 
         "hook.reflect.class.get": function (pEvent:BusEvent<any>):void {
@@ -473,7 +475,7 @@ export default new InspectorFactory({
 
             // search if the method exists
 
-            Logger.info("[INSPECTOR][TASK] DynLoaderInspector search Class ", pEvent.data.fqcn);
+            Logger.info("[INSPECTOR][TASK] DynLoaderInspector search Class ", pEvent.getData().data.fqcn);
             //Logger.info(JSON.stringify(event));
 
         },
@@ -483,10 +485,10 @@ export default new InspectorFactory({
             //Logger.info(JSON.stringify(event));
 
             //console.log(event);
-            if (pEvent == null || pEvent.data == null) return false;
+            if (pEvent == null || pEvent.getData().data == null) return false;
             const ctx = pEvent.getContext();
             const tmgr = ctx.getTagManager();
-            let data:any = pEvent.data, caller:ModelMethod = null, callers:any = null;
+            let data:any = pEvent.getData().data, caller:ModelMethod = null, callers:any = null;
             let meth:ModelMethod;
 
             //console.log(data);
@@ -549,10 +551,10 @@ export default new InspectorFactory({
         "hook.dex.find.class": function ( pEvent:BusEvent<any>):boolean {
             Logger.info("[INSPECTOR][TASK] DynLoaderInspector external class loaded dynamically ");
             //Logger.info(JSON.stringify(event));
-            if (pEvent == null || pEvent.data == null) return false;
+            if (pEvent == null || pEvent.getData().data == null) return false;
 
             let ctx = pEvent.getContext();
-            let data = pEvent.data;
+            let data = pEvent.getData().data;
             let cls = ctx.find.get.class(data.__class__);
             //console.log(cls, data);
 
@@ -574,7 +576,7 @@ export default new InspectorFactory({
 
 
 
-            if(pEvent.data==null) return;
+            if(pEvent.getData().data==null) return;
 
             const ctx = pEvent.getContext();
             const platform_tag = ctx.getTagManager().getTag("discover.internal");
@@ -582,13 +584,13 @@ export default new InspectorFactory({
             const dast_tag = ctx.getTagManager().getTag("discover.dynamic");
 
             const rtWorkingDir = ctx.workspace.getRuntimeBcDir();
-            const dexFileName = _path_.basename(pEvent.data.arg0);
+            const dexFileName = _path_.basename(pEvent.getData().data.arg0);
             const localDexFile = _path_.join(rtWorkingDir, dexFileName, dexFileName);
             let stat = null;
             let ignore = false;
             const inspector = ctx.getInspector("DynamicLoader");
 
-            Logger.info('Analyzing "'+dexFileName+'" at : '+localDexFile+'(fsize:'+pEvent.data.__hidden__data.length+')');
+            Logger.info('Analyzing "'+dexFileName+'" at : '+localDexFile+'(fsize:'+pEvent.getData().data.__hidden__data.length+')');
             //Logger.info(JSON.stringify(event.data));
 
 
@@ -597,7 +599,7 @@ export default new InspectorFactory({
             if (_fs_.existsSync(localDexFile)) {
                 stat = _fs_.lstatSync(localDexFile);
 
-                if (stat.size === pEvent.data.__hidden__data.length) {
+                if (stat.size === pEvent.getData().data.__hidden__data.length) {
                     // TODO : then if it is identic do checksum
                     return;
                 }
@@ -611,7 +613,7 @@ export default new InspectorFactory({
             Logger.info("Ignore dex file : "+(ignore? "TRUE":"FALSE"));
             //if (ignore) return null;
 
-            let data = Buffer.from(pEvent.data.__hidden__data);
+            let data = Buffer.from(pEvent.getData().data.__hidden__data);
 
             _fs_.open(localDexFile, 'w+', 0o666, function (err:any, fd:number) {
                 if (err) {
@@ -649,7 +651,7 @@ export default new InspectorFactory({
                                     type: "file.new.DYN_BYTECODE",
                                     data: {
                                         file: f,
-                                        rpath: pEvent.data.arg0
+                                        rpath: pEvent.getData().data.arg0
                                     }
                                 });
 
@@ -719,8 +721,8 @@ export default new InspectorFactory({
             Logger.info(JSON.stringify(pEvent));
 
             //console.log(event);
-            if (pEvent == null || pEvent.data == null) return false;
-            let data = pEvent.data;
+            if (pEvent == null || pEvent.getData().data == null) return false;
+            let data = pEvent.getData().data;
 
             //console.log(data);
             // let meth = ctx.find.get.method(data.s);
