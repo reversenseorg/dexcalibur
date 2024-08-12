@@ -672,8 +672,8 @@ export class HookManager
 
 
 
-    saveAll(){
-        //this.db.save();
+    async saveAll(){
+        await this.db.aSave();
     }
     /**
      *

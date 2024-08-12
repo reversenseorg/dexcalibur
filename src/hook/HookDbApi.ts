@@ -59,6 +59,10 @@ export class HookDbApi {
         return await this.strategies.asyncHasEntry({ _uid: pUID });
     }
 
+    async isFragmentExists( pUID:string) :Promise<boolean>{
+        return await this.fragments.asyncHasEntry({ _uid:pUID });
+    }
+
     async isJavaHookExists(pUID:string):Promise<boolean>{
         return await this.jhooks.asyncHasEntry({ _uid: pUID });
     }
@@ -318,5 +322,71 @@ export class HookDbApi {
                 this.createRuntimeEvent( vEvent);
             }
         });*/
+    }
+
+    /**
+     *
+     * attempts to Save DB in mongoDB
+     */
+    async aSave(){
+
+        this.jhooks.map( (vOffset, vHook:JavaMethodHook)=>{
+            if(this.isJavaHookExists(vHook.getGUID())){
+                this.updateJavaHook( vHook);
+            }else{
+                this.createJavaHook( vHook);
+            }
+        });
+
+        this.nhooks.map( (vOffset, vHook:NativeFunctionHook)=>{
+            if(this.isNativeHookExists(vHook.getGUID())){
+                this.updateNativeHook( vHook);
+            }else{
+                this.createNativeHook( vHook);
+            }
+        });
+
+
+        this.strategies.map( (vOffset, vStra:HookStrategy)=>{
+            if(this.isStrategyExists(vStra.getUID())){
+                this.updateHookStrategy( vStra);
+            }else{
+                this.createHookStrategy( vStra);
+            }
+        });
+
+
+        this.fragments.map( (vOffset, vFrag:HookTemplateFragment)=>{
+            if(this.isFragmentExists(vFrag.getUID())){
+                this.updateFragment( vFrag);
+            }else{
+                this.createFragment( vFrag);
+            }
+        });
+
+
+        this.sets.map( (vOffset, vSet:HookSet)=>{
+            if(this.isHookSetExists(vSet.getID())){
+                this.updateHookSet( vSet);
+            }else{
+                this.createHookSet( vSet);
+            }
+        });
+
+        this.sessions.map( (vOffset, vSess:HookSession)=>{
+            if(this.isHookSessionExists(vSess.getUID())){
+                this.updateHookSession( vSess);
+            }else{
+                this.createHookSession( vSess);
+            }
+        });
+
+        this.events.map( (vOffset, vEvent:RuntimeEvent<any>)=>{
+            if(this.isRuntimeEventExists(vEvent.getUID())){
+                this.updateRuntimeEvent( vEvent);
+            }else{
+                this.createRuntimeEvent( vEvent);
+            }
+        });
     }
 }

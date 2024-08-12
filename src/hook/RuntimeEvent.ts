@@ -1,4 +1,4 @@
-import {INode} from "../INode.js";
+import {INode, Node} from "../INode.js";
 import HookMessageV2 from "./HookMessageV2.js";
 
 import BusEvent from "../BusEvent.js";
@@ -60,13 +60,20 @@ export class RuntimeEvent<P> extends BusEvent<any> implements INode {
                     //const t = Object.keys(x.p);
                     const t = [];
                     // transform a list of INode to a list of Node UID+type
-                    x.p.map( n => t.push({ __:n.__, uid:n.getUID() }));
+                    x.p.map( (n:INode) => t.push({
+                        __:n.__,
+                        uid:n.getUID()
+                    }));
                     return t;
                 })
                 .wakeUp( (x:NodePropertyState)=>{
-                    return (x.p!=null ? x.p: null)
+                    const o: INode[] = [];
+                    x.p.map( (v) => {
+                        o.push(new Node(v));
+                    });
+                    return o;
                 })
-                .def("[]"),
+                .def([]),
             (new NodeProperty("tags"))
                 .type(DbDataType.STRING)
                 /*.sleep( (x:NodePropertyState)=>{

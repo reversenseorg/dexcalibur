@@ -44,6 +44,8 @@ import {ModelBasicType, ModelObjectType} from "./ModelType.js";
 import ModelBasicBlock from "./ModelBasicBlock.js";
 import ModelInstruction from "./ModelInstruction.js";
 import HookPrologue from "./HookPrologue.js";
+import {HookVariableArray, HookVariableObject} from "./HookVariable.js";
+import {HookVariableMap} from "./hook/common.js";
 
 
 
@@ -685,17 +687,30 @@ JavaMethodHook.TYPE.updateProperties([
         .type(DbDataType.STRING)
         .sleep( (x:NodePropertyState) => {
             if (x.self != null) {
-                const o: Record<string, any> = {};
-                for (let i in (x.self as JavaMethodHook).getVarMap()){
-                   o[i] = (x.self as JavaMethodHook).getVariable(i).getData();
+                const o: HookVariableMap = {};
+                let methodHook = (x.self as JavaMethodHook);
+                for (let i in methodHook.getVarMap()) {
+                    o[i] = methodHook.getVariable(i).getData();
                 }
                 return o;
-            }else{
+            } else {
                 return {};
             }
         })
         .wakeUp( (x:NodePropertyState)=>{
-            return (x.p!=null ? x.p: null);
+        if (x.p != null && x.p.length>0) {
+            const o: HookVariableMap = {};
+            x.p.map( (key, data) => {
+                if (data instanceof Array) {
+                    o[key] = new HookVariableArray(data);
+                }
+                else {
+                    o[key] = new HookVariableObject(data);
+                }
+            } );
+            return
+        }
+        return {};
         })
         .def({}),
 ]).dataSource("PROJECT_DB").builder(JavaMethodHook);
