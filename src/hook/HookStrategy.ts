@@ -350,11 +350,11 @@ export default class HookStrategy implements INode{
                     continue;
                 }
 
-                let h:JavaMethodHook = pContext.hook.getJavaMethodHook( pRes);
+                let h:JavaMethodHook = hm.getJavaMethodHook( pRes);
                 let create = false;
 
                 if(h == null){
-                    h = await pContext.hook.createJavaMethodHook( pRes, { loadKP: this.load_kp });
+                    h = await hm.createJavaMethodHook( pRes, { loadKP: this.load_kp });
                     h.setContext(pContext);
                     h.unloadOn(this.unload_kp);
                     create = true;
@@ -426,7 +426,6 @@ export default class HookStrategy implements INode{
 
             // update hook script
             jhook.build(this.lang);
-
             await hm.save(jhook, create);
 
 
@@ -473,7 +472,7 @@ export default class HookStrategy implements INode{
      * To run the strategy :  it research things to hook and create hook
      *
      * @param {DexcaliburProject} pContext The current project
-     * @param {boolean} Force to run if the strategy is already passed
+     * @param {boolean} pForce to run if the strategy is already passed
      * @return {number} Return `passed` flag
      * @method
      */
@@ -486,15 +485,15 @@ export default class HookStrategy implements INode{
 
         Logger.info(`[HOOK STRATEGY] [uid=${this.getUID()}] Run `);
 
+        const hm:HookManager = pContext.getHookManager();
         // if there is a search request
         if(this.search.getRequest() != null){
             this.passed = await this._runOnSEResults(pContext) ? 1 : 0;
 
-            await pContext.hook.save(this,pDbCreate);
+            await hm.save(this,pDbCreate);
             return this.passed;
         }
 
-        const hm:HookManager = pContext.getHookManager();
         let uids:string[] = [];
         // else
         if(this.search.isMethod()){
@@ -587,7 +586,7 @@ export default class HookStrategy implements INode{
         }
         // mark as passed
         this.passed = 1;
-        await pContext.hook.save(this, pDbCreate);
+        await hm.save(this, pDbCreate);
         return this.passed;
     }
 
