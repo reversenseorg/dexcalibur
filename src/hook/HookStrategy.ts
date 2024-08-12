@@ -360,6 +360,7 @@ export default class HookStrategy implements INode{
                     create = true;
                 }
 
+                if(Object.keys(this.variables).length>0) h.initVariables(this.variables);
                 if(this.before != null) h.appendBefore(this.before);
                 if(this.after != null) h.appendAfter(this.after);
                 if(this.replace != null) h.appendReplace(this.replace);

@@ -232,7 +232,7 @@ DXC.HOOK["${pLibraryName}"] = {
                 if(!vHook.isEnable()) return;
 
                 let gc:string = vHook.getGeneratedCode();
-                if(gc == null || pOptions.flushGeneratedCode || gc.length==0){
+                if(gc == null || pOptions.flushGeneratedCode || gc.length==0 || vHook.hasVariables()){
                     vHook.setContext(this._hm.context);
                     vHook.build(pOptions.targetLanguage);
                     gc = vHook.getGeneratedCode();

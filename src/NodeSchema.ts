@@ -680,7 +680,24 @@ JavaMethodHook.TYPE.updateProperties([
             }else{
                 return [];
             }
+        }),
+    (new NodeProperty("_varMap"))
+        .type(DbDataType.STRING)
+        .sleep( (x:NodePropertyState) => {
+            if (x.self != null) {
+                const o: Record<string, any> = {};
+                for (let i in (x.self as JavaMethodHook).getVarMap()){
+                   o[i] = (x.self as JavaMethodHook).getVariable(i).getData();
+                }
+                return o;
+            }else{
+                return {};
+            }
         })
+        .wakeUp( (x:NodePropertyState)=>{
+            return (x.p!=null ? x.p: null);
+        })
+        .def({}),
 ]).dataSource("PROJECT_DB").builder(JavaMethodHook);
 
 

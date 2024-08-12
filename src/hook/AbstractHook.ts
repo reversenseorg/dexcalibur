@@ -82,8 +82,6 @@ export abstract class AbstractHook {
 
     protected  _code:string = null;
 
-    protected  _vars:string = null;
-
     protected _varMap:HookVariableMap = {};
 
     public customName:string = null;
