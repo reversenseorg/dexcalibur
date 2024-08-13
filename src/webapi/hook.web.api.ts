@@ -947,7 +947,7 @@ HOOK_WEB_API.addAuthenticatedRoute(
                 let probe:AbstractHook;
                 let file:ModelFile = null;
                 let opts:any = {};
-                let newHook = false;
+                let isNewHook = false;
 
                 const targetType = req.body.__ ;
 
@@ -1025,7 +1025,7 @@ HOOK_WEB_API.addAuthenticatedRoute(
                     }else{
                         probe = await project.hook.createNativeFunctionHook(meth as ModelFunction, opts);
                     }
-                    newHook = true;
+                    isNewHook = true;
 
                     // generate hook code body
                     if(req.body['lang']!=null
@@ -1082,7 +1082,7 @@ HOOK_WEB_API.addAuthenticatedRoute(
                 }
 
                 // save and create
-                await project.hook.save(probe, newHook);
+                await project.hook.save(probe, isNewHook);
 
                 $.sendSuccess( res, { hook: probe.toJsonObject(), hookid: probe.getGUID(), enable: probe.isEnable() });
 

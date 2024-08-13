@@ -350,7 +350,7 @@ export default class HookStrategy implements INode{
                     continue;
                 }
 
-                let h:JavaMethodHook = hm.getJavaMethodHook( pRes);
+                let h:JavaMethodHook = hm.getJavaMethodHook(pRes);
                 let create = false;
 
                 if(h == null){
@@ -360,7 +360,7 @@ export default class HookStrategy implements INode{
                     create = true;
                 }
 
-                if(Object.keys(this.variables).length>0) h.initVariables(this.variables);
+                if(Object.keys(this.variables).length>0) h.mergeVariables(this.variables);
                 if(this.before != null) h.appendBefore(this.before);
                 if(this.after != null) h.appendAfter(this.after);
                 if(this.replace != null) h.appendReplace(this.replace);
@@ -420,7 +420,7 @@ export default class HookStrategy implements INode{
                 create = true;
             }
 
-            if(Object.keys(this.variables).length>0) jhook.initVariables(this.variables);
+            if(Object.keys(this.variables).length>0) jhook.mergeVariables(this.variables);
             if(this.before != null) jhook.appendBefore(this.before);
             if(this.after != null) jhook.appendAfter(this.after);
             if(this.replace != null) jhook.appendReplace(this.replace);
@@ -452,8 +452,7 @@ export default class HookStrategy implements INode{
                 create = true;
             }
 
-
-            if(Object.keys(this.variables).length>0) nhook.initVariables(this.variables);
+            if(Object.keys(this.variables).length>0) nhook.mergeVariables(this.variables);
             if(this.before != null) nhook.appendBefore(this.before);
             if(this.after != null) nhook.appendAfter(this.after);
             if(this.replace != null) nhook.appendReplace(this.replace);
@@ -490,8 +489,7 @@ export default class HookStrategy implements INode{
         // if there is a search request
         if(this.search.getRequest() != null){
             this.passed = await this._runOnSEResults(pContext) ? 1 : 0;
-
-            await hm.save(this,pDbCreate);
+            await hm.save(this, pDbCreate);
             return this.passed;
         }
 

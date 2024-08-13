@@ -129,6 +129,11 @@ export abstract class AbstractHook {
         return (Object.keys(this._varMap).length>0);
     }
 
+    hasVariable(variable):boolean {
+        return Object.keys(this._varMap).includes(variable);
+    }
+
+
     getVariable(pID:string){
         return this._varMap[pID];
     }
@@ -399,6 +404,19 @@ export abstract class AbstractHook {
 
     initVariables(pVars:HookVariableMap):void {
         this._varMap = pVars;
+    }
+
+    //TODO: Deal with same named variables in strategies from a same hook. VarMap={strategyID:HookVariableMap} ?
+    mergeVariables(pVars:HookVariableMap):void {
+        for (let i in pVars) {
+            if (this.hasVariable(i)) {
+                Logger.error("[ABSTRACK_HOOK][MERGE_VARIABLES] Two variable has the same name in" + this.getGUID()
+                    + "\nOriginal HookVariableMap :" + this.getVarMap() + "\n New HookVariableMap: " + pVars)
+            }
+            else {
+                this._varMap[i] = pVars[i];
+            }
+        }
     }
 
     /**
