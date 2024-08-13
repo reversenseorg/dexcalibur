@@ -29,7 +29,7 @@ export default new InspectorFactory({
 
     description: "Update the application representation with Custom classloader and reflection data",
 
-    version: "1.0.3",
+    version: "1.0.4",
     startStep: INSPECTOR_TYPE.POST_APP_SCAN,
 
     //webapi: DYNAMICLOADER_WEB_API,
@@ -284,7 +284,7 @@ export default new InspectorFactory({
                 `
             }, {
                 name: "Dex_new",
-                descr: "To detect new Dex file created explicitely",
+                descr: "To detect new Dex file created explicitly",
                 search: {
                     type: ModelMethod.TYPE.getName(),
                     uid: [
@@ -398,7 +398,7 @@ export default new InspectorFactory({
         "dxc.fullscan.post_deploy": {
             source: `
                 //<ts>={
-                //Logger.info("[INSPECTOR][TASK] Trying to restore previous data of DynLoaderInspector ... ");
+                //pEvent.getContext().LOG.info("[INSPECTOR][TASK] Trying to restore previous data of DynLoaderInspector ... ");
                 console.log('Search class loader');
                 const pCtx = pEvent.getContext();
                 const hm = pCtx.getHookManager();
@@ -446,48 +446,49 @@ export default new InspectorFactory({
                     })
                 }`,
             lang: "ts"
-        }
-    },
-    eventListeners: {
-
-        "hook.dex.load": function (pEvent:BusEvent<any>):void {
-            Logger.info("hook.dex.load : ");
-            // JSON stringify can cause an execution crash (Converting circular structure to JSON, timeout)
-            // Logger.info(JSON.stringify(pEvent));
-
-            const ctx = pEvent.getContext();
-            if (pEvent.getData().data.isNew == false) return null;
+        },
+        "hook.dex.load": {
+            source:`
+            //<ts>={
+            pEvent.getContext().LOG.info("hook.dex.load : ");
+            let ctx = pEvent.getContext();
+            if (pEvent.getData().data.isNew === false) return null;
             let hook = ctx.hook.getHookByID(pEvent.getData().hook.getGUID());
-            Logger.info("[INSPECTOR][TASK] DynLoaderInspector new Dex file loaded :\tDex: ", pEvent.getData().data.dex);
+            pEvent.getContext().LOG.info("[INSPECTOR][TASK] DynLoaderInspector new Dex file loaded :\\tDex: ", pEvent.getData().data.dex);
 
             // update variable for next time
             console.log('Just before get data: ',  hook.getVariable('names').getData());
             hook.getVariable('names').getData().push(pEvent.getData().data.dex);
+            `,
+            lang: "ts"
         },
-
-        "hook.dex.new": function (pEvent:BusEvent<any>):void {
-            Logger.info("[INSPECTOR][TASK] DynLoaderInspector new Dex file", pEvent.getData().data.path);
+        "hook.dex.new": {
+            source:`
+            //<ts>={
+            pEvent.getContext().LOG.info("[INSPECTOR][TASK] DynLoaderInspector new Dex file", pEvent.getData().data.path);
+            `,
+            lang: "ts"
         },
-
-        "hook.reflect.class.get": function (pEvent:BusEvent<any>):void {
+        "hook.reflect.class.get": {
+            source:`
+            // <ts>={
             // get CFG
-            //let db = ctx.analyze.db;
-
+            // let db = ctx.analyze.db;
             // search if the method exists
-
-            Logger.info("[INSPECTOR][TASK] DynLoaderInspector search Class ", pEvent.getData().data.fqcn);
-            //Logger.info(JSON.stringify(event));
-
+            pEvent.getContext().LOG.info("[INSPECTOR][TASK] DynLoaderInspector search Class ", pEvent.getData().data.fqcn);
+            `,
+            lang: "ts"
         },
-
-        "hook.reflect.method.get": function (pEvent:BusEvent<any>):boolean {
-            Logger.info("[INSPECTOR][TASK] DynLoaderInspector search Method ");
-            //Logger.info(JSON.stringify(event));
+        "hook.reflect.method.get": {
+            source:`
+            //<ts>={
+            pEvent.getContext().LOG.info("[INSPECTOR][TASK] DynLoaderInspector search Method ");
+            //pEvent.getContext().LOG.info(JSON.stringify(event));
 
             //console.log(event);
             if (pEvent == null || pEvent.getData().data == null) return false;
-            const ctx = pEvent.getContext();
-            const tmgr = ctx.getTagManager();
+            let ctx = pEvent.getContext();
+            let tmgr = ctx.getTagManager();
             let data:any = pEvent.getData().data, caller:ModelMethod = null, callers:any = null;
             let meth:ModelMethod;
 
@@ -500,28 +501,28 @@ export default new InspectorFactory({
 
                 //  if no result, do nothing
                 // try to resolve reference (it may be an inherited method)
-                if (callers.count() == 0) {
-                    Logger.info("Callers of '", data.__hidden__trace[1].cls + "." + data.__hidden__trace[1].meth, "' not found!");
+                if (callers.count() === 0) {
+                    pEvent.getContext().LOG.info("Callers of '", data.__hidden__trace[1].cls + "." + data.__hidden__trace[1].meth, "' not found!");
                     return false;
                 }
 
                 // if more than one result, try to filter with filename/line number
                 if (callers.count() > 1) {
-                    Logger.warn("[INSPECTOR][TASK] DynLoaderInspector search Method : there are more than one result");
+                    pEvent.getContext().LOG.warn("[INSPECTOR][TASK] DynLoaderInspector search Method : there are more than one result");
                 } else {
                     //console.log(callers.get(0));
                     caller = callers.get(0);
                 }
             } else {
                 //  no trace ==> try another heuristic
-                Logger.debug("No hidden trace");
+                pEvent.getContext().LOG.debug("No hidden trace");
                 return false;
 
             }
 
             // not able to correlate (TODO : keep a track)
             if (caller == null || meth == null) {
-                Logger.debug("Caller not found")
+                pEvent.getContext().LOG.debug("Caller not found")
                 return false;
             }
 
@@ -545,12 +546,14 @@ export default new InspectorFactory({
             });
 
             caller.addMethodUsed(meth, call);
-
+            `,
+            lang: "ts"
         },
-
-        "hook.dex.find.class": function ( pEvent:BusEvent<any>):boolean {
-            Logger.info("[INSPECTOR][TASK] DynLoaderInspector external class loaded dynamically ");
-            //Logger.info(JSON.stringify(event));
+        "hook.dex.find.class": {
+            source:`
+            //<ts>={
+            pEvent.getContext().LOG.info("[INSPECTOR][TASK] DynLoaderInspector external class loaded dynamically ");
+            //pEvent.getContext().LOG.info(JSON.stringify(event));
             if (pEvent == null || pEvent.getData().data == null) return false;
 
             let ctx = pEvent.getContext();
@@ -561,19 +564,20 @@ export default new InspectorFactory({
             if (cls == null) {
                 cls = ctx.analyze.addClassFromFqcn(data.__class__);
             }
-
-
+            
             const DYN_CALL_TAG = ctx.getTagManager().getTag("code.call.dynamic");
 
             cls.addTag(DYN_CALL_TAG);
+            `,
+            lang: "ts"
         },
-
-        "hook.dex.classloader.new": function (pEvent:BusEvent<any>):void {
+        "hook.dex.classloader.new": {
+            source:`
+            //<ts>={
             // 1. save gathered bytecode to a file
             // 2. disassemble this file 
             // 3. Analyze & update graph
             // 4. Workspace cleanup
-
 
 
             if(pEvent.getData().data==null) return;
@@ -590,8 +594,8 @@ export default new InspectorFactory({
             let ignore = false;
             const inspector = ctx.getInspector("DynamicLoader");
 
-            Logger.info('Analyzing "'+dexFileName+'" at : '+localDexFile+'(fsize:'+pEvent.getData().data.__hidden__data.length+')');
-            //Logger.info(JSON.stringify(event.data));
+            pEvent.getContext().LOG.info('Analyzing "'+dexFileName+'" at : '+localDexFile+'(fsize:'+pEvent.getData().data.__hidden__data.length+')');
+            //pEvent.getContext().LOG.info(JSON.stringify(event.data));
 
 
 
@@ -610,30 +614,30 @@ export default new InspectorFactory({
                 _fs_.mkdirSync(_path_.join(rtWorkingDir, dexFileName));
             }
 
-            Logger.info("Ignore dex file : "+(ignore? "TRUE":"FALSE"));
+            pEvent.getContext().LOG.info("Ignore dex file : "+(ignore? "TRUE":"FALSE"));
             //if (ignore) return null;
 
             let data = Buffer.from(pEvent.getData().data.__hidden__data);
 
             _fs_.open(localDexFile, 'w+', 0o666, function (err:any, fd:number) {
                 if (err) {
-                    Logger.error("TODO : An error occured when file is created ", err);
+                    pEvent.getContext().LOG.error("TODO : An error occured when file is created ", err);
                     return;
                 }
 
                 _fs_.write(fd, data, function (err:any) {
                     if (err) {
-                        Logger.error("TODO : An error occured when file is written ", err);
+                        pEvent.getContext().LOG.error("TODO : An error occured when file is written ", err);
                         return;
                     }
 
                     _fs_.close(fd, function (err:any) {
                         if (err) {
-                            Logger.error("TODO : An error occured when file is closed ", err);
+                            pEvent.getContext().LOG.error("TODO : An error occured when file is closed ", err);
                             return;
                         }
 
-                        Logger.info("Start to disassemble " + localDexFile);
+                        pEvent.getContext().LOG.info("Start to disassemble " + localDexFile);
 
                         // disass file
                         let destFolder = _path_.join(rtWorkingDir, dexFileName, "smali");
@@ -641,7 +645,7 @@ export default new InspectorFactory({
                             let f:ModelFile;
 
                             try{
-                                Logger.info("[DYNAMIC LOADER] Indexing DEX file");
+                                pEvent.getContext().LOG.info("[DYNAMIC LOADER] Indexing DEX file");
                                 f = pEvent.getContext().modelAPI.newFile({
                                     name: dexFileName,
                                     path: localDexFile,
@@ -682,10 +686,10 @@ export default new InspectorFactory({
                                     //inspector.getDB().getIndex('dex',null).addEntry(f);
                                     //inspector.save();
                                 } else {
-                                    Logger.error('[DYNAMIC LOADER] Runtime DEX analysis failed.')
+                                    pEvent.getContext().LOG.error('[DYNAMIC LOADER] Runtime DEX analysis failed.')
                                 }
                             }catch(err){
-                                Logger.error('[DYNAMIC LOADER][ERROR] : '+err.message);
+                                pEvent.getContext().LOG.error('[DYNAMIC LOADER][ERROR] : '+err.message);
                             }
 
                         })();
@@ -713,41 +717,34 @@ export default new InspectorFactory({
 
             // 3. decompile resulting files
             // 4. update internal database
-
+            `,
+            lang: "ts"
         },
-
-        "hook.reflect.method.call": function (pEvent:BusEvent<any>):boolean {
-            Logger.info("[INSPECTOR][TASK] DynLoaderInspector method invoked dynamically ");
-            Logger.info(JSON.stringify(pEvent));
-
-            //console.log(event);
+        "hook.reflect.method.call": {
+            source:`
+            //<ts>={
+            pEvent.getContext().LOG.info("[INSPECTOR][TASK] DynLoaderInspector method invoked dynamically ");
+            
             if (pEvent == null || pEvent.getData().data == null) return false;
             let data = pEvent.getData().data;
 
-            //console.log(data);
             // let meth = ctx.find.get.method(data.s);
-            //onsole.log(data);
-
             /*
                 let rettype = ctx.find.get.class(event.data.data.ret)
-    
             // if meth == null, the method is unknow and the graph should be updated
             if(meth == null){
                 let ref = new CLASS.Method();
-    
-    
                 ref.setReturnType(event.data)
-                
-    
             }*/
+            `,
+            lang: "ts"
         },
-
-        
+    },
+    eventListeners: {
 
         "dxc.fullscan.post_deploy": function ( pEvent:BusEvent<any>):void {
-            Logger.info("[INSPECTOR][TASK] Trying to restore previous data of DynLoaderInspector ... ");
-
             const ctx = pEvent.getContext();
+            ctx.LOG.info("[INSPECTOR][TASK] Trying to restore previous data of DynLoaderInspector ... ");
             const hm = ctx.getHookManager();
             const startName = "Custom_ClassLoaders";
             const selfHS = ctx.getInspector("DynamicLoader").getHookSet();
@@ -785,9 +782,7 @@ DXC.send(
     data
 );
 `
-
                 });
-
 
                 selfHS.addStrategy(strat);
 
