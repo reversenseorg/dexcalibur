@@ -998,10 +998,10 @@ DEVICE_WEB_API.addAsyncPublicRoute(
                 if(dev == null) throw new Error("Unknown device");
                 if(!dev.isConnected()) throw new Error("Target device is offline");
 
-                let apps = dev.getInstalledApp();
-                if(apps.length==0){
+                let apps = dev.getInstalledApp(true);
+                /*if(apps.length==0){
                     apps = dev.getInstalledApp(true);
-                }
+                }*/
 
                 const data  = [];
                 apps.map(x => {
