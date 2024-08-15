@@ -9,8 +9,8 @@ tsc
 #echo "[+] Copying package.json"
 #cp ./package.json ./dist/dexcalibur-ts/package.json
 
-echo "[+] Copying agent libs"
-if [[ $DXC_USE_ARTIFACTS = 0 ]]; then
+echo "[+] Copying agent libs (DXC_USE_ARTIFACTS=$DXC_USE_ARTIFACTS)"
+if [[ $DXC_USE_ARTIFACTS = 0 ||  $DXC_USE_ARTIFACTS = "" ]]; then
   mkdir ./dist/agent
   cp ../dexcalibur-agent/dist/dxc-agent.*.min.js ./dist/agent/.
 else
