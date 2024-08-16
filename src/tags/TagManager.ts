@@ -155,7 +155,12 @@ export class TagManager {
      * @method
      */
     async importCategory(pTagCat:TagCategory):Promise<void> {
-        await this.addCategory(pTagCat)
+
+        let cat = await this.getCategoryByName(pTagCat.name);
+        if(cat == null){
+            await this.addCategory(pTagCat);
+        }
+
 
         const tags = pTagCat.getTags();
         for(let i=0; i<tags.length; i++){
@@ -238,6 +243,9 @@ export class TagManager {
             this._resetTagList();
             // print info
             Logger.info(`[TAG MANAGER] Cache created : ${Object.keys(this.cache).length} categories, ${this._tagsCache.length} tags `)
+        }else{
+            // update tags, if new builtin tag or category has been added
+            await this._loadPresets();
         }
 
         Logger.debug("[TAG MANAGER] Initialized");

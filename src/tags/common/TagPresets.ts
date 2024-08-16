@@ -26,6 +26,7 @@ export function newTagPresets(){
     const KEYPOINT_DEF = new TagCategory({ name: "keypoint.defaults" });
     const ANAL_NATIVE = new TagCategory({ name: "analyzer.native" });
     const PURPOSE = new TagCategory({ name: "purpose" });
+    const TECH = new TagCategory({ name: "tech" });
 
 
     const FS_FILE = new TagCategory({ name: "fs.file" });
@@ -183,6 +184,15 @@ export function newTagPresets(){
         new Tag({ name:"mem" }),
         new Tag({ name:"tee" })
     ];
+
+
+    const TECH_TAGS = [
+        new Tag({ name:"java" }),
+        new Tag({ name:"objc" }),
+        new Tag({ name:"native" }),
+        new Tag({ name:"js" })
+    ];
+
     /*
     Discover: {
         Statically: "ds",
@@ -219,6 +229,7 @@ export function newTagPresets(){
     ANAL_NATIVE_TAGS.map(x => {ANAL_NATIVE.addTag(x)});
     PURPOSE_TAGS.map(x => {PURPOSE.addTag(x)});
     FS_FILE_TAGS.map( x => { FS_FILE.addTag(x); });
+    TECH_TAGS.map( x => { TECH.addTag(x); });
 
 
 
@@ -252,7 +263,8 @@ export function newTagPresets(){
 
         ANAL_NATIVE,
         PURPOSE,
-        FS_FILE
+        FS_FILE,
+        TECH
     ];
 }
 export const TAG_CATEGORY_PRESETS = newTagPresets();
