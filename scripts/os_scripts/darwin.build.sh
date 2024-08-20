@@ -11,8 +11,9 @@ tsc
 
 echo "[+] Copying agent libs (DXC_USE_ARTIFACTS=$DXC_USE_ARTIFACTS)"
 if [[ $DXC_USE_ARTIFACTS = 0 ||  $DXC_USE_ARTIFACTS = "" ]]; then
-  mkdir ./dist/agent
-  cp ../dexcalibur-agent/dist/dxc-agent.*.min.js ./dist/agent/.
+  # mkdir ./dist/agent
+  # cp ../dexcalibur-agent/dist/dxc-agent.*.min.js ./dist/agent/.
+  cp -r ../dexcalibur-agent/dist ./dist/agent
 else
   #curl --header "Authorization: Bearer $BUILD_HOST_API_TOKEN" -o ./dist/agent/. "$BUILD_HOST/repository/downloadAll/$BUILD_ID_DXCAGENT/.lastSuccessful/"
 
