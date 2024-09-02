@@ -160,8 +160,8 @@ export default new InspectorFactory({
                                 arg0: arguments[0],
                                 arg1: arguments[1],
                                 arg2: arguments[2],
-                                //__hidden__data: DXC.java().readFile(arguments[0])
-                                __hidden__data: [100,102,103,104,105] //DUMMY DATA
+                                __hidden__data: DXC.java().readFile(arguments[0])
+                                //__hidden__data: [100,102,103,104,105] //DUMMY DATA
                             }
                         );
                         /*
@@ -172,8 +172,7 @@ export default new InspectorFactory({
                                 arg0: arguments[0],
                                 arg1: arguments[1],
                                 arg2: arguments[2],
-                                // __hidden__data: DXC.java().readFile(arguments[0])
-                                __hidden__data: [100,102,103,104,105] //DUMMY DATA
+                                __hidden__data: DXC.java().readFile(arguments[0])
                             },
                             after: true, 
                             msg: "DexClassLoader.<init>()", 
@@ -202,7 +201,7 @@ export default new InspectorFactory({
                 autoEmit: true,
                 emitEvent: "hook.dex.load",
                 variables: {
-                    names: new HookVariableArray(['HelloWorld'])
+                    names: new HookVariableArray([''])
                 },
                 before: `
                         //<ts>={
@@ -220,9 +219,7 @@ export default new InspectorFactory({
                                     odex: arguments[1],
                                     arg2: arguments[2],
                                     isNew: true,
-                                    //__hidden__data: DXC.java().readFile(arguments[0])                    
-                                    __hidden__data: [100,102,103,104,105] //DUMMY DATA
-
+                                    __hidden__data: DXC.java().readFile(arguments[0])
                                 }
                             );
                             /*
@@ -234,8 +231,7 @@ export default new InspectorFactory({
                                     odex: arguments[1],
                                     arg2: arguments[2],
                                     isNew: true,
-                                    // __hidden__data: DXC.java().readFile(arguments[0])
-                                    __hidden__data: [100,102,103,104,105] //DUMMY DATA
+                                    __hidden__data: DXC.java().readFile(arguments[0])
                                 },
                                 after: false, 
                                 msg: "DexFile.loadDex()", 
@@ -359,12 +355,11 @@ export default new InspectorFactory({
                                 __: DXC.NODE.FILE,
                                 path: d+"/"+p,
                                 arg2: arguments[2],
-                                //__hidden__data: DXC.java().readFile(arguments[0])
-                                __hidden__data: [100,102,103,104,105] //DUMMY DATA
+                                __hidden__data: DXC.java().readFile(arguments[0])
                             }
                         );
                 `
-            }/*,{
+            },/*,{
                 method: "android.os.Parcelable$ClassLoaderCreator.createFromParcel(<android.os.Parcel><java.lang.ClassLoader>)<java.lang.Object>",
                 onMatch: function(ctx,event){
                    
@@ -389,8 +384,54 @@ export default new InspectorFactory({
                             action:"Log" 
                         });
                 `
-            }*/
-
+            },*/
+            {
+                name: "InMemoryDexClassLoader",
+                descr: "InMemoryDexClassLoader",
+                search: {
+                    type: ModelMethod.TYPE.getName(),
+                    req: `method("enclosingClass.name:/^dalvik.system.InMemoryDexClassLoader$/").filter("name:<init>")`
+                },
+                autoEmit: true,
+                emitEvent: "hook.dex.inmemorydexclassloader",
+                variables: {
+                    names: new HookVariableArray([''])
+                },
+                test: "",
+                before: `
+    //<ts>={
+    console.log("inMemoryClassLoader Detected");
+    if ((arguments.length === 2) && !(Array.isArray(arguments[0]))) {
+        // let doCondition = true;
+        // console.log('VAR.name : ', @@__VAR__@@.names);
+        // if (@@__VAR__@@.names?.indexOf(arguments[0]) > -1) {
+        //     doCondition = false;
+        // }
+        // if(doCondition){
+        DXC.send(
+            "@@__HOOK_ID__@@",
+            "@@__FRAG_ID__@@",
+            {
+                dexBuffer: arguments[0].duplicate(),
+                parent: arguments[1],
+                isNew: true
+            }
+        );
+    } else {
+        DXC.send(
+            "@@__HOOK_ID__@@",
+            "@@__FRAG_ID__@@",
+            {
+                dexBuffers: arguments[0],
+                parent: arguments[2]? arguments[2]:arguments[1],
+                librarySearchPath: arguments[2]? arguments[1]:null,
+                isNew: false,
+                __hidden__data: null
+            }
+        );
+    }
+                `
+            }
         ]
     },
 
@@ -407,6 +448,7 @@ export default new InspectorFactory({
                 let strat:HookStrategy = selfHS.getStrategyByName(startName);
 
                 if(strat == null){
+                    //TODO: Calling HookStrategy class like this don't work
                     strat = HookStrategy.from({
                         name: startName,
                         description: "",
@@ -421,13 +463,13 @@ export default new InspectorFactory({
                         'let path="", path2="";'+
                         'for(var i=0; i<arguments.length; i++){'+
                         '    if(DXC.util.isInstanceOf(arguments[i],"java.io.File")){'+
-                        '        data['arg'+i] = { __:DXC.NODE.FILE, path:arguments[i].getAbsolutePath() };'+
+                        '        data["arg"+i] = { __:DXC.NODE.FILE, path:arguments[i].getAbsolutePath() };'+
                         '    }'+
                         '    else if(DXC.util.isInstanceOf(arguments[i],"java.net.URL")){'+
-                        '       data['arg'+i] = { __:DXC.NODE.FILE, url:arguments[i].toString() };'+
+                        '       data["arg"+i] = { __:DXC.NODE.FILE, url:arguments[i].toString() };'+
                         '    }'+
                         '    else{'+
-                        '        data['arg'+i] = { __:DXC.NODE.STRING, path:arguments[i] };'+
+                        '        data["arg"+i] = { __:DXC.NODE.STRING, path:arguments[i] };'+
                         '    }'+
                         '}'+
                         ' '+

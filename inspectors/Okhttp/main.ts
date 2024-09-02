@@ -8,7 +8,7 @@ var OkhttpInspector:InspectorFactory = new InspectorFactory({
 
     startStep: INSPECTOR_TYPE.POST_APP_SCAN,
 
-    version: "1.0.10",
+    version: "1.0.11",
     hookSet: {
         id: "Okhttp",
         name: "Okhttp",
@@ -49,6 +49,7 @@ var OkhttpInspector:InspectorFactory = new InspectorFactory({
                 ];
                 var argOffset: number = 0;
                 if (DXC.util.isInstanceOf(arguments[1], 'java.lang.String')) {
+                    // First arg addition is due to Companion 
                     argOffset++
                 }
                 let eventData : Record<string, any> = {};
@@ -60,13 +61,12 @@ var OkhttpInspector:InspectorFactory = new InspectorFactory({
                 eventData['arg5_strict'] = arguments[argOffset + 5];
                 eventData['arg6_plusIsSpace'] = arguments[argOffset + 6];
                 eventData['arg7_asciiOnly'] = arguments[argOffset + 7];
-                eventData['arg8_Charset'] = arguments[argOffset + 8].toString();
+                eventData['arg8_Charset'] = arguments[argOffset + 8];
                 encodeSetDict.forEach((encodeSet) => {
                     if (encodeSet.value === eventData['arg3_encodeSet'])
                         eventData['encodeSet_label'] = encodeSet.name;
                 });
                 console.log("[INSPECTOR][OKHTTP] Canonicalize:", eventData['arg0_input'].toString());
-                console.log("[INSPECTOR][OKHTTP] Canonicalize encodeSet_label:", eventData['arg3_encodeSet'].toString());
                 
                 DXC.send(
                     "@@__HOOK_ID__@@",
