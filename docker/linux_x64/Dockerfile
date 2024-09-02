@@ -13,7 +13,7 @@ LABEL maintainer="georges.michel@reversense.com"
 # Args
 # ===============================
 
-ARG user_server=$DXC_USER_SRV
+ARG user_server="dexcalibur-bin"
 
 ARG dxc_http_port=8080
 ARG dxc_ws_port=8001
