@@ -42,6 +42,11 @@ import Util from "../Utils.js";
 import {BusSubscriber} from "../Bus.js";
 import BusEvent from "../BusEvent.js";
 import ModelBom from "../ModelBom.js";
+import ModelUiEventType from "../graphics/models/ModelUiEventType.js";
+import ModelUiEvent from "../graphics/models/ModelUiEvent.js";
+import ModelUiComponent from "../graphics/models/ModelUiComponent.js";
+import ModelUiComponentType from "../graphics/models/ModelUiComponentType.js";
+import ModelUiRole from "../graphics/models/ModelUiRole.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -124,7 +129,13 @@ export class ProjectDatabase {
         ModelPackage.TYPE,
         ModelMethod.TYPE,
         ModelField.TYPE,
-        ModelBom.TYPE
+        ModelBom.TYPE,
+
+        ModelUiEventType.TYPE,
+        ModelUiEvent.TYPE,
+        ModelUiComponentType.TYPE,
+        ModelUiComponent.TYPE,
+        ModelUiRole.TYPE
     ];
 
     private _supportedTypeInfos:{ [type:number] :CollectionInfo } = {};

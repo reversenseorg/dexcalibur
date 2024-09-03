@@ -25,7 +25,12 @@ export enum STUB_TYPE {
     SYSCALL= 0xf,
     TAG,
     BYTE_ARRAY,
-    PACKAGE
+    PACKAGE,
+    UI_EVT_TYPE,
+    UI_EVT,
+    UI_CMP_TYPE,
+    UI_CMP,
+    UI_ROLE
 }
 
 

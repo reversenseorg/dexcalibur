@@ -43,7 +43,7 @@ export interface IDexcaliburEngine {
     createWorkspace( pPath:string):void;
     getProjects():string[];
     getProject(pProjectUID:string):DexcaliburProject;
-    openProject( pUser:UserAccount, pUID:string):Promise<DexcaliburProject>;
+    // ( pUser:UserAccount, pUID:string):Promise<DexcaliburProject>;
     newProject( pUID:string, pInputs:ProjectInput[], pDevice:any):Promise<DexcaliburProject>;
     getLocalFridaVersion():string;
     newWorkflow(pName:string):Workflow;
