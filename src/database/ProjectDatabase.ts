@@ -47,6 +47,10 @@ import ModelUiEvent from "../graphics/models/ModelUiEvent.js";
 import ModelUiComponent from "../graphics/models/ModelUiComponent.js";
 import ModelUiComponentType from "../graphics/models/ModelUiComponentType.js";
 import ModelUiRole from "../graphics/models/ModelUiRole.js";
+import ModelResource from "../ModelResource.js";
+import ModelStringValue from "../ModelStringValue.js";
+import {cipher} from "node-forge";
+import Mode = module
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -135,7 +139,10 @@ export class ProjectDatabase {
         ModelUiEvent.TYPE,
         ModelUiComponentType.TYPE,
         ModelUiComponent.TYPE,
-        ModelUiRole.TYPE
+        ModelUiRole.TYPE,
+
+        ModelResource.TYPE
+        //ModelStringValue.TYPE
     ];
 
     private _supportedTypeInfos:{ [type:number] :CollectionInfo } = {};

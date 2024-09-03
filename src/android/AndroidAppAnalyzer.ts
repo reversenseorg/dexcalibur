@@ -28,6 +28,7 @@ import Util from "../Utils.js";
 import {AndroidResource, AndroidResourceType} from "./AndroidResource.js";
 import {AndroidPackageAnalyzer} from "./analyzer/AndroidPackageAnalyzer.js";
 import {DataParserException} from "../errors/DataParserException.js";
+import ModelResource from "../ModelResource.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -146,6 +147,35 @@ export default class AndroidAppAnalyzer implements IAppAnalyzer
 		this.context.getBus().subscribe("app.android.missing_impl", BusSubscriber.from((vEvent)=>{
 			const cmp = vEvent.getData() as AndroidComponent;
 			this._missingImpl[AndroidAppAnalyzer.getComponentFullName(this.manifest,cmp.name)] = cmp;
+		}));
+
+		// new values from res
+		this.context.getBus().subscribe("app.res.parsed", BusSubscriber.from((vEvent)=>{
+
+			const valType:string = vEvent.getData().type;
+			const resType:string = vEvent.getData().restype;
+			const res:AndroidResourceType = vEvent.getData().res;
+
+			let name:string, value:any;
+
+			if(['layout','drawable'].indexOf(resType)>-1){
+				name = "@"+resType+"/"+res._attr.id;
+			}else{
+				name = "@"+resType+"/"+res._attr.id;
+			}
+
+			res._entries.map(x => {
+				this.context.trigger({
+					type:"app.res.new",
+					data: ModelResource.fromAndroidResource("@",res)
+				});
+			})
+		}));
+
+		this.context.getBus().subscribe("app.res.new", BusSubscriber.from(async (vEvent)=>{
+			const res:ModelResource = vEvent.getData();
+			console.log(res);
+			await this.context.getProjectDB().save(res);
 		}));
 
 		// after first fullscan, listen 'class.new' events to search each time if there are missing components.
@@ -341,11 +371,11 @@ export default class AndroidAppAnalyzer implements IAppAnalyzer
 		return _path_.join(this.context.getWorkspace().getApkDir(),ApkHelper.getResFolder());
 	}
 
-	static async parseResourceFile(pFilePath:string, pResType:AndroidResourceType, pContext:DexcaliburProject, pSkip:Nullable<string>=null){
+	static async parseResourceFile(pFilePath:string, pResType:AndroidResourceType, pContext:DexcaliburProject, pRootNode:Nullable<string>=null){
 		const xml = await AndroidAppAnalyzer._parseXmlFile(pFilePath);
-		if(pSkip != null){
-			for(let i in xml[pSkip]){
-				AndroidResource.fromXml(xml[pSkip], pResType, i);
+		if(pRootNode != null){
+			for(let i in xml[pRootNode]){
+				AndroidResource.fromXml(xml[pRootNode], pResType, i);
 			}
 		}else{
 			AndroidResource.fromXml(xml, pResType);
@@ -364,26 +394,29 @@ export default class AndroidAppAnalyzer implements IAppAnalyzer
 		const success:boolean = await this.importManifest(_path_.join(this.context.getWorkspace().getApkDir(),"AndroidManifest.xml"));
 
 		// parse values
+		await this.parseValuesFromRes();
+		/*
 		Util.forEachFileOf(
 			_path_.join(this._getResourcesFolder(),"values"),
 			async (vFilePath:string,vDir:string)=>{
-				const type = _path_.basename(vFilePath).split('.')[0]
+				const type = _path_.basename(vFilePath).split('.')[0];
 				if(this.resources[type]==null){
 					this.resources[type] = new AndroidResourceType({ _type:type });
 				}
 				await AndroidAppAnalyzer.parseResourceFile(vFilePath,this.resources[type], this.context, "resources");
 				console.log(this.resources[type]._entries.length+" resources parsed");
-			},true);
+			},true);*/
 
 		// parse layout
 		Util.forEachFileOf(
 			_path_.join(this._getResourcesFolder(),"layout"),
 			async (vFilePath:string,vDir:string)=>{
-				const idl = _path_.basename(vFilePath).split('.')[0]
+				const idl = _path_.basename(vFilePath).split('.')[0];
 				if(this.layouts[idl]==null){
 					this.layouts[idl] = new AndroidResourceType({ _type:idl });
 				}
 				await AndroidAppAnalyzer.parseResourceFile(vFilePath,this.layouts[idl], this.context, null);
+
 				console.log(Object.values(this.layouts[idl]).length+" layouts parsed");
 			},true);
 
@@ -391,6 +424,38 @@ export default class AndroidAppAnalyzer implements IAppAnalyzer
 	}
 
 
+	/**
+	 * To parse files into res/values
+	 * and build ID map
+	 *
+	 * @method
+	 */
+	async parseValuesFromRes():Promise<void> {
+
+		const valPath = _path_.join(this._getResourcesFolder(),"values");
+		const entries = _fs_.readdirSync(valPath);
+		let resPath:string;
+
+		for(let i=0; i<entries.length; i++){
+
+			resPath = _path_.join(valPath,entries[i]);
+
+			const type = _path_.basename(entries[i]).split('.')[0];
+			if(this.resources[type]==null){
+				this.resources[type] = new AndroidResourceType({ _type:type });
+			}
+
+			await AndroidAppAnalyzer.parseResourceFile(resPath,this.resources[type], this.context, "resources");
+			this.context.trigger({
+				type: "app.res.new",
+				data: { type:type, restype:"values", res:this.resources[type] }
+			});
+
+			//console.log(this.resources[type]._entries.length+" resources parsed");
+		}
+
+
+	}
 
 	/**
 	 * To get the path of the file or folder to scan by default when an APK is analyzed
