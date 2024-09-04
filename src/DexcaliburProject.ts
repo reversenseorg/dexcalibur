@@ -92,6 +92,7 @@ import {ModelAPI} from "./ModelAPI.js";
 import InspectorFactory from "./InspectorFactory.js";
 import ts from "typescript/lib/tsserverlibrary.js";
 import Project = ts.server.Project;
+import {GuiTypesManager} from "./graphics/GuiTypesManager.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -508,6 +509,8 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
     simplifier:Simplifier = null;
 
     typeManager:TypeManager;
+
+    guiTypeManager:GuiTypesManager;
 
     tagManager:TagManager;
 
@@ -1019,6 +1022,7 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
         // once Project DB is ready, init tag manager and load presets
         await this.tagManager.init(this.pdb, this._createMode);
 
+
         // init connector
         if(this.connector === null){
             this.connector = ConnectorFactory.getInstance().newConnector(wsSettings.getDefaultConnector() , this);
@@ -1041,6 +1045,8 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
 
         this.state = ProjectState.INIT_SAST;
 
+        // init GUI cmp mgr
+        this.guiTypeManager = new GuiTypesManager(this);
 
         // set SC analyzer
         // Replace existing Analyzer by multiplatform analyzer

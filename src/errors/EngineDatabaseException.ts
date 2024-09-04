@@ -9,7 +9,8 @@ export class EngineDatabaseException extends MonitoredError {
         UNKNOWN_COLLECTION: ErrorCode.GENERIC + 20,
         SAVE_OPE_NOT_SUPPORTED: ErrorCode.GENERIC + 21,
         UPDATE_FAILED_FOR: ErrorCode.GENERIC + 22,
-        UNKNOWN_PROJECT: ErrorCode.GENERIC + 24
+        UNKNOWN_PROJECT: ErrorCode.GENERIC + 24,
+        BULK_OP_NOT_SUPPORTED: ErrorCode.GENERIC + 24
     }
 
     static UNKNOWN_COLLECTION = (pName:string)=>{
@@ -28,6 +29,10 @@ export class EngineDatabaseException extends MonitoredError {
     static UPDATE_FAILED_FOR = (pName:string,pUID:string)=>{
         return new EngineDatabaseException(`The 'update' operation failed for object [type=${pName}][uid=${pUID}]`,
             ErrorCode.GENERIC + 22) };
+
+    static BULK_OP_NOT_SUPPORTED = (pOpe:string,pCause:string)=>{
+        return new EngineDatabaseException(`Bulk operation [${pOpe}] not supported : ${pCause} `,
+            ErrorCode.GENERIC + 25) };
 
 
 

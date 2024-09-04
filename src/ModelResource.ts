@@ -34,12 +34,12 @@ export default class ModelResource extends Savable
 {
     static TYPE:NodeType = (new NodeType( "resources", NodeInternalType.RESOURCE, [
         (new NodeProperty("_uid")).type(DbDataType.STRING).key(DbKeyType.PRIMARY),
-        (new NodeProperty("location")).serialize(DbSerialize.JSON),
+        (new NodeProperty("location")).type(DbDataType.BLOB).def(null),//.serialize(DbSerialize.JSON),
         (new NodeProperty("name")).type(DbDataType.STRING),
         (new NodeProperty("value")).type(DbDataType.STRING).def(null),
-        (new NodeProperty("ppts")).type(DbDataType.BLOB).serialize(DbSerialize.JSON).def({}),
+        (new NodeProperty("ppts")).type(DbDataType.BLOB).def({}), //.serialize(DbSerialize.JSON).def({}),
         (new NodeProperty("tags")).type(DbDataType.STRING).def(null)
-    ]));
+    ])).dataSource("PROJECT_DB");
 
     __:NodeInternalType = NodeInternalType.RESOURCE;
 
@@ -94,6 +94,11 @@ export default class ModelResource extends Savable
      * @param pRes
      */
     static fromAndroidResource(pUID:string, pValue:any, pRes: AndroidResourceType):ModelResource {
+
+        const type = pUID.split("/")[0].substring(1);
+        switch (type){
+
+        }
 
         return new ModelResource({
             location: new DataLocation({

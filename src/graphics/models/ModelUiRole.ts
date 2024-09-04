@@ -22,7 +22,7 @@ export default class ModelUiRole extends Savable
         (new NodeProperty("tagNames")).type(DbDataType.STRING).def([]),
         (new NodeProperty("version")).type(DbDataType.STRING).def(null),
         (new NodeProperty("description")).type(DbDataType.STRING).def(null),
-    ]));
+    ])).dataSource("PROJECT_DB");
 
     __:NodeInternalType = NodeInternalType.UI_ROLE;
 
@@ -41,3 +41,4 @@ export default class ModelUiRole extends Savable
 
 
 }
+ModelUiRole.TYPE.builder(ModelUiRole);

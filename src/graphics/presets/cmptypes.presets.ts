@@ -1,6 +1,11 @@
 import ModelUiComponentType from "../models/ModelUiComponentType.js";
 import {ROLES_PRESET} from "./roles.presets.js";
 
+const ScrollView = new ModelUiComponentType({
+    _uid: 'scroll_view',
+    painted: true
+});
+
 // Layout
 const Layout = new ModelUiComponentType({
     _uid: 'layout',

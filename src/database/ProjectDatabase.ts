@@ -32,8 +32,6 @@ import ModelField from "../ModelField.js";
 import AndroidService from "../android/AndroidService.js";
 import AndroidReceiver from "../android/AndroidReceiver.js";
 import AndroidProvider from "../android/AndroidProvider.js";
-//import {SaveScheduler} from "./SaveScheduler.js";
-import {isMainThread} from "worker_threads";
 import {WorkerInfo} from "../core/Job.js";
 import {JobWorkerMessage} from "../formats/identifier/Job.js";
 import {SaveScheduler} from "./SaveScheduler.js";
@@ -48,9 +46,6 @@ import ModelUiComponent from "../graphics/models/ModelUiComponent.js";
 import ModelUiComponentType from "../graphics/models/ModelUiComponentType.js";
 import ModelUiRole from "../graphics/models/ModelUiRole.js";
 import ModelResource from "../ModelResource.js";
-import ModelStringValue from "../ModelStringValue.js";
-import {cipher} from "node-forge";
-import Mode = module
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -381,7 +376,6 @@ export class ProjectDatabase {
     async save(pObject:INode):Promise<INode> {
 
 
-
         let obj:INode;
         const info = this._getCollectionInfo(pObject);
         const coll = this._db.getCollection(info.collName, info.collType);
@@ -409,6 +403,50 @@ export class ProjectDatabase {
         return obj;
     }
 
+    /**
+     * To save an object to corresponding collection
+     *
+     * Only some object type can be stored into shared DB :
+     * scan order, projects metadata, devices, inspectors info
+     *
+     * @param {INode} pObject
+     * @async
+     * @method
+     */
+    async saveMany(pObjects:INode[], pNodeType:NodeInternalType):Promise<INode[]> {
+
+
+        let obj:INode[];
+        const info = this._getCollectionInfo(pNodeType);
+        const coll = this._db.getCollection(info.collName, info.collType);
+
+        // separate document to update from document to create
+        const toCreate:INode[] = [];
+        const toUpdate:INode[] = [];
+        pObjects.map(x=>{
+            if(x._id!=null){
+                toUpdate.push(x);
+            }else{
+                toCreate.push(x);
+            }
+        });
+
+        if(toUpdate.length>0){
+            throw EngineDatabaseException.BULK_OP_NOT_SUPPORTED('saveMany', 'some documents have _id but "updateMany" is not supported' );
+        }
+
+        try{
+            obj = await coll.addMany(pObjects) as any;
+            console.log(obj);
+        }catch(e){
+            //const filterId:any = {};
+            //NodeType.INTERN[pObject.__].setPrimaryKeyValueOf( filterId as any, pObject.getUID());
+            //await coll.asyncUpdateEntry( pObject, { upsert:true, filter: filterId });
+            throw EngineDatabaseException.BULK_OP_NOT_SUPPORTED('saveMany', 'insert failed, some documents have _id but "updateMany" is not supported' );
+        }
+
+        return obj;
+    }
 
     /*
      * To save an object to corresponding collection

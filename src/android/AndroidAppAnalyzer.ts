@@ -29,6 +29,7 @@ import {AndroidResource, AndroidResourceType} from "./AndroidResource.js";
 import {AndroidPackageAnalyzer} from "./analyzer/AndroidPackageAnalyzer.js";
 import {DataParserException} from "../errors/DataParserException.js";
 import ModelResource from "../ModelResource.js";
+import {INode} from "@dexcalibur/dexcalibur-orm";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -158,24 +159,48 @@ export default class AndroidAppAnalyzer implements IAppAnalyzer
 
 			let name:string, value:any;
 
-			if(['layout','drawable'].indexOf(resType)>-1){
-				name = "@"+resType+"/"+res._attr.id;
+
+			if(resType=="values"){
+
+				const ent:INode[]=[];
+				res._entries.map((x:AndroidResource) => {
+					ent.push(x.toModelResource("@"+(valType=='public'?'public':valType.substring(0,valType.length-1))+"/"+x._attr.name));
+						/*
+					this.context.trigger({
+						type:"app.res.new",
+						data: x.toModelResource("@"+(valType=='public'?'public':valType.substring(0,valType.length-1))+"/"+x._attr.name)
+					});*/
+				});
+				(async()=>{ await this.context.getProjectDB().saveMany(ent,NodeInternalType.RESOURCE);})();
 			}else{
-				name = "@"+resType+"/"+res._attr.id;
+				name = "@"+resType+"/"+res._attr.name;
+
+				res._entries.map((x:AndroidResource) => {
+
+					this.context.trigger({
+						type:"app.res.new",
+						data: x.toModelResource(name)
+					});
+				})
 			}
 
-			res._entries.map(x => {
-				this.context.trigger({
-					type:"app.res.new",
-					data: ModelResource.fromAndroidResource("@",res)
-				});
-			})
 		}));
 
-		this.context.getBus().subscribe("app.res.new", BusSubscriber.from(async (vEvent)=>{
-			const res:ModelResource = vEvent.getData();
-			console.log(res);
-			await this.context.getProjectDB().save(res);
+		this.context.getBus().subscribe("app.res.new", BusSubscriber.from( (vEvent)=>{
+
+			(async ()=>{
+				const res:ModelResource = vEvent.getData();
+				console.log("app.res.new > ", res);
+				try{
+					console.log("app.res.new before save> ", res);
+					await this.context.getProjectDB().save(res);
+					console.log("app.res.new after save > ", res);
+				}catch(err){
+					console.log(err);
+					Logger.error("[ANDROID APP ANALYZER][SAVE failed] "+err.message,err.stack);
+				}
+			})();
+
 		}));
 
 		// after first fullscan, listen 'class.new' events to search each time if there are missing components.
@@ -394,7 +419,8 @@ export default class AndroidAppAnalyzer implements IAppAnalyzer
 		const success:boolean = await this.importManifest(_path_.join(this.context.getWorkspace().getApkDir(),"AndroidManifest.xml"));
 
 		// parse values
-		await this.parseValuesFromRes();
+		await this.parseResources(this._getResourcesFolder());
+
 		/*
 		Util.forEachFileOf(
 			_path_.join(this._getResourcesFolder(),"values"),
@@ -424,21 +450,36 @@ export default class AndroidAppAnalyzer implements IAppAnalyzer
 	}
 
 
+	async parseResources(pFolderPath:string):Promise<void> {
+		// start to parse values/*
+		await this.parseValuesFromRes(_path_.join(this._getResourcesFolder(),"values"));
+
+		// continue with values-*/*
+
+		// add layout/*, drawables/*, mipmap/*, xml/*, ...
+
+		// add derivation layout-*, drawables-*, ...
+	}
+
+	async analyzeResources():Promise<void> {
+		// solve references
+	}
+
+
 	/**
-	 * To parse files into res/values
+	 * To parse files in `res/values-x/x`
 	 * and build ID map
 	 *
 	 * @method
 	 */
-	async parseValuesFromRes():Promise<void> {
+	async parseValuesFromRes(pFolderPath:string):Promise<void> {
 
-		const valPath = _path_.join(this._getResourcesFolder(),"values");
-		const entries = _fs_.readdirSync(valPath);
+		const entries = _fs_.readdirSync(pFolderPath);
 		let resPath:string;
 
 		for(let i=0; i<entries.length; i++){
 
-			resPath = _path_.join(valPath,entries[i]);
+			resPath = _path_.join(pFolderPath,entries[i]);
 
 			const type = _path_.basename(entries[i]).split('.')[0];
 			if(this.resources[type]==null){
@@ -446,12 +487,11 @@ export default class AndroidAppAnalyzer implements IAppAnalyzer
 			}
 
 			await AndroidAppAnalyzer.parseResourceFile(resPath,this.resources[type], this.context, "resources");
+			console.log(this.resources[type]);
 			this.context.trigger({
-				type: "app.res.new",
+				type: "app.res.parsed",
 				data: { type:type, restype:"values", res:this.resources[type] }
 			});
-
-			//console.log(this.resources[type]._entries.length+" resources parsed");
 		}
 
 

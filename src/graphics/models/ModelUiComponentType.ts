@@ -30,15 +30,18 @@ export default class ModelUiComponentType extends Savable
         (new NodeProperty("_uid")).type(DbDataType.STRING).key(DbKeyType.PRIMARY),
         (new NodeProperty("tags")).type(DbDataType.STRING).def([]),
         (new NodeProperty("version")).type(DbDataType.STRING).def(null),
+        (new NodeProperty("orientation")).type(DbDataType.STRING).def(null),
+        (new NodeProperty("description")).type(DbDataType.STRING).def(null),
         (new NodeProperty("role")).single(ModelUiRole.TYPE).def(null),
         (new NodeProperty("relatedRoles")).multiple(ModelUiRole.TYPE).def([]),
         (new NodeProperty("fire")).multiple(ModelUiEventType.TYPE).def([]),
-    ]));
+    ])).dataSource("PROJECT_DB");
 
     __:NodeInternalType = NodeInternalType.UI_CMP_TYPE;
 
     version:string = "1.0.0";
     painted:boolean = false;
+    orientation:Nullable<string> = null;
     description:string = "";
     role:Nullable<ModelUiRole> = null;
     relatedRoles:ModelUiRole[] = [];

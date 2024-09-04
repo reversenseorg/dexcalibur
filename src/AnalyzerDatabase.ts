@@ -49,12 +49,14 @@ export default class AnalyzerDatabase
     datablock:IDbCollection = null;
     tagcategories:IDbCollection = null;
     syscalls:IDbCollection = null;
+
     activities:IDbCollection = null;
     receivers:IDbCollection = null;
     services:IDbCollection = null;
     providers:IDbCollection = null;
     permissions:IDbIndex = null;
 
+    resources:IDbCollection = null;
     // Manifest node
     manifest:any = null;
 
@@ -104,6 +106,7 @@ export default class AnalyzerDatabase
         this.services =this.conn.getCollection("services");
         this.providers =this.conn.getCollection("providers");
         this.permissions =this.conn.getIndex("permissions");
+        this.resources =this.conn.getCollection("resources");
         this.funcs =this.conn.getCollection("funcs");
 
         // Manifest node
@@ -140,6 +143,9 @@ export default class AnalyzerDatabase
                 break;
             case NodeInternalType.FUNC:
                 res = this.funcs.getEntry(pUID);
+                break;
+            case NodeInternalType.RESOURCE:
+                res = this.resources.getEntry(pUID);
                 break;
         }
         return res;
@@ -182,6 +188,7 @@ export default class AnalyzerDatabase
             case NodeInternalType.ANDROID_SERVICE: return this.services;
             case NodeInternalType.ANDROID_PROVIDER: return this.providers;
             case NodeInternalType.ANDROID_ACTIVITY: return this.activities;
+            case NodeInternalType.RESOURCE: return this.resources;
             case NodeInternalType.FILE: return this.files;
             case NodeInternalType.CALL: return this.call;
             case NodeInternalType.TAG: return this.tagcategories;
