@@ -421,28 +421,42 @@ export class ProjectDatabase {
         const coll = this._db.getCollection(info.collName, info.collType);
 
         // separate document to update from document to create
-        const toCreate:INode[] = [];
-        const toUpdate:INode[] = [];
+        const toCreate:Record<any, INode> = {};
+        const toUpdate:Record<any, INode> = {};
+        let hasUpdate = false;
         pObjects.map(x=>{
             if(x._id!=null){
-                toUpdate.push(x);
+                hasUpdate = true;
+                toUpdate[x.getUID()] = x;
             }else{
-                toCreate.push(x);
+                toCreate[x.getUID()] = x;
             }
         });
 
-        if(toUpdate.length>0){
-            throw EngineDatabaseException.BULK_OP_NOT_SUPPORTED('saveMany', 'some documents have _id but "updateMany" is not supported' );
+        if(hasUpdate){
+            try{
+                obj = await coll.updateMany(toUpdate) as any;
+                console.log('updateMany',obj);
+            }catch(e){
+                console.log(e.stack,e.msg);
+                //const filterId:any = {};
+                //NodeType.INTERN[pObject.__].setPrimaryKeyValueOf( filterId as any, pObject.getUID());
+                //await coll.asyncUpdateEntry( pObject, { upsert:true, filter: filterId });
+                //throw EngineDatabaseException.BULK_OP_NOT_SUPPORTED('updateMany', 'bulk update failed' );
+            }
+
+            //throw EngineDatabaseException.BULK_OP_NOT_SUPPORTED('saveMany', 'some documents have _id but "updateMany" is not supported' );
         }
 
         try{
-            obj = await coll.addMany(pObjects) as any;
-            console.log(obj);
+            obj = await coll.addMany(toCreate) as any;
+            console.log('insertMany',obj);
         }catch(e){
+            console.log(e.stack,e.msg);
             //const filterId:any = {};
             //NodeType.INTERN[pObject.__].setPrimaryKeyValueOf( filterId as any, pObject.getUID());
             //await coll.asyncUpdateEntry( pObject, { upsert:true, filter: filterId });
-            throw EngineDatabaseException.BULK_OP_NOT_SUPPORTED('saveMany', 'insert failed, some documents have _id but "updateMany" is not supported' );
+            //throw EngineDatabaseException.BULK_OP_NOT_SUPPORTED('saveMany', 'insert failed, some documents have _id but "updateMany" is not supported' );
         }
 
         return obj;
