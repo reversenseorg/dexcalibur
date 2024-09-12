@@ -1,16 +1,13 @@
 import * as Log from '../Logger.js';
-import AdbWrapper from "../AdbWrapper.js";
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 import * as _child_process_ from "child_process";
 import {IBridge} from "../Bridge.js";
-import {elementAt} from "rxjs";
-import e from "express";
 
 
 export default class DeviceEventCollector {
 
     static getEventCommand = "getevent -ltq";
-    static showPossibleEventCommand = "getevent -lp";
+    static listDevicesEventsCommand = "getevent -lp";
 
     childProcess: _child_process_.ChildProcess = null;
 
@@ -21,10 +18,9 @@ export default class DeviceEventCollector {
     constructor(deviceBridge: IBridge) {
         this.deviceBridge = deviceBridge;
     }
+
     /**
-     * To listen to devices events from the device through adb getevent
-     *
-     * @param {IBridge} deviceBridge A bridge to a device through whom the collection will happen.
+     * Start child process to collect devices events with adb getevent
      */
     start() {
         console.log('[DeviceEventCollector] START CollectDeviceEvents');
@@ -60,10 +56,12 @@ export default class DeviceEventCollector {
         console.log('[DeviceEventCollector] Dump DeviceEvents : ', this.getDeviceEvents());
     }
 
-    initDeviceEventsLabel() {
-        console.log('[DeviceEventCollector] START initDeviceEventsLabel');
-        let commandResult = this.deviceBridge.shell(DeviceEventCollector.showPossibleEventCommand);
-        this.parsePossibleEvent();
+    /**
+     * To Retrieve the list of possible device events from device.
+     */
+    listDeviceEvents() {
+        let commandResult = this.deviceBridge.shell(DeviceEventCollector.listDevicesEventsCommand);
+        this.parseListDevicesEvents(commandResult.toString());
         console.log(commandResult);
     }
 
@@ -86,7 +84,7 @@ export default class DeviceEventCollector {
         return parsedEventChunk;
     }
 
-    parsePossibleEvent() {
+    parseListDevicesEvents(commandResult: string) {
         return;
     }
 

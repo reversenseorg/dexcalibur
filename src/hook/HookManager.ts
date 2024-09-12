@@ -18,8 +18,7 @@ import KeyPointManager from "./KeyPointManager.js";
 import KeyPoint, {KeyPointRole} from "./KeyPoint.js";
 import JavaMethodHook from "./JavaMethodHook.js";
 import NativeFunctionHook from "./NativeFunctionHook.js";
-import {NodeInternalType}
-from "@dexcalibur/dxc-core-api";;
+import {NodeInternalType} from "@dexcalibur/dxc-core-api";
 import {AbstractHook} from "./AbstractHook.js";
 import {HookBuilder} from "./builders/HookBuider.js";
 import {HookDbApi} from "./HookDbApi.js";
@@ -146,7 +145,7 @@ export class HookManager
     /**
      * 
      * @param {*} pProject 
-     * @param {*} nofrida 
+     * @param {*} pNofrida
      * @constructor
      */
     constructor(pProject:DexcaliburProject, pNofrida=false){
