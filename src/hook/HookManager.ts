@@ -1011,6 +1011,13 @@ export class HookManager
         await fridaDevice.resume(pid);
         Logger.info('[HOOK MANAGER] async exec : resume');
 
+
+        let isCollectDeviceEvent = true;
+        if (isCollectDeviceEvent === true) {
+            let deviceBridge = target.getDefaultBridge()
+            PROBE_SESSION.launchDeviceEventCollector(deviceBridge);
+        }
+
         return PROBE_SESSION;
     }
 
@@ -1935,7 +1942,7 @@ export class HookManager
                             break;
                     }
 
-//                    sess.addOwner()
+                    //                    sess.addOwner()
                     pSocket.sendUTF(JSON.stringify({
                         action:'start',
                         svc:"hookm",

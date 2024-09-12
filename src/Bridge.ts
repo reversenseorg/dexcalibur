@@ -91,6 +91,8 @@ export interface IBridge
 
     shell(command:string):string|Buffer;
 
+    spawn(command:string, pOptions?:any):_child_process_.ChildProcess;
+
     getPackagePath(packageIdentifier:string):string;
 
     getDeviceID():string;

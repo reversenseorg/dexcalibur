@@ -17,7 +17,6 @@ import * as Log from "./Logger.js";
 import HookMessageV2 from "./hook/HookMessageV2.js";
 import {RuntimeEvent, RuntimeEventType} from "./hook/RuntimeEvent.js";
 import {HookMessageException} from "./errors/HookMessageException.js";
-import {TagHashMap} from "./tags/TagManager.js";
 
 import {NodeInternalType} from "@dexcalibur/dxc-core-api";
 
@@ -37,6 +36,8 @@ import {HookWorkspaceState} from "./hook/HookWorkspace.js";
 import {Nullable} from "./core/IStringIndex.js";
 import {UserAccount, UserAccountUUID} from "./user/UserAccount.js";
 import {Device} from "./Device.js";
+import DeviceEventCollector from "./deviceEvent/DeviceEventCollector.js";
+import {IBridge} from "./Bridge.js";
 
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
@@ -189,6 +190,11 @@ export default class HookSession extends WebsocketSession implements INode
      * Device UID
      */
     devUID:string = null;
+
+    /**
+     * Spawned a child process to collect devices events from device.
+     */
+    deviceEventCollector: DeviceEventCollector = null;
 
     /**
      *
@@ -491,7 +497,9 @@ export default class HookSession extends WebsocketSession implements INode
     }
 
     onExit():void {
-        //
+        if (this.deviceEventCollector) {
+            this.deviceEventCollector.stop();
+        }
     }
 
     /**
@@ -553,6 +561,11 @@ export default class HookSession extends WebsocketSession implements INode
                 }
             }
         });
+    }
+
+    launchDeviceEventCollector(deviceBridge:IBridge){
+        this.deviceEventCollector = new DeviceEventCollector(deviceBridge);
+        this.deviceEventCollector.start()
     }
 }
 HookSession.TYPE.builder(HookSession);
