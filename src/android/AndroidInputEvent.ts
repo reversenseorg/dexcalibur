@@ -1,9 +1,20 @@
-export enum AndroidEventTypeCode {
+// List of sources:
+// Android CodeShare https://cs.android.com/android/kernel/superproject/+/common-android-mainline:common/include/uapi/linux/input-event-codes.h
+// Evdev: https://docs.rs/crate/evdev/0.9.2/source/src/lib.rs
+
+
+export enum AndroidEventType {
+    // Used as markers to separate events. Events may be separated in time or in space, such as with the multitouch protocol.
     EV_SYN = 0x00,
+    // Used to describe state changes of keyboards, buttons, or other key-like devices.
     EV_KEY = 0x01,
+    // Movement on a relative axis
     EV_REL = 0x02,
+    // Movement on an absolute axis
     EV_ABS = 0x03,
+    // Miscellaneous input data that don't fit into other types
     EV_MSC = 0x04,
+    // Input Switch update
     EV_SW = 0x05,
     EV_LED = 0x11,
     EV_SND = 0x12,
@@ -11,10 +22,9 @@ export enum AndroidEventTypeCode {
     EV_FF = 0x15,
     EV_PWR = 0x16,
     EV_FF_STATUS = 0x17,
-    EV_MAX = 0x1f,
-    EV_CNT = 0x20
 }
 
+//All the events
 export enum AndroidInputEvent {
     INPUT_PROP_POINTER = 0x00,
     INPUT_PROP_DIRECT = 0x01,
@@ -796,7 +806,7 @@ export enum AndroidInputEvent {
     SND_CNT = 0x08,
 }
 
-export enum InputEventCode {
+export enum AndroidInputEventCode {
     INPUT_PROP_POINTER = 0x00,
     INPUT_PROP_DIRECT = 0x01,
     INPUT_PROP_BUTTONPAD = 0x02,
@@ -804,20 +814,20 @@ export enum InputEventCode {
     INPUT_PROP_TOPBUTTONPAD = 0x04,
     INPUT_PROP_POINTING_STICK = 0x05,
     INPUT_PROP_ACCELEROMETER = 0x06,
-    INPUT_PROP_MAX = 0x1f,
-    INPUT_PROP_CNT = 0x20,
 }
 
-export enum SynEventCode {
+export enum AndroidSynEventCode {
+    // Used to synchronize and separate events into packets of input data changes occurring at the same moment in time
     SYN_REPORT = 0,
+    // Appears to be unused
     SYN_CONFIG = 1,
+    // Used to synchronize and separate touch events
     SYN_MT_REPORT = 2,
+    // Used to indicate buffer overrun in the evdev client’s event queue. Client should ignore all events
     SYN_DROPPED = 3,
-    SYN_MAX = 0xf,
-    SYN_CNT = 0x10,
 }
 
-export enum KeyEventLabel {
+export enum AndroidKeyEventLabel {
     KEY_RESERVED = 0,
     KEY_ESC = 1,
     KEY_1 = 2,
@@ -1455,11 +1465,9 @@ export enum KeyEventLabel {
     BTN_TRIGGER_HAPPY39 = 0x2e6,
     BTN_TRIGGER_HAPPY40 = 0x2e7,
     KEY_MIN_INTERESTING = 113,
-    KEY_MAX = 0x2ff,
-    KEY_CNT = 0x300,
 }
 
-export enum RelEventLabel {
+export enum AndroidRelEventLabel {
     REL_X = 0x00,
     REL_Y = 0x01,
     REL_Z = 0x02,
@@ -1473,11 +1481,9 @@ export enum RelEventLabel {
     REL_RESERVED = 0x0a,
     REL_WHEEL_HI_RES = 0x0b,
     REL_HWHEEL_HI_RES = 0x0c,
-    REL_MAX = 0x0f,
-    REL_CNT = 0x10,
 }
 
-export enum AbsEventLabel {
+export enum AndroidAbsEventLabel {
     ABS_X = 0x00,
     ABS_Y = 0x01,
     ABS_Z = 0x02,
@@ -1521,11 +1527,9 @@ export enum AbsEventLabel {
     ABS_MT_DISTANCE = 0x3b,
     ABS_MT_TOOL_X = 0x3c,
     ABS_MT_TOOL_Y = 0x3d,
-    ABS_MAX = 0x3f,
-    ABS_CNT = 0x40,
 }
-
-export enum SwEventLabel {
+// Flags switch
+export enum AndroidSwEventLabel {
     SW_LID = 0x00,
     SW_TABLET_MODE = 0x01,
     SW_HEADPHONE_INSERT = 0x02,
@@ -1544,22 +1548,19 @@ export enum SwEventLabel {
     SW_MUTE_DEVICE = 0x0e,
     SW_PEN_INSERTED = 0x0f,
     SW_MACHINE_COVER = 0x10,
-    SW_MAX = 0x10,
-    SW_CNT = 0x11,
 }
 
-export enum MscEventLabel {
+// Various miscellaneous event types.
+export enum AndroidMscEventLabel {
     MSC_SERIAL = 0x00,
     MSC_PULSELED = 0x01,
     MSC_GESTURE = 0x02,
     MSC_RAW = 0x03,
     MSC_SCAN = 0x04,
     MSC_TIMESTAMP = 0x05,
-    MSC_MAX = 0x07,
-    MSC_CNT = 0x08,
 }
 
-export enum LedEventLabel {
+export enum AndroidLedEventLabel {
     LED_NUML = 0x00,
     LED_CAPSL = 0x01,
     LED_SCROLLL = 0x02,
@@ -1571,42 +1572,36 @@ export enum LedEventLabel {
     LED_MISC = 0x08,
     LED_MAIL = 0x09,
     LED_CHARGING = 0x0a,
-    LED_MAX = 0x0f,
-    LED_CNT = 0x10,
 }
 
-export enum RepEventLabel {
+// Autorepeat values
+export enum AndroidRepEventLabel {
     REP_DELAY = 0x00,
     REP_PERIOD = 0x01,
-    REP_MAX = 0x01,
-    REP_CNT = 0x02,
 }
 
-export enum SndEventLabel {
+// Sounds
+export enum AndroidSndEventLabel {
     SND_CLICK = 0x00,
     SND_BELL = 0x01,
     SND_TONE = 0x02,
-    SND_MAX = 0x07,
-    SND_CNT = 0x08,
 }
 
 // MORE LABEL. Found in input.h
-export enum MtToolEventLabel {
+export enum AndroidMtToolEventLabel {
     MT_TOOL_FINGER = 0x00,
     MT_TOOL_PEN = 0x01,
     MT_TOOL_PALM = 0x02,
     MT_TOOL_DIAL = 0x0a,
-    MT_TOOL_MAX = 0x0f,
 }
 
 export enum FfStatusEventLabel {
     FF_STATUS_STOPPED = 0x00,
     FF_STATUS_PLAYING = 0x01,
-    FF_STATUS_MAX = 0x01,
 }
 
 
-export enum FfStatusEventLabel {
+export enum AndroidFfStatusEventLabel {
     FF_RUMBLE = 0x50,
     FF_PERIODIC = 0x51,
     FF_CONSTANT = 0x52,
@@ -1628,6 +1623,4 @@ export enum FfStatusEventLabel {
     FF_GAIN = 0x60,
     FF_AUTOCENTER = 0x61,
     FF_MAX_EFFECTS = 0x60,
-    FF_MAX = 0x7f,
-    FF_CNT = 0x80,
 }
