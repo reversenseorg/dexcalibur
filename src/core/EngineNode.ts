@@ -2,7 +2,7 @@ import got from "got";
 import {IDexcaliburEngine} from "../IDexcaliburEngine.js";
 import {Nullable} from "./IStringIndex.js";
 import {Subject} from "rxjs";
-import * as Process from "child_process";
+import * as _child_process_ from "child_process";
 import DexcaliburWorkspace from "../DexcaliburWorkspace.js";
 import UT from "../Utils.js";
 import * as _path_ from "path";
@@ -249,7 +249,7 @@ export class EngineNode {
     async spawn():Promise<any>{
 
 
-        let child:Process.ChildProcess=null;
+        let child:_child_process_.ChildProcess=null;
         let opts:any = {};
 
         try{
@@ -278,7 +278,7 @@ export class EngineNode {
 
             this.setState(NodeState.STARTING);
 
-            child = Process.spawn('node', args, { detached: true, stdio: [ 'ignore', out, err ] });
+            child = _child_process_.spawn('node', args, { detached: true, stdio: [ 'ignore', out, err ] });
             child.unref();
 
             console.log( `[ENGINE NODE] node spawned:   ${args}  (opts)`);

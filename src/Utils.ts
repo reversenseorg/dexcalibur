@@ -1,5 +1,5 @@
 import * as fs from "fs";
-import * as Process from "child_process";
+import * as _child_process_ from "child_process";
 import * as crypto from "crypto";
 import * as _path_ from "path";
 import * as _fs_ from "fs";
@@ -24,8 +24,8 @@ const got = Got.default;
 
 let Logger:Log.ProdLogger = Log.newLogger() as Log.ProdLogger;
 
-const _exec_:any = _util_.promisify(Process.exec);
-const _spawn_:any = _util_.promisify(Process.spawn);
+const _exec_:any = _util_.promisify(_child_process_.exec);
+const _spawn_:any = _util_.promisify(_child_process_.spawn);
 
 const RE_REPLACE:RegExp = /[-\/\\^$*+?.()|[\]{}]/g;
 
@@ -332,9 +332,9 @@ export default class Util {
             Logger.debug(pThreadPrefix+"[UTIL] execSync : "+command);
 
             if(opts!=null) {
-                ret = Process.execSync(command, opts).toString();
+                ret = _child_process_.execSync(command, opts).toString();
             }else {
-                ret = Process.execSync(command).toString(charset);
+                ret = _child_process_.execSync(command).toString(charset);
 
 
             }
@@ -358,14 +358,14 @@ export default class Util {
         return ret;
     }
 
-    static spawn(pCmd:string, pArgs:any=[], pOptions:any={}):any{
+    static spawn(pCmd:string, pArgs:any=[], pOptions:any={}):_child_process_.ChildProcess{
         let ret:any;
 
         if(process.env.DEXCALIBUR_TEST){
             ret = TestExecHelper.spawn(pCmd);
         }else{
             Logger.info("[UTIL] spawn : "+pCmd);
-            ret = Process.spawn(pCmd, pArgs, pOptions);
+            ret = _child_process_.spawn(pCmd, pArgs, pOptions);
         }
 
         return ret;
@@ -526,7 +526,7 @@ export default class Util {
         try {
             const getEnvSh = [ shell || Util.getDefaultShell(), '-ilc', 'env'].join(" ");
 
-            const stdout = Process.execSync( getEnvSh, {
+            const stdout = _child_process_.execSync( getEnvSh, {
                 shell: shell || Util.getDefaultShell(),
                 timeout: 400,
             }); //.stdout;

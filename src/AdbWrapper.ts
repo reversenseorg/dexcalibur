@@ -1,4 +1,4 @@
-import * as Process from "child_process";
+import * as _child_process_ from "child_process";
 import * as _path_ from 'path';
 import * as _fs_ from 'fs';
 import { EOL } from 'os';
@@ -539,11 +539,11 @@ export default class AdbWrapper implements IBridge
         var reg = new RegExp("^package:(?<apk_name>.*)");
         var ret = "";
         if(deviceId !== null) {
-            ret = Process.execSync(this.setup(deviceId) + " shell pm list packages").toString("ascii");
+            ret = _child_process_.execSync(this.setup(deviceId) + " shell pm list packages").toString("ascii");
             
         }
         else {
-            ret = Process.execSync(this.path + " shell pm list packages").toString("ascii");
+            ret = _child_process_.execSync(this.path + " shell pm list packages").toString("ascii");
             
         }
         var packages = [];
@@ -555,11 +555,11 @@ export default class AdbWrapper implements IBridge
                     var pathResult = "";
                     //getting the path for each package takes ages
                     if(deviceId !== null) {
-                       // pathResult = Process.execSync(this.setup(deviceId) + " shell pm path " + result.groups['apk_name']).toString("ascii");
+                       // pathResult = _child_process_.execSync(this.setup(deviceId) + " shell pm path " + result.groups['apk_name']).toString("ascii");
 
                     }
                     else {
-                       // pathResult = Process.execSync(this.path + " shell pm path " + result.groups['apk_name']).toString("ascii");
+                       // pathResult = _child_process_.execSync(this.path + " shell pm path " + result.groups['apk_name']).toString("ascii");
                     }
                     //recycle the same regex since the output is the same
                     //only take first match since this is the base apk
@@ -592,17 +592,17 @@ export default class AdbWrapper implements IBridge
         /*if(Process.env.DEXCALIBUR_ENV){
             ret = TestHelper.execSync(this.setup(deviceId) + " shell pm path " +  packageIdentifier).toString("ascii");
         }else
-            ret = Process.execSync(this.setup(deviceId) + " shell pm path " +  packageIdentifier).toString("ascii");
+            ret = _child_process_.execSync(this.setup(deviceId) + " shell pm path " +  packageIdentifier).toString("ascii");
 */
         const ret = UT.execSync(this.setup() + " shell pm path " +  packageIdentifier, "ascii");
 
 /*
         if(deviceId !== null) {
-            ret = Process.execSync(this.setup(deviceId) + " shell pm path " +  packageIdentifier).toString("ascii");
+            ret = _child_process_.execSync(this.setup(deviceId) + " shell pm path " +  packageIdentifier).toString("ascii");
             
         }
         else {
-            ret = Process.execSync(this.path + " shell pm path " + packageIdentifier).toString("ascii");
+            ret = _child_process_.execSync(this.path + " shell pm path " + packageIdentifier).toString("ascii");
         }*/
 
         let path:string = ret.split( EOL )[0].trim();
@@ -805,7 +805,7 @@ export default class AdbWrapper implements IBridge
      */
 
     pullRessource(package_name:string,remote_path:string, local_path:string){
-        const binary_blob:Buffer = Process.execSync(this.setup() + 'shell "run-as '+ package_name+ ' cat ' + remote_path + '"');
+        const binary_blob:Buffer = _child_process_.execSync(this.setup() + 'shell "run-as '+ package_name+ ' cat ' + remote_path + '"');
             _fs_.writeFile(local_path,binary_blob,function(err) {
                 if(err) {
                     Logger.error("[ADB] pullRessource() : an error occurs : "+err);
@@ -829,13 +829,31 @@ export default class AdbWrapper implements IBridge
 
     /**
      * Execute a command on the device
-     * Same as 'adb shell' commande.
+     * Same as 'adb shell' command.
      * 
      * @param {*} command The command to execute remotely
      * @method
      */
     shell(command:string):string|Buffer{
             return UT.execSync(this.setup()+' shell '+command);
+    }
+
+    /**
+     * Spawn and return a new process using given command on the device.
+     *
+     * @param {string} command The command to be spawned in a new process remotely
+     * @param {*} pOptions
+     * @method
+     */
+    spawn(command:string, pOptions:any={}): _child_process_.ChildProcess{
+        // In case there is pipe in the command, everything is wrapped into an input variable for sh -c
+        let returnString = false;
+        let baseCommand : string = this.setup(null,returnString)[0]
+        console.log('[ADBWRAPPER] Base Command :');
+        let args = (this.setup(null, returnString) as string[]).slice(1);
+        args.push('shell')
+        args.push(command);
+        return UT.spawn(baseCommand, args, pOptions);
     }
 
      /**
@@ -857,10 +875,10 @@ export default class AdbWrapper implements IBridge
      * @param {*} command The command to execute remotely
      * @method
      */
-    shellWithEH(command:string, callbacks:any=null):Process.ChildProcess{
+    shellWithEH(command:string, callbacks:any=null): _child_process_.ChildProcess{
 
         Logger.info("[ADB] ",this.setup()+' shell '+command);
-        return Process.exec(this.setup()+' shell '+command, callbacks);
+        return _child_process_.exec(this.setup()+' shell '+command, callbacks);
 
     }
 
@@ -875,7 +893,7 @@ export default class AdbWrapper implements IBridge
 
             Logger.info("[ADB] ",this.setup()+' shell '+command);
 
-            return Process.execSync(this.setup()+' shell '+command);
+            return _child_process_.execSync(this.setup()+' shell '+command);
 
     }
 
@@ -893,7 +911,7 @@ export default class AdbWrapper implements IBridge
      */
     async detachedShell( pCommand:string|string[], pArgs:string, pOptions:AdbDetachedShellOptions = {} ):Promise<any>{
 
-        let child:Process.ChildProcess=null;
+        let child: _child_process_.ChildProcess=null;
         const opts = {
             detached:true,
             unref:true,
@@ -921,7 +939,7 @@ export default class AdbWrapper implements IBridge
 
 
             args = args.concat(pCommand);
-            child = Process.spawn(this.path, args, { detached: opts.detached, stdio: [ 'ignore', out, err ] });
+            child = _child_process_.spawn(this.path, args, { detached: opts.detached, stdio: [ 'ignore', out, err ] });
             if(opts.unref) child.unref();
             Logger.info( `[ADB WRAPPER] detachedShell spawned: ${this.path} ,  ${args}  (opts)`);
 
@@ -943,8 +961,8 @@ export default class AdbWrapper implements IBridge
      * @method
      * @async
      */
-    spawnShell( pOptions:any ):Process.ChildProcess{
-        let child:Process.ChildProcess = null;
+    spawnShell( pOptions:any ): _child_process_.ChildProcess{
+        let child: _child_process_.ChildProcess = null;
         let ws:DexcaliburWorkspace, sid:string, outStream:_fs_.ReadStream, errStream:_fs_.ReadStream;
 
         //let rep:string = null;
@@ -961,11 +979,11 @@ export default class AdbWrapper implements IBridge
             //errStream = _fs_.createReadStream(_path_.join( ws.getTempFolderLocation(), sid+'_err.log'), {flags:'w+', mode:0o666 });
 
             pOptions.stdio = 'pipe'; // ['pipe',outStream,errStream];
-            child = Process.spawn(this.path, args, pOptions);
+            child = _child_process_.spawn(this.path, args, pOptions);
 
             // child.stdout = outStream;
             // child.stderr = errStream;
-            //rep = Process.execSync(args.join(" "), pOptions); //{ detached: true, stdio: [ 'ignore', out, err ] });
+            //rep = _child_process_.execSync(args.join(" "), pOptions); //{ detached: true, stdio: [ 'ignore', out, err ] });
             //child.unref();
 
         }catch(err){
@@ -1183,7 +1201,7 @@ export default class AdbWrapper implements IBridge
             if(pOptions!=null && pOptions.privileged){
                 out = await this.privilegedShell(cmd+pPath);
             }else{
-                out = Process.execSync( this.setup() + " shell  "+cmd+pPath);
+                out = _child_process_.execSync( this.setup() + " shell  "+cmd+pPath);
                 out = out.toString();
             }
         }catch(err){
@@ -1286,7 +1304,7 @@ export default class AdbWrapper implements IBridge
             if(pOptions.privileged){
                 out = await this.privilegedShell(cmd);
             }else{
-                out = Process.execSync( this.setup() + " shell  "+cmd);
+                out = _child_process_.execSync( this.setup() + " shell  "+cmd);
                 out = out.toString();
             }
 
@@ -1318,7 +1336,7 @@ export default class AdbWrapper implements IBridge
             if(pOptions.privileged){
                 out = await this.privilegedShell(cmd+pPath);
             }else{
-                out = Process.execSync( this.setup() + " shell  "+cmd+pPath);
+                out = _child_process_.execSync( this.setup() + " shell  "+cmd+pPath);
                 out = out.toString();
             }
         }catch(err){
