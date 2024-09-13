@@ -19,8 +19,8 @@ import {ProjectAccessControl} from "../user/acl/rbac/ProjectAccessContol.js";
 import {Settings} from "../Settings.js";
 import {DexcaliburConnectionException} from "../errors/DexcaliburConnectionException.js";
 import {DexcaliburEngineMode} from "../DexcaliburEngine.js";
-import {NodeUtils} from "../core/NodeUtils.js";
 import {ProjectInput, ProjectInputLocation, ProjectInputPurpose, ProjectInputType} from "../analyzer/ProjectInput.js";
+import {NodeUtils} from "@dexcalibur/dexcalibur-orm";
 
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
@@ -548,7 +548,10 @@ PROJECT_MGT_WEB_API.addAuthenticatedRoute(
                 if(req.query.size!=null){
                     size = parseInt(req.query.size as string, 10);
                 }
-                $.sendSuccess(res, NodeUtils.toJsonObject(
+                /*$.sendSuccess(res, NodeUtils.toJsonObject(
+                    await $.context.getEngineDB().getGlobalLogs((!Number.isNaN(size)) ? size : 1000)
+                ));*/
+                $.sendSuccess(res, NodeUtils.serialize(
                     await $.context.getEngineDB().getGlobalLogs((!Number.isNaN(size)) ? size : 1000)
                 ));
             }catch(err){

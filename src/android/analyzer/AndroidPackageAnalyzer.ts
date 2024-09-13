@@ -291,7 +291,7 @@ export class AndroidPackageAnalyzer implements IPackageAnalyzer {
 
             this.state.setProperty("_base_apk", targetApp.toJsonObject());
             this.state.setProperty("_extra_apk", splittedInput);
-            this.state.save();
+            await this.state.save();
 
             //
             this._project.getWorkflow().pushStatus(new StatusMessage(5, "app extracted."));

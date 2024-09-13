@@ -2887,6 +2887,10 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
     hasMultipleInputs() {
         return (this.inputs!=null && this.inputs.length>0);
     }
+
+    getUtils():any {
+        return Util;
+    }
 }
 DexcaliburProject.TYPE.builder(DexcaliburProject);
 

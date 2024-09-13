@@ -2,16 +2,21 @@ import {Savable, STUB_TYPE} from "./ModelSavable.js";
 import {createHash} from "crypto";
 
 import {NodeInternalType} from "@dexcalibur/dxc-core-api";
-import {DbDataType, DbKeyType, DbSerialize, NodeProperty, NodeType} from "@dexcalibur/dexcalibur-orm";
+import {
+    DbDataType,
+    DbKeyType,
+    DbSerialize, INode, Node,
+    NodeProperty,
+    NodePropertyState,
+    NodeType, SerializeOptions
+} from "@dexcalibur/dexcalibur-orm";
 import {DataLocation, DataLocationType} from "./DataLocation.js";
-import ModelBasicBlock from "./ModelBasicBlock.js";
-import ModelMethod from "./ModelMethod.js";
-import ModelInstruction from "./ModelInstruction.js";
-import {AbstractHook} from "./hook/AbstractHook.js";
-import HookTemplateFragment from "./hook/HookTemplateFragment.js";
 import ModelFile from "./ModelFile.js";
 import {Nullable} from "./core/IStringIndex.js";
 import {AndroidResourceType} from "./android/AndroidResource.js";
+import ModelFileSection from "./ModelFileSection.js";
+import {NodeUtils} from "@dexcalibur/dexcalibur-orm";
+import ModelStringValue from "./ModelStringValue.js";
 
 export interface ResourceOpts {
     _uid?:string;
@@ -36,7 +41,41 @@ export default class ModelResource extends Savable
         (new NodeProperty("_uid")).type(DbDataType.STRING).key(DbKeyType.PRIMARY),
         (new NodeProperty("location")).type(DbDataType.BLOB).def(null),//.serialize(DbSerialize.JSON),
         (new NodeProperty("name")).type(DbDataType.STRING),
-        (new NodeProperty("value")).type(DbDataType.STRING).def(null),
+        (new NodeProperty("value"))
+            .type(DbDataType.BLOB)
+            .sleep( (x:NodePropertyState)=>{
+                return NodeUtils.serialize(x.p);
+            })
+            .wakeUp( (x:NodePropertyState)=>{
+                if(x.p==null) return null;
+
+                if(Array.isArray(x.p)){
+                    const ar:INode[] = [];
+                    x.p.map(y => {
+                        switch(y.__){
+                            case NodeInternalType.STRING:
+                                ar.push(new ModelStringValue(y));
+                                break;
+                            default:
+                                return y;
+                        }
+                    });
+                }else if(typeof x.p === 'object'){
+                    if(x.p!=null && x.p.__ != null){
+                        switch(x.p.__){
+                            case NodeInternalType.STRING:
+                                return new ModelStringValue(x.p);
+                            default:
+                                return x.p;
+                        }
+                    }else{
+                        return x.p;
+                    }
+                }else{
+                    return x.p;
+                }
+            })
+            .def(null),
         (new NodeProperty("ppts")).type(DbDataType.BLOB).def({}), //.serialize(DbSerialize.JSON).def({}),
         (new NodeProperty("tags")).type(DbDataType.STRING).def(null)
     ])).dataSource("PROJECT_DB");
@@ -45,7 +84,7 @@ export default class ModelResource extends Savable
 
     _uid:string;
     location:DataLocation = null;
-    value:string = null;
+    value:any = null;
     name:string;
     ppts:Record<string,any> = {}
     tags:number[] = [];
@@ -57,6 +96,15 @@ export default class ModelResource extends Savable
             for(const i in pConfig)
                 this[i] = pConfig[i];
         }
+    }
+
+    /**
+     * To check if the ressource has string nodes (ModelStringValue)
+     *
+     * @method
+     */
+    hasStringValue():boolean {
+        return NodeUtils.isNode(this.value) && (this.value.__===NodeInternalType.STRING);
     }
 
 
@@ -87,33 +135,24 @@ export default class ModelResource extends Savable
     }
 
 
-    /**
-     *
-     * @param pUID
-     * @param pValue
-     * @param pRes
-     */
-    static fromAndroidResource(pUID:string, pValue:any, pRes: AndroidResourceType):ModelResource {
+    toJsonObject(pOption?: SerializeOptions): any {
+        const o:any = {};
 
-        const type = pUID.split("/")[0].substring(1);
-        switch (type){
-
+        o.__ = this.__;
+        o._uid = this._uid;
+        if(this.location != null){
+            o.location = this.location.toJsonObject();
+        }else{
+            o.location = null;
         }
 
-        return new ModelResource({
-            location: new DataLocation({
-                type: DataLocationType.FILE,
-                source: {
-                    nodeType: NodeInternalType.FILE,
-                    // node: pRes.,
-                    // offset: pOffset,
-                    // length: pLength
-                }
-            }),
-            name: pUID,
-            value: pValue,
-            ppts: pRes._children
-        });
+        o.value = NodeUtils.serialize(this.value);
+
+        o.name = this.name;
+        o.ppts = this.ppts;
+        o.tags = this.tags;
+
+        return o;
     }
 }
 ModelResource.TYPE.builder(ModelResource);

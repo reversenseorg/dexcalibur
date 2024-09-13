@@ -24,6 +24,7 @@ import {SecurityZone} from "./security/SecurityZone.js";
 import {FileFormatDetector} from "./formats/identifier/FileFormatDetector.js";
 import {delay, from, map, merge, mergeAll, mergeMap, Observable, ReplaySubject, Subject} from "rxjs";
 import {DataFormatManager} from "./formats/DataFormatManager.js";
+import {DataFormatManagerException} from "./formats/error/DataFormatManagerException.js";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -846,8 +847,12 @@ export class DataAnalyzer implements IAnalyzerUnit
                         });
                     }
                 }catch(err){
-                    Logger.error(err.message,err.stack);
-                    // push to workflow / task manager / etc ...
+                    if(err.code==DataFormatManagerException.CODE.NOT_PARSABLE){
+                        Logger.info(err.message);
+                    }else{
+                        Logger.error(err.message,err.stack);
+                        // push to workflow / task manager / etc ...
+                    }
                 }
 
             }

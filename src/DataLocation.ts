@@ -5,6 +5,7 @@ import HookTemplateFragment from "./hook/HookTemplateFragment.js";
 import {NodeInternalType} from "@dexcalibur/dxc-core-api";
 import {INode} from "./INode.js";
 import ModelFile from "./ModelFile.js";
+import {IJsonSerializable, SerializeOptions} from "@dexcalibur/dexcalibur-orm";
 
 export enum DataLocationType {
     FILE,
@@ -18,7 +19,8 @@ export enum DataLocationType {
 }
 
 export interface DataLocationFileSource {
-    file:ModelFile;
+    file?:ModelFile;
+    fileUID?:any;
     offset:number;
 }
 
@@ -59,7 +61,7 @@ export type DataLocationSource =
     | DataLocationFsSource
     | DataLocationMemorySource;
 
-export class DataLocation {
+export class DataLocation implements IJsonSerializable {
     _uid:string = null;
     type: DataLocationType;
     source: DataLocationSource;
@@ -84,5 +86,48 @@ export class DataLocation {
         }
 
         return this._uid;
+    }
+
+    toJsonObject(pOption?: SerializeOptions): any {
+        const o:any = {
+            _uid: this._uid,
+            type: this.type,
+            source: null
+        };
+
+        if(this.source !=null){
+            switch (this.type){
+                case DataLocationType.FILE:
+                    o.source = {
+                        offset: (this.source as DataLocationFileSource).offset,
+                        fileUID: null
+                    };
+                    if((this.source as DataLocationFileSource).file!=null){
+                        o.source.fileUID = (this.source as DataLocationFileSource).file.getUID();
+                    }else{
+                        o.source.fileUID = (this.source as DataLocationFileSource).fileUID;
+                    }
+                    break;
+                case DataLocationType.HOOK:
+                    o.source = {
+                        hook: (this.source as DataLocationHookSource).hook?.getGUID(),
+                        frag: (this.source as DataLocationHookSource).frag?.getUID()
+                    }
+                    break;
+                case DataLocationType.BYTECODE:
+                    o.source = {
+                        nodeType:(this.source as DataLocationBytecodeSource).nodeType,
+                        node:(this.source as DataLocationBytecodeSource).node.getUID(),
+                        bbOffset:(this.source as DataLocationBytecodeSource).bbOffset,
+                        insOffset:(this.source as DataLocationBytecodeSource).insOffset
+                    }
+                    break;
+                default:
+                    o.source = this.source;
+                    break;
+            }
+        }
+
+        return o;
     }
 }

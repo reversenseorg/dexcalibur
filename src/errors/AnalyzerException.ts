@@ -40,6 +40,15 @@ export class AnalyzerException extends MonitoredError {
             ErrorCode.ANALYZER_NATIV + 206) };
 
 
+    static ANDROID_RES_CANNOT_BE_PARSED = (pFile:string,pCause:string = "")=>{
+        return new AnalyzerException(`Cannot parse resource from file [${pFile}]${pCause!=""?"[cause="+pCause+"]":""}`,
+            ErrorCode.ANALYZER_NATIV + 207) };
+
+    static ANDROID_RES_MULTIPLE_NOT_SUPPORTED = (pFile:string)=>{
+        return new AnalyzerException(`Resource file [${pFile}] contains multiple node at root`,
+            ErrorCode.ANALYZER_NATIV + 208) };
+
+
 
 
     constructor( pMsg:string, pCode:number = null, pExtra:any = null) {

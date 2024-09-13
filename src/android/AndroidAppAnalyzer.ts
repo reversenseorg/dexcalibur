@@ -21,7 +21,7 @@ import ModelClass from "../ModelClass.js";
 
 import {NodeInternalType} from "@dexcalibur/dxc-core-api";
 import {AndroidApiClassXrefList, AndroidCodeAnalyzer} from "./analyzer/AndroidCodeAnalyzer.js";
-import BusEvent from "../BusEvent.js";
+import BusEvent, {BusEventOptions} from "../BusEvent.js";
 import {BusSubscriber} from "../Bus.js";
 import ApkHelper from "../ApkHelper.js";
 import Util from "../Utils.js";
@@ -30,6 +30,7 @@ import {AndroidPackageAnalyzer} from "./analyzer/AndroidPackageAnalyzer.js";
 import {DataParserException} from "../errors/DataParserException.js";
 import ModelResource from "../ModelResource.js";
 import {INode} from "@dexcalibur/dexcalibur-orm";
+import {AnalyzerException} from "../errors/AnalyzerException.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -37,17 +38,24 @@ const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
 _xml2js_.Parser.prototype.parseStringPromise = _util_.promisify(_xml2js_.parseString);
 
-
+/*
 export interface ResourcesMap {
-	/*ids: AndroidResourceType,
+	ids: AndroidResourceType,
 	string: AndroidResourceType,
 	styles: AndroidResourceType,
 	raw: AndroidResourceType,
-	xml: AndroidResourceType,*/
+	xml: AndroidResourceType,
 	[name:string]: AndroidResourceType
+}*/
+
+export type ResourcesMap = Record<string, AndroidResource>;
+
+export interface AndroidResParsedEvent {
+	restype:string;
+	res: ModelResource[]; //AndroidResource[];
+	name?:string;
+	total?:number;
 }
-
-
 
 export default class AndroidAppAnalyzer implements IAppAnalyzer
 {
@@ -56,10 +64,11 @@ export default class AndroidAppAnalyzer implements IAppAnalyzer
 	manifestPath:string = null;
 	manifestCode:string = null;
 
-	resources:ResourcesMap;
+	resources:Record<string, ResourcesMap> = {};
+
 	layouts:ResourcesMap;
 
-	state:AnalyzerState = null;
+	state:AnalyzerState = new AnalyzerState({ _uid:'android-app'});
 
 	/**
 	 * Configuration for this analyzer and its nested analyzers
@@ -151,38 +160,56 @@ export default class AndroidAppAnalyzer implements IAppAnalyzer
 		}));
 
 		// new values from res
-		this.context.getBus().subscribe("app.res.parsed", BusSubscriber.from((vEvent)=>{
+		this.context.getBus().subscribe("app.res.parsed", BusSubscriber.from((vEvent:BusEvent<AndroidResParsedEvent>)=>{
 
-			const valType:string = vEvent.getData().type;
 			const resType:string = vEvent.getData().restype;
-			const res:AndroidResourceType = vEvent.getData().res;
 
-			let name:string, value:any;
+			// two case :
+			// - a single resource has been read from a file (as layout/* files)
+			// - a list of resources have been read from a single file (as values/* files)
+			// so, it has been typed to an array of resources (AndroidResource[])
+			const res:ModelResource[] = vEvent.getData().res;
 
-
-			if(resType=="values"){
-
-				const ent:INode[]=[];
-				res._entries.map((x:AndroidResource) => {
-					ent.push(x.toModelResource("@"+(valType=='public'?'public':valType.substring(0,valType.length-1))+"/"+x._attr.name));
-						/*
-					this.context.trigger({
-						type:"app.res.new",
-						data: x.toModelResource("@"+(valType=='public'?'public':valType.substring(0,valType.length-1))+"/"+x._attr.name)
-					});*/
-				});
-				(async()=>{ await this.context.getProjectDB().saveMany(ent,NodeInternalType.RESOURCE);})();
-			}else{
-				name = "@"+resType+"/"+res._attr.name;
-
-				res._entries.map((x:AndroidResource) => {
-
-					this.context.trigger({
-						type:"app.res.new",
-						data: x.toModelResource(name)
-					});
-				})
+			let resSaved:any = this.state.getProperty("resSaved");
+			if(resSaved==null){
+				resSaved = {};
 			}
+
+			if(this.hasBeenParsedPreviously(resType)){
+				Logger.info("[ANDROID APP ANALYZER][RESOURCE] Android resources not saved, because such ["+resType+"] Resources have been already analyzed.")
+				return ;
+			}
+
+			if(res.length>0){
+				this.context.getProjectDB().saveMany(res,NodeInternalType.RESOURCE)
+					.catch((err)=>{
+						Logger.error(`[LISTENER][app.res.parsed] Save error : `+err);
+					})
+					.then(()=>{
+						// success
+						resSaved = this.state.getProperty("resSaved");
+						if(resSaved==null){
+							resSaved = {};
+						}
+
+						resSaved[resType] = Object.values(res).length;
+						this.state.setProperty("resSaved",resSaved);
+						this.state.save().then(()=>{});
+					});
+			}else{
+				// usually, this case happens when a resource folder not contains .xml file
+				// empty array cannot be saved because "Batch cannot be empty" with MongoDB
+				resSaved = this.state.getProperty("resSaved");
+				if(resSaved==null){
+					resSaved = {};
+				}
+
+				resSaved[resType] = Object.values(res).length;
+				this.state.setProperty("resSaved",resSaved);
+				this.state.save().then(()=>{});
+				return;
+			}
+
 
 		}));
 
@@ -396,6 +423,40 @@ export default class AndroidAppAnalyzer implements IAppAnalyzer
 		return _path_.join(this.context.getWorkspace().getApkDir(),ApkHelper.getResFolder());
 	}
 
+	/**
+	 * To parse a resource file from any folder in res/*
+	 *
+	 * @param pFilePath
+	 * @param pResType
+	 * @param pContext
+	 * @param pRootNode
+	 */
+	static async _parseResourceValuesFile(pFilePath:string, pResType:AndroidResource, pRootNode:Nullable<string>=null):Promise<AndroidResource[]>{
+		const xml = await AndroidAppAnalyzer._parseXmlFile(pFilePath, {preserveChildrenOrder:true, explicitChildren:true});
+		let res:AndroidResource[];
+
+		if(pRootNode != null){
+			if(xml[pRootNode]!=null && xml[pRootNode]['$$'] !=null){
+				res = AndroidResource.fromXml(xml[pRootNode]["$$"], pResType);
+			}else{
+				throw AnalyzerException.ANDROID_RES_CANNOT_BE_PARSED(
+					_path_.basename(pFilePath), `Root [${pRootNode}] node not found.`
+				);
+			}
+		}else{
+			res = AndroidResource.fromXml(xml, pResType);
+		}
+		return res;
+	}
+
+
+	/**
+	 * @deprecated
+	 * @param pFilePath
+	 * @param pResType
+	 * @param pContext
+	 * @param pRootNode
+	 */
 	static async parseResourceFile(pFilePath:string, pResType:AndroidResourceType, pContext:DexcaliburProject, pRootNode:Nullable<string>=null){
 		const xml = await AndroidAppAnalyzer._parseXmlFile(pFilePath);
 		if(pRootNode != null){
@@ -415,11 +476,14 @@ export default class AndroidAppAnalyzer implements IAppAnalyzer
 	async prepareFullScan():Promise<boolean>{
 
 
+		console.log("Parse manifest")
 
 		const success:boolean = await this.importManifest(_path_.join(this.context.getWorkspace().getApkDir(),"AndroidManifest.xml"));
 
-		// parse values
+		// parse all resources
+		console.log("Parse resources at : ",this._getResourcesFolder());
 		await this.parseResources(this._getResourcesFolder());
+
 
 		/*
 		Util.forEachFileOf(
@@ -434,7 +498,7 @@ export default class AndroidAppAnalyzer implements IAppAnalyzer
 			},true);*/
 
 		// parse layout
-		Util.forEachFileOf(
+		/*Util.forEachFileOf(
 			_path_.join(this._getResourcesFolder(),"layout"),
 			async (vFilePath:string,vDir:string)=>{
 				const idl = _path_.basename(vFilePath).split('.')[0];
@@ -444,19 +508,73 @@ export default class AndroidAppAnalyzer implements IAppAnalyzer
 				await AndroidAppAnalyzer.parseResourceFile(vFilePath,this.layouts[idl], this.context, null);
 
 				console.log(Object.values(this.layouts[idl]).length+" layouts parsed");
-			},true);
+			},true);*/
 
 		return success;
 	}
 
+	/**
+	 * To check from analyzer saved state if all resources from a folder have been already parsed
+	 * previously
+	 *
+	 * @param {string} pResType Name of the folder where resources will be parsed
+	 * @returns {boolean} TRUE if never parsed and saved, else FALSE
+	 * @method
+	 */
+	hasBeenParsedPreviously(pResType:string):boolean {
+		const state = this.state.getProperty("resSaved");
+
+		if(state==null){
+			return false;
+		}
+
+		return (state[pResType]!=null) && (state[pResType]>0);
+	}
 
 	async parseResources(pFolderPath:string):Promise<void> {
+		// read folders in pFolderPath
+		const folders = _fs_.readdirSync(pFolderPath);
+		const cat = {
+			values:null,
+			valuesExtra:[],
+			cmp:[],
+			cmpExtra:[],
+			other:[]
+		};
+
+		// sort folders
+		for(let i=0; i<folders.length; i++){
+			if(folders[i].startsWith("values-")){
+				cat.valuesExtra.push(folders[i]);
+			}if(folders[i].indexOf("-")>-1) {
+				cat.cmpExtra.push(folders[i]);
+			}else if(folders[i]=="raw"){
+				cat.other.push("raw");
+			}else if(folders[i]=="values"){
+				cat.values = folders[i];
+			}else {
+				cat.cmp.push(folders[i]);
+			}
+
+		}
+
+		console.log("values", this.hasBeenParsedPreviously("values"));
 		// start to parse values/*
-		await this.parseValuesFromRes(_path_.join(this._getResourcesFolder(),"values"));
+		if(cat.values!=null && !this.hasBeenParsedPreviously("values")){
+			await this.parseValuesFromRes("values");
+		}
 
 		// continue with values-*/*
 
+
 		// add layout/*, drawables/*, mipmap/*, xml/*, ...
+		for(let i=0; i<cat.cmp.length; i++){
+			console.log(cat.cmp[i], this.hasBeenParsedPreviously(cat.cmp[i]));
+			if(!this.hasBeenParsedPreviously(cat.cmp[i])){
+				await this.parseComponentFromRes(cat.cmp[i]);
+			}
+		}
+
 
 		// add derivation layout-*, drawables-*, ...
 	}
@@ -474,27 +592,90 @@ export default class AndroidAppAnalyzer implements IAppAnalyzer
 	 */
 	async parseValuesFromRes(pFolderPath:string):Promise<void> {
 
-		const entries = _fs_.readdirSync(pFolderPath);
+		const entries = _fs_.readdirSync(_path_.join(this._getResourcesFolder(),pFolderPath));
+		let data:AndroidResource[];
+		let res:ModelResource[] = [];
 		let resPath:string;
 
 		for(let i=0; i<entries.length; i++){
 
-			resPath = _path_.join(pFolderPath,entries[i]);
+			res = [];
+			resPath = _path_.join(this._getResourcesFolder(),pFolderPath,entries[i]);
+			data = await AndroidAppAnalyzer._parseResourceValuesFile(resPath, null, "resources");
+			data.map(x => res.push(x.toModelResource("")));
 
-			const type = _path_.basename(entries[i]).split('.')[0];
-			if(this.resources[type]==null){
-				this.resources[type] = new AndroidResourceType({ _type:type });
-			}
-
-			await AndroidAppAnalyzer.parseResourceFile(resPath,this.resources[type], this.context, "resources");
-			console.log(this.resources[type]);
+			//await AndroidAppAnalyzer.parseResourceFile(resPath,this.resources[type], this.context, "resources");
 			this.context.trigger({
 				type: "app.res.parsed",
-				data: { type:type, restype:"values", res:this.resources[type] }
-			});
+				data: {
+					restype:entries[i],
+					res:res
+				}
+			} as BusEventOptions<AndroidResParsedEvent>);
+		}
+	}
+a
+	/**
+	 * To parse files in `res/values-x/x`
+	 * and build ID map
+	 *
+	 * @method
+	 */
+	async parseComponentFromRes(pFolderPath:string, pRootNode:Nullable<string> = null):Promise<void> {
+
+		const entries = _fs_.readdirSync(_path_.join(this._getResourcesFolder(),pFolderPath));
+		let data:AndroidResource[];
+		let res:ModelResource[] = [];
+		let resPath:string;
+
+
+		for(let i=0; i<entries.length; i++){
+
+			resPath = _path_.join(this._getResourcesFolder(),pFolderPath,entries[i]);
+
+			try{
+
+				// todo : non-xml resources must a ModelResource encapsulating ModelFile that represent the resource
+				if(!entries[i].endsWith(".xml")){
+					/*res.push(new ModelResource({
+						_uid: entries[i],
+					}))*/
+					continue;
+				}
+
+				// parse AndroidResource
+				data = await AndroidAppAnalyzer._parseResourceValuesFile(resPath, null, pRootNode);
+
+				// convert to a list of ModelResource
+				if(data.length==1){
+					const dot = entries[i].indexOf('.');
+					let res_uid;
+					if(dot>-1){
+						if(dot==0){
+							res_uid = entries[i].substring(1,entries[i].indexOf('.',1));
+						}else{
+							// ex : @drawable/ic_test.9.png
+							res_uid = entries[i].substring(0,dot);
+						}
+					}else{
+						res_uid = entries[i];
+					}
+
+					res.push(data[0].toModelResource("", pFolderPath, res_uid));
+				}else if(data.length>1){
+					throw AnalyzerException.ANDROID_RES_MULTIPLE_NOT_SUPPORTED(pFolderPath+"/"+entries[i]);
+				}else {
+					throw AnalyzerException.ANDROID_RES_CANNOT_BE_PARSED(pFolderPath+"/"+entries[i]);
+				}
+			}catch(err){
+				Logger.error(err.message,err.stack);
+			}
 		}
 
-
+		this.context.trigger({
+			type: "app.res.parsed",
+			data: { restype:pFolderPath, res:res }
+		});
 	}
 
 	/**
@@ -519,7 +700,10 @@ export default class AndroidAppAnalyzer implements IAppAnalyzer
 		if(pState != null){
 			this.state = pState;
 			return true;
+		}else{
+			this.state = new AnalyzerState({ _uid:'android-app'});
 		}
+
 
 		return false;
 	}
@@ -598,7 +782,7 @@ export default class AndroidAppAnalyzer implements IAppAnalyzer
 	 * @param pPath
 	 * @private
 	 */
-	static async _parseXmlFile(pPath:string):Promise<any> {
+	static async _parseXmlFile(pPath:string, pOptions:any = {}):Promise<any> {
 		if(!_fs_.existsSync(pPath)) return null;
 
 		let res:any;
@@ -613,7 +797,7 @@ export default class AndroidAppAnalyzer implements IAppAnalyzer
 				);
 			}
 
-			res = await (new _xml2js_.Parser()).parseStringPromise(data);
+			res = await (new _xml2js_.Parser()).parseStringPromise(data, pOptions);
 		}catch (err){
 			Logger.error("File '"+pPath+"' cannot be analyzed because it seems not decompressed/decoded : "+err.stack);
 			console.log(err);

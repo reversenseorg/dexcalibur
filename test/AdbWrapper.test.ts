@@ -80,6 +80,22 @@ describe('ADB Wrapper', function() {
         });
     });
 
+
+    describe('isReady( )', function() {
+
+        it('valid ADB binary path', function () {
+
+            let adbw:AdbWrapper = new AdbWrapper(VALID_ADB_PATH);
+            expect(adbw.isReady()).to.equals(true);
+        });
+
+        it('invalid ADB binary path', function () {
+
+            let adbw:AdbWrapper = new AdbWrapper(INVALID_ADB_PATH);
+            expect(adbw.isReady()).to.equals(false);
+        });
+    });
+
     describe('setTransport(transport_type)', function() {
 
         it('USB transport', function () {
@@ -205,6 +221,13 @@ describe('ADB Wrapper', function() {
         });
     });
 
+    describe('listDevices( )', function() {
+
+        it('real devices', async function () {
+
+            let adbw: AdbWrapper = new AdbWrapper(VALID_ADB_PATH);
+        });
+    });
     /*
     describe('pull(remote_path, local_path, deviceID=null)', function() {
 
