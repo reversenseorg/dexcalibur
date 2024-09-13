@@ -53,7 +53,26 @@ var FlutterInspector:InspectorFactory = new InspectorFactory({
     },
 
     eventListenerSources: {
-
+        "dxc.fullscan.post_deploy": {
+            lang: "ts",
+            source: `
+            //<ts>={
+            let ctx = pEvent.getContext();
+            let app = ctx.find.file("name:/^libapp\.so$/").get(0);
+            let flutter = ctx.find.file("name:/^libflutter\.so$/").get(0);
+            
+            //try to detect through libapp.so + libflutter.so
+            if( app!=null && flutter!=null ){
+                ctx.trigger({
+                    type: "lang.flutter.new",
+                    data: {
+                        app: app,
+                        lib: flutter
+                    }
+                })
+            }
+            `
+        }
     }
 });
 

@@ -18,7 +18,7 @@ var KotlinInspector:InspectorFactory = new InspectorFactory({
 
     startStep: INSPECTOR_TYPE.POST_APP_SCAN,
 
-    version: "1.0.1",
+    version: "1.0.2",
     db: {
         dbms: 'inmemory',
         type: 'collection',
@@ -82,7 +82,7 @@ var KotlinInspector:InspectorFactory = new InspectorFactory({
     },
 
     eventListeners: {
-        "dxc.fullscan.post": function(pEvent:BusEvent<any>):any{
+       /* "dxc.fullscan.post": function(pEvent:BusEvent<any>):any{
             Logger.info("[INSPECTOR][TASK] Kotlin : search config files ");
 
             const ctx = pEvent.getContext();
@@ -159,21 +159,22 @@ var KotlinInspector:InspectorFactory = new InspectorFactory({
                 }
             })();
 
-        }
+        }*/
     },
 
     eventListenerSources: {
         "dxc.fullscan.post": {
-            lang: "js",
+            lang: "ts",
             source: `
-            
+                //import "@dexcalibur/"
+                //<js>
                 (async ()=>{
                     const ctx = pEvent.getContext();
                     const tm = ctx.getTagManager();
                     const ktTags = {
                         config: tm.getTag("kotlin.config"),
                         debug: tm.getTag("kotlin.debug"),
-                        cls: tm.getTag("kotlin.class"),
+                        cls: tm.getTag("kotlin.class")
                     };
                     
                     const clzzReq = await ctx.merlin.class("source:/\\.kt$/");
@@ -183,7 +184,7 @@ var KotlinInspector:InspectorFactory = new InspectorFactory({
                         const tag = tm.getTag("sca.lang.kotlin");
     
                         // tag class
-                        Util.mapInGroups(
+                        ctx.getUtils().mapInGroups(
                             result.list(),
                             async (vClz:ModelClass)=>{
     
@@ -191,7 +192,7 @@ var KotlinInspector:InspectorFactory = new InspectorFactory({
                                 vClz.addTag(tag);
     
                                 // save
-                                ctx.trigger({
+                                ctx.trigger({   
                                     type:"model.class.update",
                                     data: {
                                         node: vClz
@@ -207,7 +208,7 @@ var KotlinInspector:InspectorFactory = new InspectorFactory({
                                 matches: result.count(),
                                 pattern: clzzReq,
                             }
-                        })
+                        });
                     }
                 })();
                 

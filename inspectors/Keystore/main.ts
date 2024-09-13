@@ -2,6 +2,7 @@ import InspectorFactory from "../../src/InspectorFactory.js";
 import {INSPECTOR_TYPE} from "../../src/Inspector.js";
 import BusEvent from "../../src/BusEvent.js";
 import ModelMethod from "../../src/ModelMethod.js";
+import {FinderResult} from "../../src/search/FinderResult.js";
 
 
 // ====== CONFIG TASK ====== 
@@ -17,7 +18,7 @@ var KeystoreInspector:InspectorFactory = new InspectorFactory({
 
     startStep: INSPECTOR_TYPE.POST_APP_SCAN,
 
-    version: "1.0.1",
+    version: "1.0.3",
     tags: [
         {
             name:"keystore.type",
@@ -150,9 +151,10 @@ var KeystoreInspector:InspectorFactory = new InspectorFactory({
         "data.file.new.knownExt": {
             source: `
                 // <ts>
+                if(pEvent.data==null || pEvent.data.name==null) return 1;
                 if(!pEvent.data.name.endsWith(".bks")) return 1;
                 let ctx = pEvent.getContext();
-                ctx.LOG..info("[INSPECTOR][TASK] KeystoreInspector BKS detected : ",pEvent.data.name);
+                ctx.LOG.info("[INSPECTOR][TASK] KeystoreInspector BKS detected : ",pEvent.data.name);
                 (pEvent.data as ModelFile).tags.push(pCtx.getTagManager().getTag("keystore.type.bks").getUUID());
             `,
             lang: "ts"
@@ -165,33 +167,28 @@ var KeystoreInspector:InspectorFactory = new InspectorFactory({
             //ctx.get.method("java.security.KeyStore.load(<java.io.InputStream><char>[])<void>")
             //        .addArgsValue(ctx.hook.lastSession(), event)
         },
-        "data.file.new.knownExt": function(pEvent:BusEvent<any>):any{
+        /*"data.file.new.knownExt": function(pEvent:BusEvent<any>):any{
             if(!checkForBKSext(pEvent.data)) return 1;
-
 
             const ctx = pEvent.getContext();
 
             ctx.LOG.info("[INSPECTOR][TASK] KeystoreInspector BKS detected : ",pEvent.data.name);
-            //console.log("Note found : ","value:"+event.data.name));
-        
-            
             // search strings occurences into the grah
-            var resStaticStr:any = ctx.find.strings("value:/"+pEvent.data.name+"/");
+            let resStaticStr:FinderResult = ctx.find.strings("value:/"+pEvent.data.name+"/");
             
-            //var resDynStr = ctx.find.method("name:java.security.Keystore.load(<>,<>)");
-            
+            // var resDynStr = ctx.find.method("name:java.security.Keystore.load(<>,<>)");
             // si pas d'occurence
             if(resStaticStr.count()==0){
-                resStaticStr.show();
+                //resStaticStr.show();
             }else{
                 /*var dynRes = ctx.find.get.method("java.security.KeyStore.load(<java.io.InputStream><char>[])<void>");
                 dynRes.filter("dyn.arg[0].value:"+event.data.name);
                 if(resStaticStr.count()==0){
                     resStaticStr.show();
                 } */  
-                console.log("Not found : ","value:"+pEvent.data.name);
-            }
-        }
+                //console.log("Not found : ","value:"+pEvent.data.name);
+            //}
+        //}
     }
 });
 
