@@ -26,6 +26,8 @@ import InspectorFactory, {HookSetOptions} from "./InspectorFactory.js";
 import {InspectorFactoryException} from "./errors/InspectorFactoryException.js";
 import HookStrategy, {HookStrategyOptions} from "./hook/HookStrategy.js";
 import {UPGRADE_MODE} from "./inspector/common.js";
+import {InspectorState} from "./hook/common.js";
+import {InspectorManagerException} from "./errors/InspectorManagerException.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -154,7 +156,7 @@ export default class Inspector
      * @type {ListenerList} Mapping of event names / tasks
      * @public
      */
-    listener:ListenerList = {};
+    listener:Record<string, BusEventHandler[]> = {};
 
     /**
      * The list of events already emitted by the inspectors
@@ -229,6 +231,28 @@ export default class Inspector
 
 
     /**
+     * Flag. TRUE if the inspector has been created from a factory from an older version of DxEngine
+     * and will be removed in future
+     *
+     * The user should migrate or remove this inspector.
+     *
+     * @type {boolean}
+     * @field
+     */
+    deprecated = false;
+
+    /**
+     * Flag. TRUE if the factory has been created from a factory from an older version of DxEngine,
+     * and has been removed from current version.
+     *
+     * The user should remove this inspector.
+     *
+     * @type {boolean}
+     * @field
+     */
+    removed = false;
+
+    /**
      *
      * @param config
      * @constructor
@@ -242,7 +266,7 @@ export default class Inspector
             if(pConfig.hookSet != null){
                 if(this.name==null) this.name = pConfig.hookSet.name;
                 if(this.description==null) this.description = pConfig.hookSet.description;
-                if(this.id==null) this.id = pConfig.hookSet.id;
+                if(this.id==null && pConfig.hookSet.id!=null) this.id = pConfig.hookSet.id;
             }
         }
 
@@ -594,6 +618,8 @@ export default class Inspector
         o.events = this.events;
         o.installed = this.installed;
         o.step = this.step;
+        o.deprecated = this.deprecated;
+        o.removed = this.removed;
 
         o.db = null;
         if(this.db != null){
@@ -801,12 +827,12 @@ export default class Inspector
         for(let k=0; k<this.hookSet.strats.length; k++){
 
             oldStrat = this.hookSet.strats[k];
-            oldStrat.getUID()
             stratUID = this.hookSet.getUID()+":"+this.hookSet.strats[k].name;
 
             existingsStrats.push(stratUID);
 
             if(newStrats[oldStrat.name]!=null){
+                console.log(newStrats[oldStrat.name].uid,oldStrat.getUID());
                 if(newStrats[oldStrat.name].uid==oldStrat.getUID()){
                     await this.updateStrategyFromOptions(newStrats[oldStrat.name]);
                 }else{
@@ -831,6 +857,37 @@ export default class Inspector
 
         // save changes
         await this.context.getHookManager().getDbAPI().updateHookSet(this.hookSet);
+    }
+
+    /**
+     * To mark the inspector instance as "deprecated"
+     * "Deprecated" factories will be removed.
+     *
+     * @method
+     */
+    markAsDeprecated() {
+        this.markAs(InspectorState.DEPRECATED);
+    }
+
+    /**
+     *
+     */
+    markAsRemoved() {
+        this.markAs(InspectorState.REMOVED);
+    }
+
+    /**
+     *
+     */
+    markAs(pFlag:InspectorState) {
+
+        if([InspectorState.DEPRECATED,InspectorState.REMOVED].indexOf(pFlag)>-1){
+            throw InspectorManagerException.MARKER_NOT_SUPPORTED(pFlag);
+        }
+
+        this[pFlag] = true;
+
+        this.hookSet.markAs(pFlag);
     }
 }
 Inspector.TYPE.builder(Inspector);

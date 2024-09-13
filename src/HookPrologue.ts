@@ -1,6 +1,8 @@
 import DexcaliburProject from "./DexcaliburProject.js";
 import {CryptoUtils} from "./CryptoUtils.js";
 import {CoreDebug} from "./core/CoreDebug.js";
+import {InspectorState} from "./hook/common.js";
+import {InspectorManagerException} from "./errors/InspectorManagerException.js";
 
 /**
  * @class
@@ -15,6 +17,10 @@ export default class HookPrologue
     builtScript:string = null;
 
     context:DexcaliburProject = null;
+
+    deprecated = false;
+
+    removed = false;
 
 
     /**
@@ -84,6 +90,32 @@ export default class HookPrologue
     }
 
     /**
+     *
+     */
+    markAsDeprecated() {
+        this.markAs(InspectorState.DEPRECATED);
+    }
+
+    /**
+     *
+     */
+    markAsRemoved() {
+        this.markAs(InspectorState.REMOVED);
+    }
+
+    /**
+     *
+     */
+    markAs(pFlag:InspectorState) {
+
+        if([InspectorState.DEPRECATED,InspectorState.REMOVED].indexOf(pFlag)>-1){
+            throw InspectorManagerException.MARKER_NOT_SUPPORTED(pFlag);
+        }
+
+        this[pFlag] = true;
+    }
+
+    /**
      * @method
      */
     toJsonObject():any{
@@ -91,6 +123,8 @@ export default class HookPrologue
         o.parentID = this.parentID;
         o.script = this.script;
         o.builtScript = this.builtScript;
+        o.removed = this.removed;
+        o.deprecated = this.deprecated;
         CoreDebug.checkJsonSerialize(o, "HookPrologue");
         return o;
     }

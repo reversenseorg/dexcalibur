@@ -4,6 +4,8 @@ import {NodeInternalType}
 from "@dexcalibur/dxc-core-api";;
 import {CoreDebug} from "../core/CoreDebug.js";
 import {Nullable} from "../core/IStringIndex.js";
+import {InspectorState} from "./common.js";
+import {InspectorManagerException} from "../errors/InspectorManagerException.js";
 
 
 
@@ -44,6 +46,10 @@ export default class HookTemplateFragment implements INode {
     public autoEmit = false;
 
     public emitEvent:Nullable<string> = null;
+
+    public removed = false;
+
+    public deprecated = false;
 
     tags:TagUUID[] = [];
 
@@ -177,6 +183,32 @@ export default class HookTemplateFragment implements INode {
         return this._cache;
     }
 
+    /**
+     *
+     */
+    markAsDeprecated() {
+        this.markAs(InspectorState.DEPRECATED);
+    }
+
+    /**
+     *
+     */
+    markAsRemoved() {
+        this.markAs(InspectorState.REMOVED);
+    }
+
+    /**
+     *
+     */
+    markAs(pFlag:InspectorState) {
+
+        if([InspectorState.DEPRECATED,InspectorState.REMOVED].indexOf(pFlag)>-1){
+            throw InspectorManagerException.MARKER_NOT_SUPPORTED(pFlag);
+        }
+
+        this[pFlag] = true;
+    }
+
     static fromJsonObject(pObject:any){
         const o:HookTemplateFragment = new HookTemplateFragment();
 
@@ -193,6 +225,8 @@ export default class HookTemplateFragment implements INode {
         o._preproc = pObject._preproc;
         o.emitEvent = pObject.emitEvent;
         o.autoEmit = pObject.autoEmit;
+        o.removed = pObject.removed;
+        o.deprecated = pObject.deprecated;
 
         return o;
     }
@@ -208,6 +242,8 @@ export default class HookTemplateFragment implements INode {
         o.tpl = this.template;
         o._cache = this._cache;
         o._preproc = this._preproc;
+        o.removed = this.removed;
+        o.deprecated = this.deprecated;
         CoreDebug.checkJsonSerialize(o,"HookTemplateFragment");
         return o;
     }

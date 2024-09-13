@@ -16,11 +16,12 @@ import {HookManager} from "./HookManager.js";
 import * as Log from "../Logger.js";
 import {CryptoUtils} from "../CryptoUtils.js";
 import {CoreDebug} from "../core/CoreDebug.js";
-import {HookVariableMap, TargetLanguage} from "./common.js";
+import {HookVariableMap, InspectorState, TargetLanguage} from "./common.js";
 import {Nullable} from "../core/IStringIndex.js";
 import {HookRevision, HookRevisionSubject, RevisionOperation} from "../HookRevision.js";
 import {UPGRADE_MODE} from "../inspector/common.js";
 import Util from "../Utils.js";
+import {InspectorManagerException} from "../errors/InspectorManagerException.js";
 
 export const DEFAULT_PRIORITY = -1;
 
@@ -45,6 +46,8 @@ export interface HookStrategyOptions {
      * @deprecated
      */
     onMatch?:Nullable<any>;
+    deprecated?:boolean;
+    removed?:boolean;
     [key:string] :any;
 }
 
@@ -134,6 +137,9 @@ export default class HookStrategy implements INode{
     variables: HookVariableMap = {};
 
     tags:TagUUID[] = [];
+
+    deprecated = false;
+    removed = false;
 
 
     /**
@@ -682,5 +688,35 @@ export default class HookStrategy implements INode{
         }
 
         return change;
+    }
+
+    /**
+     *
+     */
+    markAsDeprecated() {
+        this.markAs(InspectorState.DEPRECATED);
+    }
+
+    /**
+     *
+     */
+    markAsRemoved() {
+        this.markAs(InspectorState.REMOVED);
+    }
+
+    /**
+     *
+     */
+    markAs(pFlag:InspectorState) {
+
+        if([InspectorState.DEPRECATED,InspectorState.REMOVED].indexOf(pFlag)>-1){
+            throw InspectorManagerException.MARKER_NOT_SUPPORTED(pFlag);
+        }
+
+        this[pFlag] = true;
+
+        if(this.before!=null) this.before.markAs(pFlag);
+        if(this.replace!=null) this.replace.markAs(pFlag);
+        if(this.after!=null) this.after.markAs(pFlag);
     }
 }

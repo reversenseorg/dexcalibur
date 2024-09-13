@@ -488,6 +488,8 @@ HookSet.TYPE.updateProperties([
     (new NodeProperty("name")).type(DbDataType.STRING).unique(),
     (new NodeProperty("description")).type(DbDataType.STRING).def(null),
     (new NodeProperty("category")).type(DbDataType.STRING).def(null),
+    (new NodeProperty("deprecated")).type(DbDataType.BOOLEAN).def(false),
+    (new NodeProperty("removed")).type(DbDataType.BOOLEAN).def(false),
     (new NodeProperty("prologue"))
         .type(DbDataType.BLOB)
         .sleep( (x:NodePropertyState) => {
@@ -532,6 +534,8 @@ HookStrategy.TYPE.updateProperties([
     (new NodeProperty("preprocessor")).type(DbDataType.STRING).def(null),
     (new NodeProperty("on")).type(DbDataType.STRING).def(null),
     (new NodeProperty("enabled")).type(DbDataType.BOOLEAN).def(true),
+    (new NodeProperty("deprecated")).type(DbDataType.BOOLEAN).def(false),
+    (new NodeProperty("removed")).type(DbDataType.BOOLEAN).def(false),
     (new NodeProperty("onMatch"))
         .type(DbDataType.STRING)
         .def(null)
@@ -590,6 +594,8 @@ HookTemplateFragment.TYPE.updateProperties([
     (new NodeProperty("_preproc")).type(DbDataType.BOOLEAN).def(null),
     (new NodeProperty("_strategy")).single(HookStrategy.TYPE).def(null),
     (new NodeProperty("_keypoint")).type(DbDataType.STRING).def(null),
+    (new NodeProperty("deprecated")).type(DbDataType.BOOLEAN).def(false),
+    (new NodeProperty("removed")).type(DbDataType.BOOLEAN).def(false),
 ]).dataSource("PROJECT_DB").builder(HookTemplateFragment);
 
 JavaMethodHook.TYPE.updateProperties([
@@ -601,7 +607,6 @@ JavaMethodHook.TYPE.updateProperties([
     (new NodeProperty("_code")).type(DbDataType.STRING).def(null),
     (new NodeProperty("_time")).type(DbDataType.STRING).def(null),
     (new NodeProperty("_enabled")).type(DbDataType.BOOLEAN).def(true),
-
     (new NodeProperty("_loadkp")).single(KeyPoint.TYPE),
     (new NodeProperty("_unloadkp")).single(KeyPoint.TYPE),
 
@@ -856,6 +861,8 @@ Inspector.TYPE.updateProperties([
     (new NodeProperty("hookSet")).single(HookSet.TYPE).def(null),
     (new NodeProperty("staticTasks")).type(DbDataType.BLOB).def([]),
     (new NodeProperty("running")).type(DbDataType.BOOLEAN).def(false),
+    (new NodeProperty("deprecated")).type(DbDataType.BOOLEAN).def(false),
+    (new NodeProperty("removed")).type(DbDataType.BOOLEAN).def(false),
     (new NodeProperty("listeners")).type(DbDataType.STRING).def(null),
     (new NodeProperty("gui_available")).type(DbDataType.BOOLEAN).def(false),
     (new NodeProperty("preRegisteredTags")).multiple(TagCategory.TYPE).def([]),

@@ -94,6 +94,8 @@ export interface InspectorFactoryOptions {
     name?:string;
     version?:string;
     description?:Nullable<string>;
+    deprecated?:boolean;
+    removed?:boolean;
     webapi?:Nullable<DelegateWebApi>;
     useGUI?:Nullable<boolean>;
     startStep: INSPECTOR_TYPE;
@@ -127,9 +129,11 @@ export default class InspectorFactory implements INode
         (new NodeProperty("webapi")).volatile().type(DbDataType.BLOB),
         (new NodeProperty("version")).type(DbDataType.STRING).def("0.1"),
         (new NodeProperty("useGUI")).type(DbDataType.BOOLEAN).def(false),
+        (new NodeProperty("deprecated")).type(DbDataType.BOOLEAN).def(false),
+        (new NodeProperty("removed")).type(DbDataType.BOOLEAN).def(false),
         (new NodeProperty("startStep")).type(DbDataType.STRING).def(INSPECTOR_TYPE.ON_DEMAND),
         (new NodeProperty("db")).type(DbDataType.STRING).def(null),
-        (new NodeProperty("tags")).type(DbDataType.STRING).def([]),
+        (new NodeProperty("tags")).type(DbDataType.BLOB).def([]),
         (new NodeProperty("color")).type(DbDataType.STRING).def(null),
         (new NodeProperty("hookSet"))
             .type(DbDataType.BLOB)
@@ -151,7 +155,6 @@ export default class InspectorFactory implements INode
             }),
         (new NodeProperty("require")).type(DbDataType.STRING).def([]),
         (new NodeProperty("itags")).type(DbDataType.NUMERIC).def(null),
-        (new NodeProperty("tags")).type(DbDataType.NUMERIC).def([]),
         (new NodeProperty("revisions")).type(DbDataType.BLOB).def([]),
         (new NodeProperty("eventListeners")).volatile().type(DbDataType.STRING).def({}),
         (new NodeProperty("eventListenerSources")).type(DbDataType.STRING)
@@ -224,6 +227,28 @@ export default class InspectorFactory implements INode
     revisions:HookRevision[] = [];
     itags:FlattenTagCategoryOptions[] = [];
 
+    /**
+     * Flag. TRUE if the factory has been created from an older version of DxEngine
+     * and will be removed in future
+     *
+     * The user should migrate or remove this inspector.
+     *
+     * @type {boolean}
+     * @field
+     */
+    deprecated = false;
+
+    /**
+     * Flag. TRUE if the factory has been created from an older version of DxEngine,
+     * and has been removed from current version.
+     *
+     * The user should remove this inspector.
+     *
+     * @type {boolean}
+     * @field
+     */
+    removed = false;
+
     //author:UserAccount
     /**
      * The step when the inspector must be deployed
@@ -256,6 +281,7 @@ export default class InspectorFactory implements INode
             if(this.name==null||this.name.length==0) this.name = pModel.hookSet.name;
             if(this.description==null||this.description.length==0) this.description = pModel.hookSet.description;
             if(this.id==null||this.id.length==0) this.id = pModel.hookSet.id;
+            if(pModel.hookSet.id==null && this.id!=null && this.id.length>0) pModel.hookSet.id = this.id;
         }
         if(pModel.require != null) this.require = pModel.require;
         if(pModel.db != null) this.db = pModel.db;
@@ -266,10 +292,13 @@ export default class InspectorFactory implements INode
             this.itags = [];
 
         if(pModel.useGUI != null) this.useGUI = pModel.useGUI;
+        if(pModel.deprecated != null) this.deprecated = pModel.deprecated;
+        if(pModel.removed != null) this.removed = pModel.removed;
         if(pModel.eventListeners != null) this.eventListeners = pModel.eventListeners;
         if(pModel.revisions != null) this.revisions = pModel.revisions;
         if(pModel.eventListenerSources != null) this.eventListenerSources = pModel.eventListenerSources;
         if(pModel.hasOwnProperty('webapi'))  this.webapi = pModel.webapi
+
     }
 
     getUID(): string  {
@@ -289,12 +318,19 @@ export default class InspectorFactory implements INode
      * and  check if the one from project need an upgrade
      *
      * @param {InspectorFactory} pProjectFactory Instance of InspectorFactory (to check) from the project
-     * @param {InspectorFactory} pServerFactory Instance of InspectorFactory from the server (tecnicall the newest)
+     * @param {InspectorFactory} pServerFactory Instance of InspectorFactory from the server (should be the newest)
      * @return {boolean} Return TRUE is `pProjectFactory` require an upgrade
      * @method
      * @static
      */
     static needUpgrade(pProjectFactory:InspectorFactory,pServerFactory:InspectorFactory):boolean {
+
+        if(pProjectFactory==null){
+            Logger.error("needUpgrade: inspector factory from project is missing");
+        }
+        if(pServerFactory==null){
+            Logger.error("needUpgrade: inspector factory from server is missing");
+        }
 
         // version number are subject to prone
         const projVer = SemVerHelper.normalize(pProjectFactory.version);
@@ -464,6 +500,8 @@ export default class InspectorFactory implements INode
                     hs.require(k);
                 });
             }
+
+            // if(this.deprecated)
         }
 
         // If the hook set is not initiliazed, throw a exception
@@ -579,6 +617,7 @@ export default class InspectorFactory implements INode
         if(this.name != null) ins.name = this.name;
         if(this.description != null) ins.description = this.description;
 
+
         // set "when" the inspector must be executed
         if(this.startStep != null){
             ins.setStartStep(this.startStep);
@@ -592,7 +631,10 @@ export default class InspectorFactory implements INode
         // If the inspector prototype define a hookset, create it or restore it
         if(this.hookSet != null){
 
-            hsuid = (this.id!=null ? this.id : this.hookSet.id);
+            // An InspectorFactory has a single HookSet, and until the hookset has different uid,
+            // the HookSet uid is initialized with Inspector uid
+            // hsuid = (this.id!=null ? this.id : this.hookSet.id);
+            hsuid = (this.hookSet.id!=null ? this.hookSet.id : this.id );
 
             //Logger.debug("IS STRATEGY EXISTS ?? : "+hsuid+"  "+await hapi.isHookSetExists(hsuid));
 
@@ -1056,5 +1098,23 @@ export default class InspectorFactory implements INode
         return o;
     }
 
+    /**
+     * To check if the InspectorFactory instance is flagged "deprecated"
+     * "Deprecated" factories will be removed.
+     *
+     * @method
+     */
+    markAsDeprecated() {
+        this.deprecated = true;
+    }
+
+    /**
+     * To check if the InspectorFactory instance is flagged "removed"
+     *
+     * @method
+     */
+    markAsRemoved() {
+        this.removed = true;
+    }
 }
 InspectorFactory.TYPE.builder(InspectorFactory);

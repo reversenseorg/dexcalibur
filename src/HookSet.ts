@@ -16,6 +16,7 @@ import Util from "./Utils.js";
 import {Nullable} from "./core/IStringIndex.js";
 import {UPGRADE_MODE} from "./inspector/common.js";
 import {InspectorManagerException} from "./errors/InspectorManagerException.js";
+import {InspectorState} from "./hook/common.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -121,6 +122,10 @@ export default class HookSet implements INode
     tags:number[] = [];
 
     revisions:HookRevision[] = [];
+
+    deprecated = false;
+
+    removed = false;
 
     private _dirty = false;
 
@@ -782,5 +787,39 @@ export default class HookSet implements INode
         for(let i in pHookShareOpts){
             this.share[i] = pHookShareOpts[i];
         }
+    }
+
+
+    /**
+     *
+     */
+    markAsDeprecated() {
+        this.markAs(InspectorState.DEPRECATED);
+    }
+
+    /**
+     *
+     */
+    markAsRemoved() {
+        this.markAs(InspectorState.REMOVED);
+    }
+
+    /**
+     *
+     */
+    markAs(pFlag:InspectorState) {
+
+        if([InspectorState.DEPRECATED,InspectorState.REMOVED].indexOf(pFlag)>-1){
+            throw InspectorManagerException.MARKER_NOT_SUPPORTED(pFlag);
+        }
+
+        this[pFlag] = true;
+
+        // propagate
+        this.strats.map((x) => {
+            x.markAs(pFlag);
+        });
+
+        this.prologue.markAs(pFlag);
     }
 }

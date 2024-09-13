@@ -23,6 +23,7 @@ import {UPGRADE_MODE} from "./inspector/common.js";
 import {HookRevision, HookRevisionSubject, RevisionOperation} from "./HookRevision.js";
 import {CustomCode} from "./actionnable/CustomCode.js";
 import {BusEventHandler} from "./Bus.js";
+import {InspectorFactoryException} from "./errors/InspectorFactoryException.js";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -420,6 +421,7 @@ export default class InspectorManager
         const inspNames = Object.keys(pProject.inspectors);
         let inspID:string;
         let needUpgrade = false;
+        let skipUpgrade = false;
         let changes:Nullable<UpgradeChanges> = null;
         let restored:string[] = [];
 
@@ -438,57 +440,93 @@ export default class InspectorManager
                     // retrieve Inspector state from DB for each, and restore Inspector instance
                     this.projects[uid][factories[i].id] = await factories[i].restore(pProject);
 
-                    // upgrade inspector with new factory
-                    if(InspectorFactory.needUpgrade(factories[i], this.locals[factories[i].id])){
+                    // detect Inspector created from removed (old) InspectorFactory
+                    // Case : the project has been created with an older version of DxEngine
+                    // and the new version has removed the type of inspector.
+                    if(factories[i] != null && this.locals[factories[i].id]==null){
+                        Logger.info(`[INSPECTOR FACTORY][${factories[i].id}:${factories[i].version}] This factory is removed. `);
 
-                        switch (InspectorFactory.getUpgradeLevel(factories[i], this.locals[factories[i].id])){
-                            case UpgradeLevel.MAJOR:
-                                // warning :
-                                throw InspectorManagerException.INSPECTOR_UPGRADE_TO_MAJOR_NOT_SUPPORTED(
-                                    factories[i].id, factories[i].version, this.locals[factories[i].id].version);
-                                break;
-                            case UpgradeLevel.MINOR:
-                                // recreate inspector
-                                throw InspectorManagerException.INSPECTOR_UPGRADE_TO_MINOR_NOT_SUPPORTED(
-                                    factories[i].id, factories[i].version, this.locals[factories[i].id].version);
-                                break;
-                            case UpgradeLevel.PATCH:
-                                // update factory and save changes
-                                changes = this.upgradeFactory(factories[i], this.locals[factories[i].id]);
 
-                                this.projects[uid][factories[i].id].context = pProject;
-
-                                // apply changes to inspectors
-                                await this.upgradeInspector(this.projects[uid][factories[i].id], this.locals[factories[i].id], changes);
-
-                                console.log("Post upgradeInspector ",this.projects[uid][factories[i].id]);
-                                // upgrade hooks
-                                //this.upgradeInspectorHooks(pProject, this.projects[uid][factories[i].id], this.locals[factories[i].id])
-                                break;
+                        // 1) check if "old" inspector is already flagged as "deprecated" but not "removed"
+                        if(!factories[i].removed && factories[i].deprecated){
+                            factories[i].markAsRemoved();
                         }
 
-                        // restore listeners
-                        factories[i]._restoreEventListenersFromCode(this.projects[uid][factories[i].id]);
-                        factories[i]._restoreEventListenersFromFunc(this.projects[uid][factories[i].id]);
-                        factories[i].version = this.locals[factories[i].id].version;
-
-                        if(changes!=null){
-                            if(changes.factory._changes.length>0){
-
-                                // save InspectorFactory changes
-                                await pProject.getProjectDB()
-                                    .getCollectionOf(InspectorFactory.TYPE.getType()).asyncUpdateEntry(factories[i]);
-
-                                // save Inspector change
-                                await pProject.getProjectDB()
-                                    .getCollectionOf(Inspector.TYPE.getType()).asyncUpdateEntry(this.projects[uid][factories[i].id]);
-                            }
+                        if(factories[i].removed && !this.projects[uid][factories[i].id]){
+                            this.projects[uid][factories[i].id].markAsRemoved();
                         }
-                    }else{
-                        // restore listeners
-                        factories[i]._restoreEventListenersFromCode(this.projects[uid][factories[i].id]);
-                        factories[i]._restoreEventListenersFromFunc(this.projects[uid][factories[i].id]);
+
+                        // 2) don't upgrade InspectorFactory with "removed" or "deprecated" flag
+                        skipUpgrade = true;
+                        // throw InspectorFactoryException.INSPECTOR_NOT_FOUND_SERVER_SIDE(factories[i].id);
+
                     }
+
+                    if(!skipUpgrade){
+                        // upgrade inspector with new factory
+                        if(InspectorFactory.needUpgrade(factories[i], this.locals[factories[i].id])){
+
+                            // if the factory from server is newer, and deprecated
+                            if(this.locals[factories[i].id].deprecated && !factories[i].deprecated){
+                                factories[i].markAsDeprecated();
+                            }
+
+
+                            // check upgrade level
+                            switch (InspectorFactory.getUpgradeLevel(factories[i], this.locals[factories[i].id])){
+                                case UpgradeLevel.MAJOR:
+                                    // warning :
+                                    throw InspectorManagerException.INSPECTOR_UPGRADE_TO_MAJOR_NOT_SUPPORTED(
+                                        factories[i].id, factories[i].version, this.locals[factories[i].id].version);
+                                    break;
+                                case UpgradeLevel.MINOR:
+                                    // recreate inspector
+                                    throw InspectorManagerException.INSPECTOR_UPGRADE_TO_MINOR_NOT_SUPPORTED(
+                                        factories[i].id, factories[i].version, this.locals[factories[i].id].version);
+                                    break;
+                                case UpgradeLevel.PATCH:
+                                    // update factory and save changes
+                                    changes = this.upgradeFactory(factories[i], this.locals[factories[i].id]);
+
+                                    this.projects[uid][factories[i].id].context = pProject;
+
+                                    // apply changes to inspectors
+                                    await this.upgradeInspector(this.projects[uid][factories[i].id], this.locals[factories[i].id], changes);
+
+                                    //console.log("Post upgradeInspector ",this.projects[uid][factories[i].id]);
+                                    // upgrade hooks
+                                    //this.upgradeInspectorHooks(pProject, this.projects[uid][factories[i].id], this.locals[factories[i].id])
+                                    break;
+                            }
+
+
+                            // restore listeners
+                            factories[i]._restoreEventListenersFromCode(this.projects[uid][factories[i].id]);
+                            factories[i]._restoreEventListenersFromFunc(this.projects[uid][factories[i].id]);
+                            factories[i].version = this.locals[factories[i].id].version;
+
+                            if(changes!=null){
+                                if(changes.factory._changes.length>0){
+
+                                    // save InspectorFactory changes
+                                    await pProject.getProjectDB()
+                                        .getCollectionOf(InspectorFactory.TYPE.getType()).asyncUpdateEntry(factories[i]);
+
+                                    // save Inspector change
+                                    await pProject.getProjectDB()
+                                        .getCollectionOf(Inspector.TYPE.getType()).asyncUpdateEntry(this.projects[uid][factories[i].id]);
+                                }
+                            }
+                        }else{
+                            // restore listeners
+                            factories[i]._restoreEventListenersFromCode(this.projects[uid][factories[i].id]);
+                            // listeners passed as function instead of source code should be removed
+                            // because they cannot be edited later
+                            factories[i]._restoreEventListenersFromFunc(this.projects[uid][factories[i].id]);
+                        }
+                    }
+
+
 
                     restored.push(factories[i].id);
 
@@ -499,8 +537,8 @@ export default class InspectorManager
                 this.engine.log("State of inspector ["+factories[i].getUID()+"] cannot be restored. ", pProject, err.code);
                 console.log(err.message,err.stack);
 
-                if(factories[i].id){
-                    // is a factory cannot be restored, it must be removed
+                if(factories[i]!=null){
+                    // if a factory cannot be restored, it must be removed
                     try {
                         this.uninstallInspector(pProject, factories[i]);
                     }catch(e){
@@ -515,7 +553,8 @@ export default class InspectorManager
         // detect if there is missing inspector
         const newInspectors:Record<string, Inspector> = {};
         for(let k in this.locals){
-            if(restored.indexOf(k)==-1){
+            console.log(restored.join(":"),k);
+            if( restored.indexOf(k)==-1){
                 newInspectors[k] = await this.createInspector(this.locals[k], pProject);
                 console.log("Create inspector : "+ newInspectors[k].getUID()+" "+ newInspectors[k].getID())
             }
@@ -706,6 +745,7 @@ export default class InspectorManager
             }
         };
 
+
         // top level properties
         if(pNewFactory.startStep!=pOutdatedFactory.startStep){
             pOutdatedFactory.startStep = pNewFactory.startStep;
@@ -725,6 +765,12 @@ export default class InspectorManager
         if(pNewFactory.db!=pOutdatedFactory.db){
             pOutdatedFactory.db = pNewFactory.db;
             changes.factory._changes.push("db");
+        }
+
+        // if the factory from server is newer, and deprecated
+        if(pNewFactory.deprecated && !pOutdatedFactory.deprecated){
+            pOutdatedFactory.markAsDeprecated();
+            changes.factory._changes.push("deprecated");
         }
 
         // upgrade tags
@@ -807,41 +853,45 @@ export default class InspectorManager
     async upgradeInspector(pOutdatedInspector: Inspector, pNewFactory: InspectorFactory, pChanges:UpgradeChanges):Promise<void> {
 
 
+
         // first, check if new factory has new tag category
-        pNewFactory.itags.map((vCat:FlattenTagCategoryOptions)=>{
-            const cat = pOutdatedInspector.preRegisteredTags.find((vValue,vIndex,vAll)=>{
-                if(vValue.name==vCat.name){
-                    return vValue;
-                }
-            });
-
-            // category not found
-            if(cat==null){
-                // add category to preregistered tags
-                pOutdatedInspector.factory.itags.push(vCat);
-                // update inspector preregistered tags
-                pOutdatedInspector.registerTagCategory(InspectorFactory.createTagCategory(vCat));
-            }else{
-                // update tag category
-                vCat._tagsOptions.map((vTag:TagOptions)=>{
-                    let existing = cat.getTags().find((x)=>{ if(x.name==vTag.name){ return x; } });
-
-                    if(existing!=null){
-                        // update
-                        existing.updateWithOptions(vTag)
-                    }else{
-                        // add
-                        cat.addTag( new Tag(vTag));
+        if(pNewFactory.itags!=null && Array.isArray(pNewFactory.itags)){
+            pNewFactory.itags.map((vCat:FlattenTagCategoryOptions)=>{
+                const cat = pOutdatedInspector.preRegisteredTags.find((vValue,vIndex,vAll)=>{
+                    if(vValue.name==vCat.name){
+                        return vValue;
                     }
                 });
 
-                // tag cannot be removed safely from existing inspector, so tag from older version of inspector
-                // cannot be deleted
+                // category not found
+                if(cat==null){
+                    // add category to preregistered tags
+                    pOutdatedInspector.factory.itags.push(vCat);
+                    // update inspector preregistered tags
+                    pOutdatedInspector.registerTagCategory(InspectorFactory.createTagCategory(vCat));
+                }else{
+                    // update tag category
+                    vCat._tagsOptions.map((vTag:TagOptions)=>{
+                        let existing = cat.getTags().find((x)=>{ if(x.name==vTag.name){ return x; } });
 
-            }
-        });
+                        if(existing!=null){
+                            // update
+                            existing.updateWithOptions(vTag)
+                        }else{
+                            // add
+                            cat.addTag( new Tag(vTag));
+                        }
+                    });
 
+                    // tag cannot be removed safely from existing inspector, so tag from older version of inspector
+                    // cannot be deleted
 
+                }
+            });
+
+        }
+
+        // upgrade inspector
         let vType:string;
         for(let i in pChanges.factory._changes){
             vType = pChanges.factory._changes[i];
@@ -903,6 +953,12 @@ export default class InspectorManager
                     break;
             }
         }
+
+        // if Factory is now "deprecated", then mark entire Inspector and related object as "deprecated"
+        if(!pOutdatedInspector.deprecated && pChanges.factory._changes.indexOf("deprecated")>-1){
+            pOutdatedInspector.markAsDeprecated();
+        }
+
     }
 
     /**
@@ -961,8 +1017,14 @@ export default class InspectorManager
         // mark existing hook strategy and related hooks as "deprecated" or "modified"
     }
 
+    /**
+     *
+     * @param pProject
+     * @param inspectorFactory
+     */
     async uninstallInspector(pProject: DexcaliburProject, inspectorFactory: InspectorFactory):Promise<void> {
         if(this.projects[pProject.getUID()]==null || this.projects[pProject.getUID()][inspectorFactory.id]==null){
+
             return ;
         }
 

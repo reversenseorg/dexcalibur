@@ -1,5 +1,12 @@
 import {HookVariable, HookVariableArray, HookVariableObject} from "../HookVariable.js";
 
+
+export enum InspectorState {
+    RUNNING="running",
+    DEPRECATED="deprecated",
+    REMOVED="removed"
+}
+
 export enum TargetLanguage {
     JS,
     TS
