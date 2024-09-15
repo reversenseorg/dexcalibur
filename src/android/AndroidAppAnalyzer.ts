@@ -31,6 +31,7 @@ import {DataParserException} from "../errors/DataParserException.js";
 import ModelResource from "../ModelResource.js";
 import {INode} from "@dexcalibur/dexcalibur-orm";
 import {AnalyzerException} from "../errors/AnalyzerException.js";
+import {AppIcon} from "../AppIcon.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -923,6 +924,64 @@ a
 
 	postScan(){
 		this.updateComponentImplementation();
+	}
+
+	/**
+	 * To extract application icon (vector or png)
+	 *
+	 */
+	async extractAppIcons():Promise<AppIcon[]> {
+		let res:ModelResource, roundIcon:string, icon:string, appIcons:AppIcon[] = [], appIcon:AppIcon;
+		try{
+			roundIcon = this.manifest.application.getAttribute("roundIcon",true);
+			if(roundIcon!=null){
+				appIcon = await this.extractAppIconFromRes(roundIcon);
+				if(appIcon != null){
+					appIcons.push(appIcon);
+				}
+			}
+
+			icon = this.manifest.application.getAttribute("icon",true);
+			if(icon!=null){
+				appIcon = await this.extractAppIconFromRes(icon);
+				if(appIcon != null){
+					appIcons.push(appIcon);
+				}
+			}
+		}catch(e){
+
+		}finally {
+			return appIcons;
+		}
+	}
+
+	/**
+	 * To extract application icon (vector or png)
+	 *
+	 */
+	async extractAppIconFromRes(pResUID):Promise<AppIcon> {
+
+		if(!AndroidResource.isReference(pResUID)){
+			return null;
+		}
+
+		let res:ModelResource;
+		try{
+
+			res = await this.context.getProjectDB().getAppResource(pResUID);
+			if(res == null){
+				return  null;
+			}
+
+			// check type of res.value :
+			// - file (as PNG) or AndroidResource
+			// TODO
+
+
+
+		}catch(e){
+
+		}
 	}
 }
 

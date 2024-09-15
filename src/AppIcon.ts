@@ -1,6 +1,15 @@
 import {CoreDebug} from "./core/CoreDebug.js";
 
 
+export enum AppIconFormat {
+    VECTOR = 'vector',
+    PNG = 'png'
+}
+
+
+
+
+
 /**
  * Represent an application icon
  *
@@ -8,7 +17,9 @@ import {CoreDebug} from "./core/CoreDebug.js";
  */
 export class AppIcon {
 
-    data:Buffer = null;
+    fmt:AppIconFormat = AppIconFormat.VECTOR;
+
+    data:any;
 
     localPath:string = "";
     appPath:string = "";
@@ -37,5 +48,5 @@ export class AppIcon {
         CoreDebug.checkJsonSerialize(o, "AppIcon");
         return o;
     }
-
 }
+

@@ -621,4 +621,9 @@ export class ProjectDatabase {
     async drop():Promise<void>{
         await this._db.db.dropDatabase();
     }
+
+    async getAppResource(pResUID:string):Promise<ModelResource> {
+        return await (this.getCollectionOf(ModelResource.TYPE.getType()) as MongodbDbCollection)
+            .asyncGetEntry({ _uid:pResUID });
+    }
 }

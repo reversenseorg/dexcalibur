@@ -1,5 +1,6 @@
 
 import {AnalyzerState} from "../AnalyzerState.js";
+import {AppIcon} from "../AppIcon.js";
 
 
 
@@ -21,4 +22,6 @@ export interface IAppAnalyzer {
     restoreState(pState:AnalyzerState):boolean;
 
     postScan():void;
+
+    extractAppIcons():Promise<AppIcon[]>;
 }

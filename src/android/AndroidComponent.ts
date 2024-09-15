@@ -10,6 +10,8 @@ import {NodeInternalType} from "@dexcalibur/dxc-core-api";
 import {CryptoUtils} from "../CryptoUtils.js";
 import {CoreDebug} from "../core/CoreDebug.js";
 import {SerializeOptions} from "@dexcalibur/dexcalibur-orm";
+import {AndroidApplicationException} from "../errors/android/AndroidApplicationException.js";
+import {AndroidComponentException} from "../errors/android/AndroidComponentException.js";
 
 
 const ANDROID_PREFIX = "android:";
@@ -59,8 +61,19 @@ export default class AndroidComponent extends AndroidIntentable
         return this.attr;
     }
 
-    getAttribute(name:string):any{
-        return this.attr[name];
+    /**
+     * To get the value of an attribute by its name
+     *
+     * @param {string} pName Attribute name
+     * @returns {any}
+     * @method
+     */
+    getAttribute(pName:string):any {
+        if(this.attr[pName]==null){
+            throw AndroidComponentException.UNDEFINED_ATTR(pName);
+        }
+
+        return this.attr[pName];
     }
 
     getLabel():string{

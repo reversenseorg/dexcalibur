@@ -184,7 +184,7 @@ export class AndroidResource implements TreeNode<AndroidResource> {
 
             // get node content (aka value)
             if(pData._!=null){
-                opts._value = AndroidResource.parseReferenceIfPresent(pData);
+                opts._value = AndroidResource.parseReferenceIfPresent(pData._);
             }
 
             // browse children

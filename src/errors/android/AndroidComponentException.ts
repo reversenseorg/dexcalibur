@@ -7,16 +7,17 @@ export enum AndroidErrorCode {
     PROVIDER=300,
     SERVICE=400,
     RECEIVER=500,
-    APP=600
+    APP=600,
+    COMP=700
 }
 
-export class AndroidApplicationException extends MonitoredError {
+export class AndroidComponentException extends MonitoredError {
 
     static UNDEFINED_ATTR = (pAttr:string)=>{
-        return new AndroidApplicationException(`The attribute [${pAttr}] is not defined.`,
-            ErrorCode.ANALYZER_APP + AndroidErrorCode.APP + 1) };
+        return new AndroidComponentException(`The attribute [${pAttr}] is not defined.`,
+            ErrorCode.ANALYZER_APP + AndroidErrorCode.COMP + 1) };
 
     constructor( pMsg:string, pCode:number = null, pExtra:any = null) {
-        super('ANDROID APP', pMsg, pCode, pExtra);
+        super('ANDROID CMP', pMsg, pCode, pExtra);
     }
 }

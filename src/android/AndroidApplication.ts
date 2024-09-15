@@ -6,6 +6,7 @@ import {AndroidAttributeSet} from "./AndroidAttribute.js";
 import {AndroidManifest} from "./AndroidManifest.js";
 import {ApplicationBinary} from "../Application.js";
 import DexcaliburProject from "../DexcaliburProject.js";
+import {AndroidApplicationException} from "../errors/android/AndroidApplicationException.js";
 
 
 
@@ -138,6 +139,20 @@ export default class AndroidApplication extends ApplicationBinary
         this.manifest = pManifest;
     }
 
+    /**
+     * To get the value of an attribute by its name
+     *
+     * @param {string} pName Attribute name
+     * @returns {any}
+     * @method
+     */
+    getAttribute(pName:string, pForce = false):any {
+        if(!pForce && this.attr[pName]==null){
+            throw AndroidApplicationException.UNDEFINED_ATTR(pName);
+        }
+
+        return this.attr[pName];
+    }
 
     getMinApiVersion():string{
         if(this.manifest != null){
