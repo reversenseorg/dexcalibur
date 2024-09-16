@@ -496,6 +496,9 @@ export default class HookSession extends WebsocketSession implements INode
         return this.active;
     }
 
+    /**
+     * a method to override default behaviour when the socket if exited
+     */
     onExit():void {
         if (this.deviceEventCollector) {
             this.deviceEventCollector.stop();

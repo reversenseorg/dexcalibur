@@ -1,11 +1,32 @@
 import {Savable, STUB_TYPE} from "./ModelSavable.js";
 
 import {NodeInternalType} from "@dexcalibur/dxc-core-api";
-import {NodeType, DataSourceHelper, NodeProperty, DbDataType, DbKeyType, INode} from "@dexcalibur/dexcalibur-orm";
+import {
+    NodeType,
+    DataSourceHelper,
+    NodeProperty,
+    DbDataType,
+    DbKeyType,
+    INode,
+    NodeUtils
+} from "@dexcalibur/dexcalibur-orm";
 import {createHash} from "crypto";
 import Util from "./Utils.js";
 import {CoreDebug} from "./core/CoreDebug.js";
 import {ModelInstance} from "./ModelInstance.js";
+import {Nullable} from "./core/IStringIndex.js";
+import {ResourceReference} from "./android/AndroidResource.js";
+import ModelFile from "./ModelFile.js";
+import {INodeRef} from "./INode.js";
+
+export interface ModelStringValueOpts {
+    _uid?:string;
+    src?:INode|INodeRef;
+    instr?:any;
+    value?:string;
+    instance?:ModelInstance[];
+    tags?:number[];
+}
 
 export default class ModelStringValue extends Savable implements INode
 {
@@ -13,9 +34,10 @@ export default class ModelStringValue extends Savable implements INode
     static TYPE:NodeType = (new NodeType( "stringsValue", NodeInternalType.STRING, [
         (new NodeProperty("_uid")).type(DbDataType.STRING).key(DbKeyType.PRIMARY), // path relative to scope root
         //(new NodeProperty("_uid")).type(DbDataType.STRING), //.key(DbKeyType.PRIMARY),
-        (new NodeProperty("src")).volatile().type(DbDataType.STRING).def(null),
-        (new NodeProperty("instr")).volatile().type(DbDataType.STRING).def(null),
-        (new NodeProperty("value")).volatile().type(DbDataType.STRING).def(null),
+        (new NodeProperty("src")).type(DbDataType.STRING).def(null),
+        (new NodeProperty("instr")).type(DbDataType.STRING).def(null),
+        (new NodeProperty("value")).type(DbDataType.STRING).def(null),
+        (new NodeProperty("tags")).type(DbDataType.STRING).def(null),
         (new NodeProperty("instance")).volatile().type(DbDataType.STRING).def([])
     ])).dataSource("MEM", "strings");
 
@@ -24,13 +46,13 @@ export default class ModelStringValue extends Savable implements INode
     // SRC_NODE_TYPE : SRC_UUID : STR_TYPE : UID
     _uid:string;
 
-    src:any = null;
+    src:INodeRef|any = null;
     instr:any = null;
     value:string = null;
     instance:ModelInstance[] = [];
     tags:number[] = [];
 
-    constructor(pConfig:any=null) {
+    constructor(pConfig:Nullable<ModelStringValueOpts>=null) {
         super(STUB_TYPE.STRING_VALUE);
 
         if(pConfig !== null)
@@ -45,6 +67,17 @@ export default class ModelStringValue extends Savable implements INode
         return (this.value != null) && (uuid!=this.value);
     }
 
+    /**
+     * To check if the specified value is a ModelStringValue node
+     *
+     * @param {any} pValue The. object to test
+     * @return {boolean} TRUE is the argument is a ModelStringValue
+     * @static
+     * @method
+     */
+    static is(pValue:any):boolean{
+        return (pValue!=null && NodeUtils.isNode(pValue) && pValue.__===NodeInternalType.STRING);
+    }
 
     setValue(pValue:string):ModelStringValue{
         const uuid = Util.sha1_buffer(pValue);
@@ -80,7 +113,7 @@ export default class ModelStringValue extends Savable implements INode
 
     getUID():string {
         if(this._uid==null){
-            this._uid = Util.sha1_buffer(this.value);
+            this._uid = Util.sha1_buffer(this.value+(new Date()).getTime());
         }
         return this._uid;
     }

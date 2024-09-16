@@ -24,14 +24,17 @@ import {AndroidApiClassXrefList, AndroidCodeAnalyzer} from "./analyzer/AndroidCo
 import BusEvent, {BusEventOptions} from "../BusEvent.js";
 import {BusSubscriber} from "../Bus.js";
 import ApkHelper from "../ApkHelper.js";
-import Util from "../Utils.js";
 import {AndroidResource, AndroidResourceType} from "./AndroidResource.js";
 import {AndroidPackageAnalyzer} from "./analyzer/AndroidPackageAnalyzer.js";
 import {DataParserException} from "../errors/DataParserException.js";
 import ModelResource from "../ModelResource.js";
-import {INode} from "@dexcalibur/dexcalibur-orm";
 import {AnalyzerException} from "../errors/AnalyzerException.js";
 import {AppIcon} from "../AppIcon.js";
+import ModelFile from "../ModelFile.js";
+import {DataLocationFileSource} from "../DataLocation.js";
+import {INode} from "@dexcalibur/dexcalibur-orm";
+import ModelStringValue from "../ModelStringValue.js";
+import DataScope from "../DataScope.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -170,6 +173,9 @@ export default class AndroidAppAnalyzer implements IAppAnalyzer
 			// - a list of resources have been read from a single file (as values/* files)
 			// so, it has been typed to an array of resources (AndroidResource[])
 			const res:ModelResource[] = vEvent.getData().res;
+			const pkgScope = vEvent.getContext().getDataAnalyzer().getScope("PKG");
+
+
 
 			let resSaved:any = this.state.getProperty("resSaved");
 			if(resSaved==null){
@@ -182,11 +188,76 @@ export default class AndroidAppAnalyzer implements IAppAnalyzer
 			}
 
 			if(res.length>0){
+
+
+				const files:ModelFile[] = [];
+				let strings:ModelStringValue[] = [];
+
+				// extract files & strings
+				res.map((v:ModelResource) => {
+
+					try{
+						const f = (v.location.source as DataLocationFileSource).file;
+						/*if(f != null){
+							f.setScope(pkgScope);
+							files.push(f);
+						}*/
+					}catch(er){
+						Logger.error(er.message,er.stack);
+						// todo : log it to external log service or file
+					}
+
+					try{
+						const strs=v.getStringNodes();
+						if(strs.length==0){
+							console.log(v.getUID()+' has not strings vals ',v);
+						}else{
+							if(v.getUID()=="@style/Base.TextAppearance.AppCompat"){
+								console.log(v);
+							}
+						}
+						strings = strings.concat(strs);
+					}catch(er){
+						Logger.error(er.message,er.stack);
+						// todo : log it to external log service or file
+					}
+				});
+
+				// save files and strings
+				try{
+					if(files.length>0){
+						vEvent.getContext().getProjectDB().saveMany(files, NodeInternalType.FILE)
+							.catch((err)=>{
+								Logger.error(`[LISTENER][app.res.parsed] Save of resource file failed (1): `+err);
+							})
+							.then((vResult:INode[])=>{
+								Logger.info(`[LISTENER][app.res.parsed] Save of resource file successful.`);
+							});
+					}
+				}catch(e){
+					Logger.error(`[LISTENER][app.res.parsed] Save of resource file failed (2) : `+e.message);
+				}
+
+				try{
+					if(strings.length>0){
+						vEvent.getContext().getProjectDB().saveMany(strings, NodeInternalType.STRING)
+							.catch((err)=>{
+								Logger.error(`[LISTENER][app.res.parsed] Save of string from resources failed (1): `+err);
+							})
+							.then((vResult:INode[])=>{
+								Logger.info(`[LISTENER][app.res.parsed] Save of string from resources successful [${strings.length} strings].`);
+							});
+					}
+				}catch(e){
+					Logger.error(`[LISTENER][app.res.parsed] Save of string from resources failed (2) : `+e.message);
+				}
+
+				// save resources
 				this.context.getProjectDB().saveMany(res,NodeInternalType.RESOURCE)
 					.catch((err)=>{
 						Logger.error(`[LISTENER][app.res.parsed] Save error : `+err);
 					})
-					.then(()=>{
+					.then((pResult:INode[])=>{
 						// success
 						resSaved = this.state.getProperty("resSaved");
 						if(resSaved==null){
@@ -476,14 +547,15 @@ export default class AndroidAppAnalyzer implements IAppAnalyzer
 	 */
 	async prepareFullScan():Promise<boolean>{
 
+		const pkgScope = await this.context.getDataAnalyzer().getDataScope('PKG');
 
 		console.log("Parse manifest")
-
 		const success:boolean = await this.importManifest(_path_.join(this.context.getWorkspace().getApkDir(),"AndroidManifest.xml"));
 
-		// parse all resources
+		// parse all resources in res/ folder, for each a ModelFile will be created
+		// and joined into PKG data scope
 		console.log("Parse resources at : ",this._getResourcesFolder());
-		await this.parseResources(this._getResourcesFolder());
+		await this.parseResources(this._getResourcesFolder(), pkgScope);
 
 
 		/*
@@ -532,9 +604,15 @@ export default class AndroidAppAnalyzer implements IAppAnalyzer
 		return (state[pResType]!=null) && (state[pResType]>0);
 	}
 
-	async parseResources(pFolderPath:string):Promise<void> {
+	async parseResources(pFolderPath:string, pDataScope:Nullable<DataScope> = null):Promise<void> {
 		// read folders in pFolderPath
 		const folders = _fs_.readdirSync(pFolderPath);
+		const foldersNode:ModelFile[] = [];
+		const files:Record<string, ModelFile> = {};
+		// resource tree
+		let resMap:Record<string, Record<string, ModelResource|(Record<string, ModelResource>) >> = {};
+		let variant:string, res:ModelResource;
+
 		const cat = {
 			values:null,
 			valuesExtra:[],
@@ -545,6 +623,15 @@ export default class AndroidAppAnalyzer implements IAppAnalyzer
 
 		// sort folders
 		for(let i=0; i<folders.length; i++){
+			// each folder must be represented as a ModelFile into DxEngine
+			foldersNode.push(new ModelFile({
+				name: folders[i],
+				path: _path_.join(pFolderPath,folders[i]),
+				scope: pDataScope,
+				_d: 'd'
+			}));
+
+
 			if(folders[i].startsWith("values-")){
 				cat.valuesExtra.push(folders[i]);
 			}if(folders[i].indexOf("-")>-1) {
@@ -553,31 +640,147 @@ export default class AndroidAppAnalyzer implements IAppAnalyzer
 				cat.other.push("raw");
 			}else if(folders[i]=="values"){
 				cat.values = folders[i];
+				resMap["values"] = {};
 			}else {
 				cat.cmp.push(folders[i]);
+				resMap[folders[i]] = {};
 			}
-
 		}
 
-		console.log("values", this.hasBeenParsedPreviously("values"));
+
 		// start to parse values/*
 		if(cat.values!=null && !this.hasBeenParsedPreviously("values")){
-			await this.parseValuesFromRes("values");
+			resMap["values"] = (await this.parseValuesFromRes("values", pDataScope, false));
 		}
 
+		let valsExtra:any;
 		// continue with values-*/*
+		for(let i=0; i<cat.valuesExtra.length; i++){
+			if(!this.hasBeenParsedPreviously(cat.valuesExtra[i])){
+				variant = cat.valuesExtra[i].substring(cat.valuesExtra[i].indexOf('-')+1);
+				if(resMap["values"][cat.valuesExtra[i]]==null) resMap["values"][cat.valuesExtra[i]]={};
+
+				valsExtra = (await this.parseValuesFromRes(cat.valuesExtra[i], pDataScope, false));
+
+				for(let valType in valsExtra){
+					for(let valID in valsExtra[valType]){
+						if(resMap["values"][valType][valID]==null){
+							resMap["values"][valType][valID] = valsExtra[valType][valID];
+						}else{
+							(resMap["values"][valType][valID] as ModelResource)
+								.appendProperty('variant',variant,valsExtra[valType][valID]);
+						}
+					}
+				}
+			}
+		}
 
 
 		// add layout/*, drawables/*, mipmap/*, xml/*, ...
 		for(let i=0; i<cat.cmp.length; i++){
-			console.log(cat.cmp[i], this.hasBeenParsedPreviously(cat.cmp[i]));
 			if(!this.hasBeenParsedPreviously(cat.cmp[i])){
-				await this.parseComponentFromRes(cat.cmp[i]);
+				(await this.parseComponentFromRes(cat.cmp[i], pDataScope)).map(x => {
+					resMap[cat.cmp[i]][x.getUID()] = x;
+				});
 			}
 		}
 
 
-		// add derivation layout-*, drawables-*, ...
+		// add variant layout-*, drawables-*, ...
+		for(let i=0; i<cat.cmpExtra.length; i++){
+			if(!this.hasBeenParsedPreviously(cat.cmpExtra[i])){
+				variant = cat.cmpExtra[i].substring(cat.cmpExtra[i].indexOf('-')+1);
+				if(resMap[cat.cmpExtra[i]]==null) resMap[cat.cmpExtra[i]]={};
+
+				(await this.parseComponentFromRes(cat.cmpExtra[i], pDataScope, false)).map(x => {
+					if(resMap[cat.cmpExtra[i]][x.getUID()]==null){
+						resMap[cat.cmpExtra[i]][x.getUID()] = x;
+					}else{
+						(resMap[cat.cmpExtra[i]][x.getUID()] as ModelResource).appendProperty('variant',variant,x);
+					}
+				})
+			}
+		}
+
+		// save folders
+		await this.context.getProjectDB().saveMany(foldersNode, NodeInternalType.FILE);
+
+		// browse resMap to gather file
+		let file:ModelFile, filemap:any;
+		for(let k in resMap){
+			if(k=='values'){
+				for(let l in resMap[k]){
+					for(let m in resMap[k][l]){
+						res = (resMap[k][l][m] as ModelResource);
+						file = res.getFile();
+						if(file!=null && files[file.getUID()]==null) files[file.getUID()] = file;
+
+
+
+						filemap = res.getProperty('variant') as Record<string, ModelResource>;
+						if(filemap!=null){
+							for(let n in filemap){
+								if(filemap[n]!=null){
+									file = filemap[n].getFile();
+									if(file!=null && files[file.getUID()]==null) files[file.getUID()] = file;
+								}
+
+							}
+						}
+
+					}
+				}
+			}else{
+				for(let l in resMap[k]){
+					res = (resMap[k][l] as ModelResource);
+					file = res.getFile();
+					if(file!=null && files[file.getUID()]==null) files[file.getUID()] = file;
+
+
+					filemap = res.getProperty('variant') as Record<string, ModelResource>;
+					if(filemap!=null){
+						for(let n in filemap){
+							if(filemap[n]!=null){
+								file = filemap[n].getFile();
+								if(file!=null && files[file.getUID()]==null) files[file.getUID()] = file;
+							}
+
+						}
+					}
+				}
+			}
+		}
+		await this.context.getProjectDB().saveMany(Object.values(files), NodeInternalType.FILE);
+
+		// emit en event
+		let type:string;
+		for(let resType in resMap){
+			if(resType==="values"){
+				type = "values";
+				for(let valType in resMap.values){
+					this.context.trigger({
+						type: "app.res.parsed",
+						data: {
+							restype: valType,
+							res: Object.values(resMap.values[valType])
+						}
+					} as BusEventOptions<AndroidResParsedEvent>);
+				}
+			}else{
+				this.context.trigger({
+					type: "app.res.parsed",
+					data: {
+						restype: resType,
+						res: Object.values(resMap[resType])
+					}
+				} as BusEventOptions<AndroidResParsedEvent>);
+			}
+		}
+
+
+		// update "values"
+		//this.context.getProjectDB().saveMany(Object.values(resMap),ModelResource.TYPE.getType());
+
 	}
 
 	async analyzeResources():Promise<void> {
@@ -591,44 +794,108 @@ export default class AndroidAppAnalyzer implements IAppAnalyzer
 	 *
 	 * @method
 	 */
-	async parseValuesFromRes(pFolderPath:string):Promise<void> {
+	async parseValuesFromRes(pFolderPath:string, pDataScope:Nullable<DataScope>, pEmit = true):Promise<Record<string, Record<string, ModelResource>>> {
 
 		const entries = _fs_.readdirSync(_path_.join(this._getResourcesFolder(),pFolderPath));
 		let data:AndroidResource[];
 		let res:ModelResource[] = [];
+		let resMap:Record<string, Record<string, ModelResource>> = {};
 		let resPath:string;
+		let stat:any;
 
 		for(let i=0; i<entries.length; i++){
 
 			res = [];
 			resPath = _path_.join(this._getResourcesFolder(),pFolderPath,entries[i]);
+			stat = _fs_.statSync(resPath);
+
 			data = await AndroidAppAnalyzer._parseResourceValuesFile(resPath, null, "resources");
-			data.map(x => res.push(x.toModelResource("")));
+			data.map(x => {
+				const mr = x.toModelResource("");
+				// placeholder for ModelFile (the true ModelFile
+				mr.setFileLocation(new ModelFile({
+					name: entries[i],
+					path: resPath,
+					_d: (stat.isFile()? 'f':'d'),
+					size: stat.size,
+					scope: pDataScope
+				}));
+				if(mr.ppts.type!=null){
+					if(resMap[mr.ppts.type]==null){
+						resMap[mr.ppts.type] = {};
+					}
+					resMap[mr.ppts.type][mr.getUID()] = mr;
+				}else{
+					Logger.error("Type of '"+mr.getUID()+"' cannot be retrieved");
+				}
+
+
+				res.push(mr);
+			} );
 
 			//await AndroidAppAnalyzer.parseResourceFile(resPath,this.resources[type], this.context, "resources");
-			this.context.trigger({
-				type: "app.res.parsed",
-				data: {
-					restype:entries[i],
-					res:res
-				}
-			} as BusEventOptions<AndroidResParsedEvent>);
+			if(pEmit){
+				// emit en event
+				this.context.trigger({
+					type: "app.res.parsed",
+					data: {
+						restype: entries[i],
+						res: res
+					}
+				} as BusEventOptions<AndroidResParsedEvent>);
+			}
+
 		}
+
+		return resMap;
 	}
-a
+
+	createFileResource(pPath:string, pFolder:string, pRawName:string, pDataScope:Nullable<DataScope>):ModelResource {
+
+		const path = _path_.join(pFolder,pRawName);
+		let type:string = pFolder;
+		let variant:string = null;
+		let res:AndroidResource, mr:ModelResource;
+		let o:number;
+
+		if((o = pFolder.indexOf('-'))>-1){
+			type = pFolder.substring(0,o);
+			variant = pFolder.substring(o+1);
+		}
+
+		mr = (new AndroidResource({
+			_type: type
+		})).toModelResource("", type, pRawName.substring(0,pRawName.indexOf('.')));
+
+		mr.setProperty('fmt',_path_.extname(pRawName).substring(1));
+		mr.appendProperty('variant',variant,null);
+		mr.setFileLocation(new ModelFile({
+			name: pRawName,
+			path: pPath,
+			size: _fs_.statSync(pPath).size,
+			scope: pDataScope,
+			_d: 'f',
+		}));
+
+		return mr;
+	}
 	/**
 	 * To parse files in `res/values-x/x`
 	 * and build ID map
 	 *
 	 * @method
 	 */
-	async parseComponentFromRes(pFolderPath:string, pRootNode:Nullable<string> = null):Promise<void> {
+	async parseComponentFromRes(pFolderPath:string,
+								pDataScope:Nullable<DataScope>,
+								pEmit = true,
+								pRootNode:Nullable<string> = null):Promise<ModelResource[]> {
 
 		const entries = _fs_.readdirSync(_path_.join(this._getResourcesFolder(),pFolderPath));
 		let data:AndroidResource[];
 		let res:ModelResource[] = [];
 		let resPath:string;
-
+		let stat:any;
+		let mr:ModelResource;
 
 		for(let i=0; i<entries.length; i++){
 
@@ -638,9 +905,7 @@ a
 
 				// todo : non-xml resources must a ModelResource encapsulating ModelFile that represent the resource
 				if(!entries[i].endsWith(".xml")){
-					/*res.push(new ModelResource({
-						_uid: entries[i],
-					}))*/
+					res.push(this.createFileResource(resPath, pFolderPath, entries[i], pDataScope))
 					continue;
 				}
 
@@ -662,7 +927,21 @@ a
 						res_uid = entries[i];
 					}
 
-					res.push(data[0].toModelResource("", pFolderPath, res_uid));
+					stat = _fs_.statSync(resPath);
+
+					mr = data[0].toModelResource("", pFolderPath, res_uid);
+					// placeholder for ModelFile (the true ModelFile
+					mr.setFileLocation(new ModelFile({
+						name: entries[i],
+						path: resPath,
+						_d: 'f',
+						size: stat.size,
+						scope: pDataScope
+					}));
+					res.push(mr);
+
+
+					//res.push(data[0].toModelResource("", pFolderPath, res_uid));
 				}else if(data.length>1){
 					throw AnalyzerException.ANDROID_RES_MULTIPLE_NOT_SUPPORTED(pFolderPath+"/"+entries[i]);
 				}else {
@@ -673,10 +952,15 @@ a
 			}
 		}
 
-		this.context.trigger({
-			type: "app.res.parsed",
-			data: { restype:pFolderPath, res:res }
-		});
+		if(pEmit){
+			this.context.trigger({
+				type: "app.res.parsed",
+				data: { restype:pFolderPath, res:res }
+			});
+		}
+
+
+		return res;
 	}
 
 	/**
@@ -982,6 +1266,17 @@ a
 		}catch(e){
 
 		}
+	}
+
+	async performXrefAnalysis():Promise<any>{
+
+		// solve value strings
+		//this.
+
+		// extract app icons
+		await this.extractAppIcons();
+
+
 	}
 }
 

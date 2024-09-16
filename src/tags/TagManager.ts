@@ -50,7 +50,6 @@ export class TagManager {
     }
 
     generateUUID():number {
-        Logger.error("TagManager.generateUUID() called");
         let uuid=-1;
         do{
             uuid = Math.round(Math.random()*10000);

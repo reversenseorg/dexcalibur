@@ -2,6 +2,12 @@
 import {NodeInternalType} from "@dexcalibur/dxc-core-api";
 import {IPersistent} from "./persist/orm/IPersistent.js";
 
+export interface INodeRef {
+    __:NodeInternalType;
+    _uid?:any;
+    //getUID():string;
+}
+
 export interface INode extends IPersistent{
     __:NodeInternalType;
     getUID():string;

@@ -557,7 +557,7 @@ export class HookManager
 
     /**
      * To create a new hook session
-     * 
+     *
      * @returns {HookSession} Current - freshly created - hooking session
      * @method
      */
@@ -566,8 +566,11 @@ export class HookManager
             this._initMessageTags();
         }
 
+        // Important : not support multi-session
+
         const last:HookSession = this
             .sessions[this.sessions.length-1];
+
         const sess:HookSession =new HookSession();
         sess.setHookManager(this);
 

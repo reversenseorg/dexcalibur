@@ -1,21 +1,19 @@
 import {Savable, STUB_TYPE} from "./ModelSavable.js";
-import {createHash} from "crypto";
 
 import {NodeInternalType} from "@dexcalibur/dxc-core-api";
 import {
     DbDataType,
     DbKeyType,
-    DbSerialize, INode, Node,
+    INode,
     NodeProperty,
     NodePropertyState,
-    NodeType, SerializeOptions
+    NodeType,
+    NodeUtils,
+    SerializeOptions
 } from "@dexcalibur/dexcalibur-orm";
-import {DataLocation, DataLocationType} from "./DataLocation.js";
+import {DataLocation, DataLocationFileSource, DataLocationType} from "./DataLocation.js";
 import ModelFile from "./ModelFile.js";
 import {Nullable} from "./core/IStringIndex.js";
-import {AndroidResourceType} from "./android/AndroidResource.js";
-import ModelFileSection from "./ModelFileSection.js";
-import {NodeUtils} from "@dexcalibur/dexcalibur-orm";
 import ModelStringValue from "./ModelStringValue.js";
 
 export interface ResourceOpts {
@@ -39,7 +37,25 @@ export default class ModelResource extends Savable
 {
     static TYPE:NodeType = (new NodeType( "resources", NodeInternalType.RESOURCE, [
         (new NodeProperty("_uid")).type(DbDataType.STRING).key(DbKeyType.PRIMARY),
-        (new NodeProperty("location")).type(DbDataType.BLOB).def(null),//.serialize(DbSerialize.JSON),
+        (new NodeProperty("location"))
+            .type(DbDataType.BLOB)
+            /*.sleep( (x:NodePropertyState)=>{
+                return NodeUtils.serialize(x.p);
+            })
+            .wakeUp( (x:NodePropertyState)=>{
+                if(x.p==null)
+                    return null;
+
+                const dl = new DataLocation(x.p);
+                switch (dl.type){
+                    case DataLocationType.FILE:
+                        (dl.source as any).file = (x.ctx as DexcaliburProject).find.get.files((dl.source as DataLocationFileSource).fileUID);
+                        break;
+                }
+
+                return dl;
+            })*/
+            .def(null),//.serialize(DbSerialize.JSON),
         (new NodeProperty("name")).type(DbDataType.STRING),
         (new NodeProperty("value"))
             .type(DbDataType.BLOB)
@@ -77,7 +93,9 @@ export default class ModelResource extends Savable
             })
             .def(null),
         (new NodeProperty("ppts")).type(DbDataType.BLOB).def({}), //.serialize(DbSerialize.JSON).def({}),
-        (new NodeProperty("tags")).type(DbDataType.STRING).def(null)
+        (new NodeProperty("tags")).type(DbDataType.STRING).def(null),
+        (new NodeProperty("stringNodes")).volatile().def([])
+
     ])).dataSource("PROJECT_DB");
 
     __:NodeInternalType = NodeInternalType.RESOURCE;
@@ -88,6 +106,8 @@ export default class ModelResource extends Savable
     name:string;
     ppts:Record<string,any> = {}
     tags:number[] = [];
+
+    stringNodes:ModelStringValue[] = [];
 
     constructor(pConfig:Nullable<ResourceOpts> = null) {
         super(STUB_TYPE.STRING_VALUE);
@@ -134,6 +154,83 @@ export default class ModelResource extends Savable
         return this._uid;
     }
 
+    /**
+     *
+     * @param pFile
+     * @param pOffset
+     * @param pLength
+     */
+    setFileLocation( pFile:ModelFile, pOffset:any = null, pLength:any = null):void {
+        this.location = new DataLocation({
+            type: DataLocationType.FILE,
+            source: {
+                nodeType: NodeInternalType.FILE,
+                node: pFile,
+                offset: pOffset,
+                length: pLength
+            }
+        });
+    }
+
+    /**
+     * To check if the specified value is a ModelStringValue node
+     *
+     * @param {any} pValue The. object to test
+     * @return {boolean} TRUE is the argument is a ModelStringValue
+     * @static
+     * @method
+     */
+    static is(pValue:any):boolean{
+        return (pValue!=null && NodeUtils.isNode(pValue) && pValue.__===NodeInternalType.RESOURCE);
+    }
+
+    /**
+     * To get the list of string node contained in this resource
+     *
+     * Search in :
+     * - value
+     * - direct value of key-pair in ppts
+     * - 1st level of entries of an array in a direct value of a key-pair in ppts
+     *
+     * @return {ModelStringValue[]} A list of string node
+     * @method
+     */
+    getStringNodes():ModelStringValue[] {
+        let str:ModelStringValue[] = [];
+
+        if(ModelStringValue.is(this.value)){
+            str.push(this.value);
+        }
+
+        // browse properties
+        for(let ppt in this.ppts){
+            if(Array.isArray(this.ppts[ppt])) {
+                this.ppts[ppt].map((x:any) => {
+                    if(ModelStringValue.is(x)){
+                        str.push(x);
+                    }
+                });
+            }else if(typeof this.ppts[ppt]==='object'){
+                if(this.ppts[ppt]==null) continue;
+
+                if(ModelStringValue.is(this.ppts[ppt])){
+                    str.push(this.ppts[ppt]);
+                }else if(ModelResource.is(this.ppts[ppt])){
+                    str = str.concat(this.ppts[ppt].getStringNodes());
+                }else{
+                    for(let i in this.ppts[ppt]){
+                        if(ModelStringValue.is(this.ppts[ppt][i])){
+                            str.push(this.ppts[ppt][i]);
+                        }else if(ModelResource.is(this.ppts[ppt][i])){
+                            str = str.concat(this.ppts[ppt][i].getStringNodes());
+                        }
+                    }
+                }
+            }
+        }
+
+        return str;
+    }
 
     toJsonObject(pOption?: SerializeOptions): any {
         const o:any = {};
@@ -153,6 +250,48 @@ export default class ModelResource extends Savable
         o.tags = this.tags;
 
         return o;
+    }
+
+    getFile():Nullable<ModelFile> {
+        if(this.location!=null && this.location.type==DataLocationType.FILE){
+            return (this.location.source as DataLocationFileSource).file;
+        }else{
+            return null;
+        }
+    }
+
+    /**
+     *
+     * @param pName
+     * @param pValue
+     */
+    getProperty(pName: string):any {
+        return this.ppts[pName];
+    }
+
+
+    /**
+     *
+     * @param pName
+     * @param pValue
+     */
+    setProperty(pName: string, pValue: any):void {
+        this.ppts[pName] = pValue;
+    }
+
+    /**
+     * To automatically create a hashmap and add the key / value pair
+     *
+     * @param pPptName
+     * @param pValue
+     * @param pValue
+     */
+    appendProperty(pPptName: string, pKey: string, pValue: any):void {
+        if(this.ppts[pPptName]==null){
+            this.ppts[pPptName] = {};
+        }
+
+        this.ppts[pPptName][pKey] = pValue;
     }
 }
 ModelResource.TYPE.builder(ModelResource);

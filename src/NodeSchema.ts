@@ -687,10 +687,10 @@ JavaMethodHook.TYPE.updateProperties([
     (new NodeProperty("_varMap"))
         .type(DbDataType.STRING)
         .sleep( (x:NodePropertyState) => {
-            if (x.self?.name === "loadDex"){
+            /*if (x.self?.name === "loadDex"){
                 console.log('La is do', x.self);
                 console.log("VAR MAPPP", (x.self as JavaMethodHook).getVarMap());
-            }
+            }*/
             if (x.self != null) {
                 const o: HookVariableMap = {};
                 let methodHook = (x.self as JavaMethodHook);
@@ -706,16 +706,16 @@ JavaMethodHook.TYPE.updateProperties([
         })
         .wakeUp( (x:NodePropertyState)=> {
             const o: HookVariableMap = {};
-            if (x.self?.name === "loadDex"){
+            /*if (x.self?.name === "loadDex"){
                 console.log('La is do WAKEUP', x.p);
                 console.log("WAKEUP VAR MAPPP");
-            }
+            }*/
             if (x.p != null && Object.keys(x.p).length>0) {
                 for (let i in x.p) {
-                    console.log('Build a better tomorrow', i);
+                    /*console.log('Build a better tomorrow', i);
                     console.log('tomorrow dont wait', x.p[i]);
                     console.log('Are a good type?', typeof x.p[i]);
-                    console.log('Red or blue ', x.p[i] instanceof Array);
+                    console.log('Red or blue ', x.p[i] instanceof Array);*/
                     if (x.p[i] instanceof Array) {
                         o[i] = new HookVariableArray(x.p[i]);
                     }

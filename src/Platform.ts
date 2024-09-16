@@ -260,6 +260,7 @@ export default class Platform
 
         Logger.info("PLATFORM > newAppAnalyzer > ",this.os);
         switch(this.os){
+            case OperatingSystem.FIRE_OS:
             case OperatingSystem.ANDROID:
                 appAnalyzer = new AndroidAppAnalyzer(pProject,pOptions);
                 stateName = 'android-app';

@@ -20,7 +20,8 @@ var FirebaseInspector:InspectorFactory = new InspectorFactory({
                 console.log("@@__CTX__@@");
             }
         `,
-        strategies: [{
+        strategies: [
+            {
 
             name: "FirebaseAuth_getInstance",
             descr: "To hook the getter of firebase authentication instance. (see https://firebase.google.com/docs/auth/android/start)",

@@ -2,6 +2,7 @@ import IosApplication from "./IosApplication.js";
 import DexcaliburProject from "../DexcaliburProject.js";
 import {AnalyzerState} from "../AnalyzerState.js";
 import {IAppAnalyzer} from "../analyzer/IAppAnalyzer.js";
+import {AppIcon} from "../AppIcon.js";
 
 
 export default class IosAppAnalyzer implements IAppAnalyzer
@@ -50,5 +51,15 @@ export default class IosAppAnalyzer implements IAppAnalyzer
 
     postScan() {
 
+    }
+
+    async extractAppIcons(): Promise<AppIcon[]> {
+        const icons:AppIcon[] = [];
+
+        return icons;
+    }
+
+    async performXrefAnalysis():Promise<any>{
+        // todo
     }
 }

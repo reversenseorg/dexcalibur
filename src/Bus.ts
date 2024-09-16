@@ -390,5 +390,17 @@ export default class Bus
         const state = this._buses[pType];
         return (state!=null && state.subscriptions.length>0);
     }
+
+
+    /**
+     * To get the list of name of event with subscribers
+     *
+     * Important : event types without subscribers are not
+     * contained in this list
+     *
+     */
+    getSupportedEventNames():string[] {
+       return Object.keys(this._buses);
+    }
 }
 

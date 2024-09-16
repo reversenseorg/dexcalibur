@@ -1,5 +1,6 @@
 import { Properties } from "@dexcalibur/dxc-parser-properties";
 import {DataFormatManagerException} from "./error/DataFormatManagerException.js";
+import {Json} from "../parser/JsonParser.js";
 
 let gInstance:DataFormatManager = null;
 
@@ -20,7 +21,8 @@ export class DataFormatManager {
     constructor() {
 
         [
-            Properties.Parser
+            Properties.Parser,
+            Json.Parser
         ].map((vParserclzz:any)=>{
             this.addFileExtMapping(vParserclzz.FILE_EXTENSIONS, vParserclzz);
             this.addFormatMapping(vParserclzz.FORMAT_NAMES, vParserclzz);

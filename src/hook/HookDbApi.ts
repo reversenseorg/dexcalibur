@@ -203,6 +203,10 @@ export class HookDbApi {
         return await this.jhooks.asyncUpdateEntry( pHook, {upsert:true});
     }
 
+    /**
+     * Todo : implement saveMany
+     * @param pSession
+     */
     async updateHookSession( pSession:HookSession):Promise<any> {
 
         const res = await this.sessions.asyncUpdateEntry( pSession, {upsert:true});

@@ -364,66 +364,10 @@ export class AndroidResource implements TreeNode<AndroidResource> {
      */
     toModelResource(pNamespace: string, pType:Nullable<string> = null, pUID:Nullable<string> = null):ModelResource {
 
-        let type = (pType!=null? pType : this._type);
         let value:any = null;
+        const ResUID = this.getCanonicalReference(pNamespace, pType, pUID);
 
-
-        if(typeof this._value === 'string'){
-            value = new ModelStringValue({
-                value: this._value
-            });
-        }else if(this._value != null){
-            value = this._value;
-        }
-
-        // build attribute list
-        const attr:any = {};
-        if(this._attr!=null){
-            for(let i in this._attr){
-                if(typeof this._attr[i] === 'string'){
-                    attr[i] = new ModelStringValue({
-                        value: this._attr[i]
-                    });
-                }else if(this._attr[i] != null){
-                    attr[i] = this._attr[i];
-                }
-            }
-        }
-
-
-        /*
-        switch (type){
-            case ANDROID_RES_TYPE.DRAWABLE:
-            case ANDROID_RES_TYPE.XML:
-            case ANDROID_RES_TYPE.LAYOUT:
-            case ANDROID_RES_TYPE.FONT:
-            case ANDROID_RES_TYPE.ANIMATOR:
-            case ANDROID_RES_TYPE.COLOR:
-            case ANDROID_RES_TYPE.MIPMAP:
-            case ANDROID_RES_TYPE.INTERPOLATOR:
-                break;
-            case ANDROID_RES_TYPE.STRING:
-                value = this._value;
-                break;
-            case ANDROID_RES_TYPE.ID:
-                // create ModelReference ?
-            case ANDROID_RES_TYPE.ARRAY:
-            case ANDROID_RES_TYPE.ATTR:
-            case ANDROID_RES_TYPE.BOOL:
-            case ANDROID_RES_TYPE.DIMEN:
-            //case ANDROID_RES_TYPE.DRAWABLE:
-            case ANDROID_RES_TYPE.STYLE:
-            case ANDROID_RES_TYPE.PLURAL:
-            case ANDROID_RES_TYPE.INTEGER:
-                // export entries, setup value
-                value = this._value;
-                break;
-            default:
-                value = this._value;
-                break;
-        }*/
-
-        return new ModelResource({
+        const res = new ModelResource({
             location: new DataLocation({
                 type: DataLocationType.FILE,
                 source: {
@@ -431,14 +375,54 @@ export class AndroidResource implements TreeNode<AndroidResource> {
                     offset: -1
                 }
             }),
-            _uid: this.getCanonicalReference(pNamespace, pType, pUID),
+            _uid: ResUID,
             name: this.getLocalId(pUID),
-            value: value,
+            value: null,
             ppts: {
-                attrs: attr,
+                type: (pType==null ? this._type : pType),
+                attrs: {},
                 children: this._entries
             }
         });
+
+        if(typeof this._value === 'string'){
+            value = new ModelStringValue({
+                value: this._value,
+                src: {
+                    __: NodeInternalType.RESOURCE,
+                    _uid: ResUID
+                }
+            });
+        }else if(this._value != null){
+            value = this._value;
+        }
+        res.value = value;
+
+        // build attribute list
+        const attr:any = {};
+        if(this._attr!=null){
+            for(let i in this._attr){
+                if(typeof this._attr[i] === 'string'){
+                    attr[i] = new ModelStringValue({
+                        value: this._attr[i],
+                        src: {
+                            __: NodeInternalType.RESOURCE,
+                            _uid: ResUID
+                        }
+                    });
+                }else if(this._attr[i] != null){
+                    attr[i] = this._attr[i];
+                }
+            }
+        }
+        res.ppts.attrs = attr;
+
+        // convert children
+        this._entries.map((vRes:AndroidResource, vKey:number) => {
+           res.ppts.children[vKey] = vRes.toModelResource("");
+        });
+
+        return res;
     }
 
 }

@@ -24,4 +24,6 @@ export interface IAppAnalyzer {
     postScan():void;
 
     extractAppIcons():Promise<AppIcon[]>;
+
+    performXrefAnalysis():Promise<any>;
 }

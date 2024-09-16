@@ -125,7 +125,7 @@ export default new InspectorFactory({
                 pEvent.data.obj.setImplementedBy(cls);
                 cls.addTag(pCtx.getTagManager().getTag("topo.android.RECEIVER"));
             }else{
-                Logger.error("[AppTopo][receiver] Fail to map internal dependencies mapped for ["+ pEvent.data.obj.name+"] : class not found");
+                //Logger.error("[AppTopo][receiver] Fail to map internal dependencies mapped for ["+ pEvent.data.obj.name+"] : class not found");
                 return true;
             }
 
@@ -152,7 +152,7 @@ export default new InspectorFactory({
                 pEvent.data.obj.setImplementedBy(cls);
                 cls.addTag(pCtx.getTagManager().getTag("topo.android.PROVIDER") );
             }else{
-                Logger.error("[AppTopo][provider] Fail to map internal dependencies mapped for ["+ pEvent.data.obj.name+"] : class not found");
+                //Logger.error("[AppTopo][provider] Fail to map internal dependencies mapped for ["+ pEvent.data.obj.name+"] : class not found");
                 return true;
             }
 
@@ -180,7 +180,7 @@ export default new InspectorFactory({
                 pEvent.data.obj.setImplementedBy(cls);
                 cls.addTag(pCtx.getTagManager().getTag("topo.android.SERVICE") );
             }else{
-                Logger.error("[AppTopo][service] Fail to map internal dependencies mapped for ["+ pEvent.data.obj.name+"] : class not found");
+                //Logger.error("[AppTopo][service] Fail to map internal dependencies mapped for ["+ pEvent.data.obj.name+"] : class not found");
                 return true;
             }
 
@@ -276,7 +276,7 @@ export default new InspectorFactory({
                 pEvent.data.obj.setImplementedBy(cls);
                 cls.addTag( pCtx.getTagManager().getTag("topo.android.ACTIVITY"));
             }else{
-                pCtx.LOG.error("[AppTopo][activity] Fail to map internal dependencies mapped for ["+ pEvent.data.obj.name+"] : class not found");
+                // pCtx.LOG.error("[AppTopo][activity] Fail to map internal dependencies mapped for ["+ pEvent.data.obj.name+"] : class not found");
                 return true;
             }
 

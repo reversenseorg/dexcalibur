@@ -101,7 +101,7 @@ export enum ProjectEventType {
     DATA_ANALYSIS_DONE="data_analysis_done",
     NATIVE_ANALYZER_READY="native_analyzer_ready",
     DATA_ANALYZER_LOADED="data_analyzer_loaded",
-    NATIVE_ANALYSiS_DONE="native_analysis_done"
+    NATIVE_ANALYSIS_DONE="native_analysis_done"
 }
 
 export interface ProjectEvent {
@@ -2420,6 +2420,19 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
                     // detect and scan libs
                     this.performNativeAnalysis(pkgScope);
                 }
+                else if(ProjectEventType.NATIVE_ANALYSIS_DONE === vProjEvt.type){
+                    // start whole app analysis
+
+                    // xref analysis :
+                    // - indexes strings in resource files
+                    // - extract app icon
+                    // - solves reference between Resource and resource UID
+                    // - finds implementation of component
+                    // - ...
+                    await this.getAppAnalyzer().performXrefAnalysis();
+
+
+                }
             })
 
             // perform data analaysis or load results
@@ -2658,21 +2671,29 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
         //this.analyze.doNativeAnalysis(pkgScope, null, { skipAuto: this.analCfg.isAutoNativeAnalysis() });
 
 
-        if(await this.analyze.doNativeAnalysisAsync(
-            pScope,
-            null,
-            { skipAuto: this.analCfg.isAutoNativeAnalysis() })){
+        try{
+            if(await this.analyze.doNativeAnalysisAsync(
+                pScope,
+                null,
+                { skipAuto: this.analCfg.isAutoNativeAnalysis() })){
 
 
-            Logger.info("[ANALYZER] Load native hook");
-            // native hook are loaded only if depending files have been loaded
-            await this.hook.loadNativeHook();
+                Logger.info("[ANALYZER] Load native hook");
+                // native hook are loaded only if depending files have been loaded
+                await this.hook.loadNativeHook();
+            }
+        }catch(err){
+            Logger.error("[ANALYZER] Analysis of native files failed : "+err.message);
+            console.log(err.stack);
+        }finally {
+            this._analysis$.next({
+                type: ProjectEventType.NATIVE_ANALYSIS_DONE,
+                data: null
+            })
         }
 
-        this._analysis$.next({
-            type: ProjectEventType.NATIVE_ANALYSiS_DONE,
-            data: null
-        })
+
+
     }
 
 

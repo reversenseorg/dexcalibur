@@ -10,5 +10,7 @@ export enum OperatingSystem {
     FLUTTER= 'flutter',
     REACTNATIVE= 'reactnative',
     WINNT= 'windows NET',
+    WEB_OS='webos',
+    FIRE_OS='fireos',
     NONE=''
 }

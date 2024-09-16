@@ -22,9 +22,11 @@ import {MongodbDbCollection} from "@dexcalibur/dexcalibur-orm-mongodb";
 import {randomUUID} from "crypto";
 import {SecurityZone} from "./security/SecurityZone.js";
 import {FileFormatDetector} from "./formats/identifier/FileFormatDetector.js";
-import {delay, from, map, merge, mergeAll, mergeMap, Observable, ReplaySubject, Subject} from "rxjs";
+import {from, map, mergeMap, Observable, ReplaySubject, Subject} from "rxjs";
 import {DataFormatManager} from "./formats/DataFormatManager.js";
 import {DataFormatManagerException} from "./formats/error/DataFormatManagerException.js";
+import {IDelegatedDataAnalyzer} from "./analyzer/IDelegatedDataAnalyzer.js";
+import {AndroidDataAnalyzer} from "./android/analyzer/AndroidDataAnalyzer.js";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -229,6 +231,8 @@ export class DataAnalyzer implements IAnalyzerUnit
     scopes:DataScopeMap = {};
     _wf:Workflow;
 
+    delegate:Record<string, IDelegatedDataAnalyzer> = {};
+
     /**
      * To instanciante a new analyzer of raw data (file, buffer, ...)
      *
@@ -241,6 +245,8 @@ export class DataAnalyzer implements IAnalyzerUnit
 
         this.binwalk = new BinwalkHelper();
         this.magic = new MagicHelper();
+
+        this._initDelegatedAnalyzer();
 
         this.setProjectDB(this.context.getProjectDB());
 
@@ -413,12 +419,16 @@ export class DataAnalyzer implements IAnalyzerUnit
      */
     async indexFilesIn(pScope:DataScope):Promise<Observable<ModelFile[]>> {
 
-        let obs:Subject<ModelFile[]> = new ReplaySubject<ModelFile[]>(10);
+        let obs:Observable<ModelFile[]> = new ReplaySubject<ModelFile[]>(10);
         const dir = _fs_.readdirSync(pScope.getBasePath());
         let vPath:string,a:any;
 
         // TODO : call delegate data analyzer ?
-        if(this.context.platform.isAndroid()){
+        if(this.context.platform.isAndroid() && this.delegate[OperatingSystem.ANDROID]!=null){
+
+            Logger.info("[DATA ANALYZER][DELEGATED > ANDROID] Invoked ");
+            obs = (await this.delegate[OperatingSystem.ANDROID].indexFilesIn(pScope));
+/*
             // skip APKtool contents and files
             if(pScope.getName()=='bin'){
 
@@ -442,14 +452,14 @@ export class DataAnalyzer implements IAnalyzerUnit
                         });
                     }
                 }
-            }
+            }*/
         }else{
             for(let i=0; i<dir.length; i++){
                 vPath = _path_.join(pScope.getBasePath(),dir[i]);
                 if(_fs_.lstatSync(vPath).isDirectory()){
                     //await this.scan(vPath, pScope, dir[i]);
                     (await this.scan(vPath, pScope, dir[i])).subscribe((vFiles:ModelFile[])=>{
-                        obs.next(vFiles);
+                        (obs as Subject<any>).next(vFiles);
                     });
                 }
             }
@@ -461,7 +471,7 @@ export class DataAnalyzer implements IAnalyzerUnit
     }
 
 
-    private _indexFolders(pPath:string, pFolders:ModelFile[]):void {
+    _indexFolders(pPath:string, pFolders:ModelFile[]):void {
 
         _fs_.readdirSync(pPath).map( vF => {
             const p = _path_.join(pPath,vF);
@@ -496,7 +506,7 @@ export class DataAnalyzer implements IAnalyzerUnit
      * @private
      * @method
      */
-    private _detectFileFormatFolder(pPath:string, pSkipGlob:string, pAnalysisType:Nullable<FileAnalysisType>=null):Subject<ModelFile[]>{
+     _detectFileFormatFolder(pPath:string, pSkipGlob:string, pAnalysisType:Nullable<FileAnalysisType>=null):Subject<ModelFile[]>{
 
         let obsFiles = new ReplaySubject<ModelFile[]>(3);
         let files:ModelFile[]
@@ -861,5 +871,18 @@ export class DataAnalyzer implements IAnalyzerUnit
 
     async analyzeFile(vFile:ModelFile):Promise<void>{
 
+    }
+
+    /**
+     * To init delegated data analyzer
+     *
+     * @private
+     */
+    private _initDelegatedAnalyzer() {
+        switch (this.context.os){
+            case OperatingSystem.ANDROID:
+                this.delegate[OperatingSystem.ANDROID] = new AndroidDataAnalyzer(this.context);
+                break;
+        }
     }
 }

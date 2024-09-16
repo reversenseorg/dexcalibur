@@ -46,6 +46,7 @@ import ModelUiComponent from "../graphics/models/ModelUiComponent.js";
 import ModelUiComponentType from "../graphics/models/ModelUiComponentType.js";
 import ModelUiRole from "../graphics/models/ModelUiRole.js";
 import ModelResource from "../ModelResource.js";
+import ModelStringValue from "../ModelStringValue.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -129,6 +130,7 @@ export class ProjectDatabase {
         ModelMethod.TYPE,
         ModelField.TYPE,
         ModelBom.TYPE,
+        ModelStringValue.TYPE,
 
         ModelUiEventType.TYPE,
         ModelUiEvent.TYPE,
@@ -436,7 +438,6 @@ export class ProjectDatabase {
         if(hasUpdate){
             try{
                 obj = await coll.updateMany(toUpdate) as any;
-                console.log('updateMany',obj);
             }catch(e){
                 console.log(e.stack,e.msg);
                 //const filterId:any = {};
@@ -450,7 +451,6 @@ export class ProjectDatabase {
 
         try{
             obj = await coll.addMany(toCreate) as any;
-            console.log('insertMany',obj);
         }catch(e){
             console.log(e.stack,e.msg);
             //const filterId:any = {};
