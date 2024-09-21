@@ -409,7 +409,6 @@ export namespace Settings {
         }
 
         update( pValue:IncomingValue):void {
-            console.log(pValue);
             switch (pValue.getName()) {
                 case "conn":
                     this._conn = pValue.getValue();

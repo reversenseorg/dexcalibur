@@ -558,13 +558,6 @@ export default class Util {
         if (process.platform !== 'darwin') {
             return;
         }
-        /*console.log(Util.getEnv('PATH'));
-        console.log([
-            './node_modules/.bin',
-            '/.nodebrew/current/bin',
-            '/usr/local/bin',
-            process.env.PATH
-        ].join(':'));*/
 
         process.env.PATH = /*Util.getEnv('PATH') || */ [
             './node_modules/.bin',

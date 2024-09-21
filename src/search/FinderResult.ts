@@ -260,8 +260,6 @@ export class FinderResult
 
         });
 
-        console.log(data);
-
         CoreDebug.checkJsonSerialize(data,"FinderResult");
         return data;
     }

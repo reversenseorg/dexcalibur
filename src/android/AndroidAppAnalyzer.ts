@@ -184,7 +184,8 @@ export default class AndroidAppAnalyzer implements IAppAnalyzer
 			}
 
 			if(this.hasBeenParsedPreviously(resType)){
-				Logger.info("[ANDROID APP ANALYZER][RESOURCE] Android resources not saved, because such ["+resType+"] Resources have been already analyzed.")
+				Logger.debug("[ANDROID APP ANALYZER][RESOURCE] Android resources not saved, because such ["
+					+resType+"] Resources have been already analyzed. [size="+res.length+"]")
 				return ;
 			}
 
@@ -212,10 +213,6 @@ export default class AndroidAppAnalyzer implements IAppAnalyzer
 						//const strs=v.getStringNodes();
 						/*if(strs.length==0){
 							console.log(v.getUID()+' has not strings vals ',v);
-						}else{
-							if(v.getUID()=="@style/Base.TextAppearance.AppCompat"){
-								console.log(v);
-							}
 						}*/
 						strings = strings.concat(v.getStringNodes());
 					}catch(er){
@@ -246,29 +243,34 @@ export default class AndroidAppAnalyzer implements IAppAnalyzer
 								Logger.error(`[LISTENER][app.res.parsed] Save of string from resources failed (1): `+err);
 							})
 							.then((vResult:INode[])=>{
-								Logger.info(`[LISTENER][app.res.parsed] Save of string from resources successful [${strings.length} strings].`);
+								Logger.info(`[LISTENER][app.res.parsed] Save of string from resources [${resType}] successful [${strings.length} strings].`);
 							});
 					}
 				}catch(e){
 					Logger.error(`[LISTENER][app.res.parsed] Save of string from resources failed (2) : `+e.message);
 				}
 
-				// save resources
-				this.context.getProjectDB().saveMany(res,NodeInternalType.RESOURCE)
-					.catch((err)=>{
-						Logger.error(`[LISTENER][app.res.parsed] Save error : `+err);
-					})
-					.then((pResult:INode[])=>{
-						// success
-						resSaved = this.state.getProperty("resSaved");
-						if(resSaved==null){
-							resSaved = {};
-						}
+				if(res.length>0){
+					// save resources
+					this.context.getProjectDB().saveMany(res,NodeInternalType.RESOURCE)
+						.catch((err)=>{
+							Logger.error(`[LISTENER][app.res.parsed] Save error : `+err);
+						})
+						.then((pResult:INode[])=>{
+							// success
+							resSaved = this.state.getProperty("resSaved");
+							if(resSaved==null){
+								resSaved = {};
+							}
 
-						resSaved[resType] = Object.values(res).length;
-						this.state.setProperty("resSaved",resSaved);
-						this.state.save().then(()=>{});
-					});
+							resSaved[resType] = Object.values(res).length;
+							this.state.setProperty("resSaved",resSaved);
+							this.state.save().then(()=>{});
+						});
+				}else{
+					Logger.info(`[LISTENER][app.res.parsed] No resources to saved  : `+resType);
+				}
+
 			}else{
 				// usually, this case happens when a resource folder not contains .xml file
 				// empty array cannot be saved because "Batch cannot be empty" with MongoDB

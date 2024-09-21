@@ -71,7 +71,6 @@ export class BinwalkHelper extends  External.ExternalHelper implements IFileAnal
 
             while(l[0]=="") l.shift();
 
-            console.log(out, l);
             l[1] = _path_.normalize(l[1].substr(l[1].indexOf(':')));
 
             file.name = _path_.basename( l[1]);

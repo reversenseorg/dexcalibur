@@ -77,7 +77,7 @@ CODE_WEB_API.addAuthenticatedRoute(
                     // filter d by analyzed files
                     const analyzed = project.getAnalyzer().getNativeAnalyzer().getAnalyzableFiles(scope);
 
-                    console.log("before union of results : ",analyzed)
+                    //console.log("before union of results : ",analyzed)
                     //FinderResult
                     data = data.unionWithList(analyzed);
                     //console.log("after union of results : ",data);
