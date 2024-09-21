@@ -475,7 +475,7 @@ export class MerlinSearchRequest implements MerlinPrimitive{
 
     // if DexcaliburProject is available then tags are resolved in operations
     // to create ready-to-use request
-    if(pSearchContext.getDB().ctx!=null){
+    if(pSearchContext.getDB()!=null && pSearchContext.getDB().ctx!=null){
       return req.setContext(pSearchContext);
     }else
       return req;

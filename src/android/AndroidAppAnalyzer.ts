@@ -706,7 +706,10 @@ export default class AndroidAppAnalyzer implements IAppAnalyzer
 		}
 
 		// save folders
-		await this.context.getProjectDB().saveMany(foldersNode, NodeInternalType.FILE);
+		if(foldersNode.length>0){
+			await this.context.getProjectDB().saveMany(foldersNode, NodeInternalType.FILE);
+		}
+
 
 		// browse resMap to gather file
 		let file:ModelFile, filemap:any;
@@ -753,7 +756,11 @@ export default class AndroidAppAnalyzer implements IAppAnalyzer
 				}
 			}
 		}
-		await this.context.getProjectDB().saveMany(Object.values(files), NodeInternalType.FILE);
+
+		if(Object.values(files).length>0){
+			await this.context.getProjectDB().saveMany(Object.values(files), NodeInternalType.FILE);
+		}
+
 
 		// emit en event
 		let type:string;

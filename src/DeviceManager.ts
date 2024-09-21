@@ -226,7 +226,7 @@ export default class DeviceManager extends ValidationCapable
             */
             Logger.info("[DEVICE MANAGER] Known Devices : "+Object.keys(this.devices));
         } catch(err){
-            Logger.error("[DEVICE MANAGER] Unable to load devices");
+            Logger.error("[DEVICE MANAGER] Unable to load devices ");
             console.log(err.stack);
         }
 

@@ -605,7 +605,9 @@ export class ProjectDatabase {
         for(let i=0; i<types.length; i++){
             vals = pDB.getDataSetFromNodeType(types[i]).getAsList();
             try{
-                await this.saveMany(vals, types[i]);
+                if(vals.length>0){
+                    await this.saveMany(vals, types[i]);
+                }
             }catch (e){
                 Logger.error(e.message);
             }
