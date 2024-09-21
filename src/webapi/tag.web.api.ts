@@ -123,7 +123,7 @@ TAG_MGT_WEB_API.addAuthenticatedRoute(
                     filter = JSON.parse(Util.b64_decode(req.query.filter as string));
                     tags = await project.getTagManager().searchTagsFromCache(filter.request,filter.options);
                 }else{
-                    tags = await project.getTagManager().getTags();
+                    tags = await project.getTagManager().getTags(true);
                 }
 
                 tags.map( (vTag:Tag)=>{
@@ -159,7 +159,6 @@ TAG_MGT_WEB_API.addAuthenticatedRoute(
                     tag.label = unsafeTag.label;
                     tag.descr = unsafeTag.descr;
                     tag.styles = unsafeTag.styles;
-                    console.log(tag);
                     await (project.getTagManager().updateTag(tag));
 
                 }else{
