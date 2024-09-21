@@ -14,7 +14,11 @@ import {AndroidPermission, AndroidPermissionGroup, AndroidProtectionLevel} from 
 import InspectorFactory from "../../src/InspectorFactory.js";
 import {INSPECTOR_TYPE} from "../../src/Inspector.js";
 import BusEvent from "../../src/BusEvent.js";
-import DexcaliburProject from "../../src/DexcaliburProject.js";
+import AndroidAppAnalyzer from "../../src/android/AndroidAppAnalyzer.js";
+import {OperatingSystem} from "../../src/OperatingSystem.js";
+import {AndroidResource, ResourceReference} from "../../src/android/AndroidResource.js";
+import ModelResource from "../../src/ModelResource.js";
+import {AndroidManifest, AndroidSharedUser} from "../../src/android/AndroidManifest.js";
 
 const Permissions = {
     ACCEPT_HANDOVER: new AndroidPermission({
@@ -1061,6 +1065,43 @@ var PermissionAnalyzer:InspectorFactory = new InspectorFactory({
     },
 
     eventListeners: {
+        "dxc.fullscan.post_deploy":  function ( pEvent:BusEvent<any>):any {
+            // detect Android sharedUserId
+            switch(pEvent.getContext().getPlatform().os){
+                case OperatingSystem.ANDROID:
+                    const appInfo:AndroidManifest = (pEvent.getContext().getAppAnalyzer() as AndroidAppAnalyzer)?.getManifest();
+                    let attr:AndroidSharedUser;
+                    if(appInfo==null) /* skip */ return;
+
+                    attr = appInfo.getSharedUser(); // .getAttribute("sharedUserId");
+                    if(attr != null){
+                        /*
+                        if(AndroidResource.isReference(attr as string)){
+                            attrVal = pEvent.getContext().getProjectDB().getAppResource(attr as string);
+                            if(attrVal != null){
+                                if((attrVal as ModelResource).hasStringValue()){
+                                    attr = (attrVal as ModelResource).value.value;
+                                }
+                            }else{
+                                attr = null;
+                            }
+                        }*/
+
+
+                        pEvent.getContext().trigger({
+                            type: "app.android.sharedUser",
+                            data: {
+                                type: "sharedUserId",
+                                value: attr,
+                                app: appInfo
+                            }
+                        });
+                    }
+
+                    break;
+            }
+
+        },
         "app.permission.new": function(pEvent:BusEvent<any>):any{
                 let i = pEvent.data.name.lastIndexOf('.');
                 let p=false;

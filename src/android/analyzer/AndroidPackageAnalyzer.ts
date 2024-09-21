@@ -409,11 +409,17 @@ export class AndroidPackageAnalyzer implements IPackageAnalyzer {
      * @param pOptions
      */
     static async extractApp(pTargetApp: TargetApp, pOutDir: string, pOptions:any):Promise<boolean> {
-        return await ApkHelper.extract(pTargetApp.getPath(), pOutDir, {
-            force: true,
-            match: true,
-            ...pOptions
-        });
+        /*return await ApkHelper.extract(pTargetApp.getPath(), pOutDir, {
+            extractOpts: {
+                force: true,
+                match: true,
+                ...pOptions
+            },
+            javaOpts: {
+                disableZip64ExtraFieldValidation: true
+            }
+        });*/
+        return await AndroidPackageAnalyzer.extractApk(pTargetApp.getPath(), pOutDir, pOptions);
     }
 
     /**
@@ -425,9 +431,14 @@ export class AndroidPackageAnalyzer implements IPackageAnalyzer {
      */
     static async extractApk(pApkPath:string, pOutDir: string, pOptions:any):Promise<boolean> {
         return await ApkHelper.extract(pApkPath, pOutDir, {
-            force: true,
-            match: true,
-            ...pOptions
+            extractOpts: {
+                force: true,
+                match: true,
+                ...pOptions
+            },
+            javaOpts: {
+                disableZip64ExtraFieldValidation: true
+            }
         });
     }
 

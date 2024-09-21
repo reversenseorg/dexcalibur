@@ -14,6 +14,15 @@ import {DbDataType, DbKeyType, NodeProperty, NodePropertyState, NodeType} from "
 import {IntentFilter} from "./IntentFilter.js";
 import ModelClass from "../ModelClass.js";
 import {NodeInternalType} from "@dexcalibur/dxc-core-api";
+import { Nullable } from "../core/IStringIndex.js";
+import {ResourceReference} from "./AndroidResource.js";
+import ModelResource from "../ModelResource.js";
+
+export interface AndroidSharedUser {
+    id: Nullable<string>;
+    label: Nullable<string|ResourceReference|ModelResource>;
+    maxSdkVersion: Nullable<number>;
+}
 
 export class AndroidManifest
 {
@@ -298,6 +307,12 @@ export class AndroidManifest
         return this.attributes['android:versionName'];
     }
 
+    /**
+     * To get the application package name
+     *
+     * @return {string} Package name
+     * @method
+     */
     getAttrPackage():string{
         return this.attributes['package'];
     }
@@ -365,5 +380,31 @@ export class AndroidManifest
 
     isRuntimeResourceOverlay():boolean {
         return (this.overlays.length >0);
+    }
+
+    /**
+     * To extract shared user info from <manifest>
+     *
+     * @return {Nullable<AndroidSharedUser>} Info about shared user or null
+     * @method
+     */
+    getSharedUser():Nullable<AndroidSharedUser> {
+
+        if(this.attributes['android:sharedUserId']==null){
+            return null;
+        }
+
+        const info:AndroidSharedUser = {
+            id:  this.attributes['android:sharedUserId'],
+            label:  this.attributes['android:sharedUserLabel'],
+            maxSdkVersion: null
+        };
+
+
+        if(info.maxSdkVersion!=null && (typeof info.maxSdkVersion=='string')){
+            info.maxSdkVersion = parseInt(info.maxSdkVersion as any);
+        }
+
+        return info;
     }
 }

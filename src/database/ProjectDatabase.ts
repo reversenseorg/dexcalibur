@@ -375,7 +375,7 @@ export class ProjectDatabase {
      * @async
      * @method
      */
-    async save(pObject:INode):Promise<INode> {
+    async save(pObject:INode, pFilter:Nullable<any>=null):Promise<INode> {
 
 
         let obj:INode;
@@ -397,7 +397,9 @@ export class ProjectDatabase {
             }catch(e){
                 const filterId:any = {};
                 NodeType.INTERN[pObject.__].setPrimaryKeyValueOf( filterId as any, pObject.getUID());
-                await coll.asyncUpdateEntry( pObject, { upsert:true, filter: filterId });
+
+                console.log(e,{ upsert:true, replace:false, filter: filterId });
+                await coll.asyncUpdateEntry( pObject, { upsert:true, replace:false, filter: filterId });
             }
 
         }

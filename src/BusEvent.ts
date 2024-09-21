@@ -15,7 +15,12 @@ export interface BusEventOptions<T> {
 }
 
 /**
+ * Represent an event on a bus
  *
+ * Data from various sources, and the type of event are encapsulated in an envelope named "bus event",
+ * and send over the main bus.
+ *
+ * @class
  */
 export default class BusEvent<T>
 {
@@ -24,25 +29,55 @@ export default class BusEvent<T>
     data:T = null;
     interceptors:string[] = [];
 
+    /**
+     *
+     * @param {BusEventOptions<T>} pConfig Optional
+     * @constructor
+     */
     constructor(pConfig:BusEventOptions<T> = {}) {
         if(pConfig!=null)
             for(let i in pConfig)
                 this[i] = pConfig[i];
     }
 
+    /**
+     * To get the type of event
+     *
+     * @return {string} Type of event
+     * @method
+     */
     getType():string{
         return this.type;
     }
 
+    /**
+     * To set the type of event
+     *
+     * @param {string} pType Type of event
+     * @method
+     */
     setType(pType:string):void {
         this.type = pType;
         this.interceptors.push(pType);
     }
 
+    /**
+     * To get the event payload
+     *
+     * @return {T} Return the data encapsulated into this event
+     * @method
+     */
     getData():T{
         return this.data;
     }
 
+    /**
+     * To get the project which hold the bus where this event
+     * has been published.
+     *
+     * @return {DexcaliburProject} Project instance
+     * @method
+     */
     getContext():DexcaliburProject{
         return this.context;
     }

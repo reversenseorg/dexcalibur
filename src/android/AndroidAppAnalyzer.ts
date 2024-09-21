@@ -116,7 +116,8 @@ export default class AndroidAppAnalyzer implements IAppAnalyzer
 			this.context.getBus().subscribe(vEvtType, BusSubscriber.from((pEvent:BusEvent<any>)=>{
 				(async ()=>{
 					try{
-						await this.context.getProjectDB().save(pEvent.getData().obj);
+						let obj = pEvent.getData().obj as any;
+						await this.context.getProjectDB().save(pEvent.getData().obj, { _id:obj._id, name: obj.name});
 					}catch(err){
 						Logger.error(err.message,err.stack);
 					}
@@ -208,15 +209,15 @@ export default class AndroidAppAnalyzer implements IAppAnalyzer
 					}
 
 					try{
-						const strs=v.getStringNodes();
-						if(strs.length==0){
+						//const strs=v.getStringNodes();
+						/*if(strs.length==0){
 							console.log(v.getUID()+' has not strings vals ',v);
 						}else{
 							if(v.getUID()=="@style/Base.TextAppearance.AppCompat"){
 								console.log(v);
 							}
-						}
-						strings = strings.concat(strs);
+						}*/
+						strings = strings.concat(v.getStringNodes());
 					}catch(er){
 						Logger.error(er.message,er.stack);
 						// todo : log it to external log service or file
@@ -634,7 +635,7 @@ export default class AndroidAppAnalyzer implements IAppAnalyzer
 
 			if(folders[i].startsWith("values-")){
 				cat.valuesExtra.push(folders[i]);
-			}if(folders[i].indexOf("-")>-1) {
+			}else if(folders[i].indexOf("-")>-1) {
 				cat.cmpExtra.push(folders[i]);
 			}else if(folders[i]=="raw"){
 				cat.other.push("raw");
@@ -658,7 +659,7 @@ export default class AndroidAppAnalyzer implements IAppAnalyzer
 		for(let i=0; i<cat.valuesExtra.length; i++){
 			if(!this.hasBeenParsedPreviously(cat.valuesExtra[i])){
 				variant = cat.valuesExtra[i].substring(cat.valuesExtra[i].indexOf('-')+1);
-				if(resMap["values"][cat.valuesExtra[i]]==null) resMap["values"][cat.valuesExtra[i]]={};
+				//if(resMap["values"][cat.valuesExtra[i]]==null) resMap["values"][cat.valuesExtra[i]]={};
 
 				valsExtra = (await this.parseValuesFromRes(cat.valuesExtra[i], pDataScope, false));
 

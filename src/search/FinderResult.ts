@@ -3,7 +3,7 @@ import {Finder} from "./Finder.js";
 
 import * as Log from "../Logger.js";
 import {CoreDebug} from "../core/CoreDebug.js";
-import {IDbIndex, SerializeOptions} from "@dexcalibur/dexcalibur-orm";
+import {IDbIndex, NodeUtils, SerializeOptions} from "@dexcalibur/dexcalibur-orm";
 import passport from "passport";
 
 
@@ -204,20 +204,28 @@ export class FinderResult
         this.data.map((k:string,v:any)=>{
             if(v.hasOwnProperty(member)===true){
                 Logger.info("[FINDER RESULT] select : <"+member+"> in entry <"+k+"> is OK");
+
+                if(v[member]==null) return;
+
                 if(Array.isArray(v[member])){
                     v[member].map( (x:any) => {
-                        data.insert(x, false)
+                        if(x!=null){
+                            data.insert(x, false);
+                        }
                     });
-                }if(typeof (v[member])==='object'){
+                }
+                else if(!NodeUtils.isNode(v[member]) &&  typeof (v[member])==='object' ){
+
                     Object.values(v[member]).map(x => {
-                        data.insert(x, false);
+                        if(x!=null){
+                            data.insert(x, false);
+                        }
                     });
                 }else{
                     data.insert(v[member], false);
                 }
             }
         });
-
 
         return new FinderResult(data,this._finder);
     }
@@ -239,6 +247,9 @@ export class FinderResult
         let data:any=[];
 
         this.data.map((k:string|number, v:any)=>{
+            if(v==null) return ;
+
+
             if(v.toJsonObject == undefined){
                 //Logger.error("[FINDER RESULT] toJsonObject : toJsonObject() not found");
                 data.push(v);
@@ -246,7 +257,11 @@ export class FinderResult
                 // TODO : ensure toJsonObject format is write for all entries type
                 data.push(v.toJsonObject(pOptions));
             }
+
         });
+
+        console.log(data);
+
         CoreDebug.checkJsonSerialize(data,"FinderResult");
         return data;
     }

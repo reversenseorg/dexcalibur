@@ -184,4 +184,62 @@ export class MagicHelper extends  External.ExternalHelper implements IFileAnalyz
         return files;
     }
 
+
+    /**
+     * To scan APK content with binwalk
+     *
+     * @param {string} pPath Folder to scan
+     * @param {DexcaliburProject} pContext Active project
+     * @param {Function} pSkipIf Function to detect is the file must be skipped
+     * @return {ModelFile[]} An array of ModelFile
+     */
+    analyzeFiles(pPaths:string[], pContext:DexcaliburProject):ModelFile[] {
+
+        const b = Util.time();
+        let out:string;
+        let files:ModelFile[] = [];
+        //let opts:any = {stdio: [null,null,null], shell:false };
+        let opts:any = {stdio: 'pipe', shell:ShellHelper.getExtPath() }; //[null,'pipe','pipe'], shell:false };
+        const bin = MagicHelper.getToolPath();
+
+        try{
+
+            // update progress bar
+            this._wf.computeStepUp(pPaths.length);
+
+            pPaths.map( (vFile:string) => {
+
+                out = Util.execSync(bin+' '+ShellHelper.escape(vFile), "utf8", opts);
+
+                const f:ModelFile = this._parseBasicOutput(out);
+                f.name = _path_.basename(vFile);
+                f.path = vFile;
+
+                Logger.info(JSON.stringify(f.toJsonObject()));
+
+                // send update counter
+                if(f==null) return;
+
+                files.push(f);
+
+                if(pContext!=null){
+                    pContext.bus.send(new BusEvent<FileScanResult>({
+                        type: "data.file.new.knownFmt",
+                        data: {
+                            src: "magic",
+                            file: f
+                        }
+                    }))
+                }
+            });
+
+        }catch(err){
+            Logger.error("[MAGIC HELPER] Magic helper failed to scan multiple paths \n"+err.message+"\n"+err.stack);
+        }
+
+        Logger.info("Time (after magic check): "+(Util.time()-b));
+
+        return files;
+    }
+
 }

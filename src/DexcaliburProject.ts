@@ -73,7 +73,7 @@ import {
     INode,
     NodeProperty,
     NodePropertyState,
-    NodeType,
+    NodeType, Tag,
     TagUUID
 } from "@dexcalibur/dexcalibur-orm";
 
@@ -1384,8 +1384,11 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
             this.workspace.getApkPath(),
             this.workspace.getApkDir(),
             {
-                force: true,
-                match: true
+                extractOpts: {
+                    force: true,
+                    match: true
+                },
+                javaOpts: {}
             }
         );
 
@@ -2000,6 +2003,7 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
                 case "simplifier":
                 case "tagManager":
                 case "typeManager":
+                case "guiTypeManager":
                 case "owner":
                 case "tester":
                 case "modelAPI":
@@ -2586,11 +2590,9 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
             dastTag);
 
         //}
-
-
+        this._emit("dxc.fullscan.post_dast_tag");
 
         this._emit("dxc.fullscan.post" );
-
 
         this.getWorkflow().pushStatus(new StatusMessage(24, "Deploying inspectors [POST_APP_SCAN]"));
 
@@ -2619,6 +2621,9 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
 
         this.state = ProjectState.READY;
         this.getWorkflow().pushStatus(new StatusMessage(25, "Saving project ..."));
+
+
+        this._emit("dxc.fullscan.finalize");
 
         // update project config (icon, checksum, cert, ...)
         this.save();
@@ -2905,12 +2910,63 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
      * @returns {boolean} TRUE if multiple, else FALSE
      * @method
      */
-    hasMultipleInputs() {
+    hasMultipleInputs():boolean {
         return (this.inputs!=null && this.inputs.length>0);
     }
 
+    /**
+     * To get the utility class
+     *
+     * **This is a part of EventListenerAPI**
+     *
+     * @return {any} A reference to the Utils class
+     * @method
+     */
     getUtils():any {
         return Util;
+    }
+
+    /**
+     * ============= TAG API ==================
+     */
+
+    /**
+     * To add a tag to the project
+     *
+     * @param {Tag} vTag The tag to add
+     * @method
+     */
+    addTag(vTag:Tag):void{
+        const uuid = vTag.getUUID();
+        if(this.tags.indexOf(uuid)==-1)
+            this.tags.push(uuid);
+    }
+
+    /**
+     * To check if the project has a specific tag
+     *
+     * @param {Tag} vTag Expected tag
+     * @return {boolean} Returns TRUE if the tag is present else FALSE
+     * @method
+     */
+    hasTag(vTag:Tag):boolean{
+        const uuid = vTag.getUUID()
+        for(let i=0; i<this.tags.length; i++){
+            if(this.tags[i]===uuid){
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * To get the list of tag UUID
+     *
+     * @return {number[]} The list of tags UUIDs
+     * @method
+     */
+    getTags():number[]{
+        return this.tags;
     }
 }
 DexcaliburProject.TYPE.builder(DexcaliburProject);

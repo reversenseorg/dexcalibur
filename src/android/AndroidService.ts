@@ -36,6 +36,9 @@ export default class AndroidService extends AndroidComponent
         }
     }
 
+    getUID():string{
+        return this.name;
+    }
 
     static fromXml(xmlobj:any):AndroidService{
         let act:AndroidService = new AndroidService();

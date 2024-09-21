@@ -15,6 +15,16 @@ let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 const _exec_ = _util_.promisify(_ps_.exec);
 const _execFile_ = _util_.promisify(_ps_.execFile);
 
+export interface ApkExtractJavaOptions {
+    disableZip64ExtraFieldValidation?:boolean
+}
+
+
+
+interface ApkExtractGlobalOptions {
+    extractOpts: any,
+    javaOpts: ApkExtractJavaOptions
+}
 
 interface IExternalCommand {
     file:string,
@@ -52,8 +62,8 @@ export default class ApkHelper extends External.ExternalHelper
      * @static
      * @method
      */
-    static async check():Promise<boolean> {
-        const cmd = ApkHelper.getApktoolCommand();
+    static async check(pOptions:ApkExtractJavaOptions={}):Promise<boolean> {
+        const cmd = ApkHelper.getApktoolCommand(pOptions);
         const out = await _exec_(
             cmd.file+' '+cmd.args.join(' ')+' h'
         );
@@ -73,8 +83,14 @@ export default class ApkHelper extends External.ExternalHelper
      * @returns {String}
      * @static
      */
-    static getApktoolCommand():IExternalCommand{
-        return {file:JavaHelper.getJRE(), args:['-jar',ApkHelper.getPath()]};
+    static getApktoolCommand(pOptions:ApkExtractJavaOptions):IExternalCommand{
+        let args:string[] = [];
+
+        if(pOptions!=null && pOptions.disableZip64ExtraFieldValidation===true){
+            args.push('-Djdk.util.zip.disableZip64ExtraFieldValidation=true');
+        }
+
+        return {file:JavaHelper.getJRE(), args:args.concat(['-jar',ApkHelper.getPath()]) };
     }
 
     /**
@@ -122,18 +138,21 @@ export default class ApkHelper extends External.ExternalHelper
      * @static
      * @async
      */
-    static async extract(pApkPath:string, pDestination:string, pOption:any={}){
+    static async extract(pApkPath:string, pDestination:string, pOptions:ApkExtractGlobalOptions={extractOpts:{},javaOpts:{}}){
         if(_fs_.existsSync(pApkPath)==false){
             throw new Error("[APK HELPER] APK not found ");
         }
 
-        let cmd:IExternalCommand = ApkHelper.getApktoolCommand();
+        let cmd:IExternalCommand = ApkHelper.getApktoolCommand(
+            pOptions.javaOpts!=null? pOptions.javaOpts : {}
+        );
+
         let options:string[] = [];
 
         options.push('decode');
 
-        for(let i in pOption){
-            options.push(ApkHelper.getApktoolArg(i, pOption[i]));
+        for(let i in pOptions.extractOpts){
+            options.push(ApkHelper.getApktoolArg(i, pOptions.extractOpts[i]));
         }
 
         options.push(pApkPath);

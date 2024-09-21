@@ -12,6 +12,10 @@ import {OperatingSystem} from "../../OperatingSystem.js";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
+interface FileInfo {
+    path: string,
+    rpath:string
+}
 
 export class AndroidDataAnalyzer implements IDelegatedDataAnalyzer {
 
@@ -43,6 +47,7 @@ export class AndroidDataAnalyzer implements IDelegatedDataAnalyzer {
             _r: pRelPath==null ? '/' : pRelPath,
             _d: 'd'
         });
+
         try{
             // _uid:f.getUID(),
             let file = await db.asyncUpdateEntry(f,{replace:true, upsert:true, filter:{ _r:f._r, __i:pScope.__i  }});
@@ -91,6 +96,74 @@ export class AndroidDataAnalyzer implements IDelegatedDataAnalyzer {
             );
     }
 
+    /**
+     * To scan the 'path' as APK content
+     *
+     * @param path
+     * @param pType
+     */
+    async scanFiles(pFiles:FileInfo[], pScope:DataScope):Promise<Observable<ModelFile[]>>{
+
+        let db:IDbCollection = this.ctx.getProjectDB().getCollectionOf(ModelFile.TYPE.getType());
+
+
+        let x:FileInfo, s:any, files:string[]=[];
+        for(let i=0; i<pFiles.length; i++){
+            x = pFiles[i];
+            files.push(x.path);
+            /*
+            if(x.path[x.path.length-1]=='/')
+                x.path = x.path.substring(0,x.path.length-1);
+
+            s = _fs_.lstatSync(x.path);
+
+            // upsert
+            let f = new ModelFile({
+                name: _path_.basename(x.path),
+                path: x.path,
+                size: s.size,
+                scope: pScope,
+                _r: x.rpath==null ? '/' : x.rpath,
+                _d: 'f'
+            });
+
+            try{
+                files.push(await db.asyncUpdateEntry(f,{
+                    replace:true,
+                    upsert:true,
+                    filter:{
+                        _r:f._r,
+                        __i:pScope.__i
+                    }
+                }));
+            }catch(err){
+                Logger.error(err.message,err.stack);
+                console.log(f);
+            }*/
+        }
+
+        // scan file formats
+        return this.ctx.getDataAnalyzer()._detectFileFormatFrom(files)
+            .pipe(
+                mergeMap( async(vFiles:ModelFile[])=>{
+
+                    // consolidate and save files
+                    for(let i=0;i<vFiles.length; i++){
+                        vFiles[i].setScope(pScope);
+                        vFiles[i] = await db.asyncAddEntry({
+                            _r:vFiles[i].getRelativePath(),
+                            scope:vFiles[i].getScope().getUID()
+                        }, vFiles[i]);
+                    }
+
+                    // files.length
+                    Logger.info("[*] "+vFiles.length+" files analyzed");
+
+                    return vFiles;
+                })
+            );
+    }
+
 
     /**
      *
@@ -107,16 +180,28 @@ export class AndroidDataAnalyzer implements IDelegatedDataAnalyzer {
         // PKG data scope
         if(pScope.getName()=='bin'){
 
+            const directFiles:FileInfo[] = [];
             for(let i=0; i<dir.length; i++){
                 vPath = dir[i];
                 const p = _path_.join(pScope.getBasePath(),vPath);
                 // skip 'smali', 'original' and 'res' folders,
                 // Skip 'res' because this one is analyzed and parsed as AndroidResources
-                if(vPath.indexOf('smali')!=0 && vPath!='original' && vPath!='res' && _fs_.lstatSync(p).isDirectory()){
-                    (await this.scan(p, pScope, vPath)).subscribe((vFiles:ModelFile[])=>{
-                        obs.next(vFiles);
-                    });
+                if(vPath.indexOf('smali')!=0 && vPath!='original' && vPath!='res'){
+                    if(_fs_.lstatSync(p).isDirectory()){
+                        (await this.scan(p, pScope, vPath)).subscribe((vFiles:ModelFile[])=>{
+                            obs.next(vFiles);
+                        });
+                    }else{
+                        directFiles.push({ path:p, rpath:vPath });
+                    }
                 }
+            }
+
+            //
+            if(directFiles.length>0){
+                (await this.scanFiles(directFiles, pScope)).subscribe((vFiles:ModelFile[])=>{
+                    obs.next(vFiles);
+                });
             }
         }else{
             for(let i=0; i<dir.length; i++){

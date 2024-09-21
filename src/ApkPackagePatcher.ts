@@ -37,6 +37,10 @@ export default class ApkPackagePatcher
         
     }*/
 
+    /**
+     * @deprecated
+     * @param packageIdentifier
+     */
     pullPackage(packageIdentifier:string):void{
         let dstPath = _path_.join(this.config.workspacePath, packageIdentifier, 'dex');
         let tmpPath = _path_.join(this.config.workspacePath,packageIdentifier, packageIdentifier +  '.apk');

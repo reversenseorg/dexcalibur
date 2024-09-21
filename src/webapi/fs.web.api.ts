@@ -35,9 +35,9 @@ FS_WEB_API.addAuthenticatedRoute(
                 }
 
                 // ========== LOGIC
-                if(req.query['uid']==null){
+                /*if(req.query['uid']==null){
                     throw new Error("[FILE::VIEW] #FILE_1 Invalid File UID or Scope");
-                }
+                }*/
 
                 // TODO : validate $.project.dataAnalyzer.isValidScope(req.query['scope']);
 

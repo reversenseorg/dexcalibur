@@ -6,6 +6,7 @@ import ModelResource from "../ModelResource.js";
 import ModelField from "../ModelField.js";
 import ModelStringValue from "../ModelStringValue.js";
 import ModelFile from "../ModelFile.js";
+import DexcaliburProject from "../DexcaliburProject.js";
 
 /**
  * Map resource name to offset in entries list
@@ -425,4 +426,21 @@ export class AndroidResource implements TreeNode<AndroidResource> {
         return res;
     }
 
+
+    /**
+     * To resolve a resource ID and retourne ultimately the value
+     *
+     * this method is perfect to retrieve the concrete value of a resource
+     * referenced by an UID inside another resources, ...
+     *
+     * @param pCtx
+     * @param pUID
+     */
+    static async resolvedResourceUID( pCtx:DexcaliburProject, pUID:string):Promise<ModelResource> {
+
+        let res = await pCtx.getProjectDB().getAppResource(pUID);
+
+
+        return null;
+    }
 }

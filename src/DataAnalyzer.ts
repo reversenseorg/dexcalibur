@@ -425,34 +425,8 @@ export class DataAnalyzer implements IAnalyzerUnit
 
         // TODO : call delegate data analyzer ?
         if(this.context.platform.isAndroid() && this.delegate[OperatingSystem.ANDROID]!=null){
-
             Logger.info("[DATA ANALYZER][DELEGATED > ANDROID] Invoked ");
             obs = (await this.delegate[OperatingSystem.ANDROID].indexFilesIn(pScope));
-/*
-            // skip APKtool contents and files
-            if(pScope.getName()=='bin'){
-
-                for(let i=0; i<dir.length; i++){
-                    vPath = dir[i];
-                    const p = _path_.join(pScope.getBasePath(),vPath);
-                    if(vPath.indexOf('smali')!=0 && vPath!='original' && _fs_.lstatSync(p).isDirectory()){
-                        (await this.scan(p, pScope, vPath)).subscribe((vFiles:ModelFile[])=>{
-                            obs.next(vFiles);
-                        });
-
-                    }
-                }
-            }else{
-                for(let i=0; i<dir.length; i++){
-                    vPath = _path_.join(pScope.getBasePath(),dir[i]);
-                    if(_fs_.lstatSync(vPath).isDirectory()){
-                        //a = (await this.scan(vPath, pScope, dir[i]));
-                        (await this.scan(vPath, pScope, dir[i])).subscribe((vFiles:ModelFile[])=>{
-                            obs.next(vFiles);
-                        });
-                    }
-                }
-            }*/
         }else{
             for(let i=0; i<dir.length; i++){
                 vPath = _path_.join(pScope.getBasePath(),dir[i]);
@@ -545,6 +519,62 @@ export class DataAnalyzer implements IAnalyzerUnit
                 files = this.smartScan(pPath, this.context, pSkipGlob);
                 obsFiles.next(files);
                 break;
+        }
+
+        return obsFiles;
+    }
+
+
+    /**
+     * To detect the format of a file
+     *
+     * @param {string} pPath
+     * @param {string} pSkipGlob
+     * @param {Nullable<FileAnalysisType>} pAnalysisType Default is NULL, and is retrieved from context settings.
+     * @return {ModelFile[]} Instance of ModelFile for each analyzed file
+     * @private
+     * @method
+     */
+    _detectFileFormatFrom(pPaths:string[], pAnalysisType:Nullable<FileAnalysisType>=null):Subject<ModelFile[]>{
+
+        let obsFiles = new ReplaySubject<ModelFile[]>(3);
+        let files:ModelFile[]
+        let type:FileAnalysisType = pAnalysisType;
+        if(type==null){
+            type = this.context.getAnalyzerConfiguration().fileAnalysisMode;
+        }
+
+        switch (type){
+            case FileAnalysisType.SMART:
+            case FileAnalysisType.DEEP:
+                // deep mode use only binwalk + internals
+                this.fmtDetector.setBackend(this.binwalk);
+                this.fmtDetector.analyzeFiles(pPaths, this.context).then((vList:Subject<ModelFile[]>)=>{
+                    vList.pipe(
+                        map((vF)=>{
+                            obsFiles.next(vF);
+                            return vF;
+                        })
+                    ).subscribe((vFiles)=>{
+                        console.log("Debug vFiles > "+vFiles.length);
+                    })
+                })
+                //files = this.binwalk.analyzeFolder(pPath, this.context, pSkipGlob);
+                break;
+            case FileAnalysisType.MAGIC:
+                // magic mode use only magic number (file cmd)
+                //files = this.magic.analyzeFolder(path, this.context, checkIfSmali);
+                files = this.magic.analyzeFiles(pPaths, this.context);
+                obsFiles.next(files);
+                break;
+            // smart scan is deprecated
+            /*case FileAnalysisType.SMART:
+                // smart mode mixes magic and deep.
+                // scan lib/ folder
+                // scan unknow + assets
+                files = this.smartScan(pPath, this.context, pSkipGlob);
+                obsFiles.next(files);
+                break;*/
         }
 
         return obsFiles;
@@ -796,7 +826,7 @@ export class DataAnalyzer implements IAnalyzerUnit
      * To combine data carving-based and magic-number based detection
      *
      * Useful to perform a first scan with good results
-     *
+     * @deprecated
      *
      */
     smartScan(pPath:string, pProject:DexcaliburProject, pSkipGlob:string):ModelFile[] {
