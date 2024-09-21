@@ -6,7 +6,7 @@ import {Nullable} from "../core/IStringIndex.js";
 import * as Log from "../Logger.js";
 import DexcaliburProject from "../DexcaliburProject.js";
 import InspectorFactory from "../InspectorFactory.js";
-import { IDbCollection, INode, NodeType, Tag, TagCategory} from "@dexcalibur/dexcalibur-orm";
+import {IDbCollection, IDbIndex, INode, NodeType, Tag, TagCategory} from "@dexcalibur/dexcalibur-orm";
 import {NodeInternalType, NodeInternalTypeName}
 from "@dexcalibur/dxc-core-api";;
 import {EngineDatabaseException} from "../errors/EngineDatabaseException.js";
@@ -47,6 +47,10 @@ import ModelUiComponentType from "../graphics/models/ModelUiComponentType.js";
 import ModelUiRole from "../graphics/models/ModelUiRole.js";
 import ModelResource from "../ModelResource.js";
 import ModelStringValue from "../ModelStringValue.js";
+import InMemoryDbCollection from "../../connectors/inmemory/InMemoryDbCollection.js";
+import {MerlinSearchRequest} from "../search/MerlinSearchRequest.js";
+import {FinderResult} from "../search/FinderResult.js";
+import InMemoryDbIndex from "../../connectors/inmemory/InMemoryDbIndex.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -600,13 +604,61 @@ export class ProjectDatabase {
         let vals;
         for(let i=0; i<types.length; i++){
             vals = pDB.getDataSetFromNodeType(types[i]).getAsList();
-            await Util.mapInGroups<INode>(vals, async (vObj) => {
-                try{
-                    await this.save(vObj);
-                }catch(err){
-                    Logger.error(err.message);
+            try{
+                await this.saveMany(vals, types[i]);
+            }catch (e){
+                Logger.error(e.message);
+            }
+        }
+
+        Logger.success("[PROJECT DB] Analyzer DB saved [duration="+((Util.now()-startTime)/1000)+"s]");
+    }
+
+
+    /**
+     * To save only CLASS/METHOD/FIELD/PACKAGE tagged with pTag
+     * and stored in AnalyzerDB
+     *
+     * @param {AnalyzerDatabase} pDB The analyzer DB
+     * @param {Tag} pTag Tag
+     */
+    async savePartialAnalyzerDB(pDB: AnalyzerDatabase, pTag:Tag):Promise<void>  {
+
+        if(this._ctx.dryRun){
+            Logger.success("[PROJECT DB] Analyzer DB didnt  save : dry run mode");
+            return;
+        }
+
+        Logger.info("[PROJECT DB] Start to save Analyzer DB");
+        const startTime = Util.now();
+
+        const types:NodeType[] = [
+            ModelClass.TYPE,
+            ModelField.TYPE,
+            ModelMethod.TYPE,
+            ModelPackage.TYPE
+        ];
+
+
+        let result:IDbIndex = new InMemoryDbIndex();
+        let req:MerlinSearchRequest;
+        for(let i=0; i<types.length; i++){
+
+            req = MerlinSearchRequest.fromCondition(this._project.merlin, types[i], "@"+pTag.getUID(), { not:false });
+            result = await (pDB.getDataSetFromNodeType(types[i].getType()) as InMemoryDbCollection).search(
+                req,
+                result
+            ); //.getAsList();
+
+
+            try{
+                Logger.info(`Partial save of Analyzer DB [nodeType=${types[i].getName()}][size=${result.size()}][tag=${pTag.getUID()}]`);
+                if(result.size()>0){
+                    await this.saveMany(result.getAsList(), types[i].getType());
                 }
-            }, 20);
+            }catch (e){
+                Logger.error(e.message);
+            }
         }
 
         Logger.success("[PROJECT DB] Analyzer DB saved [duration="+((Util.now()-startTime)/1000)+"s]");

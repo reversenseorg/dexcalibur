@@ -1611,63 +1611,64 @@ export default class Analyzer
     }
 
 
-
-    tagAsAndroidInternal( pOffset:any, pElement:any){
-        pElement.addTag(this.tagCache.Discover.Internal);
-    }
-
-    tagAllAsInternal(){
-
-        const self = this;
-        const cb = ((pOffset:any, pElement:any)=>{
-            pElement.addTag(self.tagCache.Discover.Internal);
-        })
-        // TODO : optimize
-        this.db.packages.map(cb)
-        this.db.classes.map(cb);
-        this.db.fields.map(cb);
-        this.db.methods.map(cb);
-        this.db.strings.map(cb);
-    }
-
     resolveMethod(ref:ModelMethodReference):ModelMethod{
         let m:ModelMethod = this.resolver.method(this.db, ref, null);
         Logger.debug('[ANALYZER] Resolving method : ',m.getName());
         return m;
     }
 
+    /**
+     *
+     * @param {(key:any,val:any)=>boolean} pConditionFn The condition the node must satisfy to be tagged
+     * @param {Tag[]} pTags The tags to apply
+     * @return {Record<string, number>} A map where the name of each type of node is associated to number of tagged elements
+     * @method
+     */
+    tagAllIf(pCondition:((vKey:any,vVal:any)=>boolean), pTags:Tag[]):Record<string, number>{
 
-    tagAllIf(condition:any, tag:any){
+        const stats:Record<string, number> = {};
+
         // TODO : optimize
-        this.tagIf(condition, "packages", tag);
+        stats[ModelPackage.TYPE.getName()] = this.tagIf(pCondition, "packages", pTags);
+        stats[ModelClass.TYPE.getName()]  =this.tagIf(pCondition, "classes", pTags);
+        stats[ModelField.TYPE.getName()]  =this.tagIf(pCondition, "fields", pTags);
+        stats[ModelMethod.TYPE.getName()]  =this.tagIf(pCondition, "methods", pTags);
+        stats[ModelStringValue.TYPE.getName()]  =this.tagIf(pCondition, "strings", pTags);
 
-        this.tagIf(condition, "classes", tag);
-        this.tagIf(condition, "fields", tag);
-        this.tagIf(condition, "methods", tag);
-        this.tagIf(condition, "strings", tag);
+        return stats;
     }
 
 
-    tagIf(condition:any, type:string, tag:any){
-        this.db[type].map(function(k:any,v:any){
-            if(condition(k,v)){
-                v.addTag(tag);
-            }
-        });
-        /*
-        if(this.db[type] instanceof Array){
-            this.db[type].map(function(x){
-                if(condition(x)){
-                    x.addTag(tag);
+    /**
+     *
+     * @param {(key:any,val:any)=>boolean} pConditionFn The condition the node must satisfy to be tagged
+     * @param {string} pType The name of collection or type of node where nodes are stored
+     * @param {Tag[]} pTags The tags to apply
+     * @return {number} The number of element tagged
+     * @method
+     */
+    tagIf(pConditionFn:((vKey:any,vVal:any)=>boolean), pType:string, pTags:Tag[]):number{
+        const l = pTags.length;
+        let ctr = 0;
+        if(pTags.length==1){
+            this.db[pType].map(function(k:any,v:any){
+                if(pConditionFn(k,v)){
+                    v.addTag(pTags[0]);
+                    ctr++;
                 }
             });
         }else{
-            for(let k in this.db[type]){
-                if(condition(this.db[type][k])){
-                    this.db[type][k].addTag(tag);
+            this.db[pType].map(function(k:any,v:any){
+                if(pConditionFn(k,v)){
+                    for(let i=0;i<l;i++){
+                        v.addTag(pTags[i]);
+                    }
+                    ctr++;
                 }
-            }
-        }*/
+            });
+        }
+
+        return ctr;
     }
 
     /**
@@ -1775,21 +1776,13 @@ export default class Analyzer
 
     registerListeners(){
 
+        /*
         [
             "model.package.new",
             "model.class.new",
             "model.field.new",
             "model.method.new"
         ].map((vEvtType:string)=>{
-            /*this.context.getBus().subscribe(vEvtType, BusSubscriber.from( (pEvent)=>{
-                (async ()=>{
-                    try{
-                        await this.context.getProjectDB().save(pEvent.getData().node);
-                    }catch(err){
-                        Logger.error("[event="+vEvtType+"][save error][node="+pEvent.getData().node.__+"][uid="+pEvent.getData().node.getUID()+"] "+err.message,err.stack);
-                    }
-                })();
-            }));*/
         });
 
 
@@ -1799,25 +1792,8 @@ export default class Analyzer
             "model.field.update",
             "model.method.update",
         ].map((vEvtType:string)=>{
-           // this.context.getBus().subscribe(vEvtType, BusSubscriber.from( (pEvent)=>{
-                //console.log("Saving ... > ",pEvent.getData().node.getUID());
-            //    this.context.getProjectDB().save(pEvent.getData().node);
-                /*
-                (this.context.getProjectDB().save(pEvent.getData().node)).then(()=>{
-                    console.log(pEvent.getData().node.getUID());
-                }).catch((err)=>{
-                    Logger.error("[event="+vEvtType+"][save error][node="+pEvent.getData().node.__+"][uid="+pEvent.getData().node.getUID()+"] "+err.message,err.stack);
-                });*/
-                /*
-                (async ()=>{
-                    try{
-                        await this.context.getProjectDB().save(pEvent.getData().node);
-                    }catch(err){
-                        Logger.error("[event="+vEvtType+"][save error][node="+pEvent.getData().node.__+"][uid="+pEvent.getData().node.getUID()+"] "+err.message,err.stack);
-                    }
-                })();*/
-            //}));
-        });
+
+        });*/
     }
 }
 

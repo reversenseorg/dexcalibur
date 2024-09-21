@@ -2300,6 +2300,8 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
         const sastTag = this.tagManager.getTag("discover.static");
         const dastTag = this.tagManager.getTag("discover.dynamic");
         const internTag = this.tagManager.getTag("discover.internal");
+        const codeRtBuffTag = this.tagManager.getTag("code.location.runtime.buffer");
+        const codeRtLiveTag = this.tagManager.getTag("code.location.runtime.file");
 
         /*
          ====== [SCAN CODE OF TARGET PLATFORM / USERLAND] ======
@@ -2336,11 +2338,12 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
         this.getWorkflow().pushStatus(new StatusMessage(12, "Tagging discovered elements"));
         //this.getWorkflow().setStep('Triage', 20);
 
-        this.analyze.tagAllAsInternal();
-
+        //this.analyze.tagAllAsInternal();
+        this.analyze.tagAllIf((k,x) => {  return true; }, [internTag]);
 
         // save model
-        await this.pdb.saveAnalyzerDB(this.analyze.getData());
+        //await this.pdb.saveAnalyzerDB(this.analyze.getData());
+        await this.pdb.savePartialAnalyzerDB(this.analyze.getData(), internTag);
 
         this.getWorkflow().pushStatus(new StatusMessage(14, "Deploying inspectors for [POST_PLATFORM_SCAN]"));
 
@@ -2390,7 +2393,9 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
             await this.analyze.path( targetPath, CodeLocation.APP);
 
             // save model
-            await this.pdb.saveAnalyzerDB(this.analyze.getData());
+            //await this.pdb.saveAnalyzerDB(this.analyze.getData());
+            await this.pdb.savePartialAnalyzerDB(this.analyze.getData(), this.tagManager.getTag("discover.internal"));
+
 
             // load hooks
             await this.hook.load();
@@ -2509,8 +2514,11 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
         this.getWorkflow().pushStatus(new StatusMessage(96, "Tagging fresh data and elements"));
         this.analyze.tagAllIf(
             (k,x) => {  return !internTag.match(x); },
-            sastTag);
+            [sastTag]);
 
+
+        // save nodes (code only) created by static analysis
+        await this.pdb.savePartialAnalyzerDB(this.analyze.getData(), sastTag);
 
         //this.analyze.execDelayedTagging(TAG.Discover.Statically);
 
@@ -2531,7 +2539,7 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
                 (k,x)=>{
                     return (!internTag.match(x)) && (!sastTag.match(x));
                 },
-                dastTag);
+                [dastTag,codeRtBuffTag]);
         });
 
         const dynBcScope = this.dataAnalyzer.getScope('DYN_BYTECODE');
@@ -2578,7 +2586,7 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
                     (k,x)=>{
                         return (!internTag.match(x)) && (!sastTag.match(x));
                     },
-                    dastTag);
+                    [dastTag, codeRtLiveTag]);
             }
         });
 
@@ -2587,7 +2595,11 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
             (k,x)=>{
                 return (!internTag.match(x)) && (!sastTag.match(x));
             },
-            dastTag);
+            [dastTag]);
+
+
+
+        await this.pdb.savePartialAnalyzerDB(this.analyze.getData(), sastTag);
 
         //}
         this._emit("dxc.fullscan.post_dast_tag");

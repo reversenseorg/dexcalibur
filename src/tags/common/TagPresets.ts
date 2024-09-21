@@ -14,6 +14,7 @@ export function newTagPresets(){
     const CODE_DALVIK = new TagCategory({ name: "code.dalvik" });
     const CODE_BINDING = new TagCategory({ name: "code.binding" });
     const CODE_CALL = new TagCategory({ name: "code.call" });
+    const CODE_LOC_RT = new TagCategory({ name: "code.location.runtime" });
     const CODE_LOAD = new TagCategory({ name: "data.len" });
     const RUNTIME_MSG = new TagCategory({ name: "runtime.msg" });
     const DISCOVER = new TagCategory({ name: "discover" });
@@ -172,6 +173,11 @@ export function newTagPresets(){
         new Tag({ name:"external" }) // led
     ];
 
+    const CODE_LOC_RT_TAGS = [
+        new Tag({ name:"buffer" }), // led
+        new Tag({ name:"file" }) // led
+    ];
+
     const RUNTIME_TAGS = [
         new Tag({ name:"hook" }),
         new Tag({ name:"hk_err" }),
@@ -212,7 +218,10 @@ export function newTagPresets(){
     CODE_GLOBAL_TAGS.map( x => { CODE_GLOBAL.addTag(x); });
     CODE_CALL_TAGS.map( x => { CODE_CALL.addTag(x); });
     CODE_LOAD_TAGS.map( x => { CODE_LOAD.addTag(x); });
-    CODE_BINDING_TAGS.map( x => { CODE_BINDING.addTag(x) })
+    CODE_BINDING_TAGS.map( x => { CODE_BINDING.addTag(x) });
+    CODE_LOC_RT_TAGS.map(x => { CODE_LOC_RT.addTag(x)});
+
+
     DATA_TYPE_TAGS.map( x => { DATA_TYPE.addTag(x); });
     DATA_HASH_TAGS.map( x => { DATA_HASH.addTag(x); });
     DATA_LEN_TAGS.map( x => { DATA_LEN.addTag(x); });
@@ -245,6 +254,7 @@ export function newTagPresets(){
         CODE_NATIVE,
         CODE_LOAD,
         CODE_BINDING,
+        CODE_LOC_RT,
 
         DATA_TYPE,
         DATA_CHARSET,

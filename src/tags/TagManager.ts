@@ -155,15 +155,31 @@ export class TagManager {
      */
     async importCategory(pTagCat:TagCategory):Promise<void> {
 
-        let cat = await this.getCategoryByName(pTagCat.name);
+        let cat:TagCategory = await this.getCategoryByName(pTagCat.name);
+        let freshTags:Tag[] = [];
+
         if(cat == null){
-            await this.addCategory(pTagCat);
+            cat = await this.addCategory(pTagCat);
+
+            /*
+            if(cat==null){
+                // get freshly created instance
+                cat = await this.getCategoryByName(pTagCat.name);
+                console.log("importCategory > getCategoryByName > ",pTagCat.name,cat);
+            }*/
         }
 
+        // push tags in the right category instance
+        pTagCat.getTags().map(x => {
+            // it replace pTagCat<->x relation by cat<->x
+            // it is necessary to keep TagCategory and Tag synchronized
+            cat.addTag(x);
+            freshTags.push(x);
+        });
 
-        const tags = pTagCat.getTags();
-        for(let i=0; i<tags.length; i++){
-            await  this.importTag(tags[i]);
+        //const tags = pTagCat.getTags();
+        for(let i=0; i<freshTags.length; i++){
+            await  this.importTag(freshTags[i]);
         }
     }
 
@@ -364,8 +380,16 @@ export class TagManager {
      *
      * @param pUID
      */
-    async getCategoryByName( pUID:string ):Promise<TagCategory> {
-        return await this._categories.search({ name:pUID });
+    async getCategoryByName( pUID:string ):Promise<Nullable<TagCategory>> {
+        try{
+            const res = await this._categories.search({ name:pUID });
+            if(res.length>0){
+                return res[0];
+            }else
+                return null;
+        }catch (e){
+            Logger.error(`[TAG MANAGER][getCategoryByName] A fatal error occurred while retrieving [name=${pUID}] : `+e.message);
+        }
     }
 
 
@@ -374,18 +398,19 @@ export class TagManager {
      *
      * @param pTagCategory
      */
-    async addCategory( pTagCategory:TagCategory):Promise<void>{
+    async addCategory( pTagCategory:TagCategory):Promise<TagCategory>{
 
         const res = await this._categories.asyncUpdateEntry(pTagCategory, {upsert:true});
-        console.log("TAG MANAGER > addCategory > "+pTagCategory.getUID(), res);
+        Logger.debug("TAG MANAGER > addCategory > "+pTagCategory.getUID(), res);
         this.cache[pTagCategory.getUID()] = pTagCategory;
+        return pTagCategory;
     }
 
 
     async updateCategory( pTagCategory:TagCategory):Promise<void>{
 
         const res = await this._categories.asyncUpdateEntry(pTagCategory, {upsert:true});
-        console.log("TAG MANAGER > updateCategory ", res);
+        Logger.debug("TAG MANAGER > updateCategory ", res);
 
         const tags = pTagCategory.getTags();
         for(let i=0; i<tags.length; i++){
