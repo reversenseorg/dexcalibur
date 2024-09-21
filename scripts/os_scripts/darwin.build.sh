@@ -90,3 +90,5 @@ if [[ "$DXC_TEST" = "1" ]]; then
   echo "[+] Test mode detected. Copying ./test folder ..."
   cp -r ./test ./dist/test
 fi
+
+echo "[*] Build terminated at : "$(date)
