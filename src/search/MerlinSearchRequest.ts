@@ -157,8 +157,41 @@ export class MerlinSearchRequest implements MerlinPrimitive{
     this._oper = pOper;
   }
 
-  setContext(pSearchContext:MerlinSearchAPI):void {
+  /**
+   * To set the context of search request
+   *
+   * Some args of operations are set at this step :
+   * - tags are resolved
+   *
+   * @param pSearchContext
+   */
+  setContext(pSearchContext:MerlinSearchAPI):MerlinSearchRequest {
+
     this._ctx = pSearchContext;
+
+    //if(this._ctx==null){
+      // resolve project-dependent args
+      let opeArgs:SearchOperationArgs;
+      for(let i=0; i<this._oper.length; i++){
+        switch (this._oper[i].type){
+          case OperationType.SEARCH:
+          case OperationType.FILTER:
+              try{
+                opeArgs = this._oper[i].args as SearchOperationArgs;
+                if((opeArgs.pattern.tagKey!=null) && (pSearchContext.getDB().ctx!=null)){
+                  opeArgs.pattern.tag = pSearchContext
+                      .getDB().ctx
+                      .getTagManager()
+                      .getTag(opeArgs.pattern.tagKey);
+                }
+              }catch(e){
+                Logger.error(e.message);
+              }
+              break
+        }
+      }
+
+      return this;
   }
 
   /**
@@ -413,6 +446,13 @@ export class MerlinSearchRequest implements MerlinPrimitive{
   }
 
 
+  /**
+   *
+   * @param pSearchContext
+   * @param pNodeType
+   * @param pCondition
+   * @param pOptions
+   */
   static fromCondition(pSearchContext:MerlinSearchAPI, pNodeType:NodeType, pCondition:string|any, pOptions:SearchOptions):MerlinSearchRequest {
     const req = new MerlinSearchRequest(pSearchContext, pNodeType, [] );
 
@@ -433,7 +473,12 @@ export class MerlinSearchRequest implements MerlinPrimitive{
       });
     }
 
-    return req;
+    // if DexcaliburProject is available then tags are resolved in operations
+    // to create ready-to-use request
+    if(pSearchContext.getDB().ctx!=null){
+      return req.setContext(pSearchContext);
+    }else
+      return req;
   }
 
   static newLiveRequest(pSearchContext:MerlinSearchAPI, pNodeType:NodeType):MerlinSearchRequest{
