@@ -15,7 +15,7 @@ export default class IosAppAnalyzer implements IAppAnalyzer
         this.ctx = pContext;
     }
 
-    async prepareFullScan():Promise<boolean>{
+    async prepareFullScan(pNewProject:boolean):Promise<boolean>{
         return true;
     }
 

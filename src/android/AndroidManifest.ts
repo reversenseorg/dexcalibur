@@ -37,7 +37,7 @@ export class AndroidManifest
     ]))
         .dataSource("PROJECT_DB"); //, "androidActivity");
 
-    __:NodeInternalType = NodeInternalType.ANDROID_ACTIVITY;
+    __:NodeInternalType = NodeInternalType.ANDROID_MANIFEST;
 
     attributes:AndroidAttributeSet = {};
 

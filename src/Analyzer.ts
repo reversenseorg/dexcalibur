@@ -1434,6 +1434,17 @@ export default class Analyzer
         this.finder.updateDB(this.db);
     };
 
+
+    /**
+     * Experimental
+     *
+     * Restore model from ProjectDb instead of code
+     */
+    restoreModel():void {
+        this.getInternalDB().restoreFrom(this.context.getProjectDB());
+    }
+
+
     /**
      * To get the internal database
      */

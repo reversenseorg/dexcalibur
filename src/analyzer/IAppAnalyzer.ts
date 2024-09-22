@@ -5,7 +5,7 @@ import {AppIcon} from "../AppIcon.js";
 
 
 export interface IAppAnalyzer {
-    prepareFullScan():Promise<boolean>;
+    prepareFullScan(pNewProject:boolean):Promise<boolean>;
 
     /**
      * To get the path of the file or folder to scan by default

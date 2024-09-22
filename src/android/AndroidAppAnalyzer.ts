@@ -68,8 +68,6 @@ export default class AndroidAppAnalyzer implements IAppAnalyzer
 	manifestPath:string = null;
 	manifestCode:string = null;
 
-	resources:Record<string, ResourcesMap> = {};
-
 	layouts:ResourcesMap;
 
 	state:AnalyzerState = new AnalyzerState({ _uid:'android-app'});
@@ -140,14 +138,6 @@ export default class AndroidAppAnalyzer implements IAppAnalyzer
 	}
 
 	private _initRes(){
-		this.resources = {
-			/*ids: new AndroidResourceType("ids"),
-			string:  new AndroidResourceType("string"),
-			styles:  new AndroidResourceType("styles"),
-			raw:  new AndroidResourceType("raw"),
-			xml:  new AndroidResourceType("xml"),
-			attr:  new AndroidResourceType("attr"),*/
-		};
 		this.layouts = {};
 	}
 
@@ -548,7 +538,7 @@ export default class AndroidAppAnalyzer implements IAppAnalyzer
 	 * To perform some action at very first step of a full scan
 	 *
 	 */
-	async prepareFullScan():Promise<boolean>{
+	async prepareFullScan(pNewProject = false):Promise<boolean>{
 
 		const pkgScope = await this.context.getDataAnalyzer().getDataScope('PKG');
 
@@ -557,34 +547,14 @@ export default class AndroidAppAnalyzer implements IAppAnalyzer
 
 		// parse all resources in res/ folder, for each a ModelFile will be created
 		// and joined into PKG data scope
+
 		console.log("Parse resources at : ",this._getResourcesFolder());
-		await this.parseResources(this._getResourcesFolder(), pkgScope);
+		if(!pNewProject){
+			this.context.getProjectDB().getCollectionOf(ModelResource.TYPE.getType());
+		}else{
+			await this.parseResources(this._getResourcesFolder(), pkgScope);
+		}
 
-
-		/*
-		Util.forEachFileOf(
-			_path_.join(this._getResourcesFolder(),"values"),
-			async (vFilePath:string,vDir:string)=>{
-				const type = _path_.basename(vFilePath).split('.')[0];
-				if(this.resources[type]==null){
-					this.resources[type] = new AndroidResourceType({ _type:type });
-				}
-				await AndroidAppAnalyzer.parseResourceFile(vFilePath,this.resources[type], this.context, "resources");
-				console.log(this.resources[type]._entries.length+" resources parsed");
-			},true);*/
-
-		// parse layout
-		/*Util.forEachFileOf(
-			_path_.join(this._getResourcesFolder(),"layout"),
-			async (vFilePath:string,vDir:string)=>{
-				const idl = _path_.basename(vFilePath).split('.')[0];
-				if(this.layouts[idl]==null){
-					this.layouts[idl] = new AndroidResourceType({ _type:idl });
-				}
-				await AndroidAppAnalyzer.parseResourceFile(vFilePath,this.layouts[idl], this.context, null);
-
-				console.log(Object.values(this.layouts[idl]).length+" layouts parsed");
-			},true);*/
 
 		return success;
 	}

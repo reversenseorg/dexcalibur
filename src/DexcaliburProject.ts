@@ -1017,6 +1017,9 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
         // get existing DB of create it
         this.pdb = await this.engine.getEngineDB().getProjectDB(this.getUID());
         this.pdb.setProject(this);
+        // this.pdb.restore();
+
+
 
 
         // once Project DB is ready, init tag manager and load presets
@@ -2307,12 +2310,8 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
          ====== [SCAN CODE OF TARGET PLATFORM / USERLAND] ======
          */
 
-        // restore from DB if dirty
-        if(this.isDirty()){
-
-        }
         // application topology analysis and ressources analysis
-        let success = await this.appAnalyzer.prepareFullScan();
+        let success = await this.appAnalyzer.prepareFullScan(this._createMode);
 
         // scan OS/Platform
         Logger.info("Scanning platform "+this.platform.getUID());

@@ -11,6 +11,11 @@ import {NodeInternalType} from "@dexcalibur/dxc-core-api";
 import {NodeType, IDatabaseAdapter, IDbCollection, IDbIndex} from "@dexcalibur/dexcalibur-orm";
 import {IStringIndex} from "./core/IStringIndex.js";
 import {AnalyzerException} from "./errors/AnalyzerException.js";
+import {ProjectDatabase} from "./database/ProjectDatabase.js";
+import ModelClass from "./ModelClass.js";
+import ModelMethod from "./ModelMethod.js";
+import ModelField from "./ModelField.js";
+import ModelPackage from "./ModelPackage.js";
 
 
 export default class AnalyzerDatabase
@@ -194,5 +199,20 @@ export default class AnalyzerDatabase
             case NodeInternalType.TAG: return this.tagcategories;
             default: throw AnalyzerException.MISSING_DATA_SET(pNodeType);
         }
+    }
+
+    /**
+     * To restore inmemory analyzer DB from project DB
+     *
+     * @param pProjectDB
+     */
+    restoreFrom(pProjectDB: ProjectDatabase) {
+        // restore raw data
+        this.classes = pProjectDB.getCollectionOf(ModelClass.TYPE.getType());
+        this.methods = pProjectDB.getCollectionOf(ModelMethod.TYPE.getType());
+        this.fields = pProjectDB.getCollectionOf(ModelField.TYPE.getType());
+        this.packages = pProjectDB.getCollectionOf(ModelPackage.TYPE.getType());
+
+        this.classes = pProjectDB.getCollectionOf(ModelClass.TYPE.getType());
     }
 }
