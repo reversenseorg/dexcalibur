@@ -10,7 +10,7 @@ import {
     NodeProperty,
     DbDataType,
     DbKeyType,
-    NodePropertyState
+    NodePropertyState, SerializeOptions, INode
 } from "@dexcalibur/dexcalibur-orm";
 import ModelClass from "../ModelClass.js";
 

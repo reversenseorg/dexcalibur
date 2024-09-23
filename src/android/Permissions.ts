@@ -1,10 +1,10 @@
-import {NodeType,DataSourceHelper,NodeProperty, DbDataType, DbKeyType} from "@dexcalibur/dexcalibur-orm";
+import {NodeType, DataSourceHelper, NodeProperty, DbDataType, DbKeyType, INode, Tag} from "@dexcalibur/dexcalibur-orm";
 
 import {NodeInternalType} from "@dexcalibur/dxc-core-api";
 import {RuntimeEvent} from "../hook/RuntimeEvent.js";
 import {CoreDebug} from "../core/CoreDebug.js";
 
-export class AndroidPermission
+export class AndroidPermission implements INode
 {
     static TYPE:NodeType = (new NodeType( "androidPermission", NodeInternalType.ANDROID_PERM, [
         (new NodeProperty("name")).type(DbDataType.STRING).key(DbKeyType.PRIMARY),
@@ -30,7 +30,7 @@ export class AndroidPermission
     query:any = null;
 
     __custom:boolean = false;
-    __tag:any = [];
+    tags:number[] = [];
     __raw:any = null;
 
     constructor(config:any=null){
@@ -42,17 +42,32 @@ export class AndroidPermission
         }
     }
 
+    getUID():string {
+        return  this.name;
+    }
+
     getName():string{
         return this.name;
     }
 
-    addTag(tag:string){
-        if(this.__tag.indexOf(tag)==-1)
-            this.__tag.push(tag);
+    addTag(vTag:Tag){
+        const uuid = vTag.getUUID();
+        if(this.tags.indexOf(uuid)==-1)
+            this.tags.push(uuid);
     }
 
-    getTags():any{
-        return this.__tag;
+    hasTag(vTag:Tag):boolean{
+        const uuid = vTag.getUUID()
+        for(let i=0; i<this.tags.length; i++){
+            if(this.tags[i]===uuid){
+                return true;
+            }
+        }
+        return false;
+    }
+
+    getTags():number[]{
+        return this.tags;
     }
 
 

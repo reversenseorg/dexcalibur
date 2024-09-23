@@ -10,6 +10,9 @@ import BusEvent from "../../src/BusEvent.js";
 import * as Log from "../../src/Logger.js";
 import {AndroidCodeAnalyzer} from "../../src/android/analyzer/AndroidCodeAnalyzer.js";
 import AndroidAppAnalyzer from "../../src/android/AndroidAppAnalyzer.js";
+import AndroidActivity from "../../src/android/AndroidActivity.js";
+import {Finder} from "../../src/search/Finder.js";
+import {FinderResult} from "../../src/search/FinderResult.js";
 
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
@@ -84,13 +87,26 @@ export default new InspectorFactory({
 
     useGUI: true,
 
-    version: "1.0.3",
+    version: "1.0.4",
     tags: [
         {
-            name:"intent.action",
+            name:"android.cmp",
             _tagsOptions:[
                 { name:"browsable"},
                 { name:"exported"}
+            ]
+        },{
+            name:"android.intent.action",
+            _tagsOptions:[
+                { name:"browsable"},
+                { name:"exported"},
+                { name:"main"}
+            ]
+        },{
+            name:"android.intent.ope",
+            _tagsOptions:[
+                { name:"receive"},
+                { name:"send"}
             ]
         },{
             name:"topo.android",
@@ -114,6 +130,20 @@ export default new InspectorFactory({
     eventListeners: {
         "dxc.fullscan.post":  function ( pEvent:BusEvent<any>):any {
 
+            // scan for exported component, intentable, ..
+            const exported = pEvent.getContext().getTagManager().getTag("android.intent.action.exported");
+            const receiveIntent = pEvent.getContext().getTagManager().getTag("android.intent.ope.receive");
+            const intentable = pEvent.getContext().getTagManager().getTag("");
+
+/*
+            pEvent.getContext().merlin.activity("attr.exported:true")
+                .execute(pEvent.getContext())
+                .then((vResult:FinderResult)=>{
+                    (vResult.getData() as AndroidActivity[]).map(x => {
+                        x.addTag(exported)
+                    })
+                });*/
+
 
         },
         "app.receiver.new": function (pEvent:BusEvent<any>) {
@@ -129,6 +159,9 @@ export default new InspectorFactory({
                 return true;
             }
 
+            if(pEvent.getData().obj.attr.exported=="true"){
+                cls.addTag(pCtx.getTagManager().getTag("topo.android.RECEIVER"));
+            }
             // tag by intent filter
             tagByIntent(pCtx, pEvent);
 
@@ -136,11 +169,12 @@ export default new InspectorFactory({
             tagByAttr(pCtx, pEvent.data.obj.getAttributes(), pEvent);
     
             // search dependencies to platform method and class
+            /*
             if (AndroidCodeAnalyzer.searchInternalDependencies(pCtx, pEvent.data.obj)!=null) {
                 Logger.info("[AppTopo][receiver] Internal dependencies mapped for : ", pEvent.data.obj.name);
             } else {
                 Logger.error("[AppTopo][receiver] Fail to map internal dependencies mapped for : ", pEvent.data.obj.name);
-            }
+            }*/
         },
         "app.provider.new": function (pEvent:BusEvent<any>) {
 
@@ -164,11 +198,12 @@ export default new InspectorFactory({
             tagByAttr(pCtx, pEvent.data.obj.getAttributes(), pEvent);
     
             // search dependencies to platform method and class
+            /*
             if (AndroidCodeAnalyzer.searchInternalDependencies(pCtx, pEvent.data.obj)!=null) {
                 Logger.info("[AppTopo][provider] Internal dependencies mapped for : ", pEvent.data.obj.name);
             } else {
                 Logger.error("[AppTopo][provider] Fail to map internal dependencies mapped for : ", pEvent.data.obj.name);
-            }
+            }*/
         },
         "app.service.new": function (pEvent) {
 
@@ -192,11 +227,12 @@ export default new InspectorFactory({
             tagByAttr(pCtx, pEvent.data.obj.getAttributes(), pEvent);
 
             // search dependencies to platform method and class
+            /*
             if (AndroidCodeAnalyzer.searchInternalDependencies(pCtx, pEvent.data.obj)!=null) {
                 Logger.info("[AppTopo][service] Internal dependencies mapped for : ", pEvent.data.obj.name);
             } else {
                 Logger.error("[AppTopo][service] Fail to map internal dependencies mapped for : ", pEvent.data.obj.name);
-            }
+            }*/
         },
         "data.file.parsed": function(pEvent:BusEvent<any>):any{
             (async ()=>{
@@ -244,7 +280,7 @@ export default new InspectorFactory({
         "app.activity.new": {
             lang: 'ts',
             source:`
-            // <ts>
+            // <ts>={
 
             const pCtx:any = pEvent.getContext();
 
@@ -259,19 +295,50 @@ export default new InspectorFactory({
                 }else{
                     clsUID = pClassName;
                 }
-            
-            
-                const cls:ModelClass = pContext.find.get.class(clsUID);
-                if( cls == null){
-                    pCtx.LOG.error("[AppTopo] Class '"+clsUID+"' not found");;
-                }
-                return cls;
+                
+                return pContext.find.get.class(clsUID);
             }
 
             // to retrieve class implementign this activity
-            let act = null;
+            let cmp:AndroidActivity = pEvent.getData().obj;
+            
+            if(cmp.attr.exported!=null && cmp.attr.exported==='true'){
+                cmp.addTag(pCtx.getTagManager().getTag("android.cmp.exported"))                
+            }
+            
+            
+            if(cmp.intentFilters.length>0){
+                cmp.addTag(pCtx.getTagManager().getTag("android.intent.ope.receive"));
+                cmp.intentFilters.map(x => {
+                    x.action.map( y => {
+                        switch (y.name){
+                            case "android.intent.action.MAIN":
+                                cmp.addTag(pCtx.getTagManager().getTag("android.intent.action.main"))        
+                                break;
+                        }
+                    });
+                
+                    x.category.map( y =>{
+                         switch (y.name){
+                            case "android.intent.category.BROWSABLE":
+                                cmp.addTag(pCtx.getTagManager().getTag("android.cmp.browsable"))        
+                                break;
+                        }
+                    })
+                    
+                
+                });          
+            }
+            
+            // tag by intent filter  
+            //tagByIntent(pCtx, pEvent);
+
+            // tag by attributes
+            //tagByAttr(pCtx, acmpct.getAttributes(), pEvent);
+            
+            // search impl
             const cls = getClassByManifestUid(pCtx, pEvent.data.manifest, pEvent.data.obj.name);
-            pCtx.LOG.raw(cls);
+            
             if ((cls != null) && (cls instanceof ModelClass)) {
                 pEvent.data.obj.setImplementedBy(cls);
                 cls.addTag( pCtx.getTagManager().getTag("topo.android.ACTIVITY"));
@@ -280,21 +347,15 @@ export default new InspectorFactory({
                 return true;
             }
 
-            act = pEvent.getData().obj;
-
-            // tag by intent filter  
-            tagByIntent(pCtx, pEvent);
-
-            // tag by attributes
-            tagByAttr(pCtx, act.getAttributes(), pEvent);
 
 
             // search dependencies to platform method and class
+            /*
             if (AndroidCodeAnalyzer.searchInternalDependencies(pCtx, pEvent.data.obj)!=null) {
                 pCtx.LOG.log("[AppTopo][activity] Internal dependencies mapped for : ", pEvent.data.obj.name);
             } else {
                 pCtx.LOG.error("[AppTopo][activity] Fail to map internal dependencies mapped for : ", pEvent.data.obj.name);
-            }
+            }*/
             `
         }
     }

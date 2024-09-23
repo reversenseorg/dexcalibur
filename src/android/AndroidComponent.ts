@@ -9,7 +9,7 @@ import {AndroidAttributeSet} from "./AndroidAttribute.js";
 import {NodeInternalType} from "@dexcalibur/dxc-core-api";
 import {CryptoUtils} from "../CryptoUtils.js";
 import {CoreDebug} from "../core/CoreDebug.js";
-import {SerializeOptions} from "@dexcalibur/dexcalibur-orm";
+import {INode, SerializeOptions, Tag} from "@dexcalibur/dexcalibur-orm";
 import {AndroidApplicationException} from "../errors/android/AndroidApplicationException.js";
 import {AndroidComponentException} from "../errors/android/AndroidComponentException.js";
 
@@ -17,7 +17,7 @@ import {AndroidComponentException} from "../errors/android/AndroidComponentExcep
 const ANDROID_PREFIX = "android:";
 const ANDROID_PREFIX_LEN = 8;
 
-export default class AndroidComponent extends AndroidIntentable
+export default class AndroidComponent extends AndroidIntentable implements INode
 {
     __:NodeInternalType;
 
@@ -33,6 +33,8 @@ export default class AndroidComponent extends AndroidIntentable
     __impl:any = null;
     __tag:any = [];
     __ppts:any = {};
+
+    tags:number[] = [];
 
     constructor() {
         super();
@@ -84,6 +86,7 @@ export default class AndroidComponent extends AndroidIntentable
         return this.name;
     }
 
+    /*
     addTag(tag:any){
         if(this.__tag.indexOf(tag)==-1)
             this.__tag.push(tag);
@@ -91,6 +94,26 @@ export default class AndroidComponent extends AndroidIntentable
 
     getTags():any{
         return this.__tag;
+    }*/
+
+    addTag(vTag:Tag){
+        const uuid = vTag.getUUID();
+        if(this.tags.indexOf(uuid)==-1)
+            this.tags.push(uuid);
+    }
+
+    hasTag(vTag:Tag):boolean{
+        const uuid = vTag.getUUID()
+        for(let i=0; i<this.tags.length; i++){
+            if(this.tags[i]===uuid){
+                return true;
+            }
+        }
+        return false;
+    }
+
+    getTags():number[]{
+        return this.tags;
     }
 
     addNodeProperty(name:string, value:any):void{
@@ -135,6 +158,7 @@ export default class AndroidComponent extends AndroidIntentable
         o.name = this.name;
         o.attr = this.attr;
         o.intentFilters = [];
+        o.tags = this.tags;
 
         this.intentFilters.map(x => o.intentFilters.push(x.toJsonObject()));
 
