@@ -9,7 +9,7 @@ import {DDVM_HeapArea} from "./DDVM_HeapArea.js";
 import DDVM_ClassLoader from "./DDVM_ClassLoader.js";
 import {DDVM_StackMemory} from "./DDVM_StackMemory.js";
 import DDVM_PseudoCodeMaker from "./DDVM_PseudoCodeMaker.js";
-import {DDVM_Instruction, DDVM_InstructionType, DDVM_MethodArea} from "./DDVM_MethodArea.js";
+import {DDVM_Instruction, DDVM_InstructionType, DDVM_MethodArea, DDVM_MethodInfo} from "./DDVM_MethodArea.js";
 import DDVM_Allocator from "./DDVM_Allocator.js";
 import {ModelRegisterReference} from "../ModelReference.js";
 import * as Log from "../Logger.js";
@@ -27,6 +27,7 @@ import ModelBasicBlock from "../ModelBasicBlock.js";
 import DDVM_VirtualArray from "./DDVM_VirtualArray.js";
 import ModelCatchStatement from "../ModelCatchStatement.js";
 import DDVM_Exception from "./DDVM_Exception.js";
+import {Nullable} from "../core/IStringIndex.js";
 
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
@@ -43,7 +44,31 @@ export enum REG_TYPE {
     REG_16BITS_PAIR,
 }
 
+interface InvokeEntrypointState {
+    /**
+     * Invoked method
+     * @type {ModelMethod}
+     */
+    meth:ModelMethod,
+    /**
+     * 'this' symbol
+     *  This property is null when the method is static
+     *  @type {Nullable<DDVM_Symbol>}
+     */
+    obj:Nullable<DDVM_Symbol>,
+    args:DDVM_Symbol[]
+}
 
+interface InstrPostExecState {
+    code:string[],
+    jump:Nullable<any>,
+    ret:Nullable<any>,
+    /**
+     * If the instruction trigged an invoke-*
+     * Metadata about invoke-*
+     */
+    inv:Nullable<InvokeEntrypointState>
+}
 /**
  * Class managing minimalist smali VM and performing partial smali execution.
  *
@@ -79,8 +104,16 @@ export default class DexcaliburDVM implements DexcaliburVM
     metharea:DDVM_MethodArea = null;
     allocator:DDVM_Allocator = null;
 
-    invokes:any = [];
+    /**
+     * Offset of instruction where a method has been invoked
+     * @type {number[]} A list of offset
+     * @field
+     */
+    invokes:number[] = [];
 
+    /**
+     * Target method
+     */
     method:ModelMethod = null;
 
     simplify:number = 0;
@@ -744,6 +777,10 @@ export default class DexcaliburDVM implements DexcaliburVM
       //  return (this.stack.current().hasState(pLabel) != null);
     }
 
+    /**
+     * To return the method where émulation started
+     * @return {ModelMethod}
+     */
     getEntrypoint():ModelMethod{
         return this.method;
     }
@@ -826,11 +863,12 @@ export default class DexcaliburDVM implements DexcaliburVM
 
     /**
      * To execute a method and to perform static analysis
-     * @param {*} pMethod
+     *
+     * @param {ModelMethod} pMethod The method to execute
      * @param {*} pLevel
      */
     start( pMethod:ModelMethod, pThis:DDVM_ClassInstance, pArguments:any=null, pClearHeap:boolean=false):void{
-        let opt:any = null, margs:(ModelObjectType|ModelBasicType)[]=null, arr:any=null;
+        let opt:DDVM_MethodInfo, margs:(ModelObjectType|ModelBasicType)[]=null, arr:any=null;
 
         // clean StackMemory
         this.stack.clear();
@@ -1120,7 +1158,7 @@ export default class DexcaliburDVM implements DexcaliburVM
      * @param {DDVM_Instruction[]} pStack
      * @param {number} pDepth Callstack max depth
      */
-    run( pStack:DDVM_Instruction[], pDepth:number=0){
+    run( pInstr:DDVM_Instruction[], pDepth:number=0){
         let i:number=0, f:number=0, dec:any=null, msg:any=null, ctxRST:boolean=false, bbs:ModelBasicBlock=null ;
         let indent:string = "    ".repeat(this.depth);
         let d:ModelCatchStatement[];
@@ -1130,9 +1168,9 @@ export default class DexcaliburDVM implements DexcaliburVM
 
         do{
             // instruction
-            if(pStack[i].t===DDVM_InstructionType.OPERATION){
+            if(pInstr[i].t===DDVM_InstructionType.OPERATION){
 
-                dec = this.execute(pStack, i);
+                dec = this.execute(pInstr, i);
 
                 if(dec.code.length > 0  && !Util.isEmpty(dec.code, Util.FLAG_WS | Util.FLAG_CR | Util.FLAG_TB)){
                     //console.log(dec.code);
@@ -1148,11 +1186,11 @@ export default class DexcaliburDVM implements DexcaliburVM
                 // if instruction was a jump to a labelled basic block
                 if(dec.jump != null){
                     // change offset of the next instruction
-                    i = this.findOffsetByLabel( pStack, dec.jump.label, dec.jump.type);
+                    i = this.findOffsetByLabel( pInstr, dec.jump.label, dec.jump.type);
 
                     // if target block has multiple predecessors,
                     // add "goto" instruction to pseudo code
-                    if((pStack[i].i as ModelBasicBlock).hasMultiplePredecessors()){
+                    if((pInstr[i].i as ModelBasicBlock).hasMultiplePredecessors()){
                         this.pcmaker.push(`${indent}goto :goto_${dec.jump.label}`);
                     }
                 }
@@ -1187,7 +1225,7 @@ export default class DexcaliburDVM implements DexcaliburVM
                                 this.pcmaker.pop();
                                 this.pcmaker.writeIndirectInvoke(
                                     // Method.invoke() context
-                                    (pStack[i].i as ModelInstruction).left[1], (pStack[i].i as ModelInstruction).left[2],
+                                    (pInstr[i].i as ModelInstruction).left[1], (pInstr[i].i as ModelInstruction).left[2],
                                     // invoked method
                                     dec.method, dec.obj, dec.args);
 
@@ -1224,9 +1262,9 @@ export default class DexcaliburDVM implements DexcaliburVM
                 }
             }
             // enter into basic block
-            else if(pStack[i].t===DDVM_InstructionType.BLOCK_START){
+            else if(pInstr[i].t===DDVM_InstructionType.BLOCK_START){
 
-                bbs = pStack[i].i as ModelBasicBlock;
+                bbs = pInstr[i].i as ModelBasicBlock;
                 f=0;
 
                 msg = '';
@@ -1284,9 +1322,9 @@ export default class DexcaliburDVM implements DexcaliburVM
             }
             // leave basic block
             // TODO : JAMAIS atteind ?
-            else if(pStack[i].t==DDVM_InstructionType.BLOCK_END){
+            else if(pInstr[i].t==DDVM_InstructionType.BLOCK_END){
                 Logger.debugBgRed('<<< BLOCK END >>>');
-                bbs = pStack[i].i as ModelBasicBlock;
+                bbs = pInstr[i].i as ModelBasicBlock;
 
                 if(bbs.isTryEndBlock()){
                     if(bbs.hasCatchStatement()){
@@ -1312,7 +1350,7 @@ export default class DexcaliburDVM implements DexcaliburVM
             }
 
 
-        }while(i<pStack.length);
+        }while(i<pInstr.length);
 
         // when all instruction have been executed, get return
         if(dec.ret != null){
@@ -1323,7 +1361,7 @@ export default class DexcaliburDVM implements DexcaliburVM
         }
 
 
-        if(pStack[i].t!=DDVM_InstructionType.BLOCK_END && bbs.isTryEndBlock()){
+        if(pInstr[i].t!=DDVM_InstructionType.BLOCK_END && bbs.isTryEndBlock()){
             if(bbs.hasCatchStatement()){
                 d = bbs.getCatchStatements();
                 for(let i=0; i<d.length; i++){
@@ -1352,11 +1390,11 @@ export default class DexcaliburDVM implements DexcaliburVM
      * @param {Instruction[]} pInstrStack
      * @param {Integer} pInstrOffset
      */
-    execute( pInstrStack:DDVM_Instruction[], pInstrOffset:number):void{
+    execute( pInstrStack:DDVM_Instruction[], pInstrOffset:number):InstrPostExecState{
         let f:any={res:false}, v:string='', vx:string[]=null;
         let regX:any=null,  regV:any=null, regZ:any=null, label:any=null;
         let oper:ModelInstruction;
-        let state:any = { code:[], jump:null, ret:null, inv:null};
+        let state:InstrPostExecState = { code:[], jump:null, ret:null, inv:null};
         let regs:any = {};
         let indent:string = "    ".repeat(this.depth);
 
@@ -2299,6 +2337,7 @@ export default class DexcaliburDVM implements DexcaliburVM
                 }else{
                     // error => subject should be an object ref
                     Logger.error(`[VM][EXEC] Invalid '${oper.opcode.instr}' instruction : ${this.getRegisterName(oper.left[1])} is not an object reference`);
+                    console.log(regZ);
                 }
 
                 /*

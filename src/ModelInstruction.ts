@@ -147,6 +147,8 @@ export default class ModelInstruction extends Savable
         o.location = { offset:this.offset, bb:null };
         o.method = "";
 
+        o.opcode = this.opcode;
+
         if(this._parent instanceof ModelBasicBlock){
             o.location.bb = this._parent.offset;
             if(this._parent._parent instanceof ModelMethod){

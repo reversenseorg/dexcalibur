@@ -2,6 +2,8 @@
 import {CONST} from "./CoreConst.js";
 import DalvikInstructionFormat from "./DalvikInstructionFormat.js";
 import * as Core from './CoreParser.js';
+import {Endianness} from "./core/Endianness.js";
+import ModelInstruction from "./ModelInstruction.js";
 
 
 const LEX = Core.LEX;
@@ -9,6 +11,7 @@ const ReferenceType = CONST.OPCODE_REFTYPE;
 const Format = CONST.OPCODE_FORMAT;
 const OpcodeType = CONST.OPCODE_TYPE;
 
+export type OpcodeValue = number;
 
 enum RegType {
 	PARAM= 0,
@@ -21,11 +24,37 @@ LEX.REG = {
 	p: RegType.PARAM
 };
 
-
+export interface DalvikOpcodeDefinition {
+	/**
+	 * Opcode
+	 */
+	byte: OpcodeValue;
+	/**
+	 * Endianness used to encode opcode/instructuction
+	 * @type {Endianness}
+	 */
+	endianess?: Endianness;
+	/**
+	 * The type of reference, if the instruction has one
+	 * @type {ReferenceType}
+	 */
+	reftype?:number;
+	format:number;
+	flag?: number;
+	parse: any, //((src: string[], raw_src: string) => ModelInstruction),
+	type?: number,
+	valuetype?:any,
+	instr:string;
+	/**
+	 * Type of operation to perform at runtime
+	 * TODO : replace
+	 */
+	ope?:string;
+}
  
 
 
-export const OPCODE:any = {
+export const OPCODE:Record<string,DalvikOpcodeDefinition> = {
 	NOP:{ 
 		byte:0x00, 
 		instr:"nop", 
@@ -602,7 +631,7 @@ export const OPCODE:any = {
 	XOR_LONG:{ byte:0xa2, instr:"xor-long", ope: CONST.LEX.TOKEN.XOR, parse: DalvikInstructionFormat.Format23x, type: CONST.INSTR_TYPE.MATH, reftype: ReferenceType.NONE, format: Format.Format23x, flag:OpcodeType.CAN_CONTINUE | OpcodeType.SETS_REGISTER | OpcodeType.SETS_WIDE_REGISTER },
 	SHL_LONG:{ byte:0xa3, instr:"shl-long", ope: CONST.LEX.TOKEN.SHL, parse: DalvikInstructionFormat.Format23x, type: CONST.INSTR_TYPE.MATH, reftype: ReferenceType.NONE, format: Format.Format23x, flag:OpcodeType.CAN_CONTINUE | OpcodeType.SETS_REGISTER | OpcodeType.SETS_WIDE_REGISTER },
 	SHR_LONG:{ byte:0xa4, instr:"shr-long", ope: CONST.LEX.TOKEN.SHR, parse: DalvikInstructionFormat.Format23x, type: CONST.INSTR_TYPE.MATH, reftype: ReferenceType.NONE, format: Format.Format23x, flag:OpcodeType.CAN_CONTINUE | OpcodeType.SETS_REGISTER | OpcodeType.SETS_WIDE_REGISTER },
-	USHR_LONG:{ byte:0xa5, instr:"ushr-long", ope: CONST.LEX.TOKEN.USHR, arse: DalvikInstructionFormat.Format23x, type: CONST.INSTR_TYPE.MATH, reftype: ReferenceType.NONE, format: Format.Format23x, flag:OpcodeType.CAN_CONTINUE | OpcodeType.SETS_REGISTER | OpcodeType.SETS_WIDE_REGISTER },
+	USHR_LONG:{ byte:0xa5, instr:"ushr-long", ope: CONST.LEX.TOKEN.USHR, parse: DalvikInstructionFormat.Format23x, type: CONST.INSTR_TYPE.MATH, reftype: ReferenceType.NONE, format: Format.Format23x, flag:OpcodeType.CAN_CONTINUE | OpcodeType.SETS_REGISTER | OpcodeType.SETS_WIDE_REGISTER },
 	ADD_FLOAT:{ byte:0xa6, instr:"add-float", ope: CONST.LEX.TOKEN.ADD, parse: DalvikInstructionFormat.Format23x, type: CONST.INSTR_TYPE.MATH, reftype: ReferenceType.NONE, format: Format.Format23x, flag:OpcodeType.CAN_CONTINUE | OpcodeType.SETS_REGISTER },
 	SUB_FLOAT:{ byte:0xa7, instr:"sub-float", ope: CONST.LEX.TOKEN.SUB, parse: DalvikInstructionFormat.Format23x, type: CONST.INSTR_TYPE.MATH, reftype: ReferenceType.NONE, format: Format.Format23x, flag:OpcodeType.CAN_CONTINUE | OpcodeType.SETS_REGISTER },
 	MUL_FLOAT:{ byte:0xa8, instr:"mul-float", ope: CONST.LEX.TOKEN.MUL, parse: DalvikInstructionFormat.Format23x, type: CONST.INSTR_TYPE.MATH, reftype: ReferenceType.NONE, format: Format.Format23x, flag:OpcodeType.CAN_CONTINUE | OpcodeType.SETS_REGISTER },

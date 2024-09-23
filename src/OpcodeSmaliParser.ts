@@ -246,7 +246,8 @@ export default class OpcodeSmaliParser
     }
 
     /**
-     * To find an opcode by its literal name
+     * To find a Dalvik opcode by its literal name
+     *
      * @param {string} instr Instruction name
      * @return {any} Opcode
      * @method

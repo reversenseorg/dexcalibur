@@ -3,13 +3,20 @@
  */
 import DDVM_Symbol from "./DDVM_Symbol.js";
 
-export interface DDVM_SymbolMap {
-    [symbolName :string] :DDVM_Symbol;
-}
+export type DDVM_SymbolMap = Record<string,DDVM_Symbol>;
 
+/**
+ * Represent a symbol table
+ * It is a hashmap indexed by the name of local symbols (the name of local registers)
+ *
+ * A symbol table can use to hold global symbol, as well as local variable,
+ * but each table must be limite to a single scope (method, global, ..)
+ *
+ * @class
+ */
 export default class DDVM_SymbolTable
 {
-    table:DDVM_SymbolMap = null;
+    table:DDVM_SymbolMap = {};
 
     /**
      * @constructor
@@ -36,14 +43,18 @@ export default class DDVM_SymbolTable
         return m;
     }
 
+    /**
+     * To get the map
+     *
+     */
     getSymbols():DDVM_SymbolMap{
         return this.table;
     }
 
     /**
+     * To add a new symbol or replace an existing one with same name
      *
      * @param {string} pSymbol Symbol name
-     * @param pVisibility
      * @param pType
      * @param pValue
      * @param pCode
@@ -70,6 +81,20 @@ export default class DDVM_SymbolTable
         return (this.table[pSymbol]!==undefined);
     }
 
+    /**
+     * To import an existing symbol in to this table.
+     *
+     * It will create a new symbol
+     *
+     * It commonly happens whe a method is invoked :
+     * 'this' and arguments symbol from caller are imported inside
+     * local symbol table of the invoked method. Such structure is a kind
+     * of call stack
+     *
+     * @param {string} pReg
+     * @param {DDVM_Symbol} pSymbol symbol to import
+     * @param pExpr
+     */
     importSymbol(pReg:string, pSymbol:DDVM_Symbol, pExpr:any):DDVM_Symbol{
         return this.addEntry(pReg, pSymbol.type, pSymbol.value, pExpr, pSymbol.skipped);
     }
@@ -83,6 +108,12 @@ export default class DDVM_SymbolTable
         return this.table[pSymbol];
     }
 
+    /**
+     * Deep cloning of the table
+     *
+     * @return {DDVM_SymbolTable}
+     * @method
+     */
     clone():DDVM_SymbolTable{
         let tab:DDVM_SymbolTable = new DDVM_SymbolTable();
 

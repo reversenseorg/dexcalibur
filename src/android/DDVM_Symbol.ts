@@ -1,7 +1,7 @@
 import ModelClass from "../ModelClass.js";
 import ModelMethod from "../ModelMethod.js";
 import {Modifier} from "../AccessFlags.js";
-import {OPCODE} from "../Opcode.js";
+import {OPCODE, OpcodeValue} from "../Opcode.js";
 import DDVM_ClassInstance from "./DDVM_ClassInstance.js";
 import {DDVM_TypeHelper, DTYPE, DTYPE_STRING} from "./DDVM_TypeHelper.js";
 import DDVM_VirtualArray from "./DDVM_VirtualArray.js";
@@ -64,6 +64,17 @@ export default class DDVM_Symbol
         else{
             return `type:${DTYPE_STRING[this.type]}, value:NULL, code:${this.code}`;
         }
+    }
+
+    toJsonObject():any {
+        const o:any = {
+            type: this.type,
+            _type :DTYPE_STRING[this.type],
+            value: null,
+            code: this.code
+        };
+
+        return o;
     }
 
     setSkipped():void{
@@ -159,7 +170,14 @@ export default class DDVM_Symbol
         }
     }
 
-    add(pValue:any, pType:number, pOption:any=null):number{
+    /**
+     * Perform arithmetic add operation
+     *
+     * @param pValue
+     * @param pType
+     * @param pOption
+     */
+    add(pValue:any, pType:OpcodeValue, pOption:any=null):number{
         switch(pType){
 
             case OPCODE.ADD_LONG_2ADDR.byte:
@@ -178,7 +196,7 @@ export default class DDVM_Symbol
         }
     }
 
-    sub(pValue:number, pType:number, pOption:any=null):number{
+    sub(pValue:number, pType:OpcodeValue, pOption:any=null):number{
         switch(pType){
             case OPCODE.SUB_LONG_2ADDR.byte:
             case OPCODE.SUB_LONG.byte:
@@ -196,7 +214,7 @@ export default class DDVM_Symbol
         }
     }
 
-    mul(pValue:number, pType:number, pOption:any=null):number{
+    mul(pValue:number, pType:OpcodeValue, pOption:any=null):number{
         switch(pType){
             case OPCODE.MUL_LONG.byte:
             case OPCODE.MUL_LONG_2ADDR.byte:
@@ -215,7 +233,7 @@ export default class DDVM_Symbol
     }
 
 
-    div(pValue:number, pType:number, pOption:any=null):number{
+    div(pValue:number, pType:OpcodeValue, pOption:any=null):number{
         switch(pType){
             case OPCODE.DIV_LONG_2ADDR.byte:
             case OPCODE.DIV_LONG.byte:
@@ -233,7 +251,7 @@ export default class DDVM_Symbol
         }
     }
 
-    rem(pValue:number, pType:number, pOption:any=null):number{
+    rem(pValue:number, pType:OpcodeValue, pOption:any=null):number{
         switch(pType){
             case OPCODE.REM_LONG_2ADDR.byte:
             case OPCODE.REM_LONG.byte:
@@ -252,7 +270,7 @@ export default class DDVM_Symbol
     }
 
 
-    and(pValue:number, pType:number, pOption:any=null):number{
+    and(pValue:number, pType:OpcodeValue, pOption:any=null):number{
         switch(pType){
             case OPCODE.AND_LONG_2ADDR.byte:
             case OPCODE.AND_LONG.byte:
@@ -266,7 +284,7 @@ export default class DDVM_Symbol
     }
 
 
-    or(pValue:number, pType:number, pOption:any=null):number{
+    or(pValue:number, pType:OpcodeValue, pOption:any=null):number{
         switch(pType){
             case OPCODE.OR_LONG_2ADDR.byte:
             case OPCODE.OR_LONG.byte:
@@ -280,7 +298,7 @@ export default class DDVM_Symbol
     }
 
 
-    xor(pValue:number, pType:number, pOption=null):number{
+    xor(pValue:number, pType:OpcodeValue, pOption=null):number{
         switch(pType){
             case OPCODE.XOR_LONG_2ADDR.byte:
             case OPCODE.XOR_LONG.byte:
@@ -294,7 +312,7 @@ export default class DDVM_Symbol
     }
 
 
-    shl(pValue:number, pType:number, pOption=null):number{
+    shl(pValue:number, pType:OpcodeValue, pOption=null):number{
         switch(pType){
             case OPCODE.SHL_LONG_2ADDR.byte:
             case OPCODE.SHL_LONG.byte:
@@ -308,7 +326,7 @@ export default class DDVM_Symbol
     }
 
 
-    shr(pValue:number, pType:number, pOption=null):number{
+    shr(pValue:number, pType:OpcodeValue, pOption=null):number{
         switch(pType){
             case OPCODE.SHR_LONG_2ADDR.byte:
             case OPCODE.SHR_LONG.byte:
@@ -322,7 +340,7 @@ export default class DDVM_Symbol
     }
 
 
-    ushr(pValue:number, pType:number, pOption=null):number{
+    ushr(pValue:number, pType:OpcodeValue, pOption=null):number{
         switch(pType){
             case OPCODE.USHR_LONG_2ADDR.byte:
             case OPCODE.USHR_LONG.byte:

@@ -18,13 +18,17 @@ export interface DDVM_Instruction {
     t:DDVM_InstructionType
 }
 
+export interface DDVM_MethodInfo {
+    instr:DDVM_Instruction[]
+}
+
 
 /**
  * This class manages shared memory and overall executed instructions
  */
 export class DDVM_MethodArea
 {
-    methods:any = null;
+    methods:Record<string, DDVM_MethodInfo> = null;
     symTab:DDVM_SymbolTable = null;
 
     constructor(){
@@ -67,14 +71,15 @@ export class DDVM_MethodArea
      * @deprecated
      */
     getInstructions( pMethod:ModelMethod):any[]{
-        return this.methods[pMethod.signature()];
+        return this.methods[pMethod.signature()].instr;
     }
 
     /**
+     * Import a method into method area
      *
      * @param {Method} pMethod The method to init
      */
-    initMethod( pMethod:ModelMethod):any{
+    initMethod( pMethod:ModelMethod):DDVM_MethodInfo{
         let v:string = pMethod.signature();
         if(this.methods[v]==null){
             return this.methods[v] = {
@@ -88,7 +93,10 @@ export class DDVM_MethodArea
     /**
      * To perform forward and backward analysis. It allows to identify
      *  IF statement, GOTO, and more
+     *
      * @param {Method} pMethod
+     * @return {DDVM_Instruction[]}
+     * @method
      */
     analyzeBlocks(pMethod:ModelMethod):DDVM_Instruction[]{
 

@@ -141,3 +141,6 @@ export class DDVM_TypeHelper
         }
     }
 }
+
+
+export type OpcodeValue = number;
