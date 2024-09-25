@@ -6,8 +6,9 @@ import {IBridge} from "../Bridge.js";
 
 export default class DeviceEventCollector {
 
+    static getKernelTime = "cat /proc/uptime";
     static getEventCommand = "getevent -ltq";
-    static listDevicesEventsCommand = "getevent -lp";
+    static listDevicesEventsCommand = "getevent -lp"; // cat /proc/bus/input/devices
 
     childProcess: _child_process_.ChildProcess = null;
 
