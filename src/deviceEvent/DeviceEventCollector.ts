@@ -75,10 +75,10 @@ export default class DeviceEventCollector {
                 let timestamp: number = + elements[1].split("]")[0];
                 let device = elements[2].split(":")[0];
                 let eventType = elements[3];
-                let eventName = elements[4];
+                let eventCode = elements[4];
                 let eventValue = elements[5];
                 let parsedLine = {"timestamp": timestamp, "device":device ,"eventType": eventType,
-                    "eventName": eventName, "eventValue": eventValue};
+                    "eventCode": eventCode, "eventValue": eventValue};
                 parsedEventChunk.push(parsedLine);
             }
         })

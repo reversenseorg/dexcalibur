@@ -10,7 +10,9 @@ export default class AndroidEventRecordSession {
     static getKernelTime = "cat /proc/uptime";
     static listDevicesEventsCommand = "cat /proc/bus/input/devices"
 
-    getEventCommand = "cat ";
+    static getEventCommand = "cat /dev/input/event";
+
+    deviceHandlerNumber: number;
 
     childProcess: _child_process_.ChildProcess = null;
 
@@ -18,9 +20,9 @@ export default class AndroidEventRecordSession {
 
     deviceEvents: Record<string, any>[] = [];
 
-    constructor(deviceBridge: IBridge, deviceHandler: string) {
+    constructor(deviceBridge: IBridge, deviceHandlerNumber: number) {
         this.deviceBridge = deviceBridge;
-        this.getEventCommand += deviceHandler
+        this.deviceHandlerNumber = deviceHandlerNumber;
     }
 
     /**
@@ -30,7 +32,7 @@ export default class AndroidEventRecordSession {
         console.log('[AndroidEventRecordSession] START CollectDeviceEvents');
         try {
             //this.childProcess = this.deviceBridge.spawn(AndroidEventRecordSession.getEventCommand);
-            this.childProcess = _child_process_.spawn(this.getEventCommand);
+            this.childProcess = _child_process_.spawn(AndroidEventRecordSession.getEventCommand + this.deviceHandlerNumber);
             this.childProcess.stdout.on('data', (data) => {
 
                 console.log("Parse New Chunk");
@@ -75,7 +77,7 @@ export default class AndroidEventRecordSession {
     }
 
     static parseEventChunk(eventChunk: Buffer) {
-        const EVENT_SIZE = 24;
+        const EVENT_SIZE = 24; // Depends on the architecture/device
         let parsedEventChunk: any[] = [];
         let numberOfEvents = (eventChunk.length / EVENT_SIZE >>0);
         for (let i = 0; i < numberOfEvents; i++) {
@@ -86,23 +88,19 @@ export default class AndroidEventRecordSession {
             // 	unsigned short code; 2
             // 	unsigned int value; 4
             // };
-            //struct timeval {
-            //    long tv_sec;    /* seconds */
-            //    long tv_usec;   /* microseconds */
-            // };
             // TODO: Switch to dxc-struct to read buffer
             let offset = 0;
             let timestamp_sec = eventBuffer.readBigInt64LE(offset);
             offset += 8;
-            let timestamp_nsec = eventBuffer.readBigInt64LE(offset);
+            let timestamp_usec = eventBuffer.readBigInt64LE(offset);
             offset += 8;
             let eventType = eventBuffer.readInt16LE(offset);
             offset += 2;
-            let eventName = eventBuffer.readInt16LE(offset);
+            let eventCode = eventBuffer.readInt16LE(offset);
             offset += 2;
             let eventValue = eventBuffer.readInt32LE(offset);
-            let parsedLine = {"timestamp_sec": timestamp_sec, "timestamp_nsec": timestamp_nsec, "eventType": eventType,
-                "eventName": eventName, "eventValue": eventValue.toString(16)};
+            let parsedLine = {"timestamp_sec": timestamp_sec, "timestamp_usec": timestamp_usec, "eventType": eventType,
+                "eventCode": eventCode, "eventValue": eventValue.toString(16)};
             parsedEventChunk.push(parsedLine);
         }
         return parsedEventChunk;

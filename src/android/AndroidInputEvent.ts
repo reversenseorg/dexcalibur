@@ -1,7 +1,13 @@
 // List of sources:
 // Android CodeShare https://cs.android.com/android/kernel/superproject/+/common-android-mainline:common/include/uapi/linux/input-event-codes.h
 // Evdev: https://docs.rs/crate/evdev/0.9.2/source/src/lib.rs
+// https://stackoverflow.com/a/73681064
+type ValueOf<T> = T[keyof T];
 
+export function getEnumKeyByEnumValue<R extends (string | number), T extends {[key: string] : R}>(myEnum: T, enumValue: ValueOf<T>): string {
+    let keys = Object.keys(myEnum).filter((x) => myEnum[x] == enumValue);
+    return keys.length > 0 ? keys[0] : '';
+}
 
 export enum AndroidEventType {
     // Used as markers to separate events. Events may be separated in time or in space, such as with the multitouch protocol.
@@ -22,6 +28,36 @@ export enum AndroidEventType {
     EV_FF = 0x15,
     EV_PWR = 0x16,
     EV_FF_STATUS = 0x17,
+}
+
+export function getEventLabelEnumFromType(androidEventType: number): any {
+    switch (androidEventType) {
+        case AndroidEventType.EV_SYN:
+            return AndroidSynEventCode;
+        case AndroidEventType.EV_KEY:
+            return AndroidKeyEventLabel;
+        case AndroidEventType.EV_REL:
+            return AndroidRelEventLabel;
+        case AndroidEventType.EV_ABS:
+            return AndroidAbsEventLabel;
+        case AndroidEventType.EV_MSC:
+            return AndroidMscEventLabel;
+        case AndroidEventType.EV_SW:
+            return AndroidSwEventLabel;
+        case AndroidEventType.EV_LED:
+            return AndroidLedEventLabel;
+        case AndroidEventType.EV_SND:
+            return AndroidSndEventLabel;
+        case AndroidEventType.EV_REP:
+            return AndroidRepEventLabel;
+        case AndroidEventType.EV_FF:
+            return AndroidFfEventLabel;
+        case AndroidEventType.EV_FF_STATUS:
+            return AndroidFfStatusEventLabel;
+        case AndroidEventType.EV_PWR:
+        default:
+            return null;
+    }
 }
 
 //All the events
@@ -1595,7 +1631,7 @@ export enum AndroidMtToolEventLabel {
     MT_TOOL_DIAL = 0x0a,
 }
 
-export enum FfStatusEventLabel {
+export enum AndroidFfEventLabel {
     FF_STATUS_STOPPED = 0x00,
     FF_STATUS_PLAYING = 0x01,
 }
