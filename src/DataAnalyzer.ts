@@ -881,7 +881,7 @@ export class DataAnalyzer implements IAnalyzerUnit
                             type: "data.file.parsed",
                             data: {
                                 file: vFile,
-                                parser: (parserConstructors[0]).UID,
+                                parser: parserConstructors[0],// (parserConstructors[0]).UID,
                                 format: fmt
                             }
                         });
