@@ -7,7 +7,10 @@ export default class InputEventChangeType  extends EncodedToken {
     tags: number[];
     metadata?:any;
 
-    constructor( pConfig:any = null) {
-        if(pConfig!=null) for(const i in pConfig) this[i]=pConfig[i];
+    constructor( pParent: any, pConfig:any ) {
+        super(pParent);
+        if (pConfig != null) {
+            for (const i in pConfig) this[i] = pConfig[i];
+        }
     }
 }

@@ -1,13 +1,13 @@
 import DeviceEventCollector from "../src/deviceEvent/DeviceEventCollector.js";
 import AndroidEventRecordSession from "../src/deviceEvent/AndroidEventRecordSession.js";
 import {expect} from 'chai';
-import * as _child_process_ from "child_process";
 import {
     AndroidEventType,
     AndroidKeyEventLabel,
     getEnumKeyByEnumValue,
     getEventLabelEnumFromType
 } from "../src/android/AndroidInputEvent.js";
+import AndroidPhysicalEventWrapper from "../src/deviceEvent/AndroidPhysicalEventWrapper.js";
 
 
 const FIRST_BATCH_RAW = "[  188364.900319] /dev/input/event12: EV_KEY       KEY_A                DOWN                \n" +
@@ -188,16 +188,6 @@ const CHUNK_EVENT_PARSED_AND_LABELED = [
 ]
 
 describe('Devices Events Collector', function() {
-
-    before(function(){
-    });
-
-    beforeEach(function() {
-    });
-
-    afterEach(function() {
-       // console.log.restore();
-    });
     
     describe('Device Event Collector', function() {
 
@@ -226,6 +216,8 @@ describe('Devices Events Collector', function() {
         });
 
         it('Parse and label a chunk of Device events', function () {
+            let test_decode = new AndroidPhysicalEventWrapper().decode(CHUNK_EVENT_HEX);
+            console.log(test_decode);
             let chunk_parsed = AndroidEventRecordSession.parseEventChunk(CHUNK_EVENT_HEX);
             let labeled_Chunk : any[] = []
             chunk_parsed.forEach((event) => {
@@ -244,47 +236,53 @@ describe('Devices Events Collector', function() {
     describe('AndroidInputEvent', function() {
 
         it('getEnumKeyByEnumValue enum value EV_KEY', function () {
+            let EXPECTED_EK_LABEL = "EV_KEY";
             let enumKey = getEnumKeyByEnumValue(AndroidEventType, AndroidEventType.EV_KEY);
-            expect(enumKey).to.equal("EV_KEY");
+            expect(enumKey).to.equal(EXPECTED_EK_LABEL);
         });
 
 
         it('getEnumKeyByEnumValue direct hex value', function () {
-            const EV_REL_VALUE = 0x02;
-            let enumKey = getEnumKeyByEnumValue(AndroidEventType, EV_REL_VALUE);
-            expect(enumKey).to.equal("EV_REL");
+            let EXPECTED_ER_LABEL = "EV_REL";
+            const EV_REL = 0x02;
+            let enumKey = getEnumKeyByEnumValue(AndroidEventType, EV_REL);
+            expect(enumKey).to.equal(EXPECTED_ER_LABEL);
         });
 
         it('getEnumKeyByEnumValue direct int value', function () {
-            const EV_REL_VALUE = 2;
-            let enumKey = getEnumKeyByEnumValue(AndroidEventType, EV_REL_VALUE);
-            expect(enumKey).to.equal("EV_REL");
+            let EXPECTED_ER_LABEL = "EV_REL";
+            const EV_REL = 2;
+            let enumKey = getEnumKeyByEnumValue(AndroidEventType, EV_REL);
+            expect(enumKey).to.equal(EXPECTED_ER_LABEL);
         });
 
-        it('getEnumKeyByEnumValue throw when invalid arg type', function () {
+        it('getEnumKeyByEnumValue return empty string for value not in enum', function () {
+            let EXPECTED_EMPTY_LABEL = "";
             const ERROR_ARG_NOT_IN_ENUM: number = 0x99999999999;
             let enumKey = getEnumKeyByEnumValue(AndroidEventType, ERROR_ARG_NOT_IN_ENUM)
-            expect(enumKey).to.equal("");
+            expect(enumKey).to.equal(EXPECTED_EMPTY_LABEL);
         });
 
 
-        it('Test getEventLabelEnumFromType', function () {
+        it('getEventLabelEnumFromType', function () {
             let keyEventEnum = getEventLabelEnumFromType(AndroidEventType.EV_KEY)
             expect(keyEventEnum).to.deep.equal(AndroidKeyEventLabel);
         });
 
-        it('getEnumKeyByEnumValue throw when invalid arg type', function () {
+        it('getEventLabelEnumFromType + getEnumKeyByEnumValue', function () {
+            let EXPECTED_K1_LABEL = "KEY_1";
             let keyEventEnum = getEventLabelEnumFromType(AndroidEventType.EV_KEY)
             let enumKey = getEnumKeyByEnumValue(keyEventEnum, keyEventEnum.KEY_1);
-            expect(enumKey).to.equal("KEY_1");
+            expect(enumKey).to.equal(EXPECTED_K1_LABEL);
         });
 
-        it('getEnumKeyByEnumValue throw when invalid arg type 2', function () {
-            let KEY_EVENT_TYPE_VALUE = 1;
-            let KEY_2_EVENT_VALUE = 3;
-            let keyEventEnum = getEventLabelEnumFromType(KEY_EVENT_TYPE_VALUE);
-            let enumKey = getEnumKeyByEnumValue(keyEventEnum, KEY_2_EVENT_VALUE);
-            expect(enumKey).to.equal("KEY_2");
+        it('getEventLabelEnumFromType + getEnumKeyByEnumValue with number value', function () {
+            const ABS_EVENT_TYPE = 3;
+            const ABS_WHEEL_EVENT_CODE = 8;
+            let EXPECTED_AW_LABEL = "ABS_WHEEL";
+            let keyEventEnum = getEventLabelEnumFromType(ABS_EVENT_TYPE);
+            let enumKey = getEnumKeyByEnumValue(keyEventEnum, ABS_WHEEL_EVENT_CODE);
+            expect(enumKey).to.equal(EXPECTED_AW_LABEL);
         });
 
     });

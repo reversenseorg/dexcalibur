@@ -10,7 +10,7 @@ export default class PhysicalEventChannel {
         if(pConfig!=null) for(const i in pConfig) this[i]=pConfig[i];
     }
 
-    static startRecord(): EventRecordSession {
+    startRecord(): EventRecordSession {
         let newRecord = new EventRecordSession();
         this.records.push(newRecord);
         return newRecord;
