@@ -249,8 +249,8 @@ export default new InspectorFactory({
 
                 if(dir.split(_path_.sep).pop()!='unknown') return;
 
-                if((parserEvent.format==".properties")
-                    ||(parserEvent.parser!=null && parserEvent.FORMAT_NAMES.indexOf("properties")>-1)){
+                if((parserEvent.format === ".properties")
+                    || (parserEvent.parser != null && parserEvent.parser.FORMAT_NAMES?.indexOf("properties")>-1)) {
 
                     if(file.data != null && file.data.ok!=null){
 

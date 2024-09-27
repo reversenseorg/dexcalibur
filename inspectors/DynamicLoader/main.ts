@@ -512,14 +512,14 @@ export default new InspectorFactory({
             lang: "ts"
         },
         "hook.reflect.class.get": {
+            lang: "ts",
             source:`
             // <ts>={
             // get CFG
-            // let db = ctx.analyze.db;
+            // let db = ctx.analyze.db; 
             // search if the method exists
-            pEvent.getContext().LOG.info("[INSPECTOR][TASK] DynLoaderInspector search Class ", pEvent.getData().data.fqcn);
-            `,
-            lang: "ts"
+            pEvent.getContext().LOG.info("[INSPECTOR][TASK] DynLoaderInspector search Class fqcn: ", pEvent.getData().data.class.fqcn);
+            `
         },
         "hook.reflect.method.get": {
             source:`

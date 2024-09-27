@@ -4,7 +4,15 @@ import HookMessageV2 from "./HookMessageV2.js";
 import BusEvent from "../BusEvent.js";
 import {NodeInternalType}
 from "@dexcalibur/dxc-core-api";;
-import {NodeType, NodeProperty, DbDataType, DbKeyType, NodePropertyState, Tag} from "@dexcalibur/dexcalibur-orm";
+import {
+    NodeType,
+    NodeProperty,
+    DbDataType,
+    DbKeyType,
+    NodePropertyState,
+    Tag,
+    NodeUtils
+} from "@dexcalibur/dexcalibur-orm";
 import {CoreDebug} from "../core/CoreDebug.js";
 
 export enum RuntimeEventType {
@@ -38,7 +46,7 @@ export class RuntimeEvent<P> extends BusEvent<any> implements INode {
             (new NodeProperty("data"))
                 .type(DbDataType.STRING)
                 .sleep( (x:NodePropertyState)=>{
-                    if(x.p != null){
+                    if(x.p != null && x.p.toJsonObject != null){
                         return x.p.toJsonObject();
                     }else{
                         return null;

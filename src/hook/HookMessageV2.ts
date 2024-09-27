@@ -81,7 +81,14 @@ export default class HookMessageV2
     toJsonObject():any{
         let o:any = new Object();
         o.uid = this.uid;
-        o.data = this.data;
+        o.data = {};
+        for (let k in this.data) {
+            if (k.startsWith("__hidden__")) {
+                o.data[k] = null;
+            } else {
+                o.data[k] = this.data[k];
+            }
+        }
         o.hid = this.hid;
         o.fid = this.fid;
 
