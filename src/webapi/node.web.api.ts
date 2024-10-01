@@ -27,6 +27,26 @@ NODE_MGR_WEB_API.addAsyncAuthenticatedRoute(
     }
 );
 
+NODE_MGR_WEB_API.addAsyncAuthenticatedRoute(
+    '/monitor/nodes',
+    {
+        'get': async function (req:DelegateRequest, res:DelegateResponse):Promise<any> {
+            const $: WebServer = req.dxc.$;
+
+            // TODO : check if user as PlateformAdministrator role
+
+            try{
+                const o = $.context.nodeManager.toJsonObject();
+                //console.log(o);
+                $.sendSuccess(res, o);
+            }catch(err){
+                Logger.error("[API][NODE] Cannot retrieve scheduler info. Cause : " + err.message + "\n\t" + err.stack);
+                $.sendError(res, "Cannot retrieve scheduler info");
+            }
+        }
+    }
+);
+
 
 /**
  * A webhook used by slave nodes to send state/health checks to master node
@@ -50,6 +70,7 @@ NODE_MGR_WEB_API.addAsyncPublicRoute(
                 }
 
                 $.context.nodeManager.updateState(unsafeUuidHeader, req.params.state as NodeState);
+
                 $.sendSuccess(res, {});
             }catch(err){
                 Logger.error("[API][NODE] Node state cannot updated. Cause : UUID Header is missing : ",err.stack,err.message);
