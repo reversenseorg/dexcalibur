@@ -458,7 +458,7 @@ export class JavaHookBuilder{
             
             try{
                 cls_@@__CLSDEF__@@ = Java.use('@@__FQCN__@@');
-                meth_@@__METHDEF__@@ = cls_@@__CLSDEF__@@.@@__METHNAME__@@.overload(@@__ARGS__@@);
+                meth_@@__METHDEF__@@ = cls_@@__CLSDEF__@@["@@__METHNAME__@@"].overload(@@__ARGS__@@);
                 meth_@@__METHDEF__@@.implementation = function(@@__HOOK_ARGS__@@) {
                     var ret = null;
         `;
@@ -588,7 +588,7 @@ export class JavaHookBuilder{
             
             try{
                 cls_@@__CLSDEF__@@ = Java.use('@@__FQCN__@@');
-                meth_@@__METHDEF__@@ = cls_@@__CLSDEF__@@.@@__METHNAME__@@.overload(@@__ARGS__@@);
+                meth_@@__METHDEF__@@ = cls_@@__CLSDEF__@@["@@__METHNAME__@@"].overload(@@__ARGS__@@);
                 meth_@@__METHDEF__@@.implementation = function(@@__HOOK_ARGS__@@):any {
                     let ret = null;
         `;
