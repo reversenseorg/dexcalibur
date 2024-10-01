@@ -304,7 +304,7 @@ export class SearchAPI
             return this._oneOrMore(fileDB, DataModel.file, '_uid', pattern);
         }else{
             const scopes:DataScopeMap = dataAnal.scopes;
-            let res:FinderResult;
+            let res:FinderResult = new FinderResult(this._finder.newResultSet(),this._finder);
             let k = 0;
 
             for(let i in scopes){
