@@ -6,7 +6,7 @@ import AccessControl from "./acl/AccessControl.js";
 import {ProjectURI} from "../project/ProjectGlobalUID.js";
 import {IDexcaliburEngine} from "../IDexcaliburEngine.js";
 import {IPersistent} from "../persist/orm/IPersistent.js";
-import {NodeType} from "@dexcalibur/dexcalibur-orm";
+import {INode, NodeType, SerializeOptions} from "@dexcalibur/dexcalibur-orm";
 import {NodeInternalType}
 from "@dexcalibur/dxc-core-api";;
 import Util from "../Utils.js";
@@ -28,7 +28,7 @@ export interface UserAccountOptions extends IStringIndex<any> {
     _projects?:ProjectURI[]
 }
 
-export class UserAccount implements IPersistent{
+export class UserAccount implements IPersistent, INode {
 
     static TYPE:NodeType = new NodeType(
         'user',
@@ -59,6 +59,8 @@ export class UserAccount implements IPersistent{
     private _time:string;
     private _locked:boolean = false;
 
+    tags:number[] = [];
+
     /**
      * Projects
      */
@@ -72,6 +74,11 @@ export class UserAccount implements IPersistent{
         // TODO : replace by uuid
         if(this._uid==null && this._username!=null){
             this._uid = this._username;
+        }
+
+        if(this._role != null && (typeof  this._role==="string")){
+            this.role = this._role;
+            //this._role = AccessControl.getRole(this._role as string);
         }
     }
 
@@ -254,6 +261,19 @@ export class UserAccount implements IPersistent{
             out.push(i);
         }
         return out;
+    }
+
+    toJsonObject(pOption?: SerializeOptions): any {
+        let o:any = {};
+
+        o._uid = this.getUID();
+        o._person = (this._person!=null ? this.person : null);
+        o._role = (this._role !=null ? this._role.uid : null);
+        o._username = this._username;
+        o._time = this._time;
+        o._locked = this._locked;
+
+        return o;
     }
 }
 

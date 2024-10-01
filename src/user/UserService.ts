@@ -19,6 +19,8 @@ import {MonitoredError} from "../errors/MonitoredError.js";
 import DexcaliburEngine from "../DexcaliburEngine.js";
 import {SessionData} from "./session/SessionData.js";
 import {IDatabase, IDatabaseAdapter, IDbCollection} from "@dexcalibur/dexcalibur-orm";
+import {MongodbDbCollection} from "@dexcalibur/dexcalibur-orm-mongodb";
+import {Nullable} from "../core/IStringIndex.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -35,7 +37,11 @@ export class UserService {
     sessSvc: SessionService;
 
     private _db:IDatabase = null;
+    private _coll:MongodbDbCollection = null;
+
     private _settings: AuthenticationSettings = null;
+
+
     _ctx:DexcaliburEngine = null;
 
     constructor(pSettings:AuthenticationSettings, pContext:DexcaliburEngine = null) {
@@ -46,9 +52,10 @@ export class UserService {
             throw UserServiceException.DB_IS_NOT_READY();
         }
 
+
         UserAccount.TYPE.source(UserService.findUserByUID);
-        SessionData.TYPE.source(UserService.findAllSessionData);
-        UserSession.TYPE.subscribe('save_data', UserService.saveSessionData);
+        // SessionData.TYPE.source(UserService.findAllSessionData);
+        // UserSession.TYPE.subscribe('save_data', UserService.saveSessionData);
 
         //this.initService(pContext);
     }
@@ -76,7 +83,7 @@ export class UserService {
 
 
 
-    static findAllSessionData( pSession:UserSession, pEngineUID:string = null):SessionData[] {
+    /*static findAllSessionData( pSession:UserSession, pEngineUID:string = null):SessionData[] {
         const svc:UserService = gInstance[pEngineUID!=null ? pEngineUID : DexcaliburEngine.DEFAULT_UID];
 
         if(svc==null){
@@ -84,9 +91,9 @@ export class UserService {
         }
 
         return UserService.findSessionData({ session:pSession, _name:null},pEngineUID);
-    }
+    }*/
 
-
+/*
     static findSessionData( pData:any, pEngineUID:string = null):SessionData[] {
         const svc:UserService = gInstance[pEngineUID!=null ? pEngineUID : DexcaliburEngine.DEFAULT_UID];
 
@@ -95,10 +102,10 @@ export class UserService {
         }
 
         return svc.sessSvc.findSessionData(pData.session, pData._name);
-    }
+    }*/
 
 
-    static saveSessionData(pSessionData:SessionData, pEngineUID:string = null):boolean {
+    /*static saveSessionData(pSessionData:SessionData, pEngineUID:string = null):boolean {
 
         const svc:UserService = gInstance[pEngineUID!=null ? pEngineUID : DexcaliburEngine.DEFAULT_UID];
 
@@ -108,7 +115,7 @@ export class UserService {
 
 
         return svc.sessSvc.updateSessionData(pSessionData);
-    }
+    }*/
 
     /**
      *
@@ -117,10 +124,13 @@ export class UserService {
 
         gInstance[pContext.UID] = this;
 
+        this._coll = pContext.getEngineDB().getCollectionOf(UserAccount.TYPE.getType()) as MongodbDbCollection;
+
         this.authSvc = new AuthenticationService(this._settings, pContext);
         await this.authSvc.init();
 
         this.sessSvc = new SessionService( this._settings.getSessionSettings(),pContext);
+
 
 
 
@@ -138,15 +148,20 @@ export class UserService {
 
 
                 Logger.debug('----------- AFTER USER IS READY ------------ ');
-                this.authSvc.importUsers(this._db.getCollection('user', UserAccount.TYPE));
+                this.authSvc.importUsers(
+                    //this._db.getCollection('user', UserAccount.TYPE)
+                    this._ctx.getEngineDB().getCollectionOf(UserSession.TYPE.getType()) as MongodbDbCollection
+                    //this._ctx.getEngineDB().getCollectionOf(UserAccount.TYPE.getType()) as MongodbDbCollection
+                );
 
                 Logger.debug('----------- RESTORING ACTIVE SESSIONS ------------ ');
-                this.sessSvc.importSessions(this._db.getCollection('session', UserSession.TYPE));
+                await this.sessSvc.importSessions(
+                    this._ctx.getEngineDB().getCollectionOf(UserSession.TYPE.getType()) as MongodbDbCollection
+                );
 
-                Logger.debug('----------- START USER SERVICE ------------ ');
-                /*if(this.authSvc._users.size()==0){
-                    throw UserServiceException.EMPTY_USER_DB();
-                }*/
+                    //this._db.getCollection('session', UserSession.TYPE));
+
+
 
 
             }
@@ -335,12 +350,21 @@ export class UserService {
     }
 
     openSession( pSessUID: string): UserSession {
-        let sess:UserSession = this.sessSvc.getSessionByUID(pSessUID)
+        let sess:any = this.sessSvc.asyncGetSessionByUID(pSessUID); //getSessionByUID(pSessUID)
 
         if(sess.getUserAccount().isLocked())
             throw new SessionException("Session cannot be opened : account is locked", SessionCode.ACCOUNT_LOCKED)
 
         return sess;
+    }
+
+    async asyncOpenSession( pSessUID: string): Promise<UserSession> {
+        /*let sess:UserSession = await this.sessSvc.asyncGetSessionByUID(pSessUID); //getSessionByUID(pSessUID)
+
+        if(sess.getUserAccount().isLocked())
+            throw new SessionException("Session cannot be opened : account is locked", SessionCode.ACCOUNT_LOCKED)*/
+
+        return await this.sessSvc.asyncGetSessionByUID(pSessUID);
     }
 
     /**
@@ -374,12 +398,12 @@ export class UserService {
         }
     }
 
-    getActiveSessions( pAccount: UserAccount): UserSession[] {
-        return this.sessSvc.getSessionsByAccount( pAccount);
+    async getActiveSessions( pAccount: UserAccount): Promise<UserSession[]> {
+        return await this.sessSvc.getSessionsByAccount( pAccount);
     }
 
-    getLatestActiveSession( pAccount: UserAccount): UserSession {
-        const sess:UserSession[] = this.sessSvc.getSessionsByAccount( pAccount);
+    async getLatestActiveSession( pAccount: UserAccount): Promise<UserSession> {
+        const sess:UserSession[] = await this.sessSvc.getSessionsByAccount( pAccount);
 
         if(sess.length==0)
             throw new SessionException("There is not active session for the given account", SessionCode.NO_SESSION_FOUND)
@@ -393,18 +417,16 @@ export class UserService {
         }
     }
 
-    /**
+    /*
+     *Peer authentication send a one time password to team leader or another team member.
+     * The user must use this password with its login whithin the time window
      *
      * @param pLogin
      * @param pPassword
-     */
+     *
     doPeerOTPAuthentication( pLogin:string, pPeerID:string): UserSession {
-        /*
-         * Peer authentication send a one time password to team leader or another team member.
-         * The user must use this password with its login whithin the time window
-         */
         return null;
-    }
+    }*/
 
     /**
      *
@@ -425,24 +447,6 @@ export class UserService {
         return sess;
     }
 
-    /**
-     *
-     * @param pLogin
-     * @param pPassword
-     */
-    postSsoAutenticationSuccess( pLogin:string, pPassword:string): UserSession {
-        let sess:UserSession = null;
-        const res:AuthenticationResult = this.authSvc.newPasswordAuthenticator()
-            .doAuthentication(pLogin,pPassword);
-
-        if(AuthenticationResult.isSuccess(res)){
-            sess = this.sessSvc.newSession(res.getAccount());
-        }else{
-            throw AuthenticationException.AUTHENTICATION_FAILED();
-        }
-
-        return sess;
-    }
 
     /**
      * To create a user account and save it
@@ -484,5 +488,30 @@ export class UserService {
 
     getSessionService(): SessionService {
         return this.sessSvc;
+    }
+
+    async find(pAccount: UserAccount, pOptions: { autoCreate: boolean }):Promise<Nullable<UserAccount>> {
+        let user = await this._coll.asyncGetEntry({
+            [UserAccount.TYPE.getPrimaryKey().getName()] : pAccount.getUID()
+        });
+
+        if(user != null) {
+            Logger.success("[AUTH SERVICE] Find user : account found");
+            return user;
+        }else{
+            if(pOptions.autoCreate == true){
+                user = await this._coll.asyncAddEntry(
+                    {
+                        [UserAccount.TYPE.getPrimaryKey().getName()] : pAccount.getUID()
+                    },
+                    pAccount);
+
+                Logger.success("[AUTH SERVICE] Find user : account not found but created accordingly to 'autoCreate' option");
+
+                return user;
+            }else{
+                return null;
+            }
+        }
     }
 }

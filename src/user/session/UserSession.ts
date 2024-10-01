@@ -13,19 +13,35 @@ from "@dexcalibur/dxc-core-api";;
 import {IPersistent} from "../../persist/orm/IPersistent.js";
 import {SessionData} from "./SessionData.js";
 import {CoreDebug} from "../../core/CoreDebug.js";
-import {NodeType} from "@dexcalibur/dexcalibur-orm";
+import {INode, NodeType} from "@dexcalibur/dexcalibur-orm";
+import {Nullable} from "../../core/IStringIndex.js";
+import * as Log from "../../Logger.js";
 
-export class UserSession implements IPersistent{
+
+
+let Logger:Log.Logger = Log.newLogger() as Log.Logger;
+
+export interface UserSessionOptions {
+    _uid?: string;
+    _acc?: UserAccount;
+    _created? :number;
+    _destroyed? :number;
+    _project?:Record<string, DexcaliburProject>;
+    _defaultProject?:DexcaliburProject;
+    _data?:Record<string, SessionData>;
+    _must_set_cookie?:boolean;
+}
+
+export class UserSession implements IPersistent, INode {
 
     static TYPE:NodeType = new NodeType(
         'session',
         NodeInternalType.USER_SESSION,
         [
         ]
-    ).dataSource("FILE");
+    ).dataSource("ENGINE_DB");
 
     __:NodeInternalType = NodeInternalType.USER_SESSION;
-
 
     private _uid:string;
     private _acc: UserAccount;
@@ -45,18 +61,24 @@ export class UserSession implements IPersistent{
     _project: DexcaliburProjectMap = {};
     _defaultProject: DexcaliburProject = null;
 
-    _data:any = {};
+    _data:Record<string, SessionData> = {};
+
 
     _conn:ConnectionHandlerMap = {};
 
     _must_set_cookie = false;
 
-    constructor( pConfig:any) {
+    tags:number[] = [];
 
-        for(const i in pConfig){
-            this[i] = pConfig[i];
+    constructor( pConfig:Nullable<UserSessionOptions> = null) {
 
+        if(pConfig !=null){
+            for(const i in pConfig){
+                this[i] = pConfig[i];
+
+            }
         }
+
     }
 
     static create( pSessUID:string, pAccount: UserAccount):UserSession {
@@ -73,6 +95,7 @@ export class UserSession implements IPersistent{
             _created:  Date.now()
         });
     }
+
 
     isMustSetCookie():boolean {
         return this._must_set_cookie;
@@ -243,15 +266,23 @@ export class UserSession implements IPersistent{
         if(this._destroyed > -1)
             throw new SessionException("Data cannot be read : Session has been destroyed.", SessionCode.DESTROYED);
 
-        this._data[pName] = new SessionData({ session_uid:this.getSessUID(), _sess:this, _name:pName, _value:pValue });
-        UserSession.TYPE.trigger('save_data', this._data[pName]);
+        this._data[pName] = new SessionData({  _sess:this, _name:pName, _value:pValue });
+        //UserSession.TYPE.trigger('save_data', this._data[pName]);
     }
 
     getData( pName:string = null):any  {
         if(this._destroyed > -1)
             throw new SessionException("Data cannot be read : Session has been destroyed.", SessionCode.DESTROYED);
 
-        return (pName==null ? this._data : this._data[pName].getValue());
+        //console.log("getData ", pName, this._data[pName],  )
+        if(pName==null){
+            return this._data;
+        }
+        else if(this._data[pName] != null){
+            return this._data[pName].getValue();
+        }else{
+            return null;
+        }
     }
 
     toJsonObject():any {
@@ -266,6 +297,16 @@ export class UserSession implements IPersistent{
         o._conn = Object.keys(this._conn);
         CoreDebug.checkJsonSerialize(o,"UserSession");
         return o;
+    }
+
+    /**
+     * To set user account linked to this session
+     *
+     * @param {UserAccount} pAccount
+     * @method
+     */
+    setUserAccount(pAccount: UserAccount) {
+        this._acc = pAccount;
     }
 }
 

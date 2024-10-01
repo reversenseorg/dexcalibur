@@ -62,6 +62,15 @@ export class SessionSettings{
         this._flush = Util.getValueWithOverride( parentSettings, 'expireFlush', false, pOverrideSettings.expireFlush);
     }
 
+    /**
+     * To get the max duration of a user session
+     * until it expires.
+     *
+     * In seconds
+     *
+     * @returns {number} Duration in second
+     * @method
+     */
     getMaxDuration():number {
         return this._duration;
     }

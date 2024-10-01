@@ -166,7 +166,12 @@ export default class WebServer
     tplengine:WebTemplateEngine = null;
     app:ExpressApplication = null;
     httpServer:any = null;
-    port:number = 8000;
+
+    /**
+     * The port of this instance
+     */
+    private _port:number;
+
 //        root = Path.join(project.config.dexcaliburPath, "webserver", "public");
     // root = _path_.join( __dirname, "webserver", "public");
     root:string = "";
@@ -198,6 +203,12 @@ export default class WebServer
 
     /**
      *
+     * @private
+     */
+    private _started = false;
+
+    /**
+     *
      * @param {Project} pProject
      * @constructor
      */
@@ -208,7 +219,8 @@ export default class WebServer
 
         this.tplengine = new WebTemplateEngine();
         this.app = express();
-        this.port = 8000;
+
+        this.setPort(8000);
 
         this.guiCfgs = pGuiCfgs;
         this.root = pWebRoot;
@@ -220,6 +232,41 @@ export default class WebServer
         this.uploader = null;
 
         this.controller = null;
+    }
+
+
+    set port(pNumber:number) {
+        throw new Error("[WEB SERVER] Direct set of 'port' property is deprecated and forbidden");
+    }
+
+    get port():number {
+        throw new Error("[WEB SERVER] Direct get of to 'port' property is deprecated and forbidden");
+    }
+
+    /**
+     * To set port number of the web server.
+     *
+     * This port is unique per instance, and cannot be changed after starting
+     *
+     * @param {number} pPort Port number
+     * @method
+     */
+    setPort(pPort:number):void {
+        if(this._started===false){
+            this._port = pPort;
+        }else{
+//            throw
+        }
+    }
+
+    /**
+     * To get port number where the server is listening
+     *
+     * @returns {number} Port number
+     * @metho
+     */
+    getPort():number {
+        return this._port;
     }
 
     /**
@@ -288,7 +335,7 @@ export default class WebServer
      * @since 1.0.0
      */
     configure( pSettings:Settings.WebServerSettings):void {
-        this.port = pSettings.getHttpPort();
+        this.setPort(pSettings.getHttpPort());
     }
 
     /**
@@ -1159,61 +1206,51 @@ export default class WebServer
 
             //if(!req.url.startsWith('/api/') && !req.url.startsWith('/inspectors/')){ next(); return; }
 
-            Logger.debug("[API][SESSION] Processing request : "+req.originalUrl);
-            Logger.debug("[API][SESSION] user info : ",(req as any).sess);
+            Logger.info("[API][SESSION] Processing request : "+req.originalUrl);
+            Logger.info("[API][SESSION] Session ID : ",(req as any).sessionID);
+
+            console.log((req as any).user);
 
             try{
-                if(req.session?.passport?.user?.dxcSessID==null){
-                    Logger.error("[SESSION] Session cannot be restored not found");
+                if(req.session == null || (req as any).sessionID == null || req.session.passport ==null || req.session.passport.user ==null){
+                    Logger.error("[SESSION] Session cannot be restored or not found");
+                    res.redirect('/login');
                     return;
                 }
 
                 if(req.dxc == null) req.dxc = {};
+
                 // re-open session by using dxc internal session ID encapsulated into passport session
-                req.dxc.sess = usr_svc.openSession(req.session.passport.user.dxcSessID);
+                usr_svc.asyncOpenSession((req as any).sessionID)
+                    .then((vSession)=>{
+                        if(vSession!=null){
+                            req.dxc.sess = vSession;
+                            req.dxc.sess.setUserAccount((req as any).user);
+
+                            if(req.query._puid != null && req.dxc.sess != null){
+                                //if(self.context.)
+                                req.dxc.project = (req.dxc.sess as UserSession)
+                                    .getActiveProjectByUID(self.context, req.query._puid as string);
+
+                            }
+
+                            next();
+                        }else{
+                            throw new Error("Session cannot be restored/opened : Session not found : "+(req as any).sessionID);
+                        }
+                    }).catch((e)=>{
+                        Logger.error(e.stack);
+                        throw new Error("Session cannot be restored/opened : fatal error : "+e.message);
+                    });
+
+                /*req.dxc.sess = usr_svc.openSession((req as any).sessionID);
 
                 if(req.query._puid != null && req.dxc.sess != null){
                     //if(self.context.)
                     req.dxc.project = (req.dxc.sess as UserSession)
                         .getActiveProjectByUID(self.context, req.query._puid as string);
-                }
-
-                /*
-                Logger.info("[SESSION] Query param : "+JSON.stringify(Object.keys(req.query))+" , "+usr_svc.getQueryParam());
-                if(req.cookies!=null && req.cookies[usr_svc.getCookieName()] != null){
-                    Logger.debug("[SESSION] Opening session from cookie ...");
-                    req.dxc = {
-                        sess: usr_svc.openSession(req.cookies[usr_svc.getCookieName()])
-                    };
-                    Logger.debug("[SESSION] Opening session from cookie : Done");
-
-
-                    if(req.query._puid != null && req.dxc.sess != null){
-                        //if(self.context.)
-                        req.dxc.project = (req.dxc.sess as UserSession)
-                            .getActiveProjectByUID(self.context, req.query._puid as string);
-                    }
-                }
-                else if(req.query[usr_svc.getQueryParam()]!=null){
-
-                    Logger.debug("[SESSION] Opening session from query ...");
-                    req.dxc = {
-                        sess: usr_svc.openSession(req.query[usr_svc.getQueryParam()] as string)
-                    };
-                    Logger.debug("[SESSION] Opening session from query : Done");
-
-                    if(req.query._puid != null && req.dxc.sess != null){
-                        //if(self.context.)
-                        req.dxc.project = (req.dxc.sess as UserSession)
-                            .getActiveProjectByUID(self.context, req.query._puid as string);
-                    }
-                }
-                else{
-                    if(!req.hasOwnProperty('dxc')) req.dxc = {};
-                    if(!req.dxc.hasOwnProperty('sess')) req.dxc.sess = null;
-                    Logger.error("[SESSION] Cookie/token not found");
                 }*/
-                next();
+
             }catch(err){
                 Logger.error("[SESSION] Cookie/token value cannot be retrieved \n"+err.messgae+"\n"+err.stack);
                 self.sendError(res, "Access denied");
@@ -1260,6 +1297,7 @@ export default class WebServer
 
         function ensureApiLoggedIn(req, res, next) {
             // TODO : remove bypass
+            console.log("ensureApiLoggedIn > ")
             if(isSlave) next();
 
             if (req.isAuthenticated()) {
@@ -1331,13 +1369,13 @@ export default class WebServer
      * @return {number}  Port number where webserver is listening
      * @method
      */
-    start(port:number = null):number {
+    start(pPort:number = null):number {
 
-        if (port !== null) {
-            this.port = port;
+        if((this._started===false) && (pPort !== null)){
+            this.setPort(pPort);
         }
 
-        const wwwPort = this.port;
+        const wwwPort = this.getPort();
 
 
         this.registerValidator('device', DeviceManager.getInstance());
@@ -1345,6 +1383,8 @@ export default class WebServer
 
         this.httpServer = this.app.listen(wwwPort,  ()=> {
             Logger.success('Server started on : ' + wwwPort);
+
+            this._started = true;
 
             if(this.guiCfgs.length>0){
                 Logger.info("[GUI] "+this.guiCfgs.length+" Graphical UIs are exposed :");
@@ -1359,6 +1399,8 @@ export default class WebServer
                 Logger.info("[GUI] Headless mode, only /api/ endpoints are exposed");
             }
 
+
+            this.context.afterWebServerStarted(this);
 
         });
 

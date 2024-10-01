@@ -8,6 +8,9 @@ import DexcaliburEngine from "../../DexcaliburEngine.js";
 import {SessionData} from "./SessionData.js";
 import SqliteDbCollection from "../../../connectors/sqlite/SqliteDbCollection.js";
 import {IDatabase, IDbCollection} from "@dexcalibur/dexcalibur-orm";
+import {MongodbDbCollection} from "@dexcalibur/dexcalibur-orm-mongodb";
+import {SessionStore} from "./SessionStore.js";
+import {Nullable} from "../../core/IStringIndex.js";
 
 /**
  * Represents the map session ID / session object
@@ -30,17 +33,21 @@ export class SessionService {
 
     private _settings:SessionSettings;
 
+    /**
+     * Session store for express-session
+     *
+     * @private
+     */
+    private  _store:Nullable<SessionStore> = null;
+
     private _sess: UserSessionMap = {}; // cache
-    private _s: IDbCollection = null;
-    private _store:string;
-    private _sessDB: IDatabase = null;
+    private _s: MongodbDbCollection = null;
     private _ctx:DexcaliburEngine = null;
 
     constructor( pSettings:SessionSettings, pContext:DexcaliburEngine=null, pSessStorage:string = null) {
         this._settings = pSettings;
         this._settings.save();
-        this._store = pSessStorage!==null ? pSessStorage : this._settings.getStorage();
-        this.loadSessionDB();
+        this._ctx = pContext;
     }
 
 
@@ -52,13 +59,6 @@ export class SessionService {
         return this._settings;
     }
 
-    loadSessionDB():void {
-        //if(this._sessDB == null){
-        //    const sqliConn:SqliteConnector = ConnectorFactory.getInstance().newConnector('sqlite', null);
-        //    sqliConn.connect(this._storage, true);
-        //    this._sessDB = sqliConn.getDB();
-        // }
-    }
 
 
 
@@ -69,17 +69,21 @@ export class SessionService {
      *
      * @param pCollection
      */
-    importSessions( pCollection:IDbCollection){
+    async importSessions( pCollection:MongodbDbCollection):Promise<void>{
+
+
         this._s = pCollection;
+        // to avoid statefull  server, remove static cache
+        /*
         this._s.map( (o:number, v:UserSession) => {
             //if(v.isExpired)
             if(this.isSessionExpired(v)){
                 Logger.info("[SESSION SVC] Archiving expired sessions. ");
-                this.destroySession(v);
+                this.destroySession(v, "Session expired");
             }else if(v.isActive()){
                 this._sess[v.getSessUID()] = v;
             }
-        });
+        });*/
     }
 
     /**
@@ -110,7 +114,7 @@ export class SessionService {
         let sess:UserSession = UserSession.create(this._generateSessID(), pAccount);
 
         // add session to active list
-        this._s.setEntry( sess.getSessUID(), sess);
+        this._s.asyncAddEntry( { _uid: sess.getSessUID() }, sess);
 
         // update cache
         this._sess[sess.getSessUID()] = sess;
@@ -118,7 +122,13 @@ export class SessionService {
         return sess;
     }
 
+    async save(pSess:UserSession):Promise<boolean> {
+        return await this._s.asyncUpdateEntry( pSess, { upsert:true, replace:true});
+    }
+
+    /*
     updateSessionData( pSessionData:SessionData):boolean {
+
         if(pSessionData!=null){
             (this._s as SqliteDbCollection)
                 .getExtra(SessionData.TYPE.getName())
@@ -147,18 +157,19 @@ export class SessionService {
         }
 
         return s;
-    }
+    }*/
 
     removeSessionFiles( pSessUID:string):boolean {
         return true;
     }
 
+    /*
     listAllSession(pFromCache = true): UserSessionMap {
         if(pFromCache)
             return this._sess;
         else
-            return this._s.getAll();
-    }
+            return (this._s as MongodbDbCollection).getAll();
+    }*/
 
     /**
      * To check if a session is expired
@@ -170,7 +181,8 @@ export class SessionService {
      * @method
      */
     isSessionExpired(pSession:UserSession):boolean {
-        return (((new Date()).getTime())-pSession._created) > this.getSettings().getMaxDuration();
+        //Logger.info("isSessionExpired : ("+((new Date()).getTime())+" - "+(pSession._created)+") > "+this.getSettings().getMaxDuration());
+        return (((new Date()).getTime())-pSession._created) > (this.getSettings().getMaxDuration() * 1000);
     }
 
 
@@ -179,13 +191,25 @@ export class SessionService {
      *
      * @param pSession
      */
-    destroySession( pSession:UserSession):boolean {
+    destroySession( pSession:UserSession, pCause = ""):boolean {
+
+        console.log("Destroy session (cause="+pCause+"): ",pSession);
 
         // remove data associated to the session such as temporary files
         pSession.destroy();
 
         // remove session from active sessions list
-        this._s.removeEntry(pSession.getSessUID());
+        this._ctx.getEngineDB()
+            .getCollectionOf(UserSession.TYPE.getType())
+            .asyncRemoveEntry(pSession)
+                .then((res)=>{
+
+                })
+                .catch((err)=>{
+
+                })
+
+        //this._s.removeEntry(pSession.getSessUID());
 
 
         // remove session file if session management uses FS
@@ -207,12 +231,14 @@ export class SessionService {
      * To retrieve a session by its uid
      *
      * @param pSessUID
+     * @deprecated
      */
     getSessionByUID( pSessUID:string):UserSession {
 
         // TODO ACL : check current users can retrieve session of other users
         // TODO ACL : check current users can retrieve session of other users from the team
 
+        this._s.asyncGetEntry( {_uid:pSessUID})
 
         if(this._sess[pSessUID]!=null){
             return this._sess[pSessUID];
@@ -223,16 +249,33 @@ export class SessionService {
         }
     }
 
+
     /**
      * To retrieve a session by its uid
      *
      * @param pSessUID
      */
-    getSessionsByAccount( pAccount:UserAccount, pOnlyActive:boolean = true):UserSession[] {
+    async asyncGetSessionByUID( pSessUID:string):Promise<UserSession> {
 
         // TODO ACL : check current users can retrieve session of other users
         // TODO ACL : check current users can retrieve session of other users from the team
 
+        return await this._s.asyncGetEntry( {_uid:pSessUID})
+    }
+
+    /**
+     * To retrieve a session by its uid
+     *
+     * @param pSessUID
+     */
+    async getSessionsByAccount( pAccount:UserAccount, pOnlyActive:boolean = true):Promise<UserSession[]> {
+
+        // TODO ACL : check current users can retrieve session of other users
+        // TODO ACL : check current users can retrieve session of other users from the team
+
+        const accSess = await this._s.asyncGetEntry( new UserSession({ _acc:pAccount }));
+
+        console.log("getSessionsByAccount >  ",accSess);
         let sess:UserSession[] = [];
 
         for(let sid in this._sess){
@@ -278,5 +321,17 @@ export class SessionService {
         });
 
         this._sess = {};
+    }
+
+    /**
+     * To create the SessionStorage instance for express-session module
+     *
+     * @method
+     */
+    createSessionStore():SessionStore {
+        return this._store = new SessionStore(
+            this._ctx,
+            this._ctx.getEngineDB().getCollectionOf(UserSession.TYPE.getType()) as MongodbDbCollection
+        );
     }
 }

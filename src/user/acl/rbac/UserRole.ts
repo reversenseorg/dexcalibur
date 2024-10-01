@@ -51,4 +51,8 @@ export class UserRole {
     hasAccess(pAccess:Access):boolean {
         return (this._access[pAccess.name] != null)
     }
+
+    toJsonObject():any {
+
+    }
 }
