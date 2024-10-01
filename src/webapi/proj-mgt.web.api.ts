@@ -422,31 +422,50 @@ PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
                     return ;
                 }
 
+
+
+                Logger.debug("["+$.context.nodeManager.uuid+"]Project OPEN request > ",$.context.engine_type,DexcaliburEngineMode.MASTER);
+                // todo : move into DexcaliburEngine class
+
                 if($.context.engine_type==DexcaliburEngineMode.MASTER){
-                    // create node
-                    const node = $.context.nodeManager.createNode(req.query.uid as string);//, project.getDevice().getProfile().os);
-                    await node.spawn();
 
-                    $.sendSuccess( res, { node: node.UUID });
-                    return;
-                }
+                    // list existing nodes mapped to project UID
+                    const nodes = $.context.nodeManager.getNodeByProject(req.query.uid as string);
 
+                    if(nodes.length==0){
+                        // create node
+                        const node = $.context.nodeManager.createNode(req.query.uid as string);//, project.getDevice().getProfile().os);
+                        node.appendRequestToQueue($, req, res);
+                        await node.spawn("The user request to open an  existing project.",true);
 
-                // init workflow
-                wf = $.context.newWorkflow( req.query.uid  as string ).changeOwner(user);
+                    }else{
+                        nodes[0].appendRequestToQueue($, req, res);
+                    }
+                     //await node.forwardWebRequest(req, res);
 
+                    // END ----
+                    //$.sendSuccess( res, { node: node.UUID });
+                    //return;
 
-                wf.pushStatus(new StatusMessage(5, "Opening project"));
-
-                project = await $.context.openProject( user, req.query.uid as string);
-
-                if(project!=null && project.isReady()){
-                    req.dxc.sess.setDefaultActiveProject(project);
-
-                    $.sendSuccess( res, {})
                 }else{
-                    throw DexcaliburProjectException.OPEN_PROJECT_FAILURE(req.query.uid);
+
+
+                    // init workflow
+                    wf = $.context.newWorkflow( req.query.uid  as string ).changeOwner(user);
+
+                    wf.pushStatus(new StatusMessage(5, "Opening project"));
+
+                    project = await $.context.openProject( user, req.query.uid as string);
+
+                    if(project!=null && project.isReady()){
+                        req.dxc.sess.setDefaultActiveProject(project);
+
+                        $.sendSuccess( res, {})
+                    }else{
+                        throw DexcaliburProjectException.OPEN_PROJECT_FAILURE(req.query.uid);
+                    }
                 }
+
 
             }catch(err){
                 Logger.error("[API][PROJECT MGT] Opening project failed : "+err.message+"\n"+err.stack);

@@ -4,7 +4,10 @@ import PlatformManager from "./PlatformManager.js";
 import * as  _fs_ from 'fs';
 import * as  _path_ from 'path';
 import * as  _os_ from "os";
+import * as _ps_ from "process";
+
 import DexcaliburWorkspace from "./DexcaliburWorkspace.js";
+
 
 import * as Log from './Logger.js';
 import StatusMessage from "./StatusMessage.js";
@@ -484,7 +487,9 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
             if(vEvent.type==='project'){
                 await this.deleteProject(null, vEvent.data, true);
             }
-        })
+        });
+
+        this._listenProcessSignals();
     }
 
     /**
@@ -779,12 +784,13 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
                 ss.getAuthenticationSettings(),
                 this
             );
-            await this.userSvc.initService(this);
 
             this.registry = ss.getRegistry();
 
             this.db = new EngineDatabase(this, ss.getDatabaseSettings());
             await this.db.connect();
+
+            await this.userSvc.initService(this);
 
             //this.db.registerScheduler();
 
@@ -1089,10 +1095,6 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
             ports.ws = this.wsserver.start(); //(typeof pWebPort === 'string') ? parseInt(pWebPort, 10) + 1 : pWebPort + 1)
         }
 
-        // if the engine is a SLAVE instance, notify the MASTER the instance is started
-        if(this.getEngineMode()==DexcaliburEngineMode.SLAVE){
-            this.nodeManager.notifyMaster(NodeState.IDDLE);
-        }
 
         this.printWebBanner(ports.web, ports.ws);
     }
@@ -1601,6 +1603,42 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
 
     getRepairOptions():Nullable<RepairOptions> {
         return this._repairOpts;
+    }
+
+    /**
+     * This method listen for signals receipt by this process
+     *
+     * @private
+     */
+    private _listenProcessSignals() {
+        process.on('SIGINT', () => {
+
+            console.log("\n");
+            // clear temporary files
+
+            // clear DB connections
+
+            // kill children nodes
+            this.nodeManager.killNodes('SIGINT');
+
+            Logger.success('DxEngine has been stopped successfully');
+            process.exit(0);
+        });
+    }
+
+    /**
+     * A method to hook the state where WebServer started successfully
+     *
+     * @param {WebServer} pWebServer web server (http, https, ...)
+     * @method
+     */
+    afterWebServerStarted(pWebServer:WebServer):void {
+
+        // if the engine is a SLAVE instance, notify the MASTER the instance is started
+        if(this.getEngineMode()==DexcaliburEngineMode.SLAVE){
+            this.nodeManager.notifyMaster(NodeState.IDDLE);
+        }
+
     }
 }
 

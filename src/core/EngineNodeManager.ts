@@ -3,12 +3,13 @@ import {randomUUID} from "crypto";
 
 import DexcaliburEngine from "../DexcaliburEngine.js";
 import {IDexcaliburEngine} from "../IDexcaliburEngine.js";
-import DexcaliburProject from "../DexcaliburProject.js";
-import {IStringIndex, Nullable} from "./IStringIndex.js";
-import {EngineNode, NodePurpose} from "./EngineNode.js";
+import {Nullable} from "./IStringIndex.js";
+import {EngineNode, NodePurpose, Operation, OperationType, StateChangeEvent} from "./EngineNode.js";
 import {EngineNodeException} from "../errors/EngineNodeException.js";
-import Control from "../audit/common/Control.js";
 import got from "got";
+import * as Log from "../Logger.js";
+import WebServer from "../WebServer.js";
+let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
 const GOT = got.default;
 
@@ -113,9 +114,13 @@ export class EngineNodeManager {
     }
 
 
+    /**
+     * To retrieve the HTTP(S) URI of local instance
+     *
+     */
     getLocalURI():string {
-        const settings = this.engine.getSettings().getWebserverSettings();
-        return '127.0.0.1:'+settings.getHttpPort();
+
+        return '127.0.0.1:'+this.engine.getWebserver().getPort();
     }
 
     /**
@@ -227,6 +232,10 @@ export class EngineNodeManager {
     async updateState(pNodeUID:string, pState:NodeState):Promise<void> {
         const node = this.getNodeByUUID(pNodeUID);
 
+
+        node.setState(pState);
+
+        /*
         switch (pState){
             case NodeState.IDDLE:
                 // update state & start queued scans
@@ -235,7 +244,7 @@ export class EngineNodeManager {
             default:
                 node.setState(pState);
                 break;
-        }
+        }*/
     }
 
     /**
@@ -246,7 +255,7 @@ export class EngineNodeManager {
      */
     createNode(pProjectUID:string):EngineNode {
         const uuid = randomUUID();
-        const node = new EngineNode(uuid, pProjectUID);
+        const node = new EngineNode(uuid, this.uuid, pProjectUID);
 
         node.setMasterUri(this.getLocalURI());
         node.setState(NodeState.NEW)
@@ -260,9 +269,16 @@ export class EngineNodeManager {
         this.slaves[uuid] = node;
         this.projectMapping[pProjectUID].push(node);
 
+        // add listeners to event streams :
+        node.nodeState$.subscribe((vEvent:StateChangeEvent    )=>{
+           this.onNodeStateChanged(vEvent);
+        });
+
 
         return this.slaves[uuid];
     }
+
+
 
     /**
      *
@@ -274,19 +290,30 @@ export class EngineNodeManager {
 
 
     /**
+     * To get the list of nodes linked to a specific project
      *
-     * @param pProjectUID
+     * @param {string} pProjectUID The project UID
+     * @returns {EngineNode[]} The list of node linked to a project by its UID. If there is not node, the list is empty.
+     * @method
      */
     getNodeByProject(pProjectUID:string):EngineNode[] {
-        return this.projectMapping[pProjectUID];
+        const nodes = this.projectMapping[pProjectUID];
+        if(nodes==null || !Array.isArray(nodes)){
+            return []
+        }else{
+            return nodes;
+        }
     }
 
     /**
+     * To check if there are one or more nodes linked to a project
      *
-     * @param pProjectUID
+     * @param {string} pProjectUID
+     * @returns {boolean} TRUE if there are nodes, else FALSE
+     * @method
      */
     hasNode(pProjectUID):boolean {
-        return (this.projectMapping[pProjectUID]!=null);
+        return (this.projectMapping[pProjectUID]!=null && this.projectMapping[pProjectUID].length>0);
     }
 
     /**
@@ -359,5 +386,71 @@ export class EngineNodeManager {
 
 
         return o;
+    }
+
+    /**
+     * Listen changes of node state.
+     *
+     * Some processes are triggered from here such as queued scan orders
+     *
+     * @param {StateChangeEvent} vEvent Change event
+     * @method
+     */
+    onNodeStateChanged(vEvent: StateChangeEvent) {
+
+        Logger.success(`[ENGINE NODE MANAGER][${vEvent.nodeUUID}] State changed from ${vEvent.before.toUpperCase()} to  ${vEvent.new.toUpperCase()} `)
+        let node:EngineNode;
+        if(vEvent.new==NodeState.IDDLE){
+
+            // add affinity
+            node = this.getNodeByUUID(vEvent.nodeUUID);
+
+            const ope:Nullable<Operation> = node.opeQueue.shift();
+
+            if(ope==null){ return; }
+
+                node.execOperation(ope).then(()=>{
+                    console.log('onNodeStateChanged > OPE SUCCESS > ', ope.type);
+                });
+            // next, check the queue of scan orders
+            /*if (node.waitingQueue.length > 0) {
+                (node.startNextQueuedScans())
+                    .then(() => {
+                        console.log("Next scan order has been launched");
+                    });
+            }*/
+        }
+    }
+
+    async forwardWebRequest(pNode:EngineNode, pServer:WebServer, pReq:any, pRes:any ):Promise<any> {
+        return pNode.appendRequestToQueue(pServer, pReq,pRes);
+    }
+
+    forwardWebRequestSync(pNode:EngineNode, pServer:WebServer,  pReq:any, pRes:any ):any {
+        return pNode.appendRequestToQueue(pServer, pReq,pRes);
+    }
+
+    /**
+     * To kill all nodes
+     *
+     * - SIGINT triggers a kill of any slave nodes
+     * - SIGKILL don't kill children. SIGKILL is used to reboot node manager without killing children.
+     *
+     * @param {string} pSignal Name of signal
+     * @method
+     */
+    killNodes(pSignal: string) {
+        const nodes = this.getSlaves();
+        switch (pSignal){
+            case 'SIGINT':
+                // controlled kill => kill children
+                nodes.map(x => {
+                    x.kill();
+                });
+                break;
+            case 'SIGKILL':
+                // don't kill child
+                break;
+        }
     }
 }

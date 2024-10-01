@@ -102,6 +102,9 @@ AUTH_WEB_API.addPublicRoute(
     }
 );
 
+/*
+ deprecated
+ */
 AUTH_WEB_API.addPublicRoute(
     '/auth',
     {

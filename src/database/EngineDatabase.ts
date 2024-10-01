@@ -33,6 +33,8 @@ import HookSession from "../HookSession.js";
 import ModelFile from "../ModelFile.js";
 import DataScope from "../DataScope.js";
 import {LogMessage} from "../log/Log.js";
+import {UserSession} from "../user/session/UserSession.js";
+import {User} from "../User.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -55,6 +57,8 @@ const DEVICES_COL = "devices";
 const TOOLS_COL = "tools";
 const INSP_COL = "inspectors";
 const SCAN_COL = "scans";
+const SESSIONS_COL = "sessions";
+const UA_COL = "accounts";
 
 const INTERNAL_DB = "dxcserver";
 const PROJECT_DB_PREFIX = "dxc_";
@@ -102,6 +106,7 @@ export class EngineDatabase {
     private devices:Nullable<MongodbDbCollection>;
     private tools:Nullable<MongodbDbCollection>;
     private scans:Nullable<MongodbDbCollection>;
+    private sessions:Nullable<MongodbDbCollection>;
 
     // project scope
     private runtime_events:Nullable<MongodbDbCollection>; // with session
@@ -248,6 +253,8 @@ export class EngineDatabase {
         if(existings.indexOf(DEVICES_COL)==-1){ this._db.createCollectionOf(Device.TYPE, DEVICES_COL); }
         if(existings.indexOf(INSP_COL)==-1){ this._db.createCollectionOf(InspectorFactory.TYPE, INSP_COL); }
         if(existings.indexOf(SCAN_COL)==-1){ this._db.createCollectionOf(ScanOrder.TYPE, SCAN_COL); }
+        if(existings.indexOf(SESSIONS_COL)==-1){ this._db.createCollectionOf(UserSession.TYPE, SESSIONS_COL); }
+        if(existings.indexOf(UA_COL)==-1){ this._db.createCollectionOf(UserAccount.TYPE, UA_COL); }
 
 
 
@@ -257,7 +264,9 @@ export class EngineDatabase {
             DexcaliburProject.TYPE.getType(),
             Device.TYPE.getType(),
             InspectorFactory.TYPE.getType(),
-            ScanOrder.TYPE.getType()
+            ScanOrder.TYPE.getType(),
+            UserSession.TYPE.getType(),
+            UserAccount.TYPE.getType()
         ];
 
         for(let i=0; i<this._supportedType.length; i++){
@@ -436,6 +445,14 @@ export class EngineDatabase {
             case NodeInternalType.INSPECTOR:
                 collName = INSP_COL;
                 collType = InspectorFactory.TYPE;
+                break;
+            case NodeInternalType.USER_SESSION:
+                collName = SESSIONS_COL;
+                collType = UserSession.TYPE;
+                break;
+            case NodeInternalType.USER_ACCOUNT:
+                collName = UA_COL;
+                collType = UserAccount.TYPE;
                 break;
             default:
                 if(this._isSupported(nodeType)){
@@ -669,4 +686,5 @@ export class EngineDatabase {
         return await (this.getCollectionOf(ScanOrder.TYPE.getType()) as MongodbDbCollection)
             .asyncUpdateEntry(pOrder);
     }
+
 }

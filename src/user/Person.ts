@@ -1,5 +1,18 @@
 import {UserAccount} from "./UserAccount.js";
 
+export interface PersonOptions {
+    _firstname?: string;
+    _lastname?: string;
+    _mail?: string;
+    _bio?: string;
+}
+
+
+/**
+ * Represent a physicial person
+ *
+ * @class
+ */
 export class Person {
 
     private _firstname:string;
@@ -8,6 +21,14 @@ export class Person {
     private _bio:string;
 
     private _account: UserAccount = null;
+
+    constructor(pOptions:PersonOptions = null) {
+        if(pOptions!=null){
+            for(let k in pOptions){
+                this[k] = pOptions[k];
+            }
+        }
+    }
 
     get firstname(): string {
         return this._firstname;

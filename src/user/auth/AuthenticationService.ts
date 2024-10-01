@@ -6,7 +6,7 @@ import {AuthCode, AuthenticationException, Authenticator, AuthType} from "./Auth
 import {AuthenticationPolicy} from "./AuthenticationPolicy.js";
 import {PasswordAuthenticator} from "./Authenticator.js";
 import {ConnectorFactory} from "../../ConnectorFactory.js";
-import {UserAccount} from "../UserAccount.js";
+import {UserAccount, UserAccountUUID} from "../UserAccount.js";
 import {AuthenticationSettings} from "./AuthenticationSettings.js";
 import AccessControl from "../acl/AccessControl.js";
 import * as Log from "../../Logger.js";
@@ -25,6 +25,11 @@ import {ConnectionHandler} from "../../remote/ConnectionHandler.js";
 import {DelegateRequest, DelegateResponse} from "../../webapi/DelegateWebApi.js";
 import {UserSession} from "../session/UserSession.js";
 import {Nullable} from "../../core/IStringIndex.js";
+import {SessionStore} from "../session/SessionStore.js";
+import {MongodbDbCollection} from "@dexcalibur/dexcalibur-orm-mongodb";
+import {UserRole} from "../acl/rbac/UserRole.js";
+import {ProjectURI} from "../../project/ProjectGlobalUID.js";
+import {BUILT_IN_ROLES} from "../acl/Roles.js";
 
 const PassportOIDC = _openidconnect_.default;
 
@@ -104,6 +109,7 @@ export class AuthenticationService {
      */
     initUserDB():void{
 
+        /*
         if(this.settings==null || this.settings.db ==null){
             throw new AuthenticationException("Authentication is not configured", AuthCode.NOT_CONFIGURED)
         }
@@ -145,6 +151,8 @@ export class AuthenticationService {
             this.importUsers(db.getCollection('user', UserAccount.TYPE));
         }
 
+        */
+       // this.importUsers( this._ctx.getEngineDB().getCollectionOf(UserAccount.TYPE.getType()));
     }
 
     /**
@@ -154,6 +162,17 @@ export class AuthenticationService {
      */
     importUsers( pColl:IDbCollection){
         this._users = pColl;
+        this._users.getAsList(-1).then((vAccounts:UserAccount[])=>{
+            vAccounts.map((v) =>{
+
+                if(v.role == null){
+                    v.role = AccessControl.defaultRole;
+                }
+
+                this._cache[v.getUID()] = v;
+            })
+        });
+        /*
         this._users.map( (o,v:UserAccount) => {
 
             this.wakeUpUser(v)
@@ -170,34 +189,10 @@ export class AuthenticationService {
 
             Logger.debug('---- import next user --- ');
 
-            /*
-            if(this._dba.getType()=='inmemory'){
-                this._users.setEntry(o, new UserAccount(v));
-            }else{
-                this._users.update(o, new UserAccount(v));
-            }*/
-        });
-    }
-
-    wakeUpUser(pUser:UserAccount):void {
-        const ppt:NodeProperty[] = UserAccount.TYPE.getProperties();
-        ppt.map( vP => {
-      //      if(vP.hasWakeUp()){
-    //            pUser[vP.getName()] = vP.doWakeUp({ p:pUser[vP.getName()], self:pUser, ctx:this._ctx });
-        //    }
-        })
+        });*/
     }
 
 
-
-    sleepUser(pData:any):any {
-        const ppt:NodeProperty[] = UserAccount.TYPE.getProperties();
-        ppt.map( vP => {
-       //     if(vP.hasSleep()){
-         //       pData[vP.getName()] = vP.doSleep({ p:pData[vP.getName()], self:pData, ctx:this._ctx });
-           // }
-        })
-    }
 
     getUserIndex():IDbCollection {
         return this._users;
@@ -235,6 +230,11 @@ export class AuthenticationService {
 
     // todo replace
 
+    /**
+     *
+     * @param pUsername
+     * @deprecated
+     */
     findUser( pUsername:string):UserAccount {
         let usr:UserAccount = null;
 
@@ -323,7 +323,7 @@ export class AuthenticationService {
         return await GOT(pRevokeURL, options as any);
     }
     /**
-     * To deploy routes and middleware resuired to check sso token
+     * To deploy routes and middleware required to check sso token
      *
      * This method is called only whe an OIDC client is configured
      *
@@ -337,16 +337,19 @@ export class AuthenticationService {
                 secret: 'another_long_secret',
                 resave: false,
                 saveUninitialized: true,
-                store: new expressSession.MemoryStore() // TODO : replace by remote store
+                cookie: {
+                  sameSite: false
+                },
+                store: this._ctx.getUserService().getSessionService().createSessionStore()
+                // new expressSession.MemoryStore() // TODO : replace by remote store
             })
         );
-
 
         pApp.use(passport.initialize());
         pApp.use(passport.session());
 
         // add authentication using serialized sessions
-        pApp.use(passport.authenticate('session'));
+        //pApp.use(passport.authenticate('session'));
 
         if(this.sso_need_config){
             this.sso_need_config = false;
@@ -364,12 +367,165 @@ export class AuthenticationService {
                         callbackURL:  this._oidClientCfg.settings.redirect_uris[0],
                         passReqToCallback: true
                     },
-                    (req, v, userinfo, done) => {
+                    (req, issuer, profile, verified) => {
 
+                        Logger.info("[AUTH SERVICE] Start OIDC verifying ...");
+
+                        console.log(profile);
+
+                        const acc = new UserAccount({
+                            _uid:profile.id,
+                            _person: new Person({
+                                _lastname: profile.name.familyName,
+                                _firstname: profile.name.givenName,
+                            }),
+                            _role: AccessControl.getRole('local_admin'),
+                            //_role?:UserRole,
+                            // TODO : employee ID
+                            // TODO : email , ...
+                            _username:profile.username
+                        });
+
+                        this._ctx.getUserService().find(acc, {autoCreate:true})
+                            .then((vAccount:Nullable<UserAccount>)=>{
+                                console.log("OIDC Verifiying > ",vAccount);
+
+                                if(vAccount != null){
+
+                                    verified( null, acc);
+                                /*
+                                    // update sessions
+                                    this._ctx.getUserService().getSessionService()
+                                        .asyncGetSessionByUID( req.sessionID)
+                                        .then(( vSess)=>{
+
+                                            if(vSess !=null){
+                                                if(!vSess.getUserAccount().is(vAccount)){
+                                                    throw new Error("User session must be unique per user account, unauthorize access detected");
+                                                }
+                                                if(vSess.getUserAccount()==null){
+                                                    verified(null, vAccount);
+                                                }else{
+                                                    this._ctx.getUserService().getSessionService().save(vSess)
+                                                        .then((vSuccess)=>{
+                                                            if(vSuccess){
+                                                                console.log(vSess,vSess.getUserAccount().person);
+                                                                Logger.success("Session updated with user account [sess="+vSess.getUID()+"] ");
+                                                                verified(null, vAccount);
+                                                            }else{
+                                                                Logger.error("Session cannot be updated with user account [sess="+vSess.getUID()+"] ");
+                                                            }
+
+                                                        })
+                                                        .catch((vErr)=>{
+                                                            Logger.error("ERROR : Session cannot be updated : > "+vErr);
+                                                        })
+                                                }
+                                            }else{
+                                                Logger.error("Session not found : erroror ");
+                                            }
+                                        })
+                                        .catch(( vErr)=>{
+                                            Logger.error("Session not found : fatal error ",vErr);
+                                        });*/
+
+                                }else{
+                                    Logger.error("OIDC : User account cannot be created.");
+                                    verified("OIDC : User account cannot be created.",null);
+                                }
+                            });
+
+                        //profile.dxcSessID = req.session;
+
+                        //verified(null, profile, {});
+
+
+                        /*
+
+                        const userSvc = this._ctx.getUserService();
+                        // file UserAccount info with data
+                        const acc = new UserAccount({
+                            _uid:userinfo.id,
+                            _person: new Person({
+                                _lastname: userinfo.name.familyName,
+                                _firstname: userinfo.name.givenName,
+                            }),
+                            //_role?:UserRole,
+                            // TODO : employee ID
+                            // TODO : email , ...
+                            _username:userinfo.username
+                        });
+
+
+                        if(userinfo.dxc == null) userinfo.dxc = {};
+                        userinfo.dxcSessID = req.sessionID;
+
+
+                        const account = await userSvc.find(acc, { autoCreate: true});
+                        const sess = await  userSvc.getSessionService().asyncGetSessionByUID( req.sessionID)
+
+                        if(sess!=null && account!=null){
+                            sess.setUserAccount(acc);
+                            const saveSuccess = true; //= await userSvc.getSessionService().save(sess);
+
+                            if(saveSuccess){
+                                Logger.success("Session updated with user account [sess="+sess.getUID()+"] ");
+                            }else{
+                                Logger.error("Session cannot be updated with user account [sess="+sess.getUID()+"] ");
+                            }
+                        }else{
+                            console.log("Comething is wrong",sess,account);
+                        }
+
+                        console.log("ALL ITS DONE",userinfo);
+
+                        return done(null, acc);
+/*
+                        userSvc.find(acc, { autoCreate: true});
+
+
+
+                        // link user account to session
 
                         // Important : Only executed on /api-auth/cb
 
-                        const userSvc = this._ctx.getUserService();
+                        if(userinfo.dxc == null) userinfo.dxc = {};
+                        userinfo.dxcSessID = req.sessionID;
+
+                        //let sess:UserSession = null;
+                        userSvc.getSessionService()
+                            .asyncGetSessionByUID( req.sessionID)
+                            .then(( vSess)=>{
+                                sess = vSess;
+
+                                if(sess !=null){
+                                    sess.setUserAccount(acc);
+                                    userSvc.getSessionService().save(sess)
+                                        .then((vSuccess)=>{
+                                            if(vSuccess){
+                                                console.log(sess,sess.getUserAccount().person);
+                                                Logger.success("Session updated with user account [sess="+sess.getUID()+"] ");
+                                            }else{
+                                                Logger.error("Session cannot be updated with user account [sess="+sess.getUID()+"] ");
+                                            }
+
+                                        })
+                                        .catch((vErr)=>{
+                                            Logger.error("ERROR : Session cannot be updated : > "+vErr);
+                                        })
+                                }
+                            })
+                            .catch(( vErr)=>{
+                                Logger.error("Session not found (Promise) > ",vErr);
+                            });
+
+
+                        console.log("ALL ITS DONE");
+                        return done(null, userinfo);
+
+
+                        //userSvc.getSessionService().getSessionByUID(req)
+                        /*
                         let usr:UserAccount;
                         try{
                             Logger.debug("Search logged user : "+userinfo.username);
@@ -378,24 +534,13 @@ export class AuthenticationService {
                             Logger.debug("Found user : "+usr.getUID());
 
                             if(userinfo.dxc == null) userinfo.dxc = {};
+                            // instead, attach to default session
                             const sess =  userSvc.createSession(usr);
                             userinfo.dxcSessID = sess.getSessUID();
                             //req.dxc.sess = userSvc.createSession(usr);
 
                             // req.dxc.sess.addConnection( param.getName(), new ConnectionHandler(param) );
 
-                            /*res.cookie(
-                                $.context.getUserService().getCookieName(),
-                                req.dxc.sess.getSessUID(),
-                                { maxAge: 7*24*60 } //, expires: new Date().  }
-                            );*/
-
-                            /*if(req.c){
-                                // usr is already authenticated on another computer/browser
-                            }else{
-                                if(req.dxc==null) req.dxc = {};
-                                req.dxc.sess = userSvc.createSession(usr);
-                            }*/
 
                             // TODO : update with local project
                         }catch(err){
@@ -434,21 +579,25 @@ export class AuthenticationService {
 
 
                         // Logique pour vérifier et traiter le token OIDC ici
-                        return done(null, userinfo);
+                        return done(null, userinfo);*/
                     }
                 )
             );
 
-            passport.serializeUser(function(user, done) {
-                done(null, user);
+            passport.serializeUser(function(vUser:UserAccount, done:any) {
+                Logger.debug("[AUTH SERVICE][PASSPORT] Passport : serialize user ");
+                done(null, vUser.toJsonObject());
             });
 
-            passport.deserializeUser(function(user, done) {
+            passport.deserializeUser(function(vUser:any, done:any) {
+                const user = new UserAccount(vUser);
+                Logger.debug("[AUTH SERVICE][PASSPORT] Passport : deserialize user ");
                 done(null, user);
             });
 
             const addCORS = function(req:DelegateRequest, res:DelegateResponse, next:any){
 
+                Logger.info("[AUTH SERVICE][PIPE] Add CORS ");
                 // TODO : make CORS parameter as env var
                 res.set('Access-Control-Allow-Origin', '*');
                 res.set('Access-Control-Allow-Methods', 'POST, GET, DELETE, OPTIONS, PUT');
@@ -467,10 +616,17 @@ export class AuthenticationService {
             (pApp as Application).get('/login', addCORS, passport.authenticate('openidconnect'));
 
             (pApp as Application).get('/api-auth/cb',
-                passport.authenticate('openidconnect', { successMessage: true, failureMessage:true, failureRedirect: '/login'}),
+                passport.authenticate('openidconnect', {
+                    successMessage: true,
+                    failureMessage:true,
+                    failureRedirect: '/login',
+                    successReturnToOrRedirect: '/home/', // NEW
+                }),
                 (req, res, next) => {
 
-                    Logger.debugRAW("SSO : /api-auth/callback : auth callback",req, (req as any).session);
+
+                    Logger.info("SSO : /api-auth/callback : auth callback");
+                    console.log(req, (req as any).session);
                     // depend of original request
                     res.redirect('/home/');
                 });

@@ -62,7 +62,7 @@ export class MonitoredError extends Error {
     }
 
     toString():string {
-        return `[${this.cmp}] [#${this.code!=null ? this.code : "<null>"} ${this.message}`;
+        return `[${this.cmp}] [#${this.code!=null ? this.code : "<null>"}] ${this.message}`;
     }
 
     /**

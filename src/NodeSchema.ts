@@ -46,6 +46,7 @@ import ModelInstruction from "./ModelInstruction.js";
 import HookPrologue from "./HookPrologue.js";
 import {HookVariableArray, HookVariableObject} from "./HookVariable.js";
 import {HookVariableMap} from "./hook/common.js";
+import {Person} from "./user/Person.js";
 
 
 
@@ -173,11 +174,21 @@ UserAccount.TYPE.updateProperties([
     (new NodeProperty('_salt')).type(DbDataType.STRING).notnull(),
     (new NodeProperty('_locked')).type(DbDataType.BOOLEAN).def(false),
     (new NodeProperty('_padding')).type(DbDataType.STRING).notnull(),
-    (new NodeProperty('_person')).volatile().type(DbDataType.STRING),
+    (new NodeProperty('_person')).type(DbDataType.BLOB)
+        .sleep( (x:NodePropertyState) => {
+            return (x.p !=null ? x.p : null) ;
+        } )
+        .wakeUp( (x:NodePropertyState) => {
+            return (x.p!=null ? new Person(x.p)  : null)
+        }),
     (new NodeProperty('_role')).type(DbDataType.STRING)
-        .sleep( (x:NodePropertyState) => { return (x.p !=null ? x.p.uid : null) ; } )
-        .wakeUp( (x:NodePropertyState) => { return (x.p!=null ? AccessControl.getRole(x.p) : null) }),
-]).dataSource("FILE").builder(UserAccount);
+        .sleep( (x:NodePropertyState) => {
+            return (x.p !=null ? x.p.uid : null) ;
+        } )
+        .wakeUp( (x:NodePropertyState) => {
+            return (x.p!=null ? AccessControl.getRole(x.p) : null)
+        }),
+]).dataSource("ENGINE_DB").builder(UserAccount);
 
 UserSession.TYPE.updateProperties([
     // (new NodeProperty('_uid')).type(DbDataType.STRING).key(DbKeyType.PRIMARY),
@@ -187,6 +198,37 @@ UserSession.TYPE.updateProperties([
     (new NodeProperty('_created')).type(DbDataType.INTEGER),
     (new NodeProperty('_destroyed')).type(DbDataType.INTEGER),
     (new NodeProperty('_project')).volatile().type(DbDataType.STRING).serialize(DbSerialize.JSON),
+    (new NodeProperty('_data'))
+        .type(DbDataType.BLOB)
+        .sleep( (x:NodePropertyState)=>{
+            const raw:Record<string, any> = {};
+            if(x.p !=null){
+                for(let k in x.p){
+                    if(x.p[k] != null){
+                        // session_data object
+                        raw[k] = x.p[k].toJsonObject();
+                    }
+                }
+            }
+            return raw;
+        })
+        .wakeUp( (x:NodePropertyState) =>  {
+            const raw:Record<string, any> = {};
+            if(x.p !=null){
+                for(let k in x.p){
+                    if(x.p[k] != null){
+                        // session_data object
+
+                        raw[k] = new SessionData({
+                            _name: k,
+                            _value: x.p[k]._value,
+                            _sess: x.self
+                        });
+                    }
+                }
+            }
+            return raw;
+        }),
     (new NodeProperty('_defaultProject')).type(DbDataType.STRING)
         .sleep( (x:NodePropertyState)=>{ return (x.p!=null? x.p.getUID() : null)})
         .wakeUp( (x:NodePropertyState) =>  { return (x.p!=null ? (x.ctx as DexcaliburEngine).getProject(x.p) : null)}),
@@ -194,9 +236,12 @@ UserSession.TYPE.updateProperties([
     (new NodeProperty('_conn')).type(DbDataType.STRING)
         .sleep( (x:NodePropertyState)=>{ return null; })
         .wakeUp( (x:NodePropertyState) =>  { return x.p })
-]).dataSource("FILE").builder(UserSession);
+]).dataSource("ENGINE_DB").builder(UserSession);
+
 
 SessionData.TYPE.updateProperties([
+    (new NodeProperty('_sess')).volatile().single(UserSession.TYPE),
+    /*
     UserSession.TYPE.asForeignKey(DbKeyType.PRIMARY, 0),
     (new NodeProperty('_name')).type(DbDataType.STRING).key(DbKeyType.PRIMARY, 1),
     (new NodeProperty('_value'))
@@ -219,12 +264,12 @@ SessionData.TYPE.updateProperties([
                     break;
             }
             return c;
-        })
-]).dataSource("FILE").builder(SessionData);
-
+        })*/
+]);
+/*
 UserSession.TYPE.updateProperties([
     (new NodeProperty('_data')).multiple(SessionData.TYPE)
-]);
+]);*/
 
 ModelInstruction.TYPE.updateProperties([
     (new NodeProperty("offset")).type(DbDataType.NUMERIC).key(DbKeyType.PRIMARY), // path relative to scope root

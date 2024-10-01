@@ -139,7 +139,7 @@ export class ScanScheduler {
         if(node == null){
             // start a new node
             node = this._ctx.nodeManager.createNode(pOrder.settings.projectUID); //, pOrder.settings.targetOS);
-            node.start();
+            node.start("New scan ordered");
         }
 
         if(!await node.isBusy()){
