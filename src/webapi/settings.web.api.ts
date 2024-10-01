@@ -29,7 +29,7 @@ SETTINGS_WEB_API.addPublicRoute(
                     case 'web':
                         data = $.context.getSettings().getWebserverSettings().toObject(SecurityZone.PUBLIC);
                         // override with current settings
-                        data.http = $.context.getWebserver().port;
+                        data.http = $.context.getWebserver().getPort();
                         data.ws = $.context.getWebsocketServer().port;
                         break;
                     case 'conn':
