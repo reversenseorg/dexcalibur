@@ -56,6 +56,9 @@ export default class Platform
     apiVersion:string = null;
     binaryPath:string = null;
 
+    download_url:string = null;
+    sha:string = null;
+
     constructor(pPlatformConfig:any ){
 
         for(const i in pPlatformConfig)

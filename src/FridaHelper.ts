@@ -189,6 +189,7 @@ export default class FridaHelper extends External.ExternalHelper
                     break;
             }
 
+
             const script = yield session.createScript(pScript);
 
              // For frida-node > 11.0.2

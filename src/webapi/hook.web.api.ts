@@ -700,11 +700,13 @@ HOOK_WEB_API.addAsyncAuthenticatedRoute(
             try{
 
                 project = req.dxc.project;
-                const script = await project.hook.buildAgentScript();
+                const filename = "hook."+project.hook.builder.getLanguage();
+                const script = await project.hook.buildAgentScript({}, true);
+
 
                 res.set('Content-Type', 'application/octet-stream');
                 res.set('Content-Length', script.length+"");
-                res.set('Content-Disposition', 'attachment; filename="hook.js"');
+                res.set('Content-Disposition', 'attachment; filename="'+filename+'"');
                 res.set('Expires', '0');
 
                 $.sendSuccess(res, script);

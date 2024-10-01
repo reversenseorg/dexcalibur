@@ -27,9 +27,6 @@ let pipeline:any = promisify(stream.pipeline);
 let gInstance:PlatformManager = null;
 
 
-export interface IPlatformMap {
-    [key: string]: Platform;
-}
 
 export enum PLATFORM_STUBS {
     DEVICE = "dev",
@@ -68,7 +65,7 @@ export default class PlatformManager extends ValidationCapable
      @field
      *
      */
-    local: IPlatformMap;
+    local: Record<string, Platform>;
 
     /**
      *
@@ -175,7 +172,10 @@ export default class PlatformManager extends ValidationCapable
         if(Object.keys(this.remote).length==0){
             this.enumerate();
         }
-        return this.remote;
+        return {
+            installed: this.local,
+            remote: this.remote
+        };
     }
 
 
@@ -189,12 +189,16 @@ export default class PlatformManager extends ValidationCapable
         const registry:DexcaliburRegistry = this.engine.getSettings().getServerSettings().getRegistry();
 
         (async ()=>{
-            this.remote = await this.enumerateRemote(registry);
+            try{
+                this.remote = await this.enumerateRemote(registry);
 
-            for(const i in this.local){
-                if(this.remote[i] instanceof Platform){
-                    this.local[i] = this.remote[i];
+                for(const i in this.local){
+                    if(this.remote[i]!=null && this.remote[i] instanceof Platform){
+                        this.local[i] = this.remote[i];
+                    }
                 }
+            }catch (e){
+
             }
         })();
     }
@@ -221,8 +225,8 @@ export default class PlatformManager extends ValidationCapable
      * @return {IPlatformMap} Platform enumeration
      * @method
      */
-    enumerateLocal():IPlatformMap{
-        const res:IPlatformMap = {};
+    enumerateLocal():Record<string, Platform>{
+        const res:Record<string, Platform> = {};
         let p:Platform = null;
 
         // push stub platforms
@@ -256,11 +260,11 @@ export default class PlatformManager extends ValidationCapable
      * @returns {Platform[]} An array a platform 
      * @method
      */
-    async enumerateRemote( pRegistry:DexcaliburRegistry):Promise<IPlatformMap>{
+    async enumerateRemote( pRegistry:DexcaliburRegistry):Promise<Record<string, Platform>>{
 
-        let platforms:any = {};
+        let platforms:Platform[] = [];
         let p:Platform = null;
-        const res:IPlatformMap={};
+        const res:Record<string, Platform>={};
 
         if(pRegistry == null){
             pRegistry = this.engine.getSettings().getServerSettings().getRegistry();
@@ -273,25 +277,28 @@ export default class PlatformManager extends ValidationCapable
         platforms = await pRegistry.enumeratePlatforms();
 
         // if not connected
-        if(platforms == null){
-            return res;
+        if(platforms!=null && platforms.length>0){
+
+            Logger.info("Platforms in remote registry");
+            for(let i=0; i<platforms.length; i++){
+                p = Platform.fromRemoteName(platforms[i].name);
+                if(p == null) continue;
+
+                p.setRemotePath(platforms[i].download_url);
+                p.setLocalPath( _path_.join(this.engine.workspace.getPlatformFolderLocation(), p.getUID()));
+                p.setSize(platforms[i].size);
+                p.setHash(platforms[i].sha);
+
+                //Logger.info("Platforms : "+JSON.stringify(p.toJsonObject()));
+                Logger.raw(" - "+p.getUID()+" ("+p.size+") "+p.hash);
+
+                res[p.getUID()] = p;
+            }
+        }else{
+            Logger.info("[PLATFORM MANAGER][REGISTRY] Disconnected");
         }
 
-        Logger.info("Platforms in remote registry");
-        for(let i=0; i<platforms.length; i++){
-            p = Platform.fromRemoteName(platforms[i].name);
-            if(p == null) continue;
 
-            p.setRemotePath(platforms[i].download_url);
-            p.setLocalPath( _path_.join(this.engine.workspace.getPlatformFolderLocation(), p.getUID()));
-            p.setSize(platforms[i].size);
-            p.setHash(platforms[i].sha);
-
-            //Logger.info("Platforms : "+JSON.stringify(p.toJsonObject()));
-            Logger.raw(" - "+p.getUID()+" ("+p.size+") "+p.hash);
-
-            res[p.getUID()] = p;
-        }
         
         return res;
     }
