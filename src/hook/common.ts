@@ -8,8 +8,14 @@ export enum InspectorState {
 }
 
 export enum TargetLanguage {
-    JS,
-    TS
+    JS='js',
+    TS="ts"
+}
+
+export enum ScriptLanguage {
+    JS='js',
+    C='c',
+    BYTECODE='bd'
 }
 
 export interface HookVariableMap {

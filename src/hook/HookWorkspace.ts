@@ -8,11 +8,24 @@ import DexcaliburEngine from "../DexcaliburEngine.js";
 import {spawnSync} from "child_process";
 import * as VM from "vm";
 import * as FridaCompile from "@dexcalibur/dexcalibur-frida-compile";
+import * as OriginalFridaCompile from "@dexcalibur/dxc-frida-compile";
+import ts  from "@dexcalibur/dxc-frida-compile/ext/typescript.js";
 import {TargetLanguage} from "./common.js";
 import {Nullable} from "../core/IStringIndex.js";
 import {Requirement} from "@dexcalibur/dexcalibur-installer/src/Requirement.js";
+import {HookManagerException} from "../errors/HookManagerException.js";
+import {getNodeSystem} from "./ext/System.js";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
+
+
+
+
+export interface TsDiagnosticMessage {
+    file:any,
+    start:any,
+    messageText:any
+}
 
 interface HookRequirements {
     interruptor:boolean;
@@ -32,6 +45,12 @@ const FRIDA_COMPILE = 'frida-compile';
 export interface HookWorkspaceState {
     commit:string
 }
+
+export interface TsCompilerOptions {
+    sourceMaps?: "included" | "ommitted";
+    compress?:boolean
+}
+
 /**
  * A class used to interact with folder from project workspace
  * where the hook script is built
@@ -450,33 +469,107 @@ export default class HookWorkspace {
 
             }
         );
-    }
+}
 
     /**
      *
-     * @param {string} pInputFile Path relative to hook workspace
-     * @param {string} pOutputFile Path relative to hook workspace
+     * @param pDiagMsg
      */
+    static onTsCompilerDiagnostic( pDiagMsg :ts.Diagnostic):void{
+        if (pDiagMsg.file !== undefined) {
+            const { line, character } = ts.getLineAndCharacterOfPosition(pDiagMsg.file, pDiagMsg.start!);
+            const message = ts.flattenDiagnosticMessageText(pDiagMsg.messageText, "\n");
+            console.log(`${pDiagMsg.file.fileName} (${line + 1},${character + 1}): ${message}`);
+        } else {
+            console.log(ts.flattenDiagnosticMessageText(pDiagMsg.messageText, "\n"));
+        }
+    }
+
 
 
     /**
+     * Replace exec of frida-compile
      *
      * @param {Nullable<string>} pInputFile Default NULL. Path relative to hook workspace
      * @param {Nullable<string>} pOutputFile  Default NULL. Path relative to hook workspace
      * @return {Nullable<string>}
+     * @method
      */
-    async compileTsScript(pInputFile:Nullable<string>=null,pOutputFile:Nullable<string>=null):Promise<Nullable<string>> {
+    async compileTsScript(pInputFile:Nullable<string>=null,pOutputFile:Nullable<string>=null, pOptions:TsCompilerOptions={}):Promise<Nullable<string>> {
 
         let script:Nullable<string> = null;
-        const input = (pInputFile!=null ? pInputFile : this._defaultName+"ts");
-        const output = (pOutputFile!=null ? pOutputFile : this._defaultName+"js");
 
+        const input = _path_.join(this._base,(pInputFile!=null ? pInputFile : this._defaultName+"ts"));
+        const output = _path_.join(this._base, (pOutputFile!=null ? pOutputFile : this._defaultName+"js"));
+        const outputDir = _path_.dirname(output);
+        const fullOutputPath = output;
+
+        // sanity check of hook folder, detect missing parts of frida-compile
+        let compilerRoot:string;
+        const fridaSystemRoot = _path_.join(this._base,"node_modules","frida-compile","dist","system","node.js");
+        if(!_fs_.existsSync(fridaSystemRoot)){
+            //compilerRoot = _path_.join(this._base,"node_modules");
+        }else {
+            // patch
+            // copy frida-compile dir to workspace
+            console.log("HOOK WORKSPACE > ",import.meta.url);
+            /*_fs_.cpSync(
+                _path_.join(Util.__dirname(import.meta.url),'..','..','node_modules','@dexcalibur','dxc-frida-compile'),
+                _path_.join(this._base,"node_modules","frida-compile")
+            );*/
+            //compilerRoot = _path_.join(this._base,"node_modules");
+
+        }
+
+        compilerRoot = _path_.join(this._base,"node_modules");
+
+        // check if input file exists
+        if(!_fs_.existsSync(input)){
+            throw HookManagerException.COMPILER_INPUT_NOT_FOUND();
+        }
+
+        const system:ts.System = getNodeSystem(fridaSystemRoot);
+        const assets  = OriginalFridaCompile.queryDefaultAssets(this._base, system, compilerRoot);
+
+        // TODO : replace delegated frida-compile by built-in frida-compile
+        const options:OriginalFridaCompile.BuildOptions = {
+            entrypoint: input,
+            projectRoot: this._base,
+            sourceMaps: pOptions.sourceMaps ? "included" : "omitted",
+            compression: pOptions.compress ? "terser" : "none",
+            assets: assets,
+            system: system,
+            compilerRoot:compilerRoot,
+            onDiagnostic: ( pDiagMsg :ts.Diagnostic):void => {
+                if (pDiagMsg.file !== undefined) {
+                    const { line, character } = ts.getLineAndCharacterOfPosition(pDiagMsg.file, pDiagMsg.start!);
+                    const message = ts.flattenDiagnosticMessageText(pDiagMsg.messageText, "\n");
+                    Logger.error(`${pDiagMsg.file.fileName} (${line + 1},${character + 1}): ${message}`);
+                } else {
+                    Logger.error(ts.flattenDiagnosticMessageText(pDiagMsg.messageText, "\n"));
+                }
+            }
+        };
+
+
+        try{
+            const bundle = OriginalFridaCompile.build(options);
+
+            // write bundle
+            _fs_.mkdirSync(outputDir, { recursive: true });
+            _fs_.writeFileSync(fullOutputPath, bundle!);
+        }catch(err){
+            Logger.error(err.message);
+            Logger.error(err.stack);
+        }
+
+        /*
         try{
             await Util.execSync("cd "+this._base+" && ./node_modules/.bin/frida-compile "+input+" -o "+output);
             script = _fs_.readFileSync(_path_.join(this._base,output),{encoding:'utf-8'});
         }catch(e){
             console.log(e);
-        }
+        }*/
 
         return script
     }
