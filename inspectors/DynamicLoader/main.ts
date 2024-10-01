@@ -630,7 +630,11 @@ export default new InspectorFactory({
             const dast_tag = ctx.getTagManager().getTag("discover.dynamic");
 
             const rtWorkingDir = ctx.workspace.getRuntimeBcDir();
+            
+            // TODO : security : use hash instead of insecure value
+            // TODO : Risk of path traversal
             const dexFileName = _path_.basename(pEvent.getData().data.arg0);
+            
             const localDexFile = _path_.join(rtWorkingDir, dexFileName, dexFileName);
             let stat = null;
             let ignore = false;
