@@ -21,7 +21,7 @@ import {ModelFunction} from "./ModelFunction.js";
 
 
 import SystemCallHook from "./hook/SystemCallHook.js";
-import {IStringIndex} from "./core/IStringIndex.js";
+import {IStringIndex, Nullable} from "./core/IStringIndex.js";
 import {Brand} from "./Brand.js";
 import {DeviceModel} from "./DeviceModel.js";
 import {
@@ -47,6 +47,7 @@ import HookPrologue from "./HookPrologue.js";
 import {HookVariableArray, HookVariableObject} from "./HookVariable.js";
 import {HookVariableMap} from "./hook/common.js";
 import {Person} from "./user/Person.js";
+import {UserRole} from "./user/acl/rbac/UserRole.js";
 
 
 
@@ -186,7 +187,19 @@ UserAccount.TYPE.updateProperties([
             return (x.p !=null ? x.p.uid : null) ;
         } )
         .wakeUp( (x:NodePropertyState) => {
-            return (x.p!=null ? AccessControl.getRole(x.p) : null)
+            if(x.p ==null) return null;
+
+            let ret:Nullable<UserRole> = null;
+            if(typeof x.p === "string"){
+                try{
+                    ret = AccessControl.getRole(x.p);
+                }catch(e){
+                    ret = null;
+                }
+            }else{
+                ret = x.p;
+            }
+            return ret;
         }),
 ]).dataSource("ENGINE_DB").builder(UserAccount);
 
