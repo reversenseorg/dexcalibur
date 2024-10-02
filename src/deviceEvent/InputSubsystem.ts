@@ -1,9 +1,9 @@
-import InputEventChangeType from "./InputEventChangeType.js";
+import InputEventCode from "./InputEventCode.js";
 import InputEventType from "./InputEventType.js";
 
 export default class InputSubsystem {
     name: string;
-    evChange: InputEventChangeType[];
+    evCode: InputEventCode[];
     evType: InputEventType[];
 
     constructor( pConfig:any = null) {

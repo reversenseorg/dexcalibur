@@ -1,11 +1,11 @@
-import InputEventChangeType from "./InputEventChangeType.js";
+import InputEventCode from "./InputEventCode.js";
 import InputEventType from "./InputEventType.js";
 
 export default class InputEvent {
 
     timestamp: number
     type: InputEventType;
-    changeType: InputEventChangeType;
+    inputEventCode: InputEventCode;
     value: any;
 
     constructor( pConfig:any = null) {

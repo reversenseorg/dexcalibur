@@ -1,4 +1,4 @@
-import InputEventChangeProperties from "./InputEventChangeProperties.js";
+import InputEventCodeProperties from "./InputEventCodeProperties.js";
 import {Endianness} from "../core/Endianness.js";
 
 export default class EncodedToken  {

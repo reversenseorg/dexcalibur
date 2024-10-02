@@ -1659,4 +1659,6 @@ export enum AndroidFfStatusEventLabel {
     FF_GAIN = 0x60,
     FF_AUTOCENTER = 0x61,
     FF_MAX_EFFECTS = 0x60,
+    FF_MAX = 0x7f,
+    FF_CNT = 0x80,
 }
