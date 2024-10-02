@@ -27,6 +27,23 @@ export interface TsDiagnosticMessage {
     messageText:any
 }
 
+
+export interface ScriptCompilerDiagnosticMessage {
+    file?:any,
+    line?:number,
+    character?:number,
+    messageText?:string,
+    logMsg?:string
+    type?:any
+}
+
+export interface ScriptCompilerOutput {
+    bundle:Nullable<string>;
+    compiler:string;
+    diags: ScriptCompilerDiagnosticMessage[];
+}
+
+
 interface HookRequirements {
     interruptor:boolean;
     fridaCompile:boolean;
@@ -495,9 +512,14 @@ export default class HookWorkspace {
      * @return {Nullable<string>}
      * @method
      */
-    async compileTsScript(pInputFile:Nullable<string>=null,pOutputFile:Nullable<string>=null, pOptions:TsCompilerOptions={}):Promise<Nullable<string>> {
+    async compileTsScript(pInputFile:Nullable<string>=null,pOutputFile:Nullable<string>=null, pOptions:TsCompilerOptions={}):Promise<ScriptCompilerOutput> {
 
         let script:Nullable<string> = null;
+        let compilerOutputs:ScriptCompilerOutput = {
+            bundle: null,
+            compiler: "ts",
+            diags: []
+        };
 
         const input = _path_.join(this._base,(pInputFile!=null ? pInputFile : this._defaultName+"ts"));
         const output = _path_.join(this._base, (pOutputFile!=null ? pOutputFile : this._defaultName+"js"));
@@ -507,19 +529,7 @@ export default class HookWorkspace {
         // sanity check of hook folder, detect missing parts of frida-compile
         let compilerRoot:string;
         const fridaSystemRoot = _path_.join(this._base,"node_modules","frida-compile","dist","system","node.js");
-        if(!_fs_.existsSync(fridaSystemRoot)){
-            //compilerRoot = _path_.join(this._base,"node_modules");
-        }else {
-            // patch
-            // copy frida-compile dir to workspace
-            console.log("HOOK WORKSPACE > ",import.meta.url);
-            /*_fs_.cpSync(
-                _path_.join(Util.__dirname(import.meta.url),'..','..','node_modules','@dexcalibur','dxc-frida-compile'),
-                _path_.join(this._base,"node_modules","frida-compile")
-            );*/
-            //compilerRoot = _path_.join(this._base,"node_modules");
 
-        }
 
         compilerRoot = _path_.join(this._base,"node_modules");
 
@@ -531,7 +541,6 @@ export default class HookWorkspace {
         const system:ts.System = getNodeSystem(fridaSystemRoot);
         const assets  = OriginalFridaCompile.queryDefaultAssets(this._base, system, compilerRoot);
 
-        // TODO : replace delegated frida-compile by built-in frida-compile
         const options:OriginalFridaCompile.BuildOptions = {
             entrypoint: input,
             projectRoot: this._base,
@@ -544,45 +553,55 @@ export default class HookWorkspace {
                 if (pDiagMsg.file !== undefined) {
                     const { line, character } = ts.getLineAndCharacterOfPosition(pDiagMsg.file, pDiagMsg.start!);
                     const message = ts.flattenDiagnosticMessageText(pDiagMsg.messageText, "\n");
-                    Logger.error(`${pDiagMsg.file.fileName} (${line + 1},${character + 1}): ${message}`);
+                    Logger.error(` ${pDiagMsg.file.fileName} (${line + 1},${character + 1}): ${message}`);
+
+                    compilerOutputs.diags.push({
+                        file: pDiagMsg.file.fileName,
+                        line: line + 1,
+                        character: character + 1,
+                        messageText: message,
+                        logMsg: `${pDiagMsg.file.fileName} (${line + 1},${character + 1}): ${message}`
+                    });
                 } else {
+                    compilerOutputs.diags.push({
+                        logMsg: ts.flattenDiagnosticMessageText(pDiagMsg.messageText, "\n")
+                    });
                     Logger.error(ts.flattenDiagnosticMessageText(pDiagMsg.messageText, "\n"));
                 }
             }
         };
 
-
         try{
-            const bundle = OriginalFridaCompile.build(options);
+            compilerOutputs.bundle = OriginalFridaCompile.build(options);
 
             // write bundle
             _fs_.mkdirSync(outputDir, { recursive: true });
-            _fs_.writeFileSync(fullOutputPath, bundle!);
+            _fs_.writeFileSync(fullOutputPath, compilerOutputs.bundle!);
         }catch(err){
             Logger.error(err.message);
             Logger.error(err.stack);
+            //throw HookC
         }
 
-        /*
-        try{
-            await Util.execSync("cd "+this._base+" && ./node_modules/.bin/frida-compile "+input+" -o "+output);
-            script = _fs_.readFileSync(_path_.join(this._base,output),{encoding:'utf-8'});
-        }catch(e){
-            console.log(e);
-        }*/
-
-        return script
+        return compilerOutputs;
     }
 
     /**
      *
      * @param pOutputPath
      */
-    async compileDefaultScript( pOutputPath:string = null):Promise<string> {
+    async compileDefaultScript( pOutputPath:string = null):Promise<ScriptCompilerOutput> {
         const out = _path_.join(this._base, (pOutputPath!=null? pOutputPath : this._defaultOutName));
+        const compilerOutput:ScriptCompilerOutput = {
+            compiler: "js",
+            bundle: null,
+            diags: []
+        };
+
+        compilerOutput.bundle = await this.compileScriptWith10_2_5(_path_.join(this._base, this._defaultName+'js'), out);
 
         //return this.execFridaCompiler(_path_.join(this._base, this._defaultName), out);
-        return this.compileScriptWith10_2_5(_path_.join(this._base, this._defaultName+'js'), out);
+        return compilerOutput
     }
 
     async compileScriptWith10_2_5( pInputPath:string, pOutputPath:string):Promise<string> {

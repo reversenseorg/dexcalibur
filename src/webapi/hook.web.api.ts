@@ -21,6 +21,7 @@ import {InspectorFactoryException} from "../errors/InspectorFactoryException.js"
 import {HookManagerException} from "../errors/HookManagerException.js";
 import {WebApiWindowing} from "./internals/WebApiWindowing.js";
 import {TargetLanguage} from "../hook/common.js";
+import {ScriptCompilerOutput} from "../hook/HookWorkspace.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 export const HOOK_WEB_API: DelegateWebApi = new DelegateWebApi();
@@ -113,7 +114,14 @@ HOOK_WEB_API.addAsyncAuthenticatedRoute(
                 if(req.body['code[]'] != null){
                     newCode = req.body['code[]'].join("\n");
                 }else{
-                    newCode = await (req.dxc.project as DexcaliburProject).getHookManager().buildAgentScript();
+                    const compilerOutput  = await (req.dxc.project as DexcaliburProject).getHookManager().buildAgentScript();
+
+                    if(compilerOutput.diags.length > 0){
+                        $.sendSuccess(res, { success:false, compilerOutput: compilerOutput, output: null });
+                        return;
+                    }
+
+                    newCode = compilerOutput.bundle;
                 }
 
 
@@ -151,7 +159,7 @@ HOOK_WEB_API.addAsyncAuthenticatedRoute(
 
 
 
-                $.sendSuccess(res, { output: await output });
+                $.sendSuccess(res, { success:true, output: await output });
 
 
             }catch(err){
@@ -171,7 +179,10 @@ HOOK_WEB_API.addAsyncAuthenticatedRoute(
             const $: WebServer = req.dxc.$;
 
             try{
-                $.sendSuccess(res, await (req.dxc.project as DexcaliburProject).getHookManager().buildAgentScript());
+                const output:ScriptCompilerOutput  = await (req.dxc.project as DexcaliburProject)
+                    .getHookManager().buildAgentScript();
+
+                $.sendSuccess(res, output);
             }catch(err){
                 Logger.error("[API][HOOK] Frida agent script cannot be built. Cause : " + err.message + "\n\t" + err.stack);
                 $.sendError(res, "Frida agent script cannot be built. Cause : " + err.message);
@@ -703,13 +714,18 @@ HOOK_WEB_API.addAsyncAuthenticatedRoute(
                 const filename = "hook."+project.hook.builder.getLanguage();
                 const script = await project.hook.buildAgentScript({}, true);
 
+                if(script.diags.length > 0){
+                    $.sendSuccess(res, script);
+                }else{
+                    res.set('Content-Type', 'application/octet-stream');
+                    res.set('Content-Length', script.bundle.length+"");
+                    res.set('Content-Disposition', 'attachment; filename="'+filename+'"');
+                    res.set('Expires', '0');
 
-                res.set('Content-Type', 'application/octet-stream');
-                res.set('Content-Length', script.length+"");
-                res.set('Content-Disposition', 'attachment; filename="'+filename+'"');
-                res.set('Expires', '0');
+                    $.sendSuccess(res, script);
+                }
 
-                $.sendSuccess(res, script);
+
 
             }catch(err){
                 Logger.error("[API][HOOK] Hook cannot be generated. Cause : " + err.message + "\n\t" + err.stack);

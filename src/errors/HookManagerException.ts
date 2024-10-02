@@ -1,4 +1,5 @@
 import {ErrorCode, MonitoredError} from "./MonitoredError.js";
+import {ScriptCompilerOutput} from "../hook/HookWorkspace.js";
 
 export enum HookErrCode {
     GENERIC=100,
@@ -22,7 +23,8 @@ export class HookManagerException extends MonitoredError {
         OPTION_NOT_SUPPORTED: ErrorCode.HOOK_MANAGER + HookErrCode.GENERIC + 11,
         SCRIPT_COMPILATION_FAILED: ErrorCode.HOOK_MANAGER + HookErrCode.GENERIC + 12,
         SCRIPT_SYNTAX_ERROR: ErrorCode.HOOK_MANAGER + HookErrCode.GENERIC + 13,
-        COMPILER_INPUT_NOT_FOUND: ErrorCode.HOOK_MANAGER + HookErrCode.GENERIC + 14
+        COMPILER_INPUT_NOT_FOUND: ErrorCode.HOOK_MANAGER + HookErrCode.GENERIC + 14,
+        CANNOT_START_HOOK_BECAUSE_SYNTAX_ERR: ErrorCode.HOOK_MANAGER + HookErrCode.GENERIC + 15,
     };
 
     static EXISTING_HOOK_SET = ()=>{ return new HookManagerException(" An hook set already exists for this ID",HookManagerException.ERR.EXISTING_HOOK_SET) };
@@ -39,6 +41,13 @@ export class HookManagerException extends MonitoredError {
     static SCRIPT_COMPILATION_FAILED = (pName:string)=>{ return new HookManagerException(" The script compiling failed.",HookManagerException.ERR.SCRIPT_COMPILATION_FAILED) };
     static SCRIPT_SYNTAX_ERROR = (pLang:string, pMessage:string="")=>{ return new HookManagerException(" [targetLang="+pLang+"] The built script contains syntax errors : "+pMessage,HookManagerException.ERR.SCRIPT_SYNTAX_ERROR) };
     static COMPILER_INPUT_NOT_FOUND = ()=>{ return new HookManagerException(" Input file of TS compiler not found. ",HookManagerException.ERR.COMPILER_INPUT_NOT_FOUND) };
+    static CANNOT_START_HOOK_BECAUSE_SYNTAX_ERR = (pCompilerOutput:ScriptCompilerOutput)=>{
+        return new HookManagerException(
+            " Hooks cannot start : syntax error.",
+            HookManagerException.ERR.CANNOT_START_HOOK_BECAUSE_SYNTAX_ERR,
+            pCompilerOutput
+        );
+    };
 
 
 
