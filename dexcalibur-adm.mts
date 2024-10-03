@@ -818,7 +818,10 @@ switch (projectArgs.mode){
                     const dxcInstance = DexcaliburEngine.getInstance();
 
                     // init engine with settings
-                    dxcInstance.loadConfiguration(cfg);
+                    await dxcInstance.loadConfiguration(cfg);
+
+                    // init service, sso, ...
+                    await dxcInstance.getUserService().getAuthenticationService().init();
 
                     // boot engine
                     const ready = await dxcInstance.boot(projectArgs.restore===true,"");
