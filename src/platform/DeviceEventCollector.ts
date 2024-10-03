@@ -2,22 +2,27 @@ import * as Log from '../Logger.js';
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 import * as _child_process_ from "child_process";
 import {IBridge} from "../Bridge.js";
+import AndroidPhysicalEventWrapper from "./AndroidPhysicalEventWrapper.js";
+import InputEvent from "./InputEvent.js";
 
 
 export default class DeviceEventCollector {
 
     static getKernelTime = "cat /proc/uptime";
-    static getEventCommand = "getevent -ltq";
+    // static getEventCommand = "getevent -ltq";
+    static getEventCommand = "cat /dev/input/event1";
     static listDevicesEventsCommand = "getevent -lp"; // cat /proc/bus/input/devices
 
     childProcess: _child_process_.ChildProcess = null;
 
     deviceBridge: IBridge;
+    eventWrapper: AndroidPhysicalEventWrapper;
 
     deviceEvents: Record<string, any>[] = [];
 
     constructor(deviceBridge: IBridge) {
         this.deviceBridge = deviceBridge;
+        this.eventWrapper = new AndroidPhysicalEventWrapper();
     }
 
     /**
@@ -28,8 +33,8 @@ export default class DeviceEventCollector {
         try {
             this.childProcess = this.deviceBridge.spawn(DeviceEventCollector.getEventCommand);
             this.childProcess.stdout.on('data', (data) => {
-                let parsedEventChunk : Record<string, any>[] = DeviceEventCollector.parseEventChunk(data.toString());
-                parsedEventChunk.forEach((event : Record<string, any>) => {
+                let parsedEventChunk : InputEvent[] = this.parseEventChunk(data);
+                parsedEventChunk.forEach((event) => {
                     this.deviceEvents.push(event);
                 })
                 console.log("[DeviceEventCollector] parsedEventChunk : ", parsedEventChunk);
@@ -66,23 +71,9 @@ export default class DeviceEventCollector {
         console.log(commandResult);
     }
 
-    static parseEventChunk(eventChunk: string) {
-        let parsedEventChunk = [];
-        let eventLines = eventChunk.split(/\n/);
-        eventLines.forEach((line) => {
-            let elements = line.split(/\s+/);
-            if (elements.length >= 6) {
-                let timestamp: number = + elements[1].split("]")[0];
-                let device = elements[2].split(":")[0];
-                let eventType = elements[3];
-                let eventCode = elements[4];
-                let eventValue = elements[5];
-                let parsedLine = {"timestamp": timestamp, "device":device ,"eventType": eventType,
-                    "eventCode": eventCode, "eventValue": eventValue};
-                parsedEventChunk.push(parsedLine);
-            }
-        })
-        return parsedEventChunk;
+    parseEventChunk(eventChunk: Buffer): InputEvent[] {
+        let decodeBufferChunk = this.eventWrapper.decodeBufferChunk(eventChunk);
+        return decodeBufferChunk;
     }
 
     parseListDevicesEvents(commandResult: string) {

@@ -1,8 +1,9 @@
 import InputEvent from "../platform/InputEvent.js";
 import {IPhysicalEventDecoder} from "../platform/IPhysicalEventDecoder.js";
 import {AndroidEventType, AndroidSynEventCode} from "../android/AndroidInputEvent.js";
-import {of} from "rxjs";
 import {DeviceOptions} from "../Device.js";
+import InputEventType from "./InputEventType.js";
+import InputEventCode from "./InputEventCode.js";
 
 // Android Event Format in /dev/input/eventX
 // struct input_event {
@@ -26,22 +27,28 @@ export default class AndroidPhysicalEventWrapper implements IPhysicalEventDecode
     decode(pRaw: Buffer): InputEvent {
         // TODO: Switch to dxc-struct to read buffer
         let offset = 0;
-        let timestamp_sec = pRaw.readBigInt64LE(offset);
+        let timestamp_sec = pRaw.readBigUInt64LE(offset);
         offset += 8;
-        let timestamp_usec = pRaw.readBigInt64LE(offset);
+        let timestamp_usec = pRaw.readBigUInt64LE(offset);
         offset += 8;
-        let eventType = pRaw.readInt16LE(offset);
+        let eventType = pRaw.readUInt16LE(offset);
         offset += 2;
-        let eventCode = pRaw.readInt16LE(offset);
+        let eventCode = pRaw.readUInt16LE(offset);
         offset += 2;
-        let eventValue = pRaw.toString('hex', offset, offset + 4)
-        let timestamp  = Number(timestamp_sec) + Number(timestamp_usec) * 10 ** -6;
-        let parsedRaw = {"timestamp": timestamp, "eventType": eventType,
-            "eventCode": eventCode, "eventValue": eventValue};
+        let eventValue = pRaw.readUInt32LE(offset).toString(16).padStart(8, '0')
+        let timestamp: string  = Number(timestamp_sec) + '.' + Number(timestamp_usec);
+        // Timestamp remark:
+        // - Conversion bigInt to number not precise if timestamp_sec or timestamp_usec is over Number.MAX_SAFE_INTEGER 9007199254740991.
+        // - Stored in a string to avoid imprecision on decimals from number.
+        let parsedRaw = {
+            "timestamp": timestamp,
+            "type": InputEventType.parse(eventType),
+            "code": InputEventCode.parse(eventCode),
+            "value": eventValue};
         return new InputEvent(parsedRaw);
     }
 
-    decodeBufferChunk(pRawChunk: Buffer) {
+    decodeBufferChunk(pRawChunk: Buffer): InputEvent[] {
         let parsedEventChunk: any[] = [];
         let numberOfEvents = (pRawChunk.length / this.eventSize >>0);
         for (let i = 0; i < numberOfEvents; i++) {

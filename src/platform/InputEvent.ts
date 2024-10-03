@@ -5,7 +5,7 @@ export default class InputEvent {
 
     timestamp: number
     type: InputEventType;
-    inputEventCode: InputEventCode;
+    code: InputEventCode;
     value: any;
 
     constructor( pConfig:any = null) {
