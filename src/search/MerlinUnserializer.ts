@@ -12,7 +12,7 @@ import {MerlinAndroidRule} from "./MerlinAndroidRule.js";
 import {MerlinFlutterRule} from "./MerlinFlutterRule.js";
 import {MerlinIosRule} from "./MerlinIosRule.js";
 import {MerlinRule, MerlinRuleOptions, SearchOptions} from "./MerlinRule.js";
-import {OperatingSystem} from "../OperatingSystem.js";
+import {OperatingSystem} from "../platform/OperatingSystem.js";
 import {MerlinUnserializerException} from "./error/MerlinUnserializerException.js";
 import {MerlinSearchRequestException} from "./error/MerlinSearchRequestException.js";
 

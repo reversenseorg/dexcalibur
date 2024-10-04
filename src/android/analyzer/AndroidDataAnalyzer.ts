@@ -8,7 +8,7 @@ import {IDbCollection} from "@dexcalibur/dexcalibur-orm";
 import DexcaliburProject from "../../DexcaliburProject.js";
 import {IDelegatedDataAnalyzer} from "../../analyzer/IDelegatedDataAnalyzer.js";
 import * as Log from "../../Logger.js";
-import {OperatingSystem} from "../../OperatingSystem.js";
+import {OperatingSystem} from "../../platform/OperatingSystem.js";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 

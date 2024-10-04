@@ -13,7 +13,7 @@ import {UserSession} from "../user/session/UserSession.js";
 import DexcaliburProject from "../DexcaliburProject.js";
 import {DexcaliburProjectMap} from "../DexcaliburEngine.js";
 import Util from "../Utils.js";
-import Platform from "../Platform.js";
+import Platform from "../platform/Platform.js";
 import AccessControl from "../user/acl/AccessControl.js";
 import {AccessZone} from "../user/acl/Zones.js";
 import {ProjectAccessControl} from "../user/acl/rbac/ProjectAccessContol.js";

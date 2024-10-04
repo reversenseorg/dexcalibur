@@ -1,5 +1,5 @@
 import {Architecture} from "./Architecture.js";
-import {OperatingSystem} from "./OperatingSystem.js";
+import {OperatingSystem} from "./platform/OperatingSystem.js";
 import ModelSyscall from "./ModelSyscall.js";
 import * as LinuxAarch64Syscalls from "@reversense/interruptor/src/syscalls/LinuxAarch64Syscalls.js";
 import * as LinuxAarch32Syscalls from "@reversense/interruptor/src/syscalls/LinuxAarch32Syscalls.js";

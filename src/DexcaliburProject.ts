@@ -2,14 +2,14 @@ import * as  _path_ from "path";
 
 
 import DexcaliburWorkspace from "./DexcaliburWorkspace.js";
-import Platform from "./Platform.js";
+import Platform from "./platform/Platform.js";
 import APK from "./APK.js";
 import {ConnectorFactory} from "./ConnectorFactory.js";
 import DexHelper from "./DexHelper.js";
 import {Device} from "./Device.js";
 import Bus, {BusSubscriber} from "./Bus.js";
 import AndroidApplication from "./android/AndroidApplication.js";
-import PlatformManager from "./PlatformManager.js";
+import PlatformManager from "./platform/PlatformManager.js";
 import {SearchAPI} from "./SearchAPI.js";
 import DeviceManager from "./DeviceManager.js";
 import BusEvent, {BusEventOptions} from "./BusEvent.js";
@@ -55,7 +55,7 @@ import {IAppAnalyzer} from "./analyzer/IAppAnalyzer.js";
 import {TagManager} from "./tags/TagManager.js";
 import {DexcaliburProjectException} from "./errors/DexcaliburProjectException.js";
 import {Architecture} from "./Architecture.js";
-import {OperatingSystem} from "./OperatingSystem.js";
+import {OperatingSystem} from "./platform/OperatingSystem.js";
 import ModelSyscallFactory from "./ModelSyscallFactory.js";
 import {ProjectState} from "./ProjectState.js";
 import {LicenceManager} from "./credit/LicenceManager.js";

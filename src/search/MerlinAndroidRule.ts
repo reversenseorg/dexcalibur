@@ -3,7 +3,7 @@ import DexcaliburProject from "../DexcaliburProject.js";
 import {Operation, OperationType, MerlinSearchRequest} from "./MerlinSearchRequest.js";
 import ModelClass from "../ModelClass.js";
 import ModelMethod from "../ModelMethod.js";
-import {OperatingSystem} from "../OperatingSystem.js";
+import {OperatingSystem} from "../platform/OperatingSystem.js";
 import {MerlinRule, MerlinRuleOptions, MerlinRuleType, SearchOptions } from "./MerlinRule.js";
 import {AndroidPermission} from "../android/Permissions.js";
 import {SerializedSearchRequest} from "../audit/common/SerializedMerlinPrimitive.js";

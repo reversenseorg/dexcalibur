@@ -6,7 +6,7 @@ import {SqliteDb} from "../../connectors/sqlite/SqliteDb.js";
 import {KeyPointGenerator, KeyPointOptions, KeyPointOptionsOptions} from "./KeyPointGenerator.js";
 import {IDatabase, IDbCollection, INode} from "@dexcalibur/dexcalibur-orm";
 import {MongodbDbCollection} from "@dexcalibur/dexcalibur-orm-mongodb";
-import {OperatingSystem} from "../OperatingSystem.js";
+import {OperatingSystem} from "../platform/OperatingSystem.js";
 import {Nullable} from "../core/IStringIndex.js";
 import {NodeInternalType, NodeInternalTypeName}
 from "@dexcalibur/dxc-core-api";;

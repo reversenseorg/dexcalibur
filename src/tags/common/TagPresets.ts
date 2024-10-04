@@ -28,6 +28,13 @@ export function newTagPresets(){
     const ANAL_NATIVE = new TagCategory({ name: "analyzer.native" });
     const PURPOSE = new TagCategory({ name: "purpose" });
     const TECH = new TagCategory({ name: "tech" });
+    const INPUT_DEV = new TagCategory({ name: "input.device" });
+    const INPUT_TYPE = new TagCategory({ name: "input.event" });
+
+    const INPUT_DEV_TAGS = [
+        new Tag({ name:"kbd", label:"Keyboard" }),
+        new Tag({ name:"mouse", label:"Mouse" })
+    ];
 
 
     const FS_FILE = new TagCategory({ name: "fs.file" });

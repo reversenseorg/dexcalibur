@@ -1,4 +1,4 @@
-import {OperatingSystem} from "../OperatingSystem.js";
+import {OperatingSystem} from "../platform/OperatingSystem.js";
 import AndroidDeviceProfile from "../android/profiles/AndroidDeviceProfile.js";
 import DeviceProfile from "./DeviceProfile.js";
 import GenericDeviceProfile from "./GenericDeviceProfile.js";

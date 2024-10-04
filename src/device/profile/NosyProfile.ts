@@ -8,7 +8,13 @@ import {DeviceProfilingOptions, IBridge} from "../../Bridge.js";
 
 
 /**
- * Generic class to hold results from device profiling
+ *
+ *
+ * A nosy profile is a profile that need to interact with the device
+ * The opposite is a profiling that not require more data from the device
+ * than alreadu gathered one.
+ *
+ * @interface
  */
 export interface NosyProfile extends IProfile
 {

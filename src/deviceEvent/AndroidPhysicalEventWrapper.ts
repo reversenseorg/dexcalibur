@@ -1,5 +1,5 @@
-import InputEvent from "./InputEvent.js";
-import {IPhysicalEventDecoder} from "./IPhysicalEventDecoder.js";
+import InputEvent from "../platform/InputEvent.js";
+import {IPhysicalEventDecoder} from "../platform/IPhysicalEventDecoder.js";
 import {AndroidEventType, AndroidSynEventCode} from "../android/AndroidInputEvent.js";
 import {of} from "rxjs";
 import {DeviceOptions} from "../Device.js";

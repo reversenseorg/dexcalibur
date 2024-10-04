@@ -1,4 +1,4 @@
-import {OperatingSystem} from "../OperatingSystem.js";
+import {OperatingSystem} from "../platform/OperatingSystem.js";
 import {GenericSystemProfile} from "./profile/GenericSystemProfile.js";
 import GenericTrustProfile from "./profile/GenericTrustProfile.js";
 import GenericBuildProfile from "./profile/GenericBuildProfile.js";
@@ -10,6 +10,7 @@ import * as Log from "../Logger.js";
 import {CoreDebug} from "../core/CoreDebug.js";
 import {SerializeOptions} from "@dexcalibur/dexcalibur-orm";
 import {GenericMemoryProfile} from "./profile/GenericMemoryProfile.js";
+import GenericInputProfile from "./profile/GenericInputProfile.js";
 
 
 enum TYPE {
@@ -29,6 +30,7 @@ export interface DeviceProfileMap {
     build?: GenericBuildProfile,
     network?: GenericNetworkProfile,
     mounts?: GenericMountsProfile
+    inputs?: GenericInputProfile
 }
 
 export interface ProfileMap {
@@ -220,6 +222,16 @@ export default class DeviceProfile
      */
     getMountedFsProfile():GenericMountsProfile{
         return this.profiles.mounts as GenericMountsProfile;
+    }
+
+    /**
+     * To get the profile of input devices available for the device
+     *
+     * @return {GenericInputProfile}
+     * @method
+     */
+    getInputProfile():GenericInputProfile{
+        return this.profiles.inputs as GenericInputProfile;
     }
 
     /**

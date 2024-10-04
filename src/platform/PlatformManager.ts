@@ -8,18 +8,18 @@ import * as Got from "got";
 const got = Got.default;
 
 
-import Utils from "./Utils.js";
+import Utils from "../Utils.js";
 import Platform from "./Platform.js";
-import DexcaliburRegistry from "./DexcaliburRegistry.js";
-import {ValidationCapable, ValidationRule} from "./Validator.js";
-import DexcaliburEngine from "./DexcaliburEngine.js";
-import DexHelper from "./DexHelper.js";
+import DexcaliburRegistry from "../DexcaliburRegistry.js";
+import {ValidationCapable, ValidationRule} from "../Validator.js";
+import DexcaliburEngine from "../DexcaliburEngine.js";
+import DexHelper from "../DexHelper.js";
 
 
-import * as Log from './Logger.js';
-import {PlatformManagerException} from "./errors/PlatformManagerException.js";
-import {Device} from "./Device.js";
-import AndroidApplication from "./android/AndroidApplication.js";
+import * as Log from '../Logger.js';
+import {PlatformManagerException} from "../errors/PlatformManagerException.js";
+import {Device} from "../Device.js";
+import AndroidApplication from "../android/AndroidApplication.js";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 

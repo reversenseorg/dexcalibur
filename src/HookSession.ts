@@ -36,7 +36,7 @@ import {HookWorkspaceState} from "./hook/HookWorkspace.js";
 import {Nullable} from "./core/IStringIndex.js";
 import {UserAccount, UserAccountUUID} from "./user/UserAccount.js";
 import {Device} from "./Device.js";
-import DeviceEventCollector from "./deviceEvent/DeviceEventCollector.js";
+import DeviceEventCollector from "./platform/DeviceEventCollector.js";
 import {IBridge} from "./Bridge.js";
 
 

@@ -8,7 +8,7 @@ let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 import RadareFactory from "./R2Factory.js";
 import RadareHelper from "./R2Helper.js";
 import ModelFile from "./ModelFile.js";
-import Platform from "./Platform.js";
+import Platform from "./platform/Platform.js";
 import DataScope from "./DataScope.js";
 import {ModelFunction} from "./ModelFunction.js";
 import {ABI} from "./binary/ABI.js";

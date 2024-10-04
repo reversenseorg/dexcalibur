@@ -19,7 +19,7 @@ import {
 } from "./PrivilegedExecutionStrategy.js";
 import Util from "./Utils.js";
 import {AndroidInstallOptionsEnum, AndroidPackageInstallOptions} from "./android/bridge/AndroidInstallOptions.js";
-import {OperatingSystem} from "./OperatingSystem.js";
+import {OperatingSystem} from "./platform/OperatingSystem.js";
 
 const Logger:Log.ProdLogger = Log.newLogger() as Log.ProdLogger;
 

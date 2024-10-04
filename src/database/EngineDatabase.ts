@@ -60,8 +60,8 @@ const SCAN_COL = "scans";
 const SESSIONS_COL = "sessions";
 const UA_COL = "accounts";
 
-const INTERNAL_DB = "dxcserver";
-const PROJECT_DB_PREFIX = "dxc_";
+export const INTERNAL_DB = "dxcserver";
+export const PROJECT_DB_PREFIX = "dxc_";
 
 
 

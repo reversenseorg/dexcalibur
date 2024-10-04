@@ -1,5 +1,5 @@
 import {Architecture} from "../../Architecture.js";
-import {OperatingSystem} from "../../OperatingSystem.js";
+import {OperatingSystem} from "../../platform/OperatingSystem.js";
 import {ABI, InstructionSet} from "../../binary/ABI.js";
 import {Profile} from "./Profile.js";
 

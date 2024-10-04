@@ -1,4 +1,4 @@
-import DeviceEventCollector from "../src/deviceEvent/DeviceEventCollector.js";
+import DeviceEventCollector from "../src/platform/DeviceEventCollector.js";
 import AndroidEventRecordSession from "../src/deviceEvent/AndroidEventRecordSession.js";
 import {expect} from 'chai';
 import {

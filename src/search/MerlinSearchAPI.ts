@@ -21,7 +21,7 @@ import ModelString from "../ModelString.js";
 import {ModelFunction} from "../ModelFunction.js";
 import ModelSyscall from "../ModelSyscall.js";
 import {IAnalyzerUnit} from "../analyzer/IAnalyzerUnit.js";
-import {OperatingSystem} from "../OperatingSystem.js";
+import {OperatingSystem} from "../platform/OperatingSystem.js";
 import {NodeInternalType}
 from "@dexcalibur/dxc-core-api";;
 import {CoreDebug} from "../core/CoreDebug.js";

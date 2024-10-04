@@ -6,7 +6,7 @@ import DexcaliburWorkspace from "./DexcaliburWorkspace.js";
 import DeviceManager from "./DeviceManager.js";
 import {Workflow} from "./Workflow.js";
 import InspectorManager from "./InspectorManager.js";
-import PlatformManager from "./PlatformManager.js";
+import PlatformManager from "./platform/PlatformManager.js";
 import WebServer from "./WebServer.js";
 import {Settings} from "./Settings.js";
 import {UserService} from "./user/UserService.js";

@@ -1,7 +1,7 @@
 
 
 import {NodeInternalType} from "@dexcalibur/dxc-core-api";
-import {OperatingSystem} from "./OperatingSystem.js";
+import {OperatingSystem} from "./platform/OperatingSystem.js";
 import {Architecture} from "./Architecture.js";
 import {CoreDebug} from "./core/CoreDebug.js";
 import {

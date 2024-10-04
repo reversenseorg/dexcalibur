@@ -5,8 +5,8 @@ import DeviceManager from "../DeviceManager.js";
 import FridaHelper from "../FridaHelper.js";
 import {Router, Request, Response} from "express";
 import * as Log from "../Logger.js";
-import PlatformManager from "../PlatformManager.js";
-import Platform from "../Platform.js";
+import PlatformManager from "../platform/PlatformManager.js";
+import Platform from "../platform/Platform.js";
 import {PlatformManagerException} from "../errors/PlatformManagerException.js";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;

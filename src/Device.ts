@@ -4,15 +4,15 @@ import {EOL} from 'os';
 
 import * as Log from './Logger.js';
 import DeviceProfile from './device/DeviceProfile.js';
-import Platform from './Platform.js';
-import PlatformManager from './PlatformManager.js';
+import Platform from './platform/Platform.js';
+import PlatformManager from './platform/PlatformManager.js';
 import DexcaliburWorkspace from './DexcaliburWorkspace.js';
 import Utils from "./Utils.js";
 import {BridgeInstallOptions, BridgeSuperFactory, DeviceProfilingOptions, IBridge, IBridgeFactory} from "./Bridge.js";
 import ModelSyscall from "./ModelSyscall.js";
 import AppPackage from "./AppPackage.js";
 import {DeviceManagerException} from "./errors/DeviceManagerException.js";
-import {OperatingSystem} from "./OperatingSystem.js";
+import {OperatingSystem} from "./platform/OperatingSystem.js";
 import ModelSyscallFactory from "./ModelSyscallFactory.js";
 import {Architecture} from "./Architecture.js";
 import DeviceProfileFactory from './device/DeviceProfileFactory.js';

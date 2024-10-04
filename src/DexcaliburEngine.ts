@@ -1,5 +1,5 @@
 import DexcaliburRegistry from "./DexcaliburRegistry.js";
-import PlatformManager from "./PlatformManager.js";
+import PlatformManager from "./platform/PlatformManager.js";
 
 import * as  _fs_ from 'fs';
 import * as  _path_ from 'path';
@@ -56,7 +56,7 @@ import {AppContextType, IAppContext, TagCategory} from "@dexcalibur/dexcalibur-o
 import {EngineDatabase} from "./database/EngineDatabase.js";
 import {EngineNodeException} from "./errors/EngineNodeException.js";
 import TargetApp from "./common/TargetApp.js";
-import Platform from "./Platform.js";
+import Platform from "./platform/Platform.js";
 import {ProjectState} from "./ProjectState.js";
 import Tool = External.Tool;
 import { Subject} from "rxjs";

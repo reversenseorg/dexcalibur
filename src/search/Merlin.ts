@@ -1,5 +1,5 @@
 import {MerlinRule, MerlinRuleOptions} from "./MerlinRule.js";
-import {OperatingSystem} from "../OperatingSystem.js";
+import {OperatingSystem} from "../platform/OperatingSystem.js";
 import { MerlinAndroidRule } from "./MerlinAndroidRule.js";
 import {MerlinIosRule} from "./MerlinIosRule.js";
 import {MerlinFlutterRule} from "./MerlinFlutterRule.js";

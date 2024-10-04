@@ -11,7 +11,7 @@ import * as Log from "../../src/Logger.js";
 import {AndroidManifest, AndroidSharedUser} from "../../src/android/AndroidManifest.js";
 import {AndroidCodeAnalyzer} from "../../src/android/analyzer/AndroidCodeAnalyzer.js";
 import AndroidApplication from "../../src/android/AndroidApplication.js";
-import {OperatingSystem} from "../../src/OperatingSystem.js";
+import {OperatingSystem} from "../../src/platform/OperatingSystem.js";
 
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;

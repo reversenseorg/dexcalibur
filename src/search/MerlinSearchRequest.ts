@@ -3,7 +3,7 @@ import {FinderResult} from "./FinderResult.js";
 import {Finder} from "./Finder.js";
 import {SearchRequestCondition, ValidateOptions} from "./SearchRequestCondition.js";
 import Util from "../Utils.js";
-import {OperatingSystem} from "../OperatingSystem.js";
+import {OperatingSystem} from "../platform/OperatingSystem.js";
 import {BusSubscriber} from "../Bus.js";
 import DexcaliburProject from "../DexcaliburProject.js";
 import {NodeInternalType, NodeInternalTypeName}

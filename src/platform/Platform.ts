@@ -1,25 +1,25 @@
 import * as _fs_ from "fs";
 
-import DexcaliburProject from "./DexcaliburProject.js";
-import DexcaliburDVM from "./android/DexcaliburDVM.js";
-import {DexcaliburVM} from "./DexcaliburVM.js";
-import * as Log from "./Logger.js";
+import DexcaliburProject from "../DexcaliburProject.js";
+import DexcaliburDVM from "../android/DexcaliburDVM.js";
+import {DexcaliburVM} from "../DexcaliburVM.js";
+import * as Log from "../Logger.js";
 import {OperatingSystem} from "./OperatingSystem.js";
-import {Architecture} from "./Architecture.js";
-import {CoreDebug} from "./core/CoreDebug.js";
-import {IAppAnalyzer} from "./analyzer/IAppAnalyzer.js";
-import AndroidAppAnalyzer from "./android/AndroidAppAnalyzer.js";
-import {AnalyzerState} from "./AnalyzerState.js";
-import IosAppAnalyzer from "./ios/IosAppAnalyzer.js";
-import {AnalyzerException} from "./errors/AnalyzerException.js";
-import {Nullable} from "./core/IStringIndex.js";
-import KeyPointManager from "./hook/KeyPointManager.js";
-import TargetApp from "./common/TargetApp.js";
-import ApkHelper from "./ApkHelper.js";
-import {IPackageAnalyzer} from "./analyzer/IPackageAnalyzer.js";
-import {AndroidPackageAnalyzer} from "./android/analyzer/AndroidPackageAnalyzer.js";
-import {PackageAnalyzerOptions} from "./AnalyzerConfiguration.js";
-import {AndroidPackageAnalyzerConfig} from "./android/analyzer/AndroidPackageAnalyzerConfig.js";
+import {Architecture} from "../Architecture.js";
+import {CoreDebug} from "../core/CoreDebug.js";
+import {IAppAnalyzer} from "../analyzer/IAppAnalyzer.js";
+import AndroidAppAnalyzer from "../android/AndroidAppAnalyzer.js";
+import {AnalyzerState} from "../AnalyzerState.js";
+import IosAppAnalyzer from "../ios/IosAppAnalyzer.js";
+import {AnalyzerException} from "../errors/AnalyzerException.js";
+import {Nullable} from "../core/IStringIndex.js";
+import KeyPointManager from "../hook/KeyPointManager.js";
+import TargetApp from "../common/TargetApp.js";
+import ApkHelper from "../ApkHelper.js";
+import {IPackageAnalyzer} from "../analyzer/IPackageAnalyzer.js";
+import {AndroidPackageAnalyzer} from "../android/analyzer/AndroidPackageAnalyzer.js";
+import {PackageAnalyzerOptions} from "../AnalyzerConfiguration.js";
+import {AndroidPackageAnalyzerConfig} from "../android/analyzer/AndroidPackageAnalyzerConfig.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 const PLATFORM_RE = new RegExp('(?<source>[^_.]+)_(?<name>[^_.]+)_(?<version>[^_.]+)_(?<vendor>[^_.]+)\.(?<format>[^.]+)');
@@ -71,6 +71,7 @@ export default class Platform
         switch(this.name){
             case "androidapi":
                 this.os = OperatingSystem.ANDROID;
+                // attach Linux kernel
                 break;
         }
     }

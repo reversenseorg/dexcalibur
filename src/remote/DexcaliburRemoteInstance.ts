@@ -2,7 +2,7 @@ import {IDexcaliburEngine, IDexcaliburProjectMap} from "../IDexcaliburEngine.js"
 import Configuration from "../Configuration.js";
 import DeviceManager from "../DeviceManager.js";
 import InspectorManager from "../InspectorManager.js";
-import PlatformManager from "../PlatformManager.js";
+import PlatformManager from "../platform/PlatformManager.js";
 import DexcaliburProject from "../DexcaliburProject.js";
 import DexcaliburRegistry from "../DexcaliburRegistry.js";
 import {Settings} from "../Settings.js";

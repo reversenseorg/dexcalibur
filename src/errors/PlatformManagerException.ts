@@ -12,6 +12,8 @@ export class PlatformManagerException extends MonitoredError {
     static PLATFORM_NOT_ANALYZED = (vErr = "")=>{ return new PlatformManagerException("Platform cannot be analyzed. Cause : "+vErr, ErrorCode.PLATFORM_MANAGER + 103) };
     static STUB_PLATFORM_NOT_SUPPORTED = ()=>{ return new PlatformManagerException("Stub platform not supported.", ErrorCode.PLATFORM_MANAGER + 104) };
     static STUB_PLATFORMS_NOT_AVAILABLE = ()=>{ return new PlatformManagerException("There is not stub platforms of the target device", ErrorCode.PLATFORM_MANAGER + 105) };
+    static INVALID_KERNEL_VER = ()=>{ return new PlatformManagerException("The version of the kernel cannot be null. ", ErrorCode.PLATFORM_MANAGER + 201) };
+    static INVALID_SYSTEM_NAME= ()=>{ return new PlatformManagerException("The name of the operating system cannot be null. ", ErrorCode.PLATFORM_MANAGER + 202) };
 
     constructor( pMsg:string, pCode:number = null, pExtra:any = null) {
         super('DEVICE MANAGER', pMsg);

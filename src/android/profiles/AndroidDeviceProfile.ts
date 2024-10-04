@@ -3,13 +3,14 @@ import AndroidBuildProfile from "./AndroidBuildProfile.js";
 import AndroidNetworkProfile from "./AndroidNetworkProfile.js";
 import AndroidSystemProfile from "./AndroidSystemProfile.js";
 import {AndroidTrustProfile} from "./AndroidTrustProfile.js";
-import {OperatingSystem} from "../../OperatingSystem.js";
+import {OperatingSystem} from "../../platform/OperatingSystem.js";
 import DeviceProfile from "../../device/DeviceProfile.js";
 import AndroidUsbProfile from "./AndroidUsbProfile.js";
 import {DeviceProfilingOptions, IBridge} from "../../Bridge.js";
 import * as Log from "../../Logger.js";
 import AndroidMountedFsProfile from "./AndroidMountedFsProfile.js";
 import AndroidMemoryProfile from "./AndroidMemoryProfile.js";
+import AndroidInputProfile from "./AndroidInputProfile.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -40,7 +41,8 @@ export default class AndroidDeviceProfile extends DeviceProfile {
             trust: new AndroidTrustProfile(),
             build: new AndroidBuildProfile(),
             mounts: new AndroidMountedFsProfile(),
-            usb: new AndroidUsbProfile()
+            usb: new AndroidUsbProfile(),
+            inputs: new AndroidInputProfile()
         }
     }
 
@@ -90,13 +92,16 @@ export default class AndroidDeviceProfile extends DeviceProfile {
                             o.profiles.build = AndroidBuildProfile.fromJsonObject(pJson.profiles.build);
                             break;
                         case 'mounts':
-                            o.profiles.usb = AndroidMountedFsProfile.fromJsonObject(pJson.profiles.mounts);
+                            o.profiles.mounts = AndroidMountedFsProfile.fromJsonObject(pJson.profiles.mounts);
                             break;
                         case 'usb':
                             o.profiles.usb = AndroidUsbProfile.fromJsonObject(pJson.profiles.usb);
                             break;
                         case 'mem':
                             o.profiles.mem = AndroidMemoryProfile.fromJsonObject(pJson.profiles.mem);
+                            break;
+                        case 'input':
+                            o.profiles.input = AndroidMemoryProfile.fromJsonObject(pJson.profiles.mem);
                             break;
                     }
                 }
