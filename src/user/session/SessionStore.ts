@@ -14,11 +14,6 @@ let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 const noOp = ()=>{};
 
 
-export interface SessionStoreOptions {
-    database: MongodbDb,
-    collectionName: string,
-
-}
 /**
  * Represent a store where sessions are stored
  *
@@ -53,15 +48,14 @@ export class SessionStore extends expressSession.Store {
                 const sess:any[] = [];
                 vAll.map(x => sess.push(x.getData('express-session')));
 
-                Logger.info("[SESSION STORE] Get all sessions : success [count="+sess.length+"] ");
-                console.log(sess);
+                //Logger.info("[SESSION STORE] Get all sessions : success [count="+sess.length+"] ");
                 pCallback.apply(null,[null,sess]);
             },(err)=>{
-                Logger.info("[SESSION STORE] Get all sessions : failure : "+err);
+                //Logger.info("[SESSION STORE] Get all sessions : failure : "+err);
                 pCallback.apply(null,[err, []]);
             })
         }catch(e){
-            Logger.info("[SESSION STORE] Get all sessions : fatal error : "+e.message);
+            Logger.debug("[SESSION STORE] Get all sessions : fatal error : "+e.message);
             pCallback.apply(null,[e,[]]);
         }
     }
@@ -78,13 +72,13 @@ export class SessionStore extends expressSession.Store {
 
             this._coll.asyncRemoveEntry(new UserSession({ _uid: pSID})).then((vSuccess)=>{
                 pCallback.apply(null,[null,vSuccess]);
-                Logger.success("[SESSION STORE] Destroy sessions : success [sid="+pSID+"] ");
+                //Logger.debug("[SESSION STORE] Destroy sessions : success [sid="+pSID+"] ");
             },(err)=>{
-                Logger.error("[SESSION STORE] Destroy sessions : failure [sid="+pSID+"] ");
+                //Logger.error("[SESSION STORE] Destroy sessions : failure [sid="+pSID+"] ");
                 pCallback.apply(null,[err]);
             })
         }catch(e){
-            Logger.error("[SESSION STORE] Destroy sessions : fatal error : "+e.message);
+            Logger.debug("[SESSION STORE] Destroy sessions : fatal error : "+e.message);
             pCallback.apply(null,[e]);
         }
     }
@@ -98,22 +92,22 @@ export class SessionStore extends expressSession.Store {
         this._coll.asyncGetEntry({ _uid: pSID })
             .then((pSession:UserSession)=>{
                 if(pSession==null){
-                    Logger.error(`[SESSION STORE] Read session : failure [sid=${pSID}] : session not found`);
+                    //Logger.error(`[SESSION STORE] Read session : failure [sid=${pSID}] : session not found`);
                     pCallback.apply(null, [ null, null ]);
                     return;
                 }
 
                 const expired = this._engine.getUserService().getSessionService().isSessionExpired(pSession);
                 if(expired){
-                    Logger.error(`[SESSION STORE] Read session : failure [sid=${pSID}] : session is expired`);
+                    //Logger.error(`[SESSION STORE] Read session : failure [sid=${pSID}] : session is expired`);
                     pCallback.apply(null, [ null, null ]);
                 }else{
 
-                    Logger.success(`[SESSION STORE] Read session : success [sid=${pSID}] `);
+                    //Logger.success(`[SESSION STORE] Read session : success [sid=${pSID}] `);
                     pCallback.apply(null, [ null, pSession.getData('express-session') ]);
                 }
             }).catch((vErr:any)=>{
-                Logger.error(`[SESSION STORE] Read session : failure [sid=${pSID}] : ${vErr}`);
+                Logger.debug(`[SESSION STORE] Read session : failure [sid=${pSID}] : ${vErr}`);
                 pCallback.apply(null, [ vErr, null ]);
             });
     }
@@ -134,22 +128,20 @@ export class SessionStore extends expressSession.Store {
         this._coll.asyncGetEntry({ _uid: pSID }).then((vSess:UserSession)=>{
             if(vSess==null){
                 this._coll.asyncAddEntry( { _uid: pSID }, sess).then(()=>{
-                    Logger.info(`[SESSION STORE] Create session : success [sid=${pSID}]`);
+                    //Logger.info(`[SESSION STORE] Create session : success [sid=${pSID}]`);
                     pCallback.apply(null, [ null, pSession ]);
                 }).catch((e)=>{
                     Logger.error(`[SESSION STORE] Create session : failure [sid=${pSID}]`);
                     pCallback.apply(null, [ e, null ]);
                 });
             }else{
-                Logger.info(`[SESSION STORE] Start to update session `);
-                console.log(sess);
+                //Logger.info(`[SESSION STORE] Start to update session `);
                 this._coll.asyncUpdateEntry(  sess, { filter:{ _uid:pSID}, replace:true }).then((vSuccess)=>{
 
-                    Logger.info(`[SESSION STORE] Update session : success [sid=${pSID}]`);
+                    //Logger.info(`[SESSION STORE] Update session : success [sid=${pSID}]`);
                     this._coll.asyncGetEntry({ _uid: pSID }).then((vSess2:UserSession)=>{
 
-                        Logger.info(`[SESSION STORE] Update ses sion : success : read fresh session [sid=${pSID}]`);
-                        console.log(vSess2);
+                       // Logger.info(`[SESSION STORE] Update ses sion : success : read fresh session [sid=${pSID}]`);
                     });
                     pCallback.apply(null, [ null, pSession ]);
                 }).catch((e)=>{
@@ -175,7 +167,7 @@ export class SessionStore extends expressSession.Store {
     clear(pCallback: ((err:any,sessions:any[])=>any) = noOp ){
         try{
             this._coll.removeAll().then((vCount:number)=>{
-                Logger.info("[SESSION STORE] Clear all : "+vCount+" sessions removed");
+                //Logger.info("[SESSION STORE] Clear all : "+vCount+" sessions removed");
                 pCallback.apply(null,[null]);
             }).catch((err)=>{
                 Logger.error("[SESSION STORE] Clear all : failure : "+err);

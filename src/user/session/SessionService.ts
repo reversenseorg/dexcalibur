@@ -5,9 +5,6 @@ import Util from "../../Utils.js";
 import {SessionCode, SessionException} from "./SessionException.js";
 import * as Log from "../../Logger.js";
 import DexcaliburEngine from "../../DexcaliburEngine.js";
-import {SessionData} from "./SessionData.js";
-import SqliteDbCollection from "../../../connectors/sqlite/SqliteDbCollection.js";
-import {IDatabase, IDbCollection} from "@dexcalibur/dexcalibur-orm";
 import {MongodbDbCollection} from "@dexcalibur/dexcalibur-orm-mongodb";
 import {SessionStore} from "./SessionStore.js";
 import {Nullable} from "../../core/IStringIndex.js";
@@ -69,9 +66,7 @@ export class SessionService {
      *
      * @param pCollection
      */
-    async importSessions( pCollection:MongodbDbCollection):Promise<void>{
-
-
+    setBackendCollection( pCollection:MongodbDbCollection):void{
         this._s = pCollection;
         // to avoid statefull  server, remove static cache
         /*

@@ -13,7 +13,7 @@ import WebTemplateEngine from "./WebTemplateEngine.js";
 import DexcaliburProject from "./DexcaliburProject.js";
 import DexcaliburEngine, {DexcaliburEngineMode} from "./DexcaliburEngine.js";
 import Uploader from "./Uploader.js";
-import PlatformManager from "./PlatformManager.js";
+import PlatformManager from "./platform/PlatformManager.js";
 import InspectorManager from "./InspectorManager.js";
 import Inspector from "./Inspector.js";
 import {ConnectorFactory} from "./ConnectorFactory.js";

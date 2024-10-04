@@ -9,6 +9,7 @@ import {IStringIndex, Nullable} from "../../core/IStringIndex.js";
 import {RuntimeSecurityException} from "../../errors/RuntimeSecurityException.js";
 import * as Log from "../../Logger.js";
 import ServerSettings = Settings.ServerSettings;
+import {INTERNAL_DB} from "../../database/EngineDatabase.js";
 
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
@@ -16,6 +17,7 @@ let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 export interface AuthenticationOptions {
     policy?:AuthenticationPolicyOptions;
     db?:DbmsConnSettings;
+    dbName?:string;
     supported?:AuthType[];
     sess?:any;
     oidc?:OidcOptions;
@@ -45,6 +47,7 @@ export class AuthenticationSettings {
     private _supported:AuthType[] = [];
     private _policy:AuthenticationPolicy = null;
     private _sess:SessionSettings = null;
+    private _dbName: string = INTERNAL_DB;
     private _db:DbmsConnSettings = null;
     private _parent:ServerSettings;
     private _oidc:Nullable<OidcOptions> = null;
@@ -95,12 +98,23 @@ export class AuthenticationSettings {
         this._policy = value;
     }
 
+
+    get dbName(): any {
+        return this._dbName;
+    }
+
+    set dbName(value: string) {
+        this._dbName = value;
+    }
+
     get db(): any {
-        return this._db;
+        throw new Error("Auth settings 'db' is deprecated. (getter)");
+  //      return this._db;
     }
 
     set db(value: any) {
-        this._db = value;
+        throw new Error("Auth settings 'db' is deprecated. (setter)");
+//        this._db = value;
     }
 
     /**

@@ -31,7 +31,7 @@ export interface UserAccountOptions extends IStringIndex<any> {
 export class UserAccount implements IPersistent, INode {
 
     static TYPE:NodeType = new NodeType(
-        'user',
+        'accounts',
         NodeInternalType.USER_ACCOUNT,
         [
             /*(new NodeProperty('_uid')).type(DbDataType.STRING).key(DbKeyType.PRIMARY),
