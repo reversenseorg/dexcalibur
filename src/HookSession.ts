@@ -312,35 +312,30 @@ export default class HookSession extends WebsocketSession implements INode
     pushExtraRuntimeEvent( pEvt:RuntimeEvent<any>, pEvtType:string){
 
 
-        //pEvt.addTag(this.evTags.INPUT_EVT);
-        pEvt.setType(pEvtType);
-        //pEvt.setRuntimeType(RuntimeEventType.HOOK_ERROR);
+        try{
+            pEvt.setType(pEvtType);
+            this.offset++;
 
-        // fill runtiume event
-        // pEvt.addNode(hm.hook.getTarget() as INode);
-        // pEvt.data = hm;
+            // cache hook msg
+            this.message.push(pEvt);
 
-        this.offset++;
+            // process hook message as RuntimeEvent
+            const jsonNode = [];
+            if(pEvt.node!=null){
+                pEvt.node.map( x => jsonNode.push( x.__!=null ? (x as any).toJsonObject() : x));
+            }
 
-        // cache hook msg
-        this.message.push(pEvt);
+            //this.hookManager.newRuntimeEvent(pEvt, false);
+            switch(pEvt.getRuntimeType()){
+                case RuntimeEventType.INPUT_EVT:
+                    this._sendInputEvent(pEvt);
+                    break;
+                default:
+                    break;
+            }
 
-        // TODO : send raw hook message only if specified
-
-        // process hook message as RuntimeEvent
-        const jsonNode = [];
-        if(pEvt.node!=null){
-            pEvt.node.map( x => jsonNode.push( x.__!=null ? (x as any).toJsonObject() : x));
-        }
-
-        this.hookManager.newRuntimeEvent(pEvt, false);
-
-        switch(pEvt.getRuntimeType()){
-            case RuntimeEventType.INPUT_EVT:
-                this._sendInputEvent(pEvt);
-                break;
-            default:
-                break;
+        }catch(e){
+            Logger.error(e.message,e.stack);
         }
 
 

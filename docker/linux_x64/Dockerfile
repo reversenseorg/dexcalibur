@@ -254,7 +254,7 @@ RUN ls -la $DXC_USER_HOME/.dexcalibur && \
     node ./dexcalibur-adm.mjs tools -l
 
 # check install
-RUN node ./dexcalibur-adm.mjs tools --check | grep  -i External
+RUN node ./dexcalibur-adm.mjs tools --check
 
 # Dexcalibur HTTP & WebSocket
 EXPOSE ${DXC_HTTP_PORT} ${DXC_WS_PORT}

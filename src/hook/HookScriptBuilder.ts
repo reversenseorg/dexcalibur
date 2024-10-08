@@ -405,29 +405,29 @@ Java.deoptimizeBoot();`
         const leaf_kps:KeyPoint[] = await kpm.getLeafKeyPoints();
         const req:any = await kpm.getGlobalRequirements();
         const deopt:DEOPT_TYPE = await  kpm.needDeoptimize();
-        Logger.info("[HOOK SCRIPT BUILDER] Build : before _appendInternals: \n");
+        //Logger.info("[HOOK SCRIPT BUILDER] Build : before _appendInternals: \n");
 
         script = this._appendInternals( script);
 
-        Logger.info("[HOOK SCRIPT BUILDER] Build : _appendInternals: \n"+script);
+        //Logger.info("[HOOK SCRIPT BUILDER] Build : _appendInternals: \n"+script);
 
         // append top level requirements
         if(req.length > 0){
             script = this._appendRequirements( script, req)+"\n";
-            Logger.info("[HOOK SCRIPT BUILDER] Build : _appendRequirements: \n"+script);
+            //Logger.info("[HOOK SCRIPT BUILDER] Build : _appendRequirements: \n"+script);
         }
 
         // append prologues
         const prologues = await this._hm.getPrologues();
         if(prologues.length>0){
             script = this._appendPrologues( script, prologues)+"\n";
-            Logger.info("[HOOK SCRIPT BUILDER] Build : _appendPrologues: \n"+script);
+            //Logger.info("[HOOK SCRIPT BUILDER] Build : _appendPrologues: \n"+script);
         }
 
         // detect if deoptimizing is required
         if((await kpm.getKeyPointByAttr({ name:'core.java.boot' })).hasNodes()){
             script = this._appendDeoptimize( script, deopt);
-            Logger.info("[HOOK SCRIPT BUILDER] Build : _appendDeoptimize: \n"+script);
+            //Logger.info("[HOOK SCRIPT BUILDER] Build : _appendDeoptimize: \n"+script);
         }
 
         pOptions.targetLanguage = this.target;
@@ -441,7 +441,7 @@ Java.deoptimizeBoot();`
             console.log(" KP >> ",vKP.enabled,vKP.getCodeCache(),vKP);
             if(vKP.getCodeCache() != null && vKP.enabled){
                 script += `\n// =======================\n// KeyPoint : ${vKP.getName()} \n// ======================= \n ${vKP.getCodeCache()}\n`;
-                Logger.info("[HOOK SCRIPT BUILDER] Build : top KP : \n"+script);
+                //Logger.info("[HOOK SCRIPT BUILDER] Build : top KP : \n"+script);
             }
         });
 

@@ -179,7 +179,7 @@ export class HookManager
         };
 
         this._on.sessionStart.push((vMgr:HookManager,vSess:HookSession):boolean => {
-            console.log("OnSessionStart trigged");
+            console.log("OnSessionStart trigged", vMgr.context);
              vMgr.context.trigger({
                  type: "action.input.record.start",
                     data: {
