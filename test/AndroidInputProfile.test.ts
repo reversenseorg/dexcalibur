@@ -155,7 +155,14 @@ B: LED=7`;
 
 const WELLFORMED_GETEVENT =
 `add device 1: /dev/input/event11
+  bus:      0006
+  vendor    0627
+  product   0001
+  version   0001
   name:     "qwerty2"
+  location: "virtio19/input0"
+  id:       ""
+  version:  1.0.1
   events:
     KEY (0001): 0001  0002  0003  0004  0005  0006  0007  0008 
                 0009  000a  000b  000c  000d  000e  000f  0010 
@@ -181,7 +188,14 @@ const WELLFORMED_GETEVENT =
   input props:
     <none>
 add device 2: /dev/input/event9
+  bus:      0006
+  vendor    0000
+  product   0000
+  version   0000
   name:     "virtio_input_multi_touch_10"
+  location: "virtio17/input0"
+  id:       ""
+  version:  1.0.1
   events:
     KEY (0001): 0141  014b 
     ABS (0003): 0000  : value 0, min 0, max 32767, fuzz 0, flat 0, resolution 0
@@ -198,7 +212,7 @@ add device 2: /dev/input/event9
                 003a  : value 0, min 0, max 1024, fuzz 0, flat 0, resolution 0
     SW  (0005): 0000 
   input props:
-    <none>
+
 `;
 
 describe('AndroidInputProfiler', function() {
@@ -211,10 +225,21 @@ describe('AndroidInputProfiler', function() {
 
         let buses = AndroidInputProfile.parseBusInfo(Buffer.from(WELL_FORMED));
 
-        console.log(buses)
 
-        it('parsing of strings.xml file from a valid Android APK file ', function () {
+        it('All bus parsed ', function () {
             expect(buses.length).to.be.equals(11);
         });
     });
+
+    describe('parseGeventOutput()', async function () {
+
+        let buses = AndroidInputProfile.parseGeventOutput(Buffer.from(WELLFORMED_GETEVENT));
+
+        console.log(buses)
+
+        it('parsing of strings.xml file from a valid Android APK file ', function () {
+            expect(buses.length).to.be.equals(2);
+        });
+    });
+
 });

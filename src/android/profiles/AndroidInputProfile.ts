@@ -1,18 +1,37 @@
-
 import * as Log from "../../Logger.js";
 import {NosyProfile} from "../../device/profile/NosyProfile.js";
 import {IBridge} from "../../Bridge.js";
 import {IProfile} from "../../device/profile/IProfile.js";
 import GenericInputProfile from "../../device/profile/GenericInputProfile.js";
 import {Nullable} from "../../core/IStringIndex.js";
-import {Kernel} from "../../platform/kernels/common/Kernel.js";
-import {InputDevice, InputDeviceId, InputDeviceOptions} from "../../platform/kernels/common/InputDevice.js";
+import {KernelInfo} from "../../platform/kernels/common/Kernel.js";
+import {InputDevice, InputDeviceOptions} from "../../platform/kernels/common/InputDevice.js";
 import InputEventType from "../../platform/InputEventType.js";
-import {LinuxBusType} from "../../platform/kernels/linux/LinuxInputEventCodes.js";
-import {Readable} from "stream"
+import DeviceProfile from "../../device/DeviceProfile.js";
+import {OperatingSystem} from "../../platform/OperatingSystem.js";
+import {InputDeviceType} from "../../platform/kernels/common/InputDeviceType.js";
+import InputEventCode from "../../platform/InputEventCode.js";
+import InputEventCodeProperties from "../../platform/InputEventCodeProperties.js";
+import {Endianness} from "../../core/Endianness.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
+interface ParsedEventCode {
+    code?:number,
+    extra?: {
+        value?:number,
+        min?:number,
+        max?:number,
+        flat?:number,
+        fuzz?:number,
+        resolution?:number
+    }
+}
+interface ParsedEventType {
+    code?:number,
+    name?:string,
+    evcodes?: ParsedEventCode[]
+}
 
 /**
  * To detect input devices from kernel input subsystems
@@ -26,12 +45,108 @@ export default class AndroidInputProfile extends GenericInputProfile implements 
 
     nosy = true;
 
-    private _kernel:Nullable<Kernel> = null;
+    terminated = false;
+
     private _devices:InputDevice[] = [];
+    private _rawDev:InputDevice[] = [];
+
+    onAfter = (vProf:DeviceProfile, vOptions:any):void =>{
+        Logger.info("[DEVICE PROFILE][INPUT][os=android] onAfter trigged");
+        // get kernel info
+        let devKInfo:KernelInfo;
+        try{
+            devKInfo = vProf.getSystemProfile().getClosestKernelInfo();
+        }catch(error){
+            Logger.error(error.message);
+            Logger.error(error.stack);
+        }
+
+        // retrieve event type/codes definition from KernelInfo (retrieved by system profile) for each
+        // event type/code supported by each input device
+        this._rawDev.map((vInput:InputDevice) => {
+
+            const opts = vInput;
+
+            let dev = new InputDevice({
+                name: vInput.name
+            });
+
+            opts.supportedEvents = [];
+
+            let devType:InputDeviceType, evtType:InputEventType, newEvtType:InputEventType,  evtTypeRaw:ParsedEventType;
+            try{
+
+                devType = devKInfo.inputSubsystem.getInputDeviceByBusType(OperatingSystem.ANDROID, vInput.id.bustype);
+
+                vInput.type = devType;
+
+                // import (merge) event type from InputDeviceType into InputDevice
+                for(let name in vInput.misc.rawEventType.evtype){
+                    evtTypeRaw = vInput.misc.rawEventType.evtype[name];
+                    // evtTypeRaw.code is a string
+                    evtType = devType.getEventTypeById(evtTypeRaw.code);
+
+                    if(evtType==null){
+                        newEvtType = new InputEventType({
+                            key: name,
+                            value: (typeof evtTypeRaw.code=="string"? parseInt(evtTypeRaw.code,16): evtTypeRaw.code)
+                        });
+                    }else{
+                        // merge info from kernel knowledge DB with device info
+                        // drop event codes from new evt type
+                        newEvtType = evtType.newDerivation({
+                            // token info
+                            value: evtTypeRaw.code,
+                            key: evtTypeRaw.name
+                        });
+                    }
+
+
+
+                    // retrieve support event code from kernel info
+                    evtTypeRaw.evcodes.map((vCode:ParsedEventCode) => {
+                        const evCode = evtType.getEventCodeById(vCode.code);
+                        if(evCode!=null){
+                            newEvtType.codes.push(evCode.newDerivation({
+                                value: vCode.code,
+                                properties: new InputEventCodeProperties(vCode.extra)
+                            }))
+                        }else{
+                            newEvtType.codes.push(new InputEventCode({
+                                // encoded token
+                                value: vCode.code,
+                                key: vCode.code+"",
+                                endianness: Endianness.LITTLE_ENDIAN,
+                                byteSize: 2,
+                                // ppt
+                                properties: new InputEventCodeProperties(vCode.extra)
+                            }));
+                        }
+
+                    })
+
+                    vInput.supportedEvents.push(newEvtType);
+                }
+
+                delete vInput.misc.rawEventType;
+                this._devices.push(vInput);
+            }catch(err){
+                console.log(err);
+                Logger.error(err.message);
+                Logger.error(err.stack);
+            }
+        });
+
+        this._devices = this._rawDev;
+        delete this._rawDev;
+        console.log(this._devices);
+        this._devices.map(x => {
+            console.log(x.supportedEvents)
+        });
+    }
 
     is(pData:any){
-        const patterns = [
-        ];
+        const patterns = [];
 
         for(let i=0; i<patterns.length; i++){
             if(patterns[i].test(pData)){
@@ -185,20 +300,232 @@ export default class AndroidInputProfile extends GenericInputProfile implements 
 
 
 
+    /*
+    add device 2: /dev/input/event9
+      bus:      0006
+      vendor    0000
+      product   0000
+      version   0000
+      name:     "virtio_input_multi_touch_10"
+      location: "virtio17/input0"
+      id:       ""
+      version:  1.0.1
+      events:
+        KEY (0001): 0141  014b
+        ABS (0003): 0000  : value 0, min 0, max 32767, fuzz 0, flat 0, resolution 0
+                    0001  : value 0, min 0, max 32767, fuzz 0, flat 0, resolution 0
+                    0002  : value 0, min 0, max 1, fuzz 0, flat 0, resolution 0
+                    002f  : value 0, min 0, max 10, fuzz 0, flat 0, resolution 0
+                    0030  : value 0, min 0, max 2147483647, fuzz 0, flat 0, resolution 0
+                    0031  : value 0, min 0, max 2147483647, fuzz 0, flat 0, resolution 0
+                    0034  : value 0, min 0, max 90, fuzz 0, flat 0, resolution 0
+                    0035  : value 0, min 0, max 32767, fuzz 0, flat 0, resolution 0
+                    0036  : value 0, min 0, max 32767, fuzz 0, flat 0, resolution 0
+                    0037  : value 0, min 0, max 15, fuzz 0, flat 0, resolution 0
+                    0039  : value 0, min 0, max 65535, fuzz 0, flat 0, resolution 0
+                    003a  : value 0, min 0, max 1024, fuzz 0, flat 0, resolution 0
+        SW  (0005): 0000
+      input props:
+     */
+
     static parseGeventOutput(pBuffer:Buffer):InputDevice[] {
 
-        let stream = Readable.from(pBuffer);
         let devs:InputDevice[] = [];
         let dev:InputDeviceOptions = null;
 
-        stream.on('line', (vLine:string)=>{
-            if(vLine.startsWith("add device ")){
+        let end:number, start:number;
+        start = end = 0;
+
+
+        function parseLine(vLine:string){
+
+
+            const addDevRE = /^add device (?<devnum>\d+): (?<sysfs>.+)$/;
+            const inputInfoRE = /^\s+(?<key>[a-z]+):?[\s\t]+(?<devnum>[0-9a-f]{4})$/;
+            const extraInfoRE = /^\s+(?<key>[a-z]+):?[\s\t]+"(?<val>[^"]*)"$/;
+            const eventsDes = /^\s+events:$/;
+            const eventsTypeNew = /^\s+(?<type>[A-Z_]+)\s+\((?<typecode>[0-9a-f]{4})\):\s/;
+            const eventCode = /^(?<code>[0-9a-f]{4})\s*$/;
+            const eventCodeRow = /^\s*(?<code>[0-9a-f]{4}\s\s*)+$/;
+            const eventAbs= /^\s*(?<code>[0-9a-f]{4})\s\s:\svalue\s(?<value>[0-9]+),\smin\s(?<min>[0-9]+),\smax\s(?<max>[0-9]+),\sfuzz\s(?<fuzz>[0-9]+),\sflat\s(?<flat>[0-9]+),\sresolution\s(?<resolution>[0-9]+)$/;
+            const versionRE = /^\s+version:?[\s\t]+(?<val>[0-9]+\.[0-9]+\.?[0-9]*)$/;
+
+            let matches:any = null;
+
+            matches = addDevRE.exec(vLine);
+            if(matches != null){
                 if(dev!=null){
                     devs.push(new InputDevice(dev));
-                    dev = { misc:{}};
                 }
+
+                dev = {
+                    handles: [
+                        matches.groups.sysfs.substring(matches.groups.sysfs.lastIndexOf('/'))
+                    ],
+                    sysfsPath:matches.groups.sysfs,
+                    id: {
+                        vendor: null,
+                        bustype: null,
+                        product: null,
+                        version: null,
+                    },
+                    misc:{
+                        rawEventType: {
+                            evtype: {},
+                            activeType: null
+                        }
+                    }
+                };
+                return;
             }
-        })
+
+            matches = inputInfoRE.exec(vLine);
+            if(matches != null){
+                switch (matches.groups.key){
+                    case "bus":
+                        dev.id.bustype = parseInt(matches.groups.devnum, 16);
+                        break;
+                    case "product":
+                        dev.id.product = parseInt(matches.groups.devnum, 16);
+                        break;
+                    case "vendor":
+                        dev.id.vendor = parseInt(matches.groups.devnum, 16);
+                        break;
+                    case "version":
+                        dev.id.version = parseInt(matches.groups.devnum, 16);
+                        break;
+                    default:
+                        console.log("input ",matches.groups)
+                        break;
+                }
+                return;
+            }
+
+            matches = extraInfoRE.exec(vLine);
+            if(matches != null){
+                switch (matches.groups.key){
+                    case "name":
+                        dev.name = matches.groups.val;
+                        break;
+                    case "id":
+                        dev.uid = matches.groups.val;
+                        break;
+                    case "location":
+                        dev.phyPath = matches.groups.val;
+                        break;
+                    default:
+                        console.log("extra ",matches.groups)
+                        break;
+                }
+                return;
+            }
+
+            matches = versionRE.exec(vLine);
+            if(matches != null){
+                dev.misc['getevent_version'] = matches.groups.val;
+                return;
+            }
+
+            matches = eventsDes.exec(vLine);
+            if(matches != null){
+                return;
+            }
+
+            matches = eventsTypeNew.exec(vLine);
+            if(matches != null){
+                // begin of line
+                dev.misc.rawEventType.activeType = matches.groups.type;
+                dev.misc.rawEventType.evtype[matches.groups.type] = {
+                    name: matches.groups.type,
+                    code: matches.groups.typecode,
+                    evcodes: []
+                };
+
+                // next part is a list of event code supported or the first event code (ABS) + info
+                switch (matches.groups.type){
+                    case "ABS":
+                        let abs = eventAbs.exec(vLine.substring(matches[0].length));
+                        if(abs != null){
+                            dev.misc.rawEventType.evtype[matches.groups.type].evcodes.push({
+                                code: parseInt(abs.groups.code,16),
+                                extra: {
+                                    value: parseInt(abs.groups.value,10),
+                                    min: parseInt(abs.groups.min,10),
+                                    max: parseInt(abs.groups.max,10),
+                                    fuzz: parseInt(abs.groups.fuzz,10),
+                                    flat: parseInt(abs.groups.flat,10),
+                                    resolution: parseInt(abs.groups.resolution,10),
+                                }
+                            })
+                        }else{
+                            Logger.error("Cannot parse event code related to ABS changes > ",vLine);
+                        }
+                        break;
+                    default:
+                        vLine.substring(matches[0].length).split('  ').map(x => {
+                            const m = eventCode.exec(x);
+                            if(m != null){
+                                dev.misc.rawEventType.evtype[dev.misc.rawEventType.activeType]
+                                    .evcodes
+                                    .push({
+                                        code: parseInt(m.groups.code,16)
+                                    });
+                            }
+                        });
+                        break;
+                }
+
+                return;
+            }
+
+            matches = eventAbs.exec(vLine);
+            if(matches != null){
+                dev.misc.rawEventType.evtype[dev.misc.rawEventType.activeType].evcodes.push({
+                    code: parseInt(matches.groups.code,16),
+                    extra: {
+                        value: parseInt(matches.groups.value,10),
+                        min: parseInt(matches.groups.min,10),
+                        max: parseInt(matches.groups.max,10),
+                        fuzz: parseInt(matches.groups.fuzz,10),
+                        flat: parseInt(matches.groups.flat,10),
+                        resolution: parseInt(matches.groups.resolution,10),
+                    }
+                })
+                return;
+            }
+
+            matches = eventCodeRow.exec(vLine);
+            if(matches != null){
+                vLine.split('  ').map(x => {
+                    const m = eventCode.exec(x);
+                    if(m != null){
+                        dev.misc.rawEventType.evtype[dev.misc.rawEventType.activeType]
+                            .evcodes
+                            .push({
+                                code: parseInt(m.groups.code,16)
+                            });
+                    }
+                });
+                return;
+            }
+            //console.log('Line not caught : "'+vLine+'"');
+        }
+
+        // Android EOL is always CR
+        while((end = pBuffer.indexOf("\n",start))>-1){
+            if(end == start+1){
+                // skip CR
+                start = end+1;
+                continue;
+            }
+            parseLine(pBuffer.subarray(start, end).toString());
+            start = end+1;
+        }
+
+        //console.log("LAST LINE > ");
+        parseLine(pBuffer.subarray(start, pBuffer.length).toString());
+
+        devs.push(new InputDevice(dev));
 
         return devs;
     }
@@ -211,8 +538,6 @@ export default class AndroidInputProfile extends GenericInputProfile implements 
      */
     async extractInputDeviceFromProcFs(pBridge:IBridge):Promise<InputDevice[]> {
         let ctn:boolean|string|Buffer = await pBridge.privilegedShell("cat /proc/bus/input/devices");
-
-        console.log(ctn);
 
         if( !((ctn instanceof Buffer) || (typeof ctn == "string")) || ctn==null){
             throw Error("The file '/proc/bus/devices/input' cannot be read on the device");
@@ -231,19 +556,15 @@ export default class AndroidInputProfile extends GenericInputProfile implements 
      * @param pBridge
      */
     async extractInputDeviceFromGetevent(pBridge:IBridge):Promise<InputDevice[]> {
-        let ctn:boolean|string|Buffer = await pBridge.shellAsync("getevent -lp");
-
-        console.log(ctn);
-
-        if( !((ctn instanceof Buffer) || (typeof ctn == "string")) || ctn==null){
-            throw Error("The command 'getevent -lp' failed");
-        }
+        let ctn:any = await pBridge.shellAsync("getevent -ip");
 
         if(typeof ctn == "string"){
             ctn = new Buffer(ctn);
+        }else{
+            ctn = new Buffer(ctn.stdout);
         }
 
-        return AndroidInputProfile.parseBusInfo(ctn);
+        return AndroidInputProfile.parseGeventOutput(ctn);
     }
 
     /**
@@ -258,7 +579,7 @@ export default class AndroidInputProfile extends GenericInputProfile implements 
         const RE = /^(.+)\s([^@]+)@(.+)$/;
         let success:IProfile;
 
-        this._devices = [];
+        this._rawDev = [];
 
         try{
 
@@ -266,11 +587,13 @@ export default class AndroidInputProfile extends GenericInputProfile implements 
             // this._devices = await this.extractInputDeviceFromProcFs(pBridge);
 
             // if not rooted
-            this._devices = await this.extractInputDeviceFromGetevent(pBridge);
+            this._rawDev = await this.extractInputDeviceFromGetevent(pBridge);
 
             success = this;
+            this.terminated = true;
         }catch(e){
             Logger.error("[DEVICE][PROFILING][INPUT] Input devices info cannot be dumped : "+e.message);
+            Logger.error(e.stack);
             success = null;
         }
 
@@ -298,6 +621,31 @@ export default class AndroidInputProfile extends GenericInputProfile implements 
         const o:AndroidInputProfile = new AndroidInputProfile();
         for(const i in pJson)
             o[i] = pJson[i];
+        return o;
+    }
+
+    /**
+     *
+     * @param {*} pJson
+     * @static
+     */
+    toJsonObject():any{
+        const o:any = {};
+
+        for(const i in this){
+            switch (i){
+                case "_devices":
+                    o._devices = [];
+                    if(this._devices!=null){
+                        this._devices.map((x:InputDevice) => {
+                            o._devices.push(x.toJsonObject());
+                        })
+                    }
+                    break;
+                case "_rawDev":
+                    break;
+            }
+        }
         return o;
     }
 }

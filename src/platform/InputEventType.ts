@@ -27,14 +27,54 @@ export default class InputEventType  extends EncodedToken {
         });
 
         if (pConfig != null) {
-            if(pConfig.metadata!=null) this.metadata;
-            if(pConfig.codes!=null) this.codes;
+            this.metadata = pConfig.metadata!;
+            this.codes = pConfig.codes!;
             this.description = pConfig.description!;
         }
     }
 
+    /**
+     * To create an event type which extends current instance
+     *
+     * It drops codes
+     *
+     * @param pConfig
+     */
+    newDerivation(pConfig:InputEventTypeOptions): InputEventType {
+        const evt = new InputEventType(this);
+
+        if(pConfig.value != this.value){
+            evt.key = pConfig.key;
+            evt.value = pConfig.value!;
+            evt.byteSize = pConfig.byteSize!;
+            evt.endianness = pConfig.endianness!;
+        }
+
+        evt.codes = [];
+        return evt;
+    }
+    /**
+     * TODO : replace pID:number by pID:Buffer
+     * @param pID
+     */
+    getEventCodeById(pID: number, pEndianness = Endianness.LITTLE_ENDIAN):Nullable<InputEventCode> {
+        return this.codes.find(x => x.equalValue(pID,pEndianness) );
+    }
+
     toString() {
         return this.key
+    }
+
+    toJsonObject():any {
+
+        const o:any = super.toJsonObject();
+        o.metadata = this.metadata;
+        o.description = this.description;
+        o.codes = [];
+        if(this.codes!=null){
+            this.codes.map(x => o.codes.push(x.toJsonObject()));
+        }
+        return o;
     }
 }
 

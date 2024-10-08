@@ -218,7 +218,10 @@ DXC.HOOK["${pLibraryName}"] = {
             // get hook loaded by this KP
             const hk = this._hm.getHookByLoadKeyPoint(vKP); // this._hm.getHookByKeyPoint( vKP);
 
-            console.log("getHookByLoadKeyPoint("+vKP.getUID()+")", hk);
+            if(vKP.getUID()!="core.java.app"){
+                console.log("getHookByLoadKeyPoint("+vKP.getUID()+")", hk);
+            }
+
             // skip keypoints without child
             if(hk.length == 0){
                 continue;

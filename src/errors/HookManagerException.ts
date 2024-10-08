@@ -25,6 +25,7 @@ export class HookManagerException extends MonitoredError {
         SCRIPT_SYNTAX_ERROR: ErrorCode.HOOK_MANAGER + HookErrCode.GENERIC + 13,
         COMPILER_INPUT_NOT_FOUND: ErrorCode.HOOK_MANAGER + HookErrCode.GENERIC + 14,
         CANNOT_START_HOOK_BECAUSE_SYNTAX_ERR: ErrorCode.HOOK_MANAGER + HookErrCode.GENERIC + 15,
+        SESSION_INTERRUPTED: ErrorCode.HOOK_MANAGER + HookErrCode.GENERIC + 16
     };
 
     static EXISTING_HOOK_SET = ()=>{ return new HookManagerException(" An hook set already exists for this ID",HookManagerException.ERR.EXISTING_HOOK_SET) };
@@ -48,6 +49,7 @@ export class HookManagerException extends MonitoredError {
             pCompilerOutput
         );
     };
+    static SESSION_INTERRUPTED = (pStep:string)=>{ return new HookManagerException(" Hook sessions has been interrupted by lifecycle hooks at : "+pStep,HookManagerException.ERR.SESSION_INTERRUPTED) };
 
 
 

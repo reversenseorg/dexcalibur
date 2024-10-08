@@ -2,6 +2,9 @@ import {InputDeviceType} from "./InputDeviceType.js";
 import InputEventType from "../../InputEventType.js";
 import InputEventCode from "../../InputEventCode.js";
 import {Nullable} from "../../../core/IStringIndex.js";
+import EventRecordSession from "../../EventRecordSession.js";
+import {Device} from "../../../Device.js";
+import DeviceEventCollector from "../../DeviceEventCollector.js";
 
 
 /*
@@ -82,6 +85,10 @@ export class InputDevice {
 
     _bitmap:number = undefined;
 
+    records:EventRecordSession[] = [];
+
+    activeRecord:Nullable<EventRecordSession> = null;
+
     constructor(pOptions:InputDeviceOptions) {
         this.type = pOptions.type!;
         this.id = pOptions.id!;
@@ -97,4 +104,28 @@ export class InputDevice {
         this._bitmap = pOptions._bitmap!;
     }
 
+    startRecord(pDevice:Device):EventRecordSession {
+        if(!this.type.isReadyToDecode()){
+            return null;
+        }
+
+        const collector = new DeviceEventCollector(pDevice.getUID(), pDevice.getDefaultBridge(), this.type.decoder);
+        const sess =  collector.start(this.name, this.sysfsPath)
+        this.records.push(sess);
+        this.activeRecord = sess;
+        return sess;
+    }
+
+    toJsonObject(){
+        const o:any = {};
+        for(let i in this) o[i] = this[i];
+        o.supportedEvents = [];
+        this.supportedEvents.map(e => {
+            o.supportedEvents.push(e.toJsonObject());
+        })
+        o.type = this.type.toJsonObject();
+        o.records = [];
+        o.activeRecord = (this.activeRecord!=null ? this.activeRecord.getUID() : null);
+        return o;
+    }
 }

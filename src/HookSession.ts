@@ -38,6 +38,7 @@ import {UserAccount, UserAccountUUID} from "./user/UserAccount.js";
 import {Device} from "./Device.js";
 import DeviceEventCollector from "./platform/DeviceEventCollector.js";
 import {IBridge} from "./Bridge.js";
+import {HookManagerException} from "./errors/HookManagerException.js";
 
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
@@ -195,6 +196,8 @@ export default class HookSession extends WebsocketSession implements INode
      * Spawned a child process to collect devices events from device.
      */
     deviceEventCollector: DeviceEventCollector = null;
+
+    extra:any = {};
 
     /**
      *
@@ -500,9 +503,15 @@ export default class HookSession extends WebsocketSession implements INode
      * a method to override default behaviour when the socket if exited
      */
     onExit():void {
-        if (this.deviceEventCollector) {
-            this.deviceEventCollector.stop();
+
+
+        for(let k=0; k<this.hookManager._on.sessionStop.length;k++){
+            this.hookManager._on.sessionStop[k].apply(null,[this.hookManager,this]);
         }
+
+        /*if (this.deviceEventCollector) {
+            this.deviceEventCollector.stop();
+        }*/
     }
 
     /**
@@ -566,9 +575,5 @@ export default class HookSession extends WebsocketSession implements INode
         });
     }
 
-    launchDeviceEventCollector(deviceBridge:IBridge){
-        this.deviceEventCollector = new DeviceEventCollector(deviceBridge);
-        this.deviceEventCollector.start()
-    }
 }
 HookSession.TYPE.builder(HookSession);

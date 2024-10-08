@@ -41,4 +41,44 @@ export default class InputEventCode extends EncodedToken {
         }
     }
 
+
+    /**
+     * To create an event type which extends current instance
+     *
+     * It drops codes
+     *
+     * @param pConfig
+     */
+    newDerivation(pConfig:InputEventCodeOptions): InputEventCode {
+        const evt = new InputEventCode(this);
+
+        // change token if necessary
+        if(pConfig.value != this.value){
+            evt.key = pConfig.key;
+            evt.value = pConfig.value!;
+            evt.byteSize = pConfig.byteSize!;
+            evt.endianness = pConfig.endianness!;
+        }
+
+        // update properties
+        if(pConfig.properties != null){
+            evt.properties = {
+                ...this.properties,
+                ...pConfig.properties
+            };
+        }
+
+        return evt;
+    }
+
+
+    toJsonObject():any {
+        const o:any = super.toJsonObject();
+        o.metadata = this.metadata;
+        o.description = this.description;
+        o.properties = this.properties;
+        o.tagUIDs = this.tagUIDs;
+        return o;
+    }
+
 }

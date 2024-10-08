@@ -1,8 +1,8 @@
-import InputEventCode from "./InputEventCode.js";
-import InputEventType from "./InputEventType.js";
 import {Nullable} from "../core/IStringIndex.js";
 import {InputDeviceType} from "./kernels/common/InputDeviceType.js";
 import {LinuxBusType} from "./kernels/linux/LinuxInputEventCodes.js";
+import {OperatingSystem} from "./OperatingSystem.js";
+import {KernelInfoFactory} from "./kernels/common/KernelFactory.js";
 
 
 export interface InputSubsystemOptions {
@@ -16,9 +16,12 @@ export default class InputSubsystem {
 
     devices:Record<string, InputDeviceType> = {}
 
+
     constructor( pConfig:Nullable<InputSubsystemOptions> = null) {
         if(pConfig!=null) for(const i in pConfig) this[i]=pConfig[i];
+
     }
+
 
     /**
      * To get the input device type by path
@@ -33,8 +36,30 @@ export default class InputSubsystem {
         return null;
     }
 
-    getInputDeviceByBusType(pNuber:number){
-        // todo : find InputDeviceType from bus type number using LinuxBusType
+
+    /**
+     *
+     * @param pOS
+     * @param pBusType
+     * @param pHandle
+     */
+    getInputDeviceByBusType(pOS:OperatingSystem, pBusType:number, pHandle:Nullable<string> = null): Nullable<InputDeviceType>{
+        let devType:Nullable<InputDeviceType>  =null;
+        if(KernelInfoFactory.isLinuxBased(pOS)){
+            switch (pBusType){
+                case LinuxBusType.BUS_VIRTUAL:
+                    devType = this.devices.event;
+                    break;
+                default:
+                    throw new Error("There is not known InputDeviceType mapped to this bus type for this OS : bustype is unknown");
+                    break;
+            }
+        }else{
+            throw new Error("There is not known InputDeviceType mapped to this bus type for this OS : OS not supported");
+        }
+
+
+        return devType;
     }
 
 

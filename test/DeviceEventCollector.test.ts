@@ -7,7 +7,7 @@ import {
     getEnumKeyByEnumValue,
     getEventLabelEnumFromType
 } from "../src/android/AndroidInputEvent.js";
-import AndroidPhysicalEventWrapper from "../src/deviceEvent/AndroidPhysicalEventWrapper.js";
+import AndroidPhysicalEventWrapper from "../src/platform/AndroidPhysicalEventWrapper.js";
 
 
 const FIRST_BATCH_RAW = "[  188364.900319] /dev/input/event12: EV_KEY       KEY_A                DOWN                \n" +

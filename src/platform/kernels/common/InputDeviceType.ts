@@ -1,15 +1,20 @@
 import {Nullable} from "../../../core/IStringIndex.js";
 import InputEventType from "../../InputEventType.js";
+import {IInputDeviceDecoder} from "./IInputDeviceDecoder.js";
+import InputEventCode from "../../InputEventCode.js";
+import {Endianness} from "../../../core/Endianness.js";
 
 
 export interface InputDeviceTypeOptions {
     name?:string;
     pathPattern?:RegExp;
     eventTypes?:InputEventType[];
+    decoder?:Nullable<IInputDeviceDecoder>;
 }
 
 export class InputDeviceType {
 
+    decoder?:Nullable<IInputDeviceDecoder> = null;
     name:string;
 
     /**
@@ -27,7 +32,20 @@ export class InputDeviceType {
 
     constructor(pOptions:Nullable<InputDeviceTypeOptions>) {
 
+        if(pOptions!=null){
+            this.decoder = pOptions.decoder!;
+            this.name = pOptions.name!;
+            this.pathPattern = pOptions.pathPattern!;
+            this.eventTypes = pOptions.eventTypes!;
 
+            if(this.decoder!=null && this.decoder.deviceType==null){
+                this.decoder.deviceType = this;
+            }
+        }
+    }
+
+    isReadyToDecode():boolean {
+        return (this.decoder!=null && this.decoder.deviceType!=null);
     }
 
     /**
@@ -40,5 +58,23 @@ export class InputDeviceType {
         if(this.pathPattern==null) return false;
 
         return this.pathPattern.test(pPath);
+    }
+
+    /**
+     * TODO : replace pID:number by pID:Buffer
+     * @param pID
+     */
+    getEventTypeById(pID: number, pEndianness = Endianness.LITTLE_ENDIAN):Nullable<InputEventType> {
+        return this.eventTypes.find(x => x.equalValue(pID,pEndianness) );
+    }
+
+    toJsonObject():any {
+        const o:any = {
+            name: this.name,
+            pathPattern: this.pathPattern.toString(),
+            eventTypes: this.eventTypes
+        };
+
+        return o;
     }
 }

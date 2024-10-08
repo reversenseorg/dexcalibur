@@ -1,5 +1,5 @@
 import {expect} from 'chai';
-import AndroidPhysicalEventWrapper from "../src/deviceEvent/AndroidPhysicalEventWrapper.js";
+import AndroidPhysicalEventWrapper from "../src/platform/AndroidPhysicalEventWrapper.js";
 
 const RAW_EVENT_ABS_1 = Buffer.from("fc2de466000000007a860b00000000000300390000000000", 'hex');
 const DECODED_EVENT_ABS_1 = {type: 3, code: 57, value: '00000000', timestamp: "1726230012.755322", typeLabel: 'EV_ABS', codeLabel: 'ABS_MT_TRACKING_ID'}

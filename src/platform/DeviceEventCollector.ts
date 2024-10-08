@@ -2,85 +2,74 @@ import * as Log from '../Logger.js';
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 import * as _child_process_ from "child_process";
 import {IBridge} from "../Bridge.js";
-import AndroidPhysicalEventWrapper from "./AndroidPhysicalEventWrapper.js";
 import InputEvent from "./InputEvent.js";
+import {IInputDeviceDecoder} from "./kernels/common/IInputDeviceDecoder.js";
+import EventRecordSession from "./EventRecordSession.js";
+import {Nullable} from "../core/IStringIndex.js";
+import {Device} from "../Device.js";
 
 
 export default class DeviceEventCollector {
 
     static getKernelTime = "cat /proc/uptime";
-    // static getEventCommand = "getevent -ltq";
-    static getEventCommand = "cat /dev/input/event1";
-    static listDevicesEventsCommand = "getevent -lp"; // cat /proc/bus/input/devices
 
-    childProcess: _child_process_.ChildProcess = null;
+    private _deviceBridge: IBridge;
 
-    deviceBridge: IBridge;
-    eventWrapper: AndroidPhysicalEventWrapper;
+    private _decoder:IInputDeviceDecoder;
 
-    deviceEvents: Record<string, any>[] = [];
+    private _devUID:string;
 
-    constructor(deviceBridge: IBridge) {
-        this.deviceBridge = deviceBridge;
-        this.eventWrapper = new AndroidPhysicalEventWrapper();
+    constructor(pDeviceUID:string, pDeviceBridge: IBridge, pDecoder:IInputDeviceDecoder) {
+        this._devUID = pDeviceUID;
+        this._deviceBridge = pDeviceBridge;
+        this._decoder = pDecoder;
     }
 
     /**
      * Start child process to collect devices events with adb getevent
      */
-    start() {
+    start(pInputName:string, pSysfs:string):EventRecordSession {
+
+        const session = new EventRecordSession({
+            deviceID:this._devUID,
+            inputName:pInputName,
+        });
+
         console.log('[DeviceEventCollector] START CollectDeviceEvents');
         try {
-            this.childProcess = this.deviceBridge.spawn(DeviceEventCollector.getEventCommand);
-            this.childProcess.stdout.on('data', (data) => {
+            const childProcess = this._deviceBridge.spawn(`cat ${pSysfs}`);
+            childProcess.stdout.on('data', (data) => {
                 let parsedEventChunk : InputEvent[] = this.parseEventChunk(data);
                 parsedEventChunk.forEach((event) => {
-                    this.deviceEvents.push(event);
+                    session.push(event);
                 })
                 console.log("[DeviceEventCollector] parsedEventChunk : ", parsedEventChunk);
             });
-            this.childProcess.stderr.on('data', (data) => {
+            childProcess.stderr.on('data', (data) => {
+                session.stop();
                 Logger.error(`[DeviceEventCollector] stderr: ${data}`);
             });
-            this.childProcess.on('error', (error) => {
+            childProcess.on('error', (error) => {
+                session.stop();
                 Logger.error(`[DeviceEventCollector] error: ${error.message}`);
             });
-            this.childProcess.on('close', (code) => {
+            childProcess.on('close', (code) => {
+                session.stop();
                 console.log(`[DeviceEventCollector] child process exited with code ${code}`);
             });
 
+            session.attachChildProcess(childProcess);
+
         } catch(err) {
             Logger.error("[DeviceEventCollector] Error : " + "\n"+err.message+"\n"+err.stack);
+            if(session!=null){
+                session.stop();
+            }
         }
+        return session;
     }
 
-    stop(){
-        if (this.childProcess && !this.childProcess.killed) {
-            this.childProcess.kill();
-            console.log('[DeviceEventCollector] STOP');
-        }
-        console.log('[DeviceEventCollector] Dump DeviceEvents : ', this.getDeviceEvents());
-    }
-
-    /**
-     * To Retrieve the list of possible device events from device.
-     */
-    listDeviceEvents() {
-        let commandResult = this.deviceBridge.shell(DeviceEventCollector.listDevicesEventsCommand);
-        this.parseListDevicesEvents(commandResult.toString());
-        console.log(commandResult);
-    }
-
-    parseEventChunk(eventChunk: Buffer): InputEvent[] {
-        let decodeBufferChunk = this.eventWrapper.decodeBufferChunk(eventChunk);
-        return decodeBufferChunk;
-    }
-
-    parseListDevicesEvents(commandResult: string) {
-        return;
-    }
-
-    getDeviceEvents() {
-        return this.deviceEvents;
+    parseEventChunk(pEventChunk: Buffer): InputEvent[] {
+        return this._decoder.decodeBufferChunk(pEventChunk);
     }
 }

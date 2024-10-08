@@ -26,4 +26,18 @@ export default class EncodedToken  {
             this.type = pConfig.type!;
         }
     }
+
+    equalValue(pValue:number, pValueEndianness:Endianness):boolean {
+        return (this.value == pValue);
+    }
+
+    toJsonObject():any {
+        return {
+            key: this.key,
+            value: this.value,
+            byteSize: this.byteSize,
+            type: this.type,
+            endianness: this.endianness
+        }
+    }
 }

@@ -1,13 +1,13 @@
-
 import {ABI, AbiManager, InstructionSet} from "../../binary/ABI.js";
 import {AbiException} from "../../errors/AbiException.js";
 import {OperatingSystem} from "../../platform/OperatingSystem.js";
 import {Architecture} from "../../Architecture.js";
-import { GenericSystemProfile } from "../../device/profile/GenericSystemProfile.js";
+import {GenericSystemProfile} from "../../device/profile/GenericSystemProfile.js";
 import {NosyProfile} from "../../device/profile/NosyProfile.js";
 import {DeviceProfilingOptions, IBridge} from "../../Bridge.js";
 import * as Log from "../../Logger.js";
 import {IProfile} from "../../device/profile/IProfile.js";
+import {UnsafeValue} from "@dexcalibur/dexcalibur-orm";
 
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
@@ -52,8 +52,48 @@ export default class AndroidSystemProfile extends GenericSystemProfile implement
 
         let success:IProfile;
         try{
-            const uname:string = pBridge.shellWithEHsync("uname -a").toString();
-            pOptions.profile.addProperty('uname', uname);
+            const os:string = pBridge.shellWithEHsync("uname -o").toString();
+            if(os!=null){
+                switch (os.substring(0,os.length-1).toLowerCase()){
+                    case OperatingSystem.LINUX:
+                        this.os = OperatingSystem.LINUX;
+                        break;
+                    case OperatingSystem.DARWIN:
+                        this.os = OperatingSystem.DARWIN;
+                        break;
+                }
+            }
+
+            const arch:string = pBridge.shellWithEHsync("uname -m").toString();
+            if(arch!=null){
+                switch (arch.substring(0,arch.length-1).toLowerCase()){
+                    case "arm64":
+                    case "aarch64":
+                        this.arch = Architecture.AARCH64;
+                        break;
+                }
+            }
+
+
+            const version:string = pBridge.shellWithEHsync("uname -r").toString();
+            if(version!=null){
+                // TODO : encapsulate such value into Incomingvalue
+                let i:number;
+                if((i = version.indexOf('-'))>-1){
+                    this.version = version.substring(0,i);
+                }else{
+                    this.version = version;
+                }
+            }
+
+            //pOptions.profile.addProperty('uname', pBridge.shellWithEHsync("uname").toString());
+
+            pOptions.profile.addProperty('uname', {
+                os: os,
+                arch: arch,
+                version:version,
+                raw: pBridge.shellWithEHsync("uname").toString()
+            });
 
 
             //const iomem:string = pBridge.privilegedShell("cat /proc/iomem").toString();
@@ -78,11 +118,12 @@ export default class AndroidSystemProfile extends GenericSystemProfile implement
     }
 
     getOperatingSystem(pUpdate=false):OperatingSystem {
-        if(this.os != null && !pUpdate) return this.os;
+        /*if(this.os != null && !pUpdate) return this.os;
 
-        const uname:string = this.prop['uname'];
 
-        if(uname == null){
+        const uname:any = this.prop['uname'];
+
+        if(uname == null && this.os!=null){
             throw new Error('[DEVICE PROFILE] Operating System cannot be retrieved : uname is null.')
         }
 
@@ -197,7 +238,7 @@ export default class AndroidSystemProfile extends GenericSystemProfile implement
      * @param {*} pJson
      * @static
      */
-    static fromJsonObject( pJson):AndroidSystemProfile{
+    static fromJsonObject( pJson:any):AndroidSystemProfile{
         const o:AndroidSystemProfile = new AndroidSystemProfile();
         for(const i in pJson)
             o[i] = pJson[i];

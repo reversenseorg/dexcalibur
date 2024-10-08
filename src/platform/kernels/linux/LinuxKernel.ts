@@ -1,22 +1,21 @@
-import {Kernel} from "../common/Kernel.js";
-import {KernelFactory} from "../common/KernelFactory.js";
+import {KernelInfo} from "../common/Kernel.js";
+import {KernelInfoFactory} from "../common/KernelFactory.js";
 import {OperatingSystem} from "../../OperatingSystem.js";
 import {Architecture} from "../../../Architecture.js";
 import InputSubsystem from "../../InputSubsystem.js";
 import {InputDeviceType} from "../common/InputDeviceType.js";
 import InputEventType from "../../InputEventType.js";
 import {
-    LinuxAbsEventCodes, LinuxFfEventCodes, LinuxFfStatusEventCodes, LinuxLedEventCodes,
+    LinuxAbsEventCodes, LinuxFfEventCodes, LinuxFfStatusEventCodes, LinuxKeyEventCodes, LinuxLedEventCodes,
     LinuxMscEventCodes, LinuxPwrEventCodes,
     LinuxRelEventCodes, LinuxRepEventCodes, LinuxSndEventCodes, LinuxSwEventCodes,
     LinuxSynEventCodes
 } from "./LinuxInputEventCodes.js";
+import {LinuxInputDeviceDecoder} from "./LinuxInputDeviceDecoder.js";
 
 
 
-
-
-KernelFactory.KERNELS.push(new Kernel({
+export const LinuxKernelInfo_aarch64_v4 = new KernelInfo({
     name: OperatingSystem.LINUX,
     arch: Architecture.AARCH64,
     version: "4.14.175",
@@ -25,6 +24,7 @@ KernelFactory.KERNELS.push(new Kernel({
             // event interface
             event: new InputDeviceType({
                 name: "generic event interface",
+                decoder: new LinuxInputDeviceDecoder(null),
                 pathPattern: /^\/dev\/input\/event(?<num>\d+)$/,
                 eventTypes: [
                     new InputEventType(
@@ -32,7 +32,7 @@ KernelFactory.KERNELS.push(new Kernel({
                             description: "Serve as delineators between distinct events, which can be separated either temporally or " +
                                 "spatially. An example of spatial separation can be observed in the multitouch protocol."}),
                     new InputEventType(
-                        {key: "EV_KEY", value: 0x01,  codes: LinuxSynEventCodes,
+                        {key: "EV_KEY", value: 0x01,  codes: LinuxKeyEventCodes,
                             description: "Describe state changes of keyboards, buttons, or other key-like devices."}),
                     new InputEventType(
                         {key: "EV_REL", value: 0x02,  codes: LinuxRelEventCodes, description: "Describe movements on a relative axis."}),
@@ -58,4 +58,4 @@ KernelFactory.KERNELS.push(new Kernel({
             })
         }
     })
-}));
+});

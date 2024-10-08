@@ -2,6 +2,7 @@
 
 export default class InputEventCodeProperties {
     desc?:any;
+    value?:number;
     min?: number; // Specifies minimum value for the axis.
     max?: number; // Specifies maximum value for the axis.
     fuzz?: number; // Specifies fuzz value that is used to filter noise from the event stream

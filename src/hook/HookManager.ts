@@ -38,6 +38,9 @@ import {ScriptBuilderOptions, TargetLanguage} from "./common.js";
 import ModelFile from "../ModelFile.js";
 import Inspector from "../Inspector.js";
 import {HookScriptBuilderException} from "../errors/HookScriptBuilderException.js";
+import DeviceManager from "../DeviceManager.js";
+import DexcaliburEngine from "../DexcaliburEngine.js";
+import AndroidInputProfile from "../android/profiles/AndroidInputProfile.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -82,6 +85,12 @@ export interface HookOptions {
     ptr_mode?:string
 }
 
+export type HookManagerLifecycleCB =  ((vHM:HookManager,vSess:HookSession)=>boolean);
+
+interface HookManagerLifecycleHooks {
+    sessionStart: HookManagerLifecycleCB[],
+    sessionStop: HookManagerLifecycleCB[],
+}
 
 export const CUSTOM_HOOKSET_JAVA = "customJava";
 export const CUSTOM_HOOKSET_NATIVE = "customNative";
@@ -142,6 +151,11 @@ export class HookManager
     frida_disabled = false;
     private _sessTags: TagHashMap = null;
 
+    _on:HookManagerLifecycleHooks = {
+        sessionStart:  [],
+        sessionStop:  []
+    };
+
     /**
      * 
      * @param {*} pProject 
@@ -168,6 +182,27 @@ export class HookManager
         this.presets = new HookFragmentPreset();
 
 
+        this._on.sessionStart.push((vMgr:HookManager,vSess:HookSession):boolean => {
+             vMgr.context.trigger({
+                 type: "action.input.record.start",
+                    data: {
+                        dev: vSess.getDeviceUID(),
+                        session: vSess
+                    }
+             });
+             return true;
+        });
+
+        this._on.sessionStop.push((vMgr:HookManager,vSess:HookSession):boolean => {
+            vMgr.context.trigger({
+                type: "action.input.record.stop",
+                data: {
+                    dev: vSess.getDeviceUID(),
+                    session: vSess
+                }
+            });
+            return true;
+        });
     }
 
     /**
@@ -565,6 +600,7 @@ export class HookManager
 
         // Important : not support multi-session
 
+
         const last:HookSession = this
             .sessions[this.sessions.length-1];
 
@@ -942,6 +978,12 @@ export class HookManager
 
         PROBE_SESSION.fridaDevice = fridaDevice;
 
+        for(let k=0; k<this._on.sessionStart.length;k++){
+            if(this._on.sessionStart[k].apply(null,[this,PROBE_SESSION])===false){
+                throw HookManagerException.SESSION_INTERRUPTED('start');
+            }
+        }
+
         switch(pType){
             case FRIDA_MODE.SPAWN:
                 pid = await fridaDevice.spawn([pExtra]);
@@ -1036,11 +1078,12 @@ export class HookManager
         Logger.info('[HOOK MANAGER] async exec : resume');
 
 
+        /*
         let isCollectDeviceEvent = true;
         if (isCollectDeviceEvent === true) {
             let deviceBridge = target.getDefaultBridge()
             PROBE_SESSION.launchDeviceEventCollector(deviceBridge);
-        }
+        }*/
 
         return PROBE_SESSION;
     }
@@ -2227,5 +2270,15 @@ export class HookManager
         }
 
         return this.prologues;
+    }
+
+
+    // hook
+    onSessionStart( pCallback:((vMgr:HookManager, vSess:HookSession)=>boolean) ){
+        this._on.sessionStart.push(pCallback);
+    }
+
+    onSessionStop( pCallback:((vMgr:HookManager, vSess:HookSession)=>boolean) ){
+        this._on.sessionStop.push(pCallback);
     }
 }

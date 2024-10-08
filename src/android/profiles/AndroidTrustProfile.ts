@@ -60,7 +60,7 @@ export class AndroidTrustProfile extends GenericTrustProfile implements NosyProf
                     // open as PEM
                     try{
                         cert = CertificateHelper.parseX509(vCertPath, CertificateFormat.PEM, pRemoteFolder+'/'+_path_.basename(vCertPath));
-                        Logger.info("[ANDROID][TRUST] PEM "+pTmpName+" : "+JSON.stringify(cert.toJsonObject()));
+                        //Logger.info("[ANDROID][TRUST] PEM "+pTmpName+" : "+JSON.stringify(cert.toJsonObject()));
                         cas.push(cert);
                     }catch(e){
 

@@ -4,7 +4,10 @@ import * as _child_process_ from "child_process";
 import {IBridge} from "../Bridge.js";
 
 
-
+/**
+ *
+ * @deprecated
+ */
 export default class AndroidEventRecordSession {
 
     static getKernelTime = "cat /proc/uptime";

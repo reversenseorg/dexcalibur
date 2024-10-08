@@ -17,7 +17,7 @@ export interface KernelOptions {
  * Represent a particular version of linux kernel
  * @class
  */
-export class Kernel {
+export class KernelInfo {
 
     name:OperatingSystem;
 

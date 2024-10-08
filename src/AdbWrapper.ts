@@ -1120,6 +1120,10 @@ export default class AdbWrapper implements IBridge
         pOptions.profile.refresh();
 
 
+        // execute "after profiling" hook from each profile
+        pOptions.profile.doAfter(pOptions);
+
+
         // remove local temporary folder
         if(!_fs_.existsSync(pOptions.localTmp)){
             _fs_.unlinkSync(pOptions.localTmp);

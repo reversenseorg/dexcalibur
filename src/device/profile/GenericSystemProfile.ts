@@ -2,6 +2,10 @@ import {Architecture} from "../../Architecture.js";
 import {OperatingSystem} from "../../platform/OperatingSystem.js";
 import {ABI, InstructionSet} from "../../binary/ABI.js";
 import {Profile} from "./Profile.js";
+import {Nullable} from "../../core/IStringIndex.js";
+import {KernelInfo} from "../../platform/kernels/common/Kernel.js";
+import {KernelInfoFactory} from "../../platform/kernels/common/KernelFactory.js";
+import {SerializeOptions} from "@dexcalibur/dexcalibur-orm";
 
 /**
  *
@@ -22,6 +26,9 @@ export abstract class GenericSystemProfile extends  Profile
 
     os:OperatingSystem = null;
 
+    version:string = null;
+
+    kInfo:Nullable<KernelInfo> = null;
     nosy = false;
 
 
@@ -37,7 +44,13 @@ export abstract class GenericSystemProfile extends  Profile
 
     abstract getABI():ABI;
 
+    getClosestKernelInfo():Nullable<KernelInfo> {
+        if(this.kInfo==null){
+            this.kInfo = KernelInfoFactory.find(this.os, this.arch, this.version);
+        }
 
+        return this.kInfo;
+    }
 
     /**
      * To get ABI
@@ -67,7 +80,7 @@ export abstract class GenericSystemProfile extends  Profile
         return this.emulated;
     }
 
-    static fromJsonObject( pJson:any):GenericSystemProfile{
-        return super.fromJsonObject(pJson) as GenericSystemProfile;
+    toJsonObject(pOptions: SerializeOptions = {exclude: {}}): any {
+        return super.toJsonObject( { exclude:{ kInfo:true, onAfter:true } });
     }
 }

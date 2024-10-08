@@ -20,6 +20,8 @@ import {IPackageAnalyzer} from "../analyzer/IPackageAnalyzer.js";
 import {AndroidPackageAnalyzer} from "../android/analyzer/AndroidPackageAnalyzer.js";
 import {PackageAnalyzerOptions} from "../AnalyzerConfiguration.js";
 import {AndroidPackageAnalyzerConfig} from "../android/analyzer/AndroidPackageAnalyzerConfig.js";
+import {KernelInfo} from "./kernels/common/Kernel.js";
+import {KernelInfoFactory} from "./kernels/common/KernelFactory.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 const PLATFORM_RE = new RegExp('(?<source>[^_.]+)_(?<name>[^_.]+)_(?<version>[^_.]+)_(?<vendor>[^_.]+)\.(?<format>[^.]+)');
@@ -58,6 +60,8 @@ export default class Platform
 
     download_url:string = null;
     sha:string = null;
+
+    kInfo:Nullable<KernelInfo> = null;
 
     constructor(pPlatformConfig:any ){
 
@@ -363,5 +367,21 @@ export default class Platform
         else {
             return "bin";
         }
+    }
+
+    /**
+     * To get kernel model linked to this instance
+     *
+     * If a kernel is not yet identified, it searchs it
+     *
+     * @return {Nullable<Kernel>}
+     * @method
+     */
+    getKernelModel():Nullable<KernelInfo> {
+        if(this.kInfo == null){
+            this.kInfo = KernelInfoFactory.find(this.os, this.arch, null);
+        }
+
+        return this.kInfo;
     }
 }

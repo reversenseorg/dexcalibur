@@ -392,6 +392,8 @@ export class Device implements INode
 
     tags:TagUUID[] = [];
 
+
+
     /**
      * 
      * @param {*} config 
@@ -952,6 +954,7 @@ export class Device implements INode
 
         if(this.bridge != null){
             //this.profile = DeviceProfileFactory.update(this.bridge, this.profile, pOptions);
+
             this.profile = await this.bridge.performProfiling(pOptions);
 
             if(pOptions.type=="all" || pOptions.type=="system"){

@@ -55,6 +55,8 @@ export default class DeviceProfile
     sys_prop:any = {};
     profiles:ProfileMap = {};
 
+
+
     /**
      * 
      * @param {*} pOptions 
@@ -281,5 +283,16 @@ export default class DeviceProfile
     updateSubProfile(pName: string, pProfile: IProfile) {
         // todo: implement incremental update
         this.profiles[pName] = pProfile;
+    }
+
+    /**
+     * To execute every profile which hook after
+     */
+    doAfter(pOptions:any) {
+        for(let k in this.profiles){
+            if(this.profiles[k].onAfter!=null){
+                this.profiles[k].onAfter.apply(null,[this,pOptions]);
+            }
+        }
     }
 }
