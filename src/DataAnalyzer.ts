@@ -862,6 +862,13 @@ export class DataAnalyzer implements IAnalyzerUnit
         pFiles.map((vFile:ModelFile)=>{
             if(vFile.getType()==null){
 
+                if(this.context.platform.isAndroid() && this.delegate[OperatingSystem.ANDROID]!=null) {
+                    Logger.info("[DATA ANALYZER][DELEGATED > ANDROID] Invoked ");
+                    if(vFile.getPath().endsWith(".smali")){
+                        return;
+                    }
+                }
+
                 let parserConstructors:any[];
                 let results:any, fmt:string;
 

@@ -14,3 +14,10 @@ export enum OperatingSystem {
     FIRE_OS='fireos',
     NONE=''
 }
+
+
+export enum OperatingSystemFlavor {
+    ANDROID= 'android',
+    WEB_OS='webos',
+    FIRE_OS='fireos',
+}

@@ -41,9 +41,10 @@ export default class DeviceEventCollector {
             childProcess.stdout.on('data', (data) => {
                 let parsedEventChunk : InputEvent[] = this.parseEventChunk(data);
                 parsedEventChunk.forEach((event) => {
+                    event.source = pInputName;
                     session.push(event);
                 })
-                console.log("[DeviceEventCollector] parsedEventChunk : ", parsedEventChunk);
+                //console.log("[DeviceEventCollector] parsedEventChunk : ", parsedEventChunk);
             });
             childProcess.stderr.on('data', (data) => {
                 session.stop();

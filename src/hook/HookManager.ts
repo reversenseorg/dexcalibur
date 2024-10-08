@@ -151,17 +151,9 @@ export class HookManager
     frida_disabled = false;
     private _sessTags: TagHashMap = null;
 
-    _on:HookManagerLifecycleHooks = {
-        sessionStart:  [],
-        sessionStop:  []
-    };
+    _on:HookManagerLifecycleHooks;
 
-    /**
-     * 
-     * @param {*} pProject 
-     * @param {*} pNofrida
-     * @constructor
-     */
+
     constructor(pProject:DexcaliburProject, pNofrida=false){
 
         this.context = pProject;
@@ -181,8 +173,13 @@ export class HookManager
         this.db = new HookDbApi(pProject.getProjectDB());
         this.presets = new HookFragmentPreset();
 
+        this._on = {
+            sessionStart:  [],
+            sessionStop:  []
+        };
 
         this._on.sessionStart.push((vMgr:HookManager,vSess:HookSession):boolean => {
+            console.log("OnSessionStart trigged");
              vMgr.context.trigger({
                  type: "action.input.record.start",
                     data: {
@@ -194,6 +191,7 @@ export class HookManager
         });
 
         this._on.sessionStop.push((vMgr:HookManager,vSess:HookSession):boolean => {
+            console.log("OnSessionStart trigged");
             vMgr.context.trigger({
                 type: "action.input.record.stop",
                 data: {
@@ -541,15 +539,10 @@ export class HookManager
 
         if(this.builder.getLanguage()==TargetLanguage.JS){
             compilerOutput = await  ws.compileDefaultScript();
-            Logger.info("[HOOK MANAGER] Hook script built and compiled successfully.")
+            Logger.debug("[HOOK MANAGER] Hook script built and compiled successfully.")
         }else{
             compilerOutput = await ws.compileTsScript();
-            Logger.info("[HOOK MANAGER] TS target : frida compile done.")
-
-            if(compilerOutput.bundle==null){
-                Logger.error("[HOOK MANAGER] TS target : an error occured.")
-                return null;
-            }
+            Logger.debug("[HOOK MANAGER] TS target : frida compile done.");
         }
 
         return compilerOutput;
@@ -2024,7 +2017,7 @@ export class HookManager
                     Logger.raw(JSON.stringify(exception));
 
                     let extra:any = null;
-                    if(exception.getCode()==HookManagerException.ERR.CANNOT_START_HOOK_BECAUSE_SYNTAX_ERR){
+                    if(exception.getCode!=null && exception.getCode()==HookManagerException.ERR.CANNOT_START_HOOK_BECAUSE_SYNTAX_ERR){
                         extra = (exception as HookManagerException).getExtra();
                     }
 

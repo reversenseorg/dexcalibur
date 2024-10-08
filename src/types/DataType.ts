@@ -52,4 +52,5 @@ export class DataType
     getName():string {
         return this.name;
     }
+
 }

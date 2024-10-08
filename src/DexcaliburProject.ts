@@ -55,7 +55,7 @@ import {IAppAnalyzer} from "./analyzer/IAppAnalyzer.js";
 import {TagManager} from "./tags/TagManager.js";
 import {DexcaliburProjectException} from "./errors/DexcaliburProjectException.js";
 import {Architecture} from "./Architecture.js";
-import {OperatingSystem} from "./platform/OperatingSystem.js";
+import {OperatingSystem, OperatingSystemFlavor} from "./platform/OperatingSystem.js";
 import ModelSyscallFactory from "./ModelSyscallFactory.js";
 import {ProjectState} from "./ProjectState.js";
 import {LicenceManager} from "./credit/LicenceManager.js";
@@ -483,6 +483,9 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
     archs:Architecture[] = [];
 
     os:OperatingSystem = OperatingSystem.ANDROID;
+
+
+    osFlavor:OperatingSystemFlavor = OperatingSystemFlavor.ANDROID;
 
     /**
      * @field Class representing target application
@@ -1335,7 +1338,13 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
         if(pDevice!=null){
             const ssp = pDevice.getProfile().getSystemProfile();
             this.archs = [ssp.getArchitecture()];
-            this.os = ssp.getOperatingSystem();
+
+            // here OS depends first of platform type android or linux
+            if(pDevice.isAndroid()){
+                this.os = OperatingSystem.ANDROID;
+            }else{
+                this.os = ssp.getOperatingSystem();
+            }
 
             if(this.platform == null){
                 this.platform = pDevice.getPlatform();

@@ -73,6 +73,8 @@ export default class AndroidInputProfile extends GenericInputProfile implements 
 
             opts.supportedEvents = [];
 
+            console.log(vInput);
+
             let devType:InputDeviceType, evtType:InputEventType, newEvtType:InputEventType,  evtTypeRaw:ParsedEventType;
             try{
 

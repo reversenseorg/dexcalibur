@@ -1,16 +1,16 @@
 import InputEvent from "./InputEvent.js";
-import {Device} from "../Device.js";
 import Util from "../Utils.js";
 import HookSession from "../HookSession.js";
 import {Nullable} from "../core/IStringIndex.js";
 import {randomUUID} from "crypto";
+import {RuntimeEvent, RuntimeEventType} from "../hook/RuntimeEvent.js";
 
 export default class EventRecordSession {
     uid:string = null;
     startTime: number;
     duration: number;
     running: boolean = false;
-    events: InputEvent[];
+    events: InputEvent[] = [];
     inputName: string;
     deviceID: string;
 
@@ -46,9 +46,13 @@ export default class EventRecordSession {
         this.events.push(pEvent);
         this.duration = (Util.time()-this.startTime);
 
-        console.log(pEvent);
         if(this._sess!=null){
-            //this._sess.pushRuntimeEvent();
+            this._sess.pushExtraRuntimeEvent(new RuntimeEvent({
+                data: pEvent,
+                rt_type: RuntimeEventType.INPUT_EVT,
+                node: [],
+                id: pEvent.source+":"+pEvent.timestamp
+            }), "input.event.new");
         }
     }
 

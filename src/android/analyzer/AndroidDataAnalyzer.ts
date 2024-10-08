@@ -186,7 +186,7 @@ export class AndroidDataAnalyzer implements IDelegatedDataAnalyzer {
                 const p = _path_.join(pScope.getBasePath(),vPath);
                 // skip 'smali', 'original' and 'res' folders,
                 // Skip 'res' because this one is analyzed and parsed as AndroidResources
-                if(vPath.indexOf('smali')!=0 && vPath!='original' && vPath!='res'){
+                if(vPath!='smali' && vPath!='original' && vPath!='res'){
                     if(_fs_.lstatSync(p).isDirectory()){
                         (await this.scan(p, pScope, vPath)).subscribe((vFiles:ModelFile[])=>{
                             obs.next(vFiles);

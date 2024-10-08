@@ -1,7 +1,7 @@
 import {INode, Node} from "../INode.js";
 import HookMessageV2 from "./HookMessageV2.js";
 
-import BusEvent from "../BusEvent.js";
+import BusEvent, {BusEventOptions} from "../BusEvent.js";
 import {NodeInternalType}
 from "@dexcalibur/dxc-core-api";;
 import {
@@ -21,9 +21,17 @@ export enum RuntimeEventType {
     NETWORK='n',
     FILESYSTEM='f',
     HOOK_ERROR='he',
-    FRAG_ERROR='fe'
+    FRAG_ERROR='fe',
+    INPUT_EVT='ev'
 }
 
+
+export interface RuntimeEventOptions<P> extends BusEventOptions<P> {
+    id?:string,
+    rt_type?:RuntimeEventType,
+    node?:INode[],
+    tags?:number[]
+}
 
 /**
  * This class represents any events happening at runtime of target applications and
@@ -102,19 +110,25 @@ export class RuntimeEvent<P> extends BusEvent<any> implements INode {
 
     tags:number[] = [];
 
-    data:any = null;
+    //data:P = null;
 
     /**
      * Save flag. FALSE = not saved
      */
     _s = false;
 
-    constructor( pConfig:any) {
+    constructor( pConfig:RuntimeEventOptions<P>) {
         super(pConfig);
 
-        for(const i in this){
-            this[i] = pConfig[i];
-        }
+
+        this.rt_type = pConfig.rt_type!;
+        this.id = pConfig.id!;
+        this.tags = pConfig.tags!;
+        this.node = pConfig.node!;
+
+        /*for(const i in this){
+            this[i] = (pConfig[i] as any);
+        }*/
     }
 
     set saved(pFlag:boolean) {
@@ -192,9 +206,13 @@ export class RuntimeEvent<P> extends BusEvent<any> implements INode {
     toJsonObject():any{
         const o:any = new Object();
 
+        // from BusEvent
         o.type = this.type;
+        o.interceptors = this.interceptors;
+
+        // from runtime event
         if(this.data!=null){
-            if(this.data.toJsonObject != null){
+            if((this.data as any).toJsonObject != null){
                 o.data = (this.data as any).toJsonObject();
             }else{
                 o.data = this.data;
@@ -205,7 +223,6 @@ export class RuntimeEvent<P> extends BusEvent<any> implements INode {
         o.rt_type = this.rt_type;
         o.node = this.node;
         o.tags = this.tags;
-        o.interceptors = this.interceptors;
 
         //if(this.tags != null && this.tags.length > 0)
         //    o.tags = this.tags;

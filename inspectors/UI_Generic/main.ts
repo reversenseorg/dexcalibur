@@ -26,7 +26,7 @@ export default new InspectorFactory({
 
     useGUI: true,
 
-    version: "1.0.1",
+    version: "1.0.3",
     tags : [
         {
             name:"ui.event",
@@ -71,6 +71,7 @@ export default new InspectorFactory({
     eventListeners: {
         "action.input.record.start": function(pEvent:BusEvent<any>){
 
+            console.log("[action.input.record.start] trigged");
             // get device
             const dev = pEvent.getContext().getContext().getDeviceManager().getDevice(pEvent.getData().dev);
 
@@ -91,11 +92,14 @@ export default new InspectorFactory({
         },
         "action.input.record.stop": function(pEvent:BusEvent<any>){
 
+
+            console.log("[action.input.record.stop] trigged");
+
             // get device
             const dev = pEvent.getContext().getContext().getDeviceManager().getDevice(pEvent.getData().dev);
 
             if(dev==null){
-                pEvent.getContext().LOG.error("[action.input.record.start] Failure : target device is undefined");
+                pEvent.getContext().LOG.error("[action.input.record.stop] Failure : target device is undefined");
                 return;
             }
 

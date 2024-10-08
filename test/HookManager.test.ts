@@ -3,6 +3,8 @@ import {TestHelper} from "../dist/src/TestHelper.js";
 import {HookManager} from "../dist/src/hook/HookManager.js";
 import * as Log from "../dist/src/Logger.js";
 
+import * as Frida from 'frida';
+
 let Logger:Log.TestLogger;
 
 describe('HookManager', function() {
@@ -53,6 +55,25 @@ describe('HookManager', function() {
                 expect(flag).to.equals(1);
             });
         
+        });
+
+
+
+        describe('Frida :: compileScript', function() {
+
+            //const sess = new Frida.Session();
+
+            it('frida enabled', function() {
+
+                // get hook instance by hook ID
+                let manager:HookManager = new HookManager( null, false);
+
+                expect(manager).to.be.an.instanceOf(HookManager);
+                expect(manager.isFridaDisabled()).to.equals(false);
+                expect( TestHelper.checkIfModuleIsLoaded('frida') ).equals(true);
+            });
+
+
         });
 /*
         describe('getHooks', function() {
@@ -129,4 +150,6 @@ describe('HookManager', function() {
             expect(inspector.id).to.equals("DynamicLoader");
         });
     });*/
+
+
 });

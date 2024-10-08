@@ -8,7 +8,6 @@
  *
  * @param {*} manager
  */
-import HookMessage from "./HookMessage.js";
 import Util from "./Utils.js";
 import * as Frida from 'frida';
 import {HookManager} from "./hook/HookManager.js";
@@ -21,24 +20,24 @@ import {HookMessageException} from "./errors/HookMessageException.js";
 import {NodeInternalType} from "@dexcalibur/dxc-core-api";
 
 import {
-    NodeType,
-    DbSerialize,
-    NodePropertyState,
-    NodeProperty,
     DbDataType,
     DbKeyType,
+    DbSerialize,
     INode,
-    SerializeOptions, Tag
+    NodeProperty,
+    NodePropertyState,
+    NodeType,
+    SerializeOptions,
+    Tag
 } from "@dexcalibur/dexcalibur-orm";
 import {CryptoUtils} from "./CryptoUtils.js";
 import {CoreDebug} from "./core/CoreDebug.js";
 import {HookWorkspaceState} from "./hook/HookWorkspace.js";
 import {Nullable} from "./core/IStringIndex.js";
-import {UserAccount, UserAccountUUID} from "./user/UserAccount.js";
+import {UserAccountUUID} from "./user/UserAccount.js";
 import {Device} from "./Device.js";
 import DeviceEventCollector from "./platform/DeviceEventCollector.js";
-import {IBridge} from "./Bridge.js";
-import {HookManagerException} from "./errors/HookManagerException.js";
+import InputEvent from "./platform/InputEvent.js";
 
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
@@ -286,6 +285,66 @@ export default class HookSession extends WebsocketSession implements INode
         this.opts = pOptions;
     }
 
+    private _sendInputEvent(pEvt:RuntimeEvent<InputEvent>):void {
+        const ev = pEvt.data as InputEvent;
+        if(ev==null) return;
+
+        this.send({
+            data:{
+                device: ev.source,
+                type: {
+                    name: ev.type.key,
+                },
+                code: {
+                    name: ev.code.key
+                },
+                value: ev.value,
+                time: ev.timestamp
+            },
+            node: null,
+            tags: pEvt.tags,
+            rt_type: pEvt.getRuntimeType(),
+            type: pEvt.getType(),
+            __i: null
+        });
+    }
+
+    pushExtraRuntimeEvent( pEvt:RuntimeEvent<any>, pEvtType:string){
+
+
+        //pEvt.addTag(this.evTags.INPUT_EVT);
+        pEvt.setType(pEvtType);
+        //pEvt.setRuntimeType(RuntimeEventType.HOOK_ERROR);
+
+        // fill runtiume event
+        // pEvt.addNode(hm.hook.getTarget() as INode);
+        // pEvt.data = hm;
+
+        this.offset++;
+
+        // cache hook msg
+        this.message.push(pEvt);
+
+        // TODO : send raw hook message only if specified
+
+        // process hook message as RuntimeEvent
+        const jsonNode = [];
+        if(pEvt.node!=null){
+            pEvt.node.map( x => jsonNode.push( x.__!=null ? (x as any).toJsonObject() : x));
+        }
+
+        this.hookManager.newRuntimeEvent(pEvt, false);
+
+        switch(pEvt.getRuntimeType()){
+            case RuntimeEventType.INPUT_EVT:
+                this._sendInputEvent(pEvt);
+                break;
+            default:
+                break;
+        }
+
+
+    }
     /**
      * To push a new message from a hook into the session.
      * Each message is an instance of HookMessage

@@ -47,6 +47,7 @@ export default class InputSubsystem {
         let devType:Nullable<InputDeviceType>  =null;
         if(KernelInfoFactory.isLinuxBased(pOS)){
             switch (pBusType){
+                case LinuxBusType.BUS_HOST:
                 case LinuxBusType.BUS_VIRTUAL:
                     devType = this.devices.event;
                     break;
