@@ -58,7 +58,11 @@ import DexHelper from "./src/DexHelper.js";
 import RadareHelper from "./src/R2Helper.js";
 import ShellHelper from "./src/ShellHelper.js";
 import AdbWrapper from "./src/AdbWrapper.js";
+<<<<<<< HEAD
 import {DatabaseSettingType} from "./src/Settings.js";
+=======
+import {UserServiceException} from "./src/errors/UserServiceException.js";
+>>>>>>> 31470559 (Fix case where SSO / authentication DB is not configured or DB is not reachable when "dexcalibur-adm tools" ... is called)
 
 
 ConnectorFactory.getInstance(true);
@@ -818,11 +822,18 @@ switch (projectArgs.mode){
                     // create an empty single (not yet initialiazed) instance of engine+
                     const dxcInstance = DexcaliburEngine.getInstance();
 
-                    // init engine with settings
-                    await dxcInstance.loadConfiguration(cfg);
 
-                    // init service, sso, ...
-                    await dxcInstance.getUserService().getAuthenticationService().init();
+                    try{
+                        // init engine with settings
+                        await dxcInstance.loadConfiguration(cfg);
+
+                        // init service, sso, ...
+                        await dxcInstance.getUserService().getAuthenticationService().init();
+                    }catch(err){
+                        if(UserServiceException.is(err, UserServiceException.ERR.AUTH_IS_NOT_READY)){
+                            // continue
+                        }
+                    }
 
                     // boot engine
                     const ready = await dxcInstance.boot(projectArgs.restore===true,"");

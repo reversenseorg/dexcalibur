@@ -62,6 +62,7 @@ import Tool = External.Tool;
 import { Subject} from "rxjs";
 import {LogMessage} from "./log/Log.js";
 import {ProjectInput} from "./analyzer/ProjectInput.js";
+import {UserServiceException} from "./errors/UserServiceException.js";
 
 /*
 const _fixPath_ = require("fix-path");
@@ -796,6 +797,10 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
 
             Logger.info("[ENGINE] server settings init : Done");
         }catch(err){
+            if(UserServiceException.is(err,UserServiceException.ERR.DB_IS_NOT_READY)){
+                // forward exception
+                throw err;
+            }
             Logger.error("[ENGINE] server settings init : "+err.message+"\n"+err.stack);
         }
     }

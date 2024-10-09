@@ -127,12 +127,16 @@ export class UserService {
         this._coll = pContext.getEngineDB().getCollectionOf(UserAccount.TYPE.getType()) as MongodbDbCollection;
 
         this.authSvc = new AuthenticationService(this._settings, pContext);
-        await this.authSvc.init();
+        try{
+            await this.authSvc.init();
 
-        this.sessSvc = new SessionService( this._settings.getSessionSettings(),pContext);
-        this.sessSvc.setBackendCollection(
-            pContext.getEngineDB().getCollectionOf(UserSession.TYPE.getType()) as MongodbDbCollection
-        );
+            this.sessSvc = new SessionService( this._settings.getSessionSettings(),pContext);
+            this.sessSvc.setBackendCollection(
+                pContext.getEngineDB().getCollectionOf(UserSession.TYPE.getType()) as MongodbDbCollection
+            );
+        }catch (err){
+            throw UserServiceException.AUTH_IS_NOT_READY();
+        }
     }
 
 
