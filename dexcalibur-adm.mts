@@ -832,6 +832,7 @@ switch (projectArgs.mode){
                     }catch(err){
                         if(UserServiceException.is(err, UserServiceException.ERR.AUTH_IS_NOT_READY)){
                             // continue
+                            dxcInstance.setCliMode(true);
                         }
                     }
 

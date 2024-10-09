@@ -235,6 +235,13 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
     static DEFAULT_GUI:string = "dxc-web";
 
 
+    /**
+     * A flag to enable CLI-only actions
+     * @field
+     */
+    private _cliMode:boolean = false;
+
+
     engine_type = DexcaliburEngineMode.STANDALONE;
 
 
@@ -491,6 +498,10 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
         });
 
         this._listenProcessSignals();
+    }
+
+    setCliMode(pMode:boolean):void {
+        this._cliMode = pMode;
     }
 
     /**
@@ -957,24 +968,27 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
         DexHelper.init(this.extMgr.getTool('baksmali'));
         RadareHelper.init(this.extMgr.getTool('radare2'));
 
-        // setup web server serving API
-        this.webserver = new WebServer(
-            _path_.join(Util.__dirname(import.meta.url), 'webserver','www'),
-            pWebGuiCfg
-        );
+        if(this._cliMode===false){
+            // setup web server serving API
+            this.webserver = new WebServer(
+                _path_.join(Util.__dirname(import.meta.url), 'webserver','www'),
+                pWebGuiCfg
+            );
 
-        // TODO : override webserver settings with GUI config
-        //await this.webserver.configureAuth(this.settings.getServerSettings().getAuthenticationSettings());
-        this.webserver.configure(this.settings.getWebserverSettings());
-        this.webserver.setContext(this);
-        this.webserver.useProductionMode();
+            // TODO : override webserver settings with GUI config
+            //await this.webserver.configureAuth(this.settings.getServerSettings().getAuthenticationSettings());
+            this.webserver.configure(this.settings.getWebserverSettings());
+            this.webserver.setContext(this);
+            this.webserver.useProductionMode();
 
-        // setup web socket server
-        this.wsserver = new WebsocketServer(this);
+            // setup web socket server
+            this.wsserver = new WebsocketServer(this);
 
-        // TODO : override webserver settings with GUI config
-        // pass allowed origins to init
-        this.wsserver.init(this.settings.getWebserverSettings());
+            // TODO : override webserver settings with GUI config
+            // pass allowed origins to init
+            this.wsserver.init(this.settings.getWebserverSettings());
+
+        }
 
         // First call to PlatformManager : it inits
         this.platformMgr = PlatformManager.getInstance(this);
