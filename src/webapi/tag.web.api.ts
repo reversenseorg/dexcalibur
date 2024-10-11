@@ -5,7 +5,7 @@ import * as Log from "../Logger.js";
 import DexcaliburProject from "../DexcaliburProject.js";
 import {Tag, TagCategory} from "@dexcalibur/dexcalibur-orm";
 import {Nullable} from "../core/IStringIndex.js";
-import Util from "../Utils.js";
+import UT from "../Utils.js";
 
 
 
@@ -120,7 +120,7 @@ TAG_MGT_WEB_API.addAuthenticatedRoute(
                 let filter:any = null;
                 if(req.query.filter != null){
                     Logger.info("TAG API > GET /tag/tags > filter = "+(req.query.filter as string));
-                    filter = JSON.parse(Util.b64_decode(req.query.filter as string));
+                    filter = JSON.parse(UT.b64_decode(req.query.filter as string));
                     tags = await project.getTagManager().searchTagsFromCache(filter.request,filter.options);
                 }else{
                     tags = await project.getTagManager().getTags(true);

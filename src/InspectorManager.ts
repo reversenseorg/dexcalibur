@@ -11,7 +11,7 @@ import InspectorFactory, {
     FlattenTagCategoryOptions,
     UpgradeLevel
 } from "./InspectorFactory.js";
-import Util from "./Utils.js";
+import UT from "./Utils.js";
 import DexcaliburRegistry from "./DexcaliburRegistry.js";
 import * as Log from './Logger.js';
 import {Tag, TagOptions} from "@dexcalibur/dexcalibur-orm";
@@ -174,7 +174,7 @@ export default class InspectorManager
      */
     async enumerateLocal():Promise<Record<string, InspectorFactory>>{
         let p:string =null;
-        const ws:string = _path_.join(Util.__dirname(import.meta.url), '..', 'inspectors'); // this.engine.workspace.getPluginsFolderLocation();
+        const ws:string = _path_.join(UT.__dirname(import.meta.url), '..', 'inspectors'); // this.engine.workspace.getPluginsFolderLocation();
         const files:string[] = _fs_.readdirSync(ws);
 
         for(let i=0; i<files.length; i++){
@@ -817,7 +817,7 @@ export default class InspectorManager
         if(pNewFactory.hookSet!=null){
             if(pOutdatedFactory.hookSet==null){
                 changes.factory.hookSet = {
-                    time:Util.time(),
+                    time:UT.time(),
                     operation: RevisionOperation.ADDED,
                     subject: HookRevisionSubject.HOOKSET,
                     data: pNewFactory.hookSet

@@ -6,6 +6,7 @@ import {AndroidPackageInstallOptions} from "./android/bridge/AndroidInstallOptio
 import {PrivilegedExecutionStrategy} from "./PrivilegedExecutionStrategy.js";
 import {Nullable} from "./core/IStringIndex.js";
 import {ProjectInput} from "./analyzer/ProjectInput.js";
+import Screenshot from "./platform/Screenshot.js";
 
 export interface DeviceProfilingOptions {
     tmp?: string;
@@ -107,6 +108,10 @@ export interface IBridge
     execBridgeCommand( pCommand:string, pBin:string, pBinArg:string[]):void;
 
     spawnShell( pOptions:any ):any;
+
+    getTime(pOptions:any): string;
+
+    performScreenshot(): Screenshot;
 
     listProcesses( pOptions:any):Promise<any[]>;
 

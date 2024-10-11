@@ -1328,3 +1328,38 @@ DEVICE_WEB_API.addAsyncPublicRoute(
         }
     }
 );
+
+
+DEVICE_WEB_API.addAsyncPublicRoute(
+    '/action/:uid/:action',
+    {
+        'post': async (req:DelegateRequest, res:DelegateResponse):Promise<any> => {
+            // scan connected devices
+            let dev:Device=null, bridge:IBridge=null, dm:DeviceManager=null, action:string=null, data:any;
+            const $:WebServer = req.dxc.$;
+
+            try{
+                dm = DeviceManager.getInstance();
+                dev = dm.getDevice(req.params.uid);
+                action = req.params.action;
+                if (req.body['bridgeName'] != null) {
+                    bridge = dev.getBridge(req.body['bridgeName']);
+                } else {
+                    bridge = dev.getDefaultBridge()
+                }
+                if (bridge == null) throw new Error("Unable to get Bridge");
+                switch (action) {
+                    case 'screen.screenshot':
+                        data = bridge.performScreenshot(/*req.body['options']*/).toJsonObject();
+                        break;
+                    default :
+                        data = null;
+                        break;
+                }
+                $.sendSuccess(res, data);
+            }catch(err){
+                //res.status(500).send({ success: false, msg:err.message });
+                $.sendError( res, err.message);
+            }
+        }
+    });

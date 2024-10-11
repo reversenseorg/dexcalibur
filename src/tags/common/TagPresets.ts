@@ -30,6 +30,7 @@ export function newTagPresets(){
     const TECH = new TagCategory({ name: "tech" });
     const INPUT_DEV = new TagCategory({ name: "input.device" });
     const INPUT_TYPE = new TagCategory({ name: "input.event" });
+    const OUTPUT_SCREEN = new TagCategory({ name: "output.screen" });
 
     const INPUT_DEV_TAGS = [
         new Tag({ name:"kbd", label:"Keyboard" }),

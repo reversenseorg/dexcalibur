@@ -11,8 +11,6 @@ import {Device} from "../Device.js";
 
 export default class DeviceEventCollector {
 
-    static getKernelTime = "cat /proc/uptime";
-
     private _deviceBridge: IBridge;
 
     private _decoder:IInputDeviceDecoder;

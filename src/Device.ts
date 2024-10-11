@@ -36,6 +36,8 @@ import {CryptoUtils} from "./CryptoUtils.js";
 import {DeviceTemplate, DeviceTemplateUUID} from "./device/template/DeviceTemplate.js";
 import {DeviceTemplateFactory} from "./device/template/DeviceTemplateFactory.js";
 import {ValidationRule} from "./Validator.js";
+import ScreenshotSession from "./platform/ScreenshotSession.js";
+import ScreenshotAgent from "./platform/ScreenshotAgent.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -424,6 +426,8 @@ export class Device implements INode
     arch:Architecture;
 
     tags:TagUUID[] = [];
+
+    screenshotsSess: ScreenshotSession[];
 
     emulatorOpts?:Record<string, any> = {};
 
@@ -1092,6 +1096,12 @@ export class Device implements INode
         }*/
 
         return this.getDefaultBridge().retrieveUIDfromDevice(this);
+    }
+
+    initScreenshotSession(): ScreenshotSession {
+        const screenshotSession = new ScreenshotAgent(this.getUID(), this.getDefaultBridge()).start()
+        this.screenshotsSess.push(screenshotSession);
+        return screenshotSession;
     }
 
     /**

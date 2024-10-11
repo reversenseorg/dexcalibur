@@ -11,6 +11,9 @@ import * as Log from "../../src/Logger.js";
 import {AndroidManifest} from "../../src/android/AndroidManifest.js";
 import {AndroidCodeAnalyzer} from "../../src/android/analyzer/AndroidCodeAnalyzer.js";
 import EventRecordSession from "../../src/platform/EventRecordSession.js";
+import Screenshot from "../../src/platform/Screenshot.js";
+import ScreenshotAgent from "../../src/platform/ScreenshotAgent.js";
+import ScreenshotSession from "../../src/platform/ScreenshotSession.js";
 
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
@@ -71,6 +74,9 @@ export default new InspectorFactory({
     eventListeners: {
         "action.input.record.start": function(pEvent:BusEvent<any>){
 
+            console.log("[action.input.record.start] triggered");
+            // get device
+            const dev = pEvent.getContext().getContext().getDeviceManager().getDevice(pEvent.getData().dev);
             try{
                 console.log("[action.input.record.start] trigged");
                 // get device
@@ -93,12 +99,11 @@ export default new InspectorFactory({
             }catch(e){
                 console.log(e);
             }
-
         },
         "action.input.record.stop": function(pEvent:BusEvent<any>){
 
 
-            console.log("[action.input.record.stop] trigged");
+            console.log("[action.input.record.stop] triggered");
 
             // get device
             const dev = pEvent.getContext().getContext().getDeviceManager().getDevice(pEvent.getData().dev);
@@ -115,7 +120,44 @@ export default new InspectorFactory({
                 (pEvent.getData().session.extra.inputsRec[k] as EventRecordSession).stop();
             }
 
-        }
+        },
+        "hook.keystore.load": function(pEvent:BusEvent<any>){
+            console.log("[hook.keystore.load] caught try to trigger action.screen.screenshot");
+            let vSess = pEvent.getContext().getHookManager().lastSession()
+            pEvent.getContext().trigger( {
+                type: "action.screen.screenshot",
+                data: {
+                    dev: vSess.getDeviceUID(),
+                    session: vSess
+                }
+            });
+        },
+        "action.screen.screenshot": function(pEvent:BusEvent<any>){
+
+            console.log("[action.screen.screenshot] triggered");
+            // get device
+            const dev = pEvent.getContext().getContext().getDeviceManager().getDevice(pEvent.getData().dev);
+
+            if(dev==null){
+                pEvent.getContext().LOG.error("[action.input.record.start] Failure : target device is undefined");
+                return;
+            }
+
+            let screenshotSess : ScreenshotSession = pEvent.getData().session.extra.screenshotSess;
+            if(screenshotSess == null) {
+                // create screenshotSession
+                screenshotSess = dev.initScreenshotSession()
+                screenshotSess.attachHookSession(pEvent.getData().session);
+                pEvent.getData().session.extra.screenshotSess = screenshotSess;
+            }
+            // perform screenshot
+            let screenshot = screenshotSess.performScreenshot();
+            console.log("[screenshot] triggered");
+            console.log(screenshot);
+            console.log(" ---------- -------------- ----------- -- \n   DUMP screenshot data capture  \n ------- ")
+            console.log(screenshot.data);
+            console.log(" --------- End ------------");
+        },
     }
 });
 

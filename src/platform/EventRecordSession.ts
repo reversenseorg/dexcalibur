@@ -1,5 +1,5 @@
 import InputEvent from "./InputEvent.js";
-import Util from "../Utils.js";
+import UT from "../Utils.js";
 import HookSession from "../HookSession.js";
 import {Nullable} from "../core/IStringIndex.js";
 import {randomUUID} from "crypto";
@@ -24,7 +24,7 @@ export default class EventRecordSession {
         }
 
         if(this.startTime == null){
-            this.startTime = Util.time();
+            this.startTime = UT.time();
             this.running = true;
         }
 
@@ -44,7 +44,7 @@ export default class EventRecordSession {
 
     push(pEvent:InputEvent):void {
         this.events.push(pEvent);
-        this.duration = (Util.time()-this.startTime);
+        this.duration = (UT.time()-this.startTime);
 
         if(this._sess!=null){
             this._sess.pushExtraRuntimeEvent(new RuntimeEvent({
@@ -61,12 +61,12 @@ export default class EventRecordSession {
             this.process.kill();
         }
 
-        this.duration = (Util.time()-this.startTime);
+        this.duration = (UT.time()-this.startTime);
         this.running = false;
     }
 
     timeSinceLastEvent():number{
-        return Util.time()-(this.events[this.events.length].timestamp);
+        return UT.time()-(this.events[this.events.length].timestamp);
     }
 
     getUID():string {

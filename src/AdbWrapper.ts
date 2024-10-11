@@ -31,6 +31,8 @@ import {ProjectInput} from "./analyzer/ProjectInput.js";
 import {Architecture} from "./Architecture.js";
 
 const Logger:Log.ProdLogger = Log.newLogger() as Log.ProdLogger;
+import Screenshot from "./platform/Screenshot.js";
+import {ImageFormat} from "./platform/ImageFormat.js";
 
 enum ETransportType {
     USB     = 'U',
@@ -1130,7 +1132,41 @@ export default class AdbWrapper implements IBridge
 
         return pOptions.profile;
     }
+    /**
+     *
+     * @param {any} pOptions Options for the getTime command, such as time format or time referential.
+     * @returns {string} timestamp in the device.
+     * @method
+     */
+    // TODO write a type for pOtions
+    getTime(pOptions?:any): string {
+        let getTimeCommand = "date "
+        // TODO: FORMALISE format time
+        let timeFormat: string = "+%s.%N"
+        if (pOptions?.timeFormat != null) {
+            timeFormat = pOptions.format;
+        }
+        return this.shell(getTimeCommand + timeFormat).toString();
+    }
 
+    /**
+     *
+     * @param {any} pOptions
+     * @returns {string} screenshot in the device.
+     * @method
+     */
+    performScreenshot(pOptions?:any): Screenshot {
+        let screenshotCommand = "screencap -p "; // -p as PNG
+        let screenshotFormat = ImageFormat.PNG;
+        let timestamp = this.getTime();
+        let data = UT.execSync(this.setup()+' shell screencap -p',
+            'binary',
+            {maxBuffer:4096*4096});
+        if (data == null) {
+            return new Screenshot({isEmpty:true})
+        }
+        return new Screenshot({data:data, time:timestamp, format: screenshotFormat, isEmpty:false});
+    }
     /**
      * 
      * @param {Object} pData Poor object

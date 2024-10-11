@@ -3,7 +3,7 @@ import HookMessageV2 from "./HookMessageV2.js";
 
 import BusEvent, {BusEventOptions} from "../BusEvent.js";
 import {NodeInternalType}
-from "@dexcalibur/dxc-core-api";;
+from "@dexcalibur/dxc-core-api";
 import {
     NodeType,
     NodeProperty,
@@ -22,7 +22,8 @@ export enum RuntimeEventType {
     FILESYSTEM='f',
     HOOK_ERROR='he',
     FRAG_ERROR='fe',
-    INPUT_EVT='ev'
+    INPUT_EVT='ev',
+    SCREENSHOT = 'ss'
 }
 
 

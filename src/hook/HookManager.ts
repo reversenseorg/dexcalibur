@@ -90,6 +90,7 @@ export type HookManagerLifecycleCB =  ((vHM:HookManager,vSess:HookSession)=>bool
 interface HookManagerLifecycleHooks {
     sessionStart: HookManagerLifecycleCB[],
     sessionStop: HookManagerLifecycleCB[],
+    screenScreenshot: HookManagerLifecycleCB[],
 }
 
 export const CUSTOM_HOOKSET_JAVA = "customJava";
@@ -175,7 +176,8 @@ export class HookManager
 
         this._on = {
             sessionStart:  [],
-            sessionStop:  []
+            sessionStop:  [],
+            screenScreenshot: []
         };
 
         this._on.sessionStart.push((vMgr:HookManager,vSess:HookSession):boolean => {
@@ -196,8 +198,20 @@ export class HookManager
              return true;
         });
 
+        this._on.screenScreenshot.push((vMgr:HookManager,vSess:HookSession):boolean => {
+            console.log("screenshotPerform triggered", vMgr.context);
+            vMgr.context.trigger({
+                type: "action.screen.screenshot",
+                data: {
+                    dev: vSess.getDeviceUID(),
+                    session: vSess
+                }
+            });
+            return true;
+        });
+
         this._on.sessionStop.push((vMgr:HookManager,vSess:HookSession):boolean => {
-            console.log("OnSessionStart trigged");
+            console.log("OnSessionStart triggered");
             vMgr.context.trigger({
                 type: "action.input.record.stop",
                 data: {
@@ -2279,5 +2293,9 @@ export class HookManager
 
     onSessionStop( pCallback:((vMgr:HookManager, vSess:HookSession)=>boolean) ){
         this._on.sessionStop.push(pCallback);
+    }
+
+    onScreenScreenshot( pCallback:((vMgr:HookManager, vSess:HookSession)=>boolean) ){
+        this._on.screenScreenshot.push(pCallback);
     }
 }
