@@ -234,6 +234,6 @@ EXPOSE ${DXC_HTTP_PORT} ${DXC_WS_PORT}
 # Dexcalibur HTTPS
 EXPOSE 8443
 
-CMD [ "node", "./dist/dexcalibur.js", "--gui=$DXC_PRODUCTS" ]
+CMD [ "node", "./dexcalibur.js", "--gui=$DXC_PRODUCTS" ]
 
 # ENTRYPOINT [ "/bin/sh", "start.sh" ]
