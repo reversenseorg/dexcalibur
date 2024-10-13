@@ -58,6 +58,7 @@ import DexHelper from "./src/DexHelper.js";
 import RadareHelper from "./src/R2Helper.js";
 import ShellHelper from "./src/ShellHelper.js";
 import AdbWrapper from "./src/AdbWrapper.js";
+import {DatabaseSettingType} from "./src/Settings.js";
 
 
 ConnectorFactory.getInstance(true);
@@ -1244,7 +1245,7 @@ ${"\t".repeat(1)}Default Arch = ${srv.getDefaultArchitecture()}
 
         if(projectArgs.srvDbHost!=null){
             try{
-                dbSettings.update(dbSettings.sanitize("host", projectArgs.srvDbHost));
+                dbSettings.update(dbSettings.sanitize(DatabaseSettingType.DB_HOST, projectArgs.srvDbHost));
                 dbSettings.save();
                 console.log(chalk.green("[*] DB Settings > host has been updated."));
             }catch (e){
@@ -1253,7 +1254,7 @@ ${"\t".repeat(1)}Default Arch = ${srv.getDefaultArchitecture()}
         }
         if(projectArgs.srvDbPort!=null){
             try{
-                dbSettings.update(dbSettings.sanitize("port", projectArgs.srvDbPort));
+                dbSettings.update(dbSettings.sanitize(DatabaseSettingType.DB_PORT, projectArgs.srvDbPort));
                 dbSettings.save();
                 console.log(chalk.green("[*] DB Settings > port number has been updated."));
             }catch (e){
@@ -1262,7 +1263,7 @@ ${"\t".repeat(1)}Default Arch = ${srv.getDefaultArchitecture()}
         }
         if(projectArgs.srvDbConn!=null){
             try{
-                dbSettings.update(dbSettings.sanitize("conn", projectArgs.srvDbConn));
+                dbSettings.update(dbSettings.sanitize(DatabaseSettingType.DB_AUTH_STRING, projectArgs.srvDbConn));
                 dbSettings.save();
                 console.log(chalk.green("[*] DB Settings > connection string has been updated."));
             }catch (e){
@@ -1274,9 +1275,9 @@ ${"\t".repeat(1)}Default Arch = ${srv.getDefaultArchitecture()}
                 if(_fs_.existsSync(projectArgs.srvDbCreds)){
                     const dbCreds = _fs_.readFileSync(projectArgs.srvDbCreds).toString();
                     if(dbCreds.length>0){
-                        dbSettings.update(dbSettings.sanitize("conn", dbCreds));
+                        dbSettings.update(dbSettings.sanitize(DatabaseSettingType.DB_AUTH_STRING, dbCreds));
                         dbSettings.save();
-                        console.log(chalk.green("[*] DB Settings > connection string has been updated."));
+                        console.log(chalk.green("[*] DB Settings > connection has been updated (from credential file)."));
                     }else{
                         console.log(chalk.red("[!] DB Settings > connection string cannot be updated : Credential file is empty"));
                     }

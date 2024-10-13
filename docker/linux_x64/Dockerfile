@@ -39,9 +39,11 @@ ARG ANDROID_CMD_VERSION="commandlinetools-linux-10406996_latest.zip"
 
 ARG NODE_HEAP_SIZE
 
-ARG DB_HOST
-ARG DB_PORT
-ARG DB_URI
+ARG dxc_db_host="127.0.0.1"
+ARG dxc_db_port="27017"
+ARG dxc_db_user="master"
+ARG dxc_db_passwd="master123"
+ARG dxc_db_mode="DEFAULT"
 
 # Comma seperated value. Supported values (subject to change, not exhaustive) : home , pro, oracle, ...
 ARG dxc_uis="home,pro"
@@ -58,6 +60,11 @@ ENV DXC_USER_SRV=${user_server}
 ENV DXC_HTTP_PORT=${dxc_http_port}
 ENV DXC_WS_PORT=${dxc_ws_port}
 ENV DXC_HEAP_SZ=${dxc_heap_size}
+
+
+ENV DXC_DB_PORT=${dxc_db_port}
+ENV DXC_DB_HOST=${dxc_db_host}
+
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV DXC_V_APKTOOL="2.7.0"
@@ -210,15 +217,20 @@ WORKDIR "$ARTIFACTS_FOLDER/dist"
 # create files
 RUN mkdir $DXC_USER_HOME/.dexcalibur && \
     ln -s /uis  $ARTIFACTS_FOLDER/dist/src/webserver/www && \
-     chown -R $DXC_USER_SRV:$DXC_USER_SRV $DXC_USER_HOME/.dexcalibur&& \
+     chown -R $DXC_USER_SRV:$DXC_USER_SRV $DXC_USER_HOME/.dexcalibur && \
      node ./dexcalibur-adm.mjs server \
         --create-home=$DXC_USER_HOME/.dexcalibur \
+        --db-host=$DB_HOST \
+        --db-port=$DB_PORT \
         --set-marketplace=$marketplace_uri \
         --set-wsi=$DXC_USER_HOME/.dexcalibur/.dxc \
         --create-ws=$DXC_USER_HOME/workspace \
         --heap-size=$DXC_HEAP_SZ \
         --http-port=$DXC_HTTP_PORT \
-        --ws-port=$DXC_WS_PORT
+        --ws-port=$DXC_WS_PORT && \
+    echo "${dxc_db_user}:${dxc_db_passwd}:admin:${dxc_db_mode}" > $DXC_USER_HOME/.dexcalibur/db.credentials && \
+    node ./dexcalibur-adm.mjs server --db-creds=$DXC_USER_HOME"/.dexcalibur/db.credentials" && \
+    cat  $DXC_USER_HOME/.dexcalibur/dxc.json
 
 
 

@@ -18,6 +18,13 @@ function __log( pMessage:string):void{
         _fs_.appendFileSync(LOG_FILE, pMessage+_os_.EOL);
 }
 
+
+export enum DatabaseSettingType {
+    DB_AUTH_STRING = "conn",
+    DB_HOST = "host",
+    DB_PORT = "port",
+}
+
 export interface WebServerOptions {
     http?:number;
     ws?:number;
@@ -324,6 +331,7 @@ export namespace Settings {
      */
     export class DatabaseSettings extends AbstractSettings {
 
+
         /**
          * DB Connection string
          * 
@@ -379,22 +387,22 @@ export namespace Settings {
 
 
 
-        sanitize(pName: string, pValue: any): IncomingValue {
+        sanitize(pName: DatabaseSettingType, pValue: any): IncomingValue {
             // todo
             switch(pName){
-                case "host":
+                case DatabaseSettingType.DB_HOST:
                     // check ipv4 ou ipv6
                     if(typeof pValue==="string"){
                         return new SanitizedValue(pName, pValue);
                     }
                     break;
-                case "conn":
+                case DatabaseSettingType.DB_AUTH_STRING:
                     // check <>:<>:<>:<>[:]
                     if(typeof pValue==="string"){
                         return new SanitizedValue(pName, pValue);
                     }
                     break;
-                case "port":
+                case DatabaseSettingType.DB_PORT:
                     if(typeof pValue==="number"){
                         if(pValue>1 && pValue < 65535){
                             return new SanitizedValue(pName, pValue);
@@ -410,13 +418,13 @@ export namespace Settings {
 
         update( pValue:IncomingValue):void {
             switch (pValue.getName()) {
-                case "conn":
+                case DatabaseSettingType.DB_AUTH_STRING:
                     this._conn = pValue.getValue();
                     break;
-                case "host":
+                case DatabaseSettingType.DB_HOST:
                     this._host = pValue.getValue();
                     break;
-                case "port":
+                case DatabaseSettingType.DB_PORT:
                     this._port = pValue.getValue();
                     break;
                 default:
