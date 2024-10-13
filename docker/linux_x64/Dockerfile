@@ -64,6 +64,9 @@ ENV DXC_HEAP_SZ=${dxc_heap_size}
 
 ENV DXC_DB_PORT=${dxc_db_port}
 ENV DXC_DB_HOST=${dxc_db_host}
+ENV DXC_DB_USER=${dxc_db_user}
+ENV DXC_DB_PWD=${dxc_db_pwd}
+ENV DXC_DB_MODE=${dxc_db_mode}
 
 
 ENV DEBIAN_FRONTEND=noninteractive
@@ -220,16 +223,16 @@ RUN mkdir $DXC_USER_HOME/.dexcalibur && \
      chown -R $DXC_USER_SRV:$DXC_USER_SRV $DXC_USER_HOME/.dexcalibur && \
      node ./dexcalibur-adm.mjs server \
         --create-home=$DXC_USER_HOME/.dexcalibur \
-        --db-host=$DB_HOST \
-        --db-port=$DB_PORT \
+        --db-host=$DXC_DB_HOST \
+        --db-port=$DXC_DB_PORT \
         --set-marketplace=$marketplace_uri \
         --set-wsi=$DXC_USER_HOME/.dexcalibur/.dxc \
         --create-ws=$DXC_USER_HOME/workspace \
         --heap-size=$DXC_HEAP_SZ \
         --http-port=$DXC_HTTP_PORT \
         --ws-port=$DXC_WS_PORT && \
-    echo "${dxc_db_user}:${dxc_db_passwd}:admin:${dxc_db_mode}" > $DXC_USER_HOME/.dexcalibur/db.credentials && \
-    node ./dexcalibur-adm.mjs server --db-creds=$DXC_USER_HOME"/.dexcalibur/db.credentials" && \
+    echo "$DXC_DB_USER:$DXC_DB_PWD:admin:$DXC_DB_MODE" > $DXC_USER_HOME/.dexcalibur/db.credentials && \
+    node ./dexcalibur-adm.mjs server --db-credential=$DXC_USER_HOME"/.dexcalibur/db.credentials" && \
     cat  $DXC_USER_HOME/.dexcalibur/dxc.json
 
 
