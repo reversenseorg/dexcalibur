@@ -403,10 +403,15 @@ export namespace Settings {
                     }
                     break;
                 case DatabaseSettingType.DB_PORT:
+                    let p:number;
                     if(typeof pValue==="number"){
-                        if(pValue>1 && pValue < 65535){
-                            return new SanitizedValue(pName, pValue);
-                        }
+                        p = pValue;
+                    }else{
+                        p = parseInt(pValue, 10);
+                    }
+
+                    if(p>1 && p < 65535){
+                        return new SanitizedValue(pName, p);
                     }
                     break;
                 default:

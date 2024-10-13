@@ -501,6 +501,7 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
     }
 
     setCliMode(pMode:boolean):void {
+        Logger.info("[*] "+(pMode?'Enable':'Disable')+" CLI mode");
         this._cliMode = pMode;
     }
 
