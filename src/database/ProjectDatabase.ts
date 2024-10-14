@@ -82,10 +82,6 @@ const PROJECT_DB_PREFIX = "dxc_";
  */
 export class ProjectDatabase {
 
-    static DEFAULT_CONN_STR = "master:master123:admin:DEFAULT:";
-    static DEFAULT_HOST = "127.0.0.1";
-    static DEFAULT_PORT = 27017;
-
     name:string = "";
 
     private _ctx:DexcaliburEngine;

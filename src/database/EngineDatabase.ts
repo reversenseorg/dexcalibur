@@ -1,40 +1,25 @@
-import * as _fs_ from "node:fs";
-
 import DexcaliburEngine from "../DexcaliburEngine.js";
-import {Settings} from "../Settings.js";
-import DatabaseSettings = Settings.DatabaseSettings;
+import {DatabaseSettingType, Settings} from "../Settings.js";
 import {MongodbAdapter, MongodbDb, MongodbDbCollection} from "@dexcalibur/dexcalibur-orm-mongodb";
 import {Nullable} from "../core/IStringIndex.js";
-import {MongoCredentialsOptions, AuthMechanism} from "mongodb";
+import {AuthMechanism, MongoCredentialsOptions} from "mongodb";
 import * as Log from "../Logger.js";
 import DexcaliburProject from "../DexcaliburProject.js";
 import {UserAccount} from "../user/UserAccount.js";
 import {Device} from "../Device.js";
 import InspectorFactory from "../InspectorFactory.js";
 import {ScanOrder} from "../audit/common/ScanOrder.js";
-import {
-    IDatabase,
-    IDatabaseAdapter,
-    IDbCollection,
-    INode, IStringIndex,
-    NodeType,
-    Tag,
-    TagCategory
-} from "@dexcalibur/dexcalibur-orm";
-import {NodeInternalType, NodeInternalTypeName}
-from "@dexcalibur/dxc-core-api";;
+import {IDbCollection, INode, NodeType} from "@dexcalibur/dexcalibur-orm";
+import {NodeInternalType, NodeInternalTypeName} from "@dexcalibur/dxc-core-api";
 import {EngineDatabaseException} from "../errors/EngineDatabaseException.js";
-import {parentPort} from "worker_threads";
 import {BusSubscriber} from "../Bus.js";
 import BusEvent from "../BusEvent.js";
 import {ProjectDatabase} from "./ProjectDatabase.js";
-import {AnalyzerState} from "../AnalyzerState.js";
-import HookSession from "../HookSession.js";
-import ModelFile from "../ModelFile.js";
-import DataScope from "../DataScope.js";
 import {LogMessage} from "../log/Log.js";
 import {UserSession} from "../user/session/UserSession.js";
-import {User} from "../User.js";
+import DatabaseSettings = Settings.DatabaseSettings;
+
+;
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -83,8 +68,8 @@ interface AttachedProject {
 export class EngineDatabase {
 
     static DEFAULT_CONN_STR = "master:master123:admin:DEFAULT:";
-    static DEFAULT_HOST = "127.0.0.1";
-    static DEFAULT_PORT = 27017;
+    // static DEFAULT_HOST = "127.0.0.1";
+    // static DEFAULT_PORT = 27017;
 
     /**
      * An hashmap of  attached project instances
@@ -149,33 +134,43 @@ export class EngineDatabase {
         if(pOptions.getConnectionString()!=null){
             creds = this.parseCredentialString(pOptions.getConnectionString());
         }else{
-            creds = this.parseCredentialString(EngineDatabase.DEFAULT_CONN_STR);
-            update = true;
+            throw EngineDatabaseException.CANNOT_CONNECT_TO_DB("empty connection string");
+            // creds = this.parseCredentialString(EngineDatabase.DEFAULT_CONN_STR);
+            // update = true;
         }
 
-        if(this._opts.getHost()){
+        if(pOptions.getHost()){
+            host = pOptions.getHost();
+        }
+        else if(this._opts.getHost()){
             host = this._opts.getHost();
-        }else{
-            host = EngineDatabase.DEFAULT_HOST;
-            update = true;
+        }
+        else{
+            //host = EngineDatabase.DEFAULT_HOST;
+            //update = true;
+            throw EngineDatabaseException.CANNOT_CONNECT_TO_DB("db hostname is undefined");
         }
 
-        if(this._opts.getPort()){
+        if(pOptions.getPort()){
+            port = pOptions.getPort();
+        }
+        else if(this._opts.getPort()){
             port = this._opts.getPort();
             if(port == -1){
-                port = EngineDatabase.DEFAULT_PORT;
-                update = true;
+                // port = EngineDatabase.DEFAULT_PORT;
+                // update = true;
+                throw EngineDatabaseException.CANNOT_CONNECT_TO_DB("db port is undefined (2)");
             }
         }else{
-            port = EngineDatabase.DEFAULT_PORT;
-            update = true;
+            //port = EngineDatabase.DEFAULT_PORT;
+            //update = true;
+            throw EngineDatabaseException.CANNOT_CONNECT_TO_DB("db port is undefined");
         }
 
         if(update){
-
-            pOptions.update(pOptions.sanitize("conn", EngineDatabase.DEFAULT_CONN_STR));
-            pOptions.update(pOptions.sanitize("host", host));
-            pOptions.update(pOptions.sanitize("port", port));
+            //pOptions.update(pOptions.sanitize(DatabaseSettingType.DB_AUTH_STRING, EngineDatabase.DEFAULT_CONN_STR));
+            pOptions.update(pOptions.sanitize(DatabaseSettingType.DB_HOST,  host));
+            pOptions.update(pOptions.sanitize(DatabaseSettingType.DB_PORT, port));
             pOptions.save()
         }
 
@@ -183,8 +178,8 @@ export class EngineDatabase {
 
 
         return new MongodbAdapter(this._ctx, {
-            clusterUrl: this._opts.getHost() ,
-            port:  this._opts.getPort(),
+            clusterUrl: host ,
+            port:  port,
             credentials: creds,
             clientOpts: pMongoOpts
         });

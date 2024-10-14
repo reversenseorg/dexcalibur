@@ -7,14 +7,6 @@ FROM arm64v8/amazoncorretto:17.0.8-al2023-headless
 LABEL maintainer="georges.michel@reversense.com"
 
 # ===============================
-# Runtime args
-# ===============================
-
-# Comma seperated value. Supported values (subject to change, not exhaustive) : home , pro, oracle, ...
-ENV DXC_PRODUCTS="home,pro"
-
-
-# ===============================
 # Args
 # ===============================
 
@@ -23,6 +15,15 @@ ARG user_server="dexcalibur-bin"
 ARG dxc_http_port=8080
 ARG dxc_ws_port=8001
 ARG dxc_heap_size=4096
+
+# Open ID Connect arguments
+ARG dxc_oidc_server="http://127.0.0.1:8088"
+ARG dxc_oidc_client_id="dxcengine_api"
+ARG dxc_oidc_client_secret=""
+ARG dxc_oidc_redirect_uris=["${dxc_oidc_server}/api-auth/cb"]
+ARG dxc_oidc_post_logout_redirect_uris=["${dxc_oidc_server}/api-logout"]
+ARG dxc_oidc_discover_uri="${dxc_oidc_server}/realms/dxc-stagging"
+ARG dxc_oidc_response_type=["code"]
 
 # Obsolete. Standlone auth have been replaced by SSO
 # ARG dxc_admin="admin"
@@ -35,9 +36,18 @@ ARG ANDROID_CMD_VERSION="commandlinetools-linux-10406996_latest.zip"
 
 ARG NODE_HEAP_SIZE
 
-ARG DB_HOST
-ARG DB_PORT
-ARG DB_URI
+ARG dxc_db_host="127.0.0.1"
+ARG dxc_db_port="27017"
+ARG dxc_db_user="master"
+ARG dxc_db_passwd="master123"
+ARG dxc_db_mode="DEFAULT"
+
+# Comma seperated value. Supported values (subject to change, not exhaustive) : home , pro, oracle, ...
+ARG dxc_uis="home,pro"
+
+ARG dxc_http_port=8080
+ARG dxc_ws_port=8081
+ARG dxc_https_port=8443
 
 # ===============================
 # Config
@@ -47,6 +57,11 @@ ENV DXC_USER_SRV=${user_server}
 ENV DXC_HTTP_PORT=${dxc_http_port}
 ENV DXC_WS_PORT=${dxc_ws_port}
 ENV DXC_HEAP_SZ=${dxc_heap_size}
+
+
+ENV DXC_DB_PORT=${dxc_db_port}
+ENV DXC_DB_HOST=${dxc_db_host}
+
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV DXC_V_APKTOOL="2.7.0"
@@ -63,6 +78,10 @@ ENV NODE_MAJOR="18"
 ENV DXC_TMP=/tmp
 
 ENV DXC_USER_HOME="/home/$DXC_USER_SRV"
+ENV DXC_HTTPS_PORT=${dxc_https_port}
+
+
+ENV DXC_USER_HOME="/home/$user_server"
 ENV TMP_FOLDER="$DXC_USER_HOME/tmp"
 ENV ARTIFACTS_FOLDER="$DXC_USER_HOME/artifacts"
 ENV DXC_BIN_FOLDER="$DXC_USER_HOME/tmp"
@@ -77,7 +96,9 @@ ENV ANDROID_SDK_ROOT="$DXC_USER_HOME/android"
 
 # 'Workspace' volumes hold projects data and some engine configuration and binary
 # 'uis' volumes contains UI interfaces, it is the www root folder where each UI are stored into separate folder
-VOLUME [ "$DXC_USER_HOME/workspace", "/uis", "/security" ]
+VOLUME [ "$DXC_USER_HOME/workspace", "/uis" ]
+
+# VOLUME [ "$DXC_USER_HOME/workspace", "/uis", "/security" ]
 
 
 # ===============================

@@ -34,6 +34,10 @@ export class EngineDatabaseException extends MonitoredError {
         return new EngineDatabaseException(`Bulk operation [${pOpe}] not supported : ${pCause} `,
             ErrorCode.GENERIC + 25) };
 
+    static CANNOT_CONNECT_TO_DB = (pCause:string)=>{
+        return new EngineDatabaseException(`Connection to db is not possible: ${pCause} `,
+            ErrorCode.GENERIC + 26) };
+
 
 
     constructor( pMsg:string, pCode:number = null, pExtra:any = null) {
