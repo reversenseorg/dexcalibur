@@ -179,16 +179,33 @@ export namespace Settings {
 
             super(pParent);
 
-            if(pConfig.workspace!=null){
-                this.setWorkspace(pConfig.workspace,pConfig.workspace_internal);
+            if(process.env.DXC_WS_PATH!=undefined){
+                this.setWorkspace(
+                    process.env.DXC_WS_PATH,
+                    process.env.DXC_WSI_PATH!==undefined? process.env.DXC_WSI_PATH : pConfig.workspace_internal
+                );
+            }
+            else if(pConfig.workspace!=null){
+                this.setWorkspace(
+                    process.env.DXC_WS_PATH!==undefined? process.env.DXC_WS_PATH : pConfig.workspace,
+                    pConfig.workspace_internal);
                 /*this.space = DexcaliburWorkspace.getInstance(pConfig.workspace);
                 if(pConfig.workspace_internal!=null){
                     this.space.setDxcFolder(pConfig.workspace_internal);
                 }*/
             }
 
-            if(pConfig.registry!=null){
-                this.registry = new DexcaliburRegistry(pConfig.registry, pConfig.registryAPI);
+            if(process.env.DXC_REG_URI!=undefined && process.env.DXC_REG_API!=undefined){
+                this.registry = new DexcaliburRegistry(
+                    process.env.DXC_REG_URI,
+                    process.env.DXC_REG_API
+                );
+            }
+            else if(pConfig.registry!=null){
+                this.registry = new DexcaliburRegistry(
+                    pConfig.registry,
+                    pConfig.registryAPI
+                );
             }
 
             if(pConfig.auth != null){
@@ -203,15 +220,16 @@ export namespace Settings {
                 this.db = new DatabaseSettings(this);
             }
 
-            if(pConfig.heapSize!=null){
+            if(process.env.DXC_HEAP_SIZE!=undefined){
+                this.heapSize = parseInt(process.env.DXC_HEAP_SIZE,10);
+            }
+            else if(pConfig.heapSize!=null){
                 this.heapSize = pConfig.heapSize;
             }
 
             if(this.heapSize == null){
                 this.heapSize = ServerSettings.DEFAULT_HEAP_SIZE;
             }
-
-
         }
 
         getDefaultArchitecture():string {
@@ -364,6 +382,24 @@ export namespace Settings {
             if(pConfig.port){
                 this._port = pConfig.port;
             }
+
+            // finally override configuration with env variables
+            if(process.env.DXC_DB_AUTHSTR!==undefined) this.conn = process.env.DXC_DB_AUTHSTR;
+            if(process.env.DXC_DB_HOST!==undefined) this.host = process.env.DXC_DB_HOST;
+            if(process.env.DXC_DB_PORT!==undefined) this.port = parseInt(process.env.DXC_DB_PORT,10);
+        }
+
+
+        set conn(pVal:Nullable<string>) {
+            this._conn = this.sanitize(DatabaseSettingType.DB_AUTH_STRING,pVal).getValue();
+        }
+
+        set host(pVal:Nullable<string>) {
+            this._host = this.sanitize(DatabaseSettingType.DB_HOST,pVal).getValue();
+        }
+
+        set port(pVal:number) {
+            this._port = this.sanitize(DatabaseSettingType.DB_PORT,pVal).getValue();
         }
 
 
@@ -902,17 +938,18 @@ export namespace Settings {
             const config = {
                 server: {
                     bin:{
-                        java:"java",
-                        python:"python3",
-                        frida:null, //"frida",
-                        radare2:null, //"r2",
-                        adb: null, //"/Users/salade/Documents/dxc3/.dxc/bin/platform-tools/adb",
-                        apktool: null, //"/Users/salade/Documents/dxc3/.dxc/bin/apktool.jar",
-                        baksmali: null, //"/Users/salade/Documents/dxc3/.dxc/bin/baksmali.jar",
-                        binwalk: null, //"binwalk"
+                        java: (process.env.DXC_BIN_JAVA?process.env.DXC_BIN_JAVA:"java"),
+                        python: (process.env.DXC_BIN_PYTHON?process.env.DXC_BIN_PYTHON:"python3"),
+                        frida:(process.env.DXC_BIN_FRIDA?process.env.DXC_BIN_FRIDA:null), //"frida",
+                        radare2:(process.env.DXC_BIN_R2?process.env.DXC_BIN_R2:null), //"r2",
+                        adb: (process.env.DXC_BIN_ADB?process.env.DXC_BIN_ADB:null), //"/Users/salade/Documents/dxc3/.dxc/bin/platform-tools/adb",
+                        apktool: (process.env.DXC_BIN_APKT?process.env.DXC_BIN_APKT:null), //"/Users/salade/Documents/dxc3/.dxc/bin/apktool.jar",
+                        baksmali:(process.env.DXC_BIN_BAKS?process.env.DXC_BIN_BAKS:null), //"/Users/salade/Documents/dxc3/.dxc/bin/baksmali.jar",
+                        binwalk: (process.env.DXC_BIN_BINWALK?process.env.DXC_BIN_BINWALK:null)//"binwalk"
                     },
                     auth:{
                         db:{
+                            // deprecated
                             dbms:"sqlite",
                             user:null,
                             pwd:null,
@@ -924,8 +961,8 @@ export namespace Settings {
                         },
                         supported:["pwd"]
                     },
-                    workspace: "",
-                    workspace_internal: null,
+                    workspace: (process.env.DXC_WS_PATH?process.env.DXC_WS_PATH:""),
+                    workspace_internal: (process.env.DXC_WSI_PATH?process.env.DXC_WSI_PATH:null),
                     embedded: false,
                     registry: "https://github.com/FrenchYeti/dexcalibur-registry/raw/master/",
                     registryAPI: "https://github.com/FrenchYeti/dexcalibur-registry/contents/",
@@ -933,9 +970,9 @@ export namespace Settings {
                         DXC_LOG_PATH: _path_.join(home, 'server.logs')
                     },
                     db: {
-                      host: "127.0.0.1",
-                      conn: "master:master123:admin:DEFAULT:",
-                      port: 27017
+                      host: (process.env.DXC_DB_HOST?process.env.DXC_DB_HOST:"127.0.0.1"),
+                      conn: (process.env.DXC_DB_AUTHSTR?process.env.DXC_DB_AUTHSTR:"master:master123:admin:DEFAULT:"),
+                      port: (process.env.DXC_DB_PORT?process.env.DXC_DB_PORT:27017),
                     },
                     log: true,
                     options: {

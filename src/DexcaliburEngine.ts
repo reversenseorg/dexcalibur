@@ -767,6 +767,10 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
         await this.initServerSettings();
         this.initExternalSettings();
         this.initConnectionsSettings();
+
+        if(process.env.DXC_SAVE_SETTINGS=="1"){
+            this.settings.save();
+        }
     }
 
     /**

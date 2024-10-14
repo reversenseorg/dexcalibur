@@ -72,13 +72,28 @@ export class AuthenticationSettings {
         }
 
         this._policy = new AuthenticationPolicy(pConfig);
+
         this._supported = Util.getValue( pConfig, 'supported', [AuthType.PASSWORD]);
+
         this._sess = new SessionSettings( this, Util.getValue( pConfig, 'sess', {}))
 
-        if(pConfig.oidc!=null){
-            this._oidc = pConfig.oidc;
+
+        this._initOpenIdConnect(pConfig.oidc);
+    }
+
+    private _initOpenIdConnect(pSettings:Nullable<OidcOptions>):void {
+        if(pSettings!=null){
+            this._oidc = pSettings;
         }
 
+        /*
+    discoverUri:string;
+    client_id?:string;
+    client_secret?:string;
+    redirectUris:string[];
+    postLogoutRedirectUris:string[];
+    responseType:string[];
+         */
     }
 
 
