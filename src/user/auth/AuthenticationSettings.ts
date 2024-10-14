@@ -1,3 +1,5 @@
+import * as _fs_ from "fs";
+
 import {AuthType} from "./AuthTypes.js";
 import {Settings} from "../../Settings.js";
 import {SessionSettings} from "../session/SessionSettings.js";
@@ -81,8 +83,25 @@ export class AuthenticationSettings {
         this._initOpenIdConnect(pConfig.oidc);
     }
 
+
+    private _importOidcSettings(pPath:string):void {
+        if(!_fs_.existsSync(pPath)) return null;
+
+        let data:string;
+        try{
+            data = _fs_.readFileSync(pPath).toString('utf8');
+            this._oidc = JSON.parse(data);
+        }catch(err){
+            throw new Error("Cannot import OIDC settings. Stop");
+        }
+    }
+
     private _initOpenIdConnect(pSettings:Nullable<OidcOptions>):void {
-        if(pSettings!=null){
+
+        if(process.env.DXC_OIDC_EXT!==undefined){
+            this._importOidcSettings(process.env.DXC_OIDC_EXT);
+        }
+        else if(pSettings!=null){
             this._oidc = pSettings;
         }
 

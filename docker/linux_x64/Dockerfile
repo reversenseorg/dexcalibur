@@ -102,7 +102,7 @@ ENV ANDROID_SDK_ROOT="$DXC_USER_HOME/android"
 
 # 'Workspace' volumes hold projects data and some engine configuration and binary
 # 'uis' volumes contains UI interfaces, it is the www root folder where each UI are stored into separate folder
-VOLUME [ "$DXC_USER_HOME/workspace", "/uis" ]
+VOLUME [ "$DXC_USER_HOME/workspace", "/uis", "/security" ]
 
 
 # ===============================
