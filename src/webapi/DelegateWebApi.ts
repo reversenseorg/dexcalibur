@@ -288,7 +288,7 @@ export class DelegateWebApi
     }
 
     ensureLoggedIn = (req, res, next) => {
-            if (req.isAuthenticated()) {
+            if (req.isAuthenticated !=null && req.isAuthenticated()) {
             return next();
         }
 
@@ -296,7 +296,7 @@ export class DelegateWebApi
     };
 
     _ensureAuthenticated(req, res, next){
-        if (req.isAuthenticated()) {
+        if (req.isAuthenticated !=null && req.isAuthenticated()) {
             return next();
         }
 

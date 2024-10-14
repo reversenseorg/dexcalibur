@@ -648,9 +648,9 @@ export default class WebServer
     initStaticRoutes(pOptions:GuiMiddlewareOptions){
 
         function ensureLoggedIn(req, res, next) {
-            console.log(req.originalUrl," > ",req.isAuthenticated());
+            console.log(req.originalUrl," > ");
             console.log(req.session.passport.user);
-            if (req.isAuthenticated()) {
+            if (req.isAuthenticated !=null && req.isAuthenticated()) {
                 return next();
             }
 
@@ -1300,7 +1300,7 @@ export default class WebServer
             console.log("ensureApiLoggedIn > ")
             if(isSlave) next();
 
-            if (req.isAuthenticated()) {
+            if (req.isAuthenticated !=null && req.isAuthenticated()) {
                 return next();
             }
 
@@ -1308,7 +1308,7 @@ export default class WebServer
         }
 
         function ensureGuiLoggedIn(req, res, next) {
-            if (req.isAuthenticated()) {
+            if (req.isAuthenticated !=null && req.isAuthenticated()) {
                 return next();
             }
 
