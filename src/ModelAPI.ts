@@ -1,5 +1,5 @@
 import DexcaliburProject from "./DexcaliburProject.js";
-import ModelStringValue from "./ModelStringValue.js";
+import ModelStringValue, {ModelStringValueOpts} from "./ModelStringValue.js";
 import {ModelVariable} from "./ModelVariable.js";
 import ModelPackage from "./ModelPackage.js";
 import ModelClass from "./ModelClass.js";
@@ -105,7 +105,7 @@ export class ModelAPI {
         return new ModelFunction(pOptions);
     }
 
-    newStringValue( pOptions:any):ModelStringValue {
+    newStringValue( pOptions:ModelStringValueOpts):ModelStringValue {
         return new ModelStringValue(pOptions);
     }
 

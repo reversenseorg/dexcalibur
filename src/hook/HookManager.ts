@@ -179,14 +179,20 @@ export class HookManager
         };
 
         this._on.sessionStart.push((vMgr:HookManager,vSess:HookSession):boolean => {
-            console.log("OnSessionStart trigged", vMgr.context);
-             vMgr.context.trigger({
-                 type: "action.input.record.start",
+            console.log("OnSessionStart trigged");
+            try{
+                vMgr.context.trigger({
+                    type: "action.input.record.start",
                     data: {
                         dev: vSess.getDeviceUID(),
                         session: vSess
                     }
-             });
+                });
+            }catch(e){
+                Logger.error(e.message);
+                Logger.error(e.stack);
+            }
+
              return true;
         });
 

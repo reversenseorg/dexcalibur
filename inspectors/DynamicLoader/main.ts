@@ -13,10 +13,6 @@ import Util from "../../src/Utils.js";
 import ModelMethod from "../../src/ModelMethod.js";
 import DexHelper from "../../src/DexHelper.js";
 import * as Log from "../../src/Logger.js";
-import ModelCall from "../../src/ModelCall.js";
-import ModelFile from "../../src/ModelFile.js";
-import {ModelLocation} from "../../src/ModelLocation.js";
-import {DYNAMICLOADER_WEB_API} from "./src/main.web.api.js";
 import HookStrategy from "../../src/hook/HookStrategy.js";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
@@ -81,6 +77,32 @@ export default new InspectorFactory({
                             {
                                 __meth__: DXC.java().getMethodSignature(ret,arg1),
                                 __trace__: DXC.java().getStackTrace()
+                            }
+                        );
+                `
+            },{
+                name: "Reflection_invoke",
+                descr: "To observe invoke of method from Java ReflectionAPI",
+                search: {
+                    type: ModelMethod.TYPE.getName(),
+                    uid: "java.lang.reflect.Method.invoke(<java.lang.Object><java.lang.Object>[])<java.lang.reflect.Method>"
+                },
+                autoEmit: true,
+                emitEvent: "hook.reflect.method.get",
+                after: `  
+                        // var ret = meth_@@__METHDEF__@@.call(this, arg0, arg1);
+                        let meth = DXC.java().getMethodSignature(this,this.getParameterTypes());
+                        
+                        DXC.send(
+                            "@@__HOOK_ID__@@",
+                            "@@__FRAG_ID__@@",
+                            {
+                                    // replace Meth Reference by Call Reference 
+                                    // call ref = meth ref + args + this 
+                                     
+                                __meth__: meth,
+                                __trace__: DXC.java().getStackTrace(),
+                                tag: arg1[0]
                             }
                         );
                 `

@@ -124,7 +124,7 @@ AUDIT_WEB_API.addAsyncAuthenticatedRoute(
 
                 // ========== LOGIC
                 const am = AuditManager.getInstance();
-                const model = await am.getModel(req.dxc.project, req.params.modelID as string);
+                const model = await am.getModelFor(req.dxc.project, req.params.modelID as string);
                 const scanner:AssuranceScanner = LicenceManager.getProduct(req.dxc.project, model.getScannerID()) as AssuranceScanner;
 
                 const data = {
@@ -147,7 +147,8 @@ AUDIT_WEB_API.addAsyncAuthenticatedRoute(
     }
 );
 
-
+// to perform a scan of the model
+// deprecated since any scan must be ordered
 AUDIT_WEB_API.addAsyncAuthenticatedRoute(
     '/scan/:modelID',
     {
@@ -159,7 +160,7 @@ AUDIT_WEB_API.addAsyncAuthenticatedRoute(
                 // ========== LOGIC
 
                 const am = AuditManager.getInstance();
-                const model = await am.getModel(req.dxc.project, req.params.modelID as string);
+                const model = await am.getModelFor(req.dxc.project, req.params.modelID as string);
                 const scanner:AssuranceScanner = LicenceManager.getProduct(req.dxc.project,model.scannerID) as AssuranceScanner;
 
                 const opts = scanner.validateOptions(req.body);
@@ -192,7 +193,7 @@ AUDIT_WEB_API.addAsyncAuthenticatedRoute(
                 // ========== LOGIC
 
                 const am = AuditManager.getInstance();
-                const model = await am.getModel(req.dxc.project, req.params.modelID as string);
+                const model = await am.getModelFor(req.dxc.project, req.params.modelID as string);
                 const scanner:AssuranceScanner = LicenceManager.getProduct(req.dxc.project,model.scannerID) as AssuranceScanner;
 
                 // get hook instance by ID
@@ -231,7 +232,7 @@ AUDIT_WEB_API.addAsyncAuthenticatedRoute(
                 if(Array.isArray(req.body.refs)){
                     req.body.refs.map(async (x:string) => {
                         try{
-                            models.push(await am.getModel(req.dxc.project, req.params.modelID as string));
+                            models.push(await am.getModelFor(req.dxc.project, req.params.modelID as string));
                         }catch(err){
                             errs.push("Model not found ["+x+"]");
                         }
@@ -276,9 +277,11 @@ AUDIT_WEB_API.addAsyncAuthenticatedRoute(
                 if(projectAlive != null){
                     reports = await am.listReports(projectAlive);
                 }else{
+                    reports = await am.listReportsFromDB(null);
+                    /*
                     reports = am.listReportsFromPath(
                         AuditManager.getReportsFolderFromPUID($.context.workspace.getLocation(), project)
-                    );
+                    );*/
                 }
 
 
@@ -349,21 +352,26 @@ AUDIT_WEB_API.addAsyncAuthenticatedRoute(
             try{
                 // ========== LOGIC
                 const am = AuditManager.getInstance();
-                const models = await am.getModel(req.dxc.project, req.params.modelID);
+//                const models = await am.getModelFor(req.dxc.project, req.params.modelID);
+                const models = await am.getModel(req.params.modelID);
 
                 $.sendSuccess(res, models.toJsonObject());
             }catch(err){
                 Logger.error("[API][AUDIT] Model cannot be retrieved. Cause : " + err.message + "\n\t" + err.stack);
                 $.sendError(res, "Model cannot be retrieved. Cause : " + err.message);
             }
-        },
+        }});
+
+AUDIT_WEB_API.addAsyncAuthenticatedRoute(
+    '/model/:modelID',
+    {
         'put': async function (req:DelegateRequest, res:DelegateResponse):Promise<any> {
             const $: WebServer = req.dxc.$;
 
             try{
                 // ========== LOGIC
                 const am = AuditManager.getInstance();
-                const model = await am.getModel(req.dxc.project, req.params.modelID);
+                const model = await am.getModelFor(req.dxc.project, req.params.modelID);
 
                 if(req.body.data.offset!=null && req.body.data.ctrl!=null){
                     model.controls[req.body.data.offset].update(req.body.data.ctrl);
@@ -373,9 +381,11 @@ AUDIT_WEB_API.addAsyncAuthenticatedRoute(
 
                 if(req.dxc.project==null){
                     // TODO : global edit, check ACL
+                    // the model UID must change
                     am.saveModel(model);
                 }else{
                     // TODO : project edit, check ACL
+                    // replace by backup in DB
                     am.saveModel(model,req.dxc.project);
                 }
                 //new AssuranceModel(req.body);
@@ -664,7 +674,7 @@ AUDIT_WEB_API.addAsyncAuthenticatedRoute(
                         project = req.dxc.sess._project[req.body.projectUID];
                     }
 
-                    console.log(project);
+                    //console.log(project);
                     const report = await scheduler.newStandaloneScan(project, ScanOrder.fromScanOptions({
                         modelUID: req.body.modelUID[0],
                         projectUID: req.body.projectUID,

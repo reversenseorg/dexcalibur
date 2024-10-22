@@ -84,10 +84,10 @@ export class ScanScheduler {
         const am = AuditManager.getInstance();
 
 
-        console.log("order save 1> ",await edb.createScanOrder(pOrder));
+        console.log("order save NEW SCAN ORDER> ",await edb.save(pOrder));
         //await edb.save(pOrder);
 
-        const model = await am.getModel(pProject, pOrder.getModelUID());
+        const model = await am.getModelFor(pProject, pOrder.getModelUID());
         const scanner:AssuranceScanner = LicenceManager.getProduct(pProject,model.scannerID) as AssuranceScanner;
 
         const opts = scanner.validateOptions(pOrder.options);
@@ -98,7 +98,7 @@ export class ScanScheduler {
         pOrder.setDate( ACTION_DATE.START );
 
 
-        console.log("order save 2> ",await edb.updateScanOrder(pOrder));
+        console.log("order save BEFORE SCAN START> ",await edb.save(pOrder));
         //await edb.save(pOrder);
 
         // check credit
@@ -107,7 +107,7 @@ export class ScanScheduler {
         pOrder.setDate( ACTION_DATE.STOP );
         pOrder.setState(ScanState.GENERATE_REPORT);
 
-        console.log("order save 3> ",await edb.updateScanOrder(pOrder));
+        console.log("order save BEFORE REPORT SAVING> ",await edb.save(pOrder));
         //await edb.save(pOrder);
 
         // get report
@@ -116,7 +116,7 @@ export class ScanScheduler {
         am.saveReport(pProject, report);
         //pOrder.report = report;
         pOrder.setState(ScanState.TERMINATED);
-        console.log("order save 4> ",await edb.updateScanOrder(pOrder));
+        console.log("order save TERMINATED> ",await edb.save(pOrder));
         //await edb.save(pOrder);
         // get hook instance by ID
         return report;

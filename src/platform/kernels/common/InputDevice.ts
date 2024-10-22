@@ -32,9 +32,12 @@ export interface InputDeviceOptions {
     supportedKeys?:InputEventCode[];
     supportedEvents?:InputEventType[];
     misc?:any;
+
     switches?:any[];
     leds?:any;
+
     handles?:string[];
+
     uid?:string;
     id?:InputDeviceId;
     name?:string;

@@ -26,7 +26,7 @@ export default new InspectorFactory({
 
     useGUI: true,
 
-    version: "1.0.3",
+    version: "1.0.4",
     tags : [
         {
             name:"ui.event",
@@ -71,24 +71,29 @@ export default new InspectorFactory({
     eventListeners: {
         "action.input.record.start": function(pEvent:BusEvent<any>){
 
-            console.log("[action.input.record.start] trigged");
-            // get device
-            const dev = pEvent.getContext().getContext().getDeviceManager().getDevice(pEvent.getData().dev);
+            try{
+                console.log("[action.input.record.start] trigged");
+                // get device
+                const dev = pEvent.getContext().getContext().getDeviceManager().getDevice(pEvent.getData().dev);
 
-            if(dev==null){
-                pEvent.getContext().LOG.error("[action.input.record.start] Failure : target device is undefined");
-                return;
+                if(dev==null){
+                    pEvent.getContext().LOG.error("[action.input.record.start] Failure : target device is undefined");
+                    return;
+                }
+
+                // get input devices, and start to record them
+                const inputDevices = dev.getProfile().getInputProfile().getInputDevices();
+                let recSession:EventRecordSession;
+                pEvent.getData().session.extra.inputsRec = {};
+                for(let k=0; k<inputDevices.length; k++){
+                    recSession = inputDevices[k].startRecord(dev);
+                    pEvent.getData().session.extra.inputsRec[recSession.inputName] = recSession;
+                    recSession.attachHookSession(pEvent.getData().session);
+                }
+            }catch(e){
+                console.log(e);
             }
 
-            // get input devices, and start to record them
-            const inputDevices = dev.getProfile().getInputProfile().getInputDevices();
-            let recSession:EventRecordSession;
-            pEvent.getData().session.extra.inputsRec = {};
-            for(let k=0; k<inputDevices.length; k++){
-                recSession = inputDevices[k].startRecord(dev);
-                recSession.attachHookSession(pEvent.getData().session);
-                pEvent.getData().session.extra.inputsRec[recSession.inputName] = recSession;
-            }
         },
         "action.input.record.stop": function(pEvent:BusEvent<any>){
 

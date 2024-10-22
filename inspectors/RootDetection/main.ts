@@ -181,6 +181,7 @@ var RootDetectionInspector:InspectorFactory = new InspectorFactory({
             source: `
             
             if(pEvent.data==null) return;
+            
             var tag=null;
             var pCtx = pEvent.getContext();
             var isKnownRootAppsPackagesFrag = /(noshufou|smedialink|oneclick|zhiqupk|alephzain|chainfire|supersu|superuser|koushikdutta|thirdparty|yellowes|topjohnwu|magisk|kingroot|kingo)/i;
@@ -240,13 +241,52 @@ var RootDetectionInspector:InspectorFactory = new InspectorFactory({
                 "/system/xbin/",
                 "/cache/",
                 "/data/",
-                "/dev/"
+                "/dev/",
             ].indexOf(pEvent.data.value);
             
             if(pEvent.data.value!=null && (isSuPath>-1 || /(bin\\\/su)/.test(pEvent.data.value) || /\\\/su^/.test(pEvent.data.value) )){
                 tag = pCtx.getTagManager().getTag('security.detection.root.admin-bin');
                 pEvent.data.addTag(tag);
             }
+            
+            
+            var isSuPath = [
+                "/data/local/",
+                "/data/local/bin/",
+                "/data/local/xbin/",
+                "/sbin/",
+                "/su/bin/",
+                "/system/bin/",
+                "/system/bin/.ext/",
+                "/system/bin/failsafe/",
+                "/system/sd/xbin/",
+                "/system/usr/we-need-root/",
+                "/system/xbin/",
+                "/cache/",
+                "/data/",
+                "/dev/",
+            ].indexOf(pEvent.data.value);
+            
+            if(pEvent.data.value!=null && (isSuPath>-1 || /(bin\\\/su)/.test(pEvent.data.value) || /\\\/su^/.test(pEvent.data.value) )){
+                tag = pCtx.getTagManager().getTag('security.detection.root.admin-bin');
+                pEvent.data.addTag(tag);
+            }
+            
+            var isAdminBin = [
+                /^[sS][uU]$/
+            ].indexOf(pEvent.data.value);
+            
+            for(let i=0; i<isAdminBin.length; i++){
+                if(pEvent.data.value!=null && isAdminBin[i].test(pEvent.data.value) )){
+                    tag = pCtx.getTagManager().getTag('security.detection.root.admin-bin');
+                    pEvent.data.addTag(tag);
+                    break;
+                }
+            }
+            
+            
+            
+            
             `,
             lang: "js"
         },
@@ -260,8 +300,9 @@ var RootDetectionInspector:InspectorFactory = new InspectorFactory({
             lang:"js",
             source: `
                 // /system/app/Superuser.apk
+                
             `
-        },
+        }
     }
 });
 

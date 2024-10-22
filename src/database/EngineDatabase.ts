@@ -18,8 +18,11 @@ import {ProjectDatabase} from "./ProjectDatabase.js";
 import {LogMessage} from "../log/Log.js";
 import {UserSession} from "../user/session/UserSession.js";
 import DatabaseSettings = Settings.DatabaseSettings;
+import AssuranceReport from "../audit/common/AssuranceReport.js";
+import {ApplicationUnit, Connection, Credential, OrganizationUnit } from "@dexcalibur/dxc-orgs";
 
-;
+
+
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -44,6 +47,11 @@ const INSP_COL = "inspectors";
 const SCAN_COL = "scans";
 const SESSIONS_COL = "sessions";
 const UA_COL = "accounts";
+const REPORT_COL = AssuranceReport.TYPE.getName();
+const ORGU_COL = OrganizationUnit.TYPE.getName();
+const APPU_COL = ApplicationUnit.TYPE.getName();
+const CRED_COL = Credential.TYPE.getName();
+const CONN_COL = Connection.TYPE.getName();
 
 export const INTERNAL_DB = "dxcserver";
 export const PROJECT_DB_PREFIX = "dxc_";
@@ -250,6 +258,14 @@ export class EngineDatabase {
         if(existings.indexOf(SCAN_COL)==-1){ this._db.createCollectionOf(ScanOrder.TYPE, SCAN_COL); }
         if(existings.indexOf(SESSIONS_COL)==-1){ this._db.createCollectionOf(UserSession.TYPE, SESSIONS_COL); }
         if(existings.indexOf(UA_COL)==-1){ this._db.createCollectionOf(UserAccount.TYPE, UA_COL); }
+        if(existings.indexOf(REPORT_COL)==-1){ this._db.createCollectionOf(AssuranceReport.TYPE, REPORT_COL); }
+        if(existings.indexOf(ORGU_COL)==-1){ this._db.createCollectionOf(OrganizationUnit.TYPE, ORGU_COL); }
+        if(existings.indexOf(APPU_COL)==-1){ this._db.createCollectionOf(ApplicationUnit.TYPE, APPU_COL); }
+        if(existings.indexOf(CRED_COL)==-1){ this._db.createCollectionOf(Credential.TYPE, CRED_COL); }
+        if(existings.indexOf(CONN_COL)==-1){ this._db.createCollectionOf(Connection.TYPE, CONN_COL); }
+
+
+        // AssuranceReport.TYPE
 
 
 
@@ -261,7 +277,12 @@ export class EngineDatabase {
             InspectorFactory.TYPE.getType(),
             ScanOrder.TYPE.getType(),
             UserSession.TYPE.getType(),
-            UserAccount.TYPE.getType()
+            UserAccount.TYPE.getType(),
+            AssuranceReport.TYPE.getType(),
+            OrganizationUnit.TYPE.getType(),
+            ApplicationUnit.TYPE.getType(),
+            Credential.TYPE.getType(),
+            Connection.TYPE.getType()
         ];
 
         for(let i=0; i<this._supportedType.length; i++){
@@ -449,6 +470,26 @@ export class EngineDatabase {
                 collName = UA_COL;
                 collType = UserAccount.TYPE;
                 break;
+            case NodeInternalType.ASSURANCE_REPORT:
+                collName = REPORT_COL;
+                collType = AssuranceReport.TYPE;
+                break;
+            case NodeInternalType.ORG_UNIT:
+                collName = ORGU_COL;
+                collType = OrganizationUnit.TYPE;
+                break;
+            case NodeInternalType.APP_UNIT:
+                collName = APPU_COL;
+                collType = ApplicationUnit.TYPE;
+                break;
+            case NodeInternalType.CREDENTIAL:
+                collName = CRED_COL;
+                collType = Credential.TYPE;
+                break;
+            case NodeInternalType.CONNECTION:
+                collName = CONN_COL;
+                collType = Connection.TYPE;
+                break;
             default:
                 if(this._isSupported(nodeType)){
                     collName = this._supportedTypeInfos[nodeType].collName;
@@ -497,6 +538,15 @@ export class EngineDatabase {
         return await coll.getAsList();
     }
 
+    async listScanReports():Promise<AssuranceReport[]> {
+        const coll = this.getCollectionOf(AssuranceReport.TYPE.getType());
+        return await coll.getAsList();
+    }
+
+    /*async saveScanReport(pReport:AssuranceReport):Promise<AssuranceReport> {
+        const db = this.getCollectionOf(AssuranceReport.TYPE.getType());
+        return await db.asyncUpdateEntry(pReport, {upsert:true});
+    }*/
 
     async saveProject(pProject:DexcaliburProject):Promise<DexcaliburProject> {
         const db = this.getCollectionOf(DexcaliburProject.TYPE.getType());
@@ -542,6 +592,26 @@ export class EngineDatabase {
             case NodeInternalType.INSPECTOR:
                 collName = INSP_COL;
                 collType = InspectorFactory.TYPE;
+                break;
+            case NodeInternalType.ASSURANCE_REPORT:
+                collName = REPORT_COL;
+                collType = AssuranceReport.TYPE;
+                break;
+            case NodeInternalType.ORG_UNIT:
+                collName = ORGU_COL;
+                collType = OrganizationUnit.TYPE;
+                break;
+            case NodeInternalType.APP_UNIT:
+                collName = APPU_COL;
+                collType = ApplicationUnit.TYPE;
+                break;
+            case NodeInternalType.CREDENTIAL:
+                collName = CRED_COL;
+                collType = Credential.TYPE;
+                break;
+            case NodeInternalType.CONNECTION:
+                collName = CONN_COL;
+                collType = Connection.TYPE;
                 break;
             default:
                 if(this._isSupported(pObject.__)){
@@ -666,8 +736,10 @@ export class EngineDatabase {
      *
      */
     async createScanOrder(pOrder:ScanOrder):Promise<ScanOrder> {
+        return (await this.save(pOrder) as ScanOrder);
+        /*
         return await (this.getCollectionOf(ScanOrder.TYPE.getType()) as MongodbDbCollection)
-                    .asyncAddEntry({ uuid:pOrder.getUUID() },pOrder);
+                    .asyncAddEntry({ uuid:pOrder.getUUID() },pOrder);*/
     }
 
     /**

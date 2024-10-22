@@ -48,6 +48,7 @@ import {HookVariableArray, HookVariableObject} from "./HookVariable.js";
 import {HookVariableMap} from "./hook/common.js";
 import {Person} from "./user/Person.js";
 import {UserRole} from "./user/acl/rbac/UserRole.js";
+import {AuditManager} from "./audit/AuditManager.js";
 
 
 
@@ -1005,8 +1006,63 @@ AssuranceReport.TYPE.updateProperties([
     (new NodeProperty("globalThreats")).type(DbDataType.NUMERIC).def(null),
     (new NodeProperty("primaryAssets")).type(DbDataType.NUMERIC).def(null),
     (new NodeProperty("tags")).type(DbDataType.STRING),
-    (new NodeProperty("project")).volatile().type(DbDataType.STRING).def(null),
+    (new NodeProperty("project"))
+        .type(DbDataType.BLOB)
+        .sleep( (x:NodePropertyState) => {
+            if(x.p!=null){
+                return (x.p.getUID!=null ? x.p.getUID() : x.p);
+            }else{
+                return null;
+            }
+        })
+        .wakeUp( (x:NodePropertyState) => {
+
+            if(x.p!=null){
+                const o = [];
+                x.p.map( (data) => {
+                    o.push( HookTemplateFragment.fromJsonObject(data));
+                } );
+                return x;
+            }else{
+                return null;
+            }
+        })
+        .def(null),
     (new NodeProperty("model")).single(AssuranceModel.TYPE),
+    (new NodeProperty("matches"))
+        .type(DbDataType.BLOB)
+        .sleep( (x:NodePropertyState) => {
+            if(x.p!=null){
+                const o:any = [];
+                for(let k in x.p){
+                    o[k] = {
+                        assessment: x.p[k].assessment.canonicalID,
+                        ruleIdx: x.p[k].ruleIdx,
+                        match: x.p[k].match,
+                    }
+                }
+                return  o;
+            }else{
+                return {};
+            }
+        })
+        .wakeUp( (x:NodePropertyState) => {
+            if(x.p!=null){
+                const o:any = [];
+                const m:AssuranceModel = x.self.model;
+                for(let k in x.p){
+                    o[k] = {
+                        assessment: (m!=null ? m.getControlNode(x.p[k].assessment) : null),
+                        ruleIdx: x.p[k].ruleIdx,
+                        match: x.p[k].match,
+                    }
+                }
+                return  o;
+            }else{
+                return {};
+            }
+        })
+        .def({}),
 ]);
 
 AssuranceModel.TYPE.dataSource("SIGNATURE_DB");

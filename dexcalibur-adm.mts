@@ -1598,7 +1598,7 @@ ${"\t".repeat(1)}Default Arch = ${srv.getDefaultArchitecture()}
 
                                 projectArgs.mScanType.split(',').map( async (vModelName) => {
                                     console.log(`[AUDIT] Get model [${vModelName}] ...`);
-                                    const model = await am.getModel(dxcProject, vModelName);
+                                    const model = await am.getModelFor(dxcProject, vModelName);
 
                                     console.log(`[AUDIT] Search scanner for model [${vModelName}] ...`);
                                     const scanner:AssuranceScanner = LicenceManager.getProduct(dxcProject,model.getScannerID()) as AssuranceScanner;

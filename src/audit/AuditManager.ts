@@ -11,6 +11,7 @@ import {ReversenseNetworkSecurityModel} from "./models/NetworkUsageModel.js";
 import ProjectWorkspace from "../ProjectWorkspace.js";
 import Util from "../Utils.js";
 import * as Log from "../Logger.js";
+import {Nullable} from "../core/IStringIndex.js";
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
 const SUBDIRS = {
@@ -201,7 +202,11 @@ export class AuditManager {
         const modelsMap: Record<string, AssuranceModel> = {};
         (await this.listModels(pProject)).map(x => modelsMap[x.getUID()]=x);
 
-        const reports = this.listReportsFromPath(_path_.join(pProject.getWorkspace().getAuditDir(),SUBDIRS.REPORTS));
+
+
+        const reports = await this.listReportsFromDB(pProject.getUID());
+            //this.listReportsFromPath(_path_.join(pProject.getWorkspace().getAuditDir(),SUBDIRS.REPORTS));
+
 
         for(let i=0;i<reports.length; i++){
             x = reports[i];
@@ -253,8 +258,49 @@ export class AuditManager {
         return reports;
     }
 
-    async getModel(pProject:DexcaliburProject, pModelID:string):Promise<AssuranceModel> {
+    /**
+     * To list assurance reports of the project even if the project is closed
+     *
+     * @return {AssuranceModel[]}
+     * @method
+     */
+    async listReportsFromDB( pProjectUID:Nullable<string>):Promise<AssuranceReport[]> {
+        const all:AssuranceReport[] = await this.engine.getEngineDB().listScanReports();
+        let reports:AssuranceReport[] = [];
+
+        if(pProjectUID==null){
+            reports = all;
+        }else{
+            all.map(x => {
+                console.log("listReportsFromDB > filter >", x.project, pProjectUID);
+                if(x.project.uid==pProjectUID){
+                    reports.push(x);
+                }
+            });
+        }
+
+
+        return reports;
+    }
+
+    async getModelFor(pProject:DexcaliburProject, pModelID:string):Promise<AssuranceModel> {
         const models = await this.listModels(pProject);
+        let model:AssuranceModel = null;
+        for(let i=0; i<models.length; i++){
+            if(models[i].id===pModelID){
+                model = models[i];
+            }
+        }
+
+        if(model==null){
+            throw AuditManagerException.MODEL_NOT_FOUND(pModelID);
+        }
+
+        return model;
+    }
+
+    async getModel(pModelID:string):Promise<AssuranceModel> {
+        const models = await this.listModels();
         let model:AssuranceModel = null;
         for(let i=0; i<models.length; i++){
             if(models[i].id===pModelID){
@@ -354,7 +400,12 @@ export class AuditManager {
             pReport.getModel().id+"-"+(new Date()).getTime()+".json"
         );
 
+        // save into DB
+        this.engine.getEngineDB().save(pReport);
+
+        // save to fs
         pReport.save(out);
+
 
         return out;
     }

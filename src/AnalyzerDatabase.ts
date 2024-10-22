@@ -16,6 +16,7 @@ import ModelClass from "./ModelClass.js";
 import ModelMethod from "./ModelMethod.js";
 import ModelField from "./ModelField.js";
 import ModelPackage from "./ModelPackage.js";
+import ModelStringValue from "./ModelStringValue.js";
 
 
 export default class AnalyzerDatabase
@@ -212,7 +213,16 @@ export default class AnalyzerDatabase
         this.methods = pProjectDB.getCollectionOf(ModelMethod.TYPE.getType());
         this.fields = pProjectDB.getCollectionOf(ModelField.TYPE.getType());
         this.packages = pProjectDB.getCollectionOf(ModelPackage.TYPE.getType());
-
         this.classes = pProjectDB.getCollectionOf(ModelClass.TYPE.getType());
+    }
+
+    /**
+     *
+     * @param pData
+     */
+    newStringValue( pData:any):ModelStringValue {
+        const s = new ModelStringValue(pData);
+        this.strings.insert(s, false);
+        return s;
     }
 }

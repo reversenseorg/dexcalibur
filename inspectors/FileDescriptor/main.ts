@@ -123,6 +123,21 @@ var FileDescriptorInspector:InspectorFactory = new InspectorFactory({
                     path += '/'+data.arg1;                    
                 }
 
+
+                const s = pEvent.getContext().getAnalyzer().getData().newStringValue({
+                    src: pEvent,
+                    value: path
+                });
+
+                console.log("NEW STRING > ",s);
+
+                this.getContext().trigger({
+                    type: "model.string.new",
+                    data: s
+                });
+
+                //pEvent.getContext().getAnalyzer()
+
                 //let hook  = ctx.hook.getHookByID(Utils.b64_decode(event.data.hook)); 
                 //console.log(data,path);
                 //ctx.getFileAnalyzer().addRemoteFile(path);

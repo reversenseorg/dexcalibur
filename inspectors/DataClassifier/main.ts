@@ -132,6 +132,7 @@ var DataClassifierInspector:InspectorFactory = new InspectorFactory({
                         data: pEvent.data
                     });
                 }
+
             }
         }
     }

@@ -182,7 +182,7 @@ export default class KeyPoint implements INode, IPersistent {
                 throw KeyPointException.INVALID_KP(this.getUID())
             }
 
-            Logger.info("[KEY POINT] generateCode : kp code : \n"+this.code);
+            //Logger.info("[KEY POINT] generateCode : kp code : \n"+this.code);
 
 
             if(this.hasChildrenKeyPoints()){

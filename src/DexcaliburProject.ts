@@ -554,6 +554,10 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
 
     _analysis$:Subject<ProjectEvent> = new Subject<ProjectEvent>();
 
+    /**
+     * An API to create new node inside the model
+     *
+     */
     modelAPI = new ModelAPI(this);
 
     /*

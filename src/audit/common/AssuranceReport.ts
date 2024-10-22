@@ -24,6 +24,7 @@ import ModelMethod from "../../ModelMethod.js";
 import {Nullable} from "../../core/IStringIndex.js";
 import {AuditManagerException} from "../errors/AuditManagerException.js";
 import {CryptoUtils} from "../../CryptoUtils.js";
+import {randomUUID} from "crypto";
 
 
 export interface Match {
@@ -32,9 +33,6 @@ export interface Match {
     match: any;
 }
 
-export interface MatchesMap {
-    [canonicalID:string]:Match;
-}
 
 export interface AssuranceReportOptions {
     time?:number;
@@ -49,7 +47,7 @@ export interface AssuranceReportOptions {
     primaryAssets?:ConstraintMatch<Asset>[];
     secondaryAssets?:ConstraintMatch<Asset>[];
     globalThreats?:ConstraintMatch<Threat>[];
-    matches?:MatchesMap;
+    matches?:Record<string, Match>;
 }
 
 /**
@@ -79,16 +77,17 @@ export default class AssuranceReport implements INode {
     primaryAssets:ConstraintMatch<Asset>[] = [];
     secondaryAssets:ConstraintMatch<Asset>[] = [];
     globalThreats:ConstraintMatch<Threat>[] = [];
-
-
     assets:ConstraintMatch<Asset>[] = [];
-    matches:MatchesMap = {};
+
+    matches:Record<string, Match> = {};
 
     tags:TagUUID[] = [];
 
 
     constructor( pConfig:AssuranceReportOptions = {}) {
         if(pConfig!=null) for(const i in pConfig) this[i]=pConfig[i];
+
+        this.uid = randomUUID();
     }
 
     /**

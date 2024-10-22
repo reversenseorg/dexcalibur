@@ -219,7 +219,7 @@ DXC.HOOK["${pLibraryName}"] = {
             const hk = this._hm.getHookByLoadKeyPoint(vKP); // this._hm.getHookByKeyPoint( vKP);
 
             if(vKP.getUID()!="core.java.app"){
-                console.log("getHookByLoadKeyPoint("+vKP.getUID()+")", hk);
+                Logger.debug("getHookByLoadKeyPoint("+vKP.getUID()+")");
             }
 
             // skip keypoints without child
@@ -400,7 +400,7 @@ Java.deoptimizeBoot();`
         const kpm:KeyPointManager  =  this._hm.getKeyPointManager();
         const topl_kps:KeyPoint[] = await kpm.getTopLevelKeyPoints();
 
-        console.log("Top KPs : ",topl_kps);
+        //console.log("Top KPs : ",topl_kps);
 
         const leaf_kps:KeyPoint[] = await kpm.getLeafKeyPoints();
         const req:any = await kpm.getGlobalRequirements();

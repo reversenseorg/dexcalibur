@@ -110,7 +110,7 @@ export default class AndroidInputProfile extends GenericInputProfile implements 
                         const evCode = evtType.getEventCodeById(vCode.code);
                         if(evCode!=null){
                             newEvtType.codes.push(evCode.newDerivation({
-                                value: vCode.code,
+                                //value: vCode.code, // on s'en fout
                                 properties: new InputEventCodeProperties(vCode.extra)
                             }))
                         }else{
