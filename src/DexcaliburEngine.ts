@@ -63,6 +63,7 @@ import { Subject} from "rxjs";
 import {LogMessage} from "./log/Log.js";
 import {ProjectInput} from "./analyzer/ProjectInput.js";
 import {UserServiceException} from "./errors/UserServiceException.js";
+import {OrganizationManager} from "./organization/OrganizationManager.js";
 
 /*
 const _fixPath_ = require("fix-path");
@@ -387,6 +388,8 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
      * @field
      */
     updater:DexcaliburUpdater;
+
+    orgMgr:OrganizationManager;
 
     mode: MODE = MODE.NORMAL;
 
@@ -925,6 +928,8 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
 
             Logger.debug('PASS4');
         })();
+
+        this.orgMgr = new OrganizationManager(this);
 
         return true;
     }

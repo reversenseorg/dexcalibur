@@ -20,6 +20,7 @@ import {UserSession} from "../user/session/UserSession.js";
 import DatabaseSettings = Settings.DatabaseSettings;
 import AssuranceReport from "../audit/common/AssuranceReport.js";
 import {ApplicationUnit, Connection, Credential, OrganizationUnit } from "@dexcalibur/dxc-orgs";
+import Inspector from "../Inspector.js";
 
 
 
@@ -40,13 +41,19 @@ export interface EngineDatabaseCredential {
     mechanismProperties: any;
 }
 
-const PROJECT_COL = "projects";
-const DEVICES_COL = "devices";
-const TOOLS_COL = "tools";
-const INSP_COL = "inspectors";
-const SCAN_COL = "scans";
-const SESSIONS_COL = "sessions";
-const UA_COL = "accounts";
+const PROJECT_COL = DexcaliburProject.TYPE.getName(); //"projects";
+const DEVICES_COL = Device.TYPE.getName(); //"devices";
+
+/**
+ * @deprecated
+ */
+const INSP_COL = Inspector.TYPE.getName(); //"inspectors";
+
+const SCAN_COL = ScanOrder.TYPE.getName(); //"scans";
+const SESSIONS_COL = UserSession.TYPE.getName(); //"sessions";
+const UA_COL = UserAccount.TYPE.getName(); //"accounts";
+
+
 const REPORT_COL = AssuranceReport.TYPE.getName();
 const ORGU_COL = OrganizationUnit.TYPE.getName();
 const APPU_COL = ApplicationUnit.TYPE.getName();
@@ -59,6 +66,7 @@ export const PROJECT_DB_PREFIX = "dxc_";
 
 
 interface CollectionInfo {
+    nodeType?:NodeInternalType;
     collType:Nullable<NodeType>;
     collName:Nullable<string>;
 }
@@ -67,6 +75,7 @@ interface AttachedProject {
     project: DexcaliburProject;
     subscriber: Nullable<BusSubscriber>;
 }
+
 
 /**
  * Represent the server DB where project data are stored or cloned
@@ -111,7 +120,11 @@ export class EngineDatabase {
 
 
     private _supportedType:NodeType[] = [
-        LogMessage.TYPE
+        LogMessage.TYPE,
+        OrganizationUnit.TYPE,
+        ApplicationUnit.TYPE,
+        Credential.TYPE,
+        Connection.TYPE
     ];
 
     private _supportedTypeInfos:{ [type:number] :CollectionInfo } = {};
@@ -247,6 +260,7 @@ export class EngineDatabase {
 
         const existings:string[] = [];
         const colls = await this._db.getDbCollections();
+
         colls.map(x => {
             existings.push(x.collectionName)
         });
@@ -259,10 +273,10 @@ export class EngineDatabase {
         if(existings.indexOf(SESSIONS_COL)==-1){ this._db.createCollectionOf(UserSession.TYPE, SESSIONS_COL); }
         if(existings.indexOf(UA_COL)==-1){ this._db.createCollectionOf(UserAccount.TYPE, UA_COL); }
         if(existings.indexOf(REPORT_COL)==-1){ this._db.createCollectionOf(AssuranceReport.TYPE, REPORT_COL); }
-        if(existings.indexOf(ORGU_COL)==-1){ this._db.createCollectionOf(OrganizationUnit.TYPE, ORGU_COL); }
-        if(existings.indexOf(APPU_COL)==-1){ this._db.createCollectionOf(ApplicationUnit.TYPE, APPU_COL); }
-        if(existings.indexOf(CRED_COL)==-1){ this._db.createCollectionOf(Credential.TYPE, CRED_COL); }
-        if(existings.indexOf(CONN_COL)==-1){ this._db.createCollectionOf(Connection.TYPE, CONN_COL); }
+        //if(existings.indexOf(ORGU_COL)==-1){ this._db.createCollectionOf(OrganizationUnit.TYPE, ORGU_COL); }
+        //if(existings.indexOf(APPU_COL)==-1){ this._db.createCollectionOf(ApplicationUnit.TYPE, APPU_COL); }
+        //if(existings.indexOf(CRED_COL)==-1){ this._db.createCollectionOf(Credential.TYPE, CRED_COL); }
+        //if(existings.indexOf(CONN_COL)==-1){ this._db.createCollectionOf(Connection.TYPE, CONN_COL); }
 
 
         // AssuranceReport.TYPE
@@ -279,10 +293,10 @@ export class EngineDatabase {
             UserSession.TYPE.getType(),
             UserAccount.TYPE.getType(),
             AssuranceReport.TYPE.getType(),
-            OrganizationUnit.TYPE.getType(),
-            ApplicationUnit.TYPE.getType(),
-            Credential.TYPE.getType(),
-            Connection.TYPE.getType()
+            //OrganizationUnit.TYPE.getType(),
+            //ApplicationUnit.TYPE.getType(),
+            //Credential.TYPE.getType(),
+            //Connection.TYPE.getType()
         ];
 
         for(let i=0; i<this._supportedType.length; i++){
