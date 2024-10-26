@@ -29,7 +29,7 @@ export const ORG_WEB_API: DelegateWebApi = new DelegateWebApi();
 
 
 ORG_WEB_API.addAuthenticatedRoute(
-    '/organization/ou/:uid',
+    '/ou/:uid',
     {
         'get':  (req:DelegateRequest, res:DelegateResponse)=>{
 
@@ -89,30 +89,30 @@ ORG_WEB_API.addAuthenticatedRoute(
 )
 
 
-ORG_WEB_API.addAuthenticatedRoute(
-    '/organization/ou/list',
+ORG_WEB_API.addAsyncAuthenticatedRoute(
+    '/ou/list',
     {
-        'get':  (req:DelegateRequest, res:DelegateResponse)=>{
+        'get':  async (req:DelegateRequest, res:DelegateResponse)=>{
 
             const $:WebServer = req.dxc.$;
 
             try{
                 const data:any[] = [];
-                const proj = $.context.getActiveProjects(req.dxc.sess.getUserAccount());
+                const orgs = await $.context.orgMgr.listOrganizations(req.dxc.sess.getUserAccount());
 
-                for(const i in proj) data.push( proj[i].toJsonObject());
+                orgs.map( o => data.push( o.toJsonObject()));
                 $.sendSuccess( res, data);
 
             }catch(err){
-                Logger.error("[API][PROJECT] List of actives projects cannot be retrieved. Cause : "+err.message+"\n\t"+err.stack);
-                $.sendError(res, "List of actives projects cannot be retrieved. Cause : "+err.message);
+                Logger.error("[API][ORG] List of organizations cannot be retrieved. Cause : "+err.message+"\n\t"+err.stack);
+                $.sendError(res, "List of organizations cannot be retrieved. Cause : "+err.message);
             }
         }
     }
 );
 
 ORG_WEB_API.addAuthenticatedRoute(
-    '/organization/ou/create',
+    '/ou/create',
     {
         'post':  (req:DelegateRequest, res:DelegateResponse)=>{
 
@@ -136,7 +136,7 @@ ORG_WEB_API.addAuthenticatedRoute(
 
 
 ORG_WEB_API.addAuthenticatedRoute(
-    '/organization/ou/org/:uid',
+    '/ou/org/:uid',
     {
         'put':  (req:DelegateRequest, res:DelegateResponse)=>{
 

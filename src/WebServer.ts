@@ -59,6 +59,7 @@ import {RuntimeSecurityException} from "./errors/RuntimeSecurityException.js";
 import {Nullable} from "./core/IStringIndex.js";
 import {Client} from "openid-client";
 import {NODE_MGR_WEB_API} from "./webapi/node.web.api.js";
+import {ORG_WEB_API} from "./webapi/organization.web.api.js";
 
 // @ts-ignore
 const BodyParser = _bodyparser_.default;
@@ -1346,6 +1347,7 @@ export default class WebServer
         TAG_MGT_WEB_API.injectServer(this, "/api/tag", securedRoutes);
         PRIVACY_WEB_API.injectServer(this, "/api/privacy", securedRoutes);
         AUDIT_WEB_API.injectServer(this, "/api/audit", securedRoutes);
+        ORG_WEB_API.injectServer(this, "/api/organization", securedRoutes);
 
         this.initRoutes({
             auth: [ensureGuiLoggedIn], //ensureGuiLoggedIn],
