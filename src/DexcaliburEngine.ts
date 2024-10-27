@@ -503,6 +503,10 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
         this._listenProcessSignals();
     }
 
+    getOrgManager():OrganizationManager{
+        return  this.orgMgr;
+    }
+
     setCliMode(pMode:boolean):void {
         Logger.info("[*] "+(pMode?'Enable':'Disable')+" CLI mode");
         this._cliMode = pMode;

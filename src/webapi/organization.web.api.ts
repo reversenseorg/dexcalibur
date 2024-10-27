@@ -1,45 +1,30 @@
 import {DelegateRequest, DelegateResponse, DelegateWebApi} from "./DelegateWebApi.js";
-import {Device} from "../Device.js";
 import WebServer, {HTTP_CODE_ERROR} from "../WebServer.js";
-import DeviceManager from "../DeviceManager.js";
-import FridaHelper from "../FridaHelper.js";
-import {Router, Request, Response} from "express";
 import * as Log from "../Logger.js";
-import {IDbIndex} from "../persist/orm/DbAbstraction.js";
-import DataScope from "../DataScope.js";
-import * as _path_ from "path";
-import ModelFile from "../ModelFile.js";
 import {UserSession} from "../user/session/UserSession.js";
-import DexcaliburProject from "../DexcaliburProject.js";
 import {DexcaliburProjectMap} from "../DexcaliburEngine.js";
 import Util from "../Utils.js";
-import Platform from "../platform/Platform.js";
-import AccessControl from "../user/acl/AccessControl.js";
-import {AccessZone} from "../user/acl/Zones.js";
-import {ProjectAccessControl} from "../user/acl/rbac/ProjectAccessContol.js";
-import * as _fs_ from "fs";
-import {AuthenticationException} from "../errors/AuthenticationException.js";
 import {DexcaliburProjectException} from "../errors/DexcaliburProjectException.js";
-import {TagManager} from "../tags/TagManager.js";
-import {MongodbDbCollection} from "@dexcalibur/dexcalibur-orm-mongodb";
+import {OrganizationManager} from "../organization/OrganizationManager.js";
+import { OrganizationUnit } from "@dexcalibur/dxc-orgs";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 export const ORG_WEB_API: DelegateWebApi = new DelegateWebApi();
 
 
 
-ORG_WEB_API.addAuthenticatedRoute(
+ORG_WEB_API.addAsyncAuthenticatedRoute(
     '/ou/:uid',
     {
-        'get':  (req:DelegateRequest, res:DelegateResponse)=>{
+        'get': async (req:DelegateRequest, res:DelegateResponse)=>{
 
             const $:WebServer = req.dxc.$;
 
             try{
                 const data:any[] = [];
-                const proj = $.context.getActiveProjects(req.dxc.sess.getUserAccount());
+                //const org = await $.context.getOrgManager().getOrgUnit(req.dxc.sess.getUserAccount());
 
-                for(const i in proj) data.push( proj[i].toJsonObject());
+                //for(const i in proj) data.push( proj[i].toJsonObject());
                 $.sendSuccess( res, data);
 
             }catch(err){
@@ -98,7 +83,7 @@ ORG_WEB_API.addAsyncAuthenticatedRoute(
 
             try{
                 const data:any[] = [];
-                const orgs = await $.context.orgMgr.listOrganizations(req.dxc.sess.getUserAccount());
+                const orgs = await $.context.getOrgManager().listOrganizations(req.dxc.sess.getUserAccount());
 
                 orgs.map( o => data.push( o.toJsonObject()));
                 $.sendSuccess( res, data);
@@ -111,19 +96,19 @@ ORG_WEB_API.addAsyncAuthenticatedRoute(
     }
 );
 
-ORG_WEB_API.addAuthenticatedRoute(
+ORG_WEB_API.addAsyncAuthenticatedRoute(
     '/ou/create',
     {
-        'post':  (req:DelegateRequest, res:DelegateResponse)=>{
+        'post':  async (req:DelegateRequest, res:DelegateResponse):Promise<any>=>{
 
             const $:WebServer = req.dxc.$;
 
             try{
-                const data:any[] = [];
-                const proj = $.context.getActiveProjects(req.dxc.sess.getUserAccount());
+                const org = await $.context.getOrgManager().createOrganizations(
+                    req.dxc.sess.getUserAccount(),
+                    new OrganizationUnit(req.body));
 
-                for(const i in proj) data.push( proj[i].toJsonObject());
-                $.sendSuccess( res, data);
+                $.sendSuccess( res, org.toJsonObject());
 
             }catch(err){
                 Logger.error("[API][PROJECT] List of actives projects cannot be retrieved. Cause : "+err.message+"\n\t"+err.stack);
