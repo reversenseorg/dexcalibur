@@ -1,5 +1,6 @@
 export enum ErrorCode {
     GENERIC= 1000,
+    ORGANIZATION=1100,
     DEVICE_MANAGER= 10000,
     DEVICE_VDEV=10200,
     BRIDGE= 11000,

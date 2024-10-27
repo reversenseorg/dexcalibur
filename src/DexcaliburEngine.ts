@@ -64,6 +64,8 @@ import {LogMessage} from "./log/Log.js";
 import {ProjectInput} from "./analyzer/ProjectInput.js";
 import {UserServiceException} from "./errors/UserServiceException.js";
 import {OrganizationManager} from "./organization/OrganizationManager.js";
+import {OrganizationAccessControl} from "./user/acl/rbac/OrganizationAccessContol.js";
+import {AccessControlManager} from "./user/acl/AccessControlManager.js";
 
 /*
 const _fixPath_ = require("fix-path");
@@ -359,11 +361,20 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
     /**
      * Create / manage remote connections
      *
-     * @type {ConnectionManager}Ò
+     * @type {ConnectionManager}
      * @since 1.0.0
      * @field
      */
     connManager: ConnectionManager = null;
+
+    /**
+     * Init access control manager
+     *
+     * @type {AccessControlManager}
+     * @since 1.3.9
+     * @field
+     */
+    aclManager: AccessControlManager = null;
 
     /**
      * IPC describes server behavior
@@ -476,7 +487,10 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
         }
 
         NodeSchema.init();
-        this.initAccessControl();
+
+        this.aclManager = new AccessControlManager(this);
+        this.aclManager.init();
+        
         this.sigServerApi = new SignatureServerAPI({
             host: '127.0.0.1',
             port: '8085',
@@ -559,17 +573,6 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
 
     isStandaloneMode():boolean {
         return (this.getEngineMode()===DexcaliburEngineMode.STANDALONE);
-    }
-
-    initAccessControl():void {
-        AccessControl.init();
-
-        //AccessControl.registerZone( AccessZone.GLOBAL, EngineAccessControl)
-        AccessControl.registerZone( AccessZone.PROJECT, new ProjectAccessControl());
-        AccessControl.registerZone( AccessZone.GLOBAL, new SettingsAccessControl());
-        AccessControl.registerZone( AccessZone.GENERIC, new GlobalAccessControl());
-
-        //AccessControl.startAudit();
     }
 
     /**

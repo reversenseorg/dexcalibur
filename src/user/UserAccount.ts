@@ -11,6 +11,7 @@ import {NodeInternalType}
 from "@dexcalibur/dxc-core-api";;
 import Util from "../Utils.js";
 import {IStringIndex} from "../core/IStringIndex.js";
+import {AclAttributeTree} from "./acl/Access.js";
 
 
 export type UserAccountUUID = string;
@@ -58,6 +59,8 @@ export class UserAccount implements IPersistent, INode {
     private _padding:string;
     private _time:string;
     private _locked:boolean = false;
+
+    private _attrs:any = {};
 
     tags:number[] = [];
 
@@ -247,6 +250,10 @@ export class UserAccount implements IPersistent, INode {
 
     getActiveProjects():ProjectURI[] {
         return this._projects;
+    }
+
+    getAclAttributes(): AclAttributeTree {
+        return {};
     }
 
     /**

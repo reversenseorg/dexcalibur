@@ -1,6 +1,15 @@
 import {AuthCode} from "../auth/AuthTypes.js";
 
 /**
+ * org: {
+ *    member: [ { uid } ]
+ * }
+ */
+export interface AclAttributeTree {
+    [zoneName:string] : Record<string, any[]>;
+}
+
+/**
  * List of error code for ABAC
  */
 export enum AccesErrCode {
