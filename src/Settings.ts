@@ -10,6 +10,7 @@ import {IncomingValue, SanitizedValue, UnsafeValue} from "./security/SanitizedVa
 import {GlobalSettingsException} from "./errors/GlobalSettingsException.js";
 import {SecurityZone} from "./security/SecurityZone.js";
 import {Nullable} from "./core/IStringIndex.js";
+import {SignatureServerOptions, SignatureServerSettings} from "./core/settings/SignatureServerSettings.js";
 
 
 const LOG_FILE = (process.env.DXC_LOG_PATH ? process.env.DXC_LOG_PATH : null);
@@ -40,6 +41,7 @@ export interface ServerOptions {
     workspace?:string;
     workspace_internal?:string;
     heapSize?:number;
+    sigserver?:SignatureServerOptions;
 }
 
 export interface DatabaseOptions {
@@ -160,6 +162,15 @@ export namespace Settings {
 
 
         /**
+         * Signature server settings
+         * @field
+         * @type {SignatureServerSettings}
+         * @private
+         */
+        private ssrv:SignatureServerSettings;
+
+
+        /**
          * Max heap size allowed for engine
          * @field
          * @type number
@@ -220,6 +231,12 @@ export namespace Settings {
                 this.db = new DatabaseSettings(this);
             }
 
+            if(pConfig.sigserver != null){
+                this.ssrv = new SignatureServerSettings(this, pConfig.sigserver);
+            }else{
+                this.ssrv = new SignatureServerSettings(this);
+            }
+
             if(process.env.DXC_HEAP_SIZE!=undefined){
                 this.heapSize = parseInt(process.env.DXC_HEAP_SIZE,10);
             }
@@ -256,9 +273,10 @@ export namespace Settings {
             return this.auth;
         }
 
-        setAuthenticationSettings(pSettings:AuthenticationSettings):void {
-            this.auth = pSettings;
+        getSignatureServerSettings():SignatureServerSettings {
+            return this.ssrv;
         }
+
 
         /**
          *
@@ -979,7 +997,8 @@ export namespace Settings {
                         port: 8000,
                         ws: 8001,
                         restore: false
-                    }
+                    },
+                    sigserver: (SignatureServerSettings.createDefault()).toObject(SecurityZone.PRIVATE)
                 },
                 gui: {
                     serve: false,
