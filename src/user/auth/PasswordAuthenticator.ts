@@ -44,10 +44,21 @@ export class AuthenticationResult {
 }
 
 
-
+/**
+ * The purpose of password authenticator is to perform password-based authentication
+ * for a specified a user account
+ *
+ * @class
+ */
 export class PasswordAuthenticator implements Authenticator{
 
+    /**
+     * Authentication service
+     *
+     * @field
+     */
     svc: AuthenticationService;
+
 
     constructor( pAuthSvc:AuthenticationService) {
         this.svc = pAuthSvc;
@@ -81,25 +92,37 @@ export class PasswordAuthenticator implements Authenticator{
      * @param {string} pUsername Username
      * @param {string} pPwd User password
      */
-    doAuthentication( pUsername:string, pPwd:string):AuthenticationResult {
+    async doAuthentication( pUsername:string, pPwd:string):Promise<AuthenticationResult> {
         let res:AuthenticationResult;
-        let acc:UserAccount = null;
+        let account:UserAccount = null;
 
         try{
-            acc = this.svc.findUser(pUsername);
 
-            Logger.info("[AUTH] Retrieve user by name ("+pUsername+") = "+JSON.stringify(acc));
-            this.verifyPassword( acc, pPwd);
+            if(pUsername==null || pUsername.length==0 || typeof pUsername !== 'string' || /^[\s\t]*$/.test(pUsername)){
+                throw new AuthenticationException("Invalid username", AuthCode.EMPTY_USERNAME);
+            }
+
+
+            account = await this.svc.getUserService()
+                .find(new UserAccount({_username:pUsername}),{autoCreate:false});
+
+
+            if(account==null){
+                throw new AuthenticationException("Invalid username", AuthCode.INVALID_USERNAME);
+            }
+
+            Logger.info("[AUTH] Retrieve user by name ("+pUsername+") = "+account.getUID());
+            this.verifyPassword( account, pPwd);
 
 
             Logger.info("[AUTH] User ("+pUsername+") authenticated ");
 
             // create session token
 
-            res = AuthenticationResult.successful( acc);
+            res = AuthenticationResult.successful( account);
         }catch(err){
             Logger.error("Authentication failed. Cause : "+err.message);
-            res = AuthenticationResult.failure( err.getCode(), acc);
+            res = AuthenticationResult.failure( err.getCode(), account);
         }finally {
             // TODO : clean password from memory
             return res;

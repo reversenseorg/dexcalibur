@@ -29,6 +29,7 @@ export enum ErrorCode {
     INSPECTOR_FACT = 82000,
     SECURITY = 90000,
     SECURITY_RUNTIME = 91000,
+    SECURITY_ACL = 92000,
     SETTINGS = 95000,
     DEV_MODE = 99000,
 }

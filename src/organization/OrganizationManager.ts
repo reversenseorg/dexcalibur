@@ -22,7 +22,7 @@ export class OrganizationManager {
     async listOrganizations(pUserAccount:UserAccount):Promise<OrganizationUnit[]> {
         AccessControl.check(
             AccessZone.ORGANIZATION,
-            OrganizationAccessControl.access.ORG_OU_READ,
+            AccessControl.access.ORG_OU_READ,
             null,
             pUserAccount
         );
@@ -40,7 +40,7 @@ export class OrganizationManager {
      */
     async getOrganization(pUserAccount:UserAccount, pUID:string):Promise<OrganizationUnit> {
 
-        AccessControl.check( AccessZone.ORGANIZATION, OrganizationAccessControl.access.ORG_OU_READ, null, pUserAccount);
+        AccessControl.check( AccessZone.ORGANIZATION, AccessControl.access.ORG_OU_READ, null, pUserAccount);
 
         const org = await this._ctx.getEngineDB()
             .getCollectionOf(OrganizationUnit.TYPE.getType())
@@ -74,7 +74,7 @@ export class OrganizationManager {
     }
 
     async createOrganizations(pUserAccount:UserAccount, pOrg:OrganizationUnit):Promise<OrganizationUnit> {
-        AccessControl.check( AccessZone.ORGANIZATION, OrganizationAccessControl.access.ORG_OU_WRITE, null, pUserAccount);
+        AccessControl.check( AccessZone.ORGANIZATION, AccessControl.access.ORG_OU_WRITE, null, pUserAccount);
 
         let uuid:string;
         do {

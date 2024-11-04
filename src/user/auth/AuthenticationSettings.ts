@@ -12,6 +12,7 @@ import {RuntimeSecurityException} from "../../errors/RuntimeSecurityException.js
 import * as Log from "../../Logger.js";
 import ServerSettings = Settings.ServerSettings;
 import {INTERNAL_DB} from "../../database/EngineDatabase.js";
+import {AuthenticationService} from "./AuthenticationService.js";
 
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
@@ -23,6 +24,8 @@ export interface AuthenticationOptions {
     supported?:AuthType[];
     sess?:any;
     oidc?:OidcOptions;
+    authorized_ips?:string[];
+    localAuth?:boolean;
 }
 
 
@@ -45,7 +48,10 @@ export interface OidcOptions {
  */
 export class AuthenticationSettings {
 
+    static LOCAL_ADDR_IPV6 = "::ffff:127.0.0.1";
+    static LOCAL_ADDR_IPV4 = "127.0.0.1";
 
+    private _authorized_ips:string[] = [];
     private _supported:AuthType[] = [];
     private _policy:AuthenticationPolicy = null;
     private _sess:SessionSettings = null;
@@ -53,6 +59,7 @@ export class AuthenticationSettings {
     private _db:DbmsConnSettings = null;
     private _parent:ServerSettings;
     private _oidc:Nullable<OidcOptions> = null;
+    private _localAuth:boolean = false;
 
     /**
      * Create an object which hold authentication settings.
@@ -79,6 +86,14 @@ export class AuthenticationSettings {
 
         this._sess = new SessionSettings( this, Util.getValue( pConfig, 'sess', {}))
 
+        if(pConfig.authorized_ips!=undefined){
+            if(Array.isArray(pConfig.authorized_ips)){
+                this._authorized_ips = pConfig.authorized_ips!;
+            }
+        }
+
+        if(pConfig.localAuth!=undefined)
+            this._localAuth = pConfig.localAuth;
 
         this._initOpenIdConnect(pConfig.oidc);
     }
@@ -149,6 +164,22 @@ export class AuthenticationSettings {
     set db(value: any) {
         throw new Error("Auth settings 'db' is deprecated. (setter)");
 //        this._db = value;
+    }
+
+    /**
+     * To get list of globally authorized IP address for incoming request
+     *
+     * @method
+     */
+    getAuthorizedIPs():string[] {
+        const list = this._authorized_ips;
+        if(this._authorized_ips.indexOf(AuthenticationSettings.LOCAL_ADDR_IPV6)==-1){
+            list.push(AuthenticationSettings.LOCAL_ADDR_IPV6)
+        }
+        if(this._authorized_ips.indexOf(AuthenticationSettings.LOCAL_ADDR_IPV4)==-1){
+            list.push(AuthenticationSettings.LOCAL_ADDR_IPV4)
+        }
+        return list;
     }
 
     /**
@@ -291,6 +322,10 @@ ${"\t".repeat(pIndent)}response Type = ${this._oidc.responseType}
         return this._oidc.responseType;
     }
 
+    isLocalAuthEnabled():boolean {
+        return (process.env.DXC_LOCAL_AUTH!=null ? (process.env.DXC_LOCAL_AUTH==="1"): this._localAuth);
+    }
+
     getSupportedString():string {
         if(this._supported==null){
             return "[null]";
@@ -307,7 +342,9 @@ ${"\t".repeat(pIndent)}response Type = ${this._oidc.responseType}
                 policy: this._policy,
                 supported: this._supported,
                 sess: this._sess.toObject(pZone),
-                oidc: this._oidc
+                oidc: this._oidc,
+                authorized_ips: this._authorized_ips,
+                localAuth: this._localAuth
             };
         }else{
             return {};

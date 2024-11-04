@@ -5,7 +5,7 @@ import {expect} from 'chai';
 import {AuthType} from "../src/user/auth/AuthTypes.js";
 import {AuthenticationSettings} from "../src/user/auth/AuthenticationSettings.js";
 import {AuthenticationService} from "../src/user/auth/AuthenticationService.js";
-import {PasswordAuthenticator, AuthenticationResult} from "../src/user/auth/Authenticator.js";
+import {PasswordAuthenticator, AuthenticationResult} from "../src/user/auth/PasswordAuthenticator.js";
 import {Authenticator} from "../src/user/auth/AuthTypes.js";
 import {AuthCode} from "../src/user/auth/AuthTypes.js";
 import Util from "../src/Utils.js";

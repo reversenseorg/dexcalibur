@@ -10,7 +10,8 @@ import {IncomingValue, SanitizedValue, UnsafeValue} from "./security/SanitizedVa
 import {GlobalSettingsException} from "./errors/GlobalSettingsException.js";
 import {SecurityZone} from "./security/SecurityZone.js";
 import {Nullable} from "./core/IStringIndex.js";
-import {SignatureServerOptions, SignatureServerSettings} from "./core/settings/SignatureServerSettings.js";
+import {UserServiceException} from "./errors/UserServiceException.js";
+import {UserAccount} from "./user/UserAccount.js";
 
 
 const LOG_FILE = (process.env.DXC_LOG_PATH ? process.env.DXC_LOG_PATH : null);
@@ -19,6 +20,16 @@ function __log( pMessage:string):void{
         _fs_.appendFileSync(LOG_FILE, pMessage+_os_.EOL);
 }
 
+export const DEXCALIBUR_HOME_DIRNAME = '.dexcalibur';
+
+export interface SignatureServerOptions {
+    host?:string;
+    port?:number;
+    ssl?:any;
+    auth?:any;
+}
+
+const DEFAULT_SS_HTTP_PORT = 8085;
 
 export enum DatabaseSettingType {
     DB_AUTH_STRING = "conn",
@@ -919,6 +930,16 @@ export namespace Settings {
             }
         }
 
+        static getLocalAccountLock(pUserAccountUUID:string):Nullable<UserAccount> {
+            const lockPath = _path_.join(_os_.homedir(), DEXCALIBUR_HOME_DIRNAME, 'user_'+pUserAccountUUID+'.lock');
+
+            if(_fs_.existsSync(lockPath)){
+                return new UserAccount(JSON.parse(_fs_.readdirSync(lockPath).toString()));
+            }else{
+                return null;
+            }
+        }
+
         /**
          * To get the default location of the file where global stetings are stored
          *
@@ -937,8 +958,10 @@ export namespace Settings {
 
             //console.log("get default location at "+(_path_.join(_os_.homedir(), '.dexcalibur', Settings.GLOBAL_CFG_NAME)));
 
-            return _path_.join(_os_.homedir(), '.dexcalibur', Settings.GLOBAL_CFG_NAME);
+            return _path_.join(_os_.homedir(), DEXCALIBUR_HOME_DIRNAME, Settings.GLOBAL_CFG_NAME);
         }
+
+
 
         /**
          * To create a basic configuration file at pPath
@@ -977,7 +1000,9 @@ export namespace Settings {
                         policy:{
                             enforced:false
                         },
-                        supported:["pwd"]
+                        supported:["pwd"],
+                        authorized_ips:["::ffff:127.0.0.1"],
+                        localAuth: true
                     },
                     workspace: (process.env.DXC_WS_PATH?process.env.DXC_WS_PATH:""),
                     workspace_internal: (process.env.DXC_WSI_PATH?process.env.DXC_WSI_PATH:null),
@@ -1141,6 +1166,172 @@ export namespace Settings {
 
         createConnectionSettings(): ConnectionSettings {
             return this.conn = ConnectionSettings.newInstance(this, "local", "127.0.0.1", this.getWebserverSettings().getHttpPort());
+        }
+    }
+
+
+
+    /**
+     * Represent configuration of signature server client
+     * @class
+     * @export
+     */
+    export class SignatureServerSettings extends Settings.AbstractSettings {
+
+        /**
+         * Hostname
+         * @field
+         * @type {string}
+         * @private
+         */
+        private _host:string;
+
+        /**
+         * HTTP port
+         * @field
+         * @type {number}
+         * @private
+         */
+        private _port:number;
+
+        /**
+         * SSL config
+         * @field
+         * @type {any}
+         * @private
+         */
+        private _ssl:any;
+
+        /**
+         * Authentication cfg
+         * @field
+         * @type {any}
+         * @private
+         */
+        private _auth:any;
+
+        /**
+         * Create an object which hold server settings from global settings files and env var
+         *
+         * param {number} pHttp HTTP port of web server. Can be override by DXC_HTTP_PORT env var
+         * param {number} pWs Websocket port of web server. Can be override by DXC_WS_PORT env var
+         *
+         * @param {GlobalSettings} pParent Parent settings
+         * @param {WebServerOptions} pConfig Options values
+         * @constructor
+         * @since 1.0.0
+         */
+        constructor( pParent:Settings.ServerSettings, pConfig:SignatureServerOptions= {} /*Http:number, pWs:number*/) {
+            super(pParent);
+
+            this._host = (process.env.DXC_SS_HOST ? process.env.DXC_SS_HOST : '127.0.0.1');
+            this._port = (process.env.DXC_SS_PORT ? parseInt(process.env.DXC_SS_PORT,10) : -1);
+
+            if(this._port === -1){
+                this._port = pConfig.port != null ? pConfig.port : DEFAULT_SS_HTTP_PORT;
+            }
+        }
+
+
+        /**
+         *
+         */
+        getPort():number {
+            return this._port;
+        }
+
+        getHost():string {
+            return this._host;
+        }
+
+
+        hasSslConfig():boolean {
+            return this._ssl!=null;
+        }
+
+        hasAuthConfig():boolean {
+            return this._auth!=null;
+        }
+
+        sanitize(pName: string, pValue: any): IncomingValue {
+            // todo
+            switch(pName){
+                case "host":
+                    if((new URL(pValue)).hostname==pValue){
+                        return new SanitizedValue(pName, (new URL(pValue)).hostname);
+                    }else{
+                        return new UnsafeValue(pName, pValue);
+                    }
+                    break;
+                case "port":
+                    const d = (typeof  pValue == 'string' ? parseInt(pValue,10) : pValue);
+                    if(d > 1 && d < 65534){
+                        return new SanitizedValue(pName, d);
+                    }else{
+                        return new UnsafeValue(pName, d);
+                    }
+                    break;
+                case "ssl":
+                    return new UnsafeValue(pName, pValue);
+                case "auth":
+                    return new UnsafeValue(pName, pValue);
+                default:
+                    throw GlobalSettingsException.SETTING_UNKNOW();
+            }
+        }
+
+        update( pValue:IncomingValue):void {
+            const supported = ["port","ssl","host","auth"];
+
+            for(let i=0; i<supported.length; i++){
+                if(supported[i]==pValue.getName()){
+                    this["_"+supported[i]] = pValue.getValue();
+                    return;
+                }
+            }
+
+            throw GlobalSettingsException.SETTING_UNKNOW();
+            /*
+            switch (pValue.getName()) {
+                case "port":
+                    this._port = pValue.getValue();
+                    break;
+                case "host":
+                    this._host = pValue.getValue();
+                    break;
+                case "ssl":
+                    this._ssl = pValue.getValue();
+                    break;
+                case "auth":
+                    this._auth = pValue.getValue();
+                    break;
+                default:
+                    throw GlobalSettingsException.SETTING_UNKNOW();
+            }*/
+        }
+
+        toObject(pZone:SecurityZone = SecurityZone.PUBLIC): any {
+
+            if(pZone==SecurityZone.PRIVATE){
+                return {
+                    host: this._host,
+                    port: this._port,
+                    ssl: this._ssl,
+                    auth: this._auth
+                }
+            }else{
+                return {
+                    host: this._host,
+                    port: this._port,
+                    ssl: "<REDACTED>",
+                    auth: "<REDACTED>"
+                }
+            }
+
+        }
+
+        static createDefault():SignatureServerSettings {
+            return new SignatureServerSettings(null, {})
         }
     }
 }

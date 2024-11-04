@@ -1,17 +1,18 @@
 import {Person} from "./Person.js";
-import {createHash} from "crypto";
+import {createHash, randomUUID} from "crypto";
 import {AuthCode, AuthenticationException} from "./auth/AuthTypes.js";
-import {UserRole} from "./acl/rbac/UserRole.js";
-import AccessControl from "./acl/AccessControl.js";
 import {ProjectURI} from "../project/ProjectGlobalUID.js";
 import {IDexcaliburEngine} from "../IDexcaliburEngine.js";
 import {IPersistent} from "../persist/orm/IPersistent.js";
 import {INode, NodeType, SerializeOptions} from "@dexcalibur/dexcalibur-orm";
-import {NodeInternalType}
-from "@dexcalibur/dxc-core-api";;
+import {NodeInternalType} from "@dexcalibur/dxc-core-api";
 import Util from "../Utils.js";
 import {IStringIndex} from "../core/IStringIndex.js";
 import {AclAttributeTree} from "./acl/Access.js";
+import Role, {RoleUUID} from "./acl/common/Role.js";
+import {SecurityZone} from "../security/SecurityZone.js";
+
+;
 
 
 export type UserAccountUUID = string;
@@ -19,14 +20,22 @@ export type UserAccountUUID = string;
 export interface UserAccountOptions extends IStringIndex<any> {
      _uid?:UserAccountUUID,
      _person?: Person,
-     _role?:UserRole,
+     _roles?:RoleUUID[],
      _username?:string,
      _password?:string,
      _salt?:string,
      _padding?:string,
      _time?:string,
      _locked?:boolean,
+    _type?:UserAccountType;
+    _authorized_ips?:string[];
     _projects?:ProjectURI[]
+}
+
+
+export enum UserAccountType {
+    LOCAL='local',
+    FEDERATED='federated'
 }
 
 export class UserAccount implements IPersistent, INode {
@@ -34,30 +43,21 @@ export class UserAccount implements IPersistent, INode {
     static TYPE:NodeType = new NodeType(
         'accounts',
         NodeInternalType.USER_ACCOUNT,
-        [
-            /*(new NodeProperty('_uid')).type(DbDataType.STRING).key(DbKeyType.PRIMARY),
-            (new NodeProperty('_time')).type(DbDataType.STRING),
-            (new NodeProperty('_username')).type(DbDataType.STRING).notnull().unique(),
-            (new NodeProperty('_password')).type(DbDataType.STRING).notnull(),
-            (new NodeProperty('_salt')).type(DbDataType.STRING).notnull(),
-            (new NodeProperty('_locked')).type(DbDataType.BOOLEAN).def(false),
-            (new NodeProperty('_padding')).type(DbDataType.STRING).notnull(),
-            (new NodeProperty('_person')).volatile().type(DbDataType.STRING),
-            (new NodeProperty('_role')).type(DbDataType.STRING)
-                .sleep( (x:NodePropertyState) => { return (x.p !=null ? x.p.uid : null) ; } )
-                .wakeUp( (x:NodePropertyState) => { return (x.p!=null ? AccessControl.getRole(x.p) : null) }),*/
-        ]
+        []
     );
     __:NodeInternalType = NodeInternalType.USER_ACCOUNT;
 
     private _uid:UserAccountUUID;
     private _person: Person;
-    private _role:UserRole;
+
+    private _roles:RoleUUID[] = [];
     private _username:string;
     private _password:string;
     private _salt:string;
     private _padding:string;
     private _time:string;
+    private _authorized_ips:string[] = [];
+    private _type:UserAccountType = UserAccountType.LOCAL;
     private _locked:boolean = false;
 
     private _attrs:any = {};
@@ -69,6 +69,9 @@ export class UserAccount implements IPersistent, INode {
      */
     private _projects:ProjectURI[] = [];
 
+    static generateUsername():string {
+        return randomUUID()
+    }
 
     constructor(pConfig:UserAccountOptions = {}) {
         if(pConfig != null){
@@ -77,11 +80,6 @@ export class UserAccount implements IPersistent, INode {
         // TODO : replace by uuid
         if(this._uid==null && this._username!=null){
             this._uid = this._username;
-        }
-
-        if(this._role != null && (typeof  this._role==="string")){
-            this.role = this._role;
-            //this._role = AccessControl.getRole(this._role as string);
         }
     }
 
@@ -137,24 +135,16 @@ export class UserAccount implements IPersistent, INode {
         this._locked = value;
     }
 
-    get role(): string {
-        if(this._role != null)
-            return this._role.name;
-        else
-            return null;
+    getType():UserAccountType {
+        return this._type;
     }
 
-    set role(value: string) {
-        this._role = AccessControl.getRole(value);
+    setType( pType:UserAccountType):void {
+        this._type = pType;
     }
 
-    setUserRole( pRole:UserRole): UserAccount {
-        this._role = pRole;
-        return this;
-    }
-
-    getUserRole( ):UserRole {
-        return this._role;
+    getRoles():RoleUUID[] {
+        return this._roles;
     }
 
     isLocked():boolean {
@@ -270,15 +260,42 @@ export class UserAccount implements IPersistent, INode {
         return out;
     }
 
-    toJsonObject(pOption?: SerializeOptions): any {
+    addRole(pRole:Role):void {
+        if(this._roles.indexOf(pRole.getUID())==-1){
+            this._roles.push(pRole.getUID());
+        }
+    }
+
+    getAuthorizedIPs():string[] {
+        return this._authorized_ips;
+    }
+
+    addAuthorizedIP( pIpAddress:string):void {
+        if(this._authorized_ips.indexOf(pIpAddress)==-1){
+            this._authorized_ips.push(pIpAddress);
+        }
+    }
+
+    isIpAuthorized( pIpAddress:string):boolean {
+        // TODO : format ip address ?
+        return (this._authorized_ips.indexOf(pIpAddress)>-1);
+    }
+
+    toJsonObject(pOption?: SerializeOptions, pZone?:SecurityZone): any {
         let o:any = {};
 
         o._uid = this.getUID();
         o._person = (this._person!=null ? this.person : null);
-        o._role = (this._role !=null ? this._role.uid : null);
+        o._roles = this._roles;
         o._username = this._username;
         o._time = this._time;
         o._locked = this._locked;
+        o._type = this._type;
+
+        if(pZone==SecurityZone.PRIVATE){
+            o._authorized_ips = this._authorized_ips;
+        }
+
 
         return o;
     }

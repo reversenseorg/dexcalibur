@@ -6,10 +6,10 @@
 import {AuthenticationService} from "./auth/AuthenticationService.js";
 import {SessionService} from "./session/SessionService.js";
 import {AuthenticationSettings} from "./auth/AuthenticationSettings.js";
-import {UserAccount} from "./UserAccount.js";
+import {UserAccount, UserAccountType} from "./UserAccount.js";
 import {UserSession} from "./session/UserSession.js";
 import {SessionCode, SessionException} from "./session/SessionException.js";
-import {AuthenticationResult} from "./auth/Authenticator.js";
+import {AuthenticationResult} from "./auth/PasswordAuthenticator.js";
 import {AuthenticationException} from "../errors/AuthenticationException.js";
 import * as Log from '../Logger.js';
 import {ConnectorFactory} from "../ConnectorFactory.js";
@@ -21,6 +21,7 @@ import {SessionData} from "./session/SessionData.js";
 import {IDatabase, IDatabaseAdapter, IDbCollection} from "@dexcalibur/dexcalibur-orm";
 import {MongodbDbCollection} from "@dexcalibur/dexcalibur-orm-mongodb";
 import {Nullable} from "../core/IStringIndex.js";
+import Role from "./acl/common/Role.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -30,7 +31,14 @@ interface UserServiceMap {
 
 const gInstance:UserServiceMap = {}
 
+/**
+ * Service responsible to manage users
+ *
+ * @class
+ */
 export class UserService {
+
+    static DEFAULT_LOCAL_ADMIN_ACCOUNT = 'admin';
 
     //ctx:DexcaliburEngine = null;
     authSvc: AuthenticationService;
@@ -38,6 +46,7 @@ export class UserService {
 
     private _db:IDatabase = null;
     private _coll:MongodbDbCollection = null;
+
 
     private _settings: AuthenticationSettings = null;
 
@@ -54,10 +63,6 @@ export class UserService {
 
 
         UserAccount.TYPE.source(UserService.findUserByUID);
-        // SessionData.TYPE.source(UserService.findAllSessionData);
-        // UserSession.TYPE.subscribe('save_data', UserService.saveSessionData);
-
-        //this.initService(pContext);
     }
 
 
@@ -80,7 +85,6 @@ export class UserService {
 
         return svc.authSvc.findUserByUID(pUserUID);
     }
-
 
 
     /*static findAllSessionData( pSession:UserSession, pEngineUID:string = null):SessionData[] {
@@ -126,7 +130,7 @@ export class UserService {
 
         this._coll = pContext.getEngineDB().getCollectionOf(UserAccount.TYPE.getType()) as MongodbDbCollection;
 
-        this.authSvc = new AuthenticationService(this._settings, pContext);
+        this.authSvc = new AuthenticationService(this._settings, this);
         try{
             await this.authSvc.init();
 
@@ -140,6 +144,51 @@ export class UserService {
     }
 
 
+    /**
+     *
+     * @param pRoles
+     */
+    async createLocalUser(pUID:string, pRoles:Role[], pUsername:Nullable<string> = null):Promise<UserAccount> {
+        let clearPwd = AuthenticationService.generatePassword({
+            minLength: 12,
+            maxLength: 255,
+            genLength: 12
+        });
+
+        const user = new UserAccount({
+            _uid: pUID,
+            _username: (pUsername!=null ? pUsername : UserAccount.generateUsername()),
+            _type: UserAccountType.LOCAL
+        });
+
+        pRoles.map(x => user.addRole(x));
+
+        this._settings.getAuthorizedIPs().map( vIP => {
+            user.addAuthorizedIP(vIP);
+        });
+
+        user.newPassword(clearPwd);
+
+        Logger.success(`
++---[ IMPORTANT ]------------------------------
+| New local administrator created. Please note username and password
+|
+| Username: ${user.username}
+| Password: ${clearPwd}
++----------------------------------------------
+        `);
+
+
+        this._ctx.getEngineDB().save(user);
+
+        return  null;
+    }
+
+
+    /**
+     * deprecated ?
+     * @param pAccount
+     */
     createSession( pAccount: UserAccount): UserSession {
         return this.sessSvc.newSession(pAccount);
     }
@@ -228,9 +277,9 @@ export class UserService {
      * @param pLogin
      * @param pPassword
      */
-    do1StepPasswordAuthentication( pLogin:string, pPassword:string): UserSession {
+    async do1StepPasswordAuthentication( pLogin:string, pPassword:string): Promise<UserSession> {
         let sess:UserSession = null;
-        const res:AuthenticationResult = this.authSvc.newPasswordAuthenticator()
+        const res:AuthenticationResult = await this.authSvc.newPasswordAuthenticator()
                                                         .doAuthentication(pLogin,pPassword);
 
         if(AuthenticationResult.isSuccess(res)){
@@ -285,7 +334,7 @@ export class UserService {
         return this.sessSvc;
     }
 
-    async find(pAccount: UserAccount, pOptions: { autoCreate: boolean }):Promise<Nullable<UserAccount>> {
+    async find(pAccount: UserAccount, pOptions: { autoCreate: boolean, type?:UserAccountType }):Promise<Nullable<UserAccount>> {
         let user = await this._coll.asyncGetEntry({
             [UserAccount.TYPE.getPrimaryKey().getName()] : pAccount.getUID()
         });
@@ -295,6 +344,7 @@ export class UserService {
             return user;
         }else{
             if(pOptions.autoCreate == true){
+                user.setType(pOptions.type);
                 user = await this._coll.asyncAddEntry(
                     {
                         [UserAccount.TYPE.getPrimaryKey().getName()] : pAccount.getUID()
@@ -308,5 +358,9 @@ export class UserService {
                 return null;
             }
         }
+    }
+
+    async listLocalAccounts():Promise<UserAccount[]> {
+        return  await this._coll.search({ _type: UserAccountType.LOCAL }) as UserAccount[];
     }
 }

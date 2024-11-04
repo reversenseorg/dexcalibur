@@ -60,6 +60,8 @@ import {Nullable} from "./core/IStringIndex.js";
 import {Client} from "openid-client";
 import {NODE_MGR_WEB_API} from "./webapi/node.web.api.js";
 import {ORG_WEB_API} from "./webapi/organization.web.api.js";
+import {UserAccount} from "./user/UserAccount.js";
+import {AccessControlManager} from "./user/acl/AccessControlManager.js";
 
 // @ts-ignore
 const BodyParser = _bodyparser_.default;
@@ -358,18 +360,26 @@ export default class WebServer
      * @param {DexcaliburEngine} pEngine
      * @method
      */
-    setContext( pContext:DexcaliburEngine){
+    async setContext( pContext:DexcaliburEngine):Promise<void>{
         this.context = pContext;
 
         // register validators
         this.registerValidator('engine', pContext);
 
         const authSvc = pContext.getUserService().getAuthenticationService();
-        if(authSvc.isSsoEnbaled()){
+        let locals = await this.context.getUserService().listLocalAccounts();
+
+        locals = locals.filter(x => !x.isLocked());
+
+        if(authSvc.isSsoEnabled()){
             Logger.info("[INFO][WEBSERVER] Deploy SSO over routes");
             this._sso_enabled = true;
-            authSvc.protectRoutesWithSSO(this.app);
         }
+
+        authSvc.protectRoutes(this.app, {
+            local: ((locals.length>0) && authSvc.settings.isLocalAuthEnabled()),
+            sso: this._sso_enabled
+        });
     }
 
     /**
@@ -648,9 +658,7 @@ export default class WebServer
      */
     initStaticRoutes(pOptions:GuiMiddlewareOptions){
 
-        function ensureLoggedIn(req, res, next) {
-            console.log(req.originalUrl," > ");
-            console.log(req.session.passport.user);
+        function defaultEnsureLoggedIn(req, res, next) {
             if (req.isAuthenticated !=null && req.isAuthenticated()) {
                 return next();
             }
@@ -658,7 +666,7 @@ export default class WebServer
             res.redirect('/login')
         }
 
-        const mw = pOptions.before.concat((pOptions.auth!=null ? pOptions.auth : [ensureLoggedIn]).concat(pOptions.after) );
+        const mw = pOptions.before.concat((pOptions.auth!=null ? pOptions.auth : [defaultEnsureLoggedIn]).concat(pOptions.after) );
 
         for( let base in this.serveFuncs){
             //this.app.get("/"+base, passport.authenticate('openidconnect', {failureRedirect:'/login'}), this.serveFuncs[base]);
@@ -914,7 +922,7 @@ export default class WebServer
                     switch(req.params.type){
                         case 'pwd':
                             // TODO : sanitize input
-                            let sess:UserSession = $.context
+                            let sess:UserSession = await $.context
                                                         .getUserService()
                                                         .do1StepPasswordAuthentication(
                                                             req.body["login"],
@@ -1205,15 +1213,16 @@ export default class WebServer
          */
         const dxcSessionMiddleware = function(req:DelegateRequest, res:DelegateResponse, next:any){
 
-            //if(!req.url.startsWith('/api/') && !req.url.startsWith('/inspectors/')){ next(); return; }
 
-            Logger.info("[API][SESSION] Processing request : "+req.originalUrl);
-            Logger.info("[API][SESSION] Session ID : ",(req as any).sessionID);
 
-            console.log((req as any).user);
+            Logger.info(`[WEBSERVER][MIDDLEWARE][dxcSessionMiddleware][path=${req.path}][ip=${req.ip}][sessID=${(req as any).sessionID!=null?'true':'false'}] Processing request`);
+
+            // AccessControlManager.BUILT_IN_DEFAULT_ROLE
+            ((req as any).user as UserAccount).addRole(self.context.getAclManager().getRole(AccessControlManager.BUILT_IN_DEFAULT_ROLE));
+            //console.log((req as any).user);
 
             try{
-                if(req.session == null || (req as any).sessionID == null || req.session.passport ==null || req.session.passport.user ==null){
+                if(req.session == null || req.session?.passport?.user ==null){
                     Logger.error("[SESSION] Session cannot be restored or not found");
                     res.redirect('/login');
                     return;
@@ -1235,6 +1244,7 @@ export default class WebServer
 
                             }
 
+                            console.log(req.session,(req as any).user,req.dxc,req.session.passport)
                             next();
                         }else{
                             throw new Error("Session cannot be restored/opened : Session not found : "+(req as any).sessionID);
@@ -1297,8 +1307,13 @@ export default class WebServer
         const isSlave = this.context.isSlaveNode();
 
         function ensureApiLoggedIn(req, res, next) {
+
+            Logger.info(` [WEBSERVER][MIDDLEWARE][ensureApiLoggedIn][path=${req.path}][ip=${req.ip}] Receipt `);
+
+
+            console.log("ensureApiLoggedIn > ",req.user,req.session.user)
+
             // TODO : remove bypass
-            console.log("ensureApiLoggedIn > ")
             if(isSlave) next();
 
             if (req.isAuthenticated !=null && req.isAuthenticated()) {
@@ -1309,6 +1324,13 @@ export default class WebServer
         }
 
         function ensureGuiLoggedIn(req, res, next) {
+
+
+            Logger.info(` [WEBSERVER][MIDDLEWARE][ensureGuiLoggedIn][path=${req.path}][ip=${req.ip}] Receipt `);
+
+            console.log(req.session);
+            console.log(req.user);
+            console.log(req.isAuthenticated())
             if (req.isAuthenticated !=null && req.isAuthenticated()) {
                 return next();
             }

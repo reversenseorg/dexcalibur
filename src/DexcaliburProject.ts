@@ -721,7 +721,24 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
      * @param pAccount
      */
     isOwnedBy( pAccount:UserAccount):boolean {
+
+        try{
+
+            AccessControl.isAuthorizedByAttr(
+                ProjectAccessControl.attr.OWNER,
+                this,
+                pAccount
+            );
+
+            return true;
+        }catch (err){
+            return false;
+        }
+
+        /*
         let ret_owned = false;
+
+
 
         try{
             AccessControl.checkAttr(
@@ -737,7 +754,7 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
             if(errACL.hasOwnProperty('getCode') &&  ((errACL as AccessException).getCode() === AccesErrCode.VIOLATION)){
                 AccessControl.check(
                     AccessZone.PROJECT,
-                    ProjectAccessControl.access.PROJ_CHOWN,
+                    AccessControl.access.PROJ_CHOWN,
                     this,
                     pAccount
                 );
@@ -747,10 +764,26 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
         }
 
         return ret_owned;
-        //return (this.owner != null && this.owner.is(pUser));
+        //return (this.owner != null && this.owner.is(pUser));*/
     }
 
     isAuthorizedToTest( pAccount:UserAccount):boolean {
+
+
+
+        try{
+
+            AccessControl.isAuthorizedByAttr(
+                ProjectAccessControl.attr.TESTER,
+                this,
+                pAccount
+            );
+
+            return true;
+        }catch (err){
+            return false;
+        }
+        /*
         let ret_owned = false;
 
         try{
@@ -768,7 +801,7 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
             if(errACL.hasOwnProperty('getCode') &&  ((errACL as AccessException).getCode() === AccesErrCode.VIOLATION)){
                 AccessControl.check(
                     AccessZone.PROJECT,
-                    ProjectAccessControl.access.PROJ_CHOWN,
+                    AccessControl.access.PROJ_CHOWN,
                     this,
                     pAccount
                 );
@@ -777,7 +810,7 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
             }else{throw  errACL;}
         }
 
-        return ret_owned;
+        return ret_owned;*/
     }
 
     /**
@@ -1686,7 +1719,7 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
 
         AccessControl.check(
             AccessZone.PROJECT,
-            ProjectAccessControl.access.PROJ_OPEN_OWN,
+            AccessControl.access.PROJ_OPEN_OWN,
             project,
             pAccount
         );
@@ -2240,7 +2273,7 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
                 if(errACL.hasOwnProperty('getCode') && ((errACL as AccessException).getCode() === AccesErrCode.VIOLATION)){
                     AccessControl.check(
                         AccessZone.PROJECT,
-                        ProjectAccessControl.access.PROJ_CHOWN,
+                        AccessControl.access.PROJ_CHOWN,
                         this,
                         pAuthorSess.getUserAccount()
                     );

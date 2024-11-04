@@ -66,6 +66,8 @@ import {UserServiceException} from "./errors/UserServiceException.js";
 import {OrganizationManager} from "./organization/OrganizationManager.js";
 import {OrganizationAccessControl} from "./user/acl/rbac/OrganizationAccessContol.js";
 import {AccessControlManager} from "./user/acl/AccessControlManager.js";
+import Role from "./user/acl/common/Role.js";
+import {randomUUID} from "crypto";
 
 /*
 const _fixPath_ = require("fix-path");
@@ -73,7 +75,7 @@ const _fixPath_ = require("fix-path");
 if(require('os').platform()=="darwin"){
     _fixPath_();
 }*/
-
+export const DEXCALIBUR_HOME_DIRNAME = ".dexcalibur";
 /**
  * Running mode of engine instance :
  * - master : manage several slave engines, and expose GUIs
@@ -135,7 +137,7 @@ let CONFIG_PATH:string;
 if(process.env.DXC_HOME!=null){
     CONFIG_PATH = process.env.DXC_HOME;
 }else{
-    CONFIG_PATH = _path_.join( _os_.homedir(), '.dexcalibur', 'config.json');
+    CONFIG_PATH = _path_.join( _os_.homedir(), DEXCALIBUR_HOME_DIRNAME , 'config.json');
 }
 
 
@@ -189,6 +191,8 @@ export interface CleanupEvent {
     type: string;
     data: any;
 }
+
+
 /**
  *
  *
@@ -205,6 +209,27 @@ export interface CleanupEvent {
  */
 export default class DexcaliburEngine extends ValidationCapable implements IDexcaliburEngine, IAppContext
 {
+
+    /**
+     * A flag to enable install mode or not
+     *
+     * @private
+     */
+    private _installMode = false;
+
+    /**
+     * Service account used internally to enforce access control check
+     * on any APIs.
+     *
+     * This account cannot be used with remote server
+     *
+     * @private
+     */
+    private _internalAcc:UserAccount = new UserAccount({
+        _uid: AccessControl.INTERNAL_USER_ACCOUNT_UUID,
+        _locked: false
+    });
+
     _type = AppContextType.WEB_SERVER;
 
     /**
@@ -489,7 +514,7 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
         NodeSchema.init();
 
         this.aclManager = new AccessControlManager(this);
-        this.aclManager.init();
+        this.aclManager.init(this._internalAcc);
         
         this.sigServerApi = new SignatureServerAPI({
             host: '127.0.0.1',
@@ -778,9 +803,14 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
         this.initExternalSettings();
         this.initConnectionsSettings();
 
+
         if(process.env.DXC_SAVE_SETTINGS=="1"){
             this.settings.save();
         }
+    }
+
+    async enableInstallMode(pConfig:Settings.GlobalSettings, pRandomUname = false):Promise<void> {
+        this._installMode = true;
     }
 
     /**
@@ -818,6 +848,27 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
             await this.db.connect();
 
             await this.userSvc.initService(this);
+
+            if(this._installMode){
+
+                // search if "local" account already exists
+                let acc = await this.userSvc.listLocalAccounts();
+
+                if(acc.length==0){
+                    // create local acc
+                    const uname = "0:"+randomUUID();
+                    await this.userSvc.createLocalUser(
+                        uname,
+                        [
+                            this.aclManager.getRole('local_admin')
+                        ],
+                        uname
+                    );
+                    acc = await this.userSvc.listLocalAccounts();
+                }
+
+                // enable local authentication
+            }
 
             //this.db.registerScheduler();
 
@@ -995,7 +1046,7 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
             // TODO : override webserver settings with GUI config
             //await this.webserver.configureAuth(this.settings.getServerSettings().getAuthenticationSettings());
             this.webserver.configure(this.settings.getWebserverSettings());
-            this.webserver.setContext(this);
+            await this.webserver.setContext(this);
             this.webserver.useProductionMode();
 
             // setup web socket server
@@ -1502,7 +1553,7 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
 
         AccessControl.check(
             AccessZone.PROJECT,
-            ProjectAccessControl.access.CLOSE_OWN_PROJECT,
+            AccessControl.access.CLOSE_OWN_PROJECT,
             pProject,
             pUser
         );
@@ -1675,6 +1726,17 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
             this.nodeManager.notifyMaster(NodeState.IDDLE);
         }
 
+    }
+
+    /**
+     *
+     */
+    getAclManager():AccessControlManager {
+        return this.aclManager;
+    }
+
+    getInternalAcc():UserAccount {
+        return this._internalAcc;
     }
 }
 

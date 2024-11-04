@@ -387,7 +387,7 @@ PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
                 /*
                 AccessControl.check(
                     AccessZone.PROJECT,
-                    ProjectAccessControl.access.PROJ_OPEN_OWN,
+                    AccessControl.access.PROJ_OPEN_OWN,
                     project,
                     req.dxc.sess.getUserAccount()
                 );
@@ -398,7 +398,7 @@ PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
 
                     AccessControl.check(
                         AccessZone.PROJECT,
-                        ProjectAccessControl.access.PROJ_OPEN_OWN,
+                        AccessControl.access.PROJ_OPEN_OWN,
                         project,
                         req.dxc.sess.getUserAccount()
                     );

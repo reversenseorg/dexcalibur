@@ -365,8 +365,8 @@ export class DelegateWebApi
 
                                     if(self.srv.context.engine_type==DexcaliburEngineMode.MASTER){
 
-                                        console.log(req.dxc.project.getUID());
-                                        console.log(req.dxc.project);
+                                       // console.log(req.dxc.project.getUID());
+                                       // console.log(req.dxc.project);
                                        // nodes = self.srv.context.nodeManager.getNodeByProject(req.query.uid as string);
                                         nodes = self.srv.context.nodeManager.getNodeByProject(req.dxc.project.getUID());
 

@@ -5,7 +5,7 @@ export interface  UserRoleMap {
 }
 
 /**
- *
+ * @deprecated
  */
 export class UserRole {
 

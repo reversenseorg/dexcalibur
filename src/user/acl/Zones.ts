@@ -3,5 +3,6 @@ export enum AccessZone {
     GENERIC='e',
     PROJECT='p',
     ORGANIZATION='o',
+    AUDIT='a',
     HOST='h'
-};
+}

@@ -27,11 +27,10 @@ USER_WEB_API.addAuthenticatedRoute(
                     const _DATA:any = {
                             username: user.username,
                             uid: user.getUID(),
-                            role: {
-                                name: user.getUserRole().name,
-                                uid: user.getUserRole().uid
-                            }
+                            roles: user.getRoles(),
                         };
+
+
 
                     $.sendSuccess(res, _DATA);
 
@@ -61,10 +60,7 @@ USER_WEB_API.addAuthenticatedRoute(
                     const _DATA:any = {
                         username: user.username,
                         uid: user.getUID(),
-                        role: {
-                            name: user.getUserRole().name,
-                            uid: user.getUserRole().uid
-                        }
+                        roles: user.getRoles()
                     };
 
                     $.sendSuccess(res, _DATA);

@@ -1325,7 +1325,7 @@ ${"\t".repeat(1)}Default Arch = ${srv.getDefaultArchitecture()}
 
                         console.log(chalk.whiteBright("UserName | Locked | Role "));
                         usrList.map((vIndex:any, vUser:UserAccount)=>{
-                            console.log(`  ${chalk.whiteBright(vUser.getUID())}  ${vUser.isLocked()? chalk.redBright("LOCKED"):chalk.redBright("VALID") }  ${chalk.yellow(vUser.getUserRole())} `);
+                            console.log(`  ${chalk.whiteBright(vUser.getUID())}  ${vUser.isLocked()? chalk.redBright("LOCKED"):chalk.redBright("VALID") }  ${chalk.yellow(vUser.getRoles().join(', '))} `);
                         });
 
                     })
@@ -1401,7 +1401,8 @@ ${"\t".repeat(1)}Default Arch = ${srv.getDefaultArchitecture()}
 
                 console.log(chalk.yellow("[-] List roles ... "));
 
-                const roles = AccessControl.getRoles();
+                // TODO : dxcInstance.getInternalAcc() must be replaced by previously authenticated user
+                const roles = dxcInstance.getAclManager().listRoles(dxcInstance.getInternalAcc());
                 for(let k in roles){
                     console.log("\t"+roles[k].uid+"\t"+roles[k].name+"\t"+JSON.stringify(roles[k].access));
                 }
@@ -1576,7 +1577,7 @@ ${"\t".repeat(1)}Default Arch = ${srv.getDefaultArchitecture()}
                     if(projectArgs.mPkg){
                         let usrSess:UserSession;
                         if(projectArgs.mUser){
-                             usrSess = dxcInstance
+                             usrSess = await dxcInstance
                                 .getUserService()
                                 .do1StepPasswordAuthentication(
                                     projectArgs.mUser,

@@ -12,7 +12,7 @@ import HookStrategy from "./hook/HookStrategy.js";
 import HookSet from "./HookSet.js";
 import {UserSession} from "./user/session/UserSession.js";
 import {SessionData} from "./user/session/SessionData.js";
-import {UserAccount} from "./user/UserAccount.js";
+import {UserAccount, UserAccountType} from "./user/UserAccount.js";
 import AccessControl from "./user/acl/AccessControl.js";
 import DexcaliburEngine from "./DexcaliburEngine.js";
 import DexcaliburProject from "./DexcaliburProject.js";
@@ -47,8 +47,6 @@ import HookPrologue from "./HookPrologue.js";
 import {HookVariableArray, HookVariableObject} from "./HookVariable.js";
 import {HookVariableMap} from "./hook/common.js";
 import {Person} from "./user/Person.js";
-import {UserRole} from "./user/acl/rbac/UserRole.js";
-import {AuditManager} from "./audit/AuditManager.js";
 
 
 
@@ -176,31 +174,15 @@ UserAccount.TYPE.updateProperties([
     (new NodeProperty('_salt')).type(DbDataType.STRING).notnull(),
     (new NodeProperty('_locked')).type(DbDataType.BOOLEAN).def(false),
     (new NodeProperty('_padding')).type(DbDataType.STRING).notnull(),
+    (new NodeProperty('_roles')).type(DbDataType.STRING).def([]),
+    (new NodeProperty('_type')).type(DbDataType.STRING).def(UserAccountType.LOCAL),
+    (new NodeProperty('_authorized_ips')).type(DbDataType.STRING).def([]),
     (new NodeProperty('_person')).type(DbDataType.BLOB)
         .sleep( (x:NodePropertyState) => {
             return (x.p !=null ? x.p : null) ;
         } )
         .wakeUp( (x:NodePropertyState) => {
             return (x.p!=null ? new Person(x.p)  : null)
-        }),
-    (new NodeProperty('_role')).type(DbDataType.STRING)
-        .sleep( (x:NodePropertyState) => {
-            return (x.p !=null ? x.p.uid : null) ;
-        } )
-        .wakeUp( (x:NodePropertyState) => {
-            if(x.p ==null) return null;
-
-            let ret:Nullable<UserRole> = null;
-            if(typeof x.p === "string"){
-                try{
-                    ret = AccessControl.getRole(x.p);
-                }catch(e){
-                    ret = null;
-                }
-            }else{
-                ret = x.p;
-            }
-            return ret;
         }),
 ]).dataSource("ENGINE_DB").builder(UserAccount);
 

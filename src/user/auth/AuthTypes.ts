@@ -1,3 +1,4 @@
+import {AuthenticationResult} from "./PasswordAuthenticator.js";
 
 export enum AuthType {
     NONE='none',
@@ -21,7 +22,7 @@ export enum AuthCode {
 }
 
 export interface Authenticator {
-    doAuthentication( ...args:any[]):any;
+    doAuthentication( ...args:any[]):AuthenticationResult|Promise<AuthenticationResult>;
 }
 
 export class AuthenticationException extends Error {

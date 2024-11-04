@@ -249,7 +249,7 @@ PROJECT_WEB_API.addAuthenticatedRoute(
                 // check if the current user can edit settings of this project
                 AccessControl.check(
                     AccessZone.PROJECT,
-                    ProjectAccessControl.access.PROJ_SETTINGS_EDIT,
+                    AccessControl.access.PROJ_SETTINGS_EDIT,
                     req.dxc.project,
                     req.dxc.sess.getUserAccount()
                 );

@@ -5,6 +5,7 @@ import {expect} from 'chai';
 import {UserAccount} from "../dist/src/user/UserAccount.js";
 import {AuthCode} from "../dist/src/user/auth/AuthTypes.js";
 import AccessControl from "../src/user/acl/AccessControl.js";
+import {AccessControlManager} from "../src/user/acl/AccessControlManager";
 
 let usr:UserAccount = null;
 
@@ -12,7 +13,8 @@ describe('UserAccount', function() {
 
 
     before(function(){
-        AccessControl.init()
+        const acm = new AccessControlManager(null);
+        AccessControl.init(acm);
     });
 
     beforeEach(function(){
@@ -35,7 +37,7 @@ describe('UserAccount', function() {
                 _salt:"bnq53usb88s8vxw3v",
                 _padding:"gqssqwd",
                 _time:"1625054399029",
-                role: AccessControl.defaultRole
+                role: AccessControlManager.BUILT_IN_DEFAULT_ROLE
             });
 
             expect(user.username).to.equal("dxc_user_1");
@@ -43,7 +45,7 @@ describe('UserAccount', function() {
             expect(user.padding).to.equal("gqssqwd");
             expect(user.password).to.equal("b8c4970c333df9f9ce926820e228824146062b792f673e2da3b1707df2224080");
             expect(user.isLocked()).to.false;
-            expect(user.getUserRole().uid).to.be.equal(AccessControl.defaultRole);
+            expect(user.getUserRole().uid).to.be.equal( AccessControlManager.BUILT_IN_DEFAULT_ROLE);
         });
 
     });

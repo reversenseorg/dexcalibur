@@ -21,6 +21,10 @@ import DatabaseSettings = Settings.DatabaseSettings;
 import AssuranceReport from "../audit/common/AssuranceReport.js";
 import {ApplicationUnit, Connection, Credential, OrganizationUnit } from "@dexcalibur/dxc-orgs";
 import Inspector from "../Inspector.js";
+import Role from "../user/acl/common/Role.js";
+import {Access} from "../user/acl/Access.js";
+import AccessControl from "../user/acl/AccessControl.js";
+import {ProjectAccessControl} from "../user/acl/rbac/ProjectAccessContol.js";
 
 
 
@@ -124,7 +128,9 @@ export class EngineDatabase {
         OrganizationUnit.TYPE,
         ApplicationUnit.TYPE,
         Credential.TYPE,
-        Connection.TYPE
+        Connection.TYPE,
+        Role.TYPE,
+        UserAccount.TYPE
     ];
 
     private _supportedTypeInfos:{ [type:number] :CollectionInfo } = {};
@@ -151,6 +157,7 @@ export class EngineDatabase {
         let host:Nullable<string>;
         let port = -1;
         let update = false;
+
 
         if(pOptions.getConnectionString()!=null){
             creds = this.parseCredentialString(pOptions.getConnectionString());
@@ -266,12 +273,13 @@ export class EngineDatabase {
         });
 
 
+
         if(existings.indexOf(PROJECT_COL)==-1){ this._db.createCollectionOf(DexcaliburProject.TYPE, PROJECT_COL); }
         if(existings.indexOf(DEVICES_COL)==-1){ this._db.createCollectionOf(Device.TYPE, DEVICES_COL); }
         if(existings.indexOf(INSP_COL)==-1){ this._db.createCollectionOf(InspectorFactory.TYPE, INSP_COL); }
         if(existings.indexOf(SCAN_COL)==-1){ this._db.createCollectionOf(ScanOrder.TYPE, SCAN_COL); }
         if(existings.indexOf(SESSIONS_COL)==-1){ this._db.createCollectionOf(UserSession.TYPE, SESSIONS_COL); }
-        if(existings.indexOf(UA_COL)==-1){ this._db.createCollectionOf(UserAccount.TYPE, UA_COL); }
+        //if(existings.indexOf(UA_COL)==-1){ this._db.createCollectionOf(UserAccount.TYPE, UA_COL); }
         if(existings.indexOf(REPORT_COL)==-1){ this._db.createCollectionOf(AssuranceReport.TYPE, REPORT_COL); }
         //if(existings.indexOf(ORGU_COL)==-1){ this._db.createCollectionOf(OrganizationUnit.TYPE, ORGU_COL); }
         //if(existings.indexOf(APPU_COL)==-1){ this._db.createCollectionOf(ApplicationUnit.TYPE, APPU_COL); }
@@ -291,7 +299,7 @@ export class EngineDatabase {
             InspectorFactory.TYPE.getType(),
             ScanOrder.TYPE.getType(),
             UserSession.TYPE.getType(),
-            UserAccount.TYPE.getType(),
+            //UserAccount.TYPE.getType(),
             AssuranceReport.TYPE.getType(),
             //OrganizationUnit.TYPE.getType(),
             //ApplicationUnit.TYPE.getType(),
@@ -350,6 +358,8 @@ export class EngineDatabase {
      */
     async getProject(pUID:string, pUserAccount?:Nullable<UserAccount>):Promise<DexcaliburProject> {
         const coll:MongodbDbCollection = this.getCollectionOf(DexcaliburProject.TYPE.getType()) as MongodbDbCollection;
+
+        console.log(await coll.getAsList());
         const project:Nullable<DexcaliburProject[]> = await coll.search({ uid: pUID});
 
         if(project==null || project.length==0){
@@ -360,7 +370,16 @@ export class EngineDatabase {
         project[0].setEngine(this._ctx);
 
         if(pUserAccount!=null){
-            project[0].isOwnedBy(pUserAccount);
+            AccessControl.isAuthorized(
+                AccessControl.access.PROJ_OPEN_OWN,
+                pUserAccount,
+                project[0],
+                [
+                    ProjectAccessControl.attr.OWNER,
+                    ProjectAccessControl.attr.TESTER,
+                ]
+            )
+            //project[0].isOwnedBy(pUserAccount);
         }
 
 
@@ -456,6 +475,7 @@ export class EngineDatabase {
      * @method
      */
     getCollectionOf(pNode:INode|NodeInternalType):IDbCollection {
+
         let collName:Nullable<string> = null;
         let collType:Nullable<NodeType> = null;
         const nodeType = (typeof pNode==='number')?pNode:pNode.__;

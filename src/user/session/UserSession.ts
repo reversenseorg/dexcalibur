@@ -211,13 +211,7 @@ export class UserSession implements IPersistent, INode {
 
     setDefaultActiveProject( pProject:DexcaliburProject):void {
         // TODO : add ACL which allows non-owner but authorized auditor (group/team) to work on this project
-        /*
-        AccessControl.checkAttr(
-            AccessZone.PROJECT,
-            ProjectAccessControl.attr.GROUP,
-            pProject,
-            this.getUserAccount()
-        )*/
+
         if(!this._project.hasOwnProperty(pProject.getUID())){
             this._project[pProject.getUID()] = pProject;
         }
@@ -243,11 +237,11 @@ export class UserSession implements IPersistent, INode {
         );*/
 
 
-        AccessControl.check(
-            AccessZone.PROJECT,
-            ProjectAccessControl.access.PROJ_OPEN_OWN,
-            pContext.getProject(pProjectUID),
-            this.getUserAccount()
+        AccessControl.isAuthorized(
+            AccessControl.access.PROJ_OPEN_OWN,
+            this.getUserAccount(),
+            pContext.getProject(pProjectUID), // the resource
+            [ProjectAccessControl.attr.OWNER, ProjectAccessControl.attr.TESTER]
         );
 
 

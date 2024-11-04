@@ -1,17 +1,14 @@
 import * as _fs_ from 'fs';
+import * as _path_ from 'path';
 import got, {Options} from "got";
-const GOT = got.default;
-
 import {AuthCode, AuthenticationException, Authenticator, AuthType} from "./AuthTypes.js";
 import {AuthenticationPolicy} from "./AuthenticationPolicy.js";
-import {PasswordAuthenticator} from "./Authenticator.js";
-import {ConnectorFactory} from "../../ConnectorFactory.js";
-import {UserAccount, UserAccountUUID} from "../UserAccount.js";
+import {AuthenticationResult, PasswordAuthenticator} from "./PasswordAuthenticator.js";
+import {UserAccount, UserAccountType} from "../UserAccount.js";
 import {AuthenticationSettings} from "./AuthenticationSettings.js";
-import AccessControl from "../acl/AccessControl.js";
 import * as Log from "../../Logger.js";
 import DexcaliburEngine from "../../DexcaliburEngine.js";
-import {NodeProperty, IDatabase, IDatabaseAdapter, IDbCollection} from "@dexcalibur/dexcalibur-orm";
+import {IDatabaseAdapter, IDbCollection} from "@dexcalibur/dexcalibur-orm";
 
 import passport from "passport";
 import * as _openidconnect_ from 'passport-openidconnect';
@@ -21,16 +18,20 @@ import {Application, Router} from 'express';
 import {Issuer} from "openid-client";
 import expressSession from "express-session";
 import {Person} from "../Person.js";
-import {ConnectionHandler} from "../../remote/ConnectionHandler.js";
 import {DelegateRequest, DelegateResponse} from "../../webapi/DelegateWebApi.js";
-import {UserSession} from "../session/UserSession.js";
 import {Nullable} from "../../core/IStringIndex.js";
-import {SessionStore} from "../session/SessionStore.js";
-import {MongodbDbCollection} from "@dexcalibur/dexcalibur-orm-mongodb";
-import {UserRole} from "../acl/rbac/UserRole.js";
-import {ProjectURI} from "../../project/ProjectGlobalUID.js";
-import {BUILT_IN_ROLES} from "../acl/Roles.js";
+import {AccessControlManager} from "../acl/AccessControlManager.js";
+import Role from "../acl/common/Role.js";
+import WebServer from "../../WebServer.js";
+import Util from "../../Utils.js";
+import {randomUUID} from "crypto";
+import {RuntimeSecurityException} from "../../errors/RuntimeSecurityException.js";
+import {UserService} from "../UserService.js";
+import * as _bodyparser_ from 'body-parser';
+import {LocalStrategy} from "./passport/LocalStrategy.js";
 
+const GOT = got.default;
+const BodyParser = (_bodyparser_ as any).default;
 const PassportOIDC = _openidconnect_.default;
 
 interface UserCache {
@@ -39,13 +40,27 @@ interface UserCache {
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
+export interface PasswordFormContext {
+    replayUID: string;
+    usernameField: string;
+    pwdField: string;
+    csrfField: string;
+    csrfToken: string;
+}
 
+export interface PasswordPolicy {
+    minLength: number,
+    maxLength: number,
+    genLength: number
+}
 
 export class AuthenticationService {
 
     settings:AuthenticationSettings;
 
     policy:AuthenticationPolicy;
+
+    userSvc:UserService;
 
     _users:IDbCollection;
     _cache:UserCache = {};
@@ -58,16 +73,28 @@ export class AuthenticationService {
     private _sso_enabled = false;
     private _oidClientCfg:any = {};
 
-    constructor( pSettings:AuthenticationSettings, pContext:DexcaliburEngine = null) {
+    constructor( pSettings:AuthenticationSettings, pUserSvc:UserService = null) {
         this.settings = pSettings;
-        this._ctx = pContext;
+        this._ctx = pUserSvc._ctx;
+        this.userSvc = pUserSvc;
         this.policy = new AuthenticationPolicy(pSettings);
-
-        // make it dependent of settings : local user DB vs remote ID provide
-        this.initUserDB();
 
     }
 
+    static generatePassword(pPolicy:PasswordPolicy):string {
+        let pwd:string = "";
+
+        let charset = "";
+        for(let i='a'.charCodeAt(0); i<'z'.charCodeAt(0); i++) charset+=String.fromCharCode(i);
+        for(let i='A'.charCodeAt(0); i<'Z'.charCodeAt(0); i++) charset+=String.fromCharCode(i);
+        for(let i='0'.charCodeAt(0); i<'9'.charCodeAt(0); i++) charset+=String.fromCharCode(i);
+
+        while(pwd.length<pPolicy.genLength){
+            pwd += charset[Math.round(Math.random()*charset.length)];
+        }
+
+        return pwd;
+    }
     /**
      * To init SSO
      *
@@ -92,106 +119,12 @@ export class AuthenticationService {
 
             this._sso_enabled = true;
         }
-
-
-    }
-    /*
-     * To init (local sqlite-based) user database
-     *
-     * Only available connector can be used. It is the place
-     * where connection to the database is performed.
-     *
-     * If the file at 'uri' is not found (1st run after install), it searchs
-     * for <uri>.temp JSON file  with 1st user data.
-     *
-     * If the user database not exists, it is created and filled with <uri> file content
-     *
-     */
-    initUserDB():void{
-
-        /*
-        if(this.settings==null || this.settings.db ==null){
-            throw new AuthenticationException("Authentication is not configured", AuthCode.NOT_CONFIGURED)
-        }
-
-        this._dba = ConnectorFactory.getInstance().newConnector(
-            this.settings.db.dbms, // inmemory / sqlite / neo4j
-            null,
-            {
-                user: this.settings.db.user,
-                pwd: this.settings.db.pwd,
-                port: this.settings.db.port,
-                uri: this.settings.db.uri
-            }
-        ) as IDatabaseAdapter;
-
-        let db:IDatabase;
-        try{
-            this._dba.connect(this.settings.db.uri);
-            db = this._dba.getDB();
-        }catch(e){
-            console.log(e.message,e.stack);
-        }
-
-
-        // import temporary DB after a fresh install
-        if(_fs_.existsSync(this.settings.db.uri)==false){
-            if(_fs_.existsSync(this.settings.db.uri+".temp")==true){
-               console.log(
-                    JSON.parse(_fs_.readFileSync(this.settings.db.uri+".temp", {encoding:'utf8'}))
-                );
-                // during import, there is no backup of current user DB
-                this.save(false);
-            }else{
-                // create en empty DB
-                this._users = db.newCollection('users', UserAccount.TYPE);
-                this.save(false);
-            }
-        }else{
-            this.importUsers(db.getCollection('user', UserAccount.TYPE));
-        }
-
-        */
-       // this.importUsers( this._ctx.getEngineDB().getCollectionOf(UserAccount.TYPE.getType()));
     }
 
-    /**
-     * To load user account from the default local User DB
-     *
-     * @param pDBMS
-     */
-    importUsers( pColl:IDbCollection){
-        this._users = pColl;
-        this._users.getAsList(-1).then((vAccounts:UserAccount[])=>{
-            vAccounts.map((v) =>{
 
-                if(v.role == null){
-                    v.role = AccessControl.defaultRole;
-                }
-
-                this._cache[v.getUID()] = v;
-            })
-        });
-        /*
-        this._users.map( (o,v:UserAccount) => {
-
-            this.wakeUpUser(v)
-
-            if(v.role == null){
-                v.role = AccessControl.defaultRole;
-
-                // update
-                Logger.debug('---- Update user role --- ');
-                this._users.updateEntry(v); //.getUID(), v);
-            }
-
-            this._cache[v.getUID()] = v;
-
-            Logger.debug('---- import next user --- ');
-
-        });*/
+    getUserService():UserService {
+        return this.userSvc;
     }
-
 
 
     getUserIndex():IDbCollection {
@@ -224,15 +157,14 @@ export class AuthenticationService {
         return new PasswordAuthenticator(this);
     }
 
-    flushCache(){
-        this._cache = {};
-    }
 
     // todo replace
 
     /**
+     * To search a user account by UserAccount's username in database
      *
-     * @param pUsername
+     * @param {string} pUsername  UserAccount UUID
+     * @returns {UserAccount} The user account instance
      * @deprecated
      */
     findUser( pUsername:string):UserAccount {
@@ -242,6 +174,9 @@ export class AuthenticationService {
             throw new AuthenticationException("Username cannot be empty", AuthCode.EMPTY_USERNAME);
         }
 
+        // !! IMPORTANT : Don't use cache, this function must be stateless
+        //this._ctx.getEngineDB()
+        /*
         if(this._cache[pUsername]!=null){
             return this._cache[pUsername];
         }
@@ -252,7 +187,7 @@ export class AuthenticationService {
             if(vUsr.hasUsername(pUsername)){
                 usr = vUsr;
             }
-        });
+        });*/
 
         if(usr == null){
             throw new AuthenticationException("Username not found : "+pUsername, AuthCode.INVALID_USERNAME);
@@ -262,6 +197,11 @@ export class AuthenticationService {
     }
 
 
+    /**
+     * Obsolete, Must use EngineDb instead
+     *
+     * @param pUID
+     */
     findUserByUID( pUID:string):UserAccount {
         let usr:UserAccount = null;
 
@@ -269,6 +209,8 @@ export class AuthenticationService {
             throw new AuthenticationException("Username cannot be empty", AuthCode.EMPTY_USERNAME);
         }
 
+
+        this._ctx.getUserService().find(new UserAccount({ _uid:pUID }), {autoCreate:false})
         if(this._cache[pUID]!=null){
             return this._cache[pUID];
         }
@@ -288,8 +230,8 @@ export class AuthenticationService {
         return usr;
     }
 
-    isSsoEnbaled():boolean {
-        console.log("isSsoEnbaled > ", this._sso_enabled)
+    isSsoEnabled():boolean {
+        console.log("isSsoEnabled > ", this._sso_enabled)
         return this._sso_enabled;
     }
 
@@ -322,15 +264,8 @@ export class AuthenticationService {
 
         return await GOT(pRevokeURL, options as any);
     }
-    /**
-     * To deploy routes and middleware required to check sso token
-     *
-     * This method is called only whe an OIDC client is configured
-     *
-     * @param pApp
-     * @method
-     */
-    protectRoutesWithSSO( pApp:Application|Router):void {
+
+    protectRoutes( pApp:Application|Router, pCfg:{sso:boolean,local:boolean} ):void {
 
         pApp.use(
             expressSession({
@@ -338,7 +273,7 @@ export class AuthenticationService {
                 resave: false,
                 saveUninitialized: true,
                 cookie: {
-                  sameSite: false
+                    sameSite: false
                 },
                 store: this._ctx.getUserService().getSessionService().createSessionStore()
                 // new expressSession.MemoryStore() // TODO : replace by remote store
@@ -348,8 +283,19 @@ export class AuthenticationService {
         pApp.use(passport.initialize());
         pApp.use(passport.session());
 
-        // add authentication using serialized sessions
-        //pApp.use(passport.authenticate('session'));
+        this.protectRoutesWithSSO(pApp, pCfg.local);
+    }
+
+
+    /**
+     * To deploy routes and middleware required to check sso token
+     *
+     * This method is called only whe an OIDC client is configured
+     *
+     * @param pApp
+     * @method
+     */
+    protectRoutesWithSSO( pApp:Application|Router, pLocalAuth:boolean):void {
 
         if(this.sso_need_config){
             this.sso_need_config = false;
@@ -371,7 +317,6 @@ export class AuthenticationService {
 
                         Logger.info("[AUTH SERVICE] Start OIDC verifying ...");
 
-                        console.log(profile);
 
                         const acc = new UserAccount({
                             _uid:profile.id,
@@ -379,213 +324,36 @@ export class AuthenticationService {
                                 _lastname: profile.name.familyName,
                                 _firstname: profile.name.givenName,
                             }),
-                            _role: AccessControl.getRole('local_admin'),
-                            //_role?:UserRole,
+
+                            _role: this._ctx.getAclManager().getRole(
+                                AccessControlManager.BUILT_IN_DEFAULT_ROLE
+                            ),
+                            _roles: [AccessControlManager.BUILT_IN_DEFAULT_ROLE],
                             // TODO : employee ID
                             // TODO : email , ...
                             _username:profile.username
                         });
 
-                        this._ctx.getUserService().find(acc, {autoCreate:true})
-                            .then((vAccount:Nullable<UserAccount>)=>{
+                        this._ctx.getUserService().find(acc, {
+                            autoCreate:true,
+                            type: UserAccountType.FEDERATED
+                        }).then((vAccount:Nullable<UserAccount>)=>{
                                 console.log("OIDC Verifiying > ",vAccount);
 
                                 if(vAccount != null){
-
                                     verified( null, acc);
-                                /*
-                                    // update sessions
-                                    this._ctx.getUserService().getSessionService()
-                                        .asyncGetSessionByUID( req.sessionID)
-                                        .then(( vSess)=>{
-
-                                            if(vSess !=null){
-                                                if(!vSess.getUserAccount().is(vAccount)){
-                                                    throw new Error("User session must be unique per user account, unauthorize access detected");
-                                                }
-                                                if(vSess.getUserAccount()==null){
-                                                    verified(null, vAccount);
-                                                }else{
-                                                    this._ctx.getUserService().getSessionService().save(vSess)
-                                                        .then((vSuccess)=>{
-                                                            if(vSuccess){
-                                                                console.log(vSess,vSess.getUserAccount().person);
-                                                                Logger.success("Session updated with user account [sess="+vSess.getUID()+"] ");
-                                                                verified(null, vAccount);
-                                                            }else{
-                                                                Logger.error("Session cannot be updated with user account [sess="+vSess.getUID()+"] ");
-                                                            }
-
-                                                        })
-                                                        .catch((vErr)=>{
-                                                            Logger.error("ERROR : Session cannot be updated : > "+vErr);
-                                                        })
-                                                }
-                                            }else{
-                                                Logger.error("Session not found : erroror ");
-                                            }
-                                        })
-                                        .catch(( vErr)=>{
-                                            Logger.error("Session not found : fatal error ",vErr);
-                                        });*/
-
                                 }else{
-                                    Logger.error("OIDC : User account cannot be created.");
+                                    Logger.error("OIDC : User account cannot be found and or created.");
                                     verified("OIDC : User account cannot be created.",null);
                                 }
                             });
-
-                        //profile.dxcSessID = req.session;
-
-                        //verified(null, profile, {});
-
-
-                        /*
-
-                        const userSvc = this._ctx.getUserService();
-                        // file UserAccount info with data
-                        const acc = new UserAccount({
-                            _uid:userinfo.id,
-                            _person: new Person({
-                                _lastname: userinfo.name.familyName,
-                                _firstname: userinfo.name.givenName,
-                            }),
-                            //_role?:UserRole,
-                            // TODO : employee ID
-                            // TODO : email , ...
-                            _username:userinfo.username
-                        });
-
-
-                        if(userinfo.dxc == null) userinfo.dxc = {};
-                        userinfo.dxcSessID = req.sessionID;
-
-
-                        const account = await userSvc.find(acc, { autoCreate: true});
-                        const sess = await  userSvc.getSessionService().asyncGetSessionByUID( req.sessionID)
-
-                        if(sess!=null && account!=null){
-                            sess.setUserAccount(acc);
-                            const saveSuccess = true; //= await userSvc.getSessionService().save(sess);
-
-                            if(saveSuccess){
-                                Logger.success("Session updated with user account [sess="+sess.getUID()+"] ");
-                            }else{
-                                Logger.error("Session cannot be updated with user account [sess="+sess.getUID()+"] ");
-                            }
-                        }else{
-                            console.log("Comething is wrong",sess,account);
-                        }
-
-                        console.log("ALL ITS DONE",userinfo);
-
-                        return done(null, acc);
-/*
-                        userSvc.find(acc, { autoCreate: true});
-
-
-
-                        // link user account to session
-
-                        // Important : Only executed on /api-auth/cb
-
-                        if(userinfo.dxc == null) userinfo.dxc = {};
-                        userinfo.dxcSessID = req.sessionID;
-
-                        //let sess:UserSession = null;
-                        userSvc.getSessionService()
-                            .asyncGetSessionByUID( req.sessionID)
-                            .then(( vSess)=>{
-                                sess = vSess;
-
-                                if(sess !=null){
-                                    sess.setUserAccount(acc);
-                                    userSvc.getSessionService().save(sess)
-                                        .then((vSuccess)=>{
-                                            if(vSuccess){
-                                                console.log(sess,sess.getUserAccount().person);
-                                                Logger.success("Session updated with user account [sess="+sess.getUID()+"] ");
-                                            }else{
-                                                Logger.error("Session cannot be updated with user account [sess="+sess.getUID()+"] ");
-                                            }
-
-                                        })
-                                        .catch((vErr)=>{
-                                            Logger.error("ERROR : Session cannot be updated : > "+vErr);
-                                        })
-                                }
-                            })
-                            .catch(( vErr)=>{
-                                Logger.error("Session not found (Promise) > ",vErr);
-                            });
-
-
-                        console.log("ALL ITS DONE");
-                        return done(null, userinfo);
-
-
-                        //userSvc.getSessionService().getSessionByUID(req)
-                        /*
-                        let usr:UserAccount;
-                        try{
-                            Logger.debug("Search logged user : "+userinfo.username);
-                            usr = this.findUser(userinfo.username);
-
-                            Logger.debug("Found user : "+usr.getUID());
-
-                            if(userinfo.dxc == null) userinfo.dxc = {};
-                            // instead, attach to default session
-                            const sess =  userSvc.createSession(usr);
-                            userinfo.dxcSessID = sess.getSessUID();
-                            //req.dxc.sess = userSvc.createSession(usr);
-
-                            // req.dxc.sess.addConnection( param.getName(), new ConnectionHandler(param) );
-
-
-                            // TODO : update with local project
-                        }catch(err){
-                            Logger.error(err);
-                            if(this._autoCreateOnSuccess){
-
-                                Logger.debug("Creating local account for logged user");
-                                const prs = new Person();
-                                prs.firstname = userinfo.name.givenName;
-                                prs.lastname = userinfo.name.familyName;
-
-                                usr = new UserAccount({
-                                    _uid: userinfo.id,
-                                    _username: userinfo.username,
-                                    _person: prs,
-                                    _password: "-",
-                                    _salt: "-",
-                                    _padding: "-"
-                                });
-
-                                this._users.setEntry(usr.getUID(), usr);
-                                this.save(false);
-
-                                // userSvc.createSession(usr);
-                                //if(req.dxc==null) req.dxc = {};
-                                //req.dxc.sess = userSvc.createSession(usr);
-
-                                if(userinfo.dxc == null) userinfo.dxc = {};
-                                const sess =  userSvc.createSession(usr);
-                                userinfo.dxcSessID = sess.getSessUID();
-
-                            }else{
-                                throw new Error("Authenticated user has not acccess to private instance. Private instance must locally authorize remote user");
-                            }
-                        }
-
-
-                        // Logique pour vérifier et traiter le token OIDC ici
-                        return done(null, userinfo);*/
                     }
                 )
             );
 
             passport.serializeUser(function(vUser:UserAccount, done:any) {
                 Logger.debug("[AUTH SERVICE][PASSPORT] Passport : serialize user ");
+                console.log("serializeUser > ",vUser);
                 done(null, vUser.toJsonObject());
             });
 
@@ -597,7 +365,7 @@ export class AuthenticationService {
 
             const addCORS = function(req:DelegateRequest, res:DelegateResponse, next:any){
 
-                Logger.info("[AUTH SERVICE][PIPE] Add CORS ");
+                Logger.info(`[AUTH SERVICE][PIPE][${req.path}][ip=${req.ip}] Add CORS from protectRoutesWithSSO`);
                 // TODO : make CORS parameter as env var
                 res.set('Access-Control-Allow-Origin', '*');
                 res.set('Access-Control-Allow-Methods', 'POST, GET, DELETE, OPTIONS, PUT');
@@ -607,13 +375,84 @@ export class AuthenticationService {
                     res.set('Content-Type', 'text/json');
                 }
 
-                req.dxc = {};
+                if(req.dxc==null){
+                    req.dxc = {};
+                }
 
                 next();
             };
 
 
-            (pApp as Application).get('/login', addCORS, passport.authenticate('openidconnect'));
+            passport.use(new LocalStrategy(
+                {
+                    passReqToCallback: true
+                },
+                (vReq, vUsername:string, vPasswd:string, vVerifiedCB:any)=> {
+
+                    ((this.newPasswordAuthenticator()
+                        .doAuthentication(vUsername,vPasswd))  as Promise<AuthenticationResult>)
+                        .then((vRes)=>{
+                            if(vRes._success){
+                                vVerifiedCB.apply(null, [null, vRes.getAccount(), vRes]);
+                            }else{
+                                vVerifiedCB.apply(null, [null, null, vRes]);
+                            }
+                        },(err)=>{
+                            vVerifiedCB.apply(null, [err, null, null]);
+                        }).catch((err)=>{
+                        vVerifiedCB.apply(null, [err, null, null]);
+                        })
+
+                    /*User.findOne({ username: username }, function (err, user) {
+                        if (err) { return done(err); }
+                        if (!user) { return done(null, false); }
+                        if (!user.verifyPassword(password)) { return done(null, false); }
+                        return done(null, user);
+                    });*/
+                }
+            ));
+
+            // enable password-based endpoints
+            this.servePasswordAuthEP( (pApp as Application),'/auth/login');
+
+            //(pApp as Application).get('/login', addCORS, passport.authenticate('openidconnect'));
+
+            (pApp as Application).get('/login', addCORS,
+                (req, res, next) => {
+
+
+                    let mode = null;
+                    if(req.query.mode!=null){
+                        mode = req.query.mode;
+                    }
+
+
+                    Logger.info(`[AUTH SERVICE][PIPE][${req.path}][ip=${req.ip}][mode=${mode}] /login `);
+                     // check if there are local active user account with authorized IPs
+                     // Home page should display : username/passwd based auth or SSO auth
+                     // check if SSO is configured
+
+
+                    if(mode=='sso'){
+                        passport.authenticate('openidconnect')(req,res,next);
+                    }else{
+                        // else check if there
+                        // check if it comes from globally authorized IPs
+                        if((this.settings.isLocalAuthEnabled() || pLocalAuth)
+                            && this.settings.getAuthorizedIPs().indexOf(req.ip)>-1){
+
+                            this.serveLoginPage(req,res,next);
+
+
+                            //passport.authenticate('local')(req,res,this.serveLoginPage);
+                            return;
+                        }else{
+                            passport.authenticate('openidconnect')(req,res,next);
+                        }
+                    }
+
+
+                });
 
             (pApp as Application).get('/api-auth/cb',
                 passport.authenticate('openidconnect', {
@@ -626,7 +465,6 @@ export class AuthenticationService {
 
 
                     Logger.info("SSO : /api-auth/callback : auth callback");
-                    console.log(req, (req as any).session);
                     // depend of original request
                     res.redirect('/home/');
                 });
@@ -634,5 +472,136 @@ export class AuthenticationService {
         }
     }
 
+
+    serveLoginPage( vReq:any, vRes:any, vNext:any):void {
+
+
+        let page = _fs_.readFileSync(
+            _path_.join(
+                Util.__dirname(import.meta.url),'..','..','..', 'assets', 'login', 'index.html'
+            ), {
+                encoding: 'utf-8'
+            }
+        ).toString();
+
+        // context
+        const context:PasswordFormContext = {
+            replayUID: randomUUID(),
+            usernameField: randomUUID(),
+            pwdField: randomUUID(),
+            csrfField: randomUUID(),
+            csrfToken: randomUUID()
+        };
+
+        if((vReq as any).session.forms==null){
+            (vReq as any).session.forms = {};
+        }
+
+        (vReq as any).session.forms[context.replayUID] = context;
+
+        // replace tokens in page chunk
+        page = page.replaceAll('@@_ANTI_REPLAY_ENDPOINT_@@',context.replayUID);
+        page = page.replaceAll('@@_FORM_USERNAME_@@',context.usernameField);
+        page = page.replaceAll('@@_FORM_PASSWORD_@@',context.pwdField);
+        page = page.replaceAll('@@_CSRF_TOKEN_NAME_@@',context.csrfField);
+        page = page.replaceAll('@@_CSRF_TOKEN_VAL_@@',context.csrfToken);
+
+
+        vRes.status(200);
+        vRes.write(page, ()=>{
+            vRes.send();
+            return;
+        });
+        return;
+    }
+
+
+    /**
+     * To serve an endpoint to receive password-based authentication
+     * @param pEndpointURI
+     */
+    servePasswordAuthEP(pApp:Application, pEndpointURI:string):void {
+
+
+
+        (pApp as Application).post(
+            pEndpointURI+'/:antiReplayID',
+            BodyParser.urlencoded({ extended: false }),
+            passport.authenticate('local', {
+                successMessage: true,
+                failureMessage:true,
+                failureRedirect: '/login',
+                successReturnToOrRedirect: '/home/', // NEW
+            })/*,
+            (req, res, next) => {
+
+
+                Logger.info("Local auth : authentication success");
+                // depend of original request
+                res.redirect('/home/');
+            })*/);
+            /*
+            async (vReq, vRes, vNext):Promise<void>=>{
+
+                Logger.info(` [AUTH SERVICE][LOGIN][path=${vReq.path}][ip=${vReq.ip}] Receipt `);
+
+                try{
+                    if((vReq as any).session==null || (vReq as any).session.forms==null){
+                        throw RuntimeSecurityException.BROKEN_LOGIN_WORKFLOW();
+                    }
+
+                    const formCtx = (vReq as any).session.forms[vReq.params['antiReplayID']] as PasswordFormContext;
+
+                    delete (vReq as any).session.forms[vReq.params['antiReplayID']];
+
+                    // check anti-replay token
+                    if(formCtx==null){
+                        throw RuntimeSecurityException.AUTH_REPLAY_DETECTED(/^[a-f0-9-]+$/.test(vReq.params['antiReplayID'])?vReq.params['antiReplayID']:"...");
+                    }
+
+
+                    // check CSRF token
+                    const csrfToken = (vReq as any).body[formCtx.csrfField];
+                    if(csrfToken==null){
+                        throw RuntimeSecurityException.CSRF_TOKEN_IS_EMPTY("/auth/login/...");
+                    }
+                    if(csrfToken!==formCtx.csrfToken){
+                        throw RuntimeSecurityException.CSRF_TOKEN_IS_WRONG("/auth/login/...");
+                    }
+
+                    // perform authentication
+                    const authRes = await this.newPasswordAuthenticator().doAuthentication(
+                        (vReq as any).body[formCtx.usernameField],
+                        (vReq as any).body[formCtx.pwdField]
+                    );
+
+                    console.log(authRes);
+                    if(authRes._success){
+
+                        // recreate session
+                        (vReq as any).session.regenerate((err:any)=>{
+                            (vReq as any).session.user = authRes.getAccount();
+                        });
+                        //(vReq as any).session = new
+                        //((vReq as any).session as ExpressSess.destroy();
+
+                        vRes.redirect('/home/');
+                    }else{
+                        vRes.redirect('/login');
+                    }
+                    return;
+                }catch (err){
+                    Logger.error(err.message,err.stack);
+                    vRes.redirect('/login');
+                    return;
+                }
+
+            }*/
+    }
+
+
+    exposeLoginAuthentication(){
+
+    }
 
 }

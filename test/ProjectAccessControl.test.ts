@@ -242,7 +242,7 @@ describe('ProjectAccessControl', function() {
 
                 s = 1;
                 pac.check(
-                    ProjectAccessControl.access.PROJ_SETTINGS_READ,
+                    AccessControl.access.PROJ_SETTINGS_READ,
                     usr_account
                 )
                 s = 2;
@@ -252,7 +252,7 @@ describe('ProjectAccessControl', function() {
                 s = 3;
 
                 pac.check(
-                    ProjectAccessControl.access.PROJ_SETTINGS_EDIT,
+                    AccessControl.access.PROJ_SETTINGS_EDIT,
                     usr_account
                 );
 

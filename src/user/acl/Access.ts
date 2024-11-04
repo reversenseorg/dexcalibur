@@ -1,4 +1,4 @@
-import {AuthCode} from "../auth/AuthTypes.js";
+import {AccessZone} from "./Zones.js";
 
 /**
  * org: {
@@ -21,13 +21,6 @@ export enum AccesErrCode {
     ATTR_UNKNOWN,
     VIOLATION,
     MANDATORY_OBJECT_UNDEFINED
-};
-
-
-export enum AccessZone {
-    GLOBAL='g',
-    PROJECT='p',
-    HOST='h'
 }
 
 export enum AccessType {
@@ -35,6 +28,8 @@ export enum AccessType {
     WRITE,
     EXE
 }
+
+export type AccessUID = string;
 
 export interface AccessMap {
     [uid:string] :Access
@@ -47,26 +42,33 @@ export enum AccessProperty {
     TYPE='type'
 }
 
+
 /**
  * Represents an access point
  */
 export class Access {
 
     private _t:AccessType = AccessType.WRITE;
-    private _n:string;
+    private _n:AccessUID;
     private _d:string;
+    private _zones:AccessZone[] = [];
 
-    constructor( pType:AccessType, pName:string, pDescr:string = null) {
+    constructor( pType:AccessType, pName:AccessUID, pDescr:string = null) {
         this._t = pType;
         this._n = pName;
         this._d = pDescr;
+        //this._zones = pZones;
+    }
+
+    getUID():AccessUID{
+        return this._n;
     }
 
     get description():string {
         return this._d;
     }
 
-    get name():string {
+    get name():AccessUID {
         return this._n;
     }
 

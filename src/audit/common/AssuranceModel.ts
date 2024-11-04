@@ -7,7 +7,7 @@ import {Metadata} from "./Metadata.js";
 import {Auditable} from "../../Auditable.js";
 import {IAuditableAccess} from "../../user/acl/IAuditableAccess.js";
 import {ProjectAccessControl} from "../../user/acl/rbac/ProjectAccessContol.js";
-import {AuditAccessControl} from "../../user/acl/rbac/AssuranceModelAccessControl.js";
+import {AuditAccessControl} from "../../user/acl/rbac/AuditAccessControl.js";
 import ControlAssessment from "./ControlAssessment.js";
 import {IControl} from "./IControl.js";
 import {CoreDebug} from "../../core/CoreDebug.js";

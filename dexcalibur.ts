@@ -62,6 +62,10 @@ var Parser:ArgParser = new ArgParser(projectArgs, "dexcalibur", [
         help: "Enable IPC handlers",
         hasVal: false,
         callback: (ctx,param)=>{ ctx.ipc = true; } },
+    { name:"--install",
+        help: "Start with install flag",
+        hasVal: false,
+        callback: (ctx,param)=>{ ctx.installMode = true; } },
     { name:"--ipc-mode",
         help: "To set Dexcalibur behavior when IPC is enabled [ WAIT, API ]. If mode is 'WAIT' then program is commanded exclusively by IPC. Default: API   ",
         hasVal: true,
@@ -267,9 +271,15 @@ if( !projectArgs.ipc
                 cfg = Settings.GlobalSettings.load(cfg.getPath());
             }
 
+            if(projectArgs.installMode != null){
+                dxcInstance.enableInstallMode(cfg);
+            }
 
             // init engine with settings
             await dxcInstance.loadConfiguration(cfg);
+
+
+
 
             if(projectArgs.repairWS != null){
                 dxcInstance.repairMode({

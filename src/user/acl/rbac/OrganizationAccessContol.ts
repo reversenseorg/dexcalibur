@@ -6,19 +6,19 @@ import DexcaliburProject from "../../../DexcaliburProject.js";
 import {UserAccount} from "../../UserAccount.js";
 import AccessControl from "../AccessControl.js";
 import {Nullable} from "../../../core/IStringIndex.js";
+import {Auditable} from "../../../Auditable.js";
 import {AccessZone} from "../Zones.js";
 
 
-export class ProjectAccessControl extends DelegateAccessControl {
+export class OrganizationAccessControl extends DelegateAccessControl {
+
 
     static ready = false;
 
-    static uid:string = 'PROJ';
+    static uid:string = 'ORG';
 
     static attr:AccessAttributeMap = {
-        OWNER: new AccessAttribute( 'owner', []),
-        TESTER: new AccessAttribute( 'tester', [])
-   //     GROUP: new AccessAttribute( 'group')
+        MEMBER: new AccessAttribute( 'member', [])
     };
 
     constructor() {
@@ -27,19 +27,25 @@ export class ProjectAccessControl extends DelegateAccessControl {
 
     }
 
+
+
     boot():void{
-        if(!ProjectAccessControl.ready){
+        if(!OrganizationAccessControl.ready){
             AccessControl.getInstance().assignAccess(
-                AccessZone.PROJECT,
+                AccessZone.ORGANIZATION,
                 [
-                    AccessControl.access.PROJ_OPEN_OWN,
-                    AccessControl.access.PROJ_OPEN_ANY
+
+                    AccessControl.access.ORG_OU_READ,
+                    AccessControl.access.ORG_OU_MODIFY,
+                    AccessControl.access.ORG_AU_READ,
+                    AccessControl.access.ORG_AU_MODIFY
+                    //AccessControl.access.ORG_AUTH_MGT,
+                    //AccessControl.access.ORG_ACL_MGT
                 ]
             );
-            ProjectAccessControl.ready = true;
+            OrganizationAccessControl.ready = true;
         }
     }
-
 
 }
 

@@ -1,9 +1,8 @@
 import {IncomingValue, SanitizedValue, UnsafeValue} from "../../security/SanitizedValue.js";
 import {GlobalSettingsException} from "../../errors/GlobalSettingsException.js";
 import {SecurityZone} from "../../security/SecurityZone.js";
-import { Settings} from "../../Settings.js";
+import {Settings} from "../../Settings.js";
 import AbstractSettings = Settings.AbstractSettings;
-import ServerSettings = Settings.ServerSettings;
 
 
 export interface SignatureServerOptions {
@@ -20,7 +19,7 @@ const DEFAULT_HTTP_PORT = 8085;
  * @class
  * @export
  */
-export class SignatureServerSettings extends AbstractSettings {
+export class SignatureServerSettings extends Settings.AbstractSettings {
 
     /**
      * Hostname
@@ -65,7 +64,7 @@ export class SignatureServerSettings extends AbstractSettings {
      * @constructor
      * @since 1.0.0
      */
-    constructor( pParent:ServerSettings, pConfig:SignatureServerOptions= {} /*Http:number, pWs:number*/) {
+    constructor( pParent:Settings.ServerSettings, pConfig:SignatureServerOptions= {} /*Http:number, pWs:number*/) {
         super(pParent);
 
         this._host = (process.env.DXC_SS_HOST ? process.env.DXC_SS_HOST : '127.0.0.1');

@@ -188,7 +188,7 @@ export class WebsocketServer
 
                                                         AccessControl.check(
                                                             AccessZone.PROJECT,
-                                                            ProjectAccessControl.access.PROJ_OPEN_OWN,
+                                                            AccessControl.access.PROJ_OPEN_OWN,
                                                             prj,
                                                             sess.getUserAccount()
                                                         );
@@ -196,7 +196,7 @@ export class WebsocketServer
                                                         if(wf!=null){
                                                             AccessControl.check(
                                                                 AccessZone.GENERIC,
-                                                                GlobalAccessControl.access.GLOB_SHOW_ALL_WORKFLOWS,
+                                                                AccessControl.access.GLOB_SHOW_ALL_WORKFLOWS,
                                                                 wf,
                                                                 sess.getUserAccount()
                                                             );

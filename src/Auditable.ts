@@ -3,7 +3,7 @@ import {AccessAttribute, AccessAttributeMap} from "./user/acl/AccessAttribute.js
 
 export abstract class Auditable extends ValidationCapable{
 
-    _attr: AccessAttributeMap = {};
+    _attr: Record<string, AccessAttribute> = {};
 
     constructor( pValidationRules:ValidationRulesMap) {
         super(pValidationRules);
@@ -15,6 +15,8 @@ export abstract class Auditable extends ValidationCapable{
 
     /**
      * To get access attribute by its name
+     *
+     * Should be a list user UUIDs
      *
      * @param {string} pName Attribute name
      * @return {AccessAttribute}

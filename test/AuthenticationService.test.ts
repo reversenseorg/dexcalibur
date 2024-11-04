@@ -7,7 +7,7 @@ import {AuthenticationSettings} from "../src/user/auth/AuthenticationSettings.js
 import {AuthenticationPolicy} from "../src/user/auth/AuthenticationPolicy.js";
 import {AuthenticationService} from "../src/user/auth/AuthenticationService.js";
 import {UserAccount} from "../src/user/UserAccount.js";
-import {PasswordAuthenticator} from "../src/user/auth/Authenticator.js";
+import {PasswordAuthenticator} from "../src/user/auth/PasswordAuthenticator.js";
 import {Authenticator} from "../src/user/auth/AuthTypes.js";
 import Util from "../src/Utils.js";
 

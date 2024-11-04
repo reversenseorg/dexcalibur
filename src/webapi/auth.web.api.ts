@@ -127,7 +127,7 @@ AUTH_WEB_API.addPublicRoute(
                 if(param.getName()=="local"){
                     if(req.dxc == null || req.dxc.sess == null){
                         if(req.dxc == null) req.dxc = {};
-                        req.dxc.sess = $.context.getUserService().do1StepPasswordAuthentication(
+                        req.dxc.sess = await $.context.getUserService().do1StepPasswordAuthentication(
                             req.body['login'],
                             req.body['pwd']
                         );
