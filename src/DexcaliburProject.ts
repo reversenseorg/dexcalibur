@@ -1610,7 +1610,6 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
                                    pZone:SecurityZone = SecurityZone.PUBLIC):Promise<any> {
 
         // create a minimalist instance of project to check if the user own or not this project
-
         if(pProjectUID=="-"){
             return null;
         }

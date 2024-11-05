@@ -133,13 +133,22 @@ export class UserService {
         this.authSvc = new AuthenticationService(this._settings, this);
         try{
             await this.authSvc.init();
+        }catch (err){
 
+            // if SSO settings exists, then the remote server is unreachable
+            // as alternative way, check if local authentication is allowed
+            if(this._settings.isLocalAuthEnabled()){
+                // TODO : later add API Key auth check and more
+                // continue
+            }else{
+                // there is not alternative, engine cannot start
+                throw UserServiceException.AUTH_IS_NOT_READY();
+            }
+        }finally {
             this.sessSvc = new SessionService( this._settings.getSessionSettings(),pContext);
             this.sessSvc.setBackendCollection(
                 pContext.getEngineDB().getCollectionOf(UserSession.TYPE.getType()) as MongodbDbCollection
             );
-        }catch (err){
-            throw UserServiceException.AUTH_IS_NOT_READY();
         }
     }
 

@@ -235,8 +235,6 @@ describe('AndroidInputProfiler', function() {
 
         let buses = AndroidInputProfile.parseGeventOutput(Buffer.from(WELLFORMED_GETEVENT));
 
-        console.log(buses)
-
         it('parsing of strings.xml file from a valid Android APK file ', function () {
             expect(buses.length).to.be.equals(2);
         });

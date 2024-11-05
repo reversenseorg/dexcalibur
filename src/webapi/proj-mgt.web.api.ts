@@ -35,9 +35,7 @@ PROJECT_MGT_WEB_API.addAuthenticatedRoute(
             let user:UserAccount;
 
             try {
-
                     user = (req.dxc.sess as UserSession).getUserAccount();
-
 
                     $.sendSuccess( res, {
                         projects: await user.listProjects($.context)

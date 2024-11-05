@@ -1203,9 +1203,10 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
      *
      * @param pUser
      */
-    async listProjectsOf( pUser:UserAccount):Promise<DexcaliburProjectMap> {
+    async listProjectsOf( pUser:UserAccount):Promise<Record<string,DexcaliburProject>> {
         const PUIDS = this.workspace.listProjects();
-        const map:DexcaliburProjectMap = {};
+
+        const map:Record<string,DexcaliburProject> = {};
         let project:DexcaliburProject;
 
         for(let i=0; i<PUIDS.length; i++){

@@ -9,6 +9,8 @@ import {NodeInternalType, Nullable} from "@dexcalibur/dxc-core-api";
 import {OrganizationManagerException} from "../errors/OrganizationManagerException.js";
 import {IDbCollection} from "@dexcalibur/dexcalibur-orm";
 import {randomUUID} from "crypto";
+import {MongodbDbCollection} from "@dexcalibur/dexcalibur-orm-mongodb";
+import {SsoOptions} from "../user/auth/AuthenticationService.js";
 
 
 export class OrganizationManager {
@@ -27,9 +29,30 @@ export class OrganizationManager {
             pUserAccount
         );
 
-        return await this._ctx.getEngineDB()
+        const all = await this._ctx.getEngineDB()
             .getCollectionOf(OrganizationUnit.TYPE.getType())
             .getAsList();
+
+        console.log(all);
+
+        const userOrg:OrganizationUnit[] = all.filter(p => {
+            try{
+                // test membership
+                /*AccessControl.check(
+                    AccessZone.ORGANIZATION,
+                    AccessControl.access.ORG_OU_READ,
+                    null,
+                    pUserAccount
+                );*/
+                return true;
+            }catch (err){
+                return false
+            }
+        });
+
+
+
+        return userOrg;
     }
 
     /**
@@ -52,14 +75,12 @@ export class OrganizationManager {
     }
 
     async isUuidFree(pType:NodeInternalType, pUUID:string):Promise<boolean> {
-        let exists = false;
+
         let coll:Nullable<IDbCollection> = null;
         switch (pType){
             case NodeInternalType.ORG_UNIT:
-                coll = await this._ctx.getEngineDB().getCollectionOf(pType).search({ uuid:pUUID });
-                break;
             case NodeInternalType.APP_UNIT:
-                coll = await this._ctx.getEngineDB().getCollectionOf(pType).search({ uuid:pUUID });
+                coll = await (this._ctx.getEngineDB().getCollectionOf(pType) as MongodbDbCollection);
                 break;
         }
 
@@ -68,9 +89,9 @@ export class OrganizationManager {
         }
 
 
-        const res = await coll.search({ uuid:pUUID })
+        const res = await (coll as MongodbDbCollection).asyncGetEntry({ uuid:pUUID });
         console.log("isUuidFree ",res);
-        return (res.length==0)
+        return (res == null);
     }
 
     async createOrganizations(pUserAccount:UserAccount, pOrg:OrganizationUnit):Promise<OrganizationUnit> {
@@ -91,6 +112,21 @@ export class OrganizationManager {
         //AccessControl.checkAttr( AccessZone.ORGANIZATION, OrganizationAccessControl.attr.member, org,  pUserAccount);
 
         return org;
+    }
+
+    async updateOrganization(pUserAccount:UserAccount, pOrg:OrganizationUnit):Promise<boolean> {
+        AccessControl.check( AccessZone.ORGANIZATION, AccessControl.access.ORG_OU_WRITE, null, pUserAccount);
+
+        return await this._ctx.getEngineDB()
+            .getCollectionOf(OrganizationUnit.TYPE.getType())
+            .asyncUpdateEntry(pOrg, {replace:false});;
+    }
+
+
+    async testSsoConnection(pAccount:UserAccount, pConnSettings:SsoOptions):Promise<boolean> {
+        AccessControl.check( AccessZone.ORGANIZATION, AccessControl.access.ORG_AUTH_MGT, null, pAccount);
+
+        return await this._ctx.getUserService().getAuthenticationService().testSsoConnection(pConnSettings)
     }
 
 }

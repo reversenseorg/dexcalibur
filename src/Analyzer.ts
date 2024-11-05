@@ -695,7 +695,7 @@ export default class Analyzer
                             stmt[j].setTarget(t);
                         else{
                             Logger.error("Target catch block not found");
-                            console.log( stmt[j].getTarget());
+                            Logger.raw( stmt[j].getTarget());
                         }
                     }
                 }

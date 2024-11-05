@@ -1244,7 +1244,6 @@ export default class WebServer
 
                             }
 
-                            console.log(req.session,(req as any).user,req.dxc,req.session.passport)
                             next();
                         }else{
                             throw new Error("Session cannot be restored/opened : Session not found : "+(req as any).sessionID);
@@ -1328,9 +1327,6 @@ export default class WebServer
 
             Logger.info(` [WEBSERVER][MIDDLEWARE][ensureGuiLoggedIn][path=${req.path}][ip=${req.ip}] Receipt `);
 
-            console.log(req.session);
-            console.log(req.user);
-            console.log(req.isAuthenticated())
             if (req.isAuthenticated !=null && req.isAuthenticated()) {
                 return next();
             }

@@ -22,6 +22,7 @@ import {AuthenticationException} from "../errors/AuthenticationException.js";
 import {DexcaliburProjectException} from "../errors/DexcaliburProjectException.js";
 import {TagManager} from "../tags/TagManager.js";
 import {MongodbDbCollection} from "@dexcalibur/dexcalibur-orm-mongodb";
+import {UserAccount} from "../user/UserAccount.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 export const PROJECT_WEB_API: DelegateWebApi = new DelegateWebApi();
@@ -97,6 +98,19 @@ PROJECT_WEB_API.addAuthenticatedRoute(
             const $:WebServer = req.dxc.$;
 
             try{
+
+
+               /* $.context.listProjectsOf(req.session?.passport?.user as UserAccount)
+                const projs:DexcaliburProject[] = await (req.session?.passport?.user as UserAccount)
+                                                        .listProjects($.context);
+
+                const list:any[] = [];
+
+                projs.map(x => {
+                    list.push( x.toJsonObject());
+                });
+
+                */
                 const data:any[] = [];
                 const projColl = ($.context.getEngineDB().getCollectionOf(DexcaliburProject.TYPE.getType()));
                 const proj = await (projColl as MongodbDbCollection).getAsList();

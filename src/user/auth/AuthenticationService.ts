@@ -29,6 +29,8 @@ import {RuntimeSecurityException} from "../../errors/RuntimeSecurityException.js
 import {UserService} from "../UserService.js";
 import * as _bodyparser_ from 'body-parser';
 import {LocalStrategy} from "./passport/LocalStrategy.js";
+import AccessControl from "../acl/AccessControl.js";
+import {AccessZone} from "../acl/Zones.js";
 
 const GOT = got.default;
 const BodyParser = (_bodyparser_ as any).default;
@@ -52,6 +54,13 @@ export interface PasswordPolicy {
     minLength: number,
     maxLength: number,
     genLength: number
+}
+
+
+export interface SsoOptions {
+    clientId?: string;
+    clientSecret?: string;
+    discoverUri?: string;
 }
 
 export class AuthenticationService {
@@ -267,6 +276,7 @@ export class AuthenticationService {
 
     protectRoutes( pApp:Application|Router, pCfg:{sso:boolean,local:boolean} ):void {
 
+        // session middleware
         pApp.use(
             expressSession({
                 secret: 'another_long_secret',
@@ -280,24 +290,42 @@ export class AuthenticationService {
             })
         );
 
+        // passport init + session binding
         pApp.use(passport.initialize());
         pApp.use(passport.session());
 
-        this.protectRoutesWithSSO(pApp, pCfg.local);
+        passport.serializeUser(function(vUser:UserAccount, done:any) {
+            Logger.debug("[AUTH SERVICE][PASSPORT] Passport : serialize user ");
+            console.log("serializeUser > ",vUser);
+            done(null, vUser.toJsonObject());
+        });
+
+        passport.deserializeUser(function(vUser:any, done:any) {
+            const user = new UserAccount(vUser);
+            Logger.debug("[AUTH SERVICE][PASSPORT] Passport : deserialize user ");
+            done(null, user);
+        });
+
+        // authentication strategies
+        if(this.isSsoEnabled()){
+            this._setupOidcStrategy(pApp);
+        }
+
+        if(this.settings.isLocalAuthEnabled()){
+            this._setupLocalStrategy(pApp)
+        }
+
+        // todo : add API Key auth
+
+        this.serveLoginEP(pApp, pCfg.local);
     }
 
-
     /**
-     * To deploy routes and middleware required to check sso token
      *
-     * This method is called only whe an OIDC client is configured
-     *
-     * @param pApp
-     * @method
+     * @private
      */
-    protectRoutesWithSSO( pApp:Application|Router, pLocalAuth:boolean):void {
-
-        if(this.sso_need_config){
+    private _setupOidcStrategy(pApp:Application|Router){
+        if(this.sso_need_config) {
             this.sso_need_config = false;
 
             // this creates the strategy toi authenticate using oidc
@@ -310,7 +338,7 @@ export class AuthenticationService {
                         userInfoURL: this._oidClientCfg.issuer.userinfo_endpoint,
                         clientID: this._oidClientCfg.settings.client_id,
                         clientSecret: this._oidClientCfg.settings.client_secret,
-                        callbackURL:  this._oidClientCfg.settings.redirect_uris[0],
+                        callbackURL: this._oidClientCfg.settings.redirect_uris[0],
                         passReqToCallback: true
                     },
                     (req, issuer, profile, verified) => {
@@ -319,7 +347,7 @@ export class AuthenticationService {
 
 
                         const acc = new UserAccount({
-                            _uid:profile.id,
+                            _uid: profile.id,
                             _person: new Person({
                                 _lastname: profile.name.familyName,
                                 _firstname: profile.name.givenName,
@@ -331,128 +359,26 @@ export class AuthenticationService {
                             _roles: [AccessControlManager.BUILT_IN_DEFAULT_ROLE],
                             // TODO : employee ID
                             // TODO : email , ...
-                            _username:profile.username
+                            _username: profile.username
                         });
 
                         this._ctx.getUserService().find(acc, {
-                            autoCreate:true,
+                            autoCreate: true,
                             type: UserAccountType.FEDERATED
-                        }).then((vAccount:Nullable<UserAccount>)=>{
-                                console.log("OIDC Verifiying > ",vAccount);
+                        }).then((vAccount: Nullable<UserAccount>) => {
+                            console.log("OIDC Verifiying > ", vAccount);
 
-                                if(vAccount != null){
-                                    verified( null, acc);
-                                }else{
-                                    Logger.error("OIDC : User account cannot be found and or created.");
-                                    verified("OIDC : User account cannot be created.",null);
-                                }
-                            });
+                            if (vAccount != null) {
+                                verified(null, acc);
+                            } else {
+                                Logger.error("OIDC : User account cannot be found and or created.");
+                                verified("OIDC : User account cannot be created.", null);
+                            }
+                        });
                     }
                 )
             );
 
-            passport.serializeUser(function(vUser:UserAccount, done:any) {
-                Logger.debug("[AUTH SERVICE][PASSPORT] Passport : serialize user ");
-                console.log("serializeUser > ",vUser);
-                done(null, vUser.toJsonObject());
-            });
-
-            passport.deserializeUser(function(vUser:any, done:any) {
-                const user = new UserAccount(vUser);
-                Logger.debug("[AUTH SERVICE][PASSPORT] Passport : deserialize user ");
-                done(null, user);
-            });
-
-            const addCORS = function(req:DelegateRequest, res:DelegateResponse, next:any){
-
-                Logger.info(`[AUTH SERVICE][PIPE][${req.path}][ip=${req.ip}] Add CORS from protectRoutesWithSSO`);
-                // TODO : make CORS parameter as env var
-                res.set('Access-Control-Allow-Origin', '*');
-                res.set('Access-Control-Allow-Methods', 'POST, GET, DELETE, OPTIONS, PUT');
-                res.set('Access-Control-Allow-Headers', 'Content-Type, authorization');
-
-                if(req.url.startsWith('/api/')){
-                    res.set('Content-Type', 'text/json');
-                }
-
-                if(req.dxc==null){
-                    req.dxc = {};
-                }
-
-                next();
-            };
-
-
-            passport.use(new LocalStrategy(
-                {
-                    passReqToCallback: true
-                },
-                (vReq, vUsername:string, vPasswd:string, vVerifiedCB:any)=> {
-
-                    ((this.newPasswordAuthenticator()
-                        .doAuthentication(vUsername,vPasswd))  as Promise<AuthenticationResult>)
-                        .then((vRes)=>{
-                            if(vRes._success){
-                                vVerifiedCB.apply(null, [null, vRes.getAccount(), vRes]);
-                            }else{
-                                vVerifiedCB.apply(null, [null, null, vRes]);
-                            }
-                        },(err)=>{
-                            vVerifiedCB.apply(null, [err, null, null]);
-                        }).catch((err)=>{
-                        vVerifiedCB.apply(null, [err, null, null]);
-                        })
-
-                    /*User.findOne({ username: username }, function (err, user) {
-                        if (err) { return done(err); }
-                        if (!user) { return done(null, false); }
-                        if (!user.verifyPassword(password)) { return done(null, false); }
-                        return done(null, user);
-                    });*/
-                }
-            ));
-
-            // enable password-based endpoints
-            this.servePasswordAuthEP( (pApp as Application),'/auth/login');
-
-            //(pApp as Application).get('/login', addCORS, passport.authenticate('openidconnect'));
-
-            (pApp as Application).get('/login', addCORS,
-                (req, res, next) => {
-
-
-                    let mode = null;
-                    if(req.query.mode!=null){
-                        mode = req.query.mode;
-                    }
-
-
-                    Logger.info(`[AUTH SERVICE][PIPE][${req.path}][ip=${req.ip}][mode=${mode}] /login `);
-                     // check if there are local active user account with authorized IPs
-                     // Home page should display : username/passwd based auth or SSO auth
-                     // check if SSO is configured
-
-
-                    if(mode=='sso'){
-                        passport.authenticate('openidconnect')(req,res,next);
-                    }else{
-                        // else check if there
-                        // check if it comes from globally authorized IPs
-                        if((this.settings.isLocalAuthEnabled() || pLocalAuth)
-                            && this.settings.getAuthorizedIPs().indexOf(req.ip)>-1){
-
-                            this.serveLoginPage(req,res,next);
-
-
-                            //passport.authenticate('local')(req,res,this.serveLoginPage);
-                            return;
-                        }else{
-                            passport.authenticate('openidconnect')(req,res,next);
-                        }
-                    }
-
-
-                });
 
             (pApp as Application).get('/api-auth/cb',
                 passport.authenticate('openidconnect', {
@@ -460,16 +386,118 @@ export class AuthenticationService {
                     failureMessage:true,
                     failureRedirect: '/login',
                     successReturnToOrRedirect: '/home/', // NEW
-                }),
+                })/*,
                 (req, res, next) => {
 
 
                     Logger.info("SSO : /api-auth/callback : auth callback");
                     // depend of original request
                     res.redirect('/home/');
-                });
+                }*/);
 
         }
+    }
+
+    /**
+     * Setup local authentication, and authentication endpoint
+     *
+     * @param pApp
+     * @param pCfg
+     * @private
+     */
+    private _setupLocalStrategy(pApp:Application|Router):void {
+
+        passport.use(new LocalStrategy(
+            {
+                passReqToCallback: true
+            },
+            (vReq, vUsername:string, vPasswd:string, vVerifiedCB:any)=> {
+                ((this.newPasswordAuthenticator()
+                    .doAuthentication(vUsername,vPasswd))  as Promise<AuthenticationResult>)
+                    .then((vRes)=>{
+                        if(vRes._success){
+                            vVerifiedCB.apply(null, [null, vRes.getAccount(), vRes]);
+                        }else{
+                            vVerifiedCB.apply(null, [null, null, vRes]);
+                        }
+                    },(err)=>{
+                        vVerifiedCB.apply(null, [err, null, null]);
+                    }).catch((err)=>{
+                    vVerifiedCB.apply(null, [err, null, null]);
+                })
+            }
+        ));
+
+        (pApp as Application).post(
+            '/auth/login/:antiReplayID',
+            BodyParser.urlencoded({ extended: false }),
+            passport.authenticate('local', {
+                successMessage: true,
+                failureMessage:true,
+                failureRedirect: '/login',
+                successReturnToOrRedirect: '/home/', // NEW
+            })
+        );
+    }
+
+    /**
+     * To deploy routes and middleware required to check sso token
+     *
+     * This method is called only whe an OIDC client is configured
+     *
+     * @param pApp
+     * @method
+     */
+    serveLoginEP( pApp:Application|Router, pLocalAuth:boolean):void {
+
+        (pApp as Application).get('/login',
+            (req, res, next) => {
+
+                // TODO : make CORS parameter as env var
+                res.set('Access-Control-Allow-Origin', '*');
+                res.set('Access-Control-Allow-Methods', 'POST, GET, DELETE, OPTIONS, PUT');
+                res.set('Access-Control-Allow-Headers', 'Content-Type, authorization');
+
+                let mode = null;
+                if(req.query.mode!=null){
+                    mode = req.query.mode;
+                }
+
+                if((req as any).dxc==null){
+                    (req as any).dxc = {};
+                }
+
+                Logger.info(`[AUTH SERVICE][PIPE][${req.path}][ip=${req.ip}][mode=${mode}] /login `);
+                 // check if there are local active user account with authorized IPs
+                 // Home page should display : username/passwd based auth or SSO auth
+                 // check if SSO is configured
+
+                if(mode=='sso'){
+                    if(this.isSsoEnabled()){
+                        passport.authenticate('openidconnect')(req,res,next);
+                    }else{
+                        res.status(200);
+                        res.send("Access denied");
+                        return;
+                    }
+
+                }else{
+                    // else check if there
+                    // check if it comes from globally authorized IPs
+                    if((this.settings.isLocalAuthEnabled() || pLocalAuth)
+                        && this.settings.getAuthorizedIPs().indexOf(req.ip)>-1){
+                        this.serveLoginPage(req,res,next);
+                        return;
+                    }
+                    else if(this.isSsoEnabled()){
+                        passport.authenticate('openidconnect')(req,res,next);
+                    }else{
+                        res.status(200);
+                        res.send("Access denied");
+                        return;
+                    }
+                }
+            });
     }
 
 
@@ -602,6 +630,43 @@ export class AuthenticationService {
 
     exposeLoginAuthentication(){
 
+    }
+
+    async testSsoConnection( pConnSettings:SsoOptions):Promise<any> {
+        let res:any = {success:false, msg:null};
+        try {
+            const issuer = await Issuer.discover(pConnSettings.discoverUri);
+
+            //Logger.debugRAW(issuer);
+            const _oidClientCfg = {
+                issuer: issuer,
+                settings: {
+                    discoverUri: pConnSettings.discoverUri,
+                    client_id: pConnSettings.clientId,
+                    client_secret: pConnSettings.clientSecret,
+                    redirect_uris: this.settings.getOidcRedirectUris(),
+                    post_logout_redirect_uris: this.settings.getOidcLogoutUris(),
+                    response_types: this.settings.getOidcResponseType()
+                },
+                extra: {
+                    authorizationURL: issuer.authorization_endpoint,
+                    tokenURL: issuer.token_endpoint,
+                    userInfoURL: issuer.userinfo_endpoint
+                }
+            };
+
+            res.success = (issuer!=null)
+                            && (_oidClientCfg.extra.authorizationURL!=null)
+                            && (_oidClientCfg.extra.tokenURL!=null)
+                            && (_oidClientCfg.extra.userInfoURL!=null);
+
+        }catch(err){
+            console.log(err.message,err.stack);
+            res.msg = err.message;
+            res.success = false;
+        }
+
+        return res;
     }
 
 }

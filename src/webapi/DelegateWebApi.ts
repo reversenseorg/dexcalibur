@@ -365,9 +365,6 @@ export class DelegateWebApi
 
                                     if(self.srv.context.engine_type==DexcaliburEngineMode.MASTER){
 
-                                       // console.log(req.dxc.project.getUID());
-                                       // console.log(req.dxc.project);
-                                       // nodes = self.srv.context.nodeManager.getNodeByProject(req.query.uid as string);
                                         nodes = self.srv.context.nodeManager.getNodeByProject(req.dxc.project.getUID());
 
                                         if(nodes.length==0){
@@ -417,9 +414,6 @@ export class DelegateWebApi
 
                         let nodes:EngineNode[] = [] ;
                         try{
-                            //if(self.srv.hasSsoAuthentication()){
-                            //console.log(req.originalUrl+" : is Autenticated ? "+(req as any).isAuthenticated())
-                            //console.log(req.dxc);
 
                             /*
                             if(req.session?.passport?.user?.dxc != null){

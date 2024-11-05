@@ -295,7 +295,7 @@ if( !projectArgs.ipc
             }
 
             // init service, sso, ...
-            await dxcInstance.getUserService().getAuthenticationService().init();
+            //await dxcInstance.getUserService().getAuthenticationService().init();
 
             // boot engine
             ready = await dxcInstance.boot(
