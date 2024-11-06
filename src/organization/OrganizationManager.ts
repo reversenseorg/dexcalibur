@@ -22,10 +22,9 @@ export class OrganizationManager {
     }
 
     async listOrganizations(pUserAccount:UserAccount):Promise<OrganizationUnit[]> {
-        AccessControl.check(
-            AccessZone.ORGANIZATION,
+
+        AccessControl.isAuthorized(
             AccessControl.access.ORG_OU_READ,
-            null,
             pUserAccount
         );
 
@@ -33,24 +32,23 @@ export class OrganizationManager {
             .getCollectionOf(OrganizationUnit.TYPE.getType())
             .getAsList();
 
-        console.log(all);
 
-        const userOrg:OrganizationUnit[] = all.filter(p => {
+        const userOrg:OrganizationUnit[] = all.filter((vOrgUnit:OrganizationUnit):boolean => {
             try{
-                // test membership
-                /*AccessControl.check(
-                    AccessZone.ORGANIZATION,
+                AccessControl.isAuthorized(
                     AccessControl.access.ORG_OU_READ,
-                    null,
-                    pUserAccount
-                );*/
+                    pUserAccount,
+                    vOrgUnit,
+                    [
+                     //   OrganizationAccessControl.attr.MEMBER
+                    ]
+                );
+
                 return true;
             }catch (err){
                 return false
             }
         });
-
-
 
         return userOrg;
     }

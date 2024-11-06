@@ -49,8 +49,7 @@ AUDIT_WEB_API.addAsyncAuthenticatedRoute(
             try{
                 const ctrl = new Control(req.body);
                 ctrl.id = req.params.id;
-                Logger.info('[API][AUDIT] Update tracker '+req.params.id)
-                console.log(ctrl);
+                Logger.info('[API][AUDIT] Update tracker '+req.params.id);
                 $.sendSuccess(res, await $.context.getSignatureServer().uppdateTracker(ctrl));
             }catch(err){
                 Logger.error("[API][AUDIT] Tracker cannot be updated. Cause : " + err.message + "\n\t" + err.stack);

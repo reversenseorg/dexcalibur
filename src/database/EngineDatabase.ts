@@ -359,7 +359,6 @@ export class EngineDatabase {
     async getProject(pUID:string, pUserAccount?:Nullable<UserAccount>):Promise<DexcaliburProject> {
         const coll:MongodbDbCollection = this.getCollectionOf(DexcaliburProject.TYPE.getType()) as MongodbDbCollection;
 
-        console.log(await coll.getAsList());
         const project:Nullable<DexcaliburProject[]> = await coll.search({ uid: pUID});
 
         if(project==null || project.length==0){

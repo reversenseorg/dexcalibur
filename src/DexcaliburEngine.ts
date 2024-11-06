@@ -68,6 +68,9 @@ import {OrganizationAccessControl} from "./user/acl/rbac/OrganizationAccessConto
 import {AccessControlManager} from "./user/acl/AccessControlManager.js";
 import Role from "./user/acl/common/Role.js";
 import {randomUUID} from "crypto";
+import {ProjectManager} from "./ProjectManager.js";
+import ts from "typescript/lib/tsserverlibrary.js";
+import Project = ts.server.Project;
 
 /*
 const _fixPath_ = require("fix-path");
@@ -334,6 +337,13 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
      */
     inspectorMgr:InspectorManager = null;
 
+    /**
+     * Inspector manager
+     * @type {InspectorManager}
+     * @field
+     */
+    projMgr:ProjectManager = null;
+
 
     /**
      * External tool manager
@@ -532,6 +542,8 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
 
         this.scanScheduler = new ScanScheduler(this);
 
+        this.projMgr = new ProjectManager(this);
+
         this.cleanup$.subscribe(async (vEvent:CleanupEvent)=>{
             // to automatically remove inconsistent project from workspace
             if(vEvent.type==='project'){
@@ -544,6 +556,10 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
 
     getOrgManager():OrganizationManager{
         return  this.orgMgr;
+    }
+
+    getProjectManager():ProjectManager{
+        return  this.projMgr;
     }
 
     setCliMode(pMode:boolean):void {

@@ -1215,7 +1215,7 @@ export default class WebServer
 
 
 
-            Logger.info(`[WEBSERVER][MIDDLEWARE][dxcSessionMiddleware][path=${req.path}][ip=${req.ip}][sessID=${(req as any).sessionID!=null?'true':'false'}] Processing request`);
+            Logger.debug(`[WEBSERVER][MIDDLEWARE][dxcSessionMiddleware][path=${req.path}][ip=${req.ip}][sessID=${(req as any).sessionID!=null?'true':'false'}] Processing request`);
 
             // AccessControlManager.BUILT_IN_DEFAULT_ROLE
             ((req as any).user as UserAccount).addRole(self.context.getAclManager().getRole(AccessControlManager.BUILT_IN_DEFAULT_ROLE));
@@ -1309,9 +1309,6 @@ export default class WebServer
 
             Logger.info(` [WEBSERVER][MIDDLEWARE][ensureApiLoggedIn][path=${req.path}][ip=${req.ip}] Receipt `);
 
-
-            console.log("ensureApiLoggedIn > ",req.user,req.session.user)
-
             // TODO : remove bypass
             if(isSlave) next();
 
@@ -1325,7 +1322,7 @@ export default class WebServer
         function ensureGuiLoggedIn(req, res, next) {
 
 
-            Logger.info(` [WEBSERVER][MIDDLEWARE][ensureGuiLoggedIn][path=${req.path}][ip=${req.ip}] Receipt `);
+            Logger.debug(` [WEBSERVER][MIDDLEWARE][ensureGuiLoggedIn][path=${req.path}][ip=${req.ip}] Receipt `);
 
             if (req.isAuthenticated !=null && req.isAuthenticated()) {
                 return next();

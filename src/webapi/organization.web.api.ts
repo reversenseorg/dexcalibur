@@ -66,7 +66,9 @@ ORG_WEB_API.addAsyncAuthenticatedRoute(
 
             try{
                 const data:any[] = [];
-                const orgs = await $.context.getOrgManager().listOrganizations(req.dxc.sess.getUserAccount());
+                const orgs = await $.context.getOrgManager().listOrganizations(
+                    req.session?.passport?.user
+                );
 
                 orgs.map( o => data.push( o.toJsonObject()));
                 $.sendSuccess( res, data);

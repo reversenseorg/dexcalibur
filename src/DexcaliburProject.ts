@@ -1620,7 +1620,6 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
         }catch(err){
             if(err.code==EngineDatabaseException.CODE.UNKNOWN_PROJECT){
 
-                console.log("REPAIR OPTS:", pEngine.getRepairOptions());
                 const repairOpts = pEngine.getRepairOptions();
                 if(repairOpts!=null && repairOpts.ws!=null){
 
