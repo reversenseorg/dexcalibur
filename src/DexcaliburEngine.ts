@@ -1568,11 +1568,14 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
      */
     closeProject( pUser:UserAccount, pProject:DexcaliburProject):boolean {
 
-        AccessControl.check(
-            AccessZone.PROJECT,
-            AccessControl.access.CLOSE_OWN_PROJECT,
+        AccessControl.isAuthorized(
+            AccessControl.access.PROJ_CLOSE_OWN,
+            pUser,
             pProject,
-            pUser
+            [
+                ProjectAccessControl.attr.OWNER,
+                ProjectAccessControl.attr.TESTER
+            ]
         );
 
         // TODO : remove project from others sessions

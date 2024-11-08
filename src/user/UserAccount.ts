@@ -12,9 +12,12 @@ import {AclAttributeTree} from "./acl/Access.js";
 import Role, {RoleUUID} from "./acl/common/Role.js";
 import {SecurityZone} from "../security/SecurityZone.js";
 
-;
 
 
+export enum UserAccountType {
+    LOCAL='local',
+    FEDERATED='federated'
+}
 export type UserAccountUUID = string;
 
 export interface UserAccountOptions extends IStringIndex<any> {
@@ -33,10 +36,7 @@ export interface UserAccountOptions extends IStringIndex<any> {
 }
 
 
-export enum UserAccountType {
-    LOCAL='local',
-    FEDERATED='federated'
-}
+
 
 export class UserAccount implements IPersistent, INode {
 

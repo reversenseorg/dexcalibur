@@ -37,11 +37,25 @@ export default class AccessControl {
         ORG_AUTH_MGT: new Access(AccessType.WRITE, 'ORG_AUTH_MGT', 'Manage authentication settings'),
         ORG_ACL_MGT: new Access(AccessType.WRITE, 'ORG_ACL_MGT', 'Manage access controls'),
 
+
+        ORG_USR_READ: new Access(AccessType.READ, 'ORG_USR_READ', 'Read user info'),
+        ORG_USR_MGT: new Access(AccessType.WRITE, 'ORG_USR_MGT', 'Manage users'),
+
+        ORG_AU_ACL_MGT: new Access(AccessType.WRITE, 'ORG_AU_ACL_MGT', 'Manage app unit access controls'),
+        ORG_WEBAPI_ACCESS: new Access(AccessType.EXE, 'ORG_WEBAPI_ACCESS', 'Allow access to WebService API'),
+        ORG_ROL_MGT: new Access(AccessType.WRITE, 'ORG_ROL_MGT', 'Manage user roles'),
+        ORG_GRP_MGT: new Access(AccessType.WRITE, 'ORG_GRP_MGT', 'Manage user groups'),
+        ORG_OU_SECRETS_MGT: new Access(AccessType.WRITE, 'ORG_OU_SECRETS_MGT', 'Manage secrets of organisation unit'),
+        ORG_AU_SECRETS_MGT: new Access(AccessType.WRITE, 'ORG_AU_SECRETS_MGT', 'Manage secrets of application unit'),
+        ORG_AU_SECRETS_USE: new Access(AccessType.READ, 'ORG_AU_SECRETS_USE', 'Use secrets of application unit'),
+
+
         // project
         PROJ_SETTINGS_EDIT: new Access( AccessType.WRITE, 'PROJ_SETTINGS_EDIT', 'Edit project settings'),
         PROJ_SETTINGS_READ: new Access( AccessType.READ, 'PROJ_SETTINGS_READ', 'Read project settings'),
         PROJ_CHOWN: new Access( AccessType.WRITE, 'PROJ_CHOWN', 'Change project owner'),
         PROJ_OPEN_OWN: new Access( AccessType.READ, 'PROJ_OPEN_OWN', 'Open own project'),
+        PROJ_CLOSE_OWN: new Access( AccessType.READ, 'PROJ_CLOSE_OWN', 'Close own project'),
         PROJ_OPEN_ANY: new Access( AccessType.READ, 'PROJ_OPEN_ANY', 'Open any project'),
         PROJ_CREATE_OWN: new Access( AccessType.WRITE, 'PROJ_CREATE_OWN', 'Create own project'),
         PROJ_DELETE_OWN: new Access( AccessType.WRITE, 'PROJ_DELETE_OWN', 'Delete own projects'),
@@ -50,29 +64,48 @@ export default class AccessControl {
         PROJ_PKG_READ: new Access( AccessType.READ, 'PROJ_PKG_READ', 'Read package content'),
         PROJ_NEW_OWN_WF: new Access( AccessType.WRITE, 'PROJ_NEW_OWN_WF', 'Create new project workflow'),
         PROJ_APPDATA_READ: new Access( AccessType.READ, 'PROJ_APPDATA_READ', 'Read app data content on the device'),
-        CLOSE_OWN_PROJECT: new Access( AccessType.EXE, 'CLOSE_OWN_PROJECT', 'Close the project according to owner and group attributes'),
 
         // global
-        GLOBAL_SETTINGS_EDIT: new Access( AccessType.WRITE, 'Edit global settings'),
-        GLOBAL_SETTINGS_READ: new Access( AccessType.READ, 'Read global settings'),
-        SERVER_RESTART: new Access( AccessType.EXE, 'Restart server'),
-        SERVER_STOP: new Access( AccessType.EXE, 'Stop server'),
+        GLOBAL_SETTINGS_EDIT: new Access( AccessType.WRITE, 'GLOBAL_SETTINGS_EDIT', 'Edit global settings'),
+        GLOBAL_SETTINGS_READ: new Access( AccessType.READ, 'GLOBAL_SETTINGS_READ', 'Read global settings'),
+        SERVER_RESTART: new Access( AccessType.EXE, 'SERVER_RESTART', 'Restart server'),
+        SERVER_STOP: new Access( AccessType.EXE, 'SERVER_STOP', 'Stop server'),
+        GLOB_SHOW_ALL_WORKFLOWS: new Access( AccessType.READ, 'GLOB_SHOW_ALL_WORKFLOWS', 'Show all workflows for the engine instance'),
+        GLOB_SHOW_OWN_WORKFLOWS: new Access( AccessType.READ, 'GLOB_SHOW_OWN_WORKFLOWS', 'Show only workflows owned by the user'),
 
         // assurance models
-        GLOBAL_MODEL_EDIT: new Access( AccessType.WRITE, 'Edit AssuranceModels shared by all projects'),
-        GLOBAL_MODEL_READ: new Access( AccessType.READ, 'Read AssuranceModels shared by all projects'),
-        GLOBAL_MODEL_DELETE: new Access( AccessType.WRITE, 'Delete AssuranceModels shared by all projects'),
-        GLOBAL_MODEL_CREATE: new Access( AccessType.WRITE, 'Create AssuranceModels shared by all projects'),
+        GLOBAL_MODEL_EDIT: new Access( AccessType.WRITE, 'GLOBAL_MODEL_EDIT', 'Edit AssuranceModels shared by all projects'),
+        GLOBAL_MODEL_READ: new Access( AccessType.READ, 'GLOBAL_MODEL_READ', 'Read AssuranceModels shared by all projects'),
+        GLOBAL_MODEL_DELETE: new Access( AccessType.WRITE, 'GLOBAL_MODEL_DELETE', 'Delete AssuranceModels shared by all projects'),
+        GLOBAL_MODEL_CREATE: new Access( AccessType.WRITE, 'GLOBAL_MODEL_CREATE', 'Create AssuranceModels shared by all projects'),
 
-        PROJECT_MODEL_READ: new Access( AccessType.READ, 'Create AssuranceModels for a specific project'),
-        PROJECT_MODEL_EDIT: new Access( AccessType.WRITE, 'Delete AssuranceModels for a specific project'),
-        PROJECT_MODEL_DELETE: new Access( AccessType.WRITE, 'Delete AssuranceModels for a specific project'),
-        PROJECT_MODEL_CREATE: new Access( AccessType.WRITE, 'Create AssuranceModels for a specific project'),
+        PROJECT_MODEL_READ: new Access( AccessType.READ, 'PROJECT_MODEL_READ', 'Create AssuranceModels for a specific project'),
+        PROJECT_MODEL_EDIT: new Access( AccessType.WRITE, 'PROJECT_MODEL_EDIT', 'Delete AssuranceModels for a specific project'),
+        PROJECT_MODEL_DELETE: new Access( AccessType.WRITE, 'PROJECT_MODEL_DELETE', 'Delete AssuranceModels for a specific project'),
+        PROJECT_MODEL_CREATE: new Access( AccessType.WRITE, 'PROJECT_MODEL_CREATE', 'Create AssuranceModels for a specific project'),
 
-        // WF
-        GLOB_SHOW_ALL_WORKFLOWS: new Access( AccessType.READ, 'GLOB_SHOW_ALL_WORKFLOWS', 'Show all workflows for the engine instance'),
-        GLOB_SHOW_OWN_WORKFLOWS: new Access( AccessType.READ, 'GLOB_SHOW_OWN_WORKFLOWS', 'Show only workflows owned by the user')
+        // device
+        DEV_ALLOC_VIRT: new Access( AccessType.WRITE, 'DEV_ALLOC_VIRT', 'Allocate a virtual device'),
+        DEV_ALLOC_PHY: new Access( AccessType.WRITE, 'DEV_ALLOC_PHY', 'Allocate a physical device'),
+        DEV_DESTROY_VIRT: new Access( AccessType.WRITE, 'DEV_DESTROY_VIRT', 'Destroy a virtual device'),
+        DEV_DESTROY_PHY: new Access( AccessType.WRITE, 'DEV_DESTROY_PHY', 'Destroy a physical device'),
+        DEV_INS_KILL: new Access( AccessType.WRITE, 'DEV_INS_KILL', 'Stop a device'),
+        DEV_INS_START: new Access( AccessType.WRITE, 'DEV_INS_START', 'Start a device'),
+        DEV_INS_EXEC: new Access( AccessType.WRITE, 'DEV_INS_EXEC', 'Execute an application unit on the device'),
+        DEV_INS_PROFILE: new Access( AccessType.READ, 'DEV_INS_PROFILE', 'Read device profile'),
 
+        // scan
+        SCAN_ORDER_NEW: new Access( AccessType.WRITE, 'SCAN_ORDER_NEW', 'Order a new scan'),
+        SCAN_ORDER_READ: new Access( AccessType.READ, 'SCAN_ORDER_READ', 'Read status and metadata about scan orders'),
+        SCAN_ORDER_DEL: new Access( AccessType.WRITE, 'SCAN_ORDER_DEL', 'Delete a scan order'),
+        SCAN_ORDER_PAUSE: new Access( AccessType.WRITE, 'SCAN_ORDER_PAUSE', 'Pause a scan order'),
+        SCAN_SCHED_TRIG: new Access( AccessType.WRITE, 'SCAN_SCHED_TRIG', 'Configure a trigger to order automatically a scan'),
+        SCAN_SCHED_PER: new Access( AccessType.WRITE, 'SCAN_SCHED_PER', 'Configure a periodic scan order'),
+
+        // report
+        AUDIT_REPORT_READ: new Access( AccessType.READ, 'AUDIT_REPORT_READ', 'Read a scan report'),
+        AUDIT_REPORT_DEL: new Access( AccessType.WRITE, 'AUDIT_REPORT_DEL', 'Delete a scan report'),
+        AUDIT_DX_ACCESS: new Access( AccessType.EXE, 'AUDIT_DX_ACCESS', 'Access to deep inspection tool')
     };
 
     private _aclMgr:AccessControlManager;
@@ -175,8 +208,9 @@ export default class AccessControl {
 
     /**
      * To check if the given session can access to the given entry
+     * @deprecated
      */
-    static checkAttr(pZone:AccessZone, pAttr:AccessAttribute, pResource:any, pIssuer:any):void {
+    static checkAttr(pZone:AccessZone, pAttr:AccessAttribute<any>, pResource:any, pIssuer:any):void {
         AccessControl.getInstance()
             .getDelegatedAccessControl(pZone)
             .checkAttr(pAttr, pIssuer, pResource);
@@ -189,6 +223,7 @@ export default class AccessControl {
 
     /**
      * To check if the given session can access to the given entry
+     * @deprecated
      */
     static check(pZone:AccessZone, pControl:Access, pAccessObject:any, pAccount:UserAccount):void {
 
@@ -201,16 +236,24 @@ export default class AccessControl {
     }
 
 
-    static isAuthorizedByAttr(pAttr:AccessAttribute, pResource:any, pAccount:UserAccount){
+    static isAuthorizedByAttr(pAttr:AccessAttribute<any>, pResource:any, pAccount:UserAccount){
         if(pResource==null){
             throw new AccessException("Access attribute of an undefined object cannot be verified : rejected ", AccesErrCode.MANDATORY_OBJECT_UNDEFINED)
         }
 
         // get a list authorized UUIDs for a given attribute from pSubject
-        let authorizedUIDs = pResource.getAccessAttribute(pAttr) as string;
+        let authorizedUIDs = pResource.getAccessAttribute(pAttr).value;
 
-        // verify the UUID of given accoiunt is a part of the list of authorized users
-        return (authorizedUIDs.indexOf(pAccount.getUID())>-1);
+        //console.log(pResource.getUID(), pAttr.name, authorizedUIDs, pAccount.getUID());
+        if(authorizedUIDs!=null && Array.isArray(authorizedUIDs)){
+
+            // TODO : add group support
+
+            // verify the UUID of given accoiunt is a part of the list of authorized users
+            return (authorizedUIDs.indexOf(pAccount.getUID())>-1);
+        }else{
+            return false;
+        }
     }
 
 
@@ -219,12 +262,12 @@ export default class AccessControl {
      *
      * @method
      */
-    static isAuthorized(pControl:Access, pAccount:UserAccount, pResource?:Nullable<any>, pAttributes?:AccessAttribute[] ):void {
+    static isAuthorized(pControl:Access, pAccount:UserAccount, pResource?:Nullable<any>, pAttributes?:AccessAttribute<any>[] ):void {
         if(gInstance==null){
             throw AccessControlException.MISSING_ACL_CTRL();
         }
 
-        gInstance.getManager().isAuthorized(pControl, pAccount, pResource);
+        gInstance.getManager().isAuthorized(pControl, pAccount, pResource, pAttributes);
 
         // next search if the accesss is mapped to one or more zones
         const zones = gInstance._zoneMapping[pControl.getUID()];

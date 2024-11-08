@@ -11,6 +11,7 @@ import passport from 'passport';
 import {IStringIndex} from "../core/IStringIndex.js";
 import {EngineNode} from "../core/EngineNode.js";
 import {DexcaliburEngineMode} from "../DexcaliburEngine.js";
+import {UserAccount} from "../user/UserAccount.js";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -49,6 +50,7 @@ export interface DelegateRequest extends Request {
         filt?:any
     },
     session?:any;
+    user?:UserAccount;
 }
 
 

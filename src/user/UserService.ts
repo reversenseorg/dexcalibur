@@ -6,7 +6,7 @@
 import {AuthenticationService} from "./auth/AuthenticationService.js";
 import {SessionService} from "./session/SessionService.js";
 import {AuthenticationSettings} from "./auth/AuthenticationSettings.js";
-import {UserAccount, UserAccountType} from "./UserAccount.js";
+import {UserAccount, UserAccountType, UserAccountUUID} from "./UserAccount.js";
 import {UserSession} from "./session/UserSession.js";
 import {SessionCode, SessionException} from "./session/SessionException.js";
 import {AuthenticationResult} from "./auth/PasswordAuthenticator.js";
@@ -22,6 +22,7 @@ import {IDatabase, IDatabaseAdapter, IDbCollection} from "@dexcalibur/dexcalibur
 import {MongodbDbCollection} from "@dexcalibur/dexcalibur-orm-mongodb";
 import {Nullable} from "../core/IStringIndex.js";
 import Role from "./acl/common/Role.js";
+import AccessControl from "./acl/AccessControl.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -371,5 +372,21 @@ export class UserService {
 
     async listLocalAccounts():Promise<UserAccount[]> {
         return  await this._coll.search({ _type: UserAccountType.LOCAL }) as UserAccount[];
+    }
+
+    /**
+     *
+     * Part of Public API
+     *
+     * @param pUserAccount
+     * @param pUUID
+     */
+    async getAccount(pUserAccount:UserAccount, pUUID:UserAccountUUID):Promise<UserAccount> {
+        AccessControl.isAuthorized(
+            AccessControl.access.ORG_USER_READ,
+            pUserAccount
+        );
+
+        return await this.find(new UserAccount({ uuid:pUUID }), { autoCreate:false });
     }
 }

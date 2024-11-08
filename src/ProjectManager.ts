@@ -1,7 +1,7 @@
 import DexcaliburEngine from "./DexcaliburEngine.js";
 import {UserAccount} from "./user/UserAccount.js";
-import {OrganizationUnit} from "@dexcalibur/dxc-orgs";
 import DexcaliburProject from "./DexcaliburProject.js";
+import {OrganizationUnit} from "./organization/OrganizationUnit.js";
 
 /**
  *

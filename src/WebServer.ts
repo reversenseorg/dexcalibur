@@ -1218,11 +1218,11 @@ export default class WebServer
             Logger.debug(`[WEBSERVER][MIDDLEWARE][dxcSessionMiddleware][path=${req.path}][ip=${req.ip}][sessID=${(req as any).sessionID!=null?'true':'false'}] Processing request`);
 
             // AccessControlManager.BUILT_IN_DEFAULT_ROLE
-            ((req as any).user as UserAccount).addRole(self.context.getAclManager().getRole(AccessControlManager.BUILT_IN_DEFAULT_ROLE));
+            //((req as any).user as UserAccount).addRole(self.context.getAclManager().getRole(AccessControlManager.BUILT_IN_DEFAULT_ROLE));
             //console.log((req as any).user);
 
             try{
-                if(req.session == null || req.session?.passport?.user ==null){
+                if(req.session == null || (req as any).user ==null){
                     Logger.error("[SESSION] Session cannot be restored or not found");
                     res.redirect('/login');
                     return;

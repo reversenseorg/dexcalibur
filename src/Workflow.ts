@@ -3,12 +3,8 @@ import {User} from "./User.js";
 
 
 import * as Log from "./Logger.js";
-import {IAuditableAccess} from "./user/acl/IAuditableAccess.js";
-import {AccessAttribute, AccessAttributeMap} from "./user/acl/AccessAttribute.js";
 import {GlobalAccessControl} from "./user/acl/rbac/GlobalAccessContol.js";
 import {UserAccount} from "./user/UserAccount.js";
-import AccessControl from "./user/acl/AccessControl.js";
-import {AccessZone} from "./user/acl/Zones.js";
 import {Auditable} from "./Auditable.js";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
@@ -18,7 +14,7 @@ export interface WorkflowFollower {
     socket: any;
 }
 
-export class Workflow extends Auditable implements IAuditableAccess {
+export class Workflow extends Auditable {
 
 
 
@@ -89,10 +85,7 @@ export class Workflow extends Auditable implements IAuditableAccess {
      * @since 1.0.0
      */
     initAccessAttributes(){
-
-        for(const k in GlobalAccessControl.attr){
-            this.setAccessAttribute(GlobalAccessControl.attr[k], GlobalAccessControl.attr[k].value);
-        }
+        this.setAccessAttribute(GlobalAccessControl.attr.OWNER);
     }
 
     stepUp(pStep:number):void {
@@ -152,8 +145,7 @@ export class Workflow extends Auditable implements IAuditableAccess {
      * @method
      */
     changeOwner( pAccount:UserAccount):Workflow {
-        //this._attr.OWNER.value = pAccount.getUID();
-        this.setAccessAttribute(GlobalAccessControl.attr.OWNER, pAccount.getUID());
+        this.setAccessAttribute(GlobalAccessControl.attr.OWNER, [pAccount.getUID()]);
         return this;
     }
 
@@ -168,7 +160,7 @@ export class Workflow extends Auditable implements IAuditableAccess {
      */
     declareOwner( pUser:UserAccount, pSocket:any, pOpts:any={}):void {
         //this._attr.OWNER.value = pUser.getUID();
-        this.setAccessAttribute(GlobalAccessControl.attr.OWNER, pUser.getUID());
+        this.setAccessAttribute(GlobalAccessControl.attr.OWNER, [pUser.getUID()] );
         this.addFollower(pUser,pSocket,pOpts);
     }
 

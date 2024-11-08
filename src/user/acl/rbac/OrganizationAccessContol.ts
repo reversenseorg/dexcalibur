@@ -3,7 +3,7 @@ import {Access, AccesErrCode, AccessException, AccessMap, AccessType} from "../A
 import {UserSession} from "../../session/UserSession.js";
 import {AccessAttribute, AccessAttributeMap} from "../AccessAttribute.js";
 import DexcaliburProject from "../../../DexcaliburProject.js";
-import {UserAccount} from "../../UserAccount.js";
+import {UserAccount, UserAccountUUID} from "../../UserAccount.js";
 import AccessControl from "../AccessControl.js";
 import {Nullable} from "../../../core/IStringIndex.js";
 import {Auditable} from "../../../Auditable.js";
@@ -18,7 +18,8 @@ export class OrganizationAccessControl extends DelegateAccessControl {
     static uid:string = 'ORG';
 
     static attr:AccessAttributeMap = {
-        MEMBER: new AccessAttribute( 'member', [])
+        ORG_MEMBER: new AccessAttribute<UserAccountUUID>( 'org_member'),
+        OWNER: new AccessAttribute<UserAccountUUID>( 'owner'),
     };
 
     constructor() {

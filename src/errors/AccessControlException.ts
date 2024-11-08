@@ -2,6 +2,8 @@ import {ErrorCode, MonitoredError} from "./MonitoredError.js";
 import {Access} from "../user/acl/Access.js";
 import {UserAccount} from "../user/UserAccount.js";
 import {AccessZone} from "../user/acl/Zones.js";
+import {AccessAttribute} from "../user/acl/AccessAttribute.js";
+import Role from "../user/acl/common/Role.js";
 
 export class AccessControlException extends MonitoredError {
 
@@ -25,6 +27,14 @@ export class AccessControlException extends MonitoredError {
     static INVALID_ZONE = (pZone:AccessZone)=>{
         return new AccessControlException(`The required zone [${pZone}] is not ready.`,
             ErrorCode.SECURITY_ACL + 5) };
+
+    static UNKNOWN_ACL_ATTRIBUTE = (pAttr:AccessAttribute<any>)=>{
+        return new AccessControlException(`The engine try to modify an unknown access attribute [name=${pAttr.name}]`,
+            ErrorCode.SECURITY_ACL + 6) };
+
+    static CANNOT_SETUP_ROLE = (pRole:Role)=>{
+        return new AccessControlException(`The role cannot be set up [name=${pRole.getUID()}]`,
+            ErrorCode.SECURITY_ACL + 7) };
 
 
 

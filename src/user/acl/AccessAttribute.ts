@@ -1,19 +1,22 @@
-import {Access, AccessType} from "./Access.js";
+
+import {Nullable} from "@dexcalibur/dxc-core-api";
 
 
-export interface AccessAttributeMap {
-    [uid:string] :AccessAttribute
+export type AccessAttributeMap = Record<string, AccessAttribute<any>>;
+
+export interface AccessAttributeOptions<F> {
+    name?:string;
+    value?:F[];
 }
-
 /**
  * Represents an access point
  */
-export class AccessAttribute {
+export class AccessAttribute<T> {
 
     private _n:string;
-    private _v:any;
+    private _v:T[];
 
-    constructor( pName:string, pValue:any = null) {
+    constructor( pName:string, pValue:T[] = []) {
         this._n = pName;
         this._v= pValue;
     }
@@ -23,12 +26,12 @@ export class AccessAttribute {
         return this._n;
     }
 
-    get value():string {
+    get value():T[] {
         return this._v;
     }
 
 
-    set value(v:string) {
+    set value(v:T[]) {
         this._v = v;
     }
 
@@ -36,15 +39,19 @@ export class AccessAttribute {
      * To create an instance from a poor object
      * @param {any} pData
      */
-    static from(pData:any):AccessAttribute {
-        return new AccessAttribute(pData.name, (pData.hasOwnProperty('value')? pData.value : null));
+    static from<T>(pData:AccessAttributeOptions<T>):AccessAttribute<T> {
+        return new AccessAttribute<T>(pData.name, (pData.hasOwnProperty('value')? pData.value : ([] as T[]) ));
     }
 
+    append(pVal:T):void {
+        if(this._v==null) this._v = [];
+        this._v.push(pVal);
+    }
     /**
      * To clone without value
      *
      */
-    clone():AccessAttribute {
+    clone():AccessAttribute<T> {
         return new AccessAttribute(this._n);
     }
 
@@ -59,10 +66,10 @@ export class AccessAttribute {
         if(pAll){
             return {
                 _n: this._n,
-                _v: (this._v != null && this._v.hasOwnProperty('toJsonObject'))? this._v.toJsonObject() : this._v
+                _v: (this._v != null && this._v.hasOwnProperty('toJsonObject'))? (this._v as any).toJsonObject() : this._v
             };
         }else{
-            return (this._v != null && this._v.hasOwnProperty('toJsonObject'))? this._v.toJsonObject() : this._v;
+            return (this._v != null && this._v.hasOwnProperty('toJsonObject'))? (this._v as any).toJsonObject() : this._v;
         }
 
     }

@@ -35,8 +35,7 @@ import {ValidationRule} from "./Validator.js";
 import ModelFile from "./ModelFile.js";
 import {CodeLocation, ModelLocation} from "./ModelLocation.js";
 import {Settings} from "./Settings.js";
-import {UserAccount} from "./user/UserAccount.js";
-import {IAuditableAccess} from "./user/acl/IAuditableAccess.js";
+import {UserAccount, UserAccountUUID} from "./user/UserAccount.js";
 import {ProjectAccessControl} from "./user/acl/rbac/ProjectAccessContol.js";
 import {AnalyzerConfiguration, FileAnalysisType, PackageAnalyzerOptions} from "./AnalyzerConfiguration.js";
 import SqliteConnector from "../connectors/sqlite/adapter.js";
@@ -90,9 +89,8 @@ import {Subject} from "rxjs";
 import * as _fs_ from "node:fs";
 import {ModelAPI} from "./ModelAPI.js";
 import InspectorFactory from "./InspectorFactory.js";
-import ts from "typescript/lib/tsserverlibrary.js";
-import Project = ts.server.Project;
 import {GuiTypesManager} from "./graphics/GuiTypesManager.js";
+import {AccessAttribute, AccessAttributeMap} from "./user/acl/AccessAttribute.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -156,7 +154,7 @@ const DexcaliburProjectValidator = new Validator({
  * @class
  * @author Georges-B. MICHEL
  */
-export default class DexcaliburProject extends Auditable implements IAuditableAccess, INode, IAppContext
+export default class DexcaliburProject extends Auditable implements INode, IAppContext
 {
     _type = AppContextType.WEB_SERVER;
 
@@ -269,7 +267,26 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
                 }
             }),*/
 
-        (new NodeProperty("_attr")).type(DbDataType.BLOB),
+        (new NodeProperty("_attr"))
+            .type(DbDataType.BLOB)
+            .wakeUp( (x:NodePropertyState) => {
+                if(x.p!=null){
+                    console.log(x.p);
+                    const m:AccessAttributeMap = {};
+                    for(let k in x.p){
+                        m[k] = AccessAttribute.from({
+                            name: x.p[k]._n,
+                            value: x.p[k]._v,
+                        });
+                    }
+
+                    console.log(m);
+                    return m;
+                }else{
+                    return {};
+                }
+            })
+            .def({}),
         (new NodeProperty("workspace")).volatile().type(DbDataType.BLOB),
         (new NodeProperty("platform")).type(DbDataType.BLOB)
             .sleep( (x:NodePropertyState)=>{
@@ -614,9 +631,8 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
      *
      */
     initAccessAttributes(){
-        for(const k in ProjectAccessControl.attr){
-            this.setAccessAttribute(ProjectAccessControl.attr[k], ProjectAccessControl.attr[k].value);
-        }
+        this.setAccessAttribute(ProjectAccessControl.attr.OWNER);
+        this.setAccessAttribute(ProjectAccessControl.attr.TESTER);
     }
 
     getScanScheduler():ScanSchedulerProject {
@@ -668,7 +684,7 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
      * @return {string} User UID
      * @method
      */
-    getOwner():string {
+    getOwner():UserAccountUUID[] {
        return this.getAccessAttribute(ProjectAccessControl.attr.OWNER).value;
     }
 
@@ -678,11 +694,11 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
      * @return {string} User UID
      * @method
      */
-    getAuditors():string[] {
-        let uids = this.getAccessAttribute(ProjectAccessControl.attr.TESTER).value;
+    getAuditors():UserAccountUUID[] {
+        //let uids = this.getAccessAttribute(ProjectAccessControl.attr.TESTER).value;
+        //uids = this.getOwner()+(uids!=null&&uids.length>0 ? ":":'')+uids;
 
-        uids = this.getOwner()+(uids!=null&&uids.length>0 ? ":":'')+uids;
-        return uids.split(':');
+        return this.getAccessAttribute(ProjectAccessControl.attr.TESTER).value;
     }
 
 
@@ -1715,11 +1731,14 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
         }
         */
 
-        AccessControl.check(
-            AccessZone.PROJECT,
+        AccessControl.isAuthorized(
             AccessControl.access.PROJ_OPEN_OWN,
+            pAccount,
             project,
-            pAccount
+            [
+                ProjectAccessControl.attr.OWNER,
+                ProjectAccessControl.attr.TESTER,
+            ]
         );
 
         if(project != null){
@@ -1891,7 +1910,7 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
         }
 
         if(data!=null && data._attr !=null){
-            project.importAccessAttributes(data._attr);
+            project.importAccessAttributes((data as any)._attr);
         }
 
         project.isAuthorizedToTest(pAcc);
@@ -2010,9 +2029,9 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
                     break;
                 case "_attr":
                     o._attr = {};
-                    for(const n in this._attr){
-                        if(this._attr[n]!=null){
-                            o._attr[n] = (this._attr[n].toJsonObject!=null)?this._attr[n].toJsonObject():this._attr[n];
+                    for(const n in (this as any)._attr){
+                        if((this as any)._attr[n]!=null){
+                            o._attr[n] = ((this as any)._attr[n].toJsonObject!=null)?(this as any)._attr[n].toJsonObject():(this as any)._attr[n];
                         }else{
                             o._attr[n] = null;
                         }
@@ -2254,7 +2273,8 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
         const oldOwner = this.owner;
 
         if(this.getAccessAttribute(ProjectAccessControl.attr.OWNER)===null){
-            this.setAccessAttribute(ProjectAccessControl.attr.OWNER, pNewOwner.getUID());
+            this.setAccessAttribute(ProjectAccessControl.attr.OWNER);
+            this.appendToAccessAttribute(ProjectAccessControl.attr.OWNER, pNewOwner.getUID());
             //this._attr.OWNER.value = pNewOwner.getUID();
         }else{
             try{
@@ -2265,7 +2285,8 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
                     pAuthorSess.getUserAccount()
                 );
 
-                this.setAccessAttribute(ProjectAccessControl.attr.OWNER, pNewOwner.getUID());
+                this.setAccessAttribute<UserAccountUUID>(ProjectAccessControl.attr.OWNER)
+                this.appendToAccessAttribute<UserAccountUUID>(ProjectAccessControl.attr.OWNER, pNewOwner.getUID());
 
             }catch(errACL){
                 if(errACL.hasOwnProperty('getCode') && ((errACL as AccessException).getCode() === AccesErrCode.VIOLATION)){
@@ -2276,7 +2297,8 @@ export default class DexcaliburProject extends Auditable implements IAuditableAc
                         pAuthorSess.getUserAccount()
                     );
 
-                    this.setAccessAttribute(ProjectAccessControl.attr.OWNER, pNewOwner.getUID());
+                    this.setAccessAttribute<UserAccountUUID>(ProjectAccessControl.attr.OWNER);
+                    this.appendToAccessAttribute<UserAccountUUID>(ProjectAccessControl.attr.OWNER, pNewOwner.getUID());
                 }else{
                     throw errACL;
                 }

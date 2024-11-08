@@ -8,11 +8,12 @@ import {OrganizationAccessControl} from "./rbac/OrganizationAccessContol.js";
 import Role from "./common/Role.js";
 import {UserAccount} from "../UserAccount.js";
 import {Nullable} from "@dexcalibur/dxc-core-api";
-import {Access, AccessProperty, AccessUID} from "./Access.js";
+import {Access, AccessProperty, AccessType, AccessUID} from "./Access.js";
 import {AccessFactory} from "./AccessFactory.js";
 import {AccessControlException} from "../../errors/AccessControlException.js";
 import * as Log from "../../Logger.js";
 import {AccessAttribute} from "./AccessAttribute.js";
+import {UserGroup} from "./common/UserGroup.js";
 
 export type AclMatrix = Record<AccessUID, Role[]>;
 
@@ -36,6 +37,8 @@ export class AccessControlManager {
     private _internalRoles:Record<string, Role> = {};
 
     private _roles:Record<string, Role> = {};
+
+    private _groups:Record<string, UserGroup> = {};
 
     /**
      * ACL Matrix
@@ -80,17 +83,7 @@ export class AccessControlManager {
                 && pInternalAccount.getUID()===AccessControl.INTERNAL_USER_ACCOUNT_UUID){
 
                 this._setupInternalRoles(pInternalAccount);
-
-                /*this._addInternalRole(pInternalAccount, new Role({
-                    uuid: AccessControl.INTERNAL_ROOT_ROLE_UUID,
-                    name: "internal_root_svc",
-                    permissions: [
-                        AccessControl.access.ORG_ACL_MGT
-                    ]
-                }));*/
             }
-
-
         }
     }
 
@@ -110,7 +103,7 @@ export class AccessControlManager {
 
     private _setupInternalRoles(pUserAccount:UserAccount):boolean {
 
-        if(this._internalRoles.root_svc==null){
+        if(this._internalRoles.engine_svc==null){
             this._internalRoles.engine_svc = new Role({
                 uuid: AccessControl.INTERNAL_ROOT_ROLE_UUID,
                 name: "internal_root_svc",
@@ -126,7 +119,6 @@ export class AccessControlManager {
 
         return true;
     }
-
 
     getRole(pRoleUID:string):Role {
         return this._roles[pRoleUID];
@@ -226,6 +218,100 @@ export class AccessControlManager {
                 permissions: AccessControl.getMatchingAccessesList( AccessProperty.UID, '.')
             }),
             new Role({
+                uuid: 'R_OUADM',
+                name: 'Organization Administrator',
+                permissions: [
+                    AccessControl.access.ORG_OU_READ,
+                    AccessControl.access.ORG_OU_MODIFY,
+                    AccessControl.access.ORG_AU_READ,
+                    AccessControl.access.ORG_AU_MODIFY,
+                    AccessControl.access.ORG_ACL_MGT,
+                    AccessControl.access.ORG_AUTH_MGT,
+                    AccessControl.access.ORG_WEBAPI_ACCESS,
+                    AccessControl.access.ORG_ROL_MGT,
+                    AccessControl.access.ORG_GRP_MGT,
+                    AccessControl.access.ORG_ACL_MGT,
+                    AccessControl.access.ORG_OU_SECRETS_MGT
+                ]
+            }),
+            new Role({
+                uuid: 'R_AUADM',
+                name: 'Application Administrator',
+                permissions: [
+                    AccessControl.access.ORG_AU_READ,
+
+                    AccessControl.access.PROJ_SETTINGS_EDIT,
+                    AccessControl.access.PROJ_SETTINGS_READ,
+                    AccessControl.access.PROJ_CHOWN,
+                    AccessControl.access.PROJ_OPEN_OWN,
+                    AccessControl.access.PROJ_CREATE_OWN,
+                    AccessControl.access.PROJ_DELETE_OWN,
+                    AccessControl.access.PROJ_META_READ,
+                    AccessControl.access.PROJ_PKG_READ,
+                    AccessControl.access.PROJ_NEW_OWN_WF,
+
+                    AccessControl.access.DEV_ALLOC_VIRT,
+                    AccessControl.access.DEV_ALLOC_PHY,
+                    AccessControl.access.DEV_DESTROY_VIRT,
+                    AccessControl.access.DEV_DESTROY_PHY,
+                    AccessControl.access.DEV_INS_KILL,
+                    AccessControl.access.DEV_INS_START,
+
+                    AccessControl.access.SCAN_ORDER_NEW,
+                    AccessControl.access.SCAN_ORDER_READ,
+                    AccessControl.access.SCAN_ORDER_DEL,
+                    AccessControl.access.SCAN_ORDER_PAUSE,
+                    AccessControl.access.SCAN_SCHED_TRIG,
+                    AccessControl.access.SCAN_SCHED_PER
+                ]
+            }),
+            new Role({
+                uuid: 'R_QAAUDITOR',
+                name: 'Quality Auditor',
+                permissions: [
+                    AccessControl.access.ORG_AU_READ,
+                    AccessControl.access.GLOBAL_MODEL_READ,
+                    AccessControl.access.PROJECT_MODEL_READ,
+                    AccessControl.access.PROJECT_MODEL_EDIT,
+                    AccessControl.access.PROJECT_MODEL_DELETE,
+                    AccessControl.access.PROJECT_MODEL_CREATE,
+                    AccessControl.access.AUDIT_REPORT_READ,
+                    AccessControl.access.AUDIT_DX_ACCESS
+                ]
+            }),
+            new Role({
+                uuid: 'R_DEV',
+                name: 'Developper',
+                permissions: [
+                    AccessControl.access.PROJ_SETTINGS_READ,
+                    AccessControl.access.PROJ_SETTINGS_EDIT,
+                    AccessControl.access.PROJ_OPEN_OWN,
+                    AccessControl.access.PROJ_CLOSE_OWN,
+                    AccessControl.access.PROJ_META_READ,
+                    AccessControl.access.PROJ_PKG_READ,
+                    AccessControl.access.PROJ_APPDATA_READ,
+                    AccessControl.access.PROJ_NEW_OWN_WF,
+                    AccessControl.access.AUDIT_DX_ACCESS
+                ]
+            }),
+            new Role({
+                uuid: 'R_DEVOPS',
+                name: 'DevOps',
+                permissions: [
+
+                    AccessControl.access.ORG_AU_READ,
+                    AccessControl.access.PROJ_SETTINGS_READ,
+                    AccessControl.access.PROJ_NEW_OWN_WF,
+
+                    AccessControl.access.SCAN_ORDER_NEW,
+                    AccessControl.access.SCAN_ORDER_READ,
+                    AccessControl.access.SCAN_ORDER_DEL,
+                    AccessControl.access.SCAN_ORDER_PAUSE,
+                    AccessControl.access.SCAN_SCHED_TRIG,
+                    AccessControl.access.SCAN_SCHED_PER
+                ]
+            }),
+            new Role({
                 uuid: 'user',
                 name: 'Basic user',
                 permissions: AccessFactory.merge(
@@ -246,17 +332,23 @@ export class AccessControlManager {
      * @private
      */
     private _setupRole(vRole:Role):void {
-        // push role to list of active roles
-        this._roles[vRole.getUID()] = vRole;
+        try{
+            // push role to list of active roles
+            this._roles[vRole.getUID()] = vRole;
 
-        // update ACL matrix
-        vRole.access.map((vAccess:Access)=>{
-            if(this._matrix[vAccess.getUID()]==null){
-                this._matrix[vAccess.getUID()] = [];
-            }
+            // update ACL matrix
+            vRole.access.map((vAccess:Access)=>{
+                if(this._matrix[vAccess.getUID()]==null){
+                    this._matrix[vAccess.getUID()] = [];
+                }
 
-            this._matrix[vAccess.name].push(vRole);
-        });
+                this._matrix[vAccess.name].push(vRole);
+                Logger.debug(`[ACCESS MANAGER] Assigned permission [uuid=${vAccess.getUID()}] to role [uuid=${vRole.getUID()}] `);
+            });
+        }catch (err){
+            Logger.error(`[ACCESS MANAGER] Role [uuid=${vRole.getUID()}] cannot be set up. Cause : ${err.stack}`);
+            throw AccessControlException.CANNOT_SETUP_ROLE(vRole);
+        }
     }
 
     /**
@@ -267,16 +359,24 @@ export class AccessControlManager {
      * @param pUser
      * @param pSubject
      */
-    isAuthorized(pAccess:Access, pUser:UserAccount, pResource?:Nullable<any>, pAttributes?:AccessAttribute[] ):void {
+    isAuthorized(pAccess:Access, pUser:UserAccount, pResource?:Nullable<any>, pAttributes?:AccessAttribute<any>[] ):void {
+
+        if(pAccess==null || this._matrix[pAccess.getUID()]==null){
+            throw AccessControlException.MISSING_ACCESS(pAccess);
+        }
+
         if(this._matrix[pAccess.getUID()]==null){
             throw AccessControlException.MISSING_ACCESS(pAccess);
         }
 
+        let roleFound = false;
         const usrRoles:string[] = pUser.getRoles();
         for(let i=0; i<this._matrix[pAccess.getUID()].length; i++){
 
             // authorized by role
             if(usrRoles.indexOf(this._matrix[pAccess.getUID()][i].getUID())>-1){
+
+                roleFound = true;
 
                 // check attr if resource and attr are specified
                 if(pResource!=undefined && pAttributes!=undefined){
@@ -286,12 +386,12 @@ export class AccessControlManager {
                         // access to res authorized by attr
                         if(AccessControl
                             .isAuthorizedByAttr(pAttributes[k], pResource, pUser)){
-                            Logger.success(`User [uuid=${pUser.getUID()}] has been authorized to access  resource [res=${pResource.getUID()}] over [access=${pAccess.getUID()}] with [attr=${pAttributes[k].name}]`);
+                            Logger.success(`[ACCESS MANAGER] User [uuid=${pUser.getUID()}] has been authorized to access  resource [res=${pResource.getUID()}] over [access=${pAccess.getUID()}] with [attr=${pAttributes[k].name}]`);
                             return ;
                         }
                     }
                 }else{
-                    Logger.success(`User [uuid=${pUser.getUID()}] has been authorized to access [uid=${pAccess.getUID()}]`);
+                    Logger.success(`[ACCESS MANAGER] User [uuid=${pUser.getUID()}] has been authorized to access [uid=${pAccess.getUID()}]`);
                     return;
                 }
             }
@@ -299,6 +399,7 @@ export class AccessControlManager {
 
         // todo : log access
 
+        Logger.error(`[ACCESS MANAGER] User [uuid=${pUser.getUID()}] has tried to access [uid=${pAccess.getUID()}]. Access denied by ${(roleFound && pAttributes.length>0)? 'attributes':'roles'}`);
         throw AccessControlException.NOT_AUTHORIZED(pAccess,pUser);
     }
 

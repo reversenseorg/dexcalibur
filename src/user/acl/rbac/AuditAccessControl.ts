@@ -1,7 +1,7 @@
 import {DelegateAccessControl} from "../DelegateAccessControl.js";
 import {AccesErrCode, Access, AccessException, AccessMap, AccessType} from "../Access.js";
 import {AccessAttribute, AccessAttributeMap} from "../AccessAttribute.js";
-import {UserAccount} from "../../UserAccount.js";
+import {UserAccount, UserAccountUUID} from "../../UserAccount.js";
 import AccessControl from "../AccessControl.js";
 import {AccessZone} from "../Zones.js";
 
@@ -16,7 +16,7 @@ export class AuditAccessControl extends DelegateAccessControl {
     static uid:string = 'AUDIT';
 
     static attr:AccessAttributeMap = {
-        OWNER: new AccessAttribute( 'owner')
+        OWNER: new AccessAttribute<UserAccountUUID>( 'owner')
     };
 
     constructor() {

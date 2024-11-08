@@ -5,8 +5,6 @@ import CodeConstraint from "./CodeConstraint.js";
 import Control from "./Control.js";
 import {Metadata} from "./Metadata.js";
 import {Auditable} from "../../Auditable.js";
-import {IAuditableAccess} from "../../user/acl/IAuditableAccess.js";
-import {ProjectAccessControl} from "../../user/acl/rbac/ProjectAccessContol.js";
 import {AuditAccessControl} from "../../user/acl/rbac/AuditAccessControl.js";
 import ControlAssessment from "./ControlAssessment.js";
 import {IControl} from "./IControl.js";
@@ -14,7 +12,16 @@ import {CoreDebug} from "../../core/CoreDebug.js";
 import {Nullable} from "../../core/IStringIndex.js";
 
 import {NodeInternalType} from "@dexcalibur/dxc-core-api";
-import {DbDataType, DbKeyType, INode, NodeProperty, NodeType, ValidationRule} from "@dexcalibur/dexcalibur-orm";
+import {
+    DbDataType,
+    DbKeyType,
+    INode,
+    NodeProperty,
+    NodePropertyState,
+    NodeType,
+    ValidationRule
+} from "@dexcalibur/dexcalibur-orm";
+import {AccessAttribute, AccessAttributeMap} from "../../user/acl/AccessAttribute.js";
 
 export enum AssuranceModelType {
     SECURITY="sec",
@@ -39,7 +46,7 @@ export interface ControlTree {
 
 
 
-export default class AssuranceModel extends Auditable implements IAuditableAccess, INode {
+export default class AssuranceModel extends Auditable implements INode {
 
     __ = NodeInternalType.ASSURANCE_MODEL;
 
@@ -58,7 +65,27 @@ export default class AssuranceModel extends Auditable implements IAuditableAcces
         (new NodeProperty("secondaryAssets")).type(DbDataType.STRING).def([]),
         (new NodeProperty("globalThreats")).type(DbDataType.STRING).def([]),
         (new NodeProperty("controls")).type(DbDataType.STRING).def([]),
-        (new NodeProperty("metadata")).type(DbDataType.STRING).def([])
+        (new NodeProperty("metadata")).type(DbDataType.STRING).def([]),
+        (new NodeProperty("_attr"))
+            .type(DbDataType.STRING)
+            .wakeUp( (x:NodePropertyState) => {
+                if(x.p!=null){
+                    console.log(x.p);
+                    const m:AccessAttributeMap = {};
+                    for(let k in x.p){
+                        m[k] = AccessAttribute.from({
+                            name: x.p[k]._n,
+                            value: x.p[k]._v,
+                        });
+                    }
+
+                    console.log(m);
+                    return m;
+                }else{
+                    return {};
+                }
+            })
+            .def({})
     ]));
 
 
@@ -316,6 +343,8 @@ export default class AssuranceModel extends Auditable implements IAuditableAcces
         if(pObject.links!=null) this.links = pObject.links;
         if(pObject.generic!=null) this.generic = pObject.generic;
         if(pObject.metadata!=null) this.metadata = pObject.metadata;
+        if(pObject._attr!=null) this._attr = pObject._attr;
+
 
         if(pUpdateChildren){
             if(pObject.primaryAssets!=null) this.primaryAssets = pObject.primaryAssets;
@@ -424,9 +453,7 @@ export default class AssuranceModel extends Auditable implements IAuditableAcces
      * @method
      */
     initAccessAttributes() {
-        for(const k in AuditAccessControl.attr){
-            this.setAccessAttribute(AuditAccessControl.attr[k], AuditAccessControl.attr[k].value);
-        }
+        this.setAccessAttribute(AuditAccessControl.attr.OWNER);
     }
 }
 AssuranceModel.TYPE.builder(AssuranceModel);

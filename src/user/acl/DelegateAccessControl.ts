@@ -4,13 +4,15 @@ import {UserAccount} from "../UserAccount.js";
 import {Nullable} from "@dexcalibur/dxc-core-api";
 import {Auditable} from "../../Auditable.js";
 
-
+/**
+ *
+ */
 export abstract class DelegateAccessControl {
 
 
     static uid:string;
 
-    static attr:AccessAttributeMap = {};
+    static attr:Record<string, AccessAttribute<any>> = {};
 
     constructor() {
 
@@ -18,18 +20,18 @@ export abstract class DelegateAccessControl {
 
     boot():void{}
 
-    static registerAttributes(pUID:string, pAttr:AccessAttribute) {
+    static registerAttributes<T>(pUID:string, pAttr:AccessAttribute<T>) {
         this.attr[pUID] = pAttr;
     }
 
 
-    static getAttr(pUID:string):AccessAttribute {
+    static getAttr<T>(pUID:string):AccessAttribute<T> {
         return this.attr[pUID];
     }
 
 
     check(pAccess:Access, pAccount:UserAccount, pResource?:any) {
-
+        // nothing to do here
     }
 
 
@@ -42,7 +44,7 @@ export abstract class DelegateAccessControl {
      * @param pMessage
      * @method
      */
-    checkAttr(pAttr: AccessAttribute, pAccount:UserAccount, pResource:Nullable<Auditable> = null, pMessage:string = ""):void {
+    checkAttr(pAttr: AccessAttribute<any>, pAccount:UserAccount, pResource:Nullable<Auditable> = null, pMessage:string = ""):void {
 
     }
 }
