@@ -63,12 +63,9 @@ export class AuthModule {
     }
 
     update(pOptions:AuthModuleOptions|AuthModule) {
-        this.type = pOptions.type!;
-        this.uid = pOptions.uid!;
-        this.name = pOptions.name!;
-        this.active = pOptions.active!;
-        this.btnImg = pOptions.btnImg!;
-        this.selfReg = pOptions.selfReg!;
+        ['type','uid','name','active','btnImg','selfReg','selfReg'].forEach(p => {
+            if(pOptions[p]!=null) this[p] = pOptions[p];
+        });
     }
 
     async testConnection(pAuthSettings:AuthenticationSettings):Promise<boolean> {

@@ -26,19 +26,19 @@ export class LocalAuthModule extends AuthModule {
             type: AuthModuleType.LOCAL_PASSWD
         });
 
-        this.authorizedIPs = pOptions.authorizedIPs!;
-        this.authorizedCIDR = pOptions.authorizedCIDR!;
-        this.banned = pOptions.banned!;
+        this.authorizedIPs = (pOptions.authorizedIPs!=null ? pOptions.authorizedIPs : []);
+        this.authorizedCIDR = (pOptions.authorizedCIDR!=null ? pOptions.authorizedCIDR : []);
+        this.banned = (pOptions.banned!=null ? pOptions.banned : []);
 
-        this.updateBlock()
+        this.updateBlock();
     }
 
     update(pOptions: LocalAuthModuleOptions | LocalAuthModule) {
         super.update(pOptions);
 
-        this.authorizedIPs = pOptions.authorizedIPs!;
-        this.authorizedCIDR = pOptions.authorizedCIDR!;
-        this.banned = pOptions.banned!;
+        this.authorizedIPs = (pOptions.authorizedIPs!=null ? pOptions.authorizedIPs : []);
+        this.authorizedCIDR = (pOptions.authorizedCIDR!=null ? pOptions.authorizedCIDR : []);
+        this.banned = (pOptions.banned!=null ? pOptions.banned : []);
 
         this.updateBlock();
     }

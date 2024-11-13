@@ -63,6 +63,10 @@ export abstract class Auditable extends ValidationCapable{
      * @method
      */
     setAccessAttribute<T>(pAttr: AccessAttribute<T>, pValue?:T[]): void {
+        if(this._attr==null){
+            this._attr = {};
+        }
+
         if(this._attr[pAttr.name]==null){
             this._attr[pAttr.name] = pAttr;
         }
@@ -81,8 +85,13 @@ export abstract class Auditable extends ValidationCapable{
      * @method
      */
     appendToAccessAttribute<T>(pAttr:AccessAttribute<T>, pValue:T): void {
+        if(this._attr==null){
+            this._attr = {};
+        }
+
         if(this._attr[pAttr.name]==null){
-            throw AccessControlException.UNKNOWN_ACL_ATTRIBUTE(pAttr);
+            this.setAccessAttribute(pAttr);
+            // throw AccessControlException.UNKNOWN_ACL_ATTRIBUTE(pAttr);
         }
 
         this._attr[pAttr.name].append(pValue);

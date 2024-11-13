@@ -127,7 +127,7 @@ export class OrganizationUnit extends Auditable implements INode {
             this.authModules =  (pOptions.authModules!=null ? pOptions.authModules : []);
             this.members = (pOptions.members!=null ? pOptions.members : []);
             this.groups = (pOptions.groups!=null ? pOptions.groups : []);
-            this._attr = pOptions._attr!;
+            this._attr = (pOptions._attr!=null ? pOptions._attr : {});
         }
 
     }
