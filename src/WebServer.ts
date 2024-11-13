@@ -292,6 +292,27 @@ export default class WebServer
         SEND_ERROR_RESPONSE( pRes, pMessage, pOptions);
     }
 
+    /**
+     *
+     * @param pRes
+     * @param pMessage
+     * @param pOptions
+     */
+    sendErrorAfterException( pRes:ExpressResponse, pPrefix:string, pMessage:any, pErr:Error, pOptions:any = null){
+        Logger.error(`[API]${pPrefix} ${pMessage} . Cause: ${pErr.message} \n\t ${pErr.stack} `);
+        SEND_ERROR_RESPONSE( pRes, pMessage, pOptions);
+    }
+
+    /**
+     *
+     * @param pRes
+     * @param pMessage
+     * @param pOptions
+     */
+    sendErrorWithLog( pRes:ExpressResponse, pPrefix:string, pMessage:any, pCause:string, pOptions:any = null){
+        Logger.error(`[API]${pPrefix} ${pMessage} . Cause: ${pCause} `);
+        SEND_ERROR_RESPONSE( pRes, pMessage, pOptions);
+    }
 
     /*
      * To create a new OpenID client instance using settings
@@ -1292,7 +1313,7 @@ export default class WebServer
                 }
 
 
-                Logger.info("[WEBSERVER][HTTP] Parse windowing options : "+JSON.stringify(req.dxc.filt));
+                Logger.debug("[WEBSERVER][HTTP] Parse windowing options : "+JSON.stringify(req.dxc.filt));
 
             }catch(err){
                 Logger.error("[WEBSERVER][HTTP] Parse windowing options cannot be retrieved \n"+err.messgae+"\n"+err.stack)

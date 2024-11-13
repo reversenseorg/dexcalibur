@@ -13,9 +13,12 @@ import {
 import {Auditable} from "../../../Auditable.js";
 import {GlobalAccessControl} from "../rbac/GlobalAccessContol.js";
 import {AccessAttribute, AccessAttributeMap} from "../AccessAttribute.js";
+import {SecurityZone} from "../../../security/SecurityZone.js";
+import {ValidationRule} from "../../../Validator.js";
 
+export type UserGroupUUID = string;
 export interface UserGroupOptions {
-    uuid?: string;
+    uuid?: UserGroupUUID;
     name?: string;
     description?: string;
     members?: UserAccountUUID[];
@@ -29,6 +32,13 @@ export interface UserGroupOptions {
  */
 export class UserGroup extends Auditable implements INode {
 
+    static VALIDATE:Record<string, ValidationRule> = {
+        uuid: ValidationRule.uuid(),
+        name: ValidationRule.utf8String(),
+        description: ValidationRule.utf8String(),
+        members: ValidationRule.uuidList(),
+        roles: ValidationRule.uuidList()
+    }
 
     static TYPE:NodeType = new NodeType(
         'user_group',
@@ -44,7 +54,6 @@ export class UserGroup extends Auditable implements INode {
                 .type(DbDataType.STRING)
                 .wakeUp( (x:NodePropertyState) => {
                     if(x.p!=null){
-                        console.log(x.p);
                         const m:AccessAttributeMap = {};
                         for(let k in x.p){
                             m[k] = AccessAttribute.from({
@@ -52,8 +61,6 @@ export class UserGroup extends Auditable implements INode {
                                 value: x.p[k]._v,
                             });
                         }
-
-                        console.log(m);
                         return m;
                     }else{
                         return {};
@@ -65,7 +72,7 @@ export class UserGroup extends Auditable implements INode {
 
     __:NodeInternalType = NodeInternalType.USER_GROUP;
 
-    public uuid: string;
+    public uuid: UserGroupUUID;
     public name: string;
     public description: string;
     public members: UserAccountUUID[];
@@ -80,17 +87,32 @@ export class UserGroup extends Auditable implements INode {
             this.uuid = pOptions.uuid!;
             this.name = pOptions.name!;
             this.description = pOptions.description!;
-            this.members = pOptions.members!;
-            this.roles = pOptions.roles!;
+            this.members = (pOptions.members!=null? pOptions.members : []);
+            this.roles = (pOptions.roles!=null? pOptions.roles : []);
             this._attr = pOptions._attr!;
 
         }
     }
 
-    getUID():string {
+    getUID():UserGroupUUID {
         return this.uuid;
     }
 
+    setUID(pUUID:UserGroupUUID):void {
+        this.uuid = pUUID;
+    }
+
+    addRole(pRoleUID:RoleUUID):void {
+        if(this.roles.indexOf(pRoleUID) == -1){
+            this.roles.push(pRoleUID);
+        }
+    }
+
+    addMember(pAccUID:UserAccountUUID):void {
+        if(this.members.indexOf(pAccUID) == -1){
+            this.members.push(pAccUID);
+        }
+    }
     /**
      * To init ACL attributes of OrganizationUnit instances
      *
@@ -109,7 +131,7 @@ export class UserGroup extends Auditable implements INode {
      *
      * @param pOption
      */
-    toJsonObject(pOption?: SerializeOptions): any {
+    toJsonObject(pOption?: SerializeOptions, pZone = SecurityZone.PUBLIC): any {
         return {
             uuid: this.uuid,
             name: this.name,

@@ -1,16 +1,18 @@
-import {Access, AccessException} from "../Access.js";
+import {Access} from "../Access.js";
 import {
     DbDataType,
     DbKeyType,
     INode,
     NodeProperty,
     NodeType,
-    RuntimeSecurityException,
+    SerializeOptions,
     TagUUID
 } from "@dexcalibur/dexcalibur-orm";
 import {NodeInternalType, Nullable} from "@dexcalibur/dxc-core-api";
-import {UserAccount} from "../../UserAccount.js";
-
+import {UserAccount, UserAccountType} from "../../UserAccount.js";
+import {OrganizationUnitUUID} from "../../../organization/OrganizationUnit.js";
+import {SecurityZone} from "../../../security/SecurityZone.js";
+import {ValidationRule} from "../../../Validator.js";
 
 export type RoleUUID = string;
 
@@ -20,6 +22,7 @@ export interface RoleOpts {
     description?:string;
     permissions?:Access[];
     authorized?:string[];
+    orgUnit?:Nullable<OrganizationUnitUUID>;
     tags?:number[]
 }
 
@@ -27,6 +30,13 @@ export interface RoleOpts {
  *
  */
 export default class Role implements INode {
+
+    static VALIDATE:Record<string, ValidationRule> = {
+        uuid: ValidationRule.uuid(),
+        name: ValidationRule.utf8String(),
+        description: ValidationRule.utf8String(),
+        orgUnit: ValidationRule.uuid()
+    }
 
 
     static TYPE:NodeType = new NodeType(
@@ -37,7 +47,8 @@ export default class Role implements INode {
             (new NodeProperty('name')).type(DbDataType.STRING),
             (new NodeProperty('description')).type(DbDataType.STRING).def(""),
             (new NodeProperty('permissions')).type(DbDataType.STRING).def([]),
-            (new NodeProperty('authorized')).type(DbDataType.STRING).def([])
+            (new NodeProperty('authorized')).type(DbDataType.STRING).def([]),
+            (new NodeProperty('orgUnit')).type(DbDataType.STRING).def(null),
         ]
     );
 
@@ -50,13 +61,17 @@ export default class Role implements INode {
     private _description:string = "";
     private _permissions:Access[] = [];
     private _authorized:string[] = [];
+    private _orgUnit:Nullable<OrganizationUnitUUID> = null;
+
 
     constructor( pOptions:Nullable<RoleOpts> = null) {
         if(pOptions!=null){
             this._uuid = pOptions.uuid!;
             this._name = pOptions.name!;
             this._description = pOptions.description!;
-            this._permissions = pOptions.permissions!;
+            this._permissions = (pOptions.permissions!=null? pOptions.permissions : []);
+            this._authorized = (pOptions.authorized!=null? pOptions.authorized : []);
+            this._orgUnit = pOptions.orgUnit!;
         }
     }
 
@@ -88,6 +103,15 @@ export default class Role implements INode {
         this._permissions = value;
     }
 
+
+    get orgUnit(): string {
+        return this._orgUnit;
+    }
+
+    set orgUnit(value: string) {
+        this._orgUnit = value;
+    }
+
     addAccess(pAccess:Access):void {
         this._permissions.push(pAccess);
     }
@@ -106,13 +130,24 @@ export default class Role implements INode {
         return (this._authorized.indexOf(pAccount.getUID())>-1);
     }
 
-    toJsonObject():any {
+    isGeneric():boolean {
+        return (this._orgUnit===null || this._orgUnit===undefined);
+    }
+
+    hasOrg(pOrg:OrganizationUnitUUID):boolean {
+        return (this._orgUnit===pOrg);
+    }
+
+    toJsonObject(pOpts?:SerializeOptions, pZone = SecurityZone.PUBLIC):any {
         return {
             uuid:this._uuid,
             description:this._description,
             name:this._name,
             permissions:this._permissions,
+            authorized: (pZone==SecurityZone.PUBLIC ? null : this._authorized),
+            orgUnit: (pZone==SecurityZone.PUBLIC ? null : this._orgUnit),
         }
 
     }
 }
+Role.TYPE.builder(Role);

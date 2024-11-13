@@ -72,7 +72,7 @@ export class AuthenticationService {
     userSvc:UserService;
 
     _users:IDbCollection;
-    _cache:UserCache = {};
+
     _dba:IDatabaseAdapter = null;
 
     // create use into local db automatically on authentication success
@@ -136,9 +136,6 @@ export class AuthenticationService {
     }
 
 
-    getUserIndex():IDbCollection {
-        return this._users;
-    }
 
     /**
      * To save change to user db
@@ -183,21 +180,6 @@ export class AuthenticationService {
             throw new AuthenticationException("Username cannot be empty", AuthCode.EMPTY_USERNAME);
         }
 
-        // !! IMPORTANT : Don't use cache, this function must be stateless
-        //this._ctx.getEngineDB()
-        /*
-        if(this._cache[pUsername]!=null){
-            return this._cache[pUsername];
-        }
-
-        //let d:string = "";
-        this._users.map(function(vO, vUsr){
-            //d += vUsr.username+", ";
-            if(vUsr.hasUsername(pUsername)){
-                usr = vUsr;
-            }
-        });*/
-
         if(usr == null){
             throw new AuthenticationException("Username not found : "+pUsername, AuthCode.INVALID_USERNAME);
         }
@@ -211,7 +193,7 @@ export class AuthenticationService {
      *
      * @param pUID
      */
-    findUserByUID( pUID:string):UserAccount {
+    async findUserByUID( pUID:string):Promise<UserAccount> {
         let usr:UserAccount = null;
 
         if(pUID==null || pUID.length==0){
@@ -219,24 +201,22 @@ export class AuthenticationService {
         }
 
 
-        this._ctx.getUserService().find(new UserAccount({ _uid:pUID }), {autoCreate:false})
-        if(this._cache[pUID]!=null){
-            return this._cache[pUID];
-        }
+        const user = await this._ctx.getUserService().find(new UserAccount({ _uid:pUID }), {autoCreate:false});
 
         //let d:string = "";
+        /*
         this._users.map(function(vO, vUsr){
             //d += vUsr.username+", ";
             if((vUsr as UserAccount).getUID() === pUID){
                 usr = vUsr;
             }
-        });
+        });*/
 
-        if(usr == null){
+        if(user == null){
             throw new AuthenticationException("Username not found : "+pUID, AuthCode.INVALID_USERNAME);
         }
 
-        return usr;
+        return user;
     }
 
     isSsoEnabled():boolean {

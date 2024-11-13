@@ -37,7 +37,7 @@ export class CryptoUtils {
     static stringEqual( pStringA:string, pStringB:string, pAlgo:HashAlgo = CryptoUtils.ALG_SHA256):boolean {
         switch (pAlgo){
             case CryptoUtils.ALG_SHA256:
-                return (CryptoUtils.sha256(pStringA)===CryptoUtils.sha256(pStringB));
+                return (CryptoUtils.sha256(pStringA, 'hex', true)===CryptoUtils.sha256(pStringB, 'hex', true));
             case CryptoUtils.ALG_MD5:
                 // TODO : add security exception to prevent collision
                 return (CryptoUtils.md5(pStringA)===CryptoUtils.md5(pStringB));

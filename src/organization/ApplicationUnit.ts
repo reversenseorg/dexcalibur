@@ -13,6 +13,7 @@ import {OrganizationAccessControl} from "../user/acl/rbac/OrganizationAccessCont
 import {OrganizationUnit} from "./OrganizationUnit.js";
 import {Avatar} from "@dexcalibur/dxc-orgs";
 import {AccessAttribute, AccessAttributeMap} from "../user/acl/AccessAttribute.js";
+import DexcaliburProject from "../DexcaliburProject.js";
 
 
 export interface ApplicationUnitOptions {
@@ -38,7 +39,6 @@ export class ApplicationUnit extends Auditable implements INode {
             .type(DbDataType.STRING)
             .wakeUp( (x:NodePropertyState) => {
                 if(x.p!=null){
-                    console.log(x.p);
                     const m:AccessAttributeMap = {};
                     for(let k in x.p){
                         m[k] = AccessAttribute.from({
@@ -46,8 +46,6 @@ export class ApplicationUnit extends Auditable implements INode {
                             value: x.p[k]._v,
                         });
                     }
-
-                    console.log(m);
                     return m;
                 }else{
                     return {};
@@ -63,7 +61,9 @@ export class ApplicationUnit extends Auditable implements INode {
     description:string;
     packageID: string;
     icon: Nullable<Avatar>;
+    projects: string[] = [];
     sources: string;
+
 
     //os:OperatingSystem = null;
 
@@ -103,6 +103,10 @@ export class ApplicationUnit extends Auditable implements INode {
         this.setAccessAttribute(OrganizationAccessControl.attr.APP_MEMBER);
     }
 
+    attachProject( pProject:DexcaliburProject){
+        this.projects.push(pProject.getUID());
+    }
+
 
     toJsonObject(pOption?: SerializeOptions): any {
         const o:any = {
@@ -112,6 +116,7 @@ export class ApplicationUnit extends Auditable implements INode {
             icon: this.icon,
             sources: this.sources,
             packageID: this.packageID,
+            projects: this.projects,
         };
 
         return o;

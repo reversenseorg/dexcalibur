@@ -23,6 +23,11 @@ import {MongodbDbCollection} from "@dexcalibur/dexcalibur-orm-mongodb";
 import {Nullable} from "../core/IStringIndex.js";
 import Role from "./acl/common/Role.js";
 import AccessControl from "./acl/AccessControl.js";
+import {OrganizationUnitUUID} from "../organization/OrganizationUnit.js";
+import {OrganizationAccessControl} from "./acl/rbac/OrganizationAccessContol.js";
+import {NodeInternalType} from "@dexcalibur/dxc-core-api";
+import {OrganizationManagerException} from "../errors/OrganizationManagerException.js";
+import {randomUUID} from "crypto";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -45,7 +50,16 @@ export class UserService {
     authSvc: AuthenticationService;
     sessSvc: SessionService;
 
+    /**
+     * @deprecated
+     * @private
+     */
     private _db:IDatabase = null;
+
+    /**
+     * Index from EngineDB
+     * @private
+     */
     private _coll:MongodbDbCollection = null;
 
 
@@ -63,7 +77,7 @@ export class UserService {
         }
 
 
-        UserAccount.TYPE.source(UserService.findUserByUID);
+        //UserAccount.TYPE.source(UserService.findUserByUID);
     }
 
 
@@ -77,6 +91,7 @@ export class UserService {
         return svc.authSvc.findUser(pUsername);
     }
 
+    /*
     static findUserByUID(pUserUID:string, pEngineUID:string = null):UserAccount {
         const svc:UserService = gInstance[pEngineUID!=null ? pEngineUID : DexcaliburEngine.DEFAULT_UID];
 
@@ -85,7 +100,7 @@ export class UserService {
         }
 
         return svc.authSvc.findUserByUID(pUserUID);
-    }
+    }*/
 
 
     /*static findAllSessionData( pSession:UserSession, pEngineUID:string = null):SessionData[] {
@@ -194,6 +209,16 @@ export class UserService {
         return  null;
     }
 
+    static getCommonOrganizations( pAccount1:UserAccount, pAccount2:UserAccount, ):OrganizationUnitUUID[] {
+        let same:OrganizationUnitUUID[] = [];
+        pAccount1.getOrgUnits().map(x => {
+            if(pAccount2.getOrgUnits().indexOf(x)>-1){
+                same.push(x);
+            }
+        });
+
+        return same;
+    }
 
     /**
      * deprecated ?
@@ -302,20 +327,39 @@ export class UserService {
     }
 
 
+    async isUuidFree(pType:NodeInternalType, pUUID:string):Promise<boolean> {
+
+        let coll:Nullable<IDbCollection> = null;
+        switch (pType){
+            case NodeInternalType.USER_ACCOUNT:
+                coll = await (this._ctx.getEngineDB().getCollectionOf(pType) as MongodbDbCollection);
+                break;
+        }
+
+        if(coll==null){
+            throw OrganizationManagerException.CANNOT_CHECK_UUID();
+        }
+
+
+        const res = await (coll as MongodbDbCollection).asyncGetEntry({ uuid:pUUID });
+        return (res == null);
+    }
+
     /**
      * To create a user account and save it
      * @param pAccount
      */
-    createUser( pAccount:UserAccount):boolean{
-        // verify username is unique
-        const users = this._db.getCollection('user',UserAccount.TYPE);
-        if(users.hasEntry(pAccount.getUID())){
-            throw UserServiceException.USERNAME_NOT_AVAILABLE()
-        }
+    async createUser( pAccount:UserAccount):Promise<UserAccount>{
 
-        users.addEntry(pAccount.getUID(), pAccount);
+        let candidateUUID:UserAccountUUID;
+        do{
+            candidateUUID = randomUUID();
+        }while( (await this.isUuidFree(UserAccount.TYPE.getType(),candidateUUID))===false);
 
-        return true;
+        pAccount.setUID(candidateUUID);
+        pAccount.init(candidateUUID);
+
+        return await this._coll.asyncAddEntry(pAccount.getUID(), pAccount);;
     }
 
 
@@ -382,11 +426,51 @@ export class UserService {
      * @param pUUID
      */
     async getAccount(pUserAccount:UserAccount, pUUID:UserAccountUUID):Promise<UserAccount> {
-        AccessControl.isAuthorized(
-            AccessControl.access.ORG_USER_READ,
-            pUserAccount
-        );
+        if(pUserAccount.uuidEquals(pUUID)){
+            return await this.find(new UserAccount({ uuid:pUserAccount.getUID() }), { autoCreate:false });
+        }else{
+            // check basic perm
+            AccessControl.isAuthorized(
+                AccessControl.access.ORG_USER_READ,
+                pUserAccount
+            );
 
-        return await this.find(new UserAccount({ uuid:pUUID }), { autoCreate:false });
+            // check i
+            let user = await this.find(new UserAccount({ uuid:pUUID }), { autoCreate:false });
+
+            if(user==null){
+                throw UserServiceException.USER_NOT_FOUND();
+            }
+
+            const sameOrgs = UserService.getCommonOrganizations(pUserAccount, user);
+
+            // verify user is a part of issuer org
+            if(sameOrgs.length==0){
+                throw UserServiceException.USERS_NOT_SAME_ORG(pUserAccount, user);
+            }
+
+            try{
+                // check if the current user, is authorized to read profile of found user
+                // he must be a part of target user organization and be a part of OWNER or ORG_MEMBER
+                // org attribute
+                AccessControl.isAuthorized(
+                    AccessControl.access.ORG_USER_READ,
+                    pUserAccount,
+                    await this._ctx.getOrgManager().getOrganization(pUserAccount, sameOrgs[0]),
+                    [
+                        OrganizationAccessControl.attr.OWNER,
+                        OrganizationAccessControl.attr.ORG_MEMBER
+                    ]
+                );
+
+                return user;
+            }catch (err){
+
+            }
+
+
+            throw UserServiceException.ACCESS_DENIED_USER_PROFILE();
+        }
+
     }
 }

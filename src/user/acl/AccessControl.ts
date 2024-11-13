@@ -43,12 +43,14 @@ export default class AccessControl {
 
         ORG_AU_ACL_MGT: new Access(AccessType.WRITE, 'ORG_AU_ACL_MGT', 'Manage app unit access controls'),
         ORG_WEBAPI_ACCESS: new Access(AccessType.EXE, 'ORG_WEBAPI_ACCESS', 'Allow access to WebService API'),
+        ORG_ROL_READ: new Access(AccessType.READ, 'ORG_ROL_READ', 'Read user roles from organization'),
         ORG_ROL_MGT: new Access(AccessType.WRITE, 'ORG_ROL_MGT', 'Manage user roles'),
         ORG_GRP_MGT: new Access(AccessType.WRITE, 'ORG_GRP_MGT', 'Manage user groups'),
         ORG_OU_SECRETS_MGT: new Access(AccessType.WRITE, 'ORG_OU_SECRETS_MGT', 'Manage secrets of organisation unit'),
         ORG_AU_SECRETS_MGT: new Access(AccessType.WRITE, 'ORG_AU_SECRETS_MGT', 'Manage secrets of application unit'),
         ORG_AU_SECRETS_USE: new Access(AccessType.READ, 'ORG_AU_SECRETS_USE', 'Use secrets of application unit'),
 
+        ORG_AU_NEW_PROJ: new Access(AccessType.WRITE, 'ORG_AU_NEW_PROJ', 'Create a new project in an application unit'),
 
         // project
         PROJ_SETTINGS_EDIT: new Access( AccessType.WRITE, 'PROJ_SETTINGS_EDIT', 'Edit project settings'),
@@ -272,6 +274,8 @@ export default class AccessControl {
         // next search if the accesss is mapped to one or more zones
         const zones = gInstance._zoneMapping[pControl.getUID()];
 
+        if(zones==null) return;
+
         // for each zone found, execute delegated access checks
         let dac:DelegateAccessControl;
         for(let i=0; i<zones.length; ++i){
@@ -296,6 +300,7 @@ export default class AccessControl {
 
         return this._aclMgr;
     }
+
 
     /**
      * To get a list of access point by matching rule of a property :

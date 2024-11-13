@@ -5,7 +5,7 @@ import {Nullable} from "../core/IStringIndex.js";
 import {AuthMechanism, MongoCredentialsOptions} from "mongodb";
 import * as Log from "../Logger.js";
 import DexcaliburProject from "../DexcaliburProject.js";
-import {UserAccount} from "../user/UserAccount.js";
+import {UserAccount, UserAccountUUID} from "../user/UserAccount.js";
 import {Device} from "../Device.js";
 import InspectorFactory from "../InspectorFactory.js";
 import {ScanOrder} from "../audit/common/ScanOrder.js";
@@ -787,4 +787,8 @@ export class EngineDatabase {
             .asyncUpdateEntry(pOrder);
     }
 
+    async searchUsers(pUUIDs: UserAccountUUID[]):Promise<UserAccount[]> {
+        return await (this.getCollectionOf(ScanOrder.TYPE.getType()) as MongodbDbCollection)
+            .search({ filter: { _uid: { $in: pUUIDs } } }, {raw:true});
+    }
 }

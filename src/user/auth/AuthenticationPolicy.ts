@@ -51,6 +51,8 @@ export class AuthenticationPolicy {
         return (this.supported.indexOf(pType)>-1);
     }
 
+
+
     hasMaxAttempts():boolean {
         return this.maxAttempts>0;
     }

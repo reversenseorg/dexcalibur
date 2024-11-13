@@ -268,19 +268,18 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
             }),*/
 
         (new NodeProperty("_attr"))
-            .type(DbDataType.BLOB)
+            .type(DbDataType.STRING)
             .wakeUp( (x:NodePropertyState) => {
                 if(x.p!=null){
-                    console.log(x.p);
                     const m:AccessAttributeMap = {};
                     for(let k in x.p){
-                        m[k] = AccessAttribute.from({
-                            name: x.p[k]._n,
-                            value: x.p[k]._v,
-                        });
+                        if(x.p[k]!=null){
+                            m[k] = AccessAttribute.from({
+                                name: x.p[k]._n,
+                                value: x.p[k]._v,
+                            });
+                        }
                     }
-
-                    console.log(m);
                     return m;
                 }else{
                     return {};

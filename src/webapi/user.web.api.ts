@@ -37,12 +37,21 @@ USER_WEB_API.addAsyncAuthenticatedRoute(
             const $: WebServer = req.dxc.$;
 
             try{
+                if(req.params.uuid==null || (typeof req.params.uuid !== 'string') || !UserAccount.VALIDATE._uid.test(req.params.uuid)){
+                   throw new Error("Invalid UUID format");
+                }
+
                 const user = await $.context.getUserService().getAccount(req.user, req.params.uuid);
 
-                if(user!=null){
-                    $.sendSuccess(res, user.toJsonObject({}, SecurityZone.PUBLIC));
+                if(req.user.getUID()===req.params.uuid){
+                    $.sendSuccess(res, req.user.toJsonObject({}, SecurityZone.PUBLIC));
                 }else{
-                    $.sendError(res, "User account not found.");
+
+                    if(user!=null){
+                        $.sendSuccess(res, user.toJsonObject({}, SecurityZone.PUBLIC));
+                    }else{
+                        $.sendError(res, "User account not found.");
+                    }
                 }
             }catch(err){
                 Logger.error("[API][USER] Ac account cannot be retrieved. Cause : " + err.message + "\n\t" + err.stack);

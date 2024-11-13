@@ -70,7 +70,6 @@ export default class AssuranceModel extends Auditable implements INode {
             .type(DbDataType.STRING)
             .wakeUp( (x:NodePropertyState) => {
                 if(x.p!=null){
-                    console.log(x.p);
                     const m:AccessAttributeMap = {};
                     for(let k in x.p){
                         m[k] = AccessAttribute.from({
@@ -78,8 +77,6 @@ export default class AssuranceModel extends Auditable implements INode {
                             value: x.p[k]._v,
                         });
                     }
-
-                    console.log(m);
                     return m;
                 }else{
                     return {};

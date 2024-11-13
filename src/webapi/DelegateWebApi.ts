@@ -93,14 +93,17 @@ export class DelegateWebApi
      */
     router: Router;
 
+    name:string;
+
 
     private _routerProto:RouterPrototype = {};
 
     private _l:any = null;
 
-    constructor() {
+    constructor(pName = '?') {
         // @ts-ignore
         this.router = new Router();
+        this.name = pName;
     }
 
     /**

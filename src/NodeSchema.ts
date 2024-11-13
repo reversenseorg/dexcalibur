@@ -47,6 +47,7 @@ import HookPrologue from "./HookPrologue.js";
 import {HookVariableArray, HookVariableObject} from "./HookVariable.js";
 import {HookVariableMap} from "./hook/common.js";
 import {Person} from "./user/Person.js";
+import {OrganizationUnitUUID} from "./organization/OrganizationUnit.js";
 
 
 
@@ -176,6 +177,7 @@ UserAccount.TYPE.updateProperties([
     (new NodeProperty('_padding')).type(DbDataType.STRING).notnull(),
     (new NodeProperty('_roles')).type(DbDataType.STRING).def([]),
     (new NodeProperty('_type')).type(DbDataType.STRING).def(UserAccountType.LOCAL),
+    (new NodeProperty('_orgs')).type(DbDataType.BLOB).def([]),
     (new NodeProperty('_authorized_ips')).type(DbDataType.STRING).def([]),
     (new NodeProperty('_person')).type(DbDataType.BLOB)
         .sleep( (x:NodePropertyState) => {

@@ -68,9 +68,10 @@ import {OrganizationAccessControl} from "./user/acl/rbac/OrganizationAccessConto
 import {AccessControlManager} from "./user/acl/AccessControlManager.js";
 import Role from "./user/acl/common/Role.js";
 import {randomUUID} from "crypto";
-import {ProjectManager} from "./ProjectManager.js";
+import {ProjectManager} from "./project/ProjectManager.js";
 import ts from "typescript/lib/tsserverlibrary.js";
 import Project = ts.server.Project;
+import {InternalSecretManager} from "./core/InternalSecretManager.js";
 
 /*
 const _fixPath_ = require("fix-path");
@@ -466,6 +467,8 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
     sigServerApi:SignatureServerAPI;
     
     nodeManager:EngineNodeManager;
+
+    secretManager:InternalSecretManager;
 
     scanScheduler:ScanScheduler;
 
@@ -1757,6 +1760,18 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
 
     getInternalAcc():UserAccount {
         return this._internalAcc;
+    }
+
+    getSecretManager():InternalSecretManager {
+        if(this.secretManager==null){
+            if(process.env.DXC_HOME!=null){
+                this.secretManager = new InternalSecretManager(process.env.DXC_HOME);
+            }else{
+                this.secretManager = new InternalSecretManager(_path_.join( _os_.homedir(), DEXCALIBUR_HOME_DIRNAME));
+            }
+        }
+
+        return this.secretManager;
     }
 }
 

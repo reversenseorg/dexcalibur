@@ -19,6 +19,7 @@ export class OrganizationAccessControl extends DelegateAccessControl {
 
     static attr:AccessAttributeMap = {
         ORG_MEMBER: new AccessAttribute<UserAccountUUID>( 'org_member'),
+        APP_MEMBER: new AccessAttribute<UserAccountUUID>( 'app_member'),
         OWNER: new AccessAttribute<UserAccountUUID>( 'owner'),
     };
 

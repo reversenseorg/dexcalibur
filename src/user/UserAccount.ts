@@ -11,12 +11,16 @@ import {IStringIndex} from "../core/IStringIndex.js";
 import {AclAttributeTree} from "./acl/Access.js";
 import Role, {RoleUUID} from "./acl/common/Role.js";
 import {SecurityZone} from "../security/SecurityZone.js";
-
+import {OrganizationUnit, OrganizationUnitUUID} from "../organization/OrganizationUnit.js";
+import {CryptoUtils} from "../CryptoUtils.js";
+import {ValidationRule} from "../Validator.js";
+import {UserAccountAction, UserAccountEvent, UserAccountHelper} from "./UserAccountEvent.js";
 
 
 export enum UserAccountType {
     LOCAL='local',
-    FEDERATED='federated'
+    FEDERATED='federated',
+    UNKNOWN="unknown"
 }
 export type UserAccountUUID = string;
 
@@ -30,15 +34,28 @@ export interface UserAccountOptions extends IStringIndex<any> {
      _padding?:string,
      _time?:string,
      _locked?:boolean,
+    _activated?:number,
+    _email?:string,
     _type?:UserAccountType;
-    _authorized_ips?:string[];
-    _projects?:ProjectURI[]
+    _authorized_ips?:string[],
+    _projects?:ProjectURI[],
+    _history?:UserAccountEvent[],
+    _orgs?:OrganizationUnitUUID[]
 }
 
 
 
 
 export class UserAccount implements IPersistent, INode {
+
+    static VALIDATE:Record<string, ValidationRule> = {
+        _type: ValidationRule.newPinklistAssert([ UserAccountType.LOCAL, UserAccountType.FEDERATED ]),
+        _uid: ValidationRule.uuid(),
+        _roles: ValidationRule.asArrayOf([ValidationRule.uuid()]),
+        _username: ValidationRule.utf8String(),
+        _orgs: ValidationRule.uuid(),
+        _email:ValidationRule.email(),
+    }
 
     static TYPE:NodeType = new NodeType(
         'accounts',
@@ -52,6 +69,7 @@ export class UserAccount implements IPersistent, INode {
 
     private _roles:RoleUUID[] = [];
     private _username:string;
+    private _email:string;
     private _password:string;
     private _salt:string;
     private _padding:string;
@@ -59,7 +77,9 @@ export class UserAccount implements IPersistent, INode {
     private _authorized_ips:string[] = [];
     private _type:UserAccountType = UserAccountType.LOCAL;
     private _locked:boolean = false;
-
+    private _orgs:OrganizationUnitUUID[] = [];
+    private _activated:number = -1;
+    private _history:UserAccountEvent[] =[];
     private _attrs:any = {};
 
     tags:number[] = [];
@@ -82,6 +102,31 @@ export class UserAccount implements IPersistent, INode {
             this._uid = this._username;
         }
     }
+
+    /**
+     * To init a user account when it is created
+     * @param pUUID
+     */
+    init(pUUID:UserAccountUUID):void {
+        this._uid = pUUID;
+        if(this._history==null) this._history = [];
+
+        this._history.push(UserAccountHelper.event(UserAccountAction.CREATE));
+        this._type = UserAccountType.UNKNOWN;
+    }
+
+    setUID(pUUID:UserAccountUUID):void {
+        this._uid = pUUID;
+    }
+
+    getActivatedDate():number {
+        return this._activated;
+    }
+
+    getHistory():any[] {
+        return this._history;
+    }
+
 
     get person(): Person {
         return this._person;
@@ -135,6 +180,11 @@ export class UserAccount implements IPersistent, INode {
         this._locked = value;
     }
 
+    getEmail(){
+        return this._email;
+    }
+
+
     getType():UserAccountType {
         return this._type;
     }
@@ -155,6 +205,9 @@ export class UserAccount implements IPersistent, INode {
         this._locked = true;
     }
 
+    activate():void {
+        this._activated = (new Date()).getTime();
+    }
 
     unlock():void {
         this._locked = false;
@@ -177,6 +230,10 @@ export class UserAccount implements IPersistent, INode {
     is( pAccount:UserAccount):boolean {
         // TODO : replace by uid
         return (this._username===pAccount.username) && (this._password===pAccount.password);
+    }
+
+    uuidEquals( pUnsafe:UserAccountUUID):boolean {
+        return CryptoUtils.stringEqual(this.getUID(), pUnsafe);
     }
 
     passwordEquals( pUnsafe:string):void {
@@ -246,6 +303,10 @@ export class UserAccount implements IPersistent, INode {
         return {};
     }
 
+    isActive():boolean {
+        return (this._activated > 0);
+    }
+
     /**
      * To list project viewable / auditable / owned
      *
@@ -281,6 +342,18 @@ export class UserAccount implements IPersistent, INode {
         return (this._authorized_ips.indexOf(pIpAddress)>-1);
     }
 
+    getOrgUnits():OrganizationUnitUUID[] {
+        return this._orgs;
+    }
+
+    addOrganization(pOrg:OrganizationUnit):void {
+        if(this._orgs==null){
+            this._orgs = [];
+        }
+
+        this._orgs.push(pOrg.getUID());
+    }
+
     toJsonObject(pOption?: SerializeOptions, pZone?:SecurityZone): any {
         let o:any = {};
 
@@ -291,10 +364,13 @@ export class UserAccount implements IPersistent, INode {
         o._time = this._time;
         o._locked = this._locked;
         o._type = this._type;
+        o._orgs = this._orgs;
+        o._history = this._history;
+        o._activated = this._activated;
 
-        if(pZone==SecurityZone.PRIVATE){
+        //if(pZone==SecurityZone.PRIVATE){
             o._authorized_ips = this._authorized_ips;
-        }
+        //}
 
 
         return o;

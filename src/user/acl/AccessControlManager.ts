@@ -14,6 +14,7 @@ import {AccessControlException} from "../../errors/AccessControlException.js";
 import * as Log from "../../Logger.js";
 import {AccessAttribute} from "./AccessAttribute.js";
 import {UserGroup} from "./common/UserGroup.js";
+import {OrganizationUnit} from "../../organization/OrganizationUnit.js";
 
 export type AclMatrix = Record<AccessUID, Role[]>;
 
@@ -126,14 +127,13 @@ export class AccessControlManager {
 
 
     /**
+     * Retrieve the list of generic roles (universal)
      *
      * @param pUserAccount
      */
-    async listRoles(pUserAccount:UserAccount ):Promise<Role[]> {
-        AccessControl.check(
-            AccessZone.ORGANIZATION,
-            AccessControl.access.ORG_ACL_MGT,
-            null,
+    async listGenericRoles(pUserAccount:UserAccount ):Promise<Role[]> {
+        AccessControl.isAuthorized(
+            AccessControl.access.ORG_ROL_MGT,
             pUserAccount
         );
 
@@ -142,11 +142,45 @@ export class AccessControlManager {
             .getCollectionOf(Role.TYPE.getType())
             .getAsList();
 
-        // if the account is the "local service account" or "a local admin", then the role is added
+        // gather generic roles from db
+        roles = roles.filter(r => r.isGeneric());
+        // merge with builtin roles
+        roles = roles.concat(Object.values(this._roles));
+
+        // append internal roles if the account is the "local service account" or "a local admin"
         if(pUserAccount!=null
             && pUserAccount.getUID()===AccessControl.INTERNAL_USER_ACCOUNT_UUID){
             roles = roles.concat(Object.values(this._internalRoles));
         }
+
+        return roles;
+    }
+
+
+    /**
+     * Retrieve the list of generic roles (universal)
+     *
+     * @param pUserAccount
+     */
+    async listOrganizationRoles(pUserAccount:UserAccount, pOrg:OrganizationUnit ):Promise<Role[]> {
+        AccessControl.isAuthorized(
+            AccessControl.access.ORG_ROL_READ,
+            pUserAccount,
+            [
+                OrganizationAccessControl.attr.OWNER,
+                OrganizationAccessControl.attr.ORG_MEMBER,
+            ]
+        );
+
+        // todo : search directly in DB by Org UUID
+        let roles:Role[] = [];
+        roles = await this._ctx.getEngineDB()
+            .getCollectionOf(Role.TYPE.getType())
+            .getAsList();
+
+        // gather generic roles from db
+        const orgUUID = pOrg.getUID();
+        roles = roles.filter(r => r.hasOrg(orgUUID));
 
         return roles;
     }
@@ -390,6 +424,8 @@ export class AccessControlManager {
                             return ;
                         }
                     }
+                }else if(pAttributes!=undefined){
+                    continue;
                 }else{
                     Logger.success(`[ACCESS MANAGER] User [uuid=${pUser.getUID()}] has been authorized to access [uid=${pAccess.getUID()}]`);
                     return;

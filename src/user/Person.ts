@@ -1,4 +1,5 @@
-import {UserAccount} from "./UserAccount.js";
+import {UserAccount, UserAccountType} from "./UserAccount.js";
+import {ValidationRule} from "../Validator.js";
 
 export interface PersonOptions {
     _firstname?: string;
@@ -14,6 +15,14 @@ export interface PersonOptions {
  * @class
  */
 export class Person {
+
+    static VALIDATE:Record<string, ValidationRule> = {
+        _firstname: ValidationRule.utf8String(),
+        _lastname: ValidationRule.utf8String(),
+        _mail: ValidationRule.email(),
+        _bio: ValidationRule.utf8String(),
+    }
+
 
     private _firstname:string;
     private _lastname:string;

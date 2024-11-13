@@ -1320,13 +1320,17 @@ ${"\t".repeat(1)}Default Arch = ${srv.getDefaultArchitecture()}
                     // init engine with settings
                     dxcInstance.loadConfiguration(cfg).then(()=>{
 
+                        console.log("List of users is not still available here");
+                        /*xcInstance.getUserService()
+
+
                         // list user
                         const usrList = dxcInstance.getUserService().getAuthenticationService().getUserIndex();
 
                         console.log(chalk.whiteBright("UserName | Locked | Role "));
                         usrList.map((vIndex:any, vUser:UserAccount)=>{
                             console.log(`  ${chalk.whiteBright(vUser.getUID())}  ${vUser.isLocked()? chalk.redBright("LOCKED"):chalk.redBright("VALID") }  ${chalk.yellow(vUser.getRoles().join(', '))} `);
-                        });
+                        });*/
 
                     })
 
@@ -1402,7 +1406,7 @@ ${"\t".repeat(1)}Default Arch = ${srv.getDefaultArchitecture()}
                 console.log(chalk.yellow("[-] List roles ... "));
 
                 // TODO : dxcInstance.getInternalAcc() must be replaced by previously authenticated user
-                const roles = dxcInstance.getAclManager().listRoles(dxcInstance.getInternalAcc());
+                const roles = dxcInstance.getAclManager().listGenericRoles(dxcInstance.getInternalAcc());
                 for(let k in roles){
                     console.log("\t"+roles[k].uid+"\t"+roles[k].name+"\t"+JSON.stringify(roles[k].access));
                 }
