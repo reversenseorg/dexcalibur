@@ -31,6 +31,9 @@ import * as _bodyparser_ from 'body-parser';
 import {LocalStrategy} from "./passport/LocalStrategy.js";
 import AccessControl from "../acl/AccessControl.js";
 import {AccessZone} from "../acl/Zones.js";
+import {AuthModule} from "./AuthModule.js";
+import {OrganizationUnit} from "../../organization/OrganizationUnit.js";
+import {OidcAuthModule} from "./modules/OidcAuthModule.js";
 
 const GOT = got.default;
 const BodyParser = (_bodyparser_ as any).default;
@@ -254,8 +257,39 @@ export class AuthenticationService {
         return await GOT(pRevokeURL, options as any);
     }
 
-    protectRoutes( pApp:Application|Router, pCfg:{sso:boolean,local:boolean} ):void {
+    private async _prepareAuthModules(pBase:string):Promise<any> {
+        // search organization and authentication module from database and setup. login routes
+        const orgs = await this._ctx.getOrgManager().listOrganizations(this._ctx.getInternalAcc());
+        const authRoutes:any = [];
+        const res = {
+            strategies: {},
 
+        };
+        orgs.map((vOrg:OrganizationUnit)=>{
+            const orgRoute = {
+                uid: vOrg.getUID(),
+                name: vOrg.name,
+                route: {
+                    shortform: pBase+'/'+vOrg.name,
+                    longform: pBase+'/org/'+vOrg.getUID(),
+                },
+                mods: []
+            };
+
+
+            authRoutes.push(orgRoute);
+        });
+
+        return authRoutes;
+    }
+
+    private async _setupOrgAuthRoutes(pBase:string, pOrg:OrganizationUnit):Promise<any> {
+
+    }
+
+    async protectRoutes( pApp:Application|Router, pCfg:{sso:boolean,local:boolean} ):Promise<void> {
+
+        const basePath = '/login';
         // session middleware
         pApp.use(
             expressSession({
@@ -286,6 +320,25 @@ export class AuthenticationService {
             done(null, user);
         });
 
+
+        // search organization and authentication module from database and setup. login routes
+        const authRoutes = await this._prepareAuthModules(basePath);
+
+        if(authRoutes.length()==1){
+            // default organization config
+            authRoutes[0]
+        }else if(authRoutes.length()==0){
+            // default configuration
+            if(this.isSsoEnabled()){
+                this._setupOidcStrategy(pApp);
+            }
+            if(this.settings.isLocalAuthEnabled()){
+                this._setupLocalStrategy(pApp)
+            }
+        }else{
+            // multi-orgs (>1) config
+        }
+
         // authentication strategies
         if(this.isSsoEnabled()){
             this._setupOidcStrategy(pApp);
@@ -297,8 +350,91 @@ export class AuthenticationService {
 
         // todo : add API Key auth
 
-        this.serveLoginEP(pApp, pCfg.local);
+        this.serveLoginEP(pApp, basePath, pCfg.local);
     }
+
+    /**
+     *
+     * @private
+     */
+    private async _createOidcStrategy(pApp:Application|Router, pOrg:OrganizationUnit, pAuthModule:OidcAuthModule):Promise<void>{
+
+        try{
+            // TODO : only if discover URI is set
+            const issuer = await Issuer.discover(pAuthModule.getDiscoverUri());
+            const callbackURI = pAuthModule.getCallbackURL('/api-auth/cb',pOrg);
+            // this creates the strategy toi authenticate using oidc
+            passport.use('oidc-'+pOrg.name,
+                new PassportOIDC(
+                    {
+                        issuer: pAuthModule.discoverUri,
+
+                        // credentials
+                        clientID: pAuthModule.getClientID(),
+                        clientSecret: pAuthModule.getClientSecret(),
+
+                        // provider API endepoints
+                        authorizationURL: issuer.authorization_endpoint,
+                        tokenURL: issuer.token_endpoint,
+                        userInfoURL: issuer.userinfo_endpoint,
+
+                        // callback URI must be unique for org and auth module
+                        callbackURL: callbackURI,
+
+                        passReqToCallback: true
+                    },
+                    (req, issuer, profile, verified) => {
+
+                        Logger.info("[AUTH SERVICE] Start OIDC verifying ...");
+
+
+                        const acc = new UserAccount({
+                            _uid: profile.id,
+                            _person: new Person({
+                                _lastname: profile.name.familyName,
+                                _firstname: profile.name.givenName,
+                            }),
+
+                            _role: this._ctx.getAclManager().getRole(
+                                AccessControlManager.BUILT_IN_DEFAULT_ROLE
+                            ),
+                            _roles: [AccessControlManager.BUILT_IN_DEFAULT_ROLE],
+                            // TODO : employee ID
+                            // TODO : email , ...
+                            _username: profile.username
+                        });
+
+                        this._ctx.getUserService().find(acc, {
+                            autoCreate: true,
+                            type: UserAccountType.FEDERATED
+                        }).then((vAccount: Nullable<UserAccount>) => {
+                            console.log("OIDC Verifiying > ", vAccount);
+
+                            if (vAccount != null) {
+                                verified(null, acc);
+                            } else {
+                                Logger.error("OIDC : User account cannot be found and or created.");
+                                verified("OIDC : User account cannot be created.", null);
+                            }
+                        });
+                    }
+                )
+            );
+
+
+            (pApp as Application).get(callbackURI,
+                passport.authenticate('openidconnect', {
+                    successMessage: true,
+                    failureMessage:true,
+                    failureRedirect: '/login',
+                    successReturnToOrRedirect: '/home/', // NEW
+                }));
+        }catch(err){
+            Logger.error(err.stack)
+        }
+    }
+
+
 
     /**
      *
@@ -378,6 +514,10 @@ export class AuthenticationService {
         }
     }
 
+
+
+
+
     /**
      * Setup local authentication, and authentication endpoint
      *
@@ -428,9 +568,9 @@ export class AuthenticationService {
      * @param pApp
      * @method
      */
-    serveLoginEP( pApp:Application|Router, pLocalAuth:boolean):void {
+    serveLoginEP( pApp:Application|Router, pRoute:string, pLocalAuth:boolean):void {
 
-        (pApp as Application).get('/login',
+        (pApp as Application).get(pRoute,
             (req, res, next) => {
 
                 // TODO : make CORS parameter as env var

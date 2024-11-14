@@ -2,6 +2,7 @@ import DexcaliburEngine from "../../DexcaliburEngine.js";
 
 
 import * as Got from "got";
+import {EmailSenderException} from "./error/EmailSenderException.js";
 const got = Got.default;
 
 /**
@@ -13,16 +14,18 @@ export class EmailSender {
 
     domainID = "2d118760-c9f5-4b04-9905-db8f47b8c46d";
     projectID = "2d118760-c9f5-4b04-9905-db8f47b8c46d";
+
     region = "fr-par";
 
     apiKey:string;
 
     constructor(pEngine:DexcaliburEngine) {
         try{
+            // rename secret 'emailer.api-key'
             this.apiKey = pEngine.getSecretManager().readRawSecret('SCW5QQAPBNJDG3B4K6KY').toString();
             this.apiKey = this.apiKey.replaceAll(/[\n\r]/g,'').trim();
         }catch(e){
-            console.log("Cannot EmailSender API KEY");
+            throw EmailSenderException.MISSING_API_KEY();
         }
 
     }
@@ -65,7 +68,7 @@ export class EmailSender {
             };
 
             console.log(opts);
-            data = got(`https://api.scaleway.com/transactional-email/v1alpha1/regions/${this.region}/emails`, opts as any);
+            data = await got(`https://api.scaleway.com/transactional-email/v1alpha1/regions/${this.region}/emails`, opts as any);
             console.log(data);
 
         }catch (e){

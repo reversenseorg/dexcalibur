@@ -1,10 +1,13 @@
+import {SecurityZone} from "../security/SecurityZone.js";
+
 export enum ErrorCode {
     GENERIC= 1000,
     ORGANIZATION=1100,
+    EMAIL=1200,
+    SECRET_MGT=1300,
     DEVICE_MANAGER= 10000,
     DEVICE_VDEV=10200,
     BRIDGE= 11000,
-
     AUDIT_MANAGER = 12000,
     PLATFORM_MANAGER= 15000,
     REMOTE = 20000,
@@ -46,12 +49,18 @@ export class MonitoredError extends Error {
     cmp:string;
     code:number;
     extra:any;
+    _zone = SecurityZone.PUBLIC;
 
     constructor( pCmp:string, pMsg:string, pCode:number = null, pExtra:any = null) {
         super(pMsg);
         this.cmp = pCmp;
         this.code = pCode;
         this.extra = pExtra;
+    }
+
+    zone(pZone:SecurityZone):MonitoredError {
+        this._zone = pZone;
+        return this;
     }
 
     getCode():number {

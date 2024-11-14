@@ -397,7 +397,7 @@ export default class WebServer
             this._sso_enabled = true;
         }
 
-        authSvc.protectRoutes(this.app, {
+        await authSvc.protectRoutes(this.app, {
             local: ((locals.length>0) && authSvc.settings.isLocalAuthEnabled()),
             sso: this._sso_enabled
         });

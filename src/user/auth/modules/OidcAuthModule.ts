@@ -2,6 +2,7 @@ import {AuthModule, AuthModuleOptions, AuthModuleType} from "../AuthModule.js";
 import {SecurityZone} from "../../../security/SecurityZone.js";
 import {Issuer} from "openid-client";
 import {AuthenticationSettings} from "../AuthenticationSettings.js";
+import {OrganizationUnit} from "../../../organization/OrganizationUnit.js";
 
 export interface OidcAuthModuleOptions extends AuthModuleOptions {
     discoverUri?:string;
@@ -38,6 +39,9 @@ export class OidcAuthModule extends AuthModule {
         return this.serviceSecret;
     }
 
+    getCallbackURL(pBase:string, pOrg:OrganizationUnit):string {
+        return pBase+'/'+pOrg.getUID()+'/'+this.getUID();
+    }
 
     async testConnection(pAuthSettings:AuthenticationSettings):Promise<boolean> {
 
