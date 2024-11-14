@@ -1,6 +1,5 @@
 import * as _fs_ from "fs";
 import * as _path_ from "path";
-import {RuntimeSecurityException} from "../errors/RuntimeSecurityException.js";
 import {UserAccount} from "../user/UserAccount.js";
 import {InternalSecretException} from "./secrets/error/InternalSecretException.js";
 

@@ -286,6 +286,13 @@ export class OrganizationManager {
 
         // add local auth by default
         pOrg.addAuthModule(new LocalAuthModule({
+            name: 'local_basic_auth',
+            active: true,
+            selfReg: {
+                orgMember: false,
+                external: false,
+                guests: false
+            },
             authorizedIPs: [
                 AuthenticationSettings.LOCAL_ADDR_IPV4,
                 AuthenticationSettings.LOCAL_ADDR_IPV6

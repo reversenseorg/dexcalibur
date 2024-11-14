@@ -3,7 +3,6 @@ import * as passport from "passport";
 import {RuntimeSecurityException} from "../../../errors/RuntimeSecurityException.js";
 import {PasswordFormContext} from "../AuthenticationService.js";
 import * as Log from "../../../Logger.js";
-import {AuthenticationResult} from "../PasswordAuthenticator.js";
 import {UserAccount} from "../../UserAccount.js";
 
 

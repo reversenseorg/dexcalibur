@@ -1,7 +1,6 @@
 import {Nullable} from "../core/IStringIndex.js";
 import {MonitoredError} from "../errors/MonitoredError.js";
 import {RuntimeSecurityException} from "../errors/RuntimeSecurityException.js";
-import type = Mocha.utils.type;
 
 
 /**

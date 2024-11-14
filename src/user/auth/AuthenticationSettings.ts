@@ -12,7 +12,6 @@ import {RuntimeSecurityException} from "../../errors/RuntimeSecurityException.js
 import * as Log from "../../Logger.js";
 import ServerSettings = Settings.ServerSettings;
 import {INTERNAL_DB} from "../../database/EngineDatabase.js";
-import {AuthenticationService} from "./AuthenticationService.js";
 
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;

@@ -6,8 +6,9 @@ import DexcaliburProject from "../DexcaliburProject.js";
 import {DexcaliburProjectException} from "../errors/DexcaliburProjectException.js";
 import * as _fs_ from "fs";
 import {MerlinSearchRequest} from "../search/MerlinSearchRequest.js";
-import {SecurityCheck, SecurityZone} from "../security/SecurityZone.js";
+import {SecurityZone} from "../security/SecurityZone.js";
 import {SafetyCheck} from "../security/SafetyCheck.js";
+import {SecurityCheck} from "../security/SecurityCheck.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 export const FS_WEB_API: DelegateWebApi = new DelegateWebApi();

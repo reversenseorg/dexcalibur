@@ -17,11 +17,15 @@ export interface SelfRegistrationStatus {
 export interface AuthModuleOptions {
     type?:AuthModuleType;
     uid?:string;
-    name?:string;
-    active?:boolean;
+    name:string;
+    active:boolean;
     btnImg?:Buffer;
     selfReg?:SelfRegistrationStatus;
     [extra:string]:any;
+}
+
+export interface DirectAuthModuleOptions extends AuthModuleOptions{
+    type:AuthModuleType;
 }
 
 export class AuthModule {
@@ -50,7 +54,7 @@ export class AuthModule {
         guests: false
     };
 
-    constructor(pOptions:AuthModuleOptions) {
+    constructor(pOptions:DirectAuthModuleOptions) {
         this.update(pOptions);
     }
 
