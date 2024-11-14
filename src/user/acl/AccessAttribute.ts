@@ -45,6 +45,9 @@ export class AccessAttribute<T> {
 
     append(pVal:T):void {
         if(this._v==null) this._v = [];
+
+        if(this._v.indexOf(pVal)>-1) return;
+
         this._v.push(pVal);
     }
     /**
