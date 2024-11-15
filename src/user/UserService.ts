@@ -389,6 +389,7 @@ export class UserService {
     }
 
     async find(pAccount: UserAccount, pOptions: { autoCreate: boolean, type?:UserAccountType }):Promise<Nullable<UserAccount>> {
+
         let user = await this._coll.asyncGetEntry({
             [UserAccount.TYPE.getPrimaryKey().getName()] : pAccount.getUID()
         });
@@ -398,12 +399,15 @@ export class UserService {
             return user;
         }else{
             if(pOptions.autoCreate == true){
-                user.setType(pOptions.type);
-                user = await this._coll.asyncAddEntry(
+
+                pAccount.setType(pOptions.type);
+
+                user = await this.createUser(pAccount)
+                /*user = await this._coll.asyncAddEntry(
                     {
                         [UserAccount.TYPE.getPrimaryKey().getName()] : pAccount.getUID()
                     },
-                    pAccount);
+                    pAccount);*/
 
                 Logger.success("[AUTH SERVICE] Find user : account not found but created accordingly to 'autoCreate' option");
 

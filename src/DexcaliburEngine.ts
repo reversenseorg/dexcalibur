@@ -954,10 +954,14 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
         const self:DexcaliburEngine=this;
 
 
+
         // create updater
         this.updater = DexcaliburUpdater.getInstance(this);
 
         this.updater.run( DXC_LIFECYCLE_EVENT.ENG_BEFORE_WS_INIT);
+
+
+        this.orgMgr = new OrganizationManager(this);
 
         // init workspace
         await this.workspace.init();
@@ -1006,7 +1010,6 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
             Logger.debug('PASS4');
         })();
 
-        this.orgMgr = new OrganizationManager(this);
 
         return true;
     }

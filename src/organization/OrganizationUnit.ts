@@ -245,5 +245,13 @@ export class OrganizationUnit extends Auditable implements INode {
     getUserGroup(pUUID:UserGroupUUID):Nullable<UserGroup> {
         return this.groups.find(x => x.getUID()===pUUID);
     }
+
+    hasLocalAuth() {
+        return (this.authModules.filter(x => (x.type===AuthModuleType.LOCAL_PASSWD)).length>0);
+    }
+
+    getLocalAuth():AuthModule[] {
+        return (this.authModules.filter(x => (x.type===AuthModuleType.LOCAL_PASSWD)));
+    }
 }
 OrganizationUnit.TYPE.builder(OrganizationUnit);

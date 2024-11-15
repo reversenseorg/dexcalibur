@@ -9,6 +9,7 @@ import {UserAccount} from "../UserAccount.js";
 import {AccessControlManager} from "./AccessControlManager.js";
 import {Nullable} from "@dexcalibur/dxc-core-api";
 import {AccessControlException} from "../../errors/AccessControlException.js";
+import DexcaliburEngine from "../../DexcaliburEngine.js";
 
 
 let gInstance:AccessControl = null;
@@ -243,6 +244,11 @@ export default class AccessControl {
             throw new AccessException("Access attribute of an undefined object cannot be verified : rejected ", AccesErrCode.MANDATORY_OBJECT_UNDEFINED)
         }
 
+        if(pAccount.uuidEquals(AccessControl.INTERNAL_USER_ACCOUNT_UUID)){
+            // bypass for internal user (dxengine)
+            return;
+        }
+
         // get a list authorized UUIDs for a given attribute from pSubject
         let authorizedUIDs = pResource.getAccessAttribute(pAttr).value;
 
@@ -267,6 +273,11 @@ export default class AccessControl {
     static isAuthorized(pControl:Access, pAccount:UserAccount, pResource?:Nullable<any>, pAttributes?:AccessAttribute<any>[] ):void {
         if(gInstance==null){
             throw AccessControlException.MISSING_ACL_CTRL();
+        }
+
+        if(pAccount.uuidEquals(AccessControl.INTERNAL_USER_ACCOUNT_UUID)){
+            // bypass for internal user (dxengine)
+            return;
         }
 
         gInstance.getManager().isAuthorized(pControl, pAccount, pResource, pAttributes);

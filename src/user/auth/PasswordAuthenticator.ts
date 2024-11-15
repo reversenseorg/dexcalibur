@@ -2,6 +2,10 @@ import {UserAccount} from "../UserAccount.js";
 import {AuthCode, AuthenticationException, Authenticator} from "./AuthTypes.js";
 import {AuthenticationService} from "./AuthenticationService.js";
 import * as Log from "../../Logger.js";
+import {Nullable} from "@dexcalibur/dxc-core-api";
+import {OrganizationUnit, OrganizationUnitUUID} from "../../organization/OrganizationUnit.js";
+import AccessControl from "../acl/AccessControl.js";
+import {OrganizationAccessControl} from "../acl/rbac/OrganizationAccessContol.js";
 
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
@@ -92,7 +96,7 @@ export class PasswordAuthenticator implements Authenticator{
      * @param {string} pUsername Username
      * @param {string} pPwd User password
      */
-    async doAuthentication( pUsername:string, pPwd:string):Promise<AuthenticationResult> {
+    async doAuthentication( pUsername:string, pPwd:string, pOrgUUID?:Nullable<OrganizationUnitUUID>):Promise<AuthenticationResult> {
         let res:AuthenticationResult;
         let account:UserAccount = null;
 
@@ -116,6 +120,20 @@ export class PasswordAuthenticator implements Authenticator{
 
 
             Logger.info("[AUTH] User ("+pUsername+") authenticated ");
+
+
+            // if the authenticator is trigged from a form bound to an organization
+            // the authentication includes a check of membership
+            if(pOrgUUID!=null){
+                const org = await this.svc.getUserService()._ctx.getOrgManager().getOrganization(
+                    account, pOrgUUID
+                );
+                AccessControl.isAuthorizedByAttr(
+                    OrganizationAccessControl.attr.ORG_MEMBER,
+                    org,
+                    account
+                );
+            }
 
             // create session token
 

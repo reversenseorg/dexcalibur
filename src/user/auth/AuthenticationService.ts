@@ -25,8 +25,10 @@ import {randomUUID} from "crypto";
 import {UserService} from "../UserService.js";
 import * as _bodyparser_ from 'body-parser';
 import {LocalStrategy} from "./passport/LocalStrategy.js";
-import {OrganizationUnit} from "../../organization/OrganizationUnit.js";
+import {OrganizationUnit, OrganizationUnitUUID} from "../../organization/OrganizationUnit.js";
 import {OidcAuthModule} from "./modules/OidcAuthModule.js";
+import {AuthModule, AuthModuleType} from "./AuthModule.js";
+import {LocalAuthModule} from "./modules/LocalAuthModule.js";
 
 const GOT = got.default;
 const BodyParser = (_bodyparser_ as any).default;
@@ -57,6 +59,37 @@ export interface SsoOptions {
     clientId?: string;
     clientSecret?: string;
     discoverUri?: string;
+}
+
+export interface AuthRouterConfig {
+    // org uuid
+    uid: OrganizationUnitUUID,
+    // org name
+    name: string,
+    // routes
+    route: {
+        shortform: string,
+        longform: string,
+    },
+    mods: AuthModule[]
+}
+
+export interface AuthOrgRouting {
+    // org uuid
+    uid: OrganizationUnitUUID,
+    // org name
+    name: string,
+    // routes
+    loginEndpoints: {
+        shortform: string,
+        longform: string,
+    }
+}
+
+
+export interface AuthModuleRouting {
+    route: AuthOrgRouting,
+    module:  AuthModule
 }
 
 export class AuthenticationService {
@@ -250,35 +283,6 @@ export class AuthenticationService {
         return await GOT(pRevokeURL, options as any);
     }
 
-    private async _prepareAuthModules(pBase:string):Promise<any> {
-        // search organization and authentication module from database and setup. login routes
-        const orgs = await this._ctx.getOrgManager().listOrganizations(this._ctx.getInternalAcc());
-        const authRoutes:any = [];
-        const res = {
-            strategies: {},
-
-        };
-        orgs.map((vOrg:OrganizationUnit)=>{
-            const orgRoute = {
-                uid: vOrg.getUID(),
-                name: vOrg.name,
-                route: {
-                    shortform: pBase+'/'+vOrg.name,
-                    longform: pBase+'/org/'+vOrg.getUID(),
-                },
-                mods: []
-            };
-
-
-            authRoutes.push(orgRoute);
-        });
-
-        return authRoutes;
-    }
-
-    private async _setupOrgAuthRoutes(pBase:string, pOrg:OrganizationUnit):Promise<any> {
-
-    }
 
     async protectRoutes( pApp:Application|Router, pCfg:{sso:boolean,local:boolean} ):Promise<void> {
 
@@ -315,71 +319,123 @@ export class AuthenticationService {
 
 
         // search organization and authentication module from database and setup. login routes
-        const authRoutes = await this._prepareAuthModules(basePath);
+        const orgs = await this._ctx.getOrgManager().listOrganizations(this._ctx.getInternalAcc());
 
-        if(authRoutes.length()==1){
-            // default organization config
-            authRoutes[0]
-        }else if(authRoutes.length()==0){
-            // default configuration
-            if(this.isSsoEnabled()){
-                this._setupOidcStrategy(pApp);
-            }
-            if(this.settings.isLocalAuthEnabled()){
-                this._setupLocalStrategy(pApp)
-            }
-        }else{
-            // multi-orgs (>1) config
+        const strats = {
+            all: [],
+            [AuthModuleType.LOCAL_PASSWD]: [],
+            [AuthModuleType.OIDC]: [],
+            orgs: {}
         }
 
-        // authentication strategies
+        let hasLocalAuth = false;
+        let mods:AuthModule[] = [];
+        let stratUID:string;
+
+        for(let k=0; k<orgs.length; k++){
+
+            hasLocalAuth = false;
+            mods = orgs[k].getAuthModules();
+            strats.orgs[orgs[k].getUID()] = [];
+
+            for(let i=0; i<mods.length; i++){
+                stratUID = `${mods[i].type}_${orgs[k].getUID()}_${mods[i].getUID()}`;
+
+                if(!mods[i].active){
+                    Logger.success(`[AUTH SERVICE][type=${mods[i].type}][org=${orgs[k].getUID()}][mod=${mods[i].getUID()}] Auth module disabled. Skip it ...`);
+                    continue;
+                }
+
+                switch (mods[i].type) {
+                    case AuthModuleType.LOCAL_PASSWD:
+                        this._setupLocalAuthStrategy(pApp, basePath, stratUID, mods[i] as LocalAuthModule, orgs[k]);
+                        hasLocalAuth = true;
+                        strats.all.push(stratUID);
+                        strats[AuthModuleType.LOCAL_PASSWD].push(stratUID);
+                        Logger.success(`[AUTH SERVICE][type=${mods[i].type}][org=${orgs[k].getUID()}][mod=${mods[i].getUID()}] Auth module deployed`);
+                        break;
+                    case AuthModuleType.OIDC:
+                        await this._setupOidcStrategy(pApp, basePath, stratUID, mods[i] as OidcAuthModule, orgs[k]);
+                        strats.all.push(stratUID);
+                        strats[AuthModuleType.OIDC].push(stratUID);
+                        Logger.success(`[AUTH SERVICE][type=${mods[i].type}][org=${orgs[k].getUID()}][mod=${mods[i].getUID()}] Auth module deployed`);
+                        break;
+                }
+            }
+
+
+            this.serveLoginEP(pApp, this._getOrgAuthLongLoginRoute(basePath,orgs[k]), orgs[k], hasLocalAuth);
+            this.serveLoginEP(pApp, this._getOrgAuthShortLoginRoute(basePath,orgs[k]), orgs[k], hasLocalAuth);
+        }
+
+        // check if there is not auth module configures (no orgs)
+        if(orgs.length==0){
+            // when there is not AuthModule yet configured
+            this._setupNoOrgRoutes(pApp);
+            // todo : add API Key auth
+            this.serveHubLoginEP(pApp, basePath, pCfg.local);
+        }
+
+
+    }
+
+    private _getActiveStrategies(pOrg:OrganizationUnit):string[] {
+        const str:string[] = [];
+        pOrg.getAuthModules().map(x => {
+            if(x.active){
+                str.push(`${x.type}_${pOrg.getUID()}_${x.getUID()}`)
+            }
+        });
+        return str;
+    }
+
+    private _setupNoOrgRoutes(pApp:Application|Router) {
+        // default configuration
         if(this.isSsoEnabled()){
-            this._setupOidcStrategy(pApp);
+            this._setupLegacyOidcStrategy(pApp);
         }
-
         if(this.settings.isLocalAuthEnabled()){
             this._setupLocalStrategy(pApp)
         }
-
-        // todo : add API Key auth
-
-        this.serveLoginEP(pApp, basePath, pCfg.local);
     }
 
     /**
      *
      * @private
      */
-    private async _createOidcStrategy(pApp:Application|Router, pOrg:OrganizationUnit, pAuthModule:OidcAuthModule):Promise<void>{
+    private async _setupOidcStrategy(pApp:Application|Router, pBasePath:string, pStratUID:string, pAuthModule:OidcAuthModule, pOrg:OrganizationUnit):Promise<void>{
 
         try{
             // TODO : only if discover URI is set
             const issuer = await Issuer.discover(pAuthModule.getDiscoverUri());
             const callbackURI = pAuthModule.getCallbackURL('/api-auth/cb',pOrg);
+
+            const cfg ={
+                issuer: pAuthModule.discoverUri,
+
+                // credentials
+                clientID: pAuthModule.getClientID(),
+                clientSecret: pAuthModule.getClientSecret(),
+
+                // provider API endepoints
+                authorizationURL: issuer.authorization_endpoint,
+                tokenURL: issuer.token_endpoint,
+                userInfoURL: issuer.userinfo_endpoint,
+
+                // callback URI must be unique for org and auth module
+                callbackURL: callbackURI,
+
+                passReqToCallback: true
+            };
+
+
             // this creates the strategy toi authenticate using oidc
-            passport.use('oidc-'+pOrg.name,
+            passport.use(pStratUID,
                 new PassportOIDC(
-                    {
-                        issuer: pAuthModule.discoverUri,
-
-                        // credentials
-                        clientID: pAuthModule.getClientID(),
-                        clientSecret: pAuthModule.getClientSecret(),
-
-                        // provider API endepoints
-                        authorizationURL: issuer.authorization_endpoint,
-                        tokenURL: issuer.token_endpoint,
-                        userInfoURL: issuer.userinfo_endpoint,
-
-                        // callback URI must be unique for org and auth module
-                        callbackURL: callbackURI,
-
-                        passReqToCallback: true
-                    },
+                    cfg,
                     (req, issuer, profile, verified) => {
 
-                        Logger.info("[AUTH SERVICE] Start OIDC verifying ...");
-
+                        Logger.info(`[AUTH SERVICE][type=${pAuthModule.type}][org=${pOrg.getUID()}][mod=${pAuthModule.getUID()}] Start OIDC verifying ...`);
 
                         const acc = new UserAccount({
                             _uid: profile.id,
@@ -387,26 +443,30 @@ export class AuthenticationService {
                                 _lastname: profile.name.familyName,
                                 _firstname: profile.name.givenName,
                             }),
-
+/*
                             _role: this._ctx.getAclManager().getRole(
                                 AccessControlManager.BUILT_IN_DEFAULT_ROLE
                             ),
-                            _roles: [AccessControlManager.BUILT_IN_DEFAULT_ROLE],
+                            _roles: [AccessControlManager.BUILT_IN_DEFAULT_ROLE],*/
                             // TODO : employee ID
                             // TODO : email , ...
                             _username: profile.username
                         });
+                        acc.addOrganization(pOrg);
 
                         this._ctx.getUserService().find(acc, {
                             autoCreate: true,
                             type: UserAccountType.FEDERATED
                         }).then((vAccount: Nullable<UserAccount>) => {
-                            console.log("OIDC Verifiying > ", vAccount);
+                            Logger.info(`[AUTH SERVICE][type=${pAuthModule.type}][org=${pOrg.getUID()}][mod=${pAuthModule.getUID()}] Account verified ... `);
+                            console.log(vAccount);
+
+
 
                             if (vAccount != null) {
-                                verified(null, acc);
+                                verified(null, vAccount);
                             } else {
-                                Logger.error("OIDC : User account cannot be found and or created.");
+                                Logger.error(`[AUTH SERVICE][type=${pAuthModule.type}][org=${pOrg.getUID()}][mod=${pAuthModule.getUID()}] User account cannot be found and or created.`);
                                 verified("OIDC : User account cannot be created.", null);
                             }
                         });
@@ -416,13 +476,14 @@ export class AuthenticationService {
 
 
             (pApp as Application).get(callbackURI,
-                passport.authenticate('openidconnect', {
+                passport.authenticate(pStratUID, {
                     successMessage: true,
                     failureMessage:true,
-                    failureRedirect: '/login',
+                    failureRedirect: this._getOrgAuthLongLoginRoute(pBasePath,pOrg),
                     successReturnToOrRedirect: '/home/', // NEW
                 }));
         }catch(err){
+            Logger.error(`[AUTH SERVICE][type=${pAuthModule.type}][org=${pOrg.getUID()}][mod=${pAuthModule.getUID()}] Cannot setup strategy ${pStratUID}`);
             Logger.error(err.stack)
         }
     }
@@ -433,7 +494,7 @@ export class AuthenticationService {
      *
      * @private
      */
-    private _setupOidcStrategy(pApp:Application|Router){
+    private _setupLegacyOidcStrategy(pApp:Application|Router){
         if(this.sso_need_config) {
             this.sso_need_config = false;
 
@@ -507,8 +568,64 @@ export class AuthenticationService {
         }
     }
 
+    private _getOrgAuthFormRoute(pOrg:OrganizationUnit):string {
+        return  `/auth/login/${pOrg.getUID()}/:antiReplayID`;
+    }
+    private _generateOrgAuthFormRoute(pOrg:OrganizationUnit, pAntiReplayToken:string):string {
+        return  `/auth/login/${pOrg.getUID()}/${pAntiReplayToken}`;
+    }
 
+    private _getOrgAuthLongLoginRoute(pBase:string, pOrg:OrganizationUnit):string {
+        return pBase+'/org/'+pOrg.getUID();
+    }
 
+    private _getOrgAuthShortLoginRoute(pBase:string, pOrg:OrganizationUnit):string {
+        return pBase+'/'+pOrg.name;
+    }
+
+    /**
+     * Setup local authentication, and authentication endpoint
+     *
+     * @param pApp
+     * @param pCfg
+     * @private
+     */
+    private _setupLocalAuthStrategy(pApp:Application|Router, pBasePath:string, pStratUID:string, pModule:AuthModule, pOrg:OrganizationUnit):void {
+
+        const str = new LocalStrategy(
+            {
+                passReqToCallback: true
+            },
+            (vReq, vUsername:string, vPasswd:string, vVerifiedCB:any)=> {
+                ((this.newPasswordAuthenticator()
+                    .doAuthentication(vUsername,vPasswd,pOrg.getUID()))  as Promise<AuthenticationResult>)
+                    .then((vRes)=>{
+                        if(vRes._success){
+                            vVerifiedCB.apply(null, [null, vRes.getAccount(), vRes]);
+                        }else{
+                            vVerifiedCB.apply(null, [null, null, vRes]);
+                        }
+                    },(err)=>{
+                        vVerifiedCB.apply(null, [err, null, null]);
+                    }).catch((err)=>{
+                    vVerifiedCB.apply(null, [err, null, null]);
+                })
+            }
+        );
+        passport.use(pStratUID, str);
+
+        (pApp as Application).post(
+            this._getOrgAuthFormRoute(pOrg),
+            BodyParser.urlencoded({ extended: false }),
+            passport.authenticate(pStratUID, {
+                successMessage: true,
+                failureMessage:true,
+                failureRedirect: this._getOrgAuthLongLoginRoute(pBasePath,pOrg),
+                successReturnToOrRedirect: '/home/',
+            })
+        );
+
+    }
 
 
     /**
@@ -542,7 +659,7 @@ export class AuthenticationService {
         ));
 
         (pApp as Application).post(
-            '/auth/login/:antiReplayID',
+            '/auth/hub/login/:antiReplayID',
             BodyParser.urlencoded({ extended: false }),
             passport.authenticate('local', {
                 successMessage: true,
@@ -561,7 +678,78 @@ export class AuthenticationService {
      * @param pApp
      * @method
      */
-    serveLoginEP( pApp:Application|Router, pRoute:string, pLocalAuth:boolean):void {
+    serveLoginEP( pApp:Application|Router, pRoute:string, pOrg:Nullable<OrganizationUnit>, pLocalAuth:boolean):void {
+
+
+        Logger.info(`[AUTH SERVICE][org=${pOrg.getUID()}] Serve login page over ${pRoute}`);
+        (pApp as Application).get(pRoute,
+            (req, res, next) => {
+
+                // TODO : make CORS parameter as env var
+                res.set('Access-Control-Allow-Origin', '*');
+                res.set('Access-Control-Allow-Methods', 'POST, GET, DELETE, OPTIONS, PUT');
+                res.set('Access-Control-Allow-Headers', 'Content-Type, authorization');
+
+                let mode = null;
+                if(req.query.mode!=null){
+                    mode = req.query.mode;
+                }
+
+                if((req as any).dxc==null){
+                    (req as any).dxc = {};
+                }
+                (req as any).dxc.org = pOrg;
+
+                Logger.info(`[AUTH SERVICE][PIPE][${req.path}][ip=${req.ip}][mode=${mode}][org=${pOrg.getUID()}] /login `);
+                 // check if there are local active user account with authorized IPs
+                 // Home page should display : username/passwd based auth or SSO auth
+                 // check if SSO is configured
+
+                if(mode=='sso'){
+                    //if(this.isSsoEnabled){
+                        passport.authenticate(this._getActiveStrategies(pOrg))(req,res,next);
+                    /*}else{
+                        res.status(200);
+                        res.send("Access denied");
+                        return;
+                    }*/
+
+                }else{
+
+                    if((pOrg.hasLocalAuth() || this.settings.isLocalAuthEnabled()  || pLocalAuth)
+                            && this.settings.getAuthorizedIPs().indexOf(req.ip)>-1){
+                        this.serveLoginPage(req,res,next);
+                        return;
+                    }
+
+                    // else check if there
+                    // check if it comes from globally authorized IPs
+                    /*if((this.settings.isLocalAuthEnabled() || pLocalAuth)
+                        && this.settings.getAuthorizedIPs().indexOf(req.ip)>-1){
+                        this.serveLoginPage(req,res,next);
+                        return;
+                    }*/
+                    else if(this.isSsoEnabled()){
+                        passport.authenticate(this._getActiveStrategies(pOrg))(req,res,next);
+                    }else{
+                        res.status(200);
+                        res.send("Access denied");
+                        return;
+                    }
+                }
+            });
+    }
+
+
+    /**
+     * To deploy routes and middleware required to check sso token
+     *
+     * This method is called only whe an OIDC client is configured
+     *
+     * @param pApp
+     * @method
+     */
+    serveHubLoginEP( pApp:Application|Router, pRoute:string, pLocalAuth:boolean):void {
 
         (pApp as Application).get(pRoute,
             (req, res, next) => {
@@ -581,9 +769,9 @@ export class AuthenticationService {
                 }
 
                 Logger.info(`[AUTH SERVICE][PIPE][${req.path}][ip=${req.ip}][mode=${mode}] /login `);
-                 // check if there are local active user account with authorized IPs
-                 // Home page should display : username/passwd based auth or SSO auth
-                 // check if SSO is configured
+                // check if there are local active user account with authorized IPs
+                // Home page should display : username/passwd based auth or SSO auth
+                // check if SSO is configured
 
                 if(mode=='sso'){
                     if(this.isSsoEnabled()){
@@ -614,6 +802,7 @@ export class AuthenticationService {
     }
 
 
+
     serveLoginPage( vReq:any, vRes:any, vNext:any):void {
 
 
@@ -631,7 +820,7 @@ export class AuthenticationService {
             usernameField: randomUUID(),
             pwdField: randomUUID(),
             csrfField: randomUUID(),
-            csrfToken: randomUUID()
+            csrfToken: randomUUID(),
         };
 
         if((vReq as any).session.forms==null){
@@ -642,6 +831,11 @@ export class AuthenticationService {
 
         // replace tokens in page chunk
         page = page.replaceAll('@@_ANTI_REPLAY_ENDPOINT_@@',context.replayUID);
+        if((vReq as any).dxc.org!=null){
+            page = page.replaceAll('@@_AUTH_FORM_ENDPOINT_@@', this._generateOrgAuthFormRoute((vReq as any).dxc.org, context.replayUID));
+        }else{
+            page = page.replaceAll('@@_AUTH_FORM_ENDPOINT_@@', '/auth/hub/login/'+context.replayUID);
+        }
         page = page.replaceAll('@@_FORM_USERNAME_@@',context.usernameField);
         page = page.replaceAll('@@_FORM_PASSWORD_@@',context.pwdField);
         page = page.replaceAll('@@_CSRF_TOKEN_NAME_@@',context.csrfField);
@@ -657,93 +851,6 @@ export class AuthenticationService {
     }
 
 
-    /**
-     * To serve an endpoint to receive password-based authentication
-     * @param pEndpointURI
-     */
-    servePasswordAuthEP(pApp:Application, pEndpointURI:string):void {
-
-
-
-        (pApp as Application).post(
-            pEndpointURI+'/:antiReplayID',
-            BodyParser.urlencoded({ extended: false }),
-            passport.authenticate('local', {
-                successMessage: true,
-                failureMessage:true,
-                failureRedirect: '/login',
-                successReturnToOrRedirect: '/home/', // NEW
-            })/*,
-            (req, res, next) => {
-
-
-                Logger.info("Local auth : authentication success");
-                // depend of original request
-                res.redirect('/home/');
-            })*/);
-            /*
-            async (vReq, vRes, vNext):Promise<void>=>{
-
-                Logger.info(` [AUTH SERVICE][LOGIN][path=${vReq.path}][ip=${vReq.ip}] Receipt `);
-
-                try{
-                    if((vReq as any).session==null || (vReq as any).session.forms==null){
-                        throw RuntimeSecurityException.BROKEN_LOGIN_WORKFLOW();
-                    }
-
-                    const formCtx = (vReq as any).session.forms[vReq.params['antiReplayID']] as PasswordFormContext;
-
-                    delete (vReq as any).session.forms[vReq.params['antiReplayID']];
-
-                    // check anti-replay token
-                    if(formCtx==null){
-                        throw RuntimeSecurityException.AUTH_REPLAY_DETECTED(/^[a-f0-9-]+$/.test(vReq.params['antiReplayID'])?vReq.params['antiReplayID']:"...");
-                    }
-
-
-                    // check CSRF token
-                    const csrfToken = (vReq as any).body[formCtx.csrfField];
-                    if(csrfToken==null){
-                        throw RuntimeSecurityException.CSRF_TOKEN_IS_EMPTY("/auth/login/...");
-                    }
-                    if(csrfToken!==formCtx.csrfToken){
-                        throw RuntimeSecurityException.CSRF_TOKEN_IS_WRONG("/auth/login/...");
-                    }
-
-                    // perform authentication
-                    const authRes = await this.newPasswordAuthenticator().doAuthentication(
-                        (vReq as any).body[formCtx.usernameField],
-                        (vReq as any).body[formCtx.pwdField]
-                    );
-
-                    console.log(authRes);
-                    if(authRes._success){
-
-                        // recreate session
-                        (vReq as any).session.regenerate((err:any)=>{
-                            (vReq as any).session.user = authRes.getAccount();
-                        });
-                        //(vReq as any).session = new
-                        //((vReq as any).session as ExpressSess.destroy();
-
-                        vRes.redirect('/home/');
-                    }else{
-                        vRes.redirect('/login');
-                    }
-                    return;
-                }catch (err){
-                    Logger.error(err.message,err.stack);
-                    vRes.redirect('/login');
-                    return;
-                }
-
-            }*/
-    }
-
-
-    exposeLoginAuthentication(){
-
-    }
 
     async testSsoConnection( pConnSettings:SsoOptions):Promise<any> {
         let res:any = {success:false, msg:null};
