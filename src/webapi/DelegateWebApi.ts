@@ -297,6 +297,9 @@ export class DelegateWebApi
             return next();
         }
 
+
+        Logger.error(`[WEBSERVER][MIDDLEWARE][ensureLoggedIn][path=${req.path}][ip=${req.ip}] Not authenticated, redirecting ...`);
+
         res.redirect('/login')
     };
 

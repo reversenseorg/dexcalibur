@@ -24,8 +24,11 @@ export class EmailSender {
             // rename secret 'emailer.api-key'
             this.apiKey = pEngine.getSecretManager().readRawSecret('SCW5QQAPBNJDG3B4K6KY').toString();
             this.apiKey = this.apiKey.replaceAll(/[\n\r]/g,'').trim();
+            this.ready = true;
         }catch(e){
-            throw EmailSenderException.MISSING_API_KEY();
+            if(e.code!=null && e.code==EmailSenderException.MISSING_API_KEY().getCode()){
+                // log
+            }
         }
 
     }

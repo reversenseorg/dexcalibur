@@ -680,6 +680,7 @@ export default class WebServer
                 return next();
             }
 
+            Logger.error(`[WEBSERVER][MIDDLEWARE][defaultEnsureLoggedIn][static] Not authenticated, redirecting ...`);
             res.redirect('/login')
         }
 
@@ -1345,6 +1346,8 @@ export default class WebServer
                 return next();
             }
 
+            console.log(req, req.user);
+            Logger.error(`[WEBSERVER][MIDDLEWARE][ensureGuiLoggedIn][path=${req.path}][ip=${req.ip}] Not authenticated, redirecting ...`);
             res.redirect('/login');
         }
 
