@@ -125,14 +125,27 @@ export class PasswordAuthenticator implements Authenticator{
             // if the authenticator is trigged from a form bound to an organization
             // the authentication includes a check of membership
             if(pOrgUUID!=null){
-                const org = await this.svc.getUserService()._ctx.getOrgManager().getOrganization(
-                    account, pOrgUUID
-                );
-                AccessControl.isAuthorizedByAttr(
-                    OrganizationAccessControl.attr.ORG_MEMBER,
-                    org,
-                    account
-                );
+                try{
+                    const org = await this.svc.getUserService()._ctx.getOrgManager().getOrganization(
+                        account, pOrgUUID
+                    );
+                    AccessControl.isAuthorizedByAttr(
+                        OrganizationAccessControl.attr.ORG_MEMBER,
+                        org,
+                        account
+                    );
+                }catch (e){
+                    // if the user is not a member of target org, then check if the user has a role
+                    // with server admin permissions
+                    try{
+                        AccessControl.isAuthorized(
+                            AccessControl.access.SRV_INSTANCE_MGT,
+                            account
+                        );
+                    }catch (ee){
+                        throw e;
+                    }
+                }
             }
 
             // create session token

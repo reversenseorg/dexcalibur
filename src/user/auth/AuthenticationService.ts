@@ -4,7 +4,7 @@ import got, {Options} from "got";
 import {AuthCode, AuthenticationException, Authenticator, AuthType} from "./AuthTypes.js";
 import {AuthenticationPolicy} from "./AuthenticationPolicy.js";
 import {AuthenticationResult, PasswordAuthenticator} from "./PasswordAuthenticator.js";
-import {UserAccount, UserAccountType} from "../UserAccount.js";
+import {UA_UUID_SEP, UserAccount, UserAccountType} from "../UserAccount.js";
 import {AuthenticationSettings} from "./AuthenticationSettings.js";
 import * as Log from "../../Logger.js";
 import DexcaliburEngine from "../../DexcaliburEngine.js";
@@ -29,6 +29,8 @@ import {OrganizationUnit, OrganizationUnitUUID} from "../../organization/Organiz
 import {OidcAuthModule} from "./modules/OidcAuthModule.js";
 import {AuthModule, AuthModuleType} from "./AuthModule.js";
 import {LocalAuthModule} from "./modules/LocalAuthModule.js";
+import {AuthenticationModuleException} from "./error/AuthenticationModuleException.js";
+import {AuthStrategyUUID, LoadedAuthModule} from "./modules/LoadedAuthModule.js";
 
 const GOT = got.default;
 const BodyParser = (_bodyparser_ as any).default;
@@ -110,6 +112,9 @@ export class AuthenticationService {
     private _ctx:DexcaliburEngine = null;
     private _sso_enabled = false;
     private _oidClientCfg:any = {};
+    private _hubpage = false;
+    private _strats: Record<string, string[]> = {all:[],orgs:[]};
+    private _loadedModules: Record<AuthStrategyUUID, LoadedAuthModule> = {}
 
     constructor( pSettings:AuthenticationSettings, pUserSvc:UserService = null) {
         this.settings = pSettings;
@@ -331,6 +336,7 @@ export class AuthenticationService {
         let hasLocalAuth = false;
         let mods:AuthModule[] = [];
         let stratUID:string;
+        let moduleState:LoadedAuthModule;
 
         for(let k=0; k<orgs.length; k++){
 
@@ -339,13 +345,32 @@ export class AuthenticationService {
             strats.orgs[orgs[k].getUID()] = [];
 
             for(let i=0; i<mods.length; i++){
-                stratUID = `${mods[i].type}_${orgs[k].getUID()}_${mods[i].getUID()}`;
+                //stratUID = `${mods[i].type}_${orgs[k].getUID()}_${mods[i].getUID()}`;
 
                 if(!mods[i].active){
                     Logger.success(`[AUTH SERVICE][type=${mods[i].type}][org=${orgs[k].getUID()}][mod=${mods[i].getUID()}] Auth module disabled. Skip it ...`);
                     continue;
                 }
 
+                try{
+                    moduleState = await this.deployAuthModule(pApp, basePath, mods[i], orgs[k]);
+
+                    if(mods[i].type===AuthModuleType.LOCAL_PASSWD){
+                        hasLocalAuth = true;
+                    }
+
+                    this._loadedModules[moduleState.getUUID()] = moduleState;
+
+                    strats.all.push(moduleState.getUUID());
+                    strats[mods[i].type].push(moduleState.getUUID());
+                    Logger.success(`[AUTH SERVICE][type=${mods[i].type}][org=${orgs[k].getUID()}][mod=${mods[i].getUID()}] Auth module deployed`);
+
+                }catch(err){
+                    Logger.error(err.stack);
+                    throw AuthenticationModuleException.AUTH_MODULE_DEPLOY_FAILURE(mods[i],orgs[k]);
+                }
+
+                /*
                 switch (mods[i].type) {
                     case AuthModuleType.LOCAL_PASSWD:
                         this._setupLocalAuthStrategy(pApp, basePath, stratUID, mods[i] as LocalAuthModule, orgs[k]);
@@ -360,12 +385,13 @@ export class AuthenticationService {
                         strats[AuthModuleType.OIDC].push(stratUID);
                         Logger.success(`[AUTH SERVICE][type=${mods[i].type}][org=${orgs[k].getUID()}][mod=${mods[i].getUID()}] Auth module deployed`);
                         break;
-                }
+                }*/
             }
 
-
-            this.serveLoginEP(pApp, this._getOrgAuthLongLoginRoute(basePath,orgs[k]), orgs[k], hasLocalAuth);
-            this.serveLoginEP(pApp, this._getOrgAuthShortLoginRoute(basePath,orgs[k]), orgs[k], hasLocalAuth);
+            if(strats.all.length>0){
+                this.serveLoginEP(pApp, this._getOrgAuthLongLoginRoute(basePath,orgs[k]), orgs[k], hasLocalAuth);
+                this.serveLoginEP(pApp, this._getOrgAuthShortLoginRoute(basePath,orgs[k]), orgs[k], hasLocalAuth);
+            }
         }
 
         // check if there is not auth module configures (no orgs)
@@ -375,8 +401,6 @@ export class AuthenticationService {
             // todo : add API Key auth
             this.serveHubLoginEP(pApp, basePath, pCfg.local);
         }
-
-
     }
 
     private _getActiveStrategies(pOrg:OrganizationUnit):string[] {
@@ -399,38 +423,61 @@ export class AuthenticationService {
         }
     }
 
+
     /**
      *
      * @private
      */
-    private async _setupOidcStrategy(pApp:Application|Router, pBasePath:string, pStratUID:string, pAuthModule:OidcAuthModule, pOrg:OrganizationUnit):Promise<void>{
+    private async _setupOidcStrategy(pApp:Application|Router, pBasePath:string, pAuthModule:OidcAuthModule, pOrg:OrganizationUnit, pState:Nullable<LoadedAuthModule>=null):Promise<LoadedAuthModule>{
+
+        let state = pState;
+
+        if(state==null){
+            state = new LoadedAuthModule(pAuthModule,pOrg);
+            state.updateGateEndpoint(this._getOrgAuthFormRoute(pOrg));
+            state.updateGateFailure(this._getOrgAuthLongLoginRoute(pBasePath,pOrg));
+            state.updateGateSuccess(this._getOrgHomeLongRoute(pBasePath,pOrg));
+            state.updateExtra({
+                discoverUri: pAuthModule.getDiscoverUri(),
+                callbackURI: pAuthModule.getCallbackURL('/api-auth/cb',pOrg),
+                clientID: pAuthModule.getClientID(),
+            });
+        }else {
+            // trigger update
+        }
 
         try{
             // TODO : only if discover URI is set
-            const issuer = await Issuer.discover(pAuthModule.getDiscoverUri());
-            const callbackURI = pAuthModule.getCallbackURL('/api-auth/cb',pOrg);
+            const issuer = await Issuer.discover( state.getExtra().discoverUri);
 
-            const cfg ={
-                issuer: pAuthModule.discoverUri,
-
-                // credentials
-                clientID: pAuthModule.getClientID(),
-                clientSecret: pAuthModule.getClientSecret(),
-
-                // provider API endepoints
+            state.updateExtra({
                 authorizationURL: issuer.authorization_endpoint,
                 tokenURL: issuer.token_endpoint,
                 userInfoURL: issuer.userinfo_endpoint,
+                passReqToCallback: true
+            });
+
+            const cfg ={
+                issuer: state.getExtra().discoverUri,
+
+                // credentials
+                clientID: state.getExtra().clientID,
+                clientSecret: pAuthModule.getClientSecret(),
+
+                // provider API endepoints
+                authorizationURL: state.getExtra().authorizationURL,
+                tokenURL: state.getExtra().tokenURL ,
+                userInfoURL: state.getExtra().userInfoURL,
 
                 // callback URI must be unique for org and auth module
-                callbackURL: callbackURI,
+                callbackURL: state.getExtra().callbackURI,
 
                 passReqToCallback: true
             };
 
 
             // this creates the strategy toi authenticate using oidc
-            passport.use(pStratUID,
+            passport.use(state.getUUID(),
                 new PassportOIDC(
                     cfg,
                     (req, issuer, profile, verified) => {
@@ -438,7 +485,7 @@ export class AuthenticationService {
                         Logger.info(`[AUTH SERVICE][type=${pAuthModule.type}][org=${pOrg.getUID()}][mod=${pAuthModule.getUID()}] Start OIDC verifying ...`);
 
                         const acc = new UserAccount({
-                            _uid: profile.id,
+                            _uid: pOrg.getUID()+UA_UUID_SEP+profile.id,
                             _person: new Person({
                                 _lastname: profile.name.familyName,
                                 _firstname: profile.name.givenName,
@@ -456,7 +503,8 @@ export class AuthenticationService {
 
                         this._ctx.getUserService().find(acc, {
                             autoCreate: true,
-                            type: UserAccountType.FEDERATED
+                            type: UserAccountType.FEDERATED,
+                            org: pOrg
                         }).then((vAccount: Nullable<UserAccount>) => {
                             Logger.info(`[AUTH SERVICE][type=${pAuthModule.type}][org=${pOrg.getUID()}][mod=${pAuthModule.getUID()}] Account verified ... `);
                             console.log(vAccount);
@@ -475,17 +523,19 @@ export class AuthenticationService {
             );
 
 
-            (pApp as Application).get(callbackURI,
-                passport.authenticate(pStratUID, {
+            (pApp as Application).get(state.getExtra().callbackURI,
+                passport.authenticate(state.getUUID(), {
                     successMessage: true,
                     failureMessage:true,
-                    failureRedirect: this._getOrgAuthLongLoginRoute(pBasePath,pOrg),
-                    successReturnToOrRedirect: '/home/', // NEW
+                    failureRedirect: state.getFailureEndpoint(),
+                    successReturnToOrRedirect: state.getSuccessEndpoint()
                 }));
         }catch(err){
-            Logger.error(`[AUTH SERVICE][type=${pAuthModule.type}][org=${pOrg.getUID()}][mod=${pAuthModule.getUID()}] Cannot setup strategy ${pStratUID}`);
+            Logger.error(`[AUTH SERVICE][type=${pAuthModule.type}][org=${pOrg.getUID()}][mod=${pAuthModule.getUID()}] Cannot setup strategy ${state.getUUID()}`);
             Logger.error(err.stack)
         }
+
+        return state;
     }
 
 
@@ -583,6 +633,12 @@ export class AuthenticationService {
         return pBase+'/'+pOrg.name;
     }
 
+
+    private _getOrgHomeLongRoute(pBase:string, pOrg:OrganizationUnit):string {
+        return  `/home/?org=${pOrg.getUID()}`;
+    }
+
+
     /**
      * Setup local authentication, and authentication endpoint
      *
@@ -590,7 +646,19 @@ export class AuthenticationService {
      * @param pCfg
      * @private
      */
-    private _setupLocalAuthStrategy(pApp:Application|Router, pBasePath:string, pStratUID:string, pModule:AuthModule, pOrg:OrganizationUnit):void {
+    private _setupLocalAuthStrategy(pApp:Application|Router, pBasePath:string, pModule:AuthModule, pOrg:OrganizationUnit, pState:Nullable<LoadedAuthModule> = null):LoadedAuthModule {
+
+        let state = pState;
+
+        if(state==null){
+            state = new LoadedAuthModule(pModule,pOrg);
+            state.updateGateEndpoint(this._getOrgAuthFormRoute(pOrg));
+            state.updateGateFailure(this._getOrgAuthLongLoginRoute(pBasePath,pOrg));
+            state.updateGateSuccess(this._getOrgHomeLongRoute(pBasePath,pOrg));
+        }else {
+            // trigger update
+        }
+
 
         const str = new LocalStrategy(
             {
@@ -612,19 +680,22 @@ export class AuthenticationService {
                 })
             }
         );
-        passport.use(pStratUID, str);
+        passport.use(state.getUUID(), str);
 
         (pApp as Application).post(
-            this._getOrgAuthFormRoute(pOrg),
+            state.getAuthEndpoint(),
             BodyParser.urlencoded({ extended: false }),
-            passport.authenticate(pStratUID, {
+            passport.authenticate(state.getUUID(), {
                 successMessage: true,
                 failureMessage:true,
-                failureRedirect: this._getOrgAuthLongLoginRoute(pBasePath,pOrg),
-                successReturnToOrRedirect: '/home/',
+                failureRedirect: state.getFailureEndpoint(),
+                successReturnToOrRedirect: state.getSuccessEndpoint(),
             })
         );
 
+        Logger.info(`[AUTH SERVICE][org=${pOrg.getUID()}][mod=${pModule.getUID()}] Serve local auth over ${state.getAuthEndpoint()}`);
+
+        return state;
     }
 
 
@@ -668,6 +739,12 @@ export class AuthenticationService {
                 successReturnToOrRedirect: '/home/', // NEW
             })
         );
+    }
+
+
+
+    hasHubLoginPage():boolean {
+        return this._hubpage;
     }
 
     /**
@@ -750,6 +827,8 @@ export class AuthenticationService {
      * @method
      */
     serveHubLoginEP( pApp:Application|Router, pRoute:string, pLocalAuth:boolean):void {
+
+        this._hubpage = true;
 
         (pApp as Application).get(pRoute,
             (req, res, next) => {
@@ -851,6 +930,31 @@ export class AuthenticationService {
     }
 
 
+    serveLoginSsoOnlyPage( vReq:any, vRes:any, vNext:any):void {
+
+
+        let page = _fs_.readFileSync(
+            _path_.join(
+                Util.__dirname(import.meta.url),'..','..','..', 'assets', 'login', 'index_noauth.html'
+            ), {
+                encoding: 'utf-8'
+            }
+        ).toString();
+
+
+        // replace tokens in page chunk
+        //page = page.replaceAll('@@_CSRF_TOKEN_VAL_@@',context.csrfToken);
+
+
+        vRes.status(200);
+        vRes.write(page, ()=>{
+            vRes.send();
+            return;
+        });
+        return;
+    }
+
+
 
     async testSsoConnection( pConnSettings:SsoOptions):Promise<any> {
         let res:any = {success:false, msg:null};
@@ -889,4 +993,38 @@ export class AuthenticationService {
         return res;
     }
 
+    /**
+     * To deploy or redeploy dynamically an auth module after changes
+     *
+     * Only active module can be deployed.
+     *
+     * @param {AuthModule} pModule
+     */
+    async deployAuthModule(pApp:Application|Router, pBasePath:string, pModule:AuthModule,pOrg:OrganizationUnit):Promise<LoadedAuthModule> {
+
+        let currState:Nullable<LoadedAuthModule> = null;
+
+        if(pModule.active!==true){
+            throw  AuthenticationModuleException.MODULE_NOT_ACTIVE(pModule,pOrg);
+        }
+
+        // check if the module is currently loaded
+        currState = this._loadedModules[LoadedAuthModule.generateStratUUID(pModule,pOrg)];
+        /*if(currState==null){
+            currState = new LoadedAuthModule(pModule,pOrg);
+        }*/
+
+        switch (pModule.type) {
+            case AuthModuleType.LOCAL_PASSWD:
+                currState = this._setupLocalAuthStrategy(pApp, pBasePath, pModule as LocalAuthModule, pOrg, currState);
+                break;
+            case AuthModuleType.OIDC:
+                currState = await this._setupOidcStrategy(pApp, pBasePath, pModule as OidcAuthModule, pOrg, currState);
+                break;
+            default:
+                throw  AuthenticationModuleException.MODULE_NOT_SUPPORTED(pModule,pOrg);
+        }
+
+        return currState;
+    }
 }

@@ -1127,7 +1127,8 @@ export default class WebServer
         if(this.guiCfgs.length>0){
             this.resetDefaultRoute((vReq:any, vRes:any):any=> {
                 vRes.set('Access-Control-Allow-Origin', '*');
-                vRes.status(200).redirect("/"+this.guiCfgs[0].name+"/");
+                //vRes.status(200).redirect("/"+this.guiCfgs[0].name+"/");
+                vRes.status(200).redirect('https://www.reversense.com/');
             })
         }else{
             this.resetDefaultRoute((vReq:any, vRes:any):any=> {
@@ -1346,9 +1347,13 @@ export default class WebServer
                 return next();
             }
 
-            console.log(req, req.user);
             Logger.error(`[WEBSERVER][MIDDLEWARE][ensureGuiLoggedIn][path=${req.path}][ip=${req.ip}] Not authenticated, redirecting ...`);
-            res.redirect('/login');
+            if(usr_svc.getAuthenticationService().hasHubLoginPage()){
+                res.redirect('/login');
+            }else{
+                res.status(200);
+                res.send("Access denied");
+            }
         }
 
 

@@ -1,7 +1,7 @@
 import {CodeSignature} from "./CodeSignature.js";
 import {NetworkSignature} from "./NetworkSignature.js";
 import { TrackerCategory } from "./TrackerCategory.js";
-import {NodeInternalType} from "../../../src/NodeInternalType.js";
+import {NodeInternalType} from "@dexcalibur/dxc-core-api";
 
 
 interface ExodusTrackerJson{

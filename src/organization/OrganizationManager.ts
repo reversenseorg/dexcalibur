@@ -106,7 +106,7 @@ export class OrganizationManager {
                 usrAcc.addOrganization(pOrg);
 
                 // create account and perform various init ops
-                usrAcc = await this._ctx.getUserService().createUser(usrAcc);
+                usrAcc = await this._ctx.getUserService().createUser(usrAcc, pOrg);
 
                 // send acount activation link
                 await this.sendInvitationMail(usrAcc);

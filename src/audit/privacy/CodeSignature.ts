@@ -1,4 +1,5 @@
-import {NodeInternalType} from "../../../src/NodeInternalType.js";
+import {NodeInternalType} from "@dexcalibur/dxc-core-api";
+
 
 export class CodeSignature {
 

@@ -225,7 +225,7 @@ export class UserSession implements IPersistent, INode {
      * @param pContext
      * @param pProjectUID
      */
-    getActiveProjectByUID( pContext:DexcaliburEngine, pProjectUID:string):DexcaliburProject {
+    getActiveProjectByUID( pContext:DexcaliburEngine, pProjectUID:string):Nullable<DexcaliburProject> {
 
         // check if the user is the project owner
         // replace by read access ?
@@ -236,16 +236,23 @@ export class UserSession implements IPersistent, INode {
             this.getUserAccount()
         );*/
 
+        const project = pContext.getProject(pProjectUID);
+        if(project==null){
+            return null;
+        }
 
         AccessControl.isAuthorized(
             AccessControl.access.PROJ_OPEN_OWN,
             this.getUserAccount(),
-            pContext.getProject(pProjectUID), // the resource
-            [ProjectAccessControl.attr.OWNER, ProjectAccessControl.attr.TESTER]
+            project, // the resource
+            [
+                ProjectAccessControl.attr.OWNER,
+                ProjectAccessControl.attr.TESTER
+            ]
         );
 
 
-        return pContext.getProject(pProjectUID);
+        return  project;
     }
 
     addConnection( pName:string, pHandler:ConnectionHandler):void {

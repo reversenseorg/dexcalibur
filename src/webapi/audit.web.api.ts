@@ -404,7 +404,7 @@ AUDIT_WEB_API.addAsyncAuthenticatedRoute(
 /**
  * To get a list of available models
  */
-AUDIT_WEB_API.addAsyncPublicRoute(
+AUDIT_WEB_API.addAsyncAuthenticatedRoute(
     '/models',
     {
         'get': async function (req:DelegateRequest, res:DelegateResponse):Promise<any> {

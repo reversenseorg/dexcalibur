@@ -8,6 +8,7 @@ export interface OidcAuthModuleOptions extends AuthModuleOptions {
     discoverUri?:string;
     clientId?:string;
     serviceSecret?: string;
+    mapping?:Record<string, string>;
 }
 
 export class OidcAuthModule extends AuthModule {
@@ -15,6 +16,10 @@ export class OidcAuthModule extends AuthModule {
     discoverUri:string;
     clientId:string;
     serviceSecret: string;
+
+
+
+    mapping:Record<string, string> = {};
 
     constructor(pOptions: OidcAuthModuleOptions) {
         super({
@@ -25,6 +30,7 @@ export class OidcAuthModule extends AuthModule {
         this.discoverUri = pOptions.discoverUri!;
         this.clientId = pOptions.clientId!;
         this.serviceSecret = pOptions.serviceSecret!;
+        this.mapping = (pOptions.mapping!=null ? pOptions.mapping : {});
     }
 
     getDiscoverUri():string{
@@ -41,6 +47,12 @@ export class OidcAuthModule extends AuthModule {
 
     getCallbackURL(pBase:string, pOrg:OrganizationUnit):string {
         return pBase+'/'+pOrg.getUID()+'/'+this.getUID();
+    }
+
+    addMapping(pIdpPpt:string, pLocalPpt:string):void {
+        if(this.mapping==null){
+            this.mapping[pIdpPpt] = pLocalPpt;
+        }
     }
 
     async testConnection(pAuthSettings:AuthenticationSettings):Promise<boolean> {

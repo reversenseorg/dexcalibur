@@ -6,7 +6,7 @@
 import {AuthenticationService} from "./auth/AuthenticationService.js";
 import {SessionService} from "./session/SessionService.js";
 import {AuthenticationSettings} from "./auth/AuthenticationSettings.js";
-import {UserAccount, UserAccountType, UserAccountUUID} from "./UserAccount.js";
+import {UA_UUID_SEP, UserAccount, UserAccountType, UserAccountUUID} from "./UserAccount.js";
 import {UserSession} from "./session/UserSession.js";
 import {SessionCode, SessionException} from "./session/SessionException.js";
 import {AuthenticationResult} from "./auth/PasswordAuthenticator.js";
@@ -23,7 +23,7 @@ import {MongodbDbCollection} from "@dexcalibur/dexcalibur-orm-mongodb";
 import {Nullable} from "../core/IStringIndex.js";
 import Role from "./acl/common/Role.js";
 import AccessControl from "./acl/AccessControl.js";
-import {OrganizationUnitUUID} from "../organization/OrganizationUnit.js";
+import {OrganizationUnit, OrganizationUnitUUID} from "../organization/OrganizationUnit.js";
 import {OrganizationAccessControl} from "./acl/rbac/OrganizationAccessContol.js";
 import {NodeInternalType} from "@dexcalibur/dxc-core-api";
 import {OrganizationManagerException} from "../errors/OrganizationManagerException.js";
@@ -349,11 +349,11 @@ export class UserService {
      * To create a user account and save it
      * @param pAccount
      */
-    async createUser( pAccount:UserAccount):Promise<UserAccount>{
+    async createUser( pAccount:UserAccount, pOrg?:OrganizationUnit):Promise<UserAccount>{
 
         let candidateUUID:UserAccountUUID;
         do{
-            candidateUUID = randomUUID();
+            candidateUUID = (pOrg!=null?pOrg.getUID()+UA_UUID_SEP:'')+randomUUID();
         }while( (await this.isUuidFree(UserAccount.TYPE.getType(),candidateUUID))===false);
 
         pAccount.setUID(candidateUUID);
@@ -383,12 +383,11 @@ export class UserService {
         return this.authSvc;
     }
 
-
     getSessionService(): SessionService {
         return this.sessSvc;
     }
 
-    async find(pAccount: UserAccount, pOptions: { autoCreate: boolean, type?:UserAccountType }):Promise<Nullable<UserAccount>> {
+    async find(pAccount: UserAccount, pOptions: { autoCreate: boolean, type?:UserAccountType, org?:OrganizationUnit }):Promise<Nullable<UserAccount>> {
 
         let user = await this._coll.asyncGetEntry({
             [UserAccount.TYPE.getPrimaryKey().getName()] : pAccount.getUID()
@@ -398,11 +397,11 @@ export class UserService {
             Logger.success("[AUTH SERVICE] Find user : account found");
             return user;
         }else{
-            if(pOptions.autoCreate == true){
+            if(pOptions.autoCreate === true){
 
                 pAccount.setType(pOptions.type);
 
-                user = await this.createUser(pAccount)
+                user = await this.createUser(pAccount, pOptions.org);
                 /*user = await this._coll.asyncAddEntry(
                     {
                         [UserAccount.TYPE.getPrimaryKey().getName()] : pAccount.getUID()

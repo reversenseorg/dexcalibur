@@ -43,14 +43,14 @@ export interface UserAccountOptions extends IStringIndex<any> {
     _orgs?:OrganizationUnitUUID[]
 }
 
-
+export const UA_UUID_SEP = ':';
 
 
 export class UserAccount implements IPersistent, INode {
 
     static VALIDATE:Record<string, ValidationRule> = {
         _type: ValidationRule.newPinklistAssert([ UserAccountType.LOCAL, UserAccountType.FEDERATED ]),
-        _uid: ValidationRule.uuid(),
+        _uid: ValidationRule.uuidComposite(UA_UUID_SEP),
         _roles: ValidationRule.asArrayOf([ValidationRule.uuid()]),
         _username: ValidationRule.utf8String(),
         _orgs: ValidationRule.uuid(),

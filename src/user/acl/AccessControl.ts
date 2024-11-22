@@ -30,6 +30,8 @@ export default class AccessControl {
 
 
     static access:Record<string,Access> = {
+        SRV_INSTANCE_MGT: new Access(AccessType.EXE, 'SRV_INSTANCE_MGT', 'Manage server instance.'),
+
         // organization
         ORG_OU_READ: new Access(AccessType.READ, 'ORG_OU_READ', 'Read organization units'),
         ORG_OU_MODIFY: new Access(AccessType.WRITE, 'ORG_OU_MODIFY', 'Modify organization units'),

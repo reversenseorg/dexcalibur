@@ -1,4 +1,3 @@
-import {NodeInternalType} from "../../../src/NodeInternalType.js";
 
 export class PermissionSignature {
 

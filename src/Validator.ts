@@ -107,6 +107,11 @@ export class ValidationRule {
         });
     }
 
+    static uuidComposite(pSeparator:string):ValidationRule {
+        return new ValidationRule( ValidationType.CUSTOM, (vValue:any)=>{
+            return ValidationRule.asArrayOf([ ValidationRule.uuid() ]).test(vValue.split(pSeparator));
+        });
+    }
 
     static base64String():ValidationRule {
         return new ValidationRule( ValidationType.CUSTOM, (vValue:any)=>{
