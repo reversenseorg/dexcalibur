@@ -7,13 +7,14 @@ import {
     SerializeOptions,
     TagUUID
 } from "@dexcalibur/dexcalibur-orm";
-import {NodeInternalType, Nullable} from "@dexcalibur/dxc-core-api";
+import {NodeInternalType, Nullable, OperatingSystem} from "@dexcalibur/dxc-core-api";
 import {Auditable} from "../Auditable.js";
 import {OrganizationAccessControl} from "../user/acl/rbac/OrganizationAccessContol.js";
 import {OrganizationUnit} from "./OrganizationUnit.js";
 import {Avatar} from "@dexcalibur/dxc-orgs";
 import {AccessAttribute, AccessAttributeMap} from "../user/acl/AccessAttribute.js";
 import DexcaliburProject from "../DexcaliburProject.js";
+import { Architecture } from "../Architecture.js";
 
 
 export interface ApplicationUnitOptions {
@@ -64,6 +65,10 @@ export class ApplicationUnit extends Auditable implements INode {
     projects: string[] = [];
     sources: string;
 
+
+    os: OperatingSystem = OperatingSystem.NONE;
+    archs: Architecture[] = [];
+    abi:string[] = [];
 
     //os:OperatingSystem = null;
 
