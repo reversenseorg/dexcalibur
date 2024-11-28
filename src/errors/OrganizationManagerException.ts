@@ -58,6 +58,10 @@ export class OrganizationManagerException extends MonitoredError {
         return new OrganizationManagerException(`Cannot add member to user group [org=${pOUID}][grp=${pPGUID}][account=${pRUID}]`,
             ErrorCode.ORGANIZATION + 12) };
 
+    static INVALID_USER_ACCOUNTS_LIST = ()=>{
+        return new OrganizationManagerException(`The list of user account is invalid, some user account UUID are not UUID.`,
+            ErrorCode.ORGANIZATION + 13) };
+
 
 
 

@@ -48,7 +48,7 @@ export class ProjectManager {
         );
 
         pAppUnit.attachProject(proj);
-        this._ctx.getOrgManager().updateApplication(pAccount, pAppUnit);
+        //this._ctx.getOrgManager().updateApplication(pAccount, pAppUnit);
 
         return proj;
     }

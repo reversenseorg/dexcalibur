@@ -8,6 +8,8 @@ import {OrganizationManagerException} from "../errors/OrganizationManagerExcepti
 import {ValidationRule} from "../Validator.js";
 import {UserGroup} from "../user/acl/common/UserGroup.js";
 import Role from "../user/acl/common/Role.js";
+import {ApplicationUnit} from "../organization/ApplicationUnit.js";
+import {UserAccount, UserAccountUUID} from "../user/UserAccount.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 export const ORG_WEB_API: DelegateWebApi = new DelegateWebApi("ORG");
@@ -32,8 +34,10 @@ ORG_WEB_API.addAsyncAuthenticatedRoute(
                 $.sendSuccess( res, data);
 
             }catch(err){
-                Logger.error("[API][ORG] List of organizations cannot be retrieved. Cause : "+err.message+"\n\t"+err.stack);
-                $.sendError(res, "List of organizations cannot be retrieved.", {cause:err.message});
+                $.sendErrorAfterException(
+                    res, ORG_WEB_API.name,
+                    "List of organizations cannot be retrieved.",
+                    err,{cause:err.message});
             }
         }
     }
@@ -58,8 +62,11 @@ ORG_WEB_API.addAsyncAuthenticatedRoute(
                 $.sendSuccess( pRes, org.toJsonObject());
 
             }catch(err){
-                Logger.error("[API][ORG] Organization unit cannot be created : "+err.message+"\n\t"+err.stack);
-                $.sendError(pRes, "Organization unit cannot be created. ", {cause:err.message });
+
+                $.sendErrorAfterException(
+                    pRes, ORG_WEB_API.name,
+                    "Organization unit cannot be created.",
+                    err,{cause:err.message});
             }
         }
     }
@@ -75,15 +82,186 @@ ORG_WEB_API.addAsyncAuthenticatedRoute(
             const $:WebServer = pReq.dxc.$;
 
             try{
+
+                // target org
+                const org = await $.context.getOrgManager().getOrganization(
+                    (pReq as any).user,
+                    pReq.params.uid
+                );
+
+                // update
                 $.sendSuccess(
                     pRes,
                     await $.context.getOrgManager().updateOrganization(
                         (pReq as any).user,
-                        new OrganizationUnit({
+                        org,
+                        {
                             name: pReq.body.name,
                             description: pReq.body.description,
                             companyName: pReq.body.companyName,
-                        })
+                        }
+                    )
+                );
+            }catch(err){
+
+
+                $.sendErrorAfterException(
+                    pRes, ORG_WEB_API.name,
+                    "Specified project cannot be set as default project.",
+                    err,{cause:err.message});
+
+            }
+        },
+        'delete': async (pReq:DelegateRequest, res:DelegateResponse):Promise<void>=>{
+
+            const $:WebServer = pReq.dxc.$;
+
+            try{
+                // target org
+                const org = await $.context.getOrgManager().getOrganization(
+                    (pReq as any).user,
+                    pReq.params.uid
+                );
+
+                // drop
+                $.sendSuccess( res, { deleted: await  $.context.getOrgManager().dropOrganization(
+                        (pReq as any).user,
+                        org
+                    )});
+
+            }catch(err){
+
+                $.sendErrorAfterException(
+                    res, ORG_WEB_API.name,
+                    "List of actives projects cannot be retrieved.",
+                    err,{cause:err.message});
+
+            }
+        }
+    }
+);
+
+
+
+ORG_WEB_API.addAsyncAuthenticatedRoute(
+    '/ou/org/:oid/au/list',
+    {
+        'get':  async (pReq:DelegateRequest, pRes:DelegateResponse)=>{
+
+            const $:WebServer = pReq.dxc.$;
+
+            try{
+
+                // target org
+                const org = await $.context.getOrgManager().getOrganization(
+                    (pReq as any).user,
+                    pReq.params.oid
+                );
+
+
+                const apps = await $.context.getOrgManager().listApplications(
+                    (pReq as any).user,
+                    org
+                );
+
+                const data:any[] = [];
+                apps.map( o => data.push( o.toJsonObject()));
+
+                $.sendSuccess( pRes, data);
+
+            }catch(err){
+
+                $.sendErrorAfterException(
+                    pRes, ORG_WEB_API.name,
+                    "List of application units cannot be retrieved.",
+                    err,{cause:err.message});
+
+            }
+        }
+    }
+);
+
+ORG_WEB_API.addAsyncAuthenticatedRoute(
+    '/ou/org/:oid/au/create',
+    {
+        'post':  async (pReq:DelegateRequest, pRes:DelegateResponse):Promise<any>=>{
+
+            const $:WebServer = pReq.dxc.$;
+
+            try{
+
+                // target org
+                const org = await $.context.getOrgManager().getOrganization(
+                    (pReq as any).user,
+                    pReq.params.oid
+                );
+
+                // create app unit
+                const app = await $.context.getOrgManager().createApplication(
+                    (pReq as any).user,
+                    org,
+                    (new ApplicationUnit({
+                        name: pReq.body.name,
+                        description: pReq.body.description,
+                        packageID: pReq.body.packageID,
+                        orgUnit: org.getUID()
+                    })).addMembers([
+                        ((pReq as any).user as UserAccount).getUID()
+                    ])
+                );
+
+                // attach member to app
+                if(pReq.body.members.length>0){
+                    await $.context.getOrgManager().addMembersToAU(
+                        (pReq as any).user,
+                        org,
+                        app,
+                        pReq.body.members
+                    );
+                }
+
+                $.sendSuccess( pRes, app.toJsonObject());
+
+            }catch(err){
+                Logger.error("[API][ORG] Organization unit cannot be created : "+err.message+"\n\t"+err.stack);
+                $.sendError(pRes, "Organization unit cannot be created. ", {cause:err.message });
+            }
+        }
+    }
+);
+
+
+
+ORG_WEB_API.addAsyncAuthenticatedRoute(
+    '/ou/org/:oid/au/app/:aid',
+    {
+        'put': async (pReq:DelegateRequest, pRes:DelegateResponse):Promise<void> => {
+
+            const $:WebServer = pReq.dxc.$;
+
+            try{
+
+                // target org
+                const org = await $.context.getOrgManager().getOrganization(
+                    (pReq as any).user,
+                    pReq.params.oid
+                );
+
+
+                // target app
+                const app = await $.context.getOrgManager().getApplication(
+                    (pReq as any).user,
+                    org,
+                    pReq.params.aid
+                );
+
+                $.sendSuccess(
+                    pRes,
+                    await $.context.getOrgManager().updateApplication(
+                        (pReq as any).user,
+                        org,
+                        app,
+                        (pReq.body)
                     )
                 );
             }catch(err){
@@ -91,20 +269,37 @@ ORG_WEB_API.addAsyncAuthenticatedRoute(
                 $.sendError(pRes, "Specified project cannot be set as default project. Cause : "+err.message);
             }
         },
-        'delete':  (req:DelegateRequest, res:DelegateResponse)=>{
+        'delete': async (pReq:DelegateRequest, pRes:DelegateResponse):Promise<void>=>{
 
-            const $:WebServer = req.dxc.$;
+            const $:WebServer = pReq.dxc.$;
 
             try{
-                const data:any[] = [];
-                const proj = $.context.getActiveProjects(req.dxc.sess.getUserAccount());
 
-                for(const i in proj) data.push( proj[i].toJsonObject());
-                $.sendSuccess( res, data);
+
+                const org = await $.context.getOrgManager().getOrganization(
+                    (pReq as any).user,
+                    pReq.params.oid
+                );
+
+                // target app
+                const app = await $.context.getOrgManager().getApplication(
+                    (pReq as any).user,
+                    org,
+                    pReq.params.aid
+                );
+
+                $.sendSuccess(
+                    pRes,
+                    await $.context.getOrgManager().dropApplication(
+                        (pReq as any).user,
+                        org,
+                        app
+                    )
+                );
 
             }catch(err){
                 Logger.error("[API][PROJECT] List of actives projects cannot be retrieved. Cause : "+err.message+"\n\t"+err.stack);
-                $.sendError(res, "List of actives projects cannot be retrieved. Cause : "+err.message);
+                $.sendError(pRes, "List of actives projects cannot be retrieved. Cause : "+err.message);
             }
         }
     }
