@@ -22,8 +22,7 @@ export class ValidationRule {
         if(pOptions!=null){
             switch(pType){
                 case ValidationType.EQUAL:
-                    this.refValue = pOptions;
-                    break;
+                case ValidationType.PINKLIST:
                 case ValidationType.REGEXP:
                     this.refValue = pOptions;
                     break;

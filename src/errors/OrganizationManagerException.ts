@@ -5,6 +5,8 @@ import {UserGroupUUID} from "../user/acl/common/UserGroup.js";
 import {UserAccountUUID} from "../user/UserAccount.js";
 import {OrganizationUnitUUID} from "../organization/OrganizationUnit.js";
 import {RoleUUID} from "../user/acl/common/Role.js";
+import {ConnectionUUID} from "../organization/conn/Connection.js";
+import {SecretUUID} from "../core/secrets/Secret.js";
 
 
 
@@ -61,6 +63,40 @@ export class OrganizationManagerException extends MonitoredError {
     static INVALID_USER_ACCOUNTS_LIST = ()=>{
         return new OrganizationManagerException(`The list of user account is invalid, some user account UUID are not UUID.`,
             ErrorCode.ORGANIZATION + 13) };
+
+    static CONN_ALREADY_EXISTS = (pName:string)=>{
+        return new OrganizationManagerException(`A connection already exists with this uuid [uuid=${pName}]`,
+            ErrorCode.ORGANIZATION + 14) };
+
+    static CANNOT_UPDATE_CONNECTION = (pOUID:OrganizationUnitUUID, pName:string)=>{
+        return new OrganizationManagerException(`Cannot update connections with this uuid [org=${pOUID}][uuid=${pName}]`,
+            ErrorCode.ORGANIZATION + 15) };
+
+    static CANNOT_REMOVE_CONNECTION = (pOUID:OrganizationUnitUUID, pName:string)=>{
+        return new OrganizationManagerException(`Cannot remove connections with this uuid [org=${pOUID}][uuid=${pName}]`,
+            ErrorCode.ORGANIZATION + 16) };
+
+    static CONNECTION_NOT_FOUND = (pUUID:ConnectionUUID)=>{
+        return new OrganizationManagerException(`Connection cannot be found with this uuid [uuid=${pUUID}]`,
+            ErrorCode.ORGANIZATION + 17) };
+
+    static SECRET_NOT_FOUND = (pUUID:SecretUUID)=>{
+        return new OrganizationManagerException(`Secret cannot be found with this uuid [uuid=${pUUID}]`,
+            ErrorCode.ORGANIZATION + 18) };
+
+    static CANNOT_UPDATE_SECRET = (pOUID:OrganizationUnitUUID, pUUID:SecretUUID)=>{
+        return new OrganizationManagerException(`Cannot update secret with this uuid [org=${pOUID}][uuid=${pUUID}]`,
+            ErrorCode.ORGANIZATION + 19) };
+
+    static CANNOT_REMOVE_SECRET = (pOUID:OrganizationUnitUUID, pUUID:SecretUUID)=>{
+        return new OrganizationManagerException(`Cannot remove secret with this uuid [org=${pOUID}][uuid=${pUUID}]`,
+            ErrorCode.ORGANIZATION + 20) };
+
+    static SECRET_ALREADY_EXISTS = (pOUID:OrganizationUnitUUID,pUUID:SecretUUID)=>{
+        return new OrganizationManagerException(`A secret already exists with this uuid  [org=${pOUID}][uuid=${pUUID}]`,
+            ErrorCode.ORGANIZATION + 14) };
+
+
 
 
 

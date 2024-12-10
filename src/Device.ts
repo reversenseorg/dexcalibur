@@ -58,6 +58,7 @@ export enum FridaServerTransport {
     NETWORK='H'
 }
 
+export type DeviceUUID = string;
 
 export interface FridaServerOptions {
     server: string,
@@ -278,7 +279,7 @@ export class Device implements INode
      * Device internal UID
      * @field
      */
-    uid:string = null;
+    uid:DeviceUUID = null;
 
     /**
      * Real device ID
@@ -578,7 +579,7 @@ export class Device implements INode
      * 
      * @returns {String} Internal device UID
      */
-    getUID():string{
+    getUID():DeviceUUID{
         return this.uid;
     }
 

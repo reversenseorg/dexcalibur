@@ -20,6 +20,8 @@ import Role, {RoleUUID} from "../user/acl/common/Role.js";
 import {UserGroup, UserGroupUUID} from "../user/acl/common/UserGroup.js";
 import {EmailSender} from "../core/email/EmailSender.js";
 import {ValidationRule} from "../Validator.js";
+import {Connection, ConnectionUUID} from "./conn/Connection.js";
+import {Secret, SecretUUID} from "../core/secrets/Secret.js";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -338,6 +340,8 @@ export class OrganizationManager {
             ]
         }));
 
+        pOrg.prepareKeyChain();
+
         const org = await this._ctx.getEngineDB()
             .getCollectionOf(OrganizationUnit.TYPE.getType())
             .asyncAddEntry({ uuid: uuid}, pOrg);
@@ -394,31 +398,31 @@ export class OrganizationManager {
         do {
             uuid = randomUUID();
         }while(await this.isUuidFree(ApplicationUnit.TYPE.getType(), uuid)==false)
-        pOrg.uuid = uuid;
+        pApp.uuid = uuid;
 
-        if(!this._isUnitFree(ApplicationUnit.TYPE.getType(), "name", pOrg.name)){
+        if(!this._isUnitFree(ApplicationUnit.TYPE.getType(), "name", pApp.name)){
             throw OrganizationManagerException.DUPLICATED_APP_NAME();
         }
 
         // append user to owner list
-        pOrg.appendToAccessAttribute(
+        pApp.appendToAccessAttribute(
             OrganizationAccessControl.attr.OWNER,
             pUserAccount.getUID()
         );
 
         // append user to member list
-        pOrg.appendToAccessAttribute(
+        pApp.appendToAccessAttribute(
             OrganizationAccessControl.attr.APP_MEMBER,
             pUserAccount.getUID()
         );
 
         // create app
-        const org = await this._ctx.getEngineDB()
-            .getCollectionOf(OrganizationUnit.TYPE.getType())
-            .asyncAddEntry({ uuid: uuid}, pOrg);
+        const app = await this._ctx.getEngineDB()
+            .getCollectionOf(ApplicationUnit.TYPE.getType())
+            .asyncAddEntry({ uuid: uuid}, pApp);
 
 
-        return org;
+        return app;
     }
 
     async updateApplication(pUserAccount:UserAccount, pOrg:OrganizationUnit, pAppUnit:ApplicationUnit, pChanges:any):Promise<boolean> {
@@ -593,8 +597,7 @@ export class OrganizationManager {
 
         const all = await (this._ctx.getEngineDB()
             .getCollectionOf(ApplicationUnit.TYPE.getType()) as MongodbDbCollection)
-            .search({ filter: {_orgs: { $all: [ pOrg.getUID() ] }}},{ merlinRequest:false, raw:true }) as ApplicationUnit[];
-
+            .search({ filter: {orgUnit: { $all: [ pOrg.getUID() ] }}},{ merlinRequest:false, raw:true }) as ApplicationUnit[];
 
         const authorized:ApplicationUnit[] = [];
 
@@ -615,7 +618,6 @@ export class OrganizationManager {
                 authorized.push(vApp);
 
             }catch (err){
-                // skip
             }
         });
 
@@ -797,5 +799,223 @@ export class OrganizationManager {
         return this.updateApplication(pUserAccount, pOrg, pApp, {
             _attr: (pApp as any)._attr
         })
+    }
+
+
+
+    // ============== CONNECTIONS MGT ================
+
+    async listConnections(pUserAccount:UserAccount, pOrg: OrganizationUnit):Promise<Connection[]> {
+        // check if user can list applications
+        AccessControl.isAuthorized(
+            AccessControl.access.ORG_OU_SECRETS_MGT,
+            pUserAccount,
+            pOrg,
+            [
+                OrganizationAccessControl.attr.OWNER,
+                OrganizationAccessControl.attr.ORG_MEMBER,
+            ]
+        );
+
+        return pOrg.getConnections();
+    }
+
+
+
+    async addConnectionToOrg(pUserAccount:UserAccount, pOrg: OrganizationUnit, pConn:Connection):Promise<boolean> {
+        // check if user can list applications
+        AccessControl.isAuthorized(
+            AccessControl.access.ORG_OU_SECRETS_MGT,
+            pUserAccount,
+            pOrg,
+            [
+                OrganizationAccessControl.attr.OWNER,
+                OrganizationAccessControl.attr.ORG_MEMBER,
+            ]
+        );
+
+        let cuuid:ConnectionUUID;
+        do{
+            cuuid = randomUUID();
+        }while(!pOrg.isConnUuidFree(cuuid))
+
+        pConn.uuid = cuuid;
+
+        pOrg.addConnection(pConn);
+
+        if(await (this._ctx.getEngineDB()
+            .getCollectionOf(OrganizationUnit.TYPE.getType()) as MongodbDbCollection)
+            .asyncUpdateEntry(pOrg, { replace:false, $set:['connections'] })){
+
+            return true;
+        }else{
+            throw OrganizationManagerException.CANNOT_UPDATE_CONNECTION(pOrg.getUID(),pConn.getUID());
+        }
+    }
+
+    async updateConnections(pUserAccount:UserAccount, pOrg: OrganizationUnit, pConn:Connection):Promise<boolean> {
+
+        // check if user can list applications
+        AccessControl.isAuthorized(
+            AccessControl.access.ORG_OU_SECRETS_MGT,
+            pUserAccount,
+            pOrg,
+            [
+                OrganizationAccessControl.attr.OWNER,
+                OrganizationAccessControl.attr.ORG_MEMBER,
+            ]
+        );
+
+        pOrg.addConnection(pConn, true);
+
+        if(await (this._ctx.getEngineDB()
+            .getCollectionOf(OrganizationUnit.TYPE.getType()) as MongodbDbCollection)
+            .asyncUpdateEntry(pOrg, { replace:false, $set:['connections'] })){
+
+            return true;
+        }else{
+            throw OrganizationManagerException.CANNOT_UPDATE_CONNECTION(pOrg.getUID(),pConn.getUID());
+        }
+    }
+
+
+
+    async removeConnectionFromOrg(pUserAccount:UserAccount, pOrg: OrganizationUnit, pConnUUID:ConnectionUUID):Promise<boolean> {
+
+        // check if user can list applications
+        AccessControl.isAuthorized(
+            AccessControl.access.ORG_OU_SECRETS_MGT,
+            pUserAccount,
+            pOrg,
+            [
+                OrganizationAccessControl.attr.OWNER,
+                OrganizationAccessControl.attr.ORG_MEMBER,
+            ]
+        );
+
+        pOrg.removeConnection(pConnUUID);
+
+        if(await (this._ctx.getEngineDB()
+            .getCollectionOf(OrganizationUnit.TYPE.getType()) as MongodbDbCollection)
+            .asyncUpdateEntry(pOrg, { replace:false, $set:['connections'] })){
+
+            return true;
+        }else{
+            throw OrganizationManagerException.CANNOT_REMOVE_CONNECTION(pOrg.getUID(),pConnUUID);
+        }
+    }
+
+
+    // ============== SECRET MGT ================
+
+
+    async listOrgSecrets(pUserAccount:UserAccount, pOrg: OrganizationUnit):Promise<Secret[]> {
+        // check if user can list applications
+        AccessControl.isAuthorized(
+            AccessControl.access.ORG_OU_SECRETS_MGT,
+            pUserAccount,
+            pOrg,
+            [
+                OrganizationAccessControl.attr.OWNER,
+                OrganizationAccessControl.attr.ORG_MEMBER,
+            ]
+        );
+
+        return pOrg.getSecrets();
+    }
+
+
+    async addSecretToOrg(pUserAccount:UserAccount, pOrg: OrganizationUnit, pSecret:Secret):Promise<boolean> {
+        // check if user can list applications
+        AccessControl.isAuthorized(
+            AccessControl.access.ORG_OU_SECRETS_MGT,
+            pUserAccount,
+            pOrg,
+            [
+                OrganizationAccessControl.attr.OWNER,
+                OrganizationAccessControl.attr.ORG_MEMBER,
+            ]
+        );
+
+        let uuid:SecretUUID;
+        do{
+            uuid = randomUUID();
+        }while(!pOrg.isSecretUuidFree(uuid))
+
+        pSecret.setUID(uuid);
+        pOrg.addSecret(pSecret);
+
+        // test read of secret
+        pOrg.readSecret(pUserAccount, uuid);
+
+        if(await (this._ctx.getEngineDB()
+            .getCollectionOf(OrganizationUnit.TYPE.getType()) as MongodbDbCollection)
+            .asyncUpdateEntry(pOrg, { replace:false, $set:['secrets'] })){
+
+            return true;
+        }else{
+            throw OrganizationManagerException.CANNOT_UPDATE_SECRET(pOrg.getUID(),pSecret.getUID());
+        }
+    }
+
+
+    async removeSecretFromOrg(pUserAccount:UserAccount, pOrg: OrganizationUnit, pSecretUUID:SecretUUID):Promise<boolean> {
+
+        // check if user can list applications
+        AccessControl.isAuthorized(
+            AccessControl.access.ORG_OU_SECRETS_MGT,
+            pUserAccount,
+            pOrg,
+            [
+                OrganizationAccessControl.attr.OWNER,
+                OrganizationAccessControl.attr.ORG_MEMBER,
+            ]
+        );
+
+        pOrg.removeSecret(pSecretUUID);
+
+        if(await (this._ctx.getEngineDB()
+            .getCollectionOf(OrganizationUnit.TYPE.getType()) as MongodbDbCollection)
+            .asyncUpdateEntry(pOrg, { replace:false, $set:['secrets'] })){
+
+            return true;
+        }else{
+            throw OrganizationManagerException.CANNOT_REMOVE_SECRET(pOrg.getUID(),pSecretUUID);
+        }
+    }
+
+
+    async rerollOrganizationKeyChain(pUserAccount:UserAccount, pOrgUnit:OrganizationUnit):Promise<void> {
+
+        // check if user can list applications
+        AccessControl.isAuthorized(
+            AccessControl.access.ORG_OU_SECRETS_MGT,
+            pUserAccount,
+            pOrgUnit,
+            [
+                OrganizationAccessControl.attr.OWNER,
+                OrganizationAccessControl.attr.ORG_MEMBER,
+            ]
+        );
+
+        let newOKC = false;
+        try{
+            // check if key chain is ready
+            pOrgUnit.getSecret(OrganizationUnit.SEED_SUID);
+        }catch(e){
+            // init keychain
+            pOrgUnit.prepareKeyChain();
+            // update
+            if(await (this._ctx.getEngineDB()
+                .getCollectionOf(OrganizationUnit.TYPE.getType()) as MongodbDbCollection)
+                .asyncUpdateEntry(pOrgUnit, { replace:false, $set:['secrets'] })){
+
+                newOKC = true;
+            }else{
+                throw OrganizationManagerException.CANNOT_UPDATE_SECRET(pOrgUnit.getUID(),OrganizationUnit.SEED_SUID);
+            }
+        }
+
+        return;
     }
 }

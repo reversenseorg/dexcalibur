@@ -18,6 +18,12 @@ import {AuthModuleFactory} from "../user/auth/AuthModuleFactory.js";
 import {randomUUID} from "crypto";
 import {UserAccount, UserAccountUUID} from "../user/UserAccount.js";
 import {UserGroup, UserGroupUUID} from "../user/acl/common/UserGroup.js";
+import {Connection, ConnectionUUID} from "./conn/Connection.js";
+import {DeviceUUID} from "../Device.js";
+import {DeviceTemplate, DeviceTemplateUUID} from "../device/template/DeviceTemplate.js";
+import {OrganizationManagerException} from "../errors/OrganizationManagerException.js";
+import {Secret, SecretProtectionType, SecretType, SecretUUID} from "../core/secrets/Secret.js";
+import {AesKeyLength, CryptoUtils} from "../CryptoUtils.js";
 
 export type OrganizationUnitUUID = string;
 
@@ -29,12 +35,19 @@ export interface OrganizationUnitOptions {
     owner?:string;
     members?:UserAccountUUID[];
     authModules?:AuthModule[];
+    connections?:Connection[];
+    devices?:DeviceUUID[];
+    deviceTpls?:DeviceTemplateUUID[]
     tags?:TagUUID[];
+    secrets?:Secret[];
     groups?:UserGroup[];
     _attr?:AccessAttributeMap;
 }
 
 export class OrganizationUnit extends Auditable implements INode {
+
+    static SEED_SUID = '8162b327-e7a9-4342-a688-f515ae1c8664';
+    static MK_SUID = '8162b327-e7a9-4342-a689-f515ae1c8664';
 
     static TYPE:NodeType = (new NodeType( "organization_unit", NodeInternalType.ORG_UNIT, [
         (new NodeProperty("uuid")).type(DbDataType.STRING).key(DbKeyType.PRIMARY),
@@ -43,6 +56,58 @@ export class OrganizationUnit extends Auditable implements INode {
         (new NodeProperty("description")).type(DbDataType.STRING).def(""),
         (new NodeProperty("owner")).type(DbDataType.STRING).def(null),
         (new NodeProperty("members")).type(DbDataType.STRING).def([]),
+        (new NodeProperty("devices")).type(DbDataType.STRING).def([]),
+        (new NodeProperty("secrets"))
+            .type(DbDataType.STRING)
+            .sleep( (x:NodePropertyState) => {
+                if(x.p==null) return [];
+                let o:any[] = [];
+                x.p.map((s:any) => {
+                    o.push(s.toJsonObject(SecurityZone.PRIVATE));
+                });
+                return o;
+            })
+            .wakeUp( (x:NodePropertyState) => {
+                if(x.p==null) return [];
+                return x.p.map((x:any) => {
+                    return Secret.from(x);
+                });
+            })
+            .def([]),
+        (new NodeProperty("deviceTpls"))
+            .type(DbDataType.STRING)
+            .sleep( (x:NodePropertyState) => {
+                if(x.p==null) return [];
+                let o:any[] = [];
+                x.p.map((s:any) => {
+                    o.push(s.toJsonObject());
+                });
+                return o;
+            })
+            .wakeUp( (x:NodePropertyState) => {
+                if(x.p==null) return [];
+                return x.p.map((x:any) => {
+                    return new DeviceTemplate(x);
+                });
+            })
+            .def([]),
+        (new NodeProperty("connections"))
+            .type(DbDataType.BLOB)
+            .sleep( (x:NodePropertyState) => {
+                if(x.p==null) return [];
+                let o:any[] = [];
+                x.p.map((s:any) => {
+                    o.push(s.toJsonObject({}, SecurityZone.PRIVATE));
+                });
+                return o;
+            })
+            .wakeUp( (x:NodePropertyState) => {
+                if(x.p==null) return [];
+                return x.p.map((x:any) => {
+                    return new Connection(x);
+                });
+            })
+            .def([]),
         (new NodeProperty("groups"))
             .type(DbDataType.BLOB)
             .sleep( (x:NodePropertyState) => {
@@ -108,8 +173,12 @@ export class OrganizationUnit extends Auditable implements INode {
     description:string;
     owner:string;
     members:UserAccountUUID[] = [];
+    connections: Connection[] = [];
     groups:UserGroup[] = [];
     authModules: AuthModule[] = [];
+    devices: DeviceUUID[] = [];
+    secrets: Secret[] = [];
+    deviceTpls: DeviceTemplate[] = [];
 
     tags:TagUUID[] = [];
 
@@ -125,8 +194,10 @@ export class OrganizationUnit extends Auditable implements INode {
             this.owner = pOptions.owner!;
             this.tags = pOptions.tags!;
             this.authModules =  (pOptions.authModules!=null ? pOptions.authModules : []);
+            this.connections =  (pOptions.connections!=null ? pOptions.connections : []);
             this.members = (pOptions.members!=null ? pOptions.members : []);
             this.groups = (pOptions.groups!=null ? pOptions.groups : []);
+            this.secrets = (pOptions.secrets!=null ? pOptions.secrets : []);
             this._attr = (pOptions._attr!=null ? pOptions._attr : {});
         }
 
@@ -165,6 +236,54 @@ export class OrganizationUnit extends Auditable implements INode {
         return (this.members.indexOf(pUserUID)>-1);
     }
 
+    prepareKeyChain():void {
+
+        try{
+            this.getSecret(OrganizationUnit.SEED_SUID);
+            // org key chain is ready
+
+        }catch (e){
+
+            // secret seed of org key chain is not initialized
+            const seed = new Secret({
+                uid: OrganizationUnit.SEED_SUID,
+                name: 'ork_seed',
+                description: "Organization root key seed",
+                type: SecretType.IV
+            });
+
+            seed.writeSecretString(
+                CryptoUtils.randomChunk(16).toString(),
+                16
+            );
+
+            if(!this.isSecretUuidFree(seed.getUID())){
+                throw OrganizationManagerException.SECRET_ALREADY_EXISTS(this.getUID(),seed.getUID());
+            }
+
+            this.secrets.push(seed);
+
+            // secret master key of org key chain is not initialized
+            const omk = new Secret({
+                uid: OrganizationUnit.MK_SUID,
+                name: 'omk',
+                description: "Organization master key",
+                type: SecretType.SECRET_KEY
+            });
+
+            const k = JSON.stringify(CryptoUtils.generateAesKey(AesKeyLength.AES256).export({format:'jwk'}));
+            omk.writeSecretString(
+                k, k.length
+            );
+
+            if(!this.isSecretUuidFree(omk.getUID())){
+                throw OrganizationManagerException.SECRET_ALREADY_EXISTS(this.getUID(),omk.getUID());
+            }
+
+            this.secrets.push(omk);
+        }
+    }
+
     /*addRole(pUser:UserAccount):void {
         if(this.roles.indexOf(pUser.getUID())==-1){
             this.members.push(pUser.getUID());
@@ -182,6 +301,40 @@ export class OrganizationUnit extends Auditable implements INode {
 
     getAuthModules():AuthModule[] {
         return this.authModules;
+    }
+
+    getConnections():Connection[] {
+        return this.connections;
+    }
+
+    addConnection(pConn:Connection, pUpdate = false):void {
+
+        if(!pUpdate && !this.isConnUuidFree(pConn.getUID())){
+            throw OrganizationManagerException.CONN_ALREADY_EXISTS(pConn.getUID());
+        }
+
+        this.connections.push(pConn);
+    }
+
+    removeConnection(pConnUID:ConnectionUUID):void {
+        this.connections = this.connections.filter((vCon)=> {
+            return vCon.getUID()!==pConnUID;
+        });
+    }
+
+    removeSecret(pSecretUUID:SecretUUID):void {
+        this.secrets = this.secrets.filter((vSecret)=> {
+            console.log(vSecret.getUID(),pSecretUUID);
+            return vSecret.getUID()!==pSecretUUID;
+        });
+    }
+
+    getDevices():DeviceUUID[] {
+        return this.devices;
+    }
+
+    getDeviceTemplate():any[] {
+        return this.deviceTpls;
     }
 
     getAuthModuleByType(pType:AuthModuleType):AuthModule {
@@ -220,6 +373,7 @@ export class OrganizationUnit extends Auditable implements INode {
             tags: this.tags,
             authModules: [],
             groups: [],
+            secrets: [],
             _attr: this._attr
         };
 
@@ -229,6 +383,10 @@ export class OrganizationUnit extends Auditable implements INode {
         this.groups.map(x => {
             o.groups.push(x.toJsonObject({}, pZone));
         });
+
+        this.secrets.map(x => {
+            o.secrets.push(x.toJsonObject(pZone))
+        })
 
         return o;
     }
@@ -252,6 +410,85 @@ export class OrganizationUnit extends Auditable implements INode {
 
     getLocalAuth():AuthModule[] {
         return (this.authModules.filter(x => (x.type===AuthModuleType.LOCAL_PASSWD)));
+    }
+
+    getConnection(pConnUUID: ConnectionUUID):Connection {
+        const conn = this.connections.find((vConn)=>{ return (vConn.getUID()==pConnUUID)});
+
+        if(conn==null){
+            throw OrganizationManagerException.CONNECTION_NOT_FOUND(pConnUUID);
+        }
+
+        return conn;
+    }
+
+    getSecret(pSUID: SecretUUID):Secret {
+        const secret = this.secrets.find((x)=>{ return (x.getUID()===pSUID)});
+
+        if(secret==null){
+            throw OrganizationManagerException.SECRET_NOT_FOUND(pSUID);
+        }
+
+        return secret;
+    }
+
+    readSecret(pUserAccount:UserAccount, pSUID: SecretUUID):Buffer {
+        const secret = this.getSecret(pSUID);
+
+        if(pSUID===OrganizationUnit.MK_SUID
+            || pSUID===OrganizationUnit.SEED_SUID  ){
+            return secret.readSecret(pUserAccount, {});
+        }
+
+        return secret.unwrap(pUserAccount, {
+            [SecretProtectionType.ORG]: {
+                key: this.getSecret(OrganizationUnit.MK_SUID),
+                iv: this.getSecret(OrganizationUnit.SEED_SUID),
+            }
+        });
+    }
+
+    getSecrets():Secret[] {
+        return this.secrets;
+    }
+
+
+    addSecret(pSecret:Secret, pUpdate = false):void {
+
+        if(!pUpdate && !this.isSecretUuidFree(pSecret.getUID())){
+            throw OrganizationManagerException.SECRET_ALREADY_EXISTS(this.getUID(),pSecret.getUID());
+        }
+
+        // store wrapped secret
+        this.secrets.push(pSecret.addProtection(
+            SecretProtectionType.ORG,
+            {
+                key: this.getSecret(OrganizationUnit.MK_SUID),
+                iv: this.getSecret(OrganizationUnit.SEED_SUID),
+            }
+        ));
+
+
+    }
+
+    isConnUuidFree(pUUID: ConnectionUUID):boolean {
+
+        for(let k=0; k<this.connections.length; k++){
+            if(this.connections[k].getUID()==pUUID){
+                return false;
+            }
+        }
+        return true;
+    }
+
+    isSecretUuidFree(pSUID: SecretUUID):boolean {
+
+        for(let k=0; k<this.secrets.length; k++){
+            if(this.secrets[k].getUID()==pSUID){
+                return false;
+            }
+        }
+        return true;
     }
 }
 OrganizationUnit.TYPE.builder(OrganizationUnit);
