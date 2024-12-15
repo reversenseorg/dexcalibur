@@ -9,9 +9,12 @@ import DexcaliburProject from "../DexcaliburProject.js";
 import * as path from "path";
 import {IDbCollection} from "@dexcalibur/dexcalibur-orm";
 import Util from "../Utils.js";
+import {ConnectionFactory} from "../organization/conn/ConnectionFactory.js";
+import {ConnectionProtocol} from "../organization/conn/Connection.js";
+import {ORG_WEB_API} from "./organization.web.api.js";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
-export const APP_WEB_API: DelegateWebApi = new DelegateWebApi();
+export const APP_WEB_API: DelegateWebApi = new DelegateWebApi("APP");
 
 
 /**
@@ -108,4 +111,35 @@ APP_WEB_API.addAuthenticatedRoute(
         }
     }
 );
+
+
+
+APP_WEB_API.addAuthenticatedRoute(
+    '/au/:aid/info',
+    {
+        'get': async function(pReq:DelegateRequest, pRes:DelegateResponse):Promise<any> {
+            const $:WebServer = pReq.dxc.$;
+
+            try{
+                const app = await $.context.getOrgManager().getDirectApplication(
+                    (pReq as any).user,
+                    pReq.params.aid
+                );
+
+                $.sendSuccess(
+                    pRes,
+                    app.toJsonObject()
+                );
+            }catch(err){
+
+                $.sendErrorAfterException(
+                    pRes, APP_WEB_API.name,
+                    "Details about Application Unit cannot be retrieved from organization.",
+                    err,{cause:err.message});
+            }
+        }
+    }
+);
+
+
 

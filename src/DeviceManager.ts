@@ -19,6 +19,7 @@ import {OperatingSystem} from "./platform/OperatingSystem.js";
 import {Nullable} from "./core/IStringIndex.js";
 import {NodeInternalType} from "@dexcalibur/dxc-core-api";
 import {DeviceManagerException} from "./errors/DeviceManagerException.js";
+import {randomUUID} from "crypto";
 
 const Logger:Log.ProdLogger = Log.newLogger() as Log.ProdLogger;
 
@@ -353,7 +354,7 @@ export default class DeviceManager extends ValidationCapable
      * @method
      */
     generateUID():string{
-        const uid = Util.randString(12, Util.ALPHANUM);
+        const uid = randomUUID(); // Util.randString(12, Util.ALPHANUM);
         if(this.devices[uid]!=null)
             return this.generateUID();
         else
@@ -409,12 +410,14 @@ export default class DeviceManager extends ValidationCapable
         let active = 0, b:IBridge=null, d=null, id:string=null, dev:Device=null;
         let devs:Record<string, Device> = {};
 
-
+        let tmpDevs:Device[];
         for(let i=0; i<pCandidateList.length; i++){
 
             // at this step, candidate device has 1 bridge, no more.
-            if(pCandidateList[i].bridge.isUsbTransport()){
+            /*if(pCandidateList[i].bridge.isUsbTransport()){
                 id = pCandidateList[i].bridge.getDeviceID();
+
+                console.log(id, pCandidateList[i].getFingerprint());
                 if(id != null){
                     // search if device already exists
                     dev = this.getDeviceByID(id);
@@ -424,12 +427,15 @@ export default class DeviceManager extends ValidationCapable
                 }
             }else{  
                 dev = this.getDeviceByIP( pCandidateList[i].bridge.ip, pCandidateList[i].bridge.port);
-            }
+            }*/
+
+            // compare device UID Fingerprint (uidfp)
+            tmpDevs = this._searchDeviceByUidFP(pCandidateList[i].getFingerprint());
 
 
-            if(dev != null){
+            if(tmpDevs.length === 1){
                 // a device already exists, then merge
-                dev.update(pCandidateList[i]);
+                tmpDevs[0].update(pCandidateList[i]);
             }else{
                 // add the new device
                 this.addDevice(pCandidateList[i]);
@@ -478,6 +484,8 @@ export default class DeviceManager extends ValidationCapable
         this.devices = devs;
         //for(let i in devs) this.devices[devs[i].uid] = devs[i];
 
+
+        console.log(this.devices);
 
         return active;
     }
@@ -819,7 +827,7 @@ export default class DeviceManager extends ValidationCapable
 
         // update device ID if it is unknown 
         if(device.id == null){
-            await device.retrieveUIDfromDevice();
+            await device.retrieveUID();
         }
 
         // Install frida
@@ -895,6 +903,16 @@ export default class DeviceManager extends ValidationCapable
 
     acquire(pDevice:Device, pOptions:any){
         pDevice.getInstalledApp()
+    }
+
+    private _searchDeviceByUidFP(pFingerprint: Record<string, string>):Device[] {
+        const devs:Device[] = []
+        for(let uuid in this.devices){
+            if(this.devices[uuid].equalsUIDFP(pFingerprint)){
+                devs.push(this.devices[uuid]);
+            }
+        }
+        return devs;
     }
 }
 

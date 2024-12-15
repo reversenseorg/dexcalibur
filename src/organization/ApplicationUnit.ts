@@ -17,6 +17,7 @@ import DexcaliburProject from "../DexcaliburProject.js";
 import { Architecture } from "../Architecture.js";
 import {ValidationRule} from "../Validator.js";
 import {UserAccount, UserAccountUUID} from "../user/UserAccount.js";
+import {DeviceUUID} from "../Device.js";
 
 
 export interface ApplicationUnitOptions {
@@ -25,9 +26,10 @@ export interface ApplicationUnitOptions {
     description?:string;
     packageID?: string;
     icon?: Nullable<Avatar>;
-    sources?: string;
+    sources?: any[];
     os?:OperatingSystem;
     projects?:string[];
+    devices?:DeviceUUID[];
     orgUnit?:OrganizationUnitUUID;
     _attr?:AccessAttributeMap;
 }
@@ -41,7 +43,8 @@ export class ApplicationUnit extends Auditable implements INode {
         description: ValidationRule.utf8String(),
         packageID: ValidationRule.utf8String(),
         orgUnit: ValidationRule.uuid(),
-        members: ValidationRule.uuidList()
+        members: ValidationRule.uuidList(),
+        devices: ValidationRule.uuidList()
     }
 
     static TYPE:NodeType = (new NodeType( "application_unit", NodeInternalType.APP_UNIT, [
@@ -50,7 +53,8 @@ export class ApplicationUnit extends Auditable implements INode {
         (new NodeProperty("organization")).single(OrganizationUnit.TYPE),
         (new NodeProperty("packageID")).type(DbDataType.STRING).def(""),
         (new NodeProperty("sources")).type(DbDataType.STRING).def([]),
-        (new NodeProperty("projects")).type(DbDataType.STRING).def(null),
+        (new NodeProperty("devices")).type(DbDataType.STRING).def([]),
+        (new NodeProperty("projects")).type(DbDataType.STRING).def([]),
         (new NodeProperty("orgUnit")).type(DbDataType.STRING).def(null),
         (new NodeProperty("icon")).type(DbDataType.STRING).def(null),
         (new NodeProperty("tags")).type(DbDataType.STRING).def(null),
@@ -82,7 +86,8 @@ export class ApplicationUnit extends Auditable implements INode {
     packageID: string;
     icon: Nullable<Avatar>;
     projects: string[] = [];
-    sources: string;
+    sources: any[];
+    devices: DeviceUUID[] = [];
     orgUnit:OrganizationUnitUUID = null;
     os: OperatingSystem = OperatingSystem.NONE;
     //archs: Architecture[] = [];
@@ -140,6 +145,18 @@ export class ApplicationUnit extends Auditable implements INode {
         return this;
     }
 
+    hasReleases():boolean {
+        return (this.projects.length>0);
+    }
+
+    getReleases():string[] {
+        return this.projects;
+    }
+
+    getTargetDevices():DeviceUUID[] {
+        return this.devices;
+    }
+
     toJsonObject(pOption?: SerializeOptions): any {
         const o:any = {
             uuid: this.uuid,
@@ -149,8 +166,10 @@ export class ApplicationUnit extends Auditable implements INode {
             sources: this.sources,
             packageID: this.packageID,
             orgUnit: this.orgUnit,
+            devices: this.devices,
             os: this.os,
             projects: this.projects,
+            tags: this.tags
         };
 
         return o;

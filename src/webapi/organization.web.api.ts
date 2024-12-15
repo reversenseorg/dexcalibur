@@ -78,6 +78,33 @@ ORG_WEB_API.addAsyncAuthenticatedRoute(
 ORG_WEB_API.addAsyncAuthenticatedRoute(
     '/ou/org/:uid',
     {
+        'get': async (pReq:DelegateRequest, pRes:DelegateResponse):Promise<void> => {
+
+            const $:WebServer = pReq.dxc.$;
+
+            try{
+
+                // target org
+                const org = await $.context.getOrgManager().getOrganization(
+                    (pReq as any).user,
+                    pReq.params.uid
+                );
+
+                // update
+                $.sendSuccess(
+                    pRes,
+                    org.toJsonObject({},SecurityZone.PUBLIC)
+                );
+            }catch(err){
+
+
+                $.sendErrorAfterException(
+                    pRes, ORG_WEB_API.name,
+                    "Organization details cannot be retrieved.",
+                    err,{cause:err.message});
+
+            }
+        },
         'put': async (pReq:DelegateRequest, pRes:DelegateResponse):Promise<void> => {
 
             const $:WebServer = pReq.dxc.$;
@@ -108,7 +135,7 @@ ORG_WEB_API.addAsyncAuthenticatedRoute(
 
                 $.sendErrorAfterException(
                     pRes, ORG_WEB_API.name,
-                    "Specified project cannot be set as default project.",
+                    "Organization cannot be modified.",
                     err,{cause:err.message});
 
             }
@@ -134,7 +161,7 @@ ORG_WEB_API.addAsyncAuthenticatedRoute(
 
                 $.sendErrorAfterException(
                     res, ORG_WEB_API.name,
-                    "List of actives projects cannot be retrieved.",
+                    "Orgnization cannot be deleted.",
                     err,{cause:err.message});
 
             }

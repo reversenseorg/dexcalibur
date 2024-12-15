@@ -94,7 +94,11 @@ export class OrganizationManagerException extends MonitoredError {
 
     static SECRET_ALREADY_EXISTS = (pOUID:OrganizationUnitUUID,pUUID:SecretUUID)=>{
         return new OrganizationManagerException(`A secret already exists with this uuid  [org=${pOUID}][uuid=${pUUID}]`,
-            ErrorCode.ORGANIZATION + 14) };
+            ErrorCode.ORGANIZATION + 21) };
+
+    static UNKNOWN_APP = (pUUID:string)=>{
+        return new OrganizationManagerException(`The application cannot be read [uuid=${pUUID}]`,
+            ErrorCode.ORGANIZATION + 22) };
 
 
 
@@ -104,6 +108,5 @@ export class OrganizationManagerException extends MonitoredError {
     constructor( pMsg:string, pCode:number = null, pExtra:any = null) {
         super('ORGANIZATION', pMsg, pCode, pExtra);
     }
-
 
 }

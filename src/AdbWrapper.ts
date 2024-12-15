@@ -343,6 +343,33 @@ export default class AdbWrapper implements IBridge
 
     }
 
+
+    /**
+     * To retrieve device specific UID from device through shell
+     *
+     * @method
+     */
+    async retrieveUIDfromDevice(pDev:Device):Promise<boolean>{
+        if(this.isConnected()===false || pDev.offline===true)
+            throw new Error('Device is offline');
+
+        let id:string[] = null;
+        const  {stdout, stderr} = await this.shellAsync('getprop ro.serialno');
+
+        if(stderr != ''){
+            throw new Error(stderr);
+        }
+
+        id = stdout.split(EOL);
+        if(id[0] != undefined){
+            pDev.id = id[0];
+        }else{
+            Logger.debug('[DEVICE] DeviceID retrieved from device : ',id.join(''));
+        }
+
+        return true;
+    }
+
     /**
      * To kill a process by its PID with the specified signal
      *
@@ -748,10 +775,17 @@ export default class AdbWrapper implements IBridge
                 }
             }
 
+            device.setFingerprint({
+                serialno: await this.readProp('ro.serialno'),
+                builddate: await this.readProp('ro.build.date.utc'),
+                prodfp: await this.readProp('ro.product.build.fingerprint'),
+                vbmeta: await this.readProp('ro.boot.vbmeta.digest'),
+            });
+
 
             if(device.bridge.shortname=='adb+tcp' && device.id == null){
                 try{
-                    await device.retrieveUIDfromDevice();
+                    await this.retrieveUIDfromDevice(device);
                 }catch(err){
                     // catch Device offline but nothing to do
                     Logger.error("[ADB WRAPPER] List Devices : "+err.message);
@@ -773,8 +807,16 @@ export default class AdbWrapper implements IBridge
      */
     async listDevices():Promise<Device[]>{
         Logger.info("[ADB] Enumerating connected devices ...");
-        return await this.parseDeviceList( 
+
+        let devs = await this.parseDeviceList(
             UT.execSync(this.setup()+" devices -l", "ascii")  );
+
+        // gather more data from prop
+       /* for(let i=0; i<devs.length; i++){
+            (devs[i].getDefaultBridge() as AdbWrapper)
+        }*/
+
+        return devs;
     }
 
     
@@ -1542,6 +1584,13 @@ export default class AdbWrapper implements IBridge
         }
 
         this.defaultStrat = pName;
+    }
+
+    async readProp(pPropName:string):Promise<string> {
+        const  {stdout, stderr} = await this.shellAsync('getprop '+pPropName);
+        const prop = stdout.split(EOL);
+        Logger.info("[DEVICE][ADB] Read property '"+pPropName+"' : "+prop[0]);
+        return prop[0];
     }
 }
 

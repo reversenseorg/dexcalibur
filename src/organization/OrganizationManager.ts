@@ -22,6 +22,7 @@ import {EmailSender} from "../core/email/EmailSender.js";
 import {ValidationRule} from "../Validator.js";
 import {Connection, ConnectionUUID} from "./conn/Connection.js";
 import {Secret, SecretUUID} from "../core/secrets/Secret.js";
+import {Device, DeviceUUID} from "../Device.js";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -246,6 +247,41 @@ export class OrganizationManager {
 
         //AccessControl.checkAttr( AccessZone.ORGANIZATION, OrganizationAccessControl.attr.member, org,  pUserAccount);
 
+
+        return app;
+    }
+
+    /**
+     * Get anb organization by its uid
+     *
+     * @param pUserAccount
+     * @param pUID
+     */
+    async getDirectApplication(pUserAccount:UserAccount, pAppUnitUUID:string):Promise<ApplicationUnit> {
+
+        AccessControl.isAuthorized(
+            AccessControl.access.ORG_AU_READ,
+            pUserAccount
+        );
+
+        const app = await (this._ctx.getEngineDB()
+            .getCollectionOf(ApplicationUnit.TYPE.getType())as MongodbDbCollection)
+            .asyncGetEntry({ uuid: pAppUnitUUID });
+
+
+        if(app==null){
+            throw OrganizationManagerException.UNKNOWN_APP(pAppUnitUUID);
+        }
+
+        AccessControl.isAuthorized(
+            AccessControl.access.ORG_AU_READ,
+            pUserAccount,
+            app,
+            [
+                OrganizationAccessControl.attr.OWNER,
+                OrganizationAccessControl.attr.APP_MEMBER,
+            ]
+        );
 
         return app;
     }
@@ -1017,5 +1053,34 @@ export class OrganizationManager {
         }
 
         return;
+    }
+
+    /**
+     * To retrieve device from an organization by its uid
+     *
+     * @param pUserAccount
+     * @param pOrgUnit
+     * @param pDevUID
+     */
+    async getDevice(pUserAccount:UserAccount, pOrgUnit:OrganizationUnit, pDevUID:DeviceUUID):Promise<Device>{
+
+        // check if user can list applications
+        AccessControl.isAuthorized(
+            AccessControl.access.DEV_INS_PROFILE,
+            pUserAccount,
+            pOrgUnit,
+            [
+                OrganizationAccessControl.attr.OWNER,
+                OrganizationAccessControl.attr.ORG_MEMBER
+            ]
+        );
+
+        // read device
+        const dev = this._ctx.getDeviceManager().getDevice(pDevUID);
+
+        // check if device is a part of the organization
+
+
+        return dev;
     }
 }

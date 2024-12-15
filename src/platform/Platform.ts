@@ -124,7 +124,11 @@ export default class Platform
             return null;
         }
     }
-    
+
+    getOS():OperatingSystem {
+        return this.os;
+    }
+
     setSize( pSize:number){
         this.size = pSize;
     }

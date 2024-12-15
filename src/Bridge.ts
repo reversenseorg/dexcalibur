@@ -13,6 +13,7 @@ export interface DeviceProfilingOptions {
     localTmp?: string;
     remoteTmp?: string;
     type?: "network" | "build" | "system" | "trust" | "acl" | "all";
+    profileType?: "network" | "build" | "system" | "trust" | "acl" | "all";
     uids?:string[];
     refresh?:boolean;
     unprivileged?:boolean
@@ -147,6 +148,8 @@ export interface IBridge
     useStandardEoPStrategy(pName?:Nullable<string>):void;
 
     setDefaultEoPStrategy(pName:string): void;
+
+    retrieveUIDfromDevice(pDevice:Device): Promise<boolean>;
 }
 
 

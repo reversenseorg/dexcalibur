@@ -15,10 +15,13 @@ import PlatformManager from "../platform/PlatformManager.js";
 import AdbWrapperFactory from "../AdbWrapperFactory.js";
 import {PrivilegedExecutionStrategy} from "../PrivilegedExecutionStrategy.js";
 import {InputSetPurpose} from "../analyzer/IPackageAnalyzer.js";
+import {ConnectionFactory} from "../organization/conn/ConnectionFactory.js";
+import {ConnectionProtocol} from "../organization/conn/Connection.js";
+import {ORG_WEB_API} from "./organization.web.api.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
-export const DEVICE_WEB_API: DelegateWebApi = new DelegateWebApi();
+export const DEVICE_WEB_API: DelegateWebApi = new DelegateWebApi("DEV");
 
 DEVICE_WEB_API.addAsyncPublicRoute(
     '/fs/list',
@@ -1013,6 +1016,39 @@ DEVICE_WEB_API.addAsyncPublicRoute(
             }catch(err){
                 Logger.error("[API][DEVICE] Installed package cannot be listed : "+err.message+"\n"+err.stack);
                 $.sendError( res, err.message);
+            }
+        }
+    }
+);
+
+
+DEVICE_WEB_API.addAsyncPublicRoute(
+    '/dev/:uid/org/:oid',
+    {
+        'get': async function (pReq:DelegateRequest, pRes:DelegateResponse):Promise<any> {
+
+            const $:WebServer = pReq.dxc.$;
+
+            try{
+                // target org
+                const org = await $.context.getOrgManager().getOrganization(
+                    (pReq as any).user,
+                    pReq.params.oid
+                );
+
+                let dev = ( await $.context.getOrgManager().getDevice((pReq as any).user, org, pReq.params.uid));
+
+
+                $.sendSuccess(
+                    pRes,
+                    dev.toJsonObject({})
+                );
+            }catch(err){
+
+                $.sendErrorAfterException(
+                    pRes, DEVICE_WEB_API.name,
+                    "Device data cannot be retrieved.",
+                    err,{cause:err.message});
             }
         }
     }

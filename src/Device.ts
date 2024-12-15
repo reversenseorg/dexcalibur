@@ -18,34 +18,25 @@ import {Architecture} from "./Architecture.js";
 import DeviceProfileFactory from './device/DeviceProfileFactory.js';
 import {CoreDebug} from "./core/CoreDebug.js";
 import {
-    NodeType,
-    TagUUID,
-    INode,
-    NodePropertyState,
-    NodeProperty,
     DbDataType,
     DbKeyType,
-    SerializeOptions
+    INode,
+    NodeProperty,
+    NodePropertyState,
+    NodeType,
+    SerializeOptions,
+    TagUUID
 } from "@dexcalibur/dexcalibur-orm";
 
 
 import {NodeInternalType} from "@dexcalibur/dxc-core-api";
 import DeviceManager from "./DeviceManager.js";
 import {ProjectInput} from "./analyzer/ProjectInput.js";
+import {CryptoUtils} from "./CryptoUtils.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
 
-export enum EOsType  {
-    ANDROID,
-    LINUX,
-    TIZEN,
-    DARWIN,
-    MACOS,
-    IOS,
-    WIN10,
-    WINNT
-}
 const OS_NAME = ['android','linux','tizen','darwin','macos','ios','windows10','windowsNT'];
 
 
@@ -81,6 +72,7 @@ export interface DeviceOptions {
     model?:string;
     product?:string;
     device?:string;
+    uidfp?:Record<string,string>;
     transportId?:string;
     usbQualifier?:string;
     profile?:DeviceProfile;
@@ -149,6 +141,7 @@ export class Device implements INode
             (new NodeProperty("usbQualifier")).type(DbDataType.STRING).def(null),
             (new NodeProperty("enrolled")).type(DbDataType.BOOLEAN).def(false),
             (new NodeProperty("frida")).type(DbDataType.BLOB),
+            (new NodeProperty("uidfp")).type(DbDataType.BLOB).def({}),
             (new NodeProperty("syscalls")).type(DbDataType.BLOB)
                 .sleep( (x:NodePropertyState)=>{
                     const syscalls:any[] = [];
@@ -233,10 +226,19 @@ export class Device implements INode
     ).dataSource("ENGINE_DB");
     __:NodeInternalType = NodeInternalType.DEVICE;
 
+
+    /**
+     * UID Fingerprint
+     * Required to detect duplicated device
+     *
+     * @field
+     */
+    uidfp?:Record<string,string> = {};
+
     /**
      * @field
      */
-    type:OperatingSystem = null;
+    type:OperatingSystem = OperatingSystem.NONE;
 
     /**
      * Flag. TRUE if currently connected, else FALSE
@@ -1041,7 +1043,9 @@ export class Device implements INode
      *
      * @method
      */
-    async retrieveUIDfromDevice():Promise<boolean>{
+    async retrieveUID():Promise<boolean>{
+
+        /*
         if(this.isConnected()===false || this.offline===true) 
             throw new Error('Device is offline');
 
@@ -1057,9 +1061,9 @@ export class Device implements INode
             this.id = id[0];
         }else{
             Logger.debug('[DEVICE] DeviceID retrieved from device : ',id.join(''));
-        }
+        }*/
 
-        return true;
+        return this.getDefaultBridge().retrieveUIDfromDevice(this);
     }
 
     /**
@@ -1079,7 +1083,7 @@ export class Device implements INode
             
             switch(i){
                 case 'type':
-                    json[i] = OS_NAME[this.type];
+                    json[i] = this.type;
                     break;
 
                 case 'bridge':
@@ -1136,7 +1140,7 @@ export class Device implements INode
 
             switch(i){
                 case 'type':
-                    json[i] = OS_NAME[this.type];
+                    json[i] = this.type;
                     break;
 
                 case 'bridge':
@@ -1252,9 +1256,18 @@ export class Device implements INode
 
     /**
      * To get the OS type of the device
+     * @deprecated Replaced by `getOS()`
      */
-    getType():string {
-        return OS_NAME[this.type];
+    getType():OperatingSystem {
+        return this.type;
+    }
+
+
+    /**
+     * To get the OS type of the device
+     */
+    getOS():OperatingSystem {
+        return this.type;
     }
 
     /**
@@ -1353,6 +1366,44 @@ export class Device implements INode
      */
     async free():Promise<void> {
         return;
+    }
+
+    /**
+     * {vbmeta: string; prodfp: string; buildfp: string; serialno: string}
+     * @param pFp
+     */
+    setFingerprint(pFp:Record<string,string>) {
+        this.uidfp = pFp;
+    }
+
+    /**
+     * To get fingerprint of device required to compare devices
+     *
+     * @returns {Record<string, string>}
+     * @method
+     */
+    getFingerprint():Record<string, string> {
+        return this.uidfp;
+    }
+
+    equalsUIDFP(pUidfp:Record<string, string>, pMatchesCountMin:number = -1):boolean {
+
+        console.log(this.uidfp,pUidfp);
+
+        // sort list of keys prior to compare each array
+        let k1 = Object.keys(this.uidfp).sort();
+        let k2 = Object.keys(pUidfp).sort();
+
+        // verify if
+        if(k1.join('')!==k2.join('')) return false;
+
+        for(let i=0; i<k1.length; i++){
+            if(!CryptoUtils.stringEqual(this.uidfp[k1[i]],pUidfp[k1[i]])){
+                return false;
+            }
+        }
+
+        return true;
     }
 }
 Device.TYPE.builder(Device);
