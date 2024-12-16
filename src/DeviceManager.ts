@@ -20,6 +20,8 @@ import {Nullable} from "./core/IStringIndex.js";
 import {NodeInternalType} from "@dexcalibur/dxc-core-api";
 import {DeviceManagerException} from "./errors/DeviceManagerException.js";
 import {randomUUID} from "crypto";
+import {VirtualDeviceFactory} from "./device/maker/VirtualDeviceFactory.js";
+import {PlatformManagerException} from "./errors/PlatformManagerException.js";
 
 const Logger:Log.ProdLogger = Log.newLogger() as Log.ProdLogger;
 
@@ -85,6 +87,8 @@ export default class DeviceManager extends ValidationCapable
 
     bridges:any;
 
+    private _vdf:VirtualDeviceFactory;
+
     private _ctx:DexcaliburEngine;
 
     /**
@@ -107,6 +111,7 @@ export default class DeviceManager extends ValidationCapable
         });
 
         this._ctx = pEngine;
+        this._vdf = new VirtualDeviceFactory(this);
         this.dxcWorkspace = DexcaliburWorkspace.getInstance();
 
         // deprecated ??
@@ -379,6 +384,7 @@ export default class DeviceManager extends ValidationCapable
         }
 
         this.devices[uid] = pDevice;
+        console.log("ADD DEVICE > ",pDevice);
     }
 
     getDeviceByIP( pIpAddress:string, pPort:number=null, pUp=true):Device{
@@ -856,6 +862,7 @@ export default class DeviceManager extends ValidationCapable
             targetPF = pm.getRemotePlatform(namePF);
 
             this.status = new StatusMessage(80, this.status.append("[Device Manager] Target platform is not installed. Downloading ..."));
+
 
             success = await pm.install(targetPF);
             if(success) {

@@ -36,10 +36,6 @@ import {CryptoUtils} from "./CryptoUtils.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
-
-const OS_NAME = ['android','linux','tizen','darwin','macos','ios','windows10','windowsNT'];
-
-
 interface BridgeList {
     [p: string]: IBridge
 }
@@ -987,10 +983,6 @@ export class Device implements INode
         let dev:any = new Device();
         for(const i in pJsonObject){
             switch(i){
-                /*case 'type':
-                    dev.type = OS_NAME.indexOf(pJsonObject[i]);
-                    break;*/
-
                 case "syscalls":
                     /*if(pJsonObject.syscalls.length>0 && !Array.isArray(pJsonObject.syscalls[0].sysnum)){
                         dev.syscalls = [];

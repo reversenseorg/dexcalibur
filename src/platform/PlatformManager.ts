@@ -115,6 +115,10 @@ export default class PlatformManager extends ValidationCapable
      */
     async install(pPlatform:Platform, pOnSuccess:(()=>void)=null):Promise<boolean>{
 
+        if(pPlatform==null){
+            throw PlatformManagerException.INVALID_PLATFORM();
+        }
+
         let path:string = _path_.join( this.engine.workspace.getTempFolderLocation(), pPlatform.getUID()+".dex");
         let success;
 
@@ -372,6 +376,9 @@ export default class PlatformManager extends ValidationCapable
      * @method
      */
     getRemotePlatform( pName:string):Platform{
+        if(this.remote[pName]==null){
+            throw PlatformManagerException.PLATFORM_NOT_FOUND(pName);
+        }
         return this.remote[pName];
     }
 
