@@ -54,7 +54,11 @@ export default class AndroidSystemProfile extends GenericSystemProfile implement
         try{
             const os:string = pBridge.shellWithEHsync("uname -o").toString();
             if(os!=null){
+                //if(ValidationRule)
                 switch (os.substring(0,os.length-1).toLowerCase()){
+                    case OperatingSystem.TOYBOX:
+                        this.os = OperatingSystem.TOYBOX;
+                        break;
                     case OperatingSystem.LINUX:
                         this.os = OperatingSystem.LINUX;
                         break;

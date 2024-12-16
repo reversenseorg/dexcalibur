@@ -3,6 +3,7 @@
 export enum OperatingSystem {
     LINUX= 'linux',
     ANDROID= 'android',
+    TOYBOX= 'toybox',
     TIZEN= 'tizen',
     IOS= 'ios',
     DARWIN= 'darwin',

@@ -18,6 +18,7 @@ export class KernelInfoFactory {
 
     static KERNELS:KernelInfo[] = [
         LinuxKernelInfo_aarch64_v4
+        // todo : add linux 6
     ];
 
 
@@ -35,7 +36,7 @@ export class KernelInfoFactory {
     static find(pOS:OperatingSystem, pArch:Architecture, pVersion:string):Nullable<KernelInfo> {
         const matches:KernelMatch[] = [];
         KernelInfoFactory.KERNELS.map(x => {
-            if(x.name!=pOS) return ;
+            if(x.name.indexOf(pOS)==-1) return ;
 
             const match = { kernel:x, affinity:0 };
             if(x.arch===pArch) match.affinity++;

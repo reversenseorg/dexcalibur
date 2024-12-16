@@ -16,7 +16,14 @@ import {LinuxInputDeviceDecoder} from "./LinuxInputDeviceDecoder.js";
 
 
 export const LinuxKernelInfo_aarch64_v4 = new KernelInfo({
-    name: OperatingSystem.LINUX,
+    name: [
+        OperatingSystem.LINUX,
+        OperatingSystem.ANDROID,
+        OperatingSystem.TIZEN,
+        OperatingSystem.TOYBOX,
+        OperatingSystem.FIRE_OS,
+        OperatingSystem.WEB_OS,
+    ],
     arch: Architecture.AARCH64,
     version: "4.14.175",
     inputSubsystem: new InputSubsystem({

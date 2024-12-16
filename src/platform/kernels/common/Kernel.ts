@@ -6,7 +6,7 @@ import {Architecture} from "../../../Architecture.js";
 import {OperatingSystem} from "../../OperatingSystem.js";
 
 export interface KernelOptions {
-    name?:OperatingSystem;
+    name?:OperatingSystem[];
     version?:string;
     arch?:Architecture;
     inputSubsystem?:InputSubsystem;
@@ -19,7 +19,7 @@ export interface KernelOptions {
  */
 export class KernelInfo {
 
-    name:OperatingSystem;
+    name:OperatingSystem[] = [];
 
     arch:Architecture;
 
@@ -50,7 +50,7 @@ export class KernelInfo {
             throw PlatformManagerException.INVALID_KERNEL_VER();
         }
         
-        return `${this.name}:${this.version}:${this.arch}`;
+        return `${this.name.join(',')}:${this.version}:${this.arch}`;
     }
 
     addSystemCall(pSyscall:ModelSyscall):void{
