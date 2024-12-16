@@ -1,10 +1,11 @@
 import * as _child_process_ from "child_process";
 import * as _path_ from 'path';
 import * as _fs_ from 'fs';
-import { EOL } from 'os';
+import {EOL} from 'os';
 
 import UT from "./Utils.js";
-import { Device } from "./Device.js";
+import Util from "./Utils.js";
+import {Device} from "./Device.js";
 import AppPackage from "./AppPackage.js";
 import DeviceProfile, {ProfileMap} from './device/DeviceProfile.js';
 import {AdbWrapperError} from "./Errors.js";
@@ -15,22 +16,21 @@ import {AdbBridgeException} from "./errors/AdbBridgeException.js";
 import {
     PrivilegedExecutionPhase,
     PrivilegedExecutionStrategy,
-    PrivilegedExecutionType, StrategyTrigger
+    PrivilegedExecutionType,
+    StrategyTrigger
 } from "./PrivilegedExecutionStrategy.js";
-import Util from "./Utils.js";
 import {AndroidInstallOptionsEnum, AndroidPackageInstallOptions} from "./android/bridge/AndroidInstallOptions.js";
 import {OperatingSystem} from "./platform/OperatingSystem.js";
-
-const Logger:Log.ProdLogger = Log.newLogger() as Log.ProdLogger;
-
 import AndroidDeviceProfile from "./android/profiles/AndroidDeviceProfile.js";
 import {NosyProfile} from "./device/profile/NosyProfile.js";
 import {IProfile} from "./device/profile/IProfile.js";
 import {CoreDebug} from "./core/CoreDebug.js";
 import {SerializeOptions} from "@dexcalibur/dexcalibur-orm";
-import {Profile} from "./device/profile/Profile.js";
 import {Nullable} from "./core/IStringIndex.js";
 import {ProjectInput} from "./analyzer/ProjectInput.js";
+import {Architecture} from "./Architecture.js";
+
+const Logger:Log.ProdLogger = Log.newLogger() as Log.ProdLogger;
 
 enum ETransportType {
     USB     = 'U',
@@ -41,6 +41,20 @@ enum ETransportType {
 
 const emuRE = /^emulator-/;
 const PROP_RE = /^\[(?<name>.*)\]\s*:\s*\[(?<value>.*)\]$/;
+
+/**
+ * Options for parser of the output of PS command
+ * @interface
+ */
+interface PsOutParserOptions {
+    /**
+     * If list of process is read using 'ps' (linux <= 3.x) or 'ps -A' (linux >= 4.x)
+     * @type {boolean}
+     * @field
+     */
+    oldFmt: boolean
+}
+
 
 export interface AdbDetachedShellOptions {
     out?:string;
@@ -393,12 +407,6 @@ export default class AdbWrapper implements IBridge
             throw new Error('[ADB WRAPPER] kill-server : '+err);
         });
 
-
-        /*if(ret.stderr != null && ret.stderr.length > 0){
-            throw new Error('[ADB WRAPPER] kill-server : '+ret.stderr);
-        }*/
-
-
         return true;
     }
 
@@ -535,10 +543,6 @@ export default class AdbWrapper implements IBridge
      * @method
      */
     listPackages( pOptions=""):AppPackage[] {
-        //let ret:string;
-
-        //ret = UT.execSync(this.setup() + " shell pm list packages "+pOtions); // toString("ascii")
-
         return this.parsePackageList(
             UT.execSync(this.setup() + " shell pm list packages "+pOptions)
         , pOptions);
@@ -557,54 +561,6 @@ export default class AdbWrapper implements IBridge
         this.pull( pAppPackage.packagePath, _path_.join(pFolder,pAppPackage.packageIdentifier+".apk"));
     }
 
-
-    /*
-     * 
-     * @param {String} deviceId [Optional] A specific device ID
-     
-    listPackages(deviceId = null) {
-        var reg = new RegExp("^package:(?<apk_name>.*)");
-        var ret = "";
-        if(deviceId !== null) {
-            ret = _child_process_.execSync(this.setup(deviceId) + " shell pm list packages").toString("ascii");
-            
-        }
-        else {
-            ret = _child_process_.execSync(this.path + " shell pm list packages").toString("ascii");
-            
-        }
-        var packages = [];
-        ret.split( EOL ).forEach(element => {
-            var pkg = element.trim();
-            if(reg.test(pkg)) {
-                var result  = reg.exec(pkg);
-                if(result !== null) {
-                    var pathResult = "";
-                    //getting the path for each package takes ages
-                    if(deviceId !== null) {
-                       // pathResult = _child_process_.execSync(this.setup(deviceId) + " shell pm path " + result.groups['apk_name']).toString("ascii");
-
-                    }
-                    else {
-                       // pathResult = _child_process_.execSync(this.path + " shell pm path " + result.groups['apk_name']).toString("ascii");
-                    }
-                    //recycle the same regex since the output is the same
-                    //only take first match since this is the base apk
-                    //pathResult = pathResult.split('\n')[0].trim();
-                    if(reg.test(pathResult)) {
-                        pathResult = reg.exec(pathResult).groups['apk_name'];
-                    }
-                    packages.push(new ApkPackage({
-                        packageIdentifier: result.groups['apk_name'],
-                        packagePath : pathResult,
-                        
-                    }));
-                }
-            }
-        });
-        return packages;
-    }*/
-
     /**
      * To search the path of a specific package into the device
      * 
@@ -616,21 +572,7 @@ export default class AdbWrapper implements IBridge
     getPackagePath(packageIdentifier:string):string {
         const reg = new RegExp("^package:(?<package_name>.*)");
 
-        /*if(Process.env.DEXCALIBUR_ENV){
-            ret = TestHelper.execSync(this.setup(deviceId) + " shell pm path " +  packageIdentifier).toString("ascii");
-        }else
-            ret = _child_process_.execSync(this.setup(deviceId) + " shell pm path " +  packageIdentifier).toString("ascii");
-*/
         const ret = UT.execSync(this.setup() + " shell pm path " +  packageIdentifier, "ascii");
-
-/*
-        if(deviceId !== null) {
-            ret = _child_process_.execSync(this.setup(deviceId) + " shell pm path " +  packageIdentifier).toString("ascii");
-            
-        }
-        else {
-            ret = _child_process_.execSync(this.path + " shell pm path " + packageIdentifier).toString("ascii");
-        }*/
 
         let path:string = ret.split( EOL )[0].trim();
         if(reg.test(path)) {
@@ -647,8 +589,9 @@ export default class AdbWrapper implements IBridge
      * @param {String} pDeviceListStr the ouput of  "adb device -l" command
      * @returns {Device[]} An array of Device instances corresponding to ADB output
      * @method
+     * @private
      */
-    async parseDeviceList( pDeviceListStr:string):Promise<Device[]>{
+    private async _parseDeviceList( pDeviceListStr:string):Promise<Device[]>{
         const dev:Device[] = [];
         let data:any=null, id:any=null, device:Device=null, token:any=null;
         let bridge:AdbWrapper = null;
@@ -775,12 +718,18 @@ export default class AdbWrapper implements IBridge
                 }
             }
 
+
             device.setFingerprint({
-                serialno: await this.readProp('ro.serialno'),
-                builddate: await this.readProp('ro.build.date.utc'),
-                prodfp: await this.readProp('ro.product.build.fingerprint'),
-                vbmeta: await this.readProp('ro.boot.vbmeta.digest'),
+                serialno: await bridge.readProp('ro.serialno'),
+                builddate: await bridge.readProp('ro.build.date.utc'),
+                prodfp: await bridge.readProp('ro.build.fingerprint'),
+                vbmeta: await bridge.readProp('ro.boot.vbmeta.digest')
             });
+
+            // by default OS is retrieved from bridge results
+            device.os = OperatingSystem.ANDROID;
+            // on Android device, arch if guessed from properties
+            device.arch = this._guessArch(device);
 
 
             if(device.bridge.shortname=='adb+tcp' && device.id == null){
@@ -808,7 +757,7 @@ export default class AdbWrapper implements IBridge
     async listDevices():Promise<Device[]>{
         Logger.info("[ADB] Enumerating connected devices ...");
 
-        let devs = await this.parseDeviceList(
+        let devs = await this._parseDeviceList(
             UT.execSync(this.setup()+" devices -l", "ascii")  );
 
         // gather more data from prop
@@ -1308,7 +1257,7 @@ export default class AdbWrapper implements IBridge
         return files;
     }
 
-    private parseProcessOut( pRaw:string):any[] {
+    private _parseProcessOut( pRaw:string, pOptions:PsOutParserOptions):any[] {
 
         const pss:any[]=[] ;
         const out = pRaw.split("\n");
@@ -1320,16 +1269,30 @@ export default class AdbWrapper implements IBridge
         });
 
         // parse line
-        out.map( (vEntry:string) => {
+        out.map( (vRow:string) => {
 
             const ps:any = {};
-            const m:any = vEntry.split(/\s+/g);
+            const col:any = vRow.split(/\s+/g);
 
             try{
-                head.map( (vHead:string, vIndex:number) => {
-                    ps[vHead] = m[vIndex];
-                });
-                pss.push(ps);
+                if(pOptions.oldFmt===true){
+                    head.map( (vHead:string, vIndex:number) => {
+                        // skip 6th col (R/S)
+                        if(vIndex<6){
+                            ps[vHead] = col[vIndex];
+                        }else if(vIndex==7) {
+                            ps[vHead] = col[vIndex+1];
+                        }
+                    });
+                }else{
+                    head.map( (vHead:string, vIndex:number) => {
+                        ps[vHead] = col[vIndex];
+                    });
+                }
+
+                if(ps['PID']!=null){
+                    pss.push(ps);
+                }
             }catch(err){
                 Logger.error(err.msg);
             }
@@ -1339,7 +1302,7 @@ export default class AdbWrapper implements IBridge
     }
 
     async listProcesses( pOptions:any):Promise<any>{
-        let out:any, cmd='ps -A ';
+        let out:any, cmd= `ps ${(pOptions.old===true)?'':'-A'}`;
 
         if(pOptions.hasOwnProperty('cmd')){
             cmd = pOptions.cmd;
@@ -1354,12 +1317,17 @@ export default class AdbWrapper implements IBridge
                 out = out.toString();
             }
 
-            out = this.parseProcessOut(out);
+            out = this._parseProcessOut(out, { oldFmt: (pOptions.old===true) });
         }catch(err){
             out = err.stdout.toString();
+            if(/bad\spid\s/i.test(out)){
+                return this.listProcesses({
+                    ... pOptions,
+                    old: true
+                });
+            }
         }
 
-        Logger.raw(out);
         return out;
     }
 
@@ -1387,6 +1355,7 @@ export default class AdbWrapper implements IBridge
             }
         }catch(err){
             out = err.stdout.toString();
+            //if(out.)
         }
 
         Logger.raw(out);
@@ -1574,9 +1543,10 @@ export default class AdbWrapper implements IBridge
     }
 
     /**
-     * To define the default strategy
+     * To define the default EoP strategy
      *
-     * @param {string} pName
+     * @param {string} pName The name of privelege escalation strategy
+     * @method
      */
     setDefaultEoPStrategy(pName:string):void {
         if(this.strategies[pName]==null){
@@ -1586,11 +1556,43 @@ export default class AdbWrapper implements IBridge
         this.defaultStrat = pName;
     }
 
+    /**
+     * To read a property from the device and return it as a string
+     *
+     * @param {string} pPropName Te property name
+     * @returns {Promise<string>} The raw value of the property
+     * @asyn
+     * @method
+     */
     async readProp(pPropName:string):Promise<string> {
         const  {stdout, stderr} = await this.shellAsync('getprop '+pPropName);
-        const prop = stdout.split(EOL);
-        Logger.info("[DEVICE][ADB] Read property '"+pPropName+"' : "+prop[0]);
-        return prop[0];
+        //Logger.info("[DEVICE][ADB] Read property '"+pPropName+"' : "+prop[0]);
+        return (stdout.split(EOL))[0];
+    }
+
+    /**
+     * To guess architecture from fingerprint of a freshly detected and not yet enrolled device,
+     * until deeper CPU and system profiling is performed (later, during enrollment)
+     *
+     * @param {Device} pDevice The device to analyze
+     * @returns {Nullable<Architecture>} The architecture of the device, else NULL if it cannot be retrieved
+     * @private
+     */
+    private _guessArch(pDevice: Device):Nullable<Architecture> {
+
+        const fp = pDevice.getFingerprint()['prodfp'];
+        if(fp!=null && /arm64/i.test(fp)){
+            return Architecture.AARCH64;
+        } else  if(fp!=null && /armv7/i.test(fp)){
+            return Architecture.AARCH32;
+        } else  if(fp!=null && /armeabi/i.test(fp)){
+            return Architecture.ARMEABI;
+        } else  if(fp!=null && /x(86_)?64/i.test(fp)){
+            return Architecture.X86_64;
+        } else  if(fp!=null && /x86/i.test(fp)){
+            return Architecture.X86;
+        }
+        return null;
     }
 }
 
