@@ -2267,7 +2267,7 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
      * @param pAuthorSess
      * @param pNewOwner
      */
-    changeOwner( pAuthorSess:UserSession, pNewOwner:UserAccount):DexcaliburProject {
+    changeOwner( pNewOwner:UserAccount, pCurrentOwner:UserAccount):DexcaliburProject {
 
         const oldOwner = this.owner;
 
@@ -2277,11 +2277,11 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
             //this._attr.OWNER.value = pNewOwner.getUID();
         }else{
             try{
-                AccessControl.checkAttr(
-                    AccessZone.PROJECT,
+                // useless : replace to check the current owner and the new owner
+                AccessControl.isAuthorizedByAttr(
                     ProjectAccessControl.attr.OWNER,
                     this,
-                    pAuthorSess.getUserAccount()
+                    pNewOwner
                 );
 
                 this.setAccessAttribute<UserAccountUUID>(ProjectAccessControl.attr.OWNER)
@@ -2289,11 +2289,12 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
 
             }catch(errACL){
                 if(errACL.hasOwnProperty('getCode') && ((errACL as AccessException).getCode() === AccesErrCode.VIOLATION)){
-                    AccessControl.check(
-                        AccessZone.PROJECT,
+
+                    // check if the current user can change owner of a project
+                    AccessControl.isAuthorized(
                         AccessControl.access.PROJ_CHOWN,
-                        this,
-                        pAuthorSess.getUserAccount()
+                        pNewOwner,
+                        this
                     );
 
                     this.setAccessAttribute<UserAccountUUID>(ProjectAccessControl.attr.OWNER);

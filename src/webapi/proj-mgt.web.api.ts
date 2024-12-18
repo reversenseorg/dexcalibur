@@ -74,12 +74,14 @@ PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
 
             try{
 
+
+
                 dm = DeviceManager.getInstance();
                 await dm.scan();
 
-                user = (req.dxc.sess as UserSession).getUserAccount();
+                //user = (req.dxc.sess as UserSession).getUserAccount();
 
-                console.log("USER from sessions : ",user);
+                console.log("USER from sessions : ",((req as any).user as UserAccount).getUID());
 
                 if(req.body['dev'] != null){
                     device = dm.getDevice( req.body['dev']);
@@ -104,7 +106,7 @@ PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
                 }
 
                 // init workflow
-                wf = $.context.newWorkflow(projectUID).changeOwner(user);
+                wf = $.context.newWorkflow(projectUID).changeOwner(((req as any).user as UserAccount));
 
                 // TODO : retrieve platform from special value of req.body['platform'] : target, from target device, target API version from manifest , ...
 
@@ -257,7 +259,7 @@ PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
 
                 //console.log(projInputs);
 
-                project = await $.context.newProject(projectUID, projInputs, device,  user, platform, anal);
+                project = await $.context.newProject(projectUID, projInputs, device,  (req as any).user , platform, anal);
 
                 if(project == null){
                     throw DexcaliburProjectException.STEP2_FAILURE();

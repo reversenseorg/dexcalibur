@@ -1483,7 +1483,7 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
         await this.getEngineDB().attachProject(project);
 
         if(pUserAccount != null){
-            project.changeOwner( null, pUserAccount);
+            project.changeOwner( pUserAccount, this.getInternalAcc());
         }
 
         project.setWorkflow(wf);
