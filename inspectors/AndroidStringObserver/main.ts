@@ -37,7 +37,7 @@ var AndroidStringObserverInspector:InspectorFactory = new InspectorFactory({
                 emitEvent: "string.instance.raw",
                 after: `  
                     if(ret!=null){
-                        const trace = DXC.java().getStackTrace();
+                        const trace = DXC.java.getStackTrace();
                         DXC.send(
                             "@@__HOOK_ID__@@",
                             "@@__FRAG_ID__@@",

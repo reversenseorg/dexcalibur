@@ -39,15 +39,15 @@ var NativeLibraryInspector:InspectorFactory = new InspectorFactory({
                 // Source: https://cs.android.com/android/platform/superproject/+/android-13.0.0_r39:libcore/ojluni/src/main/java/java/lang/Runtime.java;l=978
                 let ret;
                 try { 
-                    let callingClassLoader = DXC.java().class.dalvik.system.VMStack.getCallingClassLoader();
-                    let callerClass = DXC.java().class.dalvik.system.VMStack.getStackClass2();
+                    let callingClassLoader = DXC.java.class.dalvik.system.VMStack.getCallingClassLoader();
+                    let callerClass = DXC.java.class.dalvik.system.VMStack.getStackClass2();
                     if (callingClassLoader === null) {
                         // Bootstrap class loader
                         let bootstrapLoader = Java.use("java.lang.ClassLoader").getSystemClassLoader().getParent();
-                        ret = DXC.java().class.java.lang.Runtime.getRuntime().loadLibrary0(bootstrapLoader, callerClass, arg0);
+                        ret = DXC.java.class.java.lang.Runtime.getRuntime().loadLibrary0(bootstrapLoader, callerClass, arg0);
                     } else {
                         // Custom class loader
-                        ret = DXC.java().class.java.lang.Runtime.getRuntime().loadLibrary0(callingClassLoader, callerClass, arg0);
+                        ret = DXC.java.class.java.lang.Runtime.getRuntime().loadLibrary0(callingClassLoader, callerClass, arg0);
                     }
                     DXC.send(
                                 "@@__HOOK_ID__@@",
@@ -81,8 +81,8 @@ var NativeLibraryInspector:InspectorFactory = new InspectorFactory({
                     // https://cs.android.com/android/platform/superproject/+/android14-qpr3-release:libcore/ojluni/src/main/java/jdk/internal/reflect/Reflection.java;l=74?q=getCallerClass&sq=&ss=android%2Fplatform%2Fsuperproject
                     let ret;
                     try {
-                        let callerClass = DXC.java().class.dalvik.system.VMStack.getStackClass2();
-                        ret = DXC.java().class.java.lang.Runtime.getRuntime().load0(callerClass, arg0);
+                        let callerClass = DXC.java.class.dalvik.system.VMStack.getStackClass2();
+                        ret = DXC.java.class.java.lang.Runtime.getRuntime().load0(callerClass, arg0);
                         DXC.send(
                             "@@__HOOK_ID__@@",
                             "@@__FRAG_ID__@@",

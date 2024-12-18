@@ -69,14 +69,14 @@ export default new InspectorFactory({
                 emitEvent: "hook.reflect.method.get",
                 after: `  
                         // var ret = meth_@@__METHDEF__@@.call(this, arg0, arg1);
-                        let cls = Java.cast( ret.getDeclaringClass(), DXC.java().class.java.lang.Class);
+                        let cls = Java.cast( ret.getDeclaringClass(), DXC.java.class.java.lang.Class);
                         
                         DXC.send(
                             "@@__HOOK_ID__@@",
                             "@@__FRAG_ID__@@",
                             {
-                                __meth__: DXC.java().getMethodSignature(ret,arg1),
-                                __trace__: DXC.java().getStackTrace()
+                                __meth__: DXC.java.getMethodSignature(ret,arg1),
+                                __trace__: DXC.java.getStackTrace()
                             }
                         );
                 `
@@ -91,7 +91,7 @@ export default new InspectorFactory({
                 emitEvent: "hook.reflect.method.get",
                 after: `  
                         // var ret = meth_@@__METHDEF__@@.call(this, arg0, arg1);
-                        let meth = DXC.java().getMethodSignature(this,this.getParameterTypes());
+                        let meth = DXC.java.getMethodSignature(this,this.getParameterTypes());
                         
                         DXC.send(
                             "@@__HOOK_ID__@@",
@@ -101,7 +101,7 @@ export default new InspectorFactory({
                                     // call ref = meth ref + args + this 
                                      
                                 __meth__: meth,
-                                __trace__: DXC.java().getStackTrace(),
+                                __trace__: DXC.java.getStackTrace(),
                                 tag: arg1[0]
                             }
                         );
@@ -144,7 +144,7 @@ export default new InspectorFactory({
                     ctx.getInspector("DynamicLoader").emits("hook.dex.find.class", event.data);
                 },*/
                 after: `   
-                        let cls = Java.cast(ret, DXC.java().class.lang.Class);
+                        let cls = Java.cast(ret, DXC.java.class.lang.Class);
             
                         DXC.send(
                             "@@__HOOK_ID__@@",
@@ -182,7 +182,7 @@ export default new InspectorFactory({
                                 arg0: arguments[0],
                                 arg1: arguments[1],
                                 arg2: arguments[2],
-                                __hidden__data: DXC.java().readFile(arguments[0])
+                                __hidden__data: DXC.java.readFile(arguments[0])
                                 //__hidden__data: [100,102,103,104,105] //DUMMY DATA
                             }
                         );
@@ -194,7 +194,7 @@ export default new InspectorFactory({
                                 arg0: arguments[0],
                                 arg1: arguments[1],
                                 arg2: arguments[2],
-                                __hidden__data: DXC.java().readFile(arguments[0])
+                                __hidden__data: DXC.java.readFile(arguments[0])
                             },
                             after: true, 
                             msg: "DexClassLoader.<init>()", 
@@ -241,7 +241,7 @@ export default new InspectorFactory({
                                     odex: arguments[1],
                                     arg2: arguments[2],
                                     isNew: true,
-                                    __hidden__data: DXC.java().readFile(arguments[0])
+                                    __hidden__data: DXC.java.readFile(arguments[0])
                                 }
                             );
                             /*
@@ -253,7 +253,7 @@ export default new InspectorFactory({
                                     odex: arguments[1],
                                     arg2: arguments[2],
                                     isNew: true,
-                                    __hidden__data: DXC.java().readFile(arguments[0])
+                                    __hidden__data: DXC.java.readFile(arguments[0])
                                 },
                                 after: false, 
                                 msg: "DexFile.loadDex()", 
@@ -362,8 +362,8 @@ export default new InspectorFactory({
                         const d = '/data/data/@@__APP_NAME__@@';
                         let p = 'inmemory_'+end+'_'+Date.now()+'.dex';
                 
-                        let f:any = DXC.java().class.java.io.File.$new(d, p);
-                        let fos:any = DXC.java().class.java.io.FileOuputStream.$new(f);
+                        let f:any = DXC.java.class.java.io.File.$new(d, p);
+                        let fos:any = DXC.java.class.java.io.FileOuputStream.$new(f);
                         fos.write(arg0);
                         fos.close();
                 
@@ -377,7 +377,7 @@ export default new InspectorFactory({
                                 __: DXC.NODE.FILE,
                                 path: d+"/"+p,
                                 arg2: arguments[2],
-                                __hidden__data: DXC.java().readFile(arguments[0])
+                                __hidden__data: DXC.java.readFile(arguments[0])
                             }
                         );
                 `
