@@ -53,8 +53,9 @@ var JavaRegexMatcherInspector:InspectorFactory = new InspectorFactory({
                 eventData['text'] = this.text.value; // String 
                 eventData['regex'] = pattern?._pattern?.value;// String 
                 eventData['ret_find'] = ret; // boolean
-                if (arguments.length === 1) 
+                if (arguments.length === 1) {
                     eventData['arg0_start'] = arguments[0] // int 
+                }
                 DXC.send(
                     "@@__HOOK_ID__@@",
                     "@@__FRAG_ID__@@",
@@ -85,29 +86,29 @@ var JavaRegexMatcherInspector:InspectorFactory = new InspectorFactory({
                 );
               `
         },
-        {
-            name: "JavaRegex Matcher groupCount",
-            descr: "Hook the method that attempts to match the input sequence, starting at the beginning of the region, against the pattern.",
-            search: {
-                type: ModelMethod.TYPE.getName(),
-                req: 'method("enclosingClass.name:/^java.util.regex.Matcher$/").filter("name:groupCount")'
-            },
-            autoEmit: true,
-            emitEvent: "hook.javaRegexMatcher.groupCount",
-            after: ` 
-                let eventData : Record<string, any> = {};
-                let rgPatternCl = Java.use('java.util.regex.Pattern');
-                let pattern = Java.cast(this.parentPattern?.value, rgPatternCl); 
-                eventData['text'] = this.text.value; // String 
-                eventData['regex'] = pattern?._pattern?.value;// String 
-                eventData['ret_groupCount'] = ret; // boolean
-                DXC.send(
-                    "@@__HOOK_ID__@@",
-                    "@@__FRAG_ID__@@",
-                    eventData
-                );
-          `
-        }
+        // {
+        //     name: "JavaRegex Matcher groupCount",
+        //     descr: "Hook the method that attempts to match the input sequence, starting at the beginning of the region, against the pattern.",
+        //     search: {
+        //         type: ModelMethod.TYPE.getName(),
+        //         req: 'method("enclosingClass.name:/^java.util.regex.Matcher$/").filter("name:groupCount")'
+        //     },
+        //     autoEmit: true,
+        //     emitEvent: "hook.javaRegexMatcher.groupCount",
+        //     after: `
+        //         let eventData : Record<string, any> = {};
+        //         let rgPatternCl = Java.use('java.util.regex.Pattern');
+        //         let pattern = Java.cast(this.parentPattern?.value, rgPatternCl);
+        //         eventData['text'] = this.text.value; // String
+        //         eventData['regex'] = pattern?._pattern?.value;// String
+        //         eventData['ret_groupCount'] = ret; // boolean
+        //         DXC.send(
+        //             "@@__HOOK_ID__@@",
+        //             "@@__FRAG_ID__@@",
+        //             eventData
+        //         );
+        //   `
+        // }
         ]
     },
     eventListeners: {

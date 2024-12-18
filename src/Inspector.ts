@@ -33,7 +33,7 @@ const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
 
 /**
- * List of steps from where an inpector can be deployed.
+ * List of steps from where an inspector can be deployed.
  *
  * @enum
  */
