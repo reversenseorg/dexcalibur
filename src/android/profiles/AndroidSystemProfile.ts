@@ -34,6 +34,7 @@ export default class AndroidSystemProfile extends GenericSystemProfile implement
             new RegExp('^ro\.error\.'),
             new RegExp('^ro\.boot\.'),
             new RegExp('^ro\.kernel\.'),
+            new RegExp('^vendor\.dxc\.'),
             new RegExp('^.*\.dalvik\.'),
             //new RegExp('^ro\.product\.cpu\.abi.*'),
             new RegExp('^uname$'),
@@ -171,8 +172,9 @@ export default class AndroidSystemProfile extends GenericSystemProfile implement
         return
             (this.prop['ro.boot.serialno'].indexOf('EMULATOR')>-1) ||
             (this.prop['ro.bootimage.build.fingerprint'].indexOf('emulator')>-1) ||
-            (this.prop['ro.build.product'].indexOf('emulator')>-1) ||
+            (this.prop['ro.build.product'].indexOf('emu')>-1) ||
             (this.prop['ro.product.vendor.device'].indexOf('emulator')>-1) ||
+            (this.prop['vendor.dxc.type'].indexOf('vdev')>-1) ||
             (this.prop['ro.kernel.qemu']=='1') ||
             (Object.keys(this.prop).filter((x)=>(x.indexOf('ro.kernel.qemu.')==0))) ||
             this.emulated;

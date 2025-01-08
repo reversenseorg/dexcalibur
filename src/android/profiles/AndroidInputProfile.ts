@@ -536,6 +536,8 @@ export default class AndroidInputProfile extends GenericInputProfile implements 
     /**
      * Create a raw list of input devices from /proc/bus/input/devices file
      *
+     * Useless
+     *
      * @param pBridge
      */
     async extractInputDeviceFromProcFs(pBridge:IBridge):Promise<InputDevice[]> {
