@@ -24,6 +24,7 @@ import {DeviceTemplate, DeviceTemplateUUID} from "../device/template/DeviceTempl
 import {OrganizationManagerException} from "../errors/OrganizationManagerException.js";
 import {Secret, SecretProtectionType, SecretType, SecretUUID} from "../core/secrets/Secret.js";
 import {AesKeyLength, CryptoUtils} from "../CryptoUtils.js";
+import {ValidationRule} from "../Validator.js";
 
 export type OrganizationUnitUUID = string;
 
@@ -48,6 +49,14 @@ export class OrganizationUnit extends Auditable implements INode {
 
     static SEED_SUID = '8162b327-e7a9-4342-a688-f515ae1c8664';
     static MK_SUID = '8162b327-e7a9-4342-a689-f515ae1c8664';
+
+    static VALIDATE:Record<string, ValidationRule> = {
+        uuid: ValidationRule.uuid(),
+        name: ValidationRule.utf8String(),
+        companyName: ValidationRule.utf8String(),
+        packageID: ValidationRule.utf8String(),
+        devices: ValidationRule.uuidList()
+    }
 
     static TYPE:NodeType = (new NodeType( "organization_unit", NodeInternalType.ORG_UNIT, [
         (new NodeProperty("uuid")).type(DbDataType.STRING).key(DbKeyType.PRIMARY),
@@ -196,6 +205,7 @@ export class OrganizationUnit extends Auditable implements INode {
             this.authModules =  (pOptions.authModules!=null ? pOptions.authModules : []);
             this.connections =  (pOptions.connections!=null ? pOptions.connections : []);
             this.members = (pOptions.members!=null ? pOptions.members : []);
+            this.devices = (pOptions.devices!=null ? pOptions.devices : []);
             this.groups = (pOptions.groups!=null ? pOptions.groups : []);
             this.secrets = (pOptions.secrets!=null ? pOptions.secrets : []);
             this._attr = (pOptions._attr!=null ? pOptions._attr : {});
@@ -371,6 +381,7 @@ export class OrganizationUnit extends Auditable implements INode {
             companyName: this.companyName,
             owner: this.owner,
             tags: this.tags,
+            devices: this.devices,
             authModules: [],
             groups: [],
             secrets: [],
@@ -489,6 +500,20 @@ export class OrganizationUnit extends Auditable implements INode {
             }
         }
         return true;
+    }
+
+    attachDevice(pDeviceUID: DeviceUUID) {
+        if(this.devices.indexOf(pDeviceUID)==-1){
+            this.devices.push(pDeviceUID);
+        }
+    }
+
+    detachDevice(pDeviceUID: DeviceUUID) {
+        this.devices = this.devices.filter(x => (x!==pDeviceUID));
+    }
+
+    hasDevice(pDeviceUUID: DeviceUUID) {
+        return (this.devices.indexOf(pDeviceUUID)>-1);
     }
 }
 OrganizationUnit.TYPE.builder(OrganizationUnit);

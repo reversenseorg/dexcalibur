@@ -1,11 +1,8 @@
 import {NodeInternalType, Nullable} from "@dexcalibur/dxc-core-api";
 import {Auditable} from "../../Auditable.js";
-import {OrganizationAccessControl} from "../../user/acl/rbac/OrganizationAccessContol.js";
 import {Secret} from "../../core/secrets/Secret.js";
 import {SecurityZone} from "../../security/SecurityZone.js";
 import {ValidationRule} from "../../Validator.js";
-import {ApplicationUnit} from "../ApplicationUnit.js";
-import {OrganizationManagerException} from "../../errors/OrganizationManagerException.js";
 
 
 
@@ -115,8 +112,7 @@ export class Connection extends Auditable   {
      * @method
      */
     initAccessAttributes(){
-        this.setAccessAttribute(OrganizationAccessControl.attr.ORG_MEMBER);
-        this.setAccessAttribute(OrganizationAccessControl.attr.OWNER);
+
     }
 
     toJsonObject(pOption?: any, pZone:SecurityZone = SecurityZone.PUBLIC): any {

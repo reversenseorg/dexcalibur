@@ -13,22 +13,24 @@ import {OrganizationAccessControl} from "../user/acl/rbac/OrganizationAccessCont
 import {OrganizationUnit, OrganizationUnitUUID} from "./OrganizationUnit.js";
 import {Avatar} from "@dexcalibur/dxc-orgs";
 import {AccessAttribute, AccessAttributeMap} from "../user/acl/AccessAttribute.js";
-import DexcaliburProject from "../DexcaliburProject.js";
+import DexcaliburProject, {DexcaliburProjectUUID} from "../DexcaliburProject.js";
 import { Architecture } from "../Architecture.js";
 import {ValidationRule} from "../Validator.js";
 import {UserAccount, UserAccountUUID} from "../user/UserAccount.js";
 import {DeviceUUID} from "../Device.js";
 
 
+export type ApplicationUnitUUID = string;
+
 export interface ApplicationUnitOptions {
-    uuid?: string;
+    uuid?: ApplicationUnitUUID;
     name?: string;
     description?:string;
     packageID?: string;
     icon?: Nullable<Avatar>;
     sources?: any[];
     os?:OperatingSystem;
-    projects?:string[];
+    projects?:DexcaliburProjectUUID[];
     devices?:DeviceUUID[];
     orgUnit?:OrganizationUnitUUID;
     _attr?:AccessAttributeMap;
@@ -80,12 +82,12 @@ export class ApplicationUnit extends Auditable implements INode {
 
     __:NodeInternalType = NodeInternalType.APP_UNIT;
 
-    uuid:string;
+    uuid:ApplicationUnitUUID;
     name: string;
     description:string;
     packageID: string;
     icon: Nullable<Avatar>;
-    projects: string[] = [];
+    projects: DexcaliburProjectUUID[] = [];
     sources: any[];
     devices: DeviceUUID[] = [];
     orgUnit:OrganizationUnitUUID = null;
@@ -107,12 +109,13 @@ export class ApplicationUnit extends Auditable implements INode {
             this.sources = pOptions.sources!;
             this.os = (pOptions.os!=null?pOptions.os : OperatingSystem.NONE);
             this.orgUnit = (pOptions.orgUnit!=null?pOptions.orgUnit : null);
+            this.devices = (pOptions.devices!=null?pOptions.devices : []);
             this._attr = pOptions._attr!;
         }
 
     }
 
-    getUID():string {
+    getUID():ApplicationUnitUUID {
         return this.uuid;
     }
 
@@ -130,8 +133,12 @@ export class ApplicationUnit extends Auditable implements INode {
         this.setAccessAttribute(OrganizationAccessControl.attr.APP_MEMBER);
     }
 
-    attachProject( pProject:DexcaliburProject){
+    attachProject( pProject:DexcaliburProject, pForce = false){
+        if(pProject.getAppUnit()!=null && !pForce){
+
+        }
         this.projects.push(pProject.getUID());
+        pProject.attachToAppUnit(this);
     }
 
     addMembers(pAccounts:UserAccountUUID[]):ApplicationUnit {
@@ -151,6 +158,10 @@ export class ApplicationUnit extends Auditable implements INode {
 
     getReleases():string[] {
         return this.projects;
+    }
+
+    getParentOrganization():Nullable<OrganizationUnitUUID> {
+        return this.orgUnit;
     }
 
     getTargetDevices():DeviceUUID[] {
@@ -173,6 +184,24 @@ export class ApplicationUnit extends Auditable implements INode {
         };
 
         return o;
+    }
+
+    /**
+     * To assign a device to this application unit
+     * @param {DeviceUUID} pDevice Device UUID
+     * @param {boolean} pRollback  Default FALSE. If TRUE, it deassign the device from app
+     * @method
+     */
+    assignDevice(pDevice: DeviceUUID, pRollback = false) {
+        if(!pRollback){
+            if(this.devices.indexOf(pDevice)==-1){
+                this.devices.push(pDevice);
+            }
+        }else{
+            this.devices = this.devices.filter(d => d!==pDevice);
+        }
+
+        console.log("assignDevice > ", this.devices );
     }
 }
 ApplicationUnit.TYPE.builder(ApplicationUnit);

@@ -1,5 +1,5 @@
 import DexcaliburEngine from "../DexcaliburEngine.js";
-import {UserAccount, UserAccountType, UserAccountUUID} from "../user/UserAccount.js";
+import {UserAccount, UserAccountUUID} from "../user/UserAccount.js";
 import AccessControl from "../user/acl/AccessControl.js";
 import {NodeInternalType, Nullable} from "@dexcalibur/dxc-core-api";
 import {OrganizationManagerException} from "../errors/OrganizationManagerException.js";
@@ -9,20 +9,24 @@ import {MongodbDbCollection} from "@dexcalibur/dexcalibur-orm-mongodb";
 import {SsoOptions} from "../user/auth/AuthenticationService.js";
 
 import * as Log from '../Logger.js';
-import {OrganizationUnit, OrganizationUnitOptions} from "./OrganizationUnit.js";
+import {OrganizationUnit, OrganizationUnitOptions, OrganizationUnitUUID} from "./OrganizationUnit.js";
 import {OrganizationAccessControl} from "../user/acl/rbac/OrganizationAccessContol.js";
 import {AuthModule, AuthModuleOptions} from "../user/auth/AuthModule.js";
 import {LocalAuthModule} from "../user/auth/modules/LocalAuthModule.js";
 import {AuthenticationSettings} from "../user/auth/AuthenticationSettings.js";
 import {AuthModuleFactory} from "../user/auth/AuthModuleFactory.js";
-import {ApplicationUnit, ApplicationUnitOptions} from "./ApplicationUnit.js";
+import {ApplicationUnit} from "./ApplicationUnit.js";
 import Role, {RoleUUID} from "../user/acl/common/Role.js";
 import {UserGroup, UserGroupUUID} from "../user/acl/common/UserGroup.js";
 import {EmailSender} from "../core/email/EmailSender.js";
-import {ValidationRule} from "../Validator.js";
 import {Connection, ConnectionUUID} from "./conn/Connection.js";
 import {Secret, SecretUUID} from "../core/secrets/Secret.js";
 import {Device, DeviceUUID} from "../Device.js";
+import DexcaliburProject from "../DexcaliburProject.js";
+import {ProjectAccessControl} from "../user/acl/rbac/ProjectAccessContol.js";
+import {VdevEvent, VdevEventType} from "../device/maker/VdevEvent.js";
+import {DEVICE_WEB_API} from "../webapi/device.web.api.js";
+import {Observable} from "rxjs";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -181,12 +185,16 @@ export class OrganizationManager {
      * @param pUserAccount
      * @param pUID
      */
-    async getOrganization(pUserAccount:UserAccount, pUID:string):Promise<OrganizationUnit> {
+    async getOrganization(pUserAccount:UserAccount, pUID:OrganizationUnitUUID):Promise<OrganizationUnit> {
 
         AccessControl.isAuthorized(
             AccessControl.access.ORG_OU_READ,
             pUserAccount
         );
+
+        if(!OrganizationUnit.VALIDATE.uuid.test(pUID)){
+            throw OrganizationManagerException.INVALID_ORG_UUID_FMT(pUID)
+        }
 
         const org = await (this._ctx.getEngineDB()
             .getCollectionOf(OrganizationUnit.TYPE.getType())as MongodbDbCollection)
@@ -211,6 +219,44 @@ export class OrganizationManager {
 
 
         return org;
+    }
+
+    /**
+     * Get anb organization by its uid
+     *
+     * @param pUserAccount
+     * @param pUID
+     */
+    async getApplicationUnit(pUserAccount:UserAccount, pUID:string):Promise<ApplicationUnit> {
+
+        AccessControl.isAuthorized(
+            AccessControl.access.ORG_AU_READ,
+            pUserAccount
+        );
+
+        const app = await (this._ctx.getEngineDB()
+            .getCollectionOf(ApplicationUnit.TYPE.getType())as MongodbDbCollection)
+            .asyncGetEntry({ uuid: pUID });
+
+
+        if(app==null){
+            throw OrganizationManagerException.UNKNOWN_APP(pUID);
+        }
+
+        AccessControl.isAuthorized(
+            AccessControl.access.ORG_AU_READ,
+            pUserAccount,
+            app,
+            [
+                OrganizationAccessControl.attr.OWNER,
+                OrganizationAccessControl.attr.ORG_MEMBER,
+            ]
+        );
+
+        //AccessControl.checkAttr( AccessZone.ORGANIZATION, OrganizationAccessControl.attr.member, org,  pUserAccount);
+
+
+        return app;
     }
 
     /**
@@ -876,6 +922,10 @@ export class OrganizationManager {
         }while(!pOrg.isConnUuidFree(cuuid))
 
         pConn.uuid = cuuid;
+        // add ACL attributes decicated to conenctions attached to an org
+        pConn.setAccessAttribute(OrganizationAccessControl.attr.ORG_MEMBER);
+        pConn.setAccessAttribute(OrganizationAccessControl.attr.OWNER);
+
 
         pOrg.addConnection(pConn);
 
@@ -1082,5 +1132,202 @@ export class OrganizationManager {
 
 
         return dev;
+    }
+
+
+    async attachDevice(pUserAccount:UserAccount, pOrgUnit:OrganizationUnit, pDevice:DeviceUUID):Promise<boolean> {
+        // check if user can list applications
+        AccessControl.isAuthorized(
+            AccessControl.access.ORG_OU_MODIFY,
+            pUserAccount,
+            pOrgUnit,
+            [
+                OrganizationAccessControl.attr.OWNER,
+                OrganizationAccessControl.attr.ORG_MEMBER
+            ]
+        );
+
+        pOrgUnit.attachDevice(pDevice);
+
+        // check if device is a part of the organization
+        if(await (this._ctx.getEngineDB()
+            .getCollectionOf(OrganizationUnit.TYPE.getType()) as MongodbDbCollection)
+            .asyncUpdateEntry(pOrgUnit, { replace:false, $set:['devices'] })){
+
+            return true;
+        }else{
+            throw OrganizationManagerException.CANNOT_ATTACH_DEV(pOrgUnit.getUID(),pDevice);
+        }
+    }
+
+
+    async detachDevice(pUserAccount:UserAccount, pOrgUnit:OrganizationUnit, pDevice:DeviceUUID):Promise<boolean> {
+        // check if user can list applications
+        AccessControl.isAuthorized(
+            AccessControl.access.ORG_OU_MODIFY,
+            pUserAccount,
+            pOrgUnit,
+            [
+                OrganizationAccessControl.attr.OWNER,
+                OrganizationAccessControl.attr.ORG_MEMBER
+            ]
+        );
+
+        pOrgUnit.detachDevice(pDevice);
+
+        // check if device is a part of the organization
+        if(await (this._ctx.getEngineDB()
+            .getCollectionOf(OrganizationUnit.TYPE.getType()) as MongodbDbCollection)
+            .asyncUpdateEntry(pOrgUnit, { replace:false, $set:['devices'] })){
+
+            return true;
+        }else{
+            throw OrganizationManagerException.CANNOT_DETACH_DEV(pOrgUnit.getUID(),pDevice);
+        }
+    }
+
+    /**
+     * To assign a device to an application unit
+     *
+     * The user must be authorized of the organization containing the application unit
+     *
+     * @param pUserAccount
+     * @param pAppUnit
+     * @param pDevice
+     * @param {boolean} pRollback Default FALSE. If TRUE it deassign the device from app
+     */
+    async assignDevice(pUserAccount:UserAccount, pAppUnit:ApplicationUnit, pDevice:DeviceUUID, pRollback = false):Promise<boolean> {
+        // check if user can modify app
+        AccessControl.isAuthorized(
+            AccessControl.access.ORG_AU_MODIFY,
+            pUserAccount,
+            pAppUnit,
+            [
+                OrganizationAccessControl.attr.OWNER,
+                OrganizationAccessControl.attr.APP_MEMBER
+            ]
+        );
+
+        //  check if the user is a part of organization containing the app
+        const org = await this.getOrganization(pUserAccount, pAppUnit.getParentOrganization());
+
+        // check if the device is a part of the organization
+        if(!org.hasDevice(pDevice)){
+            throw OrganizationManagerException.DEVICE_NOT_FOUND_IN_ORG(org.getUID(), pDevice);
+        }
+
+        pAppUnit.assignDevice(pDevice, pRollback);
+
+        // check if device is a part of the organization
+        if(await (this._ctx.getEngineDB()
+            .getCollectionOf(ApplicationUnit.TYPE.getType()) as MongodbDbCollection)
+            .asyncUpdateEntry(pAppUnit, { replace:false, $set:['devices'] })){
+
+            return true;
+        }else{
+            throw OrganizationManagerException.CANNOT_ASSIGN_DEV(pAppUnit.getUID(),pDevice);
+        }
+    }
+
+    /**
+     *
+     * @param pUserAccount
+     * @param pAppUnit
+     * @param pProject
+     */
+    async attachProject(pUserAccount:UserAccount, pAppUnit:ApplicationUnit, pProject:DexcaliburProject):Promise<boolean> {
+        // check if user can list applications
+        AccessControl.isAuthorized(
+            AccessControl.access.ORG_AU_NEW_PROJ,
+            pUserAccount,
+            pAppUnit,
+            [
+                OrganizationAccessControl.attr.OWNER,
+                OrganizationAccessControl.attr.APP_MEMBER,
+            ]
+        );
+
+        AccessControl.isAuthorizedByAttr(
+            ProjectAccessControl.attr.OWNER,
+            pProject,
+            pUserAccount
+        );
+
+        pAppUnit.attachProject(pProject);
+
+        // check if device is a part of the organization
+        if(await (this._ctx.getEngineDB()
+            .getCollectionOf(ApplicationUnit.TYPE.getType()) as MongodbDbCollection)
+            .asyncUpdateEntry(pAppUnit, { replace:false, $set:['projects'] })){
+
+            return true;
+        }else{
+            throw OrganizationManagerException.CANNOT_ATTACH_PROJ(pAppUnit.getUID(),pProject.getUID());
+        }
+    }
+
+    async startDevice(pUserAccount:UserAccount, pOrg: OrganizationUnit, pDeviceUID: DeviceUUID):Promise<Observable<VdevEvent>> {
+
+        // check if user can start a device
+        AccessControl.isAuthorized(
+            AccessControl.access.DEV_INS_START,
+            pUserAccount,
+            pOrg,
+            [
+                OrganizationAccessControl.attr.OWNER,
+                OrganizationAccessControl.attr.ORG_MEMBER,
+            ]
+        );
+
+        // check if the device is a attached to this organization
+        if(!pOrg.hasDevice(pDeviceUID)){
+            throw OrganizationManagerException.DEVICE_NOT_FOUND_IN_ORG(pOrg.getUID(), pDeviceUID);
+        }
+
+        const dev = await this._ctx
+            .getDeviceManager()
+            .getDevice(pDeviceUID);
+
+        // check if the device has been created from a template
+        if(dev.getTemplate()!=null){
+            return (await this._ctx.getDeviceManager().startDevice(pUserAccount, dev))
+        }else{
+            // TO DO
+            throw new Error("Cannot start device : no template");
+        }
+
+    }
+
+
+    async stopDevice(pUserAccount:UserAccount, pOrg: OrganizationUnit, pDeviceUID: DeviceUUID):Promise<any> {
+
+        // check if user can start a device
+        AccessControl.isAuthorized(
+            AccessControl.access.DEV_INS_KILL,
+            pUserAccount,
+            pOrg,
+            [
+                OrganizationAccessControl.attr.OWNER,
+                OrganizationAccessControl.attr.ORG_MEMBER,
+            ]
+        );
+
+        // check if the device is a attached to this organization
+        if(!pOrg.hasDevice(pDeviceUID)){
+            throw OrganizationManagerException.DEVICE_NOT_FOUND_IN_ORG(pOrg.getUID(), pDeviceUID);
+        }
+
+        const dev = await this._ctx
+            .getDeviceManager()
+            .getDevice(pDeviceUID);
+
+        // check if the device has been created from a template
+        if(dev.getTemplate()!=null){
+            return (await this._ctx.getDeviceManager().stopDevice(pUserAccount, dev))
+        }else{
+            // TO DO
+            throw new Error("Cannot stop device : no template");
+        }
+
     }
 }
