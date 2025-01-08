@@ -727,7 +727,8 @@ export default class AdbWrapper implements IBridge
                 serialno: await bridge.readProp('ro.serialno'),
                 builddate: await bridge.readProp('ro.build.date.utc'),
                 prodfp: await bridge.readProp('ro.build.fingerprint'),
-                vbmeta: await bridge.readProp('ro.boot.vbmeta.digest')
+                vbmeta: await bridge.readProp('ro.boot.vbmeta.digest'),
+                vdev: await bridge.readProp('vendor.dxc.uuid')
             });
 
             // by default OS is retrieved from bridge results
