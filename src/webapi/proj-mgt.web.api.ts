@@ -1,5 +1,5 @@
 import {DelegateRequest, DelegateResponse, DelegateWebApi} from "./DelegateWebApi.js";
-import {Device} from "../Device.js";
+import {Device, DeviceUUID} from "../Device.js";
 import WebServer from "../WebServer.js";
 import DeviceManager from "../DeviceManager.js";
 import * as Log from "../Logger.js";
@@ -21,10 +21,13 @@ import {DexcaliburConnectionException} from "../errors/DexcaliburConnectionExcep
 import {DexcaliburEngineMode} from "../DexcaliburEngine.js";
 import {ProjectInput, ProjectInputLocation, ProjectInputPurpose, ProjectInputType} from "../analyzer/ProjectInput.js";
 import {NodeUtils} from "@dexcalibur/dexcalibur-orm";
+import {Connection} from "../organization/conn/Connection.js";
+import {ORG_WEB_API} from "./organization.web.api.js";
+import {NewProjectFlowType} from "../project/ProjectManager.js";
 
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
-export const PROJECT_MGT_WEB_API: DelegateWebApi = new DelegateWebApi();
+export const PROJECT_MGT_WEB_API: DelegateWebApi = new DelegateWebApi('PROJ-MGT');
 
 PROJECT_MGT_WEB_API.addAuthenticatedRoute(
     '/list',
@@ -49,7 +52,7 @@ PROJECT_MGT_WEB_API.addAuthenticatedRoute(
     }
 );
 
-
+// deprecated
 PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
     '/new',
     {
@@ -79,7 +82,6 @@ PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
                 dm = DeviceManager.getInstance();
                 await dm.scan();
 
-                //user = (req.dxc.sess as UserSession).getUserAccount();
 
                 console.log("USER from sessions : ",((req as any).user as UserAccount).getUID());
 
@@ -207,8 +209,10 @@ PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
 
                 if(device==null && req.body['targetOS']!=null){
                     // try to find compatible device already enrolled
-                    device = dm.searchCompatibleDevice(req.body['targetOS']);
-                    if(device!=null && platform==null){
+                    const compDevs =  dm.searchCompatibleDevice(req.body['targetOS']);
+
+                    if(compDevs.length>0 && platform==null){
+                        device = compDevs[0];
                         platform = device.getPlatform();
                         console.log("Compatible device found :",device.uid);
                     }else{
@@ -271,6 +275,284 @@ PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
 
                 //}
                     // Detect, pull and merge splitted APK
+
+                // to set connector
+                Logger.info('[PROJECT][STEP 3] Setting connectors ...');
+
+                if(req.body['connector'] != null && req.body['connector'].length > 0){
+                    project.setConnector(req.body['connector']);
+                }else
+                    project.setConnector($.context.getWorkspace().getSettings().getDefaultConnector());
+
+
+                if(project != null){
+                    Logger.info('[PROJECT][STEP 3.1] Configuring platform ...');
+                    wf.pushStatus(new StatusMessage(10, "Synchronizing target platform with project"));
+                    //platform = PlatformManager.getInstance().getDefaultPlatformFor();
+                    // sync project platform with target platform or APK
+
+
+                    success = await project.synchronizePlatform( platform.getUID());
+                }
+
+
+
+                Logger.info('[PROJECT][STEP 4] Analyzing application ...');
+                if(success){
+                    wf.stepUp(15);
+                    project = await project.fullscan();
+                    success = project.isReady();
+                    wf.pushStatus(StatusMessage.newSuccess("Project has been created successfully."))
+                }
+
+                if(!success){
+                    throw DexcaliburProjectException.NEW_PROJECT_FAIL();
+                }
+
+
+                $.sendSuccess( res, {
+                    uid: (project != null ? project.getUID() : null)
+                });
+            }catch(err){
+
+                if(wf!=null){
+                    wf.pushStatus(StatusMessage.newError(err.message))
+                }
+
+                //$.context.clean()
+                Logger.error("[API][PROJECT MGT] "+err.message+"\n\t"+err.stack);
+                $.sendError(res, err.message);
+            }
+
+            return ;
+
+        }
+    }
+);
+
+// deprecated
+PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
+    '/new',
+    {
+        'post': async (req:DelegateRequest, res:DelegateResponse)=>{
+
+
+            const PLATFORM_MODE = ['dev','min','max'];
+
+            let $:WebServer = req.dxc.$;
+
+            let project:DexcaliburProject = null;
+            let dm:DeviceManager = null;
+            let device:Device = null;
+            let path:string = null;
+            let user:UserAccount = null;
+            let platform:Platform = null;
+            let success:boolean = true;
+            let wf:Workflow = null;
+            let anal:any = {};
+            let filetype:string;
+            let projInputs:ProjectInput[] = [];
+
+            try{
+
+
+
+                dm = DeviceManager.getInstance();
+                await dm.scan();
+
+
+                console.log("USER from sessions : ",((req as any).user as UserAccount).getUID());
+
+                if(req.body['dev'] != null){
+                    device = dm.getDevice( req.body['dev']);
+                    /*if(device == null || !device.isEnrolled()){
+                        throw DexcaliburProjectException.TARGET_DEVICE_NOT_ENROLLED();
+                    }*/
+                }
+
+                let projectUID:string;
+                if(req.body['name'] == null){
+                    throw DexcaliburProjectException.INVALID_NAME();
+                }else{
+                    projectUID = DexcaliburProject.sanitizeUID(req.body['name']);
+                }
+
+                if(req.body['cfg'] != null){
+                    anal = req.body['cfg'];
+                }
+
+                if(anal==null){
+                    anal = {};
+                }
+
+                // init workflow
+                wf = $.context.newWorkflow(projectUID).changeOwner(((req as any).user as UserAccount));
+
+                // TODO : retrieve platform from special value of req.body['platform'] : target, from target device, target API version from manifest , ...
+
+                // first download remote application
+                // on error : ne‹ project will not create.
+                switch(req.body['type'])
+                {
+                    case 'select':
+                        if(device == null){
+                            throw DexcaliburProjectException.TARGET_DEVICE_NOT_FOUND();
+                        }
+                        wf.pushStatus(new StatusMessage(5, "Get target platform"));
+                        platform = device.getPlatform();
+
+                        wf.pushStatus(new StatusMessage(10, "Pull application from device"));
+
+                        projInputs.push(new ProjectInput({
+                            data: req.body['path'],
+                            location: ProjectInputLocation.DEVICE,
+                            type: ProjectInputType.REGULAR_FILE,
+                            extractOpts: {type:'bin'},
+                            purpose: ProjectInputPurpose.MAIN
+                        }));
+
+                        // Merge Splitted APK (MSA)
+                        /*
+                        if(req.body['cfg'].msa_auto===true){
+
+                            if(device.isAndroid()){
+                                path = device.pullTemp( req.body['path'], { merge:true });
+                                // extraData = device.pullExtraData(req.body['path'], { merge:true });
+                            }else {
+                                Logger.error("[PROJECT] Merge Splitted APK is only supported for Android-based devices.'")
+                                path = device.pullTemp( req.body['path']  );
+                            }
+                        }else{
+                            path = device.pullTemp( req.body['path'] );
+                        }*/
+
+                        break;
+                    case 'download':
+                        if(PLATFORM_MODE.indexOf(req.body['platform'])==-1){
+                            wf.pushStatus(new StatusMessage(5, "Set target platform"));
+                            platform = PlatformManager.getInstance().getPlatform( req.body['platform']);
+                        }
+                        wf.pushStatus(new StatusMessage(10, "Download target application from remote location"));
+                        path = await Downloader.downloadTemp(req.body['url'], { mode:0o666, encoding:'binary', force:true });
+
+                        projInputs.push(new ProjectInput({
+                            data: path,
+                            location: ProjectInputLocation.LOCAL,
+                            type: ProjectInputType.REGULAR_FILE,
+                            extractOpts: {type:'bin'},
+                            purpose: ProjectInputPurpose.MAIN
+                        }));
+                        break;
+                    case 'upload':
+                        wf.pushStatus(new StatusMessage(5, "Set target platform"));
+                        platform = PlatformManager.getInstance().getPlatform( req.body['platform']);
+                        wf.pushStatus(new StatusMessage(10, "Select previously uploaded application"));
+//                        path = $.uploader.getPathOf(req.body['uploadid']);
+                        if(req.body['file']!=null){
+                            path = $.uploader.getPathOf(req.body['file']);
+                        }else{
+                            path = $.uploader.getPathOf((req.dxc.sess as UserSession).getData('proj_upload_id'));
+                        }
+
+                        projInputs.push(new ProjectInput({
+                            data: path,
+                            location: ProjectInputLocation.LOCAL,
+                            type: ProjectInputType.REGULAR_FILE,
+                            extractOpts: {type:'bin'},
+                            purpose: ProjectInputPurpose.MAIN
+                        }));
+                        break;
+                    case 'fromfs':
+                        wf.pushStatus(new StatusMessage(5, "Set target platform"));
+                        platform = PlatformManager.getInstance().getPlatform( req.body['platform']);
+                        path = req.body['path'];
+
+                        projInputs.push(new ProjectInput({
+                            data: path,
+                            location: ProjectInputLocation.LOCAL,
+                            type: ProjectInputType.REGULAR_FILE,
+                            extractOpts: {type:'bin'},
+                            purpose: ProjectInputPurpose.MAIN
+                        }));
+                        break;
+                    default:
+                        throw new Error("Project type is invalid")
+                        break;
+                }
+
+                // chcek if file exists an it is not empty
+                /*if( (!_fs_.existsSync(path)) || (false)){
+                    throw DexcaliburProjectException.APP_FILE_OT_FOUND();
+                }*/
+
+                if(device==null && req.body['targetOS']!=null){
+                    // try to find compatible device already enrolled
+                    const compDevs =  dm.searchCompatibleDevice(req.body['targetOS']);
+
+                    if(compDevs.length>0 && platform==null){
+                        device = compDevs[0];
+                        platform = device.getPlatform();
+                        console.log("Compatible device found :",device.uid);
+                    }else{
+
+                        console.log("Compatible device NOT found ");
+                    }
+                }
+
+                /*
+                                if(['min','max','dev'].indexOf(req.body['platform'])>-1){
+                                    platform = null;
+                                }*/
+
+
+                Logger.info(
+                    '[PROJECT][STEP 2] Detecting device  ... ',
+                    device!==null?'[OK]':'[KO]',
+                    ' Platform ... ',
+                    platform!==null? '[OK]':'[KO]');
+
+                // create project : UID , APK [, Device]
+                Logger.info('[PROJECT][STEP 2] Creating new project ...');
+
+                wf.stepUp(15);
+
+                /*
+                let filetype:string = "apk";
+                if(req.body['filetype'] == null){
+                    if(platform!=null){
+                        filetype = platform.getDefaultFileType();
+                    }
+                }else if( Platform.SUPPORTED_FILE_FMT.indexOf(req.body['filetype'])>-1){
+                    filetype = req.body['filetype'];
+                }
+
+                Logger.info('[PROJECT][STEP 2] Filetype : '+filetype+', File : '+path);*/
+                Logger.info('[PROJECT][STEP 2] Input file : '+(projInputs[0].data as string));
+
+                /*if(anal != null){
+
+                    Logger.info('[PROJECT][STEP 3.2] Configuring Analyzers ...');
+                    // wf.pushStatus(new StatusMessage(11, "Configuring Analyzers"));
+                    const analCfg = project.getAnalyzerConfiguration(); // platform.getUID());
+                    analCfg.setFileAnalysisMode(anal.fa_mode);
+                    analCfg.setNativeAnalysisMode(anal.na_mode);
+
+                }*/
+
+                //console.log(projInputs);
+
+                project = await $.context.newProject(projectUID, projInputs, device,  (req as any).user , platform, anal);
+
+                if(project == null){
+                    throw DexcaliburProjectException.STEP2_FAILURE();
+                }
+
+                project.setWorkflow(wf);
+
+                //if(req.body['msa_auto']){
+
+                //}
+                // Detect, pull and merge splitted APK
 
                 // to set connector
                 Logger.info('[PROJECT][STEP 3] Setting connectors ...');
@@ -582,3 +864,125 @@ PROJECT_MGT_WEB_API.addAuthenticatedRoute(
 );
 
 
+// NEW
+
+PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
+    '/new/:aid/flow/select',
+    {
+        'post': async (pReq:DelegateRequest, pRes:DelegateResponse)=> {
+
+            const $: WebServer = pReq.dxc.$;
+
+            try {
+
+                // target org
+                const app = await $.context.getOrgManager().getApplicationUnit(
+                    (pReq as any).user,
+                    pReq.params.aid
+                );
+
+                $.sendSuccess(pRes, await $.context.getProjectManager().newProjectWorkflow(
+                    (pReq as any).user,
+                    app,
+                    {
+                        projectName: pReq.body['name'],
+                        analyzerOpts: pReq.body['cfg'],
+                        platformUID: pReq.body['platform'] as string,
+                        deviceUID: pReq.body['dev'] as DeviceUUID,
+
+                        flowType: NewProjectFlowType.SELECT,
+                        remotePath: pReq.body['path'] as string,
+                    }
+                ));
+
+            } catch (err) {
+
+                $.sendErrorAfterException(
+                    pRes, PROJECT_MGT_WEB_API.name,
+                    "Project has not been created and attached to application unit. (select type)",
+                    err, {cause: err.message});
+            }
+        }
+    }
+);
+
+PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
+    '/new/:aid/flow/upload',
+    {
+        'post': async (pReq:DelegateRequest, pRes:DelegateResponse)=> {
+
+            const $: WebServer = pReq.dxc.$;
+
+            try {
+
+                // target org
+                const app = await $.context.getOrgManager().getApplicationUnit(
+                    (pReq as any).user,
+                    pReq.params.aid
+                );
+
+                $.sendSuccess(pRes, await $.context.getProjectManager().newProjectWorkflow(
+                    (pReq as any).user,
+                    app,
+                    {
+                        projectName: pReq.body['name'],
+                        analyzerOpts: pReq.body['cfg'],
+                        platformUID: pReq.body['platform'] as string,
+                        deviceUID: pReq.body['dev'] as DeviceUUID,
+
+                        flowType: NewProjectFlowType.UPLOAD,
+                        uploadUID: [pReq.body['file'] as string],
+                    }
+                ));
+
+            } catch (err) {
+
+                $.sendErrorAfterException(
+                    pRes, PROJECT_MGT_WEB_API.name,
+                    "Project has not been created and attached to application unit. (upload type)",
+                    err, {cause: err.message});
+            }
+        }
+    }
+);
+
+
+PROJECT_MGT_WEB_API.addAsyncAuthenticatedRoute(
+    '/new/:aid/flow/download',
+    {
+        'post': async (pReq:DelegateRequest, pRes:DelegateResponse)=> {
+
+            const $: WebServer = pReq.dxc.$;
+
+            try {
+
+                // target org
+                const app = await $.context.getOrgManager().getApplicationUnit(
+                    (pReq as any).user,
+                    pReq.params.aid
+                );
+
+                $.sendSuccess(pRes, await $.context.getProjectManager().newProjectWorkflow(
+                    (pReq as any).user,
+                    app,
+                    {
+                        projectName: pReq.body['name'],
+                        analyzerOpts: pReq.body['cfg'],
+                        platformUID: pReq.body['platform'] as string,
+                        deviceUID: pReq.body['dev'] as DeviceUUID,
+
+                        flowType: NewProjectFlowType.DOWNLOAD,
+                        url: pReq.body['url'] as string,
+                    }
+                ));
+
+            } catch (err) {
+
+                $.sendErrorAfterException(
+                    pRes, PROJECT_MGT_WEB_API.name,
+                    "Project has not been created and attached to application unit. (upload type)",
+                    err, {cause: err.message});
+            }
+        }
+    }
+);

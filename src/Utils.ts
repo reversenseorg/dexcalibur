@@ -351,7 +351,7 @@ export default class Util {
             ret = await TestExecHelper.execAsync(command);
             Logger.info("[UTIL] execAsync <TEST>out : "+ret);
         }else{
-            Logger.info("[UTIL] execSync : "+command);
+            Logger.info("[UTIL] execAsync : "+command);
             ret = await _exec_(command);
         }
 
