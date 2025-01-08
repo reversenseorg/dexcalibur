@@ -912,6 +912,18 @@ ORG_WEB_API.addAsyncAuthenticatedRoute(
 ORG_WEB_API.addAsyncAuthenticatedRoute(
     '/ou/org/:uid/usergroups',
     {
+        'get':async (pReq:DelegateRequest, pRes:DelegateResponse):Promise<void> => {
+
+            const $: WebServer = pReq.dxc.$;
+
+            try {
+                const org = await $.context.getOrgManager().getOrganization(pReq.user, pReq.params.uid);
+
+                $.sendSuccess( pRes, org.groups.map(g => g.toJsonObject({}, SecurityZone.PUBLIC)));
+            } catch (err) {
+                $.sendErrorAfterException(pRes, ORG_WEB_API.name, "Cannot retrieve the list of user group supported by organization", err);
+            }
+        },
         'post': async (pReq:DelegateRequest, pRes:DelegateResponse):Promise<void> => {
 
             const $: WebServer = pReq.dxc.$;
@@ -941,6 +953,39 @@ ORG_WEB_API.addAsyncAuthenticatedRoute(
                 $.sendSuccess( pRes, { created: true });
             } catch (err) {
                 $.sendErrorAfterException(pRes, ORG_WEB_API.name, "Cannot retrieve the list of roles supported by organization", err);
+            }
+        }
+    }
+);
+
+ORG_WEB_API.addAsyncAuthenticatedRoute(
+    '/ou/org/:uid/dev/:mode',
+    {
+        'post': async (pReq:DelegateRequest, pRes:DelegateResponse):Promise<void> => {
+
+            const $: WebServer = pReq.dxc.$;
+
+            try {
+                const org = await $.context.getOrgManager().getOrganization(pReq.user, pReq.params.uid);
+
+                switch (pReq.params.mode){
+                    case 'attach':
+                        $.sendSuccess(
+                            pRes,
+                            await $.context.getOrgManager().attachDevice(pReq.user, org, pReq.body.dev)
+                        );
+                        break;
+                    case 'detach':
+                        $.sendSuccess(
+                            pRes,
+                            await $.context.getOrgManager().detachDevice(pReq.user, org, pReq.body.dev)
+                        );
+                        break;
+                    default:
+                        throw new Error("Action not supported");
+                }
+            } catch (err) {
+                $.sendErrorAfterException(pRes, ORG_WEB_API.name, "Cannot attach the device to the organization.", err);
             }
         }
     }
@@ -987,6 +1032,51 @@ ORG_WEB_API.addAsyncAuthenticatedRoute(
                 $.sendErrorAfterException(pRes, ORG_WEB_API.name, "Cannot retrieve the list of roles supported by organization", err);
 
 
+            }
+        }
+    }
+);
+
+
+
+ORG_WEB_API.addAsyncAuthenticatedRoute(
+    '/ou/app/:aid/dev/:action',
+    {
+        'post': async (pReq:DelegateRequest, pRes:DelegateResponse):Promise<void> => {
+
+            const $: WebServer = pReq.dxc.$;
+
+            try {
+                const app = await $.context.getOrgManager()
+                    .getDirectApplication(pReq.user, pReq.params.aid);
+
+                let detachDev = false;
+                switch (pReq.params.action){
+                    case 'detach':
+                        detachDev = true;
+                    case 'attach':
+                        //  validate 'pReq.body.dev' is an array of UUID
+                        if(ApplicationUnit.VALIDATE.devices.test(pReq.body.dev)){
+                            for(let i=0; i<pReq.body.dev.length; i++){
+                                await $.context.getOrgManager().assignDevice(
+                                    pReq.user as UserAccount,
+                                    app,
+                                    pReq.body.dev[i],
+                                    detachDev
+                                );
+                            }
+                        }else{
+                            throw new Error("Some device UUIDs have invalid format");
+                        }
+                        break;
+                    default:
+                        Logger.error("Operation not supported");
+                        break
+                }
+
+                $.sendSuccess( pRes, true);
+            } catch (err) {
+                $.sendErrorAfterException(pRes, ORG_WEB_API.name, "Cannot retrieve the list of roles supported by organization", err);
             }
         }
     }

@@ -1,5 +1,5 @@
 import {DelegateRequest, DelegateResponse, DelegateWebApi} from "./DelegateWebApi.js";
-import {Device} from "../Device.js";
+import {Device, DeviceUUID} from "../Device.js";
 import * as Log from "../Logger.js";
 import WebServer from "../WebServer.js";
 import DeviceManager from "../DeviceManager.js";
@@ -15,9 +15,13 @@ import PlatformManager from "../platform/PlatformManager.js";
 import AdbWrapperFactory from "../AdbWrapperFactory.js";
 import {PrivilegedExecutionStrategy} from "../PrivilegedExecutionStrategy.js";
 import {InputSetPurpose} from "../analyzer/IPackageAnalyzer.js";
-import {ConnectionFactory} from "../organization/conn/ConnectionFactory.js";
-import {ConnectionProtocol} from "../organization/conn/Connection.js";
-import {ORG_WEB_API} from "./organization.web.api.js";
+import {ApplicationUnit} from "../organization/ApplicationUnit.js";
+import {DeviceTemplate} from "../device/template/DeviceTemplate.js";
+import {UserAccount} from "../user/UserAccount.js";
+import {VdevEventType} from "../device/maker/VdevEvent.js";
+import {OrganizationUnit} from "../organization/OrganizationUnit.js";
+import {OrganizationManagerException} from "../errors/OrganizationManagerException.js";
+import {VirtualDeviceFactoryException} from "../device/error/VirtualDeviceFactoryException.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -515,12 +519,88 @@ DEVICE_WEB_API.addAsyncPublicRoute(
 DEVICE_WEB_API.addAsyncPublicRoute(
     '',
     {
-    'get': async (req:DelegateRequest, res:DelegateResponse):Promise<any> => {
+    'get': async (pReq:DelegateRequest, pRes:DelegateResponse):Promise<any> => {
         // scan connected devices
         let dm:DeviceManager;
-        const $:WebServer = req.dxc.$;
+        const $: WebServer = pReq.dxc.$;
 
+        try {
+
+
+            dm = DeviceManager.getInstance();
+            await dm.scan();
+            dm.save();
+
+            let devs:DeviceUUID[] = [];
+
+            if(pReq.query.puid!=null){
+                // to do
+            }else if(ApplicationUnit.VALIDATE.uuid.test(pReq.query.aid)){
+                const app = await $.context.getOrgManager().getApplicationUnit(
+                    (pReq as any).user,
+                    pReq.query.aid as string
+                );
+
+                console.log(pReq.query.aid, app);
+                console.log(app.getTargetDevices());
+                console.log(dm.getDevices(app.getTargetDevices()));
+                $.sendSuccess(pRes,
+                    {devices:dm.getDevices(app.getTargetDevices())
+                        .map(d => d.toJsonObject({
+                            exclude:{
+                                profile: false,
+                                frida: true,
+                                bridge: {
+                                    path: false
+                                }
+                            }}))}
+                );
+
+            }else if(ApplicationUnit.VALIDATE.uuid.test(pReq.query.oid)){
+                const org = await $.context.getOrgManager().getOrganization(
+                    (pReq as any).user,
+                    pReq.query.oid as string
+                );
+
+
+                $.sendSuccess(pRes,
+                    {devices: dm.getDevices(org.getDevices())
+                        .map(d => d.toJsonObject({
+                            exclude:{
+                                profile: false,
+                                frida: true,
+                                bridge: {
+                                    path: false
+                                }
+                            }}))}
+                );
+            }else{
+                $.sendSuccess(pRes, {
+                    devices: dm.toJsonObject(  {
+                        device: {
+                            profile: false,
+                            frida: true,
+                            bridge: {
+                                path: false
+                            }
+                        }
+                    })
+                });
+            }
+
+
+        } catch (err) {
+
+            $.sendErrorAfterException(
+                pRes, DEVICE_WEB_API.name,
+                "Devices cannot be listed.",
+                err, {cause: err.message});
+        }
+
+        /*
         try{
+
+
             dm = DeviceManager.getInstance();
             await dm.scan();
             dm.save();
@@ -540,7 +620,7 @@ DEVICE_WEB_API.addAsyncPublicRoute(
         }catch(err){
             Logger.error("[API][DEVICE] List device : "+err.message+"\n"+err.stack);
             $.sendError( res, "Devices cannot be listed.")
-        }
+        }*/
     }
 });
 
@@ -1048,6 +1128,201 @@ DEVICE_WEB_API.addAsyncPublicRoute(
                 $.sendErrorAfterException(
                     pRes, DEVICE_WEB_API.name,
                     "Device data cannot be retrieved.",
+                    err,{cause:err.message});
+            }
+        }
+    }
+);
+
+
+
+
+
+DEVICE_WEB_API.addAsyncPublicRoute(
+    '/vdev/tpl/org/:oid',
+    {
+        'get': async function (pReq:DelegateRequest, pRes:DelegateResponse):Promise<any> {
+
+            const $:WebServer = pReq.dxc.$;
+
+            try{
+                // target org
+                const org = await $.context.getOrgManager().getOrganization(
+                    (pReq as any).user,
+                    pReq.params.oid
+                );
+
+
+                $.sendSuccess(
+                    pRes,
+                    ( await $.context
+                            .getDeviceManager()
+                            .getDeviceTemplateAPI()
+                            .listTemplates((pReq as any).user, org)
+                    ).map(x => x.toJsonObject())
+                );
+            }catch(err){
+
+                $.sendErrorAfterException(
+                    pRes, DEVICE_WEB_API.name,
+                    "List of device templates cannot be retrieved.",
+                    err,{cause:err.message});
+            }
+        }
+    }
+);
+
+
+DEVICE_WEB_API.addAsyncPublicRoute(
+    '/vdev/tpl/org/:oid/create/:tpl',
+    {
+        'post': async function (pReq:DelegateRequest, pRes:DelegateResponse):Promise<any> {
+
+            const $:WebServer = pReq.dxc.$;
+
+            try{
+                // target org
+                const org = await $.context.getOrgManager().getOrganization(
+                    (pReq as any).user,
+                    pReq.params.oid
+                );
+
+                if(!DeviceTemplate.VALIDATE.uuid.test(pReq.params.tpl as string)){
+                    throw new Error("Invalid template uuid");
+                }
+
+                let dev = (await $.context
+                    .getDeviceManager()
+                    .allocateVirtualDevice(
+                        (pReq as any).user as UserAccount,
+                        pReq.params.tpl as string,
+                        (pReq.body.extra!=null? pReq.body.extra : {})
+                    )).subscribe(async (vEvent)=>{
+                        if(vEvent.type===VdevEventType.READY){
+
+                            try{
+                                await $.context.getOrgManager().attachDevice(
+                                    (pReq as any).user,
+                                    org,
+                                    vEvent.data.device.getUID()
+                                );
+                                $.sendSuccess(
+                                    pRes,
+                                    { dev:vEvent.data.device.getUID() }
+                                );
+                            }catch (err2){
+                                $.sendErrorAfterException(
+                                    pRes, DEVICE_WEB_API.name,
+                                    "Device cannot be allocated. (2)",
+                                    err2,{cause:err2.message});
+                            }
+                        }
+                    })
+
+
+
+
+            }catch(err){
+
+                $.sendErrorAfterException(
+                    pRes, DEVICE_WEB_API.name,
+                    "Device cannot be allocated.",
+                    err,{cause:err.message});
+            }
+        }
+    }
+);
+
+
+DEVICE_WEB_API.addAsyncPublicRoute(
+    '/vdev/start/:did/:oid',
+    {
+        'post': async function (pReq:DelegateRequest, pRes:DelegateResponse):Promise<any> {
+
+            const $:WebServer = pReq.dxc.$;
+
+            try{
+
+                if(!OrganizationUnit.VALIDATE.uuid.test(pReq.params.oid)){
+                    throw OrganizationManagerException.INVALID_ORG_UUID_FMT(pReq.params.oid)
+                }
+
+                // target org
+                const org = await $.context.getOrgManager().getOrganization(
+                    (pReq as any).user,
+                    pReq.params.oid
+                );
+
+                if(!Device.VALIDATE.uuid.test(pReq.params.did as string)){
+                    throw VirtualDeviceFactoryException.INVALID_DEVICE_UUID_FMT(pReq.params.did as string);
+                }
+
+                (await $.context.getOrgManager().startDevice(
+                    (pReq as any).user,
+                    org,
+                    pReq.params.did
+                )).subscribe((vEvent)=>{
+                    if(vEvent.type==VdevEventType.READY){
+                        $.sendSuccess(
+                            pRes,
+                            true
+                        );
+                    }
+                });
+
+            }catch(err){
+
+                $.sendErrorAfterException(
+                    pRes, DEVICE_WEB_API.name,
+                    "Device cannot be started.",
+                    err,{cause:err.message});
+            }
+        }
+    }
+);
+
+
+
+
+DEVICE_WEB_API.addAsyncPublicRoute(
+    '/vdev/stop/:did/:oid',
+    {
+        'post': async function (pReq:DelegateRequest, pRes:DelegateResponse):Promise<any> {
+
+            const $:WebServer = pReq.dxc.$;
+
+            try{
+
+                if(!OrganizationUnit.VALIDATE.uuid.test(pReq.params.oid)){
+                    throw OrganizationManagerException.INVALID_ORG_UUID_FMT(pReq.params.oid)
+                }
+
+                // target org
+                const org = await $.context.getOrgManager().getOrganization(
+                    (pReq as any).user,
+                    pReq.params.oid
+                );
+
+                if(!Device.VALIDATE.uuid.test(pReq.params.did as string)){
+                    throw VirtualDeviceFactoryException.INVALID_DEVICE_UUID_FMT(pReq.params.did as string);
+                }
+
+                await $.context.getOrgManager().stopDevice(
+                    (pReq as any).user,
+                    org,
+                    pReq.params.did
+                );
+
+                $.sendSuccess(
+                    pRes,
+                    true
+                );
+
+            }catch(err){
+
+                $.sendErrorAfterException(
+                    pRes, DEVICE_WEB_API.name,
+                    "Device cannot be stopped.",
                     err,{cause:err.message});
             }
         }
