@@ -239,22 +239,9 @@ __log('[DXC_SRV][IPC] Waiting for IPC message ...');
 if( !projectArgs.ipc
     || (projectArgs.ipc && (projectArgs.ipcMode=='API') )){
 
-    /*// TODO : replace by dexcalibur-installer
-    if(projectArgs.reinstall == true){
-        DexcaliburEngine.clearInstall();
-    }*/
 
     if( DexcaliburEngine.requireInstall() ){
         // TODO : replace by dexcalibur-installer
-        /*dxcInstance.prepareInstall(
-            (projectArgs.port!=null) ? projectArgs.port : 8000,
-            dxcWebRoot
-        );
-
-        dxcInstance.start(
-            projectArgs.port,
-            projectArgs.uipath!==undefined? projectArgs.uipath : null
-        );*/
     }
     else{
 
