@@ -69,6 +69,7 @@ export default class AccessControl {
         PROJ_PKG_READ: new Access( AccessType.READ, 'PROJ_PKG_READ', 'Read package content'),
         PROJ_NEW_OWN_WF: new Access( AccessType.WRITE, 'PROJ_NEW_OWN_WF', 'Create new project workflow'),
         PROJ_APPDATA_READ: new Access( AccessType.READ, 'PROJ_APPDATA_READ', 'Read app data content on the device'),
+        PROJ_NEW_FROMFS: new Access( AccessType.EXE, 'PROJ_NEW_FROMFS', 'Create a project from a local file'),
 
         // global
         GLOBAL_SETTINGS_EDIT: new Access( AccessType.WRITE, 'GLOBAL_SETTINGS_EDIT', 'Edit global settings'),
@@ -99,6 +100,9 @@ export default class AccessControl {
         DEV_INS_EXEC: new Access( AccessType.WRITE, 'DEV_INS_EXEC', 'Execute an application unit on the device'),
         DEV_INS_PROFILE: new Access( AccessType.READ, 'DEV_INS_PROFILE', 'Read device profile'),
 
+        DEV_TPL_CREATE: new Access( AccessType.READ, 'DEV_TPL_CREATE', 'Create device template'),
+        DEV_TPL_UPDATE: new Access( AccessType.WRITE, 'DEV_TPL_UPDATE', 'Update or delete device template'),
+
         // scan
         SCAN_ORDER_NEW: new Access( AccessType.WRITE, 'SCAN_ORDER_NEW', 'Order a new scan'),
         SCAN_ORDER_READ: new Access( AccessType.READ, 'SCAN_ORDER_READ', 'Read status and metadata about scan orders'),
@@ -111,6 +115,8 @@ export default class AccessControl {
         AUDIT_REPORT_READ: new Access( AccessType.READ, 'AUDIT_REPORT_READ', 'Read a scan report'),
         AUDIT_REPORT_DEL: new Access( AccessType.WRITE, 'AUDIT_REPORT_DEL', 'Delete a scan report'),
         AUDIT_DX_ACCESS: new Access( AccessType.EXE, 'AUDIT_DX_ACCESS', 'Access to deep inspection tool')
+
+        // other
     };
 
     private _aclMgr:AccessControlManager;
