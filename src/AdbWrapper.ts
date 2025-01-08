@@ -192,6 +192,10 @@ export default class AdbWrapper implements IBridge
             phases: [new PrivilegedExecutionPhase({
                 type: PrivilegedExecutionType.BRIDGE_COMMAND,
                 bridgeCmd: "root"
+            }),new PrivilegedExecutionPhase({
+                type: PrivilegedExecutionType.HOST_COMMAND,
+                hostBin: 'sleep',
+                hostBinArgs: ['20']
             })]
         }));
 
