@@ -13,7 +13,7 @@ import {GenericMemoryProfile} from "./profile/GenericMemoryProfile.js";
 import GenericInputProfile from "./profile/GenericInputProfile.js";
 
 
-enum TYPE {
+export enum TYPE {
     mobile= 'mobile',
     watch= 'watch',
     tv= 'tv',
