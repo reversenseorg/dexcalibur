@@ -7,7 +7,10 @@ import {OrganizationUnitUUID} from "../organization/OrganizationUnit.js";
 import {RoleUUID} from "../user/acl/common/Role.js";
 import {ConnectionUUID} from "../organization/conn/Connection.js";
 import {SecretUUID} from "../core/secrets/Secret.js";
-
+import {DeviceUUID} from "../Device.js";
+import {DexcaliburProjectUUID} from "../DexcaliburProject.js";
+import {ApplicationUnitUUID} from "../organization/ApplicationUnit.js";
+import {SecurityZone} from "../security/SecurityZone.js";
 
 
 export class OrganizationManagerException extends MonitoredError {
@@ -100,7 +103,37 @@ export class OrganizationManagerException extends MonitoredError {
         return new OrganizationManagerException(`The application cannot be read [uuid=${pUUID}]`,
             ErrorCode.ORGANIZATION + 22) };
 
+    static CANNOT_ATTACH_DEV = (pOUID:OrganizationUnitUUID,pUUID:DeviceUUID)=>{
+        return new OrganizationManagerException(`The application cannot be attached [org=${pOUID}][uuid=${pUUID}]`,
+            ErrorCode.ORGANIZATION + 23) };
 
+    static CANNOT_DETACH_DEV = (pOUID:OrganizationUnitUUID,pUUID:DeviceUUID)=>{
+        return new OrganizationManagerException(`The application cannot be detached [org=${pOUID}][uuid=${pUUID}]`,
+            ErrorCode.ORGANIZATION + 24) };
+
+    static CANNOT_ATTACH_PROJ = (pAUID:ApplicationUnitUUID,pPUID:DexcaliburProjectUUID)=>{
+        return new OrganizationManagerException(`The project  cannot be attached to application unit [app=${pAUID}][uuid=${pPUID}]`,
+            ErrorCode.ORGANIZATION + 25) };
+
+    static DEVICE_NOT_FOUND_IN_ORG = (pOUID:OrganizationUnitUUID,pDUID:DeviceUUID)=>{
+        return new OrganizationManagerException(`Device not found in organization unit [org=${pOUID}][dev=${pDUID}]`,
+            ErrorCode.ORGANIZATION + 26).zone(SecurityZone.PRIVATE) };
+
+    static CANNOT_ASSIGN_DEV = (pAUID:ApplicationUnitUUID,pDUID:DeviceUUID)=>{
+        return new OrganizationManagerException(`The device cannot be assigned to application unit [app=${pAUID}][dev=${pDUID}]`,
+            ErrorCode.ORGANIZATION + 27) };
+
+    static CANNOT_DEASSIGN_DEV = (pAUID:ApplicationUnitUUID,pDUID:DeviceUUID)=>{
+        return new OrganizationManagerException(`The device cannot be deassigned from application unit [app=${pAUID}][uuid=${pDUID}]`,
+            ErrorCode.ORGANIZATION + 28) };
+
+    static INVALID_ORG_UUID_FMT = (pOUID:OrganizationUnitUUID)=>{
+        return new OrganizationManagerException(`Invalid format for organization UUID [uuid=${pOUID}]`,
+            ErrorCode.ORGANIZATION + 29) };
+
+    static INVALID_APP_UUID_FMT = (pAUID:ApplicationUnitUUID)=>{
+        return new OrganizationManagerException(`Invalid format for application UUID [uuid=${pAUID}]`,
+            ErrorCode.ORGANIZATION + 30) };
 
 
 
