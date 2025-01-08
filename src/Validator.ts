@@ -1,4 +1,5 @@
 import * as NodeBuffer from "node:buffer"
+import {OperatingSystem} from "./platform/OperatingSystem.js";
 
 
 export enum ValidationType {
@@ -100,6 +101,24 @@ export class ValidationRule {
         });
     }
 
+    static utf8StringList():ValidationRule {
+        return new ValidationRule( ValidationType.CUSTOM, (vValue:any)=>{
+            return ValidationRule.asArrayOf([ ValidationRule.utf8String() ]).test(vValue);
+        });
+    }
+
+    static uintString():ValidationRule {
+        return new ValidationRule( ValidationType.CUSTOM, (vValue:any)=>{
+            return /^([0-9]+)$/.test(vValue);
+        });
+    }
+
+    static uintStringComposite(pSeparator:string):ValidationRule {
+        return new ValidationRule( ValidationType.CUSTOM, (vValue:any)=>{
+            return ValidationRule.asArrayOf([ ValidationRule.uintString() ]).test(vValue.split(pSeparator));
+        });
+    }
+
     static uuid():ValidationRule {
         return new ValidationRule( ValidationType.CUSTOM, (vValue:any)=>{
             return /^([0-9]:)?[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(vValue);
@@ -135,6 +154,22 @@ export class ValidationRule {
         return new ValidationRule( ValidationType.CUSTOM, (vValue:any)=>{
             return ValidationRule.asArrayOf([ ValidationRule.email() ]).test(vValue);
         });
+    }
+
+    static os():ValidationRule {
+        return new ValidationRule( ValidationType.PINKLIST, [
+            OperatingSystem.LINUX,
+            OperatingSystem.ANDROID,
+            OperatingSystem.TOYBOX,
+            OperatingSystem.TIZEN,
+            OperatingSystem.IOS,
+            OperatingSystem.DARWIN,
+            OperatingSystem.MACOS,
+            OperatingSystem.WEB_OS,
+            OperatingSystem.FIRE_OS,
+            OperatingSystem.WINNT,
+            OperatingSystem.NONE,
+        ]);
     }
 
     test(pData:any):boolean {
