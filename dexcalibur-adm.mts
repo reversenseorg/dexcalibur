@@ -1865,8 +1865,9 @@ ${"\t".repeat(1)}Default Arch = ${srv.getDefaultArchitecture()}
 
                             if(device==null && projectArgs.projOS!=null){
                                 // try to find compatible device already enrolled
-                                device = DeviceManager.getInstance().searchCompatibleDevice(projectArgs.projOS);
-                                if(device!=null && platform==null){
+                                const compDevs = DeviceManager.getInstance().searchCompatibleDevice(projectArgs.projOS);
+                                if(compDevs.length>0 && platform==null){
+                                    device = compDevs[0];
                                     platform = device.getPlatform();
                                     console.log("Compatible device found :",device.uid);
                                 }else{

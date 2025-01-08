@@ -29,10 +29,13 @@ import {
 } from "@dexcalibur/dexcalibur-orm";
 
 
-import {NodeInternalType} from "@dexcalibur/dxc-core-api";
+import {NodeInternalType, Nullable} from "@dexcalibur/dxc-core-api";
 import DeviceManager from "./DeviceManager.js";
 import {ProjectInput} from "./analyzer/ProjectInput.js";
 import {CryptoUtils} from "./CryptoUtils.js";
+import {DeviceTemplate, DeviceTemplateUUID} from "./device/template/DeviceTemplate.js";
+import {DeviceTemplateFactory} from "./device/template/DeviceTemplateFactory.js";
+import {ValidationRule} from "./Validator.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -81,6 +84,14 @@ export interface DeviceOptions {
     apps?:AppPackage[];
     os?:OperatingSystem;
     arch?:Architecture;
+    emulatorOpts?:Record<string,any>;
+    tpl?:DeviceTemplate;
+}
+
+export enum EmuCommand {
+    START="start",
+    STOP="stop",
+    RUNNING_PID="pid"
 }
 
 /**
@@ -91,11 +102,17 @@ export interface DeviceOptions {
  */
 export class Device implements INode
 {
+    static VALIDATE:Record<string, ValidationRule> = {
+        uuid: ValidationRule.uuid()
+    }
+
     static TYPE:NodeType = new NodeType(
         'device',
         NodeInternalType.DEVICE,
         [
-            (new NodeProperty("uid")).type(DbDataType.STRING).key(DbKeyType.PRIMARY),
+            (new NodeProperty("uid"))
+                .type(DbDataType.STRING)
+                .key(DbKeyType.PRIMARY),
             (new NodeProperty("id")).type(DbDataType.STRING),
             (new NodeProperty("type")).type(DbDataType.STRING).def(OperatingSystem.NONE),
             (new NodeProperty("model")).type(DbDataType.STRING).def(""),
@@ -135,9 +152,25 @@ export class Device implements INode
                 .type(DbDataType.BLOB).def(null),
             (new NodeProperty("transportId")).type(DbDataType.STRING).def(null),
             (new NodeProperty("usbQualifier")).type(DbDataType.STRING).def(null),
+            (new NodeProperty("emulatorOpts")).type(DbDataType.BLOB).def({}),
             (new NodeProperty("enrolled")).type(DbDataType.BOOLEAN).def(false),
             (new NodeProperty("frida")).type(DbDataType.BLOB),
             (new NodeProperty("uidfp")).type(DbDataType.BLOB).def({}),
+            (new NodeProperty("tpl")).type(DbDataType.BLOB)
+                .sleep( (x:NodePropertyState)=>{
+                    if(x.p!=null){
+                        return (x.p as DeviceTemplate).toJsonObject();
+                    }else{
+                        return null;
+                    }
+                })
+                .wakeUp( (x:NodePropertyState)=>{
+                    if(x.p!=null){
+                        return new DeviceTemplate(x.p);
+                    }else{
+                        return null;
+                    }
+                }).def(null),
             (new NodeProperty("syscalls")).type(DbDataType.BLOB)
                 .sleep( (x:NodePropertyState)=>{
                     const syscalls:any[] = [];
@@ -209,6 +242,7 @@ export class Device implements INode
 
                     return bridges;
                 }),
+
 
             // volatile states
             (new NodeProperty("authorized")).volatile().type(DbDataType.BOOLEAN).def(false),
@@ -391,7 +425,9 @@ export class Device implements INode
 
     tags:TagUUID[] = [];
 
+    emulatorOpts?:Record<string, any> = {};
 
+    tpl:Nullable<DeviceTemplate> = null;
 
     /**
      * 
@@ -1380,7 +1416,7 @@ export class Device implements INode
 
     equalsUIDFP(pUidfp:Record<string, string>, pMatchesCountMin:number = -1):boolean {
 
-        console.log(this.uidfp,pUidfp);
+        //console.log(this.uidfp,pUidfp);
 
         // sort list of keys prior to compare each array
         let k1 = Object.keys(this.uidfp).sort();
@@ -1396,6 +1432,49 @@ export class Device implements INode
         }
 
         return true;
+    }
+
+    /**
+     * To get argument list generated to launch emulator
+     *
+     * @returns {any} Emulator arguments
+     * @method
+     */
+    getEmuStartOpts():any {
+        return this.emulatorOpts[EmuCommand.START];
+    }
+
+    /**
+     * To get argument list generated to stop emulator
+     *
+     * @returns {any} Emulator arguments
+     * @method
+     */
+    getEmuStopOpts():any {
+        return this.emulatorOpts[EmuCommand.STOP];
+    }
+
+    /**
+     * To get the PID of the process running the emulator
+     * if the device is emulated
+     *
+     * @returns {number} Emulator PID
+     * @method
+     */
+    getEmuPID():number {
+        return this.emulatorOpts[EmuCommand.RUNNING_PID];
+    }
+
+    getTemplate():Nullable<DeviceTemplate> {
+        return this.tpl;
+    }
+
+    setTemplate(pTpl:DeviceTemplate):void {
+        this.tpl = pTpl;
+    }
+
+    setEmulatorOpts( pCmd:EmuCommand, pOpts:any):void {
+        this.emulatorOpts[pCmd] = pOpts;
     }
 }
 Device.TYPE.builder(Device);

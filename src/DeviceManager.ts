@@ -3,7 +3,7 @@ import * as _fs_ from 'fs';
 
 import {BridgeSuperFactory, DeviceProfilingOptions, IBridge, IBridgeFactory} from "./Bridge.js";
 import DexcaliburWorkspace from "./DexcaliburWorkspace.js";
-import {Device} from "./Device.js";
+import {Device, DeviceUUID} from "./Device.js";
 import AdbWrapperFactory from "./AdbWrapperFactory.js";
 import * as Log from './Logger.js';
 import Util from "./Utils.js";
@@ -22,6 +22,18 @@ import {DeviceManagerException} from "./errors/DeviceManagerException.js";
 import {randomUUID} from "crypto";
 import {VirtualDeviceFactory} from "./device/maker/VirtualDeviceFactory.js";
 import {PlatformManagerException} from "./errors/PlatformManagerException.js";
+import {UserAccount} from "./user/UserAccount.js";
+import {OrganizationUnit} from "./organization/OrganizationUnit.js";
+import {DeviceTemplateOptions, DeviceTemplateUUID} from "./device/template/DeviceTemplate.js";
+import AccessControl from "./user/acl/AccessControl.js";
+import {OrganizationAccessControl} from "./user/acl/rbac/OrganizationAccessContol.js";
+import {MongodbDbCollection} from "@dexcalibur/dexcalibur-orm-mongodb";
+import {DeviceAccessControl} from "./user/acl/rbac/DeviceAccessControl.js";
+import {DeviceTemplateAPI} from "./device/template/DeviceTemplateAPI.js";
+import {ApplicationUnit} from "./organization/ApplicationUnit.js";
+import {Observable} from "rxjs";
+import {VdevEvent} from "./device/maker/VdevEvent.js";
+import {DeviceInstance} from "./device/maker/DeviceInstance.js";
 
 const Logger:Log.ProdLogger = Log.newLogger() as Log.ProdLogger;
 
@@ -78,7 +90,7 @@ export default class DeviceManager extends ValidationCapable
      * List of connected devices
      * @field
      */
-    devices:Record<string, Device>;
+    devices:Record<DeviceUUID, Device>;
 
     /**
      * @field
@@ -96,6 +108,8 @@ export default class DeviceManager extends ValidationCapable
      */
     private _tm: External.ToolManager;
 
+    private _tplApi:DeviceTemplateAPI;
+
     /**
      * To create an instance of DeviceManager
      * @param {Configuration} config The configuration object
@@ -111,6 +125,7 @@ export default class DeviceManager extends ValidationCapable
         });
 
         this._ctx = pEngine;
+        this._tplApi = new DeviceTemplateAPI(pEngine);
         this._vdf = new VirtualDeviceFactory(this);
         this.dxcWorkspace = DexcaliburWorkspace.getInstance();
 
@@ -152,24 +167,36 @@ export default class DeviceManager extends ValidationCapable
     
     }
 
-    searchCompatibleDevice(pTargetOS:string, pSpec:Nullable<any> = null){
-        const all = this.getAll();
-        switch (pTargetOS){
-            case 'android':
+    /**
+     * To search a compatible device accordingly to a target OS and optionnally
+     * to an application unit and/or specification
+     *
+     * @param {OperatingSystem} pTargetOS
+     * @param {Nullable<ApplicationUnit>} pAppUnit
+     * @param {Nullable<any>} pSpec
+     * @method
+     */
+    searchCompatibleDevice(pTargetOS:OperatingSystem, pAppUnit:Nullable<ApplicationUnit> = null, pSpec:Nullable<any> = null){
 
-                for(let uid in all){
-                    if(all[uid].os == OperatingSystem.ANDROID){
-                        if(pSpec==null){
-                            return all[uid];
-                        }else{
-                            // todo
-                        }
-                    }
-                }
-                break;
-            default:
-                throw new Error("No compatible device found");
+        const all = this.getAll();
+        let result:Device[];
+
+        if(pAppUnit!=null){
+            const authorized = pAppUnit.getTargetDevices()
+            result = Object.values(all).filter((vDevice)=>{
+                return (authorized.indexOf(vDevice.getUID())>-1) && (vDevice.getOS()===pTargetOS)
+            });
+        }else{
+            result = Object.values(all).filter((vDevice)=>{
+                return (vDevice.getOS()===pTargetOS)
+            });
         }
+
+        if(result.length==0){
+            throw new Error("No compatible device found");
+        }
+
+        return result;
     }
 
     /**
@@ -198,17 +225,15 @@ export default class DeviceManager extends ValidationCapable
 
 
     /**
-     * To load Devices properties from DB
+     * To load Devices properties from DB,
+     * and to create missing built-in DeviceTemplate
      *
      * Previously loaded from `<DXCWS>/.dxc/dev/devices.json` file
      * 
      * @method
      */
     async load():Promise<boolean>{
-        //if(_fs_.existsSync( this.devFile) == false)
-        //    return true;
 
-        //let data:any = null;
         try{
             // load from DB
             const devs = await this._ctx.getEngineDB().listDevices();
@@ -218,23 +243,14 @@ export default class DeviceManager extends ValidationCapable
                     this.devices[ x.getUID() ] = x;
                 }
             });
-
-
-            // load from file
-            /*
-            data = JSON.parse( _fs_.readFileSync( this.devFile).toString());
-            for(let i=0; i<data.length; i++){
-                if( data[i].uid != null){
-                    this.devices[ data[i].uid ] = Device.fromJsonObject(this.bridgeFactory, data[i]);
-                    this.devices[ data[i].uid ].getSyscallList()
-                }
-            }
-            */
             Logger.info("[DEVICE MANAGER] Known Devices : "+Object.keys(this.devices));
         } catch(err){
             Logger.error("[DEVICE MANAGER] Unable to load devices ");
             console.log(err.stack);
         }
+
+
+        await this.getDeviceTemplateAPI().importBuiltIn();
 
 
         return true;
@@ -252,29 +268,6 @@ export default class DeviceManager extends ValidationCapable
                 this._ctx.getEngineDB().save(this.devices[k]);
             }
         }
-
-        /*
-        if(_fs_.existsSync(this.devFile)){
-            _fs_.unlinkSync(this.devFile);
-        }
-
-        const data:any = [];
-        for(const i in this.devices){
-            data.push( this.devices[i].toSave( {}, {
-                connected: false,
-                offline: false,
-                bridge: {
-                    up: false
-                   // strategies: true
-                }
-            }));
-        }
-
-
-        _fs_.writeFileSync(
-            this.devFile,
-            JSON.stringify(data)
-        );*/
     }
 
     /**
@@ -364,6 +357,8 @@ export default class DeviceManager extends ValidationCapable
             return this.generateUID();
         else
             return uid;
+
+
     }
 
     /**
@@ -384,7 +379,6 @@ export default class DeviceManager extends ValidationCapable
         }
 
         this.devices[uid] = pDevice;
-        console.log("ADD DEVICE > ",pDevice);
     }
 
     getDeviceByIP( pIpAddress:string, pPort:number=null, pUp=true):Device{
@@ -419,25 +413,8 @@ export default class DeviceManager extends ValidationCapable
         let tmpDevs:Device[];
         for(let i=0; i<pCandidateList.length; i++){
 
-            // at this step, candidate device has 1 bridge, no more.
-            /*if(pCandidateList[i].bridge.isUsbTransport()){
-                id = pCandidateList[i].bridge.getDeviceID();
-
-                console.log(id, pCandidateList[i].getFingerprint());
-                if(id != null){
-                    // search if device already exists
-                    dev = this.getDeviceByID(id);
-                }else{
-                    // invalid device
-                    Logger.debug("Invalid devices");
-                }
-            }else{  
-                dev = this.getDeviceByIP( pCandidateList[i].bridge.ip, pCandidateList[i].bridge.port);
-            }*/
-
             // compare device UID Fingerprint (uidfp)
             tmpDevs = this._searchDeviceByUidFP(pCandidateList[i].getFingerprint());
-
 
             if(tmpDevs.length === 1){
                 // a device already exists, then merge
@@ -452,8 +429,6 @@ export default class DeviceManager extends ValidationCapable
             }
             
         }
-
-        
 
         // remove duplicated
         devs = {};
@@ -477,21 +452,9 @@ export default class DeviceManager extends ValidationCapable
             }else{
                 devs[this.devices[i].uid] = this.devices[i];
             }
-            /*
-            id = this.devices[i].id;
-
-            if(devs[id] == null){
-                devs[id] = this.devices[i];
-            }else{
-                devs[id].merge( this.devices[i]);
-            }*/
         }
 
         this.devices = devs;
-        //for(let i in devs) this.devices[devs[i].uid] = devs[i];
-
-
-        console.log(this.devices);
 
         return active;
     }
@@ -742,7 +705,8 @@ export default class DeviceManager extends ValidationCapable
     getDevice(deviceId:string){
         return this.devices[deviceId];
     }
-    
+
+
     /**
      * To get all devices (connected or not)
      * @returns {Object} To get an hashmap associtating to each device ID the device instance
@@ -750,6 +714,15 @@ export default class DeviceManager extends ValidationCapable
      */
     getAll():Record<string, Device>{
         return this.devices;
+    }
+
+    /**
+     *
+     * @param pUUIDS
+     */
+    getDevices(pUUIDS:DeviceUUID[]):Device[] {
+        return Object.values(this.devices)
+            .filter( x => (pUUIDS.indexOf(x.getUID())>-1) );
     }
     
     /**
@@ -920,6 +893,131 @@ export default class DeviceManager extends ValidationCapable
             }
         }
         return devs;
+    }
+
+    getDeviceTemplateAPI():DeviceTemplateAPI {
+        return this._tplApi;
+    }
+
+    /**
+     * An external ID is the name of the device as resturned by the bridge
+     * when devices are enumerated
+     *
+     * @param {string} pEID
+     */
+    getConnectedDeviceByExternalId( pEID:string):Nullable<Device> {
+        for(let k in this.devices){
+            if(this.devices[k].isConnected() && this.devices[k].id===pEID){
+                return this.devices[k];
+            }
+        }
+        return null;
+    }
+
+    // @PrivateAPI
+    /**
+     * To alloocate a virtual device according to a DeviceTemplate and
+     * its detail
+     *
+     * @param {UserAccount} pUserAccount
+     * @param {DeviceTemplateUUID} pDevTplUI
+     * @param {Record<string,any>} pExtra
+     * @returns {Promise<Device>}
+     * @method
+     */
+    async allocateVirtualDevice(pUserAccount:UserAccount, pDevTplUI:DeviceTemplateUUID, pExtra:Record<string,any> ):Promise<Observable<VdevEvent>> {
+
+        // check if user can allocate device
+        AccessControl.isAuthorized(
+            AccessControl.access.DEV_ALLOC_VIRT,
+            pUserAccount
+        );
+
+        // retrieve device template, and derive a new customized template from it
+        const devTpl = (await this.getDeviceTemplateAPI()
+            .getTemplate(pUserAccount, pDevTplUI))
+            .fill(pExtra);
+
+        // create device
+        return await this._vdf.provisionDevice(pUserAccount, devTpl);
+    }
+
+
+    async startDevice(pUserAccount:UserAccount, pDevice:Device):Promise<Observable<VdevEvent>> {
+
+        AccessControl.isAuthorized(
+            AccessControl.access.DEV_INS_START,
+            pUserAccount
+        );
+
+        const tpl = pDevice.getTemplate();
+
+        if(tpl.isVirtual()){
+            return await this._vdf.startDevice(pUserAccount,pDevice);
+        }else{
+            throw DeviceManagerException.CANNOT_START_PHY_DEV(pDevice.getUID())
+        }
+    }
+
+
+    /**
+     * To stop a running device
+     *
+     * @param {UserAccount} pUserAccount
+     * @param {Device} pDevice
+     */
+    async stopDevice(pUserAccount:UserAccount, pDevice:Device):Promise<boolean> {
+
+        AccessControl.isAuthorized(
+            AccessControl.access.DEV_INS_KILL,
+            pUserAccount
+        );
+
+        const tpl = pDevice.getTemplate();
+
+        if(tpl.isVirtual()){
+            let instances:DeviceInstance[] = await (this._ctx.getEngineDB()
+                .getCollectionOf(DeviceInstance.TYPE.getType()) as MongodbDbCollection)
+                .search({ device: pDevice.getUID() });
+
+
+            if(instances.length>0){
+
+                instances = instances.sort((i1,i2)=>{
+                    return (i1.started>i2.started ? -1 : 1);
+                });
+
+                const killedPID = await this._vdf.stopDevice(pUserAccount,pDevice, instances[0]);
+                instances[0].stopped = Util.time();
+
+                await (this._ctx.getEngineDB()
+                    .getCollectionOf(DeviceInstance.TYPE.getType()) as MongodbDbCollection)
+                    .asyncUpdateEntry(instances[0], {replace:false, $set:['stopped']});
+
+                return true;
+            }else{
+                throw DeviceManagerException.CANNOT_FIND_INSTANCE(pDevice.getUID())
+            }
+        }else{
+            throw DeviceManagerException.CANNOT_START_PHY_DEV(pDevice.getUID())
+        }
+    }
+
+
+    /**
+     * To save a new device instance into database
+     *
+     * @param pInstance
+     */
+    async createDeviceInstance(pInstance:DeviceInstance):Promise<DeviceInstance> {
+        return await this._ctx.getEngineDB().getCollectionOf(DeviceInstance.TYPE.getType())
+            .asyncAddEntry({ uid: pInstance.getUID() }, pInstance);
+    }
+
+    async appendInstanceLogs(pInstance:DeviceInstance, pLogs:any[]):Promise<void> {
+        pLogs.map(x => pInstance.appendLog(x));
+        return await this._ctx.getEngineDB().getCollectionOf(DeviceInstance.TYPE.getType())
+            .asyncUpdateEntry(pInstance, { replace:false, $set:['logs'] });
     }
 }
 

@@ -72,6 +72,9 @@ import {ProjectManager} from "./project/ProjectManager.js";
 import ts from "typescript/lib/tsserverlibrary.js";
 import Project = ts.server.Project;
 import {InternalSecretManager} from "./core/InternalSecretManager.js";
+import {ApplicationUnit} from "./organization/ApplicationUnit.js";
+import {Device} from "./Device.js";
+import AvdHelper from "./device/maker/AvdHelper.js";
 
 /*
 const _fixPath_ = require("fix-path");
@@ -1057,6 +1060,8 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
         BinwalkHelper.init(this.extMgr.getTool('binwalk'));
         DexHelper.init(this.extMgr.getTool('baksmali'));
         RadareHelper.init(this.extMgr.getTool('radare2'));
+        AvdHelper.init(this.extMgr.getTool('avd'));
+        //AvdEmuHelper.init(this.extMgr.getTool('avdmanager'));
 
         if(this._cliMode===false){
             // setup web server serving API
@@ -1420,17 +1425,19 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
      * @param {string} pUID Project UID, it must unique into target workspace
      * @param {string} pApkPath Local path of the APK to analayze
      * @param {string} pFileType Local path of the APK to analayze
-     * @param {Device} pDevice Optional. Default NULL. The default target device for the project.
+     * @param {Nullable<Device>} pDevice Optional. Default NULL. The default target device for the project.
      * @param {UserAccount} pUserAccount Optional. Default NULL. The default target device for the project.
-     * @param {Platform} pPlatform Optional.
+     * @param {Nullable<Platform>} pPlatform Optional.
      * @param {any} pAnalyzersOpts Optional.
+     * @param {Nullable<ApplicationUnit>} pAppUnit Optional. Application unit
      * @return {Promise<DexcaliburProject>} The project instance
      * @async
      * @method
      */
     async newProject( pUID:string,  pInputs:ProjectInput[], /*pAppPath:string, pFileType:string,*/
-                      pDevice:any=null, pUserAccount:UserAccount = null,
-                      pPlatform:Nullable<Platform> = null, pAnalyzersOpts:any = {}):Promise<DexcaliburProject>{
+                      pDevice:Nullable<Device>=null, pUserAccount:UserAccount = null,
+                      pPlatform:Nullable<Platform> = null, pAnalyzersOpts:any = {},
+                      pAppUnit:Nullable<ApplicationUnit> = null):Promise<DexcaliburProject>{
 
         // pAppPath:string, pFileType:string,
 
@@ -1461,6 +1468,7 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
             uid: pUID
         });
 
+
         // init analyzers configure
         // keep it before any actions
         Logger.info('[ENGINE] Configuring generic analyzers ...');
@@ -1474,17 +1482,28 @@ export default class DexcaliburEngine extends ValidationCapable implements IDexc
          */
         await project.create();
 
+
         // complete
         const analCfg = project.getAnalyzerConfiguration(); // platform.getUID());
         analCfg.setFileAnalysisMode(pAnalyzersOpts.fa_mode);
         analCfg.setNativeAnalysisMode(pAnalyzersOpts.na_mode);
         analCfg.addPkgAnalyzerOptions(pAnalyzersOpts);
 
+
+        // Project can be standalone and not attached to an application unit
+        // however, if an app unit is specified, the UUID of the project is added to the
+        // list of app unit, and only members of the application unit will be able to access
+        // to project
+        if(pAppUnit!=null){
+            await this.getOrgManager().attachProject(pUserAccount, pAppUnit, project);
+        }
+
         await this.getEngineDB().attachProject(project);
 
         if(pUserAccount != null){
             project.changeOwner( pUserAccount, this.getInternalAcc());
         }
+
 
         project.setWorkflow(wf);
 

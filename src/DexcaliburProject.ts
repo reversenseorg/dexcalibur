@@ -91,9 +91,12 @@ import {ModelAPI} from "./ModelAPI.js";
 import InspectorFactory from "./InspectorFactory.js";
 import {GuiTypesManager} from "./graphics/GuiTypesManager.js";
 import {AccessAttribute, AccessAttributeMap} from "./user/acl/AccessAttribute.js";
+import {ApplicationUnit, ApplicationUnitUUID} from "./organization/ApplicationUnit.js";
+import {OrganizationAccessControl} from "./user/acl/rbac/OrganizationAccessContol.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
+export type DexcaliburProjectUUID = string;
 
 export enum ProjectEventType {
     DATA_ANALYSIS_DONE="data_analysis_done",
@@ -367,7 +370,7 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
      * @type {String}
      * @field Project UID
      */
-    uid = '';
+    uid:DexcaliburProjectUUID = '';
 
     /**
      * @type {String}
@@ -540,6 +543,15 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
     inputs:ProjectInput[] = [];
 
     /**
+     * UUID of the ApplicationUnit containing this project
+     * Default is NULL because a project can be standalone
+     *
+     * @field
+     * @type {Nullable<ApplicationUnitUUID>}
+     */
+    appUnit:Nullable<ApplicationUnitUUID> = null;
+
+    /**
      * Application Icon
      *
      * @type {AppIcon}
@@ -547,7 +559,18 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
      */
     icon:AppIcon = null;
 
+    /**
+     * DO NOT USE
+     * Replaced by ABAC ACL
+     * @deprecated
+     */
     owner: UserAccount = null;
+
+    /**
+     * DO NOT USE
+     * Replaced by ABAC ACL
+     * @deprecated
+     */
     tester: UserAccount[] = [];
 
     tags:TagUUID[] = [];
@@ -712,7 +735,7 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
      * @param pUID
      * @param pAccount
      */
-    static deleteCloseProject( pEngine:DexcaliburEngine, pUID:string, pAccount:UserAccount){
+    static deleteCloseProject( pEngine:DexcaliburEngine, pUID:DexcaliburProjectUUID, pAccount:UserAccount){
         const project = new DexcaliburProject({ uid:pUID, engine:pEngine });
 
         const data = JSON.parse( _fs_.readFileSync( project.workspace.getProjectCfgPath()).toString());
@@ -956,7 +979,7 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
      * @returns {Boolean} TRUE if a project exists, else FALSE
      * @method
      */
-    static exists( pUID:string):boolean{
+    static exists( pUID:DexcaliburProjectUUID):boolean{
         const proj = DexcaliburWorkspace.getInstance().listProjects();
         let status = false;
 
@@ -1226,6 +1249,8 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
             this.packageAnalyzer = new AndroidPackageAnalyzer(
                 new AndroidPackageAnalyzerConfig({ ssa_auto:false, msa_auto:false })
             );
+            this.packageAnalyzer.setProject(this);
+
             this.appAnalyzer = new AndroidAppAnalyzer(this);
             this.appAnalyzer.restoreState(await this.getProjectDB().getAnalyzerState('android-app'));
         }
@@ -1313,10 +1338,10 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
      * @method
      */
     async deployInspectors(pStep):Promise<boolean>{
-        const uid:string = this.getUID();
+
         let insp = "";
 
-        Logger.info("[PROJECT] ["+uid+"], Step["+pStep+"] Starting to deploy inspectors.");
+        Logger.info("[PROJECT] ["+this.getUID()+"], Step["+pStep+"] Starting to deploy inspectors.");
 
         const projInsps = this.getInspectors();
 
@@ -1327,7 +1352,7 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
             }
         }
 
-        Logger.info("[PROJECT] ["+uid+"], Step["+pStep+"] deploying inspectors : "+(insp.length==0? '<none>':insp));
+        Logger.info("[PROJECT] ["+this.getUID()+"], Step["+pStep+"] deploying inspectors : "+(insp.length==0? '<none>':insp));
 
         return true;
     }
@@ -1340,7 +1365,7 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
      * @returns {String} ProjectUID
      * @method
      */
-    getUID():string{
+    getUID():DexcaliburProjectUUID{
         return this.uid;
     }
 
@@ -1465,6 +1490,13 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
         return apkFile;
     }
 
+    /**
+     * To add an input to the project
+     *
+     * @param {ProjectInput} pInput
+     * @method
+     * @async
+     */
     async attachInput(pInput:ProjectInput):Promise<void> {
         if(this.packageAnalyzer == null){
             this.packageAnalyzer = new GenericPackageAnalyzer({ });
@@ -1620,7 +1652,7 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
      * @since 1.0.0
      */
     static async  getInformationOf(pEngine:DexcaliburEngine,
-                                   pProjectUID:string,
+                                   pProjectUID:DexcaliburProjectUUID,
                                    pAccount:UserAccount = null,
                                    pZone:SecurityZone = SecurityZone.PUBLIC):Promise<any> {
 
@@ -1815,7 +1847,7 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
      * @param {*} pProjectUID 
      * @param {*} pConfigPath 
      */
-    static async load( pEngine:DexcaliburEngine, pProjectUID:string, pAcc:UserAccount, pConfig:Nullable<any> = null):Promise<DexcaliburProject>{
+    static async load( pEngine:DexcaliburEngine, pProjectUID:DexcaliburProjectUUID, pAcc:UserAccount, pConfig:Nullable<any> = null):Promise<DexcaliburProject>{
 
         let project:Nullable<DexcaliburProject>;
         let notPersisted = true;
@@ -2962,6 +2994,13 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
         this._dirty = false;
     }
 
+    /**
+     *
+     * DexcaliburProjectUUID must be an UUID
+     *
+     * @deprecated
+     * @param pUnsafe
+     */
     static sanitizeUID(pUnsafe:string):string {
         return pUnsafe.replaceAll(".","_");
     }
@@ -3044,6 +3083,34 @@ export default class DexcaliburProject extends Auditable implements INode, IAppC
      */
     getTags():number[]{
         return this.tags;
+    }
+
+    /**
+     *
+     */
+    getAppUnit():Nullable<ApplicationUnitUUID> {
+        return this.appUnit;
+    }
+
+    /**
+     * To attach the current project to an application unit
+     *
+     * This operation modifies access control list and attributes of the project
+     *
+     * @param {ApplicationUnit} pAppUnit
+     */
+    attachToAppUnit(pAppUnit: ApplicationUnit):void {
+        this.appUnit = pAppUnit.getUID();
+
+        if(this.getAccessAttribute(OrganizationAccessControl.attr.APP_MEMBER)==null){
+            this.setAccessAttribute(OrganizationAccessControl.attr.APP_MEMBER);
+        }
+
+        // set or replace list of app_member in project
+        this.setAccessAttribute(
+            OrganizationAccessControl.attr.APP_MEMBER,
+            pAppUnit.getAccessAttribute(OrganizationAccessControl.attr.APP_MEMBER).value
+        );
     }
 }
 DexcaliburProject.TYPE.builder(DexcaliburProject);

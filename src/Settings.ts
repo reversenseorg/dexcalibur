@@ -653,6 +653,9 @@ export namespace Settings {
         }
     }
 
+    /**
+     *
+     */
     export class ExternalSettings extends Settings.AbstractSettings {
 
         private _all: any;
@@ -986,7 +989,9 @@ export namespace Settings {
                         adb: (process.env.DXC_BIN_ADB?process.env.DXC_BIN_ADB:null), //"/Users/salade/Documents/dxc3/.dxc/bin/platform-tools/adb",
                         apktool: (process.env.DXC_BIN_APKT?process.env.DXC_BIN_APKT:null), //"/Users/salade/Documents/dxc3/.dxc/bin/apktool.jar",
                         baksmali:(process.env.DXC_BIN_BAKS?process.env.DXC_BIN_BAKS:null), //"/Users/salade/Documents/dxc3/.dxc/bin/baksmali.jar",
-                        binwalk: (process.env.DXC_BIN_BINWALK?process.env.DXC_BIN_BINWALK:null)//"binwalk"
+                        binwalk: (process.env.DXC_BIN_BINWALK?process.env.DXC_BIN_BINWALK:null),//"binwalk"
+                        avd: (process.env.DXC_BIN_AVD?process.env.DXC_BIN_AVD:null),
+                        android_emu: (process.env.DXC_BIN_AEMU?process.env.DXC_BIN_AEMU:null),
                     },
                     auth:{
                         db:{

@@ -1,6 +1,5 @@
 import {ValidationCapable, ValidationRulesMap} from "./Validator.js";
 import {AccessAttribute, AccessAttributeMap} from "./user/acl/AccessAttribute.js";
-import {AccessControlException} from "./errors/AccessControlException.js";
 
 
 /**
