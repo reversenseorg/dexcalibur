@@ -22,6 +22,9 @@ import {PackageAnalyzerOptions} from "../AnalyzerConfiguration.js";
 import {AndroidPackageAnalyzerConfig} from "../android/analyzer/AndroidPackageAnalyzerConfig.js";
 import {KernelInfo} from "./kernels/common/Kernel.js";
 import {KernelInfoFactory} from "./kernels/common/KernelFactory.js";
+import {NodeInternalType} from "@dexcalibur/dxc-core-api";
+import {DbDataType, DbKeyType, NodeProperty, NodePropertyState, NodeType} from "@dexcalibur/dexcalibur-orm";
+import {Resource} from "../common/Resource.js";
 
 const Logger:Log.Logger = Log.newLogger() as Log.Logger;
 const PLATFORM_RE = new RegExp('(?<source>[^_.]+)_(?<name>[^_.]+)_(?<version>[^_.]+)_(?<vendor>[^_.]+)\.(?<format>[^.]+)');
@@ -34,6 +37,48 @@ const LOCAL_PLATFORM_RE = new RegExp('(?<source>[^_.]+)_(?<name>[^_.]+)_(?<versi
  */
 export default class Platform
 {
+    __ = NodeInternalType.PLATFORM_PPT;
+
+    static TYPE:NodeType = (new NodeType( "platform", NodeInternalType.PLATFORM_PPT, [
+        (new NodeProperty("uid")).type(DbDataType.STRING).key(DbKeyType.PRIMARY),
+        (new NodeProperty("name")).type(DbDataType.STRING),
+        (new NodeProperty("version")).type(DbDataType.STRING).def(""),
+        (new NodeProperty("source")).type(DbDataType.STRING).def(""),
+        (new NodeProperty("vendor")).type(DbDataType.STRING).def(""),
+        (new NodeProperty("model")).type(DbDataType.STRING).def([]),
+        (new NodeProperty("format")).type(DbDataType.BOOLEAN).def(true),
+        (new NodeProperty("path")).type(DbDataType.STRING).def([]),
+        (new NodeProperty("hash")).type(DbDataType.STRING).def([]),
+        (new NodeProperty("size")).type(DbDataType.NUMERIC).def([]),
+        (new NodeProperty("os")).type(DbDataType.STRING).def(null),
+        (new NodeProperty("arch")).type(DbDataType.STRING).def(null),
+        (new NodeProperty("official")).type(DbDataType.BOOLEAN).def(false),
+        (new NodeProperty("apiVersion")).type(DbDataType.STRING).def([]),
+        (new NodeProperty("binaryPath")).type(DbDataType.STRING).def([]),
+        (new NodeProperty("resource")).type(DbDataType.BLOB)
+            .sleep( (x:NodePropertyState)=>{
+                if(x.p!=null){
+                    return (x.p as Resource).toJsonObject();
+                }else{
+                    return null;
+                }
+            })
+            .wakeUp((x:NodePropertyState)=>{
+                if(x.p!=null){
+                    return new Resource(x.p);
+                }else{
+                    return null;
+                }
+            })
+            .def(null),
+
+
+        (new NodeProperty("remoteURL")).volatile().type(DbDataType.STRING).def(null),
+        (new NodeProperty("localPath")).volatile().type(DbDataType.STRING).def(null),
+        (new NodeProperty("installed")).volatile().type(DbDataType.STRING).def(null),
+        (new NodeProperty("stub")).volatile().type(DbDataType.STRING).def(null)
+    ]));
+
     static SUPPORTED_FILE_FMT = ["apk","ipa","so","bin","dmg"];
 
     uid:string = null;
@@ -48,6 +93,9 @@ export default class Platform
     size:number = null;
     remoteURL:string = null;
     localPath:string = null;
+    official:boolean = false;
+
+    resource:Resource = null;
     installed = false;
     stub = false;
 
