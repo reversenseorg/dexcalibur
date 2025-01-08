@@ -4,7 +4,7 @@ import {MongodbAdapter, MongodbDb, MongodbDbCollection} from "@dexcalibur/dexcal
 import {Nullable} from "../core/IStringIndex.js";
 import {AuthMechanism, MongoCredentialsOptions} from "mongodb";
 import * as Log from "../Logger.js";
-import DexcaliburProject from "../DexcaliburProject.js";
+import DexcaliburProject, {DexcaliburProjectUUID} from "../DexcaliburProject.js";
 import {UserAccount, UserAccountUUID} from "../user/UserAccount.js";
 import {Device} from "../Device.js";
 import InspectorFactory from "../InspectorFactory.js";
@@ -22,11 +22,12 @@ import AssuranceReport from "../audit/common/AssuranceReport.js";
 import { Connection, Credential } from "@dexcalibur/dxc-orgs";
 import Inspector from "../Inspector.js";
 import Role from "../user/acl/common/Role.js";
-import {Access} from "../user/acl/Access.js";
 import AccessControl from "../user/acl/AccessControl.js";
 import {ProjectAccessControl} from "../user/acl/rbac/ProjectAccessContol.js";
 import {ApplicationUnit} from "../organization/ApplicationUnit.js";
 import {OrganizationUnit} from "../organization/OrganizationUnit.js";
+import {DeviceTemplate} from "../device/template/DeviceTemplate.js";
+import {DeviceInstance} from "../device/maker/DeviceInstance.js";
 
 
 
@@ -63,6 +64,7 @@ const UA_COL = UserAccount.TYPE.getName(); //"accounts";
 const REPORT_COL = AssuranceReport.TYPE.getName();
 const ORGU_COL = OrganizationUnit.TYPE.getName();
 const APPU_COL = ApplicationUnit.TYPE.getName();
+const DEVTPL_COL = DeviceTemplate.TYPE.getName();
 const CRED_COL = Credential.TYPE.getName();
 const CONN_COL = Connection.TYPE.getName();
 
@@ -99,7 +101,7 @@ export class EngineDatabase {
      *
      * @private
      */
-    private _attached: {[projectUID:string] :AttachedProject} = {};
+    private _attached: Record<DexcaliburProjectUUID, AttachedProject> = {};
 
     private _ctx:DexcaliburEngine;
     private _opts:DatabaseSettings;
@@ -132,7 +134,9 @@ export class EngineDatabase {
         Credential.TYPE,
         Connection.TYPE,
         Role.TYPE,
-        UserAccount.TYPE
+        UserAccount.TYPE,
+        DeviceTemplate.TYPE,
+        DeviceInstance.TYPE
     ];
 
     private _supportedTypeInfos:{ [type:number] :CollectionInfo } = {};
@@ -281,16 +285,7 @@ export class EngineDatabase {
         if(existings.indexOf(INSP_COL)==-1){ this._db.createCollectionOf(InspectorFactory.TYPE, INSP_COL); }
         if(existings.indexOf(SCAN_COL)==-1){ this._db.createCollectionOf(ScanOrder.TYPE, SCAN_COL); }
         if(existings.indexOf(SESSIONS_COL)==-1){ this._db.createCollectionOf(UserSession.TYPE, SESSIONS_COL); }
-        //if(existings.indexOf(UA_COL)==-1){ this._db.createCollectionOf(UserAccount.TYPE, UA_COL); }
         if(existings.indexOf(REPORT_COL)==-1){ this._db.createCollectionOf(AssuranceReport.TYPE, REPORT_COL); }
-        //if(existings.indexOf(ORGU_COL)==-1){ this._db.createCollectionOf(OrganizationUnit.TYPE, ORGU_COL); }
-        //if(existings.indexOf(APPU_COL)==-1){ this._db.createCollectionOf(ApplicationUnit.TYPE, APPU_COL); }
-        //if(existings.indexOf(CRED_COL)==-1){ this._db.createCollectionOf(Credential.TYPE, CRED_COL); }
-        //if(existings.indexOf(CONN_COL)==-1){ this._db.createCollectionOf(Connection.TYPE, CONN_COL); }
-
-
-        // AssuranceReport.TYPE
-
 
 
         // to ease db dev, collection are created accordingly to supported node types
@@ -301,12 +296,7 @@ export class EngineDatabase {
             InspectorFactory.TYPE.getType(),
             ScanOrder.TYPE.getType(),
             UserSession.TYPE.getType(),
-            //UserAccount.TYPE.getType(),
             AssuranceReport.TYPE.getType(),
-            //OrganizationUnit.TYPE.getType(),
-            //ApplicationUnit.TYPE.getType(),
-            //Credential.TYPE.getType(),
-            //Connection.TYPE.getType()
         ];
 
         for(let i=0; i<this._supportedType.length; i++){
@@ -346,6 +336,17 @@ export class EngineDatabase {
         return await (this.getCollectionOf(LogMessage.TYPE.getType())).getAsList(pSize);
     }
 
+
+
+    /**
+     * To retrieve all (or a subset)  of device template
+     *
+     * @param pSize
+     * @param pStartDate
+     */
+    async getDeviceTemplates(pSize:number, pStartDate:number = -1):Promise<DeviceTemplate[]> {
+        return await (this.getCollectionOf(DeviceTemplate.TYPE.getType())).getAsList(pSize);
+    }
 
 
 
@@ -517,6 +518,10 @@ export class EngineDatabase {
                 collName = APPU_COL;
                 collType = ApplicationUnit.TYPE;
                 break;
+            case NodeInternalType.DEVICE_TPL:
+                collName = DEVTPL_COL;
+                collType = DeviceTemplate.TYPE;
+                break;
             case NodeInternalType.CREDENTIAL:
                 collName = CRED_COL;
                 collType = Credential.TYPE;
@@ -639,6 +644,10 @@ export class EngineDatabase {
             case NodeInternalType.APP_UNIT:
                 collName = APPU_COL;
                 collType = ApplicationUnit.TYPE;
+                break;
+            case NodeInternalType.DEVICE_TPL:
+                collName = DEVTPL_COL;
+                collType = DeviceTemplate.TYPE;
                 break;
             case NodeInternalType.CREDENTIAL:
                 collName = CRED_COL;
