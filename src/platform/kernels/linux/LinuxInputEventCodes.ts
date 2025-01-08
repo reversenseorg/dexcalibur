@@ -1,7 +1,7 @@
 import {Endianness} from "../../../core/Endianness.js";
 import InputEventCode from "../../InputEventCode.js";
 
-const LinuxInputEventCodes:Record<string,InputEventCode> = {
+export const LinuxInputEventCodes:Record<string,InputEventCode> = {
 
     INPUT_PROP_POINTER: new  InputEventCode({key: "INPUT_PROP_POINTER", value: 0x00}),
     INPUT_PROP_DIRECT: new  InputEventCode({key: "INPUT_PROP_DIRECT", value: 0x01}),

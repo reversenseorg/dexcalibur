@@ -6,13 +6,21 @@ import InputSubsystem from "../../InputSubsystem.js";
 import {InputDeviceType} from "../common/InputDeviceType.js";
 import InputEventType from "../../InputEventType.js";
 import {
-    LinuxAbsEventCodes, LinuxFfEventCodes, LinuxFfStatusEventCodes, LinuxKeyEventCodes, LinuxLedEventCodes,
-    LinuxMscEventCodes, LinuxPwrEventCodes,
-    LinuxRelEventCodes, LinuxRepEventCodes, LinuxSndEventCodes, LinuxSwEventCodes,
+    LinuxAbsEventCodes,
+    LinuxFfEventCodes,
+    LinuxFfStatusEventCodes,
+    LinuxInputEventCodes,
+    LinuxKeyEventCodes,
+    LinuxLedEventCodes,
+    LinuxMscEventCodes,
+    LinuxPwrEventCodes,
+    LinuxRelEventCodes,
+    LinuxRepEventCodes,
+    LinuxSndEventCodes,
+    LinuxSwEventCodes,
     LinuxSynEventCodes
 } from "./LinuxInputEventCodes.js";
 import {LinuxInputDeviceDecoder} from "./LinuxInputDeviceDecoder.js";
-
 
 
 export const LinuxKernelInfo_aarch64_v4 = new KernelInfo({
@@ -61,6 +69,38 @@ export const LinuxKernelInfo_aarch64_v4 = new KernelInfo({
                         {key: "EV_PWR", value: 0x16,  codes: LinuxPwrEventCodes, description: "A special type for power button and switch input."}),
                     new InputEventType(
                         {key: "EV_FF_STATUS", value: 0x17,  codes: LinuxFfStatusEventCodes, description: "Used to receive force feedback device status."})
+                ]
+            }),
+            fingerprint: new InputDeviceType({
+                name: "fingerprint event interface (custom)",
+                decoder: new LinuxInputDeviceDecoder(null),
+                pathPattern: /^\/dev\/input\/event(?<num>\d+)$/,
+                eventTypes: [
+                    new InputEventType({
+                        key: "EV_FF",
+                        value: 0x15,
+                        codes: [
+                            LinuxInputEventCodes.FF_PERIODIC,
+                            LinuxInputEventCodes.FF_SINE,
+                            LinuxInputEventCodes.FF_CUSTOM,
+                            LinuxInputEventCodes.FF_GAIN,
+                        ],
+                        description: "Send force feedback commands to an input device."
+                    })
+                ]
+            }),
+            // https://www.cirrus.com/products/cs40l26-26b/
+            hapticff: new InputDeviceType({
+                name: "haptic feedback event interface (custom)",
+                decoder: new LinuxInputDeviceDecoder(null),
+                pathPattern: /^\/dev\/input\/event(?<num>\d+)$/,
+                eventTypes: [
+                    new InputEventType({
+                        key: "EV_KEY",
+                        value: 0x01,
+                        codes: LinuxKeyEventCodes,
+                        description: "Describe state changes of keyboards, buttons, or other key-like devices."
+                    }),
                 ]
             })
         }
