@@ -1321,15 +1321,9 @@ export default class WebServer
             return;
         }
 
-        // TODO : remove bypass
-        const isSlave = this.context.isSlaveNode();
-
         function ensureApiLoggedIn(req, res, next) {
 
             Logger.info(` [WEBSERVER][MIDDLEWARE][ensureApiLoggedIn][path=${req.path}][ip=${req.ip}] Receipt `);
-
-            // TODO : remove bypass
-            if(isSlave) next();
 
             if (req.isAuthenticated !=null && req.isAuthenticated()) {
                 return next();
@@ -1395,7 +1389,7 @@ export default class WebServer
             before: []
         });
 
-        this.uploader = Uploader.getInstance();
+        this.uploader = Uploader.getInstance(this.context);
     }
 
     resetDefaultRoute(pHandlers:(vReq:any,vRes:any)=>any){
@@ -1441,6 +1435,7 @@ export default class WebServer
                 Logger.info("[GUI] Headless mode, only /api/ endpoints are exposed");
             }
 
+            console.log("Web server started");
 
             this.context.afterWebServerStarted(this);
 
