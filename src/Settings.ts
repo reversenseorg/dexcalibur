@@ -12,6 +12,8 @@ import {SecurityZone} from "./security/SecurityZone.js";
 import {Nullable} from "./core/IStringIndex.js";
 import {UserServiceException} from "./errors/UserServiceException.js";
 import {UserAccount} from "./user/UserAccount.js";
+import {SslOptions, SslSettings} from "./settings/SslOptions.js";
+import {AbstractSettings} from "./settings/AbstractSettings.js";
 
 
 const LOG_FILE = (process.env.DXC_LOG_PATH ? process.env.DXC_LOG_PATH : null);
@@ -53,6 +55,7 @@ export interface ServerOptions {
     workspace_internal?:string;
     heapSize?:number;
     sigserver?:SignatureServerOptions;
+    ssl?:SslOptions;
 }
 
 export interface DatabaseOptions {
@@ -96,39 +99,12 @@ export namespace Settings {
         params?: string[]
     }
 
-    export abstract class AbstractSettings {
-
-        protected parent:AbstractSettings = null;
-
-        constructor( pParent:AbstractSettings = null) {
-            this.parent = pParent;
-        }
-
-        /**
-         * To trigger global saving
-         *
-         * @param {string} pDestPath Optional. Backup file path
-         * @method
-         */
-        save(pDestPath:string = null):any {
-            return (this.parent!=null ? this.parent.save(pDestPath) : null)
-        }
-
-
-
-        abstract sanitize( pName:string, pValue:any):IncomingValue;
-
-        abstract update( pValue:IncomingValue):void;
-
-        abstract toObject():any;
-    }
-
     /**
      * Represents server configuration
      * @class
      * @export
      */
-    export class ServerSettings extends Settings.AbstractSettings {
+    export class ServerSettings extends AbstractSettings {
 
 
         static DEFAULT_HEAP_SIZE = 4096;
@@ -197,6 +173,13 @@ export namespace Settings {
          */
         private defaultArch = 'aarch64';
 
+        /**
+         * Master/Slave communication encryption
+         * @param pParent
+         * @param pConfig
+         */
+        ssl:Nullable<SslSettings> = null;
+
         constructor( pParent:GlobalSettings, pConfig:ServerOptions={}) {
 
             super(pParent);
@@ -248,6 +231,12 @@ export namespace Settings {
                 this.ssrv = new SignatureServerSettings(this);
             }
 
+            if(pConfig.ssl != null){
+                this.ssl = new SslSettings(this, pConfig.ssl);
+            }else{
+                this.ssl = null;
+            }
+
             if(process.env.DXC_HEAP_SIZE!=undefined){
                 this.heapSize = parseInt(process.env.DXC_HEAP_SIZE,10);
             }
@@ -278,6 +267,10 @@ export namespace Settings {
 
         getDatabaseSettings():DatabaseSettings {
             return this.db;
+        }
+
+        getSslSettings():Nullable<SslSettings> {
+            return this.ssl;
         }
 
         getAuthenticationSettings():AuthenticationSettings {
@@ -656,7 +649,7 @@ export namespace Settings {
     /**
      *
      */
-    export class ExternalSettings extends Settings.AbstractSettings {
+    export class ExternalSettings extends AbstractSettings {
 
         private _all: any;
 
@@ -809,7 +802,7 @@ export namespace Settings {
     }
 
 
-    export class    ConnectionSettings extends Settings.AbstractSettings {
+    export class    ConnectionSettings extends AbstractSettings {
 
         static LOCAL = 'local';
 
@@ -897,7 +890,7 @@ export namespace Settings {
      * @class
      * @export
      */
-    export class GlobalSettings extends Settings.AbstractSettings {
+    export class GlobalSettings extends AbstractSettings {
 
         private _path: string = null;
 
@@ -1181,7 +1174,7 @@ export namespace Settings {
      * @class
      * @export
      */
-    export class SignatureServerSettings extends Settings.AbstractSettings {
+    export class SignatureServerSettings extends AbstractSettings {
 
         /**
          * Hostname
@@ -1296,23 +1289,6 @@ export namespace Settings {
             }
 
             throw GlobalSettingsException.SETTING_UNKNOW();
-            /*
-            switch (pValue.getName()) {
-                case "port":
-                    this._port = pValue.getValue();
-                    break;
-                case "host":
-                    this._host = pValue.getValue();
-                    break;
-                case "ssl":
-                    this._ssl = pValue.getValue();
-                    break;
-                case "auth":
-                    this._auth = pValue.getValue();
-                    break;
-                default:
-                    throw GlobalSettingsException.SETTING_UNKNOW();
-            }*/
         }
 
         toObject(pZone:SecurityZone = SecurityZone.PUBLIC): any {
