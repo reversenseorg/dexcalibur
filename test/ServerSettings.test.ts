@@ -7,10 +7,11 @@ import ServerSettings = Settings.ServerSettings;
 import {SanitizedValue, IncomingValue} from "../src/security/SanitizedValue.js";
 import * as _path_ from "path";
 import Util from "../src/Utils.js";
+import { AbstractSettings } from '../src/settings/AbstractSettings.js';
 
 
 
-class MockParentSettings extends Settings.AbstractSettings {
+class MockParentSettings extends AbstractSettings {
 
     private server:ServerSettings;
 
