@@ -25,6 +25,8 @@ import {OrganizationManagerException} from "../errors/OrganizationManagerExcepti
 import {Secret, SecretProtectionType, SecretType, SecretUUID} from "../core/secrets/Secret.js";
 import {AesKeyLength, CryptoUtils} from "../CryptoUtils.js";
 import {ValidationRule} from "../Validator.js";
+import {BusinessPlan} from "../billing/BusinessPlan.js";
+import {Purchase} from "../billing/Purchase.js";
 
 export type OrganizationUnitUUID = string;
 
@@ -34,6 +36,7 @@ export interface OrganizationUnitOptions {
     companyName?:string;
     description?:string;
     owner?:string;
+    businessPlan?:BusinessPlan;
     members?:UserAccountUUID[];
     authModules?:AuthModule[];
     connections?:Connection[];
@@ -66,6 +69,24 @@ export class OrganizationUnit extends Auditable implements INode {
         (new NodeProperty("owner")).type(DbDataType.STRING).def(null),
         (new NodeProperty("members")).type(DbDataType.STRING).def([]),
         (new NodeProperty("devices")).type(DbDataType.STRING).def([]),
+        (new NodeProperty("businessPlan"))
+            .type(DbDataType.BLOB)
+            .sleep( (x:NodePropertyState) => {
+                if(x.p==null) return null;
+
+                return x.p.toJsonObject();
+            })
+            .wakeUp( (x:NodePropertyState) => {
+                if(x.p==null) return null;
+
+                const bp = new BusinessPlan(x.p);
+                bp.setWallet(x.p.wallet.map(p => {
+                    return new Purchase(p);
+                }));
+
+                return bp;
+            })
+            .def([]),
         (new NodeProperty("secrets"))
             .type(DbDataType.STRING)
             .sleep( (x:NodePropertyState) => {
@@ -187,6 +208,7 @@ export class OrganizationUnit extends Auditable implements INode {
     authModules: AuthModule[] = [];
     devices: DeviceUUID[] = [];
     secrets: Secret[] = [];
+    businessPlan: Nullable<BusinessPlan> = null;
     deviceTpls: DeviceTemplate[] = [];
 
     tags:TagUUID[] = [];
@@ -203,6 +225,7 @@ export class OrganizationUnit extends Auditable implements INode {
             this.owner = pOptions.owner!;
             this.tags = pOptions.tags!;
             this.authModules =  (pOptions.authModules!=null ? pOptions.authModules : []);
+            this.businessPlan =  (pOptions.businessPlan!=null ? pOptions.businessPlan : null);
             this.connections =  (pOptions.connections!=null ? pOptions.connections : []);
             this.members = (pOptions.members!=null ? pOptions.members : []);
             this.devices = (pOptions.devices!=null ? pOptions.devices : []);
@@ -385,7 +408,8 @@ export class OrganizationUnit extends Auditable implements INode {
             authModules: [],
             groups: [],
             secrets: [],
-            _attr: this._attr
+            _attr: this._attr,
+            businessPlan: (this.businessPlan!=null? this.businessPlan.toJsonObject() : null)
         };
 
         this.authModules.map(x => {
@@ -514,6 +538,18 @@ export class OrganizationUnit extends Auditable implements INode {
 
     hasDevice(pDeviceUUID: DeviceUUID) {
         return (this.devices.indexOf(pDeviceUUID)>-1);
+    }
+
+    getBusinessPlan():BusinessPlan {
+        if(this.businessPlan==null){
+            throw OrganizationManagerException.MISSING_BUSINESS_PLAN(this.getUID());
+        }
+
+        return this.businessPlan;
+    }
+
+    setBusinessPlan(pPlan:BusinessPlan):void {
+        this.businessPlan = pPlan;
     }
 }
 OrganizationUnit.TYPE.builder(OrganizationUnit);

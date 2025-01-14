@@ -27,6 +27,10 @@ import {ProjectAccessControl} from "../user/acl/rbac/ProjectAccessContol.js";
 import {VdevEvent, VdevEventType} from "../device/maker/VdevEvent.js";
 import {DEVICE_WEB_API} from "../webapi/device.web.api.js";
 import {Observable} from "rxjs";
+import {ProjectOrder} from "../project/ProjectOrder.js";
+import {ProjectSchedulerException} from "../errors/ProjectSchedulerException.js";
+import {BusinessPlan, BusinessPlanType, ResourceThresholds} from "../billing/BusinessPlan.js";
+import {ErrorCode} from "../errors/MonitoredError.js";
 
 let Logger:Log.Logger = Log.newLogger() as Log.Logger;
 
@@ -1329,5 +1333,66 @@ export class OrganizationManager {
             throw new Error("Cannot stop device : no template");
         }
 
+    }
+
+
+    /**
+     * to verify balance before to execute a ProjectOrder
+     *
+     * @param {ProjectOrder} pOrder
+     */
+    async verifyBalance(pOrder:ProjectOrder):Promise<void> {
+
+        const ouid = pOrder.getOrganizationUnit();
+
+        if(!OrganizationUnit.VALIDATE.uuid.test(ouid)){
+            throw ProjectSchedulerException.CANNOT_VERIFY_ORG_BALANCE(ouid);
+        }
+
+        const org = await this.getOrganization(this._ctx.getInternalAcc(), ouid);
+        const bp = org.getBusinessPlan();
+
+        switch (bp.plan){
+            case BusinessPlanType.SUBSCRIPTION:
+                bp.hasFreeAppSlot(pOrder.getApplicationUnit());
+                break;
+            case BusinessPlanType.SCAN:
+                bp.hasFreeScanSlot();
+                break;
+            default:
+                throw OrganizationManagerException.INVALID_BUSINESS_PLAN(ouid);
+                break;
+        }
+    }
+
+
+
+    async getOrganizationThresholds( pAccount:UserAccount, pOrgUUID:OrganizationUnitUUID):Promise<ResourceThresholds> {
+
+        AccessControl.isAuthorized(
+            AccessControl.access.SRV_INSTANCE_MGT,
+            pAccount
+        );
+
+        const org = await this.getOrganization(pAccount, pOrgUUID);
+
+        try{
+            return org.getBusinessPlan().thresholds;
+        }catch(err){
+            // bp is missing
+            if((err as OrganizationManagerException).getCode()==(ErrorCode.ORGANIZATION + 31)){
+                org.setBusinessPlan(BusinessPlan.newSubscription(org,{
+                    concurrentNodes: 3
+                }));
+
+                await this._ctx.getEngineDB()
+                    .getCollectionOf(OrganizationUnit.TYPE.getType())
+                    .asyncUpdateEntry(org, { replace:false, $set:['businessPlan']});
+
+                return org.getBusinessPlan().thresholds
+            }else{
+                 throw err;
+            }
+        }
     }
 }

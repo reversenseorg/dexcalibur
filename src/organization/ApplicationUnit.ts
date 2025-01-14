@@ -110,6 +110,7 @@ export class ApplicationUnit extends Auditable implements INode {
             this.os = (pOptions.os!=null?pOptions.os : OperatingSystem.NONE);
             this.orgUnit = (pOptions.orgUnit!=null?pOptions.orgUnit : null);
             this.devices = (pOptions.devices!=null?pOptions.devices : []);
+            this.projects = (pOptions.projects!=null?pOptions.projects : []);
             this._attr = pOptions._attr!;
         }
 
@@ -156,7 +157,7 @@ export class ApplicationUnit extends Auditable implements INode {
         return (this.projects.length>0);
     }
 
-    getReleases():string[] {
+    getReleases():DexcaliburProjectUUID[] {
         return this.projects;
     }
 
