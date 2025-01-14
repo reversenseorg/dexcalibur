@@ -44,7 +44,7 @@ var ContentProviderInspector:InspectorFactory = new InspectorFactory({
             autoEmit: true,
             emitEvent: "hook.fileProvider.$b.init",
             before: ` 
-                if (DXC.util.isInstanceOf(arguments[0], "java.lang.String")) {
+                if (DXC.utils.isInstanceOf(arguments[0], "java.lang.String")) {
                     let data : Record<string, any> = {};
                     data['arg0_authority'] = arguments[0];
                     DXC.send(
@@ -65,8 +65,8 @@ var ContentProviderInspector:InspectorFactory = new InspectorFactory({
             autoEmit: true,
             emitEvent: "hook.fileProvider.$b.a",
             before:`
-                if (DXC.util.isInstanceOf(arguments[0], "java.lang.String") ||
-                    DXC.util.isInstanceOf(arguments[1], "java.io.File")){
+                if (DXC.utils.isInstanceOf(arguments[0], "java.lang.String") ||
+                    DXC.utils.isInstanceOf(arguments[1], "java.io.File")){
                     let data : Record<string, any> = {};
                     data['arg0_name'] = arguments[0];
                     data['arg1_root'] = arguments[1];

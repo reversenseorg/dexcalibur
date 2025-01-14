@@ -48,7 +48,7 @@ var OkhttpInspector:InspectorFactory = new InspectorFactory({
                     {name:"FRAGMENT_ENCODE_SET_URI", value:" \\"#<>\\\\^\`{|}"}
                 ];
                 var argOffset: number = 0;
-                if (DXC.util.isInstanceOf(arguments[1], 'java.lang.String')) {
+                if (DXC.utils.isInstanceOf(arguments[1], 'java.lang.String')) {
                     // First arg addition is due to Companion 
                     argOffset++
                 }

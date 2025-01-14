@@ -78,7 +78,7 @@ var AccessibilityInteractionClientInspector:InspectorFactory = new InspectorFact
                     if (typeof accessibilityEvent === "number") {
                         eventTypes = Java.use("android.view.accessibility.AccessibilityEvent").eventTypeToString(accessibilityEvent);
                     }
-                    else if (DXC.util.isInstanceOf(accessibilityEvent, 'android.view.accessibility.AccessibilityEvent')) {
+                    else if (DXC.utils.isInstanceOf(accessibilityEvent, 'android.view.accessibility.AccessibilityEvent')) {
                         eventTypes = accessibilityEvent.toString();
                     }
                     if (arguments.length === 1) {
@@ -86,6 +86,39 @@ var AccessibilityInteractionClientInspector:InspectorFactory = new InspectorFact
                     } else if (arguments.length === 2) {
                         dataEvent = {'arg0_view': arguments[0], 'arg1_event': accessibilityEvent, 'eventTypes': eventTypes};
                     }
+                    DXC.send(
+                        "@@__HOOK_ID__@@",
+                        "@@__FRAG_ID__@@",
+                        dataEvent
+                    );
+                `
+            },
+            {
+                name: "android.app.ActivityThread$H handleMessage",
+                descr: "Hook the ActivityThread$H which calls handleMessage.",
+                search: {
+                    type: ModelMethod.TYPE.getName(),
+                    req: 'method("name:handleMessage")'
+                },
+                autoEmit: true,
+                emitEvent: "hook.activityThreadH.handleMessage",
+                before:`  
+                    //<psh>={
+                    let dataEvent:Record<string, any> = {};
+                    let message = arguments[0];
+                    if (DXC.utils.isInstanceOf(message, 'android.os.Message')) {
+                        message = Java.cast(arguments[0], Java.use('android.os.Message'));
+                    }
+                    dataEvent = {
+                        'arg0_message': message.toString(), 
+                        'what': message.what.toString(), 
+                        'data': message.data.toString(), 
+                        'callback': message.callback.toString(), 
+                        'arg1': message.arg1.toString(), 
+                        'arg2': message.arg2.toString(), 
+                        'obj': message.obj.toString(), 
+                        'target': message.target.toString()
+                    };
                     DXC.send(
                         "@@__HOOK_ID__@@",
                         "@@__FRAG_ID__@@",

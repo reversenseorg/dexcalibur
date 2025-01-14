@@ -337,7 +337,7 @@ var NetworkHttpInspector:InspectorFactory = new InspectorFactory({
                         if (typeof (arg0_obj, 'string')) {
                             eventData['baseUrl'] = arg0_obj.value ? arg0_obj.value : arg0_obj.toString();
                         }
-                        else if (DXC.util.isInstanceOf(arg0_obj, 'java.net.URL')) {
+                        else if (DXC.utils.isInstanceOf(arg0_obj, 'java.net.URL')) {
                             eventData['baseUrl'] = arg0_obj.value ? arg0_obj.value.toString() : arg0_obj.toString();
                         }
                         else { // Okhttp3.HttpUrl

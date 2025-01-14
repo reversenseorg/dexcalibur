@@ -320,7 +320,7 @@ export default new InspectorFactory({
                 emitEvent: "hook.dex.new",
                 before: `     
                         let path:string;
-                        if(DXC.util.isInstanceOf(arg0,"java.io.File"))
+                        if(DXC.utils.isInstanceOf(arg0,"java.io.File"))
                             path = arg0.getAbsolutePath();
                         else
                             path = arg0;
@@ -361,7 +361,8 @@ export default new InspectorFactory({
                 
                         const d = '/data/data/@@__APP_NAME__@@';
                         let p = 'inmemory_'+end+'_'+Date.now()+'.dex';
-                
+                        
+                        // init new instance
                         let f:any = DXC.java.class.java.io.File.$new(d, p);
                         let fos:any = DXC.java.class.java.io.FileOuputStream.$new(f);
                         fos.write(arg0);
@@ -484,10 +485,10 @@ export default new InspectorFactory({
                         'let data:any ={}; '+
                         'let path="", path2="";'+
                         'for(var i=0; i<arguments.length; i++){'+
-                        '    if(DXC.util.isInstanceOf(arguments[i],"java.io.File")){'+
+                        '    if(DXC.utils.isInstanceOf(arguments[i],"java.io.File")){'+
                         '        data["arg"+i] = { __:DXC.NODE.FILE, path:arguments[i].getAbsolutePath() };'+
                         '    }'+
-                        '    else if(DXC.util.isInstanceOf(arguments[i],"java.net.URL")){'+
+                        '    else if(DXC.utils.isInstanceOf(arguments[i],"java.net.URL")){'+
                         '       data["arg"+i] = { __:DXC.NODE.FILE, url:arguments[i].toString() };'+
                         '    }'+
                         '    else{'+
@@ -833,10 +834,10 @@ let data:any ={};
 let path="", path2="";
 
 for(var i=0; i<arguments.length; i++){
-    if(DXC.util.isInstanceOf(arguments[i],"java.io.File")){
+    if(DXC.utils.isInstanceOf(arguments[i],"java.io.File")){
         data['arg'+i] = { __:DXC.NODE.FILE, path:arguments[i].getAbsolutePath() };
     }
-    else if(DXC.util.isInstanceOf(arguments[i],"java.net.URL")){
+    else if(DXC.utils.isInstanceOf(arguments[i],"java.net.URL")){
         data['arg'+i] = { __:DXC.NODE.FILE, url:arguments[i].toString() };
     }
     else{

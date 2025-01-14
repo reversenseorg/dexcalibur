@@ -40,10 +40,10 @@ var FileSystemInspector:InspectorFactory = new InspectorFactory({
                     let msg:any ={ arg0:"<null>", arg1:"<null>" }; 
             
                     if(arg0!=null){ 
-                        if(DXC.util.isInstanceOf(arg0, "java.io.File")){
+                        if(DXC.utils.isInstanceOf(arg0, "java.io.File")){
                             msg.arg0 = (arg0 as any).getAbsolutePath();
                         }
-                        else if(DXC.util.isInstanceOf(arg0, "java.net.URI"))
+                        else if(DXC.utils.isInstanceOf(arg0, "java.net.URI"))
                             msg.arg0 = arg0.toString();
                         else
                             msg.arg0 = arg0;
@@ -76,7 +76,7 @@ var FileSystemInspector:InspectorFactory = new InspectorFactory({
                     let msg:any ={ arg0:"<null>", arg1:"" }; 
             
                     if(arg0!=null){ 
-                        if(DXC.util.isInstanceOf(arg0, "java.net.URI"))
+                        if(DXC.utils.isInstanceOf(arg0, "java.net.URI"))
                             msg.arg0 = arg0.toString();
                         else
                             msg.arg0 = arg0;

@@ -37,7 +37,7 @@ var IssueInspector:InspectorFactory = new InspectorFactory({
             before: ` 
         
                     let msg="";    
-                    if(DXC.util.isInstanceOf(arg0,"java.lang.String"))
+                    if(DXC.utils.isInstanceOf(arg0,"java.lang.String"))
                         msg = arg0;
                     else
                         msg = "<unknow>";

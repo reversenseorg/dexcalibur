@@ -35,7 +35,7 @@ describe('HookSet', function() {
                     emitEvent: "hook.firebase.auth.get",
                     before: `
                             let msg="";    
-                            if(DXC.util.isInstanceOf(arg0,"com.google.firebase.FirebaseApp"))
+                            if(DXC.utils.isInstanceOf(arg0,"com.google.firebase.FirebaseApp"))
                                 msg = arg0;
                             else
                                 msg = "<unknow>";
@@ -83,7 +83,7 @@ describe('HookSet', function() {
                     emitEvent: "hook.firebase.auth.get",
                     before: `
                             let msg="";    
-                            if(DXC.util.isInstanceOf(arg0,"com.google.firebase.FirebaseApp"))
+                            if(DXC.utils.isInstanceOf(arg0,"com.google.firebase.FirebaseApp"))
                                 msg = arg0;
                             else
                                 msg = "<unknow>";
@@ -111,7 +111,7 @@ describe('HookSet', function() {
                         emitEvent: "hook.firebase.auth.get2",
                         after: `
                             let msg="";    
-                            if(DXC.util.isInstanceOf(arg0,"com.google.firebase.FirebaseApp"))
+                            if(DXC.utils.isInstanceOf(arg0,"com.google.firebase.FirebaseApp"))
                                 msg = arg0;
                             else
                                 msg = "<unknow>";

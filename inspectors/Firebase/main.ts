@@ -35,7 +35,7 @@ var FirebaseInspector:InspectorFactory = new InspectorFactory({
                     // <ts>={
                     let msg="";
                     if (arguments.length >= 1) {
-                        if(DXC.util.isInstanceOf(arg0,"com.google.firebase.FirebaseApp"))
+                        if(DXC.utils.isInstanceOf(arg0,"com.google.firebase.FirebaseApp"))
                             msg = arg0;
                         else
                             msg = "<unknow>";

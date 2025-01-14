@@ -126,7 +126,7 @@ export class InputDevice {
         this.supportedEvents.map(e => {
             o.supportedEvents.push(e.toJsonObject());
         })
-        o.type = this.type.toJsonObject();
+        o.type = this.type?.toJsonObject();
         o.records = [];
         o.activeRecord = (this.activeRecord!=null ? this.activeRecord.getUID() : null);
         return o;
