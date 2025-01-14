@@ -1,7 +1,7 @@
 import {ErrorCode, MonitoredError} from "./MonitoredError.js";
 import {PassthroughValue, SanitizedValue, UnsafeValue} from "../security/SanitizedValue.js";
 import {A} from "@reversense/interruptor/src/syscalls/LinuxX64Syscalls.js";
-import {UserAccount} from "../user/UserAccount.js";
+import {UserAccount, UserAccountUUID} from "../user/UserAccount.js";
 
 
 
@@ -19,7 +19,8 @@ export class UserServiceException extends MonitoredError {
         AUTH_IS_NOT_READY: ErrorCode.USER_SERVICE + 109,
         USER_NOT_FOUND: ErrorCode.USER_SERVICE + 110,
         USERS_NOT_SAME_ORG: ErrorCode.USER_SERVICE + 111,
-        ACCESS_DENIED_USER_PROFILE: ErrorCode.USER_SERVICE + 111
+        ACCESS_DENIED_USER_PROFILE: ErrorCode.USER_SERVICE + 112,
+        CANNOT_UPDATE_ACCOUNT: ErrorCode.USER_SERVICE + 112
     };
 
     static WRONG_DB_FORMAT = ()=>{ return new UserServiceException(" User DB format is invalid",UserServiceException.ERR.WRONG_DB_FORMAT) };
@@ -38,6 +39,10 @@ export class UserServiceException extends MonitoredError {
     static USERS_NOT_SAME_ORG = (pAcc1:UserAccount, pAcc2:UserAccount)=>{ return new UserServiceException(` Users [${pAcc1.getUID()}] and [${pAcc2.getUID()}] don't share the same organization.`,UserServiceException.ERR.USERS_NOT_SAME_ORG) };
 
     static ACCESS_DENIED_USER_PROFILE = ()=>{ return new UserServiceException(" Access denied to user profile : insufficient permissions",UserServiceException.ERR.ACCESS_DENIED_USER_PROFILE) };
+    static CANNOT_UPDATE_ACCOUNT = (pAcc:UserAccountUUID)=>{ return new UserServiceException("Cannot update user account [uuid="+pAcc+"]",UserServiceException.ERR.CANNOT_UPDATE_ACCOUNT) };
+
+
+
 
     static is(pErrCode:number, pError:number):boolean {
         return ((pError as any).code!=null && (pError as any).code==pErrCode);

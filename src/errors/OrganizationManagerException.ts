@@ -135,6 +135,30 @@ export class OrganizationManagerException extends MonitoredError {
         return new OrganizationManagerException(`Invalid format for application UUID [uuid=${pAUID}]`,
             ErrorCode.ORGANIZATION + 30) };
 
+    static MISSING_BUSINESS_PLAN = (pOUID:OrganizationUnitUUID)=>{
+        return new OrganizationManagerException(`Business plan is missing for organization UUID [uuid=${pOUID}]`,
+            ErrorCode.ORGANIZATION + 31) };
+
+    static INVALID_BUSINESS_PLAN = (pOUID:OrganizationUnitUUID)=>{
+        return new OrganizationManagerException(`Business plan has invalid type for organization UUID [uuid=${pOUID}]`,
+            ErrorCode.ORGANIZATION + 32) };
+
+    static BUSINESS_PLAN_NOT_SCAN_PLAN = (pOUID:OrganizationUnitUUID)=>{
+        return new OrganizationManagerException(`Business plan for organization UUID [uuid=${pOUID}] is not a scan plan`,
+            ErrorCode.ORGANIZATION + 33) };
+
+    static BUSINESS_PLAN_NOT_SUBS_PLAN = (pOUID:OrganizationUnitUUID)=>{
+        return new OrganizationManagerException(`Business plan for organization UUID [uuid=${pOUID}] is not a subscription plan`,
+            ErrorCode.ORGANIZATION + 34) };
+
+    static NO_SCAN_SLOT_AVAILABLE = (pOUID:OrganizationUnitUUID)=>{
+        return new OrganizationManagerException(`There is not more available free scan slot in organization UUID [uuid=${pOUID}]. Please purchase more.`,
+            ErrorCode.ORGANIZATION + 35) };
+
+    static NO_APP_SLOT_AVAILABLE = (pOUID:OrganizationUnitUUID)=>{
+        return new OrganizationManagerException(`There is not more available free app slot in organization UUID [uuid=${pOUID}]. Please purchase more.`,
+            ErrorCode.ORGANIZATION + 36) };
+
 
 
 

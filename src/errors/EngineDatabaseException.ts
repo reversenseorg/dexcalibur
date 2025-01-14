@@ -1,4 +1,6 @@
 import {ErrorCode, MonitoredError} from "./MonitoredError.js";
+import {InternalStateUUID} from "../core/InternalState.js";
+import {NodeInternalType} from "@dexcalibur/dxc-core-api";
 
 export class EngineDatabaseException extends MonitoredError {
 
@@ -38,6 +40,17 @@ export class EngineDatabaseException extends MonitoredError {
         return new EngineDatabaseException(`Connection to db is not possible: ${pCause} `,
             ErrorCode.GENERIC + 26) };
 
+    static CANNOT_CHECK_UUID = ()=>{
+        return new EngineDatabaseException("Cannot check if an UUID exists : invalid object type",
+            ErrorCode.GENERIC + 27) };
+
+    static CANNOT_SAVE_INTERNAL_STATE = (pStateUUID:InternalStateUUID)=>{
+        return new EngineDatabaseException("Cannot save internal state because engine database is not ready [uuid="+pStateUUID+"]",
+            ErrorCode.GENERIC + 28) };
+
+    static ORDER_TYPE_NOT_SUPPORTED = (pType:NodeInternalType,pOpe:string)=>{
+        return new EngineDatabaseException(`Cannot ${pOpe} order : Order type not supported [type=${pType}]`,
+            ErrorCode.GENERIC + 29) };
 
 
     constructor( pMsg:string, pCode:number = null, pExtra:any = null) {
